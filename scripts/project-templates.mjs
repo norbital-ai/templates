@@ -64,6 +64,21 @@ function runGit(arguments_, options = {}) {
 	}
 }
 
+/** The `origin` URL, or undefined when this clone has none. Absence is not an error. */
+function originUrl() {
+	try {
+		return (
+			execFileSync('git', ['config', '--get', 'remote.origin.url'], {
+				cwd: repositoryRoot,
+				encoding: 'utf8',
+				stdio: ['ignore', 'pipe', 'ignore']
+			}).trim() || undefined
+		);
+	} catch {
+		return undefined;
+	}
+}
+
 function validateStandaloneManifest(template) {
 	const manifest = JSON.parse(readFileSync(path.join(template.directory, 'package.json'), 'utf8'));
 	if (!manifest.private)
@@ -127,9 +142,10 @@ if (options.check && !options.updateLocal && !options.pushRemote && !options.out
 }
 
 const sourceRevision = runGit(['rev-parse', '--verify', `${options.sourceRevision}^{commit}`]);
-const sourceRepository =
-	options.repository ??
-	runGit(['config', '--get', 'remote.origin.url'], { stdio: ['ignore', 'pipe', 'ignore'] });
+// Only `--output` records where the projection came from. `git config --get` exits non-zero when
+// the key is unset, so reading it through `runGit` turned "this clone has no origin" into a hard
+// failure of `--check` and `--update-local`, neither of which needs a URL at all.
+const sourceRepository = options.repository ?? originUrl();
 if (!sourceRepository && options.output) {
 	fail('A source repository is required for output; pass --repository <url>.');
 }
