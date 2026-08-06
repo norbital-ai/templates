@@ -1,0 +1,33 @@
+# Dependencies
+node_modules/
+
+# Build output. Migrations are authored history and stay tracked.
+**/build/
+**/.svelte-kit/
+**/.generated/
+**/.norbital/*
+!**/.norbital/migrations/
+!**/.norbital/migrations/**
+*.tsbuildinfo
+
+# Package-manager lockfiles other than the committed pnpm lockfiles
+**/package-lock.json
+**/yarn.lock
+
+# Tool caches and reports
+.turbo/
+.tmp/
+/dist/
+coverage/
+test-results/
+playwright-report/
+**/graphify-out/
+
+# Environment and local files
+.env
+.env.*
+!.env.example
+.DS_Store
+Thumbs.db
+*.log
+vite.config.*.timestamp-*

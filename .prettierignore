@@ -1,0 +1,36 @@
+# Build & generated artifacts
+**/.svelte-kit/
+**/build/
+**/.generated/
+**/.norbital/
+**/graphify-out/
+
+# Generated migration history. Not merely regenerated output — `migrationFingerprint` hashes the
+# RAW BYTES of every file under this directory into `historySha256`, so reformatting one rewrites
+# the fingerprint and the build reads that as a changed migration history.
+**/.norbital/migrations/
+
+# Tooling / CI
+.turbo/
+.tmp/
+**/test-results/
+**/playwright-report/
+**/coverage/
+
+# Dependencies & lockfiles
+**/node_modules/
+**/pnpm-lock.yaml
+**/pnpm-workspace.yaml
+**/package-lock.json
+**/yarn.lock
+
+# Env
+.env
+.env.*
+!.env.example
+
+# OS
+.DS_Store
+Thumbs.db
+
+vite.config.js*

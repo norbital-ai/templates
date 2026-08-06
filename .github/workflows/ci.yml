@@ -1,0 +1,76 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+# `packages: read` lets every template resolve the published `@norbital-ai/*` versions its own
+# manifest pins. Templates are not workspace members and link nothing locally, so the registry is
+# the only place these come from — here exactly as in a tenant sandbox.
+permissions:
+  contents: read
+  packages: read
+
+env:
+  NORBITAL_PACKAGE_REGISTRY: ${{ vars.NORBITAL_PACKAGE_REGISTRY || 'https://npm.pkg.github.com' }}
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: 26
+          cache: pnpm
+          registry-url: https://npm.pkg.github.com
+          scope: '@norbital-ai'
+
+      - name: Install repository tooling
+        run: pnpm install --frozen-lockfile --ignore-scripts
+
+      # Declarations, counts recomputed from source, per-template package policy, and the migration
+      # lineage checks. None of this needs a template installed.
+      - name: Check template declarations
+        run: pnpm templates:check && pnpm test && pnpm format:check
+
+      - name: Check template lockfiles
+        run: pnpm templates:lock:check
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_REGISTRY_TOKEN || secrets.GITHUB_TOKEN }}
+
+      # The load-bearing gate: copy only each template's tracked files somewhere else, then install
+      # from the committed lockfile and run a tenant's lifecycle against it. A projection that
+      # depends on an untracked file, or on something this repository provides at its root, fails
+      # here rather than inside a tenant sandbox.
+      - name: Verify standalone projections
+        run: pnpm templates:verify
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_REGISTRY_TOKEN || secrets.GITHUB_TOKEN }}
+
+      # Proves the committed lockfiles are what a Core host installs: warm one shared store over
+      # the network, then install with no network and no credentials.
+      - name: Verify offline installability
+        run: pnpm templates:lock:verify
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_REGISTRY_TOKEN || secrets.GITHUB_TOKEN }}
+
+      # The bundle format is the only cross-version contract between a template and a host, and this
+      # is the only thing that proves it: a real build against a materialized depset, booted, and
+      # answering with its `ready` frame.
+      - name: Verify the runtime bundle boots
+        run: pnpm runtime:smoke
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_REGISTRY_TOKEN || secrets.GITHUB_TOKEN }}

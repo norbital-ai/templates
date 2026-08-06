@@ -1,0 +1,31 @@
+{
+	"name": "@norbital-ai/templates",
+	"version": "0.0.0",
+	"private": true,
+	"type": "module",
+	"packageManager": "pnpm@11.15.1",
+	"engines": {
+		"node": ">=26.0.0"
+	},
+	"scripts": {
+		"check": "pnpm templates:check && pnpm test && pnpm format:check && pnpm templates:lock:check && pnpm templates:verify",
+		"test": "node --test scripts/tests/*.test.mjs",
+		"templates:install": "node scripts/for-each-template.mjs install",
+		"templates:sync": "node scripts/sync-templates.mjs",
+		"templates:lint": "node scripts/for-each-template.mjs lint",
+		"templates:build": "node scripts/for-each-template.mjs build",
+		"templates:check": "node scripts/project-templates.mjs --check",
+		"templates:verify": "node scripts/validate-template-projections.mjs",
+		"templates:lock": "node scripts/lock-templates.mjs",
+		"templates:lock:check": "node scripts/lock-templates.mjs --check",
+		"templates:lock:verify": "node scripts/lock-templates.mjs --check --verify-install",
+		"templates:project": "node scripts/project-templates.mjs --update-local --output .tmp/template-revisions.json",
+		"runtime:smoke": "node scripts/smoke-runtime-bundle.mjs",
+		"format": "prettier --write .",
+		"format:check": "prettier --check ."
+	},
+	"devDependencies": {
+		"prettier": "^3.9.5",
+		"prettier-plugin-svelte": "^4.1.1"
+	}
+}
