@@ -7,7 +7,8 @@ import { PNG } from 'pngjs';
 import { z } from 'zod';
 
 const require = createRequire(import.meta.url);
-// pdq-wasm's ESM entry fails to locate the bundled .wasm; the CJS build loads it correctly.
+// pdq-wasm documents its CommonJS entry as the Node path; its ESM entry cannot load the bundled
+// WebAssembly. The Vite config carries that entry and its WASM sidecar into the sealed runtime.
 const { PDQ } = require('pdq-wasm') as typeof import('pdq-wasm');
 
 const exifSchema = z

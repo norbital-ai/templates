@@ -74,3 +74,4 @@ jobs:
         run: pnpm runtime:smoke
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_REGISTRY_TOKEN || secrets.GITHUB_TOKEN }}
+          RUNTIME_SMOKE_TEMPLATE: field-operations
