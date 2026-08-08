@@ -1,43 +1,36 @@
 <script lang="ts">
-	import { client, type WorkspaceRow } from '$pod/client';
+	import { client } from '$pod/client';
+	import { Badge } from '@norbital-ai/ui/badge';
 	import { Button } from '@norbital-ai/ui/button';
 	import { useI18n } from '@norbital-ai/ui/i18n';
 	import type { TenantI18nKeys } from '$pod/i18n-keys';
 	import { CollectionKanban } from '@norbital-ai/ui/collection-kanban';
 	import { CollectionTable } from '@norbital-ai/ui/collection-table';
-	import { Combobox } from '@norbital-ai/ui/combobox';
 	import { DataRenderer } from '@norbital-ai/ui/data-renderer';
 	import { RelationshipRenderer } from '@norbital-ai/ui/data-renderer/relationship';
 	import { Bound, Cluster, Cover, Inline, Split, Stack } from '@norbital-ai/ui/layout';
 	import { PageHeader } from '@norbital-ai/ui/page-header';
-	import * as Sheet from '@norbital-ai/ui/sheet';
 	import { StaticMap, type StaticMapMarker } from '@norbital-ai/ui/static-map';
 	import { Tabs, type TabConfig } from '@norbital-ai/ui/tabs';
 	import { renderComponent } from '@norbital-ai/ui/utils';
 	import Icon from '@iconify/svelte';
-	import { calendarDateInTimeZone, shiftCalendarDate } from '../lib/calendar.js';
-	import { contractorSatisfiesCertificationRequirements } from '../lib/certification-eligibility.js';
-
-	type ContractorCertification = WorkspaceRow<'contractor_certifications'>;
-	interface AssignmentForm {
-		jobId: string | null;
-		contractorId: string | null;
-		saving: boolean;
-		error: string | null;
-	}
+	import { calendarDateInTimeZone } from '../lib/calendar.js';
+	import { downloadRosterTemplate, importWeeklyRoster } from '../lib/roster-import.js';
 
 	const today = calendarDateInTimeZone(new Date());
 
 	const { t } = useI18n<TenantI18nKeys>();
 
 	let dispatchDay = $state(today);
-	let assignContractorOpen = $state(false);
+	let rosterImporting = $state(false);
+	let rosterFeedback = $state<{ kind: 'success' | 'error'; message: string } | null>(null);
 	const dashboardQuery = $derived(
 		client.invoke.field_ops_dashboard({ scheduled_for: dispatchDay })
 	);
 	const assignmentCardById = $derived(
 		new Map((dashboardQuery.current?.assignment_cards ?? []).map((card) => [card.id, card]))
 	);
+	const monthSuspects = $derived(dashboardQuery.current?.month_suspects ?? []);
 	// Reactive board query: when the dispatch day changes the dashboard refetches, the assignment
 	// id list changes, and the kanban refetches automatically — no `{#key}` re-mount hack needed.
 	const boardQuery = $derived({
@@ -49,90 +42,14 @@
 		{ value: 'dispatched', label: t('component.status_dispatched'), color: 'blue' },
 		{ value: 'in_progress', label: t('component.status_in_progress'), color: 'amber' },
 		{ value: 'completed', label: t('component.status_completed'), color: 'green' },
-		{ value: 'flagged', label: t('component.status_flagged'), color: 'red' }
+		{ value: 'suspect', label: t('component.status_suspect'), color: 'red' }
 	]);
-
-	// Assign-contractor sheet — filters unassigned jobs for the day to certified contractors.
-	const assignJobsQuery = $derived(
-		client.db.jobs.findMany({
-			where: { scheduled_for: { eq: dispatchDay }, status: { eq: 'unassigned' } },
-			orderBy: { title: 'asc' },
-			limit: 250
-		})
-	);
-	const assignContractorsQuery = client.db.contractor_profiles.findMany({
-		orderBy: { company_name: 'asc' },
-		limit: 250
-	});
 	const sitesQuery = client.db.sites.findMany({
 		orderBy: { name: 'asc' },
 		limit: 250
 	});
 	const siteNameById = $derived(
 		new Map((sitesQuery.current ?? []).map((site) => [site.norbital_id, site.name]))
-	);
-	let assignment = $state<AssignmentForm>({
-		jobId: null,
-		contractorId: null,
-		saving: false,
-		error: null
-	});
-	const assignSelectedJob = $derived(
-		(assignJobsQuery.current ?? []).find((job) => job.norbital_id === assignment.jobId)
-	);
-	const assignRequirementsQuery = $derived(
-		assignSelectedJob?.norbital_id
-			? client.db.job_certification_requirements.findMany({
-					where: { job_id: { eq: assignSelectedJob.norbital_id } },
-					limit: 250
-				})
-			: null
-	);
-	const assignContractorIds = $derived(
-		(assignContractorsQuery.current ?? []).map((contractor) => contractor.norbital_id)
-	);
-	const assignContractorCertificationQuery = $derived(
-		assignContractorIds.length
-			? client.db.contractor_certifications.findMany({
-					where: { contractor_profile_id: { in: assignContractorIds } },
-					limit: 500
-				})
-			: null
-	);
-	const assignContractorCertifications = $derived(
-		assignContractorCertificationQuery?.current ?? []
-	);
-	const assignCertificationsByContractor = $derived(
-		new Map<string, ContractorCertification[]>(
-			[...new Set(assignContractorCertifications.map((link) => link.contractor_profile_id))].map(
-				(contractorProfileId) => [
-					contractorProfileId,
-					assignContractorCertifications.filter(
-						(link) => link.contractor_profile_id === contractorProfileId
-					)
-				]
-			)
-		)
-	);
-	const assignQualifiedContractors = $derived(
-		(assignContractorsQuery.current ?? []).filter((contractor) =>
-			contractorSatisfiesCertificationRequirements(
-				assignCertificationsByContractor.get(contractor.norbital_id) ?? [],
-				assignRequirementsQuery?.current ?? []
-			)
-		)
-	);
-	const assignJobOptions = $derived(
-		(assignJobsQuery.current ?? []).map((job) => ({
-			value: job.norbital_id,
-			label: `${job.title} · ${siteNameById.get(job.site_id) ?? '—'}`
-		}))
-	);
-	const assignContractorOptions = $derived(
-		assignQualifiedContractors.map((contractor) => ({
-			value: contractor.norbital_id,
-			label: contractor.company_name
-		}))
 	);
 
 	function setDispatchDay(next: string): void {
@@ -147,27 +64,42 @@
 		await dashboardQuery.refresh();
 	}
 
-	async function createAssignment(): Promise<void> {
-		if (!assignment.jobId || !assignment.contractorId || assignment.saving) return;
-		assignment.saving = true;
-		assignment.error = null;
+	async function handleDownloadRosterTemplate(): Promise<void> {
 		try {
-			const create = client.db.job_assignments.create;
-			if (!create) throw new Error(t('component.assignment_create_unavailable'));
-			await create({
-				job_id: assignment.jobId,
-				contractor_profile_id: assignment.contractorId,
-				status: 'dispatched'
-			});
-			assignment.jobId = null;
-			assignment.contractorId = null;
-			await refreshDispatch();
-			assignContractorOpen = false;
+			downloadRosterTemplate();
 		} catch (reason) {
-			assignment.error =
-				reason instanceof Error ? reason.message : t('component.assignment_create_failed');
+			rosterFeedback = {
+				kind: 'error',
+				message:
+					reason instanceof Error
+						? reason.message
+						: t('app.field_ops_controller.roster_import_failed')
+			};
+		}
+	}
+
+	async function handleImportWeeklyRoster(): Promise<void> {
+		if (rosterImporting) return;
+		rosterImporting = true;
+		rosterFeedback = null;
+		try {
+			const created = await importWeeklyRoster();
+			if (created === 0) return;
+			await refreshDispatch();
+			rosterFeedback = {
+				kind: 'success',
+				message: t('app.field_ops_controller.roster_imported', { count: created })
+			};
+		} catch (reason) {
+			rosterFeedback = {
+				kind: 'error',
+				message:
+					reason instanceof Error
+						? reason.message
+						: t('app.field_ops_controller.roster_import_failed')
+			};
 		} finally {
-			assignment.saving = false;
+			rosterImporting = false;
 		}
 	}
 
@@ -178,7 +110,7 @@
 			longitude: point.longitude,
 			...(index < 26 ? { label: String.fromCharCode(65 + index) } : {}),
 			ariaLabel: point.name,
-			tone: point.assignments.some((assignment) => assignment.status === 'flagged')
+			tone: point.assignments.some((assignment) => assignment.status === 'suspect')
 				? 'alert'
 				: 'default'
 		}))
@@ -240,46 +172,68 @@
 							{t('app.field_ops_controller.today')}
 						</Button>
 					</Inline>
-					<Inline gap="xs">
-						<Button
-							variant="outline"
-							size="icon"
-							aria-label={t('app.field_ops_controller.previous_day')}
-							hint={t('app.field_ops_controller.previous_day')}
-							onclick={() => setDispatchDay(shiftCalendarDate(dispatchDay, -1))}
-						>
-							<Icon icon="lucide:chevron-left" class="size-4" />
-						</Button>
-						<div class="min-w-0">
-							<DataRenderer
-								field={{ name: 'dispatch_date', kind: 'date', nullable: false }}
-								value={dispatchDay}
-								mode="edit"
-								placeholder={t('app.field_ops_controller.select_dispatch_date')}
-								onValueChange={updateDispatchDate}
-							/>
-						</div>
-						<Button
-							variant="outline"
-							size="icon"
-							aria-label={t('app.field_ops_controller.next_day')}
-							hint={t('app.field_ops_controller.next_day')}
-							onclick={() => setDispatchDay(shiftCalendarDate(dispatchDay, 1))}
-						>
-							<Icon icon="lucide:chevron-right" class="size-4" />
-						</Button>
-					</Inline>
+					<div class="min-w-0">
+						<DataRenderer
+							field={{ name: 'dispatch_date', kind: 'date', nullable: false }}
+							value={dispatchDay}
+							mode="edit"
+							placeholder={t('app.field_ops_controller.select_dispatch_date')}
+							onValueChange={updateDispatchDate}
+						/>
+					</div>
 				</Stack>
 			{/snippet}
 			{#snippet end()}
 				<Cluster gap="sm" justify="end">
-					<Button variant="secondary" onclick={() => (assignContractorOpen = true)}>
-						<Icon icon="lucide:user-round-check" class="mr-1.5 size-4 shrink-0" />
-						{t('app.field_ops_controller.assign_contractor')}
+					<Button variant="outline" onclick={() => void handleDownloadRosterTemplate()}>
+						<Icon icon="lucide:download" class="mr-1.5 size-4 shrink-0" />
+						{t('app.field_ops_controller.download_roster_template')}
+					</Button>
+					<Button
+						variant="secondary"
+						disabled={rosterImporting}
+						onclick={() => void handleImportWeeklyRoster()}
+					>
+						<Icon icon="lucide:upload" class="mr-1.5 size-4 shrink-0" />
+						{rosterImporting
+							? t('app.field_ops_controller.importing_roster')
+							: t('app.field_ops_controller.import_weekly_roster')}
 					</Button>
 				</Cluster>
 			{/snippet}
 		</Split>
+
+		{#if rosterFeedback}
+			<p
+				class="rounded-md border px-3 py-2 text-sm whitespace-pre-line {rosterFeedback.kind ===
+				'error'
+					? 'border-destructive/40 bg-destructive/5 text-destructive'
+					: 'border-border bg-muted/40 text-foreground'}"
+				role={rosterFeedback.kind === 'error' ? 'alert' : 'status'}
+			>
+				{rosterFeedback.message}
+			</p>
+		{/if}
+
+		{#if monthSuspects.length > 0}
+			<Stack gap="xs" class="rounded-lg border border-destructive/40 bg-destructive/5 px-3 py-2">
+				<Inline gap="sm" align="center">
+					<Icon icon="lucide:shield-alert" class="size-4 shrink-0 text-destructive" />
+					<p class="text-sm font-medium text-destructive">
+						{t('app.field_ops_controller.suspect_scrutiny_title', { count: monthSuspects.length })}
+					</p>
+				</Inline>
+				<ul class="list-disc pl-5 text-sm text-destructive/90">
+					{#each monthSuspects as suspect (suspect.id)}
+						<li>{suspect.job}</li>
+					{/each}
+				</ul>
+			</Stack>
+		{:else if !dashboardQuery.loading}
+			<p class="text-xs text-muted-foreground">
+				{t('app.field_ops_controller.no_suspect_assignments')}
+			</p>
+		{/if}
 
 		<Split
 			ratio="wide"
@@ -298,11 +252,23 @@
 						query={boardQuery}
 					>
 						{#snippet Card(assignment)}
-							<Stack gap="xs">
-								<p class="text-sm font-medium">
-									{assignmentCardById.get(assignment.norbital_id)?.job ??
-										t('component.job_assignment')}
-								</p>
+							<Stack
+								gap="xs"
+								class={assignment.status === 'suspect'
+									? 'rounded-md ring-2 ring-destructive/60'
+									: undefined}
+							>
+								<Inline justify="between" gap="sm" align="start">
+									<p class="text-sm font-medium">
+										{assignmentCardById.get(assignment.norbital_id)?.job ??
+											t('component.job_assignment')}
+									</p>
+									{#if assignment.status === 'suspect'}
+										<Badge variant="destructive" class="shrink-0 text-[10px] uppercase">
+											{t('component.status_suspect')}
+										</Badge>
+									{/if}
+								</Inline>
 								<p class="text-xs text-muted-foreground">
 									{assignmentCardById.get(assignment.norbital_id)?.contractor ??
 										t('component.contractor')}
@@ -467,79 +433,3 @@
 		] satisfies TabConfig[]}
 	/>
 </Cover>
-
-<Sheet.Root bind:open={assignContractorOpen}>
-	<Sheet.Content flush class="sm:max-w-lg">
-		<Sheet.Header class="border-b border-border px-5 py-4">
-			<Sheet.Title>{t('app.field_ops_controller.sheet_title')}</Sheet.Title>
-			<Sheet.Description>
-				{t('app.field_ops_controller.sheet_description', { date: dispatchDay })}
-			</Sheet.Description>
-		</Sheet.Header>
-		<Stack
-			as="form"
-			gap="md"
-			class="p-5"
-			onsubmit={(event) => {
-				event.preventDefault();
-				void createAssignment();
-			}}
-		>
-			<label class="grid gap-1.5 text-sm">
-				<span class="font-medium">{t('app.field_ops_controller.job_and_site')}</span>
-				<Combobox
-					options={assignJobOptions}
-					bind:value={assignment.jobId}
-					emptyPlaceholder={t('app.field_ops_controller.select_unassigned_job')}
-					searchPlaceholder={t('app.field_ops_controller.search_unassigned_jobs')}
-					clientConfig={{
-						isLoading: assignJobsQuery.loading,
-						error: assignJobsQuery.error?.message ?? null
-					}}
-				/>
-			</label>
-
-			<label class="grid gap-1.5 text-sm">
-				<span class="font-medium">{t('component.contractor')}</span>
-				<Combobox
-					options={assignContractorOptions}
-					bind:value={assignment.contractorId}
-					emptyPlaceholder={t('app.field_ops_controller.select_qualified_contractor')}
-					searchPlaceholder={t('app.field_ops_controller.search_qualified_contractors')}
-					clientConfig={{
-						isLoading:
-							assignContractorsQuery.loading ||
-							Boolean(assignRequirementsQuery?.loading) ||
-							Boolean(assignContractorCertificationQuery?.loading),
-						error: assignContractorsQuery.error?.message ?? null
-					}}
-					disabled={!assignSelectedJob}
-				/>
-			</label>
-
-			{#if assignSelectedJob && assignQualifiedContractors.length === 0}
-				<p class="text-sm text-destructive" role="alert">
-					{t('app.field_ops_controller.no_qualified_contractor')}
-				</p>
-			{/if}
-			{#if assignment.error}
-				<p class="text-sm text-destructive" role="alert">{assignment.error}</p>
-			{/if}
-			{#if (assignJobsQuery.current ?? []).length === 0 && !assignJobsQuery.loading}
-				<p class="text-sm text-muted-foreground">
-					{t('app.field_ops_controller.no_unassigned_jobs', { date: dispatchDay })}
-				</p>
-			{/if}
-
-			<Button
-				type="submit"
-				class="w-full"
-				disabled={!assignment.jobId || !assignment.contractorId || assignment.saving}
-			>
-				{assignment.saving
-					? t('app.field_ops_controller.assigning')
-					: t('app.field_ops_controller.assign_contractor')}
-			</Button>
-		</Stack>
-	</Sheet.Content>
-</Sheet.Root>
