@@ -1,5 +1,5 @@
 import { importCollectionRecords } from '@norbital-ai/pod/client';
-import templateCsv from '../assets/weekly-dispatch-roster.template.csv?raw';
+import templateCsv from '../../assets/weekly-dispatch-roster.template.csv?raw';
 import { readCsvCell, readCsvRecords } from './csv-import.js';
 
 const ROSTER_HEADERS = [
