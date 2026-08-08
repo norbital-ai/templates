@@ -12,7 +12,7 @@ matter more than broad project portfolio management.
 | ---------- | ------------------------------------------------------------------------------ |
 | Controller | Schedules work, checks contractor qualifications, and oversees exceptions.     |
 | Contractor | Sees assigned work, records progress and location, and submits field evidence. |
-| Supervisor | Reviews flagged location updates, variation requests, and duplicate evidence.  |
+| Supervisor | Reviews suspect location updates, variation requests, and duplicate evidence.  |
 
 ## Workspace guarantees
 
@@ -21,7 +21,9 @@ matter more than broad project portfolio management.
 - Inbound assignment and variation requests can be retried safely through `source_message_id`.
 - Assignment identity is immutable after dispatch; completion and job state remain synchronised.
 - Evidence is JPEG or PNG, attached to exactly one assignment or variation, and inspected for duplicate
-  and metadata-quality signals.
+  (Meta PDQ via `pdq-wasm` → 256-dim 0/1 `vector` with HNSW L2 `findNearest`, same path as future omni
+  embeddings) and metadata/GPS signals (`exifr`). Matching integrity issues latch the assignment to
+  `suspect`.
 
 ## Scope boundary
 
