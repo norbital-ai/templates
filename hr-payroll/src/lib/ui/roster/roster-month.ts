@@ -15,7 +15,7 @@
  * know about a holiday.
  *
  * Display only. Nothing here prices anything — the payroll engine resolves day types itself from the
- * same rows, and `docs/architecture/time-overtime-and-cutoffs.md` is the authority on how.
+ * same rows, and `docs/architecture.md` is the authority on how.
  */
 
 import { calendarDayKey, daysInMonth } from '../calendar.js';

@@ -8,7 +8,7 @@ and seeded with the public Pod CLI — and forked into a tenant.
 | ------------------------------------------- | ------------------- | ------------------------------------------------------------------------------ |
 | [**hr-payroll**](./hr-payroll/)             | `hr-payroll/`       | Multi-country HR and payroll with effective-dated facts and payroll runs       |
 | [**construction**](./construction/)         | `construction/`     | Project-centered construction ops with BIM and workforce compliance            |
-| [**field-operations**](./field-operations/) | `field-operations/` | Site operations: contractor visits, variation approvals, photo integrity       |
+| [**field-operations**](./field-operations/) | `field-operations/` | Site operations: dispatch, accountless-contractor WhatsApp, photo integrity    |
 | [**crm**](./crm/)                           | `crm/`              | B2B quoting and pipeline with purchasing, mirrored masters, and an ERP handoff |
 
 Every template in this repository is public, and the website lists it automatically: the template
@@ -24,7 +24,8 @@ every respect except discovery.
 ## Choosing a template
 
 - **Field Operations** is the focused choice for day-of-work dispatch, qualification checks,
-  site evidence, and variation requests.
+  site evidence, and variation requests. Contractors work over WhatsApp without an account: the
+  channel agent can only update their own job assignments and never sees integrity flags.
 - **Construction Operations** covers wider project delivery: workforce permits, quality, RFIs,
   BIM references, payment claims, and scheduled operational watches.
 - **CRM** runs a B2B deal end to end: accounts with their credit position, catalogue-backed quoting

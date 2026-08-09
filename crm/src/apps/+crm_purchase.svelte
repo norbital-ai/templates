@@ -71,7 +71,7 @@
 	<title>Purchasing workspace</title>
 	<meta
 		name="description"
-		content="Purchase orders, suppliers, and the buying side of the product catalogue"
+		content="Purchase orders, suppliers, goods receipts, invoices, and the buying side of the product catalogue"
 	/>
 	<meta name="pod:icon" content="lucide:shopping-cart" />
 	<meta

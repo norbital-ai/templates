@@ -10,8 +10,7 @@ import { defineEnv } from '@norbital-ai/pod/authoring';
 export default defineEnv({
 	private: {
 		EXTERNAL_SYSTEM_TOKEN: {
-			description:
-				'Bearer token for the external system of record reached by the external_synced_table integration.'
+			description: 'Bearer token for the external system of record reached by the erp integration.'
 		}
 	}
 });

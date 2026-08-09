@@ -62,7 +62,7 @@
 	/**
 	 * The joined shape the option set reads. The typed client models a row without its `with`
 	 * payload, so the person's name is declared here and the query result is read through it — the
-	 * same boundary `payslips/payslip-representation.svelte` draws for its summary read.
+	 * same boundary `payslips/+representation.svelte` draws for its summary read.
 	 */
 	type EmploymentWithName = {
 		readonly norbital_id: string;

@@ -4,14 +4,14 @@ import type { Hooks } from './$types.js';
 import { photoSourceSchema } from '../../custom-types/photo_source/+definition.js';
 import { coordinatesOf, type LocationLike } from '../../lib/haversine.js';
 import {
+	assertExactlyOnePhotoParent,
+	evaluateCaptureGeolocation,
 	inspectPhoto,
 	photoIntegrityFlags,
 	suspectPhotoFlags,
 	VISUAL_DUPLICATE_MAX_L2,
 	type PhotoIntegrityFlag
 } from './lib/photo-integrity.js';
-import { evaluateCaptureGeolocation } from './lib/photo-geolocation.js';
-import { assertExactlyOnePhotoParent } from './lib/photo-parent.js';
 
 const photoEvidenceCreateInput = z
 	.object({

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { mount, unmount, type Component } from 'svelte';
 	import { client } from '$pod/client';
 	import { useI18n } from '@norbital-ai/ui/i18n';
 	import type { TenantI18nKeys } from '$pod/i18n-keys';
@@ -16,9 +17,8 @@
 		Stack
 	} from '@norbital-ai/ui/layout';
 	import { formatDateRangeLocal } from '@norbital-ai/std/date';
-	import { calendarDateInTimeZone, todayInstant } from '../../lib/calendar.js';
 	import { Tabs, type TabConfig } from '@norbital-ai/ui/tabs';
-	import IfcDisplay from '../../lib/ifc-viewer/ifc_display.svelte';
+	import type { IFCViewerProps } from '../../lib/ifc-viewer/ifc_viewer.types.js';
 
 	interface MoneyValue {
 		value: number;
@@ -29,8 +29,71 @@
 
 	const { t } = useI18n<TenantI18nKeys>();
 
+	/**
+	 * Calendar-day derivation for this workspace.
+	 *
+	 * `new Date().toISOString().slice(0, 10)` is the UTC day, not the site's day, so any site west of
+	 * Greenwich prices and filters against yesterday for part of every day. `dates-and-time.md` names
+	 * that expression as forbidden: derive the calendar day in a named timezone instead.
+	 */
+
+	/** The business timezone every calendar-day filter and "today" default resolves in. */
+	const PROJECT_TIME_ZONE = 'Asia/Singapore';
+
+	/** Calendar date for an instant in this workspace's business timezone, as `YYYY-MM-DD`. */
+	function calendarDateInTimeZone(value: Date): string {
+		const parts = new Intl.DateTimeFormat('en', {
+			timeZone: PROJECT_TIME_ZONE,
+			year: 'numeric',
+			month: '2-digit',
+			day: '2-digit'
+		}).formatToParts(value);
+		const valueFor = (type: Intl.DateTimeFormatPartTypes) =>
+			parts.find((part) => part.type === type)?.value ?? '';
+		return `${valueFor('year')}-${valueFor('month')}-${valueFor('day')}`;
+	}
+
+	/** Midnight of `calendarDate` in the business timezone, as the UTC instant that moment actually is. */
+	function startOfDayInstant(calendarDate: string): string {
+		const naive = Date.parse(`${calendarDate}T00:00:00Z`);
+		if (Number.isNaN(naive)) throw new Error(`Not a calendar date: ${calendarDate}`);
+		// Resolve twice: the offset at the guessed instant can differ from the offset at the real one
+		// across a daylight-saving boundary.
+		let instant = naive;
+		for (let pass = 0; pass < 2; pass += 1) {
+			const shown = Date.parse(`${calendarDateInTimeZone(new Date(instant))}T00:00:00Z`);
+			instant += naive - shown;
+		}
+		return new Date(instant).toISOString();
+	}
+
+	/**
+	 * "Now", as the instant a `contains_date` filter wants. A calendar day is not an instant, and the
+	 * server refuses one rather than guessing which timezone turns it into a moment.
+	 */
+	function todayInstant(): string {
+		return startOfDayInstant(calendarDateInTimeZone(new Date()));
+	}
+
+	/** The IFC viewer is a heavy esm.sh WebGL module graph; lazy-load it only when a model is linked. */
+	const viewerModule = import('../../lib/ifc-viewer/ifc_viewer.svelte');
+
+	function mountViewer(node: HTMLElement, mod: { default: Component<IFCViewerProps> }) {
+		const instance = mount(mod.default, {
+			target: node,
+			props: {
+				src: ifcDocument?.document_url ?? '',
+				alt: ifcDocument?.title ?? t('component.current_ifc_model')
+			}
+		});
+		return {
+			destroy() {
+				unmount(instance);
+			}
+		};
+	}
+
 	const projectId = $derived(record.norbital_id);
-	const today = calendarDateInTimeZone(new Date());
 
 	const sitesQuery = $derived(
 		client.db.site_locations.findMany({
@@ -210,10 +273,27 @@
 		</div>
 		{#if ifcDocument?.document_url}
 			<Bound size="standard" clip class="rounded-md border bg-muted/30">
-				<IfcDisplay
-					src={ifcDocument.document_url}
-					alt={ifcDocument.title ?? t('component.current_ifc_model')}
-				/>
+				<div class="relative h-full w-full">
+					{#await viewerModule}
+						<Inline
+							align="center"
+							justify="center"
+							class="absolute inset-0 bg-background/80 text-sm text-muted-foreground"
+						>
+							{t('component.loading_viewer')}
+						</Inline>
+					{:then mod}
+						<div class="h-full w-full" use:mountViewer={mod}></div>
+					{:catch error}
+						<Inline
+							align="center"
+							justify="center"
+							class="absolute inset-0 bg-background/80 text-sm text-destructive"
+						>
+							{String(error)}
+						</Inline>
+					{/await}
+				</div>
 			</Bound>
 		{:else if documentsQuery.loading}
 			<div class="h-64 animate-pulse rounded-md bg-muted/60"></div>
