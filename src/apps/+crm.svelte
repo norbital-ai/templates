@@ -5,7 +5,7 @@
 	import { CollectionKanban } from '@norbital-ai/ui/collection-kanban';
 	import { CollectionTable } from '@norbital-ai/ui/collection-table';
 	import { Combobox } from '@norbital-ai/ui/combobox';
-	import { Cover, Inline, Stack } from '@norbital-ai/ui/layout';
+	import { Cover, Stack } from '@norbital-ai/ui/layout';
 	import { PageHeader } from '@norbital-ai/ui/page-header';
 	import { Tabs, type TabConfig } from '@norbital-ai/ui/tabs';
 
@@ -140,7 +140,7 @@
 	<title>Sales CRM</title>
 	<meta
 		name="description"
-		content="Sales pipeline, quotes, accounts, contacts, product catalogue, and activities"
+		content="Sales pipeline, quotes, accounts, contacts, product catalogue, billing, contracts, and payments"
 	/>
 	<meta name="pod:icon" content="lucide:handshake" />
 	<meta name="pod:thumbnail" content="/api/template-seed-assets/crm/app-media/crm-banner.svg" />
@@ -150,27 +150,25 @@
 {#snippet accountScopeActions()}
 	<label class="grid gap-1.5 text-sm">
 		<span class="font-medium text-muted-foreground">{t('app.crm.account_filter')}</span>
-		<Inline gap="sm">
-			<Combobox
-				ariaLabel={t('app.crm.account_filter')}
-				options={accountOptions}
-				value={selectedAccountId}
-				onValueChange={(value) => {
-					if (typeof value === 'string') {
-						accountId = value;
-						return;
-					}
-					accountId = resolveScopedId(null, accountRows);
-				}}
-				emptyPlaceholder={t('app.crm.select_account')}
-				searchPlaceholder={t('app.crm.search_accounts')}
-				clientConfig={{
-					isLoading: accountsQuery.loading,
-					error: accountsQuery.error?.message ?? null
-				}}
-				class="min-w-[16rem]"
-			/>
-		</Inline>
+		<Combobox
+			ariaLabel={t('app.crm.account_filter')}
+			options={accountOptions}
+			value={selectedAccountId}
+			onValueChange={(value) => {
+				if (typeof value === 'string') {
+					accountId = value;
+					return;
+				}
+				accountId = resolveScopedId(null, accountRows);
+			}}
+			emptyPlaceholder={t('app.crm.select_account')}
+			searchPlaceholder={t('app.crm.search_accounts')}
+			clientConfig={{
+				isLoading: accountsQuery.loading,
+				error: accountsQuery.error?.message ?? null
+			}}
+			class="min-w-[16rem]"
+		/>
 	</label>
 {/snippet}
 
@@ -494,7 +492,7 @@
 	{#if selectedAccountId == null}
 		<p class="text-sm text-muted-foreground">{t('app.crm.empty_contracts')}</p>
 	{:else if scopedQuoteIds.length === 0}
-		<p class="text-sm text-muted-foreground">No quotes exist for this account yet.</p>
+		<p class="text-sm text-muted-foreground">{t('app.crm.no_quote_lines')}</p>
 	{:else}
 		<CollectionTable
 			{client}
@@ -531,7 +529,7 @@
 	{#if selectedAccountId == null}
 		<p class="text-sm text-muted-foreground">{t('app.crm.empty_payments')}</p>
 	{:else if scopedQuoteIds.length === 0}
-		<p class="text-sm text-muted-foreground">No quotes exist for this account yet.</p>
+		<p class="text-sm text-muted-foreground">{t('app.crm.no_quote_lines')}</p>
 	{:else}
 		<CollectionTable
 			{client}
