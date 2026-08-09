@@ -61,6 +61,7 @@
 	"component.reported_location": "报告位置",
 	"component.completion_summary": "完成 / 到访摘要",
 	"component.title": "标题",
+	"component.status": "状态",
 	"component.requested_at": "请求时间",
 	"component.amount": "金额",
 	"component.description": "描述",
@@ -134,6 +135,7 @@
 	"component.status_in_progress": "进行中",
 	"component.status_completed": "已完成",
 	"component.status_suspect": "可疑",
+	"component.status_assigned": "已分配",
 	"component.loading": "加载中…",
 	"component.loading_job": "正在加载作业",
 	"component.loading_photo_evidence": "正在加载照片证据"

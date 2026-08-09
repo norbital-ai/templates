@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { client } from '$pod/client';
+	import { importCollectionRecords } from '@norbital-ai/pod/client';
 	import { Badge } from '@norbital-ai/ui/badge';
 	import { Button } from '@norbital-ai/ui/button';
 	import { useI18n } from '@norbital-ai/ui/i18n';
@@ -14,8 +15,197 @@
 	import { Tabs, type TabConfig } from '@norbital-ai/ui/tabs';
 	import { renderComponent } from '@norbital-ai/ui/utils';
 	import Icon from '@iconify/svelte';
+	import templateCsv from '../../assets/weekly-dispatch-roster.template.csv?raw';
 	import { calendarDateInTimeZone } from '../lib/calendar.js';
-	import { downloadRosterTemplate, importWeeklyRoster } from '../lib/roster-import.js';
+
+	/** Strip a UTF-8 BOM if present. */
+	function stripBom(text: string): string {
+		return text.replace(/^\uFEFF/, '');
+	}
+
+	/** Parse RFC 4180-ish CSV text into rows of string cells. */
+	function parseCsv(text: string): string[][] {
+		const rows: string[][] = [];
+		let row: string[] = [];
+		let cell = '';
+		let quoted = false;
+		const source = stripBom(text);
+
+		const endCell = (): void => {
+			row.push(cell);
+			cell = '';
+		};
+		const endRow = (): void => {
+			endCell();
+			rows.push(row);
+			row = [];
+		};
+
+		for (let index = 0; index < source.length; index += 1) {
+			const character = source[index]!;
+			if (quoted) {
+				if (character !== '"') cell += character;
+				else if (source[index + 1] === '"') {
+					cell += '"';
+					index += 1;
+				} else quoted = false;
+				continue;
+			}
+			if (character === '"') quoted = true;
+			else if (character === ',') endCell();
+			else if (character === '\r') continue;
+			else if (character === '\n') endRow();
+			else cell += character;
+		}
+		if (cell !== '' || row.length > 0) endRow();
+		return rows;
+	}
+
+	function normalizeHeader(value: string): string {
+		return value.trim().toLowerCase();
+	}
+
+	function isBlankRow(cells: readonly string[]): boolean {
+		return cells.every((cell) => cell.trim() === '');
+	}
+
+	/** Read header-keyed string records from CSV text. */
+	function readCsvRecords(
+		text: string,
+		requiredHeaders: readonly string[]
+	): Record<string, string>[] {
+		const grid = parseCsv(text);
+		if (grid.length === 0) throw new Error('The CSV file is empty.');
+
+		const headerRow = grid[0]!;
+		const headers = headerRow.map((cell) => cell.trim());
+		const headerKeys = new Set(headers.map(normalizeHeader));
+		const missingHeaders = requiredHeaders.filter(
+			(header) => !headerKeys.has(normalizeHeader(header))
+		);
+		if (missingHeaders.length > 0) {
+			throw new Error(
+				`The CSV is missing required columns:\n${missingHeaders.map((header) => `• ${header}`).join('\n')}`
+			);
+		}
+
+		const records: Record<string, string>[] = [];
+		for (let rowIndex = 1; rowIndex < grid.length; rowIndex += 1) {
+			const cells = grid[rowIndex]!;
+			if (isBlankRow(cells)) continue;
+			const record: Record<string, string> = {};
+			for (let columnIndex = 0; columnIndex < headers.length; columnIndex += 1) {
+				const header = headers[columnIndex];
+				if (header == null || header === '') continue;
+				record[header] = (cells[columnIndex] ?? '').trim();
+			}
+			records.push(record);
+		}
+		if (records.length === 0) {
+			throw new Error('The CSV has headers but no data rows.');
+		}
+		return records;
+	}
+
+	/** Read one trimmed string cell from a header-keyed record. */
+	function readCsvCell(record: Record<string, string>, header: string): string {
+		return (record[header] ?? '').trim();
+	}
+
+	const ROSTER_HEADERS = [
+		'week_start',
+		'site_name',
+		'scheduled_for',
+		'job_title',
+		'contractor_company',
+		'summary'
+	] as const;
+
+	const ACCEPTED_FILE_TYPES = '.csv';
+	const TEMPLATE_FILENAME = 'weekly-dispatch-roster.template.csv';
+
+	function downloadRosterTemplate(): void {
+		if (typeof document === 'undefined') {
+			throw new Error('Roster template download is only available in the browser.');
+		}
+		const blob = new Blob([templateCsv], { type: 'text/csv;charset=utf-8' });
+		const url = URL.createObjectURL(blob);
+		const anchor = document.createElement('a');
+		anchor.href = url;
+		anchor.download = TEMPLATE_FILENAME;
+		anchor.click();
+		URL.revokeObjectURL(url);
+	}
+
+	async function pickCsvFile(): Promise<File | null> {
+		if (typeof document === 'undefined') {
+			throw new Error('Roster import is only available in the browser.');
+		}
+		return new Promise<File | null>((resolve) => {
+			const input = document.createElement('input');
+			input.type = 'file';
+			input.accept = ACCEPTED_FILE_TYPES;
+			let settled = false;
+			const finish = (file: File | null): void => {
+				if (settled) return;
+				settled = true;
+				resolve(file);
+			};
+			input.addEventListener('change', () => finish(input.files?.[0] ?? null), { once: true });
+			input.addEventListener('cancel', () => finish(null), { once: true });
+			input.click();
+		});
+	}
+
+	function buildImportPayload(records: readonly Record<string, string>[]) {
+		const weekStarts = [
+			...new Set(records.map((record) => readCsvCell(record, 'week_start')).filter(Boolean))
+		];
+		if (weekStarts.length === 0) {
+			throw new Error('Every row must include week_start (YYYY-MM-DD).');
+		}
+		if (weekStarts.length > 1) {
+			throw new Error(
+				`Every row must share the same week_start. Found:\n${weekStarts.map((value) => `• ${value}`).join('\n')}`
+			);
+		}
+
+		const weekStart = weekStarts[0]!;
+		return {
+			week_start: weekStart,
+			rows: records.map((record) => {
+				const siteName = readCsvCell(record, 'site_name');
+				const scheduledFor = readCsvCell(record, 'scheduled_for');
+				const jobTitle = readCsvCell(record, 'job_title');
+				const contractorCompany = readCsvCell(record, 'contractor_company');
+				const summary = readCsvCell(record, 'summary');
+				if (!siteName || !scheduledFor || !jobTitle || !contractorCompany) {
+					throw new Error(
+						'Each row needs site_name, scheduled_for, job_title, and contractor_company.'
+					);
+				}
+				return {
+					site_name: siteName,
+					scheduled_for: scheduledFor,
+					job_title: jobTitle,
+					contractor_company: contractorCompany,
+					...(summary ? { summary } : {})
+				};
+			})
+		};
+	}
+
+	/** Pick a roster CSV, import assignments, and return how many were created. */
+	async function importWeeklyRoster(): Promise<number> {
+		const file = await pickCsvFile();
+		if (file == null) return 0;
+		const payload = buildImportPayload(readCsvRecords(await file.text(), ROSTER_HEADERS));
+		const created = await importCollectionRecords({
+			collection_name: 'job_assignments',
+			import_data: payload
+		});
+		return created.length;
+	}
 
 	const today = calendarDateInTimeZone(new Date());
 

@@ -2,126 +2,190 @@
 
 ![Field Operations workspace banner](assets/banner.svg)
 
-Field Operations manages field-service work from scheduled site job through contractor dispatch, field progress,
-variation request, and evidence capture. It is a deliberately focused construction-operations template:
-it does not attempt to be a project-costing or payroll system.
+Field Operations is a construction field-operations workspace: schedule a site job, dispatch a
+certified contractor, track on-site progress, raise scope-change requests, and collect photographic
+evidence whose integrity is checked mechanically. It is deliberately focused — it does not attempt
+project costing, payroll, or portfolio management, and the platform's native approval system owns the
+variation approval lifecycle.
 
-For the template’s goal, users, and extension boundaries, see the [Field Operations documentation hub](./docs/README.md).
+## 1. What this workspace is
 
-## Operating flow
+The problem: field-service work needs _qualified_ people at the right site on the right day, and the
+evidence that the work happened needs to be trustworthy. A photo of a job site is not proof by
+itself — the same photo can be reused, a photo can be taken somewhere else, and a photo says nothing
+about which site it shows unless the site's identity is readable in it.
 
-1. Create a **site** with client, property, and optional geolocation context.
-2. Schedule a **job** for that site, then declare its required certifications.
-3. Register a contractor profile and its certification holdings.
-4. Dispatch the contractor through a **job assignment**. Pod rejects an assignment when the contractor
-   lacks a required certification, the job is already assigned, or the source message was processed before.
-5. The contractor records progress and an optional site location. A recorded point more than 500 metres
-   from the site flags the assignment for review; completing it timestamps the assignment and advances the
-   job state.
-6. Capture photos against exactly one assignment or variation. The workspace records image fingerprints
-   and integrity flags, then surfaces exact and near-duplicate matches.
-7. Raise a **variation request** when work departs from scope. Its approval and audit lifecycle is owned
-   by the platform’s native approval system, not by tenant columns.
+Field Operations answers with a dispatch pipeline (site → job → certified contractor assignment)
+followed by an evidence pipeline (per-photo integrity checks, geolocation, site-identity inference,
+and a one-way suspect escalation for controllers to scrutinise).
 
-## Collections and relationships
+## 2. The mental model
 
-| Collection                       | Purpose and important rule                                                                                      |
-| -------------------------------- | --------------------------------------------------------------------------------------------------------------- |
-| `sites`                          | Physical site, client/property context, and optional map location. Historical jobs remain attached to the site. |
-| `jobs`                           | Work scheduled for one site. It begins `unassigned` and follows assignment progress.                            |
-| `certification_types`            | Qualification catalogue used by jobs and contractors.                                                           |
-| `job_certification_requirements` | Join table for the qualifications required by each job.                                                         |
-| `contractor_profiles`            | Contractor organisation linked one-to-one with its tenant user.                                                 |
-| `contractor_certifications`      | Join table for a contractor’s qualification holdings.                                                           |
-| `job_assignments`                | One contractor per job. Identity cannot be moved after dispatch; location can flag the assignment.              |
-| `variation_requests`             | Scope-change request for an assignment. Duplicate source-message keys are rejected.                             |
-| `photo_evidence`                 | Image evidence attached to exactly one assignment or variation, with deterministic integrity results.           |
+### Domain shape
 
 ```text
 site → jobs → job assignment ← contractor profile
              ↓                  ↑
-  required certifications     certifications held
+   required certifications   certifications held
              ↓
        photo evidence ← variation request
 ```
 
-## Apps and server behaviour
+- **site** — a physical site with client context and an optional map location. Past jobs remain
+  attached to it.
+- **jobs** — work scheduled for one site and one calendar day, beginning `unassigned` and following
+  the assignment's progress (`assigned` → `in_progress` → `completed`).
+- **contractor_profiles** — a contractor organisation, linked one-to-one with a tenant user who can
+  open the contractor workspace. Its certification holdings (join table) decide dispatch eligibility.
+- **job_assignments** — one contractor per job. Identity (job + contractor) is immutable after
+  dispatch; status runs `dispatched` → `in_progress` → `completed`, with `suspect` as a one-way
+  integrity overlay (see below). Completion timestamps the assignment and advances the job.
+- **variation_requests** — a scope change against one assignment. Creation is governed by the
+  contractor policy's approval flow: writing one raises a platform approval request for a controller
+  review step, not a row that is directly applied.
+- **photo_evidence** — one explicitly selected photo attached to exactly one assignment or one
+  variation, with deterministic integrity results. Conversation history and unselected media are not
+  retained.
 
-| Surface                      | Audience                      | What it provides                                                                                                                                                                  |
-| ---------------------------- | ----------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `field_ops_controller`       | Dispatch and operations staff | A dated dispatch schedule as a status kanban beside a site map, sheets to create a job and assign a contractor, and tabs for sites, contractors, and the certification catalogue. |
-| `field_ops_contractor`       | Field contractor              | One table of its own assignments: job, site, dispatch time, status, reported location, and summary.                                                                               |
-| `field_ops_dashboard` remote | Controller app                | A date-specific assignment list and site map points; it joins jobs, contractors, and sites on the server.                                                                         |
+### The evidence integrity pipeline
 
-Both apps are deliberately thin, because the work happens inside a record rather than across a table.
-Opening an assignment brings up its variations and its photo evidence together; opening a site
-separates the jobs still ahead of it from the ones already done. Putting those on the assignment and
-the site — instead of giving evidence and variations top-level tabs — keeps a contractor from ever
-having to answer "which job was this photo for" from a list.
+Every photo, from every entry path (workspace upload or channel), passes through the same
+`photo_evidence` create hooks:
 
-Two policies back those apps. `field_ops_controller` opens both applications, because a controller
-who cannot see the contractor's own view cannot help someone stuck in it. `field_ops_contractor`
-opens only the contractor app and scopes every grant to the requestor: its own profile, its own
-certifications, the sites and jobs it is actually assigned to, and nothing else. Scoping is done with
-`where` clauses rather than by hiding tables, so the same limits hold for a remote or an agent, not
-only for a screen.
+1. **Ingest** — JPEG/PNG only, exactly one parent (assignment or variation), SHA-256 fingerprint,
+   Meta PDQ perceptual hash (256-bit), EXIF parse (`exifr`), and quality/metadata signals.
+2. **Duplicate check** — the create `after` hook compares the new photo against everything already
+   stored: exact SHA-256 matches, and perceptual near-duplicates via `findNearest` on a 256-dim 0/1
+   vector indexed with HNSW (L2 metric, threshold √31 ≈ PDQ Hamming 31). Matches are recorded as
+   `exact_duplicate` / `visual_duplicate` flags with the matched evidence ids.
+3. **Geolocation** — EXIF GPS is compared against the job site's map location (500 m tolerance).
+   No GPS → `missing_geolocation`; capture beyond tolerance → `location_mismatch`.
+4. **Site identity (automation)** — a vision model reads site name / location / unit visibly printed
+   in the photo. The first photo that verifies sets `site_identity_unverified = false` on the
+   assignment; an inconclusive photo deliberately does **not** write, so a later weak photo can never
+   undo an earlier verified result ("at least one photo" semantics).
+5. **Escalation** — any integrity flag (`exact_duplicate`, `visual_duplicate`,
+   `missing_geolocation`, `location_mismatch`) latches the parent assignment to `suspect`, one-way.
+   The controller dashboard surfaces suspects; contractors and the WhatsApp agent never see them.
 
-The variation approval flow is declared there too, on the contractor's `create` grant for
-`variation_requests` — a scope change is a commercial decision, so writing one raises a request
-rather than a row, and a controller review step resolves it. The approver is named by team name
-rather than by team id, because a team is a runtime row: an id belongs to whichever database seeded
-it, so hardcoding one would put a private identifier in a public template and leave the flow
-unsatisfiable anywhere else.
+## 3. What ships
 
-The domain rules live in collection hooks, so they apply to every client and remote—not only the UI:
+### Apps
 
-- A job must reference an existing site.
-- An assignment must reference an existing job and contractor, be unique per job, and meet all declared
-  qualification requirements.
-- `source_message_id` is an idempotency key for inbound assignments and variations.
-- A completed assignment receives `completed_at`; assignment state keeps its job state in sync.
-- Photo evidence accepts only JPEG or PNG, requires exactly one parent, records SHA-256 and perceptual
-  hashes, and marks exact/visual duplicates or image metadata-quality anomalies.
+| App                    | Audience                                                   | What it provides                                                                                                                                                                                       |
+| ---------------------- | ---------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `field_ops_controller` | Dispatch / operations staff (the BCA controller dashboard) | A dated dispatch schedule as a status kanban beside a site map, the suspect-scrutiny panel, weekly roster CSV import, and tabs for sites, contractors, and the certification catalogue.                |
+| `field_ops_contractor` | Field contractor                                           | One table of its own assignments: job · site · date, dispatch time, progress, reported location, and summary. Opening a row shows the job scope, assignment activity, variations, and evidence photos. |
 
-## Maps and files
+Flag visibility is reserved for the controller dashboard: photo integrity flags, the `suspect`
+status, and the `site_identity_*` markers render only for controllers. Contractors see their own
+assignment's progress and their evidence photos — never the integrity results.
 
-The dispatch schedule plots its site markers with `StaticMap` from `@norbital-ai/ui`, which loads
-Leaflet in the browser and draws OpenStreetMap tiles. No map provider credential appears anywhere in
-this workspace, and none is required: a dispatch map answers “are these jobs where I think they are”,
-which a keyless tile source answers perfectly well, and a fresh tenant should not need an account
-with a map vendor before its first screen will render. A tile that fails to load says so in place
-rather than leaving a blank panel.
+### The WhatsApp channel
 
-File storage remains the host's. Photo evidence stores a selected file asset and its derived
-fingerprints, not a source conversation or unselected media.
+`field_ops_whatsapp` is a conversational entry point for contractors who have **no account**. The
+platform's channel model supports communicators without user rows: the host authenticates the wire
+(WhatsApp) and hands Pod an inbound message; the agent answers as the channel's own synthetic
+principal, a `kind='agent'` user in a team carrying the channel's declared policy.
 
-## Source map
+The channel runs under the strict capability lock:
+
+- **The agent may only `update` existing `job_assignments`** — progress status, completion time,
+  summary, reported location, amount charged. It cannot create or delete anything.
+- **It has no read grants and no host tools.** `read_collection` is refused for every collection,
+  so it cannot see assignments, photos, flags, `suspect` status, or `site_identity_*` markers —
+  the integrity overlay is opaque to it by construction, not by instruction.
+- Its `task` is written for contractor-only interactions and stays honest about the boundary: it
+  never claims to have seen or looked up anything, never mentions integrity or flags, and directs
+  callers to the app for evidence filing, variations, and anything requiring a lookup.
+
+Two platform limits are worth stating: policy grants are row-level, not column-level (an update
+grant covers every column of `job_assignments`, so the agent could in principle touch the integrity
+columns — the task forbids it, and the update response returns the full row it just wrote); and the
+platform does not yet provide conversation-to-record resolution, so the agent cannot map "my job" to
+an assignment without a read grant. The lock is deliberate: those gaps close only with platform
+features, not with a looser workspace.
+
+### Automations, policies, remotes, seed
+
+| Kind       | Name                   | What it does                                                                                                                                                                                                            |
+| ---------- | ---------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Automation | `photo_site_identity`  | Post-commit vision inference on each new photo; verifies the assignment's site identity once, never re-flags on inconclusive photos.                                                                                    |
+| Policy     | `field_ops_controller` | Full command of every collection, both apps. The reconciliation key is the filename.                                                                                                                                    |
+| Policy     | `field_ops_contractor` | Requestor-scoped grants: own profile, own certifications, assigned sites/jobs, own assignments (read + update), own variations (read + create/update behind the variation approval flow), own evidence (read + create). |
+| Policy     | `field_ops_whatsapp`   | The channel lock above: exactly one grant — `update` on `job_assignments`.                                                                                                                                              |
+| Remote     | `field_ops_dashboard`  | Date-specific controller query: assignment cards, board ids, map points (with suspect tones), and the month's suspect assignments.                                                                                      |
+| Seed       | —                      | Fixture data is Core-owned (`src/+seed.ts` is deliberately absent); the weekly roster CSV lives in `assets/` with its own README.                                                                                       |
+
+## 4. Under the hood
+
+### Source layout
 
 ```text
-src/apps/                         controller and contractor applications
-src/policies/                     the two roles, their scoping, and the variation approval flow
-src/collections/                  domain models, relationships, hooks, and representations
-src/collections/photo_evidence/lib/  image inspection and parent validation
-src/custom-types/                 money and evidence-source types with renderers
-src/lib/certification-eligibility.ts  dispatch qualification checks
-src/lib/calendar.ts               the calendar date of an instant in a named timezone
-src/lib/instant-format.ts         instants rendered for a Singapore-local reader
-src/remotes/+field_ops_dashboard.ts     date-based controller dashboard query
+src/
+├── apps/                           +field_ops_controller.svelte, +field_ops_contractor.svelte
+├── channels/                       +field_ops_whatsapp.channel.ts
+├── policies/                       the three policies and the variation approval flow
+├── collections/                    models, relationships, hooks, pipelines, representations
+│   └── photo_evidence/lib/         photo-integrity.ts — PDQ + EXIF inspection, geo flags, parenting
+├── custom-types/
+│   ├── money/                      money value with renderer (ISO 4217 currency)
+│   └── photo_source/               where a photo came from: workspace upload or a channel message
+├── i18n/                           messages.en.json + messages.zh.json (identical key sets)
+├── lib/
+│   ├── calendar.ts                 calendar-day derivation in a named timezone (Asia/Singapore)
+│   ├── certification-eligibility.ts  dispatch qualification checks
+│   └── haversine.ts                site-tolerance distance math
+├── remotes/                        +field_ops_dashboard.ts
 ```
 
-The two date helpers are separate on purpose. Deciding which day an assignment belongs to is a
-scheduling question the dashboard must answer identically wherever it runs, while presenting an
-instant to a reader is a display question — folding them together is how a schedule ends up shifting
-with the viewer's browser.
+Apps are deliberately thin because the work happens inside a record: opening an assignment brings up
+its job scope, activity, variations, and photo evidence together; opening a site separates upcoming
+jobs from activity history. Hooks carry the domain rules so they apply to every client, remote, and
+agent — not only the UI:
 
-## Verify and deploy
+- A job must reference an existing site; an assignment must reference an existing job and contractor,
+  be unique per job, and satisfy every declared certification requirement.
+- `source_message_id` is an idempotency key for inbound assignments and variations.
+- Assignment identity cannot be moved after dispatch; a reported location beyond the site tolerance
+  forces `suspect` (one-way); completion advances the job state.
+- Photo evidence: JPEG/PNG only, exactly one parent, fingerprints and integrity flags recorded.
+
+### How photo integrity works
+
+- **PDQ**: Meta's perceptual hash, computed in-process via `pdq-wasm` (bundled with its WASM sidecar
+  by the Vite config). The 256-bit hash is stored as a 256-dim 0/1 `vector` (`hexToBinaryEmbedding`);
+  L2 distance equals √Hamming, so the near-duplicate threshold √31 is PDQ's Hamming 31.
+- **Similarity search**: `findNearest` on the HNSW `photo_evidence_pdq_hnsw` index (`vector_l2_ops`)
+  with bounded limits — the fast, indexed path, not a scan.
+- **EXIF**: `exifr` reads capture time, software, and GPS. `missing_geolocation` fires for any photo
+  without GPS; `metadata_anomaly`/`edited_metadata`/`low_quality` are recorded but do not escalate.
+- **Flags** live on the photo row (`flags` array, `matched_evidence_ids`) and drive the one-way
+  `suspect` escalation; the controller dashboard is where they render.
+
+### How the WhatsApp channel works
+
+The host (Core) holds the transport credential and delivers an already-authenticated inbound command
+(`channel` / `inbound` with transport conversation id, provider message id, text, sender). Pod binds
+the conversation to a transcript, claims the message exactly once, re-enters the workspace under the
+channel principal (`channel.field_ops_whatsapp@channels.invalid`), and runs one agent turn with the
+channel's `task` as the standing instruction. The reply goes back over the same transport. The
+channel principal's team carries `field_ops_whatsapp`, so every read and write meets the same
+policy, hooks, and approval gates any other requestor would meet.
+
+## 5. Changing the template
 
 ```bash
-pnpm --dir template_workspaces/field-operations sync
-pnpm --dir template_workspaces/field-operations lint
-pnpm --dir template_workspaces/field-operations build
+pnpm sync    # compile the workspace: .norbital/generated, types, migrations
+pnpm lint    # prettier --check + svelte-check
+pnpm build   # vite build
 ```
 
-`sync` may update `.norbital/migrations/`; commit that history with the authored change. Publish the
-template, then deploy a new tenant checkpoint to make a revision available to a tenant. See the
-[template lifecycle](../README.md#release-and-tenant-lifecycle) and [Pod overview](../../packages/pod/docs/OVERVIEW.md).
+- Never hand-edit `.norbital/` generated output. `sync` may update `.norbital/migrations/`; commit
+  that history alongside the authored change. Model edits are the only thing that should produce a
+  migration — this template has none pending.
+- Seed data stays Core-owned; tenant fixtures belong in `src/+seed.ts` (deliberately absent here).
+- Publishing and tenant lifecycle: publish the template through the OSS release workflow, then have
+  Core redeploy a tenant checkpoint (`pnpm tenant:update --org=<org> --template=<key>`) before a
+  revision reaches a tenant; use `env:reset` only for a deliberate reseed. The template detail page
+  on the website is generated from this README and `norbital.template.json` — no separate copy.

@@ -10,7 +10,7 @@ import { cascade } from '@norbital-ai/pod/authoring';
  *   - `leave_types.payroll_effect`     → component_id on the UNPAID arm
  *   - `component_entries.origin`       → reverses_entry_id / evidence_file
  * Referential integrity for those is checked in `+hooks.ts` (validation gate A3), not by the
- * database. See docs/architecture/provenance-and-audit.md.
+ * database. See docs/architecture.md (Provenance and audit).
  */
 export default ((r) => ({
 	jurisdictions: {
