@@ -98,7 +98,7 @@
 	 *
 	 * Read from the payroll run when one exists, because that is the window the engine actually used.
 	 * Only when no run has been opened yet is it derived from the company's cut-off day, which is the
-	 * same rule stated in `docs/architecture/time-overtime-and-cutoffs.md`.
+	 * same rule stated in `docs/architecture.md`.
 	 */
 	const runQuery = $derived(
 		selectedCompanyId == null
