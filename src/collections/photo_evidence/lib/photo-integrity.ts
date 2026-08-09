@@ -5,6 +5,7 @@ import exifr from 'exifr';
 import { decode as decodeJpeg } from 'jpeg-js';
 import { PNG } from 'pngjs';
 import { z } from 'zod';
+import { exceedsSiteTolerance, SITE_LOCATION_TOLERANCE_M } from '../../../lib/haversine.js';
 
 const require = createRequire(import.meta.url);
 // pdq-wasm documents its CommonJS entry as the Node path; its ESM entry cannot load the bundled
@@ -205,4 +206,33 @@ export async function inspectPhoto(input: {
 		captureLocation: captureLocationFromExif(exif),
 		flags: [...flags]
 	};
+}
+
+/**
+ * Compare the photo's GPS capture point against the job site's map location. Missing capture
+ * coordinates always flag; a captured point beyond the site tolerance flags `location_mismatch`.
+ */
+export function evaluateCaptureGeolocation(
+	capture: { lat: number; lon: number } | null,
+	site: { lat: number; lon: number } | null,
+	maxDistanceM = SITE_LOCATION_TOLERANCE_M
+): PhotoIntegrityFlag[] {
+	if (capture == null) return ['missing_geolocation'];
+	if (site == null) return [];
+	if (exceedsSiteTolerance(capture, site, maxDistanceM)) return ['location_mismatch'];
+	return [];
+}
+
+/** Photo evidence must be attached to exactly one of a job assignment or a variation request. */
+export function assertExactlyOnePhotoParent(
+	jobAssignmentId: string | null | undefined,
+	variationRequestId: string | null | undefined
+): void {
+	const hasJobAssignment = jobAssignmentId != null && jobAssignmentId !== '';
+	const hasVariation = variationRequestId != null && variationRequestId !== '';
+	if (hasJobAssignment === hasVariation) {
+		throw new Error(
+			'Photo evidence must reference exactly one job assignment or variation request.'
+		);
+	}
 }

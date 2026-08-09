@@ -61,6 +61,7 @@
 	"component.reported_location": "Reported location",
 	"component.completion_summary": "Completion / visit summary",
 	"component.title": "Title",
+	"component.status": "Status",
 	"component.requested_at": "Requested at",
 	"component.amount": "Amount",
 	"component.description": "Description",
@@ -134,6 +135,7 @@
 	"component.status_in_progress": "In progress",
 	"component.status_completed": "Completed",
 	"component.status_suspect": "Suspect",
+	"component.status_assigned": "Assigned",
 	"component.loading": "Loading…",
 	"component.loading_job": "Loading job",
 	"component.loading_photo_evidence": "Loading photographic evidence"

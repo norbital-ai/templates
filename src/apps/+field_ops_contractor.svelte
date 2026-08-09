@@ -81,7 +81,29 @@
 						}}
 					/>
 					<Column name="dispatched_at" label={t('component.dispatched')} />
-					<Column name="status" card="badge" />
+					<Column
+						name="status"
+						card="badge"
+						render={({ row, value }) => {
+							// The contractor sees their assignment's progress, never the controller-only
+							// integrity overlay: a `suspect` row reads as the linked job's own progression,
+							// which the assignment hooks keep in lockstep for every non-flagged path.
+							if (value === 'suspect') {
+								const job = jobById.get(row.job_id);
+								switch (job?.status) {
+									case 'assigned':
+										return t('component.status_assigned');
+									case 'in_progress':
+										return t('component.status_in_progress');
+									case 'completed':
+										return t('component.status_completed');
+									default:
+										return '—';
+								}
+							}
+							return typeof value === 'string' ? value : '—';
+						}}
+					/>
 					<Column name="location" label={t('component.reported_location')} minWidth={220} />
 					<Column name="summary" card="subtitle" minWidth={200} />
 				{/snippet}
