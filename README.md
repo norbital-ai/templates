@@ -1,6 +1,6 @@
 # Field Operations
 
-![Field Operations workspace banner](assets/banner.svg)
+![Field Operations workspace thumbnail](assets/thumbnail.svg)
 
 Field Operations is a construction field-operations workspace: schedule a site job, dispatch a
 certified contractor, track on-site progress, raise scope-change requests, and collect photographic

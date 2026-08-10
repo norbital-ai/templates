@@ -1,210 +1,29 @@
 <script lang="ts">
-	import { client } from '$pod/client';
-	import { importCollectionRecords } from '@norbital-ai/pod/client';
-	import { Badge } from '@norbital-ai/ui/badge';
+	import { client, type WorkspaceRow } from '$pod/client';
 	import { Button } from '@norbital-ai/ui/button';
 	import { useI18n } from '@norbital-ai/ui/i18n';
 	import type { TenantI18nKeys } from '$pod/i18n-keys';
 	import { CollectionKanban } from '@norbital-ai/ui/collection-kanban';
 	import { CollectionTable } from '@norbital-ai/ui/collection-table';
+	import { Combobox } from '@norbital-ai/ui/combobox';
 	import { DataRenderer } from '@norbital-ai/ui/data-renderer';
 	import { RelationshipRenderer } from '@norbital-ai/ui/data-renderer/relationship';
 	import { Bound, Cluster, Cover, Inline, Split, Stack } from '@norbital-ai/ui/layout';
 	import { PageHeader } from '@norbital-ai/ui/page-header';
+	import * as Sheet from '@norbital-ai/ui/sheet';
 	import { StaticMap, type StaticMapMarker } from '@norbital-ai/ui/static-map';
 	import { Tabs, type TabConfig } from '@norbital-ai/ui/tabs';
 	import { renderComponent } from '@norbital-ai/ui/utils';
 	import Icon from '@iconify/svelte';
-	import templateCsv from '../../assets/weekly-dispatch-roster.template.csv?raw';
-	import { calendarDateInTimeZone } from '../lib/calendar.js';
+	import { calendarDateInTimeZone, shiftCalendarDate } from '../lib/calendar.js';
+	import { contractorSatisfiesCertificationRequirements } from '../lib/certification-eligibility.js';
 
-	/** Strip a UTF-8 BOM if present. */
-	function stripBom(text: string): string {
-		return text.replace(/^\uFEFF/, '');
-	}
-
-	/** Parse RFC 4180-ish CSV text into rows of string cells. */
-	function parseCsv(text: string): string[][] {
-		const rows: string[][] = [];
-		let row: string[] = [];
-		let cell = '';
-		let quoted = false;
-		const source = stripBom(text);
-
-		const endCell = (): void => {
-			row.push(cell);
-			cell = '';
-		};
-		const endRow = (): void => {
-			endCell();
-			rows.push(row);
-			row = [];
-		};
-
-		for (let index = 0; index < source.length; index += 1) {
-			const character = source[index]!;
-			if (quoted) {
-				if (character !== '"') cell += character;
-				else if (source[index + 1] === '"') {
-					cell += '"';
-					index += 1;
-				} else quoted = false;
-				continue;
-			}
-			if (character === '"') quoted = true;
-			else if (character === ',') endCell();
-			else if (character === '\r') continue;
-			else if (character === '\n') endRow();
-			else cell += character;
-		}
-		if (cell !== '' || row.length > 0) endRow();
-		return rows;
-	}
-
-	function normalizeHeader(value: string): string {
-		return value.trim().toLowerCase();
-	}
-
-	function isBlankRow(cells: readonly string[]): boolean {
-		return cells.every((cell) => cell.trim() === '');
-	}
-
-	/** Read header-keyed string records from CSV text. */
-	function readCsvRecords(
-		text: string,
-		requiredHeaders: readonly string[]
-	): Record<string, string>[] {
-		const grid = parseCsv(text);
-		if (grid.length === 0) throw new Error('The CSV file is empty.');
-
-		const headerRow = grid[0]!;
-		const headers = headerRow.map((cell) => cell.trim());
-		const headerKeys = new Set(headers.map(normalizeHeader));
-		const missingHeaders = requiredHeaders.filter(
-			(header) => !headerKeys.has(normalizeHeader(header))
-		);
-		if (missingHeaders.length > 0) {
-			throw new Error(
-				`The CSV is missing required columns:\n${missingHeaders.map((header) => `• ${header}`).join('\n')}`
-			);
-		}
-
-		const records: Record<string, string>[] = [];
-		for (let rowIndex = 1; rowIndex < grid.length; rowIndex += 1) {
-			const cells = grid[rowIndex]!;
-			if (isBlankRow(cells)) continue;
-			const record: Record<string, string> = {};
-			for (let columnIndex = 0; columnIndex < headers.length; columnIndex += 1) {
-				const header = headers[columnIndex];
-				if (header == null || header === '') continue;
-				record[header] = (cells[columnIndex] ?? '').trim();
-			}
-			records.push(record);
-		}
-		if (records.length === 0) {
-			throw new Error('The CSV has headers but no data rows.');
-		}
-		return records;
-	}
-
-	/** Read one trimmed string cell from a header-keyed record. */
-	function readCsvCell(record: Record<string, string>, header: string): string {
-		return (record[header] ?? '').trim();
-	}
-
-	const ROSTER_HEADERS = [
-		'week_start',
-		'site_name',
-		'scheduled_for',
-		'job_title',
-		'contractor_company',
-		'summary'
-	] as const;
-
-	const ACCEPTED_FILE_TYPES = '.csv';
-	const TEMPLATE_FILENAME = 'weekly-dispatch-roster.template.csv';
-
-	function downloadRosterTemplate(): void {
-		if (typeof document === 'undefined') {
-			throw new Error('Roster template download is only available in the browser.');
-		}
-		const blob = new Blob([templateCsv], { type: 'text/csv;charset=utf-8' });
-		const url = URL.createObjectURL(blob);
-		const anchor = document.createElement('a');
-		anchor.href = url;
-		anchor.download = TEMPLATE_FILENAME;
-		anchor.click();
-		URL.revokeObjectURL(url);
-	}
-
-	async function pickCsvFile(): Promise<File | null> {
-		if (typeof document === 'undefined') {
-			throw new Error('Roster import is only available in the browser.');
-		}
-		return new Promise<File | null>((resolve) => {
-			const input = document.createElement('input');
-			input.type = 'file';
-			input.accept = ACCEPTED_FILE_TYPES;
-			let settled = false;
-			const finish = (file: File | null): void => {
-				if (settled) return;
-				settled = true;
-				resolve(file);
-			};
-			input.addEventListener('change', () => finish(input.files?.[0] ?? null), { once: true });
-			input.addEventListener('cancel', () => finish(null), { once: true });
-			input.click();
-		});
-	}
-
-	function buildImportPayload(records: readonly Record<string, string>[]) {
-		const weekStarts = [
-			...new Set(records.map((record) => readCsvCell(record, 'week_start')).filter(Boolean))
-		];
-		if (weekStarts.length === 0) {
-			throw new Error('Every row must include week_start (YYYY-MM-DD).');
-		}
-		if (weekStarts.length > 1) {
-			throw new Error(
-				`Every row must share the same week_start. Found:\n${weekStarts.map((value) => `• ${value}`).join('\n')}`
-			);
-		}
-
-		const weekStart = weekStarts[0]!;
-		return {
-			week_start: weekStart,
-			rows: records.map((record) => {
-				const siteName = readCsvCell(record, 'site_name');
-				const scheduledFor = readCsvCell(record, 'scheduled_for');
-				const jobTitle = readCsvCell(record, 'job_title');
-				const contractorCompany = readCsvCell(record, 'contractor_company');
-				const summary = readCsvCell(record, 'summary');
-				if (!siteName || !scheduledFor || !jobTitle || !contractorCompany) {
-					throw new Error(
-						'Each row needs site_name, scheduled_for, job_title, and contractor_company.'
-					);
-				}
-				return {
-					site_name: siteName,
-					scheduled_for: scheduledFor,
-					job_title: jobTitle,
-					contractor_company: contractorCompany,
-					...(summary ? { summary } : {})
-				};
-			})
-		};
-	}
-
-	/** Pick a roster CSV, import assignments, and return how many were created. */
-	async function importWeeklyRoster(): Promise<number> {
-		const file = await pickCsvFile();
-		if (file == null) return 0;
-		const payload = buildImportPayload(readCsvRecords(await file.text(), ROSTER_HEADERS));
-		const created = await importCollectionRecords({
-			collection_name: 'job_assignments',
-			import_data: payload
-		});
-		return created.length;
+	type ContractorCertification = WorkspaceRow<'contractor_certifications'>;
+	interface AssignmentForm {
+		jobId: string | null;
+		contractorId: string | null;
+		saving: boolean;
+		error: string | null;
 	}
 
 	const today = calendarDateInTimeZone(new Date());
@@ -212,15 +31,13 @@
 	const { t } = useI18n<TenantI18nKeys>();
 
 	let dispatchDay = $state(today);
-	let rosterImporting = $state(false);
-	let rosterFeedback = $state<{ kind: 'success' | 'error'; message: string } | null>(null);
+	let assignContractorOpen = $state(false);
 	const dashboardQuery = $derived(
 		client.invoke.field_ops_dashboard({ scheduled_for: dispatchDay })
 	);
 	const assignmentCardById = $derived(
 		new Map((dashboardQuery.current?.assignment_cards ?? []).map((card) => [card.id, card]))
 	);
-	const monthSuspects = $derived(dashboardQuery.current?.month_suspects ?? []);
 	// Reactive board query: when the dispatch day changes the dashboard refetches, the assignment
 	// id list changes, and the kanban refetches automatically — no `{#key}` re-mount hack needed.
 	const boardQuery = $derived({
@@ -234,12 +51,88 @@
 		{ value: 'completed', label: t('component.status_completed'), color: 'green' },
 		{ value: 'suspect', label: t('component.status_suspect'), color: 'red' }
 	]);
+
+	// Assign-contractor sheet — filters unassigned jobs for the day to certified contractors.
+	const assignJobsQuery = $derived(
+		client.db.jobs.findMany({
+			where: { scheduled_for: { eq: dispatchDay }, status: { eq: 'unassigned' } },
+			orderBy: { title: 'asc' },
+			limit: 250
+		})
+	);
+	const assignContractorsQuery = client.db.contractor_profiles.findMany({
+		orderBy: { company_name: 'asc' },
+		limit: 250
+	});
 	const sitesQuery = client.db.sites.findMany({
 		orderBy: { name: 'asc' },
 		limit: 250
 	});
 	const siteNameById = $derived(
 		new Map((sitesQuery.current ?? []).map((site) => [site.norbital_id, site.name]))
+	);
+	let assignment = $state<AssignmentForm>({
+		jobId: null,
+		contractorId: null,
+		saving: false,
+		error: null
+	});
+	const assignSelectedJob = $derived(
+		(assignJobsQuery.current ?? []).find((job) => job.norbital_id === assignment.jobId)
+	);
+	const assignRequirementsQuery = $derived(
+		assignSelectedJob?.norbital_id
+			? client.db.job_certification_requirements.findMany({
+					where: { job_id: { eq: assignSelectedJob.norbital_id } },
+					limit: 250
+				})
+			: null
+	);
+	const assignContractorIds = $derived(
+		(assignContractorsQuery.current ?? []).map((contractor) => contractor.norbital_id)
+	);
+	const assignContractorCertificationQuery = $derived(
+		assignContractorIds.length
+			? client.db.contractor_certifications.findMany({
+					where: { contractor_profile_id: { in: assignContractorIds } },
+					limit: 500
+				})
+			: null
+	);
+	const assignContractorCertifications = $derived(
+		assignContractorCertificationQuery?.current ?? []
+	);
+	const assignCertificationsByContractor = $derived(
+		new Map<string, ContractorCertification[]>(
+			[...new Set(assignContractorCertifications.map((link) => link.contractor_profile_id))].map(
+				(contractorProfileId) => [
+					contractorProfileId,
+					assignContractorCertifications.filter(
+						(link) => link.contractor_profile_id === contractorProfileId
+					)
+				]
+			)
+		)
+	);
+	const assignQualifiedContractors = $derived(
+		(assignContractorsQuery.current ?? []).filter((contractor) =>
+			contractorSatisfiesCertificationRequirements(
+				assignCertificationsByContractor.get(contractor.norbital_id) ?? [],
+				assignRequirementsQuery?.current ?? []
+			)
+		)
+	);
+	const assignJobOptions = $derived(
+		(assignJobsQuery.current ?? []).map((job) => ({
+			value: job.norbital_id,
+			label: `${job.title} · ${siteNameById.get(job.site_id) ?? '—'}`
+		}))
+	);
+	const assignContractorOptions = $derived(
+		assignQualifiedContractors.map((contractor) => ({
+			value: contractor.norbital_id,
+			label: contractor.company_name
+		}))
 	);
 
 	function setDispatchDay(next: string): void {
@@ -254,42 +147,28 @@
 		await dashboardQuery.refresh();
 	}
 
-	async function handleDownloadRosterTemplate(): Promise<void> {
+	async function createAssignment(): Promise<void> {
+		if (!assignment.jobId || !assignment.contractorId || assignment.saving) return;
+		assignment.saving = true;
+		assignment.error = null;
 		try {
-			downloadRosterTemplate();
-		} catch (reason) {
-			rosterFeedback = {
-				kind: 'error',
-				message:
-					reason instanceof Error
-						? reason.message
-						: t('app.field_ops_controller.roster_import_failed')
-			};
-		}
-	}
-
-	async function handleImportWeeklyRoster(): Promise<void> {
-		if (rosterImporting) return;
-		rosterImporting = true;
-		rosterFeedback = null;
-		try {
-			const created = await importWeeklyRoster();
-			if (created === 0) return;
+			const create = client.db.job_assignments.create;
+			if (!create) throw new Error(t('component.assignment_create_unavailable'));
+			await create({
+				job_id: assignment.jobId,
+				contractor_profile_id: assignment.contractorId,
+				status: 'dispatched',
+				site_identity_unverified: true
+			});
+			assignment.jobId = null;
+			assignment.contractorId = null;
 			await refreshDispatch();
-			rosterFeedback = {
-				kind: 'success',
-				message: t('app.field_ops_controller.roster_imported', { count: created })
-			};
+			assignContractorOpen = false;
 		} catch (reason) {
-			rosterFeedback = {
-				kind: 'error',
-				message:
-					reason instanceof Error
-						? reason.message
-						: t('app.field_ops_controller.roster_import_failed')
-			};
+			assignment.error =
+				reason instanceof Error ? reason.message : t('component.assignment_create_failed');
 		} finally {
-			rosterImporting = false;
+			assignment.saving = false;
 		}
 	}
 
@@ -362,68 +241,46 @@
 							{t('app.field_ops_controller.today')}
 						</Button>
 					</Inline>
-					<div class="min-w-0">
-						<DataRenderer
-							field={{ name: 'dispatch_date', kind: 'date', nullable: false }}
-							value={dispatchDay}
-							mode="edit"
-							placeholder={t('app.field_ops_controller.select_dispatch_date')}
-							onValueChange={updateDispatchDate}
-						/>
-					</div>
+					<Inline gap="xs">
+						<Button
+							variant="outline"
+							size="icon"
+							aria-label={t('app.field_ops_controller.previous_day')}
+							hint={t('app.field_ops_controller.previous_day')}
+							onclick={() => setDispatchDay(shiftCalendarDate(dispatchDay, -1))}
+						>
+							<Icon icon="lucide:chevron-left" class="size-4" />
+						</Button>
+						<div class="min-w-0">
+							<DataRenderer
+								field={{ name: 'dispatch_date', kind: 'date', nullable: false }}
+								value={dispatchDay}
+								mode="edit"
+								placeholder={t('app.field_ops_controller.select_dispatch_date')}
+								onValueChange={updateDispatchDate}
+							/>
+						</div>
+						<Button
+							variant="outline"
+							size="icon"
+							aria-label={t('app.field_ops_controller.next_day')}
+							hint={t('app.field_ops_controller.next_day')}
+							onclick={() => setDispatchDay(shiftCalendarDate(dispatchDay, 1))}
+						>
+							<Icon icon="lucide:chevron-right" class="size-4" />
+						</Button>
+					</Inline>
 				</Stack>
 			{/snippet}
 			{#snippet end()}
 				<Cluster gap="sm" justify="end">
-					<Button variant="outline" onclick={() => void handleDownloadRosterTemplate()}>
-						<Icon icon="lucide:download" class="mr-1.5 size-4 shrink-0" />
-						{t('app.field_ops_controller.download_roster_template')}
-					</Button>
-					<Button
-						variant="secondary"
-						disabled={rosterImporting}
-						onclick={() => void handleImportWeeklyRoster()}
-					>
-						<Icon icon="lucide:upload" class="mr-1.5 size-4 shrink-0" />
-						{rosterImporting
-							? t('app.field_ops_controller.importing_roster')
-							: t('app.field_ops_controller.import_weekly_roster')}
+					<Button variant="secondary" onclick={() => (assignContractorOpen = true)}>
+						<Icon icon="lucide:user-round-check" class="mr-1.5 size-4 shrink-0" />
+						{t('app.field_ops_controller.assign_contractor')}
 					</Button>
 				</Cluster>
 			{/snippet}
 		</Split>
-
-		{#if rosterFeedback}
-			<p
-				class="rounded-md border px-3 py-2 text-sm whitespace-pre-line {rosterFeedback.kind ===
-				'error'
-					? 'border-destructive/40 bg-destructive/5 text-destructive'
-					: 'border-border bg-muted/40 text-foreground'}"
-				role={rosterFeedback.kind === 'error' ? 'alert' : 'status'}
-			>
-				{rosterFeedback.message}
-			</p>
-		{/if}
-
-		{#if monthSuspects.length > 0}
-			<Stack gap="xs" class="rounded-lg border border-destructive/40 bg-destructive/5 px-3 py-2">
-				<Inline gap="sm" align="center">
-					<Icon icon="lucide:shield-alert" class="size-4 shrink-0 text-destructive" />
-					<p class="text-sm font-medium text-destructive">
-						{t('app.field_ops_controller.suspect_scrutiny_title', { count: monthSuspects.length })}
-					</p>
-				</Inline>
-				<ul class="list-disc pl-5 text-sm text-destructive/90">
-					{#each monthSuspects as suspect (suspect.id)}
-						<li>{suspect.job}</li>
-					{/each}
-				</ul>
-			</Stack>
-		{:else if !dashboardQuery.loading}
-			<p class="text-xs text-muted-foreground">
-				{t('app.field_ops_controller.no_suspect_assignments')}
-			</p>
-		{/if}
 
 		<Split
 			ratio="wide"
@@ -432,7 +289,7 @@
 			gap="md"
 		>
 			{#snippet start()}
-				<Bound size="tall" pad="sm" class="rounded-lg border bg-card">
+				<Bound size="fit" pad="sm" class="rounded-lg border bg-card">
 					<CollectionKanban
 						{client}
 						collection="job_assignments"
@@ -442,23 +299,11 @@
 						query={boardQuery}
 					>
 						{#snippet Card(assignment)}
-							<Stack
-								gap="xs"
-								class={assignment.status === 'suspect'
-									? 'rounded-md ring-2 ring-destructive/60'
-									: undefined}
-							>
-								<Inline justify="between" gap="sm" align="start">
-									<p class="text-sm font-medium">
-										{assignmentCardById.get(assignment.norbital_id)?.job ??
-											t('component.job_assignment')}
-									</p>
-									{#if assignment.status === 'suspect'}
-										<Badge variant="destructive" class="shrink-0 text-[10px] uppercase">
-											{t('component.status_suspect')}
-										</Badge>
-									{/if}
-								</Inline>
+							<Stack gap="xs">
+								<p class="text-sm font-medium">
+									{assignmentCardById.get(assignment.norbital_id)?.job ??
+										t('component.job_assignment')}
+								</p>
 								<p class="text-xs text-muted-foreground">
 									{assignmentCardById.get(assignment.norbital_id)?.contractor ??
 										t('component.contractor')}
@@ -469,7 +314,7 @@
 				</Bound>
 			{/snippet}
 			{#snippet end()}
-				<Bound size="tall" clip class="rounded-lg">
+				<Bound size="fit" clip class="rounded-lg">
 					<StaticMap
 						markers={mapMarkers}
 						ariaLabel={t('app.field_ops_controller.dispatch_map_for', { date: dispatchDay })}
@@ -480,32 +325,6 @@
 				</Bound>
 			{/snippet}
 		</Split>
-
-		<CollectionTable
-			{client}
-			collection="jobs"
-			title={t('app.field_ops_controller.jobs_scheduled_on', { date: dispatchDay })}
-			description={t('app.field_ops_controller.jobs_scheduled_description')}
-			query={{
-				where: { scheduled_for: { eq: dispatchDay } },
-				orderBy: { title: 'asc' }
-			}}
-			searchPlaceholder={t('app.field_ops_controller.search_jobs_on_date')}
-		>
-			{#snippet columns({ Column })}
-				<Column name="title" minWidth={240} card="title" />
-				<Column
-					name="site_id"
-					label={t('component.site')}
-					minWidth={200}
-					card="subtitle"
-					render={({ row }) => siteNameById.get(row.site_id) ?? '—'}
-				/>
-				<Column name="status" card="badge" />
-				<Column name="nature" label={t('component.job_nature')} minWidth={180} />
-				<Column name="description" minWidth={240} />
-			{/snippet}
-		</CollectionTable>
 	</Stack>
 {/snippet}
 
@@ -623,3 +442,79 @@
 		] satisfies TabConfig[]}
 	/>
 </Cover>
+
+<Sheet.Root bind:open={assignContractorOpen}>
+	<Sheet.Content flush class="sm:max-w-lg">
+		<Sheet.Header class="border-b border-border px-5 py-4">
+			<Sheet.Title>{t('app.field_ops_controller.sheet_title')}</Sheet.Title>
+			<Sheet.Description>
+				{t('app.field_ops_controller.sheet_description', { date: dispatchDay })}
+			</Sheet.Description>
+		</Sheet.Header>
+		<Stack
+			as="form"
+			gap="md"
+			class="p-5"
+			onsubmit={(event) => {
+				event.preventDefault();
+				void createAssignment();
+			}}
+		>
+			<label class="grid gap-1.5 text-sm">
+				<span class="font-medium">{t('app.field_ops_controller.job_and_site')}</span>
+				<Combobox
+					options={assignJobOptions}
+					bind:value={assignment.jobId}
+					emptyPlaceholder={t('app.field_ops_controller.select_unassigned_job')}
+					searchPlaceholder={t('app.field_ops_controller.search_unassigned_jobs')}
+					clientConfig={{
+						isLoading: assignJobsQuery.loading,
+						error: assignJobsQuery.error?.message ?? null
+					}}
+				/>
+			</label>
+
+			<label class="grid gap-1.5 text-sm">
+				<span class="font-medium">{t('component.contractor')}</span>
+				<Combobox
+					options={assignContractorOptions}
+					bind:value={assignment.contractorId}
+					emptyPlaceholder={t('app.field_ops_controller.select_qualified_contractor')}
+					searchPlaceholder={t('app.field_ops_controller.search_qualified_contractors')}
+					clientConfig={{
+						isLoading:
+							assignContractorsQuery.loading ||
+							Boolean(assignRequirementsQuery?.loading) ||
+							Boolean(assignContractorCertificationQuery?.loading),
+						error: assignContractorsQuery.error?.message ?? null
+					}}
+					disabled={!assignSelectedJob}
+				/>
+			</label>
+
+			{#if assignSelectedJob && assignQualifiedContractors.length === 0}
+				<p class="text-sm text-destructive" role="alert">
+					{t('app.field_ops_controller.no_qualified_contractor')}
+				</p>
+			{/if}
+			{#if assignment.error}
+				<p class="text-sm text-destructive" role="alert">{assignment.error}</p>
+			{/if}
+			{#if (assignJobsQuery.current ?? []).length === 0 && !assignJobsQuery.loading}
+				<p class="text-sm text-muted-foreground">
+					{t('app.field_ops_controller.no_unassigned_jobs', { date: dispatchDay })}
+				</p>
+			{/if}
+
+			<Button
+				type="submit"
+				class="w-full"
+				disabled={!assignment.jobId || !assignment.contractorId || assignment.saving}
+			>
+				{assignment.saving
+					? t('app.field_ops_controller.assigning')
+					: t('app.field_ops_controller.assign_contractor')}
+			</Button>
+		</Stack>
+	</Sheet.Content>
+</Sheet.Root>
