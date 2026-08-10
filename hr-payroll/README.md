@@ -1,6 +1,6 @@
 # HR & Payroll
 
-![HR & Payroll workspace banner](assets/banner.svg)
+![HR & Payroll workspace thumbnail](assets/thumbnail.svg)
 
 ## What this workspace is
 

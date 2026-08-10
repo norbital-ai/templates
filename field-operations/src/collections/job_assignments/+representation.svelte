@@ -391,6 +391,8 @@
 
 	<Tabs
 		animate={false}
+		contentPadding={false}
+		listClass="mb-0"
 		config={[
 			{
 				name: 'scope',

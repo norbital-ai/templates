@@ -11,6 +11,8 @@ there is not.
   and `pnpm-lock.yaml` pins its own dependencies including its exact `@norbital-ai/pod` version.
   Nothing outside the tree pins them, and publishing a pod propagates into no template. Run
   `pnpm templates:lock` when you deliberately move a template's dependencies.
+- Website gallery cards and `og:image` use `assets/thumbnail.svg` once. Optional manifest
+  `thumbnail` only if the path differs — do not also configure that image as `pod:thumbnail`.
 - Templates are **not** pnpm workspace members. There is no root workspace and no linking: each
   template installs from the registry with its own lockfile, exactly as a tenant sandbox does. Work
   inside the template directory (`pnpm --dir <key> install`), or use the repository-wide loops
