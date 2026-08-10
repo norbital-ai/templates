@@ -1,6 +1,6 @@
 # Construction — How It Works
 
-![Construction workspace banner](assets/banner.svg)
+![Construction workspace thumbnail](assets/thumbnail.svg)
 
 A project-centered construction operations workspace: projects, work fronts, jobs, workers and
 their permits, quality defects, RFIs, payment claims, handover documents, and a BIM reference
@@ -139,7 +139,7 @@ src/custom-types/                      money, project address, site coordinates,
                                        emergency contact, permit signatures (+definition.ts + renderer)
 src/i18n/                              English and Chinese copy, same key sets (messages.en/zh.json)
 src/lib/ifc-viewer/                    the embedded IFC viewer and its converter worker
-assets/                                banners and record media; the sample IFC model under assets/ifc/
+assets/                                thumbnail and record media; the sample IFC model under assets/ifc/
 ```
 
 How the pieces work:

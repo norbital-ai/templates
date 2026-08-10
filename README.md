@@ -13,9 +13,10 @@ and seeded with the public Pod CLI — and forked into a tenant.
 
 Every template in this repository is public, and the website lists it automatically: the template
 gallery at [norbital.ai/templates](https://norbital.ai/templates) is generated from the templates
-found in this repository, using each template's own `norbital.template.json` and `README.md`. There
-is no rewritten marketing copy and no list to update — **publishing a template here is what puts it
-on the website**.
+found in this repository, using each template's own `norbital.template.json`, `README.md`, and
+`assets/thumbnail.svg` (marketing card / `og:image` — declare that file once; no manifest field).
+There is no rewritten marketing copy and no list to update — **publishing a template here is what
+puts it on the website**.
 
 Templates that should not be advertised live in a separate private repository. Both repositories
 are resolved the same way by a Norbital host, so a private template is a first-class template in
@@ -81,14 +82,14 @@ whole registration — discovery reads the tree, not a catalogue:
 	"description": "What it is for.",
 	"visibility": "public",
 	"counts": { "collections": 0, "apps": 0, "automations": 0 },
-	"banner": "assets/banner.svg",
 	"tags": ["Operations"]
 }
 ```
 
-`counts` are recomputed from source by `pnpm templates:check`, so they cannot drift. `visibility`
-is `public` or `unlisted`; `unlisted` hides a template from the in-product picker, and it is
-independent of which repository the template lives in.
+Drop `assets/thumbnail.svg` once for website cards and `og:image` — no manifest field needed
+unless the path differs. `counts` are recomputed from source by `pnpm templates:check`, so they
+cannot drift. `visibility` is `public` or `unlisted`; `unlisted` hides a template from the
+in-product picker, and it is independent of which repository the template lives in.
 
 ## Release and tenant lifecycle
 

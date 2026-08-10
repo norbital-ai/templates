@@ -1,6 +1,6 @@
 # HR 与薪资
 
-![HR 与薪资 工作区横幅](assets/banner.svg)
+![HR 与薪资 工作区缩略图](assets/thumbnail.svg)
 
 ## 这个工作区是什么
 

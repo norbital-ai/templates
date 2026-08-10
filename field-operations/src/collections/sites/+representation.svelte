@@ -136,6 +136,8 @@
 	<Tabs
 		lazyLoad={false}
 		animate={false}
+		contentPadding={false}
+		listClass="mb-0"
 		config={[
 			{
 				name: 'general',

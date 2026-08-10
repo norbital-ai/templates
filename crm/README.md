@@ -1,6 +1,6 @@
 # CRM
 
-![CRM workspace banner](assets/banner.svg)
+![CRM workspace thumbnail](assets/thumbnail.svg)
 
 A two-sided B2B trade workspace: the **sales side** qualifies accounts and contacts, quotes from a
 product catalogue, runs the pipeline to won, and confirms the deal; the **purchase side** raises
