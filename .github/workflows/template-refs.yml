@@ -79,7 +79,7 @@ jobs:
             if npm view "${name}@${version}" version --registry="$NORBITAL_PACKAGE_REGISTRY" >/dev/null 2>&1; then
               echo "${name}@${version} already published"
             else
-              npm publish "$directory" --registry="$NORBITAL_PACKAGE_REGISTRY"
+              npm publish "$directory" --registry="$NORBITAL_PACKAGE_REGISTRY" --tag template-build
             fi
             npm view "${name}@${version}" dist.integrity --registry="$NORBITAL_PACKAGE_REGISTRY" >/dev/null
           done
