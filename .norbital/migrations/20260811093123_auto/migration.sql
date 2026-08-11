@@ -12,6 +12,9 @@ CREATE TABLE "accounts" (
 	"phone" text,
 	"currency" text,
 	"address" text,
+	"credit_limit" numeric,
+	"credit_used" numeric,
+	"credit_hold" boolean,
 	"active" boolean NOT NULL
 );
 --> statement-breakpoint
@@ -54,6 +57,60 @@ CREATE TABLE "contacts" (
 --> statement-breakpoint
 SELECT _norbital_create_history_table('contacts'::regclass, 'contacts_history');
 --> statement-breakpoint
+CREATE TABLE "contract_signings" (
+	"norbital_id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+	"norbital_created_at" timestamp with time zone DEFAULT now(),
+	"norbital_updated_at" timestamp with time zone DEFAULT now(),
+	"norbital_sys_period" tstzrange DEFAULT tstzrange(CURRENT_TIMESTAMP, NULL, '[)') NOT NULL,
+	"norbital_row_version" integer DEFAULT 1,
+	"norbital_approval_id" uuid,
+	"quote_id" uuid NOT NULL,
+	"variant" text,
+	"status" text,
+	"binding_hash" text NOT NULL,
+	"generated_file" uuid,
+	"counterparty_file" uuid,
+	"share_token_hash" text,
+	"share_expires_at" timestamp with time zone,
+	"share_revoked_at" timestamp with time zone,
+	"acknowledged_at" timestamp with time zone,
+	"void_reason" text,
+	"owner_id" uuid NOT NULL
+);
+--> statement-breakpoint
+SELECT _norbital_create_history_table('contract_signings'::regclass, 'contract_signings_history');
+--> statement-breakpoint
+CREATE TABLE "goods_receipt_lines" (
+	"norbital_id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+	"norbital_created_at" timestamp with time zone DEFAULT now(),
+	"norbital_updated_at" timestamp with time zone DEFAULT now(),
+	"norbital_sys_period" tstzrange DEFAULT tstzrange(CURRENT_TIMESTAMP, NULL, '[)') NOT NULL,
+	"norbital_row_version" integer DEFAULT 1,
+	"norbital_approval_id" uuid,
+	"goods_receipt_id" uuid NOT NULL,
+	"purchase_order_line_id" uuid NOT NULL,
+	"quantity_received" numeric NOT NULL
+);
+--> statement-breakpoint
+SELECT _norbital_create_history_table('goods_receipt_lines'::regclass, 'goods_receipt_lines_history');
+--> statement-breakpoint
+CREATE TABLE "goods_receipts" (
+	"norbital_id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+	"norbital_created_at" timestamp with time zone DEFAULT now(),
+	"norbital_updated_at" timestamp with time zone DEFAULT now(),
+	"norbital_sys_period" tstzrange DEFAULT tstzrange(CURRENT_TIMESTAMP, NULL, '[)') NOT NULL,
+	"norbital_row_version" integer DEFAULT 1,
+	"norbital_approval_id" uuid,
+	"doc_no" text NOT NULL,
+	"purchase_order_id" uuid NOT NULL,
+	"received_date" date,
+	"note" text,
+	"owner_id" uuid NOT NULL,
+	"received_at" timestamp with time zone
+);
+--> statement-breakpoint
+SELECT _norbital_create_history_table('goods_receipts'::regclass, 'goods_receipts_history');
+--> statement-breakpoint
 CREATE TABLE "products" (
 	"norbital_id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
 	"norbital_created_at" timestamp with time zone DEFAULT now(),
@@ -65,12 +122,65 @@ CREATE TABLE "products" (
 	"code" text NOT NULL,
 	"name" text NOT NULL,
 	"description" text,
+	"spec" text,
 	"unit" text,
 	"unit_price" numeric,
+	"tax_rate" numeric,
+	"qty_on_hand" numeric,
+	"main_supplier_id" uuid,
 	"active" boolean NOT NULL
 );
 --> statement-breakpoint
 SELECT _norbital_create_history_table('products'::regclass, 'products_history');
+--> statement-breakpoint
+CREATE TABLE "purchase_invoice_lines" (
+	"norbital_id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+	"norbital_created_at" timestamp with time zone DEFAULT now(),
+	"norbital_updated_at" timestamp with time zone DEFAULT now(),
+	"norbital_sys_period" tstzrange DEFAULT tstzrange(CURRENT_TIMESTAMP, NULL, '[)') NOT NULL,
+	"norbital_row_version" integer DEFAULT 1,
+	"norbital_approval_id" uuid,
+	"purchase_invoice_id" uuid NOT NULL,
+	"purchase_order_line_id" uuid NOT NULL,
+	"product_code" text NOT NULL,
+	"product_name" text NOT NULL,
+	"quantity" numeric NOT NULL,
+	"unit_cost" numeric NOT NULL,
+	"tax_rate" numeric,
+	"net" numeric,
+	"tax" numeric,
+	"line_total" numeric
+);
+--> statement-breakpoint
+SELECT _norbital_create_history_table('purchase_invoice_lines'::regclass, 'purchase_invoice_lines_history');
+--> statement-breakpoint
+CREATE TABLE "purchase_invoices" (
+	"norbital_id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+	"norbital_created_at" timestamp with time zone DEFAULT now(),
+	"norbital_updated_at" timestamp with time zone DEFAULT now(),
+	"norbital_sys_period" tstzrange DEFAULT tstzrange(CURRENT_TIMESTAMP, NULL, '[)') NOT NULL,
+	"norbital_row_version" integer DEFAULT 1,
+	"norbital_approval_id" uuid,
+	"doc_no" text NOT NULL,
+	"purchase_order_id" uuid NOT NULL,
+	"supplier_id" uuid NOT NULL,
+	"supplier_code" text NOT NULL,
+	"supplier_name" text NOT NULL,
+	"invoice_reference" text,
+	"invoice_date" date,
+	"status" text,
+	"currency" text,
+	"tax_inclusive" boolean NOT NULL,
+	"net" numeric,
+	"tax" numeric,
+	"gross" numeric,
+	"owner_id" uuid NOT NULL,
+	"confirmed_at" timestamp with time zone,
+	"cancelled_at" timestamp with time zone,
+	"cancel_reason" text
+);
+--> statement-breakpoint
+SELECT _norbital_create_history_table('purchase_invoices'::regclass, 'purchase_invoices_history');
 --> statement-breakpoint
 CREATE TABLE "purchase_order_lines" (
 	"norbital_id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -158,6 +268,14 @@ CREATE TABLE "quotes" (
 	"currency" text,
 	"tax_inclusive" boolean NOT NULL,
 	"valid_until" date,
+	"payment_terms" text,
+	"shipping_terms" text,
+	"place_of_loading" text,
+	"place_of_delivery" text,
+	"packaging" text,
+	"shipping_mark" text,
+	"time_of_shipment" text,
+	"other_terms" text,
 	"net" numeric,
 	"tax" numeric,
 	"gross" numeric,
@@ -166,11 +284,76 @@ CREATE TABLE "quotes" (
 	"revision_of" uuid,
 	"revision_number" numeric,
 	"confirmed_at" timestamp with time zone,
+	"credit_acknowledged" boolean,
 	"cancelled_at" timestamp with time zone,
 	"cancel_reason" text
 );
 --> statement-breakpoint
 SELECT _norbital_create_history_table('quotes'::regclass, 'quotes_history');
+--> statement-breakpoint
+CREATE TABLE "sales_invoice_lines" (
+	"norbital_id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+	"norbital_created_at" timestamp with time zone DEFAULT now(),
+	"norbital_updated_at" timestamp with time zone DEFAULT now(),
+	"norbital_sys_period" tstzrange DEFAULT tstzrange(CURRENT_TIMESTAMP, NULL, '[)') NOT NULL,
+	"norbital_row_version" integer DEFAULT 1,
+	"norbital_approval_id" uuid,
+	"sales_invoice_id" uuid NOT NULL,
+	"quote_line_id" uuid NOT NULL,
+	"product_code" text NOT NULL,
+	"product_name" text NOT NULL,
+	"product_unit" text,
+	"quantity" numeric NOT NULL,
+	"unit_price" numeric NOT NULL,
+	"tax_rate" numeric,
+	"net" numeric,
+	"tax" numeric,
+	"line_total" numeric
+);
+--> statement-breakpoint
+SELECT _norbital_create_history_table('sales_invoice_lines'::regclass, 'sales_invoice_lines_history');
+--> statement-breakpoint
+CREATE TABLE "sales_invoices" (
+	"norbital_id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+	"norbital_created_at" timestamp with time zone DEFAULT now(),
+	"norbital_updated_at" timestamp with time zone DEFAULT now(),
+	"norbital_sys_period" tstzrange DEFAULT tstzrange(CURRENT_TIMESTAMP, NULL, '[)') NOT NULL,
+	"norbital_row_version" integer DEFAULT 1,
+	"norbital_approval_id" uuid,
+	"doc_no" text NOT NULL,
+	"quote_id" uuid NOT NULL,
+	"account_id" uuid NOT NULL,
+	"status" text,
+	"currency" text,
+	"tax_inclusive" boolean NOT NULL,
+	"net" numeric,
+	"tax" numeric,
+	"gross" numeric,
+	"owner_id" uuid NOT NULL,
+	"issued_at" timestamp with time zone,
+	"cancelled_at" timestamp with time zone,
+	"cancel_reason" text
+);
+--> statement-breakpoint
+SELECT _norbital_create_history_table('sales_invoices'::regclass, 'sales_invoices_history');
+--> statement-breakpoint
+CREATE TABLE "settlements" (
+	"norbital_id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+	"norbital_created_at" timestamp with time zone DEFAULT now(),
+	"norbital_updated_at" timestamp with time zone DEFAULT now(),
+	"norbital_sys_period" tstzrange DEFAULT tstzrange(CURRENT_TIMESTAMP, NULL, '[)') NOT NULL,
+	"norbital_row_version" integer DEFAULT 1,
+	"norbital_approval_id" uuid,
+	"regarding_type" text,
+	"regarding_id" uuid NOT NULL,
+	"amount" numeric NOT NULL,
+	"currency" text,
+	"settled_on" date,
+	"reference" text,
+	"owner_id" uuid NOT NULL
+);
+--> statement-breakpoint
+SELECT _norbital_create_history_table('settlements'::regclass, 'settlements_history');
 --> statement-breakpoint
 CREATE TABLE "suppliers" (
 	"norbital_id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -182,6 +365,7 @@ CREATE TABLE "suppliers" (
 	"external_code" text NOT NULL,
 	"code" text NOT NULL,
 	"name" text NOT NULL,
+	"contact" text,
 	"category" text,
 	"currency" text,
 	"payment_terms_days" integer,
@@ -581,7 +765,7 @@ CREATE TABLE "user" (
 	"norbital_approval_id" uuid,
 	"email" text NOT NULL UNIQUE,
 	"name" text,
-	"avatar_url" text,
+	"avatar_asset_id" uuid,
 	"status" text DEFAULT 'active',
 	"role" text DEFAULT 'basic',
 	"kind" text DEFAULT 'human',
@@ -592,19 +776,7 @@ SELECT _norbital_create_history_table('user'::regclass, 'user_history');
 --> statement-breakpoint
 CREATE UNIQUE INDEX "accounts_external_code_index" ON "accounts" ("external_code");
 --> statement-breakpoint
-CREATE INDEX "accounts_external_code_search_trgm_idx" ON "accounts" USING gin ("external_code" gin_trgm_ops);
---> statement-breakpoint
 CREATE INDEX "accounts_name_search_trgm_idx" ON "accounts" USING gin ("name" gin_trgm_ops);
---> statement-breakpoint
-CREATE INDEX "accounts_industry_search_trgm_idx" ON "accounts" USING gin ("industry" gin_trgm_ops);
---> statement-breakpoint
-CREATE INDEX "accounts_website_search_trgm_idx" ON "accounts" USING gin ("website" gin_trgm_ops);
---> statement-breakpoint
-CREATE INDEX "accounts_phone_search_trgm_idx" ON "accounts" USING gin ("phone" gin_trgm_ops);
---> statement-breakpoint
-CREATE INDEX "accounts_currency_search_trgm_idx" ON "accounts" USING gin ("currency" gin_trgm_ops);
---> statement-breakpoint
-CREATE INDEX "accounts_address_search_trgm_idx" ON "accounts" USING gin ("address" gin_trgm_ops);
 --> statement-breakpoint
 CREATE INDEX "activities_regarding_type_regarding_id_index" ON "activities" ("regarding_type","regarding_id");
 --> statement-breakpoint
@@ -612,13 +784,7 @@ CREATE INDEX "activities_owner_id_index" ON "activities" ("owner_id");
 --> statement-breakpoint
 CREATE INDEX "activities_due_date_index" ON "activities" ("due_date");
 --> statement-breakpoint
-CREATE INDEX "activities_regarding_type_search_trgm_idx" ON "activities" USING gin ("regarding_type" gin_trgm_ops);
---> statement-breakpoint
-CREATE INDEX "activities_type_search_trgm_idx" ON "activities" USING gin ("type" gin_trgm_ops);
---> statement-breakpoint
 CREATE INDEX "activities_subject_search_trgm_idx" ON "activities" USING gin ("subject" gin_trgm_ops);
---> statement-breakpoint
-CREATE INDEX "activities_description_search_trgm_idx" ON "activities" USING gin ("description" gin_trgm_ops);
 --> statement-breakpoint
 CREATE INDEX "contacts_account_id_index" ON "contacts" ("account_id");
 --> statement-breakpoint
@@ -626,35 +792,51 @@ CREATE INDEX "contacts_first_name_search_trgm_idx" ON "contacts" USING gin ("fir
 --> statement-breakpoint
 CREATE INDEX "contacts_last_name_search_trgm_idx" ON "contacts" USING gin ("last_name" gin_trgm_ops);
 --> statement-breakpoint
-CREATE INDEX "contacts_email_search_trgm_idx" ON "contacts" USING gin ("email" gin_trgm_ops);
+CREATE INDEX "contract_signings_quote_id_index" ON "contract_signings" ("quote_id");
 --> statement-breakpoint
-CREATE INDEX "contacts_title_search_trgm_idx" ON "contacts" USING gin ("title" gin_trgm_ops);
+CREATE INDEX "contract_signings_status_index" ON "contract_signings" ("status");
 --> statement-breakpoint
-CREATE INDEX "contacts_department_search_trgm_idx" ON "contacts" USING gin ("department" gin_trgm_ops);
+CREATE INDEX "contract_signings_binding_hash_search_trgm_idx" ON "contract_signings" USING gin ("binding_hash" gin_trgm_ops);
+--> statement-breakpoint
+CREATE INDEX "goods_receipt_lines_goods_receipt_id_index" ON "goods_receipt_lines" ("goods_receipt_id");
+--> statement-breakpoint
+CREATE INDEX "goods_receipt_lines_purchase_order_line_id_index" ON "goods_receipt_lines" ("purchase_order_line_id");
+--> statement-breakpoint
+CREATE UNIQUE INDEX "goods_receipts_doc_no_index" ON "goods_receipts" ("doc_no");
+--> statement-breakpoint
+CREATE INDEX "goods_receipts_purchase_order_id_index" ON "goods_receipts" ("purchase_order_id");
+--> statement-breakpoint
+CREATE INDEX "goods_receipts_owner_id_index" ON "goods_receipts" ("owner_id");
+--> statement-breakpoint
+CREATE INDEX "goods_receipts_doc_no_search_trgm_idx" ON "goods_receipts" USING gin ("doc_no" gin_trgm_ops);
 --> statement-breakpoint
 CREATE UNIQUE INDEX "products_external_code_index" ON "products" ("external_code");
 --> statement-breakpoint
 CREATE UNIQUE INDEX "products_code_index" ON "products" ("code");
 --> statement-breakpoint
-CREATE INDEX "products_external_code_search_trgm_idx" ON "products" USING gin ("external_code" gin_trgm_ops);
---> statement-breakpoint
-CREATE INDEX "products_code_search_trgm_idx" ON "products" USING gin ("code" gin_trgm_ops);
---> statement-breakpoint
 CREATE INDEX "products_name_search_trgm_idx" ON "products" USING gin ("name" gin_trgm_ops);
 --> statement-breakpoint
-CREATE INDEX "products_description_search_trgm_idx" ON "products" USING gin ("description" gin_trgm_ops);
+CREATE INDEX "purchase_invoice_lines_purchase_invoice_id_index" ON "purchase_invoice_lines" ("purchase_invoice_id");
 --> statement-breakpoint
-CREATE INDEX "products_unit_search_trgm_idx" ON "products" USING gin ("unit" gin_trgm_ops);
+CREATE INDEX "purchase_invoice_lines_purchase_order_line_id_index" ON "purchase_invoice_lines" ("purchase_order_line_id");
+--> statement-breakpoint
+CREATE INDEX "purchase_invoice_lines_product_name_search_trgm_idx" ON "purchase_invoice_lines" USING gin ("product_name" gin_trgm_ops);
+--> statement-breakpoint
+CREATE UNIQUE INDEX "purchase_invoices_doc_no_index" ON "purchase_invoices" ("doc_no");
+--> statement-breakpoint
+CREATE INDEX "purchase_invoices_purchase_order_id_index" ON "purchase_invoices" ("purchase_order_id");
+--> statement-breakpoint
+CREATE INDEX "purchase_invoices_supplier_id_index" ON "purchase_invoices" ("supplier_id");
+--> statement-breakpoint
+CREATE INDEX "purchase_invoices_status_index" ON "purchase_invoices" ("status");
+--> statement-breakpoint
+CREATE INDEX "purchase_invoices_doc_no_search_trgm_idx" ON "purchase_invoices" USING gin ("doc_no" gin_trgm_ops);
 --> statement-breakpoint
 CREATE INDEX "purchase_order_lines_purchase_order_id_index" ON "purchase_order_lines" ("purchase_order_id");
 --> statement-breakpoint
 CREATE INDEX "purchase_order_lines_product_id_index" ON "purchase_order_lines" ("product_id");
 --> statement-breakpoint
-CREATE INDEX "purchase_order_lines_product_code_search_trgm_idx" ON "purchase_order_lines" USING gin ("product_code" gin_trgm_ops);
---> statement-breakpoint
 CREATE INDEX "purchase_order_lines_product_name_search_trgm_idx" ON "purchase_order_lines" USING gin ("product_name" gin_trgm_ops);
---> statement-breakpoint
-CREATE INDEX "purchase_order_lines_product_unit_search_trgm_idx" ON "purchase_order_lines" USING gin ("product_unit" gin_trgm_ops);
 --> statement-breakpoint
 CREATE UNIQUE INDEX "purchase_orders_doc_no_index" ON "purchase_orders" ("doc_no");
 --> statement-breakpoint
@@ -668,25 +850,11 @@ CREATE INDEX "purchase_orders_expected_date_index" ON "purchase_orders" ("expect
 --> statement-breakpoint
 CREATE INDEX "purchase_orders_doc_no_search_trgm_idx" ON "purchase_orders" USING gin ("doc_no" gin_trgm_ops);
 --> statement-breakpoint
-CREATE INDEX "purchase_orders_supplier_code_search_trgm_idx" ON "purchase_orders" USING gin ("supplier_code" gin_trgm_ops);
---> statement-breakpoint
-CREATE INDEX "purchase_orders_supplier_name_search_trgm_idx" ON "purchase_orders" USING gin ("supplier_name" gin_trgm_ops);
---> statement-breakpoint
-CREATE INDEX "purchase_orders_status_search_trgm_idx" ON "purchase_orders" USING gin ("status" gin_trgm_ops);
---> statement-breakpoint
-CREATE INDEX "purchase_orders_currency_search_trgm_idx" ON "purchase_orders" USING gin ("currency" gin_trgm_ops);
---> statement-breakpoint
-CREATE INDEX "purchase_orders_cancel_reason_search_trgm_idx" ON "purchase_orders" USING gin ("cancel_reason" gin_trgm_ops);
---> statement-breakpoint
 CREATE INDEX "quote_lines_quote_id_index" ON "quote_lines" ("quote_id");
 --> statement-breakpoint
 CREATE INDEX "quote_lines_product_id_index" ON "quote_lines" ("product_id");
 --> statement-breakpoint
-CREATE INDEX "quote_lines_product_code_search_trgm_idx" ON "quote_lines" USING gin ("product_code" gin_trgm_ops);
---> statement-breakpoint
 CREATE INDEX "quote_lines_product_name_search_trgm_idx" ON "quote_lines" USING gin ("product_name" gin_trgm_ops);
---> statement-breakpoint
-CREATE INDEX "quote_lines_product_unit_search_trgm_idx" ON "quote_lines" USING gin ("product_unit" gin_trgm_ops);
 --> statement-breakpoint
 CREATE UNIQUE INDEX "quotes_doc_no_index" ON "quotes" ("doc_no");
 --> statement-breakpoint
@@ -700,15 +868,27 @@ CREATE INDEX "quotes_revision_of_index" ON "quotes" ("revision_of");
 --> statement-breakpoint
 CREATE INDEX "quotes_doc_no_search_trgm_idx" ON "quotes" USING gin ("doc_no" gin_trgm_ops);
 --> statement-breakpoint
-CREATE INDEX "quotes_title_search_trgm_idx" ON "quotes" USING gin ("title" gin_trgm_ops);
+CREATE INDEX "sales_invoice_lines_sales_invoice_id_index" ON "sales_invoice_lines" ("sales_invoice_id");
 --> statement-breakpoint
-CREATE INDEX "quotes_status_search_trgm_idx" ON "quotes" USING gin ("status" gin_trgm_ops);
+CREATE INDEX "sales_invoice_lines_quote_line_id_index" ON "sales_invoice_lines" ("quote_line_id");
 --> statement-breakpoint
-CREATE INDEX "quotes_currency_search_trgm_idx" ON "quotes" USING gin ("currency" gin_trgm_ops);
+CREATE INDEX "sales_invoice_lines_product_name_search_trgm_idx" ON "sales_invoice_lines" USING gin ("product_name" gin_trgm_ops);
 --> statement-breakpoint
-CREATE INDEX "quotes_description_search_trgm_idx" ON "quotes" USING gin ("description" gin_trgm_ops);
+CREATE UNIQUE INDEX "sales_invoices_doc_no_index" ON "sales_invoices" ("doc_no");
 --> statement-breakpoint
-CREATE INDEX "quotes_cancel_reason_search_trgm_idx" ON "quotes" USING gin ("cancel_reason" gin_trgm_ops);
+CREATE INDEX "sales_invoices_quote_id_index" ON "sales_invoices" ("quote_id");
+--> statement-breakpoint
+CREATE INDEX "sales_invoices_account_id_index" ON "sales_invoices" ("account_id");
+--> statement-breakpoint
+CREATE INDEX "sales_invoices_status_index" ON "sales_invoices" ("status");
+--> statement-breakpoint
+CREATE INDEX "sales_invoices_doc_no_search_trgm_idx" ON "sales_invoices" USING gin ("doc_no" gin_trgm_ops);
+--> statement-breakpoint
+CREATE INDEX "settlements_regarding_id_index" ON "settlements" ("regarding_id");
+--> statement-breakpoint
+CREATE INDEX "settlements_regarding_type_index" ON "settlements" ("regarding_type");
+--> statement-breakpoint
+CREATE INDEX "settlements_reference_search_trgm_idx" ON "settlements" USING gin ("reference" gin_trgm_ops);
 --> statement-breakpoint
 CREATE UNIQUE INDEX "suppliers_external_code_index" ON "suppliers" ("external_code");
 --> statement-breakpoint
@@ -718,21 +898,7 @@ CREATE INDEX "suppliers_name_index" ON "suppliers" ("name");
 --> statement-breakpoint
 CREATE INDEX "suppliers_active_index" ON "suppliers" ("active");
 --> statement-breakpoint
-CREATE INDEX "suppliers_external_code_search_trgm_idx" ON "suppliers" USING gin ("external_code" gin_trgm_ops);
---> statement-breakpoint
-CREATE INDEX "suppliers_code_search_trgm_idx" ON "suppliers" USING gin ("code" gin_trgm_ops);
---> statement-breakpoint
 CREATE INDEX "suppliers_name_search_trgm_idx" ON "suppliers" USING gin ("name" gin_trgm_ops);
---> statement-breakpoint
-CREATE INDEX "suppliers_category_search_trgm_idx" ON "suppliers" USING gin ("category" gin_trgm_ops);
---> statement-breakpoint
-CREATE INDEX "suppliers_currency_search_trgm_idx" ON "suppliers" USING gin ("currency" gin_trgm_ops);
---> statement-breakpoint
-CREATE INDEX "suppliers_phone_search_trgm_idx" ON "suppliers" USING gin ("phone" gin_trgm_ops);
---> statement-breakpoint
-CREATE INDEX "suppliers_email_search_trgm_idx" ON "suppliers" USING gin ("email" gin_trgm_ops);
---> statement-breakpoint
-CREATE INDEX "suppliers_address_search_trgm_idx" ON "suppliers" USING gin ("address" gin_trgm_ops);
 --> statement-breakpoint
 CREATE INDEX "approval_request_label_search_trgm_idx" ON "approval_request" USING gin ("label" gin_trgm_ops);
 --> statement-breakpoint
@@ -910,8 +1076,6 @@ CREATE INDEX "user_email_search_trgm_idx" ON "user" USING gin ("email" gin_trgm_
 --> statement-breakpoint
 CREATE INDEX "user_name_search_trgm_idx" ON "user" USING gin ("name" gin_trgm_ops);
 --> statement-breakpoint
-CREATE INDEX "user_avatar_url_search_trgm_idx" ON "user" USING gin ("avatar_url" gin_trgm_ops);
---> statement-breakpoint
 CREATE INDEX "user_status_search_trgm_idx" ON "user" USING gin ("status" gin_trgm_ops);
 --> statement-breakpoint
 CREATE INDEX "user_role_search_trgm_idx" ON "user" USING gin ("role" gin_trgm_ops);
@@ -921,6 +1085,30 @@ CREATE INDEX "user_kind_search_trgm_idx" ON "user" USING gin ("kind" gin_trgm_op
 ALTER TABLE "activities" ADD CONSTRAINT "activities_owner_id_user_fk" FOREIGN KEY ("owner_id") REFERENCES "user"("norbital_id");
 --> statement-breakpoint
 ALTER TABLE "contacts" ADD CONSTRAINT "contacts_account_id_accounts_fk" FOREIGN KEY ("account_id") REFERENCES "accounts"("norbital_id");
+--> statement-breakpoint
+ALTER TABLE "contract_signings" ADD CONSTRAINT "contract_signings_quote_id_quotes_fk" FOREIGN KEY ("quote_id") REFERENCES "quotes"("norbital_id");
+--> statement-breakpoint
+ALTER TABLE "contract_signings" ADD CONSTRAINT "contract_signings_owner_id_user_fk" FOREIGN KEY ("owner_id") REFERENCES "user"("norbital_id");
+--> statement-breakpoint
+ALTER TABLE "goods_receipt_lines" ADD CONSTRAINT "goods_receipt_lines_goods_receipt_id_goods_receipts_fk" FOREIGN KEY ("goods_receipt_id") REFERENCES "goods_receipts"("norbital_id") ON DELETE CASCADE;
+--> statement-breakpoint
+ALTER TABLE "goods_receipt_lines" ADD CONSTRAINT "goods_receipt_lines_purchase_order_line_id_purchase_order_lines_fk" FOREIGN KEY ("purchase_order_line_id") REFERENCES "purchase_order_lines"("norbital_id");
+--> statement-breakpoint
+ALTER TABLE "goods_receipts" ADD CONSTRAINT "goods_receipts_purchase_order_id_purchase_orders_fk" FOREIGN KEY ("purchase_order_id") REFERENCES "purchase_orders"("norbital_id");
+--> statement-breakpoint
+ALTER TABLE "goods_receipts" ADD CONSTRAINT "goods_receipts_owner_id_user_fk" FOREIGN KEY ("owner_id") REFERENCES "user"("norbital_id");
+--> statement-breakpoint
+ALTER TABLE "products" ADD CONSTRAINT "products_main_supplier_id_suppliers_fk" FOREIGN KEY ("main_supplier_id") REFERENCES "suppliers"("norbital_id");
+--> statement-breakpoint
+ALTER TABLE "purchase_invoice_lines" ADD CONSTRAINT "purchase_invoice_lines_purchase_invoice_id_purchase_invoices_fk" FOREIGN KEY ("purchase_invoice_id") REFERENCES "purchase_invoices"("norbital_id") ON DELETE CASCADE;
+--> statement-breakpoint
+ALTER TABLE "purchase_invoice_lines" ADD CONSTRAINT "purchase_invoice_lines_purchase_order_line_id_purchase_order_lines_fk" FOREIGN KEY ("purchase_order_line_id") REFERENCES "purchase_order_lines"("norbital_id");
+--> statement-breakpoint
+ALTER TABLE "purchase_invoices" ADD CONSTRAINT "purchase_invoices_purchase_order_id_purchase_orders_fk" FOREIGN KEY ("purchase_order_id") REFERENCES "purchase_orders"("norbital_id");
+--> statement-breakpoint
+ALTER TABLE "purchase_invoices" ADD CONSTRAINT "purchase_invoices_supplier_id_suppliers_fk" FOREIGN KEY ("supplier_id") REFERENCES "suppliers"("norbital_id");
+--> statement-breakpoint
+ALTER TABLE "purchase_invoices" ADD CONSTRAINT "purchase_invoices_owner_id_user_fk" FOREIGN KEY ("owner_id") REFERENCES "user"("norbital_id");
 --> statement-breakpoint
 ALTER TABLE "purchase_order_lines" ADD CONSTRAINT "purchase_order_lines_purchase_order_id_purchase_orders_fk" FOREIGN KEY ("purchase_order_id") REFERENCES "purchase_orders"("norbital_id") ON DELETE CASCADE;
 --> statement-breakpoint
@@ -941,6 +1129,16 @@ ALTER TABLE "quotes" ADD CONSTRAINT "quotes_contact_id_contacts_fk" FOREIGN KEY 
 ALTER TABLE "quotes" ADD CONSTRAINT "quotes_owner_id_user_fk" FOREIGN KEY ("owner_id") REFERENCES "user"("norbital_id");
 --> statement-breakpoint
 ALTER TABLE "quotes" ADD CONSTRAINT "quotes_revision_of_quotes_fk" FOREIGN KEY ("revision_of") REFERENCES "quotes"("norbital_id");
+--> statement-breakpoint
+ALTER TABLE "sales_invoice_lines" ADD CONSTRAINT "sales_invoice_lines_sales_invoice_id_sales_invoices_fk" FOREIGN KEY ("sales_invoice_id") REFERENCES "sales_invoices"("norbital_id") ON DELETE CASCADE;
+--> statement-breakpoint
+ALTER TABLE "sales_invoice_lines" ADD CONSTRAINT "sales_invoice_lines_quote_line_id_quote_lines_fk" FOREIGN KEY ("quote_line_id") REFERENCES "quote_lines"("norbital_id");
+--> statement-breakpoint
+ALTER TABLE "sales_invoices" ADD CONSTRAINT "sales_invoices_quote_id_quotes_fk" FOREIGN KEY ("quote_id") REFERENCES "quotes"("norbital_id");
+--> statement-breakpoint
+ALTER TABLE "sales_invoices" ADD CONSTRAINT "sales_invoices_account_id_accounts_fk" FOREIGN KEY ("account_id") REFERENCES "accounts"("norbital_id");
+--> statement-breakpoint
+ALTER TABLE "sales_invoices" ADD CONSTRAINT "sales_invoices_owner_id_user_fk" FOREIGN KEY ("owner_id") REFERENCES "user"("norbital_id");
 --> statement-breakpoint
 ALTER TABLE "audit_event" ADD CONSTRAINT "audit_event_actor_id_user_norbital_id_fkey" FOREIGN KEY ("actor_id") REFERENCES "user"("norbital_id");
 --> statement-breakpoint
@@ -983,3 +1181,5 @@ ALTER TABLE "team" ADD CONSTRAINT "team_policy_id_policy_norbital_id_fkey" FOREI
 ALTER TABLE "team_members" ADD CONSTRAINT "team_members_user_id_user_norbital_id_fkey" FOREIGN KEY ("user_id") REFERENCES "user"("norbital_id");
 --> statement-breakpoint
 ALTER TABLE "team_members" ADD CONSTRAINT "team_members_team_id_team_norbital_id_fkey" FOREIGN KEY ("team_id") REFERENCES "team"("norbital_id");
+--> statement-breakpoint
+ALTER TABLE "user" ADD CONSTRAINT "user_avatar_asset_id_document_asset_norbital_id_fkey" FOREIGN KEY ("avatar_asset_id") REFERENCES "document_asset"("norbital_id") ON DELETE SET NULL;

@@ -1,7 +1,7 @@
 {
   "version": "8",
   "dialect": "postgres",
-  "id": "c2705ded-5dd0-4d1a-a4af-75ac6985b38c",
+  "id": "7045091c-0865-4a20-962a-38fb95c7a4f0",
   "prevIds": [
     "00000000-0000-0000-0000-000000000000"
   ],
@@ -26,7 +26,37 @@
     },
     {
       "isRlsEnabled": false,
+      "name": "contract_signings",
+      "entityType": "tables",
+      "schema": "public"
+    },
+    {
+      "isRlsEnabled": false,
+      "name": "goods_receipt_lines",
+      "entityType": "tables",
+      "schema": "public"
+    },
+    {
+      "isRlsEnabled": false,
+      "name": "goods_receipts",
+      "entityType": "tables",
+      "schema": "public"
+    },
+    {
+      "isRlsEnabled": false,
       "name": "products",
+      "entityType": "tables",
+      "schema": "public"
+    },
+    {
+      "isRlsEnabled": false,
+      "name": "purchase_invoice_lines",
+      "entityType": "tables",
+      "schema": "public"
+    },
+    {
+      "isRlsEnabled": false,
+      "name": "purchase_invoices",
       "entityType": "tables",
       "schema": "public"
     },
@@ -51,6 +81,24 @@
     {
       "isRlsEnabled": false,
       "name": "quotes",
+      "entityType": "tables",
+      "schema": "public"
+    },
+    {
+      "isRlsEnabled": false,
+      "name": "sales_invoice_lines",
+      "entityType": "tables",
+      "schema": "public"
+    },
+    {
+      "isRlsEnabled": false,
+      "name": "sales_invoices",
+      "entityType": "tables",
+      "schema": "public"
+    },
+    {
+      "isRlsEnabled": false,
+      "name": "settlements",
       "entityType": "tables",
       "schema": "public"
     },
@@ -351,6 +399,45 @@
       "generated": null,
       "identity": null,
       "name": "address",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "accounts"
+    },
+    {
+      "type": "numeric",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "credit_limit",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "accounts"
+    },
+    {
+      "type": "numeric",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "credit_used",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "accounts"
+    },
+    {
+      "type": "boolean",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "credit_hold",
       "entityType": "columns",
       "schema": "public",
       "table": "accounts"
@@ -730,6 +817,513 @@
       "name": "norbital_id",
       "entityType": "columns",
       "schema": "public",
+      "table": "contract_signings"
+    },
+    {
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": "now()",
+      "generated": null,
+      "identity": null,
+      "name": "norbital_created_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "contract_signings"
+    },
+    {
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": "now()",
+      "generated": null,
+      "identity": null,
+      "name": "norbital_updated_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "contract_signings"
+    },
+    {
+      "type": "tstzrange",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "tstzrange(CURRENT_TIMESTAMP, NULL, '[)')",
+      "generated": null,
+      "identity": null,
+      "name": "norbital_sys_period",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "contract_signings"
+    },
+    {
+      "type": "integer",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": "1",
+      "generated": null,
+      "identity": null,
+      "name": "norbital_row_version",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "contract_signings"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "norbital_approval_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "contract_signings"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "quote_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "contract_signings"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "variant",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "contract_signings"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "status",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "contract_signings"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "binding_hash",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "contract_signings"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "generated_file",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "contract_signings"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "counterparty_file",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "contract_signings"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "share_token_hash",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "contract_signings"
+    },
+    {
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "share_expires_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "contract_signings"
+    },
+    {
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "share_revoked_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "contract_signings"
+    },
+    {
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "acknowledged_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "contract_signings"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "void_reason",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "contract_signings"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "owner_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "contract_signings"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "gen_random_uuid()",
+      "generated": null,
+      "identity": null,
+      "name": "norbital_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "goods_receipt_lines"
+    },
+    {
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": "now()",
+      "generated": null,
+      "identity": null,
+      "name": "norbital_created_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "goods_receipt_lines"
+    },
+    {
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": "now()",
+      "generated": null,
+      "identity": null,
+      "name": "norbital_updated_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "goods_receipt_lines"
+    },
+    {
+      "type": "tstzrange",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "tstzrange(CURRENT_TIMESTAMP, NULL, '[)')",
+      "generated": null,
+      "identity": null,
+      "name": "norbital_sys_period",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "goods_receipt_lines"
+    },
+    {
+      "type": "integer",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": "1",
+      "generated": null,
+      "identity": null,
+      "name": "norbital_row_version",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "goods_receipt_lines"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "norbital_approval_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "goods_receipt_lines"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "goods_receipt_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "goods_receipt_lines"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "purchase_order_line_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "goods_receipt_lines"
+    },
+    {
+      "type": "numeric",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "quantity_received",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "goods_receipt_lines"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "gen_random_uuid()",
+      "generated": null,
+      "identity": null,
+      "name": "norbital_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "goods_receipts"
+    },
+    {
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": "now()",
+      "generated": null,
+      "identity": null,
+      "name": "norbital_created_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "goods_receipts"
+    },
+    {
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": "now()",
+      "generated": null,
+      "identity": null,
+      "name": "norbital_updated_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "goods_receipts"
+    },
+    {
+      "type": "tstzrange",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "tstzrange(CURRENT_TIMESTAMP, NULL, '[)')",
+      "generated": null,
+      "identity": null,
+      "name": "norbital_sys_period",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "goods_receipts"
+    },
+    {
+      "type": "integer",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": "1",
+      "generated": null,
+      "identity": null,
+      "name": "norbital_row_version",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "goods_receipts"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "norbital_approval_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "goods_receipts"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "doc_no",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "goods_receipts"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "purchase_order_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "goods_receipts"
+    },
+    {
+      "type": "date",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "received_date",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "goods_receipts"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "note",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "goods_receipts"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "owner_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "goods_receipts"
+    },
+    {
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "received_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "goods_receipts"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "gen_random_uuid()",
+      "generated": null,
+      "identity": null,
+      "name": "norbital_id",
+      "entityType": "columns",
+      "schema": "public",
       "table": "products"
     },
     {
@@ -857,6 +1451,19 @@
       "default": null,
       "generated": null,
       "identity": null,
+      "name": "spec",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "products"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
       "name": "unit",
       "entityType": "columns",
       "schema": "public",
@@ -876,6 +1483,45 @@
       "table": "products"
     },
     {
+      "type": "numeric",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "tax_rate",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "products"
+    },
+    {
+      "type": "numeric",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "qty_on_hand",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "products"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "main_supplier_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "products"
+    },
+    {
       "type": "boolean",
       "typeSchema": null,
       "notNull": true,
@@ -887,6 +1533,513 @@
       "entityType": "columns",
       "schema": "public",
       "table": "products"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "gen_random_uuid()",
+      "generated": null,
+      "identity": null,
+      "name": "norbital_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "purchase_invoice_lines"
+    },
+    {
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": "now()",
+      "generated": null,
+      "identity": null,
+      "name": "norbital_created_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "purchase_invoice_lines"
+    },
+    {
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": "now()",
+      "generated": null,
+      "identity": null,
+      "name": "norbital_updated_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "purchase_invoice_lines"
+    },
+    {
+      "type": "tstzrange",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "tstzrange(CURRENT_TIMESTAMP, NULL, '[)')",
+      "generated": null,
+      "identity": null,
+      "name": "norbital_sys_period",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "purchase_invoice_lines"
+    },
+    {
+      "type": "integer",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": "1",
+      "generated": null,
+      "identity": null,
+      "name": "norbital_row_version",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "purchase_invoice_lines"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "norbital_approval_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "purchase_invoice_lines"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "purchase_invoice_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "purchase_invoice_lines"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "purchase_order_line_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "purchase_invoice_lines"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "product_code",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "purchase_invoice_lines"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "product_name",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "purchase_invoice_lines"
+    },
+    {
+      "type": "numeric",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "quantity",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "purchase_invoice_lines"
+    },
+    {
+      "type": "numeric",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "unit_cost",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "purchase_invoice_lines"
+    },
+    {
+      "type": "numeric",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "tax_rate",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "purchase_invoice_lines"
+    },
+    {
+      "type": "numeric",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "net",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "purchase_invoice_lines"
+    },
+    {
+      "type": "numeric",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "tax",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "purchase_invoice_lines"
+    },
+    {
+      "type": "numeric",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "line_total",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "purchase_invoice_lines"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "gen_random_uuid()",
+      "generated": null,
+      "identity": null,
+      "name": "norbital_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "purchase_invoices"
+    },
+    {
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": "now()",
+      "generated": null,
+      "identity": null,
+      "name": "norbital_created_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "purchase_invoices"
+    },
+    {
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": "now()",
+      "generated": null,
+      "identity": null,
+      "name": "norbital_updated_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "purchase_invoices"
+    },
+    {
+      "type": "tstzrange",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "tstzrange(CURRENT_TIMESTAMP, NULL, '[)')",
+      "generated": null,
+      "identity": null,
+      "name": "norbital_sys_period",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "purchase_invoices"
+    },
+    {
+      "type": "integer",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": "1",
+      "generated": null,
+      "identity": null,
+      "name": "norbital_row_version",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "purchase_invoices"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "norbital_approval_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "purchase_invoices"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "doc_no",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "purchase_invoices"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "purchase_order_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "purchase_invoices"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "supplier_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "purchase_invoices"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "supplier_code",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "purchase_invoices"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "supplier_name",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "purchase_invoices"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "invoice_reference",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "purchase_invoices"
+    },
+    {
+      "type": "date",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "invoice_date",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "purchase_invoices"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "status",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "purchase_invoices"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "currency",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "purchase_invoices"
+    },
+    {
+      "type": "boolean",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "tax_inclusive",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "purchase_invoices"
+    },
+    {
+      "type": "numeric",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "net",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "purchase_invoices"
+    },
+    {
+      "type": "numeric",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "tax",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "purchase_invoices"
+    },
+    {
+      "type": "numeric",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "gross",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "purchase_invoices"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "owner_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "purchase_invoices"
+    },
+    {
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "confirmed_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "purchase_invoices"
+    },
+    {
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "cancelled_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "purchase_invoices"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "cancel_reason",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "purchase_invoices"
     },
     {
       "type": "uuid",
@@ -1799,6 +2952,110 @@
       "table": "quotes"
     },
     {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "payment_terms",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "quotes"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "shipping_terms",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "quotes"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "place_of_loading",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "quotes"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "place_of_delivery",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "quotes"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "packaging",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "quotes"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "shipping_mark",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "quotes"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "time_of_shipment",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "quotes"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "other_terms",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "quotes"
+    },
+    {
       "type": "numeric",
       "typeSchema": null,
       "notNull": false,
@@ -1903,6 +3160,19 @@
       "table": "quotes"
     },
     {
+      "type": "boolean",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "credit_acknowledged",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "quotes"
+    },
+    {
       "type": "timestamp with time zone",
       "typeSchema": null,
       "notNull": false,
@@ -1927,6 +3197,643 @@
       "entityType": "columns",
       "schema": "public",
       "table": "quotes"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "gen_random_uuid()",
+      "generated": null,
+      "identity": null,
+      "name": "norbital_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "sales_invoice_lines"
+    },
+    {
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": "now()",
+      "generated": null,
+      "identity": null,
+      "name": "norbital_created_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "sales_invoice_lines"
+    },
+    {
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": "now()",
+      "generated": null,
+      "identity": null,
+      "name": "norbital_updated_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "sales_invoice_lines"
+    },
+    {
+      "type": "tstzrange",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "tstzrange(CURRENT_TIMESTAMP, NULL, '[)')",
+      "generated": null,
+      "identity": null,
+      "name": "norbital_sys_period",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "sales_invoice_lines"
+    },
+    {
+      "type": "integer",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": "1",
+      "generated": null,
+      "identity": null,
+      "name": "norbital_row_version",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "sales_invoice_lines"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "norbital_approval_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "sales_invoice_lines"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "sales_invoice_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "sales_invoice_lines"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "quote_line_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "sales_invoice_lines"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "product_code",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "sales_invoice_lines"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "product_name",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "sales_invoice_lines"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "product_unit",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "sales_invoice_lines"
+    },
+    {
+      "type": "numeric",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "quantity",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "sales_invoice_lines"
+    },
+    {
+      "type": "numeric",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "unit_price",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "sales_invoice_lines"
+    },
+    {
+      "type": "numeric",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "tax_rate",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "sales_invoice_lines"
+    },
+    {
+      "type": "numeric",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "net",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "sales_invoice_lines"
+    },
+    {
+      "type": "numeric",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "tax",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "sales_invoice_lines"
+    },
+    {
+      "type": "numeric",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "line_total",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "sales_invoice_lines"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "gen_random_uuid()",
+      "generated": null,
+      "identity": null,
+      "name": "norbital_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "sales_invoices"
+    },
+    {
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": "now()",
+      "generated": null,
+      "identity": null,
+      "name": "norbital_created_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "sales_invoices"
+    },
+    {
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": "now()",
+      "generated": null,
+      "identity": null,
+      "name": "norbital_updated_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "sales_invoices"
+    },
+    {
+      "type": "tstzrange",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "tstzrange(CURRENT_TIMESTAMP, NULL, '[)')",
+      "generated": null,
+      "identity": null,
+      "name": "norbital_sys_period",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "sales_invoices"
+    },
+    {
+      "type": "integer",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": "1",
+      "generated": null,
+      "identity": null,
+      "name": "norbital_row_version",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "sales_invoices"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "norbital_approval_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "sales_invoices"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "doc_no",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "sales_invoices"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "quote_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "sales_invoices"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "account_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "sales_invoices"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "status",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "sales_invoices"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "currency",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "sales_invoices"
+    },
+    {
+      "type": "boolean",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "tax_inclusive",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "sales_invoices"
+    },
+    {
+      "type": "numeric",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "net",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "sales_invoices"
+    },
+    {
+      "type": "numeric",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "tax",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "sales_invoices"
+    },
+    {
+      "type": "numeric",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "gross",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "sales_invoices"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "owner_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "sales_invoices"
+    },
+    {
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "issued_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "sales_invoices"
+    },
+    {
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "cancelled_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "sales_invoices"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "cancel_reason",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "sales_invoices"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "gen_random_uuid()",
+      "generated": null,
+      "identity": null,
+      "name": "norbital_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "settlements"
+    },
+    {
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": "now()",
+      "generated": null,
+      "identity": null,
+      "name": "norbital_created_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "settlements"
+    },
+    {
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": "now()",
+      "generated": null,
+      "identity": null,
+      "name": "norbital_updated_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "settlements"
+    },
+    {
+      "type": "tstzrange",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "tstzrange(CURRENT_TIMESTAMP, NULL, '[)')",
+      "generated": null,
+      "identity": null,
+      "name": "norbital_sys_period",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "settlements"
+    },
+    {
+      "type": "integer",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": "1",
+      "generated": null,
+      "identity": null,
+      "name": "norbital_row_version",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "settlements"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "norbital_approval_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "settlements"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "regarding_type",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "settlements"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "regarding_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "settlements"
+    },
+    {
+      "type": "numeric",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "amount",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "settlements"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "currency",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "settlements"
+    },
+    {
+      "type": "date",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "settled_on",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "settlements"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "reference",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "settlements"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "owner_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "settlements"
     },
     {
       "type": "uuid",
@@ -2041,6 +3948,19 @@
       "generated": null,
       "identity": null,
       "name": "name",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "suppliers"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "contact",
       "entityType": "columns",
       "schema": "public",
       "table": "suppliers"
@@ -5972,14 +7892,14 @@
       "table": "user"
     },
     {
-      "type": "text",
+      "type": "uuid",
       "typeSchema": null,
       "notNull": false,
       "dimensions": 0,
       "default": null,
       "generated": null,
       "identity": null,
-      "name": "avatar_url",
+      "name": "avatar_asset_id",
       "entityType": "columns",
       "schema": "public",
       "table": "user"
@@ -6061,30 +7981,6 @@
       "nameExplicit": true,
       "columns": [
         {
-          "value": "external_code",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": {
-            "name": "gin_trgm_ops",
-            "default": false
-          }
-        }
-      ],
-      "isUnique": false,
-      "where": null,
-      "with": "",
-      "method": "gin",
-      "concurrently": false,
-      "name": "accounts_external_code_search_trgm_idx",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "accounts"
-    },
-    {
-      "nameExplicit": true,
-      "columns": [
-        {
           "value": "name",
           "isExpression": false,
           "asc": true,
@@ -6101,126 +7997,6 @@
       "method": "gin",
       "concurrently": false,
       "name": "accounts_name_search_trgm_idx",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "accounts"
-    },
-    {
-      "nameExplicit": true,
-      "columns": [
-        {
-          "value": "industry",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": {
-            "name": "gin_trgm_ops",
-            "default": false
-          }
-        }
-      ],
-      "isUnique": false,
-      "where": null,
-      "with": "",
-      "method": "gin",
-      "concurrently": false,
-      "name": "accounts_industry_search_trgm_idx",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "accounts"
-    },
-    {
-      "nameExplicit": true,
-      "columns": [
-        {
-          "value": "website",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": {
-            "name": "gin_trgm_ops",
-            "default": false
-          }
-        }
-      ],
-      "isUnique": false,
-      "where": null,
-      "with": "",
-      "method": "gin",
-      "concurrently": false,
-      "name": "accounts_website_search_trgm_idx",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "accounts"
-    },
-    {
-      "nameExplicit": true,
-      "columns": [
-        {
-          "value": "phone",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": {
-            "name": "gin_trgm_ops",
-            "default": false
-          }
-        }
-      ],
-      "isUnique": false,
-      "where": null,
-      "with": "",
-      "method": "gin",
-      "concurrently": false,
-      "name": "accounts_phone_search_trgm_idx",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "accounts"
-    },
-    {
-      "nameExplicit": true,
-      "columns": [
-        {
-          "value": "currency",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": {
-            "name": "gin_trgm_ops",
-            "default": false
-          }
-        }
-      ],
-      "isUnique": false,
-      "where": null,
-      "with": "",
-      "method": "gin",
-      "concurrently": false,
-      "name": "accounts_currency_search_trgm_idx",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "accounts"
-    },
-    {
-      "nameExplicit": true,
-      "columns": [
-        {
-          "value": "address",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": {
-            "name": "gin_trgm_ops",
-            "default": false
-          }
-        }
-      ],
-      "isUnique": false,
-      "where": null,
-      "with": "",
-      "method": "gin",
-      "concurrently": false,
-      "name": "accounts_address_search_trgm_idx",
       "entityType": "indexes",
       "schema": "public",
       "table": "accounts"
@@ -6299,54 +8075,6 @@
       "nameExplicit": true,
       "columns": [
         {
-          "value": "regarding_type",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": {
-            "name": "gin_trgm_ops",
-            "default": false
-          }
-        }
-      ],
-      "isUnique": false,
-      "where": null,
-      "with": "",
-      "method": "gin",
-      "concurrently": false,
-      "name": "activities_regarding_type_search_trgm_idx",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "activities"
-    },
-    {
-      "nameExplicit": true,
-      "columns": [
-        {
-          "value": "type",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": {
-            "name": "gin_trgm_ops",
-            "default": false
-          }
-        }
-      ],
-      "isUnique": false,
-      "where": null,
-      "with": "",
-      "method": "gin",
-      "concurrently": false,
-      "name": "activities_type_search_trgm_idx",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "activities"
-    },
-    {
-      "nameExplicit": true,
-      "columns": [
-        {
           "value": "subject",
           "isExpression": false,
           "asc": true,
@@ -6363,30 +8091,6 @@
       "method": "gin",
       "concurrently": false,
       "name": "activities_subject_search_trgm_idx",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "activities"
-    },
-    {
-      "nameExplicit": true,
-      "columns": [
-        {
-          "value": "description",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": {
-            "name": "gin_trgm_ops",
-            "default": false
-          }
-        }
-      ],
-      "isUnique": false,
-      "where": null,
-      "with": "",
-      "method": "gin",
-      "concurrently": false,
-      "name": "activities_description_search_trgm_idx",
       "entityType": "indexes",
       "schema": "public",
       "table": "activities"
@@ -6461,34 +8165,52 @@
       "table": "contacts"
     },
     {
-      "nameExplicit": true,
+      "nameExplicit": false,
       "columns": [
         {
-          "value": "email",
+          "value": "quote_id",
           "isExpression": false,
           "asc": true,
           "nullsFirst": false,
-          "opclass": {
-            "name": "gin_trgm_ops",
-            "default": false
-          }
+          "opclass": null
         }
       ],
       "isUnique": false,
       "where": null,
       "with": "",
-      "method": "gin",
+      "method": "btree",
       "concurrently": false,
-      "name": "contacts_email_search_trgm_idx",
+      "name": "contract_signings_quote_id_index",
       "entityType": "indexes",
       "schema": "public",
-      "table": "contacts"
+      "table": "contract_signings"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
+        {
+          "value": "status",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "with": "",
+      "method": "btree",
+      "concurrently": false,
+      "name": "contract_signings_status_index",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "contract_signings"
     },
     {
       "nameExplicit": true,
       "columns": [
         {
-          "value": "title",
+          "value": "binding_hash",
           "isExpression": false,
           "asc": true,
           "nullsFirst": false,
@@ -6503,16 +8225,121 @@
       "with": "",
       "method": "gin",
       "concurrently": false,
-      "name": "contacts_title_search_trgm_idx",
+      "name": "contract_signings_binding_hash_search_trgm_idx",
       "entityType": "indexes",
       "schema": "public",
-      "table": "contacts"
+      "table": "contract_signings"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
+        {
+          "value": "goods_receipt_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "with": "",
+      "method": "btree",
+      "concurrently": false,
+      "name": "goods_receipt_lines_goods_receipt_id_index",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "goods_receipt_lines"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
+        {
+          "value": "purchase_order_line_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "with": "",
+      "method": "btree",
+      "concurrently": false,
+      "name": "goods_receipt_lines_purchase_order_line_id_index",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "goods_receipt_lines"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
+        {
+          "value": "doc_no",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": true,
+      "where": null,
+      "with": "",
+      "method": "btree",
+      "concurrently": false,
+      "name": "goods_receipts_doc_no_index",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "goods_receipts"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
+        {
+          "value": "purchase_order_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "with": "",
+      "method": "btree",
+      "concurrently": false,
+      "name": "goods_receipts_purchase_order_id_index",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "goods_receipts"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
+        {
+          "value": "owner_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "with": "",
+      "method": "btree",
+      "concurrently": false,
+      "name": "goods_receipts_owner_id_index",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "goods_receipts"
     },
     {
       "nameExplicit": true,
       "columns": [
         {
-          "value": "department",
+          "value": "doc_no",
           "isExpression": false,
           "asc": true,
           "nullsFirst": false,
@@ -6527,10 +8354,10 @@
       "with": "",
       "method": "gin",
       "concurrently": false,
-      "name": "contacts_department_search_trgm_idx",
+      "name": "goods_receipts_doc_no_search_trgm_idx",
       "entityType": "indexes",
       "schema": "public",
-      "table": "contacts"
+      "table": "goods_receipts"
     },
     {
       "nameExplicit": false,
@@ -6578,54 +8405,6 @@
       "nameExplicit": true,
       "columns": [
         {
-          "value": "external_code",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": {
-            "name": "gin_trgm_ops",
-            "default": false
-          }
-        }
-      ],
-      "isUnique": false,
-      "where": null,
-      "with": "",
-      "method": "gin",
-      "concurrently": false,
-      "name": "products_external_code_search_trgm_idx",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "products"
-    },
-    {
-      "nameExplicit": true,
-      "columns": [
-        {
-          "value": "code",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": {
-            "name": "gin_trgm_ops",
-            "default": false
-          }
-        }
-      ],
-      "isUnique": false,
-      "where": null,
-      "with": "",
-      "method": "gin",
-      "concurrently": false,
-      "name": "products_code_search_trgm_idx",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "products"
-    },
-    {
-      "nameExplicit": true,
-      "columns": [
-        {
           "value": "name",
           "isExpression": false,
           "asc": true,
@@ -6647,34 +8426,52 @@
       "table": "products"
     },
     {
-      "nameExplicit": true,
+      "nameExplicit": false,
       "columns": [
         {
-          "value": "description",
+          "value": "purchase_invoice_id",
           "isExpression": false,
           "asc": true,
           "nullsFirst": false,
-          "opclass": {
-            "name": "gin_trgm_ops",
-            "default": false
-          }
+          "opclass": null
         }
       ],
       "isUnique": false,
       "where": null,
       "with": "",
-      "method": "gin",
+      "method": "btree",
       "concurrently": false,
-      "name": "products_description_search_trgm_idx",
+      "name": "purchase_invoice_lines_purchase_invoice_id_index",
       "entityType": "indexes",
       "schema": "public",
-      "table": "products"
+      "table": "purchase_invoice_lines"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
+        {
+          "value": "purchase_order_line_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "with": "",
+      "method": "btree",
+      "concurrently": false,
+      "name": "purchase_invoice_lines_purchase_order_line_id_index",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "purchase_invoice_lines"
     },
     {
       "nameExplicit": true,
       "columns": [
         {
-          "value": "unit",
+          "value": "product_name",
           "isExpression": false,
           "asc": true,
           "nullsFirst": false,
@@ -6689,10 +8486,118 @@
       "with": "",
       "method": "gin",
       "concurrently": false,
-      "name": "products_unit_search_trgm_idx",
+      "name": "purchase_invoice_lines_product_name_search_trgm_idx",
       "entityType": "indexes",
       "schema": "public",
-      "table": "products"
+      "table": "purchase_invoice_lines"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
+        {
+          "value": "doc_no",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": true,
+      "where": null,
+      "with": "",
+      "method": "btree",
+      "concurrently": false,
+      "name": "purchase_invoices_doc_no_index",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "purchase_invoices"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
+        {
+          "value": "purchase_order_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "with": "",
+      "method": "btree",
+      "concurrently": false,
+      "name": "purchase_invoices_purchase_order_id_index",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "purchase_invoices"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
+        {
+          "value": "supplier_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "with": "",
+      "method": "btree",
+      "concurrently": false,
+      "name": "purchase_invoices_supplier_id_index",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "purchase_invoices"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
+        {
+          "value": "status",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "with": "",
+      "method": "btree",
+      "concurrently": false,
+      "name": "purchase_invoices_status_index",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "purchase_invoices"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        {
+          "value": "doc_no",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": {
+            "name": "gin_trgm_ops",
+            "default": false
+          }
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "with": "",
+      "method": "gin",
+      "concurrently": false,
+      "name": "purchase_invoices_doc_no_search_trgm_idx",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "purchase_invoices"
     },
     {
       "nameExplicit": false,
@@ -6740,30 +8645,6 @@
       "nameExplicit": true,
       "columns": [
         {
-          "value": "product_code",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": {
-            "name": "gin_trgm_ops",
-            "default": false
-          }
-        }
-      ],
-      "isUnique": false,
-      "where": null,
-      "with": "",
-      "method": "gin",
-      "concurrently": false,
-      "name": "purchase_order_lines_product_code_search_trgm_idx",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "purchase_order_lines"
-    },
-    {
-      "nameExplicit": true,
-      "columns": [
-        {
           "value": "product_name",
           "isExpression": false,
           "asc": true,
@@ -6780,30 +8661,6 @@
       "method": "gin",
       "concurrently": false,
       "name": "purchase_order_lines_product_name_search_trgm_idx",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "purchase_order_lines"
-    },
-    {
-      "nameExplicit": true,
-      "columns": [
-        {
-          "value": "product_unit",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": {
-            "name": "gin_trgm_ops",
-            "default": false
-          }
-        }
-      ],
-      "isUnique": false,
-      "where": null,
-      "with": "",
-      "method": "gin",
-      "concurrently": false,
-      "name": "purchase_order_lines_product_unit_search_trgm_idx",
       "entityType": "indexes",
       "schema": "public",
       "table": "purchase_order_lines"
@@ -6938,126 +8795,6 @@
       "table": "purchase_orders"
     },
     {
-      "nameExplicit": true,
-      "columns": [
-        {
-          "value": "supplier_code",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": {
-            "name": "gin_trgm_ops",
-            "default": false
-          }
-        }
-      ],
-      "isUnique": false,
-      "where": null,
-      "with": "",
-      "method": "gin",
-      "concurrently": false,
-      "name": "purchase_orders_supplier_code_search_trgm_idx",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "purchase_orders"
-    },
-    {
-      "nameExplicit": true,
-      "columns": [
-        {
-          "value": "supplier_name",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": {
-            "name": "gin_trgm_ops",
-            "default": false
-          }
-        }
-      ],
-      "isUnique": false,
-      "where": null,
-      "with": "",
-      "method": "gin",
-      "concurrently": false,
-      "name": "purchase_orders_supplier_name_search_trgm_idx",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "purchase_orders"
-    },
-    {
-      "nameExplicit": true,
-      "columns": [
-        {
-          "value": "status",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": {
-            "name": "gin_trgm_ops",
-            "default": false
-          }
-        }
-      ],
-      "isUnique": false,
-      "where": null,
-      "with": "",
-      "method": "gin",
-      "concurrently": false,
-      "name": "purchase_orders_status_search_trgm_idx",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "purchase_orders"
-    },
-    {
-      "nameExplicit": true,
-      "columns": [
-        {
-          "value": "currency",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": {
-            "name": "gin_trgm_ops",
-            "default": false
-          }
-        }
-      ],
-      "isUnique": false,
-      "where": null,
-      "with": "",
-      "method": "gin",
-      "concurrently": false,
-      "name": "purchase_orders_currency_search_trgm_idx",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "purchase_orders"
-    },
-    {
-      "nameExplicit": true,
-      "columns": [
-        {
-          "value": "cancel_reason",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": {
-            "name": "gin_trgm_ops",
-            "default": false
-          }
-        }
-      ],
-      "isUnique": false,
-      "where": null,
-      "with": "",
-      "method": "gin",
-      "concurrently": false,
-      "name": "purchase_orders_cancel_reason_search_trgm_idx",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "purchase_orders"
-    },
-    {
       "nameExplicit": false,
       "columns": [
         {
@@ -7103,30 +8840,6 @@
       "nameExplicit": true,
       "columns": [
         {
-          "value": "product_code",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": {
-            "name": "gin_trgm_ops",
-            "default": false
-          }
-        }
-      ],
-      "isUnique": false,
-      "where": null,
-      "with": "",
-      "method": "gin",
-      "concurrently": false,
-      "name": "quote_lines_product_code_search_trgm_idx",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "quote_lines"
-    },
-    {
-      "nameExplicit": true,
-      "columns": [
-        {
           "value": "product_name",
           "isExpression": false,
           "asc": true,
@@ -7143,30 +8856,6 @@
       "method": "gin",
       "concurrently": false,
       "name": "quote_lines_product_name_search_trgm_idx",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "quote_lines"
-    },
-    {
-      "nameExplicit": true,
-      "columns": [
-        {
-          "value": "product_unit",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": {
-            "name": "gin_trgm_ops",
-            "default": false
-          }
-        }
-      ],
-      "isUnique": false,
-      "where": null,
-      "with": "",
-      "method": "gin",
-      "concurrently": false,
-      "name": "quote_lines_product_unit_search_trgm_idx",
       "entityType": "indexes",
       "schema": "public",
       "table": "quote_lines"
@@ -7301,10 +8990,52 @@
       "table": "quotes"
     },
     {
+      "nameExplicit": false,
+      "columns": [
+        {
+          "value": "sales_invoice_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "with": "",
+      "method": "btree",
+      "concurrently": false,
+      "name": "sales_invoice_lines_sales_invoice_id_index",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "sales_invoice_lines"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
+        {
+          "value": "quote_line_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "with": "",
+      "method": "btree",
+      "concurrently": false,
+      "name": "sales_invoice_lines_quote_line_id_index",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "sales_invoice_lines"
+    },
+    {
       "nameExplicit": true,
       "columns": [
         {
-          "value": "title",
+          "value": "product_name",
           "isExpression": false,
           "asc": true,
           "nullsFirst": false,
@@ -7319,40 +9050,100 @@
       "with": "",
       "method": "gin",
       "concurrently": false,
-      "name": "quotes_title_search_trgm_idx",
+      "name": "sales_invoice_lines_product_name_search_trgm_idx",
       "entityType": "indexes",
       "schema": "public",
-      "table": "quotes"
+      "table": "sales_invoice_lines"
     },
     {
-      "nameExplicit": true,
+      "nameExplicit": false,
+      "columns": [
+        {
+          "value": "doc_no",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": true,
+      "where": null,
+      "with": "",
+      "method": "btree",
+      "concurrently": false,
+      "name": "sales_invoices_doc_no_index",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "sales_invoices"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
+        {
+          "value": "quote_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "with": "",
+      "method": "btree",
+      "concurrently": false,
+      "name": "sales_invoices_quote_id_index",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "sales_invoices"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
+        {
+          "value": "account_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "with": "",
+      "method": "btree",
+      "concurrently": false,
+      "name": "sales_invoices_account_id_index",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "sales_invoices"
+    },
+    {
+      "nameExplicit": false,
       "columns": [
         {
           "value": "status",
           "isExpression": false,
           "asc": true,
           "nullsFirst": false,
-          "opclass": {
-            "name": "gin_trgm_ops",
-            "default": false
-          }
+          "opclass": null
         }
       ],
       "isUnique": false,
       "where": null,
       "with": "",
-      "method": "gin",
+      "method": "btree",
       "concurrently": false,
-      "name": "quotes_status_search_trgm_idx",
+      "name": "sales_invoices_status_index",
       "entityType": "indexes",
       "schema": "public",
-      "table": "quotes"
+      "table": "sales_invoices"
     },
     {
       "nameExplicit": true,
       "columns": [
         {
-          "value": "currency",
+          "value": "doc_no",
           "isExpression": false,
           "asc": true,
           "nullsFirst": false,
@@ -7367,16 +9158,58 @@
       "with": "",
       "method": "gin",
       "concurrently": false,
-      "name": "quotes_currency_search_trgm_idx",
+      "name": "sales_invoices_doc_no_search_trgm_idx",
       "entityType": "indexes",
       "schema": "public",
-      "table": "quotes"
+      "table": "sales_invoices"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
+        {
+          "value": "regarding_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "with": "",
+      "method": "btree",
+      "concurrently": false,
+      "name": "settlements_regarding_id_index",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "settlements"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
+        {
+          "value": "regarding_type",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "with": "",
+      "method": "btree",
+      "concurrently": false,
+      "name": "settlements_regarding_type_index",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "settlements"
     },
     {
       "nameExplicit": true,
       "columns": [
         {
-          "value": "description",
+          "value": "reference",
           "isExpression": false,
           "asc": true,
           "nullsFirst": false,
@@ -7391,34 +9224,10 @@
       "with": "",
       "method": "gin",
       "concurrently": false,
-      "name": "quotes_description_search_trgm_idx",
+      "name": "settlements_reference_search_trgm_idx",
       "entityType": "indexes",
       "schema": "public",
-      "table": "quotes"
-    },
-    {
-      "nameExplicit": true,
-      "columns": [
-        {
-          "value": "cancel_reason",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": {
-            "name": "gin_trgm_ops",
-            "default": false
-          }
-        }
-      ],
-      "isUnique": false,
-      "where": null,
-      "with": "",
-      "method": "gin",
-      "concurrently": false,
-      "name": "quotes_cancel_reason_search_trgm_idx",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "quotes"
+      "table": "settlements"
     },
     {
       "nameExplicit": false,
@@ -7508,54 +9317,6 @@
       "nameExplicit": true,
       "columns": [
         {
-          "value": "external_code",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": {
-            "name": "gin_trgm_ops",
-            "default": false
-          }
-        }
-      ],
-      "isUnique": false,
-      "where": null,
-      "with": "",
-      "method": "gin",
-      "concurrently": false,
-      "name": "suppliers_external_code_search_trgm_idx",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "suppliers"
-    },
-    {
-      "nameExplicit": true,
-      "columns": [
-        {
-          "value": "code",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": {
-            "name": "gin_trgm_ops",
-            "default": false
-          }
-        }
-      ],
-      "isUnique": false,
-      "where": null,
-      "with": "",
-      "method": "gin",
-      "concurrently": false,
-      "name": "suppliers_code_search_trgm_idx",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "suppliers"
-    },
-    {
-      "nameExplicit": true,
-      "columns": [
-        {
           "value": "name",
           "isExpression": false,
           "asc": true,
@@ -7572,126 +9333,6 @@
       "method": "gin",
       "concurrently": false,
       "name": "suppliers_name_search_trgm_idx",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "suppliers"
-    },
-    {
-      "nameExplicit": true,
-      "columns": [
-        {
-          "value": "category",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": {
-            "name": "gin_trgm_ops",
-            "default": false
-          }
-        }
-      ],
-      "isUnique": false,
-      "where": null,
-      "with": "",
-      "method": "gin",
-      "concurrently": false,
-      "name": "suppliers_category_search_trgm_idx",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "suppliers"
-    },
-    {
-      "nameExplicit": true,
-      "columns": [
-        {
-          "value": "currency",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": {
-            "name": "gin_trgm_ops",
-            "default": false
-          }
-        }
-      ],
-      "isUnique": false,
-      "where": null,
-      "with": "",
-      "method": "gin",
-      "concurrently": false,
-      "name": "suppliers_currency_search_trgm_idx",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "suppliers"
-    },
-    {
-      "nameExplicit": true,
-      "columns": [
-        {
-          "value": "phone",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": {
-            "name": "gin_trgm_ops",
-            "default": false
-          }
-        }
-      ],
-      "isUnique": false,
-      "where": null,
-      "with": "",
-      "method": "gin",
-      "concurrently": false,
-      "name": "suppliers_phone_search_trgm_idx",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "suppliers"
-    },
-    {
-      "nameExplicit": true,
-      "columns": [
-        {
-          "value": "email",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": {
-            "name": "gin_trgm_ops",
-            "default": false
-          }
-        }
-      ],
-      "isUnique": false,
-      "where": null,
-      "with": "",
-      "method": "gin",
-      "concurrently": false,
-      "name": "suppliers_email_search_trgm_idx",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "suppliers"
-    },
-    {
-      "nameExplicit": true,
-      "columns": [
-        {
-          "value": "address",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": {
-            "name": "gin_trgm_ops",
-            "default": false
-          }
-        }
-      ],
-      "isUnique": false,
-      "where": null,
-      "with": "",
-      "method": "gin",
-      "concurrently": false,
-      "name": "suppliers_address_search_trgm_idx",
       "entityType": "indexes",
       "schema": "public",
       "table": "suppliers"
@@ -9812,30 +11453,6 @@
       "nameExplicit": true,
       "columns": [
         {
-          "value": "avatar_url",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": {
-            "name": "gin_trgm_ops",
-            "default": false
-          }
-        }
-      ],
-      "isUnique": false,
-      "where": null,
-      "with": "",
-      "method": "gin",
-      "concurrently": false,
-      "name": "user_avatar_url_search_trgm_idx",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "user"
-    },
-    {
-      "nameExplicit": true,
-      "columns": [
-        {
           "value": "status",
           "isExpression": false,
           "asc": true,
@@ -9937,6 +11554,210 @@
       "entityType": "fks",
       "schema": "public",
       "table": "contacts"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        "quote_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "quotes",
+      "columnsTo": [
+        "norbital_id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "name": "contract_signings_quote_id_quotes_fk",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "contract_signings"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        "owner_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "user",
+      "columnsTo": [
+        "norbital_id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "name": "contract_signings_owner_id_user_fk",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "contract_signings"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        "goods_receipt_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "goods_receipts",
+      "columnsTo": [
+        "norbital_id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "CASCADE",
+      "name": "goods_receipt_lines_goods_receipt_id_goods_receipts_fk",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "goods_receipt_lines"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        "purchase_order_line_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "purchase_order_lines",
+      "columnsTo": [
+        "norbital_id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "name": "goods_receipt_lines_purchase_order_line_id_purchase_order_lines_fk",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "goods_receipt_lines"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        "purchase_order_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "purchase_orders",
+      "columnsTo": [
+        "norbital_id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "name": "goods_receipts_purchase_order_id_purchase_orders_fk",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "goods_receipts"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        "owner_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "user",
+      "columnsTo": [
+        "norbital_id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "name": "goods_receipts_owner_id_user_fk",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "goods_receipts"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        "main_supplier_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "suppliers",
+      "columnsTo": [
+        "norbital_id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "name": "products_main_supplier_id_suppliers_fk",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "products"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        "purchase_invoice_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "purchase_invoices",
+      "columnsTo": [
+        "norbital_id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "CASCADE",
+      "name": "purchase_invoice_lines_purchase_invoice_id_purchase_invoices_fk",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "purchase_invoice_lines"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        "purchase_order_line_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "purchase_order_lines",
+      "columnsTo": [
+        "norbital_id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "name": "purchase_invoice_lines_purchase_order_line_id_purchase_order_lines_fk",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "purchase_invoice_lines"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        "purchase_order_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "purchase_orders",
+      "columnsTo": [
+        "norbital_id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "name": "purchase_invoices_purchase_order_id_purchase_orders_fk",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "purchase_invoices"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        "supplier_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "suppliers",
+      "columnsTo": [
+        "norbital_id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "name": "purchase_invoices_supplier_id_suppliers_fk",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "purchase_invoices"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        "owner_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "user",
+      "columnsTo": [
+        "norbital_id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "name": "purchase_invoices_owner_id_user_fk",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "purchase_invoices"
     },
     {
       "nameExplicit": true,
@@ -10107,6 +11928,91 @@
       "entityType": "fks",
       "schema": "public",
       "table": "quotes"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        "sales_invoice_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "sales_invoices",
+      "columnsTo": [
+        "norbital_id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "CASCADE",
+      "name": "sales_invoice_lines_sales_invoice_id_sales_invoices_fk",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "sales_invoice_lines"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        "quote_line_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "quote_lines",
+      "columnsTo": [
+        "norbital_id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "name": "sales_invoice_lines_quote_line_id_quote_lines_fk",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "sales_invoice_lines"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        "quote_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "quotes",
+      "columnsTo": [
+        "norbital_id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "name": "sales_invoices_quote_id_quotes_fk",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "sales_invoices"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        "account_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "accounts",
+      "columnsTo": [
+        "norbital_id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "name": "sales_invoices_account_id_accounts_fk",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "sales_invoices"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        "owner_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "user",
+      "columnsTo": [
+        "norbital_id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "name": "sales_invoices_owner_id_user_fk",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "sales_invoices"
     },
     {
       "nameExplicit": false,
@@ -10466,6 +12372,23 @@
       "table": "team_members"
     },
     {
+      "nameExplicit": false,
+      "columns": [
+        "avatar_asset_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "document_asset",
+      "columnsTo": [
+        "norbital_id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "SET NULL",
+      "name": "user_avatar_asset_id_document_asset_norbital_id_fkey",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "user"
+    },
+    {
       "columns": [
         "norbital_id"
       ],
@@ -10500,9 +12423,59 @@
         "norbital_id"
       ],
       "nameExplicit": false,
+      "name": "contract_signings_pkey",
+      "schema": "public",
+      "table": "contract_signings",
+      "entityType": "pks"
+    },
+    {
+      "columns": [
+        "norbital_id"
+      ],
+      "nameExplicit": false,
+      "name": "goods_receipt_lines_pkey",
+      "schema": "public",
+      "table": "goods_receipt_lines",
+      "entityType": "pks"
+    },
+    {
+      "columns": [
+        "norbital_id"
+      ],
+      "nameExplicit": false,
+      "name": "goods_receipts_pkey",
+      "schema": "public",
+      "table": "goods_receipts",
+      "entityType": "pks"
+    },
+    {
+      "columns": [
+        "norbital_id"
+      ],
+      "nameExplicit": false,
       "name": "products_pkey",
       "schema": "public",
       "table": "products",
+      "entityType": "pks"
+    },
+    {
+      "columns": [
+        "norbital_id"
+      ],
+      "nameExplicit": false,
+      "name": "purchase_invoice_lines_pkey",
+      "schema": "public",
+      "table": "purchase_invoice_lines",
+      "entityType": "pks"
+    },
+    {
+      "columns": [
+        "norbital_id"
+      ],
+      "nameExplicit": false,
+      "name": "purchase_invoices_pkey",
+      "schema": "public",
+      "table": "purchase_invoices",
       "entityType": "pks"
     },
     {
@@ -10543,6 +12516,36 @@
       "name": "quotes_pkey",
       "schema": "public",
       "table": "quotes",
+      "entityType": "pks"
+    },
+    {
+      "columns": [
+        "norbital_id"
+      ],
+      "nameExplicit": false,
+      "name": "sales_invoice_lines_pkey",
+      "schema": "public",
+      "table": "sales_invoice_lines",
+      "entityType": "pks"
+    },
+    {
+      "columns": [
+        "norbital_id"
+      ],
+      "nameExplicit": false,
+      "name": "sales_invoices_pkey",
+      "schema": "public",
+      "table": "sales_invoices",
+      "entityType": "pks"
+    },
+    {
+      "columns": [
+        "norbital_id"
+      ],
+      "nameExplicit": false,
+      "name": "settlements_pkey",
+      "schema": "public",
+      "table": "settlements",
       "entityType": "pks"
     },
     {
