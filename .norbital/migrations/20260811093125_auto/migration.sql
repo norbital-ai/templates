@@ -56,7 +56,14 @@ CREATE TABLE "job_assignments" (
 	"amount_charged" jsonb,
 	"location" jsonb,
 	"summary" text,
-	"source_message_id" text
+	"source_message_id" text,
+	"site_identity_unverified" boolean DEFAULT true NOT NULL,
+	"site_identity_evidence_id" uuid,
+	"extracted_site_name" text,
+	"extracted_site_location" text,
+	"extracted_unit_number" text,
+	"site_identity_confidence" text,
+	"site_identity_checked_at" timestamp with time zone
 );
 --> statement-breakpoint
 SELECT _norbital_create_history_table('job_assignments'::regclass, 'job_assignments_history');
@@ -104,9 +111,14 @@ CREATE TABLE "photo_evidence" (
 	"source_key" text NOT NULL,
 	"source" jsonb NOT NULL,
 	"sha256" text NOT NULL,
-	"perceptual_hash" text NOT NULL,
+	"perceptual_embedding" vector(256) NOT NULL,
 	"flags" text[] NOT NULL,
-	"matched_evidence_ids" uuid[] NOT NULL
+	"matched_evidence_ids" uuid[] NOT NULL,
+	"summary" text GENERATED ALWAYS AS (CASE source ->> 'kind'
+				WHEN 'workspace_upload' THEN 'Workspace upload'
+				WHEN 'channel' THEN 'From ' || COALESCE(NULLIF(source ->> 'provider', ''), 'a channel') || COALESCE(' · ' || LEFT(source ->> 'sent_at', 10), '')
+				ELSE 'Photo'
+			END) STORED
 );
 --> statement-breakpoint
 SELECT _norbital_create_history_table('photo_evidence'::regclass, 'photo_evidence_history');
@@ -532,7 +544,7 @@ CREATE TABLE "user" (
 	"norbital_approval_id" uuid,
 	"email" text NOT NULL UNIQUE,
 	"name" text,
-	"avatar_url" text,
+	"avatar_asset_id" uuid,
 	"status" text DEFAULT 'active',
 	"role" text DEFAULT 'basic',
 	"kind" text DEFAULT 'human',
@@ -543,15 +555,7 @@ SELECT _norbital_create_history_table('user'::regclass, 'user_history');
 --> statement-breakpoint
 CREATE UNIQUE INDEX "certification_types_code_index" ON "certification_types" ("code");
 --> statement-breakpoint
-CREATE INDEX "certification_types_code_search_trgm_idx" ON "certification_types" USING gin ("code" gin_trgm_ops);
---> statement-breakpoint
 CREATE INDEX "certification_types_name_search_trgm_idx" ON "certification_types" USING gin ("name" gin_trgm_ops);
---> statement-breakpoint
-CREATE INDEX "certification_types_category_search_trgm_idx" ON "certification_types" USING gin ("category" gin_trgm_ops);
---> statement-breakpoint
-CREATE INDEX "certification_types_issuing_body_search_trgm_idx" ON "certification_types" USING gin ("issuing_body" gin_trgm_ops);
---> statement-breakpoint
-CREATE INDEX "certification_types_description_search_trgm_idx" ON "certification_types" USING gin ("description" gin_trgm_ops);
 --> statement-breakpoint
 CREATE UNIQUE INDEX "contractor_certifications_contractor_profile_id_certification_type_id_index" ON "contractor_certifications" ("contractor_profile_id","certification_type_id");
 --> statement-breakpoint
@@ -565,47 +569,25 @@ CREATE UNIQUE INDEX "job_assignments_job_id_index" ON "job_assignments" ("job_id
 --> statement-breakpoint
 CREATE INDEX "job_assignments_contractor_profile_id_index" ON "job_assignments" ("contractor_profile_id");
 --> statement-breakpoint
-CREATE INDEX "job_assignments_status_search_trgm_idx" ON "job_assignments" USING gin ("status" gin_trgm_ops);
---> statement-breakpoint
 CREATE INDEX "job_assignments_summary_search_trgm_idx" ON "job_assignments" USING gin ("summary" gin_trgm_ops);
---> statement-breakpoint
-CREATE INDEX "job_assignments_source_message_id_search_trgm_idx" ON "job_assignments" USING gin ("source_message_id" gin_trgm_ops);
 --> statement-breakpoint
 CREATE UNIQUE INDEX "job_certification_requirements_job_id_certification_type_id_index" ON "job_certification_requirements" ("job_id","certification_type_id");
 --> statement-breakpoint
 CREATE INDEX "jobs_title_search_trgm_idx" ON "jobs" USING gin ("title" gin_trgm_ops);
 --> statement-breakpoint
-CREATE INDEX "jobs_nature_search_trgm_idx" ON "jobs" USING gin ("nature" gin_trgm_ops);
---> statement-breakpoint
-CREATE INDEX "jobs_status_search_trgm_idx" ON "jobs" USING gin ("status" gin_trgm_ops);
---> statement-breakpoint
-CREATE INDEX "jobs_description_search_trgm_idx" ON "jobs" USING gin ("description" gin_trgm_ops);
---> statement-breakpoint
 CREATE UNIQUE INDEX "photo_evidence_source_key_index" ON "photo_evidence" ("source_key");
 --> statement-breakpoint
 CREATE INDEX "photo_evidence_sha256_index" ON "photo_evidence" ("sha256");
 --> statement-breakpoint
-CREATE INDEX "photo_evidence_perceptual_hash_index" ON "photo_evidence" ("perceptual_hash");
+CREATE INDEX "photo_evidence_pdq_hnsw" ON "photo_evidence" USING hnsw ("perceptual_embedding" vector_l2_ops);
 --> statement-breakpoint
-CREATE INDEX "photo_evidence_source_key_search_trgm_idx" ON "photo_evidence" USING gin ("source_key" gin_trgm_ops);
---> statement-breakpoint
-CREATE INDEX "photo_evidence_sha256_search_trgm_idx" ON "photo_evidence" USING gin ("sha256" gin_trgm_ops);
---> statement-breakpoint
-CREATE INDEX "photo_evidence_perceptual_hash_search_trgm_idx" ON "photo_evidence" USING gin ("perceptual_hash" gin_trgm_ops);
+CREATE INDEX "photo_evidence_summary_search_trgm_idx" ON "photo_evidence" USING gin ("summary" gin_trgm_ops);
 --> statement-breakpoint
 CREATE INDEX "sites_name_search_trgm_idx" ON "sites" USING gin ("name" gin_trgm_ops);
---> statement-breakpoint
-CREATE INDEX "sites_client_name_search_trgm_idx" ON "sites" USING gin ("client_name" gin_trgm_ops);
---> statement-breakpoint
-CREATE INDEX "sites_house_type_search_trgm_idx" ON "sites" USING gin ("house_type" gin_trgm_ops);
 --> statement-breakpoint
 CREATE UNIQUE INDEX "variation_requests_source_message_id_index" ON "variation_requests" ("source_message_id");
 --> statement-breakpoint
 CREATE INDEX "variation_requests_title_search_trgm_idx" ON "variation_requests" USING gin ("title" gin_trgm_ops);
---> statement-breakpoint
-CREATE INDEX "variation_requests_description_search_trgm_idx" ON "variation_requests" USING gin ("description" gin_trgm_ops);
---> statement-breakpoint
-CREATE INDEX "variation_requests_source_message_id_search_trgm_idx" ON "variation_requests" USING gin ("source_message_id" gin_trgm_ops);
 --> statement-breakpoint
 CREATE INDEX "approval_request_label_search_trgm_idx" ON "approval_request" USING gin ("label" gin_trgm_ops);
 --> statement-breakpoint
@@ -783,8 +765,6 @@ CREATE INDEX "user_email_search_trgm_idx" ON "user" USING gin ("email" gin_trgm_
 --> statement-breakpoint
 CREATE INDEX "user_name_search_trgm_idx" ON "user" USING gin ("name" gin_trgm_ops);
 --> statement-breakpoint
-CREATE INDEX "user_avatar_url_search_trgm_idx" ON "user" USING gin ("avatar_url" gin_trgm_ops);
---> statement-breakpoint
 CREATE INDEX "user_status_search_trgm_idx" ON "user" USING gin ("status" gin_trgm_ops);
 --> statement-breakpoint
 CREATE INDEX "user_role_search_trgm_idx" ON "user" USING gin ("role" gin_trgm_ops);
@@ -852,3 +832,5 @@ ALTER TABLE "team" ADD CONSTRAINT "team_policy_id_policy_norbital_id_fkey" FOREI
 ALTER TABLE "team_members" ADD CONSTRAINT "team_members_user_id_user_norbital_id_fkey" FOREIGN KEY ("user_id") REFERENCES "user"("norbital_id");
 --> statement-breakpoint
 ALTER TABLE "team_members" ADD CONSTRAINT "team_members_team_id_team_norbital_id_fkey" FOREIGN KEY ("team_id") REFERENCES "team"("norbital_id");
+--> statement-breakpoint
+ALTER TABLE "user" ADD CONSTRAINT "user_avatar_asset_id_document_asset_norbital_id_fkey" FOREIGN KEY ("avatar_asset_id") REFERENCES "document_asset"("norbital_id") ON DELETE SET NULL;

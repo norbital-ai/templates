@@ -1,7 +1,7 @@
 {
   "version": "8",
   "dialect": "postgres",
-  "id": "247d34ef-7da8-4355-8a8c-b2f6eeeec31b",
+  "id": "5123e289-04fc-4be9-b651-cb3f04d3fa52",
   "prevIds": [
     "00000000-0000-0000-0000-000000000000"
   ],
@@ -746,6 +746,97 @@
       "table": "job_assignments"
     },
     {
+      "type": "boolean",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "true",
+      "generated": null,
+      "identity": null,
+      "name": "site_identity_unverified",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "job_assignments"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "site_identity_evidence_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "job_assignments"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "extracted_site_name",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "job_assignments"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "extracted_site_location",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "job_assignments"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "extracted_unit_number",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "job_assignments"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "site_identity_confidence",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "job_assignments"
+    },
+    {
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "site_identity_checked_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "job_assignments"
+    },
+    {
       "type": "uuid",
       "typeSchema": null,
       "notNull": true,
@@ -1162,14 +1253,14 @@
       "table": "photo_evidence"
     },
     {
-      "type": "text",
+      "type": "vector(256)",
       "typeSchema": null,
       "notNull": true,
       "dimensions": 0,
       "default": null,
       "generated": null,
       "identity": null,
-      "name": "perceptual_hash",
+      "name": "perceptual_embedding",
       "entityType": "columns",
       "schema": "public",
       "table": "photo_evidence"
@@ -1196,6 +1287,22 @@
       "generated": null,
       "identity": null,
       "name": "matched_evidence_ids",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "photo_evidence"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": {
+        "as": "CASE source ->> 'kind'\n\t\t\t\tWHEN 'workspace_upload' THEN 'Workspace upload'\n\t\t\t\tWHEN 'channel' THEN 'From ' || COALESCE(NULLIF(source ->> 'provider', ''), 'a channel') || COALESCE(' · ' || LEFT(source ->> 'sent_at', 10), '')\n\t\t\t\tELSE 'Photo'\n\t\t\tEND",
+        "type": "stored"
+      },
+      "identity": null,
+      "name": "summary",
       "entityType": "columns",
       "schema": "public",
       "table": "photo_evidence"
@@ -5335,14 +5442,14 @@
       "table": "user"
     },
     {
-      "type": "text",
+      "type": "uuid",
       "typeSchema": null,
       "notNull": false,
       "dimensions": 0,
       "default": null,
       "generated": null,
       "identity": null,
-      "name": "avatar_url",
+      "name": "avatar_asset_id",
       "entityType": "columns",
       "schema": "public",
       "table": "user"
@@ -5424,30 +5531,6 @@
       "nameExplicit": true,
       "columns": [
         {
-          "value": "code",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": {
-            "name": "gin_trgm_ops",
-            "default": false
-          }
-        }
-      ],
-      "isUnique": false,
-      "where": null,
-      "with": "",
-      "method": "gin",
-      "concurrently": false,
-      "name": "certification_types_code_search_trgm_idx",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "certification_types"
-    },
-    {
-      "nameExplicit": true,
-      "columns": [
-        {
           "value": "name",
           "isExpression": false,
           "asc": true,
@@ -5464,78 +5547,6 @@
       "method": "gin",
       "concurrently": false,
       "name": "certification_types_name_search_trgm_idx",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "certification_types"
-    },
-    {
-      "nameExplicit": true,
-      "columns": [
-        {
-          "value": "category",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": {
-            "name": "gin_trgm_ops",
-            "default": false
-          }
-        }
-      ],
-      "isUnique": false,
-      "where": null,
-      "with": "",
-      "method": "gin",
-      "concurrently": false,
-      "name": "certification_types_category_search_trgm_idx",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "certification_types"
-    },
-    {
-      "nameExplicit": true,
-      "columns": [
-        {
-          "value": "issuing_body",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": {
-            "name": "gin_trgm_ops",
-            "default": false
-          }
-        }
-      ],
-      "isUnique": false,
-      "where": null,
-      "with": "",
-      "method": "gin",
-      "concurrently": false,
-      "name": "certification_types_issuing_body_search_trgm_idx",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "certification_types"
-    },
-    {
-      "nameExplicit": true,
-      "columns": [
-        {
-          "value": "description",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": {
-            "name": "gin_trgm_ops",
-            "default": false
-          }
-        }
-      ],
-      "isUnique": false,
-      "where": null,
-      "with": "",
-      "method": "gin",
-      "concurrently": false,
-      "name": "certification_types_description_search_trgm_idx",
       "entityType": "indexes",
       "schema": "public",
       "table": "certification_types"
@@ -5680,30 +5691,6 @@
       "nameExplicit": true,
       "columns": [
         {
-          "value": "status",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": {
-            "name": "gin_trgm_ops",
-            "default": false
-          }
-        }
-      ],
-      "isUnique": false,
-      "where": null,
-      "with": "",
-      "method": "gin",
-      "concurrently": false,
-      "name": "job_assignments_status_search_trgm_idx",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "job_assignments"
-    },
-    {
-      "nameExplicit": true,
-      "columns": [
-        {
           "value": "summary",
           "isExpression": false,
           "asc": true,
@@ -5720,30 +5707,6 @@
       "method": "gin",
       "concurrently": false,
       "name": "job_assignments_summary_search_trgm_idx",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "job_assignments"
-    },
-    {
-      "nameExplicit": true,
-      "columns": [
-        {
-          "value": "source_message_id",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": {
-            "name": "gin_trgm_ops",
-            "default": false
-          }
-        }
-      ],
-      "isUnique": false,
-      "where": null,
-      "with": "",
-      "method": "gin",
-      "concurrently": false,
-      "name": "job_assignments_source_message_id_search_trgm_idx",
       "entityType": "indexes",
       "schema": "public",
       "table": "job_assignments"
@@ -5801,78 +5764,6 @@
       "table": "jobs"
     },
     {
-      "nameExplicit": true,
-      "columns": [
-        {
-          "value": "nature",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": {
-            "name": "gin_trgm_ops",
-            "default": false
-          }
-        }
-      ],
-      "isUnique": false,
-      "where": null,
-      "with": "",
-      "method": "gin",
-      "concurrently": false,
-      "name": "jobs_nature_search_trgm_idx",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "jobs"
-    },
-    {
-      "nameExplicit": true,
-      "columns": [
-        {
-          "value": "status",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": {
-            "name": "gin_trgm_ops",
-            "default": false
-          }
-        }
-      ],
-      "isUnique": false,
-      "where": null,
-      "with": "",
-      "method": "gin",
-      "concurrently": false,
-      "name": "jobs_status_search_trgm_idx",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "jobs"
-    },
-    {
-      "nameExplicit": true,
-      "columns": [
-        {
-          "value": "description",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": {
-            "name": "gin_trgm_ops",
-            "default": false
-          }
-        }
-      ],
-      "isUnique": false,
-      "where": null,
-      "with": "",
-      "method": "gin",
-      "concurrently": false,
-      "name": "jobs_description_search_trgm_idx",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "jobs"
-    },
-    {
       "nameExplicit": false,
       "columns": [
         {
@@ -5915,22 +5806,25 @@
       "table": "photo_evidence"
     },
     {
-      "nameExplicit": false,
+      "nameExplicit": true,
       "columns": [
         {
-          "value": "perceptual_hash",
+          "value": "perceptual_embedding",
           "isExpression": false,
           "asc": true,
           "nullsFirst": false,
-          "opclass": null
+          "opclass": {
+            "name": "vector_l2_ops",
+            "default": false
+          }
         }
       ],
       "isUnique": false,
       "where": null,
       "with": "",
-      "method": "btree",
+      "method": "hnsw",
       "concurrently": false,
-      "name": "photo_evidence_perceptual_hash_index",
+      "name": "photo_evidence_pdq_hnsw",
       "entityType": "indexes",
       "schema": "public",
       "table": "photo_evidence"
@@ -5939,7 +5833,7 @@
       "nameExplicit": true,
       "columns": [
         {
-          "value": "source_key",
+          "value": "summary",
           "isExpression": false,
           "asc": true,
           "nullsFirst": false,
@@ -5954,55 +5848,7 @@
       "with": "",
       "method": "gin",
       "concurrently": false,
-      "name": "photo_evidence_source_key_search_trgm_idx",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "photo_evidence"
-    },
-    {
-      "nameExplicit": true,
-      "columns": [
-        {
-          "value": "sha256",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": {
-            "name": "gin_trgm_ops",
-            "default": false
-          }
-        }
-      ],
-      "isUnique": false,
-      "where": null,
-      "with": "",
-      "method": "gin",
-      "concurrently": false,
-      "name": "photo_evidence_sha256_search_trgm_idx",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "photo_evidence"
-    },
-    {
-      "nameExplicit": true,
-      "columns": [
-        {
-          "value": "perceptual_hash",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": {
-            "name": "gin_trgm_ops",
-            "default": false
-          }
-        }
-      ],
-      "isUnique": false,
-      "where": null,
-      "with": "",
-      "method": "gin",
-      "concurrently": false,
-      "name": "photo_evidence_perceptual_hash_search_trgm_idx",
+      "name": "photo_evidence_summary_search_trgm_idx",
       "entityType": "indexes",
       "schema": "public",
       "table": "photo_evidence"
@@ -6027,54 +5873,6 @@
       "method": "gin",
       "concurrently": false,
       "name": "sites_name_search_trgm_idx",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "sites"
-    },
-    {
-      "nameExplicit": true,
-      "columns": [
-        {
-          "value": "client_name",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": {
-            "name": "gin_trgm_ops",
-            "default": false
-          }
-        }
-      ],
-      "isUnique": false,
-      "where": null,
-      "with": "",
-      "method": "gin",
-      "concurrently": false,
-      "name": "sites_client_name_search_trgm_idx",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "sites"
-    },
-    {
-      "nameExplicit": true,
-      "columns": [
-        {
-          "value": "house_type",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": {
-            "name": "gin_trgm_ops",
-            "default": false
-          }
-        }
-      ],
-      "isUnique": false,
-      "where": null,
-      "with": "",
-      "method": "gin",
-      "concurrently": false,
-      "name": "sites_house_type_search_trgm_idx",
       "entityType": "indexes",
       "schema": "public",
       "table": "sites"
@@ -6120,54 +5918,6 @@
       "method": "gin",
       "concurrently": false,
       "name": "variation_requests_title_search_trgm_idx",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "variation_requests"
-    },
-    {
-      "nameExplicit": true,
-      "columns": [
-        {
-          "value": "description",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": {
-            "name": "gin_trgm_ops",
-            "default": false
-          }
-        }
-      ],
-      "isUnique": false,
-      "where": null,
-      "with": "",
-      "method": "gin",
-      "concurrently": false,
-      "name": "variation_requests_description_search_trgm_idx",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "variation_requests"
-    },
-    {
-      "nameExplicit": true,
-      "columns": [
-        {
-          "value": "source_message_id",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": {
-            "name": "gin_trgm_ops",
-            "default": false
-          }
-        }
-      ],
-      "isUnique": false,
-      "where": null,
-      "with": "",
-      "method": "gin",
-      "concurrently": false,
-      "name": "variation_requests_source_message_id_search_trgm_idx",
       "entityType": "indexes",
       "schema": "public",
       "table": "variation_requests"
@@ -8288,30 +8038,6 @@
       "nameExplicit": true,
       "columns": [
         {
-          "value": "avatar_url",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": {
-            "name": "gin_trgm_ops",
-            "default": false
-          }
-        }
-      ],
-      "isUnique": false,
-      "where": null,
-      "with": "",
-      "method": "gin",
-      "concurrently": false,
-      "name": "user_avatar_url_search_trgm_idx",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "user"
-    },
-    {
-      "nameExplicit": true,
-      "columns": [
-        {
           "value": "status",
           "isExpression": false,
           "asc": true,
@@ -8906,6 +8632,23 @@
       "entityType": "fks",
       "schema": "public",
       "table": "team_members"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
+        "avatar_asset_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "document_asset",
+      "columnsTo": [
+        "norbital_id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "SET NULL",
+      "name": "user_avatar_asset_id_document_asset_norbital_id_fkey",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "user"
     },
     {
       "columns": [
