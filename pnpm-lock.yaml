@@ -347,10 +347,10 @@ packages:
     engines: {node: '>=19.0.0'}
 
   '@norbital-ai/platform-utils@0.0.1':
-    resolution: {integrity: sha512-NjdOj8vjuMfvryxp/I6UhbzxZFWH5GF9uVtFry9Vh/lHkh5A4e/KFH6CrtPqD30Q6WmzDzd2xqdqWrhxGv394g==, tarball: https://npm.pkg.github.com/download/@norbital-ai/platform-utils/0.0.1/8c74fcf23d1e069cdf0b6f4a16244a65c7b16cde}
+    resolution: {integrity: sha512-cW4BeICxz2TMXM5TjEya6NOw90yP8l3zVECQgbgRaBH7ldOczxsgw3SwrAQQgtJHGtH+Shuufmy+5V9Hx518jA==, tarball: https://npm.pkg.github.com/download/@norbital-ai/platform-utils/0.0.1/b4d0f8cec86f74124e0bbcb3701b1cd1edcace7f}
 
   '@norbital-ai/pod@0.0.1':
-    resolution: {integrity: sha512-T5DLe1DaD4uCE5Wth/xbqoypjqCUdCCtC+CfAQ8nJHPwpHkxfc5uGIL9Z0E9MjP8PqT7c+OfPYEXf0aGxKfrcg==, tarball: https://npm.pkg.github.com/download/@norbital-ai/pod/0.0.1/d8a044af2fcd7dcca1b32b350eeb38546df5fca1}
+    resolution: {integrity: sha512-9V/sxozKUMPWrPbIqAXdTn5bYYmXOGvcqV7ZUzHkKALxRkEzBRXzjVkrl7QJUnNPaODUQsrN3huzYkFdRs82Rw==, tarball: https://npm.pkg.github.com/download/@norbital-ai/pod/0.0.1/0fb9fbe87c134bcfe4dc491465bd6dabee68896f}
     hasBin: true
     peerDependencies:
       '@iconify/svelte': ^5.2.2
@@ -364,7 +364,7 @@ packages:
     resolution: {integrity: sha512-ArSCyXw+nl1prlSBbYcqYn5a9jtW/M6+cMmDBZsAay54fePJrdU0pWdRdLVfFe0Eb3pMzRhDWtuKq8VI6FXyjg==, tarball: https://npm.pkg.github.com/download/@norbital-ai/std/0.0.1/3b2f2f5e4a7790695a9be0358f79098a1ea42c87}
 
   '@norbital-ai/ui@0.0.1':
-    resolution: {integrity: sha512-yJFWbnuM4VDMmlp65p7ifH4v8/FIxMOGbHEcdlrsJ6T1TQ6q38WezRN9q84NClDnFcAkszLhQnuoxPIXobYr7g==, tarball: https://npm.pkg.github.com/download/@norbital-ai/ui/0.0.1/132608605324b9b17be82e365b9347a71070e4fb}
+    resolution: {integrity: sha512-/z5kQyv3F7/r+rH0g8vS6KadlOXDqNszELM5LUNtv/zbYKGsQ2kF6p2US7aLniFQi3toF7wRALAo33/2kZ8YNA==, tarball: https://npm.pkg.github.com/download/@norbital-ai/ui/0.0.1/2ecd647f4ee1a9e46de6a89ac18f503be18ce5d2}
     peerDependencies:
       '@norbital-ai/platform-utils': 0.0.1
       '@norbital-ai/std': 0.0.1
@@ -2457,6 +2457,7 @@ snapshots:
       drizzle-orm: 1.0.0-rc.4(@electric-sql/pglite@0.3.16)(@neondatabase/serverless@1.1.0)(pg@8.23.0)(zod@4.4.3)
       mode-watcher: 1.1.0(svelte@5.56.8)
       pg: 8.23.0
+      rolldown: 1.2.3
       runed: 0.37.1(svelte@5.56.8)(zod@4.4.3)
       svelte: 5.56.8
       svelte-check: 4.7.5(picomatch@4.0.5)(svelte@5.56.8)(typescript@6.0.3)
