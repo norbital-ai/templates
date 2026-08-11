@@ -1,7 +1,7 @@
 {
   "version": "8",
   "dialect": "postgres",
-  "id": "41581226-347f-47b3-9df8-7fe6d6fb355f",
+  "id": "ba2c3642-dc8d-436f-ba3e-bd069c21e0d2",
   "prevIds": [
     "00000000-0000-0000-0000-000000000000"
   ],
@@ -1100,7 +1100,7 @@
       "table": "defects"
     },
     {
-      "type": "timestamp with time zone",
+      "type": "date",
       "typeSchema": null,
       "notNull": false,
       "dimensions": 0,
@@ -1113,7 +1113,7 @@
       "table": "defects"
     },
     {
-      "type": "timestamp with time zone",
+      "type": "date",
       "typeSchema": null,
       "notNull": false,
       "dimensions": 0,
@@ -1126,7 +1126,7 @@
       "table": "defects"
     },
     {
-      "type": "timestamp with time zone",
+      "type": "date",
       "typeSchema": null,
       "notNull": false,
       "dimensions": 0,
@@ -1971,7 +1971,7 @@
       "table": "payment_claims"
     },
     {
-      "type": "timestamp with time zone",
+      "type": "date",
       "typeSchema": null,
       "notNull": false,
       "dimensions": 0,
@@ -1984,7 +1984,7 @@
       "table": "payment_claims"
     },
     {
-      "type": "timestamp with time zone",
+      "type": "date",
       "typeSchema": null,
       "notNull": false,
       "dimensions": 0,
@@ -2192,7 +2192,7 @@
       "table": "permits_to_work"
     },
     {
-      "type": "timestamp with time zone",
+      "type": "date",
       "typeSchema": null,
       "notNull": false,
       "dimensions": 0,
@@ -2907,7 +2907,7 @@
       "table": "rfis"
     },
     {
-      "type": "timestamp with time zone",
+      "type": "date",
       "typeSchema": null,
       "notNull": false,
       "dimensions": 0,
@@ -2920,7 +2920,7 @@
       "table": "rfis"
     },
     {
-      "type": "timestamp with time zone",
+      "type": "date",
       "typeSchema": null,
       "notNull": false,
       "dimensions": 0,
@@ -2933,7 +2933,7 @@
       "table": "rfis"
     },
     {
-      "type": "timestamp with time zone",
+      "type": "date",
       "typeSchema": null,
       "notNull": false,
       "dimensions": 0,
@@ -3336,7 +3336,7 @@
       "table": "workers"
     },
     {
-      "type": "timestamp with time zone",
+      "type": "date",
       "typeSchema": null,
       "notNull": false,
       "dimensions": 0,
@@ -3362,7 +3362,7 @@
       "table": "workers"
     },
     {
-      "type": "timestamp with time zone",
+      "type": "date",
       "typeSchema": null,
       "notNull": false,
       "dimensions": 0,
@@ -3375,7 +3375,7 @@
       "table": "workers"
     },
     {
-      "type": "timestamp with time zone",
+      "type": "date",
       "typeSchema": null,
       "notNull": false,
       "dimensions": 0,
@@ -3388,7 +3388,7 @@
       "table": "workers"
     },
     {
-      "type": "timestamp with time zone",
+      "type": "date",
       "typeSchema": null,
       "notNull": false,
       "dimensions": 0,
@@ -7236,14 +7236,14 @@
       "table": "user"
     },
     {
-      "type": "text",
+      "type": "uuid",
       "typeSchema": null,
       "notNull": false,
       "dimensions": 0,
       "default": null,
       "generated": null,
       "identity": null,
-      "name": "avatar_url",
+      "name": "avatar_asset_id",
       "entityType": "columns",
       "schema": "public",
       "table": "user"
@@ -7346,174 +7346,6 @@
       "table": "asset_documents"
     },
     {
-      "nameExplicit": true,
-      "columns": [
-        {
-          "value": "document_number",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": {
-            "name": "gin_trgm_ops",
-            "default": false
-          }
-        }
-      ],
-      "isUnique": false,
-      "where": null,
-      "with": "",
-      "method": "gin",
-      "concurrently": false,
-      "name": "asset_documents_document_number_search_trgm_idx",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "asset_documents"
-    },
-    {
-      "nameExplicit": true,
-      "columns": [
-        {
-          "value": "document_type",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": {
-            "name": "gin_trgm_ops",
-            "default": false
-          }
-        }
-      ],
-      "isUnique": false,
-      "where": null,
-      "with": "",
-      "method": "gin",
-      "concurrently": false,
-      "name": "asset_documents_document_type_search_trgm_idx",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "asset_documents"
-    },
-    {
-      "nameExplicit": true,
-      "columns": [
-        {
-          "value": "asset_tag",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": {
-            "name": "gin_trgm_ops",
-            "default": false
-          }
-        }
-      ],
-      "isUnique": false,
-      "where": null,
-      "with": "",
-      "method": "gin",
-      "concurrently": false,
-      "name": "asset_documents_asset_tag_search_trgm_idx",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "asset_documents"
-    },
-    {
-      "nameExplicit": true,
-      "columns": [
-        {
-          "value": "asset_category",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": {
-            "name": "gin_trgm_ops",
-            "default": false
-          }
-        }
-      ],
-      "isUnique": false,
-      "where": null,
-      "with": "",
-      "method": "gin",
-      "concurrently": false,
-      "name": "asset_documents_asset_category_search_trgm_idx",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "asset_documents"
-    },
-    {
-      "nameExplicit": true,
-      "columns": [
-        {
-          "value": "status",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": {
-            "name": "gin_trgm_ops",
-            "default": false
-          }
-        }
-      ],
-      "isUnique": false,
-      "where": null,
-      "with": "",
-      "method": "gin",
-      "concurrently": false,
-      "name": "asset_documents_status_search_trgm_idx",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "asset_documents"
-    },
-    {
-      "nameExplicit": true,
-      "columns": [
-        {
-          "value": "document_url",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": {
-            "name": "gin_trgm_ops",
-            "default": false
-          }
-        }
-      ],
-      "isUnique": false,
-      "where": null,
-      "with": "",
-      "method": "gin",
-      "concurrently": false,
-      "name": "asset_documents_document_url_search_trgm_idx",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "asset_documents"
-    },
-    {
-      "nameExplicit": true,
-      "columns": [
-        {
-          "value": "version",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": {
-            "name": "gin_trgm_ops",
-            "default": false
-          }
-        }
-      ],
-      "isUnique": false,
-      "where": null,
-      "with": "",
-      "method": "gin",
-      "concurrently": false,
-      "name": "asset_documents_version_search_trgm_idx",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "asset_documents"
-    },
-    {
       "nameExplicit": false,
       "columns": [
         {
@@ -7559,198 +7391,6 @@
       "table": "bim_reference_matrix"
     },
     {
-      "nameExplicit": true,
-      "columns": [
-        {
-          "value": "reference_code",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": {
-            "name": "gin_trgm_ops",
-            "default": false
-          }
-        }
-      ],
-      "isUnique": false,
-      "where": null,
-      "with": "",
-      "method": "gin",
-      "concurrently": false,
-      "name": "bim_reference_matrix_reference_code_search_trgm_idx",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "bim_reference_matrix"
-    },
-    {
-      "nameExplicit": true,
-      "columns": [
-        {
-          "value": "category",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": {
-            "name": "gin_trgm_ops",
-            "default": false
-          }
-        }
-      ],
-      "isUnique": false,
-      "where": null,
-      "with": "",
-      "method": "gin",
-      "concurrently": false,
-      "name": "bim_reference_matrix_category_search_trgm_idx",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "bim_reference_matrix"
-    },
-    {
-      "nameExplicit": true,
-      "columns": [
-        {
-          "value": "subcategory",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": {
-            "name": "gin_trgm_ops",
-            "default": false
-          }
-        }
-      ],
-      "isUnique": false,
-      "where": null,
-      "with": "",
-      "method": "gin",
-      "concurrently": false,
-      "name": "bim_reference_matrix_subcategory_search_trgm_idx",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "bim_reference_matrix"
-    },
-    {
-      "nameExplicit": true,
-      "columns": [
-        {
-          "value": "unit_of_measure",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": {
-            "name": "gin_trgm_ops",
-            "default": false
-          }
-        }
-      ],
-      "isUnique": false,
-      "where": null,
-      "with": "",
-      "method": "gin",
-      "concurrently": false,
-      "name": "bim_reference_matrix_unit_of_measure_search_trgm_idx",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "bim_reference_matrix"
-    },
-    {
-      "nameExplicit": true,
-      "columns": [
-        {
-          "value": "carbon_unit",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": {
-            "name": "gin_trgm_ops",
-            "default": false
-          }
-        }
-      ],
-      "isUnique": false,
-      "where": null,
-      "with": "",
-      "method": "gin",
-      "concurrently": false,
-      "name": "bim_reference_matrix_carbon_unit_search_trgm_idx",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "bim_reference_matrix"
-    },
-    {
-      "nameExplicit": true,
-      "columns": [
-        {
-          "value": "specification",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": {
-            "name": "gin_trgm_ops",
-            "default": false
-          }
-        }
-      ],
-      "isUnique": false,
-      "where": null,
-      "with": "",
-      "method": "gin",
-      "concurrently": false,
-      "name": "bim_reference_matrix_specification_search_trgm_idx",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "bim_reference_matrix"
-    },
-    {
-      "nameExplicit": true,
-      "columns": [
-        {
-          "value": "bim_guid",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": {
-            "name": "gin_trgm_ops",
-            "default": false
-          }
-        }
-      ],
-      "isUnique": false,
-      "where": null,
-      "with": "",
-      "method": "gin",
-      "concurrently": false,
-      "name": "bim_reference_matrix_bim_guid_search_trgm_idx",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "bim_reference_matrix"
-    },
-    {
-      "nameExplicit": true,
-      "columns": [
-        {
-          "value": "data_source",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": {
-            "name": "gin_trgm_ops",
-            "default": false
-          }
-        }
-      ],
-      "isUnique": false,
-      "where": null,
-      "with": "",
-      "method": "gin",
-      "concurrently": false,
-      "name": "bim_reference_matrix_data_source_search_trgm_idx",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "bim_reference_matrix"
-    },
-    {
       "nameExplicit": false,
       "columns": [
         {
@@ -7791,102 +7431,6 @@
       "method": "gin",
       "concurrently": false,
       "name": "certification_types_certification_name_search_trgm_idx",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "certification_types"
-    },
-    {
-      "nameExplicit": true,
-      "columns": [
-        {
-          "value": "certification_code",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": {
-            "name": "gin_trgm_ops",
-            "default": false
-          }
-        }
-      ],
-      "isUnique": false,
-      "where": null,
-      "with": "",
-      "method": "gin",
-      "concurrently": false,
-      "name": "certification_types_certification_code_search_trgm_idx",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "certification_types"
-    },
-    {
-      "nameExplicit": true,
-      "columns": [
-        {
-          "value": "category",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": {
-            "name": "gin_trgm_ops",
-            "default": false
-          }
-        }
-      ],
-      "isUnique": false,
-      "where": null,
-      "with": "",
-      "method": "gin",
-      "concurrently": false,
-      "name": "certification_types_category_search_trgm_idx",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "certification_types"
-    },
-    {
-      "nameExplicit": true,
-      "columns": [
-        {
-          "value": "issuing_body",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": {
-            "name": "gin_trgm_ops",
-            "default": false
-          }
-        }
-      ],
-      "isUnique": false,
-      "where": null,
-      "with": "",
-      "method": "gin",
-      "concurrently": false,
-      "name": "certification_types_issuing_body_search_trgm_idx",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "certification_types"
-    },
-    {
-      "nameExplicit": true,
-      "columns": [
-        {
-          "value": "description",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": {
-            "name": "gin_trgm_ops",
-            "default": false
-          }
-        }
-      ],
-      "isUnique": false,
-      "where": null,
-      "with": "",
-      "method": "gin",
-      "concurrently": false,
-      "name": "certification_types_description_search_trgm_idx",
       "entityType": "indexes",
       "schema": "public",
       "table": "certification_types"
@@ -7940,198 +7484,6 @@
       "nameExplicit": true,
       "columns": [
         {
-          "value": "defect_number",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": {
-            "name": "gin_trgm_ops",
-            "default": false
-          }
-        }
-      ],
-      "isUnique": false,
-      "where": null,
-      "with": "",
-      "method": "gin",
-      "concurrently": false,
-      "name": "defects_defect_number_search_trgm_idx",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "defects"
-    },
-    {
-      "nameExplicit": true,
-      "columns": [
-        {
-          "value": "reported_by",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": {
-            "name": "gin_trgm_ops",
-            "default": false
-          }
-        }
-      ],
-      "isUnique": false,
-      "where": null,
-      "with": "",
-      "method": "gin",
-      "concurrently": false,
-      "name": "defects_reported_by_search_trgm_idx",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "defects"
-    },
-    {
-      "nameExplicit": true,
-      "columns": [
-        {
-          "value": "assigned_to",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": {
-            "name": "gin_trgm_ops",
-            "default": false
-          }
-        }
-      ],
-      "isUnique": false,
-      "where": null,
-      "with": "",
-      "method": "gin",
-      "concurrently": false,
-      "name": "defects_assigned_to_search_trgm_idx",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "defects"
-    },
-    {
-      "nameExplicit": true,
-      "columns": [
-        {
-          "value": "category",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": {
-            "name": "gin_trgm_ops",
-            "default": false
-          }
-        }
-      ],
-      "isUnique": false,
-      "where": null,
-      "with": "",
-      "method": "gin",
-      "concurrently": false,
-      "name": "defects_category_search_trgm_idx",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "defects"
-    },
-    {
-      "nameExplicit": true,
-      "columns": [
-        {
-          "value": "severity",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": {
-            "name": "gin_trgm_ops",
-            "default": false
-          }
-        }
-      ],
-      "isUnique": false,
-      "where": null,
-      "with": "",
-      "method": "gin",
-      "concurrently": false,
-      "name": "defects_severity_search_trgm_idx",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "defects"
-    },
-    {
-      "nameExplicit": true,
-      "columns": [
-        {
-          "value": "status",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": {
-            "name": "gin_trgm_ops",
-            "default": false
-          }
-        }
-      ],
-      "isUnique": false,
-      "where": null,
-      "with": "",
-      "method": "gin",
-      "concurrently": false,
-      "name": "defects_status_search_trgm_idx",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "defects"
-    },
-    {
-      "nameExplicit": true,
-      "columns": [
-        {
-          "value": "description",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": {
-            "name": "gin_trgm_ops",
-            "default": false
-          }
-        }
-      ],
-      "isUnique": false,
-      "where": null,
-      "with": "",
-      "method": "gin",
-      "concurrently": false,
-      "name": "defects_description_search_trgm_idx",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "defects"
-    },
-    {
-      "nameExplicit": true,
-      "columns": [
-        {
-          "value": "resolution_notes",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": {
-            "name": "gin_trgm_ops",
-            "default": false
-          }
-        }
-      ],
-      "isUnique": false,
-      "where": null,
-      "with": "",
-      "method": "gin",
-      "concurrently": false,
-      "name": "defects_resolution_notes_search_trgm_idx",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "defects"
-    },
-    {
-      "nameExplicit": true,
-      "columns": [
-        {
           "value": "assignment_code",
           "isExpression": false,
           "asc": true,
@@ -8148,54 +7500,6 @@
       "method": "gin",
       "concurrently": false,
       "name": "job_assignments_assignment_code_search_trgm_idx",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "job_assignments"
-    },
-    {
-      "nameExplicit": true,
-      "columns": [
-        {
-          "value": "role",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": {
-            "name": "gin_trgm_ops",
-            "default": false
-          }
-        }
-      ],
-      "isUnique": false,
-      "where": null,
-      "with": "",
-      "method": "gin",
-      "concurrently": false,
-      "name": "job_assignments_role_search_trgm_idx",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "job_assignments"
-    },
-    {
-      "nameExplicit": true,
-      "columns": [
-        {
-          "value": "status",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": {
-            "name": "gin_trgm_ops",
-            "default": false
-          }
-        }
-      ],
-      "isUnique": false,
-      "where": null,
-      "with": "",
-      "method": "gin",
-      "concurrently": false,
-      "name": "job_assignments_status_search_trgm_idx",
       "entityType": "indexes",
       "schema": "public",
       "table": "job_assignments"
@@ -8246,126 +7550,6 @@
       "table": "jobs"
     },
     {
-      "nameExplicit": true,
-      "columns": [
-        {
-          "value": "job_number",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": {
-            "name": "gin_trgm_ops",
-            "default": false
-          }
-        }
-      ],
-      "isUnique": false,
-      "where": null,
-      "with": "",
-      "method": "gin",
-      "concurrently": false,
-      "name": "jobs_job_number_search_trgm_idx",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "jobs"
-    },
-    {
-      "nameExplicit": true,
-      "columns": [
-        {
-          "value": "job_type",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": {
-            "name": "gin_trgm_ops",
-            "default": false
-          }
-        }
-      ],
-      "isUnique": false,
-      "where": null,
-      "with": "",
-      "method": "gin",
-      "concurrently": false,
-      "name": "jobs_job_type_search_trgm_idx",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "jobs"
-    },
-    {
-      "nameExplicit": true,
-      "columns": [
-        {
-          "value": "status",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": {
-            "name": "gin_trgm_ops",
-            "default": false
-          }
-        }
-      ],
-      "isUnique": false,
-      "where": null,
-      "with": "",
-      "method": "gin",
-      "concurrently": false,
-      "name": "jobs_status_search_trgm_idx",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "jobs"
-    },
-    {
-      "nameExplicit": true,
-      "columns": [
-        {
-          "value": "description",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": {
-            "name": "gin_trgm_ops",
-            "default": false
-          }
-        }
-      ],
-      "isUnique": false,
-      "where": null,
-      "with": "",
-      "method": "gin",
-      "concurrently": false,
-      "name": "jobs_description_search_trgm_idx",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "jobs"
-    },
-    {
-      "nameExplicit": true,
-      "columns": [
-        {
-          "value": "priority",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": {
-            "name": "gin_trgm_ops",
-            "default": false
-          }
-        }
-      ],
-      "isUnique": false,
-      "where": null,
-      "with": "",
-      "method": "gin",
-      "concurrently": false,
-      "name": "jobs_priority_search_trgm_idx",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "jobs"
-    },
-    {
       "nameExplicit": false,
       "columns": [
         {
@@ -8406,78 +7590,6 @@
       "method": "gin",
       "concurrently": false,
       "name": "payment_claims_claim_number_search_trgm_idx",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "payment_claims"
-    },
-    {
-      "nameExplicit": true,
-      "columns": [
-        {
-          "value": "claim_type",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": {
-            "name": "gin_trgm_ops",
-            "default": false
-          }
-        }
-      ],
-      "isUnique": false,
-      "where": null,
-      "with": "",
-      "method": "gin",
-      "concurrently": false,
-      "name": "payment_claims_claim_type_search_trgm_idx",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "payment_claims"
-    },
-    {
-      "nameExplicit": true,
-      "columns": [
-        {
-          "value": "status",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": {
-            "name": "gin_trgm_ops",
-            "default": false
-          }
-        }
-      ],
-      "isUnique": false,
-      "where": null,
-      "with": "",
-      "method": "gin",
-      "concurrently": false,
-      "name": "payment_claims_status_search_trgm_idx",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "payment_claims"
-    },
-    {
-      "nameExplicit": true,
-      "columns": [
-        {
-          "value": "description",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": {
-            "name": "gin_trgm_ops",
-            "default": false
-          }
-        }
-      ],
-      "isUnique": false,
-      "where": null,
-      "with": "",
-      "method": "gin",
-      "concurrently": false,
-      "name": "payment_claims_description_search_trgm_idx",
       "entityType": "indexes",
       "schema": "public",
       "table": "payment_claims"
@@ -8528,78 +7640,6 @@
       "table": "permits_to_work"
     },
     {
-      "nameExplicit": true,
-      "columns": [
-        {
-          "value": "permit_type",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": {
-            "name": "gin_trgm_ops",
-            "default": false
-          }
-        }
-      ],
-      "isUnique": false,
-      "where": null,
-      "with": "",
-      "method": "gin",
-      "concurrently": false,
-      "name": "permits_to_work_permit_type_search_trgm_idx",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "permits_to_work"
-    },
-    {
-      "nameExplicit": true,
-      "columns": [
-        {
-          "value": "status",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": {
-            "name": "gin_trgm_ops",
-            "default": false
-          }
-        }
-      ],
-      "isUnique": false,
-      "where": null,
-      "with": "",
-      "method": "gin",
-      "concurrently": false,
-      "name": "permits_to_work_status_search_trgm_idx",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "permits_to_work"
-    },
-    {
-      "nameExplicit": true,
-      "columns": [
-        {
-          "value": "approved_by",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": {
-            "name": "gin_trgm_ops",
-            "default": false
-          }
-        }
-      ],
-      "isUnique": false,
-      "where": null,
-      "with": "",
-      "method": "gin",
-      "concurrently": false,
-      "name": "permits_to_work_approved_by_search_trgm_idx",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "permits_to_work"
-    },
-    {
       "nameExplicit": false,
       "columns": [
         {
@@ -8640,174 +7680,6 @@
       "method": "gin",
       "concurrently": false,
       "name": "projects_project_name_search_trgm_idx",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "projects"
-    },
-    {
-      "nameExplicit": true,
-      "columns": [
-        {
-          "value": "project_number",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": {
-            "name": "gin_trgm_ops",
-            "default": false
-          }
-        }
-      ],
-      "isUnique": false,
-      "where": null,
-      "with": "",
-      "method": "gin",
-      "concurrently": false,
-      "name": "projects_project_number_search_trgm_idx",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "projects"
-    },
-    {
-      "nameExplicit": true,
-      "columns": [
-        {
-          "value": "client",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": {
-            "name": "gin_trgm_ops",
-            "default": false
-          }
-        }
-      ],
-      "isUnique": false,
-      "where": null,
-      "with": "",
-      "method": "gin",
-      "concurrently": false,
-      "name": "projects_client_search_trgm_idx",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "projects"
-    },
-    {
-      "nameExplicit": true,
-      "columns": [
-        {
-          "value": "main_contractor",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": {
-            "name": "gin_trgm_ops",
-            "default": false
-          }
-        }
-      ],
-      "isUnique": false,
-      "where": null,
-      "with": "",
-      "method": "gin",
-      "concurrently": false,
-      "name": "projects_main_contractor_search_trgm_idx",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "projects"
-    },
-    {
-      "nameExplicit": true,
-      "columns": [
-        {
-          "value": "status",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": {
-            "name": "gin_trgm_ops",
-            "default": false
-          }
-        }
-      ],
-      "isUnique": false,
-      "where": null,
-      "with": "",
-      "method": "gin",
-      "concurrently": false,
-      "name": "projects_status_search_trgm_idx",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "projects"
-    },
-    {
-      "nameExplicit": true,
-      "columns": [
-        {
-          "value": "project_type",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": {
-            "name": "gin_trgm_ops",
-            "default": false
-          }
-        }
-      ],
-      "isUnique": false,
-      "where": null,
-      "with": "",
-      "method": "gin",
-      "concurrently": false,
-      "name": "projects_project_type_search_trgm_idx",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "projects"
-    },
-    {
-      "nameExplicit": true,
-      "columns": [
-        {
-          "value": "project_manager",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": {
-            "name": "gin_trgm_ops",
-            "default": false
-          }
-        }
-      ],
-      "isUnique": false,
-      "where": null,
-      "with": "",
-      "method": "gin",
-      "concurrently": false,
-      "name": "projects_project_manager_search_trgm_idx",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "projects"
-    },
-    {
-      "nameExplicit": true,
-      "columns": [
-        {
-          "value": "description",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": {
-            "name": "gin_trgm_ops",
-            "default": false
-          }
-        }
-      ],
-      "isUnique": false,
-      "where": null,
-      "with": "",
-      "method": "gin",
-      "concurrently": false,
-      "name": "projects_description_search_trgm_idx",
       "entityType": "indexes",
       "schema": "public",
       "table": "projects"
@@ -8858,198 +7730,6 @@
       "table": "rfis"
     },
     {
-      "nameExplicit": true,
-      "columns": [
-        {
-          "value": "rfi_number",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": {
-            "name": "gin_trgm_ops",
-            "default": false
-          }
-        }
-      ],
-      "isUnique": false,
-      "where": null,
-      "with": "",
-      "method": "gin",
-      "concurrently": false,
-      "name": "rfis_rfi_number_search_trgm_idx",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "rfis"
-    },
-    {
-      "nameExplicit": true,
-      "columns": [
-        {
-          "value": "asked_by",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": {
-            "name": "gin_trgm_ops",
-            "default": false
-          }
-        }
-      ],
-      "isUnique": false,
-      "where": null,
-      "with": "",
-      "method": "gin",
-      "concurrently": false,
-      "name": "rfis_asked_by_search_trgm_idx",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "rfis"
-    },
-    {
-      "nameExplicit": true,
-      "columns": [
-        {
-          "value": "assigned_to",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": {
-            "name": "gin_trgm_ops",
-            "default": false
-          }
-        }
-      ],
-      "isUnique": false,
-      "where": null,
-      "with": "",
-      "method": "gin",
-      "concurrently": false,
-      "name": "rfis_assigned_to_search_trgm_idx",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "rfis"
-    },
-    {
-      "nameExplicit": true,
-      "columns": [
-        {
-          "value": "subject",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": {
-            "name": "gin_trgm_ops",
-            "default": false
-          }
-        }
-      ],
-      "isUnique": false,
-      "where": null,
-      "with": "",
-      "method": "gin",
-      "concurrently": false,
-      "name": "rfis_subject_search_trgm_idx",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "rfis"
-    },
-    {
-      "nameExplicit": true,
-      "columns": [
-        {
-          "value": "question",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": {
-            "name": "gin_trgm_ops",
-            "default": false
-          }
-        }
-      ],
-      "isUnique": false,
-      "where": null,
-      "with": "",
-      "method": "gin",
-      "concurrently": false,
-      "name": "rfis_question_search_trgm_idx",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "rfis"
-    },
-    {
-      "nameExplicit": true,
-      "columns": [
-        {
-          "value": "answer",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": {
-            "name": "gin_trgm_ops",
-            "default": false
-          }
-        }
-      ],
-      "isUnique": false,
-      "where": null,
-      "with": "",
-      "method": "gin",
-      "concurrently": false,
-      "name": "rfis_answer_search_trgm_idx",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "rfis"
-    },
-    {
-      "nameExplicit": true,
-      "columns": [
-        {
-          "value": "status",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": {
-            "name": "gin_trgm_ops",
-            "default": false
-          }
-        }
-      ],
-      "isUnique": false,
-      "where": null,
-      "with": "",
-      "method": "gin",
-      "concurrently": false,
-      "name": "rfis_status_search_trgm_idx",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "rfis"
-    },
-    {
-      "nameExplicit": true,
-      "columns": [
-        {
-          "value": "priority",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": {
-            "name": "gin_trgm_ops",
-            "default": false
-          }
-        }
-      ],
-      "isUnique": false,
-      "where": null,
-      "with": "",
-      "method": "gin",
-      "concurrently": false,
-      "name": "rfis_priority_search_trgm_idx",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "rfis"
-    },
-    {
       "nameExplicit": false,
       "columns": [
         {
@@ -9095,126 +7775,6 @@
       "table": "site_locations"
     },
     {
-      "nameExplicit": true,
-      "columns": [
-        {
-          "value": "location_code",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": {
-            "name": "gin_trgm_ops",
-            "default": false
-          }
-        }
-      ],
-      "isUnique": false,
-      "where": null,
-      "with": "",
-      "method": "gin",
-      "concurrently": false,
-      "name": "site_locations_location_code_search_trgm_idx",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "site_locations"
-    },
-    {
-      "nameExplicit": true,
-      "columns": [
-        {
-          "value": "location_type",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": {
-            "name": "gin_trgm_ops",
-            "default": false
-          }
-        }
-      ],
-      "isUnique": false,
-      "where": null,
-      "with": "",
-      "method": "gin",
-      "concurrently": false,
-      "name": "site_locations_location_type_search_trgm_idx",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "site_locations"
-    },
-    {
-      "nameExplicit": true,
-      "columns": [
-        {
-          "value": "grid_reference",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": {
-            "name": "gin_trgm_ops",
-            "default": false
-          }
-        }
-      ],
-      "isUnique": false,
-      "where": null,
-      "with": "",
-      "method": "gin",
-      "concurrently": false,
-      "name": "site_locations_grid_reference_search_trgm_idx",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "site_locations"
-    },
-    {
-      "nameExplicit": true,
-      "columns": [
-        {
-          "value": "description",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": {
-            "name": "gin_trgm_ops",
-            "default": false
-          }
-        }
-      ],
-      "isUnique": false,
-      "where": null,
-      "with": "",
-      "method": "gin",
-      "concurrently": false,
-      "name": "site_locations_description_search_trgm_idx",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "site_locations"
-    },
-    {
-      "nameExplicit": true,
-      "columns": [
-        {
-          "value": "bim_model_element_id",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": {
-            "name": "gin_trgm_ops",
-            "default": false
-          }
-        }
-      ],
-      "isUnique": false,
-      "where": null,
-      "with": "",
-      "method": "gin",
-      "concurrently": false,
-      "name": "site_locations_bim_model_element_id_search_trgm_idx",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "site_locations"
-    },
-    {
       "nameExplicit": false,
       "columns": [
         {
@@ -9255,150 +7815,6 @@
       "method": "gin",
       "concurrently": false,
       "name": "workers_worker_name_search_trgm_idx",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "workers"
-    },
-    {
-      "nameExplicit": true,
-      "columns": [
-        {
-          "value": "worker_number",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": {
-            "name": "gin_trgm_ops",
-            "default": false
-          }
-        }
-      ],
-      "isUnique": false,
-      "where": null,
-      "with": "",
-      "method": "gin",
-      "concurrently": false,
-      "name": "workers_worker_number_search_trgm_idx",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "workers"
-    },
-    {
-      "nameExplicit": true,
-      "columns": [
-        {
-          "value": "trade",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": {
-            "name": "gin_trgm_ops",
-            "default": false
-          }
-        }
-      ],
-      "isUnique": false,
-      "where": null,
-      "with": "",
-      "method": "gin",
-      "concurrently": false,
-      "name": "workers_trade_search_trgm_idx",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "workers"
-    },
-    {
-      "nameExplicit": true,
-      "columns": [
-        {
-          "value": "status",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": {
-            "name": "gin_trgm_ops",
-            "default": false
-          }
-        }
-      ],
-      "isUnique": false,
-      "where": null,
-      "with": "",
-      "method": "gin",
-      "concurrently": false,
-      "name": "workers_status_search_trgm_idx",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "workers"
-    },
-    {
-      "nameExplicit": true,
-      "columns": [
-        {
-          "value": "phone",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": {
-            "name": "gin_trgm_ops",
-            "default": false
-          }
-        }
-      ],
-      "isUnique": false,
-      "where": null,
-      "with": "",
-      "method": "gin",
-      "concurrently": false,
-      "name": "workers_phone_search_trgm_idx",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "workers"
-    },
-    {
-      "nameExplicit": true,
-      "columns": [
-        {
-          "value": "email",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": {
-            "name": "gin_trgm_ops",
-            "default": false
-          }
-        }
-      ],
-      "isUnique": false,
-      "where": null,
-      "with": "",
-      "method": "gin",
-      "concurrently": false,
-      "name": "workers_email_search_trgm_idx",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "workers"
-    },
-    {
-      "nameExplicit": true,
-      "columns": [
-        {
-          "value": "nationality",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": {
-            "name": "gin_trgm_ops",
-            "default": false
-          }
-        }
-      ],
-      "isUnique": false,
-      "where": null,
-      "with": "",
-      "method": "gin",
-      "concurrently": false,
-      "name": "workers_nationality_search_trgm_idx",
       "entityType": "indexes",
       "schema": "public",
       "table": "workers"
@@ -11519,30 +9935,6 @@
       "nameExplicit": true,
       "columns": [
         {
-          "value": "avatar_url",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": {
-            "name": "gin_trgm_ops",
-            "default": false
-          }
-        }
-      ],
-      "isUnique": false,
-      "where": null,
-      "with": "",
-      "method": "gin",
-      "concurrently": false,
-      "name": "user_avatar_url_search_trgm_idx",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "user"
-    },
-    {
-      "nameExplicit": true,
-      "columns": [
-        {
           "value": "status",
           "isExpression": false,
           "asc": true,
@@ -12137,6 +10529,23 @@
       "entityType": "fks",
       "schema": "public",
       "table": "team_members"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
+        "avatar_asset_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "document_asset",
+      "columnsTo": [
+        "norbital_id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "SET NULL",
+      "name": "user_avatar_asset_id_document_asset_norbital_id_fkey",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "user"
     },
     {
       "columns": [

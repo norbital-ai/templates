@@ -81,9 +81,9 @@ CREATE TABLE "defects" (
 	"severity" text,
 	"status" text,
 	"description" text,
-	"reported_date" timestamp with time zone,
-	"due_date" timestamp with time zone,
-	"closed_date" timestamp with time zone,
+	"reported_date" date,
+	"due_date" date,
+	"closed_date" date,
 	"photos" uuid[],
 	"resolution_notes" text
 );
@@ -173,8 +173,8 @@ CREATE TABLE "payment_claims" (
 	"claimed_amount" jsonb,
 	"certified_amount" jsonb,
 	"claim_period" jsonb,
-	"submitted_date" timestamp with time zone,
-	"paid_date" timestamp with time zone,
+	"submitted_date" date,
+	"paid_date" date,
 	"description" text,
 	"supporting_documents" uuid[]
 );
@@ -195,7 +195,7 @@ CREATE TABLE "permits_to_work" (
 	"job_id" uuid,
 	"worker_id" uuid,
 	"status" text,
-	"requested_date" timestamp with time zone,
+	"requested_date" date,
 	"validity_range" jsonb,
 	"approved_by" text,
 	"hazards_identified" text[],
@@ -270,9 +270,9 @@ CREATE TABLE "rfis" (
 	"answer" text,
 	"status" text,
 	"priority" text,
-	"submitted_date" timestamp with time zone,
-	"due_date" timestamp with time zone,
-	"resolved_date" timestamp with time zone,
+	"submitted_date" date,
+	"due_date" date,
+	"resolved_date" date,
 	"attachments" uuid[],
 	"related_defect_id" uuid
 );
@@ -313,11 +313,11 @@ CREATE TABLE "workers" (
 	"phone" text,
 	"email" text,
 	"emergency_contact" jsonb,
-	"date_of_birth" timestamp with time zone,
+	"date_of_birth" date,
 	"nationality" text,
-	"work_permit_expiry" timestamp with time zone,
-	"medical_check_date" timestamp with time zone,
-	"safety_induction_date" timestamp with time zone
+	"work_permit_expiry" date,
+	"medical_check_date" date,
+	"safety_induction_date" date
 );
 --> statement-breakpoint
 SELECT _norbital_create_history_table('workers'::regclass, 'workers_history');
@@ -710,7 +710,7 @@ CREATE TABLE "user" (
 	"norbital_approval_id" uuid,
 	"email" text NOT NULL UNIQUE,
 	"name" text,
-	"avatar_url" text,
+	"avatar_asset_id" uuid,
 	"status" text DEFAULT 'active',
 	"role" text DEFAULT 'basic',
 	"kind" text DEFAULT 'human',
@@ -723,179 +723,47 @@ CREATE UNIQUE INDEX "asset_documents_document_number_index" ON "asset_documents"
 --> statement-breakpoint
 CREATE INDEX "asset_documents_title_search_trgm_idx" ON "asset_documents" USING gin ("title" gin_trgm_ops);
 --> statement-breakpoint
-CREATE INDEX "asset_documents_document_number_search_trgm_idx" ON "asset_documents" USING gin ("document_number" gin_trgm_ops);
---> statement-breakpoint
-CREATE INDEX "asset_documents_document_type_search_trgm_idx" ON "asset_documents" USING gin ("document_type" gin_trgm_ops);
---> statement-breakpoint
-CREATE INDEX "asset_documents_asset_tag_search_trgm_idx" ON "asset_documents" USING gin ("asset_tag" gin_trgm_ops);
---> statement-breakpoint
-CREATE INDEX "asset_documents_asset_category_search_trgm_idx" ON "asset_documents" USING gin ("asset_category" gin_trgm_ops);
---> statement-breakpoint
-CREATE INDEX "asset_documents_status_search_trgm_idx" ON "asset_documents" USING gin ("status" gin_trgm_ops);
---> statement-breakpoint
-CREATE INDEX "asset_documents_document_url_search_trgm_idx" ON "asset_documents" USING gin ("document_url" gin_trgm_ops);
---> statement-breakpoint
-CREATE INDEX "asset_documents_version_search_trgm_idx" ON "asset_documents" USING gin ("version" gin_trgm_ops);
---> statement-breakpoint
 CREATE UNIQUE INDEX "bim_reference_matrix_reference_code_index" ON "bim_reference_matrix" ("reference_code");
 --> statement-breakpoint
 CREATE INDEX "bim_reference_matrix_reference_name_search_trgm_idx" ON "bim_reference_matrix" USING gin ("reference_name" gin_trgm_ops);
---> statement-breakpoint
-CREATE INDEX "bim_reference_matrix_reference_code_search_trgm_idx" ON "bim_reference_matrix" USING gin ("reference_code" gin_trgm_ops);
---> statement-breakpoint
-CREATE INDEX "bim_reference_matrix_category_search_trgm_idx" ON "bim_reference_matrix" USING gin ("category" gin_trgm_ops);
---> statement-breakpoint
-CREATE INDEX "bim_reference_matrix_subcategory_search_trgm_idx" ON "bim_reference_matrix" USING gin ("subcategory" gin_trgm_ops);
---> statement-breakpoint
-CREATE INDEX "bim_reference_matrix_unit_of_measure_search_trgm_idx" ON "bim_reference_matrix" USING gin ("unit_of_measure" gin_trgm_ops);
---> statement-breakpoint
-CREATE INDEX "bim_reference_matrix_carbon_unit_search_trgm_idx" ON "bim_reference_matrix" USING gin ("carbon_unit" gin_trgm_ops);
---> statement-breakpoint
-CREATE INDEX "bim_reference_matrix_specification_search_trgm_idx" ON "bim_reference_matrix" USING gin ("specification" gin_trgm_ops);
---> statement-breakpoint
-CREATE INDEX "bim_reference_matrix_bim_guid_search_trgm_idx" ON "bim_reference_matrix" USING gin ("bim_guid" gin_trgm_ops);
---> statement-breakpoint
-CREATE INDEX "bim_reference_matrix_data_source_search_trgm_idx" ON "bim_reference_matrix" USING gin ("data_source" gin_trgm_ops);
 --> statement-breakpoint
 CREATE UNIQUE INDEX "certification_types_certification_code_index" ON "certification_types" ("certification_code");
 --> statement-breakpoint
 CREATE INDEX "certification_types_certification_name_search_trgm_idx" ON "certification_types" USING gin ("certification_name" gin_trgm_ops);
 --> statement-breakpoint
-CREATE INDEX "certification_types_certification_code_search_trgm_idx" ON "certification_types" USING gin ("certification_code" gin_trgm_ops);
---> statement-breakpoint
-CREATE INDEX "certification_types_category_search_trgm_idx" ON "certification_types" USING gin ("category" gin_trgm_ops);
---> statement-breakpoint
-CREATE INDEX "certification_types_issuing_body_search_trgm_idx" ON "certification_types" USING gin ("issuing_body" gin_trgm_ops);
---> statement-breakpoint
-CREATE INDEX "certification_types_description_search_trgm_idx" ON "certification_types" USING gin ("description" gin_trgm_ops);
---> statement-breakpoint
 CREATE UNIQUE INDEX "defects_defect_number_index" ON "defects" ("defect_number");
 --> statement-breakpoint
 CREATE INDEX "defects_title_search_trgm_idx" ON "defects" USING gin ("title" gin_trgm_ops);
 --> statement-breakpoint
-CREATE INDEX "defects_defect_number_search_trgm_idx" ON "defects" USING gin ("defect_number" gin_trgm_ops);
---> statement-breakpoint
-CREATE INDEX "defects_reported_by_search_trgm_idx" ON "defects" USING gin ("reported_by" gin_trgm_ops);
---> statement-breakpoint
-CREATE INDEX "defects_assigned_to_search_trgm_idx" ON "defects" USING gin ("assigned_to" gin_trgm_ops);
---> statement-breakpoint
-CREATE INDEX "defects_category_search_trgm_idx" ON "defects" USING gin ("category" gin_trgm_ops);
---> statement-breakpoint
-CREATE INDEX "defects_severity_search_trgm_idx" ON "defects" USING gin ("severity" gin_trgm_ops);
---> statement-breakpoint
-CREATE INDEX "defects_status_search_trgm_idx" ON "defects" USING gin ("status" gin_trgm_ops);
---> statement-breakpoint
-CREATE INDEX "defects_description_search_trgm_idx" ON "defects" USING gin ("description" gin_trgm_ops);
---> statement-breakpoint
-CREATE INDEX "defects_resolution_notes_search_trgm_idx" ON "defects" USING gin ("resolution_notes" gin_trgm_ops);
---> statement-breakpoint
 CREATE INDEX "job_assignments_assignment_code_search_trgm_idx" ON "job_assignments" USING gin ("assignment_code" gin_trgm_ops);
---> statement-breakpoint
-CREATE INDEX "job_assignments_role_search_trgm_idx" ON "job_assignments" USING gin ("role" gin_trgm_ops);
---> statement-breakpoint
-CREATE INDEX "job_assignments_status_search_trgm_idx" ON "job_assignments" USING gin ("status" gin_trgm_ops);
 --> statement-breakpoint
 CREATE UNIQUE INDEX "jobs_job_number_index" ON "jobs" ("job_number");
 --> statement-breakpoint
 CREATE INDEX "jobs_job_title_search_trgm_idx" ON "jobs" USING gin ("job_title" gin_trgm_ops);
 --> statement-breakpoint
-CREATE INDEX "jobs_job_number_search_trgm_idx" ON "jobs" USING gin ("job_number" gin_trgm_ops);
---> statement-breakpoint
-CREATE INDEX "jobs_job_type_search_trgm_idx" ON "jobs" USING gin ("job_type" gin_trgm_ops);
---> statement-breakpoint
-CREATE INDEX "jobs_status_search_trgm_idx" ON "jobs" USING gin ("status" gin_trgm_ops);
---> statement-breakpoint
-CREATE INDEX "jobs_description_search_trgm_idx" ON "jobs" USING gin ("description" gin_trgm_ops);
---> statement-breakpoint
-CREATE INDEX "jobs_priority_search_trgm_idx" ON "jobs" USING gin ("priority" gin_trgm_ops);
---> statement-breakpoint
 CREATE UNIQUE INDEX "payment_claims_claim_number_index" ON "payment_claims" ("claim_number");
 --> statement-breakpoint
 CREATE INDEX "payment_claims_claim_number_search_trgm_idx" ON "payment_claims" USING gin ("claim_number" gin_trgm_ops);
---> statement-breakpoint
-CREATE INDEX "payment_claims_claim_type_search_trgm_idx" ON "payment_claims" USING gin ("claim_type" gin_trgm_ops);
---> statement-breakpoint
-CREATE INDEX "payment_claims_status_search_trgm_idx" ON "payment_claims" USING gin ("status" gin_trgm_ops);
---> statement-breakpoint
-CREATE INDEX "payment_claims_description_search_trgm_idx" ON "payment_claims" USING gin ("description" gin_trgm_ops);
 --> statement-breakpoint
 CREATE UNIQUE INDEX "permits_to_work_permit_number_index" ON "permits_to_work" ("permit_number");
 --> statement-breakpoint
 CREATE INDEX "permits_to_work_permit_number_search_trgm_idx" ON "permits_to_work" USING gin ("permit_number" gin_trgm_ops);
 --> statement-breakpoint
-CREATE INDEX "permits_to_work_permit_type_search_trgm_idx" ON "permits_to_work" USING gin ("permit_type" gin_trgm_ops);
---> statement-breakpoint
-CREATE INDEX "permits_to_work_status_search_trgm_idx" ON "permits_to_work" USING gin ("status" gin_trgm_ops);
---> statement-breakpoint
-CREATE INDEX "permits_to_work_approved_by_search_trgm_idx" ON "permits_to_work" USING gin ("approved_by" gin_trgm_ops);
---> statement-breakpoint
 CREATE UNIQUE INDEX "projects_project_number_index" ON "projects" ("project_number");
 --> statement-breakpoint
 CREATE INDEX "projects_project_name_search_trgm_idx" ON "projects" USING gin ("project_name" gin_trgm_ops);
---> statement-breakpoint
-CREATE INDEX "projects_project_number_search_trgm_idx" ON "projects" USING gin ("project_number" gin_trgm_ops);
---> statement-breakpoint
-CREATE INDEX "projects_client_search_trgm_idx" ON "projects" USING gin ("client" gin_trgm_ops);
---> statement-breakpoint
-CREATE INDEX "projects_main_contractor_search_trgm_idx" ON "projects" USING gin ("main_contractor" gin_trgm_ops);
---> statement-breakpoint
-CREATE INDEX "projects_status_search_trgm_idx" ON "projects" USING gin ("status" gin_trgm_ops);
---> statement-breakpoint
-CREATE INDEX "projects_project_type_search_trgm_idx" ON "projects" USING gin ("project_type" gin_trgm_ops);
---> statement-breakpoint
-CREATE INDEX "projects_project_manager_search_trgm_idx" ON "projects" USING gin ("project_manager" gin_trgm_ops);
---> statement-breakpoint
-CREATE INDEX "projects_description_search_trgm_idx" ON "projects" USING gin ("description" gin_trgm_ops);
 --> statement-breakpoint
 CREATE UNIQUE INDEX "rfis_rfi_number_index" ON "rfis" ("rfi_number");
 --> statement-breakpoint
 CREATE INDEX "rfis_title_search_trgm_idx" ON "rfis" USING gin ("title" gin_trgm_ops);
 --> statement-breakpoint
-CREATE INDEX "rfis_rfi_number_search_trgm_idx" ON "rfis" USING gin ("rfi_number" gin_trgm_ops);
---> statement-breakpoint
-CREATE INDEX "rfis_asked_by_search_trgm_idx" ON "rfis" USING gin ("asked_by" gin_trgm_ops);
---> statement-breakpoint
-CREATE INDEX "rfis_assigned_to_search_trgm_idx" ON "rfis" USING gin ("assigned_to" gin_trgm_ops);
---> statement-breakpoint
-CREATE INDEX "rfis_subject_search_trgm_idx" ON "rfis" USING gin ("subject" gin_trgm_ops);
---> statement-breakpoint
-CREATE INDEX "rfis_question_search_trgm_idx" ON "rfis" USING gin ("question" gin_trgm_ops);
---> statement-breakpoint
-CREATE INDEX "rfis_answer_search_trgm_idx" ON "rfis" USING gin ("answer" gin_trgm_ops);
---> statement-breakpoint
-CREATE INDEX "rfis_status_search_trgm_idx" ON "rfis" USING gin ("status" gin_trgm_ops);
---> statement-breakpoint
-CREATE INDEX "rfis_priority_search_trgm_idx" ON "rfis" USING gin ("priority" gin_trgm_ops);
---> statement-breakpoint
 CREATE UNIQUE INDEX "site_locations_location_code_index" ON "site_locations" ("location_code");
 --> statement-breakpoint
 CREATE INDEX "site_locations_location_name_search_trgm_idx" ON "site_locations" USING gin ("location_name" gin_trgm_ops);
 --> statement-breakpoint
-CREATE INDEX "site_locations_location_code_search_trgm_idx" ON "site_locations" USING gin ("location_code" gin_trgm_ops);
---> statement-breakpoint
-CREATE INDEX "site_locations_location_type_search_trgm_idx" ON "site_locations" USING gin ("location_type" gin_trgm_ops);
---> statement-breakpoint
-CREATE INDEX "site_locations_grid_reference_search_trgm_idx" ON "site_locations" USING gin ("grid_reference" gin_trgm_ops);
---> statement-breakpoint
-CREATE INDEX "site_locations_description_search_trgm_idx" ON "site_locations" USING gin ("description" gin_trgm_ops);
---> statement-breakpoint
-CREATE INDEX "site_locations_bim_model_element_id_search_trgm_idx" ON "site_locations" USING gin ("bim_model_element_id" gin_trgm_ops);
---> statement-breakpoint
 CREATE UNIQUE INDEX "workers_worker_number_index" ON "workers" ("worker_number");
 --> statement-breakpoint
 CREATE INDEX "workers_worker_name_search_trgm_idx" ON "workers" USING gin ("worker_name" gin_trgm_ops);
---> statement-breakpoint
-CREATE INDEX "workers_worker_number_search_trgm_idx" ON "workers" USING gin ("worker_number" gin_trgm_ops);
---> statement-breakpoint
-CREATE INDEX "workers_trade_search_trgm_idx" ON "workers" USING gin ("trade" gin_trgm_ops);
---> statement-breakpoint
-CREATE INDEX "workers_status_search_trgm_idx" ON "workers" USING gin ("status" gin_trgm_ops);
---> statement-breakpoint
-CREATE INDEX "workers_phone_search_trgm_idx" ON "workers" USING gin ("phone" gin_trgm_ops);
---> statement-breakpoint
-CREATE INDEX "workers_email_search_trgm_idx" ON "workers" USING gin ("email" gin_trgm_ops);
---> statement-breakpoint
-CREATE INDEX "workers_nationality_search_trgm_idx" ON "workers" USING gin ("nationality" gin_trgm_ops);
 --> statement-breakpoint
 CREATE INDEX "approval_request_label_search_trgm_idx" ON "approval_request" USING gin ("label" gin_trgm_ops);
 --> statement-breakpoint
@@ -1073,8 +941,6 @@ CREATE INDEX "user_email_search_trgm_idx" ON "user" USING gin ("email" gin_trgm_
 --> statement-breakpoint
 CREATE INDEX "user_name_search_trgm_idx" ON "user" USING gin ("name" gin_trgm_ops);
 --> statement-breakpoint
-CREATE INDEX "user_avatar_url_search_trgm_idx" ON "user" USING gin ("avatar_url" gin_trgm_ops);
---> statement-breakpoint
 CREATE INDEX "user_status_search_trgm_idx" ON "user" USING gin ("status" gin_trgm_ops);
 --> statement-breakpoint
 CREATE INDEX "user_role_search_trgm_idx" ON "user" USING gin ("role" gin_trgm_ops);
@@ -1142,3 +1008,5 @@ ALTER TABLE "team" ADD CONSTRAINT "team_policy_id_policy_norbital_id_fkey" FOREI
 ALTER TABLE "team_members" ADD CONSTRAINT "team_members_user_id_user_norbital_id_fkey" FOREIGN KEY ("user_id") REFERENCES "user"("norbital_id");
 --> statement-breakpoint
 ALTER TABLE "team_members" ADD CONSTRAINT "team_members_team_id_team_norbital_id_fkey" FOREIGN KEY ("team_id") REFERENCES "team"("norbital_id");
+--> statement-breakpoint
+ALTER TABLE "user" ADD CONSTRAINT "user_avatar_asset_id_document_asset_norbital_id_fkey" FOREIGN KEY ("avatar_asset_id") REFERENCES "document_asset"("norbital_id") ON DELETE SET NULL;
