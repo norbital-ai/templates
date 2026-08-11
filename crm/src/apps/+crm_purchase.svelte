@@ -4,7 +4,6 @@
 	import type { TenantI18nKeys } from '$pod/i18n-keys';
 	import { CollectionTable } from '@norbital-ai/ui/collection-table';
 	import { Cover, Grid, Inline, Stack } from '@norbital-ai/ui/layout';
-	import { PageHeader } from '@norbital-ai/ui/page-header';
 	import { Tabs, type TabConfig } from '@norbital-ai/ui/tabs';
 	const dashboard = client.invoke.procurement_dashboard({});
 
@@ -76,11 +75,11 @@
 	<meta name="pod:icon" content="lucide:shopping-cart" />
 	<meta
 		name="pod:thumbnail"
-		content="/api/template-seed-assets/crm/app-media/crm_purchase-banner.svg"
+		content="/api/template-seed-assets/crm/app-media/crm_purchase-banner.webp"
 	/>
 	<meta
 		name="pod:banner"
-		content="/api/template-seed-assets/crm/app-media/crm_purchase-banner.svg"
+		content="/api/template-seed-assets/crm/app-media/crm_purchase-banner.webp"
 	/>
 </svelte:head>
 
@@ -360,15 +359,7 @@
 	</CollectionTable>
 {/snippet}
 
-{#snippet pageHeading()}
-	<PageHeader
-		eyebrow={t('app.crm_purchase.eyebrow')}
-		title={t('app.crm_purchase.title')}
-		description={t('app.crm_purchase.header_description')}
-	/>
-{/snippet}
-
-<Cover as="main" top={pageHeading}>
+<Cover as="main">
 	<Tabs
 		animate={false}
 		config={[
