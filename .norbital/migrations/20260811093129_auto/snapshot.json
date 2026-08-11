@@ -1,9 +1,9 @@
 {
   "version": "8",
   "dialect": "postgres",
-  "id": "0129b154-97a1-406d-b028-238e9feebdc9",
+  "id": "401fb27a-9e47-4d74-b4b5-305747f73b24",
   "prevIds": [
-    "c84dc2d7-96a3-4bbb-838f-91cc0126c657"
+    "00000000-0000-0000-0000-000000000000"
   ],
   "ddl": [
     {
@@ -74,6 +74,12 @@
     },
     {
       "isRlsEnabled": false,
+      "name": "overtime_coverage_rules",
+      "entityType": "tables",
+      "schema": "public"
+    },
+    {
+      "isRlsEnabled": false,
       "name": "overtime_limits",
       "entityType": "tables",
       "schema": "public"
@@ -111,6 +117,12 @@
     {
       "isRlsEnabled": false,
       "name": "repayment_agreements",
+      "entityType": "tables",
+      "schema": "public"
+    },
+    {
+      "isRlsEnabled": false,
+      "name": "rest_break_rules",
       "entityType": "tables",
       "schema": "public"
     },
@@ -988,6 +1000,22 @@
       "table": "contribution_rates"
     },
     {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": {
+        "as": "CASE selector ->> 'by'\n\t\t\t\tWHEN 'WAGE' THEN (selector ->> 'from') || ' – ' || COALESCE(selector ->> 'to', '∞')\n\t\t\t\tWHEN 'WAGE_AND_AGE' THEN (selector ->> 'from') || ' – ' || COALESCE(selector ->> 'to', '∞') || ' · age ' || (selector ->> 'age_from') || '–' || COALESCE(selector ->> 'age_to', '∞')\n\t\t\t\tWHEN 'WAGE_AND_MARITAL' THEN (selector ->> 'from') || ' – ' || COALESCE(selector ->> 'to', '∞') || ' · ' || LOWER(selector ->> 'marital')\n\t\t\t\tWHEN 'HEADCOUNT' THEN 'headcount ' || (selector ->> 'from') || ' – ' || COALESCE(selector ->> 'to', '∞')\n\t\t\t\tWHEN 'RISK_CLASS' THEN 'risk ' || (selector ->> 'class')\n\t\t\t\tELSE 'band'\n\t\t\tEND || ' · from ' || LEFT(effective_range ->> 'start', 10)",
+        "type": "stored"
+      },
+      "identity": null,
+      "name": "summary",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "contribution_rates"
+    },
+    {
       "type": "uuid",
       "typeSchema": null,
       "notNull": true,
@@ -1352,6 +1380,22 @@
       "table": "employment_statutory_facts"
     },
     {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": {
+        "as": "CASE status ->> 'kind'\n\t\t\t\tWHEN 'REGISTERED' THEN 'Registered · ' || COALESCE(NULLIF(status ->> 'reference_number', ''), 'no reference')\n\t\t\t\tWHEN 'NOT_REGISTERED' THEN 'Not registered · ' || COALESCE(NULLIF(status ->> 'reason', ''), 'no reason given')\n\t\t\t\tELSE 'Statutory fact'\n\t\t\tEND || ' · from ' || LEFT(effective_range ->> 'start', 10)",
+        "type": "stored"
+      },
+      "identity": null,
+      "name": "summary",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "employment_statutory_facts"
+    },
+    {
       "type": "uuid",
       "typeSchema": null,
       "notNull": true,
@@ -1620,6 +1664,22 @@
       "generated": null,
       "identity": null,
       "name": "effective_range",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "employment_terms"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": {
+        "as": "COALESCE(job_title || ' · ', '') || employment_type",
+        "type": "stored"
+      },
+      "identity": null,
+      "name": "summary",
       "entityType": "columns",
       "schema": "public",
       "table": "employment_terms"
@@ -2273,6 +2333,22 @@
       "table": "leave_requests"
     },
     {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": {
+        "as": "CASE\n\t\t\t\tWHEN event ->> 'kind' = 'TIME_OFF'\n\t\t\t\t\tTHEN 'Time off · ' || (event ->> 'from_date') || ' → ' || (event ->> 'to_date') || ' · ' || (event ->> 'days') || 'd'\n\t\t\t\tWHEN event ->> 'kind' = 'BALANCE_ADJUSTMENT'\n\t\t\t\t\tTHEN 'Balance adjustment · ' || (event ->> 'effective_on') || ' · ' || (event ->> 'movement_days') || 'd'\n\t\t\t\tWHEN event ->> 'kind' = 'ENCASHMENT'\n\t\t\t\t\tTHEN 'Encashment · ' || (event ->> 'effective_on') || ' · ' || (event ->> 'movement_days') || 'd'\n\t\t\t\tELSE 'Leave movement · ' || (event ->> 'effective_on') || ' · ' || (event ->> 'movement_days') || 'd'\n\t\t\tEND",
+        "type": "stored"
+      },
+      "identity": null,
+      "name": "summary",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "leave_requests"
+    },
+    {
       "type": "uuid",
       "typeSchema": null,
       "notNull": true,
@@ -2504,6 +2580,201 @@
       "name": "norbital_id",
       "entityType": "columns",
       "schema": "public",
+      "table": "overtime_coverage_rules"
+    },
+    {
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": "now()",
+      "generated": null,
+      "identity": null,
+      "name": "norbital_created_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "overtime_coverage_rules"
+    },
+    {
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": "now()",
+      "generated": null,
+      "identity": null,
+      "name": "norbital_updated_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "overtime_coverage_rules"
+    },
+    {
+      "type": "tstzrange",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "tstzrange(CURRENT_TIMESTAMP, NULL, '[)')",
+      "generated": null,
+      "identity": null,
+      "name": "norbital_sys_period",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "overtime_coverage_rules"
+    },
+    {
+      "type": "integer",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": "1",
+      "generated": null,
+      "identity": null,
+      "name": "norbital_row_version",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "overtime_coverage_rules"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "norbital_approval_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "overtime_coverage_rules"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "jurisdiction_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "overtime_coverage_rules"
+    },
+    {
+      "type": "jsonb",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "wage_ceiling",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "overtime_coverage_rules"
+    },
+    {
+      "type": "boolean",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "ceiling_is_inclusive",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "overtime_coverage_rules"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "wage_basis",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "overtime_coverage_rules"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "category_basis",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "overtime_coverage_rules"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 1,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "exempt_categories",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "overtime_coverage_rules"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 1,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "excluded_categories",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "overtime_coverage_rules"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "authority",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "overtime_coverage_rules"
+    },
+    {
+      "type": "jsonb",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "effective_range",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "overtime_coverage_rules"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "gen_random_uuid()",
+      "generated": null,
+      "identity": null,
+      "name": "norbital_id",
+      "entityType": "columns",
+      "schema": "public",
       "table": "overtime_limits"
     },
     {
@@ -2593,6 +2864,19 @@
       "generated": null,
       "identity": null,
       "name": "period",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "overtime_limits"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "measures",
       "entityType": "columns",
       "schema": "public",
       "table": "overtime_limits"
@@ -3780,6 +4064,191 @@
       "name": "norbital_id",
       "entityType": "columns",
       "schema": "public",
+      "table": "rest_break_rules"
+    },
+    {
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": "now()",
+      "generated": null,
+      "identity": null,
+      "name": "norbital_created_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "rest_break_rules"
+    },
+    {
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": "now()",
+      "generated": null,
+      "identity": null,
+      "name": "norbital_updated_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "rest_break_rules"
+    },
+    {
+      "type": "tstzrange",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "tstzrange(CURRENT_TIMESTAMP, NULL, '[)')",
+      "generated": null,
+      "identity": null,
+      "name": "norbital_sys_period",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "rest_break_rules"
+    },
+    {
+      "type": "integer",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": "1",
+      "generated": null,
+      "identity": null,
+      "name": "norbital_row_version",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "rest_break_rules"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "norbital_approval_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "rest_break_rules"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "jurisdiction_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "rest_break_rules"
+    },
+    {
+      "type": "numeric",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "after_consecutive_hours",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "rest_break_rules"
+    },
+    {
+      "type": "integer",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "minimum_minutes",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "rest_break_rules"
+    },
+    {
+      "type": "boolean",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "counts_as_worked_time",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "rest_break_rules"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "applies_when",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "rest_break_rules"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "authority",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "rest_break_rules"
+    },
+    {
+      "type": "jsonb",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "effective_range",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "rest_break_rules"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": {
+        "as": "applies_when || ' · ' || minimum_minutes || ' min'",
+        "type": "stored"
+      },
+      "identity": null,
+      "name": "summary",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "rest_break_rules"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "gen_random_uuid()",
+      "generated": null,
+      "identity": null,
+      "name": "norbital_id",
+      "entityType": "columns",
+      "schema": "public",
       "table": "roster_entries"
     },
     {
@@ -3876,7 +4345,7 @@
     {
       "type": "uuid",
       "typeSchema": null,
-      "notNull": true,
+      "notNull": false,
       "dimensions": 0,
       "default": null,
       "generated": null,
@@ -4636,84 +5105,6 @@
       "generated": null,
       "identity": null,
       "name": "state",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "time_entries"
-    },
-    {
-      "type": "boolean",
-      "typeSchema": null,
-      "notNull": false,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "overtime_authorized",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "time_entries"
-    },
-    {
-      "type": "numeric",
-      "typeSchema": null,
-      "notNull": false,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "approved_ot_1x_hours",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "time_entries"
-    },
-    {
-      "type": "numeric",
-      "typeSchema": null,
-      "notNull": false,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "approved_ot_15x_hours",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "time_entries"
-    },
-    {
-      "type": "numeric",
-      "typeSchema": null,
-      "notNull": false,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "approved_ot_2x_hours",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "time_entries"
-    },
-    {
-      "type": "numeric",
-      "typeSchema": null,
-      "notNull": false,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "approved_ot_3x_hours",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "time_entries"
-    },
-    {
-      "type": "numeric",
-      "typeSchema": null,
-      "notNull": false,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "approved_ot_flat_hours",
       "entityType": "columns",
       "schema": "public",
       "table": "time_entries"
@@ -8788,14 +9179,14 @@
       "table": "user"
     },
     {
-      "type": "text",
+      "type": "uuid",
       "typeSchema": null,
       "notNull": false,
       "dimensions": 0,
       "default": null,
       "generated": null,
       "identity": null,
-      "name": "avatar_url",
+      "name": "avatar_asset_id",
       "entityType": "columns",
       "schema": "public",
       "table": "user"
@@ -8872,78 +9263,6 @@
       "method": "gin",
       "concurrently": false,
       "name": "companies_name_search_trgm_idx",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "companies"
-    },
-    {
-      "nameExplicit": true,
-      "columns": [
-        {
-          "value": "registration_number",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": {
-            "name": "gin_trgm_ops",
-            "default": false
-          }
-        }
-      ],
-      "isUnique": false,
-      "where": null,
-      "with": "",
-      "method": "gin",
-      "concurrently": false,
-      "name": "companies_registration_number_search_trgm_idx",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "companies"
-    },
-    {
-      "nameExplicit": true,
-      "columns": [
-        {
-          "value": "overtime_calculation_method",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": {
-            "name": "gin_trgm_ops",
-            "default": false
-          }
-        }
-      ],
-      "isUnique": false,
-      "where": null,
-      "with": "",
-      "method": "gin",
-      "concurrently": false,
-      "name": "companies_overtime_calculation_method_search_trgm_idx",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "companies"
-    },
-    {
-      "nameExplicit": true,
-      "columns": [
-        {
-          "value": "risk_class",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": {
-            "name": "gin_trgm_ops",
-            "default": false
-          }
-        }
-      ],
-      "isUnique": false,
-      "where": null,
-      "with": "",
-      "method": "gin",
-      "concurrently": false,
-      "name": "companies_risk_class_search_trgm_idx",
       "entityType": "indexes",
       "schema": "public",
       "table": "companies"
@@ -9081,7 +9400,7 @@
       "nameExplicit": true,
       "columns": [
         {
-          "value": "pay_period",
+          "value": "summary",
           "isExpression": false,
           "asc": true,
           "nullsFirst": false,
@@ -9096,58 +9415,10 @@
       "with": "",
       "method": "gin",
       "concurrently": false,
-      "name": "component_entries_pay_period_search_trgm_idx",
+      "name": "contribution_rates_summary_search_trgm_idx",
       "entityType": "indexes",
       "schema": "public",
-      "table": "component_entries"
-    },
-    {
-      "nameExplicit": true,
-      "columns": [
-        {
-          "value": "description",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": {
-            "name": "gin_trgm_ops",
-            "default": false
-          }
-        }
-      ],
-      "isUnique": false,
-      "where": null,
-      "with": "",
-      "method": "gin",
-      "concurrently": false,
-      "name": "component_entries_description_search_trgm_idx",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "component_entries"
-    },
-    {
-      "nameExplicit": true,
-      "columns": [
-        {
-          "value": "usage_mode",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": {
-            "name": "gin_trgm_ops",
-            "default": false
-          }
-        }
-      ],
-      "isUnique": false,
-      "where": null,
-      "with": "",
-      "method": "gin",
-      "concurrently": false,
-      "name": "component_entries_usage_mode_search_trgm_idx",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "component_entries"
+      "table": "contribution_rates"
     },
     {
       "nameExplicit": true,
@@ -9177,7 +9448,7 @@
       "nameExplicit": true,
       "columns": [
         {
-          "value": "gender",
+          "value": "summary",
           "isExpression": false,
           "asc": true,
           "nullsFirst": false,
@@ -9192,16 +9463,16 @@
       "with": "",
       "method": "gin",
       "concurrently": false,
-      "name": "employees_gender_search_trgm_idx",
+      "name": "employment_statutory_facts_summary_search_trgm_idx",
       "entityType": "indexes",
       "schema": "public",
-      "table": "employees"
+      "table": "employment_statutory_facts"
     },
     {
       "nameExplicit": true,
       "columns": [
         {
-          "value": "marital_status",
+          "value": "summary",
           "isExpression": false,
           "asc": true,
           "nullsFirst": false,
@@ -9216,319 +9487,7 @@
       "with": "",
       "method": "gin",
       "concurrently": false,
-      "name": "employees_marital_status_search_trgm_idx",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "employees"
-    },
-    {
-      "nameExplicit": true,
-      "columns": [
-        {
-          "value": "spouse_status",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": {
-            "name": "gin_trgm_ops",
-            "default": false
-          }
-        }
-      ],
-      "isUnique": false,
-      "where": null,
-      "with": "",
-      "method": "gin",
-      "concurrently": false,
-      "name": "employees_spouse_status_search_trgm_idx",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "employees"
-    },
-    {
-      "nameExplicit": true,
-      "columns": [
-        {
-          "value": "nationality",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": {
-            "name": "gin_trgm_ops",
-            "default": false
-          }
-        }
-      ],
-      "isUnique": false,
-      "where": null,
-      "with": "",
-      "method": "gin",
-      "concurrently": false,
-      "name": "employees_nationality_search_trgm_idx",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "employees"
-    },
-    {
-      "nameExplicit": true,
-      "columns": [
-        {
-          "value": "identity_number",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": {
-            "name": "gin_trgm_ops",
-            "default": false
-          }
-        }
-      ],
-      "isUnique": false,
-      "where": null,
-      "with": "",
-      "method": "gin",
-      "concurrently": false,
-      "name": "employees_identity_number_search_trgm_idx",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "employees"
-    },
-    {
-      "nameExplicit": true,
-      "columns": [
-        {
-          "value": "email",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": {
-            "name": "gin_trgm_ops",
-            "default": false
-          }
-        }
-      ],
-      "isUnique": false,
-      "where": null,
-      "with": "",
-      "method": "gin",
-      "concurrently": false,
-      "name": "employees_email_search_trgm_idx",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "employees"
-    },
-    {
-      "nameExplicit": true,
-      "columns": [
-        {
-          "value": "phone",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": {
-            "name": "gin_trgm_ops",
-            "default": false
-          }
-        }
-      ],
-      "isUnique": false,
-      "where": null,
-      "with": "",
-      "method": "gin",
-      "concurrently": false,
-      "name": "employees_phone_search_trgm_idx",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "employees"
-    },
-    {
-      "nameExplicit": true,
-      "columns": [
-        {
-          "value": "pay_frequency",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": {
-            "name": "gin_trgm_ops",
-            "default": false
-          }
-        }
-      ],
-      "isUnique": false,
-      "where": null,
-      "with": "",
-      "method": "gin",
-      "concurrently": false,
-      "name": "employment_terms_pay_frequency_search_trgm_idx",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "employment_terms"
-    },
-    {
-      "nameExplicit": true,
-      "columns": [
-        {
-          "value": "work_classification",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": {
-            "name": "gin_trgm_ops",
-            "default": false
-          }
-        }
-      ],
-      "isUnique": false,
-      "where": null,
-      "with": "",
-      "method": "gin",
-      "concurrently": false,
-      "name": "employment_terms_work_classification_search_trgm_idx",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "employment_terms"
-    },
-    {
-      "nameExplicit": true,
-      "columns": [
-        {
-          "value": "statutory_work_category",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": {
-            "name": "gin_trgm_ops",
-            "default": false
-          }
-        }
-      ],
-      "isUnique": false,
-      "where": null,
-      "with": "",
-      "method": "gin",
-      "concurrently": false,
-      "name": "employment_terms_statutory_work_category_search_trgm_idx",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "employment_terms"
-    },
-    {
-      "nameExplicit": true,
-      "columns": [
-        {
-          "value": "employment_type",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": {
-            "name": "gin_trgm_ops",
-            "default": false
-          }
-        }
-      ],
-      "isUnique": false,
-      "where": null,
-      "with": "",
-      "method": "gin",
-      "concurrently": false,
-      "name": "employment_terms_employment_type_search_trgm_idx",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "employment_terms"
-    },
-    {
-      "nameExplicit": true,
-      "columns": [
-        {
-          "value": "department",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": {
-            "name": "gin_trgm_ops",
-            "default": false
-          }
-        }
-      ],
-      "isUnique": false,
-      "where": null,
-      "with": "",
-      "method": "gin",
-      "concurrently": false,
-      "name": "employment_terms_department_search_trgm_idx",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "employment_terms"
-    },
-    {
-      "nameExplicit": true,
-      "columns": [
-        {
-          "value": "job_title",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": {
-            "name": "gin_trgm_ops",
-            "default": false
-          }
-        }
-      ],
-      "isUnique": false,
-      "where": null,
-      "with": "",
-      "method": "gin",
-      "concurrently": false,
-      "name": "employment_terms_job_title_search_trgm_idx",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "employment_terms"
-    },
-    {
-      "nameExplicit": true,
-      "columns": [
-        {
-          "value": "payroll_group",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": {
-            "name": "gin_trgm_ops",
-            "default": false
-          }
-        }
-      ],
-      "isUnique": false,
-      "where": null,
-      "with": "",
-      "method": "gin",
-      "concurrently": false,
-      "name": "employment_terms_payroll_group_search_trgm_idx",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "employment_terms"
-    },
-    {
-      "nameExplicit": true,
-      "columns": [
-        {
-          "value": "rest_day",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": {
-            "name": "gin_trgm_ops",
-            "default": false
-          }
-        }
-      ],
-      "isUnique": false,
-      "where": null,
-      "with": "",
-      "method": "gin",
-      "concurrently": false,
-      "name": "employment_terms_rest_day_search_trgm_idx",
+      "name": "employment_terms_summary_search_trgm_idx",
       "entityType": "indexes",
       "schema": "public",
       "table": "employment_terms"
@@ -9589,54 +9548,6 @@
       "nameExplicit": true,
       "columns": [
         {
-          "value": "exit_reason",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": {
-            "name": "gin_trgm_ops",
-            "default": false
-          }
-        }
-      ],
-      "isUnique": false,
-      "where": null,
-      "with": "",
-      "method": "gin",
-      "concurrently": false,
-      "name": "employments_exit_reason_search_trgm_idx",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "employments"
-    },
-    {
-      "nameExplicit": true,
-      "columns": [
-        {
-          "value": "code",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": {
-            "name": "gin_trgm_ops",
-            "default": false
-          }
-        }
-      ],
-      "isUnique": false,
-      "where": null,
-      "with": "",
-      "method": "gin",
-      "concurrently": false,
-      "name": "jurisdictions_code_search_trgm_idx",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "jurisdictions"
-    },
-    {
-      "nameExplicit": true,
-      "columns": [
-        {
           "value": "name",
           "isExpression": false,
           "asc": true,
@@ -9653,102 +9564,6 @@
       "method": "gin",
       "concurrently": false,
       "name": "jurisdictions_name_search_trgm_idx",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "jurisdictions"
-    },
-    {
-      "nameExplicit": true,
-      "columns": [
-        {
-          "value": "currency",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": {
-            "name": "gin_trgm_ops",
-            "default": false
-          }
-        }
-      ],
-      "isUnique": false,
-      "where": null,
-      "with": "",
-      "method": "gin",
-      "concurrently": false,
-      "name": "jurisdictions_currency_search_trgm_idx",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "jurisdictions"
-    },
-    {
-      "nameExplicit": true,
-      "columns": [
-        {
-          "value": "rounding",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": {
-            "name": "gin_trgm_ops",
-            "default": false
-          }
-        }
-      ],
-      "isUnique": false,
-      "where": null,
-      "with": "",
-      "method": "gin",
-      "concurrently": false,
-      "name": "jurisdictions_rounding_search_trgm_idx",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "jurisdictions"
-    },
-    {
-      "nameExplicit": true,
-      "columns": [
-        {
-          "value": "ordinary_rate_basis",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": {
-            "name": "gin_trgm_ops",
-            "default": false
-          }
-        }
-      ],
-      "isUnique": false,
-      "where": null,
-      "with": "",
-      "method": "gin",
-      "concurrently": false,
-      "name": "jurisdictions_ordinary_rate_basis_search_trgm_idx",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "jurisdictions"
-    },
-    {
-      "nameExplicit": true,
-      "columns": [
-        {
-          "value": "definition_hash",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": {
-            "name": "gin_trgm_ops",
-            "default": false
-          }
-        }
-      ],
-      "isUnique": false,
-      "where": null,
-      "with": "",
-      "method": "gin",
-      "concurrently": false,
-      "name": "jurisdictions_definition_hash_search_trgm_idx",
       "entityType": "indexes",
       "schema": "public",
       "table": "jurisdictions"
@@ -9792,7 +9607,7 @@
       "nameExplicit": true,
       "columns": [
         {
-          "value": "kind",
+          "value": "summary",
           "isExpression": false,
           "asc": true,
           "nullsFirst": false,
@@ -9807,31 +9622,7 @@
       "with": "",
       "method": "gin",
       "concurrently": false,
-      "name": "leave_requests_kind_search_trgm_idx",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "leave_requests"
-    },
-    {
-      "nameExplicit": true,
-      "columns": [
-        {
-          "value": "reason",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": {
-            "name": "gin_trgm_ops",
-            "default": false
-          }
-        }
-      ],
-      "isUnique": false,
-      "where": null,
-      "with": "",
-      "method": "gin",
-      "concurrently": false,
-      "name": "leave_requests_reason_search_trgm_idx",
+      "name": "leave_requests_summary_search_trgm_idx",
       "entityType": "indexes",
       "schema": "public",
       "table": "leave_requests"
@@ -9888,78 +9679,6 @@
       "nameExplicit": true,
       "columns": [
         {
-          "value": "aggregates_with",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": {
-            "name": "gin_trgm_ops",
-            "default": false
-          }
-        }
-      ],
-      "isUnique": false,
-      "where": null,
-      "with": "",
-      "method": "gin",
-      "concurrently": false,
-      "name": "leave_types_aggregates_with_search_trgm_idx",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "leave_types"
-    },
-    {
-      "nameExplicit": true,
-      "columns": [
-        {
-          "value": "period",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": {
-            "name": "gin_trgm_ops",
-            "default": false
-          }
-        }
-      ],
-      "isUnique": false,
-      "where": null,
-      "with": "",
-      "method": "gin",
-      "concurrently": false,
-      "name": "overtime_limits_period_search_trgm_idx",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "overtime_limits"
-    },
-    {
-      "nameExplicit": true,
-      "columns": [
-        {
-          "value": "on_exceed",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": {
-            "name": "gin_trgm_ops",
-            "default": false
-          }
-        }
-      ],
-      "isUnique": false,
-      "where": null,
-      "with": "",
-      "method": "gin",
-      "concurrently": false,
-      "name": "overtime_limits_on_exceed_search_trgm_idx",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "overtime_limits"
-    },
-    {
-      "nameExplicit": true,
-      "columns": [
-        {
           "value": "authority",
           "isExpression": false,
           "asc": true,
@@ -9975,34 +9694,10 @@
       "with": "",
       "method": "gin",
       "concurrently": false,
-      "name": "overtime_limits_authority_search_trgm_idx",
+      "name": "overtime_coverage_rules_authority_search_trgm_idx",
       "entityType": "indexes",
       "schema": "public",
-      "table": "overtime_limits"
-    },
-    {
-      "nameExplicit": true,
-      "columns": [
-        {
-          "value": "day_type",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": {
-            "name": "gin_trgm_ops",
-            "default": false
-          }
-        }
-      ],
-      "isUnique": false,
-      "where": null,
-      "with": "",
-      "method": "gin",
-      "concurrently": false,
-      "name": "overtime_rules_day_type_search_trgm_idx",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "overtime_rules"
+      "table": "overtime_coverage_rules"
     },
     {
       "nameExplicit": true,
@@ -10105,30 +9800,6 @@
       "table": "pay_components"
     },
     {
-      "nameExplicit": true,
-      "columns": [
-        {
-          "value": "nature",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": {
-            "name": "gin_trgm_ops",
-            "default": false
-          }
-        }
-      ],
-      "isUnique": false,
-      "where": null,
-      "with": "",
-      "method": "gin",
-      "concurrently": false,
-      "name": "pay_components_nature_search_trgm_idx",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "pay_components"
-    },
-    {
       "nameExplicit": false,
       "columns": [
         {
@@ -10176,54 +9847,6 @@
       "method": "gin",
       "concurrently": false,
       "name": "payroll_runs_period_search_trgm_idx",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "payroll_runs"
-    },
-    {
-      "nameExplicit": true,
-      "columns": [
-        {
-          "value": "lifecycle",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": {
-            "name": "gin_trgm_ops",
-            "default": false
-          }
-        }
-      ],
-      "isUnique": false,
-      "where": null,
-      "with": "",
-      "method": "gin",
-      "concurrently": false,
-      "name": "payroll_runs_lifecycle_search_trgm_idx",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "payroll_runs"
-    },
-    {
-      "nameExplicit": true,
-      "columns": [
-        {
-          "value": "configuration_hash",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": {
-            "name": "gin_trgm_ops",
-            "default": false
-          }
-        }
-      ],
-      "isUnique": false,
-      "where": null,
-      "with": "",
-      "method": "gin",
-      "concurrently": false,
-      "name": "payroll_runs_configuration_hash_search_trgm_idx",
       "entityType": "indexes",
       "schema": "public",
       "table": "payroll_runs"
@@ -10341,54 +9964,6 @@
       "table": "payslip_lines"
     },
     {
-      "nameExplicit": true,
-      "columns": [
-        {
-          "value": "component_entry_usage",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": {
-            "name": "gin_trgm_ops",
-            "default": false
-          }
-        }
-      ],
-      "isUnique": false,
-      "where": null,
-      "with": "",
-      "method": "gin",
-      "concurrently": false,
-      "name": "payslip_lines_component_entry_usage_search_trgm_idx",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "payslip_lines"
-    },
-    {
-      "nameExplicit": true,
-      "columns": [
-        {
-          "value": "bucket",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": {
-            "name": "gin_trgm_ops",
-            "default": false
-          }
-        }
-      ],
-      "isUnique": false,
-      "where": null,
-      "with": "",
-      "method": "gin",
-      "concurrently": false,
-      "name": "payslip_lines_bucket_search_trgm_idx",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "payslip_lines"
-    },
-    {
       "nameExplicit": false,
       "columns": [
         {
@@ -10465,6 +10040,30 @@
       "table": "repayment_agreements"
     },
     {
+      "nameExplicit": true,
+      "columns": [
+        {
+          "value": "summary",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": {
+            "name": "gin_trgm_ops",
+            "default": false
+          }
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "with": "",
+      "method": "gin",
+      "concurrently": false,
+      "name": "rest_break_rules_summary_search_trgm_idx",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "rest_break_rules"
+    },
+    {
       "nameExplicit": false,
       "columns": [
         {
@@ -10488,54 +10087,6 @@
       "method": "btree",
       "concurrently": false,
       "name": "roster_entries_employment_id_work_date_index",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "roster_entries"
-    },
-    {
-      "nameExplicit": true,
-      "columns": [
-        {
-          "value": "assignment_code",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": {
-            "name": "gin_trgm_ops",
-            "default": false
-          }
-        }
-      ],
-      "isUnique": false,
-      "where": null,
-      "with": "",
-      "method": "gin",
-      "concurrently": false,
-      "name": "roster_entries_assignment_code_search_trgm_idx",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "roster_entries"
-    },
-    {
-      "nameExplicit": true,
-      "columns": [
-        {
-          "value": "designation",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": {
-            "name": "gin_trgm_ops",
-            "default": false
-          }
-        }
-      ],
-      "isUnique": false,
-      "where": null,
-      "with": "",
-      "method": "gin",
-      "concurrently": false,
-      "name": "roster_entries_designation_search_trgm_idx",
       "entityType": "indexes",
       "schema": "public",
       "table": "roster_entries"
@@ -10651,54 +10202,6 @@
       "nameExplicit": true,
       "columns": [
         {
-          "value": "start_time",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": {
-            "name": "gin_trgm_ops",
-            "default": false
-          }
-        }
-      ],
-      "isUnique": false,
-      "where": null,
-      "with": "",
-      "method": "gin",
-      "concurrently": false,
-      "name": "shift_definitions_start_time_search_trgm_idx",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "shift_definitions"
-    },
-    {
-      "nameExplicit": true,
-      "columns": [
-        {
-          "value": "end_time",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": {
-            "name": "gin_trgm_ops",
-            "default": false
-          }
-        }
-      ],
-      "isUnique": false,
-      "where": null,
-      "with": "",
-      "method": "gin",
-      "concurrently": false,
-      "name": "shift_definitions_end_time_search_trgm_idx",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "shift_definitions"
-    },
-    {
-      "nameExplicit": true,
-      "columns": [
-        {
           "value": "code",
           "isExpression": false,
           "asc": true,
@@ -10744,102 +10247,6 @@
       "table": "statutory_contributions"
     },
     {
-      "nameExplicit": true,
-      "columns": [
-        {
-          "value": "authority",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": {
-            "name": "gin_trgm_ops",
-            "default": false
-          }
-        }
-      ],
-      "isUnique": false,
-      "where": null,
-      "with": "",
-      "method": "gin",
-      "concurrently": false,
-      "name": "statutory_contributions_authority_search_trgm_idx",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "statutory_contributions"
-    },
-    {
-      "nameExplicit": true,
-      "columns": [
-        {
-          "value": "payer",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": {
-            "name": "gin_trgm_ops",
-            "default": false
-          }
-        }
-      ],
-      "isUnique": false,
-      "where": null,
-      "with": "",
-      "method": "gin",
-      "concurrently": false,
-      "name": "statutory_contributions_payer_search_trgm_idx",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "statutory_contributions"
-    },
-    {
-      "nameExplicit": true,
-      "columns": [
-        {
-          "value": "keyed_by",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": {
-            "name": "gin_trgm_ops",
-            "default": false
-          }
-        }
-      ],
-      "isUnique": false,
-      "where": null,
-      "with": "",
-      "method": "gin",
-      "concurrently": false,
-      "name": "statutory_contributions_keyed_by_search_trgm_idx",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "statutory_contributions"
-    },
-    {
-      "nameExplicit": true,
-      "columns": [
-        {
-          "value": "rounding",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": {
-            "name": "gin_trgm_ops",
-            "default": false
-          }
-        }
-      ],
-      "isUnique": false,
-      "where": null,
-      "with": "",
-      "method": "gin",
-      "concurrently": false,
-      "name": "statutory_contributions_rounding_search_trgm_idx",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "statutory_contributions"
-    },
-    {
       "nameExplicit": false,
       "columns": [
         {
@@ -10866,54 +10273,6 @@
       "entityType": "indexes",
       "schema": "public",
       "table": "time_entries"
-    },
-    {
-      "nameExplicit": true,
-      "columns": [
-        {
-          "value": "state",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": {
-            "name": "gin_trgm_ops",
-            "default": false
-          }
-        }
-      ],
-      "isUnique": false,
-      "where": null,
-      "with": "",
-      "method": "gin",
-      "concurrently": false,
-      "name": "time_entries_state_search_trgm_idx",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "time_entries"
-    },
-    {
-      "nameExplicit": true,
-      "columns": [
-        {
-          "value": "code",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": {
-            "name": "gin_trgm_ops",
-            "default": false
-          }
-        }
-      ],
-      "isUnique": false,
-      "where": null,
-      "with": "",
-      "method": "gin",
-      "concurrently": false,
-      "name": "work_patterns_code_search_trgm_idx",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "work_patterns"
     },
     {
       "nameExplicit": true,
@@ -13055,30 +12414,6 @@
       "nameExplicit": true,
       "columns": [
         {
-          "value": "avatar_url",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": {
-            "name": "gin_trgm_ops",
-            "default": false
-          }
-        }
-      ],
-      "isUnique": false,
-      "where": null,
-      "with": "",
-      "method": "gin",
-      "concurrently": false,
-      "name": "user_avatar_url_search_trgm_idx",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "user"
-    },
-    {
-      "nameExplicit": true,
-      "columns": [
-        {
           "value": "status",
           "isExpression": false,
           "asc": true,
@@ -13414,6 +12749,23 @@
       ],
       "onUpdate": "NO ACTION",
       "onDelete": "NO ACTION",
+      "name": "overtime_coverage_rules_jurisdiction_id_jurisdictions_fk",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "overtime_coverage_rules"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        "jurisdiction_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "jurisdictions",
+      "columnsTo": [
+        "norbital_id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
       "name": "overtime_limits_jurisdiction_id_jurisdictions_fk",
       "entityType": "fks",
       "schema": "public",
@@ -13605,6 +12957,23 @@
       "entityType": "fks",
       "schema": "public",
       "table": "repayment_agreements"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        "jurisdiction_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "jurisdictions",
+      "columnsTo": [
+        "norbital_id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "name": "rest_break_rules_jurisdiction_id_jurisdictions_fk",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "rest_break_rules"
     },
     {
       "nameExplicit": true,
@@ -14134,6 +13503,23 @@
       "table": "team_members"
     },
     {
+      "nameExplicit": false,
+      "columns": [
+        "avatar_asset_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "document_asset",
+      "columnsTo": [
+        "norbital_id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "SET NULL",
+      "name": "user_avatar_asset_id_document_asset_norbital_id_fkey",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "user"
+    },
+    {
       "columns": [
         "norbital_id"
       ],
@@ -14248,6 +13634,16 @@
         "norbital_id"
       ],
       "nameExplicit": false,
+      "name": "overtime_coverage_rules_pkey",
+      "schema": "public",
+      "table": "overtime_coverage_rules",
+      "entityType": "pks"
+    },
+    {
+      "columns": [
+        "norbital_id"
+      ],
+      "nameExplicit": false,
       "name": "overtime_limits_pkey",
       "schema": "public",
       "table": "overtime_limits",
@@ -14311,6 +13707,16 @@
       "name": "repayment_agreements_pkey",
       "schema": "public",
       "table": "repayment_agreements",
+      "entityType": "pks"
+    },
+    {
+      "columns": [
+        "norbital_id"
+      ],
+      "nameExplicit": false,
+      "name": "rest_break_rules_pkey",
+      "schema": "public",
+      "table": "rest_break_rules",
       "entityType": "pks"
     },
     {

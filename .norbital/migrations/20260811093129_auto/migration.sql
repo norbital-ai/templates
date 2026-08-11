@@ -67,7 +67,15 @@ CREATE TABLE "contribution_rates" (
 	"statutory_contribution_id" uuid NOT NULL,
 	"selector" jsonb NOT NULL,
 	"award" jsonb NOT NULL,
-	"effective_range" jsonb NOT NULL
+	"effective_range" jsonb NOT NULL,
+	"summary" text GENERATED ALWAYS AS (CASE selector ->> 'by'
+				WHEN 'WAGE' THEN (selector ->> 'from') || ' – ' || COALESCE(selector ->> 'to', '∞')
+				WHEN 'WAGE_AND_AGE' THEN (selector ->> 'from') || ' – ' || COALESCE(selector ->> 'to', '∞') || ' · age ' || (selector ->> 'age_from') || '–' || COALESCE(selector ->> 'age_to', '∞')
+				WHEN 'WAGE_AND_MARITAL' THEN (selector ->> 'from') || ' – ' || COALESCE(selector ->> 'to', '∞') || ' · ' || LOWER(selector ->> 'marital')
+				WHEN 'HEADCOUNT' THEN 'headcount ' || (selector ->> 'from') || ' – ' || COALESCE(selector ->> 'to', '∞')
+				WHEN 'RISK_CLASS' THEN 'risk ' || (selector ->> 'class')
+				ELSE 'band'
+			END || ' · from ' || LEFT(effective_range ->> 'start', 10)) STORED
 );
 --> statement-breakpoint
 SELECT _norbital_create_history_table('contribution_rates'::regclass, 'contribution_rates_history');
@@ -105,7 +113,12 @@ CREATE TABLE "employment_statutory_facts" (
 	"employment_id" uuid NOT NULL,
 	"statutory_contribution_id" uuid NOT NULL,
 	"status" jsonb NOT NULL,
-	"effective_range" jsonb NOT NULL
+	"effective_range" jsonb NOT NULL,
+	"summary" text GENERATED ALWAYS AS (CASE status ->> 'kind'
+				WHEN 'REGISTERED' THEN 'Registered · ' || COALESCE(NULLIF(status ->> 'reference_number', ''), 'no reference')
+				WHEN 'NOT_REGISTERED' THEN 'Not registered · ' || COALESCE(NULLIF(status ->> 'reason', ''), 'no reason given')
+				ELSE 'Statutory fact'
+			END || ' · from ' || LEFT(effective_range ->> 'start', 10)) STORED
 );
 --> statement-breakpoint
 SELECT _norbital_create_history_table('employment_statutory_facts'::regclass, 'employment_statutory_facts_history');
@@ -129,8 +142,10 @@ CREATE TABLE "employment_terms" (
 	"department" text,
 	"job_title" text,
 	"payroll_group" text,
+	"work_pattern_id" uuid,
 	"rest_day" text NOT NULL,
-	"effective_range" jsonb NOT NULL
+	"effective_range" jsonb NOT NULL,
+	"summary" text GENERATED ALWAYS AS (COALESCE(job_title || ' · ', '') || employment_type) STORED
 );
 --> statement-breakpoint
 SELECT _norbital_create_history_table('employment_terms'::regclass, 'employment_terms_history');
@@ -193,7 +208,16 @@ CREATE TABLE "leave_requests" (
 	"half_day_start" boolean GENERATED ALWAYS AS (CASE WHEN event ->> 'kind' = 'TIME_OFF' THEN (event ->> 'half_day_start')::boolean ELSE false END) STORED,
 	"half_day_end" boolean GENERATED ALWAYS AS (CASE WHEN event ->> 'kind' = 'TIME_OFF' THEN (event ->> 'half_day_end')::boolean ELSE false END) STORED,
 	"reason" text GENERATED ALWAYS AS (CASE WHEN event ->> 'kind' = 'TIME_OFF' THEN event ->> 'reason' ELSE event ->> 'note' END) STORED,
-	"certificate_file" uuid GENERATED ALWAYS AS (CASE WHEN event ->> 'kind' = 'TIME_OFF' AND NULLIF(event ->> 'certificate_file', '') IS NOT NULL THEN (event ->> 'certificate_file')::uuid END) STORED
+	"certificate_file" uuid GENERATED ALWAYS AS (CASE WHEN event ->> 'kind' = 'TIME_OFF' AND NULLIF(event ->> 'certificate_file', '') IS NOT NULL THEN (event ->> 'certificate_file')::uuid END) STORED,
+	"summary" text GENERATED ALWAYS AS (CASE
+				WHEN event ->> 'kind' = 'TIME_OFF'
+					THEN 'Time off · ' || (event ->> 'from_date') || ' → ' || (event ->> 'to_date') || ' · ' || (event ->> 'days') || 'd'
+				WHEN event ->> 'kind' = 'BALANCE_ADJUSTMENT'
+					THEN 'Balance adjustment · ' || (event ->> 'effective_on') || ' · ' || (event ->> 'movement_days') || 'd'
+				WHEN event ->> 'kind' = 'ENCASHMENT'
+					THEN 'Encashment · ' || (event ->> 'effective_on') || ' · ' || (event ->> 'movement_days') || 'd'
+				ELSE 'Leave movement · ' || (event ->> 'effective_on') || ' · ' || (event ->> 'movement_days') || 'd'
+			END) STORED
 );
 --> statement-breakpoint
 SELECT _norbital_create_history_table('leave_requests'::regclass, 'leave_requests_history');
@@ -220,6 +244,26 @@ CREATE TABLE "leave_types" (
 --> statement-breakpoint
 SELECT _norbital_create_history_table('leave_types'::regclass, 'leave_types_history');
 --> statement-breakpoint
+CREATE TABLE "overtime_coverage_rules" (
+	"norbital_id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+	"norbital_created_at" timestamp with time zone DEFAULT now(),
+	"norbital_updated_at" timestamp with time zone DEFAULT now(),
+	"norbital_sys_period" tstzrange DEFAULT tstzrange(CURRENT_TIMESTAMP, NULL, '[)') NOT NULL,
+	"norbital_row_version" integer DEFAULT 1,
+	"norbital_approval_id" uuid,
+	"jurisdiction_id" uuid NOT NULL,
+	"wage_ceiling" jsonb,
+	"ceiling_is_inclusive" boolean,
+	"wage_basis" text,
+	"category_basis" text NOT NULL,
+	"exempt_categories" text[] NOT NULL,
+	"excluded_categories" text[] NOT NULL,
+	"authority" text NOT NULL,
+	"effective_range" jsonb NOT NULL
+);
+--> statement-breakpoint
+SELECT _norbital_create_history_table('overtime_coverage_rules'::regclass, 'overtime_coverage_rules_history');
+--> statement-breakpoint
 CREATE TABLE "overtime_limits" (
 	"norbital_id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
 	"norbital_created_at" timestamp with time zone DEFAULT now(),
@@ -229,6 +273,7 @@ CREATE TABLE "overtime_limits" (
 	"norbital_approval_id" uuid,
 	"jurisdiction_id" uuid NOT NULL,
 	"period" text NOT NULL,
+	"measures" text NOT NULL,
 	"max_hours" numeric NOT NULL,
 	"on_exceed" text NOT NULL,
 	"authority" text NOT NULL,
@@ -352,6 +397,25 @@ CREATE TABLE "repayment_agreements" (
 --> statement-breakpoint
 SELECT _norbital_create_history_table('repayment_agreements'::regclass, 'repayment_agreements_history');
 --> statement-breakpoint
+CREATE TABLE "rest_break_rules" (
+	"norbital_id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+	"norbital_created_at" timestamp with time zone DEFAULT now(),
+	"norbital_updated_at" timestamp with time zone DEFAULT now(),
+	"norbital_sys_period" tstzrange DEFAULT tstzrange(CURRENT_TIMESTAMP, NULL, '[)') NOT NULL,
+	"norbital_row_version" integer DEFAULT 1,
+	"norbital_approval_id" uuid,
+	"jurisdiction_id" uuid NOT NULL,
+	"after_consecutive_hours" numeric,
+	"minimum_minutes" integer NOT NULL,
+	"counts_as_worked_time" boolean,
+	"applies_when" text NOT NULL,
+	"authority" text NOT NULL,
+	"effective_range" jsonb NOT NULL,
+	"summary" text GENERATED ALWAYS AS (applies_when || ' · ' || minimum_minutes || ' min') STORED
+);
+--> statement-breakpoint
+SELECT _norbital_create_history_table('rest_break_rules'::regclass, 'rest_break_rules_history');
+--> statement-breakpoint
 CREATE TABLE "roster_entries" (
 	"norbital_id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
 	"norbital_created_at" timestamp with time zone DEFAULT now(),
@@ -361,12 +425,28 @@ CREATE TABLE "roster_entries" (
 	"norbital_approval_id" uuid,
 	"employment_id" uuid NOT NULL,
 	"work_date" date NOT NULL,
-	"shift_definition_id" uuid NOT NULL,
+	"shift_definition_id" uuid,
+	"roster_id" uuid,
 	"assignment_code" text,
 	"designation" text NOT NULL
 );
 --> statement-breakpoint
 SELECT _norbital_create_history_table('roster_entries'::regclass, 'roster_entries_history');
+--> statement-breakpoint
+CREATE TABLE "rosters" (
+	"norbital_id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+	"norbital_created_at" timestamp with time zone DEFAULT now(),
+	"norbital_updated_at" timestamp with time zone DEFAULT now(),
+	"norbital_sys_period" tstzrange DEFAULT tstzrange(CURRENT_TIMESTAMP, NULL, '[)') NOT NULL,
+	"norbital_row_version" integer DEFAULT 1,
+	"norbital_approval_id" uuid,
+	"company_id" uuid NOT NULL,
+	"work_pattern_id" uuid NOT NULL,
+	"month" text NOT NULL,
+	"published_at" timestamp with time zone
+);
+--> statement-breakpoint
+SELECT _norbital_create_history_table('rosters'::regclass, 'rosters_history');
 --> statement-breakpoint
 CREATE TABLE "shift_definitions" (
 	"norbital_id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -424,17 +504,32 @@ CREATE TABLE "time_entries" (
 	"clock_out" timestamp with time zone,
 	"break_minutes" integer DEFAULT 0 NOT NULL,
 	"state" text NOT NULL,
-	"overtime_authorized" boolean,
-	"approved_ot_1x_hours" numeric,
-	"approved_ot_15x_hours" numeric,
-	"approved_ot_2x_hours" numeric,
-	"approved_ot_3x_hours" numeric,
-	"approved_ot_flat_hours" numeric,
 	"overtime_in" timestamp with time zone,
 	"overtime_out" timestamp with time zone
 );
 --> statement-breakpoint
 SELECT _norbital_create_history_table('time_entries'::regclass, 'time_entries_history');
+--> statement-breakpoint
+CREATE TABLE "work_patterns" (
+	"norbital_id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+	"norbital_created_at" timestamp with time zone DEFAULT now(),
+	"norbital_updated_at" timestamp with time zone DEFAULT now(),
+	"norbital_sys_period" tstzrange DEFAULT tstzrange(CURRENT_TIMESTAMP, NULL, '[)') NOT NULL,
+	"norbital_row_version" integer DEFAULT 1,
+	"norbital_approval_id" uuid,
+	"company_id" uuid NOT NULL,
+	"code" text NOT NULL,
+	"name" text NOT NULL,
+	"variant" jsonb NOT NULL,
+	"default_shift_definition_id" uuid,
+	"min_rest_days_per_week" integer DEFAULT 1 NOT NULL,
+	"max_consecutive_work_days" integer,
+	"max_daily_work_minutes" integer,
+	"min_minutes_between_shifts" integer,
+	"effective_range" jsonb NOT NULL
+);
+--> statement-breakpoint
+SELECT _norbital_create_history_table('work_patterns'::regclass, 'work_patterns_history');
 --> statement-breakpoint
 CREATE TABLE "approval_request" (
 	"norbital_id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -824,7 +919,7 @@ CREATE TABLE "user" (
 	"norbital_approval_id" uuid,
 	"email" text NOT NULL UNIQUE,
 	"name" text,
-	"avatar_url" text,
+	"avatar_asset_id" uuid,
 	"status" text DEFAULT 'active',
 	"role" text DEFAULT 'basic',
 	"kind" text DEFAULT 'human',
@@ -834,12 +929,6 @@ CREATE TABLE "user" (
 SELECT _norbital_create_history_table('user'::regclass, 'user_history');
 --> statement-breakpoint
 CREATE INDEX "companies_name_search_trgm_idx" ON "companies" USING gin ("name" gin_trgm_ops);
---> statement-breakpoint
-CREATE INDEX "companies_registration_number_search_trgm_idx" ON "companies" USING gin ("registration_number" gin_trgm_ops);
---> statement-breakpoint
-CREATE INDEX "companies_overtime_calculation_method_search_trgm_idx" ON "companies" USING gin ("overtime_calculation_method" gin_trgm_ops);
---> statement-breakpoint
-CREATE INDEX "companies_risk_class_search_trgm_idx" ON "companies" USING gin ("risk_class" gin_trgm_ops);
 --> statement-breakpoint
 CREATE INDEX "company_holidays_name_search_trgm_idx" ON "company_holidays" USING gin ("name" gin_trgm_ops);
 --> statement-breakpoint
@@ -851,81 +940,29 @@ CREATE INDEX "component_entries_pay_component_id_index" ON "component_entries" (
 --> statement-breakpoint
 CREATE INDEX "component_entries_repayment_agreement_id_index" ON "component_entries" ("repayment_agreement_id") WHERE "repayment_agreement_id" IS NOT NULL;
 --> statement-breakpoint
-CREATE INDEX "component_entries_pay_period_search_trgm_idx" ON "component_entries" USING gin ("pay_period" gin_trgm_ops);
---> statement-breakpoint
-CREATE INDEX "component_entries_description_search_trgm_idx" ON "component_entries" USING gin ("description" gin_trgm_ops);
---> statement-breakpoint
-CREATE INDEX "component_entries_usage_mode_search_trgm_idx" ON "component_entries" USING gin ("usage_mode" gin_trgm_ops);
+CREATE INDEX "contribution_rates_summary_search_trgm_idx" ON "contribution_rates" USING gin ("summary" gin_trgm_ops);
 --> statement-breakpoint
 CREATE INDEX "employees_name_search_trgm_idx" ON "employees" USING gin ("name" gin_trgm_ops);
 --> statement-breakpoint
-CREATE INDEX "employees_gender_search_trgm_idx" ON "employees" USING gin ("gender" gin_trgm_ops);
+CREATE INDEX "employment_statutory_facts_summary_search_trgm_idx" ON "employment_statutory_facts" USING gin ("summary" gin_trgm_ops);
 --> statement-breakpoint
-CREATE INDEX "employees_marital_status_search_trgm_idx" ON "employees" USING gin ("marital_status" gin_trgm_ops);
---> statement-breakpoint
-CREATE INDEX "employees_spouse_status_search_trgm_idx" ON "employees" USING gin ("spouse_status" gin_trgm_ops);
---> statement-breakpoint
-CREATE INDEX "employees_nationality_search_trgm_idx" ON "employees" USING gin ("nationality" gin_trgm_ops);
---> statement-breakpoint
-CREATE INDEX "employees_identity_number_search_trgm_idx" ON "employees" USING gin ("identity_number" gin_trgm_ops);
---> statement-breakpoint
-CREATE INDEX "employees_email_search_trgm_idx" ON "employees" USING gin ("email" gin_trgm_ops);
---> statement-breakpoint
-CREATE INDEX "employees_phone_search_trgm_idx" ON "employees" USING gin ("phone" gin_trgm_ops);
---> statement-breakpoint
-CREATE INDEX "employment_terms_pay_frequency_search_trgm_idx" ON "employment_terms" USING gin ("pay_frequency" gin_trgm_ops);
---> statement-breakpoint
-CREATE INDEX "employment_terms_work_classification_search_trgm_idx" ON "employment_terms" USING gin ("work_classification" gin_trgm_ops);
---> statement-breakpoint
-CREATE INDEX "employment_terms_statutory_work_category_search_trgm_idx" ON "employment_terms" USING gin ("statutory_work_category" gin_trgm_ops);
---> statement-breakpoint
-CREATE INDEX "employment_terms_employment_type_search_trgm_idx" ON "employment_terms" USING gin ("employment_type" gin_trgm_ops);
---> statement-breakpoint
-CREATE INDEX "employment_terms_department_search_trgm_idx" ON "employment_terms" USING gin ("department" gin_trgm_ops);
---> statement-breakpoint
-CREATE INDEX "employment_terms_job_title_search_trgm_idx" ON "employment_terms" USING gin ("job_title" gin_trgm_ops);
---> statement-breakpoint
-CREATE INDEX "employment_terms_payroll_group_search_trgm_idx" ON "employment_terms" USING gin ("payroll_group" gin_trgm_ops);
---> statement-breakpoint
-CREATE INDEX "employment_terms_rest_day_search_trgm_idx" ON "employment_terms" USING gin ("rest_day" gin_trgm_ops);
+CREATE INDEX "employment_terms_summary_search_trgm_idx" ON "employment_terms" USING gin ("summary" gin_trgm_ops);
 --> statement-breakpoint
 CREATE UNIQUE INDEX "employments_company_id_employee_number_index" ON "employments" ("company_id","employee_number");
 --> statement-breakpoint
 CREATE INDEX "employments_employee_number_search_trgm_idx" ON "employments" USING gin ("employee_number" gin_trgm_ops);
 --> statement-breakpoint
-CREATE INDEX "employments_exit_reason_search_trgm_idx" ON "employments" USING gin ("exit_reason" gin_trgm_ops);
---> statement-breakpoint
-CREATE INDEX "jurisdictions_code_search_trgm_idx" ON "jurisdictions" USING gin ("code" gin_trgm_ops);
---> statement-breakpoint
 CREATE INDEX "jurisdictions_name_search_trgm_idx" ON "jurisdictions" USING gin ("name" gin_trgm_ops);
---> statement-breakpoint
-CREATE INDEX "jurisdictions_currency_search_trgm_idx" ON "jurisdictions" USING gin ("currency" gin_trgm_ops);
---> statement-breakpoint
-CREATE INDEX "jurisdictions_rounding_search_trgm_idx" ON "jurisdictions" USING gin ("rounding" gin_trgm_ops);
---> statement-breakpoint
-CREATE INDEX "jurisdictions_ordinary_rate_basis_search_trgm_idx" ON "jurisdictions" USING gin ("ordinary_rate_basis" gin_trgm_ops);
---> statement-breakpoint
-CREATE INDEX "jurisdictions_definition_hash_search_trgm_idx" ON "jurisdictions" USING gin ("definition_hash" gin_trgm_ops);
 --> statement-breakpoint
 CREATE INDEX "leave_requests_employment_id_leave_type_id_from_date_index" ON "leave_requests" ("employment_id","leave_type_id","from_date");
 --> statement-breakpoint
-CREATE INDEX "leave_requests_kind_search_trgm_idx" ON "leave_requests" USING gin ("kind" gin_trgm_ops);
---> statement-breakpoint
-CREATE INDEX "leave_requests_reason_search_trgm_idx" ON "leave_requests" USING gin ("reason" gin_trgm_ops);
+CREATE INDEX "leave_requests_summary_search_trgm_idx" ON "leave_requests" USING gin ("summary" gin_trgm_ops);
 --> statement-breakpoint
 CREATE INDEX "leave_types_code_search_trgm_idx" ON "leave_types" USING gin ("code" gin_trgm_ops);
 --> statement-breakpoint
 CREATE INDEX "leave_types_name_search_trgm_idx" ON "leave_types" USING gin ("name" gin_trgm_ops);
 --> statement-breakpoint
-CREATE INDEX "leave_types_aggregates_with_search_trgm_idx" ON "leave_types" USING gin ("aggregates_with" gin_trgm_ops);
---> statement-breakpoint
-CREATE INDEX "overtime_limits_period_search_trgm_idx" ON "overtime_limits" USING gin ("period" gin_trgm_ops);
---> statement-breakpoint
-CREATE INDEX "overtime_limits_on_exceed_search_trgm_idx" ON "overtime_limits" USING gin ("on_exceed" gin_trgm_ops);
---> statement-breakpoint
-CREATE INDEX "overtime_limits_authority_search_trgm_idx" ON "overtime_limits" USING gin ("authority" gin_trgm_ops);
---> statement-breakpoint
-CREATE INDEX "overtime_rules_day_type_search_trgm_idx" ON "overtime_rules" USING gin ("day_type" gin_trgm_ops);
+CREATE INDEX "overtime_coverage_rules_authority_search_trgm_idx" ON "overtime_coverage_rules" USING gin ("authority" gin_trgm_ops);
 --> statement-breakpoint
 CREATE INDEX "overtime_rules_authority_search_trgm_idx" ON "overtime_rules" USING gin ("authority" gin_trgm_ops);
 --> statement-breakpoint
@@ -935,15 +972,9 @@ CREATE INDEX "pay_components_code_search_trgm_idx" ON "pay_components" USING gin
 --> statement-breakpoint
 CREATE INDEX "pay_components_name_search_trgm_idx" ON "pay_components" USING gin ("name" gin_trgm_ops);
 --> statement-breakpoint
-CREATE INDEX "pay_components_nature_search_trgm_idx" ON "pay_components" USING gin ("nature" gin_trgm_ops);
---> statement-breakpoint
 CREATE UNIQUE INDEX "payroll_runs_company_id_period_index" ON "payroll_runs" ("company_id","period");
 --> statement-breakpoint
 CREATE INDEX "payroll_runs_period_search_trgm_idx" ON "payroll_runs" USING gin ("period" gin_trgm_ops);
---> statement-breakpoint
-CREATE INDEX "payroll_runs_lifecycle_search_trgm_idx" ON "payroll_runs" USING gin ("lifecycle" gin_trgm_ops);
---> statement-breakpoint
-CREATE INDEX "payroll_runs_configuration_hash_search_trgm_idx" ON "payroll_runs" USING gin ("configuration_hash" gin_trgm_ops);
 --> statement-breakpoint
 CREATE INDEX "payslip_lines_payslip_id_index" ON "payslip_lines" ("payslip_id");
 --> statement-breakpoint
@@ -955,45 +986,31 @@ CREATE UNIQUE INDEX "payslip_lines_component_entry_id_payslip_id_index" ON "pays
 --> statement-breakpoint
 CREATE UNIQUE INDEX "payslip_lines_component_entry_id_index" ON "payslip_lines" ("component_entry_id") WHERE "component_entry_usage" = 'SINGLE_USE';
 --> statement-breakpoint
-CREATE INDEX "payslip_lines_component_entry_usage_search_trgm_idx" ON "payslip_lines" USING gin ("component_entry_usage" gin_trgm_ops);
---> statement-breakpoint
-CREATE INDEX "payslip_lines_bucket_search_trgm_idx" ON "payslip_lines" USING gin ("bucket" gin_trgm_ops);
---> statement-breakpoint
 CREATE UNIQUE INDEX "payslips_payroll_run_id_employment_id_index" ON "payslips" ("payroll_run_id","employment_id");
 --> statement-breakpoint
 CREATE INDEX "payslips_currency_search_trgm_idx" ON "payslips" USING gin ("currency" gin_trgm_ops);
 --> statement-breakpoint
 CREATE INDEX "repayment_agreements_reference_search_trgm_idx" ON "repayment_agreements" USING gin ("reference" gin_trgm_ops);
 --> statement-breakpoint
+CREATE INDEX "rest_break_rules_summary_search_trgm_idx" ON "rest_break_rules" USING gin ("summary" gin_trgm_ops);
+--> statement-breakpoint
 CREATE UNIQUE INDEX "roster_entries_employment_id_work_date_index" ON "roster_entries" ("employment_id","work_date");
 --> statement-breakpoint
-CREATE INDEX "roster_entries_assignment_code_search_trgm_idx" ON "roster_entries" USING gin ("assignment_code" gin_trgm_ops);
+CREATE UNIQUE INDEX "rosters_company_id_work_pattern_id_month_index" ON "rosters" ("company_id","work_pattern_id","month");
 --> statement-breakpoint
-CREATE INDEX "roster_entries_designation_search_trgm_idx" ON "roster_entries" USING gin ("designation" gin_trgm_ops);
+CREATE INDEX "rosters_month_search_trgm_idx" ON "rosters" USING gin ("month" gin_trgm_ops);
 --> statement-breakpoint
 CREATE INDEX "shift_definitions_code_search_trgm_idx" ON "shift_definitions" USING gin ("code" gin_trgm_ops);
 --> statement-breakpoint
 CREATE INDEX "shift_definitions_name_search_trgm_idx" ON "shift_definitions" USING gin ("name" gin_trgm_ops);
 --> statement-breakpoint
-CREATE INDEX "shift_definitions_start_time_search_trgm_idx" ON "shift_definitions" USING gin ("start_time" gin_trgm_ops);
---> statement-breakpoint
-CREATE INDEX "shift_definitions_end_time_search_trgm_idx" ON "shift_definitions" USING gin ("end_time" gin_trgm_ops);
---> statement-breakpoint
 CREATE INDEX "statutory_contributions_code_search_trgm_idx" ON "statutory_contributions" USING gin ("code" gin_trgm_ops);
 --> statement-breakpoint
 CREATE INDEX "statutory_contributions_name_search_trgm_idx" ON "statutory_contributions" USING gin ("name" gin_trgm_ops);
 --> statement-breakpoint
-CREATE INDEX "statutory_contributions_authority_search_trgm_idx" ON "statutory_contributions" USING gin ("authority" gin_trgm_ops);
---> statement-breakpoint
-CREATE INDEX "statutory_contributions_payer_search_trgm_idx" ON "statutory_contributions" USING gin ("payer" gin_trgm_ops);
---> statement-breakpoint
-CREATE INDEX "statutory_contributions_keyed_by_search_trgm_idx" ON "statutory_contributions" USING gin ("keyed_by" gin_trgm_ops);
---> statement-breakpoint
-CREATE INDEX "statutory_contributions_rounding_search_trgm_idx" ON "statutory_contributions" USING gin ("rounding" gin_trgm_ops);
---> statement-breakpoint
 CREATE INDEX "time_entries_employment_id_work_date_index" ON "time_entries" ("employment_id","work_date");
 --> statement-breakpoint
-CREATE INDEX "time_entries_state_search_trgm_idx" ON "time_entries" USING gin ("state" gin_trgm_ops);
+CREATE INDEX "work_patterns_name_search_trgm_idx" ON "work_patterns" USING gin ("name" gin_trgm_ops);
 --> statement-breakpoint
 CREATE INDEX "approval_request_label_search_trgm_idx" ON "approval_request" USING gin ("label" gin_trgm_ops);
 --> statement-breakpoint
@@ -1171,8 +1188,6 @@ CREATE INDEX "user_email_search_trgm_idx" ON "user" USING gin ("email" gin_trgm_
 --> statement-breakpoint
 CREATE INDEX "user_name_search_trgm_idx" ON "user" USING gin ("name" gin_trgm_ops);
 --> statement-breakpoint
-CREATE INDEX "user_avatar_url_search_trgm_idx" ON "user" USING gin ("avatar_url" gin_trgm_ops);
---> statement-breakpoint
 CREATE INDEX "user_status_search_trgm_idx" ON "user" USING gin ("status" gin_trgm_ops);
 --> statement-breakpoint
 CREATE INDEX "user_role_search_trgm_idx" ON "user" USING gin ("role" gin_trgm_ops);
@@ -1197,6 +1212,8 @@ ALTER TABLE "employment_statutory_facts" ADD CONSTRAINT "employment_statutory_fa
 --> statement-breakpoint
 ALTER TABLE "employment_terms" ADD CONSTRAINT "employment_terms_employment_id_employments_fk" FOREIGN KEY ("employment_id") REFERENCES "employments"("norbital_id") ON DELETE CASCADE;
 --> statement-breakpoint
+ALTER TABLE "employment_terms" ADD CONSTRAINT "employment_terms_work_pattern_id_work_patterns_fk" FOREIGN KEY ("work_pattern_id") REFERENCES "work_patterns"("norbital_id");
+--> statement-breakpoint
 ALTER TABLE "employments" ADD CONSTRAINT "employments_employee_id_employees_fk" FOREIGN KEY ("employee_id") REFERENCES "employees"("norbital_id");
 --> statement-breakpoint
 ALTER TABLE "employments" ADD CONSTRAINT "employments_company_id_companies_fk" FOREIGN KEY ("company_id") REFERENCES "companies"("norbital_id");
@@ -1206,6 +1223,8 @@ ALTER TABLE "leave_requests" ADD CONSTRAINT "leave_requests_employment_id_employ
 ALTER TABLE "leave_requests" ADD CONSTRAINT "leave_requests_leave_type_id_leave_types_fk" FOREIGN KEY ("leave_type_id") REFERENCES "leave_types"("norbital_id");
 --> statement-breakpoint
 ALTER TABLE "leave_types" ADD CONSTRAINT "leave_types_company_id_companies_fk" FOREIGN KEY ("company_id") REFERENCES "companies"("norbital_id");
+--> statement-breakpoint
+ALTER TABLE "overtime_coverage_rules" ADD CONSTRAINT "overtime_coverage_rules_jurisdiction_id_jurisdictions_fk" FOREIGN KEY ("jurisdiction_id") REFERENCES "jurisdictions"("norbital_id");
 --> statement-breakpoint
 ALTER TABLE "overtime_limits" ADD CONSTRAINT "overtime_limits_jurisdiction_id_jurisdictions_fk" FOREIGN KEY ("jurisdiction_id") REFERENCES "jurisdictions"("norbital_id");
 --> statement-breakpoint
@@ -1231,15 +1250,27 @@ ALTER TABLE "repayment_agreements" ADD CONSTRAINT "repayment_agreements_employme
 --> statement-breakpoint
 ALTER TABLE "repayment_agreements" ADD CONSTRAINT "repayment_agreements_pay_component_id_pay_components_fk" FOREIGN KEY ("pay_component_id") REFERENCES "pay_components"("norbital_id");
 --> statement-breakpoint
+ALTER TABLE "rest_break_rules" ADD CONSTRAINT "rest_break_rules_jurisdiction_id_jurisdictions_fk" FOREIGN KEY ("jurisdiction_id") REFERENCES "jurisdictions"("norbital_id");
+--> statement-breakpoint
 ALTER TABLE "roster_entries" ADD CONSTRAINT "roster_entries_employment_id_employments_fk" FOREIGN KEY ("employment_id") REFERENCES "employments"("norbital_id");
 --> statement-breakpoint
 ALTER TABLE "roster_entries" ADD CONSTRAINT "roster_entries_shift_definition_id_shift_definitions_fk" FOREIGN KEY ("shift_definition_id") REFERENCES "shift_definitions"("norbital_id");
+--> statement-breakpoint
+ALTER TABLE "roster_entries" ADD CONSTRAINT "roster_entries_roster_id_rosters_fk" FOREIGN KEY ("roster_id") REFERENCES "rosters"("norbital_id") ON DELETE CASCADE;
+--> statement-breakpoint
+ALTER TABLE "rosters" ADD CONSTRAINT "rosters_company_id_companies_fk" FOREIGN KEY ("company_id") REFERENCES "companies"("norbital_id");
+--> statement-breakpoint
+ALTER TABLE "rosters" ADD CONSTRAINT "rosters_work_pattern_id_work_patterns_fk" FOREIGN KEY ("work_pattern_id") REFERENCES "work_patterns"("norbital_id");
 --> statement-breakpoint
 ALTER TABLE "shift_definitions" ADD CONSTRAINT "shift_definitions_company_id_companies_fk" FOREIGN KEY ("company_id") REFERENCES "companies"("norbital_id");
 --> statement-breakpoint
 ALTER TABLE "statutory_contributions" ADD CONSTRAINT "statutory_contributions_jurisdiction_id_jurisdictions_fk" FOREIGN KEY ("jurisdiction_id") REFERENCES "jurisdictions"("norbital_id");
 --> statement-breakpoint
 ALTER TABLE "time_entries" ADD CONSTRAINT "time_entries_employment_id_employments_fk" FOREIGN KEY ("employment_id") REFERENCES "employments"("norbital_id");
+--> statement-breakpoint
+ALTER TABLE "work_patterns" ADD CONSTRAINT "work_patterns_company_id_companies_fk" FOREIGN KEY ("company_id") REFERENCES "companies"("norbital_id");
+--> statement-breakpoint
+ALTER TABLE "work_patterns" ADD CONSTRAINT "work_patterns_default_shift_definition_id_shift_definitions_fk" FOREIGN KEY ("default_shift_definition_id") REFERENCES "shift_definitions"("norbital_id");
 --> statement-breakpoint
 ALTER TABLE "audit_event" ADD CONSTRAINT "audit_event_actor_id_user_norbital_id_fkey" FOREIGN KEY ("actor_id") REFERENCES "user"("norbital_id");
 --> statement-breakpoint
@@ -1282,3 +1313,5 @@ ALTER TABLE "team" ADD CONSTRAINT "team_policy_id_policy_norbital_id_fkey" FOREI
 ALTER TABLE "team_members" ADD CONSTRAINT "team_members_user_id_user_norbital_id_fkey" FOREIGN KEY ("user_id") REFERENCES "user"("norbital_id");
 --> statement-breakpoint
 ALTER TABLE "team_members" ADD CONSTRAINT "team_members_team_id_team_norbital_id_fkey" FOREIGN KEY ("team_id") REFERENCES "team"("norbital_id");
+--> statement-breakpoint
+ALTER TABLE "user" ADD CONSTRAINT "user_avatar_asset_id_document_asset_norbital_id_fkey" FOREIGN KEY ("avatar_asset_id") REFERENCES "document_asset"("norbital_id") ON DELETE SET NULL;
