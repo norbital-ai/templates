@@ -1,12 +1,12 @@
 <script lang="ts">
 	import { client } from '$pod/client';
 	import { useI18n } from '@norbital-ai/ui/i18n';
+	import AppHeaderActions from '@norbital-ai/pod/client/app-header-actions';
 	import type { TenantI18nKeys } from '$pod/i18n-keys';
 	import { CollectionKanban } from '@norbital-ai/ui/collection-kanban';
 	import { CollectionTable } from '@norbital-ai/ui/collection-table';
 	import { Combobox } from '@norbital-ai/ui/combobox';
 	import { Cover, Stack } from '@norbital-ai/ui/layout';
-	import { PageHeader } from '@norbital-ai/ui/page-header';
 	import { Tabs, type TabConfig } from '@norbital-ai/ui/tabs';
 
 	type AccountScopeRow = {
@@ -143,33 +143,30 @@
 		content="Sales pipeline, quotes, accounts, contacts, product catalogue, billing, contracts, and payments"
 	/>
 	<meta name="pod:icon" content="lucide:handshake" />
-	<meta name="pod:thumbnail" content="/api/template-seed-assets/crm/app-media/crm-banner.svg" />
-	<meta name="pod:banner" content="/api/template-seed-assets/crm/app-media/crm-banner.svg" />
+	<meta name="pod:thumbnail" content="/api/template-seed-assets/crm/app-media/crm-banner.webp" />
+	<meta name="pod:banner" content="/api/template-seed-assets/crm/app-media/crm-banner.webp" />
 </svelte:head>
 
 {#snippet accountScopeActions()}
-	<label class="grid gap-1.5 text-sm">
-		<span class="font-medium text-muted-foreground">{t('app.crm.account_filter')}</span>
-		<Combobox
-			ariaLabel={t('app.crm.account_filter')}
-			options={accountOptions}
-			value={selectedAccountId}
-			onValueChange={(value) => {
-				if (typeof value === 'string') {
-					accountId = value;
-					return;
-				}
-				accountId = resolveScopedId(null, accountRows);
-			}}
-			emptyPlaceholder={t('app.crm.select_account')}
-			searchPlaceholder={t('app.crm.search_accounts')}
-			clientConfig={{
-				isLoading: accountsQuery.loading,
-				error: accountsQuery.error?.message ?? null
-			}}
-			class="min-w-[16rem]"
-		/>
-	</label>
+	<Combobox
+		ariaLabel={t('app.crm.account_filter')}
+		options={accountOptions}
+		value={selectedAccountId}
+		onValueChange={(value) => {
+			if (typeof value === 'string') {
+				accountId = value;
+				return;
+			}
+			accountId = resolveScopedId(null, accountRows);
+		}}
+		emptyPlaceholder={t('app.crm.select_account')}
+		searchPlaceholder={t('app.crm.search_accounts')}
+		clientConfig={{
+			isLoading: accountsQuery.loading,
+			error: accountsQuery.error?.message ?? null
+		}}
+		class="min-w-[16rem]"
+	/>
 {/snippet}
 
 {#snippet pipeline()}
@@ -559,16 +556,11 @@
 	{/if}
 {/snippet}
 
-{#snippet pageHeading()}
-	<PageHeader
-		eyebrow={t('app.crm.eyebrow')}
-		title={t('app.crm.header_title')}
-		description={t('app.crm.header_description')}
-		actions={accountScopeActions}
-	/>
-{/snippet}
+<AppHeaderActions>
+	{@render accountScopeActions()}
+</AppHeaderActions>
 
-<Cover as="main" top={pageHeading}>
+<Cover as="main">
 	<Tabs
 		animate={false}
 		config={[

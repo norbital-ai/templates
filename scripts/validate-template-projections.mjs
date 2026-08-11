@@ -1,5 +1,14 @@
 import { execFileSync } from 'node:child_process';
-import { copyFileSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { createHash } from 'node:crypto';
+import {
+	copyFileSync,
+	mkdirSync,
+	mkdtempSync,
+	readFileSync,
+	rmSync,
+	statSync,
+	writeFileSync
+} from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import process from 'node:process';
@@ -27,6 +36,75 @@ function run(command, arguments_, options = {}) {
 	});
 }
 
+function readArguments(argv) {
+	const options = { filter: undefined, bundleOutput: undefined, revisions: undefined };
+	for (let index = 0; index < argv.length; index += 1) {
+		const argument = argv[index];
+		if (argument === '--bundle-output') options.bundleOutput = argv[++index];
+		else if (argument === '--revisions') options.revisions = argv[++index];
+		else if (!options.filter) options.filter = argument;
+		else throw new Error(`Unknown argument: ${argument}`);
+	}
+	if (Boolean(options.bundleOutput) !== Boolean(options.revisions)) {
+		throw new Error('--bundle-output and --revisions must be provided together.');
+	}
+	return options;
+}
+
+function sha256(bytes) {
+	return createHash('sha256').update(bytes).digest('hex');
+}
+
+function writeTemplateBundle(template, projection, outputDirectory, buildOutput) {
+	const packageManifest = JSON.parse(readFileSync(path.join(template.directory, 'package.json')));
+	const lockfile = readFileSync(path.join(template.directory, 'pnpm-lock.yaml'));
+	const lockHash = sha256(lockfile).slice(0, 32);
+	const podVersion = packageManifest.dependencies?.['@norbital-ai/pod'];
+	if (typeof podVersion !== 'string' || podVersion.length === 0) {
+		throw new Error(`Template ${template.key} pins no @norbital-ai/pod version.`);
+	}
+	const packageDirectory = path.join(outputDirectory, template.key);
+	mkdirSync(packageDirectory, { recursive: true });
+	const bundlePath = path.join(packageDirectory, 'bundle.tar');
+	run('tar', ['-cf', bundlePath, '-C', buildOutput, '.']);
+	const bundle = readFileSync(bundlePath);
+	const version = `0.0.0-${projection.revision}`;
+	writeFileSync(
+		path.join(packageDirectory, 'norbital.template-build.json'),
+		`${JSON.stringify(
+			{
+				schemaVersion: 1,
+				templateKey: template.key,
+				sourceCommit: projection.revision,
+				bundleFormatVersion: 1,
+				lockHash,
+				podVersion,
+				packageKey: lockHash.slice(0, 16),
+				bundleSha256: sha256(bundle),
+				bundleBytes: statSync(bundlePath).size
+			},
+			null,
+			2
+		)}\n`
+	);
+	writeFileSync(
+		path.join(packageDirectory, 'package.json'),
+		`${JSON.stringify(
+			{
+				name: `@norbital-ai/template-bundle-${template.key}`,
+				version,
+				private: false,
+				license: 'UNLICENSED',
+				files: ['bundle.tar', 'norbital.template-build.json'],
+				publishConfig: { access: 'restricted' }
+			},
+			null,
+			2
+		)}\n`
+	);
+	console.log(`Prepared immutable build package for ${template.key}@${projection.revision}.`);
+}
+
 function copyTrackedProjection(template, destination) {
 	const trackedFiles = run('git', ['ls-files', '--', template.path])
 		.trim()
@@ -42,10 +120,22 @@ function copyTrackedProjection(template, destination) {
 	}
 }
 
+const options = readArguments(process.argv.slice(2));
 const temporaryDirectory = mkdtempSync(path.join(tmpdir(), 'norbital-template-projections-'));
+const revisions = options.revisions
+	? JSON.parse(readFileSync(path.resolve(repositoryRoot, options.revisions), 'utf8'))
+	: null;
+const projections = new Map((revisions?.entries ?? []).map((entry) => [entry.key, entry]));
+const bundleOutput = options.bundleOutput
+	? path.resolve(repositoryRoot, options.bundleOutput)
+	: null;
+if (bundleOutput) {
+	rmSync(bundleOutput, { recursive: true, force: true });
+	mkdirSync(bundleOutput, { recursive: true });
+}
 
 try {
-	for (const template of discoverTemplates(process.argv[2])) {
+	for (const template of discoverTemplates(options.filter)) {
 		const destination = path.join(temporaryDirectory, template.key);
 		mkdirSync(destination, { recursive: true });
 		copyTrackedProjection(template, destination);
@@ -57,13 +147,35 @@ try {
 			['build', ['build']]
 		]) {
 			try {
-				run('pnpm', arguments_, { cwd: destination });
+				const buildOutput = path.join(destination, '.norbital', 'dist', 'output');
+				run('pnpm', arguments_, {
+					cwd: destination,
+					env:
+						label === 'build' && bundleOutput
+							? {
+									...process.env,
+									NORBITAL_BUILD_OUT: buildOutput,
+									NORBITAL_POD_SYNCED: '1',
+									NORBITAL_POD_CHECKED: '1'
+								}
+							: process.env
+				});
 			} catch (cause) {
 				const detail = [cause?.stdout, cause?.stderr].filter(Boolean).join('\n').trim();
 				throw new Error(
 					`${template.key} standalone ${label} failed${detail ? `:\n${detail}` : '.'}`
 				);
 			}
+		}
+		if (bundleOutput) {
+			const projection = projections.get(template.key);
+			if (!projection) throw new Error(`No projected revision recorded for ${template.key}.`);
+			writeTemplateBundle(
+				template,
+				projection,
+				bundleOutput,
+				path.join(destination, '.norbital', 'dist', 'output')
+			);
 		}
 		console.log(`Validated clean standalone projection: ${template.key}.`);
 	}

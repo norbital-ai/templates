@@ -14,7 +14,7 @@ concurrency:
 # reason the CI workflow grants it.
 permissions:
   contents: write
-  packages: read
+  packages: write
 
 env:
   NORBITAL_PACKAGE_REGISTRY: ${{ vars.NORBITAL_PACKAGE_REGISTRY || 'https://npm.pkg.github.com' }}
@@ -50,22 +50,49 @@ jobs:
       - name: Validate template package policies
         run: pnpm test
 
-      # Check before pushing refs, not after. A projection that omitted a tracked file or carried
-      # an untracked one would otherwise publish unnoticed.
-      - name: Validate standalone projections
-        run: pnpm templates:verify
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_REGISTRY_TOKEN || secrets.GITHUB_TOKEN }}
-
-      - name: Project and publish root template refs
+      - name: Resolve projected revisions
         run: |
           node scripts/project-templates.mjs \
             --source-revision "$GITHUB_SHA" \
             --repository "$SOURCE_REPOSITORY_URL" \
-            --push origin \
             --output dist/template-revisions.json
         env:
           SOURCE_REPOSITORY_URL: ${{ github.server_url }}/${{ github.repository }}.git
+
+      # Build the exact standalone projections and package their output before any public ref moves.
+      # A failed build or upload therefore leaves every existing template ref usable.
+      - name: Validate projections and prepare immutable build bundles
+        run: |
+          node scripts/validate-template-projections.mjs \
+            --revisions dist/template-revisions.json \
+            --bundle-output dist/template-bundles
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_REGISTRY_TOKEN || secrets.GITHUB_TOKEN }}
+
+      - name: Publish immutable build bundles
+        shell: bash
+        run: |
+          set -euo pipefail
+          for directory in dist/template-bundles/*; do
+            name="$(node -p "require('./${directory}/package.json').name")"
+            version="$(node -p "require('./${directory}/package.json').version")"
+            if npm view "${name}@${version}" version --registry="$NORBITAL_PACKAGE_REGISTRY" >/dev/null 2>&1; then
+              echo "${name}@${version} already published"
+            else
+              npm publish "$directory" --registry="$NORBITAL_PACKAGE_REGISTRY"
+            fi
+            npm view "${name}@${version}" dist.integrity --registry="$NORBITAL_PACKAGE_REGISTRY" >/dev/null
+          done
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_REGISTRY_TOKEN || secrets.GITHUB_TOKEN }}
+
+      # The atomic ref update is deliberately last: Core never observes a source revision whose
+      # exact prebuilt bundle is absent from the registry.
+      - name: Publish root template refs
+        run: |
+          node scripts/project-templates.mjs \
+            --source-revision "$GITHUB_SHA" \
+            --push origin
 
       - name: Upload resolved template revisions
         uses: actions/upload-artifact@v7
