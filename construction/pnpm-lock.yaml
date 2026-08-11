@@ -12,17 +12,17 @@ importers:
         specifier: ^5.2.2
         version: 5.2.2(svelte@5.56.8)
       '@norbital-ai/platform-utils':
-        specifier: 0.0.3
-        version: 0.0.3(@electric-sql/pglite@0.3.16)(pg@8.23.0)
+        specifier: 0.0.4
+        version: 0.0.4(@electric-sql/pglite@0.3.16)(pg@8.23.0)
       '@norbital-ai/pod':
-        specifier: 0.0.3
-        version: 0.0.3(@iconify/svelte@5.2.2(svelte@5.56.8))(@neondatabase/serverless@1.1.0)(mode-watcher@1.1.0(svelte@5.56.8))(picomatch@4.0.5)(runed@0.37.1(svelte@5.56.8)(zod@4.4.3))(svelte@5.56.8)(typescript@6.0.3)(vite@8.2.1(jiti@2.7.0))(zod@4.4.3)
+        specifier: 0.0.4
+        version: 0.0.4(@iconify/svelte@5.2.2(svelte@5.56.8))(@neondatabase/serverless@1.1.0)(mode-watcher@1.1.0(svelte@5.56.8))(picomatch@4.0.5)(runed@0.37.1(svelte@5.56.8)(zod@4.4.3))(svelte@5.56.8)(typescript@6.0.3)(vite@8.2.1(jiti@2.7.0))(zod@4.4.3)
       '@norbital-ai/std':
-        specifier: 0.0.3
-        version: 0.0.3
+        specifier: 0.0.4
+        version: 0.0.4
       '@norbital-ai/ui':
-        specifier: 0.0.3
-        version: 0.0.3(@norbital-ai/platform-utils@0.0.3(@electric-sql/pglite@0.3.16)(pg@8.23.0))(@norbital-ai/std@0.0.3)(svelte@5.56.8)(tailwindcss@4.3.3)
+        specifier: 0.0.4
+        version: 0.0.4(@norbital-ai/platform-utils@0.0.4(@electric-sql/pglite@0.3.16)(pg@8.23.0))(@norbital-ai/std@0.0.4)(svelte@5.56.8)(tailwindcss@4.3.3)
       mode-watcher:
         specifier: ^1.1.0
         version: 1.1.0(svelte@5.56.8)
@@ -334,11 +334,11 @@ packages:
     resolution: {integrity: sha512-r3ZZhRjEcfEdKIZnoB1RusNgvHuaBRqfCzV4Gi+5A9yUX0S4HTws/ASWqt13wL4y4I+0rqsWGdA2w7EQXHi3+Q==}
     engines: {node: '>=19.0.0'}
 
-  '@norbital-ai/platform-utils@0.0.3':
-    resolution: {integrity: sha512-18qwX7db8Xm+BaqO4WR5I0bf2+Ex/Mzi1vFqwvElgsnZP6Wnz7gWrDARpkxtBLLWXQOjb8cptX+HAz5+hb87Cg==, tarball: https://npm.pkg.github.com/download/@norbital-ai/platform-utils/0.0.3/28cf254791acf244ec06929c2de2f0207bc88d00}
+  '@norbital-ai/platform-utils@0.0.4':
+    resolution: {integrity: sha512-8Ohn7hGX5fiyLgDyP8CRUF01jhdKSUZYkAilG0AJs9VZr9eozr7ls/o9ovH71fAgfKRpBr3ZmH9Os6D23phHjw==, tarball: https://npm.pkg.github.com/download/@norbital-ai/platform-utils/0.0.4/7e63df309bf203f9b96afe70f619db53677d26f6}
 
-  '@norbital-ai/pod@0.0.3':
-    resolution: {integrity: sha512-IJOfumZg8+f3hnmHRx4S/Dn1uzj9t9QBfenZDx6ssOZfCrjimXxM65MH9VoxrwMxC1r8cH2XXz9evJ4wbdZdFQ==, tarball: https://npm.pkg.github.com/download/@norbital-ai/pod/0.0.3/d965d4faa80b50172206498e920115f8bcb26f60}
+  '@norbital-ai/pod@0.0.4':
+    resolution: {integrity: sha512-2zzaMpaTynn4PuHAfWbEk35LFiDnKyWO5twHnuh+lJP/W6vmMDL51CCLsqDQsO1V3ivgbbGyQaCXDP4o4AkNPg==, tarball: https://npm.pkg.github.com/download/@norbital-ai/pod/0.0.4/fe86bb2935c61f92642170f560fe9f033ad2c752}
     hasBin: true
     peerDependencies:
       '@iconify/svelte': ^5.2.2
@@ -348,14 +348,14 @@ packages:
       vite: ^8.1.5
       zod: ^4.4.3
 
-  '@norbital-ai/std@0.0.3':
-    resolution: {integrity: sha512-xnat9ObFh4ch3BcWatvvQ19tzknVUL5bZ1Xs+awMecFdNXA01cXaWADxWlyyySJ91HQWsF5mrKcw4nwOOy76uw==, tarball: https://npm.pkg.github.com/download/@norbital-ai/std/0.0.3/b9474f67bcb7e5d62be2ba88bb2ad3cb54260475}
+  '@norbital-ai/std@0.0.4':
+    resolution: {integrity: sha512-1q+yy1yr5X5REbZrK5Sgq18jyfWt/hyTILdf6sXV46C6azt8BxmO733zTgsoNpjaTTH9ub5iQlaunqDOBTfVXQ==, tarball: https://npm.pkg.github.com/download/@norbital-ai/std/0.0.4/d81a55819df97c2617907ce535e8f70dd4f19e56}
 
-  '@norbital-ai/ui@0.0.3':
-    resolution: {integrity: sha512-YR34+rEqtOy2uUq2eUKqX2ldtFAh93FTkefzcCz1h4ZbnGFrfWDy3U5F9zoh2RhKOOWhojgOctpjv9tuJ6156A==, tarball: https://npm.pkg.github.com/download/@norbital-ai/ui/0.0.3/1fced11dfc711cd2120900108b03eeb7ea06a330}
+  '@norbital-ai/ui@0.0.4':
+    resolution: {integrity: sha512-opcNwBueURT+VAmzxB//EMKSsFhBJH0Gv9tgqHsSYwhPTuehJk6EwAAWDIJiQFAUMVQiCTuoNwxJbeJsbDHKKw==, tarball: https://npm.pkg.github.com/download/@norbital-ai/ui/0.0.4/9a7b0acc4f4ebb534e1566108e8ebf6e31337528}
     peerDependencies:
-      '@norbital-ai/platform-utils': 0.0.3
-      '@norbital-ai/std': 0.0.3
+      '@norbital-ai/platform-utils': 0.0.4
+      '@norbital-ai/std': 0.0.4
       svelte: ^5.56.7
 
   '@oxc-project/types@0.143.0':
@@ -2079,10 +2079,10 @@ snapshots:
 
   '@neondatabase/serverless@1.1.0': {}
 
-  '@norbital-ai/platform-utils@0.0.3(@electric-sql/pglite@0.3.16)(pg@8.23.0)':
+  '@norbital-ai/platform-utils@0.0.4(@electric-sql/pglite@0.3.16)(pg@8.23.0)':
     dependencies:
       '@neondatabase/serverless': 1.1.0
-      '@norbital-ai/std': 0.0.3
+      '@norbital-ai/std': 0.0.4
       '@standard-schema/spec': 1.1.0
       drizzle-kit: 1.0.0-rc.4
       drizzle-orm: 1.0.0-rc.4(@electric-sql/pglite@0.3.16)(@neondatabase/serverless@1.1.0)(pg@8.23.0)(zod@4.4.3)
@@ -2135,14 +2135,14 @@ snapshots:
       - typebox
       - valibot
 
-  '@norbital-ai/pod@0.0.3(@iconify/svelte@5.2.2(svelte@5.56.8))(@neondatabase/serverless@1.1.0)(mode-watcher@1.1.0(svelte@5.56.8))(picomatch@4.0.5)(runed@0.37.1(svelte@5.56.8)(zod@4.4.3))(svelte@5.56.8)(typescript@6.0.3)(vite@8.2.1(jiti@2.7.0))(zod@4.4.3)':
+  '@norbital-ai/pod@0.0.4(@iconify/svelte@5.2.2(svelte@5.56.8))(@neondatabase/serverless@1.1.0)(mode-watcher@1.1.0(svelte@5.56.8))(picomatch@4.0.5)(runed@0.37.1(svelte@5.56.8)(zod@4.4.3))(svelte@5.56.8)(typescript@6.0.3)(vite@8.2.1(jiti@2.7.0))(zod@4.4.3)':
     dependencies:
       '@electric-sql/pglite': 0.3.16
       '@iconify/svelte': 5.2.2(svelte@5.56.8)
       '@internationalized/date': 3.12.3
-      '@norbital-ai/platform-utils': 0.0.3(@electric-sql/pglite@0.3.16)(pg@8.23.0)
-      '@norbital-ai/std': 0.0.3
-      '@norbital-ai/ui': 0.0.3(@norbital-ai/platform-utils@0.0.3(@electric-sql/pglite@0.3.16)(pg@8.23.0))(@norbital-ai/std@0.0.3)(svelte@5.56.8)(tailwindcss@4.3.3)
+      '@norbital-ai/platform-utils': 0.0.4(@electric-sql/pglite@0.3.16)(pg@8.23.0)
+      '@norbital-ai/std': 0.0.4
+      '@norbital-ai/ui': 0.0.4(@norbital-ai/platform-utils@0.0.4(@electric-sql/pglite@0.3.16)(pg@8.23.0))(@norbital-ai/std@0.0.4)(svelte@5.56.8)(tailwindcss@4.3.3)
       '@standard-schema/spec': 1.1.0
       '@sveltejs/vite-plugin-svelte': 7.3.0(svelte@5.56.8)(vite@8.2.1(jiti@2.7.0))
       '@tailwindcss/vite': 4.3.3(vite@8.2.1(jiti@2.7.0))
@@ -2212,7 +2212,7 @@ snapshots:
       - typescript
       - valibot
 
-  '@norbital-ai/std@0.0.3':
+  '@norbital-ai/std@0.0.4':
     dependencies:
       '@marcbachmann/cel-js': 8.0.0
       '@standard-schema/spec': 1.1.0
@@ -2221,7 +2221,7 @@ snapshots:
     transitivePeerDependencies:
       - babel-plugin-macros
 
-  '@norbital-ai/ui@0.0.3(@norbital-ai/platform-utils@0.0.3(@electric-sql/pglite@0.3.16)(pg@8.23.0))(@norbital-ai/std@0.0.3)(svelte@5.56.8)(tailwindcss@4.3.3)':
+  '@norbital-ai/ui@0.0.4(@norbital-ai/platform-utils@0.0.4(@electric-sql/pglite@0.3.16)(pg@8.23.0))(@norbital-ai/std@0.0.4)(svelte@5.56.8)(tailwindcss@4.3.3)':
     dependencies:
       '@codemirror/lang-javascript': 6.2.5
       '@codemirror/lang-json': 6.0.2
@@ -2234,8 +2234,8 @@ snapshots:
       '@iconify/svelte': 5.2.2(svelte@5.56.8)
       '@internationalized/date': 3.12.3
       '@lezer/highlight': 1.2.3
-      '@norbital-ai/platform-utils': 0.0.3(@electric-sql/pglite@0.3.16)(pg@8.23.0)
-      '@norbital-ai/std': 0.0.3
+      '@norbital-ai/platform-utils': 0.0.4(@electric-sql/pglite@0.3.16)(pg@8.23.0)
+      '@norbital-ai/std': 0.0.4
       '@tailwindcss/typography': 0.5.20(tailwindcss@4.3.3)
       '@tiptap/core': 3.29.2(@tiptap/pm@3.29.2)
       '@tiptap/extension-bubble-menu': 3.29.2(@tiptap/core@3.29.2(@tiptap/pm@3.29.2))(@tiptap/pm@3.29.2)
