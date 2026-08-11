@@ -81,9 +81,9 @@
 		return day === 0 || day === 6;
 	}
 
-	/** The first day inside the cut-off, so the boundary can be drawn as an edge rather than a fill. */
+	/** Draw a boundary only when the real cut-off starts in this month; never clamp it to day one. */
 	const cutoffStartsAt = $derived(
-		cutoff == null ? null : days.find((date) => date >= cutoff.start && date <= cutoff.end)
+		cutoff != null && days.includes(cutoff.start) ? cutoff.start : null
 	);
 
 	const legendStatuses = $derived(
@@ -95,15 +95,15 @@
 </script>
 
 {#snippet legend()}
-	<Cluster gap="md" class="text-micro text-muted-foreground">
+	<Cluster gap="sm" class="text-tiny leading-4 text-muted-foreground">
 		{#each legendStatuses as [status, presentation] (status)}
 			<Inline gap="xs">
-				<span class={cn('inline-block size-3 rounded-sm', presentation.className)}></span>
+				<span class={cn('inline-block size-2.5 rounded-sm', presentation.className)}></span>
 				<span>{t(presentation.labelKey)}</span>
 			</Inline>
 		{/each}
 		<Inline gap="xs">
-			<span class={cn('inline-block size-3 rounded-sm', HOLIDAY_PRESENTATION.headerClassName)}
+			<span class={cn('inline-block size-2.5 rounded-sm', HOLIDAY_PRESENTATION.headerClassName)}
 			></span>
 			<span>{t('roster.holiday_from_calendar', { label: t(HOLIDAY_PRESENTATION.labelKey) })}</span>
 		</Inline>
