@@ -5,12 +5,10 @@
 	import type { TenantI18nKeys } from '$pod/i18n-keys';
 	import { Tabs, type TabConfig } from '@norbital-ai/ui/tabs';
 	import { CollectionTable } from '@norbital-ai/ui/collection-table';
-	import type { CollectionRecord } from '@norbital-ai/platform-utils/collection';
 	import { CollectionQueryState } from '@norbital-ai/ui/collection-query';
 	import {
 		CollectionActionToolbar,
-		CollectionPagination,
-		type CollectionToolbarComposition
+		CollectionPagination
 	} from '@norbital-ai/ui/collection-toolbar';
 	import { Combobox } from '@norbital-ai/ui/combobox';
 	import { Button } from '@norbital-ai/ui/button';
@@ -38,9 +36,7 @@
 		STATUS_PRESENTATION,
 		buildRosterMonth,
 		holidayNamesByDate,
-		monthDays,
 		monthProgress,
-		type DayStatus,
 		type MonthDrafting
 	} from '../../lib/ui/roster/roster-month.js';
 
@@ -57,13 +53,6 @@
 	 * chances to forget and leave the operator on a page that no longer exists.
 	 */
 	const boardQuery = new CollectionQueryState({ pageSize: 50 });
-	/**
-	 * Conditions about a person's *days*, which no field on a collection can express: they are read
-	 * off the assembled month rather than off a stored row. Declared to the toolbar as controls, so
-	 * they sit in the same popover, under the same count, as any field condition.
-	 */
-	let statusFilter = $state<DayStatus | null>(null);
-	let shiftFilter = $state<string | null>(null);
 	/**
 	 * Bumped to remount every board query after a failed load.
 	 *
@@ -202,6 +191,26 @@
 			limit: 5000
 		});
 	});
+	/**
+	 * The shared schema filter builder targets real roster-entry fields. Keep this second query
+	 * separate from the board data: it decides which people remain visible without erasing the other
+	 * days from their month.
+	 */
+	const filteredRosterEntriesQuery = $derived.by(() => {
+		void reloadToken;
+		if (employmentIds.length === 0 || boardQuery.filters.length === 0) return null;
+		return client.db.roster_entries.findMany(
+			{
+				where: {
+					...approved,
+					employment_id: { in: employmentIds },
+					work_date: { gte: monthStart, lte: monthEnd }
+				},
+				limit: 5000
+			},
+			boardQuery.queryOptions
+		);
+	});
 	const timeEntriesQuery = $derived.by(() => {
 		void reloadToken;
 		if (employmentIds.length === 0) return null;
@@ -253,6 +262,7 @@
 	 */
 	const boardSources = $derived([
 		{ label: 'roster entries', query: rosterEntriesQuery },
+		{ label: 'filtered roster entries', query: filteredRosterEntriesQuery },
 		{ label: 'attendance', query: timeEntriesQuery },
 		{ label: 'leave', query: leaveQuery },
 		{ label: 'holidays', query: holidaysQuery },
@@ -289,43 +299,16 @@
 		})
 	);
 
-	/**
-	 * What the toolbar's declared controls offer, and what they mean here.
-	 *
-	 * A condition selects *rows*, not cells — a board with the absent days blanked out would hide the
-	 * very context that makes an absence readable, so a filter keeps every day of the people it
-	 * matches and drops the people it does not.
-	 */
-	const DAY_STATUSES = Object.keys(STATUS_PRESENTATION) as DayStatus[];
-	const statusOptions = $derived(
-		DAY_STATUSES.map((status) => ({
-			value: status,
-			label: t(STATUS_PRESENTATION[status].labelKey),
-			search_term: t(STATUS_PRESENTATION[status].labelKey)
-		}))
+	const filteredEmploymentIds = $derived(
+		new Set((filteredRosterEntriesQuery?.current ?? []).map((entry) => entry.employment_id))
 	);
-	const shiftOptions = $derived(
-		(shiftsQuery?.current ?? []).map((shift) => ({
-			value: shift.code,
-			label: `${shift.code} · ${shift.name}`,
-			search_term: `${shift.code} ${shift.name}`
-		}))
-	);
-	const days = $derived(monthDays(month));
 	const boardPeople = $derived(
 		people.filter((person) => {
 			const term = boardQuery.search.toLowerCase();
 			if (term !== '' && !`${person.number} ${person.name}`.toLowerCase().includes(term)) {
 				return false;
 			}
-			if (statusFilter == null && shiftFilter == null) return true;
-			return days.some((date) => {
-				const day = facts.get(`${person.id}:${date}`);
-				if (day == null) return false;
-				if (statusFilter != null && day.status !== statusFilter) return false;
-				if (shiftFilter != null && day.shiftCode !== shiftFilter) return false;
-				return true;
-			});
+			return boardQuery.filters.length === 0 || filteredEmploymentIds.has(person.id);
 		})
 	);
 	const boardPageCount = $derived(Math.max(1, Math.ceil(boardPeople.length / boardQuery.pageSize)));
@@ -489,31 +472,10 @@
 	>
 {/snippet}
 
-{#snippet boardFilters({ Filter }: CollectionToolbarComposition<CollectionRecord>)}
-	<Filter
-		id="day-status"
-		label={t('app.scheduling.has_day')}
-		options={statusOptions}
-		value={statusFilter}
-		searchable={false}
-		placeholder={t('app.scheduling.any_status')}
-		onValueChange={(value: DayStatus | null) => (statusFilter = value)}
-	/>
-	<Filter
-		id="rostered-shift"
-		label={t('app.scheduling.rostered_on_shift')}
-		options={shiftOptions}
-		value={shiftFilter}
-		placeholder={t('app.scheduling.any_shift')}
-		searchPlaceholder={t('app.scheduling.search_shifts')}
-		onValueChange={(value: string | null) => (shiftFilter = value)}
-	/>
-{/snippet}
-
 <!--
-	The board's rows are people, not roster entries, so the schema filter builder is off: a condition
-	on a roster entry column would address a row this surface never shows. What it does offer is the
-	two questions the month is actually read with, declared above.
+	The board's rows are people, while its filters are generated from the roster-entry schema. A
+	matching roster entry keeps its person on screen and the board still shows that person's complete
+	month, so a filter narrows the roster without stripping away the calendar context.
 
 	Import is an ordinary import pipeline, which is what lets it state its own refusal. A published
 	month cannot take one, and saying so belongs next to the action rather than in a `title` nobody
@@ -526,8 +488,6 @@
 		query={boardQuery}
 		navigation={monthNavigation}
 		searchPlaceholder={t('app.scheduling.search_people_placeholder')}
-		features={{ filter: false }}
-		filters={boardFilters}
 		operations={{
 			importPipelines: [
 				{
