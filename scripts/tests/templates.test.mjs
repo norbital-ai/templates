@@ -131,8 +131,12 @@ describe('template discovery', () => {
 					const [statement, table, column] = match;
 					const columns = declared.get(table);
 					if (!columns) continue;
+					const precedingSql = migration.sql.slice(0, match.index);
+					const replacesColumn = precedingSql.includes(
+						`ALTER TABLE "${table}" DROP COLUMN "${column}";`
+					);
 					assert.ok(
-						!columns.has(column),
+						!columns.has(column) || replacesColumn,
 						`${template.key}/${migration.tag}: ${statement} duplicates the fresh schema`
 					);
 					columns.add(column);
@@ -151,7 +155,11 @@ describe('template discovery', () => {
 						guarded || columns?.has(column),
 						`${template.key}/${migration.tag}: a column absent from the fresh lineage must be dropped with IF EXISTS (${table}.${column})`
 					);
-					columns?.delete(column);
+					const followingSql = migration.sql.slice((match.index ?? 0) + match[0].length);
+					const replacedInMigration = followingSql.includes(
+						`ALTER TABLE "${table}" ADD COLUMN "${column}"`
+					);
+					if (!replacedInMigration) columns?.delete(column);
 				}
 				for (const match of migration.sql.matchAll(/DROP INDEX (IF EXISTS )?"([^"]+)"/g)) {
 					const [, guarded, index] = match;
