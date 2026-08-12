@@ -8,7 +8,12 @@
 	import { CollectionTable } from '@norbital-ai/ui/collection-table';
 	import { Combobox } from '@norbital-ai/ui/combobox';
 	import { Cover, Grid, Inline, Stack } from '@norbital-ai/ui/layout';
-	import { startOfIsoWeekDate, todayKey, todayInstant } from '../../lib/ui/calendar.js';
+	import {
+		shiftDayKey,
+		startOfIsoWeekDate,
+		todayKey,
+		todayInstant
+	} from '../../lib/ui/calendar.js';
 	import {
 		formatCalendarDate,
 		formatDurationHours,
@@ -20,8 +25,30 @@
 	const { t } = useI18n<TenantI18nKeys>();
 
 	let companyId = $state<string | null>(null);
+	type EntryWindow = '8w' | '6m' | '1y' | 'all';
+	let entryWindow = $state<EntryWindow>('8w');
 	const today = todayKey();
+	const currentWeek = startOfIsoWeekDate(today) ?? today;
+	const trendStart = shiftDayKey(currentWeek, -49);
 	const activeRange = { effective_range: { contains_date: todayInstant() } } as const;
+	const entryWindowStart = $derived.by(() => {
+		switch (entryWindow) {
+			case '8w':
+				return trendStart;
+			case '6m':
+				return shiftDayKey(today, -182);
+			case '1y':
+				return shiftDayKey(today, -365);
+			case 'all':
+				return null;
+		}
+	});
+	const entryWindowOptions = $derived([
+		{ value: '8w', label: t('app.time_attendance.range_8w') },
+		{ value: '6m', label: t('app.time_attendance.range_6m') },
+		{ value: '1y', label: t('app.time_attendance.range_1y') },
+		{ value: 'all', label: t('app.time_attendance.range_all') }
+	]);
 
 	const companiesQuery = client.db.companies.findMany({
 		where: { norbital_approval_id: { isNull: true }, ...activeRange },
@@ -66,37 +93,19 @@
 			])
 		)
 	);
-	const recentEntriesQuery = $derived(
-		selectedCompanyId == null || employmentIds.length === 0
+	const attendanceSummaryQuery = $derived(
+		selectedCompanyId == null
 			? null
-			: client.db.time_entries.findMany({
-					where: { employment_id: { in: employmentIds } },
-					orderBy: { work_date: 'desc' },
-					limit: 500
+			: client.invoke.attendance_summary({
+					company_id: selectedCompanyId,
+					from: trendStart,
+					to: today
 				})
 	);
-	/** An exception is a day whose clock never closed — payroll cannot measure hours from it. */
-	const attendanceTrend = $derived.by(() => {
-		const entries = (recentEntriesQuery?.current ?? []).flatMap((entry) => {
-			const week = startOfIsoWeekDate(entry.work_date);
-			return week
-				? [{ week, incomplete: entry.state === 'OPEN' || !entry.clock_in || !entry.clock_out }]
-				: [];
-		});
-		return [...new Set(entries.map((entry) => entry.week))]
-			.toSorted((left, right) => left.localeCompare(right))
-			.slice(-8)
-			.map((week) => {
-				const weekEntries = entries.filter((entry) => entry.week === week);
-				return {
-					week,
-					exceptionRate: weekEntries.filter((entry) => entry.incomplete).length / weekEntries.length
-				};
-			});
-	});
+	const attendanceTrend = $derived(attendanceSummaryQuery?.current ?? []);
 	const attendanceChart = $derived({
 		kind: 'line',
-		loading: recentEntriesQuery?.loading ?? false,
+		loading: attendanceSummaryQuery?.loading ?? false,
 		title: t('app.time_attendance.chart_title'),
 		description: t('app.time_attendance.chart_description'),
 		data: attendanceTrend,
@@ -131,25 +140,39 @@
 </svelte:head>
 
 {#snippet companyScopeActions()}
-	<Combobox
-		ariaLabel={t('component.legal_entity')}
-		options={companyOptions}
-		value={selectedCompanyId}
-		onValueChange={(value) => {
-			if (typeof value === 'string') {
-				companyId = value;
-				return;
-			}
-			companyId = companies[0]?.norbital_id ?? null;
-		}}
-		emptyPlaceholder={t('component.select_legal_entity')}
-		searchPlaceholder={t('component.search_companies')}
-		clientConfig={{
-			isLoading: companiesQuery.loading,
-			error: companiesQuery.error?.message ?? null
-		}}
-		class="min-w-[16rem]"
-	/>
+	<Inline gap="sm">
+		<Combobox
+			ariaLabel={t('component.legal_entity')}
+			options={companyOptions}
+			value={selectedCompanyId}
+			onValueChange={(value) => {
+				if (typeof value === 'string') {
+					companyId = value;
+					return;
+				}
+				companyId = companies[0]?.norbital_id ?? null;
+			}}
+			emptyPlaceholder={t('component.select_legal_entity')}
+			searchPlaceholder={t('component.search_companies')}
+			clientConfig={{
+				isLoading: companiesQuery.loading,
+				error: companiesQuery.error?.message ?? null
+			}}
+			class="min-w-[16rem]"
+		/>
+		<Combobox
+			ariaLabel={t('app.time_attendance.range_label')}
+			options={entryWindowOptions}
+			value={entryWindow}
+			onValueChange={(value) => {
+				if (value === '8w' || value === '6m' || value === '1y' || value === 'all') {
+					entryWindow = value;
+				}
+			}}
+			searchable={false}
+			class="min-w-[10rem]"
+		/>
+	</Inline>
 {/snippet}
 
 {#snippet overview()}
@@ -184,7 +207,10 @@
 			collection="time_entries"
 			view={`hr_controller:time_attendance:entries:${selectedCompanyId}`}
 			query={{
-				where: { employment_id: { in: employmentIds } },
+				where: {
+					employment_id: { in: employmentIds },
+					...(entryWindowStart ? { work_date: { gte: entryWindowStart, lte: today } } : {})
+				},
 				orderBy: { work_date: 'desc' }
 			}}
 			searchPlaceholder={t('app.time_attendance.search_entries')}
