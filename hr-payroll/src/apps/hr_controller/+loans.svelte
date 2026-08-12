@@ -47,21 +47,6 @@
 			: (companies[0]?.norbital_id ?? null)
 	);
 
-	const employmentsQuery = $derived(
-		selectedCompanyId == null
-			? null
-			: client.db.employments.findMany({
-					where: {
-						norbital_approval_id: { isNull: true },
-						company_id: { eq: selectedCompanyId }
-					},
-					limit: 1000
-				})
-	);
-	const employmentIds = $derived(
-		(employmentsQuery?.current ?? []).map((employment) => employment.norbital_id)
-	);
-
 	/**
 	 * There is no mutable `state` or `outstanding` column. The table asks for each agreement and its
 	 * direct relations in one nested query; an instalment is paid once a persisted payslip line
@@ -174,7 +159,10 @@
 				initialFilters={inForceTodayFilter()}
 				query={{
 					where: {
-						employment_id: { in: employmentIds }
+						agreement_employment: {
+							norbital_approval_id: { isNull: true },
+							company_id: { eq: selectedCompanyId }
+						}
 					},
 					orderBy: { disbursed_on: 'desc' },
 					with: {

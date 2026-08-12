@@ -31,8 +31,6 @@
 	const receiptLabelsById = $derived(
 		new Map((receiptsQuery.current ?? []).map((receipt) => [receipt.norbital_id, receipt.doc_no]))
 	);
-	const receiptIds = $derived((receiptsQuery.current ?? []).map((receipt) => receipt.norbital_id));
-
 	const purchaseInvoicesQuery = client.db.purchase_invoices.findMany({
 		columns: { norbital_id: true, doc_no: true },
 		orderBy: { doc_no: 'desc' },
@@ -43,10 +41,6 @@
 			(purchaseInvoicesQuery.current ?? []).map((invoice) => [invoice.norbital_id, invoice.doc_no])
 		)
 	);
-	const purchaseInvoiceIds = $derived(
-		(purchaseInvoicesQuery.current ?? []).map((invoice) => invoice.norbital_id)
-	);
-
 	const orderLinesQuery = client.db.purchase_order_lines.findMany({
 		columns: { norbital_id: true, product_name: true, quantity: true },
 		orderBy: { product_name: 'asc' },
@@ -229,7 +223,7 @@
 {/snippet}
 
 {#snippet goodsReceiptLines()}
-	{#if receiptIds.length === 0}
+	{#if (receiptsQuery.current ?? []).length === 0}
 		<p class="text-sm text-muted-foreground">{t('app.crm_purchase.empty_goods_receipts')}</p>
 	{:else}
 		<CollectionTable
@@ -237,7 +231,6 @@
 			collection="goods_receipt_lines"
 			title={t('app.crm_purchase.receipt_lines_title')}
 			description={t('app.crm_purchase.receipt_lines_description')}
-			query={{ where: { goods_receipt_id: { in: receiptIds } } }}
 		>
 			{#snippet columns({ Column })}
 				<Column
@@ -288,7 +281,7 @@
 {/snippet}
 
 {#snippet purchaseInvoiceLines()}
-	{#if purchaseInvoiceIds.length === 0}
+	{#if (purchaseInvoicesQuery.current ?? []).length === 0}
 		<p class="text-sm text-muted-foreground">{t('app.crm_purchase.empty_purchase_invoices')}</p>
 	{:else}
 		<CollectionTable
@@ -296,7 +289,6 @@
 			collection="purchase_invoice_lines"
 			title={t('app.crm_purchase.invoice_lines_title')}
 			description={t('app.crm_purchase.invoice_lines_description')}
-			query={{ where: { purchase_invoice_id: { in: purchaseInvoiceIds } } }}
 		>
 			{#snippet columns({ Column })}
 				<Column

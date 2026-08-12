@@ -47,20 +47,6 @@
 			: (companies[0]?.norbital_id ?? null)
 	);
 
-	const employmentsQuery = $derived(
-		selectedCompanyId == null
-			? null
-			: client.db.employments.findMany({
-					where: {
-						norbital_approval_id: { isNull: true },
-						company_id: { eq: selectedCompanyId }
-					},
-					limit: 1000
-				})
-	);
-	const employmentIds = $derived(
-		(employmentsQuery?.current ?? []).map((employment) => employment.norbital_id)
-	);
 	const analyticsQuery = client.invoke.approval_analytics({ subject: 'LEAVE' });
 	const analytics = $derived(
 		analyticsQuery.current ?? {
@@ -186,7 +172,12 @@
 			collection="leave_requests"
 			view={`hr_controller:leave:requests:${selectedCompanyId}`}
 			query={{
-				where: { employment_id: { in: employmentIds } },
+				where: {
+					leave_request_employment: {
+						norbital_approval_id: { isNull: true },
+						company_id: { eq: selectedCompanyId }
+					}
+				},
 				orderBy: { from_date: 'desc' },
 				with: {
 					leave_request_type: { columns: { code: true, name: true } },

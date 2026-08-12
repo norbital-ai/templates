@@ -69,30 +69,6 @@
 			: (companies[0]?.norbital_id ?? null)
 	);
 
-	const employmentsQuery = $derived(
-		selectedCompanyId == null
-			? null
-			: client.db.employments.findMany({
-					where: {
-						norbital_approval_id: { isNull: true },
-						company_id: { eq: selectedCompanyId }
-					},
-					limit: 1000
-				})
-	);
-	const employmentIds = $derived(
-		(employmentsQuery?.current ?? []).map((employment) => employment.norbital_id)
-	);
-	// The employment column holds a uuid. Employee numbers are resolved from one loaded set rather
-	// than a lookup mounted per row, and a miss renders as an em dash.
-	const employmentLabelsById = $derived(
-		new Map(
-			(employmentsQuery?.current ?? []).map((employment) => [
-				employment.norbital_id,
-				employment.employee_number
-			])
-		)
-	);
 	const attendanceSummaryQuery = $derived(
 		selectedCompanyId == null
 			? null
@@ -120,6 +96,14 @@
 		valueFormat: { style: 'percent', maximumFractionDigits: 1 },
 		curve: 'linear'
 	} satisfies ChartDisplaySpec);
+
+	type NestedTimeEntry = {
+		readonly time_entry_employment?: { readonly employee_number?: string | null } | null;
+	};
+
+	function employmentLabel(row: unknown): string {
+		return (row as NestedTimeEntry).time_entry_employment?.employee_number ?? '—';
+	}
 </script>
 
 <svelte:head>
@@ -208,10 +192,16 @@
 			view={`hr_controller:time_attendance:entries:${selectedCompanyId}`}
 			query={{
 				where: {
-					employment_id: { in: employmentIds },
+					time_entry_employment: {
+						norbital_approval_id: { isNull: true },
+						company_id: { eq: selectedCompanyId }
+					},
 					...(entryWindowStart ? { work_date: { gte: entryWindowStart, lte: today } } : {})
 				},
-				orderBy: { work_date: 'desc' }
+				orderBy: { work_date: 'desc' },
+				with: {
+					time_entry_employment: { columns: { employee_number: true } }
+				}
 			}}
 			searchPlaceholder={t('app.time_attendance.search_entries')}
 			importPipelines={[
@@ -244,8 +234,7 @@
 					name="employment_id"
 					label={t('component.employment')}
 					card="subtitle"
-					render={({ value }) =>
-						value == null || value === '' ? '—' : (employmentLabelsById.get(String(value)) ?? '—')}
+					render={({ row }) => employmentLabel(row)}
 				/>
 				<Column
 					name="clock_in"
