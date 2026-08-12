@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { Buffer } from 'node:buffer';
 import { gunzipSync } from 'node:zlib';
-import { inspectPhoto } from './photo-integrity.js';
+import { inspectPhoto, photoInspectionSchema } from './photo-integrity.js';
 import { planDuplicateEvidenceBatch } from './photo-duplicates.js';
 
 // A deterministic 3024x4032 JPEG (solid RGB 80/120/160). Gzip collapses the intentionally uniform
@@ -35,6 +35,37 @@ test('inspects the canonical 12 MP phone-photo envelope deterministically', asyn
 			height: 4032,
 			flags: ['low_quality']
 		}
+	);
+});
+
+test('accepts only the immutable fact shape supplied by the host inspection cache', () => {
+	assert.deepEqual(
+		photoInspectionSchema.parse({
+			sha256: 'a'.repeat(64),
+			perceptualHash: 'b'.repeat(64),
+			width: 1440,
+			height: 1920,
+			captureLocation: null,
+			flags: []
+		}),
+		{
+			sha256: 'a'.repeat(64),
+			perceptualHash: 'b'.repeat(64),
+			width: 1440,
+			height: 1920,
+			captureLocation: null,
+			flags: []
+		}
+	);
+	assert.throws(() =>
+		photoInspectionSchema.parse({
+			sha256: 'not-a-digest',
+			perceptualHash: 'b'.repeat(64),
+			width: 0,
+			height: 1920,
+			captureLocation: null,
+			flags: ['invented-policy']
+		})
 	);
 });
 
