@@ -20,16 +20,13 @@ export default defineQueryHandler({
 		{ company_id, from, to }: { company_id: string; from: string; to: string },
 		api
 	) => {
-		const employments = await api.db.query.employments.findMany({
+		const employmentCount = await api.db.employments.count({
 			where: {
 				company_id: { eq: company_id },
 				norbital_approval_id: { isNull: true }
-			},
-			columns: { norbital_id: true },
-			limit: 5000
+			}
 		});
-		const employmentIds = employments.map((employment) => employment.norbital_id);
-		if (employmentIds.length === 0) return [];
+		if (employmentCount === 0) return [];
 
 		const weeks: Array<{ week: string; end: string }> = [];
 		for (let week = from; week <= to; week = shiftDayKey(week, 7)) {
@@ -39,7 +36,10 @@ export default defineQueryHandler({
 		return Promise.all(
 			weeks.map(async ({ week, end }) => {
 				const scope = {
-					employment_id: { in: employmentIds },
+					time_entry_employment: {
+						company_id: { eq: company_id },
+						norbital_approval_id: { isNull: true }
+					},
 					work_date: { gte: week, lte: end }
 				} as const;
 				const [total, incomplete] = await Promise.all([

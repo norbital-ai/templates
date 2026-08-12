@@ -77,14 +77,6 @@
 		)
 	);
 	const currentEmployees = $derived(currentEmployeeIds.size);
-	/**
-	 * Everyone this entity has ever engaged — the *scope* of the list, which the operator is not
-	 * entitled to widen, so it stays in `query.where`. Which of them the list opens on is a separate
-	 * question, and it is answered by a filter chip the operator can drop.
-	 */
-	const employeeIds = $derived([
-		...new Set((employmentsQuery?.current ?? []).map((employment) => employment.employee_id))
-	]);
 	const workforceTrend = $derived.by(() => {
 		const ranges = (employmentsQuery?.current ?? []).flatMap((employment) =>
 			employment.effective_range
@@ -234,7 +226,12 @@
 			description={t('app.people.profiles_description')}
 			initialFilters={employedTodayFilter()}
 			query={{
-				where: { norbital_id: { in: employeeIds } },
+				where: {
+					employment_employee: {
+						norbital_approval_id: { isNull: true },
+						company_id: { eq: selectedCompanyId }
+					}
+				},
 				orderBy: { name: 'asc' }
 			}}
 			searchPlaceholder={t('app.people.search_people')}

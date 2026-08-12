@@ -181,11 +181,11 @@
 
 	const rosterEntriesQuery = $derived.by(() => {
 		void reloadToken;
-		if (employmentIds.length === 0) return null;
+		if (selectedCompanyId == null) return null;
 		return client.db.roster_entries.findMany({
 			where: {
 				...approved,
-				employment_id: { in: employmentIds },
+				roster_entry_employment: { ...approved, company_id: { eq: selectedCompanyId } },
 				work_date: { gte: monthStart, lte: monthEnd }
 			},
 			limit: 5000
@@ -198,12 +198,12 @@
 	 */
 	const filteredRosterEntriesQuery = $derived.by(() => {
 		void reloadToken;
-		if (employmentIds.length === 0 || boardQuery.filters.length === 0) return null;
+		if (selectedCompanyId == null || boardQuery.filters.length === 0) return null;
 		return client.db.roster_entries.findMany(
 			{
 				where: {
 					...approved,
-					employment_id: { in: employmentIds },
+					roster_entry_employment: { ...approved, company_id: { eq: selectedCompanyId } },
 					work_date: { gte: monthStart, lte: monthEnd }
 				},
 				limit: 5000
@@ -213,11 +213,11 @@
 	});
 	const timeEntriesQuery = $derived.by(() => {
 		void reloadToken;
-		if (employmentIds.length === 0) return null;
+		if (selectedCompanyId == null) return null;
 		return client.db.time_entries.findMany({
 			where: {
 				...approved,
-				employment_id: { in: employmentIds },
+				time_entry_employment: { ...approved, company_id: { eq: selectedCompanyId } },
 				work_date: { gte: monthStart, lte: monthEnd }
 			},
 			limit: 5000
@@ -226,11 +226,11 @@
 	/** Requests are stored once at `from_date`, so the window is widened to catch one spanning in. */
 	const leaveQuery = $derived.by(() => {
 		void reloadToken;
-		if (employmentIds.length === 0) return null;
+		if (selectedCompanyId == null) return null;
 		return client.db.leave_requests.findMany({
 			where: {
 				...approved,
-				employment_id: { in: employmentIds },
+				leave_request_employment: { ...approved, company_id: { eq: selectedCompanyId } },
 				kind: { eq: 'TIME_OFF' },
 				from_date: { lte: monthEnd },
 				to_date: { gte: monthStart }

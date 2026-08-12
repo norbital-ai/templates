@@ -45,52 +45,6 @@
 			: (companies[0]?.norbital_id ?? null)
 	);
 
-	// A relation column holds a uuid. These reference sets load once per page and the label is
-	// resolved from memory rather than by mounting a lookup per row; a miss renders as an em dash.
-	const employmentsQuery = $derived(
-		selectedCompanyId == null
-			? null
-			: client.db.employments.findMany({
-					where: {
-						norbital_approval_id: { isNull: true },
-						company_id: { eq: selectedCompanyId }
-					},
-					limit: 1000
-				})
-	);
-	const employmentIds = $derived(
-		(employmentsQuery?.current ?? []).map((employment) => employment.norbital_id)
-	);
-	const employmentLabelsById = $derived(
-		new Map(
-			(employmentsQuery?.current ?? []).map((employment) => [
-				employment.norbital_id,
-				employment.employee_number
-			])
-		)
-	);
-	// Deliberately unfiltered by effective range: this is the label map for the entries table's
-	// component column, and an entry booked last year against a since-superseded component must
-	// still resolve to its name rather than an em dash.
-	const payComponentsQuery = $derived(
-		selectedCompanyId == null
-			? null
-			: client.db.pay_components.findMany({
-					where: {
-						norbital_approval_id: { isNull: true },
-						company_id: { eq: selectedCompanyId }
-					},
-					limit: 500
-				})
-	);
-	const payComponentLabelsById = $derived(
-		new Map(
-			(payComponentsQuery?.current ?? []).map((component) => [
-				component.norbital_id,
-				`${component.code} · ${component.name}`
-			])
-		)
-	);
 	const analyticsQuery = client.invoke.approval_analytics({ subject: 'CLAIM' });
 	const analytics = $derived(
 		analyticsQuery.current ?? {
@@ -120,6 +74,29 @@
 		valueFormat: { style: 'number', maximumFractionDigits: 1 },
 		curve: 'linear'
 	} satisfies ChartDisplaySpec);
+
+	type NestedComponentEntry = {
+		readonly entry_employment?: { readonly employee_number?: string | null } | null;
+		readonly entry_pay_component?: {
+			readonly code?: string | null;
+			readonly name?: string | null;
+		} | null;
+	};
+
+	function nestedEntry(row: unknown): NestedComponentEntry {
+		return row as NestedComponentEntry;
+	}
+
+	function employmentLabel(row: unknown): string {
+		return nestedEntry(row).entry_employment?.employee_number ?? '—';
+	}
+
+	function componentLabel(row: unknown): string {
+		const component = nestedEntry(row).entry_pay_component;
+		if (component?.code && component.name) return `${component.code} · ${component.name}`;
+		if (component?.code) return component.code;
+		return '—';
+	}
 </script>
 
 <svelte:head>
@@ -200,8 +177,17 @@
 			collection="component_entries"
 			view={`hr_controller:pay_components:entries:${selectedCompanyId}`}
 			query={{
-				where: { employment_id: { in: employmentIds } },
-				orderBy: { event_date: 'desc' }
+				where: {
+					entry_employment: {
+						norbital_approval_id: { isNull: true },
+						company_id: { eq: selectedCompanyId }
+					}
+				},
+				orderBy: { event_date: 'desc' },
+				with: {
+					entry_employment: { columns: { employee_number: true } },
+					entry_pay_component: { columns: { code: true, name: true } }
+				}
 			}}
 			searchPlaceholder={t('app.pay_components.search_entries')}
 		>
@@ -210,16 +196,12 @@
 					name="pay_component_id"
 					label={t('component.component')}
 					card="title"
-					render={({ value }) =>
-						value == null || value === ''
-							? '—'
-							: (payComponentLabelsById.get(String(value)) ?? '—')}
+					render={({ row }) => componentLabel(row)}
 				/>
 				<Column
 					name="employment_id"
 					label={t('component.employment')}
-					render={({ value }) =>
-						value == null || value === '' ? '—' : (employmentLabelsById.get(String(value)) ?? '—')}
+					render={({ row }) => employmentLabel(row)}
 				/>
 				<Column
 					name="amount"

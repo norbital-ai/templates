@@ -257,7 +257,7 @@
 			title={t('app.crm.tab_quote_lines')}
 			description={t('app.crm.quote_lines_description')}
 			query={{
-				where: { quote_id: { in: scopedQuoteIds } },
+				where: { quote_line_quote: { account_id: { eq: selectedAccountId } } },
 				orderBy: { quote_id: 'desc' }
 			}}
 		>
@@ -462,7 +462,7 @@
 			title={t('app.crm.billing_lines_title')}
 			description={t('app.crm.billing_lines_description')}
 			query={{
-				where: { sales_invoice_id: { in: scopedInvoiceIds } },
+				where: { sales_invoice_line_invoice: { account_id: { eq: selectedAccountId } } },
 				orderBy: { sales_invoice_id: 'desc' }
 			}}
 		>
@@ -497,7 +497,7 @@
 			view={`crm:contracts:${selectedAccountId}`}
 			title={t('app.crm.contracts_title')}
 			description={t('app.crm.contracts_description')}
-			query={{ where: { quote_id: { in: scopedQuoteIds } } }}
+			query={{ where: { contract_signing_quote: { account_id: { eq: selectedAccountId } } } }}
 		>
 			{#snippet columns({ Column })}
 				<Column

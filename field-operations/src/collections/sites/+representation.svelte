@@ -35,11 +35,6 @@
 			})
 			.map((job) => job.norbital_id)
 	);
-	const historicalJobIds = $derived(
-		siteJobs
-			.filter((job) => job.status === 'in_progress' || job.status === 'completed')
-			.map((job) => job.norbital_id)
-	);
 	const jobById = $derived(new Map(siteJobs.map((job) => [job.norbital_id, job] as const)));
 </script>
 
@@ -106,7 +101,12 @@
 			title={t('component.activity_history')}
 			description={t('component.activity_history_description')}
 			query={{
-				where: { job_id: { in: historicalJobIds } },
+				where: {
+					job_assignment_job: {
+						site_id: { eq: recordId },
+						status: { in: ['in_progress', 'completed'] }
+					}
+				},
 				orderBy: { dispatched_at: 'desc' }
 			}}
 		>
