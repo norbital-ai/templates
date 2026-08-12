@@ -1,6 +1,42 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { Buffer } from 'node:buffer';
+import { gunzipSync } from 'node:zlib';
+import { inspectPhoto } from './photo-integrity.js';
 import { planDuplicateEvidenceBatch } from './photo-duplicates.js';
+
+// A deterministic 3024x4032 JPEG (solid RGB 80/120/160). Gzip collapses the intentionally uniform
+// fixture to a few hundred bytes while jpeg-js still has to exercise the full 12 MP decode envelope.
+const canonical12MegapixelJpeg = gunzipSync(
+	Buffer.from(
+		'H4sIAAAAAAAAA+3NTU7CYBSG0e8D2kIlSkMtWDUQCVqMJOyAgXt0PQxcgEN/duKkwlB04tScM3zz5N72tf0IjyHtJWnSS9MkzbK0n4/yfDDIy9Oz4WhSTqeTsqrq6+WsvlxcVdX8Yb64vVvdry5m68262SybVXM4ErMsy/v5OM/HTV3VzZ+1u1D0z3YnL914EzpF7BaxfQ7nIcbwXbKfy9HxGg5x/D0ufsbvYdiN+zfdImzDU+ezOS4AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAD+q2379gV8f33kHhgBAA==',
+		'base64'
+	)
+);
+
+test('inspects the canonical 12 MP phone-photo envelope deterministically', async () => {
+	const inspection = await inspectPhoto({
+		bytes: canonical12MegapixelJpeg,
+		mimeType: 'image/jpeg'
+	});
+
+	assert.deepEqual(
+		{
+			sha256: inspection.sha256,
+			perceptualHash: inspection.perceptualHash,
+			width: inspection.width,
+			height: inspection.height,
+			flags: inspection.flags
+		},
+		{
+			sha256: 'fd41dba0ff371735328979ec3b80992623b513173986e79c18b6323861e229d4',
+			perceptualHash: '13a0113411341134000082001134000011341134554b2c4b2c4b11342c4b0000',
+			width: 3024,
+			height: 4032,
+			flags: ['low_quality']
+		}
+	);
+});
 
 const zeros = Array.from({ length: 256 }, () => 0);
 const near = zeros.with(0, 1).with(1, 1);
