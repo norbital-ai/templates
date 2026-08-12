@@ -39,8 +39,8 @@ export default defineModel(
 		// The selector is a variant, so the band is projected out of the JSONB. `::numeric` is
 		// IMMUTABLE (`numeric_in` is `provolatile = 'i'`), unlike `::date`, so it is legal here.
 		//
-		// The band is the pair of ranges the selector actually keys on, matching `selectorsOverlap`
-		// in +hooks.ts. Discriminator and risk class are equality members because a WAGE row and a
+		// The band is the pair of ranges the selector actually keys on. Discriminator and risk class
+		// are equality members because a WAGE row and a
 		// RISK_CLASS row are never the same cell; without them, RISK_CLASS rows (which have no
 		// numeric band at all, so project to the unbounded range) would collide with each other and
 		// with everything else. The age range is its own dimension because EPF/SOCSO/EIS all carry

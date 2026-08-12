@@ -77,10 +77,14 @@ async function protectPaidInstalments(
 /** Synchronise the N payroll inputs from the agreement-owned schedule. */
 async function synchronizeInstalments(
 	api: AfterApi,
-	agreement: WorkspaceRow<'repayment_agreements'>
+	agreement: WorkspaceRow<'repayment_agreements'>,
+	existingEntries?: Awaited<ReturnType<typeof agreementEntries>>
 ): Promise<void> {
 	if (!agreement.schedule) throw new Error('A repayment schedule is required.');
-	const existing = await agreementEntries(api, agreement);
+	// A newly inserted agreement cannot already own component entries. The create hook passes an
+	// empty snapshot so it does not spend a remote SELECT proving that once per agreement; updates
+	// still read the live entries to preserve stable ids and paid-instalment protection.
+	const existing = existingEntries ?? (await agreementEntries(api, agreement));
 	const bySequence = new Map<number, (typeof existing)[number]>();
 	for (const entry of existing) {
 		const origin = instalmentOrigin(entry.origin);
@@ -139,7 +143,7 @@ export default {
 		after: {
 			description:
 				'Writes one deduction entry per scheduled instalment against the agreement’s employment and pay component, so the loan is recovered automatically by each payroll run.',
-			handler: async ({ record, api }) => synchronizeInstalments(api, record)
+			handler: async ({ record, api }) => synchronizeInstalments(api, record, [])
 		}
 	},
 	update: {

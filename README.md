@@ -146,6 +146,9 @@ src/
 - **Hooks** validate and derive. The payroll create hook resolves the run's attendance window, pay
   date and configuration hash; the roster hooks enforce publishability; the repayment hooks keep an
   instalment schedule exactly reconciled with its principal.
+  Effective-dated overlap and loan-instalment uniqueness are database constraints, not per-row hook
+  SELECTs: `createMany` must retain one hook invocation per record without turning a statutory table
+  or derived repayment schedule into one remote database round trip per row.
 - **Pipelines** (`+pipelines.ts` on `roster_entries`, `time_entries` and `payroll_runs`) shape
   workbook import/export: the roster and attendance importers map a source workbook to rows, and
   the payroll exporter produces the bank file, payslip PDFs and report workbook the app offers.
