@@ -5,6 +5,7 @@ import {
 } from '../../lib/certification-eligibility.js';
 import { coordinatesOf, exceedsSiteTolerance, type LocationLike } from '../../lib/haversine.js';
 import { photoEvidenceIsSuspicious } from '../photo_evidence/lib/photo-integrity.js';
+import { prepareAssignmentCreateBatch } from './lib/create-batch.js';
 
 type AssignmentIdentity = {
 	job_id?: string | null;
@@ -14,6 +15,19 @@ type AssignmentIdentity = {
 type AssignmentStatus = 'dispatched' | 'in_progress' | 'completed' | 'suspect';
 type AssignmentUpdateBefore = NonNullable<NonNullable<Hooks['update']>['before']>;
 type AssignmentUpdateApi = Parameters<AssignmentUpdateBefore['handler']>[0]['api'];
+
+const ASSIGNMENT_BATCH_LIMIT = 5_000;
+
+function groupBy<T>(values: readonly T[], key: (value: T) => string): Map<string, T[]> {
+	const grouped = new Map<string, T[]>();
+	for (const value of values) {
+		const id = key(value);
+		const existing = grouped.get(id);
+		if (existing) existing.push(value);
+		else grouped.set(id, [value]);
+	}
+	return grouped;
+}
 
 async function assignmentHasGeotaggedPhoto(
 	api: AssignmentUpdateApi,
@@ -144,6 +158,125 @@ export default {
 		before: {
 			description:
 				'Dispatches a contractor to a job only when the job has no assignment yet and the contractor holds every certification the job requires, stamps the dispatch time, and marks the assignment suspect when the reported location sits outside the site tolerance.',
+			batchHandler: async ({ inputs, api }) => {
+				const jobIds = [
+					...new Set(inputs.flatMap((input) => (input.job_id ? [input.job_id] : [])))
+				];
+				const contractorIds = [
+					...new Set(
+						inputs.flatMap((input) =>
+							input.contractor_profile_id ? [input.contractor_profile_id] : []
+						)
+					)
+				];
+				const sourceMessageIds = [
+					...new Set(
+						inputs.flatMap((input) => (input.source_message_id ? [input.source_message_id] : []))
+					)
+				];
+				const [jobs, contractors, occupiedJobs, occupiedSources, requirements, holdings] =
+					await Promise.all([
+						jobIds.length
+							? api.db.query.jobs.findMany({
+									where: { norbital_id: { in: jobIds } },
+									columns: { norbital_id: true, site_id: true },
+									limit: ASSIGNMENT_BATCH_LIMIT
+								})
+							: [],
+						contractorIds.length
+							? api.db.query.contractor_profiles.findMany({
+									where: { norbital_id: { in: contractorIds } },
+									columns: { norbital_id: true },
+									limit: ASSIGNMENT_BATCH_LIMIT
+								})
+							: [],
+						jobIds.length
+							? api.db.query.job_assignments.findMany({
+									where: { job_id: { in: jobIds } },
+									columns: { job_id: true },
+									limit: ASSIGNMENT_BATCH_LIMIT
+								})
+							: [],
+						sourceMessageIds.length
+							? api.db.query.job_assignments.findMany({
+									where: { source_message_id: { in: sourceMessageIds } },
+									columns: { source_message_id: true },
+									limit: ASSIGNMENT_BATCH_LIMIT
+								})
+							: [],
+						jobIds.length
+							? api.db.query.job_certification_requirements.findMany({
+									where: { job_id: { in: jobIds } },
+									columns: { job_id: true, certification_type_id: true },
+									limit: ASSIGNMENT_BATCH_LIMIT
+								})
+							: [],
+						contractorIds.length
+							? api.db.query.contractor_certifications.findMany({
+									where: { contractor_profile_id: { in: contractorIds } },
+									columns: { contractor_profile_id: true, certification_type_id: true },
+									limit: ASSIGNMENT_BATCH_LIMIT
+								})
+							: []
+					]);
+				const locatedJobIds = new Set(
+					inputs.flatMap((input) => (input.job_id && input.location ? [input.job_id] : []))
+				);
+				const siteIds = [
+					...new Set(
+						jobs.flatMap((job) =>
+							locatedJobIds.has(job.norbital_id) && job.site_id ? [job.site_id] : []
+						)
+					)
+				];
+				const sites = siteIds.length
+					? await api.db.query.sites.findMany({
+							where: { norbital_id: { in: siteIds } },
+							columns: { norbital_id: true, location: true },
+							limit: ASSIGNMENT_BATCH_LIMIT
+						})
+					: [];
+				const requirementsByJob = groupBy(requirements, (requirement) => requirement.job_id);
+				const holdingsByContractor = groupBy(holdings, (holding) => holding.contractor_profile_id);
+				const missingCertificationTypeIds = [
+					...new Set(
+						inputs.flatMap((input) =>
+							input.job_id && input.contractor_profile_id
+								? missingCertificationIds(
+										holdingsByContractor.get(input.contractor_profile_id) ?? [],
+										requirementsByJob.get(input.job_id) ?? []
+									)
+								: []
+						)
+					)
+				];
+				const certificationTypes = missingCertificationTypeIds.length
+					? await api.db.query.certification_types.findMany({
+							where: { norbital_id: { in: missingCertificationTypeIds } },
+							columns: { norbital_id: true, name: true },
+							limit: ASSIGNMENT_BATCH_LIMIT
+						})
+					: [];
+				return prepareAssignmentCreateBatch(inputs, {
+					jobs: new Map(jobs.map((job) => [job.norbital_id, job])),
+					contractorIds: new Set(contractors.map((contractor) => contractor.norbital_id)),
+					occupiedJobIds: new Set(occupiedJobs.map((assignment) => assignment.job_id)),
+					occupiedSourceMessageIds: new Set(
+						occupiedSources.flatMap((assignment) =>
+							assignment.source_message_id ? [assignment.source_message_id] : []
+						)
+					),
+					requirementsByJob,
+					holdingsByContractor,
+					sites: new Map(sites.map((site) => [site.norbital_id, site.location])),
+					certificationNames: new Map(
+						certificationTypes.map((certification) => [
+							certification.norbital_id,
+							certification.name
+						])
+					)
+				});
+			},
 			handler: async ({ input, api }) => {
 				const jobId = requireId(input.job_id, 'Job assignment must reference a job.');
 				const contractorId = requireId(
@@ -224,6 +357,23 @@ export default {
 		after: {
 			description:
 				'Moves a job from unassigned to assigned as soon as its first contractor is dispatched.',
+			batchHandler: async ({ records, api }) => {
+				const jobIds = [...new Set(records.map((record) => record.job_id))];
+				const jobs = await api.db.query.jobs.findMany({
+					where: { norbital_id: { in: jobIds } },
+					columns: { norbital_id: true, status: true },
+					limit: ASSIGNMENT_BATCH_LIMIT
+				});
+				const jobsById = new Map(jobs.map((job) => [job.norbital_id, job]));
+				await api.db.mutate(
+					'jobs',
+					records.flatMap((record) =>
+						jobsById.get(record.job_id)?.status === 'unassigned'
+							? [{ norbital_id: record.job_id, status: 'assigned' as const }]
+							: []
+					)
+				);
+			},
 			handler: async ({ record, api }) => {
 				const job = await api.db.query.jobs.findFirst({
 					where: { norbital_id: { eq: record.job_id } }
