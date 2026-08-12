@@ -27,6 +27,14 @@ test('loan instalment uniqueness is atomic and create skips impossible existing-
 	);
 	assert.match(agreementHooks, /synchronizeInstalments\(api, record, \[\]\)/);
 	assert.match(agreementHooks, /existingEntries \?\? \(await agreementEntries\(api, agreement\)\)/);
+	assert.match(
+		agreementHooks,
+		/batchHandler: async \(\{ records, api \}\) =>[\s\S]*?records\.flatMap\(\(record\) => scheduledInstalmentInputs\(record\)\)[\s\S]*?api\.db\.mutate\('component_entries', inputs\)/
+	);
+	assert.match(
+		entryHooks,
+		/batchHandler: async \(\{ inputs, api \}\) =>[\s\S]*?api\.db\.query\.repayment_agreements\.findMany[\s\S]*?assertInstalmentMatchesResolvedAgreement/
+	);
 });
 
 test('bulk roster creation validates shared references with set reads', () => {
