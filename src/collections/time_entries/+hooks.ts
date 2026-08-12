@@ -51,6 +51,12 @@ export default {
 		before: {
 			description:
 				'Requires ordered, non-overlapping worked intervals; only the final interval may remain open, and no overtime classification is accepted or stored.',
+			batchHandler: async ({ inputs }) => {
+				for (const input of inputs) {
+					assertWorkedIntervals(input.worked_intervals, input.break_minutes);
+				}
+				return inputs;
+			},
 			handler: async ({ input }) => {
 				assertWorkedIntervals(input.worked_intervals, input.break_minutes);
 				return input;
