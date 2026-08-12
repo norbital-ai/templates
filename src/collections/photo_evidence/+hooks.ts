@@ -7,6 +7,8 @@ import {
 	assertExactlyOnePhotoParent,
 	evaluateCaptureGeolocation,
 	inspectPhoto,
+	PHOTO_INTEGRITY_INSPECTION_PROFILE,
+	photoInspectionSchema,
 	photoIntegrityFlags,
 	suspectPhotoFlags,
 	VISUAL_DUPLICATE_MAX_L2,
@@ -230,11 +232,36 @@ async function preparePhoto(
 	parsed: PhotoCreateInput,
 	siteLocation: LocationLike
 ) {
-	const asset = await api.readFileAsset(parsed.document_asset_id);
+	const inspectionApi = api as PhotoBeforeApi & {
+		readFileAssetInspection?: (
+			assetId: string,
+			profile: string
+		) => Promise<{
+			id: string;
+			name: string;
+			mimeType: string | null;
+			size: number;
+			contentSha256: string;
+			facts: unknown;
+		} | null>;
+	};
+	const cached = inspectionApi.readFileAssetInspection
+		? await inspectionApi.readFileAssetInspection(
+				parsed.document_asset_id,
+				PHOTO_INTEGRITY_INSPECTION_PROFILE
+			)
+		: null;
+	const uncached = cached == null ? await api.readFileAsset(parsed.document_asset_id) : null;
+	const asset = cached ?? uncached!;
 	if (asset.mimeType == null || !asset.mimeType.toLowerCase().startsWith('image/')) {
 		throw new Error('Photo evidence requires an image file.');
 	}
-	const inspected = await inspectPhoto({ bytes: asset.bytes, mimeType: asset.mimeType });
+	const inspected = cached
+		? photoInspectionSchema.parse(cached.facts)
+		: await inspectPhoto({ bytes: uncached!.bytes, mimeType: uncached!.mimeType ?? '' });
+	if (cached != null && cached.contentSha256 !== inspected.sha256) {
+		throw new Error('Cached photo inspection does not match its verified content digest.');
+	}
 	const geoFlags = evaluateCaptureGeolocation(
 		inspected.captureLocation,
 		coordinatesOf(siteLocation)

@@ -34,6 +34,17 @@ export const photoIntegrityFlags = [
 ] as const;
 
 export type PhotoIntegrityFlag = (typeof photoIntegrityFlags)[number];
+export const PHOTO_INTEGRITY_INSPECTION_PROFILE = 'field-operations.photo-integrity.v1';
+
+export const photoInspectionSchema = z.object({
+	sha256: z.string().regex(/^[a-f0-9]{64}$/),
+	perceptualHash: z.string().regex(/^[a-f0-9]{64}$/),
+	pdqQuality: z.number().min(0).max(100).optional(),
+	width: z.number().int().positive(),
+	height: z.number().int().positive(),
+	captureLocation: z.object({ lat: z.number(), lon: z.number() }).nullable(),
+	flags: z.array(z.enum(photoIntegrityFlags))
+});
 
 /** Cross-assignment reuse and contradictory capture GPS are hard signals. */
 export const suspectPhotoFlags = [
@@ -55,7 +66,7 @@ export interface PhotoInspection {
 	/** Meta PDQ hash as 64-char hex (256-bit). */
 	perceptualHash: string;
 	/** PDQ quality score 0–100; Meta recommends discarding ≤49. */
-	pdqQuality: number;
+	pdqQuality?: number;
 	width: number;
 	height: number;
 	captureLocation: { lat: number; lon: number } | null;
