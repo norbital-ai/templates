@@ -32,7 +32,6 @@
 				})
 	);
 	const employments = $derived(employmentsQuery?.current ?? []);
-	const employmentIds = $derived(employments.map((employment) => employment.norbital_id));
 	const employmentLabelsById = $derived(
 		new Map(employments.map((employment) => [employment.norbital_id, employment.employee_number]))
 	);
@@ -130,7 +129,10 @@
 		title={t('component.contractual_terms')}
 		description={t('component.contractual_terms_description')}
 		query={{
-			where: { employment_id: { in: employmentIds } },
+			where:
+				record == null
+					? { norbital_id: { in: [] } }
+					: { term_employment: { employee_id: { eq: record.norbital_id } } },
 			orderBy: { norbital_created_at: 'desc' }
 		}}
 	>
@@ -166,7 +168,10 @@
 		title={t('component.statutory_registrations')}
 		description={t('component.statutory_registrations_description')}
 		query={{
-			where: { employment_id: { in: employmentIds } },
+			where:
+				record == null
+					? { norbital_id: { in: [] } }
+					: { statutory_fact_employment: { employee_id: { eq: record.norbital_id } } },
 			orderBy: { norbital_created_at: 'desc' }
 		}}
 	>
