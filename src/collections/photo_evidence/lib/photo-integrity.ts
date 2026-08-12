@@ -76,6 +76,7 @@ interface DecodedImage {
 	readonly data: Uint8Array;
 	readonly width: number;
 	readonly height: number;
+	readonly channels: 3 | 4;
 	readonly format: 'jpeg' | 'png';
 }
 
@@ -118,14 +119,20 @@ function decodeImage(bytes: Uint8Array): DecodedImage {
 	if (bytes[0] === 0xff && bytes[1] === 0xd8) {
 		const decoded = decodeJpeg(bytes, {
 			useTArray: true,
-			formatAsRGBA: true,
+			// PDQ consumes RGB directly. Asking jpeg-js for RGBA would materialise a 48.8 MiB
+			// 12 MP raster only for us to copy it into a second 36.6 MiB RGB allocation.
+			formatAsRGBA: false,
 			maxResolutionInMP: 40,
-			maxMemoryUsageInMB: 128
+			// Canonical 3024x4032 phone photos need 134–210 MiB of jpeg-js-accounted memory,
+			// depending on their sampling tables, before the RGB raster used by PDQ. The serving
+			// guest separately provides native headroom; this remains a per-decode safety guard.
+			maxMemoryUsageInMB: 256
 		});
 		return {
 			data: decoded.data instanceof Uint8Array ? decoded.data : new Uint8Array(decoded.data),
 			width: decoded.width,
 			height: decoded.height,
+			channels: 3,
 			format: 'jpeg'
 		};
 	}
@@ -135,6 +142,7 @@ function decodeImage(bytes: Uint8Array): DecodedImage {
 			data: decoded.data instanceof Uint8Array ? decoded.data : new Uint8Array(decoded.data),
 			width: decoded.width,
 			height: decoded.height,
+			channels: 4,
 			format: 'png'
 		};
 	}
@@ -156,13 +164,19 @@ export async function inspectPhoto(input: {
 }): Promise<PhotoInspection> {
 	await ensurePdq();
 	const image = decodeImage(input.bytes);
-	// PDQ accepts RGB (3) or grayscale (1); drop the alpha channel from RGBA decodes.
-	const rgb = new Uint8Array(image.width * image.height * 3);
-	for (let i = 0, j = 0; i < image.data.length; i += 4, j += 3) {
-		rgb[j] = image.data[i]!;
-		rgb[j + 1] = image.data[i + 1]!;
-		rgb[j + 2] = image.data[i + 2]!;
-	}
+	// PNG decodes as RGBA; JPEG already returns RGB so the common photo path holds one raster.
+	const rgb =
+		image.channels === 3
+			? image.data
+			: (() => {
+					const output = new Uint8Array(image.width * image.height * 3);
+					for (let i = 0, j = 0; i < image.data.length; i += 4, j += 3) {
+						output[j] = image.data[i]!;
+						output[j + 1] = image.data[i + 1]!;
+						output[j + 2] = image.data[i + 2]!;
+					}
+					return output;
+				})();
 	const pdq = PDQ.hash({
 		data: rgb,
 		width: image.width,

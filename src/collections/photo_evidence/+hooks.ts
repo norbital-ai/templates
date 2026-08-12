@@ -46,7 +46,10 @@ type PhotoHooksWithBatch = Hooks & {
 	};
 };
 
-const PHOTO_INSPECTION_CONCURRENCY = 8;
+// Decoding is synchronous, but file reads settle asynchronously and retain their compressed bytes
+// while another photo is inspected. Two keeps IO moving without letting a batch queue eight large
+// evidence payloads beside jpeg-js's native working set in the bounded serving guest.
+const PHOTO_INSPECTION_CONCURRENCY = 2;
 const MAX_BATCH_DUPLICATE_CORPUS = 5_000;
 
 async function mapConcurrent<T, R>(
