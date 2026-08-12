@@ -7,10 +7,9 @@
  * handler. So this exercises the whole path the operator's click takes, minus the file dialog and
  * the transport.
  *
- * The roster sheet carries three columns and no day type: a row naming a shift is a working day,
- * a row leaving the shift cell blank is a rest day, and the reader derives which of the two a row
- * is. A blank shift_code is therefore a rest day spelled out, not a defect to refuse — the file
- * cannot name a day type that disagrees with its shift, because it does not name one at all.
+ * The roster sheet carries real roster-code tokens. A blank shift cell is an absent explicit
+ * assignment, REST/OFF are real variants, and PH is validated against the observed calendar but
+ * never persisted as a person-day fact.
  *
  * The time-entry sheet carries four columns, one row per person per day. The file issued before
  * this one carried more — break minutes, overtime punches, a state, a reason, and an
@@ -55,12 +54,14 @@ const ROSTER_HEADERS = ['employee_number', 'work_date', 'shift_code'];
 const ROSTER_ROWS = [
 	['NHPMY0002', '2026-05-01', '7.5AM'],
 	['NHPMY0002', '2026-05-02', '7.5AM'],
-	['NHPMY0002', '2026-05-03', ''],
+	['NHPMY0002', '2026-05-03', 'REST'],
 	['NHPMY0002', '2026-05-04', '7.5AM'],
 	['NHPMY0002', '2026-05-05', '7.5AM'],
 	['NHPMY0023', '2026-05-04', 'AM0830'],
 	['NHPMY0023', '2026-05-05', 'PM2030'],
-	['NHPMY0023', '2026-05-06', '']
+	['NHPMY0023', '2026-05-06', 'OFF'],
+	['NHPMY0023', '2026-05-07', ''],
+	['NHPMY0023', '2026-05-08', 'PH']
 ];
 
 /*
@@ -164,10 +165,43 @@ function rosterApi(overrides = {}) {
 			{ norbital_id: 'employment:23', employee_number: 'NHPMY0023', company_id: COMPANY_ID }
 		],
 		shift_definitions: [
-			{ norbital_id: 'shift:75', code: '7.5AM', company_id: COMPANY_ID },
-			{ norbital_id: 'shift:am', code: 'AM0830', company_id: COMPANY_ID },
-			{ norbital_id: 'shift:pm', code: 'PM2030', company_id: COMPANY_ID }
+			{
+				norbital_id: 'shift:75',
+				code: '7.5AM',
+				company_id: COMPANY_ID,
+				variant: { kind: 'WORK', start_time: '08:30', end_time: '17:00', break_minutes: 60 },
+				effective_range: { start: '2020-01-01' }
+			},
+			{
+				norbital_id: 'shift:am',
+				code: 'AM0830',
+				company_id: COMPANY_ID,
+				variant: { kind: 'WORK', start_time: '08:30', end_time: '17:30', break_minutes: 60 },
+				effective_range: { start: '2020-01-01' }
+			},
+			{
+				norbital_id: 'shift:pm',
+				code: 'PM2030',
+				company_id: COMPANY_ID,
+				variant: { kind: 'WORK', start_time: '20:30', end_time: '05:30', break_minutes: 60 },
+				effective_range: { start: '2020-01-01' }
+			},
+			{
+				norbital_id: 'shift:rest',
+				code: 'REST',
+				company_id: COMPANY_ID,
+				variant: { kind: 'REST' },
+				effective_range: { start: '2020-01-01' }
+			},
+			{
+				norbital_id: 'shift:off',
+				code: 'OFF',
+				company_id: COMPANY_ID,
+				variant: { kind: 'OFF' },
+				effective_range: { start: '2020-01-01' }
+			}
 		],
+		company_holidays: [{ norbital_id: 'holiday:1', company_id: COMPANY_ID, date: '2026-05-08' }],
 		roster_entries: overrides.existingEntries ?? []
 	});
 }
@@ -226,13 +260,12 @@ try {
 	// ── The roster workbook, from bytes to written rows ────────────────────────────────────────────
 	const rosterPayload = rosterImportPayload(await rosterGrids(ROSTER_ROWS), ROSTER_ID);
 	assert.equal(rosterPayload.roster_id, ROSTER_ID);
-	assert.equal(rosterPayload.rows.length, 8, 'the "Read me first" sheet is not a source of rows');
+	assert.equal(rosterPayload.rows.length, 9, 'blank assignment rows are omitted');
 	assert.deepEqual(
 		rosterPayload.rows[0],
 		{
 			employee_number: 'NHPMY0002',
 			work_date: '2026-05-01',
-			day_type: 'WORK',
 			shift_code: '7.5AM',
 			assignment_code: undefined,
 			note: undefined
@@ -244,38 +277,39 @@ try {
 		{
 			employee_number: 'NHPMY0002',
 			work_date: '2026-05-03',
-			day_type: 'REST',
-			shift_code: undefined,
+			shift_code: 'REST',
 			assignment_code: undefined,
 			note: undefined
 		},
-		'a blank shift cell is not a defect — it is how the sheet spells a rest day'
+		'REST is a real roster-code variant'
 	);
 
 	const written = await rosterPipeline.import.handler({ input: rosterPayload }, rosterApi());
-	assert.equal(written.length, 8);
-	assert.deepEqual(
-		written.map((row) => row.designation),
-		['WORK', 'WORK', 'REST', 'WORK', 'WORK', 'WORK', 'WORK', 'REST'],
-		'the day type the reader derived is the designation the entry is stored under'
-	);
+	assert.equal(written.length, 8, 'the validated PH token is not stored per person');
 	assert.deepEqual(
 		written.map((row) => row.shift_definition_id),
-		['shift:75', 'shift:75', null, 'shift:75', 'shift:75', 'shift:am', 'shift:pm', null],
-		'only a working row resolves a shift; a rest day schedules nothing'
+		[
+			'shift:75',
+			'shift:75',
+			'shift:rest',
+			'shift:75',
+			'shift:75',
+			'shift:am',
+			'shift:pm',
+			'shift:off'
+		],
+		'every persisted person-day references a real WORK/REST/OFF roster code'
 	);
 	assert.deepEqual(
 		written.at(-1),
 		{
 			employment_id: 'employment:23',
 			work_date: '2026-05-06',
-			shift_definition_id: null,
+			shift_definition_id: 'shift:off',
 			roster_id: ROSTER_ID,
-			assignment_code: null,
-			designation: 'REST'
+			assignment_code: null
 		},
-		'a row with a blank shift cell lands as a rest day — the whole file imported, so a missing ' +
-			'shift_code is no longer an error concept, only the derivation of a REST day'
+		'OFF remains explicit and its meaning comes from the referenced code variant'
 	);
 
 	/*
@@ -299,7 +333,6 @@ try {
 			{
 				employee_number: 'NHPMY0002',
 				work_date: '2026-05-04',
-				day_type: 'WORK',
 				shift_code: '7.5AM',
 				assignment_code: undefined,
 				note: 'Covers, then hands over'
@@ -307,21 +340,19 @@ try {
 			{
 				employee_number: 'NHPMY0002',
 				work_date: '2026-05-05',
-				day_type: 'REST',
-				shift_code: undefined,
+				shift_code: 'REST',
 				assignment_code: undefined,
 				note: undefined
 			},
 			{
 				employee_number: 'NHPMY0023',
 				work_date: '2026-05-06',
-				day_type: 'WORK',
 				shift_code: 'AM0830',
 				assignment_code: 'AMRES',
 				note: undefined
 			}
 		],
-		'the declared day_type is ignored in favour of the shift cell, and the extra columns land'
+		'legacy day_type is translated only when no real roster code was supplied'
 	);
 
 	// ── One bad row refuses the whole file, and says which row ─────────────────────────────────────
@@ -336,7 +367,7 @@ try {
 			rosterApi()
 		)
 	);
-	assert.match(unknownEmployee, /not employed by this company/);
+	assert.match(unknownEmployee, /not employed by this legal entity/);
 	assert.match(unknownEmployee, /NHPMY9999/);
 	assert.doesNotMatch(
 		unknownEmployee,
@@ -355,7 +386,7 @@ try {
 			rosterApi()
 		)
 	);
-	assert.match(outsideMonth, /Roster 2026-05 owns only its own calendar days/);
+	assert.match(outsideMonth, /These rows do not belong to roster 2026-05/);
 	assert.match(outsideMonth, /• NHPMY0002 on 2026-06-01/);
 
 	const publishedMonth = await refusal(async () =>
@@ -364,7 +395,7 @@ try {
 			rosterApi({ roster: { published_at: new Date('2026-04-20T00:00:00.000Z') } })
 		)
 	);
-	assert.match(publishedMonth, /is published, so its entries are fixed/);
+	assert.match(publishedMonth, /is published/);
 
 	const alreadyPresent = await refusal(async () =>
 		rosterPipeline.import.handler(
@@ -374,7 +405,7 @@ try {
 			})
 		)
 	);
-	assert.match(alreadyPresent, /already have a roster entry/);
+	assert.match(alreadyPresent, /already have an explicit assignment/);
 	assert.match(alreadyPresent, /• NHPMY0002 on 2026-05-04/);
 
 	// ── Cells the browser refuses before anything is sent ──────────────────────────────────────────
@@ -450,16 +481,7 @@ try {
 		{
 			employee_number: 'NHPMY0002',
 			work_date: '2026-05-04',
-			day_type: 'WORK',
 			shift_code: '7.5AM',
-			assignment_code: undefined,
-			note: undefined
-		},
-		{
-			employee_number: 'NHPMY0002',
-			work_date: '2026-05-05',
-			day_type: 'REST',
-			shift_code: undefined,
 			assignment_code: undefined,
 			note: undefined
 		}
@@ -481,9 +503,6 @@ try {
 			clock_in: '08:02',
 			clock_out: '17:05',
 			break_minutes: undefined,
-			overtime_in: undefined,
-			overtime_out: undefined,
-			state: undefined,
 			reason: undefined
 		},
 		'a four-column row reads as punches alone — everything else the pipeline derives'
@@ -497,12 +516,10 @@ try {
 		{
 			employment_id: 'employment:2',
 			work_date: '2026-05-04',
-			clock_in: new Date('2026-05-04T00:16:00.000Z'),
-			clock_out: new Date('2026-05-04T09:10:00.000Z'),
-			break_minutes: 0,
-			state: 'CLOSED',
-			overtime_in: null,
-			overtime_out: null
+			worked_intervals: [
+				{ start_at: '2026-05-04T00:16:00.000Z', end_at: '2026-05-04T09:10:00.000Z' }
+			],
+			break_minutes: 0
 		},
 		'both clocks present close the entry, and a break nobody wrote lands as none'
 	);
@@ -511,17 +528,18 @@ try {
 		{
 			employment_id: 'employment:23',
 			work_date: '2026-05-04',
-			clock_in: new Date('2026-05-04T12:30:00.000Z'),
-			clock_out: new Date('2026-05-04T21:15:00.000Z'),
-			break_minutes: 0,
-			state: 'CLOSED',
-			overtime_in: null,
-			overtime_out: null
+			worked_intervals: [
+				{ start_at: '2026-05-04T12:30:00.000Z', end_at: '2026-05-04T21:15:00.000Z' }
+			],
+			break_minutes: 0
 		},
 		'a night shift closes on the next calendar day, eight hours behind UTC'
 	);
-	assert.equal(landed[4].state, 'OPEN', 'a row missing its closing punch derives OPEN');
-	assert.equal(landed[4].clock_out, null);
+	assert.equal(
+		landed[4].worked_intervals[0].end_at,
+		null,
+		'a missing close remains an open interval'
+	);
 
 	/*
 	 * The file issued before this one keeps importing: the columns the reader names land as before,
@@ -539,12 +557,9 @@ try {
 			clock_in: '08:02',
 			clock_out: '17:05',
 			break_minutes: 60,
-			overtime_in: '17:30',
-			overtime_out: '19:30',
-			state: 'CLOSED',
 			reason: undefined
 		},
-		'a row of the already-issued workbook reads as punches, break and overtime pair'
+		'the old OT/state columns are ignored while observed work and break still import'
 	);
 	assert.ok(
 		legacyTime.rows.every((row) => !('overtime_authorized' in row)),
@@ -559,14 +574,12 @@ try {
 		{
 			employment_id: 'employment:2',
 			work_date: '2026-05-05',
-			clock_in: new Date('2026-05-05T00:02:00.000Z'),
-			clock_out: new Date('2026-05-05T09:05:00.000Z'),
-			break_minutes: 60,
-			state: 'CLOSED',
-			overtime_in: new Date('2026-05-05T09:30:00.000Z'),
-			overtime_out: new Date('2026-05-05T11:30:00.000Z')
+			worked_intervals: [
+				{ start_at: '2026-05-05T00:02:00.000Z', end_at: '2026-05-05T09:05:00.000Z' }
+			],
+			break_minutes: 60
 		},
-		"the overtime pair the old file recorded still lands as instants in the file's own zone"
+		'legacy OT columns do not create a second class of stored time'
 	);
 
 	const unknownPuncher = await refusal(async () =>
@@ -581,22 +594,6 @@ try {
 	);
 	assert.match(unknownPuncher, /not on file/);
 	assert.match(unknownPuncher, /• NHPMY9999/);
-
-	const halfOvertime = await refusal(async () =>
-		timeEntryPipeline.import.handler(
-			{
-				input: timeEntryImportPayload(
-					await timeEntryGrids(
-						[['NHPMY0002', '2026-05-04', '08:00', '17:00', 60, '17:30', '', '', 'CLOSED', '']],
-						LEGACY_TIME_ENTRY_HEADERS
-					)
-				)
-			},
-			timeEntryApi()
-		)
-	);
-	assert.match(halfOvertime, /only one half of the overtime punch pair/);
-	assert.match(halfOvertime, /• NHPMY0002 on 2026-05-04/);
 
 	const noTimezone = await refusal(async () =>
 		timeEntryImportPayload(

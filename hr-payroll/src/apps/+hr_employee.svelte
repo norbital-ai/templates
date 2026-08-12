@@ -22,11 +22,34 @@
 		shiftMonthKey,
 		todayKey
 	} from '../lib/ui/calendar.js';
+	import { attendanceBoundary, attendanceState } from '../lib/attendance.js';
 
 	const user = getPlatformStateContext()().user;
 	const today = todayKey();
 
 	const { t } = useI18n<TenantI18nKeys>();
+
+	function attendanceStateLabel(value: unknown): string {
+		const state = attendanceState(value);
+		return state === 'COMPLETE'
+			? t('component.attendance_complete')
+			: state === 'OPEN'
+				? t('component.attendance_open')
+				: t('component.attendance_invalid');
+	}
+
+	function leaveRangeLabel(value: unknown): string {
+		if (value == null || typeof value !== 'object' || !('kind' in value)) return '—';
+		if (value.kind !== 'TIME_OFF' || !('range' in value)) return '—';
+		const range = value.range as {
+			readonly start?: { readonly date?: string; readonly half?: string };
+			readonly end?: { readonly date?: string; readonly half?: string };
+		};
+		if (range.start?.date == null || range.end?.date == null) return '—';
+		const half = (part: string | undefined) =>
+			part === 'FIRST' ? t('component.first_half') : t('component.second_half');
+		return `${formatCalendarDate(range.start.date)}, ${half(range.start.half)} → ${formatCalendarDate(range.end.date)}, ${half(range.end.half)}`;
+	}
 
 	/**
 	 * My loans opens on the agreements still being repaid today, as a filter chip the reader can drop
@@ -306,20 +329,26 @@
 					render={({ value }) => formatCalendarDate(value)}
 				/>
 				<Column
-					name="clock_in"
+					name="worked_intervals"
 					label={t('component.clock_in')}
-					render={({ value }) => formatInstant(value)}
+					render={({ value }) => formatInstant(attendanceBoundary(value, 'FIRST'))}
 				/>
 				<Column
-					name="clock_out"
+					name="worked_intervals"
 					label={t('component.clock_out')}
-					render={({ value }) => formatInstant(value)}
+					render={({ value }) => formatInstant(attendanceBoundary(value, 'LAST'))}
 				/>
-				<Column name="state" label={t('component.state')} />
+				<Column
+					name="worked_intervals"
+					label={t('component.state')}
+					render={({ value }) => attendanceStateLabel(value)}
+				/>
 			{/snippet}
 			{#snippet ListCard(entry)}
 				<p class="font-medium">{formatCalendarDate(entry.work_date)}</p>
-				<p class="mt-1 text-sm text-muted-foreground">{entry.state}</p>
+				<p class="mt-1 text-sm text-muted-foreground">
+					{attendanceStateLabel(entry.worked_intervals)}
+				</p>
 			{/snippet}
 		</CollectionTable>
 	</Stack>
@@ -349,14 +378,9 @@
 						value == null || value === '' ? '—' : (leaveTypeLabelsById.get(String(value)) ?? '—')}
 				/>
 				<Column
-					name="from_date"
-					label={t('component.from')}
-					render={({ value }) => formatCalendarDate(value)}
-				/>
-				<Column
-					name="to_date"
-					label={t('component.to')}
-					render={({ value }) => formatCalendarDate(value)}
+					name="event"
+					label={t('component.leave_range')}
+					render={({ value }) => leaveRangeLabel(value)}
 				/>
 				<Column
 					name="days"

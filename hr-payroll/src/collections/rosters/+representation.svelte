@@ -1,8 +1,5 @@
 <script lang="ts">
-	/**
-	 * A drafted month belongs to one company and one work pattern. The auto form asked for both as
-	 * editable uuids; both are relationships and read as their own names.
-	 */
+	/** A company owns one draft or published operational schedule per calendar month. */
 	import { client } from '$pod/client';
 	import { useI18n } from '@norbital-ai/ui/i18n';
 	import type { TenantI18nKeys } from '$pod/i18n-keys';
@@ -42,22 +39,6 @@
 						label: (company) =>
 							company.name != null && company.name !== '' ? String(company.name) : '—',
 						orderBy: { name: 'asc' },
-						limit: 500
-					}
-				}}
-			/>
-			<Field
-				name="work_pattern_id"
-				label={t('component.work_pattern')}
-				renderer={RelationshipRenderer}
-				rendererProps={{
-					target: 'work_patterns',
-					options: {
-						label: (pattern) =>
-							[pattern.code, pattern.name]
-								.filter((part) => part != null && part !== '')
-								.join(' · ') || '—',
-						orderBy: { code: 'asc' },
 						limit: 500
 					}
 				}}

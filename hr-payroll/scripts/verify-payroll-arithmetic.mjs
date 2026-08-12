@@ -82,7 +82,6 @@ const {
 	priceDay,
 	regulatedMonthlyOvertimeHours
 } = await server.ssrLoadModule(lib('overtime'));
-const { resolveSchedule } = await server.ssrLoadModule(lib('schedule'));
 const { isStatutoryOvertimePayCovered } = await server.ssrLoadModule(lib('measure'));
 const { classifyWageComparand, deriveStatutoryWages } = await server.ssrLoadModule(lib('coverage'));
 const { resolveRestBreakRules } = await server.ssrLoadModule(lib('rest-breaks'));
@@ -122,20 +121,15 @@ check('2.5 h is already a half hour', floorHalfHour(2.5), 2.5);
 const restDayPunches = {
 	norbital_id: 'rest-day-entry',
 	work_date: '2026-01-17',
-	clock_in: '2026-01-17T08:29:00.000+08:00',
-	clock_out: '2026-01-17T13:41:00.000+08:00',
-	break_minutes: 60,
-	state: 'CLOSED',
-	overtime_in: null,
-	overtime_out: null
+	worked_intervals: [
+		{ start_at: '2026-01-17T08:29:00.000+08:00', end_at: '2026-01-17T13:41:00.000+08:00' }
+	],
+	break_minutes: 60
 };
 const restDayScheduled = {
 	date: '2026-01-17',
 	dayType: 'REST_DAY',
-	shift: {
-		pays_overtime: true,
-		break_minutes: 60
-	},
+	shift: null,
 	clampStart: '08:30',
 	normalHours: 8.5
 };
@@ -143,14 +137,6 @@ check(
 	'a rest day is priced from the clock: 08:30–13:41 less an hour, floored to the half hour',
 	deriveDailyOvertime(restDayPunches, restDayScheduled)?.hours,
 	4
-);
-check(
-	'a shift that never pays overtime still earns nothing, whatever the clock says',
-	deriveDailyOvertime(restDayPunches, {
-		...restDayScheduled,
-		shift: { ...restDayScheduled.shift, pays_overtime: false }
-	}),
-	null
 );
 const semiMonthlyOvertimePolicy = {
 	...PLAIN_CALENDAR,
@@ -1176,18 +1162,24 @@ check(
 check(
 	'a PH overnight clock overlaps all eight statutory night hours',
 	philippineNightWorkHours({
+		norbital_id: 'night',
 		work_date: '2026-02-03',
-		clock_in: '2026-02-03T20:22:00.000+08:00',
-		clock_out: '2026-02-04T08:30:00.000+08:00'
+		worked_intervals: [
+			{ start_at: '2026-02-03T20:22:00.000+08:00', end_at: '2026-02-04T08:30:00.000+08:00' }
+		],
+		break_minutes: 0
 	}),
 	8
 );
 check(
 	'a daytime clock earns no night differential',
 	philippineNightWorkHours({
+		norbital_id: 'day',
 		work_date: '2026-02-03',
-		clock_in: '2026-02-03T08:30:00.000+08:00',
-		clock_out: '2026-02-03T17:30:00.000+08:00'
+		worked_intervals: [
+			{ start_at: '2026-02-03T08:30:00.000+08:00', end_at: '2026-02-03T17:30:00.000+08:00' }
+		],
+		break_minutes: 0
 	}),
 	0
 );
@@ -1405,60 +1397,6 @@ check(
 	0
 );
 
-const fixedSchedule = resolveSchedule({
-	window: { start: '2026-01-03', end: '2026-01-04' },
-	dates: ['2026-01-03', '2026-01-04'],
-	terms: () => ({
-		ordinary_hours_per_week: 40,
-		working_days_per_week: 5,
-		rest_day: 'SUN'
-	}),
-	rosterEntries: [],
-	configuration: { holidays: new Map(), shiftById: new Map() }
-});
-check(
-	'a fixed five-day week resolves Saturday OFF and Sunday REST',
-	[fixedSchedule.get('2026-01-03')?.dayType, fixedSchedule.get('2026-01-04')?.dayType],
-	['OFF_DAY', 'REST_DAY']
-);
-
-const shift = {
-	code: 'TEST',
-	start_time: '08:30',
-	end_time: '17:30',
-	break_minutes: 60,
-	effective_range: {
-		start: '2020-01-01T00:00:00.000Z',
-		end: '9999-12-31T00:00:00.000Z'
-	}
-};
-const dynamicSchedule = resolveSchedule({
-	window: { start: '2026-01-06', end: '2026-01-07' },
-	dates: ['2026-01-06', '2026-01-07'],
-	terms: () => ({
-		ordinary_hours_per_week: 45,
-		working_days_per_week: 6,
-		rest_day: 'SUN'
-	}),
-	rosterEntries: [
-		{ work_date: '2026-01-06', shift_definition_id: 'shift', designation: 'REST' },
-		{ work_date: '2026-01-07', shift_definition_id: 'shift', designation: 'WORK' }
-	],
-	configuration: {
-		holidays: new Map([
-			[
-				'2026-01-06',
-				{ date: '2026-01-06', substitutes_date: null, name: 'Holiday', scope: { kind: 'NATIONAL' } }
-			]
-		]),
-		shiftById: new Map([['shift', shift]])
-	}
-});
-check(
-	'a holiday on a dynamically rostered rest day makes the next rostered working day a substitute holiday',
-	[dynamicSchedule.get('2026-01-06')?.dayType, dynamicSchedule.get('2026-01-07')?.dayType],
-	['REST_DAY', 'PUBLIC_HOLIDAY']
-);
 // ── statutory overtime coverage, read from the jurisdiction's cited rule ────────────────────────
 // The Malaysian row as seeded in Core: Employment Act 1955 First Schedule paras 1A, 2 and 3.
 const MY_COVERAGE_RULE = {

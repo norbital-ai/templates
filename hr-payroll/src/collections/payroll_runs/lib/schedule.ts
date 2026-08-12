@@ -1,18 +1,20 @@
 /**
- * What a day *is*, and what shift governs it.
+ * Resolve the schedule that payroll prices.
  *
- * `day_type` is never stored. It is decided at calculation time from the roster, the terms and the
- * holiday calendar, so a roster correction or a newly gazetted holiday is picked up by the next
- * build without rewriting a single row (plan 06 §1).
- *
- * `OFF` is a third kind, not a synonym for `REST`. A rostered non-working day that is nonetheless
- * worked has no scheduled shift to run past, so every clocked hour on it is overtime — but at the
- * **ordinary** multiplier, because an off day is neither a rest day nor a public holiday.
- * Collapsing it into either one misprices every hour worked on it (decision E27).
+ * A roster code is the single polymorphic scheduling vocabulary: WORK owns its clock window,
+ * REST is the protected weekly rest, and OFF is another planned non-working day. Public holidays
+ * are never stored as codes; they are overlaid from the observed company holiday calendar. A
+ * monthly roster entry overrides the employment's embedded work pattern for that date.
  */
 
+import { patternRosterCodeId } from '../../../lib/scheduling/work-pattern.js';
+import {
+	rosterCodeKind,
+	workWindow,
+	type WorkWindow
+} from '../../../lib/scheduling/roster-code.js';
 import type { Configuration, ShiftDefinition } from './configuration.js';
-import { WEEKDAY_CODES, dateKey, requiredDateKey, weekdayCode, type IsoDate } from './dates.js';
+import { dateKey, requiredDateKey, type IsoDate } from './dates.js';
 import { coversDate } from './effective.js';
 
 export type DayType = 'ORDINARY' | 'REST_DAY' | 'PUBLIC_HOLIDAY' | 'OFF_DAY';
@@ -24,22 +26,19 @@ export function ruleDayType(dayType: DayType): RuleDayType {
 	return dayType === 'OFF_DAY' ? 'ORDINARY' : dayType;
 }
 
+export type ScheduledShift = WorkWindow & {
+	readonly norbital_id: string;
+	readonly code: string;
+};
+
 export type ScheduledDay = {
 	readonly date: IsoDate;
 	readonly dayType: DayType;
-	/** The shift rostered for the day, or `null` for a fixed-week employee with no roster. */
-	readonly shift: ShiftDefinition | null;
-	/**
-	 * The shift start used to clamp an early clock-in. On a rest or off day the employee's ordinary
-	 * shift start is carried over, so arriving before their normal starting time is still unpaid.
-	 *
-	 * That carry-over is what makes a worked rest day measurable without pinning a shift to it. It
-	 * is taken from the first ORDINARY rostered day of the whole window — the loop below settles
-	 * `clampStart` across every date before any `ScheduledDay` is built, so it does not matter
-	 * whether the rest day falls before or after the working day it borrows from.
-	 */
+	/** A WORK code projected for the date. REST and OFF codes intentionally have no shift. */
+	readonly shift: ScheduledShift | null;
+	/** The employee's ordinary scheduled start, used to ignore an early arrival. */
 	readonly clampStart: string | null;
-	/** Contracted hours for a working day of this employment. */
+	/** Contracted average hours for one working day, derived from the embedded pattern. */
 	readonly normalHours: number;
 };
 
@@ -48,116 +47,49 @@ export interface WeeklyHoursTerms {
 	readonly working_days_per_week: number;
 }
 
-/**
- * The shape of a week as a work pattern names it.
- *
- * `week_starts_on` is deliberately absent: deciding what one day *is* only needs to know which set
- * that weekday belongs to. Where the week begins matters when counting rest days per week — that is
- * the roster publication check's job, not this one's.
- */
-export type WeekShape = {
-	readonly rest_days: readonly string[];
-	readonly off_days: readonly string[];
-};
-
-export interface ScheduleTerms extends WeeklyHoursTerms {
-	/** Widened: a generated enum column is nullable. An unknown rest day is a data fault. */
-	readonly rest_day: string | null;
-	/**
-	 * What the employment's work pattern says about its week.
-	 *
-	 * A `WeekShape` comes from a STANDARD pattern and is authoritative — it names the rest and off
-	 * days outright. `'ROSTERED'` means the roster decides every day. `null` means terms written
-	 * before patterns existed, which fall back to `rest_day` and `working_days_per_week`.
-	 */
-	readonly week?: WeekShape | 'ROSTERED' | null;
-}
-
-/**
- * `shift_definition_id` is null on a REST or OFF entry: those arms schedule no shift.
- *
- * Rows written before the roster took that shape may still carry one, and they resolve exactly as
- * they always did — the read below is null-tolerant rather than null-assuming.
- */
-type RosterEntry = {
-	readonly work_date: string | Date;
-	readonly shift_definition_id: string | null;
-	readonly designation: string | null;
-};
-
-/**
- * Contracted hours on a working day: the weekly hours spread over the weekly working days. This is
- * a term of the employment, not a property of whichever shift happened to be rostered.
- */
+/** Kept as a derived payroll-rate shape; these are no longer independent employment fields. */
 export function normalDailyHours(terms: WeeklyHoursTerms): number {
 	const days = Number(terms.working_days_per_week);
-	if (!(days > 0)) throw new Error('working_days_per_week must be greater than zero.');
+	if (!(days > 0)) throw new Error('Derived working days per week must be greater than zero.');
 	return Number(terms.ordinary_hours_per_week) / days;
 }
 
-/** A week read in the conventional order, used only by the legacy inference below. */
-const LEGACY_WEEK_ORDER = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'] as const;
+export type ScheduleTerms = {
+	readonly work_pattern: unknown;
+	readonly normal_daily_hours: number;
+};
 
-/** What a day is when a STANDARD work pattern has named the week outright. */
-function patternDayType(date: IsoDate, week: WeekShape): Exclude<DayType, 'PUBLIC_HOLIDAY'> {
-	const code = weekdayCode(date);
-	if (week.rest_days.includes(code)) return 'REST_DAY';
-	if (week.off_days.includes(code)) return 'OFF_DAY';
-	return 'ORDINARY';
+type RosterEntry = {
+	readonly work_date: string | Date;
+	readonly shift_definition_id: string;
+};
+
+function scheduledCode(
+	code: ShiftDefinition,
+	date: IsoDate
+): { readonly kind: 'WORK' | 'REST' | 'OFF'; readonly shift: ScheduledShift | null } {
+	if (!coversDate(code.effective_range, date))
+		throw new Error(`Roster code ${code.code} is not effective on ${date}.`);
+	const kind = rosterCodeKind(code.variant);
+	const window = workWindow(code.variant);
+	return {
+		kind,
+		shift: window == null ? null : { norbital_id: code.norbital_id, code: code.code, ...window }
+	};
 }
 
-/**
- * Which weekdays a fixed-week employee works, for terms that name no work pattern.
- *
- * The rest day is named on the terms; the working days are then taken in week order, skipping it,
- * until `working_days_per_week` is satisfied. Everything left over is an off day — worked at the
- * ordinary rate, where a rest day is worked at the rest-day rate, and the difference is real money.
- *
- * A five-day week resting Sunday therefore works Monday to Friday and leaves Saturday off. This is
- * an inference, and it can only ever be a guess about *which* non-rest days are the off ones: it
- * happens to be right for a week that runs Monday to Friday and wrong for one that runs Tuesday to
- * Saturday, and it cannot tell the two apart. Naming a work pattern removes the guess.
- */
-function legacyWeekDayType(
-	date: IsoDate,
-	terms: ScheduleTerms
-): Exclude<DayType, 'PUBLIC_HOLIDAY'> {
-	if (terms.rest_day == null)
-		throw new Error(
-			'Employment terms name neither a work pattern nor a rest day, so a week with no roster ' +
-				'cannot be resolved. Without one a rest day is indistinguishable from an ordinary day ' +
-				'and rest-day work would be paid at the ordinary rate.'
-		);
-	if (!WEEKDAY_CODES.includes(terms.rest_day as (typeof WEEKDAY_CODES)[number]))
-		throw new Error(`Unknown rest day "${terms.rest_day}".`);
-	const code = weekdayCode(date);
-	if (code === terms.rest_day) return 'REST_DAY';
-	const workingDays = Math.min(6, Math.max(0, Math.round(Number(terms.working_days_per_week))));
-	const working = LEGACY_WEEK_ORDER.filter((day) => day !== terms.rest_day).slice(0, workingDays);
-	return working.includes(code as (typeof LEGACY_WEEK_ORDER)[number]) ? 'ORDINARY' : 'OFF_DAY';
+function dayTypeFor(kind: 'WORK' | 'REST' | 'OFF'): Exclude<DayType, 'PUBLIC_HOLIDAY'> {
+	switch (kind) {
+		case 'WORK':
+			return 'ORDINARY';
+		case 'REST':
+			return 'REST_DAY';
+		case 'OFF':
+			return 'OFF_DAY';
+	}
 }
 
-/**
- * What a day is when no roster entry covers it.
- *
- * A rostered employment answers this with `OFF_DAY` rather than by inference. The roster is the
- * authority for those people, so a day it does not mention is a day it did not schedule — and an
- * off day is the kind that is neither worked nor a rest-day entitlement. Guessing a rest day here
- * would hand out the rest-day multiple on a day nobody rostered as rest.
- */
-function derivedDayType(date: IsoDate, terms: ScheduleTerms): Exclude<DayType, 'PUBLIC_HOLIDAY'> {
-	if (terms.week === 'ROSTERED') return 'OFF_DAY';
-	if (terms.week != null) return patternDayType(date, terms.week);
-	return legacyWeekDayType(date, terms);
-}
-
-/**
- * Resolve every day of a window for one employment.
- *
- * The public-holiday test comes first: a holiday is a holiday whatever the roster says. Scope is
- * honoured — a regional holiday only applies where the company observes it, and with no location
- * recorded on an employment the national holidays are the ones that bind.
- */
+/** Resolve every day of a window for one employment. */
 export function resolveSchedule(options: {
 	readonly window: { readonly start: IsoDate; readonly end: IsoDate };
 	readonly dates: readonly IsoDate[];
@@ -170,54 +102,57 @@ export function resolveSchedule(options: {
 		rosterByDate.set(requiredDateKey(entry.work_date, 'roster_entries.work_date'), entry);
 	}
 
-	const shiftFor = (id: string | null, date: IsoDate): ShiftDefinition | null => {
-		if (id == null) return null;
-		const shift = options.configuration.shiftById.get(id);
-		if (!shift) throw new Error(`Roster on ${date} names a shift that does not exist.`);
-		if (!coversDate(shift.effective_range, date))
-			throw new Error(`Shift ${shift.code} is not effective on ${date}.`);
-		return shift;
+	const codeFor = (id: string, date: IsoDate): ShiftDefinition => {
+		const code = options.configuration.shiftById.get(id);
+		if (!code)
+			throw new Error(`Schedule on ${date} names roster code ${id}, which does not exist.`);
+		return code;
 	};
 
-	const resolved = new Map<IsoDate, ScheduledDay>();
-	// The clamp start is the employee's own ordinary shift start, taken from the first rostered
-	// working day of the window and reused on days that carry no shift of their own.
 	let clampStart: string | null = null;
 	const pending: {
 		date: IsoDate;
 		baseDayType: Exclude<DayType, 'PUBLIC_HOLIDAY'>;
 		dayType: DayType;
-		shift: ShiftDefinition | null;
+		shift: ScheduledShift | null;
+		normalHours: number;
 	}[] = [];
+
 	for (const date of options.dates) {
-		const roster = rosterByDate.get(date);
 		const terms = options.terms(date);
+		const roster = rosterByDate.get(date);
+		const patternCodeId = patternRosterCodeId(terms.work_pattern, date);
+		const assignmentCodeId = roster?.shift_definition_id ?? patternCodeId;
+		// A ROSTERED employment has no generated assignment. An absent monthly entry is simply OFF;
+		// publication validation is responsible for enforcing any guaranteed load.
+		const assignmentCode =
+			assignmentCodeId == null ? null : scheduledCode(codeFor(assignmentCodeId, date), date);
+		const patternCode =
+			patternCodeId == null ? null : scheduledCode(codeFor(patternCodeId, date), date);
+		// For a patterned employment the pattern remains the contractual baseline. A monthly WORK
+		// assignment on a patterned REST/OFF day therefore carries a real shift window while retaining
+		// the protected day type: scheduled overtime is derived from that difference, not tagged.
+		const dayCode = patternCode ?? assignmentCode;
+		const baseDayType = dayCode == null ? 'OFF_DAY' : dayTypeFor(dayCode.kind);
 		const holiday = options.configuration.holidays.get(date);
-		const baseDayType: Exclude<DayType, 'PUBLIC_HOLIDAY'> = roster
-			? roster.designation === 'WORK'
-				? 'ORDINARY'
-				: roster.designation === 'REST'
-					? 'REST_DAY'
-					: 'OFF_DAY'
-			: derivedDayType(date, terms);
-		// A holiday on the statutory rest day is substituted under s.60D(1): the original day
-		// remains REST_DAY and the following working day becomes PUBLIC_HOLIDAY.
+		// A holiday on a statutory REST day is substituted below; the original remains REST_DAY.
 		const dayType: DayType = holiday && baseDayType !== 'REST_DAY' ? 'PUBLIC_HOLIDAY' : baseDayType;
-		const shift = shiftFor(roster?.shift_definition_id ?? null, date);
-		if (clampStart == null && dayType === 'ORDINARY' && shift) clampStart = shift.start_time;
-		pending.push({ date, baseDayType, dayType, shift });
+		if (clampStart == null && baseDayType === 'ORDINARY' && assignmentCode?.shift)
+			clampStart = assignmentCode.shift.start_time;
+		pending.push({
+			date,
+			baseDayType,
+			dayType,
+			shift: assignmentCode?.shift ?? null,
+			normalHours: terms.normal_daily_hours
+		});
 	}
 
-	/*
-	 * EA 1955 s.60D(1): when a public holiday falls on the employee's rest day, the immediately
-	 * following working day becomes the substituted paid holiday. This must be employee-specific:
-	 * a shift roster may designate any weekday as REST. An explicitly configured substitute row
-	 * wins and suppresses automatic derivation for its original holiday.
-	 */
+	/* EA 1955 s.60D(1): a holiday on the employee's rest day moves to the next working day. */
 	const explicitlySubstituted = new Set(
 		[...options.configuration.holidays.values()]
 			.map((holiday) => dateKey(holiday.substitutes_date))
-			.filter((date) => date != null)
+			.filter((date): date is IsoDate => date != null)
 	);
 	const substituteDates = new Set<IsoDate>();
 	for (let index = 0; index < pending.length; index += 1) {
@@ -239,13 +174,14 @@ export function resolveSchedule(options: {
 		}
 	}
 
+	const resolved = new Map<IsoDate, ScheduledDay>();
 	for (const day of pending) {
 		resolved.set(day.date, {
 			date: day.date,
 			dayType: day.dayType,
 			shift: day.shift,
 			clampStart: day.shift?.start_time ?? clampStart,
-			normalHours: normalDailyHours(options.terms(day.date))
+			normalHours: day.normalHours
 		});
 	}
 	return resolved;

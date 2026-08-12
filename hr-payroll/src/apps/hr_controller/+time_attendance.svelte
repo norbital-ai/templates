@@ -21,10 +21,11 @@
 	} from '../../lib/ui/display-formatters.js';
 	import { runWorkbookImport } from '../../lib/ui/workbook-import.js';
 	import { timeEntryImportPayload } from '../../collections/time_entries/lib/import-workbook.js';
+	import { attendanceBoundary, attendanceState, workedMinutes } from '../../lib/attendance.js';
 
 	const { t } = useI18n<TenantI18nKeys>();
 
-	let companyId = $state<string | null>(null);
+	let selectedCompanyId = $state<string | null>(null);
 	type EntryWindow = '8w' | '6m' | '1y' | 'all';
 	let entryWindow = $state<EntryWindow>('8w');
 	const today = todayKey();
@@ -63,11 +64,15 @@
 			search_term: `${c.name} ${c.registration_number ?? ''}`
 		}))
 	);
-	const selectedCompanyId = $derived(
-		companyId != null && companies.some((c) => c.norbital_id === companyId)
-			? companyId
-			: (companies[0]?.norbital_id ?? null)
-	);
+	$effect(() => {
+		if (
+			companies.length > 0 &&
+			(selectedCompanyId == null ||
+				!companies.some((company) => company.norbital_id === selectedCompanyId))
+		) {
+			selectedCompanyId = companies[0]!.norbital_id;
+		}
+	});
 
 	const attendanceSummaryQuery = $derived(
 		selectedCompanyId == null
@@ -104,6 +109,19 @@
 	function employmentLabel(row: unknown): string {
 		return (row as NestedTimeEntry).time_entry_employment?.employee_number ?? '—';
 	}
+
+	function intervalBoundary(value: unknown, boundary: 'FIRST' | 'LAST'): string {
+		return formatInstant(attendanceBoundary(value, boundary));
+	}
+
+	function stateLabel(value: unknown): string {
+		const state = attendanceState(value);
+		return state === 'COMPLETE'
+			? t('component.attendance_complete')
+			: state === 'OPEN'
+				? t('component.attendance_open')
+				: t('component.attendance_invalid');
+	}
 </script>
 
 <svelte:head>
@@ -131,10 +149,10 @@
 			value={selectedCompanyId}
 			onValueChange={(value) => {
 				if (typeof value === 'string') {
-					companyId = value;
+					selectedCompanyId = value;
 					return;
 				}
-				companyId = companies[0]?.norbital_id ?? null;
+				selectedCompanyId = companies[0]?.norbital_id ?? null;
 			}}
 			emptyPlaceholder={t('component.select_legal_entity')}
 			searchPlaceholder={t('component.search_companies')}
@@ -237,14 +255,14 @@
 					render={({ row }) => employmentLabel(row)}
 				/>
 				<Column
-					name="clock_in"
+					name="worked_intervals"
 					label={t('component.clock_in')}
-					render={({ value }) => formatInstant(value)}
+					render={({ value }) => intervalBoundary(value, 'FIRST')}
 				/>
 				<Column
-					name="clock_out"
+					name="worked_intervals"
 					label={t('component.clock_out')}
-					render={({ value }) => formatInstant(value)}
+					render={({ value }) => intervalBoundary(value, 'LAST')}
 				/>
 				<Column
 					name="break_minutes"
@@ -252,16 +270,17 @@
 					render={({ value }) => formatDurationHours(value, t)}
 				/>
 				<Column
-					name="overtime_in"
-					label={t('app.time_attendance.ot_in')}
-					render={({ value }) => formatInstant(value)}
+					name="worked_intervals"
+					label={t('component.worked_hours')}
+					render={({ value, row }) =>
+						formatDurationHours(workedMinutes(value, row.break_minutes), t)}
 				/>
 				<Column
-					name="overtime_out"
-					label={t('app.time_attendance.ot_out')}
-					render={({ value }) => formatInstant(value)}
+					name="worked_intervals"
+					label={t('component.state')}
+					card="badge"
+					render={({ value }) => stateLabel(value)}
 				/>
-				<Column name="state" label={t('component.state')} card="badge" />
 			{/snippet}
 		</CollectionTable>
 	{/if}

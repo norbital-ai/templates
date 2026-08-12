@@ -17,11 +17,7 @@
 	import { IconWrapper } from '@norbital-ai/ui/icon-wrapper';
 	import { Cluster, Cover, Inline, Stack } from '@norbital-ai/ui/layout';
 	import { toast } from 'svelte-sonner';
-	import {
-		formatCalendarDate,
-		formatDurationHours,
-		formatHolidayScope
-	} from '../../lib/ui/display-formatters.js';
+	import { formatCalendarDate, formatHolidayScope } from '../../lib/ui/display-formatters.js';
 	import { runWorkbookImport } from '../../lib/ui/workbook-import.js';
 	import { rosterImportPayload } from '../../collections/roster_entries/lib/import-workbook.js';
 	import {
@@ -155,17 +151,20 @@
 					limit: 500
 				})
 	);
-	const shiftCodeById = $derived(
-		new Map((shiftsQuery?.current ?? []).map((shift) => [shift.norbital_id, shift.code]))
+	const rosterCodesById = $derived(
+		new Map((shiftsQuery?.current ?? []).map((code) => [code.norbital_id, code]))
 	);
-	const shiftLabelsById = $derived(
-		new Map(
-			(shiftsQuery?.current ?? []).map((shift) => [
-				shift.norbital_id,
-				`${shift.code} · ${shift.name}`
-			])
-		)
-	);
+	const employmentTermsQuery = $derived.by(() => {
+		void reloadToken;
+		if (selectedCompanyId == null) return null;
+		return client.db.employment_terms.findMany({
+			where: {
+				...approved,
+				term_employment: { ...approved, company_id: { eq: selectedCompanyId } }
+			},
+			limit: 3000
+		});
+	});
 
 	const leaveTypesQuery = $derived(
 		selectedCompanyId == null
@@ -266,7 +265,8 @@
 		{ label: 'attendance', query: timeEntriesQuery },
 		{ label: 'leave', query: leaveQuery },
 		{ label: 'holidays', query: holidaysQuery },
-		{ label: 'employments', query: employmentsQuery }
+		{ label: 'employments', query: employmentsQuery },
+		{ label: 'employment schedules', query: employmentTermsQuery }
 	]);
 	const boardErrors = $derived(
 		boardSources.flatMap((source) =>
@@ -289,11 +289,12 @@
 		buildRosterMonth({
 			month,
 			employmentIds,
+			employmentTerms: employmentTermsQuery?.current ?? [],
 			rosterEntries: rosterEntriesQuery?.current ?? [],
 			timeEntries: timeEntriesQuery?.current ?? [],
 			leaveRequests: leaveQuery?.current ?? [],
 			holidays: companyHolidays,
-			shiftCodeById,
+			rosterCodesById,
 			leaveCodeById,
 			cutoff
 		})
@@ -654,20 +655,7 @@
 				{#snippet columns({ Column })}
 					<Column name="code" card="title" />
 					<Column name="name" card="subtitle" />
-					<Column name="start_time" label={t('app.scheduling.start')} />
-					<Column name="end_time" label={t('app.scheduling.end')} />
-					<Column
-						name="break_minutes"
-						label={t('app.scheduling.break')}
-						render={({ value }) => formatDurationHours(value, t)}
-					/>
-					<Column name="pays_overtime" label={t('app.scheduling.ot_eligible')} />
-					<Column
-						name="overtime_break_minutes"
-						label={t('app.scheduling.ot_break')}
-						render={({ value }) => formatDurationHours(value, t)}
-					/>
-					<Column name="crosses_midnight" label={t('app.scheduling.crosses_midnight')} />
+					<Column name="variant" label={t('app.scheduling.roster_code_definition')} />
 					<Column name="effective_range" label={t('component.effective')} />
 				{/snippet}
 			</CollectionTable>
@@ -685,33 +673,21 @@
 			</p>
 			<CollectionTable
 				{client}
-				collection="work_patterns"
+				collection="employment_terms"
 				view={`hr_controller:scheduling:patterns:${selectedCompanyId}`}
 				query={{
-					where: { company_id: { eq: selectedCompanyId } },
-					orderBy: { code: 'asc' }
+					where: {
+						term_employment: { company_id: { eq: selectedCompanyId } },
+						...approved
+					},
+					orderBy: { effective_range: 'desc' }
 				}}
 				searchPlaceholder={t('app.scheduling.search_patterns')}
 			>
 				{#snippet columns({ Column })}
-					<Column name="code" card="title" />
-					<Column name="name" card="subtitle" />
-					<Column name="variant" label={t('app.scheduling.shape_of_week')} />
-					<Column
-						name="default_shift_definition_id"
-						label={t('app.scheduling.default_shift')}
-						render={({ value }) =>
-							value == null || value === '' ? '—' : (shiftLabelsById.get(String(value)) ?? '—')}
-					/>
-					<Column
-						name="min_rest_days_per_week"
-						label={t('app.scheduling.min_rest_days')}
-						card="badge"
-					/>
-					<Column
-						name="max_consecutive_work_days"
-						label={t('app.scheduling.max_consecutive_days')}
-					/>
+					<Column name="employment_id" card="title" />
+					<Column name="summary" card="subtitle" />
+					<Column name="work_pattern" label={t('component.work_pattern')} />
 					<Column name="effective_range" label={t('component.effective')} />
 				{/snippet}
 			</CollectionTable>

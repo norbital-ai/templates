@@ -3,7 +3,7 @@
  *
  * The sheets mirror exactly what the readers in `src/collections/roster_entries/lib` and
  * `src/collections/time_entries/lib` accept: the roster sheet carries three columns and derives
- * the day type off the shift cell — a named shift is a working day, a blank one a rest day — and
+ * a real roster code — WORK, REST or OFF — while a blank cell means no explicit assignment, and
  * the time-entry sheet carries four columns, with the timezone declared once on the `Settings`
  * sheet. The `Read me first` sheets state the rules in the same terms the readers enforce them,
  * so what the file promises and what the import accepts cannot drift apart quietly.
@@ -45,12 +45,12 @@ const ROSTER_HEADERS = ['employee_number', 'work_date', 'shift_code'];
 const ROSTER_SAMPLE_ROWS = [
 	['NHPMY0002', '2026-05-01', '7.5AM'],
 	['NHPMY0002', '2026-05-02', '7.5AM'],
-	['NHPMY0002', '2026-05-03', ''],
+	['NHPMY0002', '2026-05-03', 'REST'],
 	['NHPMY0002', '2026-05-04', '7.5AM'],
 	['NHPMY0002', '2026-05-05', '7.5AM'],
 	['NHPMY0023', '2026-05-04', 'AM0830'],
 	['NHPMY0023', '2026-05-05', 'PM2030'],
-	['NHPMY0023', '2026-05-06', '']
+	['NHPMY0023', '2026-05-06', 'OFF']
 ];
 
 const TIME_ENTRY_HEADERS = ['employee_number', 'work_date', 'clock_in', 'clock_out'];
@@ -79,12 +79,12 @@ const ROSTER_README = [
 	'',
 	'Two rules that change what people get paid',
 	'',
-	'• The day type is read off the shift cell — there is no column for it. A row naming a shift_code',
-	'  is a working day on that shift; a row leaving shift_code empty is a rest day. The two cannot',
-	'  disagree, because one is derived from the other.',
+	'• Every assignment uses a roster code. A WORK code carries its hours; REST is protected weekly',
+	'  rest and OFF is another non-working day. A blank cell means no explicit override/assignment.',
+	'  Public holidays come from the observed holiday calendar; use PH only to validate that calendar.',
 	'',
-	'• shift_code must name an existing shift definition. The hours a working day earns are measured',
-	'  against the shift it names, so a code the company has not defined refuses the file.',
+	'• shift_code must name an existing roster code. The hours a working day earns are measured',
+	'  against its WORK variant, so a code the company has not defined refuses the file.',
 	'',
 	'What is refused',
 	'',
@@ -96,8 +96,8 @@ const ROSTER_README = [
 	'',
 	'employee_number   as seeded on the employment, e.g. NHPMY0002',
 	'work_date         YYYY-MM-DD (all rows must fall inside one roster month)',
-	'shift_code        an existing shift code, e.g. 7.5AM · 8.0AM · 8.5AM · AM0830 · AM1030 · PM2030 ·',
-	'                  PM2230 — empty on a rest day',
+	'shift_code        an existing roster code, e.g. 7.5AM · AM0830 · PM2030 · REST · OFF',
+	'                  leave empty when this file supplies no explicit assignment',
 	'',
 	'The sample rows below are illustrative. Delete them and paste your own.'
 ];
@@ -117,8 +117,8 @@ const TIME_README = [
 	'• An overnight shift needs no special marker. A clock_out at or before clock_in is treated as the',
 	'  next calendar day.',
 	'',
-	'• A row carries punches only — breaks, overtime and the open/closed state are derived from them.',
-	'  A row with both clocks lands closed; a row missing either clock lands open; and the payroll run',
+	'• A row carries observed work only — overtime and open/closed state are derived from it.',
+	'  A row with both clocks lands closed; a row missing the close lands open; and the payroll run',
 	'  prices the hours the punches record.',
 	'',
 	'• A leave day is NOT a time entry. Leave lives in its own record so it can be approved and audited;',

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { client } from '$pod/client';
 	import { useI18n } from '@norbital-ai/ui/i18n';
 	import type { TenantI18nKeys } from '$pod/i18n-keys';
 	/**
@@ -21,8 +22,19 @@
 	import { Grid, Stack } from '@norbital-ai/ui/layout';
 	import { numberFrom } from '../../lib/ui/renderer-input.js';
 	import { formatCalendarDate } from '../../lib/ui/display-formatters.js';
+	import HalfDayRangePicker, {
+		type HalfDayRange,
+		type LeaveDayAvailability
+	} from '../../lib/ui/leave/half-day-range-picker.svelte';
+	import { coversDate } from '../../collections/payroll_runs/lib/effective.js';
+	import { leaveBalance, resolveEntitlement } from '../../collections/payroll_runs/lib/leave.js';
+	import { completedMonths } from '../../collections/payroll_runs/lib/dates.js';
+	import { patternRosterCodeId } from '../../lib/scheduling/work-pattern.js';
+	import { rosterCodeKind } from '../../lib/scheduling/roster-code.js';
+	import { calendarDayKey } from '../../lib/ui/calendar.js';
 	import { leaveEventSchema } from './+definition.js';
 	import type { RendererProps, Value } from './$types.js';
+	type LeaveEventRendererProps = RendererProps & { readonly row?: Record<string, unknown> };
 
 	const { t } = useI18n<TenantI18nKeys>();
 
@@ -57,20 +69,155 @@
 		nullable: true
 	} satisfies CollectionField;
 
-	const HALF_DAY_OPTIONS = $derived([
-		{ value: 'false', label: t('renderer.leave_event.full_day') },
-		{ value: 'true', label: t('renderer.leave_event.half_day') }
-	]);
-
-	let props: RendererProps = $props();
+	let props: LeaveEventRendererProps = $props();
 	const disabled = $derived(props.mode === 'edit' ? props.disabled : true);
 	const parsed = $derived(leaveEventSchema.safeParse(props.value));
 	const current = $derived(parsed.success ? parsed.data : null);
+	const employmentId = $derived(
+		typeof props.row?.employment_id === 'string' ? props.row.employment_id : null
+	);
+	const leaveTypeId = $derived(
+		typeof props.row?.leave_type_id === 'string' ? props.row.leave_type_id : null
+	);
+	const requestId = $derived(
+		typeof props.row?.norbital_id === 'string' ? props.row.norbital_id : null
+	);
+	const employmentQuery = $derived(
+		employmentId == null
+			? null
+			: client.db.employments.findFirst({ where: { norbital_id: { eq: employmentId } } })
+	);
+	const employment = $derived(employmentQuery?.current ?? null);
+	const termsQuery = $derived(
+		employmentId == null
+			? null
+			: client.db.employment_terms.findMany({
+					where: { employment_id: { eq: employmentId } },
+					limit: 100
+				})
+	);
+	const rosterQuery = $derived(
+		employmentId == null
+			? null
+			: client.db.roster_entries.findMany({
+					where: { employment_id: { eq: employmentId } },
+					limit: 20_000
+				})
+	);
+	const holidaysQuery = $derived(
+		employment == null
+			? null
+			: client.db.company_holidays.findMany({
+					where: { company_id: { eq: employment.company_id } },
+					limit: 2_000
+				})
+	);
+	const rosterCodesQuery = $derived(
+		employment == null
+			? null
+			: client.db.shift_definitions.findMany({
+					where: { company_id: { eq: employment.company_id } },
+					limit: 2_000
+				})
+	);
+	const companyQuery = $derived(
+		employment == null
+			? null
+			: client.db.companies.findFirst({ where: { norbital_id: { eq: employment.company_id } } })
+	);
+	const leaveTypeQuery = $derived(
+		leaveTypeId == null
+			? null
+			: client.db.leave_types.findFirst({ where: { norbital_id: { eq: leaveTypeId } } })
+	);
+	const leaveLedgerQuery = $derived(
+		employmentId == null || leaveTypeId == null
+			? null
+			: client.db.leave_requests.findMany({
+					where: { employment_id: { eq: employmentId }, leave_type_id: { eq: leaveTypeId } },
+					limit: 20_000
+				})
+	);
+	const rosterByDate = $derived(
+		new Map((rosterQuery?.current ?? []).map((entry) => [calendarDayKey(entry.work_date), entry]))
+	);
+	const holidayDates = $derived(
+		new Set((holidaysQuery?.current ?? []).map((holiday) => calendarDayKey(holiday.date)))
+	);
+	const rosterCodeById = $derived(
+		new Map((rosterCodesQuery?.current ?? []).map((code) => [code.norbital_id, code]))
+	);
+	const availableLeaveDays = $derived.by(() => {
+		if (
+			current?.kind !== 'TIME_OFF' ||
+			employment == null ||
+			employmentId == null ||
+			leaveTypeId == null
+		)
+			return null;
+		const company = companyQuery?.current;
+		const leaveType = leaveTypeQuery?.current;
+		if (company == null || leaveType == null || leaveType.accrual?.kind === 'PER_EVENT')
+			return null;
+		const asOf = current.range.end.date;
+		const hireDate = calendarDayKey(employment.hire_date);
+		const ledger = (leaveLedgerQuery?.current ?? [])
+			.filter((row) => row.norbital_id !== requestId && row.from_date != null)
+			.map((row) => ({
+				norbital_id: row.norbital_id,
+				leave_type_id: row.leave_type_id,
+				entry_date: row.from_date!,
+				kind: row.kind,
+				days: row.kind === 'TIME_OFF' ? -Math.abs(Number(row.days)) : Number(row.days),
+				source_id: null,
+				norbital_approval_id: row.norbital_approval_id
+			}));
+		const entitlementAtMonths = (serviceMonths: number) =>
+			resolveEntitlement({ leaveType, serviceMonths, employmentId, asOf });
+		// Resolve once so a malformed entitlement layer is shown before submit, not after the drag.
+		entitlementAtMonths(completedMonths(hireDate, asOf));
+		return Math.max(
+			0,
+			leaveBalance(
+				{
+					leaveType,
+					entitlementAtMonths,
+					hireDate,
+					exitDate: employment.exit_date == null ? null : calendarDayKey(employment.exit_date),
+					leaveYearStartMonth: Number(company.leave_year_start_month),
+					ledger,
+					basis: 'PROJECTED'
+				},
+				asOf
+			)
+		);
+	});
+
+	function leaveDayAvailability(date: string): LeaveDayAvailability {
+		if (holidayDates.has(date)) {
+			return { eligible: false, reason: t('component.excluded_public_holiday') };
+		}
+		const term = (termsQuery?.current ?? []).find((candidate) =>
+			coversDate(candidate.effective_range, date)
+		);
+		if (term == null) return { eligible: false, reason: t('component.excluded_no_schedule') };
+		let codeId = rosterByDate.get(date)?.shift_definition_id ?? null;
+		try {
+			codeId ??= patternRosterCodeId(term.work_pattern, date);
+		} catch {
+			return { eligible: false, reason: t('component.excluded_no_schedule') };
+		}
+		const code = codeId == null ? null : rosterCodeById.get(codeId);
+		if (code == null || rosterCodeKind(code.variant) !== 'WORK') {
+			return { eligible: false, reason: t('component.excluded_rest_or_off') };
+		}
+		return { eligible: true };
+	}
 
 	const summary = $derived.by(() => {
 		if (current === null) return '—';
 		if (current.kind === 'TIME_OFF')
-			return `${formatCalendarDate(current.from_date)} → ${formatCalendarDate(current.to_date)} · ${current.days}d`;
+			return `${formatCalendarDate(current.range.start.date)} → ${formatCalendarDate(current.range.end.date)}${current.chargeable_days == null ? '' : ` · ${current.chargeable_days}d`}`;
 		return `${t(
 			`renderer.leave_event.kind_${current.kind === 'ENCASHMENT' ? 'encashment' : 'balance_adjustment'}`
 		)} · ${formatCalendarDate(current.effective_on)} · ${current.movement_days}d`;
@@ -90,11 +237,11 @@
 		if (kind === 'TIME_OFF')
 			return {
 				kind: 'TIME_OFF',
-				from_date: on,
-				to_date: on,
-				days: 1,
-				half_day_start: false,
-				half_day_end: false,
+				range: {
+					start: { date: on, half: 'FIRST' },
+					end: { date: on, half: 'SECOND' }
+				},
+				chargeable_days: null,
 				reason: null,
 				certificate_file: null
 			};
@@ -126,6 +273,15 @@
 	function textOrNull(raw: string): string | null {
 		return raw.trim().length === 0 ? null : raw;
 	}
+
+	function setTimeOffRange(range: HalfDayRange): void {
+		if (current?.kind !== 'TIME_OFF') return;
+		emit({
+			...current,
+			range,
+			chargeable_days: null
+		});
+	}
 </script>
 
 {#if props.mode === 'display'}
@@ -146,59 +302,15 @@
 		</label>
 
 		{#if current?.kind === 'TIME_OFF'}
-			<label class="grid gap-1.5 text-sm font-medium">
-				{t('component.from')}
-				<Input
-					type="date"
-					value={current.from_date}
+			<div class="col-span-full min-w-0">
+				<HalfDayRangePicker
+					value={current.range}
+					availability={leaveDayAvailability}
+					maximumHalfDays={availableLeaveDays == null ? null : Math.floor(availableLeaveDays * 2)}
 					{disabled}
-					oninput={(event) => emit({ ...current, from_date: event.currentTarget.value })}
+					onValueChange={setTimeOffRange}
 				/>
-			</label>
-			<label class="grid gap-1.5 text-sm font-medium">
-				{t('component.to')}
-				<Input
-					type="date"
-					value={current.to_date}
-					{disabled}
-					oninput={(event) => emit({ ...current, to_date: event.currentTarget.value })}
-				/>
-			</label>
-			<label class="grid gap-1.5 text-sm font-medium">
-				{t('component.days')}
-				<Input
-					type="number"
-					min="0.5"
-					step="0.5"
-					value={current.days}
-					{disabled}
-					oninput={(event) => emit({ ...current, days: numberFrom(event.currentTarget.value, 1) })}
-				/>
-			</label>
-			<label class="grid gap-1.5 text-sm font-medium">
-				{t('renderer.leave_event.first_day')}
-				<Combobox
-					ariaLabel={t('renderer.leave_event.first_day')}
-					options={HALF_DAY_OPTIONS}
-					value={current.half_day_start ? 'true' : 'false'}
-					{disabled}
-					searchable={false}
-					emptyPlaceholder={t('renderer.leave_event.full_day')}
-					onValueChange={(value) => emit({ ...current, half_day_start: value === 'true' })}
-				/>
-			</label>
-			<label class="grid gap-1.5 text-sm font-medium">
-				{t('renderer.leave_event.last_day')}
-				<Combobox
-					ariaLabel={t('renderer.leave_event.last_day')}
-					options={HALF_DAY_OPTIONS}
-					value={current.half_day_end ? 'true' : 'false'}
-					{disabled}
-					searchable={false}
-					emptyPlaceholder={t('renderer.leave_event.full_day')}
-					onValueChange={(value) => emit({ ...current, half_day_end: value === 'true' })}
-				/>
-			</label>
+			</div>
 			<label class="grid gap-1.5 text-sm font-medium">
 				{t('renderer.leave_event.reason')}
 				<Input

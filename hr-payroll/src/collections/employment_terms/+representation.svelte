@@ -37,31 +37,12 @@
 					}
 				}}
 			/>
-			<Field
-				name="work_pattern_id"
-				label={t('component.work_pattern')}
-				renderer={RelationshipRenderer}
-				rendererProps={{
-					target: 'work_patterns',
-					options: {
-						label: (pattern) =>
-							[pattern.code, pattern.name]
-								.filter((part) => part != null && part !== '')
-								.join(' · ') || '—',
-						orderBy: { code: 'asc' },
-						limit: 500
-					}
-				}}
-			/>
 			<Field name="base_salary" label={t('component.base_salary')} />
 			<Field name="pay_frequency" label={t('component.pay_frequency')} />
-			<Field name="ordinary_hours_per_week" label={t('component.ordinary_hours_per_week')} />
-			<Field name="working_days_per_week" label={t('component.working_days_per_week')} />
+			<Column span="all"><Field name="work_pattern" label={t('component.work_pattern')} /></Column>
 			<Field name="employment_type" label={t('component.employment_type')} />
 			<Field name="work_classification" label={t('component.classification')} />
 			<Field name="statutory_work_category" label={t('component.statutory_work_category')} />
-			<Field name="overtime_eligible" label={t('component.overtime_eligible')} />
-			<Field name="rest_day" label={t('component.rest_day_no_pattern')} />
 			<Field name="job_title" label={t('component.job_title')} />
 			<Field name="department" />
 			<Field name="payroll_group" label={t('component.payroll_group')} />

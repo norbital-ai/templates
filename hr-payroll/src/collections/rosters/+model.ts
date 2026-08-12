@@ -3,7 +3,6 @@ import { defineModel, text, timestamp, uuid } from '@norbital-ai/pod/authoring';
 export default defineModel(
 	{
 		company_id: uuid().notNull(),
-		work_pattern_id: uuid().notNull(),
 		/** `YYYY-MM`. A roster is drafted and published one calendar month at a time. */
 		month: text({ search: true }).notNull(),
 		/**
@@ -15,9 +14,9 @@ export default defineModel(
 	},
 	{
 		description:
-			'One month of operational schedule for one company and work pattern. Draft while unpublished; publishing validates the month against the pattern and statute, then freezes its entries.',
+			'One company-wide month of operational schedule. Patterned employments are projected automatically; entries record explicit overrides and assignments before validation and publication.',
 		recordLabel: 'month',
 		icon: 'lucide:calendar-check',
-		indexes: [{ columns: ['company_id', 'work_pattern_id', 'month'], unique: true }]
+		indexes: [{ columns: ['company_id', 'month'], unique: true }]
 	}
 );

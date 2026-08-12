@@ -1,6 +1,7 @@
 import { defineQueryHandler } from '@norbital-ai/pod/authoring';
 import { z } from 'zod';
 import { shiftDayKey } from '../lib/ui/calendar.js';
+import { attendanceState } from '../lib/attendance.js';
 
 const calendarDay = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
 
@@ -33,30 +34,29 @@ export default defineQueryHandler({
 			weeks.push({ week, end: [shiftDayKey(week, 6), to].sort()[0]! });
 		}
 
-		return Promise.all(
-			weeks.map(async ({ week, end }) => {
-				const scope = {
-					time_entry_employment: {
-						company_id: { eq: company_id },
-						norbital_approval_id: { isNull: true }
-					},
-					work_date: { gte: week, lte: end }
-				} as const;
-				const [total, incomplete] = await Promise.all([
-					api.db.time_entries.count({ where: scope }),
-					api.db.time_entries.count({
-						where: {
-							...scope,
-							OR: [
-								{ state: { eq: 'OPEN' } },
-								{ clock_in: { isNull: true } },
-								{ clock_out: { isNull: true } }
-							]
-						}
-					})
-				]);
-				return { week, exceptionRate: total === 0 ? 0 : incomplete / total };
-			})
-		);
+		const entries = await api.db.query.time_entries.findMany({
+			where: {
+				time_entry_employment: {
+					company_id: { eq: company_id },
+					norbital_approval_id: { isNull: true }
+				},
+				work_date: { gte: from, lte: to }
+			},
+			columns: { work_date: true, worked_intervals: true },
+			limit: 20_000
+		});
+		if (entries.length === 20_000) {
+			throw new Error('Attendance summary reached its 20,000-row safety limit. Shorten the range.');
+		}
+		return weeks.map(({ week, end }) => {
+			const inWeek = entries.filter((entry) => {
+				const date = String(entry.work_date).slice(0, 10);
+				return date >= week && date <= end;
+			});
+			const incomplete = inWeek.filter(
+				(entry) => attendanceState(entry.worked_intervals) !== 'COMPLETE'
+			).length;
+			return { week, exceptionRate: inWeek.length === 0 ? 0 : incomplete / inWeek.length };
+		});
 	}
 });

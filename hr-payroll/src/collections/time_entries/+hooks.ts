@@ -1,67 +1,48 @@
 import { refuse } from '@norbital-ai/pod/authoring';
+import { workedIntervalsSchema } from '../../custom-types/worked_intervals/+definition.js';
 import type { Hooks } from './$types.js';
 
-function toMillis(value: unknown): number | null {
-	if (value == null) return null;
-	if (value instanceof Date) {
-		const milliseconds = value.getTime();
-		return Number.isNaN(milliseconds) ? null : milliseconds;
-	}
-	if (typeof value === 'string' || typeof value === 'number') {
-		const milliseconds = new Date(value).getTime();
-		return Number.isNaN(milliseconds) ? null : milliseconds;
-	}
-	return null;
-}
-
-/** A closed clock has both stamps and runs forwards; an open one may still be missing its close. */
-function assertClock(row: Record<string, unknown>): void {
-	const clockIn = row.clock_in ?? null;
-	const clockOut = row.clock_out ?? null;
-
-	if (row.state === 'CLOSED' && (clockIn == null || clockOut == null)) {
-		refuse(
-			'A CLOSED time entry must have both clock_in and clock_out. Leave it OPEN until the clock stops.'
-		);
-	}
-
-	if (clockIn == null || clockOut == null) return;
-
-	const startedAt = toMillis(clockIn);
-	const endedAt = toMillis(clockOut);
-	if (startedAt == null || endedAt == null) {
-		refuse('clock_in and clock_out must be valid timestamps.');
-	}
-	if (endedAt <= startedAt) {
-		refuse(
-			'clock_out must be later than clock_in. A shift crossing midnight still ends on a later instant.'
-		);
-	}
-}
+type Interval = { readonly start_at: string; readonly end_at: string | null };
 
 /**
- * The dedicated overtime punch is a pair or it is nothing: one stamp alone cannot say how long
- * overtime ran, and for the populations that use this punch it is the ONLY thing that earns
- * overtime, so half a pair would silently pay zero rather than fail.
+ * Attendance is an ordered set of observations. It does not classify any interval as overtime:
+ * premium work is derived later from these intervals, the effective schedule and statutory rules.
  */
-function assertOvertimePunch(row: Record<string, unknown>): void {
-	const overtimeIn = row.overtime_in ?? null;
-	const overtimeOut = row.overtime_out ?? null;
-
-	if ((overtimeIn == null) !== (overtimeOut == null)) {
-		refuse(
-			'overtime_in and overtime_out must be given together. Leave both empty where overtime is not punched separately.'
-		);
+function assertWorkedIntervals(value: unknown, breakMinutes: unknown): void {
+	const parsed = workedIntervalsSchema.safeParse(value);
+	if (!parsed.success) {
+		refuse('Attendance must contain at least one worked interval with valid start and end times.');
 	}
-	if (overtimeIn == null || overtimeOut == null) return;
 
-	const startedAt = toMillis(overtimeIn);
-	const endedAt = toMillis(overtimeOut);
-	if (startedAt == null || endedAt == null) {
-		refuse('overtime_in and overtime_out must be valid timestamps.');
+	let previousEnd = Number.NEGATIVE_INFINITY;
+	let closedMinutes = 0;
+	for (const [index, interval] of parsed.data.entries()) {
+		const startedAt = Date.parse(interval.start_at);
+		const endedAt = interval.end_at == null ? null : Date.parse(interval.end_at);
+		if (index > 0 && startedAt < previousEnd) {
+			refuse('Worked intervals must be in time order and cannot overlap.');
+		}
+		if (endedAt == null) {
+			if (index !== parsed.data.length - 1) {
+				refuse('Only the final worked interval may still be open.');
+			}
+			previousEnd = Number.POSITIVE_INFINITY;
+			continue;
+		}
+		if (endedAt <= startedAt) {
+			refuse('Each worked interval must end after it starts, including work across midnight.');
+		}
+		closedMinutes += (endedAt - startedAt) / 60_000;
+		previousEnd = endedAt;
 	}
-	if (endedAt <= startedAt) {
-		refuse('overtime_out must be later than overtime_in.');
+
+	const unpaidBreak = Number(breakMinutes ?? 0);
+	if (!Number.isInteger(unpaidBreak) || unpaidBreak < 0) {
+		refuse('Unpaid break must be a non-negative whole number of minutes.');
+	}
+	const hasOpenInterval = parsed.data.some((interval: Interval) => interval.end_at == null);
+	if (!hasOpenInterval && unpaidBreak >= closedMinutes) {
+		refuse('Unpaid break must be shorter than the recorded worked time.');
 	}
 }
 
@@ -69,10 +50,9 @@ export default {
 	create: {
 		before: {
 			description:
-				'Requires a CLOSED time entry to carry both clock_in and clock_out with the clock running forwards, and the separate overtime punch to be given as a pair or not at all.',
+				'Requires ordered, non-overlapping worked intervals; only the final interval may remain open, and no overtime classification is accepted or stored.',
 			handler: async ({ input }) => {
-				assertClock({ ...input });
-				assertOvertimePunch({ ...input });
+				assertWorkedIntervals(input.worked_intervals, input.break_minutes);
 				return input;
 			}
 		}
@@ -80,10 +60,12 @@ export default {
 	update: {
 		before: {
 			description:
-				'Judges the patched time entry as the row it becomes, so closing a shift or amending one stamp cannot leave a clock that ends before it starts or half an overtime punch.',
+				'Re-checks the complete patched attendance row so partial edits cannot create overlapping intervals, time reversal or an impossible unpaid break.',
 			handler: async ({ input, existing }) => {
-				assertClock({ ...existing, ...input });
-				assertOvertimePunch({ ...existing, ...input });
+				assertWorkedIntervals(
+					input.worked_intervals ?? existing.worked_intervals,
+					input.break_minutes ?? existing.break_minutes
+				);
 				return input;
 			}
 		}

@@ -40,15 +40,6 @@
 	const companyLabelsById = $derived(
 		new Map((companiesQuery.current ?? []).map((company) => [company.norbital_id, company.name]))
 	);
-	const patternsQuery = client.db.work_patterns.findMany({ where: approved, limit: 500 });
-	const patternLabelsById = $derived(
-		new Map(
-			(patternsQuery.current ?? []).map((pattern) => [
-				pattern.norbital_id,
-				`${pattern.code} · ${pattern.name}`
-			])
-		)
-	);
 	const contributionsQuery = client.db.statutory_contributions.findMany({
 		where: approved,
 		limit: 500
@@ -149,12 +140,7 @@
 			<TableColumn name="job_title" label={t('component.job_title')} />
 			<TableColumn name="employment_type" label={t('component.type')} />
 			<TableColumn name="work_classification" label={t('component.classification')} />
-			<TableColumn
-				name="work_pattern_id"
-				label={t('component.work_pattern')}
-				render={({ value }) =>
-					value == null || value === '' ? '—' : (patternLabelsById.get(String(value)) ?? '—')}
-			/>
+			<TableColumn name="work_pattern" label={t('component.work_pattern')} />
 			<TableColumn name="effective_range" label={t('component.effective')} />
 		{/snippet}
 	</CollectionTable>

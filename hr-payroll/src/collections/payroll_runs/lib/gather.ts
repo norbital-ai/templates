@@ -218,9 +218,9 @@ export async function gatherRun(options: {
 					norbital_id: request.norbital_id,
 					employment_id: request.employment_id,
 					leave_type_id: request.leave_type_id,
-					entry_date: event.from_date,
+					entry_date: event.range.start.date,
 					kind: 'TAKEN',
-					days: -Math.abs(Number(event.days)),
+					days: -Math.abs(Number(event.chargeable_days ?? 0)),
 					source_id: request.norbital_id,
 					norbital_approval_id: null
 				};
