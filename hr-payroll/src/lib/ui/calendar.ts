@@ -130,6 +130,15 @@ export function calendarDayKey(value: string | Date): string {
 	return formatDateISO(value);
 }
 
+/** A calendar day shifted by whole days without involving the browser's local timezone. */
+export function shiftDayKey(day: string, days: number): string {
+	const parsed = new Date(`${day}T00:00:00.000Z`);
+	if (Number.isNaN(parsed.getTime()))
+		throw new Error(`"${day}" is not a YYYY-MM-DD calendar date.`);
+	parsed.setUTCDate(parsed.getUTCDate() + Math.trunc(days));
+	return parsed.toISOString().slice(0, 10);
+}
+
 /** `YYYY-MM` of a UTC calendar day (string key or live `date()` column value). */
 export function monthKey(date: string | Date): string {
 	return calendarDayKey(date).slice(0, 7);
