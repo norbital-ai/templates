@@ -5,10 +5,9 @@
 	import AppHeaderActions from '@norbital-ai/pod/client/app-header-actions';
 	import type { TenantI18nKeys } from '$pod/i18n-keys';
 	import { Combobox } from '@norbital-ai/ui/combobox';
-	import { Cover, Grid, Inline, Stack } from '@norbital-ai/ui/layout';
+	import { Cover, Inline, Stack } from '@norbital-ai/ui/layout';
 	import { Tabs, type TabConfig } from '@norbital-ai/ui/tabs';
 	import { CollectionTable } from '@norbital-ai/ui/collection-table';
-	import ApprovalSummaryTable from '../../lib/ui/approval-summary-table.svelte';
 	import { formatCalendarDate } from '../../lib/ui/display-formatters.js';
 	import {
 		daysBetweenKeys,
@@ -99,21 +98,6 @@
 	const draftRunCount = $derived(
 		(payrollRunsQuery?.current ?? []).filter((run) => run.lifecycle === 'DRAFT').length
 	);
-	const analyticsQuery = client.invoke.approval_analytics({ subject: 'PAYROLL' });
-	const analytics = $derived(
-		analyticsQuery.current ?? {
-			as_of_date: today,
-			total: 0,
-			summary: {
-				ytd_pending: 0,
-				ytd_approved: 0,
-				average_approval_hours: null,
-				approval_sample_size: 0
-			},
-			annual_trend: []
-		}
-	);
-
 	function timingLabel(row: CycleRow): string {
 		const days = daysBetweenKeys(today, row.payDate);
 		if (row.status === 'late') {
@@ -166,91 +150,80 @@
 	{#if selectedCompanyId == null}
 		<p class="text-sm text-muted-foreground">{t('app.payroll.empty_overview')}</p>
 	{:else}
-		<Grid minimum="card">
-			<Stack as="section" gap="md" aria-labelledby="payroll-cycles-heading">
-				<Inline align="end" justify="between" gap="md">
-					<Stack gap="xs">
-						<h2 id="payroll-cycles-heading" class="text-lg font-semibold">
-							{t('app.payroll.payroll_cycles')}
-						</h2>
-						<p class="text-sm text-muted-foreground">
-							{t('app.payroll.payroll_cycles_description')}
-						</p>
-					</Stack>
-					<p class="shrink-0 text-sm text-muted-foreground">
-						{#if lateCount > 0}
-							<span class="font-medium text-destructive">
-								{t('app.payroll.late_count', { count: lateCount })}
-							</span>
-							·
-						{/if}
-						{draftRunCount === 1
-							? t('app.payroll.draft_run_one')
-							: t('app.payroll.draft_runs_many', { count: draftRunCount })}
+		<Stack as="section" gap="md" aria-labelledby="payroll-cycles-heading">
+			<Inline align="end" justify="between" gap="md">
+				<Stack gap="xs">
+					<h2 id="payroll-cycles-heading" class="text-lg font-semibold">
+						{t('app.payroll.payroll_cycles')}
+					</h2>
+					<p class="text-sm text-muted-foreground">
+						{t('app.payroll.payroll_cycles_description')}
 					</p>
-				</Inline>
-				<div class="rounded-lg border">
-					{#if companiesQuery.loading || payrollRunsQuery?.loading}
-						<div class="p-5 text-sm text-muted-foreground">{t('app.payroll.loading_cycles')}</div>
-					{:else if cycleBoard.length === 0}
-						<div class="p-5 text-sm text-muted-foreground">{t('app.payroll.no_open_cycles')}</div>
-					{:else}
-						<!-- stupidity:allow UI3 -- derived pay dates are not collection records. -->
-						<table class="w-full text-left text-sm">
-							<thead class="bg-muted/40 text-xs text-muted-foreground">
-								<tr>
-									<th class="px-3 py-2 font-semibold">{t('app.payroll.status')}</th>
-									<th class="px-3 py-2 font-semibold">{t('app.payroll.pay_date')}</th>
-									<th class="px-3 py-2 font-semibold">{t('app.payroll.period')}</th>
-									<th class="px-3 py-2 font-semibold">{t('app.payroll.attendance')}</th>
-									<th class="px-3 py-2 font-semibold">{t('app.payroll.run')}</th>
-									<th class="px-3 py-2 text-right font-semibold">{t('app.payroll.timing')}</th>
-								</tr>
-							</thead>
-							<tbody class="divide-y">
-								{#each cycleBoard as row (row.period)}
-									<tr
-										class={row.status === 'late'
-											? 'bg-destructive/5'
-											: row.status === 'current'
-												? 'bg-muted/30'
-												: undefined}
-									>
-										<td class="px-3 py-2.5">
-											<span
-												class="rounded-full px-2 py-0.5 text-xs font-medium {row.status === 'late'
-													? 'bg-destructive text-destructive-foreground'
-													: row.status === 'current'
-														? 'bg-foreground text-background'
-														: 'bg-muted text-muted-foreground'}"
-											>
-												{statusLabel(row.status)}
-											</span>
-										</td>
-										<td class="px-3 py-2.5 font-medium">
-											{formatCalendarDate(row.payDate)}
-										</td>
-										<td class="px-3 py-2.5 tabular-nums">{row.period}</td>
-										<td class="px-3 py-2.5 text-muted-foreground">{row.attendance ?? '—'}</td>
-										<td class="px-3 py-2.5">{row.runState ?? t('app.payroll.not_started')}</td>
-										<td class="px-3 py-2.5 text-right font-medium">{timingLabel(row)}</td>
-									</tr>
-								{/each}
-							</tbody>
-						</table>
+				</Stack>
+				<p class="shrink-0 text-sm text-muted-foreground">
+					{#if lateCount > 0}
+						<span class="font-medium text-destructive">
+							{t('app.payroll.late_count', { count: lateCount })}
+						</span>
+						·
 					{/if}
-				</div>
-			</Stack>
-			<Stack gap="md">
-				<ApprovalSummaryTable
-					title={t('app.payroll.payroll_decisions')}
-					asOfDate={analytics.as_of_date}
-					summary={analytics.summary}
-					pendingLabel={t('app.payroll.yet_to_approve')}
-					note={t('app.payroll.payroll_decisions_note')}
-				/>
-			</Stack>
-		</Grid>
+					{draftRunCount === 1
+						? t('app.payroll.draft_run_one')
+						: t('app.payroll.draft_runs_many', { count: draftRunCount })}
+				</p>
+			</Inline>
+			<div class="rounded-lg border">
+				{#if companiesQuery.loading || payrollRunsQuery?.loading}
+					<div class="p-5 text-sm text-muted-foreground">{t('app.payroll.loading_cycles')}</div>
+				{:else if cycleBoard.length === 0}
+					<div class="p-5 text-sm text-muted-foreground">{t('app.payroll.no_open_cycles')}</div>
+				{:else}
+					<!-- stupidity:allow UI3 -- derived pay dates are not collection records. -->
+					<table class="w-full text-left text-sm">
+						<thead class="bg-muted/40 text-xs text-muted-foreground">
+							<tr>
+								<th class="px-3 py-2 font-semibold">{t('app.payroll.status')}</th>
+								<th class="px-3 py-2 font-semibold">{t('app.payroll.pay_date')}</th>
+								<th class="px-3 py-2 font-semibold">{t('app.payroll.period')}</th>
+								<th class="px-3 py-2 font-semibold">{t('app.payroll.attendance')}</th>
+								<th class="px-3 py-2 font-semibold">{t('app.payroll.run')}</th>
+								<th class="px-3 py-2 text-right font-semibold">{t('app.payroll.timing')}</th>
+							</tr>
+						</thead>
+						<tbody class="divide-y">
+							{#each cycleBoard as row (row.period)}
+								<tr
+									class={row.status === 'late'
+										? 'bg-destructive/5'
+										: row.status === 'current'
+											? 'bg-muted/30'
+											: undefined}
+								>
+									<td class="px-3 py-2.5">
+										<span
+											class="rounded-full px-2 py-0.5 text-xs font-medium {row.status === 'late'
+												? 'bg-destructive text-destructive-foreground'
+												: row.status === 'current'
+													? 'bg-foreground text-background'
+													: 'bg-muted text-muted-foreground'}"
+										>
+											{statusLabel(row.status)}
+										</span>
+									</td>
+									<td class="px-3 py-2.5 font-medium">
+										{formatCalendarDate(row.payDate)}
+									</td>
+									<td class="px-3 py-2.5 tabular-nums">{row.period}</td>
+									<td class="px-3 py-2.5 text-muted-foreground">{row.attendance ?? '—'}</td>
+									<td class="px-3 py-2.5">{row.runState ?? t('app.payroll.not_started')}</td>
+									<td class="px-3 py-2.5 text-right font-medium">{timingLabel(row)}</td>
+								</tr>
+							{/each}
+						</tbody>
+					</table>
+				{/if}
+			</div>
+		</Stack>
 	{/if}
 {/snippet}
 

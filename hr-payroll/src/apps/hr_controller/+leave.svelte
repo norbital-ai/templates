@@ -3,19 +3,17 @@
 	import { useI18n } from '@norbital-ai/ui/i18n';
 	import AppHeaderActions from '@norbital-ai/pod/client/app-header-actions';
 	import type { TenantI18nKeys } from '$pod/i18n-keys';
-	import { Display, type ChartDisplaySpec } from '@norbital-ai/ui/chart';
 	import { Tabs, type TabConfig } from '@norbital-ai/ui/tabs';
 	import { CollectionTable } from '@norbital-ai/ui/collection-table';
 	import { Combobox } from '@norbital-ai/ui/combobox';
-	import { Cover, Grid, Inline, Stack } from '@norbital-ai/ui/layout';
-	import ApprovalSummaryTable from '../../lib/ui/approval-summary-table.svelte';
+	import { Cover, Inline, Stack } from '@norbital-ai/ui/layout';
 	import {
 		formatCalendarDate,
 		formatLeaveAccrual,
 		formatLeavePayrollEffect,
 		formatNumeric
 	} from '../../lib/ui/display-formatters.js';
-	import { inForceTodayFilter, todayInstant, todayKey } from '../../lib/ui/calendar.js';
+	import { inForceTodayFilter, todayInstant } from '../../lib/ui/calendar.js';
 
 	const { t } = useI18n<TenantI18nKeys>();
 
@@ -47,35 +45,37 @@
 			: (companies[0]?.norbital_id ?? null)
 	);
 
-	const analyticsQuery = client.invoke.approval_analytics({ subject: 'LEAVE' });
+	const analyticsQuery = $derived(
+		selectedCompanyId == null
+			? null
+			: client.invoke.approval_analytics({ subject: 'LEAVE', company_id: selectedCompanyId })
+	);
 	const analytics = $derived(
-		analyticsQuery.current ?? {
-			as_of_date: todayKey(),
+		analyticsQuery?.current ?? {
 			total: 0,
-			summary: {
-				ytd_pending: 0,
-				ytd_approved: 0,
-				average_approval_hours: null,
-				approval_sample_size: 0
-			},
-			annual_trend: []
+			seasonal_heatmap: []
 		}
 	);
-	const leaveTrendChart = $derived({
-		kind: 'line',
-		loading: analyticsQuery.loading,
-		title: t('app.leave.chart_title'),
-		description: t('app.leave.chart_description'),
-		data: analytics.annual_trend,
-		xKey: 'year',
-		series: ['applications', 'regression'],
-		config: {
-			applications: { label: t('component.chart_applications'), color: 'var(--color-primary)' },
-			regression: { label: t('component.chart_regression'), color: 'var(--color-muted-foreground)' }
-		},
-		valueFormat: { style: 'number', maximumFractionDigits: 1 },
-		curve: 'linear'
-	} satisfies ChartDisplaySpec);
+	const heatmapMaximum = $derived(
+		Math.max(0, ...analytics.seasonal_heatmap.flatMap((row) => row.months))
+	);
+
+	function heatmapClass(count: number): string {
+		if (count === 0 || heatmapMaximum === 0) return 'bg-muted/35 text-muted-foreground';
+		const level = Math.ceil((count / heatmapMaximum) * 5);
+		switch (level) {
+			case 1:
+				return 'bg-primary/10 text-foreground';
+			case 2:
+				return 'bg-primary/25 text-foreground';
+			case 3:
+				return 'bg-primary/45 text-primary-foreground';
+			case 4:
+				return 'bg-primary/70 text-primary-foreground';
+			default:
+				return 'bg-primary text-primary-foreground';
+		}
+	}
 
 	type NestedLeaveRequest = {
 		readonly leave_request_type?: {
@@ -141,25 +141,80 @@
 	{#if selectedCompanyId == null}
 		<p class="text-sm text-muted-foreground">{t('app.leave.empty_overview')}</p>
 	{:else}
-		<Grid gap="xl" minimum="panel">
-			<Stack gap="md">
-				<div>
-					<h2 class="text-lg font-semibold">{t('app.leave.leave_activity')}</h2>
-					<p class="text-sm text-muted-foreground">
-						{t('app.leave.leave_activity_description', { count: analytics.total.toLocaleString() })}
-					</p>
-				</div>
-				<ApprovalSummaryTable
-					title={t('app.leave.leave_decisions')}
-					asOfDate={analytics.as_of_date}
-					summary={analytics.summary}
-					note={t('app.leave.leave_decisions_note')}
-				/>
-			</Stack>
-			<div class="min-w-0 rounded-lg border bg-card p-4 shadow-card">
-				<Display spec={leaveTrendChart} class="min-h-[18rem]" />
+		<Stack as="section" gap="md" aria-labelledby="leave-seasonality-heading">
+			<div>
+				<h2 class="text-lg font-semibold">{t('app.leave.leave_activity')}</h2>
+				<p class="text-sm text-muted-foreground">
+					{t('app.leave.leave_activity_description', { count: analytics.total.toLocaleString() })}
+				</p>
 			</div>
-		</Grid>
+			<div class="rounded-lg border bg-card p-4 shadow-card">
+				<Stack gap="md">
+					<div>
+						<h3 id="leave-seasonality-heading" class="font-semibold">
+							{t('app.leave.chart_title')}
+						</h3>
+						<p class="text-sm text-muted-foreground">{t('app.leave.chart_description')}</p>
+					</div>
+					{#if analyticsQuery?.loading}
+						<p class="py-8 text-center text-sm text-muted-foreground">
+							{t('app.leave.loading_seasonality')}
+						</p>
+					{:else if analyticsQuery?.error}
+						<p class="py-8 text-center text-sm text-destructive">
+							{t('app.leave.seasonality_error')}
+						</p>
+					{:else}
+						<!-- stupidity:allow UI3 -- this is a derived reporting matrix, not a collection. -->
+						<table class="w-full table-fixed border-separate border-spacing-1 text-center text-xs">
+							<caption class="sr-only">{t('app.leave.chart_description')}</caption>
+							<thead class="text-muted-foreground">
+								<tr>
+									<th class="w-14 pb-1 text-left font-medium">{t('app.leave.heatmap_year')}</th>
+									{#each Array.from({ length: 12 }, (_value, index) => index + 1) as month}
+										<th class="pb-1 font-medium" scope="col">{month}</th>
+									{/each}
+								</tr>
+							</thead>
+							<tbody>
+								{#each analytics.seasonal_heatmap as row (row.year)}
+									<tr>
+										<th class="pr-1 text-left font-medium tabular-nums" scope="row">{row.year}</th>
+										{#each row.months as count, monthIndex (`${row.year}-${monthIndex}`)}
+											<td>
+												<span
+													class="block rounded-sm py-2 font-medium tabular-nums {heatmapClass(
+														count
+													)}"
+													title={t('app.leave.heatmap_cell', {
+														year: row.year,
+														month: monthIndex + 1,
+														count
+													})}
+												>
+													{count}
+												</span>
+											</td>
+										{/each}
+									</tr>
+								{/each}
+							</tbody>
+						</table>
+						<Inline justify="end" gap="xs" aria-label={t('app.leave.heatmap_legend')}>
+							<span class="text-xs text-muted-foreground">{t('app.leave.heatmap_fewer')}</span>
+							{#each [1, 2, 3, 4, 5] as level}
+								<span
+									class="size-3 rounded-sm {heatmapClass(
+										Math.max(1, Math.ceil((heatmapMaximum * level) / 5))
+									)}"
+								></span>
+							{/each}
+							<span class="text-xs text-muted-foreground">{t('app.leave.heatmap_more')}</span>
+						</Inline>
+					{/if}
+				</Stack>
+			</div>
+		</Stack>
 	{/if}
 {/snippet}
 
