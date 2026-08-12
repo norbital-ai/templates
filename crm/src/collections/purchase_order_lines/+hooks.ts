@@ -86,6 +86,58 @@ export default {
 		before: {
 			description:
 				'Adds a line only to a draft order for an active product, fills the product code, name, unit and tax rate from the catalogue, and prices the line net, tax and total from quantity and unit cost.',
+			batchHandler: async ({ inputs, api }) => {
+				const orderIds = [
+					...new Set(
+						inputs.flatMap((input) => (input.purchase_order_id ? [input.purchase_order_id] : []))
+					)
+				];
+				const productIds = [
+					...new Set(inputs.flatMap((input) => (input.product_id ? [input.product_id] : [])))
+				];
+				const [orders, products] = await Promise.all([
+					orderIds.length
+						? api.db.query.purchase_orders.findMany({
+								where: { norbital_id: { in: orderIds } },
+								limit: LINE_LIMIT
+							})
+						: [],
+					productIds.length
+						? api.db.query.products.findMany({
+								where: { norbital_id: { in: productIds } },
+								limit: LINE_LIMIT
+							})
+						: []
+				]);
+				const ordersById = new Map(orders.map((order) => [order.norbital_id, order]));
+				const productsById = new Map(products.map((product) => [product.norbital_id, product]));
+
+				return inputs.map((input) => {
+					if (!input.purchase_order_id) {
+						throw new Error('A purchase order line must reference a purchase order.');
+					}
+					const order = ordersById.get(input.purchase_order_id);
+					if (!order) throw new Error('Referenced purchase order does not exist.');
+					if (order.status !== 'draft') {
+						throw new Error('Line items can only be added to draft purchase orders.');
+					}
+					if (!input.product_id) throw new Error('A purchase order line must reference a product.');
+					const product = productsById.get(input.product_id);
+					if (!product) throw new Error('Referenced product does not exist.');
+					if (!product.active) throw new Error('Cannot add a line for an inactive product.');
+					const resolved = {
+						...input,
+						product_code: input.product_code ?? product.code,
+						product_name: input.product_name ?? product.name,
+						product_unit: input.product_unit ?? product.unit ?? '',
+						unit_cost: input.unit_cost,
+						tax_rate: input.tax_rate ?? product.tax_rate ?? 0
+					};
+					validateLineFields(resolved);
+					const amounts = computeLineAmounts(order, resolved);
+					return { ...resolved, net: amounts.net, tax: amounts.tax, line_total: amounts.gross };
+				});
+			},
 			handler: async ({ input, api }) => {
 				if (!input.purchase_order_id) {
 					throw new Error('A purchase order line must reference a purchase order.');
@@ -129,6 +181,45 @@ export default {
 		after: {
 			description:
 				'Recomputes the purchase order net, tax and gross from its lines after a line is added.',
+			batchHandler: async ({ records, api }) => {
+				const orderIds = [...new Set(records.map((record) => record.purchase_order_id))];
+				const [orders, lines] = await Promise.all([
+					api.db.query.purchase_orders.findMany({
+						where: { norbital_id: { in: orderIds } },
+						limit: LINE_LIMIT
+					}),
+					api.db.query.purchase_order_lines.findMany({
+						where: { purchase_order_id: { in: orderIds } },
+						columns: { purchase_order_id: true, net: true, tax: true, line_total: true },
+						limit: LINE_LIMIT
+					})
+				]);
+				const linesByOrder = new Map<string, typeof lines>();
+				for (const line of lines) {
+					const grouped = linesByOrder.get(line.purchase_order_id) ?? [];
+					grouped.push(line);
+					linesByOrder.set(line.purchase_order_id, grouped);
+				}
+				await api.db.mutate(
+					'purchase_orders',
+					orders.map((order) => {
+						const totals = documentTotals(
+							(linesByOrder.get(order.norbital_id) ?? []).map((line) => ({
+								net: Number(line.net ?? 0),
+								tax: Number(line.tax ?? 0),
+								gross: Number(line.line_total ?? 0)
+							})),
+							requireCurrency(order.currency)
+						);
+						return {
+							norbital_id: order.norbital_id,
+							net: totals.net,
+							tax: totals.tax,
+							gross: totals.gross
+						};
+					})
+				);
+			},
 			handler: afterRollup
 		}
 	},
