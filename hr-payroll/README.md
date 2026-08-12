@@ -47,7 +47,7 @@ Five collections carry the payroll core:
 
 Around that core: `companies` and `jurisdictions` scope the legal entity; `employments`,
 `employment_terms` and `employment_statutory_facts` describe a person's working facts;
-`shift_definitions`, `work_patterns`, `rosters`, `roster_entries`, `time_entries`,
+`shift_definitions`, `rosters`, `roster_entries`, `time_entries`,
 `company_holidays`, `leave_types`, `leave_requests`, `rest_break_rules`, `overtime_rules`,
 `overtime_limits` and `overtime_coverage_rules` supply the schedule and the law;
 `statutory_contributions` and `contribution_rates` carry the contribution schemes; and
@@ -130,9 +130,9 @@ Everything the compiler knows about the workspace lives in `src/`:
 ```text
 src/
 ├── apps/                     # +<app>.svelte per app; hr_controller/+group.ts owns the group
-├── collections/              # 26 collections: +model.ts, +hooks.ts, +pipelines.ts, +representation.svelte
+├── collections/              # 25 collections: +model.ts, +hooks.ts, +pipelines.ts, +representation.svelte
 │   └── payroll_runs/lib/     # the settlement engine (phases, overtime, coverage, export)
-├── custom-types/             # 24 structured values (money, component_definition, eligibility_rules, …)
+├── custom-types/             # 26 structured values (money, work_pattern, worked_intervals, …)
 ├── policies/                 # employee, hr, management
 ├── remotes/                  # approval_analytics
 ├── i18n/                     # messages.en.json / messages.zh.json (same key set)
