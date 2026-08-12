@@ -37,3 +37,13 @@ test('bulk roster creation validates shared references with set reads', () => {
 		/batchHandler:[\s\S]*?api\.db\.query\.employments\.findMany[\s\S]*?api\.db\.query\.shift_definitions\.findMany[\s\S]*?api\.db\.query\.rosters\.findMany[\s\S]*?return inputs;/
 	);
 });
+
+test('bulk leave creation reuses canonical normalization over bounded set reads', () => {
+	const hooks = source('../leave_requests/+hooks.ts');
+
+	assert.match(hooks, /batchHandler: async \(\{ inputs, api \}\) =>/);
+	assert.match(hooks, /monthRanges\(startDate, endDate\)/);
+	assert.match(hooks, /api\.db\.query\.leave_requests\.findMany/);
+	assert.match(hooks, /api\.db\.query\.roster_entries\.findMany/);
+	assert.match(hooks, /const event = await normalizedTimeOff\(/);
+});
