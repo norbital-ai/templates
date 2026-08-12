@@ -5,6 +5,7 @@ import {
 	file,
 	sql,
 	text,
+	timestamp,
 	uuid,
 	vector
 } from '@norbital-ai/pod/authoring';
@@ -31,6 +32,12 @@ export default defineModel(
 			.array()
 			.notNull(),
 		matched_evidence_ids: uuid().array().notNull(),
+		/** Durable vision work starts pending and becomes terminal only after an authored automation. */
+		site_identity_status: enums(['pending', 'match', 'mismatch', 'inconclusive', 'failed'])
+			.notNull()
+			.default('pending'),
+		site_identity_checked_at: timestamp(),
+		site_identity_error: text(),
 		/**
 		 * The photo's own title, composed in SQL.
 		 *

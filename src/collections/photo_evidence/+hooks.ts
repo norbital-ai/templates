@@ -151,7 +151,10 @@ export default {
 					sha256: inspected.sha256,
 					perceptual_embedding: hexToBinaryEmbedding(inspected.perceptualHash),
 					flags: [...new Set([...inspected.flags, ...geoFlags])],
-					matched_evidence_ids: []
+					matched_evidence_ids: [],
+					site_identity_status: 'pending' as const,
+					site_identity_checked_at: null,
+					site_identity_error: null
 				};
 			}
 		},
