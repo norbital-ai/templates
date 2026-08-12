@@ -32,8 +32,7 @@ async function assertInstalmentMatchesAgreement(
 		readonly event_date: unknown;
 		readonly pay_period: string | null;
 		readonly origin: unknown;
-	},
-	existingId?: string
+	}
 ): Promise<void> {
 	const origin = instalmentOrigin(entry.origin);
 	if (!origin) return;
@@ -59,22 +58,9 @@ async function assertInstalmentMatchesAgreement(
 			'Loan instalments are generated from their repayment agreement. Edit the agreement schedule instead.'
 		);
 
-	if (existingId == null) {
-		const siblings = await api.db.query.component_entries.findMany({
-			where: { employment_id: { eq: agreement.employment_id } },
-			limit: 5000
-		});
-		if (
-			siblings.some((candidate) => {
-				const candidateOrigin = instalmentOrigin(candidate.origin);
-				return (
-					candidateOrigin?.agreement_id === agreement.norbital_id &&
-					candidateOrigin.sequence === origin.sequence
-				);
-			})
-		)
-			refuse(`Repayment ${origin.sequence} already has a payroll component entry.`);
-	}
+	// The partial unique index on the generated agreement/sequence projections is the concurrency-
+	// safe duplicate guarantee, including two entries in one createMany statement. Pod translates
+	// its 23505 into a caller-facing conflict; a sibling SELECT would add one round trip per instalment.
 }
 
 export default {
@@ -113,18 +99,14 @@ export default {
 						refuse(
 							'Loan instalments cannot be detached from their repayment agreement. Edit the agreement schedule instead.'
 						);
-					await assertInstalmentMatchesAgreement(
-						api,
-						{
-							employment_id: input.employment_id ?? existing.employment_id,
-							pay_component_id: input.pay_component_id ?? existing.pay_component_id,
-							amount: input.amount ?? existing.amount,
-							event_date: input.event_date ?? existing.event_date,
-							pay_period: input.pay_period ?? existing.pay_period,
-							origin: input.origin ?? existing.origin
-						},
-						existing.norbital_id
-					);
+					await assertInstalmentMatchesAgreement(api, {
+						employment_id: input.employment_id ?? existing.employment_id,
+						pay_component_id: input.pay_component_id ?? existing.pay_component_id,
+						amount: input.amount ?? existing.amount,
+						event_date: input.event_date ?? existing.event_date,
+						pay_period: input.pay_period ?? existing.pay_period,
+						origin: input.origin ?? existing.origin
+					});
 				}
 				return input;
 			}

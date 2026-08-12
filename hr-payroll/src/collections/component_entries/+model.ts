@@ -51,6 +51,11 @@ export default defineModel(
 			{ columns: ['employment_id', 'pay_period'] },
 			{ columns: ['pay_component_id'] },
 			{
+				columns: ['repayment_agreement_id', 'repayment_sequence'],
+				unique: true,
+				where: '"repayment_agreement_id" IS NOT NULL'
+			},
+			{
 				columns: ['repayment_agreement_id'],
 				where: '"repayment_agreement_id" IS NOT NULL'
 			}
