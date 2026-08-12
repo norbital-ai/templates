@@ -22,12 +22,15 @@ export default defineModel(
 		source_message_id: text(),
 		/** Fail closed until a linked photo visibly establishes a site identifier. */
 		site_identity_unverified: boolean().notNull().default(true),
+		/** One-way integrity finding: a photographed identifier contradicts the assigned site. */
+		site_identity_mismatch: boolean().notNull().default(false),
 		site_identity_evidence_id: uuid(),
 		extracted_site_name: text(),
 		extracted_site_location: text(),
 		extracted_unit_number: text(),
 		site_identity_confidence: enums(['low', 'medium', 'high']),
-		site_identity_checked_at: timestamp()
+		site_identity_checked_at: timestamp(),
+		site_identity_rationale: text()
 	},
 	{
 		description:

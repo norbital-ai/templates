@@ -159,6 +159,7 @@
 	"component.suspicious_reason_pending": "The assignment was flagged by an integrity check whose evidence is still loading.",
 	"component.suspicion_missing_geolocation": "One or more photos have no embedded GPS tag; it may be absent or removed.",
 	"component.suspicion_location_mismatch": "A photo's embedded GPS point is outside the accepted distance from the assigned site.",
+	"component.suspicion_site_identity_mismatch": "A naturally photographed address or site identifier contradicts the assigned job location.",
 	"component.suspicion_exact_duplicate": "An identical photo was filed against a different job assignment.",
 	"component.suspicion_visual_duplicate": "A visually matching photo, including a possible crop or filtered copy, was filed against a different job assignment.",
 	"component.suspicion_site_identity_missing": "No photo has verified an intrinsic site identifier such as a unit number, address plaque, building name, or street sign.",
@@ -169,5 +170,6 @@
 	"component.flag_visual_duplicate": "Reused or altered photo",
 	"component.flag_metadata_anomaly": "Metadata anomaly",
 	"component.flag_edited_metadata": "Editing software recorded",
-	"component.flag_low_quality": "Low-quality image"
+	"component.flag_low_quality": "Low-quality image",
+	"component.agent_rationale": "Agent assessment"
 }

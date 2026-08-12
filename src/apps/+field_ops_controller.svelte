@@ -157,7 +157,8 @@
 				job_id: assignment.jobId,
 				contractor_profile_id: assignment.contractorId,
 				status: 'dispatched',
-				site_identity_unverified: true
+				site_identity_unverified: true,
+				site_identity_mismatch: false
 			});
 			assignment.jobId = null;
 			assignment.contractorId = null;
