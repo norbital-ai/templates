@@ -98,6 +98,55 @@ export default {
 		before: {
 			description:
 				'Adds a line only to a draft quote for an active product, fills the product code, name, unit and tax rate from the catalogue, and computes the line net, tax and total from quantity, unit price and discount.',
+			batchHandler: async ({ inputs, api }) => {
+				const quoteIds = [
+					...new Set(inputs.flatMap((input) => (input.quote_id ? [input.quote_id] : [])))
+				];
+				const productIds = [
+					...new Set(inputs.flatMap((input) => (input.product_id ? [input.product_id] : [])))
+				];
+				const [quotes, products] = await Promise.all([
+					quoteIds.length
+						? api.db.query.quotes.findMany({
+								where: { norbital_id: { in: quoteIds } },
+								limit: LINE_LIMIT
+							})
+						: [],
+					productIds.length
+						? api.db.query.products.findMany({
+								where: { norbital_id: { in: productIds } },
+								limit: LINE_LIMIT
+							})
+						: []
+				]);
+				const quotesById = new Map(quotes.map((quote) => [quote.norbital_id, quote]));
+				const productsById = new Map(products.map((product) => [product.norbital_id, product]));
+
+				return inputs.map((input) => {
+					if (!input.quote_id) throw new Error('A quote line must reference a quote.');
+					const quote = quotesById.get(input.quote_id);
+					if (!quote) throw new Error('Referenced quote does not exist.');
+					if (quote.status !== 'draft') {
+						throw new Error('Line items can only be added to draft quotes.');
+					}
+					if (!input.product_id) throw new Error('A quote line must reference a product.');
+					const product = productsById.get(input.product_id);
+					if (!product) throw new Error('Referenced product does not exist.');
+					if (!product.active) throw new Error('Cannot add a line for an inactive product.');
+					const resolved = {
+						...input,
+						product_code: input.product_code ?? product.code,
+						product_name: input.product_name ?? product.name,
+						product_unit: input.product_unit ?? product.unit ?? '',
+						unit_price: input.unit_price ?? product.unit_price ?? 0,
+						discount_pct: input.discount_pct ?? 0,
+						tax_rate: input.tax_rate ?? product.tax_rate ?? 0
+					};
+					validateLineFields(resolved);
+					const amounts = computeLineAmounts(quote, resolved);
+					return { ...resolved, net: amounts.net, tax: amounts.tax, line_total: amounts.gross };
+				});
+			},
 			handler: async ({ input, api }) => {
 				if (!input.quote_id) throw new Error('A quote line must reference a quote.');
 				const quote = await api.db.query.quotes.findFirst({
@@ -140,6 +189,45 @@ export default {
 		},
 		after: {
 			description: 'Recomputes the quote net, tax and gross from its lines after a line is added.',
+			batchHandler: async ({ records, api }) => {
+				const quoteIds = [...new Set(records.map((record) => record.quote_id))];
+				const [quotes, lines] = await Promise.all([
+					api.db.query.quotes.findMany({
+						where: { norbital_id: { in: quoteIds } },
+						limit: LINE_LIMIT
+					}),
+					api.db.query.quote_lines.findMany({
+						where: { quote_id: { in: quoteIds } },
+						columns: { quote_id: true, net: true, tax: true, line_total: true },
+						limit: LINE_LIMIT
+					})
+				]);
+				const linesByQuote = new Map<string, typeof lines>();
+				for (const line of lines) {
+					const grouped = linesByQuote.get(line.quote_id) ?? [];
+					grouped.push(line);
+					linesByQuote.set(line.quote_id, grouped);
+				}
+				await api.db.mutate(
+					'quotes',
+					quotes.map((quote) => {
+						const totals = documentTotals(
+							(linesByQuote.get(quote.norbital_id) ?? []).map((line) => ({
+								net: Number(line.net ?? 0),
+								tax: Number(line.tax ?? 0),
+								gross: Number(line.line_total ?? 0)
+							})),
+							requireCurrency(quote.currency)
+						);
+						return {
+							norbital_id: quote.norbital_id,
+							net: totals.net,
+							tax: totals.tax,
+							gross: totals.gross
+						};
+					})
+				);
+			},
 			handler: afterRollup
 		}
 	},
