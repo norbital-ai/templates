@@ -1,6 +1,8 @@
 import { refuse } from '@norbital-ai/pod/authoring';
-import type { Hooks } from './$types.js';
+import type { Hooks, WorkspaceRow } from './$types.js';
 import { instalmentOrigin } from '../../lib/variant.js';
+
+const LIMIT = 5000;
 
 type BeforeApi = Parameters<
 	NonNullable<NonNullable<Hooks['create']>['before']>['handler']
@@ -23,25 +25,21 @@ function assertMagnitude(value: unknown): void {
 	}
 }
 
-async function assertInstalmentMatchesAgreement(
-	api: BeforeApi,
-	entry: {
-		readonly employment_id: string;
-		readonly pay_component_id: string;
-		readonly amount: unknown;
-		readonly event_date: unknown;
-		readonly pay_period: string | null;
-		readonly origin: unknown;
-	}
-): Promise<void> {
+type InstalmentEntry = {
+	readonly employment_id: string;
+	readonly pay_component_id: string;
+	readonly amount: unknown;
+	readonly event_date: unknown;
+	readonly pay_period?: string | null;
+	readonly origin: unknown;
+};
+
+function assertInstalmentMatchesResolvedAgreement(
+	entry: InstalmentEntry,
+	agreement: WorkspaceRow<'repayment_agreements'> | undefined
+): void {
 	const origin = instalmentOrigin(entry.origin);
 	if (!origin) return;
-	const agreement = (
-		await api.db.query.repayment_agreements.findMany({
-			where: { norbital_id: { eq: origin.agreement_id } },
-			limit: 1
-		})
-	)[0];
 	if (!agreement?.schedule)
 		refuse('A loan instalment must reference an existing repayment agreement.');
 	const scheduled = agreement.schedule[origin.sequence - 1];
@@ -63,11 +61,61 @@ async function assertInstalmentMatchesAgreement(
 	// its 23505 into a caller-facing conflict; a sibling SELECT would add one round trip per instalment.
 }
 
+async function assertInstalmentMatchesAgreement(
+	api: BeforeApi,
+	entry: InstalmentEntry
+): Promise<void> {
+	const origin = instalmentOrigin(entry.origin);
+	if (!origin) return;
+	const agreement = (
+		await api.db.query.repayment_agreements.findMany({
+			where: { norbital_id: { eq: origin.agreement_id } },
+			limit: 1
+		})
+	)[0];
+	assertInstalmentMatchesResolvedAgreement(entry, agreement);
+}
+
 export default {
 	create: {
 		before: {
 			description:
 				'Rejects a negative entry amount, and checks that a loan-instalment entry matches the amount, due date and pay period of the numbered instalment on its repayment agreement instead of being keyed in by hand.',
+			batchHandler: async ({ inputs, api }) => {
+				for (const input of inputs) assertMagnitude(input.amount);
+				const agreementIds = [
+					...new Set(
+						inputs.flatMap((input) => {
+							const origin = instalmentOrigin(input.origin);
+							return origin ? [origin.agreement_id] : [];
+						})
+					)
+				];
+				if (agreementIds.length === 0) return inputs;
+				if (agreementIds.length >= LIMIT)
+					throw new Error(`Repayment agreements reached the ${LIMIT}-row safety limit.`);
+				const agreements = await api.db.query.repayment_agreements.findMany({
+					where: { norbital_id: { in: agreementIds } },
+					limit: LIMIT
+				});
+				const byId = new Map(agreements.map((agreement) => [agreement.norbital_id, agreement]));
+				for (const input of inputs) {
+					const origin = instalmentOrigin(input.origin);
+					if (!origin) continue;
+					assertInstalmentMatchesResolvedAgreement(
+						{
+							employment_id: input.employment_id,
+							pay_component_id: input.pay_component_id,
+							amount: input.amount,
+							event_date: input.event_date,
+							pay_period: input.pay_period ?? null,
+							origin: input.origin
+						},
+						byId.get(origin.agreement_id)
+					);
+				}
+				return inputs;
+			},
 			handler: async ({ input, api }) => {
 				assertMagnitude(input.amount);
 				await assertInstalmentMatchesAgreement(api, {

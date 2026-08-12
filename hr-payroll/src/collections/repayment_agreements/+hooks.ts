@@ -93,8 +93,26 @@ async function synchronizeInstalments(
 			throw new Error(`Repayment ${origin.sequence} has more than one component entry.`);
 		bySequence.set(origin.sequence, entry);
 	}
+	const inputs = scheduledInstalmentInputs(agreement, bySequence);
+	if (inputs.length > 0) await api.db.mutate('component_entries', inputs);
+	const stale = existing.filter((entry) => {
+		const sequence = instalmentOrigin(entry.origin)?.sequence;
+		return sequence == null || sequence > agreement.schedule!.length;
+	});
+	if (stale.length > 0)
+		await api.db.delete(
+			'component_entries',
+			stale.map((entry) => entry.norbital_id)
+		);
+}
+
+function scheduledInstalmentInputs(
+	agreement: WorkspaceRow<'repayment_agreements'>,
+	bySequence: ReadonlyMap<number, Awaited<ReturnType<typeof agreementEntries>>[number]> = new Map()
+) {
+	if (!agreement.schedule) throw new Error('A repayment schedule is required.');
 	const count = agreement.schedule.length;
-	const inputs = agreement.schedule.map((instalment, index) => {
+	return agreement.schedule.map((instalment, index) => {
 		const sequence = index + 1;
 		const existingEntry = bySequence.get(sequence);
 		return {
@@ -114,16 +132,6 @@ async function synchronizeInstalments(
 			}
 		};
 	});
-	if (inputs.length > 0) await api.db.mutate('component_entries', inputs);
-	const stale = existing.filter((entry) => {
-		const sequence = instalmentOrigin(entry.origin)?.sequence;
-		return sequence == null || sequence > count;
-	});
-	if (stale.length > 0)
-		await api.db.delete(
-			'component_entries',
-			stale.map((entry) => entry.norbital_id)
-		);
 }
 
 export default {
@@ -143,6 +151,10 @@ export default {
 		after: {
 			description:
 				'Writes one deduction entry per scheduled instalment against the agreement’s employment and pay component, so the loan is recovered automatically by each payroll run.',
+			batchHandler: async ({ records, api }) => {
+				const inputs = records.flatMap((record) => scheduledInstalmentInputs(record));
+				if (inputs.length > 0) await api.db.mutate('component_entries', inputs);
+			},
 			handler: async ({ record, api }) => synchronizeInstalments(api, record, [])
 		}
 	},
