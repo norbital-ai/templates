@@ -5,7 +5,6 @@ import { prepareAssignmentCreateBatch, type AssignmentCreateBatchLookup } from '
 const jobId = '10000000-0000-4000-8000-000000000001';
 const secondJobId = '10000000-0000-4000-8000-000000000002';
 const contractorId = '20000000-0000-4000-8000-000000000001';
-const certificationId = '30000000-0000-4000-8000-000000000001';
 const siteId = '40000000-0000-4000-8000-000000000001';
 
 function lookup(overrides: Partial<AssignmentCreateBatchLookup> = {}): AssignmentCreateBatchLookup {
@@ -17,8 +16,6 @@ function lookup(overrides: Partial<AssignmentCreateBatchLookup> = {}): Assignmen
 		contractorIds: new Set([contractorId]),
 		occupiedJobIds: new Set(),
 		occupiedSourceMessageIds: new Set(),
-		requirementsByJob: new Map([[jobId, [{ certification_type_id: certificationId }]]]),
-		holdingsByContractor: new Map([[contractorId, [{ certification_type_id: certificationId }]]]),
 		sites: new Map([
 			[
 				siteId,
@@ -30,7 +27,6 @@ function lookup(overrides: Partial<AssignmentCreateBatchLookup> = {}): Assignmen
 				}
 			]
 		]),
-		certificationNames: new Map([[certificationId, 'Site access']]),
 		...overrides
 	};
 }
@@ -94,22 +90,5 @@ test('rejects duplicate jobs and source ids introduced inside the batch', () => 
 				lookup()
 			),
 		/source_message_id already exists/
-	);
-});
-
-test('rejects a contractor missing a named required certification', () => {
-	assert.throws(
-		() =>
-			prepareAssignmentCreateBatch(
-				[
-					{
-						job_id: jobId,
-						contractor_profile_id: contractorId,
-						location: null
-					}
-				],
-				lookup({ holdingsByContractor: new Map([[contractorId, []]]) })
-			),
-		/Contractor is missing required certifications: Site access/
 	);
 });

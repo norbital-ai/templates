@@ -1,10 +1,6 @@
 import { isCalendarDate } from '@norbital-ai/std/date';
 import { z } from 'zod';
 import { shiftCalendarDate } from '../../lib/calendar.js';
-import {
-	contractorSatisfiesCertificationRequirements,
-	missingCertificationIds
-} from '../../lib/certification-eligibility.js';
 import type { Pipelines } from './$types.js';
 
 const rowSchema = z.object({
@@ -41,7 +37,7 @@ function rowLabel(row: z.infer<typeof rowSchema>, index: number): string {
 export default {
 	import: {
 		description:
-			'Turns a week of roster rows into dispatched assignments, matching each row to a single unassigned job by site, date and title, and rejecting the whole week if a contractor lacks a certification their job requires.',
+			'Turns a week of roster rows into dispatched assignments by matching each row to a single unassigned job by site, date and title.',
 		input: importSchema,
 		handler: async ({ input }, api) => {
 			const { week_start: weekStart, rows } = importSchema.parse(input);
@@ -167,59 +163,6 @@ export default {
 
 			if (problems.length > 0) {
 				throw new Error(`The roster could not be imported:\n${formatNamedList(problems)}`);
-			}
-
-			const jobIds = resolvedRows.map((entry) => entry.jobId);
-			const contractorIds = [...new Set(resolvedRows.map((entry) => entry.contractorId))];
-			const [requirements, holdings, certificationTypes] = await Promise.all([
-				api.db.query.job_certification_requirements.findMany({
-					where: { job_id: { in: jobIds } },
-					limit: QUERY_LIMIT
-				}),
-				api.db.query.contractor_certifications.findMany({
-					where: { contractor_profile_id: { in: contractorIds } },
-					limit: QUERY_LIMIT
-				}),
-				api.db.query.certification_types.findMany({
-					columns: { norbital_id: true, name: true },
-					limit: QUERY_LIMIT
-				})
-			]);
-			const requirementsByJob = new Map<string, typeof requirements>();
-			for (const requirement of requirements) {
-				const jobRequirements = requirementsByJob.get(requirement.job_id) ?? [];
-				jobRequirements.push(requirement);
-				requirementsByJob.set(requirement.job_id, jobRequirements);
-			}
-			const holdingsByContractor = new Map<string, typeof holdings>();
-			for (const holding of holdings) {
-				const contractorHoldings = holdingsByContractor.get(holding.contractor_profile_id) ?? [];
-				contractorHoldings.push(holding);
-				holdingsByContractor.set(holding.contractor_profile_id, contractorHoldings);
-			}
-			const certificationNameById = new Map(
-				certificationTypes.map((certification) => [certification.norbital_id, certification.name])
-			);
-
-			const certificationProblems: string[] = [];
-			for (const [index, entry] of resolvedRows.entries()) {
-				const jobRequirements = requirementsByJob.get(entry.jobId) ?? [];
-				const contractorHoldings = holdingsByContractor.get(entry.contractorId) ?? [];
-				if (contractorSatisfiesCertificationRequirements(contractorHoldings, jobRequirements)) {
-					continue;
-				}
-				const missingIds = missingCertificationIds(contractorHoldings, jobRequirements);
-				const missingNames = missingIds.map(
-					(certificationId) => certificationNameById.get(certificationId) ?? '—'
-				);
-				certificationProblems.push(
-					`${rowLabel(entry.row, index)}: ${entry.row.contractor_company} is missing ${missingNames.join(', ')}.`
-				);
-			}
-			if (certificationProblems.length > 0) {
-				throw new Error(
-					`These contractors are not certified for their assigned jobs:\n${formatNamedList(certificationProblems)}`
-				);
 			}
 
 			return resolvedRows.map((entry) => ({

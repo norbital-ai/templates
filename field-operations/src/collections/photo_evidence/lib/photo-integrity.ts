@@ -46,19 +46,19 @@ export const photoInspectionSchema = z.object({
 	flags: z.array(z.enum(photoIntegrityFlags))
 });
 
-/** Cross-assignment reuse and contradictory capture GPS are hard signals. */
+/** Cross-assignment reuse, missing GPS, and contradictory capture GPS are hard signals. */
 export const suspectPhotoFlags = [
 	'exact_duplicate',
 	'visual_duplicate',
+	'missing_geolocation',
 	'location_mismatch'
 ] as const satisfies readonly PhotoIntegrityFlag[];
 
 export function photoEvidenceIsSuspicious(input: {
 	hasGeolocation: boolean;
-	hasSiteIdentity: boolean;
 	hasCrossAssignmentDuplicate: boolean;
 }): boolean {
-	return input.hasCrossAssignmentDuplicate || (!input.hasGeolocation && !input.hasSiteIdentity);
+	return input.hasCrossAssignmentDuplicate || !input.hasGeolocation;
 }
 
 export interface PhotoInspection {

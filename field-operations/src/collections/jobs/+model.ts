@@ -10,8 +10,7 @@ export default defineModel(
 		description: text().notNull()
 	},
 	{
-		description:
-			'A site job for a specific day. Certification requirements are governed through job_certification_requirements.',
+		description: 'A site job for a specific day, ready to be dispatched to one contractor.',
 		recordLabel: 'title',
 		icon: 'lucide:briefcase'
 	}

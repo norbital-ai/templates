@@ -1,8 +1,4 @@
 import type { Hooks } from './$types.js';
-import {
-	contractorSatisfiesCertificationRequirements,
-	missingCertificationIds
-} from '../../lib/certification-eligibility.js';
 import { coordinatesOf, exceedsSiteTolerance, type LocationLike } from '../../lib/haversine.js';
 import { photoEvidenceIsSuspicious } from '../photo_evidence/lib/photo-integrity.js';
 import { prepareAssignmentCreateBatch } from './lib/create-batch.js';
@@ -17,17 +13,6 @@ type AssignmentUpdateBefore = NonNullable<NonNullable<Hooks['update']>['before']
 type AssignmentUpdateApi = Parameters<AssignmentUpdateBefore['handler']>[0]['api'];
 
 const ASSIGNMENT_BATCH_LIMIT = 5_000;
-
-function groupBy<T>(values: readonly T[], key: (value: T) => string): Map<string, T[]> {
-	const grouped = new Map<string, T[]>();
-	for (const value of values) {
-		const id = key(value);
-		const existing = grouped.get(id);
-		if (existing) existing.push(value);
-		else grouped.set(id, [value]);
-	}
-	return grouped;
-}
 
 async function assignmentHasGeotaggedPhoto(
 	api: AssignmentUpdateApi,
@@ -56,37 +41,6 @@ async function assignmentHasGeotaggedPhoto(
 				});
 	return [...directEvidence, ...variationEvidence].some(
 		(evidence) => !evidence.flags.includes('missing_geolocation')
-	);
-}
-
-async function assignmentHasPendingSiteIdentity(
-	api: AssignmentUpdateApi,
-	assignmentId: string
-): Promise<boolean> {
-	const [directEvidence, variations] = await Promise.all([
-		api.db.query.photo_evidence.findMany({
-			where: { job_assignment_id: { eq: assignmentId } },
-			columns: { site_identity_status: true },
-			limit: 1000
-		}),
-		api.db.query.variation_requests.findMany({
-			where: { job_assignment_id: { eq: assignmentId } },
-			columns: { norbital_id: true },
-			limit: 1000
-		})
-	]);
-	const variationIds = variations.map((variation) => variation.norbital_id);
-	const variationEvidence =
-		variationIds.length === 0
-			? []
-			: await api.db.query.photo_evidence.findMany({
-					where: { variation_request_id: { in: variationIds } },
-					columns: { site_identity_status: true },
-					limit: 1000
-				});
-	return [...directEvidence, ...variationEvidence].some(
-		(evidence) =>
-			evidence.site_identity_status === 'pending' || evidence.site_identity_status === 'failed'
 	);
 }
 
@@ -157,7 +111,7 @@ export default {
 	create: {
 		before: {
 			description:
-				'Dispatches a contractor to a job only when the job has no assignment yet and the contractor holds every certification the job requires, stamps the dispatch time, and marks the assignment suspect when the reported location sits outside the site tolerance.',
+				'Dispatches a contractor to an unassigned job, stamps the dispatch time, and marks the assignment suspect when the reported location sits outside the site tolerance.',
 			batchHandler: async ({ inputs, api }) => {
 				const jobIds = [
 					...new Set(inputs.flatMap((input) => (input.job_id ? [input.job_id] : [])))
@@ -174,51 +128,36 @@ export default {
 						inputs.flatMap((input) => (input.source_message_id ? [input.source_message_id] : []))
 					)
 				];
-				const [jobs, contractors, occupiedJobs, occupiedSources, requirements, holdings] =
-					await Promise.all([
-						jobIds.length
-							? api.db.query.jobs.findMany({
-									where: { norbital_id: { in: jobIds } },
-									columns: { norbital_id: true, site_id: true },
-									limit: ASSIGNMENT_BATCH_LIMIT
-								})
-							: [],
-						contractorIds.length
-							? api.db.query.contractor_profiles.findMany({
-									where: { norbital_id: { in: contractorIds } },
-									columns: { norbital_id: true },
-									limit: ASSIGNMENT_BATCH_LIMIT
-								})
-							: [],
-						jobIds.length
-							? api.db.query.job_assignments.findMany({
-									where: { job_id: { in: jobIds } },
-									columns: { job_id: true },
-									limit: ASSIGNMENT_BATCH_LIMIT
-								})
-							: [],
-						sourceMessageIds.length
-							? api.db.query.job_assignments.findMany({
-									where: { source_message_id: { in: sourceMessageIds } },
-									columns: { source_message_id: true },
-									limit: ASSIGNMENT_BATCH_LIMIT
-								})
-							: [],
-						jobIds.length
-							? api.db.query.job_certification_requirements.findMany({
-									where: { job_id: { in: jobIds } },
-									columns: { job_id: true, certification_type_id: true },
-									limit: ASSIGNMENT_BATCH_LIMIT
-								})
-							: [],
-						contractorIds.length
-							? api.db.query.contractor_certifications.findMany({
-									where: { contractor_profile_id: { in: contractorIds } },
-									columns: { contractor_profile_id: true, certification_type_id: true },
-									limit: ASSIGNMENT_BATCH_LIMIT
-								})
-							: []
-					]);
+				const [jobs, contractors, occupiedJobs, occupiedSources] = await Promise.all([
+					jobIds.length
+						? api.db.query.jobs.findMany({
+								where: { norbital_id: { in: jobIds } },
+								columns: { norbital_id: true, site_id: true },
+								limit: ASSIGNMENT_BATCH_LIMIT
+							})
+						: [],
+					contractorIds.length
+						? api.db.query.contractor_profiles.findMany({
+								where: { norbital_id: { in: contractorIds } },
+								columns: { norbital_id: true },
+								limit: ASSIGNMENT_BATCH_LIMIT
+							})
+						: [],
+					jobIds.length
+						? api.db.query.job_assignments.findMany({
+								where: { job_id: { in: jobIds } },
+								columns: { job_id: true },
+								limit: ASSIGNMENT_BATCH_LIMIT
+							})
+						: [],
+					sourceMessageIds.length
+						? api.db.query.job_assignments.findMany({
+								where: { source_message_id: { in: sourceMessageIds } },
+								columns: { source_message_id: true },
+								limit: ASSIGNMENT_BATCH_LIMIT
+							})
+						: []
+				]);
 				const locatedJobIds = new Set(
 					inputs.flatMap((input) => (input.job_id && input.location ? [input.job_id] : []))
 				);
@@ -236,27 +175,6 @@ export default {
 							limit: ASSIGNMENT_BATCH_LIMIT
 						})
 					: [];
-				const requirementsByJob = groupBy(requirements, (requirement) => requirement.job_id);
-				const holdingsByContractor = groupBy(holdings, (holding) => holding.contractor_profile_id);
-				const missingCertificationTypeIds = [
-					...new Set(
-						inputs.flatMap((input) =>
-							input.job_id && input.contractor_profile_id
-								? missingCertificationIds(
-										holdingsByContractor.get(input.contractor_profile_id) ?? [],
-										requirementsByJob.get(input.job_id) ?? []
-									)
-								: []
-						)
-					)
-				];
-				const certificationTypes = missingCertificationTypeIds.length
-					? await api.db.query.certification_types.findMany({
-							where: { norbital_id: { in: missingCertificationTypeIds } },
-							columns: { norbital_id: true, name: true },
-							limit: ASSIGNMENT_BATCH_LIMIT
-						})
-					: [];
 				return prepareAssignmentCreateBatch(inputs, {
 					jobs: new Map(jobs.map((job) => [job.norbital_id, job])),
 					contractorIds: new Set(contractors.map((contractor) => contractor.norbital_id)),
@@ -266,15 +184,7 @@ export default {
 							assignment.source_message_id ? [assignment.source_message_id] : []
 						)
 					),
-					requirementsByJob,
-					holdingsByContractor,
-					sites: new Map(sites.map((site) => [site.norbital_id, site.location])),
-					certificationNames: new Map(
-						certificationTypes.map((certification) => [
-							certification.norbital_id,
-							certification.name
-						])
-					)
+					sites: new Map(sites.map((site) => [site.norbital_id, site.location]))
 				});
 			},
 			handler: async ({ input, api }) => {
@@ -308,33 +218,6 @@ export default {
 					existingSource,
 					'A job assignment with this source_message_id already exists.'
 				);
-				const [requirements, holdings] = await Promise.all([
-					api.db.query.job_certification_requirements.findMany({
-						where: { job_id: { eq: jobId } },
-						limit: 250
-					}),
-					api.db.query.contractor_certifications.findMany({
-						where: { contractor_profile_id: { eq: contractorId } },
-						limit: 250
-					})
-				]);
-				if (!contractorSatisfiesCertificationRequirements(holdings, requirements)) {
-					const missingIds = missingCertificationIds(holdings, requirements);
-					const missingTypes = await api.db.query.certification_types.findMany({
-						where: { norbital_id: { in: missingIds } },
-						columns: { norbital_id: true, name: true },
-						limit: missingIds.length
-					});
-					const missingNames = new Map(
-						missingTypes.map((certification) => [certification.norbital_id, certification.name])
-					);
-					throw new Error(
-						`Contractor is missing required certifications: ${missingIds
-							.map((certificationId) => missingNames.get(certificationId) ?? '—')
-							.join(', ')}.`
-					);
-				}
-
 				const site =
 					input.location == null
 						? undefined
@@ -387,7 +270,7 @@ export default {
 	update: {
 		before: {
 			description:
-				'Holds an assignment on its original job and contractor, stamps completion, and flags it when neither GPS metadata nor visual site identity can establish the location; cross-assignment photo reuse remains a one-way hard flag.',
+				'Holds an assignment on its original job and contractor, stamps completion, and hard-flags missing photo GPS, cross-assignment reuse, or a reported location outside the assigned site.',
 			handler: async ({ input, existing, api }) => {
 				assertAssignmentIdentityUnchanged(input, existing);
 				const withCompletion =
@@ -400,22 +283,14 @@ export default {
 				const baseStatus = assignmentStatus(input.status ?? existing.status);
 				const preserveSuspect = existingStatus === 'suspect';
 				const completing = input.status === 'completed';
-				const hasSiteIdentity =
-					(input.site_identity_unverified ?? existing.site_identity_unverified) === false;
 				const hasGeolocation =
 					completing && existing.norbital_id != null
 						? await assignmentHasGeotaggedPhoto(api, existing.norbital_id)
 						: false;
-				const hasPendingSiteIdentity =
-					completing && existing.norbital_id != null
-						? await assignmentHasPendingSiteIdentity(api, existing.norbital_id)
-						: false;
 				const completingWithoutLocationEvidence =
 					completing &&
-					!hasPendingSiteIdentity &&
 					photoEvidenceIsSuspicious({
 						hasGeolocation,
-						hasSiteIdentity,
 						hasCrossAssignmentDuplicate: false
 					});
 

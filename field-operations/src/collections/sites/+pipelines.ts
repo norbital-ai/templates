@@ -13,32 +13,6 @@ export default {
 				limit: 1_000
 			});
 			const jobIds = jobs.map((job) => job.norbital_id);
-			const certificationRequirements =
-				jobIds.length > 0
-					? await api.db.query.job_certification_requirements.findMany({
-							where: { job_id: { in: jobIds } },
-							limit: 5_000
-						})
-					: [];
-			const certificationTypeIds = [
-				...new Set(certificationRequirements.map((row) => row.certification_type_id))
-			];
-			const certificationTypes =
-				certificationTypeIds.length > 0
-					? await api.db.query.certification_types.findMany({
-							where: { norbital_id: { in: certificationTypeIds } },
-							limit: 1_000
-						})
-					: [];
-			const certificationTypeById = new Map(
-				certificationTypes.map((certification) => [certification.norbital_id, certification])
-			);
-			const certificationTypeIdsByJob = new Map<string, string[]>();
-			for (const requirement of certificationRequirements) {
-				const ids = certificationTypeIdsByJob.get(requirement.job_id) ?? [];
-				ids.push(requirement.certification_type_id);
-				certificationTypeIdsByJob.set(requirement.job_id, ids);
-			}
 			const assignments =
 				jobIds.length > 0
 					? await api.db.query.job_assignments.findMany({
@@ -97,14 +71,6 @@ export default {
 					site_id: job.site_id,
 					title: job.title,
 					nature: job.nature,
-					required_certifications: (certificationTypeIdsByJob.get(job.norbital_id) ?? [])
-						.map((certificationId) => certificationTypeById.get(certificationId))
-						.filter((certification) => certification != null)
-						.map((certification) => ({
-							id: certification.norbital_id,
-							code: certification.code,
-							name: certification.name
-						})),
 					scheduled_for: job.scheduled_for,
 					status: job.status,
 					description: job.description
@@ -157,10 +123,7 @@ export default {
 						{
 							name: `field_ops_${code}_jobs.csv`,
 							contentType: 'CSV' as const,
-							content: jobRows.map((job) => ({
-								...job,
-								required_certifications: JSON.stringify(job.required_certifications)
-							}))
+							content: jobRows
 						},
 						{
 							name: `field_ops_${code}_job_assignments.csv`,

@@ -23,29 +23,6 @@ type Approval = NonNullable<Policy['grants'][number]['approval']>;
 /** Their own contractor row — the one collection where the requestor appears as a column. */
 const ownProfile = { user_id: { eq: '${requestor.norbital_id}' } } as const;
 
-/** Certifications hanging off their own profile. */
-const ownCertification = {
-	$sql:
-		'"contractor_profile_id" IN (SELECT norbital_id FROM contractor_profiles ' +
-		'WHERE user_id = ${requestor.norbital_id})'
-} as const;
-
-/**
- * The certification catalogue, narrowed to entries that actually concern them: ones they hold, plus
- * ones required by a job they are assigned to. Without the second half a contractor cannot read the
- * name of a certification their job demands and they lack.
- */
-const relevantCertificationType = {
-	$sql:
-		'"norbital_id" IN (SELECT certification_type_id FROM contractor_certifications ' +
-		'WHERE contractor_profile_id IN (SELECT norbital_id FROM contractor_profiles ' +
-		'WHERE user_id = ${requestor.norbital_id}) ' +
-		'UNION SELECT certification_type_id FROM job_certification_requirements ' +
-		'WHERE job_id IN (SELECT a.job_id FROM job_assignments a ' +
-		'JOIN contractor_profiles c ON c.norbital_id = a.contractor_profile_id ' +
-		'WHERE c.user_id = ${requestor.norbital_id}))'
-} as const;
-
 /** Sites reachable through an assignment. */
 const assignedSite = {
 	$sql:
@@ -59,14 +36,6 @@ const assignedSite = {
 const assignedJob = {
 	$sql:
 		'"norbital_id" IN (SELECT a.job_id FROM job_assignments a ' +
-		'JOIN contractor_profiles c ON c.norbital_id = a.contractor_profile_id ' +
-		'WHERE c.user_id = ${requestor.norbital_id})'
-} as const;
-
-/** Certification requirements of a job they were assigned. */
-const assignedJobRequirement = {
-	$sql:
-		'"job_id" IN (SELECT a.job_id FROM job_assignments a ' +
 		'JOIN contractor_profiles c ON c.norbital_id = a.contractor_profile_id ' +
 		'WHERE c.user_id = ${requestor.norbital_id})'
 } as const;
@@ -138,15 +107,8 @@ export default {
 	apps: ['field_ops_contractor'],
 	grants: [
 		{ collection: 'contractor_profiles', action: 'read', where: ownProfile },
-		{ collection: 'certification_types', action: 'read', where: relevantCertificationType },
-		{ collection: 'contractor_certifications', action: 'read', where: ownCertification },
 		{ collection: 'sites', action: 'read', where: assignedSite },
 		{ collection: 'jobs', action: 'read', where: assignedJob },
-		{
-			collection: 'job_certification_requirements',
-			action: 'read',
-			where: assignedJobRequirement
-		},
 		{ collection: 'job_assignments', action: 'read', where: ownAssignment },
 		{ collection: 'job_assignments', action: 'update', where: ownAssignment },
 		{ collection: 'variation_requests', action: 'read', where: ownVariation },

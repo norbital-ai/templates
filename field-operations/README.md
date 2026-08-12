@@ -3,19 +3,19 @@
 ![Field Operations workspace thumbnail](assets/thumbnail.svg)
 
 Field Operations is a construction field-operations workspace: schedule a site job, dispatch a
-certified contractor, track on-site progress, raise scope-change requests, and collect photographic
+contractor, track on-site progress, raise scope-change requests, and collect photographic
 evidence whose integrity is checked mechanically. It is deliberately focused — it does not attempt
 project costing, payroll, or portfolio management, and the platform's native approval system owns the
 variation approval lifecycle.
 
 ## 1. What this workspace is
 
-The problem: field-service work needs _qualified_ people at the right site on the right day, and the
+The problem: field-service work needs the right people at the right site on the right day, and the
 evidence that the work happened needs to be trustworthy. A photo of a job site is not proof by
 itself — the same photo can be reused, a photo can be taken somewhere else, and a photo says nothing
 about which site it shows unless the site's identity is readable in it.
 
-Field Operations answers with a dispatch pipeline (site → job → certified contractor assignment)
+Field Operations answers with a dispatch pipeline (site → job → contractor assignment)
 followed by an evidence pipeline (per-photo integrity checks, geolocation, site-identity inference,
 and a one-way suspect escalation for controllers to scrutinise).
 
@@ -25,8 +25,6 @@ and a one-way suspect escalation for controllers to scrutinise).
 
 ```text
 site → jobs → job assignment ← contractor profile
-             ↓                  ↑
-   required certifications   certifications held
              ↓
        photo evidence ← variation request
 ```
@@ -36,7 +34,7 @@ site → jobs → job assignment ← contractor profile
 - **jobs** — work scheduled for one site and one calendar day, beginning `unassigned` and following
   the assignment's progress (`assigned` → `in_progress` → `completed`).
 - **contractor_profiles** — a contractor organisation, linked one-to-one with a tenant user who can
-  open the contractor workspace. Its certification holdings (join table) decide dispatch eligibility.
+  open the contractor workspace and receive its dispatched work.
 - **job_assignments** — one contractor per job. Identity (job + contractor) is immutable after
   dispatch; status runs `dispatched` → `in_progress` → `completed`, with `suspect` as a one-way
   integrity overlay (see below). Completion timestamps the assignment and advances the job.
@@ -60,19 +58,17 @@ Every photo, from every entry path (workspace upload or channel), passes through
    `exact_duplicate` / `visual_duplicate` flags with the matched evidence ids.
 3. **Geolocation** — EXIF GPS is compared against the job site's map location (500 m tolerance).
    No GPS → `missing_geolocation`; capture beyond tolerance → `location_mismatch`.
-4. **Site identity (automation)** — a vision model uses its own visual judgement to read naturally
-   photographed site name / location / unit details, ignoring overlays, and compares them with the
-   assigned site. A match supplies the alternative to GPS; an explicit contradiction latches
-   `site_identity_mismatch` and stores the model's free-text rationale. Inconclusive photos do not
-   overwrite a prior match or mismatch ("at least one photo" semantics). Each photo records a durable
+4. **Site identity (automation)** — a vision model uses its own multimodal judgement over the whole
+   naturally photographed scene, ignoring overlays, and compares it with the assigned site. A visibly
+   wrong location latches `site_identity_mismatch` even when one expected indicator is present, and
+   stores the model's free-text rationale. Inconclusive photos do not overwrite a prior mismatch. Each
+   photo records a durable
    pending/terminal identity state; provider work runs from the platform's leased retry queue rather
    than holding the upload or environment reset open.
-5. **Escalation** — exact/perceptual reuse across assignments, GPS outside the site tolerance, or a
-   photographed identifier that contradicts the assigned site latches `suspect` immediately. Missing
-   GPS alone does not: completion is suspicious only when the assignment has neither GPS metadata nor
-   a matching naturally photographed site identifier. While a linked identity check is pending, that
-   absence-only conclusion waits; the last terminal check re-enters the ordinary completion hook and
-   converges the assignment to `completed` or one-way `suspect`. The controller dashboard shows the
+5. **Escalation** — exact/perceptual reuse across assignments, missing GPS, GPS outside the site
+   tolerance, or a photographed scene that contradicts the assigned site latches `suspect`
+   immediately. The multimodal verdict adds nuance and a human-readable audit rationale, but cannot
+   clear a deterministic flag or an earlier mismatch. The controller dashboard shows the
    structured reason and AI rationale; contractors and the WhatsApp agent never see them.
 
 ## 3. What ships
@@ -81,7 +77,7 @@ Every photo, from every entry path (workspace upload or channel), passes through
 
 | App                    | Audience                                                   | What it provides                                                                                                                                                                                       |
 | ---------------------- | ---------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `field_ops_controller` | Dispatch / operations staff (the BCA controller dashboard) | A dated dispatch schedule as a status kanban beside a site map, the suspect-scrutiny panel, weekly roster CSV import, and tabs for sites, contractors, and the certification catalogue.                |
+| `field_ops_controller` | Dispatch / operations staff (the BCA controller dashboard) | A dated dispatch schedule as a status kanban beside a site map, the suspect-scrutiny panel, weekly roster CSV import, and tabs for sites and contractors.                                              |
 | `field_ops_contractor` | Field contractor                                           | One table of its own assignments: job · site · date, dispatch time, progress, reported location, and summary. Opening a row shows the job scope, assignment activity, variations, and evidence photos. |
 
 Flag visibility is reserved for the controller dashboard: photo integrity flags, the `suspect`
@@ -109,14 +105,14 @@ controller-only integrity fields even though the contractor can update their own
 
 ### Automations, policies, remotes, seed
 
-| Kind       | Name                   | What it does                                                                                                                                                                                                            |
-| ---------- | ---------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Automation | `photo_site_identity`  | Post-commit vision inference on each new photo; verifies the assignment's site identity once, never re-flags on inconclusive photos.                                                                                    |
-| Policy     | `field_ops_controller` | Full command of every collection, both apps. The reconciliation key is the filename.                                                                                                                                    |
-| Policy     | `field_ops_contractor` | Requestor-scoped grants: own profile, own certifications, assigned sites/jobs, own assignments (read + update), own variations (read + create/update behind the variation approval flow), own evidence (read + create). |
-| Policy     | `field_ops_whatsapp`   | The channel lock above: exactly one grant — `update` on `job_assignments`.                                                                                                                                              |
-| Remote     | `field_ops_dashboard`  | Date-specific controller query: assignment cards, board ids, map points (with suspect tones), and the month's suspect assignments.                                                                                      |
-| Seed       | —                      | Fixture data is Core-owned (`src/+seed.ts` is deliberately absent); the weekly roster CSV lives in `assets/` with its own README.                                                                                       |
+| Kind       | Name                   | What it does                                                                                                                                                                                        |
+| ---------- | ---------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Automation | `photo_site_identity`  | Post-commit vision inference on each new photo; verifies the assignment's site identity once, never re-flags on inconclusive photos.                                                                |
+| Policy     | `field_ops_controller` | Full command of every collection, both apps. The reconciliation key is the filename.                                                                                                                |
+| Policy     | `field_ops_contractor` | Requestor-scoped grants: own profile, assigned sites/jobs, own assignments (read + update), own variations (read + create/update behind the variation approval flow), own evidence (read + create). |
+| Policy     | `field_ops_whatsapp`   | The channel lock above: exactly one grant — `update` on `job_assignments`.                                                                                                                          |
+| Remote     | `field_ops_dashboard`  | Date-specific controller query: assignment cards, board ids, map points (with suspect tones), and the month's suspect assignments.                                                                  |
+| Seed       | —                      | Fixture data is Core-owned (`src/+seed.ts` is deliberately absent); the weekly roster CSV lives in `assets/` with its own README.                                                                   |
 
 ## 4. Under the hood
 
@@ -135,7 +131,7 @@ src/
 ├── i18n/                           messages.en.json + messages.zh.json (identical key sets)
 ├── lib/
 │   ├── calendar.ts                 calendar-day derivation in a named timezone (Asia/Singapore)
-│   ├── certification-eligibility.ts  dispatch qualification checks
+│   ├── calendar.ts                 calendar-day derivation in a named timezone (Asia/Singapore)
 │   └── haversine.ts                site-tolerance distance math
 ├── remotes/                        +field_ops_dashboard.ts
 ```
@@ -145,8 +141,8 @@ its job scope, activity, variations, and photo evidence together; opening a site
 jobs from activity history. Hooks carry the domain rules so they apply to every client, remote, and
 agent — not only the UI:
 
-- A job must reference an existing site; an assignment must reference an existing job and contractor,
-  be unique per job, and satisfy every declared certification requirement.
+- A job must reference an existing site; an assignment must reference an existing job and contractor
+  and be unique per job.
 - `source_message_id` is an idempotency key for inbound assignments and variations.
 - Assignment identity cannot be moved after dispatch; a reported location beyond the site tolerance
   forces `suspect` (one-way); completion advances the job state.
@@ -160,10 +156,11 @@ agent — not only the UI:
 - **Similarity search**: `findNearest` on the HNSW `photo_evidence_pdq_hnsw` index (`vector_l2_ops`)
   with bounded limits — the fast, indexed path, not a scan.
 - **EXIF**: `exifr` reads capture time, software, and GPS. `missing_geolocation` fires for any photo
-  without GPS; `metadata_anomaly`/`edited_metadata`/`low_quality` are recorded but do not escalate.
-- **Flags** live on the photo row (`flags` array, `matched_evidence_ids`). Cross-assignment reuse and
-  GPS mismatch drive immediate one-way escalation; `missing_geolocation` combines with the assignment's
-  site-identity result at completion. The controller dashboard is where these reasons render.
+  without GPS and escalates immediately; `metadata_anomaly`/`edited_metadata`/`low_quality` are
+  recorded but do not escalate.
+- **Flags** live on the photo row (`flags` array, `matched_evidence_ids`). Cross-assignment reuse,
+  missing GPS, and GPS mismatch drive immediate one-way escalation. The controller dashboard is where
+  these reasons and the multimodal site-identity rationale render.
 
 ### How the WhatsApp channel works
 

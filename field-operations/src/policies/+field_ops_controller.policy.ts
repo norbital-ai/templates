@@ -14,7 +14,7 @@ import type { Policy } from './$types.js';
 export default {
 	name: 'Field Operations Controller',
 	description:
-		'Controller access to dispatch jobs, manage contractor certifications, assignments, sites, and approval records.',
+		'Controller access to dispatch jobs, contractors, assignments, sites, and approval records.',
 	apps: ['field_ops_controller', 'field_ops_contractor'],
 	grants: [
 		{ collection: 'sites', action: 'read' },
@@ -27,25 +27,10 @@ export default {
 		{ collection: 'contractor_profiles', action: 'update' },
 		{ collection: 'contractor_profiles', action: 'delete' },
 
-		{ collection: 'certification_types', action: 'read' },
-		{ collection: 'certification_types', action: 'create' },
-		{ collection: 'certification_types', action: 'update' },
-		{ collection: 'certification_types', action: 'delete' },
-
-		{ collection: 'contractor_certifications', action: 'read' },
-		{ collection: 'contractor_certifications', action: 'create' },
-		{ collection: 'contractor_certifications', action: 'update' },
-		{ collection: 'contractor_certifications', action: 'delete' },
-
 		{ collection: 'jobs', action: 'read' },
 		{ collection: 'jobs', action: 'create' },
 		{ collection: 'jobs', action: 'update' },
 		{ collection: 'jobs', action: 'delete' },
-
-		{ collection: 'job_certification_requirements', action: 'read' },
-		{ collection: 'job_certification_requirements', action: 'create' },
-		{ collection: 'job_certification_requirements', action: 'update' },
-		{ collection: 'job_certification_requirements', action: 'delete' },
 
 		{ collection: 'job_assignments', action: 'read' },
 		{ collection: 'job_assignments', action: 'create' },

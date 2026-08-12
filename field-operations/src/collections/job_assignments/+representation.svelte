@@ -148,13 +148,10 @@
 	const assignmentIntegrityFlags = $derived([
 		...new Set(scopedEvidence.flatMap((evidence) => evidence.flags ?? []))
 	]);
-	const hasGeotaggedPhoto = $derived(
-		scopedEvidence.some((evidence) => !evidence.flags.includes('missing_geolocation'))
-	);
-	const missingBothLocationSignals = $derived(
-		record?.status === 'suspect' && !hasGeotaggedPhoto && record.site_identity_unverified === true
-	);
 	const suspicionReasons = $derived([
+		...(assignmentIntegrityFlags.includes('missing_geolocation')
+			? [t('component.suspicion_missing_geolocation')]
+			: []),
 		...(assignmentIntegrityFlags.includes('location_mismatch')
 			? [t('component.suspicion_location_mismatch')]
 			: []),
@@ -166,14 +163,14 @@
 			: []),
 		...(record?.site_identity_mismatch === true
 			? [t('component.suspicion_site_identity_mismatch')]
-			: []),
-		...(missingBothLocationSignals ? [t('component.suspicion_location_evidence_missing')] : [])
+			: [])
 	]);
 
 	function photoHasHardSuspicion(flags: string[]): boolean {
 		return (
 			flags.includes('exact_duplicate') ||
 			flags.includes('visual_duplicate') ||
+			flags.includes('missing_geolocation') ||
 			flags.includes('location_mismatch')
 		);
 	}
