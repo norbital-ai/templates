@@ -134,7 +134,7 @@
 					name: parsed.data.file_name,
 					fileSize: parsed.data.file_size,
 					url: `/api/files/download/${encodeURIComponent(parsed.data.storage_key)}`,
-					flags: evidence.flags ?? [],
+					flags: (evidence.flags ?? []).filter((flag): flag is string => flag != null),
 					source: evidenceSource(evidence.source),
 					capturedAt: formatSingaporeInstant(evidence.norbital_created_at, t)
 				}
@@ -145,6 +145,49 @@
 		directEvidenceQuery?.loading === true ||
 			(evidenceAssetIds.length > 0 && (evidenceAssetsQuery == null || evidenceAssetsQuery.loading))
 	);
+	const assignmentIntegrityFlags = $derived([
+		...new Set(scopedEvidence.flatMap((evidence) => evidence.flags ?? []))
+	]);
+	const hasGeotaggedPhoto = $derived(
+		scopedEvidence.some((evidence) => !evidence.flags.includes('missing_geolocation'))
+	);
+	const missingBothLocationSignals = $derived(
+		record?.status === 'suspect' && !hasGeotaggedPhoto && record.site_identity_unverified === true
+	);
+	const suspicionReasons = $derived([
+		...(assignmentIntegrityFlags.includes('exact_duplicate')
+			? [t('component.suspicion_exact_duplicate')]
+			: []),
+		...(assignmentIntegrityFlags.includes('visual_duplicate')
+			? [t('component.suspicion_visual_duplicate')]
+			: []),
+		...(missingBothLocationSignals ? [t('component.suspicion_location_evidence_missing')] : [])
+	]);
+
+	function photoHasHardSuspicion(flags: string[]): boolean {
+		return flags.includes('exact_duplicate') || flags.includes('visual_duplicate');
+	}
+
+	function integrityFlagLabel(flag: string): string {
+		switch (flag) {
+			case 'missing_geolocation':
+				return t('component.flag_missing_geolocation');
+			case 'location_mismatch':
+				return t('component.flag_location_mismatch');
+			case 'exact_duplicate':
+				return t('component.flag_exact_duplicate');
+			case 'visual_duplicate':
+				return t('component.flag_visual_duplicate');
+			case 'metadata_anomaly':
+				return t('component.flag_metadata_anomaly');
+			case 'edited_metadata':
+				return t('component.flag_edited_metadata');
+			case 'low_quality':
+				return t('component.flag_low_quality');
+			default:
+				return flag.replaceAll('_', ' ');
+		}
+	}
 
 	function evidenceSource(source: unknown): string {
 		if (source == null || typeof source !== 'object') return t('component.workspace_upload');
@@ -167,6 +210,35 @@
 </script>
 
 {#if record}
+	{#if !isContractorViewer && (record.status === 'suspect' || suspicionReasons.length > 0)}
+		<Stack gap="none" class="pb-4">
+			<section
+				class="border-s-2 border-orange-500 bg-orange-50/70 px-4 py-3 text-orange-950 dark:bg-orange-950/30 dark:text-orange-100"
+				aria-labelledby="assignment-suspicion-heading"
+			>
+				<Inline align="start" gap="sm">
+					<Icon icon="lucide:triangle-alert" class="mt-0.5 size-5 shrink-0 text-orange-600" />
+					<Stack gap="xs" class="min-w-0">
+						<h3 id="assignment-suspicion-heading" class="text-sm font-semibold">
+							{t('component.suspicious_evidence_title')}
+						</h3>
+						<p class="text-sm text-orange-900/80 dark:text-orange-100/80">
+							{t('component.suspicious_evidence_description')}
+						</p>
+						{#if suspicionReasons.length > 0}
+							<Stack as="ul" gap="xs" class="list-disc ps-5 text-sm">
+								{#each suspicionReasons as reason (reason)}
+									<li>{reason}</li>
+								{/each}
+							</Stack>
+						{:else}
+							<p class="text-sm">{t('component.suspicious_reason_pending')}</p>
+						{/if}
+					</Stack>
+				</Inline>
+			</section>
+		</Stack>
+	{/if}
 	{#snippet jobScopeHeader()}
 		<div>
 			<h3 id="assignment-job-scope-heading" class="text-sm font-semibold">
@@ -310,7 +382,11 @@
 				{:else}
 					<Grid minimum="card" gap="md">
 						{#each photoCards as photo (photo.id)}
-							<figure class="min-w-0 rounded-md border border-border bg-card">
+							<figure
+								class={photoHasHardSuspicion(photo.flags) && !isContractorViewer
+									? 'min-w-0 rounded-md border border-orange-500 bg-card'
+									: 'min-w-0 rounded-md border border-border bg-card'}
+							>
 								<a
 									href={photo.url}
 									target="_blank"
@@ -332,14 +408,18 @@
 										<Icon
 											icon={isContractorViewer
 												? 'lucide:image'
-												: photo.flags.length > 0
+												: photoHasHardSuspicion(photo.flags)
 													? 'lucide:scan-warning'
-													: 'lucide:image-check'}
+													: photo.flags.length > 0
+														? 'lucide:map-pin-off'
+														: 'lucide:image-check'}
 											class={isContractorViewer
 												? 'mt-0.5 size-4 shrink-0 text-muted-foreground'
-												: photo.flags.length > 0
+												: photoHasHardSuspicion(photo.flags)
 													? 'mt-0.5 size-4 shrink-0 text-destructive'
-													: 'mt-0.5 size-4 shrink-0 text-success'}
+													: photo.flags.length > 0
+														? 'mt-0.5 size-4 shrink-0 text-muted-foreground'
+														: 'mt-0.5 size-4 shrink-0 text-success'}
 										/>
 										<Stack gap="none" class="min-w-0">
 											<p class="truncate text-sm font-medium">{photo.name}</p>
@@ -351,12 +431,12 @@
 									{#if !isContractorViewer}
 										<Cluster justify="between" gap="xs" class="text-xs">
 											<span
-												class={photo.flags.length > 0
+												class={photoHasHardSuspicion(photo.flags)
 													? 'text-destructive'
 													: 'text-muted-foreground'}
 											>
 												{photo.flags.length > 0
-													? photo.flags.join(', ')
+													? photo.flags.map(integrityFlagLabel).join(' · ')
 													: t('component.integrity_passed')}
 											</span>
 											{#if photo.fileSize != null}

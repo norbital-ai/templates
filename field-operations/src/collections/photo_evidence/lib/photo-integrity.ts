@@ -35,13 +35,19 @@ export const photoIntegrityFlags = [
 
 export type PhotoIntegrityFlag = (typeof photoIntegrityFlags)[number];
 
-/** Flags that escalate the parent job assignment to `suspect` (one-way). */
+/** Cross-assignment reuse is a hard signal and escalates immediately. */
 export const suspectPhotoFlags = [
 	'exact_duplicate',
-	'visual_duplicate',
-	'missing_geolocation',
-	'location_mismatch'
+	'visual_duplicate'
 ] as const satisfies readonly PhotoIntegrityFlag[];
+
+export function photoEvidenceIsSuspicious(input: {
+	hasGeolocation: boolean;
+	hasSiteIdentity: boolean;
+	hasCrossAssignmentDuplicate: boolean;
+}): boolean {
+	return input.hasCrossAssignmentDuplicate || (!input.hasGeolocation && !input.hasSiteIdentity);
+}
 
 export interface PhotoInspection {
 	sha256: string;

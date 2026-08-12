@@ -4,6 +4,7 @@ import {
 	missingCertificationIds
 } from '../../lib/certification-eligibility.js';
 import { coordinatesOf, exceedsSiteTolerance, type LocationLike } from '../../lib/haversine.js';
+import { photoEvidenceIsSuspicious } from '../photo_evidence/lib/photo-integrity.js';
 
 type AssignmentIdentity = {
 	job_id?: string | null;
@@ -11,6 +12,38 @@ type AssignmentIdentity = {
 };
 
 type AssignmentStatus = 'dispatched' | 'in_progress' | 'completed' | 'suspect';
+type AssignmentUpdateBefore = NonNullable<NonNullable<Hooks['update']>['before']>;
+type AssignmentUpdateApi = Parameters<AssignmentUpdateBefore['handler']>[0]['api'];
+
+async function assignmentHasGeotaggedPhoto(
+	api: AssignmentUpdateApi,
+	assignmentId: string
+): Promise<boolean> {
+	const [directEvidence, variations] = await Promise.all([
+		api.db.query.photo_evidence.findMany({
+			where: { job_assignment_id: { eq: assignmentId } },
+			columns: { flags: true },
+			limit: 1000
+		}),
+		api.db.query.variation_requests.findMany({
+			where: { job_assignment_id: { eq: assignmentId } },
+			columns: { norbital_id: true },
+			limit: 1000
+		})
+	]);
+	const variationIds = variations.map((variation) => variation.norbital_id);
+	const variationEvidence =
+		variationIds.length === 0
+			? []
+			: await api.db.query.photo_evidence.findMany({
+					where: { variation_request_id: { in: variationIds } },
+					columns: { flags: true },
+					limit: 1000
+				});
+	return [...directEvidence, ...variationEvidence].some(
+		(evidence) => !evidence.flags.includes('missing_geolocation')
+	);
+}
 
 function requireId(value: string | null | undefined, message: string): string {
 	if (!value) throw new Error(message);
@@ -173,7 +206,7 @@ export default {
 	update: {
 		before: {
 			description:
-				'Holds an assignment on its original job and contractor, stamps the completion time when the status turns completed, and keeps the suspect mark once the reported location has fallen outside the site tolerance.',
+				'Holds an assignment on its original job and contractor, stamps completion, and flags it when neither GPS metadata nor visual site identity can establish the location; cross-assignment photo reuse remains a one-way hard flag.',
 			handler: async ({ input, existing, api }) => {
 				assertAssignmentIdentityUnchanged(input, existing);
 				const withCompletion =
@@ -185,27 +218,60 @@ export default {
 				const existingStatus = assignmentStatus(existing.status);
 				const baseStatus = assignmentStatus(input.status ?? existing.status);
 				const preserveSuspect = existingStatus === 'suspect';
+				const completing = input.status === 'completed';
+				const hasSiteIdentity =
+					(input.site_identity_unverified ?? existing.site_identity_unverified) === false;
+				const hasGeolocation =
+					completing && existing.norbital_id != null
+						? await assignmentHasGeotaggedPhoto(api, existing.norbital_id)
+						: false;
+				const completingWithoutLocationEvidence =
+					completing &&
+					photoEvidenceIsSuspicious({
+						hasGeolocation,
+						hasSiteIdentity,
+						hasCrossAssignmentDuplicate: false
+					});
 
 				if (location == null || jobId == null) {
-					return { ...withCompletion, status: applySuspectOneWay(baseStatus, preserveSuspect) };
+					return {
+						...withCompletion,
+						status: applySuspectOneWay(
+							baseStatus,
+							preserveSuspect || completingWithoutLocationEvidence
+						)
+					};
 				}
 
 				const job = await api.db.query.jobs.findFirst({
 					where: { norbital_id: { eq: jobId } }
 				});
 				if (job == null) {
-					return { ...withCompletion, status: applySuspectOneWay(baseStatus, preserveSuspect) };
+					return {
+						...withCompletion,
+						status: applySuspectOneWay(
+							baseStatus,
+							preserveSuspect || completingWithoutLocationEvidence
+						)
+					};
 				}
 
 				const site = await api.db.query.sites.findFirst({
 					where: { norbital_id: { eq: job.site_id } }
 				});
 				if (site?.location == null) {
-					return { ...withCompletion, status: applySuspectOneWay(baseStatus, preserveSuspect) };
+					return {
+						...withCompletion,
+						status: applySuspectOneWay(
+							baseStatus,
+							preserveSuspect || completingWithoutLocationEvidence
+						)
+					};
 				}
 
 				const forceSuspect =
 					preserveSuspect ||
+					completingWithoutLocationEvidence ||
 					exceedsSiteTolerance(coordinatesOf(location), coordinatesOf(site.location));
 				return { ...withCompletion, status: applySuspectOneWay(baseStatus, forceSuspect) };
 			}

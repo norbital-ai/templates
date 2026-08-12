@@ -298,7 +298,10 @@
 						query={boardQuery}
 					>
 						{#snippet Card(assignment)}
-							<Stack gap="xs">
+							<Stack
+								gap="xs"
+								class={assignment.status === 'suspect' ? 'border-s-2 border-orange-500 ps-3' : ''}
+							>
 								<p class="text-sm font-medium">
 									{assignmentCardById.get(assignment.norbital_id)?.job ??
 										t('component.job_assignment')}
@@ -307,6 +310,16 @@
 									{assignmentCardById.get(assignment.norbital_id)?.contractor ??
 										t('component.contractor')}
 								</p>
+								{#if assignment.status === 'suspect'}
+									<Inline
+										as="span"
+										gap="xs"
+										class="text-xs font-medium text-orange-700 dark:text-orange-300"
+									>
+										<Icon icon="lucide:triangle-alert" class="size-3.5 shrink-0" />
+										{t('component.review_suspicious_evidence')}
+									</Inline>
+								{/if}
 							</Stack>
 						{/snippet}
 					</CollectionKanban>
