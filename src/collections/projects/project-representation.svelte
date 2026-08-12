@@ -102,16 +102,13 @@
 			limit: 100
 		})
 	);
-	const siteIds = $derived((sitesQuery.current ?? []).map((site) => site.norbital_id));
 
 	const assignmentsQuery = $derived(
-		siteIds.length === 0
-			? null
-			: client.db.job_assignments.findMany({
-					where: { site_location_id: { in: siteIds } },
-					orderBy: { norbital_updated_at: 'desc' },
-					limit: 500
-				})
+		client.db.job_assignments.findMany({
+			where: { job_assignment_site_location: { project_id: { eq: projectId } } },
+			orderBy: { norbital_updated_at: 'desc' },
+			limit: 500
+		})
 	);
 
 	const claimsQuery = $derived(
