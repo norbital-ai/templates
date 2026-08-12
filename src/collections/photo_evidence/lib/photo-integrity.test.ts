@@ -2,7 +2,13 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { Buffer } from 'node:buffer';
 import { gunzipSync } from 'node:zlib';
-import { inspectPhoto, photoInspectionSchema } from './photo-integrity.js';
+import {
+	evaluateCaptureGeolocation,
+	inspectPhoto,
+	photoEvidenceIsSuspicious,
+	photoInspectionSchema,
+	suspectPhotoFlags
+} from './photo-integrity.js';
 import { planDuplicateEvidenceBatch } from './photo-duplicates.js';
 
 // A deterministic 3024x4032 JPEG (solid RGB 80/120/160). Gzip collapses the intentionally uniform
@@ -66,6 +72,34 @@ test('accepts only the immutable fact shape supplied by the host inspection cach
 			captureLocation: null,
 			flags: ['invented-policy']
 		})
+	);
+});
+
+test('treats missing GPS, contradictory GPS, and cross-assignment reuse as hard signals', () => {
+	assert.deepEqual(evaluateCaptureGeolocation(null, { lat: 1.3, lon: 103.8 }), [
+		'missing_geolocation'
+	]);
+	assert.ok(suspectPhotoFlags.includes('missing_geolocation'));
+	assert.equal(
+		photoEvidenceIsSuspicious({
+			hasGeolocation: false,
+			hasCrossAssignmentDuplicate: false
+		}),
+		true
+	);
+	assert.equal(
+		photoEvidenceIsSuspicious({
+			hasGeolocation: true,
+			hasCrossAssignmentDuplicate: false
+		}),
+		false
+	);
+	assert.equal(
+		photoEvidenceIsSuspicious({
+			hasGeolocation: true,
+			hasCrossAssignmentDuplicate: true
+		}),
+		true
 	);
 });
 

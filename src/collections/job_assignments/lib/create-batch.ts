@@ -1,8 +1,3 @@
-import {
-	contractorSatisfiesCertificationRequirements,
-	missingCertificationIds,
-	type CertificationLink
-} from '../../../lib/certification-eligibility.js';
 import { coordinatesOf, exceedsSiteTolerance, type LocationLike } from '../../../lib/haversine.js';
 
 type AssignmentStatus = 'dispatched' | 'in_progress' | 'completed' | 'suspect';
@@ -22,10 +17,7 @@ export interface AssignmentCreateBatchLookup {
 	readonly contractorIds: ReadonlySet<string>;
 	readonly occupiedJobIds: ReadonlySet<string>;
 	readonly occupiedSourceMessageIds: ReadonlySet<string>;
-	readonly requirementsByJob: ReadonlyMap<string, readonly CertificationLink[]>;
-	readonly holdingsByContractor: ReadonlyMap<string, readonly CertificationLink[]>;
 	readonly sites: ReadonlyMap<string, LocationLike>;
-	readonly certificationNames: ReadonlyMap<string, string>;
 }
 
 function requireId(value: string | null | undefined, message: string): string {
@@ -96,16 +88,6 @@ export function prepareAssignmentCreateBatch<T extends AssignmentCreateInput>(
 			batchSourceMessageIds.add(sourceMessageId);
 		}
 
-		const requirements = lookup.requirementsByJob.get(jobId) ?? [];
-		const holdings = lookup.holdingsByContractor.get(contractorId) ?? [];
-		if (!contractorSatisfiesCertificationRequirements(holdings, requirements)) {
-			const missing = missingCertificationIds(holdings, requirements);
-			throw new Error(
-				`Contractor is missing required certifications: ${missing
-					.map((certificationId) => lookup.certificationNames.get(certificationId) ?? '—')
-					.join(', ')}.`
-			);
-		}
 		const siteLocation = job.site_id ? lookup.sites.get(job.site_id) : null;
 		return {
 			...input,

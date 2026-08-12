@@ -31,7 +31,7 @@ export default defineAutomation(
 	{
 		kind: 'deterministic',
 		description:
-			'Reads a newly filed job-site photo with a vision model, compares naturally photographed identifiers with the assigned site, and records a matching identity or a one-way wrong-location finding with the model rationale.',
+			'Reads a newly filed job-site photo with a vision model, judges the whole photographed scene against the assigned site, and records a matching identity or a one-way wrong-location finding with the model rationale.',
 		handler: async (api, { scope }) => {
 			const evidence = scope.incoming_record;
 			const settleEvidence = async (
@@ -130,17 +130,19 @@ export default defineAutomation(
 						`Assigned job: ${job.title}.`,
 						`Assigned site: ${site.name}.`,
 						...(expectedAddress == null ? [] : [`Assigned mapped address: ${expectedAddress}.`]),
-						'Extract site identity that is naturally present in the photographed scene: a site or',
-						'building name, street or block sign, address plaque, and a unit, lot, or door number.',
+						'Judge the whole naturally photographed scene: signs and addresses, building or site type,',
+						'architecture, surrounding landmarks, access points, unit layout, and visible work context.',
+						'Also extract any site or building name, street or block sign, address plaque, and unit, lot,',
+						'or door number that is naturally present and legible.',
 						'Ignore every synthetic overlay, caption, watermark, timestamp, filename, border, badge,',
 						'or other text added on top of the photo, even when it states the expected address.',
-						'Do not infer from visual style, metadata, or unstated context. Use your judgement about',
-						'whether an explicit photographed identifier matches or contradicts the assigned site;',
-						'do not use a parser or require exact string formatting.',
-						'Set evidence_available true only when at least one extracted identifier is explicit and legible.',
-						'Set relation_to_assigned_site to mismatch when that natural identifier points to a different',
-						'house, unit, block, street, or named site; match when it supports the assigned site; otherwise',
-						'use inconclusive. Explain the visual evidence and comparison briefly in rationale.',
+						'Use multimodal judgement rather than exact string matching. A single expected indicator does',
+						'not override a clearly incompatible broader scene. Mark mismatch when the photographed location',
+						'is visibly a different house, unit, block, street, named site, building type, or work setting;',
+						'mark match when the scene as a whole supports the assigned site; otherwise use inconclusive.',
+						'Set evidence_available true when the scene contains enough visual evidence for that judgement,',
+						'even if no text identifier can be extracted. Explain the decisive evidence and conflicts briefly',
+						'in rationale so a human reviewer can audit the verdict.',
 						'Use null for every extracted value that is absent or uncertain.'
 					].join(' ')
 				});
@@ -148,9 +150,7 @@ export default defineAutomation(
 				const siteName = present(inferred.site_name);
 				const siteLocation = present(inferred.site_location);
 				const unitNumber = present(inferred.unit_number);
-				const hasIdentifier = siteName != null || siteLocation != null || unitNumber != null;
-				const available =
-					inferred.evidence_available && hasIdentifier && inferred.confidence !== 'low';
+				const available = inferred.evidence_available;
 
 				if (available && inferred.relation_to_assigned_site === 'mismatch') {
 					await settleEvidence('mismatch');
@@ -187,7 +187,8 @@ export default defineAutomation(
 									extracted_site_location: siteLocation,
 									extracted_unit_number: unitNumber,
 									site_identity_confidence: inferred.confidence,
-									site_identity_checked_at: checkedAt
+									site_identity_checked_at: checkedAt,
+									site_identity_rationale: inferred.rationale
 								}
 					);
 					await finalizeCompletedAssignmentIfSettled();
@@ -199,12 +200,26 @@ export default defineAutomation(
 					};
 				}
 
-				// The assignment defaults to unverified. An inconclusive photo deliberately does not write:
-				// that keeps the flag true for a new assignment without letting a later weak photo undo a
-				// previous verified result.
 				await settleEvidence('inconclusive');
+				if (!assignment.site_identity_mismatch) {
+					await api.db.job_assignments.update(assignmentId, {
+						site_identity_unverified: true,
+						site_identity_evidence_id: evidence.norbital_id,
+						extracted_site_name: siteName,
+						extracted_site_location: siteLocation,
+						extracted_unit_number: unitNumber,
+						site_identity_confidence: inferred.confidence,
+						site_identity_checked_at: checkedAt,
+						site_identity_rationale: inferred.rationale
+					});
+				}
 				await finalizeCompletedAssignmentIfSettled();
-				return { status: 'unavailable', model: FAST_VISION_MODEL };
+				return {
+					status: 'unavailable',
+					model: FAST_VISION_MODEL,
+					confidence: inferred.confidence,
+					rationale: inferred.rationale
+				};
 			} catch (error) {
 				const message = error instanceof Error ? error.message : String(error);
 				await settleEvidence('failed', message);

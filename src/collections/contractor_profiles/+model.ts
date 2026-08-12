@@ -7,8 +7,7 @@ export default defineModel(
 	},
 
 	{
-		description:
-			'Contractor organisation linked to the tenant user who can open the contractor workspace. Certification holdings are governed through contractor_certifications.',
+		description: 'Contractor organisation linked to the user who opens its field workspace.',
 		recordLabel: 'company_name',
 		icon: 'lucide:hard-hat',
 		indexes: [{ columns: ['user_id'], unique: true }]

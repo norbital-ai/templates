@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { client, type WorkspaceRow } from '$pod/client';
+	import { client } from '$pod/client';
 	import { Button } from '@norbital-ai/ui/button';
 	import { useI18n } from '@norbital-ai/ui/i18n';
 	import type { TenantI18nKeys } from '$pod/i18n-keys';
@@ -15,9 +15,6 @@
 	import { renderComponent } from '@norbital-ai/ui/utils';
 	import Icon from '@iconify/svelte';
 	import { calendarDateInTimeZone, shiftCalendarDate } from '../lib/calendar.js';
-	import { contractorSatisfiesCertificationRequirements } from '../lib/certification-eligibility.js';
-
-	type ContractorCertification = WorkspaceRow<'contractor_certifications'>;
 	interface AssignmentForm {
 		jobId: string | null;
 		contractorId: string | null;
@@ -51,7 +48,7 @@
 		{ value: 'suspect', label: t('component.status_suspect'), color: 'red' }
 	]);
 
-	// Assign-contractor sheet — filters unassigned jobs for the day to certified contractors.
+	// Assign-contractor sheet — pairs an unassigned job for the day with a contractor workspace.
 	const assignJobsQuery = $derived(
 		client.db.jobs.findMany({
 			where: { scheduled_for: { eq: dispatchDay }, status: { eq: 'unassigned' } },
@@ -79,48 +76,6 @@
 	const assignSelectedJob = $derived(
 		(assignJobsQuery.current ?? []).find((job) => job.norbital_id === assignment.jobId)
 	);
-	const assignRequirementsQuery = $derived(
-		assignSelectedJob?.norbital_id
-			? client.db.job_certification_requirements.findMany({
-					where: { job_id: { eq: assignSelectedJob.norbital_id } },
-					limit: 250
-				})
-			: null
-	);
-	const assignContractorIds = $derived(
-		(assignContractorsQuery.current ?? []).map((contractor) => contractor.norbital_id)
-	);
-	const assignContractorCertificationQuery = $derived(
-		assignContractorIds.length
-			? client.db.contractor_certifications.findMany({
-					where: { contractor_profile_id: { in: assignContractorIds } },
-					limit: 500
-				})
-			: null
-	);
-	const assignContractorCertifications = $derived(
-		assignContractorCertificationQuery?.current ?? []
-	);
-	const assignCertificationsByContractor = $derived(
-		new Map<string, ContractorCertification[]>(
-			[...new Set(assignContractorCertifications.map((link) => link.contractor_profile_id))].map(
-				(contractorProfileId) => [
-					contractorProfileId,
-					assignContractorCertifications.filter(
-						(link) => link.contractor_profile_id === contractorProfileId
-					)
-				]
-			)
-		)
-	);
-	const assignQualifiedContractors = $derived(
-		(assignContractorsQuery.current ?? []).filter((contractor) =>
-			contractorSatisfiesCertificationRequirements(
-				assignCertificationsByContractor.get(contractor.norbital_id) ?? [],
-				assignRequirementsQuery?.current ?? []
-			)
-		)
-	);
 	const assignJobOptions = $derived(
 		(assignJobsQuery.current ?? []).map((job) => ({
 			value: job.norbital_id,
@@ -128,7 +83,7 @@
 		}))
 	);
 	const assignContractorOptions = $derived(
-		assignQualifiedContractors.map((contractor) => ({
+		(assignContractorsQuery.current ?? []).map((contractor) => ({
 			value: contractor.norbital_id,
 			label: contractor.company_name
 		}))
@@ -211,7 +166,7 @@
 
 <svelte:head>
 	<title>Field Operations Controller</title>
-	<meta name="description" content="Schedule site jobs and dispatch qualified contractors" />
+	<meta name="description" content="Schedule site jobs and dispatch contractors" />
 	<meta name="pod:icon" content="lucide:building-2" />
 	<meta
 		name="pod:thumbnail"
@@ -398,24 +353,6 @@
 	</CollectionTable>
 {/snippet}
 
-{#snippet certifications()}
-	<CollectionTable
-		{client}
-		collection="certification_types"
-		title={t('app.field_ops_controller.certification_catalogue')}
-		description={t('app.field_ops_controller.certifications_description')}
-		query={{ orderBy: { name: 'asc' } }}
-	>
-		{#snippet columns({ Column })}
-			<Column name="code" minWidth={140} card="badge" />
-			<Column name="name" minWidth={240} card="title" />
-			<Column name="category" minWidth={160} card="subtitle" />
-			<Column name="issuing_body" label={t('component.issuing_body')} minWidth={200} />
-			<Column name="active" />
-		{/snippet}
-	</CollectionTable>
-{/snippet}
-
 <Cover as="main">
 	<Tabs
 		animate={false}
@@ -437,12 +374,6 @@
 				label: t('app.field_ops_controller.tab_contractors'),
 				icon: 'lucide:hard-hat',
 				content: contractors
-			},
-			{
-				name: 'certifications',
-				label: t('app.field_ops_controller.tab_certifications'),
-				icon: 'lucide:badge-check',
-				content: certifications
 			}
 		] satisfies TabConfig[]}
 	/>
@@ -484,22 +415,19 @@
 				<Combobox
 					options={assignContractorOptions}
 					bind:value={assignment.contractorId}
-					emptyPlaceholder={t('app.field_ops_controller.select_qualified_contractor')}
-					searchPlaceholder={t('app.field_ops_controller.search_qualified_contractors')}
+					emptyPlaceholder={t('app.field_ops_controller.select_contractor')}
+					searchPlaceholder={t('app.field_ops_controller.search_contractors')}
 					clientConfig={{
-						isLoading:
-							assignContractorsQuery.loading ||
-							Boolean(assignRequirementsQuery?.loading) ||
-							Boolean(assignContractorCertificationQuery?.loading),
+						isLoading: assignContractorsQuery.loading,
 						error: assignContractorsQuery.error?.message ?? null
 					}}
 					disabled={!assignSelectedJob}
 				/>
 			</label>
 
-			{#if assignSelectedJob && assignQualifiedContractors.length === 0}
+			{#if assignSelectedJob && (assignContractorsQuery.current ?? []).length === 0}
 				<p class="text-sm text-destructive" role="alert">
-					{t('app.field_ops_controller.no_qualified_contractor')}
+					{t('app.field_ops_controller.no_contractors')}
 				</p>
 			{/if}
 			{#if assignment.error}
