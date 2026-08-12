@@ -12,7 +12,7 @@ export const entryOriginSchema = z.discriminatedUnion('kind', [
 	z.strictObject({
 		kind: z.literal('RECURRING'),
 		cadence: z.literal('PAY_PERIOD'),
-		effective_range: dateRangeZodSchema
+		effective_range: dateRangeZodSchema.required()
 	}),
 	z.strictObject({ kind: z.literal('ONE_OFF'), note: z.string() }),
 	z.strictObject({
