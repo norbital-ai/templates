@@ -3,8 +3,8 @@ import { z } from 'zod';
 import { todayKey } from '../lib/ui/calendar.js';
 
 /**
- * Year-to-date approval counters and a five-year application trend for the three subjects the HR
- * Controller pages summarise.
+ * Year-to-date approval counters, five-year application trends and leave-seasonality counts for
+ * the three subjects the HR Controller pages summarise.
  *
  * There is no approval column anywhere in this workspace: `norbital_approval_id IS NULL` is the
  * ONLY definition of a live row, and a non-null id means the row is still held by an approval
@@ -17,6 +17,7 @@ import { todayKey } from '../lib/ui/calendar.js';
  */
 const subjectSchema = z.enum(['CLAIM', 'LEAVE', 'PAYROLL']);
 type Subject = z.infer<typeof subjectSchema>;
+type AnalyticsInput = { subject: Subject; company_id?: string };
 
 const COLLECTION_FOR_SUBJECT: Record<Subject, string> = {
 	PAYROLL: 'payroll_runs',
@@ -95,9 +96,9 @@ function approvalDurationHours(
 
 export default defineQueryHandler({
 	description:
-		'Counts this year’s pending and approved payroll runs, time-off requests or expense claims, reports the average hours an approval took to close, and fits a five-year trend line over the annual application counts.',
-	schema: z.object({ subject: subjectSchema }),
-	handler: async ({ subject }: { subject: Subject }, api) => {
+		'Counts this year’s pending and approved payroll runs, time-off requests or expense claims, reports the average hours an approval took to close, fits a five-year annual trend, and returns monthly leave counts for seasonality analysis.',
+	schema: z.object({ subject: subjectSchema, company_id: z.string().uuid().optional() }),
+	handler: async ({ subject, company_id }: AnalyticsInput, api) => {
 		const now = new Date();
 		const currentYear = now.getUTCFullYear();
 		const ytdStart = new Date(Date.UTC(currentYear, 0, 1));
@@ -151,14 +152,19 @@ export default defineQueryHandler({
 					average_approval_hours: duration.average,
 					approval_sample_size: duration.sampleSize
 				},
-				annual_trend: []
+				annual_trend: [],
+				seasonal_heatmap: []
 			};
 		}
 
 		if (subject === 'LEAVE') {
-			const [pending, approved, total, ytdRows, approvalRows, ...yearCounts] = await Promise.all([
+			const companyScope = company_id
+				? { leave_request_employment: { company_id: { eq: company_id } } }
+				: {};
+			const [pending, approved, total, ytdRows, approvalRows] = await Promise.all([
 				api.db.leave_requests.count({
 					where: {
+						...companyScope,
 						norbital_approval_id: { isNotNull: true },
 						kind: { eq: 'TIME_OFF' },
 						from_date: { gte: ytdStartKey, lt: ytdEndKey }
@@ -166,31 +172,51 @@ export default defineQueryHandler({
 				}),
 				api.db.leave_requests.count({
 					where: {
+						...companyScope,
 						norbital_approval_id: { isNull: true },
 						kind: { eq: 'TIME_OFF' },
 						from_date: { gte: ytdStartKey, lt: ytdEndKey }
 					}
 				}),
-				api.db.leave_requests.count({ where: { kind: { eq: 'TIME_OFF' } } }),
+				api.db.leave_requests.count({
+					where: { ...companyScope, kind: { eq: 'TIME_OFF' } }
+				}),
 				api.db.query.leave_requests.findMany({
-					where: { kind: { eq: 'TIME_OFF' }, from_date: { gte: ytdStartKey, lt: ytdEndKey } },
+					where: {
+						...companyScope,
+						kind: { eq: 'TIME_OFF' },
+						from_date: { gte: ytdStartKey, lt: ytdEndKey }
+					},
 					columns: { norbital_id: true },
 					limit: 5000
 				}),
-				approvalQuery,
-				...historyYears.map((year) =>
-					api.db.leave_requests.count({
-						where: {
-							kind: { eq: 'TIME_OFF' },
-							from_date: { gte: `${year}-01-01`, lt: `${year + 1}-01-01` }
-						}
-					})
-				)
+				approvalQuery
 			]);
+			const seasonalHeatmap: Array<{ year: string; months: number[] }> = [];
+			for (const year of historyYears) {
+				const months = await Promise.all(
+					Array.from({ length: 12 }, (_value, monthIndex) => {
+						const start = `${year}-${String(monthIndex + 1).padStart(2, '0')}-01`;
+						const nextYear = monthIndex === 11 ? year + 1 : year;
+						const nextMonth = monthIndex === 11 ? 1 : monthIndex + 2;
+						const end = `${nextYear}-${String(nextMonth).padStart(2, '0')}-01`;
+						return api.db.leave_requests.count({
+							where: {
+								...companyScope,
+								kind: { eq: 'TIME_OFF' },
+								from_date: { gte: start, lt: end }
+							}
+						});
+					})
+				);
+				seasonalHeatmap.push({ year: String(year), months: months.map(Number) });
+			}
+			const trendValues = seasonalHeatmap.map((row) =>
+				row.months.reduce((sum, count) => sum + count, 0)
+			);
+			const fittedValues = linearTrend(trendValues);
 			const recordIds = new Set(ytdRows.map((row) => row.norbital_id));
 			const duration = approvalDurationHours(approvalRows, collectionName, ytdStart, recordIds);
-			const trendValues = yearCounts.map(Number);
-			const fittedValues = linearTrend(trendValues);
 			return {
 				subject,
 				as_of_date: todayKey(),
@@ -205,7 +231,8 @@ export default defineQueryHandler({
 					year: String(year),
 					applications: trendValues[index] ?? 0,
 					regression: fittedValues[index] ?? 0
-				}))
+				})),
+				seasonal_heatmap: seasonalHeatmap
 			};
 		}
 
@@ -264,7 +291,8 @@ export default defineQueryHandler({
 				year: String(year),
 				applications: trendValues[index] ?? 0,
 				regression: fittedValues[index] ?? 0
-			}))
+			})),
+			seasonal_heatmap: []
 		};
 	}
 });
