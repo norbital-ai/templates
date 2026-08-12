@@ -90,28 +90,22 @@ assignment's progress and their evidence photos — never the integrity results.
 
 ### The WhatsApp channel
 
-`field_ops_whatsapp` is a conversational entry point for contractors who have **no account**. The
-platform's channel model supports communicators without user rows: the host authenticates the wire
-(WhatsApp) and hands Pod an inbound message; the agent answers as the channel's own synthetic
-principal, a `kind='agent'` user in a team carrying the channel's declared policy.
+`field_ops_whatsapp` is a conversational entry point for contractors who already have an active
+workspace account. Administrators assign the contractor to the profile policy and verify the
+WhatsApp number on that account. An unknown number receives a registration prompt and no model run.
 
 The channel runs under the strict capability lock:
 
-- **The agent may only `update` existing `job_assignments`** — progress status, completion time,
-  summary, reported location, amount charged. It cannot create or delete anything.
-- **It has no read grants and no host tools.** `read_collection` is refused for every collection,
-  so it cannot see assignments, photos, flags, `suspect` status, or `site_identity_*` markers —
-  the integrity overlay is opaque to it by construction, not by instruction.
-- Its `task` is written for contractor-only interactions and stays honest about the boundary: it
-  never claims to have seen or looked up anything, never mentions integrity or flags, and directs
-  callers to the app for evidence filing, variations, and anything requiring a lookup.
+- **The linked account is the requestor.** `${requestor.norbital_id}` policy conditions scope reads
+  and writes to that contractor's profile, assignments, variations, and evidence.
+- **The channel declaration remains the ceiling.** The WhatsApp agent receives the
+  `field_ops_contractor` policy even if that person holds a broader web-app role elsewhere.
+- **DMs are private; groups are shared.** Every assigned member sees profile group transcripts in
+  Agent UI, while only the DM owner and administrators see a private transcript.
+- The task never exposes controller-only integrity fields and directs photo uploads to the app.
 
-Two platform limits are worth stating: policy grants are row-level, not column-level (an update
-grant covers every column of `job_assignments`, so the agent could in principle touch the integrity
-columns — the task forbids it, and the update response returns the full row it just wrote); and the
-platform does not yet provide conversation-to-record resolution, so the agent cannot map "my job" to
-an assignment without a read grant. The lock is deliberate: those gaps close only with platform
-features, not with a looser workspace.
+Policy grants remain row-level rather than column-level, so the task still explicitly forbids
+controller-only integrity fields even though the contractor can update their own assignment row.
 
 ### Automations, policies, remotes, seed
 
@@ -175,11 +169,11 @@ agent — not only the UI:
 
 The host (Core) holds the transport credential and delivers an already-authenticated inbound command
 (`channel` / `inbound` with transport conversation id, provider message id, text, sender). Pod binds
-the conversation to a transcript, claims the message exactly once, re-enters the workspace under the
-channel principal (`channel.field_ops_whatsapp@channels.invalid`), and runs one agent turn with the
-channel's `task` as the standing instruction. The reply goes back over the same transport. The
-channel principal's team carries `field_ops_whatsapp`, so every read and write meets the same
-policy, hooks, and approval gates any other requestor would meet.
+the conversation to a transcript, claims the message exactly once, and matches its sender to a
+verified WhatsApp identity on an account assigned to `field_ops_contractor`. The linked contractor's
+identity supplies policy placeholders; the channel principal supplies the policy membership, keeping
+the profile as the ceiling. The reply goes back over the same transport. Public profiles skip the
+identity match but must declare durable sender, profile, and concurrency limits.
 
 ## 5. Changing the template
 
