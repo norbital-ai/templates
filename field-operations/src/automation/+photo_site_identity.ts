@@ -34,6 +34,15 @@ export default defineAutomation(
 			'Reads a newly filed job-site photo with a vision model, compares naturally photographed identifiers with the assigned site, and records a matching identity or a one-way wrong-location finding with the model rationale.',
 		handler: async (api, { scope }) => {
 			const evidence = scope.incoming_record;
+			const settleEvidence = async (
+				status: 'match' | 'mismatch' | 'inconclusive' | 'failed',
+				error: string | null = null
+			) =>
+				api.db.photo_evidence.update(evidence.norbital_id, {
+					site_identity_status: status,
+					site_identity_checked_at: new Date(),
+					site_identity_error: error
+				});
 			let assignmentId = evidence.job_assignment_id;
 			if (assignmentId == null && evidence.variation_request_id != null) {
 				const variation = await api.db.query.variation_requests.findFirst({
@@ -43,26 +52,71 @@ export default defineAutomation(
 				assignmentId = variation?.job_assignment_id ?? null;
 			}
 			if (assignmentId == null) {
+				await settleEvidence('inconclusive');
 				return { status: 'skipped', reason: 'photo evidence has no resolvable job assignment' };
 			}
 
 			const assignment = await api.db.query.job_assignments.findFirst({
 				where: { norbital_id: { eq: assignmentId } },
-				columns: { norbital_id: true, job_id: true, site_identity_mismatch: true }
+				columns: { norbital_id: true, job_id: true, status: true, site_identity_mismatch: true }
 			});
 			if (assignment == null) {
+				await settleEvidence('inconclusive');
 				return { status: 'skipped', reason: 'linked job assignment no longer exists' };
 			}
+			const finalizeCompletedAssignmentIfSettled = async () => {
+				const currentAssignment = await api.db.query.job_assignments.findFirst({
+					where: { norbital_id: { eq: assignmentId } },
+					columns: { status: true }
+				});
+				if (currentAssignment?.status !== 'completed') return;
+				const [directEvidence, variations] = await Promise.all([
+					api.db.query.photo_evidence.findMany({
+						where: { job_assignment_id: { eq: assignmentId } },
+						columns: { site_identity_status: true },
+						limit: 1000
+					}),
+					api.db.query.variation_requests.findMany({
+						where: { job_assignment_id: { eq: assignmentId } },
+						columns: { norbital_id: true },
+						limit: 1000
+					})
+				]);
+				const variationIds = variations.map((variation) => variation.norbital_id);
+				const variationEvidence =
+					variationIds.length === 0
+						? []
+						: await api.db.query.photo_evidence.findMany({
+								where: { variation_request_id: { in: variationIds } },
+								columns: { site_identity_status: true },
+								limit: 1000
+							});
+				const unsettled = [...directEvidence, ...variationEvidence].some(
+					(photo) =>
+						photo.site_identity_status === 'pending' || photo.site_identity_status === 'failed'
+				);
+				if (!unsettled) {
+					await api.db.job_assignments.update(assignmentId, { status: 'completed' });
+				}
+			};
 			const job = await api.db.query.jobs.findFirst({
 				where: { norbital_id: { eq: assignment.job_id } },
 				columns: { title: true, site_id: true }
 			});
-			if (job == null) return { status: 'skipped', reason: 'linked job no longer exists' };
+			if (job == null) {
+				await settleEvidence('inconclusive');
+				await finalizeCompletedAssignmentIfSettled();
+				return { status: 'skipped', reason: 'linked job no longer exists' };
+			}
 			const site = await api.db.query.sites.findFirst({
 				where: { norbital_id: { eq: job.site_id } },
 				columns: { name: true, location: true }
 			});
-			if (site == null) return { status: 'skipped', reason: 'assigned site no longer exists' };
+			if (site == null) {
+				await settleEvidence('inconclusive');
+				await finalizeCompletedAssignmentIfSettled();
+				return { status: 'skipped', reason: 'assigned site no longer exists' };
+			}
 			const expectedAddress = formattedAddress(site.location);
 
 			const checkedAt = new Date();
@@ -99,6 +153,7 @@ export default defineAutomation(
 					inferred.evidence_available && hasIdentifier && inferred.confidence !== 'low';
 
 				if (available && inferred.relation_to_assigned_site === 'mismatch') {
+					await settleEvidence('mismatch');
 					await api.db.job_assignments.update(assignmentId, {
 						site_identity_unverified: false,
 						site_identity_mismatch: true,
@@ -120,6 +175,7 @@ export default defineAutomation(
 				}
 
 				if (available && inferred.relation_to_assigned_site === 'match') {
+					await settleEvidence('match');
 					await api.db.job_assignments.update(
 						assignmentId,
 						assignment.site_identity_mismatch
@@ -134,6 +190,7 @@ export default defineAutomation(
 									site_identity_checked_at: checkedAt
 								}
 					);
+					await finalizeCompletedAssignmentIfSettled();
 					return {
 						status: 'match',
 						model: FAST_VISION_MODEL,
@@ -145,13 +202,13 @@ export default defineAutomation(
 				// The assignment defaults to unverified. An inconclusive photo deliberately does not write:
 				// that keeps the flag true for a new assignment without letting a later weak photo undo a
 				// previous verified result.
+				await settleEvidence('inconclusive');
+				await finalizeCompletedAssignmentIfSettled();
 				return { status: 'unavailable', model: FAST_VISION_MODEL };
 			} catch (error) {
-				return {
-					status: 'failed',
-					model: FAST_VISION_MODEL,
-					error: error instanceof Error ? error.message : String(error)
-				};
+				const message = error instanceof Error ? error.message : String(error);
+				await settleEvidence('failed', message);
+				throw error;
 			}
 		}
 	}

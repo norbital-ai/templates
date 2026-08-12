@@ -45,6 +45,37 @@ async function assignmentHasGeotaggedPhoto(
 	);
 }
 
+async function assignmentHasPendingSiteIdentity(
+	api: AssignmentUpdateApi,
+	assignmentId: string
+): Promise<boolean> {
+	const [directEvidence, variations] = await Promise.all([
+		api.db.query.photo_evidence.findMany({
+			where: { job_assignment_id: { eq: assignmentId } },
+			columns: { site_identity_status: true },
+			limit: 1000
+		}),
+		api.db.query.variation_requests.findMany({
+			where: { job_assignment_id: { eq: assignmentId } },
+			columns: { norbital_id: true },
+			limit: 1000
+		})
+	]);
+	const variationIds = variations.map((variation) => variation.norbital_id);
+	const variationEvidence =
+		variationIds.length === 0
+			? []
+			: await api.db.query.photo_evidence.findMany({
+					where: { variation_request_id: { in: variationIds } },
+					columns: { site_identity_status: true },
+					limit: 1000
+				});
+	return [...directEvidence, ...variationEvidence].some(
+		(evidence) =>
+			evidence.site_identity_status === 'pending' || evidence.site_identity_status === 'failed'
+	);
+}
+
 function requireId(value: string | null | undefined, message: string): string {
 	if (!value) throw new Error(message);
 	return value;
@@ -225,8 +256,13 @@ export default {
 					completing && existing.norbital_id != null
 						? await assignmentHasGeotaggedPhoto(api, existing.norbital_id)
 						: false;
+				const hasPendingSiteIdentity =
+					completing && existing.norbital_id != null
+						? await assignmentHasPendingSiteIdentity(api, existing.norbital_id)
+						: false;
 				const completingWithoutLocationEvidence =
 					completing &&
+					!hasPendingSiteIdentity &&
 					photoEvidenceIsSuspicious({
 						hasGeolocation,
 						hasSiteIdentity,

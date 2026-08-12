@@ -64,12 +64,16 @@ Every photo, from every entry path (workspace upload or channel), passes through
    photographed site name / location / unit details, ignoring overlays, and compares them with the
    assigned site. A match supplies the alternative to GPS; an explicit contradiction latches
    `site_identity_mismatch` and stores the model's free-text rationale. Inconclusive photos do not
-   overwrite a prior match or mismatch ("at least one photo" semantics).
+   overwrite a prior match or mismatch ("at least one photo" semantics). Each photo records a durable
+   pending/terminal identity state; provider work runs from the platform's leased retry queue rather
+   than holding the upload or environment reset open.
 5. **Escalation** — exact/perceptual reuse across assignments, GPS outside the site tolerance, or a
    photographed identifier that contradicts the assigned site latches `suspect` immediately. Missing
    GPS alone does not: completion is suspicious only when the assignment has neither GPS metadata nor
-   a matching naturally photographed site identifier. The controller dashboard shows the structured
-   reason and AI rationale; contractors and the WhatsApp agent never see them.
+   a matching naturally photographed site identifier. While a linked identity check is pending, that
+   absence-only conclusion waits; the last terminal check re-enters the ordinary completion hook and
+   converges the assignment to `completed` or one-way `suspect`. The controller dashboard shows the
+   structured reason and AI rationale; contractors and the WhatsApp agent never see them.
 
 ## 3. What ships
 
