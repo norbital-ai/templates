@@ -337,7 +337,7 @@ test('a rule whose wage figure the caller cannot supply fails the run naming the
 		(error) => {
 			assert.match(error.message, /NHPMY0002/);
 			assert.match(error.message, /statutory wages/);
-			assert.match(error.message, /overtime_eligible/);
+			assert.match(error.message, /effective coverage rule/);
 			return true;
 		}
 	);

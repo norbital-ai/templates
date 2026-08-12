@@ -16,30 +16,31 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { classifyOvertimeByCalendarMonth, deriveDailyOvertime, priceDay } from './lib/overtime.ts';
 
-/** 08:30–17:30 with an hour's break, and half an hour unpaid before overtime may start. */
+/** 08:30–17:30 with an hour's scheduled break. */
 const DAY_SHIFT = {
 	norbital_id: 'shift-day',
 	code: 'D',
 	start_time: '08:30',
 	end_time: '17:30',
 	break_minutes: 60,
-	overtime_break_minutes: 30,
 	crosses_midnight: false,
-	pays_overtime: true
+	elapsed_minutes: 540,
+	paid_minutes: 480
 };
 
 /** Attendance is recorded at UTC+8; `+08:00` instants are what the clocks actually hold. */
 const at = (date, time) => `${date}T${time}:00.000+08:00`;
 
+const interval = (start, end) => ({
+	start_at: at('2026-03-10', start),
+	end_at: end == null ? null : at('2026-03-10', end)
+});
+
 const entry = (overrides = {}) => ({
 	norbital_id: 'time-entry',
 	work_date: '2026-03-10',
-	clock_in: at('2026-03-10', '08:30'),
-	clock_out: at('2026-03-10', '17:30'),
+	worked_intervals: [interval('08:30', '17:30')],
 	break_minutes: 60,
-	state: 'CLOSED',
-	overtime_in: null,
-	overtime_out: null,
 	...overrides
 });
 
@@ -56,105 +57,74 @@ test('a day worked to its scheduled end earns no overtime at all', () => {
 	assert.equal(deriveDailyOvertime(entry(), scheduled()), null);
 });
 
-test('an ordinary day is the overrun past the shift end, less the unpaid overtime break', () => {
-	// Out at 20:45 — 3h15m past 17:30, less the 30-minute overtime break is 2h45m, floored to 2.5.
-	const day = deriveDailyOvertime(entry({ clock_out: at('2026-03-10', '20:45') }), scheduled());
-	assert.equal(day.hours, 2.5);
+test('an ordinary day is observed work outside the scheduled shift window', () => {
+	// Out at 20:45 — 3h15m outside the scheduled window, floored to 3h.
+	const day = deriveDailyOvertime(
+		entry({ worked_intervals: [interval('08:30', '20:45')] }),
+		scheduled()
+	);
+	assert.equal(day.hours, 3);
 	assert.equal(day.dayType, 'ORDINARY');
 	assert.equal(day.date, '2026-03-10');
 	assert.equal(day.timeEntryId, 'time-entry');
 });
 
 test('overtime floors to the half hour below, with no one-hour minimum', () => {
-	// 25 minutes past the shift end is entirely consumed by the 30-minute overtime break.
 	assert.equal(
-		deriveDailyOvertime(entry({ clock_out: at('2026-03-10', '17:55') }), scheduled()),
+		deriveDailyOvertime(entry({ worked_intervals: [interval('08:30', '17:55')] }), scheduled()),
 		null
 	);
-	// 45 minutes past, less the break, is 15 — which floors to nothing payable.
 	assert.equal(
-		deriveDailyOvertime(entry({ clock_out: at('2026-03-10', '18:15') }), scheduled()),
-		null
-	);
-	// 1h05m past, less the break, is 35 minutes: half an hour is earned and the rest is not.
-	assert.equal(
-		deriveDailyOvertime(entry({ clock_out: at('2026-03-10', '18:35') }), scheduled()).hours,
+		deriveDailyOvertime(entry({ worked_intervals: [interval('08:30', '18:15')] }), scheduled())
+			.hours,
 		0.5
+	);
+	assert.equal(
+		deriveDailyOvertime(entry({ worked_intervals: [interval('08:30', '18:35')] }), scheduled())
+			.hours,
+		1
 	);
 });
 
-test('a dedicated overtime punch is the overtime, and the clock overrun is not added to it', () => {
+test('multiple observed intervals are normalized and only work outside the shift is overtime', () => {
 	const day = deriveDailyOvertime(
 		entry({
-			// Stayed on the main clock until 21:00, but only punched overtime for two hours of it.
-			clock_out: at('2026-03-10', '21:00'),
-			overtime_in: at('2026-03-10', '18:00'),
-			overtime_out: at('2026-03-10', '20:00')
+			worked_intervals: [interval('08:30', '17:30'), interval('18:00', '20:15')]
 		}),
 		scheduled()
 	);
-	assert.equal(day.hours, 2, 'the punch decides the duration, not the longer clock');
+	assert.equal(day.hours, 2);
 });
 
 test('a rest day is overtime from the first minute, less the unpaid break', () => {
 	// 08:30–14:30 is six hours; an hour of break leaves five.
 	const day = deriveDailyOvertime(
-		entry({ clock_out: at('2026-03-10', '14:30') }),
+		entry({ worked_intervals: [interval('08:30', '14:30')] }),
 		scheduled({ dayType: 'REST_DAY' })
 	);
 	assert.equal(day.hours, 5);
 	assert.equal(day.normalHours, 8, 'the contracted day is still the band boundary');
 });
 
-test('arriving early is not working: the clock-in is clamped to the scheduled start', () => {
+test('all verified work on a rest day is overtime, including work before the usual start', () => {
 	const early = deriveDailyOvertime(
-		entry({ clock_in: at('2026-03-10', '06:00'), clock_out: at('2026-03-10', '14:30') }),
+		entry({ worked_intervals: [interval('06:00', '14:30')] }),
 		scheduled({ dayType: 'REST_DAY' })
 	);
-	assert.equal(early.hours, 5, 'the two hours before 08:30 earn nothing');
+	assert.equal(early.hours, 7.5);
 });
 
-test('a shift that does not pay overtime earns nothing, whatever the clock says', () => {
-	assert.equal(
-		deriveDailyOvertime(
-			entry({ clock_out: at('2026-03-10', '23:00') }),
-			scheduled({ shift: { ...DAY_SHIFT, pays_overtime: false } })
-		),
-		null
-	);
-});
-
-test('an entry still carrying the retired approval columns is priced from its clock regardless', () => {
-	/*
-	 * The regression this exists for. A row imported before the columns were dropped — or one an
-	 * old integration still sends — must not be able to suppress or replace the calculation. Under
-	 * the previous engine the first of these earned nothing and the second earned five hours; both
-	 * now earn what the clock says, because nothing reads those names any more.
-	 */
-	const clocked = entry({ clock_out: at('2026-03-10', '20:45') });
-	const expected = deriveDailyOvertime(clocked, scheduled()).hours;
-
-	const refused = deriveDailyOvertime({ ...clocked, overtime_authorized: false }, scheduled());
-	assert.equal(refused.hours, expected, 'a stale refusal cannot withhold pay for hours worked');
-
-	const bucketed = deriveDailyOvertime(
-		{
-			...clocked,
-			overtime_authorized: true,
-			approved_ot_1x_hours: 0,
-			approved_ot_15x_hours: 5,
-			approved_ot_2x_hours: 0,
-			approved_ot_3x_hours: 0,
-			approved_ot_flat_hours: 0
-		},
+test('overlapping intervals cannot pay the same minute twice', () => {
+	const day = deriveDailyOvertime(
+		entry({ worked_intervals: [interval('08:30', '19:30'), interval('18:30', '20:30')] }),
 		scheduled()
 	);
-	assert.equal(bucketed.hours, expected, 'a stale bucket total cannot outrank the clock');
+	assert.equal(day.hours, 3);
 });
 
 test('an open clock is refused rather than priced as if it had stopped', () => {
 	assert.throws(
-		() => deriveDailyOvertime(entry({ clock_out: null, state: 'OPEN' }), scheduled()),
+		() => deriveDailyOvertime(entry({ worked_intervals: [interval('08:30', null)] }), scheduled()),
 		/still open/
 	);
 });

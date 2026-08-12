@@ -10,6 +10,8 @@ import { PAGE_LIMIT, assertComplete, groupBy } from './api.js';
 import { requiredDateKey } from './dates.js';
 import { coversDate } from './effective.js';
 import type { ReportLine, ReportPayslip } from './report.js';
+import { rosterCodeKind, workWindow } from '../../../lib/scheduling/roster-code.js';
+import { normalizedWorkedIntervals } from './overtime.js';
 
 export type RunExport = {
 	readonly runId: string;
@@ -42,33 +44,22 @@ type RunRow = {
 	readonly attendance_to: string | Date;
 };
 
-function timestampHours(
-	row: { readonly clock_in: string | Date | null; readonly clock_out: string | Date | null },
-	breakMinutes: number
-): number {
-	if (row.clock_in == null || row.clock_out == null) return 0;
-	const elapsed = new Date(row.clock_out).getTime() - new Date(row.clock_in).getTime();
-	if (!Number.isFinite(elapsed) || elapsed <= 0) return 0;
-	return Math.max(0, elapsed / 3_600_000 - breakMinutes / 60);
-}
-
-function clockMinutes(value: string): number {
-	const [hours, minutes] = value.split(':').map(Number);
-	if (!Number.isFinite(hours) || !Number.isFinite(minutes))
-		throw new Error(`Shift clock ${JSON.stringify(value)} is invalid.`);
-	return hours! * 60 + minutes!;
-}
-
-function shiftHours(shift: {
-	readonly start_time: string;
-	readonly end_time: string;
+function timestampHours(row: {
+	readonly norbital_id: string;
+	readonly work_date: string | Date;
+	readonly worked_intervals:
+		| readonly {
+				readonly start_at: string | Date;
+				readonly end_at: string | Date | null;
+		  }[]
+		| null;
 	readonly break_minutes: number;
-	readonly crosses_midnight: boolean;
 }): number {
-	const start = clockMinutes(shift.start_time);
-	let end = clockMinutes(shift.end_time);
-	if (shift.crosses_midnight || end < start) end += 24 * 60;
-	return Math.max(0, (end - start - Number(shift.break_minutes)) / 60);
+	const elapsed = normalizedWorkedIntervals(row).reduce(
+		(total, interval) => total + (interval.end - interval.start) / 3_600_000,
+		0
+	);
+	return Math.max(0, elapsed - Math.max(0, Number(row.break_minutes)) / 60);
 }
 
 export async function loadRunExports(
@@ -298,19 +289,15 @@ export async function loadRunExports(
 						: requiredDateKey(employment.exit_date, 'employments.exit_date'),
 				attendance: {
 					normalHours: runRosters.reduce((total, roster) => {
-						if (roster.designation !== 'WORK' || roster.shift_definition_id == null) return total;
 						const shift = shiftById.get(roster.shift_definition_id);
-						return total + (shift == null ? 0 : shiftHours(shift));
+						if (shift == null || rosterCodeKind(shift.variant) !== 'WORK') return total;
+						return total + workWindow(shift.variant)!.paid_minutes / 60;
 					}, 0),
-					actualHours: runTimes.reduce(
-						(total, row) => total + timestampHours(row, Number(row.break_minutes)),
-						0
-					),
+					actualHours: runTimes.reduce((total, row) => total + timestampHours(row), 0),
 					shiftCodes: [
 						...new Set(
 							runRosters.flatMap((row) => {
 								if (row.assignment_code != null) return [row.assignment_code];
-								if (row.shift_definition_id == null) return [];
 								const shift = shiftById.get(row.shift_definition_id);
 								return shift == null ? [] : [shift.code];
 							})

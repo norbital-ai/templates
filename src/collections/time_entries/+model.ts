@@ -1,11 +1,10 @@
-import { date, defineModel, enums, integer, timestamp, uuid } from '@norbital-ai/pod/authoring';
+import { custom, date, defineModel, integer, uuid } from '@norbital-ai/pod/authoring';
 
 export default defineModel(
 	{
 		employment_id: uuid().notNull(),
 		work_date: date().notNull(),
-		clock_in: timestamp(),
-		clock_out: timestamp(),
+		worked_intervals: custom('worked_intervals').notNull(),
 		/**
 		 * The unpaid break, in whole minutes.
 		 *
@@ -14,25 +13,12 @@ export default defineModel(
 		 * time-entries workbook all measure in them. The operator enters and reads hours; that is
 		 * presentation, and it never reinterprets what is stored.
 		 */
-		break_minutes: integer().notNull().default(0),
-		state: enums(['OPEN', 'CLOSED']).notNull(),
-		/**
-		 * The dedicated overtime punch. Some jurisdictions (the whole PH population here) record
-		 * overtime as its OWN in/out pair, and time clocked past the shift on the regular punch
-		 * earns nothing unless it was separately punched as overtime — so overtime derived from
-		 * `clock_in`/`clock_out` alone is a different quantity, not a drift.
-		 *
-		 * This is a **recorded punch**, not a derived or approved quantity: "when was overtime punched
-		 * separately?" is a meaningful question on every attendance row, and "it wasn't" — both null —
-		 * is a real answer rather than missing data.
-		 */
-		overtime_in: timestamp(),
-		overtime_out: timestamp()
+		break_minutes: integer().notNull().default(0)
 	},
 	{
 		description:
-			'What was actually clocked on one day, and nothing else. state is the clock (OPEN while running, CLOSED once both stamps exist); the approval stamp accepts the record. overtime_in/overtime_out carry the dedicated overtime punch where a jurisdiction records one. Overtime hours are not stored here — the payroll run derives them from these punches, the statutory day type and the effective employment terms, so the same day can never be recorded as two different durations.',
-		recordLabel: ['work_date', 'state'],
+			'Raw worked intervals and unpaid break time for one operational day. Schedule variance, premium work and overtime are derived from attendance, the published schedule and effective rules.',
+		recordLabel: 'work_date',
 		icon: 'lucide:timer',
 		indexes: [{ columns: ['employment_id', 'work_date'] }]
 	}

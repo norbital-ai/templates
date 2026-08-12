@@ -8,17 +8,11 @@
  * upstream may hand payroll a duration it did not derive, because a stored duration and the clock it
  * came from can disagree, and only one of them is what the employee actually worked.
  *
- * Five independent facts decide whether a clocked hour earns anything, and every one of them exists
- * because a population needed it:
- *
- * 1. `shift_definitions.pays_overtime` — a fixed office shift never pays overtime, whatever the
- *    clock says. Without it, office staff start earning for staying late.
- * 2. `time_entries.overtime_in` / `overtime_out` — where a jurisdiction punches overtime
- *    separately, **that punch is the overtime** and a regular-clock overrun earns nothing.
- * 3. `shift_definitions.overtime_break_minutes` — unpaid rest between the shift ending and overtime
- *    starting, deducted from the overtime.
- * 4. the clock-in is clamped forward to the shift start — arriving early is not working.
- * 5. hours are floored to the half hour below, with no one-hour minimum.
+ * A time entry stores only observed work intervals and one actual unpaid-break total. There is no
+ * overtime punch, overtime state or payable overtime field to drift from those observations. On an
+ * ordinary day, overtime is the observed work outside the scheduled WORK-code window. On a REST,
+ * OFF or observed public holiday, every observed worked hour is overtime. The result is floored to
+ * the half hour below, with no one-hour minimum.
  *
  * ────────────────────────────────────────────────────────────────────────────────────────────────
  * REST-DAY AND PUBLIC-HOLIDAY WORK IS PRICED BY STATUTE, FROM THE SEEDED RULES.
@@ -67,13 +61,13 @@ const HOUR_MS = 3_600_000;
 export type TimeEntryLike = {
 	readonly norbital_id: string;
 	readonly work_date: string | Date;
-	readonly clock_in: Date | string | null;
-	readonly clock_out: Date | string | null;
+	readonly worked_intervals:
+		| readonly {
+				readonly start_at: Date | string;
+				readonly end_at: Date | string | null;
+		  }[]
+		| null;
 	readonly break_minutes: number;
-	/** Widened: a generated enum column is nullable, so `OPEN` is tested for rather than assumed. */
-	readonly state: string | null;
-	readonly overtime_in: Date | string | null;
-	readonly overtime_out: Date | string | null;
 };
 
 /** Minutes since midnight of a `HH:MM[:SS]` wall-clock time. */
@@ -86,6 +80,36 @@ export function clockMinutes(value: string): number {
 
 function instant(value: Date | string): number {
 	return value instanceof Date ? value.getTime() : Date.parse(value);
+}
+
+type Interval = { readonly start: number; readonly end: number };
+
+/**
+ * Parse and union the observed intervals. Overlap is rejected by the write hook, but unioning here
+ * makes payroll safe against historical/imported duplicates: the same minute can never be paid
+ * twice. A missing end is the sole representation of an open clock and blocks the run.
+ */
+export function normalizedWorkedIntervals(entry: TimeEntryLike): readonly Interval[] {
+	const workDate = requiredDateKey(entry.work_date, 'time_entries.work_date');
+	if (entry.worked_intervals == null)
+		throw new Error(`Time entry on ${workDate} has no worked intervals.`);
+	const parsed = entry.worked_intervals
+		.map((interval) => {
+			if (interval.end_at == null) throw new Error(`Time entry on ${workDate} is still open.`);
+			const start = instant(interval.start_at);
+			const end = instant(interval.end_at);
+			if (!Number.isFinite(start) || !Number.isFinite(end) || end <= start)
+				throw new Error(`Time entry on ${workDate} contains an invalid worked interval.`);
+			return { start, end };
+		})
+		.toSorted((left, right) => left.start - right.start || left.end - right.end);
+	const union: { start: number; end: number }[] = [];
+	for (const interval of parsed) {
+		const previous = union.at(-1);
+		if (previous == null || interval.start > previous.end) union.push({ ...interval });
+		else previous.end = Math.max(previous.end, interval.end);
+	}
+	return union;
 }
 
 /** Midnight starting `date`, in the frame attendance is recorded in. */
@@ -101,25 +125,12 @@ function midnight(date: IsoDate): number {
  * never below zero — the schema records a flat `break_minutes` rather than break windows, so an
  * overlap test is not available here (see the note in the module report).
  */
-export function clockedWorkHours(options: {
-	readonly clockIn: Date | string | null;
-	readonly clockOut: Date | string | null;
-	readonly workDate: IsoDate;
-	readonly clampStart: string | null;
-	readonly breakMinutes: number;
-}): number {
-	if (options.clockIn == null || options.clockOut == null) return 0;
-	let startMs = instant(options.clockIn);
-	const endMs = instant(options.clockOut);
-	if (!Number.isFinite(startMs) || !Number.isFinite(endMs) || endMs <= startMs) return 0;
-	if (options.clampStart != null) {
-		const scheduledStartMs =
-			midnight(options.workDate) + clockMinutes(options.clampStart) * MINUTE_MS;
-		if (scheduledStartMs > startMs) startMs = scheduledStartMs;
-		if (endMs <= startMs) return 0;
-	}
-	const worked = (endMs - startMs) / HOUR_MS;
-	return Math.max(0, worked - Math.max(0, Number(options.breakMinutes)) / 60);
+export function clockedWorkHours(entry: TimeEntryLike): number {
+	const elapsed = normalizedWorkedIntervals(entry).reduce(
+		(total, interval) => total + (interval.end - interval.start) / HOUR_MS,
+		0
+	);
+	return Math.max(0, elapsed - Math.max(0, Number(entry.break_minutes)) / 60);
 }
 
 /**
@@ -129,33 +140,12 @@ export function clockedWorkHours(options: {
  * is not after its start. This depends only on the clock-out: arriving late is undertime, deducted
  * separately, and never shortens the overtime earned (decision E4).
  */
-export function hoursPastShiftEnd(options: {
-	readonly clockOut: Date | string | null;
-	readonly workDate: IsoDate;
-	readonly shiftStart: string;
-	readonly shiftEnd: string;
-	readonly crossesMidnight: boolean;
-}): number {
-	if (options.clockOut == null) return 0;
-	const clockOutMs = instant(options.clockOut);
-	if (!Number.isFinite(clockOutMs)) return 0;
-	const startMinutes = clockMinutes(options.shiftStart);
-	let endMinutes = clockMinutes(options.shiftEnd);
-	if (options.crossesMidnight || endMinutes <= startMinutes) endMinutes += 1440;
-	const shiftEndMs = midnight(options.workDate) + endMinutes * MINUTE_MS;
-	return Math.max(0, (clockOutMs - shiftEndMs) / HOUR_MS);
-}
-
-/** Duration of a dedicated overtime punch. */
-export function overtimePunchHours(
-	overtimeIn: Date | string | null,
-	overtimeOut: Date | string | null
-): number {
-	if (overtimeIn == null || overtimeOut == null) return 0;
-	const start = instant(overtimeIn);
-	const end = instant(overtimeOut);
-	if (!Number.isFinite(start) || !Number.isFinite(end) || end <= start) return 0;
-	return (end - start) / HOUR_MS;
+function overlapHours(intervals: readonly Interval[], start: number, end: number): number {
+	return intervals.reduce(
+		(total, interval) =>
+			total + Math.max(0, Math.min(interval.end, end) - Math.max(interval.start, start)) / HOUR_MS,
+		0
+	);
 }
 
 /**
@@ -167,14 +157,10 @@ export function overtimePunchHours(
  * workbook amount.
  */
 export function philippineNightWorkHours(entry: TimeEntryLike): number {
-	if (entry.clock_in == null || entry.clock_out == null) return 0;
-	const start = instant(entry.clock_in);
-	const end = instant(entry.clock_out);
-	if (!Number.isFinite(start) || !Number.isFinite(end) || end <= start) return 0;
 	const workDate = requiredDateKey(entry.work_date, 'time_entries.work_date');
 	const nightStart = midnight(workDate) + 22 * HOUR_MS;
 	const nightEnd = midnight(workDate) + 30 * HOUR_MS;
-	return Math.max(0, Math.min(end, nightEnd) - Math.max(start, nightStart)) / HOUR_MS;
+	return overlapHours(normalizedWorkedIntervals(entry), nightStart, nightEnd);
 }
 
 /** One day's overtime, before it is priced. */
@@ -199,52 +185,23 @@ export type DailyOvertime = {
  */
 export function deriveDailyOvertime(entry: TimeEntryLike, day: ScheduledDay): DailyOvertime | null {
 	const workDate = requiredDateKey(entry.work_date, 'time_entries.work_date');
-	if (entry.state === 'OPEN') throw new Error(`Time entry on ${workDate} is still open.`);
-	if (day.shift?.pays_overtime === false) return null;
-
-	const shift = day.shift;
-	// A rest, off or holiday day has no shift to run past, and neither has a fixed-week employee
-	// with no roster: on those days every clocked hour is overtime.
-	const shiftToRunPast = day.dayType === 'ORDINARY' ? shift : null;
-
-	// Three sources, in descending order of how directly they record the overtime itself. Each is a
-	// clock, never an assertion about hours: a dedicated punch says exactly when overtime ran; a day
-	// with no shift to run past is overtime from the first minute; otherwise the overrun past the
-	// scheduled end is what the employee stayed for.
-	let raw: number;
-	if (entry.overtime_in != null && entry.overtime_out != null) {
-		raw = overtimePunchHours(entry.overtime_in, entry.overtime_out);
-	} else if (shiftToRunPast == null) {
-		raw = clockedWorkHours({
-			clockIn: entry.clock_in,
-			clockOut: entry.clock_out,
-			workDate,
-			clampStart: day.clampStart,
-			breakMinutes: shift ? shift.break_minutes : entry.break_minutes
-		});
-	} else {
-		raw =
-			hoursPastShiftEnd({
-				clockOut: entry.clock_out,
-				workDate,
-				shiftStart: shiftToRunPast.start_time,
-				shiftEnd: shiftToRunPast.end_time,
-				crossesMidnight: shiftToRunPast.crosses_midnight
-			}) -
-			Number(shiftToRunPast.overtime_break_minutes) / 60;
+	const intervals = normalizedWorkedIntervals(entry);
+	const totalWorkHours = clockedWorkHours(entry);
+	let raw = totalWorkHours;
+	if (day.dayType === 'ORDINARY') {
+		if (day.shift == null) return null;
+		const startMinutes = clockMinutes(day.shift.start_time);
+		let endMinutes = clockMinutes(day.shift.end_time);
+		if (day.shift.crosses_midnight || endMinutes <= startMinutes) endMinutes += 1440;
+		const shiftStart = midnight(workDate) + startMinutes * MINUTE_MS;
+		const shiftEnd = midnight(workDate) + endMinutes * MINUTE_MS;
+		const before = overlapHours(intervals, Number.NEGATIVE_INFINITY, shiftStart);
+		const after = overlapHours(intervals, shiftEnd, Number.POSITIVE_INFINITY);
+		raw = before + after;
 	}
 
 	const hours = floorHalfHour(Math.max(0, raw));
 	if (hours <= 0) return null;
-	const clockedTotal = clockedWorkHours({
-		clockIn: entry.clock_in,
-		clockOut: entry.clock_out,
-		workDate,
-		clampStart: day.clampStart,
-		breakMinutes: shift ? shift.break_minutes : entry.break_minutes
-	});
-	const totalWorkHours =
-		clockedTotal > 0 ? clockedTotal : day.dayType === 'ORDINARY' ? day.normalHours + hours : hours;
 	return {
 		date: workDate,
 		timeEntryId: entry.norbital_id,

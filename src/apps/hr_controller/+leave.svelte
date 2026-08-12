@@ -17,7 +17,7 @@
 
 	const { t } = useI18n<TenantI18nKeys>();
 
-	let companyId = $state<string | null>(null);
+	let selectedCompanyId = $state<string | null>(null);
 	const activeRange = { effective_range: { contains_date: todayInstant() } } as const;
 
 	/**
@@ -39,11 +39,15 @@
 			search_term: `${c.name} ${c.registration_number ?? ''}`
 		}))
 	);
-	const selectedCompanyId = $derived(
-		companyId != null && companies.some((c) => c.norbital_id === companyId)
-			? companyId
-			: (companies[0]?.norbital_id ?? null)
-	);
+	$effect(() => {
+		if (
+			companies.length > 0 &&
+			(selectedCompanyId == null ||
+				!companies.some((company) => company.norbital_id === selectedCompanyId))
+		) {
+			selectedCompanyId = companies[0]!.norbital_id;
+		}
+	});
 
 	const analyticsQuery = $derived(
 		selectedCompanyId == null
@@ -99,6 +103,20 @@
 	function employmentLabel(row: unknown): string {
 		return nestedLeaveRequest(row).leave_request_employment?.employee_number ?? '—';
 	}
+
+	function leaveRangeLabel(row: unknown): string {
+		const event = (row as { readonly event?: unknown }).event;
+		if (event == null || typeof event !== 'object' || !('kind' in event)) return '—';
+		if (event.kind !== 'TIME_OFF' || !('range' in event)) return '—';
+		const range = event.range as {
+			readonly start?: { readonly date?: string; readonly half?: string };
+			readonly end?: { readonly date?: string; readonly half?: string };
+		};
+		if (range.start?.date == null || range.end?.date == null) return '—';
+		const half = (value: string | undefined) =>
+			value === 'FIRST' ? t('component.first_half') : t('component.second_half');
+		return `${formatCalendarDate(range.start.date)}, ${half(range.start.half)} → ${formatCalendarDate(range.end.date)}, ${half(range.end.half)}`;
+	}
 </script>
 
 <svelte:head>
@@ -122,10 +140,10 @@
 		value={selectedCompanyId}
 		onValueChange={(value) => {
 			if (typeof value === 'string') {
-				companyId = value;
+				selectedCompanyId = value;
 				return;
 			}
-			companyId = companies[0]?.norbital_id ?? null;
+			selectedCompanyId = companies[0]?.norbital_id ?? null;
 		}}
 		emptyPlaceholder={t('component.select_legal_entity')}
 		searchPlaceholder={t('component.search_companies')}
@@ -255,14 +273,9 @@
 					render={({ row }) => employmentLabel(row)}
 				/>
 				<Column
-					name="from_date"
-					label={t('component.from')}
-					render={({ value }) => formatCalendarDate(value)}
-				/>
-				<Column
-					name="to_date"
-					label={t('component.to')}
-					render={({ value }) => formatCalendarDate(value)}
+					name="event"
+					label={t('component.leave_range')}
+					render={({ row }) => leaveRangeLabel(row)}
 				/>
 				<Column name="kind" label={t('component.event')} card="badge" />
 				<Column

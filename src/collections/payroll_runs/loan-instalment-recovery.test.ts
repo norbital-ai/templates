@@ -63,7 +63,7 @@ const LOAN = {
 	effective_range: { start: '2026-01-01', end: null }
 };
 
-function configuration(payComponents = [BASIC, LOAN]) {
+function configuration(payComponents = [BASIC, LOAN], rosterCodes = []) {
 	return {
 		company: COMPANY,
 		jurisdiction: JURISDICTION,
@@ -72,10 +72,11 @@ function configuration(payComponents = [BASIC, LOAN]) {
 		payComponents,
 		overtimeRules: [],
 		overtimeLimits: [],
-		shiftById: new Map(),
+		overtimeCoverageRule: null,
+		restBreakRules: new Map(),
+		shiftById: new Map(rosterCodes.map((row) => [row.norbital_id, row])),
 		holidays: new Map(),
 		leaveTypes: [],
-		workPatternById: new Map(),
 		hash: 'test'
 	};
 }
@@ -104,17 +105,23 @@ function instalment(sequence, dueDate, amount) {
 	};
 }
 
-function bundle(entries, baseSalary = 3000) {
+const GUARANTEED_PATTERN = {
+	type: 'ROSTERED',
+	expectation: {
+		kind: 'GUARANTEED_SCHEDULE',
+		period: 'WEEK',
+		required_work_days: 6,
+		required_paid_minutes: 2700
+	}
+};
+
+function bundle(entries, baseSalary = 3000, schedule = {}) {
 	const terms = {
 		norbital_id: 'terms-1',
 		employment_id: 'emp-nhpmy0290',
 		base_salary: { value: baseSalary, currency: 'MYR' },
 		pay_frequency: 'MONTHLY',
-		ordinary_hours_per_week: 45,
-		working_days_per_week: 6,
-		rest_day: 'SUN',
-		work_pattern_id: null,
-		overtime_eligible: false,
+		work_pattern: schedule.workPattern ?? GUARANTEED_PATTERN,
 		statutory_work_category: 'NON_MANUAL',
 		effective_range: { start: '2020-01-01', end: null }
 	};
@@ -138,7 +145,7 @@ function bundle(entries, baseSalary = 3000) {
 		entries,
 		ledger: [],
 		timeEntries: [],
-		rosterEntries: [],
+		rosterEntries: schedule.rosterEntries ?? [],
 		agreements: [],
 		serviceMonths: 58,
 		age: 36,
@@ -153,8 +160,8 @@ function bundle(entries, baseSalary = 3000) {
 
 function measureApril(entries, options = {}) {
 	return measureEmployment({
-		bundle: bundle(entries, options.baseSalary),
-		configuration: configuration(options.payComponents),
+		bundle: bundle(entries, options.baseSalary, options),
+		configuration: configuration(options.payComponents, options.rosterCodes),
 		period: '2026-04',
 		salary: { start: '2026-04-01', end: '2026-04-30' },
 		periodsRemaining: 9,
@@ -233,4 +240,30 @@ test('an ineligible loan component drops the instalment with no line at all', ()
 		measured.lines.filter((line) => line.payComponent.code === 'HARI_RAYA_2026').length,
 		0
 	);
+});
+
+test('an as-assigned worker derives their normalized load from that month s WORK roster codes', () => {
+	const rosterCode = {
+		norbital_id: '00000000-0000-4000-8000-000000000101',
+		code: 'PT-AM',
+		variant: { kind: 'WORK', start_time: '09:00', end_time: '13:00', break_minutes: 0 },
+		effective_range: { start: '2020-01-01', end: null }
+	};
+	const measured = measureApril([], {
+		workPattern: {
+			type: 'ROSTERED',
+			expectation: { kind: 'AS_ASSIGNED', period: 'MONTH', maximum_paid_minutes: null }
+		},
+		rosterCodes: [rosterCode],
+		rosterEntries: [
+			{
+				norbital_id: 'roster-entry-1',
+				work_date: '2026-04-01',
+				shift_definition_id: rosterCode.norbital_id
+			}
+		]
+	});
+	assert.equal(measured.schedule.get('2026-04-01').shift.code, 'PT-AM');
+	assert.equal(measured.schedule.get('2026-04-01').normalHours, 4);
+	assert.ok(Number.isFinite(measured.ordinaryHourlyRate));
 });

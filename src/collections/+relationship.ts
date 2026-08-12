@@ -79,7 +79,6 @@ export default ((r) => ({
 		leave_type_company: r.many.leave_types(),
 		shift_definition_company: r.many.shift_definitions(),
 		company_holiday_company: r.many.company_holidays(),
-		work_pattern_company: r.many.work_patterns(),
 		roster_company: r.many.rosters(),
 		payroll_run_company: r.many.payroll_runs()
 	},
@@ -107,31 +106,13 @@ export default ((r) => ({
 			from: r.shift_definitions.company_id,
 			to: r.companies.norbital_id
 		}),
-		roster_entry_shift: r.many.roster_entries(),
-		work_pattern_default_shift: r.many.work_patterns()
-	},
-
-	work_patterns: {
-		work_pattern_company: r.one.companies({
-			from: r.work_patterns.company_id,
-			to: r.companies.norbital_id
-		}),
-		work_pattern_default_shift: r.one.shift_definitions({
-			from: r.work_patterns.default_shift_definition_id,
-			to: r.shift_definitions.norbital_id
-		}),
-		term_work_pattern: r.many.employment_terms(),
-		roster_work_pattern: r.many.rosters()
+		roster_entry_shift: r.many.roster_entries()
 	},
 
 	rosters: {
 		roster_company: r.one.companies({
 			from: r.rosters.company_id,
 			to: r.companies.norbital_id
-		}),
-		roster_work_pattern: r.one.work_patterns({
-			from: r.rosters.work_pattern_id,
-			to: r.work_patterns.norbital_id
 		}),
 		roster_entry_roster: r.many.roster_entries()
 	},
@@ -174,11 +155,7 @@ export default ((r) => ({
 				from: r.employment_terms.employment_id,
 				to: r.employments.norbital_id
 			})
-		),
-		term_work_pattern: r.one.work_patterns({
-			from: r.employment_terms.work_pattern_id,
-			to: r.work_patterns.norbital_id
-		})
+		)
 	},
 
 	employment_statutory_facts: {

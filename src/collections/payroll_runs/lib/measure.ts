@@ -83,13 +83,10 @@ import {
 } from './ordinary-rate.js';
 import { prorationFraction } from './proration.js';
 import { cents } from './rounding.js';
-import {
-	normalDailyHours,
-	resolveSchedule,
-	type ScheduleTerms,
-	type ScheduledDay
-} from './schedule.js';
+import { normalDailyHours, resolveSchedule, type ScheduledDay } from './schedule.js';
 import { settle } from './settle.js';
+import { patternWorkload, type PatternWorkload } from '../../../lib/scheduling/work-pattern.js';
+import { rosterCodeKind, workWindow } from '../../../lib/scheduling/roster-code.js';
 
 export type MeasuredLine = {
 	readonly payComponent: PayComponent;
@@ -144,29 +141,6 @@ function overtimeExcessWorkLimit(components: readonly PayComponent[]): number | 
 	return limits.values().next().value ?? null;
 }
 
-/**
- * The week shape governing one set of terms, or `null` for terms that name no pattern.
- *
- * A named pattern that has gone missing is a fault rather than a reason to guess: falling back to
- * the legacy inference would quietly reprice rest days as off days.
- */
-function weekShapeOf(
-	configuration: Configuration,
-	workPatternId: string | null
-): ScheduleTerms['week'] {
-	if (workPatternId == null) return null;
-	const pattern = configuration.workPatternById.get(workPatternId);
-	if (pattern == null)
-		throw new Error(
-			'Employment terms name a work pattern that is not effective for this company in this ' +
-				'period, so the week they describe cannot be resolved.'
-		);
-	const variant = pattern.variant;
-	if (variant == null) throw new Error(`Work pattern ${pattern.code} has no variant.`);
-	if (variant.type === 'ROSTERED') return 'ROSTERED';
-	return { rest_days: variant.rest_days, off_days: variant.off_days };
-}
-
 function monthlyOvertimeLimit(configuration: Configuration): number | null {
 	const limits = configuration.overtimeLimits.filter(
 		(limit) => limit.period === 'MONTH' && limit.measures === 'OVERTIME_HOURS'
@@ -212,8 +186,8 @@ export function isStatutoryOvertimePayCovered(options: {
 	throw new Error(
 		`${options.employeeNumber}: the ${options.jurisdictionCode} overtime coverage rule tests ` +
 			`${decision.requiredBasis === 'STATUTORY_WAGES' ? 'statutory wages' : 'base salary'}, and this ` +
-			'run could not produce that figure for them. Either record the figure, or set ' +
-			'`employment_terms.overtime_eligible` for this employment if entitlement is contractual. ' +
+			'run could not produce that figure for them. Record the statutory comparand required by ' +
+			'the effective coverage rule. ' +
 			`Authority: ${authority}.`
 	);
 }
@@ -240,16 +214,75 @@ function payFrequency(value: string | null): RateTerms['pay_frequency'] {
 	return found;
 }
 
-function asRateTerms(terms: EmploymentBundle['terms'][number]): RateTerms {
-	const salary = terms.base_salary;
-	if (salary == null)
-		throw new Error('Employment terms carry no base salary, so no rate can be derived from them.');
+function rosteredWorkload(options: {
+	readonly entries: EmploymentBundle['rosterEntries'];
+	readonly configuration: Configuration;
+	readonly window: { readonly start: IsoDate; readonly end: IsoDate };
+}): PatternWorkload {
+	let workDays = 0;
+	let paidMinutes = 0;
+	for (const entry of options.entries) {
+		const date = requiredDateKey(entry.work_date, 'roster_entries.work_date');
+		if (date < options.window.start || date > options.window.end) continue;
+		const code = options.configuration.shiftById.get(entry.shift_definition_id);
+		if (code == null)
+			throw new Error(
+				`Roster on ${date} names roster code ${entry.shift_definition_id}, which is missing.`
+			);
+		if (rosterCodeKind(code.variant) !== 'WORK') continue;
+		workDays += 1;
+		paidMinutes += workWindow(code.variant)!.paid_minutes;
+	}
+	const referenceDays = inclusiveDays(options.window.start, options.window.end);
+	if (workDays === 0 || paidMinutes === 0)
+		throw new Error(
+			'An AS_ASSIGNED employment has no WORK roster entries in the payroll reference window, so ' +
+				'ordinary weekly and daily hours cannot be derived.'
+		);
+	return {
+		work_days: workDays,
+		paid_minutes: paidMinutes,
+		reference_days: referenceDays,
+		average_weekly_paid_minutes: (paidMinutes * 7) / referenceDays
+	};
+}
+
+function termsWorkload(options: {
+	readonly terms: EmploymentBundle['terms'][number];
+	readonly configuration: Configuration;
+	readonly rosterEntries: EmploymentBundle['rosterEntries'];
+	readonly window: { readonly start: IsoDate; readonly end: IsoDate };
+}): PatternWorkload {
+	const workload = patternWorkload(options.terms.work_pattern, options.configuration.shiftById);
+	return (
+		workload ??
+		rosteredWorkload({
+			entries: options.rosterEntries,
+			configuration: options.configuration,
+			window: options.window
+		})
+	);
+}
+
+function asRateTerms(
+	terms: EmploymentBundle['terms'][number],
+	workload: PatternWorkload
+): RateTerms {
+	const salary = baseSalaryOf(terms);
+	const workingDaysPerWeek = (workload.work_days * 7) / workload.reference_days;
 	return {
 		base_salary: { value: Number(salary.value), currency: salary.currency },
 		pay_frequency: payFrequency(terms.pay_frequency),
-		ordinary_hours_per_week: Number(terms.ordinary_hours_per_week),
-		working_days_per_week: Number(terms.working_days_per_week)
+		ordinary_hours_per_week: workload.average_weekly_paid_minutes / 60,
+		working_days_per_week: workingDaysPerWeek
 	};
+}
+
+function baseSalaryOf(terms: EmploymentBundle['terms'][number]) {
+	const salary = terms.base_salary;
+	if (salary == null)
+		throw new Error('Employment terms carry no base salary, so no rate can be derived from them.');
+	return salary;
 }
 
 /** Measure one employment's whole payslip. */
@@ -274,7 +307,13 @@ export function measureEmployment(options: {
 	const wageDays = bundle.wageDays ?? employed;
 
 	const closingTerms = termsAt(bundle, employed.end);
-	const rateTerms = asRateTerms(closingTerms);
+	const closingWorkload = termsWorkload({
+		terms: closingTerms,
+		configuration,
+		rosterEntries: bundle.rosterEntries,
+		window: options.salary
+	});
+	const rateTerms = asRateTerms(closingTerms, closingWorkload);
 	const currency = rateTerms.base_salary.currency;
 	const overtimeCalculationMethod = readOvertimeCalculationMethod(
 		configuration.company.overtime_calculation_method
@@ -299,11 +338,15 @@ export function measureEmployment(options: {
 			bundle.terms.find((candidate) => coversDate(candidate.effective_range, date)) ??
 			bundle.terms[0] ??
 			closingTerms;
+		const workload = termsWorkload({
+			terms: row,
+			configuration,
+			rosterEntries: bundle.rosterEntries,
+			window: complianceWindow
+		});
 		return {
-			ordinary_hours_per_week: Number(row.ordinary_hours_per_week),
-			working_days_per_week: Number(row.working_days_per_week),
-			rest_day: row.rest_day,
-			week: weekShapeOf(configuration, row.work_pattern_id)
+			work_pattern: row.work_pattern,
+			normal_daily_hours: workload.paid_minutes / workload.work_days / 60
 		};
 	};
 	const schedule = resolveSchedule({
@@ -444,10 +487,6 @@ export function measureEmployment(options: {
 		const derived = deriveDailyOvertime(entry, day);
 		if (derived) overtimeDays.push(derived);
 	}
-	// Short-circuit deliberately: a contractual entitlement can only widen coverage, so an employment
-	// that is already eligible never needs the statutory test — and never fails the run for want of a
-	// wage figure the statutory test would have needed.
-	//
 	// The wage the ceiling is measured against is derived per Employment Act 1955 s.2 as narrowed by
 	// First Schedule para 3 — basic plus every other cash payment for work done, less overtime pay —
 	// from the employee's own components and entries. Only components this employment is eligible for
@@ -461,19 +500,17 @@ export function measureEmployment(options: {
 				amount: entryTotalByComponentId.get(component.norbital_id) ?? 0
 			}))
 	});
-	const paymentEligible =
-		closingTerms.overtime_eligible ||
-		isStatutoryOvertimePayCovered({
-			rule: configuration.overtimeCoverageRule,
-			jurisdictionCode: configuration.jurisdiction.code,
-			wages: {
-				BASE_SALARY: rateTerms.base_salary,
-				STATUTORY_WAGES: statutoryWages
-			},
-			statutoryWorkCategory: closingTerms.statutory_work_category,
-			workClassification: closingTerms.work_classification,
-			employeeNumber: bundle.employment.employee_number
-		});
+	const paymentEligible = isStatutoryOvertimePayCovered({
+		rule: configuration.overtimeCoverageRule,
+		jurisdictionCode: configuration.jurisdiction.code,
+		wages: {
+			BASE_SALARY: rateTerms.base_salary,
+			STATUTORY_WAGES: statutoryWages
+		},
+		statutoryWorkCategory: closingTerms.statutory_work_category,
+		workClassification: closingTerms.work_classification,
+		employeeNumber: bundle.employment.employee_number
+	});
 	const classifiedOvertime = classifyOvertimeByCalendarMonth({
 		days: overtimeDays,
 		dailyWorkLimit,
@@ -629,7 +666,7 @@ export function measureEmployment(options: {
 			// Emitted as empty strings rather than omitted: CEL has no `?.` and throws on a missing key.
 			work_classification: closingTerms.work_classification ?? '',
 			employment_type: closingTerms.employment_type ?? '',
-			rest_day: closingTerms.rest_day ?? ''
+			rest_day: ''
 		},
 		derived: {
 			service_months: bundle.serviceMonths,
@@ -936,7 +973,7 @@ function measureComponent(options: {
 					workingDaysIn: options.workingDaysIn
 				});
 				if (fraction <= 0) continue;
-				amount += Number(asRateTerms(terms).base_salary.value) * fraction;
+				amount += Number(baseSalaryOf(terms).value) * fraction;
 			}
 			// A full-final-period policy extends the last effective wage through month end. The
 			// contract row still ends on the real exit date; only this run's settlement span extends.
@@ -952,8 +989,7 @@ function measureComponent(options: {
 					workingDaysIn: options.workingDaysIn
 				});
 				amount +=
-					Number(asRateTerms(termsAt(options.bundle, options.contracted.end)).base_salary.value) *
-					fraction;
+					Number(baseSalaryOf(termsAt(options.bundle, options.contracted.end)).value) * fraction;
 			}
 			return {
 				amount: cents(amount),

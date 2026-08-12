@@ -139,7 +139,7 @@ export async function buildPayrollRun(options: {
 
 	const openTimeEntry = gathered.bundles
 		.flatMap((bundle) => bundle.timeEntries)
-		.find((entry) => entry.state === 'OPEN');
+		.find((entry) => entry.worked_intervals?.some((interval) => interval.end_at == null));
 	if (openTimeEntry)
 		throw new Error(
 			`A time entry in the attendance window is still open (${requiredDateKey(openTimeEntry.work_date, 'time_entries.work_date')}). ` +

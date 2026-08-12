@@ -6,7 +6,6 @@
 	import { CollectionForm } from '@norbital-ai/ui/collection-form';
 	import { Column, Grid } from '@norbital-ai/ui/layout';
 	import { RelationshipRenderer } from '@norbital-ai/ui/data-renderer/relationship';
-	import DurationHoursRenderer from '../../lib/ui/duration-hours-renderer.svelte';
 
 	let { record, close }: RepresentationProps = $props();
 	const { t } = useI18n<TenantI18nKeys>();
@@ -37,20 +36,7 @@
 			/>
 			<Field name="code" />
 			<Field name="name" />
-			<Field name="start_time" label={t('component.start_time')} />
-			<Field name="end_time" label={t('component.end_time')} />
-			<Field
-				name="break_minutes"
-				label={t('component.break_hours')}
-				renderer={DurationHoursRenderer}
-			/>
-			<Field name="crosses_midnight" label={t('component.crosses_midnight')} />
-			<Field name="pays_overtime" label={t('component.overtime_eligible')} />
-			<Field
-				name="overtime_break_minutes"
-				label={t('component.overtime_break_hours')}
-				renderer={DurationHoursRenderer}
-			/>
+			<Column span="all"><Field name="variant" label={t('component.shift')} /></Column>
 			<Column span="all"
 				><Field name="effective_range" label={t('component.effective_period')} /></Column
 			>

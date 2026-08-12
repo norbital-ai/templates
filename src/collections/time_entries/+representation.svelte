@@ -3,10 +3,8 @@
 	 * An attendance day belongs to one employment. The auto form asked for `employment_id` as an
 	 * editable uuid; it is a relationship and reads as the employee number.
 	 *
-	 * Every field here is a recorded fact about the clock. There is nothing to approve and no hours
-	 * to enter: the payroll run derives overtime from these punches, the day's statutory type and the
-	 * employment's effective terms, so an operator can never state a duration that disagrees with the
-	 * clock it came from.
+	 * Every field here is a recorded fact about presence. There is no overtime field: payroll derives
+	 * premium work from these intervals, the effective schedule and the statutory day type.
 	 */
 	import { client } from '$pod/client';
 	import { useI18n } from '@norbital-ai/ui/i18n';
@@ -48,16 +46,12 @@
 				}}
 			/>
 			<Field name="work_date" label={t('component.day')} />
-			<Field name="state" label={t('component.clock_state')} />
-			<Field name="clock_in" label={t('component.clocked_in')} />
-			<Field name="clock_out" label={t('component.clocked_out')} />
+			<Field name="worked_intervals" label={t('component.worked_intervals')} />
 			<Field
 				name="break_minutes"
 				label={t('component.unpaid_break_hours')}
 				renderer={DurationHoursRenderer}
 			/>
-			<Field name="overtime_in" label={t('component.overtime_punched_in')} />
-			<Field name="overtime_out" label={t('component.overtime_punched_out')} />
 		</Grid>
 	{/snippet}
 </CollectionForm>

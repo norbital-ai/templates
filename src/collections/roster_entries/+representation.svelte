@@ -1,10 +1,5 @@
 <script lang="ts">
-	/**
-	 * One person-day of the roster carries three relationships — the employment, the shift the day
-	 * is worked on, and the drafted month it belongs to. The auto form asked for all three as
-	 * editable uuids. A day that schedules nothing — `REST` or `OFF` — simply leaves the shift
-	 * empty; the picker offers `—` for it rather than an id.
-	 */
+	/** A person-day references one roster code; the code itself says WORK, REST or OFF. */
 	import { client } from '$pod/client';
 	import { useI18n } from '@norbital-ai/ui/i18n';
 	import type { TenantI18nKeys } from '$pod/i18n-keys';
@@ -44,7 +39,6 @@
 				}}
 			/>
 			<Field name="work_date" label={t('component.day')} />
-			<Field name="designation" label={t('component.what_the_day_is')} />
 			<Field
 				name="shift_definition_id"
 				label={t('component.shift')}

@@ -19,7 +19,6 @@ import {
 export const TIME_ENTRY_SHEET_NAME = 'Time entries';
 export const SETTINGS_SHEET_NAME = 'Settings';
 const REQUIRED_COLUMNS = ['employee_number', 'work_date'] as const;
-const STATES = ['OPEN', 'CLOSED'] as const;
 
 export interface TimeEntryImportRow {
 	readonly employee_number: string;
@@ -27,9 +26,6 @@ export interface TimeEntryImportRow {
 	readonly clock_in?: string;
 	readonly clock_out?: string;
 	readonly break_minutes?: number;
-	readonly overtime_in?: string;
-	readonly overtime_out?: string;
-	readonly state?: (typeof STATES)[number];
 	readonly reason?: string;
 }
 
@@ -75,24 +71,18 @@ export function timeEntryImportPayload(grids: WorkbookGrids): TimeEntryImportPay
 	const timezone = timeEntryImportTimezone(grids);
 	const table = readSheetTable(grids, TIME_ENTRY_SHEET_NAME, REQUIRED_COLUMNS);
 	// An empty cell reads as absent, not as a value. The pipeline takes each of these as optional and
-	// derives from what it was given — an unwritten `state` is derived from whether both clocks
-	// arrived. `JSON.stringify` drops an undefined property on the way out, so absence travels as
+	// derives whether the final interval is open from whether a close arrived. `JSON.stringify`
+	// drops an undefined property on the way out, so absence travels as
 	// absence.
 	//
-	// Only cells naming what the clock did are read. A column the workbook still carries but this
-	// list does not name — `overtime_authorized`, on every file issued before overtime became a
-	// calculated value — is ignored rather than refused, so a file already in a customer's hands
-	// keeps importing. Nothing is silently dropped that payroll would otherwise have used: the run
-	// derives overtime from the punches on this sheet.
+	// Legacy overtime/state columns are intentionally ignored. Overtime is calculated from actual
+	// presence and the effective schedule; a workbook cannot assert it as a second class of time.
 	const rows = readRows(table, identifyTimeEntryRow, (reader): TimeEntryImportRow => ({
 		employee_number: reader.requiredText('employee_number') ?? '',
 		work_date: reader.calendarDate('work_date') ?? '',
 		clock_in: reader.clockTime('clock_in'),
 		clock_out: reader.clockTime('clock_out'),
 		break_minutes: reader.wholeNumber('break_minutes'),
-		overtime_in: reader.clockTime('overtime_in'),
-		overtime_out: reader.clockTime('overtime_out'),
-		state: reader.choice('state', STATES, false),
 		reason: reader.text('reason')
 	}));
 	return { timezone, rows };

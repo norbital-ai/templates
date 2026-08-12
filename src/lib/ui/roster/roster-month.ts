@@ -19,6 +19,8 @@
  */
 
 import { calendarDayKey, daysInMonth } from '../calendar.js';
+import { rosterCodeKind } from '../../scheduling/roster-code.js';
+import { patternRosterCodeId } from '../../scheduling/work-pattern.js';
 import type { I18nApi } from '@norbital-ai/ui/i18n';
 import type { TenantI18nKeys } from '$pod/i18n-keys';
 
@@ -54,16 +56,33 @@ export type DayFacts = {
 export type RosterEntryLike = {
 	readonly employment_id: string;
 	readonly work_date: string | Date;
-	readonly designation: string | null;
-	readonly shift_definition_id: string | null;
+	readonly shift_definition_id: string;
 	readonly assignment_code: string | null;
+};
+
+export type EmploymentTermLike = {
+	readonly employment_id: string;
+	readonly work_pattern: unknown;
+	readonly effective_range: {
+		readonly start?: string | Date;
+		readonly end?: string | Date;
+	} | null;
+};
+
+export type RosterCodeDisplayLike = {
+	readonly code: string;
+	readonly variant: unknown;
 };
 
 export type TimeEntryLike = {
 	readonly employment_id: string;
 	readonly work_date: string | Date;
-	readonly clock_in: string | Date | null;
-	readonly state: string | null;
+	readonly worked_intervals:
+		| readonly {
+				readonly start_at: string | Date;
+				readonly end_at: string | Date | null;
+		  }[]
+		| null;
 };
 
 export type LeaveRequestLike = {
@@ -100,8 +119,21 @@ export function holidayNamesByDate(holidays: readonly HolidayLike[]): Map<string
 	return new Map(holidays.map((holiday) => [calendarDayKey(holiday.date), holiday.name]));
 }
 
-function designationOf(value: string | null): Designation | null {
-	return value === 'WORK' || value === 'REST' || value === 'OFF' ? value : null;
+function termCovers(term: EmploymentTermLike, date: string): boolean {
+	if (term.effective_range?.start == null || term.work_pattern == null) return false;
+	const start = calendarDayKey(term.effective_range.start);
+	const end = term.effective_range.end == null ? null : calendarDayKey(term.effective_range.end);
+	return date >= start && (end == null || date <= end);
+}
+
+function activeTerm(
+	terms: readonly EmploymentTermLike[],
+	employmentId: string,
+	date: string
+): EmploymentTermLike | null {
+	return (
+		terms.find((term) => term.employment_id === employmentId && termCovers(term, date)) ?? null
+	);
 }
 
 /**
@@ -139,7 +171,8 @@ export function buildRosterMonth(options: {
 	readonly timeEntries: readonly TimeEntryLike[];
 	readonly leaveRequests: readonly LeaveRequestLike[];
 	readonly holidays: readonly HolidayLike[];
-	readonly shiftCodeById: ReadonlyMap<string, string>;
+	readonly rosterCodesById: ReadonlyMap<string, RosterCodeDisplayLike>;
+	readonly employmentTerms: readonly EmploymentTermLike[];
 	readonly leaveCodeById: ReadonlyMap<string, string>;
 	readonly cutoff: { readonly start: string; readonly end: string } | null;
 }): Map<string, DayFacts> {
@@ -183,18 +216,28 @@ export function buildRosterMonth(options: {
 			const roster = rosterByKey.get(key);
 			const time = timeByKey.get(key);
 			const leave = leaveByKey.get(key);
-			const shiftId = roster?.shift_definition_id;
+			const term = activeTerm(options.employmentTerms, employmentId, date);
+			const projectedId =
+				roster == null && term != null ? patternRosterCodeId(term.work_pattern, date) : null;
+			const rosterCodeId = roster?.shift_definition_id ?? projectedId;
+			const rosterCode = rosterCodeId == null ? null : options.rosterCodesById.get(rosterCodeId);
+			const designation = rosterCode == null ? null : rosterCodeKind(rosterCode.variant);
 			const partial: Omit<DayFacts, 'status'> = {
 				employmentId,
 				date,
-				designation: designationOf(roster?.designation ?? null),
-				shiftCode: shiftId == null ? null : (options.shiftCodeById.get(shiftId) ?? null),
+				designation,
+				shiftCode: designation === 'WORK' ? (rosterCode?.code ?? null) : null,
 				assignmentCode: roster?.assignment_code ?? null,
 				holidayName: holidayByDate.get(date) ?? null,
 				leaveCode: leave?.code ?? null,
 				halfDayLeave: leave?.halfDay ?? false,
-				clockedIn: time?.clock_in != null,
-				attendanceState: time?.state === 'OPEN' || time?.state === 'CLOSED' ? time.state : null,
+				clockedIn: (time?.worked_intervals?.length ?? 0) > 0,
+				attendanceState:
+					time == null
+						? null
+						: time.worked_intervals?.some((interval) => interval.end_at == null)
+							? 'OPEN'
+							: 'CLOSED',
 				withinCutoff:
 					options.cutoff != null && date >= options.cutoff.start && date <= options.cutoff.end
 			};

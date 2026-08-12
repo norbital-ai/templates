@@ -12,11 +12,12 @@ import { z } from 'zod/mini';
 export const leaveEventSchema = z.discriminatedUnion('kind', [
 	z.strictObject({
 		kind: z.literal('TIME_OFF'),
-		from_date: z.iso.date(),
-		to_date: z.iso.date(),
-		days: z.number().check(z.positive()),
-		half_day_start: z.boolean(),
-		half_day_end: z.boolean(),
+		range: z.strictObject({
+			start: z.strictObject({ date: z.iso.date(), half: z.enum(['FIRST', 'SECOND']) }),
+			end: z.strictObject({ date: z.iso.date(), half: z.enum(['FIRST', 'SECOND']) })
+		}),
+		/** Immutable approval snapshot, calculated by the server from the schedule and calendar. */
+		chargeable_days: z.nullable(z.number().check(z.positive())),
 		reason: z.nullable(z.string()),
 		certificate_file: z.nullable(z.uuid())
 	}),
@@ -50,6 +51,6 @@ export type LeaveEvent = z.infer<typeof leaveEventSchema>;
 export default defineCustomType({
 	name: 'leave_event',
 	description:
-		'What a leave request row records: a dated time-off request with its days and half-day ends, a balance adjustment, an encashment, or a migrated legacy taken-leave movement.',
+		'What a leave request row records: one contiguous half-day-stepped range whose charged days are server-derived, a balance adjustment, an encashment, or a migrated legacy movement.',
 	schema: leaveEventSchema
 });

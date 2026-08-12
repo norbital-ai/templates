@@ -1,22 +1,10 @@
-import {
-	boolean,
-	custom,
-	dateRange,
-	defineModel,
-	enums,
-	numeric,
-	sql,
-	text,
-	uuid
-} from '@norbital-ai/pod/authoring';
+import { custom, dateRange, defineModel, enums, sql, text, uuid } from '@norbital-ai/pod/authoring';
 
 export default defineModel(
 	{
 		employment_id: uuid().notNull(),
 		base_salary: custom('money').notNull(),
 		pay_frequency: enums(['MONTHLY', 'SEMI_MONTHLY', 'WEEKLY', 'DAILY', 'HOURLY']).notNull(),
-		ordinary_hours_per_week: numeric().notNull(),
-		working_days_per_week: numeric().notNull(),
 		work_classification: enums(['EA_COVERED', 'NON_EA', 'MANAGERIAL']).notNull(),
 		/**
 		 * First Schedule work category used to decide whether the RM4,000 exclusion from statutory
@@ -38,22 +26,11 @@ export default defineModel(
 			'INTERN',
 			'CONSULTANT'
 		]).notNull(),
-		overtime_eligible: boolean().notNull(),
 		department: text(),
 		job_title: text(),
 		payroll_group: text(),
-		/**
-		 * Which week shape governs these terms. When set it is authoritative: it names the rest and
-		 * off days outright and says which weekday the week starts on.
-		 *
-		 * Optional only for continuity with terms written before patterns existed, which fall back to
-		 * `rest_day` and `working_days_per_week` below. New terms should name a pattern — the
-		 * fallback can only guess which non-rest days are off days, and guessing wrong prices a day
-		 * at the ordinary rate that should have earned the rest-day multiple.
-		 */
-		work_pattern_id: uuid(),
-		/** Superseded by `work_pattern_id`. Retained for terms that predate work patterns. */
-		rest_day: enums(['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN']).notNull(),
+		/** The employment's only schedule term. Workdays, hours, rest and off days derive from it. */
+		work_pattern: custom('work_pattern').notNull(),
 		effective_range: dateRange().notNull(),
 		/**
 		 * The terms' own title, composed in SQL.
@@ -69,7 +46,7 @@ export default defineModel(
 	},
 	{
 		description:
-			'The effective-dated terms of one employment — pay, hours, statutory work category, classification and the work pattern shaping its week. A change is an end-date plus a successor row, never an update in place.',
+			'The effective-dated pay, classification and canonical work pattern of one employment. Schedule hours, workdays, rest days and off days are derived from the embedded pattern rather than duplicated.',
 		recordLabel: 'summary',
 		icon: 'lucide:file-signature',
 		// Plan 02 §7: employment =, effective range &&. One employment has exactly one set of terms

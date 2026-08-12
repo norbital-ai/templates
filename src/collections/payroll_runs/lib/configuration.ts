@@ -29,7 +29,6 @@ export type OvertimeCoverageRule = WorkspaceRow<'overtime_coverage_rules'>;
 export type RestBreakRuleRow = WorkspaceRow<'rest_break_rules'>;
 export type ShiftDefinition = WorkspaceRow<'shift_definitions'>;
 export type LeaveType = WorkspaceRow<'leave_types'>;
-export type WorkPattern = WorkspaceRow<'work_patterns'>;
 export type ContributionRate = WorkspaceRow<'contribution_rates'>;
 export type Treatment = NonNullable<PayComponent['policy']>['statutory_treatments'][number];
 export type StatutoryContribution = WorkspaceRow<'statutory_contributions'>;
@@ -66,8 +65,6 @@ export type Configuration = {
 	readonly shiftById: ReadonlyMap<string, ShiftDefinition>;
 	readonly holidays: ReadonlyMap<IsoDate, WorkspaceRow<'company_holidays'>>;
 	readonly leaveTypes: readonly LeaveType[];
-	/** Keyed by id, because employment terms name the exact pattern that governs them. */
-	readonly workPatternById: ReadonlyMap<string, WorkPattern>;
 	readonly hash: string;
 };
 
@@ -148,8 +145,7 @@ export async function pickConfiguration(options: {
 		restBreakRuleRows,
 		shiftRows,
 		holidayRows,
-		leaveTypeRows,
-		workPatternRows
+		leaveTypeRows
 	] = await Promise.all([
 		query.statutory_contributions.findMany({
 			where: { jurisdiction_id: { eq: jurisdiction.norbital_id }, ...approved },
@@ -186,10 +182,6 @@ export async function pickConfiguration(options: {
 		query.leave_types.findMany({
 			where: { company_id: { eq: company.norbital_id }, ...approved },
 			limit: PAGE_LIMIT
-		}),
-		query.work_patterns.findMany({
-			where: { company_id: { eq: company.norbital_id }, ...approved },
-			limit: PAGE_LIMIT
 		})
 	]);
 	// Every collection pages to the same ceiling and is checked: a configuration read that came
@@ -204,7 +196,6 @@ export async function pickConfiguration(options: {
 	assertComplete(shiftRows, 'shift definitions');
 	assertComplete(holidayRows, 'company holidays');
 	assertComplete(leaveTypeRows, 'leave types');
-	assertComplete(workPatternRows, 'work patterns');
 
 	const contributions = live(contributionRows)
 		.filter((row) => coversDate(row.effective_range, asOf))
@@ -251,12 +242,6 @@ export async function pickConfiguration(options: {
 		overlapsRange(row.effective_range, windowStart, windowEnd)
 	);
 
-	// Keyed by id rather than filtered to one effective row: the terms name the exact pattern that
-	// governs them, and the terms row's own effective range already decides which terms apply when.
-	const workPatterns = live(workPatternRows).filter((row) =>
-		overlapsRange(row.effective_range, windowStart, windowEnd)
-	);
-
 	const configuration = {
 		company,
 		jurisdiction,
@@ -278,8 +263,7 @@ export async function pickConfiguration(options: {
 		holidays: new Map(
 			live(holidayRows).map((row) => [String(row.date).slice(0, 10), row] as const)
 		),
-		leaveTypes: live(leaveTypeRows).filter((row) => coversDate(row.effective_range, asOf)),
-		workPatternById: new Map(workPatterns.map((row) => [row.norbital_id, row]))
+		leaveTypes: live(leaveTypeRows).filter((row) => coversDate(row.effective_range, asOf))
 	} satisfies Omit<Configuration, 'hash'>;
 
 	return { ...configuration, hash: hashConfiguration(configuration, options.period) };
@@ -365,11 +349,10 @@ export function configurationSnapshot(
 		leave_types: configuration.leaveTypes
 			.map((row) => [row.code, row.accrual, row.entitlement, row.payroll_effect])
 			.toSorted((left, right) => String(left[0]).localeCompare(String(right[0]))),
-		// A pattern decides which days are rest, off and ordinary, so changing one reprices days.
-		// The scheduling limits are deliberately absent: they gate whether a roster may be published,
-		// and never enter the arithmetic of a day already worked.
-		work_patterns: [...configuration.workPatternById.values()]
-			.map((row) => [row.code, row.variant, row.default_shift_definition_id])
+		// Codes are configuration because their polymorphic variant decides whether a scheduled day
+		// is work, protected rest or another off day, and a WORK code owns its clock window.
+		roster_codes: [...configuration.shiftById.values()]
+			.map((row) => [row.code, row.variant, row.effective_range])
 			.toSorted((left, right) => String(left[0]).localeCompare(String(right[0])))
 	};
 }

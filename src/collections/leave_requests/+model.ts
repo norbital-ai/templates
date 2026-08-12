@@ -19,19 +19,19 @@ export default defineModel(
 		// A stored generated column must be immutable, and a text -> date cast is only STABLE.
 		// `norbital_date` is the immutable wrapper the platform installs before any migration runs.
 		from_date: date().generatedAlwaysAs(
-			sql`CASE WHEN event ->> 'kind' = 'TIME_OFF' THEN norbital_date(event ->> 'from_date') ELSE norbital_date(event ->> 'effective_on') END`
+			sql`CASE WHEN event ->> 'kind' = 'TIME_OFF' THEN norbital_date(event #>> '{range,start,date}') ELSE norbital_date(event ->> 'effective_on') END`
 		),
 		to_date: date().generatedAlwaysAs(
-			sql`CASE WHEN event ->> 'kind' = 'TIME_OFF' THEN norbital_date(event ->> 'to_date') ELSE norbital_date(event ->> 'effective_on') END`
+			sql`CASE WHEN event ->> 'kind' = 'TIME_OFF' THEN norbital_date(event #>> '{range,end,date}') ELSE norbital_date(event ->> 'effective_on') END`
 		),
 		days: numeric().generatedAlwaysAs(
-			sql`CASE WHEN event ->> 'kind' = 'TIME_OFF' THEN (event ->> 'days')::numeric ELSE (event ->> 'movement_days')::numeric END`
+			sql`CASE WHEN event ->> 'kind' = 'TIME_OFF' THEN (event ->> 'chargeable_days')::numeric ELSE (event ->> 'movement_days')::numeric END`
 		),
 		half_day_start: boolean().generatedAlwaysAs(
-			sql`CASE WHEN event ->> 'kind' = 'TIME_OFF' THEN (event ->> 'half_day_start')::boolean ELSE false END`
+			sql`CASE WHEN event ->> 'kind' = 'TIME_OFF' THEN (event #>> '{range,start,half}') = 'SECOND' ELSE false END`
 		),
 		half_day_end: boolean().generatedAlwaysAs(
-			sql`CASE WHEN event ->> 'kind' = 'TIME_OFF' THEN (event ->> 'half_day_end')::boolean ELSE false END`
+			sql`CASE WHEN event ->> 'kind' = 'TIME_OFF' THEN (event #>> '{range,end,half}') = 'FIRST' ELSE false END`
 		),
 		reason: text().generatedAlwaysAs(
 			sql`CASE WHEN event ->> 'kind' = 'TIME_OFF' THEN event ->> 'reason' ELSE event ->> 'note' END`
@@ -52,7 +52,7 @@ export default defineModel(
 		summary: text({ search: true }).generatedAlwaysAs(
 			sql`CASE
 				WHEN event ->> 'kind' = 'TIME_OFF'
-					THEN 'Time off · ' || (event ->> 'from_date') || ' → ' || (event ->> 'to_date') || ' · ' || (event ->> 'days') || 'd'
+					THEN 'Time off · ' || (event #>> '{range,start,date}') || ' → ' || (event #>> '{range,end,date}') || ' · ' || (event ->> 'chargeable_days') || 'd'
 				WHEN event ->> 'kind' = 'BALANCE_ADJUSTMENT'
 					THEN 'Balance adjustment · ' || (event ->> 'effective_on') || ' · ' || (event ->> 'movement_days') || 'd'
 				WHEN event ->> 'kind' = 'ENCASHMENT'

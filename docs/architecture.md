@@ -182,27 +182,40 @@ Day type is calculated before money:
 
 ```mermaid
 flowchart LR
-  R["Roster designation"] --> D["WORK / OFF / REST"]
-  F["Fixed-week fallback"] --> D
+  C["Roster code variant"] --> D["WORK / OFF / REST"]
+  P["Employment work pattern"] --> D
+  R["Explicit monthly assignment"] --> D
   H["Holiday and substitute holiday"] --> T["Final day type"]
   D --> T
-  S["Shift definition"] --> A["Normal hours and boundaries"]
+  C --> A["Normal hours and boundaries"]
   T --> O["Applicable statutory OT ladder"]
   A --> O
 ```
 
-For a rostered **shift worker**, the dated roster / attendance assignment is authoritative and may
-place `REST` or `OFF` on any weekday. `WORK` is ordinary, `REST` is the statutory rest day and
-`OFF` is an additional non-working day.
+`employment_terms.work_pattern` is the one canonical schedule term. It is polymorphic:
 
-For a **fixed five-day (office / normal) worker** with no conflicting dated roster override:
+- `PATTERNED` repeats one or more phases from an anchor date. A phase has a cycle of roster-code
+  references. One seven-day cycle represents a fixed office week; a short cycle represents a crew
+  rotation; calendar-month phases represent long rotations such as three months of day shifts
+  followed by three months of nights.
+- `ROSTERED` means the assignments cannot be projected reliably. The published monthly roster is
+  therefore required. Its expectation is either as-assigned or a guaranteed number of workdays and
+  paid minutes per week/month, which publication validates.
 
-- Saturday is `OFF`;
-- Sunday is `REST` (statutory rest day);
-- Monday–Friday are ordinary workdays unless a holiday or approved leave applies.
+There is no separate work-pattern record and no duplicated weekly-hours, workdays or rest-weekday
+field. Those are derived from a patterned schedule; a rostered schedule stores only the expectation
+that cannot be derived without the month.
 
-When no roster exists, working days per week and the configured rest weekday provide that fixed-week
-fallback. Do not treat Saturday as the statutory rest day for a five-day contract.
+`shift_definitions` remains the migration-stable physical collection name, but its domain and UI
+name is **roster codes**. Every code is exactly one of `WORK`, `REST` or `OFF`. A `WORK` code carries
+start, end and unpaid break. Whether it crosses midnight and how many paid minutes it represents are
+derived from those values. `REST` is protected statutory rest; `OFF` is another planned non-working
+day. Neither carries clock times.
+
+For a patterned employment the month board projects the baseline without storing person-day rows.
+An explicit roster entry is an exception to that baseline. For a rostered employment, every supplied
+entry is authoritative and an absent day remains unassigned. A blank spreadsheet cell means “no
+explicit assignment”; it does not silently manufacture another rest day.
 
 `REST` does not mean that work is impossible. Malaysian law requires a weekly rest day; for shift
 work, a continuous period of at least 30 hours can constitute that day. The employer prepares the
@@ -224,14 +237,15 @@ already defines one. This changes schedule classification; it does not invent an
 
 An overtime amount is produced only when all relevant gates pass:
 
-1. the time entry is approved and `CLOSED`;
-2. the shift permits overtime;
-3. a separately punched OT interval, when supplied, is complete and forward-running; and
+1. every worked interval is complete, forward-running and non-overlapping;
+2. the schedule, holiday calendar and attendance together classify the work as payable overtime;
+3. the applicable effective-dated coverage and pricing rules permit an award; and
 4. payable duration remains after flooring.
 
 **Overtime is a calculated value, never a stored one.** A `time_entries` row records what happened
-on the clock — the punches, the unpaid break, the clock state — and nothing about what those hours
-are worth or who agreed to them. The payroll run derives the duration from the punches, and the
+on the clock — one or more worked intervals and the unpaid break — and nothing about what those hours
+are worth or who agreed to them. Open/closed state is derived from whether the final interval has an
+end. The payroll run derives duration from the intervals, and the
 schedule decides whether the same hours were ordinary, rest-day or public-holiday work.
 
 `time_entries` previously carried `overtime_authorized` and five `approved_ot_*_hours` buckets, and
@@ -243,20 +257,18 @@ the clock says were worked.
 
 ### Hours
 
-For an ordinary scheduled day without a dedicated OT punch:
+For an ordinary scheduled day:
 
 ```text
-raw OT = clock-out − scheduled shift end − configured OT break
+raw OT = worked intervals outside the scheduled WORK window − applicable unpaid break
 ```
 
-Early clock-in does not earn time because clock-in is clamped to shift start. On a rest, off or
-holiday day, clocked work is measured from the actual punches less the applicable unpaid break.
-
-A rest or off day schedules no shift — `roster_entries.shift_definition_id` is null on those arms —
-so the clamp cannot come from the day itself. It is the employee's **ordinary** shift start, taken
-from the rostered working days of the same window, so arriving before their normal starting time
-stays unpaid on a rest day exactly as it does on a working one. The unpaid break on such a day is
-the one the time entry records, because a day with no scheduled shift has no scheduled break.
+On a rest, off or observed-holiday day, all approved worked duration is classified against that day
+type, less the applicable unpaid break. Scheduling a person to return on such a day is not a special
+OT roster kind: it is a WORK assignment overriding a derived non-working baseline. The system can
+therefore derive projected extra work when the roster is prepared and route it for approval; after
+attendance arrives, actual payable overtime is recalculated from what was worked. Projected and
+actual amounts cannot drift because neither is a writable roster/time-entry quantity.
 
 Every dated quantity is floored down to a half-hour:
 
@@ -362,9 +374,10 @@ jurisdiction with no row covers everyone — absence of a coverage restriction i
 that excludes everyone. See [Statutory overtime coverage](#statutory-overtime-coverage) for the
 full model, the sources and what is still unencoded.
 
-A contractual entitlement can be more favourable: `employment_terms.overtime_eligible` widens
-coverage and never narrows it. The legacy `work_classification = NON_EA` label is not, by itself,
-proof that the Employment Act does not apply.
+A contractual entitlement can be more favourable, but it must be encoded as an effective-dated
+coverage/pricing policy. There is no `employment_terms.overtime_eligible` switch: a boolean beside
+the statutory facts would eventually drift from the rule it claims to summarize. The legacy
+`work_classification = NON_EA` label is not, by itself, proof that the Employment Act does not apply.
 
 For Malaysia the row encodes the Employment Act 1955 First Schedule as substituted by the
 Employment (Amendment of First Schedule) Order 2022 [P.U. (A) 262]: a ceiling of RM4,000 a month,
