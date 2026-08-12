@@ -60,13 +60,16 @@ Every photo, from every entry path (workspace upload or channel), passes through
    `exact_duplicate` / `visual_duplicate` flags with the matched evidence ids.
 3. **Geolocation** — EXIF GPS is compared against the job site's map location (500 m tolerance).
    No GPS → `missing_geolocation`; capture beyond tolerance → `location_mismatch`.
-4. **Site identity (automation)** — a vision model reads site name / location / unit visibly printed
-   in the photo. The first photo that verifies sets `site_identity_unverified = false` on the
-   assignment; an inconclusive photo deliberately does **not** write, so a later weak photo can never
-   undo an earlier verified result ("at least one photo" semantics).
-5. **Escalation** — any integrity flag (`exact_duplicate`, `visual_duplicate`,
-   `missing_geolocation`, `location_mismatch`) latches the parent assignment to `suspect`, one-way.
-   The controller dashboard surfaces suspects; contractors and the WhatsApp agent never see them.
+4. **Site identity (automation)** — a vision model uses its own visual judgement to read naturally
+   photographed site name / location / unit details, ignoring overlays, and compares them with the
+   assigned site. A match supplies the alternative to GPS; an explicit contradiction latches
+   `site_identity_mismatch` and stores the model's free-text rationale. Inconclusive photos do not
+   overwrite a prior match or mismatch ("at least one photo" semantics).
+5. **Escalation** — exact/perceptual reuse across assignments, GPS outside the site tolerance, or a
+   photographed identifier that contradicts the assigned site latches `suspect` immediately. Missing
+   GPS alone does not: completion is suspicious only when the assignment has neither GPS metadata nor
+   a matching naturally photographed site identifier. The controller dashboard shows the structured
+   reason and AI rationale; contractors and the WhatsApp agent never see them.
 
 ## 3. What ships
 
@@ -160,8 +163,9 @@ agent — not only the UI:
   with bounded limits — the fast, indexed path, not a scan.
 - **EXIF**: `exifr` reads capture time, software, and GPS. `missing_geolocation` fires for any photo
   without GPS; `metadata_anomaly`/`edited_metadata`/`low_quality` are recorded but do not escalate.
-- **Flags** live on the photo row (`flags` array, `matched_evidence_ids`) and drive the one-way
-  `suspect` escalation; the controller dashboard is where they render.
+- **Flags** live on the photo row (`flags` array, `matched_evidence_ids`). Cross-assignment reuse and
+  GPS mismatch drive immediate one-way escalation; `missing_geolocation` combines with the assignment's
+  site-identity result at completion. The controller dashboard is where these reasons render.
 
 ### How the WhatsApp channel works
 

@@ -159,6 +159,7 @@
 	"component.suspicious_reason_pending": "完整性证据仍在加载，系统已先标记该任务分配。",
 	"component.suspicion_missing_geolocation": "一张或多张照片没有内嵌 GPS 标签；标签可能从未存在或已被移除。",
 	"component.suspicion_location_mismatch": "照片的内嵌 GPS 坐标超出所分配工地的允许距离。",
+	"component.suspicion_site_identity_mismatch": "照片中自然拍摄到的地址或工地标识与所分配的任务地点不符。",
 	"component.suspicion_exact_duplicate": "完全相同的照片已用于另一项任务分配。",
 	"component.suspicion_visual_duplicate": "另一项任务分配中出现视觉上相同的照片，可能是裁剪或滤镜处理后的副本。",
 	"component.suspicion_site_identity_missing": "没有照片验证门牌、地址牌、建筑名称或街道标志等照片场景内的工地标识。",
@@ -169,5 +170,6 @@
 	"component.flag_visual_duplicate": "重复使用或修改过的照片",
 	"component.flag_metadata_anomaly": "元数据异常",
 	"component.flag_edited_metadata": "记录了图像编辑软件",
-	"component.flag_low_quality": "图像质量较低"
+	"component.flag_low_quality": "图像质量较低",
+	"component.agent_rationale": "代理评估"
 }

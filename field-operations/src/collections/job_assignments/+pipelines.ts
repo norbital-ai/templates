@@ -227,6 +227,7 @@ export default {
 				contractor_profile_id: entry.contractorId,
 				status: 'dispatched' as const,
 				site_identity_unverified: true,
+				site_identity_mismatch: false,
 				...(entry.row.summary ? { summary: entry.row.summary } : {})
 			}));
 		}

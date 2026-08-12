@@ -35,10 +35,11 @@ export const photoIntegrityFlags = [
 
 export type PhotoIntegrityFlag = (typeof photoIntegrityFlags)[number];
 
-/** Cross-assignment reuse is a hard signal and escalates immediately. */
+/** Cross-assignment reuse and contradictory capture GPS are hard signals. */
 export const suspectPhotoFlags = [
 	'exact_duplicate',
-	'visual_duplicate'
+	'visual_duplicate',
+	'location_mismatch'
 ] as const satisfies readonly PhotoIntegrityFlag[];
 
 export function photoEvidenceIsSuspicious(input: {

@@ -155,17 +155,27 @@
 		record?.status === 'suspect' && !hasGeotaggedPhoto && record.site_identity_unverified === true
 	);
 	const suspicionReasons = $derived([
+		...(assignmentIntegrityFlags.includes('location_mismatch')
+			? [t('component.suspicion_location_mismatch')]
+			: []),
 		...(assignmentIntegrityFlags.includes('exact_duplicate')
 			? [t('component.suspicion_exact_duplicate')]
 			: []),
 		...(assignmentIntegrityFlags.includes('visual_duplicate')
 			? [t('component.suspicion_visual_duplicate')]
 			: []),
+		...(record?.site_identity_mismatch === true
+			? [t('component.suspicion_site_identity_mismatch')]
+			: []),
 		...(missingBothLocationSignals ? [t('component.suspicion_location_evidence_missing')] : [])
 	]);
 
 	function photoHasHardSuspicion(flags: string[]): boolean {
-		return flags.includes('exact_duplicate') || flags.includes('visual_duplicate');
+		return (
+			flags.includes('exact_duplicate') ||
+			flags.includes('visual_duplicate') ||
+			flags.includes('location_mismatch')
+		);
 	}
 
 	function integrityFlagLabel(flag: string): string {
@@ -233,6 +243,12 @@
 							</Stack>
 						{:else}
 							<p class="text-sm">{t('component.suspicious_reason_pending')}</p>
+						{/if}
+						{#if record.site_identity_mismatch && record.site_identity_rationale}
+							<p class="text-sm text-orange-900/80 dark:text-orange-100/80">
+								<span class="font-medium">{t('component.agent_rationale')}:</span>
+								{record.site_identity_rationale}
+							</p>
 						{/if}
 					</Stack>
 				</Inline>
