@@ -91,6 +91,21 @@ async function markAssignmentSuspect(
 	await api.db.mutate('job_assignments', [{ norbital_id: assignmentId, status: 'suspect' }]);
 }
 
+async function assignmentIdForEvidence(
+	api: PhotoAfterApi,
+	evidence: { job_assignment_id?: string | null; variation_request_id?: string | null }
+): Promise<string | null> {
+	if (evidence.job_assignment_id != null && evidence.job_assignment_id !== '') {
+		return evidence.job_assignment_id;
+	}
+	if (evidence.variation_request_id == null || evidence.variation_request_id === '') return null;
+	const variation = await api.db.query.variation_requests.findFirst({
+		where: { norbital_id: { eq: evidence.variation_request_id } },
+		columns: { job_assignment_id: true }
+	});
+	return variation?.job_assignment_id ?? null;
+}
+
 export default {
 	create: {
 		input: photoEvidenceCreateInput,
@@ -142,9 +157,14 @@ export default {
 		},
 		after: {
 			description:
-				'Compares a newly filed photo against the rest of the evidence by hash and visual likeness, records which photos it duplicates, and marks the visit suspect when the resulting flags warrant it.',
+				'Compares a newly filed photo against the rest of the evidence by hash and visual likeness, records cross-assignment reuse, and immediately marks that assignment suspect when reuse is found.',
 			handler: async ({ record, api }) => {
-				const columns = { norbital_id: true, sha256: true } as const;
+				const columns = {
+					norbital_id: true,
+					sha256: true,
+					job_assignment_id: true,
+					variation_request_id: true
+				} as const;
 				const [exactMatches, visualMatches] = await Promise.all([
 					api.db.query.photo_evidence.findMany({
 						where: { sha256: { eq: record.sha256 } },
@@ -168,9 +188,27 @@ export default {
 					)
 				);
 				const matchedIds = new Set<string>();
+				const currentAssignmentId = await assignmentIdForEvidence(api, record);
+				const candidateAssignmentIds = new Map<string, string | null>();
+				const candidates = [
+					...new Map(
+						[...exactMatches, ...visualMatches]
+							.filter((candidate) => candidate.norbital_id !== record.norbital_id)
+							.map((candidate) => [candidate.norbital_id, candidate])
+					).values()
+				];
+				await Promise.all(
+					candidates.map(async (candidate) => {
+						candidateAssignmentIds.set(
+							candidate.norbital_id,
+							await assignmentIdForEvidence(api, candidate)
+						);
+					})
+				);
 
 				for (const candidate of exactMatches) {
 					if (candidate.norbital_id === record.norbital_id) continue;
+					if (candidateAssignmentIds.get(candidate.norbital_id) === currentAssignmentId) continue;
 					flags.add('exact_duplicate');
 					matchedIds.add(candidate.norbital_id);
 				}
@@ -178,6 +216,7 @@ export default {
 				for (const candidate of visualMatches) {
 					if (candidate.norbital_id === record.norbital_id) continue;
 					if (candidate.sha256 === record.sha256) continue;
+					if (candidateAssignmentIds.get(candidate.norbital_id) === currentAssignmentId) continue;
 					flags.add('visual_duplicate');
 					matchedIds.add(candidate.norbital_id);
 				}

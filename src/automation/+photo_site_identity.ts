@@ -54,8 +54,10 @@ export default defineAutomation(
 					images: [{ assetId: evidence.document_asset_id, detail: 'high' }],
 					prompt: [
 						'Inspect only the attached job-site photo.',
-						'Extract site identity that is visibly readable in the image: a site or building name,',
-						'a street/block/location, and a unit/lot/door number.',
+						'Extract site identity that is naturally present in the photographed scene: a site or',
+						'building name, street or block sign, address plaque, and a unit, lot, or door number.',
+						'Ignore every synthetic overlay, caption, watermark, timestamp, filename, border, badge,',
+						'or other text added on top of the photo, even when it states the expected address.',
 						'Do not infer from visual style, metadata, or unstated context.',
 						'Set evidence_available true only when at least one extracted identifier is explicit and legible.',
 						'Use null for every value that is absent or uncertain.'
