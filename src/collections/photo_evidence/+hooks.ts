@@ -31,6 +31,14 @@ type PhotoBeforeApi = Parameters<PhotoCreateBefore['handler']>[0]['api'];
 type PhotoAfterApi = Parameters<PhotoCreateAfter['handler']>[0]['api'];
 type PhotoCreateInput = z.infer<typeof photoEvidenceCreateInput>;
 type PhotoRecord = Parameters<PhotoCreateAfter['handler']>[0]['record'];
+type CachedPhotoInspection = {
+	readonly id: string;
+	readonly name: string;
+	readonly mimeType: string | null;
+	readonly size: number;
+	readonly contentSha256: string;
+	readonly facts: unknown;
+};
 type PhotoHooksWithBatch = Hooks & {
 	readonly create: NonNullable<Hooks['create']> & {
 		readonly before: PhotoCreateBefore & {
@@ -230,7 +238,8 @@ async function runAfterPhoto(record: PhotoRecord, api: PhotoAfterApi): Promise<v
 async function preparePhoto(
 	api: PhotoBeforeApi,
 	parsed: PhotoCreateInput,
-	siteLocation: LocationLike
+	siteLocation: LocationLike,
+	batchInspection?: CachedPhotoInspection | null
 ) {
 	const inspectionApi = api as PhotoBeforeApi & {
 		readFileAssetInspection?: (
@@ -245,12 +254,13 @@ async function preparePhoto(
 			facts: unknown;
 		} | null>;
 	};
-	const cached = inspectionApi.readFileAssetInspection
-		? await inspectionApi.readFileAssetInspection(
-				parsed.document_asset_id,
-				PHOTO_INTEGRITY_INSPECTION_PROFILE
-			)
-		: null;
+	const cached =
+		batchInspection === undefined && inspectionApi.readFileAssetInspection
+			? await inspectionApi.readFileAssetInspection(
+					parsed.document_asset_id,
+					PHOTO_INTEGRITY_INSPECTION_PROFILE
+				)
+			: (batchInspection ?? null);
 	const uncached = cached == null ? await api.readFileAsset(parsed.document_asset_id) : null;
 	const asset = cached ?? uncached!;
 	if (asset.mimeType == null || !asset.mimeType.toLowerCase().startsWith('image/')) {
@@ -363,8 +373,23 @@ export default {
 						})
 					: [];
 				const sitesById = new Map(sites.map((site) => [site.norbital_id, site.location]));
+				const inspectionApi = api as PhotoBeforeApi & {
+					readFileAssetInspections?: (
+						assetIds: readonly string[],
+						profile: string
+					) => Promise<readonly (CachedPhotoInspection | null)[]>;
+				};
+				const inspections = inspectionApi.readFileAssetInspections
+					? await inspectionApi.readFileAssetInspections(
+							parsedInputs.map((input) => input.document_asset_id),
+							PHOTO_INTEGRITY_INSPECTION_PROFILE
+						)
+					: undefined;
+				if (inspections != null && inspections.length !== parsedInputs.length) {
+					throw new Error('Photo inspection batch returned an invalid result count.');
+				}
 
-				return mapConcurrent(parsedInputs, PHOTO_INSPECTION_CONCURRENCY, async (parsed) => {
+				return mapConcurrent(parsedInputs, PHOTO_INSPECTION_CONCURRENCY, async (parsed, index) => {
 					const assignmentId =
 						parsed.job_assignment_id ??
 						(parsed.variation_request_id
@@ -372,7 +397,12 @@ export default {
 							: null);
 					const jobId = assignmentId ? assignmentsById.get(assignmentId)?.job_id : null;
 					const siteId = jobId ? jobsById.get(jobId)?.site_id : null;
-					return preparePhoto(api, parsed, siteId ? (sitesById.get(siteId) ?? null) : null);
+					return preparePhoto(
+						api,
+						parsed,
+						siteId ? (sitesById.get(siteId) ?? null) : null,
+						inspections?.[index]
+					);
 				});
 			},
 			handler: async ({ input, api }) => {
