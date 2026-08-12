@@ -7,11 +7,63 @@ function dateKey(value: string | Date | null | undefined): string {
 }
 
 function rangeCovers(
-	range: { readonly start?: string; readonly end?: string } | null,
+	range: { readonly start?: string | Date; readonly end?: string | Date } | null,
 	date: string
 ): boolean {
 	if (range?.start == null) return false;
 	return date >= dateKey(range.start) && (range.end == null || date <= dateKey(range.end));
+}
+
+type AssignmentValue = {
+	readonly employment_id: string;
+	readonly work_date: string | Date;
+	readonly shift_definition_id: string;
+	readonly roster_id: string | null;
+};
+
+type EmploymentReference = { readonly company_id: string };
+type RosterCodeReference = {
+	readonly company_id: string;
+	readonly code: string;
+	readonly variant: unknown;
+	readonly effective_range: { readonly start?: string | Date; readonly end?: string | Date } | null;
+};
+type RosterReference = {
+	readonly company_id: string;
+	readonly month: string;
+	readonly published_at: string | Date | null;
+};
+
+function assertResolvedAssignment(
+	value: AssignmentValue,
+	employment: EmploymentReference | null | undefined,
+	code: RosterCodeReference | null | undefined,
+	roster: RosterReference | null | undefined
+): void {
+	const date = dateKey(value.work_date);
+	if (employment == null)
+		throw new Error('The employment for this roster assignment no longer exists.');
+	if (code == null) throw new Error('Choose a roster code that still exists.');
+	rosterCodeVariantSchema.parse(code.variant);
+	if (code.company_id !== employment.company_id) {
+		throw new Error(`Roster code ${code.code} belongs to another legal entity.`);
+	}
+	if (!rangeCovers(code.effective_range, date)) {
+		throw new Error(`Roster code ${code.code} is not effective on ${date}.`);
+	}
+	if (value.roster_id == null) return;
+	if (roster == null) throw new Error('The draft roster for this assignment no longer exists.');
+	if (roster.published_at != null) {
+		throw new Error(
+			`Roster ${roster.month} is published, so its assignments are fixed. Re-open the month before changing it.`
+		);
+	}
+	if (roster.company_id !== employment.company_id) {
+		throw new Error('The employee and monthly roster belong to different legal entities.');
+	}
+	if (!date.startsWith(`${roster.month}-`)) {
+		throw new Error(`${date} does not belong to roster ${roster.month}.`);
+	}
 }
 
 async function assertRosterOpen(api: HookApi, rosterId: string | null | undefined): Promise<void> {
@@ -28,16 +80,7 @@ async function assertRosterOpen(api: HookApi, rosterId: string | null | undefine
 	}
 }
 
-async function assertAssignment(
-	api: HookApi,
-	value: {
-		readonly employment_id: string;
-		readonly work_date: string | Date;
-		readonly shift_definition_id: string;
-		readonly roster_id: string | null;
-	}
-): Promise<void> {
-	const date = dateKey(value.work_date);
+async function assertAssignment(api: HookApi, value: AssignmentValue): Promise<void> {
 	const [employment, code, roster] = await Promise.all([
 		api.db.query.employments.findFirst({
 			where: { norbital_id: { eq: value.employment_id } },
@@ -51,28 +94,10 @@ async function assertAssignment(
 			? Promise.resolve(null)
 			: api.db.query.rosters.findFirst({
 					where: { norbital_id: { eq: value.roster_id } },
-					columns: { company_id: true, month: true }
+					columns: { company_id: true, month: true, published_at: true }
 				})
 	]);
-	if (employment == null)
-		throw new Error('The employment for this roster assignment no longer exists.');
-	if (code == null) throw new Error('Choose a roster code that still exists.');
-	rosterCodeVariantSchema.parse(code.variant);
-	if (code.company_id !== employment.company_id) {
-		throw new Error(`Roster code ${code.code} belongs to another legal entity.`);
-	}
-	if (!rangeCovers(code.effective_range, date)) {
-		throw new Error(`Roster code ${code.code} is not effective on ${date}.`);
-	}
-	if (value.roster_id != null) {
-		if (roster == null) throw new Error('The draft roster for this assignment no longer exists.');
-		if (roster.company_id !== employment.company_id) {
-			throw new Error('The employee and monthly roster belong to different legal entities.');
-		}
-		if (!date.startsWith(`${roster.month}-`)) {
-			throw new Error(`${date} does not belong to roster ${roster.month}.`);
-		}
-	}
+	assertResolvedAssignment(value, employment, code, roster);
 }
 
 export default {
@@ -80,6 +105,63 @@ export default {
 		before: {
 			description:
 				'Refuses assignments in a published month and verifies the roster code is valid for the employment, legal entity and work date.',
+			batchHandler: async ({ inputs, api }) => {
+				const employmentIds = [...new Set(inputs.map((input) => input.employment_id))];
+				const codeIds = [...new Set(inputs.map((input) => input.shift_definition_id))];
+				const rosterIds = [
+					...new Set(inputs.flatMap((input) => (input.roster_id ? [input.roster_id] : [])))
+				];
+				const [employments, codes, rosters] = await Promise.all([
+					api.db.query.employments.findMany({
+						where: { norbital_id: { in: employmentIds } },
+						columns: { norbital_id: true, company_id: true },
+						limit: Math.max(1, employmentIds.length)
+					}),
+					api.db.query.shift_definitions.findMany({
+						where: { norbital_id: { in: codeIds } },
+						columns: {
+							norbital_id: true,
+							company_id: true,
+							code: true,
+							variant: true,
+							effective_range: true
+						},
+						limit: Math.max(1, codeIds.length)
+					}),
+					rosterIds.length
+						? api.db.query.rosters.findMany({
+								where: { norbital_id: { in: rosterIds } },
+								columns: {
+									norbital_id: true,
+									company_id: true,
+									month: true,
+									published_at: true
+								},
+								limit: Math.max(1, rosterIds.length)
+							})
+						: []
+				]);
+				const employmentsById = new Map(
+					employments.map((employment) => [employment.norbital_id, employment])
+				);
+				const codesById = new Map(codes.map((code) => [code.norbital_id, code]));
+				const rostersById = new Map(rosters.map((roster) => [roster.norbital_id, roster]));
+				for (const input of inputs) {
+					const rosterId = input.roster_id ?? null;
+					assertResolvedAssignment(
+						{
+							employment_id: input.employment_id,
+							work_date: input.work_date,
+							shift_definition_id: input.shift_definition_id,
+							roster_id: rosterId
+						},
+						employmentsById.get(input.employment_id),
+						codesById.get(input.shift_definition_id),
+						rosterId == null ? null : rostersById.get(rosterId)
+					);
+				}
+				return inputs;
+			},
 			handler: async ({ input, api }) => {
 				await assertRosterOpen(api, input.roster_id);
 				await assertAssignment(api, {

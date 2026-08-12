@@ -28,3 +28,12 @@ test('loan instalment uniqueness is atomic and create skips impossible existing-
 	assert.match(agreementHooks, /synchronizeInstalments\(api, record, \[\]\)/);
 	assert.match(agreementHooks, /existingEntries \?\? \(await agreementEntries\(api, agreement\)\)/);
 });
+
+test('bulk roster creation validates shared references with set reads', () => {
+	const hooks = source('../roster_entries/+hooks.ts');
+
+	assert.match(
+		hooks,
+		/batchHandler:[\s\S]*?api\.db\.query\.employments\.findMany[\s\S]*?api\.db\.query\.shift_definitions\.findMany[\s\S]*?api\.db\.query\.rosters\.findMany[\s\S]*?return inputs;/
+	);
+});
