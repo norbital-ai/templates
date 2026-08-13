@@ -12,6 +12,14 @@ import type { IsoDate } from './dates.js';
 /** Payroll calendar zone. Kept here so the engine never imports `lib/ui`. */
 const PAYROLL_TIME_ZONE = 'Asia/Kuala_Lumpur';
 
+const payrollDateFormat = new Intl.DateTimeFormat('en', {
+	timeZone: PAYROLL_TIME_ZONE,
+	year: 'numeric',
+	month: '2-digit',
+	day: '2-digit'
+});
+const rangeBoundCache = new Map<string, IsoDate>();
+
 /** The JSONB shape of a `dateRange()` column. `end` of `null` is open-ended. */
 export type StoredRange = { readonly start: string; readonly end: string | null };
 
@@ -32,22 +40,34 @@ function readRange(value: unknown): StoredRange | null {
  * still covers every real payroll date.
  */
 function calendarDateInTimeZone(value: Date, timeZone: string): string {
-	const parts = new Intl.DateTimeFormat('en', {
-		timeZone,
-		year: 'numeric',
-		month: '2-digit',
-		day: '2-digit'
-	}).formatToParts(value);
+	const formatter =
+		timeZone === PAYROLL_TIME_ZONE
+			? payrollDateFormat
+			: new Intl.DateTimeFormat('en', {
+					timeZone,
+					year: 'numeric',
+					month: '2-digit',
+					day: '2-digit'
+				});
+	const parts = formatter.formatToParts(value);
 	const valueFor = (type: Intl.DateTimeFormatPartTypes) =>
 		parts.find((part) => part.type === type)?.value ?? '';
 	return `${valueFor('year')}-${valueFor('month')}-${valueFor('day')}`;
 }
 
 function rangeBoundDay(instant: string): IsoDate {
+	const cached = rangeBoundCache.get(instant);
+	if (cached != null) return cached;
 	const at = new Date(instant);
-	if (Number.isNaN(at.getTime())) return instant.slice(0, 10);
+	if (Number.isNaN(at.getTime())) {
+		const fallback = instant.slice(0, 10);
+		rangeBoundCache.set(instant, fallback);
+		return fallback;
+	}
 	const converted = calendarDateInTimeZone(at, PAYROLL_TIME_ZONE);
-	return converted.length === 10 ? converted : instant.slice(0, 10);
+	const day = converted.length === 10 ? converted : instant.slice(0, 10);
+	rangeBoundCache.set(instant, day);
+	return day;
 }
 
 /** Whether an `effective_range` covers a calendar day. Both ends inclusive. */
