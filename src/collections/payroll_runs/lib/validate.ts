@@ -6,16 +6,12 @@
  * silently read a missing decision as "not chargeable" is stopped here, with a message that names
  * the row to fix.
  *
- * **There is no advisory issue.** Every `RunIssue` this module produces fails the run. A payroll
- * that mispriced somebody, or priced them on a calendar their terms do not describe, is worse than
- * one that refused — and an issue nobody is forced to read is an issue nobody reads. That includes
- * the ones that used to be warnings: an unmapped rest-day rule, an exceeded overtime ceiling, a day
- * over the hours-of-work limit, and a pay cadence the company calendar cannot express.
- *
- * One consequence is deliberate and visible: a regime limit's `on_exceed` no longer changes whether
- * a run completes. `WARN` and `BLOCK` both stop it. The column still records what the authority
- * says, and the message quotes that authority, but the operator is not offered the choice of not
- * being told.
+ * Configuration faults still fail the run: a missing treatment, an unmapped rest-day rule, or a
+ * pay cadence the company calendar cannot express. Hours-of-work ceilings do not. A regime limit
+ * with `on_exceed=WARN` (and every daily hours breach, which the engine already reclassifies to
+ * OVERTIME_EXCESS) is reported and the run still builds — Infotech paid those months, and refusing
+ * the whole payroll because one person worked 12.3 hours hides every loan, leave and claim the
+ * operator came to settle. `on_exceed=BLOCK` on a monthly overtime ceiling still stops the run.
  *
  * Issues stay structured rather than free text, so a screen can link to the row that caused each
  * one, and every message names the employee, the day and the rule wherever a run has them to name.
@@ -25,12 +21,19 @@ import type { Configuration } from './configuration.js';
 import type { DailyOvertime } from './overtime.js';
 import { parseSpecialRules } from './special-rules.js';
 
+export type IssueSeverity = 'BLOCKER' | 'WARNING';
+
 export type RunIssue = {
 	readonly code: string;
 	readonly message: string;
+	readonly severity?: IssueSeverity;
 	readonly collection?: string;
 	readonly recordId?: string;
 };
+
+export function blockers(issues: readonly RunIssue[]): RunIssue[] {
+	return issues.filter((issue) => issue.severity !== 'WARNING');
+}
 
 /** Configuration checks. None of them read a person. */
 export function validateConfiguration(configuration: Configuration): RunIssue[] {
@@ -192,10 +195,8 @@ export function validateConfiguration(configuration: Configuration): RunIssue[] 
 /**
  * The overtime ceilings that only a measured run can test.
  *
- * `on_exceed` is not consulted. A ceiling the run was allowed to sail past on the strength of a
- * `WARN` in a configuration row is a ceiling nobody enforced — the run finished, the payslips were
- * written, and the breach lived only in a return value the caller threw away. The column keeps
- * recording what the authority says; it no longer decides whether anyone finds out.
+ * `on_exceed` decides whether the run stops. `WARN` names the person, the month and the authority
+ * and lets the payslips be written; `BLOCK` refuses the whole run.
  */
 export function validateOvertimeLimits(options: {
 	readonly configuration: Configuration;
@@ -213,25 +214,32 @@ export function validateOvertimeLimits(options: {
 					limit.measures === 'OVERTIME_HOURS' &&
 					options.monthHours > Number(limit.max_hours)
 			)
-			.map((limit) => ({
-				code: 'OVERTIME_LIMIT_EXCEEDED',
-				message:
-					`${options.employeeNumber} worked ${options.monthHours} regulated overtime hours in ` +
-					`${options.calendarMonth}, against a ${limit.max_hours}-hour calendar-month ceiling ` +
-					`(${limit.authority}, on_exceed=${limit.on_exceed}). Reduce the recorded overtime, or ` +
-					'raise the ceiling on the authority that states it, before this payroll can be built.',
-				collection: 'jurisdictions',
-				recordId: options.configuration.jurisdiction.norbital_id
-			}))
+			.map((limit) => {
+				const severity: IssueSeverity = limit.on_exceed === 'BLOCK' ? 'BLOCKER' : 'WARNING';
+				const nextStep =
+					severity === 'BLOCKER'
+						? 'Reduce the recorded overtime, or raise the ceiling on the authority that states it, before this payroll can be built.'
+						: 'The run will still be built; review the attendance or raise the ceiling if the hours should not stand.';
+				return {
+					code: 'OVERTIME_LIMIT_EXCEEDED',
+					severity,
+					message:
+						`${options.employeeNumber} worked ${options.monthHours} regulated overtime hours in ` +
+						`${options.calendarMonth}, against a ${limit.max_hours}-hour calendar-month ceiling ` +
+						`(${limit.authority}, on_exceed=${limit.on_exceed}). ${nextStep}`,
+					collection: 'jurisdictions',
+					recordId: options.configuration.jurisdiction.norbital_id
+				};
+			})
 	);
 }
 
 /**
  * A day past the hours-of-work limit.
  *
- * The half-hour excess beyond the limit is still routed to incentive OT rather than discarded, so
- * the arithmetic for such a day is defined — but a defined price for an unlawful day is not a
- * reason to publish it. The run stops and names the person and the date.
+ * The excess is still routed to incentive OT rather than discarded, so the arithmetic is defined.
+ * Historical vendor months contain many such days; refusing the whole run over them hides every
+ * other settlement. The issue is a warning that names the person and the date.
  */
 export function validateDailyWorkLimit(options: {
 	readonly employeeNumber: string;
@@ -242,10 +250,11 @@ export function validateDailyWorkLimit(options: {
 		.filter((day) => day.totalWorkHours > options.maxWorkHours)
 		.map((day) => ({
 			code: 'DAILY_WORK_LIMIT_EXCEEDED',
+			severity: 'WARNING' as const,
 			message:
 				`${options.employeeNumber} worked ${day.totalWorkHours.toFixed(2)} hours on ${day.date}, ` +
-				`above the ${options.maxWorkHours}-hour daily limit. Correct the attendance for that day, ` +
-				'or record why the hours stand, before this payroll can be built.',
+				`above the ${options.maxWorkHours}-hour daily limit. The run will still be built; ` +
+				'correct the attendance for that day, or record why the hours stand.',
 			collection: 'time_entries',
 			recordId: day.timeEntryId
 		}));
@@ -309,14 +318,21 @@ const DETAILED_ISSUE_LIMIT = 25;
  * and "and 40 others" is not something anyone can act on. A very large failure is capped so the
  * message stays readable, and says plainly how many it did not print.
  */
-export function describeIssues(issues: readonly RunIssue[]): string {
+export function describeIssues(
+	issues: readonly RunIssue[],
+	kind: 'block' | 'warn' = 'block'
+): string {
 	const messages = [...new Set(issues.map((issue) => `${issue.code}: ${issue.message}`))];
 	const shown = messages.slice(0, DETAILED_ISSUE_LIMIT);
 	const remaining = messages.length - shown.length;
 	const headline =
-		messages.length === 1
-			? 'Payroll was not built. One thing must be fixed first:'
-			: `Payroll was not built. ${messages.length} things must be fixed first:`;
+		kind === 'warn'
+			? messages.length === 1
+				? 'Payroll built with one warning:'
+				: `Payroll built with ${messages.length} warnings:`
+			: messages.length === 1
+				? 'Payroll was not built. One thing must be fixed first:'
+				: `Payroll was not built. ${messages.length} things must be fixed first:`;
 	const tail = remaining > 0 ? `\n… and ${remaining} more of the same kinds, listed above.` : '';
 	return `${headline}\n${shown.map((message) => `• ${message}`).join('\n')}${tail}`;
 }
