@@ -1,5 +1,18 @@
-import { deskToday } from '../../lib/calendar.js';
 import type { Hooks } from './$types.js';
+
+const DESK_TIME_ZONE = 'Asia/Singapore';
+
+function deskToday(): string {
+	const parts = new Intl.DateTimeFormat('en', {
+		timeZone: DESK_TIME_ZONE,
+		year: 'numeric',
+		month: '2-digit',
+		day: '2-digit'
+	}).formatToParts(new Date());
+	const valueFor = (type: Intl.DateTimeFormatPartTypes) =>
+		parts.find((part) => part.type === type)?.value ?? '';
+	return `${valueFor('year')}-${valueFor('month')}-${valueFor('day')}`;
+}
 
 export default {
 	create: {
