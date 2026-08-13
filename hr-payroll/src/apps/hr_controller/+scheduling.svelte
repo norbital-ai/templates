@@ -6,10 +6,7 @@
 	import { Tabs, type TabConfig } from '@norbital-ai/ui/tabs';
 	import { CollectionTable } from '@norbital-ai/ui/collection-table';
 	import { CollectionQueryState } from '@norbital-ai/ui/collection-query';
-	import {
-		CollectionActionToolbar,
-		CollectionPagination
-	} from '@norbital-ai/ui/collection-toolbar';
+	import { CollectionActionToolbar } from '@norbital-ai/ui/collection-toolbar';
 	import { Combobox } from '@norbital-ai/ui/combobox';
 	import { Button } from '@norbital-ai/ui/button';
 	import { Alert, AlertDescription, AlertTitle } from '@norbital-ai/ui/alert';
@@ -56,13 +53,14 @@
 	let assignmentSaving = $state(false);
 	let assignmentError = $state<string | null>(null);
 	/**
-	 * Search and page, in the model every collection surface uses.
+	 * Search and filter state in the same model every collection surface uses.
 	 *
-	 * The board used to keep its own search string and its own `boardPage`, and every handler that
-	 * narrowed the set had to remember to write `boardPage = 0` — five of them did, which is five
-	 * chances to forget and leave the operator on a page that no longer exists.
+	 * The board used to keep its own search string and private page cursor, and every handler that
+	 * narrowed the set had to remember to reset a private page cursor. The board is already a bounded
+	 * two-axis scrollport, so paginating its people axis only hid colleagues behind a second, unrelated
+	 * navigation model.
 	 */
-	const boardQuery = new CollectionQueryState({ pageSize: 50 });
+	const boardQuery = new CollectionQueryState();
 	/**
 	 * Bumped to remount every board query after a failed load.
 	 *
@@ -138,6 +136,7 @@
 		if (selectedCompanyId == null) return null;
 		return client.db.employments.findMany({
 			where: { ...approved, company_id: { eq: selectedCompanyId } },
+			with: { employment_employee: { columns: { name: true } } },
 			orderBy: { employee_number: 'asc' },
 			limit: 1000
 		});
@@ -147,10 +146,24 @@
 		employments.filter((employment) => employmentOverlapsMonth(employment, month))
 	);
 	const emptyEmploymentReason = $derived(employmentMonthEmptyReason(employments, month));
-	// One scoped query and a map, rather than a name lookup per row.
-	const employeesQuery = client.db.employees.findMany({ where: approved, limit: 1000 });
+	const employeesQuery = $derived.by(() => {
+		void reloadToken;
+		if (selectedCompanyId == null) return null;
+		return client.db.employees.findMany({
+			where: {
+				...approved,
+				employment_employee: {
+					norbital_approval_id: { isNull: true },
+					company_id: { eq: selectedCompanyId }
+				}
+			},
+			limit: 1000
+		});
+	});
 	const employeeNameById = $derived(
-		new Map((employeesQuery.current ?? []).map((employee) => [employee.norbital_id, employee.name]))
+		new Map(
+			(employeesQuery?.current ?? []).map((employee) => [employee.norbital_id, employee.name])
+		)
 	);
 	const people = $derived(
 		monthEmployments.map((employment) => ({
@@ -305,6 +318,7 @@
 		{ label: 'leave', query: leaveQuery },
 		{ label: 'holidays', query: holidaysQuery },
 		{ label: 'employments', query: employmentsQuery },
+		{ label: 'employees', query: employeesQuery },
 		{ label: 'employment schedules', query: employmentTermsQuery }
 	]);
 	const boardErrors = $derived(
@@ -360,15 +374,6 @@
 			return boardQuery.filters.length === 0 || filteredEmploymentIds.has(person.id);
 		})
 	);
-	const boardPageCount = $derived(Math.max(1, Math.ceil(boardPeople.length / boardQuery.pageSize)));
-	const visibleBoardPage = $derived(Math.min(boardQuery.pageIndex, boardPageCount - 1));
-	const visibleBoardPeople = $derived(
-		boardPeople.slice(
-			visibleBoardPage * boardQuery.pageSize,
-			(visibleBoardPage + 1) * boardQuery.pageSize
-		)
-	);
-
 	const rostersQuery = $derived(
 		selectedCompanyId == null
 			? null
@@ -753,25 +758,20 @@
 	</Stack>
 {/snippet}
 
-{#snippet boardPagination()}
-	<CollectionPagination query={boardQuery} total={boardPeople.length} />
-{/snippet}
-
 <!--
-	The chrome is the `Cover`'s top row, the page stepper is its bottom row, and the board is its body,
+	The chrome is the `Cover`'s top row and the board is its body,
 	which is what gives the board a definite height to fill: `Cover`'s middle track is `minmax(0,1fr)`.
 	The board owns the scroll from there, so the tab panel around it never has to — the same division
-	`CollectionTable` makes between its toolbar, its rows and its pagination.
-
-	The stepper is withheld while the month is loading or broken, because a page count taken from a
-	half-built board is a number that will change under the reader.
+	`CollectionTable` makes between its toolbar and its rows. The selected month already scopes the
+	date axis; every matching person remains in the one bounded board scrollport.
 -->
 {#snippet board()}
-	{#if selectedCompanyId == null}
+	{#if companiesQuery.loading}
+		<p class="text-sm text-muted-foreground">{t('app.scheduling.loading_companies')}</p>
+	{:else if selectedCompanyId == null}
 		<p class="text-sm text-muted-foreground">{t('app.scheduling.empty_board')}</p>
 	{:else}
-		{@const boardReady = boardErrors.length === 0 && !loading}
-		<Cover gap="md" top={boardChrome} bottom={boardReady ? boardPagination : undefined}>
+		<Cover gap="md" top={boardChrome}>
 			{#if boardErrors.length > 0}
 				<!-- A terminal state, so a board that cannot be built says so instead of pretending to
 				     still be loading. Retry rebuilds the queries in place; the month, the search and the
@@ -811,7 +811,7 @@
 			{:else}
 				<RosterMonthBoard
 					{month}
-					people={visibleBoardPeople}
+					people={boardPeople}
 					{facts}
 					{today}
 					{holidayNames}
@@ -825,13 +825,15 @@
 {/snippet}
 
 {#snippet shifts()}
-	{#if selectedCompanyId == null}
+	{#if companiesQuery.loading}
+		<p class="text-sm text-muted-foreground">{t('app.scheduling.loading_companies')}</p>
+	{:else if selectedCompanyId == null}
 		<p class="text-sm text-muted-foreground">{t('app.scheduling.empty_shifts')}</p>
 	{:else}
-		<Stack gap="md">
-			<p class="text-sm text-muted-foreground">
-				{t('app.scheduling.shift_intro')}
-			</p>
+		{#snippet shiftIntro()}
+			<p class="text-sm text-muted-foreground">{t('app.scheduling.shift_intro')}</p>
+		{/snippet}
+		<Cover gap="md" top={shiftIntro}>
 			<CollectionTable
 				{client}
 				collection="shift_definitions"
@@ -841,6 +843,7 @@
 					orderBy: { code: 'asc' }
 				}}
 				searchPlaceholder={t('app.scheduling.search_shifts_placeholder')}
+				class="h-full min-h-0"
 			>
 				{#snippet columns({ Column })}
 					<Column name="code" card="title" />
@@ -849,12 +852,14 @@
 					<Column name="effective_range" label={t('component.effective')} />
 				{/snippet}
 			</CollectionTable>
-		</Stack>
+		</Cover>
 	{/if}
 {/snippet}
 
 {#snippet holidays()}
-	{#if selectedCompanyId == null}
+	{#if companiesQuery.loading}
+		<p class="text-sm text-muted-foreground">{t('app.scheduling.loading_companies')}</p>
+	{:else if selectedCompanyId == null}
 		<p class="text-sm text-muted-foreground">{t('app.scheduling.empty_holidays')}</p>
 	{:else}
 		<CollectionTable

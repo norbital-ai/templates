@@ -352,15 +352,21 @@ export const STATUS_PRESENTATION: Record<
 	DayStatus,
 	{ readonly labelKey: TenantI18nKeys; readonly className: string }
 > = {
-	UNROSTERED: { labelKey: 'roster.unrostered', className: 'bg-muted/30 text-muted-foreground' },
+	UNROSTERED: {
+		labelKey: 'roster.unrostered',
+		className: 'bg-warning/15 text-warning-foreground'
+	},
 	BEFORE_START: {
 		labelKey: 'roster.before_employment',
-		className: 'bg-muted/20 text-muted-foreground'
+		className: 'bg-info/15 text-info'
 	},
-	EXITED: { labelKey: 'roster.employment_ended', className: 'bg-muted text-muted-foreground' },
+	EXITED: {
+		labelKey: 'roster.employment_ended',
+		className: 'bg-destructive/10 text-destructive'
+	},
 	PLANNED: {
 		labelKey: 'roster.planned',
-		className: 'bg-brand-50 text-brand-700 dark:bg-brand-950 dark:text-brand-200'
+		className: 'bg-brand/15 text-brand'
 	},
 	ATTENDED: { labelKey: 'roster.attended', className: 'bg-success/15 text-success-foreground' },
 	OPEN: { labelKey: 'roster.open_punch', className: 'bg-warning/25 text-warning-foreground' },
@@ -368,7 +374,7 @@ export const STATUS_PRESENTATION: Record<
 		labelKey: 'roster.absent',
 		className: 'bg-destructive/20 font-semibold text-destructive'
 	},
-	ON_LEAVE: { labelKey: 'roster.leave', className: 'bg-accent text-accent-foreground' },
+	ON_LEAVE: { labelKey: 'roster.leave', className: 'bg-info/20 text-info' },
 	REST: { labelKey: 'roster.rest_day', className: 'bg-muted text-muted-foreground' },
 	OFF: { labelKey: 'roster.off_day', className: 'bg-muted/60 text-muted-foreground' }
 };

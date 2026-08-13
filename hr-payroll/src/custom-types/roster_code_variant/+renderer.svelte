@@ -2,11 +2,16 @@
 	import { Combobox } from '@norbital-ai/ui/combobox';
 	import { Input } from '@norbital-ai/ui/input';
 	import { Grid, Stack } from '@norbital-ai/ui/layout';
+	import { TimeRangeField, type TimeRange } from '@norbital-ai/ui/time-range';
+	import { useI18n } from '@norbital-ai/ui/i18n';
+	import type { TenantI18nKeys } from '$pod/i18n-keys';
+	import { parseTime, type Time } from '@internationalized/date';
 	import { numberFrom } from '../../lib/ui/renderer-input.js';
 	import { rosterCodeVariantSchema } from './+definition.js';
 	import type { RendererProps, Value } from './$types.js';
 
 	let props: RendererProps = $props();
+	const { t } = useI18n<TenantI18nKeys>();
 	const disabled = $derived(props.mode === 'edit' ? props.disabled : true);
 	const parsed = $derived(rosterCodeVariantSchema.safeParse(props.value));
 	const current = $derived(parsed.success ? parsed.data : null);
@@ -26,6 +31,11 @@
 		const overnight = current.end_time <= current.start_time ? ' (+1 day)' : '';
 		return `${current.start_time} → ${current.end_time}${overnight} · ${current.break_minutes}m break`;
 	});
+	const workRange = $derived<TimeRange<Time> | undefined>(
+		current?.kind === 'WORK'
+			? { start: parseTime(current.start_time), end: parseTime(current.end_time) }
+			: undefined
+	);
 
 	function emit(value: Value): void {
 		if (props.mode === 'edit') props.onValueChange(value);
@@ -37,6 +47,19 @@
 			return;
 		}
 		if (value === 'REST' || value === 'OFF') emit({ kind: value });
+	}
+
+	function formatTime(value: Time): string {
+		return `${String(value.hour).padStart(2, '0')}:${String(value.minute).padStart(2, '0')}`;
+	}
+
+	function setWorkRange(range: TimeRange<Time> | undefined): void {
+		if (current?.kind !== 'WORK' || range?.start == null || range.end == null) return;
+		emit({
+			...current,
+			start_time: formatTime(range.start),
+			end_time: formatTime(range.end)
+		});
 	}
 </script>
 
@@ -57,24 +80,14 @@
 		</label>
 		{#if current?.kind === 'WORK'}
 			<Grid gap="sm" minimum="compact">
-				<label class="grid gap-1.5 text-sm font-medium">
-					Start
-					<Input
-						type="time"
-						value={current.start_time}
-						{disabled}
-						oninput={(event) => emit({ ...current, start_time: event.currentTarget.value })}
-					/>
-				</label>
-				<label class="grid gap-1.5 text-sm font-medium">
-					End
-					<Input
-						type="time"
-						value={current.end_time}
-						{disabled}
-						oninput={(event) => emit({ ...current, end_time: event.currentTarget.value })}
-					/>
-				</label>
+				<TimeRangeField
+					label={t('component.shift_time_range')}
+					value={workRange}
+					placeholder={workRange?.start}
+					allowStartAfterEnd
+					{disabled}
+					onValueChange={setWorkRange}
+				/>
 				<label class="grid gap-1.5 text-sm font-medium">
 					Unpaid break (minutes)
 					<Input

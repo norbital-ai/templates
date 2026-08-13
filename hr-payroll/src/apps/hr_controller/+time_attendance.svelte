@@ -25,7 +25,7 @@
 
 	const { t } = useI18n<TenantI18nKeys>();
 
-	let selectedCompanyId = $state<string | null>(null);
+	let requestedCompanyId = $state<string | null>(null);
 	type EntryWindow = '8w' | '6m' | '1y' | 'all';
 	let entryWindow = $state<EntryWindow>('8w');
 	const today = todayKey();
@@ -64,15 +64,11 @@
 			search_term: `${c.name} ${c.registration_number ?? ''}`
 		}))
 	);
-	$effect(() => {
-		if (
-			companies.length > 0 &&
-			(selectedCompanyId == null ||
-				!companies.some((company) => company.norbital_id === selectedCompanyId))
-		) {
-			selectedCompanyId = companies[0]!.norbital_id;
-		}
-	});
+	const selectedCompanyId = $derived(
+		companies.some((company) => company.norbital_id === requestedCompanyId)
+			? requestedCompanyId
+			: (companies[0]?.norbital_id ?? null)
+	);
 
 	const attendanceSummaryQuery = $derived(
 		selectedCompanyId == null
@@ -149,10 +145,10 @@
 			value={selectedCompanyId}
 			onValueChange={(value) => {
 				if (typeof value === 'string') {
-					selectedCompanyId = value;
+					requestedCompanyId = value;
 					return;
 				}
-				selectedCompanyId = companies[0]?.norbital_id ?? null;
+				requestedCompanyId = companies[0]?.norbital_id ?? null;
 			}}
 			emptyPlaceholder={t('component.select_legal_entity')}
 			searchPlaceholder={t('component.search_companies')}

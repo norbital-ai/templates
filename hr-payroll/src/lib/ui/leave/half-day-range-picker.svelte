@@ -39,16 +39,15 @@
 	const today = new Date().toISOString().slice(0, 10);
 	let visibleMonth = $state(today.slice(0, 7));
 	let open = $state(false);
-	let wasOpen = false;
 	let anchor = $state<HalfDayPoint | null>(null);
 	let dragging = $state(false);
 	let ignoreNextClick = false;
 	let limitReached = $state(false);
 
-	$effect(() => {
-		if (open && !wasOpen) visibleMonth = (value?.start.date ?? today).slice(0, 7);
-		wasOpen = open;
-	});
+	function handleOpenChange(nextOpen: boolean): void {
+		open = nextOpen;
+		if (nextOpen) visibleMonth = (value?.start.date ?? today).slice(0, 7);
+	}
 
 	const weekdays = $derived([
 		t('component.weekday_mon'),
@@ -201,7 +200,7 @@
 
 <svelte:window onpointerup={() => (dragging = false)} />
 
-<Popover.Root bind:open>
+<Popover.Root {open} onOpenChange={handleOpenChange}>
 	<Popover.Trigger
 		type="button"
 		{disabled}
