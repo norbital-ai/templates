@@ -12,10 +12,50 @@
 		formatRepaymentSchedule
 	} from '../../lib/ui/display-formatters.js';
 	import { inForceTodayFilter, todayInstant } from '../../lib/ui/calendar.js';
-	import {
-		repaymentProgress,
-		type RepaymentInstalmentLink
-	} from '../../collections/repayment_agreements/lib/repayment-progress.js';
+
+	type RepaymentInstalmentLink = {
+		readonly amount: unknown;
+		readonly repayment_sequence: number | null;
+		readonly entry_payslip_lines?: readonly unknown[] | null;
+	};
+
+	type RepaymentProgress = {
+		readonly paidAmount: number;
+		readonly outstandingAmount: number;
+		readonly paidInstalments: number;
+		readonly totalInstalments: number;
+		readonly settled: boolean;
+	};
+
+	function repaymentProgress(
+		principal: unknown,
+		totalInstalments: number,
+		instalments: readonly RepaymentInstalmentLink[]
+	): RepaymentProgress | null {
+		const total = Number(principal);
+		if (!Number.isFinite(total) || total < 0) return null;
+
+		const paidBySequence = new Map<number, number>();
+		for (const instalment of instalments) {
+			if (!instalment.entry_payslip_lines?.length) continue;
+			if (!Number.isInteger(instalment.repayment_sequence)) continue;
+			const amount = Number(instalment.amount);
+			if (!Number.isFinite(amount) || amount < 0) continue;
+			const sequence = instalment.repayment_sequence as number;
+			if (!paidBySequence.has(sequence)) paidBySequence.set(sequence, amount);
+		}
+
+		const paidAmount = [...paidBySequence.values()].reduce((sum, amount) => sum + amount, 0);
+		const outstandingAmount = Math.max(0, total - paidAmount);
+		const paidInstalments = paidBySequence.size;
+		return {
+			paidAmount,
+			outstandingAmount,
+			paidInstalments,
+			totalInstalments,
+			settled: outstandingAmount === 0 && paidInstalments >= totalInstalments
+		};
+	}
 
 	const { t } = useI18n<TenantI18nKeys>();
 

@@ -1,6 +1,11 @@
 import { refuse } from '@norbital-ai/pod/authoring';
+import { entryOriginSchema } from '../../custom-types/entry_origin/+definition.js';
 import type { Hooks, WorkspaceRow } from './$types.js';
-import { instalmentOrigin } from '../../lib/variant.js';
+
+function instalmentOrigin(value: unknown) {
+	const parsed = entryOriginSchema.safeParse(value);
+	return parsed.success && parsed.data.kind === 'LOAN_INSTALMENT' ? parsed.data : null;
+}
 
 const LIMIT = 5000;
 

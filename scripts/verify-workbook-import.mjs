@@ -149,6 +149,21 @@ function stubApi(tables) {
 	return { db: { query } };
 }
 
+function companies() {
+	return [
+		{
+			norbital_id: COMPANY_ID,
+			name: 'Nihon Pigment Sdn. Bhd.',
+			registration_number: '1234567-A'
+		},
+		{
+			norbital_id: 'company:ph',
+			name: 'Omni Plus System Philippines, Inc.',
+			registration_number: 'SOURCE_NOT_PROVIDED'
+		}
+	];
+}
+
 function rosterApi(overrides = {}) {
 	return stubApi({
 		rosters: [
@@ -160,6 +175,7 @@ function rosterApi(overrides = {}) {
 				...overrides.roster
 			}
 		],
+		companies: companies(),
 		employments: [
 			{ norbital_id: 'employment:2', employee_number: 'NHPMY0002', company_id: COMPANY_ID },
 			{ norbital_id: 'employment:23', employee_number: 'NHPMY0023', company_id: COMPANY_ID }
@@ -208,6 +224,7 @@ function rosterApi(overrides = {}) {
 
 function timeEntryApi(overrides = {}) {
 	return stubApi({
+		companies: companies(),
 		employments: [
 			{ norbital_id: 'employment:2', employee_number: 'NHPMY0002', company_id: COMPANY_ID },
 			{ norbital_id: 'employment:23', employee_number: 'NHPMY0023', company_id: COMPANY_ID }
@@ -612,6 +629,110 @@ try {
 	);
 	assert.match(badClock, /clock_in is "8\.30am", expected a local time as HH:mm/);
 	assert.match(badClock, /work_date is "05\/05\/2026", expected a date as YYYY-MM-DD/);
+
+	// ── The issued month-grid templates (one entity × one month) ──────────────────────────────────
+	const MAY_DAYS = Array.from({ length: 31 }, (_, index) => String(index + 1));
+	const gridRow = (employee, assignments) => {
+		const cells = Array.from({ length: 31 }, () => '');
+		for (const [day, value] of Object.entries(assignments)) cells[Number(day) - 1] = value;
+		return [employee, ...cells];
+	};
+	const ROSTER_GRID_SETTINGS = [
+		['Setting', 'Value'],
+		['legal_entity', 'Nihon Pigment Sdn. Bhd.'],
+		['month', '2026-05']
+	];
+	const TIME_GRID_SETTINGS = [
+		['Setting', 'Value'],
+		['legal_entity', 'Nihon Pigment Sdn. Bhd.'],
+		['month', '2026-05'],
+		['timezone', 'Asia/Kuala_Lumpur']
+	];
+
+	const rosterGridPayload = rosterImportPayload(
+		workbookGrids(
+			await gridsOf([
+				['Read me first', [['Roster import — one legal entity, one month']]],
+				['Settings', ROSTER_GRID_SETTINGS],
+				[
+					'Roster',
+					[
+						['employee_number', ...MAY_DAYS],
+						gridRow('NHPMY0002', { 1: '7.5AM', 2: '7.5AM', 3: 'REST', 4: '7.5AM', 5: '7.5AM' }),
+						gridRow('NHPMY0023', { 4: 'AM0830', 5: 'PM2030', 6: 'OFF' })
+					]
+				]
+			])
+		),
+		ROSTER_ID
+	);
+	assert.equal(rosterGridPayload.legal_entity, 'Nihon Pigment Sdn. Bhd.');
+	assert.equal(rosterGridPayload.month, '2026-05');
+	assert.equal(rosterGridPayload.rows.length, 8);
+	assert.deepEqual(
+		rosterGridPayload.rows.map(
+			(row) => `${row.employee_number} ${row.work_date} ${row.shift_code}`
+		),
+		[
+			'NHPMY0002 2026-05-01 7.5AM',
+			'NHPMY0002 2026-05-02 7.5AM',
+			'NHPMY0002 2026-05-03 REST',
+			'NHPMY0002 2026-05-04 7.5AM',
+			'NHPMY0002 2026-05-05 7.5AM',
+			'NHPMY0023 2026-05-04 AM0830',
+			'NHPMY0023 2026-05-05 PM2030',
+			'NHPMY0023 2026-05-06 OFF'
+		]
+	);
+	const rosterGridWritten = await rosterPipeline.import.handler(
+		{ input: rosterGridPayload },
+		rosterApi()
+	);
+	assert.equal(rosterGridWritten.length, 8);
+
+	const timeGridPayload = timeEntryImportPayload(
+		workbookGrids(
+			await gridsOf([
+				['Read me first', [['Time entries import — one legal entity, one month']]],
+				['Settings', TIME_GRID_SETTINGS],
+				[
+					'Time entries',
+					[
+						['employee_number', ...MAY_DAYS],
+						gridRow('NHPMY0002', { 4: '08:16-17:10', 5: '08:02-17:05' }),
+						gridRow('NHPMY0023', { 4: '20:30-05:15', 5: '20:28-05:02', 6: '20:31' })
+					]
+				]
+			])
+		)
+	);
+	assert.equal(timeGridPayload.legal_entity, 'Nihon Pigment Sdn. Bhd.');
+	assert.equal(timeGridPayload.month, '2026-05');
+	assert.equal(timeGridPayload.rows.length, 5);
+	assert.deepEqual(timeGridPayload.rows[4], {
+		employee_number: 'NHPMY0023',
+		work_date: '2026-05-06',
+		clock_in: '20:31'
+	});
+	const timeGridWritten = await timeEntryPipeline.import.handler(
+		{ input: timeGridPayload },
+		timeEntryApi()
+	);
+	assert.equal(timeGridWritten.length, 5);
+	assert.equal(timeGridWritten[4].worked_intervals[0].end_at, null);
+
+	const wrongEntity = await refusal(async () =>
+		rosterPipeline.import.handler(
+			{
+				input: {
+					...rosterGridPayload,
+					legal_entity: 'Omni Plus System Philippines, Inc.'
+				}
+			},
+			rosterApi()
+		)
+	);
+	assert.match(wrongEntity, /not the legal entity/);
 
 	console.log('workbook import: roster and time-entry templates round trip, and refuse by row.');
 } finally {

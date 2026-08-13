@@ -1,7 +1,35 @@
 import { isCalendarDate, isClockTime, isUtcIsoInstant } from '@norbital-ai/std/date';
 import { z } from 'zod';
-import { formatNamedList } from '../../lib/period.js';
+import { formatNamedList, monthBounds } from '../../lib/period.js';
 import type { Pipelines } from './$types.js';
+
+type CompanyIdentity = {
+	readonly norbital_id: string;
+	readonly name: string;
+	readonly registration_number: string;
+};
+
+function resolveLegalEntity(
+	companies: readonly CompanyIdentity[],
+	legalEntity: string
+): CompanyIdentity {
+	const wanted = legalEntity.trim().toLowerCase();
+	const matches = companies.filter(
+		(company) =>
+			company.name.trim().toLowerCase() === wanted ||
+			company.registration_number.trim().toLowerCase() === wanted
+	);
+	if (matches.length === 1) return matches[0]!;
+	if (matches.length === 0) {
+		throw new Error(
+			`No legal entity named "${legalEntity}" is on file.\n` +
+				`Known entities:\n${formatNamedList(companies.map((company) => company.name))}`
+		);
+	}
+	throw new Error(
+		`"${legalEntity}" matches more than one legal entity:\n${formatNamedList(matches.map((company) => company.name))}`
+	);
+}
 
 const rowSchema = z.object({
 	employee_number: z.string().trim().min(1),
@@ -15,6 +43,8 @@ const rowSchema = z.object({
 
 const importSchema = z.object({
 	timezone: z.string().trim().min(1),
+	legal_entity: z.string().trim().min(1).optional(),
+	month: z.string().trim().min(1).optional(),
 	rows: z.array(rowSchema).min(1)
 });
 
@@ -118,11 +148,41 @@ function createPayload(row: ImportRow, timeZone: string, employmentId: string) {
 export default {
 	import: {
 		description:
-			'Loads local attendance punches as generic worked intervals. The import never labels or stores overtime; payroll derives it from actual intervals and the schedule.',
+			'Loads a month of local attendance punches for one legal entity as generic worked intervals. The import never labels or stores overtime; payroll derives it from actual intervals and the schedule.',
 		input: importSchema,
 		handler: async ({ input }, api) => {
-			const { timezone, rows } = importSchema.parse(input);
+			const {
+				timezone,
+				legal_entity: legalEntity,
+				month: fileMonth,
+				rows
+			} = importSchema.parse(input);
 			assertValidTimeZone(timezone);
+
+			if (fileMonth != null) {
+				const bounds = monthBounds(fileMonth);
+				const outsideMonth = [
+					...new Set(
+						rows
+							.filter((row) => row.work_date < bounds.start || row.work_date > bounds.end)
+							.map((row) => `${row.employee_number} on ${row.work_date}`)
+					)
+				];
+				if (outsideMonth.length > 0) {
+					throw new Error(
+						`These rows do not belong to ${fileMonth}:\n${formatNamedList(outsideMonth)}`
+					);
+				}
+			}
+
+			let companyId: string | undefined;
+			if (legalEntity != null) {
+				const companies = await api.db.query.companies.findMany({
+					columns: { norbital_id: true, name: true, registration_number: true },
+					limit: QUERY_LIMIT
+				});
+				companyId = resolveLegalEntity(companies, legalEntity).norbital_id;
+			}
 
 			const invalidDates = [
 				...new Set(rows.filter((row) => !isCalendarDate(row.work_date)).map((row) => row.work_date))
@@ -163,7 +223,10 @@ export default {
 
 			const employeeNumbers = [...new Set(rows.map((row) => row.employee_number))];
 			const employments = await api.db.query.employments.findMany({
-				where: { employee_number: { in: employeeNumbers } },
+				where: {
+					employee_number: { in: employeeNumbers },
+					...(companyId == null ? {} : { company_id: { eq: companyId } })
+				},
 				columns: { norbital_id: true, employee_number: true },
 				limit: QUERY_LIMIT
 			});
@@ -178,7 +241,7 @@ export default {
 			);
 			if (ambiguous.length > 0) {
 				throw new Error(
-					`These employee numbers exist in more than one company:\n${formatNamedList(ambiguous)}\nImport them within a company-scoped roster workbook.`
+					`These employee numbers exist in more than one company:\n${formatNamedList(ambiguous)}\nSet legal_entity on the Settings sheet to the employing entity this file is for.`
 				);
 			}
 			const idByNumber = new Map(
@@ -186,7 +249,11 @@ export default {
 			);
 			const unknown = employeeNumbers.filter((number) => !idByNumber.has(number));
 			if (unknown.length > 0) {
-				throw new Error(`These employee numbers are not on file:\n${formatNamedList(unknown)}`);
+				throw new Error(
+					companyId == null
+						? `These employee numbers are not on file:\n${formatNamedList(unknown)}`
+						: `These employee numbers are not employed by this legal entity:\n${formatNamedList(unknown)}`
+				);
 			}
 			const employmentIdFor = (number: string): string => {
 				const id = idByNumber.get(number);

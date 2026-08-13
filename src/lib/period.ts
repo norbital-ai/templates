@@ -21,6 +21,23 @@ export function monthBounds(month: string): { readonly start: string; readonly e
 	return { start, end: `${month}-${String(lastDay).padStart(2, '0')}` };
 }
 
+/** `YYYY-MM` for a payroll month. */
+export function isYearMonth(value: string): boolean {
+	return /^\d{4}-(0[1-9]|1[0-2])$/.test(value);
+}
+
+/** Every calendar day of a `YYYY-MM` month, in order. */
+export function calendarDaysInMonth(month: string): readonly string[] {
+	const { start, end } = monthBounds(month);
+	const days: string[] = [];
+	for (let cursor = start; cursor <= end;) {
+		days.push(cursor);
+		const utc = Date.parse(`${cursor}T00:00:00.000Z`) + 86_400_000;
+		cursor = new Date(utc).toISOString().slice(0, 10);
+	}
+	return days;
+}
+
 /**
  * A bulleted refusal listing, truncated so a failed import of twenty thousand rows does not answer
  * with twenty thousand lines.

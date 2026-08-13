@@ -1,6 +1,11 @@
+import { entryOriginSchema } from '../../custom-types/entry_origin/+definition.js';
 import type { Hooks, WorkspaceRow } from './$types.js';
-import { instalmentOrigin } from '../../lib/variant.js';
 import { assertRepaymentSchedule } from './lib/repayment-schedule.js';
+
+function instalmentOrigin(value: unknown) {
+	const parsed = entryOriginSchema.safeParse(value);
+	return parsed.success && parsed.data.kind === 'LOAN_INSTALMENT' ? parsed.data : null;
+}
 
 const LIMIT = 5000;
 type AfterApi = Parameters<NonNullable<NonNullable<Hooks['create']>['after']>['handler']>[0]['api'];

@@ -1,7 +1,57 @@
 import { defineQueryHandler } from '@norbital-ai/pod/authoring';
 import { z } from 'zod';
-import { todayKey } from '../lib/ui/calendar.js';
-import { seasonalityYears } from '../lib/ui/leave/seasonality.js';
+import { calendarDayKey, todayKey } from '../lib/ui/calendar.js';
+
+export type SeasonalHeatmapRow = {
+	readonly year: string;
+	readonly months: number[];
+};
+
+/** Five calendar years ending in the live year, so an in-progress year is never hidden. */
+export function seasonalityYears(currentYear: number): number[] {
+	return Array.from({ length: 5 }, (_value, index) => currentYear - 4 + index);
+}
+
+/**
+ * Inclusive Jan 1 of the first seasonality year through the exclusive Jan 1 after the last.
+ * `from_date` filters use `[start, end)`.
+ */
+export function seasonalityDateWindow(currentYear: number): {
+	start: string;
+	endExclusive: string;
+} {
+	const years = seasonalityYears(currentYear);
+	const first = years[0] ?? currentYear - 4;
+	const last = years[years.length - 1] ?? currentYear;
+	return { start: `${first}-01-01`, endExclusive: `${last + 1}-01-01` };
+}
+
+/**
+ * One cell per month of the rolling window. Missing buckets stay 0 so a sparse tally still
+ * paints a complete 5×12 heatmap.
+ */
+export function bucketSeasonalHeatmap(
+	years: readonly number[],
+	fromDates: readonly (string | Date | null | undefined)[]
+): SeasonalHeatmapRow[] {
+	const heatmap: Array<{ year: string; months: number[] }> = years.map((year) => ({
+		year: String(year),
+		months: Array.from({ length: 12 }, () => 0)
+	}));
+	const yearIndex = new Map(years.map((year, index) => [year, index]));
+	for (const fromDate of fromDates) {
+		if (fromDate == null) continue;
+		const key = calendarDayKey(fromDate);
+		const year = Number(key.slice(0, 4));
+		const month = Number(key.slice(5, 7));
+		const index = yearIndex.get(year);
+		if (index == null || month < 1 || month > 12) continue;
+		const row = heatmap[index];
+		if (row == null) continue;
+		row.months[month - 1] += 1;
+	}
+	return heatmap;
+}
 
 /**
  * Year-to-date approval counters, five-year application trends and leave-seasonality counts for
@@ -162,7 +212,13 @@ export default defineQueryHandler({
 			const companyScope = company_id
 				? { leave_request_employment: { company_id: { eq: company_id } } }
 				: {};
-			const [pending, approved, total, ytdRows, approvalRows] = await Promise.all([
+			const { start: windowStart, endExclusive: windowEnd } = seasonalityDateWindow(currentYear);
+			/*
+			 * Hosted remotes run in a 2s sealed guest. Seasonality used to issue 60 monthly `count()`
+			 * queries (5 years × 12 months). The query API has no GROUP BY, so one `findMany` of
+			 * `from_date` in the window is bucketed in memory — still one read, not sixty round-trips.
+			 */
+			const [pending, approved, total, ytdRows, approvalRows, seasonalRows] = await Promise.all([
 				api.db.leave_requests.count({
 					where: {
 						...companyScope,
@@ -191,27 +247,21 @@ export default defineQueryHandler({
 					columns: { norbital_id: true },
 					limit: 5000
 				}),
-				approvalQuery
+				approvalQuery,
+				api.db.query.leave_requests.findMany({
+					where: {
+						...companyScope,
+						kind: { eq: 'TIME_OFF' },
+						from_date: { gte: windowStart, lt: windowEnd }
+					},
+					columns: { from_date: true },
+					limit: 5000
+				})
 			]);
-			const seasonalHeatmap: Array<{ year: string; months: number[] }> = [];
-			for (const year of historyYears) {
-				const months = await Promise.all(
-					Array.from({ length: 12 }, (_value, monthIndex) => {
-						const start = `${year}-${String(monthIndex + 1).padStart(2, '0')}-01`;
-						const nextYear = monthIndex === 11 ? year + 1 : year;
-						const nextMonth = monthIndex === 11 ? 1 : monthIndex + 2;
-						const end = `${nextYear}-${String(nextMonth).padStart(2, '0')}-01`;
-						return api.db.leave_requests.count({
-							where: {
-								...companyScope,
-								kind: { eq: 'TIME_OFF' },
-								from_date: { gte: start, lt: end }
-							}
-						});
-					})
-				);
-				seasonalHeatmap.push({ year: String(year), months: months.map(Number) });
-			}
+			const seasonalHeatmap = bucketSeasonalHeatmap(
+				historyYears,
+				seasonalRows.map((row) => row.from_date)
+			);
 			const trendValues = seasonalHeatmap.map((row) =>
 				row.months.reduce((sum, count) => sum + count, 0)
 			);
