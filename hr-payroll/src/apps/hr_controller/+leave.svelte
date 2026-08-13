@@ -7,6 +7,7 @@
 	import { CollectionTable } from '@norbital-ai/ui/collection-table';
 	import { Combobox } from '@norbital-ai/ui/combobox';
 	import { Cover, Inline, Stack } from '@norbital-ai/ui/layout';
+	import { Spinner } from '@norbital-ai/ui/spinner';
 	import {
 		formatCalendarDate,
 		formatLeaveAccrual,
@@ -32,6 +33,7 @@
 		limit: 500
 	});
 	const companies = $derived(companiesQuery.current ?? []);
+	const companiesUnknown = $derived(companiesQuery.current === undefined || companiesQuery.loading);
 	const companyOptions = $derived(
 		companies.map((c) => ({
 			value: c.norbital_id,
@@ -156,7 +158,12 @@
 {/snippet}
 
 {#snippet overview()}
-	{#if selectedCompanyId == null}
+	{#if companiesUnknown}
+		<Inline justify="center" align="center" gap="sm" class="min-h-48 text-sm text-muted-foreground">
+			<Spinner class="size-4" />
+			<span>{t('app.leave.loading_company_scope')}</span>
+		</Inline>
+	{:else if selectedCompanyId == null}
 		<p class="text-sm text-muted-foreground">{t('app.leave.empty_overview')}</p>
 	{:else}
 		<Stack as="section" gap="md" aria-labelledby="leave-seasonality-heading">
@@ -237,7 +244,12 @@
 {/snippet}
 
 {#snippet requests()}
-	{#if selectedCompanyId == null}
+	{#if companiesUnknown}
+		<Inline justify="center" align="center" gap="sm" class="min-h-48 text-sm text-muted-foreground">
+			<Spinner class="size-4" />
+			<span>{t('app.leave.loading_company_scope')}</span>
+		</Inline>
+	{:else if selectedCompanyId == null}
 		<p class="text-sm text-muted-foreground">{t('app.leave.empty_requests')}</p>
 	{:else}
 		<CollectionTable
@@ -294,7 +306,12 @@
 {/snippet}
 
 {#snippet types()}
-	{#if selectedCompanyId == null}
+	{#if companiesUnknown}
+		<Inline justify="center" align="center" gap="sm" class="min-h-48 text-sm text-muted-foreground">
+			<Spinner class="size-4" />
+			<span>{t('app.leave.loading_company_scope')}</span>
+		</Inline>
+	{:else if selectedCompanyId == null}
 		<p class="text-sm text-muted-foreground">{t('app.leave.empty_types')}</p>
 	{:else}
 		<CollectionTable

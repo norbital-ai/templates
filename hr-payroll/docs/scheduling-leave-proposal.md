@@ -102,7 +102,7 @@ HR then opens Scheduling:
 ```text
 Scheduling · August 2026                     Entity [ Norbital SG ▾ ]
 ┌──────────────────────────────────────────────────────────────────────────┐
-│ [ Month board ] [ Roster codes ] [ Employment schedules ] [ Holidays ] │
+│ [ Month board ] [ Roster codes ] [ Holidays ]                          │
 ├──────────────────────────────────────────────────────────────────────────┤
 │ ‹ Jul              August 2026              Sep ›       [ Import XLSX ] │
 │ Draft · 1,204 projected · 38 explicit · 4 require approval             │
@@ -117,6 +117,11 @@ Scheduling · August 2026                     Entity [ Norbital SG ▾ ]
 │ [ Validate month ]                                      [ Publish ]     │
 └──────────────────────────────────────────────────────────────────────────┘
 ```
+
+The contractual schedule itself stays with the employee: **People → Employee → Employments** shows
+each employment and its effective-dated terms/work pattern in one aligned representation. Scheduling
+is the operational month board; it does not duplicate a second organization-wide employment-terms
+table.
 
 HR can declare another OFF only as an explicit exception. They cannot silently change a five-day
 contract: validation compares the final month (projected baseline plus exceptions) with the
@@ -173,6 +178,11 @@ facts. It is not an `overtime_eligible` boolean on employment terms.
 
 ## Leave request UX
 
+The leave overview treats an unresolved replica query as loading, never as an authoritative empty
+result. Its seasonality heat map uses the rolling five-year window through the current year, so the
+latest seeded or live requests appear immediately instead of being pushed into an unlabelled future
+bucket.
+
 One request contains one contiguous range. The range endpoints are datetimes snapped to half-day
 steps; they are not separate “from”, “to”, “first day”, “last day” and “days” fields. Chargeable
 days are derived from the selected half-day slots after applying the employee's schedule, observed
@@ -184,15 +194,14 @@ New leave request
 │ Person      [ NHPMY0359 · Aisha ▾ ]                                     │
 │ Leave type  [ Annual leave ▾ ]             Balance  4.5 days            │
 │                                                                          │
-│ Select a range (½-day steps)                                             │
-│  ‹ May 2026                         June 2026 ›                           │
-│  Mo    Tu    We    Th    Fr    Sa    Su                                 │
-│  25    26    27    28    29   OFF  REST                                │
-│   1     2     3   [ 4 ][ 5 ] OFF  REST                                 │
-│   8    PH   [10 ][11a]  12   OFF  REST                                 │
-│                                                                          │
-│  Drag from 4 AM to 11 AM                                                 │
-│  █ full day   ◐ half day   ▧ excluded (PH / REST / OFF)                 │
+│ Range       [ 4 Jun 2026, AM → 11 Jun 2026, AM  ▾ ]                     │
+│             ┌─────────────────────────────────────┐                     │
+│             │ ‹ Jun 2026 ›                       │                     │
+│             │ Mo Tu We Th Fr Sa Su               │                     │
+│             │  1  2  3 [4][5] OFF REST           │                     │
+│             │  8 PH [10][11] 12 OFF REST         │                     │
+│             │ each date exposes AM · PM steps    │                     │
+│             └─────────────────────────────────────┘                     │
 │                                                                          │
 │  Thu 4 Jun AM  →  Thu 11 Jun AM                                         │
 │  Charges 4.5 days · 3 excluded automatically                            │
@@ -207,6 +216,8 @@ New leave request
 Interaction contract:
 
 - Pointer drag and keyboard selection use the same half-day slot model.
+- The calendar opens in a compact date-range popover and uses the standard date-field trigger;
+  AM/PM are the two selectable steps inside each day rather than a permanently expanded form.
 - Unobserved holidays elsewhere do not disable a date; only applicable observed holidays do.
 - REST/OFF/holiday slots remain visible with the reason they are excluded.
 - The picker stops selection at the remaining entitlement and explains the boundary.

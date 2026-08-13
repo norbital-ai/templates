@@ -83,32 +83,37 @@
 
 {#snippet engagements()}
 	{#if record}
-		<CollectionTable
-			{client}
-			collection="employments"
-			view={`employees:employments:${record.norbital_id}`}
-			title={t('component.employments')}
-			description={t('component.employments_description')}
-			query={{
-				where: { employee_id: { eq: record.norbital_id } },
-				orderBy: { hire_date: 'desc' }
-			}}
-		>
-			{#snippet columns({ Column: TableColumn })}
-				<TableColumn name="employee_number" card="title" />
-				<TableColumn
-					name="company_id"
-					label={t('component.legal_entity')}
-					card="subtitle"
-					render={({ value }) =>
-						value == null || value === '' ? '—' : (companyLabelsById.get(String(value)) ?? '—')}
-				/>
-				<TableColumn name="hire_date" label={t('component.hired')} />
-				<TableColumn name="exit_date" label={t('component.exited')} />
-				<TableColumn name="exit_reason" label={t('component.exit_reason')} />
-				<TableColumn name="effective_range" label={t('component.effective')} />
-			{/snippet}
-		</CollectionTable>
+		<Stack gap="lg">
+			<CollectionTable
+				{client}
+				collection="employments"
+				view={`employees:employments:${record.norbital_id}`}
+				title={t('component.employments')}
+				description={t('component.employments_description')}
+				query={{
+					where: { employee_id: { eq: record.norbital_id } },
+					orderBy: { hire_date: 'desc' }
+				}}
+			>
+				{#snippet columns({ Column: TableColumn })}
+					<TableColumn name="employee_number" card="title" />
+					<TableColumn
+						name="company_id"
+						label={t('component.legal_entity')}
+						card="subtitle"
+						render={({ value }) =>
+							value == null || value === '' ? '—' : (companyLabelsById.get(String(value)) ?? '—')}
+					/>
+					<TableColumn name="hire_date" label={t('component.hired')} />
+					<TableColumn name="exit_date" label={t('component.exited')} />
+					<TableColumn name="exit_reason" label={t('component.exit_reason')} />
+					<TableColumn name="effective_range" label={t('component.effective')} />
+				{/snippet}
+			</CollectionTable>
+
+			<!-- Work pattern is an effective-dated employment term, so it belongs beside the engagement. -->
+			{@render terms()}
+		</Stack>
 	{/if}
 {/snippet}
 
@@ -211,6 +216,7 @@
 		<Tabs
 			animate={false}
 			listClass="mx-0 w-full"
+			contentPadding={false}
 			config={[
 				{ name: 'person', label: t('component.person'), icon: 'lucide:user', content: person },
 				{
@@ -218,12 +224,6 @@
 					label: t('component.employments'),
 					icon: 'lucide:briefcase',
 					content: engagements
-				},
-				{
-					name: 'terms',
-					label: t('component.terms'),
-					icon: 'lucide:file-signature',
-					content: terms
 				},
 				{
 					name: 'statutory-facts',
