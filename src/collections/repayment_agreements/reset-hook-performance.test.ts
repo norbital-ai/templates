@@ -2,6 +2,7 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import test from 'node:test';
+import { assertBatchHasNoOverlap } from '../pay_components/+hooks.ts';
 
 function source(relativePath: string): string {
 	return readFileSync(new URL(relativePath, import.meta.url), 'utf8');
@@ -13,6 +14,76 @@ test('bulk statutory rates rely on the atomic exclusion instead of one sibling r
 
 	assert.doesNotMatch(hooks, /api\.db\.query\.contribution_rates/);
 	assert.match(model, /name: 'contribution_rates_no_overlap'/);
+});
+
+test('bulk pay components validate overlap with one set read and retain the atomic exclusion', () => {
+	const hooks = source('../pay_components/+hooks.ts');
+	const model = source('../pay_components/+model.ts');
+
+	assert.match(hooks, /batchHandler: async \(\{ inputs, api \}\) =>/);
+	assert.match(
+		hooks,
+		/const existing = await api\.db\.query\.pay_components\.findMany\([\s\S]*?assertBatchHasNoOverlap\(inputs, existing\);[\s\S]*?return inputs;/
+	);
+	assert.match(
+		hooks,
+		/for \(const \[index, input\] of inputs\.entries\(\)\)[\s\S]*?assertNoOverlap\([\s\S]*?siblings\.push\(/
+	);
+	assert.match(model, /name: 'pay_components_no_overlap'/);
+});
+
+test('bulk pay component overlap validation covers persisted and same-batch siblings', () => {
+	const adjacent = [
+		{
+			company_id: 'company-a',
+			code: 'BASIC',
+			effective_range: { start: '2026-01-01T00:00:00.000Z', end: '2026-02-01T00:00:00.000Z' }
+		},
+		{
+			company_id: 'company-a',
+			code: 'BASIC',
+			effective_range: { start: '2026-02-01T00:00:00.000Z', end: null }
+		},
+		{
+			company_id: 'company-b',
+			code: 'BASIC',
+			effective_range: { start: '2026-01-15T00:00:00.000Z', end: null }
+		}
+	];
+	assert.doesNotThrow(() => assertBatchHasNoOverlap(adjacent, []));
+	assert.throws(
+		() =>
+			assertBatchHasNoOverlap(
+				[
+					...adjacent,
+					{
+						company_id: 'company-a',
+						code: 'BASIC',
+						effective_range: {
+							start: '2026-01-15T00:00:00.000Z',
+							end: '2026-03-01T00:00:00.000Z'
+						}
+					}
+				],
+				[]
+			),
+		/overlaps an existing row for pay component BASIC/
+	);
+	assert.throws(
+		() =>
+			assertBatchHasNoOverlap(
+				[adjacent[0]],
+				[
+					{
+						norbital_id: 'existing',
+						company_id: 'company-a',
+						code: 'BASIC',
+						effective_range: { start: '2025-01-01T00:00:00.000Z', end: null }
+					}
+				]
+			),
+		/overlaps an existing row for pay component BASIC/
+	);
 });
 
 test('loan instalment uniqueness is atomic and create skips impossible existing-child reads', () => {

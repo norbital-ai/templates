@@ -1,6 +1,53 @@
 import { assertNoOverlap } from '../../lib/effective_range.js';
 import type { Hooks } from './$types.js';
 
+const QUERY_LIMIT = 20_000;
+
+type PayComponentRange = {
+	readonly norbital_id: string;
+	readonly company_id: string;
+	readonly code: string;
+	readonly effective_range: unknown;
+};
+
+function identityKey(companyId: string, code: string): string {
+	return `${companyId}\u0000${code}`;
+}
+
+export function assertBatchHasNoOverlap(
+	inputs: readonly {
+		readonly norbital_id?: string;
+		readonly company_id: string;
+		readonly code: string;
+		readonly effective_range?: unknown;
+	}[],
+	existing: readonly PayComponentRange[]
+): void {
+	const byIdentity = new Map<string, PayComponentRange[]>();
+	for (const row of existing) {
+		const key = identityKey(row.company_id, row.code);
+		const siblings = byIdentity.get(key);
+		if (siblings) siblings.push(row);
+		else byIdentity.set(key, [row]);
+	}
+	for (const [index, input] of inputs.entries()) {
+		const key = identityKey(input.company_id, input.code);
+		const siblings = byIdentity.get(key) ?? [];
+		assertNoOverlap({
+			candidate: input.effective_range,
+			existing: siblings,
+			identity: `pay component ${input.code}`
+		});
+		siblings.push({
+			norbital_id: input.norbital_id ?? `batch:${index}`,
+			company_id: input.company_id,
+			code: input.code,
+			effective_range: input.effective_range
+		});
+		byIdentity.set(key, siblings);
+	}
+}
+
 /**
  * Exclusion key (plan 02 §7): company =, code =, effective range &&.
  * A catalogue change is an end-date plus a successor row, never an overlapping duplicate.
@@ -15,6 +62,25 @@ export default {
 		before: {
 			description:
 				'Refuses a pay component whose effective range overlaps another component with the same code in the same company, so a payslip line can only ever resolve one definition for that code.',
+			batchHandler: async ({ inputs, api }) => {
+				if (inputs.length === 0) return inputs;
+				const companyIds = [...new Set(inputs.map((input) => input.company_id))];
+				const existing = await api.db.query.pay_components.findMany({
+					where: { company_id: { in: companyIds } },
+					columns: {
+						norbital_id: true,
+						company_id: true,
+						code: true,
+						effective_range: true
+					},
+					limit: QUERY_LIMIT
+				});
+				if (existing.length === QUERY_LIMIT) {
+					throw new Error('This legal entity has too many pay components to validate safely.');
+				}
+				assertBatchHasNoOverlap(inputs, existing);
+				return inputs;
+			},
 			handler: async ({ input, api }) => {
 				const existing = await api.db.query.pay_components.findMany({
 					where: { company_id: { eq: input.company_id }, code: { eq: input.code } }
