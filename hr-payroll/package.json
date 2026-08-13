@@ -10,15 +10,15 @@
 		"build": "vite build",
 		"format": "prettier --write .",
 		"lint": "prettier --check . && svelte-check --tsconfig ./tsconfig.json",
-		"test": "node scripts/verify-overtime-controls.mjs && node scripts/verify-payroll-xlsx.mjs && node scripts/verify-workbook-import.mjs && node scripts/verify-payroll-arithmetic.mjs && node scripts/verify-fixture-shapes.mjs && node --experimental-strip-types --import ./scripts/ts-source-resolve.mjs --test src/automation/*.test.ts src/collections/employees/*.test.ts src/collections/repayment_agreements/*.test.ts src/collections/rosters/lib/*.test.ts src/collections/payroll_runs/*.test.ts src/collections/time_entries/*.test.ts src/lib/scheduling/*.test.ts src/remotes/*.test.ts"
+		"test": "node scripts/verify-overtime-controls.mjs && node scripts/verify-payroll-xlsx.mjs && node scripts/verify-workbook-import.mjs && node scripts/verify-payroll-arithmetic.mjs && node scripts/verify-fixture-shapes.mjs && node --experimental-strip-types --import ./scripts/ts-source-resolve.mjs --test src/collections/employees/*.test.ts src/collections/repayment_agreements/*.test.ts src/collections/rosters/lib/*.test.ts src/collections/payroll_runs/*.test.ts src/collections/time_entries/*.test.ts src/lib/scheduling/*.test.ts src/lib/*.test.ts"
 	},
 	"dependencies": {
 		"@internationalized/date": "^3.8.2",
 		"@iconify/svelte": "^5.2.2",
-		"@norbital-ai/platform-utils": "0.0.34",
-		"@norbital-ai/pod": "0.0.34",
-		"@norbital-ai/std": "0.0.34",
-		"@norbital-ai/ui": "0.0.34",
+		"@norbital-ai/platform-utils": "0.0.35",
+		"@norbital-ai/pod": "0.0.35",
+		"@norbital-ai/std": "0.0.35",
+		"@norbital-ai/ui": "0.0.35",
 		"exceljs": "4.4.0",
 		"mode-watcher": "^1.1.0",
 		"runed": "^0.37.1",
