@@ -4,7 +4,10 @@ import { readFile } from 'node:fs/promises';
 import test from 'node:test';
 
 test('employee profile presents terms inline instead of mounting a separate terms table', async () => {
-	const representation = await readFile(new URL('./+representation.svelte', import.meta.url), 'utf8');
+	const representation = await readFile(
+		new URL('./+representation.svelte', import.meta.url),
+		'utf8'
+	);
 
 	assert.match(representation, /employmentScheduleOn\(\s*termsByEmployment\.get\(/);
 	assert.match(representation, /contentPadding=\{false\}/);
