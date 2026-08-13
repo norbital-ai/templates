@@ -31,9 +31,23 @@ export default defineAutomation(
 	{
 		kind: 'deterministic',
 		description:
-			'Reads a newly filed job-site photo with a vision model, judges the whole photographed scene against the assigned site, and records a matching identity or a one-way wrong-location finding with the model rationale.',
+			'Reads a newly filed job-site photo with a vision model, judges the whole photographed scene together with deterministic integrity attributes, and records an auditable site verdict.',
 		handler: async (api, { scope }) => {
-			const evidence = scope.incoming_record;
+			// The created-event snapshot predates the duplicate after-hook. Read the settled row so the
+			// judgement sees reuse and geolocation attributes without turning any one attribute into a
+			// verdict by itself.
+			const settledEvidence = await api.db.query.photo_evidence.findFirst({
+				where: { norbital_id: { eq: scope.incoming_record.norbital_id } },
+				columns: {
+					norbital_id: true,
+					job_assignment_id: true,
+					variation_request_id: true,
+					document_asset_id: true,
+					flags: true,
+					matched_evidence_ids: true
+				}
+			});
+			const evidence = settledEvidence ?? scope.incoming_record;
 			const settleEvidence = async (
 				status: 'match' | 'mismatch' | 'inconclusive' | 'failed',
 				error: string | null = null
@@ -118,6 +132,12 @@ export default defineAutomation(
 				return { status: 'skipped', reason: 'assigned site no longer exists' };
 			}
 			const expectedAddress = formattedAddress(site.location);
+			const integrityFlags = Array.isArray(evidence.flags)
+				? evidence.flags.filter((flag): flag is string => typeof flag === 'string')
+				: [];
+			const matchedEvidenceCount = Array.isArray(evidence.matched_evidence_ids)
+				? evidence.matched_evidence_ids.length
+				: 0;
 
 			const checkedAt = new Date();
 			try {
@@ -130,6 +150,8 @@ export default defineAutomation(
 						`Assigned job: ${job.title}.`,
 						`Assigned site: ${site.name}.`,
 						...(expectedAddress == null ? [] : [`Assigned mapped address: ${expectedAddress}.`]),
+						`Deterministic evidence attributes: ${integrityFlags.length > 0 ? integrityFlags.join(', ') : 'none'}.`,
+						`Cross-assignment similarity matches: ${matchedEvidenceCount}.`,
 						'Judge the whole naturally photographed scene: signs and addresses, building or site type,',
 						'architecture, surrounding landmarks, access points, unit layout, and visible work context.',
 						'Also extract any site or building name, street or block sign, address plaque, and unit, lot,',
@@ -140,6 +162,10 @@ export default defineAutomation(
 						'not override a clearly incompatible broader scene. Mark mismatch when the photographed location',
 						'is visibly a different house, unit, block, street, named site, building type, or work setting;',
 						'mark match when the scene as a whole supports the assigned site; otherwise use inconclusive.',
+						'Missing GPS by itself is neutral because WhatsApp and other messaging services commonly strip',
+						'EXIF metadata. Exact or visual similarity is also an attribute, not a verdict: weigh whether it',
+						'shows suspicious reuse across unrelated work or a legitimate repeated view. A concrete GPS',
+						'location mismatch is strong contradictory evidence, but still explain it with the visible scene.',
 						'Set evidence_available true when the scene contains enough visual evidence for that judgement,',
 						'even if no text identifier can be extracted. Explain the decisive evidence and conflicts briefly',
 						'in rationale so a human reviewer can audit the verdict.',

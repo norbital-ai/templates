@@ -65,11 +65,12 @@ Every photo, from every entry path (workspace upload or channel), passes through
    photo records a durable
    pending/terminal identity state; provider work runs from the platform's leased retry queue rather
    than holding the upload or environment reset open.
-5. **Escalation** — exact/perceptual reuse across assignments, missing GPS, GPS outside the site
-   tolerance, or a photographed scene that contradicts the assigned site latches `suspect`
-   immediately. The multimodal verdict adds nuance and a human-readable audit rationale, but cannot
-   clear a deterministic flag or an earlier mismatch. The controller dashboard shows the
-   structured reason and AI rationale; contractors and the WhatsApp agent never see them.
+5. **Classification** — deterministic inspection records evidence attributes; it does not pretend
+   those attributes are the verdict. Missing GPS is neutral on its own because WhatsApp commonly
+   strips EXIF. Reuse and a GPS mismatch are strong signals, but the multimodal model classifies the
+   whole scene against the assigned site and writes the human-readable rationale. A scene mismatch
+   latches `suspect` and cannot be cleared by a later match. The controller dashboard shows the
+   attributes and AI rationale; contractors and the WhatsApp agent never see them.
 
 ## 3. What ships
 
@@ -155,12 +156,13 @@ agent — not only the UI:
   L2 distance equals √Hamming, so the near-duplicate threshold √31 is PDQ's Hamming 31.
 - **Similarity search**: `findNearest` on the HNSW `photo_evidence_pdq_hnsw` index (`vector_l2_ops`)
   with bounded limits — the fast, indexed path, not a scan.
-- **EXIF**: `exifr` reads capture time, software, and GPS. `missing_geolocation` fires for any photo
-  without GPS and escalates immediately; `metadata_anomaly`/`edited_metadata`/`low_quality` are
-  recorded but do not escalate.
-- **Flags** live on the photo row (`flags` array, `matched_evidence_ids`). Cross-assignment reuse,
-  missing GPS, and GPS mismatch drive immediate one-way escalation. The controller dashboard is where
-  these reasons and the multimodal site-identity rationale render.
+- **EXIF**: `exifr` reads capture time, software, and GPS. `missing_geolocation` records that the
+  signal is absent, but does not classify the photo: WhatsApp commonly strips EXIF.
+  `metadata_anomaly`/`edited_metadata`/`low_quality` are also evidence attributes.
+- **Flags** live on the photo row (`flags` array, `matched_evidence_ids`). Cross-assignment reuse and
+  GPS mismatch are strong inputs, not a verdict by themselves. The multimodal site-identity layer
+  judges the whole natural scene, records its rationale, and is the layer that can latch an assignment
+  suspicious. The controller dashboard renders both the deterministic attributes and that rationale.
 
 ### How the WhatsApp channel works
 

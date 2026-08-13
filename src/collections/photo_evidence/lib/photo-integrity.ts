@@ -46,21 +46,6 @@ export const photoInspectionSchema = z.object({
 	flags: z.array(z.enum(photoIntegrityFlags))
 });
 
-/** Cross-assignment reuse, missing GPS, and contradictory capture GPS are hard signals. */
-export const suspectPhotoFlags = [
-	'exact_duplicate',
-	'visual_duplicate',
-	'missing_geolocation',
-	'location_mismatch'
-] as const satisfies readonly PhotoIntegrityFlag[];
-
-export function photoEvidenceIsSuspicious(input: {
-	hasGeolocation: boolean;
-	hasCrossAssignmentDuplicate: boolean;
-}): boolean {
-	return input.hasCrossAssignmentDuplicate || !input.hasGeolocation;
-}
-
 export interface PhotoInspection {
 	sha256: string;
 	/** Meta PDQ hash as 64-char hex (256-bit). */
@@ -242,7 +227,8 @@ export async function inspectPhoto(input: {
 
 /**
  * Compare the photo's GPS capture point against the job site's map location. Missing capture
- * coordinates always flag; a captured point beyond the site tolerance flags `location_mismatch`.
+ * coordinates remain an evidence attribute — messaging services commonly strip EXIF — while a
+ * captured point beyond the site tolerance records a concrete contradiction for later judgement.
  */
 export function evaluateCaptureGeolocation(
 	capture: { lat: number; lon: number } | null,

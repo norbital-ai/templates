@@ -5,9 +5,7 @@ import { gunzipSync } from 'node:zlib';
 import {
 	evaluateCaptureGeolocation,
 	inspectPhoto,
-	photoEvidenceIsSuspicious,
-	photoInspectionSchema,
-	suspectPhotoFlags
+	photoInspectionSchema
 } from './photo-integrity.js';
 import { planDuplicateEvidenceBatch } from './photo-duplicates.js';
 
@@ -75,31 +73,13 @@ test('accepts only the immutable fact shape supplied by the host inspection cach
 	);
 });
 
-test('treats missing GPS, contradictory GPS, and cross-assignment reuse as hard signals', () => {
+test('records missing and contradictory GPS as evidence without inventing a verdict', () => {
 	assert.deepEqual(evaluateCaptureGeolocation(null, { lat: 1.3, lon: 103.8 }), [
 		'missing_geolocation'
 	]);
-	assert.ok(suspectPhotoFlags.includes('missing_geolocation'));
-	assert.equal(
-		photoEvidenceIsSuspicious({
-			hasGeolocation: false,
-			hasCrossAssignmentDuplicate: false
-		}),
-		true
-	);
-	assert.equal(
-		photoEvidenceIsSuspicious({
-			hasGeolocation: true,
-			hasCrossAssignmentDuplicate: false
-		}),
-		false
-	);
-	assert.equal(
-		photoEvidenceIsSuspicious({
-			hasGeolocation: true,
-			hasCrossAssignmentDuplicate: true
-		}),
-		true
+	assert.deepEqual(
+		evaluateCaptureGeolocation({ lat: 1.3521, lon: 103.8198 }, { lat: 1.3001, lon: 103.8001 }),
+		['location_mismatch']
 	);
 });
 

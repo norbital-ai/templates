@@ -136,7 +136,7 @@
 	"component.status_assigned": "Assigned",
 	"component.review_suspicious_evidence": "Review suspicious evidence",
 	"component.suspicious_evidence_title": "Suspicious photographic evidence",
-	"component.suspicious_evidence_description": "Missing or contradictory GPS and cross-assignment photo reuse always require review. The agent separately judges the whole photographed scene against the assigned site; synthetic overlays are ignored.",
+	"component.suspicious_evidence_description": "The agent judged the photographed scene and its integrity signals against the assigned site. Missing GPS alone is not suspicious because messaging services may strip metadata; synthetic overlays are ignored.",
 	"component.suspicious_reason_pending": "The assignment was flagged by an integrity check whose evidence is still loading.",
 	"component.suspicion_missing_geolocation": "One or more photos have no embedded GPS tag; it may be absent or removed.",
 	"component.suspicion_location_mismatch": "A photo's embedded GPS point is outside the accepted distance from the assigned site.",

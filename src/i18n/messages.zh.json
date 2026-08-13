@@ -136,7 +136,7 @@
 	"component.status_assigned": "已分配",
 	"component.review_suspicious_evidence": "审查可疑证据",
 	"component.suspicious_evidence_title": "可疑照片证据",
-	"component.suspicious_evidence_description": "GPS 元数据或照片场景中自然出现的工地标识，满足任一项即可。跨任务重复使用照片始终需要审查。叠加文字绝不会被视为工地身份依据。",
+	"component.suspicious_evidence_description": "助手会结合照片场景与完整性信号判断是否符合指定工地。消息服务可能移除元数据，因此仅缺少 GPS 并不代表可疑；叠加文字不会被视为工地依据。",
 	"component.suspicious_reason_pending": "完整性证据仍在加载，系统已先标记该任务分配。",
 	"component.suspicion_missing_geolocation": "一张或多张照片没有内嵌 GPS 标签；标签可能从未存在或已被移除。",
 	"component.suspicion_location_mismatch": "照片的内嵌 GPS 坐标超出所分配工地的允许距离。",

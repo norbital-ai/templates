@@ -145,34 +145,14 @@
 		directEvidenceQuery?.loading === true ||
 			(evidenceAssetIds.length > 0 && (evidenceAssetsQuery == null || evidenceAssetsQuery.loading))
 	);
-	const assignmentIntegrityFlags = $derived([
-		...new Set(scopedEvidence.flatMap((evidence) => evidence.flags ?? []))
-	]);
 	const suspicionReasons = $derived([
-		...(assignmentIntegrityFlags.includes('missing_geolocation')
-			? [t('component.suspicion_missing_geolocation')]
-			: []),
-		...(assignmentIntegrityFlags.includes('location_mismatch')
-			? [t('component.suspicion_location_mismatch')]
-			: []),
-		...(assignmentIntegrityFlags.includes('exact_duplicate')
-			? [t('component.suspicion_exact_duplicate')]
-			: []),
-		...(assignmentIntegrityFlags.includes('visual_duplicate')
-			? [t('component.suspicion_visual_duplicate')]
-			: []),
 		...(record?.site_identity_mismatch === true
 			? [t('component.suspicion_site_identity_mismatch')]
 			: [])
 	]);
 
-	function photoHasHardSuspicion(flags: string[]): boolean {
-		return (
-			flags.includes('exact_duplicate') ||
-			flags.includes('visual_duplicate') ||
-			flags.includes('missing_geolocation') ||
-			flags.includes('location_mismatch')
-		);
+	function photoHasIntegritySignals(flags: string[]): boolean {
+		return flags.length > 0;
 	}
 
 	function integrityFlagLabel(flag: string): string {
@@ -217,8 +197,8 @@
 </script>
 
 {#if record}
-	{#if !isContractorViewer && (record.status === 'suspect' || suspicionReasons.length > 0)}
-		<Stack gap="none" class="pb-4">
+	{#snippet suspicionBanner()}
+		{#if !isContractorViewer && (record.status === 'suspect' || record.site_identity_mismatch)}
 			<section
 				class="border-s-2 border-orange-500 bg-orange-50/70 px-4 py-3 text-orange-950 dark:bg-orange-950/30 dark:text-orange-100"
 				aria-labelledby="assignment-suspicion-heading"
@@ -250,8 +230,9 @@
 					</Stack>
 				</Inline>
 			</section>
-		</Stack>
-	{/if}
+		{/if}
+	{/snippet}
+
 	{#snippet jobScopeHeader()}
 		<div>
 			<h3 id="assignment-job-scope-heading" class="text-sm font-semibold">
@@ -264,63 +245,71 @@
 	{/snippet}
 
 	{#snippet jobScope()}
-		<Cover gap="md" top={jobScopeHeader}>
-			{#if jobQuery?.current?.[0]}
-				<JobsRepresentation record={jobQuery.current[0]} close={() => undefined} {refresh} />
-			{:else if jobQuery?.loading}
-				<div
-					class="h-32 rounded-md bg-muted/50 motion-safe:animate-pulse"
-					aria-label={t('component.loading_job')}
-				></div>
-			{:else}
-				<Scroll name={t('component.job_scope_status')}>
-					<p class="text-sm text-destructive">{t('component.job_load_failed')}</p>
-				</Scroll>
-			{/if}
-		</Cover>
+		<Scroll name={t('component.job_scope_status')}>
+			<Stack gap="md">
+				<Cover gap="md" top={jobScopeHeader}>
+					{#if jobQuery?.current?.[0]}
+						<JobsRepresentation record={jobQuery.current[0]} close={() => undefined} {refresh} />
+					{:else if jobQuery?.loading}
+						<div
+							class="h-32 rounded-md bg-muted/50 motion-safe:animate-pulse"
+							aria-label={t('component.loading_job')}
+						></div>
+					{:else}
+						<p class="text-sm text-destructive">{t('component.job_load_failed')}</p>
+					{/if}
+				</Cover>
+				{@render suspicionBanner()}
+			</Stack>
+		</Scroll>
 	{/snippet}
 
 	{#snippet statusAndActivity()}
-		<CollectionForm
-			{client}
-			collection="job_assignments"
-			recordId={record.norbital_id}
-			defaultValues={record}
-		>
-			{#snippet children({ Field })}
-				<Stack gap="md">
-					<div>
-						<h3 id="assignment-activity-heading" class="text-sm font-semibold">
-							{t('component.assignment_and_activity')}
-						</h3>
-						<p class="text-sm text-muted-foreground">
-							{t('component.assignment_and_activity_description')}
-						</p>
-					</div>
-					<Grid minimum="panel">
-						{#if isContractorViewer && record.status === 'suspect'}
-							<Stack gap="xs">
-								<span class="text-xs font-medium text-muted-foreground">
-									{t('component.status')}
-								</span>
-								<span class="text-sm">{contractorProgressLabel()}</span>
-							</Stack>
-						{:else}
-							<Field name="status" />
-						{/if}
-						<Field name="dispatched_at" label={t('component.dispatched_at')} />
-						<Field name="completed_at" label={t('component.completed_at')} />
-						<Field name="amount_charged" label={t('component.value_charged')} />
-						<Column span="all">
-							<Field name="summary" label={t('component.completion_summary')} />
-						</Column>
-						<Column span="all"
-							><Field name="location" label={t('component.reported_location')} /></Column
-						>
-					</Grid>
-				</Stack>
-			{/snippet}
-		</CollectionForm>
+		<Scroll name={t('component.assignment_and_activity')}>
+			<Stack gap="md">
+				<CollectionForm
+					{client}
+					collection="job_assignments"
+					recordId={record.norbital_id}
+					defaultValues={record}
+				>
+					{#snippet children({ Field })}
+						<Stack gap="md">
+							<div>
+								<h3 id="assignment-activity-heading" class="text-sm font-semibold">
+									{t('component.assignment_and_activity')}
+								</h3>
+								<p class="text-sm text-muted-foreground">
+									{t('component.assignment_and_activity_description')}
+								</p>
+							</div>
+							<Grid minimum="panel">
+								{#if isContractorViewer && record.status === 'suspect'}
+									<Stack gap="xs">
+										<span class="text-xs font-medium text-muted-foreground">
+											{t('component.status')}
+										</span>
+										<span class="text-sm">{contractorProgressLabel()}</span>
+									</Stack>
+								{:else}
+									<Field name="status" />
+								{/if}
+								<Field name="dispatched_at" label={t('component.dispatched_at')} />
+								<Field name="completed_at" label={t('component.completed_at')} />
+								<Field name="amount_charged" label={t('component.value_charged')} />
+								<Column span="all">
+									<Field name="summary" label={t('component.completion_summary')} />
+								</Column>
+								<Column span="all"
+									><Field name="location" label={t('component.reported_location')} /></Column
+								>
+							</Grid>
+						</Stack>
+					{/snippet}
+				</CollectionForm>
+				{@render suspicionBanner()}
+			</Stack>
+		</Scroll>
 	{/snippet}
 
 	{#snippet variationHistory()}
@@ -361,6 +350,7 @@
 						</div>
 					{/each}
 				</Stack>
+				{@render suspicionBanner()}
 			</Stack>
 		</Scroll>
 	{/snippet}
@@ -395,11 +385,7 @@
 				{:else}
 					<Grid minimum="card" gap="md">
 						{#each photoCards as photo (photo.id)}
-							<figure
-								class={photoHasHardSuspicion(photo.flags) && !isContractorViewer
-									? 'min-w-0 rounded-md border border-orange-500 bg-card'
-									: 'min-w-0 rounded-md border border-border bg-card'}
-							>
+							<figure class="min-w-0 rounded-md border border-border bg-card">
 								<a
 									href={photo.url}
 									target="_blank"
@@ -421,18 +407,14 @@
 										<Icon
 											icon={isContractorViewer
 												? 'lucide:image'
-												: photoHasHardSuspicion(photo.flags)
-													? 'lucide:scan-warning'
-													: photo.flags.length > 0
-														? 'lucide:map-pin-off'
-														: 'lucide:image-check'}
+												: photoHasIntegritySignals(photo.flags)
+													? 'lucide:scan-search'
+													: 'lucide:image-check'}
 											class={isContractorViewer
 												? 'mt-0.5 size-4 shrink-0 text-muted-foreground'
-												: photoHasHardSuspicion(photo.flags)
-													? 'mt-0.5 size-4 shrink-0 text-destructive'
-													: photo.flags.length > 0
-														? 'mt-0.5 size-4 shrink-0 text-muted-foreground'
-														: 'mt-0.5 size-4 shrink-0 text-success'}
+												: photoHasIntegritySignals(photo.flags)
+													? 'mt-0.5 size-4 shrink-0 text-muted-foreground'
+													: 'mt-0.5 size-4 shrink-0 text-success'}
 										/>
 										<Stack gap="none" class="min-w-0">
 											<p class="truncate text-sm font-medium">{photo.name}</p>
@@ -443,11 +425,7 @@
 									</Inline>
 									{#if !isContractorViewer}
 										<Cluster justify="between" gap="xs" class="text-xs">
-											<span
-												class={photoHasHardSuspicion(photo.flags)
-													? 'text-destructive'
-													: 'text-muted-foreground'}
-											>
+											<span class="text-muted-foreground">
 												{photo.flags.length > 0
 													? photo.flags.map(integrityFlagLabel).join(' · ')
 													: t('component.integrity_passed')}
@@ -478,6 +456,7 @@
 						{/each}
 					</Grid>
 				{/if}
+				{@render suspicionBanner()}
 			</Stack>
 		</Scroll>
 	{/snippet}
