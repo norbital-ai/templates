@@ -5,7 +5,7 @@ import {
 	bucketSeasonalHeatmap,
 	seasonalityDateWindow,
 	seasonalityYears
-} from './+approval_analytics.ts';
+} from '../remotes/+approval_analytics.ts';
 
 test('leave seasonality includes the live year in its rolling five-year window', () => {
 	assert.deepEqual(seasonalityYears(2026), [2022, 2023, 2024, 2025, 2026]);
