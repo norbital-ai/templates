@@ -51,6 +51,7 @@ import { settle } from './settle.js';
 import { requiredDateKey, shiftPeriod } from './dates.js';
 import { readSettlementPolicy } from './settlement.js';
 import {
+	blockers,
 	describeIssues,
 	validateConfiguration,
 	validateDailyWorkLimit,
@@ -128,7 +129,7 @@ export async function buildPayrollRun(options: {
 
 	// 2 — VALIDATE
 	const issues: RunIssue[] = validateConfiguration(configuration);
-	if (issues.length > 0) throw new Error(describeIssues(issues));
+	if (blockers(issues).length > 0) throw new Error(describeIssues(blockers(issues)));
 	lap('validate');
 
 	// 3 — GATHER
@@ -265,7 +266,11 @@ export async function buildPayrollRun(options: {
 	// Nothing is persisted until every employment has been measured, so a run that breaches an
 	// hours-of-work limit for one person on one day writes no payslip for anybody. That is the point:
 	// a payroll is published whole or not at all, and the operator is told which person and which day.
-	if (issues.length > 0) throw new Error(describeIssues(issues));
+	const blocking = blockers(issues);
+	if (blocking.length > 0) throw new Error(describeIssues(blocking));
+	const warnings = issues.filter((issue) => issue.severity === 'WARNING');
+	if (warnings.length > 0)
+		console.log(`[payroll-warnings] ${options.period} ${describeIssues(warnings, 'warn')}`);
 	lap('calculate');
 
 	// 8 — PERSIST

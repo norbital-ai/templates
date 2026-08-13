@@ -2,15 +2,13 @@
 /**
  * A payroll run has two outcomes: payslips, or a refusal that says why.
  *
- * There used to be a third. `validate` produced `WARNING` issues — an unmapped rest-day rule, an
- * exceeded overtime ceiling, a day past the hours-of-work limit, a pay cadence the company calendar
- * cannot express — the engine returned them, and the create hook dropped the return value on the
- * floor. The run completed. Nobody was told. These pin that every one of those now stops the build,
- * and that the refusal names the person, the day and the rule an operator has to go and look at.
+ * Configuration faults stop the build. Hours-of-work ceilings honor `on_exceed`: WARN is advisory,
+ * BLOCK refuses. Daily hours breaches are always warnings — the engine already prices the excess.
  */
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
+	blockers,
 	describeIssues,
 	validateConfiguration,
 	validateDailyWorkLimit,
@@ -82,7 +80,7 @@ test('a mapped rule raises nothing, so an ordinary company still builds', () => 
 	assert.deepEqual(issues, []);
 });
 
-test('an exceeded overtime ceiling stops the run whether the authority says WARN or BLOCK', () => {
+test('an exceeded overtime ceiling honors on_exceed: WARN is advisory, BLOCK refuses', () => {
 	const limit = (on_exceed) => ({
 		norbital_id: `limit-${on_exceed}`,
 		period: 'MONTH',
@@ -91,18 +89,28 @@ test('an exceeded overtime ceiling stops the run whether the authority says WARN
 		on_exceed,
 		authority: 'Employment (Limitation of Overtime Work) Regulations 1980'
 	});
-	for (const on_exceed of ['WARN', 'BLOCK']) {
-		const issues = validateOvertimeLimits({
-			configuration: configuration({ overtimeLimits: [limit(on_exceed)] }),
-			employeeNumber: 'NHPMY0023',
-			calendarMonth: '2026-03',
-			monthHours: 112
-		});
-		assert.equal(issues.length, 1, `${on_exceed} must still fail the run`);
-		assert.match(issues[0].message, /NHPMY0023/, 'the refusal names the employee');
-		assert.match(issues[0].message, /2026-03/, 'the refusal names the month');
-		assert.match(issues[0].message, /1980/, 'the refusal names the authority');
-	}
+	const warned = validateOvertimeLimits({
+		configuration: configuration({ overtimeLimits: [limit('WARN')] }),
+		employeeNumber: 'NHPMY0023',
+		calendarMonth: '2026-03',
+		monthHours: 112
+	});
+	assert.equal(warned.length, 1);
+	assert.equal(warned[0].severity, 'WARNING');
+	assert.equal(blockers(warned).length, 0);
+	assert.match(warned[0].message, /NHPMY0023/);
+	assert.match(warned[0].message, /2026-03/);
+	assert.match(warned[0].message, /1980/);
+
+	const blocked = validateOvertimeLimits({
+		configuration: configuration({ overtimeLimits: [limit('BLOCK')] }),
+		employeeNumber: 'NHPMY0023',
+		calendarMonth: '2026-03',
+		monthHours: 112
+	});
+	assert.equal(blocked.length, 1);
+	assert.equal(blocked[0].severity, 'BLOCKER');
+	assert.equal(blockers(blocked).length, 1);
 });
 
 test('a total-hours ceiling is not compared against overtime hours', () => {
@@ -153,7 +161,7 @@ test('a ceiling that was not reached raises nothing', () => {
 	);
 });
 
-test('a day past the hours-of-work limit stops the run, and says whose day it was', () => {
+test('a day past the hours-of-work limit is a warning that names whose day it was', () => {
 	const issues = validateDailyWorkLimit({
 		employeeNumber: 'NHPMY0002',
 		days: [
@@ -177,6 +185,8 @@ test('a day past the hours-of-work limit stops the run, and says whose day it wa
 		maxWorkHours: 12
 	});
 	assert.equal(issues.length, 1, 'only the day over the limit is raised');
+	assert.equal(issues[0].severity, 'WARNING');
+	assert.equal(blockers(issues).length, 0);
 	assert.match(issues[0].message, /NHPMY0002 worked 13\.25 hours on 2026-03-10/);
 	assert.equal(issues[0].collection, 'time_entries');
 	assert.equal(issues[0].recordId, 'time-entry-1', 'the issue links to the attendance row to fix');
