@@ -12,6 +12,7 @@
 	import Icon from '@iconify/svelte';
 	import { Button } from '@norbital-ai/ui/button';
 	import { Inline, Stack } from '@norbital-ai/ui/layout';
+	import * as Popover from '@norbital-ai/ui/popover';
 	import { useI18n } from '@norbital-ai/ui/i18n';
 	import type { TenantI18nKeys } from '$pod/i18n-keys';
 	import { cn } from '@norbital-ai/ui/utils';
@@ -37,10 +38,17 @@
 	const DAY_MS = 86_400_000;
 	const today = new Date().toISOString().slice(0, 10);
 	let visibleMonth = $state(today.slice(0, 7));
+	let open = $state(false);
+	let wasOpen = false;
 	let anchor = $state<HalfDayPoint | null>(null);
 	let dragging = $state(false);
 	let ignoreNextClick = false;
 	let limitReached = $state(false);
+
+	$effect(() => {
+		if (open && !wasOpen) visibleMonth = (value?.start.date ?? today).slice(0, 7);
+		wasOpen = open;
+	});
 
 	const weekdays = $derived([
 		t('component.weekday_mon'),
@@ -183,107 +191,133 @@
 			new Date(`${point.date}T00:00:00.000Z`)
 		)}, ${halfLabel(point.half)}`;
 	}
+
+	const triggerLabel = $derived(
+		value == null
+			? t('component.leave_range')
+			: `${pointLabel(value.start)} → ${pointLabel(value.end)}`
+	);
 </script>
 
-<Stack gap="sm" class="min-w-0 rounded-lg border bg-card p-3 shadow-sm">
-	<Inline justify="between" align="center">
-		<Button
-			type="button"
-			variant="ghost"
-			size="icon"
-			{disabled}
-			aria-label={t('component.previous_month')}
-			onclick={() => shiftMonth(-1)}
-		>
-			<Icon icon="lucide:chevron-left" class="size-4" />
-		</Button>
-		<p class="font-semibold" aria-live="polite">{monthLabel}</p>
-		<Button
-			type="button"
-			variant="ghost"
-			size="icon"
-			{disabled}
-			aria-label={t('component.next_month')}
-			onclick={() => shiftMonth(1)}
-		>
-			<Icon icon="lucide:chevron-right" class="size-4" />
-		</Button>
-	</Inline>
+<svelte:window onpointerup={() => (dragging = false)} />
 
-	<div
-		class="grid grid-cols-7 gap-1"
-		role="group"
-		tabindex="-1"
+<Popover.Root bind:open>
+	<Popover.Trigger
+		type="button"
+		{disabled}
 		aria-label={t('component.leave_range')}
-		onpointerup={() => (dragging = false)}
+		class="group flex h-9 w-full items-center gap-2 rounded-md border border-input bg-background px-3 text-left text-sm shadow-xs transition-colors hover:bg-accent/50 focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-60"
 	>
-		{#each weekdays as weekday}
-			<span class="pb-1 text-center text-xs font-medium text-muted-foreground">{weekday}</span>
-		{/each}
-		{#each days as date (date)}
-			{@const inMonth = date.slice(0, 7) === visibleMonth}
-			{@const dayAvailability = availabilityFor(date)}
-			<div
-				class={cn(
-					'min-w-0 rounded-md border border-transparent p-0.5',
-					date === today && 'border-primary/50',
-					!inMonth && 'opacity-40',
-					dayAvailability?.eligible === false && 'bg-muted/50'
-				)}
-				title={dayAvailability?.reason}
-			>
-				<span class="block px-1 pb-0.5 text-center text-xs tabular-nums"
-					>{Number(date.slice(8))}</span
+		<Icon icon="lucide:calendar-range" class="size-4 shrink-0 text-muted-foreground" />
+		<span class={cn('min-w-0 flex-1 truncate', value == null && 'text-muted-foreground')}>
+			{triggerLabel}
+		</span>
+		<Icon
+			icon="lucide:chevron-down"
+			class="size-3.5 shrink-0 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100"
+		/>
+	</Popover.Trigger>
+
+	<Popover.Content align="start" sideOffset={6} class="w-[min(calc(100vw-2rem),23rem)] p-0">
+		<Stack gap="sm" class="p-3">
+			<Inline justify="between" align="center">
+				<Button
+					type="button"
+					variant="ghost"
+					size="icon"
+					{disabled}
+					aria-label={t('component.previous_month')}
+					onclick={() => shiftMonth(-1)}
 				>
-				<div class="grid grid-cols-2 gap-px rounded-sm bg-border">
-					{#each ['FIRST', 'SECOND'] as half}
-						{@const point = { date, half: half as DayHalf }}
-						<button
-							type="button"
-							class={cn(
-								'min-h-7 rounded-sm bg-background text-[0.6875rem] font-medium transition-colors focus-visible:z-10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
-								selected(value, point) && 'bg-primary text-primary-foreground',
-								dayAvailability?.eligible === false &&
-									'cursor-not-allowed bg-muted text-muted-foreground line-through'
-							)}
-							disabled={disabled || dayAvailability?.eligible === false}
-							aria-label={`${pointLabel(point)}${dayAvailability?.reason ? ` — ${dayAvailability.reason}` : ''}`}
-							onpointerdown={(event) => {
-								event.preventDefault();
-								begin(point);
-							}}
-							onpointerenter={() => dragging && apply(point)}
-							onpointerup={() => finish(point)}
-							onclick={() => clickPoint(point)}
-						>
-							{half === 'FIRST' ? '1' : '2'}
-						</button>
-					{/each}
-				</div>
+					<Icon icon="lucide:chevron-left" class="size-4" />
+				</Button>
+				<p class="text-sm font-semibold" aria-live="polite">{monthLabel}</p>
+				<Button
+					type="button"
+					variant="ghost"
+					size="icon"
+					{disabled}
+					aria-label={t('component.next_month')}
+					onclick={() => shiftMonth(1)}
+				>
+					<Icon icon="lucide:chevron-right" class="size-4" />
+				</Button>
+			</Inline>
+
+			<div
+				class="grid grid-cols-7 gap-1"
+				role="group"
+				aria-label={t('component.leave_range')}
+				onpointerup={() => (dragging = false)}
+			>
+				{#each weekdays as weekday}
+					<span class="pb-1 text-center text-[0.6875rem] font-medium text-muted-foreground">
+						{weekday}
+					</span>
+				{/each}
+				{#each days as date (date)}
+					{@const inMonth = date.slice(0, 7) === visibleMonth}
+					{@const dayAvailability = availabilityFor(date)}
+					<div
+						class={cn(
+							'relative min-w-0 overflow-hidden rounded-md border border-transparent',
+							date === today && 'border-primary/60',
+							!inMonth && 'pointer-events-none opacity-25',
+							dayAvailability.eligible === false && 'bg-muted/50'
+						)}
+						title={dayAvailability.reason}
+					>
+						<span class="block pt-1 text-center text-xs font-medium tabular-nums">
+							{Number(date.slice(8))}
+						</span>
+						<div class="grid grid-cols-2 p-0.5">
+							{#each ['FIRST', 'SECOND'] as half}
+								{@const point = { date, half: half as DayHalf }}
+								<button
+									type="button"
+									class={cn(
+										'h-5 rounded-sm text-[0.5625rem] font-semibold tracking-wide text-muted-foreground transition-colors focus-visible:z-10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+										selected(value, point) && 'bg-primary text-primary-foreground',
+										dayAvailability.eligible === false &&
+											'cursor-not-allowed text-muted-foreground/50 line-through'
+									)}
+									disabled={disabled || dayAvailability.eligible === false || !inMonth}
+									aria-pressed={selected(value, point)}
+									aria-label={`${pointLabel(point)}${dayAvailability.reason ? ` — ${dayAvailability.reason}` : ''}`}
+									onpointerdown={(event) => {
+										event.preventDefault();
+										begin(point);
+									}}
+									onpointerenter={() => dragging && apply(point)}
+									onpointerup={() => finish(point)}
+									onclick={() => clickPoint(point)}
+								>
+									{half === 'FIRST' ? 'AM' : 'PM'}
+								</button>
+							{/each}
+						</div>
+					</div>
+				{/each}
 			</div>
-		{/each}
-	</div>
 
-	<Inline gap="md" class="flex-wrap text-xs text-muted-foreground">
-		<span>{t('component.first_half_legend')}</span>
-		<span>{t('component.second_half_legend')}</span>
-		<span>{t('component.drag_to_select')}</span>
-	</Inline>
+			<p class="text-xs text-muted-foreground">{t('component.drag_to_select')}</p>
 
-	{#if value != null}
-		<div class="rounded-md bg-muted/60 px-3 py-2 text-sm" aria-live="polite">
-			<p class="font-medium">{pointLabel(value.start)} → {pointLabel(value.end)}</p>
-			<p class="text-muted-foreground">
-				{t('component.chargeable_leave_days', { days: chargeableDays })}
-				{#if excludedInside > 0}
-					· {t('component.excluded_non_work_days', { count: excludedInside })}
-				{/if}
-			</p>
-		</div>
-	{/if}
-	{#if limitReached}
-		<p class="text-sm text-destructive" role="alert">
-			{t('component.leave_balance_limit_reached', { days: (maximumHalfDays ?? 0) / 2 })}
-		</p>
-	{/if}
-</Stack>
+			{#if value != null}
+				<div class="rounded-md bg-muted/60 px-3 py-2 text-xs" aria-live="polite">
+					<p class="font-medium">{pointLabel(value.start)} → {pointLabel(value.end)}</p>
+					<p class="text-muted-foreground">
+						{t('component.chargeable_leave_days', { days: chargeableDays })}
+						{#if excludedInside > 0}
+							· {t('component.excluded_non_work_days', { count: excludedInside })}
+						{/if}
+					</p>
+				</div>
+			{/if}
+			{#if limitReached}
+				<p class="text-xs text-destructive" role="alert">
+					{t('component.leave_balance_limit_reached', { days: (maximumHalfDays ?? 0) / 2 })}
+				</p>
+			{/if}
+		</Stack>
+	</Popover.Content>
+</Popover.Root>

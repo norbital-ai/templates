@@ -1,6 +1,7 @@
 import { defineQueryHandler } from '@norbital-ai/pod/authoring';
 import { z } from 'zod';
 import { todayKey } from '../lib/ui/calendar.js';
+import { seasonalityYears } from '../lib/ui/leave/seasonality.js';
 
 /**
  * Year-to-date approval counters, five-year application trends and leave-seasonality counts for
@@ -104,7 +105,7 @@ export default defineQueryHandler({
 		const ytdStart = new Date(Date.UTC(currentYear, 0, 1));
 		const ytdStartKey = `${currentYear}-01-01`;
 		const ytdEndKey = `${currentYear + 1}-01-01`;
-		const historyYears = Array.from({ length: 5 }, (_value, index) => currentYear - 5 + index);
+		const historyYears = seasonalityYears(currentYear);
 		const collectionName = COLLECTION_FOR_SUBJECT[subject];
 
 		/*

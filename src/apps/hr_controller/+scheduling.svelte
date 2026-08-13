@@ -663,38 +663,6 @@
 	{/if}
 {/snippet}
 
-{#snippet patterns()}
-	{#if selectedCompanyId == null}
-		<p class="text-sm text-muted-foreground">{t('app.scheduling.empty_patterns')}</p>
-	{:else}
-		<Stack gap="md">
-			<p class="text-sm text-muted-foreground">
-				{t('app.scheduling.pattern_intro')}
-			</p>
-			<CollectionTable
-				{client}
-				collection="employment_terms"
-				view={`hr_controller:scheduling:patterns:${selectedCompanyId}`}
-				query={{
-					where: {
-						term_employment: { company_id: { eq: selectedCompanyId } },
-						...approved
-					},
-					orderBy: { effective_range: 'desc' }
-				}}
-				searchPlaceholder={t('app.scheduling.search_patterns')}
-			>
-				{#snippet columns({ Column })}
-					<Column name="employment_id" card="title" />
-					<Column name="summary" card="subtitle" />
-					<Column name="work_pattern" label={t('component.work_pattern')} />
-					<Column name="effective_range" label={t('component.effective')} />
-				{/snippet}
-			</CollectionTable>
-		</Stack>
-	{/if}
-{/snippet}
-
 {#snippet holidays()}
 	{#if selectedCompanyId == null}
 		<p class="text-sm text-muted-foreground">{t('app.scheduling.empty_holidays')}</p>
@@ -746,12 +714,6 @@
 				label: t('app.scheduling.tab_shifts'),
 				icon: 'lucide:clock-4',
 				content: shifts
-			},
-			{
-				name: 'patterns',
-				label: t('app.scheduling.tab_patterns'),
-				icon: 'lucide:calendar-cog',
-				content: patterns
 			},
 			{
 				name: 'holidays',
