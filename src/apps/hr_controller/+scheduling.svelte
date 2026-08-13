@@ -16,6 +16,7 @@
 	import { Badge } from '@norbital-ai/ui/badge';
 	import { IconWrapper } from '@norbital-ai/ui/icon-wrapper';
 	import { Cluster, Cover, Inline, Stack } from '@norbital-ai/ui/layout';
+	import * as Dialog from '@norbital-ai/ui/dialog';
 	import { toast } from 'svelte-sonner';
 	import { formatCalendarDate, formatHolidayScope } from '../../lib/ui/display-formatters.js';
 	import { runWorkbookImport } from '../../lib/ui/workbook-import.js';
@@ -31,16 +32,29 @@
 	import {
 		STATUS_PRESENTATION,
 		buildRosterMonth,
+		employmentMonthEmptyReason,
+		employmentOverlapsMonth,
 		holidayNamesByDate,
 		monthProgress,
 		type MonthDrafting
 	} from '../../lib/ui/roster/roster-month.js';
+	import { rosterCodeKind, workWindow } from '../../lib/scheduling/roster-code.js';
+	import {
+		overlappingWorkShifts,
+		type ValidationDay
+	} from '../../collections/rosters/lib/workforce-validation.js';
 
 	const { t } = useI18n<TenantI18nKeys>();
 
 	let companyId = $state<string | null>(null);
 	let month = $state<string>(monthKey(todayKey()));
 	let publishing = $state(false);
+	let assignmentOpen = $state(false);
+	let assignmentEmploymentId = $state<string | null>(null);
+	let assignmentDate = $state<string | null>(null);
+	let assignmentCodeId = $state<string | null>(null);
+	let assignmentSaving = $state(false);
+	let assignmentError = $state<string | null>(null);
 	/**
 	 * Search and page, in the model every collection surface uses.
 	 *
@@ -129,14 +143,17 @@
 		});
 	});
 	const employments = $derived(employmentsQuery?.current ?? []);
-	const employmentIds = $derived(employments.map((employment) => employment.norbital_id));
+	const monthEmployments = $derived(
+		employments.filter((employment) => employmentOverlapsMonth(employment, month))
+	);
+	const emptyEmploymentReason = $derived(employmentMonthEmptyReason(employments, month));
 	// One scoped query and a map, rather than a name lookup per row.
 	const employeesQuery = client.db.employees.findMany({ where: approved, limit: 1000 });
 	const employeeNameById = $derived(
 		new Map((employeesQuery.current ?? []).map((employee) => [employee.norbital_id, employee.name]))
 	);
 	const people = $derived(
-		employments.map((employment) => ({
+		monthEmployments.map((employment) => ({
 			id: employment.norbital_id,
 			number: employment.employee_number,
 			name: employeeNameById.get(employment.employee_id) ?? '—'
@@ -154,6 +171,28 @@
 	const rosterCodesById = $derived(
 		new Map((shiftsQuery?.current ?? []).map((code) => [code.norbital_id, code]))
 	);
+	const assignmentCodeOptions = $derived.by(() => {
+		const date = assignmentDate;
+		return (shiftsQuery?.current ?? [])
+			.filter((code) => {
+				const start =
+					code.effective_range?.start == null ? null : calendarDayKey(code.effective_range.start);
+				const end =
+					code.effective_range?.end == null ? null : calendarDayKey(code.effective_range.end);
+				return date != null && start != null && date >= start && (end == null || date <= end);
+			})
+			.map((code) => {
+				const window = rosterCodeKind(code.variant) === 'WORK' ? workWindow(code.variant) : null;
+				return {
+					value: code.norbital_id,
+					label:
+						window == null
+							? `${code.code} · ${rosterCodeKind(code.variant)}`
+							: `${code.code} · ${window.start_time}–${window.end_time}`,
+					search_term: `${code.code} ${code.name} ${window?.start_time ?? ''} ${window?.end_time ?? ''}`
+				};
+			});
+	});
 	const employmentTermsQuery = $derived.by(() => {
 		void reloadToken;
 		if (selectedCompanyId == null) return null;
@@ -288,7 +327,7 @@
 	const facts = $derived(
 		buildRosterMonth({
 			month,
-			employmentIds,
+			employments: monthEmployments,
 			employmentTerms: employmentTermsQuery?.current ?? [],
 			rosterEntries: rosterEntriesQuery?.current ?? [],
 			timeEntries: timeEntriesQuery?.current ?? [],
@@ -298,6 +337,15 @@
 			leaveCodeById,
 			cutoff
 		})
+	);
+	const rosterEntries = $derived(rosterEntriesQuery?.current ?? []);
+	const explicitEntryByKey = $derived(
+		new Map(
+			rosterEntries.map((entry) => [
+				`${entry.employment_id}:${calendarDayKey(entry.work_date)}`,
+				entry
+			])
+		)
 	);
 
 	const filteredEmploymentIds = $derived(
@@ -417,6 +465,136 @@
 			toast.error(error instanceof Error ? error.message : t('app.scheduling.toast_reopen_failed'));
 		} finally {
 			publishing = false;
+		}
+	}
+
+	function openAssignment(employmentId: string, date: string): void {
+		if (draftRoster == null) return;
+		const existing = explicitEntryByKey.get(`${employmentId}:${date}`);
+		const projectedCode = facts.get(`${employmentId}:${date}`)?.shiftCode;
+		assignmentEmploymentId = employmentId;
+		assignmentDate = date;
+		assignmentCodeId =
+			existing?.shift_definition_id ??
+			(shiftsQuery?.current ?? []).find((code) => code.code === projectedCode)?.norbital_id ??
+			null;
+		assignmentError = null;
+		assignmentOpen = true;
+	}
+
+	function selectedAssignmentDay(): ValidationDay | null {
+		if (assignmentEmploymentId == null || assignmentDate == null || assignmentCodeId == null)
+			return null;
+		const code = rosterCodesById.get(assignmentCodeId);
+		if (code == null) return null;
+		const kind = rosterCodeKind(code.variant);
+		const window = kind === 'WORK' ? workWindow(code.variant) : null;
+		return {
+			employment_id: assignmentEmploymentId,
+			work_date: assignmentDate,
+			designation: kind,
+			shift:
+				window == null
+					? null
+					: {
+							code: code.code,
+							start_time: window.start_time,
+							end_time: window.end_time,
+							break_minutes: window.break_minutes
+						}
+		};
+	}
+
+	const assignmentOverlap = $derived.by(() => {
+		const selected = selectedAssignmentDay();
+		if (selected == null) return null;
+		const previous = facts.get(
+			`${selected.employment_id}:${calendarDayKey(new Date(Date.parse(`${selected.work_date}T00:00:00.000Z`) - 86_400_000))}`
+		);
+		const next = facts.get(
+			`${selected.employment_id}:${calendarDayKey(new Date(Date.parse(`${selected.work_date}T00:00:00.000Z`) + 86_400_000))}`
+		);
+		const adjacent = [previous, next].flatMap((day): ValidationDay[] =>
+			day?.designation === 'WORK' && day.shiftStart != null && day.shiftEnd != null
+				? [
+						{
+							employment_id: day.employmentId,
+							work_date: day.date,
+							designation: 'WORK',
+							shift: {
+								code: day.shiftCode ?? 'WORK',
+								start_time: day.shiftStart,
+								end_time: day.shiftEnd,
+								break_minutes: day.shiftBreakMinutes ?? 0
+							}
+						}
+					]
+				: []
+		);
+		return overlappingWorkShifts([...adjacent, selected])[0] ?? null;
+	});
+	const assignmentPerson = $derived(
+		people.find((person) => person.id === assignmentEmploymentId) ?? null
+	);
+	const assignmentHasExplicitEntry = $derived(
+		assignmentEmploymentId != null &&
+			assignmentDate != null &&
+			explicitEntryByKey.has(`${assignmentEmploymentId}:${assignmentDate}`)
+	);
+
+	async function saveAssignment(): Promise<void> {
+		if (
+			draftRoster == null ||
+			assignmentEmploymentId == null ||
+			assignmentDate == null ||
+			assignmentCodeId == null ||
+			assignmentOverlap != null
+		)
+			return;
+		assignmentSaving = true;
+		assignmentError = null;
+		try {
+			const existing = explicitEntryByKey.get(`${assignmentEmploymentId}:${assignmentDate}`);
+			if (existing != null) {
+				const update = client.db.roster_entries.update;
+				if (update == null) throw new Error(t('roster.assignment_not_permitted'));
+				await update(existing.norbital_id, { shift_definition_id: assignmentCodeId });
+			} else {
+				const create = client.db.roster_entries.create;
+				if (create == null) throw new Error(t('roster.assignment_not_permitted'));
+				await create({
+					employment_id: assignmentEmploymentId,
+					work_date: assignmentDate,
+					shift_definition_id: assignmentCodeId,
+					roster_id: draftRoster.norbital_id,
+					assignment_code: null
+				});
+			}
+			assignmentOpen = false;
+			await reloadBoard();
+		} catch (error) {
+			assignmentError = error instanceof Error ? error.message : t('roster.assignment_failed');
+		} finally {
+			assignmentSaving = false;
+		}
+	}
+
+	async function clearAssignment(): Promise<void> {
+		if (draftRoster == null || assignmentEmploymentId == null || assignmentDate == null) return;
+		const existing = explicitEntryByKey.get(`${assignmentEmploymentId}:${assignmentDate}`);
+		if (existing == null) return;
+		assignmentSaving = true;
+		assignmentError = null;
+		try {
+			const remove = client.db.roster_entries.delete;
+			if (remove == null) throw new Error(t('roster.assignment_not_permitted'));
+			await remove(existing.norbital_id);
+			assignmentOpen = false;
+			await reloadBoard();
+		} catch (error) {
+			assignmentError = error instanceof Error ? error.message : t('roster.assignment_failed');
+		} finally {
+			assignmentSaving = false;
 		}
 	}
 </script>
@@ -620,6 +798,16 @@
 				<p class="text-sm text-muted-foreground">{t('app.scheduling.loading_month', { month })}</p>
 			{:else if people.length > 0 && boardPeople.length === 0}
 				<p class="text-sm text-muted-foreground">{t('app.scheduling.no_matches')}</p>
+			{:else if people.length === 0}
+				<p class="text-sm text-muted-foreground">
+					{emptyEmploymentReason === 'NONE'
+						? t('app.scheduling.no_company_employments')
+						: emptyEmploymentReason === 'ENDED'
+							? t('app.scheduling.employments_ended_before', { month })
+							: emptyEmploymentReason === 'NOT_STARTED'
+								? t('app.scheduling.employments_start_after', { month })
+								: t('app.scheduling.employments_outside_month', { month })}
+				</p>
 			{:else}
 				<RosterMonthBoard
 					{month}
@@ -628,6 +816,8 @@
 					{today}
 					{holidayNames}
 					{cutoff}
+					editable={draftRoster != null}
+					onSelectDay={openAssignment}
 				/>
 			{/if}
 		</Cover>
@@ -698,6 +888,67 @@
 <AppHeaderActions>
 	{@render companyScopeActions()}
 </AppHeaderActions>
+
+<Dialog.Root bind:open={assignmentOpen}>
+	<Dialog.Content class="max-w-md">
+		<Dialog.Header>
+			<Dialog.Title>{t('roster.edit_assignment')}</Dialog.Title>
+			<Dialog.Description>
+				{t('roster.edit_assignment_description', {
+					person: assignmentPerson?.name ?? '—',
+					date: assignmentDate ?? '—'
+				})}
+			</Dialog.Description>
+		</Dialog.Header>
+		<Stack gap="sm">
+			<Combobox
+				ariaLabel={t('roster.choose_roster_code')}
+				options={assignmentCodeOptions}
+				value={assignmentCodeId}
+				onValueChange={(value) => {
+					assignmentCodeId = typeof value === 'string' ? value : null;
+					assignmentError = null;
+				}}
+				emptyPlaceholder={t('roster.choose_roster_code')}
+				searchPlaceholder={t('roster.search_roster_codes')}
+			/>
+			{#if assignmentOverlap != null}
+				<Alert variant="destructive">
+					<AlertTitle>{t('roster.overlapping_shift')}</AlertTitle>
+					<AlertDescription>
+						{t('roster.overlapping_shift_description', {
+							first: assignmentOverlap.first.shift?.code ?? 'WORK',
+							second: assignmentOverlap.second.shift?.code ?? 'WORK'
+						})}
+					</AlertDescription>
+				</Alert>
+			{:else if assignmentError != null}
+				<Alert variant="destructive">
+					<AlertTitle>{t('roster.assignment_failed')}</AlertTitle>
+					<AlertDescription>{assignmentError}</AlertDescription>
+				</Alert>
+			{/if}
+		</Stack>
+		<Dialog.Footer>
+			{#if assignmentHasExplicitEntry}
+				<Button
+					variant="outline"
+					disabled={assignmentSaving}
+					onclick={() => void clearAssignment()}
+				>
+					{t('roster.clear_assignment')}
+				</Button>
+			{/if}
+			<Dialog.Close disabled={assignmentSaving}>{t('roster.cancel')}</Dialog.Close>
+			<Button
+				disabled={assignmentSaving || assignmentCodeId == null || assignmentOverlap != null}
+				onclick={() => void saveAssignment()}
+			>
+				{t('roster.save_assignment')}
+			</Button>
+		</Dialog.Footer>
+	</Dialog.Content>
+</Dialog.Root>
 
 <Cover>
 	<Tabs

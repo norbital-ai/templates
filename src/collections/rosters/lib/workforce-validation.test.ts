@@ -57,6 +57,42 @@ test('cross-midnight paid minutes are derived from the roster code', () => {
 	);
 });
 
+test('an overnight shift cannot overlap the following day shift', () => {
+	const violations = validateRosterSchedule({
+		days: [
+			work('e1', '2026-08-03', NIGHT),
+			work('e1', '2026-08-04', {
+				code: 'EARLY',
+				start_time: '05:00',
+				end_time: '13:00',
+				break_minutes: 60
+			})
+		],
+		expectations: []
+	});
+	assert.equal(violations.length, 1);
+	assert.equal(violations[0].code, 'OVERLAPPING_WORK_SHIFTS');
+	assert.deepEqual(violations[0].dates, ['2026-08-03', '2026-08-04']);
+});
+
+test('a following shift may start exactly when an overnight shift ends', () => {
+	assert.deepEqual(
+		validateRosterSchedule({
+			days: [
+				work('e1', '2026-08-03', NIGHT),
+				work('e1', '2026-08-04', {
+					code: 'EARLY',
+					start_time: '06:00',
+					end_time: '14:00',
+					break_minutes: 60
+				})
+			],
+			expectations: []
+		}),
+		[]
+	);
+});
+
 test('a missing code is explicit rather than silently inferred as rest', () => {
 	const violations = validateRosterSchedule({
 		days: [{ employment_id: 'e1', work_date: '2026-08-03', designation: null, shift: null }],

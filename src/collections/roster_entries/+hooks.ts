@@ -1,5 +1,11 @@
 import { rosterCodeVariantSchema } from '../../custom-types/roster_code_variant/+definition.js';
+import { rosterCodeKind, workWindow } from '../../lib/scheduling/roster-code.js';
+import { patternRosterCodeId } from '../../lib/scheduling/work-pattern.js';
+import { overlappingWorkShifts, type ValidationDay } from '../rosters/lib/workforce-validation.js';
 import type { HookApi, Hooks } from './$types.js';
+
+const QUERY_LIMIT = 20_000;
+const DAY_MS = 86_400_000;
 
 function dateKey(value: string | Date | null | undefined): string {
 	if (value == null) return '';
@@ -33,6 +39,141 @@ type RosterReference = {
 	readonly month: string;
 	readonly published_at: string | Date | null;
 };
+
+type AssignmentChange = {
+	readonly employment_id: string;
+	readonly work_date: string | Date;
+	/** Null means the explicit override is being removed and the pattern baseline resumes. */
+	readonly shift_definition_id: string | null;
+	readonly existing_id?: string;
+};
+
+function addDays(date: string, amount: number): string {
+	return new Date(Date.parse(`${date}T00:00:00.000Z`) + amount * DAY_MS).toISOString().slice(0, 10);
+}
+
+/** Reject a draft write that would make two WORK windows occupy the same real minute. */
+async function assertNoOverlappingAssignments(
+	api: HookApi,
+	changes: readonly AssignmentChange[]
+): Promise<void> {
+	if (changes.length === 0) return;
+	const employmentIds = [...new Set(changes.map((change) => change.employment_id))];
+	const changedDates = changes.map((change) => dateKey(change.work_date));
+	const first = addDays(changedDates.toSorted()[0]!, -1);
+	const last = addDays(changedDates.toSorted().at(-1)!, 1);
+	const [employments, terms, existingEntries] = await Promise.all([
+		api.db.query.employments.findMany({
+			where: { norbital_id: { in: employmentIds } },
+			columns: { norbital_id: true, company_id: true },
+			limit: Math.max(1, employmentIds.length)
+		}),
+		api.db.query.employment_terms.findMany({
+			where: { employment_id: { in: employmentIds } },
+			columns: { employment_id: true, work_pattern: true, effective_range: true },
+			limit: QUERY_LIMIT
+		}),
+		api.db.query.roster_entries.findMany({
+			where: {
+				employment_id: { in: employmentIds },
+				work_date: { gte: first, lte: last }
+			},
+			columns: {
+				norbital_id: true,
+				employment_id: true,
+				work_date: true,
+				shift_definition_id: true
+			},
+			limit: QUERY_LIMIT
+		})
+	]);
+	if (terms.length === QUERY_LIMIT || existingEntries.length === QUERY_LIMIT) {
+		throw new Error('This schedule is too large to validate safely in one write.');
+	}
+	const companyIds = [...new Set(employments.map((employment) => employment.company_id))];
+	const codes = await api.db.query.shift_definitions.findMany({
+		where: { company_id: { in: companyIds } },
+		columns: { norbital_id: true, code: true, variant: true },
+		limit: QUERY_LIMIT
+	});
+	if (codes.length === QUERY_LIMIT) {
+		throw new Error('This legal entity has too many roster codes to validate safely.');
+	}
+
+	const removedIds = new Set(
+		changes.flatMap((change) => (change.existing_id ? [change.existing_id] : []))
+	);
+	const explicitByKey = new Map(
+		existingEntries
+			.filter((entry) => !removedIds.has(entry.norbital_id))
+			.map((entry) => [`${entry.employment_id}:${dateKey(entry.work_date)}`, entry])
+	);
+	for (const change of changes) {
+		const key = `${change.employment_id}:${dateKey(change.work_date)}`;
+		if (change.shift_definition_id == null) explicitByKey.delete(key);
+		else {
+			explicitByKey.set(key, {
+				norbital_id: change.existing_id ?? '',
+				employment_id: change.employment_id,
+				work_date: dateKey(change.work_date),
+				shift_definition_id: change.shift_definition_id
+			});
+		}
+	}
+
+	const termsByEmployment = new Map<string, typeof terms>();
+	for (const term of terms) {
+		const bucket = termsByEmployment.get(term.employment_id);
+		if (bucket) bucket.push(term);
+		else termsByEmployment.set(term.employment_id, [term]);
+	}
+	const codeById = new Map(codes.map((code) => [code.norbital_id, code]));
+	const datesByEmployment = new Map<string, Set<string>>();
+	for (const change of changes) {
+		const date = dateKey(change.work_date);
+		const bucket = datesByEmployment.get(change.employment_id) ?? new Set<string>();
+		bucket.add(addDays(date, -1));
+		bucket.add(date);
+		bucket.add(addDays(date, 1));
+		datesByEmployment.set(change.employment_id, bucket);
+	}
+
+	const days: ValidationDay[] = [];
+	for (const [employmentId, dates] of datesByEmployment) {
+		for (const date of dates) {
+			const explicit = explicitByKey.get(`${employmentId}:${date}`);
+			const term = (termsByEmployment.get(employmentId) ?? []).find((candidate) =>
+				rangeCovers(candidate.effective_range, date)
+			);
+			const codeId =
+				explicit?.shift_definition_id ??
+				(term == null ? null : patternRosterCodeId(term.work_pattern, date));
+			const code = codeId == null ? null : codeById.get(codeId);
+			const kind = code == null ? null : rosterCodeKind(code.variant);
+			const window = kind === 'WORK' ? workWindow(code?.variant) : null;
+			days.push({
+				employment_id: employmentId,
+				work_date: date,
+				designation: kind,
+				shift:
+					window == null || code == null
+						? null
+						: {
+								code: code.code,
+								start_time: window.start_time,
+								end_time: window.end_time,
+								break_minutes: window.break_minutes
+							}
+			});
+		}
+	}
+	const [overlap] = overlappingWorkShifts(days);
+	if (overlap != null) {
+		throw new Error(
+			`${overlap.first.work_date} ${overlap.first.shift?.code ?? 'WORK'} overlaps ${overlap.second.work_date} ${overlap.second.shift?.code ?? 'WORK'} for this employment.`
+		);
+	}
+}
 
 function assertResolvedAssignment(
 	value: AssignmentValue,
@@ -160,6 +301,14 @@ export default {
 						rosterId == null ? null : rostersById.get(rosterId)
 					);
 				}
+				await assertNoOverlappingAssignments(
+					api,
+					inputs.map((input) => ({
+						employment_id: input.employment_id,
+						work_date: input.work_date,
+						shift_definition_id: input.shift_definition_id
+					}))
+				);
 				return inputs;
 			},
 			handler: async ({ input, api }) => {
@@ -170,6 +319,13 @@ export default {
 					shift_definition_id: input.shift_definition_id,
 					roster_id: input.roster_id ?? null
 				});
+				await assertNoOverlappingAssignments(api, [
+					{
+						employment_id: input.employment_id,
+						work_date: input.work_date,
+						shift_definition_id: input.shift_definition_id
+					}
+				]);
 				return input;
 			}
 		}
@@ -189,6 +345,24 @@ export default {
 					shift_definition_id: input.shift_definition_id ?? existing.shift_definition_id,
 					roster_id: input.roster_id === undefined ? existing.roster_id : input.roster_id
 				});
+				await assertNoOverlappingAssignments(api, [
+					...(input.employment_id != null || input.work_date != null
+						? [
+								{
+									employment_id: existing.employment_id,
+									work_date: existing.work_date,
+									shift_definition_id: null,
+									existing_id: existing.norbital_id
+								}
+							]
+						: []),
+					{
+						employment_id: input.employment_id ?? existing.employment_id,
+						work_date: input.work_date ?? existing.work_date,
+						shift_definition_id: input.shift_definition_id ?? existing.shift_definition_id,
+						existing_id: existing.norbital_id
+					}
+				]);
 				return input;
 			}
 		}
@@ -198,6 +372,14 @@ export default {
 			description: 'Refuses to remove an assignment from a published monthly roster.',
 			handler: async ({ existing, api }) => {
 				await assertRosterOpen(api, existing.roster_id);
+				await assertNoOverlappingAssignments(api, [
+					{
+						employment_id: existing.employment_id,
+						work_date: existing.work_date,
+						shift_definition_id: null,
+						existing_id: existing.norbital_id
+					}
+				]);
 			}
 		}
 	}
