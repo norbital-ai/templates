@@ -58,10 +58,7 @@ export type FactRow = {
 };
 
 export type DriftKind =
-	| 'superseded_company_jurisdiction'
-	| 'fact_needs_successor'
-	| 'missing_fact'
-	| 'rate_gap';
+	'superseded_company_jurisdiction' | 'fact_needs_successor' | 'missing_fact' | 'rate_gap';
 
 export type DriftItem = {
 	readonly kind: DriftKind;

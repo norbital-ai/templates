@@ -116,6 +116,7 @@ successor copy of `employment_statutory_facts` when a unique successor scheme ex
 the report. Never writes the law tables (those stay product-owned).
 
 ### Integrations, seed
+
 statutory and sensitive fixture seed is Core-owned (see below), and payroll inputs belong to the
 reconciliation workflow described in [`docs/data.md`](docs/data.md).
 

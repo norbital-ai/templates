@@ -130,7 +130,10 @@ describe('detectStatutoryDrift', () => {
 			]
 		});
 		assert.equal(ambiguous.copies.length, 0);
-		assert.equal(ambiguous.items.some((item) => /ambiguous/.test(item.label)), true);
+		assert.equal(
+			ambiguous.items.some((item) => /ambiguous/.test(item.label)),
+			true
+		);
 	});
 
 	it('flags a missing fact and a scheme with no rate covering today', () => {
@@ -150,7 +153,13 @@ describe('detectStatutoryDrift', () => {
 			employments: [{ norbital_id: 'e1', employee_number: 'A-01', company_id: 'c1' }],
 			facts: []
 		});
-		assert.equal(result.items.some((item) => item.kind === 'missing_fact'), true);
-		assert.equal(result.items.some((item) => item.kind === 'rate_gap'), true);
+		assert.equal(
+			result.items.some((item) => item.kind === 'missing_fact'),
+			true
+		);
+		assert.equal(
+			result.items.some((item) => item.kind === 'rate_gap'),
+			true
+		);
 	});
 });
