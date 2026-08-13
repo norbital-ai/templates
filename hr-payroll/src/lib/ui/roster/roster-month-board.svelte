@@ -27,6 +27,7 @@
 -->
 <script lang="ts">
 	import { IconWrapper } from '@norbital-ai/ui/icon-wrapper';
+	import { Tooltip } from '@norbital-ai/ui/tooltip';
 	import { useI18n } from '@norbital-ai/ui/i18n';
 	import type { TenantI18nKeys } from '$pod/i18n-keys';
 	import { Cluster, Cover, Inline, Scroll } from '@norbital-ai/ui/layout';
@@ -36,6 +37,7 @@
 		STATUS_PRESENTATION,
 		describeDay,
 		monthDays,
+		shiftTimeCue,
 		statusGlyph,
 		type DayFacts,
 		type DayStatus
@@ -52,7 +54,8 @@
 		today,
 		holidayNames,
 		cutoff = null,
-		onSelectDay
+		onSelectDay,
+		editable = false
 	}: {
 		month: string;
 		people: readonly Person[];
@@ -66,6 +69,7 @@
 		holidayNames: ReadonlyMap<string, string>;
 		cutoff?: { readonly start: string; readonly end: string } | null;
 		onSelectDay?: (employmentId: string, date: string) => void;
+		editable?: boolean;
 	} = $props();
 
 	const days = $derived(monthDays(month));
@@ -95,7 +99,7 @@
 </script>
 
 {#snippet legend()}
-	<Cluster gap="sm" class="text-tiny leading-4 text-muted-foreground">
+	<Cluster gap="sm" class="text-xs leading-5 text-muted-foreground">
 		{#each legendStatuses as [status, presentation] (status)}
 			<Inline gap="xs">
 				<span class={cn('inline-block size-2.5 rounded-sm', presentation.className)}></span>
@@ -141,7 +145,7 @@
 									? undefined
 									: `${t(HOLIDAY_PRESENTATION.labelKey)}: ${holiday}`}
 								class={cn(
-									'sticky top-0 z-20 w-9 min-w-9 border-b bg-card px-0 py-1 text-center font-medium',
+									'sticky top-0 z-20 w-13 min-w-13 border-b bg-card px-0 py-1 text-center font-medium',
 									// Every fill here is opaque: see HOLIDAY_PRESENTATION.headerClassName. `today` is
 									// a ring rather than a fill so it composes with the date fills instead of
 									// replacing one — a public holiday that happens to be today is still both.
@@ -151,7 +155,7 @@
 									date === cutoffStartsAt && 'border-l-2 border-l-brand'
 								)}
 							>
-								<span class="block text-micro text-muted-foreground">
+								<span class="block text-xs text-muted-foreground">
 									{holiday == null ? weekdayLetter(date) : HOLIDAY_PRESENTATION.mark}
 								</span>
 								<span class="block tabular-nums">{Number(date.slice(8, 10))}</span>
@@ -171,6 +175,7 @@
 							</th>
 							{#each days as date (date)}
 								{@const day = facts.get(`${person.id}:${date}`)}
+								{@const cellEditable = editable && day?.employmentState === 'ACTIVE'}
 								<td
 									class={cn(
 										'border-b p-0.5 text-center',
@@ -178,24 +183,38 @@
 										date === cutoffStartsAt && 'border-l-2 border-l-brand'
 									)}
 								>
-									<!--
-										A native title rather than a Tooltip component: at a month of days times a
-										payroll's worth of people this is well over a thousand cells, and mounting a
-										tooltip provider on each one costs more than the hover text is worth.
-									-->
-									<button
-										type="button"
-										title={describeDay(day, `${person.number} · ${date}`, t)}
-										class={cn(
-											'flex h-7 w-full items-center justify-center rounded-sm text-micro tabular-nums focus-visible:ring-2 focus-visible:ring-ring',
-											day == null ? 'bg-muted/20' : STATUS_PRESENTATION[day.status].className,
-											onSelectDay != null && 'hover:ring-1 hover:ring-ring'
-										)}
-										disabled={onSelectDay == null}
-										onclick={() => onSelectDay?.(person.id, date)}
+									<Tooltip
+										side="top"
+										sideOffset={4}
+										contentClass="max-w-80"
+										text={describeDay(day, `${person.name} · ${person.number} · ${date}`, t)}
 									>
-										<span class="truncate px-0.5">{day == null ? '' : statusGlyph(day)}</span>
-									</button>
+										{#snippet trigger({ props })}
+											<button
+												{...props}
+												type="button"
+												aria-label={describeDay(day, `${person.name} · ${date}`, t)}
+												aria-disabled={!cellEditable}
+												class={cn(
+													'grid h-9 w-full min-w-12 content-center rounded-sm px-0.5 text-center tabular-nums focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none',
+													day == null ? 'bg-muted/20' : STATUS_PRESENTATION[day.status].className,
+													cellEditable
+														? 'cursor-pointer hover:ring-1 hover:ring-ring'
+														: 'cursor-default'
+												)}
+												onclick={() => cellEditable && onSelectDay?.(person.id, date)}
+											>
+												<span class="block truncate text-xs font-semibold leading-4">
+													{day == null ? '' : statusGlyph(day)}
+												</span>
+												{#if shiftTimeCue(day) != null}
+													<span class="block truncate text-micro leading-3 opacity-80">
+														{shiftTimeCue(day)}
+													</span>
+												{/if}
+											</button>
+										{/snippet}
+									</Tooltip>
 								</td>
 							{/each}
 						</tr>

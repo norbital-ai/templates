@@ -19,7 +19,7 @@
  */
 
 import { calendarDayKey, daysInMonth } from '../calendar.js';
-import { rosterCodeKind } from '../../scheduling/roster-code.js';
+import { rosterCodeKind, workWindow } from '../../scheduling/roster-code.js';
 import { patternRosterCodeId } from '../../scheduling/work-pattern.js';
 import type { I18nApi } from '@norbital-ai/ui/i18n';
 import type { TenantI18nKeys } from '$pod/i18n-keys';
@@ -31,15 +31,28 @@ export type Designation = 'WORK' | 'REST' | 'OFF';
 
 /** Why a planned working day has no attendance behind it, in the order an operator cares about. */
 export type DayStatus =
-	'UNROSTERED' | 'PLANNED' | 'ATTENDED' | 'OPEN' | 'ABSENT' | 'ON_LEAVE' | 'REST' | 'OFF';
+	| 'BEFORE_START'
+	| 'EXITED'
+	| 'UNROSTERED'
+	| 'PLANNED'
+	| 'ATTENDED'
+	| 'OPEN'
+	| 'ABSENT'
+	| 'ON_LEAVE'
+	| 'REST'
+	| 'OFF';
 
 export type DayFacts = {
 	readonly employmentId: string;
 	readonly date: string;
+	readonly employmentState: 'BEFORE_START' | 'ACTIVE' | 'EXITED';
 	/** `null` when no roster entry covers the day at all. */
 	readonly designation: Designation | null;
 	/** The shift the day is worked on. Null on a rest or off day, which schedules none. */
 	readonly shiftCode: string | null;
+	readonly shiftStart: string | null;
+	readonly shiftEnd: string | null;
+	readonly shiftBreakMinutes: number | null;
 	/** The source roster token, e.g. `AMRES` or `OFF/S`, when the roster carried one. */
 	readonly assignmentCode: string | null;
 	/** Overlaid from `company_holidays`, never stored on the entry. */
@@ -47,10 +60,19 @@ export type DayFacts = {
 	readonly leaveCode: string | null;
 	readonly halfDayLeave: boolean;
 	readonly clockedIn: boolean;
+	readonly workedIntervalCount: number;
 	readonly attendanceState: 'OPEN' | 'CLOSED' | null;
 	/** Whether the day falls inside the attendance window the next payroll run will settle. */
 	readonly withinCutoff: boolean;
 	readonly status: DayStatus;
+};
+
+export type EmploymentMonthLike = {
+	readonly norbital_id: string;
+	readonly effective_range: {
+		readonly start?: string | Date;
+		readonly end?: string | Date;
+	} | null;
 };
 
 export type RosterEntryLike = {
@@ -109,6 +131,50 @@ export function monthDays(month: string): string[] {
 	);
 }
 
+/** True when the employment exists for at least one calendar day in the selected month. */
+export function employmentOverlapsMonth(employment: EmploymentMonthLike, month: string): boolean {
+	const days = monthDays(month);
+	const start = employment.effective_range?.start;
+	if (start == null) return false;
+	const employmentStart = calendarDayKey(start);
+	const employmentEnd =
+		employment.effective_range?.end == null ? null : calendarDayKey(employment.effective_range.end);
+	return (
+		employmentStart <= days[days.length - 1]! &&
+		(employmentEnd == null || employmentEnd >= days[0]!)
+	);
+}
+
+export type EmploymentMonthEmptyReason = 'NONE' | 'ENDED' | 'NOT_STARTED' | 'OUTSIDE_MONTH';
+
+/** Explain an empty month without implying that loading succeeded with no employment records. */
+export function employmentMonthEmptyReason(
+	employments: readonly EmploymentMonthLike[],
+	month: string
+): EmploymentMonthEmptyReason {
+	if (employments.length === 0) return 'NONE';
+	const days = monthDays(month);
+	const first = days[0]!;
+	const last = days[days.length - 1]!;
+	if (
+		employments.every(
+			(employment) =>
+				employment.effective_range?.end != null &&
+				calendarDayKey(employment.effective_range.end) < first
+		)
+	)
+		return 'ENDED';
+	if (
+		employments.every(
+			(employment) =>
+				employment.effective_range?.start != null &&
+				calendarDayKey(employment.effective_range.start) > last
+		)
+	)
+		return 'NOT_STARTED';
+	return 'OUTSIDE_MONTH';
+}
+
 /**
  * The company calendar as a date lookup.
  *
@@ -147,6 +213,8 @@ function activeTerm(
  * working day with no punches on one has not gone wrong.
  */
 function statusOf(facts: Omit<DayFacts, 'status'>): DayStatus {
+	if (facts.employmentState === 'BEFORE_START') return 'BEFORE_START';
+	if (facts.employmentState === 'EXITED') return 'EXITED';
 	if (facts.leaveCode != null) return 'ON_LEAVE';
 	if (facts.designation === 'REST') return 'REST';
 	if (facts.designation === 'OFF') return 'OFF';
@@ -166,7 +234,7 @@ function statusOf(facts: Omit<DayFacts, 'status'>): DayStatus {
  */
 export function buildRosterMonth(options: {
 	readonly month: string;
-	readonly employmentIds: readonly string[];
+	readonly employments: readonly EmploymentMonthLike[];
 	readonly rosterEntries: readonly RosterEntryLike[];
 	readonly timeEntries: readonly TimeEntryLike[];
 	readonly leaveRequests: readonly LeaveRequestLike[];
@@ -210,7 +278,16 @@ export function buildRosterMonth(options: {
 	}
 
 	const facts = new Map<string, DayFacts>();
-	for (const employmentId of options.employmentIds) {
+	for (const employment of options.employments) {
+		const employmentId = employment.norbital_id;
+		const employmentStart =
+			employment.effective_range?.start == null
+				? null
+				: calendarDayKey(employment.effective_range.start);
+		const employmentEnd =
+			employment.effective_range?.end == null
+				? null
+				: calendarDayKey(employment.effective_range.end);
 		for (const date of days) {
 			const key = `${employmentId}:${date}`;
 			const roster = rosterByKey.get(key);
@@ -222,16 +299,31 @@ export function buildRosterMonth(options: {
 			const rosterCodeId = roster?.shift_definition_id ?? projectedId;
 			const rosterCode = rosterCodeId == null ? null : options.rosterCodesById.get(rosterCodeId);
 			const designation = rosterCode == null ? null : rosterCodeKind(rosterCode.variant);
+			const window = designation === 'WORK' ? workWindow(rosterCode?.variant) : null;
+			const employmentState =
+				employmentStart != null && date < employmentStart
+					? ('BEFORE_START' as const)
+					: employmentEnd != null && date > employmentEnd
+						? ('EXITED' as const)
+						: ('ACTIVE' as const);
 			const partial: Omit<DayFacts, 'status'> = {
 				employmentId,
 				date,
-				designation,
-				shiftCode: designation === 'WORK' ? (rosterCode?.code ?? null) : null,
+				employmentState,
+				designation: employmentState === 'ACTIVE' ? designation : null,
+				shiftCode:
+					employmentState === 'ACTIVE' && designation === 'WORK'
+						? (rosterCode?.code ?? null)
+						: null,
+				shiftStart: employmentState === 'ACTIVE' ? (window?.start_time ?? null) : null,
+				shiftEnd: employmentState === 'ACTIVE' ? (window?.end_time ?? null) : null,
+				shiftBreakMinutes: employmentState === 'ACTIVE' ? (window?.break_minutes ?? null) : null,
 				assignmentCode: roster?.assignment_code ?? null,
 				holidayName: holidayByDate.get(date) ?? null,
 				leaveCode: leave?.code ?? null,
 				halfDayLeave: leave?.halfDay ?? false,
 				clockedIn: (time?.worked_intervals?.length ?? 0) > 0,
+				workedIntervalCount: time?.worked_intervals?.length ?? 0,
 				attendanceState:
 					time == null
 						? null
@@ -261,6 +353,11 @@ export const STATUS_PRESENTATION: Record<
 	{ readonly labelKey: TenantI18nKeys; readonly className: string }
 > = {
 	UNROSTERED: { labelKey: 'roster.unrostered', className: 'bg-muted/30 text-muted-foreground' },
+	BEFORE_START: {
+		labelKey: 'roster.before_employment',
+		className: 'bg-muted/20 text-muted-foreground'
+	},
+	EXITED: { labelKey: 'roster.employment_ended', className: 'bg-muted text-muted-foreground' },
 	PLANNED: {
 		labelKey: 'roster.planned',
 		className: 'bg-brand-50 text-brand-700 dark:bg-brand-950 dark:text-brand-200'
@@ -299,6 +396,10 @@ export const HOLIDAY_PRESENTATION = {
 /** The glyph a cell carries: the shift code when there is one, else what kind of day it is. */
 export function statusGlyph(day: DayFacts): string {
 	switch (day.status) {
+		case 'BEFORE_START':
+			return '—';
+		case 'EXITED':
+			return '×';
 		case 'ON_LEAVE':
 			return day.halfDayLeave ? '½' : 'L';
 		case 'REST':
@@ -321,6 +422,20 @@ export function statusGlyph(day: DayFacts): string {
 	}
 }
 
+function shortClock(value: string): string {
+	const [hourText, minuteText] = value.split(':');
+	const hour = Number(hourText);
+	const suffix = hour >= 12 ? 'p' : 'a';
+	const displayHour = hour % 12 || 12;
+	return minuteText === '00' ? `${displayHour}${suffix}` : `${displayHour}:${minuteText}${suffix}`;
+}
+
+/** Compact second line for a dense cell; the tooltip carries the complete clock window. */
+export function shiftTimeCue(day: DayFacts | undefined): string | null {
+	if (day?.shiftStart == null || day.shiftEnd == null) return null;
+	return `${shortClock(day.shiftStart)}–${shortClock(day.shiftEnd)}`;
+}
+
 /** One line describing everything known about a day, for a cell's hover text. */
 export function describeDay(day: DayFacts | undefined, heading: string, t: Translator): string {
 	if (day == null) return heading;
@@ -328,12 +443,24 @@ export function describeDay(day: DayFacts | undefined, heading: string, t: Trans
 		heading,
 		t(STATUS_PRESENTATION[day.status].labelKey),
 		day.shiftCode == null ? null : t('roster.shift_code', { code: day.shiftCode }),
+		day.shiftStart == null || day.shiftEnd == null
+			? null
+			: t('roster.shift_window', {
+					start: day.shiftStart,
+					end: day.shiftEnd,
+					break: day.shiftBreakMinutes ?? 0
+				}),
 		day.assignmentCode == null ? null : t('roster.assignment_code', { code: day.assignmentCode }),
 		day.holidayName == null ? null : `${t(HOLIDAY_PRESENTATION.labelKey)}: ${day.holidayName}`,
 		day.leaveCode == null
 			? null
 			: `${day.leaveCode}${day.halfDayLeave ? ` (${t('roster.half_day')})` : ''}`,
-		day.withinCutoff ? t('roster.inside_cutoff') : null
+		day.withinCutoff ? t('roster.inside_cutoff') : null,
+		day.attendanceState === 'OPEN'
+			? t('roster.attendance_open')
+			: day.workedIntervalCount > 0
+				? t('roster.attendance_intervals', { count: day.workedIntervalCount })
+				: t('roster.no_attendance')
 	]
 		.filter((part) => part != null && part !== '')
 		.join(' — ');
@@ -381,7 +508,7 @@ export function monthProgress(
 	drafting: MonthDrafting
 ): MonthProgress {
 	const counts = summarizeRosterMonth(facts);
-	const personDays = facts.size;
+	const personDays = facts.size - (counts.get('BEFORE_START') ?? 0) - (counts.get('EXITED') ?? 0);
 	const unrostered = counts.get('UNROSTERED') ?? 0;
 	const statuses: DayStatus[] =
 		drafting === 'PUBLISHED'
