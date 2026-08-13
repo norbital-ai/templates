@@ -30,7 +30,7 @@ export type SchemeRow = {
 export type RateRow = {
 	readonly norbital_id: string;
 	readonly statutory_contribution_id: string;
-	readonly summary: string;
+	readonly summary: string | null;
 	readonly effective_range: unknown;
 };
 
@@ -52,10 +52,76 @@ export type FactRow = {
 	readonly employment_id: string;
 	readonly statutory_contribution_id: string;
 	readonly status: unknown;
-	readonly summary: string;
+	readonly summary: string | null;
 	readonly effective_range: unknown;
 	readonly scheme: SchemeRow | null;
 };
+
+export type StatutoryFactStatus =
+	| {
+			readonly kind: 'REGISTERED';
+			readonly reference_number: string;
+			readonly rate_override: number | null;
+	  }
+	| { readonly kind: 'NOT_REGISTERED'; readonly reason: string };
+
+function asRecord(value: unknown): Record<string, unknown> | null {
+	return value != null && typeof value === 'object' ? (value as Record<string, unknown>) : null;
+}
+
+function asJurisdiction(value: unknown): JurisdictionRow | null {
+	const row = asRecord(value);
+	if (
+		!row ||
+		typeof row.norbital_id !== 'string' ||
+		typeof row.code !== 'string' ||
+		typeof row.name !== 'string'
+	) {
+		return null;
+	}
+	return {
+		norbital_id: row.norbital_id,
+		code: row.code,
+		name: row.name,
+		effective_range: row.effective_range
+	};
+}
+
+function asScheme(value: unknown): SchemeRow | null {
+	const row = asRecord(value);
+	if (
+		!row ||
+		typeof row.norbital_id !== 'string' ||
+		typeof row.jurisdiction_id !== 'string' ||
+		typeof row.code !== 'string' ||
+		typeof row.name !== 'string'
+	) {
+		return null;
+	}
+	return {
+		norbital_id: row.norbital_id,
+		jurisdiction_id: row.jurisdiction_id,
+		code: row.code,
+		name: row.name,
+		effective_range: row.effective_range
+	};
+}
+
+export function asFactStatus(value: unknown): StatutoryFactStatus | null {
+	const row = asRecord(value);
+	if (!row || typeof row.kind !== 'string') return null;
+	if (row.kind === 'REGISTERED' && typeof row.reference_number === 'string') {
+		return {
+			kind: 'REGISTERED',
+			reference_number: row.reference_number,
+			rate_override: typeof row.rate_override === 'number' ? row.rate_override : null
+		};
+	}
+	if (row.kind === 'NOT_REGISTERED' && typeof row.reason === 'string') {
+		return { kind: 'NOT_REGISTERED', reason: row.reason };
+	}
+	return null;
+}
 
 export type DriftKind =
 	'superseded_company_jurisdiction' | 'fact_needs_successor' | 'missing_fact' | 'rate_gap';
@@ -319,7 +385,7 @@ export default defineAutomation(
 					norbital_id: company.norbital_id,
 					name: company.name,
 					jurisdiction_id: company.jurisdiction_id,
-					jurisdiction: company.company_jurisdiction
+					jurisdiction: asJurisdiction(Reflect.get(company, 'company_jurisdiction'))
 				})),
 				employments,
 				facts: facts.map((fact) => ({
@@ -329,7 +395,7 @@ export default defineAutomation(
 					status: fact.status,
 					summary: fact.summary,
 					effective_range: fact.effective_range,
-					scheme: fact.statutory_fact_contribution
+					scheme: asScheme(Reflect.get(fact, 'statutory_fact_contribution'))
 				}))
 			});
 
@@ -341,13 +407,15 @@ export default defineAutomation(
 						fact.statutory_contribution_id === copy.successorSchemeId
 				);
 				if (already) continue;
+				const status = asFactStatus(copy.status);
+				if (!status) continue;
 				await api.db.employment_statutory_facts.update(copy.factId, {
 					effective_range: { start: copy.previousRange.start, end: asOf }
 				});
 				await api.db.employment_statutory_facts.create({
 					employment_id: copy.employmentId,
 					statutory_contribution_id: copy.successorSchemeId,
-					status: copy.status,
+					status,
 					effective_range: { start: asOf }
 				});
 				writes.push(copy.label);
