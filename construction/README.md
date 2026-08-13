@@ -138,7 +138,7 @@ src/automation/                        the four daily review watches (+<name>.ts
 src/custom-types/                      money, project address, site coordinates,
                                        emergency contact, permit signatures (+definition.ts + renderer)
 src/i18n/                              English and Chinese copy, same key sets (messages.en/zh.json)
-src/lib/ifc-viewer/                    the embedded IFC viewer and its converter worker
+src/collections/projects/ifc-viewer/   the embedded IFC viewer and its converter worker
 assets/                                thumbnail and record media; the sample IFC model under assets/ifc/
 ```
 
@@ -150,7 +150,7 @@ How the pieces work:
   human `code · name` label; no system id is ever painted. The project's representation is the one
   genuinely bespoke surface (the IFC viewer, manpower lanes, commercial rollups) and lives as
   `project-representation.svelte` beside it.
-- **The IFC viewer.** `src/lib/ifc-viewer/` holds a lazy-loaded WebGL viewer (`ifc_viewer.svelte`)
+- **The IFC viewer.** `src/collections/projects/ifc-viewer/` holds a lazy-loaded WebGL viewer (`ifc_viewer.svelte`)
   plus a converter that runs web-ifc in a worker (`ifc_viewer.converter.worker.ts`) and a typed
   surface for the esm.sh-loaded viewer libraries (`ifc_viewer.types.ts`). It is mounted inside the
   project record when a linked `asset_documents` row carries an `ifc_model` document (or a

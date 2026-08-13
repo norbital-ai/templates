@@ -7,7 +7,20 @@
 	import { CollectionTable } from '@norbital-ai/ui/collection-table';
 	import { Column, Grid, Stack } from '@norbital-ai/ui/layout';
 	import { Tabs, type TabConfig } from '@norbital-ai/ui/tabs';
-	import { calendarDateInTimeZone } from '../../lib/calendar.js';
+
+	const FIELD_TIME_ZONE = 'Asia/Singapore';
+
+	function calendarDateInTimeZone(value: Date): string {
+		const parts = new Intl.DateTimeFormat('en', {
+			timeZone: FIELD_TIME_ZONE,
+			year: 'numeric',
+			month: '2-digit',
+			day: '2-digit'
+		}).formatToParts(value);
+		const valueFor = (type: Intl.DateTimeFormatPartTypes) =>
+			parts.find((part) => part.type === type)?.value ?? '';
+		return `${valueFor('year')}-${valueFor('month')}-${valueFor('day')}`;
+	}
 
 	let { record, close }: RepresentationProps = $props();
 

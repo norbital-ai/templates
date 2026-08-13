@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { prepareAssignmentCreateBatch, type AssignmentCreateBatchLookup } from './create-batch.js';
+import { prepareAssignmentCreateBatch, type AssignmentCreateBatchLookup } from './+hooks.js';
 
 const jobId = '10000000-0000-4000-8000-000000000001';
 const secondJobId = '10000000-0000-4000-8000-000000000002';

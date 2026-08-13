@@ -1,7 +1,15 @@
 import { isCalendarDate } from '@norbital-ai/std/date';
 import { z } from 'zod';
-import { shiftCalendarDate } from '../../lib/calendar.js';
 import type { Pipelines } from './$types.js';
+
+function shiftCalendarDate(value: string, days: number): string {
+	if (!isCalendarDate(value)) {
+		throw new Error('Calendar date must use YYYY-MM-DD.');
+	}
+	const date = new Date(`${value}T00:00:00.000Z`);
+	date.setUTCDate(date.getUTCDate() + days);
+	return date.toISOString().slice(0, 10);
+}
 
 const rowSchema = z.object({
 	site_name: z.string().trim().min(1),

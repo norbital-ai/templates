@@ -1,10 +1,22 @@
 import { defineAutomation } from '@norbital-ai/pod/authoring';
-import { deskToday } from '../lib/calendar.js';
+
+const DESK_TIME_ZONE = 'Asia/Singapore';
+
+function deskToday(): string {
+	const parts = new Intl.DateTimeFormat('en', {
+		timeZone: DESK_TIME_ZONE,
+		year: 'numeric',
+		month: '2-digit',
+		day: '2-digit'
+	}).formatToParts(new Date());
+	const valueFor = (type: Intl.DateTimeFormatPartTypes) =>
+		parts.find((part) => part.type === type)?.value ?? '';
+	return `${valueFor('year')}-${valueFor('month')}-${valueFor('day')}`;
+}
 
 export default defineAutomation(
 	{ schedule: '0 6 * * *' },
 	{
-		kind: 'deterministic',
 		description:
 			'Sweeps every morning for quotes still sitting at sent whose valid_until date has passed, and exports the lapsed ones for the desk to chase.',
 		handler: async (api) => {

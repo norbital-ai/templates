@@ -29,7 +29,6 @@ function formattedAddress(value: unknown): string | null {
 export default defineAutomation(
 	{ trigger: { collection: 'photo_evidence', event: 'created' } },
 	{
-		kind: 'deterministic',
 		description:
 			'Reads a newly filed job-site photo with a vision model, judges the whole photographed scene together with deterministic integrity attributes, and records an auditable site verdict.',
 		handler: async (api, { scope }) => {
@@ -141,7 +140,7 @@ export default defineAutomation(
 
 			const checkedAt = new Date();
 			try {
-				const inferred = await api.ai({
+				const inferred = await api.infer({
 					model: FAST_VISION_MODEL,
 					schema: siteIdentitySchema,
 					images: [{ assetId: evidence.document_asset_id, detail: 'high' }],

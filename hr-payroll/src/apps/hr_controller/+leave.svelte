@@ -6,7 +6,7 @@
 	import { Tabs, type TabConfig } from '@norbital-ai/ui/tabs';
 	import { CollectionTable } from '@norbital-ai/ui/collection-table';
 	import { Combobox } from '@norbital-ai/ui/combobox';
-	import { Cover, Inline, Stack } from '@norbital-ai/ui/layout';
+	import { Bound, Cover, Inline, Scroll, Stack } from '@norbital-ai/ui/layout';
 	import { Spinner } from '@norbital-ai/ui/spinner';
 	import {
 		formatCalendarDate,
@@ -33,7 +33,7 @@
 		limit: 500
 	});
 	const companies = $derived(companiesQuery.current ?? []);
-	const companiesUnknown = $derived(companiesQuery.current === undefined || companiesQuery.loading);
+	const companiesUnknown = $derived(companiesQuery.current === undefined);
 	const companyOptions = $derived(
 		companies.map((c) => ({
 			value: c.norbital_id,
@@ -52,14 +52,9 @@
 			? null
 			: client.invoke.approval_analytics({ subject: 'LEAVE', company_id: selectedCompanyId })
 	);
-	const analytics = $derived(
-		analyticsQuery?.current ?? {
-			total: 0,
-			seasonal_heatmap: []
-		}
-	);
+	const analytics = $derived(analyticsQuery?.current ?? null);
 	const heatmapMaximum = $derived(
-		Math.max(0, ...analytics.seasonal_heatmap.flatMap((row) => row.months))
+		Math.max(0, ...(analytics?.seasonal_heatmap ?? []).flatMap((row) => row.months))
 	);
 
 	function heatmapClass(count: number): string {
@@ -154,89 +149,104 @@
 {/snippet}
 
 {#snippet overview()}
-	{#if companiesUnknown}
-		<Inline justify="center" align="center" gap="sm" class="min-h-48 text-sm text-muted-foreground">
-			<Spinner class="size-4" />
-			<span>{t('app.leave.loading_company_scope')}</span>
-		</Inline>
-	{:else if selectedCompanyId == null}
-		<p class="text-sm text-muted-foreground">{t('app.leave.empty_overview')}</p>
-	{:else}
-		<Stack as="section" gap="md" aria-labelledby="leave-seasonality-heading">
-			<div>
-				<h2 class="text-lg font-semibold">{t('app.leave.leave_activity')}</h2>
-				<p class="text-sm text-muted-foreground">
-					{t('app.leave.leave_activity_description', { count: analytics.total.toLocaleString() })}
-				</p>
-			</div>
-			<div class="rounded-lg border bg-card p-4 shadow-card">
-				<Stack gap="md">
-					<div>
-						<h3 id="leave-seasonality-heading" class="font-semibold">
-							{t('app.leave.chart_title')}
-						</h3>
-						<p class="text-sm text-muted-foreground">{t('app.leave.chart_description')}</p>
-					</div>
-					{#if analyticsQuery?.loading}
-						<p class="py-8 text-center text-sm text-muted-foreground">
-							{t('app.leave.loading_seasonality')}
-						</p>
-					{:else if analyticsQuery?.error}
-						<p class="py-8 text-center text-sm text-destructive">
-							{t('app.leave.seasonality_error')}
-						</p>
-					{:else}
-						<!-- stupidity:allow UI3 -- this is a derived reporting matrix, not a collection. -->
-						<table class="w-full table-fixed border-separate border-spacing-1 text-center text-xs">
-							<caption class="sr-only">{t('app.leave.chart_description')}</caption>
-							<thead class="text-muted-foreground">
-								<tr>
-									<th class="w-14 pb-1 text-left font-medium">{t('app.leave.heatmap_year')}</th>
-									{#each Array.from({ length: 12 }, (_value, index) => index + 1) as month}
-										<th class="pb-1 font-medium" scope="col">{month}</th>
-									{/each}
-								</tr>
-							</thead>
-							<tbody>
-								{#each analytics.seasonal_heatmap as row (row.year)}
+	<Bound size="full">
+		<Scroll name="Leave overview">
+			{#if companiesUnknown}
+				<Inline
+					justify="center"
+					align="center"
+					gap="sm"
+					class="min-h-48 text-sm text-muted-foreground"
+				>
+					<Spinner class="size-4" />
+					<span>{t('app.leave.loading_company_scope')}</span>
+				</Inline>
+			{:else if selectedCompanyId == null}
+				<p class="text-sm text-muted-foreground">{t('app.leave.empty_overview')}</p>
+			{:else}
+				<Stack as="section" gap="md" aria-labelledby="leave-seasonality-heading">
+					<Stack gap="xs">
+						<h2 class="text-lg font-semibold">{t('app.leave.leave_activity')}</h2>
+						{#if analytics}
+							<p class="text-sm text-muted-foreground">
+								{t('app.leave.leave_activity_description', {
+									count: analytics.total.toLocaleString()
+								})}
+							</p>
+						{/if}
+					</Stack>
+					<Stack gap="md" class="rounded-lg border bg-card p-4 shadow-card">
+						<Stack gap="xs">
+							<h3 id="leave-seasonality-heading" class="font-semibold">
+								{t('app.leave.chart_title')}
+							</h3>
+							<p class="text-sm text-muted-foreground">{t('app.leave.chart_description')}</p>
+						</Stack>
+						{#if analytics}
+							<!-- stupidity:allow UI3 -- this is a derived reporting matrix, not a collection. -->
+							<table
+								class="w-full table-fixed border-separate border-spacing-1 text-center text-xs"
+							>
+								<caption class="sr-only">{t('app.leave.chart_description')}</caption>
+								<thead class="text-muted-foreground">
 									<tr>
-										<th class="pr-1 text-left font-medium tabular-nums" scope="row">{row.year}</th>
-										{#each row.months as count, monthIndex (`${row.year}-${monthIndex}`)}
-											<td>
-												<span
-													class="block rounded-sm py-2 font-medium tabular-nums {heatmapClass(
-														count
-													)}"
-													title={t('app.leave.heatmap_cell', {
-														year: row.year,
-														month: monthIndex + 1,
-														count
-													})}
-												>
-													{count}
-												</span>
-											</td>
+										<th class="w-14 pb-1 text-left font-medium">{t('app.leave.heatmap_year')}</th>
+										{#each Array.from({ length: 12 }, (_value, index) => index + 1) as month (month)}
+											<th class="pb-1 font-medium" scope="col">{month}</th>
 										{/each}
 									</tr>
+								</thead>
+								<tbody>
+									{#each analytics.seasonal_heatmap as row (row.year)}
+										<tr>
+											<th class="pr-1 text-left font-medium tabular-nums" scope="row">
+												{row.year}
+											</th>
+											{#each row.months as count, monthIndex (`${row.year}-${monthIndex}`)}
+												<td>
+													<span
+														class="block rounded-sm py-2 font-medium tabular-nums {heatmapClass(
+															count
+														)}"
+														title={t('app.leave.heatmap_cell', {
+															year: row.year,
+															month: monthIndex + 1,
+															count
+														})}
+													>
+														{count}
+													</span>
+												</td>
+											{/each}
+										</tr>
+									{/each}
+								</tbody>
+							</table>
+							<Inline justify="end" gap="xs" aria-label={t('app.leave.heatmap_legend')}>
+								<span class="text-xs text-muted-foreground">{t('app.leave.heatmap_fewer')}</span>
+								{#each [1, 2, 3, 4, 5] as level (level)}
+									<span
+										class="size-3 rounded-sm {heatmapClass(
+											Math.max(1, Math.ceil((heatmapMaximum * level) / 5))
+										)}"
+									></span>
 								{/each}
-							</tbody>
-						</table>
-						<Inline justify="end" gap="xs" aria-label={t('app.leave.heatmap_legend')}>
-							<span class="text-xs text-muted-foreground">{t('app.leave.heatmap_fewer')}</span>
-							{#each [1, 2, 3, 4, 5] as level}
-								<span
-									class="size-3 rounded-sm {heatmapClass(
-										Math.max(1, Math.ceil((heatmapMaximum * level) / 5))
-									)}"
-								></span>
-							{/each}
-							<span class="text-xs text-muted-foreground">{t('app.leave.heatmap_more')}</span>
-						</Inline>
-					{/if}
+								<span class="text-xs text-muted-foreground">{t('app.leave.heatmap_more')}</span>
+							</Inline>
+						{:else if analyticsQuery?.error}
+							<p class="py-8 text-center text-sm text-destructive">
+								{t('app.leave.seasonality_error')}
+							</p>
+						{:else}
+							<p class="py-8 text-center text-sm text-muted-foreground">
+								{t('app.leave.loading_seasonality')}
+							</p>
+						{/if}
+					</Stack>
 				</Stack>
-			</div>
-		</Stack>
-	{/if}
+			{/if}
+		</Scroll>
+	</Bound>
 {/snippet}
 
 {#snippet requests()}

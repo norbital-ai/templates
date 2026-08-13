@@ -4,6 +4,34 @@ import { rosterCodeVariantSchema } from '../../custom-types/roster_code_variant/
 import { formatNamedList, monthBounds } from '../../lib/period.js';
 import type { Pipelines } from './$types.js';
 
+type CompanyIdentity = {
+	readonly norbital_id: string;
+	readonly name: string;
+	readonly registration_number: string;
+};
+
+function resolveLegalEntity(
+	companies: readonly CompanyIdentity[],
+	legalEntity: string
+): CompanyIdentity {
+	const wanted = legalEntity.trim().toLowerCase();
+	const matches = companies.filter(
+		(company) =>
+			company.name.trim().toLowerCase() === wanted ||
+			company.registration_number.trim().toLowerCase() === wanted
+	);
+	if (matches.length === 1) return matches[0]!;
+	if (matches.length === 0) {
+		throw new Error(
+			`No legal entity named "${legalEntity}" is on file.\n` +
+				`Known entities:\n${formatNamedList(companies.map((company) => company.name))}`
+		);
+	}
+	throw new Error(
+		`"${legalEntity}" matches more than one legal entity:\n${formatNamedList(matches.map((company) => company.name))}`
+	);
+}
+
 const rowSchema = z.object({
 	employee_number: z.string().trim().min(1),
 	work_date: z.string().trim().min(1),
@@ -14,6 +42,8 @@ const rowSchema = z.object({
 
 const importSchema = z.object({
 	roster_id: z.string().trim().min(1),
+	legal_entity: z.string().trim().min(1).optional(),
+	month: z.string().trim().min(1).optional(),
 	rows: z.array(rowSchema)
 });
 
@@ -45,10 +75,15 @@ function formatRows(rows: readonly ImportRow[]): string[] {
 export default {
 	import: {
 		description:
-			'Loads explicit monthly roster-code assignments. Blank spreadsheet cells are omitted and public holidays are verified against the company calendar rather than stored as roster entries.',
+			'Loads a month of planned roster-code assignments for one legal entity. Blank cells are omitted and public holidays are verified against the company calendar rather than stored as roster entries.',
 		input: importSchema,
 		handler: async ({ input }, api) => {
-			const { roster_id: rosterId, rows } = importSchema.parse(input);
+			const {
+				roster_id: rosterId,
+				legal_entity: legalEntity,
+				month: fileMonth,
+				rows
+			} = importSchema.parse(input);
 			const roster = await api.db.query.rosters.findFirst({
 				where: { norbital_id: { eq: rosterId } },
 				columns: { month: true, published_at: true, company_id: true }
@@ -58,6 +93,23 @@ export default {
 				throw new Error(
 					`Roster ${roster.month} is published. Re-open it before importing changes.`
 				);
+			}
+			if (fileMonth != null && fileMonth !== roster.month) {
+				throw new Error(
+					`This workbook is for ${fileMonth}, but the open draft is ${roster.month}. Import it into that month's roster.`
+				);
+			}
+			if (legalEntity != null) {
+				const companies = await api.db.query.companies.findMany({
+					columns: { norbital_id: true, name: true, registration_number: true },
+					limit: QUERY_LIMIT
+				});
+				const company = resolveLegalEntity(companies, legalEntity);
+				if (company.norbital_id !== roster.company_id) {
+					throw new Error(
+						`This workbook is for ${company.name}, which is not the legal entity of roster ${roster.month}.`
+					);
+				}
 			}
 
 			const invalidDates = rows.filter((row) => !isCalendarDate(row.work_date));

@@ -1,5 +1,68 @@
-import { documentTotals, lineAmounts } from '../../lib/pricing.js';
+import { currencyFractionDigits, fromMinorUnits, toMinorUnits } from '@norbital-ai/std/finance';
 import type { Hooks, WorkspaceRow } from './$types.js';
+
+function roundHalfUp(value: number, digits: number): number {
+	if (!Number.isFinite(value)) {
+		throw new Error('Cannot round a value that is not a finite number.');
+	}
+	const magnitude = Math.abs(shiftExponent(value, digits));
+	const rounded = Math.round(magnitude);
+	return shiftExponent(value < 0 ? -rounded : rounded, -digits);
+}
+
+function shiftExponent(value: number, places: number): number {
+	if (value === 0) return 0;
+	const [mantissa, exponent] = value.toExponential().split('e');
+	return Number(`${mantissa}e${Number(exponent) + places}`);
+}
+
+interface LinePricing {
+	readonly quantity: number;
+	readonly unit_price: number;
+	readonly discount_pct?: number | null;
+	readonly tax_rate?: number | null;
+	readonly tax_inclusive: boolean;
+	readonly currency: string;
+}
+
+interface LineAmounts {
+	readonly net: number;
+	readonly tax: number;
+	readonly gross: number;
+}
+
+function lineAmounts(line: LinePricing): LineAmounts {
+	const digits = currencyFractionDigits(line.currency);
+	const discount = line.discount_pct ?? 0;
+	const rate = (line.tax_rate ?? 0) / 100;
+	const base = line.quantity * line.unit_price * (1 - discount / 100);
+
+	if (line.tax_inclusive) {
+		const gross = roundHalfUp(base, digits);
+		const net = roundHalfUp(gross / (1 + rate), digits);
+		return { net, tax: roundHalfUp(gross - net, digits), gross };
+	}
+
+	const net = roundHalfUp(base, digits);
+	const tax = roundHalfUp(net * rate, digits);
+	return { net, tax, gross: roundHalfUp(net + tax, digits) };
+}
+
+function documentTotals(lines: readonly LineAmounts[], currency: string): LineAmounts {
+	let net = 0n;
+	let tax = 0n;
+	let gross = 0n;
+	for (const line of lines) {
+		net += toMinorUnits(line.net, currency);
+		tax += toMinorUnits(line.tax, currency);
+		gross += toMinorUnits(line.gross, currency);
+	}
+	return {
+		net: fromMinorUnits(net, currency),
+		tax: fromMinorUnits(tax, currency),
+		gross: fromMinorUnits(gross, currency)
+	};
+}
 
 type AfterApi = Parameters<NonNullable<NonNullable<Hooks['create']>['after']>['handler']>[0]['api'];
 type CreateInput = Parameters<

@@ -1,6 +1,35 @@
-import { deskToday } from '../../lib/calendar.js';
-import { docNoSeriesPattern, nextDocNo } from '../../lib/numbering.js';
 import type { Hooks } from './$types.js';
+
+const DESK_TIME_ZONE = 'Asia/Singapore';
+const DOC_NO_SEQUENCE_WIDTH = 4;
+
+function deskToday(): string {
+	const parts = new Intl.DateTimeFormat('en', {
+		timeZone: DESK_TIME_ZONE,
+		year: 'numeric',
+		month: '2-digit',
+		day: '2-digit'
+	}).formatToParts(new Date());
+	const valueFor = (type: Intl.DateTimeFormatPartTypes) =>
+		parts.find((part) => part.type === type)?.value ?? '';
+	return `${valueFor('year')}-${valueFor('month')}-${valueFor('day')}`;
+}
+
+function docNoSeriesPattern(prefix: string, year: number): string {
+	return `${prefix}-${year}-%`;
+}
+
+function nextDocNo(existingNumbers: readonly string[], prefix: string, year: number): string {
+	const seriesPrefix = `${prefix}-${year}-`;
+	let highest = 0;
+	for (const number of existingNumbers) {
+		if (!number.startsWith(seriesPrefix)) continue;
+		const sequence = Number.parseInt(number.slice(seriesPrefix.length), 10);
+		if (Number.isNaN(sequence)) continue;
+		if (sequence > highest) highest = sequence;
+	}
+	return `${seriesPrefix}${String(highest + 1).padStart(DOC_NO_SEQUENCE_WIDTH, '0')}`;
+}
 
 export default {
 	create: {

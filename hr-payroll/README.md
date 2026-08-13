@@ -108,9 +108,14 @@ NULL`, because that is the only definition of a live row.
 `src/+agent.ts` declares the workspace agent narrowly — write access to `companies` alone, one host
 tool, and bounded iterations and tokens. An agent receives a grant here, not the workspace.
 
-### Automations, integrations, seed
+### Automations (1)
 
-No automations and no integrations ship with this template. The tenant also ships **no `+seed.ts`**:
+**`statutory_profile_drift`** — weekly deterministic automation. Bounded reads of in-force jurisdiction
+snapshots, contribution schemes and employment statutory facts; rule-based drift detection; optional
+successor copy of `employment_statutory_facts` when a unique successor scheme exists; `api.infer` writes
+the report. Never writes the law tables (those stay product-owned).
+
+### Integrations, seed
 statutory and sensitive fixture seed is Core-owned (see below), and payroll inputs belong to the
 reconciliation workflow described in [`docs/data.md`](docs/data.md).
 
@@ -137,6 +142,7 @@ src/
 ├── policies/                 # employee, hr, management
 ├── remotes/                  # approval_analytics
 ├── i18n/                     # messages.en.json / messages.zh.json (same key set)
+├── automation/               # statutory_profile_drift (weekly deterministic)
 ├── lib/                      # shared helpers: calendar, display formatters, policy grants, roster month
 └── +agent.ts
 ```
@@ -151,8 +157,9 @@ src/
   SELECTs: `createMany` must retain one hook invocation per record without turning a statutory table
   or derived repayment schedule into one remote database round trip per row.
 - **Pipelines** (`+pipelines.ts` on `roster_entries`, `time_entries` and `payroll_runs`) shape
-  workbook import/export: the roster and attendance importers map a source workbook to rows, and
-  the payroll exporter produces the bank file, payslip PDFs and report workbook the app offers.
+  workbook import/export: the roster and attendance importers accept a month grid (or a long-form
+  person-day sheet) for one legal entity, and the payroll exporter produces the bank file, payslip
+  PDFs and report workbook the app offers.
 - **Representations** decide create/display/edit per collection. `payroll_runs` and `payslips`
   refuse hand-created output; a payslip is written by the engine, never by hand.
 - **i18n** — both catalogs carry the same 867 keys; app metadata in `<svelte:head>` stays static
@@ -183,8 +190,9 @@ node scripts/verify-fixture-shapes.mjs       # audits that run's fixtures agains
 ```
 
 `node scripts/generate-import-templates.mjs` writes the roster and time-entry import templates to
-`~/Downloads` — the blank workbooks operators are issued, whose sheets mirror exactly what the
-import readers accept.
+`~/Desktop` — one legal entity × one month, a person per row and a calendar day per column, with a
+short Settings sheet. Long-form person-day sheets still import; these files are the ones operators
+are issued. The `Read me first` sheet states only the rules the readers enforce.
 
 The arithmetic run used to be on-demand and outside `pnpm test`. It is in `pnpm test` now, because
 being outside it is what let a fixture rot unnoticed until the assertion above it stopped meaning

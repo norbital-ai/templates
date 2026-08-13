@@ -18,7 +18,7 @@
 	} from '@norbital-ai/ui/layout';
 	import { formatDateRangeLocal } from '@norbital-ai/std/date';
 	import { Tabs, type TabConfig } from '@norbital-ai/ui/tabs';
-	import type { IFCViewerProps } from '../../lib/ifc-viewer/ifc_viewer.types.js';
+	import type { IFCViewerProps } from './ifc-viewer/ifc_viewer.types.js';
 
 	interface MoneyValue {
 		value: number;
@@ -76,7 +76,7 @@
 	}
 
 	/** The IFC viewer is a heavy esm.sh WebGL module graph; lazy-load it only when a model is linked. */
-	const viewerModule = import('../../lib/ifc-viewer/ifc_viewer.svelte');
+	const viewerModule = import('./ifc-viewer/ifc_viewer.svelte');
 
 	function mountViewer(node: HTMLElement, mod: { default: Component<IFCViewerProps> }) {
 		const instance = mount(mod.default, {
