@@ -15,10 +15,24 @@
 	import { CollectionTable } from '@norbital-ai/ui/collection-table';
 	import { Column, Cover, Grid, Inline, Stack } from '@norbital-ai/ui/layout';
 	import { Tabs, type TabConfig } from '@norbital-ai/ui/tabs';
-	import { formatStatutoryFactStatus } from '../../lib/ui/display-formatters.js';
+	import { renderSnippet } from '@norbital-ai/ui/utils';
+	import {
+		formatEffectiveRange,
+		formatStatutoryFactStatus
+	} from '../../lib/ui/display-formatters.js';
+	import { todayKey } from '../../lib/ui/calendar.js';
+	import { employmentScheduleOn } from '../../lib/scheduling/employment-schedule.js';
+
+	type EmploymentTerm = {
+		readonly employment_id: string;
+		readonly effective_range: unknown;
+		readonly work_pattern: unknown;
+	};
 
 	let { record, close }: RepresentationProps = $props();
 	const { t } = useI18n<TenantI18nKeys>();
+	let activeProfileTab = $state('person');
+	const today = todayKey();
 
 	const approved = { norbital_approval_id: { isNull: true } } as const;
 
@@ -35,6 +49,29 @@
 	const employmentLabelsById = $derived(
 		new Map(employments.map((employment) => [employment.norbital_id, employment.employee_number]))
 	);
+	// Terms are read only while the Employments tab is open. One employee-scoped query feeds every
+	// row, so opening a profile does not mount a table or lookup per employment.
+	const employmentTermsQuery = $derived(
+		record == null || activeProfileTab !== 'employments'
+			? null
+			: client.db.employment_terms.findMany({
+					where: {
+						norbital_approval_id: { isNull: true },
+						term_employment: { employee_id: { eq: record.norbital_id } }
+					},
+					limit: 500
+				})
+	);
+	const termsByEmployment = $derived.by(() => {
+		const terms = new Map<string, EmploymentTerm[]>();
+		for (const term of employmentTermsQuery?.current ?? []) {
+			if (typeof term.employment_id !== 'string') continue;
+			const bucket = terms.get(term.employment_id);
+			if (bucket) bucket.push(term);
+			else terms.set(term.employment_id, [term]);
+		}
+		return terms;
+	});
 	// One scoped query and a map per relation column, rather than a label lookup per row.
 	const companiesQuery = client.db.companies.findMany({ where: approved, limit: 500 });
 	const companyLabelsById = $derived(
@@ -83,72 +120,71 @@
 
 {#snippet engagements()}
 	{#if record}
-		<Stack gap="lg">
-			<CollectionTable
-				{client}
-				collection="employments"
-				view={`employees:employments:${record.norbital_id}`}
-				title={t('component.employments')}
-				description={t('component.employments_description')}
-				query={{
-					where: { employee_id: { eq: record.norbital_id } },
-					orderBy: { hire_date: 'desc' }
-				}}
-			>
-				{#snippet columns({ Column: TableColumn })}
-					<TableColumn name="employee_number" card="title" />
-					<TableColumn
-						name="company_id"
-						label={t('component.legal_entity')}
-						card="subtitle"
-						render={({ value }) =>
-							value == null || value === '' ? '—' : (companyLabelsById.get(String(value)) ?? '—')}
-					/>
-					<TableColumn name="hire_date" label={t('component.hired')} />
-					<TableColumn name="exit_date" label={t('component.exited')} />
-					<TableColumn name="exit_reason" label={t('component.exit_reason')} />
-					<TableColumn name="effective_range" label={t('component.effective')} />
-				{/snippet}
-			</CollectionTable>
-
-			<!-- Work pattern is an effective-dated employment term, so it belongs beside the engagement. -->
-			{@render terms()}
-		</Stack>
+		<CollectionTable
+			{client}
+			collection="employments"
+			view={`employees:employments:${record.norbital_id}`}
+			title={t('component.employments')}
+			description={t('component.employments_description')}
+			query={{
+				where: { employee_id: { eq: record.norbital_id } },
+				orderBy: { hire_date: 'desc' }
+			}}
+		>
+			{#snippet columns({ Column: TableColumn })}
+				<TableColumn
+					name="employee_number"
+					card="title"
+					minWidth={280}
+					render={({ row }) => renderSnippet(employmentCell, { employment: row })}
+				/>
+				<TableColumn
+					name="company_id"
+					label={t('component.legal_entity')}
+					card="subtitle"
+					render={({ value }) =>
+						value == null || value === '' ? '—' : (companyLabelsById.get(String(value)) ?? '—')}
+				/>
+				<TableColumn name="hire_date" label={t('component.hired')} />
+				<TableColumn name="exit_date" label={t('component.exited')} />
+				<TableColumn name="exit_reason" label={t('component.exit_reason')} />
+				<TableColumn name="effective_range" label={t('component.effective')} />
+			{/snippet}
+		</CollectionTable>
 	{/if}
 {/snippet}
 
-{#snippet terms()}
-	<CollectionTable
-		{client}
-		collection="employment_terms"
-		view={`employees:terms:${record?.norbital_id ?? 'none'}`}
-		title={t('component.contractual_terms')}
-		description={t('component.contractual_terms_description')}
-		query={{
-			where:
-				record == null
-					? { norbital_id: { in: [] } }
-					: { term_employment: { employee_id: { eq: record.norbital_id } } },
-			orderBy: { norbital_created_at: 'desc' }
-		}}
-	>
-		{#snippet columns({ Column: TableColumn })}
-			<TableColumn
-				name="employment_id"
-				label={t('component.employment')}
-				card="title"
-				render={({ value }) =>
-					value == null || value === '' ? '—' : (employmentLabelsById.get(String(value)) ?? '—')}
-			/>
-			<TableColumn name="base_salary" label={t('component.base_salary')} card="subtitle" />
-			<TableColumn name="pay_frequency" label={t('component.frequency')} card="badge" />
-			<TableColumn name="job_title" label={t('component.job_title')} />
-			<TableColumn name="employment_type" label={t('component.type')} />
-			<TableColumn name="work_classification" label={t('component.classification')} />
-			<TableColumn name="work_pattern" label={t('component.work_pattern')} />
-			<TableColumn name="effective_range" label={t('component.effective')} />
-		{/snippet}
-	</CollectionTable>
+{#snippet employmentCell({
+	employment
+}: {
+	employment: { norbital_id: string; employee_number: unknown };
+})}
+	{@const schedule = employmentScheduleOn(
+		termsByEmployment.get(employment.norbital_id) ?? [],
+		today
+	)}
+	<Stack gap="none" class="min-w-0 py-0.5">
+		<span class="truncate font-medium"
+			>{employment.employee_number == null ? '—' : String(employment.employee_number)}</span
+		>
+		{#if employmentTermsQuery?.loading}
+			<span class="truncate text-tiny text-muted-foreground">{t('component.schedule_loading')}</span
+			>
+		{:else if schedule.state === 'missing'}
+			<span class="truncate text-tiny text-muted-foreground"
+				>{t('component.schedule_not_configured')}</span
+			>
+		{:else}
+			<span class="truncate text-tiny text-muted-foreground">
+				{schedule.state === 'current'
+					? t('component.schedule_current', { summary: schedule.summary })
+					: t('component.schedule_next', { summary: schedule.summary })}
+			</span>
+			<span class="truncate text-micro text-muted-foreground">
+				{t('component.effective')} · {formatEffectiveRange(schedule.effectiveRange)}
+			</span>
+		{/if}
+	</Stack>
 {/snippet}
 
 {#snippet statutoryFacts()}
@@ -217,6 +253,7 @@
 			animate={false}
 			listClass="mx-0 w-full"
 			contentPadding={false}
+			bind:value={activeProfileTab}
 			config={[
 				{ name: 'person', label: t('component.person'), icon: 'lucide:user', content: person },
 				{
