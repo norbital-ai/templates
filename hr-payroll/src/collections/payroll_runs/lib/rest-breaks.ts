@@ -1,5 +1,5 @@
 /**
- * Statutory rest and meal breaks, read from `rest_break_rules`.
+ * Statutory rest and meal breaks, read from the picked jurisdiction regime.
  *
  * The break a jurisdiction states is data in the same sense the overtime ladder is: an
  * effective-dated, cited row, never an engine literal. The figures this replaces were the kind a
@@ -21,7 +21,7 @@ export type RestBreakWhen = 'ALWAYS' | 'CONTINUOUS_ATTENDANCE' | 'OVERTIME';
 const APPLIES_WHEN: readonly RestBreakWhen[] = ['ALWAYS', 'CONTINUOUS_ATTENDANCE', 'OVERTIME'];
 
 /**
- * The subset of a `rest_break_rules` row the engine reads.
+ * The subset of one nested rest-break requirement the engine reads.
  *
  * `applies_when` is `string`, not the enum, because that is how an enum column arrives from the
  * database — and a row written under an older definition can legitimately carry a value this build

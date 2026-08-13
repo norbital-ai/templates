@@ -2,9 +2,10 @@
  * Step 1 — PICK.
  *
  * Resolve everything the run is governed by, as of the period end, once: the jurisdiction, its
- * statutory contributions and their bands, the treatment grid, the overtime rules and limits, the
- * company's pay catalogue, its shifts, its holidays and its leave policy. Nothing downstream reads
- * configuration again, so a row end-dated halfway through a build cannot change an answer under it.
+ * statutory contributions and their bands, the treatment grid, the jurisdiction's atomic regime
+ * snapshot, the company's pay catalogue, its shifts, its holidays and its leave policy. Nothing
+ * downstream reads configuration again, so a snapshot end-dated halfway through a build cannot
+ * change an answer under it.
  *
  * The picked set is hashed into `payroll_runs.configuration_hash`. The hash is an **audit token**,
  * not a replay key: it says "these rows produced these payslips", and a rebuild that yields a
@@ -16,17 +17,16 @@ import type { WorkspaceRow } from '../$types.js';
 import { assertComplete, PAGE_LIMIT, type PayrollReadApi } from './api.js';
 import { bandAgeFloor, bandCeiling } from './bands.js';
 import { monthBounds, monthKey, type IsoDate } from './dates.js';
-import { coverageRuleFor } from './coverage.js';
 import { coversDate, effectiveOn, live, overlapsRange } from './effective.js';
 import { resolveRestBreakRules, type ResolvedRestBreakRule } from './rest-breaks.js';
 
 export type Company = WorkspaceRow<'companies'>;
 export type Jurisdiction = WorkspaceRow<'jurisdictions'>;
 export type PayComponent = WorkspaceRow<'pay_components'>;
-export type OvertimeRule = WorkspaceRow<'overtime_rules'>;
-export type OvertimeLimit = WorkspaceRow<'overtime_limits'>;
-export type OvertimeCoverageRule = WorkspaceRow<'overtime_coverage_rules'>;
-export type RestBreakRuleRow = WorkspaceRow<'rest_break_rules'>;
+type StatutoryRegime = NonNullable<Jurisdiction['regime']>;
+export type OvertimeRule = StatutoryRegime['overtime_rules'][number];
+export type OvertimeLimit = StatutoryRegime['overtime_limits'][number];
+export type OvertimeCoverageRule = StatutoryRegime['overtime_coverage'];
 export type ShiftDefinition = WorkspaceRow<'shift_definitions'>;
 export type LeaveType = WorkspaceRow<'leave_types'>;
 export type ContributionRate = WorkspaceRow<'contribution_rates'>;
@@ -136,63 +136,34 @@ export async function pickConfiguration(options: {
 	if (!jurisdiction)
 		throw new Error(`Company ${company.name} has no jurisdiction effective on ${asOf}.`);
 
-	const [
-		contributionRows,
-		payComponentRows,
-		overtimeRuleRows,
-		overtimeLimitRows,
-		overtimeCoverageRuleRows,
-		restBreakRuleRows,
-		shiftRows,
-		holidayRows,
-		leaveTypeRows
-	] = await Promise.all([
-		query.statutory_contributions.findMany({
-			where: { jurisdiction_id: { eq: jurisdiction.norbital_id }, ...approved },
-			limit: PAGE_LIMIT
-		}),
-		query.pay_components.findMany({
-			where: { company_id: { eq: company.norbital_id }, ...approved },
-			limit: PAGE_LIMIT
-		}),
-		query.overtime_rules.findMany({
-			where: { jurisdiction_id: { eq: jurisdiction.norbital_id }, ...approved },
-			limit: PAGE_LIMIT
-		}),
-		query.overtime_limits.findMany({
-			where: { jurisdiction_id: { eq: jurisdiction.norbital_id }, ...approved },
-			limit: PAGE_LIMIT
-		}),
-		query.overtime_coverage_rules.findMany({
-			where: { jurisdiction_id: { eq: jurisdiction.norbital_id }, ...approved },
-			limit: PAGE_LIMIT
-		}),
-		query.rest_break_rules.findMany({
-			where: { jurisdiction_id: { eq: jurisdiction.norbital_id }, ...approved },
-			limit: PAGE_LIMIT
-		}),
-		query.shift_definitions.findMany({
-			where: { company_id: { eq: company.norbital_id }, ...approved },
-			limit: PAGE_LIMIT
-		}),
-		query.company_holidays.findMany({
-			where: { company_id: { eq: company.norbital_id }, ...approved },
-			limit: PAGE_LIMIT
-		}),
-		query.leave_types.findMany({
-			where: { company_id: { eq: company.norbital_id }, ...approved },
-			limit: PAGE_LIMIT
-		})
-	]);
+	const [contributionRows, payComponentRows, shiftRows, holidayRows, leaveTypeRows] =
+		await Promise.all([
+			query.statutory_contributions.findMany({
+				where: { jurisdiction_id: { eq: jurisdiction.norbital_id }, ...approved },
+				limit: PAGE_LIMIT
+			}),
+			query.pay_components.findMany({
+				where: { company_id: { eq: company.norbital_id }, ...approved },
+				limit: PAGE_LIMIT
+			}),
+			query.shift_definitions.findMany({
+				where: { company_id: { eq: company.norbital_id }, ...approved },
+				limit: PAGE_LIMIT
+			}),
+			query.company_holidays.findMany({
+				where: { company_id: { eq: company.norbital_id }, ...approved },
+				limit: PAGE_LIMIT
+			}),
+			query.leave_types.findMany({
+				where: { company_id: { eq: company.norbital_id }, ...approved },
+				limit: PAGE_LIMIT
+			})
+		]);
 	// Every collection pages to the same ceiling and is checked: a configuration read that came
 	// back truncated would drop law — a missing holiday, a missing band — and still produce a
 	// payslip, which is the one outcome worse than producing none.
 	assertComplete(contributionRows, 'statutory contributions');
 	assertComplete(payComponentRows, 'pay components');
-	assertComplete(overtimeRuleRows, 'overtime rules');
-	assertComplete(overtimeLimitRows, 'overtime limits');
-	assertComplete(overtimeCoverageRuleRows, 'overtime coverage rules');
-	assertComplete(restBreakRuleRows, 'rest break rules');
 	assertComplete(shiftRows, 'shift definitions');
 	assertComplete(holidayRows, 'company holidays');
 	assertComplete(leaveTypeRows, 'leave types');
@@ -242,6 +213,10 @@ export async function pickConfiguration(options: {
 		overlapsRange(row.effective_range, windowStart, windowEnd)
 	);
 
+	const regime = jurisdiction.regime;
+	if (regime == null)
+		throw new Error(`Jurisdiction ${jurisdiction.code} has no statutory regime snapshot.`);
+
 	const configuration = {
 		company,
 		jurisdiction,
@@ -251,14 +226,10 @@ export async function pickConfiguration(options: {
 		})),
 		treatments,
 		payComponents,
-		overtimeRules: live(overtimeRuleRows).filter((row) => coversDate(row.effective_range, asOf)),
-		overtimeLimits: live(overtimeLimitRows).filter((row) => coversDate(row.effective_range, asOf)),
-		overtimeCoverageRule: coverageRuleFor(
-			live(overtimeCoverageRuleRows).filter((row) => coversDate(row.effective_range, asOf))
-		),
-		restBreakRules: resolveRestBreakRules(
-			live(restBreakRuleRows).filter((row) => coversDate(row.effective_range, asOf))
-		),
+		overtimeRules: regime.overtime_rules,
+		overtimeLimits: regime.overtime_limits,
+		overtimeCoverageRule: regime.overtime_coverage,
+		restBreakRules: resolveRestBreakRules(regime.rest_breaks),
 		shiftById: new Map(shifts.map((row) => [row.norbital_id, row])),
 		holidays: new Map(
 			live(holidayRows).map((row) => [String(row.date).slice(0, 10), row] as const)
@@ -311,38 +282,14 @@ export function configurationSnapshot(
 		pay_components: configuration.payComponents
 			.map((row) => [row.code, row.policy, row.sequence, row.definition, row.eligibility])
 			.toSorted((left, right) => String(left[0]).localeCompare(String(right[0]))),
-		overtime_rules: configuration.overtimeRules
-			.map((row) => [row.day_type, row.band, row.award])
-			.toSorted((left, right) => JSON.stringify(left).localeCompare(JSON.stringify(right))),
-		overtime_limits: configuration.overtimeLimits
-			.map((row) => [row.period, row.measures, row.max_hours, row.on_exceed])
-			.toSorted((left, right) => String(left[0]).localeCompare(String(right[0]))),
-		// Who the ladder covered is as much a part of the law a payslip was computed under as what an
-		// hour was worth. Without this a PAID run could not say which wage ceiling priced it, and a
-		// First Schedule amendment would rebuild to the same hash as the law it replaced.
-		overtime_coverage: configuration.overtimeCoverageRule
-			? [
-					configuration.overtimeCoverageRule.wage_ceiling,
-					configuration.overtimeCoverageRule.ceiling_is_inclusive,
-					configuration.overtimeCoverageRule.wage_basis,
-					configuration.overtimeCoverageRule.category_basis,
-					[...configuration.overtimeCoverageRule.exempt_categories].toSorted(),
-					[...configuration.overtimeCoverageRule.excluded_categories].toSorted(),
-					configuration.overtimeCoverageRule.authority
-				]
-			: null,
-		// The breaks in force were picked with the rest of the law: a rebuild after an amendment to
-		// s.60A must hash differently from the run that priced under the old text, even though no
-		// figure on a payslip moves until a check starts reading them.
-		rest_break_rules: [...configuration.restBreakRules.values()]
-			.map((rule) => [
-				rule.appliesWhen,
-				rule.afterConsecutiveHours,
-				rule.minimumMinutes,
-				rule.countsAsWorkedTime,
-				rule.authority
-			])
-			.toSorted((left, right) => JSON.stringify(left).localeCompare(JSON.stringify(right))),
+		// The effective range, source hash and complete nested value are retained together. A PAID
+		// run can therefore replay the exact coverage, awards, ceilings, breaks and authorities it
+		// used; it cannot accidentally combine independently effective rows from different revisions.
+		statutory_regime: {
+			effective_range: configuration.jurisdiction.effective_range,
+			definition_hash: configuration.jurisdiction.definition_hash,
+			value: configuration.jurisdiction.regime
+		},
 		holidays: [...configuration.holidays.values()]
 			.map((row) => [String(row.date).slice(0, 10), row.substitutes_date, row.scope])
 			.toSorted((left, right) => String(left[0]).localeCompare(String(right[0]))),

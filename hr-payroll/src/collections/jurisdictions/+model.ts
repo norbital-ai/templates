@@ -19,13 +19,23 @@ export default defineModel(
 		rounding: enums(['NEAREST_CENT', 'TRUNCATE_CENT', 'UP_5_CENTS']).notNull(),
 		ordinary_rate_basis: enums(['DAYS_PER_MONTH', 'HOURS_PER_MONTH']).notNull(),
 		ordinary_rate_divisor: numeric().notNull(),
+		regime: custom('statutory_regime').notNull(),
 		effective_range: dateRange().notNull(),
 		definition_hash: text().notNull()
 	},
 	{
 		description:
-			'A country or sub-national payroll regime: its currency, year boundaries, proration basis, rounding and ordinary-rate divisor. The only place proration is configured.',
+			'One effective-dated statutory snapshot: currency, year boundaries, proration, ordinary-rate basis, and the atomic overtime and rest-break regime used by payroll.',
 		recordLabel: 'name',
-		icon: 'lucide:globe'
+		icon: 'lucide:globe',
+		exclusions: [
+			{
+				name: 'jurisdictions_code_effective_range_no_overlap',
+				elements: [
+					{ expr: 'code', with: '=' },
+					{ expr: 'norbital_daterange(effective_range)', with: '&&' }
+				]
+			}
+		]
 	}
 );

@@ -12,7 +12,7 @@
  * the ones that used to be warnings: an unmapped rest-day rule, an exceeded overtime ceiling, a day
  * over the hours-of-work limit, and a pay cadence the company calendar cannot express.
  *
- * One consequence is deliberate and visible: `overtime_limits.on_exceed` no longer changes whether
+ * One consequence is deliberate and visible: a regime limit's `on_exceed` no longer changes whether
  * a run completes. `WARN` and `BLOCK` both stop it. The column still records what the authority
  * says, and the message quotes that authority, but the operator is not offered the choice of not
  * being told.
@@ -163,8 +163,8 @@ export function validateConfiguration(configuration: Configuration): RunIssue[] 
 			blocker(
 				'OVERTIME_RULE_UNBANDED',
 				`An overtime rule (${rule.authority}) carries no band and can never be entered.`,
-				'overtime_rules',
-				rule.norbital_id
+				'jurisdictions',
+				configuration.jurisdiction.norbital_id
 			);
 			continue;
 		}
@@ -181,8 +181,8 @@ export function validateConfiguration(configuration: Configuration): RunIssue[] 
 				`${configuration.jurisdiction.code} defines ${rule.day_type} ${band.measure} from ${from} ` +
 				`(${rule.authority}); this company has no pay component for it. Work under that rule ` +
 				'would be unpaid.',
-			collection: 'overtime_rules',
-			recordId: rule.norbital_id
+			collection: 'jurisdictions',
+			recordId: configuration.jurisdiction.norbital_id
 		});
 	}
 
@@ -220,8 +220,8 @@ export function validateOvertimeLimits(options: {
 					`${options.calendarMonth}, against a ${limit.max_hours}-hour calendar-month ceiling ` +
 					`(${limit.authority}, on_exceed=${limit.on_exceed}). Reduce the recorded overtime, or ` +
 					'raise the ceiling on the authority that states it, before this payroll can be built.',
-				collection: 'overtime_limits',
-				recordId: limit.norbital_id
+				collection: 'jurisdictions',
+				recordId: options.configuration.jurisdiction.norbital_id
 			}))
 	);
 }
