@@ -194,7 +194,7 @@ export async function buildPayrollRun(options: {
 				})
 			);
 		}
-		// The daily ceiling is the jurisdiction's, read from `overtime_limits` where `period = 'DAY'`.
+		// The daily ceiling is the jurisdiction's, read from its regime where `period = 'DAY'`.
 		// It used to be a literal 12 here, which meant Malaysia's cap was applied to every country in
 		// the workspace. A jurisdiction that states no daily limit now has none enforced, rather than
 		// inheriting one from a statute that does not govern it.

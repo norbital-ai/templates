@@ -1,12 +1,12 @@
 /**
  * Statutory overtime coverage — who the overtime ladder applies to.
  *
- * This is the *entitlement* test, not the *pricing* test: `overtime_rules` says what an overtime
+ * This is the *entitlement* test, not the *pricing* test: the regime's pricing members say what an overtime
  * hour is worth, and this says whether the person earning it is inside the statute at all. It is
  * kept apart from pricing because it turns on the person (their wage, their work category), not on
  * the day or the hour.
  *
- * Everything here is pure and reads a resolved `overtime_coverage_rules` row, or classifies a pay
+ * Everything here is pure and reads the picked regime's coverage member, or classifies a pay
  * component against the statute's own definition of wages for the ceiling's comparand. Nothing is
  * hard-coded to a jurisdiction. The literals this replaced were a Malaysian First Schedule test
  * written into the engine, which meant an amendment silently repriced history, no run recorded
@@ -90,7 +90,7 @@ export function deriveStatutoryWages(options: {
 }
 
 /**
- * The subset of an `overtime_coverage_rules` row the test actually reads.
+ * The subset of the snapshot's overtime-coverage member the test actually reads.
  *
  * `wage_basis` and `category_basis` are `string`, not their enums, because that is how an enum
  * column arrives from the database — and a row written under an older definition can legitimately

@@ -59,11 +59,7 @@ export const referenceGrants = (...actions: Action[]): readonly Grant[] => [
 export const statutoryGrants = (...actions: Action[]): readonly Grant[] => [
 	...grantsOn('jurisdictions', actions),
 	...grantsOn('statutory_contributions', actions),
-	...grantsOn('contribution_rates', actions),
-	...grantsOn('overtime_rules', actions),
-	...grantsOn('overtime_limits', actions),
-	...grantsOn('overtime_coverage_rules', actions),
-	...grantsOn('rest_break_rules', actions)
+	...grantsOn('contribution_rates', actions)
 ];
 
 /**

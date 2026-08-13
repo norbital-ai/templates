@@ -58,8 +58,8 @@ test('an unmapped rest-day wage rule stops the run instead of quietly going unpa
 	assert.equal(unmapped.length, 1);
 	assert.match(unmapped[0].message, /REST_DAY FROM_START_OF_DAY/);
 	assert.match(unmapped[0].message, /would be unpaid/);
-	assert.equal(unmapped[0].collection, 'overtime_rules');
-	assert.equal(unmapped[0].recordId, 'rule-rest-day-wage');
+	assert.equal(unmapped[0].collection, 'jurisdictions');
+	assert.equal(unmapped[0].recordId, 'jur-my');
 });
 
 test('a mapped rule raises nothing, so an ordinary company still builds', () => {

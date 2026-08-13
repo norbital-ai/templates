@@ -20,7 +20,7 @@
  * Hours up to the normal day pay the highest `FROM_START_OF_DAY` band entered — a day's wages is
  * never paid twice — and only hours beyond the normal day run through the `BEYOND_NORMAL` ladder.
  * That is EA s.60(3) and s.60D(3), and for every other jurisdiction it is whatever that
- * jurisdiction's `overtime_rules` rows say.
+ * jurisdiction snapshot's `regime.overtime_rules` members say.
  *
  * This deliberately differs from the pre-refactor engine, which paid every clocked hour at a flat
  * multiple of the hourly rate — roughly RM88 per rest day per employee more, and routed to an
@@ -28,7 +28,7 @@
  * customer's workbook; it is not what the Act says, and the customer's workbook is not the law.
  * The divergence is expected and accounted for (decision E27 / risk register #3).
  *
- * There is no switch. The ladder is data: change `overtime_rules`, not this file.
+ * There is no switch. The ladder is data: change the effective-dated regime, not this file.
  * ────────────────────────────────────────────────────────────────────────────────────────────────
  */
 
@@ -393,7 +393,7 @@ export function priceDay(options: {
 	// Whether a day's wages is payable is not a setting — it is whether the jurisdiction states a
 	// FROM_START_OF_DAY band for this day type. Malaysia does, for rest days and public holidays
 	// (EA s.60(3), s.60D(3)); Singapore states a single open hourly band and so pays no day wage.
-	// Adding or removing that entitlement is an `overtime_rules` row, never a code change.
+	// Adding or removing that entitlement is a regime member, never a code change.
 	const dayWageRules = rulesFor(options.rules, dayType, 'FROM_START_OF_DAY');
 	const usesDayWage = dayWageRules.length > 0;
 
@@ -471,9 +471,12 @@ export function priceDay(options: {
 		}
 	}
 
+	const sameRule = (left: OvertimeRule, right: OvertimeRule): boolean =>
+		left.day_type === right.day_type &&
+		JSON.stringify(left.band) === JSON.stringify(right.band) &&
+		JSON.stringify(left.award) === JSON.stringify(right.award);
 	for (const fullHourly of full.filter((segment) => segment.award === 'HOURLY_MULTIPLE')) {
-		const keptHours =
-			kept.find((segment) => segment.rule.norbital_id === fullHourly.rule.norbital_id)?.hours ?? 0;
+		const keptHours = kept.find((segment) => sameRule(segment.rule, fullHourly.rule))?.hours ?? 0;
 		const movedHours = fullHourly.hours - keptHours;
 		if (movedHours <= 0) continue;
 		excess.push({

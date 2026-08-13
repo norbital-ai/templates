@@ -48,9 +48,10 @@ Five collections carry the payroll core:
 Around that core: `companies` and `jurisdictions` scope the legal entity; `employments`,
 `employment_terms` and `employment_statutory_facts` describe a person's working facts;
 `shift_definitions`, `rosters`, `roster_entries`, `time_entries`,
-`company_holidays`, `leave_types`, `leave_requests`, `rest_break_rules`, `overtime_rules`,
-`overtime_limits` and `overtime_coverage_rules` supply the schedule and the law;
-`statutory_contributions` and `contribution_rates` carry the contribution schemes; and
+`company_holidays`, `leave_types` and `leave_requests` supply the schedule and leave facts;
+each effective-dated `jurisdictions` snapshot atomically owns overtime coverage, pricing, limits
+and rest-break requirements; `statutory_contributions` and `contribution_rates` remain normalized
+because contribution programmes and their bands have independent identities; and
 `repayment_agreements` carries staff loans and overpayment recoveries.
 
 Two invariants shape everything:
@@ -72,16 +73,16 @@ with several chooses which one the page scopes to.
 
 **`hr_controller`** (group) — the HR operating surface, eight pages:
 
-| App                   | What a user does in it                                                                                                                                                                                                                                 |
-| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **People**            | The workforce: employee profiles, employments, effective-dated terms, statutory facts, and a workforce-shape chart                                                                                                                                     |
-| **Scheduling**        | Plans the month on a roster board — one row per person, one glyph per day — publishes it against statutory rules, and manages shifts, work patterns and holidays                                                                                       |
-| **Time & attendance** | Review clock data: overview charts and the dated time-entry ledger                                                                                                                                                                                     |
-| **Leave**             | Review leave requests and the leave types that entitle them, against year-to-date approval counters                                                                                                                                                    |
-| **Loans**             | Review repayment agreements and their derived outstanding balance, with instalment recovery tracked per payslip                                                                                                                                        |
-| **Pay components**    | The pay catalogue and the entry stream: claims, allowances, adjustments and their contribution treatment                                                                                                                                               |
-| **Payroll**           | Runs the payroll cycle: a pay-date board (late/current/upcoming), creating and recalculating runs, locking them paid, and exporting bank files, payslip PDFs and the report workbook                                                                   |
-| **Statutory profile** | The regime every payroll is calculated against — jurisdictions with the schemes, rates, overtime rules, limits and coverage rows configured inside them, and the companies bound to each (file `+settings.svelte`: a file name owns an app's identity) |
+| App                   | What a user does in it                                                                                                                                                                                                                                                  |
+| --------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **People**            | The workforce: employee profiles, employments, effective-dated terms, statutory facts, and a workforce-shape chart                                                                                                                                                      |
+| **Scheduling**        | Plans the month on a roster board — one row per person, one glyph per day — publishes it against statutory rules, and manages shifts, work patterns and holidays                                                                                                        |
+| **Time & attendance** | Review clock data: overview charts and the dated time-entry ledger                                                                                                                                                                                                      |
+| **Leave**             | Review leave requests and the leave types that entitle them, against year-to-date approval counters                                                                                                                                                                     |
+| **Loans**             | Review repayment agreements and their derived outstanding balance, with instalment recovery tracked per payslip                                                                                                                                                         |
+| **Pay components**    | The pay catalogue and the entry stream: claims, allowances, adjustments and their contribution treatment                                                                                                                                                                |
+| **Payroll**           | Runs the payroll cycle: a pay-date board (late/current/upcoming), creating and recalculating runs, locking them paid, and exporting bank files, payslip PDFs and the report workbook                                                                                    |
+| **Statutory profile** | The regime every payroll is calculated against — effective-dated jurisdiction snapshots with atomic overtime and break policy, normalized contribution schemes and rates, and the companies bound to each (file `+settings.svelte`: a file name owns an app's identity) |
 
 ### Policies (3)
 
@@ -130,9 +131,9 @@ Everything the compiler knows about the workspace lives in `src/`:
 ```text
 src/
 ├── apps/                     # +<app>.svelte per app; hr_controller/+group.ts owns the group
-├── collections/              # 25 collections: +model.ts, +hooks.ts, +pipelines.ts, +representation.svelte
+├── collections/              # 21 collections: +model.ts, +hooks.ts, +pipelines.ts, +representation.svelte
 │   └── payroll_runs/lib/     # the settlement engine (phases, overtime, coverage, export)
-├── custom-types/             # 26 structured values (money, work_pattern, worked_intervals, …)
+├── custom-types/             # 27 structured values (money, statutory_regime, work_pattern, …)
 ├── policies/                 # employee, hr, management
 ├── remotes/                  # approval_analytics
 ├── i18n/                     # messages.en.json / messages.zh.json (same key set)
@@ -218,7 +219,7 @@ pnpm build    # production build
 - **Seed** — new-tenant fixture behavior belongs in `src/+seed.ts`; it does not evolve deployed
   data. For an existing tenant, create a committed migration with `pnpm exec pod migration create
 <name> --custom`, edit its SQL, and resolve conflicts in Organization Studio → Template updates.
-  Sensitive statutory seed (the overtime ladders, coverage and break rows) stays Core-owned at
+  Sensitive statutory seed (the jurisdiction regime snapshots and contribution rows) stays Core-owned at
   `norbital/apps/core/seed/norbital_hr/statutory/rows.ts`.
 - **Publishing** — the template pins `@norbital-ai/pod` in its own `package.json` and lockfile.
   After a deliberate dependency move, refresh the template lock through the repository

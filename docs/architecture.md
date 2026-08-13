@@ -368,18 +368,19 @@ specific dated hour crossed the threshold; the attendance window determines whic
 
 ### Coverage
 
-Coverage is **data, not code**. It lives in `overtime_coverage_rules`, one effective-dated row per
-jurisdiction, each carrying the section it comes from. Nothing about it is compiled in, and a
-jurisdiction with no row covers everyone — absence of a coverage restriction is not a restriction
-that excludes everyone. See [Statutory overtime coverage](#statutory-overtime-coverage) for the
-full model, the sources and what is still unencoded.
+Coverage is **data, not code**. It lives in the required `jurisdictions.regime` value alongside the
+pricing ladder, limits and rest-break requirements governed by the same law revision. One
+jurisdiction code cannot have overlapping effective ranges, so payroll can never assemble its law
+from independently dated fragments. A null `overtime_coverage` member covers everyone — absence of
+a coverage restriction is not a restriction that excludes everyone. See
+[Statutory overtime coverage](#statutory-overtime-coverage) for the sources and remaining gaps.
 
 A contractual entitlement can be more favourable, but it must be encoded as an effective-dated
 coverage/pricing policy. There is no `employment_terms.overtime_eligible` switch: a boolean beside
 the statutory facts would eventually drift from the rule it claims to summarize. The legacy
 `work_classification = NON_EA` label is not, by itself, proof that the Employment Act does not apply.
 
-For Malaysia the row encodes the Employment Act 1955 First Schedule as substituted by the
+For Malaysia the snapshot encodes the Employment Act 1955 First Schedule as substituted by the
 Employment (Amendment of First Schedule) Order 2022 [P.U. (A) 262]: a ceiling of RM4,000 a month,
 **inclusive** because paragraph 1A disapplies the ladder to wages that "exceeds" that figure; the
 paragraph 2 categories — manual labour, supervisors of manual labour, and commercial vehicle
@@ -397,11 +398,11 @@ subsistence allowance have no component category of their own — the derivation
 guessing, and a figure the run cannot produce fails the run naming the employee and the authority
 instead of being approximated from the nearest column.
 
-Meal breaks are data the same way: `rest_break_rules` carries each jurisdiction's cited row — the
-consecutive-hours window the flat `break_minutes` columns cannot express, the minimum length, and
-whether the statute counts the break as working time. The run picks them with the rest of its law
-and records them in its configuration snapshot; nothing enforces them yet, because whether a break
-was taken is a question over punches that payroll does not answer.
+Meal breaks are data the same way: `jurisdictions.regime.rest_breaks` carries the cited requirements
+— the consecutive-hours window the flat `break_minutes` columns cannot express, the minimum length,
+and whether the statute counts the break as working time. The run captures the complete regime in
+its configuration snapshot; nothing enforces breaks yet, because whether a break was taken is a
+question over punches that payroll does not answer.
 
 ## Calculation and statutory treatment
 
@@ -683,10 +684,11 @@ under [Still not encoded](#still-not-encoded), not quietly defaulted.
 
 ### Encoded
 
-#### Overtime multipliers — `MY_OVERTIME_RULES`, six rows
+#### Overtime multipliers — six members of the Malaysian regime snapshot
 
-Seeded in Core at `norbital/apps/core/seed/norbital_hr/statutory/rows.ts` (§4.4). The template
-workspace ships no overtime seed of its own; it reads these rows from `overtime_rules`.
+Seeded in Core at `norbital/apps/core/seed/norbital_hr/statutory/rows.ts` (§4.4). The source fixture
+keeps named builder arrays for review, then embeds them without IDs or effective ranges in the one
+`jurisdictions.regime` value that is actually seeded.
 
 | Day type         | Band                                    | Award               | Cited authority        |
 | ---------------- | --------------------------------------- | ------------------- | ---------------------- |
@@ -699,12 +701,12 @@ workspace ships no overtime seed of its own; it reads these rows from `overtime_
 
 Rest day has a half-day split; public holiday does not. `DAY_WAGE_MULTIPLE` is a flat fraction of a
 day's wage; `HOURLY_MULTIPLE` is per hour — the two award kinds are different scales, not variants.
-Each row carries its section number in `overtime_rules.authority`, which is free text and is the
-only citation carrier in the data model.
+Each member carries its section number in `authority`, which is free text and is the citation
+carrier in the nested data model.
 
-#### Overtime and hours caps — two rows
+#### Overtime and hours caps — two members
 
-`MY_OVERTIME_LIMITS` holds two, and they count different things — see `measures`:
+The Malaysian regime holds two limits, and they count different things — see `measures`:
 
 | Period  | `measures`         | Max | Cited authority                                                                 |
 | ------- | ------------------ | --- | ------------------------------------------------------------------------------- |
@@ -721,14 +723,14 @@ authority says, and the refusal quotes it; it does not decide who finds out.
 
 Separately, `pay_components.definition.after_total_work_hours` on `OVERTIME_EXCESS` components
 decides where a day's value is **reclassified**. That stays a pay-component concern rather than an
-`overtime_limits` row, because `on_exceed` offers only `WARN | BLOCK` and no `RECLASSIFY` — moving
+statutory limit, because `on_exceed` offers only `WARN | BLOCK` and no `RECLASSIFY` — moving
 value between components is not the same act as refusing the run, and the two now happen for
 separate reasons: the component reclassifies, the limit refuses.
 
-#### Coverage — `overtime_coverage_rules`, three rows
+#### Coverage — one nullable member per snapshot
 
-Seeded in Core alongside the ladders. One effective-dated, cited row per jurisdiction decides
-**who** the ladder applies to, as distinct from what an hour is worth.
+Seeded in Core inside each jurisdiction snapshot. The nullable, cited member decides **who** the
+ladder applies to, as distinct from what an hour is worth.
 
 | Column                                  | Meaning                                                                |
 | --------------------------------------- | ---------------------------------------------------------------------- |
@@ -738,22 +740,21 @@ Seeded in Core alongside the ladders. One effective-dated, cited row per jurisdi
 | `category_basis` (enum)                 | Which employment column the two arrays name values from                |
 | `exempt_categories` (text[])            | Covered whatever the wage                                              |
 | `excluded_categories` (text[])          | Never covered, whatever the wage                                       |
-| `authority`, `effective_range`          | As every other statutory row                                           |
+| `authority`                             | Citation for the member; the parent snapshot owns `effective_range`    |
 
-`decideOvertimeCoverage` in `payroll_runs/lib/coverage.ts` reads a resolved row and returns
+`decideOvertimeCoverage` in `payroll_runs/lib/coverage.ts` reads the snapshot member and returns
 `COVERED`, `NOT_COVERED` or `UNDETERMINED`. Order is exclusion, then exemption, then the ceiling: a
 statute that disapplies a whole Part to a class of worker outranks a wage test, and a category
 written "irrespective of the amount of wages he earns" outranks it too. **No row means covered.**
 
-#### Breaks — `rest_break_rules`, four rows
+#### Breaks — members of the same snapshot
 
 `after_consecutive_hours` (nullable), `minimum_minutes`, `counts_as_worked_time` (nullable),
-`applies_when`, plus authority and effective range. The window is the field the flat
+`applies_when`, plus authority. The parent jurisdiction owns the effective range. The window is the field the flat
 `break_minutes` columns cannot supply: those record how long a break was, never when it was owed.
 
-The run picks these rows with the rest of its law — `pickConfiguration` resolves them by
-jurisdiction and effective date, and the resolved set joins the configuration snapshot, so a run
-can say which break rules governed it. **Nothing enforces them yet**: whether a break was actually
+The run picks the jurisdiction snapshot once and records its complete regime, so it can say which
+break requirements governed it. **Nothing enforces them yet**: whether a break was actually
 taken is a question over punches (`time_entries`, `shift_definitions`), which payroll does not
 answer. The rows are law made addressable, and the figures a future check will quote are already
 the statute's, not a literal waiting to be copied.
@@ -854,9 +855,9 @@ it: **Employment Act 1955 s.60A(7)**, with **s.60C(2)** for shift work — "no e
 any employee under any circumstances to work for more than twelve hours in any one day", except in
 the s.60A(2)(a)–(e) circumstances. It is a real statutory cap, so it moved into data.
 
-It could not go into `overtime_limits` as it stood. That collection's `max_hours` meant _overtime_
+It could not go into the earlier limit shape as it stood. Its `max_hours` meant _overtime_
 hours — 104 a month — and this 12 counts **all** hours worked. The Core decomposition report had
-already refused a total-hours cap for Singapore on exactly that ground. So `overtime_limits` gained
+already refused a total-hours cap for Singapore on exactly that ground. The nested limit gained
 `measures: OVERTIME_HOURS | TOTAL_WORK_HOURS`, every existing row states which it is, and the two
 consumers each read only their own kind. Read the wrong way, a 12 meant as total hours becomes a
 licence for twelve hours of overtime on top of a full shift.
@@ -887,13 +888,13 @@ A jurisdiction that states no daily limit now has none enforced, rather than inh
   applies only below a salary threshold. Listed in `OVERTIME_COVERAGE_UNRESEARCHED`.
 - **s.60A(1)(b)–(d) hours limits** — eight a day, a ten-hour spread, forty-five a week. Recorded in
   `MY_HOURS_OF_WORK_LIMITS_UNMODELLED`. These bound _normal_ hours and the shape of a working week;
-  `overtime_limits` bounds a quantity a run measures, and none of the three is that.
+  the nested statutory limits bound a quantity a run measures, and none of the three is that.
 - **PP 35/2021 Pasal 26 hour caps** (4/day, 18/week) and **Pasal 29 meal provision** (1,400 kcal
   where overtime runs four hours or more, not commutable to money). Recorded in Core, not emitted:
   the Indonesian ladder is empty by an earlier decision, so there is no measured quantity to cap,
   and a calorie floor on provisions is not a rest period with a duration.
 - **`eligibility_rules` still cannot express any of this.** Its predicates carry no wage term and it
   reads `work_classification`, not `statutory_work_category`.
-- **Nothing enforces `rest_break_rules`.** The rows are picked and snapshotted with the run's
+- **Nothing enforces the nested rest-break requirements.** They are picked and snapshotted with the run's
   configuration, but whether a break was taken is measured from clock data, which is `time_entries`
   and `shift_definitions` work.
