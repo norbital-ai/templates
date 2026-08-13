@@ -10,7 +10,6 @@ import {
 	PHOTO_INTEGRITY_INSPECTION_PROFILE,
 	photoInspectionSchema,
 	photoIntegrityFlags,
-	suspectPhotoFlags,
 	VISUAL_DUPLICATE_MAX_L2,
 	type PhotoIntegrityFlag
 } from './lib/photo-integrity.js';
@@ -123,30 +122,6 @@ async function resolveSiteLocation(
 	return site?.location ?? null;
 }
 
-async function markAssignmentSuspect(
-	api: PhotoAfterApi,
-	jobAssignmentId: string | null | undefined,
-	variationRequestId: string | null | undefined
-): Promise<void> {
-	let assignmentId = jobAssignmentId;
-	if ((assignmentId == null || assignmentId === '') && variationRequestId != null) {
-		const variation = await api.db.query.variation_requests.findFirst({
-			where: { norbital_id: { eq: variationRequestId } },
-			columns: { job_assignment_id: true }
-		});
-		assignmentId = variation?.job_assignment_id ?? null;
-	}
-	if (assignmentId == null || assignmentId === '') return;
-
-	const assignment = await api.db.query.job_assignments.findFirst({
-		where: { norbital_id: { eq: assignmentId } },
-		columns: { status: true }
-	});
-	if (assignment?.status === 'suspect') return;
-
-	await api.db.mutate('job_assignments', [{ norbital_id: assignmentId, status: 'suspect' }]);
-}
-
 async function assignmentIdForEvidence(
 	api: PhotoAfterApi,
 	evidence: { job_assignment_id?: string | null; variation_request_id?: string | null }
@@ -231,8 +206,6 @@ async function runAfterPhoto(record: PhotoRecord, api: PhotoAfterApi): Promise<v
 			matched_evidence_ids: [...matchedIds]
 		}
 	]);
-	if (!suspectPhotoFlags.some((flag) => mergedFlags.includes(flag))) return;
-	await markAssignmentSuspect(api, record.job_assignment_id, record.variation_request_id);
 }
 
 async function preparePhoto(
@@ -429,7 +402,7 @@ export default {
 		},
 		after: {
 			description:
-				'Compares a newly filed photo against the rest of the evidence by hash and visual likeness, records cross-assignment reuse, and immediately marks that assignment suspect when reuse is found.',
+				'Compares a newly filed photo against the rest of the evidence by hash and visual likeness and records deterministic evidence attributes for the multimodal review layer.',
 			batchHandler: async ({ records, api }) => {
 				const columns = {
 					norbital_id: true,
@@ -490,27 +463,6 @@ export default {
 						flags: update.flags,
 						matched_evidence_ids: update.matchedEvidenceIds
 					}))
-				);
-				const suspectAssignmentIds = new Set(
-					planned.flatMap((update) =>
-						update.assignmentId && suspectPhotoFlags.some((flag) => update.flags.includes(flag))
-							? [update.assignmentId]
-							: []
-					)
-				);
-				if (suspectAssignmentIds.size === 0) return;
-				const assignments = await api.db.query.job_assignments.findMany({
-					where: { norbital_id: { in: [...suspectAssignmentIds] } },
-					columns: { norbital_id: true, status: true },
-					limit: MAX_BATCH_DUPLICATE_CORPUS
-				});
-				await api.db.mutate(
-					'job_assignments',
-					assignments.flatMap((assignment) =>
-						assignment.status === 'suspect'
-							? []
-							: [{ norbital_id: assignment.norbital_id, status: 'suspect' as const }]
-					)
 				);
 			},
 			handler: async ({ record, api }) => {
