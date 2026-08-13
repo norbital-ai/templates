@@ -46,6 +46,7 @@
 	let companyId = $state<string | null>(null);
 	let month = $state<string>(monthKey(todayKey()));
 	let publishing = $state(false);
+	let creatingDraft = $state(false);
 	let assignmentOpen = $state(false);
 	let assignmentEmploymentId = $state<string | null>(null);
 	let assignmentDate = $state<string | null>(null);
@@ -236,8 +237,19 @@
 		return client.db.roster_entries.findMany({
 			where: {
 				...approved,
-				roster_entry_employment: { ...approved, company_id: { eq: selectedCompanyId } },
-				work_date: { gte: monthStart, lte: monthEnd }
+				work_date: { gte: monthStart, lte: monthEnd },
+				...(monthEmployments.length > 0
+					? { employment_id: { in: monthEmployments.map((e) => e.norbital_id) } }
+					: {
+							roster_entry_employment: { ...approved, company_id: { eq: selectedCompanyId } }
+						})
+			},
+			columns: {
+				norbital_id: true,
+				employment_id: true,
+				work_date: true,
+				shift_definition_id: true,
+				assignment_code: true
 			},
 			limit: 5000
 		});
@@ -254,8 +266,19 @@
 			{
 				where: {
 					...approved,
-					roster_entry_employment: { ...approved, company_id: { eq: selectedCompanyId } },
-					work_date: { gte: monthStart, lte: monthEnd }
+					work_date: { gte: monthStart, lte: monthEnd },
+					...(monthEmployments.length > 0
+						? { employment_id: { in: monthEmployments.map((e) => e.norbital_id) } }
+						: {
+								roster_entry_employment: { ...approved, company_id: { eq: selectedCompanyId } }
+							})
+				},
+				columns: {
+					norbital_id: true,
+					employment_id: true,
+					work_date: true,
+					shift_definition_id: true,
+					assignment_code: true
 				},
 				limit: 5000
 			},
@@ -268,8 +291,18 @@
 		return client.db.time_entries.findMany({
 			where: {
 				...approved,
-				time_entry_employment: { ...approved, company_id: { eq: selectedCompanyId } },
-				work_date: { gte: monthStart, lte: monthEnd }
+				work_date: { gte: monthStart, lte: monthEnd },
+				...(monthEmployments.length > 0
+					? { employment_id: { in: monthEmployments.map((e) => e.norbital_id) } }
+					: {
+							time_entry_employment: { ...approved, company_id: { eq: selectedCompanyId } }
+						})
+			},
+			columns: {
+				norbital_id: true,
+				employment_id: true,
+				work_date: true,
+				worked_intervals: true
 			},
 			limit: 5000
 		});
@@ -434,6 +467,24 @@
 	/** Rebuilds every board query in place; the month, the search and the filters all survive it. */
 	async function reloadBoard(): Promise<void> {
 		reloadToken += 1;
+	}
+
+	async function createDraftMonth(): Promise<void> {
+		if (selectedCompanyId == null) return;
+		const create = client.db.rosters.create;
+		if (create == null) {
+			toast.error(t('app.scheduling.toast_draft_not_permitted'));
+			return;
+		}
+		creatingDraft = true;
+		try {
+			await create({ company_id: selectedCompanyId, month, published_at: null });
+			toast.success(t('app.scheduling.toast_draft_created', { month }));
+		} catch (error) {
+			toast.error(error instanceof Error ? error.message : t('app.scheduling.toast_draft_failed'));
+		} finally {
+			creatingDraft = false;
+		}
 	}
 
 	async function publish(rosterId: string): Promise<void> {
@@ -696,6 +747,9 @@
 				<Badge variant="outline">
 					{t('app.scheduling.person_days_to_plan', { count: progress.personDays.toLocaleString() })}
 				</Badge>
+				<Button size="sm" disabled={creatingDraft || publishing} onclick={() => createDraftMonth()}>
+					{t('app.scheduling.create_draft_month')}
+				</Button>
 			{:else}
 				{#each rosters as roster (roster.norbital_id)}
 					<Inline gap="xs">

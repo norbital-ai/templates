@@ -164,7 +164,8 @@ export default ((r) => ({
 			from: r.repayment_agreements.pay_component_id,
 			to: r.pay_components.norbital_id
 		}),
-		agreement_instalments: r.many.component_entries()
+		agreement_instalments: r.many.component_entries(),
+		payslip_line_repayment_agreement: r.many.payslip_lines()
 	},
 
 	leave_requests: {
@@ -242,6 +243,10 @@ export default ((r) => ({
 		payslip_line_statutory_contribution: r.one.statutory_contributions({
 			from: r.payslip_lines.statutory_contribution_id,
 			to: r.statutory_contributions.norbital_id
+		}),
+		payslip_line_repayment_agreement: r.one.repayment_agreements({
+			from: r.payslip_lines.repayment_agreement_id,
+			to: r.repayment_agreements.norbital_id
 		})
 	}
 })) satisfies Relationships;

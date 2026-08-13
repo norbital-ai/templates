@@ -3,8 +3,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { measureEmployment } from './lib/measure.ts';
 import { settle } from './lib/settle.ts';
-import { entryPayPeriod } from './lib/entries.ts';
-import { attendanceWindow, resolveWindow } from './lib/period.ts';
+import { defaultPayPeriod, attendanceWindow, resolveWindow } from './lib/period.ts';
 import { PLAIN_CALENDAR } from './lib/settlement.ts';
 
 const JURISDICTION = {
@@ -83,9 +82,13 @@ function configuration(payComponents = [BASIC, LOAN], rosterCodes = []) {
 
 /**
  * The agreement in the report: employment NHPMY0290, six monthly instalments from 2026-04-01, the
- * first of which settles in the 2026-04 run.
+ * first of which settles in the 2026-04 run under a cutoff of 21.
  */
-function instalment(sequence, dueDate, amount) {
+function instalment(dueDate, amount) {
+	return { due_date: dueDate, amount };
+}
+
+function leftoverEntry(sequence, dueDate, amount) {
 	return {
 		norbital_id: `entry-${sequence}`,
 		employment_id: 'emp-nhpmy0290',
@@ -93,7 +96,6 @@ function instalment(sequence, dueDate, amount) {
 		amount,
 		quantity: 1,
 		event_date: dueDate,
-		// exactly what repayment_agreements/+hooks.ts materialises
 		pay_period: dueDate.slice(0, 7),
 		description: `Hari Raya 2026 (NHPMY0290) · repayment ${sequence}/6`,
 		origin: {
@@ -102,6 +104,18 @@ function instalment(sequence, dueDate, amount) {
 			sequence,
 			of: 6
 		}
+	};
+}
+
+function agreement(schedule) {
+	return {
+		norbital_id: 'agr-hari-raya-2026',
+		employment_id: 'emp-nhpmy0290',
+		pay_component_id: LOAN.norbital_id,
+		reference: 'Hari Raya 2026 (NHPMY0290)',
+		principal: 1000,
+		schedule,
+		effective_range: { start: '2026-04-01', end: null }
 	};
 }
 
@@ -115,13 +129,13 @@ const GUARANTEED_PATTERN = {
 	}
 };
 
-function bundle(entries, baseSalary = 3000, schedule = {}) {
+function bundle(entries, baseSalary = 3000, extras = {}) {
 	const terms = {
 		norbital_id: 'terms-1',
 		employment_id: 'emp-nhpmy0290',
 		base_salary: { value: baseSalary, currency: 'MYR' },
 		pay_frequency: 'MONTHLY',
-		work_pattern: schedule.workPattern ?? GUARANTEED_PATTERN,
+		work_pattern: extras.workPattern ?? GUARANTEED_PATTERN,
 		statutory_work_category: 'NON_MANUAL',
 		effective_range: { start: '2020-01-01', end: null }
 	};
@@ -145,8 +159,8 @@ function bundle(entries, baseSalary = 3000, schedule = {}) {
 		entries,
 		ledger: [],
 		timeEntries: [],
-		rosterEntries: schedule.rosterEntries ?? [],
-		agreements: [],
+		rosterEntries: extras.rosterEntries ?? [],
+		agreements: extras.agreements ?? [],
 		serviceMonths: 58,
 		age: 36,
 		employedDays: { start: '2026-04-01', end: '2026-04-30' },
@@ -170,48 +184,72 @@ function measureApril(entries, options = {}) {
 	});
 }
 
+const APRIL_SCHEDULE = [
+	instalment('2026-04-01', 167),
+	instalment('2026-05-01', 167),
+	instalment('2026-06-01', 167),
+	instalment('2026-07-01', 167),
+	instalment('2026-08-01', 167),
+	instalment('2026-09-01', 165)
+];
+
 test('a 2026-04-01 instalment settles in the 2026-04 run under a cutoff day of 21', () => {
-	// Both of the premises hold: the due date is inside the April attendance window, and the
-	// materialised pay_period names the April run outright.
 	assert.deepEqual(attendanceWindow('2026-04', 21), { start: '2026-03-21', end: '2026-04-20' });
 	assert.equal(resolveWindow('2026-04', COMPANY).period, '2026-04');
-	assert.equal(entryPayPeriod(instalment(1, '2026-04-01', 167), 21), '2026-04');
+	assert.equal(defaultPayPeriod('2026-04-01', 21), '2026-04');
+	assert.equal(defaultPayPeriod('2026-04-25', 21), '2026-05');
 });
 
 test('the April run writes a payslip line linked to the April instalment', () => {
-	const measured = measureApril([instalment(1, '2026-04-01', 167)]);
+	const measured = measureApril([], { agreements: [agreement([instalment('2026-04-01', 167)])] });
 	const loanLines = measured.lines.filter((line) => line.payComponent.code === 'HARI_RAYA_2026');
 
 	assert.equal(loanLines.length, 1, 'the instalment must produce exactly one deduction line');
 	assert.equal(loanLines[0].amount, 167, 'a loan instalment is never prorated');
 	assert.deepEqual(loanLines[0].component, {
-		kind: 'COMPONENT_ENTRY_ONCE',
+		kind: 'LOAN_INSTALMENT',
 		pay_component_id: LOAN.norbital_id,
-		component_entry_id: 'entry-1'
+		agreement_id: 'agr-hari-raya-2026',
+		sequence: 1
 	});
 });
 
-test('only the instalment whose pay_period names this run is deducted', () => {
-	const schedule = [
-		instalment(1, '2026-04-01', 167),
-		instalment(2, '2026-05-01', 167),
-		instalment(3, '2026-06-01', 167),
-		instalment(4, '2026-07-01', 167),
-		instalment(5, '2026-08-01', 167),
-		instalment(6, '2026-09-01', 165)
-	];
-	const measured = measureApril(schedule);
+test('only the instalment whose due date maps into this run is deducted', () => {
+	const measured = measureApril([], { agreements: [agreement(APRIL_SCHEDULE)] });
 	const linked = measured.lines
 		.filter((line) => line.payComponent.code === 'HARI_RAYA_2026')
-		.map((line) => line.component.component_entry_id);
+		.map((line) => line.component.sequence);
 
-	assert.deepEqual(linked, ['entry-1']);
+	assert.deepEqual(linked, [1]);
+});
+
+test('an instalment due after the cutoff settles in the next period, not this month', () => {
+	const measured = measureApril([], {
+		agreements: [agreement([instalment('2026-04-25', 167)])]
+	});
+	assert.equal(
+		measured.lines.filter((line) => line.payComponent.code === 'HARI_RAYA_2026').length,
+		0
+	);
+});
+
+test('leftover LOAN_INSTALMENT component entries do not double-count the schedule', () => {
+	const measured = measureApril([leftoverEntry(1, '2026-04-01', 167)], {
+		agreements: [agreement([instalment('2026-04-01', 167)])]
+	});
+	const loanLines = measured.lines.filter((line) => line.payComponent.code === 'HARI_RAYA_2026');
+	assert.equal(loanLines.length, 1);
+	assert.equal(loanLines[0].component.kind, 'LOAN_INSTALMENT');
+	assert.equal(loanLines[0].amount, 167);
 });
 
 test('net-pay protection reduces the instalment but still links and still reports it', () => {
 	// A salary of 100 cannot absorb a 167 instalment: the guard must take net to zero rather than
 	// negative, and the remainder must survive as a reported shortfall.
-	const measured = measureApril([instalment(1, '2026-04-01', 167)], { baseSalary: 100 });
+	const measured = measureApril([], {
+		baseSalary: 100,
+		agreements: [agreement([instalment('2026-04-01', 167)])]
+	});
 	const settlement = settle({ lines: measured.lines, charges: [] });
 
 	assert.equal(settlement.net, 0);
@@ -221,7 +259,9 @@ test('net-pay protection reduces the instalment but still links and still report
 	// The line survives the guard, so PERSIST still writes it and the instalment still resolves to a
 	// payslip line — which is why a squeezed net can never present as "Not consumed".
 	assert.equal(loanLine.amount, 100);
-	assert.equal(loanLine.component.component_entry_id, 'entry-1');
+	assert.equal(loanLine.component.kind, 'LOAN_INSTALMENT');
+	assert.equal(loanLine.component.agreement_id, 'agr-hari-raya-2026');
+	assert.equal(loanLine.component.sequence, 1);
 });
 
 test('an ineligible loan component drops the instalment with no line at all', () => {
@@ -232,8 +272,9 @@ test('an ineligible loan component drops the instalment with no line at all', ()
 		...LOAN,
 		eligibility: [{ field: 'DEPARTMENT', in: ['ENGINEERING'] }]
 	};
-	const measured = measureApril([instalment(1, '2026-04-01', 167)], {
-		payComponents: [BASIC, ineligible]
+	const measured = measureApril([], {
+		payComponents: [BASIC, ineligible],
+		agreements: [agreement([instalment('2026-04-01', 167)])]
 	});
 
 	assert.equal(

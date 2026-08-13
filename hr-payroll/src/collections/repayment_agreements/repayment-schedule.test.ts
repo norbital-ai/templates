@@ -21,7 +21,7 @@ test('equal provisioning preserves the principal exactly in cents', () => {
 test('a schedule whose amounts do not equal principal is rejected', () => {
 	const issues = repaymentScheduleIssues({
 		principal: 100,
-		repayBy: '2026-02-28',
+		effectiveRange: { start: '2026-01-31', end: '2026-02-28' },
 		schedule: [
 			{ due_date: '2026-01-31', amount: 40 },
 			{ due_date: '2026-02-28', amount: 50 }
@@ -31,25 +31,53 @@ test('a schedule whose amounts do not equal principal is rejected', () => {
 	assert.ok(issues.some((issue) => issue.includes('90.00')));
 });
 
-test('a final instalment after repay-by is rejected', () => {
+test('a final instalment after the agreement period is rejected', () => {
 	const issues = repaymentScheduleIssues({
 		principal: 100,
-		repayBy: '2026-02-27',
+		effectiveRange: { start: '2026-01-31', end: '2026-02-27' },
 		schedule: [
 			{ due_date: '2026-01-31', amount: 50 },
 			{ due_date: '2026-02-28', amount: 50 }
 		]
 	});
 	assert.deepEqual(issues, [
-		'The final repayment 2026-02-28 is later than the repay-by date 2026-02-27.'
+		'The final repayment 2026-02-28 is later than the agreement period ending 2026-02-27.'
 	]);
 });
 
-test('the repay-by date itself is allowed', () => {
+test('the agreement period end itself is allowed', () => {
 	assert.deepEqual(
 		repaymentScheduleIssues({
 			principal: 100,
-			repayBy: '2026-02-28',
+			effectiveRange: { start: '2026-01-31', end: '2026-02-28' },
+			schedule: [
+				{ due_date: '2026-01-31', amount: 50 },
+				{ due_date: '2026-02-28', amount: 50 }
+			]
+		}),
+		[]
+	);
+});
+
+test('a final instalment before the agreement period start is rejected', () => {
+	const issues = repaymentScheduleIssues({
+		principal: 100,
+		effectiveRange: { start: '2026-03-01', end: '2026-03-31' },
+		schedule: [
+			{ due_date: '2026-01-31', amount: 50 },
+			{ due_date: '2026-02-28', amount: 50 }
+		]
+	});
+	assert.deepEqual(issues, [
+		'The final repayment 2026-02-28 is earlier than the agreement period starting 2026-03-01.'
+	]);
+});
+
+test('an open-ended agreement period does not bound the last due date', () => {
+	assert.deepEqual(
+		repaymentScheduleIssues({
+			principal: 100,
+			effectiveRange: { start: '2026-01-31', end: null },
 			schedule: [
 				{ due_date: '2026-01-31', amount: 50 },
 				{ due_date: '2026-02-28', amount: 50 }
@@ -62,7 +90,7 @@ test('the repay-by date itself is allowed', () => {
 test('dates must be unique and strictly increasing', () => {
 	const issues = repaymentScheduleIssues({
 		principal: 100,
-		repayBy: '2026-03-31',
+		effectiveRange: { start: '2026-02-28', end: '2026-03-31' },
 		schedule: [
 			{ due_date: '2026-02-28', amount: 50 },
 			{ due_date: '2026-02-28', amount: 50 }

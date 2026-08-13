@@ -126,18 +126,6 @@ export async function loadRunExports(
 	assertComplete(terms, 'employment terms');
 	assertComplete(timeEntries, 'time entries');
 	assertComplete(rosters, 'roster entries');
-	const componentEntryIds = [
-		...new Set(
-			lines.flatMap((line) => (line.component_entry_id == null ? [] : [line.component_entry_id]))
-		)
-	];
-	const componentEntries = componentEntryIds.length
-		? await api.db.query.component_entries.findMany({
-				where: { norbital_id: { in: componentEntryIds } },
-				limit: PAGE_LIMIT
-			})
-		: [];
-	assertComplete(componentEntries, 'component entries');
 
 	const employeeIds = [...new Set(employments.map((row) => row.employee_id))];
 	// Only working days name a shift; rest and off days schedule none.
@@ -174,7 +162,6 @@ export async function loadRunExports(
 		: [];
 
 	const componentById = new Map(payComponents.map((row) => [row.norbital_id, row]));
-	const entryById = new Map(componentEntries.map((row) => [row.norbital_id, row]));
 	const employmentById = new Map(employments.map((row) => [row.norbital_id, row]));
 	const employeeById = new Map(employees.map((row) => [row.norbital_id, row]));
 	const termsByEmployment = groupBy(terms, (row) => row.employment_id);
@@ -243,9 +230,7 @@ export async function loadRunExports(
 							isCompanyDirect:
 								definition?.source === 'ENTRY' && definition.settlement === 'COMPANY_DIRECT',
 							isClaim: definition?.source === 'ENTRY' && definition.cap != null,
-							isLoanInstalment:
-								line.component_entry_id != null &&
-								entryById.get(line.component_entry_id)?.origin?.kind === 'LOAN_INSTALMENT',
+							isLoanInstalment: line.component?.kind === 'LOAN_INSTALMENT',
 							overtimeDayType,
 							isOvertimeExcess: definition?.source === 'OVERTIME_EXCESS'
 						}

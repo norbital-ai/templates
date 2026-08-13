@@ -8,7 +8,6 @@ function instalmentOrigin(value: unknown) {
 }
 
 const LIMIT = 5000;
-type AfterApi = Parameters<NonNullable<NonNullable<Hooks['create']>['after']>['handler']>[0]['api'];
 type ReadApi = Parameters<NonNullable<NonNullable<Hooks['create']>['before']>['handler']>[0]['api'];
 
 function checked<T>(rows: T[], what: string): T[] {
@@ -20,7 +19,7 @@ function checked<T>(rows: T[], what: string): T[] {
 }
 
 async function agreementEntries(
-	api: ReadApi | AfterApi,
+	api: ReadApi,
 	agreement: Pick<WorkspaceRow<'repayment_agreements'>, 'norbital_id'>
 ) {
 	return checked(
@@ -79,99 +78,30 @@ async function protectPaidInstalments(
 	}
 }
 
-/** Synchronise the N payroll inputs from the agreement-owned schedule. */
-async function synchronizeInstalments(
-	api: AfterApi,
-	agreement: WorkspaceRow<'repayment_agreements'>,
-	existingEntries?: Awaited<ReturnType<typeof agreementEntries>>
-): Promise<void> {
-	if (!agreement.schedule) throw new Error('A repayment schedule is required.');
-	// A newly inserted agreement cannot already own component entries. The create hook passes an
-	// empty snapshot so it does not spend a remote SELECT proving that once per agreement; updates
-	// still read the live entries to preserve stable ids and paid-instalment protection.
-	const existing = existingEntries ?? (await agreementEntries(api, agreement));
-	const bySequence = new Map<number, (typeof existing)[number]>();
-	for (const entry of existing) {
-		const origin = instalmentOrigin(entry.origin);
-		if (!origin) continue;
-		if (bySequence.has(origin.sequence))
-			throw new Error(`Repayment ${origin.sequence} has more than one component entry.`);
-		bySequence.set(origin.sequence, entry);
-	}
-	const inputs = scheduledInstalmentInputs(agreement, bySequence);
-	if (inputs.length > 0) await api.db.mutate('component_entries', inputs);
-	const stale = existing.filter((entry) => {
-		const sequence = instalmentOrigin(entry.origin)?.sequence;
-		return sequence == null || sequence > agreement.schedule!.length;
-	});
-	if (stale.length > 0)
-		await api.db.delete(
-			'component_entries',
-			stale.map((entry) => entry.norbital_id)
-		);
-}
-
-function scheduledInstalmentInputs(
-	agreement: WorkspaceRow<'repayment_agreements'>,
-	bySequence: ReadonlyMap<number, Awaited<ReturnType<typeof agreementEntries>>[number]> = new Map()
-) {
-	if (!agreement.schedule) throw new Error('A repayment schedule is required.');
-	const count = agreement.schedule.length;
-	return agreement.schedule.map((instalment, index) => {
-		const sequence = index + 1;
-		const existingEntry = bySequence.get(sequence);
-		return {
-			...(existingEntry ? { norbital_id: existingEntry.norbital_id } : {}),
-			employment_id: agreement.employment_id,
-			pay_component_id: agreement.pay_component_id,
-			amount: instalment.amount,
-			quantity: 1,
-			event_date: instalment.due_date,
-			pay_period: instalment.due_date.slice(0, 7),
-			description: `${agreement.reference} · repayment ${sequence}/${count}`,
-			origin: {
-				kind: 'LOAN_INSTALMENT' as const,
-				agreement_id: agreement.norbital_id,
-				sequence,
-				of: count
-			}
-		};
-	});
-}
-
 export default {
 	create: {
 		before: {
 			description:
-				'Checks that the instalments add up to the principal and finish on or before the repay-by date, so a loan cannot be booked against a schedule that never clears it.',
+				'Checks that the instalments add up to the principal and finish inside the agreement period, so a loan cannot be booked against a schedule that never clears it.',
 			handler: async ({ input }) => {
 				assertRepaymentSchedule({
 					principal: input.principal,
-					repayBy: input.repay_by,
+					effectiveRange: input.effective_range,
 					schedule: input.schedule
 				});
 				return input;
 			}
-		},
-		after: {
-			description:
-				'Writes one deduction entry per scheduled instalment against the agreement’s employment and pay component, so the loan is recovered automatically by each payroll run.',
-			batchHandler: async ({ records, api }) => {
-				const inputs = records.flatMap((record) => scheduledInstalmentInputs(record));
-				if (inputs.length > 0) await api.db.mutate('component_entries', inputs);
-			},
-			handler: async ({ record, api }) => synchronizeInstalments(api, record, [])
 		}
 	},
 	update: {
 		before: {
 			description:
-				'Re-checks that the amended schedule still clears the principal by the repay-by date, and refuses to change the amount, due date, employment or component of any instalment already paid out on a payslip.',
+				'Re-checks that the amended schedule still clears the principal inside the agreement period, and refuses to change the amount, due date, employment or component of any instalment already paid out on a payslip.',
 			handler: async ({ input, existing, api }) => {
 				const principal = input.principal ?? existing.principal;
-				const repayBy = input.repay_by ?? existing.repay_by;
+				const effectiveRange = input.effective_range ?? existing.effective_range;
 				const schedule = input.schedule ?? existing.schedule;
-				assertRepaymentSchedule({ principal, repayBy, schedule });
+				assertRepaymentSchedule({ principal, effectiveRange, schedule });
 				await protectPaidInstalments(api, existing, {
 					employment_id: input.employment_id ?? existing.employment_id,
 					pay_component_id: input.pay_component_id ?? existing.pay_component_id,
@@ -179,11 +109,6 @@ export default {
 				});
 				return input;
 			}
-		},
-		after: {
-			description:
-				'Realigns the deduction entries with the amended schedule, updating each instalment in place and deleting the entries for instalments the schedule no longer has.',
-			handler: async ({ record, api }) => synchronizeInstalments(api, record)
 		}
 	},
 	delete: {

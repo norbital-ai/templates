@@ -22,6 +22,7 @@ import {
 	type IsoDate
 } from './dates.js';
 import { effectiveWithin, live, overlapsRange } from './effective.js';
+import { isLoanInstalmentEntry } from './entries.js';
 import type { LedgerRow } from './leave.js';
 import { taxYearFirstPeriod, taxYearOf, type PayrollWindow } from './period.js';
 import type { TimeEntryLike } from './overtime.js';
@@ -205,7 +206,10 @@ export async function gatherRun(options: {
 	const employeeById = new Map(live(employeeRows).map((row) => [row.norbital_id, row]));
 	const termsByEmployment = groupBy(live(termRows), (row) => row.employment_id);
 	const factsByEmployment = groupBy(live(factRows), (row) => row.employment_id);
-	const entriesByEmployment = groupBy(live(entryRows), (row) => row.employment_id);
+	const entriesByEmployment = groupBy(
+		live(entryRows).filter((entry) => !isLoanInstalmentEntry(entry)),
+		(row) => row.employment_id
+	);
 	/** Every approved leave row is already an event; normal requests become TAKEN movements while
 	 * the adjustment/encashment arms carry their exact signed movement. */
 	const leaveMovements: (LedgerRow & { readonly employment_id: string })[] = live(requestRows).map(

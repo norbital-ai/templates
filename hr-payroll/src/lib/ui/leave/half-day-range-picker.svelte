@@ -16,6 +16,7 @@
 	import { useI18n } from '@norbital-ai/ui/i18n';
 	import type { TenantI18nKeys } from '$pod/i18n-keys';
 	import { cn } from '@norbital-ai/ui/utils';
+	import { todayKey } from '../calendar.js';
 
 	type Props = {
 		value: HalfDayRange | null;
@@ -36,7 +37,7 @@
 	const { t } = useI18n<TenantI18nKeys>();
 
 	const DAY_MS = 86_400_000;
-	const today = new Date().toISOString().slice(0, 10);
+	const today = todayKey();
 	let visibleMonth = $state(today.slice(0, 7));
 	let open = $state(false);
 	let anchor = $state<HalfDayPoint | null>(null);
@@ -249,7 +250,7 @@
 				aria-label={t('component.leave_range')}
 				onpointerup={() => (dragging = false)}
 			>
-				{#each weekdays as weekday}
+				{#each weekdays as weekday (weekday)}
 					<span class="pb-1 text-center text-[0.6875rem] font-medium text-muted-foreground">
 						{weekday}
 					</span>
@@ -270,7 +271,7 @@
 							{Number(date.slice(8))}
 						</span>
 						<div class="grid grid-cols-2 p-0.5">
-							{#each ['FIRST', 'SECOND'] as half}
+							{#each ['FIRST', 'SECOND'] as half (half)}
 								{@const point = { date, half: half as DayHalf }}
 								<button
 									type="button"
@@ -301,15 +302,21 @@
 
 			<p class="text-xs text-muted-foreground">{t('component.drag_to_select')}</p>
 
-			{#if value != null}
+			{#if value == null}
+				<p class="text-xs text-muted-foreground">{t('component.leave_pick_range_first')}</p>
+			{:else}
 				<div class="rounded-md bg-muted/60 px-3 py-2 text-xs" aria-live="polite">
 					<p class="font-medium">{pointLabel(value.start)} → {pointLabel(value.end)}</p>
-					<p class="text-muted-foreground">
-						{t('component.chargeable_leave_days', { days: chargeableDays })}
-						{#if excludedInside > 0}
-							· {t('component.excluded_non_work_days', { count: excludedInside })}
-						{/if}
-					</p>
+					{#if chargeableDays === 0}
+						<p class="text-destructive">{t('component.leave_no_chargeable_days')}</p>
+					{:else}
+						<p class="text-muted-foreground">
+							{t('component.chargeable_leave_days', { days: chargeableDays })}
+							{#if excludedInside > 0}
+								· {t('component.excluded_non_work_days', { count: excludedInside })}
+							{/if}
+						</p>
+					{/if}
 				</div>
 			{/if}
 			{#if limitReached}
