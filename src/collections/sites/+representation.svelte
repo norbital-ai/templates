@@ -134,7 +134,6 @@
 	{/snippet}
 
 	<Tabs
-		lazyLoad={false}
 		animate={false}
 		contentPadding={false}
 		listClass="mx-0 w-full"
