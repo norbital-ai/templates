@@ -173,6 +173,11 @@ Overtime is never a roster kind, time-entry state or entered number.
 6. **Approve/settle:** approval is workflow evidence; payroll remains reproducible from the plan,
    observation, policy and decision.
 
+The pure scheduled-extra-work detector is implemented, but the current hook API cannot conditionally
+open an approval from the joined schedule and holiday derivation. That remains a platform approval
+capability gap. Until the capability exists, the template must not add a stored `requires_approval`
+or overtime field, and it must not gate every roster edit as a substitute.
+
 Whether somebody is legally/contractually covered is derived from policy plus effective employment
 facts. It is not an `overtime_eligible` boolean on employment terms.
 
