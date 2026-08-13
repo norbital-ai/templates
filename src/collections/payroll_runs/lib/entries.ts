@@ -82,9 +82,21 @@ export function rootEntry(
 	return current;
 }
 
+/** Whether this entry is a leftover loan-instalment seed row, not ordinary payroll input. */
+export function isLoanInstalmentEntry(entry: ComponentEntry): boolean {
+	return entry.origin?.kind === 'LOAN_INSTALMENT';
+}
+
+function claimIncurredOn(entry: ComponentEntry): IsoDate | null {
+	if (entry.origin?.kind !== 'CLAIM') return null;
+	return dateKey(entry.origin.incurred_on);
+}
+
 /** Which run an entry settles in. The stored `pay_period` wins; the cutoff supplies the default. */
 export function entryPayPeriod(entry: ComponentEntry, cutoffDay: number): string {
 	if (entry.pay_period != null && entry.pay_period !== '') return entry.pay_period;
+	const incurred = claimIncurredOn(entry);
+	if (incurred != null) return defaultPayPeriod(incurred, cutoffDay);
 	const eventDate = dateKey(entry.event_date);
 	if (eventDate == null)
 		throw new Error(`Component entry ${entry.norbital_id} has no event date to settle by.`);
@@ -97,6 +109,8 @@ export function entryEventDate(
 	byId: ReadonlyMap<string, ComponentEntry>
 ): IsoDate {
 	const root = rootEntry(entry, byId);
+	const incurred = claimIncurredOn(root);
+	if (incurred != null) return incurred;
 	const date = dateKey(root.event_date);
 	if (date == null) throw new Error(`Component entry ${root.norbital_id} has no event date.`);
 	return date;

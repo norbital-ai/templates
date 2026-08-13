@@ -26,6 +26,12 @@ export default defineModel(
 		statutory_contribution_id: uuid().generatedAlwaysAs(
 			sql`CASE WHEN component ->> 'kind' IN ('STATUTORY_EMPLOYEE', 'STATUTORY_EMPLOYER') THEN (component ->> 'statutory_contribution_id')::uuid END`
 		),
+		repayment_agreement_id: uuid().generatedAlwaysAs(
+			sql`CASE WHEN component ->> 'kind' = 'LOAN_INSTALMENT' THEN (component ->> 'agreement_id')::uuid END`
+		),
+		repayment_sequence: integer().generatedAlwaysAs(
+			sql`CASE WHEN component ->> 'kind' = 'LOAN_INSTALMENT' THEN (component ->> 'sequence')::integer END`
+		),
 		bucket: enums([
 			'EARNING',
 			'ABSENCE',
@@ -40,7 +46,7 @@ export default defineModel(
 	},
 	{
 		description:
-			'One settled component on a payslip and the only junction table. Its strict union links directly to a configured pay component, an entered component event, or a statutory scheme.',
+			'One settled component on a payslip and the only junction table. Its strict union links directly to a configured pay component, an entered component event, a loan agreement instalment, unpaid leave requests, or a statutory scheme.',
 		recordLabel: ['bucket', 'amount'],
 		icon: 'lucide:list',
 		indexes: [
@@ -56,6 +62,11 @@ export default defineModel(
 				columns: ['component_entry_id'],
 				unique: true,
 				where: '"component_entry_usage" = \'SINGLE_USE\''
+			},
+			{
+				columns: ['repayment_agreement_id', 'payslip_id', 'repayment_sequence'],
+				unique: true,
+				where: '"repayment_agreement_id" IS NOT NULL'
 			}
 		]
 	}

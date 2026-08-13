@@ -66,9 +66,15 @@ export function repaymentScheduleTotal(schedule: readonly { amount: number }[]):
  * The same cross-field validation is used by the browser form and the collection hooks. Returning
  * messages rather than throwing lets the form attach every issue before the server repeats it.
  */
+function calendarDay(value: unknown): string | null {
+	const key = String(value ?? '').slice(0, 10);
+	if (!DATE.test(key) || Number.isNaN(Date.parse(`${key}T00:00:00.000Z`))) return null;
+	return key;
+}
+
 export function repaymentScheduleIssues(input: {
 	readonly principal: unknown;
-	readonly repayBy: unknown;
+	readonly effectiveRange: unknown;
 	readonly schedule: unknown;
 }): string[] {
 	const issues: string[] = [];
@@ -81,9 +87,22 @@ export function repaymentScheduleIssues(input: {
 		issues.push(cause instanceof Error ? cause.message : String(cause));
 	}
 
-	const repayBy = String(input.repayBy ?? '').slice(0, 10);
-	if (!DATE.test(repayBy) || Number.isNaN(Date.parse(`${repayBy}T00:00:00.000Z`)))
-		issues.push('Repay-by date must be a valid date.');
+	const range =
+		input.effectiveRange != null && typeof input.effectiveRange === 'object'
+			? input.effectiveRange
+			: {};
+	const startRaw = Reflect.get(range, 'start');
+	const endRaw = Reflect.get(range, 'end');
+	let rangeStart: string | null = null;
+	let rangeEnd: string | null = null;
+	if (startRaw != null && startRaw !== '') {
+		rangeStart = calendarDay(startRaw);
+		if (rangeStart == null) issues.push('Agreement period start must be a valid date.');
+	}
+	if (endRaw != null && endRaw !== '') {
+		rangeEnd = calendarDay(endRaw);
+		if (rangeEnd == null) issues.push('Agreement period end must be a valid date.');
+	}
 
 	if (!Array.isArray(input.schedule) || input.schedule.length === 0) {
 		issues.push('At least one repayment instalment is required.');
@@ -122,8 +141,14 @@ export function repaymentScheduleIssues(input: {
 			`Repayment instalments must total ${(principalCents / 100).toFixed(2)} exactly; ` +
 				`the current total is ${(totalCents / 100).toFixed(2)}.`
 		);
-	if (previous !== '' && DATE.test(repayBy) && previous > repayBy)
-		issues.push(`The final repayment ${previous} is later than the repay-by date ${repayBy}.`);
+	if (previous !== '' && rangeStart != null && previous < rangeStart)
+		issues.push(
+			`The final repayment ${previous} is earlier than the agreement period starting ${rangeStart}.`
+		);
+	if (previous !== '' && rangeEnd != null && previous > rangeEnd)
+		issues.push(
+			`The final repayment ${previous} is later than the agreement period ending ${rangeEnd}.`
+		);
 	return [...new Set(issues)];
 }
 
@@ -131,19 +156,19 @@ export function repaymentScheduleIssues(input: {
  * Throw the collected issues, and narrow on the way through.
  *
  * The validation is `repaymentScheduleIssues`, which is cross-field — instalments must total the
- * principal to the cent, dates must strictly increase, the last one must not pass the repay-by date
+ * principal to the cent, dates must strictly increase, the last one must fall inside effective_range
  * — and reports every failure at once so the form can attach them all. A schema would check the
  * shape and still leave those three to hand-written code, so the predicate follows the validator
  * rather than replacing it.
  */
 export function assertRepaymentSchedule(input: {
 	readonly principal: unknown;
-	readonly repayBy: unknown;
+	readonly effectiveRange: unknown;
 	readonly schedule: unknown;
 	// stupidity:allow R5b -- repaymentScheduleIssues above is the validator; this only narrows.
 }): asserts input is {
 	readonly principal: number;
-	readonly repayBy: string | Date;
+	readonly effectiveRange: { start?: string; end?: string | null };
 	readonly schedule: RepaymentSchedule;
 } {
 	const issues = repaymentScheduleIssues(input);

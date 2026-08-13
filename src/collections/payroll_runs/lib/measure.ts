@@ -45,10 +45,12 @@ import {
 	entryEventDate,
 	entryPayPeriod,
 	entrySign,
+	isLoanInstalmentEntry,
 	prorates,
 	recurringRange,
 	type ComponentEntry
 } from './entries.js';
+import { defaultPayPeriod } from './period.js';
 import { evaluateFormula, type FormulaContext } from './formula.js';
 import type { EmploymentBundle } from './gather.js';
 import {
@@ -434,7 +436,7 @@ export function measureEmployment(options: {
 		entry.origin.covers_periods.length === 1 &&
 		entry.origin.covers_periods[0] === bundle.arrearsFor.period;
 	const periodEntries = bundle.entries.filter((entry) => {
-		if (ownedArrears(entry)) return false;
+		if (isLoanInstalmentEntry(entry) || ownedArrears(entry)) return false;
 		const recurring = recurringRange(entry);
 		if (recurring == null) return entryPayPeriod(entry, cutoffDay) === options.period;
 		return (
@@ -792,6 +794,19 @@ export function measureEmployment(options: {
 		}
 	}
 
+	for (const line of measureLoanInstalments({
+		bundle,
+		configuration,
+		period: options.period,
+		cutoffDay,
+		subject
+	})) {
+		const running = (componentAmounts.get(line.payComponent.code) ?? 0) + line.amount;
+		componentAmounts.set(line.payComponent.code, running);
+		componentsByCode[line.payComponent.code] = running;
+		lines.push({ ...line, sequence: lines.length + 1 });
+	}
+
 	return {
 		bundle,
 		lines,
@@ -853,6 +868,52 @@ function measureArrears(options: {
 	// on it is this run's job, on this run's combined wage, which is what the source system does.
 	const amount = settle({ lines: measured.lines, charges: [] }).gross;
 	return amount <= 0 ? null : { period: owed.period, payComponentId, amount };
+}
+
+/**
+ * Loan recovery from the gathered agreement schedule — not from leftover component_entries.
+ *
+ * Each instalment belongs to the run `defaultPayPeriod(due_date, cutoff)` names, so a 21st cutoff
+ * is honoured. An ineligible or non-deduction component produces nothing at all, matching the rest
+ * of MEASURE.
+ */
+function measureLoanInstalments(options: {
+	readonly bundle: EmploymentBundle;
+	readonly configuration: Configuration;
+	readonly period: string;
+	readonly cutoffDay: number;
+	readonly subject: EligibilitySubject;
+}): MeasuredLine[] {
+	const lines: MeasuredLine[] = [];
+	const componentById = new Map(
+		options.configuration.payComponents.map((component) => [component.norbital_id, component])
+	);
+	for (const agreement of options.bundle.agreements) {
+		const component = componentById.get(agreement.pay_component_id);
+		if (component == null || component.nature !== 'DEDUCTION') continue;
+		if (!isEligible(component.eligibility, options.subject)) continue;
+		const schedule = agreement.schedule ?? [];
+		for (const [index, row] of schedule.entries()) {
+			const due = dateKey(row.due_date) ?? String(row.due_date).slice(0, 10);
+			if (defaultPayPeriod(due, options.cutoffDay) !== options.period) continue;
+			const amount = cents(Number(row.amount));
+			if (amount <= 0) continue;
+			lines.push({
+				payComponent: component,
+				component: {
+					kind: 'LOAN_INSTALMENT',
+					pay_component_id: component.norbital_id,
+					agreement_id: agreement.norbital_id,
+					sequence: index + 1
+				},
+				amount,
+				quantity: null,
+				rate: null,
+				sequence: 0
+			});
+		}
+	}
+	return lines;
 }
 
 type Measurement = {
@@ -1080,7 +1141,14 @@ function measureComponent(options: {
 				amount: cents(Math.abs(amount)),
 				quantity,
 				rate: definition.unit === 'RATE' ? cents(Math.abs(amount)) : null,
-				component: { kind: 'FORMULA', pay_component_id: options.component.norbital_id }
+				component:
+					options.unpaid != null
+						? {
+								kind: 'LEAVE_UNPAID',
+								pay_component_id: options.component.norbital_id,
+								leave_request_ids: [...options.unpaid.leaveRequestIds]
+							}
+						: { kind: 'FORMULA', pay_component_id: options.component.norbital_id }
 			};
 		}
 

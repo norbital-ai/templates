@@ -31,7 +31,7 @@
 	import { completedMonths } from '../../collections/payroll_runs/lib/dates.js';
 	import { patternRosterCodeId } from '../../lib/scheduling/work-pattern.js';
 	import { rosterCodeKind } from '../../lib/scheduling/roster-code.js';
-	import { calendarDayKey } from '../../lib/ui/calendar.js';
+	import { calendarDayKey, shiftDayKey, todayKey } from '../../lib/ui/calendar.js';
 	import { leaveEventSchema } from './+definition.js';
 	import type { RendererProps, Value } from './$types.js';
 	type LeaveEventRendererProps = RendererProps & { readonly row?: Record<string, unknown> };
@@ -194,6 +194,14 @@
 	});
 
 	function leaveDayAvailability(date: string): LeaveDayAvailability {
+		if (
+			termsQuery?.loading === true ||
+			rosterQuery?.loading === true ||
+			holidaysQuery?.loading === true ||
+			rosterCodesQuery?.loading === true
+		) {
+			return { eligible: true };
+		}
 		if (holidayDates.has(date)) {
 			return { eligible: false, reason: t('component.excluded_public_holiday') };
 		}
@@ -207,8 +215,12 @@
 		} catch {
 			return { eligible: false, reason: t('component.excluded_no_schedule') };
 		}
-		const code = codeId == null ? null : rosterCodeById.get(codeId);
-		if (code == null || rosterCodeKind(code.variant) !== 'WORK') {
+		if (codeId == null) {
+			if (term.work_pattern?.type === 'ROSTERED') return { eligible: true };
+			return { eligible: false, reason: t('component.excluded_rest_or_off') };
+		}
+		const code = rosterCodeById.get(codeId);
+		if (code != null && rosterCodeKind(code.variant) !== 'WORK') {
 			return { eligible: false, reason: t('component.excluded_rest_or_off') };
 		}
 		return { eligible: true };
@@ -227,14 +239,23 @@
 		if (props.mode === 'edit') props.onValueChange(next);
 	}
 
-	/** Today, so a new event opens on a real date rather than a blank one that cannot validate. */
+	/** Today in the payroll timezone, so a new event opens on a real local date. */
 	function today(): string {
-		return new Date().toISOString().slice(0, 10);
+		return todayKey();
+	}
+
+	function defaultTimeOffDate(): string {
+		const on = today();
+		for (let offset = 0; offset <= 42; offset += 1) {
+			const date = shiftDayKey(on, offset);
+			if (leaveDayAvailability(date).eligible) return date;
+		}
+		return on;
 	}
 
 	function defaultFor(kind: EventKind): Value {
-		const on = today();
-		if (kind === 'TIME_OFF')
+		if (kind === 'TIME_OFF') {
+			const on = defaultTimeOffDate();
 			return {
 				kind: 'TIME_OFF',
 				range: {
@@ -245,6 +266,8 @@
 				reason: null,
 				certificate_file: null
 			};
+		}
+		const on = today();
 		return {
 			kind: kind === 'ENCASHMENT' ? 'ENCASHMENT' : 'BALANCE_ADJUSTMENT',
 			effective_on: on,

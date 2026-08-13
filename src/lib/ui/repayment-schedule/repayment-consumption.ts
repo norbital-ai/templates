@@ -99,10 +99,9 @@ function numeric(value: unknown): number | null {
 /**
  * The run an instalment settles in.
  *
- * `repayment_agreements/+hooks.ts` materialises every instalment with
- * `pay_period: instalment.due_date.slice(0, 7)`, and MEASURE selects an entry by an exact
- * `pay_period === run.period` match. So the due date names the run outright — the company's cutoff
- * day never enters into it, and this must keep deriving the period the same way the hook writes it.
+ * UI status for an unconsumed row uses the calendar month of the due date. MEASURE itself
+ * assigns the instalment with `defaultPayPeriod(due_date, cutoffDay)`; first-of-month due dates
+ * (the seeded loans) name the same period either way.
  */
 export function instalmentPayPeriod(dueDate: string): string {
 	return String(dueDate).slice(0, 7);
@@ -124,8 +123,8 @@ export function repaymentRunLifecycleByPeriod(
 /**
  * Index the single nested provenance query by the canonical schedule sequence.
  *
- * A schedule row is consumed only when its component entry has a source that reaches an exact
- * payslip line, payslip and payroll run. Partial links are not presented as a completed recovery.
+ * A schedule row is consumed only when a persisted payslip line for that agreement sequence
+ * reaches an exact payslip and payroll run. Partial links are not presented as a completed recovery.
  */
 export function repaymentConsumptionBySequence(
 	rows: readonly RepaymentConsumptionSourceRow[]

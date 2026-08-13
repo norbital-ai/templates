@@ -9,6 +9,9 @@
 
 import type { IsoDate } from './dates.js';
 
+/** Payroll calendar zone. Kept here so the engine never imports `lib/ui`. */
+const PAYROLL_TIME_ZONE = 'Asia/Kuala_Lumpur';
+
 /** The JSONB shape of a `dateRange()` column. `end` of `null` is open-ended. */
 export type StoredRange = { readonly start: string; readonly end: string | null };
 
@@ -20,20 +23,47 @@ function readRange(value: unknown): StoredRange | null {
 	return { start, end: typeof end === 'string' && end !== '' ? end : null };
 }
 
+/**
+ * Calendar day of a `dateRange()` instant in the payroll timezone.
+ *
+ * UTC `.slice(0, 10)` is forbidden: a KL midnight bound is the previous UTC day, so the first
+ * local day of a term would miss. Far-future seeds such as `9999-12-31T23:59:59.999Z` convert to
+ * a 5-digit year in KL; those fall back to the UTC day so lexicographic `YYYY-MM-DD` comparison
+ * still covers every real payroll date.
+ */
+function calendarDateInTimeZone(value: Date, timeZone: string): string {
+	const parts = new Intl.DateTimeFormat('en', {
+		timeZone,
+		year: 'numeric',
+		month: '2-digit',
+		day: '2-digit'
+	}).formatToParts(value);
+	const valueFor = (type: Intl.DateTimeFormatPartTypes) =>
+		parts.find((part) => part.type === type)?.value ?? '';
+	return `${valueFor('year')}-${valueFor('month')}-${valueFor('day')}`;
+}
+
+function rangeBoundDay(instant: string): IsoDate {
+	const at = new Date(instant);
+	if (Number.isNaN(at.getTime())) return instant.slice(0, 10);
+	const converted = calendarDateInTimeZone(at, PAYROLL_TIME_ZONE);
+	return converted.length === 10 ? converted : instant.slice(0, 10);
+}
+
 /** Whether an `effective_range` covers a calendar day. Both ends inclusive. */
 export function coversDate(range: unknown, date: IsoDate): boolean {
 	const parsed = readRange(range);
 	if (!parsed) return false;
-	if (parsed.start.slice(0, 10) > date) return false;
-	return parsed.end == null || parsed.end.slice(0, 10) >= date;
+	if (rangeBoundDay(parsed.start) > date) return false;
+	return parsed.end == null || rangeBoundDay(parsed.end) >= date;
 }
 
 /** Whether an `effective_range` touches any day of `[start, end]`. */
 export function overlapsRange(range: unknown, start: IsoDate, end: IsoDate): boolean {
 	const parsed = readRange(range);
 	if (!parsed) return false;
-	if (parsed.start.slice(0, 10) > end) return false;
-	return parsed.end == null || parsed.end.slice(0, 10) >= start;
+	if (rangeBoundDay(parsed.start) > end) return false;
+	return parsed.end == null || rangeBoundDay(parsed.end) >= start;
 }
 
 type Dated = { readonly effective_range?: unknown };
@@ -76,8 +106,9 @@ export function clipRange(
 ): { start: IsoDate; end: IsoDate } | null {
 	const parsed = readRange(range);
 	if (!parsed) return null;
-	const start = parsed.start.slice(0, 10) > window.start ? parsed.start.slice(0, 10) : window.start;
-	const rawEnd = parsed.end?.slice(0, 10) ?? window.end;
+	const rangeStart = rangeBoundDay(parsed.start);
+	const start = rangeStart > window.start ? rangeStart : window.start;
+	const rawEnd = parsed.end == null ? window.end : rangeBoundDay(parsed.end);
 	const end = rawEnd < window.end ? rawEnd : window.end;
 	return start > end ? null : { start, end };
 }

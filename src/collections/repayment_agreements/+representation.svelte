@@ -27,7 +27,7 @@
 		semantic: (values) =>
 			repaymentScheduleIssues({
 				principal: values.principal,
-				repayBy: values.repay_by,
+				effectiveRange: values.effective_range ?? {},
 				schedule: values.schedule
 			}).map((message) => ({ message, path: ['schedule'] }))
 	} satisfies CollectionFormValidation;
@@ -92,8 +92,6 @@
 				/>
 				<Field name="reference" />
 				<Field name="principal" />
-				<Field name="disbursed_on" label={t('component.disbursed_on')} />
-				<Field name="repay_by" label={t('component.repay_by')} />
 				<Column span="all"
 					><Field
 						name="effective_range"

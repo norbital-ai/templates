@@ -48,17 +48,20 @@
 
 	/**
 	 * A human consumption label, but only once a line has actually claimed this entry. A drafted run
-	 * that has not reached this entry yet must not read as though it had.
+	 * that has not reached this entry yet must not read as though it had. A linked payslip line wins
+	 * over a blank pay_period, so a recurring allowance paid in a run still reads as paid.
 	 */
 	const consumedByPayslip = $derived.by((): string => {
 		if (!record) return '—';
-		if (!record.pay_period) return t('component.settled_outside_payroll');
 		if (consumptionQuery?.loading) return t('component.loading');
 		const consumption = consumptionQuery?.current as ConsumptionRow | null | undefined;
 		const source = consumption?.entry_payslip_lines?.[0];
-		if (!source) return '—';
-		const period = source.payslip_line_payslip?.payslip_payroll_run?.period;
-		return t('component.paid_in', { period: period ?? t('component.a_payroll_run') });
+		if (source) {
+			const period = source.payslip_line_payslip?.payslip_payroll_run?.period;
+			return t('component.paid_in', { period: period ?? t('component.a_payroll_run') });
+		}
+		if (!record.pay_period) return t('component.settled_outside_payroll');
+		return '—';
 	});
 </script>
 

@@ -174,7 +174,9 @@ async function normalizedTimeOff(options: {
 		if (term == null) refuse(`No employment terms cover ${date}, so leave cannot be measured.`);
 		const rosterCodeId =
 			rosterByDate.get(date)?.shift_definition_id ?? patternRosterCodeId(term.work_pattern, date);
-		if (rosterCodeId == null) return false;
+		if (rosterCodeId == null) {
+			return term.work_pattern?.type === 'ROSTERED';
+		}
 		const code = rosterCodeById.get(rosterCodeId);
 		if (code == null) refuse(`The schedule on ${date} names a roster code that no longer exists.`);
 		return rosterCodeKind(code.variant) === 'WORK';

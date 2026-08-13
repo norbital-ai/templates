@@ -86,7 +86,7 @@ test('bulk pay component overlap validation covers persisted and same-batch sibl
 	);
 });
 
-test('loan instalment uniqueness is atomic and create skips impossible existing-child reads', () => {
+test('loan instalment uniqueness is atomic and agreements do not write component entries', () => {
 	const entryHooks = source('../component_entries/+hooks.ts');
 	const entryModel = source('../component_entries/+model.ts');
 	const agreementHooks = source('./+hooks.ts');
@@ -96,12 +96,9 @@ test('loan instalment uniqueness is atomic and create skips impossible existing-
 		entryModel,
 		/columns: \['repayment_agreement_id', 'repayment_sequence'\],[\s\S]*?unique: true/
 	);
-	assert.match(agreementHooks, /synchronizeInstalments\(api, record, \[\]\)/);
-	assert.match(agreementHooks, /existingEntries \?\? \(await agreementEntries\(api, agreement\)\)/);
-	assert.match(
-		agreementHooks,
-		/batchHandler: async \(\{ records, api \}\) =>[\s\S]*?records\.flatMap\(\(record\) => scheduledInstalmentInputs\(record\)\)[\s\S]*?api\.db\.mutate\('component_entries', inputs\)/
-	);
+	assert.doesNotMatch(agreementHooks, /api\.db\.mutate\(['"]component_entries['"]/);
+	assert.doesNotMatch(agreementHooks, /synchronizeInstalments/);
+	assert.doesNotMatch(agreementHooks, /scheduledInstalmentInputs/);
 	assert.match(
 		entryHooks,
 		/batchHandler: async \(\{ inputs, api \}\) =>[\s\S]*?api\.db\.query\.repayment_agreements\.findMany[\s\S]*?assertInstalmentMatchesResolvedAgreement/

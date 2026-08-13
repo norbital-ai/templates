@@ -23,6 +23,11 @@
 	type RepaymentScheduleRendererProps = RendererProps & {
 		readonly row?: Record<string, unknown>;
 	};
+	type PayslipLineConsumptionRow = NonNullable<
+		RepaymentConsumptionSourceRow['entry_payslip_lines']
+	>[number] & {
+		readonly repayment_sequence?: number | null;
+	};
 	const columns = [
 		{
 			key: 'due_date',
@@ -81,34 +86,29 @@
 	);
 	const consumptionQuery = $derived(
 		agreementId
-			? client.db.component_entries.findMany({
+			? client.db.payslip_lines.findMany({
 					where: { repayment_agreement_id: { eq: agreementId } },
-					columns: { norbital_id: true, repayment_sequence: true },
+					columns: {
+						norbital_id: true,
+						repayment_sequence: true,
+						sequence: true,
+						amount: true,
+						norbital_created_at: true
+					},
 					with: {
-						entry_payslip_lines: {
-							columns: {
-								norbital_id: true,
-								sequence: true,
-								amount: true,
-								norbital_created_at: true
-							},
+						payslip_line_payslip: {
+							columns: { norbital_id: true },
 							with: {
-								payslip_line_payslip: {
-									columns: { norbital_id: true },
-									with: {
-										payslip_payroll_run: {
-											columns: {
-												norbital_id: true,
-												period: true,
-												pay_date: true
-											}
-										}
+								payslip_payroll_run: {
+									columns: {
+										norbital_id: true,
+										period: true,
+										pay_date: true
 									}
 								}
 							}
 						}
 					},
-					orderBy: { repayment_sequence: 'asc' },
 					limit: 600
 				})
 			: null
@@ -139,7 +139,12 @@
 
 	const consumptionBySequence = $derived(
 		repaymentConsumptionBySequence(
-			(consumptionQuery?.current ?? []) as readonly RepaymentConsumptionSourceRow[]
+			((consumptionQuery?.current ?? []) as readonly PayslipLineConsumptionRow[]).map(
+				(line): RepaymentConsumptionSourceRow => ({
+					repayment_sequence: line.repayment_sequence,
+					entry_payslip_lines: [line]
+				})
+			)
 		)
 	);
 	const runLifecycleByPeriod = $derived(

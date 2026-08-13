@@ -453,7 +453,7 @@
 				where: {
 					employment_id: employmentId ? { eq: employmentId } : undefined
 				},
-				orderBy: { disbursed_on: 'desc' }
+				orderBy: { effective_range: 'desc' }
 			}}
 			searchPlaceholder={t('app.hr_employee.search_loans')}
 		>
@@ -470,11 +470,7 @@
 					card="subtitle"
 					render={({ value }) => formatRepaymentSchedule(value, t)}
 				/>
-				<Column
-					name="disbursed_on"
-					label={t('component.disbursed')}
-					render={({ value }) => formatCalendarDate(value)}
-				/>
+				<Column name="effective_range" />
 			{/snippet}
 		</CollectionTable>
 	</Stack>

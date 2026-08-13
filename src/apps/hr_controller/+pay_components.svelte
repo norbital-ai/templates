@@ -76,11 +76,17 @@
 	} satisfies ChartDisplaySpec);
 
 	type NestedComponentEntry = {
+		readonly pay_period?: string | null;
 		readonly entry_employment?: { readonly employee_number?: string | null } | null;
 		readonly entry_pay_component?: {
 			readonly code?: string | null;
 			readonly name?: string | null;
 		} | null;
+		readonly entry_payslip_lines?: readonly {
+			readonly payslip_line_payslip?: {
+				readonly payslip_payroll_run?: { readonly period?: string | null } | null;
+			} | null;
+		}[];
 	};
 
 	function nestedEntry(row: unknown): NestedComponentEntry {
@@ -95,6 +101,17 @@
 		const component = nestedEntry(row).entry_pay_component;
 		if (component?.code && component.name) return `${component.code} · ${component.name}`;
 		if (component?.code) return component.code;
+		return '—';
+	}
+
+	function entryConsumptionLabel(row: unknown): string {
+		const nested = nestedEntry(row);
+		const source = nested.entry_payslip_lines?.[0];
+		if (source) {
+			const period = source.payslip_line_payslip?.payslip_payroll_run?.period;
+			return t('component.paid_in', { period: period ?? t('component.a_payroll_run') });
+		}
+		if (!nested.pay_period) return t('component.settled_outside_payroll');
 		return '—';
 	}
 </script>
@@ -178,6 +195,7 @@
 			view={`hr_controller:pay_components:entries:${selectedCompanyId}`}
 			query={{
 				where: {
+					repayment_agreement_id: { isNull: true },
 					entry_employment: {
 						norbital_approval_id: { isNull: true },
 						company_id: { eq: selectedCompanyId }
@@ -186,7 +204,18 @@
 				orderBy: { event_date: 'desc' },
 				with: {
 					entry_employment: { columns: { employee_number: true } },
-					entry_pay_component: { columns: { code: true, name: true } }
+					entry_pay_component: { columns: { code: true, name: true } },
+					entry_payslip_lines: {
+						columns: { norbital_id: true },
+						with: {
+							payslip_line_payslip: {
+								columns: { norbital_id: true },
+								with: {
+									payslip_payroll_run: { columns: { period: true } }
+								}
+							}
+						}
+					}
 				}
 			}}
 			searchPlaceholder={t('app.pay_components.search_entries')}
@@ -215,6 +244,12 @@
 					render={({ value }) => formatCalendarDate(value)}
 				/>
 				<Column name="pay_period" label={t('component.pay_period')} />
+				<Column
+					name="repayment_agreement_id"
+					label={t('component.payroll_consumption')}
+					sortable={false}
+					render={({ row }) => entryConsumptionLabel(row)}
+				/>
 				<Column name="usage_mode" label={t('app.pay_components.payslip_usage')} card="badge" />
 				<Column name="description" />
 				<Column

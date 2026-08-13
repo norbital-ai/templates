@@ -7,7 +7,7 @@
 	import { Combobox } from '@norbital-ai/ui/combobox';
 	import { Bound, Cover, Inline } from '@norbital-ai/ui/layout';
 	import {
-		formatCalendarDate,
+		formatEffectiveRange,
 		formatNumeric,
 		formatRepaymentSchedule
 	} from '../../lib/ui/display-formatters.js';
@@ -204,7 +204,7 @@
 							company_id: { eq: selectedCompanyId }
 						}
 					},
-					orderBy: { disbursed_on: 'desc' },
+					orderBy: { effective_range: 'desc' },
 					with: {
 						agreement_employment: { columns: { employee_number: true } },
 						agreement_pay_component: { columns: { code: true, name: true } },
@@ -242,23 +242,13 @@
 						label={t('component.schedule')}
 						render={({ value }) => formatRepaymentSchedule(value, t)}
 					/>
-					<Column
-						name="disbursed_on"
-						label={t('component.disbursed')}
-						render={({ value }) => formatCalendarDate(value)}
-					/>
-					<Column
-						name="repay_by"
-						label={t('app.loans.repay_by')}
-						render={({ value }) => formatCalendarDate(value)}
-					/>
-					<Column name="effective_range" label={t('component.effective')} />
+					<Column name="effective_range" />
 				{/snippet}
 				{#snippet ListCard(agreement)}
 					<Inline align="start" justify="between" gap="sm">
 						<p class="truncate font-medium">{agreement.reference}</p>
 						<span class="shrink-0 text-xs text-muted-foreground">
-							{formatCalendarDate(agreement.disbursed_on)}
+							{formatEffectiveRange(agreement.effective_range)}
 						</span>
 					</Inline>
 					<p class="mt-1 truncate text-sm text-muted-foreground">
