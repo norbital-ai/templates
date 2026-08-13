@@ -87,7 +87,6 @@
 
 <Cover as="main">
 	<Tabs
-		lazyLoad={false}
 		animate={false}
 		config={[
 			{

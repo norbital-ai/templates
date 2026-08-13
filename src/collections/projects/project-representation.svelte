@@ -601,7 +601,6 @@
 
 <Cover as="main" gap="md" top={projectSummary}>
 	<Tabs
-		lazyLoad={false}
 		animate={false}
 		config={[
 			{
