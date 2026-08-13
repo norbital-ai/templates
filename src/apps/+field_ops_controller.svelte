@@ -14,7 +14,31 @@
 	import { Tabs, type TabConfig } from '@norbital-ai/ui/tabs';
 	import { renderComponent } from '@norbital-ai/ui/utils';
 	import Icon from '@iconify/svelte';
-	import { calendarDateInTimeZone, shiftCalendarDate } from '../lib/calendar.js';
+	import { isCalendarDate } from '@norbital-ai/std/date';
+
+	const FIELD_TIME_ZONE = 'Asia/Singapore';
+
+	function calendarDateInTimeZone(value: Date): string {
+		const parts = new Intl.DateTimeFormat('en', {
+			timeZone: FIELD_TIME_ZONE,
+			year: 'numeric',
+			month: '2-digit',
+			day: '2-digit'
+		}).formatToParts(value);
+		const valueFor = (type: Intl.DateTimeFormatPartTypes) =>
+			parts.find((part) => part.type === type)?.value ?? '';
+		return `${valueFor('year')}-${valueFor('month')}-${valueFor('day')}`;
+	}
+
+	function shiftCalendarDate(value: string, days: number): string {
+		if (!isCalendarDate(value)) {
+			throw new Error('Calendar date must use YYYY-MM-DD.');
+		}
+		const date = new Date(`${value}T00:00:00.000Z`);
+		date.setUTCDate(date.getUTCDate() + days);
+		return date.toISOString().slice(0, 10);
+	}
+
 	interface AssignmentForm {
 		jobId: string | null;
 		contractorId: string | null;

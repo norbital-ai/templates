@@ -2,7 +2,6 @@ import { hexToBinaryEmbedding } from '@norbital-ai/pod/authoring';
 import { z } from 'zod';
 import type { Hooks } from './$types.js';
 import { photoSourceSchema } from '../../custom-types/photo_source/+definition.js';
-import { coordinatesOf, type LocationLike } from '../../lib/haversine.js';
 import {
 	assertExactlyOnePhotoParent,
 	evaluateCaptureGeolocation,
@@ -10,10 +9,24 @@ import {
 	PHOTO_INTEGRITY_INSPECTION_PROFILE,
 	photoInspectionSchema,
 	photoIntegrityFlags,
+	planDuplicateEvidenceBatch,
 	VISUAL_DUPLICATE_MAX_L2,
 	type PhotoIntegrityFlag
-} from './lib/photo-integrity.js';
-import { planDuplicateEvidenceBatch } from './lib/photo-duplicates.js';
+} from './photo-integrity.js';
+
+type LocationLike =
+	| {
+			geometry?: { lat?: number | null; lon?: number | null } | null;
+	  }
+	| null
+	| undefined;
+
+function coordinatesOf(location: LocationLike): { lat: number; lon: number } | null {
+	const lat = location?.geometry?.lat;
+	const lon = location?.geometry?.lon;
+	if (lat == null || lon == null) return null;
+	return { lat, lon };
+}
 
 const photoEvidenceCreateInput = z
 	.object({

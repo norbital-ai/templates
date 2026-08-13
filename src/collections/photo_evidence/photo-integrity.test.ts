@@ -5,9 +5,9 @@ import { gunzipSync } from 'node:zlib';
 import {
 	evaluateCaptureGeolocation,
 	inspectPhoto,
-	photoInspectionSchema
+	photoInspectionSchema,
+	planDuplicateEvidenceBatch
 } from './photo-integrity.js';
-import { planDuplicateEvidenceBatch } from './photo-duplicates.js';
 
 // A deterministic 3024x4032 JPEG (solid RGB 80/120/160). Gzip collapses the intentionally uniform
 // fixture to a few hundred bytes while jpeg-js still has to exercise the full 12 MP decode envelope.

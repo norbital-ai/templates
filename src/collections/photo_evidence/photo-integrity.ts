@@ -5,7 +5,34 @@ import exifr from 'exifr';
 import { decode as decodeJpeg } from 'jpeg-js';
 import { PNG } from 'pngjs';
 import { z } from 'zod';
-import { exceedsSiteTolerance, SITE_LOCATION_TOLERANCE_M } from '../../../lib/haversine.js';
+
+const SITE_LOCATION_TOLERANCE_M = 500;
+
+function haversineMeters(
+	lat1: number | null | undefined,
+	lon1: number | null | undefined,
+	lat2: number | null | undefined,
+	lon2: number | null | undefined
+): number | null {
+	if (lat1 == null || lon1 == null || lat2 == null || lon2 == null) return null;
+	const R = 6371000;
+	const toRad = (deg: number) => (deg * Math.PI) / 180;
+	const dLat = toRad(lat2 - lat1);
+	const dLon = toRad(lon2 - lon1);
+	const a =
+		Math.sin(dLat / 2) ** 2 +
+		Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2;
+	return Math.round(2 * R * Math.asin(Math.sqrt(a)));
+}
+
+function exceedsSiteTolerance(
+	left: { lat: number; lon: number } | null | undefined,
+	right: { lat: number; lon: number } | null | undefined,
+	maxDistanceM = SITE_LOCATION_TOLERANCE_M
+): boolean {
+	const distanceM = haversineMeters(left?.lat, left?.lon, right?.lat, right?.lon);
+	return distanceM != null && distanceM > maxDistanceM;
+}
 
 const require = createRequire(import.meta.url);
 // pdq-wasm documents its CommonJS entry as the Node path; its ESM entry cannot load the bundled
@@ -253,4 +280,105 @@ export function assertExactlyOnePhotoParent(
 			'Photo evidence must reference exactly one job assignment or variation request.'
 		);
 	}
+}
+
+export interface DuplicateEvidenceInput {
+	readonly id: string;
+	readonly sha256: string;
+	readonly perceptualEmbedding: unknown;
+	readonly flags: readonly unknown[];
+	readonly assignmentId: string | null;
+}
+
+export interface DuplicateEvidenceUpdate {
+	readonly id: string;
+	readonly flags: PhotoIntegrityFlag[];
+	readonly matchedEvidenceIds: string[];
+	readonly assignmentId: string | null;
+}
+
+function parseEmbedding(value: unknown): number[] | null {
+	if (Array.isArray(value) && value.every((entry) => typeof entry === 'number')) return value;
+	if (typeof value !== 'string') return null;
+	try {
+		const parsed: unknown = JSON.parse(value);
+		return Array.isArray(parsed) && parsed.every((entry) => typeof entry === 'number')
+			? parsed
+			: null;
+	} catch {
+		return null;
+	}
+}
+
+function squaredL2(left: readonly number[], right: readonly number[]): number | null {
+	if (left.length !== right.length || left.length === 0) return null;
+	let squaredDistance = 0;
+	for (let index = 0; index < left.length; index += 1) {
+		const difference = left[index]! - right[index]!;
+		squaredDistance += difference * difference;
+	}
+	return squaredDistance;
+}
+
+/**
+ * Plan duplicate flags for selected rows against one bounded corpus. The corpus includes both rows
+ * that predated this createMany call and every row inserted by it, so cross-batch and within-batch
+ * reuse have identical semantics without an indexed query per new photo.
+ */
+export function planDuplicateEvidenceBatch(
+	corpus: readonly DuplicateEvidenceInput[],
+	targetIds: ReadonlySet<string>
+): DuplicateEvidenceUpdate[] {
+	const embeddings = new Map(
+		corpus.map((evidence) => [evidence.id, parseEmbedding(evidence.perceptualEmbedding)])
+	);
+	return corpus.flatMap((record) => {
+		if (!targetIds.has(record.id)) return [];
+		const flags = new Set<PhotoIntegrityFlag>(
+			record.flags.filter(
+				(flag): flag is PhotoIntegrityFlag =>
+					typeof flag === 'string' && photoIntegrityFlags.includes(flag as PhotoIntegrityFlag)
+			)
+		);
+		const matchedEvidenceIds = new Set<string>();
+		const exactCandidates = corpus
+			.filter((candidate) => candidate.sha256 === record.sha256)
+			.slice(0, 21);
+		for (const candidate of exactCandidates) {
+			if (candidate.id === record.id || candidate.assignmentId === record.assignmentId) continue;
+			flags.add('exact_duplicate');
+			matchedEvidenceIds.add(candidate.id);
+		}
+		const recordEmbedding = embeddings.get(record.id);
+		const visualCandidates = recordEmbedding
+			? corpus
+					.filter((candidate) => candidate.id !== record.id)
+					.flatMap((candidate) => {
+						const candidateEmbedding = embeddings.get(candidate.id);
+						const distance = candidateEmbedding
+							? squaredL2(recordEmbedding, candidateEmbedding)
+							: null;
+						return distance != null && distance <= VISUAL_DUPLICATE_MAX_L2 * VISUAL_DUPLICATE_MAX_L2
+							? [{ candidate, distance }]
+							: [];
+					})
+					.sort((left, right) => left.distance - right.distance)
+					.slice(0, 50)
+			: [];
+		for (const { candidate } of visualCandidates) {
+			if (candidate.assignmentId === record.assignmentId || candidate.sha256 === record.sha256) {
+				continue;
+			}
+			flags.add('visual_duplicate');
+			matchedEvidenceIds.add(candidate.id);
+		}
+		return [
+			{
+				id: record.id,
+				flags: [...flags],
+				matchedEvidenceIds: [...matchedEvidenceIds],
+				assignmentId: record.assignmentId
+			}
+		];
+	});
 }

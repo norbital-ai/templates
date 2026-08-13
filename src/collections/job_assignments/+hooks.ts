@@ -1,6 +1,4 @@
 import type { Hooks } from './$types.js';
-import { coordinatesOf, exceedsSiteTolerance, type LocationLike } from '../../lib/haversine.js';
-import { prepareAssignmentCreateBatch } from './lib/create-batch.js';
 
 type AssignmentIdentity = {
 	job_id?: string | null;
@@ -10,6 +8,47 @@ type AssignmentIdentity = {
 type AssignmentStatus = 'dispatched' | 'in_progress' | 'completed' | 'suspect';
 type AssignmentUpdateBefore = NonNullable<NonNullable<Hooks['update']>['before']>;
 const ASSIGNMENT_BATCH_LIMIT = 5_000;
+const SITE_LOCATION_TOLERANCE_M = 500;
+
+type LocationLike =
+	| {
+			geometry?: { lat?: number | null; lon?: number | null } | null;
+	  }
+	| null
+	| undefined;
+
+function coordinatesOf(location: LocationLike): { lat: number; lon: number } | null {
+	const lat = location?.geometry?.lat;
+	const lon = location?.geometry?.lon;
+	if (lat == null || lon == null) return null;
+	return { lat, lon };
+}
+
+function haversineMeters(
+	lat1: number | null | undefined,
+	lon1: number | null | undefined,
+	lat2: number | null | undefined,
+	lon2: number | null | undefined
+): number | null {
+	if (lat1 == null || lon1 == null || lat2 == null || lon2 == null) return null;
+	const R = 6371000;
+	const toRad = (deg: number) => (deg * Math.PI) / 180;
+	const dLat = toRad(lat2 - lat1);
+	const dLon = toRad(lon2 - lon1);
+	const a =
+		Math.sin(dLat / 2) ** 2 +
+		Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2;
+	return Math.round(2 * R * Math.asin(Math.sqrt(a)));
+}
+
+function exceedsSiteTolerance(
+	left: { lat: number; lon: number } | null | undefined,
+	right: { lat: number; lon: number } | null | undefined,
+	maxDistanceM = SITE_LOCATION_TOLERANCE_M
+): boolean {
+	const distanceM = haversineMeters(left?.lat, left?.lon, right?.lat, right?.lon);
+	return distanceM != null && distanceM > maxDistanceM;
+}
 
 function requireId(value: string | null | undefined, message: string): string {
 	if (!value) throw new Error(message);
@@ -72,6 +111,75 @@ export function assertAssignmentIdentityUnchanged(
 	) {
 		throw new Error('A dispatched assignment cannot be moved to another contractor.');
 	}
+}
+
+export interface AssignmentCreateInput {
+	readonly job_id?: string | null;
+	readonly contractor_profile_id?: string | null;
+	readonly source_message_id?: string | null;
+	readonly dispatched_at?: Date | string | null;
+	readonly status?: string | null;
+	readonly location?: LocationLike;
+	readonly [key: string]: unknown;
+}
+
+export interface AssignmentCreateBatchLookup {
+	readonly jobs: ReadonlyMap<string, { readonly site_id: string | null }>;
+	readonly contractorIds: ReadonlySet<string>;
+	readonly occupiedJobIds: ReadonlySet<string>;
+	readonly occupiedSourceMessageIds: ReadonlySet<string>;
+	readonly sites: ReadonlyMap<string, LocationLike>;
+}
+
+export function prepareAssignmentCreateBatch<T extends AssignmentCreateInput>(
+	inputs: readonly T[],
+	lookup: AssignmentCreateBatchLookup,
+	now: () => Date = () => new Date()
+): Array<
+	T & {
+		readonly dispatched_at: Date | string;
+		readonly status: AssignmentStatus;
+	}
+> {
+	const batchJobIds = new Set<string>();
+	const batchSourceMessageIds = new Set<string>();
+	return inputs.map((input) => {
+		const jobId = requireId(input.job_id, 'Job assignment must reference a job.');
+		const contractorId = requireId(
+			input.contractor_profile_id,
+			'Job assignment must reference a contractor profile.'
+		);
+		const job = lookup.jobs.get(jobId);
+		if (!job) throw new Error('Referenced job does not exist.');
+		if (!lookup.contractorIds.has(contractorId)) {
+			throw new Error('Referenced contractor profile does not exist.');
+		}
+		if (lookup.occupiedJobIds.has(jobId) || batchJobIds.has(jobId)) {
+			throw new Error('This job already has an assignment.');
+		}
+		batchJobIds.add(jobId);
+		const sourceMessageId = input.source_message_id;
+		if (sourceMessageId) {
+			if (
+				lookup.occupiedSourceMessageIds.has(sourceMessageId) ||
+				batchSourceMessageIds.has(sourceMessageId)
+			) {
+				throw new Error('A job assignment with this source_message_id already exists.');
+			}
+			batchSourceMessageIds.add(sourceMessageId);
+		}
+
+		const siteLocation = job.site_id ? lookup.sites.get(job.site_id) : null;
+		return {
+			...input,
+			dispatched_at: input.dispatched_at ?? now(),
+			status: assignmentStatusForLocation(
+				assignmentStatus(input.status),
+				input.location,
+				siteLocation
+			)
+		};
+	});
 }
 
 export default {
