@@ -2,8 +2,9 @@
 	import { Button } from '@norbital-ai/ui/button';
 	import { useI18n } from '@norbital-ai/ui/i18n';
 	import type { TenantI18nKeys } from '$pod/i18n-keys';
-	import { Input } from '@norbital-ai/ui/input';
+	import { TimeRangeField, type TimeRange } from '@norbital-ai/ui/time-range';
 	import { Inline, Stack } from '@norbital-ai/ui/layout';
+	import { parseAbsoluteToLocal, type ZonedDateTime } from '@internationalized/date';
 	import { workedIntervalsSchema } from './+definition.js';
 	import type { RendererProps, Value } from './$types.js';
 
@@ -20,12 +21,11 @@
 			.join(' · ') || '—'
 	);
 
-	function localInputValue(instant: string | null): string {
-		if (instant == null) return '';
-		const date = new Date(instant);
-		if (Number.isNaN(date.getTime())) return '';
-		const local = new Date(date.getTime() - date.getTimezoneOffset() * 60_000);
-		return local.toISOString().slice(0, 16);
+	function intervalRange(interval: Value[number]): TimeRange<ZonedDateTime> {
+		return {
+			start: parseAbsoluteToLocal(interval.start_at),
+			end: interval.end_at == null ? undefined : parseAbsoluteToLocal(interval.end_at)
+		};
 	}
 
 	function emit(value: Value): void {
@@ -34,6 +34,14 @@
 
 	function setInterval(index: number, patch: Partial<Value[number]>): void {
 		emit(current.map((interval, at) => (at === index ? { ...interval, ...patch } : interval)));
+	}
+
+	function setIntervalRange(index: number, range: TimeRange<ZonedDateTime> | undefined): void {
+		if (range?.start == null) return;
+		setInterval(index, {
+			start_at: range.start.toAbsoluteString(),
+			end_at: range.end?.toAbsoluteString() ?? null
+		});
 	}
 
 	function addInterval(): void {
@@ -49,31 +57,15 @@
 	<Stack gap="sm" class="rounded-md border bg-muted/20 p-3">
 		{#each current as interval, index (index)}
 			<Inline gap="sm" align="end">
-				<label class="grid flex-1 gap-1.5 text-sm font-medium">
-					{t('component.interval_started')}
-					<Input
-						type="datetime-local"
-						value={localInputValue(interval.start_at)}
-						{disabled}
-						oninput={(event) =>
-							setInterval(index, { start_at: new Date(event.currentTarget.value).toISOString() })}
-					/>
-				</label>
-				<label class="grid flex-1 gap-1.5 text-sm font-medium">
-					{t('component.interval_ended')}
-					<Input
-						type="datetime-local"
-						value={localInputValue(interval.end_at)}
-						{disabled}
-						oninput={(event) =>
-							setInterval(index, {
-								end_at:
-									event.currentTarget.value === ''
-										? null
-										: new Date(event.currentTarget.value).toISOString()
-							})}
-					/>
-				</label>
+				<TimeRangeField
+					class="flex-1"
+					label={t('component.worked_interval')}
+					value={intervalRange(interval)}
+					placeholder={parseAbsoluteToLocal(interval.start_at)}
+					hideTimeZone={false}
+					{disabled}
+					onValueChange={(range) => setIntervalRange(index, range)}
+				/>
 				<Button
 					type="button"
 					variant="outline"

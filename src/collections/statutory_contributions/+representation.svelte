@@ -161,6 +161,7 @@
 		<Tabs
 			animate={false}
 			listClass="mx-0 w-full"
+			contentPadding={false}
 			config={[
 				{ name: 'scheme', label: 'Scheme', icon: 'lucide:landmark', content: scheme },
 				{ name: 'rates', label: 'Rate bands', icon: 'lucide:percent', content: rates }

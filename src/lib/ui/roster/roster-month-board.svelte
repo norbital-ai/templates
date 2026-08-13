@@ -30,8 +30,9 @@
 	import { Tooltip } from '@norbital-ai/ui/tooltip';
 	import { useI18n } from '@norbital-ai/ui/i18n';
 	import type { TenantI18nKeys } from '$pod/i18n-keys';
-	import { Cluster, Cover, Inline, Scroll } from '@norbital-ai/ui/layout';
+	import { Cluster, Cover, Inline, Scroll, Stack } from '@norbital-ai/ui/layout';
 	import { cn } from '@norbital-ai/ui/utils';
+	import { createVirtualizer } from '@norbital-ai/ui/utils/virtualizer.svelte';
 	import {
 		HOLIDAY_PRESENTATION,
 		STATUS_PRESENTATION,
@@ -73,6 +74,20 @@
 	} = $props();
 
 	const days = $derived(monthDays(month));
+	let boardElement: HTMLElement | null = $state(null);
+	let requestedCellKey = $state('');
+	const rowVirtualizer = createVirtualizer({
+		count: () => people.length,
+		scrollElement: () => boardElement,
+		estimateSize: () => 45,
+		overscan: 4,
+		getItemKey: (index) => people[index]?.id ?? index
+	});
+	const virtualRows = $derived(rowVirtualizer.virtualItems);
+	const topSpacer = $derived(virtualRows[0]?.start ?? 0);
+	const bottomSpacer = $derived(
+		Math.max(0, rowVirtualizer.totalSize - (virtualRows.at(-1)?.end ?? 0))
+	);
 
 	const WEEKDAY_LETTERS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'] as const;
 
@@ -96,10 +111,81 @@
 			{ labelKey: TenantI18nKeys; className: string }
 		][]
 	);
+
+	const activeCellKey = $derived.by(() => {
+		if (requestedCellKey) {
+			const [personId, date] = requestedCellKey.split(':');
+			if (people.some((person) => person.id === personId) && days.includes(date ?? '')) {
+				return requestedCellKey;
+			}
+		}
+		return people[0] == null || days[0] == null ? '' : `${people[0].id}:${days[0]}`;
+	});
+
+	function focusCell(personIndex: number, dayIndex: number): void {
+		const nextPerson = Math.min(Math.max(personIndex, 0), people.length - 1);
+		const nextDay = Math.min(Math.max(dayIndex, 0), days.length - 1);
+		const person = people[nextPerson];
+		const date = days[nextDay];
+		if (person == null || date == null) return;
+		requestedCellKey = `${person.id}:${date}`;
+		rowVirtualizer.scrollToIndex(nextPerson, { align: 'auto' });
+		requestAnimationFrame(() => {
+			boardElement
+				?.querySelector<HTMLElement>(`[data-roster-cell="${nextPerson}:${nextDay}"]`)
+				?.focus();
+		});
+	}
+
+	function handleCellKeydown(event: KeyboardEvent, personIndex: number, dayIndex: number): void {
+		const movement =
+			event.key === 'ArrowLeft'
+				? [0, -1]
+				: event.key === 'ArrowRight'
+					? [0, 1]
+					: event.key === 'ArrowUp'
+						? [-1, 0]
+						: event.key === 'ArrowDown'
+							? [1, 0]
+							: null;
+		if (movement == null) return;
+		event.preventDefault();
+		focusCell(personIndex + movement[0]!, dayIndex + movement[1]!);
+	}
+
+	function scheduleSummary(day: DayFacts): string {
+		if (day.shiftCode == null || day.shiftStart == null || day.shiftEnd == null) {
+			return t(STATUS_PRESENTATION[day.status].labelKey);
+		}
+		return `${t('roster.shift_code', { code: day.shiftCode })} · ${t('roster.shift_window', {
+			start: day.shiftStart,
+			end: day.shiftEnd,
+			break: day.shiftBreakMinutes ?? 0
+		})}`;
+	}
+
+	function attendanceSummary(day: DayFacts): string {
+		if (day.attendanceState === 'OPEN') return t('roster.attendance_open');
+		if (day.workedIntervalCount > 0) {
+			return t('roster.attendance_intervals', { count: day.workedIntervalCount });
+		}
+		return t('roster.no_attendance');
+	}
+
+	function contextSummary(day: DayFacts): string {
+		const context = [
+			day.holidayName == null ? null : `${t(HOLIDAY_PRESENTATION.labelKey)}: ${day.holidayName}`,
+			day.leaveCode == null
+				? null
+				: `${day.leaveCode}${day.halfDayLeave ? ` (${t('roster.half_day')})` : ''}`,
+			day.withinCutoff ? t('roster.inside_cutoff') : null
+		].filter((part): part is string => part != null);
+		return context.join(' · ') || t('roster.no_day_exception');
+	}
 </script>
 
 {#snippet legend()}
-	<Cluster gap="sm" class="text-xs leading-5 text-muted-foreground">
+	<Cluster gap="sm" class="shrink-0 text-xs leading-5 text-muted-foreground">
 		{#each legendStatuses as [status, presentation] (status)}
 			<Inline gap="xs">
 				<span class={cn('inline-block size-2.5 rounded-sm', presentation.className)}></span>
@@ -126,7 +212,12 @@
 	</p>
 {:else}
 	<Cover as="div" gap="sm" bottom={legend}>
-		<Scroll axis="both" name={t('roster.board_scroll_name')} class="rounded-lg border bg-card">
+		<Scroll
+			bind:ref={boardElement}
+			axis="both"
+			name={t('roster.board_scroll_name')}
+			class="rounded-lg border bg-card"
+		>
 			<!-- stupidity:allow UI3 -- a person-by-day board is a derived cross-tab of four collections, not one collection's rows. -->
 			<table class="border-separate border-spacing-0 text-left text-xs">
 				<thead>
@@ -164,8 +255,15 @@
 					</tr>
 				</thead>
 				<tbody>
-					{#each people as person (person.id)}
-						<tr>
+					{#if topSpacer > 0}
+						<tr aria-hidden="true"
+							><td colspan={days.length + 1} style:height={`${topSpacer}px`}></td></tr
+						>
+					{/if}
+					{#each virtualRows as virtualRow (virtualRow.key)}
+						{@const personIndex = virtualRow.index}
+						{@const person = people[personIndex]!}
+						<tr data-index={personIndex}>
 							<th
 								scope="row"
 								class="sticky left-0 z-10 border-r border-b bg-card px-3 py-1.5 text-left font-normal"
@@ -173,7 +271,7 @@
 								<span class="block truncate font-mono tabular-nums">{person.number}</span>
 								<span class="block truncate text-micro text-muted-foreground">{person.name}</span>
 							</th>
-							{#each days as date (date)}
+							{#each days as date, dayIndex (date)}
 								{@const day = facts.get(`${person.id}:${date}`)}
 								{@const cellEditable = editable && day?.employmentState === 'ACTIVE'}
 								<td
@@ -183,18 +281,15 @@
 										date === cutoffStartsAt && 'border-l-2 border-l-brand'
 									)}
 								>
-									<Tooltip
-										side="top"
-										sideOffset={4}
-										contentClass="max-w-80"
-										text={describeDay(day, `${person.name} · ${person.number} · ${date}`, t)}
-									>
+									<Tooltip side="top" sideOffset={4} contentClass="max-w-80">
 										{#snippet trigger({ props })}
 											<button
 												{...props}
 												type="button"
 												aria-label={describeDay(day, `${person.name} · ${date}`, t)}
-												aria-disabled={!cellEditable}
+												aria-haspopup={cellEditable ? 'dialog' : undefined}
+												tabindex={activeCellKey === `${person.id}:${date}` ? 0 : -1}
+												data-roster-cell={`${personIndex}:${dayIndex}`}
 												class={cn(
 													'grid h-9 w-full min-w-12 content-center rounded-sm px-0.5 text-center tabular-nums focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none',
 													day == null ? 'bg-muted/20' : STATUS_PRESENTATION[day.status].className,
@@ -203,6 +298,8 @@
 														: 'cursor-default'
 												)}
 												onclick={() => cellEditable && onSelectDay?.(person.id, date)}
+												onfocus={() => (requestedCellKey = `${person.id}:${date}`)}
+												onkeydown={(event) => handleCellKeydown(event, personIndex, dayIndex)}
 											>
 												<span class="block truncate text-xs font-semibold leading-4">
 													{day == null ? '' : statusGlyph(day)}
@@ -214,11 +311,65 @@
 												{/if}
 											</button>
 										{/snippet}
+										{#snippet content()}
+											{#if day != null}
+												<Stack gap="sm" class="min-w-64 max-w-80 text-xs">
+													<div class="border-b border-white/15 pb-2">
+														<p class="font-semibold text-white">{person.name}</p>
+														<p class="font-mono text-micro text-white/65">
+															{person.number} · {date}
+														</p>
+													</div>
+													<div
+														class="relative space-y-3 pl-5 before:absolute before:top-1 before:bottom-1 before:left-1.5 before:w-px before:bg-white/20"
+													>
+														<div class="relative">
+															<span
+																class="absolute top-1 -left-[1.125rem] size-2 rounded-full bg-brand"
+															></span>
+															<p
+																class="text-micro font-semibold tracking-wide text-white/55 uppercase"
+															>
+																{t('roster.timeline_schedule')}
+															</p>
+															<p class="leading-4">{scheduleSummary(day)}</p>
+														</div>
+														<div class="relative">
+															<span
+																class="absolute top-1 -left-[1.125rem] size-2 rounded-full bg-success"
+															></span>
+															<p
+																class="text-micro font-semibold tracking-wide text-white/55 uppercase"
+															>
+																{t('roster.timeline_attendance')}
+															</p>
+															<p class="leading-4">{attendanceSummary(day)}</p>
+														</div>
+														<div class="relative">
+															<span
+																class="absolute top-1 -left-[1.125rem] size-2 rounded-full bg-info"
+															></span>
+															<p
+																class="text-micro font-semibold tracking-wide text-white/55 uppercase"
+															>
+																{t('roster.timeline_context')}
+															</p>
+															<p class="leading-4">{contextSummary(day)}</p>
+														</div>
+													</div>
+												</Stack>
+											{/if}
+										{/snippet}
 									</Tooltip>
 								</td>
 							{/each}
 						</tr>
 					{/each}
+					{#if bottomSpacer > 0}
+						<tr aria-hidden="true"
+							><td colspan={days.length + 1} style:height={`${bottomSpacer}px`}></td></tr
+						>
+					{/if}
 				</tbody>
 			</table>
 		</Scroll>
