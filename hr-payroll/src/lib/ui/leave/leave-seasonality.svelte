@@ -11,6 +11,7 @@
 
 	// The parent keys this instance on companyId. Wrapping invoke in `$derived` resubscribed
 	// the heatmap to every load and left it on the error state.
+	// svelte-ignore state_referenced_locally
 	const analyticsQuery = client.invoke.approval_analytics({
 		subject: 'LEAVE',
 		company_id: companyId
