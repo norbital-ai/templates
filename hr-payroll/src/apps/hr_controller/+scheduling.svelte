@@ -12,6 +12,7 @@
 	import { Alert, AlertDescription, AlertTitle } from '@norbital-ai/ui/alert';
 	import { Badge } from '@norbital-ai/ui/badge';
 	import { IconWrapper } from '@norbital-ai/ui/icon-wrapper';
+	import { Tooltip } from '@norbital-ai/ui/tooltip';
 	import { Cluster, Cover, Inline, Stack } from '@norbital-ai/ui/layout';
 	import * as Dialog from '@norbital-ai/ui/dialog';
 	import { toast } from 'svelte-sonner';
@@ -463,6 +464,36 @@
 		rosters.length === 0 ? 'NOT_DRAFTED' : draftRoster != null ? 'DRAFT' : 'PUBLISHED'
 	);
 	const progress = $derived(monthProgress(facts, drafting));
+	const boardHelp = $derived(
+		progress.drafting === 'NOT_DRAFTED'
+			? t('app.scheduling.help_not_drafted')
+			: progress.drafting === 'DRAFT'
+				? t('app.scheduling.help_draft')
+				: t('app.scheduling.help_published')
+	);
+
+	function exceptionCopy(status: (typeof progress.exceptions)[number]['status'], count: string) {
+		switch (status) {
+			case 'ABSENT':
+				return t('app.scheduling.exception_absent', { count });
+			case 'OPEN':
+				return t('app.scheduling.exception_open', { count });
+			case 'UNROSTERED':
+				return t('app.scheduling.exception_unrostered', { count });
+			case 'BEFORE_START':
+			case 'EXITED':
+			case 'PLANNED':
+			case 'ATTENDED':
+			case 'ON_LEAVE':
+			case 'REST':
+			case 'OFF':
+				return `${count} ${t(STATUS_PRESENTATION[status].labelKey)}`;
+			default: {
+				const unhandled: never = status;
+				throw new Error(`Unhandled exception status: ${String(unhandled)}`);
+			}
+		}
+	}
 	const rosterImportBlocker = $derived(
 		draftRoster != null
 			? null
@@ -767,71 +798,77 @@
 {/snippet}
 
 {#snippet monthStatus()}
-	<Stack gap="sm">
-		<Cluster gap="sm">
-			{#if progress.drafting === 'NOT_DRAFTED'}
-				<Badge variant="outline">{t('app.scheduling.not_drafted_for', { month })}</Badge>
+	<Cluster gap="sm">
+		{#if progress.drafting === 'NOT_DRAFTED'}
+			<Badge variant="outline">{t('app.scheduling.not_drafted_for', { month })}</Badge>
+			{#if progress.peopleNeedingAssignment > 0}
 				<Badge variant="outline">
-					{t('app.scheduling.person_days_to_plan', { count: progress.personDays.toLocaleString() })}
+					{t('app.scheduling.people_need_shifts', {
+						count: progress.peopleNeedingAssignment.toLocaleString()
+					})}
 				</Badge>
-				<Button size="sm" disabled={creatingDraft || publishing} onclick={() => createDraftMonth()}>
-					{t('app.scheduling.create_draft_month')}
-				</Button>
-			{:else}
-				{#each rosters as roster (roster.norbital_id)}
-					<Inline gap="xs">
-						<Badge variant={roster.published_at == null ? 'outline' : 'default'}>
-							{roster.published_at == null
-								? t('app.scheduling.draft')
-								: t('app.scheduling.published')}
-						</Badge>
-						{#if roster.published_at == null}
-							<Button size="sm" disabled={publishing} onclick={() => publish(roster.norbital_id)}>
-								{t('app.scheduling.publish_month', { month })}
-							</Button>
-						{:else}
-							<Button
-								size="sm"
-								variant="outline"
-								disabled={publishing}
-								onclick={() => reopen(roster.norbital_id)}
-							>
-								{t('app.scheduling.re_open')}
-							</Button>
-						{/if}
-					</Inline>
-				{/each}
-				{#if progress.drafting === 'DRAFT'}
-					<!-- Progress, not a fault: a month is drafted a day at a time and is incomplete for most
-					     of the time it is being written. -->
+			{/if}
+			<Button size="sm" disabled={creatingDraft || publishing} onclick={() => createDraftMonth()}>
+				{t('app.scheduling.start_planning', { month })}
+			</Button>
+		{:else}
+			{#each rosters as roster (roster.norbital_id)}
+				<Inline gap="xs">
+					<Badge variant={roster.published_at == null ? 'outline' : 'default'}>
+						{roster.published_at == null
+							? t('app.scheduling.draft')
+							: t('app.scheduling.published')}
+					</Badge>
+					{#if roster.published_at == null}
+						<Button size="sm" disabled={publishing} onclick={() => publish(roster.norbital_id)}>
+							{t('app.scheduling.publish_month', { month })}
+						</Button>
+					{:else}
+						<Button
+							size="sm"
+							variant="outline"
+							disabled={publishing}
+							onclick={() => reopen(roster.norbital_id)}
+						>
+							{t('app.scheduling.re_open')}
+						</Button>
+					{/if}
+				</Inline>
+			{/each}
+			{#if progress.drafting === 'DRAFT'}
+				<Badge variant="outline">
+					{t('app.scheduling.days_assigned', {
+						rostered: progress.rostered.toLocaleString(),
+						total: progress.personDays.toLocaleString()
+					})}
+				</Badge>
+				{#if progress.peopleNeedingAssignment > 0}
 					<Badge variant="outline">
-						{t('app.scheduling.person_days_drafted', {
-							rostered: progress.rostered.toLocaleString(),
-							total: progress.personDays.toLocaleString()
+						{t('app.scheduling.people_need_shifts', {
+							count: progress.peopleNeedingAssignment.toLocaleString()
 						})}
 					</Badge>
 				{/if}
 			{/if}
-			{#if !loading}
-				{#each progress.exceptions as exception (exception.status)}
-					<Badge variant="destructive">
-						{exception.count.toLocaleString()}
-						{t(STATUS_PRESENTATION[exception.status].labelKey).toLowerCase()}
-					</Badge>
-				{/each}
-			{/if}
-		</Cluster>
-		{#if progress.drafting === 'NOT_DRAFTED'}
-			<p class="text-sm text-muted-foreground">
-				{t('app.scheduling.not_drafted_note', { month })}
-			</p>
-		{:else if rosterImportBlocker != null}
-			<p class="text-sm text-muted-foreground">{rosterImportBlocker}</p>
 		{/if}
-		<p class="text-sm text-muted-foreground">
-			{t('app.scheduling.publishing_note')}
-		</p>
-	</Stack>
+		{#if !loading}
+			{#each progress.exceptions as exception (exception.status)}
+				<Badge variant="destructive">
+					{exceptionCopy(exception.status, exception.count.toLocaleString())}
+				</Badge>
+			{/each}
+		{/if}
+		<Tooltip side="bottom" align="start" contentClass="max-w-80">
+			{#snippet trigger({ props })}
+				<Button {...props} variant="ghost" size="icon" aria-label={t('app.scheduling.board_help')}>
+					<IconWrapper name="lucide:info" class="size-4" />
+				</Button>
+			{/snippet}
+			{#snippet content()}
+				<p class="text-xs leading-5">{boardHelp}</p>
+			{/snippet}
+		</Tooltip>
+	</Cluster>
 {/snippet}
 
 {#snippet boardChrome()}

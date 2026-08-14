@@ -29,6 +29,9 @@ export type Translator = I18nApi<TenantI18nKeys>['t'];
 
 export type Designation = 'WORK' | 'REST' | 'OFF';
 
+/** How this employment's days are supposed to appear on the board. */
+export type ScheduleKind = 'PATTERNED' | 'ROSTERED';
+
 /** Why a planned working day has no attendance behind it, in the order an operator cares about. */
 export type DayStatus =
 	| 'BEFORE_START'
@@ -48,6 +51,11 @@ export type DayFacts = {
 	readonly employmentState: 'BEFORE_START' | 'ACTIVE' | 'EXITED';
 	/** `null` when no roster entry covers the day at all. */
 	readonly designation: Designation | null;
+	/**
+	 * The employment's schedule term for this date. A repeating week fills itself in; a monthly
+	 * roster stays blank until somebody assigns the day. `null` when no term covers the date.
+	 */
+	readonly scheduleKind: ScheduleKind | null;
 	/** The shift the day is worked on. Null on a rest or off day, which schedules none. */
 	readonly shiftCode: string | null;
 	readonly shiftStart: string | null;
@@ -202,6 +210,12 @@ function activeTerm(
 	);
 }
 
+function scheduleKindOf(patternValue: unknown): ScheduleKind | null {
+	if (patternValue == null || typeof patternValue !== 'object') return null;
+	const type = 'type' in patternValue ? patternValue.type : null;
+	return type === 'PATTERNED' || type === 'ROSTERED' ? type : null;
+}
+
 /**
  * Decide what one cell says, most specific reason first.
  *
@@ -294,6 +308,7 @@ export function buildRosterMonth(options: {
 			const time = timeByKey.get(key);
 			const leave = leaveByKey.get(key);
 			const term = activeTerm(options.employmentTerms, employmentId, date);
+			const scheduleKind = term == null ? null : scheduleKindOf(term.work_pattern);
 			const projectedId =
 				roster == null && term != null ? patternRosterCodeId(term.work_pattern, date) : null;
 			const rosterCodeId = roster?.shift_definition_id ?? projectedId;
@@ -311,6 +326,7 @@ export function buildRosterMonth(options: {
 				date,
 				employmentState,
 				designation: employmentState === 'ACTIVE' ? designation : null,
+				scheduleKind: employmentState === 'ACTIVE' ? scheduleKind : null,
 				shiftCode:
 					employmentState === 'ACTIVE' && designation === 'WORK'
 						? (rosterCode?.code ?? null)
@@ -442,12 +458,30 @@ export function shiftTimeCue(day: DayFacts | undefined): string | null {
 	return `${shortClock(day.shiftStart)}–${shortClock(day.shiftEnd)}`;
 }
 
+/** Why a blank cell is blank — the schedule term, not just the word "unrostered". */
+export function unrosteredReason(day: DayFacts, t: Translator): string {
+	switch (day.scheduleKind) {
+		case 'ROSTERED':
+			return t('roster.unrostered_monthly');
+		case 'PATTERNED':
+			return t('roster.unrostered_pattern');
+		case null:
+			return t('roster.unrostered_no_pattern');
+		default: {
+			const unhandled: never = day.scheduleKind;
+			throw new Error(`Unhandled schedule kind: ${String(unhandled)}`);
+		}
+	}
+}
+
 /** One line describing everything known about a day, for a cell's hover text. */
 export function describeDay(day: DayFacts | undefined, heading: string, t: Translator): string {
 	if (day == null) return heading;
 	return [
 		heading,
-		t(STATUS_PRESENTATION[day.status].labelKey),
+		day.status === 'UNROSTERED'
+			? unrosteredReason(day, t)
+			: t(STATUS_PRESENTATION[day.status].labelKey),
 		day.shiftCode == null ? null : t('roster.shift_code', { code: day.shiftCode }),
 		day.shiftStart == null || day.shiftEnd == null
 			? null
@@ -461,12 +495,13 @@ export function describeDay(day: DayFacts | undefined, heading: string, t: Trans
 		day.leaveCode == null
 			? null
 			: `${day.leaveCode}${day.halfDayLeave ? ` (${t('roster.half_day')})` : ''}`,
-		day.withinCutoff ? t('roster.inside_cutoff') : null,
 		day.attendanceState === 'OPEN'
 			? t('roster.attendance_open')
 			: day.workedIntervalCount > 0
 				? t('roster.attendance_intervals', { count: day.workedIntervalCount })
-				: t('roster.no_attendance')
+				: day.withinCutoff
+					? t('roster.no_attendance_in_pay_period')
+					: t('roster.no_attendance')
 	]
 		.filter((part) => part != null && part !== '')
 		.join(' — ');
@@ -499,6 +534,8 @@ export type MonthProgress = {
 	readonly personDays: number;
 	readonly rostered: number;
 	readonly unrostered: number;
+	/** People with at least one active day that still has no shift. */
+	readonly peopleNeedingAssignment: number;
 	/**
 	 * The things somebody has to act on now. Attendance faults always count; an unrostered day
 	 * counts only in a published month, where it is a hole rather than unfinished work.
@@ -516,6 +553,10 @@ export function monthProgress(
 	const counts = summarizeRosterMonth(facts);
 	const personDays = facts.size - (counts.get('BEFORE_START') ?? 0) - (counts.get('EXITED') ?? 0);
 	const unrostered = counts.get('UNROSTERED') ?? 0;
+	const needing = new Set<string>();
+	for (const day of facts.values()) {
+		if (day.status === 'UNROSTERED') needing.add(day.employmentId);
+	}
 	const statuses: DayStatus[] =
 		drafting === 'PUBLISHED'
 			? [...ATTENDANCE_EXCEPTIONS, 'UNROSTERED']
@@ -525,6 +566,7 @@ export function monthProgress(
 		personDays,
 		rostered: personDays - unrostered,
 		unrostered,
+		peopleNeedingAssignment: needing.size,
 		exceptions: statuses
 			.map((status) => ({ status, count: counts.get(status) ?? 0 }))
 			.filter((entry) => entry.count > 0)
