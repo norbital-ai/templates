@@ -190,6 +190,7 @@
 				{t('app.loans.empty')}
 			</p>
 		{:else}
+			{#key selectedCompanyId}
 			<CollectionTable
 				{client}
 				collection="repayment_agreements"
@@ -259,6 +260,7 @@
 					</p>
 				{/snippet}
 			</CollectionTable>
+			{/key}
 		{/if}
 	</Bound>
 </Cover>

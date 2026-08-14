@@ -160,7 +160,7 @@
 		return `${t('roster.shift_code', { code: day.shiftCode })} · ${t('roster.shift_window', {
 			start: day.shiftStart,
 			end: day.shiftEnd,
-			break: day.shiftBreakMinutes ?? 0
+			break: (day.shiftBreakMinutes ?? 0) / 60
 		})}`;
 	}
 

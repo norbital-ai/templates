@@ -189,6 +189,7 @@
 			{t('app.pay_components.empty_entries')}
 		</p>
 	{:else}
+		{#key selectedCompanyId}
 		<CollectionTable
 			{client}
 			collection="component_entries"
@@ -260,6 +261,7 @@
 				/>
 			{/snippet}
 		</CollectionTable>
+		{/key}
 	{/if}
 {/snippet}
 
@@ -269,6 +271,7 @@
 			{t('app.pay_components.empty_catalogue')}
 		</p>
 	{:else}
+		{#key selectedCompanyId}
 		<CollectionTable
 			{client}
 			collection="pay_components"
@@ -292,6 +295,7 @@
 				<Column name="effective_range" label={t('component.effective')} />
 			{/snippet}
 		</CollectionTable>
+		{/key}
 	{/if}
 {/snippet}
 

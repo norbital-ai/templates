@@ -219,6 +219,7 @@
 	{#if selectedCompanyId == null}
 		<p class="text-sm text-muted-foreground">{t('app.people.empty_profiles')}</p>
 	{:else}
+		{#key selectedCompanyId}
 		<CollectionTable
 			{client}
 			collection="employees"
@@ -259,6 +260,7 @@
 				</p>
 			{/snippet}
 		</CollectionTable>
+		{/key}
 	{/if}
 {/snippet}
 

@@ -48,6 +48,7 @@ import {
 	isLoanInstalmentEntry,
 	prorates,
 	recurringRange,
+	repaymentCoverageKey,
 	type ComponentEntry
 } from './entries.js';
 import { defaultPayPeriod } from './period.js';
@@ -435,8 +436,10 @@ export function measureEmployment(options: {
 		entry.origin?.kind === 'ARREARS' &&
 		entry.origin.covers_periods.length === 1 &&
 		entry.origin.covers_periods[0] === bundle.arrearsFor.period;
+	const coveredByAgreement = new Set(bundle.agreements.map(repaymentCoverageKey));
 	const periodEntries = bundle.entries.filter((entry) => {
 		if (isLoanInstalmentEntry(entry) || ownedArrears(entry)) return false;
+		if (coveredByAgreement.has(repaymentCoverageKey(entry))) return false;
 		const recurring = recurringRange(entry);
 		if (recurring == null) return entryPayPeriod(entry, cutoffDay) === options.period;
 		return (

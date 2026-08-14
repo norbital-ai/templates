@@ -30,7 +30,7 @@
 	import { leaveBalance, resolveEntitlement } from '../../collections/payroll_runs/lib/leave.js';
 	import { completedMonths } from '../../collections/payroll_runs/lib/dates.js';
 	import { patternRosterCodeId } from '../../lib/scheduling/work-pattern.js';
-	import { rosterCodeKind } from '../../lib/scheduling/roster-code.js';
+	import { rosterCodeKind, workWindowHalves } from '../../lib/scheduling/roster-code.js';
 	import { calendarDayKey, shiftDayKey, todayKey } from '../../lib/ui/calendar.js';
 	import { leaveEventSchema } from './+definition.js';
 	import type { RendererProps, Value } from './$types.js';
@@ -147,6 +147,21 @@
 	const rosterCodeById = $derived(
 		new Map((rosterCodesQuery?.current ?? []).map((code) => [code.norbital_id, code]))
 	);
+	const scheduleUnknown = $derived(
+		employmentId != null &&
+			(termsQuery?.current === undefined ||
+				rosterQuery?.current === undefined ||
+				(employment != null &&
+					(holidaysQuery?.current === undefined || rosterCodesQuery?.current === undefined)))
+	);
+	const pickerDisabledReason = $derived.by(() => {
+		if (disabled) return null;
+		if (employmentId == null) return t('component.leave_picker_disabled_no_employment');
+		if (leaveTypeId == null) return t('component.leave_picker_disabled_no_leave_type');
+		if (scheduleUnknown) return t('component.leave_picker_loading_schedule');
+		return null;
+	});
+	const pickerDisabled = $derived(disabled || pickerDisabledReason != null);
 	const availableLeaveDays = $derived.by(() => {
 		if (
 			current?.kind !== 'TIME_OFF' ||
@@ -194,13 +209,8 @@
 	});
 
 	function leaveDayAvailability(date: string): LeaveDayAvailability {
-		if (
-			termsQuery?.loading === true ||
-			rosterQuery?.loading === true ||
-			holidaysQuery?.loading === true ||
-			rosterCodesQuery?.loading === true
-		) {
-			return { eligible: true };
+		if (employmentId == null || leaveTypeId == null || scheduleUnknown) {
+			return { eligible: false, reason: pickerDisabledReason ?? undefined };
 		}
 		if (holidayDates.has(date)) {
 			return { eligible: false, reason: t('component.excluded_public_holiday') };
@@ -223,7 +233,13 @@
 		if (code != null && rosterCodeKind(code.variant) !== 'WORK') {
 			return { eligible: false, reason: t('component.excluded_rest_or_off') };
 		}
-		return { eligible: true };
+		const halves = code == null ? null : workWindowHalves(code.variant);
+		return {
+			eligible: true,
+			shiftLabel: halves?.span,
+			firstHalfLabel: halves?.first,
+			secondHalfLabel: halves?.second
+		};
 	}
 
 	const summary = $derived.by(() => {
@@ -330,7 +346,8 @@
 					value={current.range}
 					availability={leaveDayAvailability}
 					maximumHalfDays={availableLeaveDays == null ? null : Math.floor(availableLeaveDays * 2)}
-					{disabled}
+					disabled={pickerDisabled}
+					disabledReason={pickerDisabledReason}
 					onValueChange={setTimeOffRange}
 				/>
 			</div>

@@ -200,6 +200,7 @@
 	{#if selectedCompanyId == null}
 		<p class="text-sm text-muted-foreground">{t('app.time_attendance.empty_entries')}</p>
 	{:else}
+		{#key selectedCompanyId}
 		<CollectionTable
 			{client}
 			collection="time_entries"
@@ -279,6 +280,7 @@
 				/>
 			{/snippet}
 		</CollectionTable>
+		{/key}
 	{/if}
 {/snippet}
 

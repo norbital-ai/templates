@@ -53,3 +53,30 @@ export function workWindow(value: unknown): WorkWindow | null {
 export function rosterCodeKind(value: unknown): RosterCodeVariant['kind'] {
 	return rosterCodeVariant(value).kind;
 }
+
+function clockFromMinutes(minutes: number): string {
+	const normalized = ((minutes % MINUTES_PER_DAY) + MINUTES_PER_DAY) % MINUTES_PER_DAY;
+	const hours = Math.floor(normalized / 60);
+	const mins = normalized % 60;
+	return `${String(hours).padStart(2, '0')}:${String(mins).padStart(2, '0')}`;
+}
+
+/** First/second half of a WORK window, used by leave so night shifts are not labelled AM/PM. */
+export function workWindowHalves(
+	value: unknown
+): { readonly span: string; readonly first: string; readonly second: string } | null {
+	let window: WorkWindow | null;
+	try {
+		window = workWindow(value);
+	} catch {
+		return null;
+	}
+	if (window == null) return null;
+	const start = clockMinutes(window.start_time);
+	const midpoint = clockFromMinutes(start + Math.floor(window.elapsed_minutes / 2));
+	return {
+		span: `${window.start_time}–${window.end_time}`,
+		first: `${window.start_time}–${midpoint}`,
+		second: `${midpoint}–${window.end_time}`
+	};
+}

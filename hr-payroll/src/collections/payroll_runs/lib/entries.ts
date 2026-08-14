@@ -87,6 +87,17 @@ export function isLoanInstalmentEntry(entry: ComponentEntry): boolean {
 	return entry.origin?.kind === 'LOAN_INSTALMENT';
 }
 
+/**
+ * Pair an agreement and a leftover entry share. When an agreement will emit the instalment,
+ * any live entry on the same employment and pay component must not also measure as ENTRY.
+ */
+export function repaymentCoverageKey(row: {
+	readonly employment_id: string;
+	readonly pay_component_id: string;
+}): string {
+	return `${row.employment_id}:${row.pay_component_id}`;
+}
+
 function claimIncurredOn(entry: ComponentEntry): IsoDate | null {
 	if (entry.origin?.kind !== 'CLAIM') return null;
 	return dateKey(entry.origin.incurred_on);
