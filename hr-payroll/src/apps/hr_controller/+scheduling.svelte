@@ -918,24 +918,24 @@
 		{/snippet}
 		<Cover gap="md" top={shiftIntro}>
 			{#key `${selectedCompanyId}:${month}`}
-			<CollectionTable
-				{client}
-				collection="shift_definitions"
-				view={`hr_controller:scheduling:shifts:${selectedCompanyId}`}
-				query={{
-					where: { company_id: { eq: selectedCompanyId }, ...activeRange },
-					orderBy: { code: 'asc' }
-				}}
-				searchPlaceholder={t('app.scheduling.search_shifts_placeholder')}
-				class="h-full min-h-0"
-			>
-				{#snippet columns({ Column })}
-					<Column name="code" card="title" />
-					<Column name="name" card="subtitle" />
-					<Column name="variant" label={t('app.scheduling.roster_code_definition')} />
-					<Column name="effective_range" label={t('component.effective')} />
-				{/snippet}
-			</CollectionTable>
+				<CollectionTable
+					{client}
+					collection="shift_definitions"
+					view={`hr_controller:scheduling:shifts:${selectedCompanyId}`}
+					query={{
+						where: { company_id: { eq: selectedCompanyId }, ...activeRange },
+						orderBy: { code: 'asc' }
+					}}
+					searchPlaceholder={t('app.scheduling.search_shifts_placeholder')}
+					class="h-full min-h-0"
+				>
+					{#snippet columns({ Column })}
+						<Column name="code" card="title" />
+						<Column name="name" card="subtitle" />
+						<Column name="variant" label={t('app.scheduling.roster_code_definition')} />
+						<Column name="effective_range" label={t('component.effective')} />
+					{/snippet}
+				</CollectionTable>
 			{/key}
 		</Cover>
 	{/if}
@@ -948,31 +948,31 @@
 		<p class="text-sm text-muted-foreground">{t('app.scheduling.empty_holidays')}</p>
 	{:else}
 		{#key `${selectedCompanyId}:${month}`}
-		<CollectionTable
-			{client}
-			collection="company_holidays"
-			view={`hr_controller:scheduling:holidays:${selectedCompanyId}`}
-			query={{
-				where: { company_id: { eq: selectedCompanyId } },
-				orderBy: { date: 'desc' }
-			}}
-			searchPlaceholder={t('app.scheduling.search_holidays')}
-		>
-			{#snippet columns({ Column })}
-				<Column
-					name="date"
-					label={t('component.date')}
-					card="title"
-					render={({ value }) => formatCalendarDate(value)}
-				/>
-				<Column name="name" card="subtitle" />
-				<Column
-					name="scope"
-					label={t('component.scope')}
-					render={({ value }) => formatHolidayScope(value, t)}
-				/>
-			{/snippet}
-		</CollectionTable>
+			<CollectionTable
+				{client}
+				collection="company_holidays"
+				view={`hr_controller:scheduling:holidays:${selectedCompanyId}`}
+				query={{
+					where: { company_id: { eq: selectedCompanyId } },
+					orderBy: { date: 'desc' }
+				}}
+				searchPlaceholder={t('app.scheduling.search_holidays')}
+			>
+				{#snippet columns({ Column })}
+					<Column
+						name="date"
+						label={t('component.date')}
+						card="title"
+						render={({ value }) => formatCalendarDate(value)}
+					/>
+					<Column name="name" card="subtitle" />
+					<Column
+						name="scope"
+						label={t('component.scope')}
+						render={({ value }) => formatHolidayScope(value, t)}
+					/>
+				{/snippet}
+			</CollectionTable>
 		{/key}
 	{/if}
 {/snippet}

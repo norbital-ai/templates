@@ -201,9 +201,7 @@
 	const chargeableHalves = $derived(chargeableHalfDays(value));
 	const chargeableDays = $derived(chargeableHalves / 2);
 	const remainingDays = $derived(maximumHalfDays == null ? null : maximumHalfDays / 2);
-	const overLimit = $derived(
-		maximumHalfDays != null && chargeableHalves > maximumHalfDays
-	);
+	const overLimit = $derived(maximumHalfDays != null && chargeableHalves > maximumHalfDays);
 	const excludedInside = $derived.by(() => {
 		if (value == null) return 0;
 		let count = 0;
@@ -315,8 +313,7 @@
 							disabled={disabled || dayAvailability.eligible === false || !inMonth}
 							aria-label={`${date}${dayAvailability.shiftLabel ? ` · ${dayAvailability.shiftLabel}` : ''}${dayAvailability.reason ? ` — ${dayAvailability.reason}` : ''}`}
 							title={dayAvailability.reason ??
-								(dayAvailability.firstHalfLabel != null &&
-								dayAvailability.secondHalfLabel != null
+								(dayAvailability.firstHalfLabel != null && dayAvailability.secondHalfLabel != null
 									? `${t('component.first_half')}: ${dayAvailability.firstHalfLabel} · ${t('component.second_half')}: ${dayAvailability.secondHalfLabel}`
 									: dayAvailability.shiftLabel)}
 							onpointerdown={(event) => {
@@ -331,7 +328,9 @@
 								{Number(date.slice(8))}
 							</span>
 							{#if dayAvailability.shiftLabel}
-								<span class="truncate px-0.5 text-center text-[0.5625rem] leading-3 text-muted-foreground">
+								<span
+									class="truncate px-0.5 text-center text-[0.5625rem] leading-3 text-muted-foreground"
+								>
 									{dayAvailability.shiftLabel}
 								</span>
 							{/if}

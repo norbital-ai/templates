@@ -220,46 +220,46 @@
 		<p class="text-sm text-muted-foreground">{t('app.people.empty_profiles')}</p>
 	{:else}
 		{#key selectedCompanyId}
-		<CollectionTable
-			{client}
-			collection="employees"
-			view={`hr_controller:people:profiles:${selectedCompanyId}`}
-			title={t('app.people.profiles_title')}
-			description={t('app.people.profiles_description')}
-			initialFilters={employedTodayFilter()}
-			query={{
-				where: {
-					employment_employee: {
-						norbital_approval_id: { isNull: true },
-						company_id: { eq: selectedCompanyId }
-					}
-				},
-				orderBy: { name: 'asc' }
-			}}
-			searchPlaceholder={t('app.people.search_people')}
-		>
-			{#snippet columns({ Column })}
-				<Column name="name" />
-				<Column name="email" />
-				<Column name="phone" />
-				<Column name="nationality" />
-				<Column
-					name="date_of_birth"
-					label={t('app.people.date_of_birth')}
-					render={({ value }) => formatCalendarDate(value)}
-				/>
-				<Column name="dependents_count" label={t('app.people.dependents')} />
-			{/snippet}
-			{#snippet ListCard(person)}
-				<p class="truncate font-medium">{person.name}</p>
-				<p class="mt-1 truncate text-sm text-muted-foreground">{person.email}</p>
-				<p class="mt-1 truncate text-sm">
-					{person.phone
-						? formatDataValue({ name: 'phone', kind: 'phone', nullable: true }, person.phone)
-						: (person.nationality ?? '')}
-				</p>
-			{/snippet}
-		</CollectionTable>
+			<CollectionTable
+				{client}
+				collection="employees"
+				view={`hr_controller:people:profiles:${selectedCompanyId}`}
+				title={t('app.people.profiles_title')}
+				description={t('app.people.profiles_description')}
+				initialFilters={employedTodayFilter()}
+				query={{
+					where: {
+						employment_employee: {
+							norbital_approval_id: { isNull: true },
+							company_id: { eq: selectedCompanyId }
+						}
+					},
+					orderBy: { name: 'asc' }
+				}}
+				searchPlaceholder={t('app.people.search_people')}
+			>
+				{#snippet columns({ Column })}
+					<Column name="name" />
+					<Column name="email" />
+					<Column name="phone" />
+					<Column name="nationality" />
+					<Column
+						name="date_of_birth"
+						label={t('app.people.date_of_birth')}
+						render={({ value }) => formatCalendarDate(value)}
+					/>
+					<Column name="dependents_count" label={t('app.people.dependents')} />
+				{/snippet}
+				{#snippet ListCard(person)}
+					<p class="truncate font-medium">{person.name}</p>
+					<p class="mt-1 truncate text-sm text-muted-foreground">{person.email}</p>
+					<p class="mt-1 truncate text-sm">
+						{person.phone
+							? formatDataValue({ name: 'phone', kind: 'phone', nullable: true }, person.phone)
+							: (person.nationality ?? '')}
+					</p>
+				{/snippet}
+			</CollectionTable>
 		{/key}
 	{/if}
 {/snippet}

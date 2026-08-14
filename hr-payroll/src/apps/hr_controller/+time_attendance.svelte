@@ -201,85 +201,85 @@
 		<p class="text-sm text-muted-foreground">{t('app.time_attendance.empty_entries')}</p>
 	{:else}
 		{#key selectedCompanyId}
-		<CollectionTable
-			{client}
-			collection="time_entries"
-			view={`hr_controller:time_attendance:entries:${selectedCompanyId}`}
-			query={{
-				where: {
-					time_entry_employment: {
-						norbital_approval_id: { isNull: true },
-						company_id: { eq: selectedCompanyId }
+			<CollectionTable
+				{client}
+				collection="time_entries"
+				view={`hr_controller:time_attendance:entries:${selectedCompanyId}`}
+				query={{
+					where: {
+						time_entry_employment: {
+							norbital_approval_id: { isNull: true },
+							company_id: { eq: selectedCompanyId }
+						},
+						...(entryWindowStart ? { work_date: { gte: entryWindowStart, lte: today } } : {})
 					},
-					...(entryWindowStart ? { work_date: { gte: entryWindowStart, lte: today } } : {})
-				},
-				orderBy: { work_date: 'desc' },
-				with: {
-					time_entry_employment: { columns: { employee_number: true } }
-				}
-			}}
-			searchPlaceholder={t('app.time_attendance.search_entries')}
-			importPipelines={[
-				{
-					id: 'time-entry-workbook',
-					label: t('app.time_attendance.import_pipeline'),
-					description: t('app.time_attendance.import_pipeline_description'),
-					icon: 'lucide:clock-arrow-up',
-					run: async () => {
-						await runWorkbookImport(
-							{
-								collectionName: 'time_entries',
-								recordLabel: t('component.time_entries'),
-								buildPayload: timeEntryImportPayload
-							},
-							t
-						);
+					orderBy: { work_date: 'desc' },
+					with: {
+						time_entry_employment: { columns: { employee_number: true } }
 					}
-				}
-			]}
-		>
-			{#snippet columns({ Column })}
-				<Column
-					name="work_date"
-					label={t('component.work_date')}
-					card="title"
-					render={({ value }) => formatCalendarDate(value)}
-				/>
-				<Column
-					name="employment_id"
-					label={t('component.employment')}
-					card="subtitle"
-					render={({ row }) => employmentLabel(row)}
-				/>
-				<Column
-					name="worked_intervals"
-					label={t('component.clock_in')}
-					render={({ value }) => intervalBoundary(value, 'FIRST')}
-				/>
-				<Column
-					name="worked_intervals"
-					label={t('component.clock_out')}
-					render={({ value }) => intervalBoundary(value, 'LAST')}
-				/>
-				<Column
-					name="break_minutes"
-					label={t('app.time_attendance.break_hours')}
-					render={({ value }) => formatDurationHours(value, t)}
-				/>
-				<Column
-					name="worked_intervals"
-					label={t('component.worked_hours')}
-					render={({ value, row }) =>
-						formatDurationHours(workedMinutes(value, row.break_minutes), t)}
-				/>
-				<Column
-					name="worked_intervals"
-					label={t('component.state')}
-					card="badge"
-					render={({ value }) => stateLabel(value)}
-				/>
-			{/snippet}
-		</CollectionTable>
+				}}
+				searchPlaceholder={t('app.time_attendance.search_entries')}
+				importPipelines={[
+					{
+						id: 'time-entry-workbook',
+						label: t('app.time_attendance.import_pipeline'),
+						description: t('app.time_attendance.import_pipeline_description'),
+						icon: 'lucide:clock-arrow-up',
+						run: async () => {
+							await runWorkbookImport(
+								{
+									collectionName: 'time_entries',
+									recordLabel: t('component.time_entries'),
+									buildPayload: timeEntryImportPayload
+								},
+								t
+							);
+						}
+					}
+				]}
+			>
+				{#snippet columns({ Column })}
+					<Column
+						name="work_date"
+						label={t('component.work_date')}
+						card="title"
+						render={({ value }) => formatCalendarDate(value)}
+					/>
+					<Column
+						name="employment_id"
+						label={t('component.employment')}
+						card="subtitle"
+						render={({ row }) => employmentLabel(row)}
+					/>
+					<Column
+						name="worked_intervals"
+						label={t('component.clock_in')}
+						render={({ value }) => intervalBoundary(value, 'FIRST')}
+					/>
+					<Column
+						name="worked_intervals"
+						label={t('component.clock_out')}
+						render={({ value }) => intervalBoundary(value, 'LAST')}
+					/>
+					<Column
+						name="break_minutes"
+						label={t('app.time_attendance.break_hours')}
+						render={({ value }) => formatDurationHours(value, t)}
+					/>
+					<Column
+						name="worked_intervals"
+						label={t('component.worked_hours')}
+						render={({ value, row }) =>
+							formatDurationHours(workedMinutes(value, row.break_minutes), t)}
+					/>
+					<Column
+						name="worked_intervals"
+						label={t('component.state')}
+						card="badge"
+						render={({ value }) => stateLabel(value)}
+					/>
+				{/snippet}
+			</CollectionTable>
 		{/key}
 	{/if}
 {/snippet}
