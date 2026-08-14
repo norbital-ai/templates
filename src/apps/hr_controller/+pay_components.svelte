@@ -190,77 +190,77 @@
 		</p>
 	{:else}
 		{#key selectedCompanyId}
-		<CollectionTable
-			{client}
-			collection="component_entries"
-			view={`hr_controller:pay_components:entries:${selectedCompanyId}`}
-			query={{
-				where: {
-					repayment_agreement_id: { isNull: true },
-					entry_employment: {
-						norbital_approval_id: { isNull: true },
-						company_id: { eq: selectedCompanyId }
-					}
-				},
-				orderBy: { event_date: 'desc' },
-				with: {
-					entry_employment: { columns: { employee_number: true } },
-					entry_pay_component: { columns: { code: true, name: true } },
-					entry_payslip_lines: {
-						columns: { norbital_id: true },
-						with: {
-							payslip_line_payslip: {
-								columns: { norbital_id: true },
-								with: {
-									payslip_payroll_run: { columns: { period: true } }
+			<CollectionTable
+				{client}
+				collection="component_entries"
+				view={`hr_controller:pay_components:entries:${selectedCompanyId}`}
+				query={{
+					where: {
+						repayment_agreement_id: { isNull: true },
+						entry_employment: {
+							norbital_approval_id: { isNull: true },
+							company_id: { eq: selectedCompanyId }
+						}
+					},
+					orderBy: { event_date: 'desc' },
+					with: {
+						entry_employment: { columns: { employee_number: true } },
+						entry_pay_component: { columns: { code: true, name: true } },
+						entry_payslip_lines: {
+							columns: { norbital_id: true },
+							with: {
+								payslip_line_payslip: {
+									columns: { norbital_id: true },
+									with: {
+										payslip_payroll_run: { columns: { period: true } }
+									}
 								}
 							}
 						}
 					}
-				}
-			}}
-			searchPlaceholder={t('app.pay_components.search_entries')}
-		>
-			{#snippet columns({ Column })}
-				<Column
-					name="pay_component_id"
-					label={t('component.component')}
-					card="title"
-					render={({ row }) => componentLabel(row)}
-				/>
-				<Column
-					name="employment_id"
-					label={t('component.employment')}
-					render={({ row }) => employmentLabel(row)}
-				/>
-				<Column
-					name="amount"
-					label={t('component.amount')}
-					render={({ value }) => formatNumeric(value)}
-				/>
-				<Column name="quantity" label={t('component.quantity')} />
-				<Column
-					name="event_date"
-					label={t('component.date')}
-					render={({ value }) => formatCalendarDate(value)}
-				/>
-				<Column name="pay_period" label={t('component.pay_period')} />
-				<Column
-					name="repayment_agreement_id"
-					label={t('component.payroll_consumption')}
-					sortable={false}
-					render={({ row }) => entryConsumptionLabel(row)}
-				/>
-				<Column name="usage_mode" label={t('app.pay_components.payslip_usage')} card="badge" />
-				<Column name="description" />
-				<Column
-					name="origin"
-					label={t('component.origin')}
-					card="subtitle"
-					render={({ value }) => formatEntryOrigin(value, t)}
-				/>
-			{/snippet}
-		</CollectionTable>
+				}}
+				searchPlaceholder={t('app.pay_components.search_entries')}
+			>
+				{#snippet columns({ Column })}
+					<Column
+						name="pay_component_id"
+						label={t('component.component')}
+						card="title"
+						render={({ row }) => componentLabel(row)}
+					/>
+					<Column
+						name="employment_id"
+						label={t('component.employment')}
+						render={({ row }) => employmentLabel(row)}
+					/>
+					<Column
+						name="amount"
+						label={t('component.amount')}
+						render={({ value }) => formatNumeric(value)}
+					/>
+					<Column name="quantity" label={t('component.quantity')} />
+					<Column
+						name="event_date"
+						label={t('component.date')}
+						render={({ value }) => formatCalendarDate(value)}
+					/>
+					<Column name="pay_period" label={t('component.pay_period')} />
+					<Column
+						name="repayment_agreement_id"
+						label={t('component.payroll_consumption')}
+						sortable={false}
+						render={({ row }) => entryConsumptionLabel(row)}
+					/>
+					<Column name="usage_mode" label={t('app.pay_components.payslip_usage')} card="badge" />
+					<Column name="description" />
+					<Column
+						name="origin"
+						label={t('component.origin')}
+						card="subtitle"
+						render={({ value }) => formatEntryOrigin(value, t)}
+					/>
+				{/snippet}
+			</CollectionTable>
 		{/key}
 	{/if}
 {/snippet}
@@ -272,29 +272,29 @@
 		</p>
 	{:else}
 		{#key selectedCompanyId}
-		<CollectionTable
-			{client}
-			collection="pay_components"
-			view={`hr_controller:pay_components:catalogue:${selectedCompanyId}`}
-			initialFilters={inForceTodayFilter()}
-			query={{
-				where: {
-					company_id: { eq: selectedCompanyId }
-				},
-				orderBy: { code: 'asc' }
-			}}
-			searchPlaceholder={t('app.pay_components.search_catalogue')}
-		>
-			{#snippet columns({ Column })}
-				<Column name="code" card="title" />
-				<Column name="name" card="subtitle" />
-				<Column name="nature" card="badge" />
-				<Column name="policy" label={t('app.pay_components.settlement_policy')} />
-				<Column name="definition" label={t('app.pay_components.calculation')} />
-				<Column name="sequence" label={t('app.pay_components.order')} />
-				<Column name="effective_range" label={t('component.effective')} />
-			{/snippet}
-		</CollectionTable>
+			<CollectionTable
+				{client}
+				collection="pay_components"
+				view={`hr_controller:pay_components:catalogue:${selectedCompanyId}`}
+				initialFilters={inForceTodayFilter()}
+				query={{
+					where: {
+						company_id: { eq: selectedCompanyId }
+					},
+					orderBy: { code: 'asc' }
+				}}
+				searchPlaceholder={t('app.pay_components.search_catalogue')}
+			>
+				{#snippet columns({ Column })}
+					<Column name="code" card="title" />
+					<Column name="name" card="subtitle" />
+					<Column name="nature" card="badge" />
+					<Column name="policy" label={t('app.pay_components.settlement_policy')} />
+					<Column name="definition" label={t('app.pay_components.calculation')} />
+					<Column name="sequence" label={t('app.pay_components.order')} />
+					<Column name="effective_range" label={t('component.effective')} />
+				{/snippet}
+			</CollectionTable>
 		{/key}
 	{/if}
 {/snippet}

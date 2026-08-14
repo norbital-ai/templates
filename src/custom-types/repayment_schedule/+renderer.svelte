@@ -242,7 +242,10 @@
 	<span class="block truncate" title={summary}>{summary}</span>
 {:else}
 	{#if issues.length > 0}
-		<ul class="mb-2 space-y-1 rounded-md border border-destructive bg-destructive/10 p-2 text-sm text-destructive" role="alert">
+		<ul
+			class="mb-2 space-y-1 rounded-md border border-destructive bg-destructive/10 p-2 text-sm text-destructive"
+			role="alert"
+		>
 			{#each issues as issue (issue)}
 				<li>{issue}</li>
 			{/each}

@@ -34,9 +34,7 @@
 		limit: 500
 	});
 	const companies = $derived(companiesQuery.current ?? []);
-	const companiesUnknown = $derived(
-		companiesQuery.loading && companiesQuery.current === undefined
-	);
+	const companiesUnknown = $derived(companiesQuery.loading && companiesQuery.current === undefined);
 	const companyOptions = $derived(
 		companies.map((c) => ({
 			value: c.norbital_id,
@@ -162,56 +160,56 @@
 		<p class="text-sm text-muted-foreground">{t('app.leave.empty_requests')}</p>
 	{:else}
 		{#key selectedCompanyId}
-		<CollectionTable
-			{client}
-			collection="leave_requests"
-			view={`hr_controller:leave:requests:${selectedCompanyId}`}
-			query={{
-				where: {
-					leave_request_employment: {
-						norbital_approval_id: { isNull: true },
-						company_id: { eq: selectedCompanyId }
+			<CollectionTable
+				{client}
+				collection="leave_requests"
+				view={`hr_controller:leave:requests:${selectedCompanyId}`}
+				query={{
+					where: {
+						leave_request_employment: {
+							norbital_approval_id: { isNull: true },
+							company_id: { eq: selectedCompanyId }
+						}
+					},
+					orderBy: { from_date: 'desc' },
+					with: {
+						leave_request_type: { columns: { code: true, name: true } },
+						leave_request_employment: { columns: { employee_number: true } }
 					}
-				},
-				orderBy: { from_date: 'desc' },
-				with: {
-					leave_request_type: { columns: { code: true, name: true } },
-					leave_request_employment: { columns: { employee_number: true } }
-				}
-			}}
-			searchPlaceholder={t('app.leave.search_requests')}
-		>
-			{#snippet columns({ Column })}
-				<Column
-					name="leave_type_id"
-					label={t('component.leave_type')}
-					card="title"
-					render={({ row }) => leaveTypeLabel(row)}
-				/>
-				<Column
-					name="employment_id"
-					label={t('component.employment')}
-					card="subtitle"
-					render={({ row }) => employmentLabel(row)}
-				/>
-				<Column
-					name="event"
-					label={t('component.leave_range')}
-					render={({ row }) => leaveRangeLabel(row)}
-				/>
-				<Column name="kind" label={t('component.event')} card="badge" />
-				<Column
-					name="days"
-					label={t('component.days')}
-					render={({ value }) => formatNumeric(value)}
-				/>
-				<Column
-					name="certificate_file"
-					label={t('component.certificate')}
-					render={({ value }) => (value == null || value === '' ? '—' : t('app.leave.attached'))}
-				/>
-			{/snippet}
-		</CollectionTable>
+				}}
+				searchPlaceholder={t('app.leave.search_requests')}
+			>
+				{#snippet columns({ Column })}
+					<Column
+						name="leave_type_id"
+						label={t('component.leave_type')}
+						card="title"
+						render={({ row }) => leaveTypeLabel(row)}
+					/>
+					<Column
+						name="employment_id"
+						label={t('component.employment')}
+						card="subtitle"
+						render={({ row }) => employmentLabel(row)}
+					/>
+					<Column
+						name="event"
+						label={t('component.leave_range')}
+						render={({ row }) => leaveRangeLabel(row)}
+					/>
+					<Column name="kind" label={t('component.event')} card="badge" />
+					<Column
+						name="days"
+						label={t('component.days')}
+						render={({ value }) => formatNumeric(value)}
+					/>
+					<Column
+						name="certificate_file"
+						label={t('component.certificate')}
+						render={({ value }) => (value == null || value === '' ? '—' : t('app.leave.attached'))}
+					/>
+				{/snippet}
+			</CollectionTable>
 		{/key}
 	{/if}
 {/snippet}
@@ -228,37 +226,37 @@
 		<p class="text-sm text-muted-foreground">{t('app.leave.empty_types')}</p>
 	{:else}
 		{#key selectedCompanyId}
-		<CollectionTable
-			{client}
-			collection="leave_types"
-			view={`hr_controller:leave:types:${selectedCompanyId}`}
-			initialFilters={inForceTodayFilter()}
-			query={{
-				where: {
-					company_id: { eq: selectedCompanyId }
-				},
-				orderBy: { code: 'asc' }
-			}}
-			searchPlaceholder={t('app.leave.search_types')}
-		>
-			{#snippet columns({ Column })}
-				<Column name="code" card="title" />
-				<Column name="name" card="subtitle" />
-				<Column
-					name="accrual"
-					label={t('app.leave.accrual')}
-					render={({ value }) => formatLeaveAccrual(value, t)}
-				/>
-				<Column name="entitlement" label={t('app.leave.entitlement_matrix')} />
-				<Column
-					name="payroll_effect"
-					label={t('app.leave.payroll_effect')}
-					render={({ value }) => formatLeavePayrollEffect(value, t)}
-				/>
-				<Column name="encash_on_exit" label={t('app.leave.encash_on_exit')} />
-				<Column name="effective_range" label={t('component.effective')} />
-			{/snippet}
-		</CollectionTable>
+			<CollectionTable
+				{client}
+				collection="leave_types"
+				view={`hr_controller:leave:types:${selectedCompanyId}`}
+				initialFilters={inForceTodayFilter()}
+				query={{
+					where: {
+						company_id: { eq: selectedCompanyId }
+					},
+					orderBy: { code: 'asc' }
+				}}
+				searchPlaceholder={t('app.leave.search_types')}
+			>
+				{#snippet columns({ Column })}
+					<Column name="code" card="title" />
+					<Column name="name" card="subtitle" />
+					<Column
+						name="accrual"
+						label={t('app.leave.accrual')}
+						render={({ value }) => formatLeaveAccrual(value, t)}
+					/>
+					<Column name="entitlement" label={t('app.leave.entitlement_matrix')} />
+					<Column
+						name="payroll_effect"
+						label={t('app.leave.payroll_effect')}
+						render={({ value }) => formatLeavePayrollEffect(value, t)}
+					/>
+					<Column name="encash_on_exit" label={t('app.leave.encash_on_exit')} />
+					<Column name="effective_range" label={t('component.effective')} />
+				{/snippet}
+			</CollectionTable>
 		{/key}
 	{/if}
 {/snippet}

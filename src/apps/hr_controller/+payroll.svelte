@@ -232,87 +232,87 @@
 		<p class="text-sm text-muted-foreground">{t('app.payroll.empty_runs')}</p>
 	{:else}
 		{#key selectedCompanyId}
-		<CollectionTable
-			{client}
-			collection="payroll_runs"
-			view={`hr_controller:payroll:runs:${selectedCompanyId}`}
-			title={t('app.payroll.runs_title')}
-			description={t('app.payroll.runs_description')}
-			query={{
-				where: { company_id: { eq: selectedCompanyId } },
-				orderBy: { period: 'desc' }
-			}}
-			exportPipelines={[
-				{
-					id: 'bank-files',
-					label: t('app.payroll.export_bank_files'),
-					description: t('app.payroll.export_bank_files_description'),
-					requiresSelection: true,
-					run: async ({ selectedRows }) => {
-						const manifest = await downloadCollectionExport(
-							{
-								collection_name: 'payroll_runs',
-								record_ids: selectedRows.map((record) => record.norbital_id)
-							},
-							{ includeAction: (action) => action.metadata?.kind === 'bank-files' }
-						);
-						if (manifest.length === 0) throw new Error(t('app.payroll.export_bank_files_error'));
+			<CollectionTable
+				{client}
+				collection="payroll_runs"
+				view={`hr_controller:payroll:runs:${selectedCompanyId}`}
+				title={t('app.payroll.runs_title')}
+				description={t('app.payroll.runs_description')}
+				query={{
+					where: { company_id: { eq: selectedCompanyId } },
+					orderBy: { period: 'desc' }
+				}}
+				exportPipelines={[
+					{
+						id: 'bank-files',
+						label: t('app.payroll.export_bank_files'),
+						description: t('app.payroll.export_bank_files_description'),
+						requiresSelection: true,
+						run: async ({ selectedRows }) => {
+							const manifest = await downloadCollectionExport(
+								{
+									collection_name: 'payroll_runs',
+									record_ids: selectedRows.map((record) => record.norbital_id)
+								},
+								{ includeAction: (action) => action.metadata?.kind === 'bank-files' }
+							);
+							if (manifest.length === 0) throw new Error(t('app.payroll.export_bank_files_error'));
+						}
+					},
+					{
+						id: 'payslip-pdfs',
+						label: t('app.payroll.export_payslip_pdfs'),
+						description: t('app.payroll.export_payslip_pdfs_description'),
+						requiresSelection: true,
+						run: async ({ selectedRows }) => {
+							const manifest = await downloadCollectionExport(
+								{
+									collection_name: 'payroll_runs',
+									record_ids: selectedRows.map((record) => record.norbital_id)
+								},
+								{ includeAction: (action) => action.metadata?.kind === 'payslip-pdfs' }
+							);
+							if (manifest.length === 0) throw new Error(t('app.payroll.export_pdfs_error'));
+						}
+					},
+					{
+						id: 'payroll-report-xlsx',
+						label: t('app.payroll.export_workbook'),
+						description: t('app.payroll.export_workbook_description'),
+						requiresSelection: true,
+						run: async ({ selectedRows }) => {
+							const manifest = await downloadCollectionExport(
+								{
+									collection_name: 'payroll_runs',
+									record_ids: selectedRows.map((record) => record.norbital_id)
+								},
+								{ includeAction: (action) => action.metadata?.kind === 'payroll-report-xlsx' }
+							);
+							if (manifest.length === 0) throw new Error(t('app.payroll.export_pdfs_error'));
+						}
 					}
-				},
-				{
-					id: 'payslip-pdfs',
-					label: t('app.payroll.export_payslip_pdfs'),
-					description: t('app.payroll.export_payslip_pdfs_description'),
-					requiresSelection: true,
-					run: async ({ selectedRows }) => {
-						const manifest = await downloadCollectionExport(
-							{
-								collection_name: 'payroll_runs',
-								record_ids: selectedRows.map((record) => record.norbital_id)
-							},
-							{ includeAction: (action) => action.metadata?.kind === 'payslip-pdfs' }
-						);
-						if (manifest.length === 0) throw new Error(t('app.payroll.export_pdfs_error'));
-					}
-				},
-				{
-					id: 'payroll-report-xlsx',
-					label: t('app.payroll.export_workbook'),
-					description: t('app.payroll.export_workbook_description'),
-					requiresSelection: true,
-					run: async ({ selectedRows }) => {
-						const manifest = await downloadCollectionExport(
-							{
-								collection_name: 'payroll_runs',
-								record_ids: selectedRows.map((record) => record.norbital_id)
-							},
-							{ includeAction: (action) => action.metadata?.kind === 'payroll-report-xlsx' }
-						);
-						if (manifest.length === 0) throw new Error(t('app.payroll.export_pdfs_error'));
-					}
-				}
-			]}
-		>
-			{#snippet columns({ Column })}
-				<Column name="period" label={t('app.payroll.period')} card="title" />
-				<Column name="lifecycle" label={t('app.payroll.lifecycle')} card="badge" />
-				<Column
-					name="pay_date"
-					label={t('app.payroll.pay_date')}
-					render={({ value }) => formatCalendarDate(value)}
-				/>
-				<Column name="configuration_snapshot" label={t('app.payroll.policy_snapshot')} />
-			{/snippet}
-			{#snippet ListCard(run)}
-				<Inline align="start" justify="between" gap="sm">
-					<p class="truncate font-medium">{run.period}</p>
-					<span class="shrink-0 text-xs text-muted-foreground">{run.lifecycle}</span>
-				</Inline>
-				<p class="mt-1 truncate text-sm text-muted-foreground">
-					{t('app.payroll.pays_line', { date: formatCalendarDate(run.pay_date) })}
-				</p>
-			{/snippet}
-		</CollectionTable>
+				]}
+			>
+				{#snippet columns({ Column })}
+					<Column name="period" label={t('app.payroll.period')} card="title" />
+					<Column name="lifecycle" label={t('app.payroll.lifecycle')} card="badge" />
+					<Column
+						name="pay_date"
+						label={t('app.payroll.pay_date')}
+						render={({ value }) => formatCalendarDate(value)}
+					/>
+					<Column name="configuration_snapshot" label={t('app.payroll.policy_snapshot')} />
+				{/snippet}
+				{#snippet ListCard(run)}
+					<Inline align="start" justify="between" gap="sm">
+						<p class="truncate font-medium">{run.period}</p>
+						<span class="shrink-0 text-xs text-muted-foreground">{run.lifecycle}</span>
+					</Inline>
+					<p class="mt-1 truncate text-sm text-muted-foreground">
+						{t('app.payroll.pays_line', { date: formatCalendarDate(run.pay_date) })}
+					</p>
+				{/snippet}
+			</CollectionTable>
 		{/key}
 	{/if}
 {/snippet}

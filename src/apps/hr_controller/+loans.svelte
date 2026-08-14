@@ -191,75 +191,75 @@
 			</p>
 		{:else}
 			{#key selectedCompanyId}
-			<CollectionTable
-				{client}
-				collection="repayment_agreements"
-				view={`hr_controller:loans:${selectedCompanyId}`}
-				title={t('app.loans.repayment_agreements')}
-				description={t('app.loans.repayment_agreements_description')}
-				initialFilters={inForceTodayFilter()}
-				query={{
-					where: {
-						agreement_employment: {
-							norbital_approval_id: { isNull: true },
-							company_id: { eq: selectedCompanyId }
-						}
-					},
-					orderBy: { effective_range: 'desc' },
-					with: {
-						agreement_employment: { columns: { employee_number: true } },
-						agreement_pay_component: { columns: { code: true, name: true } },
-						agreement_instalments: {
-							where: { norbital_approval_id: { isNull: true } },
-							columns: { amount: true, repayment_sequence: true },
-							with: {
-								entry_payslip_lines: { columns: { norbital_id: true } }
+				<CollectionTable
+					{client}
+					collection="repayment_agreements"
+					view={`hr_controller:loans:${selectedCompanyId}`}
+					title={t('app.loans.repayment_agreements')}
+					description={t('app.loans.repayment_agreements_description')}
+					initialFilters={inForceTodayFilter()}
+					query={{
+						where: {
+							agreement_employment: {
+								norbital_approval_id: { isNull: true },
+								company_id: { eq: selectedCompanyId }
+							}
+						},
+						orderBy: { effective_range: 'desc' },
+						with: {
+							agreement_employment: { columns: { employee_number: true } },
+							agreement_pay_component: { columns: { code: true, name: true } },
+							agreement_instalments: {
+								where: { norbital_approval_id: { isNull: true } },
+								columns: { amount: true, repayment_sequence: true },
+								with: {
+									entry_payslip_lines: { columns: { norbital_id: true } }
+								}
 							}
 						}
-					}
-				}}
-				searchPlaceholder={t('app.loans.search_agreements')}
-			>
-				{#snippet columns({ Column })}
-					<Column name="reference" card="title" />
-					<Column
-						name="employment_id"
-						label={t('component.employment')}
-						card="subtitle"
-						render={({ row }) => employmentLabel(row)}
-					/>
-					<Column
-						name="pay_component_id"
-						label={t('app.loans.deducted_as')}
-						render={({ row }) => componentLabel(row)}
-					/>
-					<Column
-						name="principal"
-						label={t('app.loans.principal_outstanding')}
-						render={({ row, value }) => `${formatNumeric(value)} · ${progressLabel(row)}`}
-					/>
-					<Column
-						name="schedule"
-						label={t('component.schedule')}
-						render={({ value }) => formatRepaymentSchedule(value, t)}
-					/>
-					<Column name="effective_range" />
-				{/snippet}
-				{#snippet ListCard(agreement)}
-					<Inline align="start" justify="between" gap="sm">
-						<p class="truncate font-medium">{agreement.reference}</p>
-						<span class="shrink-0 text-xs text-muted-foreground">
-							{formatEffectiveRange(agreement.effective_range)}
-						</span>
-					</Inline>
-					<p class="mt-1 truncate text-sm text-muted-foreground">
-						{formatRepaymentSchedule(agreement.schedule, t)}
-					</p>
-					<p class="mt-1 text-sm">
-						{progressLabel(agreement)}
-					</p>
-				{/snippet}
-			</CollectionTable>
+					}}
+					searchPlaceholder={t('app.loans.search_agreements')}
+				>
+					{#snippet columns({ Column })}
+						<Column name="reference" card="title" />
+						<Column
+							name="employment_id"
+							label={t('component.employment')}
+							card="subtitle"
+							render={({ row }) => employmentLabel(row)}
+						/>
+						<Column
+							name="pay_component_id"
+							label={t('app.loans.deducted_as')}
+							render={({ row }) => componentLabel(row)}
+						/>
+						<Column
+							name="principal"
+							label={t('app.loans.principal_outstanding')}
+							render={({ row, value }) => `${formatNumeric(value)} · ${progressLabel(row)}`}
+						/>
+						<Column
+							name="schedule"
+							label={t('component.schedule')}
+							render={({ value }) => formatRepaymentSchedule(value, t)}
+						/>
+						<Column name="effective_range" />
+					{/snippet}
+					{#snippet ListCard(agreement)}
+						<Inline align="start" justify="between" gap="sm">
+							<p class="truncate font-medium">{agreement.reference}</p>
+							<span class="shrink-0 text-xs text-muted-foreground">
+								{formatEffectiveRange(agreement.effective_range)}
+							</span>
+						</Inline>
+						<p class="mt-1 truncate text-sm text-muted-foreground">
+							{formatRepaymentSchedule(agreement.schedule, t)}
+						</p>
+						<p class="mt-1 text-sm">
+							{progressLabel(agreement)}
+						</p>
+					{/snippet}
+				</CollectionTable>
 			{/key}
 		{/if}
 	</Bound>
