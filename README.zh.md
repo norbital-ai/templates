@@ -127,7 +127,7 @@ node scripts/verify-payroll-arithmetic.mjs   # 长篇算术验收运行
 node scripts/verify-fixture-shapes.mjs       # 针对真实 API 形状审计该运行的测试夹具
 ```
 
-`node scripts/generate-import-templates.mjs` 把排班与考勤导入模板写到 `~/Downloads`——发给操作人员的空白工作簿，其工作表与导入读取器接受的内容完全一致。
+`node scripts/generate-import-templates.mjs` 把排班与考勤导入模板写到 `~/Desktop`——一个法人实体 × 一个月、一人一行、一日一列，并带简短 Settings 表。长表（一人一天一行）仍可导入；发给操作人员的是这两种月网格。`Read me first` 表只陈述读取器实际执行的规则。
 
 算术运行过去是按需执行、独立于 `pnpm test` 之外的。现在它已纳入 `pnpm test`，因为正是不在其中的状态让一个夹具在无人察觉中腐坏，直到它上面的断言不再有意义。没人运行的检查就是不存在的检查。
 

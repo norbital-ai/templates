@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { getCollectionFormFieldContext } from '@norbital-ai/ui/collection-form';
 	import { useI18n } from '@norbital-ai/ui/i18n';
 	import type { TenantI18nKeys } from '$pod/i18n-keys';
 	import { client } from '$pod/client';
@@ -17,6 +18,10 @@
 		type RepaymentPeriodRunRow,
 		type RepaymentScheduleMatrixRow
 	} from '../../lib/ui/repayment-schedule/repayment-consumption.js';
+	import {
+		monthlyDueDates,
+		repaymentScheduleIssues
+	} from '../../collections/repayment_agreements/lib/repayment-schedule.js';
 
 	const { t } = useI18n<TenantI18nKeys>();
 
@@ -68,14 +73,40 @@
 		}
 	] satisfies readonly MatrixColumn<RepaymentScheduleMatrixRow>[];
 
+	function coerceDraftRow(entry: unknown): { due_date: string; amount: number } {
+		const raw = entry != null && typeof entry === 'object' ? entry : {};
+		return {
+			due_date: String(Reflect.get(raw, 'due_date') ?? ''),
+			amount: Number(Reflect.get(raw, 'amount'))
+		};
+	}
+
 	let props: RepaymentScheduleRendererProps = $props();
+	let formContext: ReturnType<typeof getCollectionFormFieldContext> | null = null;
+	try {
+		formContext = getCollectionFormFieldContext();
+	} catch {
+		formContext = null;
+	}
+	const liveRow = $derived(formContext?.row() ?? props.row ?? {});
 	const disabled = $derived(props.mode === 'edit' ? props.disabled : true);
 	const parsed = $derived(repaymentScheduleSchema.safeParse(props.value));
-	const schedule = $derived(parsed.success ? parsed.data : []);
-	const total = $derived(schedule.reduce((sum, entry) => sum + entry.amount, 0));
+	const draft = $derived(Array.isArray(props.value) ? props.value : []);
+	const issues = $derived(
+		props.mode === 'display'
+			? []
+			: repaymentScheduleIssues({
+					principal: liveRow.principal,
+					effectiveRange: liveRow.effective_range,
+					schedule: draft
+				})
+	);
+	const total = $derived(
+		parsed.success ? parsed.data.reduce((sum, entry) => sum + entry.amount, 0) : 0
+	);
 	const summary = $derived(
 		parsed.success
-			? `${schedule.length} instalment${schedule.length === 1 ? '' : 's'} · ${total.toFixed(2)}`
+			? `${parsed.data.length} instalment${parsed.data.length === 1 ? '' : 's'} · ${total.toFixed(2)}`
 			: 'Invalid schedule'
 	);
 	const agreementId = $derived(
@@ -177,12 +208,13 @@
 	}
 
 	const rows = $derived(
-		schedule.map((entry, sequence): RepaymentScheduleMatrixRow => {
-			const consumedBy = consumptionCell(sequence + 1, entry.due_date);
+		draft.map((entry, sequence): RepaymentScheduleMatrixRow => {
+			const coerced = coerceDraftRow(entry);
+			const consumedBy = consumptionCell(sequence + 1, coerced.due_date);
 			return {
 				id: `instalment-${sequence}`,
-				due_date: entry.due_date,
-				amount: entry.amount,
+				due_date: coerced.due_date,
+				amount: coerced.amount,
 				consumed_by: consumedBy,
 				consumed_at: consumedBy.status === 'consumed' ? consumedBy.reference.consumedAt : null
 			};
@@ -197,38 +229,49 @@
 	}
 
 	function nextDate(): string {
-		const last = schedule.at(-1)?.due_date ?? todayKey();
-		const parsedDate = new Date(`${last}T00:00:00.000Z`);
-		parsedDate.setUTCMonth(parsedDate.getUTCMonth() + 1);
-		return parsedDate.toISOString().slice(0, 10);
+		const lastDate = coerceDraftRow(draft.at(-1)).due_date || todayKey();
+		try {
+			return monthlyDueDates(lastDate, 2)[1] ?? lastDate;
+		} catch {
+			return monthlyDueDates(todayKey(), 2)[1] ?? todayKey();
+		}
 	}
 </script>
 
 {#if props.mode === 'display'}
 	<span class="block truncate" title={summary}>{summary}</span>
 {:else}
-	<MatrixRenderer
-		{rows}
-		{columns}
-		disabled={locked}
-		emptyMessage={t('renderer.repayment_schedule.empty')}
-		createRow={(): RepaymentScheduleMatrixRow => {
-			const dueDate = nextDate();
-			return {
-				id: crypto.randomUUID(),
-				due_date: dueDate,
-				amount: 0.01,
-				consumed_by: consumptionCell(schedule.length + 1, dueDate),
-				consumed_at: null
-			};
-		}}
-		addRowLabel="Add instalment"
-		allowRemoveRows={true}
-		canRemoveRow={(row) =>
-			schedule.length > 1 && row.consumed_by.status !== 'consumed' && !consumptionPending}
-		isRowDisabled={(row) => row.consumed_by.status === 'consumed'}
-		bounded={false}
-		onChange={(nextRows) =>
-			emit(nextRows.map(({ due_date, amount }) => ({ due_date, amount })) as Value)}
-	/>
+	{#if issues.length > 0}
+		<ul class="mb-2 space-y-1 rounded-md border border-destructive bg-destructive/10 p-2 text-sm text-destructive" role="alert">
+			{#each issues as issue (issue)}
+				<li>{issue}</li>
+			{/each}
+		</ul>
+	{/if}
+	<div class={['rounded-md', issues.length > 0 && 'ring-2 ring-destructive ring-offset-2']}>
+		<MatrixRenderer
+			{rows}
+			{columns}
+			disabled={locked}
+			emptyMessage={t('renderer.repayment_schedule.empty')}
+			createRow={(): RepaymentScheduleMatrixRow => {
+				const dueDate = nextDate();
+				return {
+					id: crypto.randomUUID(),
+					due_date: dueDate,
+					amount: 0.01,
+					consumed_by: consumptionCell(draft.length + 1, dueDate),
+					consumed_at: null
+				};
+			}}
+			addRowLabel="Add instalment"
+			allowRemoveRows={true}
+			canRemoveRow={(row) =>
+				draft.length > 1 && row.consumed_by.status !== 'consumed' && !consumptionPending}
+			isRowDisabled={(row) => row.consumed_by.status === 'consumed'}
+			bounded={false}
+			onChange={(nextRows) =>
+				emit(nextRows.map(({ due_date, amount }) => ({ due_date, amount })) as Value)}
+		/>
+	</div>
 {/if}

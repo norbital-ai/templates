@@ -142,6 +142,13 @@
 			limit: 1000
 		});
 	});
+	/**
+	 * Person-day queries must not start against an empty employment list and then recreate
+	 * themselves with an `in` clause — that abort is what left the board on `Loading …`.
+	 */
+	const employmentsReady = $derived(
+		employmentsQuery != null && employmentsQuery.current !== undefined
+	);
 	const employments = $derived(employmentsQuery?.current ?? []);
 	const monthEmployments = $derived(
 		employments.filter((employment) => employmentOverlapsMonth(employment, month))
@@ -233,7 +240,7 @@
 
 	const rosterEntriesQuery = $derived.by(() => {
 		void reloadToken;
-		if (selectedCompanyId == null) return null;
+		if (selectedCompanyId == null || !employmentsReady) return null;
 		return client.db.roster_entries.findMany({
 			where: {
 				...approved,
@@ -261,7 +268,8 @@
 	 */
 	const filteredRosterEntriesQuery = $derived.by(() => {
 		void reloadToken;
-		if (selectedCompanyId == null || boardQuery.filters.length === 0) return null;
+		if (selectedCompanyId == null || !employmentsReady || boardQuery.filters.length === 0)
+			return null;
 		return client.db.roster_entries.findMany(
 			{
 				where: {
@@ -287,7 +295,7 @@
 	});
 	const timeEntriesQuery = $derived.by(() => {
 		void reloadToken;
-		if (selectedCompanyId == null) return null;
+		if (selectedCompanyId == null || !employmentsReady) return null;
 		return client.db.time_entries.findMany({
 			where: {
 				...approved,
@@ -352,7 +360,8 @@
 		{ label: 'holidays', query: holidaysQuery },
 		{ label: 'employments', query: employmentsQuery },
 		{ label: 'employees', query: employeesQuery },
-		{ label: 'employment schedules', query: employmentTermsQuery }
+		{ label: 'employment schedules', query: employmentTermsQuery },
+		{ label: 'roster codes', query: shiftsQuery }
 	]);
 	const boardErrors = $derived(
 		boardSources.flatMap((source) =>
@@ -360,11 +369,25 @@
 		)
 	);
 	/**
-	 * An error outranks loading. A handle that failed may keep reporting `loading`, and reporting that
-	 * in preference to the error is what turns a broken board into a hanging one.
+	 * Only the month-scoped reads the grid cannot draw without. Names, pattern projection and
+	 * the filter probe can arrive later — gating on those is what left Published badges on
+	 * screen while the body sat on `Loading …`.
 	 */
+	const boardReadySources = $derived([
+		{ label: 'roster entries', query: rosterEntriesQuery },
+		{ label: 'attendance', query: timeEntriesQuery },
+		{ label: 'leave', query: leaveQuery },
+		{ label: 'holidays', query: holidaysQuery },
+		{ label: 'employments', query: employmentsQuery },
+		{ label: 'roster codes', query: shiftsQuery }
+	]);
 	const loading = $derived(
-		boardErrors.length === 0 && boardSources.some((source) => source.query?.loading === true)
+		boardErrors.length === 0 &&
+			(selectedCompanyId == null ||
+				!employmentsReady ||
+				boardReadySources.some(
+					(source) => source.query != null && source.query.current === undefined
+				))
 	);
 
 	/** Overlaid onto the board from the company calendar; never a mark stored on a roster entry. */
@@ -404,7 +427,11 @@
 			if (term !== '' && !`${person.number} ${person.name}`.toLowerCase().includes(term)) {
 				return false;
 			}
-			return boardQuery.filters.length === 0 || filteredEmploymentIds.has(person.id);
+			return (
+				boardQuery.filters.length === 0 ||
+				filteredRosterEntriesQuery?.current === undefined ||
+				filteredEmploymentIds.has(person.id)
+			);
 		})
 	);
 	const rostersQuery = $derived(
@@ -785,12 +812,14 @@
 					</Badge>
 				{/if}
 			{/if}
-			{#each progress.exceptions as exception (exception.status)}
-				<Badge variant="destructive">
-					{exception.count.toLocaleString()}
-					{t(STATUS_PRESENTATION[exception.status].labelKey).toLowerCase()}
-				</Badge>
-			{/each}
+			{#if !loading}
+				{#each progress.exceptions as exception (exception.status)}
+					<Badge variant="destructive">
+						{exception.count.toLocaleString()}
+						{t(STATUS_PRESENTATION[exception.status].labelKey).toLowerCase()}
+					</Badge>
+				{/each}
+			{/if}
 		</Cluster>
 		{#if progress.drafting === 'NOT_DRAFTED'}
 			<p class="text-sm text-muted-foreground">
@@ -888,6 +917,7 @@
 			<p class="text-sm text-muted-foreground">{t('app.scheduling.shift_intro')}</p>
 		{/snippet}
 		<Cover gap="md" top={shiftIntro}>
+			{#key `${selectedCompanyId}:${month}`}
 			<CollectionTable
 				{client}
 				collection="shift_definitions"
@@ -906,6 +936,7 @@
 					<Column name="effective_range" label={t('component.effective')} />
 				{/snippet}
 			</CollectionTable>
+			{/key}
 		</Cover>
 	{/if}
 {/snippet}
@@ -916,6 +947,7 @@
 	{:else if selectedCompanyId == null}
 		<p class="text-sm text-muted-foreground">{t('app.scheduling.empty_holidays')}</p>
 	{:else}
+		{#key `${selectedCompanyId}:${month}`}
 		<CollectionTable
 			{client}
 			collection="company_holidays"
@@ -941,6 +973,7 @@
 				/>
 			{/snippet}
 		</CollectionTable>
+		{/key}
 	{/if}
 {/snippet}
 

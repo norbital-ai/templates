@@ -454,7 +454,7 @@ export function describeDay(day: DayFacts | undefined, heading: string, t: Trans
 			: t('roster.shift_window', {
 					start: day.shiftStart,
 					end: day.shiftEnd,
-					break: day.shiftBreakMinutes ?? 0
+					break: (day.shiftBreakMinutes ?? 0) / 60
 				}),
 		day.assignmentCode == null ? null : t('roster.assignment_code', { code: day.assignmentCode }),
 		day.holidayName == null ? null : `${t(HOLIDAY_PRESENTATION.labelKey)}: ${day.holidayName}`,

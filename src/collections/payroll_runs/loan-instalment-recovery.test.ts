@@ -107,6 +107,23 @@ function leftoverEntry(sequence, dueDate, amount) {
 	};
 }
 
+/** Seed leftover recoveries are ONE_OFF, not LOAN_INSTALMENT — same pair the agreement recovers. */
+function leftoverOneOffEntry(dueDate, amount) {
+	return {
+		norbital_id: 'entry-one-off-leftover',
+		employment_id: 'emp-nhpmy0290',
+		pay_component_id: LOAN.norbital_id,
+		amount,
+		quantity: null,
+		event_date: dueDate,
+		pay_period: dueDate.slice(0, 7),
+		origin: {
+			kind: 'ONE_OFF',
+			note: 'Exact source loan recovery; no principal or disbursement date inferred'
+		}
+	};
+}
+
 function agreement(schedule) {
 	return {
 		norbital_id: 'agr-hari-raya-2026',
@@ -239,6 +256,16 @@ test('leftover LOAN_INSTALMENT component entries do not double-count the schedul
 	});
 	const loanLines = measured.lines.filter((line) => line.payComponent.code === 'HARI_RAYA_2026');
 	assert.equal(loanLines.length, 1);
+	assert.equal(loanLines[0].component.kind, 'LOAN_INSTALMENT');
+	assert.equal(loanLines[0].amount, 167);
+});
+
+test('leftover ONE_OFF loan recoveries do not double-count the agreement schedule', () => {
+	const measured = measureApril([leftoverOneOffEntry('2026-04-01', 167)], {
+		agreements: [agreement([instalment('2026-04-01', 167)])]
+	});
+	const loanLines = measured.lines.filter((line) => line.payComponent.code === 'HARI_RAYA_2026');
+	assert.equal(loanLines.length, 1, 'the leftover ONE_OFF must not add a second deduction line');
 	assert.equal(loanLines[0].component.kind, 'LOAN_INSTALMENT');
 	assert.equal(loanLines[0].amount, 167);
 });

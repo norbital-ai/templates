@@ -231,6 +231,7 @@
 	{#if selectedCompanyId == null}
 		<p class="text-sm text-muted-foreground">{t('app.payroll.empty_runs')}</p>
 	{:else}
+		{#key selectedCompanyId}
 		<CollectionTable
 			{client}
 			collection="payroll_runs"
@@ -312,6 +313,7 @@
 				</p>
 			{/snippet}
 		</CollectionTable>
+		{/key}
 	{/if}
 {/snippet}
 

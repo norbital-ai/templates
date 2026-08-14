@@ -22,7 +22,7 @@ import {
 	type IsoDate
 } from './dates.js';
 import { effectiveWithin, live, overlapsRange } from './effective.js';
-import { isLoanInstalmentEntry } from './entries.js';
+import { isLoanInstalmentEntry, repaymentCoverageKey } from './entries.js';
 import type { LedgerRow } from './leave.js';
 import { taxYearFirstPeriod, taxYearOf, type PayrollWindow } from './period.js';
 import type { TimeEntryLike } from './overtime.js';
@@ -206,8 +206,15 @@ export async function gatherRun(options: {
 	const employeeById = new Map(live(employeeRows).map((row) => [row.norbital_id, row]));
 	const termsByEmployment = groupBy(live(termRows), (row) => row.employment_id);
 	const factsByEmployment = groupBy(live(factRows), (row) => row.employment_id);
+	const liveAgreements = live(agreementRows);
+	// Seed leftover recoveries are ONE_OFF on the same (employment, pay component) the agreement
+	// will recover through. Drop them here so MEASURE never also writes COMPONENT_ENTRY_* lines.
+	const coveredByAgreement = new Set(liveAgreements.map(repaymentCoverageKey));
 	const entriesByEmployment = groupBy(
-		live(entryRows).filter((entry) => !isLoanInstalmentEntry(entry)),
+		live(entryRows).filter(
+			(entry) =>
+				!isLoanInstalmentEntry(entry) && !coveredByAgreement.has(repaymentCoverageKey(entry))
+		),
 		(row) => row.employment_id
 	);
 	/** Every approved leave row is already an event; normal requests become TAKEN movements while
@@ -248,7 +255,7 @@ export async function gatherRun(options: {
 	const ledgerByEmployment = groupBy(leaveMovements, (row) => row.employment_id);
 	const timeByEmployment = groupBy(live(timeRows), (row) => row.employment_id);
 	const rosterByEmployment = groupBy(live(rosterRows), (row) => row.employment_id);
-	const agreementsByEmployment = groupBy(live(agreementRows), (row) => row.employment_id);
+	const agreementsByEmployment = groupBy(liveAgreements, (row) => row.employment_id);
 
 	const settlementOf = (employment: Employment): EmploymentSettlement => {
 		const settlement = settlementByEmployment.get(employment.norbital_id);
