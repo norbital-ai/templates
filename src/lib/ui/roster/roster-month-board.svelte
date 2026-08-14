@@ -40,6 +40,7 @@
 		monthDays,
 		shiftTimeCue,
 		statusGlyph,
+		unrosteredReason,
 		type DayFacts,
 		type DayStatus
 	} from './roster-month.js';
@@ -154,6 +155,7 @@
 	}
 
 	function scheduleSummary(day: DayFacts): string {
+		if (day.status === 'UNROSTERED') return unrosteredReason(day, t);
 		if (day.shiftCode == null || day.shiftStart == null || day.shiftEnd == null) {
 			return t(STATUS_PRESENTATION[day.status].labelKey);
 		}
@@ -167,20 +169,20 @@
 	function attendanceSummary(day: DayFacts): string {
 		if (day.attendanceState === 'OPEN') return t('roster.attendance_open');
 		if (day.workedIntervalCount > 0) {
-			return t('roster.attendance_intervals', { count: day.workedIntervalCount });
+			const intervals = t('roster.attendance_intervals', { count: day.workedIntervalCount });
+			return day.withinCutoff ? `${intervals} · ${t('roster.in_pay_period')}` : intervals;
 		}
-		return t('roster.no_attendance');
+		return day.withinCutoff ? t('roster.no_attendance_in_pay_period') : t('roster.no_attendance');
 	}
 
-	function contextSummary(day: DayFacts): string {
-		const context = [
+	function dayNotes(day: DayFacts): string | null {
+		const notes = [
 			day.holidayName == null ? null : `${t(HOLIDAY_PRESENTATION.labelKey)}: ${day.holidayName}`,
 			day.leaveCode == null
 				? null
-				: `${day.leaveCode}${day.halfDayLeave ? ` (${t('roster.half_day')})` : ''}`,
-			day.withinCutoff ? t('roster.inside_cutoff') : null
+				: `${day.leaveCode}${day.halfDayLeave ? ` (${t('roster.half_day')})` : ''}`
 		].filter((part): part is string => part != null);
-		return context.join(' · ') || t('roster.no_day_exception');
+		return notes.length === 0 ? null : notes.join(' · ');
 	}
 </script>
 
@@ -345,17 +347,19 @@
 															</p>
 															<p class="leading-4">{attendanceSummary(day)}</p>
 														</div>
-														<div class="relative">
-															<span
-																class="absolute top-1 -left-[1.125rem] size-2 rounded-full bg-info"
-															></span>
-															<p
-																class="text-micro font-semibold tracking-wide text-white/55 uppercase"
-															>
-																{t('roster.timeline_context')}
-															</p>
-															<p class="leading-4">{contextSummary(day)}</p>
-														</div>
+														{#if dayNotes(day) != null}
+															<div class="relative">
+																<span
+																	class="absolute top-1 -left-[1.125rem] size-2 rounded-full bg-info"
+																></span>
+																<p
+																	class="text-micro font-semibold tracking-wide text-white/55 uppercase"
+																>
+																	{t('roster.timeline_notes')}
+																</p>
+																<p class="leading-4">{dayNotes(day)}</p>
+															</div>
+														{/if}
 													</div>
 												</Stack>
 											{/if}
