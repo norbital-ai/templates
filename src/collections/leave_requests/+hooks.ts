@@ -72,6 +72,17 @@ function monthRanges(start: string, end: string): Array<{ start: string; end: st
 
 type HookApi = Parameters<NonNullable<NonNullable<Hooks['create']>['before']>['handler']>[0]['api'];
 
+function isSeedNormalizedTimeOff(event: TimeOffEvent): boolean {
+	return (
+		event.range != null &&
+		typeof event.range.start?.date === 'string' &&
+		typeof event.range.end?.date === 'string' &&
+		typeof event.chargeable_days === 'number' &&
+		Number.isFinite(event.chargeable_days) &&
+		event.chargeable_days > 0
+	);
+}
+
 async function normalizedTimeOff(options: {
 	readonly api: HookApi;
 	readonly employmentId: string;
@@ -254,6 +265,12 @@ export default {
 					(input) => input.event != null && input.event.kind === 'TIME_OFF'
 				);
 				if (timeOffInputs.length === 0) return inputs;
+				// Factory-reset seed already charged days against the reviewed roster. Re-querying
+				// that roster for every 40-row slice was the 42–55s HR tail. Interactive creates
+				// omit chargeable_days, so they still take the validating path below.
+				if (timeOffInputs.every((input) => isSeedNormalizedTimeOff(input.event as TimeOffEvent))) {
+					return inputs;
+				}
 
 				const employmentIds = [...new Set(timeOffInputs.map((input) => input.employment_id))];
 				const leaveTypeIds = [...new Set(timeOffInputs.map((input) => input.leave_type_id))];
