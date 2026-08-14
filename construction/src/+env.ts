@@ -6,8 +6,8 @@ import { defineEnv } from '@norbital-ai/pod/authoring';
  */
 export default defineEnv({
 	private: {
-		EXTERNAL_SYSTEM_TOKEN: {
-			description: 'Bearer token for the external system of record reached by the erp integration.'
+		REPORTS_WEBHOOK_SECRET: {
+			description: 'HMAC secret for inbound RFI deliveries from the external reports system.'
 		}
 	}
 });
