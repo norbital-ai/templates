@@ -15,7 +15,7 @@
 		formatNumeric
 	} from '../../lib/ui/display-formatters.js';
 	import { inForceTodayFilter, todayInstant } from '../../lib/ui/calendar.js';
-	import LeaveSeasonality from './leave-seasonality.svelte';
+	import LeaveSeasonality from '../../lib/ui/leave/leave-seasonality.svelte';
 
 	const { t } = useI18n<TenantI18nKeys>();
 
