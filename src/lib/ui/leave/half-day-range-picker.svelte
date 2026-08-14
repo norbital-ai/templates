@@ -116,7 +116,10 @@
 		return count;
 	}
 
-	function halfFromEvent(event: PointerEvent, date: string): HalfDayPoint {
+	function halfFromEvent(
+		event: Pick<PointerEvent, 'currentTarget' | 'clientY'>,
+		date: string
+	): HalfDayPoint {
 		const target = event.currentTarget;
 		if (!(target instanceof HTMLElement)) return { date, half: 'FIRST' };
 		const rect = target.getBoundingClientRect();
