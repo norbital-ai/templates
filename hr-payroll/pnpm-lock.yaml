@@ -15,17 +15,17 @@ importers:
         specifier: ^3.8.2
         version: 3.12.3
       '@norbital-ai/platform-utils':
-        specifier: 0.0.43
-        version: 0.0.43(@electric-sql/pglite@0.3.16)(pg@8.23.0)
+        specifier: 0.0.44
+        version: 0.0.44(@electric-sql/pglite@0.3.16)(pg@8.23.0)
       '@norbital-ai/pod':
-        specifier: 0.0.43
-        version: 0.0.43(@iconify/svelte@5.2.2(svelte@5.56.9))(@neondatabase/serverless@1.1.0)(mode-watcher@1.1.0(svelte@5.56.9))(picomatch@4.0.5)(runed@0.37.1(svelte@5.56.9)(zod@4.4.3))(svelte@5.56.9)(typescript@6.0.3)(vite@8.2.1(jiti@2.7.0))(zod@4.4.3)
+        specifier: 0.0.44
+        version: 0.0.44(@iconify/svelte@5.2.2(svelte@5.56.9))(@neondatabase/serverless@1.1.0)(mode-watcher@1.1.0(svelte@5.56.9))(picomatch@4.0.5)(runed@0.37.1(svelte@5.56.9)(zod@4.4.3))(svelte@5.56.9)(typescript@6.0.3)(vite@8.2.1(jiti@2.7.0))(zod@4.4.3)
       '@norbital-ai/std':
-        specifier: 0.0.43
-        version: 0.0.43
+        specifier: 0.0.44
+        version: 0.0.44
       '@norbital-ai/ui':
-        specifier: 0.0.43
-        version: 0.0.43(@norbital-ai/platform-utils@0.0.43(@electric-sql/pglite@0.3.16)(pg@8.23.0))(@norbital-ai/std@0.0.43)(svelte@5.56.9)(tailwindcss@4.3.3)
+        specifier: 0.0.44
+        version: 0.0.44(@norbital-ai/platform-utils@0.0.44(@electric-sql/pglite@0.3.16)(pg@8.23.0))(@norbital-ai/std@0.0.44)(svelte@5.56.9)(tailwindcss@4.3.3)
       exceljs:
         specifier: 4.4.0
         version: 4.4.0
@@ -258,60 +258,60 @@ packages:
     cpu: [x64]
     os: [win32]
 
-  '@fallow-cli/fallow-node-darwin-arm64@3.15.0':
-    resolution: {integrity: sha512-SSLqD6ohh3Ig3IV52H32am9V9I5Ma1NXFCHHmfhNWOJ2UFFpbW7HMiVVmbLYZ0374XnM+KlLcYys5OvlwoxC2A==}
+  '@fallow-cli/fallow-node-darwin-arm64@3.16.0':
+    resolution: {integrity: sha512-5jYdj5SxbpP8xwI4qqGFp/x3Q3cmm9I7IvnANgHSSCiEDuqGoDIw4RX+Jd9vZgxP2+eg9HLwXGKrLrqhxrI4Yw==}
     engines: {node: '>=22'}
     cpu: [arm64]
     os: [darwin]
 
-  '@fallow-cli/fallow-node-darwin-x64@3.15.0':
-    resolution: {integrity: sha512-0ALMi2I9eN4KoOOimOvkypPz/97pttR3OcQITabLqGcYr9PxedfgKAEaHX0st73tkchHB0F0wZbnF+GpR98/IQ==}
+  '@fallow-cli/fallow-node-darwin-x64@3.16.0':
+    resolution: {integrity: sha512-hJKblfgcu6KpJRoQk0HOb3XLnDb/Y5L4V4kV1KvMQE8WpIF1awD4R7Sn2R495B/YwabLuwV8DzLHVxJYCT4Pxw==}
     engines: {node: '>=22'}
     cpu: [x64]
     os: [darwin]
 
-  '@fallow-cli/fallow-node-linux-arm64-gnu@3.15.0':
-    resolution: {integrity: sha512-xCi+/P+hdMyHc5KjY10Y2nRKajMdGzGeRJCtIeI4G2GVUTX1YCG1Pf2xi9oJyfTnZ/L1ytUk7vxC0PGNM1kKbQ==}
+  '@fallow-cli/fallow-node-linux-arm64-gnu@3.16.0':
+    resolution: {integrity: sha512-Ckt8KMoxBhY1ZzUpZ72BgVfUEGbK58ml6MDQILTI/+0Dr6WodOCmrYWKzXK6bVvVNRdy8o+w/knJdIpBn6p5Qw==}
     engines: {node: '>=22'}
     cpu: [arm64]
     os: [linux]
     libc: [glibc]
 
-  '@fallow-cli/fallow-node-linux-arm64-musl@3.15.0':
-    resolution: {integrity: sha512-8h1czjyF3MeqfWswupB4KbvtraWXE76esS7ZhMoiApFvU8I8Zv+Wl+u10IXvhO34rG6/itM2Y01E+WhictOknw==}
+  '@fallow-cli/fallow-node-linux-arm64-musl@3.16.0':
+    resolution: {integrity: sha512-CKs8hxdR29eK4GT+w/9NJ+rpIJzEzAj9SxGcCoSCpv2gd+M0ZMmMw6Nf0I6ANAwBQsKdFnGhWlpP0NekidYUtQ==}
     engines: {node: '>=22'}
     cpu: [arm64]
     os: [linux]
     libc: [musl]
 
-  '@fallow-cli/fallow-node-linux-x64-gnu@3.15.0':
-    resolution: {integrity: sha512-Z6l3AoHaOMmWohyIX3v16oZCFRcqeJitqD8lEnWI8NVGsxoQQ9d32cCt5Evq/Tv2J+h6pigM0PA1BHk/AtmQ9Q==}
+  '@fallow-cli/fallow-node-linux-x64-gnu@3.16.0':
+    resolution: {integrity: sha512-fBGBmhF0Ru5dZPfk4uXDsbqsGNbDZgsSkBZmDlEfiTiM18O4Gz0N6dZErqx6d5DAV2wYNcpQTBXLY3dOGAGn2A==}
     engines: {node: '>=22'}
     cpu: [x64]
     os: [linux]
     libc: [glibc]
 
-  '@fallow-cli/fallow-node-linux-x64-musl@3.15.0':
-    resolution: {integrity: sha512-+K+5aZcJ/H1P0WCnsxzfbRjl+TgvcumFbjjTVgbt03hCgMlDsr33MkFRej0pzFp3Z7HUvx79GstMmVrJOl8TXw==}
+  '@fallow-cli/fallow-node-linux-x64-musl@3.16.0':
+    resolution: {integrity: sha512-vknpak/7Y/U1DKQ3logJ/9wmQ7dLnqhKsPd3vHgF4Qo0VceJlDYQikWvTyxEiBeAlPwqqnkwsNHFLQUoDuej/w==}
     engines: {node: '>=22'}
     cpu: [x64]
     os: [linux]
     libc: [musl]
 
-  '@fallow-cli/fallow-node-win32-arm64-msvc@3.15.0':
-    resolution: {integrity: sha512-p81Aziu+I0wK4JeXOe8XbDpsuEG4PaPZdfaBiaWEqLJbRxZVjOwQXcfeLlpIAfBfvpXvdlMZI/PP7RQ8LQGcCg==}
+  '@fallow-cli/fallow-node-win32-arm64-msvc@3.16.0':
+    resolution: {integrity: sha512-EWETRC442LKaUshbAwo5wMm+r2wCOjltdnX9KqP8hKm53ZD88yeO6RnBpzPhTfxgSWl9ST7FlhCAEgxBkXPiFQ==}
     engines: {node: '>=22'}
     cpu: [arm64]
     os: [win32]
 
-  '@fallow-cli/fallow-node-win32-x64-msvc@3.15.0':
-    resolution: {integrity: sha512-kS4aUT6fPF/5tHZURKNnP50Ze5Odg1pwtNH78Zrt8Dz+VMROB+vn+PhFavR46PyLwvSRs6JAKWtmIOPvR/DTNA==}
+  '@fallow-cli/fallow-node-win32-x64-msvc@3.16.0':
+    resolution: {integrity: sha512-bpCF3xsgiuWM+7a2evI+yBUs4YaCsOs5FZl3vVTnyhh22kb879s8iL7ypx0bQYdQFkk3V7IFQceNjQn5eFGRAg==}
     engines: {node: '>=22'}
     cpu: [x64]
     os: [win32]
 
-  '@fallow-cli/fallow-node@3.15.0':
-    resolution: {integrity: sha512-TRpDdduXeSV8GDUWl1zd1uWN+YmmIGkYHc19e747KVvrqGBP4SAwF8e18SQ5NECAvnKtPu37R5/1i2wGfRrFCQ==}
+  '@fallow-cli/fallow-node@3.16.0':
+    resolution: {integrity: sha512-FdxlVwpScrjr6Gi+rCKF8JBXOfo9nwJ3yWumlx7u6jOxhaQPoVq+jOe142OgXm0zMisWFMHu7K7814GqtRUM0g==}
     engines: {node: '>=22'}
 
   '@fast-csv/format@4.3.5':
@@ -405,11 +405,11 @@ packages:
     resolution: {integrity: sha512-r3ZZhRjEcfEdKIZnoB1RusNgvHuaBRqfCzV4Gi+5A9yUX0S4HTws/ASWqt13wL4y4I+0rqsWGdA2w7EQXHi3+Q==}
     engines: {node: '>=19.0.0'}
 
-  '@norbital-ai/platform-utils@0.0.43':
-    resolution: {integrity: sha512-qoQal+S3P5Bjnn1+xLL5/MZFf6kZph664uhgcNIMZUU0cNr/R/i64VVl72AY5v+brC9iJ0GiTW/aFkYtTJTpxg==, tarball: https://npm.pkg.github.com/download/@norbital-ai/platform-utils/0.0.43/feee4c34ddf826997af6aa1a6fad34e4166b8bd8}
+  '@norbital-ai/platform-utils@0.0.44':
+    resolution: {integrity: sha512-RZFeFMtvMc6o9K6hN08nzBKHvE6GFwC8+PdldtmqUMIHQrwk7Xagza9R/FJOg2GjZSsJQOMgb+KmIYU/SRVlHA==, tarball: https://npm.pkg.github.com/download/@norbital-ai/platform-utils/0.0.44/e9e7ee7f638d05fa2f15bad11a70ab6cb0685731}
 
-  '@norbital-ai/pod@0.0.43':
-    resolution: {integrity: sha512-JfngRCRIbo7ThIhSs4i2UVhZo2Wde3/eQzNSlsPNO1HogOax1eS49DIrO+aeNP6ozb17WdSIbfrHVP06jZKtHw==, tarball: https://npm.pkg.github.com/download/@norbital-ai/pod/0.0.43/425174eeefd587ecdc3a0319b370a6acbf34faf0}
+  '@norbital-ai/pod@0.0.44':
+    resolution: {integrity: sha512-dcm52kr88eJpgcrkyNAdggx4G2ZeBf7omyF0ksBvN8aSCyhv2mcz8s0OnR5abeDfNQCSFJm8FbHABuwkGgEvhw==, tarball: https://npm.pkg.github.com/download/@norbital-ai/pod/0.0.44/b7c015922088b54d3284ee14a09b2daa8d96bf23}
     hasBin: true
     peerDependencies:
       '@iconify/svelte': ^5.2.2
@@ -419,14 +419,14 @@ packages:
       vite: ^8.1.5
       zod: ^4.4.3
 
-  '@norbital-ai/std@0.0.43':
-    resolution: {integrity: sha512-wxVY/wGLS1G8Wiz6GN9auyoclUDyqV32n31GeoxmP4q9idHO0PU9cybCP2nDH72XZQoBmDKF51KRAIlGAxPggw==, tarball: https://npm.pkg.github.com/download/@norbital-ai/std/0.0.43/e379099f70f41a733d6301e37736183ba103a080}
+  '@norbital-ai/std@0.0.44':
+    resolution: {integrity: sha512-h+a0dTqCchKc0tZTzYkadzPKObejO2n/n1tYJfmtdlyhOSJBRKdaejgy5/oLtdmTRJUMs8xGs+zCNr5fCU4KJQ==, tarball: https://npm.pkg.github.com/download/@norbital-ai/std/0.0.44/45dd0910254e39d188c0cd249de80f84c9d3367c}
 
-  '@norbital-ai/ui@0.0.43':
-    resolution: {integrity: sha512-TB84tAkemmJtWA1GFqMknRnrpBB3CMvSAdF87E2EdHv+rS2VMsPExHUO0w596wnioWY3N1MjszH137GtANYrVA==, tarball: https://npm.pkg.github.com/download/@norbital-ai/ui/0.0.43/f1820e8b9a41c24c137cdbd8050c54d932949167}
+  '@norbital-ai/ui@0.0.44':
+    resolution: {integrity: sha512-8x8UEks8Rnwnm5LYIXMOgz2DLl5k25NM6qMyJjtA88Api8CLvbYdG8Xi+YeGRu5vbIdqvGAeZOI8QKXMqQDPBQ==, tarball: https://npm.pkg.github.com/download/@norbital-ai/ui/0.0.44/3f3f98d2d334ba1ee47719fe04e7b5d6a0b1ab4c}
     peerDependencies:
-      '@norbital-ai/platform-utils': 0.0.43
-      '@norbital-ai/std': 0.0.43
+      '@norbital-ai/platform-utils': 0.0.44
+      '@norbital-ai/std': 0.0.44
       svelte: ^5.56.7
 
   '@oxc-project/types@0.144.0':
@@ -1493,8 +1493,8 @@ packages:
     resolution: {integrity: sha512-XctvKaEMaj1Ii9oDOqbW/6e1gXknSY4g/aLCDicOXqBE4M0nRWkUu0PTp++UPNzoFY12BNHMfs/VadKIS6llvg==}
     engines: {node: '>=8.3.0'}
 
-  fallow-type-aware@3.15.0:
-    resolution: {integrity: sha512-VVt0XLRlSLZjczv1VonNoP6xIjB5GjTR1UBKMSK5q+GOCKiEmYoCvITGCbSXtOtmPfbeZTXOt/VLCylpinrQqw==}
+  fallow-type-aware@3.16.0:
+    resolution: {integrity: sha512-y/1p6K9Opr308vs1n88umLTMsVyhR6cLe3V7+6UI3xKHj7gcAYSH3l65XqjVNaCDhSFRLHiqG2WukrEs106d7A==}
     engines: {node: '>=20'}
     hasBin: true
 
@@ -2458,41 +2458,41 @@ snapshots:
   '@esbuild/win32-x64@0.25.12':
     optional: true
 
-  '@fallow-cli/fallow-node-darwin-arm64@3.15.0':
+  '@fallow-cli/fallow-node-darwin-arm64@3.16.0':
     optional: true
 
-  '@fallow-cli/fallow-node-darwin-x64@3.15.0':
+  '@fallow-cli/fallow-node-darwin-x64@3.16.0':
     optional: true
 
-  '@fallow-cli/fallow-node-linux-arm64-gnu@3.15.0':
+  '@fallow-cli/fallow-node-linux-arm64-gnu@3.16.0':
     optional: true
 
-  '@fallow-cli/fallow-node-linux-arm64-musl@3.15.0':
+  '@fallow-cli/fallow-node-linux-arm64-musl@3.16.0':
     optional: true
 
-  '@fallow-cli/fallow-node-linux-x64-gnu@3.15.0':
+  '@fallow-cli/fallow-node-linux-x64-gnu@3.16.0':
     optional: true
 
-  '@fallow-cli/fallow-node-linux-x64-musl@3.15.0':
+  '@fallow-cli/fallow-node-linux-x64-musl@3.16.0':
     optional: true
 
-  '@fallow-cli/fallow-node-win32-arm64-msvc@3.15.0':
+  '@fallow-cli/fallow-node-win32-arm64-msvc@3.16.0':
     optional: true
 
-  '@fallow-cli/fallow-node-win32-x64-msvc@3.15.0':
+  '@fallow-cli/fallow-node-win32-x64-msvc@3.16.0':
     optional: true
 
-  '@fallow-cli/fallow-node@3.15.0':
+  '@fallow-cli/fallow-node@3.16.0':
     optionalDependencies:
-      '@fallow-cli/fallow-node-darwin-arm64': 3.15.0
-      '@fallow-cli/fallow-node-darwin-x64': 3.15.0
-      '@fallow-cli/fallow-node-linux-arm64-gnu': 3.15.0
-      '@fallow-cli/fallow-node-linux-arm64-musl': 3.15.0
-      '@fallow-cli/fallow-node-linux-x64-gnu': 3.15.0
-      '@fallow-cli/fallow-node-linux-x64-musl': 3.15.0
-      '@fallow-cli/fallow-node-win32-arm64-msvc': 3.15.0
-      '@fallow-cli/fallow-node-win32-x64-msvc': 3.15.0
-      fallow-type-aware: 3.15.0
+      '@fallow-cli/fallow-node-darwin-arm64': 3.16.0
+      '@fallow-cli/fallow-node-darwin-x64': 3.16.0
+      '@fallow-cli/fallow-node-linux-arm64-gnu': 3.16.0
+      '@fallow-cli/fallow-node-linux-arm64-musl': 3.16.0
+      '@fallow-cli/fallow-node-linux-x64-gnu': 3.16.0
+      '@fallow-cli/fallow-node-linux-x64-musl': 3.16.0
+      '@fallow-cli/fallow-node-win32-arm64-msvc': 3.16.0
+      '@fallow-cli/fallow-node-win32-x64-msvc': 3.16.0
+      fallow-type-aware: 3.16.0
 
   '@fast-csv/format@4.3.5':
     dependencies:
@@ -2613,10 +2613,10 @@ snapshots:
 
   '@neondatabase/serverless@1.1.0': {}
 
-  '@norbital-ai/platform-utils@0.0.43(@electric-sql/pglite@0.3.16)(pg@8.23.0)':
+  '@norbital-ai/platform-utils@0.0.44(@electric-sql/pglite@0.3.16)(pg@8.23.0)':
     dependencies:
       '@neondatabase/serverless': 1.1.0
-      '@norbital-ai/std': 0.0.43
+      '@norbital-ai/std': 0.0.44
       '@standard-schema/spec': 1.1.0
       drizzle-kit: 1.0.0-rc.4
       drizzle-orm: 1.0.0-rc.4(@electric-sql/pglite@0.3.16)(@neondatabase/serverless@1.1.0)(pg@8.23.0)(zod@4.4.3)
@@ -2669,15 +2669,15 @@ snapshots:
       - typebox
       - valibot
 
-  '@norbital-ai/pod@0.0.43(@iconify/svelte@5.2.2(svelte@5.56.9))(@neondatabase/serverless@1.1.0)(mode-watcher@1.1.0(svelte@5.56.9))(picomatch@4.0.5)(runed@0.37.1(svelte@5.56.9)(zod@4.4.3))(svelte@5.56.9)(typescript@6.0.3)(vite@8.2.1(jiti@2.7.0))(zod@4.4.3)':
+  '@norbital-ai/pod@0.0.44(@iconify/svelte@5.2.2(svelte@5.56.9))(@neondatabase/serverless@1.1.0)(mode-watcher@1.1.0(svelte@5.56.9))(picomatch@4.0.5)(runed@0.37.1(svelte@5.56.9)(zod@4.4.3))(svelte@5.56.9)(typescript@6.0.3)(vite@8.2.1(jiti@2.7.0))(zod@4.4.3)':
     dependencies:
       '@electric-sql/pglite': 0.3.16
-      '@fallow-cli/fallow-node': 3.15.0
+      '@fallow-cli/fallow-node': 3.16.0
       '@iconify/svelte': 5.2.2(svelte@5.56.9)
       '@internationalized/date': 3.12.3
-      '@norbital-ai/platform-utils': 0.0.43(@electric-sql/pglite@0.3.16)(pg@8.23.0)
-      '@norbital-ai/std': 0.0.43
-      '@norbital-ai/ui': 0.0.43(@norbital-ai/platform-utils@0.0.43(@electric-sql/pglite@0.3.16)(pg@8.23.0))(@norbital-ai/std@0.0.43)(svelte@5.56.9)(tailwindcss@4.3.3)
+      '@norbital-ai/platform-utils': 0.0.44(@electric-sql/pglite@0.3.16)(pg@8.23.0)
+      '@norbital-ai/std': 0.0.44
+      '@norbital-ai/ui': 0.0.44(@norbital-ai/platform-utils@0.0.44(@electric-sql/pglite@0.3.16)(pg@8.23.0))(@norbital-ai/std@0.0.44)(svelte@5.56.9)(tailwindcss@4.3.3)
       '@standard-schema/spec': 1.1.0
       '@sveltejs/vite-plugin-svelte': 7.3.0(svelte@5.56.9)(vite@8.2.1(jiti@2.7.0))
       '@tailwindcss/vite': 4.3.3(vite@8.2.1(jiti@2.7.0))
@@ -2747,7 +2747,7 @@ snapshots:
       - typescript
       - valibot
 
-  '@norbital-ai/std@0.0.43':
+  '@norbital-ai/std@0.0.44':
     dependencies:
       '@marcbachmann/cel-js': 8.0.0
       '@standard-schema/spec': 1.1.0
@@ -2756,7 +2756,7 @@ snapshots:
     transitivePeerDependencies:
       - babel-plugin-macros
 
-  '@norbital-ai/ui@0.0.43(@norbital-ai/platform-utils@0.0.43(@electric-sql/pglite@0.3.16)(pg@8.23.0))(@norbital-ai/std@0.0.43)(svelte@5.56.9)(tailwindcss@4.3.3)':
+  '@norbital-ai/ui@0.0.44(@norbital-ai/platform-utils@0.0.44(@electric-sql/pglite@0.3.16)(pg@8.23.0))(@norbital-ai/std@0.0.44)(svelte@5.56.9)(tailwindcss@4.3.3)':
     dependencies:
       '@codemirror/lang-javascript': 6.2.5
       '@codemirror/lang-json': 6.0.2
@@ -2769,8 +2769,8 @@ snapshots:
       '@iconify/svelte': 5.2.2(svelte@5.56.9)
       '@internationalized/date': 3.12.3
       '@lezer/highlight': 1.2.3
-      '@norbital-ai/platform-utils': 0.0.43(@electric-sql/pglite@0.3.16)(pg@8.23.0)
-      '@norbital-ai/std': 0.0.43
+      '@norbital-ai/platform-utils': 0.0.44(@electric-sql/pglite@0.3.16)(pg@8.23.0)
+      '@norbital-ai/std': 0.0.44
       '@tailwindcss/typography': 0.5.20(tailwindcss@4.3.3)
       '@tiptap/core': 3.30.1(@tiptap/pm@3.30.1)
       '@tiptap/extension-bubble-menu': 3.30.1(@tiptap/core@3.30.1(@tiptap/pm@3.30.1))(@tiptap/pm@3.30.1)
@@ -3663,7 +3663,7 @@ snapshots:
       unzipper: 0.10.14
       uuid: 8.3.2
 
-  fallow-type-aware@3.15.0:
+  fallow-type-aware@3.16.0:
     dependencies:
       typescript: 7.0.2
     optional: true
