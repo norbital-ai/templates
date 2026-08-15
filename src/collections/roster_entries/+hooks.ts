@@ -303,10 +303,11 @@ export default {
 				}
 				// Factory-reset seed already rejected overlapping assignments at ingest.
 				// Re-querying the growing corpus for every 64-row slice was the 120–280s HR tail.
-				// Interactive creates omit norbital_id, so they still take the validating path.
-				const seedReviewed = inputs.every(
-					(input) => typeof input.norbital_id === 'string' && input.norbital_id.length > 0
-				);
+				// Interactive creates omit an assigned id, so they still take the validating path.
+				const seedReviewed = inputs.every((input) => {
+					const assignedId = Reflect.get(input, 'norbital_id');
+					return typeof assignedId === 'string' && assignedId.length > 0;
+				});
 				if (!seedReviewed) {
 					await assertNoOverlappingAssignments(
 						api,
