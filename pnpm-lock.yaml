@@ -51,6 +51,9 @@ importers:
         specifier: ^4.4.3
         version: 4.4.3
     devDependencies:
+      '@types/node':
+        specifier: ^26.0.0
+        version: 26.2.0
       prettier:
         specifier: ^3.9.5
         version: 3.9.6
@@ -1470,8 +1473,8 @@ packages:
   jpeg-js@0.4.4:
     resolution: {integrity: sha512-WZzeDOEtTOBK4Mdsar0IqEU5sMr3vSV2RqkAIzUEV2BHnUfKGyswWFPFwK5EeDo93K3FohSHbLAjj0s1Wzd+dg==}
 
-  js-yaml@5.2.3:
-    resolution: {integrity: sha512-n+mUVyUX5bVv7G/G2zyIHOhdxfuU1dY2NOFzTQUWiMUbFss8b57NFlgCCaggU78wSw5KVS9cllzeLyzyR+n5nw==}
+  js-yaml@5.3.0:
+    resolution: {integrity: sha512-muutsYr+e2+d3rTgUGslq5rxbBlUy3cJ61IsHag2QNDQV+7zXWjkUpmALIajhrlLlrgRUiymj6U3zUr/TMK84Q==}
     hasBin: true
 
   jsbi@4.3.2:
@@ -1485,8 +1488,8 @@ packages:
   leaflet@1.9.4:
     resolution: {integrity: sha512-nxS1ynzJOmOlHp+iL3FyWqK89GtNL8U8rvlMOsQdTTssxZwCXh8N2NB3GDQOL+YR3XnWyZAxwQixURb+FA74PA==}
 
-  libphonenumber-js@1.13.10:
-    resolution: {integrity: sha512-xJxrdqvbl2rtn2MaUJrUejz8J7/uZNC0V77oks2LxYrO/+ZtVpRmz+fEQMuu6VusnEB1fmpByiLS1WXecOnAnw==}
+  libphonenumber-js@1.13.11:
+    resolution: {integrity: sha512-ETER2kMaIFTI/Nh1a8Gk03dUF/SL0VZqtI+CcVHZxp5WIHYwNS7S+uiYZDYCvLy3lOR4/DAD5jf0h5WkePPpqg==}
 
   lightningcss-android-arm64@1.32.0:
     resolution: {integrity: sha512-YK7/ClTt4kAK0vo6w3X+Pnm0D2cf2vPHbhOXdoNti1Ga0al1P4TBZhwjATvjNwLEBCnKvjJc2jQgHXH0NEwlAg==}
@@ -1906,8 +1909,8 @@ packages:
       svelte: ^4.0.0 || ^5.0.0-next.0
       typescript: ^5.0.0 || ^6.0.0
 
-  svelte-sonner@1.1.1:
-    resolution: {integrity: sha512-5cd3p7wa4cq0NsqslMwdlPb7x1JglEZ/GKrLePWNr5bCxR1nagAVrY01FRFrXfUGs41miLt3C327+8XJo5BzZw==}
+  svelte-sonner@1.2.1:
+    resolution: {integrity: sha512-N00LOWb60fjKXULbpngku+7E9Krb16KpNq4/Eax5Vu7o1Dpbca55QpaLPsB+yp82JIEdFhfJuv5cVXLoe0ZtVA==}
     peerDependencies:
       svelte: ^5.0.0
 
@@ -2420,7 +2423,7 @@ snapshots:
       runed: 0.37.1(svelte@5.56.9)(zod@4.4.3)
       svelte: 5.56.9
       svelte-check: 4.7.6(picomatch@4.0.5)(svelte@5.56.9)(typescript@6.0.3)
-      svelte-sonner: 1.1.1(svelte@5.56.9)
+      svelte-sonner: 1.2.1(svelte@5.56.9)
       tailwindcss: 4.3.3
       uuid: 14.0.1
       vite: 8.2.1(@types/node@26.2.0)(jiti@2.7.0)
@@ -2481,7 +2484,7 @@ snapshots:
       '@marcbachmann/cel-js': 8.0.0
       '@standard-schema/spec': 1.1.0
       dedent: 1.7.2
-      js-yaml: 5.2.3
+      js-yaml: 5.3.0
     transitivePeerDependencies:
       - babel-plugin-macros
 
@@ -2526,7 +2529,7 @@ snapshots:
       highlight.js: 11.12.0
       layerchart: 2.0.2(svelte@5.56.9)(zod@4.4.3)
       leaflet: 1.9.4
-      libphonenumber-js: 1.13.10
+      libphonenumber-js: 1.13.11
       lowlight: 3.3.0
       marked: 18.0.6
       mode-watcher: 1.1.0(svelte@5.56.9)
@@ -2536,7 +2539,7 @@ snapshots:
       runed: 0.37.1(svelte@5.56.9)(zod@4.4.3)
       sortablejs: 1.15.7
       svelte: 5.56.9
-      svelte-sonner: 1.1.1(svelte@5.56.9)
+      svelte-sonner: 1.2.1(svelte@5.56.9)
       tailwind-merge: 3.6.0
       tailwind-variants: 3.3.1(tailwind-merge@3.6.0)(tailwindcss@4.3.3)
       tippy.js: 6.3.7
@@ -2924,7 +2927,6 @@ snapshots:
   '@types/node@26.2.0':
     dependencies:
       undici-types: 8.3.0
-    optional: true
 
   '@types/trusted-types@2.0.7': {}
 
@@ -3325,7 +3327,7 @@ snapshots:
 
   jpeg-js@0.4.4: {}
 
-  js-yaml@5.2.3:
+  js-yaml@5.3.0:
     dependencies:
       argparse: 2.0.1
 
@@ -3369,7 +3371,7 @@ snapshots:
 
   leaflet@1.9.4: {}
 
-  libphonenumber-js@1.13.10: {}
+  libphonenumber-js@1.13.11: {}
 
   lightningcss-android-arm64@1.32.0:
     optional: true
@@ -3750,7 +3752,7 @@ snapshots:
     transitivePeerDependencies:
       - picomatch
 
-  svelte-sonner@1.1.1(svelte@5.56.9):
+  svelte-sonner@1.2.1(svelte@5.56.9):
     dependencies:
       runed: 0.28.0(svelte@5.56.9)
       svelte: 5.56.9
@@ -3844,8 +3846,7 @@ snapshots:
       '@typescript/typescript-win32-x64': 7.0.2
     optional: true
 
-  undici-types@8.3.0:
-    optional: true
+  undici-types@8.3.0: {}
 
   util-deprecate@1.0.2: {}
 
