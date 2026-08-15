@@ -1,10 +1,9 @@
 import { createHash } from 'node:crypto';
-import { Buffer } from 'node:buffer';
-import { createRequire } from 'node:module';
 import exifr from 'exifr';
+import { decode as decodePng } from 'fast-png';
 import { decode as decodeJpeg } from 'jpeg-js';
-import { PNG } from 'pngjs';
 import { z } from 'zod';
+import { hashPdq, pdqHashToHex } from './pdq.js';
 
 const SITE_LOCATION_TOLERANCE_M = 500;
 
@@ -33,11 +32,6 @@ function exceedsSiteTolerance(
 	const distanceM = haversineMeters(left?.lat, left?.lon, right?.lat, right?.lon);
 	return distanceM != null && distanceM > maxDistanceM;
 }
-
-const require = createRequire(import.meta.url);
-// pdq-wasm documents its CommonJS entry as the Node path; its ESM entry cannot load the bundled
-// WebAssembly. The Vite config carries that entry and its WASM sidecar into the sealed runtime.
-const { PDQ } = require('pdq-wasm') as typeof import('pdq-wasm');
 
 const exifSchema = z
 	.object({
@@ -103,13 +97,6 @@ interface DecodedImage {
 	readonly format: 'jpeg' | 'png';
 }
 
-let pdqReady: Promise<void> | null = null;
-
-function ensurePdq(): Promise<void> {
-	pdqReady ??= PDQ.init().then(() => undefined);
-	return pdqReady;
-}
-
 function toIsoDate(value: Date | string | undefined): string | null {
 	if (value == null) return null;
 	const date = value instanceof Date ? value : new Date(value);
@@ -160,12 +147,16 @@ function decodeImage(bytes: Uint8Array): DecodedImage {
 		};
 	}
 	if (bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4e && bytes[3] === 0x47) {
-		const decoded = PNG.sync.read(Buffer.from(bytes), { checkCRC: true });
+		const decoded = decodePng(bytes);
+		const channels = decoded.channels;
+		if (channels !== 3 && channels !== 4) {
+			throw new Error('Photo evidence PNG must be RGB or RGBA.');
+		}
 		return {
 			data: decoded.data instanceof Uint8Array ? decoded.data : new Uint8Array(decoded.data),
 			width: decoded.width,
 			height: decoded.height,
-			channels: 4,
+			channels,
 			format: 'png'
 		};
 	}
@@ -185,7 +176,6 @@ export async function inspectPhoto(input: {
 	mimeType: string;
 	now?: Date;
 }): Promise<PhotoInspection> {
-	await ensurePdq();
 	const image = decodeImage(input.bytes);
 	// PNG decodes as RGBA; JPEG already returns RGB so the common photo path holds one raster.
 	const rgb =
@@ -200,13 +190,13 @@ export async function inspectPhoto(input: {
 					}
 					return output;
 				})();
-	const pdq = PDQ.hash({
+	const pdq = await hashPdq({
 		data: rgb,
 		width: image.width,
 		height: image.height,
 		channels: 3
 	});
-	const perceptualHash = PDQ.toHex(pdq.hash);
+	const perceptualHash = pdqHashToHex(pdq.hash);
 
 	let exif: z.infer<typeof exifSchema> = {};
 	try {
