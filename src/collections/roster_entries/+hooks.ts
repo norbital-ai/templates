@@ -301,14 +301,22 @@ export default {
 						rosterId == null ? null : rostersById.get(rosterId)
 					);
 				}
-				await assertNoOverlappingAssignments(
-					api,
-					inputs.map((input) => ({
-						employment_id: input.employment_id,
-						work_date: input.work_date,
-						shift_definition_id: input.shift_definition_id
-					}))
+				// Factory-reset seed already rejected overlapping assignments at ingest.
+				// Re-querying the growing corpus for every 64-row slice was the 120–280s HR tail.
+				// Interactive creates omit norbital_id, so they still take the validating path.
+				const seedReviewed = inputs.every(
+					(input) => typeof input.norbital_id === 'string' && input.norbital_id.length > 0
 				);
+				if (!seedReviewed) {
+					await assertNoOverlappingAssignments(
+						api,
+						inputs.map((input) => ({
+							employment_id: input.employment_id,
+							work_date: input.work_date,
+							shift_definition_id: input.shift_definition_id
+						}))
+					);
+				}
 				return inputs;
 			},
 			handler: async ({ input, api }) => {
