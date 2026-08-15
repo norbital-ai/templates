@@ -123,8 +123,11 @@ function assertPdqExports(exports: WebAssembly.Exports): PdqWasmExports {
 function initPdq(): Promise<void> {
 	modulePromise ??= (async () => {
 		const bytes = readPdqWasmBytes();
+		const wasm = new Uint8Array(bytes.byteLength);
+		wasm.set(bytes);
 		let memory: WebAssembly.Memory | undefined;
-		const { instance } = await WebAssembly.instantiate(bytes, {
+		const compiled = await WebAssembly.compile(wasm.buffer);
+		const instance = await WebAssembly.instantiate(compiled, {
 			a: {
 				a: (buffer: number, size: number) => {
 					if (!memory) throw new Error('pdq-wasm memory is not bound');
