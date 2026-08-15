@@ -1,4 +1,4 @@
-import { execFileSync, spawn, spawnSync } from 'node:child_process';
+import { execFileSync, spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import {
 	mkdirSync,
@@ -9,9 +9,9 @@ import {
 	statSync,
 	writeFileSync
 } from 'node:fs';
-import { createServer as createNetServer } from 'node:net';
 import path from 'node:path';
 import process from 'node:process';
+import { pathToFileURL } from 'node:url';
 import { prepareDepset } from './lib/depset.mjs';
 import { discoverTemplates, repositoryRoot } from './lib/templates.mjs';
 
@@ -28,7 +28,6 @@ import { discoverTemplates, repositoryRoot } from './lib/templates.mjs';
 const requiredBundlePaths = [
 	'manifest.json',
 	'dist/index.html',
-	'serve.mjs',
 	'output/server/index.js',
 	'schema-functions.sql',
 	'schema-post-ddl.sql'
@@ -76,89 +75,6 @@ function materializeTrackedTemplate(template, destination) {
 	return destination;
 }
 
-/**
- * A port nothing is listening on. The guest binds the port its environment names, because that is
- * what a host's proxy routes to, so the caller has to pick a free one rather than ask for ephemeral.
- */
-function freePort() {
-	return new Promise((resolve, reject) => {
-		const probe = createNetServer();
-		probe.on('error', reject);
-		probe.listen(0, '127.0.0.1', () => {
-			const { port } = probe.address();
-			probe.close(() => resolve(port));
-		});
-	});
-}
-
-/** One length-prefixed frame, the way the host writes them into the guest's stdin. */
-function encodeFrame(header) {
-	const headerBytes = Buffer.from(JSON.stringify(header), 'utf8');
-	const frame = Buffer.alloc(8 + headerBytes.length);
-	frame.writeUInt32BE(4 + headerBytes.length, 0);
-	frame.writeUInt32BE(headerBytes.length, 4);
-	headerBytes.copy(frame, 8);
-	return frame;
-}
-
-/**
- * Boot the bundle the way a host boots it and wait for its ready frame.
- *
- * The guest never dials out: the host opens the channel on the guest's own stdio, pushes the
- * deployment configuration the guest waits for before binding, and reads back the `ready` frame. A
- * bundle that boots but never frames is a failure, not a timeout to be tolerated.
- */
-function waitForRuntimeReady(entry, bundle, port, timeoutMilliseconds) {
-	return new Promise((resolve, reject) => {
-		const child = spawn(process.execPath, [entry], {
-			cwd: bundle,
-			stdio: ['pipe', 'pipe', 'pipe'],
-			env: {
-				...process.env,
-				NODE_ENV: 'production',
-				POD_HOST_TOKEN: 'runtime-smoke-host-token-0123456789abcdef',
-				POD_RUNTIME_PORT: String(port)
-			}
-		});
-		child.stdin.write(encodeFrame({ t: 'configure', hostPlugins: [] }));
-		const readyFrame = Buffer.from('{"t":"ready"}');
-		let stdout = Buffer.alloc(0);
-		let stderr = '';
-		let settled = false;
-		const settle = (callback) => {
-			if (settled) return;
-			settled = true;
-			clearTimeout(timer);
-			child.kill('SIGKILL');
-			callback();
-		};
-		const timer = setTimeout(
-			() =>
-				settle(() =>
-					reject(
-						new Error(
-							`Runtime did not emit its ready frame within ${timeoutMilliseconds}ms: ${stderr}`
-						)
-					)
-				),
-			timeoutMilliseconds
-		);
-		child.stdout.on('data', (chunk) => {
-			stdout = Buffer.concat([stdout, chunk]);
-			if (stdout.includes(readyFrame)) settle(resolve);
-		});
-		child.stderr.on('data', (chunk) => {
-			stderr += chunk.toString('utf8');
-		});
-		child.on('error', (error) => settle(() => reject(error)));
-		child.on('close', (code, signal) =>
-			settle(() =>
-				reject(new Error(`Runtime exited before ready (code=${code} signal=${signal}): ${stderr}`))
-			)
-		);
-	});
-}
-
 const options = argumentsFrom(process.argv.slice(2));
 // The contract under test is the bundle format, which no template owns, so any template proves it.
 // Defaulting to the first discovered one keeps this script correct in a repository whose template
@@ -181,7 +97,8 @@ const depsetRoot = path.join(temporaryDirectory, 'node_modules');
 const bundle = path.join(workspace, '.norbital', 'dist', 'output');
 let depset;
 let buildElapsedMilliseconds;
-let serveEntrySha256;
+let runtimeEntrySha256;
+let runtimeExports;
 let migrationSqlCount;
 
 try {
@@ -233,28 +150,31 @@ try {
 			statSync(path.join(entry.parentPath, entry.name)).size > 0
 	).length;
 	if (migrationSqlCount < 1) fail('Published build output contains no non-empty migration.sql.');
-	serveEntrySha256 = createHash('sha256')
-		.update(readFileSync(path.join(bundle, 'serve.mjs')))
-		.digest('hex');
+	const runtimeEntry = path.join(bundle, 'output', 'server', 'index.js');
+	runtimeEntrySha256 = createHash('sha256').update(readFileSync(runtimeEntry)).digest('hex');
 
-	console.log('Booting serve.mjs from the clean bundle.');
-	await waitForRuntimeReady(path.join(bundle, 'serve.mjs'), bundle, await freePort(), 20_000);
+	console.log('Loading output/server/index.js from the clean bundle.');
+	const runtime = await import(pathToFileURL(runtimeEntry).href);
+	if (typeof runtime.dispatch !== 'function') {
+		fail('Runtime entry does not export dispatch.');
+	}
+	runtimeExports = Object.keys(runtime).sort();
 } finally {
 	rmSync(temporaryDirectory, { recursive: true, force: true });
 }
 
 const result = {
 	$schema: '../release/runtime-smoke.schema.json',
-	schemaVersion: 3,
+	schemaVersion: 4,
 	template: template.key,
 	lockHash: depset.lockHash,
 	buildCommand: 'vite build',
 	buildElapsedMilliseconds: Number(buildElapsedMilliseconds.toFixed(3)),
 	requiredBundlePaths,
 	migrationSqlCount,
-	runtimeEntry: 'serve.mjs',
-	serveEntrySha256,
-	readyFrame: { t: 'ready' },
+	runtimeEntry: 'output/server/index.js',
+	runtimeEntrySha256,
+	runtimeExports,
 	passed: true
 };
 mkdirSync(path.dirname(outputPath), { recursive: true });
