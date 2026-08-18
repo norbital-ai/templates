@@ -223,13 +223,13 @@
 		name="description"
 		content="View your schedule, leave, pay components, loans, payslips, and profile"
 	/>
-	<meta name="pod:icon" content="lucide:user-round" />
+	<meta name="bolt:icon" content="lucide:user-round" />
 	<meta
-		name="pod:thumbnail"
+		name="bolt:thumbnail"
 		content="/api/template-seed-assets/hr-payroll/app-media/hr_employee-banner.webp"
 	/>
 	<meta
-		name="pod:banner"
+		name="bolt:banner"
 		content="/api/template-seed-assets/hr-payroll/app-media/hr_employee-banner.webp"
 	/>
 </svelte:head>

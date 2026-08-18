@@ -72,7 +72,7 @@ function assertInstalmentMatchesResolvedAgreement(
 		);
 
 	// The partial unique index on the generated agreement/sequence projections is the concurrency-
-	// safe duplicate guarantee, including two entries in one createMany statement. Pod translates
+	// safe duplicate guarantee, including two entries in one createMany statement. Bolt translates
 	// its 23505 into a caller-facing conflict; a sibling SELECT would add one round trip per instalment.
 }
 

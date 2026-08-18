@@ -34,13 +34,13 @@
 		name="description"
 		content="The regime every payroll is calculated against: jurisdictions with the schemes, rates, overtime rules and limits configured inside them, and the companies bound to each"
 	/>
-	<meta name="pod:icon" content="lucide:scale" />
+	<meta name="bolt:icon" content="lucide:scale" />
 	<meta
-		name="pod:thumbnail"
+		name="bolt:thumbnail"
 		content="/api/template-seed-assets/hr-payroll/app-media/settings-banner.webp"
 	/>
 	<meta
-		name="pod:banner"
+		name="bolt:banner"
 		content="/api/template-seed-assets/hr-payroll/app-media/settings-banner.webp"
 	/>
 </svelte:head>

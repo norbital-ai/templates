@@ -9,7 +9,7 @@ import type { Hooks } from './$types.js';
  *
  * The database is the guarantee — `contribution_rates_no_overlap` in +model.ts projects the same
  * key out of the JSONB selector and rejects an overlap with SQLSTATE 23P01 whatever path the write
- * takes, including a concurrent one or another row in the same createMany statement. Pod translates
+ * takes, including a concurrent one or another row in the same createMany statement. Bolt translates
  * that constraint into a caller-facing overlap refusal. A SELECT precheck here would be weaker and
  * add one database round trip per rate to bulk statutory tables.
  */

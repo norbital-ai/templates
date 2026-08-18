@@ -745,13 +745,13 @@
 		name="description"
 		content="Plan the monthly roster on a calendar, publish it against the statutory rules, and manage the shifts a day is worked on and the patterns a week is shaped by"
 	/>
-	<meta name="pod:icon" content="lucide:calendar-clock" />
+	<meta name="bolt:icon" content="lucide:calendar-clock" />
 	<meta
-		name="pod:thumbnail"
+		name="bolt:thumbnail"
 		content="/api/template-seed-assets/hr-payroll/app-media/scheduling-banner.webp"
 	/>
 	<meta
-		name="pod:banner"
+		name="bolt:banner"
 		content="/api/template-seed-assets/hr-payroll/app-media/scheduling-banner.webp"
 	/>
 </svelte:head>

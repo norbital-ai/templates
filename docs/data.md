@@ -193,4 +193,4 @@ The current audited snapshot is maintained privately alongside the real source w
 document describes how to produce one; it deliberately embeds no client variance evidence, because a
 public template that carried dated figures from one engagement would invite a reader to treat them
 as the expected answer. Dated variance evidence against real source workbooks is maintained in the
-private Core reconciliation suite, not in this public template.
+private reconciliation suite, not in this public template.

@@ -35,7 +35,7 @@
 
 <svelte:head>
 	<meta
-		name="pod:banner"
+		name="bolt:banner"
 		content="/api/template-seed-assets/hr-payroll/record-media/repayment_agreements-banner.svg"
 	/>
 </svelte:head>

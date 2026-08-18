@@ -10,7 +10,7 @@ import {
 import { isStatutoryOvertimePayCovered } from './lib/measure.ts';
 
 /**
- * The Malaysian rule as seeded in Core: Employment Act 1955 First Schedule paragraph 1A, as
+ * The Malaysian rule as seeded from the seed bank: Employment Act 1955 First Schedule paragraph 1A, as
  * substituted by the Employment (Amendment of First Schedule) Order 2022 [P.U. (A) 262].
  *
  * Every value asserted below is the statute's, not the engine's. Paragraph 1A reads "the person

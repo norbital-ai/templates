@@ -117,7 +117,7 @@ the report. Never writes the law tables (those stay product-owned).
 
 ### Integrations, seed
 
-statutory and sensitive fixture seed is Core-owned (see below), and payroll inputs belong to the
+statutory and sensitive fixture seed lives in the repository seed bank (see below), and payroll inputs belong to the
 reconciliation workflow described in [`docs/data.md`](docs/data.md).
 
 ## Operational boundary
@@ -208,12 +208,12 @@ fixture written against one of those looks right and is not; check `src/collecti
 instead. Read that script's header before trusting a green run: it is honest about what it cannot
 see, and a green run means nothing until the mutation check described there has been done.
 
-The confidential source reconciliation is opt-in in Core; see
+The confidential source reconciliation is opt-in on the host; see
 [`docs/data.md`](docs/data.md#reconciliation-method).
 
 ## Changing the template
 
-This is a Pod tenant workspace: the Pod filesystem compiler derives the registry, workspace, client
+This is a Bolt tenant workspace: the Bolt filesystem compiler derives the registry, workspace, client
 and local types under `.norbital/` from `src/` alone. Workflow:
 
 ```bash
@@ -226,12 +226,13 @@ pnpm build    # production build
   migration under `.norbital/migrations/`. Edit `+model.ts`, run `pnpm sync`, then review the
   migration the compiler emits.
 - **Seed** — new-tenant fixture behavior belongs in `src/+seed.ts`; it does not evolve deployed
-  data. For an existing tenant, create a committed migration with `pnpm exec pod migration create
-<name> --custom`, edit its SQL, and resolve conflicts in Organization Studio → Template updates.
-  Sensitive statutory seed (the jurisdiction regime snapshots and contribution rows) stays Core-owned at
-  `norbital/apps/core/seed/norbital_hr/statutory/rows.ts`.
+  data. For an existing tenant, write the next lineage entry with `pnpm exec bolt migrate --name
+<name>`, edit its SQL, and deploy it through Colony.
+  Sensitive statutory seed (the jurisdiction regime snapshots and contribution rows) stays outside
+  this template, in the repository seed bank at `seed_bank/norbital_hr/statutory/`.
 - **Publishing** — the template pins `@norbital-ai/bolt` in its own `package.json` and lockfile.
   After a deliberate dependency move, refresh the template lock through the repository
-  template-lock workflow. Consume a new template release in Core with
-  `pnpm tenant:update --org=<org-slug> --template=hr-payroll`, then hard-refresh the iframe; use
-  `pnpm env:reset --target dev --template hr-payroll` only for a deliberate reseed.
+  template-lock workflow. To consume a new template release, link it into Colony
+  (`pnpm yalc:link`) and restart `pnpm --filter colony dev`, then hard-refresh the iframe — the
+  Colony dev bootstrap converges on every start, so there is no separate tenant-update or
+  environment-reset step.

@@ -1397,7 +1397,7 @@ check(
 );
 
 // ── statutory overtime coverage, read from the jurisdiction's cited rule ────────────────────────
-// The Malaysian row as seeded in Core: Employment Act 1955 First Schedule paras 1A, 2 and 3.
+// The Malaysian row as seeded from the seed bank: Employment Act 1955 First Schedule paras 1A, 2 and 3.
 const MY_COVERAGE_RULE = {
 	wage_ceiling: { value: 4000, currency: 'MYR' },
 	ceiling_is_inclusive: true,

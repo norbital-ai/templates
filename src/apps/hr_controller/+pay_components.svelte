@@ -110,13 +110,13 @@
 		name="description"
 		content="Review pay-component entries — allowances, claims, arrears, reversals, and loan instalments — and their payroll linkage"
 	/>
-	<meta name="pod:icon" content="lucide:coins" />
+	<meta name="bolt:icon" content="lucide:coins" />
 	<meta
-		name="pod:thumbnail"
+		name="bolt:thumbnail"
 		content="/api/template-seed-assets/hr-payroll/app-media/pay_components-banner.webp"
 	/>
 	<meta
-		name="pod:banner"
+		name="bolt:banner"
 		content="/api/template-seed-assets/hr-payroll/app-media/pay_components-banner.webp"
 	/>
 </svelte:head>

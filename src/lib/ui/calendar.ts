@@ -123,7 +123,7 @@ export function startOfDayInstant(calendarDate: string, timeZone: string): strin
 }
 
 /**
- * `YYYY-MM-DD` from a Pod `date()` column value. Local PGlite reads yield `Date`; wire payloads
+ * `YYYY-MM-DD` from a Bolt `date()` column value. Local PGlite reads yield `Date`; wire payloads
  * yield calendar or ISO strings — both are accepted.
  */
 export function calendarDayKey(value: string | Date): string {
