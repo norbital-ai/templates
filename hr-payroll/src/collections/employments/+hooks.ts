@@ -115,7 +115,7 @@ export default {
 						}
 					}
 					if (mutations.length === 0) return;
-					yield* api.db.mutate('leave_requests', mutations);
+					yield* api.db.leave_requests.mutate(mutations);
 				})
 		}
 	}

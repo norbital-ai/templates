@@ -332,9 +332,7 @@ export default {
 						limit: ASSIGNMENT_BATCH_LIMIT
 					});
 					const jobsById = new Map(jobs.map((job) => [job.norbital_id, job]));
-					yield* api.db.mutate(
-						'jobs',
-						records.flatMap((record) =>
+					yield* api.db.jobs.mutate(records.flatMap((record) =>
 							jobsById.get(record.job_id)?.status === 'unassigned'
 								? [{ norbital_id: record.job_id, status: 'assigned' as const }]
 								: []
@@ -347,7 +345,7 @@ export default {
 						where: { norbital_id: { eq: record.job_id } }
 					});
 					if (job?.status === 'unassigned') {
-						yield* api.db.mutate('jobs', [{ norbital_id: record.job_id, status: 'assigned' }]);
+						yield* api.db.jobs.mutate([{ norbital_id: record.job_id, status: 'assigned' }]);
 					}
 				})
 		}
@@ -415,14 +413,14 @@ export default {
 							columns: { status: true }
 						});
 						if (job?.status === 'unassigned') {
-							yield* api.db.mutate('jobs', [{ norbital_id: record.job_id, status: 'assigned' }]);
+							yield* api.db.jobs.mutate([{ norbital_id: record.job_id, status: 'assigned' }]);
 						}
 						return;
 					}
 					const jobStatus = mapAssignmentStatusToJobStatus(
 						status as 'dispatched' | 'in_progress' | 'completed' | 'suspect'
 					);
-					yield* api.db.mutate('jobs', [{ norbital_id: record.job_id, status: jobStatus }]);
+					yield* api.db.jobs.mutate([{ norbital_id: record.job_id, status: jobStatus }]);
 				})
 		}
 	}

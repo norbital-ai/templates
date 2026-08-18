@@ -230,19 +230,24 @@ function fakeApi(state, deleted) {
 				state[collection].filter((row) => row.payroll_run_id === where.payroll_run_id.eq)
 			)
 	});
+	// A collection is reached as a property, the one way the authoring api offers: `db.<name>.delete`,
+	// beside `db.query.<name>.findMany`. There was briefly a second spelling taking the collection as
+	// an argument; it was never implemented and is gone.
+	const remove = (collection) => ({
+		delete: (identifiers) => {
+			deleted.push([collection, [...identifiers]]);
+			state[collection] = state[collection].filter((row) => !identifiers.includes(row.norbital_id));
+			return Effect.succeed(undefined);
+		}
+	});
 	return {
 		db: {
 			query: {
 				payroll_settlements: find('payroll_settlements'),
 				payslips: find('payslips')
 			},
-			delete: (collection, identifiers) => {
-				deleted.push([collection, [...identifiers]]);
-				state[collection] = state[collection].filter(
-					(row) => !identifiers.includes(row.norbital_id)
-				);
-				return Effect.succeed(undefined);
-			}
+			payroll_settlements: remove('payroll_settlements'),
+			payslips: remove('payslips')
 		}
 	};
 }

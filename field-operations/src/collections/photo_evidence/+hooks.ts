@@ -199,7 +199,7 @@ function runAfterPhoto(
 			matchedIds.add(candidate.norbital_id);
 		}
 		const mergedFlags = [...flags];
-		yield* api.db.mutate('photo_evidence', [
+		yield* api.db.photo_evidence.mutate([
 			{
 				norbital_id: record.norbital_id,
 				flags: mergedFlags,
@@ -425,9 +425,7 @@ export default {
 						})),
 						new Set(records.map((record) => record.norbital_id))
 					);
-					yield* api.db.mutate(
-						'photo_evidence',
-						planned.map((update) => ({
+					yield* api.db.photo_evidence.mutate(planned.map((update) => ({
 							norbital_id: update.id,
 							flags: update.flags,
 							matched_evidence_ids: update.matchedEvidenceIds
