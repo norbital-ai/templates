@@ -170,9 +170,10 @@ export const client: WorkspaceClient = {
 		sites: collectionOperations('sites'),
 		variation_requests: collectionOperations('variation_requests'),
 		document_asset: collectionOperations('document_asset'),
-		team: collectionOperations('team'),
-		team_members: collectionOperations('team_members'),
-		user: collectionOperations('user')
+		// `team`, `team_members` and `user` were platform tables until identity became runtime-owned.
+		// A person is a row in `bolt_auth_user` carrying their teams as a jsonb array, and the system
+		// read policy grants that row masked to an id and a name — a directory, not a membership list.
+		bolt_auth_user: collectionOperations('bolt_auth_user')
 	},
 	invoke: runtimeClient.invoke as unknown as WorkspaceInvoke
 };

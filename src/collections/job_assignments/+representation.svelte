@@ -137,7 +137,7 @@
 					id: evidence.norbital_id,
 					name: asset.file_name,
 					fileSize: asset.file_size,
-					url: `/api/files/download/${encodeURIComponent(asset.storage_key)}`,
+					url: `/api/files/${encodeURIComponent(asset.storage_key)}`,
 					flags: (evidence.flags ?? []).filter((flag: unknown): flag is string => flag != null),
 					source: evidenceSource(evidence.source),
 					capturedAt: formatSingaporeInstant(evidence.norbital_created_at, t)
