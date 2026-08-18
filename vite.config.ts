@@ -1,7 +1,7 @@
 import path from 'node:path';
 import { createRequire } from 'node:module';
 import { defineConfig } from 'vite';
-import { pod } from '@norbital-ai/pod/vite';
+import { bolt } from '@norbital-ai/bolt/vite';
 
 const require = createRequire(import.meta.url);
 const pdqRoot = path.dirname(require.resolve('pdq-wasm/package.json'));
@@ -16,7 +16,7 @@ const pdqRuntimeFiles = [
 
 export default defineConfig({
 	plugins: [
-		pod({
+		bolt({
 			serverAssets: pdqRuntimeFiles.map((relative) => ({
 				source: path.join(pdqRoot, relative),
 				target: path.join('node_modules/pdq-wasm', relative)

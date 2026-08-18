@@ -1,7 +1,8 @@
 <script lang="ts">
 	import { humanize } from '@norbital-ai/std/string';
+	import { Option, Schema } from 'effect';
 	import { useI18n } from '@norbital-ai/ui/i18n';
-	import type { TenantI18nKeys } from '$pod/i18n-keys';
+	import type { TenantI18nKeys } from '$bolt/i18n-keys';
 	import type { RendererProps } from './$types.js';
 	import { photoSourceSchema } from './+definition.js';
 
@@ -9,8 +10,10 @@
 
 	const { t } = useI18n<TenantI18nKeys>();
 
-	const parsed = $derived(photoSourceSchema.safeParse(props.value));
-	const source = $derived(parsed.success ? parsed.data : null);
+	const parsed = $derived(
+		Schema.decodeUnknownOption(photoSourceSchema)(props.value, { onExcessProperty: 'error' })
+	);
+	const source = $derived(Option.isSome(parsed) ? parsed.value : null);
 </script>
 
 {#if source?.kind === 'channel'}

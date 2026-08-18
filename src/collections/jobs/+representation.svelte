@@ -1,7 +1,7 @@
 <script lang="ts">
-	import { client } from '$pod/client';
+	import { client } from '../../lib/workspace-client.js';
 	import { useI18n } from '@norbital-ai/ui/i18n';
-	import type { TenantI18nKeys } from '$pod/i18n-keys';
+	import type { TenantI18nKeys } from '$bolt/i18n-keys';
 	import type { RepresentationProps } from './$types.js';
 	import { CollectionForm } from '@norbital-ai/ui/collection-form';
 	import { RelationshipRenderer } from '@norbital-ai/ui/data-renderer/relationship';
@@ -9,7 +9,6 @@
 
 	let { record, close }: RepresentationProps = $props();
 	const { t } = useI18n<TenantI18nKeys>();
-	const recordId = $derived(record?.norbital_id);
 	const formDefaults = $derived(record ?? { status: 'unassigned' as const });
 </script>
 
@@ -23,7 +22,6 @@
 <CollectionForm
 	{client}
 	collection="jobs"
-	{recordId}
 	defaultValues={formDefaults}
 	submitLabel={record ? undefined : t('component.create_job')}
 	onAfterSubmit={record ? undefined : close}

@@ -1,8 +1,8 @@
 <script lang="ts">
-	import { client } from '$pod/client';
-	import { getPlatformStateContext } from '@norbital-ai/pod/client';
+	import { client } from '../lib/workspace-client.js';
+	import { getPlatformStateContext } from '@norbital-ai/bolt/client';
 	import { useI18n } from '@norbital-ai/ui/i18n';
-	import type { TenantI18nKeys } from '$pod/i18n-keys';
+	import type { TenantI18nKeys } from '$bolt/i18n-keys';
 	import { CollectionTable } from '@norbital-ai/ui/collection-table';
 	import { Bound } from '@norbital-ai/ui/layout';
 

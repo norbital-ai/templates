@@ -1,7 +1,7 @@
 <script lang="ts">
-	import { client } from '$pod/client';
+	import { client } from '../../lib/workspace-client.js';
 	import { useI18n } from '@norbital-ai/ui/i18n';
-	import type { TenantI18nKeys } from '$pod/i18n-keys';
+	import type { TenantI18nKeys } from '$bolt/i18n-keys';
 	import type { RepresentationProps } from './$types.js';
 	import { CollectionForm } from '@norbital-ai/ui/collection-form';
 	import { CollectionTable } from '@norbital-ai/ui/collection-table';
@@ -26,12 +26,15 @@
 
 	const { t } = useI18n<TenantI18nKeys>();
 
-	const recordId = $derived(record?.norbital_id);
+	// The site's key as a *query value* — what `jobs.site_id` points at. Framework surfaces are never
+	// handed this: `CollectionForm` reads the record it is given, and `CollectionTable` scopes its
+	// saved view to the open record on its own.
+	const siteId = $derived(record?.norbital_id);
 	const today = calendarDateInTimeZone(new Date());
 	const siteJobsQuery = $derived(
-		recordId
+		siteId
 			? client.db.jobs.findMany({
-					where: { site_id: { eq: recordId } },
+					where: { site_id: { eq: siteId } },
 					limit: 500
 				})
 			: null
@@ -60,7 +63,7 @@
 
 {#if record}
 	{#snippet generalInformation()}
-		<CollectionForm {client} collection="sites" {recordId} defaultValues={record}>
+		<CollectionForm {client} collection="sites" defaultValues={record}>
 			{#snippet children({ Field })}
 				<Stack gap="md">
 					<div>
@@ -87,14 +90,13 @@
 		<CollectionTable
 			{client}
 			collection="jobs"
-			view={`field_ops_site:${recordId}:upcoming`}
+			view="field_ops_site:upcoming"
 			title={t('component.upcoming_scheduled_jobs')}
 			description={t('component.upcoming_scheduled_jobs_description')}
 			query={{
 				where: { norbital_id: { in: upcomingJobIds } },
 				orderBy: { scheduled_for: 'asc' }
 			}}
-			searchPlaceholder={t('component.search_upcoming_jobs')}
 		>
 			{#snippet columns({ Column })}
 				<Column name="title" minWidth={240} card="title" />
@@ -110,13 +112,13 @@
 		<CollectionTable
 			{client}
 			collection="job_assignments"
-			view={`field_ops_site:${recordId}:history`}
+			view="field_ops_site:history"
 			title={t('component.activity_history')}
 			description={t('component.activity_history_description')}
 			query={{
 				where: {
 					job_assignment_job: {
-						site_id: { eq: recordId },
+						site_id: { eq: siteId },
 						status: { in: ['in_progress', 'completed'] }
 					}
 				},

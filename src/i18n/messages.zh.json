@@ -71,7 +71,6 @@
 	"component.general_information_description": "客户背景以及派单地图使用的精确位置。",
 	"component.upcoming_scheduled_jobs": "计划中的任务",
 	"component.upcoming_scheduled_jobs_description": "未来日期的任务，以及已过期但仍待分配或派单的任务。新建任务会打开任务表单——请在表单中选择此工地。",
-	"component.search_upcoming_jobs": "搜索即将进行的任务…",
 	"component.upcoming_jobs": "即将到来的任务",
 	"component.activity_history": "活动历史",
 	"component.activity_history_description": "已进入派单后阶段的任务——进行中或已完成。",

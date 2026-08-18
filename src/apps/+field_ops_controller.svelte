@@ -1,18 +1,16 @@
 <script lang="ts">
-	import { client } from '$pod/client';
+	import { client } from '../lib/workspace-client.js';
 	import { Button } from '@norbital-ai/ui/button';
 	import { useI18n } from '@norbital-ai/ui/i18n';
-	import type { TenantI18nKeys } from '$pod/i18n-keys';
+	import type { TenantI18nKeys } from '$bolt/i18n-keys';
 	import { CollectionKanban } from '@norbital-ai/ui/collection-kanban';
 	import { CollectionTable } from '@norbital-ai/ui/collection-table';
 	import { Combobox } from '@norbital-ai/ui/combobox';
 	import { DataRenderer } from '@norbital-ai/ui/data-renderer';
-	import { RelationshipRenderer } from '@norbital-ai/ui/data-renderer/relationship';
 	import { Bound, Cluster, Cover, Inline, Split, Stack } from '@norbital-ai/ui/layout';
 	import * as Sheet from '@norbital-ai/ui/sheet';
 	import { StaticMap, type StaticMapMarker } from '@norbital-ai/ui/static-map';
 	import { Tabs, type TabConfig } from '@norbital-ai/ui/tabs';
-	import { renderComponent } from '@norbital-ai/ui/utils';
 	import Icon from '@iconify/svelte';
 	import { isCalendarDate } from '@norbital-ai/std/date';
 
@@ -84,6 +82,14 @@
 		orderBy: { company_name: 'asc' },
 		limit: 250
 	});
+	const usersQuery = client.db.user.findMany({
+		columns: { norbital_id: true, name: true },
+		orderBy: { name: 'asc' },
+		limit: 500
+	});
+	const userNameById = $derived(
+		new Map((usersQuery.current ?? []).map((user) => [user.norbital_id, user.name]))
+	);
 	const sitesQuery = client.db.sites.findMany({
 		orderBy: { name: 'asc' },
 		limit: 250
@@ -358,20 +364,7 @@
 				label={t('component.portal_user')}
 				minWidth={240}
 				card="subtitle"
-				render={({ value }) =>
-					renderComponent(RelationshipRenderer, {
-						target: 'user',
-						value: typeof value === 'string' ? value : null,
-						options: {
-							label: (record) => {
-								const v = record.name;
-								return v != null && v !== '' ? String(v) : '—';
-							},
-							orderBy: { name: 'asc' },
-							limit: 500
-						},
-						displayOnly: true
-					})}
+				render={({ row }) => userNameById.get(row.user_id) ?? '—'}
 			/>
 		{/snippet}
 	</CollectionTable>

@@ -2,7 +2,7 @@ import { createHash } from 'node:crypto';
 import exifr from 'exifr';
 import { decode as decodePng } from 'fast-png';
 import { decode as decodeJpeg } from 'jpeg-js';
-import { z } from 'zod';
+import { Option, Schema } from 'effect';
 import { hashPdq, pdqHashToHex } from './pdq.js';
 
 const SITE_LOCATION_TOLERANCE_M = 500;
@@ -33,15 +33,18 @@ function exceedsSiteTolerance(
 	return distanceM != null && distanceM > maxDistanceM;
 }
 
-const exifSchema = z
-	.object({
-		DateTimeOriginal: z.union([z.date(), z.string()]).optional(),
-		CreateDate: z.union([z.date(), z.string()]).optional(),
-		Software: z.string().optional(),
-		GPSLatitude: z.number().optional(),
-		GPSLongitude: z.number().optional()
-	})
-	.passthrough();
+const exifSchema = Schema.Struct({
+	DateTimeOriginal: Schema.optional(Schema.Union([Schema.Date, Schema.String])),
+	CreateDate: Schema.optional(Schema.Union([Schema.Date, Schema.String])),
+	Software: Schema.optional(Schema.String),
+	GPSLatitude: Schema.optional(Schema.Number),
+	GPSLongitude: Schema.optional(Schema.Number)
+});
+
+type Exif = Schema.Schema.Type<typeof exifSchema>;
+
+/** EXIF blocks are third-party and frequently malformed; a rejected block is simply absent. */
+const decodeExif = Schema.decodeUnknownOption(exifSchema);
 
 /** Keep in sync with `photo_evidence` model `flags` enum. */
 export const photoIntegrityFlags = [
@@ -57,15 +60,21 @@ export const photoIntegrityFlags = [
 export type PhotoIntegrityFlag = (typeof photoIntegrityFlags)[number];
 export const PHOTO_INTEGRITY_INSPECTION_PROFILE = 'field-operations.photo-integrity.v1';
 
-export const photoInspectionSchema = z.object({
-	sha256: z.string().regex(/^[a-f0-9]{64}$/),
-	perceptualHash: z.string().regex(/^[a-f0-9]{64}$/),
-	pdqQuality: z.number().min(0).max(100).optional(),
-	width: z.number().int().positive(),
-	height: z.number().int().positive(),
-	captureLocation: z.object({ lat: z.number(), lon: z.number() }).nullable(),
-	flags: z.array(z.enum(photoIntegrityFlags))
+const hexDigest = Schema.String.check(Schema.isPattern(/^[a-f0-9]{64}$/));
+const positiveInt = Schema.Int.check(Schema.isGreaterThan(0));
+
+export const photoInspectionSchema = Schema.Struct({
+	sha256: hexDigest,
+	perceptualHash: hexDigest,
+	pdqQuality: Schema.optional(Schema.Number.check(Schema.isBetween({ minimum: 0, maximum: 100 }))),
+	width: positiveInt,
+	height: positiveInt,
+	captureLocation: Schema.NullOr(Schema.Struct({ lat: Schema.Number, lon: Schema.Number })),
+	flags: Schema.Array(Schema.Literals(photoIntegrityFlags))
 });
+
+/** Throws on any fact shape the host inspection cache was not supposed to be able to produce. */
+export const decodePhotoInspection = Schema.decodeUnknownSync(photoInspectionSchema);
 
 export interface PhotoInspection {
 	sha256: string;
@@ -116,9 +125,7 @@ function expectedMimeType(format: 'jpeg' | 'png'): string {
 	}
 }
 
-function captureLocationFromExif(
-	exif: z.infer<typeof exifSchema>
-): { lat: number; lon: number } | null {
+function captureLocationFromExif(exif: Exif): { lat: number; lon: number } | null {
 	const lat = exif.GPSLatitude;
 	const lon = exif.GPSLongitude;
 	if (lat == null || lon == null) return null;
@@ -184,9 +191,9 @@ export async function inspectPhoto(input: {
 			: (() => {
 					const output = new Uint8Array(image.width * image.height * 3);
 					for (let i = 0, j = 0; i < image.data.length; i += 4, j += 3) {
-						output[j] = image.data[i]!;
-						output[j + 1] = image.data[i + 1]!;
-						output[j + 2] = image.data[i + 2]!;
+						output[j] = image.data[i];
+						output[j + 1] = image.data[i + 1];
+						output[j + 2] = image.data[i + 2];
 					}
 					return output;
 				})();
@@ -198,14 +205,14 @@ export async function inspectPhoto(input: {
 	});
 	const perceptualHash = pdqHashToHex(pdq.hash);
 
-	let exif: z.infer<typeof exifSchema> = {};
+	let exif: Exif = {};
 	try {
-		const parsed = exifSchema.safeParse(
+		const parsed = decodeExif(
 			await exifr.parse(input.bytes, {
 				pick: ['DateTimeOriginal', 'CreateDate', 'Software', 'GPSLatitude', 'GPSLongitude']
 			})
 		);
-		if (parsed.success) exif = parsed.data;
+		if (Option.isSome(parsed)) exif = parsed.value;
 	} catch (error) {
 		console.warn('[field-ops-photo-evidence] EXIF parsing failed', error);
 	}
@@ -275,8 +282,8 @@ export function assertExactlyOnePhotoParent(
 export interface DuplicateEvidenceInput {
 	readonly id: string;
 	readonly sha256: string;
-	readonly perceptualEmbedding: unknown;
-	readonly flags: readonly unknown[];
+	readonly perceptualEmbedding: readonly number[] | string;
+	readonly flags: readonly string[];
 	readonly assignmentId: string | null;
 }
 
@@ -287,24 +294,25 @@ export interface DuplicateEvidenceUpdate {
 	readonly assignmentId: string | null;
 }
 
-function parseEmbedding(value: unknown): number[] | null {
-	if (Array.isArray(value) && value.every((entry) => typeof entry === 'number')) return value;
-	if (typeof value !== 'string') return null;
-	try {
-		const parsed: unknown = JSON.parse(value);
-		return Array.isArray(parsed) && parsed.every((entry) => typeof entry === 'number')
-			? parsed
-			: null;
-	} catch {
-		return null;
+function parseEmbedding(value: readonly number[] | string): readonly number[] | null {
+	if (typeof value === 'string') {
+		try {
+			const parsed: unknown = JSON.parse(value);
+			return Array.isArray(parsed) && parsed.every((entry) => typeof entry === 'number')
+				? parsed
+				: null;
+		} catch {
+			return null;
+		}
 	}
+	return value;
 }
 
 function squaredL2(left: readonly number[], right: readonly number[]): number | null {
 	if (left.length !== right.length || left.length === 0) return null;
 	let squaredDistance = 0;
 	for (let index = 0; index < left.length; index += 1) {
-		const difference = left[index]! - right[index]!;
+		const difference = left[index] - right[index];
 		squaredDistance += difference * difference;
 	}
 	return squaredDistance;
@@ -325,9 +333,8 @@ export function planDuplicateEvidenceBatch(
 	return corpus.flatMap((record) => {
 		if (!targetIds.has(record.id)) return [];
 		const flags = new Set<PhotoIntegrityFlag>(
-			record.flags.filter(
-				(flag): flag is PhotoIntegrityFlag =>
-					typeof flag === 'string' && photoIntegrityFlags.includes(flag as PhotoIntegrityFlag)
+			record.flags.filter((flag): flag is PhotoIntegrityFlag =>
+				photoIntegrityFlags.some((candidate) => candidate === flag)
 			)
 		);
 		const matchedEvidenceIds = new Set<string>();

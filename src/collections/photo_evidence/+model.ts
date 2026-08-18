@@ -8,7 +8,7 @@ import {
 	timestamp,
 	uuid,
 	vector
-} from '@norbital-ai/pod/authoring';
+} from '@norbital-ai/bolt/authoring';
 
 export default defineModel(
 	{

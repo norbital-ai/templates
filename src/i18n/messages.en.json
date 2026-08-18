@@ -71,7 +71,6 @@
 	"component.general_information_description": "Client context and the exact location used for dispatch mapping.",
 	"component.upcoming_scheduled_jobs": "Upcoming scheduled jobs",
 	"component.upcoming_scheduled_jobs_description": "Future-dated jobs and past-due jobs that are still pending assignment or dispatch. New jobs open the job form — pick this site on the form.",
-	"component.search_upcoming_jobs": "Search upcoming jobs…",
 	"component.upcoming_jobs": "Upcoming jobs",
 	"component.activity_history": "Activity history",
 	"component.activity_history_description": "Jobs that have progressed past dispatch — work in progress or completed.",
