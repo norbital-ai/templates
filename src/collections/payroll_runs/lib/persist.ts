@@ -66,10 +66,7 @@ export function clearRunResults(api: PayrollApi, runId: string): Effect.Effect<v
 		});
 		assertComplete(settlements, 'settlement locks to release');
 		if (settlements.length > 0)
-			yield* api.db.delete(
-				'payroll_settlements',
-				settlements.map((row) => row.norbital_id)
-			);
+			yield* api.db.payroll_settlements.delete(settlements.map((row) => row.norbital_id));
 
 		const existing = yield* api.db.query.payslips.findMany({
 			where: { payroll_run_id: { eq: runId } },
@@ -77,10 +74,20 @@ export function clearRunResults(api: PayrollApi, runId: string): Effect.Effect<v
 		});
 		assertComplete(existing, 'payslips to clear');
 		if (existing.length === 0) return;
-		yield* api.db.delete(
-			'payslips',
-			existing.map((row) => row.norbital_id)
-		);
+
+		// Lines before the payslips they name. `payslip_lines.payslip_id` is a plain foreign key —
+		// nothing in the baseline DDL cascades — so deleting a payslip that still has lines is
+		// refused outright. This was unreachable until payroll began writing anything: with PERSIST
+		// broken, `clearRunResults` always found zero payslips, and the first recalculation of a run
+		// that had actually produced figures was the first time it mattered.
+		const lines = yield* api.db.query.payslip_lines.findMany({
+			where: { payslip_id: { in: existing.map((row) => row.norbital_id) } },
+			limit: PAGE_LIMIT
+		});
+		assertComplete(lines, 'payslip lines to clear');
+		if (lines.length > 0) yield* api.db.payslip_lines.delete(lines.map((row) => row.norbital_id));
+
+		yield* api.db.payslips.delete(existing.map((row) => row.norbital_id));
 	});
 }
 
@@ -93,8 +100,7 @@ export function persistPayslips(options: {
 	return Effect.gen(function* () {
 		if (options.pending.length === 0) return { payslipCount: 0, lineCount: 0, claimCount: 0 };
 
-		const payslipRows = yield* options.api.db.mutate(
-			'payslips',
+		const payslipRows = yield* options.api.db.payslips.mutate(
 			options.pending.map((payslip) => ({
 				payroll_run_id: options.runId,
 				employment_id: payslip.employmentId,
@@ -168,7 +174,7 @@ export function persistPayslips(options: {
 		}
 
 		if (lineInputs.length > 0) {
-			yield* options.api.db.mutate('payslip_lines', lineInputs);
+			yield* options.api.db.payslip_lines.mutate(lineInputs);
 		}
 
 		/**
@@ -199,8 +205,7 @@ export function persistPayslips(options: {
 			)
 		]);
 		if (claims.length > 0) {
-			yield* options.api.db.mutate(
-				'payroll_settlements',
+			yield* options.api.db.payroll_settlements.mutate(
 				claims.map((claim) => ({
 					payroll_run_id: options.runId,
 					source_collection: claim.source_collection,
@@ -253,12 +258,8 @@ export function persistShortfalls(options: {
 				entry.origin.covers_periods[0] === options.period
 		);
 		if (stale.length > 0)
-			yield* options.api.db.delete(
-				'component_entries',
-				stale.map((row) => row.norbital_id)
-			);
-		yield* options.api.db.mutate(
-			'component_entries',
+			yield* options.api.db.component_entries.delete(stale.map((row) => row.norbital_id));
+		yield* options.api.db.component_entries.mutate(
 			options.shortfalls.map((shortfall) => ({
 				employment_id: shortfall.employmentId,
 				pay_component_id: shortfall.payComponentId,
@@ -329,12 +330,8 @@ export function persistDeferrals(options: {
 				)
 		);
 		if (stale.length > 0)
-			yield* options.api.db.delete(
-				'component_entries',
-				stale.map((row) => row.norbital_id)
-			);
-		yield* options.api.db.mutate(
-			'component_entries',
+			yield* options.api.db.component_entries.delete(stale.map((row) => row.norbital_id));
+		yield* options.api.db.component_entries.mutate(
 			options.deferrals.map((row) => {
 				const joined = row.hireDate == null ? row.coversPeriod : String(row.hireDate).slice(0, 10);
 				return {
