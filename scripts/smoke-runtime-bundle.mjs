@@ -35,9 +35,7 @@ const requiredBundlePaths = [
 const buildEnvironment = {
 	MALLOC_ARENA_MAX: '1',
 	MALLOC_TRIM_THRESHOLD_: '131072',
-	NODE_OPTIONS: '--max-old-space-size=192',
-	NORBITAL_POD_SYNCED: '1',
-	NORBITAL_POD_CHECKED: '1'
+	NODE_OPTIONS: '--max-old-space-size=192'
 };
 
 function fail(message) {
@@ -109,17 +107,16 @@ try {
 	depset = prepareDepset({ templateDirectory: workspace, storeDirectory, depsetRoot });
 	execFileSync('ln', ['-sfn', depset.path, path.join(workspace, 'node_modules')]);
 
-	const podBin = path.join(
+	const boltBin = path.join(
 		workspace,
 		'node_modules',
 		'@norbital-ai',
-		'pod',
+		'bolt',
 		'build',
-		'bin',
-		'invocation',
-		'index.js'
+		'compiler',
+		'cli.js'
 	);
-	execFileSync(process.execPath, [podBin, 'sync'], { cwd: workspace, stdio: 'inherit' });
+	execFileSync(process.execPath, [boltBin, 'sync'], { cwd: workspace, stdio: 'inherit' });
 
 	const buildStartedAt = process.hrtime.bigint();
 	const build = spawnSync(

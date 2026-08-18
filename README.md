@@ -1,8 +1,8 @@
 # Norbital templates
 
 Starter workspaces for [Norbital](https://norbital.ai). Each directory here is a standalone,
-filesystem-first Pod project that can be installed, synchronized, type-checked, built, migrated,
-and seeded with the public Pod CLI — and forked into a tenant.
+filesystem-first Bolt project that can be installed, synchronized, type-checked, built, migrated,
+and seeded with the public Bolt CLI — and forked into a tenant.
 
 | Template                                    | Directory           | Purpose                                                                        |
 | ------------------------------------------- | ------------------- | ------------------------------------------------------------------------------ |
@@ -37,7 +37,7 @@ every respect except discovery.
   statutory contribution configuration, and reconciliation guidance.
 
 Each template README explains its domain model, workflows, safeguards, source layout, and
-verification. They are designed to be changed as normal Pod workspaces rather than treated as
+verification. They are designed to be changed as normal Bolt workspaces rather than treated as
 generated product code.
 
 ## Working with a template
@@ -53,7 +53,7 @@ pnpm --dir crm lint
 pnpm --dir crm build
 ```
 
-`sync` derives Pod assembly and migrations. Commit authored source and `.norbital/migrations/`, but
+`sync` derives Bolt assembly and migrations. Commit authored source and `.norbital/migrations/`, but
 do not edit or commit other generated `.norbital` output.
 
 Repository-wide equivalents loop over every template:
@@ -104,8 +104,8 @@ A host resolves the active set with one
 `git ls-remote --heads <url> 'refs/heads/templates/*'` round trip. There is no mirror, no catalogue
 file, and no provider API.
 
-Each template pins its own `@norbital-ai/pod` version. Nothing propagates a bump into a template: a
-developer runs `pnpm templates:lock` when they choose to move. Publishing a new pod version changes
+Each template pins its own `@norbital-ai/bolt` version. Nothing propagates a bump into a template: a
+developer runs `pnpm templates:lock` when they choose to move. Publishing a new Bolt version changes
 no template and rebuilds no tenant.
 
 ```bash

@@ -3,7 +3,7 @@ import type { Policy } from './$types.js';
 /**
  * Project operations: the delivery surface, read-only.
  *
- * Ported verbatim from Core's `seed/construction/steps/policies.ts`, which built all three
+ * Ported verbatim from the since-deleted Core seed (`seed/construction/steps/policies.ts`), which built all three
  * construction policies from one `constructionCollections` list and one `readGrants` map. The three
  * declarations repeat that list rather than sharing it, because `src/policies` admits only
  * `+<name>.policy.ts` files — a shared `collections.ts` next to them is a `POLICY_NAME_INVALID`

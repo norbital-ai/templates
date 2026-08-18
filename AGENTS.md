@@ -12,13 +12,13 @@ there is not.
   Nothing outside the tree pins them, and publishing a bolt package propagates into no template. Run
   `pnpm templates:lock` when you deliberately move a template's dependencies.
 - Website gallery cards and `og:image` use `assets/thumbnail.svg` once. Optional manifest
-  `thumbnail` only if the path differs — do not also configure that image as `pod:thumbnail`.
+  `thumbnail` only if the path differs — do not also configure that image as `bolt:thumbnail`.
 - Templates are **not** pnpm workspace members. There is no root workspace and no linking: each
   template installs from the registry with its own lockfile, exactly as a tenant sandbox does. Work
   inside the template directory (`pnpm --dir <key> install`), or use the repository-wide loops
   (`pnpm templates:install`, `templates:sync`, `templates:lint`, `templates:build`).
 - Adding a template is adding a directory with a `norbital.template.json`. There is no catalogue
-  file to edit, here or in Core.
+  file to edit, here or in Colony.
 - Do not reformat anything under `.norbital/migrations/`. `migrationFingerprint` hashes the raw
   bytes of that directory, so a whitespace change reads as a changed migration history.
 - Run `pnpm check` before pushing. It validates declarations and counts, runs the repository tests,

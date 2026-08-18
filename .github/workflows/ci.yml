@@ -60,8 +60,8 @@ jobs:
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_REGISTRY_TOKEN || secrets.GITHUB_TOKEN }}
 
-      # Proves the committed lockfiles are what a Core host installs: warm one shared store over
-      # the network, then install with no network and no credentials.
+      # Proves the committed lockfiles install the way an offline host installs them: warm one
+      # shared store over the network, then install with no network and no credentials.
       - name: Verify offline installability
         run: pnpm templates:lock:verify
         env:

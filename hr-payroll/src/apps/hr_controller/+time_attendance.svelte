@@ -165,13 +165,13 @@
 		name="description"
 		content="Review missing punches, schedule mismatches, time entries, and overtime"
 	/>
-	<meta name="pod:icon" content="lucide:clock-3" />
+	<meta name="bolt:icon" content="lucide:clock-3" />
 	<meta
-		name="pod:thumbnail"
+		name="bolt:thumbnail"
 		content="/api/template-seed-assets/hr-payroll/app-media/time_attendance-banner.webp"
 	/>
 	<meta
-		name="pod:banner"
+		name="bolt:banner"
 		content="/api/template-seed-assets/hr-payroll/app-media/time_attendance-banner.webp"
 	/>
 </svelte:head>

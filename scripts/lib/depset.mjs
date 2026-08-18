@@ -27,8 +27,11 @@ const depsetLayoutVersion = 'host-plus-linux-musl-x64-arm64-v2';
  * (`pnpm install --offline --frozen-lockfile`). Nothing is baked into an image, and no
  * template's dependencies leak into another template's tree.
  *
- * This mirrors Core's `apps/core/src/lib/tenant_workspace/sandbox/toolchain.server.ts`; the two
- * must agree on `lockHash` or a host-materialized depset would not be reusable by Core.
+ * The scheme was mirrored from Core's `apps/core/src/lib/tenant_workspace/sandbox/toolchain.server.ts`,
+ * which had to agree with it on `lockHash` or a host-materialized depset would not have been
+ * reusable by Core. That is history: Core is gone and Colony materializes no depsets, so no host
+ * outside this repository reads `lockHash` today. It stays because this repository's own lock and
+ * bundle gates address depsets by it.
  */
 
 /** Content address of a depset: the lockfile bytes alone decide it. */
@@ -171,8 +174,9 @@ export function materialize({ manifest, lockfile, pnpmWorkspace, storeDirectory,
 }
 
 /**
- * Warm then materialize, the two-step a Core host performs before a build. Returns the depset
- * to mount read-only at `/workspace/src/node_modules`.
+ * Warm then materialize, the two-step this repository's gates perform before a build — and the
+ * two-step a Core host used to perform. Returns the depset to mount read-only at
+ * `/workspace/src/node_modules`.
  */
 export function prepareDepset({ templateDirectory, storeDirectory, depsetRoot }) {
 	const manifest = readFileSync(path.join(templateDirectory, 'package.json'), 'utf8');

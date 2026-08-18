@@ -91,7 +91,7 @@ function writeTemplateBundle(template, projection, outputDirectory, buildOutput)
 		path.join(packageDirectory, 'package.json'),
 		`${JSON.stringify(
 			{
-				name: `@norbital-ai/template-bundle-${template.key}`,
+				name: `@norbital-ai/bolt-template-${template.key}`,
 				version,
 				private: false,
 				license: 'UNLICENSED',
@@ -154,9 +154,7 @@ try {
 						label === 'build' && bundleOutput
 							? {
 									...process.env,
-									NORBITAL_BUILD_OUT: buildOutput,
-									NORBITAL_POD_SYNCED: '1',
-									NORBITAL_POD_CHECKED: '1'
+									NORBITAL_BUILD_OUT: buildOutput
 								}
 							: process.env
 				});

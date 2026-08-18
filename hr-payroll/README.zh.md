@@ -78,7 +78,7 @@ pay_components <-------------------------- payslip_lines
 
 ### 自动化、集成与种子数据
 
-本模板不附带任何自动化与集成。租户同样**没有 `+seed.ts`**：法定与敏感夹具种子归 Core 所有（见下文），薪资输入属于 [`docs/data.md`](docs/data.md) 所述的对账工作流。
+本模板不附带任何自动化与集成。租户同样**没有 `+seed.ts`**：法定与敏感夹具种子存放在仓库的种子库中（见下文），薪资输入属于 [`docs/data.md`](docs/data.md) 所述的对账工作流。
 
 ## 运营边界
 
@@ -133,12 +133,12 @@ node scripts/verify-fixture-shapes.mjs       # 针对真实 API 形状审计该�
 
 `verify-fixture-shapes.mjs` 会在插桩下重跑算术脚本，并报告两件事：引擎读取过但夹具从未提供的字段，以及 `src/` 中任何地方都不存在的夹具键。它存在是因为一个夹具曾描述过 API 并不具备的响应形状——在臆造的 `componentType` 上加了 `nature`——使一个通过的断言证明不了任何事。已删除的集合会残留在陈旧构建产物（`.norbital/dist/`）中，因此针对其中之一编写的夹具看似正确实则不然；请改查 `src/collections/<name>/+model.ts`。在信任一次绿色运行前先读该脚本的头部注释：它对自己看不到的东西是诚实的，而且除非完成其中描述的变更检查，否则绿色运行说明不了任何事。
 
-机密来源对账在 Core 中为可选启用；参见
+机密来源对账在宿主端为可选启用；参见
 [`docs/data.md`](docs/data.md#reconciliation-method)。
 
 ## 修改模板
 
-这是一个 Pod 租户工作区：Pod 文件系统编译器只从 `src/` 推导出 `.norbital/` 下的注册表、工作区、客户端与本地类型。工作流：
+这是一个 Bolt 租户工作区：Bolt 文件系统编译器只从 `src/` 推导出 `.norbital/` 下的注册表、工作区、客户端与本地类型。工作流：
 
 ```bash
 pnpm sync     # 编辑 src/ 下的任何内容之后——重新生成 .norbital（已提交的迁移保持不变）
@@ -147,5 +147,5 @@ pnpm build    # 生产构建
 ```
 
 - **模型** —— 不要随意更改模型模式：每次模式变更都会在 `.norbital/migrations/` 下产生一条已提交的迁移。编辑 `+model.ts`、运行 `pnpm sync`，然后审阅编译器产出的迁移。
-- **种子数据** —— 新租户的夹具行为属于 `src/+seed.ts`；它不演进已部署的数据。对既有租户，用 `pnpm exec pod migration create <name> --custom` 创建已提交迁移、编辑其 SQL，并在 Organization Studio → 模板更新中解决冲突。敏感法定种子（加班阶梯、覆盖与休息行）仍归 Core 所有，位于 `norbital/apps/core/seed/norbital_hr/statutory/rows.ts`。
-- **发布** —— 模板在自己的 `package.json` 与锁文件中固定 `@norbital-ai/bolt` 版本。刻意调整依赖后，请通过仓库的模板锁定流程刷新模板锁。在 Core 中用 `pnpm tenant:update --org=<org-slug> --template=hr-payroll` 消费新的模板版本，然后硬刷新 iframe；仅在刻意重播种时才使用 `pnpm env:reset --target dev --template hr-payroll`。
+- **种子数据** —— 新租户的夹具行为属于 `src/+seed.ts`；它不演进已部署的数据。对既有租户，用 `pnpm exec bolt migrate --name <name>` 写入下一条迁移谱系条目、编辑其 SQL，再经由 Colony 部署。敏感法定种子（加班阶梯、覆盖与休息行）不在本模板内，而在仓库种子库的 `seed_bank/norbital_hr/statutory/`。
+- **发布** —— 模板在自己的 `package.json` 与锁文件中固定 `@norbital-ai/bolt` 版本。刻意调整依赖后，请通过仓库的模板锁定流程刷新模板锁。要消费新的模板版本，请用 `pnpm yalc:link` 将其链接进 Colony 并重启 `pnpm --filter colony dev`，然后硬刷新 iframe —— Colony 的 dev 引导每次启动都会收敛，因此不存在单独的租户更新或环境重置步骤。

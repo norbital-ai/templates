@@ -7,7 +7,7 @@ import { fileURLToPath } from 'node:url';
  *
  * A template declares itself by carrying `norbital.template.json` at the root of its own tree,
  * so the metadata travels with the `git subtree split` projection and lands in every tenant fork.
- * Core reads it from the projected ref; nothing has to stay in sync across two files, and there
+ * Colony reads it from the projected ref; nothing has to stay in sync across two files, and there
  * is no catalogue in this repository either — presence of the manifest is the whole registration.
  *
  * Templates live at the repository root, one directory per key. The directory name is the key,

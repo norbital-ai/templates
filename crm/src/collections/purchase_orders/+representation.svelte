@@ -18,7 +18,7 @@
 
 <svelte:head>
 	<meta
-		name="pod:banner"
+		name="bolt:banner"
 		content="/api/template-seed-assets/crm/record-media/purchase_orders-banner.svg"
 	/>
 </svelte:head>

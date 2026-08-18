@@ -17,7 +17,7 @@
 </script>
 
 <svelte:head>
-	<meta name="pod:banner" content="/api/template-seed-assets/crm/record-media/quotes-banner.svg" />
+	<meta name="bolt:banner" content="/api/template-seed-assets/crm/record-media/quotes-banner.svg" />
 </svelte:head>
 
 <CollectionForm

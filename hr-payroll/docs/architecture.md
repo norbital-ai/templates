@@ -404,8 +404,8 @@ consecutive-hours window, the minimum length, whether the statute counts the bre
 was blocked, no screen quoted a figure. It was removed rather than left as data entry that pays
 for itself with an audit token. Whether a break was taken is measured from punches, which is
 `time_entries` and `shift_definitions` work; the cited statutory transcriptions are retained in
-Core's seed bank (`norbital_hr/statutory/rest_break_rules.json`) so the requirement can be modelled
-again from the primary text rather than from memory.
+the repository seed bank (`seed_bank/norbital_hr/statutory/rest_break_rules.json`) so the
+requirement can be modelled again from the primary text rather than from memory.
 
 ## Calculation and statutory treatment
 
@@ -686,9 +686,10 @@ under [Still not encoded](#still-not-encoded), not quietly defaulted.
 
 #### Overtime multipliers — six members of the Malaysian regime snapshot
 
-Seeded in Core at `norbital/apps/core/seed/norbital_hr/statutory/rows.ts` (§4.4). The source fixture
-keeps named builder arrays for review, then embeds them without IDs or effective ranges in the one
-`jurisdictions.regime` value that is actually seeded.
+Seeded from the repository seed bank, `seed_bank/norbital_hr/statutory/` (§4.4). The source fixture
+keeps named builder arrays for review (`overtime_rules.json`), then embeds them without IDs or
+effective ranges in the one `jurisdictions.regime` value that is actually seeded
+(`jurisdictions.json`).
 
 | Day type         | Band                                    | Award               | Cited authority        |
 | ---------------- | --------------------------------------- | ------------------- | ---------------------- |
@@ -729,7 +730,7 @@ separate reasons: the component reclassifies, the limit refuses.
 
 #### Coverage — one nullable member per snapshot
 
-Seeded in Core inside each jurisdiction snapshot. The nullable, cited member decides **who** the
+Seeded from the seed bank inside each jurisdiction snapshot. The nullable, cited member decides **who** the
 ladder applies to, as distinct from what an hour is worth.
 
 | Column                                  | Meaning                                                                |
@@ -856,8 +857,8 @@ any employee under any circumstances to work for more than twelve hours in any o
 the s.60A(2)(a)–(e) circumstances. It is a real statutory cap, so it moved into data.
 
 It could not go into the earlier limit shape as it stood. Its `max_hours` meant _overtime_
-hours — 104 a month — and this 12 counts **all** hours worked. The Core decomposition report had
-already refused a total-hours cap for Singapore on exactly that ground. The nested limit gained
+hours — 104 a month — and this 12 counts **all** hours worked. The decomposition report of the day
+had already refused a total-hours cap for Singapore on exactly that ground. The nested limit gained
 `measures: OVERTIME_HOURS | TOTAL_WORK_HOURS`, every existing row states which it is, and the two
 consumers each read only their own kind. Read the wrong way, a 12 meant as total hours becomes a
 licence for twelve hours of overtime on top of a full shift.
@@ -877,7 +878,7 @@ A jurisdiction that states no daily limit now has none enforced, rather than inh
   outside it; no seeded company carries a formula earning that a coverage ceiling tests.
 - **The Philippine art.82 exclusions, except managerial.** Field personnel, workers paid by results,
   family members, domestic helpers and persons in personal service have no member in
-  `statutory_work_category` or `work_classification`. Recorded in Core as
+  `statutory_work_category` or `work_classification`. Recorded alongside the statutory seed as
   `PH_OVERTIME_COVERAGE_CATEGORIES_UNMODELLED`; those employees are treated as covered.
 - **Indonesia's `golongan jabatan tertentu`.** PP 35/2021 Pasal 27(3) is broader than `MANAGERIAL`,
   and Pasal 27(4)–(5) make the exemption conditional on the group being written into the contract,
@@ -890,7 +891,8 @@ A jurisdiction that states no daily limit now has none enforced, rather than inh
   `MY_HOURS_OF_WORK_LIMITS_UNMODELLED`. These bound _normal_ hours and the shape of a working week;
   the nested statutory limits bound a quantity a run measures, and none of the three is that.
 - **PP 35/2021 Pasal 26 hour caps** (4/day, 18/week) and **Pasal 29 meal provision** (1,400 kcal
-  where overtime runs four hours or more, not commutable to money). Recorded in Core, not emitted:
+  where overtime runs four hours or more, not commutable to money). Recorded with the statutory
+  seed, not emitted:
   the Indonesian ladder is empty by an earlier decision, so there is no measured quantity to cap,
   and a calorie floor on provisions is not a rest period with a duration.
 - **`eligibility_rules` still cannot express any of this.** Its predicates carry no wage term and it
@@ -898,4 +900,4 @@ A jurisdiction that states no daily limit now has none enforced, rather than inh
 - **Rest and meal breaks are unmodelled.** The regime no longer carries them: whether a break was
   taken is measured from clock data, which is `time_entries` and `shift_definitions` work, and
   until something measures it the requirement is transcription, not a column. The cited statute
-  stays in Core's seed bank.
+  stays in the repository seed bank.

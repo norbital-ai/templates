@@ -145,13 +145,13 @@
 		name="description"
 		content="Review staff loans, salary advances, and overpayment recoveries with their derived outstanding balance"
 	/>
-	<meta name="pod:icon" content="lucide:hand-coins" />
+	<meta name="bolt:icon" content="lucide:hand-coins" />
 	<meta
-		name="pod:thumbnail"
+		name="bolt:thumbnail"
 		content="/api/template-seed-assets/hr-payroll/app-media/loans-banner.webp"
 	/>
 	<meta
-		name="pod:banner"
+		name="bolt:banner"
 		content="/api/template-seed-assets/hr-payroll/app-media/loans-banner.webp"
 	/>
 </svelte:head>

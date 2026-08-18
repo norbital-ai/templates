@@ -9,7 +9,7 @@ assigned to a work front when a currently valid permit covers every certificatio
 requires. It provides the operations model and safety checks for project delivery; it does not
 replace an ERP, a BIM authoring tool, or a regulatory permit authority.
 
-This is an executable Pod template, not a production-operations manual. Start with the
+This is an executable Bolt template, not a production-operations manual. Start with the
 [operating model](#operating-model) below, then use the [collections](#collections),
 [apps](#apps-and-policies), [automations](#daily-operational-watches), and
 [verification](#changing-the-template) sections when changing it.
@@ -125,7 +125,7 @@ explicitly; these read-only watches notify no one on their own.
 
 ## Under the hood
 
-Pod discovers the workspace from the filesystem; `vite.config.ts` is the only root entry point.
+Bolt discovers the workspace from the filesystem; `vite.config.ts` is the only root entry point.
 All source lives under `src/`; the compiler derives the registry, workspace, client, and types
 under `.norbital/`.
 
@@ -163,8 +163,8 @@ How the pieces work:
   metadata in `<svelte:head>` stays static English; the sidebar label and page copy localize via
   the catalogs.
 - **Seed data.** The workspace ships no `+seed.ts`. Fixture data (projects, jobs, workers,
-  permits, RFIs, defects, claims, the BIM matrix, documents) is provisioned by Core's construction
-  seed plan, which serves the committed `assets/` files at
+  permits, RFIs, defects, claims, the BIM matrix, documents) is provisioned by the host's
+  construction seed plan, which serves the committed `assets/` files at
   `/api/template-seed-assets/construction/...` — including the sample IFC model used by the
   project record's viewer.
 
@@ -175,7 +175,7 @@ the reference and baseline model, not a replacement for native BIM files.
 
 ## Changing the template
 
-A template is a normal Pod workspace: install once, then sync, lint, and build inside this
+A template is a normal Bolt workspace: install once, then sync, lint, and build inside this
 directory.
 
 ```bash
@@ -184,7 +184,7 @@ pnpm lint
 pnpm build
 ```
 
-`sync` derives Pod assembly and migrations. Commit authored source and `.norbital/migrations/`
+`sync` derives Bolt assembly and migrations. Commit authored source and `.norbital/migrations/`
 with your change, but do not edit or commit other generated `.norbital` output. Publish a template
 revision and deploy a new tenant checkpoint before expecting an existing tenant to use it — a
 tenant is forked from the published commit and never moves on its own. See the

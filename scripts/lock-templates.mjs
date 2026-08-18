@@ -86,7 +86,7 @@ function resolveLockfile(template) {
 }
 
 /**
- * Prove the committed lockfile is what a Core host actually installs: warm one shared
+ * Prove the committed lockfile installs the way an offline host installs it: warm one shared
  * content-addressed store over the network, then install with no network and no registry
  * credentials. A shared store across templates also exercises cross-template package reuse.
  */

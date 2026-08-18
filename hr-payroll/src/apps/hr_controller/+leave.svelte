@@ -104,13 +104,13 @@
 <svelte:head>
 	<title>Leave</title>
 	<meta name="description" content="Review leave events and the leave types that entitle them" />
-	<meta name="pod:icon" content="lucide:calendar-check-2" />
+	<meta name="bolt:icon" content="lucide:calendar-check-2" />
 	<meta
-		name="pod:thumbnail"
+		name="bolt:thumbnail"
 		content="/api/template-seed-assets/hr-payroll/app-media/leave-banner.webp"
 	/>
 	<meta
-		name="pod:banner"
+		name="bolt:banner"
 		content="/api/template-seed-assets/hr-payroll/app-media/leave-banner.webp"
 	/>
 </svelte:head>

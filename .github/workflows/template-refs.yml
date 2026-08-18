@@ -86,8 +86,8 @@ jobs:
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_REGISTRY_TOKEN || secrets.GITHUB_TOKEN }}
 
-      # The atomic ref update is deliberately last: Core never observes a source revision whose
-      # exact prebuilt bundle is absent from the registry.
+      # The atomic ref update is deliberately last: no consumer of a projected ref ever observes a
+      # source revision whose exact prebuilt bundle is absent from the registry.
       - name: Publish root template refs
         run: |
           node scripts/project-templates.mjs \

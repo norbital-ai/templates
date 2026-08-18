@@ -323,13 +323,13 @@
 		name="description"
 		content="Create payroll runs, review payslips, export payments, and audit calculations"
 	/>
-	<meta name="pod:icon" content="lucide:badge-dollar-sign" />
+	<meta name="bolt:icon" content="lucide:badge-dollar-sign" />
 	<meta
-		name="pod:thumbnail"
+		name="bolt:thumbnail"
 		content="/api/template-seed-assets/hr-payroll/app-media/payroll-banner.webp"
 	/>
 	<meta
-		name="pod:banner"
+		name="bolt:banner"
 		content="/api/template-seed-assets/hr-payroll/app-media/payroll-banner.webp"
 	/>
 </svelte:head>

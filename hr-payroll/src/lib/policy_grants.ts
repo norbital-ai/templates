@@ -6,7 +6,7 @@ import type { Policy } from '../policies/$types.js';
  * This lives in `src/lib` rather than beside the policies because `src/policies` admits only
  * `+<name>.policy.ts` — anything else there is a `POLICY_NAME_INVALID` diagnostic, not a module.
  *
- * The grouping is kept, not flattened. Core's seed generated ~140 grants from four collection lists
+ * The grouping is kept, not flattened. Core's seed used to generate ~140 grants from four collection lists
  * crossed with action lists, and the lists are the statement: a company writes its own configuration
  * and only ever reads the law. Expanded to literal grants that distinction is unrecoverable — you
  * would have to diff two long lists to notice that `contribution_rates` has no `update` while
