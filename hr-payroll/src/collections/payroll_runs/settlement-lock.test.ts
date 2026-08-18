@@ -21,7 +21,7 @@ import test from 'node:test';
 import { Effect } from 'effect';
 
 import { claimsForBundle, dedupeClaims } from './lib/claims.ts';
-import { clearRunResults } from './lib/persist.ts';
+import { clearRunResults, persistPayslips } from './lib/persist.ts';
 import payrollRunHooks from './+hooks.ts';
 import relationships from '../+relationship.ts';
 import {
@@ -325,4 +325,72 @@ test('deleting a payroll run releases its settlement locks — the declaration, 
 			.map((symbol) => Reflect.get(payslips, symbol))
 			.includes('cascade')
 	);
+});
+
+/**
+ * The write itself: a run that priced attendance takes a lock over every record it read.
+ *
+ * The tests above prove the claim is *derived* correctly and *released* correctly. This one proves
+ * it is *taken* — that `persistPayslips` turns those claims into `payroll_settlements` rows keyed to
+ * the run. It exists because the live demonstration is currently unreachable: every seeded company
+ * whose attendance falls inside a run's window is blocked by a different data gap — a missing
+ * public-holiday overtime rule, a calendar with no working days, an unsupported pay cadence, an
+ * employment with no terms — so a real run either computes with nothing to consume or refuses
+ * before PERSIST. The mechanism is testable regardless of whether the fixtures can reach it.
+ */
+test('a run takes a settlement lock over every record it consumed', async () => {
+	const written = [];
+	const api = {
+		db: {
+			query: {
+				payroll_settlements: { findMany: () => Effect.succeed([]) },
+				payslips: { findMany: () => Effect.succeed([]) }
+			},
+			payslips: {
+				mutate: (rows) =>
+					Effect.succeed(
+						rows.map((row, index) => ({ ...row, norbital_id: `payslip-${index + 1}` }))
+					)
+			},
+			payslip_lines: { mutate: () => Effect.succeed([]) },
+			payroll_settlements: {
+				mutate: (rows) => {
+					written.push(...rows);
+					return Effect.succeed(rows);
+				}
+			}
+		}
+	};
+
+	const result = await Effect.runPromise(
+		persistPayslips({
+			api,
+			runId: 'run-1',
+			period: '2026-03',
+			pending: [
+				{
+					employmentId: 'emp-1',
+					currency: 'MYR',
+					settlement: { lines: [], shortfalls: [] },
+					charges: [],
+					claims: [
+						{ source_collection: 'time_entries', source_record_id: 'te-1' },
+						{ source_collection: 'leave_requests', source_record_id: 'lv-1' }
+					]
+				}
+			]
+		})
+	);
+
+	assert.equal(result.claimCount, 2);
+	assert.deepEqual(
+		written.map((row) => [row.source_collection, row.source_record_id, row.payroll_run_id]),
+		[
+			['time_entries', 'te-1', 'run-1'],
+			['leave_requests', 'lv-1', 'run-1']
+		]
+	);
+	// The period travels with the lock: two runs of different periods can each hold their own claims,
+	// and a release names the run rather than sweeping a collection.
+	assert.deepEqual([...new Set(written.map((row) => row.period))], ['2026-03']);
 });
