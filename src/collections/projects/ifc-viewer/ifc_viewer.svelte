@@ -44,7 +44,7 @@
 		try {
 			const base = origin.endsWith('/') ? origin : `${origin}/`;
 			const parsed = new URL(rawUrl, base);
-			if (parsed.pathname.startsWith('/api/file/')) {
+			if (parsed.pathname.startsWith('/api/files/')) {
 				const originRoot = origin.replace(/\/$/, '');
 				return `${originRoot}${parsed.pathname}${parsed.search}${parsed.hash}`;
 			}
