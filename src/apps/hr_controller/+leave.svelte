@@ -1,8 +1,10 @@
 <script lang="ts">
-	import { client } from '$pod/client';
+	import { client } from '../../lib/workspace-client.js';
 	import { useI18n } from '@norbital-ai/ui/i18n';
-	import AppHeaderActions from '@norbital-ai/pod/client/app-header-actions';
-	import type { TenantI18nKeys } from '$pod/i18n-keys';
+	import AppHeaderActions from '@norbital-ai/bolt/client/app-header-actions';
+	import type { TenantI18nKeys } from '$bolt/i18n-keys';
+	import type { WorkspaceRow } from '$bolt/types.js';
+	import type { LeaveEvent } from '../../custom-types/leave_event/+definition.js';
 	import { Tabs, type TabConfig } from '@norbital-ai/ui/tabs';
 	import { CollectionTable } from '@norbital-ai/ui/collection-table';
 	import { Combobox } from '@norbital-ai/ui/combobox';
@@ -14,8 +16,14 @@
 		formatLeavePayrollEffect,
 		formatNumeric
 	} from '../../lib/ui/display-formatters.js';
-	import { inForceTodayFilter, todayInstant } from '../../lib/ui/calendar.js';
+	import { inForceTodayFilter, todayInstant, todayKey } from '../../lib/ui/calendar.js';
 	import LeaveSeasonality from '../../lib/ui/leave/leave-seasonality.svelte';
+	import {
+		payrollWindows,
+		sourceLock,
+		sourceLockFrozen,
+		sourceLockReason
+	} from '../../lib/scheduling/lock.js';
 
 	const { t } = useI18n<TenantI18nKeys>();
 
@@ -47,42 +55,49 @@
 			? requestedCompanyId
 			: (companies[0]?.norbital_id ?? null)
 	);
+	const payrollRunsQuery = $derived(
+		selectedCompanyId == null
+			? null
+			: client.db.payroll_runs.findMany({
+					where: { company_id: { eq: selectedCompanyId } },
+					columns: { period: true, lifecycle: true, attendance_from: true, attendance_to: true },
+					limit: 500
+				})
+	);
+	const payrollLockWindows = $derived(payrollWindows(payrollRunsQuery?.current ?? []));
 
-	type NestedLeaveRequest = {
-		readonly leave_request_type?: {
-			readonly code?: string | null;
-			readonly name?: string | null;
-		} | null;
-		readonly leave_request_employment?: { readonly employee_number?: string | null } | null;
+	type LeaveRequestRow = WorkspaceRow<'leave_requests'> & {
+		readonly leave_request_type?: Pick<WorkspaceRow<'leave_types'>, 'code' | 'name'> | null;
+		readonly leave_request_employment?: Pick<WorkspaceRow<'employments'>, 'employee_number'> | null;
 	};
 
-	function nestedLeaveRequest(row: unknown): NestedLeaveRequest {
-		return row as NestedLeaveRequest;
+	function leaveRowLock(row: WorkspaceRow<'leave_requests'>) {
+		return sourceLock({
+			existing: true,
+			approvalId: row.norbital_approval_id,
+			dates: [row.from_date, row.to_date],
+			today: todayKey(),
+			windows: payrollLockWindows,
+			freezeWhenLive: true
+		});
 	}
 
-	function leaveTypeLabel(row: unknown): string {
-		const leaveType = nestedLeaveRequest(row).leave_request_type;
+	function leaveTypeLabel(row: LeaveRequestRow): string {
+		const leaveType = row.leave_request_type;
 		if (leaveType?.code && leaveType.name) return `${leaveType.code} · ${leaveType.name}`;
 		if (leaveType?.code) return leaveType.code;
 		return '—';
 	}
 
-	function employmentLabel(row: unknown): string {
-		return nestedLeaveRequest(row).leave_request_employment?.employee_number ?? '—';
+	function employmentLabel(row: LeaveRequestRow): string {
+		return row.leave_request_employment?.employee_number ?? '—';
 	}
 
-	function leaveRangeLabel(row: unknown): string {
-		const event = (row as { readonly event?: unknown }).event;
-		if (event == null || typeof event !== 'object' || !('kind' in event)) return '—';
-		if (event.kind !== 'TIME_OFF' || !('range' in event)) return '—';
-		const range = event.range as {
-			readonly start?: { readonly date?: string; readonly half?: string };
-			readonly end?: { readonly date?: string; readonly half?: string };
-		};
-		if (range.start?.date == null || range.end?.date == null) return '—';
-		const half = (value: string | undefined) =>
+	function leaveRangeLabel(event: LeaveEvent | null | undefined): string {
+		if (event == null || event.kind !== 'TIME_OFF') return '—';
+		const half = (value: 'FIRST' | 'SECOND') =>
 			value === 'FIRST' ? t('component.first_half') : t('component.second_half');
-		return `${formatCalendarDate(range.start.date)}, ${half(range.start.half)} → ${formatCalendarDate(range.end.date)}, ${half(range.end.half)}`;
+		return `${formatCalendarDate(event.range.start.date)}, ${half(event.range.start.half)} → ${formatCalendarDate(event.range.end.date)}, ${half(event.range.end.half)}`;
 	}
 </script>
 
@@ -164,6 +179,8 @@
 				{client}
 				collection="leave_requests"
 				view={`hr_controller:leave:requests:${selectedCompanyId}`}
+				isRowLocked={(row) => sourceLockFrozen(leaveRowLock(row))}
+				rowLockReason={(row) => sourceLockReason(leaveRowLock(row), t)}
 				query={{
 					where: {
 						leave_request_employment: {
@@ -177,7 +194,6 @@
 						leave_request_employment: { columns: { employee_number: true } }
 					}
 				}}
-				searchPlaceholder={t('app.leave.search_requests')}
 			>
 				{#snippet columns({ Column })}
 					<Column
@@ -195,7 +211,7 @@
 					<Column
 						name="event"
 						label={t('component.leave_range')}
-						render={({ row }) => leaveRangeLabel(row)}
+						render={({ row }) => leaveRangeLabel(row.event)}
 					/>
 					<Column name="kind" label={t('component.event')} card="badge" />
 					<Column
@@ -237,7 +253,6 @@
 					},
 					orderBy: { code: 'asc' }
 				}}
-				searchPlaceholder={t('app.leave.search_types')}
 			>
 				{#snippet columns({ Column })}
 					<Column name="code" card="title" />

@@ -1,7 +1,7 @@
 <script lang="ts">
-	import { client } from '$pod/client';
+	import { client } from '../../lib/workspace-client.js';
 	import { useI18n } from '@norbital-ai/ui/i18n';
-	import type { TenantI18nKeys } from '$pod/i18n-keys';
+	import type { TenantI18nKeys } from '$bolt/i18n-keys';
 	import { CollectionTable } from '@norbital-ai/ui/collection-table';
 	import { Cover } from '@norbital-ai/ui/layout';
 	import { Tabs, type TabConfig } from '@norbital-ai/ui/tabs';
@@ -54,14 +54,12 @@
 		description={t('app.settings.jurisdictions_description')}
 		initialFilters={inForceTodayFilter()}
 		query={{ orderBy: { code: 'asc' } }}
-		searchPlaceholder={t('app.settings.search_jurisdictions')}
 	>
 		{#snippet columns({ Column })}
 			<Column name="code" card="title" />
 			<Column name="name" card="subtitle" />
 			<Column name="currency" />
 			<Column name="proration" render={({ value }) => formatProrationBasis(value, t)} />
-			<Column name="rounding" />
 			<Column name="ordinary_rate_basis" label={t('app.settings.ordinary_rate_basis')} />
 			<Column
 				name="ordinary_rate_divisor"
@@ -82,7 +80,6 @@
 		description={t('app.settings.companies_description')}
 		initialFilters={inForceTodayFilter()}
 		query={{ orderBy: { name: 'asc' } }}
-		searchPlaceholder={t('component.search_companies')}
 	>
 		{#snippet columns({ Column })}
 			<Column name="name" card="title" />

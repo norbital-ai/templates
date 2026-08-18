@@ -24,9 +24,9 @@
 </script>
 
 <script lang="ts">
-	import { client } from '$pod/client';
+	import { client } from '../../../lib/workspace-client.js';
 	import { useI18n } from '@norbital-ai/ui/i18n';
-	import type { TenantI18nKeys } from '$pod/i18n-keys';
+	import type { TenantI18nKeys } from '$bolt/i18n-keys';
 	import { Combobox } from '@norbital-ai/ui/combobox';
 	import { Grid } from '@norbital-ai/ui/layout';
 

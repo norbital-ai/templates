@@ -1,6 +1,7 @@
-import { defineAutomation } from '@norbital-ai/pod/authoring';
-import { z } from 'zod';
+import { defineAutomation } from '@norbital-ai/bolt/authoring';
+import { Effect, Schema } from 'effect';
 import { todayInstant, todayKey } from '../lib/ui/calendar.js';
+import type { StatutoryFactStatus } from '../custom-types/statutory_fact_status/+definition.js';
 
 /**
  * In-force statutory alignment: which companies, facts and schemes have drifted, and which
@@ -12,11 +13,14 @@ import { todayInstant, todayKey } from '../lib/ui/calendar.js';
 
 export type StoredRange = { readonly start: string; readonly end: string | null };
 
+/** The stored `dateRange()` column shape: a JSONB pair of instants, bounds optional at the type. */
+export type RangeValue = { readonly start?: string; readonly end?: string | null };
+
 export type JurisdictionRow = {
 	readonly norbital_id: string;
 	readonly code: string;
 	readonly name: string;
-	readonly effective_range: unknown;
+	readonly effective_range: RangeValue | null | undefined;
 };
 
 export type SchemeRow = {
@@ -24,14 +28,14 @@ export type SchemeRow = {
 	readonly jurisdiction_id: string;
 	readonly code: string;
 	readonly name: string;
-	readonly effective_range: unknown;
+	readonly effective_range: RangeValue | null | undefined;
 };
 
 export type RateRow = {
 	readonly norbital_id: string;
 	readonly statutory_contribution_id: string;
 	readonly summary: string | null;
-	readonly effective_range: unknown;
+	readonly effective_range: RangeValue | null | undefined;
 };
 
 export type CompanyRow = {
@@ -51,77 +55,11 @@ export type FactRow = {
 	readonly norbital_id: string;
 	readonly employment_id: string;
 	readonly statutory_contribution_id: string;
-	readonly status: unknown;
+	readonly status: StatutoryFactStatus | null;
 	readonly summary: string | null;
-	readonly effective_range: unknown;
+	readonly effective_range: RangeValue | null | undefined;
 	readonly scheme: SchemeRow | null;
 };
-
-export type StatutoryFactStatus =
-	| {
-			readonly kind: 'REGISTERED';
-			readonly reference_number: string;
-			readonly rate_override: number | null;
-	  }
-	| { readonly kind: 'NOT_REGISTERED'; readonly reason: string };
-
-function asRecord(value: unknown): Record<string, unknown> | null {
-	return value != null && typeof value === 'object' ? (value as Record<string, unknown>) : null;
-}
-
-function asJurisdiction(value: unknown): JurisdictionRow | null {
-	const row = asRecord(value);
-	if (
-		!row ||
-		typeof row.norbital_id !== 'string' ||
-		typeof row.code !== 'string' ||
-		typeof row.name !== 'string'
-	) {
-		return null;
-	}
-	return {
-		norbital_id: row.norbital_id,
-		code: row.code,
-		name: row.name,
-		effective_range: row.effective_range
-	};
-}
-
-function asScheme(value: unknown): SchemeRow | null {
-	const row = asRecord(value);
-	if (
-		!row ||
-		typeof row.norbital_id !== 'string' ||
-		typeof row.jurisdiction_id !== 'string' ||
-		typeof row.code !== 'string' ||
-		typeof row.name !== 'string'
-	) {
-		return null;
-	}
-	return {
-		norbital_id: row.norbital_id,
-		jurisdiction_id: row.jurisdiction_id,
-		code: row.code,
-		name: row.name,
-		effective_range: row.effective_range
-	};
-}
-
-export function asFactStatus(value: unknown): StatutoryFactStatus | null {
-	const row = asRecord(value);
-	if (!row || typeof row.kind !== 'string') return null;
-	if (row.kind === 'REGISTERED' && typeof row.reference_number === 'string') {
-		return {
-			kind: 'REGISTERED',
-			reference_number: row.reference_number,
-			rate_override: typeof row.rate_override === 'number' ? row.rate_override : null
-		};
-	}
-	if (row.kind === 'NOT_REGISTERED' && typeof row.reason === 'string') {
-		return { kind: 'NOT_REGISTERED', reason: row.reason };
-	}
-	return null;
-}
 
 export type DriftKind =
 	'superseded_company_jurisdiction' | 'fact_needs_successor' | 'missing_fact' | 'rate_gap';
@@ -135,7 +73,7 @@ export type SuccessorCopy = {
 	readonly factId: string;
 	readonly employmentId: string;
 	readonly successorSchemeId: string;
-	readonly status: unknown;
+	readonly status: StatutoryFactStatus | null;
 	readonly previousRange: StoredRange;
 	readonly label: string;
 };
@@ -148,7 +86,7 @@ function readRange(value: unknown): StoredRange | null {
 	return { start, end: typeof end === 'string' && end !== '' ? end : null };
 }
 
-export function coversDate(range: unknown, date: string): boolean {
+export function coversDate(range: RangeValue | null | undefined, date: string): boolean {
 	const parsed = readRange(range);
 	if (!parsed) return false;
 	if (parsed.start.slice(0, 10) > date) return false;
@@ -168,6 +106,81 @@ function uniqueSuccessorScheme(
 				String(readRange(scheme.effective_range)?.start ?? '')
 	);
 	return successors.length === 1 ? (successors[0] ?? null) : null;
+}
+
+/**
+ * A relation value arrives through a `with` clause, whose generated type cannot say whether it is
+ * a row or a list. The runtime returns the single row or null.
+ */
+function isRecordRow(
+	value:
+		| Readonly<Record<string, unknown>>
+		| ReadonlyArray<Readonly<Record<string, unknown>>>
+		| null
+		| undefined
+): value is Readonly<Record<string, unknown>> {
+	return value != null && !Array.isArray(value);
+}
+
+/**
+ * A company's jurisdiction arrives through the `company_jurisdiction` relation. The runtime
+ * returns the single row or null.
+ */
+function asJurisdiction(
+	value:
+		| Readonly<Record<string, unknown>>
+		| ReadonlyArray<Readonly<Record<string, unknown>>>
+		| null
+		| undefined
+): JurisdictionRow | null {
+	if (!isRecordRow(value)) return null;
+	const { norbital_id, code, name, effective_range } = value;
+	if (typeof norbital_id !== 'string' || typeof code !== 'string' || typeof name !== 'string') {
+		return null;
+	}
+	return {
+		norbital_id,
+		code,
+		name,
+		effective_range: readRange(effective_range)
+	};
+}
+
+/**
+ * A fact's scheme arrives through the `statutory_fact_contribution` relation. The runtime returns
+ * the single row or null.
+ */
+function asScheme(
+	value:
+		| Readonly<Record<string, unknown>>
+		| ReadonlyArray<Readonly<Record<string, unknown>>>
+		| null
+		| undefined
+): SchemeRow | null {
+	if (!isRecordRow(value)) return null;
+	const { norbital_id, jurisdiction_id, code, name, effective_range } = value;
+	if (
+		typeof norbital_id !== 'string' ||
+		typeof jurisdiction_id !== 'string' ||
+		typeof code !== 'string' ||
+		typeof name !== 'string'
+	) {
+		return null;
+	}
+	return {
+		norbital_id,
+		jurisdiction_id,
+		code,
+		name,
+		effective_range: readRange(effective_range)
+	};
+}
+
+export function asFactStatus(value: StatutoryFactStatus | null): StatutoryFactStatus | null {
+	if (value == null) return null;
+	if (value.kind === 'REGISTERED' && typeof value.reference_number === 'string') return value;
+	if (value.kind === 'NOT_REGISTERED' && typeof value.reason === 'string') return value;
+	return null;
 }
 
 export function detectStatutoryDrift(input: {
@@ -289,163 +302,165 @@ export function detectStatutoryDrift(input: {
 	return { items, copies };
 }
 
-const reportSchema = z
-	.object({
-		summary: z.string(),
-		highlights: z.array(z.string())
-	})
-	.strict();
+const reportSchema = Schema.Struct({
+	summary: Schema.String,
+	highlights: Schema.Array(Schema.String)
+});
 
 export default defineAutomation(
 	{ schedule: '0 3 * * 1' },
 	{
 		description:
 			'Weekly check that in-force statutory snapshots, contribution schemes and employment statutory facts still line up — successor facts only when a unique scheme successor exists.',
-		handler: async (api) => {
-			const today = todayKey();
-			const asOf = todayInstant();
-			const live = {
-				norbital_approval_id: { isNull: true },
-				effective_range: { contains_date: asOf }
-			};
-			const [inForceJurisdictions, inForceSchemes, inForceRates, companies, employments, facts] =
-				await Promise.all([
-					api.db.query.jurisdictions.findMany({
-						where: live,
-						columns: { norbital_id: true, code: true, name: true, effective_range: true },
-						limit: 250
-					}),
-					api.db.query.statutory_contributions.findMany({
-						where: live,
-						columns: {
-							norbital_id: true,
-							jurisdiction_id: true,
-							code: true,
-							name: true,
-							effective_range: true
-						},
-						limit: 250
-					}),
-					api.db.query.contribution_rates.findMany({
-						where: live,
-						columns: {
-							norbital_id: true,
-							statutory_contribution_id: true,
-							summary: true,
-							effective_range: true
-						},
-						limit: 250
-					}),
-					api.db.query.companies.findMany({
-						where: live,
-						columns: { norbital_id: true, name: true, jurisdiction_id: true },
-						with: {
-							company_jurisdiction: {
-								columns: { norbital_id: true, code: true, name: true, effective_range: true }
-							}
-						},
-						limit: 250
-					}),
-					api.db.query.employments.findMany({
-						where: live,
-						columns: { norbital_id: true, employee_number: true, company_id: true },
-						limit: 250
-					}),
-					api.db.query.employment_statutory_facts.findMany({
-						where: live,
-						columns: {
-							norbital_id: true,
-							employment_id: true,
-							statutory_contribution_id: true,
-							status: true,
-							summary: true,
-							effective_range: true
-						},
-						with: {
-							statutory_fact_contribution: {
+		handler: (api) =>
+			Effect.gen(function* () {
+				const today = todayKey();
+				const asOf = todayInstant();
+				const live = {
+					norbital_approval_id: { isNull: true },
+					effective_range: { contains_date: asOf }
+				};
+				const [inForceJurisdictions, inForceSchemes, inForceRates, companies, employments, facts] =
+					yield* Effect.all(
+						[
+							api.db.query.jurisdictions.findMany({
+								where: live,
+								columns: { norbital_id: true, code: true, name: true, effective_range: true },
+								limit: 250
+							}),
+							api.db.query.statutory_contributions.findMany({
+								where: live,
 								columns: {
 									norbital_id: true,
 									jurisdiction_id: true,
 									code: true,
 									name: true,
 									effective_range: true
-								}
-							}
-						},
-						limit: 250
-					})
-				]);
+								},
+								limit: 250
+							}),
+							api.db.query.contribution_rates.findMany({
+								where: live,
+								columns: {
+									norbital_id: true,
+									statutory_contribution_id: true,
+									summary: true,
+									effective_range: true
+								},
+								limit: 250
+							}),
+							api.db.query.companies.findMany({
+								where: live,
+								columns: { norbital_id: true, name: true, jurisdiction_id: true },
+								with: {
+									company_jurisdiction: {
+										columns: { norbital_id: true, code: true, name: true, effective_range: true }
+									}
+								},
+								limit: 250
+							}),
+							api.db.query.employments.findMany({
+								where: live,
+								columns: { norbital_id: true, employee_number: true, company_id: true },
+								limit: 250
+							}),
+							api.db.query.employment_statutory_facts.findMany({
+								where: live,
+								columns: {
+									norbital_id: true,
+									employment_id: true,
+									statutory_contribution_id: true,
+									status: true,
+									summary: true,
+									effective_range: true
+								},
+								with: {
+									statutory_fact_contribution: {
+										columns: {
+											norbital_id: true,
+											jurisdiction_id: true,
+											code: true,
+											name: true,
+											effective_range: true
+										}
+									}
+								},
+								limit: 250
+							})
+						],
+						{ concurrency: 'unbounded' }
+					);
 
-			const detected = detectStatutoryDrift({
-				today,
-				inForceJurisdictions,
-				inForceSchemes,
-				inForceRates,
-				companies: companies.map((company) => ({
-					norbital_id: company.norbital_id,
-					name: company.name,
-					jurisdiction_id: company.jurisdiction_id,
-					jurisdiction: asJurisdiction(Reflect.get(company, 'company_jurisdiction'))
-				})),
-				employments,
-				facts: facts.map((fact) => ({
-					norbital_id: fact.norbital_id,
-					employment_id: fact.employment_id,
-					statutory_contribution_id: fact.statutory_contribution_id,
-					status: fact.status,
-					summary: fact.summary,
-					effective_range: fact.effective_range,
-					scheme: asScheme(Reflect.get(fact, 'statutory_fact_contribution'))
-				}))
-			});
-
-			const writes: string[] = [];
-			for (const copy of detected.copies) {
-				const already = facts.find(
-					(fact) =>
-						fact.employment_id === copy.employmentId &&
-						fact.statutory_contribution_id === copy.successorSchemeId
-				);
-				if (already) continue;
-				const status = asFactStatus(copy.status);
-				if (!status) continue;
-				await api.db.employment_statutory_facts.update(copy.factId, {
-					effective_range: { start: copy.previousRange.start, end: asOf }
+				const detected = detectStatutoryDrift({
+					today,
+					inForceJurisdictions,
+					inForceSchemes,
+					inForceRates,
+					companies: companies.map((company) => ({
+						norbital_id: company.norbital_id,
+						name: company.name,
+						jurisdiction_id: company.jurisdiction_id,
+						jurisdiction: asJurisdiction(company.company_jurisdiction)
+					})),
+					employments,
+					facts: facts.map((fact) => ({
+						norbital_id: fact.norbital_id,
+						employment_id: fact.employment_id,
+						statutory_contribution_id: fact.statutory_contribution_id,
+						status: fact.status,
+						summary: fact.summary,
+						effective_range: fact.effective_range,
+						scheme: asScheme(fact.statutory_fact_contribution)
+					}))
 				});
-				await api.db.employment_statutory_facts.create({
-					employment_id: copy.employmentId,
-					statutory_contribution_id: copy.successorSchemeId,
-					status,
-					effective_range: { start: asOf }
+
+				const writes: string[] = [];
+				for (const copy of detected.copies) {
+					const already = facts.find(
+						(fact) =>
+							fact.employment_id === copy.employmentId &&
+							fact.statutory_contribution_id === copy.successorSchemeId
+					);
+					if (already) continue;
+					const status = asFactStatus(copy.status);
+					if (!status) continue;
+					yield* api.db.employment_statutory_facts.update(copy.factId, {
+						effective_range: { start: copy.previousRange.start, end: asOf }
+					});
+					yield* api.db.employment_statutory_facts.create({
+						employment_id: copy.employmentId,
+						statutory_contribution_id: copy.successorSchemeId,
+						status,
+						effective_range: { start: asOf }
+					});
+					writes.push(copy.label);
+				}
+
+				if (detected.items.length === 0 && writes.length === 0) {
+					return { status: 'ok', checked_on: today, items: 0, writes: 0 };
+				}
+
+				const report = yield* api.infer({
+					schema: reportSchema,
+					prompt: [
+						'Write a short weekly statutory-alignment report from these already-computed findings.',
+						'Name records in prose. Do not invent law, IDs, or extra drift.',
+						'Findings:',
+						...detected.items.map((item) => `- ${item.kind}: ${item.label}`),
+						writes.length > 0
+							? `Successor copies performed:\n${writes.map((label) => `- ${label}`).join('\n')}`
+							: 'No successor copies were performed.'
+					].join('\n')
 				});
-				writes.push(copy.label);
-			}
 
-			if (detected.items.length === 0 && writes.length === 0) {
-				return { status: 'ok', checked_on: today, items: 0, writes: 0 };
-			}
-
-			const report = await api.infer({
-				schema: reportSchema,
-				prompt: [
-					'Write a short weekly statutory-alignment report from these already-computed findings.',
-					'Name records in prose. Do not invent law, IDs, or extra drift.',
-					'Findings:',
-					...detected.items.map((item) => `- ${item.kind}: ${item.label}`),
-					writes.length > 0
-						? `Successor copies performed:\n${writes.map((label) => `- ${label}`).join('\n')}`
-						: 'No successor copies were performed.'
-				].join('\n')
-			});
-
-			return {
-				status: 'ok',
-				checked_on: today,
-				items: detected.items.length,
-				writes: writes.length,
-				summary: report.summary,
-				highlights: report.highlights
-			};
-		}
+				return {
+					status: 'ok',
+					checked_on: today,
+					items: detected.items.length,
+					writes: writes.length,
+					summary: report.summary,
+					highlights: report.highlights
+				};
+			})
 	}
 );

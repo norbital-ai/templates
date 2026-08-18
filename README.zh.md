@@ -34,7 +34,7 @@ pay_components <-------------------------- payslip_lines
 4. **`payslips`** —— 一次运行中某雇佣的合计。
 5. **`payslip_lines`** —— 工资单与组成部分之间的直接连接点与完整明细。
 
-核心之外：`companies` 与 `jurisdictions` 划定法律实体；`employments`、`employment_terms` 与 `employment_statutory_facts` 描述一个人的工作事实；`shift_definitions`、`work_patterns`、`rosters`、`roster_entries`、`time_entries`、`company_holidays`、`leave_types`、`leave_requests`、`rest_break_rules`、`overtime_rules`、`overtime_limits` 与 `overtime_coverage_rules` 提供排班与法律；`statutory_contributions` 与 `contribution_rates` 承载缴款方案；`repayment_agreements` 承载员工贷款与多付追回。
+核心之外：`companies` 与 `jurisdictions` 划定法律实体；`employments`、`employment_terms` 与 `employment_statutory_facts` 描述一个人的工作事实；`shift_definitions`、`rosters`、`roster_entries`、`time_entries`、`company_holidays`、`leave_types` 与 `leave_requests` 提供排班与休假事实；每一个生效日期化的 `jurisdictions` 快照原子地拥有加班覆盖范围、计价与上限；`statutory_contributions` 与 `contribution_rates` 承载缴款方案；`repayment_agreements` 承载员工贷款与多付追回。
 
 两条不变量塑造了一切：
 
@@ -148,4 +148,4 @@ pnpm build    # 生产构建
 
 - **模型** —— 不要随意更改模型模式：每次模式变更都会在 `.norbital/migrations/` 下产生一条已提交的迁移。编辑 `+model.ts`、运行 `pnpm sync`，然后审阅编译器产出的迁移。
 - **种子数据** —— 新租户的夹具行为属于 `src/+seed.ts`；它不演进已部署的数据。对既有租户，用 `pnpm exec pod migration create <name> --custom` 创建已提交迁移、编辑其 SQL，并在 Organization Studio → 模板更新中解决冲突。敏感法定种子（加班阶梯、覆盖与休息行）仍归 Core 所有，位于 `norbital/apps/core/seed/norbital_hr/statutory/rows.ts`。
-- **发布** —— 模板在自己的 `package.json` 与锁文件中固定 `@norbital-ai/pod` 版本。刻意调整依赖后，请通过仓库的模板锁定流程刷新模板锁。在 Core 中用 `pnpm tenant:update --org=<org-slug> --template=hr-payroll` 消费新的模板版本，然后硬刷新 iframe；仅在刻意重播种时才使用 `pnpm env:reset --target dev --template hr-payroll`。
+- **发布** —— 模板在自己的 `package.json` 与锁文件中固定 `@norbital-ai/bolt` 版本。刻意调整依赖后，请通过仓库的模板锁定流程刷新模板锁。在 Core 中用 `pnpm tenant:update --org=<org-slug> --template=hr-payroll` 消费新的模板版本，然后硬刷新 iframe；仅在刻意重播种时才使用 `pnpm env:reset --target dev --template hr-payroll`。

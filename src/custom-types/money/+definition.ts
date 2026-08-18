@@ -1,23 +1,26 @@
-import { defineCustomType } from '@norbital-ai/pod/authoring';
-import { z } from 'zod/mini';
+import { defineCustomType } from '@norbital-ai/bolt/authoring';
+import { Schema } from 'effect';
 
 export interface MoneyOptions {
 	readonly allowedCurrencies?: readonly [string, ...string[]];
 }
 
-const moneyValueSchema = {
-	value: z.number(),
-	currency: z.string().check(z.trim(), z.regex(/^[A-Z]{3}$/, 'Currency must be an ISO 4217 code.'))
-};
+/** `Trimmed` first, as the zod `z.trim()` this replaced did, then the ISO 4217 pattern. */
+const iso4217 = Schema.Trimmed.check(
+	Schema.isPattern(/^[A-Z]{3}$/, { message: 'Currency must be an ISO 4217 code.' })
+);
 
 export function moneySchema(options: MoneyOptions = {}) {
-	return z.strictObject({
-		...moneyValueSchema,
-		currency: options.allowedCurrencies
-			? z.enum(options.allowedCurrencies)
-			: moneyValueSchema.currency
+	return Schema.Struct({
+		value: Schema.Finite,
+		currency: options.allowedCurrencies ? Schema.Literals(options.allowedCurrencies) : iso4217
 	});
 }
+
+/** The plain money value (no currency restriction), for nesting and decode. */
+export const moneyValueSchema = moneySchema();
+
+export type Money = Schema.Schema.Type<typeof moneyValueSchema>;
 
 export default defineCustomType({
 	name: 'money',

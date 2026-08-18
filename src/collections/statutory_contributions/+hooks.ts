@@ -1,3 +1,4 @@
+import { Effect } from 'effect';
 import { assertNoOverlap } from '../../lib/effective_range.js';
 import type { Hooks } from './$types.js';
 
@@ -14,38 +15,40 @@ export default {
 		before: {
 			description:
 				'Refuses a statutory contribution scheme whose effective range overlaps another scheme with the same code in the same jurisdiction, so a deduction like EPF or SOCSO resolves to one scheme per date.',
-			handler: async ({ input, api }) => {
-				const existing = await api.db.query.statutory_contributions.findMany({
-					where: { jurisdiction_id: { eq: input.jurisdiction_id }, code: { eq: input.code } }
-				});
-				assertNoOverlap({
-					candidate: input.effective_range,
-					existing,
-					identity: `statutory contribution ${input.code} in this jurisdiction`
-				});
-				return input;
-			}
+			handler: ({ input, api }) =>
+				Effect.gen(function* () {
+					const existing = yield* api.db.query.statutory_contributions.findMany({
+						where: { jurisdiction_id: { eq: input.jurisdiction_id }, code: { eq: input.code } }
+					});
+					assertNoOverlap({
+						candidate: input.effective_range,
+						existing,
+						identity: `statutory contribution ${input.code} in this jurisdiction`
+					});
+					return input;
+				})
 		}
 	},
 	update: {
 		before: {
 			description:
 				'Re-checks an edited contribution scheme so a change of law becomes an end-date plus a successor row rather than two versions of one scheme code in force together.',
-			handler: async ({ input, existing, api }) => {
-				const jurisdiction_id = input.jurisdiction_id ?? existing.jurisdiction_id;
-				const code = input.code ?? existing.code;
-				const effective_range = input.effective_range ?? existing.effective_range;
-				const siblings = await api.db.query.statutory_contributions.findMany({
-					where: { jurisdiction_id: { eq: jurisdiction_id }, code: { eq: code } }
-				});
-				assertNoOverlap({
-					candidate: effective_range,
-					existing: siblings,
-					identity: `statutory contribution ${code} in this jurisdiction`,
-					excludeId: existing.norbital_id
-				});
-				return input;
-			}
+			handler: ({ input, existing, api }) =>
+				Effect.gen(function* () {
+					const jurisdiction_id = input.jurisdiction_id ?? existing.jurisdiction_id;
+					const code = input.code ?? existing.code;
+					const effective_range = input.effective_range ?? existing.effective_range;
+					const siblings = yield* api.db.query.statutory_contributions.findMany({
+						where: { jurisdiction_id: { eq: jurisdiction_id }, code: { eq: code } }
+					});
+					assertNoOverlap({
+						candidate: effective_range,
+						existing: siblings,
+						identity: `statutory contribution ${code} in this jurisdiction`,
+						excludeId: existing.norbital_id
+					});
+					return input;
+				})
 		}
 	}
 } satisfies Hooks;

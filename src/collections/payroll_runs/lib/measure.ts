@@ -19,6 +19,7 @@
  */
 
 import type { Configuration, OvertimeCoverageRule, PayComponent } from './configuration.js';
+import type { ComponentDefinition } from '../../../custom-types/component_definition/+definition.js';
 import {
 	classifyWageComparand,
 	decideOvertimeCoverage,
@@ -926,8 +927,7 @@ type Measurement = {
 	readonly component: PayslipLineComponent;
 };
 
-type EntryDefinition = Extract<NonNullable<PayComponent['definition']>, { source: 'ENTRY' }>;
-type EntryCap = NonNullable<EntryDefinition['cap']>;
+type EntryCap = NonNullable<Extract<ComponentDefinition, { source: 'ENTRY' }>['cap']>;
 
 function resolveEntryCap(options: {
 	readonly cap: EntryCap;
@@ -1109,7 +1109,7 @@ function measureComponent(options: {
 					definition.cap?.on_exceed === 'BLOCK'
 				)
 					throw new Error(
-						`${options.component.name} entitlement exceeded for ${options.bundle.employment.employee_number}: ` +
+						`${options.component.code} entitlement exceeded for ${options.bundle.employment.employee_number}: ` +
 							`${cents(cap.exceededBy + reimbursable).toFixed(2)} requested against ${cents(cap.amount).toFixed(2)} allowed.`
 					);
 				amount += sign * reimbursable;

@@ -1,8 +1,9 @@
 <script lang="ts">
-	import { client } from '$pod/client';
+	import { client } from '../../lib/workspace-client.js';
 	import { useI18n } from '@norbital-ai/ui/i18n';
-	import AppHeaderActions from '@norbital-ai/pod/client/app-header-actions';
-	import type { TenantI18nKeys } from '$pod/i18n-keys';
+	import AppHeaderActions from '@norbital-ai/bolt/client/app-header-actions';
+	import type { TenantI18nKeys } from '$bolt/i18n-keys';
+	import type { WorkspaceRow } from '$bolt/types.js';
 	import { Display, type ChartDisplaySpec } from '@norbital-ai/ui/chart';
 	import { Tabs, type TabConfig } from '@norbital-ai/ui/tabs';
 	import { CollectionTable } from '@norbital-ai/ui/collection-table';
@@ -21,7 +22,17 @@
 	} from '../../lib/ui/display-formatters.js';
 	import { runWorkbookImport } from '../../lib/ui/workbook-import.js';
 	import { timeEntryImportPayload } from '../../collections/time_entries/lib/import-workbook.js';
-	import { attendanceBoundary, attendanceState, workedMinutes } from '../../lib/attendance.js';
+	import {
+		attendanceBoundary,
+		attendanceState,
+		workedMinutes
+	} from '../../lib/attendance.js';
+	import {
+		payrollWindows,
+		sourceLock,
+		sourceLockFrozen,
+		sourceLockReason
+	} from '../../lib/scheduling/lock.js';
 
 	const { t } = useI18n<TenantI18nKeys>();
 
@@ -69,6 +80,27 @@
 			? requestedCompanyId
 			: (companies[0]?.norbital_id ?? null)
 	);
+	const payrollRunsQuery = $derived(
+		selectedCompanyId == null
+			? null
+			: client.db.payroll_runs.findMany({
+					where: { company_id: { eq: selectedCompanyId } },
+					columns: { period: true, lifecycle: true, attendance_from: true, attendance_to: true },
+					limit: 500
+				})
+	);
+	const payrollLockWindows = $derived(payrollWindows(payrollRunsQuery?.current ?? []));
+
+	function attendanceRowLock(row: WorkspaceRow<'time_entries'>) {
+		return sourceLock({
+			existing: true,
+			approvalId: row.norbital_approval_id,
+			dates: [row.work_date],
+			today,
+			windows: payrollLockWindows,
+			freezeWhenLive: false
+		});
+	}
 
 	const attendanceSummaryQuery = $derived(
 		selectedCompanyId == null
@@ -98,20 +130,27 @@
 		curve: 'linear'
 	} satisfies ChartDisplaySpec);
 
-	type NestedTimeEntry = {
-		readonly time_entry_employment?: { readonly employee_number?: string | null } | null;
+	type TimeEntryRow = WorkspaceRow<'time_entries'> & {
+		readonly time_entry_employment?: Pick<WorkspaceRow<'employments'>, 'employee_number'> | null;
 	};
 
-	function employmentLabel(row: unknown): string {
-		return (row as NestedTimeEntry).time_entry_employment?.employee_number ?? '—';
+	function employmentLabel(row: TimeEntryRow): string {
+		return row.time_entry_employment?.employee_number ?? '—';
 	}
 
-	function intervalBoundary(value: unknown, boundary: 'FIRST' | 'LAST'): string {
-		return formatInstant(attendanceBoundary(value, boundary));
+	function intervalBoundary(
+		intervals: WorkspaceRow<'time_entries'>['worked_intervals'],
+		boundary: 'FIRST' | 'LAST'
+	): string {
+		return formatInstant(attendanceBoundary(intervals, boundary));
 	}
 
-	function stateLabel(value: unknown): string {
-		const state = attendanceState(value);
+	function workedHours(row: WorkspaceRow<'time_entries'>): string {
+		return formatDurationHours(workedMinutes(row.worked_intervals, row.break_minutes), t);
+	}
+
+	function stateLabel(intervals: WorkspaceRow<'time_entries'>['worked_intervals']): string {
+		const state = attendanceState(intervals);
 		return state === 'COMPLETE'
 			? t('component.attendance_complete')
 			: state === 'OPEN'
@@ -205,6 +244,8 @@
 				{client}
 				collection="time_entries"
 				view={`hr_controller:time_attendance:entries:${selectedCompanyId}`}
+				isRowLocked={(row) => sourceLockFrozen(attendanceRowLock(row))}
+				rowLockReason={(row) => sourceLockReason(attendanceRowLock(row), t)}
 				query={{
 					where: {
 						time_entry_employment: {
@@ -218,7 +259,6 @@
 						time_entry_employment: { columns: { employee_number: true } }
 					}
 				}}
-				searchPlaceholder={t('app.time_attendance.search_entries')}
 				importPipelines={[
 					{
 						id: 'time-entry-workbook',
@@ -243,7 +283,7 @@
 						name="work_date"
 						label={t('component.work_date')}
 						card="title"
-						render={({ value }) => formatCalendarDate(value)}
+						render={({ row }) => formatCalendarDate(row.work_date)}
 					/>
 					<Column
 						name="employment_id"
@@ -254,29 +294,28 @@
 					<Column
 						name="worked_intervals"
 						label={t('component.clock_in')}
-						render={({ value }) => intervalBoundary(value, 'FIRST')}
+						render={({ row }) => intervalBoundary(row.worked_intervals, 'FIRST')}
 					/>
 					<Column
 						name="worked_intervals"
 						label={t('component.clock_out')}
-						render={({ value }) => intervalBoundary(value, 'LAST')}
+						render={({ row }) => intervalBoundary(row.worked_intervals, 'LAST')}
 					/>
 					<Column
 						name="break_minutes"
 						label={t('app.time_attendance.break_hours')}
-						render={({ value }) => formatDurationHours(value, t)}
+						render={({ row }) => formatDurationHours(row.break_minutes, t)}
 					/>
 					<Column
 						name="worked_intervals"
 						label={t('component.worked_hours')}
-						render={({ value, row }) =>
-							formatDurationHours(workedMinutes(value, row.break_minutes), t)}
+						render={({ row }) => workedHours(row)}
 					/>
 					<Column
 						name="worked_intervals"
 						label={t('component.state')}
 						card="badge"
-						render={({ value }) => stateLabel(value)}
+						render={({ row }) => stateLabel(row.worked_intervals)}
 					/>
 				{/snippet}
 			</CollectionTable>

@@ -9,10 +9,14 @@
  */
 
 /**
- * Every rounding token the engine executes. `jurisdictions.rounding` carries the first three money
- * modes; `statutory_contributions.rounding` carries `NONE`, `NEAREST_CENT`, `UP_TO_UNIT` and
- * `TABLE`. `NEAREST_UNIT` and `FLOOR_UNIT` are used by paired-share statutory contracts such as
- * Singapore CPF.
+ * Every rounding token the engine executes. `statutory_contributions.rounding` carries `NONE`,
+ * `NEAREST_CENT`, `UP_TO_UNIT` and `TABLE`; a `ROUND:<method>` chain in the same row's
+ * `special_rules` can name any token here and overrides that column. `NEAREST_UNIT` and
+ * `FLOOR_UNIT` are reached only by paired-share statutory contracts such as Singapore CPF, where
+ * `roundContributionShares` applies them directly. Nothing else selects a method: every other
+ * money rounding in the engine is `cents`, because a jurisdiction-wide money mode was never wired
+ * to the arithmetic and the audit hash it fed made a changed hash mean a changed column instead of
+ * changed law.
  */
 export type RoundingMethod =
 	| 'NONE'

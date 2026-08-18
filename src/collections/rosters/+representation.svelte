@@ -1,8 +1,8 @@
 <script lang="ts">
 	/** A company owns one draft or published operational schedule per calendar month. */
-	import { client } from '$pod/client';
+	import { client } from '../../lib/workspace-client.js';
 	import { useI18n } from '@norbital-ai/ui/i18n';
-	import type { TenantI18nKeys } from '$pod/i18n-keys';
+	import type { TenantI18nKeys } from '$bolt/i18n-keys';
 	import type { RepresentationProps } from './$types.js';
 	import { CollectionForm } from '@norbital-ai/ui/collection-form';
 	import { Grid } from '@norbital-ai/ui/layout';
@@ -22,7 +22,6 @@
 <CollectionForm
 	{client}
 	collection="rosters"
-	recordId={record?.norbital_id}
 	defaultValues={record ?? undefined}
 	submitLabel={record ? t('component.save_roster') : t('component.create_roster')}
 	onAfterSubmit={record ? undefined : close}

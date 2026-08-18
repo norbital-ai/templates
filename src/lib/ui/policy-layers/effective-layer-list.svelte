@@ -85,13 +85,10 @@
 	import { Input } from '@norbital-ai/ui/input';
 	import { Grid, Inline, Stack } from '@norbital-ai/ui/layout';
 	import { useI18n } from '@norbital-ai/ui/i18n';
-	import type { TenantI18nKeys } from '$pod/i18n-keys';
-	import {
-		PAYROLL_TIME_ZONE,
-		calendarDateInTimeZone,
-		startOfDayInstant,
-		todayInstant
-	} from '../calendar.js';
+	import type { TenantI18nKeys } from '$bolt/i18n-keys';
+	import DateRangeRenderer from '../../../custom-types/date_range/+renderer.svelte';
+	import type { CollectionField } from '@norbital-ai/ui/data-renderer';
+	import { todayInstant } from '../calendar.js';
 
 	let props: EffectiveLayerListProps<T> = $props();
 
@@ -118,16 +115,11 @@
 		props.layers.filter((layer) => standingOf(layer) === 'IN_FORCE').length
 	);
 
-	/**
-	 * An `effective_range` bound is stored as an instant and picked as a calendar day, so both
-	 * directions resolve through the payroll timezone. Slicing the instant, or appending `Z` to the
-	 * picked day, would place the boundary eight hours into the adjacent local day — which is what
-	 * `dates-and-time.md` forbids, and effective dating is what decides which layer prices a run.
-	 */
-	function dateOf(instant: string): string {
-		const at = new Date(instant);
-		return Number.isNaN(at.getTime()) ? '' : calendarDateInTimeZone(at, PAYROLL_TIME_ZONE);
-	}
+	const RANGE_FIELD = {
+		name: 'effective_range',
+		kind: 'date_range',
+		nullable: false
+	} satisfies CollectionField;
 
 	function replaceAt(index: number, next: T): void {
 		props.onChange(props.layers.map((layer, position) => (position === index ? next : layer)));
@@ -143,13 +135,6 @@
 	function patch(index: number, layer: T, changes: Partial<PolicyLayer>): void {
 		// stupidity:allow R3c -- `changes` only names fields PolicyLayer declares; the arm is unchanged.
 		replaceAt(index, { ...layer, ...changes } as T);
-	}
-
-	function boundedRange(layer: T, bound: 'start' | 'end', picked: string): Partial<PolicyLayer> {
-		const range = layer.effective_range;
-		const next =
-			picked.trim().length === 0 ? range[bound] : startOfDayInstant(picked, PAYROLL_TIME_ZONE);
-		return { effective_range: { ...range, [bound]: next } };
 	}
 
 	function removeAt(index: number): void {
@@ -206,26 +191,15 @@
 						oninput={(event) => patch(index, layer, { authority: event.currentTarget.value })}
 					/>
 				</label>
-				<label class="grid gap-1.5 text-sm font-medium">
-					{t('component.effective_from')}
-					<Input
-						type="date"
-						value={dateOf(layer.effective_range.start)}
-						disabled={props.disabled}
-						oninput={(event) =>
-							patch(index, layer, boundedRange(layer, 'start', event.currentTarget.value))}
-					/>
-				</label>
-				<label class="grid gap-1.5 text-sm font-medium">
-					{t('component.effective_to')}
-					<Input
-						type="date"
-						value={dateOf(layer.effective_range.end)}
-						disabled={props.disabled}
-						oninput={(event) =>
-							patch(index, layer, boundedRange(layer, 'end', event.currentTarget.value))}
-					/>
-				</label>
+				<DateRangeRenderer
+					field={RANGE_FIELD}
+					value={layer.effective_range}
+					mode="edit"
+					disabled={props.disabled}
+					onValueChange={(next) => {
+						if (next !== null) patch(index, layer, { effective_range: next });
+					}}
+				/>
 			</Grid>
 		</Stack>
 	{/each}

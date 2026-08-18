@@ -20,10 +20,10 @@ test('bulk pay components validate overlap with one set read and retain the atom
 	const hooks = source('../pay_components/+hooks.ts');
 	const model = source('../pay_components/+model.ts');
 
-	assert.match(hooks, /batchHandler: async \(\{ inputs, api \}\) =>/);
+	assert.match(hooks, /batchHandler: \(\{ inputs, api \}\) =>/);
 	assert.match(
 		hooks,
-		/const existing = await api\.db\.query\.pay_components\.findMany\([\s\S]*?assertBatchHasNoOverlap\(inputs, existing\);[\s\S]*?return inputs;/
+		/const existing = yield\* api\.db\.query\.pay_components\.findMany\([\s\S]*?assertBatchHasNoOverlap\(inputs, existing\);[\s\S]*?return inputs;/
 	);
 	assert.match(
 		hooks,
@@ -101,7 +101,7 @@ test('loan instalment uniqueness is atomic and agreements do not write component
 	assert.doesNotMatch(agreementHooks, /scheduledInstalmentInputs/);
 	assert.match(
 		entryHooks,
-		/batchHandler: async \(\{ inputs, api \}\) =>[\s\S]*?api\.db\.query\.repayment_agreements\.findMany[\s\S]*?assertInstalmentMatchesResolvedAgreement/
+		/batchHandler: \(\{ inputs, api \}\) =>[\s\S]*?api\.db\.query\.repayment_agreements\.findMany[\s\S]*?assertInstalmentMatchesResolvedAgreement/
 	);
 });
 
@@ -117,9 +117,9 @@ test('bulk roster creation validates shared references with set reads', () => {
 test('bulk leave creation reuses canonical normalization over bounded set reads', () => {
 	const hooks = source('../leave_requests/+hooks.ts');
 
-	assert.match(hooks, /batchHandler: async \(\{ inputs, api \}\) =>/);
+	assert.match(hooks, /batchHandler: \(\{ inputs, api \}\) =>/);
 	assert.match(hooks, /monthRanges\(startDate, endDate\)/);
 	assert.match(hooks, /api\.db\.query\.leave_requests\.findMany/);
 	assert.match(hooks, /api\.db\.query\.roster_entries\.findMany/);
-	assert.match(hooks, /const event = await normalizedTimeOff\(/);
+	assert.match(hooks, /const event = yield\* normalizedTimeOff\(/);
 });

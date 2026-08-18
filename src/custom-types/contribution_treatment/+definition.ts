@@ -1,21 +1,30 @@
-import { defineCustomType } from '@norbital-ai/pod/authoring';
-import { z } from 'zod/mini';
+import { defineCustomType } from '@norbital-ai/bolt/authoring';
+import { Schema } from 'effect';
 
 /**
  * How one pay component is charged against one statutory contribution.
  * `UNSET` is the generated default — every (component_type, contribution) pair exists
  * as a row, so chargeability is never inferred from a missing row.
  * `SPECIAL.rule` must name a rule listed on `statutory_contributions.special_rules`.
+ *
+ * `NonEmptyString` rather than `String`: an empty `rule` names no rule on the contribution, and
+ * accepting one would store a `SPECIAL` treatment that resolves to nothing at valuation time.
  */
-export const contributionTreatmentSchema = z.discriminatedUnion('kind', [
-	z.strictObject({ kind: z.literal('INCLUDE') }),
-	z.strictObject({ kind: z.literal('EXCLUDE') }),
-	z.strictObject({ kind: z.literal('REDUCE') }),
-	z.strictObject({ kind: z.literal('SPECIAL'), rule: z.string().check(z.minLength(1)) }),
-	z.strictObject({ kind: z.literal('UNSET') })
+export const contributionTreatmentValueSchema = Schema.Union([
+	Schema.Struct({ kind: Schema.Literal('INCLUDE') }),
+	Schema.Struct({ kind: Schema.Literal('EXCLUDE') }),
+	Schema.Struct({ kind: Schema.Literal('REDUCE') }),
+	Schema.Struct({ kind: Schema.Literal('SPECIAL'), rule: Schema.NonEmptyString }),
+	Schema.Struct({ kind: Schema.Literal('UNSET') })
 ]);
 
-export type ContributionTreatment = z.infer<typeof contributionTreatmentSchema>;
+export type ContributionTreatment = Schema.Schema.Type<typeof contributionTreatmentValueSchema>;
+
+/** Strict standard view: a key no arm declares is refused rather than stripped. */
+export const contributionTreatmentSchema = Schema.toStandardSchemaV1(
+	contributionTreatmentValueSchema,
+	{ parseOptions: { onExcessProperty: 'error' } }
+);
 
 export default defineCustomType({
 	name: 'contribution_treatment',

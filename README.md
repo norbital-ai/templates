@@ -49,8 +49,8 @@ Around that core: `companies` and `jurisdictions` scope the legal entity; `emplo
 `employment_terms` and `employment_statutory_facts` describe a person's working facts;
 `shift_definitions`, `rosters`, `roster_entries`, `time_entries`,
 `company_holidays`, `leave_types` and `leave_requests` supply the schedule and leave facts;
-each effective-dated `jurisdictions` snapshot atomically owns overtime coverage, pricing, limits
-and rest-break requirements; `statutory_contributions` and `contribution_rates` remain normalized
+each effective-dated `jurisdictions` snapshot atomically owns overtime coverage, pricing and
+limits; `statutory_contributions` and `contribution_rates` remain normalized
 because contribution programmes and their bands have independent identities; and
 `repayment_agreements` carries staff loans and overpayment recoveries.
 
@@ -230,7 +230,7 @@ pnpm build    # production build
 <name> --custom`, edit its SQL, and resolve conflicts in Organization Studio → Template updates.
   Sensitive statutory seed (the jurisdiction regime snapshots and contribution rows) stays Core-owned at
   `norbital/apps/core/seed/norbital_hr/statutory/rows.ts`.
-- **Publishing** — the template pins `@norbital-ai/pod` in its own `package.json` and lockfile.
+- **Publishing** — the template pins `@norbital-ai/bolt` in its own `package.json` and lockfile.
   After a deliberate dependency move, refresh the template lock through the repository
   template-lock workflow. Consume a new template release in Core with
   `pnpm tenant:update --org=<org-slug> --template=hr-payroll`, then hard-refresh the iframe; use

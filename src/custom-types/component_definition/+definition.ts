@@ -1,35 +1,49 @@
-import { dateRangeZodSchema, defineCustomType } from '@norbital-ai/pod/authoring';
-import { z } from 'zod/mini';
-import { eligibilityRulesSchema } from '../eligibility_rules/+definition.js';
+import { defineCustomType } from '@norbital-ai/bolt/authoring';
+import { Schema } from 'effect';
+import { eligibilityRulesValueSchema } from '../eligibility_rules/+definition.js';
+import { dateRangeValueSchema } from '../date_range/+definition.js';
 
-const capAwardSchema = z.discriminatedUnion('kind', [
-	z.strictObject({ kind: z.literal('FIXED'), amount: z.number().check(z.minimum(0)) }),
-	z.strictObject({ kind: z.literal('FORMULA'), expr: z.string().check(z.minLength(1)) })
+/**
+ * `Finite` rather than `Number` throughout this file: `Number` admits `NaN` and `Infinity`, and the
+ * numeric zod schemas these replaced admitted neither. Money and percentages that can be `NaN` fail
+ * no later check and raise no error — they travel to the payslip and read as a blank cell.
+ */
+const capAwardSchema = Schema.Union([
+	Schema.Struct({
+		kind: Schema.Literal('FIXED'),
+		amount: Schema.Finite.check(Schema.isGreaterThanOrEqualTo(0))
+	}),
+	Schema.Struct({ kind: Schema.Literal('FORMULA'), expr: Schema.NonEmptyString })
 ]);
 const capLayer = {
-	eligibility: eligibilityRulesSchema,
-	authority: z.string().check(z.minLength(1)),
+	eligibility: eligibilityRulesValueSchema,
+	authority: Schema.NonEmptyString,
 	award: capAwardSchema,
-	reimbursement_percentage: z.number().check(z.minimum(0), z.maximum(100)),
-	effective_range: dateRangeZodSchema
+	reimbursement_percentage: Schema.Finite.check(Schema.isBetween({ minimum: 0, maximum: 100 })),
+	effective_range: dateRangeValueSchema
 } as const;
-const capLayerSchema = z.discriminatedUnion('level', [
-	z.strictObject({ level: z.literal('STATUTORY'), ...capLayer }),
-	z.strictObject({ level: z.literal('ORGANISATION'), ...capLayer }),
-	z.strictObject({ level: z.literal('EMPLOYEE'), employment_id: z.uuid(), ...capLayer })
+const capLayerSchema = Schema.Union([
+	Schema.Struct({ level: Schema.Literal('STATUTORY'), ...capLayer }),
+	Schema.Struct({ level: Schema.Literal('ORGANISATION'), ...capLayer }),
+	Schema.Struct({
+		level: Schema.Literal('EMPLOYEE'),
+		employment_id: Schema.String.check(Schema.isUUID()),
+		...capLayer
+	})
 ]);
 
 /** Layered cap applied to a claimable or allowance ENTRY component. */
-export const componentCapSchema = z.strictObject({
-	period: z.enum(['CALENDAR_YEAR', 'LEAVE_YEAR', 'MONTH', 'LIFETIME', 'PER_EVENT']),
-	matrix: z.strictObject({
-		merge: z.literal('MAX_WITH_STATUTORY_FLOOR'),
-		layers: z.array(capLayerSchema).check(z.minLength(1))
+export const componentCapSchema = Schema.Struct({
+	period: Schema.Literals(['CALENDAR_YEAR', 'LEAVE_YEAR', 'MONTH', 'LIFETIME', 'PER_EVENT']),
+	matrix: Schema.Struct({
+		merge: Schema.Literal('MAX_WITH_STATUTORY_FLOOR'),
+		// At least one layer: an empty matrix is not "no cap", it is a cap every claim exceeds.
+		layers: Schema.Array(capLayerSchema).check(Schema.isMinLength(1))
 	}),
-	on_exceed: z.enum(['BLOCK', 'ALLOW'])
+	on_exceed: Schema.Literals(['BLOCK', 'ALLOW'])
 });
 
-export type ComponentCap = z.infer<typeof componentCapSchema>;
+export type ComponentCap = typeof componentCapSchema.Type;
 
 /**
  * How a pay component produces its amount.
@@ -45,53 +59,60 @@ export type ComponentCap = z.infer<typeof componentCapSchema>;
  * There is deliberately NO statutory information here: chargeability is reachable only via
  * `pay_components.policy.statutory_treatments`.
  */
-export const componentDefinitionSchema = z.discriminatedUnion('source', [
-	z.strictObject({
-		source: z.literal('ENTRY'),
-		unit: z.enum(['MONEY', 'DAYS', 'HOURS']),
-		evidence: z.enum(['NONE', 'OPTIONAL', 'REQUIRED']),
-		cap: z.nullable(componentCapSchema),
-		settlement: z.enum(['PAYROLL', 'COMPANY_DIRECT'])
+export const componentDefinitionValueSchema = Schema.Union([
+	Schema.Struct({
+		source: Schema.Literal('ENTRY'),
+		unit: Schema.Literals(['MONEY', 'DAYS', 'HOURS']),
+		evidence: Schema.Literals(['NONE', 'OPTIONAL', 'REQUIRED']),
+		cap: Schema.NullOr(componentCapSchema),
+		settlement: Schema.Literals(['PAYROLL', 'COMPANY_DIRECT'])
 	}),
-	z.strictObject({
-		source: z.literal('FORMULA'),
-		unit: z.enum(['MONEY', 'DAYS', 'HOURS', 'RATE']),
-		expr: z.string().check(z.minLength(1))
+	Schema.Struct({
+		source: Schema.Literal('FORMULA'),
+		unit: Schema.Literals(['MONEY', 'DAYS', 'HOURS', 'RATE']),
+		expr: Schema.NonEmptyString
 	}),
-	z.strictObject({
-		source: z.literal('OVERTIME'),
-		rule: z.strictObject({
-			day_type: z.enum(['ORDINARY', 'REST_DAY', 'PUBLIC_HOLIDAY']),
-			measure: z.enum(['BEYOND_NORMAL', 'FROM_START_OF_DAY']),
-			band_from: z.number().check(z.minimum(0))
+	Schema.Struct({
+		source: Schema.Literal('OVERTIME'),
+		rule: Schema.Struct({
+			day_type: Schema.Literals(['ORDINARY', 'REST_DAY', 'PUBLIC_HOLIDAY']),
+			measure: Schema.Literals(['BEYOND_NORMAL', 'FROM_START_OF_DAY']),
+			band_from: Schema.Finite.check(Schema.isGreaterThanOrEqualTo(0))
 		}),
-		minimum: z.nullable(z.number().check(z.positive()))
+		// `isGreaterThan(0)`, never `Schema.Natural`: a zero minimum is no minimum, and `Natural`
+		// admits zero where the positive-number check this replaced did not.
+		minimum: Schema.NullOr(Schema.Finite.check(Schema.isGreaterThan(0)))
 	}),
-	z.strictObject({
-		source: z.literal('OVERTIME_EXCESS'),
+	Schema.Struct({
+		source: Schema.Literal('OVERTIME_EXCESS'),
 		/** Overtime corresponding to work beyond this total-work-hours boundary is reclassified. */
-		after_total_work_hours: z.number().check(z.positive()),
+		after_total_work_hours: Schema.Finite.check(Schema.isGreaterThan(0)),
 		/** The overtime rule whose overflow this component receives. */
-		rule: z.strictObject({
-			day_type: z.enum(['ORDINARY', 'REST_DAY', 'PUBLIC_HOLIDAY']),
-			measure: z.enum(['BEYOND_NORMAL', 'FROM_START_OF_DAY']),
-			band_from: z.number().check(z.minimum(0))
+		rule: Schema.Struct({
+			day_type: Schema.Literals(['ORDINARY', 'REST_DAY', 'PUBLIC_HOLIDAY']),
+			measure: Schema.Literals(['BEYOND_NORMAL', 'FROM_START_OF_DAY']),
+			band_from: Schema.Finite.check(Schema.isGreaterThanOrEqualTo(0))
 		}),
 		/**
 		 * The statutory award's valuation basis. Hourly awards carry multiplier-weighted hours;
 		 * stepped rest-day and holiday awards carry the additional day-wage multiple earned
 		 * beyond the total-work-hours boundary.
 		 */
-		valued_at: z.enum(['ORDINARY_HOURLY', 'ORDINARY_DAY_WAGE'])
+		valued_at: Schema.Literals(['ORDINARY_HOURLY', 'ORDINARY_DAY_WAGE'])
 	}),
-	z.strictObject({
-		source: z.literal('SCHEDULE'),
-		unit: z.literal('MONEY'),
-		reducible: z.boolean()
+	Schema.Struct({
+		source: Schema.Literal('SCHEDULE'),
+		unit: Schema.Literal('MONEY'),
+		reducible: Schema.Boolean
 	})
 ]);
 
-export type ComponentDefinition = z.infer<typeof componentDefinitionSchema>;
+export type ComponentDefinition = Schema.Schema.Type<typeof componentDefinitionValueSchema>;
+
+/** Strict standard view: a key no arm declares is refused rather than stripped. */
+export const componentDefinitionSchema = Schema.toStandardSchemaV1(componentDefinitionValueSchema, {
+	parseOptions: { onExcessProperty: 'error' }
+});
 
 export default defineCustomType({
 	name: 'component_definition',

@@ -1,8 +1,11 @@
 <script lang="ts">
-	import { client } from '$pod/client';
-	import { getPlatformStateContext } from '@norbital-ai/pod/client';
+	import { client } from '../lib/workspace-client.js';
+	import { getPlatformStateContext } from '@norbital-ai/bolt/client';
 	import { useI18n } from '@norbital-ai/ui/i18n';
-	import type { TenantI18nKeys } from '$pod/i18n-keys';
+	import type { TenantI18nKeys } from '$bolt/i18n-keys';
+	import type { WorkspaceRow } from '$bolt/types.js';
+	import type { LeaveEvent } from '../custom-types/leave_event/+definition.js';
+	import type { WorkedIntervals } from '../custom-types/worked_intervals/+definition.js';
 	import { CollectionTable } from '@norbital-ai/ui/collection-table';
 	import { Combobox } from '@norbital-ai/ui/combobox';
 	import { Cluster, Cover, Grid, Inline, Stack } from '@norbital-ai/ui/layout';
@@ -23,14 +26,20 @@
 		todayKey
 	} from '../lib/ui/calendar.js';
 	import { attendanceBoundary, attendanceState } from '../lib/attendance.js';
+	import {
+		payrollWindows,
+		sourceLock,
+		sourceLockFrozen,
+		sourceLockReason
+	} from '../lib/scheduling/lock.js';
 
 	const user = getPlatformStateContext()().user;
 	const today = todayKey();
 
 	const { t } = useI18n<TenantI18nKeys>();
 
-	function attendanceStateLabel(value: unknown): string {
-		const state = attendanceState(value);
+	function attendanceStateLabel(intervals: WorkedIntervals | null | undefined): string {
+		const state = intervals == null ? 'INVALID' : attendanceState(intervals);
 		return state === 'COMPLETE'
 			? t('component.attendance_complete')
 			: state === 'OPEN'
@@ -38,17 +47,11 @@
 				: t('component.attendance_invalid');
 	}
 
-	function leaveRangeLabel(value: unknown): string {
-		if (value == null || typeof value !== 'object' || !('kind' in value)) return '—';
-		if (value.kind !== 'TIME_OFF' || !('range' in value)) return '—';
-		const range = value.range as {
-			readonly start?: { readonly date?: string; readonly half?: string };
-			readonly end?: { readonly date?: string; readonly half?: string };
-		};
-		if (range.start?.date == null || range.end?.date == null) return '—';
-		const half = (part: string | undefined) =>
+	function leaveRangeLabel(event: LeaveEvent | null | undefined): string {
+		if (event == null || event.kind !== 'TIME_OFF') return '—';
+		const half = (part: 'FIRST' | 'SECOND') =>
 			part === 'FIRST' ? t('component.first_half') : t('component.second_half');
-		return `${formatCalendarDate(range.start.date)}, ${half(range.start.half)} → ${formatCalendarDate(range.end.date)}, ${half(range.end.half)}`;
+		return `${formatCalendarDate(event.range.start.date)}, ${half(event.range.start.half)} → ${formatCalendarDate(event.range.end.date)}, ${half(event.range.end.half)}`;
 	}
 
 	/**
@@ -82,10 +85,7 @@
 	});
 	const payComponentLabelsById = $derived(
 		new Map(
-			(payComponentsQuery.current ?? []).map((component) => [
-				component.norbital_id,
-				`${component.code} · ${component.name}`
-			])
+			(payComponentsQuery.current ?? []).map((component) => [component.norbital_id, component.code])
 		)
 	);
 	const employmentsQuery = $derived(
@@ -149,6 +149,57 @@
 	const company = $derived(
 		activeEmployment ? companyById.get(activeEmployment.company_id) : undefined
 	);
+	const payrollRunsQuery = $derived(
+		activeEmployment == null
+			? null
+			: client.db.payroll_runs.findMany({
+					where: { company_id: { eq: activeEmployment.company_id } },
+					columns: { period: true, lifecycle: true, attendance_from: true, attendance_to: true },
+					limit: 500
+				})
+	);
+	const payrollLockWindows = $derived(payrollWindows(payrollRunsQuery?.current ?? []));
+
+	type ClaimRow = WorkspaceRow<'component_entries'> & {
+		readonly entry_payslip_lines?: readonly Pick<WorkspaceRow<'payslip_lines'>, 'norbital_id'>[] | null;
+	};
+	type PayslipRow = WorkspaceRow<'payslips'> & {
+		readonly payslip_payroll_run?: Pick<WorkspaceRow<'payroll_runs'>, 'period'> | null;
+	};
+
+	function leaveRowLock(row: WorkspaceRow<'leave_requests'>) {
+		return sourceLock({
+			existing: true,
+			approvalId: row.norbital_approval_id,
+			dates: [row.from_date, row.to_date],
+			today,
+			windows: payrollLockWindows,
+			freezeWhenLive: true
+		});
+	}
+
+	function attendanceRowLock(row: WorkspaceRow<'time_entries'>) {
+		return sourceLock({
+			existing: true,
+			approvalId: row.norbital_approval_id,
+			dates: [row.work_date],
+			today,
+			windows: payrollLockWindows,
+			freezeWhenLive: false
+		});
+	}
+
+	function claimRowLock(row: ClaimRow) {
+		return sourceLock({
+			existing: true,
+			approvalId: row.norbital_approval_id,
+			dates: [row.event_date],
+			today,
+			windows: payrollLockWindows,
+			consumedByPayslip: (row.entry_payslip_lines?.length ?? 0) > 0,
+			freezeWhenLive: row.origin.kind === 'CLAIM'
+		});
+	}
 	/** The next occurrence of the company's pay day — a calendar reading, not a payroll decision. */
 	const nextPayDate = $derived.by(() => {
 		if (!company) return null;
@@ -161,16 +212,8 @@
 		nextPayDate ? Math.max(0, daysBetweenKeys(today, nextPayDate)) : null
 	);
 
-	type NestedPayslip = {
-		readonly payslip_payroll_run?: { readonly period?: string | null } | null;
-	};
-
-	function nestedPayslip(row: unknown): NestedPayslip {
-		return row as NestedPayslip;
-	}
-
-	function payrollRunPeriod(row: unknown): string {
-		return nestedPayslip(row).payslip_payroll_run?.period ?? '—';
+	function payrollRunPeriod(row: PayslipRow): string {
+		return row.payslip_payroll_run?.period ?? '—';
 	}
 </script>
 
@@ -317,6 +360,8 @@
 			title={t('app.hr_employee.my_time_title')}
 			description={t('app.hr_employee.my_time_description')}
 			disabled={!employmentId}
+			isRowLocked={(row) => sourceLockFrozen(attendanceRowLock(row))}
+			rowLockReason={(row) => sourceLockReason(attendanceRowLock(row), t)}
 			query={{
 				where: { employment_id: employmentId ? { eq: employmentId } : undefined },
 				orderBy: { work_date: 'desc' }
@@ -326,22 +371,22 @@
 				<Column
 					name="work_date"
 					label={t('component.work_date')}
-					render={({ value }) => formatCalendarDate(value)}
+					render={({ row }) => formatCalendarDate(row.work_date)}
 				/>
 				<Column
 					name="worked_intervals"
 					label={t('component.clock_in')}
-					render={({ value }) => formatInstant(attendanceBoundary(value, 'FIRST'))}
+					render={({ row }) => formatInstant(attendanceBoundary(row.worked_intervals, 'FIRST'))}
 				/>
 				<Column
 					name="worked_intervals"
 					label={t('component.clock_out')}
-					render={({ value }) => formatInstant(attendanceBoundary(value, 'LAST'))}
+					render={({ row }) => formatInstant(attendanceBoundary(row.worked_intervals, 'LAST'))}
 				/>
 				<Column
 					name="worked_intervals"
 					label={t('component.state')}
-					render={({ value }) => attendanceStateLabel(value)}
+					render={({ row }) => attendanceStateLabel(row.worked_intervals)}
 				/>
 			{/snippet}
 			{#snippet ListCard(entry)}
@@ -363,11 +408,12 @@
 			title={t('app.hr_employee.my_leave_title')}
 			description={t('app.hr_employee.my_leave_description')}
 			disabled={!employmentId}
+			isRowLocked={(row) => sourceLockFrozen(leaveRowLock(row))}
+			rowLockReason={(row) => sourceLockReason(leaveRowLock(row), t)}
 			query={{
 				where: { employment_id: employmentId ? { eq: employmentId } : undefined },
 				orderBy: { from_date: 'desc' }
 			}}
-			searchPlaceholder={t('app.hr_employee.search_leave_type')}
 		>
 			{#snippet columns({ Column })}
 				<Column
@@ -380,7 +426,7 @@
 				<Column
 					name="event"
 					label={t('component.leave_range')}
-					render={({ value }) => leaveRangeLabel(value)}
+					render={({ row }) => leaveRangeLabel(row.event)}
 				/>
 				<Column
 					name="days"
@@ -401,11 +447,15 @@
 			title={t('app.hr_employee.my_components_title')}
 			description={t('app.hr_employee.my_components_description')}
 			disabled={!employmentId}
+			isRowLocked={(row) => sourceLockFrozen(claimRowLock(row))}
+			rowLockReason={(row) => sourceLockReason(claimRowLock(row), t)}
 			query={{
 				where: { employment_id: employmentId ? { eq: employmentId } : undefined },
-				orderBy: { event_date: 'desc' }
+				orderBy: { event_date: 'desc' },
+				with: {
+					entry_payslip_lines: { columns: { norbital_id: true } }
+				}
 			}}
-			searchPlaceholder={t('app.hr_employee.search_pay_component')}
 		>
 			{#snippet columns({ Column })}
 				<Column
@@ -455,7 +505,6 @@
 				},
 				orderBy: { effective_range: 'desc' }
 			}}
-			searchPlaceholder={t('app.hr_employee.search_loans')}
 		>
 			{#snippet columns({ Column })}
 				<Column name="reference" card="title" />

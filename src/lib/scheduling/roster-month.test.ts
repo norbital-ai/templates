@@ -31,11 +31,14 @@ test('a mid-month exit remains on the board and marks only later days as ended',
 		rosterEntries: [],
 		timeEntries: [],
 		leaveRequests: [],
+		pendingLeaveRequests: [],
 		holidays: [],
 		rosterCodesById: new Map(),
 		employmentTerms: [],
 		leaveCodeById: new Map(),
-		cutoff: null
+		cutoff: null,
+		locks: new Map(),
+		today: '2026-08-17'
 	});
 	assert.equal(facts.get('employment-1:2026-08-12')?.status, 'UNROSTERED');
 	assert.equal(facts.get('employment-1:2026-08-13')?.status, 'EXITED');

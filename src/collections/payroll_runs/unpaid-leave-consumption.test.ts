@@ -89,7 +89,6 @@ function configuration(leaveTypes = [NPL_TYPE]) {
 		overtimeRules: [],
 		overtimeLimits: [],
 		overtimeCoverageRule: null,
-		restBreakRules: new Map(),
 		shiftById: new Map(),
 		holidays: new Map(),
 		leaveTypes,

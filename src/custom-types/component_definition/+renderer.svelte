@@ -1,6 +1,7 @@
 <script lang="ts">
+	import { Result, Schema } from 'effect';
 	import { useI18n } from '@norbital-ai/ui/i18n';
-	import type { TenantI18nKeys } from '$pod/i18n-keys';
+	import type { TenantI18nKeys } from '$bolt/i18n-keys';
 	import { nullableNumberFrom, numberFrom } from '../../lib/ui/renderer-input.js';
 	import { PAYROLL_TIME_ZONE, startOfDayInstant, todayKey } from '../../lib/ui/calendar.js';
 	import EffectiveLayerList from '../../lib/ui/policy-layers/effective-layer-list.svelte';
@@ -134,7 +135,7 @@
 	 *
 	 * Built rather than declared as a constant because its bounds are instants resolved in the
 	 * payroll timezone. The literal this replaced read `{ start: '2026-01-01', end: null }`, which is
-	 * neither an instant nor a permitted `end` — `dateRangeZodSchema` requires both bounds — so
+	 * neither an instant nor a permitted `end` — `dateRangeSchema` requires both bounds — so
 	 * ticking the box seeded a cap the form could not save.
 	 */
 	function defaultCap(): Cap {
@@ -155,8 +156,12 @@
 	const companyId = $derived(
 		typeof props.row?.company_id === 'string' ? props.row.company_id : null
 	);
-	const parsed = $derived(componentDefinitionSchema.safeParse(props.value));
-	const current = $derived(parsed.success ? parsed.data : null);
+	const parsed = $derived(
+		Schema.decodeUnknownResult(componentDefinitionSchema)(props.value, {
+			onExcessProperty: 'error'
+		})
+	);
+	const current = $derived(Result.isSuccess(parsed) ? parsed.success : null);
 	const summary = $derived.by(() => {
 		if (current === null) return '—';
 		switch (current.source) {

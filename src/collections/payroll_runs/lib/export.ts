@@ -57,10 +57,45 @@ const HUMAN_HEADERS: Readonly<Record<string, string>> = {
 	eis_employee: 'EIS (Employee)',
 	eis_employer: 'EIS (Employer)',
 	tax_employee: 'PCB / Tax',
+	// Spelled out because the id cannot be: `15x` beside `1x`, `2x` and `3x` reads as fifteen times
+	// the rate on a document a payroll clerk signs off. It means one and a half.
+	att_ot_15x_hours: 'ATT OT 1.5X Hours',
 	att_normal_hours: 'Normal Hours',
 	att_actual_hours: 'Actual Hours',
 	att_shift_codes: 'Shift Codes'
 };
+
+/**
+ * The tokens that are acronyms rather than words, named rather than guessed at by length.
+ *
+ * The fallback used to uppercase any word of three letters or fewer, on the theory that short
+ * tokens are acronyms. `pay`, `day` and `no` are three letters and are not, so the salary listing a
+ * payroll clerk reads printed `Back PAY Bonus`, `NO PAY Leave` and `Last DAY`. Length cannot tell
+ * `pcb` from `pay`; only a list can, so this is the list.
+ *
+ * A token ending in `x` after digits — `1x`, `2x` — is an overtime multiple and stays uppercase, so
+ * `att_ot_1x_hours` still reads `ATT OT 1X Hours` as the customer's workbook has it.
+ */
+const HEADER_ACRONYMS: ReadonlySet<string> = new Set([
+	'att',
+	'aws',
+	'cp38',
+	'cpf',
+	'ee',
+	'eid',
+	'eis',
+	'epf',
+	'fw',
+	'hrdf',
+	'ic',
+	'npl',
+	'ot',
+	'pcb',
+	'sdl',
+	'socso'
+]);
+
+const OVERTIME_MULTIPLE = /^\d+x$/;
 
 function humanHeader(outputId: string): string {
 	return (
@@ -68,7 +103,9 @@ function humanHeader(outputId: string): string {
 		outputId
 			.split('_')
 			.map((word) =>
-				word.length <= 3 ? word.toUpperCase() : `${word[0]!.toUpperCase()}${word.slice(1)}`
+				HEADER_ACRONYMS.has(word) || OVERTIME_MULTIPLE.test(word)
+					? word.toUpperCase()
+					: `${word[0]!.toUpperCase()}${word.slice(1)}`
 			)
 			.join(' ')
 	);

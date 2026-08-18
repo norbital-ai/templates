@@ -1,4 +1,4 @@
-import { group } from '@norbital-ai/pod/authoring';
+import { group } from '@norbital-ai/bolt/authoring';
 
 export default group({
 	label: 'HR Controller',

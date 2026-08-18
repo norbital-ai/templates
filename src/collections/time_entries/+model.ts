@@ -1,4 +1,4 @@
-import { custom, date, defineModel, integer, uuid } from '@norbital-ai/pod/authoring';
+import { custom, date, defineModel, integer, uuid } from '@norbital-ai/bolt/authoring';
 
 export default defineModel(
 	{

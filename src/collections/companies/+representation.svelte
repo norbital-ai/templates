@@ -7,9 +7,9 @@
 	 * reads as the regime's name — a company belongs to one payroll regime, and the operator picks
 	 * the regime, never its key.
 	 */
-	import { client } from '$pod/client';
+	import { client } from '../../lib/workspace-client.js';
 	import { useI18n } from '@norbital-ai/ui/i18n';
-	import type { TenantI18nKeys } from '$pod/i18n-keys';
+	import type { TenantI18nKeys } from '$bolt/i18n-keys';
 	import type { RepresentationProps } from './$types.js';
 	import { CollectionForm } from '@norbital-ai/ui/collection-form';
 	import { Column, Grid, Stack } from '@norbital-ai/ui/layout';
@@ -22,7 +22,6 @@
 <CollectionForm
 	{client}
 	collection="companies"
-	recordId={record?.norbital_id}
 	defaultValues={record ?? undefined}
 	submitLabel={record ? t('component.save_company') : t('component.create_company')}
 	onAfterSubmit={record ? undefined : close}

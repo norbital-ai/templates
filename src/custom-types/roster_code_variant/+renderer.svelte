@@ -1,10 +1,11 @@
 <script lang="ts">
+	import { Result, Schema } from 'effect';
 	import { Combobox } from '@norbital-ai/ui/combobox';
 	import { Input } from '@norbital-ai/ui/input';
 	import { Grid, Stack } from '@norbital-ai/ui/layout';
 	import { TimeRangeField, type TimeRange } from '@norbital-ai/ui/time-range';
 	import { useI18n } from '@norbital-ai/ui/i18n';
-	import type { TenantI18nKeys } from '$pod/i18n-keys';
+	import type { TenantI18nKeys } from '$bolt/i18n-keys';
 	import { parseTime, type Time } from '@internationalized/date';
 	import { numberFrom } from '../../lib/ui/renderer-input.js';
 	import { rosterCodeVariantSchema } from './+definition.js';
@@ -13,8 +14,8 @@
 	let props: RendererProps = $props();
 	const { t } = useI18n<TenantI18nKeys>();
 	const disabled = $derived(props.mode === 'edit' ? props.disabled : true);
-	const parsed = $derived(rosterCodeVariantSchema.safeParse(props.value));
-	const current = $derived(parsed.success ? parsed.data : null);
+	const parsed = $derived(Schema.decodeUnknownResult(rosterCodeVariantSchema)(props.value));
+	const current = $derived(Result.isSuccess(parsed) ? parsed.success : null);
 	const kindOptions: Array<{
 		value: 'WORK' | 'REST' | 'OFF';
 		label: string;

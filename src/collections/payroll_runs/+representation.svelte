@@ -15,10 +15,10 @@
 	 * Permission checks, approval locks, request-change reasons, and audit history belong to the
 	 * platform.
 	 */
-	import { client } from '$pod/client';
-	import { downloadCollectionExport } from '@norbital-ai/pod/client';
+	import { client } from '../../lib/workspace-client.js';
+	import { downloadCollectionExport } from '@norbital-ai/bolt/client';
 	import { useI18n } from '@norbital-ai/ui/i18n';
-	import type { TenantI18nKeys } from '$pod/i18n-keys';
+	import type { TenantI18nKeys } from '$bolt/i18n-keys';
 	import type { RepresentationProps } from './$types.js';
 	import { Button } from '@norbital-ai/ui/button';
 	import { CollectionForm } from '@norbital-ai/ui/collection-form';
@@ -299,9 +299,7 @@
 				<div>
 					<dt class="text-xs text-muted-foreground">{t('component.run_snapshot')}</dt>
 					<dd class="mt-1 text-sm font-medium">
-						{record.configuration_snapshot?.kind === 'CAPTURED'
-							? t('component.captured_at_run_time')
-							: t('component.legacy_snapshot')}
+						{t('component.captured_at_run_time')}
 					</dd>
 				</div>
 			</Grid>

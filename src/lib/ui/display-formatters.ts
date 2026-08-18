@@ -5,8 +5,9 @@
  * Every formatter parses defensively: a table cell must never throw on a row whose variant was
  * written by an older definition. There is no writing here — presentation only.
  */
+import { Result, Schema } from 'effect';
 import { humanize } from '@norbital-ai/std/string';
-import type { TenantI18nKeys } from '$pod/i18n-keys';
+import type { TenantI18nKeys } from '$bolt/i18n-keys';
 import type { Translator } from './roster/roster-month.js';
 import { PAYROLL_TIME_ZONE, calendarDateInTimeZone, calendarDayKey } from './calendar.js';
 import { componentDefinitionSchema } from '../../custom-types/component_definition/+definition.js';
@@ -167,9 +168,11 @@ export function formatEffectiveRange(value: unknown): string {
 }
 
 export function formatEntryOrigin(value: unknown, t: Translator): string {
-	const parsed = entryOriginSchema.safeParse(value);
-	if (!parsed.success) return t('component.origin_invalid');
-	const origin = parsed.data;
+	const parsed = Schema.decodeUnknownResult(entryOriginSchema)(value, {
+		onExcessProperty: 'error'
+	});
+	if (!Result.isSuccess(parsed)) return t('component.origin_invalid');
+	const origin = parsed.success;
 	switch (origin.kind) {
 		case 'RECURRING':
 			return t('component.origin_recurring', {
@@ -192,6 +195,8 @@ export function formatEntryOrigin(value: unknown, t: Translator): string {
 			return t('component.origin_reversal', { reason: origin.reason });
 		case 'ARREARS':
 			return t('component.origin_arrears', { periods: origin.covers_periods.join(', ') });
+		case 'MANUAL_ADJUSTMENT':
+			return t('component.origin_manual_adjustment', { note: origin.note });
 		default:
 			return origin satisfies never;
 	}
@@ -199,11 +204,14 @@ export function formatEntryOrigin(value: unknown, t: Translator): string {
 
 /** The searchable free text an origin carries, if any — claims have none by design. */
 export function entryOriginNote(value: unknown): string | null {
-	const parsed = entryOriginSchema.safeParse(value);
-	if (!parsed.success) return null;
-	const origin = parsed.data;
+	const parsed = Schema.decodeUnknownResult(entryOriginSchema)(value, {
+		onExcessProperty: 'error'
+	});
+	if (!Result.isSuccess(parsed)) return null;
+	const origin = parsed.success;
 	if (origin.kind === 'ONE_OFF') return origin.note || null;
 	if (origin.kind === 'REVERSAL' || origin.kind === 'ARREARS') return origin.reason;
+	if (origin.kind === 'MANUAL_ADJUSTMENT') return origin.note || null;
 	return null;
 }
 
@@ -269,9 +277,11 @@ function labelOf(
 }
 
 export function formatComponentDefinition(value: unknown, t: Translator): string {
-	const parsed = componentDefinitionSchema.safeParse(value);
-	if (!parsed.success) return t('component.definition_invalid');
-	const definition = parsed.data;
+	const parsed = Schema.decodeUnknownResult(componentDefinitionSchema)(value, {
+		onExcessProperty: 'error'
+	});
+	if (!Result.isSuccess(parsed)) return t('component.definition_invalid');
+	const definition = parsed.success;
 	switch (definition.source) {
 		case 'ENTRY':
 			return t('component.definition_entry', {
@@ -313,9 +323,9 @@ export function formatComponentDefinition(value: unknown, t: Translator): string
 }
 
 export function formatLeaveAccrual(value: unknown, t: Translator): string {
-	const parsed = leaveAccrualSchema.safeParse(value);
-	if (!parsed.success) return t('component.accrual_invalid');
-	const accrual = parsed.data;
+	const parsed = Schema.decodeUnknownResult(leaveAccrualSchema)(value);
+	if (!Result.isSuccess(parsed)) return t('component.accrual_invalid');
+	const accrual = parsed.success;
 	if (accrual.kind === 'PER_EVENT') return t('component.accrual_per_event');
 	const carry = accrual.carry
 		? t('component.accrual_carry', {
@@ -327,15 +337,15 @@ export function formatLeaveAccrual(value: unknown, t: Translator): string {
 }
 
 export function formatLeavePayrollEffect(value: unknown, t: Translator): string {
-	const parsed = leavePayrollEffectSchema.safeParse(value);
-	if (!parsed.success) return t('component.effect_invalid');
-	return parsed.data.kind === 'PAID' ? t('component.effect_paid') : t('component.effect_unpaid');
+	const parsed = Schema.decodeUnknownResult(leavePayrollEffectSchema)(value);
+	if (!Result.isSuccess(parsed)) return t('component.effect_invalid');
+	return parsed.success.kind === 'PAID' ? t('component.effect_paid') : t('component.effect_unpaid');
 }
 
 export function formatRepaymentSchedule(value: unknown, t: Translator): string {
-	const parsed = repaymentScheduleSchema.safeParse(value);
-	if (!parsed.success) return t('component.schedule_invalid');
-	const schedule = parsed.data;
+	const parsed = Schema.decodeUnknownResult(repaymentScheduleSchema)(value);
+	if (!Result.isSuccess(parsed)) return t('component.schedule_invalid');
+	const schedule = parsed.success;
 	const total = schedule.reduce((sum, entry) => sum + entry.amount, 0);
 	return t('component.schedule_instalments', {
 		count: schedule.length,
@@ -346,30 +356,32 @@ export function formatRepaymentSchedule(value: unknown, t: Translator): string {
 
 /** Total the schedule commits to repay — the denominator of "settled". */
 export function repaymentScheduleTotal(value: unknown): number | null {
-	const parsed = repaymentScheduleSchema.safeParse(value);
-	return parsed.success ? parsed.data.reduce((sum, entry) => sum + entry.amount, 0) : null;
+	const parsed = Schema.decodeUnknownResult(repaymentScheduleSchema)(value);
+	return Result.isSuccess(parsed)
+		? parsed.success.reduce((sum, entry) => sum + entry.amount, 0)
+		: null;
 }
 
 export function formatHolidayScope(value: unknown, t: Translator): string {
-	const parsed = holidayScopeSchema.safeParse(value);
-	if (!parsed.success) return t('component.scope_invalid');
-	return parsed.data.kind === 'NATIONAL'
+	const parsed = Schema.decodeUnknownResult(holidayScopeSchema)(value);
+	if (!Result.isSuccess(parsed)) return t('component.scope_invalid');
+	return parsed.success.kind === 'NATIONAL'
 		? t('component.scope_national')
-		: t('component.scope_regional', { locations: parsed.data.location_codes.join(', ') });
+		: t('component.scope_regional', { locations: parsed.success.location_codes.join(', ') });
 }
 
 export function formatProrationBasis(value: unknown, t: Translator): string {
-	const parsed = prorationBasisSchema.safeParse(value);
-	if (!parsed.success) return t('component.proration_invalid');
-	return parsed.data.by === 'FIXED_DAYS'
-		? t('component.proration_fixed', { days: parsed.data.days })
-		: labelOf(t, PRORATION_BASIS_LABELS, parsed.data.by);
+	const parsed = Schema.decodeUnknownResult(prorationBasisSchema)(value);
+	if (!Result.isSuccess(parsed)) return t('component.proration_invalid');
+	return parsed.success.by === 'FIXED_DAYS'
+		? t('component.proration_fixed', { days: parsed.success.days })
+		: labelOf(t, PRORATION_BASIS_LABELS, parsed.success.by);
 }
 
 export function formatRateSelector(value: unknown, t: Translator): string {
-	const parsed = rateSelectorSchema.safeParse(value);
-	if (!parsed.success) return t('component.selector_invalid');
-	const selector = parsed.data;
+	const parsed = Schema.decodeUnknownResult(rateSelectorSchema)(value);
+	if (!Result.isSuccess(parsed)) return t('component.selector_invalid');
+	const selector = parsed.success;
 	if (selector.by === 'RISK_CLASS')
 		return t('component.selector_risk_class', { class: selector.class });
 	const band = `${selector.from} → ${selector.to ?? '∞'}`;
@@ -383,9 +395,9 @@ export function formatRateSelector(value: unknown, t: Translator): string {
 }
 
 export function formatRateAward(value: unknown, t: Translator): string {
-	const parsed = rateAwardSchema.safeParse(value);
-	if (!parsed.success) return t('component.award_invalid');
-	const award = parsed.data;
+	const parsed = Schema.decodeUnknownResult(rateAwardSchema)(value);
+	if (!Result.isSuccess(parsed)) return t('component.award_invalid');
+	const award = parsed.success;
 	if (award.kind === 'PROGRESSIVE')
 		return t('component.award_progressive', {
 			rate: award.rate,
@@ -401,9 +413,9 @@ export function formatRateAward(value: unknown, t: Translator): string {
 }
 
 export function formatOvertimeBand(value: unknown, t: Translator): string {
-	const parsed = overtimeBandSchema.safeParse(value);
-	if (!parsed.success) return t('component.band_invalid');
-	const band = parsed.data;
+	const parsed = Schema.decodeUnknownResult(overtimeBandSchema)(value);
+	if (!Result.isSuccess(parsed)) return t('component.band_invalid');
+	const band = parsed.success;
 	return band.measure === 'BEYOND_NORMAL'
 		? t('component.band_beyond_normal', {
 				from: band.from_hours,
@@ -413,9 +425,9 @@ export function formatOvertimeBand(value: unknown, t: Translator): string {
 }
 
 export function formatOvertimeAward(value: unknown, t: Translator): string {
-	const parsed = overtimeAwardSchema.safeParse(value);
-	if (!parsed.success) return t('component.award_invalid');
-	const award = parsed.data;
+	const parsed = Schema.decodeUnknownResult(overtimeAwardSchema)(value);
+	if (!Result.isSuccess(parsed)) return t('component.award_invalid');
+	const award = parsed.success;
 	return award.kind === 'HOURLY_MULTIPLE'
 		? t('component.award_hourly_multiple', { multiple: award.multiple })
 		: t('component.award_day_multiple', { multiple: award.multiple });
@@ -428,9 +440,9 @@ export function formatOvertimeAward(value: unknown, t: Translator): string {
  * operator read a Malaysian ringgit threshold as though it were theirs.
  */
 export function formatMoney(value: unknown, t: Translator): string {
-	const parsed = moneySchema().safeParse(value);
-	if (!parsed.success) return t('component.money_invalid');
-	return `${parsed.data.currency} ${DECIMAL.format(parsed.data.value)}`;
+	const parsed = Schema.decodeUnknownResult(moneySchema())(value);
+	if (!Result.isSuccess(parsed)) return t('component.money_invalid');
+	return `${parsed.success.currency} ${DECIMAL.format(parsed.success.value)}`;
 }
 
 /**
@@ -443,9 +455,9 @@ export function formatCategories(value: unknown, t: Translator): string {
 }
 
 export function formatStatutoryFactStatus(value: unknown, t: Translator): string {
-	const parsed = statutoryFactStatusSchema.safeParse(value);
-	if (!parsed.success) return t('component.status_invalid');
-	const status = parsed.data;
+	const parsed = Schema.decodeUnknownResult(statutoryFactStatusSchema)(value);
+	if (!Result.isSuccess(parsed)) return t('component.status_invalid');
+	const status = parsed.success;
 	return status.kind === 'REGISTERED'
 		? `${t('component.status_registered', { reference: status.reference_number })}${
 				status.rate_override == null

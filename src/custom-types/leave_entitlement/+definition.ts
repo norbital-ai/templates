@@ -1,27 +1,42 @@
-import { dateRangeZodSchema, defineCustomType } from '@norbital-ai/pod/authoring';
-import { z } from 'zod/mini';
-import { accrualKeySchema } from '../accrual_key/+definition.js';
+import { defineCustomType } from '@norbital-ai/bolt/authoring';
+import { Schema } from 'effect';
+import { accrualKeyValueSchema } from '../accrual_key/+definition.js';
+import { dateRangeValueSchema } from '../date_range/+definition.js';
 
+/**
+ * `Finite` rather than `Number` for `days`: `Number` admits `NaN` and `Infinity`, and the
+ * `z.number()` this replaced admitted neither. A `NaN` entitlement propagates through every merge
+ * and comparison as `NaN` without ever failing, so the leave balance silently becomes unprintable.
+ */
 const award = {
-	key: accrualKeySchema,
-	days: z.number().check(z.minimum(0)),
-	authority: z.string().check(z.minLength(1)),
-	effective_range: dateRangeZodSchema
+	key: accrualKeyValueSchema,
+	days: Schema.Finite.check(Schema.isGreaterThanOrEqualTo(0)),
+	authority: Schema.NonEmptyString,
+	effective_range: dateRangeValueSchema
 } as const;
 
 /** One closed policy layer. A row can never accidentally be statutory and individual at once. */
-export const leaveEntitlementLayerSchema = z.discriminatedUnion('level', [
-	z.strictObject({ level: z.literal('STATUTORY'), ...award }),
-	z.strictObject({ level: z.literal('ORGANISATION'), ...award }),
-	z.strictObject({ level: z.literal('EMPLOYEE'), employment_id: z.uuid(), ...award })
+export const leaveEntitlementLayerSchema = Schema.Union([
+	Schema.Struct({ level: Schema.Literal('STATUTORY'), ...award }),
+	Schema.Struct({ level: Schema.Literal('ORGANISATION'), ...award }),
+	Schema.Struct({
+		level: Schema.Literal('EMPLOYEE'),
+		employment_id: Schema.String.check(Schema.isUUID()),
+		...award
+	})
 ]);
 
-export const leaveEntitlementSchema = z.strictObject({
-	merge: z.literal('MAX_WITH_STATUTORY_FLOOR'),
-	layers: z.array(leaveEntitlementLayerSchema)
+export const leaveEntitlementValueSchema = Schema.Struct({
+	merge: Schema.Literal('MAX_WITH_STATUTORY_FLOOR'),
+	layers: Schema.Array(leaveEntitlementLayerSchema)
 });
 
-export type LeaveEntitlement = z.infer<typeof leaveEntitlementSchema>;
+export type LeaveEntitlement = Schema.Schema.Type<typeof leaveEntitlementValueSchema>;
+
+/** Strict standard view: a key no layer declares is refused rather than stripped. */
+export const leaveEntitlementSchema = Schema.toStandardSchemaV1(leaveEntitlementValueSchema, {
+	parseOptions: { onExcessProperty: 'error' }
+});
 
 export default defineCustomType({
 	name: 'leave_entitlement',

@@ -8,7 +8,6 @@ import {
 	deriveStatutoryWages
 } from './lib/coverage.ts';
 import { isStatutoryOvertimePayCovered } from './lib/measure.ts';
-import { resolveRestBreakRules } from './lib/rest-breaks.ts';
 
 /**
  * The Malaysian rule as seeded in Core: Employment Act 1955 First Schedule paragraph 1A, as
@@ -405,90 +404,5 @@ test('Indonesia covers by job group, and the unencodable group keeps everyone co
 			subject({ workClassification: 'EA_COVERED', wages: wages(50000000, 'IDR') })
 		).outcome,
 		'COVERED'
-	);
-});
-
-// ── meal breaks: the figures are rows, never literals ────────────────────────────────────────────
-
-test('the Malaysian break resolves from its row — five hours, thirty minutes, pay unsettled', () => {
-	// EA 1955 s.60A(1)(a): no more than five consecutive hours without a period of leisure of not
-	// less than thirty minutes. Proviso (i): a break under thirty minutes does not break the
-	// continuity. The section says nothing about whether the break is paid, so the row does not.
-	const breaks = resolveRestBreakRules([
-		{
-			after_consecutive_hours: 5,
-			minimum_minutes: 30,
-			counts_as_worked_time: null,
-			applies_when: 'ALWAYS',
-			authority: 'Employment Act 1955 s.60A(1)(a)'
-		},
-		{
-			after_consecutive_hours: 8,
-			minimum_minutes: 45,
-			counts_as_worked_time: null,
-			applies_when: 'CONTINUOUS_ATTENDANCE',
-			authority: 'Employment Act 1955 s.60A(1) proviso (ii)'
-		}
-	]);
-	assert.deepEqual(breaks.get('ALWAYS'), {
-		appliesWhen: 'ALWAYS',
-		afterConsecutiveHours: 5,
-		minimumMinutes: 30,
-		countsAsWorkedTime: null,
-		authority: 'Employment Act 1955 s.60A(1)(a)'
-	});
-	assert.equal(
-		breaks.get('CONTINUOUS_ATTENDANCE')?.afterConsecutiveHours,
-		8,
-		'the proviso (ii) variant coexists — eight consecutive hours, forty-five minutes aggregate'
-	);
-	assert.equal(breaks.get('OVERTIME'), undefined, 'no row is no break, not a default');
-});
-
-test('the Indonesian break keeps the statute s own words — four hours, and not working time', () => {
-	// UU 13/2003 Pasal 79(2)(a): rest of at least half an hour after four consecutive hours, and
-	// the provision says in terms the rest is not counted as working hours.
-	const rule = resolveRestBreakRules([
-		{
-			after_consecutive_hours: 4,
-			minimum_minutes: 30,
-			counts_as_worked_time: false,
-			applies_when: 'ALWAYS',
-			authority: 'UU 13/2003 Pasal 79(2)(a)'
-		}
-	]).get('ALWAYS');
-	assert.equal(rule?.afterConsecutiveHours, 4);
-	assert.equal(rule?.countsAsWorkedTime, false, 'false is the statute s words, not a default');
-});
-
-test('the Philippine break is tied to meals, not to elapsed hours — the null trigger is the fact', () => {
-	const rule = resolveRestBreakRules([
-		{
-			after_consecutive_hours: null,
-			minimum_minutes: 60,
-			counts_as_worked_time: null,
-			applies_when: 'ALWAYS',
-			authority: 'Labor Code of the Philippines art.85'
-		}
-	]).get('ALWAYS');
-	assert.equal(rule?.afterConsecutiveHours, null, 'art.85 states no consecutive-hours trigger');
-	assert.equal(rule?.minimumMinutes, 60);
-});
-
-test('a second row of the same kind is a seeding fault, and an unknown kind is a named fault', () => {
-	const row = (applies_when, authority) => ({
-		after_consecutive_hours: 5,
-		minimum_minutes: 30,
-		counts_as_worked_time: null,
-		applies_when,
-		authority
-	});
-	assert.throws(
-		() => resolveRestBreakRules([row('ALWAYS', 'one'), row('ALWAYS', 'two')]),
-		/More than one ALWAYS rest break rule/
-	);
-	assert.throws(
-		() => resolveRestBreakRules([row('SOMETIMES', 'a mystery')]),
-		/not a kind of break/
 	);
 });

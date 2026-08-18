@@ -1,23 +1,23 @@
-import { defineCustomType } from '@norbital-ai/pod/authoring';
-import { z } from 'zod/mini';
+import { defineCustomType } from '@norbital-ai/bolt/authoring';
+import { Schema } from 'effect';
 
 /**
  * Which band of a statutory contribution table a rate row applies to.
  * The discriminator mirrors `statutory_contributions.keyed_by`.
  * `to` bounds are exclusive upper limits; `null` means "open ended".
  */
-export const rateSelectorSchema = z.discriminatedUnion('by', [
-	z.strictObject({
-		by: z.literal('WAGE'),
-		from: z.number().check(z.minimum(0)),
-		to: z.nullable(z.number().check(z.minimum(0)))
+export const rateSelectorValueSchema = Schema.Union([
+	Schema.Struct({
+		by: Schema.Literal('WAGE'),
+		from: Schema.Finite.check(Schema.isGreaterThanOrEqualTo(0)),
+		to: Schema.NullOr(Schema.Finite.check(Schema.isGreaterThanOrEqualTo(0)))
 	}),
-	z.strictObject({
-		by: z.literal('WAGE_AND_AGE'),
-		from: z.number().check(z.minimum(0)),
-		to: z.nullable(z.number().check(z.minimum(0))),
-		age_from: z.int().check(z.minimum(0)),
-		age_to: z.nullable(z.int().check(z.minimum(0)))
+	Schema.Struct({
+		by: Schema.Literal('WAGE_AND_AGE'),
+		from: Schema.Finite.check(Schema.isGreaterThanOrEqualTo(0)),
+		to: Schema.NullOr(Schema.Finite.check(Schema.isGreaterThanOrEqualTo(0))),
+		age_from: Schema.Int.check(Schema.isGreaterThanOrEqualTo(0)),
+		age_to: Schema.NullOr(Schema.Int.check(Schema.isGreaterThanOrEqualTo(0)))
 	}),
 	/**
 	 * A wage ladder that a jurisdiction publishes twice, once per marital category — Malaysia's
@@ -30,21 +30,29 @@ export const rateSelectorSchema = z.discriminatedUnion('by', [
 	 * `SINGLE` is the category for everyone else, including a married taxpayer whose spouse earns.
 	 * It is chosen from `employees.spouse_status`, which is the question the statute asks.
 	 */
-	z.strictObject({
-		by: z.literal('WAGE_AND_MARITAL'),
-		from: z.number().check(z.minimum(0)),
-		to: z.nullable(z.number().check(z.minimum(0))),
-		marital: z.enum(['SINGLE', 'MARRIED'])
+	Schema.Struct({
+		by: Schema.Literal('WAGE_AND_MARITAL'),
+		from: Schema.Finite.check(Schema.isGreaterThanOrEqualTo(0)),
+		to: Schema.NullOr(Schema.Finite.check(Schema.isGreaterThanOrEqualTo(0))),
+		marital: Schema.Literals(['SINGLE', 'MARRIED'])
 	}),
-	z.strictObject({
-		by: z.literal('HEADCOUNT'),
-		from: z.int().check(z.minimum(0)),
-		to: z.nullable(z.int().check(z.minimum(0)))
+	Schema.Struct({
+		by: Schema.Literal('HEADCOUNT'),
+		from: Schema.Int.check(Schema.isGreaterThanOrEqualTo(0)),
+		to: Schema.NullOr(Schema.Int.check(Schema.isGreaterThanOrEqualTo(0)))
 	}),
-	z.strictObject({ by: z.literal('RISK_CLASS'), class: z.string().check(z.minLength(1)) })
+	Schema.Struct({
+		by: Schema.Literal('RISK_CLASS'),
+		class: Schema.String.check(Schema.isMinLength(1))
+	})
 ]);
 
-export type RateSelector = z.infer<typeof rateSelectorSchema>;
+export type RateSelector = Schema.Schema.Type<typeof rateSelectorValueSchema>;
+
+/** Strict standard view: a key no arm declares is refused rather than stripped. */
+export const rateSelectorSchema = Schema.toStandardSchemaV1(rateSelectorValueSchema, {
+	parseOptions: { onExcessProperty: 'error' }
+});
 
 export default defineCustomType({
 	name: 'rate_selector',

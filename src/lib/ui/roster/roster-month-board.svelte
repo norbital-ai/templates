@@ -29,17 +29,20 @@
 	import { IconWrapper } from '@norbital-ai/ui/icon-wrapper';
 	import { Tooltip } from '@norbital-ai/ui/tooltip';
 	import { useI18n } from '@norbital-ai/ui/i18n';
-	import type { TenantI18nKeys } from '$pod/i18n-keys';
+	import type { TenantI18nKeys } from '$bolt/i18n-keys';
 	import { Cluster, Cover, Inline, Scroll, Stack } from '@norbital-ai/ui/layout';
 	import { cn } from '@norbital-ai/ui/utils';
 	import { createVirtualizer } from '@norbital-ai/ui/utils/virtualizer.svelte';
 	import {
+		CONFLICT_PRESENTATION,
 		HOLIDAY_PRESENTATION,
 		STATUS_PRESENTATION,
+		actualMark,
+		actualMarkClass,
 		describeDay,
 		monthDays,
+		planGlyph,
 		shiftTimeCue,
-		statusGlyph,
 		unrosteredReason,
 		type DayFacts,
 		type DayStatus
@@ -55,6 +58,7 @@
 		facts,
 		today,
 		holidayNames,
+		locks = new Map(),
 		cutoff = null,
 		onSelectDay,
 		editable = false
@@ -69,6 +73,8 @@
 		 * calendar, not the roster.
 		 */
 		holidayNames: ReadonlyMap<string, string>;
+		/** One lock per date, derived from the company's payroll runs. */
+		locks?: ReadonlyMap<string, import('../../scheduling/lock.js').DayLock>;
 		cutoff?: { readonly start: string; readonly end: string } | null;
 		onSelectDay?: (employmentId: string, date: string) => void;
 		editable?: boolean;
@@ -112,6 +118,21 @@
 			{ labelKey: TenantI18nKeys; className: string }
 		][]
 	);
+
+	/**
+	 * A past day is loud only when something is wrong with it. Days that already ended with their
+	 * plan fulfilled, their leave granted, or their conflict flagged stay fully legible; only a
+	 * quietly finished day is dimmed, so past does not read as failure everywhere at once.
+	 */
+	function quietPast(day: DayFacts | undefined): boolean {
+		return (
+			day?.past === true &&
+			!day.clockedIn &&
+			day.leaveCode == null &&
+			!day.pendingLeave &&
+			day.conflicts.length === 0
+		);
+	}
 
 	const activeCellKey = $derived.by(() => {
 		if (requestedCellKey) {
@@ -175,12 +196,22 @@
 		return day.withinCutoff ? t('roster.no_attendance_in_pay_period') : t('roster.no_attendance');
 	}
 
-	function dayNotes(day: DayFacts): string | null {
+	function dayNotes(day: DayFacts, date: string): string | null {
 		const notes = [
 			day.holidayName == null ? null : `${t(HOLIDAY_PRESENTATION.labelKey)}: ${day.holidayName}`,
 			day.leaveCode == null
 				? null
-				: `${day.leaveCode}${day.halfDayLeave ? ` (${t('roster.half_day')})` : ''}`
+				: `${day.leaveCode}${day.halfDayLeave ? ` (${t('roster.half_day')})` : ''}`,
+			day.pendingLeave ? t('roster.pending_leave') : null,
+			day.plannedOT ? t('roster.planned_ot') : null,
+			day.origin == null
+				? null
+				: day.origin === 'IMPORT'
+					? t('roster.origin_import')
+					: t('roster.origin_manual'),
+			...day.conflicts.map((conflict) => t(CONFLICT_PRESENTATION[conflict].labelKey)),
+			day.lock.kind === 'SETTLED' ? t('roster.in_paid_payroll', { period: day.lock.period }) : null,
+			day.past && day.lock.kind !== 'SETTLED' ? t('component.lock_date_passed', { date }) : null
 		].filter((part): part is string => part != null);
 		return notes.length === 0 ? null : notes.join(' · ');
 	}
@@ -198,6 +229,27 @@
 			<span class={cn('inline-block size-2.5 rounded-sm', HOLIDAY_PRESENTATION.headerClassName)}
 			></span>
 			<span>{t('roster.holiday_from_calendar', { label: t(HOLIDAY_PRESENTATION.labelKey) })}</span>
+		</Inline>
+		<Inline gap="xs">
+			<span class="inline-block w-3 text-center font-semibold text-warning-foreground">OT</span>
+			<span>{t('roster.planned_ot')}</span>
+		</Inline>
+		<Inline gap="xs">
+			<span class="inline-block w-3 text-center text-info">l</span>
+			<span>{t('roster.pending_leave')}</span>
+		</Inline>
+		<Inline gap="xs">
+			<span
+				class={cn(
+					'inline-block size-2.5 rounded-sm',
+					CONFLICT_PRESENTATION.LEAVE_AND_WORK.className
+				)}
+			></span>
+			<span>{t('roster.conflict')}</span>
+		</Inline>
+		<Inline gap="xs">
+			<span class="inline-block size-2.5 rounded-sm bg-brand/40"></span>
+			<span>{t('roster.settled')}</span>
 		</Inline>
 		{#if cutoff != null}
 			<Inline gap="xs">
@@ -232,6 +284,7 @@
 						</th>
 						{#each days as date (date)}
 							{@const holiday = holidayNames.get(date)}
+							{@const settled = locks.get(date)?.kind === 'SETTLED'}
 							<th
 								scope="col"
 								title={holiday == null
@@ -245,11 +298,17 @@
 									isWeekend(date) && 'bg-muted',
 									holiday != null && HOLIDAY_PRESENTATION.headerClassName,
 									date === today && 'font-semibold ring-2 ring-inset ring-brand',
-									date === cutoffStartsAt && 'border-l-2 border-l-brand'
+									date === cutoffStartsAt && 'border-l-2 border-l-brand',
+									settled && 'border-r-2 border-r-brand/60',
+									date < today && !settled && 'text-muted-foreground'
 								)}
 							>
 								<span class="block text-xs text-muted-foreground">
-									{holiday == null ? weekdayLetter(date) : HOLIDAY_PRESENTATION.mark}
+									{settled
+										? '🔒'
+										: holiday == null
+											? weekdayLetter(date)
+											: HOLIDAY_PRESENTATION.mark}
 								</span>
 								<span class="block tabular-nums">{Number(date.slice(8, 10))}</span>
 							</th>
@@ -275,12 +334,18 @@
 							</th>
 							{#each days as date, dayIndex (date)}
 								{@const day = facts.get(`${person.id}:${date}`)}
-								{@const cellEditable = editable && day?.employmentState === 'ACTIVE'}
+								{@const cellEditable =
+									editable &&
+									day?.employmentState === 'ACTIVE' &&
+									day.lock.kind !== 'SETTLED' &&
+									day.past !== true}
+								{@const firstConflict = day?.conflicts[0] ?? null}
 								<td
 									class={cn(
 										'border-b p-0.5 text-center',
 										holidayNames.has(date) && HOLIDAY_PRESENTATION.className,
-										date === cutoffStartsAt && 'border-l-2 border-l-brand'
+										date === cutoffStartsAt && 'border-l-2 border-l-brand',
+										day?.lock.kind === 'SETTLED' && 'border-r-2 border-r-brand/60'
 									)}
 								>
 									<Tooltip side="top" sideOffset={4} contentClass="max-w-80">
@@ -293,44 +358,66 @@
 												tabindex={activeCellKey === `${person.id}:${date}` ? 0 : -1}
 												data-roster-cell={`${personIndex}:${dayIndex}`}
 												class={cn(
-													'grid h-9 w-full min-w-12 content-center rounded-sm px-0.5 text-center tabular-nums focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none',
+													'relative grid h-9 w-full min-w-12 content-center rounded-sm px-0.5 text-center tabular-nums focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none',
 													day == null ? 'bg-muted/20' : STATUS_PRESENTATION[day.status].className,
 													cellEditable
 														? 'cursor-pointer hover:ring-1 hover:ring-ring'
-														: 'cursor-default'
+														: 'cursor-default',
+													day?.plannedOT === true && 'text-warning-foreground',
+													quietPast(day) && 'opacity-70'
 												)}
 												onclick={() => cellEditable && onSelectDay?.(person.id, date)}
 												onfocus={() => (requestedCellKey = `${person.id}:${date}`)}
 												onkeydown={(event) => handleCellKeydown(event, personIndex, dayIndex)}
 											>
-												<span class="block truncate text-xs font-semibold leading-4">
-													{day == null ? '' : statusGlyph(day)}
-												</span>
-												{#if shiftTimeCue(day) != null}
-													<span class="block truncate text-micro leading-3 opacity-80">
-														{shiftTimeCue(day)}
-													</span>
+												{#if firstConflict != null}
+													<span
+														class={cn(
+															'absolute top-0.5 right-0.5 size-1.5 rounded-full',
+															CONFLICT_PRESENTATION[firstConflict].className
+														)}
+														title={t(CONFLICT_PRESENTATION[firstConflict].labelKey)}
+													></span>
 												{/if}
+												<span class="block truncate text-xs leading-4">
+													{day == null ? '' : planGlyph(day)}
+												</span>
+												<span
+													class={cn(
+														'block truncate text-[0.625rem] leading-3',
+														day == null
+															? 'text-muted-foreground/50'
+															: day.past
+																? actualMarkClass(day)
+																: 'text-muted-foreground/70'
+													)}
+												>
+													{day == null
+														? ''
+														: day.past
+															? actualMark(day)
+															: (shiftTimeCue(day) ?? actualMark(day))}
+												</span>
 											</button>
 										{/snippet}
 										{#snippet content()}
 											{#if day != null}
 												<Stack gap="sm" class="min-w-64 max-w-80 text-xs">
-													<div class="border-b border-white/15 pb-2">
-														<p class="font-semibold text-white">{person.name}</p>
-														<p class="font-mono text-micro text-white/65">
+													<div class="border-b border-primary-foreground/15 pb-2">
+														<p class="font-semibold">{person.name}</p>
+														<p class="font-mono text-micro text-primary-foreground/65">
 															{person.number} · {date}
 														</p>
 													</div>
 													<div
-														class="relative space-y-3 pl-5 before:absolute before:top-1 before:bottom-1 before:left-1.5 before:w-px before:bg-white/20"
+														class="relative space-y-3 pl-5 before:absolute before:top-1 before:bottom-1 before:left-1.5 before:w-px before:bg-primary-foreground/20"
 													>
 														<div class="relative">
 															<span
 																class="absolute top-1 -left-[1.125rem] size-2 rounded-full bg-brand"
 															></span>
 															<p
-																class="text-micro font-semibold tracking-wide text-white/55 uppercase"
+																class="text-micro font-semibold tracking-wide text-primary-foreground/55 uppercase"
 															>
 																{t('roster.timeline_schedule')}
 															</p>
@@ -341,23 +428,23 @@
 																class="absolute top-1 -left-[1.125rem] size-2 rounded-full bg-success"
 															></span>
 															<p
-																class="text-micro font-semibold tracking-wide text-white/55 uppercase"
+																class="text-micro font-semibold tracking-wide text-primary-foreground/55 uppercase"
 															>
 																{t('roster.timeline_attendance')}
 															</p>
 															<p class="leading-4">{attendanceSummary(day)}</p>
 														</div>
-														{#if dayNotes(day) != null}
+														{#if dayNotes(day, date) != null}
 															<div class="relative">
 																<span
 																	class="absolute top-1 -left-[1.125rem] size-2 rounded-full bg-info"
 																></span>
 																<p
-																	class="text-micro font-semibold tracking-wide text-white/55 uppercase"
+																	class="text-micro font-semibold tracking-wide text-primary-foreground/55 uppercase"
 																>
 																	{t('roster.timeline_notes')}
 																</p>
-																<p class="leading-4">{dayNotes(day)}</p>
+																<p class="leading-4">{dayNotes(day, date)}</p>
 															</div>
 														{/if}
 													</div>

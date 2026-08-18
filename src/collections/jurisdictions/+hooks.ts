@@ -1,4 +1,5 @@
-import { refuse } from '@norbital-ai/pod/authoring';
+import { refuse } from '@norbital-ai/bolt/authoring';
+import { Result, Schema } from 'effect';
 import {
 	statutoryRegimeIssues,
 	statutoryRegimeSchema
@@ -6,9 +7,9 @@ import {
 import type { Hooks } from './$types.js';
 
 function assertRegime(regime: unknown, currency: string): void {
-	const parsed = statutoryRegimeSchema.safeParse(regime);
-	if (!parsed.success) refuse('The statutory regime is incomplete or malformed.');
-	const issues = statutoryRegimeIssues(parsed.data, currency);
+	const parsed = Schema.decodeUnknownResult(statutoryRegimeSchema)(regime);
+	if (!Result.isSuccess(parsed)) return refuse('The statutory regime is incomplete or malformed.');
+	const issues = statutoryRegimeIssues(parsed.success, currency);
 	if (issues.length > 0) refuse(issues.join(' '));
 }
 
@@ -16,7 +17,7 @@ export default {
 	create: {
 		before: {
 			description:
-				'Validates the atomic statutory snapshot so coverage is coherent, overtime bands do not overlap, and every limit and rest-break condition is unique.',
+				'Validates the atomic statutory snapshot so coverage is coherent, overtime bands do not overlap, and every limit identity is unique.',
 			handler: async ({ input }) => {
 				assertRegime(input.regime, input.currency);
 				return input;

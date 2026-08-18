@@ -9,12 +9,13 @@
 	 * contribution it decides, which is why the identity snippet is a contribution picker rather
 	 * than the level picker the cap and entitlement matrices mount.
 	 */
+	import { Result, Schema } from 'effect';
 	import EffectiveLayerList from '../../lib/ui/policy-layers/effective-layer-list.svelte';
 	import ContributionTreatmentRenderer from '../contribution_treatment/+renderer.svelte';
 	import { PAYROLL_TIME_ZONE, startOfDayInstant, todayKey } from '../../lib/ui/calendar.js';
 	import { useI18n } from '@norbital-ai/ui/i18n';
-	import type { TenantI18nKeys } from '$pod/i18n-keys';
-	import { client } from '$pod/client';
+	import type { TenantI18nKeys } from '$bolt/i18n-keys';
+	import { client } from '../../lib/workspace-client.js';
 	import { Combobox } from '@norbital-ai/ui/combobox';
 	import type { CollectionField } from '@norbital-ai/ui/data-renderer';
 	import { Stack } from '@norbital-ai/ui/layout';
@@ -60,8 +61,10 @@
 
 	let props: PayComponentPolicyRendererProps = $props();
 	const disabled = $derived(props.mode === 'edit' ? props.disabled : true);
-	const parsed = $derived(payComponentPolicySchema.safeParse(props.value));
-	const current = $derived(parsed.success ? parsed.data : null);
+	const parsed = $derived(
+		Schema.decodeUnknownResult(payComponentPolicySchema)(props.value, { onExcessProperty: 'error' })
+	);
+	const current = $derived(Result.isSuccess(parsed) ? parsed.success : null);
 	const treatments = $derived<Treatment[]>(
 		current === null ? [] : [...current.statutory_treatments]
 	);

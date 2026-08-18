@@ -1,6 +1,8 @@
 import { isCalendarDate, isClockTime, isUtcIsoInstant } from '@norbital-ai/std/date';
-import { z } from 'zod';
+import { Effect, Schema } from 'effect';
 import { formatNamedList, monthBounds } from '../../lib/period.js';
+import { leaveCoverage } from '../../lib/scheduling/leave-coverage.js';
+import { payrollWindows, assertNotSettled } from '../../lib/scheduling/lock.js';
 import type { Pipelines } from './$types.js';
 
 type CompanyIdentity = {
@@ -31,25 +33,25 @@ function resolveLegalEntity(
 	);
 }
 
-const rowSchema = z.object({
-	employee_number: z.string().trim().min(1),
-	work_date: z.string().trim().min(1),
-	clock_in: z.string().trim().min(1),
-	clock_out: z.string().trim().optional(),
-	break_minutes: z.number().int().nonnegative().optional(),
-	/** Informational provenance only; leave and overtime are both derived elsewhere. */
-	reason: z.string().optional()
+const trimmedNonEmpty = Schema.Trimmed.check(Schema.isMinLength(1));
+
+const rowSchema = Schema.Struct({
+	employee_number: trimmedNonEmpty,
+	work_date: trimmedNonEmpty,
+	clock_in: trimmedNonEmpty,
+	clock_out: Schema.optional(trimmedNonEmpty),
+	break_minutes: Schema.optional(Schema.Int.check(Schema.isGreaterThanOrEqualTo(0)))
 });
 
-const importSchema = z.object({
-	timezone: z.string().trim().min(1),
-	legal_entity: z.string().trim().min(1).optional(),
-	month: z.string().trim().min(1).optional(),
-	rows: z.array(rowSchema).min(1)
+const importSchema = Schema.Struct({
+	timezone: trimmedNonEmpty,
+	legal_entity: Schema.optional(trimmedNonEmpty),
+	month: Schema.optional(trimmedNonEmpty),
+	rows: Schema.Array(rowSchema).check(Schema.isMinLength(1))
 });
 
 const QUERY_LIMIT = 20_000;
-type ImportRow = z.infer<typeof rowSchema>;
+type ImportRow = Schema.Schema.Type<typeof rowSchema>;
 
 function addDays(date: string, days: number): string {
 	return new Date(Date.parse(`${date}T00:00:00.000Z`) + days * 86_400_000)
@@ -57,7 +59,8 @@ function addDays(date: string, days: number): string {
 		.slice(0, 10);
 }
 
-function dateKey(value: string | Date): string {
+function dateKey(value: string | Date | null | undefined): string {
+	if (value == null) return '';
 	return typeof value === 'string' ? value.slice(0, 10) : value.toISOString().slice(0, 10);
 }
 
@@ -150,142 +153,194 @@ export default {
 		description:
 			'Loads a month of local attendance punches for one legal entity as generic worked intervals. The import never labels or stores overtime; payroll derives it from actual intervals and the schedule.',
 		input: importSchema,
-		handler: async ({ input }, api) => {
-			const {
-				timezone,
-				legal_entity: legalEntity,
-				month: fileMonth,
-				rows
-			} = importSchema.parse(input);
-			assertValidTimeZone(timezone);
+		handler: ({ input }, api) =>
+			Effect.gen(function* () {
+				const {
+					timezone,
+					legal_entity: legalEntity,
+					month: fileMonth,
+					rows
+				} = Schema.decodeUnknownSync(importSchema)(input);
+				assertValidTimeZone(timezone);
 
-			if (fileMonth != null) {
-				const bounds = monthBounds(fileMonth);
-				const outsideMonth = [
+				if (fileMonth != null) {
+					const bounds = monthBounds(fileMonth);
+					const outsideMonth = [
+						...new Set(
+							rows
+								.filter((row) => row.work_date < bounds.start || row.work_date > bounds.end)
+								.map((row) => `${row.employee_number} on ${row.work_date}`)
+						)
+					];
+					if (outsideMonth.length > 0) {
+						throw new Error(
+							`These rows do not belong to ${fileMonth}:\n${formatNamedList(outsideMonth)}`
+						);
+					}
+				}
+
+				let companyId: string | undefined;
+				if (legalEntity != null) {
+					const companies = yield* api.db.query.companies.findMany({
+						columns: { norbital_id: true, name: true, registration_number: true },
+						limit: QUERY_LIMIT
+					});
+					companyId = resolveLegalEntity(companies, legalEntity).norbital_id;
+				}
+
+				const invalidDates = [
 					...new Set(
-						rows
-							.filter((row) => row.work_date < bounds.start || row.work_date > bounds.end)
-							.map((row) => `${row.employee_number} on ${row.work_date}`)
+						rows.filter((row) => !isCalendarDate(row.work_date)).map((row) => row.work_date)
 					)
 				];
-				if (outsideMonth.length > 0) {
+				if (invalidDates.length > 0) {
 					throw new Error(
-						`These rows do not belong to ${fileMonth}:\n${formatNamedList(outsideMonth)}`
+						`These work_date values are not valid calendar days (YYYY-MM-DD):\n${formatNamedList(invalidDates)}`
 					);
 				}
-			}
+				const invalidClocks = rows.flatMap((row) =>
+					[
+						['clock_in', row.clock_in],
+						['clock_out', row.clock_out]
+					]
+						.filter((pair): pair is [string, string] => pair[1] != null && !isClockTime(pair[1]))
+						.map(
+							([field, value]) => `${row.employee_number} on ${row.work_date}: ${field} "${value}"`
+						)
+				);
+				if (invalidClocks.length > 0) {
+					throw new Error(
+						`These clock fields are not valid local times (HH:mm):\n${formatNamedList(invalidClocks)}`
+					);
+				}
 
-			let companyId: string | undefined;
-			if (legalEntity != null) {
-				const companies = await api.db.query.companies.findMany({
-					columns: { norbital_id: true, name: true, registration_number: true },
+				const seen = new Set<string>();
+				const repeated: string[] = [];
+				for (const row of rows) {
+					const key = `${row.employee_number}\t${row.work_date}`;
+					if (seen.has(key)) repeated.push(`${row.employee_number} on ${row.work_date}`);
+					seen.add(key);
+				}
+				if (repeated.length > 0) {
+					throw new Error(
+						`The import repeats the same employee and day:\n${formatNamedList(repeated)}\nKeep one row per person per operational day; use multiple worked intervals inside that entry when needed.`
+					);
+				}
+
+				const employeeNumbers = [...new Set(rows.map((row) => row.employee_number))];
+				const employments = yield* api.db.query.employments.findMany({
+					where: {
+						employee_number: { in: employeeNumbers },
+						...(companyId == null ? {} : { company_id: { eq: companyId } })
+					},
+					columns: { norbital_id: true, employee_number: true, company_id: true },
 					limit: QUERY_LIMIT
 				});
-				companyId = resolveLegalEntity(companies, legalEntity).norbital_id;
-			}
+				const idsByNumber = new Map<string, string[]>();
+				for (const employment of employments) {
+					const ids = idsByNumber.get(employment.employee_number) ?? [];
+					ids.push(employment.norbital_id);
+					idsByNumber.set(employment.employee_number, ids);
+				}
+				const ambiguous = employeeNumbers.filter(
+					(number) => (idsByNumber.get(number)?.length ?? 0) > 1
+				);
+				if (ambiguous.length > 0) {
+					throw new Error(
+						`These employee numbers exist in more than one company:\n${formatNamedList(ambiguous)}\nSet legal_entity on the Settings sheet to the employing entity this file is for.`
+					);
+				}
+				const idByNumber = new Map(
+					employments.map((employment) => [employment.employee_number, employment.norbital_id])
+				);
+				const unknown = employeeNumbers.filter((number) => !idByNumber.has(number));
+				if (unknown.length > 0) {
+					throw new Error(
+						companyId == null
+							? `These employee numbers are not on file:\n${formatNamedList(unknown)}`
+							: `These employee numbers are not employed by this legal entity:\n${formatNamedList(unknown)}`
+					);
+				}
+				const employmentIdFor = (number: string): string => {
+					const id = idByNumber.get(number);
+					if (id == null) throw new Error(`No employment resolved for ${number}.`);
+					return id;
+				};
 
-			const invalidDates = [
-				...new Set(rows.filter((row) => !isCalendarDate(row.work_date)).map((row) => row.work_date))
-			];
-			if (invalidDates.length > 0) {
-				throw new Error(
-					`These work_date values are not valid calendar days (YYYY-MM-DD):\n${formatNamedList(invalidDates)}`
-				);
-			}
-			const invalidClocks = rows.flatMap((row) =>
-				[
-					['clock_in', row.clock_in],
-					['clock_out', row.clock_out]
-				]
-					.filter((pair): pair is [string, string] => pair[1] != null && !isClockTime(pair[1]))
-					.map(
-						([field, value]) => `${row.employee_number} on ${row.work_date}: ${field} "${value}"`
-					)
-			);
-			if (invalidClocks.length > 0) {
-				throw new Error(
-					`These clock fields are not valid local times (HH:mm):\n${formatNamedList(invalidClocks)}`
-				);
-			}
-
-			const seen = new Set<string>();
-			const repeated: string[] = [];
-			for (const row of rows) {
-				const key = `${row.employee_number}\t${row.work_date}`;
-				if (seen.has(key)) repeated.push(`${row.employee_number} on ${row.work_date}`);
-				seen.add(key);
-			}
-			if (repeated.length > 0) {
-				throw new Error(
-					`The import repeats the same employee and day:\n${formatNamedList(repeated)}\nKeep one row per person per operational day; use multiple worked intervals inside that entry when needed.`
-				);
-			}
-
-			const employeeNumbers = [...new Set(rows.map((row) => row.employee_number))];
-			const employments = await api.db.query.employments.findMany({
-				where: {
-					employee_number: { in: employeeNumbers },
-					...(companyId == null ? {} : { company_id: { eq: companyId } })
-				},
-				columns: { norbital_id: true, employee_number: true },
-				limit: QUERY_LIMIT
-			});
-			const idsByNumber = new Map<string, string[]>();
-			for (const employment of employments) {
-				const ids = idsByNumber.get(employment.employee_number) ?? [];
-				ids.push(employment.norbital_id);
-				idsByNumber.set(employment.employee_number, ids);
-			}
-			const ambiguous = employeeNumbers.filter(
-				(number) => (idsByNumber.get(number)?.length ?? 0) > 1
-			);
-			if (ambiguous.length > 0) {
-				throw new Error(
-					`These employee numbers exist in more than one company:\n${formatNamedList(ambiguous)}\nSet legal_entity on the Settings sheet to the employing entity this file is for.`
-				);
-			}
-			const idByNumber = new Map(
-				employments.map((employment) => [employment.employee_number, employment.norbital_id])
-			);
-			const unknown = employeeNumbers.filter((number) => !idByNumber.has(number));
-			if (unknown.length > 0) {
-				throw new Error(
-					companyId == null
-						? `These employee numbers are not on file:\n${formatNamedList(unknown)}`
-						: `These employee numbers are not employed by this legal entity:\n${formatNamedList(unknown)}`
-				);
-			}
-			const employmentIdFor = (number: string): string => {
-				const id = idByNumber.get(number);
-				if (id == null) throw new Error(`No employment resolved for ${number}.`);
-				return id;
-			};
-
-			const existing = await api.db.query.time_entries.findMany({
-				where: {
-					employment_id: {
-						in: [...new Set(rows.map((row) => employmentIdFor(row.employee_number)))]
+				const existing = yield* api.db.query.time_entries.findMany({
+					where: {
+						employment_id: {
+							in: [...new Set(rows.map((row) => employmentIdFor(row.employee_number)))]
+						},
+						work_date: { in: [...new Set(rows.map((row) => row.work_date))] }
 					},
-					work_date: { in: [...new Set(rows.map((row) => row.work_date))] }
-				},
-				columns: { employment_id: true, work_date: true },
-				limit: QUERY_LIMIT
-			});
-			const existingKeys = new Set(
-				existing.map((entry) => `${entry.employment_id}\t${dateKey(entry.work_date)}`)
-			);
-			const present = rows
-				.filter((row) =>
-					existingKeys.has(`${employmentIdFor(row.employee_number)}\t${row.work_date}`)
-				)
-				.map((row) => `${row.employee_number} on ${row.work_date}`);
-			if (present.length > 0) {
-				throw new Error(
-					`These days already have attendance:\n${formatNamedList(present)}\nUpdate the existing entry instead of importing a duplicate.`
+					columns: { employment_id: true, work_date: true },
+					limit: QUERY_LIMIT
+				});
+				const existingKeys = new Set(
+					existing.map((entry) => `${entry.employment_id}\t${dateKey(entry.work_date)}`)
 				);
-			}
+				const present = rows
+					.filter((row) =>
+						existingKeys.has(`${employmentIdFor(row.employee_number)}\t${row.work_date}`)
+					)
+					.map((row) => `${row.employee_number} on ${row.work_date}`);
+				if (present.length > 0) {
+					throw new Error(
+						`These days already have attendance:\n${formatNamedList(present)}\nUpdate the existing entry instead of importing a duplicate.`
+					);
+				}
 
-			return rows.map((row) => createPayload(row, timezone, employmentIdFor(row.employee_number)));
-		}
+				// One writer wins the day even on import: attendance cannot be loaded onto a day
+				// approved leave already owns, or onto a day a paid payroll run settled.
+				const employmentIds = [...new Set(rows.map((row) => employmentIdFor(row.employee_number)))];
+				const workDates = [...new Set(rows.map((row) => row.work_date))].toSorted();
+				const first = workDates[0]!;
+				const last = workDates.at(-1)!;
+				const companyIds = [...new Set(employments.map((employment) => employment.company_id))];
+				if (companyIds.length > 0) {
+					const runs = yield* api.db.query.payroll_runs.findMany({
+						where: { company_id: { in: companyIds } },
+						columns: { period: true, lifecycle: true, attendance_from: true, attendance_to: true },
+						limit: QUERY_LIMIT
+					});
+					const windows = payrollWindows(runs);
+					for (const row of rows) assertNotSettled(windows, row.work_date, 'Importing attendance');
+				}
+				const leaveRows = yield* api.db.query.leave_requests.findMany({
+					where: {
+						employment_id: { in: employmentIds },
+						kind: { eq: 'TIME_OFF' },
+						norbital_approval_id: { isNull: true },
+						from_date: { lte: last },
+						to_date: { gte: first }
+					},
+					columns: {
+						employment_id: true,
+						from_date: true,
+						to_date: true,
+						half_day_start: true,
+						half_day_end: true
+					},
+					limit: QUERY_LIMIT
+				});
+				for (const row of rows) {
+					const employmentId = employmentIdFor(row.employee_number);
+					const covering = leaveRows
+						.filter((request) => request.employment_id === employmentId)
+						.find((request) => leaveCoverage(request, row.work_date).fullDay);
+					if (covering != null) {
+						throw new Error(
+							`${row.employee_number} on ${row.work_date} is covered by approved leave ` +
+								`${dateKey(covering.from_date)} → ${dateKey(covering.to_date)}. Attendance on a ` +
+								'leave day is not recorded; amend or cancel that leave first.'
+						);
+					}
+				}
+
+				return rows.map((row) =>
+					createPayload(row, timezone, employmentIdFor(row.employee_number))
+				);
+			})
 	}
 } satisfies Pipelines;

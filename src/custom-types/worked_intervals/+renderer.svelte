@@ -1,7 +1,8 @@
 <script lang="ts">
+	import { Result, Schema } from 'effect';
 	import { Button } from '@norbital-ai/ui/button';
 	import { useI18n } from '@norbital-ai/ui/i18n';
-	import type { TenantI18nKeys } from '$pod/i18n-keys';
+	import type { TenantI18nKeys } from '$bolt/i18n-keys';
 	import { TimeRangeField, type TimeRange } from '@norbital-ai/ui/time-range';
 	import { Inline, Stack } from '@norbital-ai/ui/layout';
 	import { parseAbsoluteToLocal, type ZonedDateTime } from '@internationalized/date';
@@ -11,8 +12,8 @@
 	let props: RendererProps = $props();
 	const { t } = useI18n<TenantI18nKeys>();
 	const disabled = $derived(props.mode === 'edit' ? props.disabled : true);
-	const parsed = $derived(workedIntervalsSchema.safeParse(props.value));
-	const current = $derived(parsed.success ? parsed.data : []);
+	const parsed = $derived(Schema.decodeUnknownResult(workedIntervalsSchema)(props.value));
+	const current = $derived(Result.isSuccess(parsed) ? parsed.success : []);
 	const summary = $derived(
 		current
 			.map(

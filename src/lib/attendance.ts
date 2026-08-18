@@ -1,27 +1,53 @@
-import { workedIntervalsSchema } from '../custom-types/worked_intervals/+definition.js';
+import type { WorkedInterval } from '../custom-types/worked_intervals/+definition.js';
 
 export type AttendanceState = 'OPEN' | 'COMPLETE' | 'INVALID';
 
-export function attendanceState(value: unknown): AttendanceState {
-	const parsed = workedIntervalsSchema.safeParse(value);
-	if (!parsed.success) return 'INVALID';
-	return parsed.data.some((interval) => interval.end_at == null) ? 'OPEN' : 'COMPLETE';
+/**
+ * A `worked_intervals` value read from storage is already decoded against the strict worked-
+ * intervals schema at the write boundary, so these helpers read the typed intervals directly.
+ */
+export function attendanceState(value: readonly WorkedInterval[]): AttendanceState {
+	return value.some((interval) => interval.end_at == null) ? 'OPEN' : 'COMPLETE';
 }
 
-export function attendanceBoundary(value: unknown, boundary: 'FIRST' | 'LAST'): string | null {
-	const parsed = workedIntervalsSchema.safeParse(value);
-	if (!parsed.success || parsed.data.length === 0) return null;
-	if (boundary === 'FIRST') return parsed.data[0]!.start_at;
-	return parsed.data.at(-1)?.end_at ?? null;
+/**
+ * Reads a stored `worked_intervals` value back into typed intervals.
+ *
+ * A table cell hands its value as `unknown` — the column carries no element type — so the UI needs
+ * one place that decides whether a value really is a list of intervals. Returns null rather than
+ * throwing: a render pass reports malformed attendance as INVALID, it does not fail the page.
+ */
+export function readWorkedIntervals(value: unknown): readonly WorkedInterval[] | null {
+	if (!Array.isArray(value)) return null;
+	const intervals: WorkedInterval[] = [];
+	for (const entry of value) {
+		if (typeof entry !== 'object' || entry === null) return null;
+		const startAt = Reflect.get(entry, 'start_at');
+		const endAt = Reflect.get(entry, 'end_at');
+		if (typeof startAt !== 'string') return null;
+		if (endAt != null && typeof endAt !== 'string') return null;
+		intervals.push({ start_at: startAt, end_at: endAt ?? null });
+	}
+	return intervals;
 }
 
-export function workedMinutes(value: unknown, breakMinutes: unknown): number | null {
-	const parsed = workedIntervalsSchema.safeParse(value);
-	if (!parsed.success || parsed.data.some((interval) => interval.end_at == null)) return null;
-	const gross = parsed.data.reduce(
-		(total, interval) =>
-			total + (Date.parse(interval.end_at!) - Date.parse(interval.start_at)) / 60_000,
-		0
-	);
+export function attendanceBoundary(
+	value: readonly WorkedInterval[],
+	boundary: 'FIRST' | 'LAST'
+): string | null {
+	if (value.length === 0) return null;
+	if (boundary === 'FIRST') return value[0]!.start_at;
+	return value.at(-1)?.end_at ?? null;
+}
+
+export function workedMinutes(
+	value: readonly WorkedInterval[],
+	breakMinutes: number | null | undefined
+): number | null {
+	let gross = 0;
+	for (const interval of value) {
+		if (interval.end_at == null) return null;
+		gross += (Date.parse(interval.end_at) - Date.parse(interval.start_at)) / 60_000;
+	}
 	return Math.max(0, gross - Number(breakMinutes ?? 0));
 }

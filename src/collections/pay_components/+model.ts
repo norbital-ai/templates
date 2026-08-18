@@ -6,13 +6,13 @@ import {
 	sql,
 	text,
 	uuid
-} from '@norbital-ai/pod/authoring';
+} from '@norbital-ai/bolt/authoring';
 
 export default defineModel(
 	{
 		company_id: uuid().notNull(),
+		/** The one label of a pay item. Code and description are the same field; nothing else names it. */
 		code: text({ search: true }).notNull(),
-		name: text({ search: true }).notNull(),
 		/**
 		 * The component's complete economic type. The discriminated union fixes its settlement direction
 		 * and owns every effective-dated statutory decision; there is no component-types lookup table.
@@ -28,8 +28,8 @@ export default defineModel(
 	},
 	{
 		description:
-			"The customer's complete pay catalogue: name, strict settlement/statutory policy, eligibility and polymorphic calculation definition in one row.",
-		recordLabel: ['code', 'name'],
+			"The customer's complete pay catalogue: code, strict settlement/statutory policy, eligibility and polymorphic calculation definition in one row.",
+		recordLabel: ['code'],
 		icon: 'lucide:receipt',
 		// Plan 02 §7: one overtime rule may be mapped by at most one component per company, so a
 		// derived overtime line can never be paid twice. Filtered on the source, so the new

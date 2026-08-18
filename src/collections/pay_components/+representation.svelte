@@ -4,9 +4,9 @@
 	 * editable uuid; it is a relationship and reads as the entity's name. `nature` is a read-only
 	 * projection of `policy` and is not offered as a field.
 	 */
-	import { client } from '$pod/client';
+	import { client } from '../../lib/workspace-client.js';
 	import { useI18n } from '@norbital-ai/ui/i18n';
-	import type { TenantI18nKeys } from '$pod/i18n-keys';
+	import type { TenantI18nKeys } from '$bolt/i18n-keys';
 	import type { RepresentationProps } from './$types.js';
 	import { CollectionForm } from '@norbital-ai/ui/collection-form';
 	import { Column, Grid } from '@norbital-ai/ui/layout';
@@ -26,7 +26,6 @@
 <CollectionForm
 	{client}
 	collection="pay_components"
-	recordId={record?.norbital_id}
 	defaultValues={record ?? undefined}
 	submitLabel={record ? t('component.save_pay_component') : t('component.create_pay_component')}
 	onAfterSubmit={record ? undefined : close}
@@ -48,7 +47,6 @@
 				}}
 			/>
 			<Field name="code" label={t('component.code')} />
-			<Field name="name" label={t('component.name')} />
 			<Field name="sequence" label={t('component.applied_at')} />
 			<Column span="all"><Field name="policy" label={t('component.economic_type')} /></Column>
 			<Column span="all"><Field name="definition" label={t('component.how_calculated')} /></Column>

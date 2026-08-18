@@ -4,7 +4,7 @@
 		type CollectionTableNavigationTarget
 	} from '@norbital-ai/ui/collection-table';
 	import { useI18n } from '@norbital-ai/ui/i18n';
-	import type { TenantI18nKeys } from '$pod/i18n-keys';
+	import type { TenantI18nKeys } from '$bolt/i18n-keys';
 	import type { MatrixCellRendererProps } from '@norbital-ai/ui/data-renderer/matrix';
 	import { formatPayrollCycleDate, repaymentShortfall } from './repayment-consumption.js';
 	import type {

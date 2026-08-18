@@ -1,5 +1,5 @@
 import type { Relationships } from './$types.js';
-import { cascade } from '@norbital-ai/pod/authoring';
+import { cascade } from '@norbital-ai/bolt/authoring';
 
 /**
  * The relation graph. Foreign keys are derived from here, never declared in a `+model.ts`.

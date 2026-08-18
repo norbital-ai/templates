@@ -1,7 +1,7 @@
 <script lang="ts">
-	import { client } from '$pod/client';
+	import { client } from '../../lib/workspace-client.js';
 	import { useI18n } from '@norbital-ai/ui/i18n';
-	import type { TenantI18nKeys } from '$pod/i18n-keys';
+	import type { TenantI18nKeys } from '$bolt/i18n-keys';
 	import { Button } from '@norbital-ai/ui/button';
 	import { CollectionForm } from '@norbital-ai/ui/collection-form';
 	import type { CollectionFormValidation } from '@norbital-ai/ui/collection-form';
@@ -43,7 +43,6 @@
 <CollectionForm
 	{client}
 	collection="repayment_agreements"
-	recordId={record?.norbital_id}
 	defaultValues={record ?? undefined}
 	{validation}
 	submitLabel={record

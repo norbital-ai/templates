@@ -7,7 +7,7 @@ import {
 	sql,
 	text,
 	uuid
-} from '@norbital-ai/pod/authoring';
+} from '@norbital-ai/bolt/authoring';
 
 export default defineModel(
 	{

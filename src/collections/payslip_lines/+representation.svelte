@@ -10,9 +10,9 @@
 	 * The three link columns are physical projections of `component`, so exactly one of them is set
 	 * on any line. Each resolves to the record's own `code · name`; the empty ones read `—`.
 	 */
-	import { client } from '$pod/client';
+	import { client } from '../../lib/workspace-client.js';
 	import { useI18n } from '@norbital-ai/ui/i18n';
-	import type { TenantI18nKeys } from '$pod/i18n-keys';
+	import type { TenantI18nKeys } from '$bolt/i18n-keys';
 	import type { RepresentationProps } from './$types.js';
 	import { CollectionForm } from '@norbital-ai/ui/collection-form';
 	import { Column, Grid } from '@norbital-ai/ui/layout';
@@ -23,13 +23,7 @@
 </script>
 
 {#if record}
-	<CollectionForm
-		{client}
-		collection="payslip_lines"
-		recordId={record.norbital_id}
-		defaultValues={record}
-		disabled
-	>
+	<CollectionForm {client} collection="payslip_lines" defaultValues={record} disabled>
 		{#snippet children({ Field })}
 			<Grid gap="md" minimum="panel">
 				<Field
@@ -59,10 +53,8 @@
 					rendererProps={{
 						target: 'pay_components',
 						options: {
-							label: (component) =>
-								[component.code, component.name]
-									.filter((part) => part != null && part !== '')
-									.join(' · ') || '—',
+							label: (component: { readonly code?: unknown }) =>
+								component.code != null && component.code !== '' ? String(component.code) : '—',
 							orderBy: { code: 'asc' },
 							limit: 500
 						}

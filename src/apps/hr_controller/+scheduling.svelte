@@ -1,8 +1,9 @@
 <script lang="ts">
-	import { client } from '$pod/client';
+	import { client } from '../../lib/workspace-client.js';
 	import { useI18n } from '@norbital-ai/ui/i18n';
-	import AppHeaderActions from '@norbital-ai/pod/client/app-header-actions';
-	import type { TenantI18nKeys } from '$pod/i18n-keys';
+	import AppHeaderActions from '@norbital-ai/bolt/client/app-header-actions';
+	import type { TenantI18nKeys } from '$bolt/i18n-keys';
+	import type { WorkspaceRow } from '$bolt/types.js';
 	import { Tabs, type TabConfig } from '@norbital-ai/ui/tabs';
 	import { CollectionTable } from '@norbital-ai/ui/collection-table';
 	import { CollectionQueryState } from '@norbital-ai/ui/collection-query';
@@ -33,10 +34,12 @@
 		employmentMonthEmptyReason,
 		employmentOverlapsMonth,
 		holidayNamesByDate,
+		monthDays,
 		monthProgress,
 		type MonthDrafting
 	} from '../../lib/ui/roster/roster-month.js';
 	import { rosterCodeKind, workWindow } from '../../lib/scheduling/roster-code.js';
+	import { payrollWindows, lockMap } from '../../lib/scheduling/lock.js';
 	import {
 		overlappingWorkShifts,
 		type ValidationDay
@@ -155,30 +158,17 @@
 		employments.filter((employment) => employmentOverlapsMonth(employment, month))
 	);
 	const emptyEmploymentReason = $derived(employmentMonthEmptyReason(employments, month));
-	const employeesQuery = $derived.by(() => {
-		void reloadToken;
-		if (selectedCompanyId == null) return null;
-		return client.db.employees.findMany({
-			where: {
-				...approved,
-				employment_employee: {
-					norbital_approval_id: { isNull: true },
-					company_id: { eq: selectedCompanyId }
-				}
-			},
-			limit: 1000
-		});
-	});
-	const employeeNameById = $derived(
-		new Map(
-			(employeesQuery?.current ?? []).map((employee) => [employee.norbital_id, employee.name])
-		)
-	);
+	type EmploymentPerson = WorkspaceRow<'employments'> & {
+		readonly employment_employee?: Pick<WorkspaceRow<'employees'>, 'name'> | null;
+	};
+	function employmentPersonName(row: EmploymentPerson): string {
+		return row.employment_employee?.name ?? '—';
+	}
 	const people = $derived(
 		monthEmployments.map((employment) => ({
 			id: employment.norbital_id,
 			number: employment.employee_number,
-			name: employeeNameById.get(employment.employee_id) ?? '—'
+			name: employmentPersonName(employment)
 		}))
 	);
 
@@ -331,6 +321,38 @@
 			limit: 2000
 		});
 	});
+	/**
+	 * Pending leave is drawn on the board as uncommitted coverage: it never reads as a taken day,
+	 * but it warns an operator who plans work into it. The roster hook allows the assignment; the
+	 * conflict flag makes the approval a decision rather than a silent double-book.
+	 */
+	const pendingLeaveQuery = $derived.by(() => {
+		void reloadToken;
+		if (selectedCompanyId == null) return null;
+		return client.db.leave_requests.findMany({
+			where: {
+				norbital_approval_id: { isNotNull: true },
+				leave_request_employment: { ...approved, company_id: { eq: selectedCompanyId } },
+				kind: { eq: 'TIME_OFF' },
+				from_date: { lte: monthEnd },
+				to_date: { gte: monthStart }
+			},
+			limit: 2000
+		});
+	});
+	/**
+	 * Every payroll run the company has, not just this month's: the board's lock stripes come from
+	 * whichever run's window covers each day, and a paid window is drawn and enforced everywhere.
+	 */
+	const payrollRunsQuery = $derived.by(() => {
+		void reloadToken;
+		if (selectedCompanyId == null) return null;
+		return client.db.payroll_runs.findMany({
+			where: { ...approved, company_id: { eq: selectedCompanyId } },
+			columns: { period: true, lifecycle: true, attendance_from: true, attendance_to: true },
+			limit: 500
+		});
+	});
 	const holidaysQuery = $derived.by(() => {
 		void reloadToken;
 		if (selectedCompanyId == null) return null;
@@ -358,11 +380,12 @@
 		{ label: 'filtered roster entries', query: filteredRosterEntriesQuery },
 		{ label: 'attendance', query: timeEntriesQuery },
 		{ label: 'leave', query: leaveQuery },
+		{ label: 'pending leave', query: pendingLeaveQuery },
 		{ label: 'holidays', query: holidaysQuery },
 		{ label: 'employments', query: employmentsQuery },
-		{ label: 'employees', query: employeesQuery },
 		{ label: 'employment schedules', query: employmentTermsQuery },
-		{ label: 'roster codes', query: shiftsQuery }
+		{ label: 'roster codes', query: shiftsQuery },
+		{ label: 'payroll runs', query: payrollRunsQuery }
 	]);
 	const boardErrors = $derived(
 		boardSources.flatMap((source) =>
@@ -403,10 +426,13 @@
 			rosterEntries: rosterEntriesQuery?.current ?? [],
 			timeEntries: timeEntriesQuery?.current ?? [],
 			leaveRequests: leaveQuery?.current ?? [],
+			pendingLeaveRequests: pendingLeaveQuery?.current ?? [],
 			holidays: companyHolidays,
 			rosterCodesById,
 			leaveCodeById,
-			cutoff
+			cutoff,
+			locks: lockMap(payrollWindows(payrollRunsQuery?.current ?? []), monthDays(month)),
+			today
 		})
 	);
 	const rosterEntries = $derived(rosterEntriesQuery?.current ?? []);
@@ -780,7 +806,6 @@
 		collection="roster_entries"
 		query={boardQuery}
 		navigation={monthNavigation}
-		searchPlaceholder={t('app.scheduling.search_people_placeholder')}
 		operations={{
 			importPipelines: [
 				{
@@ -935,6 +960,7 @@
 					{facts}
 					{today}
 					{holidayNames}
+					locks={lockMap(payrollWindows(payrollRunsQuery?.current ?? []), monthDays(month))}
 					{cutoff}
 					editable={draftRoster != null}
 					onSelectDay={openAssignment}
@@ -963,7 +989,6 @@
 						where: { company_id: { eq: selectedCompanyId }, ...activeRange },
 						orderBy: { code: 'asc' }
 					}}
-					searchPlaceholder={t('app.scheduling.search_shifts_placeholder')}
 					class="h-full min-h-0"
 				>
 					{#snippet columns({ Column })}
@@ -993,7 +1018,6 @@
 					where: { company_id: { eq: selectedCompanyId } },
 					orderBy: { date: 'desc' }
 				}}
-				searchPlaceholder={t('app.scheduling.search_holidays')}
 			>
 				{#snippet columns({ Column })}
 					<Column
