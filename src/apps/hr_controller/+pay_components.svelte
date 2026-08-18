@@ -64,11 +64,13 @@
 	type ComponentEntryRow = WorkspaceRow<'component_entries'> & {
 		readonly entry_employment?: Pick<WorkspaceRow<'employments'>, 'employee_number'> | null;
 		readonly entry_pay_component?: Pick<WorkspaceRow<'pay_components'>, 'code'> | null;
-		readonly entry_payslip_lines?: readonly {
-			readonly payslip_line_payslip?: {
-				readonly payslip_payroll_run?: Pick<WorkspaceRow<'payroll_runs'>, 'period'> | null;
-			} | null;
-		}[] | null;
+		readonly entry_payslip_lines?:
+			| readonly {
+					readonly payslip_line_payslip?: {
+						readonly payslip_payroll_run?: Pick<WorkspaceRow<'payroll_runs'>, 'period'> | null;
+					} | null;
+			  }[]
+			| null;
 	};
 
 	function employmentLabel(row: ComponentEntryRow): string {

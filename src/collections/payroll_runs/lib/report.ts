@@ -37,7 +37,7 @@ export type ReportLine = {
 	/** A capped employee reimbursement, excluding unrelated non-wage payments such as tax refunds. */
 	readonly isClaim: boolean;
 	readonly isLoanInstalment: boolean;
-	/** `OVERTIME` / `OVERTIME_EXCESS` lines carry the day type of the rule they pay. */
+	/** Derived overtime lines carry the day type of the statutory band that priced them. */
 	readonly overtimeDayType: 'ORDINARY' | 'REST_DAY' | 'PUBLIC_HOLIDAY' | null;
 	readonly isOvertimeExcess: boolean;
 };

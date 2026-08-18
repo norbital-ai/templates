@@ -34,7 +34,9 @@ const configuration = (overrides = {}) => ({
 	company: {
 		norbital_id: 'co-my',
 		name: 'Nihon (MY)',
-		pay_cutoff_day: 21
+		pay_cutoff_day: 21,
+		pay_day: 28,
+		pay_calendar: null
 	},
 	payComponents: [],
 	contributions: [],
@@ -44,40 +46,69 @@ const configuration = (overrides = {}) => ({
 	...overrides
 });
 
-test('an unmapped rest-day wage rule stops the run instead of quietly going unpaid', () => {
+test('a stated rest-day wage rule needs no pay component behind it', () => {
 	/*
-	 * This was the one warning with a written excuse: a day-wage rule was called unreachable "while
-	 * the hourly reading is in force". It is reachable — `priceDay` awards the highest day-wage band
-	 * a rest day entered — and `measure` pays a segment only if some pay component claims it, with
-	 * no complaint when none does. An unmapped rule is a day's wages the employee never sees.
+	 * There used to be an `OVERTIME_RULE_UNMAPPED` blocker here, because MEASURE paid a priced
+	 * segment only if some pay component claimed it and said nothing when none did — a day's wages
+	 * the employee worked for and never saw. The check is gone because the hole it guarded is gone:
+	 * a segment now becomes a payslip line on its own, so a stated rule pays by construction and
+	 * there is no mapping left to omit. This is the assertion that the company catalogue is not
+	 * consulted at all: an empty catalogue against a stated ladder is a clean configuration.
 	 */
 	const issues = validateConfiguration(configuration({ overtimeRules: [DAY_WAGE_RULE] }));
-	const unmapped = issues.filter((issue) => issue.code === 'OVERTIME_RULE_UNMAPPED');
-	assert.equal(unmapped.length, 1);
-	assert.match(unmapped[0].message, /REST_DAY FROM_START_OF_DAY/);
-	assert.match(unmapped[0].message, /would be unpaid/);
-	assert.equal(unmapped[0].collection, 'jurisdictions');
-	assert.equal(unmapped[0].recordId, 'jur-my');
+	assert.deepEqual(issues, []);
 });
 
-test('a mapped rule raises nothing, so an ordinary company still builds', () => {
+test('an overtime rule with no band can never be entered, and still stops the run', () => {
+	// No band means no hour can fall inside it, whatever MEASURE does with the segments it prices.
 	const issues = validateConfiguration(
-		configuration({
-			overtimeRules: [DAY_WAGE_RULE],
-			payComponents: [
-				{
-					norbital_id: 'pc-rest-day',
-					code: 'OT_REST_DAY',
-					nature: 'EARNING',
-					definition: {
-						source: 'OVERTIME',
-						rule: { day_type: 'REST_DAY', measure: 'FROM_START_OF_DAY', band_from: 0.5 }
-					}
-				}
-			]
-		})
+		configuration({ overtimeRules: [{ ...DAY_WAGE_RULE, band: null }] })
 	);
-	assert.deepEqual(issues, []);
+	assert.equal(issues.length, 1);
+	assert.equal(issues[0].code, 'OVERTIME_RULE_UNBANDED');
+	assert.equal(blockers(issues).length, 1);
+	assert.equal(issues[0].collection, 'jurisdictions');
+	assert.equal(issues[0].recordId, 'jur-my');
+});
+
+test('a scheme that has not said what it does with overtime cannot charge it', () => {
+	/*
+	 * The treatment grid's own rule, applied to the schedule that replaced its overtime row: an
+	 * empty position is an undecided scheme, never an exempt one. Reading the silence as EXCLUDE is
+	 * the dangerous outcome — an under-contribution nobody notices — so the run refuses instead.
+	 */
+	const scheme = (overrides) => ({
+		row: { norbital_id: 'sc-epf', code: 'EPF', sequence: 100, relief_for: [], special_rules: [] },
+		rates: [],
+		overtimeTreatment: undefined,
+		overtimeExcessTreatment: undefined,
+		...overrides
+	});
+	const stated = { authority: 'EPF Act 1991 s.2', treatment: { kind: 'EXCLUDE' } };
+
+	// A bandless scheme raises its own unrelated blocker; this test is about the overtime position.
+	const overtimeIssues = (contribution) =>
+		validateConfiguration(configuration({ contributions: [contribution] })).filter((issue) =>
+			issue.code.startsWith('OVERTIME_TREATMENT')
+		);
+
+	const undecided = overtimeIssues(scheme({}));
+	assert.equal(undecided.length, 2);
+	assert.equal(blockers(undecided).length, 2);
+	assert.equal(undecided[0].collection, 'statutory_contributions');
+	assert.equal(undecided[0].recordId, 'sc-epf');
+	assert.match(undecided[0].message, /EPF states no overtime position/);
+	assert.match(undecided[1].message, /EPF states no excess overtime position/);
+
+	// Only the ordinary position decided: the excess one is still a missing decision on its own.
+	const half = overtimeIssues(scheme({ overtimeTreatment: stated }));
+	assert.equal(half.length, 1);
+	assert.match(half[0].message, /no excess overtime position/);
+
+	assert.deepEqual(
+		overtimeIssues(scheme({ overtimeTreatment: stated, overtimeExcessTreatment: stated })),
+		[]
+	);
 });
 
 test('an exceeded overtime ceiling honors on_exceed: WARN is advisory, BLOCK refuses', () => {
@@ -192,7 +223,7 @@ test('a day past the hours-of-work limit is a warning that names whose day it wa
 	assert.equal(issues[0].recordId, 'time-entry-1', 'the issue links to the attendance row to fix');
 });
 
-test('a cadence the company calendar cannot express stops the run and names the people on it', () => {
+test('a cadence the company has written no calendar for stops the run and names the people on it', () => {
 	const issues = validatePayCalendar({
 		configuration: configuration(),
 		bundles: [
@@ -207,9 +238,87 @@ test('a cadence the company calendar cannot express stops the run and names the 
 		]
 	});
 	assert.equal(issues.length, 1);
+	assert.equal(issues[0].code, 'PAY_CALENDAR_CADENCE_UNSTATED');
 	assert.match(issues[0].message, /NHPMY0009/);
 	assert.doesNotMatch(issues[0].message, /NHPMY0002/, 'a monthly employment is not implicated');
 	assert.match(issues[0].message, /SEMI_MONTHLY/);
+});
+
+/**
+ * The defect this whole check used to be: twelve of twenty-three employments at the Philippine
+ * entity are semi-monthly because the law requires payment at least twice a month, and the run
+ * refused them for being data the model could not hold. A company that states the cadence's
+ * instalments raises nothing — the fault was never in the data.
+ */
+test('a semi-monthly employment is no fault once the company states that calendar', () => {
+	assert.deepEqual(
+		validatePayCalendar({
+			configuration: configuration({
+				company: {
+					norbital_id: 'co-ph',
+					name: 'Omni Plus System Philippines, Inc.',
+					pay_cutoff_day: 21,
+					pay_day: 30,
+					pay_calendar: [
+						{
+							pay_frequency: 'SEMI_MONTHLY',
+							instalments: [
+								{ start_day: 1, end_day: 15, pay_day: 15 },
+								{ start_day: 16, end_day: 31, pay_day: 30 }
+							]
+						}
+					]
+				}
+			}),
+			bundles: [
+				{
+					employment: { norbital_id: 'emp-1', employee_number: 'OPSPH0009' },
+					terms: [{ pay_frequency: 'SEMI_MONTHLY' }]
+				},
+				{
+					employment: { norbital_id: 'emp-2', employee_number: 'OPSPH0002' },
+					terms: [{ pay_frequency: 'MONTHLY' }]
+				}
+			]
+		}),
+		[]
+	);
+});
+
+/**
+ * A calendar keyed by day of month cannot describe a weekly cycle, so it is not expressible and the
+ * refusal stands. This is the check kept from the old one: a company that genuinely cannot pay
+ * someone on their stated frequency still stops the run.
+ */
+test('a cadence no calendar of instalments could describe is still refused', () => {
+	const issues = validatePayCalendar({
+		configuration: configuration({
+			company: {
+				norbital_id: 'co-ph',
+				name: 'Omni Plus System Philippines, Inc.',
+				pay_cutoff_day: 21,
+				pay_day: 30,
+				pay_calendar: [
+					{
+						pay_frequency: 'SEMI_MONTHLY',
+						instalments: [
+							{ start_day: 1, end_day: 15, pay_day: 15 },
+							{ start_day: 16, end_day: 31, pay_day: 30 }
+						]
+					}
+				]
+			}
+		}),
+		bundles: [
+			{
+				employment: { norbital_id: 'emp-3', employee_number: 'OPSPH0031' },
+				terms: [{ pay_frequency: 'WEEKLY' }]
+			}
+		]
+	});
+	assert.equal(issues.length, 1);
+	assert.match(issues[0].message, /OPSPH0031/);
+	assert.match(issues[0].message, /WEEKLY/);
 });
 
 test('an all-monthly company raises nothing', () => {

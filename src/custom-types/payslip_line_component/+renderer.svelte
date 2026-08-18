@@ -3,6 +3,7 @@
 	import { useI18n } from '@norbital-ai/ui/i18n';
 	import type { TenantI18nKeys } from '$bolt/i18n-keys';
 	import { payslipLineComponentSchema, type PayslipLineComponent } from './+definition.js';
+	import { formatOvertimeLineBand } from '../../lib/ui/display-formatters.js';
 	import type { RendererProps } from './$types.js';
 
 	/**
@@ -19,12 +20,22 @@
 	const parsed = $derived(Schema.decodeUnknownResult(payslipLineComponentSchema)(props.value));
 	const summary = $derived.by(() => {
 		if (!Result.isSuccess(parsed)) return '—';
-		const { kind } = parsed.success;
-		const key = catalogueKey(kind);
-		return key != null && has(key) ? t(key) : kind.replaceAll('_', ' ').toLowerCase();
+		const component = parsed.success;
+		// The two overtime arms are the exception to the paragraph above: they link to no record, so
+		// the surrounding table has nothing to resolve beside them and the cell is the only place the
+		// statutory band that priced the line can be read.
+		if (component.kind === 'OVERTIME' || component.kind === 'OVERTIME_EXCESS')
+			return formatOvertimeLineBand(
+				{ ...component, excess: component.kind === 'OVERTIME_EXCESS' },
+				t
+			);
+		const key = catalogueKey(component.kind);
+		return key != null && has(key) ? t(key) : component.kind.replaceAll('_', ' ').toLowerCase();
 	});
 
-	function catalogueKey(kind: PayslipLineComponent['kind']): TenantI18nKeys | null {
+	function catalogueKey(
+		kind: Exclude<PayslipLineComponent['kind'], 'OVERTIME' | 'OVERTIME_EXCESS'>
+	): TenantI18nKeys | null {
 		switch (kind) {
 			case 'COMPONENT_ENTRY_ONCE':
 				return 'renderer.payslip_line_component.entry_once';
@@ -38,8 +49,6 @@
 			case 'FORMULA':
 			case 'LEAVE_UNPAID':
 			case 'LOAN_INSTALMENT':
-			case 'OVERTIME':
-			case 'OVERTIME_EXCESS':
 			case 'DERIVED':
 				return null;
 			default: {

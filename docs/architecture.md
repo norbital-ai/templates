@@ -304,9 +304,12 @@ day-wage award for work within normal hours and an hourly award beyond normal ho
 legacy source's flat "1.5× hours" figure can differ from the statutory result, and why that figure
 is not an input.
 
-### Incentive OT (`OVERTIME_EXCESS`)
+### Incentive OT (excess overtime)
 
-Incentive OT is calculated output. Source incentive-overtime columns are never an input.
+Incentive OT is calculated output. Source incentive-overtime columns are never an input. Like
+ordinary overtime it is a derived payslip line naming the statutory band that priced it, not a pay
+component: there is nothing for a company to configure and nothing for two companies in one
+jurisdiction to disagree about.
 
 Two independent limits classify already-earned statutory OT value:
 
@@ -317,8 +320,8 @@ daily excess hours = floor½(max(0, actual work hours − 12))
 retained OT hours  = payable OT hours − daily excess hours
 ```
 
-The legal ladder prices the whole day first. The value associated with excess hours is moved to the
-matching `OVERTIME_EXCESS` component at the same statutory value; it is not discarded. The run then
+The legal ladder prices the whole day first. The value associated with excess hours is moved to an
+`OVERTIME_EXCESS` line at the same statutory value and under the same band; it is not discarded. The run then
 **fails** on `DAILY_WORK_LIMIT_EXCEEDED`, naming the employee and the date: reclassification settles
 what the day is worth, and does not make the schedule compliant.
 The 12-hour boundary is the statutory daily maximum outside the Act's exceptional circumstances,
@@ -334,7 +337,7 @@ The 104-hour counter:
 - advances chronologically by the full qualifying quantity, even when some hours also crossed the
   daily boundary.
 
-Only the portion above 104 hours is moved to `OVERTIME_EXCESS`.
+Only the portion above 104 hours is moved to an `OVERTIME_EXCESS` line.
 
 ### Unpaid leave and the settlement window
 
@@ -390,8 +393,8 @@ operators — covered irrespective of wages; and vessel work _excluded_ outright
 The ceiling is measured on First Schedule paragraph 3 wages — section 2 wages less commissions,
 subsistence allowance and overtime payment — and **not** on base salary. The engine derives that
 figure per employment: the contracted basic wage plus the signed totals of every cash-for-work
-component's entries settling in the run, with the overtime components left out
-(`classifyWageComparand` / `deriveStatutoryWages` in `payroll_runs/lib/coverage.ts`). A person on
+component's entries settling in the run — overtime cannot be among them, because it is not a
+component (`classifyWageComparand` / `deriveStatutoryWages` in `payroll_runs/lib/coverage.ts`). A person on
 RM3,800 basic plus a RM500 fixed allowance is outside the ladder; the old base-salary comparison
 said inside. Where the model cannot express a distinction the statute draws — commissions and
 subsistence allowance have no component category of their own — the derivation says so rather than
@@ -433,8 +436,15 @@ configuration. The formula is not copied into company pay components.
 | `SCHEDULE`        | Contract amount × period fraction                                           | Effective terms, employment range, roster divisor     |
 | `ENTRY`           | Sum of approved dated entries, with per-entry proration/cap when configured | Claims, allowances, recoveries, corrections           |
 | `FORMULA`         | Closed expression over measured components, terms, leave and period facts   | Ordinary rate information, NPL and derived allowances |
-| `OVERTIME`        | Dated statutory award after schedule/day classification                     | Time entry, shift, roster, holiday, OT rule           |
-| `OVERTIME_EXCESS` | Statutory value reclassified beyond daily/monthly control                   | Same time entry and rule as the original OT           |
+
+Overtime has no row here, because it has no definition source. It is measured from the priced
+segments themselves, one line per statutory band, and the two lines it produces —
+`OVERTIME` and `OVERTIME_EXCESS` — name the band rather than a component:
+
+| Derived line      | Measurement                                               | Typical inputs                              |
+| ----------------- | --------------------------------------------------------- | ------------------------------------------- |
+| `OVERTIME`        | Dated statutory award after schedule/day classification   | Time entry, shift, roster, holiday, OT rule |
+| `OVERTIME_EXCESS` | Statutory value reclassified beyond daily/monthly control | Same time entry and rule as the original OT |
 
 Amounts are stored as magnitudes. Earning/deduction direction comes from the pay component policy and
 contribution treatment. A correction never sneaks direction in through a negative amount.
@@ -620,13 +630,13 @@ flowchart LR
   F -->|"immutable"| C["Future correction event"]
 ```
 
-| Boundary             | Current guarantee                                                                    | Why                                                                                                      |
-| -------------------- | ------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------- |
-| Pending approval     | A record carrying `norbital_approval_id` is locked; payroll reads only approved rows | Prevents use and mutation while a decision is outstanding                                                |
-| Draft run            | Results may be wholly replaced by recalculation                                      | Keeps drafts responsive without mixing old and new lines                                                 |
-| Paid run             | Recalculation and deletion are blocked; output children cannot be deleted            | Preserves the exact result used for payment, YTD and audit                                               |
-| Loan instalment      | A recovery entry linked to a payslip is immutable                                    | Prevents a loan balance from changing behind a paid deduction                                            |
-| Leave event stream   | Corrections use new adjustment events                                                | A balance correction remains visible instead of rewriting history                                        |
+| Boundary             | Current guarantee                                                                    | Why                                                                                                                               |
+| -------------------- | ------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------- |
+| Pending approval     | A record carrying `norbital_approval_id` is locked; payroll reads only approved rows | Prevents use and mutation while a decision is outstanding                                                                         |
+| Draft run            | Results may be wholly replaced by recalculation                                      | Keeps drafts responsive without mixing old and new lines                                                                          |
+| Paid run             | Recalculation and deletion are blocked; output children cannot be deleted            | Preserves the exact result used for payment, YTD and audit                                                                        |
+| Loan instalment      | A recovery entry linked to a payslip is immutable                                    | Prevents a loan balance from changing behind a paid deduction                                                                     |
+| Leave event stream   | Corrections use new adjustment events                                                | A balance correction remains visible instead of rewriting history                                                                 |
 | General event source | `sourceLock` freezes the original leave, claim, or attendance row                    | Approved (live) leave and claims, a day that has already passed, a paid payroll window, or a payslip line that consumed the entry |
 
 Leave, claims and attendance share `src/lib/scheduling/lock.ts`. Hooks refuse the write; collection
@@ -665,8 +675,9 @@ MATCHING:   FK(line.entry_id, line.component_id, line.usage)
             -> component_entry(id, component_id, usage)
 ```
 
-Scheduled, formula and overtime lines link to their pay component and remain reproducible from the
-run snapshot plus approved inputs.
+Scheduled and formula lines link to their pay component and remain reproducible from the run
+snapshot plus approved inputs. Overtime lines link to no component at all — they name the statutory
+band that priced them, and `payslip_lines.pay_component_id` is simply NULL for them.
 
 ## Statutory overtime coverage: what is encoded, and what is not
 
@@ -722,11 +733,12 @@ run has no degraded state: an issue the operator was not forced to read was an i
 the engine returned these and the create hook discarded them. The column still records what the
 authority says, and the refusal quotes it; it does not decide who finds out.
 
-Separately, `pay_components.definition.after_total_work_hours` on `OVERTIME_EXCESS` components
-decides where a day's value is **reclassified**. That stays a pay-component concern rather than an
-statutory limit, because `on_exceed` offers only `WARN | BLOCK` and no `RECLASSIFY` — moving
-value between components is not the same act as refusing the run, and the two now happen for
-separate reasons: the component reclassifies, the limit refuses.
+The `DAY` / `TOTAL_WORK_HOURS` row does double duty: it is the boundary past which a day's value is
+**reclassified** to an `OVERTIME_EXCESS` line, as well as the ceiling whose breach refuses the run.
+Reclassifying and refusing are separate acts on the same statutory number — `on_exceed` offers only
+`WARN | BLOCK` and no `RECLASSIFY` — but the number itself is the statute's, not a company's. It
+used to be `pay_components.definition.after_total_work_hours` on the overflow components, which let
+a company quietly move a statutory boundary.
 
 #### Coverage — one nullable member per snapshot
 
@@ -767,12 +779,14 @@ The ceiling is only as good as the figure it is compared against. First Schedule
 less commissions, subsistence allowance and overtime payment. The engine derives that figure per
 employment in `measure.ts`, from the pay component model:
 
-| Component as modelled                             | Read as                                |
-| ------------------------------------------------- | -------------------------------------- |
-| `definition.source = SCHEDULE`                    | basic wages (from `employment_terms`)  |
-| `policy.kind = EARNING`, any other source         | another cash payment for work done     |
-| `definition.source = OVERTIME`, `OVERTIME_EXCESS` | overtime payment — para 3 takes it out |
-| every other kind                                  | not wages                              |
+| Component as modelled                     | Read as                               |
+| ----------------------------------------- | ------------------------------------- |
+| `definition.source = SCHEDULE`            | basic wages (from `employment_terms`) |
+| `policy.kind = EARNING`, any other source | another cash payment for work done    |
+| every other kind                          | not wages                             |
+
+Para 3's third exclusion, overtime payment, needs no row: overtime is not a pay component, so it is
+never in the set being classified and cannot enter the comparand to begin with.
 
 The amounts are the signed entry totals settling in the run for each component the employment is
 eligible for — the contractual monthly figures, not prorated amounts, because para 1A asks what a

@@ -22,11 +22,7 @@
 	} from '../../lib/ui/display-formatters.js';
 	import { runWorkbookImport } from '../../lib/ui/workbook-import.js';
 	import { timeEntryImportPayload } from '../../collections/time_entries/lib/import-workbook.js';
-	import {
-		attendanceBoundary,
-		attendanceState,
-		workedMinutes
-	} from '../../lib/attendance.js';
+	import { attendanceBoundary, attendanceState, workedMinutes } from '../../lib/attendance.js';
 	import {
 		payrollWindows,
 		sourceLock,

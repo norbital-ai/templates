@@ -1,7 +1,53 @@
 import { Effect } from 'effect';
 import { refuse } from '@norbital-ai/bolt/authoring';
 import type { SettlementPolicy } from '../../custom-types/settlement_policy/+definition.js';
+import {
+	payCalendarInstalments,
+	PAY_FREQUENCIES,
+	type PayFrequency,
+	type StoredPayCalendar
+} from '../payroll_runs/lib/period.js';
 import type { Hooks } from './$types.js';
+
+/**
+ * A pay calendar that does not tile a month is refused before it is stored.
+ *
+ * The engine reads this on every run and refuses it there too, but a calendar whose instalments
+ * overlap or leave a gap is a fact about the company, not about one run: stored, it would pay a day
+ * twice or pay it never, every month, for everyone on that cadence, and the arithmetic would look
+ * ordinary the whole time. Both a 31-day month and February are checked, because an instalment that
+ * closes on the 30th tiles January and leaves February's last day to nobody.
+ */
+function assertPayCalendar(calendar: StoredPayCalendar | undefined): void {
+	if (calendar == null) return;
+	for (const entry of calendar) {
+		const frequency: PayFrequency | undefined = PAY_FREQUENCIES.find(
+			(candidate) => candidate === entry.pay_frequency
+		);
+		if (frequency === undefined)
+			refuse(
+				`pay_calendar states a calendar for "${String(entry.pay_frequency)}", which is not a pay ` +
+					'frequency any employment terms can carry.'
+			);
+		else if (frequency === 'MONTHLY')
+			refuse(
+				'pay_calendar cannot state a MONTHLY calendar: pay_cutoff_day and pay_day are the ' +
+					'monthly calendar, and two places to write one fact is two places for them to disagree.'
+			);
+		else
+			for (const period of ['2026-01', '2026-02']) {
+				try {
+					payCalendarInstalments(
+						period,
+						{ pay_cutoff_day: 1, pay_day: 1, pay_calendar: calendar },
+						frequency
+					);
+				} catch (error) {
+					refuse(error instanceof Error ? error.message : String(error));
+				}
+			}
+	}
+}
 
 /**
  * `settlement_policy` is a variant, and a variant cannot be a foreign key — so the two ids inside
@@ -57,9 +103,10 @@ export default {
 	create: {
 		before: {
 			description:
-				'Refuses a company whose settlement policy defers late-joiner arrears to a pay component that does not exist or cannot carry an entry, or names an unknown statutory contribution as the extended-unpaid-leave population.',
+				'Refuses a company whose pay calendar does not tile a month, restates the monthly calendar, or whose settlement policy defers late-joiner arrears to a pay component that does not exist or cannot carry an entry, or names an unknown statutory contribution as the extended-unpaid-leave population.',
 			handler: ({ input, api }) =>
 				Effect.gen(function* () {
+					assertPayCalendar(input.pay_calendar);
 					yield* assertReferences(input.settlement_policy, api);
 					return input;
 				})
@@ -68,9 +115,10 @@ export default {
 	update: {
 		before: {
 			description:
-				'Re-checks the company settlement policy whenever it is edited, so an arrears component or extended-leave contribution scheme cannot be pointed at an id that no longer resolves.',
+				'Re-checks the company pay calendar and settlement policy whenever either is edited, so a cadence cannot be left with a month it half covers and an arrears component or extended-leave contribution scheme cannot be pointed at an id that no longer resolves.',
 			handler: ({ input, api }) =>
 				Effect.gen(function* () {
+					if (input.pay_calendar !== undefined) assertPayCalendar(input.pay_calendar);
 					if (input.settlement_policy !== undefined)
 						yield* assertReferences(input.settlement_policy, api);
 					return input;

@@ -30,10 +30,13 @@ export type Money = { readonly value: number; readonly currency: string };
  *
  * - `BASIC_WAGES`   — the contracted wage from `employment_terms` (source `SCHEDULE`).
  * - `CASH_FOR_WORK` — an `EARNING` component: any other cash payment for work done.
- * - `OVERTIME_PAY`  — a component the engine prices from the overtime ladder (sources `OVERTIME`
- *                     and `OVERTIME_EXCESS`). Para 3 names this exclusion in terms.
  * - `NOT_WAGES`     — everything else: information, deductions, absences, employer costs, and
  *                     `NON_WAGE_PAYMENT` reimbursements, none of which is a cash payment for work.
+ *
+ * Para 3's third exclusion, overtime payment, needs no category. Overtime is not a pay component at
+ * all — it is derived from `time_entries` against the jurisdiction's overtime rules — so it is
+ * never in the set being classified, and the comparand excludes it structurally rather than by
+ * filtering it back out.
  *
  * Two para 3 exclusions the component model cannot express: **commissions and subsistence
  * allowance have no category of their own.** Nothing on `pay_components.policy` or
@@ -43,7 +46,7 @@ export type Money = { readonly value: number; readonly currency: string };
  * population is affected by the gap — but a company that adds one must know the comparand will
  * overstate until the model carries the distinction.
  */
-export type WageComparandCategory = 'BASIC_WAGES' | 'CASH_FOR_WORK' | 'OVERTIME_PAY' | 'NOT_WAGES';
+export type WageComparandCategory = 'BASIC_WAGES' | 'CASH_FOR_WORK' | 'NOT_WAGES';
 
 export type WageComparandComponent = {
 	readonly policy: { readonly kind: string } | null;
@@ -53,7 +56,6 @@ export type WageComparandComponent = {
 /** Classify one pay component for the wage comparand. See `WageComparandCategory`. */
 export function classifyWageComparand(component: WageComparandComponent): WageComparandCategory {
 	const source = component.definition?.source;
-	if (source === 'OVERTIME' || source === 'OVERTIME_EXCESS') return 'OVERTIME_PAY';
 	if (source === 'SCHEDULE') return 'BASIC_WAGES';
 	if (component.policy?.kind === 'EARNING') return 'CASH_FOR_WORK';
 	return 'NOT_WAGES';

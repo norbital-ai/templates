@@ -32,11 +32,21 @@ export type LeaveType = WorkspaceRow<'leave_types'>;
 export type ContributionRate = WorkspaceRow<'contribution_rates'>;
 export type Treatment = NonNullable<PayComponent['policy']>['statutory_treatments'][number];
 export type StatutoryContribution = WorkspaceRow<'statutory_contributions'>;
+export type OvertimeTreatment = NonNullable<StatutoryContribution['overtime_treatments']>[number];
 
 /** One statutory scheme with the bands that were effective when the run was picked. */
 export type ContributionConfig = {
 	readonly row: StatutoryContribution;
 	readonly rates: readonly ContributionRate[];
+	/**
+	 * What this scheme does with derived overtime, and with the excess the daily total-work-hours
+	 * boundary reclassifies — the one entry of each schedule that was in force on the period end.
+	 *
+	 * `undefined` is a scheme that has stated no overtime position. That is a missing decision, not
+	 * an exemption, and ACCUMULATE refuses the run rather than reading the silence as `EXCLUDE`.
+	 */
+	readonly overtimeTreatment: OvertimeTreatment | undefined;
+	readonly overtimeExcessTreatment: OvertimeTreatment | undefined;
 };
 
 export type Configuration = {
@@ -64,6 +74,29 @@ export type Configuration = {
 
 function treatmentKey(payComponentId: string, contributionId: string): string {
 	return `${payComponentId}:${contributionId}`;
+}
+
+/**
+ * The one overtime position a scheme's schedule states for a date.
+ *
+ * Two entries covering the same day is a seeding fault, not a preference: nothing here could pick
+ * between them, and picking the first would make the answer depend on array order.
+ */
+function effectiveOvertimeTreatment(options: {
+	readonly schedule: readonly OvertimeTreatment[] | null;
+	readonly code: string;
+	readonly column: string;
+	readonly asOf: IsoDate;
+}): OvertimeTreatment | undefined {
+	const covering = (options.schedule ?? []).filter((entry) =>
+		coversDate(entry.effective_range, options.asOf)
+	);
+	if (covering.length > 1)
+		throw new Error(
+			`${options.code}.${options.column} states ${covering.length} overtime positions effective on ` +
+				`${options.asOf}. A scheme charges overtime one way on any given day.`
+		);
+	return covering[0];
 }
 
 export function lookupTreatment(
@@ -220,7 +253,19 @@ export function pickConfiguration(options: {
 			jurisdiction,
 			contributions: contributions.map((row) => ({
 				row,
-				rates: (ratesByContribution.get(row.norbital_id) ?? []).toSorted(bandOrder)
+				rates: (ratesByContribution.get(row.norbital_id) ?? []).toSorted(bandOrder),
+				overtimeTreatment: effectiveOvertimeTreatment({
+					schedule: row.overtime_treatments,
+					code: row.code,
+					column: 'overtime_treatments',
+					asOf
+				}),
+				overtimeExcessTreatment: effectiveOvertimeTreatment({
+					schedule: row.overtime_excess_treatments,
+					code: row.code,
+					column: 'overtime_excess_treatments',
+					asOf
+				})
 			})),
 			treatments,
 			payComponents,
@@ -257,7 +302,14 @@ export function configurationSnapshot(
 			configuration.jurisdiction.ordinary_rate_divisor
 		],
 		tax_year_start_month: configuration.jurisdiction.tax_year_start_month,
-		pay_calendar: [configuration.company.pay_cutoff_day, configuration.company.pay_day],
+		// The whole calendar, not only the monthly half of it: a company that changes when its
+		// semi-monthly instalments open, close or pay produces different payslips for the same month,
+		// so the hash has to move with it.
+		pay_calendar: [
+			configuration.company.pay_cutoff_day,
+			configuration.company.pay_day,
+			configuration.company.pay_calendar ?? null
+		],
 		overtime_calculation_method: configuration.company.overtime_calculation_method,
 		// Settlement is part of the law a payslip was computed under: change when a joining period
 		// settles and the same month produces a different set of payslips, so a rebuild must hash
@@ -271,7 +323,13 @@ export function configurationSnapshot(
 			rounding: entry.row.rounding,
 			special_rules: [...entry.row.special_rules].toSorted(),
 			relief_for: [...entry.row.relief_for].toSorted(),
-			rates: entry.rates.map((rate) => [rate.selector, rate.award])
+			rates: entry.rates.map((rate) => [rate.selector, rate.award]),
+			// The overtime position is law the run was computed under exactly as a band is: change
+			// what EPF does with overtime and the same month owes a different figure, so the hash has
+			// to move. Only the entry actually in force is hashed, for the same reason only the
+			// effective bands are.
+			overtime: entry.overtimeTreatment?.treatment ?? null,
+			overtime_excess: entry.overtimeExcessTreatment?.treatment ?? null
 		})),
 		treatments: [...configuration.treatments]
 			.map(([key, treatment]) => [key, treatment.treatment])

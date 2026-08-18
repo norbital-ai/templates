@@ -49,6 +49,7 @@
 			<Field name="pay_cutoff_day" label={t('component.attendance_cutoff_day')} />
 			<Field name="pay_day" label={t('component.pay_day')} />
 			<Field name="leave_year_start_month" label={t('component.leave_year_starts_in_month')} />
+			<Column span="all"><Field name="pay_calendar" label={t('component.pay_calendar')} /></Column>
 			<Field name="overtime_calculation_method" label={t('component.overtime_calculation')} />
 			<Stack gap="xs">
 				<Field name="risk_class" label={t('component.statutory_risk_class')} />

@@ -297,149 +297,151 @@
 		>
 			<Scroll name={t('component.leave_range')} axis="y" grow>
 				<Stack gap="sm" class="p-3">
-				<Inline justify="between" align="center">
-					<Button
-						type="button"
-						variant="ghost"
-						size="icon"
-						aria-label={t('component.previous_month')}
-						onclick={() => shiftMonth(-1)}
-					>
-						<Icon icon="lucide:chevron-left" class="size-4" />
-					</Button>
-					<p class="text-sm font-semibold" aria-live="polite">{monthLabel}</p>
-					<Button
-						type="button"
-						variant="ghost"
-						size="icon"
-						aria-label={t('component.next_month')}
-						onclick={() => shiftMonth(1)}
-					>
-						<Icon icon="lucide:chevron-right" class="size-4" />
-					</Button>
-				</Inline>
-
-				<div
-					class="grid gap-1 [grid-template-columns:repeat(7,minmax(2.5rem,1fr))]"
-					role="group"
-					aria-label={t('component.leave_range')}
-					onpointerup={() => {
-						dragging = false;
-					}}
-				>
-					{#each weekdays as weekday (weekday)}
-						<span class="min-w-[2.5rem] pb-1 text-center text-xs font-medium text-muted-foreground">
-							{weekday}
-						</span>
-					{/each}
-					{#each days as date (date)}
-						{@const inMonth = date.slice(0, 7) === visibleMonth}
-						{@const dayAvailability = availabilityFor(date)}
-						{@const firstOn = selected(value, { date, half: 'FIRST' })}
-						{@const secondOn = selected(value, { date, half: 'SECOND' })}
-						<button
+					<Inline justify="between" align="center">
+						<Button
 							type="button"
-							class={cn(
-								'relative flex min-h-14 min-w-[2.5rem] w-full flex-col overflow-hidden rounded-md border text-left transition-colors focus-visible:z-10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
-								date === today && 'border-primary',
-								date !== today && 'border-transparent',
-								!inMonth && 'pointer-events-none text-muted-foreground/50',
-								dayAvailability.eligible === false &&
-									'cursor-not-allowed bg-muted/60 text-muted-foreground',
-								dayAvailability.eligible !== false && 'text-foreground hover:bg-accent/60',
-								overLimit && (firstOn || secondOn) && 'ring-1 ring-destructive'
-							)}
-							disabled={disabled || dayAvailability.eligible === false || !inMonth}
-							aria-label={`${date}${dayAvailability.shiftLabel ? ` · ${dayAvailability.shiftLabel}` : ''}${dayAvailability.reason ? ` — ${dayAvailability.reason}` : ''}`}
-							title={dayAvailability.reason ??
-								(dayAvailability.firstHalfLabel != null && dayAvailability.secondHalfLabel != null
-									? `${t('component.first_half')}: ${dayAvailability.firstHalfLabel} · ${t('component.second_half')}: ${dayAvailability.secondHalfLabel}`
-									: dayAvailability.shiftLabel)}
-							onpointerdown={(event) => {
-								event.preventDefault();
-								begin(halfFromEvent(event, date));
-							}}
-							onpointerenter={(event) => dragging && apply(halfFromEvent(event, date))}
-							onpointerup={(event) => finish(halfFromEvent(event, date))}
-							onclick={(event) => clickPoint(halfFromEvent(event, date))}
+							variant="ghost"
+							size="icon"
+							aria-label={t('component.previous_month')}
+							onclick={() => shiftMonth(-1)}
 						>
-							<span
-								class="pointer-events-none absolute top-0.5 left-0.5 z-10 rounded-sm bg-background/80 px-0.5 text-[0.625rem] font-semibold tabular-nums"
-							>
-								{Number(date.slice(8))}
-							</span>
-							{#if inMonth && dayAvailability.eligible === false && dayAvailability.reasonMark != null}
-								<span
-									class="pointer-events-none absolute top-0.5 right-0.5 z-10 text-[0.625rem] leading-none text-muted-foreground"
-									aria-hidden="true"
-								>
-									{dayAvailability.reasonMark}
-								</span>
-							{/if}
-							{#if inMonth}
-								<span class="flex min-h-0 flex-1 flex-col">
-									<span
-										class={cn(
-											'flex flex-1 items-center justify-center text-[0.625rem] font-medium',
-											firstOn && !overLimit && 'bg-primary text-primary-foreground',
-											firstOn && overLimit && 'bg-destructive text-destructive-foreground',
-											!firstOn && 'bg-muted/20 text-muted-foreground'
-										)}
-									>
-										1
-									</span>
-									<span
-										class={cn(
-											'flex flex-1 items-center justify-center text-[0.625rem] font-medium',
-											secondOn && !overLimit && 'bg-primary/70 text-primary-foreground',
-											secondOn && overLimit && 'bg-destructive/70 text-destructive-foreground',
-											!secondOn && 'bg-muted/45 text-muted-foreground'
-										)}
-									>
-										2
-									</span>
-								</span>
-							{/if}
-						</button>
-					{/each}
-				</div>
+							<Icon icon="lucide:chevron-left" class="size-4" />
+						</Button>
+						<p class="text-sm font-semibold" aria-live="polite">{monthLabel}</p>
+						<Button
+							type="button"
+							variant="ghost"
+							size="icon"
+							aria-label={t('component.next_month')}
+							onclick={() => shiftMonth(1)}
+						>
+							<Icon icon="lucide:chevron-right" class="size-4" />
+						</Button>
+					</Inline>
 
-				<p class="text-xs text-muted-foreground">{t('component.leave_half_hint')}</p>
-
-				{#if remainingDays != null}
-					<p class="text-xs font-medium" aria-live="polite">
-						{t('component.leave_days_remaining', { days: remainingDays })}
-					</p>
-				{/if}
-
-				{#if value == null}
-					<p class="text-xs text-muted-foreground">{t('component.leave_pick_range_first')}</p>
-				{:else}
 					<div
-						class={cn(
-							'rounded-md px-3 py-2 text-xs',
-							overLimit ? 'bg-destructive/10 ring-1 ring-destructive' : 'bg-muted/60'
-						)}
-						aria-live="polite"
+						class="grid gap-1 [grid-template-columns:repeat(7,minmax(2.5rem,1fr))]"
+						role="group"
+						aria-label={t('component.leave_range')}
+						onpointerup={() => {
+							dragging = false;
+						}}
 					>
-						<p class="font-medium">{pointLabel(value.start)} → {pointLabel(value.end)}</p>
-						{#if chargeableDays === 0}
-							<p class="text-destructive">{t('component.leave_no_chargeable_days')}</p>
-						{:else}
-							<p class={overLimit ? 'font-medium text-destructive' : 'text-muted-foreground'}>
-								{t('component.chargeable_leave_days', { days: chargeableDays })}
-								{#if excludedInside > 0}
-									· {t('component.excluded_non_work_days', { count: excludedInside })}
+						{#each weekdays as weekday (weekday)}
+							<span
+								class="min-w-[2.5rem] pb-1 text-center text-xs font-medium text-muted-foreground"
+							>
+								{weekday}
+							</span>
+						{/each}
+						{#each days as date (date)}
+							{@const inMonth = date.slice(0, 7) === visibleMonth}
+							{@const dayAvailability = availabilityFor(date)}
+							{@const firstOn = selected(value, { date, half: 'FIRST' })}
+							{@const secondOn = selected(value, { date, half: 'SECOND' })}
+							<button
+								type="button"
+								class={cn(
+									'relative flex min-h-14 min-w-[2.5rem] w-full flex-col overflow-hidden rounded-md border text-left transition-colors focus-visible:z-10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+									date === today && 'border-primary',
+									date !== today && 'border-transparent',
+									!inMonth && 'pointer-events-none text-muted-foreground/50',
+									dayAvailability.eligible === false &&
+										'cursor-not-allowed bg-muted/60 text-muted-foreground',
+									dayAvailability.eligible !== false && 'text-foreground hover:bg-accent/60',
+									overLimit && (firstOn || secondOn) && 'ring-1 ring-destructive'
+								)}
+								disabled={disabled || dayAvailability.eligible === false || !inMonth}
+								aria-label={`${date}${dayAvailability.shiftLabel ? ` · ${dayAvailability.shiftLabel}` : ''}${dayAvailability.reason ? ` — ${dayAvailability.reason}` : ''}`}
+								title={dayAvailability.reason ??
+									(dayAvailability.firstHalfLabel != null && dayAvailability.secondHalfLabel != null
+										? `${t('component.first_half')}: ${dayAvailability.firstHalfLabel} · ${t('component.second_half')}: ${dayAvailability.secondHalfLabel}`
+										: dayAvailability.shiftLabel)}
+								onpointerdown={(event) => {
+									event.preventDefault();
+									begin(halfFromEvent(event, date));
+								}}
+								onpointerenter={(event) => dragging && apply(halfFromEvent(event, date))}
+								onpointerup={(event) => finish(halfFromEvent(event, date))}
+								onclick={(event) => clickPoint(halfFromEvent(event, date))}
+							>
+								<span
+									class="pointer-events-none absolute top-0.5 left-0.5 z-10 rounded-sm bg-background/80 px-0.5 text-[0.625rem] font-semibold tabular-nums"
+								>
+									{Number(date.slice(8))}
+								</span>
+								{#if inMonth && dayAvailability.eligible === false && dayAvailability.reasonMark != null}
+									<span
+										class="pointer-events-none absolute top-0.5 right-0.5 z-10 text-[0.625rem] leading-none text-muted-foreground"
+										aria-hidden="true"
+									>
+										{dayAvailability.reasonMark}
+									</span>
 								{/if}
-							</p>
-						{/if}
+								{#if inMonth}
+									<span class="flex min-h-0 flex-1 flex-col">
+										<span
+											class={cn(
+												'flex flex-1 items-center justify-center text-[0.625rem] font-medium',
+												firstOn && !overLimit && 'bg-primary text-primary-foreground',
+												firstOn && overLimit && 'bg-destructive text-destructive-foreground',
+												!firstOn && 'bg-muted/20 text-muted-foreground'
+											)}
+										>
+											1
+										</span>
+										<span
+											class={cn(
+												'flex flex-1 items-center justify-center text-[0.625rem] font-medium',
+												secondOn && !overLimit && 'bg-primary/70 text-primary-foreground',
+												secondOn && overLimit && 'bg-destructive/70 text-destructive-foreground',
+												!secondOn && 'bg-muted/45 text-muted-foreground'
+											)}
+										>
+											2
+										</span>
+									</span>
+								{/if}
+							</button>
+						{/each}
 					</div>
-				{/if}
-				{#if overLimit && remainingDays != null}
-					<p class="text-xs text-destructive" role="alert">
-						{t('component.leave_balance_limit_reached', { days: remainingDays })}
-					</p>
-				{/if}
+
+					<p class="text-xs text-muted-foreground">{t('component.leave_half_hint')}</p>
+
+					{#if remainingDays != null}
+						<p class="text-xs font-medium" aria-live="polite">
+							{t('component.leave_days_remaining', { days: remainingDays })}
+						</p>
+					{/if}
+
+					{#if value == null}
+						<p class="text-xs text-muted-foreground">{t('component.leave_pick_range_first')}</p>
+					{:else}
+						<div
+							class={cn(
+								'rounded-md px-3 py-2 text-xs',
+								overLimit ? 'bg-destructive/10 ring-1 ring-destructive' : 'bg-muted/60'
+							)}
+							aria-live="polite"
+						>
+							<p class="font-medium">{pointLabel(value.start)} → {pointLabel(value.end)}</p>
+							{#if chargeableDays === 0}
+								<p class="text-destructive">{t('component.leave_no_chargeable_days')}</p>
+							{:else}
+								<p class={overLimit ? 'font-medium text-destructive' : 'text-muted-foreground'}>
+									{t('component.chargeable_leave_days', { days: chargeableDays })}
+									{#if excludedInside > 0}
+										· {t('component.excluded_non_work_days', { count: excludedInside })}
+									{/if}
+								</p>
+							{/if}
+						</div>
+					{/if}
+					{#if overLimit && remainingDays != null}
+						<p class="text-xs text-destructive" role="alert">
+							{t('component.leave_balance_limit_reached', { days: remainingDays })}
+						</p>
+					{/if}
 				</Stack>
 			</Scroll>
 		</Popover.Content>

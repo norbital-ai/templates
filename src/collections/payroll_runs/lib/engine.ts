@@ -40,7 +40,13 @@ import { contribute, type StatutoryFactStatus } from './contribute.js';
 import { coversDate } from './effective.js';
 import { gatherRun } from './gather.js';
 import { measureEmployment } from './measure.js';
-import { payPeriodsRemaining, resolveWindow, type PayrollWindow } from './period.js';
+import {
+	PAY_FREQUENCIES,
+	payPeriodsRemaining,
+	resolveWindow,
+	type PayFrequency,
+	type PayrollWindow
+} from './period.js';
 import {
 	clearRunResults,
 	persistDeferrals,
@@ -61,6 +67,24 @@ import {
 	validatePayCalendar,
 	type RunIssue
 } from './validate.js';
+
+/**
+ * The cadence an employment is paid on, as of the day the period closes.
+ *
+ * A mid-month change of terms is two rows, and the one in force at the end of the period is the one
+ * whose cadence the run pays on — the same rule `measure.ts` applies to every other term. Terms
+ * that state no frequency resolve to monthly here so the window can still be built; `measure.ts`
+ * refuses them by name a step later, which is the message worth showing.
+ */
+function employmentPayFrequency(
+	terms: readonly { readonly pay_frequency: string | null; readonly effective_range: unknown }[],
+	asOf: string
+): PayFrequency {
+	const row =
+		terms.find((candidate) => coversDate(candidate.effective_range, asOf)) ?? terms.at(-1);
+	const stated = PAY_FREQUENCIES.find((candidate) => candidate === row?.pay_frequency);
+	return stated ?? 'MONTHLY';
+}
 
 /**
  * A run either produced payslips or it produced an error.
@@ -160,12 +184,25 @@ export function buildPayrollRun(options: {
 					'Payroll cannot price a clock that has not stopped.'
 			);
 
+		/**
+		 * The projection count is a count of **payslips**, not of pay events.
+		 *
+		 * One run settles the whole period — every instalment of it — in one payslip carrying a
+		 * month's wages, on every cadence. A semi-monthly employment is paid twice a month in the
+		 * real world and twenty-four times before a January tax year is out, but it receives the
+		 * same twelve payslips this figure is multiplied against, so this is the same number for
+		 * both cadences and deliberately so. `payPeriodsRemaining` states why at length.
+		 */
 		const periodsRemaining = payPeriodsRemaining(
 			options.period,
 			Number(configuration.jurisdiction.tax_year_start_month)
 		);
 
+		// A cadence the company has written no calendar for stops the run here, before a single
+		// employment is measured, so the operator reads the issue that names them rather than an
+		// exception thrown out of `resolveWindow` five phases in.
 		issues.push(...validatePayCalendar({ configuration, bundles: gathered.bundles }));
+		if (blockers(issues).length > 0) throw new Error(describeIssues(blockers(issues)));
 
 		const pending: PendingPayslip[] = [];
 		const deferrals: PendingDeferral[] = [];
@@ -178,11 +215,20 @@ export function buildPayrollRun(options: {
 			if (bundle.deferral != null) continue;
 
 			// 4 — MEASURE
+			//
+			// On the employment's own cadence: a semi-monthly employment's period is two instalments,
+			// 1st–15th and 16th–end, and `salary` is the envelope of them — the same calendar month a
+			// monthly employment is measured over, because this run pays both instalments together.
+			const cadence = resolveWindow(
+				options.period,
+				configuration.company,
+				employmentPayFrequency(bundle.terms, window.salary.end)
+			);
 			const measured = measureEmployment({
 				bundle,
 				configuration,
 				period: options.period,
-				salary: window.salary,
+				salary: cadence.salary,
 				periodsRemaining,
 				headcount: gathered.headcount,
 				policy

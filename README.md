@@ -37,8 +37,9 @@ pay_components <-------------------------- payslip_lines
 Five collections carry the payroll core:
 
 1. **`pay_components`** — one reusable definition with a strict settlement/statutory policy and a
-   polymorphic calculation definition (`SCHEDULE`, `ENTRY`, `FORMULA`, `OVERTIME`,
-   `OVERTIME_EXCESS`).
+   polymorphic calculation definition (`SCHEDULE`, `ENTRY`, `FORMULA`). Overtime is deliberately
+   not among them: it is derived from time entries priced against the jurisdiction's own overtime
+   rules, and its statutory treatment lives on the scheme that charges it.
 2. **`component_entries`** — approved monetary events: claims, allowances, adjustments, loan
    instalments.
 3. **`payroll_runs`** — one company-period calculation with one captured configuration snapshot.

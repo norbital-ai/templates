@@ -12,7 +12,7 @@ import { requiredDateKey } from './dates.js';
 import { coversDate } from './effective.js';
 import type { ReportLine, ReportPayslip } from './report.js';
 import { rosterCodeKind, workWindow } from '../../../lib/scheduling/roster-code.js';
-import { normalizedWorkedIntervals } from './overtime.js';
+import { normalizedWorkedIntervals, overtimeBandCode } from './overtime.js';
 
 export type RunExport = {
 	readonly runId: string;
@@ -221,15 +221,38 @@ export function loadRunExports(
 				const settledLines = linesByPayslip.get(payslip.norbital_id) ?? [];
 				const reportLines: ReportLine[] = settledLines
 					.toSorted((left, right) => Number(left.sequence) - Number(right.sequence))
-					.flatMap((line) => {
+					.flatMap((line): ReportLine[] => {
+						const kind = line.component?.kind;
+						// A derived overtime line links to no pay component, because there is none: it
+						// names the statutory band that priced it, and that band supplies its code, its
+						// day type and the fact that it is an earning.
+						if (kind === 'OVERTIME' || kind === 'OVERTIME_EXCESS') {
+							const excess = kind === 'OVERTIME_EXCESS';
+							const code = overtimeBandCode({
+								excess,
+								dayType: line.component.day_type,
+								measure: line.component.measure,
+								bandFrom: Number(line.component.band_from)
+							});
+							return [
+								{
+									payComponentCode: code,
+									payComponentName: code,
+									nature: 'EARNING',
+									calculationSource: kind,
+									amount: Number(line.amount),
+									quantity: line.quantity == null ? null : Number(line.quantity),
+									isCompanyDirect: false,
+									isClaim: false,
+									isLoanInstalment: false,
+									overtimeDayType: line.component.day_type,
+									isOvertimeExcess: excess
+								}
+							];
+						}
 						if (line.pay_component_id == null) return [];
 						const payComponent = componentById.get(line.pay_component_id);
 						const definition = payComponent?.definition ?? null;
-						const overtimeDayType =
-							definition != null &&
-							(definition.source === 'OVERTIME' || definition.source === 'OVERTIME_EXCESS')
-								? definition.rule.day_type
-								: null;
 						return [
 							{
 								payComponentCode: payComponent?.code ?? 'UNKNOWN',
@@ -241,9 +264,9 @@ export function loadRunExports(
 								isCompanyDirect:
 									definition?.source === 'ENTRY' && definition.settlement === 'COMPANY_DIRECT',
 								isClaim: definition?.source === 'ENTRY' && definition.cap != null,
-								isLoanInstalment: line.component?.kind === 'LOAN_INSTALMENT',
-								overtimeDayType,
-								isOvertimeExcess: definition?.source === 'OVERTIME_EXCESS'
+								isLoanInstalment: kind === 'LOAN_INSTALMENT',
+								overtimeDayType: null,
+								isOvertimeExcess: false
 							}
 						];
 					});
