@@ -1,9 +1,9 @@
 <script lang="ts">
 	import Icon from '@iconify/svelte';
-	import { getErrorMessage, withTimeout } from '@norbital-ai/std';
+	import { getErrorMessage } from '@norbital-ai/std';
 	import { Button } from '@norbital-ai/ui/button';
 	import { useI18n } from '@norbital-ai/ui/i18n';
-	import type { TenantI18nKeys } from '$pod/i18n-keys';
+	import type { TenantI18nKeys } from '$bolt/i18n-keys';
 	import { Bound, Inline, Scroll, Stack } from '@norbital-ai/ui/layout';
 	import { cn } from '@norbital-ai/ui/utils';
 	import { watch } from 'runed';
@@ -151,6 +151,38 @@
 		if (lower.startsWith('<!doctype html') || lower.startsWith('<html')) {
 			throw new Error(t('component.ifc_html_instead_of_bytes'));
 		}
+	}
+
+	/**
+	 * Rejects `fn` after `timeoutMs` with a labelled timeout error.
+	 *
+	 * The old `@norbital-ai/std` `withTimeout` was removed from the package; the conversion and
+	 * fragment-load steps still need the same guard, so the template keeps the identical contract
+	 * locally. The label names the step in the error message, matching the previous wording.
+	 */
+	function withTimeout<T>(fn: () => Promise<T>, timeoutMs: number, label?: string): Promise<T> {
+		const signal = AbortSignal.timeout(timeoutMs);
+
+		return new Promise<T>((resolve, reject) => {
+			const onAbort = () => {
+				const message = label
+					? `${label} exceeded ${timeoutMs}ms`
+					: `Operation exceeded ${timeoutMs}ms`;
+				reject(new Error(message));
+			};
+			signal.addEventListener('abort', onAbort, { once: true });
+
+			fn().then(
+				(result) => {
+					signal.removeEventListener('abort', onAbort);
+					resolve(result);
+				},
+				(error) => {
+					signal.removeEventListener('abort', onAbort);
+					reject(error);
+				}
+			);
+		});
 	}
 
 	function getModelName(url: string): string {

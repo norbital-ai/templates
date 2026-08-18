@@ -1,15 +1,14 @@
 <script lang="ts">
 	import { Input } from '@norbital-ai/ui/input';
 	import { useI18n } from '@norbital-ai/ui/i18n';
-	import type { TenantI18nKeys } from '$pod/i18n-keys';
+	import type { TenantI18nKeys } from '$bolt/i18n-keys';
 	import { Grid, Stack } from '@norbital-ai/ui/layout';
-	import type { z } from 'zod';
-	import type { RendererProps } from './$types.js';
+	import { Option, Schema } from 'effect';
+	import type { RendererProps, Value } from './$types.js';
 	import { permitSignaturesSchema } from './+definition.js';
 
-	type PermitSignatures = z.infer<typeof permitSignaturesSchema>;
-	type SignatureRole = keyof PermitSignatures;
-	type Signature = NonNullable<PermitSignatures[SignatureRole]>;
+	type Signature = { readonly name: string; readonly date: string };
+	type SignatureRole = 'applicant' | 'issuer' | 'acceptor';
 
 	const { t } = useI18n<TenantI18nKeys>();
 
@@ -21,9 +20,13 @@
 
 	let props: RendererProps = $props();
 	const disabled = $derived(props.mode === 'edit' ? props.disabled : true);
-	const parsed = $derived(permitSignaturesSchema.safeParse(props.value));
+	const decodeSignatures = Schema.decodeUnknownOption(permitSignaturesSchema);
 	const signatures = $derived(
-		parsed.success ? parsed.data : { applicant: null, issuer: null, acceptor: null }
+		Option.getOrElse(decodeSignatures(props.value), () => ({
+			applicant: null,
+			issuer: null,
+			acceptor: null
+		}))
 	);
 
 	function update(role: SignatureRole, patch: Partial<Signature>): void {

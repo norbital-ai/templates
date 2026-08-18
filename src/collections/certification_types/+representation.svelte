@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { client } from '$pod/client';
+	import { collectionClient } from '../../collection-client.js';
 	import type { RepresentationProps } from './$types.js';
 	import { CollectionForm } from '@norbital-ai/ui/collection-form';
 	import { Column, Grid } from '@norbital-ai/ui/layout';
@@ -8,9 +8,8 @@
 </script>
 
 <CollectionForm
-	{client}
+	client={collectionClient}
 	collection="certification_types"
-	recordId={record?.norbital_id}
 	defaultValues={record ?? undefined}
 	onAfterSubmit={record ? undefined : close}
 >

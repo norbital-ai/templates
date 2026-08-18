@@ -1,8 +1,9 @@
 <script lang="ts">
 	import { Input } from '@norbital-ai/ui/input';
 	import { useI18n } from '@norbital-ai/ui/i18n';
-	import type { TenantI18nKeys } from '$pod/i18n-keys';
+	import type { TenantI18nKeys } from '$bolt/i18n-keys';
 	import { Grid } from '@norbital-ai/ui/layout';
+	import { Option, Schema } from 'effect';
 	import type { RendererProps, Value } from './$types.js';
 	import { emergencyContactSchema } from './+definition.js';
 
@@ -11,8 +12,24 @@
 	const { t } = useI18n<TenantI18nKeys>();
 
 	const disabled = $derived(props.mode === 'edit' ? props.disabled : true);
-	const parsed = $derived(emergencyContactSchema.partial().safeParse(props.value));
-	const contact = $derived(parsed.success ? parsed.data : {});
+	// The form edits the record field by field, so the value under edit may be missing keys the
+	// definition requires; decode against the same shape with every key optional.
+	const editableContactSchema = Schema.Struct({
+		name: Schema.optionalKey(Schema.String),
+		phone: Schema.optionalKey(Schema.String),
+		relationship: Schema.optionalKey(Schema.NullOr(Schema.String))
+	});
+	const decodeContact = Schema.decodeUnknownOption(editableContactSchema);
+	const contact = $derived<Value>(
+		Option.match(decodeContact(props.value), {
+			onNone: () => ({ name: '', phone: '', relationship: null }),
+			onSome: ({ name, phone, relationship }) => ({
+				name: name ?? '',
+				phone: phone ?? '',
+				relationship: relationship ?? null
+			})
+		})
+	);
 
 	function update(patch: Partial<Value>): void {
 		if (props.mode !== 'edit') return;

@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { Input } from '@norbital-ai/ui/input';
 	import { Grid } from '@norbital-ai/ui/layout';
+	import { Option, Schema } from 'effect';
 	import type { RendererProps, Value } from './$types.js';
 	import { siteCoordinatesSchema } from './+definition.js';
 
@@ -8,8 +9,10 @@
 
 	let props: RendererProps = $props();
 	const disabled = $derived(props.mode === 'edit' ? props.disabled : true);
-	const parsed = $derived(siteCoordinatesSchema.safeParse(props.value));
-	const coordinates = $derived(parsed.success ? parsed.data : { x: null, y: null, z: null });
+	const decodeCoordinates = Schema.decodeUnknownOption(siteCoordinatesSchema);
+	const coordinates = $derived(
+		Option.getOrElse(decodeCoordinates(props.value), () => ({ x: null, y: null, z: null }))
+	);
 
 	function numberOrNull(value: string): number | null {
 		return value === '' ? null : Number(value);

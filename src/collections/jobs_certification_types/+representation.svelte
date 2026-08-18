@@ -3,9 +3,9 @@
 	 * A job and a certification its workers must hold. Both sides are relationships: without this
 	 * file the auto `CollectionForm` is two uuid text boxes and nothing else.
 	 */
-	import { client } from '$pod/client';
+	import { collectionClient } from '../../collection-client.js';
 	import { useI18n } from '@norbital-ai/ui/i18n';
-	import type { TenantI18nKeys } from '$pod/i18n-keys';
+	import type { TenantI18nKeys } from '$bolt/i18n-keys';
 	import type { RepresentationProps } from './$types.js';
 	import { CollectionForm } from '@norbital-ai/ui/collection-form';
 	import { Grid } from '@norbital-ai/ui/layout';
@@ -17,9 +17,8 @@
 </script>
 
 <CollectionForm
-	{client}
+	client={collectionClient}
 	collection="jobs_certification_types"
-	recordId={record?.norbital_id}
 	defaultValues={record ?? undefined}
 	onAfterSubmit={record ? undefined : close}
 >

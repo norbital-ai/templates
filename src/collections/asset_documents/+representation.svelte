@@ -3,9 +3,9 @@
 	 * A handover document, and the project and work front it belongs to. Both were editable uuids
 	 * on the auto form.
 	 */
-	import { client } from '$pod/client';
+	import { collectionClient } from '../../collection-client.js';
 	import { useI18n } from '@norbital-ai/ui/i18n';
-	import type { TenantI18nKeys } from '$pod/i18n-keys';
+	import type { TenantI18nKeys } from '$bolt/i18n-keys';
 	import type { RepresentationProps } from './$types.js';
 	import { CollectionForm } from '@norbital-ai/ui/collection-form';
 	import { Column, Grid } from '@norbital-ai/ui/layout';
@@ -17,9 +17,8 @@
 </script>
 
 <CollectionForm
-	{client}
+	client={collectionClient}
 	collection="asset_documents"
-	recordId={record?.norbital_id}
 	defaultValues={record ?? undefined}
 	onAfterSubmit={record ? undefined : close}
 >

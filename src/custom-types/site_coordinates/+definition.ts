@@ -1,13 +1,11 @@
-import { defineCustomType } from '@norbital-ai/pod/authoring';
-import { z } from 'zod';
+import { Schema } from 'effect';
+import { defineCustomType } from '@norbital-ai/bolt/authoring';
 
-export const siteCoordinatesSchema = z
-	.object({
-		x: z.number().nullable(),
-		y: z.number().nullable(),
-		z: z.number().nullable()
-	})
-	.strict();
+export const siteCoordinatesSchema = Schema.Struct({
+	x: Schema.NullOr(Schema.Number),
+	y: Schema.NullOr(Schema.Number),
+	z: Schema.NullOr(Schema.Number)
+});
 
 export default defineCustomType({
 	name: 'site_coordinates',
