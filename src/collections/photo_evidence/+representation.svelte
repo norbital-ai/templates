@@ -25,7 +25,7 @@
 
 <svelte:head>
 	<meta
-		name="pod:banner"
+		name="bolt:banner"
 		content="/api/template-seed-assets/field-operations/record-media/photo_evidence-banner.svg"
 	/>
 </svelte:head>

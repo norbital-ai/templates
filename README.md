@@ -113,7 +113,7 @@ controller-only integrity fields even though the contractor can update their own
 | Policy     | `field_ops_contractor` | Requestor-scoped grants: own profile, assigned sites/jobs, own assignments (read + update), own variations (read + create/update behind the variation approval flow), own evidence (read + create). |
 | Policy     | `field_ops_whatsapp`   | The channel lock above: exactly one grant — `update` on `job_assignments`.                                                                                                                          |
 | Remote     | `field_ops_dashboard`  | Date-specific controller query: assignment cards, board ids, map points (with suspect tones), and the month's suspect assignments.                                                                  |
-| Seed       | —                      | Fixture data is Core-owned (`src/+seed.ts` is deliberately absent); the weekly roster CSV lives in `assets/` with its own README.                                                                   |
+| Seed       | —                      | Fixture data is host-owned and lives in the repository seed bank (`src/+seed.ts` is deliberately absent); the weekly roster CSV lives in `assets/` with its own README.                             |
 
 ## 4. Under the hood
 
@@ -166,8 +166,8 @@ agent — not only the UI:
 
 ### How the WhatsApp channel works
 
-The host (Core) holds the transport credential and delivers an already-authenticated inbound command
-(`channel` / `inbound` with transport conversation id, provider message id, text, sender). Pod binds
+The host holds the transport credential and delivers an already-authenticated inbound command
+(`channel` / `inbound` with transport conversation id, provider message id, text, sender). Bolt binds
 the conversation to a transcript, claims the message exactly once, and matches its sender to a
 verified WhatsApp identity on an account assigned to `field_ops_contractor`. The linked contractor's
 identity supplies policy placeholders; the channel principal supplies the policy membership, keeping
@@ -185,8 +185,9 @@ pnpm build   # vite build
 - Never hand-edit `.norbital/` generated output. `sync` may update `.norbital/migrations/`; commit
   that history alongside the authored change. Model edits are the only thing that should produce a
   migration — this template has none pending.
-- Seed data stays Core-owned; tenant fixtures belong in `src/+seed.ts` (deliberately absent here).
-- Publishing and tenant lifecycle: publish the template through the OSS release workflow, then have
-  Core redeploy a tenant checkpoint (`pnpm tenant:update --org=<org> --template=<key>`) before a
-  revision reaches a tenant; use `env:reset` only for a deliberate reseed. The template detail page
-  on the website is generated from this README and `norbital.template.json` — no separate copy.
+- Seed data stays host-owned in the repository seed bank; tenant fixtures belong in `src/+seed.ts` (deliberately absent here).
+- Publishing and tenant lifecycle: publish the template through the OSS release workflow, then link
+  the release into Colony (`pnpm yalc:link`) and restart `pnpm --filter colony dev` before a revision
+  reaches a tenant — the Colony dev bootstrap converges on every start, so there is no separate
+  tenant-update or environment-reset step. The template detail page on the website is generated from
+  this README and `norbital.template.json` — no separate copy.

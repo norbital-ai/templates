@@ -197,13 +197,13 @@
 <svelte:head>
 	<title>Field Operations Controller</title>
 	<meta name="description" content="Schedule site jobs and dispatch contractors" />
-	<meta name="pod:icon" content="lucide:building-2" />
+	<meta name="bolt:icon" content="lucide:building-2" />
 	<meta
-		name="pod:thumbnail"
+		name="bolt:thumbnail"
 		content="/api/template-seed-assets/field-operations/app-media/field_ops_controller-banner.webp"
 	/>
 	<meta
-		name="pod:banner"
+		name="bolt:banner"
 		content="/api/template-seed-assets/field-operations/app-media/field_ops_controller-banner.webp"
 	/>
 </svelte:head>
