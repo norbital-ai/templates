@@ -8,6 +8,7 @@ import { contributionTreatmentSchema } from './contribution_treatment/+definitio
 import { eligibilityRulesSchema } from './eligibility_rules/+definition.js';
 import { entryOriginSchema } from './entry_origin/+definition.js';
 import { leaveEntitlementSchema } from './leave_entitlement/+definition.js';
+import { overtimeTreatmentScheduleSchema } from './overtime_treatment_schedule/+definition.js';
 import { payComponentPolicySchema } from './pay_component_policy/+definition.js';
 
 /**
@@ -351,19 +352,21 @@ describe('pay_component_policy', () => {
 });
 
 describe('component_definition', () => {
-	const overtime = {
-		source: 'OVERTIME',
-		rule: { day_type: 'ORDINARY', measure: 'BEYOND_NORMAL', band_from: 0 },
-		minimum: null
-	};
-
 	it('accepts each source the engine knows', () => {
-		assert.ok(accepts(componentDefinitionSchema, overtime));
 		assert.ok(
 			accepts(componentDefinitionSchema, { source: 'SCHEDULE', unit: 'MONEY', reducible: true })
 		);
 		assert.ok(
 			accepts(componentDefinitionSchema, { source: 'FORMULA', unit: 'MONEY', expr: 'basic * 0.1' })
+		);
+		assert.ok(
+			accepts(componentDefinitionSchema, {
+				source: 'ENTRY',
+				unit: 'MONEY',
+				evidence: 'NONE',
+				cap: null,
+				settlement: 'PAYROLL'
+			})
 		);
 	});
 
@@ -371,25 +374,28 @@ describe('component_definition', () => {
 		assert.ok(refuses(componentDefinitionSchema, { source: 'FORMULA', unit: 'MONEY', expr: '' }));
 	});
 
-	// `.positive()`, not `Natural`: a zero minimum is no minimum, and a zero hours boundary would
-	// reclassify every overtime hour as excess.
-	it('refuses a zero or non-finite overtime minimum and excess boundary', () => {
-		assert.ok(refuses(componentDefinitionSchema, { ...overtime, minimum: 0 }));
-		assert.ok(refuses(componentDefinitionSchema, { ...overtime, minimum: Number.NaN }));
-		assert.ok(
-			refuses(componentDefinitionSchema, {
-				...overtime,
-				rule: { ...overtime.rule, band_from: Number.NaN }
-			})
-		);
+	/*
+	 * A company cannot put overtime in its catalogue at all.
+	 *
+	 * Overtime is derived from time entries priced against the jurisdiction's own overtime rules,
+	 * and a multiple that comes from statute is not a tenant's to configure. While these two arms
+	 * existed, two companies in one jurisdiction could state different law and both be stored. The
+	 * refusal below is the whole rule, at the only seam a write passes through.
+	 */
+	it('refuses an overtime source outright, whatever it carries', () => {
+		const rule = { day_type: 'ORDINARY', measure: 'BEYOND_NORMAL', band_from: 0 };
+		assert.ok(refuses(componentDefinitionSchema, { source: 'OVERTIME', rule, minimum: null }));
+		assert.ok(refuses(componentDefinitionSchema, { source: 'OVERTIME', rule, minimum: 1.5 }));
 		assert.ok(
 			refuses(componentDefinitionSchema, {
 				source: 'OVERTIME_EXCESS',
-				after_total_work_hours: 0,
-				rule: overtime.rule,
+				after_total_work_hours: 12,
+				rule,
 				valued_at: 'ORDINARY_HOURLY'
 			})
 		);
+		// And not by way of some other arm quietly accepting the keys either.
+		assert.ok(refuses(componentDefinitionSchema, { source: 'SCHEDULE', unit: 'MONEY', rule }));
 	});
 
 	const capLayer = {
@@ -451,9 +457,70 @@ describe('component_definition', () => {
 	});
 
 	it('refuses an excess key at every depth', () => {
-		assert.ok(refuses(componentDefinitionSchema, { ...overtime, unit: 'HOURS' }));
+		assert.ok(
+			refuses(componentDefinitionSchema, {
+				source: 'SCHEDULE',
+				unit: 'MONEY',
+				reducible: true,
+				minimum: 1.5
+			})
+		);
 		assert.ok(
 			refuses(componentDefinitionSchema, { ...entry, cap: { ...entry.cap, on_exceeded: 'BLOCK' } })
+		);
+	});
+});
+
+describe('overtime_treatment_schedule', () => {
+	const entry = {
+		authority: 'EPF Act 1991 s.2 — "wages" expressly excludes overtime payment',
+		treatment: { kind: 'EXCLUDE' },
+		effective_range: RANGE
+	};
+
+	it('accepts a schedule, including the successor an amendment writes', () => {
+		assert.ok(accepts(overtimeTreatmentScheduleSchema, [entry]));
+		assert.ok(
+			accepts(overtimeTreatmentScheduleSchema, [
+				{ ...entry, treatment: { kind: 'INCLUDE' } },
+				{ ...entry, treatment: { kind: 'SPECIAL', rule: 'VN_OT_PREMIUM' } }
+			])
+		);
+	});
+
+	/*
+	 * An empty schedule is a scheme nobody has decided, and it has to survive the schema so that
+	 * VALIDATE can name the row and refuse the run. Refusing it here would move a payroll fault into
+	 * a write error on an unrelated edit, and would make a jurisdiction unseedable until every
+	 * scheme's overtime position had been researched in one sitting.
+	 */
+	it('accepts an empty schedule, which VALIDATE refuses rather than the schema', () => {
+		assert.ok(accepts(overtimeTreatmentScheduleSchema, []));
+	});
+
+	it('refuses an entry with no cited authority', () => {
+		assert.ok(refuses(overtimeTreatmentScheduleSchema, [{ ...entry, authority: '' }]));
+	});
+
+	it('refuses a treatment or a range the nested schemas would refuse on their own', () => {
+		assert.ok(
+			refuses(overtimeTreatmentScheduleSchema, [{ ...entry, treatment: { kind: 'NONE' } }])
+		);
+		assert.ok(
+			refuses(overtimeTreatmentScheduleSchema, [
+				{ ...entry, treatment: { kind: 'SPECIAL', rule: '' } }
+			])
+		);
+		assert.ok(
+			refuses(overtimeTreatmentScheduleSchema, [
+				{ ...entry, effective_range: { start: RANGE.start } }
+			])
+		);
+	});
+
+	it('refuses an excess key rather than stripping it', () => {
+		assert.ok(
+			refuses(overtimeTreatmentScheduleSchema, [{ ...entry, statutory_contribution_id: 'x' }])
 		);
 	});
 });

@@ -276,7 +276,8 @@ export default {
 						grouped.push(line);
 						linesByQuote.set(line.quote_id, grouped);
 					}
-					yield* api.db.quotes.mutate(quotes.map((quote) => {
+					yield* api.db.quotes.mutate(
+						quotes.map((quote) => {
 							const totals = documentTotals(
 								(linesByQuote.get(quote.norbital_id) ?? []).map((line) => ({
 									net: Number(line.net ?? 0),

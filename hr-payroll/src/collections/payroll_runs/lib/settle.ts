@@ -59,26 +59,23 @@ export function settle(options: {
 	const statutoryEmployee = options.charges.reduce((total, charge) => total + charge.employee, 0);
 	const statutoryEmployer = options.charges.reduce((total, charge) => total + charge.employer, 0);
 
+	// `line.nature`, not `line.payComponent.nature`: derived overtime has no pay component to read
+	// it from, and it is an EARNING like any other.
 	const sumOf = (lines: readonly MeasuredLine[], nature: string): number =>
-		lines.reduce(
-			(total, line) => total + (line.payComponent.nature === nature ? line.amount : 0),
-			0
-		);
+		lines.reduce((total, line) => total + (line.nature === nature ? line.amount : 0), 0);
 	const isCompanyDirect = (line: MeasuredLine): boolean =>
-		line.payComponent.definition?.source === 'ENTRY' &&
+		line.payComponent?.definition?.source === 'ENTRY' &&
 		line.payComponent.definition.settlement === 'COMPANY_DIRECT';
 
 	const gross = cents(sumOf(options.lines, 'EARNING') - sumOf(options.lines, 'ABSENCE'));
 	const payments = options.lines.reduce(
 		(total, line) =>
-			total +
-			(line.payComponent.nature === 'NON_WAGE_PAYMENT' && !isCompanyDirect(line) ? line.amount : 0),
+			total + (line.nature === 'NON_WAGE_PAYMENT' && !isCompanyDirect(line) ? line.amount : 0),
 		0
 	);
 	const employerLines = options.lines.reduce(
 		(total, line) =>
-			total +
-			(line.payComponent.nature === 'EMPLOYER_COST' || isCompanyDirect(line) ? line.amount : 0),
+			total + (line.nature === 'EMPLOYER_COST' || isCompanyDirect(line) ? line.amount : 0),
 		0
 	);
 
@@ -89,25 +86,31 @@ export function settle(options: {
 
 	if (net < 0) {
 		// Reverse type sequence: the least essential deduction gives way first.
+		// Only a configured deduction can be reduced: the guard shrinks what a company chose to
+		// deduct, and derived overtime is neither a deduction nor anyone's to shrink.
 		const reducible = lines
-			.map((line, index) => ({ line, index }))
+			.map((line, index) => ({ line, index, component: line.payComponent }))
 			.filter(
-				({ line }) =>
-					line.payComponent.nature === 'DEDUCTION' &&
-					!PROTECTED_DEDUCTION_TYPES.has(line.payComponent.code)
+				(
+					candidate
+				): candidate is typeof candidate & {
+					component: NonNullable<MeasuredLine['payComponent']>;
+				} =>
+					candidate.component != null &&
+					candidate.line.nature === 'DEDUCTION' &&
+					!PROTECTED_DEDUCTION_TYPES.has(candidate.component.code)
 			)
 			.toSorted(
-				(left, right) =>
-					Number(right.line.payComponent.sequence) - Number(left.line.payComponent.sequence)
+				(left, right) => Number(right.component.sequence) - Number(left.component.sequence)
 			);
 		const reduced = [...lines];
 		let outstanding = -net;
-		for (const { line, index } of reducible) {
+		for (const { line, index, component } of reducible) {
 			if (outstanding <= 0) break;
 			const relief = Math.min(line.amount, outstanding);
 			if (relief <= 0) continue;
 			reduced[index] = { ...line, amount: cents(line.amount - relief) };
-			shortfalls.push({ payComponentId: line.payComponent.norbital_id, amount: cents(relief) });
+			shortfalls.push({ payComponentId: component.norbital_id, amount: cents(relief) });
 			outstanding = cents(outstanding - relief);
 		}
 		lines = reduced;

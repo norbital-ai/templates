@@ -425,7 +425,8 @@ export default {
 						})),
 						new Set(records.map((record) => record.norbital_id))
 					);
-					yield* api.db.photo_evidence.mutate(planned.map((update) => ({
+					yield* api.db.photo_evidence.mutate(
+						planned.map((update) => ({
 							norbital_id: update.id,
 							flags: update.flags,
 							matched_evidence_ids: update.matchedEvidenceIds

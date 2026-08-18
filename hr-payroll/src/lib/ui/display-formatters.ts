@@ -236,15 +236,37 @@ const CAP_PERIOD_LABELS: Readonly<Record<string, TenantI18nKeys>> = {
 };
 
 const DAY_TYPE_LABELS: Readonly<Record<string, TenantI18nKeys>> = {
-	ORDINARY: 'component.definition_day_ordinary',
-	REST_DAY: 'component.definition_day_rest',
-	PUBLIC_HOLIDAY: 'component.definition_day_holiday'
+	ORDINARY: 'component.overtime_day_ordinary',
+	REST_DAY: 'component.overtime_day_rest',
+	PUBLIC_HOLIDAY: 'component.overtime_day_holiday'
 };
 
 const MEASURE_LABELS: Readonly<Record<string, TenantI18nKeys>> = {
-	BEYOND_NORMAL: 'component.definition_measure_beyond',
-	FROM_START_OF_DAY: 'component.definition_measure_from_start'
+	BEYOND_NORMAL: 'component.overtime_measure_beyond',
+	FROM_START_OF_DAY: 'component.overtime_measure_from_start'
 };
+
+/**
+ * What to call a derived overtime line.
+ *
+ * There is no pay component behind one, so nothing supplies a name; the statutory band that priced
+ * it is its identity, and it is what an operator needs to see — which day, counted how, from where.
+ */
+export function formatOvertimeLineBand(
+	band: {
+		readonly excess: boolean;
+		readonly day_type: string;
+		readonly measure: string;
+		readonly band_from: number;
+	},
+	t: Translator
+): string {
+	return t(band.excess ? 'component.overtime_excess_line' : 'component.overtime_line', {
+		day: labelOf(t, DAY_TYPE_LABELS, band.day_type),
+		measure: labelOf(t, MEASURE_LABELS, band.measure),
+		from: band.band_from
+	});
+}
 
 const ACCRUAL_KIND_LABELS: Readonly<Record<string, TenantI18nKeys>> = {
 	MONTHLY: 'component.accrual_kind_monthly',
@@ -297,19 +319,6 @@ export function formatComponentDefinition(value: unknown, t: Translator): string
 			return t('component.definition_formula', {
 				unit: labelOf(t, UNIT_LABELS, definition.unit),
 				expr: definition.expr
-			});
-		case 'OVERTIME':
-			return t('component.definition_overtime', {
-				day: labelOf(t, DAY_TYPE_LABELS, definition.rule.day_type),
-				measure: labelOf(t, MEASURE_LABELS, definition.rule.measure),
-				from: definition.rule.band_from
-			});
-		case 'OVERTIME_EXCESS':
-			return t('component.definition_overtime_excess', {
-				day: labelOf(t, DAY_TYPE_LABELS, definition.rule.day_type),
-				measure: labelOf(t, MEASURE_LABELS, definition.rule.measure),
-				from: definition.rule.band_from,
-				hours: definition.after_total_work_hours
 			});
 		case 'SCHEDULE':
 			return t('component.definition_schedule', {

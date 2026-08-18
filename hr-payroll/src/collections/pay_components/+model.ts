@@ -31,17 +31,6 @@ export default defineModel(
 			"The customer's complete pay catalogue: code, strict settlement/statutory policy, eligibility and polymorphic calculation definition in one row.",
 		recordLabel: ['code'],
 		icon: 'lucide:receipt',
-		// Plan 02 §7: one overtime rule may be mapped by at most one component per company, so a
-		// derived overtime line can never be paid twice. Filtered on the source, so the new
-		// OVERTIME_EXCESS arm — which carries the same `rule` — is deliberately not covered.
-		indexes: [
-			{
-				name: 'overtime_rule_mapped_once',
-				columns: ['company_id', { expr: "(definition->>'rule')" }],
-				unique: true,
-				where: "definition->>'source' = 'OVERTIME'"
-			}
-		],
 		// Plan 02 §7: company =, code =, effective range &&.
 		exclusions: [
 			{

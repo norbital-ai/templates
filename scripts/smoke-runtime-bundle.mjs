@@ -16,13 +16,14 @@ import { prepareDepset } from './lib/depset.mjs';
 import { discoverTemplates, repositoryRoot } from './lib/templates.mjs';
 
 /**
- * Proves the bundle contract: a build against a materialized depset produces a bundle that
- * boots and emits its ready frame.
+ * Proves the bundle contract: a build against a materialized depset produces a runtime entry that
+ * loads as a module and exports `dispatch`.
  *
- * The bundle format is the only cross-version contract left now that there are no images, so
- * this gate exists to catch a bundle a newer runtime cannot serve. There is nothing to pull
- * and nothing digest-pinned; dependencies come from a depset linked out of the shared
- * content-addressed store.
+ * There is no guest to boot and no ready frame to await — the host that framed a bundle over stdio
+ * was deleted, and a bundle is now imported in-process. The bundle format is the only cross-version
+ * contract left now that there are no images, so this gate exists to catch a bundle a newer runtime
+ * cannot load. There is nothing to pull and nothing digest-pinned; dependencies come from a depset
+ * linked out of the shared content-addressed store.
  */
 
 const requiredBundlePaths = [

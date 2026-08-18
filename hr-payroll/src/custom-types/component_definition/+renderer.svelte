@@ -2,7 +2,7 @@
 	import { Result, Schema } from 'effect';
 	import { useI18n } from '@norbital-ai/ui/i18n';
 	import type { TenantI18nKeys } from '$bolt/i18n-keys';
-	import { nullableNumberFrom, numberFrom } from '../../lib/ui/renderer-input.js';
+	import { numberFrom } from '../../lib/ui/renderer-input.js';
 	import { PAYROLL_TIME_ZONE, startOfDayInstant, todayKey } from '../../lib/ui/calendar.js';
 	import EffectiveLayerList from '../../lib/ui/policy-layers/effective-layer-list.svelte';
 	import LayerLevelPicker, {
@@ -29,9 +29,6 @@
 	type Evidence = EntryArm['evidence'];
 	type Settlement = EntryArm['settlement'];
 	type FormulaUnit = Extract<Value, { source: 'FORMULA' }>['unit'];
-	type OvertimeRule = Extract<Value, { source: 'OVERTIME' }>['rule'];
-	type DayType = OvertimeRule['day_type'];
-	type Measure = OvertimeRule['measure'];
 	type CapPeriod = Cap['period'];
 	type CapOnExceed = Cap['on_exceed'];
 
@@ -42,20 +39,12 @@
 	const SOURCE_OPTIONS: { value: Source; label: string; description: string }[] = [
 		{ value: 'ENTRY', label: 'Entry', description: 'Supplied by a person or an import' },
 		{ value: 'FORMULA', label: 'Formula', description: 'CEL expression over the payslip context' },
-		{ value: 'OVERTIME', label: 'Overtime', description: 'Derived from time entries' },
-		{
-			value: 'OVERTIME_EXCESS',
-			label: 'Overtime excess',
-			description: 'Overtime corresponding to work beyond the total-work-hours boundary'
-		},
 		{ value: 'SCHEDULE', label: 'Schedule', description: 'The contracted amount on the terms' }
 	];
 	const ENTRY_UNIT_OPTIONS = options<EntryUnit>(['MONEY', 'DAYS', 'HOURS']);
 	const FORMULA_UNIT_OPTIONS = options<FormulaUnit>(['MONEY', 'DAYS', 'HOURS', 'RATE']);
 	const EVIDENCE_OPTIONS = options<Evidence>(['NONE', 'OPTIONAL', 'REQUIRED']);
 	const SETTLEMENT_OPTIONS = options<Settlement>(['PAYROLL', 'COMPANY_DIRECT']);
-	const DAY_TYPE_OPTIONS = options<DayType>(['ORDINARY', 'REST_DAY', 'PUBLIC_HOLIDAY']);
-	const MEASURE_OPTIONS = options<Measure>(['BEYOND_NORMAL', 'FROM_START_OF_DAY']);
 	const CAP_PERIOD_OPTIONS = options<CapPeriod>([
 		'CALENDAR_YEAR',
 		'LEAVE_YEAR',
@@ -169,10 +158,6 @@
 				return `Entry · ${current.unit} · ${current.settlement}${current.cap === null ? '' : ' · capped'}`;
 			case 'FORMULA':
 				return `Formula · ${current.unit} · ${current.expr}`;
-			case 'OVERTIME':
-				return `Overtime · ${current.rule.day_type} · ${current.rule.measure} from ${current.rule.band_from}`;
-			case 'OVERTIME_EXCESS':
-				return `Overtime excess · ${current.rule.day_type} · ${current.rule.measure} from ${current.rule.band_from} · ordinary hourly`;
 			case 'SCHEDULE':
 				return `Schedule · ${current.reducible ? 'reducible' : 'not reducible'}`;
 		}
@@ -194,19 +179,6 @@
 				};
 			case 'FORMULA':
 				return { source: 'FORMULA', unit: 'MONEY', expr: '' };
-			case 'OVERTIME':
-				return {
-					source: 'OVERTIME',
-					rule: { day_type: 'ORDINARY', measure: 'BEYOND_NORMAL', band_from: 0 },
-					minimum: null
-				};
-			case 'OVERTIME_EXCESS':
-				return {
-					source: 'OVERTIME_EXCESS',
-					after_total_work_hours: 12,
-					rule: { day_type: 'ORDINARY', measure: 'BEYOND_NORMAL', band_from: 0 },
-					valued_at: 'ORDINARY_HOURLY'
-				};
 			case 'SCHEDULE':
 				return { source: 'SCHEDULE', unit: 'MONEY', reducible: true };
 		}
@@ -455,119 +427,6 @@
 					oninput={(event) => emit({ ...current, expr: event.currentTarget.value })}
 				/>
 			</label>
-		{:else if current?.source === 'OVERTIME'}
-			{@const rule = current.rule}
-			<label class="grid gap-1.5 text-sm font-medium">
-				Day type
-				<Combobox
-					options={DAY_TYPE_OPTIONS}
-					value={rule.day_type}
-					{disabled}
-					searchable={false}
-					onValueChange={(dayType) => {
-						if (dayType !== null) emit({ ...current, rule: { ...rule, day_type: dayType } });
-					}}
-				/>
-			</label>
-			<label class="grid gap-1.5 text-sm font-medium">
-				Measure
-				<Combobox
-					options={MEASURE_OPTIONS}
-					value={rule.measure}
-					{disabled}
-					searchable={false}
-					onValueChange={(measure) => {
-						if (measure !== null) emit({ ...current, rule: { ...rule, measure } });
-					}}
-				/>
-			</label>
-			<label class="grid gap-1.5 text-sm font-medium">
-				Band from
-				<Input
-					type="number"
-					min="0"
-					step="0.25"
-					value={rule.band_from}
-					{disabled}
-					oninput={(event) =>
-						emit({
-							...current,
-							rule: { ...rule, band_from: numberFrom(event.currentTarget.value, 0) }
-						})}
-				/>
-			</label>
-			<label class="grid gap-1.5 text-sm font-medium">
-				Minimum (blank = none)
-				<Input
-					type="number"
-					min="0"
-					step="0.01"
-					value={current.minimum ?? ''}
-					{disabled}
-					oninput={(event) =>
-						emit({ ...current, minimum: nullableNumberFrom(event.currentTarget.value) })}
-				/>
-			</label>
-		{:else if current?.source === 'OVERTIME_EXCESS'}
-			{@const excessRule = current.rule}
-			<label class="grid gap-1.5 text-sm font-medium">
-				Total-work-hours boundary
-				<Input
-					type="number"
-					min="0.01"
-					step="0.25"
-					value={current.after_total_work_hours}
-					{disabled}
-					oninput={(event) =>
-						emit({
-							...current,
-							after_total_work_hours: numberFrom(event.currentTarget.value, 12)
-						})}
-				/>
-			</label>
-			<label class="grid gap-1.5 text-sm font-medium">
-				Day type
-				<Combobox
-					options={DAY_TYPE_OPTIONS}
-					value={excessRule.day_type}
-					{disabled}
-					searchable={false}
-					onValueChange={(dayType) => {
-						if (dayType !== null) emit({ ...current, rule: { ...excessRule, day_type: dayType } });
-					}}
-				/>
-			</label>
-			<label class="grid gap-1.5 text-sm font-medium">
-				Measure
-				<Combobox
-					options={MEASURE_OPTIONS}
-					value={excessRule.measure}
-					{disabled}
-					searchable={false}
-					onValueChange={(measure) => {
-						if (measure !== null) emit({ ...current, rule: { ...excessRule, measure } });
-					}}
-				/>
-			</label>
-			<label class="grid gap-1.5 text-sm font-medium">
-				Band from
-				<Input
-					type="number"
-					min="0"
-					step="0.25"
-					value={excessRule.band_from}
-					{disabled}
-					oninput={(event) =>
-						emit({
-							...current,
-							rule: { ...excessRule, band_from: numberFrom(event.currentTarget.value, 0) }
-						})}
-				/>
-			</label>
-			<p class="self-end text-sm text-muted-foreground">
-				The statutory award is priced first. Only the value corresponding to work beyond this
-				total-work-hours boundary is routed to the incentive component.
-			</p>
 		{:else if current?.source === 'SCHEDULE'}
 			<label class="flex items-center gap-2 self-end text-sm font-medium">
 				<input

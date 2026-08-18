@@ -6,10 +6,11 @@
  * silently read a missing decision as "not chargeable" is stopped here, with a message that names
  * the row to fix.
  *
- * Configuration faults still fail the run: a missing treatment, an unmapped rest-day rule, or a
- * pay cadence the company calendar cannot express. Hours-of-work ceilings do not. A regime limit
- * with `on_exceed=WARN` (and every daily hours breach, which the engine already reclassifies to
- * OVERTIME_EXCESS) is reported and the run still builds — Infotech paid those months, and refusing
+ * Configuration faults still fail the run: a missing treatment, an unbanded overtime rule, a scheme
+ * that has not said what it does with overtime, or a pay cadence the company calendar cannot
+ * express. Hours-of-work ceilings do not. A regime limit with `on_exceed=WARN` (and every daily
+ * hours breach, which the engine already reclassifies to excess overtime) is reported and the run
+ * still builds — Infotech paid those months, and refusing
  * the whole payroll because one person worked 12.3 hours hides every loan, leave and claim the
  * operator came to settle. `on_exceed=BLOCK` on a monthly overtime ceiling still stops the run.
  *
@@ -150,43 +151,42 @@ export function validateConfiguration(configuration: Configuration): RunIssue[] 
 		}
 	}
 
-	// ── overtime completeness: a stated rule nobody pays is work done for nothing ────────────────
-	const mappedRules = new Set(
-		configuration.payComponents.flatMap((component) => {
-			const definition = component.definition;
-			if (definition == null || definition.source !== 'OVERTIME') return [];
-			return [
-				`${definition.rule.day_type}:${definition.rule.measure}:${definition.rule.band_from}`
-			];
-		})
-	);
+	// ── overtime completeness: a rule nothing can enter is work done for nothing ────────────────
+	//
+	// There used to be a second check here, `OVERTIME_RULE_UNMAPPED`: a stated rule that no pay
+	// component claimed paid nothing, silently. That failure mode is gone rather than fixed —
+	// MEASURE now emits a line straight from the priced segment, so every rule a day enters pays by
+	// construction and there is nothing left to map. A rule with no band is still unenterable: no
+	// hour can fall inside a band that does not exist, so it would pay nothing whatever MEASURE did.
 	for (const rule of configuration.overtimeRules) {
-		const band = rule.band;
-		if (band == null) {
+		if (rule.band != null) continue;
+		blocker(
+			'OVERTIME_RULE_UNBANDED',
+			`An overtime rule (${rule.authority}) carries no band and can never be entered.`,
+			'jurisdictions',
+			configuration.jurisdiction.norbital_id
+		);
+	}
+
+	// ── overtime chargeability: a scheme with no stated position cannot charge overtime ─────────
+	//
+	// The same rule the treatment grid lives by, applied to the schedule that replaced its overtime
+	// row: silence is an undecided scheme, not an exempt one. Caught here rather than at ACCUMULATE
+	// so the run names the row to fix before anybody's payslip is measured.
+	for (const contribution of configuration.contributions) {
+		for (const [what, treatment] of [
+			['overtime', contribution.overtimeTreatment],
+			['excess overtime', contribution.overtimeExcessTreatment]
+		] as const) {
+			if (treatment != null) continue;
 			blocker(
-				'OVERTIME_RULE_UNBANDED',
-				`An overtime rule (${rule.authority}) carries no band and can never be entered.`,
-				'jurisdictions',
-				configuration.jurisdiction.norbital_id
+				'OVERTIME_TREATMENT_UNDECIDED',
+				`${contribution.row.code} states no ${what} position effective in this period. A scheme ` +
+					'that has not decided cannot be read as excluding it.',
+				'statutory_contributions',
+				contribution.row.norbital_id
 			);
-			continue;
 		}
-		const from = band.measure === 'BEYOND_NORMAL' ? band.from_hours : band.from_fraction;
-		const key = `${rule.day_type}:${band.measure}:${from}`;
-		if (mappedRules.has(key)) continue;
-		// A `FROM_START_OF_DAY` rule used to be excused here as unreachable "while the hourly reading
-		// is in force". It is reachable: `priceDay` awards the highest day-wage band a rest day or
-		// public holiday entered, and a segment with no pay component behind it is a day's wages the
-		// employee worked for and was not paid.
-		issues.push({
-			code: 'OVERTIME_RULE_UNMAPPED',
-			message:
-				`${configuration.jurisdiction.code} defines ${rule.day_type} ${band.measure} from ${from} ` +
-				`(${rule.authority}); this company has no pay component for it. Work under that rule ` +
-				'would be unpaid.',
-			collection: 'jurisdictions',
-			recordId: configuration.jurisdiction.norbital_id
-		});
 	}
 
 	return issues;
@@ -263,15 +263,19 @@ export function validateDailyWorkLimit(options: {
 /**
  * Whether the company's pay calendar can express the cadence its people are actually paid on.
  *
- * `companies.pay_cutoff_day` and `pay_day` are one integer each, so they describe a **monthly**
- * calendar and nothing else — one window, one pay date, one run per month. An employment whose
- * terms say `SEMI_MONTHLY` is paid on a cadence this company cannot state, and payroll runs it on
- * the monthly calendar because that is the only calendar there is.
+ * `companies.pay_cutoff_day` and `pay_day` are one integer each, so between them they describe a
+ * **monthly** calendar and nothing else: one window, one pay date, one run a month. A company whose
+ * people are not all monthly states the rest in `companies.pay_calendar` — for a semi-monthly
+ * cadence, the two instalments of the month with their own salary window and pay day. When it has,
+ * there is nothing wrong here and this check is silent, which is the case at the Philippine entity
+ * where twelve of twenty-three employments are `SEMI_MONTHLY` because the law requires payment at
+ * least twice a month.
  *
- * That is a gap in the model, not a fault in the data, and it stops the run rather than being
- * papered over: paying a semi-monthly employee once a month on the monthly window is a wrong answer
- * that looks exactly like a right one on the payslip. Closing it needs `companies` to be able to
- * hold more than one cutoff and pay date, and `payroll_runs.period` to be able to name half a month.
+ * What is still a fault, and still stops the run, is an employment paid on a cadence the company
+ * has never written a calendar for. Payroll would otherwise run them on the monthly calendar
+ * because that is the only calendar there is, and paying someone once a month on a window they were
+ * never promised is a wrong answer that looks exactly like a right one on the payslip. The fix is a
+ * row on the company, and the message names the people whose pay is waiting for it.
  */
 export function validatePayCalendar(options: {
 	readonly configuration: Configuration;
@@ -280,30 +284,39 @@ export function validatePayCalendar(options: {
 		readonly terms: readonly { readonly pay_frequency: string | null }[];
 	}[];
 }): RunIssue[] {
-	const mismatched = options.bundles.filter((bundle) =>
-		bundle.terms.some((row) => row.pay_frequency != null && row.pay_frequency !== 'MONTHLY')
+	const company = options.configuration.company;
+	const stated = new Set((company.pay_calendar ?? []).map((entry) => String(entry.pay_frequency)));
+	// MONTHLY is never in `pay_calendar` and never needs to be: the two company columns are its
+	// calendar, and every company has them.
+	const expressible = (frequency: string): boolean =>
+		frequency === 'MONTHLY' || stated.has(frequency);
+	const unpayable = options.bundles.filter((bundle) =>
+		bundle.terms.some((row) => row.pay_frequency != null && !expressible(row.pay_frequency))
 	);
-	if (mismatched.length === 0) return [];
+	if (unpayable.length === 0) return [];
 	const cadences = [
 		...new Set(
-			mismatched.flatMap((bundle) =>
-				bundle.terms.map((row) => row.pay_frequency).filter((value) => value !== 'MONTHLY')
+			unpayable.flatMap((bundle) =>
+				bundle.terms
+					.map((row) => row.pay_frequency)
+					.filter((value): value is string => value != null && !expressible(value))
 			)
 		)
 	].join(', ');
 	// Named, not counted: "3 employments" sends an operator hunting, and the whole point of failing
 	// the run is that they can act on it.
-	const named = mismatched.map((bundle) => bundle.employment.employee_number).toSorted();
+	const named = unpayable.map((bundle) => bundle.employment.employee_number).toSorted();
 	return [
 		{
-			code: 'PAY_CALENDAR_CADENCE_UNSUPPORTED',
+			code: 'PAY_CALENDAR_CADENCE_UNSTATED',
 			message:
-				`${named.join(', ')} at ${options.configuration.company.name} are on ${cadences} terms, ` +
-				'but a company states one cutoff day and one pay day, which can only describe a monthly ' +
-				`calendar (cutoff ${options.configuration.company.pay_cutoff_day}). There is no window ` +
-				'this payroll could run them on that matches what they were promised.',
+				`${named.join(', ')} at ${company.name} are on ${cadences} terms, but ${company.name} ` +
+				`states no ${cadences} pay calendar — only its monthly one (cutoff ` +
+				`${company.pay_cutoff_day}, paid on ${company.pay_day}). Add the instalments of that ` +
+				'cadence to the company pay calendar: there is no window this payroll could run them on ' +
+				'until it can say when their period opens, closes and pays.',
 			collection: 'companies',
-			recordId: options.configuration.company.norbital_id
+			recordId: company.norbital_id
 		}
 	];
 }

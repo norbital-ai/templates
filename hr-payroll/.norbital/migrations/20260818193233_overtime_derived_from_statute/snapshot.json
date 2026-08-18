@@ -1,0 +1,6060 @@
+{
+  "dialect": "postgres",
+  "id": "0164ee1c-1d7a-42e7-93ed-2f74d92c93da",
+  "prevIds": [
+    "6738e2b4-7ce9-45f3-bb90-27d9d0f23062"
+  ],
+  "version": "8",
+  "ddl": [
+    {
+      "isRlsEnabled": false,
+      "name": "companies",
+      "entityType": "tables",
+      "schema": "public"
+    },
+    {
+      "isRlsEnabled": false,
+      "name": "company_holidays",
+      "entityType": "tables",
+      "schema": "public"
+    },
+    {
+      "isRlsEnabled": false,
+      "name": "component_entries",
+      "entityType": "tables",
+      "schema": "public"
+    },
+    {
+      "isRlsEnabled": false,
+      "name": "contribution_rates",
+      "entityType": "tables",
+      "schema": "public"
+    },
+    {
+      "isRlsEnabled": false,
+      "name": "employees",
+      "entityType": "tables",
+      "schema": "public"
+    },
+    {
+      "isRlsEnabled": false,
+      "name": "employment_statutory_facts",
+      "entityType": "tables",
+      "schema": "public"
+    },
+    {
+      "isRlsEnabled": false,
+      "name": "employment_terms",
+      "entityType": "tables",
+      "schema": "public"
+    },
+    {
+      "isRlsEnabled": false,
+      "name": "employments",
+      "entityType": "tables",
+      "schema": "public"
+    },
+    {
+      "isRlsEnabled": false,
+      "name": "jurisdictions",
+      "entityType": "tables",
+      "schema": "public"
+    },
+    {
+      "isRlsEnabled": false,
+      "name": "leave_requests",
+      "entityType": "tables",
+      "schema": "public"
+    },
+    {
+      "isRlsEnabled": false,
+      "name": "leave_types",
+      "entityType": "tables",
+      "schema": "public"
+    },
+    {
+      "isRlsEnabled": false,
+      "name": "pay_components",
+      "entityType": "tables",
+      "schema": "public"
+    },
+    {
+      "isRlsEnabled": false,
+      "name": "payroll_runs",
+      "entityType": "tables",
+      "schema": "public"
+    },
+    {
+      "isRlsEnabled": false,
+      "name": "payroll_settlements",
+      "entityType": "tables",
+      "schema": "public"
+    },
+    {
+      "isRlsEnabled": false,
+      "name": "payslip_lines",
+      "entityType": "tables",
+      "schema": "public"
+    },
+    {
+      "isRlsEnabled": false,
+      "name": "payslips",
+      "entityType": "tables",
+      "schema": "public"
+    },
+    {
+      "isRlsEnabled": false,
+      "name": "repayment_agreements",
+      "entityType": "tables",
+      "schema": "public"
+    },
+    {
+      "isRlsEnabled": false,
+      "name": "roster_entries",
+      "entityType": "tables",
+      "schema": "public"
+    },
+    {
+      "isRlsEnabled": false,
+      "name": "rosters",
+      "entityType": "tables",
+      "schema": "public"
+    },
+    {
+      "isRlsEnabled": false,
+      "name": "shift_definitions",
+      "entityType": "tables",
+      "schema": "public"
+    },
+    {
+      "isRlsEnabled": false,
+      "name": "statutory_contributions",
+      "entityType": "tables",
+      "schema": "public"
+    },
+    {
+      "isRlsEnabled": false,
+      "name": "time_entries",
+      "entityType": "tables",
+      "schema": "public"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "gen_random_uuid()",
+      "generated": null,
+      "identity": null,
+      "name": "norbital_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "companies"
+    },
+    {
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": "now()",
+      "generated": null,
+      "identity": null,
+      "name": "norbital_created_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "companies"
+    },
+    {
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": "now()",
+      "generated": null,
+      "identity": null,
+      "name": "norbital_updated_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "companies"
+    },
+    {
+      "type": "tstzrange",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "tstzrange(CURRENT_TIMESTAMP, NULL, '[)')",
+      "generated": null,
+      "identity": null,
+      "name": "norbital_sys_period",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "companies"
+    },
+    {
+      "type": "integer",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": "1",
+      "generated": null,
+      "identity": null,
+      "name": "norbital_row_version",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "companies"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "norbital_approval_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "companies"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "jurisdiction_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "companies"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "name",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "companies"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "registration_number",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "companies"
+    },
+    {
+      "type": "integer",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "pay_cutoff_day",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "companies"
+    },
+    {
+      "type": "integer",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "pay_day",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "companies"
+    },
+    {
+      "type": "integer",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "leave_year_start_month",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "companies"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "'STATUTORY_AGGREGATE'",
+      "generated": null,
+      "identity": null,
+      "name": "overtime_calculation_method",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "companies"
+    },
+    {
+      "type": "jsonb",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "settlement_policy",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "companies"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "risk_class",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "companies"
+    },
+    {
+      "type": "jsonb",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "effective_range",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "companies"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "gen_random_uuid()",
+      "generated": null,
+      "identity": null,
+      "name": "norbital_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "company_holidays"
+    },
+    {
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": "now()",
+      "generated": null,
+      "identity": null,
+      "name": "norbital_created_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "company_holidays"
+    },
+    {
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": "now()",
+      "generated": null,
+      "identity": null,
+      "name": "norbital_updated_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "company_holidays"
+    },
+    {
+      "type": "tstzrange",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "tstzrange(CURRENT_TIMESTAMP, NULL, '[)')",
+      "generated": null,
+      "identity": null,
+      "name": "norbital_sys_period",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "company_holidays"
+    },
+    {
+      "type": "integer",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": "1",
+      "generated": null,
+      "identity": null,
+      "name": "norbital_row_version",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "company_holidays"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "norbital_approval_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "company_holidays"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "company_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "company_holidays"
+    },
+    {
+      "type": "date",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "date",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "company_holidays"
+    },
+    {
+      "type": "date",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "substitutes_date",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "company_holidays"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "name",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "company_holidays"
+    },
+    {
+      "type": "jsonb",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "scope",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "company_holidays"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "gen_random_uuid()",
+      "generated": null,
+      "identity": null,
+      "name": "norbital_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "component_entries"
+    },
+    {
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": "now()",
+      "generated": null,
+      "identity": null,
+      "name": "norbital_created_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "component_entries"
+    },
+    {
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": "now()",
+      "generated": null,
+      "identity": null,
+      "name": "norbital_updated_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "component_entries"
+    },
+    {
+      "type": "tstzrange",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "tstzrange(CURRENT_TIMESTAMP, NULL, '[)')",
+      "generated": null,
+      "identity": null,
+      "name": "norbital_sys_period",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "component_entries"
+    },
+    {
+      "type": "integer",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": "1",
+      "generated": null,
+      "identity": null,
+      "name": "norbital_row_version",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "component_entries"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "norbital_approval_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "component_entries"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "employment_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "component_entries"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "pay_component_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "component_entries"
+    },
+    {
+      "type": "numeric",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "amount",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "component_entries"
+    },
+    {
+      "type": "numeric",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "quantity",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "component_entries"
+    },
+    {
+      "type": "date",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "event_date",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "component_entries"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "pay_period",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "component_entries"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "description",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "component_entries"
+    },
+    {
+      "type": "jsonb",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "origin",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "component_entries"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": {
+        "as": "CASE WHEN origin ->> 'kind' = 'RECURRING' THEN 'RECURRING' ELSE 'SINGLE_USE' END",
+        "type": "stored"
+      },
+      "identity": null,
+      "name": "usage_mode",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "component_entries"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": {
+        "as": "CASE WHEN origin ->> 'kind' = 'LOAN_INSTALMENT' THEN (origin ->> 'agreement_id')::uuid END",
+        "type": "stored"
+      },
+      "identity": null,
+      "name": "repayment_agreement_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "component_entries"
+    },
+    {
+      "type": "integer",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": {
+        "as": "CASE WHEN origin ->> 'kind' = 'LOAN_INSTALMENT' THEN (origin ->> 'sequence')::integer END",
+        "type": "stored"
+      },
+      "identity": null,
+      "name": "repayment_sequence",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "component_entries"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "gen_random_uuid()",
+      "generated": null,
+      "identity": null,
+      "name": "norbital_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "contribution_rates"
+    },
+    {
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": "now()",
+      "generated": null,
+      "identity": null,
+      "name": "norbital_created_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "contribution_rates"
+    },
+    {
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": "now()",
+      "generated": null,
+      "identity": null,
+      "name": "norbital_updated_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "contribution_rates"
+    },
+    {
+      "type": "tstzrange",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "tstzrange(CURRENT_TIMESTAMP, NULL, '[)')",
+      "generated": null,
+      "identity": null,
+      "name": "norbital_sys_period",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "contribution_rates"
+    },
+    {
+      "type": "integer",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": "1",
+      "generated": null,
+      "identity": null,
+      "name": "norbital_row_version",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "contribution_rates"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "norbital_approval_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "contribution_rates"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "statutory_contribution_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "contribution_rates"
+    },
+    {
+      "type": "jsonb",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "selector",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "contribution_rates"
+    },
+    {
+      "type": "jsonb",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "award",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "contribution_rates"
+    },
+    {
+      "type": "jsonb",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "effective_range",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "contribution_rates"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": {
+        "as": "CASE selector ->> 'by'\n\t\t\t\tWHEN 'WAGE' THEN (selector ->> 'from') || ' – ' || COALESCE(selector ->> 'to', '∞')\n\t\t\t\tWHEN 'WAGE_AND_AGE' THEN (selector ->> 'from') || ' – ' || COALESCE(selector ->> 'to', '∞') || ' · age ' || (selector ->> 'age_from') || '–' || COALESCE(selector ->> 'age_to', '∞')\n\t\t\t\tWHEN 'WAGE_AND_MARITAL' THEN (selector ->> 'from') || ' – ' || COALESCE(selector ->> 'to', '∞') || ' · ' || LOWER(selector ->> 'marital')\n\t\t\t\tWHEN 'HEADCOUNT' THEN 'headcount ' || (selector ->> 'from') || ' – ' || COALESCE(selector ->> 'to', '∞')\n\t\t\t\tWHEN 'RISK_CLASS' THEN 'risk ' || (selector ->> 'class')\n\t\t\t\tELSE 'band'\n\t\t\tEND || ' · from ' || LEFT(effective_range ->> 'start', 10)",
+        "type": "stored"
+      },
+      "identity": null,
+      "name": "summary",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "contribution_rates"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "gen_random_uuid()",
+      "generated": null,
+      "identity": null,
+      "name": "norbital_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "employees"
+    },
+    {
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": "now()",
+      "generated": null,
+      "identity": null,
+      "name": "norbital_created_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "employees"
+    },
+    {
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": "now()",
+      "generated": null,
+      "identity": null,
+      "name": "norbital_updated_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "employees"
+    },
+    {
+      "type": "tstzrange",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "tstzrange(CURRENT_TIMESTAMP, NULL, '[)')",
+      "generated": null,
+      "identity": null,
+      "name": "norbital_sys_period",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "employees"
+    },
+    {
+      "type": "integer",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": "1",
+      "generated": null,
+      "identity": null,
+      "name": "norbital_row_version",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "employees"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "norbital_approval_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "employees"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "name",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "employees"
+    },
+    {
+      "type": "date",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "date_of_birth",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "employees"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "gender",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "employees"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "marital_status",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "employees"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "spouse_status",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "employees"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "nationality",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "employees"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "identity_number",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "employees"
+    },
+    {
+      "type": "integer",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "0",
+      "generated": null,
+      "identity": null,
+      "name": "dependents_count",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "employees"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "email",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "employees"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "phone",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "employees"
+    },
+    {
+      "type": "jsonb",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "address",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "employees"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "user_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "employees"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "gen_random_uuid()",
+      "generated": null,
+      "identity": null,
+      "name": "norbital_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "employment_statutory_facts"
+    },
+    {
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": "now()",
+      "generated": null,
+      "identity": null,
+      "name": "norbital_created_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "employment_statutory_facts"
+    },
+    {
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": "now()",
+      "generated": null,
+      "identity": null,
+      "name": "norbital_updated_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "employment_statutory_facts"
+    },
+    {
+      "type": "tstzrange",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "tstzrange(CURRENT_TIMESTAMP, NULL, '[)')",
+      "generated": null,
+      "identity": null,
+      "name": "norbital_sys_period",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "employment_statutory_facts"
+    },
+    {
+      "type": "integer",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": "1",
+      "generated": null,
+      "identity": null,
+      "name": "norbital_row_version",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "employment_statutory_facts"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "norbital_approval_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "employment_statutory_facts"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "employment_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "employment_statutory_facts"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "statutory_contribution_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "employment_statutory_facts"
+    },
+    {
+      "type": "jsonb",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "status",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "employment_statutory_facts"
+    },
+    {
+      "type": "jsonb",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "effective_range",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "employment_statutory_facts"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": {
+        "as": "CASE status ->> 'kind'\n\t\t\t\tWHEN 'REGISTERED' THEN 'Registered · ' || COALESCE(NULLIF(status ->> 'reference_number', ''), 'no reference')\n\t\t\t\tWHEN 'NOT_REGISTERED' THEN 'Not registered · ' || COALESCE(NULLIF(status ->> 'reason', ''), 'no reason given')\n\t\t\t\tELSE 'Statutory fact'\n\t\t\tEND || ' · from ' || LEFT(effective_range ->> 'start', 10)",
+        "type": "stored"
+      },
+      "identity": null,
+      "name": "summary",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "employment_statutory_facts"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "gen_random_uuid()",
+      "generated": null,
+      "identity": null,
+      "name": "norbital_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "employment_terms"
+    },
+    {
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": "now()",
+      "generated": null,
+      "identity": null,
+      "name": "norbital_created_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "employment_terms"
+    },
+    {
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": "now()",
+      "generated": null,
+      "identity": null,
+      "name": "norbital_updated_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "employment_terms"
+    },
+    {
+      "type": "tstzrange",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "tstzrange(CURRENT_TIMESTAMP, NULL, '[)')",
+      "generated": null,
+      "identity": null,
+      "name": "norbital_sys_period",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "employment_terms"
+    },
+    {
+      "type": "integer",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": "1",
+      "generated": null,
+      "identity": null,
+      "name": "norbital_row_version",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "employment_terms"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "norbital_approval_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "employment_terms"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "employment_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "employment_terms"
+    },
+    {
+      "type": "jsonb",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "base_salary",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "employment_terms"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "pay_frequency",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "employment_terms"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "work_classification",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "employment_terms"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "'NON_MANUAL'",
+      "generated": null,
+      "identity": null,
+      "name": "statutory_work_category",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "employment_terms"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "employment_type",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "employment_terms"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "department",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "employment_terms"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "job_title",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "employment_terms"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "payroll_group",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "employment_terms"
+    },
+    {
+      "type": "jsonb",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "work_pattern",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "employment_terms"
+    },
+    {
+      "type": "jsonb",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "effective_range",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "employment_terms"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": {
+        "as": "COALESCE(job_title || ' · ', '') || employment_type",
+        "type": "stored"
+      },
+      "identity": null,
+      "name": "summary",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "employment_terms"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "gen_random_uuid()",
+      "generated": null,
+      "identity": null,
+      "name": "norbital_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "employments"
+    },
+    {
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": "now()",
+      "generated": null,
+      "identity": null,
+      "name": "norbital_created_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "employments"
+    },
+    {
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": "now()",
+      "generated": null,
+      "identity": null,
+      "name": "norbital_updated_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "employments"
+    },
+    {
+      "type": "tstzrange",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "tstzrange(CURRENT_TIMESTAMP, NULL, '[)')",
+      "generated": null,
+      "identity": null,
+      "name": "norbital_sys_period",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "employments"
+    },
+    {
+      "type": "integer",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": "1",
+      "generated": null,
+      "identity": null,
+      "name": "norbital_row_version",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "employments"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "norbital_approval_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "employments"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "employee_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "employments"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "company_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "employments"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "employee_number",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "employments"
+    },
+    {
+      "type": "date",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "hire_date",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "employments"
+    },
+    {
+      "type": "date",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "exit_date",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "employments"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "exit_reason",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "employments"
+    },
+    {
+      "type": "jsonb",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "bank",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "employments"
+    },
+    {
+      "type": "jsonb",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "effective_range",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "employments"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "gen_random_uuid()",
+      "generated": null,
+      "identity": null,
+      "name": "norbital_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "jurisdictions"
+    },
+    {
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": "now()",
+      "generated": null,
+      "identity": null,
+      "name": "norbital_created_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "jurisdictions"
+    },
+    {
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": "now()",
+      "generated": null,
+      "identity": null,
+      "name": "norbital_updated_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "jurisdictions"
+    },
+    {
+      "type": "tstzrange",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "tstzrange(CURRENT_TIMESTAMP, NULL, '[)')",
+      "generated": null,
+      "identity": null,
+      "name": "norbital_sys_period",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "jurisdictions"
+    },
+    {
+      "type": "integer",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": "1",
+      "generated": null,
+      "identity": null,
+      "name": "norbital_row_version",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "jurisdictions"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "norbital_approval_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "jurisdictions"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "code",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "jurisdictions"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "name",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "jurisdictions"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "currency",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "jurisdictions"
+    },
+    {
+      "type": "integer",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "tax_year_start_month",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "jurisdictions"
+    },
+    {
+      "type": "jsonb",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "proration",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "jurisdictions"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "ordinary_rate_basis",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "jurisdictions"
+    },
+    {
+      "type": "numeric",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "ordinary_rate_divisor",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "jurisdictions"
+    },
+    {
+      "type": "jsonb",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "regime",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "jurisdictions"
+    },
+    {
+      "type": "jsonb",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "effective_range",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "jurisdictions"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "gen_random_uuid()",
+      "generated": null,
+      "identity": null,
+      "name": "norbital_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "leave_requests"
+    },
+    {
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": "now()",
+      "generated": null,
+      "identity": null,
+      "name": "norbital_created_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "leave_requests"
+    },
+    {
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": "now()",
+      "generated": null,
+      "identity": null,
+      "name": "norbital_updated_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "leave_requests"
+    },
+    {
+      "type": "tstzrange",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "tstzrange(CURRENT_TIMESTAMP, NULL, '[)')",
+      "generated": null,
+      "identity": null,
+      "name": "norbital_sys_period",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "leave_requests"
+    },
+    {
+      "type": "integer",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": "1",
+      "generated": null,
+      "identity": null,
+      "name": "norbital_row_version",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "leave_requests"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "norbital_approval_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "leave_requests"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "employment_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "leave_requests"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "leave_type_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "leave_requests"
+    },
+    {
+      "type": "jsonb",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "event",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "leave_requests"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": {
+        "as": "event ->> 'kind'",
+        "type": "stored"
+      },
+      "identity": null,
+      "name": "kind",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "leave_requests"
+    },
+    {
+      "type": "date",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": {
+        "as": "CASE WHEN event ->> 'kind' = 'TIME_OFF' THEN norbital_date(event #>> '{range,start,date}') ELSE norbital_date(event ->> 'effective_on') END",
+        "type": "stored"
+      },
+      "identity": null,
+      "name": "from_date",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "leave_requests"
+    },
+    {
+      "type": "date",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": {
+        "as": "CASE WHEN event ->> 'kind' = 'TIME_OFF' THEN norbital_date(event #>> '{range,end,date}') ELSE norbital_date(event ->> 'effective_on') END",
+        "type": "stored"
+      },
+      "identity": null,
+      "name": "to_date",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "leave_requests"
+    },
+    {
+      "type": "numeric",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": {
+        "as": "CASE WHEN event ->> 'kind' = 'TIME_OFF' THEN (event ->> 'chargeable_days')::numeric ELSE (event ->> 'movement_days')::numeric END",
+        "type": "stored"
+      },
+      "identity": null,
+      "name": "days",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "leave_requests"
+    },
+    {
+      "type": "boolean",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": {
+        "as": "CASE WHEN event ->> 'kind' = 'TIME_OFF' THEN (event #>> '{range,start,half}') = 'SECOND' ELSE false END",
+        "type": "stored"
+      },
+      "identity": null,
+      "name": "half_day_start",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "leave_requests"
+    },
+    {
+      "type": "boolean",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": {
+        "as": "CASE WHEN event ->> 'kind' = 'TIME_OFF' THEN (event #>> '{range,end,half}') = 'FIRST' ELSE false END",
+        "type": "stored"
+      },
+      "identity": null,
+      "name": "half_day_end",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "leave_requests"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": {
+        "as": "CASE WHEN event ->> 'kind' = 'TIME_OFF' THEN event ->> 'reason' ELSE event ->> 'note' END",
+        "type": "stored"
+      },
+      "identity": null,
+      "name": "reason",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "leave_requests"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": {
+        "as": "CASE WHEN event ->> 'kind' = 'TIME_OFF' AND NULLIF(event ->> 'certificate_file', '') IS NOT NULL THEN (event ->> 'certificate_file')::uuid END",
+        "type": "stored"
+      },
+      "identity": null,
+      "name": "certificate_file",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "leave_requests"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": {
+        "as": "CASE\n\t\t\t\tWHEN event ->> 'kind' = 'TIME_OFF'\n\t\t\t\t\tTHEN 'Time off · ' || (event #>> '{range,start,date}') || ' → ' || (event #>> '{range,end,date}') || ' · ' || (event ->> 'chargeable_days') || 'd'\n\t\t\t\tWHEN event ->> 'kind' = 'BALANCE_ADJUSTMENT'\n\t\t\t\t\tTHEN 'Balance adjustment · ' || (event ->> 'effective_on') || ' · ' || (event ->> 'movement_days') || 'd'\n\t\t\t\tWHEN event ->> 'kind' = 'ENCASHMENT'\n\t\t\t\t\tTHEN 'Encashment · ' || (event ->> 'effective_on') || ' · ' || (event ->> 'movement_days') || 'd'\n\t\t\t\tELSE 'Leave movement · ' || (event ->> 'effective_on') || ' · ' || (event ->> 'movement_days') || 'd'\n\t\t\tEND",
+        "type": "stored"
+      },
+      "identity": null,
+      "name": "summary",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "leave_requests"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "gen_random_uuid()",
+      "generated": null,
+      "identity": null,
+      "name": "norbital_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "leave_types"
+    },
+    {
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": "now()",
+      "generated": null,
+      "identity": null,
+      "name": "norbital_created_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "leave_types"
+    },
+    {
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": "now()",
+      "generated": null,
+      "identity": null,
+      "name": "norbital_updated_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "leave_types"
+    },
+    {
+      "type": "tstzrange",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "tstzrange(CURRENT_TIMESTAMP, NULL, '[)')",
+      "generated": null,
+      "identity": null,
+      "name": "norbital_sys_period",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "leave_types"
+    },
+    {
+      "type": "integer",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": "1",
+      "generated": null,
+      "identity": null,
+      "name": "norbital_row_version",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "leave_types"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "norbital_approval_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "leave_types"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "company_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "leave_types"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "code",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "leave_types"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "name",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "leave_types"
+    },
+    {
+      "type": "jsonb",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "eligibility",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "leave_types"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "aggregates_with",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "leave_types"
+    },
+    {
+      "type": "boolean",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "encash_on_exit",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "leave_types"
+    },
+    {
+      "type": "integer",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "requires_certificate_after_days",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "leave_types"
+    },
+    {
+      "type": "jsonb",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "accrual",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "leave_types"
+    },
+    {
+      "type": "jsonb",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "entitlement",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "leave_types"
+    },
+    {
+      "type": "jsonb",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "payroll_effect",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "leave_types"
+    },
+    {
+      "type": "jsonb",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "effective_range",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "leave_types"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "gen_random_uuid()",
+      "generated": null,
+      "identity": null,
+      "name": "norbital_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "pay_components"
+    },
+    {
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": "now()",
+      "generated": null,
+      "identity": null,
+      "name": "norbital_created_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "pay_components"
+    },
+    {
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": "now()",
+      "generated": null,
+      "identity": null,
+      "name": "norbital_updated_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "pay_components"
+    },
+    {
+      "type": "tstzrange",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "tstzrange(CURRENT_TIMESTAMP, NULL, '[)')",
+      "generated": null,
+      "identity": null,
+      "name": "norbital_sys_period",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "pay_components"
+    },
+    {
+      "type": "integer",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": "1",
+      "generated": null,
+      "identity": null,
+      "name": "norbital_row_version",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "pay_components"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "norbital_approval_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "pay_components"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "company_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "pay_components"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "code",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "pay_components"
+    },
+    {
+      "type": "jsonb",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "policy",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "pay_components"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": {
+        "as": "policy ->> 'kind'",
+        "type": "stored"
+      },
+      "identity": null,
+      "name": "nature",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "pay_components"
+    },
+    {
+      "type": "integer",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "sequence",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "pay_components"
+    },
+    {
+      "type": "jsonb",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "eligibility",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "pay_components"
+    },
+    {
+      "type": "jsonb",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "definition",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "pay_components"
+    },
+    {
+      "type": "jsonb",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "effective_range",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "pay_components"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "gen_random_uuid()",
+      "generated": null,
+      "identity": null,
+      "name": "norbital_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "payroll_runs"
+    },
+    {
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": "now()",
+      "generated": null,
+      "identity": null,
+      "name": "norbital_created_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "payroll_runs"
+    },
+    {
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": "now()",
+      "generated": null,
+      "identity": null,
+      "name": "norbital_updated_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "payroll_runs"
+    },
+    {
+      "type": "tstzrange",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "tstzrange(CURRENT_TIMESTAMP, NULL, '[)')",
+      "generated": null,
+      "identity": null,
+      "name": "norbital_sys_period",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "payroll_runs"
+    },
+    {
+      "type": "integer",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": "1",
+      "generated": null,
+      "identity": null,
+      "name": "norbital_row_version",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "payroll_runs"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "norbital_approval_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "payroll_runs"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "company_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "payroll_runs"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "period",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "payroll_runs"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "lifecycle",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "payroll_runs"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "configuration_hash",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "payroll_runs"
+    },
+    {
+      "type": "jsonb",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "configuration_snapshot",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "payroll_runs"
+    },
+    {
+      "type": "date",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "pay_date",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "payroll_runs"
+    },
+    {
+      "type": "date",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "attendance_from",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "payroll_runs"
+    },
+    {
+      "type": "date",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "attendance_to",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "payroll_runs"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "gen_random_uuid()",
+      "generated": null,
+      "identity": null,
+      "name": "norbital_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "payroll_settlements"
+    },
+    {
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": "now()",
+      "generated": null,
+      "identity": null,
+      "name": "norbital_created_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "payroll_settlements"
+    },
+    {
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": "now()",
+      "generated": null,
+      "identity": null,
+      "name": "norbital_updated_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "payroll_settlements"
+    },
+    {
+      "type": "tstzrange",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "tstzrange(CURRENT_TIMESTAMP, NULL, '[)')",
+      "generated": null,
+      "identity": null,
+      "name": "norbital_sys_period",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "payroll_settlements"
+    },
+    {
+      "type": "integer",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": "1",
+      "generated": null,
+      "identity": null,
+      "name": "norbital_row_version",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "payroll_settlements"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "norbital_approval_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "payroll_settlements"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "payroll_run_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "payroll_settlements"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "source_collection",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "payroll_settlements"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "source_record_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "payroll_settlements"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "period",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "payroll_settlements"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "gen_random_uuid()",
+      "generated": null,
+      "identity": null,
+      "name": "norbital_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "payslip_lines"
+    },
+    {
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": "now()",
+      "generated": null,
+      "identity": null,
+      "name": "norbital_created_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "payslip_lines"
+    },
+    {
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": "now()",
+      "generated": null,
+      "identity": null,
+      "name": "norbital_updated_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "payslip_lines"
+    },
+    {
+      "type": "tstzrange",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "tstzrange(CURRENT_TIMESTAMP, NULL, '[)')",
+      "generated": null,
+      "identity": null,
+      "name": "norbital_sys_period",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "payslip_lines"
+    },
+    {
+      "type": "integer",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": "1",
+      "generated": null,
+      "identity": null,
+      "name": "norbital_row_version",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "payslip_lines"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "norbital_approval_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "payslip_lines"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "payslip_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "payslip_lines"
+    },
+    {
+      "type": "jsonb",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "component",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "payslip_lines"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": {
+        "as": "CASE WHEN component ? 'pay_component_id' THEN (component ->> 'pay_component_id')::uuid END",
+        "type": "stored"
+      },
+      "identity": null,
+      "name": "pay_component_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "payslip_lines"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": {
+        "as": "CASE WHEN component ->> 'kind' IN ('COMPONENT_ENTRY_ONCE', 'COMPONENT_ENTRY_RECURRING') THEN (component ->> 'component_entry_id')::uuid END",
+        "type": "stored"
+      },
+      "identity": null,
+      "name": "component_entry_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "payslip_lines"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": {
+        "as": "CASE WHEN component ->> 'kind' = 'COMPONENT_ENTRY_ONCE' THEN 'SINGLE_USE' WHEN component ->> 'kind' = 'COMPONENT_ENTRY_RECURRING' THEN 'RECURRING' END",
+        "type": "stored"
+      },
+      "identity": null,
+      "name": "component_entry_usage",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "payslip_lines"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": {
+        "as": "CASE WHEN component ->> 'kind' IN ('STATUTORY_EMPLOYEE', 'STATUTORY_EMPLOYER') THEN (component ->> 'statutory_contribution_id')::uuid END",
+        "type": "stored"
+      },
+      "identity": null,
+      "name": "statutory_contribution_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "payslip_lines"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": {
+        "as": "CASE WHEN component ->> 'kind' = 'LOAN_INSTALMENT' THEN (component ->> 'agreement_id')::uuid END",
+        "type": "stored"
+      },
+      "identity": null,
+      "name": "repayment_agreement_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "payslip_lines"
+    },
+    {
+      "type": "integer",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": {
+        "as": "CASE WHEN component ->> 'kind' = 'LOAN_INSTALMENT' THEN (component ->> 'sequence')::integer END",
+        "type": "stored"
+      },
+      "identity": null,
+      "name": "repayment_sequence",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "payslip_lines"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "bucket",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "payslip_lines"
+    },
+    {
+      "type": "numeric",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "amount",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "payslip_lines"
+    },
+    {
+      "type": "numeric",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "quantity",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "payslip_lines"
+    },
+    {
+      "type": "numeric",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "rate",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "payslip_lines"
+    },
+    {
+      "type": "integer",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "sequence",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "payslip_lines"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "gen_random_uuid()",
+      "generated": null,
+      "identity": null,
+      "name": "norbital_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "payslips"
+    },
+    {
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": "now()",
+      "generated": null,
+      "identity": null,
+      "name": "norbital_created_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "payslips"
+    },
+    {
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": "now()",
+      "generated": null,
+      "identity": null,
+      "name": "norbital_updated_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "payslips"
+    },
+    {
+      "type": "tstzrange",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "tstzrange(CURRENT_TIMESTAMP, NULL, '[)')",
+      "generated": null,
+      "identity": null,
+      "name": "norbital_sys_period",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "payslips"
+    },
+    {
+      "type": "integer",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": "1",
+      "generated": null,
+      "identity": null,
+      "name": "norbital_row_version",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "payslips"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "norbital_approval_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "payslips"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "payroll_run_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "payslips"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "employment_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "payslips"
+    },
+    {
+      "type": "numeric",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "gross",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "payslips"
+    },
+    {
+      "type": "numeric",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "total_deductions",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "payslips"
+    },
+    {
+      "type": "numeric",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "net",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "payslips"
+    },
+    {
+      "type": "numeric",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "employer_cost",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "payslips"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "currency",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "payslips"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "gen_random_uuid()",
+      "generated": null,
+      "identity": null,
+      "name": "norbital_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "repayment_agreements"
+    },
+    {
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": "now()",
+      "generated": null,
+      "identity": null,
+      "name": "norbital_created_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "repayment_agreements"
+    },
+    {
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": "now()",
+      "generated": null,
+      "identity": null,
+      "name": "norbital_updated_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "repayment_agreements"
+    },
+    {
+      "type": "tstzrange",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "tstzrange(CURRENT_TIMESTAMP, NULL, '[)')",
+      "generated": null,
+      "identity": null,
+      "name": "norbital_sys_period",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "repayment_agreements"
+    },
+    {
+      "type": "integer",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": "1",
+      "generated": null,
+      "identity": null,
+      "name": "norbital_row_version",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "repayment_agreements"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "norbital_approval_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "repayment_agreements"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "employment_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "repayment_agreements"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "pay_component_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "repayment_agreements"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "reference",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "repayment_agreements"
+    },
+    {
+      "type": "numeric",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "principal",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "repayment_agreements"
+    },
+    {
+      "type": "jsonb",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "schedule",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "repayment_agreements"
+    },
+    {
+      "type": "jsonb",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "effective_range",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "repayment_agreements"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "gen_random_uuid()",
+      "generated": null,
+      "identity": null,
+      "name": "norbital_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "roster_entries"
+    },
+    {
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": "now()",
+      "generated": null,
+      "identity": null,
+      "name": "norbital_created_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "roster_entries"
+    },
+    {
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": "now()",
+      "generated": null,
+      "identity": null,
+      "name": "norbital_updated_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "roster_entries"
+    },
+    {
+      "type": "tstzrange",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "tstzrange(CURRENT_TIMESTAMP, NULL, '[)')",
+      "generated": null,
+      "identity": null,
+      "name": "norbital_sys_period",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "roster_entries"
+    },
+    {
+      "type": "integer",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": "1",
+      "generated": null,
+      "identity": null,
+      "name": "norbital_row_version",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "roster_entries"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "norbital_approval_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "roster_entries"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "employment_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "roster_entries"
+    },
+    {
+      "type": "date",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "work_date",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "roster_entries"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "shift_definition_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "roster_entries"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "roster_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "roster_entries"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "assignment_code",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "roster_entries"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "'MANUAL'",
+      "generated": null,
+      "identity": null,
+      "name": "origin",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "roster_entries"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "note",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "roster_entries"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "gen_random_uuid()",
+      "generated": null,
+      "identity": null,
+      "name": "norbital_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "rosters"
+    },
+    {
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": "now()",
+      "generated": null,
+      "identity": null,
+      "name": "norbital_created_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "rosters"
+    },
+    {
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": "now()",
+      "generated": null,
+      "identity": null,
+      "name": "norbital_updated_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "rosters"
+    },
+    {
+      "type": "tstzrange",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "tstzrange(CURRENT_TIMESTAMP, NULL, '[)')",
+      "generated": null,
+      "identity": null,
+      "name": "norbital_sys_period",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "rosters"
+    },
+    {
+      "type": "integer",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": "1",
+      "generated": null,
+      "identity": null,
+      "name": "norbital_row_version",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "rosters"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "norbital_approval_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "rosters"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "company_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "rosters"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "month",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "rosters"
+    },
+    {
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "published_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "rosters"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "gen_random_uuid()",
+      "generated": null,
+      "identity": null,
+      "name": "norbital_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "shift_definitions"
+    },
+    {
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": "now()",
+      "generated": null,
+      "identity": null,
+      "name": "norbital_created_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "shift_definitions"
+    },
+    {
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": "now()",
+      "generated": null,
+      "identity": null,
+      "name": "norbital_updated_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "shift_definitions"
+    },
+    {
+      "type": "tstzrange",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "tstzrange(CURRENT_TIMESTAMP, NULL, '[)')",
+      "generated": null,
+      "identity": null,
+      "name": "norbital_sys_period",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "shift_definitions"
+    },
+    {
+      "type": "integer",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": "1",
+      "generated": null,
+      "identity": null,
+      "name": "norbital_row_version",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "shift_definitions"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "norbital_approval_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "shift_definitions"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "company_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "shift_definitions"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "code",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "shift_definitions"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "name",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "shift_definitions"
+    },
+    {
+      "type": "jsonb",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "variant",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "shift_definitions"
+    },
+    {
+      "type": "jsonb",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "effective_range",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "shift_definitions"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "gen_random_uuid()",
+      "generated": null,
+      "identity": null,
+      "name": "norbital_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "statutory_contributions"
+    },
+    {
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": "now()",
+      "generated": null,
+      "identity": null,
+      "name": "norbital_created_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "statutory_contributions"
+    },
+    {
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": "now()",
+      "generated": null,
+      "identity": null,
+      "name": "norbital_updated_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "statutory_contributions"
+    },
+    {
+      "type": "tstzrange",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "tstzrange(CURRENT_TIMESTAMP, NULL, '[)')",
+      "generated": null,
+      "identity": null,
+      "name": "norbital_sys_period",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "statutory_contributions"
+    },
+    {
+      "type": "integer",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": "1",
+      "generated": null,
+      "identity": null,
+      "name": "norbital_row_version",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "statutory_contributions"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "norbital_approval_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "statutory_contributions"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "jurisdiction_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "statutory_contributions"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "code",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "statutory_contributions"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "name",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "statutory_contributions"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "authority",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "statutory_contributions"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "payer",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "statutory_contributions"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "keyed_by",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "statutory_contributions"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "rounding",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "statutory_contributions"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 1,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "relief_for",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "statutory_contributions"
+    },
+    {
+      "type": "integer",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "sequence",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "statutory_contributions"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 1,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "special_rules",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "statutory_contributions"
+    },
+    {
+      "type": "jsonb",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "overtime_treatments",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "statutory_contributions"
+    },
+    {
+      "type": "jsonb",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "overtime_excess_treatments",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "statutory_contributions"
+    },
+    {
+      "type": "jsonb",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "effective_range",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "statutory_contributions"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "gen_random_uuid()",
+      "generated": null,
+      "identity": null,
+      "name": "norbital_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "time_entries"
+    },
+    {
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": "now()",
+      "generated": null,
+      "identity": null,
+      "name": "norbital_created_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "time_entries"
+    },
+    {
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": "now()",
+      "generated": null,
+      "identity": null,
+      "name": "norbital_updated_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "time_entries"
+    },
+    {
+      "type": "tstzrange",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "tstzrange(CURRENT_TIMESTAMP, NULL, '[)')",
+      "generated": null,
+      "identity": null,
+      "name": "norbital_sys_period",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "time_entries"
+    },
+    {
+      "type": "integer",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": "1",
+      "generated": null,
+      "identity": null,
+      "name": "norbital_row_version",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "time_entries"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "norbital_approval_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "time_entries"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "employment_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "time_entries"
+    },
+    {
+      "type": "date",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "work_date",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "time_entries"
+    },
+    {
+      "type": "jsonb",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "worked_intervals",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "time_entries"
+    },
+    {
+      "type": "integer",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "0",
+      "generated": null,
+      "identity": null,
+      "name": "break_minutes",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "time_entries"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        {
+          "value": "name",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": {
+            "name": "gin_trgm_ops",
+            "default": false
+          }
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "with": "",
+      "method": "gin",
+      "concurrently": false,
+      "name": "companies_name_search_trgm_idx",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "companies"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        {
+          "value": "name",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": {
+            "name": "gin_trgm_ops",
+            "default": false
+          }
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "with": "",
+      "method": "gin",
+      "concurrently": false,
+      "name": "company_holidays_name_search_trgm_idx",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "company_holidays"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
+        {
+          "value": "norbital_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        },
+        {
+          "value": "pay_component_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        },
+        {
+          "value": "usage_mode",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": true,
+      "where": null,
+      "with": "",
+      "method": "btree",
+      "concurrently": false,
+      "name": "component_entries_norbital_id_pay_component_id_usage_mode_index",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "component_entries"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
+        {
+          "value": "employment_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        },
+        {
+          "value": "pay_period",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "with": "",
+      "method": "btree",
+      "concurrently": false,
+      "name": "component_entries_employment_id_pay_period_index",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "component_entries"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
+        {
+          "value": "pay_component_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "with": "",
+      "method": "btree",
+      "concurrently": false,
+      "name": "component_entries_pay_component_id_index",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "component_entries"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
+        {
+          "value": "repayment_agreement_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        },
+        {
+          "value": "repayment_sequence",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": true,
+      "where": "\"repayment_agreement_id\" IS NOT NULL",
+      "with": "",
+      "method": "btree",
+      "concurrently": false,
+      "name": "component_entries_repayment_agreement_id_repayment_sequence_index",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "component_entries"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
+        {
+          "value": "repayment_agreement_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": false,
+      "where": "\"repayment_agreement_id\" IS NOT NULL",
+      "with": "",
+      "method": "btree",
+      "concurrently": false,
+      "name": "component_entries_repayment_agreement_id_index",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "component_entries"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        {
+          "value": "summary",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": {
+            "name": "gin_trgm_ops",
+            "default": false
+          }
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "with": "",
+      "method": "gin",
+      "concurrently": false,
+      "name": "contribution_rates_summary_search_trgm_idx",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "contribution_rates"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        {
+          "value": "name",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": {
+            "name": "gin_trgm_ops",
+            "default": false
+          }
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "with": "",
+      "method": "gin",
+      "concurrently": false,
+      "name": "employees_name_search_trgm_idx",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "employees"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        {
+          "value": "summary",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": {
+            "name": "gin_trgm_ops",
+            "default": false
+          }
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "with": "",
+      "method": "gin",
+      "concurrently": false,
+      "name": "employment_statutory_facts_summary_search_trgm_idx",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "employment_statutory_facts"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        {
+          "value": "summary",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": {
+            "name": "gin_trgm_ops",
+            "default": false
+          }
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "with": "",
+      "method": "gin",
+      "concurrently": false,
+      "name": "employment_terms_summary_search_trgm_idx",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "employment_terms"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
+        {
+          "value": "company_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        },
+        {
+          "value": "employee_number",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": true,
+      "where": null,
+      "with": "",
+      "method": "btree",
+      "concurrently": false,
+      "name": "employments_company_id_employee_number_index",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "employments"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        {
+          "value": "employee_number",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": {
+            "name": "gin_trgm_ops",
+            "default": false
+          }
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "with": "",
+      "method": "gin",
+      "concurrently": false,
+      "name": "employments_employee_number_search_trgm_idx",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "employments"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        {
+          "value": "name",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": {
+            "name": "gin_trgm_ops",
+            "default": false
+          }
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "with": "",
+      "method": "gin",
+      "concurrently": false,
+      "name": "jurisdictions_name_search_trgm_idx",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "jurisdictions"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
+        {
+          "value": "employment_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        },
+        {
+          "value": "leave_type_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        },
+        {
+          "value": "from_date",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "with": "",
+      "method": "btree",
+      "concurrently": false,
+      "name": "leave_requests_employment_id_leave_type_id_from_date_index",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "leave_requests"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        {
+          "value": "summary",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": {
+            "name": "gin_trgm_ops",
+            "default": false
+          }
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "with": "",
+      "method": "gin",
+      "concurrently": false,
+      "name": "leave_requests_summary_search_trgm_idx",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "leave_requests"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        {
+          "value": "code",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": {
+            "name": "gin_trgm_ops",
+            "default": false
+          }
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "with": "",
+      "method": "gin",
+      "concurrently": false,
+      "name": "leave_types_code_search_trgm_idx",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "leave_types"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        {
+          "value": "name",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": {
+            "name": "gin_trgm_ops",
+            "default": false
+          }
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "with": "",
+      "method": "gin",
+      "concurrently": false,
+      "name": "leave_types_name_search_trgm_idx",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "leave_types"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        {
+          "value": "code",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": {
+            "name": "gin_trgm_ops",
+            "default": false
+          }
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "with": "",
+      "method": "gin",
+      "concurrently": false,
+      "name": "pay_components_code_search_trgm_idx",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "pay_components"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
+        {
+          "value": "company_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        },
+        {
+          "value": "period",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": true,
+      "where": null,
+      "with": "",
+      "method": "btree",
+      "concurrently": false,
+      "name": "payroll_runs_company_id_period_index",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "payroll_runs"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        {
+          "value": "period",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": {
+            "name": "gin_trgm_ops",
+            "default": false
+          }
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "with": "",
+      "method": "gin",
+      "concurrently": false,
+      "name": "payroll_runs_period_search_trgm_idx",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "payroll_runs"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
+        {
+          "value": "payroll_run_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "with": "",
+      "method": "btree",
+      "concurrently": false,
+      "name": "payroll_settlements_payroll_run_id_index",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "payroll_settlements"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
+        {
+          "value": "source_collection",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        },
+        {
+          "value": "source_record_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": true,
+      "where": null,
+      "with": "",
+      "method": "btree",
+      "concurrently": false,
+      "name": "payroll_settlements_source_collection_source_record_id_index",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "payroll_settlements"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
+        {
+          "value": "payslip_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "with": "",
+      "method": "btree",
+      "concurrently": false,
+      "name": "payslip_lines_payslip_id_index",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "payslip_lines"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
+        {
+          "value": "pay_component_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "with": "",
+      "method": "btree",
+      "concurrently": false,
+      "name": "payslip_lines_pay_component_id_index",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "payslip_lines"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
+        {
+          "value": "statutory_contribution_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": false,
+      "where": "\"statutory_contribution_id\" IS NOT NULL",
+      "with": "",
+      "method": "btree",
+      "concurrently": false,
+      "name": "payslip_lines_statutory_contribution_id_index",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "payslip_lines"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
+        {
+          "value": "component_entry_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        },
+        {
+          "value": "payslip_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": true,
+      "where": "\"component_entry_id\" IS NOT NULL",
+      "with": "",
+      "method": "btree",
+      "concurrently": false,
+      "name": "payslip_lines_component_entry_id_payslip_id_index",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "payslip_lines"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
+        {
+          "value": "component_entry_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": true,
+      "where": "\"component_entry_usage\" = 'SINGLE_USE'",
+      "with": "",
+      "method": "btree",
+      "concurrently": false,
+      "name": "payslip_lines_component_entry_id_index",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "payslip_lines"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
+        {
+          "value": "repayment_agreement_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        },
+        {
+          "value": "payslip_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        },
+        {
+          "value": "repayment_sequence",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": true,
+      "where": "\"repayment_agreement_id\" IS NOT NULL",
+      "with": "",
+      "method": "btree",
+      "concurrently": false,
+      "name": "payslip_lines_repayment_agreement_id_payslip_id_repayment_sequence_index",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "payslip_lines"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
+        {
+          "value": "payroll_run_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        },
+        {
+          "value": "employment_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": true,
+      "where": null,
+      "with": "",
+      "method": "btree",
+      "concurrently": false,
+      "name": "payslips_payroll_run_id_employment_id_index",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "payslips"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        {
+          "value": "currency",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": {
+            "name": "gin_trgm_ops",
+            "default": false
+          }
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "with": "",
+      "method": "gin",
+      "concurrently": false,
+      "name": "payslips_currency_search_trgm_idx",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "payslips"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        {
+          "value": "reference",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": {
+            "name": "gin_trgm_ops",
+            "default": false
+          }
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "with": "",
+      "method": "gin",
+      "concurrently": false,
+      "name": "repayment_agreements_reference_search_trgm_idx",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "repayment_agreements"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
+        {
+          "value": "employment_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        },
+        {
+          "value": "work_date",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": true,
+      "where": null,
+      "with": "",
+      "method": "btree",
+      "concurrently": false,
+      "name": "roster_entries_employment_id_work_date_index",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "roster_entries"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
+        {
+          "value": "company_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        },
+        {
+          "value": "month",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": true,
+      "where": null,
+      "with": "",
+      "method": "btree",
+      "concurrently": false,
+      "name": "rosters_company_id_month_index",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "rosters"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        {
+          "value": "month",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": {
+            "name": "gin_trgm_ops",
+            "default": false
+          }
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "with": "",
+      "method": "gin",
+      "concurrently": false,
+      "name": "rosters_month_search_trgm_idx",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "rosters"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
+        {
+          "value": "company_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        },
+        {
+          "value": "code",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": true,
+      "where": null,
+      "with": "",
+      "method": "btree",
+      "concurrently": false,
+      "name": "shift_definitions_company_id_code_index",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "shift_definitions"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        {
+          "value": "code",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": {
+            "name": "gin_trgm_ops",
+            "default": false
+          }
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "with": "",
+      "method": "gin",
+      "concurrently": false,
+      "name": "shift_definitions_code_search_trgm_idx",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "shift_definitions"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        {
+          "value": "name",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": {
+            "name": "gin_trgm_ops",
+            "default": false
+          }
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "with": "",
+      "method": "gin",
+      "concurrently": false,
+      "name": "shift_definitions_name_search_trgm_idx",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "shift_definitions"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        {
+          "value": "code",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": {
+            "name": "gin_trgm_ops",
+            "default": false
+          }
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "with": "",
+      "method": "gin",
+      "concurrently": false,
+      "name": "statutory_contributions_code_search_trgm_idx",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "statutory_contributions"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        {
+          "value": "name",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": {
+            "name": "gin_trgm_ops",
+            "default": false
+          }
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "with": "",
+      "method": "gin",
+      "concurrently": false,
+      "name": "statutory_contributions_name_search_trgm_idx",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "statutory_contributions"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
+        {
+          "value": "employment_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        },
+        {
+          "value": "work_date",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "with": "",
+      "method": "btree",
+      "concurrently": false,
+      "name": "time_entries_employment_id_work_date_index",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "time_entries"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        "jurisdiction_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "jurisdictions",
+      "columnsTo": [
+        "norbital_id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "name": "companies_jurisdiction_id_jurisdictions_fk",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "companies"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        "company_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "companies",
+      "columnsTo": [
+        "norbital_id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "CASCADE",
+      "name": "company_holidays_company_id_companies_fk",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "company_holidays"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        "employment_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "employments",
+      "columnsTo": [
+        "norbital_id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "name": "component_entries_employment_id_employments_fk",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "component_entries"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        "pay_component_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "pay_components",
+      "columnsTo": [
+        "norbital_id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "name": "component_entries_pay_component_id_pay_components_fk",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "component_entries"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        "repayment_agreement_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "repayment_agreements",
+      "columnsTo": [
+        "norbital_id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "name": "component_entries_repayment_agreement_id_repayment_agreements_fk",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "component_entries"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        "statutory_contribution_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "statutory_contributions",
+      "columnsTo": [
+        "norbital_id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "CASCADE",
+      "name": "contribution_rates_statutory_contribution_id_statutory_contributions_fk",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "contribution_rates"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        "employment_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "employments",
+      "columnsTo": [
+        "norbital_id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "CASCADE",
+      "name": "employment_statutory_facts_employment_id_employments_fk",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "employment_statutory_facts"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        "statutory_contribution_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "statutory_contributions",
+      "columnsTo": [
+        "norbital_id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "name": "employment_statutory_facts_statutory_contribution_id_statutory_contributions_fk",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "employment_statutory_facts"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        "employment_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "employments",
+      "columnsTo": [
+        "norbital_id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "CASCADE",
+      "name": "employment_terms_employment_id_employments_fk",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "employment_terms"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        "employee_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "employees",
+      "columnsTo": [
+        "norbital_id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "name": "employments_employee_id_employees_fk",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "employments"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        "company_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "companies",
+      "columnsTo": [
+        "norbital_id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "name": "employments_company_id_companies_fk",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "employments"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        "employment_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "employments",
+      "columnsTo": [
+        "norbital_id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "name": "leave_requests_employment_id_employments_fk",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "leave_requests"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        "leave_type_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "leave_types",
+      "columnsTo": [
+        "norbital_id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "name": "leave_requests_leave_type_id_leave_types_fk",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "leave_requests"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        "company_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "companies",
+      "columnsTo": [
+        "norbital_id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "name": "leave_types_company_id_companies_fk",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "leave_types"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        "company_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "companies",
+      "columnsTo": [
+        "norbital_id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "name": "pay_components_company_id_companies_fk",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "pay_components"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        "company_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "companies",
+      "columnsTo": [
+        "norbital_id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "name": "payroll_runs_company_id_companies_fk",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "payroll_runs"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        "payroll_run_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "payroll_runs",
+      "columnsTo": [
+        "norbital_id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "CASCADE",
+      "name": "payroll_settlements_payroll_run_id_payroll_runs_fk",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "payroll_settlements"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        "payslip_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "payslips",
+      "columnsTo": [
+        "norbital_id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "CASCADE",
+      "name": "payslip_lines_payslip_id_payslips_fk",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "payslip_lines"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        "pay_component_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "pay_components",
+      "columnsTo": [
+        "norbital_id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "name": "payslip_lines_pay_component_id_pay_components_fk",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "payslip_lines"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        "component_entry_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "component_entries",
+      "columnsTo": [
+        "norbital_id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "name": "payslip_lines_component_entry_id_component_entries_fk",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "payslip_lines"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        "statutory_contribution_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "statutory_contributions",
+      "columnsTo": [
+        "norbital_id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "name": "payslip_lines_statutory_contribution_id_statutory_contributions_fk",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "payslip_lines"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        "repayment_agreement_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "repayment_agreements",
+      "columnsTo": [
+        "norbital_id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "name": "payslip_lines_repayment_agreement_id_repayment_agreements_fk",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "payslip_lines"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        "payroll_run_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "payroll_runs",
+      "columnsTo": [
+        "norbital_id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "CASCADE",
+      "name": "payslips_payroll_run_id_payroll_runs_fk",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "payslips"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        "employment_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "employments",
+      "columnsTo": [
+        "norbital_id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "name": "payslips_employment_id_employments_fk",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "payslips"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        "employment_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "employments",
+      "columnsTo": [
+        "norbital_id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "name": "repayment_agreements_employment_id_employments_fk",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "repayment_agreements"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        "pay_component_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "pay_components",
+      "columnsTo": [
+        "norbital_id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "name": "repayment_agreements_pay_component_id_pay_components_fk",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "repayment_agreements"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        "employment_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "employments",
+      "columnsTo": [
+        "norbital_id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "name": "roster_entries_employment_id_employments_fk",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "roster_entries"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        "shift_definition_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "shift_definitions",
+      "columnsTo": [
+        "norbital_id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "name": "roster_entries_shift_definition_id_shift_definitions_fk",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "roster_entries"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        "roster_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "rosters",
+      "columnsTo": [
+        "norbital_id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "CASCADE",
+      "name": "roster_entries_roster_id_rosters_fk",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "roster_entries"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        "company_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "companies",
+      "columnsTo": [
+        "norbital_id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "name": "rosters_company_id_companies_fk",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "rosters"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        "company_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "companies",
+      "columnsTo": [
+        "norbital_id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "name": "shift_definitions_company_id_companies_fk",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "shift_definitions"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        "jurisdiction_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "jurisdictions",
+      "columnsTo": [
+        "norbital_id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "name": "statutory_contributions_jurisdiction_id_jurisdictions_fk",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "statutory_contributions"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        "employment_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "employments",
+      "columnsTo": [
+        "norbital_id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "name": "time_entries_employment_id_employments_fk",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "time_entries"
+    },
+    {
+      "columns": [
+        "norbital_id"
+      ],
+      "nameExplicit": false,
+      "name": "companies_pkey",
+      "schema": "public",
+      "table": "companies",
+      "entityType": "pks"
+    },
+    {
+      "columns": [
+        "norbital_id"
+      ],
+      "nameExplicit": false,
+      "name": "company_holidays_pkey",
+      "schema": "public",
+      "table": "company_holidays",
+      "entityType": "pks"
+    },
+    {
+      "columns": [
+        "norbital_id"
+      ],
+      "nameExplicit": false,
+      "name": "component_entries_pkey",
+      "schema": "public",
+      "table": "component_entries",
+      "entityType": "pks"
+    },
+    {
+      "columns": [
+        "norbital_id"
+      ],
+      "nameExplicit": false,
+      "name": "contribution_rates_pkey",
+      "schema": "public",
+      "table": "contribution_rates",
+      "entityType": "pks"
+    },
+    {
+      "columns": [
+        "norbital_id"
+      ],
+      "nameExplicit": false,
+      "name": "employees_pkey",
+      "schema": "public",
+      "table": "employees",
+      "entityType": "pks"
+    },
+    {
+      "columns": [
+        "norbital_id"
+      ],
+      "nameExplicit": false,
+      "name": "employment_statutory_facts_pkey",
+      "schema": "public",
+      "table": "employment_statutory_facts",
+      "entityType": "pks"
+    },
+    {
+      "columns": [
+        "norbital_id"
+      ],
+      "nameExplicit": false,
+      "name": "employment_terms_pkey",
+      "schema": "public",
+      "table": "employment_terms",
+      "entityType": "pks"
+    },
+    {
+      "columns": [
+        "norbital_id"
+      ],
+      "nameExplicit": false,
+      "name": "employments_pkey",
+      "schema": "public",
+      "table": "employments",
+      "entityType": "pks"
+    },
+    {
+      "columns": [
+        "norbital_id"
+      ],
+      "nameExplicit": false,
+      "name": "jurisdictions_pkey",
+      "schema": "public",
+      "table": "jurisdictions",
+      "entityType": "pks"
+    },
+    {
+      "columns": [
+        "norbital_id"
+      ],
+      "nameExplicit": false,
+      "name": "leave_requests_pkey",
+      "schema": "public",
+      "table": "leave_requests",
+      "entityType": "pks"
+    },
+    {
+      "columns": [
+        "norbital_id"
+      ],
+      "nameExplicit": false,
+      "name": "leave_types_pkey",
+      "schema": "public",
+      "table": "leave_types",
+      "entityType": "pks"
+    },
+    {
+      "columns": [
+        "norbital_id"
+      ],
+      "nameExplicit": false,
+      "name": "pay_components_pkey",
+      "schema": "public",
+      "table": "pay_components",
+      "entityType": "pks"
+    },
+    {
+      "columns": [
+        "norbital_id"
+      ],
+      "nameExplicit": false,
+      "name": "payroll_runs_pkey",
+      "schema": "public",
+      "table": "payroll_runs",
+      "entityType": "pks"
+    },
+    {
+      "columns": [
+        "norbital_id"
+      ],
+      "nameExplicit": false,
+      "name": "payroll_settlements_pkey",
+      "schema": "public",
+      "table": "payroll_settlements",
+      "entityType": "pks"
+    },
+    {
+      "columns": [
+        "norbital_id"
+      ],
+      "nameExplicit": false,
+      "name": "payslip_lines_pkey",
+      "schema": "public",
+      "table": "payslip_lines",
+      "entityType": "pks"
+    },
+    {
+      "columns": [
+        "norbital_id"
+      ],
+      "nameExplicit": false,
+      "name": "payslips_pkey",
+      "schema": "public",
+      "table": "payslips",
+      "entityType": "pks"
+    },
+    {
+      "columns": [
+        "norbital_id"
+      ],
+      "nameExplicit": false,
+      "name": "repayment_agreements_pkey",
+      "schema": "public",
+      "table": "repayment_agreements",
+      "entityType": "pks"
+    },
+    {
+      "columns": [
+        "norbital_id"
+      ],
+      "nameExplicit": false,
+      "name": "roster_entries_pkey",
+      "schema": "public",
+      "table": "roster_entries",
+      "entityType": "pks"
+    },
+    {
+      "columns": [
+        "norbital_id"
+      ],
+      "nameExplicit": false,
+      "name": "rosters_pkey",
+      "schema": "public",
+      "table": "rosters",
+      "entityType": "pks"
+    },
+    {
+      "columns": [
+        "norbital_id"
+      ],
+      "nameExplicit": false,
+      "name": "shift_definitions_pkey",
+      "schema": "public",
+      "table": "shift_definitions",
+      "entityType": "pks"
+    },
+    {
+      "columns": [
+        "norbital_id"
+      ],
+      "nameExplicit": false,
+      "name": "statutory_contributions_pkey",
+      "schema": "public",
+      "table": "statutory_contributions",
+      "entityType": "pks"
+    },
+    {
+      "columns": [
+        "norbital_id"
+      ],
+      "nameExplicit": false,
+      "name": "time_entries_pkey",
+      "schema": "public",
+      "table": "time_entries",
+      "entityType": "pks"
+    }
+  ],
+  "renames": []
+}

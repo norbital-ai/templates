@@ -24,7 +24,9 @@ const ossRoot = path.resolve(repositoryRoot, '../oss');
 const yalcBin = path.join(ossRoot, 'node_modules/.bin/yalc');
 const retreat = process.argv.includes('--retreat');
 const force = process.argv.includes('--force');
-const templateFilter = process.argv.find((argument) => argument.startsWith('--template='))?.slice(11);
+const templateFilter = process.argv
+	.find((argument) => argument.startsWith('--template='))
+	?.slice(11);
 const onlyFlag = process.argv.find((argument) => argument.startsWith('--only='));
 
 const run = (command, args, cwd) => {
@@ -71,5 +73,7 @@ for (const template of templates) {
 		continue;
 	}
 	run('pnpm', ['install', '--config.strict-dep-builds=false'], template.directory);
-	console.log(`${template.key}: linked ${stale.length > 0 ? stale.join(', ') : 'the Bolt packages'}.`);
+	console.log(
+		`${template.key}: linked ${stale.length > 0 ? stale.join(', ') : 'the Bolt packages'}.`
+	);
 }

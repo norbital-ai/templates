@@ -204,13 +204,13 @@ const component = (kind, source) => ({
 
 test('the comparand classification is the statute read against what a component can say', () => {
 	// s.2: basic wages AND all other cash payments for work done; para 3 lessens that by overtime
-	// payment. The component model names both: the schedule source is the contracted basic wage, an
-	// earning is any other cash payment, and the two overtime sources are the pay para 3 takes out.
+	// payment. The component model names the first two: the schedule source is the contracted basic
+	// wage and an earning is any other cash payment. Para 3's overtime exclusion needs no category,
+	// because overtime is not a pay component at all — it is derived from the clocks and the ladder,
+	// so it is never in the set being classified and cannot enter the comparand to begin with.
 	assert.equal(classifyWageComparand(component('EARNING', 'SCHEDULE')), 'BASIC_WAGES');
 	assert.equal(classifyWageComparand(component('EARNING', 'ENTRY')), 'CASH_FOR_WORK');
 	assert.equal(classifyWageComparand(component('EARNING', 'FORMULA')), 'CASH_FOR_WORK');
-	assert.equal(classifyWageComparand(component('EARNING', 'OVERTIME')), 'OVERTIME_PAY');
-	assert.equal(classifyWageComparand(component('EARNING', 'OVERTIME_EXCESS')), 'OVERTIME_PAY');
 	assert.equal(classifyWageComparand(component('NON_WAGE_PAYMENT', 'ENTRY')), 'NOT_WAGES');
 	assert.equal(classifyWageComparand(component('DEDUCTION', 'ENTRY')), 'NOT_WAGES');
 	assert.equal(classifyWageComparand(component('ABSENCE', 'FORMULA')), 'NOT_WAGES');
@@ -225,7 +225,6 @@ test('the comparand is basic plus cash-for-work — the basic+allowance case', (
 		baseSalary: { value: 3800, currency: 'MYR' },
 		payments: [
 			{ category: 'CASH_FOR_WORK', amount: 500 },
-			{ category: 'OVERTIME_PAY', amount: 700 },
 			{ category: 'NOT_WAGES', amount: 300 }
 		]
 	});
@@ -241,7 +240,7 @@ test('the comparand is basic plus cash-for-work — the basic+allowance case', (
 	// The same person with no allowance settling this run stays inside.
 	const bare = deriveStatutoryWages({
 		baseSalary: { value: 3800, currency: 'MYR' },
-		payments: [{ category: 'OVERTIME_PAY', amount: 700 }]
+		payments: [{ category: 'NOT_WAGES', amount: 700 }]
 	});
 	assert.equal(
 		decideOvertimeCoverage(MY_RULE, subject({ wages: { STATUTORY_WAGES: bare } })).outcome,

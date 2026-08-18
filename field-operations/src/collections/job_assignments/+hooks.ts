@@ -332,7 +332,8 @@ export default {
 						limit: ASSIGNMENT_BATCH_LIMIT
 					});
 					const jobsById = new Map(jobs.map((job) => [job.norbital_id, job]));
-					yield* api.db.jobs.mutate(records.flatMap((record) =>
+					yield* api.db.jobs.mutate(
+						records.flatMap((record) =>
 							jobsById.get(record.job_id)?.status === 'unassigned'
 								? [{ norbital_id: record.job_id, status: 'assigned' as const }]
 								: []

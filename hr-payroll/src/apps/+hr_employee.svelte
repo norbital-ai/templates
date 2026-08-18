@@ -161,7 +161,8 @@
 	const payrollLockWindows = $derived(payrollWindows(payrollRunsQuery?.current ?? []));
 
 	type ClaimRow = WorkspaceRow<'component_entries'> & {
-		readonly entry_payslip_lines?: readonly Pick<WorkspaceRow<'payslip_lines'>, 'norbital_id'>[] | null;
+		readonly entry_payslip_lines?:
+			readonly Pick<WorkspaceRow<'payslip_lines'>, 'norbital_id'>[] | null;
 	};
 	type PayslipRow = WorkspaceRow<'payslips'> & {
 		readonly payslip_payroll_run?: Pick<WorkspaceRow<'payroll_runs'>, 'period'> | null;

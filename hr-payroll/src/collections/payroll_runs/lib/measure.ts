@@ -72,6 +72,7 @@ import {
 	classifyOvertimeByCalendarMonth,
 	deriveDailyOvertime,
 	philippineNightWorkHours,
+	overtimeBandCode,
 	priceDay,
 	type DailyOvertime,
 	type ExcessHours,
@@ -92,9 +93,25 @@ import { settle } from './settle.js';
 import { patternWorkload, type PatternWorkload } from '../../../lib/scheduling/work-pattern.js';
 import { rosterCodeKind, workWindow } from '../../../lib/scheduling/roster-code.js';
 
+/** The economic direction a line settles in — `pay_components.policy.kind` where there is one. */
+export type LineNature = NonNullable<PayComponent['policy']>['kind'];
+
 export type MeasuredLine = {
-	readonly payComponent: PayComponent;
+	/**
+	 * The catalogue row this line pays, or `null` for a line the statute derives.
+	 *
+	 * Overtime has no pay component: it is priced from `time_entries` against the jurisdiction's
+	 * own overtime rules, and the band it was priced under is on `component` instead.
+	 */
+	readonly payComponent: PayComponent | null;
 	readonly component: PayslipLineComponent;
+	/**
+	 * What the line settles as, carried on the line rather than read back off the component, because
+	 * a derived overtime line has no component to read it from. It is always an `EARNING`.
+	 */
+	readonly nature: LineNature | null;
+	/** What to call this line in an engine message — a component code, or the band that paid it. */
+	readonly label: string;
 	/** Always a magnitude. */
 	readonly amount: number;
 	/** Hours, days or units where the line has a natural quantity; `null` otherwise. */
@@ -124,25 +141,20 @@ export type MeasuredEmployment = {
 };
 
 /**
- * The total-work-hours boundary that routes the corresponding overtime into incentive.
+ * The total-work-hours boundary past which overtime is reclassified as excess.
  *
- * Every overflow component represents one statutory overtime band, but the work boundary is
- * company-wide. Refusing conflicting limits prevents the same hour from being classified
- * differently merely because its day type changed.
+ * It is the jurisdiction's own ceiling — Malaysia's twelve hours under EA 1955 s.60A(7) — and not a
+ * number a company configures. It used to be read off the `after_total_work_hours` field of the
+ * overflow pay components, which meant a company could quietly move a statutory boundary, and two
+ * of them in the same country could disagree about where it sits.
  */
-function overtimeExcessWorkLimit(components: readonly PayComponent[]): number | null {
-	const limits = new Set<number>();
-	for (const component of components) {
-		if (component.definition?.source === 'OVERTIME_EXCESS') {
-			limits.add(component.definition.after_total_work_hours);
-		}
-	}
-	if (limits.size > 1) {
-		throw new Error(
-			`Overtime excess components disagree on the total-work-hours boundary: ${[...limits].join(', ')} hours.`
-		);
-	}
-	return limits.values().next().value ?? null;
+function dailyTotalWorkLimit(configuration: Configuration): number | null {
+	const limits = configuration.overtimeLimits.filter(
+		(limit) => limit.period === 'DAY' && limit.measures === 'TOTAL_WORK_HOURS'
+	);
+	if (limits.length > 1)
+		throw new Error('More than one daily work limit is effective for this jurisdiction.');
+	return limits[0] == null ? null : Number(limits[0].max_hours);
 }
 
 function monthlyOvertimeLimit(configuration: Configuration): number | null {
@@ -475,7 +487,7 @@ export function measureEmployment(options: {
 	};
 
 	// ── overtime, derived from clocks and split only beyond the total-work-hours boundary ───────
-	const dailyWorkLimit = overtimeExcessWorkLimit(configuration.payComponents);
+	const dailyWorkLimit = dailyTotalWorkLimit(configuration);
 	const overtimeAttendance = overtimeAttendanceWindow({
 		policy: options.policy,
 		payFrequency: rateTerms.pay_frequency,
@@ -744,6 +756,8 @@ export function measureEmployment(options: {
 		lines.push({
 			payComponent: component,
 			component: { kind: 'DERIVED', pay_component_id: component.norbital_id },
+			nature: component.policy?.kind ?? null,
+			label: component.code,
 			amount: arrears.amount,
 			quantity: null,
 			rate: null,
@@ -770,11 +784,6 @@ export function measureEmployment(options: {
 				entries,
 				entryById,
 				unpaid: unpaidByComponent.get(component.norbital_id) ?? null,
-				segments,
-				excess,
-				hourlyRate,
-				dayWage,
-				overtimeCalculationMethod,
 				workingDaysIn,
 				context,
 				subject
@@ -790,12 +799,26 @@ export function measureEmployment(options: {
 			lines.push({
 				payComponent: component,
 				component: measured.component,
+				nature: component.policy?.kind ?? null,
+				label: component.code,
 				amount: measured.amount,
 				quantity: measured.quantity,
 				rate: measured.rate,
 				sequence: lines.length + 1
 			});
 		}
+	}
+	// Overtime is not in the catalogue, so it is not produced by walking it. The priced segments
+	// *are* the overtime: each one already names the statutory band that valued it, and a line is
+	// one band's worth of them.
+	for (const line of measureOvertime({
+		segments,
+		excess,
+		hourlyRate,
+		dayWage,
+		overtimeCalculationMethod
+	})) {
+		lines.push({ ...line, sequence: lines.length + 1 });
 	}
 
 	for (const line of measureLoanInstalments({
@@ -805,9 +828,9 @@ export function measureEmployment(options: {
 		cutoffDay,
 		subject
 	})) {
-		const running = (componentAmounts.get(line.payComponent.code) ?? 0) + line.amount;
-		componentAmounts.set(line.payComponent.code, running);
-		componentsByCode[line.payComponent.code] = running;
+		const running = (componentAmounts.get(line.label) ?? 0) + line.amount;
+		componentAmounts.set(line.label, running);
+		componentsByCode[line.label] = running;
 		lines.push({ ...line, sequence: lines.length + 1 });
 	}
 
@@ -910,6 +933,8 @@ function measureLoanInstalments(options: {
 					agreement_id: agreement.norbital_id,
 					sequence: index + 1
 				},
+				nature: component.policy?.kind ?? null,
+				label: component.code,
 				amount,
 				quantity: null,
 				rate: null,
@@ -1010,11 +1035,6 @@ function measureComponent(options: {
 	readonly entries: readonly ComponentEntry[];
 	readonly entryById: ReadonlyMap<string, ComponentEntry>;
 	readonly unpaid: UnpaidLeave | null;
-	readonly segments: readonly PricedSegment[];
-	readonly excess: readonly ExcessHours[];
-	readonly hourlyRate: number;
-	readonly dayWage: number;
-	readonly overtimeCalculationMethod: OvertimeCalculationMethod;
 	readonly workingDaysIn: (window: { start: IsoDate; end: IsoDate }) => number;
 	readonly context: () => FormulaContext;
 	readonly subject: EligibilitySubject;
@@ -1154,91 +1174,144 @@ function measureComponent(options: {
 						: { kind: 'FORMULA', pay_component_id: options.component.norbital_id }
 			};
 		}
-
-		case 'OVERTIME': {
-			const rule = definition.rule;
-			const matched = options.segments.filter(
-				(segment) =>
-					segment.dayType === rule.day_type &&
-					segment.measure === rule.measure &&
-					segment.bandFrom === rule.band_from
-			);
-			if (matched.length === 0) return null;
-			// `minimum` resolves by max(statutory, company): paying above statute is permitted,
-			// paying below it is not expressible.
-			const floor = definition.minimum ?? 0;
-			let hours = 0;
-			let weighted = 0;
-			let dayWageAmount = 0;
-			let datedAmount = 0;
-			for (const segment of matched) {
-				const multiple = Math.max(segment.multiple, floor);
-				if (options.overtimeCalculationMethod === 'ANNUALISED_CONTRACT_RATE') {
-					const unitRate =
-						segment.award === 'DAY_WAGE_MULTIPLE'
-							? cents(options.dayWage * multiple)
-							: cents(options.hourlyRate * multiple);
-					const units = segment.award === 'DAY_WAGE_MULTIPLE' ? 1 : segment.hours;
-					datedAmount += cents(units * unitRate);
-				} else if (segment.award === 'DAY_WAGE_MULTIPLE') {
-					dayWageAmount += multiple * options.dayWage;
-				} else {
-					weighted += segment.hours * multiple;
-				}
-				hours += segment.hours;
-			}
-			const amount =
-				options.overtimeCalculationMethod === 'ANNUALISED_CONTRACT_RATE'
-					? cents(datedAmount)
-					: cents(weighted * options.hourlyRate + dayWageAmount);
-			if (amount === 0) return null;
-			return {
-				amount,
-				quantity: hours,
-				rate: options.hourlyRate,
-				component: { kind: 'OVERTIME', pay_component_id: options.component.norbital_id }
-			};
-		}
-
-		case 'OVERTIME_EXCESS': {
-			const rule = definition.rule;
-			const matched = options.excess.filter(
-				(row) =>
-					row.dayType === rule.day_type &&
-					row.measure === rule.measure &&
-					row.bandFrom === rule.band_from
-			);
-			if (matched.length === 0) return null;
-			if (matched.some((row) => row.valuedAt !== definition.valued_at))
-				throw new Error(
-					`The ${options.component.code} incentive component values a different kind of statutory award ` +
-						'than the overtime rule produced.'
-				);
-			// Units are already the legal value factor: multiplier-weighted hours for hourly awards,
-			// or the incremental statutory day-wage multiple for a stepped flat award.
-			const units = matched.reduce((total, row) => total + row.units, 0);
-			const hours = matched.reduce((total, row) => total + row.hours, 0);
-			const rate =
-				definition.valued_at === 'ORDINARY_DAY_WAGE' ? options.dayWage : options.hourlyRate;
-			const amount =
-				options.overtimeCalculationMethod === 'ANNUALISED_CONTRACT_RATE'
-					? cents(
-							matched.reduce((total, row) => {
-								if (row.valuedAt === 'ORDINARY_DAY_WAGE')
-									return total + cents(row.units * options.dayWage);
-								const multiple = row.hours === 0 ? 0 : row.units / row.hours;
-								return total + cents(row.hours * cents(options.hourlyRate * multiple));
-							}, 0)
-						)
-					: cents(units * rate);
-			if (amount === 0) return null;
-			return {
-				amount,
-				quantity: hours,
-				rate,
-				component: { kind: 'OVERTIME_EXCESS', pay_component_id: options.component.norbital_id }
-			};
-		}
 	}
 	throw new Error(`Unsupported component source: ${Reflect.get(definition, 'source')}`);
+}
+
+/**
+ * Overtime, priced from the clocks and the statute and from nothing else.
+ *
+ * Every hour that reached this point has already been derived from a time entry, classified against
+ * the daily and calendar-month controls, and valued by one band of the jurisdiction's
+ * `overtime_rules`. A line is one band's segments summed: the band triple — day type, measure, band
+ * floor — is the line's whole identity, and it is what the payslip line carries in place of a pay
+ * component, because there is no pay component. A company cannot add an overtime band, remove one,
+ * or pay a different multiple for one; those are the statute's to say.
+ *
+ * The three valuation branches are the arithmetic exactly as it was when a component owned it:
+ *
+ * - `ANNUALISED_CONTRACT_RATE` rounds the unit rate first and multiplies the units by it, per
+ *   segment and per day, because that is what the source system does and what reproduces its
+ *   figures to the cent.
+ * - otherwise hourly awards accumulate multiplier-weighted hours and are priced once against the
+ *   ordinary hourly rate, while stepped day-wage awards accumulate day-wage multiples.
+ * - a band that comes out at zero produces no line at all, not a zero one.
+ *
+ * The per-component `minimum` floor — `max(statutory multiple, company minimum)` — is gone with the
+ * components. It was a company paying above statute, and it is not expressible on a statutory band;
+ * nothing in the shipped seed used it (all 28 were null), so no figure moves.
+ */
+function measureOvertime(options: {
+	readonly segments: readonly PricedSegment[];
+	readonly excess: readonly ExcessHours[];
+	readonly hourlyRate: number;
+	readonly dayWage: number;
+	readonly overtimeCalculationMethod: OvertimeCalculationMethod;
+}): Omit<MeasuredLine, 'sequence'>[] {
+	const lines: Omit<MeasuredLine, 'sequence'>[] = [];
+	const asLine = (
+		band: OvertimeBandIdentity,
+		excess: boolean,
+		measurement: { amount: number; quantity: number; rate: number }
+	): Omit<MeasuredLine, 'sequence'> => ({
+		payComponent: null,
+		component: {
+			kind: excess ? 'OVERTIME_EXCESS' : 'OVERTIME',
+			day_type: band.dayType,
+			measure: band.measure,
+			band_from: band.bandFrom
+		},
+		nature: 'EARNING',
+		label: overtimeBandCode({ excess, ...band }),
+		amount: measurement.amount,
+		quantity: measurement.quantity,
+		rate: measurement.rate
+	});
+
+	for (const [band, matched] of groupByBand(options.segments)) {
+		let hours = 0;
+		let weighted = 0;
+		let dayWageAmount = 0;
+		let datedAmount = 0;
+		for (const segment of matched) {
+			const multiple = segment.multiple;
+			if (options.overtimeCalculationMethod === 'ANNUALISED_CONTRACT_RATE') {
+				const unitRate =
+					segment.award === 'DAY_WAGE_MULTIPLE'
+						? cents(options.dayWage * multiple)
+						: cents(options.hourlyRate * multiple);
+				const units = segment.award === 'DAY_WAGE_MULTIPLE' ? 1 : segment.hours;
+				datedAmount += cents(units * unitRate);
+			} else if (segment.award === 'DAY_WAGE_MULTIPLE') {
+				dayWageAmount += multiple * options.dayWage;
+			} else {
+				weighted += segment.hours * multiple;
+			}
+			hours += segment.hours;
+		}
+		const amount =
+			options.overtimeCalculationMethod === 'ANNUALISED_CONTRACT_RATE'
+				? cents(datedAmount)
+				: cents(weighted * options.hourlyRate + dayWageAmount);
+		if (amount === 0) continue;
+		lines.push(asLine(band, false, { amount, quantity: hours, rate: options.hourlyRate }));
+	}
+
+	for (const [band, matched] of groupByBand(options.excess)) {
+		const valuedAt = matched[0]!.valuedAt;
+		if (matched.some((row) => row.valuedAt !== valuedAt))
+			throw new Error(
+				`The ${overtimeBandCode({ excess: true, ...band })} band produced excess hours valued both ` +
+					'as an hourly award and as a day wage. One band values its hours one way.'
+			);
+		// Units are already the legal value factor: multiplier-weighted hours for hourly awards,
+		// or the incremental statutory day-wage multiple for a stepped flat award.
+		const units = matched.reduce((total, row) => total + row.units, 0);
+		const hours = matched.reduce((total, row) => total + row.hours, 0);
+		const rate = valuedAt === 'ORDINARY_DAY_WAGE' ? options.dayWage : options.hourlyRate;
+		const amount =
+			options.overtimeCalculationMethod === 'ANNUALISED_CONTRACT_RATE'
+				? cents(
+						matched.reduce((total, row) => {
+							if (row.valuedAt === 'ORDINARY_DAY_WAGE')
+								return total + cents(row.units * options.dayWage);
+							const multiple = row.hours === 0 ? 0 : row.units / row.hours;
+							return total + cents(row.hours * cents(options.hourlyRate * multiple));
+						}, 0)
+					)
+				: cents(units * rate);
+		if (amount === 0) continue;
+		lines.push(asLine(band, true, { amount, quantity: hours, rate }));
+	}
+
+	return lines;
+}
+
+type OvertimeBandIdentity = {
+	readonly dayType: 'ORDINARY' | 'REST_DAY' | 'PUBLIC_HOLIDAY';
+	readonly measure: 'BEYOND_NORMAL' | 'FROM_START_OF_DAY';
+	readonly bandFrom: number;
+};
+
+/**
+ * Priced rows collected under the band that valued them, in the order the bands were first entered.
+ *
+ * Order is the days' order, which is stable for the same clocks; nothing about the money depends on
+ * it, but a payslip whose line order moved between two identical builds would look like a change.
+ */
+function groupByBand<T extends OvertimeBandIdentity>(
+	rows: readonly T[]
+): Map<OvertimeBandIdentity, T[]> {
+	const byKey = new Map<string, { band: OvertimeBandIdentity; rows: T[] }>();
+	for (const row of rows) {
+		const key = `${row.dayType}:${row.measure}:${row.bandFrom}`;
+		const bucket = byKey.get(key);
+		if (bucket) bucket.rows.push(row);
+		else
+			byKey.set(key, {
+				band: { dayType: row.dayType, measure: row.measure, bandFrom: row.bandFrom },
+				rows: [row]
+			});
+	}
+	return new Map([...byKey.values()].map((entry) => [entry.band, entry.rows]));
 }

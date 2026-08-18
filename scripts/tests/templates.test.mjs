@@ -48,7 +48,13 @@ describe('template discovery', () => {
 				// The linked build's own version. `yalc.lock`'s `replaced` is empty for a template that
 				// was linked before it ever installed Bolt from the registry, which is every private
 				// template — so the build itself is the only thing that knows what is installed.
-				const linked = path.join(template.directory, '.yalc', '@norbital-ai', 'bolt', 'package.json');
+				const linked = path.join(
+					template.directory,
+					'.yalc',
+					'@norbital-ai',
+					'bolt',
+					'package.json'
+				);
 				assert.ok(existsSync(linked), `${template.key} is yalc-linked but has no linked build`);
 				assert.match(JSON.parse(readFileSync(linked, 'utf8')).version, /^\d+\.\d+\.\d+/);
 				continue;
@@ -164,13 +170,6 @@ describe('template discovery', () => {
 						[...match[2].matchAll(/^\s*"([^"]+)"\s/gm)].map((column) => column[1])
 					);
 					declared.set(match[1], columns);
-				}
-				for (const match of migration.sql.matchAll(
-					/_norbital_create_history_table\('([^']+)'::regclass, '([^']+)'\)/g
-				)) {
-					const [, liveTable, historyTable] = match;
-					const liveColumns = declared.get(liveTable);
-					if (liveColumns) declared.set(historyTable, new Set(liveColumns));
 				}
 				for (const match of migration.sql.matchAll(/ALTER TABLE "([^"]+)" ADD COLUMN "([^"]+)"/g)) {
 					const [statement, table, column] = match;

@@ -125,12 +125,12 @@ export function persistPayslips(options: {
 				throw new Error('A calculated employment has no payslip to hang lines on.');
 			let sequence = 1;
 			for (const line of payslip.settlement.lines) {
-				const policy = line.payComponent.policy;
-				if (policy == null || policy.kind === 'INFORMATION') continue;
+				// Derived overtime carries its own nature — there is no component row to read one off.
+				if (line.nature == null || line.nature === 'INFORMATION') continue;
 				lineInputs.push({
 					payslip_id: payslipId,
 					component: line.component,
-					bucket: policy.kind,
+					bucket: line.nature,
 					amount: line.amount,
 					quantity: line.quantity,
 					rate: line.rate,

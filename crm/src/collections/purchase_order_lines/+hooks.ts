@@ -276,7 +276,8 @@ export default {
 						grouped.push(line);
 						linesByOrder.set(line.purchase_order_id, grouped);
 					}
-					yield* api.db.purchase_orders.mutate(orders.map((order) => {
+					yield* api.db.purchase_orders.mutate(
+						orders.map((order) => {
 							const totals = documentTotals(
 								(linesByOrder.get(order.norbital_id) ?? []).map((line) => ({
 									net: Number(line.net ?? 0),

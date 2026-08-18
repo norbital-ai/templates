@@ -187,10 +187,25 @@ const claimLine = (settlement, amount) => ({
 		pay_component_id: `claim-${settlement}`,
 		component_entry_id: `entry-${settlement}`
 	},
+	nature: 'NON_WAGE_PAYMENT',
+	label: 'REIMBURSEMENT',
 	amount,
 	quantity: null,
 	rate: null,
 	sequence: 1
+});
+
+// A derived overtime line, which is what SETTLE has to read a nature off when there is no component
+// row at all: `payComponent` is null and the line carries the band that priced it.
+const overtimeLine = (amount) => ({
+	payComponent: null,
+	component: { kind: 'OVERTIME', day_type: 'ORDINARY', measure: 'BEYOND_NORMAL', band_from: 0 },
+	nature: 'EARNING',
+	label: 'OT_ORDINARY_BEYOND_NORMAL_0',
+	amount,
+	quantity: 3,
+	rate: 16.59,
+	sequence: 2
 });
 const claimSettlement = settle({
 	lines: [claimLine('PAYROLL', 100), claimLine('COMPANY_DIRECT', 75)],
@@ -199,6 +214,16 @@ const claimSettlement = settle({
 check('a payroll-settled claim reaches employee net', claimSettlement.net, 100);
 check('a company-direct claim is an employer cost', claimSettlement.employerCost, 75);
 check('both claim lines remain available for audit', claimSettlement.lines.length, 2);
+
+// Overtime reaches gross with no pay component behind it. Before it was lifted out of the
+// catalogue, SETTLE read `payComponent.nature` and a component-less line would have thrown.
+const derivedOvertimeSettlement = settle({ lines: [overtimeLine(74.66)], charges: [] });
+check(
+	'a derived overtime line is gross without a component',
+	derivedOvertimeSettlement.gross,
+	74.66
+);
+check('and it reaches net', derivedOvertimeSettlement.net, 74.66);
 
 // ────────────────────────────────────────────────────────────────────────────────────────────────
 // Leave accrual — the running total is rounded, never the increment.
@@ -1483,16 +1508,6 @@ check(
 	'CASH_FOR_WORK'
 );
 check(
-	'the overtime ladder is overtime payment, which para 3 takes out',
-	classifyWageComparand(component('EARNING', 'OVERTIME')),
-	'OVERTIME_PAY'
-);
-check(
-	'reclassified excess hours are still overtime payment',
-	classifyWageComparand(component('EARNING', 'OVERTIME_EXCESS')),
-	'OVERTIME_PAY'
-);
-check(
 	'a reimbursement is not a cash payment for work done',
 	classifyWageComparand(component('NON_WAGE_PAYMENT', 'ENTRY')),
 	'NOT_WAGES'
@@ -1513,7 +1528,6 @@ const comparand = deriveStatutoryWages({
 	payments: [
 		{ category: 'CASH_FOR_WORK', amount: 500 }, // fixed allowance
 		{ category: 'CASH_FOR_WORK', amount: -50 }, // a reversal on the same component takes back
-		{ category: 'OVERTIME_PAY', amount: 700 }, // para 3 excludes overtime payment
 		{ category: 'NOT_WAGES', amount: 300 }, // a reimbursement
 		{ category: 'BASIC_WAGES', amount: 0 } // basic comes from the terms, not an entry
 	]

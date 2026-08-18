@@ -104,15 +104,6 @@ const component = (overrides) => ({
 	...overrides
 });
 
-const overtimeComponent = (id, code, day_type, measure, band_from, sequence) =>
-	component({
-		norbital_id: id,
-		code,
-		name: code,
-		sequence,
-		definition: { source: 'OVERTIME', rule: { day_type, measure, band_from }, minimum: null }
-	});
-
 const BASIC = component({
 	norbital_id: '00000000-0000-4000-8000-00000000p001',
 	code: 'BASIC',
@@ -121,54 +112,20 @@ const BASIC = component({
 	definition: { source: 'SCHEDULE', unit: 'MONEY', reducible: false }
 });
 
-const OT_ORDINARY = overtimeComponent(
-	'00000000-0000-4000-8000-00000000p002',
-	'OT_ORDINARY',
-	'ORDINARY',
-	'BEYOND_NORMAL',
-	0,
-	20
-);
-const OT_REST_HALF = overtimeComponent(
-	'00000000-0000-4000-8000-00000000p003',
-	'OT_REST_HALF',
-	'REST_DAY',
-	'FROM_START_OF_DAY',
-	0,
-	30
-);
-const OT_REST_FULL = overtimeComponent(
-	'00000000-0000-4000-8000-00000000p004',
-	'OT_REST_FULL',
-	'REST_DAY',
-	'FROM_START_OF_DAY',
-	0.5,
-	31
-);
-const OT_REST_BEYOND = overtimeComponent(
-	'00000000-0000-4000-8000-00000000p005',
-	'OT_REST_BEYOND',
-	'REST_DAY',
-	'BEYOND_NORMAL',
-	0,
-	32
-);
-const OT_HOLIDAY = overtimeComponent(
-	'00000000-0000-4000-8000-00000000p006',
-	'OT_HOLIDAY',
-	'PUBLIC_HOLIDAY',
-	'FROM_START_OF_DAY',
-	0,
-	40
-);
-const OT_HOLIDAY_BEYOND = overtimeComponent(
-	'00000000-0000-4000-8000-00000000p007',
-	'OT_HOLIDAY_BEYOND',
-	'PUBLIC_HOLIDAY',
-	'BEYOND_NORMAL',
-	0,
-	41
-);
+/**
+ * The band codes the derived overtime lines carry.
+ *
+ * There is no pay component behind any of these — the catalogue below holds a salary and an
+ * allowance and nothing else. A line's identity is the statutory band that priced it, and these are
+ * the six bands the Malaysian ladder further down states.
+ */
+const OT_ORDINARY = 'OT_ORDINARY_BEYOND_NORMAL_0';
+const OT_REST_HALF = 'OT_REST_DAY_FROM_START_OF_DAY_0';
+const OT_REST_FULL = 'OT_REST_DAY_FROM_START_OF_DAY_0_5';
+const OT_REST_BEYOND = 'OT_REST_DAY_BEYOND_NORMAL_0';
+const OT_HOLIDAY = 'OT_PUBLIC_HOLIDAY_FROM_START_OF_DAY_0';
+const OT_HOLIDAY_BEYOND = 'OT_PUBLIC_HOLIDAY_BEYOND_NORMAL_0';
+
 const TRANSPORT = component({
 	norbital_id: '00000000-0000-4000-8000-00000000p008',
 	code: 'TRANSPORT',
@@ -183,16 +140,9 @@ const TRANSPORT = component({
 	}
 });
 
-const PAY_COMPONENTS = [
-	BASIC,
-	OT_ORDINARY,
-	OT_REST_HALF,
-	OT_REST_FULL,
-	OT_REST_BEYOND,
-	OT_HOLIDAY,
-	OT_HOLIDAY_BEYOND,
-	TRANSPORT
-];
+// Overtime is deliberately absent: it is not a pay component, and a company cannot put it in its
+// catalogue. Every overtime figure below comes out of the ladder and the clocks alone.
+const PAY_COMPONENTS = [BASIC, TRANSPORT];
 
 /**
  * The Malaysian ladder as seeded: an ordinary day pays 1.5× beyond the normal day; a rest day pays
@@ -334,15 +284,19 @@ function measure(overrides = {}, configurationOverrides = {}) {
 	});
 }
 
-/** Amount on the line the named pay component produced, or null when it produced none. */
+/**
+ * Amount on the line the named component or overtime band produced, or null when it produced none.
+ *
+ * `label` rather than `payComponent.code`: an overtime line has no pay component to read a code
+ * from, and that is the point of the whole model — its label is the band that priced it.
+ */
 const amountOf = (measured, code) => {
-	const lines = measured.lines.filter((line) => line.payComponent.code === code);
+	const lines = measured.lines.filter((line) => line.label === code);
 	assert.ok(lines.length <= 1, `${code} produced ${lines.length} lines`);
 	return lines[0]?.amount ?? null;
 };
 
-const lineOf = (measured, code) =>
-	measured.lines.find((line) => line.payComponent.code === code) ?? null;
+const lineOf = (measured, code) => measured.lines.find((line) => line.label === code) ?? null;
 
 // ── the rate every figure below is built from ───────────────────────────────────────────────────
 
@@ -372,8 +326,8 @@ test('a clock past the cut-off is in the bundle, is derived, and is still not pa
 	assert.equal(measured.calendarMonthOvertimeHours.get('2026-03'), 6);
 
 	// Only the day inside the attendance window is priced onto a payslip line.
-	assert.equal(lineOf(measured, 'OT_ORDINARY').quantity, 3);
-	assert.equal(amountOf(measured, 'OT_ORDINARY'), 74.66, '3 h × 1.5 × 16.59');
+	assert.equal(lineOf(measured, OT_ORDINARY).quantity, 3);
+	assert.equal(amountOf(measured, OT_ORDINARY), 74.66, '3 h × 1.5 × 16.59');
 });
 
 test('the same clock one day earlier is inside the cut-off and is paid', () => {
@@ -382,8 +336,27 @@ test('the same clock one day earlier is inside the cut-off and is paid', () => {
 	const measured = measure({
 		timeEntries: [clock('2026-03-20', '08:30', '20:30'), clock('2026-03-19', '08:30', '20:30')]
 	});
-	assert.equal(lineOf(measured, 'OT_ORDINARY').quantity, 6);
-	assert.equal(amountOf(measured, 'OT_ORDINARY'), 149.31, '6 h × 1.5 × 16.59');
+	assert.equal(lineOf(measured, OT_ORDINARY).quantity, 6);
+	assert.equal(amountOf(measured, OT_ORDINARY), 149.31, '6 h × 1.5 × 16.59');
+});
+
+test('an overtime line names the statutory band and no pay component at all', () => {
+	// The rule being restored, asserted directly: the line links to the band, `payComponent` is null,
+	// and `pay_component_id` — the generated projection — has nothing to project.
+	const measured = measure({ timeEntries: [clock('2026-03-19', '08:30', '20:30')] });
+	const line = lineOf(measured, OT_ORDINARY);
+	assert.equal(line.payComponent, null);
+	assert.deepEqual(line.component, {
+		kind: 'OVERTIME',
+		day_type: 'ORDINARY',
+		measure: 'BEYOND_NORMAL',
+		band_from: 0
+	});
+	assert.equal(line.nature, 'EARNING', 'overtime settles as an earning without a policy to say so');
+	assert.equal(Object.hasOwn(line.component, 'pay_component_id'), false);
+
+	// And no catalogue row was consulted to produce it: this company's catalogue has two rows.
+	assert.deepEqual(measured.lines.map((row) => row.label).toSorted(), ['BASIC', OT_ORDINARY]);
 });
 
 test('a component entry settles by the money cut-off, not by the month it is dated in', () => {
@@ -413,7 +386,7 @@ test('a component entry settles by the money cut-off, not by the month it is dat
 test('a day worked to its scheduled end pays no overtime at all', () => {
 	const measured = measure({ timeEntries: [clock('2026-03-19', '08:30', '17:30')] });
 	assert.deepEqual(measured.overtimeDays, []);
-	assert.equal(amountOf(measured, 'OT_ORDINARY'), null);
+	assert.equal(amountOf(measured, OT_ORDINARY), null);
 	assert.equal(amountOf(measured, 'BASIC'), 3451);
 });
 
@@ -422,9 +395,9 @@ test('overtime crosses into a second band only where the ladder says so', () => 
 	// nothing is rerated at some invented threshold along the way.
 	const three = measure({ timeEntries: [clock('2026-03-19', '08:30', '20:30')] });
 	const six = measure({ timeEntries: [clock('2026-03-19', '08:30', '23:30')] });
-	assert.equal(amountOf(three, 'OT_ORDINARY'), 74.66);
-	assert.equal(amountOf(six, 'OT_ORDINARY'), 149.31);
-	assert.equal(lineOf(six, 'OT_ORDINARY').rate, 16.59);
+	assert.equal(amountOf(three, OT_ORDINARY), 74.66);
+	assert.equal(amountOf(six, OT_ORDINARY), 149.31);
+	assert.equal(lineOf(six, OT_ORDINARY).rate, 16.59);
 });
 
 test('a rest day pays a day’s wages, and only the hours past the normal day run the ladder', () => {
@@ -432,20 +405,20 @@ test('a rest day pays a day’s wages, and only the hours past the normal day ru
 	// day's wages for it, 132.73 — not eight hours at 2.0 × 16.59, which would be 265.44.
 	const eight = measure({ timeEntries: [clock('2026-03-15', '08:30', '17:30')] });
 	assert.equal(eight.overtimeDays[0].dayType, 'REST_DAY');
-	assert.equal(amountOf(eight, 'OT_REST_FULL'), 132.73);
-	assert.equal(amountOf(eight, 'OT_REST_HALF'), null, 'a day’s wages is paid once, at its band');
-	assert.equal(amountOf(eight, 'OT_REST_BEYOND'), null);
+	assert.equal(amountOf(eight, OT_REST_FULL), 132.73);
+	assert.equal(amountOf(eight, OT_REST_HALF), null, 'a day’s wages is paid once, at its band');
+	assert.equal(amountOf(eight, OT_REST_BEYOND), null);
 
 	// Two hours past the normal day, and only those two, reach the 2.0× hourly band.
 	const ten = measure({ timeEntries: [clock('2026-03-15', '08:30', '19:30')] });
-	assert.equal(amountOf(ten, 'OT_REST_FULL'), 132.73);
-	assert.equal(amountOf(ten, 'OT_REST_BEYOND'), 66.36, '2 h × 2.0 × 16.59');
-	assert.equal(lineOf(ten, 'OT_REST_BEYOND').quantity, 2);
+	assert.equal(amountOf(ten, OT_REST_FULL), 132.73);
+	assert.equal(amountOf(ten, OT_REST_BEYOND), 66.36, '2 h × 2.0 × 16.59');
+	assert.equal(lineOf(ten, OT_REST_BEYOND).quantity, 2);
 
 	// Under half a normal day takes the half-day band instead of the full one.
 	const three = measure({ timeEntries: [clock('2026-03-15', '08:30', '12:30')] });
-	assert.equal(amountOf(three, 'OT_REST_HALF'), 66.37, 'half of 132.73, rounded to the cent');
-	assert.equal(amountOf(three, 'OT_REST_FULL'), null);
+	assert.equal(amountOf(three, OT_REST_HALF), 66.37, 'half of 132.73, rounded to the cent');
+	assert.equal(amountOf(three, OT_REST_FULL), null);
 });
 
 test('a public holiday is paid at its own statutory rate, from the holiday calendar', () => {
@@ -464,14 +437,14 @@ test('a public holiday is paid at its own statutory rate, from the holiday calen
 	]);
 	const worked = measure({ timeEntries: [clock('2026-03-10', '08:30', '19:30')] }, { holidays });
 	assert.equal(worked.overtimeDays[0].dayType, 'PUBLIC_HOLIDAY');
-	assert.equal(amountOf(worked, 'OT_HOLIDAY'), 265.46, 'two days’ wages: 2 × 132.73');
-	assert.equal(amountOf(worked, 'OT_HOLIDAY_BEYOND'), 99.54, '2 h × 3.0 × 16.59');
-	assert.equal(amountOf(worked, 'OT_ORDINARY'), null, 'a holiday is not an ordinary day');
+	assert.equal(amountOf(worked, OT_HOLIDAY), 265.46, 'two days’ wages: 2 × 132.73');
+	assert.equal(amountOf(worked, OT_HOLIDAY_BEYOND), 99.54, '2 h × 3.0 × 16.59');
+	assert.equal(amountOf(worked, OT_ORDINARY), null, 'a holiday is not an ordinary day');
 
 	// The same clock on the same date, with no holiday declared, is ordinary overtime beyond 17:30.
 	const ordinary = measure({ timeEntries: [clock('2026-03-10', '08:30', '19:30')] });
-	assert.equal(amountOf(ordinary, 'OT_HOLIDAY'), null);
-	assert.equal(amountOf(ordinary, 'OT_ORDINARY'), 49.77, '2 h × 1.5 × 16.59');
+	assert.equal(amountOf(ordinary, OT_HOLIDAY), null);
+	assert.equal(amountOf(ordinary, OT_ORDINARY), 49.77, '2 h × 1.5 × 16.59');
 });
 
 // ── proration ───────────────────────────────────────────────────────────────────────────────────
@@ -496,7 +469,7 @@ test('a mid-month joiner is paid the days they were employed, over the month’s
 	// the ordinary rate is the contract salary, unprorated.
 	assert.equal(measured.ordinaryHourlyRate, 16.59);
 	const withOvertime = measure({ ...joined, timeEntries: [clock('2026-03-19', '08:30', '20:30')] });
-	assert.equal(amountOf(withOvertime, 'OT_ORDINARY'), 74.66);
+	assert.equal(amountOf(withOvertime, OT_ORDINARY), 74.66);
 });
 
 test('a mid-month leaver is paid to their last day', () => {

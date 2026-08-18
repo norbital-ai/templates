@@ -234,6 +234,30 @@ export type PricedSegment = {
 	readonly timeEntryId: string;
 };
 
+/**
+ * The stable code a derived overtime line is reported under.
+ *
+ * There is no pay component behind an overtime line, so nothing supplies a code — but a workbook
+ * column, an export row and a payslip breakdown all need one, and it has to be the same string
+ * every time or a reconciliation stops matching between two runs. The band is that identity, so
+ * the code is built from it: `OT_ORDINARY_BEYOND_NORMAL_0`, `OT_REST_DAY_FROM_START_OF_DAY_0_5`,
+ * and `OT_EXCESS_…` for the hours the daily total-work boundary reclassified.
+ */
+export function overtimeBandCode(options: {
+	readonly excess: boolean;
+	readonly dayType: string;
+	readonly measure: string;
+	readonly bandFrom: number;
+}): string {
+	return [
+		'OT',
+		...(options.excess ? ['EXCESS'] : []),
+		options.dayType,
+		options.measure,
+		String(options.bandFrom).replace('.', '_')
+	].join('_');
+}
+
 /** Statutory excess value reclassified to incentive rather than discarded. */
 export type ExcessHours = {
 	readonly date: IsoDate;
