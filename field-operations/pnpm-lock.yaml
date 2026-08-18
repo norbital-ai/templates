@@ -495,7 +495,7 @@ packages:
       effect: 4.0.0-rc.109
 
   '@norbital-ai/bolt@0.0.1':
-    resolution: {integrity: sha512-hQP8FY5X/M0acp79pYfiLtQ+TwdNSBg5O2OoeUml2wta/wX59ohyxAKqNceWASWsE7ESAEk7iftJ0/zWo5wsXQ==, tarball: https://npm.pkg.github.com/download/@norbital-ai/bolt/0.0.1/bf24a5f49cc3ab3473e207b9fb6287544f41b0f1}
+    resolution: {integrity: sha512-E9XCmuouNgQ5btLobnTInF/pOCx7eooze6qRntcGvfRHIkLpPURzTm3pFw9ktbbLeZmypHZ6ZLKvz/zhPEfe2w==, tarball: https://npm.pkg.github.com/download/@norbital-ai/bolt/0.0.1/34e1db42131b33639d69d4f7861cb51b9833205e}
     hasBin: true
     peerDependencies:
       effect: 4.0.0-rc.109
@@ -2289,6 +2289,7 @@ snapshots:
       drizzle-orm: 1.0.0-rc.4(@electric-sql/pglite@0.3.16)(effect@4.0.0-rc.109)(zod@4.4.3)
       effect: 4.0.0-rc.109
       svelte: 5.56.9
+      typescript: 6.0.3
       vite: 8.2.1(@types/node@26.2.0)(jiti@2.7.0)
     transitivePeerDependencies:
       - '@aws-sdk/client-rds-data'
