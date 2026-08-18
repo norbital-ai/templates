@@ -9,7 +9,7 @@
 
 <svelte:head>
 	<meta
-		name="pod:banner"
+		name="bolt:banner"
 		content="/api/template-seed-assets/construction/record-media/projects-banner.svg"
 	/>
 </svelte:head>
