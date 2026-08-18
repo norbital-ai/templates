@@ -16,7 +16,7 @@ importers:
         version: 3.12.3
       '@norbital-ai/bolt':
         specifier: 0.0.1
-        version: 0.0.1(effect@4.0.0-rc.109)(svelte@5.56.9)(vite@8.2.1(jiti@2.7.0))(zod@4.4.3)
+        version: 0.0.1(effect@4.0.0-rc.109)(jiti@2.7.0)(svelte@5.56.9)(zod@4.4.3)
       '@norbital-ai/bolt-protocol':
         specifier: 0.0.1
         version: 0.0.1(effect@4.0.0-rc.109)
@@ -495,7 +495,7 @@ packages:
       effect: 4.0.0-rc.109
 
   '@norbital-ai/bolt@0.0.1':
-    resolution: {integrity: sha512-UzaO2EluoG8BbMGdjFsgRcm6ki6HSOleilAccHt4hMFyR1pjJjzsDTYgS5Z+u3bw4yGCdJPQk2p9hOWoyKm/Hw==, tarball: https://npm.pkg.github.com/download/@norbital-ai/bolt/0.0.1/276e7ad1942ef45c7a3425b1e298cd451991fdbd}
+    resolution: {integrity: sha512-hQP8FY5X/M0acp79pYfiLtQ+TwdNSBg5O2OoeUml2wta/wX59ohyxAKqNceWASWsE7ESAEk7iftJ0/zWo5wsXQ==, tarball: https://npm.pkg.github.com/download/@norbital-ai/bolt/0.0.1/bf24a5f49cc3ab3473e207b9fb6287544f41b0f1}
     hasBin: true
     peerDependencies:
       effect: 4.0.0-rc.109
@@ -2546,7 +2546,7 @@ snapshots:
     dependencies:
       effect: 4.0.0-rc.109
 
-  '@norbital-ai/bolt@0.0.1(effect@4.0.0-rc.109)(svelte@5.56.9)(vite@8.2.1(jiti@2.7.0))(zod@4.4.3)':
+  '@norbital-ai/bolt@0.0.1(effect@4.0.0-rc.109)(jiti@2.7.0)(svelte@5.56.9)(zod@4.4.3)':
     dependencies:
       '@electric-sql/pglite': 0.3.16
       '@iconify/svelte': 5.2.2(svelte@5.56.9)
@@ -2560,6 +2560,7 @@ snapshots:
       drizzle-orm: 1.0.0-rc.4(@electric-sql/pglite@0.3.16)(effect@4.0.0-rc.109)(zod@4.4.3)
       effect: 4.0.0-rc.109
       svelte: 5.56.9
+      vite: 8.2.1(jiti@2.7.0)
     transitivePeerDependencies:
       - '@aws-sdk/client-rds-data'
       - '@cloudflare/workers-types'
@@ -2593,16 +2594,21 @@ snapshots:
       - '@tursodatabase/sync'
       - '@types/better-sqlite3'
       - '@types/mssql'
+      - '@types/node'
       - '@types/pg'
       - '@types/sql.js'
       - '@upstash/redis'
       - '@vercel/postgres'
+      - '@vitejs/devtools'
       - '@xata.io/client'
       - arktype
       - babel-plugin-macros
       - better-sqlite3
       - bun-types
+      - esbuild
       - expo-sqlite
+      - jiti
+      - less
       - mongodb
       - mssql
       - mysql2
@@ -2612,15 +2618,21 @@ snapshots:
       - prisma
       - react
       - react-dom
+      - sass
+      - sass-embedded
       - solid-js
       - sql.js
       - sqlite3
+      - stylus
+      - sugarss
       - tailwindcss
+      - terser
+      - tsx
       - typebox
       - valibot
-      - vite
       - vitest
       - vue
+      - yaml
       - zod
 
   '@norbital-ai/std@0.0.1':
