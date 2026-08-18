@@ -1,34 +1,37 @@
-import { defineCustomType } from '@norbital-ai/pod/authoring';
-import { z } from 'zod/mini';
+import { defineCustomType } from '@norbital-ai/bolt/authoring';
+import { Schema } from 'effect';
+import { calendarDay } from '../../lib/iso-day.js';
 
-const patternDaySchema = z.strictObject({ roster_code_id: z.uuid() });
+const patternDayValueSchema = Schema.Struct({
+	roster_code_id: Schema.String.check(Schema.isUUID())
+});
 
-const phaseDurationSchema = z.discriminatedUnion('kind', [
-	z.strictObject({ kind: z.literal('CONTINUOUS') }),
-	z.strictObject({
-		kind: z.literal('CALENDAR_MONTHS'),
-		months: z.number().check(z.int(), z.positive())
+const phaseDurationValueSchema = Schema.Union([
+	Schema.Struct({ kind: Schema.Literal('CONTINUOUS') }),
+	Schema.Struct({
+		kind: Schema.Literal('CALENDAR_MONTHS'),
+		months: Schema.Int.check(Schema.isGreaterThan(0))
 	})
 ]);
 
-const phaseSchema = z.strictObject({
-	duration: phaseDurationSchema,
-	day_cycle: z.array(patternDaySchema).check(z.minLength(1))
+const phaseValueSchema = Schema.Struct({
+	duration: phaseDurationValueSchema,
+	day_cycle: Schema.Array(patternDayValueSchema).check(Schema.isMinLength(1))
 });
 
-const periodSchema = z.enum(['WEEK', 'MONTH']);
+const periodSchema = Schema.Literals(['WEEK', 'MONTH']);
 
-const rosterExpectationSchema = z.discriminatedUnion('kind', [
-	z.strictObject({
-		kind: z.literal('GUARANTEED_SCHEDULE'),
+const rosterExpectationValueSchema = Schema.Union([
+	Schema.Struct({
+		kind: Schema.Literal('GUARANTEED_SCHEDULE'),
 		period: periodSchema,
-		required_work_days: z.number().check(z.positive()),
-		required_paid_minutes: z.number().check(z.int(), z.positive())
+		required_work_days: Schema.Finite.check(Schema.isGreaterThan(0)),
+		required_paid_minutes: Schema.Int.check(Schema.isGreaterThan(0))
 	}),
-	z.strictObject({
-		kind: z.literal('AS_ASSIGNED'),
+	Schema.Struct({
+		kind: Schema.Literal('AS_ASSIGNED'),
 		period: periodSchema,
-		maximum_paid_minutes: z.nullable(z.number().check(z.int(), z.positive()))
+		maximum_paid_minutes: Schema.NullOr(Schema.Int.check(Schema.isGreaterThan(0)))
 	})
 ]);
 
@@ -42,19 +45,24 @@ const rosterExpectationSchema = z.discriminatedUnion('kind', [
  * ROSTERED is reserved for assignments that cannot be generated. Its expectation exists only
  * because there is no cycle from which a guaranteed amount or contractual cap could be derived.
  */
-export const workPatternSchema = z.discriminatedUnion('type', [
-	z.strictObject({
-		type: z.literal('PATTERNED'),
-		anchor_date: z.iso.date(),
-		phases: z.array(phaseSchema).check(z.minLength(1))
+export const workPatternValueSchema = Schema.Union([
+	Schema.Struct({
+		type: Schema.Literal('PATTERNED'),
+		anchor_date: calendarDay,
+		phases: Schema.Array(phaseValueSchema).check(Schema.isMinLength(1))
 	}),
-	z.strictObject({
-		type: z.literal('ROSTERED'),
-		expectation: rosterExpectationSchema
+	Schema.Struct({
+		type: Schema.Literal('ROSTERED'),
+		expectation: rosterExpectationValueSchema
 	})
 ]);
 
-export type WorkPattern = z.infer<typeof workPatternSchema>;
+export type WorkPattern = Schema.Schema.Type<typeof workPatternValueSchema>;
+
+/** Strict standard view: a key no arm declares is refused rather than stripped. */
+export const workPatternSchema = Schema.toStandardSchemaV1(workPatternValueSchema, {
+	parseOptions: { onExcessProperty: 'error' }
+});
 
 export default defineCustomType({
 	name: 'work_pattern',

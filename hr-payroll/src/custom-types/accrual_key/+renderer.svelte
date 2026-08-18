@@ -1,10 +1,12 @@
 <script lang="ts">
+	import { Result, Schema } from 'effect';
 	import { useI18n } from '@norbital-ai/ui/i18n';
-	import type { TenantI18nKeys } from '$pod/i18n-keys';
+	import type { TenantI18nKeys } from '$bolt/i18n-keys';
 	import { Combobox } from '@norbital-ai/ui/combobox';
 	import { Input } from '@norbital-ai/ui/input';
 	import { Grid } from '@norbital-ai/ui/layout';
 	import { accrualKeySchema } from './+definition.js';
+	import type { CollectionField } from '@norbital-ai/ui/data-renderer';
 	import type { RendererProps, Value } from './$types.js';
 	const { t } = useI18n<TenantI18nKeys>();
 
@@ -19,10 +21,21 @@
 		{ value: 'FLAT', label: 'Flat', description: 'Same entitlement for everyone' }
 	];
 
-	let props: RendererProps = $props();
+	/**
+	 * The platform hands every custom renderer the full `CollectionField` (name, kind, nullable,
+	 * options, …); the generated `$types` only declare the `{ name, type }` minimum, so the field is
+	 * restated against the design-system shape the callers and the runtime actually speak.
+	 */
+	type WithStdField<P> = P extends unknown
+		? Omit<P, 'field'> & { readonly field: CollectionField }
+		: never;
+	type Props = WithStdField<RendererProps>;
+	let props: Props = $props();
 	const disabled = $derived(props.mode === 'edit' ? props.disabled : true);
-	const parsed = $derived(accrualKeySchema.safeParse(props.value));
-	const current = $derived(parsed.success ? parsed.data : null);
+	const parsed = $derived(
+		Schema.decodeUnknownResult(accrualKeySchema)(props.value, { onExcessProperty: 'error' })
+	);
+	const current = $derived(Result.isSuccess(parsed) ? parsed.success : null);
 	const summary = $derived.by(() => {
 		if (current === null) return '—';
 		return current.by === 'SERVICE_MONTHS' ? `From ${current.band_from} months` : 'Flat';

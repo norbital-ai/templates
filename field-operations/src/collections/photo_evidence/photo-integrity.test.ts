@@ -3,9 +3,9 @@ import assert from 'node:assert/strict';
 import { Buffer } from 'node:buffer';
 import { gunzipSync } from 'node:zlib';
 import {
+	decodePhotoInspection,
 	evaluateCaptureGeolocation,
 	inspectPhoto,
-	photoInspectionSchema,
 	planDuplicateEvidenceBatch
 } from './photo-integrity.js';
 
@@ -44,7 +44,7 @@ test('inspects the canonical 12 MP phone-photo envelope deterministically', asyn
 
 test('accepts only the immutable fact shape supplied by the host inspection cache', () => {
 	assert.deepEqual(
-		photoInspectionSchema.parse({
+		decodePhotoInspection({
 			sha256: 'a'.repeat(64),
 			perceptualHash: 'b'.repeat(64),
 			width: 1440,
@@ -62,7 +62,7 @@ test('accepts only the immutable fact shape supplied by the host inspection cach
 		}
 	);
 	assert.throws(() =>
-		photoInspectionSchema.parse({
+		decodePhotoInspection({
 			sha256: 'not-a-digest',
 			perceptualHash: 'b'.repeat(64),
 			width: 0,

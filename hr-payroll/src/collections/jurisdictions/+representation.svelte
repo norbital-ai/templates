@@ -2,14 +2,14 @@
 	/**
 	 * One dated statutory snapshot, edited as one unit.
 	 *
-	 * Working-time coverage, prices, limits and breaks are attributes of the snapshot. They are not
+	 * Working-time coverage, prices and limits are attributes of the snapshot. They are not
 	 * sibling collections with independent dates, which prevents payroll from assembling one result
 	 * out of incompatible law revisions. Contribution schemes remain separate because they are
 	 * independently versioned programs and own genuine rate-band collections.
 	 */
-	import { client } from '$pod/client';
+	import { client } from '../../lib/workspace-client.js';
 	import { useI18n } from '@norbital-ai/ui/i18n';
-	import type { TenantI18nKeys } from '$pod/i18n-keys';
+	import type { TenantI18nKeys } from '$bolt/i18n-keys';
 	import type { RepresentationProps } from './$types.js';
 	import { CollectionForm } from '@norbital-ai/ui/collection-form';
 	import { CollectionTable } from '@norbital-ai/ui/collection-table';
@@ -26,7 +26,6 @@
 	<CollectionForm
 		{client}
 		collection="jurisdictions"
-		recordId={record?.norbital_id}
 		defaultValues={record ?? undefined}
 		submitLabel={record ? t('component.save_jurisdiction') : t('component.create_jurisdiction')}
 		onAfterSubmit={record ? undefined : close}
@@ -37,12 +36,9 @@
 				<Field name="name" />
 				<Field name="currency" />
 				<Field name="tax_year_start_month" label={t('component.tax_year_start_month')} />
-				<Field name="leave_year_start_month" label={t('component.leave_year_start_month')} />
 				<Field name="proration" label={t('component.proration_basis')} />
-				<Field name="rounding" />
 				<Field name="ordinary_rate_basis" label={t('component.ordinary_rate_basis')} />
 				<Field name="ordinary_rate_divisor" label={t('component.ordinary_rate_divisor')} />
-				<Field name="definition_hash" label={t('component.definition_hash')} />
 				<Column span="all">
 					<Field name="effective_range" label={t('component.effective_period')} />
 				</Column>
@@ -59,7 +55,7 @@
 		<CollectionTable
 			{client}
 			collection="statutory_contributions"
-			view={`jurisdictions:contributions:${record.norbital_id}`}
+			view="jurisdictions:contributions"
 			title={t('component.statutory_contributions')}
 			description={t('component.statutory_contributions_description')}
 			initialFilters={inForceTodayFilter()}
@@ -67,7 +63,6 @@
 				where: { jurisdiction_id: { eq: record.norbital_id } },
 				orderBy: { sequence: 'asc' }
 			}}
-			searchPlaceholder={t('component.search_contributions')}
 		>
 			{#snippet columns({ Column: TableColumn })}
 				<TableColumn name="code" card="title" />

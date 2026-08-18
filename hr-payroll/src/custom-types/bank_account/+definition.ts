@@ -1,15 +1,34 @@
-import { defineCustomType } from '@norbital-ai/pod/authoring';
-import { z } from 'zod/mini';
+import { defineCustomType } from '@norbital-ai/bolt/authoring';
+import { Schema } from 'effect';
 
-export const bankAccountSchema = z.strictObject({
-	bank_name: z.string().check(z.trim(), z.minLength(1)),
-	bank_code: z.string().check(z.trim(), z.minLength(1)),
-	bank_account_number: z.string().check(z.trim(), z.minLength(1)),
-	bank_account_name: z.string().check(z.trim(), z.minLength(1))
+const trimmedNonEmpty = Schema.Trimmed.check(Schema.isMinLength(1));
+
+export const bankAccountValueSchema = Schema.Struct({
+	bank_name: trimmedNonEmpty,
+	bank_code: trimmedNonEmpty,
+	bank_account_number: trimmedNonEmpty,
+	bank_account_name: trimmedNonEmpty
 });
-export const bankAccountDraftSchema = z.nullable(z.partial(bankAccountSchema));
 
-export type BankAccount = z.infer<typeof bankAccountSchema>;
+export type BankAccount = Schema.Schema.Type<typeof bankAccountValueSchema>;
+
+/** An in-progress bank account: any subset of the fields, or nothing at all. */
+export const bankAccountDraftValueSchema = Schema.NullOr(
+	Schema.Struct({
+		bank_name: Schema.optional(trimmedNonEmpty),
+		bank_code: Schema.optional(trimmedNonEmpty),
+		bank_account_number: Schema.optional(trimmedNonEmpty),
+		bank_account_name: Schema.optional(trimmedNonEmpty)
+	})
+);
+
+/** Strict standard view: a key the account does not declare is refused rather than stripped. */
+export const bankAccountSchema = Schema.toStandardSchemaV1(bankAccountValueSchema, {
+	parseOptions: { onExcessProperty: 'error' }
+});
+export const bankAccountDraftSchema = Schema.toStandardSchemaV1(bankAccountDraftValueSchema, {
+	parseOptions: { onExcessProperty: 'error' }
+});
 
 export default defineCustomType({
 	name: 'bank_account',

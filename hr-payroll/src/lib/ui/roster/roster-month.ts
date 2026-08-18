@@ -19,10 +19,13 @@
  */
 
 import { calendarDayKey, daysInMonth } from '../calendar.js';
+import type { RosterCodeVariant } from '../../../custom-types/roster_code_variant/+definition.js';
+import type { WorkPattern } from '../../../custom-types/work_pattern/+definition.js';
 import { rosterCodeKind, workWindow } from '../../scheduling/roster-code.js';
 import { patternRosterCodeId } from '../../scheduling/work-pattern.js';
+import type { DayLock } from '../../scheduling/lock.js';
 import type { I18nApi } from '@norbital-ai/ui/i18n';
-import type { TenantI18nKeys } from '$pod/i18n-keys';
+import type { TenantI18nKeys } from '$bolt/i18n-keys';
 
 /** The translation callback a display helper takes, so it stays locale-reactive at the call site. */
 export type Translator = I18nApi<TenantI18nKeys>['t'];
@@ -63,17 +66,32 @@ export type DayFacts = {
 	readonly shiftBreakMinutes: number | null;
 	/** The source roster token, e.g. `AMRES` or `OFF/S`, when the roster carried one. */
 	readonly assignmentCode: string | null;
+	/** Where the explicit entry came from: `IMPORT`, `MANUAL`, or null when none exists. */
+	readonly origin: string | null;
 	/** Overlaid from `company_holidays`, never stored on the entry. */
 	readonly holidayName: string | null;
 	readonly leaveCode: string | null;
 	readonly halfDayLeave: boolean;
+	/** A leave request covering the day that has not been approved yet. */
+	readonly pendingLeave: boolean;
+	/** Planned extra work: a WORK day whose baseline (or the holiday calendar) is not work. */
+	readonly plannedOT: boolean;
 	readonly clockedIn: boolean;
 	readonly workedIntervalCount: number;
 	readonly attendanceState: 'OPEN' | 'CLOSED' | null;
 	/** Whether the day falls inside the attendance window the next payroll run will settle. */
 	readonly withinCutoff: boolean;
+	/** Derived from the company's payroll runs; drives the board's stripes and the write refusals. */
+	readonly lock: DayLock;
+	/** The day has already ended, which decides how loud its silence should be. */
+	readonly past: boolean;
+	/** Derived disagreements between the writers of this day; the board draws them as dots. */
+	readonly conflicts: readonly ConflictKind[];
 	readonly status: DayStatus;
 };
+
+/** A derived conflict between two writers of one day. */
+export type ConflictKind = 'PENDING_LEAVE_OVERLAP' | 'LEAVE_AND_WORK';
 
 export type EmploymentMonthLike = {
 	readonly norbital_id: string;
@@ -88,11 +106,12 @@ export type RosterEntryLike = {
 	readonly work_date: string | Date;
 	readonly shift_definition_id: string;
 	readonly assignment_code: string | null;
+	readonly origin?: string | null;
 };
 
 export type EmploymentTermLike = {
 	readonly employment_id: string;
-	readonly work_pattern: unknown;
+	readonly work_pattern: WorkPattern;
 	readonly effective_range: {
 		readonly start?: string | Date;
 		readonly end?: string | Date;
@@ -101,7 +120,7 @@ export type EmploymentTermLike = {
 
 export type RosterCodeDisplayLike = {
 	readonly code: string;
-	readonly variant: unknown;
+	readonly variant: RosterCodeVariant;
 };
 
 export type TimeEntryLike = {
@@ -252,11 +271,16 @@ export function buildRosterMonth(options: {
 	readonly rosterEntries: readonly RosterEntryLike[];
 	readonly timeEntries: readonly TimeEntryLike[];
 	readonly leaveRequests: readonly LeaveRequestLike[];
+	/** Leave requests that have not been approved yet; drawn as pending coverage, never as taken. */
+	readonly pendingLeaveRequests: readonly LeaveRequestLike[];
 	readonly holidays: readonly HolidayLike[];
 	readonly rosterCodesById: ReadonlyMap<string, RosterCodeDisplayLike>;
 	readonly employmentTerms: readonly EmploymentTermLike[];
 	readonly leaveCodeById: ReadonlyMap<string, string>;
 	readonly cutoff: { readonly start: string; readonly end: string } | null;
+	/** One lock per date, derived from the company's payroll runs by `lockMap`. */
+	readonly locks: ReadonlyMap<string, DayLock>;
+	readonly today: string;
 }): Map<string, DayFacts> {
 	const days = monthDays(options.month);
 	const first = days[0]!;
@@ -290,6 +314,18 @@ export function buildRosterMonth(options: {
 			leaveByKey.set(`${request.employment_id}:${date}`, { code, halfDay });
 		}
 	}
+	const pendingLeaveByKey = new Map<string, boolean>();
+	for (const request of options.pendingLeaveRequests) {
+		if (request.kind !== 'TIME_OFF' || request.from_date == null || request.to_date == null)
+			continue;
+		const from = calendarDayKey(request.from_date);
+		const to = calendarDayKey(request.to_date);
+		if (to < first || from > last) continue;
+		for (const date of days) {
+			if (date < from || date > to) continue;
+			pendingLeaveByKey.set(`${request.employment_id}:${date}`, true);
+		}
+	}
 
 	const facts = new Map<string, DayFacts>();
 	for (const employment of options.employments) {
@@ -307,6 +343,7 @@ export function buildRosterMonth(options: {
 			const roster = rosterByKey.get(key);
 			const time = timeByKey.get(key);
 			const leave = leaveByKey.get(key);
+			const pendingLeave = pendingLeaveByKey.get(key) === true;
 			const term = activeTerm(options.employmentTerms, employmentId, date);
 			const scheduleKind = term == null ? null : scheduleKindOf(term.work_pattern);
 			const projectedId =
@@ -314,6 +351,9 @@ export function buildRosterMonth(options: {
 			const rosterCodeId = roster?.shift_definition_id ?? projectedId;
 			const rosterCode = rosterCodeId == null ? null : options.rosterCodesById.get(rosterCodeId);
 			const designation = rosterCode == null ? null : rosterCodeKind(rosterCode.variant);
+			const baselineId = term == null ? null : patternRosterCodeId(term.work_pattern, date);
+			const baselineCode = baselineId == null ? null : options.rosterCodesById.get(baselineId);
+			const baselineKind = baselineCode == null ? null : rosterCodeKind(baselineCode.variant);
 			const window = designation === 'WORK' ? workWindow(rosterCode?.variant) : null;
 			const employmentState =
 				employmentStart != null && date < employmentStart
@@ -321,6 +361,12 @@ export function buildRosterMonth(options: {
 					: employmentEnd != null && date > employmentEnd
 						? ('EXITED' as const)
 						: ('ACTIVE' as const);
+			const holidayName = holidayByDate.get(date) ?? null;
+			const conflicts: ConflictKind[] = [];
+			if (pendingLeave && designation === 'WORK') conflicts.push('PENDING_LEAVE_OVERLAP');
+			if (leave != null && (designation === 'WORK' || (time?.worked_intervals?.length ?? 0) > 0)) {
+				conflicts.push('LEAVE_AND_WORK');
+			}
 			const partial: Omit<DayFacts, 'status'> = {
 				employmentId,
 				date,
@@ -335,9 +381,15 @@ export function buildRosterMonth(options: {
 				shiftEnd: employmentState === 'ACTIVE' ? (window?.end_time ?? null) : null,
 				shiftBreakMinutes: employmentState === 'ACTIVE' ? (window?.break_minutes ?? null) : null,
 				assignmentCode: roster?.assignment_code ?? null,
-				holidayName: holidayByDate.get(date) ?? null,
+				origin: roster?.origin ?? null,
+				holidayName,
 				leaveCode: leave?.code ?? null,
 				halfDayLeave: leave?.halfDay ?? false,
+				pendingLeave,
+				plannedOT:
+					employmentState === 'ACTIVE' &&
+					designation === 'WORK' &&
+					(holidayName != null || baselineKind === 'REST' || baselineKind === 'OFF'),
 				clockedIn: (time?.worked_intervals?.length ?? 0) > 0,
 				workedIntervalCount: time?.worked_intervals?.length ?? 0,
 				attendanceState:
@@ -347,7 +399,10 @@ export function buildRosterMonth(options: {
 							? 'OPEN'
 							: 'CLOSED',
 				withinCutoff:
-					options.cutoff != null && date >= options.cutoff.start && date <= options.cutoff.end
+					options.cutoff != null && date >= options.cutoff.start && date <= options.cutoff.end,
+				lock: options.locks.get(date) ?? { kind: 'NONE' },
+				past: date < options.today,
+				conflicts
 			};
 			facts.set(key, { ...partial, status: statusOf(partial) });
 		}
@@ -444,6 +499,57 @@ export function statusGlyph(day: DayFacts): string {
 	}
 }
 
+/**
+ * The plan line of a cell: what the roster says the day is, before anything happened.
+ *
+ * Planned extra work (a WORK day over a rest, off or holiday baseline) reads as `OT` so it is
+ * visible at a glance; pending leave reads as `l` so nobody mistakes it for a taken day.
+ */
+export function planGlyph(day: DayFacts): string {
+	if (day.status === 'BEFORE_START') return '—';
+	if (day.status === 'EXITED') return '×';
+	if (day.pendingLeave) return 'l';
+	if (day.plannedOT) return 'OT';
+	return statusGlyph(day);
+}
+
+/**
+ * The evidence line of a cell: what actually happened, one mark.
+ *
+ * This is the observation axis, so it can always disagree with the plan — that disagreement is
+ * the product, not an error. A blank mark means there is nothing to say yet.
+ */
+export function actualMark(day: DayFacts): string {
+	if (day.attendanceState === 'OPEN') return '⧗';
+	if (day.clockedIn) return '✓';
+	if (day.status === 'ABSENT') return '!';
+	return '·';
+}
+
+export function actualMarkClass(day: DayFacts): string {
+	if (day.attendanceState === 'OPEN') return 'text-warning-foreground';
+	if (day.clockedIn) return 'text-success-foreground';
+	if (day.status === 'ABSENT') return 'text-destructive';
+	return 'text-muted-foreground';
+}
+
+/** How a derived conflict reads, and how loudly. */
+export const CONFLICT_PRESENTATION: Record<
+	ConflictKind,
+	{ readonly labelKey: TenantI18nKeys; readonly className: string; readonly mark: string }
+> = {
+	PENDING_LEAVE_OVERLAP: {
+		labelKey: 'roster.conflict_pending_leave',
+		className: 'bg-warning text-warning-foreground',
+		mark: '⚑'
+	},
+	LEAVE_AND_WORK: {
+		labelKey: 'roster.conflict_leave_work',
+		className: 'bg-destructive text-destructive-foreground',
+		mark: '⚑'
+	}
+};
+
 function shortClock(value: string): string {
 	const [hourText, minuteText] = value.split(':');
 	const hour = Number(hourText);
@@ -495,6 +601,14 @@ export function describeDay(day: DayFacts | undefined, heading: string, t: Trans
 		day.leaveCode == null
 			? null
 			: `${day.leaveCode}${day.halfDayLeave ? ` (${t('roster.half_day')})` : ''}`,
+		day.pendingLeave ? t('roster.pending_leave') : null,
+		day.plannedOT ? t('roster.planned_ot') : null,
+		...day.conflicts.map((conflict) => t(CONFLICT_PRESENTATION[conflict].labelKey)),
+		day.lock.kind === 'SETTLED'
+			? t('roster.in_paid_payroll', { period: day.lock.period })
+			: day.lock.kind === 'IN_WINDOW'
+				? t('roster.in_payroll_window', { period: day.lock.period })
+				: null,
 		day.attendanceState === 'OPEN'
 			? t('roster.attendance_open')
 			: day.workedIntervalCount > 0

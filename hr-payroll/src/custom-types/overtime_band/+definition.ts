@@ -1,5 +1,5 @@
-import { defineCustomType } from '@norbital-ai/pod/authoring';
-import { z } from 'zod/mini';
+import { defineCustomType } from '@norbital-ai/bolt/authoring';
+import { Schema } from 'effect';
 
 /**
  * The slice of a working day an overtime rule covers.
@@ -8,20 +8,25 @@ import { z } from 'zod/mini';
  * (rest-day / public-holiday day-wage rules).
  * `to_*` is an exclusive upper bound; `null` means "open ended".
  */
-export const overtimeBandSchema = z.discriminatedUnion('measure', [
-	z.strictObject({
-		measure: z.literal('BEYOND_NORMAL'),
-		from_hours: z.number().check(z.minimum(0)),
-		to_hours: z.nullable(z.number().check(z.minimum(0)))
+export const overtimeBandValueSchema = Schema.Union([
+	Schema.Struct({
+		measure: Schema.Literal('BEYOND_NORMAL'),
+		from_hours: Schema.Finite.check(Schema.isGreaterThanOrEqualTo(0)),
+		to_hours: Schema.NullOr(Schema.Finite.check(Schema.isGreaterThanOrEqualTo(0)))
 	}),
-	z.strictObject({
-		measure: z.literal('FROM_START_OF_DAY'),
-		from_fraction: z.number().check(z.minimum(0)),
-		to_fraction: z.nullable(z.number().check(z.minimum(0)))
+	Schema.Struct({
+		measure: Schema.Literal('FROM_START_OF_DAY'),
+		from_fraction: Schema.Finite.check(Schema.isGreaterThanOrEqualTo(0)),
+		to_fraction: Schema.NullOr(Schema.Finite.check(Schema.isGreaterThanOrEqualTo(0)))
 	})
 ]);
 
-export type OvertimeBand = z.infer<typeof overtimeBandSchema>;
+export type OvertimeBand = Schema.Schema.Type<typeof overtimeBandValueSchema>;
+
+/** Strict standard view: a key no arm declares is refused rather than stripped. */
+export const overtimeBandSchema = Schema.toStandardSchemaV1(overtimeBandValueSchema, {
+	parseOptions: { onExcessProperty: 'error' }
+});
 
 export default defineCustomType({
 	name: 'overtime_band',

@@ -1,10 +1,21 @@
 <script lang="ts">
+	import { Result, Schema } from 'effect';
 	import { formatDataValue } from '@norbital-ai/ui/data-renderer';
 	import { MoneyRenderer } from '@norbital-ai/ui/data-renderer/money';
 	import type { CollectionField } from '@norbital-ai/ui/data-renderer';
-	import type { RendererProps, Value } from './$types.js';
+	import type { RendererProps } from './$types.js';
 	import { moneySchema } from './+definition.js';
-	let props: RendererProps = $props();
+
+	/**
+	 * The platform hands every custom renderer the full `CollectionField` (name, kind, nullable,
+	 * options, …); the generated `$types` only declare the `{ name, type }` minimum, so the field is
+	 * restated against the design-system shape the callers and the runtime actually speak.
+	 */
+	type WithStdField<P> = P extends unknown
+		? Omit<P, 'field'> & { readonly field: CollectionField }
+		: never;
+	type MoneyRendererProps = WithStdField<RendererProps>;
+	let props: MoneyRendererProps = $props();
 
 	/**
 	 * `MoneyRenderer` types its callback as `(value: unknown) => void`. Validate at that boundary
@@ -16,8 +27,8 @@
 			props.onValueChange(null);
 			return;
 		}
-		const parsed = moneySchema().safeParse(next);
-		if (parsed.success) props.onValueChange(parsed.data as Value);
+		const parsed = Schema.decodeUnknownResult(moneySchema())(next);
+		if (Result.isSuccess(parsed)) props.onValueChange(parsed.success);
 	}
 
 	const allowedCurrencies = $derived.by((): readonly string[] | undefined => {

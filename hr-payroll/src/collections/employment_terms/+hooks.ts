@@ -1,4 +1,4 @@
-import { refuse } from '@norbital-ai/pod/authoring';
+import { refuse } from '@norbital-ai/bolt/authoring';
 import type { Hooks } from './$types.js';
 
 /**
@@ -11,7 +11,7 @@ import type { Hooks } from './$types.js';
  */
 function requireEmployment(value: string | null | undefined): string {
 	if (value == null || value === '') {
-		refuse('Employment terms must reference an employment.');
+		return refuse('Employment terms must reference an employment.');
 	}
 	return value;
 }

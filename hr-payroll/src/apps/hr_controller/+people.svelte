@@ -1,8 +1,8 @@
 <script lang="ts">
-	import { client } from '$pod/client';
+	import { client } from '../../lib/workspace-client.js';
 	import { useI18n } from '@norbital-ai/ui/i18n';
-	import AppHeaderActions from '@norbital-ai/pod/client/app-header-actions';
-	import type { TenantI18nKeys } from '$pod/i18n-keys';
+	import AppHeaderActions from '@norbital-ai/bolt/client/app-header-actions';
+	import type { TenantI18nKeys } from '$bolt/i18n-keys';
 	import { Display, type ChartDisplaySpec } from '@norbital-ai/ui/chart';
 	import { CollectionTable } from '@norbital-ai/ui/collection-table';
 	import { formatDataValue } from '@norbital-ai/ui/data-renderer';
@@ -236,7 +236,6 @@
 					},
 					orderBy: { name: 'asc' }
 				}}
-				searchPlaceholder={t('app.people.search_people')}
 			>
 				{#snippet columns({ Column })}
 					<Column name="name" />

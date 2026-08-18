@@ -10,6 +10,7 @@
  * money. That predicate is on every query here without exception.
  */
 
+import { Effect } from 'effect';
 import type { WorkspaceRow } from '../$types.js';
 import { assertComplete, groupBy, PAGE_LIMIT, type PayrollReadApi } from './api.js';
 import type { Configuration } from './configuration.js';
@@ -88,139 +89,144 @@ export type GatheredRun = {
 	readonly yearToDate: ReadonlyMap<string, { employee: number; employer: number; base: number }>;
 };
 
-export async function gatherRun(options: {
+export function gatherRun(options: {
 	readonly api: PayrollReadApi;
 	readonly configuration: Configuration;
 	readonly window: PayrollWindow;
 	readonly policy: SettlementPolicy;
-}): Promise<GatheredRun> {
-	const { window } = options;
-	const period = window.period;
-	const salary = window.salary;
-	const { query } = options.api.db;
-	const approved = { norbital_approval_id: { isNull: true } } as const;
-	const companyId = options.configuration.company.norbital_id;
+}): Effect.Effect<GatheredRun, never, never> {
+	return Effect.gen(function* () {
+		const { window } = options;
+		const period = window.period;
+		const salary = window.salary;
+		const { query } = options.api.db;
+		const approved = { norbital_approval_id: { isNull: true } } as const;
+		const companyId = options.configuration.company.norbital_id;
 
-	const employmentRows = live(
-		await query.employments.findMany({
-			where: { company_id: { eq: companyId }, ...approved },
-			limit: PAGE_LIMIT
-		})
-	);
-	assertComplete(employmentRows, 'employments');
-
-	// Someone is in the run if their employment touches the pay period at all — and then
-	// `settlement.ts` says which run that period actually settles in. A leaver paid to the 10th is
-	// still paid here; a joiner who started after this run's window closed has a period to settle
-	// but no attendance to settle it against, so their money is deferred rather than guessed.
-	const touching = employmentRows.filter((row) =>
-		overlapsRange(row.effective_range, salary.start, salary.end)
-	);
-	const settlementByEmployment = new Map<string, EmploymentSettlement>();
-	for (const row of touching)
-		settlementByEmployment.set(
-			row.norbital_id,
-			resolveEmploymentSettlement({
-				dates: employmentDates(row),
-				window,
-				policy: options.policy
+		const employmentRows = live(
+			yield* query.employments.findMany({
+				where: { company_id: { eq: companyId }, ...approved },
+				limit: PAGE_LIMIT
 			})
 		);
+		assertComplete(employmentRows, 'employments');
 
-	const employments = touching.filter((row) => {
-		const settlement = settlementByEmployment.get(row.norbital_id);
-		return settlement != null && (settlement.runs || settlement.deferral != null);
-	});
-	const employmentIds = employments.map((row) => row.norbital_id);
-	if (employmentIds.length === 0) return { bundles: [], headcount: 0, yearToDate: new Map() };
+		// Someone is in the run if their employment touches the pay period at all — and then
+		// `settlement.ts` says which run that period actually settles in. A leaver paid to the 10th is
+		// still paid here; a joiner who started after this run's window closed has a period to settle
+		// but no attendance to settle it against, so their money is deferred rather than guessed.
+		const touching = employmentRows.filter((row) =>
+			overlapsRange(row.effective_range, salary.start, salary.end)
+		);
+		const settlementByEmployment = new Map<string, EmploymentSettlement>();
+		for (const row of touching)
+			settlementByEmployment.set(
+				row.norbital_id,
+				resolveEmploymentSettlement({
+					dates: employmentDates(row),
+					window,
+					policy: options.policy
+				})
+			);
 
-	// One query span covers everyone: the widest attendance window any employment settles over, so
-	// a leaver's tail is read in the same round trip as everybody else's window.
-	const attendanceSpan = [...settlementByEmployment.values()].reduce(
-		(span, settlement) => ({
-			start: settlement.attendance.start < span.start ? settlement.attendance.start : span.start,
-			end: settlement.attendance.end > span.end ? settlement.attendance.end : span.end
-		}),
-		{ start: window.attendance.start, end: window.attendance.end }
-	);
-	// A cutoff can straddle two months, but the 104-hour statutory counter resets on the first of
-	// each calendar month. Read both months in full so 1st–20th work can correctly affect later
-	// 21st–month-end work (and vice versa when it is paid in the following run).
-	const complianceSpan = {
-		start: monthBounds(monthKey(attendanceSpan.start)).start,
-		end: monthBounds(monthKey(attendanceSpan.end)).end
-	};
+		const employments = touching.filter((row) => {
+			const settlement = settlementByEmployment.get(row.norbital_id);
+			return settlement != null && (settlement.runs || settlement.deferral != null);
+		});
+		const employmentIds = employments.map((row) => row.norbital_id);
+		if (employmentIds.length === 0) return { bundles: [], headcount: 0, yearToDate: new Map() };
 
-	const employeeIds = [...new Set(employments.map((row) => row.employee_id))];
-	const inEmployments = { employment_id: { in: employmentIds }, ...approved } as const;
+		// One query span covers everyone: the widest attendance window any employment settles over, so
+		// a leaver's tail is read in the same round trip as everybody else's window.
+		const attendanceSpan = [...settlementByEmployment.values()].reduce(
+			(span, settlement) => ({
+				start: settlement.attendance.start < span.start ? settlement.attendance.start : span.start,
+				end: settlement.attendance.end > span.end ? settlement.attendance.end : span.end
+			}),
+			{ start: window.attendance.start, end: window.attendance.end }
+		);
+		// A cutoff can straddle two months, but the 104-hour statutory counter resets on the first of
+		// each calendar month. Read both months in full so 1st–20th work can correctly affect later
+		// 21st–month-end work (and vice versa when it is paid in the following run).
+		const complianceSpan = {
+			start: monthBounds(monthKey(attendanceSpan.start)).start,
+			end: monthBounds(monthKey(attendanceSpan.end)).end
+		};
 
-	const [
-		employeeRows,
-		termRows,
-		factRows,
-		entryRows,
-		requestRows,
-		timeRows,
-		rosterRows,
-		agreementRows
-	] = await Promise.all([
-		query.employees.findMany({
-			where: { norbital_id: { in: employeeIds }, ...approved },
-			limit: PAGE_LIMIT
-		}),
-		query.employment_terms.findMany({ where: inEmployments, limit: PAGE_LIMIT }),
-		query.employment_statutory_facts.findMany({ where: inEmployments, limit: PAGE_LIMIT }),
-		query.component_entries.findMany({ where: inEmployments, limit: PAGE_LIMIT }),
-		query.leave_requests.findMany({ where: inEmployments, limit: PAGE_LIMIT }),
-		query.time_entries.findMany({
-			where: {
-				employment_id: { in: employmentIds },
-				work_date: { gte: complianceSpan.start, lte: complianceSpan.end },
-				...approved
-			},
-			limit: PAGE_LIMIT
-		}),
-		query.roster_entries.findMany({
-			where: {
-				employment_id: { in: employmentIds },
-				work_date: { gte: complianceSpan.start, lte: complianceSpan.end },
-				...approved
-			},
-			limit: PAGE_LIMIT
-		}),
-		query.repayment_agreements.findMany({ where: inEmployments, limit: PAGE_LIMIT })
-	]);
-	// Every read above pages to the same ceiling, so every one of them is checked. A silently
-	// truncated page is the one failure mode that produces a wrong payroll rather than no payroll:
-	// a missing roster day changes a day type, a missing terms row changes a wage, and neither
-	// leaves a trace. Roster entries are the closest to the ceiling of the lot.
-	assertComplete(employeeRows, 'employees');
-	assertComplete(termRows, 'employment terms');
-	assertComplete(factRows, 'statutory facts');
-	assertComplete(entryRows, 'component entries');
-	assertComplete(requestRows, 'leave requests');
-	assertComplete(timeRows, 'time entries');
-	assertComplete(rosterRows, 'roster entries');
-	assertComplete(agreementRows, 'repayment agreements');
+		const employeeIds = [...new Set(employments.map((row) => row.employee_id))];
+		const inEmployments = { employment_id: { in: employmentIds }, ...approved } as const;
 
-	const employeeById = new Map(live(employeeRows).map((row) => [row.norbital_id, row]));
-	const termsByEmployment = groupBy(live(termRows), (row) => row.employment_id);
-	const factsByEmployment = groupBy(live(factRows), (row) => row.employment_id);
-	const liveAgreements = live(agreementRows);
-	// Seed leftover recoveries are ONE_OFF on the same (employment, pay component) the agreement
-	// will recover through. Drop them here so MEASURE never also writes COMPONENT_ENTRY_* lines.
-	const coveredByAgreement = new Set(liveAgreements.map(repaymentCoverageKey));
-	const entriesByEmployment = groupBy(
-		live(entryRows).filter(
-			(entry) =>
-				!isLoanInstalmentEntry(entry) && !coveredByAgreement.has(repaymentCoverageKey(entry))
-		),
-		(row) => row.employment_id
-	);
-	/** Every approved leave row is already an event; normal requests become TAKEN movements while
-	 * the adjustment/encashment arms carry their exact signed movement. */
-	const leaveMovements: (LedgerRow & { readonly employment_id: string })[] = live(requestRows).map(
-		(request) => {
+		const [
+			employeeRows,
+			termRows,
+			factRows,
+			entryRows,
+			requestRows,
+			timeRows,
+			rosterRows,
+			agreementRows
+		] = yield* Effect.all(
+			[
+				query.employees.findMany({
+					where: { norbital_id: { in: employeeIds }, ...approved },
+					limit: PAGE_LIMIT
+				}),
+				query.employment_terms.findMany({ where: inEmployments, limit: PAGE_LIMIT }),
+				query.employment_statutory_facts.findMany({ where: inEmployments, limit: PAGE_LIMIT }),
+				query.component_entries.findMany({ where: inEmployments, limit: PAGE_LIMIT }),
+				query.leave_requests.findMany({ where: inEmployments, limit: PAGE_LIMIT }),
+				query.time_entries.findMany({
+					where: {
+						employment_id: { in: employmentIds },
+						work_date: { gte: complianceSpan.start, lte: complianceSpan.end },
+						...approved
+					},
+					limit: PAGE_LIMIT
+				}),
+				query.roster_entries.findMany({
+					where: {
+						employment_id: { in: employmentIds },
+						work_date: { gte: complianceSpan.start, lte: complianceSpan.end },
+						...approved
+					},
+					limit: PAGE_LIMIT
+				}),
+				query.repayment_agreements.findMany({ where: inEmployments, limit: PAGE_LIMIT })
+			],
+			{ concurrency: 'unbounded' }
+		);
+		// Every read above pages to the same ceiling, so every one of them is checked. A silently
+		// truncated page is the one failure mode that produces a wrong payroll rather than no payroll:
+		// a missing roster day changes a day type, a missing terms row changes a wage, and neither
+		// leaves a trace. Roster entries are the closest to the ceiling of the lot.
+		assertComplete(employeeRows, 'employees');
+		assertComplete(termRows, 'employment terms');
+		assertComplete(factRows, 'statutory facts');
+		assertComplete(entryRows, 'component entries');
+		assertComplete(requestRows, 'leave requests');
+		assertComplete(timeRows, 'time entries');
+		assertComplete(rosterRows, 'roster entries');
+		assertComplete(agreementRows, 'repayment agreements');
+
+		const employeeById = new Map(live(employeeRows).map((row) => [row.norbital_id, row]));
+		const termsByEmployment = groupBy(live(termRows), (row) => row.employment_id);
+		const factsByEmployment = groupBy(live(factRows), (row) => row.employment_id);
+		const liveAgreements = live(agreementRows);
+		// Seed leftover recoveries are ONE_OFF on the same (employment, pay component) the agreement
+		// will recover through. Drop them here so MEASURE never also writes COMPONENT_ENTRY_* lines.
+		const coveredByAgreement = new Set(liveAgreements.map(repaymentCoverageKey));
+		const entriesByEmployment = groupBy(
+			live(entryRows).filter(
+				(entry) =>
+					!isLoanInstalmentEntry(entry) && !coveredByAgreement.has(repaymentCoverageKey(entry))
+			),
+			(row) => row.employment_id
+		);
+		/** Every approved leave row is already an event; normal requests become TAKEN movements while
+		 * the adjustment/encashment arms carry their exact signed movement. */
+		const leaveMovements: (LedgerRow & { readonly employment_id: string })[] = live(
+			requestRows
+		).map((request) => {
 			const event = request.event;
 			if (event == null)
 				throw new Error(`Leave request ${request.norbital_id} has no event payload.`);
@@ -250,74 +256,77 @@ export async function gatherRun(options: {
 				source_id: event.source_id,
 				norbital_approval_id: null
 			};
-		}
-	);
-	const ledgerByEmployment = groupBy(leaveMovements, (row) => row.employment_id);
-	const timeByEmployment = groupBy(live(timeRows), (row) => row.employment_id);
-	const rosterByEmployment = groupBy(live(rosterRows), (row) => row.employment_id);
-	const agreementsByEmployment = groupBy(liveAgreements, (row) => row.employment_id);
-
-	const settlementOf = (employment: Employment): EmploymentSettlement => {
-		const settlement = settlementByEmployment.get(employment.norbital_id);
-		if (!settlement)
-			throw new Error(
-				`Employment ${employment.employee_number} was gathered without a settlement.`
-			);
-		return settlement;
-	};
-
-	const bundles: EmploymentBundle[] = [];
-	for (const employment of employments) {
-		const employee = employeeById.get(employment.employee_id);
-		if (!employee)
-			throw new Error(`Employment ${employment.employee_number} has no approved employee record.`);
-		const settlement = settlementOf(employment);
-		const hire = dateKey(employment.hire_date);
-		if (hire == null) throw new Error(`Employment ${employment.employee_number} has no hire date.`);
-		const dob = dateKey(employee.date_of_birth);
-		const statutoryFacts = factsByEmployment.get(employment.norbital_id) ?? [];
-		bundles.push({
-			employment,
-			employee,
-			terms: effectiveWithin(
-				termsByEmployment.get(employment.norbital_id) ?? [],
-				salary.start,
-				salary.end
-			),
-			statutoryFacts,
-			entries: entriesByEmployment.get(employment.norbital_id) ?? [],
-			ledger: ledgerByEmployment.get(employment.norbital_id) ?? [],
-			timeEntries: timeByEmployment.get(employment.norbital_id) ?? [],
-			rosterEntries: rosterByEmployment.get(employment.norbital_id) ?? [],
-			agreements: agreementsByEmployment.get(employment.norbital_id) ?? [],
-			serviceMonths: completedMonths(hire, salary.end),
-			age: dob == null ? null : completedYears(dob, salary.end),
-			employedDays: settlement.employedDays,
-			wageDays: settlement.wageDays,
-			attendance: settlement.attendance,
-			arrearsFor: settlement.arrearsFor,
-			deferral: settlement.deferral,
-			extendedLeaveSettlesInOwnMonth: inExtendedLeavePopulation({
-				policy: options.policy,
-				statutoryFacts,
-				asOf: salary.end
-			})
 		});
-	}
+		const ledgerByEmployment = groupBy(leaveMovements, (row) => row.employment_id);
+		const timeByEmployment = groupBy(live(timeRows), (row) => row.employment_id);
+		const rosterByEmployment = groupBy(live(rosterRows), (row) => row.employment_id);
+		const agreementsByEmployment = groupBy(liveAgreements, (row) => row.employment_id);
 
-	return {
-		bundles,
-		// Headcount is who the run pays. A deferred joining period pays nobody, and counting it would
-		// move a headcount-banded contribution for everyone else in the company.
-		headcount: bundles.filter((bundle) => bundle.deferral == null).length,
-		yearToDate: await gatherYearToDate({
-			api: options.api,
-			configuration: options.configuration,
-			period,
-			employeeIds,
-			companyId
-		})
-	};
+		const settlementOf = (employment: Employment): EmploymentSettlement => {
+			const settlement = settlementByEmployment.get(employment.norbital_id);
+			if (!settlement)
+				throw new Error(
+					`Employment ${employment.employee_number} was gathered without a settlement.`
+				);
+			return settlement;
+		};
+
+		const bundles: EmploymentBundle[] = [];
+		for (const employment of employments) {
+			const employee = employeeById.get(employment.employee_id);
+			if (!employee)
+				throw new Error(
+					`Employment ${employment.employee_number} has no approved employee record.`
+				);
+			const settlement = settlementOf(employment);
+			const hire = dateKey(employment.hire_date);
+			if (hire == null)
+				throw new Error(`Employment ${employment.employee_number} has no hire date.`);
+			const dob = dateKey(employee.date_of_birth);
+			const statutoryFacts = factsByEmployment.get(employment.norbital_id) ?? [];
+			bundles.push({
+				employment,
+				employee,
+				terms: effectiveWithin(
+					termsByEmployment.get(employment.norbital_id) ?? [],
+					salary.start,
+					salary.end
+				),
+				statutoryFacts,
+				entries: entriesByEmployment.get(employment.norbital_id) ?? [],
+				ledger: ledgerByEmployment.get(employment.norbital_id) ?? [],
+				timeEntries: timeByEmployment.get(employment.norbital_id) ?? [],
+				rosterEntries: rosterByEmployment.get(employment.norbital_id) ?? [],
+				agreements: agreementsByEmployment.get(employment.norbital_id) ?? [],
+				serviceMonths: completedMonths(hire, salary.end),
+				age: dob == null ? null : completedYears(dob, salary.end),
+				employedDays: settlement.employedDays,
+				wageDays: settlement.wageDays,
+				attendance: settlement.attendance,
+				arrearsFor: settlement.arrearsFor,
+				deferral: settlement.deferral,
+				extendedLeaveSettlesInOwnMonth: inExtendedLeavePopulation({
+					policy: options.policy,
+					statutoryFacts,
+					asOf: salary.end
+				})
+			});
+		}
+
+		return {
+			bundles,
+			// Headcount is who the run pays. A deferred joining period pays nobody, and counting it would
+			// move a headcount-banded contribution for everyone else in the company.
+			headcount: bundles.filter((bundle) => bundle.deferral == null).length,
+			yearToDate: yield* gatherYearToDate({
+				api: options.api,
+				configuration: options.configuration,
+				period,
+				employeeIds,
+				companyId
+			})
+		};
+	});
 }
 
 /**
@@ -334,90 +343,92 @@ export async function gatherRun(options: {
  *    fed the next period's projection and nothing recomputed it when the draft was discarded. Only
  *    `PAID` runs are year-to-date (decision L35 / risk register #8).
  */
-async function gatherYearToDate(options: {
+function gatherYearToDate(options: {
 	readonly api: PayrollReadApi;
 	readonly configuration: Configuration;
 	readonly period: string;
 	readonly companyId: string;
 	readonly employeeIds: readonly string[];
-}): Promise<Map<string, { employee: number; employer: number; base: number }>> {
-	const { query } = options.api.db;
-	const startMonth = Number(options.configuration.jurisdiction.tax_year_start_month);
-	const firstPeriod = taxYearFirstPeriod(options.period, startMonth);
-	const priorRunRows = await query.payroll_runs.findMany({
-		where: {
-			company_id: { eq: options.companyId },
-			period: { gte: firstPeriod, lt: options.period },
-			lifecycle: { eq: 'PAID' }
-		},
-		limit: PAGE_LIMIT
-	});
-	assertComplete(priorRunRows, 'prior payroll runs');
-	const priorRuns = priorRunRows.filter(
-		(run) => taxYearOf(run.period, startMonth) === taxYearOf(options.period, startMonth)
-	);
-	const totals = new Map<string, { employee: number; employer: number; base: number }>();
-	if (priorRuns.length === 0 || options.employeeIds.length === 0) return totals;
-
-	// Employments are resolved employee-first so a mid-year transfer keeps its history: the person
-	// is the taxpayer, not the contract.
-	const siblingEmploymentRows = await query.employments.findMany({
-		where: {
-			company_id: { eq: options.companyId },
-			employee_id: { in: [...options.employeeIds] }
-		},
-		limit: PAGE_LIMIT
-	});
-	assertComplete(siblingEmploymentRows, 'sibling employments');
-	const siblingEmployments = live(siblingEmploymentRows);
-	const employmentToEmployee = new Map(
-		siblingEmployments.map((row) => [row.norbital_id, row.employee_id])
-	);
-	const priorPayslips = await query.payslips.findMany({
-		where: {
-			payroll_run_id: { in: priorRuns.map((run) => run.norbital_id) },
-			employment_id: { in: siblingEmployments.map((row) => row.norbital_id) }
-		},
-		limit: PAGE_LIMIT
-	});
-	assertComplete(priorPayslips, 'prior payslips');
-	if (priorPayslips.length === 0) return totals;
-
-	const contributionCodeById = new Map(
-		options.configuration.contributions.map((entry) => [entry.row.norbital_id, entry.row.code])
-	);
-	const charges = await query.payslip_lines.findMany({
-		where: { payslip_id: { in: priorPayslips.map((row) => row.norbital_id) } },
-		limit: PAGE_LIMIT
-	});
-	assertComplete(charges, 'prior payslip lines');
-	const employeeByPayslip = new Map(
-		priorPayslips.map((row) => [row.norbital_id, employmentToEmployee.get(row.employment_id)])
-	);
-	const countedBases = new Set<string>();
-	for (const charge of charges) {
-		if (charge.statutory_contribution_id == null) continue;
-		const component = charge.component;
-		if (component == null) continue;
-		if (component.kind !== 'STATUTORY_EMPLOYEE' && component.kind !== 'STATUTORY_EMPLOYER')
-			continue;
-		const employeeId = employeeByPayslip.get(charge.payslip_id);
-		const code = contributionCodeById.get(charge.statutory_contribution_id);
-		if (employeeId == null || code == null) continue;
-		const key = `${employeeId}:${code}`;
-		const running = totals.get(key) ?? { employee: 0, employer: 0, base: 0 };
-		const baseKey = `${charge.payslip_id}:${code}`;
-		const base = countedBases.has(baseKey) ? 0 : Number(component.base_amount);
-		countedBases.add(baseKey);
-		totals.set(key, {
-			employee:
-				running.employee + (component.kind === 'STATUTORY_EMPLOYEE' ? Number(charge.amount) : 0),
-			employer:
-				running.employer + (component.kind === 'STATUTORY_EMPLOYER' ? Number(charge.amount) : 0),
-			base: running.base + base
+}): Effect.Effect<Map<string, { employee: number; employer: number; base: number }>, never, never> {
+	return Effect.gen(function* () {
+		const { query } = options.api.db;
+		const startMonth = Number(options.configuration.jurisdiction.tax_year_start_month);
+		const firstPeriod = taxYearFirstPeriod(options.period, startMonth);
+		const priorRunRows = yield* query.payroll_runs.findMany({
+			where: {
+				company_id: { eq: options.companyId },
+				period: { gte: firstPeriod, lt: options.period },
+				lifecycle: { eq: 'PAID' }
+			},
+			limit: PAGE_LIMIT
 		});
-	}
-	return totals;
+		assertComplete(priorRunRows, 'prior payroll runs');
+		const priorRuns = priorRunRows.filter(
+			(run) => taxYearOf(run.period, startMonth) === taxYearOf(options.period, startMonth)
+		);
+		const totals = new Map<string, { employee: number; employer: number; base: number }>();
+		if (priorRuns.length === 0 || options.employeeIds.length === 0) return totals;
+
+		// Employments are resolved employee-first so a mid-year transfer keeps its history: the person
+		// is the taxpayer, not the contract.
+		const siblingEmploymentRows = yield* query.employments.findMany({
+			where: {
+				company_id: { eq: options.companyId },
+				employee_id: { in: [...options.employeeIds] }
+			},
+			limit: PAGE_LIMIT
+		});
+		assertComplete(siblingEmploymentRows, 'sibling employments');
+		const siblingEmployments = live(siblingEmploymentRows);
+		const employmentToEmployee = new Map(
+			siblingEmployments.map((row) => [row.norbital_id, row.employee_id])
+		);
+		const priorPayslips = yield* query.payslips.findMany({
+			where: {
+				payroll_run_id: { in: priorRuns.map((run) => run.norbital_id) },
+				employment_id: { in: siblingEmployments.map((row) => row.norbital_id) }
+			},
+			limit: PAGE_LIMIT
+		});
+		assertComplete(priorPayslips, 'prior payslips');
+		if (priorPayslips.length === 0) return totals;
+
+		const contributionCodeById = new Map(
+			options.configuration.contributions.map((entry) => [entry.row.norbital_id, entry.row.code])
+		);
+		const charges = yield* query.payslip_lines.findMany({
+			where: { payslip_id: { in: priorPayslips.map((row) => row.norbital_id) } },
+			limit: PAGE_LIMIT
+		});
+		assertComplete(charges, 'prior payslip lines');
+		const employeeByPayslip = new Map(
+			priorPayslips.map((row) => [row.norbital_id, employmentToEmployee.get(row.employment_id)])
+		);
+		const countedBases = new Set<string>();
+		for (const charge of charges) {
+			if (charge.statutory_contribution_id == null) continue;
+			const component = charge.component;
+			if (component == null) continue;
+			if (component.kind !== 'STATUTORY_EMPLOYEE' && component.kind !== 'STATUTORY_EMPLOYER')
+				continue;
+			const employeeId = employeeByPayslip.get(charge.payslip_id);
+			const code = contributionCodeById.get(charge.statutory_contribution_id);
+			if (employeeId == null || code == null) continue;
+			const key = `${employeeId}:${code}`;
+			const running = totals.get(key) ?? { employee: 0, employer: 0, base: 0 };
+			const baseKey = `${charge.payslip_id}:${code}`;
+			const base = countedBases.has(baseKey) ? 0 : Number(component.base_amount);
+			countedBases.add(baseKey);
+			totals.set(key, {
+				employee:
+					running.employee + (component.kind === 'STATUTORY_EMPLOYEE' ? Number(charge.amount) : 0),
+				employer:
+					running.employer + (component.kind === 'STATUTORY_EMPLOYER' ? Number(charge.amount) : 0),
+				base: running.base + base
+			});
+		}
+		return totals;
+	});
 }
 
 /** The key `gatherYearToDate` files a total under. */

@@ -18,6 +18,7 @@
  * twice produces the same four collections rather than two overlapping halves.
  */
 
+import { Effect } from 'effect';
 import { accumulateBases } from './accumulate.js';
 import { readLog, resetReadLog, type PayrollApi, type PayrollReadApi } from './api.js';
 import { pickConfiguration, type Configuration } from './configuration.js';
@@ -76,24 +77,26 @@ export type PayrollRunResult = {
 };
 
 /** Resolve the window and the governing configuration without building anything. */
-export async function preparePayrollRun(options: {
+export function preparePayrollRun(options: {
 	readonly api: PayrollReadApi;
 	readonly companyId: string;
 	readonly period: string;
-}): Promise<{ window: PayrollWindow; configuration: Configuration }> {
-	const company = await options.api.db.query.companies.findFirst({
-		where: { norbital_id: { eq: options.companyId }, norbital_approval_id: { isNull: true } }
+}): Effect.Effect<{ window: PayrollWindow; configuration: Configuration }, never, never> {
+	return Effect.gen(function* () {
+		const company = yield* options.api.db.query.companies.findFirst({
+			where: { norbital_id: { eq: options.companyId }, norbital_approval_id: { isNull: true } }
+		});
+		if (!company) throw new Error(`Company ${options.companyId} does not exist.`);
+		const window = resolveWindow(options.period, company);
+		const configuration = yield* pickConfiguration({
+			api: options.api,
+			companyId: options.companyId,
+			period: options.period,
+			salary: window.salary,
+			attendance: window.attendance
+		});
+		return { window, configuration };
 	});
-	if (!company) throw new Error(`Company ${options.companyId} does not exist.`);
-	const window = resolveWindow(options.period, company);
-	const configuration = await pickConfiguration({
-		api: options.api,
-		companyId: options.companyId,
-		period: options.period,
-		salary: window.salary,
-		attendance: window.attendance
-	});
-	return { window, configuration };
 }
 
 /**
@@ -102,204 +105,206 @@ export async function preparePayrollRun(options: {
  * The run record must already exist — it carries the configuration hash and the window the build
  * was picked against, so that a payslip can always be traced to the law it was computed under.
  */
-export async function buildPayrollRun(options: {
+export function buildPayrollRun(options: {
 	readonly api: PayrollApi;
 	readonly runId: string;
 	readonly companyId: string;
 	readonly period: string;
-}): Promise<PayrollRunResult> {
-	/**
-	 * Phase timing. The engine runs inside the tenant runtime container, so every database call is
-	 * an RPC hop before it is a query — which makes "how long did each phase take" the only honest
-	 * way to tell a slow query from a chatty one from slow arithmetic.
-	 */
-	resetReadLog();
-	const t0 = Date.now();
-	let mark = t0;
-	const phases: [string, number][] = [];
-	const lap = (name: string): void => {
-		const now = Date.now();
-		phases.push([name, now - mark]);
-		mark = now;
-	};
+}): Effect.Effect<PayrollRunResult, never, never> {
+	return Effect.gen(function* () {
+		/**
+		 * Phase timing. The engine runs inside the tenant runtime container, so every database call is
+		 * an RPC hop before it is a query — which makes "how long did each phase take" the only honest
+		 * way to tell a slow query from a chatty one from slow arithmetic.
+		 */
+		resetReadLog();
+		const t0 = Date.now();
+		let mark = t0;
+		const phases: [string, number][] = [];
+		const lap = (name: string): void => {
+			const now = Date.now();
+			phases.push([name, now - mark]);
+			mark = now;
+		};
 
-	// 1 — PICK
-	const { window, configuration } = await preparePayrollRun(options);
-	lap('pick');
+		// 1 — PICK
+		const { window, configuration } = yield* preparePayrollRun(options);
+		lap('pick');
 
-	// 2 — VALIDATE
-	const issues: RunIssue[] = validateConfiguration(configuration);
-	if (blockers(issues).length > 0) throw new Error(describeIssues(blockers(issues)));
-	lap('validate');
+		// 2 — VALIDATE
+		const issues: RunIssue[] = validateConfiguration(configuration);
+		if (blockers(issues).length > 0) throw new Error(describeIssues(blockers(issues)));
+		lap('validate');
 
-	// 3 — GATHER
-	const policy = readSettlementPolicy(configuration.company);
-	const gathered = await gatherRun({ api: options.api, configuration, window, policy });
+		// 3 — GATHER
+		const policy = readSettlementPolicy(configuration.company);
+		const gathered = yield* gatherRun({ api: options.api, configuration, window, policy });
 
-	lap('gather');
+		lap('gather');
 
-	const openTimeEntry = gathered.bundles
-		.flatMap((bundle) => bundle.timeEntries)
-		.find((entry) => entry.worked_intervals?.some((interval) => interval.end_at == null));
-	if (openTimeEntry)
-		throw new Error(
-			`A time entry in the attendance window is still open (${requiredDateKey(openTimeEntry.work_date, 'time_entries.work_date')}). ` +
-				'Payroll cannot price a clock that has not stopped.'
+		const openTimeEntry = gathered.bundles
+			.flatMap((bundle) => bundle.timeEntries)
+			.find((entry) => entry.worked_intervals?.some((interval) => interval.end_at == null));
+		if (openTimeEntry)
+			throw new Error(
+				`A time entry in the attendance window is still open (${requiredDateKey(openTimeEntry.work_date, 'time_entries.work_date')}). ` +
+					'Payroll cannot price a clock that has not stopped.'
+			);
+
+		const periodsRemaining = payPeriodsRemaining(
+			options.period,
+			Number(configuration.jurisdiction.tax_year_start_month)
 		);
 
-	const periodsRemaining = payPeriodsRemaining(
-		options.period,
-		Number(configuration.jurisdiction.tax_year_start_month)
-	);
+		issues.push(...validatePayCalendar({ configuration, bundles: gathered.bundles }));
 
-	issues.push(...validatePayCalendar({ configuration, bundles: gathered.bundles }));
+		const pending: PendingPayslip[] = [];
+		const deferrals: PendingDeferral[] = [];
+		const shortfalls: { employmentId: string; payComponentId: string; amount: number }[] = [];
 
-	const pending: PendingPayslip[] = [];
-	const deferrals: PendingDeferral[] = [];
-	const shortfalls: { employmentId: string; payComponentId: string; amount: number }[] = [];
+		for (const bundle of gathered.bundles) {
+			// A skipped joining period is skipped: no payslip, no lines, no statutory charge. The days it
+			// covers are not lost — the next run derives them from this employment's own contract, which
+			// is why nothing has to be handed over here for that to work.
+			if (bundle.deferral != null) continue;
 
-	for (const bundle of gathered.bundles) {
-		// A skipped joining period is skipped: no payslip, no lines, no statutory charge. The days it
-		// covers are not lost — the next run derives them from this employment's own contract, which
-		// is why nothing has to be handed over here for that to work.
-		if (bundle.deferral != null) continue;
+			// 4 — MEASURE
+			const measured = measureEmployment({
+				bundle,
+				configuration,
+				period: options.period,
+				salary: window.salary,
+				periodsRemaining,
+				headcount: gathered.headcount,
+				policy
+			});
+			if (measured.arrears != null)
+				deferrals.push({
+					employmentId: bundle.employment.norbital_id,
+					employeeNumber: bundle.employment.employee_number,
+					hireDate: bundle.employment.hire_date,
+					coversPeriod: measured.arrears.period,
+					paidInPeriod: options.period,
+					payComponentId: measured.arrears.payComponentId,
+					amount: measured.arrears.amount
+				});
 
-		// 4 — MEASURE
-		const measured = measureEmployment({
-			bundle,
-			configuration,
-			period: options.period,
-			salary: window.salary,
-			periodsRemaining,
-			headcount: gathered.headcount,
-			policy
-		});
-		if (measured.arrears != null)
-			deferrals.push({
+			for (const [calendarMonth, monthHours] of measured.calendarMonthOvertimeHours) {
+				issues.push(
+					...validateOvertimeLimits({
+						configuration,
+						employeeNumber: bundle.employment.employee_number,
+						calendarMonth,
+						monthHours
+					})
+				);
+			}
+			// The daily ceiling is the jurisdiction's, read from its regime where `period = 'DAY'`.
+			// It used to be a literal 12 here, which meant Malaysia's cap was applied to every country in
+			// the workspace. A jurisdiction that states no daily limit now has none enforced, rather than
+			// inheriting one from a statute that does not govern it.
+			const dailyWorkLimit = dailyWorkLimitHours(configuration);
+			if (dailyWorkLimit != null)
+				issues.push(
+					...validateDailyWorkLimit({
+						employeeNumber: bundle.employment.employee_number,
+						days: measured.overtimeDays,
+						maxWorkHours: dailyWorkLimit
+					})
+				);
+
+			// 5 — ACCUMULATE
+			const bases = accumulateBases({
+				configuration,
+				lines: measured.lines,
+				employeeNumber: bundle.employment.employee_number
+			});
+
+			// 6 — CONTRIBUTE
+			const facts = new Map<string, StatutoryFactStatus>();
+			const statutoryAsOf = bundle.employedDays?.end ?? window.salary.end;
+			for (const fact of bundle.statutoryFacts) {
+				// A leaver's registration remains authoritative through their actual final day. Testing
+				// the calendar month's end instead would make every fact look expired and silently fall
+				// back to the scheme default during final pay.
+				if (!coversDate(fact.effective_range, statutoryAsOf)) continue;
+				const status = fact.status;
+				if (status == null) continue;
+				facts.set(fact.statutory_contribution_id, {
+					kind: status.kind,
+					rate_override: status.kind === 'REGISTERED' ? status.rate_override : null
+				});
+			}
+			const charges = contribute({
+				bases,
+				facts,
+				yearToDate: (code) =>
+					gathered.yearToDate.get(`${bundle.employment.employee_id}:${code}`) ?? {
+						employee: 0,
+						employer: 0,
+						base: 0
+					},
+				age: bundle.age,
+				headcount: gathered.headcount,
+				riskClass: configuration.company.risk_class,
+				periodsRemaining,
+				// The relief and the married scale turn on whether the spouse has income, not on
+				// `marital_status` — see employees.spouse_status.
+				spouseIsDependent: bundle.employee.spouse_status === 'WITHOUT_INCOME',
+				dependents: Number(bundle.employee.dependents_count ?? 0)
+			});
+
+			// 7 — SETTLE
+			const settlement = settle({ lines: measured.lines, charges });
+			for (const shortfall of settlement.shortfalls)
+				shortfalls.push({ employmentId: bundle.employment.norbital_id, ...shortfall });
+
+			pending.push({
 				employmentId: bundle.employment.norbital_id,
-				employeeNumber: bundle.employment.employee_number,
-				hireDate: bundle.employment.hire_date,
-				coversPeriod: measured.arrears.period,
-				paidInPeriod: options.period,
-				payComponentId: measured.arrears.payComponentId,
-				amount: measured.arrears.amount
+				currency: measured.currency,
+				settlement,
+				charges
 			});
-
-		for (const [calendarMonth, monthHours] of measured.calendarMonthOvertimeHours) {
-			issues.push(
-				...validateOvertimeLimits({
-					configuration,
-					employeeNumber: bundle.employment.employee_number,
-					calendarMonth,
-					monthHours
-				})
-			);
 		}
-		// The daily ceiling is the jurisdiction's, read from its regime where `period = 'DAY'`.
-		// It used to be a literal 12 here, which meant Malaysia's cap was applied to every country in
-		// the workspace. A jurisdiction that states no daily limit now has none enforced, rather than
-		// inheriting one from a statute that does not govern it.
-		const dailyWorkLimit = dailyWorkLimitHours(configuration);
-		if (dailyWorkLimit != null)
-			issues.push(
-				...validateDailyWorkLimit({
-					employeeNumber: bundle.employment.employee_number,
-					days: measured.overtimeDays,
-					maxWorkHours: dailyWorkLimit
-				})
-			);
 
-		// 5 — ACCUMULATE
-		const bases = accumulateBases({
+		// Nothing is persisted until every employment has been measured, so a run that breaches an
+		// hours-of-work limit for one person on one day writes no payslip for anybody. That is the point:
+		// a payroll is published whole or not at all, and the operator is told which person and which day.
+		const blocking = blockers(issues);
+		if (blocking.length > 0) throw new Error(describeIssues(blocking));
+		const warnings = issues.filter((issue) => issue.severity === 'WARNING');
+		if (warnings.length > 0)
+			console.log(`[payroll-warnings] ${options.period} ${describeIssues(warnings, 'warn')}`);
+		lap('calculate');
+
+		// 8 — PERSIST
+		yield* clearRunResults(options.api, options.runId);
+		lap('clear');
+		const written = yield* persistPayslips({ api: options.api, runId: options.runId, pending });
+		lap('persist');
+		yield* persistShortfalls({
+			api: options.api,
+			period: options.period,
+			nextPeriod: shiftPeriod(options.period, 1),
+			payDate: window.payDate,
+			shortfalls
+		});
+		lap('shortfalls');
+		yield* persistDeferrals({ api: options.api, deferrals });
+		lap('deferrals');
+
+		console.log(
+			`[payroll-timing] ${options.period} total=${Date.now() - t0}ms ` +
+				phases.map(([name, ms]) => `${name}=${ms}ms`).join(' ') +
+				` | employments=${gathered.bundles.length} payslips=${written.payslipCount} lines=${written.lineCount}` +
+				`\n[payroll-reads] ${readLog()}`
+		);
+
+		return {
+			window,
 			configuration,
-			lines: measured.lines,
-			employeeNumber: bundle.employment.employee_number
-		});
-
-		// 6 — CONTRIBUTE
-		const facts = new Map<string, StatutoryFactStatus>();
-		const statutoryAsOf = bundle.employedDays?.end ?? window.salary.end;
-		for (const fact of bundle.statutoryFacts) {
-			// A leaver's registration remains authoritative through their actual final day. Testing
-			// the calendar month's end instead would make every fact look expired and silently fall
-			// back to the scheme default during final pay.
-			if (!coversDate(fact.effective_range, statutoryAsOf)) continue;
-			const status = fact.status;
-			if (status == null) continue;
-			facts.set(fact.statutory_contribution_id, {
-				kind: status.kind,
-				rate_override: status.kind === 'REGISTERED' ? status.rate_override : null
-			});
-		}
-		const charges = contribute({
-			bases,
-			facts,
-			yearToDate: (code) =>
-				gathered.yearToDate.get(`${bundle.employment.employee_id}:${code}`) ?? {
-					employee: 0,
-					employer: 0,
-					base: 0
-				},
-			age: bundle.age,
-			headcount: gathered.headcount,
-			riskClass: configuration.company.risk_class,
-			periodsRemaining,
-			// The relief and the married scale turn on whether the spouse has income, not on
-			// `marital_status` — see employees.spouse_status.
-			spouseIsDependent: bundle.employee.spouse_status === 'WITHOUT_INCOME',
-			dependents: Number(bundle.employee.dependents_count ?? 0)
-		});
-
-		// 7 — SETTLE
-		const settlement = settle({ lines: measured.lines, charges });
-		for (const shortfall of settlement.shortfalls)
-			shortfalls.push({ employmentId: bundle.employment.norbital_id, ...shortfall });
-
-		pending.push({
-			employmentId: bundle.employment.norbital_id,
-			currency: measured.currency,
-			settlement,
-			charges
-		});
-	}
-
-	// Nothing is persisted until every employment has been measured, so a run that breaches an
-	// hours-of-work limit for one person on one day writes no payslip for anybody. That is the point:
-	// a payroll is published whole or not at all, and the operator is told which person and which day.
-	const blocking = blockers(issues);
-	if (blocking.length > 0) throw new Error(describeIssues(blocking));
-	const warnings = issues.filter((issue) => issue.severity === 'WARNING');
-	if (warnings.length > 0)
-		console.log(`[payroll-warnings] ${options.period} ${describeIssues(warnings, 'warn')}`);
-	lap('calculate');
-
-	// 8 — PERSIST
-	await clearRunResults(options.api, options.runId);
-	lap('clear');
-	const written = await persistPayslips({ api: options.api, runId: options.runId, pending });
-	lap('persist');
-	await persistShortfalls({
-		api: options.api,
-		period: options.period,
-		nextPeriod: shiftPeriod(options.period, 1),
-		payDate: window.payDate,
-		shortfalls
+			payslipCount: written.payslipCount,
+			lineCount: written.lineCount
+		};
 	});
-	lap('shortfalls');
-	await persistDeferrals({ api: options.api, deferrals });
-	lap('deferrals');
-
-	console.log(
-		`[payroll-timing] ${options.period} total=${Date.now() - t0}ms ` +
-			phases.map(([name, ms]) => `${name}=${ms}ms`).join(' ') +
-			` | employments=${gathered.bundles.length} payslips=${written.payslipCount} lines=${written.lineCount}` +
-			`\n[payroll-reads] ${readLog()}`
-	);
-
-	return {
-		window,
-		configuration,
-		payslipCount: written.payslipCount,
-		lineCount: written.lineCount
-	};
 }

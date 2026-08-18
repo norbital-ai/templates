@@ -8,8 +8,8 @@ there is not.
 - Template source is authored under `<key>/src`; generated `.norbital` output is not hand-edited.
   `.norbital/migrations/` is authored history and **is** committed.
 - A template is self-describing. `norbital.template.json` holds its picker and website metadata,
-  and `pnpm-lock.yaml` pins its own dependencies including its exact `@norbital-ai/pod` version.
-  Nothing outside the tree pins them, and publishing a pod propagates into no template. Run
+  and `pnpm-lock.yaml` pins its own dependencies including its exact `@norbital-ai/bolt` version.
+  Nothing outside the tree pins them, and publishing a bolt package propagates into no template. Run
   `pnpm templates:lock` when you deliberately move a template's dependencies.
 - Website gallery cards and `og:image` use `assets/thumbnail.svg` once. Optional manifest
   `thumbnail` only if the path differs — do not also configure that image as `pod:thumbnail`.

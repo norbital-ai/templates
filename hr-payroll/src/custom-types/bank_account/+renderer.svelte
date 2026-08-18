@@ -1,6 +1,7 @@
 <script lang="ts">
+	import { Result, Schema } from 'effect';
 	import { useI18n } from '@norbital-ai/ui/i18n';
-	import type { TenantI18nKeys } from '$pod/i18n-keys';
+	import type { TenantI18nKeys } from '$bolt/i18n-keys';
 	import { Combobox } from '@norbital-ai/ui/combobox';
 	import type { RendererProps } from './$types.js';
 	import { Input } from '@norbital-ai/ui/input';
@@ -25,9 +26,9 @@
 	let props: RendererProps = $props();
 	const disabled = $derived(props.mode === 'edit' ? props.disabled : true);
 
-	const parsedIncoming = $derived(bankAccountDraftSchema.safeParse(props.value));
+	const parsedIncoming = $derived(Schema.decodeUnknownResult(bankAccountDraftSchema)(props.value));
 	const incoming = $derived<Partial<BankAccount>>(
-		parsedIncoming.success && parsedIncoming.data ? parsedIncoming.data : {}
+		Result.isSuccess(parsedIncoming) && parsedIncoming.success ? parsedIncoming.success : {}
 	);
 
 	/**
@@ -57,8 +58,8 @@
 			emit(null);
 			return;
 		}
-		const complete = bankAccountSchema.safeParse(next);
-		if (complete.success) emit(complete.data);
+		const complete = Schema.decodeUnknownResult(bankAccountSchema)(next);
+		if (Result.isSuccess(complete)) emit(complete.success);
 	}
 </script>
 

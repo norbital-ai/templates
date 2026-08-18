@@ -1,14 +1,11 @@
-import {
-	rosterCodeVariantSchema,
-	type RosterCodeVariant
-} from '../../custom-types/roster_code_variant/+definition.js';
+import type { RosterCodeVariant } from '../../custom-types/roster_code_variant/+definition.js';
 
 const MINUTES_PER_DAY = 24 * 60;
 
 export type RosterCodeLike = {
 	readonly norbital_id?: string;
 	readonly code: string;
-	readonly variant: unknown;
+	readonly variant: RosterCodeVariant;
 };
 
 export type WorkWindow = {
@@ -25,11 +22,16 @@ export function clockMinutes(value: string): number {
 	return hours * 60 + minutes;
 }
 
-export function rosterCodeVariant(value: unknown): RosterCodeVariant {
-	return rosterCodeVariantSchema.parse(value);
+/**
+ * A `variant` read from storage is already a decoded `roster_code_variant` — the write boundary
+ * validates the column against the strict schema, so no re-decode is needed here.
+ */
+export function rosterCodeVariant(value: RosterCodeVariant | null | undefined): RosterCodeVariant {
+	if (value == null) throw new Error('A roster code variant is required.');
+	return value;
 }
 
-export function workWindow(value: unknown): WorkWindow | null {
+export function workWindow(value: RosterCodeVariant | null | undefined): WorkWindow | null {
 	const variant = rosterCodeVariant(value);
 	if (variant.kind !== 'WORK') return null;
 	const start = clockMinutes(variant.start_time);
@@ -50,7 +52,9 @@ export function workWindow(value: unknown): WorkWindow | null {
 	};
 }
 
-export function rosterCodeKind(value: unknown): RosterCodeVariant['kind'] {
+export function rosterCodeKind(
+	value: RosterCodeVariant | null | undefined
+): RosterCodeVariant['kind'] {
 	return rosterCodeVariant(value).kind;
 }
 
@@ -63,7 +67,7 @@ function clockFromMinutes(minutes: number): string {
 
 /** First/second half of a WORK window, used by leave so night shifts are not labelled AM/PM. */
 export function workWindowHalves(
-	value: unknown
+	value: RosterCodeVariant | null | undefined
 ): { readonly span: string; readonly first: string; readonly second: string } | null {
 	let window: WorkWindow | null;
 	try {

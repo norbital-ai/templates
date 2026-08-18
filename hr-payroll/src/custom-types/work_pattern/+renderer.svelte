@@ -1,5 +1,6 @@
 <script lang="ts">
-	import { client } from '$pod/client';
+	import { Result, Schema } from 'effect';
+	import { client } from '../../lib/workspace-client.js';
 	import { Button } from '@norbital-ai/ui/button';
 	import { Combobox } from '@norbital-ai/ui/combobox';
 	import { Input } from '@norbital-ai/ui/input';
@@ -14,8 +15,8 @@
 
 	let props: WorkPatternRendererProps = $props();
 	const disabled = $derived(props.mode === 'edit' ? props.disabled : true);
-	const parsed = $derived(workPatternSchema.safeParse(props.value));
-	const current = $derived(parsed.success ? parsed.data : null);
+	const parsed = $derived(Schema.decodeUnknownResult(workPatternSchema)(props.value));
+	const current = $derived(Result.isSuccess(parsed) ? parsed.success : null);
 
 	const employmentId = $derived(
 		typeof props.row?.employment_id === 'string' ? props.row.employment_id : null

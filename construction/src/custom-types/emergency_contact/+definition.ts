@@ -1,13 +1,11 @@
-import { defineCustomType } from '@norbital-ai/pod/authoring';
-import { z } from 'zod';
+import { Schema } from 'effect';
+import { defineCustomType } from '@norbital-ai/bolt/authoring';
 
-export const emergencyContactSchema = z
-	.object({
-		name: z.string(),
-		phone: z.string(),
-		relationship: z.string().nullable()
-	})
-	.strict();
+export const emergencyContactSchema = Schema.Struct({
+	name: Schema.String,
+	phone: Schema.String,
+	relationship: Schema.NullOr(Schema.String)
+});
 
 export default defineCustomType({
 	name: 'emergency_contact',

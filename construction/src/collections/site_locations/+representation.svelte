@@ -4,9 +4,9 @@
 	 * `parent_location_id` were both editable uuids on the auto form; the parent reads as its own
 	 * `code · name`, which is the only way to tell two zones apart.
 	 */
-	import { client } from '$pod/client';
+	import { collectionClient } from '../../collection-client.js';
 	import { useI18n } from '@norbital-ai/ui/i18n';
-	import type { TenantI18nKeys } from '$pod/i18n-keys';
+	import type { TenantI18nKeys } from '$bolt/i18n-keys';
 	import type { RepresentationProps } from './$types.js';
 	import { CollectionForm } from '@norbital-ai/ui/collection-form';
 	import { Column, Grid } from '@norbital-ai/ui/layout';
@@ -25,9 +25,8 @@
 </svelte:head>
 
 <CollectionForm
-	{client}
+	client={collectionClient}
 	collection="site_locations"
-	recordId={record?.norbital_id}
 	defaultValues={record ?? undefined}
 	onAfterSubmit={record ? undefined : close}
 >

@@ -1,15 +1,12 @@
 <script lang="ts">
-	import {
-		PAYROLL_TIME_ZONE,
-		calendarDateInTimeZone,
-		startOfDayInstant,
-		todayKey
-	} from '../../lib/ui/calendar.js';
-	import { formatCalendarDate } from '../../lib/ui/display-formatters.js';
+	import { Result, Schema } from 'effect';
+	import { PAYROLL_TIME_ZONE, startOfDayInstant, todayKey } from '../../lib/ui/calendar.js';
+	import { formatCalendarDate, formatEffectiveRange } from '../../lib/ui/display-formatters.js';
 	import { numberFrom, splitList } from '../../lib/ui/renderer-input.js';
+	import DateRangeRenderer from '../date_range/+renderer.svelte';
 	import { useI18n } from '@norbital-ai/ui/i18n';
-	import type { TenantI18nKeys } from '$pod/i18n-keys';
-	import { client } from '$pod/client';
+	import type { TenantI18nKeys } from '$bolt/i18n-keys';
+	import { client } from '../../lib/workspace-client.js';
 	import { Combobox } from '@norbital-ai/ui/combobox';
 	import { DataRenderer, type CollectionField } from '@norbital-ai/ui/data-renderer';
 	import { Input } from '@norbital-ai/ui/input';
@@ -29,6 +26,11 @@
 		name: 'evidence_file',
 		kind: 'file',
 		nullable: true
+	} satisfies CollectionField;
+	const RANGE_FIELD = {
+		name: 'effective_range',
+		kind: 'date_range',
+		nullable: false
 	} satisfies CollectionField;
 
 	const KIND_OPTIONS = $derived<{ value: OriginKind; label: string; description: string }[]>([
@@ -61,6 +63,11 @@
 			value: 'ARREARS',
 			label: t('renderer.entry_origin.kind_arrears'),
 			description: t('renderer.entry_origin.kind_arrears_desc')
+		},
+		{
+			value: 'MANUAL_ADJUSTMENT',
+			label: t('renderer.entry_origin.kind_manual_adjustment'),
+			description: t('renderer.entry_origin.kind_manual_adjustment_desc')
 		}
 	]);
 
@@ -115,15 +122,16 @@
 				search_term: String(entry.description ?? '')
 			}))
 	);
-	const parsed = $derived(entryOriginSchema.safeParse(props.value));
-	const current = $derived(parsed.success ? parsed.data : null);
+	const parsed = $derived(
+		Schema.decodeUnknownResult(entryOriginSchema)(props.value, { onExcessProperty: 'error' })
+	);
+	const current = $derived(Result.isSuccess(parsed) ? parsed.success : null);
 	const summary = $derived.by(() => {
 		if (current === null) return '—';
 		switch (current.kind) {
 			case 'RECURRING':
-				return t('renderer.entry_origin.summary_recurring', {
-					from: formatCalendarDate(dateOf(current.effective_range.start)),
-					to: formatCalendarDate(dateOf(current.effective_range.end))
+				return t('component.origin_recurring', {
+					range: formatEffectiveRange(current.effective_range)
 				});
 			case 'ONE_OFF':
 				return current.note.length === 0
@@ -144,28 +152,13 @@
 				return t('renderer.entry_origin.summary_arrears', {
 					periods: current.covers_periods.join(', ')
 				});
+			case 'MANUAL_ADJUSTMENT':
+				return t('renderer.entry_origin.summary_manual_adjustment', { note: current.note });
 		}
 	});
 
 	function emit(next: Value | null): void {
 		if (props.mode === 'edit') props.onValueChange(next);
-	}
-
-	/**
-	 * An `effective_range` bound is an instant; the picker beside it offers a calendar day. Both
-	 * directions resolve through the payroll timezone, so the day an operator picks is the day the
-	 * range starts locally. Slicing the instant, or appending `Z` to the picked day, would place the
-	 * boundary eight hours into the adjacent local day — which is what
-	 * `dates-and-time.md` forbids.
-	 */
-	function dateOf(instant: string | undefined): string {
-		return instant == null ? '' : calendarDateInTimeZone(new Date(instant), PAYROLL_TIME_ZONE);
-	}
-
-	function instantOf(date: string, fallback: string | undefined): string {
-		return date.trim().length === 0
-			? (fallback ?? startOfDayInstant(todayKey(), PAYROLL_TIME_ZONE))
-			: startOfDayInstant(date, PAYROLL_TIME_ZONE);
 	}
 
 	function defaultFor(kind: OriginKind): Value {
@@ -193,6 +186,8 @@
 				return { kind: 'REVERSAL', reverses_entry_id: '', reason: '' };
 			case 'ARREARS':
 				return { kind: 'ARREARS', covers_periods: [], reason: '' };
+			case 'MANUAL_ADJUSTMENT':
+				return { kind: 'MANUAL_ADJUSTMENT', note: '' };
 		}
 	}
 
@@ -230,38 +225,16 @@
 		</label>
 
 		{#if current?.kind === 'RECURRING'}
-			{@const range = current.effective_range}
-			<label class="grid gap-1.5 text-sm font-medium">
-				{t('component.effective_from')}
-				<Input
-					type="date"
-					value={dateOf(range.start)}
-					{disabled}
-					oninput={(event) =>
-						emit({
-							kind: 'RECURRING',
-							cadence: 'PAY_PERIOD',
-							effective_range: {
-								...range,
-								start: instantOf(event.currentTarget.value, range.start)
-							}
-						})}
-				/>
-			</label>
-			<label class="grid gap-1.5 text-sm font-medium">
-				{t('component.effective_to')}
-				<Input
-					type="date"
-					value={dateOf(range.end)}
-					{disabled}
-					oninput={(event) =>
-						emit({
-							kind: 'RECURRING',
-							cadence: 'PAY_PERIOD',
-							effective_range: { ...range, end: instantOf(event.currentTarget.value, range.end) }
-						})}
-				/>
-			</label>
+			<DateRangeRenderer
+				field={RANGE_FIELD}
+				value={current.effective_range}
+				mode="edit"
+				{disabled}
+				onValueChange={(next) => {
+					if (next !== null)
+						emit({ kind: 'RECURRING', cadence: 'PAY_PERIOD', effective_range: next });
+				}}
+			/>
 		{:else if current?.kind === 'ONE_OFF'}
 			<label class="grid gap-1.5 text-sm font-medium">
 				{t('component.note')}
@@ -380,6 +353,16 @@
 					value={current.reason}
 					{disabled}
 					oninput={(event) => emit({ ...current, reason: event.currentTarget.value })}
+				/>
+			</label>
+		{:else if current?.kind === 'MANUAL_ADJUSTMENT'}
+			<label class="grid gap-1.5 text-sm font-medium">
+				{t('renderer.entry_origin.note')}
+				<Input
+					value={current.note}
+					{disabled}
+					placeholder={t('component.blank_none_stated')}
+					oninput={(event) => emit({ ...current, note: event.currentTarget.value })}
 				/>
 			</label>
 		{/if}

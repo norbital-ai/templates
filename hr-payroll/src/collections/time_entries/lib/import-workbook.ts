@@ -35,7 +35,6 @@ export interface TimeEntryImportRow {
 	readonly clock_in?: string;
 	readonly clock_out?: string;
 	readonly break_minutes?: number;
-	readonly reason?: string;
 }
 
 export interface TimeEntryImportPayload {
@@ -77,15 +76,14 @@ function longFormTimeRows(grids: WorkbookGrids): readonly TimeEntryImportRow[] {
 	// drops an undefined property on the way out, so absence travels as
 	// absence.
 	//
-	// Legacy overtime/state columns are intentionally ignored. Overtime is calculated from actual
-	// presence and the effective schedule; a workbook cannot assert it as a second class of time.
+	// Overtime is calculated from actual presence and the effective schedule; a workbook cannot
+	// assert it as a second class of time, so any overtime/state column is never read.
 	return readRows(table, identifyTimeEntryRow, (reader): TimeEntryImportRow => ({
 		employee_number: reader.requiredText('employee_number') ?? '',
 		work_date: reader.calendarDate('work_date') ?? '',
 		clock_in: reader.clockTime('clock_in'),
 		clock_out: reader.clockTime('clock_out'),
-		break_minutes: reader.wholeNumber('break_minutes'),
-		reason: reader.text('reason')
+		break_minutes: reader.wholeNumber('break_minutes')
 	}));
 }
 

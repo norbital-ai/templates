@@ -1,8 +1,9 @@
 <script lang="ts">
+	import { Result, Schema } from 'effect';
 	import { getCollectionFormFieldContext } from '@norbital-ai/ui/collection-form';
 	import { useI18n } from '@norbital-ai/ui/i18n';
-	import type { TenantI18nKeys } from '$pod/i18n-keys';
-	import { client } from '$pod/client';
+	import type { TenantI18nKeys } from '$bolt/i18n-keys';
+	import { client } from '../../lib/workspace-client.js';
 	import type { CollectionField } from '@norbital-ai/ui/data-renderer';
 	import { MatrixRenderer, type MatrixColumn } from '@norbital-ai/ui/data-renderer/matrix';
 	import { repaymentScheduleSchema } from './+definition.js';
@@ -90,7 +91,7 @@
 	}
 	const liveRow = $derived(formContext?.row() ?? props.row ?? {});
 	const disabled = $derived(props.mode === 'edit' ? props.disabled : true);
-	const parsed = $derived(repaymentScheduleSchema.safeParse(props.value));
+	const parsed = $derived(Schema.decodeUnknownResult(repaymentScheduleSchema)(props.value));
 	const draft = $derived(Array.isArray(props.value) ? props.value : []);
 	const issues = $derived(
 		props.mode === 'display'
@@ -102,11 +103,11 @@
 				})
 	);
 	const total = $derived(
-		parsed.success ? parsed.data.reduce((sum, entry) => sum + entry.amount, 0) : 0
+		Result.isSuccess(parsed) ? parsed.success.reduce((sum, entry) => sum + entry.amount, 0) : 0
 	);
 	const summary = $derived(
-		parsed.success
-			? `${parsed.data.length} instalment${parsed.data.length === 1 ? '' : 's'} · ${total.toFixed(2)}`
+		Result.isSuccess(parsed)
+			? `${parsed.success.length} instalment${parsed.success.length === 1 ? '' : 's'} · ${total.toFixed(2)}`
 			: 'Invalid schedule'
 	);
 	const agreementId = $derived(

@@ -369,7 +369,7 @@ specific dated hour crossed the threshold; the attendance window determines whic
 ### Coverage
 
 Coverage is **data, not code**. It lives in the required `jurisdictions.regime` value alongside the
-pricing ladder, limits and rest-break requirements governed by the same law revision. One
+pricing ladder and the limits governed by the same law revision. One
 jurisdiction code cannot have overlapping effective ranges, so payroll can never assemble its law
 from independently dated fragments. A null `overtime_coverage` member covers everyone — absence of
 a coverage restriction is not a restriction that excludes everyone. See
@@ -398,11 +398,14 @@ subsistence allowance have no component category of their own — the derivation
 guessing, and a figure the run cannot produce fails the run naming the employee and the authority
 instead of being approximated from the nearest column.
 
-Meal breaks are data the same way: `jurisdictions.regime.rest_breaks` carries the cited requirements
-— the consecutive-hours window the flat `break_minutes` columns cannot express, the minimum length,
-and whether the statute counts the break as working time. The run captures the complete regime in
-its configuration snapshot; nothing enforces breaks yet, because whether a break was taken is a
-question over punches that payroll does not answer.
+Rest and meal breaks are **not** modelled here. The regime carried a `rest_breaks` member — the
+consecutive-hours window, the minimum length, whether the statute counts the break as working time
+— and every field of it was resolved, snapshotted and read by nothing: no line was priced, no run
+was blocked, no screen quoted a figure. It was removed rather than left as data entry that pays
+for itself with an audit token. Whether a break was taken is measured from punches, which is
+`time_entries` and `shift_definitions` work; the cited statutory transcriptions are retained in
+Core's seed bank (`norbital_hr/statutory/rest_break_rules.json`) so the requirement can be modelled
+again from the primary text rather than from memory.
 
 ## Calculation and statutory treatment
 
@@ -559,8 +562,7 @@ running balance matter.
 | Payment file                   | Projection from a paid run                            | No                       | A file is an output transport, not another source of payroll truth.                                                                  |
 
 Approved `TIME_OFF` requests create taken movements directly. Adjustments and encashments use their
-own strict `leave_requests.event` arms. The migration keeps an unmatched historical `TAKEN` row as
-`LEGACY_TAKEN`; a projection already matched to its request is not counted twice.
+own strict `leave_requests.event` arms.
 
 ### Settled and projected balances
 
@@ -625,11 +627,11 @@ flowchart LR
 | Paid run             | Recalculation and deletion are blocked; output children cannot be deleted            | Preserves the exact result used for payment, YTD and audit                                               |
 | Loan instalment      | A recovery entry linked to a payslip is immutable                                    | Prevents a loan balance from changing behind a paid deduction                                            |
 | Leave event stream   | Corrections use new adjustment events                                                | A balance correction remains visible instead of rewriting history                                        |
-| General event source | The payslip line records consumption                                                 | Establishes provenance, but does **not yet** universally freeze every linked claim, leave or time record |
+| General event source | `sourceLock` freezes the original leave, claim, or attendance row                    | Approved (live) leave and claims, a day that has already passed, a paid payroll window, or a payslip line that consumed the entry |
 
-The final row is a documented gap, not an implied guarantee. Universal consumed-source immutability
-requires a common server hook over every supported source kind. Until then, paid results remain
-frozen, but some original inputs can still be edited independently.
+Leave, claims and attendance share `src/lib/scheduling/lock.ts`. Hooks refuse the write; collection
+forms disable and state the reason; collection tables disable row selection and paint a locked
+leading accent. Corrections are new events, never edits of a consumed source.
 
 ## Provenance and audit
 
@@ -652,8 +654,7 @@ There is no line-source collection. The payslip line is the physical junction an
 - which payslip and run froze the result.
 
 The configuration snapshot is housed once by the pay run because every payslip in that run shares
-the same picked policy. Pre-migration runs retain `LEGACY_HASH_ONLY`; the migration does not invent
-historical configuration that was never stored.
+the same picked policy.
 
 Single-use and recurring consumption are database invariants:
 
@@ -665,8 +666,7 @@ MATCHING:   FK(line.entry_id, line.component_id, line.usage)
 ```
 
 Scheduled, formula and overtime lines link to their pay component and remain reproducible from the
-run snapshot plus approved inputs. Historical aggregated entry lines are migrated as
-`LEGACY_COMPONENT` instead of guessing an allocation across old many-source rows.
+run snapshot plus approved inputs.
 
 ## Statutory overtime coverage: what is encoded, and what is not
 
@@ -895,6 +895,7 @@ A jurisdiction that states no daily limit now has none enforced, rather than inh
   and a calorie floor on provisions is not a rest period with a duration.
 - **`eligibility_rules` still cannot express any of this.** Its predicates carry no wage term and it
   reads `work_classification`, not `statutory_work_category`.
-- **Nothing enforces the nested rest-break requirements.** They are picked and snapshotted with the run's
-  configuration, but whether a break was taken is measured from clock data, which is `time_entries`
-  and `shift_definitions` work.
+- **Rest and meal breaks are unmodelled.** The regime no longer carries them: whether a break was
+  taken is measured from clock data, which is `time_entries` and `shift_definitions` work, and
+  until something measures it the requirement is transcription, not a column. The cited statute
+  stays in Core's seed bank.

@@ -12,13 +12,13 @@
  * different hash is a rebuild against different law (decisions E32 / L29 / L30).
  */
 
+import { Effect } from 'effect';
 import { sha256Json } from '@norbital-ai/std/reckon';
 import type { WorkspaceRow } from '../$types.js';
 import { assertComplete, PAGE_LIMIT, type PayrollReadApi } from './api.js';
 import { bandAgeFloor, bandCeiling } from './bands.js';
 import { monthBounds, monthKey, type IsoDate } from './dates.js';
 import { coversDate, effectiveOn, live, overlapsRange } from './effective.js';
-import { resolveRestBreakRules, type ResolvedRestBreakRule } from './rest-breaks.js';
 
 export type Company = WorkspaceRow<'companies'>;
 export type Jurisdiction = WorkspaceRow<'jurisdictions'>;
@@ -56,12 +56,6 @@ export type Configuration = {
 	 * Null is a real answer and is not the same as "nobody is covered" — see `coverage.ts`.
 	 */
 	readonly overtimeCoverageRule: OvertimeCoverageRule | null;
-	/**
-	 * The statutory rest and meal breaks in force, resolved by when they bite — see
-	 * `rest-breaks.ts`. Picked with the rest of the law so a run can say which break rules
-	 * governed it; nothing prices them yet.
-	 */
-	readonly restBreakRules: ReadonlyMap<string, ResolvedRestBreakRule>;
 	readonly shiftById: ReadonlyMap<string, ShiftDefinition>;
 	readonly holidays: ReadonlyMap<IsoDate, WorkspaceRow<'company_holidays'>>;
 	readonly leaveTypes: readonly LeaveType[];
@@ -100,144 +94,148 @@ function bandOrder(left: ContributionRate, right: ContributionRate): number {
  * Everything is resolved as of the period end, except shifts and holidays, which are read across
  * the whole attendance window because a shift may legitimately be revised inside it.
  */
-export async function pickConfiguration(options: {
+export function pickConfiguration(options: {
 	readonly api: PayrollReadApi;
 	readonly companyId: string;
 	readonly period: string;
 	readonly salary: { readonly start: IsoDate; readonly end: IsoDate };
 	readonly attendance: { readonly start: IsoDate; readonly end: IsoDate };
-}): Promise<Configuration> {
-	const { query } = options.api.db;
-	const asOf = options.salary.end;
-	const rawWindowStart =
-		options.attendance.start < options.salary.start
-			? options.attendance.start
-			: options.salary.start;
-	const rawWindowEnd =
-		options.attendance.end > options.salary.end ? options.attendance.end : options.salary.end;
-	// OT is paid on the attendance cutoff, but statutory limits and substitute holidays are
-	// determined by calendar month. Pick every shift touching the full calendar months involved.
-	const windowStart = monthBounds(monthKey(rawWindowStart)).start;
-	const windowEnd = monthBounds(monthKey(rawWindowEnd)).end;
-	const approved = { norbital_approval_id: { isNull: true } } as const;
+}): Effect.Effect<Configuration, never, never> {
+	return Effect.gen(function* () {
+		const { query } = options.api.db;
+		const asOf = options.salary.end;
+		const rawWindowStart =
+			options.attendance.start < options.salary.start
+				? options.attendance.start
+				: options.salary.start;
+		const rawWindowEnd =
+			options.attendance.end > options.salary.end ? options.attendance.end : options.salary.end;
+		// OT is paid on the attendance cutoff, but statutory limits and substitute holidays are
+		// determined by calendar month. Pick every shift touching the full calendar months involved.
+		const windowStart = monthBounds(monthKey(rawWindowStart)).start;
+		const windowEnd = monthBounds(monthKey(rawWindowEnd)).end;
+		const approved = { norbital_approval_id: { isNull: true } } as const;
 
-	const companies = await query.companies.findMany({
-		where: { norbital_id: { eq: options.companyId }, ...approved },
-		limit: 100
-	});
-	const company = effectiveOn(companies, asOf);
-	if (!company) throw new Error(`No company ${options.companyId} is effective on ${asOf}.`);
+		const companies = yield* query.companies.findMany({
+			where: { norbital_id: { eq: options.companyId }, ...approved },
+			limit: 100
+		});
+		const company = effectiveOn(companies, asOf);
+		if (!company) throw new Error(`No company ${options.companyId} is effective on ${asOf}.`);
 
-	const jurisdictions = await query.jurisdictions.findMany({
-		where: { norbital_id: { eq: company.jurisdiction_id }, ...approved },
-		limit: 100
-	});
-	const jurisdiction = effectiveOn(jurisdictions, asOf);
-	if (!jurisdiction)
-		throw new Error(`Company ${company.name} has no jurisdiction effective on ${asOf}.`);
+		const jurisdictions = yield* query.jurisdictions.findMany({
+			where: { norbital_id: { eq: company.jurisdiction_id }, ...approved },
+			limit: 100
+		});
+		const jurisdiction = effectiveOn(jurisdictions, asOf);
+		if (!jurisdiction)
+			throw new Error(`Company ${company.name} has no jurisdiction effective on ${asOf}.`);
 
-	const [contributionRows, payComponentRows, shiftRows, holidayRows, leaveTypeRows] =
-		await Promise.all([
-			query.statutory_contributions.findMany({
-				where: { jurisdiction_id: { eq: jurisdiction.norbital_id }, ...approved },
-				limit: PAGE_LIMIT
-			}),
-			query.pay_components.findMany({
-				where: { company_id: { eq: company.norbital_id }, ...approved },
-				limit: PAGE_LIMIT
-			}),
-			query.shift_definitions.findMany({
-				where: { company_id: { eq: company.norbital_id }, ...approved },
-				limit: PAGE_LIMIT
-			}),
-			query.company_holidays.findMany({
-				where: { company_id: { eq: company.norbital_id }, ...approved },
-				limit: PAGE_LIMIT
-			}),
-			query.leave_types.findMany({
-				where: { company_id: { eq: company.norbital_id }, ...approved },
-				limit: PAGE_LIMIT
-			})
-		]);
-	// Every collection pages to the same ceiling and is checked: a configuration read that came
-	// back truncated would drop law — a missing holiday, a missing band — and still produce a
-	// payslip, which is the one outcome worse than producing none.
-	assertComplete(contributionRows, 'statutory contributions');
-	assertComplete(payComponentRows, 'pay components');
-	assertComplete(shiftRows, 'shift definitions');
-	assertComplete(holidayRows, 'company holidays');
-	assertComplete(leaveTypeRows, 'leave types');
+		const [contributionRows, payComponentRows, shiftRows, holidayRows, leaveTypeRows] =
+			yield* Effect.all(
+				[
+					query.statutory_contributions.findMany({
+						where: { jurisdiction_id: { eq: jurisdiction.norbital_id }, ...approved },
+						limit: PAGE_LIMIT
+					}),
+					query.pay_components.findMany({
+						where: { company_id: { eq: company.norbital_id }, ...approved },
+						limit: PAGE_LIMIT
+					}),
+					query.shift_definitions.findMany({
+						where: { company_id: { eq: company.norbital_id }, ...approved },
+						limit: PAGE_LIMIT
+					}),
+					query.company_holidays.findMany({
+						where: { company_id: { eq: company.norbital_id }, ...approved },
+						limit: PAGE_LIMIT
+					}),
+					query.leave_types.findMany({
+						where: { company_id: { eq: company.norbital_id }, ...approved },
+						limit: PAGE_LIMIT
+					})
+				],
+				{ concurrency: 'unbounded' }
+			);
+		// Every collection pages to the same ceiling and is checked: a configuration read that came
+		// back truncated would drop law — a missing holiday, a missing band — and still produce a
+		// payslip, which is the one outcome worse than producing none.
+		assertComplete(contributionRows, 'statutory contributions');
+		assertComplete(payComponentRows, 'pay components');
+		assertComplete(shiftRows, 'shift definitions');
+		assertComplete(holidayRows, 'company holidays');
+		assertComplete(leaveTypeRows, 'leave types');
 
-	const contributions = live(contributionRows)
-		.filter((row) => coversDate(row.effective_range, asOf))
-		.toSorted((left, right) => Number(left.sequence) - Number(right.sequence));
+		const contributions = live(contributionRows)
+			.filter((row) => coversDate(row.effective_range, asOf))
+			.toSorted((left, right) => Number(left.sequence) - Number(right.sequence));
 
-	const contributionIds = contributions.map((row) => row.norbital_id);
-	const rateRows = contributionIds.length
-		? await query.contribution_rates.findMany({
-				where: { statutory_contribution_id: { in: contributionIds }, ...approved },
-				limit: PAGE_LIMIT
-			})
-		: [];
-	assertComplete(rateRows, 'contribution rates');
+		const contributionIds = contributions.map((row) => row.norbital_id);
+		const rateRows = contributionIds.length
+			? yield* query.contribution_rates.findMany({
+					where: { statutory_contribution_id: { in: contributionIds }, ...approved },
+					limit: PAGE_LIMIT
+				})
+			: [];
+		assertComplete(rateRows, 'contribution rates');
 
-	const ratesByContribution = new Map<string, ContributionRate[]>();
-	for (const rate of live(rateRows)) {
-		if (!coversDate(rate.effective_range, asOf)) continue;
-		const bucket = ratesByContribution.get(rate.statutory_contribution_id);
-		if (bucket) bucket.push(rate);
-		else ratesByContribution.set(rate.statutory_contribution_id, [rate]);
-	}
-
-	const payComponents = live(payComponentRows)
-		.filter((row) => coversDate(row.effective_range, asOf))
-		.toSorted((left, right) => Number(left.sequence) - Number(right.sequence));
-	const treatments = new Map<string, Treatment>();
-	for (const component of payComponents) {
-		for (const treatment of component.policy?.statutory_treatments ?? []) {
-			if (
-				!contributionIds.includes(treatment.statutory_contribution_id) ||
-				!coversDate(treatment.effective_range, asOf)
-			)
-				continue;
-			const key = treatmentKey(component.norbital_id, treatment.statutory_contribution_id);
-			if (treatments.has(key))
-				throw new Error(
-					`Pay component ${component.code} has overlapping statutory treatments for ${treatment.statutory_contribution_id}.`
-				);
-			treatments.set(key, treatment);
+		const ratesByContribution = new Map<string, ContributionRate[]>();
+		for (const rate of live(rateRows)) {
+			if (!coversDate(rate.effective_range, asOf)) continue;
+			const bucket = ratesByContribution.get(rate.statutory_contribution_id);
+			if (bucket) bucket.push(rate);
+			else ratesByContribution.set(rate.statutory_contribution_id, [rate]);
 		}
-	}
 
-	const shifts = live(shiftRows).filter((row) =>
-		overlapsRange(row.effective_range, windowStart, windowEnd)
-	);
+		const payComponents = live(payComponentRows)
+			.filter((row) => coversDate(row.effective_range, asOf))
+			.toSorted((left, right) => Number(left.sequence) - Number(right.sequence));
+		const treatments = new Map<string, Treatment>();
+		for (const component of payComponents) {
+			for (const treatment of component.policy?.statutory_treatments ?? []) {
+				if (
+					!contributionIds.includes(treatment.statutory_contribution_id) ||
+					!coversDate(treatment.effective_range, asOf)
+				)
+					continue;
+				const key = treatmentKey(component.norbital_id, treatment.statutory_contribution_id);
+				if (treatments.has(key))
+					throw new Error(
+						`Pay component ${component.code} has overlapping statutory treatments for ${treatment.statutory_contribution_id}.`
+					);
+				treatments.set(key, treatment);
+			}
+		}
 
-	const regime = jurisdiction.regime;
-	if (regime == null)
-		throw new Error(`Jurisdiction ${jurisdiction.code} has no statutory regime snapshot.`);
+		const shifts = live(shiftRows).filter((row) =>
+			overlapsRange(row.effective_range, windowStart, windowEnd)
+		);
 
-	const configuration = {
-		company,
-		jurisdiction,
-		contributions: contributions.map((row) => ({
-			row,
-			rates: (ratesByContribution.get(row.norbital_id) ?? []).toSorted(bandOrder)
-		})),
-		treatments,
-		payComponents,
-		overtimeRules: regime.overtime_rules,
-		overtimeLimits: regime.overtime_limits,
-		overtimeCoverageRule: regime.overtime_coverage,
-		restBreakRules: resolveRestBreakRules(regime.rest_breaks),
-		shiftById: new Map(shifts.map((row) => [row.norbital_id, row])),
-		holidays: new Map(
-			live(holidayRows).map((row) => [String(row.date).slice(0, 10), row] as const)
-		),
-		leaveTypes: live(leaveTypeRows).filter((row) => coversDate(row.effective_range, asOf))
-	} satisfies Omit<Configuration, 'hash'>;
+		const regime = jurisdiction.regime;
+		if (regime == null)
+			throw new Error(`Jurisdiction ${jurisdiction.code} has no statutory regime snapshot.`);
 
-	return { ...configuration, hash: hashConfiguration(configuration, options.period) };
+		const configuration = {
+			company,
+			jurisdiction,
+			contributions: contributions.map((row) => ({
+				row,
+				rates: (ratesByContribution.get(row.norbital_id) ?? []).toSorted(bandOrder)
+			})),
+			treatments,
+			payComponents,
+			overtimeRules: regime.overtime_rules,
+			overtimeLimits: regime.overtime_limits,
+			overtimeCoverageRule: regime.overtime_coverage,
+			shiftById: new Map(shifts.map((row) => [row.norbital_id, row])),
+			holidays: new Map(
+				live(holidayRows).map((row) => [String(row.date).slice(0, 10), row] as const)
+			),
+			leaveTypes: live(leaveTypeRows).filter((row) => coversDate(row.effective_range, asOf))
+		} satisfies Omit<Configuration, 'hash'>;
+
+		return { ...configuration, hash: hashConfiguration(configuration, options.period) };
+	});
 }
 
 /**
@@ -254,7 +252,6 @@ export function configurationSnapshot(
 		company: configuration.company.norbital_id,
 		jurisdiction: configuration.jurisdiction.norbital_id,
 		proration: configuration.jurisdiction.proration,
-		rounding: configuration.jurisdiction.rounding,
 		ordinary_rate: [
 			configuration.jurisdiction.ordinary_rate_basis,
 			configuration.jurisdiction.ordinary_rate_divisor
@@ -282,12 +279,11 @@ export function configurationSnapshot(
 		pay_components: configuration.payComponents
 			.map((row) => [row.code, row.policy, row.sequence, row.definition, row.eligibility])
 			.toSorted((left, right) => String(left[0]).localeCompare(String(right[0]))),
-		// The effective range, source hash and complete nested value are retained together. A PAID
-		// run can therefore replay the exact coverage, awards, ceilings, breaks and authorities it
-		// used; it cannot accidentally combine independently effective rows from different revisions.
+		// The effective range and the complete nested value are retained together. A PAID run can
+		// therefore replay the exact coverage, awards, ceilings and authorities it used; it cannot
+		// accidentally combine independently effective rows from different revisions.
 		statutory_regime: {
 			effective_range: configuration.jurisdiction.effective_range,
-			definition_hash: configuration.jurisdiction.definition_hash,
 			value: configuration.jurisdiction.regime
 		},
 		holidays: [...configuration.holidays.values()]

@@ -22,6 +22,10 @@ coverage/
 test-results/
 playwright-report/
 
+# Local yalc overlay. Committed package.json keeps an exact @norbital-ai/bolt pin.
+**/.yalc/
+**/yalc.lock
+
 # Environment and local files
 .env
 .env.*

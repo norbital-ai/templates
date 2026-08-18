@@ -1,8 +1,8 @@
 <script lang="ts">
 	/** One person's settlement. Every row below is the physical payslip-to-component junction. */
-	import { client } from '$pod/client';
+	import { client } from '../../lib/workspace-client.js';
 	import { useI18n } from '@norbital-ai/ui/i18n';
-	import type { TenantI18nKeys } from '$pod/i18n-keys';
+	import type { TenantI18nKeys } from '$bolt/i18n-keys';
 	import type { RepresentationProps } from './$types.js';
 	import { CollectionTable } from '@norbital-ai/ui/collection-table';
 	import { Bound, Grid, Stack } from '@norbital-ai/ui/layout';
@@ -53,8 +53,7 @@
 	function componentLabel(row: unknown): string {
 		const line = row as NestedLine;
 		const component = line.payslip_line_pay_component;
-		if (component?.code)
-			return component.name ? `${component.code} · ${component.name}` : component.code;
+		if (component?.code) return component.code;
 		const statutory = line.payslip_line_statutory_contribution;
 		if (statutory?.code)
 			return statutory.name ? `${statutory.code} · ${statutory.name}` : statutory.code;
@@ -127,7 +126,7 @@
 						where: { payslip_id: { eq: record.norbital_id } },
 						orderBy: { sequence: 'asc' },
 						with: {
-							payslip_line_pay_component: { columns: { code: true, name: true } },
+							payslip_line_pay_component: { columns: { code: true } },
 							entry_payslip_lines: { columns: { description: true, event_date: true } },
 							payslip_line_statutory_contribution: { columns: { code: true, name: true } }
 						},

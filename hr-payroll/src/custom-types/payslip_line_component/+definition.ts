@@ -1,13 +1,16 @@
-import { defineCustomType } from '@norbital-ai/pod/authoring';
-import { z } from 'zod/mini';
+import { defineCustomType } from '@norbital-ai/bolt/authoring';
+import { Schema } from 'effect';
 
-const payComponentId = { pay_component_id: z.uuid() } as const;
-const entryIds = { ...payComponentId, component_entry_id: z.uuid() } as const;
+const payComponentId = { pay_component_id: Schema.String.check(Schema.isUUID()) } as const;
+const entryIds = {
+	...payComponentId,
+	component_entry_id: Schema.String.check(Schema.isUUID())
+} as const;
 const statutory = {
-	statutory_contribution_id: z.uuid(),
-	base_amount: z.number(),
-	band_reference: z.nullable(z.string()),
-	special_amounts: z.record(z.string(), z.number())
+	statutory_contribution_id: Schema.String.check(Schema.isUUID()),
+	base_amount: Schema.Finite,
+	band_reference: Schema.NullOr(Schema.String),
+	special_amounts: Schema.Record(Schema.String, Schema.Finite)
 } as const;
 
 /**
@@ -17,32 +20,36 @@ const statutory = {
  * names the agreement row and sequence it recovered, and statutory lines link to their governing
  * scheme.
  */
-export const payslipLineComponentSchema = z.discriminatedUnion('kind', [
-	z.strictObject({ kind: z.literal('SCHEDULE'), ...payComponentId }),
-	z.strictObject({ kind: z.literal('FORMULA'), ...payComponentId }),
-	z.strictObject({
-		kind: z.literal('LEAVE_UNPAID'),
+export const payslipLineComponentValueSchema = Schema.Union([
+	Schema.Struct({ kind: Schema.Literal('SCHEDULE'), ...payComponentId }),
+	Schema.Struct({ kind: Schema.Literal('FORMULA'), ...payComponentId }),
+	Schema.Struct({
+		kind: Schema.Literal('LEAVE_UNPAID'),
 		...payComponentId,
-		leave_request_ids: z.array(z.uuid())
+		leave_request_ids: Schema.Array(Schema.String.check(Schema.isUUID()))
 	}),
-	z.strictObject({
-		kind: z.literal('LOAN_INSTALMENT'),
+	Schema.Struct({
+		kind: Schema.Literal('LOAN_INSTALMENT'),
 		...payComponentId,
-		agreement_id: z.uuid(),
-		sequence: z.number()
+		agreement_id: Schema.String.check(Schema.isUUID()),
+		sequence: Schema.Finite
 	}),
-	z.strictObject({ kind: z.literal('OVERTIME'), ...payComponentId }),
-	z.strictObject({ kind: z.literal('OVERTIME_EXCESS'), ...payComponentId }),
-	z.strictObject({ kind: z.literal('DERIVED'), ...payComponentId }),
-	/** Historical aggregated entry lines that cannot be split without inventing an allocation. */
-	z.strictObject({ kind: z.literal('LEGACY_COMPONENT'), ...payComponentId }),
-	z.strictObject({ kind: z.literal('COMPONENT_ENTRY_ONCE'), ...entryIds }),
-	z.strictObject({ kind: z.literal('COMPONENT_ENTRY_RECURRING'), ...entryIds }),
-	z.strictObject({ kind: z.literal('STATUTORY_EMPLOYEE'), ...statutory }),
-	z.strictObject({ kind: z.literal('STATUTORY_EMPLOYER'), ...statutory })
+	Schema.Struct({ kind: Schema.Literal('OVERTIME'), ...payComponentId }),
+	Schema.Struct({ kind: Schema.Literal('OVERTIME_EXCESS'), ...payComponentId }),
+	Schema.Struct({ kind: Schema.Literal('DERIVED'), ...payComponentId }),
+	Schema.Struct({ kind: Schema.Literal('COMPONENT_ENTRY_ONCE'), ...entryIds }),
+	Schema.Struct({ kind: Schema.Literal('COMPONENT_ENTRY_RECURRING'), ...entryIds }),
+	Schema.Struct({ kind: Schema.Literal('STATUTORY_EMPLOYEE'), ...statutory }),
+	Schema.Struct({ kind: Schema.Literal('STATUTORY_EMPLOYER'), ...statutory })
 ]);
 
-export type PayslipLineComponent = z.infer<typeof payslipLineComponentSchema>;
+export type PayslipLineComponent = Schema.Schema.Type<typeof payslipLineComponentValueSchema>;
+
+/** Strict standard view: a key no arm declares is refused rather than stripped. */
+export const payslipLineComponentSchema = Schema.toStandardSchemaV1(
+	payslipLineComponentValueSchema,
+	{ parseOptions: { onExcessProperty: 'error' } }
+);
 
 export default defineCustomType({
 	name: 'payslip_line_component',

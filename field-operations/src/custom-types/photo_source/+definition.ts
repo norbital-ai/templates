@@ -1,20 +1,30 @@
-import { defineCustomType } from '@norbital-ai/pod/authoring';
-import { z } from 'zod';
+import { defineCustomType } from '@norbital-ai/bolt/authoring';
+import { Schema } from 'effect';
 
-export const photoSourceSchema = z.discriminatedUnion('kind', [
-	z.object({ kind: z.literal('workspace_upload') }).strict(),
-	z
-		.object({
-			kind: z.literal('channel'),
-			provider: z.string().min(1),
-			conversation_id: z.string().min(1),
-			message_id: z.string().min(1),
-			attachment_id: z.string().min(1),
-			sender_id: z.string().min(1),
-			sent_at: z.string().datetime().nullable()
+/** A UTC-offset ISO 8601 datetime as the messaging channel reports one. */
+const channelInstant = Schema.String.check(
+	Schema.isPattern(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/),
+	Schema.makeFilter((value: string) => {
+		const parsed = new Date(value);
+		return !Number.isNaN(parsed.getTime()) || 'must be a valid datetime';
+	})
+);
+
+export const photoSourceSchema = Schema.toStandardSchemaV1(
+	Schema.Union([
+		Schema.Struct({ kind: Schema.Literal('workspace_upload') }),
+		Schema.Struct({
+			kind: Schema.Literal('channel'),
+			provider: Schema.NonEmptyString,
+			conversation_id: Schema.NonEmptyString,
+			message_id: Schema.NonEmptyString,
+			attachment_id: Schema.NonEmptyString,
+			sender_id: Schema.NonEmptyString,
+			sent_at: Schema.NullOr(channelInstant)
 		})
-		.strict()
-]);
+	]),
+	{ parseOptions: { onExcessProperty: 'error' } }
+);
 
 export default defineCustomType({
 	name: 'photo_source',

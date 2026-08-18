@@ -5,16 +5,14 @@
 	import type { RendererProps } from './$types.js';
 
 	let props: RendererProps = $props();
-	const allowedCurrencies = $derived.by((): readonly string[] | undefined => {
-		const candidate = props.field.options?.allowedCurrencies;
-		return Array.isArray(candidate) && candidate.every((currency) => typeof currency === 'string')
-			? candidate
-			: undefined;
+	// The renderer contract names the custom type through `type`; the shared field vocabulary keys
+	// on `kind`. `nullable` is a display concern the renderer cannot know, and the money renderer
+	// treats a null value as absent either way.
+	const field = $derived<CollectionField>({
+		name: props.field.name,
+		kind: props.field.type,
+		nullable: true
 	});
-	const field = $derived({
-		...props.field,
-		currencies: allowedCurrencies
-	} satisfies CollectionField);
 </script>
 
 {#if props.mode === 'edit'}

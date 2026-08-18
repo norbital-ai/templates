@@ -1,47 +1,70 @@
 <script lang="ts">
-	import { client } from '$pod/client';
+	import { client } from '$bolt/client';
+	import { getCollectionClientForSurface } from '@norbital-ai/ui/collection-runtime';
 	import { useI18n } from '@norbital-ai/ui/i18n';
-	import type { TenantI18nKeys } from '$pod/i18n-keys';
+	import type { TenantI18nKeys } from '$bolt/i18n-keys';
 	import { CollectionTable } from '@norbital-ai/ui/collection-table';
 	import { Cover, Grid, Inline, Stack } from '@norbital-ai/ui/layout';
 	import { Tabs, type TabConfig } from '@norbital-ai/ui/tabs';
+	const workspaceClient = getCollectionClientForSurface(client, 'crm_purchase');
 	const dashboard = client.invoke.procurement_dashboard({});
+	const dashboardData = $derived.by(() => {
+		const current = dashboard.current;
+		return current !== undefined && 'status_counts' in current ? current : null;
+	});
 
-	const usersQuery = client.db.user.findMany({
+	const usersQuery = workspaceClient.db.user.findMany({
 		columns: { norbital_id: true, name: true },
 		orderBy: { name: 'asc' }
 	});
 	const userLabelsById = $derived(
-		new Map((usersQuery.current ?? []).map((user) => [user.norbital_id, user.name]))
+		new Map((usersQuery.current ?? []).map((user) => [String(user.norbital_id), String(user.name)]))
 	);
-	const purchaseOrdersQuery = client.db.purchase_orders.findMany({
+	const purchaseOrdersQuery = workspaceClient.db.purchase_orders.findMany({
 		columns: { norbital_id: true, doc_no: true },
 		orderBy: { doc_no: 'desc' },
 		limit: 5000
 	});
 	const purchaseOrderLabelsById = $derived(
-		new Map((purchaseOrdersQuery.current ?? []).map((order) => [order.norbital_id, order.doc_no]))
+		new Map(
+			(purchaseOrdersQuery.current ?? []).map((order) => [
+				String(order.norbital_id),
+				String(order.doc_no)
+			])
+		)
 	);
 
-	const receiptsQuery = client.db.goods_receipts.findMany({
+	const receiptsQuery = workspaceClient.db.goods_receipts.findMany({
 		columns: { norbital_id: true, doc_no: true },
 		orderBy: { doc_no: 'desc' },
 		limit: 5000
 	});
 	const receiptLabelsById = $derived(
-		new Map((receiptsQuery.current ?? []).map((receipt) => [receipt.norbital_id, receipt.doc_no]))
+		new Map(
+			(receiptsQuery.current ?? []).map((receipt) => [
+				String(receipt.norbital_id),
+				String(receipt.doc_no)
+			])
+		)
 	);
-	const purchaseInvoicesQuery = client.db.purchase_invoices.findMany({
+	const receiptIds = $derived((receiptsQuery.current ?? []).map((receipt) => receipt.norbital_id));
+	const purchaseInvoicesQuery = workspaceClient.db.purchase_invoices.findMany({
 		columns: { norbital_id: true, doc_no: true },
 		orderBy: { doc_no: 'desc' },
 		limit: 5000
 	});
 	const purchaseInvoiceLabelsById = $derived(
 		new Map(
-			(purchaseInvoicesQuery.current ?? []).map((invoice) => [invoice.norbital_id, invoice.doc_no])
+			(purchaseInvoicesQuery.current ?? []).map((invoice) => [
+				String(invoice.norbital_id),
+				String(invoice.doc_no)
+			])
 		)
 	);
-	const orderLinesQuery = client.db.purchase_order_lines.findMany({
+	const purchaseInvoiceIds = $derived(
+		(purchaseInvoicesQuery.current ?? []).map((invoice) => invoice.norbital_id)
+	);
+	const orderLinesQuery = workspaceClient.db.purchase_order_lines.findMany({
 		columns: { norbital_id: true, product_name: true, quantity: true },
 		orderBy: { product_name: 'asc' },
 		limit: 5000
@@ -49,9 +72,9 @@
 	const orderLineLabelsById = $derived(
 		new Map(
 			(orderLinesQuery.current ?? []).map((line) => [
-				line.norbital_id,
+				String(line.norbital_id),
 				line.quantity != null
-					? `${line.product_name} × ${line.quantity}`
+					? `${String(line.product_name)} × ${line.quantity}`
 					: String(line.product_name)
 			])
 		)
@@ -80,7 +103,7 @@
 {#snippet dashboardTab()}
 	<Stack gap="lg">
 		<Grid minimum="card">
-			{#each Object.entries(dashboard.current?.status_counts ?? {}) as [status, count] (status)}
+			{#each Object.entries(dashboardData?.status_counts ?? {}) as [status, count] (status)}
 				<div class="rounded-lg border bg-card p-4">
 					<p class="text-sm text-muted-foreground capitalize">
 						{has(`component.status_${status}`)
@@ -93,7 +116,7 @@
 		</Grid>
 
 		<Grid minimum="card">
-			{#each dashboard.current?.committed_by_currency ?? [] as row (row.currency)}
+			{#each dashboardData?.committed_by_currency ?? [] as row (row.currency)}
 				<div class="rounded-lg border bg-card p-4">
 					<p class="text-sm text-muted-foreground">
 						{t('app.crm_purchase.committed_spend', { currency: row.currency })}
@@ -103,12 +126,12 @@
 			{/each}
 		</Grid>
 
-		{#if (dashboard.current?.top_suppliers ?? []).length > 0}
+		{#if (dashboardData?.top_suppliers ?? []).length > 0}
 			<div class="divide-y rounded-lg border bg-card text-sm">
 				<h3 class="border-b px-4 py-3 font-semibold">
 					{t('app.crm_purchase.top_suppliers')}
 				</h3>
-				{#each dashboard.current?.top_suppliers ?? [] as supplier (supplier.supplier_id)}
+				{#each dashboardData?.top_suppliers ?? [] as supplier (supplier.supplier_id)}
 					<Inline align="start" justify="between" gap="sm" class="px-4 py-2.5">
 						<p class="min-w-0 truncate font-medium">{supplier.supplier_name}</p>
 						<p class="shrink-0 tabular-nums text-muted-foreground">
@@ -123,7 +146,7 @@
 
 {#snippet purchaseOrders()}
 	<CollectionTable
-		{client}
+		client={workspaceClient}
 		collection="purchase_orders"
 		title={t('app.crm_purchase.tab_purchase_orders')}
 		description={t('app.crm_purchase.purchase_orders_description')}
@@ -149,7 +172,7 @@
 
 {#snippet purchaseOrderLines()}
 	<CollectionTable
-		{client}
+		client={workspaceClient}
 		collection="purchase_order_lines"
 		title={t('app.crm_purchase.tab_po_lines')}
 		description={t('app.crm_purchase.po_lines_description')}
@@ -175,7 +198,7 @@
 
 {#snippet suppliers()}
 	<CollectionTable
-		{client}
+		client={workspaceClient}
 		collection="suppliers"
 		title={t('app.crm_purchase.tab_suppliers')}
 		description={t('app.crm_purchase.suppliers_description')}
@@ -195,7 +218,7 @@
 
 {#snippet goodsReceipts()}
 	<CollectionTable
-		{client}
+		client={workspaceClient}
 		collection="goods_receipts"
 		title={t('app.crm_purchase.goods_receipts_title')}
 		description={t('app.crm_purchase.goods_receipts_description')}
@@ -227,10 +250,14 @@
 		<p class="text-sm text-muted-foreground">{t('app.crm_purchase.empty_goods_receipts')}</p>
 	{:else}
 		<CollectionTable
-			{client}
+			client={workspaceClient}
 			collection="goods_receipt_lines"
 			title={t('app.crm_purchase.receipt_lines_title')}
 			description={t('app.crm_purchase.receipt_lines_description')}
+			query={{
+				where: { goods_receipt_id: { in: receiptIds } },
+				orderBy: { goods_receipt_id: 'desc' }
+			}}
 		>
 			{#snippet columns({ Column })}
 				<Column
@@ -257,7 +284,7 @@
 
 {#snippet purchaseInvoices()}
 	<CollectionTable
-		{client}
+		client={workspaceClient}
 		collection="purchase_invoices"
 		title={t('app.crm_purchase.purchase_invoices_title')}
 		description={t('app.crm_purchase.purchase_invoices_description')}
@@ -285,10 +312,14 @@
 		<p class="text-sm text-muted-foreground">{t('app.crm_purchase.empty_purchase_invoices')}</p>
 	{:else}
 		<CollectionTable
-			{client}
+			client={workspaceClient}
 			collection="purchase_invoice_lines"
 			title={t('app.crm_purchase.invoice_lines_title')}
 			description={t('app.crm_purchase.invoice_lines_description')}
+			query={{
+				where: { purchase_invoice_id: { in: purchaseInvoiceIds } },
+				orderBy: { purchase_invoice_id: 'desc' }
+			}}
 		>
 			{#snippet columns({ Column })}
 				<Column
@@ -313,7 +344,7 @@
 
 {#snippet payments()}
 	<CollectionTable
-		{client}
+		client={workspaceClient}
 		collection="settlements"
 		view="crm_purchase:payments"
 		title={t('app.crm_purchase.payments_title')}

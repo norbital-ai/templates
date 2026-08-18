@@ -1,4 +1,4 @@
-import type { AgentAutomationSpec } from '@norbital-ai/pod/authoring';
+import type { AgentAutomationSpec } from '@norbital-ai/bolt/authoring';
 
 /** Permissions for the Pod-owned agent embedded in this tenant workspace. */
 export default {

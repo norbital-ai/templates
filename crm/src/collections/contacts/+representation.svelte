@@ -1,14 +1,17 @@
 <script lang="ts">
-	import { client } from '$pod/client';
+	import { client } from '$bolt/client';
+	import { getCollectionClientForSurface } from '@norbital-ai/ui/collection-runtime';
 	import { useI18n } from '@norbital-ai/ui/i18n';
-	import type { TenantI18nKeys } from '$pod/i18n-keys';
+	import type { TenantI18nKeys } from '$bolt/i18n-keys';
 	import type { RepresentationProps } from './$types.js';
 	import { CollectionForm } from '@norbital-ai/ui/collection-form';
 	import { Grid } from '@norbital-ai/ui/layout';
 	import { RelationshipRenderer } from '@norbital-ai/ui/data-renderer/relationship';
-	import type { CollectionRelationOptions } from '@norbital-ai/platform-utils/collection';
+	import type { CollectionRelationOptions } from '@norbital-ai/std/collection';
 
 	let { record, close }: RepresentationProps = $props();
+
+	const workspaceClient = getCollectionClientForSurface(client, 'CollectionForm');
 
 	const { t } = useI18n<TenantI18nKeys>();
 </script>
@@ -21,9 +24,8 @@
 </svelte:head>
 
 <CollectionForm
-	{client}
+	client={workspaceClient}
 	collection="contacts"
-	recordId={record?.norbital_id}
 	defaultValues={record ?? undefined}
 	onAfterSubmit={record ? undefined : close}
 >

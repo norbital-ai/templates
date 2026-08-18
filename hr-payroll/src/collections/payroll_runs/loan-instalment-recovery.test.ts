@@ -72,7 +72,6 @@ function configuration(payComponents = [BASIC, LOAN], rosterCodes = []) {
 		overtimeRules: [],
 		overtimeLimits: [],
 		overtimeCoverageRule: null,
-		restBreakRules: new Map(),
 		shiftById: new Map(rosterCodes.map((row) => [row.norbital_id, row])),
 		holidays: new Map(),
 		leaveTypes: [],

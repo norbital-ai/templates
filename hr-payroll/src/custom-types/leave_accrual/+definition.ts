@@ -1,13 +1,13 @@
-import { defineCustomType } from '@norbital-ai/pod/authoring';
-import { z } from 'zod/mini';
+import { defineCustomType } from '@norbital-ai/bolt/authoring';
+import { Schema } from 'effect';
 
 /** Carry-forward policy. Carry-forward and expiry are DERIVED at read time — never a job. */
-export const leaveCarrySchema = z.strictObject({
-	limit_days: z.number().check(z.minimum(0)),
-	expiry_months: z.int().check(z.minimum(0))
+export const leaveCarryValueSchema = Schema.Struct({
+	limit_days: Schema.Finite.check(Schema.isGreaterThanOrEqualTo(0)),
+	expiry_months: Schema.Int.check(Schema.isGreaterThanOrEqualTo(0))
 });
 
-export type LeaveCarry = z.infer<typeof leaveCarrySchema>;
+export type LeaveCarry = Schema.Schema.Type<typeof leaveCarryValueSchema>;
 
 /**
  * How entitlement for a leave type comes into existence.
@@ -15,13 +15,18 @@ export type LeaveCarry = z.infer<typeof leaveCarrySchema>;
  * - `UPFRONT`   — the whole band granted at the start of the leave year.
  * - `PER_EVENT` — no balance at all (maternity, compassionate); granted per request.
  */
-export const leaveAccrualSchema = z.discriminatedUnion('kind', [
-	z.strictObject({ kind: z.literal('MONTHLY'), carry: z.nullable(leaveCarrySchema) }),
-	z.strictObject({ kind: z.literal('UPFRONT'), carry: z.nullable(leaveCarrySchema) }),
-	z.strictObject({ kind: z.literal('PER_EVENT') })
+export const leaveAccrualValueSchema = Schema.Union([
+	Schema.Struct({ kind: Schema.Literal('MONTHLY'), carry: Schema.NullOr(leaveCarryValueSchema) }),
+	Schema.Struct({ kind: Schema.Literal('UPFRONT'), carry: Schema.NullOr(leaveCarryValueSchema) }),
+	Schema.Struct({ kind: Schema.Literal('PER_EVENT') })
 ]);
 
-export type LeaveAccrual = z.infer<typeof leaveAccrualSchema>;
+export type LeaveAccrual = Schema.Schema.Type<typeof leaveAccrualValueSchema>;
+
+/** Strict standard view: a key no arm declares is refused rather than stripped. */
+export const leaveAccrualSchema = Schema.toStandardSchemaV1(leaveAccrualValueSchema, {
+	parseOptions: { onExcessProperty: 'error' }
+});
 
 export default defineCustomType({
 	name: 'leave_accrual',

@@ -1,4 +1,4 @@
-import { refuse } from '@norbital-ai/pod/authoring';
+import { refuse } from '@norbital-ai/bolt/authoring';
 import type { Hooks } from './$types.js';
 
 /**
@@ -11,7 +11,7 @@ import type { Hooks } from './$types.js';
  */
 function requireId(value: string | null | undefined, what: string): string {
 	if (value == null || value === '') {
-		refuse(`A statutory fact must reference ${what}.`);
+		return refuse(`A statutory fact must reference ${what}.`);
 	}
 	return value;
 }

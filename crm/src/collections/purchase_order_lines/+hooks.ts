@@ -1,4 +1,5 @@
 import { currencyFractionDigits, fromMinorUnits, toMinorUnits } from '@norbital-ai/std/finance';
+import { Effect } from 'effect';
 import type { Hooks, WorkspaceRow } from './$types.js';
 
 function roundHalfUp(value: number, digits: number): number {
@@ -73,7 +74,13 @@ function requireCurrency(currency: string | null): string {
 	return currency;
 }
 
-function validateLineFields(input: Record<string, unknown>): void {
+interface ResolvedLineInput {
+	readonly quantity: number;
+	readonly unit_cost: number;
+	readonly tax_rate?: number | null;
+}
+
+function validateLineFields(input: ResolvedLineInput): void {
 	const quantity = Number(input.quantity);
 	if (Number.isNaN(quantity) || quantity <= 0) {
 		throw new Error('Quantity must be greater than zero.');
@@ -93,101 +100,142 @@ function validateLineFields(input: Record<string, unknown>): void {
 	}
 }
 
-function computeLineAmounts(order: WorkspaceRow<'purchase_orders'>, line: Record<string, unknown>) {
+function computeLineAmounts(
+	order: WorkspaceRow<'purchase_orders'>,
+	line: ResolvedLineInput
+): LineAmounts {
 	return lineAmounts({
-		quantity: Number(line.quantity),
-		unit_price: Number(line.unit_cost),
-		tax_rate: Number(line.tax_rate ?? 0),
+		quantity: line.quantity,
+		unit_price: line.unit_cost,
+		tax_rate: line.tax_rate ?? 0,
 		tax_inclusive: order.tax_inclusive,
 		currency: requireCurrency(order.currency)
 	});
 }
 
-async function rollupPurchaseOrder(api: AfterApi, purchaseOrderId: string): Promise<void> {
-	const order = await api.db.query.purchase_orders.findFirst({
-		where: { norbital_id: { eq: purchaseOrderId } }
+function rollupPurchaseOrder(api: AfterApi, purchaseOrderId: string): Effect.Effect<void> {
+	return Effect.gen(function* () {
+		const order = yield* api.db.query.purchase_orders.findFirst({
+			where: { norbital_id: { eq: purchaseOrderId } }
+		});
+		if (!order) return;
+
+		const lines = yield* api.db.query.purchase_order_lines.findMany({
+			where: { purchase_order_id: { eq: purchaseOrderId } },
+			columns: { net: true, tax: true, line_total: true },
+			limit: LINE_LIMIT
+		});
+
+		const totals = documentTotals(
+			lines.map((line) => ({
+				net: Number(line.net ?? 0),
+				tax: Number(line.tax ?? 0),
+				gross: Number(line.line_total ?? 0)
+			})),
+			requireCurrency(order.currency)
+		);
+
+		yield* api.db.mutate('purchase_orders', [
+			{
+				norbital_id: purchaseOrderId,
+				net: totals.net,
+				tax: totals.tax,
+				gross: totals.gross
+			}
+		]);
 	});
-	if (!order) return;
-
-	const lines = await api.db.query.purchase_order_lines.findMany({
-		where: { purchase_order_id: { eq: purchaseOrderId } },
-		columns: { net: true, tax: true, line_total: true },
-		limit: LINE_LIMIT
-	});
-
-	const totals = documentTotals(
-		lines.map((line) => ({
-			net: Number(line.net ?? 0),
-			tax: Number(line.tax ?? 0),
-			gross: Number(line.line_total ?? 0)
-		})),
-		requireCurrency(order.currency)
-	);
-
-	await api.db.mutate('purchase_orders', [
-		{
-			norbital_id: purchaseOrderId,
-			net: totals.net,
-			tax: totals.tax,
-			gross: totals.gross
-		}
-	]);
 }
 
-const afterRollup = async ({
+const afterRollup = ({
 	record,
 	api
 }: {
 	readonly record: { readonly purchase_order_id: string };
 	readonly api: AfterApi;
-}) => {
-	await rollupPurchaseOrder(api, record.purchase_order_id);
-};
+}) =>
+	Effect.gen(function* () {
+		yield* rollupPurchaseOrder(api, record.purchase_order_id);
+	});
 
 export default {
 	create: {
 		before: {
 			description:
 				'Adds a line only to a draft order for an active product, fills the product code, name, unit and tax rate from the catalogue, and prices the line net, tax and total from quantity and unit cost.',
-			batchHandler: async ({ inputs, api }) => {
-				const orderIds = [
-					...new Set(
-						inputs.flatMap((input) => (input.purchase_order_id ? [input.purchase_order_id] : []))
-					)
-				];
-				const productIds = [
-					...new Set(inputs.flatMap((input) => (input.product_id ? [input.product_id] : [])))
-				];
-				const [orders, products] = await Promise.all([
-					orderIds.length
-						? api.db.query.purchase_orders.findMany({
+			batchHandler: ({ inputs, api }) =>
+				Effect.gen(function* () {
+					const orderIds = [
+						...new Set(
+							inputs.flatMap((input) => (input.purchase_order_id ? [input.purchase_order_id] : []))
+						)
+					];
+					const productIds = [
+						...new Set(inputs.flatMap((input) => (input.product_id ? [input.product_id] : [])))
+					];
+					const orders = orderIds.length
+						? yield* api.db.query.purchase_orders.findMany({
 								where: { norbital_id: { in: orderIds } },
 								limit: LINE_LIMIT
 							})
-						: [],
-					productIds.length
-						? api.db.query.products.findMany({
+						: [];
+					const products = productIds.length
+						? yield* api.db.query.products.findMany({
 								where: { norbital_id: { in: productIds } },
 								limit: LINE_LIMIT
 							})
-						: []
-				]);
-				const ordersById = new Map(orders.map((order) => [order.norbital_id, order]));
-				const productsById = new Map(products.map((product) => [product.norbital_id, product]));
+						: [];
+					const ordersById = new Map(orders.map((order) => [order.norbital_id, order]));
+					const productsById = new Map(products.map((product) => [product.norbital_id, product]));
 
-				return inputs.map((input) => {
+					return inputs.map((input) => {
+						if (!input.purchase_order_id) {
+							throw new Error('A purchase order line must reference a purchase order.');
+						}
+						const order = ordersById.get(input.purchase_order_id);
+						if (!order) throw new Error('Referenced purchase order does not exist.');
+						if (order.status !== 'draft') {
+							throw new Error('Line items can only be added to draft purchase orders.');
+						}
+						if (!input.product_id)
+							throw new Error('A purchase order line must reference a product.');
+						const product = productsById.get(input.product_id);
+						if (!product) throw new Error('Referenced product does not exist.');
+						if (!product.active) throw new Error('Cannot add a line for an inactive product.');
+						const resolved = {
+							...input,
+							product_code: input.product_code ?? product.code,
+							product_name: input.product_name ?? product.name,
+							product_unit: input.product_unit ?? product.unit ?? '',
+							unit_cost: input.unit_cost,
+							tax_rate: input.tax_rate ?? product.tax_rate ?? 0
+						};
+						validateLineFields(resolved);
+						const amounts = computeLineAmounts(order, resolved);
+						return { ...resolved, net: amounts.net, tax: amounts.tax, line_total: amounts.gross };
+					});
+				}),
+			handler: ({ input, api }) =>
+				Effect.gen(function* () {
 					if (!input.purchase_order_id) {
 						throw new Error('A purchase order line must reference a purchase order.');
 					}
-					const order = ordersById.get(input.purchase_order_id);
+					const order = yield* api.db.query.purchase_orders.findFirst({
+						where: { norbital_id: { eq: input.purchase_order_id } }
+					});
 					if (!order) throw new Error('Referenced purchase order does not exist.');
 					if (order.status !== 'draft') {
 						throw new Error('Line items can only be added to draft purchase orders.');
 					}
+
 					if (!input.product_id) throw new Error('A purchase order line must reference a product.');
-					const product = productsById.get(input.product_id);
+					const product = yield* api.db.query.products.findFirst({
+						where: { norbital_id: { eq: input.product_id } }
+					});
 					if (!product) throw new Error('Referenced product does not exist.');
-					if (!product.active) throw new Error('Cannot add a line for an inactive product.');
+					if (!product.active) {
+						throw new Error('Cannot add a line for an inactive product.');
+					}
+
 					const resolved = {
 						...input,
 						product_code: input.product_code ?? product.code,
@@ -197,92 +245,57 @@ export default {
 						tax_rate: input.tax_rate ?? product.tax_rate ?? 0
 					};
 					validateLineFields(resolved);
+
 					const amounts = computeLineAmounts(order, resolved);
-					return { ...resolved, net: amounts.net, tax: amounts.tax, line_total: amounts.gross };
-				});
-			},
-			handler: async ({ input, api }) => {
-				if (!input.purchase_order_id) {
-					throw new Error('A purchase order line must reference a purchase order.');
-				}
-				const order = await api.db.query.purchase_orders.findFirst({
-					where: { norbital_id: { eq: input.purchase_order_id } }
-				});
-				if (!order) throw new Error('Referenced purchase order does not exist.');
-				if (order.status !== 'draft') {
-					throw new Error('Line items can only be added to draft purchase orders.');
-				}
-
-				if (!input.product_id) throw new Error('A purchase order line must reference a product.');
-				const product = await api.db.query.products.findFirst({
-					where: { norbital_id: { eq: input.product_id } }
-				});
-				if (!product) throw new Error('Referenced product does not exist.');
-				if (!product.active) {
-					throw new Error('Cannot add a line for an inactive product.');
-				}
-
-				const resolved = {
-					...input,
-					product_code: input.product_code ?? product.code,
-					product_name: input.product_name ?? product.name,
-					product_unit: input.product_unit ?? product.unit ?? '',
-					unit_cost: input.unit_cost,
-					tax_rate: input.tax_rate ?? product.tax_rate ?? 0
-				};
-				validateLineFields(resolved);
-
-				const amounts = computeLineAmounts(order, resolved);
-				return {
-					...resolved,
-					net: amounts.net,
-					tax: amounts.tax,
-					line_total: amounts.gross
-				};
-			}
+					return {
+						...resolved,
+						net: amounts.net,
+						tax: amounts.tax,
+						line_total: amounts.gross
+					};
+				})
 		},
 		after: {
 			description:
 				'Recomputes the purchase order net, tax and gross from its lines after a line is added.',
-			batchHandler: async ({ records, api }) => {
-				const orderIds = [...new Set(records.map((record) => record.purchase_order_id))];
-				const [orders, lines] = await Promise.all([
-					api.db.query.purchase_orders.findMany({
+			batchHandler: ({ records, api }) =>
+				Effect.gen(function* () {
+					const orderIds = [...new Set(records.map((record) => record.purchase_order_id))];
+					const orders = yield* api.db.query.purchase_orders.findMany({
 						where: { norbital_id: { in: orderIds } },
 						limit: LINE_LIMIT
-					}),
-					api.db.query.purchase_order_lines.findMany({
+					});
+					const lines = yield* api.db.query.purchase_order_lines.findMany({
 						where: { purchase_order_id: { in: orderIds } },
 						columns: { purchase_order_id: true, net: true, tax: true, line_total: true },
 						limit: LINE_LIMIT
-					})
-				]);
-				const linesByOrder = new Map<string, typeof lines>();
-				for (const line of lines) {
-					const grouped = linesByOrder.get(line.purchase_order_id) ?? [];
-					grouped.push(line);
-					linesByOrder.set(line.purchase_order_id, grouped);
-				}
-				await api.db.mutate(
-					'purchase_orders',
-					orders.map((order) => {
-						const totals = documentTotals(
-							(linesByOrder.get(order.norbital_id) ?? []).map((line) => ({
-								net: Number(line.net ?? 0),
-								tax: Number(line.tax ?? 0),
-								gross: Number(line.line_total ?? 0)
-							})),
-							requireCurrency(order.currency)
-						);
-						return {
-							norbital_id: order.norbital_id,
-							net: totals.net,
-							tax: totals.tax,
-							gross: totals.gross
-						};
-					})
-				);
-			},
+					});
+					const linesByOrder = new Map<string, typeof lines>();
+					for (const line of lines) {
+						const grouped = linesByOrder.get(line.purchase_order_id) ?? [];
+						grouped.push(line);
+						linesByOrder.set(line.purchase_order_id, grouped);
+					}
+					yield* api.db.mutate(
+						'purchase_orders',
+						orders.map((order) => {
+							const totals = documentTotals(
+								(linesByOrder.get(order.norbital_id) ?? []).map((line) => ({
+									net: Number(line.net ?? 0),
+									tax: Number(line.tax ?? 0),
+									gross: Number(line.line_total ?? 0)
+								})),
+								requireCurrency(order.currency)
+							);
+							return {
+								norbital_id: order.norbital_id,
+								net: totals.net,
+								tax: totals.tax,
+								gross: totals.gross
+							};
+						})
+					);
+				}),
 			handler: afterRollup
 		}
 	},
@@ -290,33 +303,34 @@ export default {
 		before: {
 			description:
 				'Keeps a line on its own draft order and re-prices its net, tax and total from the changed quantity, unit cost or tax rate.',
-			handler: async ({ input, existing, api }) => {
-				if (
-					input.purchase_order_id != null &&
-					input.purchase_order_id !== existing.purchase_order_id
-				) {
-					throw new Error('A line item cannot be moved to a different purchase order.');
-				}
+			handler: ({ input, existing, api }) =>
+				Effect.gen(function* () {
+					if (
+						input.purchase_order_id != null &&
+						input.purchase_order_id !== existing.purchase_order_id
+					) {
+						throw new Error('A line item cannot be moved to a different purchase order.');
+					}
 
-				const order = await api.db.query.purchase_orders.findFirst({
-					where: { norbital_id: { eq: existing.purchase_order_id } }
-				});
-				if (!order) throw new Error('Referenced purchase order does not exist.');
-				if (order.status !== 'draft') {
-					throw new Error('Line items can only be modified on draft purchase orders.');
-				}
+					const order = yield* api.db.query.purchase_orders.findFirst({
+						where: { norbital_id: { eq: existing.purchase_order_id } }
+					});
+					if (!order) throw new Error('Referenced purchase order does not exist.');
+					if (order.status !== 'draft') {
+						throw new Error('Line items can only be modified on draft purchase orders.');
+					}
 
-				const resolved = { ...existing, ...input };
-				validateLineFields(resolved);
+					const resolved = { ...existing, ...input };
+					validateLineFields(resolved);
 
-				const amounts = computeLineAmounts(order, resolved);
-				return {
-					...input,
-					net: amounts.net,
-					tax: amounts.tax,
-					line_total: amounts.gross
-				};
-			}
+					const amounts = computeLineAmounts(order, resolved);
+					return {
+						...input,
+						net: amounts.net,
+						tax: amounts.tax,
+						line_total: amounts.gross
+					};
+				})
 		},
 		after: {
 			description:

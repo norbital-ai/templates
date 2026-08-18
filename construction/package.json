@@ -8,20 +8,20 @@
 		"build": "vite build",
 		"format": "prettier --write .",
 		"lint": "prettier --check . && svelte-check --tsconfig ./tsconfig.json",
-		"sync": "pod sync",
-		"sync:watch": "pod sync --watch"
+		"sync": "bolt sync",
+		"sync:watch": "bolt sync --watch"
 	},
 	"dependencies": {
 		"@iconify/svelte": "^5.2.2",
-		"@norbital-ai/platform-utils": "0.0.45",
-		"@norbital-ai/pod": "0.0.45",
-		"@norbital-ai/std": "0.0.45",
-		"@norbital-ai/ui": "0.0.45",
+		"@norbital-ai/bolt": "file:.yalc/@norbital-ai/bolt",
+		"@norbital-ai/bolt-protocol": "file:.yalc/@norbital-ai/bolt-protocol",
+		"@norbital-ai/std": "file:.yalc/@norbital-ai/std",
+		"@norbital-ai/ui": "file:.yalc/@norbital-ai/ui",
+		"effect": "4.0.0-rc.109",
 		"mode-watcher": "^1.1.0",
 		"runed": "^0.37.1",
 		"svelte": "^5.56.7",
-		"vite": "^8.1.5",
-		"zod": "^4.4.3"
+		"vite": "^8.1.5"
 	},
 	"devDependencies": {
 		"prettier": "^3.9.5",

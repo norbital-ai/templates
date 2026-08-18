@@ -1,16 +1,14 @@
-import { defineCustomType } from '@norbital-ai/pod/authoring';
-import { z } from 'zod';
+import { Schema } from 'effect';
+import { defineCustomType } from '@norbital-ai/bolt/authoring';
 
-export const projectAddressSchema = z
-	.object({
-		line_1: z.string(),
-		line_2: z.string().nullable(),
-		city: z.string(),
-		state: z.string().nullable(),
-		postal_code: z.string(),
-		country: z.string()
-	})
-	.strict();
+export const projectAddressSchema = Schema.Struct({
+	line_1: Schema.String,
+	line_2: Schema.NullOr(Schema.String),
+	city: Schema.String,
+	state: Schema.NullOr(Schema.String),
+	postal_code: Schema.String,
+	country: Schema.String
+});
 
 export default defineCustomType({
 	name: 'project_address',

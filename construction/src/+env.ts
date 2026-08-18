@@ -1,4 +1,4 @@
-import { defineEnvVars } from '@norbital-ai/pod/authoring';
+import { defineEnvVars } from '@norbital-ai/bolt/authoring';
 
 /**
  * Names only — values are pasted in Settings → Integrations and are always optional.

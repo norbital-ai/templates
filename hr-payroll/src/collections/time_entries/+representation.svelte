@@ -6,24 +6,70 @@
 	 * Every field here is a recorded fact about presence. There is no overtime field: payroll derives
 	 * premium work from these intervals, the effective schedule and the statutory day type.
 	 */
-	import { client } from '$pod/client';
+	import { client } from '../../lib/workspace-client.js';
 	import { useI18n } from '@norbital-ai/ui/i18n';
-	import type { TenantI18nKeys } from '$pod/i18n-keys';
+	import type { TenantI18nKeys } from '$bolt/i18n-keys';
 	import type { RepresentationProps } from './$types.js';
 	import { CollectionForm } from '@norbital-ai/ui/collection-form';
 	import { Grid } from '@norbital-ai/ui/layout';
 	import { RelationshipRenderer } from '@norbital-ai/ui/data-renderer/relationship';
 	import DurationHoursRenderer from '../../lib/ui/duration-hours-renderer.svelte';
+	import { todayKey } from '../../lib/ui/calendar.js';
+	import {
+		payrollWindows,
+		sourceLock,
+		sourceLockBlocksWrite,
+		sourceLockI18nKey,
+		sourceLockI18nParams
+	} from '../../lib/scheduling/lock.js';
 
 	let { record, close }: RepresentationProps = $props();
 	const { t } = useI18n<TenantI18nKeys>();
+
+	const employmentQuery = $derived(
+		record
+			? client.db.employments.findFirst({
+					where: { norbital_id: { eq: record.employment_id } },
+					columns: { company_id: true }
+				})
+			: null
+	);
+	const runsQuery = $derived(
+		employmentQuery?.current?.company_id
+			? client.db.payroll_runs.findMany({
+					where: { company_id: { eq: employmentQuery.current.company_id } },
+					columns: { period: true, lifecycle: true, attendance_from: true, attendance_to: true },
+					limit: 500
+				})
+			: null
+	);
+	const lock = $derived(
+		record
+			? sourceLock({
+					existing: true,
+					approvalId: record.norbital_approval_id,
+					dates: [record.work_date],
+					today: todayKey(),
+					windows: payrollWindows(runsQuery?.current ?? []),
+					freezeWhenLive: false
+				})
+			: { kind: 'NONE' as const }
+	);
+	const locked = $derived(record != null && sourceLockBlocksWrite(lock));
+	const lockKey = $derived(sourceLockI18nKey(lock));
 </script>
+
+{#if lockKey}
+	<p class="mb-3 rounded-md border border-border bg-muted/20 px-3 py-2 text-xs text-muted-foreground">
+		{t(lockKey, sourceLockI18nParams(lock))}
+	</p>
+{/if}
 
 <CollectionForm
 	{client}
 	collection="time_entries"
-	recordId={record?.norbital_id}
 	defaultValues={record ?? undefined}
+	disabled={locked}
 	submitLabel={record ? t('component.save_attendance') : t('component.create_attendance')}
 	onAfterSubmit={record ? undefined : close}
 >

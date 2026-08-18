@@ -1,8 +1,8 @@
 <script lang="ts">
-	import { client } from '$pod/client';
-	import { getPlatformStateContext } from '@norbital-ai/pod/client';
+	import { client } from '../../lib/workspace-client.js';
+	import { getPlatformStateContext } from '@norbital-ai/bolt/client';
 	import { useI18n, type I18nApi } from '@norbital-ai/ui/i18n';
-	import type { TenantI18nKeys } from '$pod/i18n-keys';
+	import type { TenantI18nKeys } from '$bolt/i18n-keys';
 	import type { RepresentationProps } from './$types.js';
 	import { CollectionForm } from '@norbital-ai/ui/collection-form';
 	import {
@@ -19,7 +19,7 @@
 	import { formatFileSize } from '@norbital-ai/ui/utils';
 	import { RelationshipRenderer } from '@norbital-ai/ui/data-renderer/relationship';
 	import Icon from '@iconify/svelte';
-	import { z } from 'zod';
+	import { Option, Schema } from 'effect';
 	import JobsRepresentation from '../jobs/+representation.svelte';
 
 	let { record, close, refresh }: RepresentationProps = $props();
@@ -69,12 +69,15 @@
 		}).format(new Date(value));
 	}
 
-	const documentAssetSchema = z.object({
-		norbital_id: z.string().uuid(),
-		file_name: z.string(),
-		file_size: z.number().nullable().optional(),
-		storage_key: z.string()
+	const documentAssetSchema = Schema.Struct({
+		norbital_id: Schema.String.check(Schema.isUUID()),
+		file_name: Schema.String,
+		file_size: Schema.optional(Schema.NullOr(Schema.Number)),
+		storage_key: Schema.String
 	});
+
+	/** An asset row that does not carry a downloadable file is skipped rather than rendered. */
+	const decodeDocumentAsset = Schema.decodeUnknownOption(documentAssetSchema);
 
 	const jobQuery = $derived(
 		record != null
@@ -124,17 +127,18 @@
 	);
 	const photoCards = $derived(
 		(evidenceAssetsQuery?.current ?? []).flatMap((candidate) => {
-			const parsed = documentAssetSchema.safeParse(candidate);
-			if (!parsed.success) return [];
-			const evidence = evidenceByAssetId.get(parsed.data.norbital_id);
+			const parsed = decodeDocumentAsset(candidate);
+			if (Option.isNone(parsed)) return [];
+			const asset = parsed.value;
+			const evidence = evidenceByAssetId.get(asset.norbital_id);
 			if (!evidence) return [];
 			return [
 				{
 					id: evidence.norbital_id,
-					name: parsed.data.file_name,
-					fileSize: parsed.data.file_size,
-					url: `/api/files/download/${encodeURIComponent(parsed.data.storage_key)}`,
-					flags: (evidence.flags ?? []).filter((flag): flag is string => flag != null),
+					name: asset.file_name,
+					fileSize: asset.file_size,
+					url: `/api/files/download/${encodeURIComponent(asset.storage_key)}`,
+					flags: (evidence.flags ?? []).filter((flag: unknown): flag is string => flag != null),
 					source: evidenceSource(evidence.source),
 					capturedAt: formatSingaporeInstant(evidence.norbital_created_at, t)
 				}
@@ -267,12 +271,7 @@
 	{#snippet statusAndActivity()}
 		<Scroll name={t('component.assignment_and_activity')}>
 			<Stack gap="md">
-				<CollectionForm
-					{client}
-					collection="job_assignments"
-					recordId={record.norbital_id}
-					defaultValues={record}
-				>
+				<CollectionForm {client} collection="job_assignments" defaultValues={record}>
 					{#snippet children({ Field })}
 						<Stack gap="md">
 							<div>

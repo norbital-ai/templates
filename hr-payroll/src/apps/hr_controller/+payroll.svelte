@@ -1,9 +1,9 @@
 <script lang="ts">
-	import { client } from '$pod/client';
-	import { downloadCollectionExport } from '@norbital-ai/pod/client';
+	import { client } from '../../lib/workspace-client.js';
+	import { downloadCollectionExport } from '@norbital-ai/bolt/client';
 	import { useI18n } from '@norbital-ai/ui/i18n';
-	import AppHeaderActions from '@norbital-ai/pod/client/app-header-actions';
-	import type { TenantI18nKeys } from '$pod/i18n-keys';
+	import AppHeaderActions from '@norbital-ai/bolt/client/app-header-actions';
+	import type { TenantI18nKeys } from '$bolt/i18n-keys';
 	import { Combobox } from '@norbital-ai/ui/combobox';
 	import { Cover, Inline, Stack } from '@norbital-ai/ui/layout';
 	import { Tabs, type TabConfig } from '@norbital-ai/ui/tabs';

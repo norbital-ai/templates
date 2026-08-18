@@ -1,6 +1,6 @@
 import converterWorkerUrl from './ifc_viewer.converter.worker.ts?worker&url';
 import type { I18nApi } from '@norbital-ai/ui/i18n';
-import type { TenantI18nKeys } from '$pod/i18n-keys';
+import type { TenantI18nKeys } from '$bolt/i18n-keys';
 
 export type Translator = I18nApi<TenantI18nKeys>['t'];
 

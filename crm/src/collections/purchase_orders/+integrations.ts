@@ -1,4 +1,4 @@
-import { defineConnection } from '@norbital-ai/pod/authoring';
+import { defineConnection } from '@norbital-ai/bolt/authoring';
 import type { Integrations } from './$types.js';
 
 const erp = defineConnection({
@@ -11,8 +11,13 @@ const erp = defineConnection({
  *
  * A mutation matching `on` writes the record to the platform's transactional outbox in the same
  * transaction as the confirm — a delivery is never queued for a write that rolled back. The host
- * drains the outbox: this collection's `export` pipeline runs, `transform` shapes the result into
- * the request body, and delivery retries with capped backoff and dead-letters after ten attempts.
+ * drains the outbox on its own schedule, so the confirm never waits on the partner: `body` shapes
+ * the request from the row as it was committed, and delivery retries with capped backoff before
+ * dead-lettering, where a failed delivery stays findable rather than vanishing.
+ *
+ * `body` is pure and synchronous, so it shapes what the row already carries and cannot look
+ * anything else up. That is the same limit `map` has inbound, and it is deliberate: a lookup here
+ * would be a query per delivery.
  */
 export default {
 	erp: {
@@ -23,8 +28,12 @@ export default {
 					update: ({ previous, record }) =>
 						previous.status !== 'confirmed' && record.status === 'confirmed'
 				},
-				request: { method: 'POST', path: '/docs/confirmed' },
-				transform: ({ output }) => output[0]?.attachments[0]?.content
+				send: { method: 'POST', path: '/docs/confirmed' },
+				body: ({ record }) => ({
+					reference: record.doc_no,
+					status: record.status,
+					currency: record.currency
+				})
 			}
 		}
 	}

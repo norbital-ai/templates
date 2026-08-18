@@ -1,1 +1,0 @@
-CREATE UNIQUE INDEX "component_entries_repayment_agreement_id_repayment_sequence_index" ON "component_entries" ("repayment_agreement_id","repayment_sequence") WHERE "repayment_agreement_id" IS NOT NULL;

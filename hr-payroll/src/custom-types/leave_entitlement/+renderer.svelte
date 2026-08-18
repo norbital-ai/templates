@@ -1,6 +1,7 @@
 <script lang="ts">
+	import { Result, Schema } from 'effect';
 	import { useI18n } from '@norbital-ai/ui/i18n';
-	import type { TenantI18nKeys } from '$pod/i18n-keys';
+	import type { TenantI18nKeys } from '$bolt/i18n-keys';
 	/**
 	 * The entitlement matrix had no editor at all — it was a display-only count, so a leave type's
 	 * statutory, organisation and employee bands could not be corrected by hand at all. The frame
@@ -44,16 +45,18 @@
 	const companyId = $derived(
 		typeof props.row?.company_id === 'string' ? props.row.company_id : null
 	);
-	const parsed = $derived(leaveEntitlementSchema.safeParse(props.value));
-	const layers = $derived<Layer[]>(parsed.success ? [...parsed.data.layers] : []);
+	const parsed = $derived(
+		Schema.decodeUnknownResult(leaveEntitlementSchema)(props.value, { onExcessProperty: 'error' })
+	);
+	const layers = $derived<Layer[]>(Result.isSuccess(parsed) ? [...parsed.success.layers] : []);
 	/*
 	 * The count stays a static sentence. Naming the people behind the EMPLOYEE layers would mount
 	 * one lookup per row of the leave-types table — the N+1 `controller-surfaces.md` §5 forbids —
 	 * and they are named in the editor, where a single scoped query answers all of them at once.
 	 */
 	const summary = $derived(
-		parsed.success
-			? `${parsed.data.layers.length} statutory / organisation / employee entitlement layer${parsed.data.layers.length === 1 ? '' : 's'}`
+		Result.isSuccess(parsed)
+			? `${parsed.success.layers.length} statutory / organisation / employee entitlement layer${parsed.success.layers.length === 1 ? '' : 's'}`
 			: '—'
 	);
 

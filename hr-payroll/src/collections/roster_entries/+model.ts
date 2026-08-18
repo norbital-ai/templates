@@ -1,4 +1,4 @@
-import { date, defineModel, text, uuid } from '@norbital-ai/pod/authoring';
+import { date, defineModel, enums, text, uuid } from '@norbital-ai/bolt/authoring';
 
 /**
  * One explicit person-day assignment or override.
@@ -13,9 +13,7 @@ import { date, defineModel, text, uuid } from '@norbital-ai/pod/authoring';
  * calendar rather than from a stored per-person mark. The import pipeline refuses a `PUBLIC_HOLIDAY`
  * row whose date the calendar does not know, so the two can never disagree.
  *
- * `+hooks.ts` enforces the arms on every write. Rows written before this shape existed may still
- * carry a shift on a non-working day; the engine tolerates them unchanged, and the first edit to
- * such a row has to correct it.
+ * `+hooks.ts` enforces the arms on every write.
  */
 export default defineModel(
 	{
@@ -33,7 +31,18 @@ export default defineModel(
 		 * The roster token shown to the operator in the source schedule, for example `AMRES` or
 		 * `OFF/S`. Provenance only; schedule meaning always comes from the referenced roster code.
 		 */
-		assignment_code: text()
+		assignment_code: text(),
+		/**
+		 * Where the explicit row came from. `IMPORT` rows land from a workbook; `MANUAL` rows are
+		 * written on the board (an ad hoc assignment, planned overtime or a swap). An assignment's
+		 * meaning never depends on this — it is provenance and a board filter, nothing more.
+		 */
+		origin: enums(['IMPORT', 'MANUAL']).notNull().default('MANUAL'),
+		/**
+		 * A free-text reason for an ad hoc change, for example "swap with 03 Aug" or
+		 * "call-back for stocktake". Purely explanatory; the schedule always comes from the code.
+		 */
+		note: text()
 	},
 	{
 		description:

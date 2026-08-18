@@ -1,6 +1,7 @@
 <script lang="ts">
+	import { Result, Schema } from 'effect';
 	import { useI18n } from '@norbital-ai/ui/i18n';
-	import type { TenantI18nKeys } from '$pod/i18n-keys';
+	import type { TenantI18nKeys } from '$bolt/i18n-keys';
 	import { payslipLineComponentSchema, type PayslipLineComponent } from './+definition.js';
 	import type { RendererProps } from './$types.js';
 
@@ -15,10 +16,10 @@
 	 */
 	let props: RendererProps = $props();
 	const { t, has } = useI18n<TenantI18nKeys>();
-	const parsed = $derived(payslipLineComponentSchema.safeParse(props.value));
+	const parsed = $derived(Schema.decodeUnknownResult(payslipLineComponentSchema)(props.value));
 	const summary = $derived.by(() => {
-		if (!parsed.success) return '—';
-		const { kind } = parsed.data;
+		if (!Result.isSuccess(parsed)) return '—';
+		const { kind } = parsed.success;
 		const key = catalogueKey(kind);
 		return key != null && has(key) ? t(key) : kind.replaceAll('_', ' ').toLowerCase();
 	});
@@ -40,7 +41,6 @@
 			case 'OVERTIME':
 			case 'OVERTIME_EXCESS':
 			case 'DERIVED':
-			case 'LEGACY_COMPONENT':
 				return null;
 			default: {
 				const _exhaustive: never = kind;

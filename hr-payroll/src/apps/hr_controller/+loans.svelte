@@ -1,8 +1,8 @@
 <script lang="ts">
-	import { client } from '$pod/client';
+	import { client } from '../../lib/workspace-client.js';
 	import { useI18n } from '@norbital-ai/ui/i18n';
-	import AppHeaderActions from '@norbital-ai/pod/client/app-header-actions';
-	import type { TenantI18nKeys } from '$pod/i18n-keys';
+	import AppHeaderActions from '@norbital-ai/bolt/client/app-header-actions';
+	import type { TenantI18nKeys } from '$bolt/i18n-keys';
 	import { CollectionTable } from '@norbital-ai/ui/collection-table';
 	import { Combobox } from '@norbital-ai/ui/combobox';
 	import { Bound, Cover, Inline } from '@norbital-ai/ui/layout';
@@ -134,7 +134,6 @@
 
 	function componentLabel(row: unknown): string {
 		const component = nestedAgreement(row).agreement_pay_component;
-		if (component?.code && component.name) return `${component.code} · ${component.name}`;
 		if (component?.code) return component.code;
 		return '—';
 	}
@@ -208,7 +207,7 @@
 						orderBy: { effective_range: 'desc' },
 						with: {
 							agreement_employment: { columns: { employee_number: true } },
-							agreement_pay_component: { columns: { code: true, name: true } },
+							agreement_pay_component: { columns: { code: true } },
 							agreement_instalments: {
 								where: { norbital_approval_id: { isNull: true } },
 								columns: { amount: true, repayment_sequence: true },
@@ -218,7 +217,6 @@
 							}
 						}
 					}}
-					searchPlaceholder={t('app.loans.search_agreements')}
 				>
 					{#snippet columns({ Column })}
 						<Column name="reference" card="title" />

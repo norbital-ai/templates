@@ -16,6 +16,7 @@ import {
 import type { Configuration, ShiftDefinition } from './configuration.js';
 import { dateKey, requiredDateKey, type IsoDate } from './dates.js';
 import { coversDate } from './effective.js';
+import type { WorkPattern } from '../../../custom-types/work_pattern/+definition.js';
 
 export type DayType = 'ORDINARY' | 'REST_DAY' | 'PUBLIC_HOLIDAY' | 'OFF_DAY';
 
@@ -55,7 +56,7 @@ export function normalDailyHours(terms: WeeklyHoursTerms): number {
 }
 
 export type ScheduleTerms = {
-	readonly work_pattern: unknown;
+	readonly work_pattern: WorkPattern;
 	readonly normal_daily_hours: number;
 };
 

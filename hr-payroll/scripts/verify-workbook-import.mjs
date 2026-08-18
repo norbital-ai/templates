@@ -11,10 +11,7 @@
  * assignment, REST/OFF are real variants, and PH is validated against the observed calendar but
  * never persisted as a person-day fact.
  *
- * The time-entry sheet carries four columns, one row per person per day. The file issued before
- * this one carried more — break minutes, overtime punches, a state, a reason, and an
- * `overtime_authorized` the collection no longer has — and a sheet shaped like that still imports
- * here, so an operator does not have to be reissued a workbook to keep working.
+ * The time-entry sheet carries four columns, one row per person per day.
  *
  * The refusal cases matter as much as the happy one: the platform writes an import in a single
  * transaction and has no per-row rejection, so a bad row must refuse the WHOLE file and say which
@@ -25,6 +22,7 @@ import assert from 'node:assert/strict';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import ExcelJS from 'exceljs';
+import { Effect } from 'effect';
 import { createServer } from 'vite';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -64,25 +62,6 @@ const ROSTER_ROWS = [
 	['NHPMY0023', '2026-05-08', 'PH']
 ];
 
-/*
- * The shape of the file issued before this one: six columns, the day type declared rather than
- * derived. The declaration is no longer read — the shift cell decides — but the file itself keeps
- * importing, and its assignment and note columns keep landing.
- */
-const LEGACY_ROSTER_HEADERS = [
-	'employee_number',
-	'work_date',
-	'day_type',
-	'shift_code',
-	'assignment_code',
-	'note'
-];
-const LEGACY_ROSTER_ROWS = [
-	['NHPMY0002', '2026-05-04', 'WORK', '7.5AM', '', 'Covers, then hands over'],
-	['NHPMY0002', '2026-05-05', 'REST', '', '', ''],
-	['NHPMY0023', '2026-05-06', 'REST', 'AM0830', 'AMRES', '']
-];
-
 const TIME_ENTRY_HEADERS = ['employee_number', 'work_date', 'clock_in', 'clock_out'];
 const TIME_ENTRY_ROWS = [
 	['NHPMY0002', '2026-05-04', '08:16', '17:10'],
@@ -90,30 +69,6 @@ const TIME_ENTRY_ROWS = [
 	['NHPMY0023', '2026-05-04', '20:30', '05:15'],
 	['NHPMY0023', '2026-05-05', '20:28', '05:02'],
 	['NHPMY0023', '2026-05-06', '20:31', '']
-];
-
-/*
- * The shape of the file issued before this one: ten columns, `overtime_authorized` among them.
- * Overtime is now calculated in the payroll run rather than approved on the attendance row, and
- * the column is gone from the collection — so what this pins is that the OLD file keeps importing,
- * with that column read by nobody and the rest landing as before.
- */
-const LEGACY_TIME_ENTRY_HEADERS = [
-	'employee_number',
-	'work_date',
-	'clock_in',
-	'clock_out',
-	'break_minutes',
-	'overtime_in',
-	'overtime_out',
-	'overtime_authorized',
-	'state',
-	'reason'
-];
-const LEGACY_TIME_ENTRY_ROWS = [
-	['NHPMY0002', '2026-05-04', '08:16', '17:10', 60, '', '', '', 'CLOSED', ''],
-	['NHPMY0002', '2026-05-05', '08:02', '17:05', 60, '17:30', '19:30', true, 'CLOSED', ''],
-	['NHPMY0023', '2026-05-06', '20:31', '', 0, '', '', '', 'OPEN', '']
 ];
 const SETTINGS_ROWS = [
 	['Setting', 'Value'],
@@ -141,12 +96,20 @@ function stubApi(tables) {
 		Object.entries(tables).map(([name, rows]) => [
 			name,
 			{
-				findFirst: async ({ where } = {}) => rows.find((row) => matches(row, where)) ?? null,
-				findMany: async ({ where } = {}) => rows.filter((row) => matches(row, where))
+				findFirst: ({ where } = {}) =>
+					Effect.succeed(rows.find((row) => matches(row, where)) ?? null),
+				findMany: ({ where } = {}) => Effect.succeed(rows.filter((row) => matches(row, where)))
 			}
 		])
 	);
 	return { db: { query } };
+}
+
+/** Resolve an authored handler result the way the runtime does: Effect, promise, or value. */
+function runHandler(result) {
+	if (Effect.isEffect(result)) return Effect.runPromise(result);
+	if (result instanceof Promise) return result;
+	return Effect.runPromise(Effect.succeed(result));
 }
 
 function companies() {
@@ -229,13 +192,17 @@ function timeEntryApi(overrides = {}) {
 			{ norbital_id: 'employment:2', employee_number: 'NHPMY0002', company_id: COMPANY_ID },
 			{ norbital_id: 'employment:23', employee_number: 'NHPMY0023', company_id: COMPANY_ID }
 		],
-		time_entries: overrides.existingEntries ?? []
+		time_entries: overrides.existingEntries ?? [],
+		payroll_runs: overrides.payrollRuns ?? [],
+		leave_requests: overrides.leaveRequests ?? []
 	});
 }
 
 async function refusal(run) {
 	try {
-		await run();
+		// The callback is async (it builds the payload from grids), so resolve it first — the
+		// handler result it returns is then resolved the way the runtime does.
+		await runHandler(await run());
 	} catch (error) {
 		return error.message;
 	}
@@ -301,7 +268,9 @@ try {
 		'REST is a real roster-code variant'
 	);
 
-	const written = await rosterPipeline.import.handler({ input: rosterPayload }, rosterApi());
+	const written = await runHandler(
+		rosterPipeline.import.handler({ input: rosterPayload }, rosterApi())
+	);
 	assert.equal(written.length, 8, 'the validated PH token is not stored per person');
 	assert.deepEqual(
 		written.map((row) => row.shift_definition_id),
@@ -327,49 +296,6 @@ try {
 			assignment_code: null
 		},
 		'OFF remains explicit and its meaning comes from the referenced code variant'
-	);
-
-	/*
-	 * The file issued before this one keeps importing: its `day_type` column is read by nobody —
-	 * the shift cell decides — while its assignment and note columns keep landing. Note the third
-	 * row: the old habit of repeating the ordinary shift on a rest day now reads as a WORKING day,
-	 * because a named shift is exactly what a working day is under the derivation.
-	 */
-	const legacyRoster = rosterImportPayload(
-		workbookGrids(
-			await gridsOf([
-				['Read me first', README],
-				['Roster', [LEGACY_ROSTER_HEADERS, ...LEGACY_ROSTER_ROWS]]
-			])
-		),
-		ROSTER_ID
-	);
-	assert.deepEqual(
-		legacyRoster.rows,
-		[
-			{
-				employee_number: 'NHPMY0002',
-				work_date: '2026-05-04',
-				shift_code: '7.5AM',
-				assignment_code: undefined,
-				note: 'Covers, then hands over'
-			},
-			{
-				employee_number: 'NHPMY0002',
-				work_date: '2026-05-05',
-				shift_code: 'REST',
-				assignment_code: undefined,
-				note: undefined
-			},
-			{
-				employee_number: 'NHPMY0023',
-				work_date: '2026-05-06',
-				shift_code: 'AM0830',
-				assignment_code: 'AMRES',
-				note: undefined
-			}
-		],
-		'legacy day_type is translated only when no real roster code was supplied'
 	);
 
 	// ── One bad row refuses the whole file, and says which row ─────────────────────────────────────
@@ -443,7 +369,7 @@ try {
 	assert.doesNotMatch(
 		badCells,
 		/shift_code/,
-		'the third row leaves shift_code blank and is not complained about — it derives REST'
+		'the third row leaves shift_code blank, which is an absent assignment — nothing to complain about'
 	);
 
 	const renamedColumns = workbookGrids(
@@ -460,11 +386,6 @@ try {
 	const missingColumn = await refusal(async () => rosterImportPayload(renamedColumns, ROSTER_ID));
 	assert.match(missingColumn, /missing column the import needs/);
 	assert.match(missingColumn, /No "shift_code" column/);
-	assert.doesNotMatch(
-		missingColumn,
-		/day_type/,
-		'the day type is derived from the shift cell, so it is not demanded of the sheet'
-	);
 
 	const wrongSheet = await refusal(async () =>
 		rosterImportPayload(
@@ -519,14 +440,15 @@ try {
 			work_date: '2026-05-05',
 			clock_in: '08:02',
 			clock_out: '17:05',
-			break_minutes: undefined,
-			reason: undefined
+			break_minutes: undefined
 		},
 		'a four-column row reads as punches alone — everything else the pipeline derives'
 	);
 	assert.equal(timePayload.rows[4].clock_out, undefined, 'an unclosed punch stays unclosed');
 
-	const landed = await timeEntryPipeline.import.handler({ input: timePayload }, timeEntryApi());
+	const landed = await runHandler(
+		timeEntryPipeline.import.handler({ input: timePayload }, timeEntryApi())
+	);
 	assert.equal(landed.length, 5);
 	assert.deepEqual(
 		landed[0],
@@ -556,47 +478,6 @@ try {
 		landed[4].worked_intervals[0].end_at,
 		null,
 		'a missing close remains an open interval'
-	);
-
-	/*
-	 * The file issued before this one keeps importing: the columns the reader names land as before,
-	 * and `overtime_authorized` — retired, read by nobody — is dropped on the way in rather than
-	 * refused. Nonsense in a column nobody reads is not a reason to refuse a file.
-	 */
-	const legacyTime = timeEntryImportPayload(
-		await timeEntryGrids(LEGACY_TIME_ENTRY_ROWS, LEGACY_TIME_ENTRY_HEADERS)
-	);
-	assert.deepEqual(
-		legacyTime.rows[1],
-		{
-			employee_number: 'NHPMY0002',
-			work_date: '2026-05-05',
-			clock_in: '08:02',
-			clock_out: '17:05',
-			break_minutes: 60,
-			reason: undefined
-		},
-		'the old OT/state columns are ignored while observed work and break still import'
-	);
-	assert.ok(
-		legacyTime.rows.every((row) => !('overtime_authorized' in row)),
-		'the retired column is dropped on the way in, not turned into a value'
-	);
-	const legacyLanded = await timeEntryPipeline.import.handler(
-		{ input: legacyTime },
-		timeEntryApi()
-	);
-	assert.deepEqual(
-		legacyLanded[1],
-		{
-			employment_id: 'employment:2',
-			work_date: '2026-05-05',
-			worked_intervals: [
-				{ start_at: '2026-05-05T00:02:00.000Z', end_at: '2026-05-05T09:05:00.000Z' }
-			],
-			break_minutes: 60
-		},
-		'legacy OT columns do not create a second class of stored time'
 	);
 
 	const unknownPuncher = await refusal(async () =>
@@ -684,9 +565,8 @@ try {
 			'NHPMY0023 2026-05-06 OFF'
 		]
 	);
-	const rosterGridWritten = await rosterPipeline.import.handler(
-		{ input: rosterGridPayload },
-		rosterApi()
+	const rosterGridWritten = await runHandler(
+		rosterPipeline.import.handler({ input: rosterGridPayload }, rosterApi())
 	);
 	assert.equal(rosterGridWritten.length, 8);
 
@@ -714,9 +594,8 @@ try {
 		work_date: '2026-05-06',
 		clock_in: '20:31'
 	});
-	const timeGridWritten = await timeEntryPipeline.import.handler(
-		{ input: timeGridPayload },
-		timeEntryApi()
+	const timeGridWritten = await runHandler(
+		timeEntryPipeline.import.handler({ input: timeGridPayload }, timeEntryApi())
 	);
 	assert.equal(timeGridWritten.length, 5);
 	assert.equal(timeGridWritten[4].worked_intervals[0].end_at, null);

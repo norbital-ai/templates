@@ -5,6 +5,11 @@
 	export type LeaveDayAvailability = {
 		readonly eligible: boolean;
 		readonly reason?: string;
+		/**
+		 * One character drawn on an excluded day so the exclusion reads at a glance: `R` rest,
+		 * `O` off, `H` holiday, `L` another leave, `🔒` paid payroll.
+		 */
+		readonly reasonMark?: string;
 		readonly shiftLabel?: string;
 		readonly firstHalfLabel?: string;
 		readonly secondHalfLabel?: string;
@@ -14,10 +19,10 @@
 <script lang="ts">
 	import Icon from '@iconify/svelte';
 	import { Button } from '@norbital-ai/ui/button';
-	import { Inline, Stack } from '@norbital-ai/ui/layout';
+	import { Inline, Scroll, Stack } from '@norbital-ai/ui/layout';
 	import * as Popover from '@norbital-ai/ui/popover';
 	import { useI18n } from '@norbital-ai/ui/i18n';
-	import type { TenantI18nKeys } from '$pod/i18n-keys';
+	import type { TenantI18nKeys } from '$bolt/i18n-keys';
 	import { cn } from '@norbital-ai/ui/utils';
 	import { todayKey } from '../calendar.js';
 
@@ -131,7 +136,29 @@
 
 	function apply(to: HalfDayPoint): void {
 		if (disabled || !isEligible(to)) return;
-		onValueChange(ordered(anchor ?? to, to));
+		const candidate = ordered(anchor ?? to, to);
+		if (maximumHalfDays != null && chargeableHalfDays(candidate) > maximumHalfDays) {
+			// The balance is the boundary: extend only up to what the balance can pay for. Walk the
+			// far end back to the last slot the remaining balance covers, so the gesture itself
+			// stops at the limit instead of painting an over-limit range for the server to refuse.
+			let end = pointNumber(candidate.end);
+			const start = pointNumber(candidate.start);
+			while (
+				end > start &&
+				chargeableHalfDays({ start: candidate.start, end: pointAt(end) }) > maximumHalfDays
+			) {
+				end -= 1;
+			}
+			if (
+				end > start ||
+				chargeableHalfDays({ start: candidate.start, end: pointAt(end) }) > maximumHalfDays
+			) {
+				return;
+			}
+			onValueChange({ start: candidate.start, end: pointAt(end) });
+			return;
+		}
+		onValueChange(candidate);
 	}
 
 	function begin(point: HalfDayPoint): void {
@@ -259,8 +286,17 @@
 			/>
 		</Popover.Trigger>
 
-		<Popover.Content align="start" sideOffset={6} class="w-[min(calc(100vw-2rem),24rem)] p-0">
-			<Stack gap="sm" class="p-3">
+		<Popover.Content
+			align="start"
+			sideOffset={6}
+			sameWidth
+			minWidth={336}
+			maxWidth={560}
+			collisionPadding={16}
+			class="max-h-[min(34rem,calc(100dvh-5rem))] overflow-hidden p-0"
+		>
+			<Scroll name={t('component.leave_range')} axis="y" grow>
+				<Stack gap="sm" class="p-3">
 				<Inline justify="between" align="center">
 					<Button
 						type="button"
@@ -284,7 +320,7 @@
 				</Inline>
 
 				<div
-					class="grid grid-cols-7 gap-1"
+					class="grid gap-1 [grid-template-columns:repeat(7,minmax(2.5rem,1fr))]"
 					role="group"
 					aria-label={t('component.leave_range')}
 					onpointerup={() => {
@@ -292,7 +328,7 @@
 					}}
 				>
 					{#each weekdays as weekday (weekday)}
-						<span class="pb-1 text-center text-xs font-medium text-muted-foreground">
+						<span class="min-w-[2.5rem] pb-1 text-center text-xs font-medium text-muted-foreground">
 							{weekday}
 						</span>
 					{/each}
@@ -304,10 +340,10 @@
 						<button
 							type="button"
 							class={cn(
-								'relative flex min-h-14 min-w-0 flex-col overflow-hidden rounded-md border text-left transition-colors focus-visible:z-10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+								'relative flex min-h-14 min-w-[2.5rem] w-full flex-col overflow-hidden rounded-md border text-left transition-colors focus-visible:z-10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
 								date === today && 'border-primary',
 								date !== today && 'border-transparent',
-								!inMonth && 'pointer-events-none opacity-25',
+								!inMonth && 'pointer-events-none text-muted-foreground/50',
 								dayAvailability.eligible === false &&
 									'cursor-not-allowed bg-muted/60 text-muted-foreground',
 								dayAvailability.eligible !== false && 'text-foreground hover:bg-accent/60',
@@ -327,38 +363,43 @@
 							onpointerup={(event) => finish(halfFromEvent(event, date))}
 							onclick={(event) => clickPoint(halfFromEvent(event, date))}
 						>
-							<span class="px-0.5 pt-1 text-center text-xs font-semibold tabular-nums">
+							<span
+								class="pointer-events-none absolute top-0.5 left-0.5 z-10 rounded-sm bg-background/80 px-0.5 text-[0.625rem] font-semibold tabular-nums"
+							>
 								{Number(date.slice(8))}
 							</span>
-							{#if dayAvailability.shiftLabel}
+							{#if inMonth && dayAvailability.eligible === false && dayAvailability.reasonMark != null}
 								<span
-									class="truncate px-0.5 text-center text-[0.5625rem] leading-3 text-muted-foreground"
+									class="pointer-events-none absolute top-0.5 right-0.5 z-10 text-[0.625rem] leading-none text-muted-foreground"
+									aria-hidden="true"
 								>
-									{dayAvailability.shiftLabel}
+									{dayAvailability.reasonMark}
 								</span>
 							{/if}
-							<span class="mt-auto grid min-h-6 grid-cols-1 grid-rows-2">
-								<span
-									class={cn(
-										'flex items-center justify-center text-[0.625rem] font-semibold',
-										firstOn && !overLimit && 'bg-primary text-primary-foreground',
-										firstOn && overLimit && 'bg-destructive text-destructive-foreground',
-										!firstOn && 'text-muted-foreground'
-									)}
-								>
-									1
+							{#if inMonth}
+								<span class="flex min-h-0 flex-1 flex-col">
+									<span
+										class={cn(
+											'flex flex-1 items-center justify-center text-[0.625rem] font-medium',
+											firstOn && !overLimit && 'bg-primary text-primary-foreground',
+											firstOn && overLimit && 'bg-destructive text-destructive-foreground',
+											!firstOn && 'bg-muted/20 text-muted-foreground'
+										)}
+									>
+										1
+									</span>
+									<span
+										class={cn(
+											'flex flex-1 items-center justify-center text-[0.625rem] font-medium',
+											secondOn && !overLimit && 'bg-primary/70 text-primary-foreground',
+											secondOn && overLimit && 'bg-destructive/70 text-destructive-foreground',
+											!secondOn && 'bg-muted/45 text-muted-foreground'
+										)}
+									>
+										2
+									</span>
 								</span>
-								<span
-									class={cn(
-										'flex items-center justify-center text-[0.625rem] font-semibold',
-										secondOn && !overLimit && 'bg-primary text-primary-foreground',
-										secondOn && overLimit && 'bg-destructive text-destructive-foreground',
-										!secondOn && 'text-muted-foreground'
-									)}
-								>
-									2
-								</span>
-							</span>
+							{/if}
 						</button>
 					{/each}
 				</div>
@@ -399,7 +440,8 @@
 						{t('component.leave_balance_limit_reached', { days: remainingDays })}
 					</p>
 				{/if}
-			</Stack>
+				</Stack>
+			</Scroll>
 		</Popover.Content>
 	</Popover.Root>
 	{#if disabled && disabledReason}

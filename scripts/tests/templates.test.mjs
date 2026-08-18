@@ -28,15 +28,15 @@ describe('template discovery', () => {
 		}
 	});
 
-	it('pins its own pod version, exactly', () => {
-		// A template's pod version lives in its own manifest and its own lockfile. Nothing
-		// outside the tree declares which pod versions it works with, and nothing propagates
+	it('pins its own Bolt version, exactly', () => {
+		// A template's Bolt version lives in its own manifest and its own lockfile. Nothing
+		// outside the tree declares which Bolt versions it works with, and nothing propagates
 		// a bump into it.
 		for (const template of discoverTemplates()) {
 			const manifest = JSON.parse(
 				readFileSync(path.join(template.directory, 'package.json'), 'utf8')
 			);
-			assert.match(manifest.dependencies['@norbital-ai/pod'], /^\d+\.\d+\.\d+/);
+			assert.match(manifest.dependencies['@norbital-ai/bolt'], /^\d+\.\d+\.\d+/);
 		}
 	});
 

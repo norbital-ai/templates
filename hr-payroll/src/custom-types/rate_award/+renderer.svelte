@@ -1,6 +1,7 @@
 <script lang="ts">
+	import { Result, Schema } from 'effect';
 	import { useI18n } from '@norbital-ai/ui/i18n';
-	import type { TenantI18nKeys } from '$pod/i18n-keys';
+	import type { TenantI18nKeys } from '$bolt/i18n-keys';
 	import { numberFrom } from '../../lib/ui/renderer-input.js';
 	import { Combobox } from '@norbital-ai/ui/combobox';
 	import { Input } from '@norbital-ai/ui/input';
@@ -23,8 +24,8 @@
 
 	let props: RendererProps = $props();
 	const disabled = $derived(props.mode === 'edit' ? props.disabled : true);
-	const parsed = $derived(rateAwardSchema.safeParse(props.value));
-	const current = $derived(parsed.success ? parsed.data : null);
+	const parsed = $derived(Schema.decodeUnknownResult(rateAwardSchema)(props.value));
+	const current = $derived(Result.isSuccess(parsed) ? parsed.success : null);
 	const summary = $derived.by(() => {
 		if (current === null) return '—';
 		if (current.kind === 'PROGRESSIVE') return `${current.rate} × base + ${current.constant}`;

@@ -6,10 +6,10 @@ import test from 'node:test';
 test('pre-charged seed leave skips the roster reload on createMany', () => {
 	const hooks = readFileSync(new URL('./+hooks.ts', import.meta.url), 'utf8');
 
-	assert.match(hooks, /function isSeedNormalizedTimeOff\(event: TimeOffEvent\): boolean/);
+	assert.match(hooks, /function isSeedNormalizedTimeOff\(event: LeaveEvent \| null \| undefined\)/);
 	assert.match(
 		hooks,
-		/if \(timeOffInputs\.every\(\(input\) => isSeedNormalizedTimeOff\(input\.event as TimeOffEvent\)\)\) \{\s*return inputs;/
+		/if \(timeOffInputs\.every\(\(input\) => isSeedNormalizedTimeOff\(input\.event\)\)\) \{\s*return inputs;/
 	);
-	assert.match(hooks, /handler: async \(\{ input, api \}\) => \{[\s\S]*?normalizedTimeOff\(/);
+	assert.match(hooks, /handler: \(\{ input, api \}\) =>[\s\S]*?normalizedTimeOff\(/);
 });

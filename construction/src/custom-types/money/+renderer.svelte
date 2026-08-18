@@ -6,13 +6,16 @@
 
 	let props: RendererProps = $props();
 	const allowedCurrencies = $derived.by((): readonly string[] | undefined => {
-		const candidate = props.field.options?.allowedCurrencies;
-		return Array.isArray(candidate) && candidate.every((currency) => typeof currency === 'string')
-			? candidate
+		const candidate = Reflect.get(props.field, 'options');
+		const currencies = candidate?.allowedCurrencies;
+		return Array.isArray(currencies) && currencies.every((currency) => typeof currency === 'string')
+			? currencies
 			: undefined;
 	});
 	const field = $derived({
-		...props.field,
+		name: props.field.name,
+		kind: props.field.type,
+		nullable: true,
 		currencies: allowedCurrencies
 	} satisfies CollectionField);
 </script>

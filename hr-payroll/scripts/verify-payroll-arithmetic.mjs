@@ -84,7 +84,6 @@ const {
 } = await server.ssrLoadModule(lib('overtime'));
 const { isStatutoryOvertimePayCovered } = await server.ssrLoadModule(lib('measure'));
 const { classifyWageComparand, deriveStatutoryWages } = await server.ssrLoadModule(lib('coverage'));
-const { resolveRestBreakRules } = await server.ssrLoadModule(lib('rest-breaks'));
 const { annualisedContractHourlyRate, ordinaryHourlyRate, ordinaryDayWage, overtimeHourlyRate } =
 	await server.ssrLoadModule(lib('ordinary-rate'));
 const { entrySign } = await server.ssrLoadModule(lib('entries'));
@@ -1540,82 +1539,6 @@ check(
 		}
 	})(),
 	true
-);
-
-// ── rest breaks, read from the jurisdiction's cited rows ────────────────────────────────────────
-// The figures are the seeded rows' — s.60A(1)(a), the s.60A(1) proviso (ii), art.85 and UU 13/2003
-// Pasal 79(2)(a) — never the engine's.
-const breaks = resolveRestBreakRules([
-	{
-		after_consecutive_hours: 5,
-		minimum_minutes: 30,
-		counts_as_worked_time: null,
-		applies_when: 'ALWAYS',
-		authority: 'Employment Act 1955 s.60A(1)(a)'
-	},
-	{
-		after_consecutive_hours: 8,
-		minimum_minutes: 45,
-		counts_as_worked_time: null,
-		applies_when: 'CONTINUOUS_ATTENDANCE',
-		authority: 'Employment Act 1955 s.60A(1) proviso (ii)'
-	}
-]);
-check('the ordinary break resolves with its window and its silence on pay', breaks.get('ALWAYS'), {
-	appliesWhen: 'ALWAYS',
-	afterConsecutiveHours: 5,
-	minimumMinutes: 30,
-	countsAsWorkedTime: null,
-	authority: 'Employment Act 1955 s.60A(1)(a)'
-});
-check(
-	'the continuous-attendance variant coexists with the ordinary one',
-	breaks.get('CONTINUOUS_ATTENDANCE')?.minimumMinutes,
-	45
-);
-check(
-	'a break the statute ties to no window keeps its null trigger',
-	resolveRestBreakRules([
-		{
-			after_consecutive_hours: null,
-			minimum_minutes: 60,
-			counts_as_worked_time: null,
-			applies_when: 'ALWAYS',
-			authority: 'Labor Code of the Philippines art.85'
-		}
-	]).get('ALWAYS')?.afterConsecutiveHours,
-	null
-);
-check(
-	'a break stated as not counted in working hours keeps the statute s own false',
-	resolveRestBreakRules([
-		{
-			after_consecutive_hours: 4,
-			minimum_minutes: 30,
-			counts_as_worked_time: false,
-			applies_when: 'ALWAYS',
-			authority: 'UU 13/2003 Pasal 79(2)(a)'
-		}
-	]).get('ALWAYS')?.countsAsWorkedTime,
-	false
-);
-throws('two rows of the same kind are a seeding fault, not a choice', () =>
-	resolveRestBreakRules([
-		{
-			after_consecutive_hours: 5,
-			minimum_minutes: 30,
-			counts_as_worked_time: null,
-			applies_when: 'ALWAYS',
-			authority: 'one'
-		},
-		{
-			after_consecutive_hours: 8,
-			minimum_minutes: 45,
-			counts_as_worked_time: null,
-			applies_when: 'ALWAYS',
-			authority: 'two'
-		}
-	])
 );
 
 // ────────────────────────────────────────────────────────────────────────────────────────────────

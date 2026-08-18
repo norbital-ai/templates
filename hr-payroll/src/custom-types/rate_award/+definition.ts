@@ -1,5 +1,5 @@
-import { defineCustomType } from '@norbital-ai/pod/authoring';
-import { z } from 'zod/mini';
+import { defineCustomType } from '@norbital-ai/bolt/authoring';
+import { Schema } from 'effect';
 
 /**
  * What a matched contribution band awards.
@@ -13,25 +13,30 @@ import { z } from 'zod/mini';
  * CUMULATIVE tax at the band's lower bound; it is the ONLY value in the whole schema — besides
  * a leave event's signed `movement_days` — that is allowed to be negative.
  */
-export const rateAwardSchema = z.discriminatedUnion('kind', [
-	z.strictObject({
-		kind: z.literal('PERCENT'),
-		employee: z.number().check(z.minimum(0)),
-		employer: z.number().check(z.minimum(0))
+export const rateAwardValueSchema = Schema.Union([
+	Schema.Struct({
+		kind: Schema.Literal('PERCENT'),
+		employee: Schema.Finite.check(Schema.isGreaterThanOrEqualTo(0)),
+		employer: Schema.Finite.check(Schema.isGreaterThanOrEqualTo(0))
 	}),
-	z.strictObject({
-		kind: z.literal('FIXED'),
-		employee: z.number().check(z.minimum(0)),
-		employer: z.number().check(z.minimum(0))
+	Schema.Struct({
+		kind: Schema.Literal('FIXED'),
+		employee: Schema.Finite.check(Schema.isGreaterThanOrEqualTo(0)),
+		employer: Schema.Finite.check(Schema.isGreaterThanOrEqualTo(0))
 	}),
-	z.strictObject({
-		kind: z.literal('PROGRESSIVE'),
-		rate: z.number().check(z.minimum(0)),
-		constant: z.number()
+	Schema.Struct({
+		kind: Schema.Literal('PROGRESSIVE'),
+		rate: Schema.Finite.check(Schema.isGreaterThanOrEqualTo(0)),
+		constant: Schema.Finite
 	})
 ]);
 
-export type RateAward = z.infer<typeof rateAwardSchema>;
+export type RateAward = Schema.Schema.Type<typeof rateAwardValueSchema>;
+
+/** Strict standard view: a key no arm declares is refused rather than stripped. */
+export const rateAwardSchema = Schema.toStandardSchemaV1(rateAwardValueSchema, {
+	parseOptions: { onExcessProperty: 'error' }
+});
 
 export default defineCustomType({
 	name: 'rate_award',

@@ -1,4 +1,4 @@
-import { defineModel, enums, file, text, timestamp, uuid } from '@norbital-ai/pod/authoring';
+import { defineModel, enums, file, text, timestamp, uuid } from '@norbital-ai/bolt/authoring';
 
 export default defineModel(
 	{

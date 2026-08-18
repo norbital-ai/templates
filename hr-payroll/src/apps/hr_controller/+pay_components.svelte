@@ -1,20 +1,26 @@
 <script lang="ts">
-	import { client } from '$pod/client';
+	import { client } from '../../lib/workspace-client.js';
 	import { useI18n } from '@norbital-ai/ui/i18n';
-	import AppHeaderActions from '@norbital-ai/pod/client/app-header-actions';
-	import type { TenantI18nKeys } from '$pod/i18n-keys';
-	import { Display, type ChartDisplaySpec } from '@norbital-ai/ui/chart';
+	import AppHeaderActions from '@norbital-ai/bolt/client/app-header-actions';
+	import type { TenantI18nKeys } from '$bolt/i18n-keys';
+	import type { WorkspaceRow } from '$bolt/types.js';
 	import { Tabs, type TabConfig } from '@norbital-ai/ui/tabs';
 	import { CollectionTable } from '@norbital-ai/ui/collection-table';
 	import { Combobox } from '@norbital-ai/ui/combobox';
-	import { Cover, Grid, Inline, Stack } from '@norbital-ai/ui/layout';
-	import ApprovalSummaryTable from '../../lib/ui/approval-summary-table.svelte';
+	import { Bound, Cover, Scroll } from '@norbital-ai/ui/layout';
+	import ClaimSeasonality from '../../lib/ui/pay-components/claim-seasonality.svelte';
 	import {
 		formatCalendarDate,
 		formatEntryOrigin,
 		formatNumeric
 	} from '../../lib/ui/display-formatters.js';
-	import { inForceTodayFilter, todayKey, todayInstant } from '../../lib/ui/calendar.js';
+	import { inForceTodayFilter, todayInstant, todayKey } from '../../lib/ui/calendar.js';
+	import {
+		payrollWindows,
+		sourceLock,
+		sourceLockFrozen,
+		sourceLockReason
+	} from '../../lib/scheduling/lock.js';
 
 	const { t } = useI18n<TenantI18nKeys>();
 
@@ -44,75 +50,57 @@
 			? companyId
 			: (companies[0]?.norbital_id ?? null)
 	);
-
-	const analyticsQuery = client.invoke.approval_analytics({ subject: 'CLAIM' });
-	const analytics = $derived(
-		analyticsQuery.current ?? {
-			as_of_date: todayKey(),
-			total: 0,
-			summary: {
-				ytd_pending: 0,
-				ytd_approved: 0,
-				average_approval_hours: null,
-				approval_sample_size: 0
-			},
-			annual_trend: []
-		}
+	const payrollRunsQuery = $derived(
+		selectedCompanyId == null
+			? null
+			: client.db.payroll_runs.findMany({
+					where: { company_id: { eq: selectedCompanyId } },
+					columns: { period: true, lifecycle: true, attendance_from: true, attendance_to: true },
+					limit: 500
+				})
 	);
-	const claimTrendChart = $derived({
-		kind: 'line',
-		loading: analyticsQuery.loading,
-		title: t('app.pay_components.chart_title'),
-		description: t('app.pay_components.chart_description'),
-		data: analytics.annual_trend,
-		xKey: 'year',
-		series: ['applications', 'regression'],
-		config: {
-			applications: { label: t('component.chart_applications'), color: 'var(--color-primary)' },
-			regression: { label: t('component.chart_regression'), color: 'var(--color-muted-foreground)' }
-		},
-		valueFormat: { style: 'number', maximumFractionDigits: 1 },
-		curve: 'linear'
-	} satisfies ChartDisplaySpec);
+	const payrollLockWindows = $derived(payrollWindows(payrollRunsQuery?.current ?? []));
 
-	type NestedComponentEntry = {
-		readonly pay_period?: string | null;
-		readonly entry_employment?: { readonly employee_number?: string | null } | null;
-		readonly entry_pay_component?: {
-			readonly code?: string | null;
-			readonly name?: string | null;
-		} | null;
+	type ComponentEntryRow = WorkspaceRow<'component_entries'> & {
+		readonly entry_employment?: Pick<WorkspaceRow<'employments'>, 'employee_number'> | null;
+		readonly entry_pay_component?: Pick<WorkspaceRow<'pay_components'>, 'code'> | null;
 		readonly entry_payslip_lines?: readonly {
 			readonly payslip_line_payslip?: {
-				readonly payslip_payroll_run?: { readonly period?: string | null } | null;
+				readonly payslip_payroll_run?: Pick<WorkspaceRow<'payroll_runs'>, 'period'> | null;
 			} | null;
-		}[];
+		}[] | null;
 	};
 
-	function nestedEntry(row: unknown): NestedComponentEntry {
-		return row as NestedComponentEntry;
+	function employmentLabel(row: ComponentEntryRow): string {
+		return row.entry_employment?.employee_number ?? '—';
 	}
 
-	function employmentLabel(row: unknown): string {
-		return nestedEntry(row).entry_employment?.employee_number ?? '—';
-	}
-
-	function componentLabel(row: unknown): string {
-		const component = nestedEntry(row).entry_pay_component;
-		if (component?.code && component.name) return `${component.code} · ${component.name}`;
+	function componentLabel(row: ComponentEntryRow): string {
+		const component = row.entry_pay_component;
 		if (component?.code) return component.code;
 		return '—';
 	}
 
-	function entryConsumptionLabel(row: unknown): string {
-		const nested = nestedEntry(row);
-		const source = nested.entry_payslip_lines?.[0];
+	function entryConsumptionLabel(row: ComponentEntryRow): string {
+		const source = row.entry_payslip_lines?.[0];
 		if (source) {
 			const period = source.payslip_line_payslip?.payslip_payroll_run?.period;
 			return t('component.paid_in', { period: period ?? t('component.a_payroll_run') });
 		}
-		if (!nested.pay_period) return t('component.settled_outside_payroll');
+		if (!row.pay_period) return t('component.settled_outside_payroll');
 		return '—';
+	}
+
+	function entryRowLock(row: ComponentEntryRow) {
+		return sourceLock({
+			existing: true,
+			approvalId: row.norbital_approval_id,
+			dates: [row.event_date],
+			today: todayKey(),
+			windows: payrollLockWindows,
+			consumedByPayslip: (row.entry_payslip_lines?.length ?? 0) > 0,
+			freezeWhenLive: row.origin?.kind === 'CLAIM'
+		});
 	}
 </script>
 
@@ -156,31 +144,17 @@
 {/snippet}
 
 {#snippet overview()}
-	{#if selectedCompanyId == null}
-		<p class="text-sm text-muted-foreground">{t('app.pay_components.empty_overview')}</p>
-	{:else}
-		<Grid gap="xl" minimum="panel">
-			<Stack gap="md">
-				<div>
-					<h2 class="text-lg font-semibold">{t('app.pay_components.reimbursement_claims')}</h2>
-					<p class="text-sm text-muted-foreground">
-						{t('app.pay_components.reimbursement_claims_description', {
-							count: analytics.total.toLocaleString()
-						})}
-					</p>
-				</div>
-				<ApprovalSummaryTable
-					title={t('app.pay_components.claim_decisions')}
-					asOfDate={analytics.as_of_date}
-					summary={analytics.summary}
-					note={t('app.pay_components.claim_decisions_note')}
-				/>
-			</Stack>
-			<div class="min-w-0 rounded-lg border bg-card p-4 shadow-card">
-				<Display spec={claimTrendChart} class="min-h-[18rem]" />
-			</div>
-		</Grid>
-	{/if}
+	<Bound size="full">
+		<Scroll name="Pay components overview">
+			{#if selectedCompanyId == null}
+				<p class="text-sm text-muted-foreground">{t('app.pay_components.empty_overview')}</p>
+			{:else}
+				{#key selectedCompanyId}
+					<ClaimSeasonality companyId={selectedCompanyId} />
+				{/key}
+			{/if}
+		</Scroll>
+	</Bound>
 {/snippet}
 
 {#snippet entries()}
@@ -194,6 +168,8 @@
 				{client}
 				collection="component_entries"
 				view={`hr_controller:pay_components:entries:${selectedCompanyId}`}
+				isRowLocked={(row) => sourceLockFrozen(entryRowLock(row))}
+				rowLockReason={(row) => sourceLockReason(entryRowLock(row), t)}
 				query={{
 					where: {
 						repayment_agreement_id: { isNull: true },
@@ -205,7 +181,7 @@
 					orderBy: { event_date: 'desc' },
 					with: {
 						entry_employment: { columns: { employee_number: true } },
-						entry_pay_component: { columns: { code: true, name: true } },
+						entry_pay_component: { columns: { code: true } },
 						entry_payslip_lines: {
 							columns: { norbital_id: true },
 							with: {
@@ -219,7 +195,6 @@
 						}
 					}
 				}}
-				searchPlaceholder={t('app.pay_components.search_entries')}
 			>
 				{#snippet columns({ Column })}
 					<Column
@@ -283,11 +258,9 @@
 					},
 					orderBy: { code: 'asc' }
 				}}
-				searchPlaceholder={t('app.pay_components.search_catalogue')}
 			>
 				{#snippet columns({ Column })}
 					<Column name="code" card="title" />
-					<Column name="name" card="subtitle" />
 					<Column name="nature" card="badge" />
 					<Column name="policy" label={t('app.pay_components.settlement_policy')} />
 					<Column name="definition" label={t('app.pay_components.calculation')} />

@@ -8,9 +8,9 @@
 	 * the database says so: `contribution_rates_no_overlap` excludes overlaps *within one
 	 * contribution*, so the set of bands that must not collide is exactly the set shown below.
 	 */
-	import { client } from '$pod/client';
+	import { client } from '../../lib/workspace-client.js';
 	import { useI18n } from '@norbital-ai/ui/i18n';
-	import type { TenantI18nKeys } from '$pod/i18n-keys';
+	import type { TenantI18nKeys } from '$bolt/i18n-keys';
 	import type { RepresentationProps } from './$types.js';
 	import { CollectionForm } from '@norbital-ai/ui/collection-form';
 	import { CollectionTable } from '@norbital-ai/ui/collection-table';
@@ -48,7 +48,6 @@
 	<CollectionForm
 		{client}
 		collection="statutory_contributions"
-		recordId={record?.norbital_id}
 		defaultValues={record ?? undefined}
 		submitLabel={record ? t('component.save_scheme') : t('component.create_scheme')}
 		onAfterSubmit={record ? undefined : close}
@@ -113,7 +112,7 @@
 		<CollectionTable
 			{client}
 			collection="contribution_rates"
-			view={`statutory_contributions:rates:${record.norbital_id}`}
+			view="statutory_contributions:rates"
 			title={t('component.rate_bands')}
 			description={t('component.rate_bands_description')}
 			initialFilters={inForceTodayFilter()}
@@ -121,7 +120,6 @@
 				where: { statutory_contribution_id: { eq: record.norbital_id } },
 				orderBy: { norbital_created_at: 'desc' }
 			}}
-			searchPlaceholder={t('component.search_rate_bands')}
 		>
 			{#snippet columns({ Column: TableColumn })}
 				<TableColumn

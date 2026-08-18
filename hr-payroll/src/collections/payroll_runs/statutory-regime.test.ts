@@ -30,19 +30,10 @@ const regime = () => ({
 			on_exceed: 'BLOCK',
 			authority: 'Limitation of Overtime Work Regulations 1980 reg.2'
 		}
-	],
-	rest_breaks: [
-		{
-			after_consecutive_hours: 5,
-			minimum_minutes: 30,
-			counts_as_worked_time: false,
-			applies_when: 'CONTINUOUS_ATTENDANCE',
-			authority: 'Employment Act 1955 s.60A(1)(d)'
-		}
 	]
 });
 
-test('one snapshot rejects overlapping pricing bands and duplicate limit/break identities', () => {
+test('one snapshot rejects overlapping pricing bands and duplicate limit identities', () => {
 	const value = regime();
 	value.overtime_rules.push({
 		...value.overtime_rules[0],
@@ -50,12 +41,10 @@ test('one snapshot rejects overlapping pricing bands and duplicate limit/break i
 		band: { measure: 'BEYOND_NORMAL', from_hours: 2, to_hours: 4 }
 	});
 	value.overtime_limits.push({ ...value.overtime_limits[0], authority: 'a duplicate ceiling' });
-	value.rest_breaks.push({ ...value.rest_breaks[0], authority: 'a duplicate break' });
 
 	const issues = statutoryRegimeIssues(value, 'MYR');
 	assert.ok(issues.some((issue) => issue.includes('overtime bands overlap')));
 	assert.ok(issues.some((issue) => issue.includes('More than one MONTH limit')));
-	assert.ok(issues.some((issue) => issue.includes('More than one rest-break rule')));
 });
 
 test('coverage is coherent with the parent snapshot currency', () => {
@@ -84,12 +73,10 @@ test('the PAID configuration snapshot retains the exact regime revision and auth
 			jurisdiction: {
 				norbital_id: 'jurisdiction-my-2026',
 				proration: { by: 'CALENDAR_DAYS' },
-				rounding: 'NEAREST_CENT',
 				ordinary_rate_basis: 'DAYS_PER_MONTH',
 				ordinary_rate_divisor: 26,
 				tax_year_start_month: 1,
 				effective_range: { from: '2026-01-01', to: null },
-				definition_hash: 'my-2026',
 				regime: value
 			},
 			contributions: [],
@@ -98,7 +85,6 @@ test('the PAID configuration snapshot retains the exact regime revision and auth
 			overtimeRules: value.overtime_rules,
 			overtimeLimits: value.overtime_limits,
 			overtimeCoverageRule: value.overtime_coverage,
-			restBreakRules: new Map(),
 			shiftById: new Map(),
 			holidays: new Map(),
 			leaveTypes: []
@@ -108,7 +94,6 @@ test('the PAID configuration snapshot retains the exact regime revision and auth
 
 	assert.deepEqual(snapshot.statutory_regime, {
 		effective_range: { from: '2026-01-01', to: null },
-		definition_hash: 'my-2026',
 		value
 	});
 	assert.equal(

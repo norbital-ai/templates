@@ -7,9 +7,10 @@
 	 * their employee number and then filtering three unrelated tables by it. They are all facts about
 	 * one human being, so they are read from that human being's record.
 	 */
-	import { client } from '$pod/client';
+	import { client } from '../../lib/workspace-client.js';
 	import { useI18n } from '@norbital-ai/ui/i18n';
-	import type { TenantI18nKeys } from '$pod/i18n-keys';
+	import type { TenantI18nKeys } from '$bolt/i18n-keys';
+	import { Result, Schema } from 'effect';
 	import type { RepresentationProps } from './$types.js';
 	import { CollectionForm } from '@norbital-ai/ui/collection-form';
 	import { CollectionTable } from '@norbital-ai/ui/collection-table';
@@ -81,8 +82,8 @@
 	): EmploymentSchedule {
 		const candidates = terms.flatMap((term) => {
 			const range = rangeOf(term.effective_range);
-			const parsed = workPatternSchema.safeParse(term.work_pattern);
-			return range == null || !parsed.success ? [] : [{ range, pattern: parsed.data }];
+			const parsed = Schema.decodeUnknownResult(workPatternSchema)(term.work_pattern);
+			return range == null || !Result.isSuccess(parsed) ? [] : [{ range, pattern: parsed.success }];
 		});
 		const current = candidates.find((candidate) => isEffectiveOn(candidate.range, date));
 		if (current) {
@@ -171,7 +172,6 @@
 	<CollectionForm
 		{client}
 		collection="employees"
-		recordId={record?.norbital_id}
 		defaultValues={record ?? undefined}
 		submitLabel={record ? t('component.save_person') : t('component.add_person')}
 		onAfterSubmit={record ? undefined : close}
@@ -199,7 +199,7 @@
 		<CollectionTable
 			{client}
 			collection="employments"
-			view={`employees:employments:${record.norbital_id}`}
+			view="employees:employments"
 			title={t('component.employments')}
 			description={t('component.employments_description')}
 			query={{
@@ -267,7 +267,7 @@
 	<CollectionTable
 		{client}
 		collection="employment_statutory_facts"
-		view={`employees:statutory-facts:${record?.norbital_id ?? 'none'}`}
+		view="employees:statutory-facts"
 		title={t('component.statutory_registrations')}
 		description={t('component.statutory_registrations_description')}
 		query={{

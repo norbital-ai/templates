@@ -1,5 +1,6 @@
 allowBuilds:
   esbuild: true
+  msgpackr-extract: true
 
 # Only these exact, reviewed first-party releases bypass the minimum-release-age gate.
 #
@@ -13,13 +14,10 @@ allowBuilds:
 # scripts/tests/templates.test.mjs enforces it. Forgetting surfaces as
 # ERR_PNPM_MINIMUM_RELEASE_AGE_VIOLATION inside a tenant sandbox build.
 minimumReleaseAgeExclude:
-  - '@norbital-ai/config@0.0.45'
-  - '@norbital-ai/platform-utils@0.0.45'
-  - '@norbital-ai/pod@0.0.45'
-  - '@norbital-ai/std@0.0.45'
-  - '@norbital-ai/ui@0.0.45'
-  - '@rolldown/binding-linux-s390x-gnu@1.2.4'
-
+  - '@norbital-ai/bolt@0.0.52'
+  - '@norbital-ai/config@0.0.52'
+  - '@norbital-ai/std@0.0.52'
+  - '@norbital-ai/ui@0.0.52'
 # Host tools execute from this depset, while tenant builds execute in a Linux/musl microVM.
 # Include both host-native and guest-native optional packages on macOS, Windows, and Linux hosts.
 supportedArchitectures:

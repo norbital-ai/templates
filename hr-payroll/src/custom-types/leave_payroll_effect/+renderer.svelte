@@ -1,6 +1,7 @@
 <script lang="ts">
+	import { Result, Schema } from 'effect';
 	import { useI18n } from '@norbital-ai/ui/i18n';
-	import type { TenantI18nKeys } from '$pod/i18n-keys';
+	import type { TenantI18nKeys } from '$bolt/i18n-keys';
 	const { t } = useI18n<TenantI18nKeys>();
 
 	/**
@@ -9,7 +10,7 @@
 	 * be a text box asking the operator for a uuid, and the display summary printed that uuid on
 	 * every row of the leave-types table.
 	 */
-	import { client } from '$pod/client';
+	import { client } from '../../lib/workspace-client.js';
 	import { Combobox } from '@norbital-ai/ui/combobox';
 	import { Grid } from '@norbital-ai/ui/layout';
 	import { leavePayrollEffectSchema } from './+definition.js';
@@ -37,8 +38,8 @@
 
 	let props: LeavePayrollEffectRendererProps = $props();
 	const disabled = $derived(props.mode === 'edit' ? props.disabled : true);
-	const parsed = $derived(leavePayrollEffectSchema.safeParse(props.value));
-	const current = $derived(parsed.success ? parsed.data : null);
+	const parsed = $derived(Schema.decodeUnknownResult(leavePayrollEffectSchema)(props.value));
+	const current = $derived(Result.isSuccess(parsed) ? parsed.success : null);
 	/*
 	 * The component is named in the editor, not here. Resolving it in display mode would mount one
 	 * lookup per table row — the N+1 `controller-surfaces.md` §5 forbids — and the id itself is not
@@ -63,8 +64,8 @@
 	const componentOptions = $derived(
 		(componentsQuery?.current ?? []).map((component) => ({
 			value: component.norbital_id,
-			label: [component.code, component.name].filter((part) => part).join(' · ') || '—',
-			search_term: `${component.code ?? ''} ${component.name ?? ''}`
+			label: component.code || '—',
+			search_term: `${component.code ?? ''}`
 		}))
 	);
 

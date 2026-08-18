@@ -1,21 +1,29 @@
-import { defineCustomType } from '@norbital-ai/pod/authoring';
-import { z } from 'zod/mini';
+import { defineCustomType } from '@norbital-ai/bolt/authoring';
+import { Schema } from 'effect';
 
 /**
  * Whether an employment is registered for a statutory contribution.
  * `rate_override` replaces a percentage award (e.g. voluntary EPF), or replaces a progressive
  * scheme with a flat award on current remuneration (e.g. non-resident PCB); `null` = use the band.
  */
-export const statutoryFactStatusSchema = z.discriminatedUnion('kind', [
-	z.strictObject({
-		kind: z.literal('REGISTERED'),
-		reference_number: z.string().check(z.minLength(1)),
-		rate_override: z.nullable(z.number().check(z.minimum(0)))
+export const statutoryFactStatusValueSchema = Schema.Union([
+	Schema.Struct({
+		kind: Schema.Literal('REGISTERED'),
+		reference_number: Schema.String.check(Schema.isMinLength(1)),
+		rate_override: Schema.NullOr(Schema.Finite.check(Schema.isGreaterThanOrEqualTo(0)))
 	}),
-	z.strictObject({ kind: z.literal('NOT_REGISTERED'), reason: z.string().check(z.minLength(1)) })
+	Schema.Struct({
+		kind: Schema.Literal('NOT_REGISTERED'),
+		reason: Schema.String.check(Schema.isMinLength(1))
+	})
 ]);
 
-export type StatutoryFactStatus = z.infer<typeof statutoryFactStatusSchema>;
+export type StatutoryFactStatus = Schema.Schema.Type<typeof statutoryFactStatusValueSchema>;
+
+/** Strict standard view: a key no arm declares is refused rather than stripped. */
+export const statutoryFactStatusSchema = Schema.toStandardSchemaV1(statutoryFactStatusValueSchema, {
+	parseOptions: { onExcessProperty: 'error' }
+});
 
 export default defineCustomType({
 	name: 'statutory_fact_status',

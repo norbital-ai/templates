@@ -1,6 +1,7 @@
 <script lang="ts">
+	import { Result, Schema } from 'effect';
 	import { useI18n } from '@norbital-ai/ui/i18n';
-	import type { TenantI18nKeys } from '$pod/i18n-keys';
+	import type { TenantI18nKeys } from '$bolt/i18n-keys';
 	const { t } = useI18n<TenantI18nKeys>();
 
 	/**
@@ -10,7 +11,7 @@
 	 * inline queries scoped to the company this policy belongs to — the same option set a column FK
 	 * would have offered, assembled by the renderer that owns the variant.
 	 */
-	import { client } from '$pod/client';
+	import { client } from '../../lib/workspace-client.js';
 	import { Combobox } from '@norbital-ai/ui/combobox';
 	import { Input } from '@norbital-ai/ui/input';
 	import { Grid } from '@norbital-ai/ui/layout';
@@ -70,8 +71,8 @@
 
 	let props: SettlementPolicyRendererProps = $props();
 	const disabled = $derived(props.mode === 'edit' ? props.disabled : true);
-	const parsed = $derived(settlementPolicySchema.safeParse(props.value));
-	const current = $derived(parsed.success ? parsed.data : null);
+	const parsed = $derived(Schema.decodeUnknownResult(settlementPolicySchema)(props.value));
+	const current = $derived(Result.isSuccess(parsed) ? parsed.success : null);
 
 	const companyId = $derived(
 		typeof props.row?.norbital_id === 'string' ? props.row.norbital_id : null
@@ -92,8 +93,8 @@
 			.filter((component) => component.definition?.source === 'ENTRY')
 			.map((component) => ({
 				value: component.norbital_id,
-				label: [component.code, component.name].filter((part) => part).join(' · ') || '—',
-				search_term: `${component.code ?? ''} ${component.name ?? ''}`
+				label: component.code || '—',
+				search_term: `${component.code ?? ''}`
 			}))
 	);
 	const contributionsQuery = client.db.statutory_contributions.findMany({

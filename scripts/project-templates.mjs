@@ -1,5 +1,5 @@
 import { execFileSync } from 'node:child_process';
-import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import process from 'node:process';
 import {
@@ -88,21 +88,38 @@ function validateStandaloneManifest(template) {
 			fail(`Template ${template.key} needs a ${script} script.`);
 		}
 	}
+	const yalcLockPath = path.join(template.directory, 'yalc.lock');
+	const yalcOverlay = existsSync(yalcLockPath)
+		? JSON.parse(readFileSync(yalcLockPath, 'utf8'))
+		: undefined;
 	for (const section of dependencySections) {
 		for (const [name, version] of Object.entries(manifest[section] ?? {})) {
-			if (localDependencyProtocol.test(version)) {
-				fail(
-					`Template ${template.key} cannot project ${section}.${name} with local protocol ${version}.`
-				);
+			if (!localDependencyProtocol.test(version)) continue;
+			const replaced = yalcOverlay?.packages?.[name]?.replaced;
+			if (
+				typeof version === 'string' &&
+				version.startsWith('file:.yalc/') &&
+				typeof replaced === 'string' &&
+				/^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/.test(replaced)
+			) {
+				continue;
 			}
+			fail(
+				`Template ${template.key} cannot project ${section}.${name} with local protocol ${version}.`
+			);
 		}
 	}
-	// A template pins its own pod version. Nothing propagates a bump into it; a developer
+	// A template pins its own Bolt version. Nothing propagates a bump into it; a developer
 	// commits one when they choose to. The only requirement here is that the pin is exact,
 	// so the projected tree resolves to the same bytes the committed lockfile describes.
-	const podVersion = manifest.dependencies?.['@norbital-ai/pod'];
-	if (typeof podVersion !== 'string' || !/^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/.test(podVersion)) {
-		fail(`Template ${template.key} must pin @norbital-ai/pod to an exact version.`);
+	// A local yalc overlay may rewrite the working-tree dependency to file:.yalc/; the
+	// committed pin is the version yalc recorded as `replaced`.
+	const boltVersion =
+		typeof yalcOverlay?.packages?.['@norbital-ai/bolt']?.replaced === 'string'
+			? yalcOverlay.packages['@norbital-ai/bolt'].replaced
+			: manifest.dependencies?.['@norbital-ai/bolt'];
+	if (typeof boltVersion !== 'string' || !/^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/.test(boltVersion)) {
+		fail(`Template ${template.key} must pin @norbital-ai/bolt to an exact version.`);
 	}
 	for (const dependency of ['prettier', 'prettier-plugin-svelte', 'svelte-check', 'typescript']) {
 		if (typeof manifest.devDependencies?.[dependency] !== 'string') {

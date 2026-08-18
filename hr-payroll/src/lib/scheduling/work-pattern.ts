@@ -1,7 +1,4 @@
-import {
-	workPatternSchema,
-	type WorkPattern
-} from '../../custom-types/work_pattern/+definition.js';
+import type { WorkPattern } from '../../custom-types/work_pattern/+definition.js';
 import { rosterCodeKind, workWindow, type RosterCodeLike } from './roster-code.js';
 
 const DAY_MS = 86_400_000;
@@ -55,8 +52,7 @@ function patternedPhaseOn(pattern: Extract<WorkPattern, { type: 'PATTERNED' }>, 
 	}
 }
 
-export function patternRosterCodeId(patternValue: unknown, date: string): string | null {
-	const pattern = workPatternSchema.parse(patternValue);
+export function patternRosterCodeId(pattern: WorkPattern, date: string): string | null {
 	if (pattern.type === 'ROSTERED') return null;
 	const { phase, startsOn } = patternedPhaseOn(pattern, date);
 	const offset = dateNumber(date) - dateNumber(startsOn);
@@ -78,10 +74,9 @@ export type PatternWorkload = {
  * an invented four-weeks-per-month approximation.
  */
 export function patternWorkload(
-	patternValue: unknown,
+	pattern: WorkPattern,
 	rosterCodeById: ReadonlyMap<string, RosterCodeLike>
 ): PatternWorkload | null {
-	const pattern = workPatternSchema.parse(patternValue);
 	if (pattern.type === 'ROSTERED') {
 		if (pattern.expectation.kind === 'AS_ASSIGNED') return null;
 		const referenceDays = pattern.expectation.period === 'WEEK' ? 7 : 30;

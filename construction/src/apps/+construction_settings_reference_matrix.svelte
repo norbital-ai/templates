@@ -1,7 +1,7 @@
 <script lang="ts">
-	import { client } from '$pod/client';
+	import { collectionClient } from '../collection-client.js';
 	import { useI18n } from '@norbital-ai/ui/i18n';
-	import type { TenantI18nKeys } from '$pod/i18n-keys';
+	import type { TenantI18nKeys } from '$bolt/i18n-keys';
 	import { CollectionTable } from '@norbital-ai/ui/collection-table';
 	import { Bound, Cover } from '@norbital-ai/ui/layout';
 
@@ -25,7 +25,7 @@
 <Cover as="main">
 	<Bound size="full" inset>
 		<CollectionTable
-			{client}
+			client={collectionClient}
 			collection="bim_reference_matrix"
 			view="construction_reference_matrix"
 		>

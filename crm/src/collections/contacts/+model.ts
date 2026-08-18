@@ -1,4 +1,4 @@
-import { boolean, defineModel, text, uuid } from '@norbital-ai/pod/authoring';
+import { boolean, defineModel, text, uuid } from '@norbital-ai/bolt/authoring';
 
 export default defineModel(
 	{

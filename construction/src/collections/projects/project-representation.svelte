@@ -1,9 +1,10 @@
 <script lang="ts">
 	import { mount, unmount, type Component } from 'svelte';
-	import { client } from '$pod/client';
+	import { collectionClient } from '../../collection-client.js';
 	import { useI18n } from '@norbital-ai/ui/i18n';
-	import type { TenantI18nKeys } from '$pod/i18n-keys';
+	import type { TenantI18nKeys } from '$bolt/i18n-keys';
 	import type { Row } from './$types.js';
+	import type { WorkspaceRow } from '$bolt/types.js';
 	import { CollectionTable } from '@norbital-ai/ui/collection-table';
 	import {
 		Bound,
@@ -96,7 +97,7 @@
 	const projectId = $derived(record.norbital_id);
 
 	const sitesQuery = $derived(
-		client.db.site_locations.findMany({
+		collectionClient.db.site_locations.findMany({
 			where: { project_id: { eq: projectId } },
 			orderBy: { location_name: 'asc' },
 			limit: 100
@@ -104,15 +105,19 @@
 	);
 
 	const assignmentsQuery = $derived(
-		client.db.job_assignments.findMany({
+		collectionClient.db.job_assignments.findMany({
 			where: { job_assignment_site_location: { project_id: { eq: projectId } } },
+			with: {
+				job_assignment_worker: { columns: { worker_name: true, trade: true } },
+				job_assignment_job: { columns: { job_title: true } }
+			},
 			orderBy: { norbital_updated_at: 'desc' },
 			limit: 500
 		})
 	);
 
 	const claimsQuery = $derived(
-		client.db.payment_claims.findMany({
+		collectionClient.db.payment_claims.findMany({
 			where: { project_id: { eq: projectId } },
 			orderBy: { norbital_updated_at: 'desc' },
 			limit: 100
@@ -120,7 +125,7 @@
 	);
 
 	const documentsQuery = $derived(
-		client.db.asset_documents.findMany({
+		collectionClient.db.asset_documents.findMany({
 			where: {
 				project_id: { eq: projectId },
 				status: { in: ['draft', 'in_review', 'issued'] }
@@ -130,33 +135,18 @@
 		})
 	);
 
+	type AssignmentRow = WorkspaceRow<'job_assignments'> & {
+		readonly job_assignment_worker?: Pick<WorkspaceRow<'workers'>, 'worker_name' | 'trade'> | null;
+		readonly job_assignment_job?: Pick<WorkspaceRow<'jobs'>, 'job_title'> | null;
+	};
 	const assignments = $derived(assignmentsQuery?.current ?? []);
-	const workerIds = $derived([
-		...new Set(
-			assignments.flatMap((assignment) => (assignment.worker_id ? [assignment.worker_id] : []))
-		)
-	]);
-	const jobIds = $derived([
-		...new Set(assignments.flatMap((assignment) => (assignment.job_id ? [assignment.job_id] : [])))
-	]);
 
-	const workersQuery = $derived(
-		workerIds.length === 0
-			? null
-			: client.db.workers.findMany({ where: { norbital_id: { in: workerIds } }, limit: 500 })
-	);
-	const jobsQuery = $derived(
-		jobIds.length === 0
-			? null
-			: client.db.jobs.findMany({ where: { norbital_id: { in: jobIds } }, limit: 500 })
-	);
-
-	const workerById = $derived(
-		new Map((workersQuery?.current ?? []).map((worker) => [worker.norbital_id, worker]))
-	);
-	const jobById = $derived(
-		new Map((jobsQuery?.current ?? []).map((job) => [job.norbital_id, job]))
-	);
+	function assignmentWorker(row: AssignmentRow) {
+		return row.job_assignment_worker;
+	}
+	function assignmentJob(row: AssignmentRow) {
+		return row.job_assignment_job;
+	}
 	const claims = $derived(claimsQuery.current ?? []);
 	const documents = $derived(documentsQuery.current ?? []);
 	const ifcDocument = $derived(
@@ -169,18 +159,11 @@
 	const loading = $derived(
 		sitesQuery.loading ||
 			Boolean(assignmentsQuery?.loading) ||
-			Boolean(workersQuery?.loading) ||
-			Boolean(jobsQuery?.loading) ||
 			claimsQuery.loading ||
 			documentsQuery.loading
 	);
 	const loadError = $derived(
-		sitesQuery.error ??
-			assignmentsQuery?.error ??
-			workersQuery?.error ??
-			jobsQuery?.error ??
-			claimsQuery.error ??
-			documentsQuery.error
+		sitesQuery.error ?? assignmentsQuery?.error ?? claimsQuery.error ?? documentsQuery.error
 	);
 
 	function formatDate(value: Date | string | null | undefined): string {
@@ -343,7 +326,7 @@
 
 		<Grid minimum="panel">
 			<CollectionTable
-				{client}
+				client={collectionClient}
 				collection="rfis"
 				query={{ where: { project_id: { eq: projectId } }, limit: 25 }}
 				title={t('component.rfis')}
@@ -367,7 +350,7 @@
 				{/snippet}
 			</CollectionTable>
 			<CollectionTable
-				{client}
+				client={collectionClient}
 				collection="defects"
 				query={{ where: { project_id: { eq: projectId } }, limit: 25 }}
 				title={t('component.defects')}
@@ -438,21 +421,15 @@
 									{#each siteAssignments as assignment (assignment.norbital_id)}
 										<article class="rounded-md border bg-card p-3 shadow-xs">
 											<p class="text-sm font-medium">
-												{assignment.worker_id
-													? (workerById.get(assignment.worker_id)?.worker_name ?? '—')
-													: '—'}
+												{assignmentWorker(assignment)?.worker_name ?? '—'}
 											</p>
 											<p class="mt-1 text-xs text-muted-foreground">
-												{assignment.job_id
-													? (jobById.get(assignment.job_id)?.job_title ?? '—')
-													: '—'}
+												{assignmentJob(assignment)?.job_title ?? '—'}
 											</p>
 											<Inline justify="between" gap="sm" class="mt-3 text-xs">
 												<span
 													>{assignment.role ??
-														(assignment.worker_id
-															? workerById.get(assignment.worker_id)?.trade
-															: null) ??
+														assignmentWorker(assignment)?.trade ??
 														t('component.site_role')}</span
 												>
 												<span class="text-muted-foreground tabular-nums"
@@ -565,7 +542,7 @@
 		</Grid>
 
 		<CollectionTable
-			{client}
+			client={collectionClient}
 			collection="permits_to_work"
 			query={{
 				where: {

@@ -1,7 +1,8 @@
 <script lang="ts">
-	import { client } from '$pod/client';
+	import { Result, Schema } from 'effect';
+	import { client } from '../../lib/workspace-client.js';
 	import { useI18n } from '@norbital-ai/ui/i18n';
-	import type { TenantI18nKeys } from '$pod/i18n-keys';
+	import type { TenantI18nKeys } from '$bolt/i18n-keys';
 	/**
 	 * The leave event **is** the leave request, so this is the whole request form.
 	 *
@@ -29,6 +30,7 @@
 	import { coversDate } from '../../collections/payroll_runs/lib/effective.js';
 	import { leaveBalance, resolveEntitlement } from '../../collections/payroll_runs/lib/leave.js';
 	import { completedMonths } from '../../collections/payroll_runs/lib/dates.js';
+	import { payrollWindows, windowForDate } from '../../lib/scheduling/lock.js';
 	import { patternRosterCodeId } from '../../lib/scheduling/work-pattern.js';
 	import { rosterCodeKind, workWindowHalves } from '../../lib/scheduling/roster-code.js';
 	import { calendarDayKey, shiftDayKey, todayKey } from '../../lib/ui/calendar.js';
@@ -40,11 +42,6 @@
 
 	type EventKind = Value['kind'];
 
-	/**
-	 * `LEGACY_TAKEN` is deliberately absent: only the migration writes that arm, to preserve an old
-	 * ledger row it could not match to a request. An existing one still edits below — it just
-	 * cannot be chosen for a new event.
-	 */
 	const KIND_OPTIONS = $derived<{ value: EventKind; label: string; description: string }[]>([
 		{
 			value: 'TIME_OFF',
@@ -71,8 +68,8 @@
 
 	let props: LeaveEventRendererProps = $props();
 	const disabled = $derived(props.mode === 'edit' ? props.disabled : true);
-	const parsed = $derived(leaveEventSchema.safeParse(props.value));
-	const current = $derived(parsed.success ? parsed.data : null);
+	const parsed = $derived(Schema.decodeUnknownResult(leaveEventSchema)(props.value));
+	const current = $derived(Result.isSuccess(parsed) ? parsed.success : null);
 	const employmentId = $derived(
 		typeof props.row?.employment_id === 'string' ? props.row.employment_id : null
 	);
@@ -112,6 +109,20 @@
 					limit: 2_000
 				})
 	);
+	/**
+	 * Paid payroll windows: a day a PAID run settled is not a day leave can be moved across.
+	 * The picker draws it struck; the leave hook refuses it at submit.
+	 */
+	const settledRunsQuery = $derived(
+		employment == null
+			? null
+			: client.db.payroll_runs.findMany({
+					where: { company_id: { eq: employment.company_id }, lifecycle: { eq: 'PAID' } },
+					columns: { period: true, attendance_from: true, attendance_to: true },
+					limit: 500
+				})
+	);
+	const settledWindows = $derived(payrollWindows(settledRunsQuery?.current ?? []));
 	const rosterCodesQuery = $derived(
 		employment == null
 			? null
@@ -212,8 +223,32 @@
 		if (employmentId == null || leaveTypeId == null || scheduleUnknown) {
 			return { eligible: false, reason: pickerDisabledReason ?? undefined };
 		}
+		const settled = windowForDate(settledWindows, date);
+		if (settled != null) {
+			return {
+				eligible: false,
+				reasonMark: '🔒',
+				reason: t('component.excluded_paid_payroll', { period: settled.period })
+			};
+		}
 		if (holidayDates.has(date)) {
-			return { eligible: false, reason: t('component.excluded_public_holiday') };
+			return { eligible: false, reasonMark: 'H', reason: t('component.excluded_public_holiday') };
+		}
+		const coveredByOtherRequest = (leaveLedgerQuery?.current ?? []).some(
+			(row) =>
+				row.norbital_id !== requestId &&
+				row.kind === 'TIME_OFF' &&
+				row.from_date != null &&
+				row.to_date != null &&
+				date >= String(row.from_date).slice(0, 10) &&
+				date <= String(row.to_date).slice(0, 10)
+		);
+		if (coveredByOtherRequest) {
+			return {
+				eligible: false,
+				reasonMark: 'L',
+				reason: t('component.excluded_other_leave')
+			};
 		}
 		const term = (termsQuery?.current ?? []).find((candidate) =>
 			coversDate(candidate.effective_range, date)
@@ -227,11 +262,11 @@
 		}
 		if (codeId == null) {
 			if (term.work_pattern?.type === 'ROSTERED') return { eligible: true };
-			return { eligible: false, reason: t('component.excluded_rest_or_off') };
+			return { eligible: false, reasonMark: 'O', reason: t('component.excluded_rest_or_off') };
 		}
 		const code = rosterCodeById.get(codeId);
 		if (code != null && rosterCodeKind(code.variant) !== 'WORK') {
-			return { eligible: false, reason: t('component.excluded_rest_or_off') };
+			return { eligible: false, reasonMark: 'R', reason: t('component.excluded_rest_or_off') };
 		}
 		const halves = code == null ? null : workWindowHalves(code.variant);
 		return {

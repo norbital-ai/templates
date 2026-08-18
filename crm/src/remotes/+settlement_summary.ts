@@ -1,5 +1,12 @@
-import { defineQueryHandler } from '@norbital-ai/pod/authoring';
-import { z } from 'zod';
+import { defineQueryHandler } from '@norbital-ai/bolt/authoring';
+import { Effect, Schema } from 'effect';
+
+/**
+ * The remote runtime binds each collection helper as a promise while the authoring surface types
+ * it as an effect, so every call is bridged into the program.
+ */
+const run = <A>(value: PromiseLike<A> | Effect.Effect<A, unknown>): Effect.Effect<A, unknown> =>
+	Effect.tryPromise(() => ('then' in value ? value : Effect.runPromise(value)));
 
 /**
  * Paid-to-date per document for one regarding type, so tables can derive
@@ -10,31 +17,33 @@ import { z } from 'zod';
 export default defineQueryHandler({
 	description:
 		'Totals the amount settled to date against each quote, purchase order or purchase invoice of the requested type.',
-	schema: z.object({
-		regarding_type: z.enum(['quotes', 'purchase_orders', 'purchase_invoices'])
+	schema: Schema.Struct({
+		regarding_type: Schema.Literals(['quotes', 'purchase_orders', 'purchase_invoices'])
 	}),
-	handler: async (input, api) => {
-		const rows = await api.db.query.settlements.findMany({
-			where: { regarding_type: { eq: input.regarding_type } },
-			columns: { regarding_id: true, amount: true, currency: true },
-			limit: 5000
-		});
+	handler: (input, api) =>
+		Effect.gen(function* () {
+			const rows = yield* run(
+				api.db.query.settlements.findMany({
+					where: { regarding_type: { eq: input.regarding_type } },
+					columns: { regarding_id: true, amount: true, currency: true },
+					limit: 5000
+				})
+			);
 
-		const summaries = new Map<string, { paid: number; currency: string }>();
-		for (const row of rows) {
-			if (typeof row.regarding_id !== 'string') continue;
-			const current = summaries.get(row.regarding_id) ?? {
-				paid: 0,
-				currency: typeof row.currency === 'string' ? row.currency : ''
+			const summaries = new Map<string, { paid: number; currency: string }>();
+			for (const row of rows) {
+				const current = summaries.get(row.regarding_id) ?? {
+					paid: 0,
+					currency: row.currency ?? ''
+				};
+				summaries.set(row.regarding_id, {
+					paid: current.paid + Number(row.amount ?? 0),
+					currency: current.currency
+				});
+			}
+
+			return {
+				summaries: Object.fromEntries(summaries.entries())
 			};
-			summaries.set(row.regarding_id, {
-				paid: current.paid + Number(row.amount ?? 0),
-				currency: current.currency
-			});
-		}
-
-		return {
-			summaries: Object.fromEntries(summaries.entries())
-		};
-	}
+		})
 });

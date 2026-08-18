@@ -1,19 +1,38 @@
 <script lang="ts">
-	import { client } from '$pod/client';
+	import { client } from '$bolt/client';
+	import { getCollectionClientForSurface } from '@norbital-ai/ui/collection-runtime';
 	import { useI18n } from '@norbital-ai/ui/i18n';
-	import AppHeaderActions from '@norbital-ai/pod/client/app-header-actions';
-	import type { TenantI18nKeys } from '$pod/i18n-keys';
+	import AppHeaderActions from '@norbital-ai/bolt/client/app-header-actions';
+	import type { TenantI18nKeys } from '$bolt/i18n-keys';
 	import { CollectionKanban } from '@norbital-ai/ui/collection-kanban';
 	import { CollectionTable } from '@norbital-ai/ui/collection-table';
 	import { Combobox } from '@norbital-ai/ui/combobox';
 	import { Cover, Stack } from '@norbital-ai/ui/layout';
 	import { Tabs, type TabConfig } from '@norbital-ai/ui/tabs';
 
+	/**
+	 * The surface client is bound to the erased registry, so a row arrives as a bag of `unknown`
+	 * fields rather than a `WorkspaceRow<'accounts'>`. This names only the three fields the account
+	 * scope actually reads, and `accountRows` narrows into it, so nothing is asserted unchecked.
+	 */
 	type AccountScopeRow = {
 		readonly norbital_id: string;
 		readonly name: string;
-		readonly active?: boolean | null;
+		readonly active: boolean | null;
 	};
+
+	type PipelineCard = {
+		readonly id: string;
+		readonly doc_no: string;
+		readonly title: string;
+		readonly account: string;
+		readonly status: string;
+		readonly gross: number | null;
+		readonly currency: string;
+		readonly valid_until: string | null;
+	};
+
+	const workspaceClient = getCollectionClientForSurface(client, 'crm');
 
 	function resolveScopedId(
 		selected: string | null,
@@ -37,12 +56,24 @@
 	let accountId = $state<string | null>(null);
 	let selectedOwnerId = $state('');
 
-	const accountsQuery = client.db.accounts.findMany({
+	const accountsQuery = workspaceClient.db.accounts.findMany({
 		where: { active: { eq: true } },
 		orderBy: { name: 'asc' },
 		limit: 5000
 	});
-	const accountRows = $derived((accountsQuery.current ?? []) as readonly AccountScopeRow[]);
+	const accountRows = $derived<readonly AccountScopeRow[]>(
+		(accountsQuery.current ?? []).flatMap((account) =>
+			typeof account.norbital_id === 'string'
+				? [
+						{
+							norbital_id: account.norbital_id,
+							name: typeof account.name === 'string' ? account.name : '',
+							active: typeof account.active === 'boolean' ? account.active : null
+						}
+					]
+				: []
+		)
+	);
 	const accountOptions = $derived(
 		accountRows.map((account) => ({
 			value: account.norbital_id,
@@ -55,7 +86,7 @@
 		new Map(accountRows.map((account) => [account.norbital_id, account.name]))
 	);
 
-	const usersQuery = client.db.user.findMany({
+	const usersQuery = workspaceClient.db.user.findMany({
 		columns: { norbital_id: true, name: true },
 		orderBy: { name: 'asc' }
 	});
@@ -63,8 +94,8 @@
 	const ownerOptions = $derived([
 		{ value: '', label: t('app.crm.all_reps') },
 		...(usersQuery.current ?? []).map((user) => ({
-			value: user.norbital_id,
-			label: user.name || '—'
+			value: String(user.norbital_id),
+			label: String(user.name || '—')
 		}))
 	]);
 
@@ -75,7 +106,7 @@
 	const scopedQuotesQuery = $derived(
 		selectedAccountId == null
 			? null
-			: client.db.quotes.findMany({
+			: workspaceClient.db.quotes.findMany({
 					where: { account_id: { eq: selectedAccountId } },
 					columns: { norbital_id: true, doc_no: true, title: true },
 					orderBy: { doc_no: 'desc' },
@@ -97,7 +128,7 @@
 	const scopedInvoicesQuery = $derived(
 		selectedAccountId == null
 			? null
-			: client.db.sales_invoices.findMany({
+			: workspaceClient.db.sales_invoices.findMany({
 					where: { account_id: { eq: selectedAccountId } },
 					columns: { norbital_id: true, doc_no: true },
 					orderBy: { doc_no: 'desc' },
@@ -131,9 +162,14 @@
 		return client.invoke.pipeline_dashboard(params);
 	});
 
-	const pipelineCards = $derived(
-		new Map((pipelineDashboard.current?.cards ?? []).map((card) => [card.id, card]))
-	);
+	const pipelineCards = $derived.by(() => {
+		const current = pipelineDashboard.current;
+		if (current === undefined || !('cards' in current)) {
+			return new Map<unknown, PipelineCard>();
+		}
+		const cards = current.cards as readonly PipelineCard[];
+		return new Map<unknown, PipelineCard>(cards.map((card) => [card.id, card]));
+	});
 </script>
 
 <svelte:head>
@@ -182,7 +218,7 @@
 			/>
 		</label>
 		<CollectionKanban
-			{client}
+			client={workspaceClient}
 			collection="quotes"
 			view="pipeline"
 			groupBy="status"
@@ -215,7 +251,7 @@
 		<p class="text-sm text-muted-foreground">{t('app.crm.empty_quotes')}</p>
 	{:else}
 		<CollectionTable
-			{client}
+			client={workspaceClient}
 			collection="quotes"
 			view={`crm:quotes:${selectedAccountId}`}
 			title={t('app.crm.tab_quotes')}
@@ -251,7 +287,7 @@
 		<p class="text-sm text-muted-foreground">{t('app.crm.no_quote_lines')}</p>
 	{:else}
 		<CollectionTable
-			{client}
+			client={workspaceClient}
 			collection="quote_lines"
 			view={`crm:quote-lines:${selectedAccountId}`}
 			title={t('app.crm.tab_quote_lines')}
@@ -283,7 +319,7 @@
 
 {#snippet accounts()}
 	<CollectionTable
-		{client}
+		client={workspaceClient}
 		collection="accounts"
 		title={t('app.crm.tab_accounts')}
 		description={t('app.crm.accounts_description')}
@@ -313,7 +349,7 @@
 		<p class="text-sm text-muted-foreground">{t('app.crm.empty_contacts')}</p>
 	{:else}
 		<CollectionTable
-			{client}
+			client={workspaceClient}
 			collection="contacts"
 			view={`crm:contacts:${selectedAccountId}`}
 			title={t('app.crm.tab_contacts')}
@@ -337,7 +373,7 @@
 
 {#snippet products()}
 	<CollectionTable
-		{client}
+		client={workspaceClient}
 		collection="products"
 		title={t('app.crm.tab_products')}
 		description={t('app.crm.products_description')}
@@ -360,7 +396,7 @@
 		<p class="text-sm text-muted-foreground">{t('app.crm.empty_activities')}</p>
 	{:else}
 		<CollectionTable
-			{client}
+			client={workspaceClient}
 			collection="activities"
 			view={`crm:activities:${selectedAccountId}`}
 			title={t('app.crm.tab_activities')}
@@ -415,7 +451,7 @@
 		<p class="text-sm text-muted-foreground">{t('app.crm.empty_billing')}</p>
 	{:else}
 		<CollectionTable
-			{client}
+			client={workspaceClient}
 			collection="sales_invoices"
 			view={`crm:billing:${selectedAccountId}`}
 			title={t('app.crm.billing_title')}
@@ -456,7 +492,7 @@
 		<p class="text-sm text-muted-foreground">{t('app.crm.no_invoice_lines')}</p>
 	{:else}
 		<CollectionTable
-			{client}
+			client={workspaceClient}
 			collection="sales_invoice_lines"
 			view={`crm:billing-lines:${selectedAccountId}`}
 			title={t('app.crm.billing_lines_title')}
@@ -492,7 +528,7 @@
 		<p class="text-sm text-muted-foreground">{t('app.crm.no_quote_lines')}</p>
 	{:else}
 		<CollectionTable
-			{client}
+			client={workspaceClient}
 			collection="contract_signings"
 			view={`crm:contracts:${selectedAccountId}`}
 			title={t('app.crm.contracts_title')}
@@ -529,7 +565,7 @@
 		<p class="text-sm text-muted-foreground">{t('app.crm.no_quote_lines')}</p>
 	{:else}
 		<CollectionTable
-			{client}
+			client={workspaceClient}
 			collection="settlements"
 			view={`crm:payments:${selectedAccountId}`}
 			title={t('app.crm.payments_title')}

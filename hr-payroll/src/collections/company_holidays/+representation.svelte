@@ -3,9 +3,9 @@
 	 * A holiday belongs to the company that observes it, so the auto form asked for `company_id` as
 	 * an editable uuid. It is a relationship and reads as the entity's name.
 	 */
-	import { client } from '$pod/client';
+	import { client } from '../../lib/workspace-client.js';
 	import { useI18n } from '@norbital-ai/ui/i18n';
-	import type { TenantI18nKeys } from '$pod/i18n-keys';
+	import type { TenantI18nKeys } from '$bolt/i18n-keys';
 	import type { RepresentationProps } from './$types.js';
 	import { CollectionForm } from '@norbital-ai/ui/collection-form';
 	import { Column, Grid } from '@norbital-ai/ui/layout';
@@ -18,7 +18,6 @@
 <CollectionForm
 	{client}
 	collection="company_holidays"
-	recordId={record?.norbital_id}
 	defaultValues={record ?? undefined}
 	submitLabel={record ? t('component.save_holiday') : t('component.create_holiday')}
 	onAfterSubmit={record ? undefined : close}

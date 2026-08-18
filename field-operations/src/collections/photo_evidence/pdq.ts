@@ -180,7 +180,7 @@ export async function hashPdq(image: PdqHashInput): Promise<PdqHashResult> {
 		const heap = new Uint8Array(loaded[PDQ_EXPORT.memory].buffer);
 		return {
 			hash: heap.slice(hashPtr, hashPtr + 32),
-			quality: new Int32Array(loaded[PDQ_EXPORT.memory].buffer)[qualityPtr >> 2]!
+			quality: new Int32Array(loaded[PDQ_EXPORT.memory].buffer)[qualityPtr >> 2]
 		};
 	} finally {
 		free(imagePtr);

@@ -59,9 +59,9 @@ function writeTemplateBundle(template, projection, outputDirectory, buildOutput)
 	const packageManifest = JSON.parse(readFileSync(path.join(template.directory, 'package.json')));
 	const lockfile = readFileSync(path.join(template.directory, 'pnpm-lock.yaml'));
 	const lockHash = sha256(lockfile).slice(0, 32);
-	const podVersion = packageManifest.dependencies?.['@norbital-ai/pod'];
-	if (typeof podVersion !== 'string' || podVersion.length === 0) {
-		throw new Error(`Template ${template.key} pins no @norbital-ai/pod version.`);
+	const boltVersion = packageManifest.dependencies?.['@norbital-ai/bolt'];
+	if (typeof boltVersion !== 'string' || boltVersion.length === 0) {
+		throw new Error(`Template ${template.key} pins no @norbital-ai/bolt version.`);
 	}
 	const packageDirectory = path.join(outputDirectory, template.key);
 	mkdirSync(packageDirectory, { recursive: true });

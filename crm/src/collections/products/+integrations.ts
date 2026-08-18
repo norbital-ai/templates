@@ -1,5 +1,5 @@
-import { defineConnection } from '@norbital-ai/pod/authoring';
-import { z } from 'zod';
+import { defineConnection, definePull } from '@norbital-ai/bolt/authoring';
+import { Schema } from 'effect';
 import type { Integrations } from './$types.js';
 
 const erp = defineConnection({
@@ -10,35 +10,41 @@ const erp = defineConnection({
 /**
  * Inbound: the ERP syncs items into our table.
  *
- * The pull binding is a scheduled job. The host fetches changed items, parses the body against
- * `input`, hands it to this collection's `import` pipeline, and writes the rows the pipeline
- * returns — so `products` *is* the mirror. The cursor is kept by the platform, so a missed window
- * resumes where it stopped.
+ * `code` is required here and was not in the earlier draft of this file, because the model declares
+ * `code` not-null with a unique index: a feed that omitted it produced rows the table would refuse,
+ * and nothing typed the gap until `map` had to satisfy the collection's insert shape.
  */
 export default {
 	erp: {
 		connection: erp,
 		receive: {
-			items_changed: {
+			items_changed: definePull({
 				pull: {
 					schedule: '15 * * * *',
 					method: 'GET',
 					path: '/masters/items/changed',
-					cursorQuery: 'since',
-					nextCursorHeader: 'x-next-cursor'
+					cursor: { send: { query: 'since' }, next: { header: 'x-next-cursor' } },
+					retry: { attempts: 3 }
 				},
-				input: z.object({
-					items: z.array(
-						z.object({
-							external_code: z.string().trim().min(1),
-							name: z.string().trim().min(1),
-							unit: z.string().optional(),
-							unit_price: z.number().nonnegative().optional(),
-							active: z.boolean().optional()
-						})
-					)
+				records: { field: 'items' },
+				input: Schema.Struct({
+					external_code: Schema.Trimmed.check(Schema.isMinLength(1)),
+					code: Schema.Trimmed.check(Schema.isMinLength(1)),
+					name: Schema.Trimmed.check(Schema.isMinLength(1)),
+					unit: Schema.optionalKey(Schema.String),
+					unit_price: Schema.optionalKey(Schema.Finite.check(Schema.isGreaterThanOrEqualTo(0))),
+					active: Schema.optionalKey(Schema.Boolean)
+				}),
+				identity: { column: 'external_code', value: (item) => item.external_code },
+				map: (item) => ({
+					external_code: item.external_code,
+					code: item.code,
+					name: item.name,
+					unit: item.unit ?? null,
+					unit_price: item.unit_price ?? null,
+					active: item.active ?? true
 				})
-			}
+			})
 		}
 	}
 } satisfies Integrations;

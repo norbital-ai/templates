@@ -39,26 +39,13 @@ function identifyRosterRow(reader: RowReader): string {
 
 function longFormRosterRows(grids: WorkbookGrids): readonly RosterImportRow[] {
 	const table = readSheetTable(grids, ROSTER_SHEET_NAME, LONG_FORM_COLUMNS);
-	const parsed = readRows(table, identifyRosterRow, (reader) => {
-		const legacyKind = reader.text('day_type')?.toUpperCase();
-		const suppliedCode = reader.text('shift_code');
-		const shiftCode =
-			suppliedCode ??
-			(legacyKind === 'REST'
-				? 'REST'
-				: legacyKind === 'OFF'
-					? 'OFF'
-					: legacyKind === 'PUBLIC_HOLIDAY'
-						? 'PH'
-						: undefined);
-		return {
-			employee_number: reader.requiredText('employee_number') ?? '',
-			work_date: reader.calendarDate('work_date') ?? '',
-			shift_code: shiftCode,
-			assignment_code: reader.text('assignment_code'),
-			note: reader.text('note')
-		};
-	});
+	const parsed = readRows(table, identifyRosterRow, (reader) => ({
+		employee_number: reader.requiredText('employee_number') ?? '',
+		work_date: reader.calendarDate('work_date') ?? '',
+		shift_code: reader.text('shift_code'),
+		assignment_code: reader.text('assignment_code'),
+		note: reader.text('note')
+	}));
 	return parsed.flatMap((row): RosterImportRow[] =>
 		row.shift_code == null
 			? []
@@ -75,8 +62,7 @@ function longFormRosterRows(grids: WorkbookGrids): readonly RosterImportRow[] {
 }
 
 /**
- * Blank shift cells are absent assignments, not inferred rest days. Legacy sheets with a day_type
- * column remain readable by translating REST, OFF and PUBLIC_HOLIDAY into roster-code tokens.
+ * Blank shift cells are absent assignments, not inferred rest days.
  *
  * The issued template is a month grid (one person per row, one day per column). A long-form sheet
  * with `work_date` still imports, including the files operators already have on disk.

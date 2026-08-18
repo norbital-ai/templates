@@ -1,17 +1,25 @@
-import { defineCustomType } from '@norbital-ai/pod/authoring';
-import { z } from 'zod/mini';
+import { defineCustomType } from '@norbital-ai/bolt/authoring';
+import { Schema } from 'effect';
 
 /**
  * How a jurisdiction prorates a monthly wage across a partial period.
  * `FIXED_DAYS` names the divisor explicitly (e.g. 26 working days).
  */
-export const prorationBasisSchema = z.discriminatedUnion('by', [
-	z.strictObject({ by: z.literal('CALENDAR_DAYS') }),
-	z.strictObject({ by: z.literal('WORKING_DAYS') }),
-	z.strictObject({ by: z.literal('FIXED_DAYS'), days: z.number().check(z.positive()) })
+export const prorationBasisValueSchema = Schema.Union([
+	Schema.Struct({ by: Schema.Literal('CALENDAR_DAYS') }),
+	Schema.Struct({ by: Schema.Literal('WORKING_DAYS') }),
+	Schema.Struct({
+		by: Schema.Literal('FIXED_DAYS'),
+		days: Schema.Finite.check(Schema.isGreaterThan(0))
+	})
 ]);
 
-export type ProrationBasis = z.infer<typeof prorationBasisSchema>;
+export type ProrationBasis = Schema.Schema.Type<typeof prorationBasisValueSchema>;
+
+/** Strict standard view: a key no arm declares is refused rather than stripped. */
+export const prorationBasisSchema = Schema.toStandardSchemaV1(prorationBasisValueSchema, {
+	parseOptions: { onExcessProperty: 'error' }
+});
 
 export default defineCustomType({
 	name: 'proration_basis',

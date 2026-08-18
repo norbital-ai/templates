@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { Result, Schema } from 'effect';
 	import OvertimeAwardRenderer from '../overtime_award/+renderer.svelte';
 	import OvertimeBandRenderer from '../overtime_band/+renderer.svelte';
 	import { splitList, nullableNumberFrom, numberFrom } from '../../lib/ui/renderer-input.js';
@@ -12,7 +13,6 @@
 
 	type Rule = Value['overtime_rules'][number];
 	type Limit = Value['overtime_limits'][number];
-	type BreakRule = Value['rest_breaks'][number];
 	type Coverage = NonNullable<Value['overtime_coverage']>;
 	type CategoryBasis = Coverage['category_basis'];
 	type WageBasis = NonNullable<Coverage['wage_basis']>;
@@ -53,22 +53,16 @@
 		{ value: 'WARN', label: 'Warn' },
 		{ value: 'BLOCK', label: 'Block' }
 	];
-	const BREAK_KINDS: { value: BreakRule['applies_when']; label: string }[] = [
-		{ value: 'ALWAYS', label: 'Always' },
-		{ value: 'CONTINUOUS_ATTENDANCE', label: 'Continuous attendance' },
-		{ value: 'OVERTIME', label: 'Overtime' }
-	];
-
 	let props: RendererProps = $props();
 	const disabled = $derived(props.mode === 'edit' ? props.disabled : true);
-	const parsed = $derived(statutoryRegimeSchema.safeParse(props.value));
+	const parsed = $derived(Schema.decodeUnknownResult(statutoryRegimeSchema)(props.value));
 	const current = $derived<StatutoryRegime>(
-		parsed.success
-			? parsed.data
-			: { overtime_coverage: null, overtime_rules: [], overtime_limits: [], rest_breaks: [] }
+		Result.isSuccess(parsed)
+			? parsed.success
+			: { overtime_coverage: null, overtime_rules: [], overtime_limits: [] }
 	);
 	const summary = $derived(
-		`${current.overtime_rules.length} pricing bands · ${current.overtime_limits.length} limits · ${current.rest_breaks.length} break rules`
+		`${current.overtime_rules.length} pricing bands · ${current.overtime_limits.length} limits`
 	);
 
 	function emit(next: Value): void {
@@ -90,13 +84,6 @@
 			overtime_limits: current.overtime_limits.map((entry, position) =>
 				position === index ? next : entry
 			)
-		});
-	}
-
-	function replaceBreak(index: number, next: BreakRule): void {
-		emit({
-			...current,
-			rest_breaks: current.rest_breaks.map((entry, position) => (position === index ? next : entry))
 		});
 	}
 
@@ -124,8 +111,11 @@
 		<section class="grid gap-3">
 			<Inline justify="between" align="center" gap="sm">
 				<div>
-					<h3 class="text-sm font-semibold">Overtime coverage</h3>
-					<p class="text-xs text-muted-foreground">Who enters the pricing ladder.</p>
+					<h3 class="text-sm font-semibold">Who is entitled to overtime</h3>
+					<p class="text-xs text-muted-foreground">
+						Leave this off where the law entitles everyone; add it where the law names a wage
+						ceiling or work categories that decide entitlement.
+					</p>
 				</div>
 				<Button
 					variant="outline"
@@ -133,7 +123,7 @@
 					{disabled}
 					onclick={() => replaceCoverage(current.overtime_coverage ? null : defaultCoverage())}
 				>
-					{current.overtime_coverage ? 'Remove coverage test' : 'Add coverage test'}
+					{current.overtime_coverage ? 'Remove entitlement rule' : 'Add entitlement rule'}
 				</Button>
 			</Inline>
 
@@ -210,8 +200,8 @@
 						Ceiling treatment
 						<Combobox
 							options={[
-								{ value: 'inclusive', label: 'Ceiling amount is covered' },
-								{ value: 'exclusive', label: 'Ceiling amount is excluded' }
+								{ value: 'inclusive', label: 'Earning exactly the ceiling is entitled' },
+								{ value: 'exclusive', label: 'Earning exactly the ceiling is not entitled' }
 							]}
 							value={coverage.ceiling_is_inclusive === null
 								? null
@@ -227,7 +217,7 @@
 						/>
 					</label>
 					<label class="grid gap-1.5 text-sm font-medium">
-						Always covered categories
+						Always entitled, whatever they earn
 						<Input
 							value={coverage.exempt_categories.join(', ')}
 							{disabled}
@@ -239,7 +229,7 @@
 						/>
 					</label>
 					<label class="grid gap-1.5 text-sm font-medium">
-						Never covered categories
+						Never entitled
 						<Input
 							value={coverage.excluded_categories.join(', ')}
 							{disabled}
@@ -431,122 +421,6 @@
 									overtime_limits: current.overtime_limits.filter(
 										(_, position) => position !== index
 									)
-								})}>Remove</Button
-						>
-					</Cluster>
-				</Grid>
-			{/each}
-		</section>
-
-		<section class="grid gap-3 border-t border-border pt-4">
-			<Inline justify="between" align="center" gap="sm">
-				<div>
-					<h3 class="text-sm font-semibold">Rest and meal breaks</h3>
-					<p class="text-xs text-muted-foreground">One rule for each application condition.</p>
-				</div>
-				<Button
-					variant="outline"
-					size="sm"
-					{disabled}
-					onclick={() =>
-						emit({
-							...current,
-							rest_breaks: [
-								...current.rest_breaks,
-								{
-									after_consecutive_hours: null,
-									minimum_minutes: 30,
-									counts_as_worked_time: null,
-									applies_when: 'ALWAYS',
-									authority: ''
-								}
-							]
-						})}>Add break rule</Button
-				>
-			</Inline>
-			{#each current.rest_breaks as rule, index (index)}
-				<Grid gap="sm" minimum="compact" class="border-t border-border py-3 first:border-t-0">
-					<Combobox
-						options={BREAK_KINDS}
-						value={rule.applies_when}
-						{disabled}
-						searchable={false}
-						onValueChange={(value) => {
-							if (value) replaceBreak(index, { ...rule, applies_when: value });
-						}}
-					/>
-					<label class="grid gap-1.5 text-sm font-medium">
-						After consecutive hours
-						<Input
-							type="number"
-							min="0.01"
-							step="0.25"
-							value={rule.after_consecutive_hours ?? ''}
-							{disabled}
-							oninput={(event) =>
-								replaceBreak(index, {
-									...rule,
-									after_consecutive_hours: nullableNumberFrom(event.currentTarget.value)
-								})}
-						/>
-					</label>
-					<label class="grid gap-1.5 text-sm font-medium">
-						Minimum minutes
-						<Input
-							type="number"
-							min="1"
-							step="1"
-							value={rule.minimum_minutes}
-							{disabled}
-							oninput={(event) =>
-								replaceBreak(index, {
-									...rule,
-									minimum_minutes: numberFrom(event.currentTarget.value, 0)
-								})}
-						/>
-					</label>
-					<label class="grid gap-1.5 text-sm font-medium">
-						Counts as worked time
-						<Combobox
-							options={[
-								{ value: 'stated-paid', label: 'Yes' },
-								{ value: 'stated-unpaid', label: 'No' },
-								{ value: 'not-stated', label: 'Not stated' }
-							]}
-							value={rule.counts_as_worked_time === null
-								? 'not-stated'
-								: rule.counts_as_worked_time
-									? 'stated-paid'
-									: 'stated-unpaid'}
-							{disabled}
-							searchable={false}
-							onValueChange={(value) => {
-								if (value)
-									replaceBreak(index, {
-										...rule,
-										counts_as_worked_time: value === 'not-stated' ? null : value === 'stated-paid'
-									});
-							}}
-						/>
-					</label>
-					<label class="col-span-full grid gap-1.5 text-sm font-medium">
-						Authority
-						<Input
-							value={rule.authority}
-							{disabled}
-							oninput={(event) =>
-								replaceBreak(index, { ...rule, authority: event.currentTarget.value })}
-						/>
-					</label>
-					<Cluster class="col-span-full" justify="end">
-						<Button
-							variant="ghost"
-							size="sm"
-							{disabled}
-							onclick={() =>
-								emit({
-									...current,
-									rest_breaks: current.rest_breaks.filter((_, position) => position !== index)
 								})}>Remove</Button
 						>
 					</Cluster>

@@ -1,14 +1,14 @@
 <script lang="ts">
-	import { client } from '$pod/client';
+	import { collectionClient } from '../collection-client.js';
 	import { useI18n } from '@norbital-ai/ui/i18n';
-	import type { TenantI18nKeys } from '$pod/i18n-keys';
+	import type { TenantI18nKeys } from '$bolt/i18n-keys';
 	import { CollectionTable } from '@norbital-ai/ui/collection-table';
 	import { Cover } from '@norbital-ai/ui/layout';
 	import { Tabs, type TabConfig } from '@norbital-ai/ui/tabs';
 
 	const { t } = useI18n<TenantI18nKeys>();
 
-	const projectsQuery = client.db.projects.findMany({
+	const projectsQuery = collectionClient.db.projects.findMany({
 		columns: { norbital_id: true, project_name: true, project_number: true },
 		orderBy: { project_name: 'asc' },
 		limit: 500
@@ -40,7 +40,7 @@
 </svelte:head>
 
 {#snippet workers()}
-	<CollectionTable {client} collection="workers">
+	<CollectionTable client={collectionClient} collection="workers">
 		{#snippet columns({ Column })}
 			<Column name="worker_name" />
 			<Column name="worker_number" />
@@ -53,7 +53,7 @@
 {/snippet}
 
 {#snippet certifications()}
-	<CollectionTable {client} collection="certification_types">
+	<CollectionTable client={collectionClient} collection="certification_types">
 		{#snippet columns({ Column })}
 			<Column name="certification_name" />
 			<Column name="certification_code" />
@@ -66,7 +66,7 @@
 {/snippet}
 
 {#snippet jobRequirements()}
-	<CollectionTable {client} collection="jobs" view="construction_workforce:jobs">
+	<CollectionTable client={collectionClient} collection="jobs" view="construction_workforce:jobs">
 		{#snippet columns({ Column })}
 			<Column name="job_title" />
 			<Column name="job_number" />

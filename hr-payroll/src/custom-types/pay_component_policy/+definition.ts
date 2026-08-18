@@ -1,50 +1,62 @@
-import { dateRangeZodSchema, defineCustomType } from '@norbital-ai/pod/authoring';
-import { z } from 'zod/mini';
-import { contributionTreatmentSchema } from '../contribution_treatment/+definition.js';
+import { defineCustomType } from '@norbital-ai/bolt/authoring';
+import { Schema } from 'effect';
+import { contributionTreatmentValueSchema } from '../contribution_treatment/+definition.js';
+import { dateRangeValueSchema } from '../date_range/+definition.js';
 
-const statutoryTreatmentSchema = z.strictObject({
-	statutory_contribution_id: z.uuid(),
-	authority: z.string().check(z.minLength(1)),
-	treatment: contributionTreatmentSchema,
-	effective_range: dateRangeZodSchema
+const statutoryTreatmentSchema = Schema.Struct({
+	statutory_contribution_id: Schema.String.check(Schema.isUUID()),
+	authority: Schema.NonEmptyString,
+	treatment: contributionTreatmentValueSchema,
+	effective_range: dateRangeValueSchema
 });
-const treatments = z.array(statutoryTreatmentSchema);
+const treatments = Schema.Array(statutoryTreatmentSchema);
 
-/** Economic direction and statutory treatment are one closed policy union on the component. */
-export const payComponentPolicySchema = z.discriminatedUnion('kind', [
-	z.strictObject({
-		kind: z.literal('INFORMATION'),
-		settlement: z.literal('NONE'),
+/**
+ * Economic direction and statutory treatment are one closed policy union on the component.
+ *
+ * `onExcessProperty: 'error'` is applied by the authoring surface to every custom-type value, so a
+ * key belonging to a different arm is reported rather than stripped, and the component is never
+ * stored settling in a direction nobody declared.
+ */
+export const payComponentPolicyValueSchema = Schema.Union([
+	Schema.Struct({
+		kind: Schema.Literal('INFORMATION'),
+		settlement: Schema.Literal('NONE'),
 		statutory_treatments: treatments
 	}),
-	z.strictObject({
-		kind: z.literal('EARNING'),
-		settlement: z.literal('ADD'),
+	Schema.Struct({
+		kind: Schema.Literal('EARNING'),
+		settlement: Schema.Literal('ADD'),
 		statutory_treatments: treatments
 	}),
-	z.strictObject({
-		kind: z.literal('ABSENCE'),
-		settlement: z.literal('DEDUCT'),
+	Schema.Struct({
+		kind: Schema.Literal('ABSENCE'),
+		settlement: Schema.Literal('DEDUCT'),
 		statutory_treatments: treatments
 	}),
-	z.strictObject({
-		kind: z.literal('DEDUCTION'),
-		settlement: z.literal('DEDUCT'),
+	Schema.Struct({
+		kind: Schema.Literal('DEDUCTION'),
+		settlement: Schema.Literal('DEDUCT'),
 		statutory_treatments: treatments
 	}),
-	z.strictObject({
-		kind: z.literal('NON_WAGE_PAYMENT'),
-		settlement: z.literal('ADD'),
+	Schema.Struct({
+		kind: Schema.Literal('NON_WAGE_PAYMENT'),
+		settlement: Schema.Literal('ADD'),
 		statutory_treatments: treatments
 	}),
-	z.strictObject({
-		kind: z.literal('EMPLOYER_COST'),
-		settlement: z.literal('EMPLOYER_ONLY'),
+	Schema.Struct({
+		kind: Schema.Literal('EMPLOYER_COST'),
+		settlement: Schema.Literal('EMPLOYER_ONLY'),
 		statutory_treatments: treatments
 	})
 ]);
 
-export type PayComponentPolicy = z.infer<typeof payComponentPolicySchema>;
+export type PayComponentPolicy = Schema.Schema.Type<typeof payComponentPolicyValueSchema>;
+
+/** Strict standard view: a key no arm declares is refused rather than stripped. */
+export const payComponentPolicySchema = Schema.toStandardSchemaV1(payComponentPolicyValueSchema, {
+	parseOptions: { onExcessProperty: 'error' }
+});
 export default defineCustomType({
 	name: 'pay_component_policy',
 	description:

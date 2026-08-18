@@ -1,41 +1,35 @@
-import { defineCustomType } from '@norbital-ai/pod/authoring';
-import { z } from 'zod/mini';
-import { moneySchema } from '../money/+definition.js';
-import { overtimeAwardSchema } from '../overtime_award/+definition.js';
-import { overtimeBandSchema } from '../overtime_band/+definition.js';
+import { defineCustomType } from '@norbital-ai/bolt/authoring';
+import { Schema } from 'effect';
+import { moneyValueSchema } from '../money/+definition.js';
+import { overtimeAwardValueSchema } from '../overtime_award/+definition.js';
+import { overtimeBandValueSchema } from '../overtime_band/+definition.js';
 
-const authority = z.string().check(z.trim(), z.minLength(1));
+const authority = Schema.Trimmed.check(Schema.isMinLength(1));
 
-export const overtimeCoverageSchema = z.strictObject({
-	wage_ceiling: z.nullable(moneySchema()),
-	ceiling_is_inclusive: z.nullable(z.boolean()),
-	wage_basis: z.nullable(z.enum(['STATUTORY_WAGES', 'BASE_SALARY'])),
-	category_basis: z.enum(['STATUTORY_WORK_CATEGORY', 'WORK_CLASSIFICATION']),
-	exempt_categories: z.array(z.string().check(z.trim(), z.minLength(1))),
-	excluded_categories: z.array(z.string().check(z.trim(), z.minLength(1))),
+export const overtimeCoverageValueSchema = Schema.Struct({
+	wage_ceiling: Schema.NullOr(moneyValueSchema),
+	ceiling_is_inclusive: Schema.NullOr(Schema.Boolean),
+	wage_basis: Schema.NullOr(Schema.Literals(['STATUTORY_WAGES', 'BASE_SALARY'])),
+	category_basis: Schema.Literals(['STATUTORY_WORK_CATEGORY', 'WORK_CLASSIFICATION']),
+	exempt_categories: Schema.Array(Schema.Trimmed.check(Schema.isMinLength(1))),
+	excluded_categories: Schema.Array(Schema.Trimmed.check(Schema.isMinLength(1))),
 	authority
 });
 
-export const statutoryOvertimeRuleSchema = z.strictObject({
-	day_type: z.enum(['ORDINARY', 'REST_DAY', 'PUBLIC_HOLIDAY']),
+export const statutoryOvertimeRuleValueSchema = Schema.Struct({
+	day_type: Schema.Literals(['ORDINARY', 'REST_DAY', 'PUBLIC_HOLIDAY']),
 	authority,
-	band: overtimeBandSchema,
-	award: overtimeAwardSchema
+	band: overtimeBandValueSchema,
+	award: overtimeAwardValueSchema
 });
 
-export const statutoryOvertimeLimitSchema = z.strictObject({
-	period: z.enum(['DAY', 'WEEK', 'MONTH']),
-	measures: z.enum(['OVERTIME_HOURS', 'TOTAL_WORK_HOURS']),
-	max_hours: z.number().check(z.positive()),
-	on_exceed: z.enum(['WARN', 'BLOCK']),
-	authority
-});
+export type StatutoryOvertimeRule = Schema.Schema.Type<typeof statutoryOvertimeRuleValueSchema>;
 
-export const statutoryRestBreakSchema = z.strictObject({
-	after_consecutive_hours: z.nullable(z.number().check(z.positive())),
-	minimum_minutes: z.int().check(z.positive()),
-	counts_as_worked_time: z.nullable(z.boolean()),
-	applies_when: z.enum(['ALWAYS', 'CONTINUOUS_ATTENDANCE', 'OVERTIME']),
+export const statutoryOvertimeLimitValueSchema = Schema.Struct({
+	period: Schema.Literals(['DAY', 'WEEK', 'MONTH']),
+	measures: Schema.Literals(['OVERTIME_HOURS', 'TOTAL_WORK_HOURS']),
+	max_hours: Schema.Finite.check(Schema.isGreaterThan(0)),
+	on_exceed: Schema.Literals(['WARN', 'BLOCK']),
 	authority
 });
 
@@ -44,17 +38,20 @@ export const statutoryRestBreakSchema = z.strictObject({
  *
  * These values are attributes of one law revision, not independently versioned records. The
  * jurisdiction's `effective_range` dates the whole structure, so payroll can never pick coverage
- * from one revision and pricing, limits or breaks from another.
+ * from one revision and pricing or limits from another.
  */
-export const statutoryRegimeSchema = z.strictObject({
-	overtime_coverage: z.nullable(overtimeCoverageSchema),
-	overtime_rules: z.array(statutoryOvertimeRuleSchema),
-	overtime_limits: z.array(statutoryOvertimeLimitSchema),
-	rest_breaks: z.array(statutoryRestBreakSchema)
+export const statutoryRegimeValueSchema = Schema.Struct({
+	overtime_coverage: Schema.NullOr(overtimeCoverageValueSchema),
+	overtime_rules: Schema.Array(statutoryOvertimeRuleValueSchema),
+	overtime_limits: Schema.Array(statutoryOvertimeLimitValueSchema)
 });
 
-export type StatutoryRegime = z.infer<typeof statutoryRegimeSchema>;
-export type StatutoryOvertimeRule = z.infer<typeof statutoryOvertimeRuleSchema>;
+export type StatutoryRegime = Schema.Schema.Type<typeof statutoryRegimeValueSchema>;
+
+/** Strict standard view: a key the snapshot does not declare is refused rather than stripped. */
+export const statutoryRegimeSchema = Schema.toStandardSchemaV1(statutoryRegimeValueSchema, {
+	parseOptions: { onExcessProperty: 'error' }
+});
 
 type NumericRange = { readonly from: number; readonly to: number | null };
 
@@ -124,19 +121,12 @@ export function statutoryRegimeIssues(regime: StatutoryRegime, currency: string)
 		limitKeys.add(key);
 	}
 
-	const breakKinds = new Set<string>();
-	for (const rule of regime.rest_breaks) {
-		if (breakKinds.has(rule.applies_when))
-			issues.push(`More than one rest-break rule applies when ${rule.applies_when}.`);
-		breakKinds.add(rule.applies_when);
-	}
-
 	return [...new Set(issues)];
 }
 
 export default defineCustomType({
 	name: 'statutory_regime',
 	description:
-		'The overtime coverage, pricing bands, limits and rest-break requirements governed by one effective-dated jurisdiction snapshot.',
+		'The overtime coverage, pricing bands and limits governed by one effective-dated jurisdiction snapshot.',
 	schema: statutoryRegimeSchema
 });

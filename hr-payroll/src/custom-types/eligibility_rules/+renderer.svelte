@@ -1,6 +1,7 @@
 <script lang="ts">
+	import { Result, Schema } from 'effect';
 	import { useI18n } from '@norbital-ai/ui/i18n';
-	import type { TenantI18nKeys } from '$pod/i18n-keys';
+	import type { TenantI18nKeys } from '$bolt/i18n-keys';
 	import { nullableNumberFrom, numberFrom, splitList } from '../../lib/ui/renderer-input.js';
 	import { Button } from '@norbital-ai/ui/button';
 	import { Combobox } from '@norbital-ai/ui/combobox';
@@ -11,6 +12,7 @@
 		type EligibilityRule,
 		type EligibilityRules
 	} from './+definition.js';
+	import type { CollectionField } from '@norbital-ai/ui/data-renderer';
 	import type { RendererProps } from './$types.js';
 
 	const { t } = useI18n<TenantI18nKeys>();
@@ -39,10 +41,21 @@
 	const CLASSIFICATIONS: Classification[] = ['EA_COVERED', 'NON_EA', 'MANAGERIAL'];
 	const GENDERS: Gender[] = ['MALE', 'FEMALE'];
 
-	let props: RendererProps = $props();
+	/**
+	 * The platform hands every custom renderer the full `CollectionField` (name, kind, nullable,
+	 * options, …); the generated `$types` only declare the `{ name, type }` minimum, so the field is
+	 * restated against the design-system shape the callers and the runtime actually speak.
+	 */
+	type WithStdField<P> = P extends unknown
+		? Omit<P, 'field'> & { readonly field: CollectionField }
+		: never;
+	type Props = WithStdField<RendererProps>;
+	let props: Props = $props();
 	const disabled = $derived(props.mode === 'edit' ? props.disabled : true);
-	const parsed = $derived(eligibilityRulesSchema.safeParse(props.value));
-	const rules = $derived<EligibilityRules>(parsed.success ? parsed.data : []);
+	const parsed = $derived(
+		Schema.decodeUnknownResult(eligibilityRulesSchema)(props.value, { onExcessProperty: 'error' })
+	);
+	const rules = $derived<EligibilityRules>(Result.isSuccess(parsed) ? parsed.success : []);
 	const summary = $derived(
 		rules.length === 0
 			? 'Everyone'

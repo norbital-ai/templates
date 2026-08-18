@@ -1,4 +1,4 @@
 import { defineConfig } from 'vite';
-import { pod } from '@norbital-ai/pod/vite';
+import { bolt } from '@norbital-ai/bolt/vite';
 
-export default defineConfig({ plugins: [pod()] });
+export default defineConfig({ plugins: [bolt()] });

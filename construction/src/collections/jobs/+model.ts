@@ -1,4 +1,4 @@
-import { custom, dateRange, defineModel, enums, text, uuid } from '@norbital-ai/pod/authoring';
+import { custom, dateRange, defineModel, enums, text, uuid } from '@norbital-ai/bolt/authoring';
 
 export default defineModel(
 	{

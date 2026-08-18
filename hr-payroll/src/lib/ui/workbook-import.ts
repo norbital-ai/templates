@@ -17,7 +17,7 @@
  */
 
 import ExcelJSBrowser from 'exceljs/dist/exceljs.bare.min.js';
-import { importCollectionRecords } from '@norbital-ai/pod/client';
+import { importCollectionRecords } from '@norbital-ai/bolt/client';
 import { toast } from 'svelte-sonner';
 import type { Translator } from './roster/roster-month.js';
 import {
