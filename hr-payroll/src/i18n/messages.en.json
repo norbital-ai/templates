@@ -421,6 +421,7 @@
 	"component.lock_approved": "Approved — this record is consumed. Record a correction event instead of editing it.",
 	"component.lock_date_passed": "{date} has already passed, so this record is consumed and cannot change.",
 	"component.lock_settled": "{date} is inside paid payroll {period}, so this record is consumed and cannot change.",
+	"component.lock_settled_by_run": "Payroll {period} has already taken this record into account. Delete that run to release it while it is still a draft, or correct it with an adjustment entry once it has been paid.",
 	"component.lock_payslip_consumed": "Payroll has already consumed this entry, so it cannot change.",
 	"component.leave_no_chargeable_days": "Select at least one scheduled work half-day.",
 	"component.leave_pick_range_first": "Pick the leave days on the calendar.",

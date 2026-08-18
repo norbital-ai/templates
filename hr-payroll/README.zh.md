@@ -96,7 +96,7 @@ src/
 ├── collections/              # 26 个集合：+model.ts、+hooks.ts、+pipelines.ts、+representation.svelte
 │   └── payroll_runs/lib/     # 结算引擎（阶段、加班、覆盖、导出）
 ├── custom-types/             # 24 个结构化值（money、component_definition、eligibility_rules、……）
-├── policies/                 # employee、hr、management
+├── policies/                 # employee、supervisor、manager、senior_management、hr_controller、hr_manager
 ├── remotes/                  # approval_analytics
 ├── i18n/                     # messages.en.json / messages.zh.json（相同的键集）
 ├── lib/                      # 共享辅助：日历、显示格式化、策略授权、排班月

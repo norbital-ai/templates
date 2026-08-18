@@ -8,6 +8,14 @@
  * Only **live** rows are read — `norbital_approval_id IS NULL`. On this platform a null approval
  * stamp means the row is in force; a set one means it is still pending, and pending money is not
  * money. That predicate is on every query here without exception.
+ *
+ * It answers *liveness* and nothing else, and that boundary is worth stating because it used to be
+ * crossed. `norbital_approval_id` was also being read as a write lock, so one column stood for both
+ * "payroll may consume this row" and "nobody may edit this row" — which meant the workspace had no
+ * way at all to record that a row *had* been consumed. Settlement now lives in its own collection,
+ * `payroll_settlements`, written by PERSIST and released by deleting the run. Deliberately not here:
+ * a source row this run settled must still be readable by this run's next rebuild, so a settlement
+ * claim is not, and must never become, a filter on these queries.
  */
 
 import { Effect } from 'effect';

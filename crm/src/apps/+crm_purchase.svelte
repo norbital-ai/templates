@@ -13,7 +13,7 @@
 		return current !== undefined && 'status_counts' in current ? current : null;
 	});
 
-	const usersQuery = workspaceClient.db.user.findMany({
+	const usersQuery = workspaceClient.db.bolt_auth_user.findMany({
 		columns: { norbital_id: true, name: true },
 		orderBy: { name: 'asc' }
 	});

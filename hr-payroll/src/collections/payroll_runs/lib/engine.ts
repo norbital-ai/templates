@@ -10,7 +10,7 @@
  * | 5 | ACCUMULATE | each line through the grid → contribution bases                                |
  * | 6 | CONTRIBUTE | each scheme in sequence: base → employee and employer amounts                   |
  * | 7 | SETTLE     | gross, total deductions, net, employer cost                                    |
- * | 8 | PERSIST    | payslip, lines, charges, and what each line consumed                           |
+ * | 8 | PERSIST    | payslip, lines, charges, and the settlement locks over what they consumed      |
  *
  * Step 5 never names EPF. Step 6 never names overtime. Neither knows Malaysia.
  *
@@ -20,6 +20,7 @@
 
 import { Effect } from 'effect';
 import { accumulateBases } from './accumulate.js';
+import { claimsForBundle } from './claims.js';
 import { readLog, resetReadLog, type PayrollApi, type PayrollReadApi } from './api.js';
 import { pickConfiguration, type Configuration } from './configuration.js';
 
@@ -271,7 +272,10 @@ export function buildPayrollRun(options: {
 				employmentId: bundle.employment.norbital_id,
 				currency: measured.currency,
 				settlement,
-				charges
+				charges,
+				// Derived here, where the bundle is in scope, because the claim is a statement about
+				// what this run *read* — and PERSIST only ever sees what it wrote.
+				claims: claimsForBundle(bundle)
 			});
 		}
 
@@ -288,7 +292,12 @@ export function buildPayrollRun(options: {
 		// 8 — PERSIST
 		yield* clearRunResults(options.api, options.runId);
 		lap('clear');
-		const written = yield* persistPayslips({ api: options.api, runId: options.runId, pending });
+		const written = yield* persistPayslips({
+			api: options.api,
+			runId: options.runId,
+			period: options.period,
+			pending
+		});
 		lap('persist');
 		yield* persistShortfalls({
 			api: options.api,
@@ -304,7 +313,7 @@ export function buildPayrollRun(options: {
 		console.log(
 			`[payroll-timing] ${options.period} total=${Date.now() - t0}ms ` +
 				phases.map(([name, ms]) => `${name}=${ms}ms`).join(' ') +
-				` | employments=${gathered.bundles.length} payslips=${written.payslipCount} lines=${written.lineCount}` +
+				` | employments=${gathered.bundles.length} payslips=${written.payslipCount} lines=${written.lineCount} settled=${written.claimCount}` +
 				`\n[payroll-reads] ${readLog()}`
 		);
 

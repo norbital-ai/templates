@@ -137,10 +137,10 @@ Everything the compiler knows about the workspace lives in `src/`:
 ```text
 src/
 ├── apps/                     # +<app>.svelte per app; hr_controller/+group.ts owns the group
-├── collections/              # 21 collections: +model.ts, +hooks.ts, +pipelines.ts, +representation.svelte
+├── collections/              # 22 collections: +model.ts, +hooks.ts, +pipelines.ts, +representation.svelte
 │   └── payroll_runs/lib/     # the settlement engine (phases, overtime, coverage, export)
 ├── custom-types/             # 27 structured values (money, statutory_regime, work_pattern, …)
-├── policies/                 # employee, hr, management
+├── policies/                 # employee, supervisor, manager, senior_management, hr_controller, hr_manager
 ├── remotes/                  # approval_analytics
 ├── i18n/                     # messages.en.json / messages.zh.json (same key set)
 ├── automation/               # statutory_profile_drift (weekly deterministic)

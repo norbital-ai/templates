@@ -86,7 +86,7 @@
 		new Map(accountRows.map((account) => [account.norbital_id, account.name]))
 	);
 
-	const usersQuery = workspaceClient.db.user.findMany({
+	const usersQuery = workspaceClient.db.bolt_auth_user.findMany({
 		columns: { norbital_id: true, name: true },
 		orderBy: { name: 'asc' }
 	});

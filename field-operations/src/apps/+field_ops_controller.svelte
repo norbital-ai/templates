@@ -82,7 +82,7 @@
 		orderBy: { company_name: 'asc' },
 		limit: 250
 	});
-	const usersQuery = client.db.user.findMany({
+	const usersQuery = client.db.bolt_auth_user.findMany({
 		columns: { norbital_id: true, name: true },
 		orderBy: { name: 'asc' },
 		limit: 500

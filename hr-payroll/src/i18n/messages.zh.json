@@ -421,6 +421,7 @@
 	"component.lock_approved": "已批准 — 此记录视为已消耗。请新增更正事件，不要再编辑。",
 	"component.lock_date_passed": "{date} 已过，此记录视为已消耗，不能再更改。",
 	"component.lock_settled": "{date} 位于已发薪的 {period} 期间内，此记录视为已消耗，不能再更改。",
+	"component.lock_settled_by_run": "薪资 {period} 已将此记录纳入计算。该薪资仍为草稿时可删除该次运行以解除锁定；若已发薪，请改用调整分录更正。",
 	"component.lock_payslip_consumed": "薪资已消耗此分录，不能再更改。",
 	"component.leave_no_chargeable_days": "请至少选择一个排定工作半天。",
 	"component.leave_pick_range_first": "请在日历上选择休假日期。",

@@ -410,22 +410,44 @@ function assertLeaveSourceUnlocked(
 	action: string
 ): Effect.Effect<void, never, never> {
 	return Effect.gen(function* () {
+		/**
+		 * The settlement lock. Leave had no record-level consumption signal at all before this: a
+		 * payslip line names the leave requests behind an *unpaid* absence and nothing else, so paid
+		 * leave a run had already priced was held only by the date arithmetic — which frees it
+		 * entirely while the run is still a draft.
+		 */
+		const settlement = yield* api.db.query.payroll_settlements.findFirst({
+			where: {
+				source_collection: { eq: 'leave_requests' },
+				source_record_id: { eq: existing.norbital_id }
+			},
+			columns: { period: true }
+		});
 		const employment = yield* api.db.query.employments.findFirst({
 			where: { norbital_id: { eq: existing.employment_id } },
 			columns: { company_id: true }
 		});
-		if (employment == null) return;
-		const runs = yield* api.db.query.payroll_runs.findMany({
-			where: { company_id: { eq: employment.company_id } },
-			columns: { period: true, lifecycle: true, attendance_from: true, attendance_to: true },
-			limit: LIMIT
-		});
+		// A hidden employment must not disable the lock; only the window half of it is skipped.
+		const runs =
+			employment == null
+				? []
+				: yield* api.db.query.payroll_runs.findMany({
+						where: { company_id: { eq: employment.company_id } },
+						columns: {
+							period: true,
+							lifecycle: true,
+							attendance_from: true,
+							attendance_to: true
+						},
+						limit: LIMIT
+					});
 		const lock = sourceLock({
 			existing: true,
 			approvalId: existing.norbital_approval_id,
 			dates: leaveCoveredDates(existing),
 			today: todayKey(),
 			windows: payrollWindows(runs),
+			settledBy: settlement == null ? null : { period: settlement.period },
 			freezeWhenLive: true
 		});
 		if (sourceLockBlocksWrite(lock)) {
