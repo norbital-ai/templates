@@ -1,4 +1,5 @@
 import { currencyFractionDigits, fromMinorUnits, toMinorUnits } from '@norbital-ai/std/finance';
+import { Effect } from 'effect';
 import type { Hooks, WorkspaceRow } from './$types.js';
 
 function roundHalfUp(value: number, digits: number): number {
@@ -104,7 +105,7 @@ function validateLineFields(input: {
 function computeLineAmounts(
 	quote: WorkspaceRow<'quotes'>,
 	line: CreateInput | WorkspaceRow<'quote_lines'>
-) {
+): LineAmounts {
 	return lineAmounts({
 		quantity: Number(line.quantity),
 		unit_price: Number(line.unit_price),
@@ -115,182 +116,186 @@ function computeLineAmounts(
 	});
 }
 
-async function rollupQuote(api: AfterApi, quoteId: string): Promise<void> {
-	const quote = await api.db.query.quotes.findFirst({
-		where: { norbital_id: { eq: quoteId } }
+function rollupQuote(api: AfterApi, quoteId: string): Effect.Effect<void> {
+	return Effect.gen(function* () {
+		const quote = yield* api.db.query.quotes.findFirst({
+			where: { norbital_id: { eq: quoteId } }
+		});
+		if (!quote) return;
+
+		const lines = yield* api.db.query.quote_lines.findMany({
+			where: { quote_id: { eq: quoteId } },
+			columns: { net: true, tax: true, line_total: true },
+			limit: LINE_LIMIT
+		});
+
+		const totals = documentTotals(
+			lines.map((line) => ({
+				net: Number(line.net ?? 0),
+				tax: Number(line.tax ?? 0),
+				gross: Number(line.line_total ?? 0)
+			})),
+			requireCurrency(quote.currency)
+		);
+
+		yield* api.db.mutate('quotes', [
+			{
+				norbital_id: quoteId,
+				net: totals.net,
+				tax: totals.tax,
+				gross: totals.gross
+			}
+		]);
 	});
-	if (!quote) return;
-
-	const lines = await api.db.query.quote_lines.findMany({
-		where: { quote_id: { eq: quoteId } },
-		columns: { net: true, tax: true, line_total: true },
-		limit: LINE_LIMIT
-	});
-
-	const totals = documentTotals(
-		lines.map((line) => ({
-			net: Number(line.net ?? 0),
-			tax: Number(line.tax ?? 0),
-			gross: Number(line.line_total ?? 0)
-		})),
-		requireCurrency(quote.currency)
-	);
-
-	await api.db.mutate('quotes', [
-		{
-			norbital_id: quoteId,
-			net: totals.net,
-			tax: totals.tax,
-			gross: totals.gross
-		}
-	]);
 }
 
-const afterRollup = async ({
+const afterRollup = ({
 	record,
 	api
 }: {
 	readonly record: { readonly quote_id: string };
 	readonly api: AfterApi;
-}) => {
-	await rollupQuote(api, record.quote_id);
-};
+}) =>
+	Effect.gen(function* () {
+		yield* rollupQuote(api, record.quote_id);
+	});
 
 export default {
 	create: {
 		before: {
 			description:
 				'Adds a line only to a draft quote for an active product, fills the product code, name, unit and tax rate from the catalogue, and computes the line net, tax and total from quantity, unit price and discount.',
-			batchHandler: async ({ inputs, api }) => {
-				const quoteIds = [
-					...new Set(inputs.flatMap((input) => (input.quote_id ? [input.quote_id] : [])))
-				];
-				const productIds = [
-					...new Set(inputs.flatMap((input) => (input.product_id ? [input.product_id] : [])))
-				];
-				const [quotes, products] = await Promise.all([
-					quoteIds.length
-						? api.db.query.quotes.findMany({
+			batchHandler: ({ inputs, api }) =>
+				Effect.gen(function* () {
+					const quoteIds = [
+						...new Set(inputs.flatMap((input) => (input.quote_id ? [input.quote_id] : [])))
+					];
+					const productIds = [
+						...new Set(inputs.flatMap((input) => (input.product_id ? [input.product_id] : [])))
+					];
+					const quotes = quoteIds.length
+						? yield* api.db.query.quotes.findMany({
 								where: { norbital_id: { in: quoteIds } },
 								limit: LINE_LIMIT
 							})
-						: [],
-					productIds.length
-						? api.db.query.products.findMany({
+						: [];
+					const products = productIds.length
+						? yield* api.db.query.products.findMany({
 								where: { norbital_id: { in: productIds } },
 								limit: LINE_LIMIT
 							})
-						: []
-				]);
-				const quotesById = new Map(quotes.map((quote) => [quote.norbital_id, quote]));
-				const productsById = new Map(products.map((product) => [product.norbital_id, product]));
+						: [];
+					const quotesById = new Map(quotes.map((quote) => [quote.norbital_id, quote]));
+					const productsById = new Map(products.map((product) => [product.norbital_id, product]));
 
-				return inputs.map((input) => {
+					return inputs.map((input) => {
+						if (!input.quote_id) throw new Error('A quote line must reference a quote.');
+						const quote = quotesById.get(input.quote_id);
+						if (!quote) throw new Error('Referenced quote does not exist.');
+						if (quote.status !== 'draft') {
+							throw new Error('Line items can only be added to draft quotes.');
+						}
+						if (!input.product_id) throw new Error('A quote line must reference a product.');
+						const product = productsById.get(input.product_id);
+						if (!product) throw new Error('Referenced product does not exist.');
+						if (!product.active) throw new Error('Cannot add a line for an inactive product.');
+						const resolved = {
+							...input,
+							quantity: input.quantity,
+							unit_price: input.unit_price ?? product.unit_price ?? 0,
+							discount_pct: input.discount_pct ?? 0,
+							tax_rate: input.tax_rate ?? product.tax_rate ?? 0,
+							product_code: input.product_code ?? product.code,
+							product_name: input.product_name ?? product.name,
+							product_unit: input.product_unit ?? product.unit ?? ''
+						};
+						validateLineFields(resolved);
+						const amounts = computeLineAmounts(quote, resolved);
+						return { ...resolved, net: amounts.net, tax: amounts.tax, line_total: amounts.gross };
+					});
+				}),
+			handler: ({ input, api }) =>
+				Effect.gen(function* () {
 					if (!input.quote_id) throw new Error('A quote line must reference a quote.');
-					const quote = quotesById.get(input.quote_id);
+					const quote = yield* api.db.query.quotes.findFirst({
+						where: { norbital_id: { eq: input.quote_id } }
+					});
 					if (!quote) throw new Error('Referenced quote does not exist.');
 					if (quote.status !== 'draft') {
 						throw new Error('Line items can only be added to draft quotes.');
 					}
+
 					if (!input.product_id) throw new Error('A quote line must reference a product.');
-					const product = productsById.get(input.product_id);
+					const product = yield* api.db.query.products.findFirst({
+						where: { norbital_id: { eq: input.product_id } }
+					});
 					if (!product) throw new Error('Referenced product does not exist.');
-					if (!product.active) throw new Error('Cannot add a line for an inactive product.');
+					if (!product.active) {
+						throw new Error('Cannot add a line for an inactive product.');
+					}
+
 					const resolved = {
 						...input,
-						product_code: input.product_code ?? product.code,
-						product_name: input.product_name ?? product.name,
-						product_unit: input.product_unit ?? product.unit ?? '',
+						quantity: input.quantity,
 						unit_price: input.unit_price ?? product.unit_price ?? 0,
 						discount_pct: input.discount_pct ?? 0,
-						tax_rate: input.tax_rate ?? product.tax_rate ?? 0
+						tax_rate: input.tax_rate ?? product.tax_rate ?? 0,
+						product_code: input.product_code ?? product.code,
+						product_name: input.product_name ?? product.name,
+						product_unit: input.product_unit ?? product.unit ?? ''
 					};
 					validateLineFields(resolved);
+
 					const amounts = computeLineAmounts(quote, resolved);
-					return { ...resolved, net: amounts.net, tax: amounts.tax, line_total: amounts.gross };
-				});
-			},
-			handler: async ({ input, api }) => {
-				if (!input.quote_id) throw new Error('A quote line must reference a quote.');
-				const quote = await api.db.query.quotes.findFirst({
-					where: { norbital_id: { eq: input.quote_id } }
-				});
-				if (!quote) throw new Error('Referenced quote does not exist.');
-				if (quote.status !== 'draft') {
-					throw new Error('Line items can only be added to draft quotes.');
-				}
 
-				if (!input.product_id) throw new Error('A quote line must reference a product.');
-				const product = await api.db.query.products.findFirst({
-					where: { norbital_id: { eq: input.product_id } }
-				});
-				if (!product) throw new Error('Referenced product does not exist.');
-				if (!product.active) {
-					throw new Error('Cannot add a line for an inactive product.');
-				}
-
-				const resolved = {
-					...input,
-					product_code: input.product_code ?? product.code,
-					product_name: input.product_name ?? product.name,
-					product_unit: input.product_unit ?? product.unit ?? '',
-					unit_price: input.unit_price ?? product.unit_price ?? 0,
-					discount_pct: input.discount_pct ?? 0,
-					tax_rate: input.tax_rate ?? product.tax_rate ?? 0
-				};
-				validateLineFields(resolved);
-
-				const amounts = computeLineAmounts(quote, resolved);
-
-				return {
-					...resolved,
-					net: amounts.net,
-					tax: amounts.tax,
-					line_total: amounts.gross
-				};
-			}
+					return {
+						...resolved,
+						net: amounts.net,
+						tax: amounts.tax,
+						line_total: amounts.gross
+					};
+				})
 		},
 		after: {
 			description: 'Recomputes the quote net, tax and gross from its lines after a line is added.',
-			batchHandler: async ({ records, api }) => {
-				const quoteIds = [...new Set(records.map((record) => record.quote_id))];
-				const [quotes, lines] = await Promise.all([
-					api.db.query.quotes.findMany({
+			batchHandler: ({ records, api }) =>
+				Effect.gen(function* () {
+					const quoteIds = [...new Set(records.map((record) => record.quote_id))];
+					const quotes = yield* api.db.query.quotes.findMany({
 						where: { norbital_id: { in: quoteIds } },
 						limit: LINE_LIMIT
-					}),
-					api.db.query.quote_lines.findMany({
+					});
+					const lines = yield* api.db.query.quote_lines.findMany({
 						where: { quote_id: { in: quoteIds } },
 						columns: { quote_id: true, net: true, tax: true, line_total: true },
 						limit: LINE_LIMIT
-					})
-				]);
-				const linesByQuote = new Map<string, typeof lines>();
-				for (const line of lines) {
-					const grouped = linesByQuote.get(line.quote_id) ?? [];
-					grouped.push(line);
-					linesByQuote.set(line.quote_id, grouped);
-				}
-				await api.db.mutate(
-					'quotes',
-					quotes.map((quote) => {
-						const totals = documentTotals(
-							(linesByQuote.get(quote.norbital_id) ?? []).map((line) => ({
-								net: Number(line.net ?? 0),
-								tax: Number(line.tax ?? 0),
-								gross: Number(line.line_total ?? 0)
-							})),
-							requireCurrency(quote.currency)
-						);
-						return {
-							norbital_id: quote.norbital_id,
-							net: totals.net,
-							tax: totals.tax,
-							gross: totals.gross
-						};
-					})
-				);
-			},
+					});
+					const linesByQuote = new Map<string, typeof lines>();
+					for (const line of lines) {
+						const grouped = linesByQuote.get(line.quote_id) ?? [];
+						grouped.push(line);
+						linesByQuote.set(line.quote_id, grouped);
+					}
+					yield* api.db.mutate(
+						'quotes',
+						quotes.map((quote) => {
+							const totals = documentTotals(
+								(linesByQuote.get(quote.norbital_id) ?? []).map((line) => ({
+									net: Number(line.net ?? 0),
+									tax: Number(line.tax ?? 0),
+									gross: Number(line.line_total ?? 0)
+								})),
+								requireCurrency(quote.currency)
+							);
+							return {
+								norbital_id: quote.norbital_id,
+								net: totals.net,
+								tax: totals.tax,
+								gross: totals.gross
+							};
+						})
+					);
+				}),
 			handler: afterRollup
 		}
 	},
@@ -298,31 +303,32 @@ export default {
 		before: {
 			description:
 				'Keeps a line on its own draft quote and recomputes its net, tax and total from the changed quantity, unit price or discount.',
-			handler: async ({ input, existing, api }) => {
-				if (input.quote_id != null && input.quote_id !== existing.quote_id) {
-					throw new Error('A line item cannot be moved to a different quote.');
-				}
+			handler: ({ input, existing, api }) =>
+				Effect.gen(function* () {
+					if (input.quote_id != null && input.quote_id !== existing.quote_id) {
+						throw new Error('A line item cannot be moved to a different quote.');
+					}
 
-				const quote = await api.db.query.quotes.findFirst({
-					where: { norbital_id: { eq: existing.quote_id } }
-				});
-				if (!quote) throw new Error('Referenced quote does not exist.');
-				if (quote.status !== 'draft') {
-					throw new Error('Line items can only be modified on draft quotes.');
-				}
+					const quote = yield* api.db.query.quotes.findFirst({
+						where: { norbital_id: { eq: existing.quote_id } }
+					});
+					if (!quote) throw new Error('Referenced quote does not exist.');
+					if (quote.status !== 'draft') {
+						throw new Error('Line items can only be modified on draft quotes.');
+					}
 
-				const resolved = { ...existing, ...input };
-				validateLineFields(resolved);
+					const resolved = { ...existing, ...input };
+					validateLineFields(resolved);
 
-				const amounts = computeLineAmounts(quote, resolved);
+					const amounts = computeLineAmounts(quote, resolved);
 
-				return {
-					...input,
-					net: amounts.net,
-					tax: amounts.tax,
-					line_total: amounts.gross
-				} satisfies UpdateInput;
-			}
+					return {
+						...input,
+						net: amounts.net,
+						tax: amounts.tax,
+						line_total: amounts.gross
+					} satisfies UpdateInput;
+				})
 		},
 		after: {
 			description:

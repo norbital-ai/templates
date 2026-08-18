@@ -1,4 +1,4 @@
-import { cascade } from '@norbital-ai/pod/authoring';
+import { cascade } from '@norbital-ai/bolt/authoring';
 import type { Relationships } from './$types.js';
 
 export default ((r) => ({
