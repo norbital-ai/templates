@@ -148,7 +148,7 @@ function rollupInvoice(api: AfterApi, invoiceId: string): Effect.Effect<void> {
 			requireCurrency(invoice.currency)
 		);
 
-		yield* api.db.mutate('sales_invoices', [
+		yield* api.db.sales_invoices.mutate([
 			{ norbital_id: invoiceId, net: totals.net, tax: totals.tax, gross: totals.gross }
 		]);
 	});

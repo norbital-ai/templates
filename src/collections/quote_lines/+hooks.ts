@@ -138,7 +138,7 @@ function rollupQuote(api: AfterApi, quoteId: string): Effect.Effect<void> {
 			requireCurrency(quote.currency)
 		);
 
-		yield* api.db.mutate('quotes', [
+		yield* api.db.quotes.mutate([
 			{
 				norbital_id: quoteId,
 				net: totals.net,
@@ -276,9 +276,7 @@ export default {
 						grouped.push(line);
 						linesByQuote.set(line.quote_id, grouped);
 					}
-					yield* api.db.mutate(
-						'quotes',
-						quotes.map((quote) => {
+					yield* api.db.quotes.mutate(quotes.map((quote) => {
 							const totals = documentTotals(
 								(linesByQuote.get(quote.norbital_id) ?? []).map((line) => ({
 									net: Number(line.net ?? 0),

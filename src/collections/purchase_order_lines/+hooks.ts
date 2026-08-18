@@ -135,7 +135,7 @@ function rollupPurchaseOrder(api: AfterApi, purchaseOrderId: string): Effect.Eff
 			requireCurrency(order.currency)
 		);
 
-		yield* api.db.mutate('purchase_orders', [
+		yield* api.db.purchase_orders.mutate([
 			{
 				norbital_id: purchaseOrderId,
 				net: totals.net,
@@ -276,9 +276,7 @@ export default {
 						grouped.push(line);
 						linesByOrder.set(line.purchase_order_id, grouped);
 					}
-					yield* api.db.mutate(
-						'purchase_orders',
-						orders.map((order) => {
+					yield* api.db.purchase_orders.mutate(orders.map((order) => {
 							const totals = documentTotals(
 								(linesByOrder.get(order.norbital_id) ?? []).map((line) => ({
 									net: Number(line.net ?? 0),
