@@ -50,6 +50,27 @@
 				})
 			: null
 	);
+	/**
+	 * The settlement lock, read per record.
+	 *
+	 * The screen and the write hook compute the same lock from the same inputs — that is the whole
+	 * contract of `lib/scheduling/lock.ts` — so this query is the screen's half of the stored claim.
+	 * Without it the panel would say a record is editable right up until the hook refused it.
+	 */
+	const settlementQuery = $derived(
+		record
+			? client.db.payroll_settlements.findFirst({
+					where: {
+						source_collection: { eq: 'leave_requests' },
+						source_record_id: { eq: record.norbital_id }
+					},
+					columns: { period: true }
+				})
+			: null
+	);
+	const settledBy = $derived(
+		settlementQuery?.current ? { period: settlementQuery.current.period } : null
+	);
 	const lock = $derived(
 		record
 			? sourceLock({
@@ -58,6 +79,7 @@
 					dates: [record.from_date, record.to_date],
 					today: todayKey(),
 					windows: payrollWindows(runsQuery?.current ?? []),
+					settledBy,
 					freezeWhenLive: true
 				})
 			: { kind: 'NONE' as const }
@@ -74,7 +96,9 @@
 </svelte:head>
 
 {#if lockKey}
-	<p class="mb-3 rounded-md border border-border bg-muted/20 px-3 py-2 text-xs text-muted-foreground">
+	<p
+		class="mb-3 rounded-md border border-border bg-muted/20 px-3 py-2 text-xs text-muted-foreground"
+	>
 		{t(lockKey, sourceLockI18nParams(lock))}
 	</p>
 {/if}

@@ -208,7 +208,41 @@ export default ((r) => ({
 			from: r.payroll_runs.company_id,
 			to: r.companies.norbital_id
 		}),
-		payslip_payroll_run: r.many.payslips()
+		payslip_payroll_run: r.many.payslips(),
+		settlement_payroll_run: r.many.payroll_settlements()
+	},
+
+	/**
+	 * The settlement lock's release path, and the only mechanism that performs it.
+	 *
+	 * `cascade` here is what the owner's rule compiles to: a consumed record is locked while the run
+	 * stands and unlocks only if the run is deleted. Deleting the run deletes its claims, in the same
+	 * statement, by the database — so the release cannot half-happen and cannot be forgotten by a
+	 * hook. `payroll_runs/+hooks.ts` refuses the delete once `lifecycle = 'PAID'`, which is what makes
+	 * a paid run's claims permanent.
+	 *
+	 * It is declared and it does not yet run. `cascade()` sets a symbol nothing in the bolt package
+	 * reads, and the migration lineage emits no `ON DELETE` clause at all — `payslip_payroll_run`
+	 * above has the same declaration and the same plain `NO ACTION` foreign key behind it. The
+	 * consequence is not specific to settlements: a draft run that has written payslips already
+	 * cannot be deleted. This relation is declared the same way as its sibling so that both start
+	 * working together, rather than being dropped to hide one half of a defect.
+	 *
+	 * There is deliberately **no** relation from a settlement to the record it claims. Both available
+	 * choices are wrong: `cascade` would mean deleting a payroll run's claim on a time entry could
+	 * only ever be spelled the other way round, and a plain foreign key would refuse the delete of a
+	 * source record that the settlement hooks already refuse for a better reason and with a sentence
+	 * the person can act on. `(source_collection, source_record_id)` stays a checked pair rather than
+	 * a constrained one — the same call this file's header already makes for
+	 * `leave_types.payroll_effect` and `component_entries.origin`.
+	 */
+	payroll_settlements: {
+		settlement_payroll_run: cascade(
+			r.one.payroll_runs({
+				from: r.payroll_settlements.payroll_run_id,
+				to: r.payroll_runs.norbital_id
+			})
+		)
 	},
 
 	payslips: {

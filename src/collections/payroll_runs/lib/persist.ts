@@ -12,6 +12,7 @@
 
 import { Effect } from 'effect';
 import { assertComplete, PAGE_LIMIT, type PayrollApi } from './api.js';
+import { dedupeClaims, type SettlementClaim } from './claims.js';
 import type { ContributionCharge } from './contribute.js';
 import type { MeasuredLine } from './measure.js';
 import type { PayslipLineComponent } from '../../../custom-types/payslip_line_component/+definition.js';
@@ -22,6 +23,13 @@ export type PendingPayslip = {
 	readonly currency: string;
 	readonly settlement: Settlement;
 	readonly charges: readonly ContributionCharge[];
+	/**
+	 * The time entries and leave movements this payslip consumed, from `claimsForBundle`.
+	 *
+	 * Component entries are not in here: they are recovered below from the payslip lines that name
+	 * them, which is exact where a date range would only be close.
+	 */
+	readonly claims: readonly SettlementClaim[];
 };
 
 function identifier(row: Record<string, unknown>, what: string): string {
@@ -37,9 +45,32 @@ function identifier(row: Record<string, unknown>, what: string): string {
  * The read is checked against the page ceiling because a partial clear is worse than a failed
  * one: the rebuild would write a second set of payslips alongside the half of the first set this
  * never saw, and the run would report every figure twice.
+ *
+ * The run's settlement locks go with them, and they have to go *first*. `payroll_settlements` is
+ * uniquely indexed on `(source_collection, source_record_id)`, so a rebuild that re-claimed a
+ * record it already held would be refused by the database — the clear is what makes the rebuild
+ * idempotent rather than self-blocking. This is the only release path that is not the run's own
+ * deletion: a rebuild is the same run reconsidering, so the locks it drops here it immediately
+ * takes again.
+ *
+ * Deleting the run itself needs none of this: `payroll_settlements.payroll_run_id` is declared to
+ * cascade, so the database releases every claim in the same statement — see
+ * `src/collections/payroll_settlements/+model.ts` for why that declaration does not yet reach the
+ * DDL, and why a hook loop is not the answer.
  */
 export function clearRunResults(api: PayrollApi, runId: string): Effect.Effect<void, never, never> {
 	return Effect.gen(function* () {
+		const settlements = yield* api.db.query.payroll_settlements.findMany({
+			where: { payroll_run_id: { eq: runId } },
+			limit: PAGE_LIMIT
+		});
+		assertComplete(settlements, 'settlement locks to release');
+		if (settlements.length > 0)
+			yield* api.db.delete(
+				'payroll_settlements',
+				settlements.map((row) => row.norbital_id)
+			);
+
 		const existing = yield* api.db.query.payslips.findMany({
 			where: { payroll_run_id: { eq: runId } },
 			limit: PAGE_LIMIT
@@ -56,10 +87,11 @@ export function clearRunResults(api: PayrollApi, runId: string): Effect.Effect<v
 export function persistPayslips(options: {
 	readonly api: PayrollApi;
 	readonly runId: string;
+	readonly period: string;
 	readonly pending: readonly PendingPayslip[];
-}): Effect.Effect<{ payslipCount: number; lineCount: number }, never, never> {
+}): Effect.Effect<{ payslipCount: number; lineCount: number; claimCount: number }, never, never> {
 	return Effect.gen(function* () {
-		if (options.pending.length === 0) return { payslipCount: 0, lineCount: 0 };
+		if (options.pending.length === 0) return { payslipCount: 0, lineCount: 0, claimCount: 0 };
 
 		const payslipRows = yield* options.api.db.mutate(
 			'payslips',
@@ -139,7 +171,50 @@ export function persistPayslips(options: {
 			yield* options.api.db.mutate('payslip_lines', lineInputs);
 		}
 
-		return { payslipCount: options.pending.length, lineCount: lineInputs.length };
+		/**
+		 * Take the settlement locks, in the same step that wrote the figures they protect.
+		 *
+		 * Component entries are read off the lines rather than off a date range, because a line
+		 * *names* the entry it consumed — `component_entry_id` is a generated projection of the same
+		 * union arm. That is the exact set, and exactness matters here more than anywhere else: an
+		 * entry the run priced must lock, and an entry it skipped (a recurring allowance whose
+		 * effective range had lapsed, a loan instalment already covered by an agreement) must not,
+		 * because nothing has consumed it and a later run still needs it.
+		 *
+		 * Written after the lines and never before them. A claim that landed first would leave a
+		 * record locked by a run that then failed to persist anything.
+		 */
+		const claims = dedupeClaims([
+			...options.pending.flatMap((payslip) => payslip.claims),
+			...lineInputs.flatMap((line) =>
+				line.component.kind === 'COMPONENT_ENTRY_ONCE' ||
+				line.component.kind === 'COMPONENT_ENTRY_RECURRING'
+					? [
+							{
+								source_collection: 'component_entries' as const,
+								source_record_id: line.component.component_entry_id
+							}
+						]
+					: []
+			)
+		]);
+		if (claims.length > 0) {
+			yield* options.api.db.mutate(
+				'payroll_settlements',
+				claims.map((claim) => ({
+					payroll_run_id: options.runId,
+					source_collection: claim.source_collection,
+					source_record_id: claim.source_record_id,
+					period: options.period
+				}))
+			);
+		}
+
+		return {
+			payslipCount: options.pending.length,
+			lineCount: lineInputs.length,
+			claimCount: claims.length
+		};
 	});
 }
 

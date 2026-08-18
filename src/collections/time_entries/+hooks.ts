@@ -8,11 +8,41 @@ import {
 	assertNotSettled,
 	sourceLock,
 	sourceLockBlocksWrite,
-	sourceLockMessage
+	sourceLockMessage,
+	type SettlementClaim
 } from '../../lib/scheduling/lock.js';
 import type { HookApi, Hooks } from './$types.js';
 
 const QUERY_LIMIT = 20_000;
+
+/**
+ * The settlement lock held over one attendance record, or null when none is.
+ *
+ * One indexed lookup on `(source_collection, source_record_id)`. It is asked on every update and
+ * every delete, and that is the point: the previous guard could only ask whether the *day* fell
+ * inside a paid run's window, so a draft run that had already priced this exact entry left it
+ * editable underneath its own payslips.
+ *
+ * Read through the requesting person's own subject, like every other hook read. That is why every
+ * policy in `src/policies` carries a `payroll_settlements` read grant — without one this would fail
+ * as an access denial naming a collection the person has never heard of, instead of the sentence
+ * that tells them what to do.
+ */
+function settlementOver(
+	api: HookApi,
+	timeEntryId: string
+): Effect.Effect<SettlementClaim | null, never, never> {
+	return Effect.gen(function* () {
+		const claim = yield* api.db.query.payroll_settlements.findFirst({
+			where: {
+				source_collection: { eq: 'time_entries' },
+				source_record_id: { eq: timeEntryId }
+			},
+			columns: { period: true }
+		});
+		return claim == null ? null : { period: claim.period };
+	});
+}
 
 function dateKey(value: string | Date | null | undefined): string {
 	if (value == null) return '';
@@ -75,28 +105,45 @@ function assertDayNotSettled(
 
 function assertAttendanceSourceUnlocked(
 	api: HookApi,
+	timeEntryId: string,
 	employmentId: string,
 	workDate: string | Date,
 	approvalId: string | null | undefined,
 	action: string
 ): Effect.Effect<void, never, never> {
 	return Effect.gen(function* () {
+		// Asked first and asked unconditionally. The settlement lock is the only one of these that is
+		// a fact rather than an inference, and it is the only one whose refusal can name the run that
+		// would have to be deleted — so a person whose entry is genuinely held by a draft run is told
+		// that, rather than being told a vaguer thing about the month it sits in.
+		const settledBy = yield* settlementOver(api, timeEntryId);
 		const employment = yield* api.db.query.employments.findFirst({
 			where: { norbital_id: { eq: employmentId } },
 			columns: { company_id: true }
 		});
-		if (employment == null) return;
-		const runs = yield* api.db.query.payroll_runs.findMany({
-			where: { company_id: { eq: employment.company_id } },
-			columns: { period: true, lifecycle: true, attendance_from: true, attendance_to: true },
-			limit: QUERY_LIMIT
-		});
+		// The employment read can come back empty for a person whose row predicate hides it. The
+		// settlement lock must still apply in that case, so the window lookup is skipped and the
+		// stored claim is evaluated on its own rather than the whole guard being abandoned.
+		const runs =
+			employment == null
+				? []
+				: yield* api.db.query.payroll_runs.findMany({
+						where: { company_id: { eq: employment.company_id } },
+						columns: {
+							period: true,
+							lifecycle: true,
+							attendance_from: true,
+							attendance_to: true
+						},
+						limit: QUERY_LIMIT
+					});
 		const lock = sourceLock({
 			existing: true,
 			approvalId,
 			dates: [dateKey(workDate)],
 			today: todayKey(),
 			windows: payrollWindows(runs),
+			settledBy,
 			freezeWhenLive: false
 		});
 		if (sourceLockBlocksWrite(lock)) {
@@ -171,11 +218,12 @@ export default {
 	update: {
 		before: {
 			description:
-				'Re-checks the complete patched attendance row so partial edits cannot create overlapping intervals, time reversal or an impossible unpaid break, or rewrite a day that has passed, approved leave owns, or a paid payroll run settled.',
+				'Re-checks the complete patched attendance row so partial edits cannot create overlapping intervals, time reversal or an impossible unpaid break, or rewrite a day that has passed, approved leave owns, or a payroll run has already taken into account.',
 			handler: ({ input, existing, api }) =>
 				Effect.gen(function* () {
 					yield* assertAttendanceSourceUnlocked(
 						api,
+						existing.norbital_id,
 						existing.employment_id,
 						existing.work_date,
 						existing.norbital_approval_id,
@@ -202,11 +250,12 @@ export default {
 	delete: {
 		before: {
 			description:
-				'Refuses deleting attendance on a day that has already passed or a paid payroll run settled.',
+				'Refuses deleting attendance a payroll run has already taken into account, or on a day that has already passed or a paid payroll run settled.',
 			handler: ({ existing, api }) =>
 				Effect.gen(function* () {
 					yield* assertAttendanceSourceUnlocked(
 						api,
+						existing.norbital_id,
 						existing.employment_id,
 						existing.work_date,
 						existing.norbital_approval_id,

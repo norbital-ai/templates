@@ -11,6 +11,13 @@
  * hook owns the payroll invariant: draft figures may be rebuilt; paid figures are immutable and
  * later corrections arrive as adjustment entries in a future draft.
  *
+ * It also owns one end of the **settlement lock**. A run that persists claims every source record it
+ * consumed in `payroll_settlements`; deleting the run cascades those claims away. Which is why the
+ * delete refusal below is not merely tidiness about history: it is what makes a paid period's
+ * attendance, entries and leave permanently immutable. See
+ * `src/collections/payroll_settlements/+model.ts`, and `src/lib/policy_grants.ts` for why this lock
+ * is not `norbital_approval_id`.
+ *
  * Creating a run resolves its window and its governing configuration first, because
  * `configuration_hash`, `pay_date`, `attendance_from` and `attendance_to` are what make a payslip
  * traceable to the law it was computed under — a run that had to be built before it could say what
@@ -206,14 +213,41 @@ export default {
 		}
 	},
 
+	/**
+	 * Deleting a run is the settlement lock's release, and the only one.
+	 *
+	 * `payroll_settlements.payroll_run_id` is declared to cascade, so the rows this run claimed over
+	 * time entries, component entries and leave requests are dropped by the database in the same
+	 * statement that drops the run — and the records become editable again the moment the run stops
+	 * standing. That is the owner's rule verbatim: locked while the run stands, released only if the
+	 * run is deleted.
+	 *
+	 * There is no `delete.after` releasing them by hand, and that is deliberate. A hook release would
+	 * have to page through the claims and delete them one at a time, and the reachable delete —
+	 * `api.db.<collection>.delete(identifiers)` — takes `identifiers[0]` and ignores the rest, so a
+	 * release written that way would quietly free one record out of several hundred and report
+	 * success. A cascade cannot half-happen; a loop over a single-id delete can.
+	 *
+	 * The cascade is not honoured yet. `cascade()` sets a marker no compiler and no runtime reads, and
+	 * the migration lineage emits no `ON DELETE` clause for any relation in this workspace — so today
+	 * a draft run that has written anything is refused by its own foreign keys, settlements or no
+	 * settlements. See `src/collections/payroll_settlements/+model.ts`.
+	 */
 	delete: {
 		before: {
 			description:
-				'Allows a payroll run to be deleted only while it is still a draft, so a period that has been paid can never be erased.',
+				'Allows a payroll run to be deleted only while it is still a draft, so a period that has been paid can never be erased and the settlement locks it holds over attendance, entries and leave are never released.',
 			handler: ({ existing }) => {
+				// The refusal that makes a paid run's locks permanent. Deleting a PAID run would cascade
+				// its settlement claims away and quietly reopen every record behind money that has
+				// already left the building — so the correction path is the only path, and the message
+				// says so rather than leaving the person to find out.
 				if (existing.lifecycle !== 'DRAFT')
 					refuse(
-						`Payroll run ${existing.period} is ${existing.lifecycle}. Only a draft run can be deleted.`
+						`Payroll run ${existing.period} is ${existing.lifecycle} and cannot be deleted. ` +
+							'A paid run is the record of money that has been paid, and deleting it would ' +
+							'release every attendance, entry and leave record it settled. Correct it with an ' +
+							'adjustment entry in a later draft run instead.'
 					);
 			}
 		}

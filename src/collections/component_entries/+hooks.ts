@@ -82,26 +82,52 @@ function assertEntrySourceUnlocked(
 	action: string
 ): Effect.Effect<void, never, never> {
 	return Effect.gen(function* () {
+		/**
+		 * The settlement lock, read first and read on its own.
+		 *
+		 * This collection already had *a* consumption signal — `consumedByPayslip`, from a payslip line
+		 * naming the entry — and it stays, because it is the same fact seen from the other side and
+		 * costs nothing to keep. What it could never say is *which run* consumed the entry, so its
+		 * refusal could not tell anybody what would release it. The stored claim can, and it is the
+		 * one signal the other two source collections also have, so all three now refuse in the same
+		 * words.
+		 */
+		const settlement = yield* api.db.query.payroll_settlements.findFirst({
+			where: {
+				source_collection: { eq: 'component_entries' },
+				source_record_id: { eq: existing.norbital_id }
+			},
+			columns: { period: true }
+		});
 		const employment = yield* api.db.query.employments.findFirst({
 			where: { norbital_id: { eq: existing.employment_id } },
 			columns: { company_id: true }
 		});
-		if (employment == null) return;
-		const [runs, lines] = yield* Effect.all(
-			[
-				api.db.query.payroll_runs.findMany({
-					where: { company_id: { eq: employment.company_id } },
-					columns: { period: true, lifecycle: true, attendance_from: true, attendance_to: true },
-					limit: LIMIT
-				}),
-				api.db.query.payslip_lines.findMany({
-					where: { component_entry_id: { eq: existing.norbital_id } },
-					columns: { norbital_id: true },
-					limit: 1
-				})
-			],
-			{ concurrency: 'unbounded' }
-		);
+		// A hidden employment must not disable the lock. The window lookup is skipped; the stored
+		// claim is still evaluated, because it is a fact about this record and not about its company.
+		const [runs, lines] =
+			employment == null
+				? [[], []]
+				: yield* Effect.all(
+						[
+							api.db.query.payroll_runs.findMany({
+								where: { company_id: { eq: employment.company_id } },
+								columns: {
+									period: true,
+									lifecycle: true,
+									attendance_from: true,
+									attendance_to: true
+								},
+								limit: LIMIT
+							}),
+							api.db.query.payslip_lines.findMany({
+								where: { component_entry_id: { eq: existing.norbital_id } },
+								columns: { norbital_id: true },
+								limit: 1
+							})
+						],
+						{ concurrency: 'unbounded' }
+					);
 		const origin = existing.origin;
 		const lock = sourceLock({
 			existing: true,
@@ -110,6 +136,7 @@ function assertEntrySourceUnlocked(
 			today: todayKey(),
 			windows: payrollWindows(runs),
 			consumedByPayslip: lines.length > 0,
+			settledBy: settlement == null ? null : { period: settlement.period },
 			freezeWhenLive: origin?.kind === 'CLAIM'
 		});
 		if (sourceLockBlocksWrite(lock)) {
