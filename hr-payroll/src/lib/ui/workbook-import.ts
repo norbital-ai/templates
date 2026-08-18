@@ -103,8 +103,15 @@ export interface WorkbookImportOptions {
 	readonly collectionName: string;
 	/** Names the thing being imported in the toasts: "roster rows", "time entries". */
 	readonly recordLabel: string;
-	/** Turns the chosen file into the JSON this collection's import pipeline declares. */
-	buildPayload(grids: WorkbookGrids): unknown;
+	/**
+	 * Turns the chosen file into the JSON this collection's import pipeline declares.
+	 *
+	 * `object` rather than `Record<string, unknown>`: the payload builders return declared interfaces
+	 * (`RosterImportPayload`, `TimeEntryImportPayload`), and an interface has no implicit index
+	 * signature, so naming the record type here would reject the very functions this exists for. The
+	 * widening to a record happens once, below, where the payload becomes a wire value.
+	 */
+	buildPayload(grids: WorkbookGrids): object;
 }
 
 /**
@@ -121,14 +128,29 @@ export async function runWorkbookImport(
 	const file = await pickWorkbookFile(t);
 	if (file == null) return;
 	try {
-		const payload = options.buildPayload(await readWorkbookGrids(file, t));
-		const created = await importCollectionRecords({
-			collection_name: options.collectionName,
-			import_data: payload
+		const payload = { ...options.buildPayload(await readWorkbookGrids(file, t)) };
+		/**
+		 * The whole file is one record, not one record per row.
+		 *
+		 * `collections.import` declares `{ records: [{ collection, id, values }] }`, and `values` is
+		 * the document the collection's import pipeline declares as its `input` — header fields and
+		 * rows together. Splitting the file across `records` would leave the header fields the
+		 * pipeline validates against (`roster_id`, `month`, `legal_entity`, `timezone`) with nowhere
+		 * to go, and each fragment would be checked against the company's records on its own.
+		 *
+		 * The id is minted here because the command requires one, not because it is used: a
+		 * pipeline-backed collection gets the ids of its writes from the rows the pipeline returns,
+		 * and this one is never stored.
+		 */
+		const imported = await importCollectionRecords({
+			records: [{ collection: options.collectionName, id: crypto.randomUUID(), values: payload }]
 		});
 		toast.success(
 			t('component.workbook_imported', {
-				count: created.length,
+				// The pipeline's own row count. One posted file becomes as many records as the pipeline
+				// makes of it — a month grid is one document and a few hundred rows — so the number of
+				// things posted says nothing about the number of things imported.
+				count: imported,
 				label: options.recordLabel,
 				file: file.name
 			})

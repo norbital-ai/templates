@@ -78,7 +78,7 @@ function writeTemplateBundle(template, projection, outputDirectory, buildOutput)
 				sourceCommit: projection.revision,
 				bundleFormatVersion: 1,
 				lockHash,
-				podVersion,
+				boltVersion,
 				packageKey: lockHash.slice(0, 16),
 				bundleSha256: sha256(bundle),
 				bundleBytes: statSync(bundlePath).size
