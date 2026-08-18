@@ -64,7 +64,16 @@ export function authoredSourceFiles(workspaceDirectory) {
  * a second Svelte pinned for the checker could disagree with the one the template compiles with.
  */
 function svelteParser(workspaceDirectory) {
-	return createRequire(path.join(workspaceDirectory, 'package.json'))('svelte/compiler').parse;
+	const templateRequire = createRequire(path.join(workspaceDirectory, 'package.json'));
+	try {
+		return templateRequire('svelte/compiler').parse;
+	} catch {
+		// A template's own install is the primary source, but the repository-level audit
+		// (scripts/tests) also runs in CI where templates are never installed — the workflow's
+		// declaration step explicitly requires none of it. Fall back to the repository root's
+		// Svelte, which this repository now declares for exactly that job.
+		return createRequire(import.meta.url)('svelte/compiler').parse;
+	}
 }
 
 const isSystemColumnName = (name) =>
