@@ -95,11 +95,17 @@ export function normalizedWorkedIntervals(entry: TimeEntryLike): readonly Interv
 		throw new Error(`Time entry on ${workDate} has no worked intervals.`);
 	const parsed = entry.worked_intervals
 		.map((interval) => {
-			if (interval.end_at == null) throw new Error(`Time entry on ${workDate} is still open.`);
+			// The record, not only the day. Dozens of people clock on any given date, so a refusal that
+			// named the date alone told whoever had to fix it which day to search and nothing more.
+			if (interval.end_at == null)
+				throw new Error(`Time entry ${entry.norbital_id} on ${workDate} is still open.`);
 			const start = instant(interval.start_at);
 			const end = instant(interval.end_at);
 			if (!Number.isFinite(start) || !Number.isFinite(end) || end <= start)
-				throw new Error(`Time entry on ${workDate} contains an invalid worked interval.`);
+				throw new Error(
+					`Time entry ${entry.norbital_id} on ${workDate} contains an invalid worked interval ` +
+						`(${String(interval.start_at)} → ${String(interval.end_at)}).`
+				);
 			return { start, end };
 		})
 		.toSorted((left, right) => left.start - right.start || left.end - right.end);

@@ -142,12 +142,20 @@ export function buildPayrollRun(options: {
 
 		lap('gather');
 
+		// Both bounds, not only the end. A clock-out with no clock-in is just as unpriceable as a clock
+		// that never stopped, and testing `end_at` alone let it through here to fail further in with a
+		// message about an "invalid interval" — true, but three phases away from the record at fault.
 		const openTimeEntry = gathered.bundles
 			.flatMap((bundle) => bundle.timeEntries)
-			.find((entry) => entry.worked_intervals?.some((interval) => interval.end_at == null));
+			.find((entry) =>
+				entry.worked_intervals?.some(
+					(interval) => interval.end_at == null || interval.start_at == null
+				)
+			);
 		if (openTimeEntry)
 			throw new Error(
-				`A time entry in the attendance window is still open (${requiredDateKey(openTimeEntry.work_date, 'time_entries.work_date')}). ` +
+				`A time entry in the attendance window is still open: ${openTimeEntry.norbital_id} on ` +
+					`${requiredDateKey(openTimeEntry.work_date, 'time_entries.work_date')}. ` +
 					'Payroll cannot price a clock that has not stopped.'
 			);
 
