@@ -3,7 +3,7 @@ import type { Policy } from './$types.js';
 /**
  * A procurement officer: suppliers, buying documents, and their lines.
  *
- * The buy side is granted here and withheld from the sales representative policy. Pod policies are
+ * The buy side is granted here and withheld from the sales representative policy. Bolt policies are
  * collection-scoped, so buy cost stays off the sales surface by absence of grants rather than by
  * column-level masking: `purchase_order_lines` carries the unit cost, and sales has no grant for it.
  *

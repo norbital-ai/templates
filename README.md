@@ -8,7 +8,7 @@ purchase orders against suppliers and confirms the buy. Both sides mirror master
 company's external system of record — an ERP or accounting system that owns customers, items, and
 vendors — and hand their committed documents back out across the boundary. One entry, no re-keying.
 
-This is an executable Pod template, not a production-operations manual. It demonstrates
+This is an executable Bolt template, not a production-operations manual. It demonstrates
 server-enforced document lifecycles, revision-safe quoting, snapshot line items, money arithmetic
 that holds up to reconciliation, a cost-secrecy boundary drawn by policy omission, and a sync
 registry that keeps the workspace in step with an external system.
@@ -129,7 +129,7 @@ One `erp` connection (a placeholder `baseUrl`, and a bearer token referenced by 
 | `sales_rep`           | `crm`          | Its own quotes, sales invoices, and contract signings (scoped to the requestor), their lines, settlements, activities; reads accounts, contacts, and the catalogue. |
 | `procurement_officer` | `crm_purchase` | Suppliers, purchase orders and lines, goods receipts, purchase invoices and lines, settlements; reads the catalogue.                                                |
 
-The sales/procurement split is drawn by **omission**, not masking. Pod policies are
+The sales/procurement split is drawn by **omission**, not masking. Bolt policies are
 collection-scoped, so buy cost stays off the sales surface because sales has no grant for
 `purchase_order_lines` (the only collection carrying a cost column) — and the buy side gets no
 quote grant, so it never sees sell prices or margin. The shared catalogue exposes sell prices only.
@@ -214,7 +214,7 @@ src/
 Run from the template directory; `.norbital/` generated output is rebuilt and never hand-edited:
 
 ```bash
-pnpm sync    # pod sync — regenerates .norbital/, may add a migration
+pnpm sync    # bolt sync — regenerates .norbital/, may add a migration
 pnpm lint    # prettier --check + svelte-check
 pnpm build   # vite build
 ```
@@ -223,16 +223,16 @@ The templates repository provides the same loops across every template (`pnpm te
 `templates:lint`, `templates:build`, and `templates:verify`, which proves each template installs,
 syncs, lints, and builds from its tracked files alone).
 
-- `pod sync` may create or update `.norbital/migrations/`. That directory is generated but
+- `bolt sync` may create or update `.norbital/migrations/`. That directory is generated but
   **committed** — commit it with the authored change. `migrationFingerprint` hashes its raw bytes,
   so never reformat it by hand.
 - There is no seed script, so deployed data evolves through committed migrations, not seeds: for a
-  change that must apply to existing tenants, create a custom migration with
-  `pnpm exec pod migration create <name> --custom` and run it through the update flow below.
+  change that must apply to existing tenants, write the next lineage entry with
+  `pnpm exec bolt migrate --name <name>`, edit its SQL, and run it through the update flow below.
 - Publishing: pushing to `main` of the templates repository republishes
   `refs/heads/templates/crm` — a fast-forward-only subtree split of this directory. A tenant is
   forked from that commit, so it shares ancestry and adopts updates by rebase; it never moves on
-  its own. After publishing, consume the release in Core and redeploy:
-  `pnpm tenant:update --org=<org-slug> --template=crm`, then hard-refresh the iframe. Use
-  `pnpm env:reset --target dev --template crm` only for a deliberate reseed. The templates
+  its own. After publishing, link the release into Colony (`pnpm yalc:link`) and restart
+  `pnpm --filter colony dev`, then hard-refresh the iframe — the Colony dev bootstrap converges on
+  every start, so there is no separate tenant-update or environment-reset step. The templates
   repository README documents the full release and tenant lifecycle.

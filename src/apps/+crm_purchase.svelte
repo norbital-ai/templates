@@ -89,13 +89,13 @@
 		name="description"
 		content="Purchase orders, suppliers, goods receipts, invoices, and the buying side of the product catalogue"
 	/>
-	<meta name="pod:icon" content="lucide:shopping-cart" />
+	<meta name="bolt:icon" content="lucide:shopping-cart" />
 	<meta
-		name="pod:thumbnail"
+		name="bolt:thumbnail"
 		content="/api/template-seed-assets/crm/app-media/crm_purchase-banner.webp"
 	/>
 	<meta
-		name="pod:banner"
+		name="bolt:banner"
 		content="/api/template-seed-assets/crm/app-media/crm_purchase-banner.webp"
 	/>
 </svelte:head>
