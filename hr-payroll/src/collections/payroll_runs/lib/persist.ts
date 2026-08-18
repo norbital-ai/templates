@@ -75,18 +75,10 @@ export function clearRunResults(api: PayrollApi, runId: string): Effect.Effect<v
 		assertComplete(existing, 'payslips to clear');
 		if (existing.length === 0) return;
 
-		// Lines before the payslips they name. `payslip_lines.payslip_id` is a plain foreign key —
-		// nothing in the baseline DDL cascades — so deleting a payslip that still has lines is
-		// refused outright. This was unreachable until payroll began writing anything: with PERSIST
-		// broken, `clearRunResults` always found zero payslips, and the first recalculation of a run
-		// that had actually produced figures was the first time it mattered.
-		const lines = yield* api.db.query.payslip_lines.findMany({
-			where: { payslip_id: { in: existing.map((row) => row.norbital_id) } },
-			limit: PAGE_LIMIT
-		});
-		assertComplete(lines, 'payslip lines to clear');
-		if (lines.length > 0) yield* api.db.payslip_lines.delete(lines.map((row) => row.norbital_id));
-
+		// The lines go with them, and the database does it. `payslip_lines.payslip_id` is declared
+		// `cascade(...)` in `+relationship.ts`, and that declaration now reaches the DDL — until it
+		// did, every foreign key was `NO ACTION` and deleting a payslip that still had lines was
+		// refused outright. Deleting them here as well would be a second mechanism for one rule.
 		yield* api.db.payslips.delete(existing.map((row) => row.norbital_id));
 	});
 }
