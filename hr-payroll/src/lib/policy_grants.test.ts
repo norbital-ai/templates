@@ -69,6 +69,12 @@ test('an employee cannot create a payroll run, and neither can a supervisor or a
 		assert.equal(may(policy, 'payroll_runs', 'delete'), false, policy.name);
 		// And they cannot look at one either, which is the half that is easy to leave behind.
 		assert.equal(may(policy, 'payroll_runs', 'read'), false, policy.name);
+	}
+	// A payslip is the exception, and deliberately so: Employee Self-Service exists to show somebody
+	// their own pay. The grant is row-scoped to their own employment, so reading one is not reading
+	// payroll — the run that produced it stays out of reach above.
+	assert.equal(may(employee, 'payslips', 'read'), true);
+	for (const policy of [supervisor, manager]) {
 		assert.equal(may(policy, 'payslips', 'read'), false, policy.name);
 	}
 });
