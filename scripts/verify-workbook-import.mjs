@@ -293,9 +293,15 @@ try {
 			work_date: '2026-05-06',
 			shift_definition_id: 'shift:off',
 			roster_id: ROSTER_ID,
-			assignment_code: null
+			assignment_code: null,
+			origin: 'IMPORT',
+			note: null
 		},
 		'OFF remains explicit and its meaning comes from the referenced code variant'
+	);
+	assert.ok(
+		written.every((row) => row.origin === 'IMPORT'),
+		'a workbook row is IMPORT provenance, not the MANUAL default the board writes'
 	);
 
 	// ── One bad row refuses the whole file, and says which row ─────────────────────────────────────

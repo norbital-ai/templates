@@ -28,6 +28,7 @@
 	import { toast } from 'svelte-sonner';
 	import { resolveWindow } from './lib/period.js';
 	import { formatCalendarDate, formatNumeric } from '../../lib/ui/display-formatters.js';
+	import { saveCollectionExport } from '../../lib/ui/export-download.js';
 
 	let { record, refresh, close }: RepresentationProps = $props();
 	const { t } = useI18n<TenantI18nKeys>();
@@ -186,6 +187,7 @@
 				{ includeAction: (action) => action.metadata?.kind === 'payroll-report-xlsx' }
 			);
 			if (manifest.length === 0) throw new Error(t('component.build_before_export'));
+			saveCollectionExport(manifest);
 		} catch (error) {
 			toast.error(error instanceof Error ? error.message : t('component.export_failed'));
 		} finally {
