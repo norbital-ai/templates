@@ -33,7 +33,7 @@ describe('authored system columns', () => {
 			for (const extension of required) {
 				assert.ok(
 					counted[extension] > 0,
-					`${template.key} contributed no ${extension} files: ${JSON.stringify(counted)}`
+					`${template.slug} contributed no ${extension} files: ${JSON.stringify(counted)}`
 				);
 			}
 		}
@@ -46,7 +46,7 @@ describe('authored system columns', () => {
 		const offences = templates.flatMap((template) =>
 			auditWorkspace(template.directory).findings.map(
 				(finding) =>
-					`${template.key}/${path.relative(template.directory, finding.file)} <${finding.component} ${finding.property}>`
+					`${template.slug}/${path.relative(template.directory, finding.file)} <${finding.component} ${finding.property}>`
 			)
 		);
 		assert.deepEqual(offences, [], 'the framework supplies what a surface already knows');

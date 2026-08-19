@@ -17,9 +17,9 @@ const filter = process.argv[2];
 for (const template of discoverTemplates(filter)) {
 	if (!existsSync(path.join(template.directory, 'node_modules', '.bin', 'bolt'))) {
 		throw new Error(
-			`${template.key} is not installed. Run \`pnpm --dir ${template.key} install\`.`
+			`${template.slug} is not installed. Run \`pnpm --dir ${template.slug} install\`.`
 		);
 	}
-	console.log(`Synchronizing ${template.key}...`);
+	console.log(`Synchronizing ${template.slug}...`);
 	execFileSync('pnpm', ['sync'], { cwd: template.directory, stdio: 'inherit' });
 }

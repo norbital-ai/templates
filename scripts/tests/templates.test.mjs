@@ -16,15 +16,41 @@ describe('template discovery', () => {
 		for (const template of templates) {
 			assert.ok(
 				existsSync(path.join(template.directory, templateMetadataFile)),
-				`${template.key} must carry ${templateMetadataFile} in its own tree so the metadata projects with it`
+				`${template.slug} must carry ${templateMetadataFile} in its own tree so the metadata projects with it`
 			);
-			assert.equal(template.ref, `${templateRefNamespace}/${template.key}`);
+			assert.equal(template.ref, `${templateRefNamespace}/${template.slug}`);
+		}
+	});
+
+	it('projects the organization handle without tying it to the directory', () => {
+		// The two axes, pinned. `slug` is the directory, and so the ref, the projection prefix and
+		// the website URL; `handle` is the manifest `key`, and so the tenant id a host provisions
+		// under. The equality between them used to be enforced, which is why every handle was a
+		// repository path — and why renaming one would have moved published refs.
+		for (const template of discoverTemplates()) {
+			const manifest = JSON.parse(
+				readFileSync(path.join(template.directory, templateMetadataFile), 'utf8')
+			);
+			assert.equal(
+				template.handle,
+				manifest.key,
+				`${template.slug} handle comes from the manifest`
+			);
+			assert.match(template.handle, /^norbital_[a-z0-9_]+$/, `${template.slug} handle scheme`);
+			assert.doesNotMatch(template.slug, /_/, `${template.slug} directory stays kebab-case`);
+		}
+	});
+
+	it('resolves a template by either of its names', () => {
+		for (const template of discoverTemplates()) {
+			assert.deepEqual(discoverTemplates(template.slug), [template]);
+			assert.deepEqual(discoverTemplates(template.handle), [template]);
 		}
 	});
 
 	it('keeps declared picker counts equal to what the tree actually contains', () => {
 		for (const template of discoverTemplates()) {
-			assert.deepEqual(template.counts, actualCounts(template.directory), template.key);
+			assert.deepEqual(template.counts, actualCounts(template.directory), template.slug);
 		}
 	});
 
@@ -55,7 +81,7 @@ describe('template discovery', () => {
 					'bolt',
 					'package.json'
 				);
-				assert.ok(existsSync(linked), `${template.key} is yalc-linked but has no linked build`);
+				assert.ok(existsSync(linked), `${template.slug} is yalc-linked but has no linked build`);
 				assert.match(JSON.parse(readFileSync(linked, 'utf8')).version, /^\d+\.\d+\.\d+/);
 				continue;
 			}
@@ -67,7 +93,7 @@ describe('template discovery', () => {
 		for (const template of discoverTemplates()) {
 			assert.ok(
 				existsSync(path.join(template.directory, 'pnpm-lock.yaml')),
-				`${template.key} must commit pnpm-lock.yaml`
+				`${template.slug} must commit pnpm-lock.yaml`
 			);
 		}
 	});
@@ -97,7 +123,7 @@ describe('template discovery', () => {
 			const firstParty = Object.entries(dependencies).filter(([name]) =>
 				name.startsWith('@norbital-ai/')
 			);
-			assert.ok(firstParty.length > 0, `${template.key} declares no first-party dependencies`);
+			assert.ok(firstParty.length > 0, `${template.slug} declares no first-party dependencies`);
 
 			const policy = readFileSync(path.join(template.directory, 'pnpm-workspace.yaml'), 'utf8');
 			/**
@@ -132,7 +158,7 @@ describe('template discovery', () => {
 				assert.match(
 					policy,
 					new RegExp(`'${name}@${String(version).replace(/[.+*?^$()[\]{}|\\]/g, '\\$&')}'`),
-					`${template.key} depends on ${name}@${version} but does not exempt it`
+					`${template.slug} depends on ${name}@${version} but does not exempt it`
 				);
 			}
 			assert.doesNotMatch(policy, /@norbital-ai\/\*/);
@@ -144,7 +170,7 @@ describe('template discovery', () => {
 			const policy = readFileSync(path.join(template.directory, 'pnpm-workspace.yaml'), 'utf8');
 			assert.match(policy, /supportedArchitectures:/);
 			for (const architecture of ['darwin', 'linux', 'win32', 'x64', 'arm64', 'glibc', 'musl']) {
-				assert.match(policy, new RegExp(`- ${architecture}`), `${template.key}: ${architecture}`);
+				assert.match(policy, new RegExp(`- ${architecture}`), `${template.slug}: ${architecture}`);
 			}
 			assert.doesNotMatch(policy, /- current/);
 		}
@@ -181,7 +207,7 @@ describe('template discovery', () => {
 					);
 					assert.ok(
 						!columns.has(column) || replacesColumn,
-						`${template.key}/${migration.tag}: ${statement} duplicates the fresh schema`
+						`${template.slug}/${migration.tag}: ${statement} duplicates the fresh schema`
 					);
 					columns.add(column);
 				}
@@ -197,7 +223,7 @@ describe('template discovery', () => {
 					const columns = declared.get(table);
 					assert.ok(
 						guarded || columns?.has(column),
-						`${template.key}/${migration.tag}: a column absent from the fresh lineage must be dropped with IF EXISTS (${table}.${column})`
+						`${template.slug}/${migration.tag}: a column absent from the fresh lineage must be dropped with IF EXISTS (${table}.${column})`
 					);
 					const followingSql = migration.sql.slice((match.index ?? 0) + match[0].length);
 					const replacedInMigration = followingSql.includes(
@@ -209,7 +235,7 @@ describe('template discovery', () => {
 					const [, guarded, index] = match;
 					assert.ok(
 						guarded || declaredIndexes.has(index),
-						`${template.key}/${migration.tag}: an index absent from the fresh lineage must be dropped with IF EXISTS (${index})`
+						`${template.slug}/${migration.tag}: an index absent from the fresh lineage must be dropped with IF EXISTS (${index})`
 					);
 					declaredIndexes.delete(index);
 				}
@@ -217,7 +243,7 @@ describe('template discovery', () => {
 					const [, guarded, table] = match;
 					assert.ok(
 						guarded || declared.has(table),
-						`${template.key}/${migration.tag}: a table absent from the fresh lineage must be dropped with IF EXISTS (${table})`
+						`${template.slug}/${migration.tag}: a table absent from the fresh lineage must be dropped with IF EXISTS (${table})`
 					);
 					declared.delete(table);
 				}
@@ -228,7 +254,7 @@ describe('template discovery', () => {
 					if (table.endsWith('_history') || !declared.has(`${table}_history`)) continue;
 					assert.ok(
 						migration.sql.includes(`ALTER TABLE "${table}_history" ${columnChange};`),
-						`${template.key}/${migration.tag}: ${table}.${columnChange} is not mirrored to typed history`
+						`${template.slug}/${migration.tag}: ${table}.${columnChange} is not mirrored to typed history`
 					);
 				}
 			}

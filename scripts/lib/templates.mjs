@@ -10,8 +10,25 @@ import { fileURLToPath } from 'node:url';
  * Colony reads it from the projected ref; nothing has to stay in sync across two files, and there
  * is no catalogue in this repository either — presence of the manifest is the whole registration.
  *
- * Templates live at the repository root, one directory per key. The directory name is the key,
- * which makes the projection prefix and the published ref name the same string a reader sees.
+ * **Two names, two axes.** A template has a `slug` and a `handle`, and they are deliberately not the
+ * same string:
+ *
+ *   - `slug` is the directory this template occupies at the repository root. It is what
+ *     `git subtree split --prefix=` splits, what the published ref is named after, what the website
+ *     serves `/templates/<slug>` from, and what the standalone build package is named after. It is a
+ *     *repository* fact, and renaming it rewrites published refs and public URLs.
+ *   - `handle` is the manifest's `key`: the organization handle a Colony host provisions the
+ *     workspace under, which is also its tenant id and the string a person types on `/login`. It is
+ *     a *product* fact, and it is the one the `norbital_*` scheme names.
+ *
+ * These used to be one string, enforced by a check that a template must live in `<key>/`. That check
+ * is gone on purpose: `norbital_hr` is the handle of the template in `hr-payroll/`, and requiring the
+ * directory to follow would have moved every published ref and every `norbital.ai/templates/*` URL
+ * for a rename that is only about what an organization is called.
+ *
+ * Nothing in this repository consumes the handle — every script here works in slugs, because every
+ * script here works on directories. It is validated and projected so the value a host will resolve
+ * a tenant by cannot be malformed and reach production unnoticed.
  */
 
 export const repositoryRoot = path.resolve(
@@ -22,7 +39,14 @@ export const repositoryRoot = path.resolve(
 export const templateRefNamespace = 'refs/heads/templates';
 export const templateMetadataFile = 'norbital.template.json';
 
-const keyPattern = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+/** A repository directory name, and so also a ref name, a URL path segment and a package suffix. */
+const slugPattern = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+/**
+ * An organization handle. Underscores are the whole reason this differs from `slugPattern`: the
+ * handles are `norbital_hr`, `norbital_bca` and the rest, and a kebab-only pattern rejected every
+ * one of them.
+ */
+const handlePattern = /^[a-z0-9]+(?:[_-][a-z0-9]+)*$/;
 const countKeys = ['collections', 'apps', 'automations'];
 
 function fail(message) {
@@ -58,37 +82,41 @@ export function actualCounts(directory) {
 	};
 }
 
-function readMetadata(directoryName) {
-	const directory = path.join(repositoryRoot, directoryName);
+function readMetadata(slug) {
+	const directory = path.join(repositoryRoot, slug);
 	const metadata = JSON.parse(readFileSync(path.join(directory, templateMetadataFile), 'utf8'));
 	if (metadata.schemaVersion !== 1) {
-		fail(`${directoryName}/${templateMetadataFile} must use schemaVersion 1.`);
+		fail(`${slug}/${templateMetadataFile} must use schemaVersion 1.`);
 	}
-	if (!keyPattern.test(metadata.key)) fail(`Invalid template key: ${metadata.key}`);
-	if (metadata.key !== directoryName) {
-		fail(`Template ${metadata.key} must live in ${metadata.key}/, not ${directoryName}/.`);
+	if (!slugPattern.test(slug)) fail(`Invalid template directory name: ${slug}`);
+	// The manifest `key` is the organization handle, not this directory. It is checked here because
+	// this is the only place that reads the manifest at all, and a malformed handle is not something
+	// to discover on a host — it presents there as a workspace nobody can sign in to.
+	if (typeof metadata.key !== 'string' || !handlePattern.test(metadata.key)) {
+		fail(`Template ${slug} has an invalid organization handle: ${metadata.key}`);
 	}
 	for (const field of ['name', 'industry', 'description']) {
 		if (typeof metadata[field] !== 'string' || metadata[field].trim() === '') {
-			fail(`Template ${metadata.key} needs ${field}.`);
+			fail(`Template ${slug} needs ${field}.`);
 		}
 	}
 	if (!['public', 'unlisted'].includes(metadata.visibility)) {
-		fail(`Template ${metadata.key} has invalid visibility.`);
+		fail(`Template ${slug} has invalid visibility.`);
 	}
 	for (const key of countKeys) {
 		if (!Number.isInteger(metadata.counts?.[key]) || metadata.counts[key] < 0) {
-			fail(`Template ${metadata.key} has invalid ${key} count.`);
+			fail(`Template ${slug} has invalid ${key} count.`);
 		}
 	}
 	if (!existsSync(path.join(directory, 'package.json'))) {
-		fail(`Template ${metadata.key} has no package.json.`);
+		fail(`Template ${slug} has no package.json.`);
 	}
 	return {
-		key: metadata.key,
-		path: metadata.key,
+		slug,
+		handle: metadata.key,
+		path: slug,
 		directory,
-		ref: `${templateRefNamespace}/${metadata.key}`,
+		ref: `${templateRefNamespace}/${slug}`,
 		name: metadata.name,
 		industry: metadata.industry,
 		description: metadata.description,
@@ -98,10 +126,15 @@ function readMetadata(directoryName) {
 }
 
 /**
- * Every template in this repository, sorted by key. Presence of `norbital.template.json` on disk
+ * Every template in this repository, sorted by slug. Presence of `norbital.template.json` on disk
  * is the source of truth — adding a template is adding a directory, not editing a list somewhere
  * else — which is also what keeps repository tooling (`scripts/`, `.github/`) from being mistaken
  * for one.
+ *
+ * `filter` matches either name a person might have: the directory (`--template=hr-payroll`) or the
+ * organization handle (`--template=norbital_hr`). Accepting only one of them would mean the string
+ * printed by the tooling and the string printed by a running host are not interchangeable, and the
+ * one that failed would fail as "no such template" rather than as the wrong axis.
  */
 export function discoverTemplates(filter) {
 	const directories = readdirSync(repositoryRoot, { withFileTypes: true })
@@ -112,7 +145,9 @@ export function discoverTemplates(filter) {
 	if (directories.length === 0) fail('No templates found.');
 	const templates = directories
 		.map((entry) => readMetadata(entry))
-		.filter((template) => filter === undefined || template.key === filter);
+		.filter(
+			(template) => filter === undefined || template.slug === filter || template.handle === filter
+		);
 	if (templates.length === 0) fail(`No template matched ${filter}.`);
 	return templates;
 }

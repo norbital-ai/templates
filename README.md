@@ -4,12 +4,19 @@ Starter workspaces for [Norbital](https://norbital.ai). Each directory here is a
 filesystem-first Bolt project that can be installed, synchronized, type-checked, built, migrated,
 and seeded with the public Bolt CLI — and forked into a tenant.
 
-| Template                                    | Directory           | Purpose                                                                        |
-| ------------------------------------------- | ------------------- | ------------------------------------------------------------------------------ |
-| [**hr-payroll**](./hr-payroll/)             | `hr-payroll/`       | Multi-country HR and payroll with effective-dated facts and payroll runs       |
-| [**construction**](./construction/)         | `construction/`     | Project-centered construction ops with BIM and workforce compliance            |
-| [**field-operations**](./field-operations/) | `field-operations/` | Site operations: dispatch, accountless-contractor WhatsApp, photo integrity    |
-| [**crm**](./crm/)                           | `crm/`              | B2B quoting and pipeline with purchasing, mirrored masters, and an ERP handoff |
+| Template                                    | Directory           | Organization handle     | Purpose                                                                        |
+| ------------------------------------------- | ------------------- | ----------------------- | ------------------------------------------------------------------------------ |
+| [**hr-payroll**](./hr-payroll/)             | `hr-payroll/`       | `norbital_hr`           | Multi-country HR and payroll with effective-dated facts and payroll runs       |
+| [**construction**](./construction/)         | `construction/`     | `norbital_construction` | Project-centered construction ops with BIM and workforce compliance            |
+| [**field-operations**](./field-operations/) | `field-operations/` | `norbital_bca`          | Site operations: dispatch, accountless-contractor WhatsApp, photo integrity    |
+| [**crm**](./crm/)                           | `crm/`              | `norbital_crm`          | B2B quoting and pipeline with purchasing, mirrored masters, and an ERP handoff |
+
+**Directory and handle are two different names.** The directory is a path in this repository: it is
+what `git subtree split` publishes as `refs/heads/templates/<directory>`, and what the website serves
+`norbital.ai/templates/<directory>` from. The handle is `norbital.template.json`'s `key`: the
+organization a Norbital host provisions this template as, which is also its tenant id and the string
+a person types to sign in. Renaming a directory moves published refs and public URLs; renaming a
+handle does not. They are allowed to differ and mostly do.
 
 Every template in this repository is public, and the website lists it automatically: the template
 gallery at [norbital.ai/templates](https://norbital.ai/templates) is generated from the templates

@@ -5,7 +5,8 @@
  * node_modules — so a push that only reaches `.yalc/` leaves the next sync compiling against the
  * previous build. `pnpm install` is what moves it across; see `oss/scripts/lib/yalc-consumers.mjs`.
  *
- *   --template=<key>   just that one, instead of every template
+ *   --template=<name>  just that one, instead of every template — its directory
+ *                      (`hr-payroll`) or its organization handle (`norbital_hr`)
  *   --skip-publish     the caller already published this run (see the realm-level `dev` command)
  *   --force            install even where node_modules already holds the pushed build
  *   --retreat          undo, restoring the templates to the registry versions
@@ -49,7 +50,9 @@ if (!retreat && !process.argv.includes('--skip-publish')) {
 }
 
 const templates = discoverTemplates().filter((template) =>
-	templateFilter === undefined ? true : template.key === templateFilter
+	templateFilter === undefined
+		? true
+		: template.slug === templateFilter || template.handle === templateFilter
 );
 if (templates.length === 0) {
 	throw new Error(`No template matches --template=${templateFilter}`);
@@ -69,11 +72,11 @@ for (const template of templates) {
 	});
 	const stale = stalePackages(template.directory, packages);
 	if (!force && migrated.length === 0 && stale.length === 0) {
-		console.log(`${template.key}: already compiles against the linked build.`);
+		console.log(`${template.slug}: already compiles against the linked build.`);
 		continue;
 	}
 	run('pnpm', ['install', '--config.strict-dep-builds=false'], template.directory);
 	console.log(
-		`${template.key}: linked ${stale.length > 0 ? stale.join(', ') : 'the Bolt packages'}.`
+		`${template.slug}: linked ${stale.length > 0 ? stale.join(', ') : 'the Bolt packages'}.`
 	);
 }

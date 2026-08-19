@@ -48,7 +48,7 @@ function readArguments(argv) {
  * mapping is written, and the temporary directory is always removed.
  */
 function resolveLockfile(template) {
-	const workingDirectory = mkdtempSync(path.join(tmpdir(), `norbital-lock-${template.key}-`));
+	const workingDirectory = mkdtempSync(path.join(tmpdir(), `norbital-lock-${template.slug}-`));
 	const storeDirectory = path.join(workingDirectory, '.pnpm-store');
 	const cacheDirectory = path.join(workingDirectory, '.pnpm-cache');
 	try {
@@ -75,10 +75,10 @@ function resolveLockfile(template) {
 			);
 		} catch (cause) {
 			const detail = cause?.stderr?.toString().trim() || cause?.stdout?.toString().trim();
-			fail(`Resolving ${template.key} failed${detail ? `:\n${detail}` : ''}`);
+			fail(`Resolving ${template.slug} failed${detail ? `:\n${detail}` : ''}`);
 		}
 		const resolved = path.join(workingDirectory, lockfileName);
-		if (!existsSync(resolved)) fail(`Resolving ${template.key} produced no ${lockfileName}.`);
+		if (!existsSync(resolved)) fail(`Resolving ${template.slug} produced no ${lockfileName}.`);
 		return readFileSync(resolved, 'utf8');
 	} finally {
 		rmSync(workingDirectory, { recursive: true, force: true });
@@ -91,7 +91,7 @@ function resolveLockfile(template) {
  * credentials. A shared store across templates also exercises cross-template package reuse.
  */
 function verifyOfflineInstall(template, lockfile, storeDirectory) {
-	const workingDirectory = mkdtempSync(path.join(tmpdir(), `norbital-verify-${template.key}-`));
+	const workingDirectory = mkdtempSync(path.join(tmpdir(), `norbital-verify-${template.slug}-`));
 	try {
 		copyTemplateProject(template, workingDirectory);
 		writeFileSync(path.join(workingDirectory, lockfileName), lockfile);
@@ -108,7 +108,7 @@ function verifyOfflineInstall(template, lockfile, storeDirectory) {
 			pnpm(['fetch', '--frozen-lockfile', '--store-dir', storeDirectory]);
 		} catch (cause) {
 			const detail = cause?.stderr?.toString().trim() || cause?.stdout?.toString().trim();
-			fail(`Warming the store for ${template.key} failed${detail ? `:\n${detail}` : ''}`);
+			fail(`Warming the store for ${template.slug} failed${detail ? `:\n${detail}` : ''}`);
 		}
 		// Removing credentials before the offline install proves the sandbox needs neither
 		// network egress nor registry access once the host store is warm.
@@ -125,7 +125,7 @@ function verifyOfflineInstall(template, lockfile, storeDirectory) {
 			]);
 		} catch (cause) {
 			const detail = cause?.stderr?.toString().trim() || cause?.stdout?.toString().trim();
-			fail(`Offline install for ${template.key} failed${detail ? `:\n${detail}` : ''}`);
+			fail(`Offline install for ${template.slug} failed${detail ? `:\n${detail}` : ''}`);
 		}
 		return Date.now() - started;
 	} finally {
@@ -147,22 +147,22 @@ for (const template of templates) {
 
 	if (options.check) {
 		if (committed === undefined) {
-			drifted.push(`${template.key}: missing ${lockfileName}`);
+			drifted.push(`${template.slug}: missing ${lockfileName}`);
 		} else if (committed !== resolved) {
-			drifted.push(`${template.key}: ${lockfileName} does not match resolved dependencies`);
+			drifted.push(`${template.slug}: ${lockfileName} does not match resolved dependencies`);
 		} else {
-			console.log(`${template.key}: up to date`);
+			console.log(`${template.slug}: up to date`);
 		}
 	} else if (committed === resolved) {
-		console.log(`${template.key}: unchanged`);
+		console.log(`${template.slug}: unchanged`);
 	} else {
 		writeFileSync(committedPath, resolved);
-		console.log(`${template.key}: wrote ${path.relative(repositoryRoot, committedPath)}`);
+		console.log(`${template.slug}: wrote ${path.relative(repositoryRoot, committedPath)}`);
 	}
 
 	if (verifyStore) {
 		const elapsed = verifyOfflineInstall(template, resolved, verifyStore);
-		console.log(`${template.key}: offline install from a warm store in ${elapsed} ms`);
+		console.log(`${template.slug}: offline install from a warm store in ${elapsed} ms`);
 	}
 }
 

@@ -18,6 +18,6 @@ if (!command) throw new Error('Usage: for-each-template.mjs <pnpm-command> [temp
 const arguments_ = command === 'install' ? ['install'] : ['run', command];
 
 for (const template of discoverTemplates(filter)) {
-	console.log(`\n=== ${template.key}: pnpm ${arguments_.join(' ')} ===`);
+	console.log(`\n=== ${template.slug}: pnpm ${arguments_.join(' ')} ===`);
 	execFileSync('pnpm', arguments_, { cwd: template.directory, stdio: 'inherit' });
 }

@@ -82,10 +82,10 @@ function originUrl() {
 function validateStandaloneManifest(template) {
 	const manifest = JSON.parse(readFileSync(path.join(template.directory, 'package.json'), 'utf8'));
 	if (!manifest.private)
-		fail(`Template ${template.key} must remain a private application package.`);
+		fail(`Template ${template.slug} must remain a private application package.`);
 	for (const script of ['build', 'lint', 'sync']) {
 		if (typeof manifest.scripts?.[script] !== 'string' || manifest.scripts[script] === '') {
-			fail(`Template ${template.key} needs a ${script} script.`);
+			fail(`Template ${template.slug} needs a ${script} script.`);
 		}
 	}
 	const yalcLockPath = path.join(template.directory, 'yalc.lock');
@@ -105,7 +105,7 @@ function validateStandaloneManifest(template) {
 				continue;
 			}
 			fail(
-				`Template ${template.key} cannot project ${section}.${name} with local protocol ${version}.`
+				`Template ${template.slug} cannot project ${section}.${name} with local protocol ${version}.`
 			);
 		}
 	}
@@ -119,11 +119,11 @@ function validateStandaloneManifest(template) {
 			? yalcOverlay.packages['@norbital-ai/bolt'].replaced
 			: manifest.dependencies?.['@norbital-ai/bolt'];
 	if (typeof boltVersion !== 'string' || !/^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/.test(boltVersion)) {
-		fail(`Template ${template.key} must pin @norbital-ai/bolt to an exact version.`);
+		fail(`Template ${template.slug} must pin @norbital-ai/bolt to an exact version.`);
 	}
 	for (const dependency of ['prettier', 'prettier-plugin-svelte', 'svelte-check', 'typescript']) {
 		if (typeof manifest.devDependencies?.[dependency] !== 'string') {
-			fail(`Template ${template.key} needs standalone dev dependency ${dependency}.`);
+			fail(`Template ${template.slug} needs standalone dev dependency ${dependency}.`);
 		}
 	}
 }
@@ -134,7 +134,7 @@ function validate(template) {
 	for (const key of ['collections', 'apps', 'automations']) {
 		if (template.counts[key] !== actual[key]) {
 			fail(
-				`Template ${template.key} declares ${template.counts[key]} ${key} in ${templateMetadataFile}; found ${actual[key]}.`
+				`Template ${template.slug} declares ${template.counts[key]} ${key} in ${templateMetadataFile}; found ${actual[key]}.`
 			);
 		}
 	}
@@ -144,7 +144,7 @@ function projectTemplate(template, sourceRevision) {
 	const output = runGit(['subtree', 'split', `--prefix=${template.path}`, sourceRevision]);
 	const revision = output.split(/\s+/).at(-1);
 	if (!revisionPattern.test(revision)) {
-		fail(`Projection for ${template.key} did not produce a commit revision.`);
+		fail(`Projection for ${template.slug} did not produce a commit revision.`);
 	}
 	return revision;
 }
@@ -172,7 +172,11 @@ for (const template of templates) {
 	const revision = projectTemplate(template, sourceRevision);
 	if (options.updateLocal) runGit(['update-ref', template.ref, revision]);
 	entries.push({
-		key: template.key,
+		// The repository axis (`slug`) and the product axis (`handle`) are both recorded, because a
+		// consumer of this file needs one or the other and guessing which is which from a single
+		// `key` is what this split exists to stop.
+		slug: template.slug,
+		handle: template.handle,
 		ref: template.ref,
 		revision,
 		name: template.name,
@@ -181,7 +185,7 @@ for (const template of templates) {
 		visibility: template.visibility,
 		counts: template.counts
 	});
-	console.log(`${template.key}: ${template.ref} -> ${revision}`);
+	console.log(`${template.slug}: ${template.ref} -> ${revision}`);
 }
 
 if (options.pushRemote) {

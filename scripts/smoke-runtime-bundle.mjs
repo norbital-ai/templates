@@ -64,7 +64,7 @@ function materializeTrackedTemplate(template, destination) {
 		.trim()
 		.split('\n')
 		.filter(Boolean);
-	if (tracked.length === 0) fail(`Template ${template.key} has no tracked files.`);
+	if (tracked.length === 0) fail(`Template ${template.slug} has no tracked files.`);
 	for (const trackedFile of tracked) {
 		const source = path.join(repositoryRoot, trackedFile);
 		const target = path.join(destination, path.relative(sourceRoot, source));
@@ -164,7 +164,7 @@ try {
 const result = {
 	$schema: '../release/runtime-smoke.schema.json',
 	schemaVersion: 4,
-	template: template.key,
+	template: template.slug,
 	lockHash: depset.lockHash,
 	buildCommand: 'vite build',
 	buildElapsedMilliseconds: Number(buildElapsedMilliseconds.toFixed(3)),

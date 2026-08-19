@@ -61,9 +61,9 @@ function writeTemplateBundle(template, projection, outputDirectory, buildOutput)
 	const lockHash = sha256(lockfile).slice(0, 32);
 	const boltVersion = packageManifest.dependencies?.['@norbital-ai/bolt'];
 	if (typeof boltVersion !== 'string' || boltVersion.length === 0) {
-		throw new Error(`Template ${template.key} pins no @norbital-ai/bolt version.`);
+		throw new Error(`Template ${template.slug} pins no @norbital-ai/bolt version.`);
 	}
-	const packageDirectory = path.join(outputDirectory, template.key);
+	const packageDirectory = path.join(outputDirectory, template.slug);
 	mkdirSync(packageDirectory, { recursive: true });
 	const bundlePath = path.join(packageDirectory, 'bundle.tar');
 	run('tar', ['-cf', bundlePath, '-C', buildOutput, '.']);
@@ -74,7 +74,8 @@ function writeTemplateBundle(template, projection, outputDirectory, buildOutput)
 		`${JSON.stringify(
 			{
 				schemaVersion: 1,
-				templateKey: template.key,
+				templateSlug: template.slug,
+				templateHandle: template.handle,
 				sourceCommit: projection.revision,
 				bundleFormatVersion: 1,
 				lockHash,
@@ -91,7 +92,7 @@ function writeTemplateBundle(template, projection, outputDirectory, buildOutput)
 		path.join(packageDirectory, 'package.json'),
 		`${JSON.stringify(
 			{
-				name: `@norbital-ai/bolt-template-${template.key}`,
+				name: `@norbital-ai/bolt-template-${template.slug}`,
 				version,
 				private: false,
 				license: 'UNLICENSED',
@@ -102,7 +103,7 @@ function writeTemplateBundle(template, projection, outputDirectory, buildOutput)
 			2
 		)}\n`
 	);
-	console.log(`Prepared immutable build package for ${template.key}@${projection.revision}.`);
+	console.log(`Prepared immutable build package for ${template.slug}@${projection.revision}.`);
 }
 
 function copyTrackedProjection(template, destination) {
@@ -110,7 +111,7 @@ function copyTrackedProjection(template, destination) {
 		.trim()
 		.split('\n')
 		.filter(Boolean);
-	if (trackedFiles.length === 0) throw new Error(`Template ${template.key} has no tracked files.`);
+	if (trackedFiles.length === 0) throw new Error(`Template ${template.slug} has no tracked files.`);
 	for (const trackedFile of trackedFiles) {
 		const source = path.join(repositoryRoot, trackedFile);
 		const relative = path.relative(template.directory, source);
@@ -125,7 +126,7 @@ const temporaryDirectory = mkdtempSync(path.join(tmpdir(), 'norbital-template-pr
 const revisions = options.revisions
 	? JSON.parse(readFileSync(path.resolve(repositoryRoot, options.revisions), 'utf8'))
 	: null;
-const projections = new Map((revisions?.entries ?? []).map((entry) => [entry.key, entry]));
+const projections = new Map((revisions?.entries ?? []).map((entry) => [entry.slug, entry]));
 const bundleOutput = options.bundleOutput
 	? path.resolve(repositoryRoot, options.bundleOutput)
 	: null;
@@ -136,7 +137,7 @@ if (bundleOutput) {
 
 try {
 	for (const template of discoverTemplates(options.filter)) {
-		const destination = path.join(temporaryDirectory, template.key);
+		const destination = path.join(temporaryDirectory, template.slug);
 		mkdirSync(destination, { recursive: true });
 		copyTrackedProjection(template, destination);
 		writeFileSync(path.join(destination, '.npmrc'), registryConfiguration());
@@ -161,13 +162,13 @@ try {
 			} catch (cause) {
 				const detail = [cause?.stdout, cause?.stderr].filter(Boolean).join('\n').trim();
 				throw new Error(
-					`${template.key} standalone ${label} failed${detail ? `:\n${detail}` : '.'}`
+					`${template.slug} standalone ${label} failed${detail ? `:\n${detail}` : '.'}`
 				);
 			}
 		}
 		if (bundleOutput) {
-			const projection = projections.get(template.key);
-			if (!projection) throw new Error(`No projected revision recorded for ${template.key}.`);
+			const projection = projections.get(template.slug);
+			if (!projection) throw new Error(`No projected revision recorded for ${template.slug}.`);
 			writeTemplateBundle(
 				template,
 				projection,
@@ -175,7 +176,7 @@ try {
 				path.join(destination, '.norbital', 'dist', 'output')
 			);
 		}
-		console.log(`Validated clean standalone projection: ${template.key}.`);
+		console.log(`Validated clean standalone projection: ${template.slug}.`);
 	}
 } finally {
 	if (process.env.KEEP_TEMPLATE_PROJECTIONS === '1') {
