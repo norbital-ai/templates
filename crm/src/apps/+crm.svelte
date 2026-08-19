@@ -230,7 +230,7 @@
 				<Stack gap="xs">
 					<p class="text-sm font-medium">{quote.doc_no}: {quote.title}</p>
 					{#if pipelineCards.get(quote.norbital_id)?.account}
-						<p class="text-xs text-muted-foreground">
+						<p class="text-meta">
 							{pipelineCards.get(quote.norbital_id)?.account}
 						</p>
 					{/if}

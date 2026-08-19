@@ -21,7 +21,7 @@
 		<p class="truncate text-sm font-medium">
 			{t('component.provider_channel', { provider: humanize(source.provider) })}
 		</p>
-		<p class="truncate text-xs text-muted-foreground">
+		<p class="truncate text-meta">
 			{t('component.conversation_message', {
 				conversationId: source.conversation_id,
 				messageId: source.message_id

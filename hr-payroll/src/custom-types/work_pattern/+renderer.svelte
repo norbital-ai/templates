@@ -415,7 +415,7 @@
 			</Grid>
 		{/if}
 
-		<p class="text-xs text-muted-foreground">
+		<p class="text-meta">
 			{summary}{codesQuery?.loading ? ' · Loading roster codes…' : ''}
 		</p>
 	</Stack>

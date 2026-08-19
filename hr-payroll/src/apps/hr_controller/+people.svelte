@@ -164,7 +164,7 @@
 {#snippet workforceSummary()}
 	<Stack as="section" gap="md" aria-labelledby="workforce-summary-heading">
 		<div>
-			<h2 id="workforce-summary-heading" class="text-lg font-semibold">
+			<h2 id="workforce-summary-heading" class="text-heading">
 				{t('app.people.workforce')}
 			</h2>
 			<p class="text-sm text-muted-foreground">

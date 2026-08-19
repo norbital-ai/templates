@@ -141,24 +141,16 @@ try {
 		mkdirSync(destination, { recursive: true });
 		copyTrackedProjection(template, destination);
 		writeFileSync(path.join(destination, '.npmrc'), registryConfiguration());
+		// `sync` is the build. It regenerates, compiles the browser client into `.norbital/dist` and
+		// emits the artifact — there is no second `build` script to run any more, and running one was
+		// the only thing that ever produced a client at all.
 		for (const [label, arguments_] of [
 			['install', ['install', '--frozen-lockfile']],
 			['sync', ['sync']],
-			['lint', ['lint']],
-			['build', ['build']]
+			['lint', ['lint']]
 		]) {
 			try {
-				const buildOutput = path.join(destination, '.norbital', 'dist', 'output');
-				run('pnpm', arguments_, {
-					cwd: destination,
-					env:
-						label === 'build' && bundleOutput
-							? {
-									...process.env,
-									NORBITAL_BUILD_OUT: buildOutput
-								}
-							: process.env
-				});
+				run('pnpm', arguments_, { cwd: destination, env: process.env });
 			} catch (cause) {
 				const detail = [cause?.stdout, cause?.stderr].filter(Boolean).join('\n').trim();
 				throw new Error(

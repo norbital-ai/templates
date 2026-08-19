@@ -77,7 +77,7 @@
 {#if record}
 	<Stack gap="lg">
 		<Stack as="section" gap="sm" aria-labelledby="payslip-summary-heading">
-			<h2 id="payslip-summary-heading" class="text-xl font-semibold">
+			<h2 id="payslip-summary-heading" class="text-subhead">
 				{employment?.employment_employee?.name ?? t('component.employee')}
 			</h2>
 			<p class="text-sm text-muted-foreground">
@@ -85,19 +85,19 @@
 			</p>
 			<Grid as="dl" gap="sm" minimum="compact">
 				<div>
-					<dt class="text-xs text-muted-foreground">{t('component.gross')}</dt>
+					<dt class="text-meta">{t('component.gross')}</dt>
 					<dd class="mt-1 font-semibold tabular-nums">{formatNumeric(record.gross)}</dd>
 				</div>
 				<div>
-					<dt class="text-xs text-muted-foreground">{t('component.deductions')}</dt>
+					<dt class="text-meta">{t('component.deductions')}</dt>
 					<dd class="mt-1 font-semibold tabular-nums">{formatNumeric(record.total_deductions)}</dd>
 				</div>
 				<div>
-					<dt class="text-xs text-muted-foreground">{t('component.net')}</dt>
+					<dt class="text-meta">{t('component.net')}</dt>
 					<dd class="mt-1 text-lg font-bold tabular-nums">{formatNumeric(record.net)}</dd>
 				</div>
 				<div>
-					<dt class="text-xs text-muted-foreground">{t('component.employer_cost')}</dt>
+					<dt class="text-meta">{t('component.employer_cost')}</dt>
 					<dd class="mt-1 font-semibold tabular-nums">{formatNumeric(record.employer_cost)}</dd>
 				</div>
 			</Grid>
@@ -112,7 +112,7 @@
 			<h3 id="payslip-lines-heading" class="text-sm font-semibold">
 				{t('component.component_breakdown')}
 			</h3>
-			<p class="text-xs text-muted-foreground">
+			<p class="text-meta">
 				{t('component.component_breakdown_description')}
 			</p>
 			<Bound size="standard">

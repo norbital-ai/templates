@@ -112,7 +112,7 @@
 			<Inline justify="between" align="center" gap="sm">
 				<div>
 					<h3 class="text-sm font-semibold">Who is entitled to overtime</h3>
-					<p class="text-xs text-muted-foreground">
+					<p class="text-meta">
 						Leave this off where the law entitles everyone; add it where the law names a wage
 						ceiling or work categories that decide entitlement.
 					</p>
@@ -257,7 +257,7 @@
 			<Inline justify="between" align="center" gap="sm">
 				<div>
 					<h3 class="text-sm font-semibold">Overtime pricing</h3>
-					<p class="text-xs text-muted-foreground">Bands are evaluated within each day type.</p>
+					<p class="text-meta">Bands are evaluated within each day type.</p>
 				</div>
 				<Button
 					variant="outline"
@@ -338,7 +338,7 @@
 			<Inline justify="between" align="center" gap="sm">
 				<div>
 					<h3 class="text-sm font-semibold">Working-time limits</h3>
-					<p class="text-xs text-muted-foreground">A period and measure identify one ceiling.</p>
+					<p class="text-meta">A period and measure identify one ceiling.</p>
 				</div>
 				<Button
 					variant="outline"

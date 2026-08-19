@@ -178,7 +178,7 @@
 		<Stack gap="sm" class="w-64">
 			<Stack gap="none">
 				<h3 class="text-sm font-medium">{point.name}</h3>
-				<p class="text-xs text-muted-foreground">{point.label}</p>
+				<p class="text-meta">{point.label}</p>
 			</Stack>
 			<Stack as="ul" gap="xs" class="border-t border-border pt-3">
 				{#each point.assignments as assignment (assignment.id)}
@@ -292,7 +292,7 @@
 									{assignmentCardById.get(assignment.norbital_id)?.job ??
 										t('component.job_assignment')}
 								</p>
-								<p class="text-xs text-muted-foreground">
+								<p class="text-meta">
 									{assignmentCardById.get(assignment.norbital_id)?.contractor ??
 										t('component.contractor')}
 								</p>

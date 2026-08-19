@@ -303,7 +303,7 @@
 									date < today && !settled && 'text-muted-foreground'
 								)}
 							>
-								<span class="block text-xs text-muted-foreground">
+								<span class="block text-meta">
 									{settled
 										? '🔒'
 										: holiday == null
@@ -416,9 +416,7 @@
 															<span
 																class="absolute top-1 -left-[1.125rem] size-2 rounded-full bg-brand"
 															></span>
-															<p
-																class="text-micro font-semibold tracking-wide text-primary-foreground/55 uppercase"
-															>
+															<p class="text-overline text-primary-foreground/55">
 																{t('roster.timeline_schedule')}
 															</p>
 															<p class="leading-4">{scheduleSummary(day)}</p>
@@ -427,9 +425,7 @@
 															<span
 																class="absolute top-1 -left-[1.125rem] size-2 rounded-full bg-success"
 															></span>
-															<p
-																class="text-micro font-semibold tracking-wide text-primary-foreground/55 uppercase"
-															>
+															<p class="text-overline text-primary-foreground/55">
 																{t('roster.timeline_attendance')}
 															</p>
 															<p class="leading-4">{attendanceSummary(day)}</p>
@@ -439,9 +435,7 @@
 																<span
 																	class="absolute top-1 -left-[1.125rem] size-2 rounded-full bg-info"
 																></span>
-																<p
-																	class="text-micro font-semibold tracking-wide text-primary-foreground/55 uppercase"
-																>
+																<p class="text-overline text-primary-foreground/55">
 																	{t('roster.timeline_notes')}
 																</p>
 																<p class="leading-4">{dayNotes(day, date)}</p>

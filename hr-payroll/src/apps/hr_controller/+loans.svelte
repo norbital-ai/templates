@@ -246,7 +246,7 @@
 					{#snippet ListCard(agreement)}
 						<Inline align="start" justify="between" gap="sm">
 							<p class="truncate font-medium">{agreement.reference}</p>
-							<span class="shrink-0 text-xs text-muted-foreground">
+							<span class="shrink-0 text-meta">
 								{formatEffectiveRange(agreement.effective_range)}
 							</span>
 						</Inline>

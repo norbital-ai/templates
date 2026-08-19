@@ -220,7 +220,7 @@
 		<Stack as="section" gap="sm" aria-label={t('component.payroll_run_summary')}>
 			<Cluster align="start" justify="between" gap="sm">
 				<Stack gap="none" class="min-w-0">
-					<h2 class="truncate text-lg font-semibold">
+					<h2 class="truncate text-heading">
 						{recordCompany?.name ?? t('component.company')}
 					</h2>
 					<p class="text-sm text-muted-foreground">
@@ -287,7 +287,7 @@
 			</Cluster>
 			<Grid as="dl" gap="sm" minimum="compact">
 				<div>
-					<dt class="text-xs text-muted-foreground">{t('component.attendance_window')}</dt>
+					<dt class="text-meta">{t('component.attendance_window')}</dt>
 					<dd class="mt-1 font-medium tabular-nums">
 						{formatCalendarDate(record.attendance_from)} → {formatCalendarDate(
 							record.attendance_to
@@ -295,11 +295,11 @@
 					</dd>
 				</div>
 				<div>
-					<dt class="text-xs text-muted-foreground">{t('app.payroll.pay_date')}</dt>
+					<dt class="text-meta">{t('app.payroll.pay_date')}</dt>
 					<dd class="mt-1 font-medium tabular-nums">{formatCalendarDate(record.pay_date)}</dd>
 				</div>
 				<div>
-					<dt class="text-xs text-muted-foreground">{t('component.run_snapshot')}</dt>
+					<dt class="text-meta">{t('component.run_snapshot')}</dt>
 					<dd class="mt-1 text-sm font-medium">
 						{t('component.captured_at_run_time')}
 					</dd>
@@ -415,7 +415,7 @@
 				{#if selectedWindow}
 					<Grid as="dl" gap="sm" minimum="compact">
 						<div>
-							<dt class="text-xs text-muted-foreground">{t('component.salary_month')}</dt>
+							<dt class="text-meta">{t('component.salary_month')}</dt>
 							<dd class="mt-1 font-medium tabular-nums">
 								{formatCalendarDate(selectedWindow.salary.start)} → {formatCalendarDate(
 									selectedWindow.salary.end
@@ -423,7 +423,7 @@
 							</dd>
 						</div>
 						<div>
-							<dt class="text-xs text-muted-foreground">{t('component.attendance_window')}</dt>
+							<dt class="text-meta">{t('component.attendance_window')}</dt>
 							<dd class="mt-1 font-medium tabular-nums">
 								{formatCalendarDate(selectedWindow.attendance.start)} → {formatCalendarDate(
 									selectedWindow.attendance.end
@@ -431,7 +431,7 @@
 							</dd>
 						</div>
 						<div>
-							<dt class="text-xs text-muted-foreground">{t('component.pay_date')}</dt>
+							<dt class="text-meta">{t('component.pay_date')}</dt>
 							<dd class="mt-1 font-medium tabular-nums">
 								{formatCalendarDate(selectedWindow.payDate)}
 							</dd>

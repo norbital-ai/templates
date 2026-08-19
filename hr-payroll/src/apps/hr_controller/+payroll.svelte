@@ -154,7 +154,7 @@
 		<Stack as="section" gap="md" aria-labelledby="payroll-cycles-heading">
 			<Inline align="end" justify="between" gap="md">
 				<Stack gap="xs">
-					<h2 id="payroll-cycles-heading" class="text-lg font-semibold">
+					<h2 id="payroll-cycles-heading" class="text-heading">
 						{t('app.payroll.payroll_cycles')}
 					</h2>
 					<p class="text-sm text-muted-foreground">
@@ -181,7 +181,7 @@
 				{:else}
 					<!-- stupidity:allow UI3 -- derived pay dates are not collection records. -->
 					<table class="w-full text-left text-sm">
-						<thead class="bg-muted/40 text-xs text-muted-foreground">
+						<thead class="bg-muted/40 text-meta">
 							<tr>
 								<th class="px-3 py-2 font-semibold">{t('app.payroll.status')}</th>
 								<th class="px-3 py-2 font-semibold">{t('app.payroll.pay_date')}</th>
@@ -310,7 +310,7 @@
 				{#snippet ListCard(run)}
 					<Inline align="start" justify="between" gap="sm">
 						<p class="truncate font-medium">{run.period}</p>
-						<span class="shrink-0 text-xs text-muted-foreground">{run.lifecycle}</span>
+						<span class="shrink-0 text-meta">{run.lifecycle}</span>
 					</Inline>
 					<p class="mt-1 truncate text-sm text-muted-foreground">
 						{t('app.payroll.pays_line', { date: formatCalendarDate(run.pay_date) })}

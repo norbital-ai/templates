@@ -208,7 +208,7 @@
 		</Cluster>
 		<Grid minimum="compact" class="text-sm">
 			<div>
-				<p class="text-xs text-muted-foreground">{t('component.programme')}</p>
+				<p class="text-meta">{t('component.programme')}</p>
 				<p class="mt-1 font-medium">
 					{record.schedule_range
 						? formatDateRangeLocal(record.schedule_range)
@@ -216,15 +216,15 @@
 				</p>
 			</div>
 			<div>
-				<p class="text-xs text-muted-foreground">{t('component.contract_value')}</p>
+				<p class="text-meta">{t('component.contract_value')}</p>
 				<p class="mt-1 font-medium">{formatMoney(record.contract_value)}</p>
 			</div>
 			<div>
-				<p class="text-xs text-muted-foreground">{t('component.main_contractor')}</p>
+				<p class="text-meta">{t('component.main_contractor')}</p>
 				<p class="mt-1 font-medium">{record.main_contractor ?? t('component.not_set')}</p>
 			</div>
 			<div>
-				<p class="text-xs text-muted-foreground">{t('component.project_manager')}</p>
+				<p class="text-meta">{t('component.project_manager')}</p>
 				<p class="mt-1 font-medium">{record.project_manager ?? t('component.not_set')}</p>
 			</div>
 		</Grid>
@@ -291,7 +291,7 @@
 {#snippet deliveryPulse()}
 	<Stack as="aside" gap="md" class="border-t pt-4">
 		<Stack gap="md">
-			<p class="text-tiny uppercase tracking-wide text-muted-foreground">
+			<p class="text-overline">
 				{t('component.delivery_pulse')}
 			</p>
 			<dl class="divide-y text-sm">
@@ -311,7 +311,7 @@
 		</Stack>
 		{#if record.description}
 			<Stack gap="sm">
-				<p class="text-tiny uppercase tracking-wide text-muted-foreground">
+				<p class="text-overline">
 					{t('component.scope')}
 				</p>
 				<p class="text-sm leading-normal">{record.description}</p>
@@ -342,7 +342,7 @@
 				{#snippet ListCard(rfi)}
 					<Inline align="start" justify="between" gap="sm">
 						<p class="truncate font-medium">{rfi.title}</p>
-						<span class="shrink-0 text-xs text-muted-foreground">{rfi.status}</span>
+						<span class="shrink-0 text-meta">{rfi.status}</span>
 					</Inline>
 					<p class="mt-1 truncate text-sm text-muted-foreground">
 						{rfi.rfi_number} · {rfi.priority}
@@ -366,7 +366,7 @@
 				{#snippet ListCard(defect)}
 					<Inline align="start" justify="between" gap="sm">
 						<p class="truncate font-medium">{defect.title}</p>
-						<span class="shrink-0 text-xs text-muted-foreground">{defect.status}</span>
+						<span class="shrink-0 text-meta">{defect.status}</span>
 					</Inline>
 					<p class="mt-1 truncate text-sm text-muted-foreground">
 						{defect.defect_number} · {defect.severity}
@@ -409,7 +409,7 @@
 								<Inline as="header" align="start" justify="between" gap="sm" class="border-b pb-3">
 									<div class="min-w-0">
 										<h4 class="truncate text-sm font-medium">{site.location_name}</h4>
-										<p class="mt-0.5 truncate text-xs text-muted-foreground">
+										<p class="mt-0.5 truncate text-meta">
 											{site.location_code ?? site.location_type ?? t('component.work_front')}
 										</p>
 									</div>
@@ -423,7 +423,7 @@
 											<p class="text-sm font-medium">
 												{assignmentWorker(assignment)?.worker_name ?? '—'}
 											</p>
-											<p class="mt-1 text-xs text-muted-foreground">
+											<p class="mt-1 text-meta">
 												{assignmentJob(assignment)?.job_title ?? '—'}
 											</p>
 											<Inline justify="between" gap="sm" class="mt-3 text-xs">
@@ -441,7 +441,7 @@
 										</article>
 									{/each}
 									{#if siteAssignments.length === 0}
-										<p class="py-6 text-center text-xs text-muted-foreground">
+										<p class="py-6 text-center text-meta">
 											{t('component.no_allocations')}
 										</p>
 									{/if}
@@ -459,23 +459,23 @@
 	<Stack gap="lg">
 		<Grid minimum="compact">
 			<div class="border-b pb-3">
-				<p class="text-xs text-muted-foreground">{t('component.contract_value')}</p>
+				<p class="text-meta">{t('component.contract_value')}</p>
 				<p class="mt-1 text-heading">{formatMoney(record.contract_value)}</p>
 			</div>
 			<div class="border-b pb-3">
-				<p class="text-xs text-muted-foreground">{t('component.claimed')}</p>
+				<p class="text-meta">{t('component.claimed')}</p>
 				<p class="mt-1 text-heading">
 					{sumMoney(claims.map((claim) => claim.claimed_amount))}
 				</p>
 			</div>
 			<div class="border-b pb-3">
-				<p class="text-xs text-muted-foreground">{t('component.certified')}</p>
+				<p class="text-meta">{t('component.certified')}</p>
 				<p class="mt-1 text-heading">
 					{sumMoney(claims.map((claim) => claim.certified_amount))}
 				</p>
 			</div>
 			<div class="border-b pb-3">
-				<p class="text-xs text-muted-foreground">{t('component.documents')}</p>
+				<p class="text-meta">{t('component.documents')}</p>
 				<p class="mt-1 text-heading tabular-nums">{documents.length}</p>
 			</div>
 		</Grid>
@@ -484,7 +484,7 @@
 			<Stack as="section" gap="sm">
 				<div class="border-b pb-2">
 					<h3 class="text-sm font-semibold">{t('component.payment_claims')}</h3>
-					<p class="text-xs text-muted-foreground">
+					<p class="text-meta">
 						{t('component.payment_claims_description')}
 					</p>
 				</div>
@@ -493,7 +493,7 @@
 						<Inline align="start" justify="between" gap="md" class="p-3">
 							<div class="min-w-0">
 								<p class="truncate text-sm font-medium">{claim.claim_number}</p>
-								<p class="text-xs text-muted-foreground capitalize">
+								<p class="text-meta capitalize">
 									{claim.claim_type ?? t('component.progress_claim')} · {claim.status ??
 										t('component.no_status')}
 								</p>
@@ -509,7 +509,7 @@
 			<Stack as="section" gap="sm">
 				<div class="border-b pb-2">
 					<h3 class="text-sm font-semibold">{t('component.project_documents')}</h3>
-					<p class="text-xs text-muted-foreground">
+					<p class="text-meta">
 						{t('component.project_documents_description')}
 					</p>
 				</div>
@@ -518,7 +518,7 @@
 						<Inline align="start" justify="between" gap="md" class="p-3">
 							<div class="min-w-0">
 								<p class="truncate text-sm font-medium">{document.title}</p>
-								<p class="text-xs text-muted-foreground">
+								<p class="text-meta">
 									{document.document_number ?? t('component.no_document_number')} ·
 									{document.version ?? t('component.no_version')}
 								</p>
@@ -564,7 +564,7 @@
 			{#snippet ListCard(permit)}
 				<Inline align="start" justify="between" gap="sm">
 					<p class="truncate font-medium">{permit.permit_number}</p>
-					<span class="shrink-0 text-xs text-muted-foreground">{permit.status}</span>
+					<span class="shrink-0 text-meta">{permit.status}</span>
 				</Inline>
 				<p class="mt-1 truncate text-sm text-muted-foreground">
 					{permit.permit_type} · {t('component.expires', {

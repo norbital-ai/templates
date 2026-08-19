@@ -103,7 +103,7 @@
 				<Stack gap="sm" shrink={false} class="rounded-md border border-border p-3">
 					<Stack gap="none">
 						<p class="text-sm font-medium">{t('component.provision_equal_instalments')}</p>
-						<p class="text-xs text-muted-foreground">
+						<p class="text-meta">
 							{t('component.provision_remainder_hint')}
 						</p>
 					</Stack>

@@ -628,9 +628,7 @@
 						<!-- stupidity:allow UI11 -- this conditional spacer separates the disclosure card without padding its background -->
 						<div class="pt-2">
 							<div class="rounded-md border border-border/80 bg-background/95 p-3 shadow-sm">
-								<p
-									class="pb-2 text-[11px] font-medium tracking-[0.08em] text-muted-foreground uppercase"
-								>
+								<p class="text-overline pb-2">
 									{t('component.selected_element_properties')}
 								</p>
 								<Scroll
@@ -698,7 +696,7 @@
 			class="pointer-events-none absolute bottom-2 left-2 z-20 max-w-[min(16rem,85%)] rounded-md border border-border/80 bg-background/90 p-2 shadow-sm"
 			aria-label={t('component.marker_legend')}
 		>
-			<p class="mb-1.5 text-[10px] font-medium tracking-wide text-muted-foreground uppercase">
+			<p class="text-overline mb-1.5">
 				{t('component.highlights')}
 			</p>
 			<Stack as="ul" gap="xs">
