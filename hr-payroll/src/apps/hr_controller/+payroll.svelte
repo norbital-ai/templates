@@ -9,6 +9,7 @@
 	import { Tabs, type TabConfig } from '@norbital-ai/ui/tabs';
 	import { CollectionTable } from '@norbital-ai/ui/collection-table';
 	import { formatCalendarDate } from '../../lib/ui/display-formatters.js';
+	import { saveCollectionExport } from '../../lib/ui/export-download.js';
 	import {
 		daysBetweenKeys,
 		payDateFor,
@@ -257,6 +258,7 @@
 								{ includeAction: (action) => action.metadata?.kind === 'bank-files' }
 							);
 							if (manifest.length === 0) throw new Error(t('app.payroll.export_bank_files_error'));
+							saveCollectionExport(manifest);
 						}
 					},
 					{
@@ -273,6 +275,7 @@
 								{ includeAction: (action) => action.metadata?.kind === 'payslip-pdfs' }
 							);
 							if (manifest.length === 0) throw new Error(t('app.payroll.export_pdfs_error'));
+							saveCollectionExport(manifest);
 						}
 					},
 					{
@@ -289,6 +292,7 @@
 								{ includeAction: (action) => action.metadata?.kind === 'payroll-report-xlsx' }
 							);
 							if (manifest.length === 0) throw new Error(t('app.payroll.export_pdfs_error'));
+							saveCollectionExport(manifest);
 						}
 					}
 				]}

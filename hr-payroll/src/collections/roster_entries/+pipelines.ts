@@ -231,6 +231,11 @@ export default {
 					);
 				}
 
+				// Every column the sheet is read for is written. `origin` is `IMPORT` because that is
+				// what these rows are — the model's default is `MANUAL`, which is what the board writes,
+				// and leaving the default in place would have made a whole imported month indistinguishable
+				// from an operator's ad hoc edits. `note` is an optional column of the long-form sheet, so
+				// a file that carries one carries it through rather than having it read and discarded.
 				return assignments.map((row) => {
 					const code = codeByName.get(row.shift_code);
 					if (code == null) throw new Error(`No roster code resolved for ${row.shift_code}.`);
@@ -239,7 +244,9 @@ export default {
 						work_date: row.work_date,
 						shift_definition_id: code.norbital_id,
 						roster_id: rosterId,
-						assignment_code: row.assignment_code ?? null
+						assignment_code: row.assignment_code ?? null,
+						origin: 'IMPORT' as const,
+						note: row.note ?? null
 					};
 				});
 			})
