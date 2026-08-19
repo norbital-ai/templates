@@ -1,6 +1,6 @@
 {
 	"schemaVersion": 1,
-	"key": "field-operations",
+	"key": "norbital_bca",
 	"name": "Field Operations",
 	"industry": "Construction",
 	"description": "Generic construction field operations: site jobs, contractor dispatch, variations, and multimodal photo evidence review.",
