@@ -136,16 +136,14 @@
 <Grid gap="md" minimum="compact">
 	<Column span="all">
 		<div class="rounded-md border border-border bg-muted/20 p-3">
-			<span class="text-xs text-muted-foreground">{t('component.payroll_consumption')}</span>
+			<span class="text-meta">{t('component.payroll_consumption')}</span>
 			<span aria-live="polite" class="mt-1 block text-sm">{consumedByPayslip}</span>
 		</div>
 	</Column>
 </Grid>
 
 {#if lockKey}
-	<p
-		class="mb-3 rounded-md border border-border bg-muted/20 px-3 py-2 text-xs text-muted-foreground"
-	>
+	<p class="mb-3 rounded-md border border-border bg-muted/20 px-3 py-2 text-meta">
 		{t(lockKey, sourceLockI18nParams(lock))}
 	</p>
 {/if}

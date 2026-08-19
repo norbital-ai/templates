@@ -80,7 +80,7 @@
 		<Button type="button" variant="outline" {disabled} onclick={addInterval}>
 			{t('component.add_worked_interval')}
 		</Button>
-		<p class="text-xs text-muted-foreground">
+		<p class="text-meta">
 			{t('component.worked_intervals_hint')}
 		</p>
 	</Stack>

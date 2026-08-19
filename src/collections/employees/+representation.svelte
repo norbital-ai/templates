@@ -307,7 +307,7 @@
 	{#snippet personSummary()}
 		<Stack gap="xs">
 			<Inline gap="sm" align="baseline">
-				<h2 class="truncate text-lg font-semibold">{record.name}</h2>
+				<h2 class="truncate text-heading">{record.name}</h2>
 				<span class="text-sm text-muted-foreground">
 					{employments.length}
 					{t('component.employment_count', {

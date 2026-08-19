@@ -53,7 +53,7 @@
 			<Field name="overtime_calculation_method" label={t('component.overtime_calculation')} />
 			<Stack gap="xs">
 				<Field name="risk_class" label={t('component.statutory_risk_class')} />
-				<p class="text-xs text-muted-foreground">
+				<p class="text-meta">
 					{t('component.risk_class_hint', {
 						class_iv: 'IV',
 						class_i: 'I'

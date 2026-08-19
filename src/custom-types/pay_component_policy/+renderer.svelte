@@ -170,7 +170,7 @@
 			/>
 		</label>
 		{#if current !== null}
-			<p class="text-xs text-muted-foreground">
+			<p class="text-meta">
 				Settles as {current.settlement.replaceAll('_', ' ').toLowerCase()} — fixed by the economic type,
 				and every statutory decision below is effective-dated in its own right.
 			</p>

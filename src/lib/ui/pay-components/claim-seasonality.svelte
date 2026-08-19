@@ -41,7 +41,7 @@
 
 <Stack as="section" gap="md" aria-labelledby="claim-seasonality-heading">
 	<Stack gap="xs">
-		<h2 class="text-lg font-semibold">{t('app.pay_components.reimbursement_claims')}</h2>
+		<h2 class="text-heading">{t('app.pay_components.reimbursement_claims')}</h2>
 		{#if analytics}
 			<p class="text-sm text-muted-foreground">
 				{t('app.pay_components.reimbursement_claims_description', {
@@ -94,7 +94,7 @@
 				</tbody>
 			</table>
 			<Inline justify="end" gap="xs" aria-label={t('app.pay_components.heatmap_legend')}>
-				<span class="text-xs text-muted-foreground">{t('app.pay_components.heatmap_fewer')}</span>
+				<span class="text-meta">{t('app.pay_components.heatmap_fewer')}</span>
 				{#each [1, 2, 3, 4, 5] as level (level)}
 					<span
 						class="size-3 rounded-sm {heatmapClass(
@@ -102,7 +102,7 @@
 						)}"
 					></span>
 				{/each}
-				<span class="text-xs text-muted-foreground">{t('app.pay_components.heatmap_more')}</span>
+				<span class="text-meta">{t('app.pay_components.heatmap_more')}</span>
 			</Inline>
 		{:else if analyticsQuery.error}
 			<Stack gap="sm" class="py-8">

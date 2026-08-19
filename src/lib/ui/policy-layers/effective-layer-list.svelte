@@ -151,7 +151,7 @@
 	{#if props.layers.length === 0}
 		<p class="text-sm text-muted-foreground">{props.emptyMessage}</p>
 	{:else}
-		<p class="text-xs text-muted-foreground">
+		<p class="text-meta">
 			{t('component.layer_count', {
 				count: props.layers.length,
 				s: props.layers.length === 1 ? '' : 's',

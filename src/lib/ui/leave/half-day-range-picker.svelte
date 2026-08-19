@@ -406,7 +406,7 @@
 						{/each}
 					</div>
 
-					<p class="text-xs text-muted-foreground">{t('component.leave_half_hint')}</p>
+					<p class="text-meta">{t('component.leave_half_hint')}</p>
 
 					{#if remainingDays != null}
 						<p class="text-xs font-medium" aria-live="polite">
@@ -415,7 +415,7 @@
 					{/if}
 
 					{#if value == null}
-						<p class="text-xs text-muted-foreground">{t('component.leave_pick_range_first')}</p>
+						<p class="text-meta">{t('component.leave_pick_range_first')}</p>
 					{:else}
 						<div
 							class={cn(
@@ -447,7 +447,7 @@
 		</Popover.Content>
 	</Popover.Root>
 	{#if disabled && disabledReason}
-		<p class="text-xs text-muted-foreground">{disabledReason}</p>
+		<p class="text-meta">{disabledReason}</p>
 	{:else if remainingDays != null}
 		<p class={cn('text-xs', overLimit ? 'font-medium text-destructive' : 'text-muted-foreground')}>
 			{t('component.leave_days_remaining', { days: remainingDays })}

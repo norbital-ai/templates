@@ -298,7 +298,7 @@
 			<section class="rounded-lg border bg-card shadow-card" aria-labelledby="my-profile-heading">
 				<Cluster align="start" justify="between" gap="md" class="border-b bg-muted/30 px-5 py-4">
 					<Stack gap="none">
-						<p class="text-tiny font-medium uppercase tracking-wide text-muted-foreground">
+						<p class="text-overline">
 							{t('app.hr_employee.my_profile')}
 						</p>
 						<h2 id="my-profile-heading" class="text-heading">
@@ -317,12 +317,12 @@
 							<p class="text-xs font-medium text-muted-foreground">
 								{t('app.hr_employee.next_payday')}
 							</p>
-							<p class="text-lg font-semibold tabular-nums">
+							<p class="text-heading tabular-nums">
 								{daysToPayday === 0
 									? t('app.hr_employee.today')
 									: t('app.hr_employee.days_until', { days: daysToPayday })}
 							</p>
-							<p class="text-xs text-muted-foreground">
+							<p class="text-meta">
 								{formatCalendarDate(nextPayDate)}
 							</p>
 						</Stack>

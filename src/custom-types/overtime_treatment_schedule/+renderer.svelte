@@ -84,7 +84,7 @@
 			onChange={emit}
 		>
 			{#snippet identity()}
-				<p class="text-xs text-muted-foreground">
+				<p class="text-meta">
 					{t('renderer.overtime_treatment_schedule.identity')}
 				</p>
 			{/snippet}

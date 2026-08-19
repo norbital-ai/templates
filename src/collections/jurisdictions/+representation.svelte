@@ -82,7 +82,7 @@
 	{#snippet jurisdictionSummary()}
 		<Stack gap="xs">
 			<Inline gap="sm" align="baseline">
-				<h2 class="truncate text-lg font-semibold">{record.code} · {record.name}</h2>
+				<h2 class="truncate text-heading">{record.code} · {record.name}</h2>
 				<span class="text-sm text-muted-foreground">{record.currency}</span>
 			</Inline>
 			<p class="text-sm text-muted-foreground">

@@ -212,7 +212,7 @@
 	<Grid gap="xl" minimum="panel">
 		<Stack gap="md">
 			<div>
-				<h2 class="text-lg font-semibold">{t('app.time_attendance.attendance_readiness')}</h2>
+				<h2 class="text-heading">{t('app.time_attendance.attendance_readiness')}</h2>
 				<p class="text-sm text-muted-foreground">
 					{t('app.time_attendance.attendance_readiness_description')}
 				</p>

@@ -122,7 +122,7 @@
 					/>
 				</label>
 			</Grid>
-			<p class="text-xs text-muted-foreground">{summary}</p>
+			<p class="text-meta">{summary}</p>
 		{/if}
 	</Stack>
 {/if}

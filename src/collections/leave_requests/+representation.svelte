@@ -96,9 +96,7 @@
 </svelte:head>
 
 {#if lockKey}
-	<p
-		class="mb-3 rounded-md border border-border bg-muted/20 px-3 py-2 text-xs text-muted-foreground"
-	>
+	<p class="mb-3 rounded-md border border-border bg-muted/20 px-3 py-2 text-meta">
 		{t(lockKey, sourceLockI18nParams(lock))}
 	</p>
 {/if}

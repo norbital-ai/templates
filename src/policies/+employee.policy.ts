@@ -93,7 +93,21 @@ const ownClaim = {
 export default {
 	name: 'employee',
 	description: 'Employee self-service access to profile, time, requests, loans, and payslips.',
+	/**
+	 * Self-service first, because it is the one app nobody's rank gates.
+	 *
+	 * `hr_employee` shows a person their own employment: their payslips, their leave balance, their
+	 * roster. Every rung of this ladder is somebody's employee, so every rung has one — and until now
+	 * only `employee` listed it, which meant an HR manager could run the company's payroll and not
+	 * look at their own. It is listed on every policy rather than inherited because there is nothing
+	 * to inherit through: `visibleApps` reads the `apps` array of the policies a subject's roles
+	 * match, and a policy that does not name the app does not offer it.
+	 *
+	 * The row scope is unchanged and does the actual work: the app's queries are `${requestor.email}`
+	 * -scoped, so naming it here shows a person their own record and nobody else's.
+	 */
 	apps: ['hr_employee'],
+
 	grants: [
 		{ collection: 'employees', action: 'read', where: ownEmployeeRecord },
 		{ collection: 'employments', action: 'read', where: ownEmployment },
