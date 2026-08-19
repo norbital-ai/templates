@@ -1,6 +1,6 @@
 {
 	"schemaVersion": 1,
-	"key": "construction",
+	"key": "norbital_construction",
 	"name": "Construction Operations",
 	"industry": "Construction",
 	"description": "Construction project, workforce, permit, quality, and commercial operations.",
