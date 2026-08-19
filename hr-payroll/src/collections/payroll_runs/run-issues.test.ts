@@ -12,6 +12,7 @@ import {
 	describeIssues,
 	validateConfiguration,
 	validateDailyWorkLimit,
+	validateOpenTimeEntries,
 	validateOvertimeLimits,
 	validatePayCalendar
 } from './lib/validate.ts';
@@ -361,4 +362,80 @@ test('one issue reads as one issue, and a flood is capped with an honest count',
 	assert.match(described, /40 things must be fixed first/);
 	assert.match(described, /and 15 more of the same kinds/);
 	assert.equal(described.split('\n').filter((line) => line.startsWith('•')).length, 25);
+});
+
+/*
+ * An open clock stops the run, and every one of them is named in the same refusal.
+ *
+ * The engine used to `find` the first unclosed entry and throw on it, which meant a month with
+ * thirty-six of them — an ordinary month, people forget to clock out — took thirty-six builds to
+ * enumerate. Nihon's own January 2026 attendance is exactly that shape.
+ */
+const openBundle = (employeeNumber, entries) => ({
+	employment: { employee_number: employeeNumber },
+	timeEntries: entries
+});
+
+test('every unclosed time entry is reported, not just the first', () => {
+	const issues = validateOpenTimeEntries({
+		bundles: [
+			openBundle('NHPMY0193', [
+				{
+					norbital_id: 'te-1',
+					work_date: '2026-01-15',
+					worked_intervals: [{ start_at: '2026-01-15T01:00:00.000Z', end_at: null }]
+				},
+				{
+					norbital_id: 'te-2',
+					work_date: '2026-01-16',
+					worked_intervals: [
+						{ start_at: '2026-01-16T01:00:00.000Z', end_at: '2026-01-16T09:00:00.000Z' }
+					]
+				}
+			]),
+			openBundle('NHPMY0271', [
+				{
+					norbital_id: 'te-3',
+					work_date: '2025-12-27',
+					worked_intervals: [{ start_at: null, end_at: '2025-12-27T09:00:00.000Z' }]
+				}
+			])
+		]
+	});
+	assert.equal(issues.length, 2);
+	assert.deepEqual(
+		issues.map((issue) => issue.recordId),
+		['te-1', 'te-3']
+	);
+	// A blocker, exactly as hard as the throw it replaced: this reports, it does not forgive.
+	assert.equal(blockers(issues).length, 2);
+	for (const issue of issues) {
+		assert.equal(issue.code, 'TIME_ENTRY_OPEN');
+		assert.equal(issue.collection, 'time_entries');
+	}
+	// The employee, not only the date — dozens of people clock on any given day.
+	assert.match(issues[0].message, /NHPMY0193 has an unclosed time entry on 2026-01-15/);
+	// A clock-out with no clock-in is just as unpriceable as a clock that never stopped.
+	assert.match(issues[1].message, /NHPMY0271 has an unclosed time entry on 2025-12-27/);
+});
+
+test('closed attendance raises nothing, and a null interval list is not an open clock', () => {
+	// `worked_intervals: null` is a separate fault with its own message in `normalizedWorkedIntervals`
+	// — a day with no intervals at all, rather than one whose clock is still running. Claiming it here
+	// would report the wrong thing to fix.
+	const issues = validateOpenTimeEntries({
+		bundles: [
+			openBundle('NHPMY0001', [
+				{
+					norbital_id: 'te-4',
+					work_date: '2026-01-05',
+					worked_intervals: [
+						{ start_at: '2026-01-05T01:00:00.000Z', end_at: '2026-01-05T09:00:00.000Z' }
+					]
+				},
+				{ norbital_id: 'te-5', work_date: '2026-01-06', worked_intervals: null }
+			])
+		]
+	});
+	assert.deepEqual(issues, []);
 });

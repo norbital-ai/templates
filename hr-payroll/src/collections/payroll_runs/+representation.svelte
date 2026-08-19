@@ -154,6 +154,22 @@
 
 	let pendingAction = $state<'recalculate' | 'pay' | 'delete' | 'export' | null>(null);
 	let lockArmed = $state(false);
+	/**
+	 * The engine's refusal, kept on screen rather than in a toast.
+	 *
+	 * A refused build is not a failed request: the run record is written before the engine starts —
+	 * it has to be, the engine needs a run id to hang payslips on — and the platform commits each
+	 * statement on its own, so a build that refuses leaves the record standing with nothing under it.
+	 * The refusal is therefore the only account of what happened, and it names up to twenty-five
+	 * records to fix. A toast that clears itself in a few seconds is the wrong shape for that.
+	 */
+	let refusal = $state<string | null>(null);
+	// Only while a count has actually come back. `?? 0` on a query still in flight would flash the
+	// refusal notice on every run, including the ones that built perfectly.
+	const payslipCount = $derived(payslipCountQuery?.current ?? null);
+	const emptyDraft = $derived(
+		record != null && record.lifecycle === 'DRAFT' && payslipCount === 0 && refusal == null
+	);
 
 	async function updateDraft(action: 'recalculate' | 'pay'): Promise<void> {
 		if (record == null) return;
@@ -167,12 +183,18 @@
 			await update(record.norbital_id, {
 				lifecycle: action === 'pay' ? 'PAID' : 'DRAFT'
 			});
+			refusal = null;
 			toast.success(action === 'pay' ? t('component.marked_paid') : t('component.recalculated'));
 			void refresh().catch(() => {
 				toast.error(t('component.no_refresh'));
 			});
 		} catch (error) {
-			toast.error(error instanceof Error ? error.message : t('component.update_failed'));
+			// The engine's own message, verbatim and in full. It is a list of the records that must be
+			// fixed, so truncating it or replacing it with a generic failure would throw away the only
+			// part an operator can act on.
+			const message = error instanceof Error ? error.message : t('component.update_failed');
+			refusal = message;
+			toast.error(message.split('\n')[0] ?? message);
 		} finally {
 			pendingAction = null;
 		}
@@ -226,7 +248,7 @@
 					<p class="text-sm text-muted-foreground">
 						{t('component.period_line', {
 							period: record.period,
-							count: payslipCountQuery?.current ?? 0
+							count: payslipCount ?? 0
 						})}
 					</p>
 				</Stack>
@@ -310,6 +332,22 @@
 		{#if lockArmed && record.lifecycle === 'DRAFT'}
 			<p class="rounded-md border border-amber-500/40 bg-amber-500/10 p-3 text-sm">
 				{t('component.lock_warning')}
+			</p>
+		{/if}
+
+		{#if refusal}
+			<Stack
+				as="section"
+				gap="xs"
+				aria-label={t('component.run_refused')}
+				class="rounded-md border border-destructive/40 bg-destructive/10 p-3"
+			>
+				<h3 class="text-sm font-semibold">{t('component.run_refused')}</h3>
+				<p class="text-sm whitespace-pre-line">{refusal}</p>
+			</Stack>
+		{:else if emptyDraft}
+			<p class="rounded-md border border-amber-500/40 bg-amber-500/10 p-3 text-sm">
+				{t('component.draft_built_nothing')}
 			</p>
 		{/if}
 

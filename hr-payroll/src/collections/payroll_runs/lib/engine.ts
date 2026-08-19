@@ -56,13 +56,14 @@ import {
 	type PendingPayslip
 } from './persist.js';
 import { settle } from './settle.js';
-import { requiredDateKey, shiftPeriod } from './dates.js';
+import { shiftPeriod } from './dates.js';
 import { readSettlementPolicy } from './settlement.js';
 import {
 	blockers,
 	describeIssues,
 	validateConfiguration,
 	validateDailyWorkLimit,
+	validateOpenTimeEntries,
 	validateOvertimeLimits,
 	validatePayCalendar,
 	type RunIssue
@@ -167,23 +168,6 @@ export function buildPayrollRun(options: {
 
 		lap('gather');
 
-		// Both bounds, not only the end. A clock-out with no clock-in is just as unpriceable as a clock
-		// that never stopped, and testing `end_at` alone let it through here to fail further in with a
-		// message about an "invalid interval" — true, but three phases away from the record at fault.
-		const openTimeEntry = gathered.bundles
-			.flatMap((bundle) => bundle.timeEntries)
-			.find((entry) =>
-				entry.worked_intervals?.some(
-					(interval) => interval.end_at == null || interval.start_at == null
-				)
-			);
-		if (openTimeEntry)
-			throw new Error(
-				`A time entry in the attendance window is still open: ${openTimeEntry.norbital_id} on ` +
-					`${requiredDateKey(openTimeEntry.work_date, 'time_entries.work_date')}. ` +
-					'Payroll cannot price a clock that has not stopped.'
-			);
-
 		/**
 		 * The projection count is a count of **payslips**, not of pay events.
 		 *
@@ -202,6 +186,11 @@ export function buildPayrollRun(options: {
 		// employment is measured, so the operator reads the issue that names them rather than an
 		// exception thrown out of `resolveWindow` five phases in.
 		issues.push(...validatePayCalendar({ configuration, bundles: gathered.bundles }));
+		// An open clock is caught here rather than three phases in, where `normalizedWorkedIntervals`
+		// refuses it as an "invalid interval" — true, but a long way from the record at fault. Reported
+		// as issues rather than thrown one at a time, so a month with thirty-six unclosed entries
+		// yields one list instead of thirty-six consecutive builds. See `validateOpenTimeEntries`.
+		issues.push(...validateOpenTimeEntries({ bundles: gathered.bundles }));
 		if (blockers(issues).length > 0) throw new Error(describeIssues(blockers(issues)));
 
 		const pending: PendingPayslip[] = [];

@@ -598,6 +598,8 @@
 	"component.run_snapshot": "Run-level configuration snapshot",
 	"component.captured_at_run_time": "Captured at run time",
 	"component.lock_warning": "Locking marks this payroll paid and makes its snapshot and payslips immutable. Select \"Confirm lock & pay\" to continue.",
+	"component.run_refused": "Payroll was not built",
+	"component.draft_built_nothing": "This draft has no payslips. A run that is refused still leaves its record behind, so an empty draft is usually a refused build rather than a payroll with nobody in it. Select \"Recalculate draft\" to rebuild it and read why.",
 	"component.payslips": "Payslips",
 	"component.payslips_description": "Open a payslip for its direct component and statutory line breakdown.",
 	"component.component_breakdown": "Component breakdown",

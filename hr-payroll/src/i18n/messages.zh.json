@@ -598,6 +598,8 @@
 	"component.run_snapshot": "核算级配置快照",
 	"component.captured_at_run_time": "运行时捕获",
 	"component.lock_warning": "锁定即标记该薪酬为已支付，并使其快照与工资单不可变更。请选择「确认锁定并支付」以继续。",
+	"component.run_refused": "薪酬核算未生成",
+	"component.draft_built_nothing": "此草稿没有工资单。核算被拒绝时其记录仍会保留，因此空草稿通常代表核算被拒绝，而非该期确实无人需要发薪。请选择「重新计算草稿」以重建并查看原因。",
 	"component.payslips": "工资单",
 	"component.payslips_description": "打开工资单以查看其直接薪酬项目与法定行明细。",
 	"component.component_breakdown": "项目明细",

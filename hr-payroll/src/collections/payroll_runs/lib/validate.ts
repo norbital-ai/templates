@@ -19,6 +19,7 @@
  */
 
 import type { Configuration } from './configuration.js';
+import { requiredDateKey } from './dates.js';
 import type { DailyOvertime } from './overtime.js';
 import { parseSpecialRules } from './special-rules.js';
 
@@ -258,6 +259,63 @@ export function validateDailyWorkLimit(options: {
 			collection: 'time_entries',
 			recordId: day.timeEntryId
 		}));
+}
+
+/**
+ * Time entries whose clock never stopped.
+ *
+ * An open interval has no duration, so nothing downstream can price it: `normalizedWorkedIntervals`
+ * refuses one by name three phases further in, and the engine used to pre-empt that with a bare
+ * `find` and a throw. That reported the **first** open clock and no others, so an operator with
+ * thirty-six of them — which is what a month of real attendance looks like when people forget to
+ * clock out — fixed one, rebuilt, and met the next. Thirty-six builds to learn thirty-six records.
+ *
+ * As issues they are all reported at once, each carrying the row to open, and the run refuses
+ * exactly as hard as it did before. This does not decide *whether* an open clock blocks payroll; it
+ * decides that the operator is told the whole list the first time.
+ *
+ * Every entry GATHER read is checked, not only the ones inside the attendance window. That is
+ * deliberate and it matches what MEASURE consumes: the schedule is walked across both calendar
+ * months the cutoff touches so the monthly statutory overtime counter resets correctly, so an open
+ * clock on the 29th of a month whose window closed on the 20th is still read by this run, and still
+ * stops it.
+ */
+export function validateOpenTimeEntries(options: {
+	readonly bundles: readonly {
+		readonly employment: { readonly employee_number: string };
+		readonly timeEntries: readonly {
+			readonly norbital_id: string;
+			readonly work_date: string | Date;
+			readonly worked_intervals:
+				| readonly {
+						readonly start_at: Date | string;
+						readonly end_at: Date | string | null;
+				  }[]
+				| null;
+		}[];
+	}[];
+}): RunIssue[] {
+	const issues: RunIssue[] = [];
+	for (const bundle of options.bundles) {
+		for (const entry of bundle.timeEntries) {
+			// Both bounds, not only the end. A clock-out with no clock-in is just as unpriceable as a
+			// clock that never stopped.
+			const open = entry.worked_intervals?.some(
+				(interval) => interval.end_at == null || interval.start_at == null
+			);
+			if (open !== true) continue;
+			issues.push({
+				code: 'TIME_ENTRY_OPEN',
+				message:
+					`${bundle.employment.employee_number} has an unclosed time entry on ` +
+					`${requiredDateKey(entry.work_date, 'time_entries.work_date')}. Payroll cannot price a ` +
+					'clock that has not stopped — close it, or delete the entry.',
+				collection: 'time_entries',
+				recordId: entry.norbital_id
+			});
+		}
+	}
+	return issues;
 }
 
 /**
