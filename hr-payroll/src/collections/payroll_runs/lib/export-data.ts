@@ -8,10 +8,12 @@
 import { Effect } from 'effect';
 import type { PayrollReadApi } from './api.js';
 import { PAGE_LIMIT, assertComplete, groupBy } from './api.js';
-import { requiredDateKey } from './dates.js';
-import { coversDate } from './effective.js';
+import { daysBetween, requiredDateKey } from './dates.js';
+import { effectiveOn } from './effective.js';
 import type { ReportLine, ReportPayslip } from './report.js';
 import { rosterCodeKind, workWindow } from '../../../lib/scheduling/roster-code.js';
+import { patternRosterCodeId } from '../../../lib/scheduling/work-pattern.js';
+import type { WorkPattern } from '../../../custom-types/work_pattern/+definition.js';
 import { normalizedWorkedIntervals, overtimeBandCode } from './overtime.js';
 
 export type RunExport = {
@@ -61,6 +63,13 @@ function timestampHours(row: {
 		0
 	);
 	return Math.max(0, elapsed - Math.max(0, Number(row.break_minutes)) / 60);
+}
+
+/** Every roster code a pattern can project, so the shift definitions behind one can be loaded. */
+function patternRosterCodeIds(pattern: WorkPattern): readonly string[] {
+	return pattern.type === 'ROSTERED'
+		? []
+		: pattern.phases.flatMap((phase) => phase.day_cycle.map((day) => day.roster_code_id));
 }
 
 export function loadRunExports(
@@ -134,8 +143,16 @@ export function loadRunExports(
 
 		const employeeIds = [...new Set(employments.map((row) => row.employee_id))];
 		// Only working days name a shift; rest and off days schedule none.
+		//
+		// The codes a work pattern projects are loaded alongside the ones explicit roster rows name.
+		// A PATTERNED employment is scheduled by its pattern and only carries an explicit row where
+		// the month departs from it, so loading the rostered ids alone would leave the schedule this
+		// export reports as the fraction of it somebody happened to override.
 		const shiftIds = [
-			...new Set(rosters.map((row) => row.shift_definition_id).filter((id) => id != null))
+			...new Set([
+				...rosters.map((row) => row.shift_definition_id).filter((id) => id != null),
+				...terms.flatMap((row) => patternRosterCodeIds(row.work_pattern))
+			])
 		];
 		const [employees, shifts] = yield* Effect.all(
 			[
@@ -188,21 +205,64 @@ export function loadRunExports(
 			);
 			const runAttendanceTo = requiredDateKey(run.attendance_to, 'payroll_runs.attendance_to');
 			const runPayDate = requiredDateKey(run.pay_date, 'payroll_runs.pay_date');
+			const runDates = daysBetween(runAttendanceFrom, runAttendanceTo);
 			const skipped: string[] = [];
 			const bank: BankDestination[] = [];
 			const report: ReportPayslip[] = runPayslips.map((payslip) => {
 				const employment = employmentById.get(payslip.employment_id);
 				const employeeNumber = employment?.employee_number ?? payslip.employment_id;
 				const employee = employment == null ? null : employeeById.get(employment.employee_id);
-				const activeTerms = (termsByEmployment.get(payslip.employment_id) ?? []).find((row) =>
-					coversDate(row.effective_range, runPayDate)
-				);
-				const runRosters = (rosterByEmployment.get(payslip.employment_id) ?? []).filter(
-					(row) => row.work_date >= runAttendanceFrom && row.work_date <= runAttendanceTo
+				const hireDate =
+					employment == null
+						? null
+						: requiredDateKey(employment.hire_date, 'employments.hire_date');
+				const exitDate =
+					employment?.exit_date == null
+						? null
+						: requiredDateKey(employment.exit_date, 'employments.exit_date');
+				const employmentTerms = termsByEmployment.get(payslip.employment_id) ?? [];
+				// A leaver's terms end on their last day, and their wages arrive after it. Reading the
+				// terms at the pay date therefore found nothing for exactly the people whose final
+				// payslip is checked hardest, and their designation, department and payroll group came
+				// out blank. The terms in force are the ones covering the last day they were employed.
+				const termsAsOf = exitDate != null && exitDate < runPayDate ? exitDate : runPayDate;
+				const activeTerms = effectiveOn(employmentTerms, termsAsOf);
+				const rosterByDate = new Map(
+					(rosterByEmployment.get(payslip.employment_id) ?? []).map((row) => [
+						requiredDateKey(row.work_date, 'roster_entries.work_date'),
+						row
+					])
 				);
 				const runTimes = (timeByEmployment.get(payslip.employment_id) ?? []).filter(
 					(row) => row.work_date >= runAttendanceFrom && row.work_date <= runAttendanceTo
 				);
+				/**
+				 * The schedule the run priced, day by day, on the same rule the engine resolves it by:
+				 * an explicit roster row wins, and every other day falls back to the code the
+				 * employment's work pattern projects for it (`schedule.ts`, `resolveSchedule`).
+				 *
+				 * Reading the roster rows alone was right while every person-day carried one. It stopped
+				 * being right when most employments moved to PATTERNED: the pattern supplies the
+				 * schedule and a roster row is only written where a month departs from it, so a
+				 * roster-only reading reported the hours nobody overrode as no hours at all — a
+				 * Normal Hours column of zero beside an Actual Hours column of a full month.
+				 */
+				const scheduled = runDates.flatMap((date) => {
+					const explicit = rosterByDate.get(date);
+					if (explicit != null) {
+						const shift = shiftById.get(explicit.shift_definition_id);
+						return shift == null ? [] : [{ code: explicit.assignment_code ?? shift.code, shift }];
+					}
+					// The pattern is the baseline only while the employment runs. Nobody is scheduled
+					// before they joined or after they left, and on those days there is no explicit row
+					// to say so.
+					if ((hireDate != null && date < hireDate) || (exitDate != null && date > exitDate))
+						return [];
+					const dayTerms = effectiveOn(employmentTerms, date);
+					const codeId = dayTerms == null ? null : patternRosterCodeId(dayTerms.work_pattern, date);
+					const shift = codeId == null ? null : shiftById.get(codeId);
+					return shift == null ? [] : [{ code: shift.code, shift }];
+				});
 				const account = employment?.bank;
 				if (account == null) skipped.push(payslip.employment_id);
 				else
@@ -310,21 +370,15 @@ export function loadRunExports(
 							? null
 							: requiredDateKey(employment.exit_date, 'employments.exit_date'),
 					attendance: {
-						normalHours: runRosters.reduce((total, roster) => {
-							const shift = shiftById.get(roster.shift_definition_id);
-							if (shift == null || rosterCodeKind(shift.variant) !== 'WORK') return total;
-							return total + workWindow(shift.variant)!.paid_minutes / 60;
-						}, 0),
+						normalHours: scheduled.reduce(
+							(total, day) =>
+								rosterCodeKind(day.shift.variant) === 'WORK'
+									? total + workWindow(day.shift.variant)!.paid_minutes / 60
+									: total,
+							0
+						),
 						actualHours: runTimes.reduce((total, row) => total + timestampHours(row), 0),
-						shiftCodes: [
-							...new Set(
-								runRosters.flatMap((row) => {
-									if (row.assignment_code != null) return [row.assignment_code];
-									const shift = shiftById.get(row.shift_definition_id);
-									return shift == null ? [] : [shift.code];
-								})
-							)
-						].toSorted()
+						shiftCodes: [...new Set(scheduled.map((day) => day.code))].toSorted()
 					},
 					gross: Number(payslip.gross),
 					totalDeductions: Number(payslip.total_deductions),
