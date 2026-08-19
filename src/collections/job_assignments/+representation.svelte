@@ -319,9 +319,9 @@
 						<h4 id="variation-history-heading" class="text-sm font-semibold">
 							{t('component.variations')}
 						</h4>
-						<p class="text-xs text-muted-foreground">{t('component.variations_description')}</p>
+						<p class="text-meta">{t('component.variations_description')}</p>
 					</div>
-					<span class="text-xs tabular-nums text-muted-foreground">
+					<span class="text-meta tabular-nums">
 						{t('component.recorded_count', { count: variationsQuery?.current?.length ?? 0 })}
 					</span>
 				</Inline>
@@ -335,7 +335,7 @@
 								</div>
 								<span class="shrink-0 text-sm font-medium">{formatMoney(variation.amount)}</span>
 							</Inline>
-							<p class="text-xs text-muted-foreground">
+							<p class="text-meta">
 								{t('component.requested_at_instant', {
 									instant: formatSingaporeInstant(variation.requested_at, t)
 								})}
@@ -360,9 +360,9 @@
 				<Inline justify="between" gap="sm">
 					<div>
 						<h4 id="evidence-heading" class="text-sm font-semibold">{t('component.evidence')}</h4>
-						<p class="text-xs text-muted-foreground">{t('component.evidence_description')}</p>
+						<p class="text-meta">{t('component.evidence_description')}</p>
 					</div>
-					<span class="text-xs tabular-nums text-muted-foreground">
+					<span class="text-meta tabular-nums">
 						{evidenceLoading
 							? t('component.loading_evidence')
 							: t('component.captured_for_assignment', { count: photoCards.length })}
@@ -417,7 +417,7 @@
 										/>
 										<Stack gap="none" class="min-w-0">
 											<p class="truncate text-sm font-medium">{photo.name}</p>
-											<p class="text-xs text-muted-foreground">
+											<p class="text-meta">
 												{photo.source} · {photo.capturedAt}
 											</p>
 										</Stack>
@@ -437,7 +437,7 @@
 										</Cluster>
 									{:else}
 										{#if photo.fileSize != null}
-											<p class="text-xs tabular-nums text-muted-foreground">
+											<p class="text-meta tabular-nums">
 												{formatFileSize(photo.fileSize)}
 											</p>
 										{/if}
