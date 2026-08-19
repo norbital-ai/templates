@@ -45,16 +45,18 @@ import { defineModel, enums, text, uuid } from '@norbital-ai/bolt/authoring';
  * success. `payroll_runs/+hooks.ts` refuses the delete once `lifecycle = 'PAID'`, so the cascade can
  * only ever release a draft's claims.
  *
- * **It does not cascade yet, and neither does anything else in this workspace.** `cascade()` marks a
- * relationship with a symbol that has exactly one occurrence in the whole of the bolt package — its
- * own definition. No compiler and no runtime reads it, and the baseline migration contains zero
- * occurrences of `CASCADE`: every foreign key the lineage emits is `NO ACTION`. So the claim below
- * is what this workspace *declares*, and it is the same declaration `payslips` already makes against
- * the same parent. Until the marker is honoured, deleting a draft run is refused by its own foreign
- * keys — which is already true today for a run that has written payslips, and is not a condition
- * this collection introduces. It is reported rather than worked around, because the two workarounds
- * available are worse: dropping the relation would leave orphaned claims locking records forever,
- * and releasing from `delete.before` is impossible because that phase's api has no delete at all.
+ * **It does cascade, as of `20260818183224_cascade_payroll_ownership`.** This paragraph used to say
+ * the opposite, and said it for a real reason: `cascade()` also stamps a relationship with a symbol
+ * that nothing reads, so reading the authoring helper suggested the marker was inert. The compiler
+ * does not use the symbol — `src/compiler/model-fields.ts` detects the `cascade(` wrapper in the
+ * model source and sets `cascade: true` on the relation, and `schema-migrations.ts:224` turns that
+ * into `ON DELETE CASCADE`. The migration emits it for `payroll_settlements.payroll_run_id`,
+ * `payslips.payroll_run_id` and `payslip_lines.payslip_id`.
+ *
+ * So deleting a draft run releases its claims in one statement, performed by the database. The note
+ * is kept rather than deleted because the stale version of it cost a debugging cycle on its own: the
+ * declaration and the mechanism that honours it live in different places, and only one of them is
+ * visible from here.
  *
  * A rebuild of a draft clears the run's settlements explicitly first, beside its payslips, so the
  * unique index below cannot refuse the rebuild's own re-claim.

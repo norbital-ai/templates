@@ -53,10 +53,10 @@ function identifier(row: Record<string, unknown>, what: string): string {
  * deletion: a rebuild is the same run reconsidering, so the locks it drops here it immediately
  * takes again.
  *
- * Deleting the run itself needs none of this: `payroll_settlements.payroll_run_id` is declared to
- * cascade, so the database releases every claim in the same statement — see
- * `src/collections/payroll_settlements/+model.ts` for why that declaration does not yet reach the
- * DDL, and why a hook loop is not the answer.
+ * Deleting the run itself needs none of this: `payroll_settlements.payroll_run_id` cascades, so the
+ * database releases every claim in the same statement. That reaches the DDL — see
+ * `src/collections/payroll_settlements/+model.ts`, whose note on the subject was stale and is now
+ * corrected, and which records why a hook loop is not the answer.
  */
 export function clearRunResults(api: PayrollApi, runId: string): Effect.Effect<void, never, never> {
 	return Effect.gen(function* () {
