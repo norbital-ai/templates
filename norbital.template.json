@@ -1,6 +1,6 @@
 {
 	"schemaVersion": 1,
-	"key": "crm",
+	"key": "norbital_crm",
 	"name": "CRM",
 	"industry": "Sales",
 	"description": "B2B trade workspace integrating sales quotes and purchase orders with the company's system of record: accounts, quoting, pipeline, and purchasing.",
