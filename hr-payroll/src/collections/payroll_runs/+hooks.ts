@@ -31,6 +31,8 @@ import type { Hooks } from './$types.js';
 import { buildPayrollRun as runEngine, preparePayrollRun } from './lib/engine.js';
 import type { PayrollApi } from './lib/api.js';
 import { configurationSnapshot } from './lib/configuration.js';
+import { payrollRunPrecheck } from './lib/precheck.js';
+import { describeIssues } from './lib/validate.js';
 
 /**
  * What a person actually chooses when creating a run: a company and a period. Everything else on the
@@ -128,6 +130,23 @@ export default {
 							`Payroll ${unsettled.period} is still a draft. Settle it before calculating ${input.period}: ` +
 								'its figures are this period’s year-to-date.'
 						);
+					/**
+					 * The last refusal that can still be free.
+					 *
+					 * These checks used to live inside the engine, which runs in `create.after` — after the
+					 * row is committed and with no transaction to take it back. A run refused for an
+					 * unclosed clock therefore left a DRAFT payroll run with no payslips under it: a record
+					 * asserting that a period had been calculated, blocking the next period, describing a
+					 * calculation that never happened. Every one of those had to be found and deleted by
+					 * hand.
+					 *
+					 * Moving them here is the whole of the fix, and it is a fix precisely because `before`
+					 * has a property `after` cannot have: it runs before the insert, so a refusal leaves
+					 * nothing behind. The engine keeps its own copies of these checks — this is the cheap,
+					 * early answer, not the authoritative one.
+					 */
+					const blocking = yield* payrollRunPrecheck({ api, configuration, window });
+					if (blocking.length > 0) refuse(describeIssues(blocking));
 					return {
 						...input,
 						lifecycle: 'DRAFT' as const,
@@ -146,6 +165,20 @@ export default {
 		after: {
 			description:
 				'Runs the payroll engine for the newly created run, producing its payslips and payslip lines from the attendance, entries and statutory rules in the resolved window.',
+			/**
+			 * The build, and it stays here.
+			 *
+			 * By the time this runs the row is a fact, and it cannot be unwritten — the database
+			 * facility has no transaction primitive, so every statement the engine issues is its own
+			 * autocommitted call and so was the insert that caused it. That is the right place for the
+			 * *build*: producing payslips is work that follows a run existing, not a condition of it
+			 * existing. What moved out is validation, which had no business being downstream of a
+			 * commit it could not undo.
+			 *
+			 * A failure here is reported, never swallowed. The run exists and has no payslips, which is
+			 * a state an operator can see and act on — recalculating a draft is one click — and it is
+			 * strictly better than a silent partial build nobody is told about.
+			 */
 			handler: ({ record, api }) =>
 				Effect.gen(function* () {
 					yield* runEngine({
