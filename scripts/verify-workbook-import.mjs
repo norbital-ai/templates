@@ -304,6 +304,40 @@ try {
 		'a workbook row is IMPORT provenance, not the MANUAL default the board writes'
 	);
 
+	// ── Every column the long-form sheet declares reaches the row that is written ──────────────────
+	const annotated = await runHandler(
+		rosterPipeline.import.handler(
+			{
+				input: rosterImportPayload(
+					workbookGrids(
+						await gridsOf([
+							[
+								'Roster',
+								[
+									[...ROSTER_HEADERS, 'assignment_code', 'note'],
+									['NHPMY0002', '2026-05-04', '7.5AM', 'AMRES', 'swap with 03 May']
+								]
+							]
+						])
+					),
+					ROSTER_ID
+				)
+			},
+			rosterApi()
+		)
+	);
+	assert.deepEqual(annotated, [
+		{
+			employment_id: 'employment:2',
+			work_date: '2026-05-04',
+			shift_definition_id: 'shift:75',
+			roster_id: ROSTER_ID,
+			assignment_code: 'AMRES',
+			origin: 'IMPORT',
+			note: 'swap with 03 May'
+		}
+	]);
+
 	// ── One bad row refuses the whole file, and says which row ─────────────────────────────────────
 	const unknownEmployee = await refusal(async () =>
 		rosterPipeline.import.handler(
