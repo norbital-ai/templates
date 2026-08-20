@@ -12,7 +12,17 @@ import {
 export default defineModel(
 	{
 		job_id: uuid().notNull(),
-		contractor_profile_id: uuid().notNull(),
+		/**
+		 * The person this job was dispatched to — `bolt_auth_user.norbital_id`, directly.
+		 *
+		 * There is no contractor record between the assignment and the person, and there is nothing
+		 * for one to hold: a contractor is a user whose team confers `field_ops_contractor`, and the
+		 * only thing the deleted `contractor_profiles` row carried beyond this id was a company name
+		 * that restated the person's own. Holding the user id here is what lets the contractor policy
+		 * scope by column comparison instead of a subquery, and what removes the "profile" a
+		 * contractor could fail to have.
+		 */
+		assignee_user_id: uuid().notNull(),
 		dispatched_at: timestamp(),
 		status: enums(['dispatched', 'in_progress', 'completed', 'suspect']),
 		completed_at: timestamp(),
@@ -34,13 +44,13 @@ export default defineModel(
 	},
 	{
 		description:
-			'Contractor assigned to a site job. Tracks dispatch, on-site progression, and photo evidence.',
+			'A job dispatched to one person. Tracks dispatch, on-site progression, and photo evidence.',
 		recordLabel: 'summary',
 		icon: 'lucide:clipboard-check',
 		indexes: [
 			{ columns: ['source_message_id'], unique: true },
 			{ columns: ['job_id'], unique: true },
-			{ columns: ['contractor_profile_id'] }
+			{ columns: ['assignee_user_id'] }
 		]
 	}
 );

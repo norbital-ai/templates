@@ -1,5 +1,6 @@
 import { defineQueryHandler } from '@norbital-ai/bolt/authoring';
 import { Effect, Schema } from 'effect';
+import { usersById } from '../lib/identity-directory.js';
 
 /** A calendar day as the wire carries one: `YYYY-MM-DD` that names a day which actually exists. */
 const calendarDay = Schema.String.check(
@@ -27,7 +28,7 @@ function monthBounds(scheduledFor: string): { start: string; end: string } {
 
 export default defineQueryHandler({
 	description:
-		"Builds the controller's view of one scheduled day: an assignment card per dispatched job, a map point per site with the assignments on it, and every suspect assignment in that month.",
+		"Builds the controller's view of one scheduled day: an assignment card per dispatched job naming the person it went to, a map point per site with the assignments on it, and every suspect assignment in that month.",
 	schema: Schema.toStandardSchemaV1(Schema.Struct({ scheduled_for: calendarDay })),
 	handler: ({ scheduled_for }, api) =>
 		Effect.gen(function* () {
@@ -76,7 +77,7 @@ export default defineQueryHandler({
 				columns: {
 					norbital_id: true,
 					job_id: true,
-					contractor_profile_id: true,
+					assignee_user_id: true,
 					status: true
 				},
 				limit: 1000
@@ -86,8 +87,8 @@ export default defineQueryHandler({
 			}
 
 			const jobById = new Map(jobs.map((job) => [job.norbital_id, job]));
-			const contractorIds = [
-				...new Set(assignments.map((assignment) => assignment.contractor_profile_id))
+			const assigneeUserIds = [
+				...new Set(assignments.map((assignment) => assignment.assignee_user_id))
 			];
 			const siteIds = [
 				...new Set(
@@ -97,13 +98,11 @@ export default defineQueryHandler({
 					})
 				)
 			];
-			const [contractors, sites] = yield* Effect.all(
+			const [assignees, sites] = yield* Effect.all(
 				[
-					api.db.query.contractor_profiles.findMany({
-						where: { norbital_id: { in: contractorIds } },
-						columns: { norbital_id: true, company_name: true },
-						limit: contractorIds.length
-					}),
+					// The assignee is a person, so the name comes from the identity directory rather than
+					// from a workspace collection restating it.
+					usersById(api, assigneeUserIds),
 					api.db.query.sites.findMany({
 						where: { norbital_id: { in: siteIds } },
 						columns: { norbital_id: true, name: true, location: true },
@@ -112,12 +111,9 @@ export default defineQueryHandler({
 				],
 				{ concurrency: 'unbounded' }
 			);
-			const contractorById = new Map(
-				contractors.map((contractor) => [contractor.norbital_id, contractor.company_name])
-			);
 			const assignmentsBySite = new Map<
 				string,
-				Array<{ id: string; job: string; contractor: string; status: string }>
+				Array<{ id: string; job: string; assignee: string; status: string }>
 			>();
 
 			for (const assignment of assignments) {
@@ -127,7 +123,7 @@ export default defineQueryHandler({
 				siteAssignments.push({
 					id: assignment.norbital_id,
 					job: job.title,
-					contractor: contractorById.get(assignment.contractor_profile_id) ?? 'Unknown contractor',
+					assignee: assignees.get(assignment.assignee_user_id)?.name ?? 'Unknown assignee',
 					status: assignment.status ?? 'dispatched'
 				});
 				assignmentsBySite.set(job.site_id, siteAssignments);
@@ -143,8 +139,7 @@ export default defineQueryHandler({
 								{
 									id: assignment.norbital_id,
 									job: job.title,
-									contractor:
-										contractorById.get(assignment.contractor_profile_id) ?? 'Unknown contractor'
+									assignee: assignees.get(assignment.assignee_user_id)?.name ?? 'Unknown assignee'
 								}
 							]
 						: [];

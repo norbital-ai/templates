@@ -12,7 +12,6 @@
 	import { StaticMap, type StaticMapMarker } from '@norbital-ai/ui/static-map';
 	import { Tabs, type TabConfig } from '@norbital-ai/ui/tabs';
 	import Icon from '@iconify/svelte';
-	import { isCalendarDate } from '@norbital-ai/std/date';
 
 	const FIELD_TIME_ZONE = 'Asia/Singapore';
 
@@ -28,18 +27,9 @@
 		return `${valueFor('year')}-${valueFor('month')}-${valueFor('day')}`;
 	}
 
-	function shiftCalendarDate(value: string, days: number): string {
-		if (!isCalendarDate(value)) {
-			throw new Error('Calendar date must use YYYY-MM-DD.');
-		}
-		const date = new Date(`${value}T00:00:00.000Z`);
-		date.setUTCDate(date.getUTCDate() + days);
-		return date.toISOString().slice(0, 10);
-	}
-
 	interface AssignmentForm {
 		jobId: string | null;
-		contractorId: string | null;
+		assigneeUserId: string | null;
 		saving: boolean;
 		error: string | null;
 	}
@@ -70,7 +60,7 @@
 		{ value: 'suspect', label: t('component.status_suspect'), color: 'red' }
 	]);
 
-	// Assign-contractor sheet — pairs an unassigned job for the day with a contractor workspace.
+	// Assign-contractor sheet — pairs an unassigned job for the day with the person who will do it.
 	const assignJobsQuery = $derived(
 		client.db.jobs.findMany({
 			where: { scheduled_for: { eq: dispatchDay }, status: { eq: 'unassigned' } },
@@ -78,18 +68,25 @@
 			limit: 250
 		})
 	);
-	const assignContractorsQuery = client.db.contractor_profiles.findMany({
-		orderBy: { company_name: 'asc' },
-		limit: 250
-	});
+	/**
+	 * Who a job can be dispatched to: the workspace's people, read straight from the directory.
+	 *
+	 * This used to be a `contractor_profiles` query and a `bolt_auth_user` query side by side — the
+	 * first for the picker, the second to render the portal user behind each company. They were two
+	 * reads of the same people, and the first only existed to give the second something to hang off.
+	 * The picker names the person now, so one read serves both.
+	 *
+	 * The directory is every user, not only contractors: a person's team is not readable through the
+	 * identity field mask (`norbital_id` and `name`, nothing else), so this list cannot be narrowed
+	 * client-side to the `Contractor` team. Dispatching to somebody whose team confers no contractor
+	 * policy produces a valid assignment they simply cannot open, which is a visible mistake rather
+	 * than a silent one.
+	 */
 	const usersQuery = client.db.bolt_auth_user.findMany({
 		columns: { norbital_id: true, name: true },
 		orderBy: { name: 'asc' },
 		limit: 500
 	});
-	const userNameById = $derived(
-		new Map((usersQuery.current ?? []).map((user) => [user.norbital_id, user.name]))
-	);
 	const sitesQuery = client.db.sites.findMany({
 		orderBy: { name: 'asc' },
 		limit: 250
@@ -99,7 +96,7 @@
 	);
 	let assignment = $state<AssignmentForm>({
 		jobId: null,
-		contractorId: null,
+		assigneeUserId: null,
 		saving: false,
 		error: null
 	});
@@ -113,9 +110,9 @@
 		}))
 	);
 	const assignContractorOptions = $derived(
-		(assignContractorsQuery.current ?? []).map((contractor) => ({
-			value: contractor.norbital_id,
-			label: contractor.company_name
+		(usersQuery.current ?? []).map((user) => ({
+			value: user.norbital_id,
+			label: user.name
 		}))
 	);
 
@@ -132,7 +129,7 @@
 	}
 
 	async function createAssignment(): Promise<void> {
-		if (!assignment.jobId || !assignment.contractorId || assignment.saving) return;
+		if (!assignment.jobId || !assignment.assigneeUserId || assignment.saving) return;
 		assignment.saving = true;
 		assignment.error = null;
 		try {
@@ -140,13 +137,13 @@
 			if (!create) throw new Error(t('component.assignment_create_unavailable'));
 			await create({
 				job_id: assignment.jobId,
-				contractor_profile_id: assignment.contractorId,
+				assignee_user_id: assignment.assigneeUserId,
 				status: 'dispatched',
 				site_identity_unverified: true,
 				site_identity_mismatch: false
 			});
 			assignment.jobId = null;
-			assignment.contractorId = null;
+			assignment.assigneeUserId = null;
 			await refreshDispatch();
 			assignContractorOpen = false;
 		} catch (reason) {
@@ -185,7 +182,7 @@
 					<li class="text-xs">
 						<p class="font-medium">{assignment.job}</p>
 						<p class="text-muted-foreground">
-							{assignment.contractor} · {assignment.status.replaceAll('_', ' ')}
+							{assignment.assignee} · {assignment.status.replaceAll('_', ' ')}
 						</p>
 					</li>
 				{/each}
@@ -226,35 +223,15 @@
 							{t('app.field_ops_controller.today')}
 						</Button>
 					</Inline>
-					<Inline gap="xs">
-						<Button
-							variant="outline"
-							size="icon"
-							aria-label={t('app.field_ops_controller.previous_day')}
-							hint={t('app.field_ops_controller.previous_day')}
-							onclick={() => setDispatchDay(shiftCalendarDate(dispatchDay, -1))}
-						>
-							<Icon icon="lucide:chevron-left" class="size-4" />
-						</Button>
-						<div class="min-w-0">
-							<DataRenderer
-								field={{ name: 'dispatch_date', kind: 'date', nullable: false }}
-								value={dispatchDay}
-								mode="edit"
-								placeholder={t('app.field_ops_controller.select_dispatch_date')}
-								onValueChange={updateDispatchDate}
-							/>
-						</div>
-						<Button
-							variant="outline"
-							size="icon"
-							aria-label={t('app.field_ops_controller.next_day')}
-							hint={t('app.field_ops_controller.next_day')}
-							onclick={() => setDispatchDay(shiftCalendarDate(dispatchDay, 1))}
-						>
-							<Icon icon="lucide:chevron-right" class="size-4" />
-						</Button>
-					</Inline>
+					<div class="min-w-0">
+						<DataRenderer
+							field={{ name: 'dispatch_date', kind: 'date', nullable: false }}
+							value={dispatchDay}
+							mode="edit"
+							placeholder={t('app.field_ops_controller.select_dispatch_date')}
+							onValueChange={updateDispatchDate}
+						/>
+					</div>
 				</Stack>
 			{/snippet}
 			{#snippet end()}
@@ -293,7 +270,7 @@
 										t('component.job_assignment')}
 								</p>
 								<p class="text-meta">
-									{assignmentCardById.get(assignment.norbital_id)?.contractor ??
+									{assignmentCardById.get(assignment.norbital_id)?.assignee ??
 										t('component.contractor')}
 								</p>
 								{#if assignment.status === 'suspect'}
@@ -349,27 +326,6 @@
 	</CollectionTable>
 {/snippet}
 
-{#snippet contractors()}
-	<CollectionTable
-		{client}
-		collection="contractor_profiles"
-		title={t('app.field_ops_controller.tab_contractors')}
-		description={t('app.field_ops_controller.contractors_description')}
-		query={{ orderBy: { company_name: 'asc' } }}
-	>
-		{#snippet columns({ Column })}
-			<Column name="company_name" minWidth={240} card="title" />
-			<Column
-				name="user_id"
-				label={t('component.portal_user')}
-				minWidth={240}
-				card="subtitle"
-				render={({ row }) => userNameById.get(row.user_id) ?? '—'}
-			/>
-		{/snippet}
-	</CollectionTable>
-{/snippet}
-
 <Cover as="main">
 	<Tabs
 		animate={false}
@@ -385,12 +341,6 @@
 				label: t('app.field_ops_controller.tab_sites'),
 				icon: 'lucide:map-pinned',
 				content: sites
-			},
-			{
-				name: 'contractors',
-				label: t('app.field_ops_controller.tab_contractors'),
-				icon: 'lucide:hard-hat',
-				content: contractors
 			}
 		] satisfies TabConfig[]}
 	/>
@@ -431,18 +381,18 @@
 				<span class="font-medium">{t('component.contractor')}</span>
 				<Combobox
 					options={assignContractorOptions}
-					bind:value={assignment.contractorId}
+					bind:value={assignment.assigneeUserId}
 					emptyPlaceholder={t('app.field_ops_controller.select_contractor')}
 					searchPlaceholder={t('app.field_ops_controller.search_contractors')}
 					clientConfig={{
-						isLoading: assignContractorsQuery.loading,
-						error: assignContractorsQuery.error?.message ?? null
+						isLoading: usersQuery.loading,
+						error: usersQuery.error?.message ?? null
 					}}
 					disabled={!assignSelectedJob}
 				/>
 			</label>
 
-			{#if assignSelectedJob && (assignContractorsQuery.current ?? []).length === 0}
+			{#if assignSelectedJob && (usersQuery.current ?? []).length === 0}
 				<p class="text-sm text-destructive" role="alert">
 					{t('app.field_ops_controller.no_contractors')}
 				</p>
@@ -459,7 +409,7 @@
 			<Button
 				type="submit"
 				class="w-full"
-				disabled={!assignment.jobId || !assignment.contractorId || assignment.saving}
+				disabled={!assignment.jobId || !assignment.assigneeUserId || assignment.saving}
 			>
 				{assignment.saving
 					? t('app.field_ops_controller.assigning')

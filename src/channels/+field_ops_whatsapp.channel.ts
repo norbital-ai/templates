@@ -4,7 +4,7 @@ import type { Channel } from './$types.js';
  * Field operations over WhatsApp for contractors with existing workspace accounts.
  *
  * WhatsApp identity is matched to a verified channel on an assigned account. The linked contractor
- * becomes the policy requestor, while the profile's `field_ops_contractor` policy remains the
+ * becomes the policy requestor, while the declared `field_ops_contractor` policy remains the
  * capability ceiling. Unknown senders receive the account-registration prompt and no model run.
  */
 export default {
@@ -15,8 +15,8 @@ export default {
 	groupMessages: 'mention_or_reply',
 	task:
 		'You are the field-operations assistant for authenticated contractors on WhatsApp. The linked ' +
-		'account is the requestor: answer only from that contractor’s assigned jobs, sites, profile, ' +
-		'and dispatch scope. You may update their own assignments and raise their own variation ' +
+		'account is the requestor: answer only from that contractor’s assigned jobs, sites, and ' +
+		'dispatch scope. You may update their own assignments and raise their own variation ' +
 		'requests when the policy allows it. Never reveal another contractor’s work or internal ' +
 		'integrity fields such as suspect or site-identity flags. WhatsApp media filing is not supported; ' +
 		'direct photo uploads to the Contractor workspace app. Never ask for or expose record IDs, and ' +

@@ -4,11 +4,20 @@ import type { Policy } from './$types.js';
 type Approval = NonNullable<Policy['grants'][number]['approval']>;
 
 /**
- * The contractor: their own profile, the jobs they were assigned, and nothing else.
+ * The contractor: the jobs they were assigned, and nothing else.
  *
- * Every grant here is conditional, and the conditions are subqueries rather than column comparisons —
- * a contractor is a `contractor_profiles` row, not a user id, so almost nothing on these collections
- * carries the requestor directly. `$sql` is the form that expresses that.
+ * A contractor is a **user**, not a record. `job_assignments.assignee_user_id` is
+ * `bolt_auth_user.norbital_id`, so the assignment collection carries the requestor directly and the
+ * self-scope is a column comparison — `ownAssignment` below is an ordinary `where`, not a subquery.
+ * Everything else is one hop from an assignment, so each remaining `$sql` reaches the requestor
+ * through `job_assignments` alone; the `contractor_profiles` join that used to sit in every one of
+ * them is gone along with the collection.
+ *
+ * There is deliberately no grant on any collection describing the contractor themselves. The person
+ * is `bolt_auth_user`, which the runtime's own `bolt.system-collections` policy already grants to any
+ * authenticated subject, masked to an id and a name. A workspace collection restating that was the
+ * thing this policy used to have to subquery through, and the reason the contractor app could report
+ * a lookup failure as "Could not load your contractor profile" — there is now no profile to load.
  *
  * `${requestor.norbital_id}` is **not** interpolated here: these are single-quoted strings, so the
  * literal token reaches the database, and the policy compiler replaces it with a bound parameter on
@@ -20,39 +29,33 @@ type Approval = NonNullable<Policy['grants'][number]['approval']>;
  * widening is the worst thing a permission rule can do, so `definePolicy` refuses it outright.
  */
 
-/** Their own contractor row — the one collection where the requestor appears as a column. */
-const ownProfile = { user_id: { eq: '${requestor.norbital_id}' } } as const;
+/**
+ * Their own assignment rows — the one collection where the requestor appears as a column.
+ *
+ * This is the whole of the self-scope. Every other condition below is written in terms of it.
+ */
+const ownAssignment = { assignee_user_id: { eq: '${requestor.norbital_id}' } } as const;
 
 /** Sites reachable through an assignment. */
 const assignedSite = {
 	$sql:
 		'"norbital_id" IN (SELECT j.site_id FROM jobs j ' +
 		'JOIN job_assignments a ON a.job_id = j.norbital_id ' +
-		'JOIN contractor_profiles c ON c.norbital_id = a.contractor_profile_id ' +
-		'WHERE c.user_id = ${requestor.norbital_id})'
+		'WHERE a.assignee_user_id = ${requestor.norbital_id})'
 } as const;
 
 /** Jobs they were assigned. */
 const assignedJob = {
 	$sql:
 		'"norbital_id" IN (SELECT a.job_id FROM job_assignments a ' +
-		'JOIN contractor_profiles c ON c.norbital_id = a.contractor_profile_id ' +
-		'WHERE c.user_id = ${requestor.norbital_id})'
-} as const;
-
-/** Their own assignment rows. */
-const ownAssignment = {
-	$sql:
-		'"contractor_profile_id" IN (SELECT norbital_id FROM contractor_profiles ' +
-		'WHERE user_id = ${requestor.norbital_id})'
+		'WHERE a.assignee_user_id = ${requestor.norbital_id})'
 } as const;
 
 /** Variations raised against one of their own assignments. */
 const ownVariation = {
 	$sql:
 		'"job_assignment_id" IN (SELECT a.norbital_id FROM job_assignments a ' +
-		'JOIN contractor_profiles c ON c.norbital_id = a.contractor_profile_id ' +
-		'WHERE c.user_id = ${requestor.norbital_id})'
+		'WHERE a.assignee_user_id = ${requestor.norbital_id})'
 } as const;
 
 /**
@@ -62,12 +65,10 @@ const ownVariation = {
 const ownEvidence = {
 	$sql:
 		'("job_assignment_id" IN (SELECT a.norbital_id FROM job_assignments a ' +
-		'JOIN contractor_profiles c ON c.norbital_id = a.contractor_profile_id ' +
-		'WHERE c.user_id = ${requestor.norbital_id}) ' +
+		'WHERE a.assignee_user_id = ${requestor.norbital_id}) ' +
 		'OR "variation_request_id" IN (SELECT variation.norbital_id FROM variation_requests variation ' +
 		'WHERE variation.job_assignment_id IN (SELECT a.norbital_id FROM job_assignments a ' +
-		'JOIN contractor_profiles c ON c.norbital_id = a.contractor_profile_id ' +
-		'WHERE c.user_id = ${requestor.norbital_id})))'
+		'WHERE a.assignee_user_id = ${requestor.norbital_id})))'
 } as const;
 
 /**
@@ -110,7 +111,6 @@ export default {
 		'Self-scoped access to assigned jobs and sites, with field updates on own assignments and linked variation or photo evidence.',
 	apps: ['field_ops_contractor'],
 	grants: [
-		{ collection: 'contractor_profiles', action: 'read', where: ownProfile },
 		{ collection: 'sites', action: 'read', where: assignedSite },
 		{ collection: 'jobs', action: 'read', where: assignedJob },
 		{ collection: 'job_assignments', action: 'read', where: ownAssignment },

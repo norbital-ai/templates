@@ -6,6 +6,7 @@
 	"scripts": {
 		"format": "prettier --write .",
 		"lint": "prettier --check . && svelte-check --tsconfig ./tsconfig.json",
+		"test": "node --experimental-strip-types --import ./scripts/ts-source-resolve.mjs --test src/collections/*/*.test.ts",
 		"sync": "bolt sync",
 		"sync:watch": "bolt sync --watch"
 	},

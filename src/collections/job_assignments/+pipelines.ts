@@ -1,6 +1,7 @@
 import { isCalendarDate } from '@norbital-ai/std/date';
 import { Effect, Schema } from 'effect';
 import type { Pipelines } from './$types.js';
+import { usersByName } from '../../lib/identity-directory.js';
 
 function shiftCalendarDate(value: string, days: number): string {
 	if (!isCalendarDate(value)) {
@@ -18,7 +19,16 @@ const rowSchema = Schema.Struct({
 	site_name: rosterText,
 	scheduled_for: rosterText,
 	job_title: rosterText,
-	contractor_company: rosterText,
+	/**
+	 * Who the job goes to, by the name they sign in under.
+	 *
+	 * This was `contractor_company`, matched against `contractor_profiles.company_name`. There is no
+	 * such collection and no such column: a contractor is a user, so the roster names a person and the
+	 * import resolves them against `bolt_auth_user`. A name is the only identifying field the identity
+	 * grant's mask exposes — the address is not readable through it — so a name shared by two people
+	 * is refused by `usersByName` rather than resolved to whichever row came back first.
+	 */
+	contractor_name: rosterText,
 	summary: Schema.optional(Schema.String)
 });
 
@@ -53,7 +63,7 @@ function rowLabel(row: RosterRow, index: number): string {
 export default {
 	import: {
 		description:
-			'Turns a week of roster rows into dispatched assignments by matching each row to a single unassigned job by site, date and title.',
+			'Turns a week of roster rows into dispatched assignments by matching each row to a single unassigned job by site, date and title, and each named contractor to the user they sign in as.',
 		input: importSchema,
 		handler: ({ input }, api) =>
 			Effect.gen(function* () {
@@ -87,16 +97,13 @@ export default {
 				}
 
 				const scheduledDates = [...new Set(rows.map((row) => row.scheduled_for))];
-				const [sites, contractors, jobs, existingAssignments] = yield* Effect.all(
+				const [sites, contractorByName, jobs, existingAssignments] = yield* Effect.all(
 					[
 						api.db.query.sites.findMany({
 							columns: { norbital_id: true, name: true },
 							limit: QUERY_LIMIT
 						}),
-						api.db.query.contractor_profiles.findMany({
-							columns: { norbital_id: true, company_name: true },
-							limit: QUERY_LIMIT
-						}),
+						usersByName(api),
 						api.db.query.jobs.findMany({
 							where: { scheduled_for: { in: scheduledDates } },
 							columns: {
@@ -117,9 +124,6 @@ export default {
 				);
 
 				const siteByName = new Map(sites.map((site) => [normalizeKey(site.name), site]));
-				const contractorByCompany = new Map(
-					contractors.map((contractor) => [normalizeKey(contractor.company_name), contractor])
-				);
 				const assignmentByJobId = new Map(
 					existingAssignments.map((assignment) => [assignment.job_id, assignment])
 				);
@@ -135,7 +139,7 @@ export default {
 				const resolvedRows: Array<{
 					row: RosterRow;
 					jobId: string;
-					contractorId: string;
+					assigneeUserId: string;
 				}> = [];
 				const seenJobIds = new Set<string>();
 
@@ -147,9 +151,9 @@ export default {
 						continue;
 					}
 
-					const contractor = contractorByCompany.get(normalizeKey(row.contractor_company));
+					const contractor = contractorByName.get(normalizeKey(row.contractor_name));
 					if (contractor == null) {
-						problems.push(`${label}: unknown contractor "${row.contractor_company}".`);
+						problems.push(`${label}: no single workspace user is named "${row.contractor_name}".`);
 						continue;
 					}
 
@@ -179,7 +183,7 @@ export default {
 					resolvedRows.push({
 						row,
 						jobId: job.norbital_id,
-						contractorId: contractor.norbital_id
+						assigneeUserId: contractor.norbital_id
 					});
 				}
 
@@ -189,7 +193,7 @@ export default {
 
 				return resolvedRows.map((entry) => ({
 					job_id: entry.jobId,
-					contractor_profile_id: entry.contractorId,
+					assignee_user_id: entry.assigneeUserId,
 					status: 'dispatched' as const,
 					site_identity_unverified: true,
 					site_identity_mismatch: false,

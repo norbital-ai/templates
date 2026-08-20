@@ -4,15 +4,65 @@
 	import { useI18n } from '@norbital-ai/ui/i18n';
 	import type { TenantI18nKeys } from '$bolt/i18n-keys';
 	import { CollectionTable } from '@norbital-ai/ui/collection-table';
-	import { Bound } from '@norbital-ai/ui/layout';
+	import { Bound, Stack } from '@norbital-ai/ui/layout';
 
 	const { t } = useI18n<TenantI18nKeys>();
 
-	const user = getPlatformStateContext()().user;
-	const contractorQuery = client.db.contractor_profiles.findMany({
-		where: { user_id: { eq: user.norbital_id } },
-		limit: 1
-	});
+	const platform = getPlatformStateContext();
+
+	/**
+	 * Who is looking, answered by what the runtime says they may open — never by a client-side id.
+	 *
+	 * The obvious version of this app filtered `contractor_profiles` by
+	 * `getPlatformStateContext()().user.norbital_id`, and that value is not an id at all: the shell
+	 * builds it as `user.name`, which the workspace host builds as the local part of the signed-in
+	 * address. So the filter sent `user_id = 'dion.neo'` to a `uuid()` column and every viewer got a
+	 * failed query rendered as "Could not load your contractor profile."
+	 *
+	 * That collection is gone, and with it the lookup, the failure and the message. A contractor is a
+	 * user; their assignments carry `assignee_user_id` and the contractor policy narrows this table to
+	 * the requestor by column comparison on the server. There is nothing left for this app to resolve
+	 * about the viewer beyond which framing to show, and `platform.apps` answers that without an id.
+	 *
+	 * It is `AccessControl.visibleApps`: the whole registry for anybody whose `bolt_auth_user.status`
+	 * is `admin`, and otherwise exactly the apps declared by the policies their one team holds.
+	 * `field_ops_controller.policy.ts` declares `apps: ['field_ops_controller', 'field_ops_contractor']`
+	 * and the contractor policy declares only its own, so the presence of the controller app in this
+	 * list is precisely "administers or controls this workspace".
+	 */
+	const visibleApps = $derived(platform().apps);
+
+	/**
+	 * Whether that answer has arrived yet.
+	 *
+	 * The shell seeds its accessible-app list to `[]` and replaces it when the runtime answers, and an
+	 * empty list is honoured as "may see nothing". Somebody is currently looking at this app, so a
+	 * list that does not contain it is a list that has not landed — not a narrower viewer. Reading it
+	 * as authority would flash the contractor framing at a controller on every load.
+	 */
+	const authoritySettled = $derived(visibleApps.includes('field_ops_contractor'));
+	const dispatchAuthority = $derived(visibleApps.includes('field_ops_controller'));
+
+	/**
+	 * The people directory, for the assignee column a dispatcher needs and a contractor does not.
+	 *
+	 * Only fetched under dispatch authority: a scoped contractor sees only their own rows here, so the
+	 * column would say the same thing on every line. `bolt_auth_user` is granted to any authenticated
+	 * subject masked to an id and a name, which is exactly what a name column needs.
+	 */
+	const usersQuery = $derived(
+		dispatchAuthority
+			? client.db.bolt_auth_user.findMany({
+					columns: { norbital_id: true, name: true },
+					orderBy: { name: 'asc' },
+					limit: 500
+				})
+			: undefined
+	);
+	const assigneeNameById = $derived(
+		new Map((usersQuery?.current ?? []).map((user) => [user.norbital_id, user.name]))
+	);
+
 	const jobsQuery = client.db.jobs.findMany({
 		orderBy: { scheduled_for: 'desc' },
 		limit: 250
@@ -40,16 +90,30 @@
 
 <!-- App identity (title/description/icon) is rendered by the shell AppMediaHeader. -->
 <Bound as="main" size="full" inset>
-	{#if contractorQuery.error}
-		<p class="text-sm text-destructive">
-			{t('app.field_ops_contractor.profile_load_failed')}
-		</p>
-	{:else if contractorQuery.loading}
-		<div
-			class="h-48 rounded-md bg-muted/50 motion-safe:animate-pulse"
-			aria-label={t('component.loading')}
-		></div>
-	{:else}
+	<Stack gap="md">
+		<!--
+			One sentence about scope, and no failure mode.
+
+			This used to be four branches — loading, error, dispatcher, contractor — because a contractor
+			row had to be fetched before the app could say whose assignments these were, and a fetch has
+			a loading state and a failure state. Nothing is fetched now: the viewer's scope is decided by
+			the policy the server already applied to the table below, so the app states it and moves on.
+		-->
+		{#if !authoritySettled}
+			<div
+				class="h-5 w-72 max-w-full rounded bg-muted/50 motion-safe:animate-pulse"
+				aria-label={t('component.loading')}
+			></div>
+		{:else if dispatchAuthority}
+			<p class="text-sm text-muted-foreground">
+				{t('app.field_ops_contractor.scope_workspace')}
+			</p>
+		{:else}
+			<p class="text-sm text-muted-foreground">
+				{t('app.field_ops_contractor.scope_own')}
+			</p>
+		{/if}
+
 		<CollectionTable
 			{client}
 			collection="job_assignments"
@@ -70,6 +134,16 @@
 							: t('component.job');
 					}}
 				/>
+				{#if dispatchAuthority}
+					<!-- Whose assignment it is. Only meaningful to somebody looking at everybody's. -->
+					<Column
+						name="assignee_user_id"
+						label={t('component.contractor')}
+						minWidth={220}
+						card="subtitle"
+						render={({ row }) => assigneeNameById.get(row.assignee_user_id) ?? '—'}
+					/>
+				{/if}
 				<Column name="dispatched_at" label={t('component.dispatched')} />
 				<Column
 					name="status"
@@ -78,6 +152,14 @@
 						// The contractor sees their assignment's progress, never the controller-only
 						// integrity overlay: a `suspect` row reads as the linked job's own progression,
 						// which the assignment hooks keep in lockstep for every non-flagged path.
+						//
+						// The overlay is withheld from the contractor, not from the surface. Somebody
+						// holding dispatch is the audience it was written for, so on their view of this
+						// same table `suspect` is reported as itself — hiding a flagged assignment from
+						// the person who has to act on it was never the point of the mask.
+						if (value === 'suspect' && dispatchAuthority) {
+							return t('component.status_suspect');
+						}
 						if (value === 'suspect') {
 							const job = jobById.get(row.job_id);
 							switch (job?.status) {
@@ -98,5 +180,5 @@
 				<Column name="summary" card="subtitle" minWidth={200} />
 			{/snippet}
 		</CollectionTable>
-	{/if}
+	</Stack>
 </Bound>
