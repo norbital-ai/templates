@@ -159,9 +159,26 @@
 		directEvidenceQuery?.loading === true ||
 			(evidenceAssetIds.length > 0 && (evidenceAssetsQuery == null || evidenceAssetsQuery.loading))
 	);
+	/**
+	 * Why this assignment warrants a look, kept as two distinct facts rather than one.
+	 *
+	 * `site_identity_mismatch` is a finding: a photographed identifier contradicts the assigned site.
+	 * `site_identity_unverified` is the *absence* of a finding — the model's default, "fail closed
+	 * until a linked photo visibly establishes a site identifier". Only the first was rendered, so a
+	 * row nothing had ever checked was indistinguishable from one checked and found consistent: both
+	 * showed no warning at all. Seeded rows are exactly that case, because the check runs from a
+	 * `photo_evidence` created event and the seeder writes rows without emitting one — so every
+	 * seeded assignment carries `unverified: true`, `checked_at: null`, and looked verified.
+	 *
+	 * An unverified state that renders as a verified one is worse than no check, because it answers
+	 * the question it never asked.
+	 */
 	const suspicionReasons = $derived([
 		...(record?.site_identity_mismatch === true
 			? [t('component.suspicion_site_identity_mismatch')]
+			: []),
+		...(record?.site_identity_mismatch !== true && record?.site_identity_unverified === true
+			? [t('component.suspicion_site_identity_unverified')]
 			: [])
 	]);
 
@@ -212,7 +229,7 @@
 
 {#if record}
 	{#snippet suspicionBanner()}
-		{#if !isContractorViewer && (record.status === 'suspect' || record.site_identity_mismatch)}
+		{#if !isContractorViewer && (record.status === 'suspect' || record.site_identity_mismatch || record.site_identity_unverified)}
 			<section
 				class="border-s-2 border-orange-500 bg-orange-50/70 px-4 py-3 text-orange-950 dark:bg-orange-950/30 dark:text-orange-100"
 				aria-labelledby="assignment-suspicion-heading"

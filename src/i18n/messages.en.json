@@ -133,6 +133,7 @@
 	"component.suspicion_missing_geolocation": "One or more photos have no embedded GPS tag; it may be absent or removed.",
 	"component.suspicion_location_mismatch": "A photo's embedded GPS point is outside the accepted distance from the assigned site.",
 	"component.suspicion_site_identity_mismatch": "The photographed scene conflicts with the assigned job location.",
+	"component.suspicion_site_identity_unverified": "Site identity has not been verified against a photo yet — no photographed identifier has been read for this job.",
 	"component.suspicion_exact_duplicate": "An identical photo was filed against a different job assignment.",
 	"component.suspicion_visual_duplicate": "A visually matching photo, including a possible crop or filtered copy, was filed against a different job assignment.",
 	"component.flag_missing_geolocation": "No GPS tag",
