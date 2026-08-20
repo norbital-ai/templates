@@ -153,12 +153,24 @@ describe('template discovery', () => {
 				const replaced = overlay?.packages?.[name]?.replaced;
 				return typeof replaced === 'string' ? replaced : specifier;
 			};
+			// An entry is `'<name>@<v> || <v> || …'` — one line per package listing every reviewed
+			// release, which is the pnpm range syntax these files have always used. Matching
+			// `'<name>@<version>'` as a literal only ever succeeded when a package had exactly one
+			// exempted version, so from the second release onward this gate could not pass and was
+			// asserting on its own format rather than on the policy. Read the entry, then ask
+			// whether the version is among its alternatives.
+			const exempted = new Map(
+				[...policy.matchAll(/'(@[^']+?)@([^']*)'/g)].map(([, name, versions]) => [
+					name,
+					versions.split('||').map((entry) => entry.trim())
+				])
+			);
 			for (const [name, declared] of firstParty) {
-				const version = released(name, declared);
-				assert.match(
-					policy,
-					new RegExp(`'${name}@${String(version).replace(/[.+*?^$()[\]{}|\\]/g, '\\$&')}'`),
-					`${template.slug} depends on ${name}@${version} but does not exempt it`
+				const version = String(released(name, declared));
+				assert.ok(
+					exempted.get(name)?.includes(version),
+					`${template.slug} depends on ${name}@${version} but does not exempt it` +
+						` (exempted: ${exempted.get(name)?.join(', ') ?? 'nothing'})`
 				);
 			}
 			assert.doesNotMatch(policy, /@norbital-ai\/\*/);

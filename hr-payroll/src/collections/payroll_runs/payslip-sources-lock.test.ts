@@ -164,7 +164,7 @@ test('a pending approval still answers first, because it is the platform’s loc
 test('a PAID payroll run refuses deletion', () => {
 	assert.throws(
 		() =>
-			payrollRunHooks.delete.before.handler({
+			payrollRunHooks.delete.perRecord.before.handler({
 				existing: { norbital_id: 'run-1', period: '2026-03', lifecycle: 'PAID' }
 			}),
 		(error) => {
@@ -181,7 +181,7 @@ test('a PAID payroll run refuses deletion', () => {
 
 test('a DRAFT payroll run may be deleted, which is the only release the lock has', () => {
 	assert.doesNotThrow(() =>
-		payrollRunHooks.delete.before.handler({
+		payrollRunHooks.delete.perRecord.before.handler({
 			existing: { norbital_id: 'run-1', period: '2026-03', lifecycle: 'DRAFT' }
 		})
 	);
