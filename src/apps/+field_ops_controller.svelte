@@ -236,7 +236,7 @@
 		{#snippet end()}
 			<Cluster gap="sm" justify="end">
 				<Button variant="secondary" onclick={() => (assignContractorOpen = true)}>
-					<Icon icon="lucide:user-round-check" class="mr-1.5 size-4 shrink-0" />
+					<Icon icon="lucide:user-round-check" class="size-4 shrink-0" />
 					{t('app.field_ops_controller.assign_contractor')}
 				</Button>
 			</Cluster>
@@ -246,12 +246,13 @@
 
 {#snippet dispatchSchedule()}
 	<Cover gap="md" top={dispatchControls}>
+		<!-- stupidity:allow UI7 -- @norbital-ai/ui 0.0.15 predates Split.fill; the primitive now owns this contract in source. -->
 		<Split
 			ratio="wide"
 			collapse="switch"
 			switchLabels={[t('app.field_ops_controller.board'), t('app.field_ops_controller.map')]}
 			gap="md"
-			fill
+			class="h-full"
 		>
 			{#snippet start()}
 				<Bound size="full" pad="sm" class="rounded-lg border bg-card">

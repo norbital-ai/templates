@@ -218,7 +218,7 @@
 				aria-labelledby="assignment-suspicion-heading"
 			>
 				<Inline align="start" gap="sm">
-					<Icon icon="lucide:triangle-alert" class="mt-0.5 size-5 shrink-0 text-orange-600" />
+					<Icon icon="lucide:triangle-alert" class="size-5 shrink-0 text-orange-600" />
 					<Stack gap="xs" class="min-w-0">
 						<h3 id="assignment-suspicion-heading" class="text-sm font-semibold">
 							{t('component.suspicious_evidence_title')}
@@ -339,10 +339,10 @@
 					{#each variationsQuery?.current ?? [] as variation (variation.norbital_id)}
 						<Stack as="section" gap="sm" class="rounded-md border border-border bg-card p-3">
 							<Inline align="start" justify="between" gap="sm">
-								<div>
+								<Stack gap="xs">
 									<p class="text-sm font-medium">{variation.title}</p>
-									<p class="mt-1 text-sm text-muted-foreground">{variation.description}</p>
-								</div>
+									<p class="text-sm text-muted-foreground">{variation.description}</p>
+								</Stack>
 								<span class="shrink-0 text-sm font-medium">{formatMoney(variation.amount)}</span>
 							</Inline>
 							<p class="text-meta">
