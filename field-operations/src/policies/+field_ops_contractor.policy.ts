@@ -77,11 +77,15 @@ const ownEvidence = {
  * existing `approval_request` is resolved by scanning grants for a matching `norbital_id`, so a new id
  * would leave every in-flight and historical request unable to name the flow that produced it.
  *
- * The approver is named by `team.name`, not by `team.norbital_id`. A team is a runtime row, so its id
- * exists per tenant and belongs to whichever database seeded it — hardcoding one here put a private
- * identifier in a public template and made the flow unsatisfiable anywhere else, with nothing to say
- * so. Reconciliation resolves the name against the tenant it is reconciling and refuses a name that
- * has no team.
+ * The approver is named by `bolt_team.name`, not by `bolt_team.norbital_id`. A team is a runtime row,
+ * so its id exists per tenant and belongs to whichever database seeded it — hardcoding one here put a
+ * private identifier in a public template and made the flow unsatisfiable anywhere else, with nothing
+ * to say so. Activation reconciles a row for every name a release declares, so the target always
+ * exists; whether anybody is *in* it is a membership question and not a deploy-time refusal.
+ *
+ * The string below is therefore the same string as a key in `src/+teams.ts`, and `approvals.decide`
+ * matches it against `subject.team` — the person's one team — case-folded. Change it in one place
+ * only and every scope change queues behind a team nobody is in.
  */
 const controllerTeam = 'Field Operations Controllers';
 
@@ -101,7 +105,7 @@ function variationApproval(configId: string, stepId: string): Approval {
 }
 
 export default {
-	name: 'Field Operations Contractor',
+	name: 'field_ops_contractor',
 	description:
 		'Self-scoped access to assigned jobs and sites, with field updates on own assignments and linked variation or photo evidence.',
 	apps: ['field_ops_contractor'],

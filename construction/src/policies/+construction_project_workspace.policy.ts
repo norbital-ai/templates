@@ -20,7 +20,7 @@ import type { Policy } from './$types.js';
  * second one and leaving every `team.policy_id` pointing at the original.
  */
 export default {
-	name: 'Construction Project Workspace',
+	name: 'construction_project_workspace',
 	description: 'Project operations, issues, and commercial readiness.',
 	apps: ['construction_project_workspace'],
 	grants: [

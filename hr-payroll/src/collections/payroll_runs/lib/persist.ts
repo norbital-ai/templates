@@ -1,12 +1,13 @@
 /**
  * Step 8 — PERSIST.
  *
- * Two collections, written in dependency order: the payslip and its complete component breakdown.
- * A payslip line is the only junction. Its strict component union points directly to the configured
- * component, the entered component event, or the statutory scheme that produced the line.
+ * Three collections, written in dependency order: the payslip, its complete component breakdown,
+ * and the source rows naming everything the payslip consumed. A payslip line is the junction. Its
+ * strict component union points directly to the configured component, the entered component event,
+ * or the statutory scheme that produced the line.
  *
  * A rebuild is safe: the run's existing payslips are deleted first and the cascade takes their
- * lines with them. Nothing is merged, so a rebuild cannot leave half of a
+ * lines and their source rows with them. Nothing is merged, so a rebuild cannot leave half of a
  * previous answer behind.
  */
 
@@ -26,8 +27,9 @@ export type PendingPayslip = {
 	/**
 	 * The time entries and leave movements this payslip consumed, from `claimsForBundle`.
 	 *
-	 * Component entries are not in here: they are recovered below from the payslip lines that name
-	 * them, which is exact where a date range would only be close.
+	 * Component entries, pay components and repayment agreements are not in here: they are recovered
+	 * below from the payslip lines that name them, which is exact where a date range would only be
+	 * close.
 	 */
 	readonly claims: readonly SettlementClaim[];
 };
@@ -46,28 +48,18 @@ function identifier(row: Record<string, unknown>, what: string): string {
  * one: the rebuild would write a second set of payslips alongside the half of the first set this
  * never saw, and the run would report every figure twice.
  *
- * The run's settlement locks go with them, and they have to go *first*. `payroll_settlements` is
- * uniquely indexed on `(source_collection, source_record_id)`, so a rebuild that re-claimed a
- * record it already held would be refused by the database — the clear is what makes the rebuild
- * idempotent rather than self-blocking. This is the only release path that is not the run's own
- * deletion: a rebuild is the same run reconsidering, so the locks it drops here it immediately
- * takes again.
+ * The run's settlement locks go with the payslips, performed by the database: `payslips` cascades
+ * to `payslip_sources`, so deleting the payslips here drops the claims that would otherwise make
+ * the rebuild self-blocking on the per-payslip unique index. This is the only release path that is
+ * not the run's own deletion: a rebuild is the same run reconsidering, so the locks it drops here
+ * it immediately takes again.
  *
- * Deleting the run itself needs none of this: `payroll_settlements.payroll_run_id` cascades, so the
- * database releases every claim in the same statement. That reaches the DDL — see
- * `src/collections/payroll_settlements/+model.ts`, whose note on the subject was stale and is now
- * corrected, and which records why a hook loop is not the answer.
+ * Deleting the run itself needs none of this: `payslips.payroll_run_id` cascades, and so does
+ * `payslip_sources.payslip_id`, so the database releases every claim in the same statement. See
+ * `src/collections/payslip_sources/+model.ts` for why a hook loop is not the answer.
  */
 export function clearRunResults(api: PayrollApi, runId: string): Effect.Effect<void, never, never> {
 	return Effect.gen(function* () {
-		const settlements = yield* api.db.query.payroll_settlements.findMany({
-			where: { payroll_run_id: { eq: runId } },
-			limit: PAGE_LIMIT
-		});
-		assertComplete(settlements, 'settlement locks to release');
-		if (settlements.length > 0)
-			yield* api.db.payroll_settlements.delete(settlements.map((row) => row.norbital_id));
-
 		const existing = yield* api.db.query.payslips.findMany({
 			where: { payroll_run_id: { eq: runId } },
 			limit: PAGE_LIMIT
@@ -75,12 +67,51 @@ export function clearRunResults(api: PayrollApi, runId: string): Effect.Effect<v
 		assertComplete(existing, 'payslips to clear');
 		if (existing.length === 0) return;
 
-		// The lines go with them, and the database does it. `payslip_lines.payslip_id` is declared
-		// `cascade(...)` in `+relationship.ts`, and that declaration now reaches the DDL — until it
-		// did, every foreign key was `NO ACTION` and deleting a payslip that still had lines was
-		// refused outright. Deleting them here as well would be a second mechanism for one rule.
+		// The lines and the source rows go with them, and the database does it.
+		// `payslip_lines.payslip_id` and `payslip_sources.payslip_id` are declared `cascade(...)` in
+		// `+relationship.ts`, and those declarations reach the DDL — until they did, every foreign
+		// key was `NO ACTION` and deleting a payslip that still had children was refused outright.
+		// Deleting them here as well would be a second mechanism for one rule.
 		yield* api.db.payslips.delete(existing.map((row) => row.norbital_id));
 	});
+}
+
+/**
+ * The source claims one persisted line stands for.
+ *
+ * A line *names* what it consumed: `pay_component_id` is a generated projection of the union arm,
+ * `component_entry_id` another, and `repayment_agreement_id` a third. That is the exact set, and
+ * exactness matters here more than anywhere else: a record the run priced must lock, and a record
+ * it skipped (a recurring allowance whose effective range had lapsed, a loan instalment already
+ * covered by an agreement) must not, because nothing has consumed it and a later run still needs it.
+ *
+ * Statutory lines name no source — a contribution scheme is the law, not a record a run consumes.
+ */
+function lineClaims(line: {
+	readonly component: PayslipLineComponent;
+	readonly payslip_id: string;
+}): SettlementClaim[] {
+	const component = line.component;
+	const claims: SettlementClaim[] = [];
+	if ('pay_component_id' in component && component.pay_component_id != null) {
+		claims.push({
+			source_collection: 'pay_components',
+			source_record_id: component.pay_component_id
+		});
+	}
+	if (component.kind === 'COMPONENT_ENTRY_ONCE' || component.kind === 'COMPONENT_ENTRY_RECURRING') {
+		claims.push({
+			source_collection: 'component_entries',
+			source_record_id: component.component_entry_id
+		});
+	}
+	if (component.kind === 'LOAN_INSTALMENT') {
+		claims.push({
+			source_collection: 'repayment_agreements',
+			source_record_id: component.agreement_id
+		});
+	}
+	return claims;
 }
 
 export function persistPayslips(options: {
@@ -91,6 +122,21 @@ export function persistPayslips(options: {
 }): Effect.Effect<{ payslipCount: number; lineCount: number; claimCount: number }, never, never> {
 	return Effect.gen(function* () {
 		if (options.pending.length === 0) return { payslipCount: 0, lineCount: 0, claimCount: 0 };
+
+		const writeMark = { at: Date.now() };
+		/**
+		 * Each batch write timed as it lands.
+		 *
+		 * PERSIST is three `mutate` calls over thousands of rows, and a run killed by the invocation
+		 * deadline dies inside one of them — so without this the only thing left of the most expensive
+		 * phase in the engine is the absence of its summary line. Naming the batch and its row count
+		 * makes "which write" and "how much per row" answerable from one killed run.
+		 */
+		const wrote = (what: string, rows: number): void => {
+			const now = Date.now();
+			console.log(`[payroll-write] ${what} rows=${rows} ms=${now - writeMark.at}`);
+			writeMark.at = now;
+		};
 
 		const payslipRows = yield* options.api.db.payslips.mutate(
 			options.pending.map((payslip) => ({
@@ -103,6 +149,7 @@ export function persistPayslips(options: {
 				currency: payslip.currency
 			}))
 		);
+		wrote('payslips', options.pending.length);
 		const payslipIdByEmployment = new Map(
 			payslipRows.map((row) => [String(row.employment_id), identifier(row, 'a payslip')])
 		);
@@ -167,50 +214,47 @@ export function persistPayslips(options: {
 
 		if (lineInputs.length > 0) {
 			yield* options.api.db.payslip_lines.mutate(lineInputs);
+			wrote('payslip_lines', lineInputs.length);
 		}
 
 		/**
 		 * Take the settlement locks, in the same step that wrote the figures they protect.
 		 *
-		 * Component entries are read off the lines rather than off a date range, because a line
-		 * *names* the entry it consumed — `component_entry_id` is a generated projection of the same
-		 * union arm. That is the exact set, and exactness matters here more than anywhere else: an
-		 * entry the run priced must lock, and an entry it skipped (a recurring allowance whose
-		 * effective range had lapsed, a loan instalment already covered by an agreement) must not,
-		 * because nothing has consumed it and a later run still needs it.
+		 * The claims are the union of what each bundle measured (`claimsForBundle`) and what each
+		 * line names — so the set is exact in both directions: nothing a payslip priced goes
+		 * unclaimed, and nothing it skipped is locked by a guess.
 		 *
 		 * Written after the lines and never before them. A claim that landed first would leave a
 		 * record locked by a run that then failed to persist anything.
 		 */
-		const claims = dedupeClaims([
-			...options.pending.flatMap((payslip) => payslip.claims),
-			...lineInputs.flatMap((line) =>
-				line.component.kind === 'COMPONENT_ENTRY_ONCE' ||
-				line.component.kind === 'COMPONENT_ENTRY_RECURRING'
-					? [
-							{
-								source_collection: 'component_entries' as const,
-								source_record_id: line.component.component_entry_id
-							}
-						]
-					: []
-			)
-		]);
-		if (claims.length > 0) {
-			yield* options.api.db.payroll_settlements.mutate(
-				claims.map((claim) => ({
-					payroll_run_id: options.runId,
-					source_collection: claim.source_collection,
-					source_record_id: claim.source_record_id,
-					period: options.period
-				}))
-			);
+		const claimsByPayslip = new Map<string, SettlementClaim[]>();
+		for (const payslip of options.pending) {
+			const payslipId = payslipIdByEmployment.get(payslip.employmentId);
+			if (payslipId == null) continue;
+			claimsByPayslip.set(payslipId, [...payslip.claims]);
+		}
+		for (const line of lineInputs) {
+			const claims = claimsByPayslip.get(line.payslip_id);
+			if (claims == null) continue;
+			claims.push(...lineClaims(line));
+		}
+		const sources = [...claimsByPayslip.entries()].flatMap(([payslipId, claims]) =>
+			dedupeClaims(claims).map((claim) => ({
+				payslip_id: payslipId,
+				source_collection: claim.source_collection,
+				source_record_id: claim.source_record_id,
+				period: options.period
+			}))
+		);
+		if (sources.length > 0) {
+			yield* options.api.db.payslip_sources.mutate(sources);
+			wrote('payslip_sources', sources.length);
 		}
 
 		return {
 			payslipCount: options.pending.length,
 			lineCount: lineInputs.length,
-			claimCount: claims.length
+			claimCount: sources.length
 		};
 	});
 }

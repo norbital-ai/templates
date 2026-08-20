@@ -1,6 +1,6 @@
 // @ts-nocheck -- executed directly by Node with --experimental-strip-types.
 /**
- * The role ladder, read off the declarations the runtime reads.
+ * The policy ladder, read off the declarations the runtime reads.
  *
  * These assertions are about **authored intent**, and they are deliberately made against the policy
  * modules rather than a live workspace: a policy has no behaviour of its own, it is data that
@@ -8,7 +8,10 @@
  * are restated below as one-line helpers, quoted where they came from, because a test that could
  * not name what it is checking would be checking a shape rather than a rule:
  *
- *   - `subjectHasPolicy`  — `const roles = policy.roles ?? [policy.name]`, compared case-folded.
+ *   - `policiesHeldByTeam` — `teamsByFoldedName.get(teamName.toLocaleLowerCase())`, then each name
+ *                            it yields kept only when `declaredPolicies.has(folded)`. So a policy is
+ *                            held when a team in the subject's `teamPath` declares its `name`, with
+ *                            both team names and policy names folded.
  *   - `matches`           — `grants.some((grant) => grant.collection === resource && grant.action === action)`.
  *   - `requiresApproval`  — `definition.approvalLock === true || visibility.approval !== undefined`,
  *                           where `visibility.approval` is the `approval` on the matching grant.
@@ -20,6 +23,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
+import teams from '../+teams.ts';
 import employee from '../policies/+employee.policy.ts';
 import supervisor from '../policies/+supervisor.policy.ts';
 import manager from '../policies/+manager.policy.ts';
@@ -27,10 +31,20 @@ import seniorManagement from '../policies/+senior_management.policy.ts';
 import hrController from '../policies/+hr_controller.policy.ts';
 import hrManager from '../policies/+hr_manager.policy.ts';
 
-const policies = [employee, supervisor, manager, seniorManagement, hrController, hrManager];
+/** Keyed by the filename each one was imported from, which is the other half of the name check. */
+const policiesByFileKey = {
+	employee,
+	supervisor,
+	manager,
+	senior_management: seniorManagement,
+	hr_controller: hrController,
+	hr_manager: hrManager
+};
 
-/** `subjectHasPolicy`: the role a subject must carry to match this policy. */
-const rolesOf = (policy) => (policy.roles ?? [policy.name]).map((role) => role.toLocaleLowerCase());
+const policies = Object.values(policiesByFileKey);
+
+/** `policiesHeldByTeam`: the name a team has to declare for a subject to hold this policy. */
+const heldNameOf = (policy) => policy.name.toLocaleLowerCase();
 
 /** `matches`: the grants this policy has for one collection and one action. */
 const grantsFor = (policy, collection, action) =>
@@ -42,9 +56,9 @@ const may = (policy, collection, action) => grantsFor(policy, collection, action
 const surfaceOf = (policy) =>
 	new Set(policy.grants.map((grant) => `${grant.collection}:${grant.action}`));
 
-test('the six policies are the six roles, and a role is a policy name', () => {
+test('the six policies are the six names a team may declare', () => {
 	assert.deepEqual(
-		policies.flatMap(rolesOf).toSorted(),
+		policies.map(heldNameOf).toSorted(),
 		[
 			'employee',
 			'hr_controller',
@@ -54,9 +68,35 @@ test('the six policies are the six roles, and a role is a policy name', () => {
 			'supervisor'
 		].toSorted()
 	);
-	// One role per policy. A policy carrying two would be a policy two credentials can reach, and
-	// the ladder's whole shape is that each rank is reachable by exactly one token.
-	for (const policy of policies) assert.equal(rolesOf(policy).length, 1, policy.name);
+	// One name per policy, and no two policies sharing one. `policiesHeldByTeam` returns a set of
+	// folded names, so two policies folding together would be two policies one name reaches.
+	assert.equal(new Set(policies.map(heldNameOf)).size, policies.length);
+	// And each of those strings is the policy's own file key — `+hr_controller.policy.ts` declares
+	// `hr_controller`. A `name` that drifted from its filename would be a second axis to keep in
+	// step, and `+teams.ts` would end up typed against whichever of the two was handier.
+	for (const [key, policy] of Object.entries(policiesByFileKey))
+		assert.equal(policy.name, key, `+${key}.policy.ts declares name ${policy.name}`);
+});
+
+test('every name `+teams.ts` declares is a policy this workspace ships', () => {
+	// The other half of the match, and the half nothing else checks. `policiesHeldByTeam` drops a
+	// name the release does not declare — inert, warned about once, never fatal — so a typo in
+	// `+teams.ts` costs a team its authority and produces no failure anywhere. This is that failure.
+	const declared = new Set(policies.map(heldNameOf));
+	for (const [team, held] of Object.entries(teams)) {
+		assert.ok(held.length > 0, `team ${team} declares no policies`);
+		for (const name of held)
+			assert.ok(
+				declared.has(name.toLocaleLowerCase()),
+				`team ${team} names unknown policy ${name}`
+			);
+	}
+	// And every policy is reachable: one that no team declares is a file nobody can hold.
+	const namedByTeams = new Set(
+		Object.values(teams).flatMap((held) => held.map((name) => name.toLocaleLowerCase()))
+	);
+	for (const policy of policies)
+		assert.ok(namedByTeams.has(heldNameOf(policy)), `no team declares ${policy.name}`);
 });
 
 test('an employee cannot create a payroll run, and neither can a supervisor or a manager', () => {
@@ -89,10 +129,16 @@ test('a controller may view payroll, and their create is held for hr_manager or 
 	// whole of "may not create it": Bolt writes the row, stamps `norbital_approval_id`, and waits.
 	assert.notEqual(create.approval, undefined);
 	assert.equal(create.approval.steps.length, 1);
-	// One step with two teams, not two steps. `approvals.process` tests
-	// `step.approvers.some((team) => subject.teams.includes(team))`, so either team is sufficient —
-	// which is what "approval from hr_manager OR senior management" says. Two steps would demand both.
+	// One step with two teams, not two steps. `approvals.decide` tests
+	// `step.approvers.some((team) => team folded === subject.team?.toLocaleLowerCase())` — a person
+	// has one team — so either team is sufficient, which is what "approval from hr_manager OR senior
+	// management" says. Two steps would demand both.
 	assert.deepEqual(create.approval.steps[0].approvers, ['HR Manager', 'Senior Management']);
+	// The approver names are team names, and a team name is what `+teams.ts` keys on. A step naming
+	// a team no key spells is a step nobody is eligible to decide, and nothing else would say so.
+	const teamNames = new Set(Object.keys(teams).map((name) => name.toLocaleLowerCase()));
+	for (const approver of create.approval.steps[0].approvers)
+		assert.ok(teamNames.has(approver.toLocaleLowerCase()), `no team named ${approver}`);
 
 	// Viewing is not running. A controller holds neither the recalculate nor the delete, so the
 	// approved run is theirs to look at and nobody else's to be surprised by.
@@ -109,9 +155,11 @@ test('hr_manager and senior management create, run and delete payroll without a 
 		assert.equal(may(policy, 'payroll_runs', 'delete'), true, policy.name);
 
 		// Running a draft again clears the previous results first, through `api.db.delete`, which
-		// authorizes against the requesting subject rather than running elevated. Without these three
-		// a recalculation fails on the clear and the run silently keeps last build's figures.
-		for (const collection of ['payslips', 'payslip_lines', 'payroll_settlements'])
+		// authorizes against the requesting subject rather than running elevated. Without these two
+		// a recalculation fails on the clear and the run silently keeps last build's figures. The
+		// source rows go with the payslips by the database's own cascade, so `payslip_sources`
+		// needs no delete grant at all.
+		for (const collection of ['payslips', 'payslip_lines'])
 			assert.equal(may(policy, collection, 'delete'), true, `${policy.name} ${collection}`);
 	}
 });
@@ -135,7 +183,7 @@ test('an employee cannot read an adjustment, and no ordinary policy erases the p
 		}
 	}
 
-	// And the HR roles do see them, or the adjustment path would have no readers at all.
+	// And the HR policies do see them, or the adjustment path would have no readers at all.
 	for (const policy of [hrController, hrManager, seniorManagement]) {
 		const [grant] = grantsFor(policy, 'component_entries', 'read');
 		assert.notEqual(grant, undefined, policy.name);
@@ -143,7 +191,7 @@ test('an employee cannot read an adjustment, and no ordinary policy erases the p
 	}
 });
 
-test('only the HR roles may create an adjustment; an employee may only claim', () => {
+test('only the HR policies may create an adjustment; an employee may only claim', () => {
 	// Nothing to subtract, because nothing below was ever added: no rank on the ordinary ladder holds
 	// a `component_entries` create at all.
 	for (const policy of [supervisor, manager])
@@ -160,17 +208,17 @@ test('only the HR roles may create an adjustment; an employee may only claim', (
 });
 
 test('every policy can read the settlement ledger, or its refusal becomes an access denial', () => {
-	// The hook that refuses a settled record reads `payroll_settlements` under the editing person's
+	// The hook that refuses a settled record reads `payslip_sources` under the editing person's
 	// own subject. A policy without this grant turns "payroll 2026-03 has already taken this record
 	// into account" into a bare denial naming a collection they have never heard of.
 	for (const policy of policies)
-		assert.equal(may(policy, 'payroll_settlements', 'read'), true, policy.name);
+		assert.equal(may(policy, 'payslip_sources', 'read'), true, policy.name);
 });
 
 test('each rank composes the rank beneath it, because nothing inherits at run time', () => {
-	// `subjectHasPolicy` matches by role, so a subject carrying only `manager` is granted exactly what
-	// `+manager.policy.ts` lists. Inheritance is therefore materialized, and this is the check that it
-	// stayed materialized when somebody edited one file and not the other.
+	// `subjectHasPolicy` matches by name, so a subject whose team declares only `manager` is granted
+	// exactly what `+manager.policy.ts` lists. Inheritance is therefore materialized, and this is the
+	// check that it stayed materialized when somebody edited one file and not the other.
 	const contains = (wider, narrower) => {
 		const surface = surfaceOf(wider);
 		for (const pair of surfaceOf(narrower))
@@ -180,9 +228,10 @@ test('each rank composes the rank beneath it, because nothing inherits at run ti
 	contains(seniorManagement, manager);
 	contains(hrManager, hrController);
 
-	// Self-service is deliberately *not* restated up the ladder. A supervisor is also an employee and
-	// carries both roles, so their own payslip comes from the `employee` policy — scoped to them —
-	// rather than from a team-wide payslip grant nobody above them was meant to have.
+	// Self-service is deliberately *not* restated up the ladder. Every team on the ladder declares
+	// `employee` alongside its own rung, so a supervisor's own payslip comes from the `employee`
+	// policy — scoped to them — rather than from a team-wide payslip grant nobody above them was
+	// meant to have.
 	assert.equal(may(supervisor, 'payslips', 'read'), false);
 	assert.equal(may(employee, 'payslips', 'read'), true);
 });

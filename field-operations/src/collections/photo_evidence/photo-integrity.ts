@@ -279,6 +279,49 @@ export function assertExactlyOnePhotoParent(
 	}
 }
 
+export interface PhotoEvidenceProvenance {
+	readonly job_assignment_id?: string | null;
+	readonly variation_request_id?: string | null;
+	readonly document_asset_id?: string | null;
+	readonly source_key?: string | null;
+	readonly source?: unknown;
+}
+
+/**
+ * A settled evidence row is an audit record, not a movable file reference.
+ *
+ * Re-parenting a photo or replacing its asset after creation would preserve fingerprints,
+ * geolocation attributes, duplicate matches, and a site-identity verdict calculated for the old
+ * photo/assignment pair. Provenance is therefore immutable; correcting a filing means deleting it
+ * and creating new evidence so the complete create pipeline runs again.
+ */
+export function assertPhotoEvidenceProvenanceUnchanged(
+	input: PhotoEvidenceProvenance,
+	existing: Required<PhotoEvidenceProvenance>
+): void {
+	const scalarFields = [
+		'job_assignment_id',
+		'variation_request_id',
+		'document_asset_id',
+		'source_key'
+	] as const;
+	for (const field of scalarFields) {
+		if (input[field] !== undefined && input[field] !== existing[field]) {
+			throw new Error(
+				'Photo evidence provenance is immutable; create new evidence to change its photo or parent.'
+			);
+		}
+	}
+	if (
+		input.source !== undefined &&
+		JSON.stringify(input.source) !== JSON.stringify(existing.source)
+	) {
+		throw new Error(
+			'Photo evidence provenance is immutable; create new evidence to change its source.'
+		);
+	}
+}
+
 export interface DuplicateEvidenceInput {
 	readonly id: string;
 	readonly sha256: string;
@@ -330,6 +373,12 @@ export function planDuplicateEvidenceBatch(
 	const embeddings = new Map(
 		corpus.map((evidence) => [evidence.id, parseEmbedding(evidence.perceptualEmbedding)])
 	);
+	const exactByHash = new Map<string, DuplicateEvidenceInput[]>();
+	for (const evidence of corpus) {
+		const matches = exactByHash.get(evidence.sha256);
+		if (matches == null) exactByHash.set(evidence.sha256, [evidence]);
+		else matches.push(evidence);
+	}
 	return corpus.flatMap((record) => {
 		if (!targetIds.has(record.id)) return [];
 		const flags = new Set<PhotoIntegrityFlag>(
@@ -338,11 +387,12 @@ export function planDuplicateEvidenceBatch(
 			)
 		);
 		const matchedEvidenceIds = new Set<string>();
-		const exactCandidates = corpus
-			.filter((candidate) => candidate.sha256 === record.sha256)
-			.slice(0, 21);
+		const exactCandidates = (exactByHash.get(record.sha256) ?? [])
+			.filter(
+				(candidate) => candidate.id !== record.id && candidate.assignmentId !== record.assignmentId
+			)
+			.slice(0, 20);
 		for (const candidate of exactCandidates) {
-			if (candidate.id === record.id || candidate.assignmentId === record.assignmentId) continue;
 			flags.add('exact_duplicate');
 			matchedEvidenceIds.add(candidate.id);
 		}

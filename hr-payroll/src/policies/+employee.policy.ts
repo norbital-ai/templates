@@ -55,7 +55,7 @@ const ownEmploymentChild = {
  * Their own component entries, minus the corrections HR raises about them.
  *
  * An adjustment is a `MANUAL_ADJUSTMENT` origin. The owner's rule is that adjustments are visible
- * only to the HR roles, and this is where that is enforced — in the row predicate, not by leaving
+ * only to the HR policies, and this is where that is enforced — in the row predicate, not by leaving
  * the screen off the employee app. An employee who guessed the collection name and queried it
  * directly gets the same answer the screen gives them, because it is the same predicate.
  *
@@ -100,8 +100,8 @@ export default {
 	 * roster. Every rung of this ladder is somebody's employee, so every rung has one — and until now
 	 * only `employee` listed it, which meant an HR manager could run the company's payroll and not
 	 * look at their own. It is listed on every policy rather than inherited because there is nothing
-	 * to inherit through: `visibleApps` reads the `apps` array of the policies a subject's roles
-	 * match, and a policy that does not name the app does not offer it.
+	 * to inherit through: `visibleApps` reads the `apps` array of the policies a subject's team
+	 * confers, and a policy that does not name the app does not offer it.
 	 *
 	 * The row scope is unchanged and does the actual work: the app's queries are `${requestor.email}`
 	 * -scoped, so naming it here shows a person their own record and nobody else's.

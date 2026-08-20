@@ -1,6 +1,8 @@
 // @ts-nocheck -- executed directly by Node with --experimental-strip-types.
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import { Effect } from 'effect';
+import timeEntryHooks from '../../collections/time_entries/+hooks.ts';
 import {
 	payrollWindows,
 	lockStateForDate,
@@ -99,14 +101,12 @@ test('assertNotSettled refuses a settled day and passes every other state', () =
 	assert.doesNotThrow(() => assertNotSettled(windows, '2026-08-25', 'Changing attendance'));
 });
 
-test('sourceLock freezes approved live leave and a day that has passed', () => {
-	const windows = payrollWindows(monthly);
+test('sourceLock still freezes approved claims and passed dates for the collections that ask', () => {
 	assert.deepEqual(
 		sourceLock({
 			existing: true,
 			dates: ['2026-08-25'],
 			today: '2026-08-18',
-			windows,
 			freezeWhenLive: true
 		}),
 		{ kind: 'APPROVED' }
@@ -116,7 +116,6 @@ test('sourceLock freezes approved live leave and a day that has passed', () => {
 			existing: true,
 			dates: ['2026-08-10'],
 			today: '2026-08-18',
-			windows,
 			freezeWhenLive: false
 		}),
 		{ kind: 'DATE_PASSED', date: '2026-08-10' }
@@ -126,43 +125,30 @@ test('sourceLock freezes approved live leave and a day that has passed', () => {
 			existing: false,
 			dates: ['2026-08-10'],
 			today: '2026-08-18',
-			windows,
 			freezeWhenLive: true
 		}).kind,
 		'NONE'
 	);
 });
 
-test('sourceLock prefers payslip consumption and a paid window over a live freeze', () => {
-	const windows = payrollWindows(monthly);
-	assert.deepEqual(
-		sourceLock({
-			existing: true,
-			dates: ['2026-07-01'],
-			today: '2026-08-18',
-			windows,
-			freezeWhenLive: true
-		}),
-		{ kind: 'SETTLED', period: '2026-07', date: '2026-07-01' }
-	);
+test('the claim outranks a live freeze, and pending approval outranks everything', () => {
 	assert.deepEqual(
 		sourceLock({
 			existing: true,
 			dates: ['2026-08-25'],
 			today: '2026-08-18',
-			windows,
-			consumedByPayslip: true,
+			settledBy: { period: '2026-07' },
 			freezeWhenLive: true
 		}),
-		{ kind: 'PAYSLIP_CONSUMED' }
+		{ kind: 'SETTLED', period: '2026-07' }
 	);
 	assert.deepEqual(
 		sourceLock({
 			existing: true,
 			approvalId: 'req-1',
-			dates: ['2026-07-01'],
+			dates: ['2026-08-25'],
 			today: '2026-08-18',
-			windows,
+			settledBy: { period: '2026-07' },
 			freezeWhenLive: true
 		}),
 		{ kind: 'PENDING_APPROVAL' }
@@ -178,6 +164,196 @@ test('assertSourceUnlocked refuses domain freezes and leaves pending approval to
 	assert.throws(
 		() => assertSourceUnlocked({ kind: 'APPROVED' }, 'Changing a leave request'),
 		/approved/
+	);
+});
+
+/**
+ * §2 of `docs/attendance-on-the-board-proposal.md`, which is the contract these cover:
+ * a record is governed by the claim held over it, and a day with no record by the window. A passed
+ * date governs nothing on attendance; a paid window never governs an existing record at all.
+ */
+
+test('attendance opts out of the passed-date freeze and stays writable', () => {
+	// The same row that reads DATE_PASSED for claims two tests below. Every punch ever recorded is
+	// about a day that has gone by; freezing on that greys out the entire month a controller works.
+	assert.deepEqual(
+		sourceLock({
+			existing: true,
+			approvalId: null,
+			dates: ['2026-08-10'],
+			settledBy: null,
+			datePassed: 'IS_NOT_A_LOCK',
+			freezeWhenLive: false
+		}),
+		{ kind: 'NONE' }
+	);
+	// A month-old backfill, well behind today, with no claim of any kind over it.
+	assert.deepEqual(
+		sourceLock({
+			existing: true,
+			dates: ['2026-05-04'],
+			datePassed: 'IS_NOT_A_LOCK'
+		}),
+		{ kind: 'NONE' }
+	);
+});
+
+test('claims still freeze on an approved live state and a passed date, because saying nothing means FREEZES', () => {
+	// `claimRowLock` in `+hr_employee.svelte` and `assertEntrySourceUnlocked` in
+	// `component_entries/+hooks.ts` pass exactly this and no `datePassed`. The opt-out is the
+	// change; the default is the behaviour that was already there. Leave is the collection that
+	// stopped asking — see its hook, which passes neither `today` nor `freezeWhenLive` any more.
+	assert.deepEqual(
+		sourceLock({
+			existing: true,
+			dates: ['2026-08-10', '2026-08-12'],
+			today: '2026-08-18',
+			freezeWhenLive: false
+		}),
+		{ kind: 'DATE_PASSED', date: '2026-08-12' }
+	);
+	assert.deepEqual(
+		sourceLock({
+			existing: true,
+			dates: ['2026-08-10'],
+			today: '2026-08-18',
+			datePassed: 'FREEZES'
+		}),
+		{ kind: 'DATE_PASSED', date: '2026-08-10' }
+	);
+});
+
+test('a claim refuses whatever the run’s lifecycle, and whatever the windows say', () => {
+	// The claim is a stored fact and the only lock that survives on the attendance record path, so
+	// it has to answer on its own — with no paid window to lean on, and with the run still a draft.
+	// The window input is gone from `sourceLock` entirely: a paid window never freezes an existing
+	// record, because the window answers "may a record appear on this day" and nothing else.
+	for (const settledBy of [{ period: '2026-08' }, { period: '2026-07' }]) {
+		const lock = sourceLock({
+			existing: true,
+			dates: [],
+			settledBy,
+			datePassed: 'IS_NOT_A_LOCK'
+		});
+		assert.deepEqual(lock, { kind: 'SETTLED', period: settledBy.period });
+		assert.equal(sourceLockBlocksWrite(lock), true);
+	}
+});
+
+/**
+ * A database double whose surface is exactly the reads the attendance hooks make.
+ *
+ * The last two cases below are about which guard runs on which path, and that is a property of the
+ * hook rather than of this module — asking `sourceLock` on its own would only re-assert the inputs
+ * the test itself chose. So the real authored handlers are called, and the double is kept narrow
+ * for the reason `payslip-sources-lock.test.ts` keeps its narrow: a broader fake is a second,
+ * silently divergent description of the authoring api.
+ */
+function fakeHookApi({ runs = [], sources = [] } = {}) {
+	return {
+		db: {
+			query: {
+				employments: { findFirst: () => Effect.succeed({ company_id: 'co-1' }) },
+				payroll_runs: { findMany: () => Effect.succeed(runs) },
+				payslip_sources: {
+					findFirst: ({ where }) =>
+						Effect.succeed(
+							sources.find((row) => row.source_record_id === where.source_record_id.eq) ?? null
+						)
+				},
+				// No approved leave anywhere: the leave guard is orthogonal to the payroll locks and
+				// keeps its own tests.
+				leave_requests: { findMany: () => Effect.succeed([]) }
+			}
+		}
+	};
+}
+
+const punch = (overrides = {}) => ({
+	norbital_id: 'te-1',
+	employment_id: 'emp-1',
+	work_date: '2026-07-01',
+	norbital_approval_id: null,
+	worked_intervals: [{ start_at: '2026-07-01T00:16:00Z', end_at: '2026-07-01T09:10:00Z' }],
+	break_minutes: 60,
+	...overrides
+});
+
+test('a create inside a paid window is refused: that day’s silence is already priced', () => {
+	const api = fakeHookApi({ runs: monthly });
+	assert.throws(
+		() => Effect.runSync(timeEntryHooks.create.before.handler({ input: punch(), api })),
+		/inside paid payroll 2026-07/
+	);
+	// The same create one window along, where the run is still a draft, lands.
+	assert.doesNotThrow(() =>
+		Effect.runSync(
+			timeEntryHooks.create.before.handler({
+				input: punch({ work_date: '2026-08-01' }),
+				api
+			})
+		)
+	);
+});
+
+test('an unconsumed record inside a paid window stays editable and settles as arrears', () => {
+	// §2.3, the one open decision, decided. A punch keyed in after 2026-07 was paid: no payslip ever
+	// took it, so nothing has been paid on it, so it may be corrected and priced in a later run.
+	// The board badges the day; the write path permits it.
+	const api = fakeHookApi({ runs: monthly });
+	const existing = punch();
+	assert.doesNotThrow(() =>
+		Effect.runSync(
+			timeEntryHooks.update.before.handler({ input: { break_minutes: 30 }, existing, api })
+		)
+	);
+	// The window has not stopped meaning anything — asked the day-shaped question it still refuses a
+	// record appearing on that day. Two answers, because two questions.
+	assert.deepEqual(lockStateForDate(payrollWindows(monthly), '2026-07-01'), {
+		kind: 'SETTLED',
+		period: '2026-07'
+	});
+	// A claim over the same record is what refuses, and it names the period.
+	const claimed = fakeHookApi({
+		runs: monthly,
+		sources: [{ source_record_id: 'te-1', period: '2026-07' }]
+	});
+	assert.throws(
+		() =>
+			Effect.runSync(
+				timeEntryHooks.update.before.handler({
+					input: { break_minutes: 30 },
+					existing,
+					api: claimed
+				})
+			),
+		/payroll 2026-07 has already taken this record into account/
+	);
+});
+
+test('re-dating a record into a paid window is a create onto that day, and is refused', () => {
+	// The create guard would be two writes away from decorative otherwise: record an open day, then
+	// move it into the paid period. An in-place edit of the same record is untouched by this.
+	const api = fakeHookApi({ runs: monthly });
+	assert.throws(
+		() =>
+			Effect.runSync(
+				timeEntryHooks.update.before.handler({
+					input: { work_date: '2026-07-02' },
+					existing: punch({ work_date: '2026-08-02' }),
+					api
+				})
+			),
+		/inside paid payroll 2026-07/
+	);
+	assert.doesNotThrow(() =>
+		Effect.runSync(
+			timeEntryHooks.update.before.handler({
+				input: { work_date: '2026-08-03' },
+				existing: punch({ work_date: '2026-08-02' }),
+				api
+			})
+		)
 	);
 });
 

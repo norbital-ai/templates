@@ -12,24 +12,24 @@ this document only records what changes.
 
 ## 0. Summary of the five answers
 
-| # | Question | Answer in one line |
-|---|----------|--------------------|
-| 1 | Fold time entries into the month board | The facts are already there. What is missing is a **day sheet** to edit them and three fields on the board's query. |
-| 2 | Attendance managed solely here | Yes — but `+time_attendance.svelte` keeps its table as the exception queue and analytics surface. The board is where a day is *changed*. |
-| 2.1 | Show what is locked | A four-rung **lock ladder** drawn on a channel of its own, because a cell already carries plan and actual and cannot spend either on lock state. |
-| 2.2 | Consumption locks; a passed date does not | The stored `payroll_settlements` claim is already exactly this. `DATE_PASSED` and the window inference are **over-applied** and must be pulled back — see §2. |
-| 2.3 | Locked / manage entries / swap | One day sheet, one swap gesture, one amendment path for a published month. |
-| 2.4 | Break minutes owed after long hours | A `rest_break_rules` member returns to `statutory_regime`. The primary text is already transcribed in `seed_bank/norbital_hr/statutory/rest_break_rules.json`; it was removed for having no consumer, and this proposal is the consumer. |
-| 2.5 | Upload a month of attendance | Already built (`expandTimeMonthGrid`), only reachable from the wrong screen. Move it onto the board beside the roster import. |
-| 3 | Retire the raw tables | One fact table, two renderers: the controller's people×days board and the employee's single-person calendar. Both raw `time_entries` tables go — see §8. |
-| 4 | Employee self-service calendar | Roster **and** punches on one month view. Every read it needs is already granted; the one write it offers (report a missing punch) already exists as an approval-gated create. |
+| #   | Question                                  | Answer in one line                                                                                                                                                                                                                       |
+| --- | ----------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | Fold time entries into the month board    | The facts are already there. What is missing is a **day sheet** to edit them and three fields on the board's query.                                                                                                                      |
+| 2   | Attendance managed solely here            | Yes — but `+time_attendance.svelte` keeps its table as the exception queue and analytics surface. The board is where a day is _changed_.                                                                                                 |
+| 2.1 | Show what is locked                       | A four-rung **lock ladder** drawn on a channel of its own, because a cell already carries plan and actual and cannot spend either on lock state.                                                                                         |
+| 2.2 | Consumption locks; a passed date does not | The stored `payroll_settlements` claim is already exactly this. `DATE_PASSED` and the window inference are **over-applied** and must be pulled back — see §2.                                                                            |
+| 2.3 | Locked / manage entries / swap            | One day sheet, one swap gesture, one amendment path for a published month.                                                                                                                                                               |
+| 2.4 | Break minutes owed after long hours       | A `rest_break_rules` member returns to `statutory_regime`. The primary text is already transcribed in `seed_bank/norbital_hr/statutory/rest_break_rules.json`; it was removed for having no consumer, and this proposal is the consumer. |
+| 2.5 | Upload a month of attendance              | Already built (`expandTimeMonthGrid`), only reachable from the wrong screen. Move it onto the board beside the roster import.                                                                                                            |
+| 3   | Retire the raw tables                     | One fact table, two renderers: the controller's people×days board and the employee's single-person calendar. Both raw `time_entries` tables go — see §8.                                                                                 |
+| 4   | Employee self-service calendar            | Roster **and** punches on one month view. Every read it needs is already granted; the one write it offers (report a missing punch) already exists as an approval-gated create.                                                           |
 
 ---
 
 ## 1. One board, two layers, one day sheet
 
 `buildRosterMonth` already joins six sources into one `DayFacts` per person-day, and attendance is
-among them: `clockedIn`, `workedIntervalCount`, `attendanceState`. The board *renders* attendance
+among them: `clockedIn`, `workedIntervalCount`, `attendanceState`. The board _renders_ attendance
 today — `actualMark(day)` is the small glyph under the shift code. What it cannot do is change it.
 
 ```text
@@ -144,17 +144,17 @@ This is the part with real defects, and the design the owner described is alread
 
 `payroll_settlements/+model.ts` already argues this case in its own doc comment: window arithmetic
 "was wrong in both directions", and it names the second direction precisely — a record merely
-*dated* inside a paid window was frozen "even when no payslip had ever consumed it, which froze
+_dated_ inside a paid window was frozen "even when no payslip had ever consumed it, which froze
 arrears entries the run had deliberately pushed into the next period." The stored claim was added
 to fix that. It was added, and the inference was left switched on beside it.
 
 ### 2.2 The three places to change
 
-| Site | Today | Change |
-|------|-------|--------|
-| `roster-month-board.svelte:cellEditable` | `&& day.past !== true` | Delete the clause. A past day is the *normal* day to be editing attendance on. |
-| `+time_attendance.svelte:attendanceRowLock` | passes `today`, so every historical row renders frozen | Stop asking for `DATE_PASSED` on attendance. |
-| `time_entries/+hooks.ts` update & delete | `assertAttendanceSourceUnlocked` (claim **+** window **+** date) then `assertDayNotSettled` (window again) | Claim decides for an existing record. Window decides only for a create. |
+| Site                                        | Today                                                                                                      | Change                                                                         |
+| ------------------------------------------- | ---------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------ |
+| `roster-month-board.svelte:cellEditable`    | `&& day.past !== true`                                                                                     | Delete the clause. A past day is the _normal_ day to be editing attendance on. |
+| `+time_attendance.svelte:attendanceRowLock` | passes `today`, so every historical row renders frozen                                                     | Stop asking for `DATE_PASSED` on attendance.                                   |
+| `time_entries/+hooks.ts` update & delete    | `assertAttendanceSourceUnlocked` (claim **+** window **+** date) then `assertDayNotSettled` (window again) | Claim decides for an existing record. Window decides only for a create.        |
 
 The rule in one line:
 
@@ -334,7 +334,7 @@ break is paid" already records that as unresolved. Pricing off a null would be i
 engine keeps deducting the break the entry records; the rule is a **compliance check with a
 citation**, and it stays one until the paid/unpaid question is answered from primary text.
 
-Where the shortfall *does* need to reach money, the honest route is a company-level policy that
+Where the shortfall _does_ need to reach money, the honest route is a company-level policy that
 imputes a break — an explicit decision on `companies`, visible and dated — never a silent default
 buried in the overtime engine.
 
@@ -556,11 +556,11 @@ never refuses it, it only draws it. That is already how `sourceLockBlocksWrite` 
 Three collection tables over the same two collections exist today, and every one of them is an
 editing surface that does not know what the day means:
 
-| Surface | Today | After |
-|---|---|---|
-| HR Controller → Time & Attendance → **Entries** | editable `time_entries` table | **deleted** |
-| HR Controller → Time & Attendance → **Overview** | exception-rate chart | moves to Scheduling → Exceptions |
-| Employee Self-Service → **My time** | `time_entries` table | becomes **My schedule** calendar |
+| Surface                                          | Today                         | After                            |
+| ------------------------------------------------ | ----------------------------- | -------------------------------- |
+| HR Controller → Time & Attendance → **Entries**  | editable `time_entries` table | **deleted**                      |
+| HR Controller → Time & Attendance → **Overview** | exception-rate chart          | moves to Scheduling → Exceptions |
+| Employee Self-Service → **My time**              | `time_entries` table          | becomes **My schedule** calendar |
 
 Which leaves `+time_attendance.svelte` holding a chart, and an app that is one chart is not an app.
 The recommendation is to retire it and fold both halves into Scheduling:
@@ -585,7 +585,7 @@ The recommendation is to retire it and fold both halves into Scheduling:
 
 **The exceptions tab is not another table.** The counters the board already computes
 (`monthProgress`) become the drill-through: clicking `1,028 missed clock-ins` filters the board to
-those person-days. The list of exceptions *is* the board, narrowed — which is the whole argument for
+those person-days. The list of exceptions _is_ the board, narrowed — which is the whole argument for
 deleting the table, because a table of time entries beside a board of person-days is two places to
 read the same month and one of them has no idea what a rest day is.
 

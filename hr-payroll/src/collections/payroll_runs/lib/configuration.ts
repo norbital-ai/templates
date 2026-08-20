@@ -27,6 +27,12 @@ type StatutoryRegime = NonNullable<Jurisdiction['regime']>;
 export type OvertimeRule = StatutoryRegime['overtime_rules'][number];
 export type OvertimeLimit = StatutoryRegime['overtime_limits'][number];
 export type OvertimeCoverageRule = StatutoryRegime['overtime_coverage'];
+/**
+ * `NonNullable` because the member is an optional key on the snapshot: a jurisdiction seeded before
+ * it was restored carries no such property at all, which is the statement "this snapshot declares
+ * no rest break rule" and not a missing value.
+ */
+export type RestBreakRule = NonNullable<StatutoryRegime['rest_break_rules']>[number];
 export type ShiftDefinition = WorkspaceRow<'shift_definitions'>;
 export type LeaveType = WorkspaceRow<'leave_types'>;
 export type ContributionRate = WorkspaceRow<'contribution_rates'>;
@@ -60,6 +66,16 @@ export type Configuration = {
 	readonly payComponents: readonly PayComponent[];
 	readonly overtimeRules: readonly OvertimeRule[];
 	readonly overtimeLimits: readonly OvertimeLimit[];
+	/**
+	 * The jurisdiction's statutory rest breaks, empty where it declares none.
+	 *
+	 * Picked here rather than read again downstream for the same reason every other member is: a
+	 * snapshot end-dated halfway through a build cannot change an answer under the run. It needs no
+	 * separate hash entry — `configurationSnapshot` already hashes `jurisdiction.regime` whole, so a
+	 * changed break rule moves the audit token the way a changed overtime band does, and a
+	 * jurisdiction that declares no rules contributes nothing and hashes exactly as it did before.
+	 */
+	readonly restBreakRules: readonly RestBreakRule[];
 	/**
 	 * Who the ladder covers, or null where the jurisdiction restricts coverage in no way.
 	 *
@@ -271,6 +287,7 @@ export function pickConfiguration(options: {
 			payComponents,
 			overtimeRules: regime.overtime_rules,
 			overtimeLimits: regime.overtime_limits,
+			restBreakRules: regime.rest_break_rules ?? [],
 			overtimeCoverageRule: regime.overtime_coverage,
 			shiftById: new Map(shifts.map((row) => [row.norbital_id, row])),
 			holidays: new Map(

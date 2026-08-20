@@ -1,5 +1,6 @@
+import type { CollectionHooks } from '@norbital-ai/bolt/authoring';
 import { Effect } from 'effect';
-import type { Hooks } from './$types.js';
+import type { WorkspaceSchema } from '$bolt/types.js';
 
 type AssignmentIdentity = {
 	job_id?: string | null;
@@ -7,7 +8,6 @@ type AssignmentIdentity = {
 };
 
 type AssignmentStatus = 'dispatched' | 'in_progress' | 'completed' | 'suspect';
-type AssignmentUpdateBefore = NonNullable<NonNullable<Hooks['update']>['before']>;
 const ASSIGNMENT_BATCH_LIMIT = 5_000;
 const SITE_LOCATION_TOLERANCE_M = 500;
 
@@ -54,15 +54,6 @@ function exceedsSiteTolerance(
 function requireId(value: string | null | undefined, message: string): string {
 	if (!value) throw new Error(message);
 	return value;
-}
-
-function requireFound<T>(value: T, message: string): NonNullable<T> {
-	if (value == null) throw new Error(message);
-	return value;
-}
-
-function assertAbsent(value: unknown, message: string): void {
-	if (value != null) throw new Error(message);
 }
 
 function assignmentStatus(value: string | null | undefined): AssignmentStatus {
@@ -123,309 +114,293 @@ export interface AssignmentCreateInput {
 	readonly location?: LocationLike;
 }
 
+/**
+ * Everything one dispatch needs to know about the world, read once for the whole batch.
+ *
+ * The rule below is written for one assignment and asks five questions about it: does the job exist,
+ * does the contractor exist, is the job already taken, is the source message already used, and where
+ * is the site. Asked per record that is five round trips a row; asked here it is five for the batch.
+ *
+ * `repeatedJobIds` and `repeatedSourceMessageIds` are the one thing a per-record hook genuinely
+ * cannot see: two rows in the same call claiming the same job. They are derived from the inputs, not
+ * read — `prepare` still decides nothing — and the refusal itself is written once, below.
+ */
 export interface AssignmentCreateBatchLookup {
 	readonly jobs: ReadonlyMap<string, { readonly site_id: string | null }>;
 	readonly contractorIds: ReadonlySet<string>;
 	readonly occupiedJobIds: ReadonlySet<string>;
 	readonly occupiedSourceMessageIds: ReadonlySet<string>;
 	readonly sites: ReadonlyMap<string, LocationLike>;
+	readonly repeatedJobIds: ReadonlySet<string>;
+	readonly repeatedSourceMessageIds: ReadonlySet<string>;
 }
 
-export function prepareAssignmentCreateBatch<T extends AssignmentCreateInput>(
-	inputs: readonly T[],
+/** Which job ids and source-message ids this call claims more than once. Data, not a decision. */
+export function repeatedWithinBatch<T extends AssignmentCreateInput>(
+	inputs: readonly T[]
+): { readonly jobIds: ReadonlySet<string>; readonly sourceMessageIds: ReadonlySet<string> } {
+	const count = (values: ReadonlyArray<string>): ReadonlySet<string> => {
+		const seen = new Set<string>();
+		const repeated = new Set<string>();
+		for (const value of values) {
+			if (seen.has(value)) repeated.add(value);
+			seen.add(value);
+		}
+		return repeated;
+	};
+	return {
+		jobIds: count(inputs.flatMap((input) => (input.job_id ? [input.job_id] : []))),
+		sourceMessageIds: count(
+			inputs.flatMap((input) => (input.source_message_id ? [input.source_message_id] : []))
+		)
+	};
+}
+
+/**
+ * One dispatch, decided.
+ *
+ * This is the whole of the create rule, and it is written once. It used to be written twice — a
+ * `batchHandler` beside the per-record `handler`, only the second of which the runtime ever called —
+ * and the two had already drifted: only the batch copy refused a job claimed twice inside one call.
+ *
+ * That refusal is kept here, and it now refuses *every* row claiming a repeated job rather than
+ * sparing the first. The outcome is the same either way, because a batch is one transaction and a
+ * refusal fails all of it; the difference is only which row the message names.
+ */
+export function assignmentCreateValues<T extends AssignmentCreateInput>(
+	input: T,
 	lookup: AssignmentCreateBatchLookup,
 	now: () => Date = () => new Date()
-): Array<
-	T & {
-		readonly dispatched_at: Date | string;
-		readonly status: AssignmentStatus;
+): T & { readonly dispatched_at: Date | string; readonly status: AssignmentStatus } {
+	const jobId = requireId(input.job_id, 'Job assignment must reference a job.');
+	const contractorId = requireId(
+		input.contractor_profile_id,
+		'Job assignment must reference a contractor profile.'
+	);
+	const job = lookup.jobs.get(jobId);
+	if (!job) throw new Error('Referenced job does not exist.');
+	if (!lookup.contractorIds.has(contractorId)) {
+		throw new Error('Referenced contractor profile does not exist.');
 	}
-> {
-	const batchJobIds = new Set<string>();
-	const batchSourceMessageIds = new Set<string>();
-	return inputs.map((input) => {
-		const jobId = requireId(input.job_id, 'Job assignment must reference a job.');
-		const contractorId = requireId(
-			input.contractor_profile_id,
-			'Job assignment must reference a contractor profile.'
-		);
-		const job = lookup.jobs.get(jobId);
-		if (!job) throw new Error('Referenced job does not exist.');
-		if (!lookup.contractorIds.has(contractorId)) {
-			throw new Error('Referenced contractor profile does not exist.');
-		}
-		if (lookup.occupiedJobIds.has(jobId) || batchJobIds.has(jobId)) {
-			throw new Error('This job already has an assignment.');
-		}
-		batchJobIds.add(jobId);
-		const sourceMessageId = input.source_message_id;
-		if (sourceMessageId) {
-			if (
-				lookup.occupiedSourceMessageIds.has(sourceMessageId) ||
-				batchSourceMessageIds.has(sourceMessageId)
-			) {
-				throw new Error('A job assignment with this source_message_id already exists.');
-			}
-			batchSourceMessageIds.add(sourceMessageId);
-		}
+	if (lookup.occupiedJobIds.has(jobId) || lookup.repeatedJobIds.has(jobId)) {
+		throw new Error('This job already has an assignment.');
+	}
+	const sourceMessageId = input.source_message_id;
+	if (
+		sourceMessageId &&
+		(lookup.occupiedSourceMessageIds.has(sourceMessageId) ||
+			lookup.repeatedSourceMessageIds.has(sourceMessageId))
+	) {
+		throw new Error('A job assignment with this source_message_id already exists.');
+	}
 
-		const siteLocation = job.site_id ? lookup.sites.get(job.site_id) : null;
-		return {
-			...input,
-			dispatched_at: input.dispatched_at ?? now(),
-			status: assignmentStatusForLocation(
-				assignmentStatus(input.status),
-				input.location,
-				siteLocation
-			)
-		};
-	});
+	const siteLocation = job.site_id ? lookup.sites.get(job.site_id) : null;
+	return {
+		...input,
+		dispatched_at: input.dispatched_at ?? now(),
+		status: assignmentStatusForLocation(
+			assignmentStatus(input.status),
+			input.location,
+			siteLocation
+		)
+	};
 }
+
+/**
+ * `Hooks` with what `prepare` returns filled in.
+ *
+ * The generated `Hooks` alias fixes that parameter at `void`, so a collection that prepares anything
+ * has to name the type itself. Once `bolt sync` emits `Hooks<Prepared = void>` this becomes
+ * `satisfies Hooks<AssignmentCreateBatchLookup>`.
+ */
+type JobAssignmentHooks = CollectionHooks<
+	WorkspaceSchema,
+	'job_assignments',
+	AssignmentCreateBatchLookup
+>;
 
 export default {
 	create: {
-		before: {
-			description:
-				'Dispatches a contractor to an unassigned job, stamps the dispatch time, and marks the assignment suspect when the reported location sits outside the site tolerance.',
-			batchHandler: ({ inputs, api }) =>
-				Effect.gen(function* () {
-					const jobIds = [
-						...new Set(inputs.flatMap((input) => (input.job_id ? [input.job_id] : [])))
-					];
-					const contractorIds = [
-						...new Set(
-							inputs.flatMap((input) =>
-								input.contractor_profile_id ? [input.contractor_profile_id] : []
-							)
+		prepare: ({ inputs, api }) =>
+			Effect.gen(function* () {
+				const jobIds = [
+					...new Set(inputs.flatMap((input) => (input.job_id ? [input.job_id] : [])))
+				];
+				const contractorIds = [
+					...new Set(
+						inputs.flatMap((input) =>
+							input.contractor_profile_id ? [input.contractor_profile_id] : []
 						)
-					];
-					const sourceMessageIds = [
-						...new Set(
-							inputs.flatMap((input) => (input.source_message_id ? [input.source_message_id] : []))
+					)
+				];
+				const sourceMessageIds = [
+					...new Set(
+						inputs.flatMap((input) => (input.source_message_id ? [input.source_message_id] : []))
+					)
+				];
+				const [jobs, contractors, occupiedJobs, occupiedSources] = yield* Effect.all(
+					[
+						jobIds.length
+							? api.db.query.jobs.findMany({
+									where: { norbital_id: { in: jobIds } },
+									columns: { norbital_id: true, site_id: true },
+									limit: ASSIGNMENT_BATCH_LIMIT
+								})
+							: Effect.succeed([]),
+						contractorIds.length
+							? api.db.query.contractor_profiles.findMany({
+									where: { norbital_id: { in: contractorIds } },
+									columns: { norbital_id: true },
+									limit: ASSIGNMENT_BATCH_LIMIT
+								})
+							: Effect.succeed([]),
+						jobIds.length
+							? api.db.query.job_assignments.findMany({
+									where: { job_id: { in: jobIds } },
+									columns: { job_id: true },
+									limit: ASSIGNMENT_BATCH_LIMIT
+								})
+							: Effect.succeed([]),
+						sourceMessageIds.length
+							? api.db.query.job_assignments.findMany({
+									where: { source_message_id: { in: sourceMessageIds } },
+									columns: { source_message_id: true },
+									limit: ASSIGNMENT_BATCH_LIMIT
+								})
+							: Effect.succeed([])
+					],
+					{ concurrency: 'unbounded' }
+				);
+				const locatedJobIds = new Set(
+					inputs.flatMap((input) => (input.job_id && input.location ? [input.job_id] : []))
+				);
+				const siteIds = [
+					...new Set(
+						jobs.flatMap((job) =>
+							locatedJobIds.has(job.norbital_id) && job.site_id ? [job.site_id] : []
 						)
-					];
-					const [jobs, contractors, occupiedJobs, occupiedSources] = yield* Effect.all(
-						[
-							jobIds.length
-								? api.db.query.jobs.findMany({
-										where: { norbital_id: { in: jobIds } },
-										columns: { norbital_id: true, site_id: true },
-										limit: ASSIGNMENT_BATCH_LIMIT
-									})
-								: Effect.succeed([]),
-							contractorIds.length
-								? api.db.query.contractor_profiles.findMany({
-										where: { norbital_id: { in: contractorIds } },
-										columns: { norbital_id: true },
-										limit: ASSIGNMENT_BATCH_LIMIT
-									})
-								: Effect.succeed([]),
-							jobIds.length
-								? api.db.query.job_assignments.findMany({
-										where: { job_id: { in: jobIds } },
-										columns: { job_id: true },
-										limit: ASSIGNMENT_BATCH_LIMIT
-									})
-								: Effect.succeed([]),
-							sourceMessageIds.length
-								? api.db.query.job_assignments.findMany({
-										where: { source_message_id: { in: sourceMessageIds } },
-										columns: { source_message_id: true },
-										limit: ASSIGNMENT_BATCH_LIMIT
-									})
-								: Effect.succeed([])
-						],
-						{ concurrency: 'unbounded' }
-					);
-					const locatedJobIds = new Set(
-						inputs.flatMap((input) => (input.job_id && input.location ? [input.job_id] : []))
-					);
-					const siteIds = [
-						...new Set(
-							jobs.flatMap((job) =>
-								locatedJobIds.has(job.norbital_id) && job.site_id ? [job.site_id] : []
-							)
+					)
+				];
+				const sites = siteIds.length
+					? yield* api.db.query.sites.findMany({
+							where: { norbital_id: { in: siteIds } },
+							columns: { norbital_id: true, location: true },
+							limit: ASSIGNMENT_BATCH_LIMIT
+						})
+					: [];
+				const repeated = repeatedWithinBatch(inputs);
+				return {
+					jobs: new Map(jobs.map((job) => [job.norbital_id, job])),
+					contractorIds: new Set(contractors.map((contractor) => contractor.norbital_id)),
+					occupiedJobIds: new Set(occupiedJobs.map((assignment) => assignment.job_id)),
+					occupiedSourceMessageIds: new Set(
+						occupiedSources.flatMap((assignment) =>
+							assignment.source_message_id ? [assignment.source_message_id] : []
 						)
-					];
-					const sites = siteIds.length
-						? yield* api.db.query.sites.findMany({
-								where: { norbital_id: { in: siteIds } },
-								columns: { norbital_id: true, location: true },
-								limit: ASSIGNMENT_BATCH_LIMIT
-							})
-						: [];
-					return prepareAssignmentCreateBatch(inputs, {
-						jobs: new Map(jobs.map((job) => [job.norbital_id, job])),
-						contractorIds: new Set(contractors.map((contractor) => contractor.norbital_id)),
-						occupiedJobIds: new Set(occupiedJobs.map((assignment) => assignment.job_id)),
-						occupiedSourceMessageIds: new Set(
-							occupiedSources.flatMap((assignment) =>
-								assignment.source_message_id ? [assignment.source_message_id] : []
-							)
-						),
-						sites: new Map(sites.map((site) => [site.norbital_id, site.location]))
-					});
-				}),
-			handler: ({ input, api }) =>
-				Effect.gen(function* () {
-					const jobId = requireId(input.job_id, 'Job assignment must reference a job.');
-					const contractorId = requireId(
-						input.contractor_profile_id,
-						'Job assignment must reference a contractor profile.'
-					);
-
-					const [foundJob, foundContractor, existingAssignment, existingSource] = yield* Effect.all(
-						[
-							api.db.query.jobs.findFirst({
-								where: { norbital_id: { eq: jobId } }
-							}),
-							api.db.query.contractor_profiles.findFirst({
-								where: { norbital_id: { eq: contractorId } }
-							}),
-							api.db.query.job_assignments.findFirst({
-								where: { job_id: { eq: jobId } }
-							}),
-							input.source_message_id != null && input.source_message_id !== ''
-								? api.db.query.job_assignments.findFirst({
-										where: { source_message_id: { eq: input.source_message_id } }
-									})
-								: Effect.succeed(undefined)
-						],
-						{ concurrency: 'unbounded' }
-					);
-
-					const job = requireFound(foundJob, 'Referenced job does not exist.');
-					requireFound(foundContractor, 'Referenced contractor profile does not exist.');
-					assertAbsent(existingAssignment, 'This job already has an assignment.');
-					assertAbsent(
-						existingSource,
-						'A job assignment with this source_message_id already exists.'
-					);
-					const site =
-						input.location == null
-							? undefined
-							: yield* api.db.query.sites.findFirst({
-									where: { norbital_id: { eq: job.site_id } }
-								});
-					const status = assignmentStatusForLocation(
-						assignmentStatus(input.status),
-						input.location,
-						site?.location
-					);
-
-					return {
-						...input,
-						dispatched_at: input.dispatched_at ?? new Date(),
-						status
-					};
-				})
-		},
-		after: {
-			description:
-				'Moves a job from unassigned to assigned as soon as its first contractor is dispatched.',
-			batchHandler: ({ records, api }) =>
-				Effect.gen(function* () {
-					const jobIds = [...new Set(records.map((record) => record.job_id))];
-					const jobs = yield* api.db.query.jobs.findMany({
-						where: { norbital_id: { in: jobIds } },
-						columns: { norbital_id: true, status: true },
-						limit: ASSIGNMENT_BATCH_LIMIT
-					});
-					const jobsById = new Map(jobs.map((job) => [job.norbital_id, job]));
-					yield* api.db.jobs.mutate(
-						records.flatMap((record) =>
-							jobsById.get(record.job_id)?.status === 'unassigned'
-								? [{ norbital_id: record.job_id, status: 'assigned' as const }]
-								: []
-						)
-					);
-				}),
-			handler: ({ record, api }) =>
-				Effect.gen(function* () {
-					const job = yield* api.db.query.jobs.findFirst({
-						where: { norbital_id: { eq: record.job_id } }
-					});
-					if (job?.status === 'unassigned') {
-						yield* api.db.jobs.mutate([{ norbital_id: record.job_id, status: 'assigned' }]);
-					}
-				})
-		}
-	},
-	update: {
-		before: {
-			description:
-				'Holds an assignment on its original job and contractor, stamps completion, and preserves a prior judgement or a contradictory reported assignment location.',
-			handler: ({ input, existing, api }) =>
-				Effect.gen(function* () {
-					assertAssignmentIdentityUnchanged(input, existing);
-					const withCompletion =
-						input.status === 'completed' && input.completed_at == null
-							? { ...input, completed_at: new Date() }
-							: input;
-					const jobId = input.job_id ?? existing.job_id;
-					const location = input.location ?? existing.location;
-					const existingStatus = assignmentStatus(existing.status);
-					const baseStatus = assignmentStatus(input.status ?? existing.status);
-					const preserveSuspect = existingStatus === 'suspect';
-					if (location == null || jobId == null) {
-						return {
-							...withCompletion,
-							status: applySuspectOneWay(baseStatus, preserveSuspect)
-						};
-					}
-
-					const job = yield* api.db.query.jobs.findFirst({
-						where: { norbital_id: { eq: jobId } }
-					});
-					if (job == null) {
-						return {
-							...withCompletion,
-							status: applySuspectOneWay(baseStatus, preserveSuspect)
-						};
-					}
-
-					const site = yield* api.db.query.sites.findFirst({
-						where: { norbital_id: { eq: job.site_id } }
-					});
-					if (site?.location == null) {
-						return {
-							...withCompletion,
-							status: applySuspectOneWay(baseStatus, preserveSuspect)
-						};
-					}
-
-					const forceSuspect =
-						preserveSuspect ||
-						exceedsSiteTolerance(coordinatesOf(location), coordinatesOf(site.location));
-					return { ...withCompletion, status: applySuspectOneWay(baseStatus, forceSuspect) };
-				})
-		},
-		after: {
-			description:
-				'Carries assignment progress onto its job, and never rewinds progress already recorded when the assignment is flagged suspect.',
-			handler: ({ record, api }) =>
-				Effect.gen(function* () {
-					const status = record.status;
-					if (status == null) return;
-					// Suspect is an integrity overlay — never rewind job progression already recorded.
-					if (status === 'suspect') {
+					),
+					sites: new Map(sites.map((site) => [site.norbital_id, site.location])),
+					repeatedJobIds: repeated.jobIds,
+					repeatedSourceMessageIds: repeated.sourceMessageIds
+				};
+			}),
+		perRecord: {
+			before: {
+				description:
+					'Dispatches a contractor to an unassigned job, stamps the dispatch time, and marks the assignment suspect when the reported location sits outside the site tolerance.',
+				handler: ({ input, prepared }) => assignmentCreateValues(input, prepared)
+			},
+			after: {
+				description:
+					'Moves a job from unassigned to assigned as soon as its first contractor is dispatched.',
+				handler: ({ record, api }) =>
+					Effect.gen(function* () {
 						const job = yield* api.db.query.jobs.findFirst({
-							where: { norbital_id: { eq: record.job_id } },
-							columns: { status: true }
+							where: { norbital_id: { eq: record.job_id } }
 						});
 						if (job?.status === 'unassigned') {
 							yield* api.db.jobs.mutate([{ norbital_id: record.job_id, status: 'assigned' }]);
 						}
-						return;
-					}
-					const jobStatus = mapAssignmentStatusToJobStatus(
-						status as 'dispatched' | 'in_progress' | 'completed' | 'suspect'
-					);
-					yield* api.db.jobs.mutate([{ norbital_id: record.job_id, status: jobStatus }]);
-				})
+					})
+			}
+		}
+	},
+	update: {
+		perRecord: {
+			before: {
+				description:
+					'Holds an assignment on its original job and contractor, stamps completion, and preserves a prior judgement or a contradictory reported assignment location.',
+				handler: ({ input, existing, api }) =>
+					Effect.gen(function* () {
+						assertAssignmentIdentityUnchanged(input, existing);
+						const withCompletion =
+							input.status === 'completed' && input.completed_at == null
+								? { ...input, completed_at: new Date() }
+								: input;
+						const jobId = input.job_id ?? existing.job_id;
+						const location = input.location ?? existing.location;
+						const existingStatus = assignmentStatus(existing.status);
+						const baseStatus = assignmentStatus(input.status ?? existing.status);
+						const preserveSuspect = existingStatus === 'suspect';
+						if (location == null || jobId == null) {
+							return {
+								...withCompletion,
+								status: applySuspectOneWay(baseStatus, preserveSuspect)
+							};
+						}
+
+						const job = yield* api.db.query.jobs.findFirst({
+							where: { norbital_id: { eq: jobId } }
+						});
+						if (job == null) {
+							return {
+								...withCompletion,
+								status: applySuspectOneWay(baseStatus, preserveSuspect)
+							};
+						}
+
+						const site = yield* api.db.query.sites.findFirst({
+							where: { norbital_id: { eq: job.site_id } }
+						});
+						if (site?.location == null) {
+							return {
+								...withCompletion,
+								status: applySuspectOneWay(baseStatus, preserveSuspect)
+							};
+						}
+
+						const forceSuspect =
+							preserveSuspect ||
+							exceedsSiteTolerance(coordinatesOf(location), coordinatesOf(site.location));
+						return { ...withCompletion, status: applySuspectOneWay(baseStatus, forceSuspect) };
+					})
+			},
+			after: {
+				description:
+					'Carries assignment progress onto its job, and never rewinds progress already recorded when the assignment is flagged suspect.',
+				handler: ({ record, api }) =>
+					Effect.gen(function* () {
+						const status = record.status;
+						if (status == null) return;
+						// Suspect is an integrity overlay — never rewind job progression already recorded.
+						if (status === 'suspect') {
+							const job = yield* api.db.query.jobs.findFirst({
+								where: { norbital_id: { eq: record.job_id } },
+								columns: { status: true }
+							});
+							if (job?.status === 'unassigned') {
+								yield* api.db.jobs.mutate([{ norbital_id: record.job_id, status: 'assigned' }]);
+							}
+							return;
+						}
+						const jobStatus = mapAssignmentStatusToJobStatus(
+							status as 'dispatched' | 'in_progress' | 'completed' | 'suspect'
+						);
+						yield* api.db.jobs.mutate([{ norbital_id: record.job_id, status: jobStatus }]);
+					})
+			}
 		}
 	}
-} satisfies Hooks;
+} satisfies JobAssignmentHooks;
 
 export function mapAssignmentStatusToJobStatus(
 	status: 'dispatched' | 'in_progress' | 'completed' | 'suspect'

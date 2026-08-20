@@ -62,7 +62,9 @@ function assertPayCalendar(calendar: StoredPayCalendar | undefined): void {
  */
 function assertReferences(
 	policy: SettlementPolicy | null | undefined,
-	api: Parameters<NonNullable<NonNullable<Hooks['create']>['before']>['handler']>[0]['api']
+	api: Parameters<
+		NonNullable<NonNullable<NonNullable<Hooks['create']>['perRecord']>['before']>['handler']
+	>[0]['api']
 ): Effect.Effect<void, never, never> {
 	return Effect.gen(function* () {
 		if (policy == null) return;
@@ -101,28 +103,32 @@ function assertReferences(
 
 export default {
 	create: {
-		before: {
-			description:
-				'Refuses a company whose pay calendar does not tile a month, restates the monthly calendar, or whose settlement policy defers late-joiner arrears to a pay component that does not exist or cannot carry an entry, or names an unknown statutory contribution as the extended-unpaid-leave population.',
-			handler: ({ input, api }) =>
-				Effect.gen(function* () {
-					assertPayCalendar(input.pay_calendar);
-					yield* assertReferences(input.settlement_policy, api);
-					return input;
-				})
+		perRecord: {
+			before: {
+				description:
+					'Refuses a company whose pay calendar does not tile a month, restates the monthly calendar, or whose settlement policy defers late-joiner arrears to a pay component that does not exist or cannot carry an entry, or names an unknown statutory contribution as the extended-unpaid-leave population.',
+				handler: ({ input, api }) =>
+					Effect.gen(function* () {
+						assertPayCalendar(input.pay_calendar);
+						yield* assertReferences(input.settlement_policy, api);
+						return input;
+					})
+			}
 		}
 	},
 	update: {
-		before: {
-			description:
-				'Re-checks the company pay calendar and settlement policy whenever either is edited, so a cadence cannot be left with a month it half covers and an arrears component or extended-leave contribution scheme cannot be pointed at an id that no longer resolves.',
-			handler: ({ input, api }) =>
-				Effect.gen(function* () {
-					if (input.pay_calendar !== undefined) assertPayCalendar(input.pay_calendar);
-					if (input.settlement_policy !== undefined)
-						yield* assertReferences(input.settlement_policy, api);
-					return input;
-				})
+		perRecord: {
+			before: {
+				description:
+					'Re-checks the company pay calendar and settlement policy whenever either is edited, so a cadence cannot be left with a month it half covers and an arrears component or extended-leave contribution scheme cannot be pointed at an id that no longer resolves.',
+				handler: ({ input, api }) =>
+					Effect.gen(function* () {
+						if (input.pay_calendar !== undefined) assertPayCalendar(input.pay_calendar);
+						if (input.settlement_policy !== undefined)
+							yield* assertReferences(input.settlement_policy, api);
+						return input;
+					})
+			}
 		}
 	}
 } satisfies Hooks;

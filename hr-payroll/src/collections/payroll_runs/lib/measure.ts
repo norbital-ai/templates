@@ -502,7 +502,10 @@ export function measureEmployment(options: {
 		if (workDate < complianceWindow.start || workDate > complianceWindow.end) continue;
 		const day = schedule.get(workDate);
 		if (!day) continue;
-		const derived = deriveDailyOvertime(entry, day);
+		// The statutory rest break reaches pay here and nowhere else. It reduces payable overtime only
+		// where the jurisdiction states the break is not working time; where the statute is silent —
+		// Malaysia — it is assessed, carried for reporting, and priced at nothing.
+		const derived = deriveDailyOvertime(entry, day, configuration.restBreakRules);
 		if (derived) overtimeDays.push(derived);
 	}
 	// The wage the ceiling is measured against is derived per Employment Act 1955 s.2 as narrowed by

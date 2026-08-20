@@ -13,9 +13,9 @@
  * crossed. `norbital_approval_id` was also being read as a write lock, so one column stood for both
  * "payroll may consume this row" and "nobody may edit this row" — which meant the workspace had no
  * way at all to record that a row *had* been consumed. Settlement now lives in its own collection,
- * `payroll_settlements`, written by PERSIST and released by deleting the run. Deliberately not here:
- * a source row this run settled must still be readable by this run's next rebuild, so a settlement
- * claim is not, and must never become, a filter on these queries.
+ * `payslip_sources`, written by PERSIST and released by deleting the payslips that hold the claims.
+ * Deliberately not here: a source row this run settled must still be readable by this run's next
+ * rebuild, so a settlement claim is not, and must never become, a filter on these queries.
  */
 
 import { Effect } from 'effect';

@@ -10,32 +10,36 @@ type ComplianceTarget = Partial<
 
 export default {
 	create: {
-		before: {
-			description:
-				'Refuses a new job assignment unless the worker holds active permits to work covering every certification required by a job at that site location.',
-			handler: ({ input, api }) =>
-				Effect.gen(function* () {
-					yield* validateJobAssignmentCompliance(
-						{ site_location_id: input.site_location_id, worker_id: input.worker_id },
-						api
-					);
-					return input;
-				})
+		perRecord: {
+			before: {
+				description:
+					'Refuses a new job assignment unless the worker holds active permits to work covering every certification required by a job at that site location.',
+				handler: ({ input, api }) =>
+					Effect.gen(function* () {
+						yield* validateJobAssignmentCompliance(
+							{ site_location_id: input.site_location_id, worker_id: input.worker_id },
+							api
+						);
+						return input;
+					})
+			}
 		}
 	},
 	update: {
-		before: {
-			description:
-				'Re-checks the worker against the site location whenever either is changed, so an assignment cannot be moved onto work the worker is not certified for.',
-			handler: ({ input, existing, api }) =>
-				Effect.gen(function* () {
-					const record = { ...existing, ...input };
-					yield* validateJobAssignmentCompliance(
-						{ site_location_id: record.site_location_id, worker_id: record.worker_id },
-						api
-					);
-					return input;
-				})
+		perRecord: {
+			before: {
+				description:
+					'Re-checks the worker against the site location whenever either is changed, so an assignment cannot be moved onto work the worker is not certified for.',
+				handler: ({ input, existing, api }) =>
+					Effect.gen(function* () {
+						const record = { ...existing, ...input };
+						yield* validateJobAssignmentCompliance(
+							{ site_location_id: record.site_location_id, worker_id: record.worker_id },
+							api
+						);
+						return input;
+					})
+			}
 		}
 	}
 } satisfies Hooks;

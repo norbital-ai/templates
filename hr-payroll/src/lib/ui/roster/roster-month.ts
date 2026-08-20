@@ -18,12 +18,14 @@
  * same rows, and `docs/architecture.md` is the authority on how.
  */
 
-import { calendarDayKey, daysInMonth } from '../calendar.js';
+import { calendarDayKey, daysInMonth, startOfDayInstant } from '../calendar.js';
+import { workedMinutes } from '../../attendance.js';
+import type { WorkedInterval } from '../../../custom-types/worked_intervals/+definition.js';
 import type { RosterCodeVariant } from '../../../custom-types/roster_code_variant/+definition.js';
 import type { WorkPattern } from '../../../custom-types/work_pattern/+definition.js';
-import { rosterCodeKind, workWindow } from '../../scheduling/roster-code.js';
+import { clockMinutes, rosterCodeKind, workWindow } from '../../scheduling/roster-code.js';
 import { patternRosterCodeId } from '../../scheduling/work-pattern.js';
-import type { DayLock } from '../../scheduling/lock.js';
+import type { DayLock, SettlementClaim, SourceLock } from '../../scheduling/lock.js';
 import type { I18nApi } from '@norbital-ai/ui/i18n';
 import type { TenantI18nKeys } from '$bolt/i18n-keys';
 
@@ -79,6 +81,26 @@ export type DayFacts = {
 	readonly clockedIn: boolean;
 	readonly workedIntervalCount: number;
 	readonly attendanceState: 'OPEN' | 'CLOSED' | null;
+	/**
+	 * The `time_entries` row behind this day, or `null` when nobody has recorded one.
+	 *
+	 * The day sheet needs the identity, not just the numbers: editing a punch is an update of *this*
+	 * record, and recording one where none exists is a create. Without the id the sheet would have to
+	 * re-query the collection it is already looking at, and the two answers could differ by a write.
+	 */
+	readonly timeEntryId: string | null;
+	/** The unpaid break the entry records, in whole minutes. `null` when there is no entry. */
+	readonly breakMinutes: number | null;
+	/**
+	 * Worked minutes net of the unpaid break, or `null` when a punch is still open.
+	 *
+	 * `null` is the honest answer to an open clock rather than a running total: nobody knows how long
+	 * the day was until it is closed, and a partial figure on the board would read as a short day.
+	 * Computed by `workedMinutes` in `src/lib/attendance.ts`, which is the same function the entries
+	 * surface and the payroll engine's inputs are measured with, so a cell and a payslip cannot
+	 * disagree about the length of a day.
+	 */
+	readonly workedMinutes: number | null;
 	/** Whether the day falls inside the attendance window the next payroll run will settle. */
 	readonly withinCutoff: boolean;
 	/** Derived from the company's payroll runs; drives the board's stripes and the write refusals. */
@@ -124,6 +146,14 @@ export type RosterCodeDisplayLike = {
 };
 
 export type TimeEntryLike = {
+	/**
+	 * The record id, so a cell can say *which* attendance row it is drawn from.
+	 *
+	 * Optional because two callers build these facts: the board's query selects it, and the tests
+	 * (and any future caller assembling entries by hand) need not. A missing id degrades to
+	 * `timeEntryId: null`, which the day sheet reads as "there is nothing here to update".
+	 */
+	readonly norbital_id?: string;
 	readonly employment_id: string;
 	readonly work_date: string | Date;
 	readonly worked_intervals:
@@ -132,7 +162,29 @@ export type TimeEntryLike = {
 				readonly end_at: string | Date | null;
 		  }[]
 		| null;
+	readonly break_minutes?: number | null;
 };
+
+/**
+ * The stored intervals as the attendance helpers take them.
+ *
+ * `TimeEntryLike` accepts `Date` on both ends because a local PGlite read yields dates where the
+ * wire yields strings, and the board is fed by both. `workedMinutes` measures instants by parsing
+ * strings, so the two shapes are levelled here — once, at the one place they meet — rather than in
+ * the arithmetic, which would then have to know about storage at all.
+ */
+function toWorkedIntervals(entry: TimeEntryLike | undefined): readonly WorkedInterval[] {
+	return (entry?.worked_intervals ?? []).map((interval) => ({
+		start_at:
+			typeof interval.start_at === 'string' ? interval.start_at : interval.start_at.toISOString(),
+		end_at:
+			interval.end_at == null
+				? null
+				: typeof interval.end_at === 'string'
+					? interval.end_at
+					: interval.end_at.toISOString()
+	}));
+}
 
 export type LeaveRequestLike = {
 	readonly employment_id: string;
@@ -342,6 +394,7 @@ export function buildRosterMonth(options: {
 			const key = `${employmentId}:${date}`;
 			const roster = rosterByKey.get(key);
 			const time = timeByKey.get(key);
+			const intervals = toWorkedIntervals(time);
 			const leave = leaveByKey.get(key);
 			const pendingLeave = pendingLeaveByKey.get(key) === true;
 			const term = activeTerm(options.employmentTerms, employmentId, date);
@@ -364,7 +417,7 @@ export function buildRosterMonth(options: {
 			const holidayName = holidayByDate.get(date) ?? null;
 			const conflicts: ConflictKind[] = [];
 			if (pendingLeave && designation === 'WORK') conflicts.push('PENDING_LEAVE_OVERLAP');
-			if (leave != null && (designation === 'WORK' || (time?.worked_intervals?.length ?? 0) > 0)) {
+			if (leave != null && (designation === 'WORK' || intervals.length > 0)) {
 				conflicts.push('LEAVE_AND_WORK');
 			}
 			const partial: Omit<DayFacts, 'status'> = {
@@ -390,14 +443,20 @@ export function buildRosterMonth(options: {
 					employmentState === 'ACTIVE' &&
 					designation === 'WORK' &&
 					(holidayName != null || baselineKind === 'REST' || baselineKind === 'OFF'),
-				clockedIn: (time?.worked_intervals?.length ?? 0) > 0,
-				workedIntervalCount: time?.worked_intervals?.length ?? 0,
+				clockedIn: intervals.length > 0,
+				workedIntervalCount: intervals.length,
 				attendanceState:
 					time == null
 						? null
-						: time.worked_intervals?.some((interval) => interval.end_at == null)
+						: intervals.some((interval) => interval.end_at == null)
 							? 'OPEN'
 							: 'CLOSED',
+				timeEntryId: time?.norbital_id ?? null,
+				breakMinutes: time == null ? null : (time.break_minutes ?? 0),
+				// `workedMinutes` returns null for an open interval by itself, which is exactly the
+				// contract this field states — so an open punch reaches the day sheet as "not known
+				// yet" rather than as a number nobody should act on.
+				workedMinutes: time == null ? null : workedMinutes(intervals, time.break_minutes),
 				withinCutoff:
 					options.cutoff != null && date >= options.cutoff.start && date <= options.cutoff.end,
 				lock: options.locks.get(date) ?? { kind: 'NONE' },
@@ -410,44 +469,449 @@ export function buildRosterMonth(options: {
 	return facts;
 }
 
+/* ────────────────────────────────────────────────────────────────────────────────────────────────
+ * THE COLOUR BUDGET, and why it is three.
+ *
+ * Every status used to own a hue: amber unrostered, blue not-started, red exited, brand planned,
+ * green attended, amber open, red absent, blue leave, grey rest, grey off. Ten fills, none of which
+ * means anything until you have read the swatch that names it — so the board could not be read
+ * without looking away from it, and the strip that named them ran to three wrapped lines. Colour was
+ * being spent on IDENTITY, which is the one job a letter does better: `R`, `O`, `L` and a shift code
+ * are already the words for those days, and a glyph needs no key at all.
+ *
+ * So identity moved onto channels that carry it for free:
+ *
+ *   GLYPH     which kind of day this is — `statusGlyph` / `planGlyph`, unchanged.
+ *   DENSITY   one neutral at three strengths: outside the employment (faintest), a non-working day,
+ *             a working day (no fill at all, so the month's working shape is what stands out).
+ *   SHAPE     a dashed inset outline means "nothing has been assigned here" — an absence drawn as
+ *             an absence of ink, which no fill can say.
+ *
+ * and colour was left to the three facts that are genuinely about ALARM or OWNERSHIP rather than
+ * about identity:
+ *
+ *   ATTENTION (warning)     a day somebody must act on — no clock-in, or a clock still running.
+ *                           One hue, two glyphs: `!` and `⧗`. They are the same call to action.
+ *   CONFLICT  (destructive) two writers disagree about one day. The only red left on the board, so
+ *                           red now means exactly one thing, and it is rare enough to be worth it.
+ *   PAYROLL   (brand)       the lock rail and the public-holiday column. Both are "something other
+ *                           than the roster owns this", drawn on two channels that never collide.
+ *
+ * A status therefore contributes AT MOST a neutral density here. Anything louder is a separate
+ * table — `CONFLICT_PRESENTATION`, `LOCK_RAIL_PRESENTATION`, `HOLIDAY_PRESENTATION` — because those
+ * axes cross a status rather than replacing it: a day can be attended, on a holiday, and locked.
+ * ──────────────────────────────────────────────────────────────────────────────────────────────── */
+
 /**
  * How each status reads, and how loudly.
  *
- * The board's cells, its legend and the scheduling app's filter all read this one table, so a day
- * cannot be described one way in a cell and another way in the control that selects it. Classes are
- * literal variants, never assembled, so Tailwind can see every one of them. The label is a catalog
- * key so every surface resolves it through the same `t`; a locale switch re-reads it everywhere at
- * once.
+ * The board's cells, the employee's calendar tiles, the day sheet's subtitle and the scheduling
+ * app's exception filter all read this one table, so a day cannot be described one way in a cell and
+ * another way in the control that selects it. Classes are literal variants, never assembled, so
+ * Tailwind can see every one of them. The label is a catalog key so every surface resolves it
+ * through the same `t`; a locale switch re-reads it everywhere at once.
  */
 export const STATUS_PRESENTATION: Record<
 	DayStatus,
 	{ readonly labelKey: TenantI18nKeys; readonly className: string }
 > = {
+	/**
+	 * No fill and a dashed inset outline: a hole in the plan, drawn as a hole. A fill would say
+	 * something had been decided about this day, which is the opposite of what it means — and in a
+	 * month nobody has opened yet this is every cell, so it has to be the quietest thing on the board
+	 * rather than nine thousand amber squares announcing a catastrophe that has not happened.
+	 */
 	UNROSTERED: {
 		labelKey: 'roster.unrostered',
-		className: 'bg-warning/15 text-warning-foreground'
+		className:
+			'text-muted-foreground outline-1 outline-dashed outline-offset-[-2px] outline-muted-foreground/50'
 	},
+	/** Outside the employment: the faintest density, and `—` / `×` say which end it is outside. */
 	BEFORE_START: {
 		labelKey: 'roster.before_employment',
-		className: 'bg-info/15 text-info'
+		className: 'bg-muted/25 text-muted-foreground/50'
 	},
 	EXITED: {
 		labelKey: 'roster.employment_ended',
-		className: 'bg-destructive/10 text-destructive'
+		className: 'bg-muted/25 text-muted-foreground/50'
 	},
-	PLANNED: {
-		labelKey: 'roster.planned',
-		className: 'bg-brand/15 text-brand'
-	},
-	ATTENDED: { labelKey: 'roster.attended', className: 'bg-success/15 text-success-foreground' },
-	OPEN: { labelKey: 'roster.open_punch', className: 'bg-warning/25 text-warning-foreground' },
+	/** A working day carries no fill, so the month's working shape is the figure and rest is ground. */
+	PLANNED: { labelKey: 'roster.planned', className: 'text-foreground' },
+	ATTENDED: { labelKey: 'roster.attended', className: 'text-foreground' },
+	/** The two ATTENTION states. One hue; `⧗` and `!` say which, and `!` is the heavier of the two. */
+	OPEN: { labelKey: 'roster.open_punch', className: 'bg-warning/25 text-foreground' },
 	ABSENT: {
 		labelKey: 'roster.absent',
-		className: 'bg-destructive/20 font-semibold text-destructive'
+		className: 'bg-warning/25 font-semibold text-foreground'
 	},
-	ON_LEAVE: { labelKey: 'roster.leave', className: 'bg-info/20 text-info' },
-	REST: { labelKey: 'roster.rest_day', className: 'bg-muted text-muted-foreground' },
+	/** Not a working day, and `L` / `½` is the word for it. Same density as rest and off, by design. */
+	ON_LEAVE: { labelKey: 'roster.leave', className: 'bg-muted/60 text-foreground' },
+	REST: { labelKey: 'roster.rest_day', className: 'bg-muted/60 text-muted-foreground' },
 	OFF: { labelKey: 'roster.off_day', className: 'bg-muted/60 text-muted-foreground' }
+};
+
+/**
+ * The glyph key, in the order it is worth reading, for the "Marks" disclosure under a board.
+ *
+ * It lives here rather than in either renderer because the board and the calendar draw the same
+ * marks and a key that disagreed with a cell would be worse than no key. `mark` is the literal
+ * character `statusGlyph` / `planGlyph` / `actualMark` emit, so the two cannot drift without this
+ * list being edited too.
+ */
+export const DAY_MARK_KEY: readonly { readonly mark: string; readonly labelKey: TenantI18nKeys }[] =
+	[
+		{ mark: '·', labelKey: 'roster.unrostered' },
+		{ mark: 'R', labelKey: 'roster.rest_day' },
+		{ mark: 'O', labelKey: 'roster.off_day' },
+		{ mark: 'L', labelKey: 'roster.leave' },
+		{ mark: 'l', labelKey: 'roster.pending_leave' },
+		{ mark: 'OT', labelKey: 'roster.planned_ot' },
+		{ mark: '✓', labelKey: 'roster.attended' },
+		{ mark: '!', labelKey: 'roster.absent' },
+		{ mark: '⧗', labelKey: 'roster.open_punch' },
+		{ mark: '⚑', labelKey: 'roster.conflict' },
+		{ mark: '×', labelKey: 'roster.employment_ended' },
+		{ mark: '—', labelKey: 'roster.before_employment' }
+	];
+
+/**
+ * The lock ladder, as one channel with four values and nothing else on it.
+ *
+ * A cell already spends its fill on `STATUS_PRESENTATION` and its background tint on the holiday
+ * overlay, so lock state cannot be another fill without one of those three facts going missing.
+ * It is drawn as a left rail instead: a channel nothing else uses, which is what makes "why can't
+ * I click this" have exactly one place to look.
+ *
+ * The rungs are ordered by how permanent they are, and they come from two different sources on
+ * purpose:
+ *
+ *   OPEN          nothing covers the day.
+ *   IN_DRAFT_RUN  the day falls inside a DRAFT run's assessment window. Advisory only — a draft is
+ *                 rebuilt from the records, so editing one is ordinary work, not a violation.
+ *   CONSUMED      a `payslip_sources` row claims *this attendance record*. Stored, exact, and
+ *                 released only by deleting the payslip — and so the run — that holds it.
+ *   PAID          a PAID run's window covers the day. Permanent; corrections are adjustments.
+ *
+ * `CONSUMED` reads a claim over a record and `PAID` reads arithmetic over a day, and that is the
+ * distinction `src/lib/scheduling/lock.ts` and `payslip_sources/+model.ts` both argue at length:
+ * a record is settled because a payslip took it, not because of the date it carries. A day with no
+ * record at all has no claim to ask, so the window is the only answer available for it — which is
+ * why the two live on one ladder rather than in two places.
+ */
+export type LockRung = 'OPEN' | 'IN_DRAFT_RUN' | 'CONSUMED' | 'PAID';
+
+/**
+ * Which rung a person-day sits on.
+ *
+ * `claim` is the `payslip_sources` row held over this day's time entry, or null when no payslip has
+ * taken it. It is passed in rather than looked up for the same reason `sourceLock` takes its
+ * inputs: this module stays pure, so the board and the day sheet cannot compute different ladders
+ * from the same month.
+ */
+export function lockRung(day: DayFacts, claim: SettlementClaim | null): LockRung {
+	if (claim != null) return day.lock.kind === 'SETTLED' ? 'PAID' : 'CONSUMED';
+	if (day.lock.kind === 'SETTLED') return 'PAID';
+	if (day.lock.kind === 'IN_WINDOW') return 'IN_DRAFT_RUN';
+	return 'OPEN';
+}
+
+/**
+ * Whether a rung refuses a write, as opposed to merely warning about one.
+ *
+ * Only the two claims of permanence do. A draft run's window is advisory: the run has not paid
+ * anything and will re-read whatever the records say when it is next built, so freezing a day for
+ * being inside one would refuse the ordinary case — correcting a punch before payroll is committed.
+ */
+export function lockRungFreezes(rung: LockRung): boolean {
+	return rung === 'CONSUMED' || rung === 'PAID';
+}
+
+/**
+ * The `SourceLock` a rung stands for, so the hover sentence comes from `sourceLockReason` rather
+ * than from a second set of words written here.
+ *
+ * Returns null for the two rungs that are not refusals — `OPEN` has nothing to say, and the draft
+ * window's advisory line is `roster.in_payroll_window`, which the cell's own note list already
+ * carries. Writing new sentences for either would give the operator two vocabularies for one fact.
+ */
+export function lockRungSourceLock(
+	day: DayFacts,
+	claim: SettlementClaim | null
+): SourceLock | null {
+	if (claim != null) return { kind: 'SETTLED', period: claim.period };
+	if (day.lock.kind === 'SETTLED')
+		return { kind: 'PAID_DAY', period: day.lock.period, date: day.date };
+	return null;
+}
+
+/**
+ * How each rung is drawn.
+ *
+ * Every class is a literal variant, never assembled from fragments, for the same reason
+ * `STATUS_PRESENTATION`'s are: Tailwind scans source text, so a class built at runtime is a class
+ * that is never emitted, and the rail would be invisible in production and fine in dev.
+ *
+ * The rail is an inset left border rather than a real border so it composes with the cell's status
+ * fill instead of replacing part of it, and `padlock` is a second, redundant channel for the two
+ * rungs that actually refuse a write — colour alone is not an accessible way to say "locked".
+ */
+export const LOCK_RAIL_PRESENTATION: Record<
+	LockRung,
+	{
+		readonly labelKey: TenantI18nKeys;
+		/** Applied to the cell; an empty string means the rung draws no rail at all. */
+		readonly railClassName: string;
+		/** Shown beside the plan glyph on the rungs that refuse a write. */
+		readonly padlock: string;
+	}
+> = {
+	OPEN: { labelKey: 'roster.lock_rung_open', railClassName: '', padlock: '' },
+	IN_DRAFT_RUN: {
+		labelKey: 'roster.lock_rung_in_draft_run',
+		railClassName: 'border-l-2 border-l-brand/40',
+		padlock: ''
+	},
+	CONSUMED: {
+		labelKey: 'roster.lock_rung_consumed',
+		railClassName: 'border-l-4 border-l-brand/70',
+		padlock: '🔒'
+	},
+	PAID: {
+		labelKey: 'roster.lock_rung_paid',
+		railClassName: 'border-l-4 border-l-brand',
+		padlock: '🔒'
+	}
+};
+
+/* ────────────────────────────────────────────────────────────────────────────────────────────────
+ * CLOCK TIMES ON A WORK DATE, and why they are measured from the start of the day rather than
+ * converted through the browser.
+ *
+ * A punch is an instant; an operator edits a wall clock. Between the two sits a timezone, and the
+ * one wrong answer — appending `Z` to a local reading — is the error `dates-and-time.md` names
+ * outright, because east of Greenwich it silently moves the punch into the previous day.
+ *
+ * So the anchor is `startOfDayInstant(workDate, PAYROLL_TIME_ZONE)`: the exact instant the work
+ * date begins in the business zone, resolved through `Intl` by `calendar.ts`. Every end of every
+ * interval is then held as MINUTES FROM THAT ANCHOR. Reading is exact subtraction and needs no
+ * timezone logic at all; writing is exact addition. A night shift that ends at 02:00 the next
+ * morning is 1560 minutes, which is the same way a roster code's own window models an `end_time`
+ * that is not after its `start_time`, so the plan band and the actual band count in one unit.
+ *
+ * The one assumption: no daylight-saving transition falls inside the work date. That holds for
+ * `PAYROLL_TIME_ZONE` (Asia/Kuala_Lumpur observes none) and for every jurisdiction the seed bank
+ * carries. A zone that did observe one would put an hour-long error into a single day per year,
+ * and the honest fix then is a per-company zone on the company record rather than a second
+ * conversion here — the template already refuses to guess a zone on import for the same reason.
+ * ──────────────────────────────────────────────────────────────────────────────────────────────── */
+
+/** Minutes in a calendar day, which is also the offset a punch on the following morning carries. */
+export const DAY_MINUTES = 1440;
+
+/** How far into the work date an instant falls, in minutes, in the business timezone. */
+export function minutesFromDayStart(
+	instant: string | Date,
+	workDate: string,
+	timeZone: string
+): number {
+	const at = instant instanceof Date ? instant.getTime() : Date.parse(instant);
+	return Math.round((at - Date.parse(startOfDayInstant(workDate, timeZone))) / 60_000);
+}
+
+/** The exact inverse: the instant that many minutes into the work date, as an ISO string. */
+export function instantFromDayStart(workDate: string, minutes: number, timeZone: string): string {
+	return new Date(
+		Date.parse(startOfDayInstant(workDate, timeZone)) + Math.round(minutes) * 60_000
+	).toISOString();
+}
+
+/** `HH:mm` for a `<input type="time">`, wrapping a next-morning punch back into a clock reading. */
+export function dayMinutesToClock(minutes: number): string {
+	const wrapped = ((Math.round(minutes) % DAY_MINUTES) + DAY_MINUTES) % DAY_MINUTES;
+	const hour = Math.floor(wrapped / 60);
+	return `${String(hour).padStart(2, '0')}:${String(wrapped % 60).padStart(2, '0')}`;
+}
+
+/** How many whole days past the work date a punch sits — 0 today, 1 tomorrow morning. */
+export function dayMinutesOffsetDays(minutes: number): number {
+	return Math.floor(Math.round(minutes) / DAY_MINUTES);
+}
+
+/** `HH:mm` back to minutes from the start of the work date, given which day it lands on. */
+export function clockToDayMinutes(clock: string, offsetDays: number): number | null {
+	if (!/^([01]\d|2[0-3]):([0-5]\d)$/.test(clock)) return null;
+	return clockMinutes(clock) + offsetDays * DAY_MINUTES;
+}
+
+/**
+ * The paid length of the day the roster planned, in minutes, or null when nothing was planned.
+ *
+ * Midnight is crossed the same way `workforce-validation.ts` crosses it — an end at or before the
+ * start belongs to the next morning — so "beyond schedule" on the day sheet and the workload check
+ * at publication measure the same shift the same way.
+ */
+export function scheduledMinutes(day: DayFacts): number | null {
+	if (day.shiftStart == null || day.shiftEnd == null) return null;
+	const start = clockMinutes(day.shiftStart);
+	const rawEnd = clockMinutes(day.shiftEnd);
+	const end = rawEnd <= start ? rawEnd + DAY_MINUTES : rawEnd;
+	return Math.max(0, end - start - (day.shiftBreakMinutes ?? 0));
+}
+
+/**
+ * Worked time past what the roster planned — DERIVED, and read-only everywhere it appears.
+ *
+ * There is no overtime field on this record and none may be added: `overtime_authorized` and the
+ * five `approved_ot_*_hours` buckets were dropped in `drop_time_entry_overtime_approval`, and
+ * `docs/architecture.md` §Gates records why. Overtime is priced by the payroll engine from actual
+ * intervals against the effective schedule and the jurisdiction's bands. This number exists so an
+ * operator can see that a day ran long; it is not an input to anything, and a control that let
+ * somebody type it would be re-introducing the buckets by another name.
+ *
+ * Null when the day is unplanned or still open, because "beyond" needs both ends to mean anything.
+ */
+export function beyondScheduleMinutes(day: DayFacts): number | null {
+	const planned = scheduledMinutes(day);
+	if (planned == null || day.workedMinutes == null) return null;
+	return day.workedMinutes - planned;
+}
+
+/* ────────────────────────────────────────────────────────────────────────────────────────────────
+ * EDITING ATTENDANCE: the same arithmetic the write path uses, so a form cannot offer a bad save.
+ * ──────────────────────────────────────────────────────────────────────────────────────────────── */
+
+/** One interval as an editor holds it: instants, with the final end still possibly unset. */
+export type IntervalDraft = {
+	readonly start_at: string;
+	readonly end_at: string | null;
+};
+
+/**
+ * Why a draft cannot be written, in the order `time_entries/+hooks.ts` refuses it.
+ *
+ * These are not new rules. Each one names a refusal `assertWorkedIntervals` already makes, and it is
+ * restated here for one reason: a form that lets the operator press Save and then shows them the
+ * hook's refusal has taught them nothing about which of the four things they did wrong, and it does
+ * it after a round trip. The hook stays the authority — this is the same decision, taken early
+ * enough to be useful.
+ */
+export type AttendanceDraftProblem =
+	| 'NO_INTERVALS'
+	| 'OUT_OF_ORDER'
+	| 'OPEN_NOT_LAST'
+	| 'ENDS_BEFORE_IT_STARTS'
+	| 'BREAK_NOT_SHORTER_THAN_WORK';
+
+export type AttendanceDraftAssessment = {
+	/** Minutes across every interval that has both ends. Fractional if the data carries seconds. */
+	readonly closedMinutes: number;
+	readonly hasOpenInterval: boolean;
+	/**
+	 * The largest unpaid break these intervals can carry, or `null` when they can carry none.
+	 *
+	 * The hook refuses `unpaidBreak >= closedMinutes` — greater *or equal*, so a break exactly as
+	 * long as the day is refused too, and the ceiling is the largest whole minute strictly below the
+	 * worked total. `null` on an open day means "not yet decided" rather than "zero": nobody knows
+	 * how long an unfinished day is, and the hook does not ask.
+	 */
+	readonly maxBreakMinutes: number | null;
+	/** The break after clamping, which is the value a save would actually send. */
+	readonly breakMinutes: number;
+	/** True when the requested break was reduced to fit. The sheet must SAY so, never do it quietly. */
+	readonly breakClamped: boolean;
+	/** The requested break, kept so the UI can report what it was before the clamp. */
+	readonly requestedBreakMinutes: number;
+	/** Net worked minutes, or null while a punch is open — the same contract `DayFacts` states. */
+	readonly workedMinutes: number | null;
+	readonly problem: AttendanceDraftProblem | null;
+};
+
+/**
+ * Assess an in-progress attendance edit against the rules the write path enforces.
+ *
+ * The clamp exists because of a defect found in the seed bank: four rows carried a 60-minute break
+ * against nineteen to forty-one minutes of recorded attendance, which is exactly the shape a naive
+ * editor produces — it shortens or stamps an interval and leaves `break_minutes` at the roster
+ * code's scheduled hour. The hook then refuses the save with a sentence about unpaid breaks that
+ * says nothing about the punch the operator was actually editing.
+ *
+ * So the ceiling is computed here, from the same numbers, and the caller is handed both the clamped
+ * value and the fact that it clamped. It is deliberately NOT applied silently: a break that
+ * collapses from sixty minutes to twelve is a statement about the day, and an operator who cannot
+ * see it happen cannot tell that the punch, not the break, is the thing that is wrong.
+ */
+export function assessAttendanceDraft(
+	intervals: readonly IntervalDraft[],
+	requestedBreakMinutes: number
+): AttendanceDraftAssessment {
+	let problem: AttendanceDraftProblem | null = null;
+	let previousEnd = Number.NEGATIVE_INFINITY;
+	let closedMinutes = 0;
+	let hasOpenInterval = false;
+
+	for (const [index, interval] of intervals.entries()) {
+		const startedAt = Date.parse(interval.start_at);
+		const endedAt = interval.end_at == null ? null : Date.parse(interval.end_at);
+		if (problem == null && index > 0 && startedAt < previousEnd) problem = 'OUT_OF_ORDER';
+		if (endedAt == null) {
+			hasOpenInterval = true;
+			if (problem == null && index !== intervals.length - 1) problem = 'OPEN_NOT_LAST';
+			previousEnd = Number.POSITIVE_INFINITY;
+			continue;
+		}
+		if (problem == null && endedAt <= startedAt) problem = 'ENDS_BEFORE_IT_STARTS';
+		if (endedAt > startedAt) closedMinutes += (endedAt - startedAt) / 60_000;
+		previousEnd = endedAt;
+	}
+
+	if (problem == null && intervals.length === 0) problem = 'NO_INTERVALS';
+
+	/**
+	 * The ceiling, matching `unpaidBreak >= closedMinutes` exactly.
+	 *
+	 * An integer total of N minutes admits at most N−1; a fractional one admits its floor, which is
+	 * already strictly below it — so a half-minute day admits a break of zero, and nothing longer.
+	 *
+	 * `ceiling < 0` therefore means a day of exactly ZERO closed minutes, where even a zero break is
+	 * not strictly shorter and the row is unsaveable however it is set. That is what
+	 * `BREAK_NOT_SHORTER_THAN_WORK` reports, and it is a defensive arm rather than a reachable one
+	 * today: reaching zero closed minutes needs an interval that does not end after it starts, which
+	 * `ENDS_BEFORE_IT_STARTS` has already claimed by the time this runs.
+	 */
+	const ceiling = Number.isInteger(closedMinutes) ? closedMinutes - 1 : Math.floor(closedMinutes);
+	const maxBreakMinutes = hasOpenInterval ? null : ceiling < 0 ? null : ceiling;
+
+	const requested = Math.max(0, Math.trunc(requestedBreakMinutes));
+	const breakMinutes =
+		maxBreakMinutes == null
+			? hasOpenInterval
+				? requested
+				: 0
+			: Math.min(requested, maxBreakMinutes);
+	const breakClamped = breakMinutes !== requested;
+	if (problem == null && !hasOpenInterval && maxBreakMinutes == null && intervals.length > 0) {
+		problem = 'BREAK_NOT_SHORTER_THAN_WORK';
+	}
+
+	return {
+		closedMinutes,
+		hasOpenInterval,
+		maxBreakMinutes,
+		breakMinutes,
+		breakClamped,
+		requestedBreakMinutes: requested,
+		workedMinutes: hasOpenInterval ? null : Math.max(0, closedMinutes - breakMinutes),
+		problem
+	};
+}
+
+/** The catalog key explaining a refused draft, so the sheet and any future caller say one thing. */
+export const ATTENDANCE_DRAFT_PROBLEM_KEY: Record<AttendanceDraftProblem, TenantI18nKeys> = {
+	NO_INTERVALS: 'roster.day_sheet_problem_no_intervals',
+	OUT_OF_ORDER: 'roster.day_sheet_problem_out_of_order',
+	OPEN_NOT_LAST: 'roster.day_sheet_problem_open_not_last',
+	ENDS_BEFORE_IT_STARTS: 'roster.day_sheet_problem_ends_before_start',
+	BREAK_NOT_SHORTER_THAN_WORK: 'roster.day_sheet_problem_break_too_long'
 };
 
 /**
@@ -485,10 +949,17 @@ export function statusGlyph(day: DayFacts): string {
 			return 'O';
 		case 'UNROSTERED':
 			return '·';
-		case 'ABSENT':
-			return '!';
 		case 'OPEN':
 			return '⧗';
+		/**
+		 * An absence is a WORKING day, so the plan line says which shift was missed.
+		 *
+		 * This used to return `!`, which put the same exclamation mark on both bands of the cell — `!`
+		 * over `!` — and threw away the one fact an operator chasing 725 missed clock-ins actually
+		 * needs: WHICH shift nobody turned up for. The `!` belongs to the evidence line, where
+		 * `actualMark` still puts it, and the two bands then disagree the way they are supposed to.
+		 */
+		case 'ABSENT':
 		case 'ATTENDED':
 		case 'PLANNED':
 			return day.shiftCode ?? 'W';
@@ -526,21 +997,41 @@ export function actualMark(day: DayFacts): string {
 	return '·';
 }
 
+/**
+ * The evidence line's ink — two values, not four.
+ *
+ * A `✓` used to be green, a `!` red and an `⧗` amber, which spent three hues saying what the three
+ * glyphs already say. The alarm belongs to the CELL, where `STATUS_PRESENTATION` puts an ATTENTION
+ * fill behind the whole day; repeating it in the mark's ink would leave the cell amber on two
+ * channels about one fact and, worse, invite `text-warning-foreground` — a near-black token meant
+ * to sit on a SOLID `bg-warning`, which is illegible over the 25%-alpha tint the cell actually has.
+ *
+ * So the mark says only whether there is anything to read: the day's own ink when there is,
+ * muted when there is not.
+ */
 export function actualMarkClass(day: DayFacts): string {
-	if (day.attendanceState === 'OPEN') return 'text-warning-foreground';
-	if (day.clockedIn) return 'text-success-foreground';
-	if (day.status === 'ABSENT') return 'text-destructive';
+	if (day.attendanceState === 'OPEN' || day.status === 'ABSENT' || day.clockedIn) {
+		return 'text-foreground';
+	}
 	return 'text-muted-foreground';
 }
 
-/** How a derived conflict reads, and how loudly. */
+/**
+ * How a derived conflict reads.
+ *
+ * Both kinds share the one destructive hue on purpose. They used to be amber and red, which made
+ * the softer of the two indistinguishable from the ATTENTION fill under it — a pending-leave
+ * overlap sat on a cell that was already amber for having no clock-in, and the dot vanished into
+ * its own background. Red now means exactly one thing on this board: two writers disagree about
+ * this day. Which two is in the mark's title and in the cell's notes, where there is room to say it.
+ */
 export const CONFLICT_PRESENTATION: Record<
 	ConflictKind,
 	{ readonly labelKey: TenantI18nKeys; readonly className: string; readonly mark: string }
 > = {
 	PENDING_LEAVE_OVERLAP: {
 		labelKey: 'roster.conflict_pending_leave',
-		className: 'bg-warning text-warning-foreground',
+		className: 'bg-destructive text-destructive-foreground',
 		mark: '⚑'
 	},
 	LEAVE_AND_WORK: {

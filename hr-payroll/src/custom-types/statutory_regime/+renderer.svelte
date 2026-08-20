@@ -8,11 +8,21 @@
 	import type { CollectionField } from '@norbital-ai/ui/data-renderer';
 	import { Input } from '@norbital-ai/ui/input';
 	import { Cluster, Grid, Inline, Stack } from '@norbital-ai/ui/layout';
-	import { statutoryRegimeSchema, type StatutoryRegime } from './+definition.js';
+	import {
+		statutoryRegimeSchema,
+		type StatutoryRegime,
+		type StatutoryRestBreakRule
+	} from './+definition.js';
 	import type { RendererProps, Value } from './$types.js';
 
 	type Rule = Value['overtime_rules'][number];
 	type Limit = Value['overtime_limits'][number];
+	/**
+	 * Taken from the definition rather than from `Value['rest_break_rules'][number]`, because the
+	 * member is an optional key: the generated indexed access is `readonly Break[] | undefined`, and
+	 * every use below would have to unwrap it again.
+	 */
+	type BreakRule = StatutoryRestBreakRule;
 	type Coverage = NonNullable<Value['overtime_coverage']>;
 	type CategoryBasis = Coverage['category_basis'];
 	type WageBasis = NonNullable<Coverage['wage_basis']>;
@@ -53,6 +63,25 @@
 		{ value: 'WARN', label: 'Warn' },
 		{ value: 'BLOCK', label: 'Block' }
 	];
+	const BREAK_ARMS: { value: BreakRule['applies_when']; label: string }[] = [
+		{ value: 'ALWAYS', label: 'Every working day' },
+		{ value: 'CONTINUOUS_ATTENDANCE', label: 'Work requiring continual attendance' }
+	];
+	/**
+	 * Three states, because the field has three. "Not stated" is the answer wherever the primary text
+	 * is silent — Malaysia's s.60A(1)(a) calls the period "leisure" and says nothing about payment —
+	 * and it must stay distinguishable from "unpaid", which is what Indonesia's ps.79(2)(a) actually
+	 * says. Collapsing the two would let a later reader price a statute that never spoke.
+	 */
+	const BREAK_PAID: { value: string; label: string }[] = [
+		{ value: 'unstated', label: 'The statute does not say' },
+		{ value: 'paid', label: 'Counted as working time' },
+		{ value: 'unpaid', label: 'Not counted as working time' }
+	];
+	const BREAK_ACTIONS: { value: BreakRule['on_exceed']; label: string }[] = [
+		{ value: 'WARN', label: 'Warn' },
+		{ value: 'BLOCK', label: 'Block' }
+	];
 	let props: RendererProps = $props();
 	const disabled = $derived(props.mode === 'edit' ? props.disabled : true);
 	const parsed = $derived(Schema.decodeUnknownResult(statutoryRegimeSchema)(props.value));
@@ -61,8 +90,15 @@
 			? parsed.success
 			: { overtime_coverage: null, overtime_rules: [], overtime_limits: [] }
 	);
+	const breakRules = $derived<readonly BreakRule[]>(current.rest_break_rules ?? []);
 	const summary = $derived(
-		`${current.overtime_rules.length} pricing bands · ${current.overtime_limits.length} limits`
+		[
+			`${current.overtime_rules.length} pricing bands`,
+			`${current.overtime_limits.length} limits`,
+			// Only mentioned once declared. A snapshot that predates this member says nothing about
+			// breaks, and "0 break rules" would read as a decision nobody made.
+			...(breakRules.length > 0 ? [`${breakRules.length} break rules`] : [])
+		].join(' · ')
 	);
 
 	function emit(next: Value): void {
@@ -89,6 +125,23 @@
 
 	function replaceCoverage(next: Coverage | null): void {
 		emit({ ...current, overtime_coverage: next });
+	}
+
+	function replaceBreakRule(index: number, next: BreakRule): void {
+		emit({
+			...current,
+			rest_break_rules: breakRules.map((entry, position) => (position === index ? next : entry))
+		});
+	}
+
+	/** The three-state control's value, and the field it writes back. */
+	function paidValue(rule: BreakRule): string {
+		if (rule.counts_as_worked_time === null) return 'unstated';
+		return rule.counts_as_worked_time ? 'paid' : 'unpaid';
+	}
+
+	function paidFrom(value: string): boolean | null {
+		return value === 'unstated' ? null : value === 'paid';
 	}
 
 	function defaultCoverage(): Coverage {
@@ -421,6 +474,133 @@
 									overtime_limits: current.overtime_limits.filter(
 										(_, position) => position !== index
 									)
+								})}>Remove</Button
+						>
+					</Cluster>
+				</Grid>
+			{/each}
+		</section>
+
+		<section class="grid gap-3 border-t border-border pt-4">
+			<Inline justify="between" align="center" gap="sm">
+				<div>
+					<h3 class="text-sm font-semibold">Rest and meal breaks</h3>
+					<p class="text-meta">
+						A consecutive-hours rule, measured from the punches. This is a compliance check and
+						never changes pay. Leave the minimum empty where the statute names no length, and the
+						trigger empty where it owes the break every day.
+					</p>
+				</div>
+				<Button
+					variant="outline"
+					size="sm"
+					{disabled}
+					onclick={() =>
+						emit({
+							...current,
+							rest_break_rules: [
+								...breakRules,
+								{
+									after_consecutive_hours: 5,
+									minimum_minutes: 30,
+									counts_as_worked_time: null,
+									applies_when: 'ALWAYS',
+									on_exceed: 'WARN',
+									authority: ''
+								}
+							]
+						})}>Add break rule</Button
+				>
+			</Inline>
+			{#each breakRules as rule, index (index)}
+				<Grid gap="sm" minimum="compact" class="border-t border-border py-3 first:border-t-0">
+					<label class="grid gap-1.5 text-sm font-medium">
+						Applies to
+						<Combobox
+							options={BREAK_ARMS}
+							value={rule.applies_when}
+							{disabled}
+							searchable={false}
+							onValueChange={(value) => {
+								if (value) replaceBreakRule(index, { ...rule, applies_when: value });
+							}}
+						/>
+					</label>
+					<label class="grid gap-1.5 text-sm font-medium">
+						After consecutive hours
+						<Input
+							type="number"
+							min="0"
+							step="0.25"
+							value={rule.after_consecutive_hours ?? ''}
+							{disabled}
+							placeholder="Owed every day"
+							oninput={(event) =>
+								replaceBreakRule(index, {
+									...rule,
+									after_consecutive_hours: nullableNumberFrom(event.currentTarget.value)
+								})}
+						/>
+					</label>
+					<label class="grid gap-1.5 text-sm font-medium">
+						Minimum length (minutes)
+						<Input
+							type="number"
+							min="0"
+							step="1"
+							value={rule.minimum_minutes ?? ''}
+							{disabled}
+							placeholder="The statute names none"
+							oninput={(event) =>
+								replaceBreakRule(index, {
+									...rule,
+									minimum_minutes: nullableNumberFrom(event.currentTarget.value)
+								})}
+						/>
+					</label>
+					<label class="grid gap-1.5 text-sm font-medium">
+						Paid status
+						<Combobox
+							options={BREAK_PAID}
+							value={paidValue(rule)}
+							{disabled}
+							searchable={false}
+							onValueChange={(value) => {
+								if (value)
+									replaceBreakRule(index, { ...rule, counts_as_worked_time: paidFrom(value) });
+							}}
+						/>
+					</label>
+					<label class="grid gap-1.5 text-sm font-medium">
+						On shortfall
+						<Combobox
+							options={BREAK_ACTIONS}
+							value={rule.on_exceed}
+							{disabled}
+							searchable={false}
+							onValueChange={(value) => {
+								if (value) replaceBreakRule(index, { ...rule, on_exceed: value });
+							}}
+						/>
+					</label>
+					<label class="col-span-full grid gap-1.5 text-sm font-medium">
+						Authority
+						<Input
+							value={rule.authority}
+							{disabled}
+							oninput={(event) =>
+								replaceBreakRule(index, { ...rule, authority: event.currentTarget.value })}
+						/>
+					</label>
+					<Cluster class="col-span-full" justify="end">
+						<Button
+							variant="ghost"
+							size="sm"
+							{disabled}
+							onclick={() =>
+								emit({
+									...current,
+									rest_break_rules: breakRules.filter((_, position) => position !== index)
 								})}>Remove</Button
 						>
 					</Cluster>

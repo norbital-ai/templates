@@ -23,7 +23,7 @@ import type { Policy } from './$types.js';
  * caller means, who is calling — cannot be resolved without a read grant, by design.
  */
 export default {
-	name: 'Field Operations WhatsApp',
+	name: 'field_ops_whatsapp',
 	description:
 		'Update-only access to existing job assignments for the WhatsApp channel agent. No creates, no deletes, no reads.',
 	apps: [],

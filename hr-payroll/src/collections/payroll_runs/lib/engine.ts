@@ -147,9 +147,21 @@ export function buildPayrollRun(options: {
 		const t0 = Date.now();
 		let mark = t0;
 		const phases: [string, number][] = [];
+		/**
+		 * Each phase reported as it closes, not only in the summary at the end.
+		 *
+		 * The summary is the useful shape when a run completes, and it is useless in the one case
+		 * profiling is actually needed: a run that exceeds the invocation deadline is killed mid-phase,
+		 * so the line naming every phase is never reached and the only evidence left is a 504. Printing
+		 * as each phase lands means a killed run still says which phase it died in and how long
+		 * everything before it took, which is the difference between a measurement and a guess.
+		 */
 		const lap = (name: string): void => {
 			const now = Date.now();
 			phases.push([name, now - mark]);
+			console.log(
+				`[payroll-phase] ${options.period} ${name}=${now - mark}ms elapsed=${now - t0}ms | ${readLog()}`
+			);
 			mark = now;
 		};
 

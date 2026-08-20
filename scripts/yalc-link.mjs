@@ -61,6 +61,7 @@ if (templates.length === 0) {
 for (const template of templates) {
 	if (retreat) {
 		run(yalcBin, ['retreat', '--all'], template.directory);
+		run('pnpm', ['install', '--config.strict-dep-builds=false'], template.directory);
 		continue;
 	}
 	const packages = managedPackages(template.directory);

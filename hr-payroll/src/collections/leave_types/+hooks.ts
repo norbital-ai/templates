@@ -12,43 +12,47 @@ import type { Hooks } from './$types.js';
  */
 export default {
 	create: {
-		before: {
-			description:
-				'Refuses a leave type whose effective range overlaps another leave type with the same code in the same company, so one code never resolves to two entitlement rules on one date.',
-			handler: ({ input, api }) =>
-				Effect.gen(function* () {
-					const existing = yield* api.db.query.leave_types.findMany({
-						where: { company_id: { eq: input.company_id }, code: { eq: input.code } }
-					});
-					assertNoOverlap({
-						candidate: input.effective_range,
-						existing,
-						identity: `leave type ${input.code}`
-					});
-					return input;
-				})
+		perRecord: {
+			before: {
+				description:
+					'Refuses a leave type whose effective range overlaps another leave type with the same code in the same company, so one code never resolves to two entitlement rules on one date.',
+				handler: ({ input, api }) =>
+					Effect.gen(function* () {
+						const existing = yield* api.db.query.leave_types.findMany({
+							where: { company_id: { eq: input.company_id }, code: { eq: input.code } }
+						});
+						assertNoOverlap({
+							candidate: input.effective_range,
+							existing,
+							identity: `leave type ${input.code}`
+						});
+						return input;
+					})
+			}
 		}
 	},
 	update: {
-		before: {
-			description:
-				'Re-checks an edited leave type so changing its code, company or effective range cannot leave two versions of the same leave code in force together.',
-			handler: ({ input, existing, api }) =>
-				Effect.gen(function* () {
-					const company_id = input.company_id ?? existing.company_id;
-					const code = input.code ?? existing.code;
-					const effective_range = input.effective_range ?? existing.effective_range;
-					const siblings = yield* api.db.query.leave_types.findMany({
-						where: { company_id: { eq: company_id }, code: { eq: code } }
-					});
-					assertNoOverlap({
-						candidate: effective_range,
-						existing: siblings,
-						identity: `leave type ${code}`,
-						excludeId: existing.norbital_id
-					});
-					return input;
-				})
+		perRecord: {
+			before: {
+				description:
+					'Re-checks an edited leave type so changing its code, company or effective range cannot leave two versions of the same leave code in force together.',
+				handler: ({ input, existing, api }) =>
+					Effect.gen(function* () {
+						const company_id = input.company_id ?? existing.company_id;
+						const code = input.code ?? existing.code;
+						const effective_range = input.effective_range ?? existing.effective_range;
+						const siblings = yield* api.db.query.leave_types.findMany({
+							where: { company_id: { eq: company_id }, code: { eq: code } }
+						});
+						assertNoOverlap({
+							candidate: effective_range,
+							existing: siblings,
+							identity: `leave type ${code}`,
+							excludeId: existing.norbital_id
+						});
+						return input;
+					})
+			}
 		}
 	}
 } satisfies Hooks;

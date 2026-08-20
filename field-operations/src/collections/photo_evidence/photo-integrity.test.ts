@@ -3,11 +3,43 @@ import assert from 'node:assert/strict';
 import { Buffer } from 'node:buffer';
 import { gunzipSync } from 'node:zlib';
 import {
+	assertPhotoEvidenceProvenanceUnchanged,
 	decodePhotoInspection,
 	evaluateCaptureGeolocation,
 	inspectPhoto,
 	planDuplicateEvidenceBatch
 } from './photo-integrity.js';
+
+const settledProvenance = {
+	job_assignment_id: 'assignment-a',
+	variation_request_id: null,
+	document_asset_id: 'asset-a',
+	source_key: 'whatsapp:conversation:attachment-a',
+	source: {
+		kind: 'channel',
+		provider: 'whatsapp',
+		conversation_id: 'conversation',
+		attachment_id: 'attachment-a'
+	}
+};
+
+test('keeps a settled photo, parent, and source immutable', () => {
+	assert.doesNotThrow(() =>
+		assertPhotoEvidenceProvenanceUnchanged({ job_assignment_id: 'assignment-a' }, settledProvenance)
+	);
+	for (const change of [
+		{ job_assignment_id: 'assignment-b' },
+		{ job_assignment_id: null, variation_request_id: 'variation-a' },
+		{ document_asset_id: 'asset-b' },
+		{ source_key: 'workspace:asset-a' },
+		{ source: { kind: 'workspace_upload' } }
+	]) {
+		assert.throws(
+			() => assertPhotoEvidenceProvenanceUnchanged(change, settledProvenance),
+			/provenance is immutable/
+		);
+	}
+});
 
 // A deterministic 3024x4032 JPEG (solid RGB 80/120/160). Gzip collapses the intentionally uniform
 // fixture to a few hundred bytes while jpeg-js still has to exercise the full 12 MP decode envelope.
@@ -195,4 +227,37 @@ test('retains the indexed single-hook exact and visual candidate caps', () => {
 
 	assert.equal(update?.matchedEvidenceIds.filter((id) => id.startsWith('exact-')).length, 20);
 	assert.equal(update?.matchedEvidenceIds.filter((id) => id.startsWith('visual-')).length, 50);
+});
+
+test('finds cross-assignment exact reuse after many same-assignment copies', () => {
+	const sameAssignment = Array.from({ length: 25 }, (_, index) => ({
+		id: `same-${index}`,
+		sha256: 'shared-sha',
+		perceptualEmbedding: far,
+		flags: [],
+		assignmentId: 'assignment-a'
+	}));
+	const [update] = planDuplicateEvidenceBatch(
+		[
+			{
+				id: 'target',
+				sha256: 'shared-sha',
+				perceptualEmbedding: zeros,
+				flags: [],
+				assignmentId: 'assignment-a'
+			},
+			...sameAssignment,
+			{
+				id: 'cross-assignment',
+				sha256: 'shared-sha',
+				perceptualEmbedding: far,
+				flags: [],
+				assignmentId: 'assignment-b'
+			}
+		],
+		new Set(['target'])
+	);
+
+	assert.ok(update?.flags.includes('exact_duplicate'));
+	assert.ok(update?.matchedEvidenceIds.includes('cross-assignment'));
 });

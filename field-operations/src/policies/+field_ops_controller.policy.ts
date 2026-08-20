@@ -7,12 +7,27 @@ import type { Policy } from './$types.js';
  * from a loop because a permission set is read far more often than it is written, and a reader should
  * be able to see that `photo_evidence` is deletable here without first evaluating a `flatMap`.
  *
- * The key is the filename, and it matches the key this policy had while it was seeded — reconciliation
- * upserts by key, so the declaration takes over the existing row instead of creating a second one and
- * orphaning every `team.policy_id` that points at it.
+ * `name` is `Controller` and not `Field Operations Controller`, at the owner's request, and that
+ * string is load-bearing: `subjectHasPolicy` matches a policy by `name`, case-folded, against the
+ * set a subject's team confers. So the only route to this policy is a key in `src/+teams.ts` naming
+ * `Controller` — today `Field Operations Controllers` and `Contractor (Controller)`. Rename it here
+ * without renaming it there and the team quietly holds nothing: its members sign in successfully
+ * into a workspace with no apps in it. `impersonationTeams` lists real teams now, so the picker
+ * follows the same map rather than the policy list.
+ *
+ * The filename is a second, separate key. `field_ops_controller` is what the generated `PolicyName`
+ * union is built from and what `+field_ops_whatsapp.channel.ts` spells its `policy` as; it is *not*
+ * what a team names. The two axes coincide in `templates/hr-payroll` and do not coincide here.
+ *
+ * Three names in this workspace are similar and none of them is this one:
+ * `Field Operations Controllers` — plural — is a **team**, matched against `subject.team` by the
+ * approval engine and named by `approvers` in `+field_ops_contractor.policy.ts`; renaming it would
+ * strand the variation-approval step against a team nobody is in. The app is titled "Field
+ * Operations Controller" in the i18n catalogues and in `+field_ops_controller.svelte`; that names a
+ * surface. Only the `name` below names this policy.
  */
 export default {
-	name: 'Field Operations Controller',
+	name: 'field_ops_controller',
 	description:
 		'Controller access to dispatch jobs, contractors, assignments, sites, and approval records.',
 	apps: ['field_ops_controller', 'field_ops_contractor'],

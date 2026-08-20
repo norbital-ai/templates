@@ -26,7 +26,7 @@ import type { Policy } from './$types.js';
  *   - no `payroll_runs: update`, no `payroll_runs: delete` — a controller does not re-run a payroll
  *     and does not erase one. That is what "may not create it" means once the run exists.
  *
- * There is deliberately no `payslips`/`payslip_lines`/`payroll_settlements` delete grant either.
+ * There is deliberately no `payslips`/`payslip_lines`/`payslip_sources` delete grant either.
  * `clearRunResults` needs those to rebuild a draft, and a controller never rebuilds one: their only
  * write is the initial create, and a run with no payslips yet has nothing to clear. See
  * `payrollRebuildGrants` in `src/lib/policy_grants.ts`, which is the grant `hr_manager` and
@@ -60,8 +60,8 @@ export default {
 	 * roster. Every rung of this ladder is somebody's employee, so every rung has one — and until now
 	 * only `employee` listed it, which meant an HR manager could run the company's payroll and not
 	 * look at their own. It is listed on every policy rather than inherited because there is nothing
-	 * to inherit through: `visibleApps` reads the `apps` array of the policies a subject's roles
-	 * match, and a policy that does not name the app does not offer it.
+	 * to inherit through: `visibleApps` reads the `apps` array of the policies a subject's team
+	 * confers, and a policy that does not name the app does not offer it.
 	 *
 	 * The row scope is unchanged and does the actual work: the app's queries are `${requestor.email}`
 	 * -scoped, so naming it here shows a person their own record and nobody else's.

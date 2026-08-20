@@ -1,17 +1,17 @@
 // @ts-nocheck -- executed directly by Node with --experimental-strip-types.
 /**
- * The settlement lock: taken when a run persists, released when the run is deleted, and permanent
- * once the run is paid.
+ * The settlement lock: taken when a run persists, released when the payslip that holds it is
+ * deleted, and permanent once the run is paid.
  *
  * Four things are exercised here and they are deliberately four different kinds of check, because
  * the lock is enforced in four different places:
  *
- *   1. `claimsForBundle` — what a run claims. Pure arithmetic over one gathered bundle.
+ *   1. `claimsForBundle` — what a payslip claims. Pure arithmetic over one gathered bundle.
  *   2. `sourceLock` — how a claim reads as a refusal. Pure, shared verbatim with the screens.
  *   3. `payroll_runs` `delete.before` — the refusal that makes a PAID run's claims permanent. The
  *      real authored handler, called directly.
  *   4. `clearRunResults` — the rebuild's release. The real function, against a database double whose
- *      whole surface is the three calls that function makes.
+ *      whole surface is the two calls that function makes.
  *
  * What is *not* exercised is the cascade itself, because Postgres performs it. What is checked is
  * that the cascade is declared, which is the only thing this workspace controls: see the last test.
@@ -28,8 +28,7 @@ import {
 	sourceLock,
 	sourceLockBlocksWrite,
 	sourceLockMessage,
-	sourceLockI18nKey,
-	payrollWindows
+	sourceLockI18nKey
 } from '../../lib/scheduling/lock.ts';
 
 const MARCH = { start: '2026-02-21', end: '2026-03-20' };
@@ -45,7 +44,7 @@ const bundle = (overrides = {}) => ({
 	...overrides
 });
 
-test('a run claims the attendance it priced and not the months it only counted', () => {
+test('a payslip claims the attendance it priced and not the months it only counted', () => {
 	// GATHER reads both calendar months the cutoff touches, so the statutory overtime counter can
 	// reset on the 1st. Those extra days belong to a neighbouring period: locking them would freeze
 	// attendance that no run has settled.
@@ -95,8 +94,9 @@ test('a deferred joining period claims nothing, because it consumed nothing', ()
 });
 
 test('the same record is claimed once, whatever derived it twice', () => {
-	// The unique index on (source_collection, source_record_id) would refuse the second row, and the
-	// whole run's persist would fail on a duplicate that means nothing.
+	// The per-payslip unique index on (payslip_id, source_collection, source_record_id) would
+	// refuse the second row, and the whole run's persist would fail on a duplicate that means
+	// nothing.
 	assert.deepEqual(
 		dedupeClaims([
 			{ source_collection: 'time_entries', source_record_id: 'te-1' },
@@ -115,13 +115,9 @@ test('a settled time entry refuses mutation, and the refusal names the adjustmen
 		existing: true,
 		approvalId: null,
 		dates: ['2026-03-02'],
-		today: '2026-04-01',
-		// No paid window anywhere: this is the regression the stored lock exists for. Under the old
-		// date arithmetic alone this record was fully editable.
-		windows: [],
 		settledBy: { period: '2026-03' }
 	});
-	assert.equal(lock.kind, 'SETTLED_BY_RUN');
+	assert.equal(lock.kind, 'SETTLED');
 	assert.equal(lock.period, '2026-03');
 	assert.equal(sourceLockBlocksWrite(lock), true);
 	assert.equal(sourceLockI18nKey(lock), 'component.lock_settled_by_run');
@@ -135,46 +131,22 @@ test('a settled time entry refuses mutation, and the refusal names the adjustmen
 });
 
 test('a draft run’s claim locks the record, which the paid-window arithmetic never did', () => {
-	const drafts = payrollWindows([
-		{
-			period: '2026-03',
-			lifecycle: 'DRAFT',
-			attendance_from: '2026-02-21',
-			attendance_to: '2026-03-20'
-		}
-	]);
-	const shared = {
-		existing: true,
-		approvalId: null,
-		dates: ['2026-03-02'],
-		today: '2026-03-25',
-		windows: drafts
-	};
-
-	// The old behaviour, preserved so the difference is visible: a draft window freezes nothing.
-	assert.equal(sourceLock({ ...shared, settledBy: null }).kind, 'DATE_PASSED');
-	// The new behaviour: the run wrote payslips citing this record, so the record cannot move.
-	assert.equal(sourceLock({ ...shared, settledBy: { period: '2026-03' } }).kind, 'SETTLED_BY_RUN');
-});
-
-test('the settlement lock outranks the window, so the refusal can name the run', () => {
-	// Both apply. The stored claim wins because it is the only one that knows which run to delete.
-	const lock = sourceLock({
-		existing: true,
-		approvalId: null,
-		dates: ['2026-03-02'],
-		today: '2026-04-01',
-		windows: payrollWindows([
-			{
-				period: '2026-03',
-				lifecycle: 'PAID',
-				attendance_from: '2026-02-21',
-				attendance_to: '2026-03-20'
-			}
-		]),
-		settledBy: { period: '2026-03' }
-	});
-	assert.equal(lock.kind, 'SETTLED_BY_RUN');
+	// No window is consulted at all — the record lock is the stored claim and nothing else. The old
+	// arithmetic froze nothing while the run was still a draft; the claim freezes it the moment the
+	// payslip that priced it exists.
+	assert.equal(
+		sourceLock({ existing: true, approvalId: null, dates: [], settledBy: null }).kind,
+		'NONE'
+	);
+	assert.equal(
+		sourceLock({
+			existing: true,
+			approvalId: null,
+			dates: [],
+			settledBy: { period: '2026-03' }
+		}).kind,
+		'SETTLED'
+	);
 });
 
 test('a pending approval still answers first, because it is the platform’s lock and not ours', () => {
@@ -182,8 +154,6 @@ test('a pending approval still answers first, because it is the platform’s loc
 		existing: true,
 		approvalId: '019efa4b-b947-755a-990e-53c8da7b855f',
 		dates: ['2026-03-02'],
-		today: '2026-04-01',
-		windows: [],
 		settledBy: { period: '2026-03' }
 	});
 	assert.equal(lock.kind, 'PENDING_APPROVAL');
@@ -231,8 +201,7 @@ function fakeApi(state, deleted) {
 			)
 	});
 	// A collection is reached as a property, the one way the authoring api offers: `db.<name>.delete`,
-	// beside `db.query.<name>.findMany`. There was briefly a second spelling taking the collection as
-	// an argument; it was never implemented and is gone.
+	// beside `db.query.<name>.findMany`.
 	const remove = (collection) => ({
 		delete: (identifiers) => {
 			deleted.push([collection, [...identifiers]]);
@@ -243,22 +212,15 @@ function fakeApi(state, deleted) {
 	return {
 		db: {
 			query: {
-				payroll_settlements: find('payroll_settlements'),
 				payslips: find('payslips')
 			},
-			payroll_settlements: remove('payroll_settlements'),
 			payslips: remove('payslips')
 		}
 	};
 }
 
-test('rebuilding a draft releases its settlement locks before its payslips', () => {
+test('rebuilding a draft releases its settlement locks with its payslips', () => {
 	const state = {
-		payroll_settlements: [
-			{ norbital_id: 's-1', payroll_run_id: 'run-1' },
-			{ norbital_id: 's-2', payroll_run_id: 'run-1' },
-			{ norbital_id: 's-other', payroll_run_id: 'run-2' }
-		],
 		payslips: [
 			{ norbital_id: 'p-1', payroll_run_id: 'run-1' },
 			{ norbital_id: 'p-other', payroll_run_id: 'run-2' }
@@ -268,33 +230,27 @@ test('rebuilding a draft releases its settlement locks before its payslips', () 
 
 	Effect.runSync(clearRunResults(fakeApi(state, deleted), 'run-1'));
 
-	// Locks first. The unique index on (source_collection, source_record_id) means a rebuild that
-	// re-claimed a record it still held would be refused by the database — the release is what makes
-	// the rebuild idempotent rather than self-blocking.
-	assert.deepEqual(deleted, [
-		['payroll_settlements', ['s-1', 's-2']],
-		['payslips', ['p-1']]
-	]);
-	// Another run's claims are untouched. This is why the lock is keyed to a run and not a boolean.
+	// The payslips are all that is deleted. Their source rows go with them by the database's own
+	// cascade — `payslip_sources.payslip_id` is `ON DELETE CASCADE` — so a rebuild cannot re-claim
+	// against its own stale rows, and there is nothing left for this function to release.
+	assert.deepEqual(deleted, [['payslips', ['p-1']]]);
+	// Another run's payslips are untouched. This is why the lock is keyed to a run and not a boolean.
 	assert.deepEqual(
-		state.payroll_settlements.map((row) => row.norbital_id),
-		['s-other']
+		state.payslips.map((row) => row.norbital_id),
+		['p-other']
 	);
 });
 
-test('deleting a payroll run releases its settlement locks — the declaration, not the cascade', () => {
+test('deleting a payroll run releases its settlement locks — the declarations that cascade', () => {
 	/**
 	 * What this asserts is the *declaration*, and the title says so because the distinction is real:
-	 * `cascade()` sets a non-enumerable symbol that has exactly one occurrence in the bolt package —
-	 * its own definition — and the migration lineage emits no `ON DELETE` clause for any relation in
-	 * this workspace. So no cascade runs today, for settlements or for the `payslips` relation that
-	 * carries the identical declaration.
+	 * the two-hop cascade — run → payslips → source rows — is performed by Postgres, and what this
+	 * workspace controls is that each hop is declared. A single `cascade(` wrapper is the whole of
+	 * that declaration: the compiler turns it into `ON DELETE CASCADE` in the migration lineage.
 	 *
-	 * It is still worth pinning. The declaration is the whole of what this workspace controls, it is
-	 * the release the design chose, and it is one symbol away from working. The alternative — a hook
-	 * looping over `api.db.<collection>.delete(identifiers)` — would have been wrong in a way no
-	 * happy-path test catches, because that call takes `identifiers[0]` and drops the rest: the
-	 * release would free one claim out of several hundred and report success.
+	 * The alternative — a hook looping over `api.db.<collection>.delete(identifiers)` — would have
+	 * been wrong in a way no happy-path test catches, because that call takes `identifiers[0]` and
+	 * drops the rest: the release would free one claim out of several hundred and report success.
 	 *
 	 * The marker is read the only way it can be read from outside the authoring package.
 	 */
@@ -308,17 +264,17 @@ test('deleting a payroll run releases its settlement locks — the declaration, 
 		}
 	);
 	const graph = relationships(probe);
-	const relationship = graph.payroll_settlements.settlement_payroll_run;
-	const markers = Object.getOwnPropertySymbols(relationship).map((symbol) =>
-		Reflect.get(relationship, symbol)
+	const sources = graph.payslip_sources.payslip_source_payslip;
+	const markers = Object.getOwnPropertySymbols(sources).map((symbol) =>
+		Reflect.get(sources, symbol)
 	);
 	assert.ok(
 		markers.includes('cascade'),
-		'payroll_settlements must cascade from payroll_runs, or a deleted run leaves its locks standing'
+		'payslip_sources must cascade from payslips, or deleting a run leaves its locks standing'
 	);
 
-	// The sibling declaration, asserted beside it so the two are visibly the same statement. If one
-	// of them ever renders `ON DELETE CASCADE` and the other does not, this is where that shows up.
+	// The first hop, asserted beside it so the two are visibly one chain. If one of them ever
+	// renders `ON DELETE CASCADE` and the other does not, this is where that shows up.
 	const payslips = graph.payslips.payslip_payroll_run;
 	assert.ok(
 		Object.getOwnPropertySymbols(payslips)
@@ -331,19 +287,19 @@ test('deleting a payroll run releases its settlement locks — the declaration, 
  * The write itself: a run that priced attendance takes a lock over every record it read.
  *
  * The tests above prove the claim is *derived* correctly and *released* correctly. This one proves
- * it is *taken* — that `persistPayslips` turns those claims into `payroll_settlements` rows keyed to
- * the run. It exists because the live demonstration is currently unreachable: every seeded company
- * whose attendance falls inside a run's window is blocked by a different data gap — a missing
- * public-holiday overtime rule, a calendar with no working days, an unsupported pay cadence, an
- * employment with no terms — so a real run either computes with nothing to consume or refuses
- * before PERSIST. The mechanism is testable regardless of whether the fixtures can reach it.
+ * it is *taken* — that `persistPayslips` turns those claims into `payslip_sources` rows keyed to
+ * the payslip that consumed them. It exists because the live demonstration is currently
+ * unreachable: every seeded company whose attendance falls inside a run's window is blocked by a
+ * different data gap — a missing public-holiday overtime rule, a calendar with no working days, an
+ * unsupported pay cadence, an employment with no terms — so a real run either computes with
+ * nothing to consume or refuses before PERSIST. The mechanism is testable regardless of whether
+ * the fixtures can reach it.
  */
 test('a run takes a settlement lock over every record it consumed', async () => {
 	const written = [];
 	const api = {
 		db: {
 			query: {
-				payroll_settlements: { findMany: () => Effect.succeed([]) },
 				payslips: { findMany: () => Effect.succeed([]) }
 			},
 			payslips: {
@@ -353,7 +309,7 @@ test('a run takes a settlement lock over every record it consumed', async () => 
 					)
 			},
 			payslip_lines: { mutate: () => Effect.succeed([]) },
-			payroll_settlements: {
+			payslip_sources: {
 				mutate: (rows) => {
 					written.push(...rows);
 					return Effect.succeed(rows);
@@ -371,7 +327,41 @@ test('a run takes a settlement lock over every record it consumed', async () => 
 				{
 					employmentId: 'emp-1',
 					currency: 'MYR',
-					settlement: { lines: [], shortfalls: [] },
+					settlement: {
+						lines: [
+							{
+								nature: 'EARNING',
+								amount: 1200,
+								quantity: null,
+								rate: null,
+								component: { kind: 'SCHEDULE', pay_component_id: 'pc-salary' }
+							},
+							{
+								nature: 'DEDUCTION',
+								amount: 80,
+								quantity: null,
+								rate: null,
+								component: {
+									kind: 'COMPONENT_ENTRY_ONCE',
+									pay_component_id: 'pc-allowance',
+									component_entry_id: 'ce-1'
+								}
+							},
+							{
+								nature: 'DEDUCTION',
+								amount: 50,
+								quantity: null,
+								rate: null,
+								component: {
+									kind: 'LOAN_INSTALMENT',
+									pay_component_id: 'pc-loan',
+									agreement_id: 'ag-1',
+									sequence: 1
+								}
+							}
+						],
+						shortfalls: []
+					},
 					charges: [],
 					claims: [
 						{ source_collection: 'time_entries', source_record_id: 'te-1' },
@@ -382,15 +372,23 @@ test('a run takes a settlement lock over every record it consumed', async () => 
 		})
 	);
 
-	assert.equal(result.claimCount, 2);
+	// Two bundle claims plus one per line kind: the salary component, the entered component event,
+	// the loan agreement, and the loan line's own pay component. Overtime and statutory lines would
+	// claim nothing.
+	assert.equal(result.claimCount, 7);
 	assert.deepEqual(
-		written.map((row) => [row.source_collection, row.source_record_id, row.payroll_run_id]),
+		written.map((row) => [row.payslip_id, row.source_collection, row.source_record_id]),
 		[
-			['time_entries', 'te-1', 'run-1'],
-			['leave_requests', 'lv-1', 'run-1']
+			['payslip-1', 'time_entries', 'te-1'],
+			['payslip-1', 'leave_requests', 'lv-1'],
+			['payslip-1', 'pay_components', 'pc-salary'],
+			['payslip-1', 'pay_components', 'pc-allowance'],
+			['payslip-1', 'component_entries', 'ce-1'],
+			['payslip-1', 'pay_components', 'pc-loan'],
+			['payslip-1', 'repayment_agreements', 'ag-1']
 		]
 	);
-	// The period travels with the lock: two runs of different periods can each hold their own claims,
-	// and a release names the run rather than sweeping a collection.
+	// The period travels with the lock: two runs of different periods can each hold their own
+	// claims, and a release names the payslip rather than sweeping a collection.
 	assert.deepEqual([...new Set(written.map((row) => row.period))], ['2026-03']);
 });

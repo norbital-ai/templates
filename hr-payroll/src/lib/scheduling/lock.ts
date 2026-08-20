@@ -4,16 +4,28 @@ import type { WorkspaceRow } from '$bolt/types.js';
  * The lock state of one calendar day, derived from the payroll runs that cover it.
  *
  * A day is either untouched, inside a draft run's assessment window (mutable, but on its way to
- * being settled), or inside a paid run's window (inputs immutable — corrections arrive as
+ * being settled), or inside a paid run's window (no *new* record may appear — corrections arrive as
  * adjustment entries in a later draft). Nothing about *this* is stored: the day lock is arithmetic
  * over `payroll_runs` windows, so the same derived state drives the board's stripes and the write
  * hooks' refusals, and the two can never disagree.
  *
  * It is a question about **days**, and it used to be asked about records too. That was the mistake:
- * a record is settled because a run consumed it, not because it happens to be dated inside a paid
- * window, and the two answers differ for every draft run that has already produced payslips. The
- * record-level answer now lives in the `payroll_settlements` collection and reaches `sourceLock`
- * below as `settledBy`. See `src/collections/payroll_settlements/+model.ts`.
+ * a record is settled because a payslip consumed it, not because it happens to be dated inside a
+ * paid window, and the two answers differ for every draft run that has already produced payslips.
+ * The record-level answer now lives in the `payslip_sources` collection and reaches `sourceLock`
+ * below as `settledBy`. See `src/collections/payslip_sources/+model.ts`.
+ *
+ * The division of labour is worth stating in one line, because every guard in the workspace is one
+ * side of it:
+ *
+ *     a RECORD is governed by the claim held over it;
+ *     a DAY WITH NO RECORD is governed by the window, because there is no claim to ask —
+ *     and a paid run has already priced that day's silence as absence.
+ *
+ * So the window arithmetic below answers exactly one write-side question — "may a record appear on
+ * this day at all?" — and never "may this record change?". An existing record dated inside a paid
+ * window that no run ever consumed stays editable and settles as arrears in a later run; that is
+ * the case `payslip_sources/+model.ts` calls the second direction the old inference got wrong.
  *
  * `period` can name a whole month (`2026-08`) or half of one (`2026-08-1`, `2026-08-2`), matching
  * the company's pay grid. The board and the hooks only need the windows; they never interpret the
@@ -81,7 +93,7 @@ export function lockMap(
 	return locks;
 }
 
-/** The write-side guard: refuse an action on a day a paid run has already settled. */
+/** The write-side guard: refuse a record *appearing* on a day a paid run has already settled. */
 export function assertNotSettled(
 	windows: readonly PayrollWindow[],
 	date: string,
@@ -89,86 +101,100 @@ export function assertNotSettled(
 ): void {
 	const lock = lockStateForDate(windows, date);
 	if (lock.kind === 'SETTLED') {
-		throw new Error(sourceLockMessage({ kind: 'SETTLED', period: lock.period, date }, action));
+		throw new Error(settledDayMessage(lock.period, date, action));
 	}
+}
+
+/** The day-shaped refusal: a paid run has priced this day's silence as absence. */
+function settledDayMessage(period: string, date: string, action: string): string {
+	// Deliberately neutral about which act is being refused. This is the day-shaped refusal, and the
+	// write it most often stops is a record trying to *appear* on a paid day rather than an existing
+	// one trying to change — "cannot change" named the wrong act.
+	return (
+		`${action} on ${date} is refused: that day is inside paid payroll ${period}. ` +
+		'Correct it with an adjustment entry in a later draft run.'
+	);
 }
 
 /**
  * Why a leave, claim, or attendance record cannot be written again.
  *
- * Pending approval is the platform's write-then-lock stamp. The other kinds are the domain freeze:
- * a run that has consumed the row, an approved (live) event, a day that has already passed, a paid
- * payroll window, or a payslip line that already consumed the row. Hooks and UI call the same
- * function so they cannot disagree.
+ * Pending approval is the platform's write-then-lock stamp, and it stays the 409. The only other
+ * domain freeze is the **settlement lock**: a `payslip_sources` row naming this record, which says
+ * payroll `period` already took it into account. `APPROVED` (a live event on a collection that
+ * freezes on approval) and `DATE_PASSED` (a day behind us, on collections that ask for it) remain
+ * as collection-stated policies for the screens and hooks that still want them — but since the
+ * settlement refactor, leave asks for neither, and the payroll window never freezes an existing
+ * record at all. Hooks and UI call the same function so they cannot disagree.
  *
- * `SETTLED_BY_RUN` and `SETTLED` are two different claims and both are kept:
- *
- *   - `SETTLED_BY_RUN` is the **settlement lock**, read from a `payroll_settlements` row. It says
- *     *this record* was consumed by *that run*. It is exact, it is stored, and it is released only
- *     by deleting the run.
- *   - `SETTLED` is the window arithmetic below: this *day* falls inside a paid run's assessment
- *     window. It is an inference, and it is deliberately kept for the calendar board, which colours
- *     days it has no record for — a day with no attendance row at all still cannot receive one once
- *     the period it sits in has been paid.
- *
- * They disagree in exactly one direction, and the disagreement is why the stored one was added:
- * a DRAFT run that has already written payslips citing a record produces `SETTLED_BY_RUN` and never
- * produces `SETTLED`. Before the stored lock existed, that record stayed editable underneath the
- * figures that had already consumed it.
+ * `PAID_DAY` is not produced by `sourceLock` — nothing a record carries can raise it. It is the
+ * day-shaped inference a paid run's window makes about a *day*, kept here so the board's hover
+ * sentence and the create guard (`assertNotSettled`) share one vocabulary with the record locks.
  */
 export type SourceLock =
 	| { readonly kind: 'NONE' }
 	| { readonly kind: 'PENDING_APPROVAL' }
+	| { readonly kind: 'SETTLED'; readonly period: string }
 	| { readonly kind: 'APPROVED' }
 	| { readonly kind: 'DATE_PASSED'; readonly date: string }
-	| { readonly kind: 'SETTLED_BY_RUN'; readonly period: string }
-	| { readonly kind: 'SETTLED'; readonly period: string; readonly date: string }
-	| { readonly kind: 'PAYSLIP_CONSUMED' };
+	| { readonly kind: 'PAID_DAY'; readonly period: string; readonly date: string };
 
-/** The claim a `payroll_settlements` row makes, reduced to what a refusal has to say. */
+/** The claim a `payslip_sources` row makes, reduced to what a refusal has to say. */
 export type SettlementClaim = { readonly period: string };
 
-export type SourceLockInput = {
+type SourceLockFacts = {
 	readonly existing: boolean;
 	readonly approvalId?: string | null;
 	readonly dates: readonly (string | Date | null | undefined)[];
-	readonly today: string;
-	readonly windows: readonly PayrollWindow[];
-	readonly consumedByPayslip?: boolean;
 	/**
 	 * The settlement claim held over this record, or null/undefined when none is.
 	 *
-	 * Passed in rather than looked up, for the same reason `windows` is: this module stays pure so
-	 * that the write hooks and the screens that grey the row out compute the identical lock from the
-	 * identical inputs. Each caller reads `payroll_settlements` through its own typed api.
+	 * Passed in rather than looked up, for the same reason every other input is: this module stays
+	 * pure so that the write hooks and the screens that grey the row out compute the identical lock
+	 * from the identical inputs. Each caller reads `payslip_sources` through its own typed api.
 	 */
 	readonly settledBy?: SettlementClaim | null;
-	/** Live existing records are frozen — leave and claims after approval. */
+	/** Live existing records are frozen — claims after approval, where the caller says so. */
 	readonly freezeWhenLive?: boolean;
 };
+
+/**
+ * Whether "the date is behind us" is a lock **on this collection**, stated by the caller.
+ *
+ * One collection says no and the others say yes, and the difference is not a preference. An expense
+ * claim describes an event a person approved; editing one after its dates have gone by rewrites the
+ * record of something that already either happened or did not, so that screen freezes the row and
+ * offers a correction event instead. Attendance is the opposite shape entirely: a punch is *always*
+ * recorded about a day that has passed — yesterday's clock-in, last week's missed swipe, a whole
+ * month backfilled from a turnstile export. Freezing on a passed date there greys out every row a
+ * controller has any reason to touch, which is the defect §2.2 of
+ * `docs/attendance-on-the-board-proposal.md` names.
+ *
+ * The shape is a named policy rather than a boolean, and the two arms carry different fields, for
+ * one reason: a call site must not be able to read as ambiguous. `datePassed: 'IS_NOT_A_LOCK'`
+ * says what the caller decided in the caller's own words, and the arm forbids `today` outright —
+ * a caller cannot both declare the date irrelevant and go on handing this function today's date.
+ * The `'FREEZES'` arm is the one you get by saying nothing, so the collections that always froze
+ * keep freezing without being touched; opting *out* is the change, and the change is the thing
+ * that has to be visible.
+ */
+export type SourceLockInput = SourceLockFacts &
+	(
+		| { readonly datePassed?: 'FREEZES'; readonly today: string }
+		| { readonly datePassed: 'IS_NOT_A_LOCK'; readonly today?: never }
+	);
 
 export type SourceLockI18nKey =
 	| 'component.lock_pending_approval'
 	| 'component.lock_approved'
 	| 'component.lock_date_passed'
 	| 'component.lock_settled'
-	| 'component.lock_settled_by_run'
-	| 'component.lock_payslip_consumed';
+	| 'component.lock_settled_by_run';
 
 export type SourceLockI18nParams =
 	| { readonly date: string }
 	| { readonly period: string }
 	| { readonly period: string; readonly date: string };
-
-function rangeTouchesSettled(
-	windows: readonly PayrollWindow[],
-	start: string,
-	end: string
-): PayrollWindow | null {
-	return (
-		windows.find((window) => window.settled && window.start <= end && window.end >= start) ?? null
-	);
-}
 
 /** The strongest lock that applies to this source record. */
 export function sourceLock(input: SourceLockInput): SourceLock {
@@ -177,35 +203,24 @@ export function sourceLock(input: SourceLockInput): SourceLock {
 		return { kind: 'PENDING_APPROVAL' };
 	}
 	/**
-	 * The settlement lock outranks everything below it, and it is tested before the window
-	 * arithmetic on purpose: it is the only one of these that knows *which* run holds the record,
-	 * so its message is the only one that can tell the person what would have to happen to release
-	 * it. Testing it second would let a paid window answer first with a vaguer sentence about the
-	 * same record.
-	 *
-	 * It sits below `PENDING_APPROVAL` and not above it because the two cannot both be true —
+	 * The settlement lock is the one fact that can name the period holding the record, so its
+	 * refusal is the only one that can tell the person what would have to happen to release it. It
+	 * sits below `PENDING_APPROVAL` and not above it because the two cannot both be true —
 	 * `gather.ts` only ever consumes rows whose `norbital_approval_id` is null — and because a
 	 * pending row is the platform's 409, which `sourceLockBlocksWrite` leaves to the platform.
 	 */
 	if (input.settledBy != null) {
-		return { kind: 'SETTLED_BY_RUN', period: input.settledBy.period };
-	}
-	if (input.consumedByPayslip === true) {
-		return { kind: 'PAYSLIP_CONSUMED' };
-	}
-	const dates = input.dates.map((value) => dateKey(value)).filter((value) => value.length >= 10);
-	const start = dates.reduce((min, value) => (value < min ? value : min), dates[0] ?? '');
-	const end = dates.reduce((max, value) => (value > max ? value : max), dates[0] ?? '');
-	if (start !== '') {
-		const settled = rangeTouchesSettled(input.windows, start, end);
-		if (settled != null) {
-			return { kind: 'SETTLED', period: settled.period, date: start };
-		}
+		return { kind: 'SETTLED', period: input.settledBy.period };
 	}
 	if (input.existing && input.freezeWhenLive === true) {
 		return { kind: 'APPROVED' };
 	}
-	if (input.existing && end !== '' && end < input.today) {
+	const dates = input.dates.map((value) => dateKey(value)).filter((value) => value.length >= 10);
+	const end = dates.reduce((max, value) => (value > max ? value : max), dates[0] ?? '');
+	// Read once, up front, so the arm below cannot accidentally consult a date the caller declared
+	// irrelevant: on the opt-out arm there is no `today` to compare against at all.
+	const today = input.datePassed === 'IS_NOT_A_LOCK' ? null : input.today;
+	if (input.existing && today != null && end !== '' && end < today) {
 		return { kind: 'DATE_PASSED', date: end };
 	}
 	return { kind: 'NONE' };
@@ -230,7 +245,7 @@ export function sourceLockMessage(lock: SourceLock, action: string): string {
 			return `${action} is locked: the record is approved. Record a correction event instead.`;
 		case 'DATE_PASSED':
 			return `${action} on ${lock.date} is locked: that day has already passed.`;
-		case 'SETTLED_BY_RUN':
+		case 'SETTLED':
 			// The sentence the owner asked for: say what holds the record, and say what to do instead.
 			// Both halves matter — "locked" on its own sends the person to look for a setting, and the
 			// only two ways out are deleting the run (if it is still a draft) or an adjustment entry.
@@ -239,13 +254,8 @@ export function sourceLockMessage(lock: SourceLock, action: string): string {
 				'Delete that run to release it while it is still a draft, or correct it with an ' +
 				'adjustment entry once it has been paid.'
 			);
-		case 'SETTLED':
-			return (
-				`${action} on ${lock.date} is inside paid payroll ${lock.period} and cannot change. ` +
-				'Correct it with an adjustment entry in a later draft run.'
-			);
-		case 'PAYSLIP_CONSUMED':
-			return `${action} is locked: payroll has already consumed this entry.`;
+		case 'PAID_DAY':
+			return settledDayMessage(lock.period, lock.date, action);
 		default: {
 			const _never: never = lock;
 			return _never;
@@ -269,12 +279,10 @@ export function sourceLockI18nKey(lock: SourceLock): SourceLockI18nKey | null {
 			return 'component.lock_approved';
 		case 'DATE_PASSED':
 			return 'component.lock_date_passed';
-		case 'SETTLED_BY_RUN':
-			return 'component.lock_settled_by_run';
 		case 'SETTLED':
+			return 'component.lock_settled_by_run';
+		case 'PAID_DAY':
 			return 'component.lock_settled';
-		case 'PAYSLIP_CONSUMED':
-			return 'component.lock_payslip_consumed';
 		default: {
 			const _never: never = lock;
 			return _never;
@@ -286,14 +294,13 @@ export function sourceLockI18nParams(lock: SourceLock): SourceLockI18nParams | u
 	switch (lock.kind) {
 		case 'DATE_PASSED':
 			return { date: lock.date };
-		case 'SETTLED_BY_RUN':
-			return { period: lock.period };
 		case 'SETTLED':
+			return { period: lock.period };
+		case 'PAID_DAY':
 			return { period: lock.period, date: lock.date };
 		case 'NONE':
 		case 'PENDING_APPROVAL':
 		case 'APPROVED':
-		case 'PAYSLIP_CONSUMED':
 			return undefined;
 		default: {
 			const _never: never = lock;

@@ -12,7 +12,7 @@ import type { Policy } from './$types.js';
  * in a diff about file moves.
  */
 export default {
-	name: 'Construction Reference Matrix',
+	name: 'construction_settings_reference_matrix',
 	description: 'BIM reference matrix administration.',
 	apps: ['construction_settings_reference_matrix'],
 	grants: [

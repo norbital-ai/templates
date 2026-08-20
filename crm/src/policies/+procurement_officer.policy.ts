@@ -9,10 +9,10 @@ import type { Policy } from './$types.js';
  *
  * The boundary runs the other way too: there is no quote grant here, so a procurement officer never
  * sees the sell prices or margin of the sales pipeline. The shared product catalogue grants read to
- * both roles — it carries sell prices only, never cost.
+ * both policies — it carries sell prices only, never cost.
  */
 export default {
-	name: 'Procurement officer',
+	name: 'procurement_officer',
 	description:
 		'Manages suppliers, purchase orders, and their lines. Does not access the sales pipeline app.',
 	apps: ['crm_purchase'],

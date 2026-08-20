@@ -6,7 +6,6 @@ import { leaveBalance, resolveEntitlement } from '../payroll_runs/lib/leave.js';
 import { coversDate } from '../payroll_runs/lib/effective.js';
 import { patternRosterCodeId } from '../../lib/scheduling/work-pattern.js';
 import { rosterCodeKind } from '../../lib/scheduling/roster-code.js';
-import { todayKey } from '../../lib/ui/calendar.js';
 import {
 	payrollWindows,
 	assertNotSettled,
@@ -68,7 +67,9 @@ function monthRanges(start: string, end: string): Array<{ start: string; end: st
 	return ranges;
 }
 
-type HookApi = Parameters<NonNullable<NonNullable<Hooks['create']>['before']>['handler']>[0]['api'];
+type HookApi = Parameters<
+	NonNullable<NonNullable<NonNullable<Hooks['create']>['perRecord']>['before']>['handler']
+>[0]['api'];
 
 type EmploymentTermRow = Pick<
 	WorkspaceRow<'employment_terms'>,
@@ -390,20 +391,6 @@ function normalizedTimeOff(options: {
 	});
 }
 
-function leaveCoveredDates(request: {
-	readonly event: LeaveEvent | null;
-	readonly from_date: string | Date | null;
-	readonly to_date: string | Date | null;
-}): string[] {
-	const from = dateKey(request.from_date ?? '');
-	const to = dateKey(request.to_date ?? '');
-	if (from.length >= 10 && to.length >= 10) return [from, to];
-	if (request.event?.kind === 'TIME_OFF') {
-		return [request.event.range.start.date, request.event.range.end.date];
-	}
-	return [];
-}
-
 function assertLeaveSourceUnlocked(
 	api: HookApi,
 	existing: WorkspaceRow<'leave_requests'>,
@@ -411,44 +398,30 @@ function assertLeaveSourceUnlocked(
 ): Effect.Effect<void, never, never> {
 	return Effect.gen(function* () {
 		/**
-		 * The settlement lock. Leave had no record-level consumption signal at all before this: a
-		 * payslip line names the leave requests behind an *unpaid* absence and nothing else, so paid
-		 * leave a run had already priced was held only by the date arithmetic — which frees it
-		 * entirely while the run is still a draft.
+		 * The settlement lock, and now the only thing that freezes an existing leave request.
+		 *
+		 * Leave used to be held by three facts that were not consumption: an approval stamp, a passed
+		 * date, and a paid window around the request's days. The owner's rule is that a record locks
+		 * only when a payslip consumed it — so `APPROVED` and `DATE_PASSED` stop blocking here, and
+		 * the window keeps only its create-side job, which is the `assertNotSettled` loop in
+		 * `normalizedTimeOff`: a new or moved range may not touch days a paid run already priced.
+		 * What is left is a `payslip_sources` row naming this request, which says payroll `period`
+		 * took it into account and names the run that has to be deleted (while it is still a draft)
+		 * to release it.
 		 */
-		const settlement = yield* api.db.query.payroll_settlements.findFirst({
+		const claim = yield* api.db.query.payslip_sources.findFirst({
 			where: {
 				source_collection: { eq: 'leave_requests' },
 				source_record_id: { eq: existing.norbital_id }
 			},
 			columns: { period: true }
 		});
-		const employment = yield* api.db.query.employments.findFirst({
-			where: { norbital_id: { eq: existing.employment_id } },
-			columns: { company_id: true }
-		});
-		// A hidden employment must not disable the lock; only the window half of it is skipped.
-		const runs =
-			employment == null
-				? []
-				: yield* api.db.query.payroll_runs.findMany({
-						where: { company_id: { eq: employment.company_id } },
-						columns: {
-							period: true,
-							lifecycle: true,
-							attendance_from: true,
-							attendance_to: true
-						},
-						limit: LIMIT
-					});
 		const lock = sourceLock({
 			existing: true,
 			approvalId: existing.norbital_approval_id,
-			dates: leaveCoveredDates(existing),
-			today: todayKey(),
-			windows: payrollWindows(runs),
-			settledBy: settlement == null ? null : { period: settlement.period },
-			freezeWhenLive: true
+			dates: [],
+			settledBy: claim == null ? null : { period: claim.period },
+			datePassed: 'IS_NOT_A_LOCK'
 		});
 		if (sourceLockBlocksWrite(lock)) {
 			refuse(sourceLockMessage(lock, action));
@@ -458,341 +431,60 @@ function assertLeaveSourceUnlocked(
 
 export default {
 	create: {
-		before: {
-			description:
-				'Normalizes one half-day-stepped leave range, excludes observed holidays and scheduled rest/off days, refuses overlaps and requests beyond the projected balance.',
-			batchHandler: ({ inputs, api }) =>
-				Effect.gen(function* () {
-					const timeOffInputs = inputs.filter(
-						(input) => input.event != null && input.event.kind === 'TIME_OFF'
-					);
-					if (timeOffInputs.length === 0) return inputs;
-					// Factory-reset seed already charged days against the reviewed roster. Re-querying
-					// that roster for every 40-row slice was the 42–55s HR tail. Interactive creates
-					// omit chargeable_days, so they still take the validating path below.
-					if (timeOffInputs.every((input) => isSeedNormalizedTimeOff(input.event))) {
-						return inputs;
-					}
-
-					const employmentIds = [...new Set(timeOffInputs.map((input) => input.employment_id))];
-					const leaveTypeIds = [...new Set(timeOffInputs.map((input) => input.leave_type_id))];
-					const startDate =
-						timeOffInputs
-							.map((input) => {
-								const event = input.event;
-								return event != null && event.kind === 'TIME_OFF' ? event.range.start.date : '';
+		perRecord: {
+			before: {
+				description:
+					'Normalizes one half-day-stepped leave range, excludes observed holidays and scheduled rest/off days, refuses overlaps and requests beyond the projected balance.',
+				handler: ({ input, api }) =>
+					Effect.gen(function* () {
+						if (input.event == null || input.event.kind !== 'TIME_OFF') return input;
+						return {
+							...input,
+							event: yield* normalizedTimeOff({
+								api,
+								employmentId: input.employment_id,
+								leaveTypeId: input.leave_type_id,
+								event: input.event
 							})
-							.toSorted()
-							.at(0) ?? '';
-					const endDate =
-						timeOffInputs
-							.map((input) => {
-								const event = input.event;
-								return event != null && event.kind === 'TIME_OFF' ? event.range.end.date : '';
-							})
-							.toSorted()
-							.at(-1) ?? '';
-					const employments = yield* api.db.query.employments.findMany({
-						where: { norbital_id: { in: employmentIds } },
-						limit: LIMIT
-					});
-					const companyIds = [...new Set(employments.map((employment) => employment.company_id))];
-					const [
-						companies,
-						leaveTypes,
-						holidays,
-						terms,
-						existingRequests,
-						rosterGroups,
-						settledRuns
-					] = yield* Effect.all(
-						[
-							api.db.query.companies.findMany({
-								where: { norbital_id: { in: companyIds } },
-								limit: LIMIT
-							}),
-							api.db.query.leave_types.findMany({
-								where: { norbital_id: { in: leaveTypeIds } },
-								limit: LIMIT
-							}),
-							api.db.query.company_holidays.findMany({
-								where: {
-									company_id: { in: companyIds },
-									date: { gte: startDate, lte: endDate }
-								},
-								limit: LIMIT
-							}),
-							api.db.query.employment_terms.findMany({
-								where: { employment_id: { in: employmentIds } },
-								limit: LIMIT
-							}),
-							api.db.query.leave_requests.findMany({
-								where: { employment_id: { in: employmentIds } },
-								limit: LIMIT
-							}),
-							Effect.all(
-								monthRanges(startDate, endDate).map((range) =>
-									api.db.query.roster_entries.findMany({
-										where: {
-											employment_id: { in: employmentIds },
-											work_date: { gte: range.start, lte: range.end }
-										},
-										limit: LIMIT
-									})
-								),
-								{ concurrency: 'unbounded' }
-							),
-							api.db.query.payroll_runs.findMany({
-								where: { company_id: { in: companyIds }, lifecycle: { eq: 'PAID' } },
-								columns: {
-									company_id: true,
-									period: true,
-									lifecycle: true,
-									attendance_from: true,
-									attendance_to: true
-								},
-								limit: LIMIT
-							})
-						],
-						{ concurrency: 'unbounded' }
-					);
-					const rosterEntries = rosterGroups.flat();
-					const shiftIds = [
-						...new Set(
-							[
-								...rosterEntries.map((entry: RosterEntryRow) => entry.shift_definition_id),
-								...terms.flatMap((term: EmploymentTermRow) => {
-									const pattern = term.work_pattern;
-									if (pattern?.type !== 'PATTERNED') return [];
-									return pattern.phases.flatMap((phase) =>
-										phase.day_cycle.map((day) => day.roster_code_id)
-									);
-								})
-							].filter((id): id is string => typeof id === 'string')
-						)
-					];
-					const rosterCodes = yield* api.db.query.shift_definitions.findMany({
-						where: { norbital_id: { in: shiftIds } },
-						limit: LIMIT
-					});
-					const batchRequests: RequestRow[] = [];
-					const allRequests = (): RequestRow[] => [...existingRequests, ...batchRequests];
-					const inMemoryApi = {
-						db: {
-							query: {
-								employments: {
-									findFirst: (options: { where?: { norbital_id?: { eq?: string } } }) =>
-										Effect.succeed(
-											employments.find((row) => row.norbital_id === options.where?.norbital_id?.eq)
-										)
-								},
-								companies: {
-									findFirst: (options: { where?: { norbital_id?: { eq?: string } } }) =>
-										Effect.succeed(
-											companies.find((row) => row.norbital_id === options.where?.norbital_id?.eq)
-										)
-								},
-								leave_types: {
-									findFirst: (options: {
-										where?: { norbital_id?: { eq?: string }; company_id?: { eq?: string } };
-									}) =>
-										Effect.succeed(
-											leaveTypes.find(
-												(row) =>
-													row.norbital_id === options.where?.norbital_id?.eq &&
-													row.company_id === options.where?.company_id?.eq
-											)
-										)
-								},
-								company_holidays: {
-									findMany: (options: {
-										where?: {
-											company_id?: { eq?: string };
-											date?: { gte?: string | Date; lte?: string | Date };
-										};
-									}) =>
-										Effect.succeed(
-											holidays.filter((row) => {
-												const date = dateKey(row.date);
-												return (
-													row.company_id === options.where?.company_id?.eq &&
-													date >= String(options.where?.date?.gte) &&
-													date <= String(options.where?.date?.lte)
-												);
-											})
-										)
-								},
-								employment_terms: {
-									findMany: (options: { where?: { employment_id?: { eq?: string } } }) =>
-										Effect.succeed(
-											terms.filter((row) => row.employment_id === options.where?.employment_id?.eq)
-										)
-								},
-								roster_entries: {
-									findMany: (options: {
-										where?: {
-											employment_id?: { eq?: string };
-											work_date?: { gte?: string | Date; lte?: string | Date };
-										};
-									}) =>
-										Effect.succeed(
-											rosterEntries.filter((row) => {
-												const date = dateKey(row.work_date);
-												return (
-													row.employment_id === options.where?.employment_id?.eq &&
-													date >= String(options.where?.work_date?.gte) &&
-													date <= String(options.where?.work_date?.lte)
-												);
-											})
-										)
-								},
-								leave_requests: {
-									findMany: (options: {
-										where?: {
-											employment_id?: { eq?: string };
-											leave_type_id?: { eq?: string };
-											kind?: { eq?: string };
-											from_date?: { lte?: string | Date };
-											to_date?: { gte?: string | Date };
-										};
-									}) =>
-										Effect.succeed(
-											allRequests().filter((row) => {
-												if (row.employment_id !== options.where?.employment_id?.eq) return false;
-												if (
-													options.where?.leave_type_id?.eq != null &&
-													row.leave_type_id !== options.where.leave_type_id.eq
-												)
-													return false;
-												if (options.where?.kind?.eq != null && row.kind !== options.where.kind.eq)
-													return false;
-												if (
-													options.where?.from_date?.lte != null &&
-													String(row.from_date) > String(options.where.from_date.lte)
-												)
-													return false;
-												if (
-													options.where?.to_date?.gte != null &&
-													String(row.to_date) < String(options.where.to_date.gte)
-												)
-													return false;
-												return true;
-											})
-										)
-								},
-								shift_definitions: {
-									findMany: (options: { where?: { norbital_id?: { in?: string[] } } }) =>
-										Effect.succeed(
-											rosterCodes.filter((row) =>
-												new Set(options.where?.norbital_id?.in ?? []).has(row.norbital_id)
-											)
-										)
-								},
-								payroll_runs: {
-									findMany: (options: {
-										where?: {
-											company_id?: { in?: string[]; eq?: string };
-											lifecycle?: { eq?: string };
-										};
-									}) =>
-										Effect.succeed(
-											settledRuns.filter((row) => {
-												if (
-													options.where?.company_id?.in != null &&
-													!options.where.company_id.in.includes(row.company_id)
-												)
-													return false;
-												if (
-													options.where?.company_id?.eq != null &&
-													row.company_id !== options.where.company_id.eq
-												)
-													return false;
-												if (
-													options.where?.lifecycle?.eq != null &&
-													row.lifecycle !== options.where.lifecycle.eq
-												)
-													return false;
-												return true;
-											})
-										)
-								}
-							}
-						}
-					} satisfies NormalizationApi;
-
-					const prepared = [];
-					for (const input of inputs) {
-						if (input.event == null || input.event.kind !== 'TIME_OFF') {
-							prepared.push(input);
-							continue;
-						}
-						const event = yield* normalizedTimeOff({
-							api: inMemoryApi,
-							employmentId: input.employment_id,
-							leaveTypeId: input.leave_type_id,
-							event: input.event
-						});
-						const output = { ...input, event };
-						prepared.push(output);
-						batchRequests.push({
-							norbital_id: `batch:${batchRequests.length}`,
-							employment_id: input.employment_id,
-							leave_type_id: input.leave_type_id,
-							event,
-							kind: 'TIME_OFF',
-							from_date: event.range.start.date,
-							to_date: event.range.end.date,
-							days: event.chargeable_days,
-							norbital_approval_id: null
-						});
-					}
-					return prepared;
-				}),
-			handler: ({ input, api }) =>
-				Effect.gen(function* () {
-					if (input.event == null || input.event.kind !== 'TIME_OFF') return input;
-					return {
-						...input,
-						event: yield* normalizedTimeOff({
-							api,
-							employmentId: input.employment_id,
-							leaveTypeId: input.leave_type_id,
-							event: input.event
-						})
-					};
-				})
+						};
+					})
+			}
 		}
 	},
 	update: {
-		before: {
-			description:
-				'Refuses an approved, past, or payroll-consumed leave request, then re-checks the patched range so a change cannot bypass schedule exclusions, overlap protection or balance limits.',
-			handler: ({ input, existing, api }) =>
-				Effect.gen(function* () {
-					yield* assertLeaveSourceUnlocked(api, existing, 'Changing a leave request');
-					const event = input.event ?? existing.event;
-					if (event == null || event.kind !== 'TIME_OFF') return input;
-					return {
-						...input,
-						event: yield* normalizedTimeOff({
-							api,
-							employmentId: input.employment_id ?? existing.employment_id,
-							leaveTypeId: input.leave_type_id ?? existing.leave_type_id,
-							event,
-							excludeId: existing.norbital_id
-						})
-					};
-				})
+		perRecord: {
+			before: {
+				description:
+					'Refuses a leave request a payroll run has already taken into account, then re-checks the patched range so a change cannot bypass schedule exclusions, overlap protection or balance limits.',
+				handler: ({ input, existing, api }) =>
+					Effect.gen(function* () {
+						yield* assertLeaveSourceUnlocked(api, existing, 'Changing a leave request');
+						const event = input.event ?? existing.event;
+						if (event == null || event.kind !== 'TIME_OFF') return input;
+						return {
+							...input,
+							event: yield* normalizedTimeOff({
+								api,
+								employmentId: input.employment_id ?? existing.employment_id,
+								leaveTypeId: input.leave_type_id ?? existing.leave_type_id,
+								event,
+								excludeId: existing.norbital_id
+							})
+						};
+					})
+			}
 		}
 	},
 	delete: {
-		before: {
-			description:
-				'Refuses deleting an approved, past, or payroll-consumed leave request. Corrections are new events.',
-			handler: ({ existing, api }) =>
-				Effect.gen(function* () {
-					yield* assertLeaveSourceUnlocked(api, existing, 'Deleting a leave request');
-				})
+		perRecord: {
+			before: {
+				description:
+					'Refuses deleting a leave request a payroll run has already taken into account. Corrections are new events.',
+				handler: ({ existing, api }) =>
+					Effect.gen(function* () {
+						yield* assertLeaveSourceUnlocked(api, existing, 'Deleting a leave request');
+					})
+			}
 		}
 	}
 } satisfies Hooks;

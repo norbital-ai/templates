@@ -14,9 +14,7 @@
 	import { Grid } from '@norbital-ai/ui/layout';
 	import { RelationshipRenderer } from '@norbital-ai/ui/data-renderer/relationship';
 	import DurationHoursRenderer from '../../lib/ui/duration-hours-renderer.svelte';
-	import { todayKey } from '../../lib/ui/calendar.js';
 	import {
-		payrollWindows,
 		sourceLock,
 		sourceLockBlocksWrite,
 		sourceLockI18nKey,
@@ -26,33 +24,20 @@
 	let { record, close }: RepresentationProps = $props();
 	const { t } = useI18n<TenantI18nKeys>();
 
-	const employmentQuery = $derived(
-		record
-			? client.db.employments.findFirst({
-					where: { norbital_id: { eq: record.employment_id } },
-					columns: { company_id: true }
-				})
-			: null
-	);
-	const runsQuery = $derived(
-		employmentQuery?.current?.company_id
-			? client.db.payroll_runs.findMany({
-					where: { company_id: { eq: employmentQuery.current.company_id } },
-					columns: { period: true, lifecycle: true, attendance_from: true, attendance_to: true },
-					limit: 500
-				})
-			: null
-	);
 	/**
 	 * The settlement lock, read per record.
 	 *
 	 * The screen and the write hook compute the same lock from the same inputs — that is the whole
 	 * contract of `lib/scheduling/lock.ts` — so this query is the screen's half of the stored claim.
 	 * Without it the panel would say a record is editable right up until the hook refused it.
+	 *
+	 * Nothing else is asked. Attendance records are held by the claim and by nothing else: a passed
+	 * date is not a lock on this collection, and a paid window governs days that have no record,
+	 * never a record that exists — see `assertRecordNotClaimed` in `time_entries/+hooks.ts`.
 	 */
 	const settlementQuery = $derived(
 		record
-			? client.db.payroll_settlements.findFirst({
+			? client.db.payslip_sources.findFirst({
 					where: {
 						source_collection: { eq: 'time_entries' },
 						source_record_id: { eq: record.norbital_id }
@@ -69,11 +54,9 @@
 			? sourceLock({
 					existing: true,
 					approvalId: record.norbital_approval_id,
-					dates: [record.work_date],
-					today: todayKey(),
-					windows: payrollWindows(runsQuery?.current ?? []),
+					dates: [],
 					settledBy,
-					freezeWhenLive: false
+					datePassed: 'IS_NOT_A_LOCK'
 				})
 			: { kind: 'NONE' as const }
 	);

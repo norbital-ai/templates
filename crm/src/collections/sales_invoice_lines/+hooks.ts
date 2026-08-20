@@ -1,5 +1,7 @@
 import { currencyFractionDigits, fromMinorUnits, toMinorUnits } from '@norbital-ai/std/finance';
+import type { CollectionHooks } from '@norbital-ai/bolt/authoring';
 import { Effect } from 'effect';
+import type { WorkspaceSchema } from '$bolt/types.js';
 import type { Hooks, WorkspaceRow } from './$types.js';
 
 function roundHalfUp(value: number, digits: number): number {
@@ -65,12 +67,35 @@ function documentTotals(lines: readonly LineAmounts[], currency: string): LineAm
 	};
 }
 
-type AfterApi = Parameters<NonNullable<NonNullable<Hooks['create']>['after']>['handler']>[0]['api'];
+type AfterApi = Parameters<
+	NonNullable<NonNullable<NonNullable<Hooks['create']>['perRecord']>['after']>['handler']
+>[0]['api'];
 type BeforeApi = Parameters<
-	NonNullable<NonNullable<Hooks['create']>['before']>['handler']
+	NonNullable<NonNullable<NonNullable<Hooks['create']>['perRecord']>['before']>['handler']
 >[0]['api'];
 
 const LINE_LIMIT = 5000;
+
+/**
+ * The invoices, quote lines and existing allocations this batch of lines refers to, read once.
+ *
+ * The rule below asks three questions per line — is its invoice a draft, is its quote line on the
+ * same quote, and how much of that quote line is already billed — and each was its own round trip.
+ * Three for the batch now, whatever its size. `prepare` decides nothing; every refusal is still
+ * written once, for one line.
+ */
+interface SalesInvoiceLineBatch {
+	readonly invoices: ReadonlyMap<string, WorkspaceRow<'sales_invoices'>>;
+	readonly quoteLines: ReadonlyMap<string, WorkspaceRow<'quote_lines'>>;
+	readonly allocatedByQuoteLine: ReadonlyMap<string, number>;
+}
+
+/** `Hooks` with what `prepare` returns filled in; see the note in `quote_lines/+hooks.ts`. */
+type SalesInvoiceLineHooks = CollectionHooks<
+	WorkspaceSchema,
+	'sales_invoice_lines',
+	SalesInvoiceLineBatch
+>;
 
 function requireCurrency(currency: string | null): string {
 	if (!currency) throw new Error('Document currency is required.');
@@ -167,17 +192,62 @@ const afterRollup = ({
 
 export default {
 	create: {
-		before: {
-			description:
-				'Bills a quote line belonging to the same quote as the invoice and refuses to bill more than was quoted, counting only lines on invoices that are not cancelled.',
-			handler: ({ input, api }) =>
-				Effect.gen(function* () {
+		prepare: ({ inputs, api }) =>
+			Effect.gen(function* () {
+				const invoiceIds = [
+					...new Set(
+						inputs.flatMap((input) => (input.sales_invoice_id ? [input.sales_invoice_id] : []))
+					)
+				];
+				const quoteLineIds = [
+					...new Set(inputs.flatMap((input) => (input.quote_line_id ? [input.quote_line_id] : [])))
+				];
+				const invoices = invoiceIds.length
+					? yield* api.db.query.sales_invoices.findMany({
+							where: { norbital_id: { in: invoiceIds } },
+							limit: LINE_LIMIT
+						})
+					: [];
+				const quoteLines = quoteLineIds.length
+					? yield* api.db.query.quote_lines.findMany({
+							where: { norbital_id: { in: quoteLineIds } },
+							limit: LINE_LIMIT
+						})
+					: [];
+				// What is already billed against every quote line this call touches, in one read —
+				// the same filter `liveAllocatedQuantity` applied one line at a time.
+				const allocations = quoteLineIds.length
+					? yield* api.db.query.sales_invoice_lines.findMany({
+							where: {
+								quote_line_id: { in: quoteLineIds },
+								sales_invoice_line_invoice: { status: { ne: 'cancelled' } }
+							},
+							columns: { quote_line_id: true, quantity: true },
+							limit: LINE_LIMIT
+						})
+					: [];
+				const allocatedByQuoteLine = new Map<string, number>();
+				for (const line of allocations) {
+					allocatedByQuoteLine.set(
+						line.quote_line_id,
+						(allocatedByQuoteLine.get(line.quote_line_id) ?? 0) + Number(line.quantity ?? 0)
+					);
+				}
+				return {
+					invoices: new Map(invoices.map((invoice) => [invoice.norbital_id, invoice])),
+					quoteLines: new Map(quoteLines.map((quoteLine) => [quoteLine.norbital_id, quoteLine])),
+					allocatedByQuoteLine
+				};
+			}),
+		perRecord: {
+			before: {
+				description:
+					'Bills a quote line belonging to the same quote as the invoice and refuses to bill more than was quoted, counting only lines on invoices that are not cancelled.',
+				handler: ({ input, prepared }) => {
 					if (!input.sales_invoice_id) {
 						throw new Error('A sales invoice line must reference a sales invoice.');
 					}
-					const invoice = yield* api.db.query.sales_invoices.findFirst({
-						where: { norbital_id: { eq: input.sales_invoice_id } }
-					});
+					const invoice = prepared.invoices.get(input.sales_invoice_id);
 					if (!invoice) throw new Error('Referenced sales invoice does not exist.');
 					if (invoice.status !== 'draft') {
 						throw new Error('Lines can only be added to draft sales invoices.');
@@ -186,9 +256,7 @@ export default {
 					if (!input.quote_line_id) {
 						throw new Error('A sales invoice line must reference a quote line.');
 					}
-					const quoteLine = yield* api.db.query.quote_lines.findFirst({
-						where: { norbital_id: { eq: input.quote_line_id } }
-					});
+					const quoteLine = prepared.quoteLines.get(input.quote_line_id);
 					if (!quoteLine) throw new Error('Referenced quote line does not exist.');
 					if (quoteLine.quote_id !== invoice.quote_id) {
 						throw new Error('The billed line belongs to a different quote.');
@@ -205,7 +273,7 @@ export default {
 					};
 					validateLineFields(resolved);
 
-					const allocated = yield* liveAllocatedQuantity(api, quoteLine.norbital_id);
+					const allocated = prepared.allocatedByQuoteLine.get(quoteLine.norbital_id) ?? 0;
 					const quoted = Number(quoteLine.quantity ?? 0);
 					if (allocated + Number(resolved.quantity) > quoted) {
 						throw new Error(
@@ -215,67 +283,72 @@ export default {
 
 					const amounts = computeLineAmounts(invoice, resolved);
 					return { ...resolved, net: amounts.net, tax: amounts.tax, line_total: amounts.gross };
-				})
-		},
-		after: {
-			description:
-				'Recomputes the sales invoice net, tax and gross from its lines after a line is added.',
-			handler: afterRollup
+				}
+			},
+			after: {
+				description:
+					'Recomputes the sales invoice net, tax and gross from its lines after a line is added.',
+				handler: afterRollup
+			}
 		}
 	},
 	update: {
-		before: {
-			description:
-				'Keeps a line on its own draft invoice, re-prices it from the changed quantity or unit price, and refuses to push the billed quantity past the quantity quoted.',
-			handler: ({ input, existing, api }) =>
-				Effect.gen(function* () {
-					if (
-						input.sales_invoice_id != null &&
-						input.sales_invoice_id !== existing.sales_invoice_id
-					) {
-						throw new Error('A line cannot be moved to a different sales invoice.');
-					}
-
-					const invoice = yield* api.db.query.sales_invoices.findFirst({
-						where: { norbital_id: { eq: existing.sales_invoice_id } }
-					});
-					if (!invoice) throw new Error('Referenced sales invoice does not exist.');
-					if (invoice.status !== 'draft') {
-						throw new Error('Lines can only be modified on draft sales invoices.');
-					}
-
-					const resolved = { ...existing, ...input };
-					validateLineFields(resolved);
-
-					const quoteLine = yield* api.db.query.quote_lines.findFirst({
-						where: { norbital_id: { eq: existing.quote_line_id } }
-					});
-					if (quoteLine) {
-						const allocated = yield* liveAllocatedQuantity(api, quoteLine.norbital_id);
-						const quoted = Number(quoteLine.quantity ?? 0);
-						const own = Number(existing.quantity ?? 0);
-						if (allocated - own + Number(resolved.quantity) > quoted) {
-							throw new Error(
-								`Over-allocation: this line would push billed quantity past the quoted ${quoted}.`
-							);
+		perRecord: {
+			before: {
+				description:
+					'Keeps a line on its own draft invoice, re-prices it from the changed quantity or unit price, and refuses to push the billed quantity past the quantity quoted.',
+				handler: ({ input, existing, api }) =>
+					Effect.gen(function* () {
+						if (
+							input.sales_invoice_id != null &&
+							input.sales_invoice_id !== existing.sales_invoice_id
+						) {
+							throw new Error('A line cannot be moved to a different sales invoice.');
 						}
-					}
 
-					const amounts = computeLineAmounts(invoice, resolved);
-					return { ...input, net: amounts.net, tax: amounts.tax, line_total: amounts.gross };
-				})
-		},
-		after: {
-			description:
-				'Recomputes the sales invoice net, tax and gross from its lines after a line is changed.',
-			handler: afterRollup
+						const invoice = yield* api.db.query.sales_invoices.findFirst({
+							where: { norbital_id: { eq: existing.sales_invoice_id } }
+						});
+						if (!invoice) throw new Error('Referenced sales invoice does not exist.');
+						if (invoice.status !== 'draft') {
+							throw new Error('Lines can only be modified on draft sales invoices.');
+						}
+
+						const resolved = { ...existing, ...input };
+						validateLineFields(resolved);
+
+						const quoteLine = yield* api.db.query.quote_lines.findFirst({
+							where: { norbital_id: { eq: existing.quote_line_id } }
+						});
+						if (quoteLine) {
+							const allocated = yield* liveAllocatedQuantity(api, quoteLine.norbital_id);
+							const quoted = Number(quoteLine.quantity ?? 0);
+							const own = Number(existing.quantity ?? 0);
+							if (allocated - own + Number(resolved.quantity) > quoted) {
+								throw new Error(
+									`Over-allocation: this line would push billed quantity past the quoted ${quoted}.`
+								);
+							}
+						}
+
+						const amounts = computeLineAmounts(invoice, resolved);
+						return { ...input, net: amounts.net, tax: amounts.tax, line_total: amounts.gross };
+					})
+			},
+			after: {
+				description:
+					'Recomputes the sales invoice net, tax and gross from its lines after a line is changed.',
+				handler: afterRollup
+			}
 		}
 	},
 	delete: {
-		after: {
-			description:
-				'Recomputes the sales invoice net, tax and gross from its lines after a line is removed.',
-			handler: afterRollup
+		perRecord: {
+			after: {
+				description:
+					'Recomputes the sales invoice net, tax and gross from its lines after a line is removed.',
+				handler: afterRollup
+			}
 		}
 	}
-} satisfies Hooks;
+} satisfies SalesInvoiceLineHooks;

@@ -51,7 +51,9 @@ Every photo, from every entry path (workspace upload or channel), passes through
 `photo_evidence` create hooks:
 
 1. **Ingest** — JPEG/PNG only, exactly one parent (assignment or variation), SHA-256 fingerprint,
-   Meta PDQ perceptual hash (256-bit), EXIF parse (`exifr`), and quality/metadata signals.
+   Meta PDQ perceptual hash (256-bit), EXIF parse (`exifr`), and quality/metadata signals. The
+   selected asset, parent, and source provenance become immutable: correcting a filing requires new
+   evidence so every check runs again.
 2. **Duplicate check** — the create `after` hook compares the new photo against everything already
    stored: exact SHA-256 matches, and perceptual near-duplicates via `findNearest` on a 256-dim 0/1
    vector indexed with HNSW (L2 metric, threshold √31 ≈ PDQ Hamming 31). Matches are recorded as
@@ -106,14 +108,14 @@ controller-only integrity fields even though the contractor can update their own
 
 ### Automations, policies, remotes, seed
 
-| Kind       | Name                   | What it does                                                                                                                                                                                        |
-| ---------- | ---------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Automation | `photo_site_identity`  | Post-commit vision inference on each new photo; verifies the assignment's site identity once, never re-flags on inconclusive photos.                                                                |
-| Policy     | `field_ops_controller` | Full command of every collection, both apps. The reconciliation key is the filename.                                                                                                                |
-| Policy     | `field_ops_contractor` | Requestor-scoped grants: own profile, assigned sites/jobs, own assignments (read + update), own variations (read + create/update behind the variation approval flow), own evidence (read + create). |
-| Policy     | `field_ops_whatsapp`   | The channel lock above: exactly one grant — `update` on `job_assignments`.                                                                                                                          |
-| Remote     | `field_ops_dashboard`  | Date-specific controller query: assignment cards, board ids, map points (with suspect tones), and the month's suspect assignments.                                                                  |
-| Seed       | —                      | Fixture data is host-owned and lives in the repository seed bank (`src/+seed.ts` is deliberately absent); the weekly roster CSV lives in `assets/` with its own README.                             |
+| Kind       | Name                   | What it does                                                                                                                                                                                                                          |
+| ---------- | ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Automation | `photo_site_identity`  | Post-commit vision inference on each new photo; verifies the assignment's site identity once, never re-flags on inconclusive photos.                                                                                                  |
+| Policy     | `field_ops_controller` | Full command of every collection, both apps. The reconciliation key is the filename.                                                                                                                                                  |
+| Policy     | `field_ops_contractor` | Requestor-scoped grants: own profile, assigned sites/jobs, own assignments (read + update), own variations (read + create/update behind the variation approval flow), own evidence (read + create).                                   |
+| Policy     | `field_ops_whatsapp`   | The channel lock above: exactly one grant — `update` on `job_assignments`.                                                                                                                                                            |
+| Remote     | `field_ops_dashboard`  | Date-specific controller query: assignment cards, board ids, map points (with suspect tones), and the month's suspect assignments.                                                                                                    |
+| Seed       | —                      | Fixture data is host-owned and lives in the repository seed bank (`src/+seed.ts` is deliberately absent). Its job/photo map is audited against the WhatsApp transcript; the weekly roster CSV lives in `assets/` with its own README. |
 
 ## 4. Under the hood
 
@@ -125,15 +127,12 @@ src/
 ├── channels/                       +field_ops_whatsapp.channel.ts
 ├── policies/                       the three policies and the variation approval flow
 ├── collections/                    models, relationships, hooks, pipelines, representations
-│   └── photo_evidence/lib/         photo-integrity.ts — PDQ + EXIF inspection, geo flags, parenting
+│   └── photo_evidence/             photo-integrity.ts + pdq.ts — PDQ, EXIF, geo, duplicates, immutable provenance
 ├── custom-types/
 │   ├── money/                      money value with renderer (ISO 4217 currency)
 │   └── photo_source/               where a photo came from: workspace upload or a channel message
 ├── i18n/                           messages.en.json + messages.zh.json (identical key sets)
-├── lib/
-│   ├── calendar.ts                 calendar-day derivation in a named timezone (Asia/Singapore)
-│   ├── calendar.ts                 calendar-day derivation in a named timezone (Asia/Singapore)
-│   └── haversine.ts                site-tolerance distance math
+├── lib/                            typed workspace client shared by server roles
 ├── remotes/                        +field_ops_dashboard.ts
 ```
 
@@ -147,7 +146,8 @@ agent — not only the UI:
 - `source_message_id` is an idempotency key for inbound assignments and variations.
 - Assignment identity cannot be moved after dispatch; a reported location beyond the site tolerance
   forces `suspect` (one-way); completion advances the job state.
-- Photo evidence: JPEG/PNG only, exactly one parent, fingerprints and integrity flags recorded.
+- Photo evidence: JPEG/PNG only, exactly one parent, fingerprints and integrity flags recorded;
+  its asset, parent, and channel provenance cannot be swapped after those checks settle.
 
 ### How photo integrity works
 
@@ -186,6 +186,9 @@ pnpm build   # vite build
   that history alongside the authored change. Model edits are the only thing that should produce a
   migration — this template has none pending.
 - Seed data stays host-owned in the repository seed bank; tenant fixtures belong in `src/+seed.ts` (deliberately absent here).
+- The seed bank treats transcript job reports and their textual photo references as authoritative.
+  It never reparents a simulated wrong-site photo from an overlay, OCR, image content, upload burst,
+  or filename timestamp; those contradictions are precisely what this template must detect.
 - Publishing and tenant lifecycle: publish the template through the OSS release workflow, then link
   the release into Colony (`pnpm yalc:link`) and restart `pnpm --filter colony dev` before a revision
   reaches a tenant — the Colony dev bootstrap converges on every start, so there is no separate

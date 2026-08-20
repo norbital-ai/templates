@@ -34,6 +34,54 @@ export const statutoryOvertimeLimitValueSchema = Schema.Struct({
 });
 
 /**
+ * One statutory rest or meal break: the consecutive-hours window that owes it, and what it owes.
+ *
+ * Four jurisdictions state this in four different shapes, and every one of them is expressible in
+ * these fields without a branch per country:
+ *
+ *   Malaysia     EA 1955 s.60A(1)(a)           more than 5 consecutive hours → ≥ 30 min of leisure
+ *                EA 1955 s.60A(1) proviso (ii) work requiring continual attendance: 8 consecutive
+ *                                              hours *inclusive of* ≥ 45 min in the aggregate
+ *   Philippines  Labor Code art.85             ≥ 60 min for meals, with no consecutive-hours
+ *                                              trigger at all — it is a duty owed every day
+ *   Indonesia    UU 13/2003 ps.79(2)(a)        after 4 consecutive hours → ≥ 30 min, expressly not
+ *                                              counted as working hours
+ *   Singapore    EA 1968 s.38(1)(a)            more than 6 consecutive hours → a period of leisure
+ *                                              whose length the Act does not prescribe
+ *                EA 1968 s.38(1)(c)            the same continual-attendance arm as Malaysia's
+ *
+ * Both nulls are therefore statements of fact, not missing data:
+ *
+ *   - a null `after_consecutive_hours` is a flat per-day duty, owed whatever the shape of the day
+ *     (art.85, which names no window);
+ *   - a null `minimum_minutes` is a trigger with no prescribed duration (s.38(1)(a), which requires
+ *     "a period of leisure" and stops there). It can never produce a shortfall, and
+ *     `restBreakAssessment` reports that as `null` rather than flattening it to zero — zero would
+ *     claim the Act demands nothing, which is the opposite of what it says.
+ *
+ * `counts_as_worked_time` is null wherever the primary text does not answer it. s.60A(1)(a) calls
+ * the period "leisure" and is silent on payment, so nothing may be priced from the Malaysian rows —
+ * `docs/architecture.md` records that as unresolved, and this member deliberately produces a
+ * compliance assessment rather than a quantity any payslip line can consume. Indonesia's
+ * ps.79(2)(a) settles it in the statute ("tidak termasuk jam kerja"), so that row carries `false`.
+ *
+ * `on_exceed` mirrors `statutoryOvertimeLimitValueSchema`: whether a shortfall warns or refuses the
+ * write. It is the one field here that is not a transcription — no statute tells a payroll system
+ * what to do — and it lives beside the rule precisely so that the enforcement choice is
+ * effective-dated with the law it is a choice about, instead of hiding in a settings screen.
+ */
+export const statutoryRestBreakRuleValueSchema = Schema.Struct({
+	after_consecutive_hours: Schema.NullOr(Schema.Finite.check(Schema.isGreaterThan(0))),
+	minimum_minutes: Schema.NullOr(Schema.Int.check(Schema.isGreaterThan(0))),
+	counts_as_worked_time: Schema.NullOr(Schema.Boolean),
+	applies_when: Schema.Literals(['ALWAYS', 'CONTINUOUS_ATTENDANCE']),
+	on_exceed: Schema.Literals(['WARN', 'BLOCK']),
+	authority
+});
+
+export type StatutoryRestBreakRule = Schema.Schema.Type<typeof statutoryRestBreakRuleValueSchema>;
+
+/**
  * The atomic working-time part of one effective-dated jurisdiction snapshot.
  *
  * These values are attributes of one law revision, not independently versioned records. The
@@ -43,7 +91,23 @@ export const statutoryOvertimeLimitValueSchema = Schema.Struct({
 export const statutoryRegimeValueSchema = Schema.Struct({
 	overtime_coverage: Schema.NullOr(overtimeCoverageValueSchema),
 	overtime_rules: Schema.Array(statutoryOvertimeRuleValueSchema),
-	overtime_limits: Schema.Array(statutoryOvertimeLimitValueSchema)
+	overtime_limits: Schema.Array(statutoryOvertimeLimitValueSchema),
+	/**
+	 * Rest and meal breaks — an **optional** key, not a required one.
+	 *
+	 * Optional rather than required-and-possibly-empty because the standard view below is strict
+	 * (`onExcessProperty: 'error'`) and every jurisdiction snapshot seeded before this member existed
+	 * carries no such key. A required member would fail the decode of all six of them, which is a
+	 * migration disguised as a schema change. An absent key makes exactly the statement an empty
+	 * array makes: this snapshot declares no break rule, so there is no rule to check and
+	 * `restBreakAssessment` returns `rule: null` — absent means no rule, never "unknown rule".
+	 *
+	 * This member was modelled once and removed. `docs/architecture.md` records the reason — every
+	 * field of it was resolved, snapshotted and read by nothing — and that reason is what
+	 * `src/lib/scheduling/rest-break.ts` now retires: the day sheet quotes the figure, the publish
+	 * gate refuses on it, and the write hook warns on it, all from these rows.
+	 */
+	rest_break_rules: Schema.optionalKey(Schema.Array(statutoryRestBreakRuleValueSchema))
 });
 
 export type StatutoryRegime = Schema.Schema.Type<typeof statutoryRegimeValueSchema>;
@@ -121,12 +185,30 @@ export function statutoryRegimeIssues(regime: StatutoryRegime, currency: string)
 		limitKeys.add(key);
 	}
 
+	/**
+	 * The break arms. `applies_when` is the discriminator `restBreakAssessment` selects on, so two
+	 * rules sharing one arm leave the choice to seed order rather than to the statute — the same
+	 * defect the limit keys above guard against, in a member where the arms are the whole model.
+	 */
+	const breakArms = new Set<string>();
+	for (const rule of regime.rest_break_rules ?? []) {
+		if (rule.after_consecutive_hours === null && rule.minimum_minutes === null)
+			issues.push(
+				'A rest break rule that states neither a consecutive-hours trigger nor a minimum length says nothing; remove it or transcribe what the statute requires.'
+			);
+		if (breakArms.has(rule.applies_when))
+			issues.push(
+				`More than one rest break rule applies when ${rule.applies_when}; one working day cannot be governed by two of them.`
+			);
+		breakArms.add(rule.applies_when);
+	}
+
 	return [...new Set(issues)];
 }
 
 export default defineCustomType({
 	name: 'statutory_regime',
 	description:
-		'The overtime coverage, pricing bands and limits governed by one effective-dated jurisdiction snapshot.',
+		'The overtime coverage, pricing bands, limits and rest break rules governed by one effective-dated jurisdiction snapshot.',
 	schema: statutoryRegimeSchema
 });
