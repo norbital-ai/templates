@@ -12,7 +12,7 @@ import type { Policy } from './$types.js';
  * list is repeated rather than shared.
  */
 export default {
-	name: 'Construction Workforce',
+	name: 'construction_settings_workforce',
 	description: 'Workforce library and compliance administration.',
 	apps: ['construction_settings_workforce'],
 	grants: [
