@@ -39,6 +39,14 @@ export default defineModel(
 		site_identity_checked_at: timestamp(),
 		site_identity_error: text(),
 		/**
+		 * Canonical snapshot of every evidence/site input used by the last semantic review. A daily
+		 * reconciliation compares this with the current snapshot, so unchanged evidence is marked as
+		 * reconciled without paying for another vision pass while any material change becomes pending.
+		 */
+		site_identity_review_basis: text(),
+		/** Last daily/immediate reconciliation attempt, including unchanged-basis skips. */
+		site_identity_reconciled_at: timestamp(),
+		/**
 		 * The photo's own title, composed in SQL.
 		 *
 		 * `recordLabel` compiles to a CEL concatenation and CEL has no `+` overload for anything but
