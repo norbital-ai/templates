@@ -13,14 +13,24 @@ import {
 	assertSourceUnlocked
 } from './lock.ts';
 
+/**
+ * Two runs of one company, in the shape the real read returns them.
+ *
+ * `company_id` is not decoration: `create.prepare` selects it and groups the windows by it, because
+ * company is the key a record can reach on its own (employment → company). Without it every window
+ * landed under `undefined`, the lookup for `co-1` found nothing, and the paid-window refusal below
+ * silently did not fire — a fixture describing a response the api does not return.
+ */
 const monthly = [
 	{
+		company_id: 'co-1',
 		period: '2026-08',
 		lifecycle: 'DRAFT',
 		attendance_from: '2026-07-21',
 		attendance_to: '2026-08-20'
 	},
 	{
+		company_id: 'co-1',
 		period: '2026-07',
 		lifecycle: 'PAID',
 		attendance_from: '2026-06-21',
@@ -253,7 +263,20 @@ function fakeHookApi({ runs = [], sources = [] } = {}) {
 	return {
 		db: {
 			query: {
-				employments: { findFirst: () => Effect.succeed({ company_id: 'co-1' }) },
+				employments: {
+					findFirst: () => Effect.succeed({ company_id: 'co-1' }),
+					// `create.prepare` asks for the whole batch's employments at once, where the
+					// per-record path asked one at a time. The double kept only `findFirst`, so
+					// `yield* undefined(...)` threw before any guard ran and the refusal assertion
+					// below was passing on a `TypeError`. Same company, stated once for both shapes.
+					findMany: ({ where }) =>
+						Effect.succeed(
+							(where?.norbital_id?.in ?? ['emp-1']).map((norbital_id) => ({
+								norbital_id,
+								company_id: 'co-1'
+							}))
+						)
+				},
 				payroll_runs: { findMany: () => Effect.succeed(runs) },
 				payslip_sources: {
 					findFirst: ({ where }) =>
@@ -281,19 +304,23 @@ const punch = (overrides = {}) => ({
 
 test('a create inside a paid window is refused: that day’s silence is already priced', () => {
 	const api = fakeHookApi({ runs: monthly });
-	assert.throws(
-		() => Effect.runSync(timeEntryHooks.create.before.handler({ input: punch(), api })),
-		/inside paid payroll 2026-07/
-	);
+	// `create` is two stages, and the second cannot answer without the first. `prepare` runs once
+	// per batch and gathers the employment→company and company→window maps; `perRecord.before`
+	// only reads them. Calling `before` alone used to work because it did its own per-record
+	// lookups, and this test still did — so it was asserting on a `TypeError` for a missing
+	// `prepared`, not on the refusal it names. Run the real pipeline in order instead.
+	// `prepare` is an Effect; `perRecord.before` is a plain function that throws. Only the first
+	// goes through `runSync` — wrapping the second was the other half of why this read as a
+	// TypeError rather than a refusal.
+	const refuse = (input) =>
+		timeEntryHooks.create.perRecord.before.handler({
+			input,
+			prepared: Effect.runSync(timeEntryHooks.create.prepare({ inputs: [input], api })),
+			api
+		});
+	assert.throws(() => refuse(punch()), /inside paid payroll 2026-07/);
 	// The same create one window along, where the run is still a draft, lands.
-	assert.doesNotThrow(() =>
-		Effect.runSync(
-			timeEntryHooks.create.before.handler({
-				input: punch({ work_date: '2026-08-01' }),
-				api
-			})
-		)
-	);
+	assert.doesNotThrow(() => refuse(punch({ work_date: '2026-08-01' })));
 });
 
 test('an unconsumed record inside a paid window stays editable and settles as arrears', () => {
@@ -304,7 +331,11 @@ test('an unconsumed record inside a paid window stays editable and settles as ar
 	const existing = punch();
 	assert.doesNotThrow(() =>
 		Effect.runSync(
-			timeEntryHooks.update.before.handler({ input: { break_minutes: 30 }, existing, api })
+			timeEntryHooks.update.perRecord.before.handler({
+				input: { break_minutes: 30 },
+				existing,
+				api
+			})
 		)
 	);
 	// The window has not stopped meaning anything — asked the day-shaped question it still refuses a
@@ -321,7 +352,7 @@ test('an unconsumed record inside a paid window stays editable and settles as ar
 	assert.throws(
 		() =>
 			Effect.runSync(
-				timeEntryHooks.update.before.handler({
+				timeEntryHooks.update.perRecord.before.handler({
 					input: { break_minutes: 30 },
 					existing,
 					api: claimed
@@ -338,7 +369,7 @@ test('re-dating a record into a paid window is a create onto that day, and is re
 	assert.throws(
 		() =>
 			Effect.runSync(
-				timeEntryHooks.update.before.handler({
+				timeEntryHooks.update.perRecord.before.handler({
 					input: { work_date: '2026-07-02' },
 					existing: punch({ work_date: '2026-08-02' }),
 					api
@@ -348,7 +379,7 @@ test('re-dating a record into a paid window is a create onto that day, and is re
 	);
 	assert.doesNotThrow(() =>
 		Effect.runSync(
-			timeEntryHooks.update.before.handler({
+			timeEntryHooks.update.perRecord.before.handler({
 				input: { work_date: '2026-08-03' },
 				existing: punch({ work_date: '2026-08-02' }),
 				api
