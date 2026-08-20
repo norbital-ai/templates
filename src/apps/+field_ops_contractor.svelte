@@ -4,7 +4,7 @@
 	import { useI18n } from '@norbital-ai/ui/i18n';
 	import type { TenantI18nKeys } from '$bolt/i18n-keys';
 	import { CollectionTable } from '@norbital-ai/ui/collection-table';
-	import { Bound, Stack } from '@norbital-ai/ui/layout';
+	import { Bound, Cover } from '@norbital-ai/ui/layout';
 
 	const { t } = useI18n<TenantI18nKeys>();
 
@@ -88,32 +88,34 @@
 	/>
 </svelte:head>
 
+{#snippet scopeNotice()}
+	<!--
+		One sentence about scope, and no failure mode.
+
+		This used to be four branches — loading, error, dispatcher, contractor — because a contractor
+		row had to be fetched before the app could say whose assignments these were, and a fetch has
+		a loading state and a failure state. Nothing is fetched now: the viewer's scope is decided by
+		the policy the server already applied to the table below, so the app states it and moves on.
+	-->
+	{#if !authoritySettled}
+		<div
+			class="h-5 w-72 max-w-full rounded bg-muted/50 motion-safe:animate-pulse"
+			aria-label={t('component.loading')}
+		></div>
+	{:else if dispatchAuthority}
+		<p class="text-sm text-muted-foreground">
+			{t('app.field_ops_contractor.scope_workspace')}
+		</p>
+	{:else}
+		<p class="text-sm text-muted-foreground">
+			{t('app.field_ops_contractor.scope_own')}
+		</p>
+	{/if}
+{/snippet}
+
 <!-- App identity (title/description/icon) is rendered by the shell AppMediaHeader. -->
 <Bound as="main" size="full" inset>
-	<Stack gap="md">
-		<!--
-			One sentence about scope, and no failure mode.
-
-			This used to be four branches — loading, error, dispatcher, contractor — because a contractor
-			row had to be fetched before the app could say whose assignments these were, and a fetch has
-			a loading state and a failure state. Nothing is fetched now: the viewer's scope is decided by
-			the policy the server already applied to the table below, so the app states it and moves on.
-		-->
-		{#if !authoritySettled}
-			<div
-				class="h-5 w-72 max-w-full rounded bg-muted/50 motion-safe:animate-pulse"
-				aria-label={t('component.loading')}
-			></div>
-		{:else if dispatchAuthority}
-			<p class="text-sm text-muted-foreground">
-				{t('app.field_ops_contractor.scope_workspace')}
-			</p>
-		{:else}
-			<p class="text-sm text-muted-foreground">
-				{t('app.field_ops_contractor.scope_own')}
-			</p>
-		{/if}
-
+	<Cover gap="md" top={scopeNotice}>
 		<CollectionTable
 			{client}
 			collection="job_assignments"
@@ -180,5 +182,5 @@
 				<Column name="summary" card="subtitle" minWidth={200} />
 			{/snippet}
 		</CollectionTable>
-	</Stack>
+	</Cover>
 </Bound>

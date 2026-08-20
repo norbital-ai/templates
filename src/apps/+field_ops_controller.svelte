@@ -205,53 +205,56 @@
 	/>
 </svelte:head>
 
-{#snippet dispatchSchedule()}
-	<Stack gap="md">
-		<Split ratio="wide" collapse="stack" gap="md" class="rounded-lg border bg-card p-3">
-			{#snippet start()}
-				<Stack gap="xs" class="max-w-md">
-					<Inline justify="between" gap="sm">
-						<span class="text-xs font-medium text-muted-foreground">
-							{t('app.field_ops_controller.dispatch_date')}
-						</span>
-						<Button
-							variant="ghost"
-							size="sm"
-							class="h-6 px-2 text-xs"
-							onclick={() => setDispatchDay(today)}
-						>
-							{t('app.field_ops_controller.today')}
-						</Button>
-					</Inline>
-					<div class="min-w-0">
-						<DataRenderer
-							field={{ name: 'dispatch_date', kind: 'date', nullable: false }}
-							value={dispatchDay}
-							mode="edit"
-							placeholder={t('app.field_ops_controller.select_dispatch_date')}
-							onValueChange={updateDispatchDate}
-						/>
-					</div>
-				</Stack>
-			{/snippet}
-			{#snippet end()}
-				<Cluster gap="sm" justify="end">
-					<Button variant="secondary" onclick={() => (assignContractorOpen = true)}>
-						<Icon icon="lucide:user-round-check" class="mr-1.5 size-4 shrink-0" />
-						{t('app.field_ops_controller.assign_contractor')}
+{#snippet dispatchControls()}
+	<Split ratio="wide" collapse="stack" gap="md" class="rounded-lg border bg-card p-3">
+		{#snippet start()}
+			<Stack gap="xs" class="max-w-md">
+				<Inline justify="between" gap="sm">
+					<span class="text-xs font-medium text-muted-foreground">
+						{t('app.field_ops_controller.dispatch_date')}
+					</span>
+					<Button
+						variant="ghost"
+						size="sm"
+						class="h-6 px-2 text-xs"
+						onclick={() => setDispatchDay(today)}
+					>
+						{t('app.field_ops_controller.today')}
 					</Button>
-				</Cluster>
-			{/snippet}
-		</Split>
+				</Inline>
+				<div class="min-w-0">
+					<DataRenderer
+						field={{ name: 'dispatch_date', kind: 'date', nullable: false }}
+						value={dispatchDay}
+						mode="edit"
+						placeholder={t('app.field_ops_controller.select_dispatch_date')}
+						onValueChange={updateDispatchDate}
+					/>
+				</div>
+			</Stack>
+		{/snippet}
+		{#snippet end()}
+			<Cluster gap="sm" justify="end">
+				<Button variant="secondary" onclick={() => (assignContractorOpen = true)}>
+					<Icon icon="lucide:user-round-check" class="mr-1.5 size-4 shrink-0" />
+					{t('app.field_ops_controller.assign_contractor')}
+				</Button>
+			</Cluster>
+		{/snippet}
+	</Split>
+{/snippet}
 
+{#snippet dispatchSchedule()}
+	<Cover gap="md" top={dispatchControls}>
 		<Split
 			ratio="wide"
 			collapse="switch"
 			switchLabels={[t('app.field_ops_controller.board'), t('app.field_ops_controller.map')]}
 			gap="md"
+			fill
 		>
 			{#snippet start()}
-				<Bound size="fit" pad="sm" class="rounded-lg border bg-card">
+				<Bound size="full" pad="sm" class="rounded-lg border bg-card">
 					<CollectionKanban
 						{client}
 						collection="job_assignments"
@@ -289,7 +292,7 @@
 				</Bound>
 			{/snippet}
 			{#snippet end()}
-				<Bound size="fit" clip class="rounded-lg">
+				<Bound size="full" clip class="rounded-lg">
 					<StaticMap
 						markers={mapMarkers}
 						ariaLabel={t('app.field_ops_controller.dispatch_map_for', { date: dispatchDay })}
@@ -300,7 +303,7 @@
 				</Bound>
 			{/snippet}
 		</Split>
-	</Stack>
+	</Cover>
 {/snippet}
 
 {#snippet sites()}
