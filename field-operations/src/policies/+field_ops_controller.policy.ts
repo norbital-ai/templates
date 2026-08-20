@@ -7,6 +7,12 @@ import type { Policy } from './$types.js';
  * from a loop because a permission set is read far more often than it is written, and a reader should
  * be able to see that `photo_evidence` is deletable here without first evaluating a `flatMap`.
  *
+ * Unconditional is the whole difference between the two field-operations policies, and it is now the
+ * *only* difference in shape: `job_assignments` carries `assignee_user_id`, so the contractor policy
+ * narrows that collection to the requestor and this one does not narrow it at all. One role sees its
+ * own assignments; this one sees every assignment. There is no third collection describing who a
+ * contractor is, because a contractor is a user whose team holds `field_ops_contractor`.
+ *
  * `name` is `Controller` and not `Field Operations Controller`, at the owner's request, and that
  * string is load-bearing: `subjectHasPolicy` matches a policy by `name`, case-folded, against the
  * set a subject's team confers. So the only route to this policy is a key in `src/+teams.ts` naming
@@ -29,18 +35,13 @@ import type { Policy } from './$types.js';
 export default {
 	name: 'field_ops_controller',
 	description:
-		'Controller access to dispatch jobs, contractors, assignments, sites, and approval records.',
+		'Controller access to dispatch jobs, assignments, sites, and approval records, unconditionally.',
 	apps: ['field_ops_controller', 'field_ops_contractor'],
 	grants: [
 		{ collection: 'sites', action: 'read' },
 		{ collection: 'sites', action: 'create' },
 		{ collection: 'sites', action: 'update' },
 		{ collection: 'sites', action: 'delete' },
-
-		{ collection: 'contractor_profiles', action: 'read' },
-		{ collection: 'contractor_profiles', action: 'create' },
-		{ collection: 'contractor_profiles', action: 'update' },
-		{ collection: 'contractor_profiles', action: 'delete' },
 
 		{ collection: 'jobs', action: 'read' },
 		{ collection: 'jobs', action: 'create' },

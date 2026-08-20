@@ -9,7 +9,7 @@ import {
 
 const jobId = '10000000-0000-4000-8000-000000000001';
 const secondJobId = '10000000-0000-4000-8000-000000000002';
-const contractorId = '20000000-0000-4000-8000-000000000001';
+const assigneeUserId = '20000000-0000-4000-8000-000000000001';
 const siteId = '40000000-0000-4000-8000-000000000001';
 
 /**
@@ -28,7 +28,7 @@ function lookup(
 			[jobId, { site_id: siteId }],
 			[secondJobId, { site_id: siteId }]
 		]),
-		contractorIds: new Set([contractorId]),
+		assigneeUserIds: new Set([assigneeUserId]),
 		occupiedJobIds: new Set(),
 		occupiedSourceMessageIds: new Set(),
 		sites: new Map([
@@ -53,13 +53,13 @@ test('prepares assignments in caller order with the same defaults and location s
 	const inputs = [
 		{
 			job_id: jobId,
-			contractor_profile_id: contractorId,
+			assignee_user_id: assigneeUserId,
 			source_message_id: 'first',
 			location: { geometry: { lat: 1.3, lon: 103.8 } }
 		},
 		{
 			job_id: secondJobId,
-			contractor_profile_id: contractorId,
+			assignee_user_id: assigneeUserId,
 			source_message_id: 'second',
 			dispatched_at: '2026-08-12T00:00:00.000Z',
 			status: 'in_progress',
@@ -88,7 +88,7 @@ test('prepares assignments in caller order with the same defaults and location s
  */
 test('rejects every row that repeats a job or a source id inside the same call', () => {
 	const base = {
-		contractor_profile_id: contractorId,
+		assignee_user_id: assigneeUserId,
 		location: { geometry: { lat: 1.3, lon: 103.8 } }
 	};
 	const sameJob = [
@@ -118,7 +118,7 @@ test('rejects every row that repeats a job or a source id inside the same call',
 
 /** A row that repeats nothing is still judged against what is already stored. */
 test('still refuses a job an existing assignment already holds', () => {
-	const inputs = [{ job_id: jobId, contractor_profile_id: contractorId }];
+	const inputs = [{ job_id: jobId, assignee_user_id: assigneeUserId }];
 	assert.throws(
 		() => assignmentCreateValues(inputs[0]!, lookup(inputs, { occupiedJobIds: new Set([jobId]) })),
 		/This job already has an assignment/

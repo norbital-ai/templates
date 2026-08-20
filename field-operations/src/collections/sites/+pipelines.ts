@@ -83,7 +83,7 @@ export default {
 					const assignmentRows = siteAssignments.map((assignment) => ({
 						record_id: assignment.norbital_id,
 						job_id: assignment.job_id,
-						contractor_profile_id: assignment.contractor_profile_id,
+						assignee_user_id: assignment.assignee_user_id,
 						dispatched_at: assignment.dispatched_at,
 						status: assignment.status,
 						completed_at: assignment.completed_at,

@@ -27,16 +27,26 @@
 	const { t } = useI18n<TenantI18nKeys>();
 
 	/**
-	 * Flag visibility is reserved for the controller dashboard. Contractors see their evidence photos
-	 * but never the integrity results, so the shared assignment sheet hides them from a viewer who
-	 * has a contractor profile (the same lookup the contractor app uses to identify its own viewer).
+	 * Flag visibility is reserved for dispatch. Contractors see their evidence photos but never the
+	 * integrity results, so the shared assignment sheet hides them from a viewer who does not hold
+	 * the controller policy.
+	 *
+	 * This used to look the viewer up in `contractor_profiles` by
+	 * `getPlatformStateContext()().user.norbital_id` — a value the shell builds from the display name,
+	 * not an id — so the lookup failed against the `uuid()` column for every viewer alive and
+	 * `isContractorViewer` was permanently `false`. Every contractor opening this sheet was shown the
+	 * controller-only integrity overlay. That collection no longer exists; nothing here fetches a
+	 * record to decide who is looking.
+	 *
+	 * `platform.apps` is `AccessControl.visibleApps`: the whole registry for an `admin` status, and
+	 * otherwise the apps the policies of the viewer's one team declare. Only
+	 * `field_ops_controller.policy.ts` names the controller app, so its absence is exactly "this
+	 * person does not dispatch". It also fails the safe way: the shell seeds the list empty and fills
+	 * it when the runtime answers, so a viewer reads as a contractor until proven otherwise and the
+	 * overlay stays hidden through load rather than flashing.
 	 */
-	const viewerUser = getPlatformStateContext()().user;
-	const viewerContractorQuery = client.db.contractor_profiles.findMany({
-		where: { user_id: { eq: viewerUser.norbital_id } },
-		limit: 1
-	});
-	const isContractorViewer = $derived(viewerContractorQuery.current?.[0] != null);
+	const platform = getPlatformStateContext();
+	const isContractorViewer = $derived(!platform().apps.includes('field_ops_controller'));
 
 	/**
 	 * The progress a contractor may see. The assignment's own status carries the integrity overlay
@@ -516,18 +526,25 @@
 						}
 					}}
 				/>
+				<!--
+					The assignee is a person, so the picker reads the identity directory directly.
+
+					`bolt_auth_user` is granted to any authenticated subject masked to `norbital_id` and
+					`name`; there is no workspace collection describing a contractor to point at, and the one
+					that used to be here carried nothing this row does not.
+				-->
 				<Field
-					name="contractor_profile_id"
+					name="assignee_user_id"
 					label={t('component.contractor')}
 					renderer={RelationshipRenderer}
 					rendererProps={{
-						target: 'contractor_profiles',
+						target: 'bolt_auth_user',
 						options: {
 							label: (record) => {
-								const v = record.company_name;
+								const v = record.name;
 								return v != null && v !== '' ? String(v) : '—';
 							},
-							orderBy: { company_name: 'asc' },
+							orderBy: { name: 'asc' },
 							limit: 500
 						}
 					}}

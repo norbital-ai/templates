@@ -1,10 +1,11 @@
 import type { CollectionHooks } from '@norbital-ai/bolt/authoring';
 import { Effect } from 'effect';
 import type { WorkspaceSchema } from '$bolt/types.js';
+import { usersById } from '../../lib/identity-directory.js';
 
 type AssignmentIdentity = {
 	job_id?: string | null;
-	contractor_profile_id?: string | null;
+	assignee_user_id?: string | null;
 };
 
 type AssignmentStatus = 'dispatched' | 'in_progress' | 'completed' | 'suspect';
@@ -97,17 +98,14 @@ export function assertAssignmentIdentityUnchanged(
 	if (input.job_id != null && input.job_id !== existing.job_id) {
 		throw new Error('A dispatched assignment cannot be moved to another job.');
 	}
-	if (
-		input.contractor_profile_id != null &&
-		input.contractor_profile_id !== existing.contractor_profile_id
-	) {
-		throw new Error('A dispatched assignment cannot be moved to another contractor.');
+	if (input.assignee_user_id != null && input.assignee_user_id !== existing.assignee_user_id) {
+		throw new Error('A dispatched assignment cannot be moved to another assignee.');
 	}
 }
 
 export interface AssignmentCreateInput {
 	readonly job_id?: string | null;
-	readonly contractor_profile_id?: string | null;
+	readonly assignee_user_id?: string | null;
 	readonly source_message_id?: string | null;
 	readonly dispatched_at?: Date | string | null;
 	readonly status?: string | null;
@@ -118,8 +116,9 @@ export interface AssignmentCreateInput {
  * Everything one dispatch needs to know about the world, read once for the whole batch.
  *
  * The rule below is written for one assignment and asks five questions about it: does the job exist,
- * does the contractor exist, is the job already taken, is the source message already used, and where
- * is the site. Asked per record that is five round trips a row; asked here it is five for the batch.
+ * is the assignee a person this workspace knows, is the job already taken, is the source message
+ * already used, and where is the site. Asked per record that is five round trips a row; asked here it
+ * is five for the batch.
  *
  * `repeatedJobIds` and `repeatedSourceMessageIds` are the one thing a per-record hook genuinely
  * cannot see: two rows in the same call claiming the same job. They are derived from the inputs, not
@@ -127,7 +126,15 @@ export interface AssignmentCreateInput {
  */
 export interface AssignmentCreateBatchLookup {
 	readonly jobs: ReadonlyMap<string, { readonly site_id: string | null }>;
-	readonly contractorIds: ReadonlySet<string>;
+	/**
+	 * The assignee ids that name a real person.
+	 *
+	 * Read from `bolt_auth_user` rather than from a workspace collection: an assignee *is* a user, and
+	 * the profile row that used to stand between the two is gone. The database enforces the same thing
+	 * through the foreign key; this exists so the refusal names the problem instead of quoting a
+	 * constraint.
+	 */
+	readonly assigneeUserIds: ReadonlySet<string>;
 	readonly occupiedJobIds: ReadonlySet<string>;
 	readonly occupiedSourceMessageIds: ReadonlySet<string>;
 	readonly sites: ReadonlyMap<string, LocationLike>;
@@ -173,14 +180,14 @@ export function assignmentCreateValues<T extends AssignmentCreateInput>(
 	now: () => Date = () => new Date()
 ): T & { readonly dispatched_at: Date | string; readonly status: AssignmentStatus } {
 	const jobId = requireId(input.job_id, 'Job assignment must reference a job.');
-	const contractorId = requireId(
-		input.contractor_profile_id,
-		'Job assignment must reference a contractor profile.'
+	const assigneeUserId = requireId(
+		input.assignee_user_id,
+		'Job assignment must reference the person it is dispatched to.'
 	);
 	const job = lookup.jobs.get(jobId);
 	if (!job) throw new Error('Referenced job does not exist.');
-	if (!lookup.contractorIds.has(contractorId)) {
-		throw new Error('Referenced contractor profile does not exist.');
+	if (!lookup.assigneeUserIds.has(assigneeUserId)) {
+		throw new Error('Referenced assignee is not a user of this workspace.');
 	}
 	if (lookup.occupiedJobIds.has(jobId) || lookup.repeatedJobIds.has(jobId)) {
 		throw new Error('This job already has an assignment.');
@@ -226,11 +233,9 @@ export default {
 				const jobIds = [
 					...new Set(inputs.flatMap((input) => (input.job_id ? [input.job_id] : [])))
 				];
-				const contractorIds = [
+				const assigneeUserIds = [
 					...new Set(
-						inputs.flatMap((input) =>
-							input.contractor_profile_id ? [input.contractor_profile_id] : []
-						)
+						inputs.flatMap((input) => (input.assignee_user_id ? [input.assignee_user_id] : []))
 					)
 				];
 				const sourceMessageIds = [
@@ -238,7 +243,7 @@ export default {
 						inputs.flatMap((input) => (input.source_message_id ? [input.source_message_id] : []))
 					)
 				];
-				const [jobs, contractors, occupiedJobs, occupiedSources] = yield* Effect.all(
+				const [jobs, assignees, occupiedJobs, occupiedSources] = yield* Effect.all(
 					[
 						jobIds.length
 							? api.db.query.jobs.findMany({
@@ -247,13 +252,7 @@ export default {
 									limit: ASSIGNMENT_BATCH_LIMIT
 								})
 							: Effect.succeed([]),
-						contractorIds.length
-							? api.db.query.contractor_profiles.findMany({
-									where: { norbital_id: { in: contractorIds } },
-									columns: { norbital_id: true },
-									limit: ASSIGNMENT_BATCH_LIMIT
-								})
-							: Effect.succeed([]),
+						usersById(api, assigneeUserIds),
 						jobIds.length
 							? api.db.query.job_assignments.findMany({
 									where: { job_id: { in: jobIds } },
@@ -291,7 +290,7 @@ export default {
 				const repeated = repeatedWithinBatch(inputs);
 				return {
 					jobs: new Map(jobs.map((job) => [job.norbital_id, job])),
-					contractorIds: new Set(contractors.map((contractor) => contractor.norbital_id)),
+					assigneeUserIds: new Set(assignees.keys()),
 					occupiedJobIds: new Set(occupiedJobs.map((assignment) => assignment.job_id)),
 					occupiedSourceMessageIds: new Set(
 						occupiedSources.flatMap((assignment) =>
@@ -306,12 +305,12 @@ export default {
 		perRecord: {
 			before: {
 				description:
-					'Dispatches a contractor to an unassigned job, stamps the dispatch time, and marks the assignment suspect when the reported location sits outside the site tolerance.',
+					'Dispatches a person to an unassigned job, stamps the dispatch time, and marks the assignment suspect when the reported location sits outside the site tolerance.',
 				handler: ({ input, prepared }) => assignmentCreateValues(input, prepared)
 			},
 			after: {
 				description:
-					'Moves a job from unassigned to assigned as soon as its first contractor is dispatched.',
+					'Moves a job from unassigned to assigned as soon as its first assignee is dispatched.',
 				handler: ({ record, api }) =>
 					Effect.gen(function* () {
 						const job = yield* api.db.query.jobs.findFirst({
@@ -328,7 +327,7 @@ export default {
 		perRecord: {
 			before: {
 				description:
-					'Holds an assignment on its original job and contractor, stamps completion, and preserves a prior judgement or a contradictory reported assignment location.',
+					'Holds an assignment on its original job and assignee, stamps completion, and preserves a prior judgement or a contradictory reported assignment location.',
 				handler: ({ input, existing, api }) =>
 					Effect.gen(function* () {
 						assertAssignmentIdentityUnchanged(input, existing);

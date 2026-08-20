@@ -38,23 +38,38 @@ import type { Teams } from '@norbital-ai/bolt/authoring';
  * that team is, because it is the case the teams design calls out by name.
  *
  * `Controller` grants every action on every collection, **unconditionally**. The contractor policy's
- * grants are all `$sql` subqueries narrowing to the requestor's own profile, jobs and evidence.
- * `rowPredicate` **unions** the `where` of every matching grant, so an unconditional grant beside a
- * narrowed one collapses the predicate to `true`: a member of `Contractor (Controller)` does not see
- * "their own jobs plus dispatch", they see everything, and the self-scoping evaporates. Two seeded
- * people are in that state today. Naming the team is what turns it from an emergent property of two
- * arrays into something a diff shows — which is the whole reason this file exists.
+ * grants all narrow to the requestor — `job_assignments` by a direct comparison on
+ * `assignee_user_id`, the rest by a subquery that reaches the requestor through it. `rowPredicate`
+ * **unions** the `where` of every matching grant, so an unconditional grant beside a narrowed one
+ * collapses the predicate to `true`: a member of `Contractor (Controller)` does not see "their own
+ * jobs plus dispatch", they see everything, and the self-scoping evaporates. Two seeded people are
+ * in that state today — Bob Poh and Yu Kiat Tan, who between them are the assignee of every seeded
+ * assignment, so as seeded *every* contractor in this workspace is in fact unscoped. Naming the team
+ * is what turns that from an emergent property of two arrays into something a diff shows — which is
+ * the whole reason this file exists.
  */
 export default {
 	/**
 	 * Dispatch. **Also the `approvers` name in `+field_ops_contractor.policy.ts`** — see above.
 	 *
-	 * Full command of sites, contractor profiles, jobs, assignments, variations and photo evidence,
-	 * and the only team that can decide a variation approval.
+	 * Full command of sites, jobs, assignments, variations and photo evidence, and the only team that
+	 * can decide a variation approval.
 	 */
 	'Field Operations Controllers': ['field_ops_controller'],
 
-	/** The field side: their own profile, their assigned jobs and sites, their own evidence. */
+	/**
+	 * The field side: their assigned jobs and sites, their own evidence.
+	 *
+	 * "Contractor" is a **role**, and this key is the whole of what one is. There is no collection
+	 * describing a contractor and nothing to link a person to: an assignment names its assignee by
+	 * `bolt_auth_user.norbital_id`, and holding this policy is what turns that person into somebody
+	 * who sees only their own.
+	 *
+	 * That also settles where a contractor's *company* lives, which is nowhere. A team is authority,
+	 * and this file is compiled into the release — a team row absent from it holds nothing — so
+	 * modelling one company as one team would mean a deploy to onboard a contractor, and, because
+	 * `bolt_auth_user.team_id` is one team, would leave that person unable to also be in this one.
+	 */
 	Contractor: ['field_ops_contractor'],
 
 	/**

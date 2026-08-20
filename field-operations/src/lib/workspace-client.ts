@@ -163,7 +163,6 @@ export interface WorkspaceClient {
 export const client: WorkspaceClient = {
 	...runtimeClient,
 	db: {
-		contractor_profiles: collectionOperations('contractor_profiles'),
 		job_assignments: collectionOperations('job_assignments'),
 		jobs: collectionOperations('jobs'),
 		photo_evidence: collectionOperations('photo_evidence'),
@@ -174,6 +173,10 @@ export const client: WorkspaceClient = {
 		// A person is a row in `bolt_auth_user` whose `team_id` points at the one `bolt_team` row they
 		// belong to, and the system read policy grants that row masked to an id and a name — a
 		// directory, not a membership list.
+		//
+		// It is also where an assignment's assignee is described. `contractor_profiles` used to sit
+		// here restating a subset of these same people under a company name; the row it added carried
+		// nothing this directory does not, and the app that had to fetch one could fail to find it.
 		bolt_auth_user: collectionOperations('bolt_auth_user')
 	},
 	invoke: runtimeClient.invoke as unknown as WorkspaceInvoke
