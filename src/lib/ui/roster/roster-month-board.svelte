@@ -372,7 +372,7 @@
 </script>
 
 {#snippet legend()}
-	<Cluster gap="sm" class="shrink-0 text-xs leading-5 text-muted-foreground">
+	<Cluster gap="sm" shrink={false} class="text-xs leading-5 text-muted-foreground">
 		<!--
 			The armed-swap announcement. A live region rather than a toast: it describes a mode the
 			board is currently in, and it has to stay on screen for as long as that mode lasts. It
@@ -459,7 +459,7 @@
 		</button>
 	</Cluster>
 	{#if marksOpen}
-		<Cluster gap="sm" class="shrink-0 pt-1 text-xs leading-5 text-muted-foreground">
+		<Cluster gap="sm" shrink={false} class="pt-1 text-xs leading-5 text-muted-foreground">
 			{#each DAY_MARK_KEY as entry (entry.mark)}
 				<Inline gap="xs">
 					<span class="inline-block w-4 text-center font-medium text-foreground">{entry.mark}</span>

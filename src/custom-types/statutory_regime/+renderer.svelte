@@ -161,7 +161,7 @@
 	<span class="block truncate" title={summary}>{summary}</span>
 {:else}
 	<Stack gap="lg">
-		<section class="grid gap-3">
+		<Stack as="section" gap="md">
 			<Inline justify="between" align="center" gap="sm">
 				<div>
 					<h3 class="text-sm font-semibold">Who is entitled to overtime</h3>
@@ -304,9 +304,9 @@
 					</label>
 				</Grid>
 			{/if}
-		</section>
+		</Stack>
 
-		<section class="grid gap-3 border-t border-border pt-4">
+		<Stack as="section" gap="md" class="border-t border-border pt-4">
 			<Inline justify="between" align="center" gap="sm">
 				<div>
 					<h3 class="text-sm font-semibold">Overtime pricing</h3>
@@ -385,9 +385,9 @@
 					</label>
 				</Stack>
 			{/each}
-		</section>
+		</Stack>
 
-		<section class="grid gap-3 border-t border-border pt-4">
+		<Stack as="section" gap="md" class="border-t border-border pt-4">
 			<Inline justify="between" align="center" gap="sm">
 				<div>
 					<h3 class="text-sm font-semibold">Working-time limits</h3>
@@ -479,9 +479,9 @@
 					</Cluster>
 				</Grid>
 			{/each}
-		</section>
+		</Stack>
 
-		<section class="grid gap-3 border-t border-border pt-4">
+		<Stack as="section" gap="md" class="border-t border-border pt-4">
 			<Inline justify="between" align="center" gap="sm">
 				<div>
 					<h3 class="text-sm font-semibold">Rest and meal breaks</h3>
@@ -606,6 +606,6 @@
 					</Cluster>
 				</Grid>
 			{/each}
-		</section>
+		</Stack>
 	</Stack>
 {/if}

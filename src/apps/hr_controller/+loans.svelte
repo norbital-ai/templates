@@ -5,7 +5,7 @@
 	import type { TenantI18nKeys } from '$bolt/i18n-keys';
 	import { CollectionTable } from '@norbital-ai/ui/collection-table';
 	import { Combobox } from '@norbital-ai/ui/combobox';
-	import { Bound, Cover, Inline } from '@norbital-ai/ui/layout';
+	import { Bound, Cover, Inline, Stack } from '@norbital-ai/ui/layout';
 	import {
 		formatEffectiveRange,
 		formatNumeric,
@@ -244,18 +244,18 @@
 						<Column name="effective_range" />
 					{/snippet}
 					{#snippet ListCard(agreement)}
-						<Inline align="start" justify="between" gap="sm">
-							<p class="truncate font-medium">{agreement.reference}</p>
-							<span class="shrink-0 text-meta">
-								{formatEffectiveRange(agreement.effective_range)}
-							</span>
-						</Inline>
-						<p class="mt-1 truncate text-sm text-muted-foreground">
-							{formatRepaymentSchedule(agreement.schedule, t)}
-						</p>
-						<p class="mt-1 text-sm">
-							{progressLabel(agreement)}
-						</p>
+						<Stack gap="xs">
+							<Inline align="start" justify="between" gap="sm">
+								<p class="truncate font-medium">{agreement.reference}</p>
+								<span class="shrink-0 text-meta">
+									{formatEffectiveRange(agreement.effective_range)}
+								</span>
+							</Inline>
+							<p class="truncate text-sm text-muted-foreground">
+								{formatRepaymentSchedule(agreement.schedule, t)}
+							</p>
+							<p class="text-sm">{progressLabel(agreement)}</p>
+						</Stack>
 					{/snippet}
 				</CollectionTable>
 			{/key}

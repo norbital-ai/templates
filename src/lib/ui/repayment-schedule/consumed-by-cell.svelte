@@ -114,13 +114,13 @@
 				navigation.open(target);
 			}}
 		>
-			{label}{#if shortfall != null}<span class="ml-1 font-normal text-destructive"
+			{label}{#if shortfall != null}{' '}<span class="font-normal text-destructive"
 					>{t('component.short_amount', { amount: shortfall.toFixed(2) })}</span
 				>{/if}
 		</a>
 	{:else}
 		<span class="text-sm font-medium" {title}
-			>{label}{#if shortfall != null}<span class="ml-1 font-normal text-destructive"
+			>{label}{#if shortfall != null}{' '}<span class="font-normal text-destructive"
 					>{t('component.short_amount', { amount: shortfall.toFixed(2) })}</span
 				>{/if}</span
 		>

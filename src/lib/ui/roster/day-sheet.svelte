@@ -176,7 +176,7 @@
 	import { IconWrapper } from '@norbital-ai/ui/icon-wrapper';
 	import { Input } from '@norbital-ai/ui/input';
 	import { Label } from '@norbital-ai/ui/label';
-	import { Cluster, Inline, Stack } from '@norbital-ai/ui/layout';
+	import { Cluster, Inline, Scroll, Stack } from '@norbital-ai/ui/layout';
 	import { cn } from '@norbital-ai/ui/utils';
 	import { PAYROLL_TIME_ZONE } from '../calendar.js';
 	import { formatCalendarDate, formatDurationHours } from '../display-formatters.js';
@@ -524,7 +524,7 @@
 		</Sheet.Header>
 
 		{#if day != null && date != null}
-			<Stack gap="lg" class="min-h-0 flex-1 overflow-y-auto pr-1">
+			<Scroll name={t('roster.day_sheet_plan')} layout="stack" gap="lg" grow class="pr-1">
 				<!-- ── PLAN ────────────────────────────────────────────────────────────────────── -->
 				<Stack gap="sm">
 					<Inline gap="sm" justify="between" align="center">
@@ -836,7 +836,7 @@
 						<AlertDescription>{error}</AlertDescription>
 					</Alert>
 				{/if}
-			</Stack>
+			</Scroll>
 		{/if}
 
 		<Sheet.Footer>

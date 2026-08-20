@@ -7,7 +7,7 @@
 	import { CollectionTable } from '@norbital-ai/ui/collection-table';
 	import { formatDataValue } from '@norbital-ai/ui/data-renderer';
 	import { Combobox } from '@norbital-ai/ui/combobox';
-	import { Columns, Cover, Inline, Split, Stack } from '@norbital-ai/ui/layout';
+	import { Bound, Columns, Cover, Inline, Scroll, Split, Stack } from '@norbital-ai/ui/layout';
 	import { Tabs, type TabConfig } from '@norbital-ai/ui/tabs';
 	import { formatCalendarDate } from '../../lib/ui/display-formatters.js';
 	import { employedTodayFilter, todayKey, todayInstant } from '../../lib/ui/calendar.js';
@@ -205,14 +205,18 @@
 {/snippet}
 
 {#snippet overview()}
-	<Split
-		ratio="third"
-		collapse="stack"
-		collapseAt="narrow"
-		gap="lg"
-		start={workforceSummary}
-		end={workforceTrendPanel}
-	/>
+	<Bound size="full">
+		<Scroll name={t('component.tab_overview')}>
+			<Split
+				ratio="third"
+				collapse="stack"
+				collapseAt="narrow"
+				gap="lg"
+				start={workforceSummary}
+				end={workforceTrendPanel}
+			/>
+		</Scroll>
+	</Bound>
 {/snippet}
 
 {#snippet profiles()}
@@ -250,13 +254,15 @@
 					<Column name="dependents_count" label={t('app.people.dependents')} />
 				{/snippet}
 				{#snippet ListCard(person)}
-					<p class="truncate font-medium">{person.name}</p>
-					<p class="mt-1 truncate text-sm text-muted-foreground">{person.email}</p>
-					<p class="mt-1 truncate text-sm">
-						{person.phone
-							? formatDataValue({ name: 'phone', kind: 'phone', nullable: true }, person.phone)
-							: (person.nationality ?? '')}
-					</p>
+					<Stack gap="xs">
+						<p class="truncate font-medium">{person.name}</p>
+						<p class="truncate text-sm text-muted-foreground">{person.email}</p>
+						<p class="truncate text-sm">
+							{person.phone
+								? formatDataValue({ name: 'phone', kind: 'phone', nullable: true }, person.phone)
+								: (person.nationality ?? '')}
+						</p>
+					</Stack>
 				{/snippet}
 			</CollectionTable>
 		{/key}

@@ -308,24 +308,24 @@
 				</Inline>
 			</Cluster>
 			<Grid as="dl" gap="sm" minimum="compact">
-				<div>
+				<Stack gap="xs">
 					<dt class="text-meta">{t('component.attendance_window')}</dt>
-					<dd class="mt-1 font-medium tabular-nums">
+					<dd class="font-medium tabular-nums">
 						{formatCalendarDate(record.attendance_from)} → {formatCalendarDate(
 							record.attendance_to
 						)}
 					</dd>
-				</div>
-				<div>
+				</Stack>
+				<Stack gap="xs">
 					<dt class="text-meta">{t('app.payroll.pay_date')}</dt>
-					<dd class="mt-1 font-medium tabular-nums">{formatCalendarDate(record.pay_date)}</dd>
-				</div>
-				<div>
+					<dd class="font-medium tabular-nums">{formatCalendarDate(record.pay_date)}</dd>
+				</Stack>
+				<Stack gap="xs">
 					<dt class="text-meta">{t('component.run_snapshot')}</dt>
-					<dd class="mt-1 text-sm font-medium">
+					<dd class="text-sm font-medium">
 						{t('component.captured_at_run_time')}
 					</dd>
-				</div>
+				</Stack>
 			</Grid>
 		</Stack>
 
@@ -452,28 +452,28 @@
 				</Grid>
 				{#if selectedWindow}
 					<Grid as="dl" gap="sm" minimum="compact">
-						<div>
+						<Stack gap="xs">
 							<dt class="text-meta">{t('component.salary_month')}</dt>
-							<dd class="mt-1 font-medium tabular-nums">
+							<dd class="font-medium tabular-nums">
 								{formatCalendarDate(selectedWindow.salary.start)} → {formatCalendarDate(
 									selectedWindow.salary.end
 								)}
 							</dd>
-						</div>
-						<div>
+						</Stack>
+						<Stack gap="xs">
 							<dt class="text-meta">{t('component.attendance_window')}</dt>
-							<dd class="mt-1 font-medium tabular-nums">
+							<dd class="font-medium tabular-nums">
 								{formatCalendarDate(selectedWindow.attendance.start)} → {formatCalendarDate(
 									selectedWindow.attendance.end
 								)}
 							</dd>
-						</div>
-						<div>
+						</Stack>
+						<Stack gap="xs">
 							<dt class="text-meta">{t('component.pay_date')}</dt>
-							<dd class="mt-1 font-medium tabular-nums">
+							<dd class="font-medium tabular-nums">
 								{formatCalendarDate(selectedWindow.payDate)}
 							</dd>
-						</div>
+						</Stack>
 					</Grid>
 				{/if}
 				<p class="text-sm text-muted-foreground">

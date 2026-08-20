@@ -15,7 +15,7 @@
 	import { IconWrapper } from '@norbital-ai/ui/icon-wrapper';
 	import { Tooltip } from '@norbital-ai/ui/tooltip';
 	import { Display, type ChartDisplaySpec } from '@norbital-ai/ui/chart';
-	import { Cluster, Cover, Grid, Inline, Stack } from '@norbital-ai/ui/layout';
+	import { Bound, Cluster, Cover, Grid, Inline, Scroll, Stack } from '@norbital-ai/ui/layout';
 	import { toast } from 'svelte-sonner';
 	import { formatCalendarDate, formatHolidayScope } from '../../lib/ui/display-formatters.js';
 	import { runWorkbookImport } from '../../lib/ui/workbook-import.js';
@@ -1580,49 +1580,53 @@
 	than opening a list of their own.
 -->
 {#snippet exceptions()}
-	{#if companiesQuery.loading}
-		<p class="text-sm text-muted-foreground">{t('app.scheduling.loading_companies')}</p>
-	{:else if selectedCompanyId == null}
-		<p class="text-sm text-muted-foreground">{t('app.scheduling.empty_exceptions')}</p>
-	{:else}
-		<Grid gap="xl" minimum="panel">
-			<Stack gap="md">
-				<div>
-					<h2 class="text-heading">{t('app.scheduling.exceptions_title')}</h2>
-					<p class="text-sm text-muted-foreground">
-						{t('app.scheduling.exceptions_description')}
-					</p>
-				</div>
-				<Cluster gap="sm">
-					{#if loading}
-						<p class="text-sm text-muted-foreground">
-							{t('app.scheduling.loading_month', { month })}
-						</p>
-					{:else if progress.exceptions.length === 0}
-						<p class="text-sm text-muted-foreground">
-							{t('app.scheduling.exceptions_none', { month })}
-						</p>
-					{:else}
-						{#each progress.exceptions as exception (exception.status)}
-							<Button
-								variant={exceptionFilter === exception.status ? 'default' : 'outline'}
-								size="sm"
-								aria-pressed={exceptionFilter === exception.status}
-								onclick={() => drillInto(exception.status)}
-							>
-								{exceptionCopy(exception.status, exception.count.toLocaleString())}
-								<IconWrapper name="lucide:arrow-right" class="size-3" />
-							</Button>
-						{/each}
-					{/if}
-				</Cluster>
-			</Stack>
-			<Display
-				spec={attendanceChart}
-				class="min-h-[18rem] rounded-lg border bg-card p-4 shadow-card"
-			/>
-		</Grid>
-	{/if}
+	<Bound size="full">
+		<Scroll name={t('app.scheduling.tab_exceptions')}>
+			{#if companiesQuery.loading}
+				<p class="text-sm text-muted-foreground">{t('app.scheduling.loading_companies')}</p>
+			{:else if selectedCompanyId == null}
+				<p class="text-sm text-muted-foreground">{t('app.scheduling.empty_exceptions')}</p>
+			{:else}
+				<Grid gap="xl" minimum="panel">
+					<Stack gap="md">
+						<div>
+							<h2 class="text-heading">{t('app.scheduling.exceptions_title')}</h2>
+							<p class="text-sm text-muted-foreground">
+								{t('app.scheduling.exceptions_description')}
+							</p>
+						</div>
+						<Cluster gap="sm">
+							{#if loading}
+								<p class="text-sm text-muted-foreground">
+									{t('app.scheduling.loading_month', { month })}
+								</p>
+							{:else if progress.exceptions.length === 0}
+								<p class="text-sm text-muted-foreground">
+									{t('app.scheduling.exceptions_none', { month })}
+								</p>
+							{:else}
+								{#each progress.exceptions as exception (exception.status)}
+									<Button
+										variant={exceptionFilter === exception.status ? 'default' : 'outline'}
+										size="sm"
+										aria-pressed={exceptionFilter === exception.status}
+										onclick={() => drillInto(exception.status)}
+									>
+										{exceptionCopy(exception.status, exception.count.toLocaleString())}
+										<IconWrapper name="lucide:arrow-right" class="size-3" />
+									</Button>
+								{/each}
+							{/if}
+						</Cluster>
+					</Stack>
+					<Display
+						spec={attendanceChart}
+						class="min-h-[18rem] rounded-lg border bg-card p-4 shadow-card"
+					/>
+				</Grid>
+			{/if}
+		</Scroll>
+	</Bound>
 {/snippet}
 
 {#snippet shifts()}
