@@ -16,6 +16,7 @@
 		Stack
 	} from '@norbital-ai/ui/layout';
 	import { Tabs, type TabConfig } from '@norbital-ai/ui/tabs';
+	import * as Dialog from '@norbital-ai/ui/dialog';
 	import { formatFileSize } from '@norbital-ai/ui/utils';
 	import { RelationshipRenderer } from '@norbital-ai/ui/data-renderer/relationship';
 	import Icon from '@iconify/svelte';
@@ -181,6 +182,16 @@
 			? [t('component.suspicion_site_identity_unverified')]
 			: [])
 	]);
+
+	/**
+	 * The photo the viewer opened, or nothing.
+	 *
+	 * A tile used to be an `<a href target="_blank">` straight at `/api/files/…`, which hands the
+	 * browser the raw bytes and leaves the record behind — the reviewer loses the job they were
+	 * checking the photograph against, which is the one thing they need beside it. An overlay keeps
+	 * both and closes on Escape or a click outside.
+	 */
+	let openedPhoto = $state<(typeof photoCards)[number] | undefined>(undefined);
 
 	function photoHasIntegritySignals(flags: string[]): boolean {
 		return flags.length > 0;
@@ -412,11 +423,10 @@
 					<Grid minimum="card" gap="md">
 						{#each photoCards as photo (photo.id)}
 							<figure class="min-w-0 rounded-md border border-border bg-card">
-								<a
-									href={photo.url}
-									target="_blank"
-									rel="noreferrer"
-									class="group block bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
+								<button
+									type="button"
+									onclick={() => (openedPhoto = photo)}
+									class="group block w-full bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
 									aria-label={t('component.open_photo', { name: photo.name })}
 								>
 									<Frame ratio="landscape">
@@ -425,9 +435,10 @@
 											alt={photo.name}
 											class="transition-opacity duration-150 group-hover:opacity-90"
 											loading="lazy"
+											decoding="async"
 										/>
 									</Frame>
-								</a>
+								</button>
 								<Stack as="section" gap="sm" class="p-3">
 									<Inline align="start" gap="xs">
 										<Icon
@@ -570,3 +581,31 @@
 		{/snippet}
 	</CollectionForm>
 {/if}
+
+<!--
+	The opened photograph, over the record rather than instead of it.
+
+	`Dialog` gives Escape, a click on the backdrop, and focus return to the tile for free. The image
+	is the same URL the tile used, so it is already in the browser cache by the time the overlay
+	opens and appears instantly at full size.
+-->
+<Dialog.Root
+	open={openedPhoto !== undefined}
+	onOpenChange={(open) => {
+		if (!open) openedPhoto = undefined;
+	}}
+>
+	<Dialog.Content class="max-w-5xl">
+		{#if openedPhoto}
+			<Dialog.Header>
+				<Dialog.Title>{openedPhoto.name}</Dialog.Title>
+			</Dialog.Header>
+			<img
+				src={openedPhoto.url}
+				alt={openedPhoto.name}
+				class="max-h-[75dvh] w-full rounded-md object-contain"
+				decoding="async"
+			/>
+		{/if}
+	</Dialog.Content>
+</Dialog.Root>
