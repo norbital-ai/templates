@@ -114,8 +114,8 @@
 {/snippet}
 
 <!-- App identity (title/description/icon) is rendered by the shell AppMediaHeader. -->
-<Bound as="main" size="full" inset>
-	<Cover gap="md" top={scopeNotice}>
+<Cover as="main" gap="md" top={scopeNotice}>
+	<Bound size="full" inset>
 		<CollectionTable
 			{client}
 			collection="job_assignments"
@@ -182,5 +182,5 @@
 				<Column name="summary" card="subtitle" minWidth={200} />
 			{/snippet}
 		</CollectionTable>
-	</Cover>
-</Bound>
+	</Bound>
+</Cover>

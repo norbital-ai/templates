@@ -12,7 +12,7 @@
 	import { Alert, AlertDescription, AlertTitle } from '@norbital-ai/ui/alert';
 	import * as Dialog from '@norbital-ai/ui/dialog';
 	import { toast } from 'svelte-sonner';
-	import { Cluster, Cover, Grid, Inline, Stack } from '@norbital-ai/ui/layout';
+	import { Bound, Cluster, Cover, Grid, Inline, Scroll, Stack } from '@norbital-ai/ui/layout';
 	import { Tabs, type TabConfig } from '@norbital-ai/ui/tabs';
 	import RosterMonthCalendar from '../lib/ui/roster/roster-month-calendar.svelte';
 	import DaySheet, {
@@ -966,69 +966,83 @@
 {/snippet}
 
 {#snippet home()}
-	<Stack gap="md">
-		{@render contextGate()}
-		{#if employeeQuery.loading}
-			<div
-				class="h-56 animate-pulse rounded-lg bg-muted/40"
-				aria-label={t('component.loading_profile')}
-			></div>
-		{:else if employeeQuery.current}
-			<section class="rounded-lg border bg-card shadow-card" aria-labelledby="my-profile-heading">
-				<Cluster align="start" justify="between" gap="md" class="border-b bg-muted/30 px-5 py-4">
-					<Stack gap="none">
-						<p class="text-overline">
-							{t('app.hr_employee.my_profile')}
-						</p>
-						<h2 id="my-profile-heading" class="text-heading">
-							{employeeQuery.current.name}
-						</h2>
-						<p class="text-sm text-muted-foreground">
-							{company?.name ?? t('app.hr_employee.no_active_company')}{activeEmployment
-								? t('app.hr_employee.employee_of', {
-										number: activeEmployment.employee_number
-									})
-								: ''}
-						</p>
-					</Stack>
-					{#if nextPayDate && daysToPayday != null}
-						<Stack gap="none" class="text-right">
-							<p class="text-xs font-medium text-muted-foreground">
-								{t('app.hr_employee.next_payday')}
-							</p>
-							<p class="text-heading tabular-nums">
-								{daysToPayday === 0
-									? t('app.hr_employee.today')
-									: t('app.hr_employee.days_until', { days: daysToPayday })}
-							</p>
-							<p class="text-meta">
-								{formatCalendarDate(nextPayDate)}
-							</p>
-						</Stack>
-					{/if}
-				</Cluster>
-				<!-- stupidity:allow UI10 -- 1px hairline gutters via bg-border are not on the gap scale -->
-				<Grid class="gap-px bg-border" gap="none" minimum="compact">
-					<div class="bg-card px-5 py-4">
-						<p class="text-xs font-medium text-muted-foreground">{t('component.email')}</p>
-						<p class="mt-1 truncate text-sm font-medium">{employeeQuery.current.email}</p>
-					</div>
-					<div class="bg-card px-5 py-4">
-						<p class="text-xs font-medium text-muted-foreground">{t('component.phone')}</p>
-						<p class="mt-1 text-sm font-medium">
-							{employeeQuery.current.phone ?? t('app.hr_employee.not_provided')}
-						</p>
-					</div>
-					<div class="bg-card px-5 py-4">
-						<p class="text-xs font-medium text-muted-foreground">{t('component.nationality')}</p>
-						<p class="mt-1 text-sm font-medium">
-							{employeeQuery.current.nationality ?? t('app.hr_employee.not_provided')}
-						</p>
-					</div>
-				</Grid>
-			</section>
-		{/if}
-	</Stack>
+	<Bound size="full">
+		<Scroll name={t('app.hr_employee.tab_home')}>
+			<Stack gap="md">
+				{@render contextGate()}
+				{#if employeeQuery.loading}
+					<div
+						class="h-56 animate-pulse rounded-lg bg-muted/40"
+						aria-label={t('component.loading_profile')}
+					></div>
+				{:else if employeeQuery.current}
+					<section
+						class="rounded-lg border bg-card shadow-card"
+						aria-labelledby="my-profile-heading"
+					>
+						<Cluster
+							align="start"
+							justify="between"
+							gap="md"
+							class="border-b bg-muted/30 px-5 py-4"
+						>
+							<Stack gap="none">
+								<p class="text-overline">
+									{t('app.hr_employee.my_profile')}
+								</p>
+								<h2 id="my-profile-heading" class="text-heading">
+									{employeeQuery.current.name}
+								</h2>
+								<p class="text-sm text-muted-foreground">
+									{company?.name ?? t('app.hr_employee.no_active_company')}{activeEmployment
+										? t('app.hr_employee.employee_of', {
+												number: activeEmployment.employee_number
+											})
+										: ''}
+								</p>
+							</Stack>
+							{#if nextPayDate && daysToPayday != null}
+								<Stack gap="none" class="text-right">
+									<p class="text-xs font-medium text-muted-foreground">
+										{t('app.hr_employee.next_payday')}
+									</p>
+									<p class="text-heading tabular-nums">
+										{daysToPayday === 0
+											? t('app.hr_employee.today')
+											: t('app.hr_employee.days_until', { days: daysToPayday })}
+									</p>
+									<p class="text-meta">
+										{formatCalendarDate(nextPayDate)}
+									</p>
+								</Stack>
+							{/if}
+						</Cluster>
+						<!-- stupidity:allow UI10 -- 1px hairline gutters via bg-border are not on the gap scale -->
+						<Grid class="gap-px bg-border" gap="none" minimum="compact">
+							<Stack class="bg-card px-5 py-4" gap="xs">
+								<p class="text-xs font-medium text-muted-foreground">{t('component.email')}</p>
+								<p class="truncate text-sm font-medium">{employeeQuery.current.email}</p>
+							</Stack>
+							<Stack class="bg-card px-5 py-4" gap="xs">
+								<p class="text-xs font-medium text-muted-foreground">{t('component.phone')}</p>
+								<p class="text-sm font-medium">
+									{employeeQuery.current.phone ?? t('app.hr_employee.not_provided')}
+								</p>
+							</Stack>
+							<Stack class="bg-card px-5 py-4" gap="xs">
+								<p class="text-xs font-medium text-muted-foreground">
+									{t('component.nationality')}
+								</p>
+								<p class="text-sm font-medium">
+									{employeeQuery.current.nationality ?? t('app.hr_employee.not_provided')}
+								</p>
+							</Stack>
+						</Grid>
+					</section>
+				{/if}
+			</Stack>
+		</Scroll>
+	</Bound>
 {/snippet}
 
 {#snippet scheduleIntro()}
@@ -1102,8 +1116,7 @@
 {/snippet}
 
 {#snippet leave()}
-	<Stack gap="md">
-		{@render contextGate()}
+	<Cover gap="md" top={contextGate}>
 		<CollectionTable
 			{client}
 			collection="leave_requests"
@@ -1137,12 +1150,11 @@
 				/>
 			{/snippet}
 		</CollectionTable>
-	</Stack>
+	</Cover>
 {/snippet}
 
 {#snippet claims()}
-	<Stack gap="md">
-		{@render contextGate()}
+	<Cover gap="md" top={contextGate}>
 		<CollectionTable
 			{client}
 			collection="component_entries"
@@ -1184,12 +1196,11 @@
 				/>
 			{/snippet}
 		</CollectionTable>
-	</Stack>
+	</Cover>
 {/snippet}
 
 {#snippet loans()}
-	<Stack gap="md">
-		{@render contextGate()}
+	<Cover gap="md" top={contextGate}>
 		<CollectionTable
 			{client}
 			collection="repayment_agreements"
@@ -1221,12 +1232,11 @@
 				<Column name="effective_range" />
 			{/snippet}
 		</CollectionTable>
-	</Stack>
+	</Cover>
 {/snippet}
 
 {#snippet payslips()}
-	<Stack gap="md">
-		{@render contextGate()}
+	<Cover gap="md" top={contextGate}>
 		<CollectionTable
 			{client}
 			collection="payslips"
@@ -1264,14 +1274,16 @@
 				<Column name="currency" />
 			{/snippet}
 			{#snippet ListCard(payslip)}
-				<p class="truncate font-medium">{payrollRunPeriod(payslip)}</p>
-				<p class="mt-1 text-sm text-muted-foreground">
-					{payslip.currency}
-					{formatNumeric(payslip.net)}
-				</p>
+				<Stack gap="xs">
+					<p class="truncate font-medium">{payrollRunPeriod(payslip)}</p>
+					<p class="text-sm text-muted-foreground">
+						{payslip.currency}
+						{formatNumeric(payslip.net)}
+					</p>
+				</Stack>
 			{/snippet}
 		</CollectionTable>
-	</Stack>
+	</Cover>
 {/snippet}
 
 <Cover>

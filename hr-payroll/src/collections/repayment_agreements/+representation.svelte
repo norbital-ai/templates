@@ -52,7 +52,7 @@
 >
 	{#snippet children({ Field, form })}
 		<Stack gap="md">
-			<Grid gap="md" minimum="compact" class="shrink-0">
+			<Grid gap="md" minimum="compact">
 				<Field
 					name="employment_id"
 					label={t('component.employment')}

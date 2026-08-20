@@ -84,22 +84,22 @@
 				{employment?.employee_number ?? t('component.employment')} · {record.currency}
 			</p>
 			<Grid as="dl" gap="sm" minimum="compact">
-				<div>
+				<Stack gap="xs">
 					<dt class="text-meta">{t('component.gross')}</dt>
-					<dd class="mt-1 font-semibold tabular-nums">{formatNumeric(record.gross)}</dd>
-				</div>
-				<div>
+					<dd class="font-semibold tabular-nums">{formatNumeric(record.gross)}</dd>
+				</Stack>
+				<Stack gap="xs">
 					<dt class="text-meta">{t('component.deductions')}</dt>
-					<dd class="mt-1 font-semibold tabular-nums">{formatNumeric(record.total_deductions)}</dd>
-				</div>
-				<div>
+					<dd class="font-semibold tabular-nums">{formatNumeric(record.total_deductions)}</dd>
+				</Stack>
+				<Stack gap="xs">
 					<dt class="text-meta">{t('component.net')}</dt>
-					<dd class="mt-1 text-lg font-bold tabular-nums">{formatNumeric(record.net)}</dd>
-				</div>
-				<div>
+					<dd class="text-lg font-bold tabular-nums">{formatNumeric(record.net)}</dd>
+				</Stack>
+				<Stack gap="xs">
 					<dt class="text-meta">{t('component.employer_cost')}</dt>
-					<dd class="mt-1 font-semibold tabular-nums">{formatNumeric(record.employer_cost)}</dd>
-				</div>
+					<dd class="font-semibold tabular-nums">{formatNumeric(record.employer_cost)}</dd>
+				</Stack>
 			</Grid>
 		</Stack>
 

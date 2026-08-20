@@ -11,7 +11,7 @@
 	import type { TenantI18nKeys } from '$bolt/i18n-keys';
 	import type { RepresentationProps } from './$types.js';
 	import { CollectionForm } from '@norbital-ai/ui/collection-form';
-	import { Grid } from '@norbital-ai/ui/layout';
+	import { Grid, Stack } from '@norbital-ai/ui/layout';
 	import { RelationshipRenderer } from '@norbital-ai/ui/data-renderer/relationship';
 	import DurationHoursRenderer from '../../lib/ui/duration-hours-renderer.svelte';
 	import {
@@ -64,45 +64,47 @@
 	const lockKey = $derived(sourceLockI18nKey(lock));
 </script>
 
-{#if lockKey}
-	<p class="mb-3 rounded-md border border-border bg-muted/20 px-3 py-2 text-meta">
-		{t(lockKey, sourceLockI18nParams(lock))}
-	</p>
-{/if}
+<Stack gap="md">
+	{#if lockKey}
+		<p class="rounded-md border border-border bg-muted/20 px-3 py-2 text-meta">
+			{t(lockKey, sourceLockI18nParams(lock))}
+		</p>
+	{/if}
 
-<CollectionForm
-	{client}
-	collection="time_entries"
-	defaultValues={record ?? undefined}
-	disabled={locked}
-	submitLabel={record ? t('component.save_attendance') : t('component.create_attendance')}
-	onAfterSubmit={record ? undefined : close}
->
-	{#snippet children({ Field })}
-		<Grid gap="md" minimum="panel">
-			<Field
-				name="employment_id"
-				label={t('component.employment')}
-				renderer={RelationshipRenderer}
-				rendererProps={{
-					target: 'employments',
-					options: {
-						label: (employment) =>
-							employment.employee_number != null && employment.employee_number !== ''
-								? String(employment.employee_number)
-								: '—',
-						orderBy: { employee_number: 'asc' },
-						limit: 1000
-					}
-				}}
-			/>
-			<Field name="work_date" label={t('component.day')} />
-			<Field name="worked_intervals" label={t('component.worked_intervals')} />
-			<Field
-				name="break_minutes"
-				label={t('component.unpaid_break_hours')}
-				renderer={DurationHoursRenderer}
-			/>
-		</Grid>
-	{/snippet}
-</CollectionForm>
+	<CollectionForm
+		{client}
+		collection="time_entries"
+		defaultValues={record ?? undefined}
+		disabled={locked}
+		submitLabel={record ? t('component.save_attendance') : t('component.create_attendance')}
+		onAfterSubmit={record ? undefined : close}
+	>
+		{#snippet children({ Field })}
+			<Grid gap="md" minimum="panel">
+				<Field
+					name="employment_id"
+					label={t('component.employment')}
+					renderer={RelationshipRenderer}
+					rendererProps={{
+						target: 'employments',
+						options: {
+							label: (employment) =>
+								employment.employee_number != null && employment.employee_number !== ''
+									? String(employment.employee_number)
+									: '—',
+							orderBy: { employee_number: 'asc' },
+							limit: 1000
+						}
+					}}
+				/>
+				<Field name="work_date" label={t('component.day')} />
+				<Field name="worked_intervals" label={t('component.worked_intervals')} />
+				<Field
+					name="break_minutes"
+					label={t('component.unpaid_break_hours')}
+					renderer={DurationHoursRenderer}
+				/>
+			</Grid>
+		{/snippet}
+	</CollectionForm>
+</Stack>

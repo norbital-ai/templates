@@ -6,6 +6,7 @@
 	import { client } from '../../lib/workspace-client.js';
 	import type { CollectionField } from '@norbital-ai/ui/data-renderer';
 	import { MatrixRenderer, type MatrixColumn } from '@norbital-ai/ui/data-renderer/matrix';
+	import { Stack } from '@norbital-ai/ui/layout';
 	import { repaymentScheduleSchema } from './+definition.js';
 	import type { RendererProps, Value } from './$types.js';
 	import ConsumedByCell from '../../lib/ui/repayment-schedule/consumed-by-cell.svelte';
@@ -242,40 +243,44 @@
 {#if props.mode === 'display'}
 	<span class="block truncate" title={summary}>{summary}</span>
 {:else}
-	{#if issues.length > 0}
-		<ul
-			class="mb-2 space-y-1 rounded-md border border-destructive bg-destructive/10 p-2 text-sm text-destructive"
-			role="alert"
-		>
-			{#each issues as issue (issue)}
-				<li>{issue}</li>
-			{/each}
-		</ul>
-	{/if}
-	<div class={['rounded-md', issues.length > 0 && 'ring-2 ring-destructive ring-offset-2']}>
-		<MatrixRenderer
-			{rows}
-			{columns}
-			disabled={locked}
-			emptyMessage={t('renderer.repayment_schedule.empty')}
-			createRow={(): RepaymentScheduleMatrixRow => {
-				const dueDate = nextDate();
-				return {
-					id: crypto.randomUUID(),
-					due_date: dueDate,
-					amount: 0.01,
-					consumed_by: consumptionCell(draft.length + 1, dueDate),
-					consumed_at: null
-				};
-			}}
-			addRowLabel="Add instalment"
-			allowRemoveRows={true}
-			canRemoveRow={(row) =>
-				draft.length > 1 && row.consumed_by.status !== 'consumed' && !consumptionPending}
-			isRowDisabled={(row) => row.consumed_by.status === 'consumed'}
-			bounded={false}
-			onChange={(nextRows) =>
-				emit(nextRows.map(({ due_date, amount }) => ({ due_date, amount })) as Value)}
-		/>
-	</div>
+	<Stack gap="sm">
+		{#if issues.length > 0}
+			<Stack
+				as="ul"
+				gap="xs"
+				class="rounded-md border border-destructive bg-destructive/10 p-2 text-sm text-destructive"
+				role="alert"
+			>
+				{#each issues as issue (issue)}
+					<li>{issue}</li>
+				{/each}
+			</Stack>
+		{/if}
+		<div class={['rounded-md', issues.length > 0 && 'ring-2 ring-destructive ring-offset-2']}>
+			<MatrixRenderer
+				{rows}
+				{columns}
+				disabled={locked}
+				emptyMessage={t('renderer.repayment_schedule.empty')}
+				createRow={(): RepaymentScheduleMatrixRow => {
+					const dueDate = nextDate();
+					return {
+						id: crypto.randomUUID(),
+						due_date: dueDate,
+						amount: 0.01,
+						consumed_by: consumptionCell(draft.length + 1, dueDate),
+						consumed_at: null
+					};
+				}}
+				addRowLabel="Add instalment"
+				allowRemoveRows={true}
+				canRemoveRow={(row) =>
+					draft.length > 1 && row.consumed_by.status !== 'consumed' && !consumptionPending}
+				isRowDisabled={(row) => row.consumed_by.status === 'consumed'}
+				bounded={false}
+				onChange={(nextRows) =>
+					emit(nextRows.map(({ due_date, amount }) => ({ due_date, amount })) as Value)}
+			/>
+		</div>
+	</Stack>
 {/if}

@@ -68,7 +68,7 @@
 	import type { TenantI18nKeys } from '$bolt/i18n-keys';
 	import { Button } from '@norbital-ai/ui/button';
 	import { IconWrapper } from '@norbital-ai/ui/icon-wrapper';
-	import { Cluster, Cover, Inline, Scroll } from '@norbital-ai/ui/layout';
+	import { Cluster, Cover, Grid, Inline, Scroll, Stack } from '@norbital-ai/ui/layout';
 	import { cn } from '@norbital-ai/ui/utils';
 	import { formatDurationHours } from '../display-formatters.js';
 	import { sourceLockReason, type SourceLock } from '../../scheduling/lock.js';
@@ -400,15 +400,19 @@
 				board's day header is: the region now scrolls vertically, and a translucent sticky row is
 				not a lighter shade of a header — it is a window, with the weeks passing underneath it.
 			-->
-			<div class="sticky top-0 z-10 grid grid-cols-7 gap-1.5 bg-card pt-2 pb-1.5">
+			<Grid
+				tracks="repeat(7, minmax(0, 1fr))"
+				gap="sm"
+				class="sticky top-0 z-10 bg-card pt-2 pb-1.5"
+			>
 				{#each WEEKDAY_KEYS as weekdayKey (weekdayKey)}
 					<span class="text-center text-micro font-medium text-muted-foreground">
 						{t(weekdayKey)}
 					</span>
 				{/each}
-			</div>
+			</Grid>
 			{#each weeks as week, weekIndex (weekIndex)}
-				<div class="grid grid-cols-7 gap-1.5 pb-1.5">
+				<Grid tracks="repeat(7, minmax(0, 1fr))" gap="sm" class="pb-1.5">
 					{#each week as date, dayIndex (date ?? `blank-${weekIndex}-${dayIndex}`)}
 						{#if date == null}
 							<div class="min-h-24 rounded-md bg-muted/20" aria-hidden="true"></div>
@@ -425,9 +429,10 @@
 								the stacking order. A button nested inside a button is invalid markup and the
 								inner one is unreachable by keyboard in several browsers.
 							-->
-							<div
+							<Stack
+								gap="none"
 								class={cn(
-									'relative flex min-h-24 flex-col overflow-hidden rounded-md border text-left',
+									'relative min-h-24 overflow-hidden rounded-md border text-left',
 									day == null ? 'bg-muted/20' : STATUS_PRESENTATION[day.status].className,
 									holiday != null && HOLIDAY_PRESENTATION.className,
 									date === today && 'ring-2 ring-brand ring-inset'
@@ -447,22 +452,20 @@
 									></button>
 								{/if}
 
-								<div
-									class="pointer-events-none relative z-0 flex flex-1 flex-col gap-0.5 py-1 pr-1.5 pl-2.5"
-								>
-									<div class="flex items-baseline justify-between gap-1">
+								<Stack gap="none" grow class="pointer-events-none relative z-0 py-1 pr-1.5 pl-2.5">
+									<Inline align="baseline" justify="between" gap="xs">
 										<span class="text-sm font-semibold tabular-nums">
 											{Number(date.slice(8, 10))}
 										</span>
-										<span class="flex items-center gap-1 text-micro">
+										<Inline as="span" gap="xs" class="text-micro">
 											{#if holiday != null}
 												<span class="font-semibold">{HOLIDAY_PRESENTATION.mark}</span>
 											{/if}
 											{#if rail.padlock}
 												<span title={t(rail.labelKey)}>🔒</span>
 											{/if}
-										</span>
-									</div>
+										</Inline>
+									</Inline>
 
 									{#if day != null}
 										<!-- PLAN -->
@@ -512,7 +515,7 @@
 											</span>
 										{/if}
 									{/if}
-								</div>
+								</Stack>
 
 								{#if reportable && onReportDay != null}
 									<div class="relative z-10 px-1.5 pb-1.5">
@@ -526,10 +529,10 @@
 										</Button>
 									</div>
 								{/if}
-							</div>
+							</Stack>
 						{/if}
 					{/each}
-				</div>
+				</Grid>
 			{/each}
 		</div>
 	</Scroll>

@@ -577,7 +577,12 @@
 		{@attach viewerAttach}
 	></div>
 
-	<Inline align="start" gap="sm" class="pointer-events-none absolute inset-x-0 top-0 z-20 p-3">
+	<Inline
+		align="start"
+		justify="between"
+		gap="sm"
+		class="pointer-events-none absolute inset-x-0 top-0 z-20 p-3"
+	>
 		<div class="min-w-0">
 			{#if selectedItem}
 				{@const item = selectedItem}
@@ -589,29 +594,31 @@
 						class="w-full min-w-0 rounded-sm px-1 py-1 text-left transition-colors hover:bg-muted/60"
 						onclick={() => (propertiesOpen = !propertiesOpen)}
 					>
-						<div class="min-w-0">
-							<span class="block truncate text-sm font-medium text-foreground">
-								{item.title}
-							</span>
-							{#if item.subtitle}
-								<span class="block truncate text-[11px] text-muted-foreground">
-									{item.subtitle}
+						<Inline align="start" justify="between" gap="xs" class="w-full">
+							<div class="min-w-0">
+								<span class="block truncate text-sm font-medium text-foreground">
+									{item.title}
 								</span>
-							{:else}
-								<span class="block truncate text-[11px] text-muted-foreground">
-									{t('component.ifc_element_line', {
-										modelId: item.modelId,
-										elementId: item.id
-									})}
-								</span>
-							{/if}
-						</div>
-						<Icon
-							icon="lucide:chevron-down"
-							class="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground transition-transform {propertiesOpen
-								? 'rotate-180'
-								: ''}"
-						/>
+								{#if item.subtitle}
+									<span class="block truncate text-[11px] text-muted-foreground">
+										{item.subtitle}
+									</span>
+								{:else}
+									<span class="block truncate text-[11px] text-muted-foreground">
+										{t('component.ifc_element_line', {
+											modelId: item.modelId,
+											elementId: item.id
+										})}
+									</span>
+								{/if}
+							</div>
+							<Icon
+								icon="lucide:chevron-down"
+								class="h-4 w-4 shrink-0 text-muted-foreground transition-transform {propertiesOpen
+									? 'rotate-180'
+									: ''}"
+							/>
+						</Inline>
 					</button>
 
 					<Button
@@ -645,7 +652,7 @@
 			{/if}
 		</div>
 
-		<Inline align="center" gap="sm" class="pointer-events-auto ml-auto">
+		<Inline align="center" gap="sm" class="pointer-events-auto">
 			{#if interactionLocked}
 				<div
 					class="hidden rounded-md border border-border/80 bg-background/90 px-2 py-1 text-[11px] text-muted-foreground shadow-sm sm:block"
@@ -692,11 +699,12 @@
 	{/if}
 
 	{#if normalizedMarkerGroups.length > 0}
-		<div
+		<Stack
+			gap="sm"
 			class="pointer-events-none absolute bottom-2 left-2 z-20 max-w-[min(16rem,85%)] rounded-md border border-border/80 bg-background/90 p-2 shadow-sm"
 			aria-label={t('component.marker_legend')}
 		>
-			<p class="text-overline mb-1.5">
+			<p class="text-overline">
 				{t('component.highlights')}
 			</p>
 			<Stack as="ul" gap="xs">
@@ -713,6 +721,6 @@
 					</li>
 				{/each}
 			</Stack>
-		</div>
+		</Stack>
 	{/if}
 </Bound>

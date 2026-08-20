@@ -207,26 +207,26 @@
 			</span>
 		</Cluster>
 		<Grid minimum="compact" class="text-sm">
-			<div>
+			<Stack gap="xs">
 				<p class="text-meta">{t('component.programme')}</p>
-				<p class="mt-1 font-medium">
+				<p class="font-medium">
 					{record.schedule_range
 						? formatDateRangeLocal(record.schedule_range)
 						: t('component.not_set')}
 				</p>
-			</div>
-			<div>
+			</Stack>
+			<Stack gap="xs">
 				<p class="text-meta">{t('component.contract_value')}</p>
-				<p class="mt-1 font-medium">{formatMoney(record.contract_value)}</p>
-			</div>
-			<div>
+				<p class="font-medium">{formatMoney(record.contract_value)}</p>
+			</Stack>
+			<Stack gap="xs">
 				<p class="text-meta">{t('component.main_contractor')}</p>
-				<p class="mt-1 font-medium">{record.main_contractor ?? t('component.not_set')}</p>
-			</div>
-			<div>
+				<p class="font-medium">{record.main_contractor ?? t('component.not_set')}</p>
+			</Stack>
+			<Stack gap="xs">
 				<p class="text-meta">{t('component.project_manager')}</p>
-				<p class="mt-1 font-medium">{record.project_manager ?? t('component.not_set')}</p>
-			</div>
+				<p class="font-medium">{record.project_manager ?? t('component.not_set')}</p>
+			</Stack>
 		</Grid>
 	</Stack>
 
@@ -340,13 +340,15 @@
 					<Column name="due_date" label={t('component.due')} />
 				{/snippet}
 				{#snippet ListCard(rfi)}
-					<Inline align="start" justify="between" gap="sm">
-						<p class="truncate font-medium">{rfi.title}</p>
-						<span class="shrink-0 text-meta">{rfi.status}</span>
-					</Inline>
-					<p class="mt-1 truncate text-sm text-muted-foreground">
-						{rfi.rfi_number} · {rfi.priority}
-					</p>
+					<Stack gap="xs">
+						<Inline align="start" justify="between" gap="sm">
+							<p class="truncate font-medium">{rfi.title}</p>
+							<span class="shrink-0 text-meta">{rfi.status}</span>
+						</Inline>
+						<p class="truncate text-sm text-muted-foreground">
+							{rfi.rfi_number} · {rfi.priority}
+						</p>
+					</Stack>
 				{/snippet}
 			</CollectionTable>
 			<CollectionTable
@@ -364,13 +366,15 @@
 					<Column name="due_date" label={t('component.due')} />
 				{/snippet}
 				{#snippet ListCard(defect)}
-					<Inline align="start" justify="between" gap="sm">
-						<p class="truncate font-medium">{defect.title}</p>
-						<span class="shrink-0 text-meta">{defect.status}</span>
-					</Inline>
-					<p class="mt-1 truncate text-sm text-muted-foreground">
-						{defect.defect_number} · {defect.severity}
-					</p>
+					<Stack gap="xs">
+						<Inline align="start" justify="between" gap="sm">
+							<p class="truncate font-medium">{defect.title}</p>
+							<span class="shrink-0 text-meta">{defect.status}</span>
+						</Inline>
+						<p class="truncate text-sm text-muted-foreground">
+							{defect.defect_number} · {defect.severity}
+						</p>
+					</Stack>
 				{/snippet}
 			</CollectionTable>
 		</Grid>
@@ -405,28 +409,30 @@
 							{@const siteAssignments = assignments.filter(
 								(assignment) => assignment.site_location_id === site.norbital_id
 							)}
-							<section class="w-72 shrink-0 rounded-md bg-muted/50 p-3">
+							<Stack as="section" gap="md" class="w-72 rounded-md bg-muted/50 p-3">
 								<Inline as="header" align="start" justify="between" gap="sm" class="border-b pb-3">
-									<div class="min-w-0">
+									<Stack gap="xs" class="min-w-0">
 										<h4 class="truncate text-sm font-medium">{site.location_name}</h4>
-										<p class="mt-0.5 truncate text-meta">
+										<p class="truncate text-meta">
 											{site.location_code ?? site.location_type ?? t('component.work_front')}
 										</p>
-									</div>
+									</Stack>
 									<span class="rounded-full bg-background px-2 py-0.5 text-xs tabular-nums">
 										{siteAssignments.length}
 									</span>
 								</Inline>
-								<Stack gap="sm" class="mt-3">
+								<Stack gap="sm">
 									{#each siteAssignments as assignment (assignment.norbital_id)}
-										<article class="rounded-md border bg-card p-3 shadow-xs">
-											<p class="text-sm font-medium">
-												{assignmentWorker(assignment)?.worker_name ?? '—'}
-											</p>
-											<p class="mt-1 text-meta">
-												{assignmentJob(assignment)?.job_title ?? '—'}
-											</p>
-											<Inline justify="between" gap="sm" class="mt-3 text-xs">
+										<Stack as="article" gap="md" class="rounded-md border bg-card p-3 shadow-xs">
+											<Stack gap="xs">
+												<p class="text-sm font-medium">
+													{assignmentWorker(assignment)?.worker_name ?? '—'}
+												</p>
+												<p class="text-meta">
+													{assignmentJob(assignment)?.job_title ?? '—'}
+												</p>
+											</Stack>
+											<Inline justify="between" gap="sm" class="text-xs">
 												<span
 													>{assignment.role ??
 														assignmentWorker(assignment)?.trade ??
@@ -438,7 +444,7 @@
 													})}</span
 												>
 											</Inline>
-										</article>
+										</Stack>
 									{/each}
 									{#if siteAssignments.length === 0}
 										<p class="py-6 text-center text-meta">
@@ -446,7 +452,7 @@
 										</p>
 									{/if}
 								</Stack>
-							</section>
+							</Stack>
 						{/each}
 					</Inline>
 				</Scroll>
@@ -458,26 +464,26 @@
 {#snippet controls()}
 	<Stack gap="lg">
 		<Grid minimum="compact">
-			<div class="border-b pb-3">
+			<Stack class="border-b pb-3" gap="xs">
 				<p class="text-meta">{t('component.contract_value')}</p>
-				<p class="mt-1 text-heading">{formatMoney(record.contract_value)}</p>
-			</div>
-			<div class="border-b pb-3">
+				<p class="text-heading">{formatMoney(record.contract_value)}</p>
+			</Stack>
+			<Stack class="border-b pb-3" gap="xs">
 				<p class="text-meta">{t('component.claimed')}</p>
-				<p class="mt-1 text-heading">
+				<p class="text-heading">
 					{sumMoney(claims.map((claim) => claim.claimed_amount))}
 				</p>
-			</div>
-			<div class="border-b pb-3">
+			</Stack>
+			<Stack class="border-b pb-3" gap="xs">
 				<p class="text-meta">{t('component.certified')}</p>
-				<p class="mt-1 text-heading">
+				<p class="text-heading">
 					{sumMoney(claims.map((claim) => claim.certified_amount))}
 				</p>
-			</div>
-			<div class="border-b pb-3">
+			</Stack>
+			<Stack class="border-b pb-3" gap="xs">
 				<p class="text-meta">{t('component.documents')}</p>
-				<p class="mt-1 text-heading tabular-nums">{documents.length}</p>
-			</div>
+				<p class="text-heading tabular-nums">{documents.length}</p>
+			</Stack>
 		</Grid>
 
 		<Grid minimum="panel">
@@ -562,15 +568,17 @@
 				<Column name="approved_by" label={t('component.approved_by')} />
 			{/snippet}
 			{#snippet ListCard(permit)}
-				<Inline align="start" justify="between" gap="sm">
-					<p class="truncate font-medium">{permit.permit_number}</p>
-					<span class="shrink-0 text-meta">{permit.status}</span>
-				</Inline>
-				<p class="mt-1 truncate text-sm text-muted-foreground">
-					{permit.permit_type} · {t('component.expires', {
-						date: formatDate(permit.validity_range?.end)
-					})}
-				</p>
+				<Stack gap="xs">
+					<Inline align="start" justify="between" gap="sm">
+						<p class="truncate font-medium">{permit.permit_number}</p>
+						<span class="shrink-0 text-meta">{permit.status}</span>
+					</Inline>
+					<p class="truncate text-sm text-muted-foreground">
+						{permit.permit_type} · {t('component.expires', {
+							date: formatDate(permit.validity_range?.end)
+						})}
+					</p>
+				</Stack>
 			{/snippet}
 		</CollectionTable>
 	</Stack>
