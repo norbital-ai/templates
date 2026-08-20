@@ -123,6 +123,13 @@ function assignmentIdFromEvidence(
 	return assignmentByVariation.get(evidence.variation_request_id) ?? null;
 }
 
+function sameStringSet(
+	left: readonly string[] | null | undefined,
+	right: readonly string[] | null | undefined
+): boolean {
+	return JSON.stringify([...(left ?? [])].sort()) === JSON.stringify([...(right ?? [])].sort());
+}
+
 function assignmentIdsForEvidence(
 	api: PhotoAfterApi,
 	records: readonly {
@@ -266,7 +273,9 @@ function preparePhoto(
 			matched_evidence_ids: [],
 			site_identity_status: 'pending' as const,
 			site_identity_checked_at: null,
-			site_identity_error: null
+			site_identity_error: null,
+			site_identity_review_basis: null,
+			site_identity_reconciled_at: null
 		};
 	});
 }
@@ -382,10 +391,25 @@ export default {
 		perRecord: {
 			before: {
 				description:
-					'Keeps the selected image, parent, and channel provenance immutable so stored integrity results can never be moved onto different evidence.',
+					'Keeps the selected image, parent, and channel provenance immutable, and returns changed deterministic integrity evidence to pending semantic reconciliation.',
 				handler: ({ input, existing }) => {
 					assertPhotoEvidenceProvenanceUnchanged(input, existing);
-					return Effect.succeed(input);
+					const integrityChanged =
+						(input.flags != null && !sameStringSet(input.flags, existing.flags)) ||
+						(input.matched_evidence_ids != null &&
+							!sameStringSet(input.matched_evidence_ids, existing.matched_evidence_ids));
+					return Effect.succeed(
+						integrityChanged
+							? {
+									...input,
+									site_identity_status: 'pending' as const,
+									site_identity_checked_at: null,
+									site_identity_error: null,
+									site_identity_review_basis: null,
+									site_identity_reconciled_at: null
+								}
+							: input
+					);
 				}
 			}
 		}
