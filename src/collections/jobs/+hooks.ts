@@ -1,21 +1,47 @@
+import type { CollectionHooks } from '@norbital-ai/bolt/authoring';
 import { Effect } from 'effect';
-import type { Hooks } from './$types.js';
+import type { WorkspaceSchema } from '$bolt/types.js';
+
+const SITE_BATCH_LIMIT = 5000;
+
+/**
+ * The sites this batch of jobs names, read once.
+ *
+ * One existence check per job was one round trip per job; a dispatch import covering a handful of
+ * sites now asks once. `prepare` decides nothing — the refusal is still written once, for one job.
+ */
+interface JobBatch {
+	readonly siteIds: ReadonlySet<string>;
+}
+
+/** `Hooks` with what `prepare` returns filled in; see the note in `quote_lines/+hooks.ts`. */
+type JobHooks = CollectionHooks<WorkspaceSchema, 'jobs', JobBatch>;
 
 export default {
 	create: {
-		before: {
-			description:
-				'Refuses a job that names no site or a site that does not exist, and files a new job as unassigned until a contractor is dispatched.',
-			handler: ({ input, api }) =>
-				Effect.gen(function* () {
+		prepare: ({ inputs, api }) =>
+			Effect.gen(function* () {
+				const siteIds = [
+					...new Set(inputs.flatMap((input) => (input.site_id ? [input.site_id] : [])))
+				];
+				const sites = siteIds.length
+					? yield* api.db.query.sites.findMany({
+							where: { norbital_id: { in: siteIds } },
+							columns: { norbital_id: true },
+							limit: SITE_BATCH_LIMIT
+						})
+					: [];
+				return { siteIds: new Set(sites.map((site) => site.norbital_id)) };
+			}),
+		perRecord: {
+			before: {
+				description:
+					'Refuses a job that names no site or a site that does not exist, and files a new job as unassigned until a contractor is dispatched.',
+				handler: ({ input, prepared }) => {
 					if (input.site_id == null || input.site_id === '') {
 						throw new Error('Job must reference a site.');
 					}
-
-					const site = yield* api.db.query.sites.findFirst({
-						where: { norbital_id: { eq: input.site_id } }
-					});
-					if (site == null) {
+					if (!prepared.siteIds.has(input.site_id)) {
 						throw new Error('Referenced site does not exist.');
 					}
 
@@ -23,7 +49,8 @@ export default {
 						...input,
 						status: input.status ?? 'unassigned'
 					};
-				})
+				}
+			}
 		}
 	}
-} satisfies Hooks;
+} satisfies JobHooks;

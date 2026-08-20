@@ -1,9 +1,12 @@
 import { hexToBinaryEmbedding } from '@norbital-ai/bolt/authoring';
+import type { CollectionHooks } from '@norbital-ai/bolt/authoring';
 import { Effect, Schema } from 'effect';
+import type { WorkspaceInsert, WorkspaceSchema } from '$bolt/types.js';
 import type { Hooks } from './$types.js';
 import { photoSourceSchema } from '../../custom-types/photo_source/+definition.js';
 import {
 	assertExactlyOnePhotoParent,
+	assertPhotoEvidenceProvenanceUnchanged,
 	evaluateCaptureGeolocation,
 	inspectPhoto,
 	photoIntegrityFlags,
@@ -33,20 +36,49 @@ const photoEvidenceCreateInput = Schema.Struct({
 	source: Schema.optional(photoSourceSchema)
 });
 
-type PhotoCreateBefore = NonNullable<NonNullable<Hooks['create']>['before']>;
-type PhotoCreateAfter = NonNullable<NonNullable<Hooks['create']>['after']>;
+type PhotoCreateBefore = NonNullable<
+	NonNullable<NonNullable<Hooks['create']>['perRecord']>['before']
+>;
+type PhotoCreateAfter = NonNullable<
+	NonNullable<NonNullable<Hooks['create']>['perRecord']>['after']
+>;
 type PhotoBeforeApi = Parameters<PhotoCreateBefore['handler']>[0]['api'];
 type PhotoAfterApi = Parameters<PhotoCreateAfter['handler']>[0]['api'];
 type PhotoCreateInput = Parameters<PhotoCreateBefore['handler']>[0]['input'];
 type PhotoRecord = Parameters<PhotoCreateAfter['handler']>[0]['record'];
-type PhotoCreateMutation = Parameters<
-	NonNullable<PhotoCreateBefore['batchHandler']>
->[0]['inputs'][number];
+type PhotoCreateMutation = WorkspaceInsert<'photo_evidence'>;
 
-// Decoding and hashing are synchronous on the guest's single vCPU, so workers do not multiply raster
-// memory. They overlap only the sealed file-facility reads; eight keeps that IO off the critical path.
-const PHOTO_INSPECTION_CONCURRENCY = 8;
+/**
+ * The parent chain every photo in the batch hangs off, walked once for all of them.
+ *
+ * A photo names a job assignment or a variation request, and the site whose coordinates its capture
+ * location is judged against is four hops away: variation → assignment → job → site. Asked per photo
+ * that is four round trips a row; asked here it is four for the batch. The maps are keyed by id, so
+ * a hook that knows only its own record still finds its own answer.
+ *
+ * `prepare` decides nothing. Whether a parent exists, whether exactly one was named, and what the
+ * capture location implies are all still settled in `perRecord.before`, once, for one photo.
+ */
+interface PhotoEvidenceBatch {
+	readonly assignmentByVariation: ReadonlyMap<string, string | null>;
+	readonly jobByAssignment: ReadonlyMap<string, string | null>;
+	readonly siteByJob: ReadonlyMap<string, string | null>;
+	readonly locationBySite: ReadonlyMap<string, LocationLike>;
+}
+
+/**
+ * `Hooks` with what `prepare` returns filled in.
+ *
+ * The generated `Hooks` alias fixes that parameter at `void`, so a collection that prepares anything
+ * has to name the type itself. Once `bolt sync` emits `Hooks<Prepared = void>` this becomes
+ * `satisfies Hooks<PhotoEvidenceBatch>`.
+ */
+type PhotoEvidenceHooks = CollectionHooks<WorkspaceSchema, 'photo_evidence', PhotoEvidenceBatch>;
+
 const MAX_BATCH_DUPLICATE_CORPUS = 5_000;
+const MAX_BATCH_DUPLICATE_COMPARISONS = 250_000;
+const MAX_EXACT_DUPLICATE_MATCHES = 20;
+const MAX_EXACT_DUPLICATE_CANDIDATES = 1_000;
 
 function sourceKey(source: Schema.Schema.Type<typeof photoSourceSchema>, assetId: string): string {
 	return source.kind === 'channel'
@@ -54,40 +86,30 @@ function sourceKey(source: Schema.Schema.Type<typeof photoSourceSchema>, assetId
 		: `workspace:${assetId}`;
 }
 
-function resolveSiteLocation(
-	api: PhotoBeforeApi,
+/**
+ * The site a photo's capture location is judged against, walked through the batch's own maps.
+ *
+ * This used to be four `findFirst` calls per photo. Nothing about the walk changed — a variation
+ * points at an assignment, an assignment at a job, a job at a site — only where the answers come
+ * from, and a missing link at any hop still means "no site to contradict".
+ */
+function siteLocationFor(
+	prepared: PhotoEvidenceBatch,
 	jobAssignmentId: string | null | undefined,
 	variationRequestId: string | null | undefined
-): Effect.Effect<LocationLike, unknown, never> {
-	return Effect.gen(function* () {
-		let assignmentId = jobAssignmentId;
-		if ((assignmentId == null || assignmentId === '') && variationRequestId != null) {
-			const variation = yield* api.db.query.variation_requests.findFirst({
-				where: { norbital_id: { eq: variationRequestId } },
-				columns: { job_assignment_id: true }
-			});
-			assignmentId = variation?.job_assignment_id ?? null;
-		}
-		if (assignmentId == null || assignmentId === '') return null;
-
-		const assignment = yield* api.db.query.job_assignments.findFirst({
-			where: { norbital_id: { eq: assignmentId } },
-			columns: { job_id: true }
-		});
-		if (assignment?.job_id == null) return null;
-
-		const job = yield* api.db.query.jobs.findFirst({
-			where: { norbital_id: { eq: assignment.job_id } },
-			columns: { site_id: true }
-		});
-		if (job?.site_id == null) return null;
-
-		const site = yield* api.db.query.sites.findFirst({
-			where: { norbital_id: { eq: job.site_id } },
-			columns: { location: true }
-		});
-		return site?.location ?? null;
-	});
+): LocationLike {
+	const assignmentId =
+		jobAssignmentId != null && jobAssignmentId !== ''
+			? jobAssignmentId
+			: variationRequestId != null && variationRequestId !== ''
+				? (prepared.assignmentByVariation.get(variationRequestId) ?? null)
+				: null;
+	if (assignmentId == null || assignmentId === '') return null;
+	const jobId = prepared.jobByAssignment.get(assignmentId) ?? null;
+	if (jobId == null) return null;
+	const siteId = prepared.siteByJob.get(jobId) ?? null;
+	if (siteId == null) return null;
+	return prepared.locationBySite.get(siteId) ?? null;
 }
 
 function assignmentIdFromEvidence(
@@ -149,7 +171,8 @@ function runAfterPhoto(
 				api.db.query.photo_evidence.findMany({
 					where: { sha256: { eq: record.sha256 } },
 					columns,
-					limit: 21
+					// Read past same-assignment copies before applying the 20-match evidence cap below.
+					limit: MAX_EXACT_DUPLICATE_CANDIDATES + 1
 				}),
 				api.db.query.photo_evidence.findNearest({
 					column: 'perceptual_embedding',
@@ -185,11 +208,14 @@ function runAfterPhoto(
 			])
 		);
 
+		let recordedExactMatches = 0;
 		for (const candidate of exactMatches) {
 			if (candidate.norbital_id === record.norbital_id) continue;
 			if (candidateAssignmentIds.get(candidate.norbital_id) === currentAssignmentId) continue;
 			flags.add('exact_duplicate');
 			matchedIds.add(candidate.norbital_id);
+			recordedExactMatches += 1;
+			if (recordedExactMatches >= MAX_EXACT_DUPLICATE_MATCHES) break;
 		}
 		for (const candidate of visualMatches) {
 			if (candidate.norbital_id === record.norbital_id) continue;
@@ -248,230 +274,120 @@ function preparePhoto(
 export default {
 	create: {
 		input: photoEvidenceCreateInput,
-		before: {
-			description:
-				'Accepts a photo only as an image filed against exactly one existing job assignment or variation request, then records its hash, perceptual fingerprint, and whether its capture location contradicts the site.',
-			batchHandler: ({ inputs, api }) =>
-				Effect.gen(function* () {
-					for (const input of inputs) {
-						assertExactlyOnePhotoParent(input.job_assignment_id, input.variation_request_id);
-					}
-
-					const directAssignmentIds = inputs.flatMap((input) =>
-						input.job_assignment_id ? [input.job_assignment_id] : []
-					);
-					const variationIds = inputs.flatMap((input) =>
-						input.variation_request_id ? [input.variation_request_id] : []
-					);
-					const variations = variationIds.length
-						? yield* api.db.query.variation_requests.findMany({
-								where: { norbital_id: { in: [...new Set(variationIds)] } },
-								columns: { norbital_id: true, job_assignment_id: true },
-								limit: MAX_BATCH_DUPLICATE_CORPUS
-							})
-						: [];
-					const variationAssignments = new Map(
-						variations.map((variation) => [variation.norbital_id, variation.job_assignment_id])
-					);
-					const assignmentIds = [
-						...new Set([
-							...directAssignmentIds,
-							...variations.flatMap((variation) =>
-								variation.job_assignment_id ? [variation.job_assignment_id] : []
-							)
-						])
-					];
-					const assignments = assignmentIds.length
-						? yield* api.db.query.job_assignments.findMany({
-								where: { norbital_id: { in: assignmentIds } },
-								columns: { norbital_id: true, job_id: true },
-								limit: MAX_BATCH_DUPLICATE_CORPUS
-							})
-						: [];
-					const assignmentsById = new Map(
-						assignments.map((assignment) => [assignment.norbital_id, assignment])
-					);
-					for (const input of inputs) {
-						if (input.job_assignment_id && !assignmentsById.has(input.job_assignment_id)) {
-							throw new Error('Referenced job assignment does not exist.');
-						}
-						if (
-							input.variation_request_id &&
-							!variationAssignments.has(input.variation_request_id)
-						) {
-							throw new Error('Referenced variation request does not exist.');
-						}
-					}
-
-					const jobIds = [
-						...new Set(
-							assignments.flatMap((assignment) => (assignment.job_id ? [assignment.job_id] : []))
+		prepare: ({ inputs, api }) =>
+			Effect.gen(function* () {
+				const variationIds = [
+					...new Set(
+						inputs.flatMap((input) =>
+							input.variation_request_id ? [input.variation_request_id] : []
 						)
-					];
-					const jobs = jobIds.length
-						? yield* api.db.query.jobs.findMany({
-								where: { norbital_id: { in: jobIds } },
-								columns: { norbital_id: true, site_id: true },
-								limit: MAX_BATCH_DUPLICATE_CORPUS
-							})
-						: [];
-					const jobsById = new Map(jobs.map((job) => [job.norbital_id, job]));
-					const siteIds = [...new Set(jobs.flatMap((job) => (job.site_id ? [job.site_id] : [])))];
-					const sites = siteIds.length
-						? yield* api.db.query.sites.findMany({
-								where: { norbital_id: { in: siteIds } },
-								columns: { norbital_id: true, location: true },
-								limit: MAX_BATCH_DUPLICATE_CORPUS
-							})
-						: [];
-					const sitesById = new Map(sites.map((site) => [site.norbital_id, site.location]));
-
-					return yield* Effect.all(
-						inputs.map((input) =>
-							Effect.gen(function* () {
-								const assignmentId =
-									input.job_assignment_id ??
-									(input.variation_request_id
-										? variationAssignments.get(input.variation_request_id)
-										: null);
-								const jobId = assignmentId ? assignmentsById.get(assignmentId)?.job_id : null;
-								const siteId = jobId ? jobsById.get(jobId)?.site_id : null;
-								return yield* preparePhoto(
-									api,
-									input,
-									siteId ? (sitesById.get(siteId) ?? null) : null
-								);
-							})
+					)
+				];
+				const variations = variationIds.length
+					? yield* api.db.query.variation_requests.findMany({
+							where: { norbital_id: { in: variationIds } },
+							columns: { norbital_id: true, job_assignment_id: true },
+							limit: MAX_BATCH_DUPLICATE_CORPUS
+						})
+					: [];
+				const assignmentByVariation = new Map(
+					variations.map((variation) => [variation.norbital_id, variation.job_assignment_id])
+				);
+				const assignmentIds = [
+					...new Set([
+						...inputs.flatMap((input) =>
+							input.job_assignment_id ? [input.job_assignment_id] : []
 						),
-						{ concurrency: PHOTO_INSPECTION_CONCURRENCY }
-					);
-				}),
-			handler: ({ input, api }) =>
-				Effect.gen(function* () {
-					const jobAssignmentId = input.job_assignment_id;
-					const variationRequestId = input.variation_request_id;
-					assertExactlyOnePhotoParent(jobAssignmentId, variationRequestId);
-
-					if (jobAssignmentId != null && jobAssignmentId !== '') {
-						const row = yield* api.db.query.job_assignments.findFirst({
-							where: { norbital_id: { eq: jobAssignmentId } }
-						});
-						if (row == null) throw new Error('Referenced job assignment does not exist.');
-					} else if (variationRequestId != null && variationRequestId !== '') {
-						const row = yield* api.db.query.variation_requests.findFirst({
-							where: { norbital_id: { eq: variationRequestId } }
-						});
-						if (row == null) throw new Error('Referenced variation request does not exist.');
-					}
-
-					const siteLocation = yield* resolveSiteLocation(api, jobAssignmentId, variationRequestId);
-					return yield* preparePhoto(api, input, siteLocation);
-				})
-		},
-		after: {
-			description:
-				'Compares a newly filed photo against the rest of the evidence by hash and visual likeness and records deterministic evidence attributes for the multimodal review layer.',
-			batchHandler: ({ records, api }) =>
-				Effect.gen(function* () {
-					const columns = {
-						norbital_id: true,
-						sha256: true,
-						perceptual_embedding: true,
-						flags: true,
-						job_assignment_id: true,
-						variation_request_id: true
-					} as const;
-					const corpus = yield* api.db.query.photo_evidence.findMany({
-						columns,
-						limit: MAX_BATCH_DUPLICATE_CORPUS
-					});
-					if (corpus.length >= MAX_BATCH_DUPLICATE_CORPUS) {
-						// Preserve indexed production semantics at the explicit authoring ceiling. Seed/demo
-						// workspaces stay well below it; a mature workspace safely pays the existing per-row path.
-						for (const record of records) yield* runAfterPhoto(record, api);
-						return;
-					}
-
-					const variationIds = [
-						...new Set(
-							corpus.flatMap((row) => (row.variation_request_id ? [row.variation_request_id] : []))
+						...variations.flatMap((variation) =>
+							variation.job_assignment_id ? [variation.job_assignment_id] : []
 						)
-					];
-					const variations = variationIds.length
-						? yield* api.db.query.variation_requests.findMany({
-								where: { norbital_id: { in: variationIds } },
-								columns: { norbital_id: true, job_assignment_id: true },
-								limit: MAX_BATCH_DUPLICATE_CORPUS
-							})
-						: [];
-					const variationAssignments = new Map(
-						variations.map((variation) => [variation.norbital_id, variation.job_assignment_id])
-					);
-					const assignmentFor = (row: {
-						job_assignment_id?: string | null;
-						variation_request_id?: string | null;
-					}) =>
-						row.job_assignment_id ??
-						(row.variation_request_id
-							? (variationAssignments.get(row.variation_request_id) ?? null)
-							: null);
-					const planned = planDuplicateEvidenceBatch(
-						corpus.map((evidence) => ({
-							id: evidence.norbital_id,
-							sha256: evidence.sha256,
-							perceptualEmbedding: evidence.perceptual_embedding,
-							flags: evidence.flags,
-							assignmentId: assignmentFor(evidence)
-						})),
-						new Set(records.map((record) => record.norbital_id))
-					);
-					yield* api.db.photo_evidence.mutate(
-						planned.map((update) => ({
-							norbital_id: update.id,
-							flags: update.flags,
-							matched_evidence_ids: update.matchedEvidenceIds
-						}))
-					);
-				}),
-			handler: ({ record, api }) =>
-				Effect.gen(function* () {
-					yield* runAfterPhoto(record, api);
-				})
+					])
+				];
+				const assignments = assignmentIds.length
+					? yield* api.db.query.job_assignments.findMany({
+							where: { norbital_id: { in: assignmentIds } },
+							columns: { norbital_id: true, job_id: true },
+							limit: MAX_BATCH_DUPLICATE_CORPUS
+						})
+					: [];
+				const jobByAssignment = new Map(
+					assignments.map((assignment) => [assignment.norbital_id, assignment.job_id])
+				);
+				const jobIds = [
+					...new Set(
+						assignments.flatMap((assignment) => (assignment.job_id ? [assignment.job_id] : []))
+					)
+				];
+				const jobs = jobIds.length
+					? yield* api.db.query.jobs.findMany({
+							where: { norbital_id: { in: jobIds } },
+							columns: { norbital_id: true, site_id: true },
+							limit: MAX_BATCH_DUPLICATE_CORPUS
+						})
+					: [];
+				const siteByJob = new Map(jobs.map((job) => [job.norbital_id, job.site_id]));
+				const siteIds = [...new Set(jobs.flatMap((job) => (job.site_id ? [job.site_id] : [])))];
+				const sites = siteIds.length
+					? yield* api.db.query.sites.findMany({
+							where: { norbital_id: { in: siteIds } },
+							columns: { norbital_id: true, location: true },
+							limit: MAX_BATCH_DUPLICATE_CORPUS
+						})
+					: [];
+				return {
+					assignmentByVariation,
+					jobByAssignment,
+					siteByJob,
+					locationBySite: new Map(sites.map((site) => [site.norbital_id, site.location]))
+				};
+			}),
+		perRecord: {
+			before: {
+				description:
+					'Accepts a photo only as an image filed against exactly one existing job assignment or variation request, then records its hash, perceptual fingerprint, and whether its capture location contradicts the site.',
+				handler: ({ input, prepared, api }) =>
+					Effect.gen(function* () {
+						const jobAssignmentId = input.job_assignment_id;
+						const variationRequestId = input.variation_request_id;
+						assertExactlyOnePhotoParent(jobAssignmentId, variationRequestId);
+
+						if (jobAssignmentId != null && jobAssignmentId !== '') {
+							if (!prepared.jobByAssignment.has(jobAssignmentId)) {
+								throw new Error('Referenced job assignment does not exist.');
+							}
+						} else if (variationRequestId != null && variationRequestId !== '') {
+							if (!prepared.assignmentByVariation.has(variationRequestId)) {
+								throw new Error('Referenced variation request does not exist.');
+							}
+						}
+
+						return yield* preparePhoto(
+							api,
+							input,
+							siteLocationFor(prepared, jobAssignmentId, variationRequestId)
+						);
+					})
+			},
+			after: {
+				description:
+					'Compares a newly filed photo against the rest of the evidence by hash and visual likeness and records deterministic evidence attributes for the multimodal review layer.',
+				handler: ({ record, api }) =>
+					Effect.gen(function* () {
+						yield* runAfterPhoto(record, api);
+					})
+			}
 		}
 	},
 	update: {
-		before: {
-			description:
-				'Keeps a photo filed against exactly one job assignment or variation request, and refuses to re-parent it onto a record that does not exist.',
-			handler: ({ input, existing, api }) =>
-				Effect.gen(function* () {
-					if (input.job_assignment_id === undefined && input.variation_request_id === undefined) {
-						return input;
-					}
-					const jobAssignmentId =
-						input.job_assignment_id === undefined
-							? existing.job_assignment_id
-							: input.job_assignment_id;
-					const variationRequestId =
-						input.variation_request_id === undefined
-							? existing.variation_request_id
-							: input.variation_request_id;
-					assertExactlyOnePhotoParent(jobAssignmentId, variationRequestId);
-
-					if (jobAssignmentId != null && jobAssignmentId !== '') {
-						const assignment = yield* api.db.query.job_assignments.findFirst({
-							where: { norbital_id: { eq: jobAssignmentId } }
-						});
-						if (assignment == null) throw new Error('Referenced job assignment does not exist.');
-					} else if (variationRequestId != null && variationRequestId !== '') {
-						const variation = yield* api.db.query.variation_requests.findFirst({
-							where: { norbital_id: { eq: variationRequestId } }
-						});
-						if (variation == null) throw new Error('Referenced variation request does not exist.');
-					}
-
-					return input;
-				})
+		perRecord: {
+			before: {
+				description:
+					'Keeps the selected image, parent, and channel provenance immutable so stored integrity results can never be moved onto different evidence.',
+				handler: ({ input, existing }) => {
+					assertPhotoEvidenceProvenanceUnchanged(input, existing);
+					return Effect.succeed(input);
+				}
+			}
 		}
 	}
-} satisfies Hooks;
+} satisfies PhotoEvidenceHooks;
