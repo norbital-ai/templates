@@ -1,5 +1,7 @@
 import { currencyFractionDigits, fromMinorUnits, toMinorUnits } from '@norbital-ai/std/finance';
+import type { CollectionHooks } from '@norbital-ai/bolt/authoring';
 import { Effect } from 'effect';
+import type { WorkspaceSchema } from '$bolt/types.js';
 import type { Hooks, WorkspaceRow } from './$types.js';
 
 function roundHalfUp(value: number, digits: number): number {
@@ -65,12 +67,34 @@ function documentTotals(lines: readonly LineAmounts[], currency: string): LineAm
 	};
 }
 
-type AfterApi = Parameters<NonNullable<NonNullable<Hooks['create']>['after']>['handler']>[0]['api'];
+type AfterApi = Parameters<
+	NonNullable<NonNullable<NonNullable<Hooks['create']>['perRecord']>['after']>['handler']
+>[0]['api'];
 type BeforeApi = Parameters<
-	NonNullable<NonNullable<Hooks['create']>['before']>['handler']
+	NonNullable<NonNullable<NonNullable<Hooks['create']>['perRecord']>['before']>['handler']
 >[0]['api'];
 
 const LINE_LIMIT = 5000;
+
+/**
+ * The invoices, order lines and existing invoiced quantities this batch refers to, read once.
+ *
+ * Three questions per line — is its invoice a draft, is its order line on the same order, and how
+ * much of that order line is already invoiced — were three round trips a row and are now three for
+ * the batch. `prepare` decides nothing; every refusal is still written once, for one line.
+ */
+interface PurchaseInvoiceLineBatch {
+	readonly invoices: ReadonlyMap<string, WorkspaceRow<'purchase_invoices'>>;
+	readonly orderLines: ReadonlyMap<string, WorkspaceRow<'purchase_order_lines'>>;
+	readonly invoicedByOrderLine: ReadonlyMap<string, number>;
+}
+
+/** `Hooks` with what `prepare` returns filled in; see the note in `quote_lines/+hooks.ts`. */
+type PurchaseInvoiceLineHooks = CollectionHooks<
+	WorkspaceSchema,
+	'purchase_invoice_lines',
+	PurchaseInvoiceLineBatch
+>;
 
 function requireCurrency(currency: string | null): string {
 	if (!currency) throw new Error('Document currency is required.');
@@ -168,17 +192,67 @@ const afterRollup = ({
 
 export default {
 	create: {
-		before: {
-			description:
-				'Matches an invoice line to a purchase order line on the same order and refuses to invoice more than was ordered, counting only lines on invoices that are not cancelled.',
-			handler: ({ input, api }) =>
-				Effect.gen(function* () {
+		prepare: ({ inputs, api }) =>
+			Effect.gen(function* () {
+				const invoiceIds = [
+					...new Set(
+						inputs.flatMap((input) =>
+							input.purchase_invoice_id ? [input.purchase_invoice_id] : []
+						)
+					)
+				];
+				const orderLineIds = [
+					...new Set(
+						inputs.flatMap((input) =>
+							input.purchase_order_line_id ? [input.purchase_order_line_id] : []
+						)
+					)
+				];
+				const invoices = invoiceIds.length
+					? yield* api.db.query.purchase_invoices.findMany({
+							where: { norbital_id: { in: invoiceIds } },
+							limit: LINE_LIMIT
+						})
+					: [];
+				const orderLines = orderLineIds.length
+					? yield* api.db.query.purchase_order_lines.findMany({
+							where: { norbital_id: { in: orderLineIds } },
+							limit: LINE_LIMIT
+						})
+					: [];
+				// The same filter `liveInvoicedQuantity` applied one order line at a time, asked once.
+				const invoiced = orderLineIds.length
+					? yield* api.db.query.purchase_invoice_lines.findMany({
+							where: {
+								purchase_order_line_id: { in: orderLineIds },
+								purchase_invoice_line_invoice: { status: { ne: 'cancelled' } }
+							},
+							columns: { purchase_order_line_id: true, quantity: true },
+							limit: LINE_LIMIT
+						})
+					: [];
+				const invoicedByOrderLine = new Map<string, number>();
+				for (const line of invoiced) {
+					invoicedByOrderLine.set(
+						line.purchase_order_line_id,
+						(invoicedByOrderLine.get(line.purchase_order_line_id) ?? 0) + Number(line.quantity ?? 0)
+					);
+				}
+				return {
+					invoices: new Map(invoices.map((invoice) => [invoice.norbital_id, invoice])),
+					orderLines: new Map(orderLines.map((orderLine) => [orderLine.norbital_id, orderLine])),
+					invoicedByOrderLine
+				};
+			}),
+		perRecord: {
+			before: {
+				description:
+					'Matches an invoice line to a purchase order line on the same order and refuses to invoice more than was ordered, counting only lines on invoices that are not cancelled.',
+				handler: ({ input, prepared }) => {
 					if (!input.purchase_invoice_id) {
 						throw new Error('A purchase invoice line must reference a purchase invoice.');
 					}
-					const invoice = yield* api.db.query.purchase_invoices.findFirst({
-						where: { norbital_id: { eq: input.purchase_invoice_id } }
-					});
+					const invoice = prepared.invoices.get(input.purchase_invoice_id);
 					if (!invoice) throw new Error('Referenced purchase invoice does not exist.');
 					if (invoice.status !== 'draft') {
 						throw new Error('Lines can only be added to draft purchase invoices.');
@@ -187,9 +261,7 @@ export default {
 					if (!input.purchase_order_line_id) {
 						throw new Error('A purchase invoice line must reference a purchase order line.');
 					}
-					const orderLine = yield* api.db.query.purchase_order_lines.findFirst({
-						where: { norbital_id: { eq: input.purchase_order_line_id } }
-					});
+					const orderLine = prepared.orderLines.get(input.purchase_order_line_id);
 					if (!orderLine) throw new Error('Referenced purchase order line does not exist.');
 					if (orderLine.purchase_order_id !== invoice.purchase_order_id) {
 						throw new Error('The invoiced line belongs to a different purchase order.');
@@ -205,11 +277,11 @@ export default {
 					};
 					validateLineFields(resolved);
 
-					const invoiced = yield* liveInvoicedQuantity(api, orderLine.norbital_id);
+					const alreadyInvoiced = prepared.invoicedByOrderLine.get(orderLine.norbital_id) ?? 0;
 					const ordered = Number(orderLine.quantity ?? 0);
-					if (invoiced + Number(resolved.quantity) > ordered) {
+					if (alreadyInvoiced + Number(resolved.quantity) > ordered) {
 						throw new Error(
-							`Over-invoice: ${invoiced} of ${ordered} invoiced so far; this line would exceed the ordered quantity.`
+							`Over-invoice: ${alreadyInvoiced} of ${ordered} invoiced so far; this line would exceed the ordered quantity.`
 						);
 					}
 
@@ -220,67 +292,72 @@ export default {
 						tax: amounts.tax,
 						line_total: amounts.gross
 					};
-				})
-		},
-		after: {
-			description:
-				'Recomputes the purchase invoice net, tax and gross from its lines after a line is added.',
-			handler: afterRollup
+				}
+			},
+			after: {
+				description:
+					'Recomputes the purchase invoice net, tax and gross from its lines after a line is added.',
+				handler: afterRollup
+			}
 		}
 	},
 	update: {
-		before: {
-			description:
-				'Keeps a line on its own draft invoice, re-prices it from the changed quantity or unit cost, and refuses to push the invoiced quantity past the quantity ordered.',
-			handler: ({ input, existing, api }) =>
-				Effect.gen(function* () {
-					if (
-						input.purchase_invoice_id != null &&
-						input.purchase_invoice_id !== existing.purchase_invoice_id
-					) {
-						throw new Error('A line cannot be moved to a different purchase invoice.');
-					}
-
-					const invoice = yield* api.db.query.purchase_invoices.findFirst({
-						where: { norbital_id: { eq: existing.purchase_invoice_id } }
-					});
-					if (!invoice) throw new Error('Referenced purchase invoice does not exist.');
-					if (invoice.status !== 'draft') {
-						throw new Error('Lines can only be modified on draft purchase invoices.');
-					}
-
-					const resolved = { ...existing, ...input };
-					validateLineFields(resolved);
-
-					const orderLine = yield* api.db.query.purchase_order_lines.findFirst({
-						where: { norbital_id: { eq: existing.purchase_order_line_id } }
-					});
-					if (orderLine) {
-						const invoiced = yield* liveInvoicedQuantity(api, orderLine.norbital_id);
-						const ordered = Number(orderLine.quantity ?? 0);
-						const own = Number(existing.quantity ?? 0);
-						if (invoiced - own + Number(resolved.quantity) > ordered) {
-							throw new Error(
-								`Over-invoice: this line would push invoiced quantity past the ordered ${ordered}.`
-							);
+		perRecord: {
+			before: {
+				description:
+					'Keeps a line on its own draft invoice, re-prices it from the changed quantity or unit cost, and refuses to push the invoiced quantity past the quantity ordered.',
+				handler: ({ input, existing, api }) =>
+					Effect.gen(function* () {
+						if (
+							input.purchase_invoice_id != null &&
+							input.purchase_invoice_id !== existing.purchase_invoice_id
+						) {
+							throw new Error('A line cannot be moved to a different purchase invoice.');
 						}
-					}
 
-					const amounts = computeLineAmounts(invoice, resolved);
-					return { ...input, net: amounts.net, tax: amounts.tax, line_total: amounts.gross };
-				})
-		},
-		after: {
-			description:
-				'Recomputes the purchase invoice net, tax and gross from its lines after a line is changed.',
-			handler: afterRollup
+						const invoice = yield* api.db.query.purchase_invoices.findFirst({
+							where: { norbital_id: { eq: existing.purchase_invoice_id } }
+						});
+						if (!invoice) throw new Error('Referenced purchase invoice does not exist.');
+						if (invoice.status !== 'draft') {
+							throw new Error('Lines can only be modified on draft purchase invoices.');
+						}
+
+						const resolved = { ...existing, ...input };
+						validateLineFields(resolved);
+
+						const orderLine = yield* api.db.query.purchase_order_lines.findFirst({
+							where: { norbital_id: { eq: existing.purchase_order_line_id } }
+						});
+						if (orderLine) {
+							const invoiced = yield* liveInvoicedQuantity(api, orderLine.norbital_id);
+							const ordered = Number(orderLine.quantity ?? 0);
+							const own = Number(existing.quantity ?? 0);
+							if (invoiced - own + Number(resolved.quantity) > ordered) {
+								throw new Error(
+									`Over-invoice: this line would push invoiced quantity past the ordered ${ordered}.`
+								);
+							}
+						}
+
+						const amounts = computeLineAmounts(invoice, resolved);
+						return { ...input, net: amounts.net, tax: amounts.tax, line_total: amounts.gross };
+					})
+			},
+			after: {
+				description:
+					'Recomputes the purchase invoice net, tax and gross from its lines after a line is changed.',
+				handler: afterRollup
+			}
 		}
 	},
 	delete: {
-		after: {
-			description:
-				'Recomputes the purchase invoice net, tax and gross from its lines after a line is removed.',
-			handler: afterRollup
+		perRecord: {
+			after: {
+				description:
+					'Recomputes the purchase invoice net, tax and gross from its lines after a line is removed.',
+				handler: afterRollup
+			}
 		}
 	}
-} satisfies Hooks;
+} satisfies PurchaseInvoiceLineHooks;

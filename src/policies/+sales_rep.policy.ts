@@ -12,7 +12,7 @@ import type { Policy } from './$types.js';
  * this file rather than silently matching nothing.
  */
 export default {
-	name: 'Sales representative',
+	name: 'sales_rep',
 	description:
 		'Owns their own quotes and activities; reads shared accounts, contacts, and the product catalogue.',
 	apps: ['crm'],
