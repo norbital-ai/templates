@@ -206,7 +206,7 @@
 {/snippet}
 
 {#snippet pipeline()}
-	<Stack gap="md">
+	{#snippet pipelineScope()}
 		<label class="grid max-w-72 gap-1.5 text-sm">
 			<span class="font-medium">{t('component.owner')}</span>
 			<Combobox
@@ -217,6 +217,8 @@
 				clientConfig={{ isLoading: usersQuery.loading }}
 			/>
 		</label>
+	{/snippet}
+	<Cover gap="md" top={pipelineScope}>
 		<CollectionKanban
 			client={workspaceClient}
 			collection="quotes"
@@ -243,7 +245,7 @@
 				</Stack>
 			{/snippet}
 		</CollectionKanban>
-	</Stack>
+	</Cover>
 {/snippet}
 
 {#snippet quotes()}

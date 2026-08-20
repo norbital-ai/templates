@@ -4,7 +4,7 @@
 	import { useI18n } from '@norbital-ai/ui/i18n';
 	import type { TenantI18nKeys } from '$bolt/i18n-keys';
 	import { CollectionTable } from '@norbital-ai/ui/collection-table';
-	import { Cover, Grid, Inline, Stack } from '@norbital-ai/ui/layout';
+	import { Bound, Cover, Grid, Inline, Scroll, Stack } from '@norbital-ai/ui/layout';
 	import { Tabs, type TabConfig } from '@norbital-ai/ui/tabs';
 	const workspaceClient = getCollectionClientForSurface(client, 'crm_purchase');
 	const dashboard = client.invoke.procurement_dashboard({});
@@ -101,47 +101,51 @@
 </svelte:head>
 
 {#snippet dashboardTab()}
-	<Stack gap="lg">
-		<Grid minimum="card">
-			{#each Object.entries(dashboardData?.status_counts ?? {}) as [status, count] (status)}
-				<div class="rounded-lg border bg-card p-4">
-					<p class="text-sm text-muted-foreground capitalize">
-						{has(`component.status_${status}`)
-							? t(`component.status_${status}` as TenantI18nKeys)
-							: status.replace('_', ' ')}
-					</p>
-					<p class="text-2xl font-semibold tabular-nums">{count}</p>
-				</div>
-			{/each}
-		</Grid>
+	<Bound size="full">
+		<Scroll name={t('app.crm_purchase.tab_dashboard')}>
+			<Stack gap="lg">
+				<Grid minimum="card">
+					{#each Object.entries(dashboardData?.status_counts ?? {}) as [status, count] (status)}
+						<div class="rounded-lg border bg-card p-4">
+							<p class="text-sm text-muted-foreground capitalize">
+								{has(`component.status_${status}`)
+									? t(`component.status_${status}` as TenantI18nKeys)
+									: status.replace('_', ' ')}
+							</p>
+							<p class="text-2xl font-semibold tabular-nums">{count}</p>
+						</div>
+					{/each}
+				</Grid>
 
-		<Grid minimum="card">
-			{#each dashboardData?.committed_by_currency ?? [] as row (row.currency)}
-				<div class="rounded-lg border bg-card p-4">
-					<p class="text-sm text-muted-foreground">
-						{t('app.crm_purchase.committed_spend', { currency: row.currency })}
-					</p>
-					<p class="text-2xl font-semibold tabular-nums">{row.total.toLocaleString()}</p>
-				</div>
-			{/each}
-		</Grid>
+				<Grid minimum="card">
+					{#each dashboardData?.committed_by_currency ?? [] as row (row.currency)}
+						<div class="rounded-lg border bg-card p-4">
+							<p class="text-sm text-muted-foreground">
+								{t('app.crm_purchase.committed_spend', { currency: row.currency })}
+							</p>
+							<p class="text-2xl font-semibold tabular-nums">{row.total.toLocaleString()}</p>
+						</div>
+					{/each}
+				</Grid>
 
-		{#if (dashboardData?.top_suppliers ?? []).length > 0}
-			<div class="divide-y rounded-lg border bg-card text-sm">
-				<h3 class="border-b px-4 py-3 font-semibold">
-					{t('app.crm_purchase.top_suppliers')}
-				</h3>
-				{#each dashboardData?.top_suppliers ?? [] as supplier (supplier.supplier_id)}
-					<Inline align="start" justify="between" gap="sm" class="px-4 py-2.5">
-						<p class="min-w-0 truncate font-medium">{supplier.supplier_name}</p>
-						<p class="shrink-0 tabular-nums text-muted-foreground">
-							{supplier.gross.toLocaleString()}
-						</p>
-					</Inline>
-				{/each}
-			</div>
-		{/if}
-	</Stack>
+				{#if (dashboardData?.top_suppliers ?? []).length > 0}
+					<div class="divide-y rounded-lg border bg-card text-sm">
+						<h3 class="border-b px-4 py-3 font-semibold">
+							{t('app.crm_purchase.top_suppliers')}
+						</h3>
+						{#each dashboardData?.top_suppliers ?? [] as supplier (supplier.supplier_id)}
+							<Inline align="start" justify="between" gap="sm" class="px-4 py-2.5">
+								<p class="min-w-0 truncate font-medium">{supplier.supplier_name}</p>
+								<p class="shrink-0 tabular-nums text-muted-foreground">
+									{supplier.gross.toLocaleString()}
+								</p>
+							</Inline>
+						{/each}
+					</div>
+				{/if}
+			</Stack>
+		</Scroll>
+	</Bound>
 {/snippet}
 
 {#snippet purchaseOrders()}
