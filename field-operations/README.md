@@ -90,16 +90,19 @@ assignment's progress and their evidence photos — never the integrity results.
 ### The WhatsApp channel
 
 `field_ops_whatsapp` is a conversational entry point for contractors who already have an active
-workspace account. Administrators put the contractor in a team that holds `field_ops_contractor` and
-verify the WhatsApp number on that account. An unknown number receives a registration prompt and no model run.
+workspace account. An administrator verifies the contractor's WhatsApp number on that account; an
+unknown number receives a registration prompt and no model run.
 
 The channel runs under the strict capability lock:
 
-- **The linked account is the requestor.** `${requestor.norbital_id}` policy conditions scope reads
-  and writes to that person's assignments, variations, and evidence — matched on
-  `job_assignments.assignee_user_id`, with no record standing between them and their work.
-- **The channel declaration remains the ceiling.** The WhatsApp agent receives the
-  `field_ops_contractor` policy even if that person holds a broader web-app role elsewhere.
+- **The ceiling is `field_ops_whatsapp`, not the contractor policy.** That policy is held by the
+  `WhatsApp Channel Agent` team and nothing else, and it is the complete answer to what any turn on
+  this channel may reach — for a linked contractor exactly as for anyone. It is narrower than
+  `field_ops_contractor`: no variation requests, no photo evidence, no apps.
+- **The linked account is the requestor, which only narrows.** `${requestor.norbital_id}` conditions
+  resolve to that person, so they see their own assignments rather than none — matched on
+  `job_assignments.assignee_user_id`. It confers nothing: a contractor who administers the web app
+  reaches no more here than an ordinary one, and their `admin` flag is dropped at the boundary.
 - **DMs are private; groups are shared.** Every assigned member sees profile group transcripts in
   Agent UI, while only the DM owner and administrators see a private transcript.
 - The task never exposes controller-only integrity fields and directs photo uploads to the app.
@@ -114,7 +117,7 @@ controller-only integrity fields even though the contractor can update their own
 | Automation | `photo_site_identity`  | Post-commit vision inference on each new photo; verifies the assignment's site identity once, never re-flags on inconclusive photos.                                                                                                  |
 | Policy     | `field_ops_controller` | Full command of every collection, both apps. The reconciliation key is the filename.                                                                                                                                                  |
 | Policy     | `field_ops_contractor` | Requestor-scoped grants: assigned sites/jobs, own assignments (read + update, `assignee_user_id = requestor`), own variations (read + create/update behind the variation approval flow), own evidence (read + create).                |
-| Policy     | `field_ops_whatsapp`   | The channel lock above: exactly one grant — `update` on `job_assignments`.                                                                                                                                                            |
+| Policy     | `field_ops_whatsapp`   | The WhatsApp channel's own ceiling, held by the `WhatsApp Channel Agent` team and no other: read and update the caller's own assignments, read the jobs and sites behind them. No creates, deletes, evidence or apps.                 |
 | Remote     | `field_ops_dashboard`  | Date-specific controller query: assignment cards, board ids, map points (with suspect tones), and the month's suspect assignments.                                                                                                    |
 | Seed       | —                      | Fixture data is host-owned and lives in the repository seed bank (`src/+seed.ts` is deliberately absent). Its job/photo map is audited against the WhatsApp transcript; the weekly roster CSV lives in `assets/` with its own README. |
 

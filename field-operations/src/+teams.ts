@@ -88,13 +88,22 @@ export default {
 	/**
 	 * The WhatsApp channel principal, which is a machine and not a body of staff.
 	 *
-	 * `+field_ops_whatsapp.policy.ts` grants `job_assignments` `update` and nothing else — no reads
-	 * anywhere, no apps. With roles deleted there is no longer any route to a policy except a team,
-	 * so the agent account the channel runs as needs one; without this entry the policy would be
-	 * unreachable and the channel would hold no authority at all.
+	 * **This entry must hold exactly one policy, forever.** The runtime resolves a channel's principal
+	 * by finding the team that holds precisely the channel's declared policy, and deliberately refuses
+	 * a team holding a superset — because a team's holdings are unioned, and one unconditional grant
+	 * beside a narrowed one collapses the row predicate to `true`. Adding a second policy here would
+	 * not widen the channel; it would take the principal away and the channel would stop answering.
+	 * That is the safe failure direction, and it is why this team exists rather than reusing
+	 * `Contractor`.
 	 *
-	 * No seeded person is in it, and nobody should be: a person in this team can write assignment
-	 * rows they are not allowed to read.
+	 * `+field_ops_whatsapp.channel.ts` names this policy now. It used to name `field_ops_contractor`,
+	 * which made both this entry and the policy unreachable leftovers while handing a phone message
+	 * the whole contractor surface.
+	 *
+	 * No seeded person is in it, and nobody should be. Membership is not how a contractor reaches the
+	 * channel — a verified number on their own account is, and the turn keeps this team's authority
+	 * while taking their identity, so putting a person here would give them the agent's ceiling in the
+	 * web app for nothing.
 	 */
 	'WhatsApp Channel Agent': ['field_ops_whatsapp']
 } satisfies Teams;
