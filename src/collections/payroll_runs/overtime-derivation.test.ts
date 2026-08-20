@@ -215,3 +215,98 @@ test('hours past the daily work limit are reclassified, never dropped', () => {
 	assert.equal(classified.retainedHours + classified.excessHours, 4.5);
 	assert.equal(classified.excessHours, 1);
 });
+
+// ── the statutory rest break, where it reaches pay and where it must not ────────────────────────
+//
+// `regime.rest_break_rules` is a consecutive-hours rule. Overtime is not its trigger — it is only
+// the usual way somebody crosses one — so these cases fix that the trigger is measured on the
+// clocked run and that what reaches money is decided solely by `counts_as_worked_time`.
+
+const breakRule = (overrides) => ({
+	after_consecutive_hours: 5,
+	minimum_minutes: 30,
+	counts_as_worked_time: null,
+	applies_when: 'ALWAYS',
+	on_exceed: 'WARN',
+	authority: 'Employment Act 1955 s.60A(1)(a)',
+	...overrides
+});
+
+/** 08:30–20:45 with nothing recorded as break: 3h15m of overrun, and a 12h15m consecutive run. */
+const longRun = (overrides = {}) =>
+	entry({ worked_intervals: [interval('08:30', '20:45')], break_minutes: 0, ...overrides });
+
+test('a jurisdiction with no rest break rule computes exactly what it always computed', () => {
+	// Omitted, null and empty are one statement. Every caller passed nothing before the member was
+	// restored, and none of them may lose a minute of overtime to its arrival.
+	for (const rules of [undefined, null, []]) {
+		const day = deriveDailyOvertime(longRun(), scheduled(), rules);
+		assert.equal(day.hours, 3);
+		assert.equal(day.restBreak, null);
+		assert.equal(day.restBreakDeductedHours, 0);
+	}
+});
+
+test('a silent statute is assessed, cited and priced at nothing', () => {
+	// Malaysia. s.60A(1)(a) calls the period "leisure" and says nothing about payment, so the day is
+	// half an hour short of a break it was owed and is paid every minute of its overtime regardless.
+	// This is the arm that must never quietly become a deduction.
+	const day = deriveDailyOvertime(longRun(), scheduled(), [breakRule()]);
+	assert.equal(day.restBreak.shortfallMinutes, 30);
+	assert.equal(day.restBreak.rule.counts_as_worked_time, null);
+	assert.equal(day.restBreakDeductedHours, 0);
+	assert.equal(day.hours, 3, 'a silent statute prices nothing');
+	// The trigger is the consecutive run, not the overrun: 12h15m clocked against a 3h15m overrun.
+	assert.equal(day.restBreak.longestRunHours, 12.25);
+});
+
+test('a break the statute says is not working time deducts the shortfall', () => {
+	// Indonesia. ps.79(2)(a) says the rest is not counted as working hours, so a break that was owed
+	// and not taken is time the employee was not working.
+	const rules = [breakRule({ after_consecutive_hours: 4, counts_as_worked_time: false })];
+	const day = deriveDailyOvertime(longRun(), scheduled(), rules);
+	assert.equal(day.restBreak.shortfallMinutes, 30);
+	assert.equal(day.restBreakDeductedHours, 0.5);
+	assert.equal(day.hours, 2.5, '3h15m less the 30-minute shortfall is 2h45m, floored to 2h30m');
+});
+
+test('a break the statute counts as working time deducts nothing', () => {
+	const rules = [breakRule({ counts_as_worked_time: true })];
+	const day = deriveDailyOvertime(longRun(), scheduled(), rules);
+	assert.equal(day.restBreak.shortfallMinutes, 30);
+	assert.equal(day.restBreakDeductedHours, 0);
+	assert.equal(day.hours, 3);
+});
+
+test('the shortfall is deducted, never the requirement', () => {
+	// The arithmetic trap. `clockedWorkHours` has already taken the recorded break off the day, so a
+	// day that recorded its full statutory thirty minutes owes nothing further. Deducting the
+	// requirement again would charge that half hour twice and land the day on 2.5.
+	const rules = [breakRule({ counts_as_worked_time: false })];
+	const day = deriveDailyOvertime(longRun({ break_minutes: 30 }), scheduled(), rules);
+	assert.equal(day.restBreak.takenMinutes, 30);
+	assert.equal(day.restBreak.shortfallMinutes, 0);
+	assert.equal(day.restBreakDeductedHours, 0);
+	assert.equal(day.hours, 3);
+	assert.notEqual(day.hours, 2.5, 'that would be the requirement charged a second time');
+});
+
+test('a partly taken break deducts only the part that was not taken', () => {
+	const rules = [breakRule({ counts_as_worked_time: false })];
+	const day = deriveDailyOvertime(longRun({ break_minutes: 10 }), scheduled(), rules);
+	assert.equal(day.restBreak.shortfallMinutes, 20);
+	assert.equal(day.hours, 2.5, '3h15m less 20 minutes is 2h55m, floored to 2h30m');
+	assert.equal(day.hours % 0.5, 0, 'payable overtime is always a half-hour multiple');
+});
+
+test('a day whose whole overrun is owed as unpaid break earns nothing at all', () => {
+	// 08:30–18:00 is thirty minutes of overrun on a nine-and-a-half hour consecutive run. The day
+	// must produce no entry rather than a zero one, exactly as a day that floors away does.
+	const rules = [breakRule({ after_consecutive_hours: 4, counts_as_worked_time: false })];
+	const day = deriveDailyOvertime(
+		entry({ worked_intervals: [interval('08:30', '18:00')], break_minutes: 0 }),
+		scheduled(),
+		rules
+	);
+	assert.equal(day, null);
+});

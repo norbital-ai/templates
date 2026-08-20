@@ -15,7 +15,6 @@
 	import type { RepresentationProps, WorkspaceRow } from './$types.js';
 	import { todayKey } from '../../lib/ui/calendar.js';
 	import {
-		payrollWindows,
 		sourceLock,
 		sourceLockBlocksWrite,
 		sourceLockI18nKey,
@@ -77,33 +76,19 @@
 		return '—';
 	});
 
-	const employmentQuery = $derived(
-		record
-			? client.db.employments.findFirst({
-					where: { norbital_id: { eq: record.employment_id } },
-					columns: { company_id: true }
-				})
-			: null
-	);
-	const runsQuery = $derived(
-		employmentQuery?.current?.company_id
-			? client.db.payroll_runs.findMany({
-					where: { company_id: { eq: employmentQuery.current.company_id } },
-					columns: { period: true, lifecycle: true, attendance_from: true, attendance_to: true },
-					limit: 500
-				})
-			: null
-	);
 	/**
 	 * The settlement lock, read per record.
 	 *
 	 * The screen and the write hook compute the same lock from the same inputs — that is the whole
 	 * contract of `lib/scheduling/lock.ts` — so this query is the screen's half of the stored claim.
 	 * Without it the panel would say a record is editable right up until the hook refused it.
+	 *
+	 * The consumption label above still reads the payslip lines directly (they carry the richer
+	 * provenance); the *lock* is the stored claim, exactly as the write hook reads it.
 	 */
 	const settlementQuery = $derived(
 		record
-			? client.db.payroll_settlements.findFirst({
+			? client.db.payslip_sources.findFirst({
 					where: {
 						source_collection: { eq: 'component_entries' },
 						source_record_id: { eq: record.norbital_id }
@@ -122,9 +107,7 @@
 					approvalId: record.norbital_approval_id,
 					dates: [record.event_date],
 					today: todayKey(),
-					windows: payrollWindows(runsQuery?.current ?? []),
 					settledBy,
-					consumedByPayslip: entryPayslipLines(consumptionQuery?.current).length > 0,
 					freezeWhenLive: record.origin?.kind === 'CLAIM'
 				})
 			: { kind: 'NONE' as const }

@@ -11,7 +11,9 @@ function instalmentOrigin(value: EntryOrigin | null | undefined) {
 }
 
 const LIMIT = 5000;
-type ReadApi = Parameters<NonNullable<NonNullable<Hooks['create']>['before']>['handler']>[0]['api'];
+type ReadApi = Parameters<
+	NonNullable<NonNullable<NonNullable<Hooks['create']>['perRecord']>['before']>['handler']
+>[0]['api'];
 
 function checked<T>(rows: T[], what: string): T[] {
 	if (rows.length >= LIMIT)
@@ -100,46 +102,52 @@ function protectPaidInstalments(
 
 export default {
 	create: {
-		before: {
-			description:
-				'Checks that the instalments add up to the principal and finish inside the agreement period, so a loan cannot be booked against a schedule that never clears it.',
-			handler: ({ input }) => {
-				assertRepaymentSchedule({
-					principal: input.principal,
-					effectiveRange: input.effective_range,
-					schedule: input.schedule
-				});
-				return input;
+		perRecord: {
+			before: {
+				description:
+					'Checks that the instalments add up to the principal and finish inside the agreement period, so a loan cannot be booked against a schedule that never clears it.',
+				handler: ({ input }) => {
+					assertRepaymentSchedule({
+						principal: input.principal,
+						effectiveRange: input.effective_range,
+						schedule: input.schedule
+					});
+					return input;
+				}
 			}
 		}
 	},
 	update: {
-		before: {
-			description:
-				'Re-checks that the amended schedule still clears the principal inside the agreement period, and refuses to change the amount, due date, employment or component of any instalment already paid out on a payslip.',
-			handler: ({ input, existing, api }) =>
-				Effect.gen(function* () {
-					const principal = input.principal ?? existing.principal;
-					const effectiveRange = input.effective_range ?? existing.effective_range;
-					const schedule = input.schedule ?? existing.schedule;
-					assertRepaymentSchedule({ principal, effectiveRange, schedule });
-					yield* protectPaidInstalments(api, existing, {
-						employment_id: input.employment_id ?? existing.employment_id,
-						pay_component_id: input.pay_component_id ?? existing.pay_component_id,
-						schedule
-					});
-					return input;
-				})
+		perRecord: {
+			before: {
+				description:
+					'Re-checks that the amended schedule still clears the principal inside the agreement period, and refuses to change the amount, due date, employment or component of any instalment already paid out on a payslip.',
+				handler: ({ input, existing, api }) =>
+					Effect.gen(function* () {
+						const principal = input.principal ?? existing.principal;
+						const effectiveRange = input.effective_range ?? existing.effective_range;
+						const schedule = input.schedule ?? existing.schedule;
+						assertRepaymentSchedule({ principal, effectiveRange, schedule });
+						yield* protectPaidInstalments(api, existing, {
+							employment_id: input.employment_id ?? existing.employment_id,
+							pay_component_id: input.pay_component_id ?? existing.pay_component_id,
+							schedule
+						});
+						return input;
+					})
+			}
 		}
 	},
 	delete: {
-		before: {
-			description:
-				'Refuses to delete a repayment agreement at all, because it is the auditable record of what an employee owes; an unwanted balance is cleared by shortening the unpaid schedule.',
-			handler: () => {
-				throw new Error(
-					'Repayment agreements are auditable records and cannot be deleted. Correct the unpaid schedule instead.'
-				);
+		perRecord: {
+			before: {
+				description:
+					'Refuses to delete a repayment agreement at all, because it is the auditable record of what an employee owes; an unwanted balance is cleared by shortening the unpaid schedule.',
+				handler: () => {
+					throw new Error(
+						'Repayment agreements are auditable records and cannot be deleted. Correct the unpaid schedule instead.'
+					);
+				}
 			}
 		}
 	}

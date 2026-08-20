@@ -1,13 +1,10 @@
 import { Effect } from 'effect';
 import { refuse } from '@norbital-ai/bolt/authoring';
+import type { CollectionHooks } from '@norbital-ai/bolt/authoring';
+import type { WorkspaceSchema } from '$bolt/types.js';
 import type { EntryOrigin } from '../../custom-types/entry_origin/+definition.js';
 import { todayKey } from '../../lib/ui/calendar.js';
-import {
-	payrollWindows,
-	sourceLock,
-	sourceLockBlocksWrite,
-	sourceLockMessage
-} from '../../lib/scheduling/lock.js';
+import { sourceLock, sourceLockBlocksWrite, sourceLockMessage } from '../../lib/scheduling/lock.js';
 import type { Hooks, WorkspaceRow } from './$types.js';
 
 function instalmentOrigin(value: EntryOrigin | null | undefined) {
@@ -19,8 +16,27 @@ function instalmentOrigin(value: EntryOrigin | null | undefined) {
 
 const LIMIT = 5000;
 
+/**
+ * The repayment agreements this batch of entries cites, read once.
+ *
+ * Only a `LOAN_INSTALMENT` entry cites one, and a payroll run writes a whole company's instalments
+ * in a single call — so a read per entry was a read per employee with a loan. One for the batch now.
+ * `prepare` decides nothing: the comparison against the agreement's schedule is still made once,
+ * for one entry, by the same pure function the update path calls.
+ */
+interface ComponentEntryBatch {
+	readonly agreements: ReadonlyMap<string, WorkspaceRow<'repayment_agreements'>>;
+}
+
+/** `Hooks` with what `prepare` returns filled in; see the note in `quote_lines/+hooks.ts`. */
+type ComponentEntryHooks = CollectionHooks<
+	WorkspaceSchema,
+	'component_entries',
+	ComponentEntryBatch
+>;
+
 type BeforeApi = Parameters<
-	NonNullable<NonNullable<Hooks['create']>['before']>['handler']
+	NonNullable<NonNullable<NonNullable<Hooks['create']>['perRecord']>['before']>['handler']
 >[0]['api'];
 
 /**
@@ -83,60 +99,29 @@ function assertEntrySourceUnlocked(
 ): Effect.Effect<void, never, never> {
 	return Effect.gen(function* () {
 		/**
-		 * The settlement lock, read first and read on its own.
+		 * The settlement lock, read on its own.
 		 *
-		 * This collection already had *a* consumption signal — `consumedByPayslip`, from a payslip line
-		 * naming the entry — and it stays, because it is the same fact seen from the other side and
-		 * costs nothing to keep. What it could never say is *which run* consumed the entry, so its
-		 * refusal could not tell anybody what would release it. The stored claim can, and it is the
-		 * one signal the other two source collections also have, so all three now refuse in the same
-		 * words.
+		 * This collection used to ask twice: `consumedByPayslip`, read off a payslip line naming the
+		 * entry, and `settledBy`, from the settlement table. The refactor to `payslip_sources` made
+		 * them the same fact — PERSIST writes one source row per entry a line names — so the two
+		 * signals collapsed into the stored claim, which is the one that can name the period that
+		 * holds the record and therefore the only one whose refusal can tell anybody what would
+		 * release it.
 		 */
-		const settlement = yield* api.db.query.payroll_settlements.findFirst({
+		const claim = yield* api.db.query.payslip_sources.findFirst({
 			where: {
 				source_collection: { eq: 'component_entries' },
 				source_record_id: { eq: existing.norbital_id }
 			},
 			columns: { period: true }
 		});
-		const employment = yield* api.db.query.employments.findFirst({
-			where: { norbital_id: { eq: existing.employment_id } },
-			columns: { company_id: true }
-		});
-		// A hidden employment must not disable the lock. The window lookup is skipped; the stored
-		// claim is still evaluated, because it is a fact about this record and not about its company.
-		const [runs, lines] =
-			employment == null
-				? [[], []]
-				: yield* Effect.all(
-						[
-							api.db.query.payroll_runs.findMany({
-								where: { company_id: { eq: employment.company_id } },
-								columns: {
-									period: true,
-									lifecycle: true,
-									attendance_from: true,
-									attendance_to: true
-								},
-								limit: LIMIT
-							}),
-							api.db.query.payslip_lines.findMany({
-								where: { component_entry_id: { eq: existing.norbital_id } },
-								columns: { norbital_id: true },
-								limit: 1
-							})
-						],
-						{ concurrency: 'unbounded' }
-					);
 		const origin = existing.origin;
 		const lock = sourceLock({
 			existing: true,
 			approvalId: existing.norbital_approval_id,
 			dates: [existing.event_date],
 			today: todayKey(),
-			windows: payrollWindows(runs),
-			consumedByPayslip: lines.length > 0,
-			settledBy: settlement == null ? null : { period: settlement.period },
+			settledBy: claim == null ? null : { period: claim.period },
 			freezeWhenLive: origin?.kind === 'CLAIM'
 		});
 		if (sourceLockBlocksWrite(lock)) {
@@ -162,110 +147,103 @@ function assertInstalmentMatchesAgreement(
 
 export default {
 	create: {
-		before: {
-			description:
-				'Rejects a negative entry amount, and checks that a loan-instalment entry matches the amount, due date and pay period of the numbered instalment on its repayment agreement instead of being keyed in by hand.',
-			batchHandler: ({ inputs, api }) =>
-				Effect.gen(function* () {
-					for (const input of inputs) assertMagnitude(input.amount);
-					const agreementIds = [
-						...new Set(
-							inputs.flatMap((input) => {
-								const origin = instalmentOrigin(input.origin);
-								return origin ? [origin.agreement_id] : [];
-							})
-						)
-					];
-					if (agreementIds.length === 0) return inputs;
-					if (agreementIds.length >= LIMIT)
-						throw new Error(`Repayment agreements reached the ${LIMIT}-row safety limit.`);
-					const agreements = yield* api.db.query.repayment_agreements.findMany({
-						where: { norbital_id: { in: agreementIds } },
-						limit: LIMIT
-					});
-					const byId = new Map(agreements.map((agreement) => [agreement.norbital_id, agreement]));
-					for (const input of inputs) {
-						const origin = instalmentOrigin(input.origin);
-						if (!origin) continue;
-						assertInstalmentMatchesResolvedAgreement(
-							{
-								employment_id: input.employment_id,
-								pay_component_id: input.pay_component_id,
-								amount: input.amount,
-								event_date: input.event_date,
-								pay_period: input.pay_period ?? null,
-								origin: input.origin
-							},
-							byId.get(origin.agreement_id)
-						);
-					}
-					return inputs;
-				}),
-			handler: ({ input, api }) =>
-				Effect.gen(function* () {
+		prepare: ({ inputs, api }) =>
+			Effect.gen(function* () {
+				const agreementIds = [
+					...new Set(
+						inputs.flatMap((input) => {
+							const origin = instalmentOrigin(input.origin);
+							return origin ? [origin.agreement_id] : [];
+						})
+					)
+				];
+				const agreements = agreementIds.length
+					? yield* api.db.query.repayment_agreements.findMany({
+							where: { norbital_id: { in: agreementIds } },
+							limit: LIMIT
+						})
+					: [];
+				return {
+					agreements: new Map(agreements.map((agreement) => [agreement.norbital_id, agreement]))
+				};
+			}),
+		perRecord: {
+			before: {
+				description:
+					'Rejects a negative entry amount, and checks that a loan-instalment entry matches the amount, due date and pay period of the numbered instalment on its repayment agreement instead of being keyed in by hand.',
+				handler: ({ input, prepared }) => {
 					assertMagnitude(input.amount);
-					yield* assertInstalmentMatchesAgreement(api, {
-						employment_id: input.employment_id,
-						pay_component_id: input.pay_component_id,
-						amount: input.amount,
-						event_date: input.event_date,
-						pay_period: input.pay_period ?? null,
-						origin: input.origin
-					});
+					const origin = instalmentOrigin(input.origin);
+					assertInstalmentMatchesResolvedAgreement(
+						{
+							employment_id: input.employment_id,
+							pay_component_id: input.pay_component_id,
+							amount: input.amount,
+							event_date: input.event_date,
+							pay_period: input.pay_period ?? null,
+							origin: input.origin
+						},
+						origin == null ? undefined : prepared.agreements.get(origin.agreement_id)
+					);
 					return input;
-				})
+				}
+			}
 		}
 	},
 	update: {
-		before: {
-			description:
-				'Refuses an approved claim, a past or payroll-consumed entry, then keeps an edited amount a positive magnitude and stops a loan instalment from being detached from its repayment agreement.',
-			handler: ({ input, existing, api }) =>
-				Effect.gen(function* () {
-					yield* assertEntrySourceUnlocked(api, existing, 'Changing a pay entry');
-					assertMagnitude(input.amount);
-					const existingInstalment = instalmentOrigin(existing.origin);
-					if (existingInstalment) {
-						const nextOrigin = instalmentOrigin(input.origin ?? existing.origin);
-						if (
-							!nextOrigin ||
-							nextOrigin.agreement_id !== existingInstalment.agreement_id ||
-							nextOrigin.sequence !== existingInstalment.sequence
-						)
-							refuse(
-								'Loan instalments cannot be detached from their repayment agreement. Edit the agreement schedule instead.'
-							);
-						yield* assertInstalmentMatchesAgreement(api, {
-							employment_id: input.employment_id ?? existing.employment_id,
-							pay_component_id: input.pay_component_id ?? existing.pay_component_id,
-							amount: input.amount ?? existing.amount,
-							event_date: input.event_date ?? existing.event_date,
-							pay_period: input.pay_period ?? existing.pay_period,
-							origin: input.origin ?? existing.origin
-						});
-					}
-					return input;
-				})
+		perRecord: {
+			before: {
+				description:
+					'Refuses an approved claim, a past or payroll-consumed entry, then keeps an edited amount a positive magnitude and stops a loan instalment from being detached from its repayment agreement.',
+				handler: ({ input, existing, api }) =>
+					Effect.gen(function* () {
+						yield* assertEntrySourceUnlocked(api, existing, 'Changing a pay entry');
+						assertMagnitude(input.amount);
+						const existingInstalment = instalmentOrigin(existing.origin);
+						if (existingInstalment) {
+							const nextOrigin = instalmentOrigin(input.origin ?? existing.origin);
+							if (
+								!nextOrigin ||
+								nextOrigin.agreement_id !== existingInstalment.agreement_id ||
+								nextOrigin.sequence !== existingInstalment.sequence
+							)
+								refuse(
+									'Loan instalments cannot be detached from their repayment agreement. Edit the agreement schedule instead.'
+								);
+							yield* assertInstalmentMatchesAgreement(api, {
+								employment_id: input.employment_id ?? existing.employment_id,
+								pay_component_id: input.pay_component_id ?? existing.pay_component_id,
+								amount: input.amount ?? existing.amount,
+								event_date: input.event_date ?? existing.event_date,
+								pay_period: input.pay_period ?? existing.pay_period,
+								origin: input.origin ?? existing.origin
+							});
+						}
+						return input;
+					})
+			}
 		}
 	},
 	delete: {
-		before: {
-			description:
-				'Refuses deleting an approved claim or a payroll-consumed entry, and blocks deleting a loan instalment while its schedule row still exists.',
-			handler: ({ existing, api }) =>
-				Effect.gen(function* () {
-					yield* assertEntrySourceUnlocked(api, existing, 'Deleting a pay entry');
-					const origin = instalmentOrigin(existing.origin);
-					if (!origin) return;
-					const agreement = (yield* api.db.query.repayment_agreements.findMany({
-						where: { norbital_id: { eq: origin.agreement_id } },
-						limit: 1
-					}))[0];
-					if (agreement?.schedule?.[origin.sequence - 1])
-						refuse(
-							'Loan instalments cannot be deleted directly. Remove the unpaid row from the repayment agreement schedule.'
-						);
-				})
+		perRecord: {
+			before: {
+				description:
+					'Refuses deleting an approved claim or a payroll-consumed entry, and blocks deleting a loan instalment while its schedule row still exists.',
+				handler: ({ existing, api }) =>
+					Effect.gen(function* () {
+						yield* assertEntrySourceUnlocked(api, existing, 'Deleting a pay entry');
+						const origin = instalmentOrigin(existing.origin);
+						if (!origin) return;
+						const agreement = (yield* api.db.query.repayment_agreements.findMany({
+							where: { norbital_id: { eq: origin.agreement_id } },
+							limit: 1
+						}))[0];
+						if (agreement?.schedule?.[origin.sequence - 1])
+							refuse(
+								'Loan instalments cannot be deleted directly. Remove the unpaid row from the repayment agreement schedule.'
+							);
+					})
+			}
 		}
 	}
-} satisfies Hooks;
+} satisfies ComponentEntryHooks;

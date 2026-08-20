@@ -2,7 +2,7 @@ import type { Policy } from '../policies/$types.js';
 
 /**
  * ============================================================================
- * THE ROLE LADDER, THE TWO PAYROLL AUTHORITIES, AND THE TWO LOCKS
+ * THE POLICY LADDER, THE TWO PAYROLL AUTHORITIES, AND THE TWO LOCKS
  * ============================================================================
  *
  * This file composes every grant the six policies in `src/policies` are built from. It is the
@@ -10,8 +10,8 @@ import type { Policy } from '../policies/$types.js';
  *
  * ## 1. The ladder
  *
- * Four ordinary levels, increasing, and two special roles that sit beside the ladder rather than on
- * it:
+ * Four ordinary levels, increasing, and two special payroll authorities that sit beside the ladder
+ * rather than on it:
  *
  * ```
  *   employee → supervisor → manager → senior_management        (rank)
@@ -19,25 +19,37 @@ import type { Policy } from '../policies/$types.js';
  *                 hr_controller → hr_manager                   (payroll authority)
  * ```
  *
- * A role token is exactly a policy's `name`, case-folded. `subjectHasPolicy` in
- * `oss/packages/bolt/src/runtime/access/access-control.ts` reads `policy.roles ?? [policy.name]`,
- * and the authoring surface (`PolicyDefinition` in `@norbital-ai/bolt/authoring`) declares no
- * `roles` field — so the policy *name* is the role, and one role means one file. That is why there
- * are six `+*.policy.ts` files and not three with role lists.
+ * A policy is selected by its `name`, case-folded, and by nothing else. `policiesHeldByTeam` in
+ * `oss/packages/bolt/src/runtime/access/access-control.ts` resolves the team names in a subject's
+ * `teamPath` against the team map the release carries and returns the policy names those teams
+ * declare, folded; `subjectHasPolicy` matches a policy when that set holds its folded `name`. The
+ * authoring surface (`PolicyDefinition` in `@norbital-ai/bolt/authoring`) offers no other way to be
+ * matched — so one policy is one name and one file, and that is why there are six `+*.policy.ts`
+ * files and not three with lists in them.
  *
- * The owner wrote the top rank as "senior management". It is spelled `senior_management` here so
- * every role token in this workspace has the same shape as `hr_controller` and `hr_manager`; a role
- * carrying a space is a role that gets mistyped in a credential.
+ * A policy's `name` **is its file key**: `+hr_controller.policy.ts` declares `hr_controller`, and
+ * the generated `PolicyName` union is built from the same six strings. One string, one axis. A
+ * separate display spelling would be a second name for the same thing, and the two would be typed
+ * into `src/+teams.ts` and into a channel's `policy` interchangeably until one of them silently
+ * conferred nothing.
+ *
+ * *Which* teams hold which of those six names is `src/+teams.ts` and only `src/+teams.ts`. The two
+ * files are the two halves of authority here: that one says who holds a policy, this one says what
+ * holding it grants.
+ *
+ * The owner wrote the top rank as "senior management". It is `senior_management` here because that
+ * is the file it lives in; the prose spelling belongs in the i18n catalogues, which is where a
+ * reader is shown one and where getting it wrong costs a label rather than a grant.
  *
  * ### Do higher levels inherit lower grants? Yes — and inheritance is *materialized*, not derived.
  *
  * Chosen, because the runtime leaves no other option and the option it does leave is safe:
  *
  *   - There is no `extends` in the authoring surface and no notion of rank in the runtime. A
- *     subject carrying only `manager` matches only the `manager` policy, so anything not written
- *     into that file is not granted to a manager. Inheritance therefore has to be spelled out at
- *     authoring time or it does not exist at all. Each policy below composes the same builder
- *     functions the rank beneath it composes, plus its own.
+ *     subject whose team declares only `manager` matches only the `manager` policy, so anything
+ *     not written into that file is not granted to a manager. Inheritance therefore has to be
+ *     spelled out at authoring time or it does not exist at all. Each policy below composes the
+ *     same builder functions the rank beneath it composes, plus its own.
  *
  *   - Composition is safe in this direction because `rowPredicate` **unions** the matching grants:
  *     the `where` clauses of every matching grant are OR-ed, and one unconditional matching grant
@@ -48,13 +60,15 @@ import type { Policy } from '../policies/$types.js';
  *     present on **every** policy that must not see adjustments, because a single unconditional
  *     `component_entries` read anywhere in a policy the subject matches erases it.
  *
- *   - The two special roles are orthogonal to rank, so a person may hold `manager` *and*
- *     `hr_controller`. The union does the right thing without either policy knowing about the
- *     other.
+ *   - The two special authorities are orthogonal to rank, so a person may hold `manager` *and*
+ *     `hr_controller`. A person belongs to one team, so that combination is not an emergent union
+ *     of two memberships — it is a team that declares both names, `Manager (HR Controller)` in
+ *     `src/+teams.ts`. The union of their grants does the right thing without either policy
+ *     knowing about the other.
  *
  * ## 2. Who may do what to `payroll_runs`
  *
- * | role                | read | create             | update / re-run | delete           |
+ * | policy              | read | create             | update / re-run | delete           |
  * | ------------------- | ---- | ------------------ | --------------- | ---------------- |
  * | employee            | –    | –                  | –               | –                |
  * | supervisor          | –    | –                  | –               | –                |
@@ -64,7 +78,7 @@ import type { Policy } from '../policies/$types.js';
  * | `senior_management` | yes  | direct             | yes             | yes, DRAFT only  |
  *
  * Viewing payroll is enumerated authority, not a consequence of rank: the owner named exactly three
- * roles that may view it. A supervisor and a manager therefore read people, time and leave — the
+ * policies that may view it. A supervisor and a manager therefore read people, time and leave — the
  * things they act on — and read no payroll at all. They are still given the `hr_controller` app
  * group so their review screens are reachable; the payroll screen inside it renders empty for them,
  * which is the correct outcome and the point of the whole exercise: **navigation is not authority,
@@ -81,19 +95,19 @@ import type { Policy } from '../policies/$types.js';
  * approval request is open and clears it when the request settles. It answers exactly one question:
  * *is this write still waiting for a person to decide?* Nothing in this workspace may write it.
  *
- * **Settlement lock — a row in `payroll_settlements`.** Workspace-owned. One row per
- * (run, source collection, source record) written by the engine's PERSIST step, saying *this run
- * consumed this record*. It is released when — and only when — the run is deleted, which the
- * database is declared to do itself through the cascade on `payroll_run_id`. A run that reached
- * `PAID` cannot be deleted, so its locks are permanent and corrections go through adjustment
- * entries.
+ * **Settlement lock — a row in `payslip_sources`.** Workspace-owned. One row per
+ * (payslip, source collection, source record) written by the engine's PERSIST step, saying *this
+ * payslip consumed this record*. It is released when — and only when — the payslip that holds it is
+ * deleted, which the database is declared to do itself: the cascade on `payslips.payroll_run_id`
+ * drops a run's payslips, and the cascade on `payslip_sources.payslip_id` drops their claims with
+ * them. A run that reached `PAID` cannot be deleted, so its locks are permanent and corrections go
+ * through adjustment entries.
  *
- * That release is declared and is not yet performed: `cascade()` sets a marker nothing in the bolt
- * package reads, and the migration lineage emits no `ON DELETE` clause for any relation here. It is
- * left declared rather than replaced by a hook, because the reachable delete
- * (`api.db.<collection>.delete(identifiers)`) takes `identifiers[0]` and drops the rest — a loop
- * over it would release part of a run's claims and report success, which is worse than a release
- * that visibly does not run. See `src/collections/payroll_settlements/+model.ts`.
+ * That release is performed by the database, in the same statement that deletes the run — a
+ * hand-written release would have to page through the claims and delete them one at a time, and the
+ * reachable delete (`api.db.<collection>.delete(identifiers)`) takes `identifiers[0]` and drops the
+ * rest — a loop over it would release part of a run's claims and report success, which is worse
+ * than a release that never ran. See `src/collections/payslip_sources/+model.ts`.
  *
  * They are different questions and they must not share storage:
  *
@@ -254,25 +268,27 @@ export const peopleGrants = (...actions: Action[]): readonly Grant[] => [
 /**
  * Payroll output. Read-only as a group; `payroll_runs` gets its writes stated separately.
  *
- * `payroll_settlements` is here rather than in a group of its own because it *is* payroll output:
- * one row per source record the run consumed. Anyone who may read a payslip may read what that
+ * `payslip_sources` is here rather than in a group of its own because it *is* payroll output:
+ * one row per source record a payslip consumed. Anyone who may read a payslip may read what that
  * payslip consumed.
  */
 export const payrollGrants = (...actions: Action[]): readonly Grant[] => [
 	...grantsOn('payroll_runs', actions),
 	...grantsOn('payslips', actions),
 	...grantsOn('payslip_lines', actions),
-	...grantsOn('payroll_settlements', actions)
+	...grantsOn('payslip_sources', actions)
 ];
 
 /**
  * What re-running a draft costs in permissions.
  *
- * `clearRunResults` wipes the run's previous results before writing new ones, and it does that
+ * `clearRunResults` wipes the run's previous payslips before writing new ones, and it does that
  * through `api.db.delete`, which is **not** an elevated write: it authorizes against the requesting
  * subject exactly as a person's own delete would. So a role that may recalculate a draft must hold
- * delete on the three collections a run owns, or the rebuild fails on the clear and the run keeps
- * last build's figures while reporting success.
+ * delete on the two collections a run's payslips own, or the rebuild fails on the clear and the run
+ * keeps last build's figures while reporting success. The source rows go with the payslips, by the
+ * database's own cascade — no `payslip_sources` delete grant exists, because nothing ever deletes
+ * one by hand.
  *
  * This is deliberately *not* given to `hr_controller`. A controller may raise a run and never
  * re-runs one, and a fresh run has nothing to clear — `clearRunResults` returns before it deletes
@@ -280,8 +296,7 @@ export const payrollGrants = (...actions: Action[]): readonly Grant[] => [
  */
 export const payrollRebuildGrants = (): readonly Grant[] => [
 	...grantsOn('payslips', ['delete']),
-	...grantsOn('payslip_lines', ['delete']),
-	...grantsOn('payroll_settlements', ['delete'])
+	...grantsOn('payslip_lines', ['delete'])
 ];
 
 /**
@@ -293,12 +308,12 @@ export const payrollRebuildGrants = (): readonly Grant[] => [
  * with a bare access denial naming a collection they have never heard of, instead of the sentence
  * that tells them to ask HR for an adjustment.
  *
- * Unconditional, and safely so: a settlement row carries a run id, a period, a collection name and a
+ * Unconditional, and safely so: a source row carries a payslip id, a period, a collection name and a
  * record id. No money, no name, no rate. It discloses that a record was consumed by a payroll run,
  * which is precisely what the person is about to be told.
  */
 export const settlementLedgerGrants = (): readonly Grant[] => [
-	...grantsOn('payroll_settlements', ['read'])
+	...grantsOn('payslip_sources', ['read'])
 ];
 
 /** What an employee may read to understand their own numbers: company-wide facts, not personal rows. */
@@ -319,10 +334,34 @@ export const employeeReferenceGrants = (...actions: Action[]): readonly Grant[] 
  * These used to be `team.norbital_id` values carried over from Core's seed verbatim — private
  * identifiers from one database, sitting in a public template, checked by nothing and unsatisfiable
  * anywhere that seed had not run. A team is a runtime row, so its id cannot be declared; its name can.
- * Reconciliation binds the name to this tenant's id and refuses a name with no team behind it.
+ * `bolt_team.name` is unique and compared folded wherever it is compared, so the name is a stable
+ * key into whichever tenant this release is deployed into.
+ *
+ * Nothing checks these names at build or deploy time, and nothing can: the rows are operator data.
+ * A name here with no `bolt_team` row behind it is not a refusal — it is a step nobody is eligible
+ * to decide, which is the same outcome as a team that exists and is empty. That is a membership
+ * problem, fixed by creating the team or putting somebody in it, and it is why these are the same
+ * strings as the keys in `src/+teams.ts` and as the `bolt_team` rows this workspace is seeded with.
  *
  * The config and step **ids** are still carried verbatim, and that is a different thing: an in-flight
  * `approval_request` resolves against them, so a fresh one strands every request already raised.
+ */
+/**
+ * A step lists **every** team that may decide it, because a person belongs to exactly one.
+ *
+ * That is the rule change underneath these constants. Membership used to be an array — somebody
+ * could be in `HR Manager` and `L1 Manager` and `HQ Payroll HR` at once, so a step naming one team
+ * was reachable by anyone who happened to also hold it. It is one team now
+ * (`bolt_auth_user.team_id`), so a step naming a single team is decidable only by that exact team,
+ * and every rung above it is locked out of a decision it obviously ought to be able to make.
+ *
+ * `approvals.decide` tests `step.approvers.some((team) => team folded === subject.team folded)`, so
+ * listing several teams makes any of them sufficient — which is what seniority means here. The
+ * comparison is case-insensitive on both sides, the same rule the policy side matches names by, so
+ * a step naming `HR manager` and a team named `HR Manager` are the same team and only a genuinely
+ * different string strands the step. Two *steps* would mean two signatures; one step
+ * with several approvers means one signature from any of them. `payrollRunApprovalFromController`
+ * already worked this way and says so at length; the other three now match it.
  */
 const HQ_PAYROLL_HR_TEAM = 'HQ Payroll HR';
 const HR_MANAGER_TEAM = 'HR Manager';
@@ -330,11 +369,15 @@ const L1_MANAGER_TEAM = 'L1 Manager';
 /**
  * The escalation a controller's payroll create routes to.
  *
- * A new name, so it needs a team behind it in the tenant. `dispatch.identity.admitFounder` derives
- * the founder's teams from exactly this set — every `approvers` entry across every grant — so the
- * first administrator of a fresh workspace can decide the step. Anyone else has to be put in the
- * team, which is the intended answer: an approval nobody is eligible to decide is an approval that
- * waits forever, and that is a membership problem, not a policy problem.
+ * A new name, so it needs a team behind it in the tenant, and nobody is exempt from that —
+ * `dispatch.identity.admitFounder` places the first administrator in **no team**. It used to derive
+ * a teams array by walking every `approvers` entry across every grant, precisely so a fresh
+ * workspace's founder could decide this step; that guess is gone, because `admin` short-circuits
+ * `AccessControl.decide` and does *not* bypass an approval. So immediately after provisioning the
+ * founder administers everything and can decide nothing that is gated, until somebody is put in the
+ * team. That is the intended answer, and it is visible rather than silently pre-empted: an approval
+ * nobody is eligible to decide is an approval that waits forever, and that is a membership problem,
+ * not a policy problem.
  */
 const SENIOR_MANAGEMENT_TEAM = 'Senior Management';
 
@@ -366,7 +409,7 @@ export function timeEntryApproval(configId: string): Approval {
 			{
 				id: stepId(configId),
 				name: 'Direct manager review',
-				approvers: [L1_MANAGER_TEAM],
+				approvers: [L1_MANAGER_TEAM, HR_MANAGER_TEAM, SENIOR_MANAGEMENT_TEAM],
 				description:
 					'The employee direct manager reviews attendance before it can become a payroll source.'
 			}
@@ -383,7 +426,7 @@ export function leaveApproval(configId: string): Approval {
 			{
 				id: stepId(configId),
 				name: 'Direct manager review',
-				approvers: [L1_MANAGER_TEAM],
+				approvers: [L1_MANAGER_TEAM, HR_MANAGER_TEAM, SENIOR_MANAGEMENT_TEAM],
 				description: 'The employee direct manager reviews the leave request.'
 			}
 		]
@@ -399,7 +442,7 @@ export function claimApproval(configId: string): Approval {
 			{
 				id: stepId(configId),
 				name: 'HQ Payroll HR review',
-				approvers: [HQ_PAYROLL_HR_TEAM],
+				approvers: [HQ_PAYROLL_HR_TEAM, HR_MANAGER_TEAM, SENIOR_MANAGEMENT_TEAM],
 				description: 'HQ Payroll HR performs the final claim review.'
 			}
 		]
@@ -415,7 +458,7 @@ export function payrollRunApproval(configId: string): Approval {
 			{
 				id: stepId(configId),
 				name: 'HR Manager review',
-				approvers: [HR_MANAGER_TEAM],
+				approvers: [HR_MANAGER_TEAM, SENIOR_MANAGEMENT_TEAM],
 				description: 'An HR Manager reconciles the run before payslips become final.'
 			}
 		]
@@ -431,8 +474,9 @@ export function payrollRunApproval(configId: string): Approval {
  * that has not been agreed to. The engine still builds it in `create.after`, and the figures stay
  * held behind the lock until the step is decided.
  *
- * One step with two approver teams, not two steps. `approvals.process` tests
- * `step.approvers.some((team) => subject.teams.includes(team))`, so listing both makes either
+ * One step with two approver teams, not two steps. `approvals.decide` tests
+ * `step.approvers.some((team) => team.toLocaleLowerCase() === subject.team?.toLocaleLowerCase())` —
+ * a person has one team, and any listed team matches it — so listing both makes either
  * sufficient — which is what "approval from `hr_manager` **or** senior management" says. Two steps
  * would mean *both*, and would leave every controller-raised run waiting on a second signature the
  * owner never asked for.

@@ -15,12 +15,7 @@
 		formatNumeric
 	} from '../../lib/ui/display-formatters.js';
 	import { inForceTodayFilter, todayInstant, todayKey } from '../../lib/ui/calendar.js';
-	import {
-		payrollWindows,
-		sourceLock,
-		sourceLockFrozen,
-		sourceLockReason
-	} from '../../lib/scheduling/lock.js';
+	import { sourceLock, sourceLockFrozen, sourceLockReason } from '../../lib/scheduling/lock.js';
 
 	const { t } = useI18n<TenantI18nKeys>();
 
@@ -50,16 +45,6 @@
 			? companyId
 			: (companies[0]?.norbital_id ?? null)
 	);
-	const payrollRunsQuery = $derived(
-		selectedCompanyId == null
-			? null
-			: client.db.payroll_runs.findMany({
-					where: { company_id: { eq: selectedCompanyId } },
-					columns: { period: true, lifecycle: true, attendance_from: true, attendance_to: true },
-					limit: 500
-				})
-	);
-	const payrollLockWindows = $derived(payrollWindows(payrollRunsQuery?.current ?? []));
 
 	type ComponentEntryRow = WorkspaceRow<'component_entries'> & {
 		readonly entry_employment?: Pick<WorkspaceRow<'employments'>, 'employee_number'> | null;
@@ -68,6 +53,12 @@
 			| readonly {
 					readonly payslip_line_payslip?: {
 						readonly payslip_payroll_run?: Pick<WorkspaceRow<'payroll_runs'>, 'period'> | null;
+						readonly payslip_sources?:
+							| readonly {
+									readonly source_collection?: string | null;
+									readonly period?: string | null;
+							  }[]
+							| null;
 					} | null;
 			  }[]
 			| null;
@@ -83,11 +74,28 @@
 		return '—';
 	}
 
+	/**
+	 * The stored claim over this entry, read through the payslip that holds it.
+	 *
+	 * The lines the table already reads name this entry; each one's payslip carries the source rows
+	 * it consumed, so the claim is one nested relation away — the same exact signal the write hook
+	 * asks for, from the same `payslip_sources` collection.
+	 */
+	function entrySettlement(row: ComponentEntryRow): { period: string } | null {
+		for (const line of row.entry_payslip_lines ?? []) {
+			for (const source of line.payslip_line_payslip?.payslip_sources ?? []) {
+				if (source.source_collection === 'component_entries' && source.period) {
+					return { period: source.period };
+				}
+			}
+		}
+		return null;
+	}
+
 	function entryConsumptionLabel(row: ComponentEntryRow): string {
-		const source = row.entry_payslip_lines?.[0];
-		if (source) {
-			const period = source.payslip_line_payslip?.payslip_payroll_run?.period;
-			return t('component.paid_in', { period: period ?? t('component.a_payroll_run') });
+		const claim = entrySettlement(row);
+		if (claim) {
+			return t('component.paid_in', { period: claim.period });
 		}
 		if (!row.pay_period) return t('component.settled_outside_payroll');
 		return '—';
@@ -99,8 +107,7 @@
 			approvalId: row.norbital_approval_id,
 			dates: [row.event_date],
 			today: todayKey(),
-			windows: payrollLockWindows,
-			consumedByPayslip: (row.entry_payslip_lines?.length ?? 0) > 0,
+			settledBy: entrySettlement(row),
 			freezeWhenLive: row.origin?.kind === 'CLAIM'
 		});
 	}
@@ -190,7 +197,10 @@
 								payslip_line_payslip: {
 									columns: { norbital_id: true },
 									with: {
-										payslip_payroll_run: { columns: { period: true } }
+										payslip_sources: {
+											columns: { source_collection: true, period: true },
+											where: { source_collection: { eq: 'component_entries' } }
+										}
 									}
 								}
 							}

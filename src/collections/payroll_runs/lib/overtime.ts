@@ -30,8 +30,39 @@
  *
  * There is no switch. The ladder is data: change the effective-dated regime, not this file.
  * ────────────────────────────────────────────────────────────────────────────────────────────────
+ *
+ * A STATUTORY REST BREAK CAN REDUCE PAYABLE TIME — BUT ONLY WHERE THE STATUTE SAYS IT IS NOT WORK.
+ *
+ * `regime.rest_break_rules` is a consecutive-hours rule transcribed from primary text. Overtime is
+ * not its trigger and never was: overtime is simply the usual way somebody crosses the trigger,
+ * which is exactly why the same rule catches a ten-hour split shift that earned no overtime at all.
+ *
+ * What reaches money is decided per jurisdiction by `counts_as_worked_time`, and by nothing else:
+ *
+ *   false → the break is not working time, so a break the employee was owed and did not take is
+ *           time they were not working. The shortfall is deducted. Indonesia says so in terms —
+ *           UU 13/2003 ps.79(2)(a), "tidak termasuk jam kerja".
+ *   true  → the break is paid. The requirement is recorded and nothing is deducted.
+ *   null  → THE STATUTE IS SILENT, which is not the same answer as "no". Nothing is ever deducted.
+ *           Malaysia is this case: s.60A(1)(a) calls the period "leisure" and says nothing at all
+ *           about payment, and `docs/architecture.md` records that as unresolved. Pricing off a
+ *           null would be inventing law, in the one direction — downward — where inventing it
+ *           takes money from someone who cannot see why.
+ *
+ * The quantity deducted is the **shortfall**, never the requirement. `clockedWorkHours` has already
+ * subtracted the break the entry recorded, so deducting the requirement on top would charge a
+ * thirty-minute break twice on every day that actually took one.
+ *
+ * Absent member, no governing rule, or no shortfall, and the arithmetic below is byte for byte what
+ * it was before any of this existed. That is asserted in `overtime-derivation.test.ts`, not assumed.
+ * ────────────────────────────────────────────────────────────────────────────────────────────────
  */
 
+import type { StatutoryRestBreakRule } from '../../../custom-types/statutory_regime/+definition.js';
+import {
+	restBreakAssessment,
+	type RestBreakAssessment
+} from '../../../lib/scheduling/rest-break.js';
 import type { OvertimeRule } from './configuration.js';
 import { monthKey, requiredDateKey, type IsoDate } from './dates.js';
 import { floorHalfHour } from './rounding.js';
@@ -174,12 +205,29 @@ export type DailyOvertime = {
 	readonly date: IsoDate;
 	readonly timeEntryId: string;
 	readonly dayType: DayType;
-	/** Floored to the half hour. Never negative, never zero — a zero day is dropped. */
+	/**
+	 * Floored to the half hour, and already net of any unpaid statutory break shortfall. Never
+	 * negative, never zero — a zero day is dropped, including a day whose whole overrun was consumed
+	 * by a break it was owed and did not take.
+	 */
 	readonly hours: number;
 	/** Contracted hours for the day, the boundary `STATUTORY_DAY_WAGE` bands against. */
 	readonly normalHours: number;
 	/** Actual hours at the employer's disposal, used only to locate the total-work-hours boundary. */
 	readonly totalWorkHours: number;
+	/**
+	 * The statutory rest break assessed for this day, or null where the jurisdiction declares no rule
+	 * that governs it. Carried whatever `counts_as_worked_time` says, because a compliance shortfall
+	 * is worth reporting on a day that deducted nothing — that is the Malaysian case, and it is the
+	 * whole reason this member was restored.
+	 */
+	readonly restBreak: RestBreakAssessment | null;
+	/**
+	 * Hours removed from payable overtime, which is zero unless the statute says the break is not
+	 * working time. It is stated rather than left to be re-derived so a payslip can say *why* the
+	 * payable figure is below the clocked overrun instead of leaving the employee to find it.
+	 */
+	readonly restBreakDeductedHours: number;
 };
 
 /**
@@ -188,8 +236,17 @@ export type DailyOvertime = {
  * Returns `null` when the day earns nothing, which is the common case: the gates fire, or the
  * overrun floors away to zero. A day that earns nothing produces no entry at all rather than a
  * zero one, so provenance never claims a payslip line consumed a record it did not.
+ *
+ * `restBreakRules` is the jurisdiction's transcribed rest-break member, optional in the signature so
+ * that a caller which has none — and every caller had none before the member was restored — computes
+ * exactly what it computed before. Omitted, null and empty are one statement: no rule governs, so
+ * nothing is assessed and nothing is deducted.
  */
-export function deriveDailyOvertime(entry: TimeEntryLike, day: ScheduledDay): DailyOvertime | null {
+export function deriveDailyOvertime(
+	entry: TimeEntryLike,
+	day: ScheduledDay,
+	restBreakRules?: readonly StatutoryRestBreakRule[] | null
+): DailyOvertime | null {
 	const workDate = requiredDateKey(entry.work_date, 'time_entries.work_date');
 	const intervals = normalizedWorkedIntervals(entry);
 	const totalWorkHours = clockedWorkHours(entry);
@@ -206,7 +263,35 @@ export function deriveDailyOvertime(entry: TimeEntryLike, day: ScheduledDay): Da
 		raw = before + after;
 	}
 
-	const hours = floorHalfHour(Math.max(0, raw));
+	/**
+	 * The rest break is assessed from the punches and deducted **before** the half-hour floor.
+	 *
+	 * The assessment reads `worked_intervals`, not `raw`: the trigger is consecutive hours, and the
+	 * overrun this function computes is a different quantity that discards everything inside the
+	 * scheduled window. A day of 08:00–19:00 with a 20-minute pause crosses Malaysia's five
+	 * consecutive hours whether or not any of it was overtime — measuring the trigger off `raw` would
+	 * make the rule fire on the tail of a shift instead of on the stretch the statute describes.
+	 *
+	 * Only the **shortfall** is deducted, and only where the statute says the break is not working
+	 * time. `clockedWorkHours` above has already taken the recorded `break_minutes` off the day, so
+	 * an entry that recorded its full statutory break deducts nothing further here — it was deducted
+	 * once already, and taking the requirement again would charge a half-hour break as a full hour.
+	 *
+	 * Deducting before the floor keeps the floor doing one job. Flooring first and subtracting after
+	 * would produce payable figures off the half hour, which no other path in this engine can emit.
+	 *
+	 * `continuousAttendance` is not passed: no column records whether the work must be carried on
+	 * continuously, and the proviso is an exception nobody has asserted. Claiming it here would
+	 * silently swap Malaysia's five-hour rule for its eight-hour one on every day in the workspace.
+	 */
+	const restBreak = restBreakAssessment({
+		intervals: entry.worked_intervals ?? [],
+		breakMinutes: entry.break_minutes,
+		rules: restBreakRules
+	});
+	const restBreakDeductedHours =
+		restBreak.rule?.counts_as_worked_time === false ? (restBreak.shortfallMinutes ?? 0) / 60 : 0;
+	const hours = floorHalfHour(Math.max(0, raw - restBreakDeductedHours));
 	if (hours <= 0) return null;
 	return {
 		date: workDate,
@@ -214,7 +299,11 @@ export function deriveDailyOvertime(entry: TimeEntryLike, day: ScheduledDay): Da
 		dayType: day.dayType,
 		hours,
 		normalHours: day.normalHours,
-		totalWorkHours
+		totalWorkHours,
+		// Null rather than a "no rule" assessment: a consumer asking whether a break governed this day
+		// should not have to reach two levels in to find out that none did.
+		restBreak: restBreak.rule === null ? null : restBreak,
+		restBreakDeductedHours
 	};
 }
 

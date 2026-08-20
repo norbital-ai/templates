@@ -23,7 +23,12 @@ import { Effect } from 'effect';
 import { assertComplete, PAGE_LIMIT, type PayrollReadApi } from './api.js';
 import type { Configuration } from './configuration.js';
 import type { PayrollWindow } from './period.js';
-import { blockers, validateConfiguration, validateOpenTimeEntries, type RunIssue } from './validate.js';
+import {
+	blockers,
+	validateConfiguration,
+	validateOpenTimeEntries,
+	type RunIssue
+} from './validate.js';
 
 /**
  * Every blocking issue this run can be refused on without building it.

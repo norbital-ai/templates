@@ -218,44 +218,50 @@ function assertPublishable(
 
 export default {
 	create: {
-		before: {
-			description: 'Requires a YYYY-MM company roster to start as a draft.',
-			handler: async ({ input }) => {
-				if (!MONTH_PATTERN.test(input.month)) {
-					throw new Error(`Roster month must be written YYYY-MM, not "${input.month}".`);
+		perRecord: {
+			before: {
+				description: 'Requires a YYYY-MM company roster to start as a draft.',
+				handler: async ({ input }) => {
+					if (!MONTH_PATTERN.test(input.month)) {
+						throw new Error(`Roster month must be written YYYY-MM, not "${input.month}".`);
+					}
+					if (input.published_at != null) {
+						throw new Error('Create the monthly roster as a draft, then publish it after review.');
+					}
+					return input;
 				}
-				if (input.published_at != null) {
-					throw new Error('Create the monthly roster as a draft, then publish it after review.');
-				}
-				return input;
 			}
 		}
 	},
 	update: {
-		before: {
-			description:
-				'Pins the legal entity and month, then validates explicit assignments against each employment work pattern before publication.',
-			handler: ({ input, existing, api }) =>
-				Effect.gen(function* () {
-					if (input.month != null && input.month !== existing.month) {
-						throw new Error('A roster month cannot be moved after its dated assignments exist.');
-					}
-					if (input.company_id != null && input.company_id !== existing.company_id) {
-						throw new Error('A monthly roster cannot be moved to another legal entity.');
-					}
-					if (input.published_at != null && existing.published_at == null) {
-						yield* assertPublishable(api, existing);
-					}
-					return input;
-				})
+		perRecord: {
+			before: {
+				description:
+					'Pins the legal entity and month, then validates explicit assignments against each employment work pattern before publication.',
+				handler: ({ input, existing, api }) =>
+					Effect.gen(function* () {
+						if (input.month != null && input.month !== existing.month) {
+							throw new Error('A roster month cannot be moved after its dated assignments exist.');
+						}
+						if (input.company_id != null && input.company_id !== existing.company_id) {
+							throw new Error('A monthly roster cannot be moved to another legal entity.');
+						}
+						if (input.published_at != null && existing.published_at == null) {
+							yield* assertPublishable(api, existing);
+						}
+						return input;
+					})
+			}
 		}
 	},
 	delete: {
-		before: {
-			description: 'Refuses to delete a published monthly roster.',
-			handler: async ({ existing }) => {
-				if (existing.published_at != null) {
-					throw new Error(`Re-open roster ${existing.month} before deleting it.`);
+		perRecord: {
+			before: {
+				description: 'Refuses to delete a published monthly roster.',
+				handler: async ({ existing }) => {
+					if (existing.published_at != null) {
+						throw new Error(`Re-open roster ${existing.month} before deleting it.`);
+					}
 				}
 			}
 		}

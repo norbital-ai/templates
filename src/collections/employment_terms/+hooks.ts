@@ -18,22 +18,26 @@ function requireEmployment(value: string | null | undefined): string {
 
 export default {
 	create: {
-		before: {
-			description:
-				'Requires terms to name an employment and refuses a set whose effective range overlaps terms already in force, so payroll never finds two salaries or work patterns for one person on one day.',
-			handler: async ({ input }) => {
-				requireEmployment(input.employment_id);
-				return input;
+		perRecord: {
+			before: {
+				description:
+					'Requires terms to name an employment and refuses a set whose effective range overlaps terms already in force, so payroll never finds two salaries or work patterns for one person on one day.',
+				handler: async ({ input }) => {
+					requireEmployment(input.employment_id);
+					return input;
+				}
 			}
 		}
 	},
 	update: {
-		before: {
-			description:
-				'Re-checks edited terms so extending or moving their effective range cannot leave an employment with two sets of terms in force at the same instant.',
-			handler: async ({ input, existing }) => {
-				requireEmployment(input.employment_id ?? existing.employment_id);
-				return input;
+		perRecord: {
+			before: {
+				description:
+					'Re-checks edited terms so extending or moving their effective range cannot leave an employment with two sets of terms in force at the same instant.',
+				handler: async ({ input, existing }) => {
+					requireEmployment(input.employment_id ?? existing.employment_id);
+					return input;
+				}
 			}
 		}
 	}

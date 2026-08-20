@@ -3,8 +3,10 @@ import { assertNoOverlap } from '../../lib/effective_range.js';
 import type { Hooks, WorkspaceRow } from './$types.js';
 
 type CreateInput = Parameters<
-	NonNullable<NonNullable<NonNullable<Hooks['create']>['before']>['batchHandler']>
->[0]['inputs'][number];
+	NonNullable<
+		NonNullable<NonNullable<NonNullable<Hooks['create']>['perRecord']>['before']>['handler']
+	>
+>[0]['input'];
 
 const QUERY_LIMIT = 20_000;
 
@@ -60,63 +62,47 @@ export function assertBatchHasNoOverlap(
  */
 export default {
 	create: {
-		before: {
-			description:
-				'Refuses a pay component whose effective range overlaps another component with the same code in the same company, so a payslip line can only ever resolve one definition for that code.',
-			batchHandler: ({ inputs, api }) =>
-				Effect.gen(function* () {
-					if (inputs.length === 0) return inputs;
-					const companyIds = [...new Set(inputs.map((input) => input.company_id))];
-					const existing = yield* api.db.query.pay_components.findMany({
-						where: { company_id: { in: companyIds } },
-						columns: {
-							norbital_id: true,
-							company_id: true,
-							code: true,
-							effective_range: true
-						},
-						limit: QUERY_LIMIT
-					});
-					if (existing.length === QUERY_LIMIT) {
-						throw new Error('This legal entity has too many pay components to validate safely.');
-					}
-					assertBatchHasNoOverlap(inputs, existing);
-					return inputs;
-				}),
-			handler: ({ input, api }) =>
-				Effect.gen(function* () {
-					const existing = yield* api.db.query.pay_components.findMany({
-						where: { company_id: { eq: input.company_id }, code: { eq: input.code } }
-					});
-					assertNoOverlap({
-						candidate: input.effective_range,
-						existing,
-						identity: `pay component ${input.code}`
-					});
-					return input;
-				})
+		perRecord: {
+			before: {
+				description:
+					'Refuses a pay component whose effective range overlaps another component with the same code in the same company, so a payslip line can only ever resolve one definition for that code.',
+				handler: ({ input, api }) =>
+					Effect.gen(function* () {
+						const existing = yield* api.db.query.pay_components.findMany({
+							where: { company_id: { eq: input.company_id }, code: { eq: input.code } }
+						});
+						assertNoOverlap({
+							candidate: input.effective_range,
+							existing,
+							identity: `pay component ${input.code}`
+						});
+						return input;
+					})
+			}
 		}
 	},
 	update: {
-		before: {
-			description:
-				'Re-checks an edited pay component so a catalogue change becomes an end-date plus a successor row rather than two versions of one code in force at once.',
-			handler: ({ input, existing, api }) =>
-				Effect.gen(function* () {
-					const company_id = input.company_id ?? existing.company_id;
-					const code = input.code ?? existing.code;
-					const effective_range = input.effective_range ?? existing.effective_range;
-					const siblings = yield* api.db.query.pay_components.findMany({
-						where: { company_id: { eq: company_id }, code: { eq: code } }
-					});
-					assertNoOverlap({
-						candidate: effective_range,
-						existing: siblings,
-						identity: `pay component ${code}`,
-						excludeId: existing.norbital_id
-					});
-					return input;
-				})
+		perRecord: {
+			before: {
+				description:
+					'Re-checks an edited pay component so a catalogue change becomes an end-date plus a successor row rather than two versions of one code in force at once.',
+				handler: ({ input, existing, api }) =>
+					Effect.gen(function* () {
+						const company_id = input.company_id ?? existing.company_id;
+						const code = input.code ?? existing.code;
+						const effective_range = input.effective_range ?? existing.effective_range;
+						const siblings = yield* api.db.query.pay_components.findMany({
+							where: { company_id: { eq: company_id }, code: { eq: code } }
+						});
+						assertNoOverlap({
+							candidate: effective_range,
+							existing: siblings,
+							identity: `pay component ${code}`,
+							excludeId: existing.norbital_id
+						});
+						return input;
+					})
+			}
 		}
 	}
 } satisfies Hooks;

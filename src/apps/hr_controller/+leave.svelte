@@ -16,14 +16,9 @@
 		formatLeavePayrollEffect,
 		formatNumeric
 	} from '../../lib/ui/display-formatters.js';
-	import { inForceTodayFilter, todayInstant, todayKey } from '../../lib/ui/calendar.js';
+	import { inForceTodayFilter, todayInstant } from '../../lib/ui/calendar.js';
 	import LeaveSeasonality from '../../lib/ui/leave/leave-seasonality.svelte';
-	import {
-		payrollWindows,
-		sourceLock,
-		sourceLockFrozen,
-		sourceLockReason
-	} from '../../lib/scheduling/lock.js';
+	import { sourceLock, sourceLockFrozen, sourceLockReason } from '../../lib/scheduling/lock.js';
 
 	const { t } = useI18n<TenantI18nKeys>();
 
@@ -55,30 +50,59 @@
 			? requestedCompanyId
 			: (companies[0]?.norbital_id ?? null)
 	);
-	const payrollRunsQuery = $derived(
+	/**
+	 * The leave requests the requests table renders, read once for their ids so the settlement
+	 * claims over them can be scoped (the table owns its own query, so this read is the lock's half
+	 * of the contract: the row lock and the write hook must compute the same claim).
+	 */
+	const leaveRequestsQuery = $derived(
 		selectedCompanyId == null
 			? null
-			: client.db.payroll_runs.findMany({
-					where: { company_id: { eq: selectedCompanyId } },
-					columns: { period: true, lifecycle: true, attendance_from: true, attendance_to: true },
-					limit: 500
+			: client.db.leave_requests.findMany({
+					where: { leave_request_employment: { company_id: { eq: selectedCompanyId } } },
+					columns: { norbital_id: true },
+					limit: 5000
 				})
 	);
-	const payrollLockWindows = $derived(payrollWindows(payrollRunsQuery?.current ?? []));
+	const leaveSettlementsQuery = $derived.by(() => {
+		const ids = (leaveRequestsQuery?.current ?? []).map((row) => row.norbital_id);
+		if (ids.length === 0) return null;
+		return client.db.payslip_sources.findMany({
+			where: { source_collection: { eq: 'leave_requests' }, source_record_id: { in: ids } },
+			columns: { source_record_id: true, period: true },
+			limit: 5000
+		});
+	});
+	const settlementByRequestId = $derived(
+		new Map(
+			(leaveSettlementsQuery?.current ?? []).map((claim) => [
+				claim.source_record_id,
+				{ period: claim.period }
+			])
+		)
+	);
 
 	type LeaveRequestRow = WorkspaceRow<'leave_requests'> & {
 		readonly leave_request_type?: Pick<WorkspaceRow<'leave_types'>, 'code' | 'name'> | null;
 		readonly leave_request_employment?: Pick<WorkspaceRow<'employments'>, 'employee_number'> | null;
 	};
 
+	/**
+	 * The one-lock rule on a leave request: only a payslip that consumed it freezes it.
+	 *
+	 * Approval and passed dates used to freeze leave here and in `leave_requests/+hooks.ts`; both
+	 * stopped, so this table's locks and the hook's refusals agree that a request is held only by a
+	 * `payslip_sources` claim — which names the period that holds it. The day-shaped guard is still
+	 * alive, but on the create side only: `normalizedTimeOff` refuses a *new* range touching days a
+	 * paid run already priced.
+	 */
 	function leaveRowLock(row: WorkspaceRow<'leave_requests'>) {
 		return sourceLock({
 			existing: true,
 			approvalId: row.norbital_approval_id,
-			dates: [row.from_date, row.to_date],
-			today: todayKey(),
-			windows: payrollLockWindows,
-			freezeWhenLive: true
+			dates: [],
+			settledBy: settlementByRequestId.get(row.norbital_id) ?? null,
+			datePassed: 'IS_NOT_A_LOCK'
 		});
 	}
 

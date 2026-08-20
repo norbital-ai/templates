@@ -28,95 +28,97 @@ function dateKey(value: string | Date | null | undefined): string {
 
 export default {
 	update: {
-		after: {
-			description:
-				'When an employment is marked as exited, writes an ENCASHMENT event for every encashable leave type whose derived balance on the exit date is positive. One writer wins after that: the paid-out balance refuses further leave.',
-			handler: ({ record, api }) =>
-				Effect.gen(function* () {
-					const employment = record;
-					if (employment.exit_date == null || employment.exit_date === '') return;
-					const exitDate = dateKey(employment.exit_date);
-					if (exitDate === '') return;
+		perRecord: {
+			after: {
+				description:
+					'When an employment is marked as exited, writes an ENCASHMENT event for every encashable leave type whose derived balance on the exit date is positive. One writer wins after that: the paid-out balance refuses further leave.',
+				handler: ({ record, api }) =>
+					Effect.gen(function* () {
+						const employment = record;
+						if (employment.exit_date == null || employment.exit_date === '') return;
+						const exitDate = dateKey(employment.exit_date);
+						if (exitDate === '') return;
 
-					const [company, encashableTypes, allRequests] = yield* Effect.all([
-						api.db.query.companies.findFirst({
-							where: { norbital_id: { eq: employment.company_id } },
-							columns: { leave_year_start_month: true }
-						}),
-						api.db.query.leave_types.findMany({
-							where: { company_id: { eq: employment.company_id }, encash_on_exit: { eq: true } },
-							limit: LIMIT
-						}),
-						api.db.query.leave_requests.findMany({
-							where: { employment_id: { eq: employment.norbital_id } },
-							limit: LIMIT
-						})
-					]);
-					if (company == null) return;
+						const [company, encashableTypes, allRequests] = yield* Effect.all([
+							api.db.query.companies.findFirst({
+								where: { norbital_id: { eq: employment.company_id } },
+								columns: { leave_year_start_month: true }
+							}),
+							api.db.query.leave_types.findMany({
+								where: { company_id: { eq: employment.company_id }, encash_on_exit: { eq: true } },
+								limit: LIMIT
+							}),
+							api.db.query.leave_requests.findMany({
+								where: { employment_id: { eq: employment.norbital_id } },
+								limit: LIMIT
+							})
+						]);
+						if (company == null) return;
 
-					const ledger: LedgerRow[] = allRequests
-						.filter((row) => row.norbital_approval_id == null && row.from_date != null)
-						.map((row) => ({
-							norbital_id: row.norbital_id,
-							leave_type_id: row.leave_type_id,
-							entry_date: dateKey(row.from_date),
-							kind: row.kind ?? 'TAKEN',
-							days: row.kind === 'TIME_OFF' ? -Math.abs(Number(row.days)) : Number(row.days),
-							source_id: null,
-							norbital_approval_id: null
-						}));
+						const ledger: LedgerRow[] = allRequests
+							.filter((row) => row.norbital_approval_id == null && row.from_date != null)
+							.map((row) => ({
+								norbital_id: row.norbital_id,
+								leave_type_id: row.leave_type_id,
+								entry_date: dateKey(row.from_date),
+								kind: row.kind ?? 'TAKEN',
+								days: row.kind === 'TIME_OFF' ? -Math.abs(Number(row.days)) : Number(row.days),
+								source_id: null,
+								norbital_approval_id: null
+							}));
 
-					const mutations: Array<{
-						employment_id: string;
-						leave_type_id: string;
-						event: {
-							kind: 'ENCASHMENT';
-							effective_on: string;
-							movement_days: number;
-							note: string | null;
-							source_id: string | null;
-						};
-					}> = [];
-					for (const type of encashableTypes) {
-						const alreadyEncashed = allRequests.some(
-							(row) => row.kind === 'ENCASHMENT' && row.leave_type_id === type.norbital_id
-						);
-						if (alreadyEncashed) continue;
-						const balance = leaveBalance(
-							{
-								leaveType: type,
-								entitlementAtMonths: (serviceMonths: number) =>
-									resolveEntitlement({
-										leaveType: type,
-										serviceMonths,
-										employmentId: employment.norbital_id,
-										asOf: exitDate
-									}),
-								hireDate: dateKey(employment.hire_date),
-								exitDate,
-								leaveYearStartMonth: Number(company.leave_year_start_month),
-								ledger,
-								basis: 'SETTLED'
-							},
-							exitDate
-						);
-						if (balance > 0) {
-							mutations.push({
-								employment_id: employment.norbital_id,
-								leave_type_id: type.norbital_id,
-								event: {
-									kind: 'ENCASHMENT',
-									effective_on: exitDate,
-									movement_days: balance,
-									note: 'Auto-encashed on exit',
-									source_id: null
-								}
-							});
+						const mutations: Array<{
+							employment_id: string;
+							leave_type_id: string;
+							event: {
+								kind: 'ENCASHMENT';
+								effective_on: string;
+								movement_days: number;
+								note: string | null;
+								source_id: string | null;
+							};
+						}> = [];
+						for (const type of encashableTypes) {
+							const alreadyEncashed = allRequests.some(
+								(row) => row.kind === 'ENCASHMENT' && row.leave_type_id === type.norbital_id
+							);
+							if (alreadyEncashed) continue;
+							const balance = leaveBalance(
+								{
+									leaveType: type,
+									entitlementAtMonths: (serviceMonths: number) =>
+										resolveEntitlement({
+											leaveType: type,
+											serviceMonths,
+											employmentId: employment.norbital_id,
+											asOf: exitDate
+										}),
+									hireDate: dateKey(employment.hire_date),
+									exitDate,
+									leaveYearStartMonth: Number(company.leave_year_start_month),
+									ledger,
+									basis: 'SETTLED'
+								},
+								exitDate
+							);
+							if (balance > 0) {
+								mutations.push({
+									employment_id: employment.norbital_id,
+									leave_type_id: type.norbital_id,
+									event: {
+										kind: 'ENCASHMENT',
+										effective_on: exitDate,
+										movement_days: balance,
+										note: 'Auto-encashed on exit',
+										source_id: null
+									}
+								});
+							}
 						}
-					}
-					if (mutations.length === 0) return;
-					yield* api.db.leave_requests.mutate(mutations);
-				})
+						if (mutations.length === 0) return;
+						yield* api.db.leave_requests.mutate(mutations);
+					})
+			}
 		}
 	}
 } satisfies Hooks;
