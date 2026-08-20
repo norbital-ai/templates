@@ -60,19 +60,24 @@ Every photo, from every entry path (workspace upload or channel), passes through
    `exact_duplicate` / `visual_duplicate` flags with the matched evidence ids.
 3. **Geolocation** — EXIF GPS is compared against the job site's map location (500 m tolerance).
    No GPS → `missing_geolocation`; capture beyond tolerance → `location_mismatch`.
-4. **Site identity (automation)** — a vision model uses its own multimodal judgement over the whole
-   naturally photographed scene, ignoring overlays, and compares it with the assigned site. A visibly
-   wrong location latches `site_identity_mismatch` even when one expected indicator is present, and
-   stores the model's free-text rationale. Inconclusive photos do not overwrite a prior mismatch. Each
-   photo records a durable
-   pending/terminal identity state; provider work runs from the platform's leased retry queue rather
-   than holding the upload or environment reset open.
+4. **Site identity (shared automation)** — a vision model uses multimodal judgement over the whole
+   naturally photographed scene and compares it with the transcript-assigned site. A matching
+   overlay is never proof because it can be fabricated; a contradictory visible location claim is
+   suspicious evidence and must be explained. A visibly wrong location latches
+   `site_identity_mismatch` and stores the model's rationale. The create trigger reviews new evidence
+   promptly, while a daily 02:00 reconciliation retries failures and catches seed/import paths that
+   bypass collection events. Both call the same reviewer.
 5. **Classification** — deterministic inspection records evidence attributes; it does not pretend
    those attributes are the verdict. Missing GPS is neutral on its own because WhatsApp commonly
    strips EXIF. Reuse and a GPS mismatch are strong signals, but the multimodal model classifies the
    whole scene against the assigned site and writes the human-readable rationale. A scene mismatch
    latches `suspect` and cannot be cleared by a later match. The controller dashboard shows the
    attributes and AI rationale; contractors and the WhatsApp agent never see them.
+6. **Reconciliation state** — each photo stores `site_identity_status`, its last checked time, a
+   stable `site_identity_review_basis`, and `site_identity_reconciled_at`. The basis includes the
+   photo identity, deterministic flags/matches, and current assignment/job/site. Unchanged terminal
+   evidence is marked reconciled without another vision call; changed inputs, pending rows, and
+   failures are reviewed again. Hook updates to flags or matched evidence reset the row to `pending`.
 
 ## 3. What ships
 
@@ -112,14 +117,15 @@ controller-only integrity fields even though the contractor can update their own
 
 ### Automations, policies, remotes, seed
 
-| Kind       | Name                   | What it does                                                                                                                                                                                                                          |
-| ---------- | ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Automation | `photo_site_identity`  | Post-commit vision inference on each new photo; verifies the assignment's site identity once, never re-flags on inconclusive photos.                                                                                                  |
-| Policy     | `field_ops_controller` | Full command of every collection, both apps. The reconciliation key is the filename.                                                                                                                                                  |
-| Policy     | `field_ops_contractor` | Requestor-scoped grants: assigned sites/jobs, own assignments (read + update, `assignee_user_id = requestor`), own variations (read + create/update behind the variation approval flow), own evidence (read + create).                |
-| Policy     | `field_ops_whatsapp`   | The WhatsApp channel's own ceiling, held by the `WhatsApp Channel Agent` team and no other: read and update the caller's own assignments, read the jobs and sites behind them. No creates, deletes, evidence or apps.                 |
-| Remote     | `field_ops_dashboard`  | Date-specific controller query: assignment cards, board ids, map points (with suspect tones), and the month's suspect assignments.                                                                                                    |
-| Seed       | —                      | Fixture data is host-owned and lives in the repository seed bank (`src/+seed.ts` is deliberately absent). Its job/photo map is audited against the WhatsApp transcript; the weekly roster CSV lives in `assets/` with its own README. |
+| Kind       | Name                                 | What it does                                                                                                                                                                                                                          |
+| ---------- | ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Automation | `photo_site_identity`                | Created-event wrapper around the shared reviewer for prompt semantic review of newly filed evidence.                                                                                                                                  |
+| Automation | `photo_site_identity_reconciliation` | Daily 02:00 reconciliation of pending/failed evidence first, then least-recently reconciled terminal evidence; unchanged bases skip the vision call.                                                                                  |
+| Policy     | `field_ops_controller`               | Full command of every collection, both apps. The reconciliation key is the filename.                                                                                                                                                  |
+| Policy     | `field_ops_contractor`               | Requestor-scoped grants: assigned sites/jobs, own assignments (read + update, `assignee_user_id = requestor`), own variations (read + create/update behind the variation approval flow), own evidence (read + create).                |
+| Policy     | `field_ops_whatsapp`                 | The WhatsApp channel's own ceiling, held by the `WhatsApp Channel Agent` team and no other: read and update the caller's own assignments, read the jobs and sites behind them. No creates, deletes, evidence or apps.                 |
+| Remote     | `field_ops_dashboard`                | Date-specific controller query: assignment cards, board ids, map points (with suspect tones), and the month's suspect assignments.                                                                                                    |
+| Seed       | —                                    | Fixture data is host-owned and lives in the repository seed bank (`src/+seed.ts` is deliberately absent). Its job/photo map is audited against the WhatsApp transcript; the weekly roster CSV lives in `assets/` with its own README. |
 
 ## 4. Under the hood
 
@@ -137,6 +143,7 @@ src/
 │   └── photo_source/               where a photo came from: workspace upload or a channel message
 ├── i18n/                           messages.en.json + messages.zh.json (identical key sets)
 ├── lib/                            typed workspace client shared by server roles
+├── automation/                     immediate + daily wrappers over one batched site-identity reviewer
 ├── remotes/                        +field_ops_dashboard.ts
 ```
 
@@ -188,7 +195,7 @@ pnpm build   # vite build
 
 - Never hand-edit `.norbital/` generated output. `sync` may update `.norbital/migrations/`; commit
   that history alongside the authored change. Model edits are the only thing that should produce a
-  migration — this template has none pending.
+  migration.
 - Seed data stays host-owned in the repository seed bank; tenant fixtures belong in `src/+seed.ts` (deliberately absent here).
 - The seed bank treats transcript job reports and their textual photo references as authoritative.
   It never reparents a simulated wrong-site photo from an overlay, OCR, image content, upload burst,

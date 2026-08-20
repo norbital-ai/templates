@@ -12,24 +12,71 @@ export default defineAutomation(
 	{ schedule: '0 2 * * *' },
 	{
 		description:
-			'Every day reconciles up to 5,000 least-recently checked photos against their current assignment and site, reusing the immediate review logic; unchanged review bases are marked reconciled without another vision call, while pending, failed, or changed evidence is reviewed again.',
+			'Every day reconciles up to 5,000 photos against their current assignment and site, prioritizing pending and failed work before a least-recently checked terminal round-robin; unchanged review bases are marked reconciled without another vision call, while changed evidence is reviewed again.',
 		handler: (api) =>
 			Effect.gen(function* () {
-				const evidence = yield* api.db.query.photo_evidence.findMany({
-					columns: {
-						norbital_id: true,
-						job_assignment_id: true,
-						variation_request_id: true,
-						document_asset_id: true,
-						sha256: true,
-						flags: true,
-						matched_evidence_ids: true,
-						site_identity_status: true,
-						site_identity_review_basis: true
-					},
-					orderBy: { site_identity_reconciled_at: 'asc' },
+				const columns = {
+					norbital_id: true,
+					job_assignment_id: true,
+					variation_request_id: true,
+					document_asset_id: true,
+					sha256: true,
+					flags: true,
+					matched_evidence_ids: true,
+					site_identity_status: true,
+					site_identity_review_basis: true
+				} as const;
+				// PostgreSQL sorts null timestamps last for ascending order. Keep the queues disjoint so
+				// pending work cannot be hidden behind terminal rows, failed work rotates by its last
+				// attempt, and pre-migration terminal rows with no basis are reviewed before the stable
+				// terminal round-robin.
+				const pendingEvidence = yield* api.db.query.photo_evidence.findMany({
+					where: { site_identity_status: { eq: 'pending' } },
+					columns,
 					limit: MAX_DAILY_EVIDENCE
 				});
+				let remaining = MAX_DAILY_EVIDENCE - pendingEvidence.length;
+				const failedEvidence = remaining
+					? yield* api.db.query.photo_evidence.findMany({
+							where: { site_identity_status: { eq: 'failed' } },
+							columns,
+							orderBy: { site_identity_checked_at: 'asc' },
+							limit: remaining
+						})
+					: [];
+				remaining -= failedEvidence.length;
+				const unbasedTerminalEvidence = remaining
+					? yield* api.db.query.photo_evidence.findMany({
+							where: {
+								site_identity_status: { in: ['match', 'mismatch', 'inconclusive'] },
+								OR: [
+									{ site_identity_review_basis: { isNull: true } },
+									{ site_identity_reconciled_at: { isNull: true } }
+								]
+							},
+							columns,
+							limit: remaining
+						})
+					: [];
+				remaining -= unbasedTerminalEvidence.length;
+				const terminalEvidence = remaining
+					? yield* api.db.query.photo_evidence.findMany({
+							where: {
+								site_identity_status: { in: ['match', 'mismatch', 'inconclusive'] },
+								site_identity_review_basis: { isNull: false },
+								site_identity_reconciled_at: { isNull: false }
+							},
+							columns,
+							orderBy: { site_identity_reconciled_at: 'asc' },
+							limit: remaining
+						})
+					: [];
+				const evidence = [
+					...pendingEvidence,
+					...failedEvidence,
+					...unbasedTerminalEvidence,
+					...terminalEvidence
+				];
 				const contexts = yield* loadPhotoSiteIdentityContexts(
 					api,
 					evidence as PhotoEvidenceReviewRecord[]

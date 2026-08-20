@@ -66,7 +66,7 @@ function formattedAddress(location: SiteContext['location']): string | null {
 	return address.trim() !== '' ? address.trim() : null;
 }
 
-function reviewBasis(context: PhotoSiteIdentityContext): string {
+export function photoSiteIdentityReviewBasis(context: PhotoSiteIdentityContext): string {
 	return JSON.stringify({
 		evidence: {
 			document_asset_id: context.evidence.document_asset_id,
@@ -185,7 +185,7 @@ export function loadPhotoSiteIdentityContexts(
 export function reconcilePhotoSiteIdentity(api: Api, context: PhotoSiteIdentityContext) {
 	return Effect.gen(function* () {
 		const { evidence, assignmentId, assignment, job, site } = context;
-		const basis = reviewBasis(context);
+		const basis = photoSiteIdentityReviewBasis(context);
 		const reconciledAt = new Date();
 		const settleEvidence = (
 			status: 'match' | 'mismatch' | 'inconclusive' | 'failed',
