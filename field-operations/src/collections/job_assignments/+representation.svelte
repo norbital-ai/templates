@@ -43,7 +43,7 @@
 	 *
 	 * `platform.apps` is `AccessControl.visibleApps`: the whole registry for an `admin` status, and
 	 * otherwise the apps the policies of the viewer's one team declare. Only
-	 * `field_ops_controller.policy.ts` names the controller app, so its absence is exactly "this
+	 * `+field_ops_controller.ts` names the controller app, so its absence is exactly "this
 	 * person does not dispatch". It also fails the safe way: the shell seeds the list empty and fills
 	 * it when the runtime answers, so a viewer reads as a contractor until proven otherwise and the
 	 * overlay stays hidden through load rather than flashing.

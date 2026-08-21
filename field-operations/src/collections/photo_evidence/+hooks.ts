@@ -3,7 +3,7 @@ import type { CollectionHooks } from '@norbital-ai/bolt/authoring';
 import { Effect, Schema } from 'effect';
 import type { WorkspaceInsert, WorkspaceSchema } from '$bolt/types.js';
 import type { Hooks } from './$types.js';
-import { photoSourceSchema } from '../../custom-types/photo_source/+definition.js';
+import { photoSourceSchema } from '../../datatypes/photo_source/+definition.js';
 import {
 	assertExactlyOnePhotoParent,
 	assertPhotoEvidenceProvenanceUnchanged,

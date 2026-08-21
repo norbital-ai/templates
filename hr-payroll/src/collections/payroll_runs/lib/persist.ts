@@ -16,7 +16,7 @@ import { assertComplete, PAGE_LIMIT, type PayrollApi } from './api.js';
 import { dedupeClaims, type SettlementClaim } from './claims.js';
 import type { ContributionCharge } from './contribute.js';
 import type { MeasuredLine } from './measure.js';
-import type { PayslipLineComponent } from '../../../custom-types/payslip_line_component/+definition.js';
+import type { PayslipLineComponent } from '../../../datatypes/payslip_line_component/+definition.js';
 import type { Settlement } from './settle.js';
 
 export type PendingPayslip = {

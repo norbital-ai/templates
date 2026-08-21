@@ -13,7 +13,7 @@ import { effectiveOn } from './effective.js';
 import type { ReportLine, ReportPayslip } from './report.js';
 import { rosterCodeKind, workWindow } from '../../../lib/scheduling/roster-code.js';
 import { patternRosterCodeId } from '../../../lib/scheduling/work-pattern.js';
-import type { WorkPattern } from '../../../custom-types/work_pattern/+definition.js';
+import type { WorkPattern } from '../../../datatypes/work_pattern/+definition.js';
 import { normalizedWorkedIntervals, overtimeBandCode } from './overtime.js';
 
 export type RunExport = {

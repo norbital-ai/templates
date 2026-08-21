@@ -4,7 +4,7 @@ import { describe, it } from 'node:test';
 import {
 	statutoryRegimeIssues,
 	statutoryRegimeSchema
-} from '../../custom-types/statutory_regime/+definition.ts';
+} from '../../datatypes/statutory_regime/+definition.ts';
 import {
 	restBreakAssessment,
 	restBreakBlocksWrite,

@@ -32,7 +32,7 @@
  */
 
 import { lookupTreatment, type Configuration, type ContributionConfig } from './configuration.js';
-import type { ContributionTreatment } from '../../../custom-types/contribution_treatment/+definition.js';
+import type { ContributionTreatment } from '../../../datatypes/contribution_treatment/+definition.js';
 import type { MeasuredLine } from './measure.js';
 import { cents } from './rounding.js';
 

@@ -375,7 +375,7 @@
 	 * The board could already say "this day is inside a paid period" — arithmetic over
 	 * `payroll_runs` windows. It could not say "a run has taken THIS record", which is the fact the
 	 * owner actually asked to see and the only one that is stored. `payslip_sources` answers it,
-	 * and `+hr_controller.policy.ts` already grants the read: `settlementLedgerGrants` exists so that
+	 * and `+hr_controller.ts` already grants the read: `settlementLedgerGrants` exists so that
 	 * a refusal can be an explanation rather than an access denial.
 	 *
 	 * Scoped by the entry ids the month's own query returned, so it is at most one row per person-day

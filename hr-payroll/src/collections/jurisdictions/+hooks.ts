@@ -3,7 +3,7 @@ import { Result, Schema } from 'effect';
 import {
 	statutoryRegimeIssues,
 	statutoryRegimeSchema
-} from '../../custom-types/statutory_regime/+definition.js';
+} from '../../datatypes/statutory_regime/+definition.js';
 import type { Hooks } from './$types.js';
 
 function assertRegime(regime: unknown, currency: string): void {

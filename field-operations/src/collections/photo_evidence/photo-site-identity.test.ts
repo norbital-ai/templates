@@ -4,7 +4,7 @@ import { Effect } from 'effect';
 import {
 	photoSiteIdentityReviewBasis,
 	type PhotoSiteIdentityContext
-} from '../../automation/photo-site-identity.js';
+} from '../../automations/photo-site-identity.js';
 import hooks from './+hooks.js';
 
 /** A `file()` value, which is what `photo` holds — the whole file, not a pointer to one. */

@@ -1,4 +1,4 @@
-import type { Policy } from '../policies/$types.js';
+import type { Policy } from '../access/policies/$types.js';
 
 /**
  * ============================================================================
@@ -27,7 +27,7 @@ import type { Policy } from '../policies/$types.js';
  * matched — so one policy is one name and one file, and that is why there are six `+*.policy.ts`
  * files and not three with lists in them.
  *
- * A policy's `name` **is its file key**: `+hr_controller.policy.ts` declares `hr_controller`, and
+ * A policy's `name` **is its file key**: `+hr_controller.ts` declares `hr_controller`, and
  * the generated `PolicyName` union is built from the same six strings. One string, one axis. A
  * separate display spelling would be a second name for the same thing, and the two would be typed
  * into `src/+teams.ts` and into a channel's `policy` interchangeably until one of them silently
@@ -385,85 +385,70 @@ const SENIOR_MANAGEMENT_TEAM = 'Senior Management';
 type Approval = NonNullable<Grant['approval']>;
 
 /**
- * The seed derived each step id from its config id by replacing the last character with `9`. Kept, so
- * the ids a live `approval_request` already points at are the ids these configs still carry.
+ * **There are no ids here any more, and their absence is the point.**
  *
- * It collides, and the collision is why every new config id below differs from its neighbours in the
- * *third* digit from the end rather than the last one. Replacing the final character means
- * `…000004`, `…000006`, `…000007` and `…000008` all derive the single step id `…000009` — four
- * flows whose steps are indistinguishable. The four ids already in the tree are left exactly as they
- * are, because an `approval_request` raised under any of them resolves against the stored value; the
- * ids added since are `…000210`, `…000310`, `…000410` and so on, so their steps land on `…000219`,
- * `…000319`, `…000419` and stay distinct.
+ * Every one of these used to take a `configId` and derive a step id from it by replacing the last
+ * character with `9` — a scheme that collided: `…000004`, `…000006`, `…000007` and `…000008` all
+ * derived `…000009`, four flows whose steps were indistinguishable. The workaround was to make each
+ * *new* config id differ in the third digit from the end, which is a rule nobody could have inferred
+ * and everybody had to remember.
+ *
+ * A request's identity now derives from `(policy, collection, action, step key)`, computed by
+ * `describePolicy`. Two grants are never the same grant, so the id is unique by construction; it is
+ * stable across releases, because nothing about it depends on ordering; and there is nothing left
+ * for a copy-paste to duplicate. The whole collision class is gone with the ids.
+ *
+ * `key` is what the id derives from, so reordering the steps in a grant cannot silently rebind an
+ * approval that is already in flight. Order carries no meaning; the key does.
+ *
+ * Each is a `const` rather than a factory, because several grants want the same steps and sharing
+ * one is ordinary TypeScript.
  */
-function stepId(configId: string): string {
-	return `${configId.slice(0, -1)}9`;
-}
 
 /** Attendance becomes a payroll source, so the direct manager sees it before it can become one. */
-export function timeEntryApproval(configId: string): Approval {
-	return {
-		id: configId,
-		name: 'Time entry approval',
-		steps: [
-			{
-				id: stepId(configId),
-				name: 'Direct manager review',
-				approvers: [L1_MANAGER_TEAM, HR_MANAGER_TEAM, SENIOR_MANAGEMENT_TEAM],
-				description:
-					'The employee direct manager reviews attendance before it can become a payroll source.'
-			}
-		]
-	};
-}
+export const timeEntryApproval = {
+	steps: [
+		{
+			key: 'direct_manager_review',
+			approvers: [L1_MANAGER_TEAM, HR_MANAGER_TEAM, SENIOR_MANAGEMENT_TEAM],
+			description:
+				'The employee direct manager reviews attendance before it can become a payroll source.'
+		}
+	]
+} as const satisfies Approval;
 
 /** Leave goes to the requester's direct manager. */
-export function leaveApproval(configId: string): Approval {
-	return {
-		id: configId,
-		name: 'Leave approval',
-		steps: [
-			{
-				id: stepId(configId),
-				name: 'Direct manager review',
-				approvers: [L1_MANAGER_TEAM, HR_MANAGER_TEAM, SENIOR_MANAGEMENT_TEAM],
-				description: 'The employee direct manager reviews the leave request.'
-			}
-		]
-	};
-}
+export const leaveApproval = {
+	steps: [
+		{
+			key: 'direct_manager_review',
+			approvers: [L1_MANAGER_TEAM, HR_MANAGER_TEAM, SENIOR_MANAGEMENT_TEAM],
+			description: 'The employee direct manager reviews the leave request.'
+		}
+	]
+} as const satisfies Approval;
 
 /** A claim is money, so it skips the line manager and goes straight to HQ Payroll HR. */
-export function claimApproval(configId: string): Approval {
-	return {
-		id: configId,
-		name: 'Claim approval',
-		steps: [
-			{
-				id: stepId(configId),
-				name: 'HQ Payroll HR review',
-				approvers: [HQ_PAYROLL_HR_TEAM, HR_MANAGER_TEAM, SENIOR_MANAGEMENT_TEAM],
-				description: 'HQ Payroll HR performs the final claim review.'
-			}
-		]
-	};
-}
+export const claimApproval = {
+	steps: [
+		{
+			key: 'hq_payroll_hr_review',
+			approvers: [HQ_PAYROLL_HR_TEAM, HR_MANAGER_TEAM, SENIOR_MANAGEMENT_TEAM],
+			description: 'HQ Payroll HR performs the final claim review.'
+		}
+	]
+} as const satisfies Approval;
 
 /** Opening a run commits every payslip under it, so an HR Manager reconciles it first. */
-export function payrollRunApproval(configId: string): Approval {
-	return {
-		id: configId,
-		name: 'Payroll run approval',
-		steps: [
-			{
-				id: stepId(configId),
-				name: 'HR Manager review',
-				approvers: [HR_MANAGER_TEAM, SENIOR_MANAGEMENT_TEAM],
-				description: 'An HR Manager reconciles the run before payslips become final.'
-			}
-		]
-	};
-}
+export const payrollRunApproval = {
+	steps: [
+		{
+			key: 'hr_manager_review',
+			approvers: [HR_MANAGER_TEAM, SENIOR_MANAGEMENT_TEAM],
+			description: 'An HR Manager reconciles the run before payslips become final.'
+		}
+	]
+} as const satisfies Approval;
 
 /**
  * The controller's route to a payroll run: raise it, and hand the decision upwards.
@@ -475,25 +460,22 @@ export function payrollRunApproval(configId: string): Approval {
  * held behind the lock until the step is decided.
  *
  * One step with two approver teams, not two steps. `approvals.decide` tests
- * `step.approvers.some((team) => team.toLocaleLowerCase() === subject.team?.toLocaleLowerCase())` —
- * a person has one team, and any listed team matches it — so listing both makes either
- * sufficient — which is what "approval from `hr_manager` **or** senior management" says. Two steps
- * would mean *both*, and would leave every controller-raised run waiting on a second signature the
- * owner never asked for.
+ * `step.approvers.some((team) => team folded === subject's own team folded)` — a person has one
+ * team, and any listed team matches it — so listing both makes either sufficient, which is what
+ * "approval from `hr_manager` **or** senior management" says. Two steps would mean *both*, and would
+ * leave every controller-raised run waiting on a second signature the owner never asked for.
+ *
+ * It is a separate const from `payrollRunApproval` even though the approver lists match, because the
+ * two are different flows on different grants and the derived id keeps them apart automatically.
  */
-export function payrollRunApprovalFromController(configId: string): Approval {
-	return {
-		id: configId,
-		name: 'Payroll run approval (raised by HR Controller)',
-		steps: [
-			{
-				id: stepId(configId),
-				name: 'HR Manager or Senior Management review',
-				approvers: [HR_MANAGER_TEAM, SENIOR_MANAGEMENT_TEAM],
-				description:
-					'An HR Controller may prepare a payroll run but may not commit one. An HR Manager or ' +
-					'Senior Management decides whether it stands.'
-			}
-		]
-	};
-}
+export const payrollRunApprovalFromController = {
+	steps: [
+		{
+			key: 'hr_manager_or_senior_review',
+			approvers: [HR_MANAGER_TEAM, SENIOR_MANAGEMENT_TEAM],
+			description:
+				'An HR Controller may prepare a payroll run but may not commit one. An HR Manager or ' +
+				'Senior Management decides whether it stands.'
+		}
+	]
+} as const satisfies Approval;

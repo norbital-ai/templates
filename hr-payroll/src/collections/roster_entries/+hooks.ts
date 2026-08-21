@@ -1,7 +1,7 @@
 import type { CollectionHooks } from '@norbital-ai/bolt/authoring';
 import { Effect } from 'effect';
 import type { WorkspaceSchema } from '$bolt/types.js';
-import type { RosterCodeVariant } from '../../custom-types/roster_code_variant/+definition.js';
+import type { RosterCodeVariant } from '../../datatypes/roster_code_variant/+definition.js';
 import { rosterCodeKind, workWindow } from '../../lib/scheduling/roster-code.js';
 import { leaveCoverage, type LeaveRequestLike } from '../../lib/scheduling/leave-coverage.js';
 import { payrollWindows, assertNotSettled, type PayrollWindow } from '../../lib/scheduling/lock.js';

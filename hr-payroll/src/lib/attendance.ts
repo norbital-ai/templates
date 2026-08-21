@@ -1,4 +1,4 @@
-import type { WorkedInterval } from '../custom-types/worked_intervals/+definition.js';
+import type { WorkedInterval } from '../datatypes/worked_intervals/+definition.js';
 
 export type AttendanceState = 'OPEN' | 'COMPLETE' | 'INVALID';
 

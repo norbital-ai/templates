@@ -1,7 +1,7 @@
 // @ts-nocheck -- executed directly by Node with --experimental-strip-types.
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
-import { coversDate, detectStatutoryDrift } from '../automation/+statutory_profile_drift.ts';
+import { coversDate, detectStatutoryDrift } from '../automations/+statutory_profile_drift.ts';
 
 const today = '2026-08-14';
 const open = { start: '2020-01-01T00:00:00.000Z', end: null };

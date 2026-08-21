@@ -1,7 +1,7 @@
 // @ts-nocheck -- executed directly by Node with --experimental-strip-types.
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { statutoryRegimeIssues } from '../../custom-types/statutory_regime/+definition.ts';
+import { statutoryRegimeIssues } from '../../datatypes/statutory_regime/+definition.ts';
 import { configurationSnapshot } from './lib/configuration.ts';
 
 const regime = () => ({

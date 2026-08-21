@@ -86,7 +86,7 @@
 	import { Grid, Inline, Stack } from '@norbital-ai/ui/layout';
 	import { useI18n } from '@norbital-ai/ui/i18n';
 	import type { TenantI18nKeys } from '$bolt/i18n-keys';
-	import DateRangeRenderer from '../../../custom-types/date_range/+renderer.svelte';
+	import DateRangeRenderer from '../../../datatypes/date_range/+renderer.svelte';
 	import type { CollectionField } from '@norbital-ai/ui/data-renderer';
 	import { todayInstant } from '../calendar.js';
 

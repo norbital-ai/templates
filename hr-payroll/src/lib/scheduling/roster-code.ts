@@ -1,4 +1,4 @@
-import type { RosterCodeVariant } from '../../custom-types/roster_code_variant/+definition.js';
+import type { RosterCodeVariant } from '../../datatypes/roster_code_variant/+definition.js';
 
 const MINUTES_PER_DAY = 24 * 60;
 

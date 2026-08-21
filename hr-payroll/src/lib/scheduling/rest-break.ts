@@ -1,4 +1,4 @@
-import type { StatutoryRestBreakRule } from '../../custom-types/statutory_regime/+definition.js';
+import type { StatutoryRestBreakRule } from '../../datatypes/statutory_regime/+definition.js';
 
 /**
  * Whether a working day satisfied the rest break its jurisdiction owes, derived from the punches.

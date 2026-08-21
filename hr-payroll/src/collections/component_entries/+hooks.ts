@@ -2,7 +2,7 @@ import { Effect } from 'effect';
 import { refuse } from '@norbital-ai/bolt/authoring';
 import type { CollectionHooks } from '@norbital-ai/bolt/authoring';
 import type { WorkspaceSchema } from '$bolt/types.js';
-import type { EntryOrigin } from '../../custom-types/entry_origin/+definition.js';
+import type { EntryOrigin } from '../../datatypes/entry_origin/+definition.js';
 import { sourceLock, sourceLockBlocksWrite, sourceLockMessage } from '../../lib/scheduling/lock.js';
 import type { Hooks, WorkspaceRow } from './$types.js';
 
