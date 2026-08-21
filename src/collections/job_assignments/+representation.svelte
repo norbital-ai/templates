@@ -17,6 +17,8 @@
 	} from '@norbital-ai/ui/layout';
 	import { Tabs, type TabConfig } from '@norbital-ai/ui/tabs';
 	import { cn } from '@norbital-ai/ui/utils';
+	import { Button } from '@norbital-ai/ui/button';
+	import { Textarea } from '@norbital-ai/ui/textarea';
 	import * as Dialog from '@norbital-ai/ui/dialog';
 	import { formatFileSize } from '@norbital-ai/ui/utils';
 	import { RelationshipRenderer } from '@norbital-ai/ui/data-renderer/relationship';
@@ -135,6 +137,54 @@
 			: null
 	);
 	const suspicionRows = $derived(suspicionQuery?.current ?? []);
+	/** What the controller is typing, per log. Cleared once the write lands. */
+	let resolutionDraft = $state<Record<string, string>>({});
+	let resolvingId = $state<string | null>(null);
+	let resolveFailure = $state<string | null>(null);
+
+	/**
+	 * Closing a log by saying what was concluded.
+	 *
+	 * `resolution` and `resolved_at` are written together and never apart: a timestamp without a
+	 * sentence is a log somebody dismissed, which is the state this collection exists to make
+	 * impossible. The empty draft is refused here rather than disabled-away in the markup alone, so
+	 * the rule holds whichever path reaches it.
+	 */
+	const resolveSuspicion = async (logId: string): Promise<void> => {
+		const resolution = (resolutionDraft[logId] ?? '').trim();
+		if (resolution === '' || resolvingId !== null) return;
+		resolvingId = logId;
+		resolveFailure = null;
+		try {
+			/**
+			 * `update` is optional on the client, so its absence is answered rather than chained past.
+			 *
+			 * `?.` would have made a viewer who cannot write look exactly like one whose write
+			 * succeeded — the draft clears, the log stays open, and nothing says why. A workspace that
+			 * did not grant the write should say so.
+			 *
+			 * `resolved_at` is a `Date` and not an ISO string: the column is a timestamp and the client
+			 * types it as one.
+			 */
+			const write = client.db.suspicious_activity_logs.update;
+			if (write === undefined) {
+				resolveFailure = t('component.suspicion_resolve_unavailable');
+				return;
+			}
+			await write(logId, {
+				resolution,
+				resolved_at: new Date(),
+				resolved_by: platform().user.norbital_id
+			});
+			resolutionDraft = { ...resolutionDraft, [logId]: '' };
+		} catch (cause) {
+			resolveFailure =
+				cause instanceof Error ? cause.message : t('component.suspicion_resolve_failed');
+		} finally {
+			resolvingId = null;
+		}
+	};
+
 	/** Whether anything is still waiting on a controller — what the accents below turn on. */
 	const hasOpenSuspicion = $derived(suspicionRows.some((log) => log.resolved_at == null));
 
@@ -430,6 +480,9 @@
 				<h3 class="text-sm font-semibold">{t('component.suspicion_logs')}</h3>
 				<p class="text-tiny text-muted-foreground">{t('component.suspicion_logs_description')}</p>
 			</Stack>
+			{#if resolveFailure}
+				<p class="text-tiny text-destructive" role="alert">{resolveFailure}</p>
+			{/if}
 			{#if suspicionQuery?.loading}
 				<p class="text-tiny text-muted-foreground">{t('component.loading')}</p>
 			{:else if suspicionRows.length === 0}
@@ -458,6 +511,38 @@
 							<p class="text-tiny">{log.reason}</p>
 							{#if log.resolution}
 								<p class="text-tiny text-muted-foreground">{log.resolution}</p>
+							{:else}
+								<!--
+									The controller's answer, which is what closes the log.
+
+									A free-text sentence and not a yes/no: "the unit number is 1 because the block
+									entrance is numbered separately" and "the contractor was at the wrong address"
+									are both resolutions and the difference is the entire value of the record.
+								-->
+								<Stack gap="xs">
+									<Textarea
+										rows={2}
+										placeholder={t('component.suspicion_resolution_placeholder')}
+										value={resolutionDraft[log.norbital_id] ?? ''}
+										oninput={(event) =>
+											(resolutionDraft = {
+												...resolutionDraft,
+												[log.norbital_id]: event.currentTarget.value
+											})}
+									/>
+									<Inline gap="sm" align="center">
+										<Button
+											size="sm"
+											disabled={(resolutionDraft[log.norbital_id] ?? '').trim() === '' ||
+												resolvingId !== null}
+											onclick={() => void resolveSuspicion(log.norbital_id)}
+										>
+											{resolvingId === log.norbital_id
+												? t('component.suspicion_resolving')
+												: t('component.suspicion_resolve')}
+										</Button>
+									</Inline>
+								</Stack>
 							{/if}
 						</Stack>
 					{/each}
