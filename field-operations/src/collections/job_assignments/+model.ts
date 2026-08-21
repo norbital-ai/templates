@@ -24,7 +24,22 @@ export default defineModel(
 		 */
 		assignee_user_id: uuid().notNull(),
 		dispatched_at: timestamp(),
-		status: enums(['dispatched', 'in_progress', 'completed', 'suspect']),
+		/**
+		 * Where the work has got to, and nothing else.
+		 *
+		 * Three states, because there are three: nobody is on it, somebody is, or it is done. It used
+		 * to be `dispatched | in_progress | completed | suspect`, which mixed two different questions
+		 * into one column — `suspect` is a *finding* about the work, not a stage of it, so a mismatched
+		 * photograph erased whether the job was assigned or finished and dispatch could no longer see a
+		 * suspicious job that had nonetheless been completed. Findings live in
+		 * `suspicious_activity_logs`, and lateness is derived from `scheduled_for` rather than stored,
+		 * so neither can overwrite this.
+		 *
+		 * `dispatched` and `in_progress` collapse into `assigned`: both mean somebody holds the work,
+		 * and nothing in this workspace ever distinguished them — no surface filtered on the
+		 * difference and no rule turned on it.
+		 */
+		status: enums(['unassigned', 'assigned', 'completed']),
 		completed_at: timestamp(),
 		amount_charged: custom('money'),
 		location: geolocation(),

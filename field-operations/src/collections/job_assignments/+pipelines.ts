@@ -194,7 +194,7 @@ export default {
 				return resolvedRows.map((entry) => ({
 					job_id: entry.jobId,
 					assignee_user_id: entry.assigneeUserId,
-					status: 'dispatched' as const,
+					status: 'assigned' as const,
 					site_identity_unverified: true,
 					site_identity_mismatch: false,
 					...(entry.row.summary ? { summary: entry.row.summary } : {})

@@ -55,14 +55,43 @@ export default defineQueryHandler({
 			const monthSuspectAssignments =
 				monthJobById.size === 0
 					? []
-					: yield* api.db.query.job_assignments.findMany({
-							where: {
-								job_id: { in: [...monthJobById.keys()] },
-								status: { eq: 'suspect' }
-							},
-							columns: { norbital_id: true, job_id: true },
-							limit: 1000
-						});
+					: yield* api.db.query.job_assignments
+							.findMany({
+								where: { job_id: { in: [...monthJobById.keys()] } },
+								columns: { norbital_id: true, job_id: true },
+								limit: 1000
+							})
+							.pipe(
+								/**
+								 * Suspicion is a log now, so it is asked for as one.
+								 *
+								 * This read `status: { eq: 'suspect' }` — which counted a *state* and therefore
+								 * stopped counting a job the moment somebody moved it on, and counted nothing at
+								 * all once the work was completed. An open log is the honest question: what has
+								 * been raised and not yet answered, regardless of where the work got to.
+								 */
+								Effect.flatMap((assignments) =>
+									assignments.length === 0
+										? Effect.succeed([])
+										: api.db.query.suspicious_activity_logs
+												.findMany({
+													where: {
+														job_assignment_id: {
+															in: assignments.map((row) => row.norbital_id)
+														},
+														resolved_at: { isNull: true }
+													},
+													columns: { job_assignment_id: true },
+													limit: 1000
+												})
+												.pipe(
+													Effect.map((logs) => {
+														const flagged = new Set(logs.map((log) => log.job_assignment_id));
+														return assignments.filter((row) => flagged.has(row.norbital_id));
+													})
+												)
+								)
+							);
 			const month_suspects = monthSuspectAssignments.flatMap((assignment) => {
 				const title = monthJobById.get(assignment.job_id);
 				return title ? [{ id: assignment.norbital_id, job: title }] : [];
@@ -124,7 +153,7 @@ export default defineQueryHandler({
 					id: assignment.norbital_id,
 					job: job.title,
 					assignee: assignees.get(assignment.assignee_user_id)?.name ?? 'Unknown assignee',
-					status: assignment.status ?? 'dispatched'
+					status: assignment.status ?? 'assigned'
 				});
 				assignmentsBySite.set(job.site_id, siteAssignments);
 			}

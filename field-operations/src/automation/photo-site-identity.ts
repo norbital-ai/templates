@@ -318,8 +318,25 @@ export function reconcilePhotoSiteIdentity(api: Api, context: PhotoSiteIdentityC
 					extracted_unit_number: unitNumber,
 					site_identity_confidence: inferred.confidence,
 					site_identity_checked_at: reconciledAt,
-					site_identity_rationale: inferred.rationale,
-					status: 'suspect'
+					site_identity_rationale: inferred.rationale
+				});
+				/**
+				 * The suspicion is a log, not a status.
+				 *
+				 * `status: 'suspect'` used to be written here, which put a *finding* into the field that
+				 * says where the work has got to — so a mismatched photo erased whether the job was
+				 * assigned or completed, and the two questions could never be asked separately. Dispatch
+				 * lost the ability to see a suspicious job that was nonetheless finished.
+				 *
+				 * The reason names what was seen rather than restating the verdict: an identifier that
+				 * does not match is a sentence a controller can act on, where "suspect" is one they have
+				 * to go and interpret.
+				 */
+				yield* api.db.suspicious_activity_logs.create({
+					job_assignment_id: assignmentId,
+					reason:
+						`A photograph of this job shows ${unitNumber ?? siteName ?? 'an identifier'} ` +
+						`which does not match the assigned site. ${inferred.rationale}`
 				});
 				return { status: 'mismatch', evidence_id: evidence.norbital_id };
 			}

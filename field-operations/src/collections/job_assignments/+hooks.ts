@@ -8,7 +8,7 @@ type AssignmentIdentity = {
 	assignee_user_id?: string | null;
 };
 
-type AssignmentStatus = 'dispatched' | 'in_progress' | 'completed' | 'suspect';
+type AssignmentStatus = 'unassigned' | 'assigned' | 'completed';
 const ASSIGNMENT_BATCH_LIMIT = 5_000;
 const SITE_LOCATION_TOLERANCE_M = 500;
 
@@ -57,38 +57,49 @@ function requireId(value: string | null | undefined, message: string): string {
 	return value;
 }
 
+/**
+ * The three states, and the two spellings that used to mean one of them.
+ *
+ * `dispatched` and `in_progress` both meant somebody holds the work and nothing ever distinguished
+ * them, so an import carrying either lands on `assigned`. `suspect` is refused rather than mapped:
+ * it was never a stage of the work, and silently turning it into one would put a finding back into
+ * the column this change exists to take it out of. A row carrying it belongs in
+ * `suspicious_activity_logs`, and the caller has to say so.
+ */
 function assignmentStatus(value: string | null | undefined): AssignmentStatus {
 	switch (value) {
+		case 'unassigned':
+		case 'assigned':
+		case 'completed':
+			return value;
 		case 'dispatched':
 		case 'in_progress':
-		case 'completed':
-		case 'suspect':
-			return value;
+			return 'assigned';
 		case undefined:
 		case null:
-			return 'dispatched';
+			return 'assigned';
 		default:
 			throw new Error(`Unsupported assignment status: ${value}.`);
 	}
 }
 
-export function applySuspectOneWay(
-	current: AssignmentStatus,
-	forceSuspect: boolean
-): AssignmentStatus {
-	if (current === 'suspect' || forceSuspect) return 'suspect';
-	return current;
-}
-
-export function assignmentStatusForLocation(
-	status: AssignmentStatus,
+/**
+ * Whether where the work was reported from warrants a suspicion.
+ *
+ * This replaces `applySuspectOneWay`, which forced `status: 'suspect'` and was one-way — a job that
+ * drifted once could never be reported as assigned or completed again, because the finding had
+ * consumed the column that says where the work got to. It answers a question now instead of
+ * overwriting a state: the caller raises a `suspicious_activity_logs` row and leaves `status` alone.
+ *
+ * Distance only. Absent coordinates are not suspicious — a messaging service that strips metadata is
+ * the ordinary case, and treating silence as evidence is how a workspace fills with findings nobody
+ * can act on.
+ */
+export function locationIsSuspicious(
 	assignmentLocation: LocationLike,
 	siteLocation: LocationLike
-): AssignmentStatus {
-	return applySuspectOneWay(
-		status,
-		exceedsSiteTolerance(coordinatesOf(assignmentLocation), coordinatesOf(siteLocation))
-	);
+): boolean {
+	return exceedsSiteTolerance(coordinatesOf(assignmentLocation), coordinatesOf(siteLocation));
 }
 
 export function assertAssignmentIdentityUnchanged(
@@ -205,11 +216,10 @@ export function assignmentCreateValues<T extends AssignmentCreateInput>(
 	return {
 		...input,
 		dispatched_at: input.dispatched_at ?? now(),
-		status: assignmentStatusForLocation(
-			assignmentStatus(input.status),
-			input.location,
-			siteLocation
-		)
+		status: assignmentStatus(input.status),
+		// Recorded on the prepared row rather than acted on here: this function returns values, and
+		// raising a log is a write. The caller that performs the insert reads it.
+		...(locationIsSuspicious(input.location, siteLocation) ? { bolt_location_suspicion: true } : {})
 	};
 }
 
@@ -337,13 +347,11 @@ export default {
 								: input;
 						const jobId = input.job_id ?? existing.job_id;
 						const location = input.location ?? existing.location;
-						const existingStatus = assignmentStatus(existing.status);
 						const baseStatus = assignmentStatus(input.status ?? existing.status);
-						const preserveSuspect = existingStatus === 'suspect';
 						if (location == null || jobId == null) {
 							return {
 								...withCompletion,
-								status: applySuspectOneWay(baseStatus, preserveSuspect)
+								status: baseStatus
 							};
 						}
 
@@ -353,7 +361,7 @@ export default {
 						if (job == null) {
 							return {
 								...withCompletion,
-								status: applySuspectOneWay(baseStatus, preserveSuspect)
+								status: baseStatus
 							};
 						}
 
@@ -363,36 +371,65 @@ export default {
 						if (site?.location == null) {
 							return {
 								...withCompletion,
-								status: applySuspectOneWay(baseStatus, preserveSuspect)
+								status: baseStatus
 							};
 						}
 
-						const forceSuspect =
-							preserveSuspect ||
-							exceedsSiteTolerance(coordinatesOf(location), coordinatesOf(site.location));
-						return { ...withCompletion, status: applySuspectOneWay(baseStatus, forceSuspect) };
+						// The status is what the caller asked for. Whether the location warrants a suspicion is
+						// a separate answer, and `after` raises it — a `before` hook returns the row's values
+						// and an extra key it invented would be refused as an unknown column, so a finding
+						// cannot ride out on the record it is about.
+						return { ...withCompletion, status: baseStatus };
 					})
 			},
 			after: {
 				description:
-					'Carries assignment progress onto its job, and never rewinds progress already recorded when the assignment is flagged suspect.',
+					'Carries assignment progress onto its job, and raises a suspicion log when the reported location is too far from the assigned site.',
 				handler: ({ record, api }) =>
 					Effect.gen(function* () {
 						const status = record.status;
 						if (status == null) return;
-						// Suspect is an integrity overlay — never rewind job progression already recorded.
-						if (status === 'suspect') {
-							const job = yield* api.db.query.jobs.findFirst({
-								where: { norbital_id: { eq: record.job_id } },
-								columns: { status: true }
+						/**
+						 * A location that does not match, recorded as a finding beside the work.
+						 *
+						 * This used to force `status: 'suspect'`, which is why the branch above it existed —
+						 * having overwritten the state, the hook then had to reason about not rewinding job
+						 * progress it had just erased. With the finding in its own collection, progression is
+						 * one rule for every assignment and there is no overlay to special-case.
+						 */
+						const site = record.job_id
+							? yield* api.db.query.jobs
+									.findFirst({ where: { norbital_id: { eq: record.job_id } } })
+									.pipe(
+										Effect.flatMap((job) =>
+											job?.site_id == null
+												? Effect.succeed(null)
+												: api.db.query.sites.findFirst({
+														where: { norbital_id: { eq: job.site_id } }
+													})
+										)
+									)
+							: null;
+						if (site != null && locationIsSuspicious(record.location, site.location)) {
+							const open = yield* api.db.query.suspicious_activity_logs.findMany({
+								where: {
+									job_assignment_id: { eq: record.norbital_id },
+									resolved_at: { isNull: true }
+								},
+								limit: 1
 							});
-							if (job?.status === 'unassigned') {
-								yield* api.db.jobs.mutate([{ norbital_id: record.job_id, status: 'assigned' }]);
+							// One open log per assignment for this reason. An update that runs again must not
+							// stack a second identical finding on top of one nobody has answered yet.
+							if (open.length === 0) {
+								yield* api.db.suspicious_activity_logs.create({
+									job_assignment_id: record.norbital_id,
+									reason:
+										'The location reported with this work is further from the assigned site than the tolerance allows.'
+								});
 							}
-							return;
 						}
 						const jobStatus = mapAssignmentStatusToJobStatus(
-							status as 'dispatched' | 'in_progress' | 'completed' | 'suspect'
+							status as 'unassigned' | 'assigned' | 'completed'
 						);
 						yield* api.db.jobs.mutate([{ norbital_id: record.job_id, status: jobStatus }]);
 					})
@@ -401,16 +438,23 @@ export default {
 	}
 } satisfies JobAssignmentHooks;
 
+/**
+ * A job's state, from the state of the assignment on it.
+ *
+ * A job still distinguishes `in_progress`, and an assignment no longer does — so nothing maps onto
+ * it any more. That is deliberate rather than an oversight to tidy up later: `in_progress` on a job
+ * is a claim about work happening right now, and nothing in this workspace ever observed that. It
+ * was only ever set because an assignment could be spelled `in_progress`, which meant the same as
+ * `dispatched` and was chosen by whichever importer wrote the row.
+ */
 export function mapAssignmentStatusToJobStatus(
-	status: 'dispatched' | 'in_progress' | 'completed' | 'suspect'
+	status: 'unassigned' | 'assigned' | 'completed'
 ): 'assigned' | 'in_progress' | 'completed' {
 	switch (status) {
 		case 'completed':
 			return 'completed';
-		case 'in_progress':
-			return 'in_progress';
-		case 'suspect':
-		case 'dispatched':
+		case 'unassigned':
+		case 'assigned':
 			return 'assigned';
 		default: {
 			const _exhaustive: never = status;
