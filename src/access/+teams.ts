@@ -18,11 +18,9 @@ import type { Teams } from '@norbital-ai/bolt/authoring';
  * spelling rather than three.
  *
  * An envoy binds the same way, and it binds *here* no longer. `envoys/+field_ops_whatsapp.ts` names
- * its policies directly and carries them, so there is no team behind it. This file used to declare
- * `'WhatsApp Channel Agent': ['field_ops_whatsapp']` — a team with no human members, existing only
- * because the runtime resolved an envoy's authority by finding the team holding *exactly* its
- * declared policy. A workspace that forgot that team got a channel that refused every message it
- * ever received, which is what this workspace shipped. The entry is gone with the mechanism.
+ * its policies directly and carries them, so there is no team behind it. The former transport-only
+ * synthetic team existed solely so runtime could rediscover authority already present in the
+ * declaration. The entry is gone with that mechanism.
  *
  * ## `Field Operations Controllers` is load-bearing and must not be renamed alone
  *

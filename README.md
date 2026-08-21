@@ -92,17 +92,17 @@ Flag visibility is reserved for the controller dashboard: photo integrity flags,
 status, and the `site_identity_*` markers render only for controllers. Contractors see their own
 assignment's progress and their evidence photos — never the integrity results.
 
-### The WhatsApp channel
+### The WhatsApp envoy
 
 `field_ops_whatsapp` is a conversational entry point for contractors who already have an active
 workspace account. An administrator verifies the contractor's WhatsApp number on that account; an
 unknown number receives a registration prompt and no model run.
 
-The channel runs under the strict capability lock:
+The envoy runs under the strict capability lock:
 
-- **The ceiling is `field_ops_whatsapp`, not the contractor policy.** That policy is held by the
-  `WhatsApp Channel Agent` team and nothing else, and it is the complete answer to what any turn on
-  this channel may reach — for a linked contractor exactly as for anyone. It is narrower than
+- **The ceiling is `field_ops_whatsapp`, not the contractor policy.** The envoy names that policy
+  directly, and it is the complete answer to what any turn may reach — for a linked contractor
+  exactly as for anyone. It is narrower than
   `field_ops_contractor`: no variation requests, no photo evidence, no apps.
 - **The linked account is the requestor, which only narrows.** `${requestor.norbital_id}` conditions
   resolve to that person, so they see their own assignments rather than none — matched on
@@ -115,7 +115,7 @@ The channel runs under the strict capability lock:
 Policy grants remain row-level rather than column-level, so the task still explicitly forbids
 controller-only integrity fields even though the contractor can update their own assignment row.
 
-### Automations, policies, remotes, seed
+### Automations, policies, functions, seed
 
 | Kind       | Name                                 | What it does                                                                                                                                                                                                                          |
 | ---------- | ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -123,8 +123,8 @@ controller-only integrity fields even though the contractor can update their own
 | Automation | `photo_site_identity_reconciliation` | Daily 02:00 reconciliation of pending/failed evidence first, then least-recently reconciled terminal evidence; unchanged bases skip the vision call.                                                                                  |
 | Policy     | `field_ops_controller`               | Full command of every collection, both apps. The reconciliation key is the filename.                                                                                                                                                  |
 | Policy     | `field_ops_contractor`               | Requestor-scoped grants: assigned sites/jobs, own assignments (read + update, `assignee_user_id = requestor`), own variations (read + create/update behind the variation approval flow), own evidence (read + create).                |
-| Policy     | `field_ops_whatsapp`                 | The WhatsApp channel's own ceiling, held by the `WhatsApp Channel Agent` team and no other: read and update the caller's own assignments, read the jobs and sites behind them. No creates, deletes, evidence or apps.                 |
-| Remote     | `field_ops_dashboard`                | Date-specific controller query: assignment cards, board ids, map points (with suspect tones), and the month's suspect assignments.                                                                                                    |
+| Policy     | `field_ops_whatsapp`                 | The WhatsApp envoy's directly declared ceiling: read and update the caller's own assignments, and read the jobs and sites behind them. No creates, deletes, evidence or apps.                                                         |
+| Function   | `field_ops_dashboard`                | Date-specific controller query: assignment cards, board ids, map points (with suspect tones), and the month's suspect assignments.                                                                                                    |
 | Seed       | —                                    | Fixture data is host-owned and lives in the repository seed bank (`src/+seed.ts` is deliberately absent). Its job/photo map is audited against the WhatsApp transcript; the weekly roster CSV lives in `assets/` with its own README. |
 
 ## 4. Under the hood
@@ -134,23 +134,23 @@ controller-only integrity fields even though the contractor can update their own
 ```text
 src/
 ├── apps/                           +field_ops_controller.svelte, +field_ops_contractor.svelte
-├── channels/                       +field_ops_whatsapp.channel.ts
-├── policies/                       the three policies and the variation approval flow
+├── envoys/                         +field_ops_whatsapp.ts
+├── access/policies/                the three policies and the variation approval flow
 ├── collections/                    models, relationships, hooks, pipelines, representations
 │   └── photo_evidence/             photo-integrity.ts + pdq.ts — PDQ, EXIF, geo, duplicates, immutable provenance
-├── custom-types/
+├── datatypes/
 │   ├── money/                      money value with renderer (ISO 4217 currency)
 │   └── photo_source/               where a photo came from: workspace upload or a channel message
 ├── i18n/                           messages.en.json + messages.zh.json (identical key sets)
 ├── lib/                            typed workspace client shared by server roles
-├── automation/                     immediate + daily wrappers over one batched site-identity reviewer
-├── remotes/                        +field_ops_dashboard.ts
+├── automations/                    immediate + daily wrappers over one batched site-identity reviewer
+├── functions/                      +field_ops_dashboard.ts
 ```
 
 Apps are deliberately thin because the work happens inside a record: opening an assignment brings up
 its job scope, activity, variations, and photo evidence together; opening a site separates upcoming
-jobs from activity history. Hooks carry the domain rules so they apply to every client, remote, and
-agent — not only the UI:
+jobs from activity history. Hooks carry the domain rules so they apply to every client, function,
+and agent — not only the UI:
 
 - A job must reference an existing site; an assignment must reference an existing job and a real
   workspace user, and be unique per job.
@@ -175,15 +175,13 @@ agent — not only the UI:
   judges the whole natural scene, records its rationale, and is the layer that can latch an assignment
   suspicious. The controller dashboard renders both the deterministic attributes and that rationale.
 
-### How the WhatsApp channel works
+### How the WhatsApp envoy works
 
-The host holds the transport credential and delivers an already-authenticated inbound command
-(`channel` / `inbound` with transport conversation id, provider message id, text, sender). Bolt binds
-the conversation to a transcript, claims the message exactly once, and matches its sender to a
-verified WhatsApp identity on an account assigned to `field_ops_contractor`. The linked contractor's
-identity supplies policy placeholders; the channel principal supplies the policy membership, keeping
-the declared policy as the ceiling. The reply goes back over the same transport. Public profiles skip the
-identity match but must declare durable sender, profile, and concurrency limits.
+The host holds the transport credential and delivers an already-authenticated inbound command. Bolt
+binds the conversation to a transcript, claims the message exactly once, and matches its sender to a
+verified WhatsApp identity. Runtime mints `envoy:field_ops_whatsapp` with the declaration's policies;
+the linked contractor supplies only `userId` for requestor predicates, never team authority or admin.
+The reply goes back over the same transport.
 
 ## 5. Changing the template
 
