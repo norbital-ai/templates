@@ -1,43 +1,19 @@
-import { execFileSync, spawnSync } from 'node:child_process';
+import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import {
-	mkdirSync,
-	mkdtempSync,
-	readFileSync,
-	readdirSync,
-	rmSync,
-	statSync,
-	writeFileSync
-} from 'node:fs';
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs';
+import { createRequire } from 'node:module';
 import path from 'node:path';
 import process from 'node:process';
 import { pathToFileURL } from 'node:url';
 import { prepareDepset } from './lib/depset.mjs';
+import { inspectRuntimeArtifact } from './lib/runtime-smoke.mjs';
+import { templateArtifactPath } from './lib/template-artifact.mjs';
 import { discoverTemplates, repositoryRoot } from './lib/templates.mjs';
 
 /**
- * Proves the bundle contract: a build against a materialized depset produces a runtime entry that
- * loads as a module and exports `dispatch`.
- *
- * There is no guest to boot and no ready frame to await — the host that framed a bundle over stdio
- * was deleted, and a bundle is now imported in-process. The bundle format is the only cross-version
- * contract left now that there are no images, so this gate exists to catch a bundle a newer runtime
- * cannot load. There is nothing to pull and nothing digest-pinned; dependencies come from a depset
- * linked out of the shared content-addressed store.
+ * Proves the portable artifact contract: Bolt sync against a materialized depset emits a module
+ * accepted by the authoritative protocol decoder, with intact embedded browser assets.
  */
-
-const requiredBundlePaths = [
-	'manifest.json',
-	'dist/index.html',
-	'output/server/index.js',
-	'schema-functions.sql',
-	'schema-post-ddl.sql'
-];
-const buildEnvironment = {
-	MALLOC_ARENA_MAX: '1',
-	MALLOC_TRIM_THRESHOLD_: '131072',
-	NODE_OPTIONS: '--max-old-space-size=192'
-};
 
 function fail(message) {
 	throw new Error(message);
@@ -93,12 +69,12 @@ mkdirSync(path.join(repositoryRoot, '.tmp'), { recursive: true });
 const temporaryDirectory = mkdtempSync(path.join(repositoryRoot, '.tmp', 'runtime-smoke-'));
 const workspace = path.join(temporaryDirectory, 'src');
 const depsetRoot = path.join(temporaryDirectory, 'node_modules');
-const bundle = path.join(workspace, '.norbital', 'dist', 'output');
+const runtimeEntry = templateArtifactPath(workspace);
 let depset;
 let buildElapsedMilliseconds;
 let runtimeEntrySha256;
 let runtimeExports;
-let migrationSqlCount;
+let manifestSummary;
 
 try {
 	mkdirSync(workspace, { recursive: true });
@@ -117,62 +93,44 @@ try {
 		'compiler',
 		'cli.js'
 	);
-	execFileSync(process.execPath, [boltBin, 'sync'], { cwd: workspace, stdio: 'inherit' });
-
 	const buildStartedAt = process.hrtime.bigint();
-	const build = spawnSync(
-		path.join(workspace, 'node_modules', '.bin', 'vite'),
-		['build', workspace],
-		{
-			cwd: workspace,
-			stdio: 'inherit',
-			env: { ...process.env, ...buildEnvironment, NORBITAL_BUILD_OUT: bundle }
-		}
-	);
+	execFileSync(process.execPath, [boltBin, 'sync'], { cwd: workspace, stdio: 'inherit' });
 	buildElapsedMilliseconds = Number(process.hrtime.bigint() - buildStartedAt) / 1_000_000;
-	if (build.status !== 0) fail(`Tenant build exited with status ${build.status}.`);
-
-	for (const requiredPath of requiredBundlePaths) {
-		const file = path.join(bundle, requiredPath);
-		if (!statSync(file).isFile() || statSync(file).size === 0) {
-			fail(`Published build output is missing non-empty ${requiredPath}.`);
-		}
+	if (!statSync(runtimeEntry).isFile() || statSync(runtimeEntry).size === 0) {
+		fail(`Bolt sync emitted no non-empty portable artifact at ${runtimeEntry}.`);
 	}
-	migrationSqlCount = readdirSync(path.join(bundle, '.norbital', 'migrations'), {
-		recursive: true,
-		withFileTypes: true
-	}).filter(
-		(entry) =>
-			entry.isFile() &&
-			entry.name === 'migration.sql' &&
-			statSync(path.join(entry.parentPath, entry.name)).size > 0
-	).length;
-	if (migrationSqlCount < 1) fail('Published build output contains no non-empty migration.sql.');
-	const runtimeEntry = path.join(bundle, 'output', 'server', 'index.js');
 	runtimeEntrySha256 = createHash('sha256').update(readFileSync(runtimeEntry)).digest('hex');
 
-	console.log('Loading output/server/index.js from the clean bundle.');
+	console.log('Loading .norbital/artifact/bundle.mjs from the clean workspace.');
 	const runtime = await import(pathToFileURL(runtimeEntry).href);
-	if (typeof runtime.dispatch !== 'function') {
-		fail('Runtime entry does not export dispatch.');
-	}
-	runtimeExports = Object.keys(runtime).sort();
+	const requireFromWorkspace = createRequire(path.join(workspace, 'package.json'));
+	const [{ decodeBoltBundleModule }, { Effect }] = await Promise.all([
+		import(pathToFileURL(requireFromWorkspace.resolve('@norbital-ai/bolt-protocol')).href),
+		import(pathToFileURL(requireFromWorkspace.resolve('effect')).href)
+	]);
+	const decoded = await Effect.runPromise(decodeBoltBundleModule(runtime));
+	const inspected = inspectRuntimeArtifact({
+		runtime,
+		bundle: decoded,
+		artifactVersion: JSON.parse(readFileSync(path.join(workspace, 'package.json'), 'utf8')).version
+	});
+	runtimeExports = inspected.runtimeExports;
+	manifestSummary = inspected.manifest;
 } finally {
 	rmSync(temporaryDirectory, { recursive: true, force: true });
 }
 
 const result = {
 	$schema: '../release/runtime-smoke.schema.json',
-	schemaVersion: 4,
+	schemaVersion: 5,
 	template: template.slug,
 	lockHash: depset.lockHash,
-	buildCommand: 'vite build',
+	buildCommand: 'bolt sync',
 	buildElapsedMilliseconds: Number(buildElapsedMilliseconds.toFixed(3)),
-	requiredBundlePaths,
-	migrationSqlCount,
-	runtimeEntry: 'output/server/index.js',
+	runtimeEntry: '.norbital/artifact/bundle.mjs',
 	runtimeEntrySha256,
 	runtimeExports,
+	manifest: manifestSummary,
 	passed: true
 };
 mkdirSync(path.dirname(outputPath), { recursive: true });

@@ -1,8 +1,8 @@
 {
 	"$schema": "https://json-schema.org/draft/2020-12/schema",
 	"$id": "https://github.com/norbital-ai/oss/blob/main/release/runtime-smoke.schema.json",
-	"title": "Norbital published runtime smoke evidence",
-	"description": "Evidence that a build against a materialized depset produces a loadable isolate runtime bundle. The bundle format is the only cross-version contract now that there are no images.",
+	"title": "Norbital portable runtime smoke evidence",
+	"description": "Evidence that Bolt sync produces a portable artifact which passes the protocol decoder and contains valid embedded assets.",
 	"type": "object",
 	"additionalProperties": false,
 	"required": [
@@ -12,40 +12,68 @@
 		"lockHash",
 		"buildCommand",
 		"buildElapsedMilliseconds",
-		"requiredBundlePaths",
-		"migrationSqlCount",
 		"runtimeEntry",
 		"runtimeEntrySha256",
 		"runtimeExports",
+		"manifest",
 		"passed"
 	],
 	"properties": {
 		"$schema": { "const": "../release/runtime-smoke.schema.json" },
-		"schemaVersion": { "const": 4 },
+		"schemaVersion": { "const": 5 },
 		"template": { "type": "string", "minLength": 1 },
 		"lockHash": { "type": "string", "pattern": "^[0-9a-f]{32}$" },
-		"buildCommand": { "const": "vite build" },
+		"buildCommand": { "const": "bolt sync" },
 		"buildElapsedMilliseconds": { "type": "number", "minimum": 0 },
-		"requiredBundlePaths": {
-			"const": [
-				"manifest.json",
-				"dist/index.html",
-				"output/server/index.js",
-				"schema-functions.sql",
-				"schema-post-ddl.sql"
-			]
-		},
-		"migrationSqlCount": { "type": "integer", "minimum": 1 },
-		"runtimeEntry": { "const": "output/server/index.js" },
+		"runtimeEntry": { "const": ".norbital/artifact/bundle.mjs" },
 		"runtimeEntrySha256": {
 			"type": "string",
 			"pattern": "^[0-9a-f]{64}$"
 		},
 		"runtimeExports": {
 			"type": "array",
-			"contains": { "const": "dispatch" },
 			"items": { "type": "string" },
-			"uniqueItems": true
+			"uniqueItems": true,
+			"allOf": [
+				{ "contains": { "const": "activate" } },
+				{ "contains": { "const": "dispatch" } },
+				{ "contains": { "const": "manifest" } },
+				{ "contains": { "const": "protocolVersion" } }
+			]
+		},
+		"manifest": {
+			"type": "object",
+			"additionalProperties": false,
+			"required": [
+				"protocolVersion",
+				"artifactId",
+				"artifactVersion",
+				"schemaFingerprint",
+				"requiredFacilities",
+				"staticAssetCount",
+				"integrationCount",
+				"workspaceEntrySha256"
+			],
+			"properties": {
+				"protocolVersion": { "type": "integer", "minimum": 1 },
+				"artifactId": { "type": "string", "minLength": 1 },
+				"artifactVersion": { "type": "string", "minLength": 1 },
+				"schemaFingerprint": {
+					"type": "string",
+					"pattern": "^sha256:[0-9a-f]{64}$"
+				},
+				"requiredFacilities": {
+					"type": "array",
+					"items": { "type": "string", "minLength": 1 },
+					"uniqueItems": true
+				},
+				"staticAssetCount": { "type": "integer", "minimum": 1 },
+				"integrationCount": { "type": "integer", "minimum": 0 },
+				"workspaceEntrySha256": {
+					"type": "string",
+					"pattern": "^[0-9a-f]{64}$"
+				}
+			}
 		},
 		"passed": { "const": true }
 	}
