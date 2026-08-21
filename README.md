@@ -165,7 +165,7 @@ How the pieces work:
 - **Seed data.** The workspace ships no `+seed.ts`. Fixture data (projects, jobs, workers,
   permits, RFIs, defects, claims, the BIM matrix, documents) is provisioned by the host's
   construction seed plan, which serves the committed `assets/` files at
-  `/api/template-seed-assets/construction/...` — including the sample IFC model used by the
+  `/__bolt/request/api/template-seed-assets/construction/...` — including the sample IFC model used by the
   project record's viewer.
 
 Use collection hooks for non-negotiable server rules, a custom type when a reusable field needs its

@@ -10,7 +10,7 @@
 <svelte:head>
 	<meta
 		name="bolt:banner"
-		content="/api/template-seed-assets/construction/record-media/workers-banner.svg"
+		content="/__bolt/request/api/template-seed-assets/construction/record-media/workers-banner.svg"
 	/>
 </svelte:head>
 

@@ -15,7 +15,7 @@
 <svelte:head>
 	<meta
 		name="bolt:banner"
-		content="/api/template-seed-assets/construction/record-media/jobs-banner.svg"
+		content="/__bolt/request/api/template-seed-assets/construction/record-media/jobs-banner.svg"
 	/>
 </svelte:head>
 

@@ -16,7 +16,7 @@ export default defineModel(
 		reported_date: date(),
 		due_date: date(),
 		closed_date: date(),
-		photos: file({ mimeTypes: ['image/jpeg', 'image/png'] }).array(),
+		photos: file({ mimeTypes: ['image/jpeg', 'image/png'], multiple: true }),
 		resolution_notes: text()
 	},
 	{
