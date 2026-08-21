@@ -28,7 +28,7 @@ import type { Policy } from './$types.js';
  * that "there is no requestor identity behind a channel message, and the platform cannot scope
  * grants by conversation or messenger". That premise was true and is not any more: a channel message
  * now carries the linked contractor as its requestor, so `${requestor.norbital_id}` scopes here
- * exactly as it does in `+field_ops_contractor.policy.ts`.
+ * exactly as it does in `+field_ops_contractor.ts`.
  *
  * The old shape was also unusable in practice. An agent that may update an assignment but may read
  * nothing cannot find the assignment the caller means, cannot confirm it back to them, and cannot
@@ -55,7 +55,7 @@ import type { Policy } from './$types.js';
  * them; a column-level grant is the real fix and does not exist yet.
  */
 
-/** The whole of the self-scope, the same expression `+field_ops_contractor.policy.ts` is built on. */
+/** The whole of the self-scope, the same expression `+field_ops_contractor.ts` is built on. */
 const ownAssignment = { assignee_user_id: { eq: '${requestor.norbital_id}' } } as const;
 
 /** Jobs the caller was assigned. */
@@ -74,14 +74,25 @@ const assignedSite = {
 } as const;
 
 export default {
-	name: 'field_ops_whatsapp',
 	description:
 		'The WhatsApp channel agent: read and update the caller’s own job assignments, and read the jobs and sites behind them. No creates, no deletes, no evidence, no apps.',
-	apps: [],
+	capabilities: { apps: [] },
 	grants: [
 		{ collection: 'sites', action: 'read', where: assignedSite },
 		{ collection: 'jobs', action: 'read', where: assignedJob },
 		{ collection: 'job_assignments', action: 'read', where: ownAssignment },
 		{ collection: 'job_assignments', action: 'update', where: ownAssignment }
-	]
+	],
+	/**
+	 * What a holder of this policy may spend.
+	 *
+	 * Declared here rather than in a workspace-wide file, because a rate limit is only meaningful in
+	 * terms of who is spending it: `collections.*` is authenticated and cheap, `agents.turn` is
+	 * authenticated and costs money at a model provider. Two classes of person holding two policies
+	 * can now be given two budgets for the same command, which one file for everybody could not say.
+	 */
+	limits: {
+		'collections.*': { window: '1 min', limit: 600, key: 'subject' },
+		'agents.turn': { window: '1 hour', limit: 100, key: 'subject' }
+	}
 } satisfies Policy;

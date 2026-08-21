@@ -26,7 +26,7 @@
 	 *
 	 * It is `AccessControl.visibleApps`: the whole registry for anybody whose `bolt_auth_user.status`
 	 * is `admin`, and otherwise exactly the apps declared by the policies their one team holds.
-	 * `field_ops_controller.policy.ts` declares `apps: ['field_ops_controller', 'field_ops_contractor']`
+	 * `+field_ops_controller.ts` declares `apps: ['field_ops_controller', 'field_ops_contractor']`
 	 * and the contractor policy declares only its own, so the presence of the controller app in this
 	 * list is precisely "administers or controls this workspace".
 	 */

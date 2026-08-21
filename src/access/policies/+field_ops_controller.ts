@@ -22,21 +22,22 @@ import type { Policy } from './$types.js';
  * follows the same map rather than the policy list.
  *
  * The filename is a second, separate key. `field_ops_controller` is what the generated `PolicyName`
- * union is built from and what `+field_ops_whatsapp.channel.ts` spells its `policy` as; it is *not*
+ * union is built from and what `envoys/+field_ops_whatsapp.ts` spells its `policy` as; it is *not*
  * what a team names. The two axes coincide in `templates/hr-payroll` and do not coincide here.
  *
  * Three names in this workspace are similar and none of them is this one:
  * `Field Operations Controllers` — plural — is a **team**, matched against `subject.team` by the
- * approval engine and named by `approvers` in `+field_ops_contractor.policy.ts`; renaming it would
- * strand the variation-approval step against a team nobody is in. The app is titled "Field
+ * approval engine and named by `approvers` in `access/policies/+field_ops_contractor.ts`; renaming
+ * it there without renaming it in `+teams.ts` is a compile error now, because `approvers` is a union
+ * generated from that file's keys. The app is titled "Field
  * Operations Controller" in the i18n catalogues and in `+field_ops_controller.svelte`; that names a
- * surface. Only the `name` below names this policy.
+ * surface. Only this file's own name names this policy — there is no `name:` field inside it to
+ * disagree with the filename, which is how a display-cased string once compiled and matched nothing.
  */
 export default {
-	name: 'field_ops_controller',
 	description:
 		'Controller access to dispatch jobs, assignments, sites, and approval records, unconditionally.',
-	apps: ['field_ops_controller', 'field_ops_contractor'],
+	capabilities: { apps: ['field_ops_controller', 'field_ops_contractor'] },
 	grants: [
 		{ collection: 'sites', action: 'read' },
 		{ collection: 'sites', action: 'create' },
@@ -74,5 +75,17 @@ export default {
 		{ collection: 'photo_evidence', action: 'create' },
 		{ collection: 'photo_evidence', action: 'update' },
 		{ collection: 'photo_evidence', action: 'delete' }
-	]
+	],
+	/**
+	 * What a holder of this policy may spend.
+	 *
+	 * Declared here rather than in a workspace-wide file, because a rate limit is only meaningful in
+	 * terms of who is spending it: `collections.*` is authenticated and cheap, `agents.turn` is
+	 * authenticated and costs money at a model provider. Two classes of person holding two policies
+	 * can now be given two budgets for the same command, which one file for everybody could not say.
+	 */
+	limits: {
+		'collections.*': { window: '1 min', limit: 600, key: 'subject' },
+		'agents.turn': { window: '1 hour', limit: 100, key: 'subject' }
+	}
 } satisfies Policy;

@@ -11,6 +11,15 @@ const MAX_DAILY_EVIDENCE = 5_000;
 export default defineAutomation(
 	{ schedule: '0 2 * * *' },
 	{
+		/**
+		 * The authority every run of this automation acts under.
+		 *
+		 * Its own, not its trigger's. This used to inherit whoever tripped it — so the same nightly
+		 * sweep ran as an administrator when an administrator happened to start it, and as a contractor
+		 * otherwise, over a different set of rows each time. Naming it here is what makes "what can this
+		 * automation touch" a question with an answer that does not depend on the day.
+		 */
+		policies: ['field_ops_controller'],
 		description:
 			'Every day reconciles up to 5,000 photos against their current assignment and site, prioritizing pending and failed work before a least-recently checked terminal round-robin; unchanged review bases are marked reconciled without another vision call, while changed evidence is reviewed again.',
 		handler: (api) =>

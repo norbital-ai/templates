@@ -21,6 +21,15 @@ const reviewColumns = {
 export default defineAutomation(
 	{ trigger: { collection: 'photo_evidence', event: 'created' } },
 	{
+		/**
+		 * The authority every run of this automation acts under.
+		 *
+		 * Its own, not its trigger's. This used to inherit whoever tripped it — so the same nightly
+		 * sweep ran as an administrator when an administrator happened to start it, and as a contractor
+		 * otherwise, over a different set of rows each time. Naming it here is what makes "what can this
+		 * automation touch" a question with an answer that does not depend on the day.
+		 */
+		policies: ['field_ops_controller'],
 		description:
 			'Immediately runs the shared site-identity reconciliation for newly filed evidence; the daily sweep retries failures and catches seed/import paths that do not emit collection events.',
 		handler: (api, { scope }) =>

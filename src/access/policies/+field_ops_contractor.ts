@@ -1,8 +1,5 @@
 import type { Policy } from './$types.js';
 
-/** The approval shape, taken from the grant that holds it so there is nothing to keep in step. */
-type Approval = NonNullable<Policy['grants'][number]['approval']>;
-
 /**
  * The contractor: the jobs they were assigned, and nothing else.
  *
@@ -73,42 +70,36 @@ const ownEvidence = {
 /**
  * A scope change is a commercial decision, so writing a variation raises a request instead of a row.
  *
- * The ids are carried over from the seeded policy rather than reissued: `approval_config_id` on an
- * existing `approval_request` is resolved by scanning grants for a matching `norbital_id`, so a new id
- * would leave every in-flight and historical request unable to name the flow that produced it.
+ * **There are no ids here, and that is the change.** A request's identity now derives from
+ * `(policy, collection, action, step key)` — `describePolicy` computes it — so two grants are never
+ * the same approval, nothing can collide, and there is no authored UUID for a copy-paste to
+ * duplicate. This used to be `variationApproval('019f6f10-…-003', '019f6f10-…-103')`, two
+ * hand-written UUID pairs that were the only part of an approval anybody could get wrong.
  *
- * The approver is named by `bolt_team.name`, not by `bolt_team.norbital_id`. A team is a runtime row,
- * so its id exists per tenant and belongs to whichever database seeded it — hardcoding one here put a
- * private identifier in a public template and made the flow unsatisfiable anywhere else, with nothing
- * to say so. Activation reconciles a row for every name a release declares, so the target always
- * exists; whether anybody is *in* it is a membership question and not a deploy-time refusal.
+ * The approver is named by `bolt_team.name`, and the name is `TeamName` — a union generated from
+ * `access/+teams.ts`'s own keys — so a misspelling is a compile error rather than an approval nobody
+ * could ever decide. `approvers: ['HR Manger']` shipped once and produced exactly that.
  *
- * The string below is therefore the same string as a key in `src/+teams.ts`, and `approvals.decide`
- * matches it against `subject.team` — the person's one team — case-folded. Change it in one place
- * only and every scope change queues behind a team nobody is in.
+ * `key` is required and is what the id derives from, so reordering the steps below cannot silently
+ * rebind an approval that is already in flight. Order carries no meaning; the key does.
+ *
+ * A `const` rather than a factory, because both grants want the same steps and sharing one is
+ * ordinary TypeScript — there is no framework concept and nothing to name.
  */
-const controllerTeam = 'Field Operations Controllers';
-
-function variationApproval(configId: string, stepId: string): Approval {
-	return {
-		id: configId,
-		name: 'Field operations variation approval',
-		steps: [
-			{
-				id: stepId,
-				name: 'Field operations controller review',
-				approvers: [controllerTeam],
-				description: 'Controller verifies scope change and selected photo evidence.'
-			}
-		]
-	};
-}
+const variationApproval = {
+	steps: [
+		{
+			key: 'controller_review',
+			approvers: ['Field Operations Controllers'],
+			description: 'Controller verifies scope change and selected photo evidence.'
+		}
+	]
+} as const satisfies NonNullable<Policy['grants'][number]['approval']>;
 
 export default {
-	name: 'field_ops_contractor',
 	description:
 		'Self-scoped access to assigned jobs and sites, with field updates on own assignments and linked variation or photo evidence.',
-	apps: ['field_ops_contractor'],
+	capabilities: { apps: ['field_ops_contractor'] },
 	grants: [
 		{ collection: 'sites', action: 'read', where: assignedSite },
 		{ collection: 'jobs', action: 'read', where: assignedJob },
@@ -119,21 +110,27 @@ export default {
 			collection: 'variation_requests',
 			action: 'create',
 			where: ownVariation,
-			approval: variationApproval(
-				'019f6f10-0001-7000-8000-000000000003',
-				'019f6f10-0001-7000-8000-000000000103'
-			)
+			approval: variationApproval
 		},
 		{
 			collection: 'variation_requests',
 			action: 'update',
 			where: ownVariation,
-			approval: variationApproval(
-				'019f6f10-0001-7000-8000-000000000004',
-				'019f6f10-0001-7000-8000-000000000104'
-			)
+			approval: variationApproval
 		},
 		{ collection: 'photo_evidence', action: 'read', where: ownEvidence },
 		{ collection: 'photo_evidence', action: 'create', where: ownEvidence }
-	]
+	],
+	/**
+	 * What a holder of this policy may spend.
+	 *
+	 * Declared here rather than in a workspace-wide file, because a rate limit is only meaningful in
+	 * terms of who is spending it: `collections.*` is authenticated and cheap, `agents.turn` is
+	 * authenticated and costs money at a model provider. Two classes of person holding two policies
+	 * can now be given two budgets for the same command, which one file for everybody could not say.
+	 */
+	limits: {
+		'collections.*': { window: '1 min', limit: 600, key: 'subject' },
+		'agents.turn': { window: '1 hour', limit: 100, key: 'subject' }
+	}
 } satisfies Policy;
