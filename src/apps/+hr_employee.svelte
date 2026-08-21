@@ -54,7 +54,7 @@
 	import { attendanceBoundary } from '../lib/attendance.js';
 	import {
 		sourceLock,
-		sourceLockFrozen,
+		sourceLockApplicationLocked,
 		sourceLockReason,
 		type DayLock,
 		type SourceLock
@@ -1133,7 +1133,7 @@
 			title={t('app.hr_employee.my_leave_title')}
 			description={t('app.hr_employee.my_leave_description')}
 			disabled={!employmentId}
-			isRowLocked={(row) => sourceLockFrozen(leaveRowLock(row))}
+			isRowLocked={(row) => sourceLockApplicationLocked(leaveRowLock(row))}
 			rowLockReason={(row) => sourceLockReason(leaveRowLock(row), t)}
 			query={{
 				where: { employment_id: employmentId ? { eq: employmentId } : undefined },
@@ -1171,7 +1171,7 @@
 			title={t('app.hr_employee.my_components_title')}
 			description={t('app.hr_employee.my_components_description')}
 			disabled={!employmentId}
-			isRowLocked={(row) => sourceLockFrozen(claimRowLock(row))}
+			isRowLocked={(row) => sourceLockApplicationLocked(claimRowLock(row))}
 			rowLockReason={(row) => sourceLockReason(claimRowLock(row), t)}
 			query={{
 				where: { employment_id: employmentId ? { eq: employmentId } : undefined },

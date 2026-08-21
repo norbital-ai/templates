@@ -13,7 +13,7 @@
 	import type { RepresentationProps } from './$types.js';
 	import { CollectionForm } from '@norbital-ai/ui/collection-form';
 	import { CollectionTable } from '@norbital-ai/ui/collection-table';
-	import { Column, Cover, Grid, Inline, Stack } from '@norbital-ai/ui/layout';
+	import { Cover, Grid, Inline, Stack } from '@norbital-ai/ui/layout';
 	import { Tabs, type TabConfig } from '@norbital-ai/ui/tabs';
 	import { inForceTodayFilter } from '../../lib/ui/calendar.js';
 	import { formatNumeric } from '../../lib/ui/display-formatters.js';
@@ -31,21 +31,45 @@
 		onAfterSubmit={record ? undefined : close}
 	>
 		{#snippet children({ Field })}
-			<Grid gap="md" minimum="panel">
-				<Field name="code" />
-				<Field name="name" />
-				<Field name="currency" />
-				<Field name="tax_year_start_month" label={t('component.tax_year_start_month')} />
-				<Field name="proration" label={t('component.proration_basis')} />
-				<Field name="ordinary_rate_basis" label={t('component.ordinary_rate_basis')} />
-				<Field name="ordinary_rate_divisor" label={t('component.ordinary_rate_divisor')} />
-				<Column span="all">
-					<Field name="effective_range" label={t('component.effective_period')} />
-				</Column>
-				<Column span="all">
+			<Stack gap="lg">
+				<Stack as="section" gap="sm">
+					<Stack gap="xs">
+						<h3 class="text-sm font-semibold">Identity and validity</h3>
+						<p class="text-meta">The jurisdiction snapshot payroll selects for a pay date.</p>
+					</Stack>
+					<Grid gap="md" minimum="panel">
+						<Field name="code" />
+						<Field name="name" />
+						<Field name="currency" />
+						<Field name="tax_year_start_month" label={t('component.tax_year_start_month')} />
+						<div class="col-span-full">
+							<Field name="effective_range" label={t('component.effective_period')} />
+						</div>
+					</Grid>
+				</Stack>
+
+				<Stack as="section" gap="sm" class="border-t border-border pt-5">
+					<Stack gap="xs">
+						<h3 class="text-sm font-semibold">Ordinary pay</h3>
+						<p class="text-meta">The basis payroll uses before overtime and contributions.</p>
+					</Stack>
+					<Grid gap="md" minimum="panel">
+						<Field name="proration" label={t('component.proration_basis')} />
+						<Field name="ordinary_rate_basis" label={t('component.ordinary_rate_basis')} />
+						<Field name="ordinary_rate_divisor" label={t('component.ordinary_rate_divisor')} />
+					</Grid>
+				</Stack>
+
+				<Stack as="section" gap="sm" class="border-t border-border pt-5">
+					<Stack gap="xs">
+						<h3 class="text-sm font-semibold">Working time</h3>
+						<p class="text-meta">
+							Eligibility, overtime pricing, limits, and rest-break compliance.
+						</p>
+					</Stack>
 					<Field name="regime" label={t('component.regime')} />
-				</Column>
-			</Grid>
+				</Stack>
+			</Stack>
 		{/snippet}
 	</CollectionForm>
 {/snippet}
@@ -105,7 +129,7 @@
 			config={[
 				{
 					name: 'snapshot',
-					label: t('component.regime'),
+					label: 'Payroll rules',
 					icon: 'lucide:scale',
 					content: snapshot
 				},

@@ -18,7 +18,11 @@
 	} from '../../lib/ui/display-formatters.js';
 	import { inForceTodayFilter, todayInstant } from '../../lib/ui/calendar.js';
 	import LeaveSeasonality from '../../lib/ui/leave/leave-seasonality.svelte';
-	import { sourceLock, sourceLockFrozen, sourceLockReason } from '../../lib/scheduling/lock.js';
+	import {
+		sourceLock,
+		sourceLockApplicationLocked,
+		sourceLockReason
+	} from '../../lib/scheduling/lock.js';
 
 	const { t } = useI18n<TenantI18nKeys>();
 
@@ -203,7 +207,7 @@
 				{client}
 				collection="leave_requests"
 				view={`hr_controller:leave:requests:${selectedCompanyId}`}
-				isRowLocked={(row) => sourceLockFrozen(leaveRowLock(row))}
+				isRowLocked={(row) => sourceLockApplicationLocked(leaveRowLock(row))}
 				rowLockReason={(row) => sourceLockReason(leaveRowLock(row), t)}
 				query={{
 					where: {

@@ -216,21 +216,27 @@ export function sourceLock(input: SourceLockInput): SourceLock {
 	return { kind: 'NONE' };
 }
 
-/** Pending approval is the platform's lock; domain freeze is everything else except NONE. */
-export function sourceLockFrozen(lock: SourceLock): boolean {
-	return lock.kind !== 'NONE';
+/** The platform-owned approval lock. It is never an application/domain lock. */
+export function sourceLockSystemLocked(lock: SourceLock): boolean {
+	return lock.kind === 'PENDING_APPROVAL';
+}
+
+/** A lock imposed by this payroll application, separately from the platform approval lock. */
+export function sourceLockApplicationLocked(lock: SourceLock): boolean {
+	return lock.kind !== 'NONE' && !sourceLockSystemLocked(lock);
 }
 
 /** Domain freeze that hooks must refuse. Pending approval stays a platform 409. */
 export function sourceLockBlocksWrite(lock: SourceLock): boolean {
-	return lock.kind !== 'NONE' && lock.kind !== 'PENDING_APPROVAL';
+	return sourceLockApplicationLocked(lock);
 }
 
 export function sourceLockMessage(lock: SourceLock, action: string): string {
 	switch (lock.kind) {
 		case 'NONE':
+			return `${action} can change.`;
 		case 'PENDING_APPROVAL':
-			return `${action} is awaiting approval and cannot change here.`;
+			return `System lock: ${action.toLowerCase()} is awaiting approval and cannot change until the request closes.`;
 		case 'DATE_PASSED':
 			return `${action} on ${lock.date} is locked: that day has already passed.`;
 		case 'SETTLED':
