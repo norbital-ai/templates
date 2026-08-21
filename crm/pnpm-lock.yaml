@@ -478,19 +478,19 @@ packages:
     engines: {node: '>= 20.19.0'}
 
   '@norbital-ai/bolt-protocol@0.0.1':
-    resolution: {integrity: sha512-ye5yOFOdcbhaJOQK0RtRRTtyZn1i/e80uCMjmPhTPJDDDxr+clCyHgp+4xzRDKTvLTwcjGmeIIJeHX+pakM9Ng==, tarball: https://npm.pkg.github.com/download/@norbital-ai/bolt-protocol/0.0.1/bfd25aba3e11be5244446a7c4f8ddbf1f4924c04}
+    resolution: {integrity: sha512-gK4gkVxjszULtmq+L2V0uu2I3DPz2HpKRwUPwApPPbaJj2uDAaLBI/bAs3+bntl8QbuYwOgpissUTK8Hiq/FWA==, tarball: https://npm.pkg.github.com/download/@norbital-ai/bolt-protocol/0.0.1/439b67d9e449c9d262e3e6fc252757859ec4c957}
     peerDependencies:
       effect: 4.0.0-rc.111
 
   '@norbital-ai/bolt@0.0.1':
-    resolution: {integrity: sha512-/0JTNXasSJTAmDCphLG1RV8Nez9Akp0p7nZZRb9ZpCa9M+LkN3OHK0kzW3u+RkIx+r9y7tVU3fOTjg7Gt64MdA==, tarball: https://npm.pkg.github.com/download/@norbital-ai/bolt/0.0.1/749963b03319a0acf0f94bcef741b688635a6509}
+    resolution: {integrity: sha512-A5oGEf+FMQFZYuY7tRj3o48W03PQK6ObRYXenwB2/myEQvDR6sp+NBH55FbuX10xre8AD5vUqEcN4TLwO9wXeQ==, tarball: https://npm.pkg.github.com/download/@norbital-ai/bolt/0.0.1/77be645c1d35a10bfc559972ac0ba55976c61f79}
     hasBin: true
     peerDependencies:
       effect: 4.0.0-rc.111
       svelte: ^5.0.0
 
   '@norbital-ai/std@0.0.1':
-    resolution: {integrity: sha512-oMIA3rhjbtjYqgfqzumZ0A2grUsGKHmrGr9HG7sDvCtTGzxEDIPWJeTrpjXg+AcqBp4NZhPtOJN72B/tYQfC7g==, tarball: https://npm.pkg.github.com/download/@norbital-ai/std/0.0.1/efe41598286b3557a5a27a6463dd619e27ca89e4}
+    resolution: {integrity: sha512-XkCSdb9T5d5F4GX6uyyxSpC+pw9qbjPW4m1BKv3GiJqPtmDFX0NbXwBRglefdjrC284C1msM+SQxKx5fFfWJwg==, tarball: https://npm.pkg.github.com/download/@norbital-ai/std/0.0.1/ea046e2940d93bc2a225949e50d562aa8a6405f8}
 
   '@norbital-ai/ui@0.0.1':
     resolution: {integrity: sha512-Sj7K/xptPn/weqJ7WaG3+zF2LC1kScQfeU7t3SApYcJYBig0N52FanOVUjnzet/SR6RnqGtZv5G1FdZu0M6QuA==, tarball: https://npm.pkg.github.com/download/@norbital-ai/ui/0.0.1/b7b27330ed7f1b4badfd4fe299604eacbfad270f}
@@ -975,9 +975,6 @@ packages:
   ansi-styles@4.3.0:
     resolution: {integrity: sha512-zbB9rCJAT1rbjiVDb2hqKFHNYLxgtk8NURxZ3IZwD3F6NtxbXZQCnnSi1Lkx+IDohdPlFp222wVALIheZJQSEg==}
     engines: {node: '>=8'}
-
-  argparse@2.0.1:
-    resolution: {integrity: sha512-8+9WqebbFzpX9OR+Wa6O29asIogeRMzcGtAINdpMHHyAg10f05aSFVBbcEqGf/PXw1EjAZ+q2/bEBg3DvurK3Q==}
 
   aria-query@5.3.1:
     resolution: {integrity: sha512-Z/ZeOgVl7bcSYZ/u/rh0fOpvEpq//LZmdbkXyc7syVzjPAhfOa9ebsdTSjEBDU4vs5nC98Kfduj1uFo0qyET3g==}
@@ -1539,10 +1536,6 @@ packages:
 
   jose@6.2.9:
     resolution: {integrity: sha512-XrchZOFZUl/T3vTwRe8XK+cJrGtMF4th1ARnDfwbBXFKThGhlsxEE4Zu03AD/bjJSt/9jT/mxrOCkJWOg77aPA==}
-
-  js-yaml@5.3.0:
-    resolution: {integrity: sha512-muutsYr+e2+d3rTgUGslq5rxbBlUy3cJ61IsHag2QNDQV+7zXWjkUpmALIajhrlLlrgRUiymj6U3zUr/TMK84Q==}
-    hasBin: true
 
   jsbi@4.3.2:
     resolution: {integrity: sha512-9fqMSQbhJykSeii05nxKl4m6Eqn2P6rOlYiS+C5Dr/HPIU/7yZxu5qzbs40tgaFORiw2Amd0mirjxatXYMkIew==}
@@ -2641,11 +2634,7 @@ snapshots:
   '@norbital-ai/std@0.0.1':
     dependencies:
       '@marcbachmann/cel-js': 8.0.0
-      dedent: 1.7.2
       effect: 4.0.0-rc.111
-      js-yaml: 5.3.0
-    transitivePeerDependencies:
-      - babel-plugin-macros
 
   '@norbital-ai/ui@0.0.1(@norbital-ai/std@0.0.1)(svelte@5.56.10)(tailwindcss@4.3.3)(zod@4.4.3)':
     dependencies:
@@ -3120,8 +3109,6 @@ snapshots:
     dependencies:
       color-convert: 2.0.1
 
-  argparse@2.0.1: {}
-
   aria-query@5.3.1: {}
 
   axobject-query@4.1.0: {}
@@ -3496,10 +3483,6 @@ snapshots:
   jiti@2.7.0: {}
 
   jose@6.2.9: {}
-
-  js-yaml@5.3.0:
-    dependencies:
-      argparse: 2.0.1
 
   jsbi@4.3.2: {}
 
