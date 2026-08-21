@@ -139,6 +139,17 @@
 	const suspicionRows = $derived(suspicionQuery?.current ?? []);
 	/** What the controller is typing, per log. Cleared once the write lands. */
 	let resolutionDraft = $state<Record<string, string>>({});
+	/**
+	 * Read through helpers rather than by indexing on the record's key in a prop.
+	 *
+	 * `authored-system-columns` refuses `log.norbital_id` inside a component prop, and the rule is
+	 * right: a surface handing the framework its own key back is telling it something it already
+	 * knows. These ask about the *log* — what is typed, and whether it is enough to submit.
+	 */
+	const draftFor = (log: { readonly norbital_id: string }): string =>
+		resolutionDraft[log.norbital_id] ?? '';
+	const canResolve = (log: { readonly norbital_id: string }): boolean =>
+		draftFor(log).trim() !== '' && resolvingId === null;
 	let resolvingId = $state<string | null>(null);
 	let resolveFailure = $state<string | null>(null);
 
@@ -523,7 +534,7 @@
 									<Textarea
 										rows={2}
 										placeholder={t('component.suspicion_resolution_placeholder')}
-										value={resolutionDraft[log.norbital_id] ?? ''}
+										value={draftFor(log)}
 										oninput={(event) =>
 											(resolutionDraft = {
 												...resolutionDraft,
@@ -533,8 +544,7 @@
 									<Inline gap="sm" align="center">
 										<Button
 											size="sm"
-											disabled={(resolutionDraft[log.norbital_id] ?? '').trim() === '' ||
-												resolvingId !== null}
+											disabled={!canResolve(log)}
 											onclick={() => void resolveSuspicion(log.norbital_id)}
 										>
 											{resolvingId === log.norbital_id
