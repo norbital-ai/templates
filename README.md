@@ -100,7 +100,7 @@ read on the same twelve collections. The narrowing is `apps`, not `where`. That 
 than lazy — construction carries no requestor-bearing column on any of these collections, so there
 is nothing for a `where` clause to scope to, and what actually separates a delivery user from a
 settings administrator is which application they can open. The three files repeat the twelve grant
-lines instead of sharing a list, because `src/policies` admits only `+<name>.policy.ts`; twelve
+lines instead of sharing a list, because `src/access/policies` admits only `+<name>.ts`; twelve
 literal lines per file is the price of keeping a policy's whole grant set readable in the file that
 names it.
 
@@ -131,11 +131,11 @@ under `.norbital/`.
 
 ```text
 src/apps/                              the three applications (+<app>.svelte)
-src/policies/                          one read-only role per application
+src/access/policies/                   one read-only policy per application
 src/collections/                       models (+model.ts), relations (+relationship.ts),
                                        the compliance hook, and form/detail representations
-src/automation/                        the four daily review watches (+<name>.ts)
-src/custom-types/                      money, project address, site coordinates,
+src/automations/                       the four daily review watches (+<name>.ts)
+src/datatypes/                         money, project address, site coordinates,
                                        emergency contact, permit signatures (+definition.ts + renderer)
 src/i18n/                              English and Chinese copy, same key sets (messages.en/zh.json)
 src/collections/projects/ifc-viewer/   the embedded IFC viewer and its converter worker
