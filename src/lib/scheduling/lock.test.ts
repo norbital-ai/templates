@@ -11,6 +11,7 @@ import {
 	sourceLock,
 	sourceLockSystemLocked,
 	sourceLockApplicationLocked,
+	sourceLockRecordMetadata,
 	sourceLockBlocksWrite,
 	assertSourceUnlocked
 } from './lock.ts';
@@ -185,6 +186,20 @@ test('approval and application locks stay explicitly classified', () => {
 	assert.equal(sourceLockApplicationLocked(settled), true);
 	assert.equal(sourceLockSystemLocked(unlocked), false);
 	assert.equal(sourceLockApplicationLocked(unlocked), false);
+});
+
+test('only application locks become authored record metadata', () => {
+	const translate = (key, vars) => `${key}${vars?.period ? `:${vars.period}` : ''}`;
+
+	assert.deepEqual(sourceLockRecordMetadata({ kind: 'PENDING_APPROVAL' }, translate), []);
+	assert.deepEqual(sourceLockRecordMetadata({ kind: 'NONE' }, translate), []);
+	assert.deepEqual(sourceLockRecordMetadata({ kind: 'SETTLED', period: '2026-07' }, translate), [
+		{
+			kind: 'restriction',
+			operations: ['update', 'delete'],
+			reason: 'component.lock_settled_by_run:2026-07'
+		}
+	]);
 });
 
 /**

@@ -7,7 +7,7 @@ import {
 	referenceGrants,
 	statutoryGrants,
 	timeEntryApproval
-} from '../lib/policy_grants.js';
+} from '../../lib/policy_grants.js';
 import type { Policy } from './$types.js';
 
 /**
@@ -32,10 +32,9 @@ import type { Policy } from './$types.js';
  *     component entries and leave requests that run consumed. `payroll_runs/+hooks.ts` refuses the
  *     delete outright once `lifecycle = 'PAID'`, so this grant can only ever release a draft's claims.
  *
- * The generated groups and the verbatim approval ids carry over from `+hr_controller.ts` for
- * the reasons stated there; the time-entry and leave configs get their own ids, because the same flow
- * reached by a different role is a different config row and collapsing them would make a
- * manager-raised correction indistinguishable from a controller-raised one in the approval history.
+ * The generated groups and shared approval declarations carry over from `+hr_controller.ts`.
+ * Derived approval identity includes this policy key, so the same steps reached through another
+ * policy remain distinct in history without hand-authored ids.
  */
 export default {
 	description:

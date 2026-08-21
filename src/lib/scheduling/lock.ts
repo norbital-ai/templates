@@ -310,3 +310,27 @@ export function sourceLockReason(
 	const params = sourceLockI18nParams(lock);
 	return params == null ? translate(key) : translate(key, params);
 }
+
+/**
+ * Projects an application-owned source lock into the collection surface contract.
+ *
+ * Pending approval deliberately produces no authored metadata: it is protected Bolt state and the
+ * collection surfaces inject it directly from `norbital_approval_id`. This helper only adapts the
+ * payroll application's own refusal, keeping the hook's lock calculation as the single source of
+ * truth without letting application code impersonate system metadata.
+ */
+export function sourceLockRecordMetadata(
+	lock: SourceLock,
+	translate: (key: SourceLockI18nKey, vars?: SourceLockI18nParams) => string
+) {
+	if (!sourceLockApplicationLocked(lock)) return [] as const;
+	const reason = sourceLockReason(lock, translate);
+	if (reason == null) return [] as const;
+	return [
+		{
+			kind: 'restriction',
+			operations: ['update', 'delete'],
+			reason
+		}
+	] as const;
+}

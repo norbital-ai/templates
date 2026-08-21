@@ -97,17 +97,18 @@ with several chooses which one the page scopes to.
 A policy names the `hr_controller` app _group_ rather than each page, so adding a controller page
 does not mean revisiting every role declaration.
 
-### Remote (1)
+### Function (1)
 
 **`approval_analytics`** supplies year-to-date approval counters and a five-year trend for the
 three subjects the controller pages summarise: payroll runs, leave requests and claims. It is worth
 reading for how it phrases those counts: every counter is expressed as `norbital_approval_id IS
 NULL`, because that is the only definition of a live row.
 
-### Agent
+### Agent context
 
-`src/+agent.ts` declares the workspace agent narrowly — write access to `companies` alone, one host
-tool, and bounded iterations and tokens. An agent receives a grant here, not the workspace.
+`src/+agents.md` supplies the shared HR/payroll context for web and envoy turns: tool-result honesty,
+collection meanings, money/date rules, and the boundary around statutory advice. It grants nothing;
+the signed-in person's policies remain the complete authority for a web-agent turn.
 
 ### Automations (1)
 
@@ -140,13 +141,13 @@ src/
 ├── apps/                     # +<app>.svelte per app; hr_controller/+group.ts owns the group
 ├── collections/              # 22 collections: +model.ts, +hooks.ts, +pipelines.ts, +representation.svelte
 │   └── payroll_runs/lib/     # the settlement engine (phases, overtime, coverage, export)
-├── custom-types/             # 27 structured values (money, statutory_regime, work_pattern, …)
-├── policies/                 # employee, supervisor, manager, senior_management, hr_controller, hr_manager
-├── remotes/                  # approval_analytics
+├── datatypes/                # 27 structured values (money, statutory_regime, work_pattern, …)
+├── access/                   # +teams.ts, anonymous limits, and six policies
+├── functions/                # approval_analytics
 ├── i18n/                     # messages.en.json / messages.zh.json (same key set)
-├── automation/               # statutory_profile_drift (weekly deterministic)
+├── automations/              # statutory_profile_drift (weekly deterministic)
 ├── lib/                      # shared helpers: calendar, display formatters, policy grants, roster month
-└── +agent.ts
+└── +agents.md
 ```
 
 - **Models** describe storage only; presentation lives in apps and representations.

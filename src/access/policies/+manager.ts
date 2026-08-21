@@ -8,15 +8,15 @@ import {
 	settlementLedgerGrants,
 	statutoryGrants,
 	timeEntryApproval
-} from '../lib/policy_grants.js';
+} from '../../lib/policy_grants.js';
 import type { Policy } from './$types.js';
 
 /**
  * Rank 3 of 4. A supervisor, plus the authority to withdraw rather than only to raise.
  *
  * The whole of the supervisor's set is composed again here rather than inherited, because there is
- * no inheritance to inherit through: `subjectHasPolicy` matches a subject to a policy by role, so a
- * person carrying only `manager` matches only this file and is granted only what this file lists.
+ * no policy-to-policy inheritance: a subject holding only `manager` matches only this file and is
+ * granted only what this file lists.
  * See the ladder in `src/lib/policy_grants.ts`.
  *
  * What rank 3 adds to rank 2 is deletion — of a time entry and of a leave request. The asymmetry is

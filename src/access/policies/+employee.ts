@@ -5,13 +5,13 @@ import {
 	settlementLedgerGrants,
 	statutoryGrants,
 	timeEntryApproval
-} from '../lib/policy_grants.js';
+} from '../../lib/policy_grants.js';
 import type { Policy } from './$types.js';
 
 /**
  * Rank 1 of 4. Self-service: an employee's own record and nothing else.
  *
- * The role token is this policy's `name`, folded — see the ladder in `src/lib/policy_grants.ts`.
+ * The policy key is this file's name, `employee` — see the ladder in `src/lib/policy_grants.ts`.
  *
  * The scope root here is `${requestor.email}`, not `${requestor.norbital_id}`. That is the seed's
  * choice and it is kept: an `employees` row is HR data with its own lifecycle and is not the same

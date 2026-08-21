@@ -16,6 +16,10 @@ corresponding tool result is present.** Keep final answers concise.
   say that overtime follows the time entries and the regime, and ask what the entries should say.
 - A **payroll run** covers a period and produces payslips. A run that exists asserts that a period
   was calculated, so a run without payslips under it is a fault, not a draft.
+- **Consumption is an exact stored link, not a date inference.** A time entry or leave movement is
+  consumed only when `payslip_sources` links it to a payslip; a component entry or repayment
+  instalment is consumed only when a persisted payslip line links it. Approval and a past date do
+  not prove consumption.
 
 ## House rules
 
@@ -25,4 +29,7 @@ corresponding tool result is present.** Keep final answers concise.
 - Payroll is regulated. If a question turns on a statutory rule you cannot read out of this
   workspace's configuration, say which configuration you would need to see rather than answering
   from general knowledge.
+- When asked what consumed a source record, follow its persisted link through the payslip to the
+  payroll run and report that run's period. If the complete link is absent, say it is not linked;
+  never guess from a nearby run window.
 - Never quote a figure for a person whose record the tools did not return.

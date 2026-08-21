@@ -72,13 +72,13 @@ pay_components <-------------------------- payslip_lines
 
 **`approval_analytics`** 为控制器页面汇总的三个主题——薪资运行、休假申请与报销——提供年初至今的审批计数与五年趋势。值得一读的是它如何表述这些计数：每个计数都以 `norbital_approval_id IS NULL` 表达，因为这是"有效行"的唯一定义。
 
-### 代理
+### 代理上下文
 
-`src/+agent.ts` 把工作区代理声明得十分克制——只对 `companies` 有写权限、一个宿主工具，以及有界的迭代与令牌。代理在这里获得的是授权（grant），而非整个工作区。
+`src/+agents.md` 为网页与 envoy 对话提供共享的 HR/薪资上下文：如实引用工具结果、集合含义、金额与日期规则，以及法定建议边界。它本身不授予任何权限；网页代理仍完全受登录人员的策略约束。
 
 ### 自动化、集成与种子数据
 
-本模板不附带任何自动化与集成。租户同样**没有 `+seed.ts`**：法定与敏感夹具种子存放在仓库的种子库中（见下文），薪资输入属于 [`docs/data.md`](docs/data.md) 所述的对账工作流。
+本模板包含每周执行的 `statutory_profile_drift` 自动化，不附带外部集成。租户同样**没有 `+seed.ts`**：法定与敏感夹具种子存放在仓库的种子库中（见下文），薪资输入属于 [`docs/data.md`](docs/data.md) 所述的对账工作流。
 
 ## 运营边界
 
@@ -95,12 +95,13 @@ src/
 ├── apps/                     # 每个应用一个 +<app>.svelte；hr_controller/+group.ts 归属组
 ├── collections/              # 26 个集合：+model.ts、+hooks.ts、+pipelines.ts、+representation.svelte
 │   └── payroll_runs/lib/     # 结算引擎（阶段、加班、覆盖、导出）
-├── custom-types/             # 24 个结构化值（money、component_definition、eligibility_rules、……）
-├── policies/                 # employee、supervisor、manager、senior_management、hr_controller、hr_manager
-├── remotes/                  # approval_analytics
+├── datatypes/                # 24 个结构化值（money、component_definition、eligibility_rules、……）
+├── access/                   # +teams.ts、匿名限流与六个策略
+├── functions/               # approval_analytics
 ├── i18n/                     # messages.en.json / messages.zh.json（相同的键集）
+├── automations/              # statutory_profile_drift（每周确定性执行）
 ├── lib/                      # 共享辅助：日历、显示格式化、策略授权、排班月
-└── +agent.ts
+└── +agents.md
 ```
 
 - **模型**只描述存储；呈现属于应用与 representation。`src/collections/+relationship.ts` 拥有关系图——外键由它推导，绝不在模型中声明。

@@ -7,7 +7,7 @@ import {
 	referenceGrants,
 	statutoryGrants,
 	timeEntryApproval
-} from '../lib/policy_grants.js';
+} from '../../lib/policy_grants.js';
 import type { Policy } from './$types.js';
 
 /**
@@ -17,10 +17,9 @@ import type { Policy } from './$types.js';
  * as a role that **may view, create and run payroll**. So this file is the union of the manager
  * ladder and the HR manager's payroll authority, composed from the same builders both of them use.
  *
- * Spelled `senior_management`, not `senior management`. The role token is the policy name, folded,
- * and it is carried in credentials beside `hr_controller` and `hr_manager`; a token with a space in
- * it is a token that gets mistyped once and silently matches no policy at all — which fails as a
- * blank workspace rather than as an error.
+ * Spelled `senior_management`, not `senior management`, because the filename is the policy key.
+ * `PolicyName` is generated from that key and consumed by the team declaration, so the human-facing
+ * spelling stays in i18n instead of becoming a second authority name.
  *
  * Everything is restated rather than inherited, for the reason given in the ladder in
  * `src/lib/policy_grants.ts`: there is no `extends` in the authoring surface and no rank in the
