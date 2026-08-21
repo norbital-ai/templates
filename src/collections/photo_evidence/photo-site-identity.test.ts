@@ -7,13 +7,21 @@ import {
 } from '../../automation/photo-site-identity.js';
 import hooks from './+hooks.js';
 
+/** A `file()` value, which is what `photo` holds — the whole file, not a pointer to one. */
+const photoFile = (name: string) => ({
+	storage_key: `photos/${name}.jpg`,
+	file_name: `${name}.jpg`,
+	file_size: 1024,
+	mime_type: 'image/jpeg'
+});
+
 function context(): PhotoSiteIdentityContext {
 	return {
 		evidence: {
 			norbital_id: 'evidence-a',
 			job_assignment_id: 'assignment-a',
 			variation_request_id: null,
-			document_asset_id: 'asset-a',
+			photo: photoFile('asset-a'),
 			sha256: 'abc123',
 			flags: ['visual_duplicate', 'missing_geolocation'],
 			matched_evidence_ids: ['evidence-c', 'evidence-b'],
@@ -90,7 +98,7 @@ test('returns changed deterministic integrity inputs to pending reconciliation',
 			existing: {
 				job_assignment_id: 'assignment-a',
 				variation_request_id: null,
-				document_asset_id: 'asset-a',
+				photo: photoFile('asset-a'),
 				source_key: 'workspace:asset-a',
 				source: { kind: 'workspace_upload' },
 				flags: ['missing_geolocation'],

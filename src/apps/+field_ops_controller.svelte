@@ -232,11 +232,11 @@
 	<meta name="bolt:icon" content="lucide:building-2" />
 	<meta
 		name="bolt:thumbnail"
-		content="/api/template-seed-assets/field-operations/app-media/field_ops_controller-banner.webp"
+		content="/__bolt/request/api/template-seed-assets/field-operations/app-media/field_ops_controller-banner.webp"
 	/>
 	<meta
 		name="bolt:banner"
-		content="/api/template-seed-assets/field-operations/app-media/field_ops_controller-banner.webp"
+		content="/__bolt/request/api/template-seed-assets/field-operations/app-media/field_ops_controller-banner.webp"
 	/>
 </svelte:head>
 

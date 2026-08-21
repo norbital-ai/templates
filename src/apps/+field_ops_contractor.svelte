@@ -80,11 +80,11 @@
 	<meta name="bolt:icon" content="lucide:hard-hat" />
 	<meta
 		name="bolt:thumbnail"
-		content="/api/template-seed-assets/field-operations/app-media/field_ops_contractor-banner.webp"
+		content="/__bolt/request/api/template-seed-assets/field-operations/app-media/field_ops_contractor-banner.webp"
 	/>
 	<meta
 		name="bolt:banner"
-		content="/api/template-seed-assets/field-operations/app-media/field_ops_contractor-banner.webp"
+		content="/__bolt/request/api/template-seed-assets/field-operations/app-media/field_ops_contractor-banner.webp"
 	/>
 </svelte:head>
 

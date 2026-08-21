@@ -282,10 +282,22 @@ export function assertExactlyOnePhotoParent(
 export interface PhotoEvidenceProvenance {
 	readonly job_assignment_id?: string | null;
 	readonly variation_request_id?: string | null;
-	readonly document_asset_id?: string | null;
+	readonly photo?: { readonly storage_key?: unknown } | null;
 	readonly source_key?: string | null;
 	readonly source?: unknown;
 }
+
+/**
+ * Which bytes a `photo` value names, or nothing.
+ *
+ * `photo` is an object, so `input.photo !== existing.photo` compares references and is true for two
+ * decodes of the same file — an update that resent an unchanged photo would be refused as a
+ * re-parenting attempt. The storage key is what identifies the file, so that is what is compared.
+ */
+const photoKey = (photo: PhotoEvidenceProvenance['photo']): string | null => {
+	if (photo === null || photo === undefined) return null;
+	return typeof photo.storage_key === 'string' ? photo.storage_key : null;
+};
 
 /**
  * A settled evidence row is an audit record, not a movable file reference.
@@ -299,12 +311,12 @@ export function assertPhotoEvidenceProvenanceUnchanged(
 	input: PhotoEvidenceProvenance,
 	existing: Required<PhotoEvidenceProvenance>
 ): void {
-	const scalarFields = [
-		'job_assignment_id',
-		'variation_request_id',
-		'document_asset_id',
-		'source_key'
-	] as const;
+	if (input.photo !== undefined && photoKey(input.photo) !== photoKey(existing.photo)) {
+		throw new Error(
+			'Photo evidence provenance is immutable; create new evidence to change its photo or parent.'
+		);
+	}
+	const scalarFields = ['job_assignment_id', 'variation_request_id', 'source_key'] as const;
 	for (const field of scalarFields) {
 		if (input[field] !== undefined && input[field] !== existing[field]) {
 			throw new Error(

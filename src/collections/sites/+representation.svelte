@@ -57,7 +57,7 @@
 <svelte:head>
 	<meta
 		name="bolt:banner"
-		content="/api/template-seed-assets/field-operations/record-media/sites-banner.svg"
+		content="/__bolt/request/api/template-seed-assets/field-operations/record-media/sites-banner.svg"
 	/>
 </svelte:head>
 

@@ -14,7 +14,7 @@ export default defineModel(
 	{
 		job_assignment_id: uuid(),
 		variation_request_id: uuid(),
-		document_asset_id: file({ mimeTypes: ['image/jpeg', 'image/png'] }).notNull(),
+		photo: file({ mimeTypes: ['image/jpeg', 'image/png'] }).notNull(),
 		source_key: text().notNull(),
 		source: custom('photo_source').notNull(),
 		sha256: text().notNull(),

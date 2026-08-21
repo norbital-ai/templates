@@ -169,7 +169,6 @@ export const client: WorkspaceClient = {
 		sites: collectionOperations('sites'),
 		suspicious_activity_logs: collectionOperations('suspicious_activity_logs'),
 		variation_requests: collectionOperations('variation_requests'),
-		document_asset: collectionOperations('document_asset'),
 		// `team`, `team_members` and `user` were platform tables until identity became runtime-owned.
 		// A person is a row in `bolt_auth_user` whose `team_id` points at the one `bolt_team` row they
 		// belong to, and the system read policy grants that row masked to an id and a name — a

@@ -32,7 +32,12 @@ function coordinatesOf(location: LocationLike): { lat: number; lon: number } | n
 const photoEvidenceCreateInput = Schema.Struct({
 	job_assignment_id: Schema.optional(Schema.NullOr(Schema.String.check(Schema.isUUID()))),
 	variation_request_id: Schema.optional(Schema.NullOr(Schema.String.check(Schema.isUUID()))),
-	document_asset_id: Schema.String.check(Schema.isUUID()),
+	photo: Schema.Struct({
+		storage_key: Schema.String,
+		file_name: Schema.String,
+		file_size: Schema.Number,
+		mime_type: Schema.String
+	}),
 	source: Schema.optional(photoSourceSchema)
 });
 
@@ -80,10 +85,13 @@ const MAX_BATCH_DUPLICATE_COMPARISONS = 250_000;
 const MAX_EXACT_DUPLICATE_MATCHES = 20;
 const MAX_EXACT_DUPLICATE_CANDIDATES = 1_000;
 
-function sourceKey(source: Schema.Schema.Type<typeof photoSourceSchema>, assetId: string): string {
+function sourceKey(
+	source: Schema.Schema.Type<typeof photoSourceSchema>,
+	storageKey: string
+): string {
 	return source.kind === 'channel'
 		? `${source.provider}:${source.conversation_id}:${source.attachment_id}`
-		: `workspace:${assetId}`;
+		: `workspace:${storageKey}`;
 }
 
 /**
@@ -248,7 +256,7 @@ function preparePhoto(
 	siteLocation: LocationLike
 ): Effect.Effect<PhotoCreateMutation, unknown, never> {
 	return Effect.gen(function* () {
-		const asset = yield* api.readFileAsset(parsed.document_asset_id);
+		const asset = yield* api.readFileAsset(parsed.photo);
 		const mimeType = asset.mimeType;
 		if (mimeType == null || !mimeType.toLowerCase().startsWith('image/')) {
 			throw new Error('Photo evidence requires an image file.');
@@ -264,7 +272,7 @@ function preparePhoto(
 		return {
 			job_assignment_id: parsed.job_assignment_id,
 			variation_request_id: parsed.variation_request_id,
-			document_asset_id: parsed.document_asset_id,
+			photo: parsed.photo,
 			source,
 			source_key: sourceKey(source, asset.id),
 			sha256: inspected.sha256,
