@@ -10,40 +10,40 @@ importers:
     dependencies:
       '@iconify/svelte':
         specifier: ^5.2.2
-        version: 5.2.2(svelte@5.56.9)
+        version: 5.2.2(svelte@5.56.10)
       '@internationalized/date':
         specifier: ^3.12.3
         version: 3.12.3
       '@norbital-ai/bolt':
-        specifier: 0.0.21
-        version: 0.0.21(effect@4.0.0-rc.109)(jiti@2.7.0)(svelte@5.56.9)(zod@4.4.3)
+        specifier: 0.0.1
+        version: 0.0.1(effect@4.0.0-rc.111)(jiti@2.7.0)(svelte@5.56.10)(zod@4.4.3)
       '@norbital-ai/bolt-protocol':
-        specifier: 0.0.21
-        version: 0.0.21(effect@4.0.0-rc.109)
+        specifier: 0.0.1
+        version: 0.0.1(effect@4.0.0-rc.111)
       '@norbital-ai/std':
-        specifier: 0.0.21
-        version: 0.0.21
+        specifier: 0.0.1
+        version: 0.0.1
       '@norbital-ai/ui':
-        specifier: 0.0.21
-        version: 0.0.21(@norbital-ai/std@0.0.21)(svelte@5.56.9)(tailwindcss@4.3.3)(zod@4.4.3)
+        specifier: 0.0.1
+        version: 0.0.1(@norbital-ai/std@0.0.1)(svelte@5.56.10)(tailwindcss@4.3.3)(zod@4.4.3)
       effect:
-        specifier: 4.0.0-rc.109
-        version: 4.0.0-rc.109
+        specifier: 4.0.0-rc.111
+        version: 4.0.0-rc.111
       exceljs:
         specifier: 4.4.0
         version: 4.4.0
       mode-watcher:
         specifier: ^1.1.0
-        version: 1.1.0(svelte@5.56.9)
+        version: 1.1.0(svelte@5.56.10)
       runed:
         specifier: ^0.37.1
-        version: 0.37.1(svelte@5.56.9)(zod@4.4.3)
+        version: 0.37.1(svelte@5.56.10)(zod@4.4.3)
       svelte:
-        specifier: ^5.56.9
-        version: 5.56.9
+        specifier: ^5.56.10
+        version: 5.56.10
       svelte-sonner:
         specifier: ^1.2.1
-        version: 1.2.1(svelte@5.56.9)
+        version: 1.2.1(svelte@5.56.10)
       vite:
         specifier: ^8.2.1
         version: 8.2.2(jiti@2.7.0)
@@ -53,10 +53,10 @@ importers:
         version: 3.9.6
       prettier-plugin-svelte:
         specifier: ^4.1.1
-        version: 4.1.1(prettier@3.9.6)(svelte@5.56.9)
+        version: 4.1.1(prettier@3.9.6)(svelte@5.56.10)
       svelte-check:
         specifier: ^4.7.6
-        version: 4.7.6(picomatch@4.0.5)(svelte@5.56.9)(typescript@6.0.3)
+        version: 4.7.6(picomatch@4.0.5)(svelte@5.56.10)(typescript@6.0.3)
       typescript:
         specifier: 6.0.3
         version: 6.0.3
@@ -492,26 +492,26 @@ packages:
     resolution: {integrity: sha512-oN+QwyX7VSHotibwubG3kpzbwKrfnyR6OOO+3Nk/53ADL7FmgHHz4TgrbaYKvvOw09u6QTx0oiH1cNCIOuN0CQ==}
     engines: {node: '>= 20.19.0'}
 
-  '@norbital-ai/bolt-protocol@0.0.21':
-    resolution: {integrity: sha512-0Q0D4Pl/+8cTbCw1YiS3pAvPxCDlGXnXJzhF11ga3ekyGIhuW0X/aV5QmEHsB2Aay/duJb2fqEO+7ANK59SfMQ==, tarball: https://npm.pkg.github.com/download/@norbital-ai/bolt-protocol/0.0.21/7f220c04576f2d33fefbc394fdadf3e50cd7e068}
+  '@norbital-ai/bolt-protocol@0.0.1':
+    resolution: {integrity: sha512-ye5yOFOdcbhaJOQK0RtRRTtyZn1i/e80uCMjmPhTPJDDDxr+clCyHgp+4xzRDKTvLTwcjGmeIIJeHX+pakM9Ng==, tarball: https://npm.pkg.github.com/download/@norbital-ai/bolt-protocol/0.0.1/bfd25aba3e11be5244446a7c4f8ddbf1f4924c04}
     peerDependencies:
-      effect: 4.0.0-rc.109
+      effect: 4.0.0-rc.111
 
-  '@norbital-ai/bolt@0.0.21':
-    resolution: {integrity: sha512-ofYUuwo47RfFwTjmmqECvLUsN5FOnXqXDvBoyDKvh1sE4UvCor82ZcIor8YRRDz809orzPwXT/P4fcJw0EOkIQ==, tarball: https://npm.pkg.github.com/download/@norbital-ai/bolt/0.0.21/14e0be2f5987268fc9104cacaba5f632defabe74}
+  '@norbital-ai/bolt@0.0.1':
+    resolution: {integrity: sha512-ReCo9QNhglttGpT5k4XpaEo+IF7vXnoBlmsYaFqO4qb/PoyOINrJ22CYonaR+KT1yTwH2xJukGiYPRkemcZr2A==, tarball: https://npm.pkg.github.com/download/@norbital-ai/bolt/0.0.1/7fa732b0b88a5d25d0dcb94e8076acda32de9e94}
     hasBin: true
     peerDependencies:
-      effect: 4.0.0-rc.109
+      effect: 4.0.0-rc.111
       svelte: ^5.0.0
 
-  '@norbital-ai/std@0.0.21':
-    resolution: {integrity: sha512-OLqpyMkhNBnVeQicJ0Ida7JOSW7pzMKs3j3/wAnPxtpW1SxUhmpXZNQNSgvTXn/feDuv1C4FVmTo1SJyUPC/Uw==, tarball: https://npm.pkg.github.com/download/@norbital-ai/std/0.0.21/698cc3f10a6172ff3bb96f9a3d5ce5bbc32e2c7a}
+  '@norbital-ai/std@0.0.1':
+    resolution: {integrity: sha512-oMIA3rhjbtjYqgfqzumZ0A2grUsGKHmrGr9HG7sDvCtTGzxEDIPWJeTrpjXg+AcqBp4NZhPtOJN72B/tYQfC7g==, tarball: https://npm.pkg.github.com/download/@norbital-ai/std/0.0.1/efe41598286b3557a5a27a6463dd619e27ca89e4}
 
-  '@norbital-ai/ui@0.0.21':
-    resolution: {integrity: sha512-TMyTPZnYjwPnsHsPbv0Epj4RWA8ipgtaHIGaznjx8GD2bZ7ww7OgmQAkOYveiJNBB1+f/NoavnBgQAScx+f9Bw==, tarball: https://npm.pkg.github.com/download/@norbital-ai/ui/0.0.21/17038156c25b36b1c15b5c41c0b2b188c887d045}
+  '@norbital-ai/ui@0.0.1':
+    resolution: {integrity: sha512-YXWLjs/7wrriMFSW5s+cw8yPIEvByAcGbS9lvUmIO5rFG7K0yVYn5t3quSZ1xS+2IT/8K+nYkE6S4njhedfpNA==, tarball: https://npm.pkg.github.com/download/@norbital-ai/ui/0.0.1/87775e6588fa1e6cbf32c3fd6bb0c0e0e188c448}
     peerDependencies:
-      '@norbital-ai/std': 0.0.21
-      svelte: ^5.56.7
+      '@norbital-ai/std': 0.0.1
+      svelte: ^5.56.10
 
   '@opentelemetry/semantic-conventions@1.43.0':
     resolution: {integrity: sha512-eSYWTm620tTk45EKSedaUL8MFYI8hW164hIXsgIHyxu3VobUB3fFCu5t0hQby6OoWRPsG1KkKUG2M5UadiLiVg==}
@@ -1530,8 +1530,8 @@ packages:
   duplexer2@0.1.4:
     resolution: {integrity: sha512-asLFVfWWtJ90ZyOUHMqk7/S2w2guQKxUI2itj3d92ADHhxUSbCMGi1f1cBcJ7xM1To+pE/Khbwo1yuNbMEPKeA==}
 
-  effect@4.0.0-rc.109:
-    resolution: {integrity: sha512-6ubcOCtfdbmFO5+vgcT2HsTw5s+n3aMUj4eAIbVpUxP7+VYCwXxxcBHgiWgizOrGO1eGmuOBFek3mM0dFcwaWA==}
+  effect@4.0.0-rc.111:
+    resolution: {integrity: sha512-ASd5L58EIR0CUNueZNKKjSsyOCd+2alxOAIaTcHaqkJkPsaYSsw5Cg/cfANk5K4Jr2YsX756xvX11shzqsreWA==}
 
   embla-carousel-reactive-utils@8.6.0:
     resolution: {integrity: sha512-fMVUDUEx0/uIEDM0Mz3dHznDhfX+znCCDCeIophYb1QGVM7YThSWX+wz11zlYwWFOr74b4QLGg0hrGPJeG2s4A==}
@@ -2270,8 +2270,8 @@ packages:
     peerDependencies:
       svelte: ^5.0.0
 
-  svelte@5.56.9:
-    resolution: {integrity: sha512-VT8kSnlEg8069w7AiCcAk3Yf5xvMnrGTagVOmU/OpOLHaHnNqXhWZCH/4EVga/bT/HtWhvE6/fHrXLErx7OnJA==}
+  svelte@5.56.10:
+    resolution: {integrity: sha512-Lcxbj8I/KAbpY+VjtY4ENQBV0dDCipfGAhqb51XQZ67CIQqXgsv/8dPkbILaj4Fb6/b6JAEM/PIVbILXgDQy2g==}
     engines: {node: '>=18'}
 
   tabbable@6.5.0:
@@ -2447,12 +2447,12 @@ snapshots:
       nanostores: 1.5.1
       zod: 4.4.3
 
-  '@better-auth/drizzle-adapter@1.7.1(@better-auth/core@1.7.1(@better-auth/utils@0.4.2)(@better-fetch/fetch@1.3.1)(better-call@1.4.0(zod@4.4.3))(jose@6.2.9)(kysely@0.29.5)(nanostores@1.5.1))(@better-auth/utils@0.4.2)(drizzle-orm@1.0.0-rc.4(@electric-sql/pglite@0.3.16)(effect@4.0.0-rc.109)(zod@4.4.3))':
+  '@better-auth/drizzle-adapter@1.7.1(@better-auth/core@1.7.1(@better-auth/utils@0.4.2)(@better-fetch/fetch@1.3.1)(better-call@1.4.0(zod@4.4.3))(jose@6.2.9)(kysely@0.29.5)(nanostores@1.5.1))(@better-auth/utils@0.4.2)(drizzle-orm@1.0.0-rc.4(@electric-sql/pglite@0.3.16)(effect@4.0.0-rc.111)(zod@4.4.3))':
     dependencies:
       '@better-auth/core': 1.7.1(@better-auth/utils@0.4.2)(@better-fetch/fetch@1.3.1)(better-call@1.4.0(zod@4.4.3))(jose@6.2.9)(kysely@0.29.5)(nanostores@1.5.1)
       '@better-auth/utils': 0.4.2
     optionalDependencies:
-      drizzle-orm: 1.0.0-rc.4(@electric-sql/pglite@0.3.16)(effect@4.0.0-rc.109)(zod@4.4.3)
+      drizzle-orm: 1.0.0-rc.4(@electric-sql/pglite@0.3.16)(effect@4.0.0-rc.111)(zod@4.4.3)
 
   '@better-auth/kysely-adapter@1.7.1(@better-auth/core@1.7.1(@better-auth/utils@0.4.2)(@better-fetch/fetch@1.3.1)(better-call@1.4.0(zod@4.4.3))(jose@6.2.9)(kysely@0.29.5)(nanostores@1.5.1))(@better-auth/utils@0.4.2)(kysely@0.29.5)':
     dependencies:
@@ -2715,10 +2715,10 @@ snapshots:
 
   '@fontsource-variable/geist@5.3.0': {}
 
-  '@iconify/svelte@5.2.2(svelte@5.56.9)':
+  '@iconify/svelte@5.2.2(svelte@5.56.10)':
     dependencies:
       '@iconify/types': 2.0.0
-      svelte: 5.56.9
+      svelte: 5.56.10
 
   '@iconify/types@2.0.0': {}
 
@@ -2849,27 +2849,27 @@ snapshots:
 
   '@noble/hashes@2.3.0': {}
 
-  '@norbital-ai/bolt-protocol@0.0.21(effect@4.0.0-rc.109)':
+  '@norbital-ai/bolt-protocol@0.0.1(effect@4.0.0-rc.111)':
     dependencies:
-      effect: 4.0.0-rc.109
+      effect: 4.0.0-rc.111
 
-  '@norbital-ai/bolt@0.0.21(effect@4.0.0-rc.109)(jiti@2.7.0)(svelte@5.56.9)(zod@4.4.3)':
+  '@norbital-ai/bolt@0.0.1(effect@4.0.0-rc.111)(jiti@2.7.0)(svelte@5.56.10)(zod@4.4.3)':
     dependencies:
       '@electric-sql/pglite': 0.3.16
-      '@iconify/svelte': 5.2.2(svelte@5.56.9)
-      '@norbital-ai/bolt-protocol': 0.0.21(effect@4.0.0-rc.109)
-      '@norbital-ai/std': 0.0.21
-      '@norbital-ai/ui': 0.0.21(@norbital-ai/std@0.0.21)(svelte@5.56.9)(tailwindcss@4.3.3)(zod@4.4.3)
-      '@sveltejs/vite-plugin-svelte': 7.3.0(svelte@5.56.9)(vite@8.2.2(jiti@2.7.0))
+      '@iconify/svelte': 5.2.2(svelte@5.56.10)
+      '@norbital-ai/bolt-protocol': 0.0.1(effect@4.0.0-rc.111)
+      '@norbital-ai/std': 0.0.1
+      '@norbital-ai/ui': 0.0.1(@norbital-ai/std@0.0.1)(svelte@5.56.10)(tailwindcss@4.3.3)(zod@4.4.3)
+      '@sveltejs/vite-plugin-svelte': 7.3.0(svelte@5.56.10)(vite@8.2.2(jiti@2.7.0))
       '@tailwindcss/vite': 4.3.3(vite@8.2.2(jiti@2.7.0))
-      '@xyflow/svelte': 1.6.3(svelte@5.56.9)
-      better-auth: 1.7.1(drizzle-kit@1.0.0-rc.4)(drizzle-orm@1.0.0-rc.4(@electric-sql/pglite@0.3.16)(effect@4.0.0-rc.109)(zod@4.4.3))(svelte@5.56.9)
+      '@xyflow/svelte': 1.6.3(svelte@5.56.10)
+      better-auth: 1.7.1(drizzle-kit@1.0.0-rc.4)(drizzle-orm@1.0.0-rc.4(@electric-sql/pglite@0.3.16)(effect@4.0.0-rc.111)(zod@4.4.3))(svelte@5.56.10)
       drizzle-kit: 1.0.0-rc.4
-      drizzle-orm: 1.0.0-rc.4(@electric-sql/pglite@0.3.16)(effect@4.0.0-rc.109)(zod@4.4.3)
-      effect: 4.0.0-rc.109
-      mode-watcher: 1.1.0(svelte@5.56.9)
+      drizzle-orm: 1.0.0-rc.4(@electric-sql/pglite@0.3.16)(effect@4.0.0-rc.111)(zod@4.4.3)
+      effect: 4.0.0-rc.111
+      mode-watcher: 1.1.0(svelte@5.56.10)
       qrcode: 1.5.4
-      svelte: 5.56.9
+      svelte: 5.56.10
       tailwindcss: 4.3.3
       typescript: 6.0.3
       vite: 8.2.2(jiti@2.7.0)
@@ -2946,16 +2946,16 @@ snapshots:
       - yaml
       - zod
 
-  '@norbital-ai/std@0.0.21':
+  '@norbital-ai/std@0.0.1':
     dependencies:
       '@marcbachmann/cel-js': 8.0.0
       dedent: 1.7.2
-      effect: 4.0.0-rc.109
+      effect: 4.0.0-rc.111
       js-yaml: 5.3.0
     transitivePeerDependencies:
       - babel-plugin-macros
 
-  '@norbital-ai/ui@0.0.21(@norbital-ai/std@0.0.21)(svelte@5.56.9)(tailwindcss@4.3.3)(zod@4.4.3)':
+  '@norbital-ai/ui@0.0.1(@norbital-ai/std@0.0.1)(svelte@5.56.10)(tailwindcss@4.3.3)(zod@4.4.3)':
     dependencies:
       '@codemirror/lang-javascript': 6.2.5
       '@codemirror/lang-json': 6.0.2
@@ -2967,10 +2967,10 @@ snapshots:
       '@floating-ui/dom': 1.8.0
       '@fontsource-variable/geist': 5.3.0
       '@fontsource-variable/geist-mono': 5.3.0
-      '@iconify/svelte': 5.2.2(svelte@5.56.9)
+      '@iconify/svelte': 5.2.2(svelte@5.56.10)
       '@internationalized/date': 3.12.3
       '@lezer/highlight': 1.2.3
-      '@norbital-ai/std': 0.0.21
+      '@norbital-ai/std': 0.0.1
       '@tailwindcss/typography': 0.5.20(tailwindcss@4.3.3)
       '@tiptap/core': 3.30.2(@tiptap/pm@3.30.2)
       '@tiptap/extension-bubble-menu': 3.30.2(@tiptap/core@3.30.2(@tiptap/pm@3.30.2))(@tiptap/pm@3.30.2)
@@ -2987,33 +2987,33 @@ snapshots:
       '@tiptap/pm': 3.30.2
       '@tiptap/starter-kit': 3.30.2
       '@tiptap/suggestion': 3.30.2(@floating-ui/dom@1.8.0)(@tiptap/core@3.30.2(@tiptap/pm@3.30.2))(@tiptap/pm@3.30.2)
-      bits-ui: 2.19.0(@internationalized/date@3.12.3)(svelte@5.56.9)
+      bits-ui: 2.19.0(@internationalized/date@3.12.3)(svelte@5.56.10)
       clsx: 2.1.1
       codemirror: 6.0.2
       date-fns: 4.4.0
       dedent: 1.7.2
-      effect: 4.0.0-rc.109
-      embla-carousel-svelte: 8.6.0(svelte@5.56.9)
+      effect: 4.0.0-rc.111
+      embla-carousel-svelte: 8.6.0(svelte@5.56.10)
       es-toolkit: 1.51.0
       highlight.js: 11.12.0
-      layerchart: 2.2.0(svelte@5.56.9)(zod@4.4.3)
+      layerchart: 2.2.0(svelte@5.56.10)(zod@4.4.3)
       leaflet: 1.9.4
       libphonenumber-js: 1.13.11
       lowlight: 3.3.0
       marked: 18.0.10
-      mode-watcher: 1.1.0(svelte@5.56.9)
+      mode-watcher: 1.1.0(svelte@5.56.10)
       papaparse: 5.6.0
       prosemirror-model: 1.25.11
       prosemirror-view: 1.42.2
-      runed: 0.37.1(svelte@5.56.9)(zod@4.4.3)
+      runed: 0.37.1(svelte@5.56.10)(zod@4.4.3)
       sortablejs: 1.15.7
-      svelte: 5.56.9
-      svelte-sonner: 1.2.1(svelte@5.56.9)
+      svelte: 5.56.10
+      svelte-sonner: 1.2.1(svelte@5.56.10)
       tailwind-merge: 3.6.0
       tailwind-variants: 3.3.1(tailwind-merge@3.6.0)(tailwindcss@4.3.3)
       tippy.js: 6.3.7
       tw-animate-css: 1.4.0
-      vaul-svelte: 1.0.0-next.7(svelte@5.56.9)
+      vaul-svelte: 1.0.0-next.7(svelte@5.56.10)
     transitivePeerDependencies:
       - '@sveltejs/kit'
       - babel-plugin-macros
@@ -3075,9 +3075,9 @@ snapshots:
 
   '@standard-schema/spec@1.1.0': {}
 
-  '@svelte-put/shortcut@4.2.0(svelte@5.56.9)':
+  '@svelte-put/shortcut@4.2.0(svelte@5.56.10)':
     dependencies:
-      svelte: 5.56.9
+      svelte: 5.56.10
 
   '@sveltejs/acorn-typescript@1.0.13(acorn@8.18.0)':
     dependencies:
@@ -3085,12 +3085,12 @@ snapshots:
 
   '@sveltejs/load-config@0.2.3': {}
 
-  '@sveltejs/vite-plugin-svelte@7.3.0(svelte@5.56.9)(vite@8.2.2(jiti@2.7.0))':
+  '@sveltejs/vite-plugin-svelte@7.3.0(svelte@5.56.10)(vite@8.2.2(jiti@2.7.0))':
     dependencies:
       deepmerge: 4.3.1
       magic-string: 1.2.2
       obug: 2.1.4
-      svelte: 5.56.9
+      svelte: 5.56.10
       vite: 8.2.2(jiti@2.7.0)
       vitefu: 1.1.3(vite@8.2.2(jiti@2.7.0))
 
@@ -3404,11 +3404,11 @@ snapshots:
 
   '@types/unist@3.0.3': {}
 
-  '@xyflow/svelte@1.6.3(svelte@5.56.9)':
+  '@xyflow/svelte@1.6.3(svelte@5.56.10)':
     dependencies:
-      '@svelte-put/shortcut': 4.2.0(svelte@5.56.9)
+      '@svelte-put/shortcut': 4.2.0(svelte@5.56.10)
       '@xyflow/system': 0.0.80
-      svelte: 5.56.9
+      svelte: 5.56.10
 
   '@xyflow/system@0.0.80':
     dependencies:
@@ -3478,10 +3478,10 @@ snapshots:
 
   base64-js@1.5.1: {}
 
-  better-auth@1.7.1(drizzle-kit@1.0.0-rc.4)(drizzle-orm@1.0.0-rc.4(@electric-sql/pglite@0.3.16)(effect@4.0.0-rc.109)(zod@4.4.3))(svelte@5.56.9):
+  better-auth@1.7.1(drizzle-kit@1.0.0-rc.4)(drizzle-orm@1.0.0-rc.4(@electric-sql/pglite@0.3.16)(effect@4.0.0-rc.111)(zod@4.4.3))(svelte@5.56.10):
     dependencies:
       '@better-auth/core': 1.7.1(@better-auth/utils@0.4.2)(@better-fetch/fetch@1.3.1)(better-call@1.4.0(zod@4.4.3))(jose@6.2.9)(kysely@0.29.5)(nanostores@1.5.1)
-      '@better-auth/drizzle-adapter': 1.7.1(@better-auth/core@1.7.1(@better-auth/utils@0.4.2)(@better-fetch/fetch@1.3.1)(better-call@1.4.0(zod@4.4.3))(jose@6.2.9)(kysely@0.29.5)(nanostores@1.5.1))(@better-auth/utils@0.4.2)(drizzle-orm@1.0.0-rc.4(@electric-sql/pglite@0.3.16)(effect@4.0.0-rc.109)(zod@4.4.3))
+      '@better-auth/drizzle-adapter': 1.7.1(@better-auth/core@1.7.1(@better-auth/utils@0.4.2)(@better-fetch/fetch@1.3.1)(better-call@1.4.0(zod@4.4.3))(jose@6.2.9)(kysely@0.29.5)(nanostores@1.5.1))(@better-auth/utils@0.4.2)(drizzle-orm@1.0.0-rc.4(@electric-sql/pglite@0.3.16)(effect@4.0.0-rc.111)(zod@4.4.3))
       '@better-auth/kysely-adapter': 1.7.1(@better-auth/core@1.7.1(@better-auth/utils@0.4.2)(@better-fetch/fetch@1.3.1)(better-call@1.4.0(zod@4.4.3))(jose@6.2.9)(kysely@0.29.5)(nanostores@1.5.1))(@better-auth/utils@0.4.2)(kysely@0.29.5)
       '@better-auth/memory-adapter': 1.7.1(@better-auth/core@1.7.1(@better-auth/utils@0.4.2)(@better-fetch/fetch@1.3.1)(better-call@1.4.0(zod@4.4.3))(jose@6.2.9)(kysely@0.29.5)(nanostores@1.5.1))(@better-auth/utils@0.4.2)
       '@better-auth/mongo-adapter': 1.7.1(@better-auth/core@1.7.1(@better-auth/utils@0.4.2)(@better-fetch/fetch@1.3.1)(better-call@1.4.0(zod@4.4.3))(jose@6.2.9)(kysely@0.29.5)(nanostores@1.5.1))(@better-auth/utils@0.4.2)
@@ -3499,8 +3499,8 @@ snapshots:
       zod: 4.4.3
     optionalDependencies:
       drizzle-kit: 1.0.0-rc.4
-      drizzle-orm: 1.0.0-rc.4(@electric-sql/pglite@0.3.16)(effect@4.0.0-rc.109)(zod@4.4.3)
-      svelte: 5.56.9
+      drizzle-orm: 1.0.0-rc.4(@electric-sql/pglite@0.3.16)(effect@4.0.0-rc.111)(zod@4.4.3)
+      svelte: 5.56.10
     transitivePeerDependencies:
       - '@cloudflare/workers-types'
       - '@opentelemetry/api'
@@ -3521,15 +3521,15 @@ snapshots:
       buffers: 0.1.1
       chainsaw: 0.1.0
 
-  bits-ui@2.19.0(@internationalized/date@3.12.3)(svelte@5.56.9):
+  bits-ui@2.19.0(@internationalized/date@3.12.3)(svelte@5.56.10):
     dependencies:
       '@floating-ui/core': 1.8.0
       '@floating-ui/dom': 1.8.0
       '@internationalized/date': 3.12.3
       esm-env: 1.2.2
-      runed: 0.35.1(svelte@5.56.9)
-      svelte: 5.56.9
-      svelte-toolbelt: 0.10.6(svelte@5.56.9)
+      runed: 0.35.1(svelte@5.56.10)
+      svelte: 5.56.10
+      svelte-toolbelt: 0.10.6(svelte@5.56.10)
       tabbable: 6.5.0
     transitivePeerDependencies:
       - '@sveltejs/kit'
@@ -3792,17 +3792,17 @@ snapshots:
       get-tsconfig: 4.14.3
       jiti: 2.7.0
 
-  drizzle-orm@1.0.0-rc.4(@electric-sql/pglite@0.3.16)(effect@4.0.0-rc.109)(zod@4.4.3):
+  drizzle-orm@1.0.0-rc.4(@electric-sql/pglite@0.3.16)(effect@4.0.0-rc.111)(zod@4.4.3):
     optionalDependencies:
       '@electric-sql/pglite': 0.3.16
-      effect: 4.0.0-rc.109
+      effect: 4.0.0-rc.111
       zod: 4.4.3
 
   duplexer2@0.1.4:
     dependencies:
       readable-stream: 2.3.8
 
-  effect@4.0.0-rc.109:
+  effect@4.0.0-rc.111:
     dependencies:
       '@standard-schema/spec': 1.1.0
       fast-check: 4.9.0
@@ -3812,11 +3812,11 @@ snapshots:
     dependencies:
       embla-carousel: 8.6.0
 
-  embla-carousel-svelte@8.6.0(svelte@5.56.9):
+  embla-carousel-svelte@8.6.0(svelte@5.56.10):
     dependencies:
       embla-carousel: 8.6.0
       embla-carousel-reactive-utils: 8.6.0(embla-carousel@8.6.0)
-      svelte: 5.56.9
+      svelte: 5.56.10
 
   embla-carousel@8.6.0: {}
 
@@ -3981,7 +3981,7 @@ snapshots:
 
   kysely@0.29.5: {}
 
-  layerchart@2.2.0(svelte@5.56.9)(zod@4.4.3):
+  layerchart@2.2.0(svelte@5.56.10)(zod@4.4.3):
     dependencies:
       '@dagrejs/dagre': 2.0.4
       '@layerstack/svelte-actions': 1.0.1-next.18
@@ -4012,8 +4012,8 @@ snapshots:
       d3-tile: 1.0.0
       d3-time: 3.1.0
       memoize: 10.2.0
-      runed: 0.37.1(svelte@5.56.9)(zod@4.4.3)
-      svelte: 5.56.9
+      runed: 0.37.1(svelte@5.56.10)(zod@4.4.3)
+      svelte: 5.56.10
     transitivePeerDependencies:
       - '@sveltejs/kit'
       - zod
@@ -4204,11 +4204,11 @@ snapshots:
     dependencies:
       minimist: 1.2.8
 
-  mode-watcher@1.1.0(svelte@5.56.9):
+  mode-watcher@1.1.0(svelte@5.56.10):
     dependencies:
-      runed: 0.25.0(svelte@5.56.9)
-      svelte: 5.56.9
-      svelte-toolbelt: 0.7.1(svelte@5.56.9)
+      runed: 0.25.0(svelte@5.56.10)
+      svelte: 5.56.10
+      svelte-toolbelt: 0.7.1(svelte@5.56.10)
 
   mri@1.2.0: {}
 
@@ -4282,10 +4282,10 @@ snapshots:
       picocolors: 1.1.1
       source-map-js: 1.2.1
 
-  prettier-plugin-svelte@4.1.1(prettier@3.9.6)(svelte@5.56.9):
+  prettier-plugin-svelte@4.1.1(prettier@3.9.6)(svelte@5.56.10):
     dependencies:
       prettier: 3.9.6
-      svelte: 5.56.9
+      svelte: 5.56.10
 
   prettier@3.9.6: {}
 
@@ -4432,34 +4432,34 @@ snapshots:
 
   rou3@0.9.2: {}
 
-  runed@0.23.4(svelte@5.56.9):
+  runed@0.23.4(svelte@5.56.10):
     dependencies:
       esm-env: 1.2.2
-      svelte: 5.56.9
+      svelte: 5.56.10
 
-  runed@0.25.0(svelte@5.56.9):
+  runed@0.25.0(svelte@5.56.10):
     dependencies:
       esm-env: 1.2.2
-      svelte: 5.56.9
+      svelte: 5.56.10
 
-  runed@0.28.0(svelte@5.56.9):
+  runed@0.28.0(svelte@5.56.10):
     dependencies:
       esm-env: 1.2.2
-      svelte: 5.56.9
+      svelte: 5.56.10
 
-  runed@0.35.1(svelte@5.56.9):
+  runed@0.35.1(svelte@5.56.10):
     dependencies:
       dequal: 2.0.3
       esm-env: 1.2.2
       lz-string: 1.5.0
-      svelte: 5.56.9
+      svelte: 5.56.10
 
-  runed@0.37.1(svelte@5.56.9)(zod@4.4.3):
+  runed@0.37.1(svelte@5.56.10)(zod@4.4.3):
     dependencies:
       dequal: 2.0.3
       esm-env: 1.2.2
       lz-string: 1.5.0
-      svelte: 5.56.9
+      svelte: 5.56.10
     optionalDependencies:
       zod: 4.4.3
 
@@ -4513,7 +4513,7 @@ snapshots:
     dependencies:
       inline-style-parser: 0.2.7
 
-  svelte-check@4.7.6(picomatch@4.0.5)(svelte@5.56.9)(typescript@6.0.3):
+  svelte-check@4.7.6(picomatch@4.0.5)(svelte@5.56.10)(typescript@6.0.3):
     dependencies:
       '@jridgewell/trace-mapping': 0.3.31
       '@sveltejs/load-config': 0.2.3
@@ -4521,33 +4521,33 @@ snapshots:
       fdir: 6.5.0(picomatch@4.0.5)
       picocolors: 1.1.1
       sade: 1.8.1
-      svelte: 5.56.9
+      svelte: 5.56.10
       typescript: 6.0.3
     transitivePeerDependencies:
       - picomatch
 
-  svelte-sonner@1.2.1(svelte@5.56.9):
+  svelte-sonner@1.2.1(svelte@5.56.10):
     dependencies:
-      runed: 0.28.0(svelte@5.56.9)
-      svelte: 5.56.9
+      runed: 0.28.0(svelte@5.56.10)
+      svelte: 5.56.10
 
-  svelte-toolbelt@0.10.6(svelte@5.56.9):
+  svelte-toolbelt@0.10.6(svelte@5.56.10):
     dependencies:
       clsx: 2.1.1
-      runed: 0.35.1(svelte@5.56.9)
+      runed: 0.35.1(svelte@5.56.10)
       style-to-object: 1.0.14
-      svelte: 5.56.9
+      svelte: 5.56.10
     transitivePeerDependencies:
       - '@sveltejs/kit'
 
-  svelte-toolbelt@0.7.1(svelte@5.56.9):
+  svelte-toolbelt@0.7.1(svelte@5.56.10):
     dependencies:
       clsx: 2.1.1
-      runed: 0.23.4(svelte@5.56.9)
+      runed: 0.23.4(svelte@5.56.10)
       style-to-object: 1.0.14
-      svelte: 5.56.9
+      svelte: 5.56.10
 
-  svelte@5.56.9:
+  svelte@5.56.10:
     dependencies:
       '@jridgewell/remapping': 2.3.5
       '@jridgewell/sourcemap-codec': 1.5.5
@@ -4625,11 +4625,11 @@ snapshots:
 
   uuid@8.3.2: {}
 
-  vaul-svelte@1.0.0-next.7(svelte@5.56.9):
+  vaul-svelte@1.0.0-next.7(svelte@5.56.10):
     dependencies:
-      runed: 0.23.4(svelte@5.56.9)
-      svelte: 5.56.9
-      svelte-toolbelt: 0.7.1(svelte@5.56.9)
+      runed: 0.23.4(svelte@5.56.10)
+      svelte: 5.56.10
+      svelte-toolbelt: 0.7.1(svelte@5.56.10)
 
   vite@8.2.2(jiti@2.7.0):
     dependencies:
