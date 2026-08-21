@@ -111,22 +111,20 @@ test('assertNotSettled refuses a settled day and passes every other state', () =
 	assert.doesNotThrow(() => assertNotSettled(windows, '2026-08-25', 'Changing attendance'));
 });
 
-test('sourceLock still freezes approved claims and passed dates for the collections that ask', () => {
+test('approval completion is not a lock, while passed dates remain opt-in policy', () => {
 	assert.deepEqual(
 		sourceLock({
 			existing: true,
 			dates: ['2026-08-25'],
-			today: '2026-08-18',
-			freezeWhenLive: true
+			today: '2026-08-18'
 		}),
-		{ kind: 'APPROVED' }
+		{ kind: 'NONE' }
 	);
 	assert.deepEqual(
 		sourceLock({
 			existing: true,
 			dates: ['2026-08-10'],
-			today: '2026-08-18',
-			freezeWhenLive: false
+			today: '2026-08-18'
 		}),
 		{ kind: 'DATE_PASSED', date: '2026-08-10' }
 	);
@@ -134,21 +132,19 @@ test('sourceLock still freezes approved claims and passed dates for the collecti
 		sourceLock({
 			existing: false,
 			dates: ['2026-08-10'],
-			today: '2026-08-18',
-			freezeWhenLive: true
+			today: '2026-08-18'
 		}).kind,
 		'NONE'
 	);
 });
 
-test('the claim outranks a live freeze, and pending approval outranks everything', () => {
+test('consumption outranks date policy, and pending approval outranks everything', () => {
 	assert.deepEqual(
 		sourceLock({
 			existing: true,
 			dates: ['2026-08-25'],
 			today: '2026-08-18',
-			settledBy: { period: '2026-07' },
-			freezeWhenLive: true
+			settledBy: { period: '2026-07' }
 		}),
 		{ kind: 'SETTLED', period: '2026-07' }
 	);
@@ -158,8 +154,7 @@ test('the claim outranks a live freeze, and pending approval outranks everything
 			approvalId: 'req-1',
 			dates: ['2026-08-25'],
 			today: '2026-08-18',
-			settledBy: { period: '2026-07' },
-			freezeWhenLive: true
+			settledBy: { period: '2026-07' }
 		}),
 		{ kind: 'PENDING_APPROVAL' }
 	);
@@ -172,8 +167,8 @@ test('assertSourceUnlocked refuses domain freezes and leaves pending approval to
 	);
 	assert.equal(sourceLockBlocksWrite({ kind: 'PENDING_APPROVAL' }), false);
 	assert.throws(
-		() => assertSourceUnlocked({ kind: 'APPROVED' }, 'Changing a leave request'),
-		/approved/
+		() => assertSourceUnlocked({ kind: 'SETTLED', period: '2026-07' }, 'Changing a leave request'),
+		/taken this record into account/
 	);
 });
 
@@ -192,8 +187,7 @@ test('attendance opts out of the passed-date freeze and stays writable', () => {
 			approvalId: null,
 			dates: ['2026-08-10'],
 			settledBy: null,
-			datePassed: 'IS_NOT_A_LOCK',
-			freezeWhenLive: false
+			datePassed: 'IS_NOT_A_LOCK'
 		}),
 		{ kind: 'NONE' }
 	);
@@ -208,17 +202,12 @@ test('attendance opts out of the passed-date freeze and stays writable', () => {
 	);
 });
 
-test('claims still freeze on an approved live state and a passed date, because saying nothing means FREEZES', () => {
-	// `claimRowLock` in `+hr_employee.svelte` and `assertEntrySourceUnlocked` in
-	// `component_entries/+hooks.ts` pass exactly this and no `datePassed`. The opt-out is the
-	// change; the default is the behaviour that was already there. Leave is the collection that
-	// stopped asking — see its hook, which passes neither `today` nor `freezeWhenLive` any more.
+test('a caller that does not opt out still gets the passed-date policy', () => {
 	assert.deepEqual(
 		sourceLock({
 			existing: true,
 			dates: ['2026-08-10', '2026-08-12'],
-			today: '2026-08-18',
-			freezeWhenLive: false
+			today: '2026-08-18'
 		}),
 		{ kind: 'DATE_PASSED', date: '2026-08-12' }
 	);
@@ -281,7 +270,7 @@ function fakeHookApi({ runs = [], sources = [] } = {}) {
 				payslip_sources: {
 					findFirst: ({ where }) =>
 						Effect.succeed(
-							sources.find((row) => row.source_record_id === where.source_record_id.eq) ?? null
+							sources.find((row) => row.time_entry_id === where.time_entry_id.eq) ?? null
 						)
 				},
 				// No approved leave anywhere: the leave guard is orthogonal to the payroll locks and
@@ -347,7 +336,7 @@ test('an unconsumed record inside a paid window stays editable and settles as ar
 	// A claim over the same record is what refuses, and it names the period.
 	const claimed = fakeHookApi({
 		runs: monthly,
-		sources: [{ source_record_id: 'te-1', period: '2026-07' }]
+		sources: [{ time_entry_id: 'te-1', period: '2026-07' }]
 	});
 	assert.throws(
 		() =>

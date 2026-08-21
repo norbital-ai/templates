@@ -176,7 +176,8 @@ export default ((r) => ({
 		leave_request_type: r.one.leave_types({
 			from: r.leave_requests.leave_type_id,
 			to: r.leave_types.norbital_id
-		})
+		}),
+		payslip_source_leave_request: r.many.payslip_sources()
 	},
 
 	roster_entries: {
@@ -200,7 +201,8 @@ export default ((r) => ({
 		time_entry_employment: r.one.employments({
 			from: r.time_entries.employment_id,
 			to: r.employments.norbital_id
-		})
+		}),
+		payslip_source_time_entry: r.many.payslip_sources()
 	},
 
 	payroll_runs: {
@@ -236,13 +238,10 @@ export default ((r) => ({
 	 * so the release cannot half-happen and cannot be forgotten by a hook. `payroll_runs/+hooks.ts`
 	 * refuses the delete once `lifecycle = 'PAID'`, which is what makes a paid run's claims permanent.
 	 *
-	 * There is deliberately **no** relation from a source row to the record it claims. Both available
-	 * choices are wrong: `cascade` would mean deleting a payroll run's claim on a time entry could
-	 * only ever be spelled the other way round, and a plain foreign key would refuse the delete of a
-	 * source record that the settlement hooks already refuse for a better reason and with a sentence
-	 * the person can act on. `(source_collection, source_record_id)` stays a checked pair rather than
-	 * a constrained one — the same call this file's header already makes for
-	 * `leave_types.payroll_effect` and `component_entries.origin`.
+	 * Each source arm is also a real foreign key. The source row points to a time entry or leave
+	 * request through a generated projection of its discriminated union, while global partial unique
+	 * indexes enforce that one concrete source record belongs to one payslip only. Component entries
+	 * and loan instalments use the equivalent generated foreign keys on `payslip_lines`.
 	 */
 	payslip_sources: {
 		payslip_source_payslip: cascade(
@@ -250,7 +249,15 @@ export default ((r) => ({
 				from: r.payslip_sources.payslip_id,
 				to: r.payslips.norbital_id
 			})
-		)
+		),
+		payslip_source_time_entry: r.one.time_entries({
+			from: r.payslip_sources.time_entry_id,
+			to: r.time_entries.norbital_id
+		}),
+		payslip_source_leave_request: r.one.leave_requests({
+			from: r.payslip_sources.leave_request_id,
+			to: r.leave_requests.norbital_id
+		})
 	},
 
 	payslip_lines: {

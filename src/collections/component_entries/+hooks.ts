@@ -3,7 +3,6 @@ import { refuse } from '@norbital-ai/bolt/authoring';
 import type { CollectionHooks } from '@norbital-ai/bolt/authoring';
 import type { WorkspaceSchema } from '$bolt/types.js';
 import type { EntryOrigin } from '../../custom-types/entry_origin/+definition.js';
-import { todayKey } from '../../lib/ui/calendar.js';
 import { sourceLock, sourceLockBlocksWrite, sourceLockMessage } from '../../lib/scheduling/lock.js';
 import type { Hooks, WorkspaceRow } from './$types.js';
 
@@ -101,28 +100,33 @@ function assertEntrySourceUnlocked(
 		/**
 		 * The settlement lock, read on its own.
 		 *
-		 * This collection used to ask twice: `consumedByPayslip`, read off a payslip line naming the
-		 * entry, and `settledBy`, from the settlement table. The refactor to `payslip_sources` made
-		 * them the same fact — PERSIST writes one source row per entry a line names — so the two
-		 * signals collapsed into the stored claim, which is the one that can name the period that
-		 * holds the record and therefore the only one whose refusal can tell anybody what would
-		 * release it.
+		 * Component entries already have a real foreign key from `payslip_lines.component_entry_id`.
+		 * Reading that indexed relation is the consumption check; there is no second settlement row to
+		 * write, reconcile, or load.
 		 */
-		const claim = yield* api.db.query.payslip_sources.findFirst({
-			where: {
-				source_collection: { eq: 'component_entries' },
-				source_record_id: { eq: existing.norbital_id }
-			},
-			columns: { period: true }
+		const line = yield* api.db.query.payslip_lines.findFirst({
+			where: { component_entry_id: { eq: existing.norbital_id } },
+			columns: { norbital_id: true },
+			with: {
+				payslip_line_payslip: {
+					columns: { norbital_id: true },
+					with: { payslip_payroll_run: { columns: { period: true } } }
+				}
+			}
 		});
-		const origin = existing.origin;
+		type ConsumingLine = {
+			readonly payslip_line_payslip?: {
+				readonly payslip_payroll_run?: { readonly period?: string | null } | null;
+			} | null;
+		};
+		const period = (line as ConsumingLine | null | undefined)?.payslip_line_payslip
+			?.payslip_payroll_run?.period;
 		const lock = sourceLock({
 			existing: true,
 			approvalId: existing.norbital_approval_id,
-			dates: [existing.event_date],
-			today: todayKey(),
-			settledBy: claim == null ? null : { period: claim.period },
-			freezeWhenLive: origin?.kind === 'CLAIM'
+			dates: [],
+			settledBy: line == null ? null : { period: period ?? 'linked payslip' },
+			datePassed: 'IS_NOT_A_LOCK'
 		});
 		if (sourceLockBlocksWrite(lock)) {
 			refuse(sourceLockMessage(lock, action));
@@ -194,7 +198,7 @@ export default {
 		perRecord: {
 			before: {
 				description:
-					'Refuses an approved claim, a past or payroll-consumed entry, then keeps an edited amount a positive magnitude and stops a loan instalment from being detached from its repayment agreement.',
+					'Refuses a payroll-consumed entry, then keeps an edited amount a positive magnitude and stops a loan instalment from being detached from its repayment agreement.',
 				handler: ({ input, existing, api }) =>
 					Effect.gen(function* () {
 						yield* assertEntrySourceUnlocked(api, existing, 'Changing a pay entry');
@@ -228,7 +232,7 @@ export default {
 		perRecord: {
 			before: {
 				description:
-					'Refuses deleting an approved claim or a payroll-consumed entry, and blocks deleting a loan instalment while its schedule row still exists.',
+					'Refuses deleting a payroll-consumed entry, and blocks deleting a loan instalment while its schedule row still exists.',
 				handler: ({ existing, api }) =>
 					Effect.gen(function* () {
 						yield* assertEntrySourceUnlocked(api, existing, 'Deleting a pay entry');

@@ -48,7 +48,7 @@ type TimeEntryHooks = CollectionHooks<WorkspaceSchema, 'time_entries', TimeEntry
 /**
  * The settlement lock held over one attendance record, or null when none is.
  *
- * One indexed lookup on `(source_collection, source_record_id)`. It is asked on every update and
+ * One indexed lookup on the unique `time_entry_id` foreign key. It is asked on every update and
  * every delete, and that is the point: the previous guard could only ask whether the *day* fell
  * inside a paid run's window, so a draft run that had already priced this exact entry left it
  * editable underneath its own payslips.
@@ -68,10 +68,7 @@ function settlementOver(
 ): Effect.Effect<SettlementClaim | null, never, never> {
 	return Effect.gen(function* () {
 		const claim = yield* api.db.query.payslip_sources.findFirst({
-			where: {
-				source_collection: { eq: 'time_entries' },
-				source_record_id: { eq: timeEntryId }
-			},
+			where: { time_entry_id: { eq: timeEntryId } },
 			columns: { period: true }
 		});
 		return claim == null ? null : { period: claim.period };
@@ -207,8 +204,7 @@ function assertRecordNotClaimed(
 			approvalId,
 			dates: [],
 			settledBy,
-			datePassed: 'IS_NOT_A_LOCK',
-			freezeWhenLive: false
+			datePassed: 'IS_NOT_A_LOCK'
 		});
 		if (sourceLockBlocksWrite(lock)) {
 			refuse(sourceLockMessage(lock, action));

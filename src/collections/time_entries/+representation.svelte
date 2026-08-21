@@ -38,10 +38,7 @@
 	const settlementQuery = $derived(
 		record
 			? client.db.payslip_sources.findFirst({
-					where: {
-						source_collection: { eq: 'time_entries' },
-						source_record_id: { eq: record.norbital_id }
-					},
+					where: { time_entry_id: { eq: record.norbital_id } },
 					columns: { period: true }
 				})
 			: null

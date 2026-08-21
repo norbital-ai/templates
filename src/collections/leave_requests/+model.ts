@@ -36,8 +36,19 @@ export default defineModel(
 		reason: text().generatedAlwaysAs(
 			sql`CASE WHEN event ->> 'kind' = 'TIME_OFF' THEN event ->> 'reason' ELSE event ->> 'note' END`
 		),
+		/**
+		 * The file itself, projected out of the event.
+		 *
+		 * `event -> 'certificate_file'` rather than `(event ->> ...)::uuid`: a `file()` column is the
+		 * whole file — key, name, size, mime type — so the event carries an object and this lifts it
+		 * unchanged. The uuid it used to lift named a `document_asset` row nothing ever wrote.
+		 *
+		 * `jsonb_typeof` is the null guard. `->` on an absent key yields SQL `NULL` already, but on a
+		 * JSON `null` it yields the *JSON* null, which is a value — and a renderer handed one has a
+		 * file with no key rather than no file.
+		 */
 		certificate_file: file().generatedAlwaysAs(
-			sql`CASE WHEN event ->> 'kind' = 'TIME_OFF' AND NULLIF(event ->> 'certificate_file', '') IS NOT NULL THEN (event ->> 'certificate_file')::uuid END`
+			sql`CASE WHEN event ->> 'kind' = 'TIME_OFF' AND jsonb_typeof(event -> 'certificate_file') = 'object' THEN event -> 'certificate_file' END`
 		),
 		/**
 		 * The row's own title, composed in SQL rather than by `recordLabel`.

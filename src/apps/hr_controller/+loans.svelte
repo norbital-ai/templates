@@ -148,11 +148,11 @@
 	<meta name="bolt:icon" content="lucide:hand-coins" />
 	<meta
 		name="bolt:thumbnail"
-		content="/api/template-seed-assets/hr-payroll/app-media/loans-banner.webp"
+		content="/__bolt/request/api/template-seed-assets/hr-payroll/app-media/loans-banner.webp"
 	/>
 	<meta
 		name="bolt:banner"
-		content="/api/template-seed-assets/hr-payroll/app-media/loans-banner.webp"
+		content="/__bolt/request/api/template-seed-assets/hr-payroll/app-media/loans-banner.webp"
 	/>
 </svelte:head>
 

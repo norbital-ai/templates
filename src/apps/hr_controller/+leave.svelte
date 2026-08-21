@@ -68,15 +68,15 @@
 		const ids = (leaveRequestsQuery?.current ?? []).map((row) => row.norbital_id);
 		if (ids.length === 0) return null;
 		return client.db.payslip_sources.findMany({
-			where: { source_collection: { eq: 'leave_requests' }, source_record_id: { in: ids } },
-			columns: { source_record_id: true, period: true },
+			where: { leave_request_id: { in: ids } },
+			columns: { leave_request_id: true, period: true },
 			limit: 5000
 		});
 	});
 	const settlementByRequestId = $derived(
 		new Map(
 			(leaveSettlementsQuery?.current ?? []).map((claim) => [
-				claim.source_record_id,
+				claim.leave_request_id,
 				{ period: claim.period }
 			])
 		)
@@ -131,11 +131,11 @@
 	<meta name="bolt:icon" content="lucide:calendar-check-2" />
 	<meta
 		name="bolt:thumbnail"
-		content="/api/template-seed-assets/hr-payroll/app-media/leave-banner.webp"
+		content="/__bolt/request/api/template-seed-assets/hr-payroll/app-media/leave-banner.webp"
 	/>
 	<meta
 		name="bolt:banner"
-		content="/api/template-seed-assets/hr-payroll/app-media/leave-banner.webp"
+		content="/__bolt/request/api/template-seed-assets/hr-payroll/app-media/leave-banner.webp"
 	/>
 </svelte:head>
 

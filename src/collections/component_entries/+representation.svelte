@@ -13,7 +13,6 @@
 	import { Column, Grid, Stack } from '@norbital-ai/ui/layout';
 	import { RelationshipRenderer } from '@norbital-ai/ui/data-renderer/relationship';
 	import type { RepresentationProps, WorkspaceRow } from './$types.js';
-	import { todayKey } from '../../lib/ui/calendar.js';
 	import {
 		sourceLock,
 		sourceLockBlocksWrite,
@@ -77,38 +76,26 @@
 	});
 
 	/**
-	 * The settlement lock, read per record.
-	 *
-	 * The screen and the write hook compute the same lock from the same inputs — that is the whole
-	 * contract of `lib/scheduling/lock.ts` — so this query is the screen's half of the stored claim.
-	 * Without it the panel would say a record is editable right up until the hook refused it.
-	 *
-	 * The consumption label above still reads the payslip lines directly (they carry the richer
-	 * provenance); the *lock* is the stored claim, exactly as the write hook reads it.
+	 * The same direct payslip-line foreign key drives both the consumption label and the lock. An
+	 * approved record stays editable until this relation exists; approval is workflow, consumption is
+	 * settlement.
 	 */
-	const settlementQuery = $derived(
-		record
-			? client.db.payslip_sources.findFirst({
-					where: {
-						source_collection: { eq: 'component_entries' },
-						source_record_id: { eq: record.norbital_id }
-					},
-					columns: { period: true }
-				})
-			: null
-	);
-	const settledBy = $derived(
-		settlementQuery?.current ? { period: settlementQuery.current.period } : null
-	);
+	const settledBy = $derived.by(() => {
+		const source = entryPayslipLines(consumptionQuery?.current)[0];
+		if (!source) return null;
+		return {
+			period:
+				source.payslip_line_payslip?.payslip_payroll_run?.period ?? t('component.a_payroll_run')
+		};
+	});
 	const lock = $derived(
 		record
 			? sourceLock({
 					existing: true,
 					approvalId: record.norbital_approval_id,
-					dates: [record.event_date],
-					today: todayKey(),
+					dates: [],
 					settledBy,
-					freezeWhenLive: record.origin?.kind === 'CLAIM'
+					datePassed: 'IS_NOT_A_LOCK'
 				})
 			: { kind: 'NONE' as const }
 	);

@@ -388,19 +388,19 @@
 		return client.db.payslip_sources.findMany({
 			where: {
 				...approved,
-				source_collection: { eq: 'time_entries' },
-				source_record_id: { in: entryIds }
+				time_entry_id: { in: entryIds }
 			},
-			columns: { source_record_id: true, period: true },
+			columns: { time_entry_id: true, period: true },
 			limit: 5000
 		});
 	});
 	const settlementClaims = $derived(
 		new Map<string, SettlementClaim>(
-			(settlementsQuery?.current ?? []).map((claim) => [
-				claim.source_record_id,
-				{ period: claim.period }
-			])
+			(settlementsQuery?.current ?? []).flatMap((claim) =>
+				claim.time_entry_id == null
+					? []
+					: [[claim.time_entry_id, { period: claim.period }] as const]
+			)
 		)
 	);
 
@@ -1315,11 +1315,11 @@
 	<meta name="bolt:icon" content="lucide:calendar-clock" />
 	<meta
 		name="bolt:thumbnail"
-		content="/api/template-seed-assets/hr-payroll/app-media/scheduling-banner.webp"
+		content="/__bolt/request/api/template-seed-assets/hr-payroll/app-media/scheduling-banner.webp"
 	/>
 	<meta
 		name="bolt:banner"
-		content="/api/template-seed-assets/hr-payroll/app-media/scheduling-banner.webp"
+		content="/__bolt/request/api/template-seed-assets/hr-payroll/app-media/scheduling-banner.webp"
 	/>
 </svelte:head>
 
@@ -1534,11 +1534,9 @@
 						</Stack>
 					</AlertDescription>
 				</Alert>
-			{:else if loading}
-				<p class="text-sm text-muted-foreground">{t('app.scheduling.loading_month', { month })}</p>
-			{:else if people.length > 0 && boardPeople.length === 0}
+			{:else if !loading && people.length > 0 && boardPeople.length === 0}
 				<p class="text-sm text-muted-foreground">{t('app.scheduling.no_matches')}</p>
-			{:else if people.length === 0}
+			{:else if !loading && people.length === 0}
 				<p class="text-sm text-muted-foreground">
 					{emptyEmploymentReason === 'NONE'
 						? t('app.scheduling.no_company_employments')
@@ -1552,6 +1550,7 @@
 				<RosterMonthBoard
 					{month}
 					people={boardPeople}
+					{loading}
 					{facts}
 					{today}
 					{holidayNames}

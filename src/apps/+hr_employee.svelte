@@ -217,6 +217,16 @@
 	const NO_DAY_LOCKS: ReadonlyMap<string, DayLock> = new Map();
 
 	type ClaimRow = WorkspaceRow<'component_entries'>;
+	type ClaimConsumptionRow = {
+		readonly norbital_id: string;
+		readonly entry_payslip_lines?:
+			| readonly {
+					readonly payslip_line_payslip?: {
+						readonly payslip_payroll_run?: Pick<WorkspaceRow<'payroll_runs'>, 'period'> | null;
+					} | null;
+			  }[]
+			| null;
+	};
 	type PayslipRow = WorkspaceRow<'payslips'> & {
 		readonly payslip_payroll_run?: Pick<WorkspaceRow<'payroll_runs'>, 'period'> | null;
 	};
@@ -262,10 +272,9 @@
 		return sourceLock({
 			existing: true,
 			approvalId: row.norbital_approval_id,
-			dates: [row.event_date],
-			today,
+			dates: [],
 			settledBy: claimSettlementByEntryId.get(row.norbital_id) ?? null,
-			freezeWhenLive: row.origin.kind === 'CLAIM'
+			datePassed: 'IS_NOT_A_LOCK'
 		});
 	}
 	/** The next occurrence of the company's pay day — a calendar reading, not a payroll decision. */
@@ -449,14 +458,15 @@
 		const ids = scheduleTimeEntries.map((row) => row.norbital_id);
 		if (ids.length === 0) return null;
 		return client.db.payslip_sources.findMany({
-			where: { source_collection: { eq: 'time_entries' }, source_record_id: { in: ids } },
+			where: { time_entry_id: { in: ids } },
+			columns: { time_entry_id: true, period: true },
 			limit: 200
 		});
 	});
 	const settlementByEntryId = $derived(
 		new Map(
 			(scheduleSettlementsQuery?.current ?? []).map((claim) => [
-				claim.source_record_id,
+				claim.time_entry_id,
 				{ period: claim.period }
 			])
 		)
@@ -480,45 +490,49 @@
 		const ids = (myLeaveIdsQuery?.current ?? []).map((row) => row.norbital_id);
 		if (ids.length === 0) return null;
 		return client.db.payslip_sources.findMany({
-			where: { source_collection: { eq: 'leave_requests' }, source_record_id: { in: ids } },
-			columns: { source_record_id: true, period: true },
+			where: { leave_request_id: { in: ids } },
+			columns: { leave_request_id: true, period: true },
 			limit: 500
 		});
 	});
 	const leaveSettlementByRequestId = $derived(
 		new Map(
 			(myLeaveSettlementsQuery?.current ?? []).map((claim) => [
-				claim.source_record_id,
+				claim.leave_request_id,
 				{ period: claim.period }
 			])
 		)
 	);
-	const myClaimIdsQuery = $derived(
+	const myClaimConsumptionQuery = $derived(
 		employmentId == null
 			? null
 			: client.db.component_entries.findMany({
 					where: { employment_id: { eq: employmentId } },
 					columns: { norbital_id: true },
+					with: {
+						entry_payslip_lines: {
+							columns: { norbital_id: true },
+							with: {
+								payslip_line_payslip: {
+									columns: { norbital_id: true },
+									with: { payslip_payroll_run: { columns: { period: true } } }
+								}
+							}
+						}
+					},
 					limit: 500
 				})
 	);
-	const myClaimSettlementsQuery = $derived.by(() => {
-		const ids = (myClaimIdsQuery?.current ?? []).map((row) => row.norbital_id);
-		if (ids.length === 0) return null;
-		return client.db.payslip_sources.findMany({
-			where: { source_collection: { eq: 'component_entries' }, source_record_id: { in: ids } },
-			columns: { source_record_id: true, period: true },
-			limit: 500
-		});
+	const claimSettlementByEntryId = $derived.by(() => {
+		const settled = new Map<string, { period: string }>();
+		for (const entry of (myClaimConsumptionQuery?.current ??
+			[]) as readonly ClaimConsumptionRow[]) {
+			const period =
+				entry.entry_payslip_lines?.[0]?.payslip_line_payslip?.payslip_payroll_run?.period;
+			if (period) settled.set(entry.norbital_id, { period });
+		}
+		return settled;
 	});
-	const claimSettlementByEntryId = $derived(
-		new Map(
-			(myClaimSettlementsQuery?.current ?? []).map((claim) => [
-				claim.source_record_id,
-				{ period: claim.period }
-			])
-		)
-	);
 
 	const scheduleHolidays = $derived(scheduleHolidaysQuery?.current ?? []);
 	const scheduleHolidayNames = $derived(holidayNamesByDate(scheduleHolidays));
@@ -906,11 +920,11 @@
 	<meta name="bolt:icon" content="lucide:user-round" />
 	<meta
 		name="bolt:thumbnail"
-		content="/api/template-seed-assets/hr-payroll/app-media/hr_employee-banner.webp"
+		content="/__bolt/request/api/template-seed-assets/hr-payroll/app-media/hr_employee-banner.webp"
 	/>
 	<meta
 		name="bolt:banner"
-		content="/api/template-seed-assets/hr-payroll/app-media/hr_employee-banner.webp"
+		content="/__bolt/request/api/template-seed-assets/hr-payroll/app-media/hr_employee-banner.webp"
 	/>
 </svelte:head>
 
@@ -1092,15 +1106,11 @@
 				<AlertTitle>{t('app.hr_employee.schedule_failed')}</AlertTitle>
 				<AlertDescription>{scheduleErrors.join(' · ')}</AlertDescription>
 			</Alert>
-		{:else if scheduleLoading}
-			<div
-				class="h-full animate-pulse rounded-lg bg-muted/40"
-				aria-label={t('app.hr_employee.schedule_loading')}
-			></div>
 		{:else}
 			<RosterMonthCalendar
 				month={scheduleMonth}
 				{employmentId}
+				loading={scheduleLoading}
 				facts={scheduleFacts}
 				{today}
 				holidayNames={scheduleHolidayNames}

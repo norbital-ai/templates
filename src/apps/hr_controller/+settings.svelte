@@ -37,11 +37,11 @@
 	<meta name="bolt:icon" content="lucide:scale" />
 	<meta
 		name="bolt:thumbnail"
-		content="/api/template-seed-assets/hr-payroll/app-media/settings-banner.webp"
+		content="/__bolt/request/api/template-seed-assets/hr-payroll/app-media/settings-banner.webp"
 	/>
 	<meta
 		name="bolt:banner"
-		content="/api/template-seed-assets/hr-payroll/app-media/settings-banner.webp"
+		content="/__bolt/request/api/template-seed-assets/hr-payroll/app-media/settings-banner.webp"
 	/>
 </svelte:head>
 

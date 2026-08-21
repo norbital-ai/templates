@@ -20,7 +20,20 @@ export const leaveEventValueSchema = Schema.Union([
 		/** Immutable approval snapshot, calculated by the server from the schedule and calendar. */
 		chargeable_days: Schema.NullOr(Schema.Finite.check(Schema.isGreaterThan(0))),
 		reason: Schema.NullOr(Schema.String),
-		certificate_file: Schema.NullOr(Schema.String.check(Schema.isUUID()))
+		/**
+		 * The certificate itself, in the shape a `file()` column stores.
+		 *
+		 * It was a uuid, and the uuid named a `document_asset` row that no upload ever wrote — so a
+		 * medical certificate attached through this editor was a valid uuid pointing at nothing.
+		 */
+		certificate_file: Schema.NullOr(
+			Schema.Struct({
+				storage_key: Schema.String,
+				file_name: Schema.String,
+				file_size: Schema.Number,
+				mime_type: Schema.String
+			})
+		)
 	}),
 	Schema.Struct({
 		kind: Schema.Literal('BALANCE_ADJUSTMENT'),

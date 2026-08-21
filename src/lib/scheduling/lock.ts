@@ -120,12 +120,9 @@ function settledDayMessage(period: string, date: string, action: string): string
  * Why a leave, claim, or attendance record cannot be written again.
  *
  * Pending approval is the platform's write-then-lock stamp, and it stays the 409. The only other
- * domain freeze is the **settlement lock**: a `payslip_sources` row naming this record, which says
- * payroll `period` already took it into account. `APPROVED` (a live event on a collection that
- * freezes on approval) and `DATE_PASSED` (a day behind us, on collections that ask for it) remain
- * as collection-stated policies for the screens and hooks that still want them — but since the
- * settlement refactor, leave asks for neither, and the payroll window never freezes an existing
- * record at all. Hooks and UI call the same function so they cannot disagree.
+ * domain freeze is the **settlement lock**: a database-enforced relation naming the record a payslip
+ * took into account. Approval completion is not consumption and never freezes a record. A passed
+ * date remains available only for the collections that explicitly ask for that policy.
  *
  * `PAID_DAY` is not produced by `sourceLock` — nothing a record carries can raise it. It is the
  * day-shaped inference a paid run's window makes about a *day*, kept here so the board's hover
@@ -135,7 +132,6 @@ export type SourceLock =
 	| { readonly kind: 'NONE' }
 	| { readonly kind: 'PENDING_APPROVAL' }
 	| { readonly kind: 'SETTLED'; readonly period: string }
-	| { readonly kind: 'APPROVED' }
 	| { readonly kind: 'DATE_PASSED'; readonly date: string }
 	| { readonly kind: 'PAID_DAY'; readonly period: string; readonly date: string };
 
@@ -154,8 +150,6 @@ type SourceLockFacts = {
 	 * from the identical inputs. Each caller reads `payslip_sources` through its own typed api.
 	 */
 	readonly settledBy?: SettlementClaim | null;
-	/** Live existing records are frozen — claims after approval, where the caller says so. */
-	readonly freezeWhenLive?: boolean;
 };
 
 /**
@@ -186,7 +180,6 @@ export type SourceLockInput = SourceLockFacts &
 
 export type SourceLockI18nKey =
 	| 'component.lock_pending_approval'
-	| 'component.lock_approved'
 	| 'component.lock_date_passed'
 	| 'component.lock_settled'
 	| 'component.lock_settled_by_run';
@@ -211,9 +204,6 @@ export function sourceLock(input: SourceLockInput): SourceLock {
 	 */
 	if (input.settledBy != null) {
 		return { kind: 'SETTLED', period: input.settledBy.period };
-	}
-	if (input.existing && input.freezeWhenLive === true) {
-		return { kind: 'APPROVED' };
 	}
 	const dates = input.dates.map((value) => dateKey(value)).filter((value) => value.length >= 10);
 	const end = dates.reduce((max, value) => (value > max ? value : max), dates[0] ?? '');
@@ -241,8 +231,6 @@ export function sourceLockMessage(lock: SourceLock, action: string): string {
 		case 'NONE':
 		case 'PENDING_APPROVAL':
 			return `${action} is awaiting approval and cannot change here.`;
-		case 'APPROVED':
-			return `${action} is locked: the record is approved. Record a correction event instead.`;
 		case 'DATE_PASSED':
 			return `${action} on ${lock.date} is locked: that day has already passed.`;
 		case 'SETTLED':
@@ -275,8 +263,6 @@ export function sourceLockI18nKey(lock: SourceLock): SourceLockI18nKey | null {
 			return null;
 		case 'PENDING_APPROVAL':
 			return 'component.lock_pending_approval';
-		case 'APPROVED':
-			return 'component.lock_approved';
 		case 'DATE_PASSED':
 			return 'component.lock_date_passed';
 		case 'SETTLED':
@@ -300,7 +286,6 @@ export function sourceLockI18nParams(lock: SourceLock): SourceLockI18nParams | u
 			return { period: lock.period, date: lock.date };
 		case 'NONE':
 		case 'PENDING_APPROVAL':
-		case 'APPROVED':
 			return undefined;
 		default: {
 			const _never: never = lock;

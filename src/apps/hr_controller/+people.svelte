@@ -278,11 +278,11 @@
 	<meta name="bolt:icon" content="lucide:users" />
 	<meta
 		name="bolt:thumbnail"
-		content="/api/template-seed-assets/hr-payroll/app-media/people-banner.webp"
+		content="/__bolt/request/api/template-seed-assets/hr-payroll/app-media/people-banner.webp"
 	/>
 	<meta
 		name="bolt:banner"
-		content="/api/template-seed-assets/hr-payroll/app-media/people-banner.webp"
+		content="/__bolt/request/api/template-seed-assets/hr-payroll/app-media/people-banner.webp"
 	/>
 </svelte:head>
 

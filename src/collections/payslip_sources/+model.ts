@@ -1,7 +1,7 @@
-import { defineModel, enums, text, uuid } from '@norbital-ai/bolt/authoring';
+import { custom, defineModel, sql, text, uuid } from '@norbital-ai/bolt/authoring';
 
 /**
- * Everything one payslip consumed: one row per source record a payroll run priced.
+ * Attendance and leave records one payslip consumed: one typed source per row.
  *
  * ## What this is, and what it is not
  *
@@ -9,10 +9,9 @@ import { defineModel, enums, text, uuid } from '@norbital-ai/bolt/authoring';
  * request is open, and clears it when the request settles. It answers "is this write still waiting
  * for a person to decide?" and nothing in this workspace writes it.
  *
- * This collection is the **settlement lock**. The workspace owns it. A row here says "this payslip
- * consumed record X of collection C", which is a different fact with a different lifetime: it is
- * taken when the run persists and released when the payslip is deleted, and an approval decision
- * never touches it.
+ * This collection is the **settlement lock**. The workspace owns it. A row here says which exact
+ * attendance or leave record a payslip consumed. `source` is a discriminated union, and its arms are
+ * projected below to real, indexed foreign keys — no collection name is interpreted at runtime.
  *
  * It replaced `payroll_settlements`, which hung the same claims off `payroll_run_id`. Hanging them
  * off the **payslip** instead makes the release free: deleting a payslip drops its claims by
@@ -33,17 +32,11 @@ import { defineModel, enums, text, uuid } from '@norbital-ai/bolt/authoring';
  * one line: a RECORD is governed by the claim held over it; a DAY WITH NO RECORD is governed by the
  * window, because there is no claim to ask.
  *
- * ## What a payslip consumes, and why the uniqueness is per payslip
+ * ## What a payslip consumes
  *
- * PERSIST writes a source row for every record the payslip's own lines and claims name: time entries
- * and leave requests by measured span (`claimsForBundle`), component entries and pay components off
- * the lines, and repayment agreements off loan-instalment lines. The last three are the reason the
- * unique index is `(payslip_id, source_collection, source_record_id)` rather than the global
- * `(source_collection, source_record_id)` the old table carried: a pay component is consumed by
- * every run that prices it and a repayment agreement by every instalment, so the same record is
- * legitimately held by many payslips. The single-consumption guarantee for component entries lives
- * where it always has, in the partial unique index on `payslip_lines (component_entry_id) WHERE
- * component_entry_usage = 'SINGLE_USE'`.
+ * PERSIST writes a source row for each time entry and leave request inside the payslip's measured
+ * span (`claimsForBundle`). Component entries and loan instalments already have direct foreign keys
+ * on `payslip_lines`, so duplicating them here would create two linkage mechanisms for one fact.
  *
  * ## Release, performed by the database
  *
@@ -57,36 +50,22 @@ import { defineModel, enums, text, uuid } from '@norbital-ai/bolt/authoring';
  * A rebuild clears the run's payslips explicitly before writing new ones, so the cascade releases
  * the old claims in the same step — a rebuild never re-claims against its own stale rows.
  *
- * ## Why the source is a name and an id rather than five nullable foreign keys
- *
- * Five collections are settled today and the union arms of `payslip_lines` already show why a sixth
- * arrives eventually. Five nullable uuid columns with a "exactly one is set" check is the shape that
- * rots: every query grows a `COALESCE`, and the check is the first thing to be forgotten. A
- * `(collection, record)` pair is one index and one lookup shape that every source hook shares
- * verbatim.
- *
- * The trade is a claim the database cannot enforce referentially — a deleted time entry leaves its
- * claim behind. That is acceptable here and only here: a settled record cannot be deleted, because
- * the very hook that reads this collection refuses it.
+ * `source` prevents impossible mixed shapes at the write boundary; the generated columns below
+ * make its identifiers database-enforced relations. Global partial uniqueness means a concrete
+ * time entry or leave request can belong to one payslip only, while one payslip can own any number
+ * of input rows.
  */
 export default defineModel(
 	{
 		payslip_id: uuid().notNull(),
-		/**
-		 * The collection the consumed record lives in.
-		 *
-		 * An enum rather than free text so a typo is a write failure instead of a lock that silently
-		 * matches nothing — a settlement lock that fails open is worse than no lock at all, because
-		 * the calendar stripes would still say the day was settled.
-		 */
-		source_collection: enums([
-			'time_entries',
-			'component_entries',
-			'leave_requests',
-			'pay_components',
-			'repayment_agreements'
-		]).notNull(),
-		source_record_id: uuid().notNull(),
+		source: custom('payslip_source').notNull(),
+		/** Database-enforced projections of the source union. */
+		time_entry_id: uuid().generatedAlwaysAs(
+			sql`CASE WHEN source ->> 'kind' = 'TIME_ENTRY' THEN (source ->> 'time_entry_id')::uuid END`
+		),
+		leave_request_id: uuid().generatedAlwaysAs(
+			sql`CASE WHEN source ->> 'kind' = 'LEAVE_REQUEST' THEN (source ->> 'leave_request_id')::uuid END`
+		),
 		/**
 		 * The run's period, copied at the moment the claim is taken.
 		 *
@@ -101,18 +80,20 @@ export default defineModel(
 	{
 		description:
 			'One source record consumed by one payslip. Taken when the run persists, released when the payslip (and so the run) is deleted; a PAID run is never deleted, so its claims are permanent and corrections use adjustment entries.',
-		recordLabel: ['period', 'source_collection'],
+		recordLabel: ['period'],
 		icon: 'lucide:link',
 		indexes: [
-			// The lock itself: one indexed lookup for every source hook, scoped to the payslip that
-			// holds the claim. The release path needs no index at all — the cascade walks payslips.
+			{ columns: ['payslip_id'] },
 			{
-				columns: ['payslip_id', 'source_collection', 'source_record_id'],
-				unique: true
+				columns: ['time_entry_id'],
+				unique: true,
+				where: '"time_entry_id" IS NOT NULL'
 			},
-			// The claim lookup from the record side: every source hook asks
-			// `source_collection + source_record_id` to find the claim held over its record.
-			{ columns: ['source_collection', 'source_record_id'] }
+			{
+				columns: ['leave_request_id'],
+				unique: true,
+				where: '"leave_request_id" IS NOT NULL'
+			}
 		]
 	}
 );

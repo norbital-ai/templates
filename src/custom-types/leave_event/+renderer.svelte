@@ -13,9 +13,9 @@
 	 * JSON and once as fields that could not be typed into. The request is entered here, once, and
 	 * the projections follow from it.
 	 *
-	 * `certificate_file` is a workspace file id and `source_id` is provenance the migration wrote;
-	 * neither is ever shown as a uuid. The certificate is uploaded through the platform's own file
-	 * editor, and `source_id` is carried through an edit untouched.
+	 * `certificate_file` is the file itself — key, name, size, mime type — and `source_id` is
+	 * provenance the migration wrote; neither is ever shown as a uuid. The certificate is uploaded
+	 * through the platform's own file editor, and `source_id` is carried through an edit untouched.
 	 */
 	import { Combobox } from '@norbital-ai/ui/combobox';
 	import { DataRenderer, type CollectionField } from '@norbital-ai/ui/data-renderer';
@@ -65,6 +65,28 @@
 		kind: 'file',
 		nullable: true
 	} satisfies CollectionField;
+
+	/**
+	 * What the file editor hands back, narrowed to what the event stores.
+	 *
+	 * `DataRenderer` types its `onValueChange` as `unknown` because it renders every column kind, so
+	 * the narrowing has to happen here. Writing the value through unchecked would put whatever the
+	 * editor produced into a schema-validated union and fail the decode on the next read, which
+	 * shows as the whole event reverting rather than as a bad certificate.
+	 */
+	const asCertificate = (next: unknown) => {
+		if (typeof next !== 'object' || next === null) return null;
+		const value = next as Record<string, unknown>;
+		return typeof value.storage_key === 'string' && value.storage_key !== ''
+			? {
+					storage_key: value.storage_key,
+					file_name: typeof value.file_name === 'string' ? value.file_name : value.storage_key,
+					file_size: typeof value.file_size === 'number' ? value.file_size : 0,
+					mime_type:
+						typeof value.mime_type === 'string' ? value.mime_type : 'application/octet-stream'
+				}
+			: null;
+	};
 
 	let props: LeaveEventRendererProps = $props();
 	const disabled = $derived(props.mode === 'edit' ? props.disabled : true);
@@ -405,7 +427,7 @@
 					onValueChange={(next) =>
 						emit({
 							...current,
-							certificate_file: typeof next === 'string' && next !== '' ? next : null
+							certificate_file: asCertificate(next)
 						})}
 				/>
 			</Stack>

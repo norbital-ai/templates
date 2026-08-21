@@ -336,11 +336,11 @@
 	<meta name="bolt:icon" content="lucide:badge-dollar-sign" />
 	<meta
 		name="bolt:thumbnail"
-		content="/api/template-seed-assets/hr-payroll/app-media/payroll-banner.webp"
+		content="/__bolt/request/api/template-seed-assets/hr-payroll/app-media/payroll-banner.webp"
 	/>
 	<meta
 		name="bolt:banner"
-		content="/api/template-seed-assets/hr-payroll/app-media/payroll-banner.webp"
+		content="/__bolt/request/api/template-seed-assets/hr-payroll/app-media/payroll-banner.webp"
 	/>
 </svelte:head>
 

@@ -15,7 +15,7 @@
 <svelte:head>
 	<meta
 		name="bolt:banner"
-		content="/api/template-seed-assets/hr-payroll/record-media/rosters-banner.svg"
+		content="/__bolt/request/api/template-seed-assets/hr-payroll/record-media/rosters-banner.svg"
 	/>
 </svelte:head>
 

@@ -1,0 +1,1 @@
+ALTER TABLE "leave_requests" ADD COLUMN "certificate_file" jsonb GENERATED ALWAYS AS (CASE WHEN event ->> 'kind' = 'TIME_OFF' AND jsonb_typeof(event -> 'certificate_file') = 'object' THEN event -> 'certificate_file' END) STORED;
