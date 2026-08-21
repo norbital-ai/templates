@@ -14,11 +14,11 @@
 	<meta name="bolt:icon" content="lucide:grid-3x3" />
 	<meta
 		name="bolt:thumbnail"
-		content="/api/template-seed-assets/construction/app-media/construction_settings_reference_matrix-banner.webp"
+		content="/__bolt/request/api/template-seed-assets/construction/app-media/construction_settings_reference_matrix-banner.webp"
 	/>
 	<meta
 		name="bolt:banner"
-		content="/api/template-seed-assets/construction/app-media/construction_settings_reference_matrix-banner.webp"
+		content="/__bolt/request/api/template-seed-assets/construction/app-media/construction_settings_reference_matrix-banner.webp"
 	/>
 </svelte:head>
 

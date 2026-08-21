@@ -2,9 +2,9 @@
  * Step 8 — PERSIST.
  *
  * Three collections, written in dependency order: the payslip, its complete component breakdown,
- * and the source rows naming everything the payslip consumed. A payslip line is the junction. Its
- * strict component union points directly to the configured component, the entered component event,
- * or the statutory scheme that produced the line.
+ * and typed attendance/leave source links. A payslip line is the component junction. Its strict
+ * union projects direct foreign keys to the configured component, entered event, loan agreement,
+ * or statutory scheme that produced the line.
  *
  * A rebuild is safe: the run's existing payslips are deleted first and the cascade takes their
  * lines and their source rows with them. Nothing is merged, so a rebuild cannot leave half of a
@@ -27,9 +27,8 @@ export type PendingPayslip = {
 	/**
 	 * The time entries and leave movements this payslip consumed, from `claimsForBundle`.
 	 *
-	 * Component entries, pay components and repayment agreements are not in here: they are recovered
-	 * below from the payslip lines that name them, which is exact where a date range would only be
-	 * close.
+	 * Component entries and loan instalments are not in here: their direct foreign keys already live
+	 * on the payslip lines that name them.
 	 */
 	readonly claims: readonly SettlementClaim[];
 };
@@ -74,44 +73,6 @@ export function clearRunResults(api: PayrollApi, runId: string): Effect.Effect<v
 		// Deleting them here as well would be a second mechanism for one rule.
 		yield* api.db.payslips.delete(existing.map((row) => row.norbital_id));
 	});
-}
-
-/**
- * The source claims one persisted line stands for.
- *
- * A line *names* what it consumed: `pay_component_id` is a generated projection of the union arm,
- * `component_entry_id` another, and `repayment_agreement_id` a third. That is the exact set, and
- * exactness matters here more than anywhere else: a record the run priced must lock, and a record
- * it skipped (a recurring allowance whose effective range had lapsed, a loan instalment already
- * covered by an agreement) must not, because nothing has consumed it and a later run still needs it.
- *
- * Statutory lines name no source — a contribution scheme is the law, not a record a run consumes.
- */
-function lineClaims(line: {
-	readonly component: PayslipLineComponent;
-	readonly payslip_id: string;
-}): SettlementClaim[] {
-	const component = line.component;
-	const claims: SettlementClaim[] = [];
-	if ('pay_component_id' in component && component.pay_component_id != null) {
-		claims.push({
-			source_collection: 'pay_components',
-			source_record_id: component.pay_component_id
-		});
-	}
-	if (component.kind === 'COMPONENT_ENTRY_ONCE' || component.kind === 'COMPONENT_ENTRY_RECURRING') {
-		claims.push({
-			source_collection: 'component_entries',
-			source_record_id: component.component_entry_id
-		});
-	}
-	if (component.kind === 'LOAN_INSTALMENT') {
-		claims.push({
-			source_collection: 'repayment_agreements',
-			source_record_id: component.agreement_id
-		});
-	}
-	return claims;
 }
 
 export function persistPayslips(options: {
@@ -220,9 +181,9 @@ export function persistPayslips(options: {
 		/**
 		 * Take the settlement locks, in the same step that wrote the figures they protect.
 		 *
-		 * The claims are the union of what each bundle measured (`claimsForBundle`) and what each
-		 * line names — so the set is exact in both directions: nothing a payslip priced goes
-		 * unclaimed, and nothing it skipped is locked by a guess.
+		 * These rows exist only for sources that have no natural payslip line: attendance and leave.
+		 * Component entries and loan instalments are already linked by the generated foreign-key
+		 * projections on `payslip_lines`, so writing them again here would duplicate one fact.
 		 *
 		 * Written after the lines and never before them. A claim that landed first would leave a
 		 * record locked by a run that then failed to persist anything.
@@ -233,16 +194,10 @@ export function persistPayslips(options: {
 			if (payslipId == null) continue;
 			claimsByPayslip.set(payslipId, [...payslip.claims]);
 		}
-		for (const line of lineInputs) {
-			const claims = claimsByPayslip.get(line.payslip_id);
-			if (claims == null) continue;
-			claims.push(...lineClaims(line));
-		}
 		const sources = [...claimsByPayslip.entries()].flatMap(([payslipId, claims]) =>
 			dedupeClaims(claims).map((claim) => ({
 				payslip_id: payslipId,
-				source_collection: claim.source_collection,
-				source_record_id: claim.source_record_id,
+				source: claim,
 				period: options.period
 			}))
 		);

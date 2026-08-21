@@ -10,10 +10,18 @@ import {
 	planDuplicateEvidenceBatch
 } from './photo-integrity.js';
 
+/** A `file()` value, which is what `photo` holds — the whole file, not a pointer to one. */
+const photoFile = (name: string) => ({
+	storage_key: `photos/${name}.jpg`,
+	file_name: `${name}.jpg`,
+	file_size: 1024,
+	mime_type: 'image/jpeg'
+});
+
 const settledProvenance = {
 	job_assignment_id: 'assignment-a',
 	variation_request_id: null,
-	document_asset_id: 'asset-a',
+	photo: photoFile('asset-a'),
 	source_key: 'whatsapp:conversation:attachment-a',
 	source: {
 		kind: 'channel',
@@ -30,7 +38,7 @@ test('keeps a settled photo, parent, and source immutable', () => {
 	for (const change of [
 		{ job_assignment_id: 'assignment-b' },
 		{ job_assignment_id: null, variation_request_id: 'variation-a' },
-		{ document_asset_id: 'asset-b' },
+		{ photo: photoFile('asset-b') },
 		{ source_key: 'workspace:asset-a' },
 		{ source: { kind: 'workspace_upload' } }
 	]) {

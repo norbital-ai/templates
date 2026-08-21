@@ -4,6 +4,7 @@
 	import type { TenantI18nKeys } from '$bolt/i18n-keys';
 	import { Button } from '@norbital-ai/ui/button';
 	import { Inline, Stack } from '@norbital-ai/ui/layout';
+	import * as ToggleGroup from '@norbital-ai/ui/toggle-group';
 
 	let { companyId }: { companyId: string } = $props();
 
@@ -13,13 +14,39 @@
 	// the heatmap to every load and left it on the error state.
 	// svelte-ignore state_referenced_locally
 	const analyticsQuery = client.invoke.approval_analytics({
-		subject: 'CLAIM',
+		subject: 'PAY_COMPONENT',
 		company_id: companyId
 	});
 	const analytics = $derived(analyticsQuery.current ?? null);
+	let selectedCategory = $state('ALL');
+	const selectedAnalytics = $derived.by(() => {
+		if (!analytics || selectedCategory === 'ALL') return analytics;
+		return analytics.categories?.find((entry) => entry.category === selectedCategory) ?? analytics;
+	});
 	const heatmapMaximum = $derived(
-		Math.max(0, ...(analytics?.seasonal_heatmap ?? []).flatMap((row) => row.months))
+		Math.max(0, ...(selectedAnalytics?.seasonal_heatmap ?? []).flatMap((row) => row.months))
 	);
+
+	function categoryLabel(category: string): string {
+		switch (category) {
+			case 'RECURRING':
+				return t('app.pay_components.category_recurring');
+			case 'ONE_OFF':
+				return t('app.pay_components.category_one_off');
+			case 'CLAIM':
+				return t('app.pay_components.category_claim');
+			case 'LOAN_INSTALMENT':
+				return t('app.pay_components.category_loan_instalment');
+			case 'REVERSAL':
+				return t('app.pay_components.category_reversal');
+			case 'ARREARS':
+				return t('app.pay_components.category_arrears');
+			case 'MANUAL_ADJUSTMENT':
+				return t('app.pay_components.category_manual_adjustment');
+			default:
+				return t('app.pay_components.category_all');
+		}
+	}
 
 	function heatmapClass(count: number): string {
 		if (count === 0 || heatmapMaximum === 0) return 'bg-muted/35 text-muted-foreground';
@@ -39,12 +66,12 @@
 	}
 </script>
 
-<Stack as="section" gap="md" aria-labelledby="claim-seasonality-heading">
+<Stack as="section" gap="md" aria-labelledby="pay-component-seasonality-heading">
 	<Stack gap="xs">
-		<h2 class="text-heading">{t('app.pay_components.reimbursement_claims')}</h2>
+		<h2 class="text-heading">{t('app.pay_components.activity')}</h2>
 		{#if analytics}
 			<p class="text-sm text-muted-foreground">
-				{t('app.pay_components.reimbursement_claims_description', {
+				{t('app.pay_components.activity_description', {
 					count: analytics.total.toLocaleString()
 				})}
 			</p>
@@ -52,12 +79,29 @@
 	</Stack>
 	<Stack gap="md" class="rounded-lg border bg-card p-4 shadow-card">
 		<Stack gap="xs">
-			<h3 id="claim-seasonality-heading" class="font-semibold">
+			<h3 id="pay-component-seasonality-heading" class="font-semibold">
 				{t('app.pay_components.chart_title')}
 			</h3>
 			<p class="text-sm text-muted-foreground">{t('app.pay_components.chart_description')}</p>
 		</Stack>
 		{#if analytics}
+			<ToggleGroup.Root
+				type="single"
+				bind:value={selectedCategory}
+				variant="outline"
+				size="sm"
+				class="flex-wrap justify-start"
+				aria-label={t('app.pay_components.category_filter')}
+			>
+				<ToggleGroup.Item value="ALL">
+					{t('app.pay_components.category_all')}
+				</ToggleGroup.Item>
+				{#each analytics.categories ?? [] as category (category.category)}
+					<ToggleGroup.Item value={category.category}>
+						{categoryLabel(category.category)} · {category.total.toLocaleString()}
+					</ToggleGroup.Item>
+				{/each}
+			</ToggleGroup.Root>
 			<!-- stupidity:allow UI3 -- this is a derived reporting matrix, not a collection. -->
 			<table class="w-full table-fixed border-separate border-spacing-1 text-center text-xs">
 				<caption class="sr-only">{t('app.pay_components.chart_description')}</caption>
@@ -70,7 +114,7 @@
 					</tr>
 				</thead>
 				<tbody>
-					{#each analytics.seasonal_heatmap as row (row.year)}
+					{#each selectedAnalytics?.seasonal_heatmap ?? [] as row (row.year)}
 						<tr>
 							<th class="pr-1 text-left font-medium tabular-nums" scope="row">
 								{row.year}

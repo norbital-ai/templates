@@ -14,7 +14,7 @@
 		formatEntryOrigin,
 		formatNumeric
 	} from '../../lib/ui/display-formatters.js';
-	import { inForceTodayFilter, todayInstant, todayKey } from '../../lib/ui/calendar.js';
+	import { inForceTodayFilter, todayInstant } from '../../lib/ui/calendar.js';
 	import { sourceLock, sourceLockFrozen, sourceLockReason } from '../../lib/scheduling/lock.js';
 
 	const { t } = useI18n<TenantI18nKeys>();
@@ -53,12 +53,6 @@
 			| readonly {
 					readonly payslip_line_payslip?: {
 						readonly payslip_payroll_run?: Pick<WorkspaceRow<'payroll_runs'>, 'period'> | null;
-						readonly payslip_sources?:
-							| readonly {
-									readonly source_collection?: string | null;
-									readonly period?: string | null;
-							  }[]
-							| null;
 					} | null;
 			  }[]
 			| null;
@@ -75,19 +69,13 @@
 	}
 
 	/**
-	 * The stored claim over this entry, read through the payslip that holds it.
-	 *
-	 * The lines the table already reads name this entry; each one's payslip carries the source rows
-	 * it consumed, so the claim is one nested relation away — the same exact signal the write hook
-	 * asks for, from the same `payslip_sources` collection.
+	 * The direct component-entry foreign key on a payslip line is the consumption fact. The nested
+	 * run is only used to give that link a human period label.
 	 */
 	function entrySettlement(row: ComponentEntryRow): { period: string } | null {
 		for (const line of row.entry_payslip_lines ?? []) {
-			for (const source of line.payslip_line_payslip?.payslip_sources ?? []) {
-				if (source.source_collection === 'component_entries' && source.period) {
-					return { period: source.period };
-				}
-			}
+			const period = line.payslip_line_payslip?.payslip_payroll_run?.period;
+			if (period) return { period };
 		}
 		return null;
 	}
@@ -105,10 +93,9 @@
 		return sourceLock({
 			existing: true,
 			approvalId: row.norbital_approval_id,
-			dates: [row.event_date],
-			today: todayKey(),
+			dates: [],
 			settledBy: entrySettlement(row),
-			freezeWhenLive: row.origin?.kind === 'CLAIM'
+			datePassed: 'IS_NOT_A_LOCK'
 		});
 	}
 </script>
@@ -122,11 +109,11 @@
 	<meta name="bolt:icon" content="lucide:coins" />
 	<meta
 		name="bolt:thumbnail"
-		content="/api/template-seed-assets/hr-payroll/app-media/pay_components-banner.webp"
+		content="/__bolt/request/api/template-seed-assets/hr-payroll/app-media/pay_components-banner.webp"
 	/>
 	<meta
 		name="bolt:banner"
-		content="/api/template-seed-assets/hr-payroll/app-media/pay_components-banner.webp"
+		content="/__bolt/request/api/template-seed-assets/hr-payroll/app-media/pay_components-banner.webp"
 	/>
 </svelte:head>
 
@@ -196,12 +183,7 @@
 							with: {
 								payslip_line_payslip: {
 									columns: { norbital_id: true },
-									with: {
-										payslip_sources: {
-											columns: { source_collection: true, period: true },
-											where: { source_collection: { eq: 'component_entries' } }
-										}
-									}
+									with: { payslip_payroll_run: { columns: { period: true } } }
 								}
 							}
 						}

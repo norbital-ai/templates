@@ -19,11 +19,10 @@
 	on this ancestor chain.
 
 	It scrolls on BOTH axes, because it is people by days: `axis="both"` rather than the `axis="x"`
-	reel this used to be. The two headings stay put with `position: sticky` — the day header on `y`,
-	the person column on `x`, and the corner cell on both — which is the same "header sticky, body
-	scrolls" contract the layout guide records for `CollectionTable`. `CollectionTable` reaches it by
-	hoisting its header out of the scrollport and translating it, because its rows are virtualised and
-	absolutely positioned; a real `<table>` gets there with sticky cells and no synchronisation code.
+	reel this used to be. The person cells remain sticky on `x`; the day header is shell chrome outside
+	the scrollport, and its inner track follows the body's `scrollLeft`. That is the same "header fixed,
+	body scrolls" contract `CollectionTable` uses, including for virtualised rows whose header cannot
+	live inside their scrollport.
 -->
 <script lang="ts" module>
 	/**
@@ -41,6 +40,7 @@
 	import { useI18n } from '@norbital-ai/ui/i18n';
 	import type { TenantI18nKeys } from '$bolt/i18n-keys';
 	import { Cluster, Cover, Inline, Scroll, Stack } from '@norbital-ai/ui/layout';
+	import { Skeleton } from '@norbital-ai/ui/skeleton';
 	import { cn } from '@norbital-ai/ui/utils';
 	import { createVirtualizer } from '@norbital-ai/ui/utils/virtualizer.svelte';
 	import {
@@ -74,6 +74,7 @@
 		facts,
 		today,
 		holidayNames,
+		loading = false,
 		locks = new Map(),
 		settlementClaims = new Map(),
 		cutoff = null,
@@ -87,6 +88,8 @@
 		people: readonly Person[];
 		facts: ReadonlyMap<string, DayFacts>;
 		today: string;
+		/** Preserve the board shell while the selected month's live queries settle. */
+		loading?: boolean;
 		/**
 		 * The company calendar, keyed by date. Public holidays are drawn as a column of the board
 		 * rather than as a mark on each person's day, because that is where they come from: the
@@ -131,7 +134,27 @@
 
 	const days = $derived(monthDays(month));
 	let boardElement: HTMLElement | null = $state(null);
+	let boardHeaderTrack: HTMLElement | null = $state(null);
 	let requestedCellKey = $state('');
+
+	/** Keep the fixed day header horizontally aligned with the internally scrolling rows. */
+	function syncBoardHeader(): void {
+		if (boardElement == null || boardHeaderTrack == null) return;
+		boardHeaderTrack.style.transform = `translateX(${-boardElement.scrollLeft}px)`;
+	}
+
+	/** Wheel input over the fixed header controls the body it labels. */
+	function handleBoardHeaderWheel(event: WheelEvent): void {
+		if (boardElement == null || (event.deltaX === 0 && event.deltaY === 0)) return;
+		const beforeLeft = boardElement.scrollLeft;
+		const beforeTop = boardElement.scrollTop;
+		boardElement.scrollLeft += event.deltaX;
+		boardElement.scrollTop += event.deltaY;
+		// Preserve scroll chaining when the board is already at the edge in this direction.
+		if (boardElement.scrollLeft !== beforeLeft || boardElement.scrollTop !== beforeTop) {
+			event.preventDefault();
+		}
+	}
 	const rowVirtualizer = createVirtualizer({
 		count: () => people.length,
 		scrollElement: () => boardElement,
@@ -485,82 +508,113 @@
 	{/if}
 {/snippet}
 
-{#if people.length === 0}
+{#snippet boardHeader()}
+	<!-- The header viewport clips; the rows below remain the one scroll owner on both axes. -->
+	<div
+		class="relative h-10 overflow-hidden border-b bg-card text-xs"
+		aria-hidden="true"
+		onwheel={handleBoardHeaderWheel}
+	>
+		<div
+			class="absolute inset-y-0 left-0 z-20 flex w-40 items-center border-r bg-card px-3 font-semibold"
+		>
+			{t('roster.person')}
+		</div>
+		<div class="absolute inset-y-0 right-0 left-40 overflow-hidden">
+			<div bind:this={boardHeaderTrack} class="flex h-full w-max will-change-transform">
+				{#each days as date (date)}
+					{@const holiday = holidayNames.get(date)}
+					{@const settled = !loading && locks.get(date)?.kind === 'SETTLED'}
+					<div
+						title={holiday == null ? undefined : `${t(HOLIDAY_PRESENTATION.labelKey)}: ${holiday}`}
+						class={cn(
+							'flex h-10 w-13 min-w-13 flex-col items-center justify-center bg-card text-center font-medium',
+							isWeekend(date) && 'bg-muted',
+							holiday != null && HOLIDAY_PRESENTATION.headerClassName,
+							date === today && 'font-semibold ring-2 ring-inset ring-brand',
+							date === cutoffStartsAt && 'border-l-2 border-l-brand',
+							settled && 'border-r-2 border-r-brand/60',
+							date < today && !settled && 'text-muted-foreground'
+						)}
+					>
+						<span class="block text-meta">
+							{settled ? '🔒' : holiday == null ? weekdayLetter(date) : HOLIDAY_PRESENTATION.mark}
+						</span>
+						<span class="block tabular-nums">{Number(date.slice(8, 10))}</span>
+					</div>
+				{/each}
+			</div>
+		</div>
+	</div>
+{/snippet}
+
+{#snippet boardLoadingSkeleton()}
+	<table class="border-separate border-spacing-0 text-left text-xs" aria-hidden="true">
+		<tbody>
+			{#each Array(16) as _, rowIndex (rowIndex)}
+				<tr>
+					<th class="sticky left-0 z-10 w-40 min-w-40 border-r border-b bg-card px-3 py-1.5">
+						<Stack gap="xs">
+							<Skeleton class="h-3 w-16" />
+							<Skeleton class="h-2.5 w-24" />
+						</Stack>
+					</th>
+					{#each days as date (date)}
+						<td class="w-13 min-w-13 border-b p-1">
+							<Skeleton class="h-9 w-full rounded-sm" />
+						</td>
+					{/each}
+				</tr>
+			{/each}
+		</tbody>
+	</table>
+{/snippet}
+
+{#if people.length === 0 && !loading}
 	<p class="text-sm text-muted-foreground">
 		{t('roster.no_employments')}
 	</p>
 {:else}
-	<Cover as="div" gap="sm" bottom={legend}>
-		<Scroll
-			bind:ref={boardElement}
-			axis="both"
-			name={t('roster.board_scroll_name')}
-			class="rounded-lg border bg-card"
-		>
-			<!-- stupidity:allow UI3 -- a person-by-day board is a derived cross-tab of four collections, not one collection's rows. -->
-			<table class="border-separate border-spacing-0 text-left text-xs">
-				<thead>
-					<tr>
-						<th
-							scope="col"
-							class="sticky top-0 left-0 z-30 min-w-[10rem] border-r border-b bg-card px-3 py-2 text-xs font-semibold"
-						>
-							{t('roster.person')}
-						</th>
-						{#each days as date (date)}
-							{@const holiday = holidayNames.get(date)}
-							{@const settled = locks.get(date)?.kind === 'SETTLED'}
-							<th
-								scope="col"
-								title={holiday == null
-									? undefined
-									: `${t(HOLIDAY_PRESENTATION.labelKey)}: ${holiday}`}
-								class={cn(
-									'sticky top-0 z-20 w-13 min-w-13 border-b bg-card px-0 py-1 text-center font-medium',
-									// Every fill here is opaque: see HOLIDAY_PRESENTATION.headerClassName. `today` is
-									// a ring rather than a fill so it composes with the date fills instead of
-									// replacing one — a public holiday that happens to be today is still both.
-									isWeekend(date) && 'bg-muted',
-									holiday != null && HOLIDAY_PRESENTATION.headerClassName,
-									date === today && 'font-semibold ring-2 ring-inset ring-brand',
-									date === cutoffStartsAt && 'border-l-2 border-l-brand',
-									settled && 'border-r-2 border-r-brand/60',
-									date < today && !settled && 'text-muted-foreground'
-								)}
-							>
-								<span class="block text-meta">
-									{settled
-										? '🔒'
-										: holiday == null
-											? weekdayLetter(date)
-											: HOLIDAY_PRESENTATION.mark}
-								</span>
-								<span class="block tabular-nums">{Number(date.slice(8, 10))}</span>
-							</th>
-						{/each}
-					</tr>
-				</thead>
-				<tbody>
-					{#if topSpacer > 0}
-						<tr aria-hidden="true"
-							><td colspan={days.length + 1} style:height={`${topSpacer}px`}></td></tr
-						>
-					{/if}
-					{#each virtualRows as virtualRow (virtualRow.key)}
-						{@const personIndex = virtualRow.index}
-						{@const person = people[personIndex]!}
-						<tr data-index={personIndex}>
-							<th
-								scope="row"
-								class="sticky left-0 z-10 border-r border-b bg-card px-3 py-1.5 text-left font-normal"
-							>
-								<span class="block truncate font-mono tabular-nums">{person.number}</span>
-								<span class="block truncate text-micro text-muted-foreground">{person.name}</span>
-							</th>
-							{#each days as date, dayIndex (date)}
-								{@const day = facts.get(`${person.id}:${date}`)}
-								{@const rung = rungOf(day)}
-								<!--
+	<Cover as="div" gap="sm" bottom={legend} aria-busy={loading}>
+		{#if loading}
+			<span class="sr-only" role="status">{t('app.scheduling.loading_month', { month })}</span>
+		{/if}
+		<Cover as="div" gap="none" top={boardHeader} class="rounded-lg border bg-card">
+			<Scroll
+				bind:ref={boardElement}
+				axis="both"
+				name={t('roster.board_scroll_name')}
+				class="relative bg-card"
+				onscroll={syncBoardHeader}
+			>
+				{#if loading}
+					{@render boardLoadingSkeleton()}
+				{:else}
+					<!-- stupidity:allow UI3 -- a person-by-day board is a derived cross-tab of four collections, not one collection's rows. -->
+					<table class="border-separate border-spacing-0 text-left text-xs">
+						<tbody>
+							{#if topSpacer > 0}
+								<tr aria-hidden="true"
+									><td colspan={days.length + 1} style:height={`${topSpacer}px`}></td></tr
+								>
+							{/if}
+							{#each virtualRows as virtualRow (virtualRow.key)}
+								{@const personIndex = virtualRow.index}
+								{@const person = people[personIndex]!}
+								<tr data-index={personIndex}>
+									<th
+										scope="row"
+										class="sticky left-0 z-10 w-40 min-w-40 border-r border-b bg-card px-3 py-1.5 text-left font-normal"
+									>
+										<span class="block truncate font-mono tabular-nums">{person.number}</span>
+										<span class="block truncate text-micro text-muted-foreground"
+											>{person.name}</span
+										>
+									</th>
+									{#each days as date, dayIndex (date)}
+										{@const day = facts.get(`${person.id}:${date}`)}
+										{@const rung = rungOf(day)}
+										<!--
 									`day.past !== true` used to be a fourth condition here, and deleting it is
 									§2's correctness fix. A day that has already happened is the *normal* day to
 									be editing attendance on — a punch is keyed in after the shift, not before it
@@ -568,9 +622,9 @@
 									being asked to do. What locks a day is a payroll run's claim over it, which
 									is what `rung` reads, and nothing about the calendar.
 								-->
-								{@const cellEditable =
-									editable && day?.employmentState === 'ACTIVE' && !lockRungFreezes(rung)}
-								<!--
+										{@const cellEditable =
+											editable && day?.employmentState === 'ACTIVE' && !lockRungFreezes(rung)}
+										<!--
 									OPENING A DAY IS NOT EDITING IT, and conflating the two is what made this board
 									feel dead. `cellEditable` gates the WRITES — it is false in a month with no draft
 									roster, and false on a day payroll has taken — and it used to gate `onSelectDay`
@@ -586,205 +640,209 @@
 									rule `importAttendance` already follows. On a frozen day the sheet is a reader, and
 									its LOCK panel is the answer to "why can't I change this".
 								-->
-								{@const cellOpenable = day != null && day.employmentState === 'ACTIVE'}
-								{@const armed =
-									swapSource != null && cellKey(swapSource) === `${person.id}:${date}`}
-								{@const swapTarget =
-									swappable &&
-									cellEditable &&
-									swapSource != null &&
-									swapPairAllowed(swapSource, { employmentId: person.id, date })}
-								{@const firstConflict = day?.conflicts[0] ?? null}
-								<td
-									class={cn(
-										'border-b p-0.5 text-center',
-										holidayNames.has(date) && HOLIDAY_PRESENTATION.className,
-										date === cutoffStartsAt && 'border-l-2 border-l-brand',
-										day?.lock.kind === 'SETTLED' && 'border-r-2 border-r-brand/60'
-									)}
-								>
-									<Tooltip side="top" sideOffset={4} contentClass="max-w-80">
-										{#snippet trigger({ props })}
-											<button
-												{...props}
-												type="button"
-												aria-label={describeDay(day, `${person.name} · ${date}`, t)}
-												aria-haspopup={cellOpenable ? 'dialog' : undefined}
-												tabindex={activeCellKey === `${person.id}:${date}` ? 0 : -1}
-												data-roster-cell={`${personIndex}:${dayIndex}`}
-												draggable={swappable && cellEditable}
-												class={cn(
-													'relative grid h-9 w-full min-w-12 content-center rounded-sm px-0.5 text-center tabular-nums focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none',
-													day == null ? 'bg-muted/20' : STATUS_PRESENTATION[day.status].className,
-													// The lock rail: a channel of its own, drawn as an inset left border so it
-													// composes with the status fill and the holiday tint instead of replacing
-													// either. Every class is a literal variant in LOCK_RAIL_PRESENTATION.
-													LOCK_RAIL_PRESENTATION[rung].railClassName,
-													cellOpenable
-														? 'cursor-pointer hover:ring-1 hover:ring-ring'
-														: 'cursor-default',
-													// Two literal variants, not one assembled from a condition: the armed cell
-													// is the loud one and a legal partner is the quiet one, and both have to
-													// survive Tailwind's source scan.
-													armed && 'ring-2 ring-brand ring-offset-2',
-													swapTarget && 'ring-2 ring-brand/50',
-													// Planned extra work is the `OT` glyph and a heavier weight, not a
-													// colour. It used to borrow the warning hue, which now means "somebody
-													// must act on this day" — and a shift the roster deliberately planned
-													// over a rest day is the opposite of a fault.
-													day?.plannedOT === true && 'font-semibold',
-													quietPast(day) && 'opacity-70'
-												)}
-												onclick={() => {
-													// An armed swap consumes the next compatible click; the day sheet is
-													// still one click away, on any cell that is not a legal partner.
-													if (swapTarget) {
-														completeSwap({ employmentId: person.id, date });
-														return;
-													}
-													if (armed) {
-														swapSource = null;
-														return;
-													}
-													if (cellOpenable) onSelectDay?.(person.id, date);
-												}}
-												onfocus={() => (requestedCellKey = `${person.id}:${date}`)}
-												onkeydown={(event) => {
-													if (
-														swappable &&
-														cellEditable &&
-														(event.key === 'x' || event.key === 'X')
-													) {
-														event.preventDefault();
-														if (swapTarget) completeSwap({ employmentId: person.id, date });
-														else if (armed) swapSource = null;
-														else armSwap({ employmentId: person.id, date });
-														return;
-													}
-													handleCellKeydown(event, personIndex, dayIndex);
-												}}
-												ondragstart={(event) => {
-													if (!swappable || !cellEditable) return;
-													armSwap({ employmentId: person.id, date });
-													// Firefox refuses to start a drag without payload; the pair is read
-													// from `swapSource`, so the value itself is only ever a marker.
-													event.dataTransfer?.setData('text/plain', `${person.id}:${date}`);
-												}}
-												ondragover={(event) => {
-													if (swapTarget) event.preventDefault();
-												}}
-												ondrop={(event) => {
-													if (!swapTarget) return;
-													event.preventDefault();
-													completeSwap({ employmentId: person.id, date });
-												}}
-												ondragend={() => {
-													// Only clear an arming this drag created. A `swapSource` set from the
-													// day sheet survives, because the operator armed it deliberately.
-													if (armed) swapSource = null;
-												}}
-											>
-												{#if firstConflict != null}
-													<span
+										{@const cellOpenable = day != null && day.employmentState === 'ACTIVE'}
+										{@const armed =
+											swapSource != null && cellKey(swapSource) === `${person.id}:${date}`}
+										{@const swapTarget =
+											swappable &&
+											cellEditable &&
+											swapSource != null &&
+											swapPairAllowed(swapSource, { employmentId: person.id, date })}
+										{@const firstConflict = day?.conflicts[0] ?? null}
+										<td
+											class={cn(
+												'w-13 min-w-13 border-b p-0.5 text-center',
+												holidayNames.has(date) && HOLIDAY_PRESENTATION.className,
+												date === cutoffStartsAt && 'border-l-2 border-l-brand',
+												day?.lock.kind === 'SETTLED' && 'border-r-2 border-r-brand/60'
+											)}
+										>
+											<Tooltip side="top" sideOffset={4} contentClass="max-w-80">
+												{#snippet trigger({ props })}
+													<button
+														{...props}
+														type="button"
+														aria-label={describeDay(day, `${person.name} · ${date}`, t)}
+														aria-haspopup={cellOpenable ? 'dialog' : undefined}
+														tabindex={activeCellKey === `${person.id}:${date}` ? 0 : -1}
+														data-roster-cell={`${personIndex}:${dayIndex}`}
+														draggable={swappable && cellEditable}
 														class={cn(
-															'absolute top-0.5 right-0.5 size-1.5 rounded-full',
-															CONFLICT_PRESENTATION[firstConflict].className
+															'relative grid h-9 w-full min-w-12 content-center rounded-sm px-0.5 text-center tabular-nums focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none',
+															day == null
+																? 'bg-muted/20'
+																: STATUS_PRESENTATION[day.status].className,
+															// The lock rail: a channel of its own, drawn as an inset left border so it
+															// composes with the status fill and the holiday tint instead of replacing
+															// either. Every class is a literal variant in LOCK_RAIL_PRESENTATION.
+															LOCK_RAIL_PRESENTATION[rung].railClassName,
+															cellOpenable
+																? 'cursor-pointer hover:ring-1 hover:ring-ring'
+																: 'cursor-default',
+															// Two literal variants, not one assembled from a condition: the armed cell
+															// is the loud one and a legal partner is the quiet one, and both have to
+															// survive Tailwind's source scan.
+															armed && 'ring-2 ring-brand ring-offset-2',
+															swapTarget && 'ring-2 ring-brand/50',
+															// Planned extra work is the `OT` glyph and a heavier weight, not a
+															// colour. It used to borrow the warning hue, which now means "somebody
+															// must act on this day" — and a shift the roster deliberately planned
+															// over a rest day is the opposite of a fault.
+															day?.plannedOT === true && 'font-semibold',
+															quietPast(day) && 'opacity-70'
 														)}
-														title={t(CONFLICT_PRESENTATION[firstConflict].labelKey)}
-													></span>
-												{/if}
-												{#if LOCK_RAIL_PRESENTATION[rung].padlock !== ''}
-													<!--
+														onclick={() => {
+															// An armed swap consumes the next compatible click; the day sheet is
+															// still one click away, on any cell that is not a legal partner.
+															if (swapTarget) {
+																completeSwap({ employmentId: person.id, date });
+																return;
+															}
+															if (armed) {
+																swapSource = null;
+																return;
+															}
+															if (cellOpenable) onSelectDay?.(person.id, date);
+														}}
+														onfocus={() => (requestedCellKey = `${person.id}:${date}`)}
+														onkeydown={(event) => {
+															if (
+																swappable &&
+																cellEditable &&
+																(event.key === 'x' || event.key === 'X')
+															) {
+																event.preventDefault();
+																if (swapTarget) completeSwap({ employmentId: person.id, date });
+																else if (armed) swapSource = null;
+																else armSwap({ employmentId: person.id, date });
+																return;
+															}
+															handleCellKeydown(event, personIndex, dayIndex);
+														}}
+														ondragstart={(event) => {
+															if (!swappable || !cellEditable) return;
+															armSwap({ employmentId: person.id, date });
+															// Firefox refuses to start a drag without payload; the pair is read
+															// from `swapSource`, so the value itself is only ever a marker.
+															event.dataTransfer?.setData('text/plain', `${person.id}:${date}`);
+														}}
+														ondragover={(event) => {
+															if (swapTarget) event.preventDefault();
+														}}
+														ondrop={(event) => {
+															if (!swapTarget) return;
+															event.preventDefault();
+															completeSwap({ employmentId: person.id, date });
+														}}
+														ondragend={() => {
+															// Only clear an arming this drag created. A `swapSource` set from the
+															// day sheet survives, because the operator armed it deliberately.
+															if (armed) swapSource = null;
+														}}
+													>
+														{#if firstConflict != null}
+															<span
+																class={cn(
+																	'absolute top-0.5 right-0.5 size-1.5 rounded-full',
+																	CONFLICT_PRESENTATION[firstConflict].className
+																)}
+																title={t(CONFLICT_PRESENTATION[firstConflict].labelKey)}
+															></span>
+														{/if}
+														{#if LOCK_RAIL_PRESENTATION[rung].padlock !== ''}
+															<!--
 														The padlock is a second, redundant channel for the two rungs that
 														actually refuse a write. Colour alone is not an accessible way to say
 														"locked", and the rail is four values on one narrow strip.
 													-->
-													<span
-														class="absolute top-0.5 left-0.5 text-[0.5rem] leading-none"
-														aria-hidden="true"
-														title={t(LOCK_RAIL_PRESENTATION[rung].labelKey)}
-													>
-														{LOCK_RAIL_PRESENTATION[rung].padlock}
-													</span>
-												{/if}
-												<span class="block truncate text-xs leading-4">
-													{day == null ? '' : planGlyph(day)}
-												</span>
-												<span
-													class={cn(
-														'block truncate text-[0.625rem] leading-3',
-														day == null
-															? 'text-muted-foreground/50'
-															: day.past
-																? actualMarkClass(day)
-																: 'text-muted-foreground/70'
-													)}
-												>
-													{day == null
-														? ''
-														: day.past
-															? actualMark(day)
-															: (shiftTimeCue(day) ?? actualMark(day))}
-												</span>
-											</button>
-										{/snippet}
-										{#snippet content()}
-											{#if day != null}
-												<Stack gap="sm" class="min-w-64 max-w-80 text-xs">
-													<div class="border-b border-primary-foreground/15 pb-2">
-														<p class="font-semibold">{person.name}</p>
-														<p class="font-mono text-micro text-primary-foreground/65">
-															{person.number} · {date}
-														</p>
-													</div>
-													<div
-														class="relative space-y-3 pl-5 before:absolute before:top-1 before:bottom-1 before:left-1.5 before:w-px before:bg-primary-foreground/20"
-													>
-														<div class="relative">
 															<span
-																class="absolute top-1 -left-[1.125rem] size-2 rounded-full bg-brand"
-															></span>
-															<p class="text-overline text-primary-foreground/55">
-																{t('roster.timeline_schedule')}
-															</p>
-															<p class="leading-4">{scheduleSummary(day)}</p>
-														</div>
-														<div class="relative">
-															<span
-																class="absolute top-1 -left-[1.125rem] size-2 rounded-full bg-success"
-															></span>
-															<p class="text-overline text-primary-foreground/55">
-																{t('roster.timeline_attendance')}
-															</p>
-															<p class="leading-4">{attendanceSummary(day)}</p>
-														</div>
-														{#if dayNotes(day) != null}
-															<div class="relative">
-																<span
-																	class="absolute top-1 -left-[1.125rem] size-2 rounded-full bg-info"
-																></span>
-																<p class="text-overline text-primary-foreground/55">
-																	{t('roster.timeline_notes')}
-																</p>
-																<p class="leading-4">{dayNotes(day)}</p>
-															</div>
+																class="absolute top-0.5 left-0.5 text-[0.5rem] leading-none"
+																aria-hidden="true"
+																title={t(LOCK_RAIL_PRESENTATION[rung].labelKey)}
+															>
+																{LOCK_RAIL_PRESENTATION[rung].padlock}
+															</span>
 														{/if}
-													</div>
-												</Stack>
-											{/if}
-										{/snippet}
-									</Tooltip>
-								</td>
+														<span class="block truncate text-xs leading-4">
+															{day == null ? '' : planGlyph(day)}
+														</span>
+														<span
+															class={cn(
+																'block truncate text-[0.625rem] leading-3',
+																day == null
+																	? 'text-muted-foreground/50'
+																	: day.past
+																		? actualMarkClass(day)
+																		: 'text-muted-foreground/70'
+															)}
+														>
+															{day == null
+																? ''
+																: day.past
+																	? actualMark(day)
+																	: (shiftTimeCue(day) ?? actualMark(day))}
+														</span>
+													</button>
+												{/snippet}
+												{#snippet content()}
+													{#if day != null}
+														<Stack gap="sm" class="min-w-64 max-w-80 text-xs">
+															<div class="border-b border-primary-foreground/15 pb-2">
+																<p class="font-semibold">{person.name}</p>
+																<p class="font-mono text-micro text-primary-foreground/65">
+																	{person.number} · {date}
+																</p>
+															</div>
+															<div
+																class="relative space-y-3 pl-5 before:absolute before:top-1 before:bottom-1 before:left-1.5 before:w-px before:bg-primary-foreground/20"
+															>
+																<div class="relative">
+																	<span
+																		class="absolute top-1 -left-[1.125rem] size-2 rounded-full bg-brand"
+																	></span>
+																	<p class="text-overline text-primary-foreground/55">
+																		{t('roster.timeline_schedule')}
+																	</p>
+																	<p class="leading-4">{scheduleSummary(day)}</p>
+																</div>
+																<div class="relative">
+																	<span
+																		class="absolute top-1 -left-[1.125rem] size-2 rounded-full bg-success"
+																	></span>
+																	<p class="text-overline text-primary-foreground/55">
+																		{t('roster.timeline_attendance')}
+																	</p>
+																	<p class="leading-4">{attendanceSummary(day)}</p>
+																</div>
+																{#if dayNotes(day) != null}
+																	<div class="relative">
+																		<span
+																			class="absolute top-1 -left-[1.125rem] size-2 rounded-full bg-info"
+																		></span>
+																		<p class="text-overline text-primary-foreground/55">
+																			{t('roster.timeline_notes')}
+																		</p>
+																		<p class="leading-4">{dayNotes(day)}</p>
+																	</div>
+																{/if}
+															</div>
+														</Stack>
+													{/if}
+												{/snippet}
+											</Tooltip>
+										</td>
+									{/each}
+								</tr>
 							{/each}
-						</tr>
-					{/each}
-					{#if bottomSpacer > 0}
-						<tr aria-hidden="true"
-							><td colspan={days.length + 1} style:height={`${bottomSpacer}px`}></td></tr
-						>
-					{/if}
-				</tbody>
-			</table>
-		</Scroll>
+							{#if bottomSpacer > 0}
+								<tr aria-hidden="true"
+									><td colspan={days.length + 1} style:height={`${bottomSpacer}px`}></td></tr
+								>
+							{/if}
+						</tbody>
+					</table>
+				{/if}
+			</Scroll>
+		</Cover>
 	</Cover>
 {/if}

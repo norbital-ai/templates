@@ -64,7 +64,7 @@ export default defineModel(
 				where: '"component_entry_usage" = \'SINGLE_USE\''
 			},
 			{
-				columns: ['repayment_agreement_id', 'payslip_id', 'repayment_sequence'],
+				columns: ['repayment_agreement_id', 'repayment_sequence'],
 				unique: true,
 				where: '"repayment_agreement_id" IS NOT NULL'
 			}

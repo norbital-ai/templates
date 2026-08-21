@@ -104,7 +104,7 @@ export default {
 						record_id: photo.norbital_id,
 						job_assignment_id: photo.job_assignment_id,
 						variation_request_id: photo.variation_request_id,
-						document_asset_id: photo.document_asset_id,
+						photo: photo.photo,
 						sha256: photo.sha256,
 						flags: photo.flags,
 						matched_evidence_ids: photo.matched_evidence_ids

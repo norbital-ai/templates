@@ -47,10 +47,7 @@
 	const settlementQuery = $derived(
 		record
 			? client.db.payslip_sources.findFirst({
-					where: {
-						source_collection: { eq: 'leave_requests' },
-						source_record_id: { eq: record.norbital_id }
-					},
+					where: { leave_request_id: { eq: record.norbital_id } },
 					columns: { period: true }
 				})
 			: null
@@ -76,7 +73,7 @@
 <svelte:head>
 	<meta
 		name="bolt:banner"
-		content="/api/template-seed-assets/hr-payroll/record-media/leave_requests-banner.svg"
+		content="/__bolt/request/api/template-seed-assets/hr-payroll/record-media/leave_requests-banner.svg"
 	/>
 </svelte:head>
 

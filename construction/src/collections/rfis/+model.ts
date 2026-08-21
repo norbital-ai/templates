@@ -15,7 +15,7 @@ export default defineModel(
 		submitted_date: date(),
 		due_date: date(),
 		resolved_date: date(),
-		attachments: file().array(),
+		attachments: file({ multiple: true }),
 		related_defect_id: uuid()
 	},
 	{

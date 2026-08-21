@@ -69,6 +69,7 @@
 	import { Button } from '@norbital-ai/ui/button';
 	import { IconWrapper } from '@norbital-ai/ui/icon-wrapper';
 	import { Cluster, Cover, Grid, Inline, Scroll, Stack } from '@norbital-ai/ui/layout';
+	import { Skeleton } from '@norbital-ai/ui/skeleton';
 	import { cn } from '@norbital-ai/ui/utils';
 	import { formatDurationHours } from '../display-formatters.js';
 	import { sourceLockReason, type SourceLock } from '../../scheduling/lock.js';
@@ -102,6 +103,7 @@
 		facts,
 		today,
 		holidayNames,
+		loading = false,
 		entryLocks = new Map(),
 		punchWindows = new Map(),
 		reportableDates = new Set(),
@@ -115,6 +117,8 @@
 		facts: ReadonlyMap<string, DayFacts>;
 		today: string;
 		holidayNames: ReadonlyMap<string, string>;
+		/** Keep the calendar shell mounted while a new month's live queries settle. */
+		loading?: boolean;
 		/**
 		 * The record-axis lock, keyed by date: what holds the *time entry* on that day.
 		 *
@@ -140,6 +144,30 @@
 	} = $props();
 
 	const days = $derived(monthDays(month));
+	let calendarScrollElement: HTMLElement | null = $state(null);
+	let calendarHeaderTrack: HTMLElement | null = $state(null);
+
+	/** The weekday row is shell chrome; only its horizontal position follows the body. */
+	function syncCalendarHeader(): void {
+		if (calendarScrollElement == null || calendarHeaderTrack == null) return;
+		calendarHeaderTrack.style.transform = `translateX(${-calendarScrollElement.scrollLeft}px)`;
+	}
+
+	/** Wheel input over the fixed header still moves the body it labels. */
+	function handleCalendarHeaderWheel(event: WheelEvent): void {
+		if (calendarScrollElement == null || (event.deltaX === 0 && event.deltaY === 0)) return;
+		const beforeLeft = calendarScrollElement.scrollLeft;
+		const beforeTop = calendarScrollElement.scrollTop;
+		calendarScrollElement.scrollLeft += event.deltaX;
+		calendarScrollElement.scrollTop += event.deltaY;
+		// Preserve scroll chaining when the body has already reached the edge in this direction.
+		if (
+			calendarScrollElement.scrollLeft !== beforeLeft ||
+			calendarScrollElement.scrollTop !== beforeTop
+		) {
+			event.preventDefault();
+		}
+	}
 
 	/**
 	 * Monday-first weeks, with the leading and trailing blanks a calendar needs.
@@ -304,7 +332,7 @@
 				variant="outline"
 				size="icon"
 				aria-label={t('roster.calendar_previous_month')}
-				disabled={onStepMonth == null}
+				disabled={loading || onStepMonth == null}
 				onclick={() => onStepMonth?.(-1)}
 			>
 				<IconWrapper name="lucide:chevron-left" class="size-4" />
@@ -314,25 +342,47 @@
 				variant="outline"
 				size="icon"
 				aria-label={t('roster.calendar_next_month')}
-				disabled={onStepMonth == null}
+				disabled={loading || onStepMonth == null}
 				onclick={() => onStepMonth?.(1)}
 			>
 				<IconWrapper name="lucide:chevron-right" class="size-4" />
 			</Button>
 		</Inline>
-		<Inline gap="md" class="text-sm text-muted-foreground">
-			<span>
-				{t('roster.calendar_worked_total', {
-					hours: formatDurationHours(workedMinutesTotal, t)
-				})}
-			</span>
-			<span>
-				{t('roster.calendar_beyond_total', {
-					hours: formatDurationHours(beyondScheduleTotal, t)
-				})}
-			</span>
-		</Inline>
+		{#if loading}
+			<Inline gap="md" aria-hidden="true">
+				<Skeleton class="h-4 w-24" />
+				<Skeleton class="h-4 w-36" />
+			</Inline>
+		{:else}
+			<Inline gap="md" class="text-sm text-muted-foreground">
+				<span>
+					{t('roster.calendar_worked_total', {
+						hours: formatDurationHours(workedMinutesTotal, t)
+					})}
+				</span>
+				<span>
+					{t('roster.calendar_beyond_total', {
+						hours: formatDurationHours(beyondScheduleTotal, t)
+					})}
+				</span>
+			</Inline>
+		{/if}
 	</Cluster>
+{/snippet}
+
+{#snippet weekdayHeader()}
+	<!-- The clip belongs to the fixed header viewport; the body below is the sole scroll owner. -->
+	<div class="overflow-hidden border-b bg-card" onwheel={handleCalendarHeaderWheel}>
+		<div bind:this={calendarHeaderTrack} class="min-w-[38rem] px-2 pt-2 pb-1.5">
+			<Grid tracks="repeat(7, minmax(0, 1fr))" gap="sm">
+				{#each WEEKDAY_KEYS as weekdayKey (weekdayKey)}
+					<span class="text-center text-micro font-medium text-muted-foreground">
+						{t(weekdayKey)}
+					</span>
+				{/each}
+			</Grid>
+		</div>
+	</div>
 {/snippet}
 
 <!--
@@ -391,149 +441,161 @@
 	to say. The narrow-screen reader scrolls one week horizontally, or opens a day for the full
 	sentence — and the page body never scrolls sideways, because this region owns that overflow.
 -->
-<Cover gap="sm" top={chrome} bottom={legend}>
-	<Scroll axis="both" name={t('roster.calendar_scroll_name')} class="rounded-lg border bg-card">
-		<!-- The top padding belongs to the sticky row below, so it does not scroll out from under it. -->
-		<div class="min-w-[38rem] px-2 pb-2">
-			<!--
-				Sticky, and OPAQUE (`bg-card`, matching the scroller's own fill) for the same reason the
-				board's day header is: the region now scrolls vertically, and a translucent sticky row is
-				not a lighter shade of a header — it is a window, with the weeks passing underneath it.
-			-->
-			<Grid
-				tracks="repeat(7, minmax(0, 1fr))"
-				gap="sm"
-				class="sticky top-0 z-10 bg-card pt-2 pb-1.5"
-			>
-				{#each WEEKDAY_KEYS as weekdayKey (weekdayKey)}
-					<span class="text-center text-micro font-medium text-muted-foreground">
-						{t(weekdayKey)}
-					</span>
-				{/each}
-			</Grid>
-			{#each weeks as week, weekIndex (weekIndex)}
-				<Grid tracks="repeat(7, minmax(0, 1fr))" gap="sm" class="pb-1.5">
-					{#each week as date, dayIndex (date ?? `blank-${weekIndex}-${dayIndex}`)}
-						{#if date == null}
-							<div class="min-h-24 rounded-md bg-muted/20" aria-hidden="true"></div>
-						{:else}
-							{@const day = dayOf(date)}
-							{@const holiday = holidayNames.get(date)}
-							{@const entryLock = entryLocks.get(date)}
-							{@const rung = day == null ? 'OPEN' : lockRung(entryLock)}
-							{@const rail = RUNG_PRESENTATION[rung]}
-							{@const reportable = reportableDates.has(date)}
-							<!--
+<Cover gap="sm" top={chrome} bottom={legend} aria-busy={loading}>
+	{#if loading}
+		<span class="sr-only" role="status">{t('app.hr_employee.schedule_loading')}</span>
+	{/if}
+	<Cover as="div" gap="none" top={weekdayHeader} class="rounded-lg border bg-card">
+		<Scroll
+			bind:ref={calendarScrollElement}
+			axis="both"
+			name={t('roster.calendar_scroll_name')}
+			class="relative bg-card"
+			onscroll={syncCalendarHeader}
+		>
+			<div class="min-w-[38rem] px-2 pb-2 pt-1.5">
+				{#each weeks as week, weekIndex (weekIndex)}
+					<Grid tracks="repeat(7, minmax(0, 1fr))" gap="sm" class="pb-1.5">
+						{#each week as date, dayIndex (date ?? `blank-${weekIndex}-${dayIndex}`)}
+							{#if loading}
+								<Stack
+									gap="sm"
+									class="min-h-24 rounded-md border bg-card px-2.5 py-2"
+									aria-hidden="true"
+								>
+									<Skeleton class="h-4 w-6" />
+									<Skeleton class="h-3 w-3/4" />
+									<Skeleton class="h-3 w-full" />
+								</Stack>
+							{:else if date == null}
+								<div class="min-h-24 rounded-md bg-muted/20" aria-hidden="true"></div>
+							{:else}
+								{@const day = dayOf(date)}
+								{@const holiday = holidayNames.get(date)}
+								{@const entryLock = entryLocks.get(date)}
+								{@const rung = day == null ? 'OPEN' : lockRung(entryLock)}
+								{@const rail = RUNG_PRESENTATION[rung]}
+								{@const reportable = reportableDates.has(date)}
+								<!--
 								The tile is a container, not a button, because it holds a second action. The day
 								detail is opened by a stretched overlay button; the report chip sits above it on
 								the stacking order. A button nested inside a button is invalid markup and the
 								inner one is unreachable by keyboard in several browsers.
 							-->
-							<Stack
-								gap="none"
-								class={cn(
-									'relative min-h-24 overflow-hidden rounded-md border text-left',
-									day == null ? 'bg-muted/20' : STATUS_PRESENTATION[day.status].className,
-									holiday != null && HOLIDAY_PRESENTATION.className,
-									date === today && 'ring-2 ring-brand ring-inset'
-								)}
-							>
-								<span class={cn('absolute inset-y-0 left-0 w-1', rail.railClass)} aria-hidden="true"
-								></span>
+								<Stack
+									gap="none"
+									class={cn(
+										'relative min-h-24 overflow-hidden rounded-md border text-left',
+										day == null ? 'bg-muted/20' : STATUS_PRESENTATION[day.status].className,
+										holiday != null && HOLIDAY_PRESENTATION.className,
+										date === today && 'ring-2 ring-brand ring-inset'
+									)}
+								>
+									<span
+										class={cn('absolute inset-y-0 left-0 w-1', rail.railClass)}
+										aria-hidden="true"
+									></span>
 
-								{#if day != null && onSelectDay != null}
-									<button
-										type="button"
-										class="absolute inset-0 z-0 cursor-pointer rounded-md focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
-										aria-haspopup="dialog"
-										aria-label={tileLabel(day, date, entryLock)}
-										title={tileLabel(day, date, entryLock)}
-										onclick={() => onSelectDay(employmentId, date)}
-									></button>
-								{/if}
+									{#if day != null && onSelectDay != null}
+										<button
+											type="button"
+											class="absolute inset-0 z-0 cursor-pointer rounded-md focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+											aria-haspopup="dialog"
+											aria-label={tileLabel(day, date, entryLock)}
+											title={tileLabel(day, date, entryLock)}
+											onclick={() => onSelectDay(employmentId, date)}
+										></button>
+									{/if}
 
-								<Stack gap="none" grow class="pointer-events-none relative z-0 py-1 pr-1.5 pl-2.5">
-									<Inline align="baseline" justify="between" gap="xs">
-										<span class="text-sm font-semibold tabular-nums">
-											{Number(date.slice(8, 10))}
-										</span>
-										<Inline as="span" gap="xs" class="text-micro">
-											{#if holiday != null}
-												<span class="font-semibold">{HOLIDAY_PRESENTATION.mark}</span>
-											{/if}
-											{#if rail.padlock}
-												<span title={t(rail.labelKey)}>🔒</span>
-											{/if}
+									<Stack
+										gap="none"
+										grow
+										class="pointer-events-none relative z-0 py-1 pr-1.5 pl-2.5"
+									>
+										<Inline align="baseline" justify="between" gap="xs">
+											<span class="text-sm font-semibold tabular-nums">
+												{Number(date.slice(8, 10))}
+											</span>
+											<Inline as="span" gap="xs" class="text-micro">
+												{#if holiday != null}
+													<span class="font-semibold">{HOLIDAY_PRESENTATION.mark}</span>
+												{/if}
+												{#if rail.padlock}
+													<span title={t(rail.labelKey)}>🔒</span>
+												{/if}
+											</Inline>
 										</Inline>
-									</Inline>
 
-									{#if day != null}
-										<!-- PLAN -->
-										<span class="truncate text-xs leading-4 font-medium">{planGlyph(day)}</span>
-										{#if planDetail(day) != null}
-											<span class="truncate text-micro leading-3 opacity-80">{planDetail(day)}</span
-											>
-										{/if}
+										{#if day != null}
+											<!-- PLAN -->
+											<span class="truncate text-xs leading-4 font-medium">{planGlyph(day)}</span>
+											{#if planDetail(day) != null}
+												<span class="truncate text-micro leading-3 opacity-80"
+													>{planDetail(day)}</span
+												>
+											{/if}
 
-										<!-- ACTUAL -->
-										{@const punch = punchWindows.get(date)}
-										{#if punch?.first != null}
-											<span class="truncate text-micro leading-4 tabular-nums">{punch.first}</span>
-											{#if punch.last != null}
-												<span class="truncate text-micro leading-3 tabular-nums">
-													↳ {punch.last}
-												</span>
-											{:else}
-												<!--
+											<!-- ACTUAL -->
+											{@const punch = punchWindows.get(date)}
+											{#if punch?.first != null}
+												<span class="truncate text-micro leading-4 tabular-nums">{punch.first}</span
+												>
+												{#if punch.last != null}
+													<span class="truncate text-micro leading-3 tabular-nums">
+														↳ {punch.last}
+													</span>
+												{:else}
+													<!--
 													A first punch with no last one is a clock still running. Without this arm the tile
 													would print a lone start time and say nothing about it, which is the one attendance
 													state the table this screen replaces named outright in its `state` column.
 												-->
-												<span class="truncate text-micro leading-3">
-													{t('roster.attendance_open')}
+													<span class="truncate text-micro leading-3">
+														{t('roster.attendance_open')}
+													</span>
+												{/if}
+											{:else if actualLabel(day) != null}
+												<span class="truncate text-micro leading-4">{actualLabel(day)}</span>
+											{/if}
+											{#if day.workedMinutes != null && day.workedMinutes > 0}
+												<span class="truncate text-micro leading-3 tabular-nums">
+													{formatDurationHours(day.workedMinutes, t)}{overshootMinutes(day) > 0
+														? ' ↑'
+														: ''}
 												</span>
 											{/if}
-										{:else if actualLabel(day) != null}
-											<span class="truncate text-micro leading-4">{actualLabel(day)}</span>
-										{/if}
-										{#if day.workedMinutes != null && day.workedMinutes > 0}
-											<span class="truncate text-micro leading-3 tabular-nums">
-												{formatDurationHours(day.workedMinutes, t)}{overshootMinutes(day) > 0
-													? ' ↑'
-													: ''}
-											</span>
-										{/if}
 
-										<!-- LOCK, when it is a rung the employee can be told something about -->
-										{#if rung === 'PENDING'}
-											<span class="truncate text-micro leading-3 font-medium">
-												{t(RUNG_PRESENTATION.PENDING.labelKey)}
-											</span>
-										{:else if rungDetail(entryLock) != null}
-											<span class="truncate text-micro leading-3 opacity-70">
-												{rungDetail(entryLock)}
-											</span>
+											<!-- LOCK, when it is a rung the employee can be told something about -->
+											{#if rung === 'PENDING'}
+												<span class="truncate text-micro leading-3 font-medium">
+													{t(RUNG_PRESENTATION.PENDING.labelKey)}
+												</span>
+											{:else if rungDetail(entryLock) != null}
+												<span class="truncate text-micro leading-3 opacity-70">
+													{rungDetail(entryLock)}
+												</span>
+											{/if}
 										{/if}
+									</Stack>
+
+									{#if reportable && onReportDay != null}
+										<div class="relative z-10 px-1.5 pb-1.5">
+											<Button
+												variant="outline"
+												size="sm"
+												class="h-6 w-full px-1 text-micro"
+												onclick={() => onReportDay(employmentId, date)}
+											>
+												{t('roster.calendar_report_punch')}
+											</Button>
+										</div>
 									{/if}
 								</Stack>
-
-								{#if reportable && onReportDay != null}
-									<div class="relative z-10 px-1.5 pb-1.5">
-										<Button
-											variant="outline"
-											size="sm"
-											class="h-6 w-full px-1 text-micro"
-											onclick={() => onReportDay(employmentId, date)}
-										>
-											{t('roster.calendar_report_punch')}
-										</Button>
-									</div>
-								{/if}
-							</Stack>
-						{/if}
-					{/each}
-				</Grid>
-			{/each}
-		</div>
-	</Scroll>
+							{/if}
+						{/each}
+					</Grid>
+				{/each}
+			</div>
+		</Scroll>
+	</Cover>
 </Cover>

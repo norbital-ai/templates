@@ -13,11 +13,9 @@
 	import { todayKey } from '../../lib/ui/calendar.js';
 	import {
 		repaymentConsumptionBySequence,
-		repaymentRunLifecycleByPeriod,
 		resolveRepaymentConsumption,
 		type RepaymentConsumptionCell,
 		type RepaymentConsumptionSourceRow,
-		type RepaymentPeriodRunRow,
 		type RepaymentScheduleMatrixRow
 	} from '../../lib/ui/repayment-schedule/repayment-consumption.js';
 	import {
@@ -114,9 +112,6 @@
 	const agreementId = $derived(
 		typeof props.row?.norbital_id === 'string' ? props.row.norbital_id : null
 	);
-	const employmentId = $derived(
-		typeof props.row?.employment_id === 'string' ? props.row.employment_id : null
-	);
 	const consumptionQuery = $derived(
 		agreementId
 			? client.db.payslip_lines.findMany({
@@ -147,29 +142,6 @@
 			: null
 	);
 
-	/**
-	 * The pay calendar this schedule is read against.
-	 *
-	 * An instalment with no payslip line is only a defect once the run for its period has been
-	 * *paid* — before that it is simply waiting. Answering "which of the four is this?" needs the
-	 * agreement's company, which the agreement itself does not carry, so the employment supplies it.
-	 */
-	const employmentQuery = $derived(
-		employmentId
-			? client.db.employments.findFirst({ where: { norbital_id: { eq: employmentId } } })
-			: null
-	);
-	const companyId = $derived(employmentQuery?.current?.company_id ?? null);
-	const runsQuery = $derived(
-		companyId
-			? client.db.payroll_runs.findMany({
-					where: { company_id: { eq: companyId } },
-					orderBy: { period: 'asc' },
-					limit: 600
-				})
-			: null
-	);
-
 	const consumptionBySequence = $derived(
 		repaymentConsumptionBySequence(
 			((consumptionQuery?.current ?? []) as readonly PayslipLineConsumptionRow[]).map(
@@ -180,23 +152,10 @@
 			)
 		)
 	);
-	const runLifecycleByPeriod = $derived(
-		repaymentRunLifecycleByPeriod((runsQuery?.current ?? []) as readonly RepaymentPeriodRunRow[])
-	);
 	const pendingQuery = (query: { loading?: boolean; current?: unknown; error?: unknown } | null) =>
 		query == null || query.loading || (query.current === undefined && query.error == null);
-	const consumptionPending = $derived(
-		Boolean(
-			agreementId &&
-			(pendingQuery(consumptionQuery) ||
-				// The calendar is part of the answer, so a cell must not resolve before it lands —
-				// otherwise every unconsumed row would flash "Awaiting …" and then correct itself.
-				(employmentId != null && (pendingQuery(employmentQuery) || pendingQuery(runsQuery))))
-		)
-	);
-	const consumptionError = $derived(
-		consumptionQuery?.error ?? employmentQuery?.error ?? runsQuery?.error ?? null
-	);
+	const consumptionPending = $derived(Boolean(agreementId && pendingQuery(consumptionQuery)));
+	const consumptionError = $derived(consumptionQuery?.error ?? null);
 
 	function consumptionCell(sequence: number, dueDate: string): RepaymentConsumptionCell {
 		if (consumptionPending) return { status: 'loading' };
@@ -204,7 +163,9 @@
 		return resolveRepaymentConsumption({
 			dueDate,
 			reference: consumptionBySequence.get(sequence),
-			runLifecycleByPeriod,
+			// "Consumed by" is a direct foreign-key existence check. A missing link is waiting for
+			// payroll; this matrix does not fan out into employment and run-calendar queries.
+			runLifecycleByPeriod: new Map(),
 			today: todayKey()
 		});
 	}

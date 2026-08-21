@@ -83,15 +83,14 @@
 		}).format(new Date(value));
 	}
 
-	const documentAssetSchema = Schema.Struct({
-		norbital_id: Schema.String.check(Schema.isUUID()),
+	const photoFileSchema = Schema.Struct({
 		file_name: Schema.String,
 		file_size: Schema.optional(Schema.NullOr(Schema.Number)),
 		storage_key: Schema.String
 	});
 
-	/** An asset row that does not carry a downloadable file is skipped rather than rendered. */
-	const decodeDocumentAsset = Schema.decodeUnknownOption(documentAssetSchema);
+	/** An evidence row whose `photo` names no downloadable file is skipped rather than rendered. */
+	const decodePhotoFile = Schema.decodeUnknownOption(photoFileSchema);
 
 	const jobQuery = $derived(
 		record != null
@@ -204,33 +203,25 @@
 			(evidence) => record != null && evidence.job_assignment_id === record.norbital_id
 		)
 	);
-	const evidenceAssetIds = $derived([
-		...new Set(scopedEvidence.map((evidence) => evidence.document_asset_id))
-	]);
-	const evidenceAssetsQuery = $derived(
-		evidenceAssetIds.length
-			? client.db.document_asset.findMany({
-					where: { norbital_id: { in: evidenceAssetIds } },
-					limit: evidenceAssetIds.length
-				})
-			: null
-	);
-	const evidenceByAssetId = $derived(
-		new Map(scopedEvidence.map((evidence) => [evidence.document_asset_id, evidence]))
-	);
+	/**
+	 * The photos, composed from the evidence rows and nothing else.
+	 *
+	 * There was a second query here — every distinct `photo` id fetched out of `document_asset` to
+	 * recover a file name and a storage key — and it was both a round trip per record view and a
+	 * fetch that returned nothing, because no upload ever wrote the rows it was asking for. The
+	 * `photo` column carries the file, so the card is composed from the row already in hand.
+	 */
 	const photoCards = $derived(
-		(evidenceAssetsQuery?.current ?? []).flatMap((candidate) => {
-			const parsed = decodeDocumentAsset(candidate);
+		scopedEvidence.flatMap((evidence) => {
+			const parsed = decodePhotoFile(evidence.photo);
 			if (Option.isNone(parsed)) return [];
-			const asset = parsed.value;
-			const evidence = evidenceByAssetId.get(asset.norbital_id);
-			if (!evidence) return [];
+			const file = parsed.value;
 			return [
 				{
 					id: evidence.norbital_id,
-					name: asset.file_name,
-					fileSize: asset.file_size,
-					url: `/api/files/${encodeURIComponent(asset.storage_key)}`,
+					name: file.file_name,
+					fileSize: file.file_size,
+					url: `/api/files/${encodeURIComponent(file.storage_key)}`,
 					flags: (evidence.flags ?? []).filter((flag: unknown): flag is string => flag != null),
 					source: evidenceSource(evidence.source),
 					capturedAt: formatSingaporeInstant(evidence.norbital_created_at, t)
@@ -238,10 +229,7 @@
 			];
 		})
 	);
-	const evidenceLoading = $derived(
-		directEvidenceQuery?.loading === true ||
-			(evidenceAssetIds.length > 0 && (evidenceAssetsQuery == null || evidenceAssetsQuery.loading))
-	);
+	const evidenceLoading = $derived(directEvidenceQuery?.loading === true);
 	/**
 	 * Why this assignment warrants a look, kept as two distinct facts rather than one.
 	 *
@@ -575,7 +563,7 @@
 							: t('component.captured_for_assignment', { count: photoCards.length })}
 					</span>
 				</Inline>
-				{#if directEvidenceQuery?.error || evidenceAssetsQuery?.error}
+				{#if directEvidenceQuery?.error}
 					<p
 						class="rounded-md border border-destructive/40 p-3 text-sm text-destructive"
 						role="alert"

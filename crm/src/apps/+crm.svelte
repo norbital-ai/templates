@@ -179,8 +179,14 @@
 		content="Sales pipeline, quotes, accounts, contacts, product catalogue, billing, contracts, and payments"
 	/>
 	<meta name="bolt:icon" content="lucide:handshake" />
-	<meta name="bolt:thumbnail" content="/api/template-seed-assets/crm/app-media/crm-banner.webp" />
-	<meta name="bolt:banner" content="/api/template-seed-assets/crm/app-media/crm-banner.webp" />
+	<meta
+		name="bolt:thumbnail"
+		content="/__bolt/request/api/template-seed-assets/crm/app-media/crm-banner.webp"
+	/>
+	<meta
+		name="bolt:banner"
+		content="/__bolt/request/api/template-seed-assets/crm/app-media/crm-banner.webp"
+	/>
 </svelte:head>
 
 {#snippet accountScopeActions()}

@@ -8,6 +8,17 @@ export type SeasonalHeatmapRow = {
 	readonly months: number[];
 };
 
+export const componentSeasonalityCategories = [
+	'RECURRING',
+	'ONE_OFF',
+	'CLAIM',
+	'LOAN_INSTALMENT',
+	'REVERSAL',
+	'ARREARS',
+	'MANUAL_ADJUSTMENT'
+] as const;
+export type ComponentSeasonalityCategory = (typeof componentSeasonalityCategories)[number];
+
 /** Five calendar years ending in the live year, so an in-progress year is never hidden. */
 export function seasonalityYears(currentYear: number): number[] {
 	return Array.from({ length: 5 }, (_value, index) => currentYear - 4 + index);
@@ -59,43 +70,36 @@ export function bucketSeasonalHeatmap(
  * Controller overview tabs paint as a heatmap.
  *
  * - `LEAVE` counts `leave_requests`, dated by `from_date`.
- * - `CLAIM` counts `component_entries` whose `origin` variant is `CLAIM`, dated by the origin's
- *   `incurred_on` — a claim's economic date, not the row's creation date.
+ * - `PAY_COMPONENT` counts every `component_entries` origin category. Claims use their economic
+ *   `incurred_on`; every other category uses `event_date`.
  *
  * `company_id` scopes both subjects through the employment each row belongs to.
  *
- * `total` is every row of the subject, not just the rows inside the seasonality window: the
- * heading counts the catalogue, while the heatmap reports the rolling five years beneath it.
+ * Leave keeps its all-time total. Pay-component `total` is the bounded five-year population used by
+ * the chart, which avoids a second scan solely to decorate the heading.
  */
-const subjectSchema = Schema.Literals(['CLAIM', 'LEAVE']);
+const subjectSchema = Schema.Literals(['PAY_COMPONENT', 'LEAVE']);
 type Subject = Schema.Schema.Type<typeof subjectSchema>;
 type AnalyticsInput = { subject: Subject; company_id?: string };
 
 /**
- * `component_entries.origin` is a jsonb discriminated union, so "is a claim" and "when was it
- * incurred" are both JSON paths rather than columns. Writing the predicate once keeps the total
- * and the seasonality read on one definition of a claim.
+ * Claims carry their economic date inside the origin union. All other entries use `event_date`.
+ * The same expression filters the database window and selects the date bucket in memory.
  */
-function claimsIncurredBetween(from: string, toExclusive: string) {
+function componentEntriesDatedBetween(from: string, toExclusive: string) {
 	return (table: Readonly<Record<string, unknown>>, operators: SchemaRawOperators) => {
 		const sql = operators.sql;
-		return sql`${table.origin}->>'kind' = 'CLAIM' AND (${table.origin}->>'incurred_on')::date >= ${from}::date AND (${table.origin}->>'incurred_on')::date < ${toExclusive}::date`;
+		return sql`(CASE WHEN ${table.origin}->>'kind' = 'CLAIM' THEN (${table.origin}->>'incurred_on')::date ELSE ${table.event_date} END) >= ${from}::date AND (CASE WHEN ${table.origin}->>'kind' = 'CLAIM' THEN (${table.origin}->>'incurred_on')::date ELSE ${table.event_date} END) < ${toExclusive}::date`;
 	};
 }
 
-function anyClaim(table: Readonly<Record<string, unknown>>, operators: SchemaRawOperators) {
-	const sql = operators.sql;
-	return sql`${table.origin}->>'kind' = 'CLAIM'`;
-}
-
-/** The claim arm is the only origin variant carrying an economic date. */
-function claimIncurredOn(origin: EntryOrigin): string | null {
-	return origin.kind === 'CLAIM' ? origin.incurred_on : null;
+function componentSeasonalityDate(origin: EntryOrigin, eventDate: string | Date): string | Date {
+	return origin.kind === 'CLAIM' ? origin.incurred_on : eventDate;
 }
 
 export default defineQueryHandler({
 	description:
-		'Counts every time-off request or expense claim on file and returns the last five years of monthly counts for seasonality analysis.',
+		'Counts time-off requests or pay-component entries and returns the last five years of monthly counts for seasonality analysis.',
 	schema: Schema.Struct({
 		subject: subjectSchema,
 		company_id: Schema.optional(Schema.String.check(Schema.isUUID()))
@@ -144,28 +148,34 @@ export default defineQueryHandler({
 			const companyScope = company_id
 				? { entry_employment: { company_id: { eq: company_id } } }
 				: {};
-			/* Same shape as LEAVE, for the same reason: one windowed read bucketed in memory. */
-			const [total, seasonalRows] = yield* Effect.all(
-				[
-					api.db.component_entries.count({ where: { ...companyScope, RAW: anyClaim } }),
-					api.db.query.component_entries.findMany({
-						where: {
-							...companyScope,
-							RAW: claimsIncurredBetween(windowStart, windowEnd)
-						},
-						columns: { origin: true },
-						limit: 5000
-					})
-				],
-				{ concurrency: 'unbounded' }
-			);
+			/* One bounded window read, bucketed by month and origin category in memory. */
+			const seasonalRows = yield* api.db.query.component_entries.findMany({
+				where: {
+					...companyScope,
+					RAW: componentEntriesDatedBetween(windowStart, windowEnd)
+				},
+				columns: { origin: true, event_date: true },
+				limit: 5000
+			});
 
+			const dated = seasonalRows.map((row) => ({
+				category: row.origin.kind,
+				date: componentSeasonalityDate(row.origin, row.event_date)
+			}));
 			return {
-				total,
+				total: seasonalRows.length,
 				seasonal_heatmap: bucketSeasonalHeatmap(
 					historyYears,
-					seasonalRows.map((row) => claimIncurredOn(row.origin))
-				)
+					dated.map((row) => row.date)
+				),
+				categories: componentSeasonalityCategories.map((category) => {
+					const dates = dated.filter((row) => row.category === category).map((row) => row.date);
+					return {
+						category,
+						total: dates.length,
+						seasonal_heatmap: bucketSeasonalHeatmap(historyYears, dates)
+					};
+				})
 			};
 		})
 });

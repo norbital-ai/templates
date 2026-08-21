@@ -22,7 +22,7 @@ export default defineModel(
 		submitted_date: date(),
 		paid_date: date(),
 		description: text(),
-		supporting_documents: file().array()
+		supporting_documents: file({ multiple: true })
 	},
 	{
 		description: 'Commercial claim records with readiness and submission state.',

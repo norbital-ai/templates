@@ -14,11 +14,11 @@
 	<meta name="bolt:icon" content="lucide:layout-dashboard" />
 	<meta
 		name="bolt:thumbnail"
-		content="/api/template-seed-assets/construction/app-media/construction_project_workspace-banner.webp"
+		content="/__bolt/request/api/template-seed-assets/construction/app-media/construction_project_workspace-banner.webp"
 	/>
 	<meta
 		name="bolt:banner"
-		content="/api/template-seed-assets/construction/app-media/construction_project_workspace-banner.webp"
+		content="/__bolt/request/api/template-seed-assets/construction/app-media/construction_project_workspace-banner.webp"
 	/>
 </svelte:head>
 

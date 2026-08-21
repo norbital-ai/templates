@@ -26,7 +26,7 @@
 <svelte:head>
 	<meta
 		name="bolt:banner"
-		content="/api/template-seed-assets/field-operations/record-media/photo_evidence-banner.svg"
+		content="/__bolt/request/api/template-seed-assets/field-operations/record-media/photo_evidence-banner.svg"
 	/>
 </svelte:head>
 
@@ -34,10 +34,10 @@
 	<CollectionForm {client} collection="photo_evidence" defaultValues={record} disabled>
 		{#snippet children({ Field })}
 			<Grid minimum="compact">
-				<!-- A file() column: DataRenderer resolves a file field against document_asset and paints
-				the asset's own file name, so no id reaches the operator. -->
+				<!-- A file() column: the value carries the file's own name, which is what DataRenderer
+				paints, so no key or id reaches the operator. -->
 				<!-- stupidity:allow UI17 -->
-				<Column span="all"><Field name="document_asset_id" label={t('component.photo')} /></Column>
+				<Column span="all"><Field name="photo" label={t('component.photo')} /></Column>
 				<Field
 					name="job_assignment_id"
 					label={t('component.job_assignment')}

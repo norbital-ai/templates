@@ -410,10 +410,7 @@ function assertLeaveSourceUnlocked(
 		 * to release it.
 		 */
 		const claim = yield* api.db.query.payslip_sources.findFirst({
-			where: {
-				source_collection: { eq: 'leave_requests' },
-				source_record_id: { eq: existing.norbital_id }
-			},
+			where: { leave_request_id: { eq: existing.norbital_id } },
 			columns: { period: true }
 		});
 		const lock = sourceLock({

@@ -32,6 +32,17 @@
 			readonly name?: string | null;
 		} | null;
 	};
+	type NestedSource = {
+		readonly payslip_source_time_entry?: {
+			readonly work_date?: string | null;
+			readonly time_entry_employment?: { readonly employee_number?: string | null } | null;
+		} | null;
+		readonly payslip_source_leave_request?: {
+			readonly from_date?: string | null;
+			readonly to_date?: string | null;
+			readonly leave_request_type?: { readonly code?: string | null } | null;
+		} | null;
+	};
 
 	const summaryQuery = $derived(
 		record == null
@@ -65,12 +76,36 @@
 		if (entry?.description) return entry.description;
 		return entry?.event_date == null ? '—' : formatCalendarDate(entry.event_date);
 	}
+
+	function sourceKind(row: unknown): string {
+		const source = row as NestedSource;
+		if (source.payslip_source_time_entry) return t('component.attendance');
+		if (source.payslip_source_leave_request) return t('component.leave');
+		return '—';
+	}
+
+	function sourceDetail(row: unknown): string {
+		const source = row as NestedSource;
+		const attendance = source.payslip_source_time_entry;
+		if (attendance?.work_date) {
+			const employee = attendance.time_entry_employment?.employee_number;
+			return [employee, formatCalendarDate(attendance.work_date)].filter(Boolean).join(' · ');
+		}
+		const leave = source.payslip_source_leave_request;
+		if (leave?.from_date) {
+			const range = leave.to_date
+				? `${formatCalendarDate(leave.from_date)} → ${formatCalendarDate(leave.to_date)}`
+				: formatCalendarDate(leave.from_date);
+			return [leave.leave_request_type?.code, range].filter(Boolean).join(' · ');
+		}
+		return '—';
+	}
 </script>
 
 <svelte:head>
 	<meta
 		name="bolt:banner"
-		content="/api/template-seed-assets/hr-payroll/record-media/payslips-banner.svg"
+		content="/__bolt/request/api/template-seed-assets/hr-payroll/record-media/payslips-banner.svg"
 	/>
 </svelte:head>
 
@@ -151,6 +186,57 @@
 						<Column name="quantity" render={({ value }) => formatNumeric(value)} />
 						<Column name="rate" render={({ value }) => formatNumeric(value)} />
 						<Column name="amount" card="badge" render={({ value }) => formatNumeric(value)} />
+					{/snippet}
+				</CollectionTable>
+			</Bound>
+		</Stack>
+
+		<Stack
+			as="section"
+			gap="sm"
+			class="border-t border-border pt-4"
+			aria-labelledby="payslip-inputs-heading"
+		>
+			<h3 id="payslip-inputs-heading" class="text-sm font-semibold">
+				{t('component.consumed_inputs')}
+			</h3>
+			<p class="text-meta">{t('component.consumed_inputs_description')}</p>
+			<Bound size="standard">
+				<CollectionTable
+					{client}
+					collection="payslip_sources"
+					title={t('component.consumed_inputs')}
+					description={t('component.consumed_inputs_description')}
+					features={{ create: false }}
+					query={{
+						where: { payslip_id: { eq: record.norbital_id } },
+						with: {
+							payslip_source_time_entry: {
+								columns: { work_date: true },
+								with: { time_entry_employment: { columns: { employee_number: true } } }
+							},
+							payslip_source_leave_request: {
+								columns: { from_date: true, to_date: true },
+								with: { leave_request_type: { columns: { code: true } } }
+							}
+						},
+						limit: 500
+					}}
+				>
+					{#snippet columns({ Column })}
+						<Column
+							name="source"
+							label={t('component.input_type')}
+							card="title"
+							render={({ row }) => sourceKind(row)}
+						/>
+						<Column
+							name="time_entry_id"
+							label={t('component.source_record')}
+							card="subtitle"
+							sortable={false}
+							render={({ row }) => sourceDetail(row)}
+						/>
 					{/snippet}
 				</CollectionTable>
 			</Bound>

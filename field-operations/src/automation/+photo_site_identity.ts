@@ -10,7 +10,7 @@ const reviewColumns = {
 	norbital_id: true,
 	job_assignment_id: true,
 	variation_request_id: true,
-	document_asset_id: true,
+	photo: true,
 	sha256: true,
 	flags: true,
 	matched_evidence_ids: true,

@@ -20,7 +20,12 @@ export interface PhotoEvidenceReviewRecord {
 	readonly norbital_id: string;
 	readonly job_assignment_id: string | null;
 	readonly variation_request_id: string | null;
-	readonly document_asset_id: string;
+	readonly photo: {
+		readonly storage_key: string;
+		readonly file_name: string;
+		readonly file_size: number;
+		readonly mime_type: string;
+	};
 	readonly sha256: string;
 	readonly flags: readonly string[];
 	readonly matched_evidence_ids: readonly string[];
@@ -69,7 +74,9 @@ function formattedAddress(location: SiteContext['location']): string | null {
 export function photoSiteIdentityReviewBasis(context: PhotoSiteIdentityContext): string {
 	return JSON.stringify({
 		evidence: {
-			document_asset_id: context.evidence.document_asset_id,
+			// The storage key, not the whole value: `file_name` and `file_size` are description, and a
+			// review basis that changed when a file was renamed would re-run every verdict for nothing.
+			photo: context.evidence.photo.storage_key,
 			sha256: context.evidence.sha256,
 			job_assignment_id: context.evidence.job_assignment_id,
 			variation_request_id: context.evidence.variation_request_id,
@@ -272,7 +279,7 @@ export function reconcilePhotoSiteIdentity(api: Api, context: PhotoSiteIdentityC
 			const inferred = yield* api.infer({
 				model: PHOTO_SITE_IDENTITY_MODEL,
 				schema: siteIdentitySchema,
-				images: [{ assetId: evidence.document_asset_id, detail: 'high' }],
+				images: [{ file: evidence.photo, detail: 'high' }],
 				prompt: [
 					'Inspect the attached job-site photo and compare it with the transcript-assigned site below.',
 					`Assigned job: ${job.title}.`,

@@ -60,10 +60,10 @@ test('a payslip claims the attendance it priced and not the months it only count
 		})
 	);
 	assert.deepEqual(
-		claims.map((claim) => claim.source_record_id),
+		claims.map((claim) => ('time_entry_id' in claim ? claim.time_entry_id : null)),
 		['te-in', 'te-edge-start', 'te-edge-end']
 	);
-	for (const claim of claims) assert.equal(claim.source_collection, 'time_entries');
+	for (const claim of claims) assert.equal(claim.kind, 'TIME_ENTRY');
 });
 
 test('a leaver’s wage window widens the claim, because it widened the measurement', () => {
@@ -76,7 +76,7 @@ test('a leaver’s wage window widens the claim, because it widened the measurem
 			ledger: [{ norbital_id: 'lr-1', entry_date: '2026-03-15' }]
 		})
 	);
-	assert.deepEqual(claims, [{ source_collection: 'leave_requests', source_record_id: 'lr-1' }]);
+	assert.deepEqual(claims, [{ kind: 'LEAVE_REQUEST', leave_request_id: 'lr-1' }]);
 });
 
 test('a deferred joining period claims nothing, because it consumed nothing', () => {
@@ -94,18 +94,17 @@ test('a deferred joining period claims nothing, because it consumed nothing', ()
 });
 
 test('the same record is claimed once, whatever derived it twice', () => {
-	// The per-payslip unique index on (payslip_id, source_collection, source_record_id) would
-	// refuse the second row, and the whole run's persist would fail on a duplicate that means
-	// nothing.
+	// The partial unique indexes on the typed source foreign keys would refuse the second row, and
+	// the whole run's persist would fail on a duplicate that means nothing.
 	assert.deepEqual(
 		dedupeClaims([
-			{ source_collection: 'time_entries', source_record_id: 'te-1' },
-			{ source_collection: 'time_entries', source_record_id: 'te-1' },
-			{ source_collection: 'leave_requests', source_record_id: 'te-1' }
+			{ kind: 'TIME_ENTRY', time_entry_id: 'te-1' },
+			{ kind: 'TIME_ENTRY', time_entry_id: 'te-1' },
+			{ kind: 'LEAVE_REQUEST', leave_request_id: 'te-1' }
 		]),
 		[
-			{ source_collection: 'time_entries', source_record_id: 'te-1' },
-			{ source_collection: 'leave_requests', source_record_id: 'te-1' }
+			{ kind: 'TIME_ENTRY', time_entry_id: 'te-1' },
+			{ kind: 'LEAVE_REQUEST', leave_request_id: 'te-1' }
 		]
 	);
 });
@@ -364,28 +363,26 @@ test('a run takes a settlement lock over every record it consumed', async () => 
 					},
 					charges: [],
 					claims: [
-						{ source_collection: 'time_entries', source_record_id: 'te-1' },
-						{ source_collection: 'leave_requests', source_record_id: 'lv-1' }
+						{ kind: 'TIME_ENTRY', time_entry_id: 'te-1' },
+						{ kind: 'LEAVE_REQUEST', leave_request_id: 'lv-1' }
 					]
 				}
 			]
 		})
 	);
 
-	// Two bundle claims plus one per line kind: the salary component, the entered component event,
-	// the loan agreement, and the loan line's own pay component. Overtime and statutory lines would
-	// claim nothing.
-	assert.equal(result.claimCount, 7);
+	// Attendance and leave need source rows because neither naturally produces a payslip line.
+	// Component entries and loan instalments are already direct generated foreign keys on the lines.
+	assert.equal(result.claimCount, 2);
 	assert.deepEqual(
-		written.map((row) => [row.payslip_id, row.source_collection, row.source_record_id]),
+		written.map((row) => [
+			row.payslip_id,
+			row.source.kind,
+			row.source.kind === 'TIME_ENTRY' ? row.source.time_entry_id : row.source.leave_request_id
+		]),
 		[
-			['payslip-1', 'time_entries', 'te-1'],
-			['payslip-1', 'leave_requests', 'lv-1'],
-			['payslip-1', 'pay_components', 'pc-salary'],
-			['payslip-1', 'pay_components', 'pc-allowance'],
-			['payslip-1', 'component_entries', 'ce-1'],
-			['payslip-1', 'pay_components', 'pc-loan'],
-			['payslip-1', 'repayment_agreements', 'ag-1']
+			['payslip-1', 'TIME_ENTRY', 'te-1'],
+			['payslip-1', 'LEAVE_REQUEST', 'lv-1']
 		]
 	);
 	// The period travels with the lock: two runs of different periods can each hold their own

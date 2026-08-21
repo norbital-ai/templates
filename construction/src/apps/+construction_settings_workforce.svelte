@@ -31,11 +31,11 @@
 	<meta name="bolt:icon" content="lucide:users" />
 	<meta
 		name="bolt:thumbnail"
-		content="/api/template-seed-assets/construction/app-media/construction_settings_workforce-banner.webp"
+		content="/__bolt/request/api/template-seed-assets/construction/app-media/construction_settings_workforce-banner.webp"
 	/>
 	<meta
 		name="bolt:banner"
-		content="/api/template-seed-assets/construction/app-media/construction_settings_workforce-banner.webp"
+		content="/__bolt/request/api/template-seed-assets/construction/app-media/construction_settings_workforce-banner.webp"
 	/>
 </svelte:head>
 
