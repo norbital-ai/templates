@@ -1,5 +1,6 @@
 import {
 	NOT_AN_ADJUSTMENT,
+	employeeSelfServiceGrants,
 	grantsOn,
 	grantsOnWhere,
 	leaveApproval,
@@ -14,12 +15,11 @@ import type { Policy } from './$types.js';
 /**
  * Rank 2 of 4. The first line: sees the team, acts on their time and leave, touches no payroll.
  *
- * Everything an employee may do is *not* repeated here, and that is deliberate rather than an
- * omission. A supervisor is also an employee, so they carry the `employee` role alongside this one
- * and `rowPredicate` unions the two policies' grants — their own payslip stays reachable through
- * `employee`, scoped to them, without this policy having to restate a self-service predicate it
- * would then have to keep in step. What this policy adds is the *team* view, which is the only
- * thing rank is about. See the ladder in `src/lib/policy_grants.ts`.
+ * The supervisor policy materializes the employee-facing grant surface it needs; the team holds
+ * this policy alone. Its two personal pay capabilities come from one shared scoped helper, while
+ * the broader people, time and leave grants below state the team view. This avoids composing an
+ * employee narrowing with an unconditional supervisor grant that would erase it at runtime. See
+ * the ladder in `src/lib/policy_grants.ts`.
  *
  * The team view is company-wide, not reports-only, and that is a limit of the data rather than a
  * decision: nothing in `employments` or `employees` records a reporting line, so "their own reports"
@@ -64,6 +64,7 @@ export default {
 	capabilities: { apps: ['hr_employee'] },
 
 	grants: [
+		...employeeSelfServiceGrants(),
 		...referenceGrants('read'),
 		...statutoryGrants('read'),
 		...peopleGrants('read'),

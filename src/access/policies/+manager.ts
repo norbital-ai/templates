@@ -1,5 +1,6 @@
 import {
 	NOT_AN_ADJUSTMENT,
+	employeeSelfServiceGrants,
 	grantsOn,
 	grantsOnWhere,
 	leaveApproval,
@@ -60,6 +61,7 @@ export default {
 	capabilities: { apps: ['hr_employee', 'hr_controller'] },
 
 	grants: [
+		...employeeSelfServiceGrants(),
 		...referenceGrants('read'),
 		...statutoryGrants('read'),
 		...peopleGrants('read'),

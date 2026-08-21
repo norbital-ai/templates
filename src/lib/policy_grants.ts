@@ -42,20 +42,21 @@ import type { Policy } from '../access/policies/$types.js';
  *     spelled out at authoring time or it does not exist at all. Each policy below composes the
  *     same builder functions the rank beneath it composes, plus its own.
  *
- *   - Composition is safe in this direction because `rowPredicate` **unions** the matching grants:
- *     the `where` clauses of every matching grant are OR-ed, and one unconditional matching grant
- *     collapses the whole predicate to `true`. So a higher rank can only ever be handed *more*.
+ *   - Composition inside one policy is explicit. `rowPredicate` **unions** matching grants: the
+ *     `where` clauses are OR-ed, and one unconditional matching grant collapses the whole predicate
+ *     to `true`. A team therefore holds one policy whose full grant surface can be validated as a
+ *     unit; combining independently safe policies could silently make a narrowed grant broad.
  *
  *   - The corollary is the trap, and it is why the adjustment predicate below is written the way it
  *     is: a narrowing can never be applied at the top by subtraction. `NOT_AN_ADJUSTMENT` has to be
  *     present on **every** policy that must not see adjustments, because a single unconditional
  *     `component_entries` read anywhere in a policy the subject matches erases it.
  *
- *   - The two special authorities are orthogonal to rank, so a person may hold `manager` *and*
- *     `hr_controller`. A person belongs to one team, so that combination is not an emergent union
- *     of two memberships — it is a team that declares both names, `Manager (HR Controller)` in
- *     `src/access/+teams.ts`. The union of their grants does the right thing without either policy
- *     knowing about the other.
+ *   - The special payroll authorities are orthogonal to rank in the business ladder, but authority
+ *     is still declared as one complete policy per team. `Manager (HR Controller)` maps only to
+ *     `hr_controller`, whose materialized grant surface already includes every manager
+ *     collection/action pair. This preserves the named operational team without an unsafe
+ *     narrowed/unconditional cross-policy union.
  *
  * ## 2. Who may do what to `payroll_runs`
  *
@@ -202,6 +203,23 @@ export function grantsOnWhere<const C extends Grant['collection']>(
  */
 export const NOT_AN_ADJUSTMENT = {
 	$sql: `"origin"->>'kind' IS DISTINCT FROM 'MANUAL_ADJUSTMENT'`
+} as const;
+
+/** Any row hanging off the requester's own employment. */
+export const ownEmploymentChild = {
+	$sql:
+		'"employment_id" IN (SELECT e."norbital_id" FROM "employments" e ' +
+		'JOIN "employees" p ON p."norbital_id" = e."employee_id" ' +
+		'WHERE lower(p."email") = lower(${requestor.email}))'
+} as const;
+
+/** The requester's own component entry, restricted to the employee-authored claim variant. */
+const ownClaim = {
+	$sql:
+		'"employment_id" IN (SELECT e."norbital_id" FROM "employments" e ' +
+		'JOIN "employees" p ON p."norbital_id" = e."employee_id" ' +
+		'WHERE lower(p."email") = lower(${requestor.email})) ' +
+		`AND "origin"->>'kind' = 'CLAIM'`
 } as const;
 
 /**
@@ -430,6 +448,23 @@ export const claimApproval = {
 		}
 	]
 } as const satisfies Approval;
+
+/**
+ * Personal pay capabilities every ordinary rank needs in addition to its materialized team view.
+ *
+ * These two grants used to arrive through a second held `employee` policy. Keeping them together
+ * makes the personal scope identical on employee, supervisor and manager without composing policies
+ * whose other grants can widen one another.
+ */
+export const employeeSelfServiceGrants = (): readonly Grant[] => [
+	{ collection: 'payslips', action: 'read', where: ownEmploymentChild },
+	{
+		collection: 'component_entries',
+		action: 'create',
+		where: ownClaim,
+		approval: claimApproval
+	}
+];
 
 /** Opening a run commits every payslip under it, so an HR Manager reconciles it first. */
 export const payrollRunApproval = {

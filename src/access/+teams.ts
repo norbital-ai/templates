@@ -23,13 +23,12 @@ import type { Teams } from '@norbital-ai/bolt/authoring';
  * gives it authority ships, and a release that drops a team removes its authority without orphaning
  * anybody.
  *
- * ## The ladder, composed by membership rather than by copying
+ * ## The ladder, materialized in each policy
  *
  * `policy_grants.ts` documents at length that inheritance is *materialized*: a subject carrying
  * `manager` matches only the `manager` policy, so each rank re-composes the builders of the rank
- * beneath it by hand. That is still true of the policy files. What changes here is that a **team**
- * may hold several policies, so the ladder is stated once, as a list, in the place a person is
- * actually placed:
+ * beneath it by hand. Each team therefore holds exactly one policy, and that policy states the
+ * team's complete authority:
  *
  * ```
  *   Employee → Supervisor → L1 Manager → Senior Management        (rank)
@@ -37,19 +36,18 @@ import type { Teams } from '@norbital-ai/bolt/authoring';
  *                    HQ Payroll HR → HR Manager                   (payroll authority)
  * ```
  *
- * Each entry below lists the whole set rather than pointing at the rung beneath it, deliberately:
- * `rowPredicate` **unions** the `where` of every matching grant, so what a team confers is the union
- * of its policies whatever order they are written in — and a list you can read top to bottom is
- * worth more here than a derivation you have to run in your head. Runtime also includes policies
- * mapped to descendant teams in `teamPath`; descent is unconditional and there is no second
- * `inherits` switch. These explicit arrays state what each team contributes before that union.
+ * This is a safety boundary, not only a style choice. `rowPredicate` **unions** the `where` of every
+ * matching grant, so an unconditional grant from one held policy erases a narrowed grant from
+ * another. The compiler refuses that composition instead of silently widening access. A policy may
+ * still materialize the grants of the rank beneath it, but the result is reviewed and validated as
+ * one declaration rather than assembled from independently safe declarations at runtime.
  *
  * ## One team per person, and what that forces
  *
- * `bolt_auth_user.team_id` is one own team, not a set. Descendant teams may add policies through
- * `teamPath`, but an operational unit that directly carries an orthogonal combination should still
- * be named here — see `Manager (HR Controller)` below. That makes its direct authority visible in a
- * diff instead of depending on an incidental runtime hierarchy.
+ * `bolt_auth_user.team_id` is one own team, not a set. Descendant teams may contribute authority
+ * through `teamPath`, but an operational unit that carries a distinct authority should still be
+ * named here — see `Manager (HR Controller)` below. Its singleton mapping makes the effective
+ * authority visible in a diff instead of depending on a multi-policy union or incidental topology.
  *
  * It is also why every approval step in `policy_grants.ts` now lists each team that may decide it.
  * A step naming one team would be decidable only by that exact team, locking out every rung above
@@ -60,7 +58,7 @@ export default {
 	Employee: ['employee'],
 
 	/** Rank 2. Their own, plus their reports' attendance and leave. */
-	Supervisor: ['employee', 'supervisor'],
+	Supervisor: ['supervisor'],
 
 	/**
 	 * Rank 3, and the team an approval step means by "the direct manager".
@@ -69,10 +67,10 @@ export default {
 	 * carry, and a step's `approvers` entry and a team's name are the same string. Renaming either
 	 * without the other is what produces an approval nobody can decide.
 	 */
-	'L1 Manager': ['employee', 'supervisor', 'manager'],
+	'L1 Manager': ['manager'],
 
 	/** Rank 4. Reads payroll; does not administer it. */
-	'Senior Management': ['employee', 'supervisor', 'manager', 'senior_management'],
+	'Senior Management': ['senior_management'],
 
 	/**
 	 * Payroll authority 1 of 2: may view payroll and may not commit it.
@@ -80,22 +78,22 @@ export default {
 	 * A controller's `payroll_runs` create carries an approval, so the run is written and held. This
 	 * team is also what `claimApproval` routes to.
 	 */
-	'HQ Payroll HR': ['employee', 'hr_controller'],
+	'HQ Payroll HR': ['hr_controller'],
 
 	/**
 	 * Payroll authority 2 of 2: everything a controller may do, plus create without review, re-run
 	 * and delete.
 	 */
-	'HR Manager': ['employee', 'supervisor', 'manager', 'hr_controller', 'hr_manager'],
+	'HR Manager': ['hr_manager'],
 
 	/**
-	 * The combination that used to be two roles at once.
+	 * The named combination that used to be two policies at once.
 	 *
-	 * `policy_grants.ts` notes that the special roles are orthogonal to rank, "so a person may hold
-	 * `manager` *and* `hr_controller`". This named team states that direct union without relying on
-	 * descendant-team topology. Nobody is in it today; it exists because the combination is real and
-	 * the ladder describes it, and discovering that at the moment somebody needs it is worse than
-	 * declaring it now.
+	 * `hr_controller` already materializes every collection/action pair `manager` has, plus payroll
+	 * authority, so it is the complete declaration for this team. Mapping both policies would add no
+	 * capability, but it would combine their differently scoped grants and be refused as a potential
+	 * widening. Nobody is in this team today; it remains named because the operational identity and
+	 * approval route are real even though its authority comes from one policy.
 	 */
-	'Manager (HR Controller)': ['employee', 'supervisor', 'manager', 'hr_controller']
+	'Manager (HR Controller)': ['hr_controller']
 } satisfies Teams;

@@ -86,9 +86,10 @@ export default {
 		 * The adjustment path, unconditional and stated here rather than folded into `peopleGrants`.
 		 *
 		 * This is the whole of "only HR-policy holders may create adjustments": no policy on the
-		 * ordinary ladder has a `component_entries` create grant at all, and the `employee` policy's is
-		 * pinned to `origin.kind = 'CLAIM'`. There is nothing to subtract, because nothing below was
-		 * ever added.
+		 * ordinary ladder has an unconditional `component_entries` create. Employee, supervisor and
+		 * manager share one grant pinned to their own employment and `origin.kind = 'CLAIM'`; it cannot
+		 * create the `MANUAL_ADJUSTMENT` variant. There is nothing to subtract, because adjustment
+		 * authority was never added below this policy.
 		 *
 		 * Unconditional on read, too, which is the other half of the rule — `NOT_AN_ADJUSTMENT` is
 		 * absent here on purpose, so a controller sees the corrections everyone below them cannot.
