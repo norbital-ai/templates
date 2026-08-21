@@ -19,7 +19,14 @@ export default ((r) => ({
 		}),
 		job_assignment_job: r.many.job_assignments()
 	},
+	suspicious_activity_logs: {
+		job_assignment_suspicions: r.one.job_assignments({
+			from: r.suspicious_activity_logs.job_assignment_id,
+			to: r.job_assignments.norbital_id
+		})
+	},
 	job_assignments: {
+		job_assignment_suspicions: r.many.suspicious_activity_logs(),
 		job_assignment_job: r.one.jobs({
 			from: r.job_assignments.job_id,
 			to: r.jobs.norbital_id

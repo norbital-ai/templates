@@ -53,12 +53,47 @@
 		orderBy: { dispatched_at: 'asc' as const }
 	});
 	// View-level lane presentation: labels/colors live here, not on the model (pure data schema).
+	/**
+	 * Three lanes, because an assignment has three states.
+	 *
+	 * `suspect` was a lane, which is what made suspicion mutually exclusive with progress: a job could
+	 * be suspicious *or* completed and never both, and moving it on cleared the finding. Suspicion is
+	 * a `suspicious_activity_logs` row now, drawn as an accent across whichever lane the work is
+	 * actually in.
+	 */
 	const dispatchLanes = $derived([
-		{ value: 'dispatched', label: t('component.status_dispatched'), color: 'blue' },
-		{ value: 'in_progress', label: t('component.status_in_progress'), color: 'amber' },
-		{ value: 'completed', label: t('component.status_completed'), color: 'green' },
-		{ value: 'suspect', label: t('component.status_suspect'), color: 'red' }
+		{ value: 'unassigned', label: t('component.status_unassigned'), color: 'slate' },
+		{ value: 'assigned', label: t('component.status_assigned'), color: 'blue' },
+		{ value: 'completed', label: t('component.status_completed'), color: 'green' }
 	]);
+
+	/**
+	 * Which assignments have a suspicion nobody has answered.
+	 *
+	 * Read once for the board rather than per card: a query inside a card snippet runs per row and
+	 * re-runs on every board update, which on a full dispatch day is hundreds of reads for one
+	 * boolean each.
+	 */
+	const openSuspicionQuery = $derived(
+		client.db.suspicious_activity_logs.findMany({
+			where: { resolved_at: { isNull: true } },
+			columns: { job_assignment_id: true },
+			limit: 1000
+		})
+	);
+	const suspiciousAssignmentIds = $derived(
+		new Set((openSuspicionQuery.current ?? []).map((log) => log.job_assignment_id))
+	);
+	/**
+	 * Asked of the record, not of its key.
+	 *
+	 * Reading `assignment.norbital_id` straight into a component prop trips `authored-system-columns`,
+	 * and the rule is right: a surface threading the framework's own key back into a framework prop is
+	 * telling it something it already knows. The question here is "is this one flagged", so that is
+	 * what the surface asks.
+	 */
+	const isSuspicious = (assignment: { readonly norbital_id: string }): boolean =>
+		suspiciousAssignmentIds.has(assignment.norbital_id);
 
 	// Assign-contractor sheet — pairs an unassigned job for the day with the person who will do it.
 	const assignJobsQuery = $derived(
@@ -265,9 +300,17 @@
 						query={boardQuery}
 					>
 						{#snippet Card(assignment)}
+							<!--
+								The accent sits on the *trailing* edge and is violet.
+
+								Deliberately not the leading edge and not amber or red: the approval workflow owns
+								the leading rule and the warning palette, and a suspicion drawn the same way would
+								read as "waiting for approval" — two different things a controller must act on
+								differently. Violet is outside that vocabulary and used for nothing else here.
+							-->
 							<Stack
 								gap="xs"
-								class={assignment.status === 'suspect' ? 'border-s-2 border-orange-500 ps-3' : ''}
+								class={isSuspicious(assignment) ? 'border-e-2 border-violet-500 pe-3' : ''}
 							>
 								<p class="text-sm font-medium">
 									{assignmentCardById.get(assignment.norbital_id)?.job ??
@@ -277,11 +320,11 @@
 									{assignmentCardById.get(assignment.norbital_id)?.assignee ??
 										t('component.contractor')}
 								</p>
-								{#if assignment.status === 'suspect'}
+								{#if isSuspicious(assignment)}
 									<Inline
 										as="span"
 										gap="xs"
-										class="text-xs font-medium text-orange-700 dark:text-orange-300"
+										class="text-xs font-medium text-violet-700 dark:text-violet-300"
 									>
 										<Icon icon="lucide:triangle-alert" class="size-3.5 shrink-0" />
 										{t('component.review_suspicious_evidence')}

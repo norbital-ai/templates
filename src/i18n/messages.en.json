@@ -143,5 +143,11 @@
 	"component.flag_metadata_anomaly": "Metadata anomaly",
 	"component.flag_edited_metadata": "Editing software recorded",
 	"component.flag_low_quality": "Low-quality image",
-	"component.agent_rationale": "Agent assessment"
+	"component.agent_rationale": "Agent assessment",
+	"component.suspicion_logs": "Suspicion logs",
+	"component.suspicion_logs_description": "Raised automatically or by a controller, and answered here. A contractor cannot see these.",
+	"component.suspicion_logs_empty": "Nothing has been raised against this assignment.",
+	"component.suspicion_open": "Open — awaiting a controller",
+	"component.suspicion_resolved": "Resolved",
+	"component.status_unassigned": "Unassigned"
 }

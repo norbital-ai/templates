@@ -74,9 +74,17 @@ test('prepares assignments in caller order with the same defaults and location s
 		['first', 'second']
 	);
 	assert.equal(result[0]?.dispatched_at, dispatchedAt);
-	assert.equal(result[0]?.status, 'dispatched');
+	// A row that says nothing about its state is assigned: somebody holds the work.
+	assert.equal(result[0]?.status, 'assigned');
 	assert.equal(result[1]?.dispatched_at, '2026-08-12T00:00:00.000Z');
-	assert.equal(result[1]?.status, 'suspect');
+	// `in_progress` is one of the two old spellings of "somebody holds this", and lands on `assigned`.
+	//
+	// The second row's location is far outside the site's tolerance, which used to make this
+	// `'suspect'` — a finding written into the column that says where the work got to, erasing it.
+	// The state now survives the finding: a suspicion about this row is a `suspicious_activity_logs`
+	// entry raised by the `after` hook, and dispatch can see a job that is both suspicious and
+	// finished, which it previously could not.
+	assert.equal(result[1]?.status, 'assigned');
 });
 
 /**

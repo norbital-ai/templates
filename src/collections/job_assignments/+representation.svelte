@@ -16,6 +16,7 @@
 		Stack
 	} from '@norbital-ai/ui/layout';
 	import { Tabs, type TabConfig } from '@norbital-ai/ui/tabs';
+	import { cn } from '@norbital-ai/ui/utils';
 	import * as Dialog from '@norbital-ai/ui/dialog';
 	import { formatFileSize } from '@norbital-ai/ui/utils';
 	import { RelationshipRenderer } from '@norbital-ai/ui/data-renderer/relationship';
@@ -117,6 +118,26 @@
 			: null
 	);
 
+	/**
+	 * Only asked for by somebody who may read it.
+	 *
+	 * A contractor holds no grant on this collection, so the query would be refused rather than
+	 * answered — and a refusal rendered as a loading state that never ends is worse than not asking.
+	 * The tab is hidden from them for the same reason; this is the half that keeps the network quiet.
+	 */
+	const suspicionQuery = $derived(
+		record != null && !isContractorViewer
+			? client.db.suspicious_activity_logs.findMany({
+					where: { job_assignment_id: { eq: record.norbital_id } },
+					orderBy: { norbital_created_at: 'desc' },
+					limit: 100
+				})
+			: null
+	);
+	const suspicionRows = $derived(suspicionQuery?.current ?? []);
+	/** Whether anything is still waiting on a controller — what the accents below turn on. */
+	const hasOpenSuspicion = $derived(suspicionRows.some((log) => log.resolved_at == null));
+
 	const scopedEvidence = $derived(
 		(directEvidenceQuery?.current ?? []).filter(
 			(evidence) => record != null && evidence.job_assignment_id === record.norbital_id
@@ -175,6 +196,9 @@
 	 * the question it never asked.
 	 */
 	const suspicionReasons = $derived([
+		...(hasOpenSuspicion
+			? suspicionRows.filter((log) => log.resolved_at == null).map((log) => log.reason)
+			: []),
 		...(record?.site_identity_mismatch === true
 			? [t('component.suspicion_site_identity_mismatch')]
 			: []),
@@ -240,7 +264,7 @@
 
 {#if record}
 	{#snippet suspicionBanner()}
-		{#if !isContractorViewer && (record.status === 'suspect' || record.site_identity_mismatch || record.site_identity_unverified)}
+		{#if !isContractorViewer && (hasOpenSuspicion || record.site_identity_mismatch || record.site_identity_unverified)}
 			<section
 				class="border-s-2 border-orange-500 bg-orange-50/70 px-4 py-3 text-orange-950 dark:bg-orange-950/30 dark:text-orange-100"
 				aria-labelledby="assignment-suspicion-heading"
@@ -392,6 +416,56 @@
 		</Scroll>
 	{/snippet}
 
+	<!--
+		The suspicions raised about this assignment, and the controller's answer to each.
+
+		Resolving is writing a sentence, not clearing a flag. A log with an empty resolution and a log
+		somebody looked at and judged fine are different facts, and a boolean cannot hold the
+		difference — which is the same reason `site_identity_unverified` had to become visible rather
+		than be treated as "no news".
+	-->
+	{#snippet suspicionLogs()}
+		<Stack gap="md">
+			<Stack gap="xs">
+				<h3 class="text-sm font-semibold">{t('component.suspicion_logs')}</h3>
+				<p class="text-tiny text-muted-foreground">{t('component.suspicion_logs_description')}</p>
+			</Stack>
+			{#if suspicionQuery?.loading}
+				<p class="text-tiny text-muted-foreground">{t('component.loading')}</p>
+			{:else if suspicionRows.length === 0}
+				<p class="text-tiny text-muted-foreground">{t('component.suspicion_logs_empty')}</p>
+			{:else}
+				<Stack gap="sm">
+					{#each suspicionRows as log (log.norbital_id)}
+						<Stack
+							gap="xs"
+							class={cn(
+								'rounded-md border p-3',
+								log.resolved_at == null ? 'border-warning/40 bg-warning/5' : 'border-border'
+							)}
+						>
+							<Inline gap="sm" align="center">
+								<Icon
+									icon={log.resolved_at == null ? 'lucide:shield-alert' : 'lucide:shield-check'}
+									class={cn('size-4 shrink-0', log.resolved_at == null && 'text-warning')}
+								/>
+								<span class="text-tiny font-semibold">
+									{log.resolved_at == null
+										? t('component.suspicion_open')
+										: t('component.suspicion_resolved')}
+								</span>
+							</Inline>
+							<p class="text-tiny">{log.reason}</p>
+							{#if log.resolution}
+								<p class="text-tiny text-muted-foreground">{log.resolution}</p>
+							{/if}
+						</Stack>
+					{/each}
+				</Stack>
+			{/if}
+		</Stack>
+	{/snippet}
+
 	{#snippet photoGallery()}
 		<Scroll name={t('component.assignment_evidence')}>
 			<Stack as="section" aria-labelledby="evidence-heading" gap="md">
@@ -526,7 +600,25 @@
 				label: t('component.photos'),
 				icon: 'lucide:images',
 				content: photoGallery
-			}
+			},
+			/**
+			 * Suspicion logs, and only for somebody who can answer them.
+			 *
+			 * Spread rather than conditionally rendered inside the tab, because a tab that exists and
+			 * refuses is still a tab: it tells a contractor a file about them is being kept. The policy
+			 * is the real control — no contractor grant on `suspicious_activity_logs` exists — and this
+			 * keeps the surface agreeing with it rather than relying on it alone.
+			 */
+			...(isContractorViewer
+				? []
+				: [
+						{
+							name: 'suspicions',
+							label: t('component.suspicion_logs'),
+							icon: 'lucide:shield-alert',
+							content: suspicionLogs
+						}
+					])
 		] satisfies TabConfig[]}
 	/>
 {:else}

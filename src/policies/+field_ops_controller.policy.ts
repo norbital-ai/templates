@@ -48,6 +48,18 @@ export default {
 		{ collection: 'jobs', action: 'update' },
 		{ collection: 'jobs', action: 'delete' },
 
+		/**
+		 * Suspicion is dispatch's to see and dispatch's to answer.
+		 *
+		 * No contractor grant exists for this collection anywhere, and that absence is the access
+		 * control — a contractor cannot read a log written about their own work, so a log is a note
+		 * between controllers rather than an accusation delivered to its subject. `create` is here
+		 * because a controller may raise one by hand as well as receive one from the automation.
+		 */
+		{ collection: 'suspicious_activity_logs', action: 'read' },
+		{ collection: 'suspicious_activity_logs', action: 'create' },
+		{ collection: 'suspicious_activity_logs', action: 'update' },
+
 		{ collection: 'job_assignments', action: 'read' },
 		{ collection: 'job_assignments', action: 'create' },
 		{ collection: 'job_assignments', action: 'update' },

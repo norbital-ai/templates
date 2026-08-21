@@ -167,6 +167,7 @@ export const client: WorkspaceClient = {
 		jobs: collectionOperations('jobs'),
 		photo_evidence: collectionOperations('photo_evidence'),
 		sites: collectionOperations('sites'),
+		suspicious_activity_logs: collectionOperations('suspicious_activity_logs'),
 		variation_requests: collectionOperations('variation_requests'),
 		document_asset: collectionOperations('document_asset'),
 		// `team`, `team_members` and `user` were platform tables until identity became runtime-owned.

@@ -119,7 +119,7 @@
 				where: {
 					job_assignment_job: {
 						site_id: { eq: siteId },
-						status: { in: ['in_progress', 'completed'] }
+						status: { in: ['assigned', 'completed'] }
 					}
 				},
 				orderBy: { dispatched_at: 'desc' }

@@ -46,7 +46,9 @@ test('keeps the semantic review basis stable across set and status ordering nois
 			matched_evidence_ids: [...original.evidence.matched_evidence_ids].reverse(),
 			site_identity_status: 'inconclusive'
 		},
-		assignment: original.assignment == null ? null : { ...original.assignment, status: 'suspect' }
+		// A different status, to prove the review basis does not turn on it. `suspect` used to be the
+		// value here and is no longer a status at all — suspicion is a `suspicious_activity_logs` row.
+		assignment: original.assignment == null ? null : { ...original.assignment, status: 'completed' }
 	};
 
 	assert.equal(photoSiteIdentityReviewBasis(reordered), photoSiteIdentityReviewBasis(original));
