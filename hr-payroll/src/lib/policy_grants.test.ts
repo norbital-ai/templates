@@ -82,7 +82,7 @@ test('every name `+teams.ts` declares is a policy this workspace ships', () => {
 	// `+teams.ts` costs a team its authority and produces no failure anywhere. This is that failure.
 	const declared = new Set(policies.map(heldNameOf));
 	for (const [team, held] of Object.entries(teams)) {
-		assert.ok(held.length > 0, `team ${team} declares no policies`);
+		assert.equal(held.length, 1, `team ${team} must declare exactly one complete policy`);
 		for (const name of held)
 			assert.ok(
 				declared.has(name.toLocaleLowerCase()),
@@ -95,6 +95,16 @@ test('every name `+teams.ts` declares is a policy this workspace ships', () => {
 	);
 	for (const policy of policies)
 		assert.ok(namedByTeams.has(heldNameOf(policy)), `no team declares ${nameOf(policy)}`);
+
+	assert.deepEqual(teams, {
+		Employee: ['employee'],
+		Supervisor: ['supervisor'],
+		'L1 Manager': ['manager'],
+		'Senior Management': ['senior_management'],
+		'HQ Payroll HR': ['hr_controller'],
+		'HR Manager': ['hr_manager'],
+		'Manager (HR Controller)': ['hr_controller']
+	});
 });
 
 test('an employee cannot create a payroll run, and neither can a supervisor or a manager', () => {
@@ -111,9 +121,10 @@ test('an employee cannot create a payroll run, and neither can a supervisor or a
 	// A payslip is the exception, and deliberately so: Employee Self-Service exists to show somebody
 	// their own pay. The grant is row-scoped to their own employment, so reading one is not reading
 	// payroll — the run that produced it stays out of reach above.
-	assert.equal(may(employee, 'payslips', 'read'), true);
-	for (const policy of [supervisor, manager]) {
-		assert.equal(may(policy, 'payslips', 'read'), false, nameOf(policy));
+	for (const policy of [employee, supervisor, manager]) {
+		const [ownPayslip, ...extra] = grantsFor(policy, 'payslips', 'read');
+		assert.deepEqual(extra, [], `${nameOf(policy)} has more than one payslip read`);
+		assert.match(ownPayslip.where.$sql, /requestor\.email/, nameOf(policy));
 	}
 });
 
@@ -189,20 +200,48 @@ test('an employee cannot read an adjustment, and no ordinary policy erases the p
 	}
 });
 
-test('only the HR policies may create an adjustment; an employee may only claim', () => {
-	// Nothing to subtract, because nothing below was ever added: no rank on the ordinary ladder holds
-	// a `component_entries` create at all.
-	for (const policy of [supervisor, manager])
-		assert.equal(may(policy, 'component_entries', 'create'), false, nameOf(policy));
+test('ordinary ranks may create only their own reviewed claim; HR may create adjustments', () => {
+	// The shared self-service grant is pinned to the requester's employment and the CLAIM arm.
+	// Without both clauses a manager's materialized team policy could post an adjustment, or a claim
+	// for another employee, through the same collection.
+	for (const policy of [employee, supervisor, manager]) {
+		const [claim, ...extra] = grantsFor(policy, 'component_entries', 'create');
+		assert.deepEqual(extra, [], `${nameOf(policy)} has more than one component entry create`);
+		assert.match(claim.where.$sql, /requestor\.email/, nameOf(policy));
+		assert.match(claim.where.$sql, /'CLAIM'/, nameOf(policy));
+		assert.doesNotMatch(claim.where.$sql, /MANUAL_ADJUSTMENT/, nameOf(policy));
+		assert.notEqual(claim.approval, undefined, `${nameOf(policy)} claim must be reviewed`);
+	}
 
-	// The employee's one create is pinned to the CLAIM arm. Without that clause this grant would let
-	// an employee post a MANUAL_ADJUSTMENT against their own employment.
-	const [claim] = grantsFor(employee, 'component_entries', 'create');
-	assert.match(claim.where.$sql, /'CLAIM'/);
-	assert.doesNotMatch(claim.where.$sql, /MANUAL_ADJUSTMENT/);
+	for (const policy of [hrController, hrManager, seniorManagement]) {
+		const [create] = grantsFor(policy, 'component_entries', 'create');
+		assert.notEqual(create, undefined, nameOf(policy));
+		assert.equal(create.where, undefined, `${nameOf(policy)} must create entries unconditionally`);
+	}
+});
 
-	for (const policy of [hrController, hrManager, seniorManagement])
-		assert.equal(may(policy, 'component_entries', 'create'), true, nameOf(policy));
+test('no team holder combines narrowed and unconditional grants for one operation', () => {
+	const conflicts = [];
+	for (const [team, heldNames] of Object.entries(teams)) {
+		const grantsByOperation = new Map();
+		for (const heldName of heldNames) {
+			const policy = policiesByFileKey[heldName.toLocaleLowerCase()];
+			for (const grant of policy.grants) {
+				const operation = `${grant.action} on ${grant.collection}`;
+				const scopes = grantsByOperation.get(operation) ?? { narrowed: [], unconditional: [] };
+				const where = grant.where;
+				const bucket =
+					where === undefined || Object.keys(where).length === 0 ? 'unconditional' : 'narrowed';
+				scopes[bucket].push(heldName);
+				grantsByOperation.set(operation, scopes);
+			}
+		}
+		for (const [operation, scopes] of grantsByOperation) {
+			if (scopes.narrowed.length > 0 && scopes.unconditional.length > 0)
+				conflicts.push({ team, operation, ...scopes });
+		}
+	}
+	assert.deepEqual(conflicts, []);
 });
 
 test('every policy can read the settlement ledger, or its refusal becomes an access denial', () => {
@@ -226,10 +265,11 @@ test('each rank composes the rank beneath it, because nothing inherits at run ti
 	contains(seniorManagement, manager);
 	contains(hrManager, hrController);
 
-	// Self-service is deliberately *not* restated up the ladder. Every team on the ladder declares
-	// `employee` alongside its own rung, so a supervisor's own payslip comes from the `employee`
-	// policy — scoped to them — rather than from a team-wide payslip grant nobody above them was
-	// meant to have.
-	assert.equal(may(supervisor, 'payslips', 'read'), false);
-	assert.equal(may(employee, 'payslips', 'read'), true);
+	// The shared personal delta is deliberately restated in the complete supervisor and manager
+	// policies. Each team holds only its one rung, so personal payslip reads and own claim creates
+	// remain scoped without composing that policy with `employee` at runtime.
+	for (const policy of [employee, supervisor, manager]) {
+		assert.equal(may(policy, 'payslips', 'read'), true, nameOf(policy));
+		assert.equal(may(policy, 'component_entries', 'create'), true, nameOf(policy));
+	}
 });
