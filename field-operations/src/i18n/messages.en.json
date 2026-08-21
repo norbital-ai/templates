@@ -149,5 +149,10 @@
 	"component.suspicion_logs_empty": "Nothing has been raised against this assignment.",
 	"component.suspicion_open": "Open — awaiting a controller",
 	"component.suspicion_resolved": "Resolved",
-	"component.status_unassigned": "Unassigned"
+	"component.status_unassigned": "Unassigned",
+	"component.suspicion_resolve": "Resolve",
+	"component.suspicion_resolving": "Saving…",
+	"component.suspicion_resolve_failed": "The resolution could not be saved.",
+	"component.suspicion_resolution_placeholder": "What did you conclude? Say whether the suspicion was correct.",
+	"component.suspicion_resolve_unavailable": "This workspace does not grant you permission to resolve a suspicion log."
 }

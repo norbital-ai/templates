@@ -149,5 +149,10 @@
 	"component.suspicion_logs_empty": "尚未针对此任务提出任何疑问。",
 	"component.suspicion_open": "待处理 — 等待调度人员",
 	"component.suspicion_resolved": "已处理",
-	"component.status_unassigned": "未分配"
+	"component.status_unassigned": "未分配",
+	"component.suspicion_resolve": "处理",
+	"component.suspicion_resolving": "保存中…",
+	"component.suspicion_resolve_failed": "无法保存处理结果。",
+	"component.suspicion_resolution_placeholder": "您的结论是什么？请说明该疑问是否成立。",
+	"component.suspicion_resolve_unavailable": "此工作区未授予您处理可疑记录的权限。"
 }
