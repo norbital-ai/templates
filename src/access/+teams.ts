@@ -5,7 +5,7 @@ import type { Teams } from '@norbital-ai/bolt/authoring';
  * WHICH POLICIES EACH TEAM HOLDS
  * ============================================================================
  *
- * `src/policies/` says what each policy grants; this file says who holds it. A `bolt_team` row is
+ * `src/access/policies/` says what each policy grants; this file says who holds it. A `bolt_team` row is
  * membership — a name, a parent, a description, edited from the dashboard — and this map is
  * authority, compiled into the release. The two are bound by **name**, case-insensitively; a team
  * row this file does not name holds no policies at all.

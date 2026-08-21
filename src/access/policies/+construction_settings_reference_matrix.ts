@@ -12,9 +12,8 @@ import type { Policy } from './$types.js';
  * in a diff about file moves.
  */
 export default {
-	name: 'construction_settings_reference_matrix',
 	description: 'BIM reference matrix administration.',
-	apps: ['construction_settings_reference_matrix'],
+	capabilities: { apps: ['construction_settings_reference_matrix'] },
 	grants: [
 		{ collection: 'projects', action: 'read' },
 		{ collection: 'site_locations', action: 'read' },
@@ -28,5 +27,17 @@ export default {
 		{ collection: 'payment_claims', action: 'read' },
 		{ collection: 'bim_reference_matrix', action: 'read' },
 		{ collection: 'asset_documents', action: 'read' }
-	]
+	],
+	/**
+	 * What a holder of this policy may spend.
+	 *
+	 * Declared here rather than in a workspace-wide file, because a rate limit is only meaningful in
+	 * terms of who is spending it: `collections.*` is authenticated and cheap, `agents.turn` is
+	 * authenticated and costs money at a model provider. Two classes of person holding two policies
+	 * can now be given two budgets for the same command, which one file for everybody could not say.
+	 */
+	limits: {
+		'collections.*': { window: '1 min', limit: 600, key: 'subject' },
+		'agents.turn': { window: '1 hour', limit: 100, key: 'subject' }
+	}
 } satisfies Policy;
