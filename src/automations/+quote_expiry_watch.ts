@@ -18,6 +18,19 @@ function deskToday(): string {
 export default defineAutomation(
 	{ schedule: '0 6 * * *' },
 	{
+		/**
+		 * The authority every run of this automation acts under.
+		 *
+		 * Its own, not its trigger's. This used to inherit whoever tripped it — so the same nightly
+		 * sweep ran as an administrator when an administrator happened to start it, and as a contractor
+		 * otherwise, over a different set of rows each time. Naming it here is what makes "what can this
+		 * automation touch" a question with an answer that does not depend on the day.
+		 *
+		 * `sales_rep` alone, and not the pair a `Sales & Procurement` person holds: this sweep reads
+		 * quotes and writes nothing a buyer owns, so naming the buy side too would widen it to cost and
+		 * supplier data for no reason a reader could find in the handler.
+		 */
+		policies: ['sales_rep'],
 		description:
 			'Sweeps every morning for quotes still sitting at sent whose valid_until date has passed, and exports the lapsed ones for the desk to chase.',
 		handler: (api) =>

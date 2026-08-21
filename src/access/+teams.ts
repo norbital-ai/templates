@@ -5,7 +5,7 @@ import type { Teams } from '@norbital-ai/bolt/authoring';
  * WHICH POLICIES EACH TEAM HOLDS
  * ============================================================================
  *
- * `src/policies/` says what each policy grants; this file says who holds it. Between them they are
+ * `src/access/policies/` says what each policy grants; this file says who holds it. Between them they are
  * the whole of authority in this workspace — there is no third place, and in particular no database
  * row that confers a policy.
  *
@@ -18,13 +18,14 @@ import type { Teams } from '@norbital-ai/bolt/authoring';
  *
  * ## The values are policy names, and a policy is named by its file
  *
- * `+sales_rep.policy.ts` declares `name: 'sales_rep'` — the same rule a collection, an app and a
- * channel are named by. `policiesHeldByTeam` resolves a team's policies against that `name`, and
- * `Teams` narrows the strings below to the generated `PolicyName` union, so a name no file declares
- * is a build error here rather than an authority that is silently empty at run time.
+ * `access/policies/+sales_rep.ts` *is* `sales_rep` — the same rule a collection, an app and an
+ * envoy are named by, and there is no `name:` field inside the file to disagree with it. `Teams`
+ * narrows the strings below to the generated `PolicyName` union, so a name no file declares is a
+ * build error here rather than an authority that is silently empty at run time.
  *
  * These entries used to read `Sales representative` and `Procurement officer`, because that is what
- * the two policies declared. Nothing matched them: the union is built from the filenames.
+ * the two policies declared inside themselves. Nothing matched them: the union is built from the
+ * filenames, which is why the restated field is gone.
  *
  * ## The buy/sell boundary, and why it survives being written down
  *
