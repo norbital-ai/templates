@@ -6,6 +6,8 @@ import {
 	actualCounts,
 	discoverTemplates,
 	repositoryRoot,
+	templateBundlePackageManifest,
+	templateBundlePublishAccess,
 	templateBundleVersion,
 	templateMetadataFile,
 	templateRefNamespace
@@ -18,7 +20,11 @@ describe('template discovery', () => {
 			'0.0.1'
 		);
 		assert.equal(templateBundleVersion, '0.0.1');
+		assert.equal(templateBundlePublishAccess, 'public');
 		for (const template of discoverTemplates()) {
+			const bundleManifest = templateBundlePackageManifest(template);
+			assert.equal(bundleManifest.version, '0.0.1', template.slug);
+			assert.equal(bundleManifest.publishConfig.access, 'public', template.slug);
 			assert.equal(
 				JSON.parse(readFileSync(path.join(template.directory, 'package.json'))).version,
 				'0.0.1',

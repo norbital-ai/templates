@@ -13,7 +13,11 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import process from 'node:process';
 import { registryConfiguration } from './lib/registry.mjs';
-import { discoverTemplates, repositoryRoot, templateBundleVersion } from './lib/templates.mjs';
+import {
+	discoverTemplates,
+	repositoryRoot,
+	templateBundlePackageManifest
+} from './lib/templates.mjs';
 
 /**
  * Prove each template stands alone.
@@ -68,7 +72,6 @@ function writeTemplateBundle(template, projection, outputDirectory, buildOutput)
 	const bundlePath = path.join(packageDirectory, 'bundle.tar');
 	run('tar', ['-cf', bundlePath, '-C', buildOutput, '.']);
 	const bundle = readFileSync(bundlePath);
-	const version = templateBundleVersion;
 	writeFileSync(
 		path.join(packageDirectory, 'norbital.template-build.json'),
 		`${JSON.stringify(
@@ -90,18 +93,7 @@ function writeTemplateBundle(template, projection, outputDirectory, buildOutput)
 	);
 	writeFileSync(
 		path.join(packageDirectory, 'package.json'),
-		`${JSON.stringify(
-			{
-				name: `@norbital-ai/bolt-template-${template.slug}`,
-				version,
-				private: false,
-				license: 'UNLICENSED',
-				files: ['bundle.tar', 'norbital.template-build.json'],
-				publishConfig: { access: 'restricted' }
-			},
-			null,
-			2
-		)}\n`
+		`${JSON.stringify(templateBundlePackageManifest(template), null, 2)}\n`
 	);
 	console.log(`Prepared canonical build package for ${template.slug}@${projection.revision}.`);
 }

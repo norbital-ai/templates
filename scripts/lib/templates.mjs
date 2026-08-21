@@ -39,6 +39,18 @@ export const repositoryRoot = path.resolve(
 export const templateRefNamespace = 'refs/heads/templates';
 export const templateMetadataFile = 'norbital.template.json';
 export const templateBundleVersion = '0.0.1';
+export const templateBundlePublishAccess = 'public';
+
+export function templateBundlePackageManifest(template) {
+	return {
+		name: `@norbital-ai/bolt-template-${template.slug}`,
+		version: templateBundleVersion,
+		private: false,
+		license: 'UNLICENSED',
+		files: ['bundle.tar', 'norbital.template-build.json'],
+		publishConfig: { access: templateBundlePublishAccess }
+	};
+}
 
 /** A repository directory name, and so also a ref name, a URL path segment and a package suffix. */
 const slugPattern = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
