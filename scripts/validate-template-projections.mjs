@@ -12,6 +12,7 @@ import {
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import process from 'node:process';
+import { archiveTemplateArtifact, templateBundleFormatVersion } from './lib/template-artifact.mjs';
 import { registryConfiguration } from './lib/registry.mjs';
 import {
 	discoverTemplates,
@@ -59,7 +60,7 @@ function sha256(bytes) {
 	return createHash('sha256').update(bytes).digest('hex');
 }
 
-function writeTemplateBundle(template, projection, outputDirectory, buildOutput) {
+function writeTemplateBundle(template, projection, outputDirectory, workspaceRoot) {
 	const packageManifest = JSON.parse(readFileSync(path.join(template.directory, 'package.json')));
 	const lockfile = readFileSync(path.join(template.directory, 'pnpm-lock.yaml'));
 	const lockHash = sha256(lockfile).slice(0, 32);
@@ -70,7 +71,7 @@ function writeTemplateBundle(template, projection, outputDirectory, buildOutput)
 	const packageDirectory = path.join(outputDirectory, template.slug);
 	mkdirSync(packageDirectory, { recursive: true });
 	const bundlePath = path.join(packageDirectory, 'bundle.tar');
-	run('tar', ['-cf', bundlePath, '-C', buildOutput, '.']);
+	archiveTemplateArtifact(workspaceRoot, bundlePath);
 	const bundle = readFileSync(bundlePath);
 	writeFileSync(
 		path.join(packageDirectory, 'norbital.template-build.json'),
@@ -80,7 +81,7 @@ function writeTemplateBundle(template, projection, outputDirectory, buildOutput)
 				templateSlug: template.slug,
 				templateHandle: template.handle,
 				sourceCommit: projection.revision,
-				bundleFormatVersion: 1,
+				bundleFormatVersion: templateBundleFormatVersion,
 				lockHash,
 				boltVersion,
 				packageKey: lockHash.slice(0, 16),
@@ -153,12 +154,7 @@ try {
 		if (bundleOutput) {
 			const projection = projections.get(template.slug);
 			if (!projection) throw new Error(`No projected revision recorded for ${template.slug}.`);
-			writeTemplateBundle(
-				template,
-				projection,
-				bundleOutput,
-				path.join(destination, '.norbital', 'dist', 'output')
-			);
+			writeTemplateBundle(template, projection, bundleOutput, destination);
 		}
 		console.log(`Validated clean standalone projection: ${template.slug}.`);
 	}
