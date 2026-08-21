@@ -53,31 +53,58 @@
 		onAfterSubmit={record ? undefined : close}
 	>
 		{#snippet children({ Field })}
-			<Grid gap="md" minimum="panel">
-				<Field
-					name="jurisdiction_id"
-					label={t('component.jurisdiction')}
-					renderer={RelationshipRenderer}
-					rendererProps={{
-						target: 'jurisdictions',
-						options: {
-							label: (jurisdiction) =>
-								[jurisdiction.code, jurisdiction.name]
-									.filter((part) => part != null && part !== '')
-									.join(' · ') || '—',
-							orderBy: { code: 'asc' },
-							limit: 200
-						}
-					}}
-				/>
-				<Field name="code" />
-				<Field name="name" />
-				<Field name="authority" />
-				<Field name="payer" label={t('component.paid_by')} />
-				<Field name="keyed_by" label={t('component.bands_keyed_by')} />
-				<Field name="rounding" />
-				<Field name="sequence" label={t('component.applied_at')} />
-				<Column span="all">
+			<Stack gap="lg">
+				<Stack as="section" gap="sm">
+					<Stack gap="xs">
+						<h3 class="text-sm font-semibold">Scheme identity</h3>
+						<p class="text-meta">The authority, jurisdiction, and period this scheme belongs to.</p>
+					</Stack>
+					<Grid gap="md" minimum="panel">
+						<Field
+							name="jurisdiction_id"
+							label={t('component.jurisdiction')}
+							renderer={RelationshipRenderer}
+							rendererProps={{
+								target: 'jurisdictions',
+								options: {
+									label: (jurisdiction) =>
+										[jurisdiction.code, jurisdiction.name]
+											.filter((part) => part != null && part !== '')
+											.join(' · ') || '—',
+									orderBy: { code: 'asc' },
+									limit: 200
+								}
+							}}
+						/>
+						<Field name="code" />
+						<Field name="name" />
+						<Field name="authority" />
+						<Column span="all">
+							<Field name="effective_range" label={t('component.effective_period')} />
+						</Column>
+					</Grid>
+				</Stack>
+
+				<Stack as="section" gap="sm" class="border-t border-border pt-5">
+					<Stack gap="xs">
+						<h3 class="text-sm font-semibold">Calculation</h3>
+						<p class="text-meta">
+							Who pays, how rate bands are selected, and when the scheme applies.
+						</p>
+					</Stack>
+					<Grid gap="md" minimum="panel">
+						<Field name="payer" label={t('component.paid_by')} />
+						<Field name="keyed_by" label={t('component.bands_keyed_by')} />
+						<Field name="rounding" />
+						<Field name="sequence" label={t('component.applied_at')} />
+					</Grid>
+				</Stack>
+
+				<Stack as="section" gap="sm" class="border-t border-border pt-5">
+					<Stack gap="xs">
+						<h3 class="text-sm font-semibold">Relief and named rules</h3>
+						<p class="text-meta">Only configure exceptions the scheme explicitly declares.</p>
+					</Stack>
 					<Field
 						name="relief_for"
 						label={t('component.gives_relief_for')}
@@ -95,16 +122,51 @@
 							}
 						}}
 					/>
-				</Column>
-				<Column span="all"
-					><Field name="special_rules" label={t('component.named_special_rules')} /></Column
-				>
-				<Column span="all"
-					><Field name="effective_range" label={t('component.effective_period')} /></Column
-				>
-			</Grid>
+					<Field name="special_rules" label={t('component.named_special_rules')} />
+				</Stack>
+
+				{#if !record}
+					<Stack as="section" gap="sm" class="border-t border-border pt-5">
+						<h3 class="text-sm font-semibold">Overtime chargeability</h3>
+						<Field name="overtime_treatments" label="Derived overtime" />
+						<Field name="overtime_excess_treatments" label="Excess overtime" />
+					</Stack>
+				{/if}
+			</Stack>
 		{/snippet}
 	</CollectionForm>
+{/snippet}
+
+{#snippet overtimeTreatments()}
+	{#if record}
+		<CollectionForm
+			{client}
+			collection="statutory_contributions"
+			defaultValues={record}
+			submitLabel={t('component.save_scheme')}
+		>
+			{#snippet children({ Field })}
+				<Stack gap="lg">
+					<Stack as="section" gap="sm">
+						<Stack gap="xs">
+							<h3 class="text-sm font-semibold">Derived overtime</h3>
+							<p class="text-meta">How this scheme charges ordinary derived overtime over time.</p>
+						</Stack>
+						<Field name="overtime_treatments" label="Overtime positions" />
+					</Stack>
+					<Stack as="section" gap="sm" class="border-t border-border pt-5">
+						<Stack gap="xs">
+							<h3 class="text-sm font-semibold">Excess overtime</h3>
+							<p class="text-meta">
+								How reclassified overtime beyond a total-hours limit is charged.
+							</p>
+						</Stack>
+						<Field name="overtime_excess_treatments" label="Excess overtime positions" />
+					</Stack>
+				</Stack>
+			{/snippet}
+		</CollectionForm>
+	{/if}
 {/snippet}
 
 {#snippet rates()}
@@ -162,6 +224,12 @@
 			contentPadding={false}
 			config={[
 				{ name: 'scheme', label: 'Scheme', icon: 'lucide:landmark', content: scheme },
+				{
+					name: 'overtime',
+					label: 'Overtime',
+					icon: 'lucide:clock-arrow-up',
+					content: overtimeTreatments
+				},
 				{ name: 'rates', label: 'Rate bands', icon: 'lucide:percent', content: rates }
 			] satisfies TabConfig[]}
 		/>

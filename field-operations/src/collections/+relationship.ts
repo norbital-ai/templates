@@ -4,9 +4,9 @@ import type { Relationships } from './$types.js';
  * `r.one.user` is the identity table, reachable as a foreign-key target and nothing else.
  *
  * An assignment's assignee is a person, so it points at `bolt_auth_user` — the only description of a
- * person a bolt has. There is deliberately no collection wrapping it and no `contractor_profiles`
- * standing in for one; a second table describing the same people is exactly what this workspace used
- * to carry, and what it now does not.
+ * person a bolt has. There is deliberately no collection wrapping it: a second table describing the
+ * same people would restate a directory the runtime already owns, and give a contractor a record they
+ * could fail to have.
  */
 export default ((r) => ({
 	sites: {

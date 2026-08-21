@@ -10,8 +10,7 @@ type Approval = NonNullable<Policy['grants'][number]['approval']>;
  * `bolt_auth_user.norbital_id`, so the assignment collection carries the requestor directly and the
  * self-scope is a column comparison — `ownAssignment` below is an ordinary `where`, not a subquery.
  * Everything else is one hop from an assignment, so each remaining `$sql` reaches the requestor
- * through `job_assignments` alone; the `contractor_profiles` join that used to sit in every one of
- * them is gone along with the collection.
+ * through `job_assignments` alone.
  *
  * There is deliberately no grant on any collection describing the contractor themselves. The person
  * is `bolt_auth_user`, which the runtime's own `bolt.system-collections` policy already grants to any

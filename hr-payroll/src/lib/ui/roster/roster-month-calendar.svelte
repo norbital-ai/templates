@@ -247,14 +247,30 @@
 
 	const RUNG_PRESENTATION: Record<
 		LockRung,
-		{ readonly labelKey: TenantI18nKeys; readonly railClass: string; readonly padlock: boolean }
+		{
+			readonly labelKey: TenantI18nKeys;
+			readonly railClass: string;
+			readonly lockKind: 'none' | 'system' | 'application';
+		}
 	> = {
-		OPEN: { labelKey: 'roster.rung_open', railClass: 'bg-transparent', padlock: false },
-		PENDING: { labelKey: 'roster.rung_pending', railClass: 'bg-warning', padlock: false },
+		OPEN: {
+			labelKey: 'roster.rung_open',
+			railClass: 'bg-transparent',
+			lockKind: 'none'
+		},
+		PENDING: {
+			labelKey: 'roster.rung_pending',
+			railClass: 'bg-warning',
+			lockKind: 'system'
+		},
 		// Full `bg-brand` rather than the board's `bg-brand/70`: with no `PAID` rung above it there is
 		// no darker sibling left for this to be read against, and a tint that exists only to be the
 		// lighter of a pair is just a weaker version of the strongest thing on the ladder.
-		CONSUMED: { labelKey: 'roster.rung_consumed', railClass: 'bg-brand', padlock: true }
+		CONSUMED: {
+			labelKey: 'roster.rung_consumed',
+			railClass: 'bg-brand',
+			lockKind: 'application'
+		}
 	};
 
 	/**
@@ -520,8 +536,13 @@
 												{#if holiday != null}
 													<span class="font-semibold">{HOLIDAY_PRESENTATION.mark}</span>
 												{/if}
-												{#if rail.padlock}
-													<span title={t(rail.labelKey)}>🔒</span>
+												{#if rail.lockKind === 'system'}
+													<IconWrapper
+														name="lucide:shield-check"
+														class="size-3.5 text-warning-foreground"
+													/>
+												{:else if rail.lockKind === 'application'}
+													<IconWrapper name="lucide:lock-keyhole" class="size-3.5 text-brand" />
 												{/if}
 											</Inline>
 										</Inline>

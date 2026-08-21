@@ -15,10 +15,10 @@
 		"@norbital-ai/bolt-protocol": "0.0.20",
 		"@norbital-ai/std": "0.0.20",
 		"@norbital-ai/ui": "0.0.20",
-		"effect": "4.0.0-rc.109",
+		"effect": "4.0.0-rc.111",
 		"mode-watcher": "^1.1.0",
 		"runed": "^0.37.1",
-		"svelte": "^5.56.9",
+		"svelte": "^5.56.10",
 		"vite": "^8.2.1"
 	},
 	"devDependencies": {

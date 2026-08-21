@@ -174,9 +174,9 @@ export const client: WorkspaceClient = {
 		// belong to, and the system read policy grants that row masked to an id and a name — a
 		// directory, not a membership list.
 		//
-		// It is also where an assignment's assignee is described. `contractor_profiles` used to sit
-		// here restating a subset of these same people under a company name; the row it added carried
-		// nothing this directory does not, and the app that had to fetch one could fail to find it.
+		// It is also where an assignment's assignee is described. Nothing else describes a person, and
+		// nothing should: a second table restating a subset of these people under a company name would
+		// carry nothing this directory does not, and could fail to hold a row for somebody real.
 		bolt_auth_user: collectionOperations('bolt_auth_user')
 	},
 	invoke: runtimeClient.invoke as unknown as WorkspaceInvoke

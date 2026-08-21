@@ -16,11 +16,9 @@ export default defineModel(
 		 * The person this job was dispatched to — `bolt_auth_user.norbital_id`, directly.
 		 *
 		 * There is no contractor record between the assignment and the person, and there is nothing
-		 * for one to hold: a contractor is a user whose team confers `field_ops_contractor`, and the
-		 * only thing the deleted `contractor_profiles` row carried beyond this id was a company name
-		 * that restated the person's own. Holding the user id here is what lets the contractor policy
-		 * scope by column comparison instead of a subquery, and what removes the "profile" a
-		 * contractor could fail to have.
+		 * for one to hold: a contractor is a user whose team confers `field_ops_contractor`. Holding
+		 * the user id here is what lets the contractor policy scope by column comparison instead of a
+		 * subquery, and what removes a profile row a contractor could fail to have.
 		 */
 		assignee_user_id: uuid().notNull(),
 		dispatched_at: timestamp(),

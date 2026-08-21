@@ -22,9 +22,8 @@ const rowSchema = Schema.Struct({
 	/**
 	 * Who the job goes to, by the name they sign in under.
 	 *
-	 * This was `contractor_company`, matched against `contractor_profiles.company_name`. There is no
-	 * such collection and no such column: a contractor is a user, so the roster names a person and the
-	 * import resolves them against `bolt_auth_user`. A name is the only identifying field the identity
+	 * A contractor is a user, not a company, so the roster names a person and the import resolves them
+	 * against `bolt_auth_user`. A name is the only identifying field the identity
 	 * grant's mask exposes — the address is not readable through it — so a name shared by two people
 	 * is refused by `usersByName` rather than resolved to whichever row came back first.
 	 */

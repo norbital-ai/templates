@@ -1,13 +1,12 @@
 <script lang="ts">
 	import { Result, Schema } from 'effect';
-	import OvertimeAwardRenderer from '../overtime_award/+renderer.svelte';
-	import OvertimeBandRenderer from '../overtime_band/+renderer.svelte';
-	import { splitList, nullableNumberFrom, numberFrom } from '../../lib/ui/renderer-input.js';
 	import { Button } from '@norbital-ai/ui/button';
 	import { Combobox } from '@norbital-ai/ui/combobox';
 	import type { CollectionField } from '@norbital-ai/ui/data-renderer';
+	import { MatrixRenderer, type MatrixColumn } from '@norbital-ai/ui/data-renderer/matrix';
 	import { Input } from '@norbital-ai/ui/input';
-	import { Cluster, Grid, Inline, Stack } from '@norbital-ai/ui/layout';
+	import { Grid, Inline, Stack } from '@norbital-ai/ui/layout';
+	import { nullableNumberFrom, splitList } from '../../lib/ui/renderer-input.js';
 	import {
 		statutoryRegimeSchema,
 		type StatutoryRegime,
@@ -17,26 +16,140 @@
 
 	type Rule = Value['overtime_rules'][number];
 	type Limit = Value['overtime_limits'][number];
-	/**
-	 * Taken from the definition rather than from `Value['rest_break_rules'][number]`, because the
-	 * member is an optional key: the generated indexed access is `readonly Break[] | undefined`, and
-	 * every use below would have to unwrap it again.
-	 */
 	type BreakRule = StatutoryRestBreakRule;
 	type Coverage = NonNullable<Value['overtime_coverage']>;
 	type CategoryBasis = Coverage['category_basis'];
 	type WageBasis = NonNullable<Coverage['wage_basis']>;
 
-	const BAND_FIELD = {
-		name: 'band',
-		kind: 'overtime_band',
-		nullable: false
-	} satisfies CollectionField;
-	const AWARD_FIELD = {
-		name: 'award',
-		kind: 'overtime_award',
-		nullable: false
-	} satisfies CollectionField;
+	type PricingRow = {
+		readonly id: string;
+		readonly day_type: Rule['day_type'];
+		readonly measure: Rule['band']['measure'];
+		readonly from: number;
+		readonly to: number | null;
+		readonly award: Rule['award']['kind'];
+		readonly multiple: number;
+		readonly authority: string;
+	};
+	type LimitRow = Limit & { readonly id: string };
+	type BreakRow = {
+		readonly id: string;
+		readonly applies_when: BreakRule['applies_when'];
+		readonly after_consecutive_hours: number | null;
+		readonly minimum_minutes: number | null;
+		readonly paid_status: 'UNSTATED' | 'WORKING_TIME' | 'NOT_WORKING_TIME';
+		readonly on_exceed: BreakRule['on_exceed'];
+		readonly authority: string;
+	};
+
+	const enumField = (name: string, values: readonly string[]): CollectionField => ({
+		name,
+		kind: 'enum',
+		nullable: false,
+		values
+	});
+	const numericField = (name: string, nullable = false): CollectionField => ({
+		name,
+		kind: 'numeric',
+		nullable
+	});
+	const integerField = (name: string, nullable = false): CollectionField => ({
+		name,
+		kind: 'integer',
+		nullable
+	});
+	const textField = (name: string): CollectionField => ({ name, kind: 'text', nullable: false });
+
+	const PRICING_COLUMNS = [
+		{
+			key: 'day_type',
+			label: 'Day type',
+			field: enumField('day_type', ['ORDINARY', 'REST_DAY', 'PUBLIC_HOLIDAY']),
+			width: 170
+		},
+		{
+			key: 'measure',
+			label: 'Measured from',
+			field: enumField('measure', ['BEYOND_NORMAL', 'FROM_START_OF_DAY']),
+			width: 190
+		},
+		{ key: 'from', label: 'From', field: numericField('from'), width: 110 },
+		{
+			key: 'to',
+			label: 'To',
+			field: numericField('to', true),
+			placeholder: 'No limit',
+			width: 110
+		},
+		{
+			key: 'award',
+			label: 'Award basis',
+			field: enumField('award', ['HOURLY_MULTIPLE', 'DAY_WAGE_MULTIPLE']),
+			width: 180
+		},
+		{ key: 'multiple', label: 'Multiple', field: numericField('multiple'), width: 120 },
+		{ key: 'authority', label: 'Authority', field: textField('authority'), width: 220 }
+	] satisfies readonly MatrixColumn<PricingRow>[];
+
+	const LIMIT_COLUMNS = [
+		{
+			key: 'period',
+			label: 'Period',
+			field: enumField('period', ['DAY', 'WEEK', 'MONTH']),
+			width: 130
+		},
+		{
+			key: 'measures',
+			label: 'Measures',
+			field: enumField('measures', ['OVERTIME_HOURS', 'TOTAL_WORK_HOURS']),
+			width: 190
+		},
+		{ key: 'max_hours', label: 'Maximum hours', field: numericField('max_hours'), width: 150 },
+		{
+			key: 'on_exceed',
+			label: 'When exceeded',
+			field: enumField('on_exceed', ['WARN', 'BLOCK']),
+			width: 150
+		},
+		{ key: 'authority', label: 'Authority', field: textField('authority'), width: 240 }
+	] satisfies readonly MatrixColumn<LimitRow>[];
+
+	const BREAK_COLUMNS = [
+		{
+			key: 'applies_when',
+			label: 'Applies to',
+			field: enumField('applies_when', ['ALWAYS', 'CONTINUOUS_ATTENDANCE']),
+			width: 200
+		},
+		{
+			key: 'after_consecutive_hours',
+			label: 'After hours',
+			field: numericField('after_consecutive_hours', true),
+			placeholder: 'Every day',
+			width: 140
+		},
+		{
+			key: 'minimum_minutes',
+			label: 'Minimum minutes',
+			field: integerField('minimum_minutes', true),
+			placeholder: 'Not stated',
+			width: 150
+		},
+		{
+			key: 'paid_status',
+			label: 'Working time',
+			field: enumField('paid_status', ['UNSTATED', 'WORKING_TIME', 'NOT_WORKING_TIME']),
+			width: 180
+		},
+		{
+			key: 'on_exceed',
+			label: 'On shortfall',
+			field: enumField('on_exceed', ['WARN', 'BLOCK']),
+			width: 140
+		},
+		{ key: 'authority', label: 'Authority', field: textField('authority'), width: 240 }
+	] satisfies readonly MatrixColumn<BreakRow>[];
+
 	const CATEGORY_BASES: { value: CategoryBasis; label: string }[] = [
 		{ value: 'STATUTORY_WORK_CATEGORY', label: 'Statutory work category' },
 		{ value: 'WORK_CLASSIFICATION', label: 'Work classification' }
@@ -45,43 +158,7 @@
 		{ value: 'STATUTORY_WAGES', label: 'Statutory wages' },
 		{ value: 'BASE_SALARY', label: 'Base salary' }
 	];
-	const DAY_TYPES: { value: Rule['day_type']; label: string }[] = [
-		{ value: 'ORDINARY', label: 'Ordinary day' },
-		{ value: 'REST_DAY', label: 'Rest day' },
-		{ value: 'PUBLIC_HOLIDAY', label: 'Public holiday' }
-	];
-	const PERIODS: { value: Limit['period']; label: string }[] = [
-		{ value: 'DAY', label: 'Day' },
-		{ value: 'WEEK', label: 'Week' },
-		{ value: 'MONTH', label: 'Month' }
-	];
-	const MEASURES: { value: Limit['measures']; label: string }[] = [
-		{ value: 'OVERTIME_HOURS', label: 'Overtime hours' },
-		{ value: 'TOTAL_WORK_HOURS', label: 'Total work hours' }
-	];
-	const LIMIT_ACTIONS: { value: Limit['on_exceed']; label: string }[] = [
-		{ value: 'WARN', label: 'Warn' },
-		{ value: 'BLOCK', label: 'Block' }
-	];
-	const BREAK_ARMS: { value: BreakRule['applies_when']; label: string }[] = [
-		{ value: 'ALWAYS', label: 'Every working day' },
-		{ value: 'CONTINUOUS_ATTENDANCE', label: 'Work requiring continual attendance' }
-	];
-	/**
-	 * Three states, because the field has three. "Not stated" is the answer wherever the primary text
-	 * is silent — Malaysia's s.60A(1)(a) calls the period "leisure" and says nothing about payment —
-	 * and it must stay distinguishable from "unpaid", which is what Indonesia's ps.79(2)(a) actually
-	 * says. Collapsing the two would let a later reader price a statute that never spoke.
-	 */
-	const BREAK_PAID: { value: string; label: string }[] = [
-		{ value: 'unstated', label: 'The statute does not say' },
-		{ value: 'paid', label: 'Counted as working time' },
-		{ value: 'unpaid', label: 'Not counted as working time' }
-	];
-	const BREAK_ACTIONS: { value: BreakRule['on_exceed']; label: string }[] = [
-		{ value: 'WARN', label: 'Warn' },
-		{ value: 'BLOCK', label: 'Block' }
-	];
+
 	let props: RendererProps = $props();
 	const disabled = $derived(props.mode === 'edit' ? props.disabled : true);
 	const parsed = $derived(Schema.decodeUnknownResult(statutoryRegimeSchema)(props.value));
@@ -95,53 +172,48 @@
 		[
 			`${current.overtime_rules.length} pricing bands`,
 			`${current.overtime_limits.length} limits`,
-			// Only mentioned once declared. A snapshot that predates this member says nothing about
-			// breaks, and "0 break rules" would read as a decision nobody made.
 			...(breakRules.length > 0 ? [`${breakRules.length} break rules`] : [])
 		].join(' · ')
+	);
+
+	const pricingRows = $derived(
+		current.overtime_rules.map((rule, index): PricingRow => ({
+			id: `pricing-${index}`,
+			day_type: rule.day_type,
+			measure: rule.band.measure,
+			from: rule.band.measure === 'BEYOND_NORMAL' ? rule.band.from_hours : rule.band.from_fraction,
+			to: rule.band.measure === 'BEYOND_NORMAL' ? rule.band.to_hours : rule.band.to_fraction,
+			award: rule.award.kind,
+			multiple: rule.award.multiple,
+			authority: rule.authority
+		}))
+	);
+	const limitRows = $derived(
+		current.overtime_limits.map((limit, index): LimitRow => ({ id: `limit-${index}`, ...limit }))
+	);
+	const breakRows = $derived(
+		breakRules.map((rule, index): BreakRow => ({
+			id: `break-${index}`,
+			applies_when: rule.applies_when,
+			after_consecutive_hours: rule.after_consecutive_hours,
+			minimum_minutes: rule.minimum_minutes,
+			paid_status:
+				rule.counts_as_worked_time === null
+					? 'UNSTATED'
+					: rule.counts_as_worked_time
+						? 'WORKING_TIME'
+						: 'NOT_WORKING_TIME',
+			on_exceed: rule.on_exceed,
+			authority: rule.authority
+		}))
 	);
 
 	function emit(next: Value): void {
 		if (props.mode === 'edit') props.onValueChange(next);
 	}
 
-	function replaceRule(index: number, next: Rule): void {
-		emit({
-			...current,
-			overtime_rules: current.overtime_rules.map((entry, position) =>
-				position === index ? next : entry
-			)
-		});
-	}
-
-	function replaceLimit(index: number, next: Limit): void {
-		emit({
-			...current,
-			overtime_limits: current.overtime_limits.map((entry, position) =>
-				position === index ? next : entry
-			)
-		});
-	}
-
 	function replaceCoverage(next: Coverage | null): void {
 		emit({ ...current, overtime_coverage: next });
-	}
-
-	function replaceBreakRule(index: number, next: BreakRule): void {
-		emit({
-			...current,
-			rest_break_rules: breakRules.map((entry, position) => (position === index ? next : entry))
-		});
-	}
-
-	/** The three-state control's value, and the field it writes back. */
-	function paidValue(rule: BreakRule): string {
-		if (rule.counts_as_worked_time === null) return 'unstated';
-		return rule.counts_as_worked_time ? 'paid' : 'unpaid';
-	}
-
-	function paidFrom(value: string): boolean | null {
-		return value === 'unstated' ? null : value === 'paid';
 	}
 
 	function defaultCoverage(): Coverage {
@@ -155,6 +227,33 @@
 			authority: ''
 		};
 	}
+
+	function pricingRules(rows: PricingRow[]): Rule[] {
+		return rows.map((row) => ({
+			day_type: row.day_type,
+			authority: row.authority,
+			band:
+				row.measure === 'BEYOND_NORMAL'
+					? { measure: 'BEYOND_NORMAL', from_hours: row.from, to_hours: row.to }
+					: { measure: 'FROM_START_OF_DAY', from_fraction: row.from, to_fraction: row.to },
+			award:
+				row.award === 'HOURLY_MULTIPLE'
+					? { kind: 'HOURLY_MULTIPLE', multiple: row.multiple }
+					: { kind: 'DAY_WAGE_MULTIPLE', multiple: row.multiple }
+		}));
+	}
+
+	function statutoryBreakRules(rows: BreakRow[]): BreakRule[] {
+		return rows.map((row) => ({
+			applies_when: row.applies_when,
+			after_consecutive_hours: row.after_consecutive_hours,
+			minimum_minutes: row.minimum_minutes,
+			counts_as_worked_time:
+				row.paid_status === 'UNSTATED' ? null : row.paid_status === 'WORKING_TIME',
+			on_exceed: row.on_exceed,
+			authority: row.authority
+		}));
+	}
 </script>
 
 {#if props.mode === 'display'}
@@ -162,21 +261,20 @@
 {:else}
 	<Stack gap="lg">
 		<Stack as="section" gap="md">
-			<Inline justify="between" align="center" gap="sm">
-				<div>
-					<h3 class="text-sm font-semibold">Who is entitled to overtime</h3>
+			<Inline justify="between" align="start" gap="md">
+				<Stack gap="xs">
+					<h3 class="text-sm font-semibold">Overtime eligibility</h3>
 					<p class="text-meta">
-						Leave this off where the law entitles everyone; add it where the law names a wage
-						ceiling or work categories that decide entitlement.
+						Only add this when a wage ceiling or work category limits who receives overtime.
 					</p>
-				</div>
+				</Stack>
 				<Button
 					variant="outline"
 					size="sm"
 					{disabled}
 					onclick={() => replaceCoverage(current.overtime_coverage ? null : defaultCoverage())}
 				>
-					{current.overtime_coverage ? 'Remove entitlement rule' : 'Add entitlement rule'}
+					{current.overtime_coverage ? 'Remove eligibility rule' : 'Add eligibility rule'}
 				</Button>
 			</Inline>
 
@@ -232,7 +330,7 @@
 						/>
 					</label>
 					<label class="grid gap-1.5 text-sm font-medium">
-						Ceiling currency
+						Currency
 						<Input
 							value={coverage.wage_ceiling?.currency ?? ''}
 							maxlength={3}
@@ -250,11 +348,11 @@
 						/>
 					</label>
 					<label class="grid gap-1.5 text-sm font-medium">
-						Ceiling treatment
+						At the ceiling
 						<Combobox
 							options={[
-								{ value: 'inclusive', label: 'Earning exactly the ceiling is entitled' },
-								{ value: 'exclusive', label: 'Earning exactly the ceiling is not entitled' }
+								{ value: 'inclusive', label: 'Eligible' },
+								{ value: 'exclusive', label: 'Not eligible' }
 							]}
 							value={coverage.ceiling_is_inclusive === null
 								? null
@@ -270,10 +368,11 @@
 						/>
 					</label>
 					<label class="grid gap-1.5 text-sm font-medium">
-						Always entitled, whatever they earn
+						Always eligible categories
 						<Input
 							value={coverage.exempt_categories.join(', ')}
 							{disabled}
+							placeholder="Comma separated"
 							oninput={(event) =>
 								replaceCoverage({
 									...coverage,
@@ -282,10 +381,11 @@
 						/>
 					</label>
 					<label class="grid gap-1.5 text-sm font-medium">
-						Never entitled
+						Excluded categories
 						<Input
 							value={coverage.excluded_categories.join(', ')}
 							{disabled}
+							placeholder="Comma separated"
 							oninput={(event) =>
 								replaceCoverage({
 									...coverage,
@@ -306,306 +406,86 @@
 			{/if}
 		</Stack>
 
-		<Stack as="section" gap="md" class="border-t border-border pt-4">
-			<Inline justify="between" align="center" gap="sm">
-				<div>
-					<h3 class="text-sm font-semibold">Overtime pricing</h3>
-					<p class="text-meta">Bands are evaluated within each day type.</p>
-				</div>
-				<Button
-					variant="outline"
-					size="sm"
-					{disabled}
-					onclick={() =>
-						emit({
-							...current,
-							overtime_rules: [
-								...current.overtime_rules,
-								{
-									day_type: 'ORDINARY',
-									authority: '',
-									band: { measure: 'BEYOND_NORMAL', from_hours: 0, to_hours: null },
-									award: { kind: 'HOURLY_MULTIPLE', multiple: 1.5 }
-								}
-							]
-						})}>Add pricing band</Button
-				>
-			</Inline>
-			{#each current.overtime_rules as rule, index (index)}
-				<Stack gap="sm" class="border-t border-border py-3 first:border-t-0">
-					<Inline justify="between" align="center" gap="sm">
-						<Combobox
-							options={DAY_TYPES}
-							value={rule.day_type}
-							{disabled}
-							searchable={false}
-							onValueChange={(value) => {
-								if (value) replaceRule(index, { ...rule, day_type: value });
-							}}
-						/>
-						<Button
-							variant="ghost"
-							size="sm"
-							{disabled}
-							onclick={() =>
-								emit({
-									...current,
-									overtime_rules: current.overtime_rules.filter((_, position) => position !== index)
-								})}>Remove</Button
-						>
-					</Inline>
-					<Grid gap="sm" minimum="panel">
-						<OvertimeBandRenderer
-							field={BAND_FIELD}
-							value={rule.band}
-							mode="edit"
-							{disabled}
-							onValueChange={(value) => {
-								if (value) replaceRule(index, { ...rule, band: value });
-							}}
-						/>
-						<OvertimeAwardRenderer
-							field={AWARD_FIELD}
-							value={rule.award}
-							mode="edit"
-							{disabled}
-							onValueChange={(value) => {
-								if (value) replaceRule(index, { ...rule, award: value });
-							}}
-						/>
-					</Grid>
-					<label class="grid gap-1.5 text-sm font-medium">
-						Authority
-						<Input
-							value={rule.authority}
-							{disabled}
-							oninput={(event) =>
-								replaceRule(index, { ...rule, authority: event.currentTarget.value })}
-						/>
-					</label>
-				</Stack>
-			{/each}
+		<Stack as="section" gap="sm" class="border-t border-border pt-5">
+			<Stack gap="xs">
+				<h3 class="text-sm font-semibold">Overtime pricing</h3>
+				<p class="text-meta">Each row is one non-overlapping pricing band for a day type.</p>
+			</Stack>
+			<MatrixRenderer
+				rows={pricingRows}
+				columns={PRICING_COLUMNS}
+				{disabled}
+				emptyMessage="No overtime pricing bands"
+				addRowLabel="Add pricing band"
+				createRow={(): PricingRow => ({
+					id: crypto.randomUUID(),
+					day_type: 'ORDINARY',
+					measure: 'BEYOND_NORMAL',
+					from: 0,
+					to: null,
+					award: 'HOURLY_MULTIPLE',
+					multiple: 1.5,
+					authority: ''
+				})}
+				bounded={false}
+				onChange={(rows) => emit({ ...current, overtime_rules: pricingRules(rows) })}
+			/>
 		</Stack>
 
-		<Stack as="section" gap="md" class="border-t border-border pt-4">
-			<Inline justify="between" align="center" gap="sm">
-				<div>
-					<h3 class="text-sm font-semibold">Working-time limits</h3>
-					<p class="text-meta">A period and measure identify one ceiling.</p>
-				</div>
-				<Button
-					variant="outline"
-					size="sm"
-					{disabled}
-					onclick={() =>
-						emit({
-							...current,
-							overtime_limits: [
-								...current.overtime_limits,
-								{
-									period: 'MONTH',
-									measures: 'OVERTIME_HOURS',
-									max_hours: 0,
-									on_exceed: 'BLOCK',
-									authority: ''
-								}
-							]
-						})}>Add limit</Button
-				>
-			</Inline>
-			{#each current.overtime_limits as limit, index (index)}
-				<Grid gap="sm" minimum="compact" class="border-t border-border py-3 first:border-t-0">
-					<Combobox
-						options={PERIODS}
-						value={limit.period}
-						{disabled}
-						searchable={false}
-						onValueChange={(value) => {
-							if (value) replaceLimit(index, { ...limit, period: value });
-						}}
-					/>
-					<Combobox
-						options={MEASURES}
-						value={limit.measures}
-						{disabled}
-						searchable={false}
-						onValueChange={(value) => {
-							if (value) replaceLimit(index, { ...limit, measures: value });
-						}}
-					/>
-					<Input
-						type="number"
-						min="0.01"
-						step="0.25"
-						value={limit.max_hours}
-						{disabled}
-						oninput={(event) =>
-							replaceLimit(index, {
-								...limit,
-								max_hours: numberFrom(event.currentTarget.value, 0)
-							})}
-					/>
-					<Combobox
-						options={LIMIT_ACTIONS}
-						value={limit.on_exceed}
-						{disabled}
-						searchable={false}
-						onValueChange={(value) => {
-							if (value) replaceLimit(index, { ...limit, on_exceed: value });
-						}}
-					/>
-					<label class="col-span-full grid gap-1.5 text-sm font-medium">
-						Authority
-						<Input
-							value={limit.authority}
-							{disabled}
-							oninput={(event) =>
-								replaceLimit(index, { ...limit, authority: event.currentTarget.value })}
-						/>
-					</label>
-					<Cluster class="col-span-full" justify="end">
-						<Button
-							variant="ghost"
-							size="sm"
-							{disabled}
-							onclick={() =>
-								emit({
-									...current,
-									overtime_limits: current.overtime_limits.filter(
-										(_, position) => position !== index
-									)
-								})}>Remove</Button
-						>
-					</Cluster>
-				</Grid>
-			{/each}
+		<Stack as="section" gap="sm" class="border-t border-border pt-5">
+			<Stack gap="xs">
+				<h3 class="text-sm font-semibold">Working-time limits</h3>
+				<p class="text-meta">Each period and measure may have one maximum.</p>
+			</Stack>
+			<MatrixRenderer
+				rows={limitRows}
+				columns={LIMIT_COLUMNS}
+				{disabled}
+				emptyMessage="No working-time limits"
+				addRowLabel="Add limit"
+				createRow={(): LimitRow => ({
+					id: crypto.randomUUID(),
+					period: 'MONTH',
+					measures: 'OVERTIME_HOURS',
+					max_hours: 1,
+					on_exceed: 'BLOCK',
+					authority: ''
+				})}
+				bounded={false}
+				onChange={(rows) =>
+					emit({
+						...current,
+						overtime_limits: rows.map(({ id: _, ...limit }) => limit)
+					})}
+			/>
 		</Stack>
 
-		<Stack as="section" gap="md" class="border-t border-border pt-4">
-			<Inline justify="between" align="center" gap="sm">
-				<div>
-					<h3 class="text-sm font-semibold">Rest and meal breaks</h3>
-					<p class="text-meta">
-						A consecutive-hours rule, measured from the punches. This is a compliance check and
-						never changes pay. Leave the minimum empty where the statute names no length, and the
-						trigger empty where it owes the break every day.
-					</p>
-				</div>
-				<Button
-					variant="outline"
-					size="sm"
-					{disabled}
-					onclick={() =>
-						emit({
-							...current,
-							rest_break_rules: [
-								...breakRules,
-								{
-									after_consecutive_hours: 5,
-									minimum_minutes: 30,
-									counts_as_worked_time: null,
-									applies_when: 'ALWAYS',
-									on_exceed: 'WARN',
-									authority: ''
-								}
-							]
-						})}>Add break rule</Button
-				>
-			</Inline>
-			{#each breakRules as rule, index (index)}
-				<Grid gap="sm" minimum="compact" class="border-t border-border py-3 first:border-t-0">
-					<label class="grid gap-1.5 text-sm font-medium">
-						Applies to
-						<Combobox
-							options={BREAK_ARMS}
-							value={rule.applies_when}
-							{disabled}
-							searchable={false}
-							onValueChange={(value) => {
-								if (value) replaceBreakRule(index, { ...rule, applies_when: value });
-							}}
-						/>
-					</label>
-					<label class="grid gap-1.5 text-sm font-medium">
-						After consecutive hours
-						<Input
-							type="number"
-							min="0"
-							step="0.25"
-							value={rule.after_consecutive_hours ?? ''}
-							{disabled}
-							placeholder="Owed every day"
-							oninput={(event) =>
-								replaceBreakRule(index, {
-									...rule,
-									after_consecutive_hours: nullableNumberFrom(event.currentTarget.value)
-								})}
-						/>
-					</label>
-					<label class="grid gap-1.5 text-sm font-medium">
-						Minimum length (minutes)
-						<Input
-							type="number"
-							min="0"
-							step="1"
-							value={rule.minimum_minutes ?? ''}
-							{disabled}
-							placeholder="The statute names none"
-							oninput={(event) =>
-								replaceBreakRule(index, {
-									...rule,
-									minimum_minutes: nullableNumberFrom(event.currentTarget.value)
-								})}
-						/>
-					</label>
-					<label class="grid gap-1.5 text-sm font-medium">
-						Paid status
-						<Combobox
-							options={BREAK_PAID}
-							value={paidValue(rule)}
-							{disabled}
-							searchable={false}
-							onValueChange={(value) => {
-								if (value)
-									replaceBreakRule(index, { ...rule, counts_as_worked_time: paidFrom(value) });
-							}}
-						/>
-					</label>
-					<label class="grid gap-1.5 text-sm font-medium">
-						On shortfall
-						<Combobox
-							options={BREAK_ACTIONS}
-							value={rule.on_exceed}
-							{disabled}
-							searchable={false}
-							onValueChange={(value) => {
-								if (value) replaceBreakRule(index, { ...rule, on_exceed: value });
-							}}
-						/>
-					</label>
-					<label class="col-span-full grid gap-1.5 text-sm font-medium">
-						Authority
-						<Input
-							value={rule.authority}
-							{disabled}
-							oninput={(event) =>
-								replaceBreakRule(index, { ...rule, authority: event.currentTarget.value })}
-						/>
-					</label>
-					<Cluster class="col-span-full" justify="end">
-						<Button
-							variant="ghost"
-							size="sm"
-							{disabled}
-							onclick={() =>
-								emit({
-									...current,
-									rest_break_rules: breakRules.filter((_, position) => position !== index)
-								})}>Remove</Button
-						>
-					</Cluster>
-				</Grid>
-			{/each}
+		<Stack as="section" gap="sm" class="border-t border-border pt-5">
+			<Stack gap="xs">
+				<h3 class="text-sm font-semibold">Rest and meal breaks</h3>
+				<p class="text-meta">
+					Compliance checks only; these rules do not change pay. Leave a value empty when the law
+					does not state it.
+				</p>
+			</Stack>
+			<MatrixRenderer
+				rows={breakRows}
+				columns={BREAK_COLUMNS}
+				{disabled}
+				emptyMessage="No rest or meal-break rules"
+				addRowLabel="Add break rule"
+				createRow={(): BreakRow => ({
+					id: crypto.randomUUID(),
+					applies_when: 'ALWAYS',
+					after_consecutive_hours: 5,
+					minimum_minutes: 30,
+					paid_status: 'UNSTATED',
+					on_exceed: 'WARN',
+					authority: ''
+				})}
+				bounded={false}
+				onChange={(rows) => emit({ ...current, rest_break_rules: statutoryBreakRules(rows) })}
+			/>
 		</Stack>
 	</Stack>
 {/if}

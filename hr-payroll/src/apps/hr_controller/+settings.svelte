@@ -6,7 +6,6 @@
 	import { Cover } from '@norbital-ai/ui/layout';
 	import { Tabs, type TabConfig } from '@norbital-ai/ui/tabs';
 	import { inForceTodayFilter } from '../../lib/ui/calendar.js';
-	import { formatNumeric, formatProrationBasis } from '../../lib/ui/display-formatters.js';
 
 	const { t } = useI18n<TenantI18nKeys>();
 
@@ -59,13 +58,6 @@
 			<Column name="code" card="title" />
 			<Column name="name" card="subtitle" />
 			<Column name="currency" />
-			<Column name="proration" render={({ value }) => formatProrationBasis(value, t)} />
-			<Column name="ordinary_rate_basis" label={t('app.settings.ordinary_rate_basis')} />
-			<Column
-				name="ordinary_rate_divisor"
-				label={t('app.settings.divisor')}
-				render={({ value }) => formatNumeric(value)}
-			/>
 			<Column name="effective_range" label={t('component.effective')} />
 		{/snippet}
 	</CollectionTable>
@@ -90,11 +82,7 @@
 				render={({ value }) =>
 					value == null || value === '' ? '—' : (jurisdictionLabelsById.get(String(value)) ?? '—')}
 			/>
-			<Column name="pay_cutoff_day" label={t('app.settings.cutoff_day')} />
 			<Column name="pay_day" label={t('app.settings.pay_day')} />
-			<Column name="leave_year_start_month" label={t('app.settings.leave_year_starts')} />
-			<Column name="overtime_calculation_method" label={t('app.settings.ot_calculation')} />
-			<Column name="risk_class" label={t('app.settings.risk_class')} />
 			<Column name="effective_range" label={t('component.effective')} />
 		{/snippet}
 	</CollectionTable>

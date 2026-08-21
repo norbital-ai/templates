@@ -9,6 +9,8 @@ import {
 	lockMap,
 	assertNotSettled,
 	sourceLock,
+	sourceLockSystemLocked,
+	sourceLockApplicationLocked,
 	sourceLockBlocksWrite,
 	assertSourceUnlocked
 } from './lock.ts';
@@ -170,6 +172,19 @@ test('assertSourceUnlocked refuses domain freezes and leaves pending approval to
 		() => assertSourceUnlocked({ kind: 'SETTLED', period: '2026-07' }, 'Changing a leave request'),
 		/taken this record into account/
 	);
+});
+
+test('approval and application locks stay explicitly classified', () => {
+	const pendingApproval = { kind: 'PENDING_APPROVAL' } as const;
+	const settled = { kind: 'SETTLED', period: '2026-07' } as const;
+	const unlocked = { kind: 'NONE' } as const;
+
+	assert.equal(sourceLockSystemLocked(pendingApproval), true);
+	assert.equal(sourceLockApplicationLocked(pendingApproval), false);
+	assert.equal(sourceLockSystemLocked(settled), false);
+	assert.equal(sourceLockApplicationLocked(settled), true);
+	assert.equal(sourceLockSystemLocked(unlocked), false);
+	assert.equal(sourceLockApplicationLocked(unlocked), false);
 });
 
 /**

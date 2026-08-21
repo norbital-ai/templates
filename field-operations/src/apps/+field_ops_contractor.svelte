@@ -13,8 +13,8 @@
 	/**
 	 * Who is looking, answered by what the runtime says they may open — never by a client-side id.
 	 *
-	 * The obvious version of this app filtered `contractor_profiles` by
-	 * `getPlatformStateContext()().user.norbital_id`, and that value is not an id at all: the shell
+	 * Never filter by `getPlatformStateContext()().user.norbital_id`. Despite its name that value is
+	 * not an id at all: the shell
 	 * builds it as `user.name`, which the workspace host builds as the local part of the signed-in
 	 * address. So the filter sent `user_id = 'dion.neo'` to a `uuid()` column and every viewer got a
 	 * failed query rendered as "Could not load your contractor profile."
