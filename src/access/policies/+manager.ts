@@ -28,10 +28,9 @@ import type { Policy } from './$types.js';
  * `payslip_lines` are enumerated authority that begins at `hr_controller` and `senior_management`.
  * The previous `Management` policy in this template granted a manager read, create, update and
  * delete on `payroll_runs`; under the owner's ladder that was three authorities too many, and its
- * payroll-create approval config `019efa4d-0a10-7a04-8b04-000000000008` is retired with it.
+ * payroll-create approval it carried is retired with it.
  */
 export default {
-	name: 'manager',
 	description:
 		'Manager: reads people operations across the company and owns their team’s time and leave.',
 	/**
@@ -58,7 +57,7 @@ export default {
 	 * collection grant this file lists, and an approval step routed to `Senior Management` is
 	 * decided from the notification and the request surface rather than from the HR app.
 	 */
-	apps: ['hr_employee', 'hr_controller'],
+	capabilities: { apps: ['hr_employee', 'hr_controller'] },
 
 	grants: [
 		...referenceGrants('read'),
@@ -74,21 +73,33 @@ export default {
 		{
 			collection: 'time_entries',
 			action: 'create',
-			approval: timeEntryApproval('019efa4d-0a10-7a04-8b04-000000000310')
+			approval: timeEntryApproval
 		},
 		{
 			collection: 'time_entries',
 			action: 'update',
-			approval: timeEntryApproval('019efa4d-0a10-7a04-8b04-000000000320')
+			approval: timeEntryApproval
 		},
 		{ collection: 'time_entries', action: 'delete' },
 
 		{
 			collection: 'leave_requests',
 			action: 'create',
-			approval: leaveApproval('019efa4d-0a10-7a04-8b04-000000000330')
+			approval: leaveApproval
 		},
 		{ collection: 'leave_requests', action: 'update' },
 		{ collection: 'leave_requests', action: 'delete' }
-	]
+	],
+	/**
+	 * What a holder of this policy may spend.
+	 *
+	 * Declared here rather than in a workspace-wide file, because a rate limit is only meaningful in
+	 * terms of who is spending it: `collections.*` is authenticated and cheap, `agents.turn` is
+	 * authenticated and costs money at a model provider. Two classes of person holding two policies
+	 * can now be given two budgets for the same command, which one file for everybody could not say.
+	 */
+	limits: {
+		'collections.*': { window: '1 min', limit: 600, key: 'subject' },
+		'agents.turn': { window: '1 hour', limit: 100, key: 'subject' }
+	}
 } satisfies Policy;

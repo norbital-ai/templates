@@ -2,7 +2,7 @@ import { Effect } from 'effect';
 import { refuse } from '@norbital-ai/bolt/authoring';
 import type { CollectionHooks } from '@norbital-ai/bolt/authoring';
 import type { WorkspaceSchema } from '$bolt/types.js';
-import type { WorkedInterval } from '../../custom-types/worked_intervals/+definition.js';
+import type { WorkedInterval } from '../../datatypes/worked_intervals/+definition.js';
 import { leaveCoverage, type LeaveRequestLike } from '../../lib/scheduling/leave-coverage.js';
 import {
 	payrollWindows,

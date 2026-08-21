@@ -16,7 +16,7 @@ import {
 import type { Configuration, ShiftDefinition } from './configuration.js';
 import { dateKey, requiredDateKey, type IsoDate } from './dates.js';
 import { coversDate } from './effective.js';
-import type { WorkPattern } from '../../../custom-types/work_pattern/+definition.js';
+import type { WorkPattern } from '../../../datatypes/work_pattern/+definition.js';
 
 export type DayType = 'ORDINARY' | 'REST_DAY' | 'PUBLIC_HOLIDAY' | 'OFF_DAY';
 

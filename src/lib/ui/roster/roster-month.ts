@@ -20,9 +20,9 @@
 
 import { calendarDayKey, daysInMonth, startOfDayInstant } from '../calendar.js';
 import { workedMinutes } from '../../attendance.js';
-import type { WorkedInterval } from '../../../custom-types/worked_intervals/+definition.js';
-import type { RosterCodeVariant } from '../../../custom-types/roster_code_variant/+definition.js';
-import type { WorkPattern } from '../../../custom-types/work_pattern/+definition.js';
+import type { WorkedInterval } from '../../../datatypes/worked_intervals/+definition.js';
+import type { RosterCodeVariant } from '../../../datatypes/roster_code_variant/+definition.js';
+import type { WorkPattern } from '../../../datatypes/work_pattern/+definition.js';
 import { clockMinutes, rosterCodeKind, workWindow } from '../../scheduling/roster-code.js';
 import { patternRosterCodeId } from '../../scheduling/work-pattern.js';
 import type { DayLock, SettlementClaim, SourceLock } from '../../scheduling/lock.js';

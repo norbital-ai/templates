@@ -19,7 +19,7 @@
  */
 
 import type { Configuration, OvertimeCoverageRule, PayComponent } from './configuration.js';
-import type { ComponentDefinition } from '../../../custom-types/component_definition/+definition.js';
+import type { ComponentDefinition } from '../../../datatypes/component_definition/+definition.js';
 import {
 	classifyWageComparand,
 	decideOvertimeCoverage,
@@ -27,7 +27,7 @@ import {
 	type Money,
 	type WageBasis
 } from './coverage.js';
-import type { PayslipLineComponent } from '../../../custom-types/payslip_line_component/+definition.js';
+import type { PayslipLineComponent } from '../../../datatypes/payslip_line_component/+definition.js';
 import {
 	addDays,
 	dateKey,

@@ -58,7 +58,7 @@
  * ────────────────────────────────────────────────────────────────────────────────────────────────
  */
 
-import type { StatutoryRestBreakRule } from '../../../custom-types/statutory_regime/+definition.js';
+import type { StatutoryRestBreakRule } from '../../../datatypes/statutory_regime/+definition.js';
 import {
 	restBreakAssessment,
 	type RestBreakAssessment

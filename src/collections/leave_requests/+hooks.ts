@@ -13,7 +13,7 @@ import {
 	sourceLockBlocksWrite,
 	sourceLockMessage
 } from '../../lib/scheduling/lock.js';
-import type { LeaveEvent } from '../../custom-types/leave_event/+definition.js';
+import type { LeaveEvent } from '../../datatypes/leave_event/+definition.js';
 import type { Hooks, WorkspaceRow } from './$types.js';
 
 type Half = 'FIRST' | 'SECOND';

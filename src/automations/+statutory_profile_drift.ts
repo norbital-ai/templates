@@ -1,7 +1,7 @@
 import { defineAutomation } from '@norbital-ai/bolt/authoring';
 import { Effect, Schema } from 'effect';
 import { todayInstant, todayKey } from '../lib/ui/calendar.js';
-import type { StatutoryFactStatus } from '../custom-types/statutory_fact_status/+definition.js';
+import type { StatutoryFactStatus } from '../datatypes/statutory_fact_status/+definition.js';
 
 /**
  * In-force statutory alignment: which companies, facts and schemes have drifted, and which
@@ -310,6 +310,15 @@ const reportSchema = Schema.Struct({
 export default defineAutomation(
 	{ schedule: '0 3 * * 1' },
 	{
+		/**
+		 * The authority every run of this automation acts under.
+		 *
+		 * Its own, not its trigger's. This used to inherit whoever tripped it — so the same nightly
+		 * sweep ran as an administrator when an administrator happened to start it, and as a contractor
+		 * otherwise, over a different set of rows each time. Naming it here is what makes "what can this
+		 * automation touch" a question with an answer that does not depend on the day.
+		 */
+		policies: ['hr_controller'],
 		description:
 			'Weekly check that in-force statutory snapshots, contribution schemes and employment statutory facts still line up — successor facts only when a unique scheme successor exists.',
 		handler: (api) =>

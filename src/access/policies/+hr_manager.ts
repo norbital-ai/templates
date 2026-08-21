@@ -32,13 +32,12 @@ import type { Policy } from './$types.js';
  *     component entries and leave requests that run consumed. `payroll_runs/+hooks.ts` refuses the
  *     delete outright once `lifecycle = 'PAID'`, so this grant can only ever release a draft's claims.
  *
- * The generated groups and the verbatim approval ids carry over from `+hr_controller.policy.ts` for
+ * The generated groups and the verbatim approval ids carry over from `+hr_controller.ts` for
  * the reasons stated there; the time-entry and leave configs get their own ids, because the same flow
  * reached by a different role is a different config row and collapsing them would make a
  * manager-raised correction indistinguishable from a controller-raised one in the approval history.
  */
 export default {
-	name: 'hr_manager',
 	description:
 		'HR management: everything HR administration covers, plus creating, running and deleting payroll runs.',
 	/**
@@ -65,7 +64,7 @@ export default {
 	 * collection grant this file lists, and an approval step routed to `Senior Management` is
 	 * decided from the notification and the request surface rather than from the HR app.
 	 */
-	apps: ['hr_employee', 'hr_controller'],
+	capabilities: { apps: ['hr_employee', 'hr_controller'] },
 
 	grants: [
 		...referenceGrants('read', 'create', 'update', 'delete'),
@@ -74,18 +73,18 @@ export default {
 		...peopleGrants('create', 'update', 'delete'),
 		...grantsOn('time_entries', ['read']),
 
-		// The adjustment path. Unconditional on both read and create — see `+hr_controller.policy.ts`.
+		// The adjustment path. Unconditional on both read and create — see `+hr_controller.ts`.
 		...grantsOn('component_entries', ['read', 'create', 'update', 'delete']),
 
 		{
 			collection: 'time_entries',
 			action: 'create',
-			approval: timeEntryApproval('019efa4d-0a10-7a04-8b04-000000000610')
+			approval: timeEntryApproval
 		},
 		{
 			collection: 'time_entries',
 			action: 'update',
-			approval: timeEntryApproval('019efa4d-0a10-7a04-8b04-000000000620')
+			approval: timeEntryApproval
 		},
 		{ collection: 'time_entries', action: 'delete' },
 
@@ -93,11 +92,23 @@ export default {
 		{
 			collection: 'leave_requests',
 			action: 'create',
-			approval: leaveApproval('019efa4d-0a10-7a04-8b04-000000000630')
+			approval: leaveApproval
 		},
 
 		...payrollGrants('read'),
 		...payrollRebuildGrants(),
 		...grantsOn('payroll_runs', ['create', 'update', 'delete'])
-	]
+	],
+	/**
+	 * What a holder of this policy may spend.
+	 *
+	 * Declared here rather than in a workspace-wide file, because a rate limit is only meaningful in
+	 * terms of who is spending it: `collections.*` is authenticated and cheap, `agents.turn` is
+	 * authenticated and costs money at a model provider. Two classes of person holding two policies
+	 * can now be given two budgets for the same command, which one file for everybody could not say.
+	 */
+	limits: {
+		'collections.*': { window: '1 min', limit: 600, key: 'subject' },
+		'agents.turn': { window: '1 hour', limit: 100, key: 'subject' }
+	}
 } satisfies Policy;

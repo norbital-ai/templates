@@ -10,19 +10,19 @@ import { humanize } from '@norbital-ai/std/string';
 import type { TenantI18nKeys } from '$bolt/i18n-keys';
 import type { Translator } from './roster/roster-month.js';
 import { PAYROLL_TIME_ZONE, calendarDateInTimeZone, calendarDayKey } from './calendar.js';
-import { componentDefinitionSchema } from '../../custom-types/component_definition/+definition.js';
-import { entryOriginSchema } from '../../custom-types/entry_origin/+definition.js';
-import { holidayScopeSchema } from '../../custom-types/holiday_scope/+definition.js';
-import { leaveAccrualSchema } from '../../custom-types/leave_accrual/+definition.js';
-import { leavePayrollEffectSchema } from '../../custom-types/leave_payroll_effect/+definition.js';
-import { moneySchema } from '../../custom-types/money/+definition.js';
-import { overtimeAwardSchema } from '../../custom-types/overtime_award/+definition.js';
-import { overtimeBandSchema } from '../../custom-types/overtime_band/+definition.js';
-import { prorationBasisSchema } from '../../custom-types/proration_basis/+definition.js';
-import { rateAwardSchema } from '../../custom-types/rate_award/+definition.js';
-import { rateSelectorSchema } from '../../custom-types/rate_selector/+definition.js';
-import { repaymentScheduleSchema } from '../../custom-types/repayment_schedule/+definition.js';
-import { statutoryFactStatusSchema } from '../../custom-types/statutory_fact_status/+definition.js';
+import { componentDefinitionSchema } from '../../datatypes/component_definition/+definition.js';
+import { entryOriginSchema } from '../../datatypes/entry_origin/+definition.js';
+import { holidayScopeSchema } from '../../datatypes/holiday_scope/+definition.js';
+import { leaveAccrualSchema } from '../../datatypes/leave_accrual/+definition.js';
+import { leavePayrollEffectSchema } from '../../datatypes/leave_payroll_effect/+definition.js';
+import { moneySchema } from '../../datatypes/money/+definition.js';
+import { overtimeAwardSchema } from '../../datatypes/overtime_award/+definition.js';
+import { overtimeBandSchema } from '../../datatypes/overtime_band/+definition.js';
+import { prorationBasisSchema } from '../../datatypes/proration_basis/+definition.js';
+import { rateAwardSchema } from '../../datatypes/rate_award/+definition.js';
+import { rateSelectorSchema } from '../../datatypes/rate_selector/+definition.js';
+import { repaymentScheduleSchema } from '../../datatypes/repayment_schedule/+definition.js';
+import { statutoryFactStatusSchema } from '../../datatypes/statutory_fact_status/+definition.js';
 
 const DECIMAL = new Intl.NumberFormat(undefined, {
 	minimumFractionDigits: 2,

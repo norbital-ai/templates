@@ -1,7 +1,7 @@
 import { defineQueryHandler, type SchemaRawOperators } from '@norbital-ai/bolt/authoring';
 import { Effect, Schema } from 'effect';
 import { calendarDayKey } from '../lib/ui/calendar.js';
-import type { EntryOrigin } from '../custom-types/entry_origin/+definition.js';
+import type { EntryOrigin } from '../datatypes/entry_origin/+definition.js';
 
 export type SeasonalHeatmapRow = {
 	readonly year: string;

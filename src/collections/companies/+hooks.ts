@@ -1,6 +1,6 @@
 import { Effect } from 'effect';
 import { refuse } from '@norbital-ai/bolt/authoring';
-import type { SettlementPolicy } from '../../custom-types/settlement_policy/+definition.js';
+import type { SettlementPolicy } from '../../datatypes/settlement_policy/+definition.js';
 import {
 	payCalendarInstalments,
 	PAY_FREQUENCIES,

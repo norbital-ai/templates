@@ -24,12 +24,12 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import teams from '../+teams.ts';
-import employee from '../policies/+employee.policy.ts';
-import supervisor from '../policies/+supervisor.policy.ts';
-import manager from '../policies/+manager.policy.ts';
-import seniorManagement from '../policies/+senior_management.policy.ts';
-import hrController from '../policies/+hr_controller.policy.ts';
-import hrManager from '../policies/+hr_manager.policy.ts';
+import employee from '../access/policies/+employee.ts';
+import supervisor from '../access/policies/+supervisor.ts';
+import manager from '../access/policies/+manager.ts';
+import seniorManagement from '../access/policies/+senior_management.ts';
+import hrController from '../access/policies/+hr_controller.ts';
+import hrManager from '../access/policies/+hr_manager.ts';
 
 /** Keyed by the filename each one was imported from, which is the other half of the name check. */
 const policiesByFileKey = {
@@ -71,7 +71,7 @@ test('the six policies are the six names a team may declare', () => {
 	// One name per policy, and no two policies sharing one. `policiesHeldByTeam` returns a set of
 	// folded names, so two policies folding together would be two policies one name reaches.
 	assert.equal(new Set(policies.map(heldNameOf)).size, policies.length);
-	// And each of those strings is the policy's own file key — `+hr_controller.policy.ts` declares
+	// And each of those strings is the policy's own file key — `+hr_controller.ts` declares
 	// `hr_controller`. A `name` that drifted from its filename would be a second axis to keep in
 	// step, and `+teams.ts` would end up typed against whichever of the two was handier.
 	for (const [key, policy] of Object.entries(policiesByFileKey))
@@ -217,7 +217,7 @@ test('every policy can read the settlement ledger, or its refusal becomes an acc
 
 test('each rank composes the rank beneath it, because nothing inherits at run time', () => {
 	// `subjectHasPolicy` matches by name, so a subject whose team declares only `manager` is granted
-	// exactly what `+manager.policy.ts` lists. Inheritance is therefore materialized, and this is the
+	// exactly what `+manager.ts` lists. Inheritance is therefore materialized, and this is the
 	// check that it stayed materialized when somebody edited one file and not the other.
 	const contains = (wider, narrower) => {
 		const surface = surfaceOf(wider);

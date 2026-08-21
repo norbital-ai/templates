@@ -31,10 +31,9 @@ import type { Policy } from './$types.js';
  * role is one of the two the controller's payroll create escalates to, and approving a run whose
  * corrections you are forbidden to read is a signature on a figure you cannot check. That is a
  * choice, and the narrower reading — HR only — is one grant away: put `NOT_AN_ADJUSTMENT` on the
- * `component_entries` read below, exactly as `+manager.policy.ts` does.
+ * `component_entries` read below, exactly as `+manager.ts` does.
  */
 export default {
-	name: 'senior_management',
 	description:
 		'Senior management: the full people-operations view, plus creating, running and deleting payroll runs.',
 	/**
@@ -61,7 +60,7 @@ export default {
 	 * collection grant this file lists, and an approval step routed to `Senior Management` is
 	 * decided from the notification and the request surface rather than from the HR app.
 	 */
-	apps: ['hr_employee'],
+	capabilities: { apps: ['hr_employee'] },
 
 	grants: [
 		// The ordinary ladder, widened: senior management writes the configuration a manager only reads.
@@ -78,12 +77,12 @@ export default {
 		{
 			collection: 'time_entries',
 			action: 'create',
-			approval: timeEntryApproval('019efa4d-0a10-7a04-8b04-000000000410')
+			approval: timeEntryApproval
 		},
 		{
 			collection: 'time_entries',
 			action: 'update',
-			approval: timeEntryApproval('019efa4d-0a10-7a04-8b04-000000000420')
+			approval: timeEntryApproval
 		},
 		{ collection: 'time_entries', action: 'delete' },
 
@@ -91,7 +90,7 @@ export default {
 		{
 			collection: 'leave_requests',
 			action: 'create',
-			approval: leaveApproval('019efa4d-0a10-7a04-8b04-000000000430')
+			approval: leaveApproval
 		},
 
 		// The payroll authority, identical to `hr_manager`'s. Stated as the same three builder calls so
@@ -99,5 +98,17 @@ export default {
 		...payrollGrants('read'),
 		...payrollRebuildGrants(),
 		...grantsOn('payroll_runs', ['create', 'update', 'delete'])
-	]
+	],
+	/**
+	 * What a holder of this policy may spend.
+	 *
+	 * Declared here rather than in a workspace-wide file, because a rate limit is only meaningful in
+	 * terms of who is spending it: `collections.*` is authenticated and cheap, `agents.turn` is
+	 * authenticated and costs money at a model provider. Two classes of person holding two policies
+	 * can now be given two budgets for the same command, which one file for everybody could not say.
+	 */
+	limits: {
+		'collections.*': { window: '1 min', limit: 600, key: 'subject' },
+		'agents.turn': { window: '1 hour', limit: 100, key: 'subject' }
+	}
 } satisfies Policy;

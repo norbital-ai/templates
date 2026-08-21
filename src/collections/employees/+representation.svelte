@@ -20,7 +20,7 @@
 	import {
 		workPatternSchema,
 		type WorkPattern
-	} from '../../custom-types/work_pattern/+definition.js';
+	} from '../../datatypes/work_pattern/+definition.js';
 	import {
 		formatEffectiveRange,
 		formatStatutoryFactStatus

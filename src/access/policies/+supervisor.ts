@@ -35,7 +35,6 @@ import type { Policy } from './$types.js';
  * authority, the grant is.
  */
 export default {
-	name: 'supervisor',
 	description:
 		'First-line supervisor: reads the team, reviews and records their attendance and leave.',
 	/**
@@ -62,7 +61,7 @@ export default {
 	 * collection grant this file lists, and an approval step routed to `Senior Management` is
 	 * decided from the notification and the request surface rather than from the HR app.
 	 */
-	apps: ['hr_employee'],
+	capabilities: { apps: ['hr_employee'] },
 
 	grants: [
 		...referenceGrants('read'),
@@ -82,12 +81,12 @@ export default {
 		{
 			collection: 'time_entries',
 			action: 'create',
-			approval: timeEntryApproval('019efa4d-0a10-7a04-8b04-000000000210')
+			approval: timeEntryApproval
 		},
 		{
 			collection: 'time_entries',
 			action: 'update',
-			approval: timeEntryApproval('019efa4d-0a10-7a04-8b04-000000000220')
+			approval: timeEntryApproval
 		},
 
 		// Raising leave is reviewed; amending one already raised is not. A supervisor amending a
@@ -96,8 +95,20 @@ export default {
 		{
 			collection: 'leave_requests',
 			action: 'create',
-			approval: leaveApproval('019efa4d-0a10-7a04-8b04-000000000230')
+			approval: leaveApproval
 		},
 		{ collection: 'leave_requests', action: 'update' }
-	]
+	],
+	/**
+	 * What a holder of this policy may spend.
+	 *
+	 * Declared here rather than in a workspace-wide file, because a rate limit is only meaningful in
+	 * terms of who is spending it: `collections.*` is authenticated and cheap, `agents.turn` is
+	 * authenticated and costs money at a model provider. Two classes of person holding two policies
+	 * can now be given two budgets for the same command, which one file for everybody could not say.
+	 */
+	limits: {
+		'collections.*': { window: '1 min', limit: 600, key: 'subject' },
+		'agents.turn': { window: '1 hour', limit: 100, key: 'subject' }
+	}
 } satisfies Policy;

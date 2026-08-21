@@ -91,7 +91,6 @@ const ownClaim = {
 } as const;
 
 export default {
-	name: 'employee',
 	description: 'Employee self-service access to profile, time, requests, loans, and payslips.',
 	/**
 	 * Self-service first, because it is the one app nobody's rank gates.
@@ -106,7 +105,7 @@ export default {
 	 * The row scope is unchanged and does the actual work: the app's queries are `${requestor.email}`
 	 * -scoped, so naming it here shows a person their own record and nobody else's.
 	 */
-	apps: ['hr_employee'],
+	capabilities: { apps: ['hr_employee'] },
 
 	grants: [
 		{ collection: 'employees', action: 'read', where: ownEmployeeRecord },
@@ -125,19 +124,19 @@ export default {
 			collection: 'time_entries',
 			action: 'create',
 			where: ownEmploymentChild,
-			approval: timeEntryApproval('019efa4b-b947-755a-990e-53c8da7b855f')
+			approval: timeEntryApproval
 		},
 		{
 			collection: 'component_entries',
 			action: 'create',
 			where: ownClaim,
-			approval: claimApproval('019efa4b-b947-755a-990e-53c8da7b855e')
+			approval: claimApproval
 		},
 		{
 			collection: 'leave_requests',
 			action: 'create',
 			where: ownEmploymentChild,
-			approval: leaveApproval('019efa4b-b947-755a-990e-53c8da7b856e')
+			approval: leaveApproval
 		},
 
 		// Reference data an employee needs to read their own numbers. Unconditional, and correctly so:
@@ -147,5 +146,17 @@ export default {
 		// Why an employee reads the settlement ledger at all: see `settlementLedgerGrants`. Without it
 		// the refusal on a settled time entry is an access denial instead of an explanation.
 		...settlementLedgerGrants()
-	]
+	],
+	/**
+	 * What a holder of this policy may spend.
+	 *
+	 * Declared here rather than in a workspace-wide file, because a rate limit is only meaningful in
+	 * terms of who is spending it: `collections.*` is authenticated and cheap, `agents.turn` is
+	 * authenticated and costs money at a model provider. Two classes of person holding two policies
+	 * can now be given two budgets for the same command, which one file for everybody could not say.
+	 */
+	limits: {
+		'collections.*': { window: '1 min', limit: 600, key: 'subject' },
+		'agents.turn': { window: '1 hour', limit: 100, key: 'subject' }
+	}
 } satisfies Policy;

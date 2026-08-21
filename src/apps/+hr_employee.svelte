@@ -4,7 +4,7 @@
 	import { useI18n } from '@norbital-ai/ui/i18n';
 	import type { TenantI18nKeys } from '$bolt/i18n-keys';
 	import type { WorkspaceRow } from '$bolt/types.js';
-	import type { LeaveEvent } from '../custom-types/leave_event/+definition.js';
+	import type { LeaveEvent } from '../datatypes/leave_event/+definition.js';
 	import { CollectionTable } from '@norbital-ai/ui/collection-table';
 	import { Combobox } from '@norbital-ai/ui/combobox';
 	import { Button } from '@norbital-ai/ui/button';
@@ -191,7 +191,7 @@
 	/**
 	 * NO `payroll_runs` QUERY LIVES ON THIS PAGE, AND NONE MAY BE ADDED.
 	 *
-	 * An employee has no `read` grant on `payroll_runs` — see `src/policies/+employee.policy.ts` —
+	 * An employee has no `read` grant on `payroll_runs` — see `src/access/policies/+employee.ts` —
 	 * and that is the owner's ruling, not an oversight: only the HR controller, the HR manager and
 	 * the L1 manager see the runs. This page used to ask anyway and build `payrollWindows` from the
 	 * result. The result was always empty, and an empty window list is indistinguishable from "this

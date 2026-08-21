@@ -1,4 +1,4 @@
-import type { WorkPattern } from '../../custom-types/work_pattern/+definition.js';
+import type { WorkPattern } from '../../datatypes/work_pattern/+definition.js';
 import { rosterCodeKind, workWindow, type RosterCodeLike } from './roster-code.js';
 
 const DAY_MS = 86_400_000;

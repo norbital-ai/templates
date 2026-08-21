@@ -1,6 +1,6 @@
 import { isCalendarDate } from '@norbital-ai/std/date';
 import { Effect, Schema } from 'effect';
-import { rosterCodeVariantSchema } from '../../custom-types/roster_code_variant/+definition.js';
+import { rosterCodeVariantSchema } from '../../datatypes/roster_code_variant/+definition.js';
 import { formatNamedList, monthBounds } from '../../lib/period.js';
 import type { Pipelines } from './$types.js';
 

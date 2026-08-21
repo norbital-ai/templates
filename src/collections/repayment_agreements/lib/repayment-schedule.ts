@@ -1,4 +1,4 @@
-import type { RepaymentSchedule } from '../../../custom-types/repayment_schedule/+definition.js';
+import type { RepaymentSchedule } from '../../../datatypes/repayment_schedule/+definition.js';
 
 const DATE = /^\d{4}-\d{2}-\d{2}$/;
 const MAX_INSTALMENTS = 600;
