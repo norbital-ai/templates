@@ -92,11 +92,11 @@
 	<meta name="bolt:icon" content="lucide:shopping-cart" />
 	<meta
 		name="bolt:thumbnail"
-		content="/api/template-seed-assets/crm/app-media/crm_purchase-banner.webp"
+		content="/__bolt/request/api/template-seed-assets/crm/app-media/crm_purchase-banner.webp"
 	/>
 	<meta
 		name="bolt:banner"
-		content="/api/template-seed-assets/crm/app-media/crm_purchase-banner.webp"
+		content="/__bolt/request/api/template-seed-assets/crm/app-media/crm_purchase-banner.webp"
 	/>
 </svelte:head>
 

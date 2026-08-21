@@ -19,7 +19,7 @@
 <svelte:head>
 	<meta
 		name="bolt:banner"
-		content="/api/template-seed-assets/crm/record-media/contacts-banner.svg"
+		content="/__bolt/request/api/template-seed-assets/crm/record-media/contacts-banner.svg"
 	/>
 </svelte:head>
 
