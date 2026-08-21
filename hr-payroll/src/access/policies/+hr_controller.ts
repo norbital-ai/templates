@@ -7,7 +7,7 @@ import {
 	referenceGrants,
 	statutoryGrants,
 	timeEntryApproval
-} from '../lib/policy_grants.js';
+} from '../../lib/policy_grants.js';
 import type { Policy } from './$types.js';
 
 /**
@@ -38,12 +38,9 @@ import type { Policy } from './$types.js';
  * exceptions are written out below the generated blocks, which is where the interesting part of any
  * permission set lives. See `src/lib/policy_grants.ts` for why the groups are functions.
  *
- * The gated grants carry their approval config and step **ids** verbatim from the policy this one
- * succeeds. Those ids are not decorative: an existing `approval_request` resolves its
- * `approval_config_id` by scanning grants for a matching `norbital_id`, so reissuing one would leave
- * every in-flight and historical request unable to name the flow that produced it. The payroll-run
- * config keeps id `…000007` for that reason even though its approver set has widened — the flow is
- * the same flow, decided by a larger room.
+ * The gated grants carry inline approval steps. Runtime derives their identities from the policy
+ * key, collection, action, and stable step key, so there are no hand-authored UUIDs here to collide
+ * or drift from the grant they gate.
  *
  * `apps: ['hr_controller']` names the app *group*, as the seed did. Eight apps sit under it and
  * `appAccessAllowed` matches a group prefix, so this is one grant rather than eight — and, unlike

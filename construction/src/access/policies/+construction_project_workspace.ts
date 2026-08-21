@@ -5,10 +5,10 @@ import type { Policy } from './$types.js';
  *
  * Ported verbatim from the since-deleted Core seed (`seed/construction/steps/policies.ts`), which built all three
  * construction policies from one `constructionCollections` list and one `readGrants` map. The three
- * declarations repeat that list rather than sharing it, because `src/policies` admits only
- * `+<name>.policy.ts` files — a shared `collections.ts` next to them is a `POLICY_NAME_INVALID`
- * diagnostic, not a module. Twelve literal lines per file is the cost of keeping the whole grant set
- * of a policy readable in the file that names it.
+ * declarations repeat that list rather than sharing it, because `src/access/policies` admits only
+ * `+<name>.ts` files — a shared `collections.ts` next to them is a `POLICY_NAME_INVALID` diagnostic,
+ * not a module. Twelve literal lines per file is the cost of keeping the whole grant set of a
+ * policy readable in the file that names it.
  *
  * Every grant is unconditional. That is deliberate and matches the seed: construction has no
  * requestor-bearing column on any of these collections, so there is nothing to scope to. The

@@ -19,14 +19,9 @@
 	import type { TenantI18nKeys } from '$bolt/i18n-keys';
 	import type { RepresentationProps } from './$types.js';
 	import { CollectionForm } from '@norbital-ai/ui/collection-form';
-	import { Column, Grid, Stack } from '@norbital-ai/ui/layout';
+	import { Column, Grid } from '@norbital-ai/ui/layout';
 	import { RelationshipRenderer } from '@norbital-ai/ui/data-renderer/relationship';
-	import {
-		sourceLock,
-		sourceLockBlocksWrite,
-		sourceLockI18nKey,
-		sourceLockI18nParams
-	} from '../../lib/scheduling/lock.js';
+	import { sourceLock, sourceLockRecordMetadata } from '../../lib/scheduling/lock.js';
 
 	let { record, close }: RepresentationProps = $props();
 	const { t } = useI18n<TenantI18nKeys>();
@@ -66,8 +61,7 @@
 				})
 			: { kind: 'NONE' as const }
 	);
-	const locked = $derived(record != null && sourceLockBlocksWrite(lock));
-	const lockKey = $derived(sourceLockI18nKey(lock));
+	const recordMetadata = $derived(sourceLockRecordMetadata(lock, t));
 </script>
 
 <svelte:head>
@@ -77,57 +71,49 @@
 	/>
 </svelte:head>
 
-<Stack gap="md">
-	{#if lockKey}
-		<p class="rounded-md border border-border bg-muted/20 px-3 py-2 text-meta">
-			{t(lockKey, sourceLockI18nParams(lock))}
-		</p>
-	{/if}
-
-	<CollectionForm
-		{client}
-		collection="leave_requests"
-		defaultValues={record ?? undefined}
-		disabled={locked}
-		submitLabel={record ? t('component.save_leave') : t('component.submit_leave')}
-		onAfterSubmit={record ? undefined : close}
-	>
-		{#snippet children({ Field })}
-			<Grid gap="md" minimum="panel">
-				<Field
-					name="employment_id"
-					label={t('component.person')}
-					renderer={RelationshipRenderer}
-					rendererProps={{
-						target: 'employments',
-						options: {
-							label: (employment) =>
-								employment.employee_number != null && employment.employee_number !== ''
-									? String(employment.employee_number)
-									: '—',
-							orderBy: { employee_number: 'asc' },
-							limit: 1000
-						}
-					}}
-				/>
-				<Field
-					name="leave_type_id"
-					label={t('component.leave_type')}
-					renderer={RelationshipRenderer}
-					rendererProps={{
-						target: 'leave_types',
-						options: {
-							label: (leaveType) =>
-								[leaveType.code, leaveType.name]
-									.filter((part) => part != null && part !== '')
-									.join(' · ') || '—',
-							orderBy: { code: 'asc' },
-							limit: 500
-						}
-					}}
-				/>
-				<Column span="all"><Field name="event" label={t('component.what_happened')} /></Column>
-			</Grid>
-		{/snippet}
-	</CollectionForm>
-</Stack>
+<CollectionForm
+	{client}
+	collection="leave_requests"
+	defaultValues={record ?? undefined}
+	{recordMetadata}
+	submitLabel={record ? t('component.save_leave') : t('component.submit_leave')}
+	onAfterSubmit={record ? undefined : close}
+>
+	{#snippet children({ Field })}
+		<Grid gap="md" minimum="panel">
+			<Field
+				name="employment_id"
+				label={t('component.person')}
+				renderer={RelationshipRenderer}
+				rendererProps={{
+					target: 'employments',
+					options: {
+						label: (employment) =>
+							employment.employee_number != null && employment.employee_number !== ''
+								? String(employment.employee_number)
+								: '—',
+						orderBy: { employee_number: 'asc' },
+						limit: 1000
+					}
+				}}
+			/>
+			<Field
+				name="leave_type_id"
+				label={t('component.leave_type')}
+				renderer={RelationshipRenderer}
+				rendererProps={{
+					target: 'leave_types',
+					options: {
+						label: (leaveType) =>
+							[leaveType.code, leaveType.name]
+								.filter((part) => part != null && part !== '')
+								.join(' · ') || '—',
+						orderBy: { code: 'asc' },
+						limit: 500
+					}
+				}}
+			/>
+			<Column span="all"><Field name="event" label={t('component.what_happened')} /></Column>
+		</Grid>
+	{/snippet}
+</CollectionForm>

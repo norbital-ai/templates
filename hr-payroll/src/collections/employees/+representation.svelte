@@ -17,10 +17,7 @@
 	import { Column, Cover, Grid, Inline, Stack } from '@norbital-ai/ui/layout';
 	import { Tabs, type TabConfig } from '@norbital-ai/ui/tabs';
 	import { renderSnippet } from '@norbital-ai/ui/utils';
-	import {
-		workPatternSchema,
-		type WorkPattern
-	} from '../../datatypes/work_pattern/+definition.js';
+	import { workPatternSchema, type WorkPattern } from '../../datatypes/work_pattern/+definition.js';
 	import {
 		formatEffectiveRange,
 		formatStatutoryFactStatus

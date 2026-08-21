@@ -15,11 +15,7 @@
 		formatNumeric
 	} from '../../lib/ui/display-formatters.js';
 	import { inForceTodayFilter, todayInstant } from '../../lib/ui/calendar.js';
-	import {
-		sourceLock,
-		sourceLockApplicationLocked,
-		sourceLockReason
-	} from '../../lib/scheduling/lock.js';
+	import { sourceLock, sourceLockRecordMetadata } from '../../lib/scheduling/lock.js';
 
 	const { t } = useI18n<TenantI18nKeys>();
 
@@ -168,8 +164,7 @@
 				{client}
 				collection="component_entries"
 				view={`hr_controller:pay_components:entries:${selectedCompanyId}`}
-				isRowLocked={(row) => sourceLockApplicationLocked(entryRowLock(row))}
-				rowLockReason={(row) => sourceLockReason(entryRowLock(row), t)}
+				recordMetadata={(row) => sourceLockRecordMetadata(entryRowLock(row), t)}
 				query={{
 					where: {
 						repayment_agreement_id: { isNull: true },

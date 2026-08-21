@@ -58,7 +58,7 @@ type TimeEntryHooks = CollectionHooks<WorkspaceSchema, 'time_entries', TimeEntry
  * putting to a record — see `assertRecordNotClaimed`.
  *
  * Read through the requesting person's own subject, like every other hook read. That is why every
- * policy in `src/policies` carries a `payslip_sources` read grant — without one this would fail
+ * policy in `src/access/policies` carries a `payslip_sources` read grant — without one this would fail
  * as an access denial naming a collection the person has never heard of, instead of the sentence
  * that tells them what to do.
  */

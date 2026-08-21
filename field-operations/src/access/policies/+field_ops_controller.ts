@@ -13,26 +13,15 @@ import type { Policy } from './$types.js';
  * own assignments; this one sees every assignment. There is no third collection describing who a
  * contractor is, because a contractor is a user whose team holds `field_ops_contractor`.
  *
- * `name` is `Controller` and not `Field Operations Controller`, at the owner's request, and that
- * string is load-bearing: `subjectHasPolicy` matches a policy by `name`, case-folded, against the
- * set a subject's team confers. So the only route to this policy is a key in `src/+teams.ts` naming
- * `Controller` — today `Field Operations Controllers` and `Contractor (Controller)`. Rename it here
- * without renaming it there and the team quietly holds nothing: its members sign in successfully
- * into a workspace with no apps in it. `impersonationTeams` lists real teams now, so the picker
- * follows the same map rather than the policy list.
+ * The filename is the policy name: `field_ops_controller`. `access/+teams.ts` names that generated
+ * `PolicyName` for both the dispatch team and the combined contractor/controller team, so a rename
+ * fails at compile time wherever it is still referenced.
  *
- * The filename is a second, separate key. `field_ops_controller` is what the generated `PolicyName`
- * union is built from and what `envoys/+field_ops_whatsapp.ts` spells its `policy` as; it is *not*
- * what a team names. The two axes coincide in `templates/hr-payroll` and do not coincide here.
- *
- * Three names in this workspace are similar and none of them is this one:
- * `Field Operations Controllers` — plural — is a **team**, matched against `subject.team` by the
- * approval engine and named by `approvers` in `access/policies/+field_ops_contractor.ts`; renaming
- * it there without renaming it in `+teams.ts` is a compile error now, because `approvers` is a union
- * generated from that file's keys. The app is titled "Field
- * Operations Controller" in the i18n catalogues and in `+field_ops_controller.svelte`; that names a
- * surface. Only this file's own name names this policy — there is no `name:` field inside it to
- * disagree with the filename, which is how a display-cased string once compiled and matched nothing.
+ * `Field Operations Controllers` is instead a **team** and the approval target named by
+ * `approvers` in `access/policies/+field_ops_contractor.ts`. Approval checks the person's own team,
+ * `teamPath[0]`; renaming the team key without the approval is a compile error because `approvers`
+ * consumes the generated `TeamName` union. The app title "Field Operations Controller" is only UI
+ * copy. Policy, team, and surface therefore each have one deliberate owner.
  */
 export default {
 	description:

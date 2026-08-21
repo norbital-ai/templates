@@ -15,11 +15,9 @@ import type { Envoy } from './$types.js';
  * name `field_ops_contractor` instead, which handed a phone message the whole contractor surface —
  * variation requests, photo evidence, everything.
  *
- * There is no team behind it any more, and that is the defect this cutover closes here. The runtime
- * used to resolve an envoy's authority by finding a `bolt_team` holding *exactly* its declared
- * policy — so `+teams.ts` carried a `WhatsApp Channel Agent` team with no human members, existing
- * only to satisfy that lookup, and a workspace that forgot it got a channel that refused every
- * message it ever received. The policies are named here now and carried directly.
+ * There is no team behind it. Runtime mints the static `envoy:field_ops_whatsapp` subject directly
+ * from this declaration and carries this policy array with it; the linked account may narrow row
+ * predicates but cannot contribute its own team policies or administrator status.
  */
 export default {
 	transport: 'whatsapp',

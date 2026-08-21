@@ -94,6 +94,18 @@
 	 */
 	const isSuspicious = (assignment: { readonly norbital_id: string }): boolean =>
 		suspiciousAssignmentIds.has(assignment.norbital_id);
+	function assignmentRecordMetadata(assignment: { readonly norbital_id: string }) {
+		if (!isSuspicious(assignment)) return [] as const;
+		return [
+			{
+				kind: 'flag',
+				tone: 'warning',
+				icon: 'lucide:triangle-alert',
+				label: t('component.review_suspicious_evidence'),
+				description: t('component.suspicious_evidence_description')
+			}
+		] as const;
+	}
 
 	// Assign-contractor sheet — pairs an unassigned job for the day with the person who will do it.
 	const assignJobsQuery = $derived(
@@ -297,20 +309,10 @@
 						lanes={dispatchLanes}
 						rows={2}
 						query={boardQuery}
+						recordMetadata={assignmentRecordMetadata}
 					>
 						{#snippet Card(assignment)}
-							<!--
-								The accent sits on the *trailing* edge and is violet.
-
-								Deliberately not the leading edge and not amber or red: the approval workflow owns
-								the leading rule and the warning palette, and a suspicion drawn the same way would
-								read as "waiting for approval" — two different things a controller must act on
-								differently. Violet is outside that vocabulary and used for nothing else here.
-							-->
-							<Stack
-								gap="xs"
-								class={isSuspicious(assignment) ? 'border-e-2 border-violet-500 pe-3' : ''}
-							>
+							<Stack gap="xs">
 								<p class="text-sm font-medium">
 									{assignmentCardById.get(assignment.norbital_id)?.job ??
 										t('component.job_assignment')}
@@ -319,16 +321,6 @@
 									{assignmentCardById.get(assignment.norbital_id)?.assignee ??
 										t('component.contractor')}
 								</p>
-								{#if isSuspicious(assignment)}
-									<Inline
-										as="span"
-										gap="xs"
-										class="text-xs font-medium text-violet-700 dark:text-violet-300"
-									>
-										<Icon icon="lucide:triangle-alert" class="size-3.5 shrink-0" />
-										{t('component.review_suspicious_evidence')}
-									</Inline>
-								{/if}
 							</Stack>
 						{/snippet}
 					</CollectionKanban>

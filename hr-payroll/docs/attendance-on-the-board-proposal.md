@@ -519,7 +519,7 @@ that is amber for the controller is amber for the employee.
 
 ### 8.2 What the employee may do, and why it needs no new permissions
 
-`+employee.policy.ts` already grants every read this calendar makes, and exactly one write:
+`src/access/policies/+employee.ts` already grants every read this calendar makes, and exactly one write:
 
 ```text
    READ   employees · employments · employment_terms · roster_entries · time_entries

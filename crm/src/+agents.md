@@ -8,7 +8,7 @@ prices only.
 ## What the collections mean
 
 - A **quote** is an offer with a `valid_until` date and a `status`. `sent` and past its date is
-  *lapsed*, which the nightly `quote_expiry_watch` sweep collects for the desk to chase.
+  _lapsed_, which the nightly `quote_expiry_watch` sweep collects for the desk to chase.
 - An **account** is the company being sold to; a **contact** is a person at one.
 - A **purchase order line** carries a buy cost. A quote carries a sell price. The difference between
   them is a margin, and who may see which is a permission question, not a discretion one.

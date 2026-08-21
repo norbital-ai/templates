@@ -5,7 +5,7 @@ import type { Policy } from '../access/policies/$types.js';
  * THE POLICY LADDER, THE TWO PAYROLL AUTHORITIES, AND THE TWO LOCKS
  * ============================================================================
  *
- * This file composes every grant the six policies in `src/policies` are built from. It is the
+ * This file composes every grant the six policies in `src/access/policies` are built from. It is the
  * design document for all of them because it is the only place that sees them together.
  *
  * ## 1. The ladder
@@ -19,21 +19,12 @@ import type { Policy } from '../access/policies/$types.js';
  *                 hr_controller → hr_manager                   (payroll authority)
  * ```
  *
- * A policy is selected by its `name`, case-folded, and by nothing else. `policiesHeldByTeam` in
- * `oss/packages/bolt/src/runtime/access/access-control.ts` resolves the team names in a subject's
- * `teamPath` against the team map the release carries and returns the policy names those teams
- * declare, folded; `subjectHasPolicy` matches a policy when that set holds its folded `name`. The
- * authoring surface (`PolicyDefinition` in `@norbital-ai/bolt/authoring`) offers no other way to be
- * matched — so one policy is one name and one file, and that is why there are six `+*.policy.ts`
- * files and not three with lists in them.
+ * A policy is selected by its filename key, case-folded, and by nothing else. The compiler derives
+ * `PolicyName` from the six `src/access/policies/+<name>.ts` files; `src/access/+teams.ts` consumes
+ * that union for people and an envoy declaration consumes it for a static identity. There is no
+ * authored `name` field or display spelling to drift from the key.
  *
- * A policy's `name` **is its file key**: `+hr_controller.ts` declares `hr_controller`, and
- * the generated `PolicyName` union is built from the same six strings. One string, one axis. A
- * separate display spelling would be a second name for the same thing, and the two would be typed
- * into `src/+teams.ts` and into a channel's `policy` interchangeably until one of them silently
- * conferred nothing.
- *
- * *Which* teams hold which of those six names is `src/+teams.ts` and only `src/+teams.ts`. The two
+ * *Which* teams hold which of those six names is `src/access/+teams.ts` and only that file. The two
  * files are the two halves of authority here: that one says who holds a policy, this one says what
  * holding it grants.
  *
@@ -63,7 +54,7 @@ import type { Policy } from '../access/policies/$types.js';
  *   - The two special authorities are orthogonal to rank, so a person may hold `manager` *and*
  *     `hr_controller`. A person belongs to one team, so that combination is not an emergent union
  *     of two memberships — it is a team that declares both names, `Manager (HR Controller)` in
- *     `src/+teams.ts`. The union of their grants does the right thing without either policy
+ *     `src/access/+teams.ts`. The union of their grants does the right thing without either policy
  *     knowing about the other.
  *
  * ## 2. Who may do what to `payroll_runs`
@@ -135,8 +126,8 @@ import type { Policy } from '../access/policies/$types.js';
  *
  * ============================================================================
  *
- * This lives in `src/lib` rather than beside the policies because `src/policies` admits only
- * `+<name>.policy.ts` — anything else there is a `POLICY_NAME_INVALID` diagnostic, not a module.
+ * This lives in `src/lib` rather than beside the policies because `src/access/policies` admits only
+ * `+<name>.ts` — anything else there is a `POLICY_NAME_INVALID` diagnostic, not a module.
  *
  * The grouping is kept, not flattened. Core's seed used to generate ~140 grants from four collection
  * lists crossed with action lists, and the lists are the statement: a company writes its own
@@ -341,7 +332,8 @@ export const employeeReferenceGrants = (...actions: Action[]): readonly Grant[] 
  * A name here with no `bolt_team` row behind it is not a refusal — it is a step nobody is eligible
  * to decide, which is the same outcome as a team that exists and is empty. That is a membership
  * problem, fixed by creating the team or putting somebody in it, and it is why these are the same
- * strings as the keys in `src/+teams.ts` and as the `bolt_team` rows this workspace is seeded with.
+ * strings as the keys in `src/access/+teams.ts` and as the `bolt_team` rows this workspace is seeded
+ * with.
  *
  * The config and step **ids** are still carried verbatim, and that is a different thing: an in-flight
  * `approval_request` resolves against them, so a fresh one strands every request already raised.
@@ -355,8 +347,8 @@ export const employeeReferenceGrants = (...actions: Action[]): readonly Grant[] 
  * (`bolt_auth_user.team_id`), so a step naming a single team is decidable only by that exact team,
  * and every rung above it is locked out of a decision it obviously ought to be able to make.
  *
- * `approvals.decide` tests `step.approvers.some((team) => team folded === subject.team folded)`, so
- * listing several teams makes any of them sufficient — which is what seniority means here. The
+ * Approval checks each candidate against the person's own team (`subject.teamPath[0]`), so listing
+ * several teams makes any of them sufficient — which is what seniority means here. The
  * comparison is case-insensitive on both sides, the same rule the policy side matches names by, so
  * a step naming `HR manager` and a team named `HR Manager` are the same team and only a genuinely
  * different string strands the step. Two *steps* would mean two signatures; one step

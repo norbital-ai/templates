@@ -8,7 +8,7 @@ import {
 	settlementLedgerGrants,
 	statutoryGrants,
 	timeEntryApproval
-} from '../lib/policy_grants.js';
+} from '../../lib/policy_grants.js';
 import type { Policy } from './$types.js';
 
 /**

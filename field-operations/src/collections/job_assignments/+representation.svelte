@@ -196,6 +196,19 @@
 
 	/** Whether anything is still waiting on a controller — what the accents below turn on. */
 	const hasOpenSuspicion = $derived(suspicionRows.some((log) => log.resolved_at == null));
+	const recordMetadata = $derived(
+		!isContractorViewer && hasOpenSuspicion
+			? ([
+					{
+						kind: 'flag',
+						tone: 'warning',
+						icon: 'lucide:triangle-alert',
+						label: t('component.review_suspicious_evidence'),
+						description: t('component.suspicious_evidence_description')
+					}
+				] as const)
+			: ([] as const)
+	);
 
 	const scopedEvidence = $derived(
 		(directEvidenceQuery?.current ?? []).filter(
@@ -381,7 +394,12 @@
 	{#snippet statusAndActivity()}
 		<Scroll name={t('component.assignment_and_activity')}>
 			<Stack gap="md">
-				<CollectionForm {client} collection="job_assignments" defaultValues={record}>
+				<CollectionForm
+					{client}
+					collection="job_assignments"
+					defaultValues={record}
+					{recordMetadata}
+				>
 					{#snippet children({ Field })}
 						<Stack gap="md">
 							<div>
@@ -416,7 +434,6 @@
 						</Stack>
 					{/snippet}
 				</CollectionForm>
-				{@render suspicionBanner()}
 			</Stack>
 		</Scroll>
 	{/snippet}

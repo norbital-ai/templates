@@ -7,8 +7,8 @@ import { anonymousLimits } from '@norbital-ai/bolt/authoring';
  * rather than a stylistic one: **before sign-in there is no subject, so there is no policy to hang a
  * limit on.** Everything with a holder is declared by that holder — a person's budget lives in the
  * policies their team holds, an envoy's in the policies the envoy names — which is what lets a
- * contractor and a controller be given different budgets for the same command. One file for
- * everybody could not say that; `src/+ratelimits.ts` was that file.
+ * contractor and a controller be given different budgets for the same command. The retired
+ * workspace-wide declaration could not express that distinction.
  *
  * Both rules are keyed by `address`, and that is enforced rather than conventional: `subject` and
  * `sender` name things that do not exist yet at this surface, so a rule keyed by either would

@@ -13,12 +13,7 @@
 	import { Column, Grid, Stack } from '@norbital-ai/ui/layout';
 	import { RelationshipRenderer } from '@norbital-ai/ui/data-renderer/relationship';
 	import type { RepresentationProps, WorkspaceRow } from './$types.js';
-	import {
-		sourceLock,
-		sourceLockBlocksWrite,
-		sourceLockI18nKey,
-		sourceLockI18nParams
-	} from '../../lib/scheduling/lock.js';
+	import { sourceLock, sourceLockRecordMetadata } from '../../lib/scheduling/lock.js';
 
 	let { record, close }: RepresentationProps = $props();
 	const { t } = useI18n<TenantI18nKeys>();
@@ -99,8 +94,7 @@
 				})
 			: { kind: 'NONE' as const }
 	);
-	const locked = $derived(record != null && sourceLockBlocksWrite(lock));
-	const lockKey = $derived(sourceLockI18nKey(lock));
+	const recordMetadata = $derived(sourceLockRecordMetadata(lock, t));
 </script>
 
 <Stack gap="md">
@@ -113,17 +107,11 @@
 		</Column>
 	</Grid>
 
-	{#if lockKey}
-		<p class="rounded-md border border-border bg-muted/20 px-3 py-2 text-meta">
-			{t(lockKey, sourceLockI18nParams(lock))}
-		</p>
-	{/if}
-
 	<CollectionForm
 		{client}
 		collection="component_entries"
 		defaultValues={record ?? undefined}
-		disabled={locked}
+		{recordMetadata}
 		onAfterSubmit={record ? undefined : close}
 	>
 		{#snippet children({ Field })}

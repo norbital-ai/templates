@@ -32,8 +32,8 @@ every respect except discovery.
 ## Choosing a template
 
 - **Field Operations** is the focused choice for day-of-work dispatch, qualification checks,
-  site evidence, and variation requests. Contractors work over WhatsApp without an account: the
-  channel agent can only update their own job assignments and never sees integrity flags.
+  site evidence, and variation requests. Contractors reach the authenticated WhatsApp envoy through
+  a linked account; it can update only their own assignments and never exposes integrity flags.
 - **Construction Operations** covers wider project delivery: workforce permits, quality, RFIs,
   BIM references, payment claims, and scheduled operational watches.
 - **CRM** runs a B2B deal end to end: accounts with their credit position, catalogue-backed quoting

@@ -18,11 +18,7 @@
 	} from '../../lib/ui/display-formatters.js';
 	import { inForceTodayFilter, todayInstant } from '../../lib/ui/calendar.js';
 	import LeaveSeasonality from '../../lib/ui/leave/leave-seasonality.svelte';
-	import {
-		sourceLock,
-		sourceLockApplicationLocked,
-		sourceLockReason
-	} from '../../lib/scheduling/lock.js';
+	import { sourceLock, sourceLockRecordMetadata } from '../../lib/scheduling/lock.js';
 
 	const { t } = useI18n<TenantI18nKeys>();
 
@@ -207,8 +203,7 @@
 				{client}
 				collection="leave_requests"
 				view={`hr_controller:leave:requests:${selectedCompanyId}`}
-				isRowLocked={(row) => sourceLockApplicationLocked(leaveRowLock(row))}
-				rowLockReason={(row) => sourceLockReason(leaveRowLock(row), t)}
+				recordMetadata={(row) => sourceLockRecordMetadata(leaveRowLock(row), t)}
 				query={{
 					where: {
 						leave_request_employment: {

@@ -40,15 +40,16 @@ import type { Teams } from '@norbital-ai/bolt/authoring';
  * Each entry below lists the whole set rather than pointing at the rung beneath it, deliberately:
  * `rowPredicate` **unions** the `where` of every matching grant, so what a team confers is the union
  * of its policies whatever order they are written in — and a list you can read top to bottom is
- * worth more here than a derivation you have to run in your head. The `parent_id`/`inherits`
- * hierarchy on `bolt_team` can compose these later; until a team opts into it, this file is the
- * whole answer.
+ * worth more here than a derivation you have to run in your head. Runtime also includes policies
+ * mapped to descendant teams in `teamPath`; descent is unconditional and there is no second
+ * `inherits` switch. These explicit arrays state what each team contributes before that union.
  *
  * ## One team per person, and what that forces
  *
- * `bolt_auth_user.team_id` is one team, not a set. So a combination of authority that used to
- * emerge from holding two roles at once has to be a named team here — see `Manager (HR Controller)`
- * below. More verbose, and more honest: every combination anybody actually holds appears in a diff.
+ * `bolt_auth_user.team_id` is one own team, not a set. Descendant teams may add policies through
+ * `teamPath`, but an operational unit that directly carries an orthogonal combination should still
+ * be named here — see `Manager (HR Controller)` below. That makes its direct authority visible in a
+ * diff instead of depending on an incidental runtime hierarchy.
  *
  * It is also why every approval step in `policy_grants.ts` now lists each team that may decide it.
  * A step naming one team would be decidable only by that exact team, locking out every rung above
@@ -91,10 +92,10 @@ export default {
 	 * The combination that used to be two roles at once.
 	 *
 	 * `policy_grants.ts` notes that the special roles are orthogonal to rank, "so a person may hold
-	 * `manager` *and* `hr_controller`". With one team per person that union has to be a team with a
-	 * name — this one. Nobody is in it today; it exists because the combination is a real one the
-	 * ladder describes, and discovering that at the moment somebody needs it is worse than declaring
-	 * it now.
+	 * `manager` *and* `hr_controller`". This named team states that direct union without relying on
+	 * descendant-team topology. Nobody is in it today; it exists because the combination is real and
+	 * the ladder describes it, and discovering that at the moment somebody needs it is worse than
+	 * declaring it now.
 	 */
 	'Manager (HR Controller)': ['employee', 'supervisor', 'manager', 'hr_controller']
 } satisfies Teams;
