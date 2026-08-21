@@ -61,7 +61,7 @@ jobs:
 
       # Build the exact standalone projections and package their output before any public ref moves.
       # A failed build or upload therefore leaves every existing template ref usable.
-      - name: Validate projections and prepare immutable build bundles
+      - name: Validate projections and prepare canonical build bundles
         run: |
           node scripts/validate-template-projections.mjs \
             --revisions dist/template-revisions.json \
@@ -69,20 +69,10 @@ jobs:
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_REGISTRY_TOKEN || secrets.GITHUB_TOKEN }}
 
-      - name: Publish immutable build bundles
-        shell: bash
-        run: |
-          set -euo pipefail
-          for directory in dist/template-bundles/*; do
-            name="$(node -p "require('./${directory}/package.json').name")"
-            version="$(node -p "require('./${directory}/package.json').version")"
-            if npm view "${name}@${version}" version --registry="$NORBITAL_PACKAGE_REGISTRY" >/dev/null 2>&1; then
-              echo "${name}@${version} already published"
-            else
-              npm publish "$directory" --registry="$NORBITAL_PACKAGE_REGISTRY" --tag template-build
-            fi
-            npm view "${name}@${version}" dist.integrity --registry="$NORBITAL_PACKAGE_REGISTRY" >/dev/null
-          done
+      # Bundle packages use the canonical 0.0.1 version. An existing byte-identical build is safe to
+      # skip; a different build fails before refs move because package versions cannot be overwritten.
+      - name: Publish canonical build bundles
+        run: node scripts/publish-template-bundles.mjs dist/template-bundles
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_REGISTRY_TOKEN || secrets.GITHUB_TOKEN }}
 

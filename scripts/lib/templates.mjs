@@ -38,6 +38,7 @@ export const repositoryRoot = path.resolve(
 );
 export const templateRefNamespace = 'refs/heads/templates';
 export const templateMetadataFile = 'norbital.template.json';
+export const templateBundleVersion = '0.0.1';
 
 /** A repository directory name, and so also a ref name, a URL path segment and a package suffix. */
 const slugPattern = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
@@ -76,7 +77,7 @@ export function actualCounts(directory) {
 			(filename) => filename.startsWith('+') && filename.endsWith('.svelte')
 		),
 		automations: countMatchingFiles(
-			path.join(directory, 'src', 'automation'),
+			path.join(directory, 'src', 'automations'),
 			(filename) => filename.startsWith('+') && filename.endsWith('.ts')
 		)
 	};

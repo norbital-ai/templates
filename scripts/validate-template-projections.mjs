@@ -13,7 +13,7 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import process from 'node:process';
 import { registryConfiguration } from './lib/registry.mjs';
-import { discoverTemplates, repositoryRoot } from './lib/templates.mjs';
+import { discoverTemplates, repositoryRoot, templateBundleVersion } from './lib/templates.mjs';
 
 /**
  * Prove each template stands alone.
@@ -68,7 +68,7 @@ function writeTemplateBundle(template, projection, outputDirectory, buildOutput)
 	const bundlePath = path.join(packageDirectory, 'bundle.tar');
 	run('tar', ['-cf', bundlePath, '-C', buildOutput, '.']);
 	const bundle = readFileSync(bundlePath);
-	const version = `0.0.0-${projection.revision}`;
+	const version = templateBundleVersion;
 	writeFileSync(
 		path.join(packageDirectory, 'norbital.template-build.json'),
 		`${JSON.stringify(
@@ -103,7 +103,7 @@ function writeTemplateBundle(template, projection, outputDirectory, buildOutput)
 			2
 		)}\n`
 	);
-	console.log(`Prepared immutable build package for ${template.slug}@${projection.revision}.`);
+	console.log(`Prepared canonical build package for ${template.slug}@${projection.revision}.`);
 }
 
 function copyTrackedProjection(template, destination) {

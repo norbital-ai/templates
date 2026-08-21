@@ -83,7 +83,9 @@ function validateStandaloneManifest(template) {
 	const manifest = JSON.parse(readFileSync(path.join(template.directory, 'package.json'), 'utf8'));
 	if (!manifest.private)
 		fail(`Template ${template.slug} must remain a private application package.`);
-	for (const script of ['build', 'lint', 'sync']) {
+	// `bolt sync` now emits the production bundle as well as generated source. There is no separate
+	// template-local build command to require or run.
+	for (const script of ['lint', 'sync']) {
 		if (typeof manifest.scripts?.[script] !== 'string' || manifest.scripts[script] === '') {
 			fail(`Template ${template.slug} needs a ${script} script.`);
 		}

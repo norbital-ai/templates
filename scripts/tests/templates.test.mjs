@@ -5,11 +5,28 @@ import { describe, it } from 'node:test';
 import {
 	actualCounts,
 	discoverTemplates,
+	repositoryRoot,
+	templateBundleVersion,
 	templateMetadataFile,
 	templateRefNamespace
 } from '../lib/templates.mjs';
 
 describe('template discovery', () => {
+	it('uses 0.0.1 for the repository, template manifests, and canonical build bundles', () => {
+		assert.equal(
+			JSON.parse(readFileSync(path.join(repositoryRoot, 'package.json'))).version,
+			'0.0.1'
+		);
+		assert.equal(templateBundleVersion, '0.0.1');
+		for (const template of discoverTemplates()) {
+			assert.equal(
+				JSON.parse(readFileSync(path.join(template.directory, 'package.json'))).version,
+				'0.0.1',
+				template.slug
+			);
+		}
+	});
+
 	it('discovers every template from its own tree, with no separate catalogue', () => {
 		const templates = discoverTemplates();
 		assert.ok(templates.length > 0);
