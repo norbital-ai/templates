@@ -106,10 +106,9 @@
 	/**
 	 * Who a job can be dispatched to: the workspace's people, read straight from the directory.
 	 *
-	 * This used to be a `contractor_profiles` query and a `bolt_auth_user` query side by side — the
-	 * first for the picker, the second to render the portal user behind each company. They were two
-	 * reads of the same people, and the first only existed to give the second something to hang off.
-	 * The picker names the person now, so one read serves both.
+	 * One read, because there is one description of a person. The picker names the person directly
+	 * rather than a company standing in front of them, so the same rows fill the picker and render
+	 * whoever a job is dispatched to.
 	 *
 	 * The directory is every user, not only contractors: a person's team is not readable through the
 	 * identity field mask (`norbital_id` and `name`, nothing else), so this list cannot be narrowed

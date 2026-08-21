@@ -35,12 +35,11 @@
 	 * integrity results, so the shared assignment sheet hides them from a viewer who does not hold
 	 * the controller policy.
 	 *
-	 * This used to look the viewer up in `contractor_profiles` by
-	 * `getPlatformStateContext()().user.norbital_id` — a value the shell builds from the display name,
-	 * not an id — so the lookup failed against the `uuid()` column for every viewer alive and
-	 * `isContractorViewer` was permanently `false`. Every contractor opening this sheet was shown the
-	 * controller-only integrity overlay. That collection no longer exists; nothing here fetches a
-	 * record to decide who is looking.
+	 * Who is looking is answered by what the runtime says they may open, never by looking a record up.
+	 * Do not reach for `getPlatformStateContext()().user.norbital_id` — the shell builds it from the
+	 * display name rather than an id, so any lookup keyed on it fails against a `uuid()` column for
+	 * every viewer alive, and a failed lookup here reads as "not a contractor" and shows a contractor
+	 * the controller-only integrity overlay.
 	 *
 	 * `platform.apps` is `AccessControl.visibleApps`: the whole registry for an `admin` status, and
 	 * otherwise the apps the policies of the viewer's one team declare. Only
