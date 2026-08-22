@@ -1,7 +1,12 @@
-import { currencyFractionDigits, fromMinorUnits, toMinorUnits } from '@norbital-ai/std/finance';
 import type { CollectionHooks } from '@norbital-ai/bolt/authoring';
 import { Effect } from 'effect';
 import type { WorkspaceSchema } from '$bolt/types.js';
+import {
+	documentTotals,
+	lineAmounts,
+	requireCurrency,
+	type LineAmounts
+} from '../../lib/pricing.js';
 import type { Hooks, WorkspaceRow } from './$types.js';
 
 /**
@@ -29,85 +34,16 @@ type PurchaseOrderLineHooks = CollectionHooks<
 	PurchaseOrderLineBatch
 >;
 
-function roundHalfUp(value: number, digits: number): number {
-	if (!Number.isFinite(value)) {
-		throw new Error('Cannot round a value that is not a finite number.');
-	}
-	const magnitude = Math.abs(shiftExponent(value, digits));
-	const rounded = Math.round(magnitude);
-	return shiftExponent(value < 0 ? -rounded : rounded, -digits);
-}
-
-function shiftExponent(value: number, places: number): number {
-	if (value === 0) return 0;
-	const [mantissa, exponent] = value.toExponential().split('e');
-	return Number(`${mantissa}e${Number(exponent) + places}`);
-}
-
-interface LinePricing {
-	readonly quantity: number;
-	readonly unit_price: number;
-	readonly discount_pct?: number | null;
-	readonly tax_rate?: number | null;
-	readonly tax_inclusive: boolean;
-	readonly currency: string;
-}
-
-interface LineAmounts {
-	readonly net: number;
-	readonly tax: number;
-	readonly gross: number;
-}
-
-function lineAmounts(line: LinePricing): LineAmounts {
-	const digits = currencyFractionDigits(line.currency);
-	const discount = line.discount_pct ?? 0;
-	const rate = (line.tax_rate ?? 0) / 100;
-	const base = line.quantity * line.unit_price * (1 - discount / 100);
-
-	if (line.tax_inclusive) {
-		const gross = roundHalfUp(base, digits);
-		const net = roundHalfUp(gross / (1 + rate), digits);
-		return { net, tax: roundHalfUp(gross - net, digits), gross };
-	}
-
-	const net = roundHalfUp(base, digits);
-	const tax = roundHalfUp(net * rate, digits);
-	return { net, tax, gross: roundHalfUp(net + tax, digits) };
-}
-
-function documentTotals(lines: readonly LineAmounts[], currency: string): LineAmounts {
-	let net = 0n;
-	let tax = 0n;
-	let gross = 0n;
-	for (const line of lines) {
-		net += toMinorUnits(line.net, currency);
-		tax += toMinorUnits(line.tax, currency);
-		gross += toMinorUnits(line.gross, currency);
-	}
-	return {
-		net: fromMinorUnits(net, currency),
-		tax: fromMinorUnits(tax, currency),
-		gross: fromMinorUnits(gross, currency)
-	};
-}
-
 type AfterApi = Parameters<
 	NonNullable<NonNullable<NonNullable<Hooks['create']>['perRecord']>['after']>['handler']
 >[0]['api'];
 
 const LINE_LIMIT = 5000;
 
-function requireCurrency(currency: string | null): string {
-	if (!currency) throw new Error('Document currency is required.');
-	return currency;
-}
-
-interface ResolvedLineInput {
-	readonly quantity: number;
-	readonly unit_cost: number;
-	readonly tax_rate?: number | null;
-}
+/** The pricing inputs a line under validation contributes, from the row's own fields. */
+type ResolvedLineInput = Partial<
+	Pick<WorkspaceRow<'purchase_order_lines'>, 'quantity' | 'unit_cost' | 'tax_rate'>
+>;
 
 function validateLineFields(input: ResolvedLineInput): void {
 	const quantity = Number(input.quantity);
@@ -134,9 +70,9 @@ function computeLineAmounts(
 	line: ResolvedLineInput
 ): LineAmounts {
 	return lineAmounts({
-		quantity: line.quantity,
-		unit_price: line.unit_cost,
-		tax_rate: line.tax_rate ?? 0,
+		quantity: Number(line.quantity ?? 0),
+		unit_price: Number(line.unit_cost ?? 0),
+		tax_rate: Number(line.tax_rate ?? 0),
 		tax_inclusive: order.tax_inclusive,
 		currency: requireCurrency(order.currency)
 	});
@@ -145,7 +81,7 @@ function computeLineAmounts(
 function rollupPurchaseOrder(api: AfterApi, purchaseOrderId: string): Effect.Effect<void> {
 	return Effect.gen(function* () {
 		const order = yield* api.db.query.purchase_orders.findFirst({
-			where: { norbital_id: { eq: purchaseOrderId } }
+			where: { id: { eq: purchaseOrderId } }
 		});
 		if (!order) return;
 
@@ -166,7 +102,7 @@ function rollupPurchaseOrder(api: AfterApi, purchaseOrderId: string): Effect.Eff
 
 		yield* api.db.purchase_orders.mutate([
 			{
-				norbital_id: purchaseOrderId,
+				id: purchaseOrderId,
 				net: totals.net,
 				tax: totals.tax,
 				gross: totals.gross
@@ -181,10 +117,7 @@ const afterRollup = ({
 }: {
 	readonly record: { readonly purchase_order_id: string };
 	readonly api: AfterApi;
-}) =>
-	Effect.gen(function* () {
-		yield* rollupPurchaseOrder(api, record.purchase_order_id);
-	});
+}) => rollupPurchaseOrder(api, record.purchase_order_id);
 
 export default {
 	create: {
@@ -200,19 +133,19 @@ export default {
 				];
 				const orders = orderIds.length
 					? yield* api.db.query.purchase_orders.findMany({
-							where: { norbital_id: { in: orderIds } },
+							where: { id: { in: orderIds } },
 							limit: LINE_LIMIT
 						})
 					: [];
 				const products = productIds.length
 					? yield* api.db.query.products.findMany({
-							where: { norbital_id: { in: productIds } },
+							where: { id: { in: productIds } },
 							limit: LINE_LIMIT
 						})
 					: [];
 				return {
-					orders: new Map(orders.map((order) => [order.norbital_id, order])),
-					products: new Map(products.map((product) => [product.norbital_id, product]))
+					orders: new Map(orders.map((order) => [order.id, order])),
+					products: new Map(products.map((product) => [product.id, product]))
 				};
 			}),
 		perRecord: {
@@ -273,15 +206,20 @@ export default {
 							input.purchase_order_id != null &&
 							input.purchase_order_id !== existing.purchase_order_id
 						) {
-							throw new Error('A line item cannot be moved to a different purchase order.');
+							return yield* Effect.fail(
+								new Error('A line item cannot be moved to a different purchase order.')
+							);
 						}
 
 						const order = yield* api.db.query.purchase_orders.findFirst({
-							where: { norbital_id: { eq: existing.purchase_order_id } }
+							where: { id: { eq: existing.purchase_order_id } }
 						});
-						if (!order) throw new Error('Referenced purchase order does not exist.');
+						if (!order)
+							return yield* Effect.fail(new Error('Referenced purchase order does not exist.'));
 						if (order.status !== 'draft') {
-							throw new Error('Line items can only be modified on draft purchase orders.');
+							return yield* Effect.fail(
+								new Error('Line items can only be modified on draft purchase orders.')
+							);
 						}
 
 						const resolved = { ...existing, ...input };

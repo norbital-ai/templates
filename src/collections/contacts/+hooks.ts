@@ -27,12 +27,12 @@ export default {
 				];
 				const accounts = accountIds.length
 					? yield* api.db.query.accounts.findMany({
-							where: { norbital_id: { in: accountIds } },
-							columns: { norbital_id: true },
+							where: { id: { in: accountIds } },
+							columns: { id: true },
 							limit: ACCOUNT_BATCH_LIMIT
 						})
 					: [];
-				return { accountIds: new Set(accounts.map((account) => account.norbital_id)) };
+				return { accountIds: new Set(accounts.map((account) => account.id)) };
 			}),
 		perRecord: {
 			before: {

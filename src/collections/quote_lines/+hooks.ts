@@ -1,7 +1,13 @@
-import { currencyFractionDigits, fromMinorUnits, toMinorUnits } from '@norbital-ai/std/finance';
 import type { CollectionHooks } from '@norbital-ai/bolt/authoring';
 import { Effect } from 'effect';
 import type { WorkspaceSchema } from '$bolt/types.js';
+import {
+	documentTotals,
+	lineAmounts,
+	requireCurrency,
+	type LineAmounts,
+	type LinePricing
+} from '../../lib/pricing.js';
 import type { Hooks, WorkspaceRow } from './$types.js';
 
 /**
@@ -29,96 +35,30 @@ interface QuoteLineBatch {
  */
 type QuoteLineHooks = CollectionHooks<WorkspaceSchema, 'quote_lines', QuoteLineBatch>;
 
-function roundHalfUp(value: number, digits: number): number {
-	if (!Number.isFinite(value)) {
-		throw new Error('Cannot round a value that is not a finite number.');
-	}
-	const magnitude = Math.abs(shiftExponent(value, digits));
-	const rounded = Math.round(magnitude);
-	return shiftExponent(value < 0 ? -rounded : rounded, -digits);
-}
-
-function shiftExponent(value: number, places: number): number {
-	if (value === 0) return 0;
-	const [mantissa, exponent] = value.toExponential().split('e');
-	return Number(`${mantissa}e${Number(exponent) + places}`);
-}
-
-interface LinePricing {
-	readonly quantity: number;
-	readonly unit_price: number;
-	readonly discount_pct?: number | null;
-	readonly tax_rate?: number | null;
-	readonly tax_inclusive: boolean;
-	readonly currency: string;
-}
-
-interface LineAmounts {
-	readonly net: number;
-	readonly tax: number;
-	readonly gross: number;
-}
-
-function lineAmounts(line: LinePricing): LineAmounts {
-	const digits = currencyFractionDigits(line.currency);
-	const discount = line.discount_pct ?? 0;
-	const rate = (line.tax_rate ?? 0) / 100;
-	const base = line.quantity * line.unit_price * (1 - discount / 100);
-
-	if (line.tax_inclusive) {
-		const gross = roundHalfUp(base, digits);
-		const net = roundHalfUp(gross / (1 + rate), digits);
-		return { net, tax: roundHalfUp(gross - net, digits), gross };
-	}
-
-	const net = roundHalfUp(base, digits);
-	const tax = roundHalfUp(net * rate, digits);
-	return { net, tax, gross: roundHalfUp(net + tax, digits) };
-}
-
-function documentTotals(lines: readonly LineAmounts[], currency: string): LineAmounts {
-	let net = 0n;
-	let tax = 0n;
-	let gross = 0n;
-	for (const line of lines) {
-		net += toMinorUnits(line.net, currency);
-		tax += toMinorUnits(line.tax, currency);
-		gross += toMinorUnits(line.gross, currency);
-	}
-	return {
-		net: fromMinorUnits(net, currency),
-		tax: fromMinorUnits(tax, currency),
-		gross: fromMinorUnits(gross, currency)
-	};
-}
-
 type AfterApi = Parameters<
 	NonNullable<NonNullable<NonNullable<Hooks['create']>['perRecord']>['after']>['handler']
 >[0]['api'];
-type CreateInput = Parameters<
-	NonNullable<NonNullable<NonNullable<Hooks['create']>['perRecord']>['before']>['handler']
->[0]['input'];
 type UpdateInput = Parameters<
 	NonNullable<NonNullable<NonNullable<Hooks['update']>['perRecord']>['before']>['handler']
 >[0]['input'];
 
 const LINE_LIMIT = 5000;
 
-function requireCurrency(currency: string | null): string {
-	if (!currency) throw new Error('Document currency is required.');
-	return currency;
-}
+/** The line fields validation asks about, from the row's own fields. */
+type LineFieldValues = Partial<
+	Pick<WorkspaceRow<'quote_lines'>, 'quantity' | 'unit_price' | 'discount_pct' | 'tax_rate'>
+>;
 
-function validateLineFields(input: {
-	readonly quantity: number;
-	readonly unit_price: number;
-	readonly discount_pct?: number | null;
-	readonly tax_rate?: number | null;
-}): void {
-	if (Number.isNaN(input.quantity) || input.quantity <= 0) {
+/** A line's pricing cells once validated — the one coercion, shared by the checks and the pricing. */
+type LinePricingCells = Pick<LinePricing, 'quantity' | 'unit_price' | 'discount_pct' | 'tax_rate'>;
+
+function validateLineFields(input: LineFieldValues): LinePricingCells {
+	const quantity = Number(input.quantity);
+	if (Number.isNaN(quantity) || quantity <= 0) {
 		throw new Error('Quantity must be greater than zero.');
 	}
-	if (Number.isNaN(input.unit_price) || input.unit_price < 0) {
+	const unitPrice = Number(input.unit_price);
+	if (Number.isNaN(unitPrice) || unitPrice < 0) {
 		throw new Error('Unit price cannot be negative.');
 	}
 	const discountPct = Number(input.discount_pct ?? 0);
@@ -129,17 +69,12 @@ function validateLineFields(input: {
 	if (taxRate < 0 || taxRate > 100) {
 		throw new Error('Tax rate must be between 0 and 100.');
 	}
+	return { quantity, unit_price: unitPrice, discount_pct: discountPct, tax_rate: taxRate };
 }
 
-function computeLineAmounts(
-	quote: WorkspaceRow<'quotes'>,
-	line: CreateInput | WorkspaceRow<'quote_lines'>
-): LineAmounts {
+function computeLineAmounts(quote: WorkspaceRow<'quotes'>, line: LinePricingCells): LineAmounts {
 	return lineAmounts({
-		quantity: Number(line.quantity),
-		unit_price: Number(line.unit_price),
-		discount_pct: Number(line.discount_pct ?? 0),
-		tax_rate: Number(line.tax_rate ?? 0),
+		...line,
 		tax_inclusive: quote.tax_inclusive,
 		currency: requireCurrency(quote.currency)
 	});
@@ -148,7 +83,7 @@ function computeLineAmounts(
 function rollupQuote(api: AfterApi, quoteId: string): Effect.Effect<void> {
 	return Effect.gen(function* () {
 		const quote = yield* api.db.query.quotes.findFirst({
-			where: { norbital_id: { eq: quoteId } }
+			where: { id: { eq: quoteId } }
 		});
 		if (!quote) return;
 
@@ -169,7 +104,7 @@ function rollupQuote(api: AfterApi, quoteId: string): Effect.Effect<void> {
 
 		yield* api.db.quotes.mutate([
 			{
-				norbital_id: quoteId,
+				id: quoteId,
 				net: totals.net,
 				tax: totals.tax,
 				gross: totals.gross
@@ -184,10 +119,7 @@ const afterRollup = ({
 }: {
 	readonly record: { readonly quote_id: string };
 	readonly api: AfterApi;
-}) =>
-	Effect.gen(function* () {
-		yield* rollupQuote(api, record.quote_id);
-	});
+}) => rollupQuote(api, record.quote_id);
 
 export default {
 	create: {
@@ -201,19 +133,19 @@ export default {
 				];
 				const quotes = quoteIds.length
 					? yield* api.db.query.quotes.findMany({
-							where: { norbital_id: { in: quoteIds } },
+							where: { id: { in: quoteIds } },
 							limit: LINE_LIMIT
 						})
 					: [];
 				const products = productIds.length
 					? yield* api.db.query.products.findMany({
-							where: { norbital_id: { in: productIds } },
+							where: { id: { in: productIds } },
 							limit: LINE_LIMIT
 						})
 					: [];
 				return {
-					quotes: new Map(quotes.map((quote) => [quote.norbital_id, quote])),
-					products: new Map(products.map((product) => [product.norbital_id, product]))
+					quotes: new Map(quotes.map((quote) => [quote.id, quote])),
+					products: new Map(products.map((product) => [product.id, product]))
 				};
 			}),
 		perRecord: {
@@ -245,9 +177,9 @@ export default {
 						product_name: input.product_name ?? product.name,
 						product_unit: input.product_unit ?? product.unit ?? ''
 					};
-					validateLineFields(resolved);
+					const lineCells = validateLineFields(resolved);
 
-					const amounts = computeLineAmounts(quote, resolved);
+					const amounts = computeLineAmounts(quote, lineCells);
 
 					return {
 						...resolved,
@@ -272,21 +204,25 @@ export default {
 				handler: ({ input, existing, api }) =>
 					Effect.gen(function* () {
 						if (input.quote_id != null && input.quote_id !== existing.quote_id) {
-							throw new Error('A line item cannot be moved to a different quote.');
+							return yield* Effect.fail(
+								new Error('A line item cannot be moved to a different quote.')
+							);
 						}
 
 						const quote = yield* api.db.query.quotes.findFirst({
-							where: { norbital_id: { eq: existing.quote_id } }
+							where: { id: { eq: existing.quote_id } }
 						});
-						if (!quote) throw new Error('Referenced quote does not exist.');
+						if (!quote) return yield* Effect.fail(new Error('Referenced quote does not exist.'));
 						if (quote.status !== 'draft') {
-							throw new Error('Line items can only be modified on draft quotes.');
+							return yield* Effect.fail(
+								new Error('Line items can only be modified on draft quotes.')
+							);
 						}
 
 						const resolved = { ...existing, ...input };
-						validateLineFields(resolved);
+						const lineCells = validateLineFields(resolved);
 
-						const amounts = computeLineAmounts(quote, resolved);
+						const amounts = computeLineAmounts(quote, lineCells);
 
 						return {
 							...input,

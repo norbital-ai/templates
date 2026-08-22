@@ -1,10 +1,10 @@
 CREATE TABLE "accounts" (
-	"norbital_id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-	"norbital_created_at" timestamp with time zone DEFAULT now(),
-	"norbital_updated_at" timestamp with time zone DEFAULT now(),
-	"norbital_sys_period" tstzrange DEFAULT tstzrange(CURRENT_TIMESTAMP, NULL, '[)') NOT NULL,
-	"norbital_row_version" integer DEFAULT 1,
-	"norbital_approval_id" uuid,
+	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+	"created_at" timestamp with time zone DEFAULT now(),
+	"updated_at" timestamp with time zone DEFAULT now(),
+	"sys_period" tstzrange DEFAULT tstzrange(CURRENT_TIMESTAMP, NULL, '[)') NOT NULL,
+	"row_version" integer DEFAULT 1,
+	"approval_id" uuid,
 	"external_code" text NOT NULL,
 	"name" text NOT NULL,
 	"industry" text,
@@ -20,12 +20,12 @@ CREATE TABLE "accounts" (
 
 --> statement-breakpoint
 CREATE TABLE "activities" (
-	"norbital_id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-	"norbital_created_at" timestamp with time zone DEFAULT now(),
-	"norbital_updated_at" timestamp with time zone DEFAULT now(),
-	"norbital_sys_period" tstzrange DEFAULT tstzrange(CURRENT_TIMESTAMP, NULL, '[)') NOT NULL,
-	"norbital_row_version" integer DEFAULT 1,
-	"norbital_approval_id" uuid,
+	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+	"created_at" timestamp with time zone DEFAULT now(),
+	"updated_at" timestamp with time zone DEFAULT now(),
+	"sys_period" tstzrange DEFAULT tstzrange(CURRENT_TIMESTAMP, NULL, '[)') NOT NULL,
+	"row_version" integer DEFAULT 1,
+	"approval_id" uuid,
 	"regarding_type" text NOT NULL,
 	"regarding_id" uuid NOT NULL,
 	"type" text,
@@ -38,12 +38,12 @@ CREATE TABLE "activities" (
 
 --> statement-breakpoint
 CREATE TABLE "contacts" (
-	"norbital_id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-	"norbital_created_at" timestamp with time zone DEFAULT now(),
-	"norbital_updated_at" timestamp with time zone DEFAULT now(),
-	"norbital_sys_period" tstzrange DEFAULT tstzrange(CURRENT_TIMESTAMP, NULL, '[)') NOT NULL,
-	"norbital_row_version" integer DEFAULT 1,
-	"norbital_approval_id" uuid,
+	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+	"created_at" timestamp with time zone DEFAULT now(),
+	"updated_at" timestamp with time zone DEFAULT now(),
+	"sys_period" tstzrange DEFAULT tstzrange(CURRENT_TIMESTAMP, NULL, '[)') NOT NULL,
+	"row_version" integer DEFAULT 1,
+	"approval_id" uuid,
 	"account_id" uuid NOT NULL,
 	"first_name" text NOT NULL,
 	"last_name" text NOT NULL,
@@ -55,18 +55,18 @@ CREATE TABLE "contacts" (
 
 --> statement-breakpoint
 CREATE TABLE "contract_signings" (
-	"norbital_id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-	"norbital_created_at" timestamp with time zone DEFAULT now(),
-	"norbital_updated_at" timestamp with time zone DEFAULT now(),
-	"norbital_sys_period" tstzrange DEFAULT tstzrange(CURRENT_TIMESTAMP, NULL, '[)') NOT NULL,
-	"norbital_row_version" integer DEFAULT 1,
-	"norbital_approval_id" uuid,
+	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+	"created_at" timestamp with time zone DEFAULT now(),
+	"updated_at" timestamp with time zone DEFAULT now(),
+	"sys_period" tstzrange DEFAULT tstzrange(CURRENT_TIMESTAMP, NULL, '[)') NOT NULL,
+	"row_version" integer DEFAULT 1,
+	"approval_id" uuid,
 	"quote_id" uuid NOT NULL,
 	"variant" text,
 	"status" text,
 	"binding_hash" text NOT NULL,
-	"generated_file" uuid,
-	"counterparty_file" uuid,
+	"generated_file" jsonb,
+	"counterparty_file" jsonb,
 	"share_token_hash" text,
 	"share_expires_at" timestamp with time zone,
 	"share_revoked_at" timestamp with time zone,
@@ -77,12 +77,12 @@ CREATE TABLE "contract_signings" (
 
 --> statement-breakpoint
 CREATE TABLE "goods_receipt_lines" (
-	"norbital_id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-	"norbital_created_at" timestamp with time zone DEFAULT now(),
-	"norbital_updated_at" timestamp with time zone DEFAULT now(),
-	"norbital_sys_period" tstzrange DEFAULT tstzrange(CURRENT_TIMESTAMP, NULL, '[)') NOT NULL,
-	"norbital_row_version" integer DEFAULT 1,
-	"norbital_approval_id" uuid,
+	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+	"created_at" timestamp with time zone DEFAULT now(),
+	"updated_at" timestamp with time zone DEFAULT now(),
+	"sys_period" tstzrange DEFAULT tstzrange(CURRENT_TIMESTAMP, NULL, '[)') NOT NULL,
+	"row_version" integer DEFAULT 1,
+	"approval_id" uuid,
 	"goods_receipt_id" uuid NOT NULL,
 	"purchase_order_line_id" uuid NOT NULL,
 	"quantity_received" numeric NOT NULL
@@ -90,12 +90,12 @@ CREATE TABLE "goods_receipt_lines" (
 
 --> statement-breakpoint
 CREATE TABLE "goods_receipts" (
-	"norbital_id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-	"norbital_created_at" timestamp with time zone DEFAULT now(),
-	"norbital_updated_at" timestamp with time zone DEFAULT now(),
-	"norbital_sys_period" tstzrange DEFAULT tstzrange(CURRENT_TIMESTAMP, NULL, '[)') NOT NULL,
-	"norbital_row_version" integer DEFAULT 1,
-	"norbital_approval_id" uuid,
+	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+	"created_at" timestamp with time zone DEFAULT now(),
+	"updated_at" timestamp with time zone DEFAULT now(),
+	"sys_period" tstzrange DEFAULT tstzrange(CURRENT_TIMESTAMP, NULL, '[)') NOT NULL,
+	"row_version" integer DEFAULT 1,
+	"approval_id" uuid,
 	"doc_no" text NOT NULL,
 	"purchase_order_id" uuid NOT NULL,
 	"received_date" date,
@@ -106,12 +106,12 @@ CREATE TABLE "goods_receipts" (
 
 --> statement-breakpoint
 CREATE TABLE "products" (
-	"norbital_id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-	"norbital_created_at" timestamp with time zone DEFAULT now(),
-	"norbital_updated_at" timestamp with time zone DEFAULT now(),
-	"norbital_sys_period" tstzrange DEFAULT tstzrange(CURRENT_TIMESTAMP, NULL, '[)') NOT NULL,
-	"norbital_row_version" integer DEFAULT 1,
-	"norbital_approval_id" uuid,
+	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+	"created_at" timestamp with time zone DEFAULT now(),
+	"updated_at" timestamp with time zone DEFAULT now(),
+	"sys_period" tstzrange DEFAULT tstzrange(CURRENT_TIMESTAMP, NULL, '[)') NOT NULL,
+	"row_version" integer DEFAULT 1,
+	"approval_id" uuid,
 	"external_code" text NOT NULL,
 	"code" text NOT NULL,
 	"name" text NOT NULL,
@@ -127,12 +127,12 @@ CREATE TABLE "products" (
 
 --> statement-breakpoint
 CREATE TABLE "purchase_invoice_lines" (
-	"norbital_id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-	"norbital_created_at" timestamp with time zone DEFAULT now(),
-	"norbital_updated_at" timestamp with time zone DEFAULT now(),
-	"norbital_sys_period" tstzrange DEFAULT tstzrange(CURRENT_TIMESTAMP, NULL, '[)') NOT NULL,
-	"norbital_row_version" integer DEFAULT 1,
-	"norbital_approval_id" uuid,
+	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+	"created_at" timestamp with time zone DEFAULT now(),
+	"updated_at" timestamp with time zone DEFAULT now(),
+	"sys_period" tstzrange DEFAULT tstzrange(CURRENT_TIMESTAMP, NULL, '[)') NOT NULL,
+	"row_version" integer DEFAULT 1,
+	"approval_id" uuid,
 	"purchase_invoice_id" uuid NOT NULL,
 	"purchase_order_line_id" uuid NOT NULL,
 	"product_code" text NOT NULL,
@@ -147,12 +147,12 @@ CREATE TABLE "purchase_invoice_lines" (
 
 --> statement-breakpoint
 CREATE TABLE "purchase_invoices" (
-	"norbital_id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-	"norbital_created_at" timestamp with time zone DEFAULT now(),
-	"norbital_updated_at" timestamp with time zone DEFAULT now(),
-	"norbital_sys_period" tstzrange DEFAULT tstzrange(CURRENT_TIMESTAMP, NULL, '[)') NOT NULL,
-	"norbital_row_version" integer DEFAULT 1,
-	"norbital_approval_id" uuid,
+	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+	"created_at" timestamp with time zone DEFAULT now(),
+	"updated_at" timestamp with time zone DEFAULT now(),
+	"sys_period" tstzrange DEFAULT tstzrange(CURRENT_TIMESTAMP, NULL, '[)') NOT NULL,
+	"row_version" integer DEFAULT 1,
+	"approval_id" uuid,
 	"doc_no" text NOT NULL,
 	"purchase_order_id" uuid NOT NULL,
 	"supplier_id" uuid NOT NULL,
@@ -174,12 +174,12 @@ CREATE TABLE "purchase_invoices" (
 
 --> statement-breakpoint
 CREATE TABLE "purchase_order_lines" (
-	"norbital_id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-	"norbital_created_at" timestamp with time zone DEFAULT now(),
-	"norbital_updated_at" timestamp with time zone DEFAULT now(),
-	"norbital_sys_period" tstzrange DEFAULT tstzrange(CURRENT_TIMESTAMP, NULL, '[)') NOT NULL,
-	"norbital_row_version" integer DEFAULT 1,
-	"norbital_approval_id" uuid,
+	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+	"created_at" timestamp with time zone DEFAULT now(),
+	"updated_at" timestamp with time zone DEFAULT now(),
+	"sys_period" tstzrange DEFAULT tstzrange(CURRENT_TIMESTAMP, NULL, '[)') NOT NULL,
+	"row_version" integer DEFAULT 1,
+	"approval_id" uuid,
 	"purchase_order_id" uuid NOT NULL,
 	"product_id" uuid NOT NULL,
 	"product_code" text NOT NULL,
@@ -195,12 +195,12 @@ CREATE TABLE "purchase_order_lines" (
 
 --> statement-breakpoint
 CREATE TABLE "purchase_orders" (
-	"norbital_id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-	"norbital_created_at" timestamp with time zone DEFAULT now(),
-	"norbital_updated_at" timestamp with time zone DEFAULT now(),
-	"norbital_sys_period" tstzrange DEFAULT tstzrange(CURRENT_TIMESTAMP, NULL, '[)') NOT NULL,
-	"norbital_row_version" integer DEFAULT 1,
-	"norbital_approval_id" uuid,
+	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+	"created_at" timestamp with time zone DEFAULT now(),
+	"updated_at" timestamp with time zone DEFAULT now(),
+	"sys_period" tstzrange DEFAULT tstzrange(CURRENT_TIMESTAMP, NULL, '[)') NOT NULL,
+	"row_version" integer DEFAULT 1,
+	"approval_id" uuid,
 	"doc_no" text NOT NULL,
 	"supplier_id" uuid NOT NULL,
 	"supplier_code" text NOT NULL,
@@ -220,12 +220,12 @@ CREATE TABLE "purchase_orders" (
 
 --> statement-breakpoint
 CREATE TABLE "quote_lines" (
-	"norbital_id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-	"norbital_created_at" timestamp with time zone DEFAULT now(),
-	"norbital_updated_at" timestamp with time zone DEFAULT now(),
-	"norbital_sys_period" tstzrange DEFAULT tstzrange(CURRENT_TIMESTAMP, NULL, '[)') NOT NULL,
-	"norbital_row_version" integer DEFAULT 1,
-	"norbital_approval_id" uuid,
+	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+	"created_at" timestamp with time zone DEFAULT now(),
+	"updated_at" timestamp with time zone DEFAULT now(),
+	"sys_period" tstzrange DEFAULT tstzrange(CURRENT_TIMESTAMP, NULL, '[)') NOT NULL,
+	"row_version" integer DEFAULT 1,
+	"approval_id" uuid,
 	"quote_id" uuid NOT NULL,
 	"product_id" uuid NOT NULL,
 	"product_code" text NOT NULL,
@@ -242,12 +242,12 @@ CREATE TABLE "quote_lines" (
 
 --> statement-breakpoint
 CREATE TABLE "quotes" (
-	"norbital_id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-	"norbital_created_at" timestamp with time zone DEFAULT now(),
-	"norbital_updated_at" timestamp with time zone DEFAULT now(),
-	"norbital_sys_period" tstzrange DEFAULT tstzrange(CURRENT_TIMESTAMP, NULL, '[)') NOT NULL,
-	"norbital_row_version" integer DEFAULT 1,
-	"norbital_approval_id" uuid,
+	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+	"created_at" timestamp with time zone DEFAULT now(),
+	"updated_at" timestamp with time zone DEFAULT now(),
+	"sys_period" tstzrange DEFAULT tstzrange(CURRENT_TIMESTAMP, NULL, '[)') NOT NULL,
+	"row_version" integer DEFAULT 1,
+	"approval_id" uuid,
 	"doc_no" text NOT NULL,
 	"account_id" uuid NOT NULL,
 	"contact_id" uuid,
@@ -279,12 +279,12 @@ CREATE TABLE "quotes" (
 
 --> statement-breakpoint
 CREATE TABLE "sales_invoice_lines" (
-	"norbital_id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-	"norbital_created_at" timestamp with time zone DEFAULT now(),
-	"norbital_updated_at" timestamp with time zone DEFAULT now(),
-	"norbital_sys_period" tstzrange DEFAULT tstzrange(CURRENT_TIMESTAMP, NULL, '[)') NOT NULL,
-	"norbital_row_version" integer DEFAULT 1,
-	"norbital_approval_id" uuid,
+	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+	"created_at" timestamp with time zone DEFAULT now(),
+	"updated_at" timestamp with time zone DEFAULT now(),
+	"sys_period" tstzrange DEFAULT tstzrange(CURRENT_TIMESTAMP, NULL, '[)') NOT NULL,
+	"row_version" integer DEFAULT 1,
+	"approval_id" uuid,
 	"sales_invoice_id" uuid NOT NULL,
 	"quote_line_id" uuid NOT NULL,
 	"product_code" text NOT NULL,
@@ -300,12 +300,12 @@ CREATE TABLE "sales_invoice_lines" (
 
 --> statement-breakpoint
 CREATE TABLE "sales_invoices" (
-	"norbital_id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-	"norbital_created_at" timestamp with time zone DEFAULT now(),
-	"norbital_updated_at" timestamp with time zone DEFAULT now(),
-	"norbital_sys_period" tstzrange DEFAULT tstzrange(CURRENT_TIMESTAMP, NULL, '[)') NOT NULL,
-	"norbital_row_version" integer DEFAULT 1,
-	"norbital_approval_id" uuid,
+	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+	"created_at" timestamp with time zone DEFAULT now(),
+	"updated_at" timestamp with time zone DEFAULT now(),
+	"sys_period" tstzrange DEFAULT tstzrange(CURRENT_TIMESTAMP, NULL, '[)') NOT NULL,
+	"row_version" integer DEFAULT 1,
+	"approval_id" uuid,
 	"doc_no" text NOT NULL,
 	"quote_id" uuid NOT NULL,
 	"account_id" uuid NOT NULL,
@@ -323,12 +323,12 @@ CREATE TABLE "sales_invoices" (
 
 --> statement-breakpoint
 CREATE TABLE "settlements" (
-	"norbital_id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-	"norbital_created_at" timestamp with time zone DEFAULT now(),
-	"norbital_updated_at" timestamp with time zone DEFAULT now(),
-	"norbital_sys_period" tstzrange DEFAULT tstzrange(CURRENT_TIMESTAMP, NULL, '[)') NOT NULL,
-	"norbital_row_version" integer DEFAULT 1,
-	"norbital_approval_id" uuid,
+	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+	"created_at" timestamp with time zone DEFAULT now(),
+	"updated_at" timestamp with time zone DEFAULT now(),
+	"sys_period" tstzrange DEFAULT tstzrange(CURRENT_TIMESTAMP, NULL, '[)') NOT NULL,
+	"row_version" integer DEFAULT 1,
+	"approval_id" uuid,
 	"regarding_type" text,
 	"regarding_id" uuid NOT NULL,
 	"amount" numeric NOT NULL,
@@ -340,12 +340,12 @@ CREATE TABLE "settlements" (
 
 --> statement-breakpoint
 CREATE TABLE "suppliers" (
-	"norbital_id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-	"norbital_created_at" timestamp with time zone DEFAULT now(),
-	"norbital_updated_at" timestamp with time zone DEFAULT now(),
-	"norbital_sys_period" tstzrange DEFAULT tstzrange(CURRENT_TIMESTAMP, NULL, '[)') NOT NULL,
-	"norbital_row_version" integer DEFAULT 1,
-	"norbital_approval_id" uuid,
+	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+	"created_at" timestamp with time zone DEFAULT now(),
+	"updated_at" timestamp with time zone DEFAULT now(),
+	"sys_period" tstzrange DEFAULT tstzrange(CURRENT_TIMESTAMP, NULL, '[)') NOT NULL,
+	"row_version" integer DEFAULT 1,
+	"approval_id" uuid,
 	"external_code" text NOT NULL,
 	"code" text NOT NULL,
 	"name" text NOT NULL,
@@ -486,60 +486,60 @@ CREATE INDEX "suppliers_active_index" ON "suppliers" ("active");
 --> statement-breakpoint
 CREATE INDEX "suppliers_name_search_trgm_idx" ON "suppliers" USING gin ("name" gin_trgm_ops);
 --> statement-breakpoint
-ALTER TABLE "activities" ADD CONSTRAINT "activities_owner_id_user_fk" FOREIGN KEY ("owner_id") REFERENCES "bolt_auth_user"("norbital_id");
+ALTER TABLE "activities" ADD CONSTRAINT "activities_owner_id_user_fk" FOREIGN KEY ("owner_id") REFERENCES "bolt_auth_user"("id");
 --> statement-breakpoint
-ALTER TABLE "contacts" ADD CONSTRAINT "contacts_account_id_accounts_fk" FOREIGN KEY ("account_id") REFERENCES "accounts"("norbital_id");
+ALTER TABLE "contacts" ADD CONSTRAINT "contacts_account_id_accounts_fk" FOREIGN KEY ("account_id") REFERENCES "accounts"("id");
 --> statement-breakpoint
-ALTER TABLE "contract_signings" ADD CONSTRAINT "contract_signings_quote_id_quotes_fk" FOREIGN KEY ("quote_id") REFERENCES "quotes"("norbital_id");
+ALTER TABLE "contract_signings" ADD CONSTRAINT "contract_signings_quote_id_quotes_fk" FOREIGN KEY ("quote_id") REFERENCES "quotes"("id");
 --> statement-breakpoint
-ALTER TABLE "contract_signings" ADD CONSTRAINT "contract_signings_owner_id_user_fk" FOREIGN KEY ("owner_id") REFERENCES "bolt_auth_user"("norbital_id");
+ALTER TABLE "contract_signings" ADD CONSTRAINT "contract_signings_owner_id_user_fk" FOREIGN KEY ("owner_id") REFERENCES "bolt_auth_user"("id");
 --> statement-breakpoint
-ALTER TABLE "goods_receipt_lines" ADD CONSTRAINT "goods_receipt_lines_goods_receipt_id_goods_receipts_fk" FOREIGN KEY ("goods_receipt_id") REFERENCES "goods_receipts"("norbital_id");
+ALTER TABLE "goods_receipt_lines" ADD CONSTRAINT "goods_receipt_lines_goods_receipt_id_goods_receipts_fk" FOREIGN KEY ("goods_receipt_id") REFERENCES "goods_receipts"("id") ON DELETE CASCADE;
 --> statement-breakpoint
-ALTER TABLE "goods_receipt_lines" ADD CONSTRAINT "goods_receipt_lines_purchase_order_line_id_purchase_order_lines_fk" FOREIGN KEY ("purchase_order_line_id") REFERENCES "purchase_order_lines"("norbital_id");
+ALTER TABLE "goods_receipt_lines" ADD CONSTRAINT "goods_receipt_lines_purchase_order_line_id_purchase_order_lines_fk" FOREIGN KEY ("purchase_order_line_id") REFERENCES "purchase_order_lines"("id");
 --> statement-breakpoint
-ALTER TABLE "goods_receipts" ADD CONSTRAINT "goods_receipts_purchase_order_id_purchase_orders_fk" FOREIGN KEY ("purchase_order_id") REFERENCES "purchase_orders"("norbital_id");
+ALTER TABLE "goods_receipts" ADD CONSTRAINT "goods_receipts_purchase_order_id_purchase_orders_fk" FOREIGN KEY ("purchase_order_id") REFERENCES "purchase_orders"("id");
 --> statement-breakpoint
-ALTER TABLE "goods_receipts" ADD CONSTRAINT "goods_receipts_owner_id_user_fk" FOREIGN KEY ("owner_id") REFERENCES "bolt_auth_user"("norbital_id");
+ALTER TABLE "goods_receipts" ADD CONSTRAINT "goods_receipts_owner_id_user_fk" FOREIGN KEY ("owner_id") REFERENCES "bolt_auth_user"("id");
 --> statement-breakpoint
-ALTER TABLE "products" ADD CONSTRAINT "products_main_supplier_id_suppliers_fk" FOREIGN KEY ("main_supplier_id") REFERENCES "suppliers"("norbital_id");
+ALTER TABLE "products" ADD CONSTRAINT "products_main_supplier_id_suppliers_fk" FOREIGN KEY ("main_supplier_id") REFERENCES "suppliers"("id");
 --> statement-breakpoint
-ALTER TABLE "purchase_invoice_lines" ADD CONSTRAINT "purchase_invoice_lines_purchase_invoice_id_purchase_invoices_fk" FOREIGN KEY ("purchase_invoice_id") REFERENCES "purchase_invoices"("norbital_id");
+ALTER TABLE "purchase_invoice_lines" ADD CONSTRAINT "purchase_invoice_lines_purchase_invoice_id_purchase_invoices_fk" FOREIGN KEY ("purchase_invoice_id") REFERENCES "purchase_invoices"("id") ON DELETE CASCADE;
 --> statement-breakpoint
-ALTER TABLE "purchase_invoice_lines" ADD CONSTRAINT "purchase_invoice_lines_purchase_order_line_id_purchase_order_lines_fk" FOREIGN KEY ("purchase_order_line_id") REFERENCES "purchase_order_lines"("norbital_id");
+ALTER TABLE "purchase_invoice_lines" ADD CONSTRAINT "purchase_invoice_lines_purchase_order_line_id_purchase_order_lines_fk" FOREIGN KEY ("purchase_order_line_id") REFERENCES "purchase_order_lines"("id");
 --> statement-breakpoint
-ALTER TABLE "purchase_invoices" ADD CONSTRAINT "purchase_invoices_purchase_order_id_purchase_orders_fk" FOREIGN KEY ("purchase_order_id") REFERENCES "purchase_orders"("norbital_id");
+ALTER TABLE "purchase_invoices" ADD CONSTRAINT "purchase_invoices_purchase_order_id_purchase_orders_fk" FOREIGN KEY ("purchase_order_id") REFERENCES "purchase_orders"("id");
 --> statement-breakpoint
-ALTER TABLE "purchase_invoices" ADD CONSTRAINT "purchase_invoices_supplier_id_suppliers_fk" FOREIGN KEY ("supplier_id") REFERENCES "suppliers"("norbital_id");
+ALTER TABLE "purchase_invoices" ADD CONSTRAINT "purchase_invoices_supplier_id_suppliers_fk" FOREIGN KEY ("supplier_id") REFERENCES "suppliers"("id");
 --> statement-breakpoint
-ALTER TABLE "purchase_invoices" ADD CONSTRAINT "purchase_invoices_owner_id_user_fk" FOREIGN KEY ("owner_id") REFERENCES "bolt_auth_user"("norbital_id");
+ALTER TABLE "purchase_invoices" ADD CONSTRAINT "purchase_invoices_owner_id_user_fk" FOREIGN KEY ("owner_id") REFERENCES "bolt_auth_user"("id");
 --> statement-breakpoint
-ALTER TABLE "purchase_order_lines" ADD CONSTRAINT "purchase_order_lines_purchase_order_id_purchase_orders_fk" FOREIGN KEY ("purchase_order_id") REFERENCES "purchase_orders"("norbital_id");
+ALTER TABLE "purchase_order_lines" ADD CONSTRAINT "purchase_order_lines_purchase_order_id_purchase_orders_fk" FOREIGN KEY ("purchase_order_id") REFERENCES "purchase_orders"("id") ON DELETE CASCADE;
 --> statement-breakpoint
-ALTER TABLE "purchase_order_lines" ADD CONSTRAINT "purchase_order_lines_product_id_products_fk" FOREIGN KEY ("product_id") REFERENCES "products"("norbital_id");
+ALTER TABLE "purchase_order_lines" ADD CONSTRAINT "purchase_order_lines_product_id_products_fk" FOREIGN KEY ("product_id") REFERENCES "products"("id");
 --> statement-breakpoint
-ALTER TABLE "purchase_orders" ADD CONSTRAINT "purchase_orders_supplier_id_suppliers_fk" FOREIGN KEY ("supplier_id") REFERENCES "suppliers"("norbital_id");
+ALTER TABLE "purchase_orders" ADD CONSTRAINT "purchase_orders_supplier_id_suppliers_fk" FOREIGN KEY ("supplier_id") REFERENCES "suppliers"("id");
 --> statement-breakpoint
-ALTER TABLE "purchase_orders" ADD CONSTRAINT "purchase_orders_owner_id_user_fk" FOREIGN KEY ("owner_id") REFERENCES "bolt_auth_user"("norbital_id");
+ALTER TABLE "purchase_orders" ADD CONSTRAINT "purchase_orders_owner_id_user_fk" FOREIGN KEY ("owner_id") REFERENCES "bolt_auth_user"("id");
 --> statement-breakpoint
-ALTER TABLE "quote_lines" ADD CONSTRAINT "quote_lines_quote_id_quotes_fk" FOREIGN KEY ("quote_id") REFERENCES "quotes"("norbital_id");
+ALTER TABLE "quote_lines" ADD CONSTRAINT "quote_lines_quote_id_quotes_fk" FOREIGN KEY ("quote_id") REFERENCES "quotes"("id") ON DELETE CASCADE;
 --> statement-breakpoint
-ALTER TABLE "quote_lines" ADD CONSTRAINT "quote_lines_product_id_products_fk" FOREIGN KEY ("product_id") REFERENCES "products"("norbital_id");
+ALTER TABLE "quote_lines" ADD CONSTRAINT "quote_lines_product_id_products_fk" FOREIGN KEY ("product_id") REFERENCES "products"("id");
 --> statement-breakpoint
-ALTER TABLE "quotes" ADD CONSTRAINT "quotes_account_id_accounts_fk" FOREIGN KEY ("account_id") REFERENCES "accounts"("norbital_id");
+ALTER TABLE "quotes" ADD CONSTRAINT "quotes_account_id_accounts_fk" FOREIGN KEY ("account_id") REFERENCES "accounts"("id");
 --> statement-breakpoint
-ALTER TABLE "quotes" ADD CONSTRAINT "quotes_contact_id_contacts_fk" FOREIGN KEY ("contact_id") REFERENCES "contacts"("norbital_id");
+ALTER TABLE "quotes" ADD CONSTRAINT "quotes_contact_id_contacts_fk" FOREIGN KEY ("contact_id") REFERENCES "contacts"("id");
 --> statement-breakpoint
-ALTER TABLE "quotes" ADD CONSTRAINT "quotes_owner_id_user_fk" FOREIGN KEY ("owner_id") REFERENCES "bolt_auth_user"("norbital_id");
+ALTER TABLE "quotes" ADD CONSTRAINT "quotes_owner_id_user_fk" FOREIGN KEY ("owner_id") REFERENCES "bolt_auth_user"("id");
 --> statement-breakpoint
-ALTER TABLE "quotes" ADD CONSTRAINT "quotes_revision_of_quotes_fk" FOREIGN KEY ("revision_of") REFERENCES "quotes"("norbital_id");
+ALTER TABLE "quotes" ADD CONSTRAINT "quotes_revision_of_quotes_fk" FOREIGN KEY ("revision_of") REFERENCES "quotes"("id");
 --> statement-breakpoint
-ALTER TABLE "sales_invoice_lines" ADD CONSTRAINT "sales_invoice_lines_sales_invoice_id_sales_invoices_fk" FOREIGN KEY ("sales_invoice_id") REFERENCES "sales_invoices"("norbital_id");
+ALTER TABLE "sales_invoice_lines" ADD CONSTRAINT "sales_invoice_lines_sales_invoice_id_sales_invoices_fk" FOREIGN KEY ("sales_invoice_id") REFERENCES "sales_invoices"("id") ON DELETE CASCADE;
 --> statement-breakpoint
-ALTER TABLE "sales_invoice_lines" ADD CONSTRAINT "sales_invoice_lines_quote_line_id_quote_lines_fk" FOREIGN KEY ("quote_line_id") REFERENCES "quote_lines"("norbital_id");
+ALTER TABLE "sales_invoice_lines" ADD CONSTRAINT "sales_invoice_lines_quote_line_id_quote_lines_fk" FOREIGN KEY ("quote_line_id") REFERENCES "quote_lines"("id");
 --> statement-breakpoint
-ALTER TABLE "sales_invoices" ADD CONSTRAINT "sales_invoices_quote_id_quotes_fk" FOREIGN KEY ("quote_id") REFERENCES "quotes"("norbital_id");
+ALTER TABLE "sales_invoices" ADD CONSTRAINT "sales_invoices_quote_id_quotes_fk" FOREIGN KEY ("quote_id") REFERENCES "quotes"("id");
 --> statement-breakpoint
-ALTER TABLE "sales_invoices" ADD CONSTRAINT "sales_invoices_account_id_accounts_fk" FOREIGN KEY ("account_id") REFERENCES "accounts"("norbital_id");
+ALTER TABLE "sales_invoices" ADD CONSTRAINT "sales_invoices_account_id_accounts_fk" FOREIGN KEY ("account_id") REFERENCES "accounts"("id");
 --> statement-breakpoint
-ALTER TABLE "sales_invoices" ADD CONSTRAINT "sales_invoices_owner_id_user_fk" FOREIGN KEY ("owner_id") REFERENCES "bolt_auth_user"("norbital_id");
+ALTER TABLE "sales_invoices" ADD CONSTRAINT "sales_invoices_owner_id_user_fk" FOREIGN KEY ("owner_id") REFERENCES "bolt_auth_user"("id");

@@ -6,7 +6,7 @@ import type { Policy } from './$types.js';
  * Declared here rather than seeded so the permission set ships with the workspace — a fresh database
  * has it, and changing it shows up in a diff.
  *
- * Quote reads and edits are scoped to the requestor. `${requestor.norbital_id}` is bound at
+ * Quote reads and edits are scoped to the requestor. `${requestor.id}` is bound at
  * evaluation time against the request scope, so a rep reads *their* quotes rather than every quote
  * that has an owner. The column is typed against the collection's row, so renaming `owner_id` breaks
  * this file rather than silently matching nothing.
@@ -23,13 +23,13 @@ export default {
 		{
 			collection: 'quotes',
 			action: 'read',
-			where: { owner_id: { eq: '${requestor.norbital_id}' } }
+			where: { owner_id: { eq: '${requestor.id}' } }
 		},
 		{ collection: 'quotes', action: 'create' },
 		{
 			collection: 'quotes',
 			action: 'update',
-			where: { owner_id: { eq: '${requestor.norbital_id}' } }
+			where: { owner_id: { eq: '${requestor.id}' } }
 		},
 
 		// Lines carry no owner of their own, so they are granted unscoped, matching how the
@@ -45,13 +45,13 @@ export default {
 		{
 			collection: 'sales_invoices',
 			action: 'read',
-			where: { owner_id: { eq: '${requestor.norbital_id}' } }
+			where: { owner_id: { eq: '${requestor.id}' } }
 		},
 		{ collection: 'sales_invoices', action: 'create' },
 		{
 			collection: 'sales_invoices',
 			action: 'update',
-			where: { owner_id: { eq: '${requestor.norbital_id}' } }
+			where: { owner_id: { eq: '${requestor.id}' } }
 		},
 
 		// Invoice lines carry no owner of their own, so they are granted unscoped, matching how
@@ -64,13 +64,13 @@ export default {
 		{
 			collection: 'contract_signings',
 			action: 'read',
-			where: { owner_id: { eq: '${requestor.norbital_id}' } }
+			where: { owner_id: { eq: '${requestor.id}' } }
 		},
 		{ collection: 'contract_signings', action: 'create' },
 		{
 			collection: 'contract_signings',
 			action: 'update',
-			where: { owner_id: { eq: '${requestor.norbital_id}' } }
+			where: { owner_id: { eq: '${requestor.id}' } }
 		},
 
 		{ collection: 'settlements', action: 'read' },

@@ -1,8 +1,8 @@
 {
   "dialect": "postgres",
-  "id": "1c320803-1e71-42da-b4de-70bde8fea6fb",
+  "id": "258ce9ec-e8d1-47a7-952d-595535072e91",
   "prevIds": [
-    "83f6251b-b4e9-48b6-ae99-984d1a16f7b3"
+    "27524341-3149-497a-995b-f850f2a20ab7"
   ],
   "version": "8",
   "ddl": [
@@ -116,7 +116,7 @@
       "default": "gen_random_uuid()",
       "generated": null,
       "identity": null,
-      "name": "norbital_id",
+      "name": "id",
       "entityType": "columns",
       "schema": "public",
       "table": "accounts"
@@ -129,7 +129,7 @@
       "default": "now()",
       "generated": null,
       "identity": null,
-      "name": "norbital_created_at",
+      "name": "created_at",
       "entityType": "columns",
       "schema": "public",
       "table": "accounts"
@@ -142,7 +142,7 @@
       "default": "now()",
       "generated": null,
       "identity": null,
-      "name": "norbital_updated_at",
+      "name": "updated_at",
       "entityType": "columns",
       "schema": "public",
       "table": "accounts"
@@ -155,7 +155,7 @@
       "default": "tstzrange(CURRENT_TIMESTAMP, NULL, '[)')",
       "generated": null,
       "identity": null,
-      "name": "norbital_sys_period",
+      "name": "sys_period",
       "entityType": "columns",
       "schema": "public",
       "table": "accounts"
@@ -168,7 +168,7 @@
       "default": "1",
       "generated": null,
       "identity": null,
-      "name": "norbital_row_version",
+      "name": "row_version",
       "entityType": "columns",
       "schema": "public",
       "table": "accounts"
@@ -181,7 +181,7 @@
       "default": null,
       "generated": null,
       "identity": null,
-      "name": "norbital_approval_id",
+      "name": "approval_id",
       "entityType": "columns",
       "schema": "public",
       "table": "accounts"
@@ -337,7 +337,7 @@
       "default": "gen_random_uuid()",
       "generated": null,
       "identity": null,
-      "name": "norbital_id",
+      "name": "id",
       "entityType": "columns",
       "schema": "public",
       "table": "activities"
@@ -350,7 +350,7 @@
       "default": "now()",
       "generated": null,
       "identity": null,
-      "name": "norbital_created_at",
+      "name": "created_at",
       "entityType": "columns",
       "schema": "public",
       "table": "activities"
@@ -363,7 +363,7 @@
       "default": "now()",
       "generated": null,
       "identity": null,
-      "name": "norbital_updated_at",
+      "name": "updated_at",
       "entityType": "columns",
       "schema": "public",
       "table": "activities"
@@ -376,7 +376,7 @@
       "default": "tstzrange(CURRENT_TIMESTAMP, NULL, '[)')",
       "generated": null,
       "identity": null,
-      "name": "norbital_sys_period",
+      "name": "sys_period",
       "entityType": "columns",
       "schema": "public",
       "table": "activities"
@@ -389,7 +389,7 @@
       "default": "1",
       "generated": null,
       "identity": null,
-      "name": "norbital_row_version",
+      "name": "row_version",
       "entityType": "columns",
       "schema": "public",
       "table": "activities"
@@ -402,7 +402,7 @@
       "default": null,
       "generated": null,
       "identity": null,
-      "name": "norbital_approval_id",
+      "name": "approval_id",
       "entityType": "columns",
       "schema": "public",
       "table": "activities"
@@ -519,7 +519,7 @@
       "default": "gen_random_uuid()",
       "generated": null,
       "identity": null,
-      "name": "norbital_id",
+      "name": "id",
       "entityType": "columns",
       "schema": "public",
       "table": "contacts"
@@ -532,7 +532,7 @@
       "default": "now()",
       "generated": null,
       "identity": null,
-      "name": "norbital_created_at",
+      "name": "created_at",
       "entityType": "columns",
       "schema": "public",
       "table": "contacts"
@@ -545,7 +545,7 @@
       "default": "now()",
       "generated": null,
       "identity": null,
-      "name": "norbital_updated_at",
+      "name": "updated_at",
       "entityType": "columns",
       "schema": "public",
       "table": "contacts"
@@ -558,7 +558,7 @@
       "default": "tstzrange(CURRENT_TIMESTAMP, NULL, '[)')",
       "generated": null,
       "identity": null,
-      "name": "norbital_sys_period",
+      "name": "sys_period",
       "entityType": "columns",
       "schema": "public",
       "table": "contacts"
@@ -571,7 +571,7 @@
       "default": "1",
       "generated": null,
       "identity": null,
-      "name": "norbital_row_version",
+      "name": "row_version",
       "entityType": "columns",
       "schema": "public",
       "table": "contacts"
@@ -584,7 +584,7 @@
       "default": null,
       "generated": null,
       "identity": null,
-      "name": "norbital_approval_id",
+      "name": "approval_id",
       "entityType": "columns",
       "schema": "public",
       "table": "contacts"
@@ -688,7 +688,7 @@
       "default": "gen_random_uuid()",
       "generated": null,
       "identity": null,
-      "name": "norbital_id",
+      "name": "id",
       "entityType": "columns",
       "schema": "public",
       "table": "contract_signings"
@@ -701,7 +701,7 @@
       "default": "now()",
       "generated": null,
       "identity": null,
-      "name": "norbital_created_at",
+      "name": "created_at",
       "entityType": "columns",
       "schema": "public",
       "table": "contract_signings"
@@ -714,7 +714,7 @@
       "default": "now()",
       "generated": null,
       "identity": null,
-      "name": "norbital_updated_at",
+      "name": "updated_at",
       "entityType": "columns",
       "schema": "public",
       "table": "contract_signings"
@@ -727,7 +727,7 @@
       "default": "tstzrange(CURRENT_TIMESTAMP, NULL, '[)')",
       "generated": null,
       "identity": null,
-      "name": "norbital_sys_period",
+      "name": "sys_period",
       "entityType": "columns",
       "schema": "public",
       "table": "contract_signings"
@@ -740,7 +740,7 @@
       "default": "1",
       "generated": null,
       "identity": null,
-      "name": "norbital_row_version",
+      "name": "row_version",
       "entityType": "columns",
       "schema": "public",
       "table": "contract_signings"
@@ -753,7 +753,7 @@
       "default": null,
       "generated": null,
       "identity": null,
-      "name": "norbital_approval_id",
+      "name": "approval_id",
       "entityType": "columns",
       "schema": "public",
       "table": "contract_signings"
@@ -811,7 +811,7 @@
       "table": "contract_signings"
     },
     {
-      "type": "uuid",
+      "type": "jsonb",
       "typeSchema": null,
       "notNull": false,
       "dimensions": 0,
@@ -824,7 +824,7 @@
       "table": "contract_signings"
     },
     {
-      "type": "uuid",
+      "type": "jsonb",
       "typeSchema": null,
       "notNull": false,
       "dimensions": 0,
@@ -922,7 +922,7 @@
       "default": "gen_random_uuid()",
       "generated": null,
       "identity": null,
-      "name": "norbital_id",
+      "name": "id",
       "entityType": "columns",
       "schema": "public",
       "table": "goods_receipt_lines"
@@ -935,7 +935,7 @@
       "default": "now()",
       "generated": null,
       "identity": null,
-      "name": "norbital_created_at",
+      "name": "created_at",
       "entityType": "columns",
       "schema": "public",
       "table": "goods_receipt_lines"
@@ -948,7 +948,7 @@
       "default": "now()",
       "generated": null,
       "identity": null,
-      "name": "norbital_updated_at",
+      "name": "updated_at",
       "entityType": "columns",
       "schema": "public",
       "table": "goods_receipt_lines"
@@ -961,7 +961,7 @@
       "default": "tstzrange(CURRENT_TIMESTAMP, NULL, '[)')",
       "generated": null,
       "identity": null,
-      "name": "norbital_sys_period",
+      "name": "sys_period",
       "entityType": "columns",
       "schema": "public",
       "table": "goods_receipt_lines"
@@ -974,7 +974,7 @@
       "default": "1",
       "generated": null,
       "identity": null,
-      "name": "norbital_row_version",
+      "name": "row_version",
       "entityType": "columns",
       "schema": "public",
       "table": "goods_receipt_lines"
@@ -987,7 +987,7 @@
       "default": null,
       "generated": null,
       "identity": null,
-      "name": "norbital_approval_id",
+      "name": "approval_id",
       "entityType": "columns",
       "schema": "public",
       "table": "goods_receipt_lines"
@@ -1039,7 +1039,7 @@
       "default": "gen_random_uuid()",
       "generated": null,
       "identity": null,
-      "name": "norbital_id",
+      "name": "id",
       "entityType": "columns",
       "schema": "public",
       "table": "goods_receipts"
@@ -1052,7 +1052,7 @@
       "default": "now()",
       "generated": null,
       "identity": null,
-      "name": "norbital_created_at",
+      "name": "created_at",
       "entityType": "columns",
       "schema": "public",
       "table": "goods_receipts"
@@ -1065,7 +1065,7 @@
       "default": "now()",
       "generated": null,
       "identity": null,
-      "name": "norbital_updated_at",
+      "name": "updated_at",
       "entityType": "columns",
       "schema": "public",
       "table": "goods_receipts"
@@ -1078,7 +1078,7 @@
       "default": "tstzrange(CURRENT_TIMESTAMP, NULL, '[)')",
       "generated": null,
       "identity": null,
-      "name": "norbital_sys_period",
+      "name": "sys_period",
       "entityType": "columns",
       "schema": "public",
       "table": "goods_receipts"
@@ -1091,7 +1091,7 @@
       "default": "1",
       "generated": null,
       "identity": null,
-      "name": "norbital_row_version",
+      "name": "row_version",
       "entityType": "columns",
       "schema": "public",
       "table": "goods_receipts"
@@ -1104,7 +1104,7 @@
       "default": null,
       "generated": null,
       "identity": null,
-      "name": "norbital_approval_id",
+      "name": "approval_id",
       "entityType": "columns",
       "schema": "public",
       "table": "goods_receipts"
@@ -1195,7 +1195,7 @@
       "default": "gen_random_uuid()",
       "generated": null,
       "identity": null,
-      "name": "norbital_id",
+      "name": "id",
       "entityType": "columns",
       "schema": "public",
       "table": "products"
@@ -1208,7 +1208,7 @@
       "default": "now()",
       "generated": null,
       "identity": null,
-      "name": "norbital_created_at",
+      "name": "created_at",
       "entityType": "columns",
       "schema": "public",
       "table": "products"
@@ -1221,7 +1221,7 @@
       "default": "now()",
       "generated": null,
       "identity": null,
-      "name": "norbital_updated_at",
+      "name": "updated_at",
       "entityType": "columns",
       "schema": "public",
       "table": "products"
@@ -1234,7 +1234,7 @@
       "default": "tstzrange(CURRENT_TIMESTAMP, NULL, '[)')",
       "generated": null,
       "identity": null,
-      "name": "norbital_sys_period",
+      "name": "sys_period",
       "entityType": "columns",
       "schema": "public",
       "table": "products"
@@ -1247,7 +1247,7 @@
       "default": "1",
       "generated": null,
       "identity": null,
-      "name": "norbital_row_version",
+      "name": "row_version",
       "entityType": "columns",
       "schema": "public",
       "table": "products"
@@ -1260,7 +1260,7 @@
       "default": null,
       "generated": null,
       "identity": null,
-      "name": "norbital_approval_id",
+      "name": "approval_id",
       "entityType": "columns",
       "schema": "public",
       "table": "products"
@@ -1416,7 +1416,7 @@
       "default": "gen_random_uuid()",
       "generated": null,
       "identity": null,
-      "name": "norbital_id",
+      "name": "id",
       "entityType": "columns",
       "schema": "public",
       "table": "purchase_invoice_lines"
@@ -1429,7 +1429,7 @@
       "default": "now()",
       "generated": null,
       "identity": null,
-      "name": "norbital_created_at",
+      "name": "created_at",
       "entityType": "columns",
       "schema": "public",
       "table": "purchase_invoice_lines"
@@ -1442,7 +1442,7 @@
       "default": "now()",
       "generated": null,
       "identity": null,
-      "name": "norbital_updated_at",
+      "name": "updated_at",
       "entityType": "columns",
       "schema": "public",
       "table": "purchase_invoice_lines"
@@ -1455,7 +1455,7 @@
       "default": "tstzrange(CURRENT_TIMESTAMP, NULL, '[)')",
       "generated": null,
       "identity": null,
-      "name": "norbital_sys_period",
+      "name": "sys_period",
       "entityType": "columns",
       "schema": "public",
       "table": "purchase_invoice_lines"
@@ -1468,7 +1468,7 @@
       "default": "1",
       "generated": null,
       "identity": null,
-      "name": "norbital_row_version",
+      "name": "row_version",
       "entityType": "columns",
       "schema": "public",
       "table": "purchase_invoice_lines"
@@ -1481,7 +1481,7 @@
       "default": null,
       "generated": null,
       "identity": null,
-      "name": "norbital_approval_id",
+      "name": "approval_id",
       "entityType": "columns",
       "schema": "public",
       "table": "purchase_invoice_lines"
@@ -1624,7 +1624,7 @@
       "default": "gen_random_uuid()",
       "generated": null,
       "identity": null,
-      "name": "norbital_id",
+      "name": "id",
       "entityType": "columns",
       "schema": "public",
       "table": "purchase_invoices"
@@ -1637,7 +1637,7 @@
       "default": "now()",
       "generated": null,
       "identity": null,
-      "name": "norbital_created_at",
+      "name": "created_at",
       "entityType": "columns",
       "schema": "public",
       "table": "purchase_invoices"
@@ -1650,7 +1650,7 @@
       "default": "now()",
       "generated": null,
       "identity": null,
-      "name": "norbital_updated_at",
+      "name": "updated_at",
       "entityType": "columns",
       "schema": "public",
       "table": "purchase_invoices"
@@ -1663,7 +1663,7 @@
       "default": "tstzrange(CURRENT_TIMESTAMP, NULL, '[)')",
       "generated": null,
       "identity": null,
-      "name": "norbital_sys_period",
+      "name": "sys_period",
       "entityType": "columns",
       "schema": "public",
       "table": "purchase_invoices"
@@ -1676,7 +1676,7 @@
       "default": "1",
       "generated": null,
       "identity": null,
-      "name": "norbital_row_version",
+      "name": "row_version",
       "entityType": "columns",
       "schema": "public",
       "table": "purchase_invoices"
@@ -1689,7 +1689,7 @@
       "default": null,
       "generated": null,
       "identity": null,
-      "name": "norbital_approval_id",
+      "name": "approval_id",
       "entityType": "columns",
       "schema": "public",
       "table": "purchase_invoices"
@@ -1923,7 +1923,7 @@
       "default": "gen_random_uuid()",
       "generated": null,
       "identity": null,
-      "name": "norbital_id",
+      "name": "id",
       "entityType": "columns",
       "schema": "public",
       "table": "purchase_order_lines"
@@ -1936,7 +1936,7 @@
       "default": "now()",
       "generated": null,
       "identity": null,
-      "name": "norbital_created_at",
+      "name": "created_at",
       "entityType": "columns",
       "schema": "public",
       "table": "purchase_order_lines"
@@ -1949,7 +1949,7 @@
       "default": "now()",
       "generated": null,
       "identity": null,
-      "name": "norbital_updated_at",
+      "name": "updated_at",
       "entityType": "columns",
       "schema": "public",
       "table": "purchase_order_lines"
@@ -1962,7 +1962,7 @@
       "default": "tstzrange(CURRENT_TIMESTAMP, NULL, '[)')",
       "generated": null,
       "identity": null,
-      "name": "norbital_sys_period",
+      "name": "sys_period",
       "entityType": "columns",
       "schema": "public",
       "table": "purchase_order_lines"
@@ -1975,7 +1975,7 @@
       "default": "1",
       "generated": null,
       "identity": null,
-      "name": "norbital_row_version",
+      "name": "row_version",
       "entityType": "columns",
       "schema": "public",
       "table": "purchase_order_lines"
@@ -1988,7 +1988,7 @@
       "default": null,
       "generated": null,
       "identity": null,
-      "name": "norbital_approval_id",
+      "name": "approval_id",
       "entityType": "columns",
       "schema": "public",
       "table": "purchase_order_lines"
@@ -2144,7 +2144,7 @@
       "default": "gen_random_uuid()",
       "generated": null,
       "identity": null,
-      "name": "norbital_id",
+      "name": "id",
       "entityType": "columns",
       "schema": "public",
       "table": "purchase_orders"
@@ -2157,7 +2157,7 @@
       "default": "now()",
       "generated": null,
       "identity": null,
-      "name": "norbital_created_at",
+      "name": "created_at",
       "entityType": "columns",
       "schema": "public",
       "table": "purchase_orders"
@@ -2170,7 +2170,7 @@
       "default": "now()",
       "generated": null,
       "identity": null,
-      "name": "norbital_updated_at",
+      "name": "updated_at",
       "entityType": "columns",
       "schema": "public",
       "table": "purchase_orders"
@@ -2183,7 +2183,7 @@
       "default": "tstzrange(CURRENT_TIMESTAMP, NULL, '[)')",
       "generated": null,
       "identity": null,
-      "name": "norbital_sys_period",
+      "name": "sys_period",
       "entityType": "columns",
       "schema": "public",
       "table": "purchase_orders"
@@ -2196,7 +2196,7 @@
       "default": "1",
       "generated": null,
       "identity": null,
-      "name": "norbital_row_version",
+      "name": "row_version",
       "entityType": "columns",
       "schema": "public",
       "table": "purchase_orders"
@@ -2209,7 +2209,7 @@
       "default": null,
       "generated": null,
       "identity": null,
-      "name": "norbital_approval_id",
+      "name": "approval_id",
       "entityType": "columns",
       "schema": "public",
       "table": "purchase_orders"
@@ -2417,7 +2417,7 @@
       "default": "gen_random_uuid()",
       "generated": null,
       "identity": null,
-      "name": "norbital_id",
+      "name": "id",
       "entityType": "columns",
       "schema": "public",
       "table": "quote_lines"
@@ -2430,7 +2430,7 @@
       "default": "now()",
       "generated": null,
       "identity": null,
-      "name": "norbital_created_at",
+      "name": "created_at",
       "entityType": "columns",
       "schema": "public",
       "table": "quote_lines"
@@ -2443,7 +2443,7 @@
       "default": "now()",
       "generated": null,
       "identity": null,
-      "name": "norbital_updated_at",
+      "name": "updated_at",
       "entityType": "columns",
       "schema": "public",
       "table": "quote_lines"
@@ -2456,7 +2456,7 @@
       "default": "tstzrange(CURRENT_TIMESTAMP, NULL, '[)')",
       "generated": null,
       "identity": null,
-      "name": "norbital_sys_period",
+      "name": "sys_period",
       "entityType": "columns",
       "schema": "public",
       "table": "quote_lines"
@@ -2469,7 +2469,7 @@
       "default": "1",
       "generated": null,
       "identity": null,
-      "name": "norbital_row_version",
+      "name": "row_version",
       "entityType": "columns",
       "schema": "public",
       "table": "quote_lines"
@@ -2482,7 +2482,7 @@
       "default": null,
       "generated": null,
       "identity": null,
-      "name": "norbital_approval_id",
+      "name": "approval_id",
       "entityType": "columns",
       "schema": "public",
       "table": "quote_lines"
@@ -2651,7 +2651,7 @@
       "default": "gen_random_uuid()",
       "generated": null,
       "identity": null,
-      "name": "norbital_id",
+      "name": "id",
       "entityType": "columns",
       "schema": "public",
       "table": "quotes"
@@ -2664,7 +2664,7 @@
       "default": "now()",
       "generated": null,
       "identity": null,
-      "name": "norbital_created_at",
+      "name": "created_at",
       "entityType": "columns",
       "schema": "public",
       "table": "quotes"
@@ -2677,7 +2677,7 @@
       "default": "now()",
       "generated": null,
       "identity": null,
-      "name": "norbital_updated_at",
+      "name": "updated_at",
       "entityType": "columns",
       "schema": "public",
       "table": "quotes"
@@ -2690,7 +2690,7 @@
       "default": "tstzrange(CURRENT_TIMESTAMP, NULL, '[)')",
       "generated": null,
       "identity": null,
-      "name": "norbital_sys_period",
+      "name": "sys_period",
       "entityType": "columns",
       "schema": "public",
       "table": "quotes"
@@ -2703,7 +2703,7 @@
       "default": "1",
       "generated": null,
       "identity": null,
-      "name": "norbital_row_version",
+      "name": "row_version",
       "entityType": "columns",
       "schema": "public",
       "table": "quotes"
@@ -2716,7 +2716,7 @@
       "default": null,
       "generated": null,
       "identity": null,
-      "name": "norbital_approval_id",
+      "name": "approval_id",
       "entityType": "columns",
       "schema": "public",
       "table": "quotes"
@@ -3080,7 +3080,7 @@
       "default": "gen_random_uuid()",
       "generated": null,
       "identity": null,
-      "name": "norbital_id",
+      "name": "id",
       "entityType": "columns",
       "schema": "public",
       "table": "sales_invoice_lines"
@@ -3093,7 +3093,7 @@
       "default": "now()",
       "generated": null,
       "identity": null,
-      "name": "norbital_created_at",
+      "name": "created_at",
       "entityType": "columns",
       "schema": "public",
       "table": "sales_invoice_lines"
@@ -3106,7 +3106,7 @@
       "default": "now()",
       "generated": null,
       "identity": null,
-      "name": "norbital_updated_at",
+      "name": "updated_at",
       "entityType": "columns",
       "schema": "public",
       "table": "sales_invoice_lines"
@@ -3119,7 +3119,7 @@
       "default": "tstzrange(CURRENT_TIMESTAMP, NULL, '[)')",
       "generated": null,
       "identity": null,
-      "name": "norbital_sys_period",
+      "name": "sys_period",
       "entityType": "columns",
       "schema": "public",
       "table": "sales_invoice_lines"
@@ -3132,7 +3132,7 @@
       "default": "1",
       "generated": null,
       "identity": null,
-      "name": "norbital_row_version",
+      "name": "row_version",
       "entityType": "columns",
       "schema": "public",
       "table": "sales_invoice_lines"
@@ -3145,7 +3145,7 @@
       "default": null,
       "generated": null,
       "identity": null,
-      "name": "norbital_approval_id",
+      "name": "approval_id",
       "entityType": "columns",
       "schema": "public",
       "table": "sales_invoice_lines"
@@ -3301,7 +3301,7 @@
       "default": "gen_random_uuid()",
       "generated": null,
       "identity": null,
-      "name": "norbital_id",
+      "name": "id",
       "entityType": "columns",
       "schema": "public",
       "table": "sales_invoices"
@@ -3314,7 +3314,7 @@
       "default": "now()",
       "generated": null,
       "identity": null,
-      "name": "norbital_created_at",
+      "name": "created_at",
       "entityType": "columns",
       "schema": "public",
       "table": "sales_invoices"
@@ -3327,7 +3327,7 @@
       "default": "now()",
       "generated": null,
       "identity": null,
-      "name": "norbital_updated_at",
+      "name": "updated_at",
       "entityType": "columns",
       "schema": "public",
       "table": "sales_invoices"
@@ -3340,7 +3340,7 @@
       "default": "tstzrange(CURRENT_TIMESTAMP, NULL, '[)')",
       "generated": null,
       "identity": null,
-      "name": "norbital_sys_period",
+      "name": "sys_period",
       "entityType": "columns",
       "schema": "public",
       "table": "sales_invoices"
@@ -3353,7 +3353,7 @@
       "default": "1",
       "generated": null,
       "identity": null,
-      "name": "norbital_row_version",
+      "name": "row_version",
       "entityType": "columns",
       "schema": "public",
       "table": "sales_invoices"
@@ -3366,7 +3366,7 @@
       "default": null,
       "generated": null,
       "identity": null,
-      "name": "norbital_approval_id",
+      "name": "approval_id",
       "entityType": "columns",
       "schema": "public",
       "table": "sales_invoices"
@@ -3548,7 +3548,7 @@
       "default": "gen_random_uuid()",
       "generated": null,
       "identity": null,
-      "name": "norbital_id",
+      "name": "id",
       "entityType": "columns",
       "schema": "public",
       "table": "settlements"
@@ -3561,7 +3561,7 @@
       "default": "now()",
       "generated": null,
       "identity": null,
-      "name": "norbital_created_at",
+      "name": "created_at",
       "entityType": "columns",
       "schema": "public",
       "table": "settlements"
@@ -3574,7 +3574,7 @@
       "default": "now()",
       "generated": null,
       "identity": null,
-      "name": "norbital_updated_at",
+      "name": "updated_at",
       "entityType": "columns",
       "schema": "public",
       "table": "settlements"
@@ -3587,7 +3587,7 @@
       "default": "tstzrange(CURRENT_TIMESTAMP, NULL, '[)')",
       "generated": null,
       "identity": null,
-      "name": "norbital_sys_period",
+      "name": "sys_period",
       "entityType": "columns",
       "schema": "public",
       "table": "settlements"
@@ -3600,7 +3600,7 @@
       "default": "1",
       "generated": null,
       "identity": null,
-      "name": "norbital_row_version",
+      "name": "row_version",
       "entityType": "columns",
       "schema": "public",
       "table": "settlements"
@@ -3613,7 +3613,7 @@
       "default": null,
       "generated": null,
       "identity": null,
-      "name": "norbital_approval_id",
+      "name": "approval_id",
       "entityType": "columns",
       "schema": "public",
       "table": "settlements"
@@ -3717,7 +3717,7 @@
       "default": "gen_random_uuid()",
       "generated": null,
       "identity": null,
-      "name": "norbital_id",
+      "name": "id",
       "entityType": "columns",
       "schema": "public",
       "table": "suppliers"
@@ -3730,7 +3730,7 @@
       "default": "now()",
       "generated": null,
       "identity": null,
-      "name": "norbital_created_at",
+      "name": "created_at",
       "entityType": "columns",
       "schema": "public",
       "table": "suppliers"
@@ -3743,7 +3743,7 @@
       "default": "now()",
       "generated": null,
       "identity": null,
-      "name": "norbital_updated_at",
+      "name": "updated_at",
       "entityType": "columns",
       "schema": "public",
       "table": "suppliers"
@@ -3756,7 +3756,7 @@
       "default": "tstzrange(CURRENT_TIMESTAMP, NULL, '[)')",
       "generated": null,
       "identity": null,
-      "name": "norbital_sys_period",
+      "name": "sys_period",
       "entityType": "columns",
       "schema": "public",
       "table": "suppliers"
@@ -3769,7 +3769,7 @@
       "default": "1",
       "generated": null,
       "identity": null,
-      "name": "norbital_row_version",
+      "name": "row_version",
       "entityType": "columns",
       "schema": "public",
       "table": "suppliers"
@@ -3782,7 +3782,7 @@
       "default": null,
       "generated": null,
       "identity": null,
-      "name": "norbital_approval_id",
+      "name": "approval_id",
       "entityType": "columns",
       "schema": "public",
       "table": "suppliers"
@@ -5319,7 +5319,7 @@
       "schemaTo": "public",
       "tableTo": "bolt_auth_user",
       "columnsTo": [
-        "norbital_id"
+        "id"
       ],
       "onUpdate": "NO ACTION",
       "onDelete": "NO ACTION",
@@ -5336,7 +5336,7 @@
       "schemaTo": "public",
       "tableTo": "accounts",
       "columnsTo": [
-        "norbital_id"
+        "id"
       ],
       "onUpdate": "NO ACTION",
       "onDelete": "NO ACTION",
@@ -5353,7 +5353,7 @@
       "schemaTo": "public",
       "tableTo": "quotes",
       "columnsTo": [
-        "norbital_id"
+        "id"
       ],
       "onUpdate": "NO ACTION",
       "onDelete": "NO ACTION",
@@ -5370,7 +5370,7 @@
       "schemaTo": "public",
       "tableTo": "bolt_auth_user",
       "columnsTo": [
-        "norbital_id"
+        "id"
       ],
       "onUpdate": "NO ACTION",
       "onDelete": "NO ACTION",
@@ -5387,10 +5387,10 @@
       "schemaTo": "public",
       "tableTo": "goods_receipts",
       "columnsTo": [
-        "norbital_id"
+        "id"
       ],
       "onUpdate": "NO ACTION",
-      "onDelete": "NO ACTION",
+      "onDelete": "CASCADE",
       "name": "goods_receipt_lines_goods_receipt_id_goods_receipts_fk",
       "entityType": "fks",
       "schema": "public",
@@ -5404,7 +5404,7 @@
       "schemaTo": "public",
       "tableTo": "purchase_order_lines",
       "columnsTo": [
-        "norbital_id"
+        "id"
       ],
       "onUpdate": "NO ACTION",
       "onDelete": "NO ACTION",
@@ -5421,7 +5421,7 @@
       "schemaTo": "public",
       "tableTo": "purchase_orders",
       "columnsTo": [
-        "norbital_id"
+        "id"
       ],
       "onUpdate": "NO ACTION",
       "onDelete": "NO ACTION",
@@ -5438,7 +5438,7 @@
       "schemaTo": "public",
       "tableTo": "bolt_auth_user",
       "columnsTo": [
-        "norbital_id"
+        "id"
       ],
       "onUpdate": "NO ACTION",
       "onDelete": "NO ACTION",
@@ -5455,7 +5455,7 @@
       "schemaTo": "public",
       "tableTo": "suppliers",
       "columnsTo": [
-        "norbital_id"
+        "id"
       ],
       "onUpdate": "NO ACTION",
       "onDelete": "NO ACTION",
@@ -5472,10 +5472,10 @@
       "schemaTo": "public",
       "tableTo": "purchase_invoices",
       "columnsTo": [
-        "norbital_id"
+        "id"
       ],
       "onUpdate": "NO ACTION",
-      "onDelete": "NO ACTION",
+      "onDelete": "CASCADE",
       "name": "purchase_invoice_lines_purchase_invoice_id_purchase_invoices_fk",
       "entityType": "fks",
       "schema": "public",
@@ -5489,7 +5489,7 @@
       "schemaTo": "public",
       "tableTo": "purchase_order_lines",
       "columnsTo": [
-        "norbital_id"
+        "id"
       ],
       "onUpdate": "NO ACTION",
       "onDelete": "NO ACTION",
@@ -5506,7 +5506,7 @@
       "schemaTo": "public",
       "tableTo": "purchase_orders",
       "columnsTo": [
-        "norbital_id"
+        "id"
       ],
       "onUpdate": "NO ACTION",
       "onDelete": "NO ACTION",
@@ -5523,7 +5523,7 @@
       "schemaTo": "public",
       "tableTo": "suppliers",
       "columnsTo": [
-        "norbital_id"
+        "id"
       ],
       "onUpdate": "NO ACTION",
       "onDelete": "NO ACTION",
@@ -5540,7 +5540,7 @@
       "schemaTo": "public",
       "tableTo": "bolt_auth_user",
       "columnsTo": [
-        "norbital_id"
+        "id"
       ],
       "onUpdate": "NO ACTION",
       "onDelete": "NO ACTION",
@@ -5557,10 +5557,10 @@
       "schemaTo": "public",
       "tableTo": "purchase_orders",
       "columnsTo": [
-        "norbital_id"
+        "id"
       ],
       "onUpdate": "NO ACTION",
-      "onDelete": "NO ACTION",
+      "onDelete": "CASCADE",
       "name": "purchase_order_lines_purchase_order_id_purchase_orders_fk",
       "entityType": "fks",
       "schema": "public",
@@ -5574,7 +5574,7 @@
       "schemaTo": "public",
       "tableTo": "products",
       "columnsTo": [
-        "norbital_id"
+        "id"
       ],
       "onUpdate": "NO ACTION",
       "onDelete": "NO ACTION",
@@ -5591,7 +5591,7 @@
       "schemaTo": "public",
       "tableTo": "suppliers",
       "columnsTo": [
-        "norbital_id"
+        "id"
       ],
       "onUpdate": "NO ACTION",
       "onDelete": "NO ACTION",
@@ -5608,7 +5608,7 @@
       "schemaTo": "public",
       "tableTo": "bolt_auth_user",
       "columnsTo": [
-        "norbital_id"
+        "id"
       ],
       "onUpdate": "NO ACTION",
       "onDelete": "NO ACTION",
@@ -5625,10 +5625,10 @@
       "schemaTo": "public",
       "tableTo": "quotes",
       "columnsTo": [
-        "norbital_id"
+        "id"
       ],
       "onUpdate": "NO ACTION",
-      "onDelete": "NO ACTION",
+      "onDelete": "CASCADE",
       "name": "quote_lines_quote_id_quotes_fk",
       "entityType": "fks",
       "schema": "public",
@@ -5642,7 +5642,7 @@
       "schemaTo": "public",
       "tableTo": "products",
       "columnsTo": [
-        "norbital_id"
+        "id"
       ],
       "onUpdate": "NO ACTION",
       "onDelete": "NO ACTION",
@@ -5659,7 +5659,7 @@
       "schemaTo": "public",
       "tableTo": "accounts",
       "columnsTo": [
-        "norbital_id"
+        "id"
       ],
       "onUpdate": "NO ACTION",
       "onDelete": "NO ACTION",
@@ -5676,7 +5676,7 @@
       "schemaTo": "public",
       "tableTo": "contacts",
       "columnsTo": [
-        "norbital_id"
+        "id"
       ],
       "onUpdate": "NO ACTION",
       "onDelete": "NO ACTION",
@@ -5693,7 +5693,7 @@
       "schemaTo": "public",
       "tableTo": "bolt_auth_user",
       "columnsTo": [
-        "norbital_id"
+        "id"
       ],
       "onUpdate": "NO ACTION",
       "onDelete": "NO ACTION",
@@ -5710,7 +5710,7 @@
       "schemaTo": "public",
       "tableTo": "quotes",
       "columnsTo": [
-        "norbital_id"
+        "id"
       ],
       "onUpdate": "NO ACTION",
       "onDelete": "NO ACTION",
@@ -5727,10 +5727,10 @@
       "schemaTo": "public",
       "tableTo": "sales_invoices",
       "columnsTo": [
-        "norbital_id"
+        "id"
       ],
       "onUpdate": "NO ACTION",
-      "onDelete": "NO ACTION",
+      "onDelete": "CASCADE",
       "name": "sales_invoice_lines_sales_invoice_id_sales_invoices_fk",
       "entityType": "fks",
       "schema": "public",
@@ -5744,7 +5744,7 @@
       "schemaTo": "public",
       "tableTo": "quote_lines",
       "columnsTo": [
-        "norbital_id"
+        "id"
       ],
       "onUpdate": "NO ACTION",
       "onDelete": "NO ACTION",
@@ -5761,7 +5761,7 @@
       "schemaTo": "public",
       "tableTo": "quotes",
       "columnsTo": [
-        "norbital_id"
+        "id"
       ],
       "onUpdate": "NO ACTION",
       "onDelete": "NO ACTION",
@@ -5778,7 +5778,7 @@
       "schemaTo": "public",
       "tableTo": "accounts",
       "columnsTo": [
-        "norbital_id"
+        "id"
       ],
       "onUpdate": "NO ACTION",
       "onDelete": "NO ACTION",
@@ -5795,7 +5795,7 @@
       "schemaTo": "public",
       "tableTo": "bolt_auth_user",
       "columnsTo": [
-        "norbital_id"
+        "id"
       ],
       "onUpdate": "NO ACTION",
       "onDelete": "NO ACTION",
@@ -5806,7 +5806,7 @@
     },
     {
       "columns": [
-        "norbital_id"
+        "id"
       ],
       "nameExplicit": false,
       "name": "accounts_pkey",
@@ -5816,7 +5816,7 @@
     },
     {
       "columns": [
-        "norbital_id"
+        "id"
       ],
       "nameExplicit": false,
       "name": "activities_pkey",
@@ -5826,7 +5826,7 @@
     },
     {
       "columns": [
-        "norbital_id"
+        "id"
       ],
       "nameExplicit": false,
       "name": "contacts_pkey",
@@ -5836,7 +5836,7 @@
     },
     {
       "columns": [
-        "norbital_id"
+        "id"
       ],
       "nameExplicit": false,
       "name": "contract_signings_pkey",
@@ -5846,7 +5846,7 @@
     },
     {
       "columns": [
-        "norbital_id"
+        "id"
       ],
       "nameExplicit": false,
       "name": "goods_receipt_lines_pkey",
@@ -5856,7 +5856,7 @@
     },
     {
       "columns": [
-        "norbital_id"
+        "id"
       ],
       "nameExplicit": false,
       "name": "goods_receipts_pkey",
@@ -5866,7 +5866,7 @@
     },
     {
       "columns": [
-        "norbital_id"
+        "id"
       ],
       "nameExplicit": false,
       "name": "products_pkey",
@@ -5876,7 +5876,7 @@
     },
     {
       "columns": [
-        "norbital_id"
+        "id"
       ],
       "nameExplicit": false,
       "name": "purchase_invoice_lines_pkey",
@@ -5886,7 +5886,7 @@
     },
     {
       "columns": [
-        "norbital_id"
+        "id"
       ],
       "nameExplicit": false,
       "name": "purchase_invoices_pkey",
@@ -5896,7 +5896,7 @@
     },
     {
       "columns": [
-        "norbital_id"
+        "id"
       ],
       "nameExplicit": false,
       "name": "purchase_order_lines_pkey",
@@ -5906,7 +5906,7 @@
     },
     {
       "columns": [
-        "norbital_id"
+        "id"
       ],
       "nameExplicit": false,
       "name": "purchase_orders_pkey",
@@ -5916,7 +5916,7 @@
     },
     {
       "columns": [
-        "norbital_id"
+        "id"
       ],
       "nameExplicit": false,
       "name": "quote_lines_pkey",
@@ -5926,7 +5926,7 @@
     },
     {
       "columns": [
-        "norbital_id"
+        "id"
       ],
       "nameExplicit": false,
       "name": "quotes_pkey",
@@ -5936,7 +5936,7 @@
     },
     {
       "columns": [
-        "norbital_id"
+        "id"
       ],
       "nameExplicit": false,
       "name": "sales_invoice_lines_pkey",
@@ -5946,7 +5946,7 @@
     },
     {
       "columns": [
-        "norbital_id"
+        "id"
       ],
       "nameExplicit": false,
       "name": "sales_invoices_pkey",
@@ -5956,7 +5956,7 @@
     },
     {
       "columns": [
-        "norbital_id"
+        "id"
       ],
       "nameExplicit": false,
       "name": "settlements_pkey",
@@ -5966,7 +5966,7 @@
     },
     {
       "columns": [
-        "norbital_id"
+        "id"
       ],
       "nameExplicit": false,
       "name": "suppliers_pkey",

@@ -13,66 +13,70 @@
 		return current !== undefined && 'status_counts' in current ? current : null;
 	});
 
-	const usersQuery = workspaceClient.db.bolt_auth_user.findMany({
-		columns: { norbital_id: true, name: true },
-		orderBy: { name: 'asc' }
-	});
-	const userLabelsById = $derived(
-		new Map((usersQuery.current ?? []).map((user) => [String(user.norbital_id), String(user.name)]))
+	const usersQuery = $derived(
+		workspaceClient.db.bolt_auth_user.findMany({
+			columns: { id: true, name: true },
+			orderBy: { name: 'asc' }
+		})
 	);
-	const purchaseOrdersQuery = workspaceClient.db.purchase_orders.findMany({
-		columns: { norbital_id: true, doc_no: true },
-		orderBy: { doc_no: 'desc' },
-		limit: 5000
-	});
+	const userLabelsById = $derived(
+		new Map((usersQuery.current ?? []).map((user) => [String(user.id), String(user.name)]))
+	);
+	const purchaseOrdersQuery = $derived(
+		workspaceClient.db.purchase_orders.findMany({
+			columns: { id: true, doc_no: true },
+			orderBy: { doc_no: 'desc' },
+			limit: 5000
+		})
+	);
 	const purchaseOrderLabelsById = $derived(
 		new Map(
-			(purchaseOrdersQuery.current ?? []).map((order) => [
-				String(order.norbital_id),
-				String(order.doc_no)
-			])
+			(purchaseOrdersQuery.current ?? []).map((order) => [String(order.id), String(order.doc_no)])
 		)
 	);
 
-	const receiptsQuery = workspaceClient.db.goods_receipts.findMany({
-		columns: { norbital_id: true, doc_no: true },
-		orderBy: { doc_no: 'desc' },
-		limit: 5000
-	});
+	const receiptsQuery = $derived(
+		workspaceClient.db.goods_receipts.findMany({
+			columns: { id: true, doc_no: true },
+			orderBy: { doc_no: 'desc' },
+			limit: 5000
+		})
+	);
 	const receiptLabelsById = $derived(
 		new Map(
-			(receiptsQuery.current ?? []).map((receipt) => [
-				String(receipt.norbital_id),
-				String(receipt.doc_no)
-			])
+			(receiptsQuery.current ?? []).map((receipt) => [String(receipt.id), String(receipt.doc_no)])
 		)
 	);
-	const receiptIds = $derived((receiptsQuery.current ?? []).map((receipt) => receipt.norbital_id));
-	const purchaseInvoicesQuery = workspaceClient.db.purchase_invoices.findMany({
-		columns: { norbital_id: true, doc_no: true },
-		orderBy: { doc_no: 'desc' },
-		limit: 5000
-	});
+	const receiptIds = $derived((receiptsQuery.current ?? []).map((receipt) => receipt.id));
+	const purchaseInvoicesQuery = $derived(
+		workspaceClient.db.purchase_invoices.findMany({
+			columns: { id: true, doc_no: true },
+			orderBy: { doc_no: 'desc' },
+			limit: 5000
+		})
+	);
 	const purchaseInvoiceLabelsById = $derived(
 		new Map(
 			(purchaseInvoicesQuery.current ?? []).map((invoice) => [
-				String(invoice.norbital_id),
+				String(invoice.id),
 				String(invoice.doc_no)
 			])
 		)
 	);
 	const purchaseInvoiceIds = $derived(
-		(purchaseInvoicesQuery.current ?? []).map((invoice) => invoice.norbital_id)
+		(purchaseInvoicesQuery.current ?? []).map((invoice) => invoice.id)
 	);
-	const orderLinesQuery = workspaceClient.db.purchase_order_lines.findMany({
-		columns: { norbital_id: true, product_name: true, quantity: true },
-		orderBy: { product_name: 'asc' },
-		limit: 5000
-	});
+	const orderLinesQuery = $derived(
+		workspaceClient.db.purchase_order_lines.findMany({
+			columns: { id: true, product_name: true, quantity: true },
+			orderBy: { product_name: 'asc' },
+			limit: 5000
+		})
+	);
 	const orderLineLabelsById = $derived(
 		new Map(
 			(orderLinesQuery.current ?? []).map((line) => [
-				String(line.norbital_id),
+				String(line.id),
 				line.quantity != null
 					? `${String(line.product_name)} × ${line.quantity}`
 					: String(line.product_name)
@@ -81,6 +85,14 @@
 	);
 
 	const { t, has } = useI18n<TenantI18nKeys>();
+
+	/** The stage labels the purchase pipeline reports, so a dynamic status name never needs a cast. */
+	const STATUS_LABELS: Readonly<Record<string, TenantI18nKeys>> = {
+		draft: 'component.status_draft',
+		submitted: 'component.status_submitted',
+		confirmed: 'component.status_confirmed',
+		cancelled: 'component.status_cancelled'
+	};
 </script>
 
 <svelte:head>
@@ -108,9 +120,7 @@
 					{#each Object.entries(dashboardData?.status_counts ?? {}) as [status, count] (status)}
 						<div class="rounded-lg border bg-card p-4">
 							<p class="text-sm text-muted-foreground capitalize">
-								{has(`component.status_${status}`)
-									? t(`component.status_${status}` as TenantI18nKeys)
-									: status.replace('_', ' ')}
+								{has(STATUS_LABELS[status]) ? t(STATUS_LABELS[status]) : status.replace('_', ' ')}
 							</p>
 							<p class="text-2xl font-semibold tabular-nums">{count}</p>
 						</div>

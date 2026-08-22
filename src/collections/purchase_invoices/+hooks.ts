@@ -1,25 +1,9 @@
-import { Effect } from 'effect';
+import { Clock, Effect, Schema } from 'effect';
+import { docNoSeriesPattern, nextDocNo } from '../../lib/document-numbers.js';
 import type { Hooks, WorkspaceRow } from './$types.js';
 
-const DOC_NO_SEQUENCE_WIDTH = 4;
-
-function docNoSeriesPattern(prefix: string, year: number): string {
-	return `${prefix}-${year}-%`;
-}
-
-function nextDocNo(existingNumbers: readonly string[], prefix: string, year: number): string {
-	const seriesPrefix = `${prefix}-${year}-`;
-	let highest = 0;
-	for (const number of existingNumbers) {
-		if (!number.startsWith(seriesPrefix)) continue;
-		const sequence = Number.parseInt(number.slice(seriesPrefix.length), 10);
-		if (Number.isNaN(sequence)) continue;
-		if (sequence > highest) highest = sequence;
-	}
-	return `${seriesPrefix}${String(highest + 1).padStart(DOC_NO_SEQUENCE_WIDTH, '0')}`;
-}
-
-type InvoiceStatus = 'draft' | 'confirmed' | 'cancelled';
+const invoiceStatusSchema = Schema.Literals(['draft', 'confirmed', 'cancelled']);
+type InvoiceStatus = Schema.Schema.Type<typeof invoiceStatusSchema>;
 
 type InvoiceUpdate = {
 	-readonly [K in keyof WorkspaceRow<'purchase_invoices'>]?: WorkspaceRow<'purchase_invoices'>[K];
@@ -40,14 +24,20 @@ export default {
 				handler: ({ input, api }) =>
 					Effect.gen(function* () {
 						if (!input.purchase_order_id) {
-							throw new Error('A purchase invoice must reference a purchase order.');
+							return yield* Effect.fail(
+								new Error('A purchase invoice must reference a purchase order.')
+							);
 						}
 						const order = yield* api.db.query.purchase_orders.findFirst({
-							where: { norbital_id: { eq: input.purchase_order_id } }
+							where: { id: { eq: input.purchase_order_id } }
 						});
-						if (!order) throw new Error('Referenced purchase order does not exist.');
+						if (!order) {
+							return yield* Effect.fail(new Error('Referenced purchase order does not exist.'));
+						}
 						if (order.status !== 'confirmed') {
-							throw new Error('Invoices can only be booked against a confirmed purchase order.');
+							return yield* Effect.fail(
+								new Error('Invoices can only be booked against a confirmed purchase order.')
+							);
 						}
 
 						const resolved = {
@@ -64,7 +54,7 @@ export default {
 						};
 
 						if (!input.doc_no) {
-							const year = new Date().getFullYear();
+							const year = new Date(yield* Clock.currentTimeMillis).getFullYear();
 							const existing = yield* api.db.query.purchase_invoices.findMany({
 								where: { doc_no: { like: docNoSeriesPattern('PI', year) } },
 								columns: { doc_no: true },
@@ -92,20 +82,28 @@ export default {
 					'Freezes a purchase invoice once it is confirmed or cancelled, requires at least one line to confirm, and requires a cancellation reason to cancel.',
 				handler: ({ input, existing, api }) =>
 					Effect.gen(function* () {
-						const newStatus = (input.status ?? existing.status) as InvoiceStatus;
-						const oldStatus = existing.status as InvoiceStatus;
+						const newStatus = yield* Schema.decodeUnknownEffect(invoiceStatusSchema)(
+							input.status ?? existing.status
+						);
+						const oldStatus = yield* Schema.decodeUnknownEffect(invoiceStatusSchema)(
+							existing.status
+						);
 
 						if (oldStatus === newStatus) {
 							if (oldStatus === 'draft') return input;
-							throw new Error(
-								`A ${oldStatus} purchase invoice is immutable. Revise by booking a new invoice.`
+							return yield* Effect.fail(
+								new Error(
+									`A ${oldStatus} purchase invoice is immutable. Revise by booking a new invoice.`
+								)
 							);
 						}
 
 						const allowed = VALID_TRANSITIONS[oldStatus];
 						if (!allowed.includes(newStatus)) {
-							throw new Error(
-								`Invalid status transition: ${oldStatus} → ${newStatus}. Allowed: ${allowed.join(', ')}.`
+							return yield* Effect.fail(
+								new Error(
+									`Invalid status transition: ${oldStatus} → ${newStatus}. Allowed: ${allowed.join(', ')}.`
+								)
 							);
 						}
 
@@ -113,23 +111,29 @@ export default {
 
 						if (newStatus === 'confirmed') {
 							const lines = yield* api.db.query.purchase_invoice_lines.findMany({
-								where: { purchase_invoice_id: { eq: existing.norbital_id } },
+								where: { purchase_invoice_id: { eq: existing.id } },
 								limit: 1
 							});
 							if (lines.length === 0) {
-								throw new Error(
-									'A purchase invoice must have at least one line before it can be confirmed.'
+								return yield* Effect.fail(
+									new Error(
+										'A purchase invoice must have at least one line before it can be confirmed.'
+									)
 								);
 							}
-							if (existing.confirmed_at == null) updates.confirmed_at = new Date();
+							if (existing.confirmed_at == null) {
+								updates.confirmed_at = new Date(yield* Clock.currentTimeMillis);
+							}
 						}
 
 						if (newStatus === 'cancelled') {
 							const cancelReason = input.cancel_reason ?? existing.cancel_reason;
 							if (!cancelReason || String(cancelReason).trim() === '') {
-								throw new Error('A cancellation reason is required.');
+								return yield* Effect.fail(new Error('A cancellation reason is required.'));
 							}
-							if (existing.cancelled_at == null) updates.cancelled_at = new Date();
+							if (existing.cancelled_at == null) {
+								updates.cancelled_at = new Date(yield* Clock.currentTimeMillis);
+							}
 						}
 
 						return updates;

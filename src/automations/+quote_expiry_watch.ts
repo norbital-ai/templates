@@ -1,19 +1,6 @@
 import { defineAutomation } from '@norbital-ai/bolt/authoring';
-import { Effect } from 'effect';
-
-const DESK_TIME_ZONE = 'Asia/Singapore';
-
-function deskToday(): string {
-	const parts = new Intl.DateTimeFormat('en', {
-		timeZone: DESK_TIME_ZONE,
-		year: 'numeric',
-		month: '2-digit',
-		day: '2-digit'
-	}).formatToParts(new Date());
-	const valueFor = (type: Intl.DateTimeFormatPartTypes) =>
-		parts.find((part) => part.type === type)?.value ?? '';
-	return `${valueFor('year')}-${valueFor('month')}-${valueFor('day')}`;
-}
+import { Clock, Effect } from 'effect';
+import { deskToday } from '../lib/desk-date.js';
 
 export default defineAutomation(
 	{ schedule: '0 6 * * *' },
@@ -35,7 +22,8 @@ export default defineAutomation(
 			'Sweeps every morning for quotes still sitting at sent whose valid_until date has passed, and exports the lapsed ones for the desk to chase.',
 		handler: (api) =>
 			Effect.gen(function* () {
-				const today = deskToday();
+				const now = new Date(yield* Clock.currentTimeMillis);
+				const today = deskToday(now);
 
 				const expiredQuotes = yield* api.db.query.quotes.findMany({
 					where: {
@@ -43,7 +31,7 @@ export default defineAutomation(
 						valid_until: { lte: today }
 					},
 					columns: {
-						norbital_id: true,
+						id: true,
 						doc_no: true,
 						title: true,
 						account_id: true,
@@ -57,7 +45,7 @@ export default defineAutomation(
 
 				return {
 					automation_key: 'quote_expiry_watch',
-					generated_at: new Date().toISOString(),
+					generated_at: now.toISOString(),
 					summary: { expired: expiredQuotes.length },
 					exports: [
 						{

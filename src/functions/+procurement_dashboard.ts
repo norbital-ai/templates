@@ -2,13 +2,6 @@ import { defineQueryHandler } from '@norbital-ai/bolt/authoring';
 import { Effect, Schema } from 'effect';
 
 /**
- * The remote runtime binds each collection helper as a promise while the authoring surface types
- * it as an effect, so every call is bridged into the program.
- */
-const run = <A>(value: PromiseLike<A> | Effect.Effect<A, unknown>): Effect.Effect<A, unknown> =>
-	Effect.tryPromise(() => ('then' in value ? value : Effect.runPromise(value)));
-
-/**
  * Buying-pipeline counters for the purchase app.
  *
  * Each stage count is an indexed `count()` — `status` carries its own index — so no row crosses the
@@ -32,28 +25,24 @@ export default defineQueryHandler({
 		Effect.gen(function* () {
 			const [committedOrders, ...stageTotals] = yield* Effect.all(
 				[
-					run(
-						api.db.query.purchase_orders.findMany({
-							where: { status: { in: [...COMMITTED_STATUSES] } },
-							columns: {
-								currency: true,
-								supplier_id: true,
-								supplier_name: true,
-								gross: true
-							},
-							orderBy: { doc_no: 'asc' },
-							limit: COMMITTED_SCAN_LIMIT
-						})
-					),
+					api.db.query.purchase_orders.findMany({
+						where: { status: { in: [...COMMITTED_STATUSES] } },
+						columns: {
+							currency: true,
+							supplier_id: true,
+							supplier_name: true,
+							gross: true
+						},
+						orderBy: { doc_no: 'asc' },
+						limit: COMMITTED_SCAN_LIMIT
+					}),
 					...STATUSES.map((status) =>
-						run(
-							api.db.purchase_orders.count({
-								where:
-									status === 'draft'
-										? { OR: [{ status: { eq: 'draft' } }, { status: { isNull: true } }] }
-										: { status: { eq: status } }
-							})
-						)
+						api.db.purchase_orders.count({
+							where:
+								status === 'draft'
+									? { OR: [{ status: { eq: 'draft' } }, { status: { isNull: true } }] }
+									: { status: { eq: status } }
+						})
 					)
 				],
 				{ concurrency: 'unbounded' }

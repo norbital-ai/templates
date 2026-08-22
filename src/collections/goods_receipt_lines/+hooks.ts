@@ -45,13 +45,13 @@ export default {
 				];
 				const receipts = receiptIds.length
 					? yield* api.db.query.goods_receipts.findMany({
-							where: { norbital_id: { in: receiptIds } },
+							where: { id: { in: receiptIds } },
 							limit: LINE_LIMIT
 						})
 					: [];
 				const orderLines = orderLineIds.length
 					? yield* api.db.query.purchase_order_lines.findMany({
-							where: { norbital_id: { in: orderLineIds } },
+							where: { id: { in: orderLineIds } },
 							limit: LINE_LIMIT
 						})
 					: [];
@@ -71,8 +71,8 @@ export default {
 					);
 				}
 				return {
-					receipts: new Map(receipts.map((receipt) => [receipt.norbital_id, receipt])),
-					orderLines: new Map(orderLines.map((orderLine) => [orderLine.norbital_id, orderLine])),
+					receipts: new Map(receipts.map((receipt) => [receipt.id, receipt])),
+					orderLines: new Map(orderLines.map((orderLine) => [orderLine.id, orderLine])),
 					receivedByOrderLine
 				};
 			}),
@@ -101,7 +101,7 @@ export default {
 						throw new Error('Received quantity must be greater than zero.');
 					}
 
-					const receivedSoFar = prepared.receivedByOrderLine.get(orderLine.norbital_id) ?? 0;
+					const receivedSoFar = prepared.receivedByOrderLine.get(orderLine.id) ?? 0;
 					const ordered = Number(orderLine.quantity ?? 0);
 					if (receivedSoFar + quantity > ordered) {
 						throw new Error(
