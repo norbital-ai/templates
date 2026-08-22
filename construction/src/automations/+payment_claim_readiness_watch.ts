@@ -1,4 +1,4 @@
-import { Effect } from 'effect';
+import { Clock, Effect } from 'effect';
 import { defineAutomation } from '@norbital-ai/bolt/authoring';
 
 export default defineAutomation(
@@ -19,12 +19,13 @@ export default defineAutomation(
 			Effect.gen(function* () {
 				const claims = yield* api.db.query.payment_claims.findMany({
 					where: { status: { in: ['draft', 'submitted'] } },
-					orderBy: { norbital_updated_at: 'desc' },
+					orderBy: { updated_at: 'desc' },
 					limit: 25
 				});
+				const generatedAt = yield* Clock.currentTimeMillis;
 				return {
 					automation_key: 'payment_claim_readiness_watch',
-					generated_at: new Date().toISOString(),
+					generated_at: new Date(generatedAt).toISOString(),
 					summary: { payment_claim_count: claims.length },
 					exports: [
 						{

@@ -18,69 +18,96 @@
  * same rows, and `docs/architecture.md` is the authority on how.
  */
 
-import { calendarDayKey, daysInMonth, startOfDayInstant } from '../calendar.js';
+import { Schema } from 'effect';
+import { daysInMonth, startOfDayInstant } from '../calendar.js';
+import { formatDateISO } from '@norbital-ai/std/date';
 import { workedMinutes } from '../../attendance.js';
 import type { WorkedInterval } from '../../../datatypes/worked_intervals/+definition.js';
-import type { RosterCodeVariant } from '../../../datatypes/roster_code_variant/+definition.js';
-import type { WorkPattern } from '../../../datatypes/work_pattern/+definition.js';
-import { clockMinutes, rosterCodeKind, workWindow } from '../../scheduling/roster-code.js';
+import { workPatternValueSchema } from '../../../datatypes/work_pattern/+definition.js';
+import { rosterCodeVariantValueSchema } from '../../../datatypes/roster_code_variant/+definition.js';
+import {
+	clockMinutes,
+	rosterCodeKind,
+	workWindow,
+	type RosterCodeLike
+} from '../../scheduling/roster-code.js';
 import { patternRosterCodeId } from '../../scheduling/work-pattern.js';
-import type { DayLock, SettlementClaim, SourceLock } from '../../scheduling/lock.js';
+import {
+	dayLockSchema,
+	type DayLock,
+	type SettlementClaim,
+	type SourceLock
+} from '../../scheduling/lock.js';
 import type { I18nApi } from '@norbital-ai/ui/i18n';
 import type { TenantI18nKeys } from '$bolt/i18n-keys';
 
 /** The translation callback a display helper takes, so it stays locale-reactive at the call site. */
 export type Translator = I18nApi<TenantI18nKeys>['t'];
 
-export type Designation = 'WORK' | 'REST' | 'OFF';
+const designationSchema = Schema.Literals(['WORK', 'REST', 'OFF']);
+type Designation = Schema.Schema.Type<typeof designationSchema>;
 
 /** How this employment's days are supposed to appear on the board. */
-export type ScheduleKind = 'PATTERNED' | 'ROSTERED';
+const scheduleKindSchema = Schema.Literals(['PATTERNED', 'ROSTERED']);
+type ScheduleKind = Schema.Schema.Type<typeof scheduleKindSchema>;
 
 /** Why a planned working day has no attendance behind it, in the order an operator cares about. */
-export type DayStatus =
-	| 'BEFORE_START'
-	| 'EXITED'
-	| 'UNROSTERED'
-	| 'PLANNED'
-	| 'ATTENDED'
-	| 'OPEN'
-	| 'ABSENT'
-	| 'ON_LEAVE'
-	| 'REST'
-	| 'OFF';
+const dayStatusSchema = Schema.Literals([
+	'BEFORE_START',
+	'EXITED',
+	'UNROSTERED',
+	'PLANNED',
+	'ATTENDED',
+	'OPEN',
+	'ABSENT',
+	'ON_LEAVE',
+	'REST',
+	'OFF'
+]);
+export type DayStatus = Schema.Schema.Type<typeof dayStatusSchema>;
 
-export type DayFacts = {
-	readonly employmentId: string;
-	readonly date: string;
-	readonly employmentState: 'BEFORE_START' | 'ACTIVE' | 'EXITED';
+/** A derived conflict between two writers of one day. */
+const conflictKindSchema = Schema.Literals(['PENDING_LEAVE_OVERLAP', 'LEAVE_AND_WORK']);
+type ConflictKind = Schema.Schema.Type<typeof conflictKindSchema>;
+
+/**
+ * The assembled facts of one person-day, and everything a board or a sheet says about it.
+ *
+ * The schema is the single owner of the shape (this module assembles every fact it holds); the
+ * derived type keeps the per-field contract above the construction, while the value itself stays a
+ * plain display object that is never decoded from the wire.
+ */
+export const dayFactsSchema = Schema.Struct({
+	employmentId: Schema.String,
+	date: Schema.String,
+	employmentState: Schema.Literals(['BEFORE_START', 'ACTIVE', 'EXITED']),
 	/** `null` when no roster entry covers the day at all. */
-	readonly designation: Designation | null;
+	designation: Schema.NullOr(designationSchema),
 	/**
 	 * The employment's schedule term for this date. A repeating week fills itself in; a monthly
 	 * roster stays blank until somebody assigns the day. `null` when no term covers the date.
 	 */
-	readonly scheduleKind: ScheduleKind | null;
+	scheduleKind: Schema.NullOr(scheduleKindSchema),
 	/** The shift the day is worked on. Null on a rest or off day, which schedules none. */
-	readonly shiftCode: string | null;
-	readonly shiftStart: string | null;
-	readonly shiftEnd: string | null;
-	readonly shiftBreakMinutes: number | null;
+	shiftCode: Schema.NullOr(Schema.String),
+	shiftStart: Schema.NullOr(Schema.String),
+	shiftEnd: Schema.NullOr(Schema.String),
+	shiftBreakMinutes: Schema.NullOr(Schema.Number),
 	/** The source roster token, e.g. `AMRES` or `OFF/S`, when the roster carried one. */
-	readonly assignmentCode: string | null;
+	assignmentCode: Schema.NullOr(Schema.String),
 	/** Where the explicit entry came from: `IMPORT`, `MANUAL`, or null when none exists. */
-	readonly origin: string | null;
+	origin: Schema.NullOr(Schema.String),
 	/** Overlaid from `company_holidays`, never stored on the entry. */
-	readonly holidayName: string | null;
-	readonly leaveCode: string | null;
-	readonly halfDayLeave: boolean;
+	holidayName: Schema.NullOr(Schema.String),
+	leaveCode: Schema.NullOr(Schema.String),
+	halfDayLeave: Schema.Boolean,
 	/** A leave request covering the day that has not been approved yet. */
-	readonly pendingLeave: boolean;
+	pendingLeave: Schema.Boolean,
 	/** Planned extra work: a WORK day whose baseline (or the holiday calendar) is not work. */
-	readonly plannedOT: boolean;
-	readonly clockedIn: boolean;
-	readonly workedIntervalCount: number;
-	readonly attendanceState: 'OPEN' | 'CLOSED' | null;
+	plannedOT: Schema.Boolean,
+	clockedIn: Schema.Boolean,
+	workedIntervalCount: Schema.Number,
+	attendanceState: Schema.NullOr(Schema.Literals(['OPEN', 'CLOSED'])),
 	/**
 	 * The `time_entries` row behind this day, or `null` when nobody has recorded one.
 	 *
@@ -88,9 +115,9 @@ export type DayFacts = {
 	 * record, and recording one where none exists is a create. Without the id the sheet would have to
 	 * re-query the collection it is already looking at, and the two answers could differ by a write.
 	 */
-	readonly timeEntryId: string | null;
+	timeEntryId: Schema.NullOr(Schema.String),
 	/** The unpaid break the entry records, in whole minutes. `null` when there is no entry. */
-	readonly breakMinutes: number | null;
+	breakMinutes: Schema.NullOr(Schema.Number),
 	/**
 	 * Worked minutes net of the unpaid break, or `null` when a punch is still open.
 	 *
@@ -100,70 +127,72 @@ export type DayFacts = {
 	 * surface and the payroll engine's inputs are measured with, so a cell and a payslip cannot
 	 * disagree about the length of a day.
 	 */
-	readonly workedMinutes: number | null;
+	workedMinutes: Schema.NullOr(Schema.Number),
 	/** Whether the day falls inside the attendance window the next payroll run will settle. */
-	readonly withinCutoff: boolean;
+	withinCutoff: Schema.Boolean,
 	/** Derived from the company's payroll runs; drives the board's stripes and the write refusals. */
-	readonly lock: DayLock;
+	lock: dayLockSchema,
 	/** The day has already ended, which decides how loud its silence should be. */
-	readonly past: boolean;
+	past: Schema.Boolean,
 	/** Derived disagreements between the writers of this day; the board draws them as dots. */
-	readonly conflicts: readonly ConflictKind[];
-	readonly status: DayStatus;
-};
+	conflicts: Schema.Array(conflictKindSchema),
+	status: dayStatusSchema
+});
+export type DayFacts = Schema.Schema.Type<typeof dayFactsSchema>;
 
-/** A derived conflict between two writers of one day. */
-export type ConflictKind = 'PENDING_LEAVE_OVERLAP' | 'LEAVE_AND_WORK';
+/** A stored instant as the board reads it: the wire decodes strings, a local replica hands Dates. */
+const calendarInstantSchema = Schema.Union([Schema.String, Schema.Date]);
 
-export type EmploymentMonthLike = {
-	readonly norbital_id: string;
-	readonly effective_range: {
-		readonly start?: string | Date;
-		readonly end?: string | Date;
-	} | null;
-};
+/** The one effective-range shape every effective-dated row carries. */
+const effectiveRangeLikeSchema = Schema.Struct({
+	start: Schema.optional(calendarInstantSchema),
+	end: Schema.optional(Schema.NullOr(calendarInstantSchema))
+});
 
-export type RosterEntryLike = {
-	readonly employment_id: string;
-	readonly work_date: string | Date;
-	readonly shift_definition_id: string;
-	readonly assignment_code: string | null;
-	readonly origin?: string | null;
-};
+const employmentMonthLikeSchema = Schema.Struct({
+	id: Schema.String,
+	effective_range: Schema.NullOr(effectiveRangeLikeSchema)
+});
+type EmploymentMonthLike = Schema.Schema.Type<typeof employmentMonthLikeSchema>;
 
-export type EmploymentTermLike = {
-	readonly employment_id: string;
-	readonly work_pattern: WorkPattern;
-	readonly effective_range: {
-		readonly start?: string | Date;
-		readonly end?: string | Date;
-	} | null;
-};
+const rosterEntryLikeSchema = Schema.Struct({
+	employment_id: Schema.String,
+	work_date: calendarInstantSchema,
+	shift_definition_id: Schema.String,
+	assignment_code: Schema.NullOr(Schema.String),
+	origin: Schema.optional(Schema.NullOr(Schema.String))
+});
+type RosterEntryLike = Schema.Schema.Type<typeof rosterEntryLikeSchema>;
 
-export type RosterCodeDisplayLike = {
-	readonly code: string;
-	readonly variant: RosterCodeVariant;
-};
+const employmentTermLikeSchema = Schema.Struct({
+	employment_id: Schema.String,
+	work_pattern: workPatternValueSchema,
+	effective_range: Schema.NullOr(effectiveRangeLikeSchema)
+});
+type EmploymentTermLike = Schema.Schema.Type<typeof employmentTermLikeSchema>;
 
-export type TimeEntryLike = {
-	/**
-	 * The record id, so a cell can say *which* attendance row it is drawn from.
-	 *
-	 * Optional because two callers build these facts: the board's query selects it, and the tests
-	 * (and any future caller assembling entries by hand) need not. A missing id degrades to
-	 * `timeEntryId: null`, which the day sheet reads as "there is nothing here to update".
-	 */
-	readonly norbital_id?: string;
-	readonly employment_id: string;
-	readonly work_date: string | Date;
-	readonly worked_intervals:
-		| readonly {
-				readonly start_at: string | Date;
-				readonly end_at: string | Date | null;
-		  }[]
-		| null;
-	readonly break_minutes?: number | null;
-};
+/** A roster code as the board needs it: the display code and the variant it stands for. */
+type RosterCodeDisplayLike = Pick<RosterCodeLike, 'code' | 'variant'>;
+const rosterCodeDisplayLikeSchema = Schema.Struct({
+	code: Schema.String,
+	variant: rosterCodeVariantValueSchema
+});
+
+const timeEntryLikeSchema = Schema.Struct({
+	id: Schema.optional(Schema.String),
+	employment_id: Schema.String,
+	work_date: calendarInstantSchema,
+	worked_intervals: Schema.NullOr(
+		Schema.Array(
+			Schema.Struct({
+				start_at: calendarInstantSchema,
+				end_at: Schema.NullOr(calendarInstantSchema)
+			})
+		)
+	),
+	break_minutes: Schema.optional(Schema.NullOr(Schema.Number))
+});
+type TimeEntryLike = Schema.Schema.Type<typeof timeEntryLikeSchema>;
 
 /**
  * The stored intervals as the attendance helpers take them.
@@ -186,20 +215,22 @@ function toWorkedIntervals(entry: TimeEntryLike | undefined): readonly WorkedInt
 	}));
 }
 
-export type LeaveRequestLike = {
-	readonly employment_id: string;
-	readonly kind: string | null;
-	readonly leave_type_id: string;
-	readonly from_date: string | Date | null;
-	readonly to_date: string | Date | null;
-	readonly half_day_start: boolean | null;
-	readonly half_day_end: boolean | null;
-};
+const leaveRequestLikeSchema = Schema.Struct({
+	employment_id: Schema.String,
+	kind: Schema.NullOr(Schema.String),
+	leave_type_id: Schema.String,
+	from_date: Schema.NullOr(calendarInstantSchema),
+	to_date: Schema.NullOr(calendarInstantSchema),
+	half_day_start: Schema.NullOr(Schema.Boolean),
+	half_day_end: Schema.NullOr(Schema.Boolean)
+});
+type LeaveRequestLike = Schema.Schema.Type<typeof leaveRequestLikeSchema>;
 
-export type HolidayLike = {
-	readonly date: string | Date;
-	readonly name: string;
-};
+const holidayLikeSchema = Schema.Struct({
+	date: calendarInstantSchema,
+	name: Schema.String
+});
+type HolidayLike = Schema.Schema.Type<typeof holidayLikeSchema>;
 
 /** Every calendar day of a `YYYY-MM` month, in order. */
 export function monthDays(month: string): string[] {
@@ -215,16 +246,22 @@ export function employmentOverlapsMonth(employment: EmploymentMonthLike, month: 
 	const days = monthDays(month);
 	const start = employment.effective_range?.start;
 	if (start == null) return false;
-	const employmentStart = calendarDayKey(start);
+	const employmentStart = formatDateISO(start);
 	const employmentEnd =
-		employment.effective_range?.end == null ? null : calendarDayKey(employment.effective_range.end);
+		employment.effective_range?.end == null ? null : formatDateISO(employment.effective_range.end);
 	return (
 		employmentStart <= days[days.length - 1]! &&
 		(employmentEnd == null || employmentEnd >= days[0]!)
 	);
 }
 
-export type EmploymentMonthEmptyReason = 'NONE' | 'ENDED' | 'NOT_STARTED' | 'OUTSIDE_MONTH';
+const employmentMonthEmptyReasonSchema = Schema.Literals([
+	'NONE',
+	'ENDED',
+	'NOT_STARTED',
+	'OUTSIDE_MONTH'
+]);
+type EmploymentMonthEmptyReason = Schema.Schema.Type<typeof employmentMonthEmptyReasonSchema>;
 
 /** Explain an empty month without implying that loading succeeded with no employment records. */
 export function employmentMonthEmptyReason(
@@ -239,7 +276,7 @@ export function employmentMonthEmptyReason(
 		employments.every(
 			(employment) =>
 				employment.effective_range?.end != null &&
-				calendarDayKey(employment.effective_range.end) < first
+				formatDateISO(employment.effective_range.end) < first
 		)
 	)
 		return 'ENDED';
@@ -247,7 +284,7 @@ export function employmentMonthEmptyReason(
 		employments.every(
 			(employment) =>
 				employment.effective_range?.start != null &&
-				calendarDayKey(employment.effective_range.start) > last
+				formatDateISO(employment.effective_range.start) > last
 		)
 	)
 		return 'NOT_STARTED';
@@ -261,13 +298,13 @@ export function employmentMonthEmptyReason(
  * every person-day, so a holiday cannot be marked in the header and missing from the cells below it.
  */
 export function holidayNamesByDate(holidays: readonly HolidayLike[]): Map<string, string> {
-	return new Map(holidays.map((holiday) => [calendarDayKey(holiday.date), holiday.name]));
+	return new Map(holidays.map((holiday) => [formatDateISO(holiday.date), holiday.name]));
 }
 
 function termCovers(term: EmploymentTermLike, date: string): boolean {
 	if (term.effective_range?.start == null || term.work_pattern == null) return false;
-	const start = calendarDayKey(term.effective_range.start);
-	const end = term.effective_range.end == null ? null : calendarDayKey(term.effective_range.end);
+	const start = formatDateISO(term.effective_range.start);
+	const end = term.effective_range.end == null ? null : formatDateISO(term.effective_range.end);
 	return date >= start && (end == null || date <= end);
 }
 
@@ -311,159 +348,217 @@ function statusOf(facts: Omit<DayFacts, 'status'>): DayStatus {
 	return facts.withinCutoff && facts.holidayName == null ? 'ABSENT' : 'PLANNED';
 }
 
+/** Everything `buildRosterMonth` needs, as one shape so its three call sites cannot disagree. */
+const buildRosterMonthOptionsSchema = Schema.Struct({
+	month: Schema.String,
+	employments: Schema.Array(employmentMonthLikeSchema),
+	rosterEntries: Schema.Array(rosterEntryLikeSchema),
+	timeEntries: Schema.Array(timeEntryLikeSchema),
+	leaveRequests: Schema.Array(leaveRequestLikeSchema),
+	/** Leave requests that have not been approved yet; drawn as pending coverage, never as taken. */
+	pendingLeaveRequests: Schema.Array(leaveRequestLikeSchema),
+	holidays: Schema.Array(holidayLikeSchema),
+	rosterCodesById: Schema.ReadonlyMap(Schema.String, rosterCodeDisplayLikeSchema),
+	employmentTerms: Schema.Array(employmentTermLikeSchema),
+	leaveCodeById: Schema.ReadonlyMap(Schema.String, Schema.String),
+	cutoff: Schema.NullOr(Schema.Struct({ start: Schema.String, end: Schema.String })),
+	/** One lock per date, derived from the company's payroll runs by `lockMap`. */
+	locks: Schema.ReadonlyMap(Schema.String, dayLockSchema),
+	today: Schema.String
+});
+type BuildRosterMonthOptions = Schema.Schema.Type<typeof buildRosterMonthOptionsSchema>;
+
+/** The month's per-day indexes `factsForDate` reads, built once per month. */
+const dayIndexesSchema = Schema.Struct({
+	roster: Schema.ReadonlyMap(Schema.String, rosterEntryLikeSchema),
+	time: Schema.ReadonlyMap(Schema.String, timeEntryLikeSchema),
+	leave: Schema.ReadonlyMap(
+		Schema.String,
+		Schema.Struct({ code: Schema.String, halfDay: Schema.Boolean })
+	),
+	pendingLeave: Schema.ReadonlyMap(Schema.String, Schema.Boolean),
+	holidayByDate: Schema.ReadonlyMap(Schema.String, Schema.String)
+});
+type DayIndexes = Schema.Schema.Type<typeof dayIndexesSchema>;
+
 /**
- * Build the fact table for one month.
+ * The month's per-day indexes: every employment/day lookup the fact assembly does.
  *
  * `leaveRequests` are expanded across their whole range here rather than in the query, because a
  * request is stored once at its `from_date` and a calendar needs every day it covers.
  */
-export function buildRosterMonth(options: {
-	readonly month: string;
-	readonly employments: readonly EmploymentMonthLike[];
-	readonly rosterEntries: readonly RosterEntryLike[];
-	readonly timeEntries: readonly TimeEntryLike[];
-	readonly leaveRequests: readonly LeaveRequestLike[];
-	/** Leave requests that have not been approved yet; drawn as pending coverage, never as taken. */
-	readonly pendingLeaveRequests: readonly LeaveRequestLike[];
-	readonly holidays: readonly HolidayLike[];
-	readonly rosterCodesById: ReadonlyMap<string, RosterCodeDisplayLike>;
-	readonly employmentTerms: readonly EmploymentTermLike[];
-	readonly leaveCodeById: ReadonlyMap<string, string>;
-	readonly cutoff: { readonly start: string; readonly end: string } | null;
-	/** One lock per date, derived from the company's payroll runs by `lockMap`. */
-	readonly locks: ReadonlyMap<string, DayLock>;
-	readonly today: string;
-}): Map<string, DayFacts> {
-	const days = monthDays(options.month);
-	const first = days[0]!;
-	const last = days[days.length - 1]!;
-
+function buildDayIndexes(
+	options: BuildRosterMonthOptions,
+	days: readonly string[],
+	first: string,
+	last: string
+): DayIndexes {
 	const holidayByDate = holidayNamesByDate(options.holidays);
 
-	const rosterByKey = new Map<string, RosterEntryLike>();
+	const roster = new Map<string, RosterEntryLike>();
 	for (const entry of options.rosterEntries) {
-		rosterByKey.set(`${entry.employment_id}:${calendarDayKey(entry.work_date)}`, entry);
+		roster.set(`${entry.employment_id}:${formatDateISO(entry.work_date)}`, entry);
 	}
 
-	const timeByKey = new Map<string, TimeEntryLike>();
+	const time = new Map<string, TimeEntryLike>();
 	for (const entry of options.timeEntries) {
-		timeByKey.set(`${entry.employment_id}:${calendarDayKey(entry.work_date)}`, entry);
+		time.set(`${entry.employment_id}:${formatDateISO(entry.work_date)}`, entry);
 	}
 
-	const leaveByKey = new Map<string, { code: string; halfDay: boolean }>();
+	const leave = new Map<string, { code: string; halfDay: boolean }>();
 	for (const request of options.leaveRequests) {
 		if (request.kind !== 'TIME_OFF' || request.from_date == null || request.to_date == null)
 			continue;
-		const from = calendarDayKey(request.from_date);
-		const to = calendarDayKey(request.to_date);
+		const from = formatDateISO(request.from_date);
+		const to = formatDateISO(request.to_date);
 		if (to < first || from > last) continue;
 		const code = options.leaveCodeById.get(request.leave_type_id) ?? 'LEAVE';
-		for (const date of days) {
-			if (date < from || date > to) continue;
-			const halfDay =
-				(date === from && request.half_day_start === true) ||
-				(date === to && request.half_day_end === true);
-			leaveByKey.set(`${request.employment_id}:${date}`, { code, halfDay });
-		}
-	}
-	const pendingLeaveByKey = new Map<string, boolean>();
-	for (const request of options.pendingLeaveRequests) {
-		if (request.kind !== 'TIME_OFF' || request.from_date == null || request.to_date == null)
-			continue;
-		const from = calendarDayKey(request.from_date);
-		const to = calendarDayKey(request.to_date);
-		if (to < first || from > last) continue;
-		for (const date of days) {
-			if (date < from || date > to) continue;
-			pendingLeaveByKey.set(`${request.employment_id}:${date}`, true);
+		const halfStart = request.half_day_start === true;
+		const halfEnd = request.half_day_end === true;
+		const fromIndex = days.findIndex((date) => date >= from);
+		const toIndex = days.findLastIndex((date) => date <= to);
+		for (let index = fromIndex; index >= 0 && index <= toIndex && index < days.length; index += 1) {
+			const date = days[index]!;
+			leave.set(`${request.employment_id}:${date}`, {
+				code,
+				halfDay: (halfStart && date === from) || (halfEnd && date === to)
+			});
 		}
 	}
 
+	const pendingLeave = new Map<string, boolean>();
+	for (const request of options.pendingLeaveRequests) {
+		if (request.kind !== 'TIME_OFF' || request.from_date == null || request.to_date == null)
+			continue;
+		const from = formatDateISO(request.from_date);
+		const to = formatDateISO(request.to_date);
+		if (to < first || from > last) continue;
+		const fromIndex = days.findIndex((date) => date >= from);
+		const toIndex = days.findLastIndex((date) => date <= to);
+		for (let index = fromIndex; index >= 0 && index <= toIndex && index < days.length; index += 1) {
+			pendingLeave.set(`${request.employment_id}:${days[index]!}`, true);
+		}
+	}
+
+	return { roster, time, leave, pendingLeave, holidayByDate };
+}
+
+/**
+ * The facts of one person-day: what the roster planned, what actually happened, and why.
+ *
+ * The five writers of a day — roster, time entry, leave, holiday calendar, payroll windows — are
+ * put against each other nowhere else, which is itself why the assembly lives here and not in each
+ * surface that reads it.
+ */
+function factsForDate(
+	options: BuildRosterMonthOptions,
+	indexes: DayIndexes,
+	employmentId: string,
+	employmentStart: string | null,
+	employmentEnd: string | null,
+	date: string
+): DayFacts {
+	const key = `${employmentId}:${date}`;
+	const roster = indexes.roster.get(key);
+	const time = indexes.time.get(key);
+	const intervals = toWorkedIntervals(time);
+	const leave = indexes.leave.get(key);
+	const pendingLeave = indexes.pendingLeave.get(key) === true;
+	const term = activeTerm(options.employmentTerms, employmentId, date);
+	const scheduleKind = term == null ? null : scheduleKindOf(term.work_pattern);
+	const projectedId =
+		roster == null && term != null ? patternRosterCodeId(term.work_pattern, date) : null;
+	const rosterCodeId = roster?.shift_definition_id ?? projectedId;
+	const rosterCode = rosterCodeId == null ? null : options.rosterCodesById.get(rosterCodeId);
+	const designation = rosterCode == null ? null : rosterCodeKind(rosterCode.variant);
+	const baselineId = term == null ? null : patternRosterCodeId(term.work_pattern, date);
+	const baselineCode = baselineId == null ? null : options.rosterCodesById.get(baselineId);
+	const baselineKind = baselineCode == null ? null : rosterCodeKind(baselineCode.variant);
+	const window = designation === 'WORK' ? workWindow(rosterCode?.variant) : null;
+	const employmentState =
+		employmentStart != null && date < employmentStart
+			? ('BEFORE_START' as const)
+			: employmentEnd != null && date > employmentEnd
+				? ('EXITED' as const)
+				: ('ACTIVE' as const);
+	const holidayName = indexes.holidayByDate.get(date) ?? null;
+	const conflicts: ConflictKind[] = [];
+	if (pendingLeave && designation === 'WORK') conflicts.push('PENDING_LEAVE_OVERLAP');
+	if (leave != null && (designation === 'WORK' || intervals.length > 0)) {
+		conflicts.push('LEAVE_AND_WORK');
+	}
+	const partial: Omit<DayFacts, 'status'> = {
+		employmentId,
+		date,
+		employmentState,
+		designation: employmentState === 'ACTIVE' ? designation : null,
+		scheduleKind: employmentState === 'ACTIVE' ? scheduleKind : null,
+		shiftCode:
+			employmentState === 'ACTIVE' && designation === 'WORK' ? (rosterCode?.code ?? null) : null,
+		shiftStart: employmentState === 'ACTIVE' ? (window?.start_time ?? null) : null,
+		shiftEnd: employmentState === 'ACTIVE' ? (window?.end_time ?? null) : null,
+		shiftBreakMinutes: employmentState === 'ACTIVE' ? (window?.break_minutes ?? null) : null,
+		assignmentCode: roster?.assignment_code ?? null,
+		origin: roster?.origin ?? null,
+		holidayName,
+		leaveCode: leave?.code ?? null,
+		halfDayLeave: leave?.halfDay ?? false,
+		pendingLeave,
+		plannedOT:
+			employmentState === 'ACTIVE' &&
+			designation === 'WORK' &&
+			(holidayName != null || baselineKind === 'REST' || baselineKind === 'OFF'),
+		clockedIn: intervals.length > 0,
+		workedIntervalCount: intervals.length,
+		attendanceState:
+			time == null
+				? null
+				: intervals.some((interval) => interval.end_at == null)
+					? 'OPEN'
+					: 'CLOSED',
+		timeEntryId: time?.id ?? null,
+		breakMinutes: time == null ? null : (time.break_minutes ?? 0),
+		// `workedMinutes` returns null for an open interval by itself, which is exactly the
+		// contract this field states — so an open punch reaches the day sheet as "not known
+		// yet" rather than as a number nobody should act on.
+		workedMinutes: time == null ? null : workedMinutes(intervals, time.break_minutes),
+		withinCutoff:
+			options.cutoff != null && date >= options.cutoff.start && date <= options.cutoff.end,
+		lock: options.locks.get(date) ?? { kind: 'NONE' },
+		past: date < options.today,
+		conflicts
+	};
+	return { ...partial, status: statusOf(partial) };
+}
+
+/**
+ * Build the fact table for one month.
+ *
+ * The per-day indexes are built once (`buildDayIndexes`) and the fact assembly for one person-day
+ * is `factsForDate`.
+ */
+export function buildRosterMonth(options: BuildRosterMonthOptions): Map<string, DayFacts> {
+	const days = monthDays(options.month);
+	const first = days[0]!;
+	const last = days[days.length - 1]!;
+	const indexes = buildDayIndexes(options, days, first, last);
+
 	const facts = new Map<string, DayFacts>();
 	for (const employment of options.employments) {
-		const employmentId = employment.norbital_id;
+		const employmentId = employment.id;
 		const employmentStart =
 			employment.effective_range?.start == null
 				? null
-				: calendarDayKey(employment.effective_range.start);
+				: formatDateISO(employment.effective_range.start);
 		const employmentEnd =
 			employment.effective_range?.end == null
 				? null
-				: calendarDayKey(employment.effective_range.end);
+				: formatDateISO(employment.effective_range.end);
 		for (const date of days) {
-			const key = `${employmentId}:${date}`;
-			const roster = rosterByKey.get(key);
-			const time = timeByKey.get(key);
-			const intervals = toWorkedIntervals(time);
-			const leave = leaveByKey.get(key);
-			const pendingLeave = pendingLeaveByKey.get(key) === true;
-			const term = activeTerm(options.employmentTerms, employmentId, date);
-			const scheduleKind = term == null ? null : scheduleKindOf(term.work_pattern);
-			const projectedId =
-				roster == null && term != null ? patternRosterCodeId(term.work_pattern, date) : null;
-			const rosterCodeId = roster?.shift_definition_id ?? projectedId;
-			const rosterCode = rosterCodeId == null ? null : options.rosterCodesById.get(rosterCodeId);
-			const designation = rosterCode == null ? null : rosterCodeKind(rosterCode.variant);
-			const baselineId = term == null ? null : patternRosterCodeId(term.work_pattern, date);
-			const baselineCode = baselineId == null ? null : options.rosterCodesById.get(baselineId);
-			const baselineKind = baselineCode == null ? null : rosterCodeKind(baselineCode.variant);
-			const window = designation === 'WORK' ? workWindow(rosterCode?.variant) : null;
-			const employmentState =
-				employmentStart != null && date < employmentStart
-					? ('BEFORE_START' as const)
-					: employmentEnd != null && date > employmentEnd
-						? ('EXITED' as const)
-						: ('ACTIVE' as const);
-			const holidayName = holidayByDate.get(date) ?? null;
-			const conflicts: ConflictKind[] = [];
-			if (pendingLeave && designation === 'WORK') conflicts.push('PENDING_LEAVE_OVERLAP');
-			if (leave != null && (designation === 'WORK' || intervals.length > 0)) {
-				conflicts.push('LEAVE_AND_WORK');
-			}
-			const partial: Omit<DayFacts, 'status'> = {
-				employmentId,
-				date,
-				employmentState,
-				designation: employmentState === 'ACTIVE' ? designation : null,
-				scheduleKind: employmentState === 'ACTIVE' ? scheduleKind : null,
-				shiftCode:
-					employmentState === 'ACTIVE' && designation === 'WORK'
-						? (rosterCode?.code ?? null)
-						: null,
-				shiftStart: employmentState === 'ACTIVE' ? (window?.start_time ?? null) : null,
-				shiftEnd: employmentState === 'ACTIVE' ? (window?.end_time ?? null) : null,
-				shiftBreakMinutes: employmentState === 'ACTIVE' ? (window?.break_minutes ?? null) : null,
-				assignmentCode: roster?.assignment_code ?? null,
-				origin: roster?.origin ?? null,
-				holidayName,
-				leaveCode: leave?.code ?? null,
-				halfDayLeave: leave?.halfDay ?? false,
-				pendingLeave,
-				plannedOT:
-					employmentState === 'ACTIVE' &&
-					designation === 'WORK' &&
-					(holidayName != null || baselineKind === 'REST' || baselineKind === 'OFF'),
-				clockedIn: intervals.length > 0,
-				workedIntervalCount: intervals.length,
-				attendanceState:
-					time == null
-						? null
-						: intervals.some((interval) => interval.end_at == null)
-							? 'OPEN'
-							: 'CLOSED',
-				timeEntryId: time?.norbital_id ?? null,
-				breakMinutes: time == null ? null : (time.break_minutes ?? 0),
-				// `workedMinutes` returns null for an open interval by itself, which is exactly the
-				// contract this field states — so an open punch reaches the day sheet as "not known
-				// yet" rather than as a number nobody should act on.
-				workedMinutes: time == null ? null : workedMinutes(intervals, time.break_minutes),
-				withinCutoff:
-					options.cutoff != null && date >= options.cutoff.start && date <= options.cutoff.end,
-				lock: options.locks.get(date) ?? { kind: 'NONE' },
-				past: date < options.today,
-				conflicts
-			};
-			facts.set(key, { ...partial, status: statusOf(partial) });
+			facts.set(
+				`${employmentId}:${date}`,
+				factsForDate(options, indexes, employmentId, employmentStart, employmentEnd, date)
+			);
 		}
 	}
 	return facts;
@@ -598,7 +693,8 @@ export const DAY_MARK_KEY: readonly { readonly mark: string; readonly labelKey: 
  * record at all has no claim to ask, so the window is the only answer available for it — which is
  * why the two live on one ladder rather than in two places.
  */
-export type LockRung = 'OPEN' | 'IN_DRAFT_RUN' | 'CONSUMED' | 'PAID';
+const lockRungSchema = Schema.Literals(['OPEN', 'IN_DRAFT_RUN', 'CONSUMED', 'PAID']);
+export type LockRung = Schema.Schema.Type<typeof lockRungSchema>;
 
 /**
  * Which rung a person-day sits on.
@@ -781,10 +877,11 @@ export function beyondScheduleMinutes(day: DayFacts): number | null {
  * ──────────────────────────────────────────────────────────────────────────────────────────────── */
 
 /** One interval as an editor holds it: instants, with the final end still possibly unset. */
-export type IntervalDraft = {
-	readonly start_at: string;
-	readonly end_at: string | null;
-};
+const intervalDraftSchema = Schema.Struct({
+	start_at: Schema.String,
+	end_at: Schema.NullOr(Schema.String)
+});
+export type IntervalDraft = Schema.Schema.Type<typeof intervalDraftSchema>;
 
 /**
  * Why a draft cannot be written, in the order `time_entries/+hooks.ts` refuses it.
@@ -795,17 +892,20 @@ export type IntervalDraft = {
  * it after a round trip. The hook stays the authority — this is the same decision, taken early
  * enough to be useful.
  */
-export type AttendanceDraftProblem =
-	| 'NO_INTERVALS'
-	| 'OUT_OF_ORDER'
-	| 'OPEN_NOT_LAST'
-	| 'ENDS_BEFORE_IT_STARTS'
-	| 'BREAK_NOT_SHORTER_THAN_WORK';
+const attendanceDraftProblemSchema = Schema.Literals([
+	'NO_INTERVALS',
+	'OUT_OF_ORDER',
+	'OPEN_NOT_LAST',
+	'ENDS_BEFORE_IT_STARTS',
+	'BREAK_NOT_SHORTER_THAN_WORK'
+]);
+type AttendanceDraftProblem = Schema.Schema.Type<typeof attendanceDraftProblemSchema>;
 
-export type AttendanceDraftAssessment = {
+/** What one attendance draft can honestly say about itself, before the write path speaks. */
+const attendanceDraftAssessmentSchema = Schema.Struct({
 	/** Minutes across every interval that has both ends. Fractional if the data carries seconds. */
-	readonly closedMinutes: number;
-	readonly hasOpenInterval: boolean;
+	closedMinutes: Schema.Number,
+	hasOpenInterval: Schema.Boolean,
 	/**
 	 * The largest unpaid break these intervals can carry, or `null` when they can carry none.
 	 *
@@ -814,17 +914,18 @@ export type AttendanceDraftAssessment = {
 	 * worked total. `null` on an open day means "not yet decided" rather than "zero": nobody knows
 	 * how long an unfinished day is, and the hook does not ask.
 	 */
-	readonly maxBreakMinutes: number | null;
+	maxBreakMinutes: Schema.NullOr(Schema.Number),
 	/** The break after clamping, which is the value a save would actually send. */
-	readonly breakMinutes: number;
+	breakMinutes: Schema.Number,
 	/** True when the requested break was reduced to fit. The sheet must SAY so, never do it quietly. */
-	readonly breakClamped: boolean;
+	breakClamped: Schema.Boolean,
 	/** The requested break, kept so the UI can report what it was before the clamp. */
-	readonly requestedBreakMinutes: number;
+	requestedBreakMinutes: Schema.Number,
 	/** Net worked minutes, or null while a punch is open — the same contract `DayFacts` states. */
-	readonly workedMinutes: number | null;
-	readonly problem: AttendanceDraftProblem | null;
-};
+	workedMinutes: Schema.NullOr(Schema.Number),
+	problem: Schema.NullOr(attendanceDraftProblemSchema)
+});
+type AttendanceDraftAssessment = Schema.Schema.Type<typeof attendanceDraftAssessmentSchema>;
 
 /**
  * Assess an in-progress attendance edit against the rules the write path enforces.
@@ -921,9 +1022,14 @@ export const ATTENDANCE_DRAFT_PROBLEM_KEY: Record<AttendanceDraftProblem, Tenant
  * `ATTENDED` and on a public holiday at once, and a board that had to choose between saying those
  * two things would always be hiding one of them.
  */
-export const HOLIDAY_PRESENTATION = {
+export const HOLIDAY_PRESENTATION: {
+	readonly mark: string;
+	readonly labelKey: TenantI18nKeys;
+	readonly className: string;
+	readonly headerClassName: string;
+} = {
 	mark: 'PH',
-	labelKey: 'roster.public_holiday' as TenantI18nKeys,
+	labelKey: 'roster.public_holiday',
 	/** Body cells: translucent, so the status chip sitting inside the cell stays legible through it. */
 	className: 'bg-brand/20',
 	/**
@@ -932,10 +1038,10 @@ export const HOLIDAY_PRESENTATION = {
 	 * are visible straight through it.
 	 */
 	headerClassName: 'bg-brand-100 text-brand-700 dark:bg-brand-900 dark:text-brand-100'
-} as const;
+};
 
 /** The glyph a cell carries: the shift code when there is one, else what kind of day it is. */
-export function statusGlyph(day: DayFacts): string {
+function statusGlyph(day: DayFacts): string {
 	switch (day.status) {
 		case 'BEFORE_START':
 			return '—';
@@ -1113,7 +1219,7 @@ export function describeDay(day: DayFacts | undefined, heading: string, t: Trans
 }
 
 /** A tally of the month by status, for the board's summary strip. */
-export function summarizeRosterMonth(facts: ReadonlyMap<string, DayFacts>): Map<DayStatus, number> {
+function summarizeRosterMonth(facts: ReadonlyMap<string, DayFacts>): Map<DayStatus, number> {
 	const counts = new Map<DayStatus, number>();
 	for (const day of facts.values()) {
 		counts.set(day.status, (counts.get(day.status) ?? 0) + 1);
@@ -1131,22 +1237,25 @@ export function summarizeRosterMonth(facts: ReadonlyMap<string, DayFacts>): Map<
  * happened at all. An unrostered day only becomes a fault once the month has been published, which
  * is the point at which the roster claims to be complete.
  */
-export type MonthDrafting = 'NOT_DRAFTED' | 'DRAFT' | 'PUBLISHED';
+const monthDraftingSchema = Schema.Literals(['NOT_DRAFTED', 'DRAFT', 'PUBLISHED']);
+export type MonthDrafting = Schema.Schema.Type<typeof monthDraftingSchema>;
 
-export type MonthProgress = {
-	readonly drafting: MonthDrafting;
+/** The progress table one month reports, keyed on the same statuses the board draws. */
+const monthProgressSchema = Schema.Struct({
+	drafting: monthDraftingSchema,
 	/** People times days: the size of the month, and the denominator of everything below. */
-	readonly personDays: number;
-	readonly rostered: number;
-	readonly unrostered: number;
+	personDays: Schema.Number,
+	rostered: Schema.Number,
+	unrostered: Schema.Number,
 	/** People with at least one active day that still has no shift. */
-	readonly peopleNeedingAssignment: number;
+	peopleNeedingAssignment: Schema.Number,
 	/**
 	 * The things somebody has to act on now. Attendance faults always count; an unrostered day
 	 * counts only in a published month, where it is a hole rather than unfinished work.
 	 */
-	readonly exceptions: readonly { readonly status: DayStatus; readonly count: number }[];
-};
+	exceptions: Schema.Array(Schema.Struct({ status: dayStatusSchema, count: Schema.Number }))
+});
+type MonthProgress = Schema.Schema.Type<typeof monthProgressSchema>;
 
 /** Statuses that mean a person-day needs somebody, once the month is far enough along to say so. */
 const ATTENDANCE_EXCEPTIONS: readonly DayStatus[] = ['ABSENT', 'OPEN'];

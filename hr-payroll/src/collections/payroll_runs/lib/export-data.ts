@@ -5,18 +5,19 @@
  * assembles that view once, so the three artefacts never disagree with each other.
  */
 
-import { Effect } from 'effect';
+import { Effect, Schema } from 'effect';
 import type { PayrollReadApi } from './api.js';
-import { PAGE_LIMIT, assertComplete, groupBy } from './api.js';
+import { PAGE_LIMIT, groupBy, withReadLog } from './api.js';
 import { daysBetween, requiredDateKey } from './dates.js';
 import { effectiveOn } from './effective.js';
 import type { ReportLine, ReportPayslip } from './report.js';
 import { rosterCodeKind, workWindow } from '../../../lib/scheduling/roster-code.js';
 import { patternRosterCodeId } from '../../../lib/scheduling/work-pattern.js';
 import type { WorkPattern } from '../../../datatypes/work_pattern/+definition.js';
-import { normalizedWorkedIntervals, overtimeBandCode } from './overtime.js';
+import { normalizedWorkedIntervals, overtimeBandCode, type TimeEntryLike } from './overtime.js';
+import type { WorkspaceRow } from '../$types.js';
 
-export type RunExport = {
+type RunExport = {
 	readonly runId: string;
 	readonly period: string;
 	readonly payDate: string;
@@ -26,38 +27,27 @@ export type RunExport = {
 	readonly skippedEmploymentIds: readonly string[];
 };
 
-export type BankDestination = {
-	readonly employmentId: string;
-	readonly employeeNumber: string;
-	readonly currency: string;
-	readonly net: number;
-	readonly bank: {
-		readonly account_name: string;
-		readonly bank_code: string;
-		readonly bank_name: string;
-		readonly account_number: string;
-	};
-};
+const BankAccountSchema = Schema.Struct({
+	account_name: Schema.String,
+	bank_code: Schema.String,
+	bank_name: Schema.String,
+	account_number: Schema.String
+});
+const BankDestinationSchema = Schema.Struct({
+	employmentId: Schema.String,
+	employeeNumber: Schema.String,
+	currency: Schema.String,
+	net: Schema.Number,
+	bank: BankAccountSchema
+});
+type BankDestination = Schema.Schema.Type<typeof BankDestinationSchema>;
 
-type RunRow = {
-	readonly norbital_id: string;
-	readonly period: string;
-	readonly pay_date: string | Date;
-	readonly attendance_from: string | Date;
-	readonly attendance_to: string | Date;
-};
+type RunRow = Pick<
+	WorkspaceRow<'payroll_runs'>,
+	'id' | 'period' | 'pay_date' | 'attendance_from' | 'attendance_to'
+>;
 
-function timestampHours(row: {
-	readonly norbital_id: string;
-	readonly work_date: string | Date;
-	readonly worked_intervals:
-		| readonly {
-				readonly start_at: string | Date;
-				readonly end_at: string | Date | null;
-		  }[]
-		| null;
-	readonly break_minutes: number;
-}): number {
+function timestampHours(row: TimeEntryLike): number {
 	const elapsed = normalizedWorkedIntervals(row).reduce(
 		(total, interval) => total + (interval.end - interval.start) / 3_600_000,
 		0
@@ -77,17 +67,18 @@ export function loadRunExports(
 	runs: readonly RunRow[]
 ): Effect.Effect<RunExport[], never, never> {
 	return Effect.gen(function* () {
-		const runIds = runs.map((run) => run.norbital_id);
+		const readApi = withReadLog(api);
+		const runIds = runs.map((run) => run.id);
 		if (runIds.length === 0) return [];
 
-		const payslips = yield* api.db.query.payslips.findMany({
+		const payslips = yield* readApi.db.query.payslips.findMany({
 			where: { payroll_run_id: { in: runIds } },
 			limit: PAGE_LIMIT
 		});
-		assertComplete(payslips, 'payslips');
+		readApi.reads.assertComplete(payslips, 'payslips');
 		if (payslips.length === 0)
 			return runs.map((run) => ({
-				runId: run.norbital_id,
+				runId: run.id,
 				period: run.period,
 				payDate: requiredDateKey(run.pay_date, 'payroll_runs.pay_date'),
 				payslips: [],
@@ -95,7 +86,7 @@ export function loadRunExports(
 				skippedEmploymentIds: []
 			}));
 
-		const payslipIds = payslips.map((row) => row.norbital_id);
+		const payslipIds = payslips.map((row) => row.id);
 		const employmentIds = [...new Set(payslips.map((row) => row.employment_id))];
 		const attendanceFrom = runs
 			.map((run) => requiredDateKey(run.attendance_from, 'payroll_runs.attendance_from'))
@@ -111,7 +102,7 @@ export function loadRunExports(
 					limit: PAGE_LIMIT
 				}),
 				api.db.query.employments.findMany({
-					where: { norbital_id: { in: employmentIds } },
+					where: { id: { in: employmentIds } },
 					limit: PAGE_LIMIT
 				}),
 				api.db.query.pay_components.findMany({ limit: PAGE_LIMIT }),
@@ -136,10 +127,10 @@ export function loadRunExports(
 			],
 			{ concurrency: 'unbounded' }
 		);
-		assertComplete(lines, 'payslip lines');
-		assertComplete(terms, 'employment terms');
-		assertComplete(timeEntries, 'time entries');
-		assertComplete(rosters, 'roster entries');
+		readApi.reads.assertComplete(lines, 'payslip lines');
+		readApi.reads.assertComplete(terms, 'employment terms');
+		readApi.reads.assertComplete(timeEntries, 'time entries');
+		readApi.reads.assertComplete(rosters, 'roster entries');
 
 		const employeeIds = [...new Set(employments.map((row) => row.employee_id))];
 		// Only working days name a shift; rest and off days schedule none.
@@ -157,20 +148,20 @@ export function loadRunExports(
 		const [employees, shifts] = yield* Effect.all(
 			[
 				api.db.query.employees.findMany({
-					where: { norbital_id: { in: employeeIds } },
+					where: { id: { in: employeeIds } },
 					limit: PAGE_LIMIT
 				}),
 				shiftIds.length
 					? api.db.query.shift_definitions.findMany({
-							where: { norbital_id: { in: shiftIds } },
+							where: { id: { in: shiftIds } },
 							limit: PAGE_LIMIT
 						})
 					: Effect.succeed([])
 			],
 			{ concurrency: 'unbounded' }
 		);
-		assertComplete(employees, 'employees');
-		assertComplete(shifts, 'shift definitions');
+		readApi.reads.assertComplete(employees, 'employees');
+		readApi.reads.assertComplete(shifts, 'shift definitions');
 
 		const contributionIds = [
 			...new Set(
@@ -181,24 +172,24 @@ export function loadRunExports(
 		];
 		const contributions = contributionIds.length
 			? yield* api.db.query.statutory_contributions.findMany({
-					where: { norbital_id: { in: contributionIds } },
+					where: { id: { in: contributionIds } },
 					limit: PAGE_LIMIT
 				})
 			: [];
 
-		const componentById = new Map(payComponents.map((row) => [row.norbital_id, row]));
-		const employmentById = new Map(employments.map((row) => [row.norbital_id, row]));
-		const employeeById = new Map(employees.map((row) => [row.norbital_id, row]));
+		const componentById = new Map(payComponents.map((row) => [row.id, row]));
+		const employmentById = new Map(employments.map((row) => [row.id, row]));
+		const employeeById = new Map(employees.map((row) => [row.id, row]));
 		const termsByEmployment = groupBy(terms, (row) => row.employment_id);
 		const timeByEmployment = groupBy(timeEntries, (row) => row.employment_id);
 		const rosterByEmployment = groupBy(rosters, (row) => row.employment_id);
-		const shiftById = new Map(shifts.map((row) => [row.norbital_id, row]));
-		const contributionCodeById = new Map(contributions.map((row) => [row.norbital_id, row.code]));
+		const shiftById = new Map(shifts.map((row) => [row.id, row]));
+		const contributionCodeById = new Map(contributions.map((row) => [row.id, row.code]));
 		const linesByPayslip = groupBy(lines, (row) => row.payslip_id);
 		const payslipsByRun = groupBy(payslips, (row) => row.payroll_run_id);
 
 		return runs.map((run) => {
-			const runPayslips = payslipsByRun.get(run.norbital_id) ?? [];
+			const runPayslips = payslipsByRun.get(run.id) ?? [];
 			const runAttendanceFrom = requiredDateKey(
 				run.attendance_from,
 				'payroll_runs.attendance_from'
@@ -278,7 +269,7 @@ export function loadRunExports(
 							account_number: account.bank_account_number
 						}
 					});
-				const settledLines = linesByPayslip.get(payslip.norbital_id) ?? [];
+				const settledLines = linesByPayslip.get(payslip.id) ?? [];
 				const reportLines: ReportLine[] = settledLines
 					.toSorted((left, right) => Number(left.sequence) - Number(right.sequence))
 					.flatMap((line): ReportLine[] => {
@@ -389,7 +380,7 @@ export function loadRunExports(
 				};
 			});
 			return {
-				runId: run.norbital_id,
+				runId: run.id,
 				period: run.period,
 				payDate: runPayDate,
 				payslips: report,

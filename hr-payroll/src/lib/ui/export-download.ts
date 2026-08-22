@@ -27,7 +27,7 @@ import type { downloadCollectionExport } from '@norbital-ai/bolt/client';
  * re-exports the two commands but not the types around them, and a hand-written copy of a shape the
  * platform decodes is a second shape to keep in step with the first.
  */
-export type CollectionExportManifest = Awaited<ReturnType<typeof downloadCollectionExport>>;
+type CollectionExportManifest = Awaited<ReturnType<typeof downloadCollectionExport>>;
 type ExportAttachment = CollectionExportManifest[number]['attachments'][number];
 
 const MEDIA_TYPES: Readonly<Record<string, string>> = {

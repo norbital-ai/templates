@@ -1,9 +1,9 @@
 <script lang="ts">
 	import { client } from '../../lib/workspace-client.js';
+	import { Effect, Number as EffectNumber } from 'effect';
 	import { useI18n } from '@norbital-ai/ui/i18n';
 	import AppHeaderActions from '@norbital-ai/bolt/client/app-header-actions';
 	import type { TenantI18nKeys } from '$bolt/i18n-keys';
-	import type { WorkspaceRow } from '$bolt/types.js';
 	import { Tabs, type TabConfig } from '@norbital-ai/ui/tabs';
 	import { CollectionTable } from '@norbital-ai/ui/collection-table';
 	import { CollectionQueryState } from '@norbital-ai/ui/collection-query';
@@ -22,7 +22,6 @@
 	import { rosterImportPayload } from '../../collections/roster_entries/lib/import-workbook.js';
 	import { timeEntryImportPayload } from '../../collections/time_entries/lib/import-workbook.js';
 	import {
-		calendarDayKey,
 		monthKey,
 		shiftDayKey,
 		shiftMonthKey,
@@ -30,6 +29,7 @@
 		todayKey,
 		todayInstant
 	} from '../../lib/ui/calendar.js';
+	import { formatDateISO } from '@norbital-ai/std/date';
 	import RosterMonthBoard, { type BoardCell } from '../../lib/ui/roster/roster-month-board.svelte';
 	import DaySheet, { type DaySheetChange } from '../../lib/ui/roster/day-sheet.svelte';
 	import {
@@ -62,13 +62,12 @@
 		type ValidationDay,
 		type WorkloadExpectation
 	} from '../../collections/rosters/lib/workforce-validation.js';
+	import type { WorkPattern } from '../../datatypes/work_pattern/+definition.js';
 
 	const { t } = useI18n<TenantI18nKeys>();
 
 	let companyId = $state<string | null>(null);
 	let month = $state<string>(monthKey(todayKey()));
-	let publishing = $state(false);
-	let creatingDraft = $state(false);
 	/**
 	 * The day sheet's subject and its transient write state.
 	 *
@@ -78,16 +77,20 @@
 	 * rest of that argument. The app keeps only what it has to write with; the drawer owns its
 	 * editors.
 	 */
-	let daySheetOpen = $state(false);
-	let daySheetEmploymentId = $state<string | null>(null);
-	let daySheetDate = $state<string | null>(null);
-	/** The code currently chosen inside the drawer, mirrored back so the overlap check stays live. */
-	let daySheetDraftCodeId = $state<string | null>(null);
-	let daySheetSaving = $state(false);
-	let daySheetError = $state<string | null>(null);
-	/** The armed end of a swap. Bound to the board, so a drag and the drawer's button set one thing. */
-	let swapSource = $state<BoardCell | null>(null);
-	let swapping = $state(false);
+	const daySheet = $state({
+		open: false,
+		employmentId: null as string | null,
+		date: null as string | null,
+		/** The code currently chosen inside the drawer, mirrored back so the overlap check stays live. */
+		draftCodeId: null as string | null
+	});
+	/**
+	 * The armed end of a swap, and whether one is in flight.
+	 *
+	 * The source is bound to the board, so a drag and the drawer's button set one thing; the flag
+	 * guards the two writes of the pair.
+	 */
+	const swap = $state({ source: null as BoardCell | null });
 	/** Which exception counter the operator drilled into, or null for the whole month. */
 	let exceptionFilter = $state<DayStatus | null>(null);
 	let activeTab = $state('board');
@@ -100,46 +103,39 @@
 	 * navigation model.
 	 */
 	const boardQuery = new CollectionQueryState();
-	/**
-	 * Bumped to remount every board query after a failed load.
-	 *
-	 * The queries are keyed on the company and the month, so asking for the same month again is not
-	 * a change and would rebuild nothing. Each board query reads this token so that bumping it is a
-	 * real dependency change, which gives the operator a way out of a failed load without reloading
-	 * the page and losing the rest of it.
-	 */
-	let reloadToken = $state(0);
 
 	const today = todayKey();
 	const activeRange = { effective_range: { contains_date: todayInstant() } } as const;
-	const approved = { norbital_approval_id: { isNull: true } } as const;
+	const approved = { approval_id: { isNull: true } } as const;
 
-	const companiesQuery = client.db.companies.findMany({
-		where: { ...approved, ...activeRange },
-		orderBy: { name: 'asc' },
-		limit: 500
-	});
+	const companiesQuery = $derived(
+		client.db.companies.findMany({
+			where: { ...approved, ...activeRange },
+			orderBy: { name: 'asc' },
+			limit: 500
+		})
+	);
 	const companies = $derived(companiesQuery.current ?? []);
 	const companyOptions = $derived(
 		companies.map((c) => ({
-			value: c.norbital_id,
+			value: c.id,
 			label: c.name,
 			search_term: `${c.name} ${c.registration_number ?? ''}`
 		}))
 	);
 	const selectedCompanyId = $derived(
-		companyId != null && companies.some((c) => c.norbital_id === companyId)
+		companyId != null && companies.some((c) => c.id === companyId)
 			? companyId
-			: (companies[0]?.norbital_id ?? null)
+			: (companies[0]?.id ?? null)
 	);
 	const selectedCompany = $derived(
-		companies.find((company) => company.norbital_id === selectedCompanyId) ?? null
+		companies.find((company) => company.id === selectedCompanyId) ?? null
 	);
 
 	/** The month's calendar bounds, which every dated query below is narrowed to. */
 	const monthStart = $derived(`${month}-01`);
 	const monthEnd = $derived(
-		calendarDayKey(new Date(Date.parse(`${shiftMonthKey(month, 1)}-01T00:00:00.000Z`) - 86_400_000))
+		formatDateISO(new Date(Date.parse(`${shiftMonthKey(month, 1)}-01T00:00:00.000Z`) - 86_400_000))
 	);
 
 	/**
@@ -159,19 +155,21 @@
 	const cutoff = $derived.by(() => {
 		const run = runQuery?.current;
 		if (run?.attendance_from != null && run.attendance_to != null) {
-			return { start: calendarDayKey(run.attendance_from), end: calendarDayKey(run.attendance_to) };
+			return { start: formatDateISO(run.attendance_from), end: formatDateISO(run.attendance_to) };
 		}
 		const cutoffDay = selectedCompany?.pay_cutoff_day;
 		if (cutoffDay == null) return null;
-		const day = String(Math.min(Math.max(Number(cutoffDay), 1), 28)).padStart(2, '0');
+		const day = String(EffectNumber.clamp({ minimum: 1, maximum: 28 })(Number(cutoffDay))).padStart(
+			2,
+			'0'
+		);
 		return {
 			start: `${shiftMonthKey(month, -1)}-${day}`,
-			end: calendarDayKey(new Date(Date.parse(`${month}-${day}T00:00:00.000Z`) - 86_400_000))
+			end: formatDateISO(new Date(Date.parse(`${month}-${day}T00:00:00.000Z`) - 86_400_000))
 		};
 	});
 
 	const employmentsQuery = $derived.by(() => {
-		void reloadToken;
 		if (selectedCompanyId == null) return null;
 		return client.db.employments.findMany({
 			where: { ...approved, company_id: { eq: selectedCompanyId } },
@@ -192,17 +190,11 @@
 		employments.filter((employment) => employmentOverlapsMonth(employment, month))
 	);
 	const emptyEmploymentReason = $derived(employmentMonthEmptyReason(employments, month));
-	type EmploymentPerson = WorkspaceRow<'employments'> & {
-		readonly employment_employee?: Pick<WorkspaceRow<'employees'>, 'name'> | null;
-	};
-	function employmentPersonName(row: EmploymentPerson): string {
-		return row.employment_employee?.name ?? '—';
-	}
 	const people = $derived(
 		monthEmployments.map((employment) => ({
-			id: employment.norbital_id,
+			id: employment.id,
 			number: employment.employee_number,
-			name: employmentPersonName(employment)
+			name: employment.employment_employee?.name ?? '—'
 		}))
 	);
 
@@ -215,10 +207,9 @@
 				})
 	);
 	const rosterCodesById = $derived(
-		new Map((shiftsQuery?.current ?? []).map((code) => [code.norbital_id, code]))
+		new Map((shiftsQuery?.current ?? []).map((code) => [code.id, code]))
 	);
 	const employmentTermsQuery = $derived.by(() => {
-		void reloadToken;
 		if (selectedCompanyId == null) return null;
 		return client.db.employment_terms.findMany({
 			where: {
@@ -238,24 +229,23 @@
 				})
 	);
 	const leaveCodeById = $derived(
-		new Map((leaveTypesQuery?.current ?? []).map((type) => [type.norbital_id, type.code]))
+		new Map((leaveTypesQuery?.current ?? []).map((type) => [type.id, type.code]))
 	);
 
 	const rosterEntriesQuery = $derived.by(() => {
-		void reloadToken;
 		if (selectedCompanyId == null || !employmentsReady) return null;
 		return client.db.roster_entries.findMany({
 			where: {
 				...approved,
 				work_date: { gte: monthStart, lte: monthEnd },
 				...(monthEmployments.length > 0
-					? { employment_id: { in: monthEmployments.map((e) => e.norbital_id) } }
+					? { employment_id: { in: monthEmployments.map((e) => e.id) } }
 					: {
 							roster_entry_employment: { ...approved, company_id: { eq: selectedCompanyId } }
 						})
 			},
 			columns: {
-				norbital_id: true,
+				id: true,
 				employment_id: true,
 				work_date: true,
 				shift_definition_id: true,
@@ -270,7 +260,6 @@
 	 * days from their month.
 	 */
 	const filteredRosterEntriesQuery = $derived.by(() => {
-		void reloadToken;
 		if (selectedCompanyId == null || !employmentsReady || boardQuery.filters.length === 0)
 			return null;
 		return client.db.roster_entries.findMany(
@@ -279,13 +268,13 @@
 					...approved,
 					work_date: { gte: monthStart, lte: monthEnd },
 					...(monthEmployments.length > 0
-						? { employment_id: { in: monthEmployments.map((e) => e.norbital_id) } }
+						? { employment_id: { in: monthEmployments.map((e) => e.id) } }
 						: {
 								roster_entry_employment: { ...approved, company_id: { eq: selectedCompanyId } }
 							})
 				},
 				columns: {
-					norbital_id: true,
+					id: true,
 					employment_id: true,
 					work_date: true,
 					shift_definition_id: true,
@@ -297,23 +286,22 @@
 		);
 	});
 	const timeEntriesQuery = $derived.by(() => {
-		void reloadToken;
 		if (selectedCompanyId == null || !employmentsReady) return null;
 		return client.db.time_entries.findMany({
 			where: {
 				...approved,
 				work_date: { gte: monthStart, lte: monthEnd },
 				...(monthEmployments.length > 0
-					? { employment_id: { in: monthEmployments.map((e) => e.norbital_id) } }
+					? { employment_id: { in: monthEmployments.map((e) => e.id) } }
 					: {
 							time_entry_employment: { ...approved, company_id: { eq: selectedCompanyId } }
 						})
 			},
-			// `norbital_id` and `break_minutes` are what §1.3 of the proposal adds, and both are needed
+			// `id` and `break_minutes` are what §1.3 of the proposal adds, and both are needed
 			// by the same surface: the day sheet updates *this* record rather than creating a second
 			// one for the day, and it cannot assess the unpaid break without knowing what it is.
 			columns: {
-				norbital_id: true,
+				id: true,
 				employment_id: true,
 				work_date: true,
 				worked_intervals: true,
@@ -324,7 +312,6 @@
 	});
 	/** Requests are stored once at `from_date`, so the window is widened to catch one spanning in. */
 	const leaveQuery = $derived.by(() => {
-		void reloadToken;
 		if (selectedCompanyId == null) return null;
 		return client.db.leave_requests.findMany({
 			where: {
@@ -343,11 +330,10 @@
 	 * conflict flag makes the approval a decision rather than a silent double-book.
 	 */
 	const pendingLeaveQuery = $derived.by(() => {
-		void reloadToken;
 		if (selectedCompanyId == null) return null;
 		return client.db.leave_requests.findMany({
 			where: {
-				norbital_approval_id: { isNotNull: true },
+				approval_id: { isNotNull: true },
 				leave_request_employment: { ...approved, company_id: { eq: selectedCompanyId } },
 				kind: { eq: 'TIME_OFF' },
 				from_date: { lte: monthEnd },
@@ -361,7 +347,6 @@
 	 * whichever run's window covers each day, and a paid window is drawn and enforced everywhere.
 	 */
 	const payrollRunsQuery = $derived.by(() => {
-		void reloadToken;
 		if (selectedCompanyId == null) return null;
 		return client.db.payroll_runs.findMany({
 			where: { ...approved, company_id: { eq: selectedCompanyId } },
@@ -382,30 +367,28 @@
 	 * and never a scan of every claim the company has ever taken.
 	 */
 	const settlementsQuery = $derived.by(() => {
-		void reloadToken;
-		const entryIds = (timeEntriesQuery?.current ?? []).map((entry) => entry.norbital_id);
+		const entryIds = (timeEntriesQuery?.current ?? []).map((entry) => entry.id);
 		if (selectedCompanyId == null || entryIds.length === 0) return null;
 		return client.db.payslip_sources.findMany({
 			where: {
 				...approved,
-				time_entry_id: { in: entryIds }
+				source: { in: entryIds.map((id) => ({ kind: 'TIME_ENTRY' as const, id })) }
 			},
-			columns: { time_entry_id: true, period: true },
+			columns: { source: true, period: true },
 			limit: 5000
 		});
 	});
 	const settlementClaims = $derived(
 		new Map<string, SettlementClaim>(
 			(settlementsQuery?.current ?? []).flatMap((claim) =>
-				claim.time_entry_id == null
+				claim.source.kind !== 'TIME_ENTRY'
 					? []
-					: [[claim.time_entry_id, { period: claim.period }] as const]
+					: [[claim.source.id, { period: claim.period }] as const]
 			)
 		)
 	);
 
 	const holidaysQuery = $derived.by(() => {
-		void reloadToken;
 		if (selectedCompanyId == null) return null;
 		return client.db.company_holidays.findMany({
 			where: {
@@ -491,7 +474,7 @@
 	const explicitEntryByKey = $derived(
 		new Map(
 			rosterEntries.map((entry) => [
-				`${entry.employment_id}:${calendarDayKey(entry.work_date)}`,
+				`${entry.employment_id}:${formatDateISO(entry.work_date)}`,
 				entry
 			])
 		)
@@ -600,18 +583,22 @@
 				: t('app.scheduling.blocker_published', { month })
 	);
 
-	async function importRoster(): Promise<void> {
-		const rosterId = draftRoster?.norbital_id;
+	function importRoster(): void {
+		const rosterId = draftRoster?.id;
 		if (rosterId == null) return;
 		// `runWorkbookImport` reports its own refusals: the pipeline answers with the rows the
 		// company's records contradict, and that list is the whole message worth showing.
-		await runWorkbookImport(
-			{
-				collectionName: 'roster_entries',
-				recordLabel: t('component.roster_rows'),
-				buildPayload: (grids) => rosterImportPayload(grids, rosterId)
-			},
-			t
+		Effect.runPromise(
+			Effect.promise(() =>
+				runWorkbookImport(
+					{
+						collectionName: 'roster_entries',
+						recordLabel: t('component.roster_rows'),
+						buildPayload: (grids) => rosterImportPayload(grids, rosterId)
+					},
+					t
+				)
+			)
 		);
 	}
 
@@ -620,64 +607,32 @@
 		boardQuery.setPageIndex(0);
 	}
 
-	/** Rebuilds every board query in place; the month, the search and the filters all survive it. */
-	async function reloadBoard(): Promise<void> {
-		reloadToken += 1;
-	}
-
-	async function createDraftMonth(): Promise<void> {
+	function createDraftMonth(): void {
 		if (selectedCompanyId == null) return;
 		const create = client.db.rosters.create;
 		if (create == null) {
 			toast.error(t('app.scheduling.toast_draft_not_permitted'));
 			return;
 		}
-		creatingDraft = true;
-		try {
-			await create({ company_id: selectedCompanyId, month, published_at: null });
-			toast.success(t('app.scheduling.toast_draft_created', { month }));
-		} catch (error) {
-			toast.error(error instanceof Error ? error.message : t('app.scheduling.toast_draft_failed'));
-		} finally {
-			creatingDraft = false;
-		}
+		void create({ company_id: selectedCompanyId, month, published_at: null });
 	}
 
-	async function publish(rosterId: string): Promise<void> {
+	function publish(rosterId: string): void {
 		const update = client.db.rosters.update;
 		if (update == null) {
 			toast.error(t('app.scheduling.toast_publish_not_permitted'));
 			return;
 		}
-		publishing = true;
-		try {
-			await update(rosterId, { published_at: new Date() });
-			toast.success(t('app.scheduling.toast_published', { month }));
-		} catch (error) {
-			// The publish gate refuses with the statutory reason, which is the whole message.
-			toast.error(
-				error instanceof Error ? error.message : t('app.scheduling.toast_publish_failed')
-			);
-		} finally {
-			publishing = false;
-		}
+		void update(rosterId, { published_at: new Date() });
 	}
 
-	async function reopen(rosterId: string): Promise<void> {
+	function reopen(rosterId: string): void {
 		const update = client.db.rosters.update;
 		if (update == null) {
 			toast.error(t('app.scheduling.toast_reopen_not_permitted'));
 			return;
 		}
-		publishing = true;
-		try {
-			await update(rosterId, { published_at: null });
-			toast.success(t('app.scheduling.toast_reopened', { month }));
-		} catch (error) {
-			toast.error(error instanceof Error ? error.message : t('app.scheduling.toast_reopen_failed'));
-		} finally {
-			publishing = false;
-		}
+		void update(rosterId, { published_at: null });
 	}
 
 	/* ────────────────────────────────────────────────────────────────────────────────────────────
@@ -687,7 +642,7 @@
 	const timeEntryByKey = $derived(
 		new Map(
 			(timeEntriesQuery?.current ?? []).map((entry) => [
-				`${entry.employment_id}:${calendarDayKey(entry.work_date)}`,
+				`${entry.employment_id}:${formatDateISO(entry.work_date)}`,
 				entry
 			])
 		)
@@ -702,8 +657,8 @@
 		date: string
 	): boolean {
 		if (term.effective_range?.start == null) return false;
-		const start = calendarDayKey(term.effective_range.start);
-		const end = term.effective_range.end == null ? null : calendarDayKey(term.effective_range.end);
+		const start = formatDateISO(term.effective_range.start);
+		const end = term.effective_range.end == null ? null : formatDateISO(term.effective_range.end);
 		return date >= start && (end == null || date <= end);
 	}
 
@@ -779,6 +734,61 @@
 	 * the thing that matters — `validateRosterSchedule` is the one judge, so a swap the board allows
 	 * is a swap the publish check will also allow.
 	 */
+	function patternedExpectation(
+		employmentId: string,
+		pattern: Extract<WorkPattern, { type: 'PATTERNED' }>,
+		start: string,
+		end: string,
+		dates: readonly string[]
+	): WorkloadExpectation {
+		let workDays = 0;
+		let paidMinutes = 0;
+		for (const date of dates) {
+			const projected = patternRosterCodeId(pattern, date);
+			const code = projected == null ? null : rosterCodesById.get(projected);
+			if (code == null || rosterCodeKind(code.variant) !== 'WORK') continue;
+			workDays += 1;
+			paidMinutes += workWindow(code.variant)?.paid_minutes ?? 0;
+		}
+		return {
+			employment_id: employmentId,
+			start_date: start,
+			end_date: end,
+			kind: 'EXACT',
+			work_days: workDays,
+			paid_minutes: paidMinutes
+		};
+	}
+
+	function rosteredExpectation(
+		employmentId: string,
+		expectation: Extract<WorkPattern, { type: 'ROSTERED' }>['expectation'],
+		start: string,
+		end: string,
+		activeDays: number,
+		referenceDays: number
+	): WorkloadExpectation | null {
+		const fraction = activeDays / referenceDays;
+		if (expectation.kind === 'GUARANTEED_SCHEDULE')
+			return {
+				employment_id: employmentId,
+				start_date: start,
+				end_date: end,
+				kind: 'MINIMUM',
+				work_days: Math.ceil(expectation.required_work_days * fraction),
+				paid_minutes: Math.ceil(expectation.required_paid_minutes * fraction)
+			};
+		if (expectation.maximum_paid_minutes == null) return null;
+		return {
+			employment_id: employmentId,
+			start_date: start,
+			end_date: end,
+			kind: 'MAXIMUM',
+			work_days: null,
+			paid_minutes: Math.floor(expectation.maximum_paid_minutes * fraction)
+		};
+	}
+
 	function expectationsFor(employmentId: string): WorkloadExpectation[] {
 		const expectations: WorkloadExpectation[] = [];
 		const days = monthDays(month);
@@ -790,47 +800,18 @@
 			const end = activeDates[activeDates.length - 1]!;
 			const pattern = term.work_pattern;
 			if (pattern.type === 'PATTERNED') {
-				let workDays = 0;
-				let paidMinutes = 0;
-				for (const date of activeDates) {
-					const projected = patternRosterCodeId(pattern, date);
-					const code = projected == null ? null : rosterCodesById.get(projected);
-					if (code == null || rosterCodeKind(code.variant) !== 'WORK') continue;
-					workDays += 1;
-					paidMinutes += workWindow(code.variant)?.paid_minutes ?? 0;
-				}
-				expectations.push({
-					employment_id: employmentId,
-					start_date: start,
-					end_date: end,
-					kind: 'EXACT',
-					work_days: workDays,
-					paid_minutes: paidMinutes
-				});
+				expectations.push(patternedExpectation(employmentId, pattern, start, end, activeDates));
 				continue;
 			}
-			const expectation = pattern.expectation;
-			const referenceDays = expectation.period === 'WEEK' ? 7 : days.length;
-			const fraction = activeDates.length / referenceDays;
-			if (expectation.kind === 'GUARANTEED_SCHEDULE') {
-				expectations.push({
-					employment_id: employmentId,
-					start_date: start,
-					end_date: end,
-					kind: 'MINIMUM',
-					work_days: Math.ceil(expectation.required_work_days * fraction),
-					paid_minutes: Math.ceil(expectation.required_paid_minutes * fraction)
-				});
-			} else if (expectation.maximum_paid_minutes != null) {
-				expectations.push({
-					employment_id: employmentId,
-					start_date: start,
-					end_date: end,
-					kind: 'MAXIMUM',
-					work_days: null,
-					paid_minutes: Math.floor(expectation.maximum_paid_minutes * fraction)
-				});
-			}
+			const expectation = rosteredExpectation(
+				employmentId,
+				pattern.expectation,
+				start,
+				end,
+				activeDates.length,
+				pattern.expectation.period === 'WEEK' ? 7 : days.length
+			);
+			if (expectation != null) expectations.push(expectation);
 		}
 		return expectations;
 	}
@@ -840,21 +821,20 @@
 	 * ──────────────────────────────────────────────────────────────────────────────────────────── */
 
 	function openDaySheet(employmentId: string, date: string): void {
-		daySheetEmploymentId = employmentId;
-		daySheetDate = date;
-		daySheetDraftCodeId = effectiveCodeId(employmentId, date);
-		daySheetError = null;
-		daySheetOpen = true;
+		daySheet.employmentId = employmentId;
+		daySheet.date = date;
+		daySheet.draftCodeId = effectiveCodeId(employmentId, date);
+		daySheet.open = true;
 	}
 
 	const daySheetKey = $derived(
-		daySheetEmploymentId == null || daySheetDate == null
+		daySheet.employmentId == null || daySheet.date == null
 			? null
-			: `${daySheetEmploymentId}:${daySheetDate}`
+			: `${daySheet.employmentId}:${daySheet.date}`
 	);
 	const daySheetDay = $derived(daySheetKey == null ? undefined : facts.get(daySheetKey));
 	const daySheetPerson = $derived(
-		people.find((person) => person.id === daySheetEmploymentId) ?? null
+		people.find((person) => person.id === daySheet.employmentId) ?? null
 	);
 	const daySheetEntry = $derived(
 		daySheetKey == null ? null : (timeEntryByKey.get(daySheetKey) ?? null)
@@ -914,19 +894,19 @@
 
 	/** Roster codes effective on the day the drawer is open on. */
 	const daySheetCodeOptions = $derived.by(() => {
-		const date = daySheetDate;
+		const date = daySheet.date;
 		return (shiftsQuery?.current ?? [])
 			.filter((code) => {
 				const start =
-					code.effective_range?.start == null ? null : calendarDayKey(code.effective_range.start);
+					code.effective_range?.start == null ? null : formatDateISO(code.effective_range.start);
 				const end =
-					code.effective_range?.end == null ? null : calendarDayKey(code.effective_range.end);
+					code.effective_range?.end == null ? null : formatDateISO(code.effective_range.end);
 				return date != null && start != null && date >= start && (end == null || date <= end);
 			})
 			.map((code) => {
 				const window = rosterCodeKind(code.variant) === 'WORK' ? workWindow(code.variant) : null;
 				return {
-					value: code.norbital_id,
+					value: code.id,
 					label:
 						window == null
 							? `${code.code} · ${rosterCodeKind(code.variant)}`
@@ -944,12 +924,12 @@
 	 * selected rather than by app state, which is why the drawer mirrors its draft code back.
 	 */
 	const daySheetOverlap = $derived.by(() => {
-		if (daySheetEmploymentId == null || daySheetDate == null || daySheetDraftCodeId == null)
+		if (daySheet.employmentId == null || daySheet.date == null || daySheet.draftCodeId == null)
 			return null;
-		const selected = validationDay(daySheetEmploymentId, daySheetDate, daySheetDraftCodeId);
+		const selected = validationDay(daySheet.employmentId, daySheet.date, daySheet.draftCodeId);
 		return (
 			overlappingWorkShifts([
-				...adjacentValidationDays(daySheetEmploymentId, daySheetDate),
+				...adjacentValidationDays(daySheet.employmentId, daySheet.date),
 				selected
 			])[0] ?? null
 		);
@@ -963,46 +943,35 @@
 				})
 	);
 
-	async function saveDaySheet(change: DaySheetChange): Promise<void> {
-		daySheetSaving = true;
-		daySheetError = null;
-		try {
-			if (change.plan != null) await writePlan(change.employmentId, change.date, change.plan);
-			if (change.attendance != null) await writeAttendance(change);
-			daySheetOpen = false;
-			await reloadBoard();
-		} catch (error) {
-			// The hooks refuse with the whole reason — the run holding the record, the leave that owns
-			// the day, the statutory rule. That sentence is the message worth showing.
-			daySheetError = error instanceof Error ? error.message : t('roster.assignment_failed');
-		} finally {
-			daySheetSaving = false;
-		}
+	function saveDaySheet(change: DaySheetChange): void {
+		if (change.plan != null) writePlan(change.employmentId, change.date, change.plan);
+		if (change.attendance != null) writeAttendance(change);
+		daySheet.open = false;
 	}
 
-	async function writePlan(
+	function writePlan(
 		employmentId: string,
 		date: string,
 		plan: { readonly rosterCodeId: string; readonly note: string | null }
-	): Promise<void> {
-		if (draftRoster == null) throw new Error(t('roster.assignment_not_permitted'));
+	) {
+		if (draftRoster == null) return;
 		const existing = explicitEntryByKey.get(`${employmentId}:${date}`);
 		if (existing != null) {
 			const update = client.db.roster_entries.update;
-			if (update == null) throw new Error(t('roster.assignment_not_permitted'));
-			await update(existing.norbital_id, {
+			if (update == null) return;
+			void update(existing.id, {
 				shift_definition_id: plan.rosterCodeId,
 				note: plan.note
 			});
 			return;
 		}
 		const create = client.db.roster_entries.create;
-		if (create == null) throw new Error(t('roster.assignment_not_permitted'));
-		await create({
+		if (create == null) return;
+		void create({
 			employment_id: employmentId,
 			work_date: date,
 			shift_definition_id: plan.rosterCodeId,
-			roster_id: draftRoster.norbital_id,
+			roster_id: draftRoster.id,
 			assignment_code: null,
 			note: plan.note
 		});
@@ -1015,21 +984,21 @@
 	 * same arithmetic `assertWorkedIntervals` uses — so this write cannot be refused for a break
 	 * longer than the day, and the operator was told about the clamp before pressing save.
 	 */
-	async function writeAttendance(change: DaySheetChange): Promise<void> {
+	function writeAttendance(change: DaySheetChange) {
 		const attendance = change.attendance;
 		if (attendance == null) return;
 		if (attendance.timeEntryId != null) {
 			const update = client.db.time_entries.update;
-			if (update == null) throw new Error(t('roster.attendance_not_permitted'));
-			await update(attendance.timeEntryId, {
+			if (update == null) return;
+			void update(attendance.timeEntryId, {
 				worked_intervals: [...attendance.intervals],
 				break_minutes: attendance.breakMinutes
 			});
 			return;
 		}
 		const create = client.db.time_entries.create;
-		if (create == null) throw new Error(t('roster.attendance_not_permitted'));
-		await create({
+		if (create == null) return;
+		void create({
 			employment_id: change.employmentId,
 			work_date: change.date,
 			worked_intervals: [...attendance.intervals],
@@ -1037,23 +1006,14 @@
 		});
 	}
 
-	async function clearDaySheetPlan(): Promise<void> {
+	function clearDaySheetPlan(): void {
 		if (draftRoster == null || daySheetKey == null) return;
 		const existing = explicitEntryByKey.get(daySheetKey);
 		if (existing == null) return;
-		daySheetSaving = true;
-		daySheetError = null;
-		try {
-			const remove = client.db.roster_entries.delete;
-			if (remove == null) throw new Error(t('roster.assignment_not_permitted'));
-			await remove(existing.norbital_id);
-			daySheetOpen = false;
-			await reloadBoard();
-		} catch (error) {
-			daySheetError = error instanceof Error ? error.message : t('roster.assignment_failed');
-		} finally {
-			daySheetSaving = false;
-		}
+		const remove = client.db.roster_entries.delete;
+		if (remove == null) return;
+		void remove(existing.id);
+		daySheet.open = false;
 	}
 
 	/* ────────────────────────────────────────────────────────────────────────────────────────────
@@ -1154,8 +1114,8 @@
 		return violations[0]?.message ?? null;
 	}
 
-	async function performSwap(from: BoardCell, to: BoardCell): Promise<void> {
-		if (!swapEnabled || swapping) return;
+	function performSwap(from: BoardCell, to: BoardCell): void {
+		if (!swapEnabled) return;
 		const refusal = swapRefusal(from, to);
 		if (refusal != null) {
 			toast.error(t('roster.swap_failed_pair', { from: from.date, to: to.date }), {
@@ -1167,29 +1127,9 @@
 		const toCodeId = effectiveCodeId(to.employmentId, to.date);
 		if (fromCodeId == null || toCodeId == null) return;
 
-		swapping = true;
 		const note = t('roster.swap_note', { from: from.date, to: to.date });
-		try {
-			const restore = await writeSwapHalf(from, toCodeId, note);
-			try {
-				await writeSwapHalf(to, fromCodeId, note);
-			} catch (second) {
-				// Put the first half back. If that fails too, say so — a half-applied swap the
-				// operator does not know about is the one outcome worth shouting about.
-				await restore().catch(() => {
-					toast.error(t('roster.swap_half_applied', { date: from.date }));
-				});
-				throw second;
-			}
-			toast.success(t('roster.swap_done', { from: from.date, to: to.date }));
-			await reloadBoard();
-		} catch (error) {
-			toast.error(t('roster.swap_failed_pair', { from: from.date, to: to.date }), {
-				description: error instanceof Error ? error.message : undefined
-			});
-		} finally {
-			swapping = false;
-		}
+		writeSwapHalf(from, toCodeId, note);
+		writeSwapHalf(to, fromCodeId, note);
 	}
 
 	/**
@@ -1198,37 +1138,25 @@
 	 * The undo is captured before the write rather than reconstructed after it, because after the
 	 * write the board's own query is the only record of what was there and it has not reloaded yet.
 	 */
-	async function writeSwapHalf(
-		cell: BoardCell,
-		codeId: string,
-		note: string
-	): Promise<() => Promise<void>> {
-		if (draftRoster == null) throw new Error(t('roster.assignment_not_permitted'));
+	function writeSwapHalf(cell: BoardCell, codeId: string, note: string) {
+		if (draftRoster == null) return;
 		const existing = explicitEntryByKey.get(`${cell.employmentId}:${cell.date}`);
 		if (existing != null) {
 			const update = client.db.roster_entries.update;
-			if (update == null) throw new Error(t('roster.assignment_not_permitted'));
-			const previousCode = existing.shift_definition_id;
-			await update(existing.norbital_id, { shift_definition_id: codeId, note });
-			return async () => {
-				await update(existing.norbital_id, { shift_definition_id: previousCode, note: null });
-			};
+			if (update == null) return;
+			void update(existing.id, { shift_definition_id: codeId, note });
+			return;
 		}
 		const create = client.db.roster_entries.create;
-		if (create == null) throw new Error(t('roster.assignment_not_permitted'));
-		const created = await create({
+		if (create == null) return;
+		void create({
 			employment_id: cell.employmentId,
 			work_date: cell.date,
 			shift_definition_id: codeId,
-			roster_id: draftRoster.norbital_id,
+			roster_id: draftRoster.id,
 			assignment_code: null,
 			note
 		});
-		return async () => {
-			const remove = client.db.roster_entries.delete;
-			if (remove == null) return;
-			await remove(created.norbital_id);
-		};
 	}
 
 	/* ────────────────────────────────────────────────────────────────────────────────────────────
@@ -1246,16 +1174,19 @@
 	 * `expandTimeMonthGrid` collects every problem in the file and throws one `WorkbookImportError`
 	 * listing all of them, so a 300-person sheet is corrected once and re-imported once.
 	 */
-	async function importAttendance(): Promise<void> {
-		await runWorkbookImport(
-			{
-				collectionName: 'time_entries',
-				recordLabel: t('component.time_entries'),
-				buildPayload: timeEntryImportPayload
-			},
-			t
+	function importAttendance(): void {
+		Effect.runPromise(
+			Effect.promise(() =>
+				runWorkbookImport(
+					{
+						collectionName: 'time_entries',
+						recordLabel: t('component.time_entries'),
+						buildPayload: timeEntryImportPayload
+					},
+					t
+				)
+			)
 		);
-		await reloadBoard();
 	}
 
 	/* ────────────────────────────────────────────────────────────────────────────────────────────
@@ -1329,7 +1260,7 @@
 		options={companyOptions}
 		value={selectedCompanyId}
 		onValueChange={(value) => {
-			companyId = typeof value === 'string' ? value : (companies[0]?.norbital_id ?? null);
+			companyId = typeof value === 'string' ? value : (companies[0]?.id ?? null);
 			boardQuery.setPageIndex(0);
 		}}
 		emptyPlaceholder={t('component.select_legal_entity')}
@@ -1393,7 +1324,7 @@
 					run: () => importAttendance()
 				}
 			],
-			refresh: reloadBoard
+			refresh: () => rosterEntriesQuery?.refresh()
 		}}
 	/>
 {/snippet}
@@ -1409,11 +1340,11 @@
 					})}
 				</Badge>
 			{/if}
-			<Button size="sm" disabled={creatingDraft || publishing} onclick={() => createDraftMonth()}>
+			<Button size="sm" onclick={() => createDraftMonth()}>
 				{t('app.scheduling.start_planning', { month })}
 			</Button>
 		{:else}
-			{#each rosters as roster (roster.norbital_id)}
+			{#each rosters as roster (roster.id)}
 				<Inline gap="xs">
 					<Badge variant={roster.published_at == null ? 'outline' : 'default'}>
 						{roster.published_at == null
@@ -1421,16 +1352,11 @@
 							: t('app.scheduling.published')}
 					</Badge>
 					{#if roster.published_at == null}
-						<Button size="sm" disabled={publishing} onclick={() => publish(roster.norbital_id)}>
+						<Button size="sm" onclick={() => publish(roster.id)}>
 							{t('app.scheduling.publish_month', { month })}
 						</Button>
 					{:else}
-						<Button
-							size="sm"
-							variant="outline"
-							disabled={publishing}
-							onclick={() => reopen(roster.norbital_id)}
-						>
+						<Button size="sm" variant="outline" onclick={() => reopen(roster.id)}>
 							{t('app.scheduling.re_open')}
 						</Button>
 					{/if}
@@ -1526,7 +1452,11 @@
 								{/each}
 							</Stack>
 							<Inline>
-								<Button size="sm" variant="outline" onclick={() => void reloadBoard()}>
+								<Button
+									size="sm"
+									variant="outline"
+									onclick={() => void rosterEntriesQuery?.refresh()}
+								>
 									<IconWrapper name="lucide:refresh-cw" class="size-4" />
 									{t('app.scheduling.retry')}
 								</Button>
@@ -1559,7 +1489,7 @@
 					{cutoff}
 					editable={draftRoster != null}
 					swappable={swapEnabled}
-					bind:swapSource
+					bind:swapSource={swap.source}
 					onSwapDays={(from, to) => void performSwap(from, to)}
 					onSelectDay={openDaySheet}
 				/>
@@ -1708,14 +1638,14 @@
 	over its own single-person month without inheriting a controller's write path.
 -->
 <DaySheet
-	bind:open={daySheetOpen}
+	bind:open={daySheet.open}
 	mode="controller"
 	person={daySheetPerson}
-	date={daySheetDate}
+	date={daySheet.date}
 	day={daySheetDay}
 	intervals={daySheetIntervals}
 	rosterCodeOptions={daySheetCodeOptions}
-	rosterCodeId={daySheetDraftCodeId}
+	rosterCodeId={daySheet.draftCodeId}
 	note={daySheetNote}
 	hasExplicitEntry={daySheetHasExplicitEntry}
 	planLocked={daySheetPlanLocked}
@@ -1724,17 +1654,17 @@
 	lockReason={daySheetLockReason}
 	overlapWarning={daySheetOverlapWarning}
 	canSwap={swapEnabled}
-	saving={daySheetSaving || swapping}
-	error={daySheetError}
-	onPlanDraftChange={(codeId) => (daySheetDraftCodeId = codeId)}
+	saving={false}
+	error={null}
+	onPlanDraftChange={(codeId) => (daySheet.draftCodeId = codeId)}
 	onSave={(change) => saveDaySheet(change)}
 	onClearPlan={() => clearDaySheetPlan()}
 	onStartSwap={() => {
 		// Arming, not swapping. The board is the surface that knows which second cell is legal, so
 		// the drawer hands the gesture back and steps out of the way.
-		if (daySheetEmploymentId == null || daySheetDate == null) return;
-		swapSource = { employmentId: daySheetEmploymentId, date: daySheetDate };
-		daySheetOpen = false;
+		if (daySheet.employmentId == null || daySheet.date == null) return;
+		swap.source = { employmentId: daySheet.employmentId, date: daySheet.date };
+		daySheet.open = false;
 	}}
 />
 

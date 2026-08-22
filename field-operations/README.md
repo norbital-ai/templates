@@ -33,7 +33,7 @@ site → jobs → job assignment → bolt_auth_user (the assignee)
   attached to it.
 - **jobs** — work scheduled for one site and one calendar day, beginning `unassigned` and following
   the assignment's progress (`assigned` → `in_progress` → `completed`).
-- **job_assignments** — one person per job. `assignee_user_id` is `bolt_auth_user.norbital_id`
+- **job_assignments** — one person per job. `assignee_user_id` is `bolt_auth_user.id`
   directly: a contractor is a **role**, not a record — a user whose team holds `field_ops_contractor`
   — so there is no collection describing one. Identity (job + assignee) is immutable after dispatch;
   status runs `dispatched` → `in_progress` → `completed`, with `suspect` as a one-way integrity
@@ -104,7 +104,7 @@ The envoy runs under the strict capability lock:
   directly, and it is the complete answer to what any turn may reach — for a linked contractor
   exactly as for anyone. It is narrower than
   `field_ops_contractor`: no variation requests, no photo evidence, no apps.
-- **The linked account is the requestor, which only narrows.** `${requestor.norbital_id}` conditions
+- **The linked account is the requestor, which only narrows.** `${requestor.id}` conditions
   resolve to that person, so they see their own assignments rather than none — matched on
   `job_assignments.assignee_user_id`. It confers nothing: a contractor who administers the web app
   reaches no more here than an ordinary one, and their `admin` flag is dropped at the boundary.

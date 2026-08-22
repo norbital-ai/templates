@@ -179,8 +179,8 @@
 			description={t('component.rate_bands_description')}
 			initialFilters={inForceTodayFilter()}
 			query={{
-				where: { statutory_contribution_id: { eq: record.norbital_id } },
-				orderBy: { norbital_created_at: 'desc' }
+				where: { statutory_contribution_id: { eq: record.id } },
+				orderBy: { created_at: 'desc' }
 			}}
 		>
 			{#snippet columns({ Column: TableColumn })}

@@ -4,6 +4,7 @@
 	import { useI18n } from '@norbital-ai/ui/i18n';
 	import AppHeaderActions from '@norbital-ai/bolt/client/app-header-actions';
 	import type { TenantI18nKeys } from '$bolt/i18n-keys';
+	import type { WorkspaceRow } from '$bolt/types.js';
 	import { CollectionKanban } from '@norbital-ai/ui/collection-kanban';
 	import { CollectionTable } from '@norbital-ai/ui/collection-table';
 	import { Combobox } from '@norbital-ai/ui/combobox';
@@ -15,22 +16,7 @@
 	 * fields rather than a `WorkspaceRow<'accounts'>`. This names only the three fields the account
 	 * scope actually reads, and `accountRows` narrows into it, so nothing is asserted unchecked.
 	 */
-	type AccountScopeRow = {
-		readonly norbital_id: string;
-		readonly name: string;
-		readonly active: boolean | null;
-	};
-
-	type PipelineCard = {
-		readonly id: string;
-		readonly doc_no: string;
-		readonly title: string;
-		readonly account: string;
-		readonly status: string;
-		readonly gross: number | null;
-		readonly currency: string;
-		readonly valid_until: string | null;
-	};
+	type AccountScopeRow = Pick<WorkspaceRow<'accounts'>, 'id' | 'name' | 'active'>;
 
 	const workspaceClient = getCollectionClientForSurface(client, 'crm');
 
@@ -38,9 +24,9 @@
 		selected: string | null,
 		rows: readonly AccountScopeRow[]
 	): string | null {
-		if (selected != null && rows.some((row) => row.norbital_id === selected)) return selected;
+		if (selected != null && rows.some((row) => row.id === selected)) return selected;
 		const active = rows.find((row) => row.active !== false);
-		return active?.norbital_id ?? rows[0]?.norbital_id ?? null;
+		return active?.id ?? rows[0]?.id ?? null;
 	}
 
 	const { t } = useI18n<TenantI18nKeys>();
@@ -56,19 +42,21 @@
 	let accountId = $state<string | null>(null);
 	let selectedOwnerId = $state('');
 
-	const accountsQuery = workspaceClient.db.accounts.findMany({
-		where: { active: { eq: true } },
-		orderBy: { name: 'asc' },
-		limit: 5000
-	});
+	const accountsQuery = $derived(
+		workspaceClient.db.accounts.findMany({
+			where: { active: { eq: true } },
+			orderBy: { name: 'asc' },
+			limit: 5000
+		})
+	);
 	const accountRows = $derived<readonly AccountScopeRow[]>(
 		(accountsQuery.current ?? []).flatMap((account) =>
-			typeof account.norbital_id === 'string'
+			typeof account.id === 'string' && typeof account.active === 'boolean'
 				? [
 						{
-							norbital_id: account.norbital_id,
+							id: account.id,
 							name: typeof account.name === 'string' ? account.name : '',
-							active: typeof account.active === 'boolean' ? account.active : null
+							active: account.active
 						}
 					]
 				: []
@@ -76,31 +64,33 @@
 	);
 	const accountOptions = $derived(
 		accountRows.map((account) => ({
-			value: account.norbital_id,
+			value: account.id,
 			label: account.name,
 			search_term: account.name
 		}))
 	);
 	const selectedAccountId = $derived(resolveScopedId(accountId, accountRows));
 	const accountLabelsById = $derived(
-		new Map(accountRows.map((account) => [account.norbital_id, account.name]))
+		new Map(accountRows.map((account) => [account.id, account.name]))
 	);
 
-	const usersQuery = workspaceClient.db.bolt_auth_user.findMany({
-		columns: { norbital_id: true, name: true },
-		orderBy: { name: 'asc' }
-	});
+	const usersQuery = $derived(
+		workspaceClient.db.bolt_auth_user.findMany({
+			columns: { id: true, name: true },
+			orderBy: { name: 'asc' }
+		})
+	);
 
 	const ownerOptions = $derived([
 		{ value: '', label: t('app.crm.all_reps') },
 		...(usersQuery.current ?? []).map((user) => ({
-			value: String(user.norbital_id),
+			value: String(user.id),
 			label: String(user.name || '—')
 		}))
 	]);
 
 	const userLabelsById = $derived(
-		new Map((usersQuery.current ?? []).map((user) => [user.norbital_id, user.name]))
+		new Map((usersQuery.current ?? []).map((user) => [user.id, user.name]))
 	);
 
 	const scopedQuotesQuery = $derived(
@@ -108,7 +98,7 @@
 			? null
 			: workspaceClient.db.quotes.findMany({
 					where: { account_id: { eq: selectedAccountId } },
-					columns: { norbital_id: true, doc_no: true, title: true },
+					columns: { id: true, doc_no: true, title: true },
 					orderBy: { doc_no: 'desc' },
 					limit: 5000
 				})
@@ -116,32 +106,28 @@
 	const quoteLabelsById = $derived(
 		new Map(
 			(scopedQuotesQuery?.current ?? []).map((quote) => [
-				quote.norbital_id,
+				quote.id,
 				`${quote.doc_no}: ${quote.title}`
 			])
 		)
 	);
-	const scopedQuoteIds = $derived(
-		(scopedQuotesQuery?.current ?? []).map((quote) => quote.norbital_id)
-	);
+	const scopedQuoteIds = $derived((scopedQuotesQuery?.current ?? []).map((quote) => quote.id));
 
 	const scopedInvoicesQuery = $derived(
 		selectedAccountId == null
 			? null
 			: workspaceClient.db.sales_invoices.findMany({
 					where: { account_id: { eq: selectedAccountId } },
-					columns: { norbital_id: true, doc_no: true },
+					columns: { id: true, doc_no: true },
 					orderBy: { doc_no: 'desc' },
 					limit: 5000
 				})
 	);
 	const invoiceLabelsById = $derived(
-		new Map(
-			(scopedInvoicesQuery?.current ?? []).map((invoice) => [invoice.norbital_id, invoice.doc_no])
-		)
+		new Map((scopedInvoicesQuery?.current ?? []).map((invoice) => [invoice.id, invoice.doc_no]))
 	);
 	const scopedInvoiceIds = $derived(
-		(scopedInvoicesQuery?.current ?? []).map((invoice) => invoice.norbital_id)
+		(scopedInvoicesQuery?.current ?? []).map((invoice) => invoice.id)
 	);
 
 	const pipelineKanbanQuery = $derived(
@@ -163,12 +149,8 @@
 	});
 
 	const pipelineCards = $derived.by(() => {
-		const current = pipelineDashboard.current;
-		if (current === undefined || !('cards' in current)) {
-			return new Map<unknown, PipelineCard>();
-		}
-		const cards = current.cards as readonly PipelineCard[];
-		return new Map<unknown, PipelineCard>(cards.map((card) => [card.id, card]));
+		const cards = pipelineDashboard.current?.cards ?? [];
+		return new Map(cards.map((card) => [card.id, card]));
 	});
 </script>
 
@@ -237,9 +219,9 @@
 			{#snippet Card(quote)}
 				<Stack gap="xs">
 					<p class="text-sm font-medium">{quote.doc_no}: {quote.title}</p>
-					{#if pipelineCards.get(quote.norbital_id)?.account}
+					{#if pipelineCards.get(String(quote.id))?.account}
 						<p class="text-meta">
-							{pipelineCards.get(quote.norbital_id)?.account}
+							{pipelineCards.get(String(quote.id))?.account}
 						</p>
 					{/if}
 					{#if quote.gross != null}

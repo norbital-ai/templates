@@ -13,16 +13,15 @@
 	 * Relation column labels, not a listing — deliberately unfiltered by the effective window so a
 	 * superseded jurisdiction still resolves to its name instead of an em dash when history is shown.
 	 */
-	const jurisdictionsQuery = client.db.jurisdictions.findMany({
-		where: { norbital_approval_id: { isNull: true } },
-		limit: 200
-	});
+	const jurisdictionsQuery = $derived(
+		client.db.jurisdictions.findMany({
+			where: { approval_id: { isNull: true } },
+			limit: 200
+		})
+	);
 	const jurisdictionLabelsById = $derived(
 		new Map(
-			(jurisdictionsQuery.current ?? []).map((jurisdiction) => [
-				jurisdiction.norbital_id,
-				jurisdiction.name
-			])
+			(jurisdictionsQuery.current ?? []).map((jurisdiction) => [jurisdiction.id, jurisdiction.name])
 		)
 	);
 </script>

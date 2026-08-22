@@ -8,15 +8,17 @@
 
 	const { t } = useI18n<TenantI18nKeys>();
 
-	const projectsQuery = collectionClient.db.projects.findMany({
-		columns: { norbital_id: true, project_name: true, project_number: true },
-		orderBy: { project_name: 'asc' },
-		limit: 500
-	});
+	const projectsQuery = $derived(
+		collectionClient.db.projects.findMany({
+			columns: { id: true, project_name: true, project_number: true },
+			orderBy: { project_name: 'asc' },
+			limit: 500
+		})
+	);
 	const projectLabelsById = $derived(
 		new Map(
 			(projectsQuery.current ?? []).map((project) => [
-				project.norbital_id,
+				project.id,
 				project.project_number
 					? `${project.project_number} · ${project.project_name}`
 					: project.project_name

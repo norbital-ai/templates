@@ -16,22 +16,25 @@
  * finite band instead is a wrong-answer generator that nobody can see (decision E24).
  */
 
+import { Schema } from 'effect';
 import type { ContributionRate } from './configuration.js';
 
 /** The four arms of `rate_selector`. A row whose selector is absent is a data error, not a band. */
-export type BandSelector = NonNullable<ContributionRate['selector']>;
-export type BandAward = NonNullable<ContributionRate['award']>;
+type BandSelector = NonNullable<ContributionRate['selector']>;
+type BandAward = NonNullable<ContributionRate['award']>;
 
-export type BandContext = {
-	readonly base: number;
+/** The non-wage dimensions that choose a band, and the wage the choice is asked about. */
+const BandContextSchema = Schema.Struct({
+	base: Schema.Number,
 	/** Completed years of age at the period end. `null` where date of birth is unknown. */
-	readonly age: number | null;
+	age: Schema.NullOr(Schema.Number),
 	/** Active employments in the company at the period end. */
-	readonly headcount: number;
-	readonly riskClass: string | null;
+	headcount: Schema.Number,
+	riskClass: Schema.NullOr(Schema.String),
 	/** Which marital category a twice-published scale should be read on. `null` where unknown. */
-	readonly marital: 'SINGLE' | 'MARRIED' | null;
-};
+	marital: Schema.NullOr(Schema.Literals(['SINGLE', 'MARRIED']))
+});
+export type BandContext = Schema.Schema.Type<typeof BandContextSchema>;
 
 /**
  * A band row with its variant columns present.
@@ -41,13 +44,13 @@ export type BandContext = {
  * selector cannot be matched and a band without an award pays nothing — both are seeding faults
  * that must stop a run rather than quietly cost or overcharge someone.
  */
-export type ResolvedBand = {
+type ResolvedBand = {
 	readonly row: ContributionRate;
 	readonly selector: BandSelector;
 	readonly award: BandAward;
 };
 
-export function resolveBand(rate: ContributionRate, contributionCode: string): ResolvedBand {
+function resolveBand(rate: ContributionRate, contributionCode: string): ResolvedBand {
 	const { selector, award } = rate;
 	if (selector == null)
 		throw new Error(`A ${contributionCode} rate band has no selector, so nothing can match it.`);

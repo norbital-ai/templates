@@ -1,3 +1,5 @@
+import { Schema } from 'effect';
+
 export type IFCViewerMarkerGroup = {
 	label: string;
 	color: string;
@@ -19,15 +21,15 @@ export interface ViewerColorConstructor {
 	new (style?: string): ViewerColor;
 }
 
-export interface ViewerSceneObject {
+interface ViewerSceneObject {
 	readonly viewerSceneObject: unique symbol;
 }
 
-export interface ViewerCameraObject {
+interface ViewerCameraObject {
 	readonly viewerCameraObject: unique symbol;
 }
 
-export interface ViewerSimpleScene {
+interface ViewerSimpleScene {
 	setup(): void;
 	three: {
 		background: ViewerColor | null;
@@ -36,12 +38,12 @@ export interface ViewerSimpleScene {
 	};
 }
 
-export interface ViewerSimpleCamera {
+interface ViewerSimpleCamera {
 	enabled: boolean;
 	three: ViewerCameraObject;
 }
 
-export interface ViewerSimpleRenderer {}
+interface ViewerSimpleRenderer {}
 
 export interface ViewerWorld {
 	scene: ViewerSimpleScene;
@@ -49,19 +51,19 @@ export interface ViewerWorld {
 	renderer: ViewerSimpleRenderer;
 }
 
-export interface ViewerWorlds {
+interface ViewerWorlds {
 	create(): ViewerWorld;
 }
 
-export interface ViewerGrids {
+interface ViewerGrids {
 	create(world: ViewerWorld): void;
 }
 
-export interface ViewerRaycasters {
+interface ViewerRaycasters {
 	get(world: ViewerWorld): object;
 }
 
-export interface ViewerItemDataValue {
+interface ViewerItemDataValue {
 	value?: string | number;
 }
 
@@ -87,7 +89,7 @@ export interface ViewerFragmentsManager {
 	list: Map<string, ViewerFragmentsModel>;
 }
 
-export interface ViewerHighlightStyle {
+interface ViewerHighlightStyle {
 	color: ViewerColor;
 	opacity: number;
 	transparent: boolean;
@@ -114,7 +116,7 @@ export interface ViewerHighlighter {
 	): Promise<void>;
 }
 
-export interface ViewerComponentToken<T> {
+interface ViewerComponentToken<T> {
 	readonly componentType?: T;
 }
 
@@ -171,3 +173,34 @@ export interface ViewerIfcImporter {
 	wasm: { path: string; absolute: boolean };
 	process(input: { bytes: Uint8Array }): Promise<Uint8Array>;
 }
+
+/** The single owner of the main-thread ↔ converter-worker message contract. */
+export const ConvertRequestMessageSchema = Schema.Struct({
+	type: Schema.Literal('convert'),
+	bytes: Schema.instanceOf(ArrayBuffer)
+});
+
+const workerSuccessMessageSchema = Schema.Struct({
+	type: Schema.Literal('success'),
+	fragmentBytes: Schema.instanceOf(ArrayBuffer)
+});
+
+const workerErrorMessageSchema = Schema.Struct({
+	type: Schema.Literal('error'),
+	error: Schema.String
+});
+
+const workerReadyMessageSchema = Schema.Struct({
+	type: Schema.Literal('ready')
+});
+
+export const WorkerResponseMessageSchema = Schema.Union([
+	workerReadyMessageSchema,
+	workerSuccessMessageSchema,
+	workerErrorMessageSchema
+]);
+
+export type ConvertRequestMessage = typeof ConvertRequestMessageSchema.Type;
+export type WorkerSuccessMessage = typeof workerSuccessMessageSchema.Type;
+export type WorkerErrorMessage = typeof workerErrorMessageSchema.Type;
+export type WorkerReadyMessage = typeof workerReadyMessageSchema.Type;

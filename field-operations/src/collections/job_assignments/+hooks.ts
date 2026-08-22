@@ -1,56 +1,22 @@
 import type { CollectionHooks } from '@norbital-ai/bolt/authoring';
-import { Effect } from 'effect';
+import { Clock, Effect, Schema } from 'effect';
 import type { WorkspaceSchema } from '$bolt/types.js';
 import { usersById } from '../../lib/identity-directory.js';
+import { locationIsSuspicious, locationLikeSchema } from '../../lib/geo.js';
+import type { LocationLike } from '../../lib/geo.js';
 
-type AssignmentIdentity = {
-	job_id?: string | null;
-	assignee_user_id?: string | null;
-};
+const assignmentIdentitySchema = Schema.Struct({
+	job_id: Schema.optional(Schema.NullOr(Schema.String)),
+	assignee_user_id: Schema.optional(Schema.NullOr(Schema.String))
+});
 
-type AssignmentStatus = 'unassigned' | 'assigned' | 'completed';
+type AssignmentIdentity = Schema.Schema.Type<typeof assignmentIdentitySchema>;
+
+const assignmentStatusSchema = Schema.Literals(['unassigned', 'assigned', 'completed']);
+
+type AssignmentStatus = Schema.Schema.Type<typeof assignmentStatusSchema>;
+
 const ASSIGNMENT_BATCH_LIMIT = 5_000;
-const SITE_LOCATION_TOLERANCE_M = 500;
-
-type LocationLike =
-	| {
-			geometry?: { lat?: number | null; lon?: number | null } | null;
-	  }
-	| null
-	| undefined;
-
-function coordinatesOf(location: LocationLike): { lat: number; lon: number } | null {
-	const lat = location?.geometry?.lat;
-	const lon = location?.geometry?.lon;
-	if (lat == null || lon == null) return null;
-	return { lat, lon };
-}
-
-function haversineMeters(
-	lat1: number | null | undefined,
-	lon1: number | null | undefined,
-	lat2: number | null | undefined,
-	lon2: number | null | undefined
-): number | null {
-	if (lat1 == null || lon1 == null || lat2 == null || lon2 == null) return null;
-	const R = 6371000;
-	const toRad = (deg: number) => (deg * Math.PI) / 180;
-	const dLat = toRad(lat2 - lat1);
-	const dLon = toRad(lon2 - lon1);
-	const a =
-		Math.sin(dLat / 2) ** 2 +
-		Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2;
-	return Math.round(2 * R * Math.asin(Math.sqrt(a)));
-}
-
-function exceedsSiteTolerance(
-	left: { lat: number; lon: number } | null | undefined,
-	right: { lat: number; lon: number } | null | undefined,
-	maxDistanceM = SITE_LOCATION_TOLERANCE_M
-): boolean {
-	const distanceM = haversineMeters(left?.lat, left?.lon, right?.lat, right?.lon);
-	return distanceM != null && distanceM > maxDistanceM;
-}
 
 function requireId(value: string | null | undefined, message: string): string {
 	if (!value) throw new Error(message);
@@ -95,12 +61,6 @@ function assignmentStatus(value: string | null | undefined): AssignmentStatus {
  * the ordinary case, and treating silence as evidence is how a workspace fills with findings nobody
  * can act on.
  */
-export function locationIsSuspicious(
-	assignmentLocation: LocationLike,
-	siteLocation: LocationLike
-): boolean {
-	return exceedsSiteTolerance(coordinatesOf(assignmentLocation), coordinatesOf(siteLocation));
-}
 
 export function assertAssignmentIdentityUnchanged(
 	input: AssignmentIdentity,
@@ -114,14 +74,16 @@ export function assertAssignmentIdentityUnchanged(
 	}
 }
 
-export interface AssignmentCreateInput {
-	readonly job_id?: string | null;
-	readonly assignee_user_id?: string | null;
-	readonly source_message_id?: string | null;
-	readonly dispatched_at?: Date | string | null;
-	readonly status?: string | null;
-	readonly location?: LocationLike;
-}
+const assignmentCreateInputSchema = Schema.Struct({
+	job_id: Schema.optional(Schema.NullOr(Schema.String)),
+	assignee_user_id: Schema.optional(Schema.NullOr(Schema.String)),
+	source_message_id: Schema.optional(Schema.NullOr(Schema.String)),
+	dispatched_at: Schema.optional(Schema.NullOr(Schema.Union([Schema.Date, Schema.String]))),
+	status: Schema.optional(Schema.NullOr(Schema.String)),
+	location: locationLikeSchema
+});
+
+export type AssignmentCreateInput = Schema.Schema.Type<typeof assignmentCreateInputSchema>;
 
 /**
  * Everything one dispatch needs to know about the world, read once for the whole batch.
@@ -257,8 +219,8 @@ export default {
 					[
 						jobIds.length
 							? api.db.query.jobs.findMany({
-									where: { norbital_id: { in: jobIds } },
-									columns: { norbital_id: true, site_id: true },
+									where: { id: { in: jobIds } },
+									columns: { id: true, site_id: true },
 									limit: ASSIGNMENT_BATCH_LIMIT
 								})
 							: Effect.succeed([]),
@@ -285,21 +247,19 @@ export default {
 				);
 				const siteIds = [
 					...new Set(
-						jobs.flatMap((job) =>
-							locatedJobIds.has(job.norbital_id) && job.site_id ? [job.site_id] : []
-						)
+						jobs.flatMap((job) => (locatedJobIds.has(job.id) && job.site_id ? [job.site_id] : []))
 					)
 				];
 				const sites = siteIds.length
 					? yield* api.db.query.sites.findMany({
-							where: { norbital_id: { in: siteIds } },
-							columns: { norbital_id: true, location: true },
+							where: { id: { in: siteIds } },
+							columns: { id: true, location: true },
 							limit: ASSIGNMENT_BATCH_LIMIT
 						})
 					: [];
 				const repeated = repeatedWithinBatch(inputs);
 				return {
-					jobs: new Map(jobs.map((job) => [job.norbital_id, job])),
+					jobs: new Map(jobs.map((job) => [job.id, job])),
 					assigneeUserIds: new Set(assignees.keys()),
 					occupiedJobIds: new Set(occupiedJobs.map((assignment) => assignment.job_id)),
 					occupiedSourceMessageIds: new Set(
@@ -307,7 +267,7 @@ export default {
 							assignment.source_message_id ? [assignment.source_message_id] : []
 						)
 					),
-					sites: new Map(sites.map((site) => [site.norbital_id, site.location])),
+					sites: new Map(sites.map((site) => [site.id, site.location])),
 					repeatedJobIds: repeated.jobIds,
 					repeatedSourceMessageIds: repeated.sourceMessageIds
 				};
@@ -324,10 +284,10 @@ export default {
 				handler: ({ record, api }) =>
 					Effect.gen(function* () {
 						const job = yield* api.db.query.jobs.findFirst({
-							where: { norbital_id: { eq: record.job_id } }
+							where: { id: { eq: record.job_id } }
 						});
 						if (job?.status === 'unassigned') {
-							yield* api.db.jobs.mutate([{ norbital_id: record.job_id, status: 'assigned' }]);
+							yield* api.db.jobs.mutate([{ id: record.job_id, status: 'assigned' }]);
 						}
 					})
 			}
@@ -341,9 +301,10 @@ export default {
 				handler: ({ input, existing, api }) =>
 					Effect.gen(function* () {
 						assertAssignmentIdentityUnchanged(input, existing);
+						const now = new Date(yield* Clock.currentTimeMillis);
 						const withCompletion =
 							input.status === 'completed' && input.completed_at == null
-								? { ...input, completed_at: new Date() }
+								? { ...input, completed_at: now }
 								: input;
 						const jobId = input.job_id ?? existing.job_id;
 						const location = input.location ?? existing.location;
@@ -356,7 +317,7 @@ export default {
 						}
 
 						const job = yield* api.db.query.jobs.findFirst({
-							where: { norbital_id: { eq: jobId } }
+							where: { id: { eq: jobId } }
 						});
 						if (job == null) {
 							return {
@@ -366,7 +327,7 @@ export default {
 						}
 
 						const site = yield* api.db.query.sites.findFirst({
-							where: { norbital_id: { eq: job.site_id } }
+							where: { id: { eq: job.site_id } }
 						});
 						if (site?.location == null) {
 							return {
@@ -398,22 +359,20 @@ export default {
 						 * one rule for every assignment and there is no overlay to special-case.
 						 */
 						const site = record.job_id
-							? yield* api.db.query.jobs
-									.findFirst({ where: { norbital_id: { eq: record.job_id } } })
-									.pipe(
-										Effect.flatMap((job) =>
-											job?.site_id == null
-												? Effect.succeed(null)
-												: api.db.query.sites.findFirst({
-														where: { norbital_id: { eq: job.site_id } }
-													})
-										)
+							? yield* api.db.query.jobs.findFirst({ where: { id: { eq: record.job_id } } }).pipe(
+									Effect.flatMap((job) =>
+										job?.site_id == null
+											? Effect.succeed(null)
+											: api.db.query.sites.findFirst({
+													where: { id: { eq: job.site_id } }
+												})
 									)
+								)
 							: null;
 						if (site != null && locationIsSuspicious(record.location, site.location)) {
 							const open = yield* api.db.query.suspicious_activity_logs.findMany({
 								where: {
-									job_assignment_id: { eq: record.norbital_id },
+									job_assignment_id: { eq: record.id },
 									resolved_at: { isNull: true }
 								},
 								limit: 1
@@ -422,7 +381,7 @@ export default {
 							// stack a second identical finding on top of one nobody has answered yet.
 							if (open.length === 0) {
 								yield* api.db.suspicious_activity_logs.create({
-									job_assignment_id: record.norbital_id,
+									job_assignment_id: record.id,
 									reason:
 										'The location reported with this work is further from the assigned site than the tolerance allows.'
 								});
@@ -431,7 +390,7 @@ export default {
 						const jobStatus = mapAssignmentStatusToJobStatus(
 							status as 'unassigned' | 'assigned' | 'completed'
 						);
-						yield* api.db.jobs.mutate([{ norbital_id: record.job_id, status: jobStatus }]);
+						yield* api.db.jobs.mutate([{ id: record.job_id, status: jobStatus }]);
 					})
 			}
 		}
@@ -448,7 +407,7 @@ export default {
  * `dispatched` and was chosen by whichever importer wrote the row.
  */
 export function mapAssignmentStatusToJobStatus(
-	status: 'unassigned' | 'assigned' | 'completed'
+	status: AssignmentStatus
 ): 'assigned' | 'in_progress' | 'completed' {
 	switch (status) {
 		case 'completed':

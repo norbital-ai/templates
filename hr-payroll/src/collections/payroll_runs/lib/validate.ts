@@ -18,20 +18,23 @@
  * one, and every message names the employee, the day and the rule wherever a run has them to name.
  */
 
+import { Effect, Result, Schema } from 'effect';
 import type { Configuration } from './configuration.js';
 import { requiredDateKey } from './dates.js';
 import type { DailyOvertime } from './overtime.js';
 import { parseSpecialRules } from './special-rules.js';
 
-export type IssueSeverity = 'BLOCKER' | 'WARNING';
+const IssueSeveritySchema = Schema.Literals(['BLOCKER', 'WARNING']);
+type IssueSeverity = Schema.Schema.Type<typeof IssueSeveritySchema>;
 
-export type RunIssue = {
-	readonly code: string;
-	readonly message: string;
-	readonly severity?: IssueSeverity;
-	readonly collection?: string;
-	readonly recordId?: string;
-};
+const RunIssueSchema = Schema.Struct({
+	code: Schema.String,
+	message: Schema.String,
+	severity: Schema.optionalKey(IssueSeveritySchema),
+	collection: Schema.optionalKey(Schema.String),
+	recordId: Schema.optionalKey(Schema.String)
+});
+export type RunIssue = Schema.Schema.Type<typeof RunIssueSchema>;
 
 export function blockers(issues: readonly RunIssue[]): RunIssue[] {
 	return issues.filter((issue) => issue.severity !== 'WARNING');
@@ -50,23 +53,21 @@ export function validateConfiguration(configuration: Configuration): RunIssue[] 
 			`Jurisdiction ${configuration.jurisdiction.code} states no proration basis, so a partial ` +
 				'month cannot be paid.',
 			'jurisdictions',
-			configuration.jurisdiction.norbital_id
+			configuration.jurisdiction.id
 		);
 
 	// Every monetary component owns a decided cell for every effective statutory scheme.
 	for (const component of configuration.payComponents) {
 		if (component.nature === 'INFORMATION') continue;
 		for (const contribution of configuration.contributions) {
-			const cell = configuration.treatments.get(
-				`${component.norbital_id}:${contribution.row.norbital_id}`
-			);
+			const cell = configuration.treatments.get(`${component.id}:${contribution.row.id}`);
 			if (cell?.treatment == null) {
 				blocker(
 					'TREATMENT_MISSING',
 					`No ${contribution.row.code} treatment exists for ${component.code}. Each component ` +
 						'must state the decision in its policy.',
 					'pay_components',
-					component.norbital_id
+					component.id
 				);
 				continue;
 			}
@@ -76,7 +77,7 @@ export function validateConfiguration(configuration: Configuration): RunIssue[] 
 					`${component.code} × ${contribution.row.code} is undecided. Payroll cannot guess whether ` +
 						'this kind of pay is chargeable.',
 					'pay_components',
-					component.norbital_id
+					component.id
 				);
 			if (
 				cell.treatment.kind === 'SPECIAL' &&
@@ -87,33 +88,35 @@ export function validateConfiguration(configuration: Configuration): RunIssue[] 
 					`${component.code} × ${contribution.row.code} names special rule "${cell.treatment.rule}", ` +
 						`which ${contribution.row.code} does not declare.`,
 					'pay_components',
-					component.norbital_id
+					component.id
 				);
 		}
 	}
 
 	// ── the schemes ─────────────────────────────────────────────────────────────────────────────
 	const sequenceById = new Map(
-		configuration.contributions.map((entry) => [entry.row.norbital_id, Number(entry.row.sequence)])
+		configuration.contributions.map((entry) => [entry.row.id, Number(entry.row.sequence)])
 	);
 	for (const contribution of configuration.contributions) {
 		const code = contribution.row.code;
-		try {
-			parseSpecialRules(contribution.row.special_rules, code);
-		} catch (error) {
+		const parseOutcome = Effect.runSync(
+			Effect.result(Effect.try(() => parseSpecialRules(contribution.row.special_rules, code)))
+		);
+		if (Result.isFailure(parseOutcome))
 			blocker(
 				'SPECIAL_RULE_INVALID',
-				error instanceof Error ? error.message : String(error),
+				parseOutcome.failure instanceof Error
+					? parseOutcome.failure.message
+					: String(parseOutcome.failure),
 				'statutory_contributions',
-				contribution.row.norbital_id
+				contribution.row.id
 			);
-		}
 		if (contribution.rates.length === 0)
 			blocker(
 				'CONTRIBUTION_UNBANDED',
 				`${code} has no rate bands effective for this period, so it could not charge anything.`,
 				'statutory_contributions',
-				contribution.row.norbital_id
+				contribution.row.id
 			);
 		const hasTerminalBand = contribution.rates.some((rate) => {
 			const selector = rate.selector;
@@ -128,7 +131,7 @@ export function validateConfiguration(configuration: Configuration): RunIssue[] 
 				`${code} has no open-ended terminal band. A ceiling is expressed as a band with no upper ` +
 					'bound; without one, a wage above the highest band cannot be charged at all.',
 				'contribution_rates',
-				contribution.row.norbital_id
+				contribution.row.id
 			);
 		for (const relievedId of contribution.row.relief_for) {
 			const relievedSequence = sequenceById.get(relievedId);
@@ -137,7 +140,7 @@ export function validateConfiguration(configuration: Configuration): RunIssue[] 
 					'RELIEF_TARGET_MISSING',
 					`${code} is a relief for a contribution that is not effective in this jurisdiction.`,
 					'statutory_contributions',
-					contribution.row.norbital_id
+					contribution.row.id
 				);
 				continue;
 			}
@@ -147,7 +150,7 @@ export function validateConfiguration(configuration: Configuration): RunIssue[] 
 					`${code} is a relief inside a contribution that runs before it. A relief must be ` +
 						'produced before the scheme that consumes it.',
 					'statutory_contributions',
-					contribution.row.norbital_id
+					contribution.row.id
 				);
 		}
 	}
@@ -165,7 +168,7 @@ export function validateConfiguration(configuration: Configuration): RunIssue[] 
 			'OVERTIME_RULE_UNBANDED',
 			`An overtime rule (${rule.authority}) carries no band and can never be entered.`,
 			'jurisdictions',
-			configuration.jurisdiction.norbital_id
+			configuration.jurisdiction.id
 		);
 	}
 
@@ -185,7 +188,7 @@ export function validateConfiguration(configuration: Configuration): RunIssue[] 
 				`${contribution.row.code} states no ${what} position effective in this period. A scheme ` +
 					'that has not decided cannot be read as excluding it.',
 				'statutory_contributions',
-				contribution.row.norbital_id
+				contribution.row.id
 			);
 		}
 	}
@@ -193,18 +196,20 @@ export function validateConfiguration(configuration: Configuration): RunIssue[] 
 	return issues;
 }
 
+type ValidateOvertimeLimitsOptions = {
+	readonly configuration: Configuration;
+	readonly employeeNumber: string;
+	readonly calendarMonth: string;
+	readonly monthHours: number;
+};
+
 /**
  * The overtime ceilings that only a measured run can test.
  *
  * `on_exceed` decides whether the run stops. `WARN` names the person, the month and the authority
  * and lets the payslips be written; `BLOCK` refuses the whole run.
  */
-export function validateOvertimeLimits(options: {
-	readonly configuration: Configuration;
-	readonly employeeNumber: string;
-	readonly calendarMonth: string;
-	readonly monthHours: number;
-}): RunIssue[] {
+export function validateOvertimeLimits(options: ValidateOvertimeLimitsOptions): RunIssue[] {
 	return (
 		options.configuration.overtimeLimits
 			// `monthHours` is regulated *overtime*, so only a limit that counts overtime hours may be
@@ -229,7 +234,7 @@ export function validateOvertimeLimits(options: {
 						`${options.calendarMonth}, against a ${limit.max_hours}-hour calendar-month ceiling ` +
 						`(${limit.authority}, on_exceed=${limit.on_exceed}). ${nextStep}`,
 					collection: 'jurisdictions',
-					recordId: options.configuration.jurisdiction.norbital_id
+					recordId: options.configuration.jurisdiction.id
 				};
 			})
 	);
@@ -284,7 +289,7 @@ export function validateOpenTimeEntries(options: {
 	readonly bundles: readonly {
 		readonly employment: { readonly employee_number: string };
 		readonly timeEntries: readonly {
-			readonly norbital_id: string;
+			readonly id: string;
 			readonly work_date: string | Date;
 			readonly worked_intervals:
 				| readonly {
@@ -311,7 +316,7 @@ export function validateOpenTimeEntries(options: {
 					`${requiredDateKey(entry.work_date, 'time_entries.work_date')}. Payroll cannot price a ` +
 					'clock that has not stopped — close it, or delete the entry.',
 				collection: 'time_entries',
-				recordId: entry.norbital_id
+				recordId: entry.id
 			});
 		}
 	}
@@ -338,7 +343,7 @@ export function validateOpenTimeEntries(options: {
 export function validatePayCalendar(options: {
 	readonly configuration: Configuration;
 	readonly bundles: readonly {
-		readonly employment: { readonly employee_number: string; readonly norbital_id: string };
+		readonly employment: { readonly employee_number: string; readonly id: string };
 		readonly terms: readonly { readonly pay_frequency: string | null }[];
 	}[];
 }): RunIssue[] {
@@ -352,15 +357,14 @@ export function validatePayCalendar(options: {
 		bundle.terms.some((row) => row.pay_frequency != null && !expressible(row.pay_frequency))
 	);
 	if (unpayable.length === 0) return [];
-	const cadences = [
-		...new Set(
-			unpayable.flatMap((bundle) =>
-				bundle.terms
-					.map((row) => row.pay_frequency)
-					.filter((value): value is string => value != null && !expressible(value))
-			)
-		)
-	].join(', ');
+	const cadenceSet = new Set<string>();
+	for (const bundle of unpayable)
+		for (const row of bundle.terms) {
+			const frequency = row.pay_frequency;
+			if (frequency == null || expressible(frequency)) continue;
+			cadenceSet.add(frequency);
+		}
+	const cadences = [...cadenceSet].join(', ');
 	// Named, not counted: "3 employments" sends an operator hunting, and the whole point of failing
 	// the run is that they can act on it.
 	const named = unpayable.map((bundle) => bundle.employment.employee_number).toSorted();
@@ -374,7 +378,7 @@ export function validatePayCalendar(options: {
 				'cadence to the company pay calendar: there is no window this payroll could run them on ' +
 				'until it can say when their period opens, closes and pays.',
 			collection: 'companies',
-			recordId: company.norbital_id
+			recordId: company.id
 		}
 	];
 }

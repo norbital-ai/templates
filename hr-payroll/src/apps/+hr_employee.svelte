@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { client } from '../lib/workspace-client.js';
+	import { Number as EffectNumber } from 'effect';
 	import { getPlatformStateContext } from '@norbital-ai/bolt/client';
 	import { useI18n } from '@norbital-ai/ui/i18n';
 	import type { TenantI18nKeys } from '$bolt/i18n-keys';
@@ -28,7 +29,6 @@
 	} from '../lib/ui/display-formatters.js';
 	import {
 		PAYROLL_TIME_ZONE,
-		calendarDayKey,
 		daysBetweenKeys,
 		inForceTodayFilter,
 		monthKey,
@@ -36,6 +36,7 @@
 		shiftMonthKey,
 		todayKey
 	} from '../lib/ui/calendar.js';
+	import { formatDateISO } from '@norbital-ai/std/date';
 	import {
 		ATTENDANCE_DRAFT_PROBLEM_KEY,
 		DAY_MINUTES,
@@ -66,7 +67,7 @@
 	const { t } = useI18n<TenantI18nKeys>();
 
 	/** Every catalogue read on this page skips rows still held under an approval request. */
-	const approved = { norbital_approval_id: { isNull: true } } as const;
+	const approved = { approval_id: { isNull: true } } as const;
 
 	function leaveRangeLabel(event: LeaveEvent | null | undefined): string {
 		if (event == null || event.kind !== 'TIME_OFF') return '—';
@@ -79,26 +80,30 @@
 	 * My loans opens on the agreements still being repaid today, as a filter chip the reader can drop
 	 * to see settled ones.
 	 */
-	const employeeQuery = client.db.employees.findFirst({ where: { email: { eq: user.email } } });
-	const employeeId = $derived(employeeQuery.current?.norbital_id);
-	const companiesQuery = client.db.companies.findMany({
-		where: { norbital_approval_id: { isNull: true } },
-		limit: 500
-	});
+	const employeeQuery = $derived(
+		client.db.employees.findFirst({ where: { email: { eq: user.email } } })
+	);
+	const employeeId = $derived(employeeQuery.current?.id);
+	const companiesQuery = $derived(
+		client.db.companies.findMany({
+			where: { approval_id: { isNull: true } },
+			limit: 500
+		})
+	);
 	const companyById = $derived(
-		new Map((companiesQuery.current ?? []).map((company) => [company.norbital_id, company]))
+		new Map((companiesQuery.current ?? []).map((company) => [company.id, company]))
 	);
 	// A relation column holds a uuid and would render as one. These catalogues are small and load
 	// once per page, so the label is resolved from memory rather than by mounting a lookup per row.
 	// A miss renders as an em dash — never the underlying uuid.
-	const leaveTypesQuery = client.db.leave_types.findMany({
-		where: { norbital_approval_id: { isNull: true } },
-		limit: 200
-	});
+	const leaveTypesQuery = $derived(
+		client.db.leave_types.findMany({
+			where: { approval_id: { isNull: true } },
+			limit: 200
+		})
+	);
 	const leaveTypeLabelsById = $derived(
-		new Map(
-			(leaveTypesQuery.current ?? []).map((leaveType) => [leaveType.norbital_id, leaveType.name])
-		)
+		new Map((leaveTypesQuery.current ?? []).map((leaveType) => [leaveType.id, leaveType.name]))
 	);
 	/**
 	 * The same catalogue keyed to the short code rather than the name.
@@ -108,23 +113,21 @@
 	 * the board and another way on the employee's own calendar.
 	 */
 	const leaveCodeById = $derived(
-		new Map(
-			(leaveTypesQuery.current ?? []).map((leaveType) => [leaveType.norbital_id, leaveType.code])
-		)
+		new Map((leaveTypesQuery.current ?? []).map((leaveType) => [leaveType.id, leaveType.code]))
 	);
-	const payComponentsQuery = client.db.pay_components.findMany({
-		where: { norbital_approval_id: { isNull: true } },
-		limit: 500
-	});
+	const payComponentsQuery = $derived(
+		client.db.pay_components.findMany({
+			where: { approval_id: { isNull: true } },
+			limit: 500
+		})
+	);
 	const payComponentLabelsById = $derived(
-		new Map(
-			(payComponentsQuery.current ?? []).map((component) => [component.norbital_id, component.code])
-		)
+		new Map((payComponentsQuery.current ?? []).map((component) => [component.id, component.code]))
 	);
 	const employmentsQuery = $derived(
 		employeeId
 			? client.db.employments.findMany({
-					where: { employee_id: { eq: employeeId }, norbital_approval_id: { isNull: true } },
+					where: { employee_id: { eq: employeeId }, approval_id: { isNull: true } },
 					limit: 10
 				})
 			: null
@@ -142,21 +145,19 @@
 	let selectedEmploymentId = $state<string | null>(null);
 	const employmentOptions = $derived(
 		activeEmployments.map((employment) => ({
-			value: employment.norbital_id,
+			value: employment.id,
 			label: `${companyById.get(employment.company_id)?.name ?? t('app.hr_employee.company_fallback')}${t('app.hr_employee.employment_affiliation', { number: employment.employee_number })}`,
 			search_term: `${companyById.get(employment.company_id)?.name ?? ''} ${employment.employee_number}`
 		}))
 	);
 	const selectedEmployment = $derived(
-		activeEmployments.find((employment) => employment.norbital_id === selectedEmploymentId)
+		activeEmployments.find((employment) => employment.id === selectedEmploymentId)
 	);
 	const employmentId = $derived(
-		activeEmployments.length === 1
-			? activeEmployments[0]?.norbital_id
-			: selectedEmployment?.norbital_id
+		activeEmployments.length === 1 ? activeEmployments[0]?.id : selectedEmployment?.id
 	);
 	const activeEmployment = $derived(
-		activeEmployments.find((employment) => employment.norbital_id === employmentId)
+		activeEmployments.find((employment) => employment.id === employmentId)
 	);
 	const needsEmploymentChoice = $derived(activeEmployments.length > 1 && !employmentId);
 	/**
@@ -204,7 +205,7 @@
 	 * `windows: []` as a stated fact rather than as an accident of an unreadable query. What an
 	 * employee can honestly know about a lock is exactly two things, and both are readable:
 	 *
-	 *   - PENDING  — `norbital_approval_id` on their own row. The platform's own stamp.
+	 *   - PENDING  — `approval_id` on their own row. The platform's own stamp.
 	 *   - CONSUMED — a `payslip_sources` row naming the payslip that took the record. Granted by
 	 *                `settlementLedgerGrants()`, exact, stored, per-record. It is strictly better
 	 *                than the window inference it replaces: the window guessed from a date, this
@@ -217,8 +218,7 @@
 	const NO_DAY_LOCKS: ReadonlyMap<string, DayLock> = new Map();
 
 	type ClaimRow = WorkspaceRow<'component_entries'>;
-	type ClaimConsumptionRow = {
-		readonly norbital_id: string;
+	type ClaimConsumptionRow = Pick<WorkspaceRow<'component_entries'>, 'id'> & {
 		readonly entry_payslip_lines?:
 			| readonly {
 					readonly payslip_line_payslip?: {
@@ -234,9 +234,9 @@
 	function leaveRowLock(row: WorkspaceRow<'leave_requests'>) {
 		return sourceLock({
 			existing: true,
-			approvalId: row.norbital_approval_id,
+			approvalId: row.approval_id,
 			dates: [],
-			settledBy: leaveSettlementByRequestId.get(row.norbital_id) ?? null,
+			settledBy: leaveSettlementByRequestId.get(row.id) ?? null,
 			datePassed: 'IS_NOT_A_LOCK'
 		});
 	}
@@ -255,15 +255,15 @@
 	 *   - `dates: []` — with no date-shaped lock asked for, there is no date-shaped question left.
 	 *
 	 * What is left is the settlement claim and `PENDING_APPROVAL` — which is the whole point on this
-	 * screen. An employee's reported punch carries `norbital_approval_id` until a manager settles it,
+	 * screen. An employee's reported punch carries `approval_id` until a manager settles it,
 	 * and that is the rung the calendar draws as "waiting on your manager".
 	 */
 	function attendanceRowLock(row: WorkspaceRow<'time_entries'>): SourceLock {
 		return sourceLock({
 			existing: true,
-			approvalId: row.norbital_approval_id,
+			approvalId: row.approval_id,
 			dates: [],
-			settledBy: settlementByEntryId.get(row.norbital_id) ?? null,
+			settledBy: settlementByEntryId.get(row.id) ?? null,
 			datePassed: 'IS_NOT_A_LOCK'
 		});
 	}
@@ -271,9 +271,9 @@
 	function claimRowLock(row: ClaimRow) {
 		return sourceLock({
 			existing: true,
-			approvalId: row.norbital_approval_id,
+			approvalId: row.approval_id,
 			dates: [],
-			settledBy: claimSettlementByEntryId.get(row.norbital_id) ?? null,
+			settledBy: claimSettlementByEntryId.get(row.id) ?? null,
 			datePassed: 'IS_NOT_A_LOCK'
 		});
 	}
@@ -314,7 +314,7 @@
 	let scheduleMonth = $state(monthKey(todayKey()));
 	const scheduleMonthStart = $derived(`${scheduleMonth}-01`);
 	const scheduleMonthEnd = $derived(
-		calendarDayKey(
+		formatDateISO(
 			new Date(Date.parse(`${shiftMonthKey(scheduleMonth, 1)}-01T00:00:00.000Z`) - 86_400_000)
 		)
 	);
@@ -344,7 +344,7 @@
 	 * Deliberately NOT filtered to approved rows, which is the one place this query differs from the
 	 * board's.
 	 *
-	 * A punch the reader reported themselves carries `norbital_approval_id` until a manager settles
+	 * A punch the reader reported themselves carries `approval_id` until a manager settles
 	 * it, and it is invisible to every approved-only query — including the one that feeds
 	 * `buildRosterMonth`. Filtering here would hide the employee's own submission from the employee,
 	 * which is precisely the state §8.2 calls the most important one on this screen. The rows are
@@ -381,7 +381,7 @@
 			? null
 			: client.db.leave_requests.findMany({
 					where: {
-						norbital_approval_id: { isNotNull: true },
+						approval_id: { isNotNull: true },
 						employment_id: { eq: employmentId },
 						kind: { eq: 'TIME_OFF' },
 						from_date: { lte: scheduleMonthEnd },
@@ -439,13 +439,13 @@
 
 	const scheduleTimeEntries = $derived(scheduleTimeQuery?.current ?? []);
 	const scheduleApprovedTimeEntries = $derived(
-		scheduleTimeEntries.filter((row) => row.norbital_approval_id == null)
+		scheduleTimeEntries.filter((row) => row.approval_id == null)
 	);
 	const schedulePendingDates = $derived(
 		new Set(
 			scheduleTimeEntries
-				.filter((row) => row.norbital_approval_id != null)
-				.map((row) => calendarDayKey(row.work_date))
+				.filter((row) => row.approval_id != null)
+				.map((row) => formatDateISO(row.work_date))
 		)
 	);
 
@@ -455,18 +455,18 @@
 	 * deliberately — see `src/lib/policy_grants.ts`.
 	 */
 	const scheduleSettlementsQuery = $derived.by(() => {
-		const ids = scheduleTimeEntries.map((row) => row.norbital_id);
+		const ids = scheduleTimeEntries.map((row) => row.id);
 		if (ids.length === 0) return null;
 		return client.db.payslip_sources.findMany({
-			where: { time_entry_id: { in: ids } },
-			columns: { time_entry_id: true, period: true },
+			where: { source: { in: ids.map((id) => ({ kind: 'TIME_ENTRY' as const, id })) } },
+			columns: { source: true, period: true },
 			limit: 200
 		});
 	});
 	const settlementByEntryId = $derived(
 		new Map(
 			(scheduleSettlementsQuery?.current ?? []).map((claim) => [
-				claim.time_entry_id,
+				claim.source.id,
 				{ period: claim.period }
 			])
 		)
@@ -482,23 +482,23 @@
 			? null
 			: client.db.leave_requests.findMany({
 					where: { employment_id: { eq: employmentId } },
-					columns: { norbital_id: true },
+					columns: { id: true },
 					limit: 500
 				})
 	);
 	const myLeaveSettlementsQuery = $derived.by(() => {
-		const ids = (myLeaveIdsQuery?.current ?? []).map((row) => row.norbital_id);
+		const ids = (myLeaveIdsQuery?.current ?? []).map((row) => row.id);
 		if (ids.length === 0) return null;
 		return client.db.payslip_sources.findMany({
-			where: { leave_request_id: { in: ids } },
-			columns: { leave_request_id: true, period: true },
+			where: { source: { in: ids.map((id) => ({ kind: 'LEAVE_REQUEST' as const, id })) } },
+			columns: { source: true, period: true },
 			limit: 500
 		});
 	});
 	const leaveSettlementByRequestId = $derived(
 		new Map(
 			(myLeaveSettlementsQuery?.current ?? []).map((claim) => [
-				claim.leave_request_id,
+				claim.source.id,
 				{ period: claim.period }
 			])
 		)
@@ -508,13 +508,13 @@
 			? null
 			: client.db.component_entries.findMany({
 					where: { employment_id: { eq: employmentId } },
-					columns: { norbital_id: true },
+					columns: { id: true },
 					with: {
 						entry_payslip_lines: {
-							columns: { norbital_id: true },
+							columns: { id: true },
 							with: {
 								payslip_line_payslip: {
-									columns: { norbital_id: true },
+									columns: { id: true },
 									with: { payslip_payroll_run: { columns: { period: true } } }
 								}
 							}
@@ -529,7 +529,7 @@
 			[]) as readonly ClaimConsumptionRow[]) {
 			const period =
 				entry.entry_payslip_lines?.[0]?.payslip_line_payslip?.payslip_payroll_run?.period;
-			if (period) settled.set(entry.norbital_id, { period });
+			if (period) settled.set(entry.id, { period });
 		}
 		return settled;
 	});
@@ -537,7 +537,7 @@
 	const scheduleHolidays = $derived(scheduleHolidaysQuery?.current ?? []);
 	const scheduleHolidayNames = $derived(holidayNamesByDate(scheduleHolidays));
 	const scheduleRosterCodesById = $derived(
-		new Map((scheduleShiftsQuery?.current ?? []).map((code) => [code.norbital_id, code]))
+		new Map((scheduleShiftsQuery?.current ?? []).map((code) => [code.id, code]))
 	);
 
 	/**
@@ -557,12 +557,13 @@
 	const scheduleCutoff = $derived.by(() => {
 		const cutoffDay = company?.pay_cutoff_day;
 		if (cutoffDay == null) return null;
-		const day = String(Math.min(Math.max(Number(cutoffDay), 1), 28)).padStart(2, '0');
+		const day = String(EffectNumber.clamp({ minimum: 1, maximum: 28 })(Number(cutoffDay))).padStart(
+			2,
+			'0'
+		);
 		return {
 			start: `${shiftMonthKey(scheduleMonth, -1)}-${day}`,
-			end: calendarDayKey(
-				new Date(Date.parse(`${scheduleMonth}-${day}T00:00:00.000Z`) - 86_400_000)
-			)
+			end: formatDateISO(new Date(Date.parse(`${scheduleMonth}-${day}T00:00:00.000Z`) - 86_400_000))
 		};
 	});
 
@@ -593,7 +594,7 @@
 	const scheduleEntryLocks = $derived(
 		new Map(
 			scheduleTimeEntries.map(
-				(row) => [calendarDayKey(row.work_date), attendanceRowLock(row)] as const
+				(row) => [formatDateISO(row.work_date), attendanceRowLock(row)] as const
 			)
 		)
 	);
@@ -609,7 +610,7 @@
 	const schedulePunchWindows = $derived.by(() => {
 		const windows = new Map<string, { first: string | null; last: string | null }>();
 		for (const row of scheduleTimeEntries) {
-			const date = calendarDayKey(row.work_date);
+			const date = formatDateISO(row.work_date);
 			const intervals = row.worked_intervals ?? [];
 			const first = attendanceBoundary(intervals, 'FIRST');
 			const last = attendanceBoundary(intervals, 'LAST');
@@ -720,12 +721,11 @@
 	 * claimed entry reads `CONSUMED` and everything else reads `OPEN`, with the refusal sentence
 	 * supplied through `lockReason` exactly as the tile's hover composes it.
 	 */
-	const daySheetEmploymentId = $derived(employmentId);
 	const daySheetPerson = $derived<DaySheetPerson | null>(
 		activeEmployment == null
 			? null
 			: {
-					id: activeEmployment.norbital_id,
+					id: activeEmployment.id,
 					number: activeEmployment.employee_number,
 					name: employeeQuery.current?.name ?? ''
 				}
@@ -733,9 +733,8 @@
 	const daySheetEntry = $derived(
 		daySheetDate == null
 			? null
-			: (scheduleApprovedTimeEntries.find(
-					(row) => calendarDayKey(row.work_date) === daySheetDate
-				) ?? null)
+			: (scheduleApprovedTimeEntries.find((row) => formatDateISO(row.work_date) === daySheetDate) ??
+					null)
 	);
 	const daySheetIntervals = $derived<readonly IntervalDraft[]>(
 		(daySheetEntry?.worked_intervals ?? []).map((interval) => ({
@@ -766,61 +765,61 @@
 		daySheetOpen = true;
 	}
 
+	const saveDaySheetMutation = client.mutate(client.db.time_entries.create, {
+		onSuccess: () => {
+			daySheetOpen = false;
+			toast.success(t('app.hr_employee.report_punch_submitted'));
+		},
+		onError: (error) => toast.error(error.message)
+	});
+
 	/**
 	 * Employee mode's one write, handed back from the drawer's Save.
 	 *
 	 * The sheet assessed the draft already (the clamp is stated on its face), so this only carries
 	 * the create across the same hooks every other attendance write crosses. The row is written and
-	 * immediately held under `norbital_approval_id` — the toast says so rather than "saved",
+	 * immediately held under `approval_id` — the toast says so rather than "saved",
 	 * because nothing about this day has changed for payroll yet.
 	 */
-	async function saveDaySheet(change: DaySheetChange): Promise<void> {
+	function saveDaySheet(change: DaySheetChange): void {
 		const attendance = change.attendance;
 		if (attendance == null || employmentId == null) return;
-		const create = client.db.time_entries.create;
-		if (create == null) {
-			toast.error(t('app.hr_employee.report_punch_not_permitted'));
-			return;
-		}
-		try {
-			await create({
-				employment_id: employmentId,
-				work_date: change.date,
-				worked_intervals: attendance.intervals.map((interval) => ({
-					start_at: interval.start_at,
-					end_at: interval.end_at
-				})),
-				break_minutes: attendance.breakMinutes
-			});
-			daySheetOpen = false;
-			toast.success(t('app.hr_employee.report_punch_submitted'));
-		} catch (error) {
-			// The server's own words: the refusals this sheet cannot pre-check — a paid run that
-			// already priced the day's silence above all — come back as finished sentences from
-			// `time_entries/+hooks.ts`.
-			toast.error(
-				error instanceof Error ? error.message : t('app.hr_employee.report_punch_failed')
-			);
-		}
+		void saveDaySheetMutation.mutate({
+			employment_id: employmentId,
+			work_date: change.date,
+			worked_intervals: attendance.intervals.map((interval) => ({
+				start_at: interval.start_at,
+				end_at: interval.end_at
+			})),
+			break_minutes: attendance.breakMinutes
+		});
 	}
 
-	let reportOpen = $state(false);
-	let reportDate = $state<string | null>(null);
-	let reportStartClock = $state('');
-	let reportEndClock = $state('');
-	let reportSaving = $state(false);
-	let reportError = $state<string | null>(null);
+	const report = $state<{
+		open: boolean;
+		date: string | null;
+		startClock: string;
+		endClock: string;
+	}>({ open: false, date: null, startClock: '', endClock: '' });
+
+	const reportMutation = client.mutate(client.db.time_entries.create, {
+		onSuccess: () => {
+			report.open = false;
+			daySheetOpen = false;
+			toast.success(t('app.hr_employee.report_punch_submitted'));
+		}
+	});
 
 	function openReport(_employmentId: string, date: string): void {
 		const day = scheduleDay(date);
-		reportDate = date;
+		report.date = date;
 		// Seeded from the roster's own window so the common case is one confirmation, and editable
 		// because a missing punch is often exactly the day somebody did NOT work their shift. A day
 		// with no planned window seeds empty rather than guessing one.
-		reportStartClock = day?.shiftStart?.slice(0, 5) ?? '';
-		reportEndClock = day?.shiftEnd?.slice(0, 5) ?? '';
-		reportError = null;
-		reportOpen = true;
+		report.startClock = day?.shiftStart?.slice(0, 5) ?? '';
+		report.endClock = day?.shiftEnd?.slice(0, 5) ?? '';
+		reportMutation.reset();
+		report.open = true;
 	}
 
 	/**
@@ -837,10 +836,10 @@
 	 * about unpaid breaks.
 	 */
 	const reportDraft = $derived.by(() => {
-		const date = reportDate;
+		const date = report.date;
 		if (date == null) return null;
-		const start = clockToDayMinutes(reportStartClock, 0);
-		const end = clockToDayMinutes(reportEndClock, 0);
+		const start = clockToDayMinutes(report.startClock, 0);
+		const end = clockToDayMinutes(report.endClock, 0);
 		if (start == null || end == null) return null;
 		// An end at or before the start belongs to the next morning — the same way a roster code's
 		// own window models a night shift, so the plan band and this draft count in one unit.
@@ -870,44 +869,18 @@
 		return problem == null ? null : t(ATTENDANCE_DRAFT_PROBLEM_KEY[problem]);
 	});
 
-	async function submitReport(): Promise<void> {
+	function submitReport(): void {
 		const draft = reportDraft;
 		if (draft == null || employmentId == null || draft.assessment.problem != null) return;
-		const create = client.db.time_entries.create;
-		if (create == null) {
-			toast.error(t('app.hr_employee.report_punch_not_permitted'));
-			return;
-		}
-		reportSaving = true;
-		reportError = null;
-		try {
-			await create({
-				employment_id: employmentId,
-				work_date: draft.date,
-				worked_intervals: draft.intervals.map((interval) => ({
-					start_at: interval.start_at,
-					end_at: interval.end_at
-				})),
-				break_minutes: draft.assessment.breakMinutes
-			});
-			reportOpen = false;
-			daySheetOpen = false;
-			// The row is written and immediately held under `norbital_approval_id`; the toast says so
-			// rather than "saved", because nothing about this day has changed for payroll yet.
-			toast.success(t('app.hr_employee.report_punch_submitted'));
-		} catch (error) {
-			// The server's own words, not a generic failure. This is the other half of the
-			// attempt-and-explain note on `scheduleReportable`: the refusals this dialog cannot
-			// pre-check — a paid run that already priced the day's silence above all — come back as
-			// finished sentences from `time_entries/+hooks.ts` that name the period and say what to do
-			// instead. Replacing one with `report_punch_failed` would throw away the only explanation
-			// the reader is ever going to get. The catalogue string is the fallback for a thrown value
-			// that is not an `Error` at all.
-			reportError =
-				error instanceof Error ? error.message : t('app.hr_employee.report_punch_failed');
-		} finally {
-			reportSaving = false;
-		}
+		void reportMutation.mutate({
+			employment_id: employmentId,
+			work_date: draft.date,
+			worked_intervals: draft.intervals.map((interval) => ({
+				start_at: interval.start_at,
+				end_at: interval.end_at
+			})),
+			break_minutes: draft.assessment.breakMinutes
+		});
 	}
 </script>
 
@@ -1031,7 +1004,7 @@
 								</Stack>
 							{/if}
 						</Cluster>
-						<!-- stupidity:allow UI10 -- 1px hairline gutters via bg-border are not on the gap scale -->
+						<!-- repository-health:allow UI10 -- 1px hairline gutters via bg-border are not on the gap scale -->
 						<Grid class="gap-px bg-border" gap="none" minimum="compact">
 							<Stack class="bg-card px-5 py-4" gap="xs">
 								<p class="text-xs font-medium text-muted-foreground">{t('component.email')}</p>
@@ -1254,7 +1227,7 @@
 			disabled={!employmentId}
 			query={{
 				where: { employment_id: employmentId ? { eq: employmentId } : undefined },
-				orderBy: { norbital_created_at: 'desc' },
+				orderBy: { created_at: 'desc' },
 				with: { payslip_payroll_run: { columns: { period: true } } }
 			}}
 		>
@@ -1356,16 +1329,18 @@
 	intervals={daySheetIntervals}
 	lockRung={daySheetRung}
 	lockReason={daySheetLockReason}
+	saving={saveDaySheetMutation.loading}
+	error={saveDaySheetMutation.error?.message ?? null}
 	onSave={(change) => saveDaySheet(change)}
 />
 
-<Dialog.Root bind:open={reportOpen}>
+<Dialog.Root bind:open={report.open}>
 	<Dialog.Content class="max-w-md">
 		<Dialog.Header>
 			<Dialog.Title>{t('app.hr_employee.report_punch_title')}</Dialog.Title>
 			<Dialog.Description>
 				{t('app.hr_employee.report_punch_description', {
-					date: formatCalendarDate(reportDate)
+					date: formatCalendarDate(report.date)
 				})}
 			</Dialog.Description>
 		</Dialog.Header>
@@ -1375,18 +1350,18 @@
 					{t('app.hr_employee.report_punch_start')}
 					<Input
 						type="time"
-						value={reportStartClock}
-						disabled={reportSaving}
-						oninput={(event) => (reportStartClock = event.currentTarget.value)}
+						value={report.startClock}
+						disabled={reportMutation.loading}
+						oninput={(event) => (report.startClock = event.currentTarget.value)}
 					/>
 				</label>
 				<label class="grid flex-1 gap-1.5 text-sm font-medium">
 					{t('app.hr_employee.report_punch_end')}
 					<Input
 						type="time"
-						value={reportEndClock}
-						disabled={reportSaving}
-						oninput={(event) => (reportEndClock = event.currentTarget.value)}
+						value={report.endClock}
+						disabled={reportMutation.loading}
+						oninput={(event) => (report.endClock = event.currentTarget.value)}
 					/>
 				</label>
 			</Inline>
@@ -1433,14 +1408,14 @@
 			{#if reportProblem != null}
 				<p class="text-sm text-destructive">{reportProblem}</p>
 			{/if}
-			{#if reportError != null}
-				<p class="text-sm text-destructive">{reportError}</p>
+			{#if reportMutation.error != null}
+				<p class="text-sm text-destructive">{reportMutation.error.message}</p>
 			{/if}
 			<p class="text-meta">{t('app.hr_employee.report_punch_approval_note')}</p>
 		</Stack>
 		<Dialog.Footer>
-			<Dialog.Close disabled={reportSaving}>{t('roster.cancel')}</Dialog.Close>
-			<Button disabled={reportSaving || reportProblem != null} onclick={submitReport}>
+			<Dialog.Close disabled={reportMutation.loading}>{t('roster.cancel')}</Dialog.Close>
+			<Button disabled={reportMutation.loading || reportProblem != null} onclick={submitReport}>
 				{t('app.hr_employee.report_punch_submit')}
 			</Button>
 		</Dialog.Footer>

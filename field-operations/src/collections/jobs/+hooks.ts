@@ -26,12 +26,12 @@ export default {
 				];
 				const sites = siteIds.length
 					? yield* api.db.query.sites.findMany({
-							where: { norbital_id: { in: siteIds } },
-							columns: { norbital_id: true },
+							where: { id: { in: siteIds } },
+							columns: { id: true },
 							limit: SITE_BATCH_LIMIT
 						})
 					: [];
-				return { siteIds: new Set(sites.map((site) => site.norbital_id)) };
+				return { siteIds: new Set(sites.map((site) => site.id)) };
 			}),
 		perRecord: {
 			before: {

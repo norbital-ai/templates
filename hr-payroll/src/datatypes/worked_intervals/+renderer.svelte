@@ -33,13 +33,13 @@
 		if (props.mode === 'edit') props.onValueChange(value);
 	}
 
-	function setInterval(index: number, patch: Partial<Value[number]>): void {
+	function patchInterval(index: number, patch: Partial<Value[number]>): void {
 		emit(current.map((interval, at) => (at === index ? { ...interval, ...patch } : interval)));
 	}
 
 	function setIntervalRange(index: number, range: TimeRange<ZonedDateTime> | undefined): void {
 		if (range?.start == null) return;
-		setInterval(index, {
+		patchInterval(index, {
 			start_at: range.start.toAbsoluteString(),
 			end_at: range.end?.toAbsoluteString() ?? null
 		});

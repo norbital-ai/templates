@@ -6,23 +6,19 @@
  * written by an older definition. There is no writing here — presentation only.
  */
 import { Result, Schema } from 'effect';
-import { humanize } from '@norbital-ai/std/string';
 import type { TenantI18nKeys } from '$bolt/i18n-keys';
 import type { Translator } from './roster/roster-month.js';
-import { PAYROLL_TIME_ZONE, calendarDateInTimeZone, calendarDayKey } from './calendar.js';
-import { componentDefinitionSchema } from '../../datatypes/component_definition/+definition.js';
+import { PAYROLL_TIME_ZONE, calendarDateInTimeZone } from './calendar.js';
+import { formatDateISO } from '@norbital-ai/std/date';
 import { entryOriginSchema } from '../../datatypes/entry_origin/+definition.js';
 import { holidayScopeSchema } from '../../datatypes/holiday_scope/+definition.js';
 import { leaveAccrualSchema } from '../../datatypes/leave_accrual/+definition.js';
 import { leavePayrollEffectSchema } from '../../datatypes/leave_payroll_effect/+definition.js';
-import { moneySchema } from '../../datatypes/money/+definition.js';
-import { overtimeAwardSchema } from '../../datatypes/overtime_award/+definition.js';
-import { overtimeBandSchema } from '../../datatypes/overtime_band/+definition.js';
-import { prorationBasisSchema } from '../../datatypes/proration_basis/+definition.js';
 import { rateAwardSchema } from '../../datatypes/rate_award/+definition.js';
 import { rateSelectorSchema } from '../../datatypes/rate_selector/+definition.js';
 import { repaymentScheduleSchema } from '../../datatypes/repayment_schedule/+definition.js';
 import { statutoryFactStatusSchema } from '../../datatypes/statutory_fact_status/+definition.js';
+import type { PayslipLineComponent } from '../../datatypes/payslip_line_component/+definition.js';
 
 const DECIMAL = new Intl.NumberFormat(undefined, {
 	minimumFractionDigits: 2,
@@ -84,7 +80,7 @@ const MONTH_NAMES = [
  */
 function calendarDayFrom(value: unknown): string | null {
 	if (value instanceof Date) {
-		return Number.isNaN(value.getTime()) ? null : calendarDayKey(value);
+		return Number.isNaN(value.getTime()) ? null : formatDateISO(value);
 	}
 	if (typeof value !== 'string') return null;
 	return /^\d{4}-\d{2}-\d{2}/.test(value) ? value.slice(0, 10) : null;
@@ -102,8 +98,7 @@ function calendarDayFrom(value: unknown): string | null {
  * The month name is fixed, not locale-derived: `Intl` with the viewer's locale would put the month
  * first for a viewer in the United States, which is the ambiguity this format exists to remove.
  *
- * Takes a **calendar day**. Resolve an instant to a day first — see `formatInstant` for values that
- * are genuinely moments in time.
+ * Takes a **calendar day**.
  */
 export function formatCalendarDate(value: unknown): string {
 	const day = calendarDayFrom(value);
@@ -111,39 +106,6 @@ export function formatCalendarDate(value: unknown): string {
 	const month = MONTH_NAMES[Number(day.slice(5, 7)) - 1];
 	if (month === undefined) return '—';
 	return `${day.slice(8, 10)} ${month} ${day.slice(0, 4)}`;
-}
-
-/**
- * A `timestamp()` instant as `05 Aug 2026, 14:30` **in the viewer's timezone**.
- *
- * An instant is a moment, so unlike a calendar day it is meant to move with the viewer — a clock-in
- * recorded at 09:00 in Kuala Lumpur is a different wall-clock reading in Manila, and both are true.
- * The date part matches `formatCalendarDate`, and the clock is 24-hour so `05 Aug 2026, 01:30`
- * cannot be mistaken for the afternoon.
- */
-export function formatInstant(value: unknown): string {
-	const at = value instanceof Date ? value : typeof value === 'string' ? new Date(value) : null;
-	if (at === null || Number.isNaN(at.getTime())) return '—';
-	const parts = new Intl.DateTimeFormat('en-GB', {
-		year: 'numeric',
-		month: '2-digit',
-		day: '2-digit',
-		hour: '2-digit',
-		minute: '2-digit',
-		hourCycle: 'h23'
-	}).formatToParts(at);
-	const field = (type: Intl.DateTimeFormatPartTypes) =>
-		parts.find((part) => part.type === type)?.value ?? '';
-	const month = MONTH_NAMES[Number(field('month')) - 1];
-	if (month === undefined) return '—';
-	return `${field('day')} ${month} ${field('year')}, ${field('hour')}:${field('minute')}`;
-}
-
-/** `YYYY-MM` → a readable month, used for `payroll_runs.period` and `component_entries.pay_period`. */
-export function formatPayPeriod(value: unknown): string {
-	if (typeof value !== 'string' || !/^\d{4}-\d{2}$/.test(value)) return '—';
-	const month = MONTH_NAMES[Number(value.slice(5, 7)) - 1];
-	return month === undefined ? '—' : `${month} ${value.slice(0, 4)}`;
 }
 
 /**
@@ -202,39 +164,6 @@ export function formatEntryOrigin(value: unknown, t: Translator): string {
 	}
 }
 
-/** The searchable free text an origin carries, if any — claims have none by design. */
-export function entryOriginNote(value: unknown): string | null {
-	const parsed = Schema.decodeUnknownResult(entryOriginSchema)(value, {
-		onExcessProperty: 'error'
-	});
-	if (!Result.isSuccess(parsed)) return null;
-	const origin = parsed.success;
-	if (origin.kind === 'ONE_OFF') return origin.note || null;
-	if (origin.kind === 'REVERSAL' || origin.kind === 'ARREARS') return origin.reason;
-	if (origin.kind === 'MANUAL_ADJUSTMENT') return origin.note || null;
-	return null;
-}
-
-const UNIT_LABELS: Readonly<Record<string, TenantI18nKeys>> = {
-	MONEY: 'component.definition_unit_money',
-	DAYS: 'component.definition_unit_days',
-	HOURS: 'component.definition_unit_hours',
-	RATE: 'component.definition_unit_rate'
-};
-
-const SETTLEMENT_LABELS: Readonly<Record<string, TenantI18nKeys>> = {
-	PAYROLL: 'component.definition_settlement_payroll',
-	COMPANY_DIRECT: 'component.definition_settlement_company'
-};
-
-const CAP_PERIOD_LABELS: Readonly<Record<string, TenantI18nKeys>> = {
-	CALENDAR_YEAR: 'component.definition_cap_calendar_year',
-	LEAVE_YEAR: 'component.definition_cap_leave_year',
-	MONTH: 'component.definition_cap_month',
-	LIFETIME: 'component.definition_cap_lifetime',
-	PER_EVENT: 'component.definition_cap_per_event'
-};
-
 const DAY_TYPE_LABELS: Readonly<Record<string, TenantI18nKeys>> = {
 	ORDINARY: 'component.overtime_day_ordinary',
 	REST_DAY: 'component.overtime_day_rest',
@@ -246,36 +175,32 @@ const MEASURE_LABELS: Readonly<Record<string, TenantI18nKeys>> = {
 	FROM_START_OF_DAY: 'component.overtime_measure_from_start'
 };
 
+/** One of the two derived-overtime arms of a payslip line: the band that priced it. */
+type OvertimeLine = Extract<
+	PayslipLineComponent,
+	{ readonly kind: 'OVERTIME' | 'OVERTIME_EXCESS' }
+>;
+
 /**
  * What to call a derived overtime line.
  *
  * There is no pay component behind one, so nothing supplies a name; the statutory band that priced
  * it is its identity, and it is what an operator needs to see — which day, counted how, from where.
  */
-export function formatOvertimeLineBand(
-	band: {
-		readonly excess: boolean;
-		readonly day_type: string;
-		readonly measure: string;
-		readonly band_from: number;
-	},
-	t: Translator
-): string {
-	return t(band.excess ? 'component.overtime_excess_line' : 'component.overtime_line', {
-		day: labelOf(t, DAY_TYPE_LABELS, band.day_type),
-		measure: labelOf(t, MEASURE_LABELS, band.measure),
-		from: band.band_from
-	});
+export function formatOvertimeLineBand(line: OvertimeLine, t: Translator): string {
+	return t(
+		line.kind === 'OVERTIME_EXCESS' ? 'component.overtime_excess_line' : 'component.overtime_line',
+		{
+			day: labelOf(t, DAY_TYPE_LABELS, line.day_type),
+			measure: labelOf(t, MEASURE_LABELS, line.measure),
+			from: line.band_from
+		}
+	);
 }
 
 const ACCRUAL_KIND_LABELS: Readonly<Record<string, TenantI18nKeys>> = {
 	MONTHLY: 'component.accrual_kind_monthly',
 	UPFRONT: 'component.accrual_kind_upfront'
-};
-
-const PRORATION_BASIS_LABELS: Readonly<Record<string, TenantI18nKeys>> = {
-	CALENDAR_DAYS: 'component.proration_calendar_days',
-	WORKING_DAYS: 'component.proration_working_days'
 };
 
 const SELECTOR_BY_LABELS: Readonly<Record<string, TenantI18nKeys>> = {
@@ -289,6 +214,28 @@ const AWARD_KIND_LABELS: Readonly<Record<string, TenantI18nKeys>> = {
 	FIXED: 'component.award_kind_fixed'
 };
 
+/**
+ * One of five density levels for a seasonality heatmap cell, driven by the count over the
+ * maximum. The leave and pay-component seasonality panels draw their one heatmap with this, so
+ * the two cannot drift apart on what "a bright cell" means.
+ */
+export function heatmapClass(count: number, maximum: number): string {
+	if (count === 0 || maximum === 0) return 'bg-muted/35 text-muted-foreground';
+	const level = Math.ceil((count / maximum) * 5);
+	switch (level) {
+		case 1:
+			return 'bg-primary/10 text-foreground';
+		case 2:
+			return 'bg-primary/25 text-foreground';
+		case 3:
+			return 'bg-primary/45 text-primary-foreground';
+		case 4:
+			return 'bg-primary/70 text-primary-foreground';
+		default:
+			return 'bg-primary text-primary-foreground';
+	}
+}
+
 function labelOf(
 	t: Translator,
 	map: Readonly<Record<string, TenantI18nKeys>>,
@@ -296,39 +243,6 @@ function labelOf(
 ): string {
 	const key = map[code];
 	return key === undefined ? code : t(key);
-}
-
-export function formatComponentDefinition(value: unknown, t: Translator): string {
-	const parsed = Schema.decodeUnknownResult(componentDefinitionSchema)(value, {
-		onExcessProperty: 'error'
-	});
-	if (!Result.isSuccess(parsed)) return t('component.definition_invalid');
-	const definition = parsed.success;
-	switch (definition.source) {
-		case 'ENTRY':
-			return t('component.definition_entry', {
-				unit: labelOf(t, UNIT_LABELS, definition.unit),
-				settlement: labelOf(t, SETTLEMENT_LABELS, definition.settlement),
-				cap: definition.cap
-					? t('component.definition_entry_cap', {
-							period: labelOf(t, CAP_PERIOD_LABELS, definition.cap.period)
-						})
-					: ''
-			});
-		case 'FORMULA':
-			return t('component.definition_formula', {
-				unit: labelOf(t, UNIT_LABELS, definition.unit),
-				expr: definition.expr
-			});
-		case 'SCHEDULE':
-			return t('component.definition_schedule', {
-				reducible: definition.reducible
-					? t('component.definition_reducible')
-					: t('component.definition_not_reducible')
-			});
-		default:
-			return definition satisfies never;
-	}
 }
 
 export function formatLeaveAccrual(value: unknown, t: Translator): string {
@@ -363,28 +277,12 @@ export function formatRepaymentSchedule(value: unknown, t: Translator): string {
 	});
 }
 
-/** Total the schedule commits to repay — the denominator of "settled". */
-export function repaymentScheduleTotal(value: unknown): number | null {
-	const parsed = Schema.decodeUnknownResult(repaymentScheduleSchema)(value);
-	return Result.isSuccess(parsed)
-		? parsed.success.reduce((sum, entry) => sum + entry.amount, 0)
-		: null;
-}
-
 export function formatHolidayScope(value: unknown, t: Translator): string {
 	const parsed = Schema.decodeUnknownResult(holidayScopeSchema)(value);
 	if (!Result.isSuccess(parsed)) return t('component.scope_invalid');
 	return parsed.success.kind === 'NATIONAL'
 		? t('component.scope_national')
 		: t('component.scope_regional', { locations: parsed.success.location_codes.join(', ') });
-}
-
-export function formatProrationBasis(value: unknown, t: Translator): string {
-	const parsed = Schema.decodeUnknownResult(prorationBasisSchema)(value);
-	if (!Result.isSuccess(parsed)) return t('component.proration_invalid');
-	return parsed.success.by === 'FIXED_DAYS'
-		? t('component.proration_fixed', { days: parsed.success.days })
-		: labelOf(t, PRORATION_BASIS_LABELS, parsed.success.by);
 }
 
 export function formatRateSelector(value: unknown, t: Translator): string {
@@ -419,48 +317,6 @@ export function formatRateAward(value: unknown, t: Translator): string {
 		employer: award.employer,
 		unit
 	});
-}
-
-export function formatOvertimeBand(value: unknown, t: Translator): string {
-	const parsed = Schema.decodeUnknownResult(overtimeBandSchema)(value);
-	if (!Result.isSuccess(parsed)) return t('component.band_invalid');
-	const band = parsed.success;
-	return band.measure === 'BEYOND_NORMAL'
-		? t('component.band_beyond_normal', {
-				from: band.from_hours,
-				to: band.to_hours ?? '∞'
-			})
-		: t('component.band_from_day_start', { from: band.from_fraction, to: band.to_fraction ?? '∞' });
-}
-
-export function formatOvertimeAward(value: unknown, t: Translator): string {
-	const parsed = Schema.decodeUnknownResult(overtimeAwardSchema)(value);
-	if (!Result.isSuccess(parsed)) return t('component.award_invalid');
-	const award = parsed.success;
-	return award.kind === 'HOURLY_MULTIPLE'
-		? t('component.award_hourly_multiple', { multiple: award.multiple })
-		: t('component.award_day_multiple', { multiple: award.multiple });
-}
-
-/**
- * A `money` value, printed with its own currency rather than the reader's.
- *
- * A statutory ceiling is a figure in one named currency, and dropping the code would let an
- * operator read a Malaysian ringgit threshold as though it were theirs.
- */
-export function formatMoney(value: unknown, t: Translator): string {
-	const parsed = Schema.decodeUnknownResult(moneySchema())(value);
-	if (!Result.isSuccess(parsed)) return t('component.money_invalid');
-	return `${parsed.success.currency} ${DECIMAL.format(parsed.success.value)}`;
-}
-
-/**
- * A `text[]` of work categories. An empty array is printed as "None" and never as blank, because a
- * blank cell reads as "nobody filled this in" when it in fact means "the statute names nobody".
- */
-export function formatCategories(value: unknown, t: Translator): string {
-	if (!Array.isArray(value) || value.length === 0) return t('component.categories_none');
-	return value.map((entry) => humanize(String(entry))).join(', ');
 }
 
 export function formatStatutoryFactStatus(value: unknown, t: Translator): string {

@@ -6,7 +6,7 @@ import { measureEmployment } from './lib/measure.ts';
 import { PLAIN_CALENDAR } from './lib/settlement.ts';
 
 const JURISDICTION = {
-	norbital_id: 'jur-my',
+	id: 'jur-my',
 	code: 'MY',
 	proration: { by: 'CALENDAR_DAYS' },
 	ordinary_rate_divisor: 26,
@@ -16,7 +16,7 @@ const JURISDICTION = {
 };
 
 const COMPANY = {
-	norbital_id: 'co-nihon-my',
+	id: 'co-nihon-my',
 	name: 'Nihon (MY)',
 	jurisdiction_id: 'jur-my',
 	pay_cutoff_day: 21,
@@ -29,7 +29,7 @@ const COMPANY = {
 };
 
 const BASIC = {
-	norbital_id: 'pc-basic',
+	id: 'pc-basic',
 	company_id: 'co-nihon-my',
 	code: 'BASIC',
 	name: 'Basic salary',
@@ -42,7 +42,7 @@ const BASIC = {
 };
 
 const NPL = {
-	norbital_id: '00000000-0000-4000-8000-0000000000n1',
+	id: '00000000-0000-4000-8000-0000000000n1',
 	company_id: 'co-nihon-my',
 	code: 'NPL',
 	name: 'Unpaid leave',
@@ -55,7 +55,7 @@ const NPL = {
 };
 
 const NPL_TYPE = {
-	norbital_id: '00000000-0000-4000-8000-0000000000t1',
+	id: '00000000-0000-4000-8000-0000000000t1',
 	company_id: 'co-nihon-my',
 	code: 'NPL',
 	name: 'Unpaid leave',
@@ -65,7 +65,7 @@ const NPL_TYPE = {
 	requires_certificate_after_days: null,
 	accrual: { kind: 'PER_EVENT' },
 	entitlement: { layers: [] },
-	payroll_effect: { kind: 'UNPAID', component_id: NPL.norbital_id },
+	payroll_effect: { kind: 'UNPAID', component_id: NPL.id },
 	effective_range: { start: '2020-01-01', end: null }
 };
 
@@ -99,7 +99,7 @@ function configuration(leaveTypes = [NPL_TYPE]) {
 function bundle(ledger = []) {
 	return {
 		employment: {
-			norbital_id: 'emp-nhpmy0290',
+			id: 'emp-nhpmy0290',
 			employee_id: 'ee-1',
 			employee_number: 'NHPMY0290',
 			company_id: 'co-nihon-my',
@@ -111,10 +111,10 @@ function bundle(ledger = []) {
 			work_classification: 'NON_MANUAL',
 			effective_range: { start: '2021-06-01', end: null }
 		},
-		employee: { norbital_id: 'ee-1', date_of_birth: '1990-01-01', gender: 'MALE' },
+		employee: { id: 'ee-1', date_of_birth: '1990-01-01', gender: 'MALE' },
 		terms: [
 			{
-				norbital_id: 'terms-1',
+				id: 'terms-1',
 				employment_id: 'emp-nhpmy0290',
 				base_salary: { value: 3000, currency: 'MYR' },
 				pay_frequency: 'MONTHLY',
@@ -145,13 +145,13 @@ test('unpaid leave emits a LEAVE_UNPAID line linked to the leave requests', () =
 	const measured = measureEmployment({
 		bundle: bundle([
 			{
-				norbital_id: leaveRequestId,
-				leave_type_id: NPL_TYPE.norbital_id,
+				id: leaveRequestId,
+				leave_type_id: NPL_TYPE.id,
 				entry_date: '2026-04-10',
 				kind: 'TAKEN',
 				days: -1,
 				source_id: leaveRequestId,
-				norbital_approval_id: null
+				approval_id: null
 			}
 		]),
 		configuration: configuration(),
@@ -165,7 +165,7 @@ test('unpaid leave emits a LEAVE_UNPAID line linked to the leave requests', () =
 	assert.equal(npl.length, 1);
 	assert.deepEqual(npl[0].component, {
 		kind: 'LEAVE_UNPAID',
-		pay_component_id: NPL.norbital_id,
+		pay_component_id: NPL.id,
 		leave_request_ids: [leaveRequestId]
 	});
 	assert.equal(npl[0].quantity, 1);
@@ -185,24 +185,24 @@ test('a formula component with no unpaid leave in the window stays a bare FORMUL
 	assert.equal(npl.length, 1);
 	assert.deepEqual(npl[0].component, {
 		kind: 'FORMULA',
-		pay_component_id: NPL.norbital_id
+		pay_component_id: NPL.id
 	});
 });
 
 test('a claim with incurred_on settles by that date, not event_date', () => {
 	const claim = {
-		norbital_id: 'claim-1',
+		id: 'claim-1',
 		pay_period: null,
 		event_date: '2026-04-25',
 		origin: { kind: 'CLAIM', evidence_file: null, incurred_on: '2026-04-10' }
 	};
 	assert.equal(entryPayPeriod(claim, 21), '2026-04');
-	assert.equal(entryEventDate(claim, new Map([[claim.norbital_id, claim]])), '2026-04-10');
+	assert.equal(entryEventDate(claim, new Map([[claim.id, claim]])), '2026-04-10');
 });
 
 test('a claim without incurred_on falls back to event_date for the cutoff', () => {
 	const claim = {
-		norbital_id: 'claim-2',
+		id: 'claim-2',
 		pay_period: null,
 		event_date: '2026-04-25',
 		origin: { kind: 'ONE_OFF', note: 'adhoc' }

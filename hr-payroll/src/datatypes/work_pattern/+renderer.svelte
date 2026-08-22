@@ -24,7 +24,7 @@
 	const employmentQuery = $derived(
 		employmentId == null
 			? null
-			: client.db.employments.findFirst({ where: { norbital_id: { eq: employmentId } } })
+			: client.db.employments.findFirst({ where: { id: { eq: employmentId } } })
 	);
 	const companyId = $derived(employmentQuery?.current?.company_id ?? null);
 	const codesQuery = $derived(
@@ -33,7 +33,7 @@
 			: client.db.shift_definitions.findMany({
 					where: {
 						company_id: { eq: companyId },
-						norbital_approval_id: { isNull: true }
+						approval_id: { isNull: true }
 					},
 					orderBy: { code: 'asc' },
 					limit: 1000
@@ -42,7 +42,7 @@
 	const codes = $derived(codesQuery?.current ?? []);
 	const codeOptions = $derived(
 		codes.map((code) => ({
-			value: code.norbital_id,
+			value: code.id,
 			label: `${code.code} · ${code.name}`,
 			search_term: `${code.code} ${code.name}`
 		}))

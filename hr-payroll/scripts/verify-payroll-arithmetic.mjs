@@ -22,6 +22,7 @@
 import { createServer } from 'vite';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
+import { isDeepStrictEqual } from 'node:util';
 
 const root = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 const lib = (name) => `/src/collections/payroll_runs/lib/${name}.ts`;
@@ -33,7 +34,7 @@ function check(name, actual, expected) {
 	const ok =
 		typeof expected === 'number' && typeof actual === 'number'
 			? Math.abs(actual - expected) < 1e-9
-			: JSON.stringify(actual) === JSON.stringify(expected);
+			: isDeepStrictEqual(actual, expected);
 	if (ok) passed += 1;
 	else
 		failures.push(
@@ -118,7 +119,7 @@ check('2.5 h is already a half hour', floorHalfHour(2.5), 2.5);
  * account of the day there is, so the same row now earns what it was actually at work for.
  */
 const restDayPunches = {
-	norbital_id: 'rest-day-entry',
+	id: 'rest-day-entry',
 	work_date: '2026-01-17',
 	worked_intervals: [
 		{ start_at: '2026-01-17T08:29:00.000+08:00', end_at: '2026-01-17T13:41:00.000+08:00' }
@@ -170,7 +171,7 @@ check(
 // no component-types lookup table to hold them separately.
 const claimLine = (settlement, amount) => ({
 	payComponent: {
-		norbital_id: `claim-${settlement}`,
+		id: `claim-${settlement}`,
 		code: 'REIMBURSEMENT',
 		nature: 'NON_WAGE_PAYMENT',
 		sequence: 1500,
@@ -234,7 +235,7 @@ check('round_half rounds 1.75 to 2.0', roundHalfDay(1.75), 2);
 
 const annualLeave = {
 	code: 'ANNUAL',
-	norbital_id: 'leave-annual',
+	id: 'leave-annual',
 	accrual: { kind: 'MONTHLY', carry: { limit_days: 6, expiry_months: 3 } }
 };
 const accrue = (asOf, entitlement = () => 21) =>
@@ -377,7 +378,7 @@ const pcbBands = [
 		award: { kind: 'PROGRESSIVE', rate: 19, constant: 3700 }
 	}
 ];
-const pcb = { row: { code: 'PCB', norbital_id: 'pcb' }, rates: pcbBands };
+const pcb = { row: { code: 'PCB', id: 'pcb' }, rates: pcbBands };
 check(
 	'chargeable 44,111.40 taxes at 600 + 9,111.40 × 6% = 1,146.68',
 	Number(scaleProgressive(pcb, 44111.4, context).toFixed(2)),
@@ -437,7 +438,7 @@ throws('an unknown special rule is an error, never a silent no-op', () =>
 // ────────────────────────────────────────────────────────────────────────────────────────────────
 const epfContribution = {
 	row: {
-		norbital_id: 'epf',
+		id: 'epf',
 		code: 'EPF',
 		sequence: 10,
 		rounding: 'UP_TO_UNIT',
@@ -462,7 +463,7 @@ const epfContribution = {
 };
 const socsoContribution = {
 	row: {
-		norbital_id: 'socso',
+		id: 'socso',
 		code: 'SOCSO',
 		sequence: 20,
 		rounding: 'TABLE',
@@ -482,7 +483,7 @@ const socsoContribution = {
 };
 const eisContribution = {
 	row: {
-		norbital_id: 'eis',
+		id: 'eis',
 		code: 'EIS',
 		sequence: 30,
 		rounding: 'TABLE',
@@ -546,7 +547,7 @@ const periodicTax = contribute({
 		{
 			contribution: {
 				row: {
-					norbital_id: 'period-relief',
+					id: 'period-relief',
 					code: 'PERIOD_RELIEF',
 					sequence: 100,
 					rounding: 'NONE',
@@ -566,7 +567,7 @@ const periodicTax = contribute({
 		{
 			contribution: {
 				row: {
-					norbital_id: 'period-tax',
+					id: 'period-tax',
 					code: 'PERIOD_TAX',
 					sequence: 400,
 					rounding: 'NEAREST_CENT',
@@ -608,7 +609,7 @@ const nonResidentPcb = contribute({
 		{
 			contribution: {
 				row: {
-					norbital_id: 'pcb',
+					id: 'pcb',
 					code: 'PCB',
 					sequence: 400,
 					rounding: 'NONE',
@@ -1009,19 +1010,19 @@ const NPL_TYPE = '00000000-0000-4000-8000-00000000000a';
 const NPL_COMPONENT = '00000000-0000-4000-8000-00000000000b';
 const leaveTypes = [
 	{
-		norbital_id: NPL_TYPE,
+		id: NPL_TYPE,
 		code: 'UNPAID_LEAVE',
 		payroll_effect: { kind: 'UNPAID', component_id: NPL_COMPONENT }
 	}
 ];
 const ledger0340 = N0340.map((date, index) => ({
-	norbital_id: `ledger-${index}`,
+	id: `ledger-${index}`,
 	leave_type_id: NPL_TYPE,
 	entry_date: date,
 	kind: 'TAKEN',
 	days: -1,
 	source_id: null,
-	norbital_approval_id: null
+	approval_id: null
 }));
 const february = companyAWindow('2026-02');
 check(
@@ -1186,7 +1187,7 @@ check(
 check(
 	'a PH overnight clock overlaps all eight statutory night hours',
 	philippineNightWorkHours({
-		norbital_id: 'night',
+		id: 'night',
 		work_date: '2026-02-03',
 		worked_intervals: [
 			{ start_at: '2026-02-03T20:22:00.000+08:00', end_at: '2026-02-04T08:30:00.000+08:00' }
@@ -1198,7 +1199,7 @@ check(
 check(
 	'a daytime clock earns no night differential',
 	philippineNightWorkHours({
-		norbital_id: 'day',
+		id: 'day',
 		work_date: '2026-02-03',
 		worked_intervals: [
 			{ start_at: '2026-02-03T08:30:00.000+08:00', end_at: '2026-02-03T17:30:00.000+08:00' }
@@ -1286,7 +1287,7 @@ check(
 );
 
 const ordinaryRule = {
-	norbital_id: 'ot-ordinary',
+	id: 'ot-ordinary',
 	day_type: 'ORDINARY',
 	authority: 'EA s.60A(1)(a)',
 	band: { measure: 'BEYOND_NORMAL', from_hours: 0, to_hours: null },
@@ -1327,13 +1328,13 @@ check('and all of it is overtime', uncapped.segments[0].hours, 3);
 const bandedRules = [
 	{
 		...ordinaryRule,
-		norbital_id: 'id-1',
+		id: 'id-1',
 		band: { measure: 'BEYOND_NORMAL', from_hours: 0, to_hours: 1 },
 		award: { kind: 'HOURLY_MULTIPLE', multiple: 1.5 }
 	},
 	{
 		...ordinaryRule,
-		norbital_id: 'id-2',
+		id: 'id-2',
 		band: { measure: 'BEYOND_NORMAL', from_hours: 1, to_hours: null },
 		award: { kind: 'HOURLY_MULTIPLE', multiple: 2 }
 	}
@@ -1558,17 +1559,17 @@ check(
 // ────────────────────────────────────────────────────────────────────────────────────────────────
 // Reversal signs are transitive — reversing a reversal restores the original.
 // ────────────────────────────────────────────────────────────────────────────────────────────────
-const original = { norbital_id: 'e1', origin: { kind: 'ONE_OFF', note: '' } };
+const original = { id: 'e1', origin: { kind: 'ONE_OFF', note: '' } };
 const reversal = {
-	norbital_id: 'e2',
+	id: 'e2',
 	origin: { kind: 'REVERSAL', reverses_entry_id: 'e1', reason: 'wrong' }
 };
 const reversalOfReversal = {
-	norbital_id: 'e3',
+	id: 'e3',
 	origin: { kind: 'REVERSAL', reverses_entry_id: 'e2', reason: 'oops' }
 };
 const entryIndex = new Map(
-	[original, reversal, reversalOfReversal].map((entry) => [entry.norbital_id, entry])
+	[original, reversal, reversalOfReversal].map((entry) => [entry.id, entry])
 );
 check('an ordinary entry pays', entrySign(original, entryIndex), 1);
 check('a reversal takes back', entrySign(reversal, entryIndex), -1);
@@ -1578,7 +1579,7 @@ check(
 	1
 );
 const selfReversing = {
-	norbital_id: 'e4',
+	id: 'e4',
 	origin: { kind: 'REVERSAL', reverses_entry_id: 'e4', reason: 'loop' }
 };
 throws('a reversal cycle is refused rather than hanging the run', () =>
@@ -1593,8 +1594,9 @@ throws('a reversal cycle is refused rather than hanging the run', () =>
  * overtime is EPF-exempt. These cases exist so that reading cannot come back by accident.
  */
 const restDayRule = (measure, from, to, award, multiple) => ({
-	norbital_id: `ot-${measure}-${from}`,
+	id: `ot-${measure}-${from}`,
 	day_type: 'REST_DAY',
+	authority: 'Statutory rest-day verification rule',
 	band:
 		measure === 'FROM_START_OF_DAY'
 			? { measure, from_fraction: from, to_fraction: to }
@@ -1712,11 +1714,13 @@ check(
 const malaysiaPublicHoliday = [
 	{
 		...restDayRule('FROM_START_OF_DAY', 0, 1, 'DAY_WAGE_MULTIPLE', 2),
-		day_type: 'PUBLIC_HOLIDAY'
+		day_type: 'PUBLIC_HOLIDAY',
+		authority: 'Statutory public-holiday verification rule'
 	},
 	{
 		...restDayRule('BEYOND_NORMAL', 0, null, 'HOURLY_MULTIPLE', 3),
-		day_type: 'PUBLIC_HOLIDAY'
+		day_type: 'PUBLIC_HOLIDAY',
+		authority: 'Statutory public-holiday verification rule'
 	}
 ];
 const thirteenHourPublicHolidaySplit = priceDay({

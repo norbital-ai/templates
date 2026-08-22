@@ -39,7 +39,6 @@ const importInputSchema = Schema.Struct({
 const importSchema = Schema.toStandardSchemaV1(importInputSchema);
 
 type RosterRow = Schema.Schema.Type<typeof rowSchema>;
-type RosterImportInput = Schema.Schema.Type<typeof importInputSchema>;
 
 const QUERY_LIMIT = 5_000;
 
@@ -49,10 +48,6 @@ function formatNamedList(items: readonly string[]): string {
 
 function normalizeKey(value: string): string {
 	return value.trim().toLowerCase();
-}
-
-function dateInWeek(scheduledFor: string, weekStart: string, weekEnd: string): boolean {
-	return scheduledFor >= weekStart && scheduledFor <= weekEnd;
 }
 
 function rowLabel(row: RosterRow, index: number): string {
@@ -68,10 +63,11 @@ export default {
 			Effect.gen(function* () {
 				// The import boundary decodes the wire payload against the declared `input` schema, so
 				// the handler receives the validated week directly.
-				const { week_start: weekStart, rows } = input as RosterImportInput;
+				const { week_start: weekStart, rows } =
+					yield* Schema.decodeUnknownEffect(importInputSchema)(input);
 
 				if (!isCalendarDate(weekStart)) {
-					throw new Error('week_start must be a calendar date (YYYY-MM-DD).');
+					return yield* Effect.fail(new Error('week_start must be a calendar date (YYYY-MM-DD).'));
 				}
 
 				const weekEnd = shiftCalendarDate(weekStart, 6);
@@ -81,17 +77,21 @@ export default {
 					)
 				];
 				if (invalidDates.length > 0) {
-					throw new Error(
-						`These scheduled_for values are not valid calendar days (YYYY-MM-DD):\n${formatNamedList(invalidDates)}`
+					return yield* Effect.fail(
+						new Error(
+							`These scheduled_for values are not valid calendar days (YYYY-MM-DD):\n${formatNamedList(invalidDates)}`
+						)
 					);
 				}
 
 				const outsideWeek = rows
-					.filter((row) => !dateInWeek(row.scheduled_for, weekStart, weekEnd))
+					.filter((row) => row.scheduled_for < weekStart || row.scheduled_for > weekEnd)
 					.map((row, index) => rowLabel(row, index));
 				if (outsideWeek.length > 0) {
-					throw new Error(
-						`Every scheduled_for must fall within the week starting ${weekStart}:\n${formatNamedList(outsideWeek)}`
+					return yield* Effect.fail(
+						new Error(
+							`Every scheduled_for must fall within the week starting ${weekStart}:\n${formatNamedList(outsideWeek)}`
+						)
 					);
 				}
 
@@ -99,14 +99,14 @@ export default {
 				const [sites, contractorByName, jobs, existingAssignments] = yield* Effect.all(
 					[
 						api.db.query.sites.findMany({
-							columns: { norbital_id: true, name: true },
+							columns: { id: true, name: true },
 							limit: QUERY_LIMIT
 						}),
 						usersByName(api),
 						api.db.query.jobs.findMany({
 							where: { scheduled_for: { in: scheduledDates } },
 							columns: {
-								norbital_id: true,
+								id: true,
 								site_id: true,
 								title: true,
 								scheduled_for: true,
@@ -115,7 +115,7 @@ export default {
 							limit: QUERY_LIMIT
 						}),
 						api.db.query.job_assignments.findMany({
-							columns: { norbital_id: true, job_id: true },
+							columns: { id: true, job_id: true },
 							limit: QUERY_LIMIT
 						})
 					],
@@ -156,9 +156,9 @@ export default {
 						continue;
 					}
 
-					const matchKey = `${site.norbital_id}\t${row.scheduled_for}\t${normalizeKey(row.job_title)}`;
+					const matchKey = `${site.id}\t${row.scheduled_for}\t${normalizeKey(row.job_title)}`;
 					const matchingJobs = (jobsByMatchKey.get(matchKey) ?? []).filter(
-						(job) => job.status === 'unassigned' && !assignmentByJobId.has(job.norbital_id)
+						(job) => job.status === 'unassigned' && !assignmentByJobId.has(job.id)
 					);
 					if (matchingJobs.length === 0) {
 						problems.push(
@@ -174,20 +174,22 @@ export default {
 					}
 
 					const job = matchingJobs[0];
-					if (seenJobIds.has(job.norbital_id)) {
+					if (seenJobIds.has(job.id)) {
 						problems.push(`${label}: this job appears more than once in the import.`);
 						continue;
 					}
-					seenJobIds.add(job.norbital_id);
+					seenJobIds.add(job.id);
 					resolvedRows.push({
 						row,
-						jobId: job.norbital_id,
-						assigneeUserId: contractor.norbital_id
+						jobId: job.id,
+						assigneeUserId: contractor.id
 					});
 				}
 
 				if (problems.length > 0) {
-					throw new Error(`The roster could not be imported:\n${formatNamedList(problems)}`);
+					return yield* Effect.fail(
+						new Error(`The roster could not be imported:\n${formatNamedList(problems)}`)
+					);
 				}
 
 				return resolvedRows.map((entry) => ({
@@ -196,7 +198,7 @@ export default {
 					status: 'assigned' as const,
 					site_identity_unverified: true,
 					site_identity_mismatch: false,
-					...(entry.row.summary ? { summary: entry.row.summary } : {})
+					summary: entry.row.summary ?? null
 				}));
 			})
 	}

@@ -25,10 +25,7 @@
 		// the surrounding table has nothing to resolve beside them and the cell is the only place the
 		// statutory band that priced the line can be read.
 		if (component.kind === 'OVERTIME' || component.kind === 'OVERTIME_EXCESS')
-			return formatOvertimeLineBand(
-				{ ...component, excess: component.kind === 'OVERTIME_EXCESS' },
-				t
-			);
+			return formatOvertimeLineBand(component, t);
 		const key = catalogueKey(component.kind);
 		return key != null && has(key) ? t(key) : component.kind.replaceAll('_', ' ').toLowerCase();
 	});

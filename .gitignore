@@ -16,6 +16,7 @@ node_modules/
 
 # Tool caches and reports
 .turbo/
+**/.svelte-check/
 .tmp/
 /dist/
 coverage/

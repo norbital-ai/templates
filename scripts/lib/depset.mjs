@@ -11,6 +11,7 @@ import {
 } from 'node:fs';
 import path from 'node:path';
 import process from 'node:process';
+import { Result } from 'effect';
 import { registryConfiguration } from './registry.mjs';
 
 const depsetLayoutMarker = '.norbital-depset-layout';
@@ -62,24 +63,26 @@ function requirePnpmWorkspace(pnpmWorkspace) {
 }
 
 function hasCurrentLayout(directory) {
-	try {
-		return readFileSync(path.join(directory, depsetLayoutMarker), 'utf8') === depsetLayoutVersion;
-	} catch {
-		return false;
-	}
+	return Result.getOrElse(
+		Result.try(
+			() => readFileSync(path.join(directory, depsetLayoutMarker), 'utf8') === depsetLayoutVersion
+		),
+		() => false
+	);
 }
 
 function pnpm(arguments_, cwd) {
-	try {
-		return execFileSync('pnpm', arguments_, {
+	const executed = Result.try(() =>
+		execFileSync('pnpm', arguments_, {
 			cwd,
 			encoding: 'utf8',
 			stdio: ['ignore', 'pipe', 'pipe']
-		});
-	} catch (cause) {
-		const detail = cause?.stderr?.toString().trim() || cause?.stdout?.toString().trim();
-		throw new Error(`pnpm ${arguments_.join(' ')} failed${detail ? `:\n${detail}` : '.'}`);
-	}
+		})
+	);
+	if (Result.isSuccess(executed)) return executed.success;
+	const detail =
+		executed.failure?.stderr?.toString().trim() || executed.failure?.stdout?.toString().trim();
+	throw new Error(`pnpm ${arguments_.join(' ')} failed${detail ? `:\n${detail}` : '.'}`);
 }
 
 function writeRegistryConfiguration(directory, { withCredentials }) {
@@ -90,20 +93,20 @@ function writeRegistryConfiguration(directory, { withCredentials }) {
  * Fetch every package the lockfile names into the shared store. The only step that touches
  * the network, and the only step that needs registry credentials.
  */
-export function warmStore({ manifest, lockfile, pnpmWorkspace, storeDirectory }) {
+function warmStore({ manifest, lockfile, pnpmWorkspace, storeDirectory }) {
 	requirePnpmWorkspace(pnpmWorkspace);
 	const scratch = path.join(storeDirectory, '.warm', lockHash(lockfile));
 	rmSync(scratch, { recursive: true, force: true });
 	mkdirSync(scratch, { recursive: true });
-	try {
+	const warmed = Result.try(() => {
 		writeFileSync(path.join(scratch, 'package.json'), manifest);
 		writeFileSync(path.join(scratch, 'pnpm-lock.yaml'), lockfile);
 		writeFileSync(path.join(scratch, 'pnpm-workspace.yaml'), pnpmWorkspace);
 		writeRegistryConfiguration(scratch, { withCredentials: true });
 		pnpm(['fetch', '--frozen-lockfile', '--store-dir', storeDirectory], scratch);
-	} finally {
-		rmSync(scratch, { recursive: true, force: true });
-	}
+	});
+	rmSync(scratch, { recursive: true, force: true });
+	if (Result.isFailure(warmed)) throw warmed.failure;
 }
 
 /**
@@ -125,7 +128,7 @@ export function materialize({ manifest, lockfile, pnpmWorkspace, storeDirectory,
 	rmSync(staging, { recursive: true, force: true });
 	mkdirSync(staging, { recursive: true });
 	const started = process.hrtime.bigint();
-	try {
+	const materialized = Result.try(() => {
 		writeFileSync(path.join(staging, 'package.json'), manifest);
 		writeFileSync(path.join(staging, 'pnpm-lock.yaml'), lockfile);
 		writeFileSync(path.join(staging, 'pnpm-workspace.yaml'), pnpmWorkspace);
@@ -154,11 +157,10 @@ export function materialize({ manifest, lockfile, pnpmWorkspace, storeDirectory,
 			retired = `${target}.retired-${randomUUID()}`;
 			renameSync(target, retired);
 		}
-		try {
-			renameSync(produced, target);
-		} catch (cause) {
+		const published = Result.try(() => renameSync(produced, target));
+		if (Result.isFailure(published)) {
 			if (retired && !existsSync(target)) renameSync(retired, target);
-			throw cause;
+			throw published.failure;
 		}
 		return {
 			lockHash: hash,
@@ -166,11 +168,10 @@ export function materialize({ manifest, lockfile, pnpmWorkspace, storeDirectory,
 			installed: true,
 			elapsedMs: Number(process.hrtime.bigint() - started) / 1_000_000
 		};
-	} catch (cause) {
-		throw cause;
-	} finally {
-		rmSync(staging, { recursive: true, force: true });
-	}
+	});
+	rmSync(staging, { recursive: true, force: true });
+	if (Result.isFailure(materialized)) throw materialized.failure;
+	return materialized.success;
 }
 
 /**

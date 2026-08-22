@@ -1,17 +1,21 @@
+import { refuse } from '@norbital-ai/bolt/authoring';
 import { isCalendarDate, isClockTime, isUtcIsoInstant } from '@norbital-ai/std/date';
 import { Effect, Schema } from 'effect';
+import { dateKey } from '../../lib/iso-day.js';
 import { formatNamedList, monthBounds } from '../../lib/period.js';
 import { leaveCoverage } from '../../lib/scheduling/leave-coverage.js';
 import { payrollWindows, assertNotSettled } from '../../lib/scheduling/lock.js';
-import type { Pipelines } from './$types.js';
+import type { Pipelines, WorkspaceRow } from './$types.js';
 
-type CompanyIdentity = {
-	readonly norbital_id: string;
-	readonly name: string;
-	readonly registration_number: string;
-};
+type CompanyIdentity = Pick<WorkspaceRow<'companies'>, 'id' | 'name' | 'registration_number'>;
 
-function resolveLegalEntity(
+/**
+ * Resolve one `legal_entity` cell to its company row, or refuse.
+ *
+ * The cell may name a company by display name or by registration number. Shared by the time-entries
+ * and roster-entry imports, which ask the same question of the same Settings sheet.
+ */
+export function resolveLegalEntity(
 	companies: readonly CompanyIdentity[],
 	legalEntity: string
 ): CompanyIdentity {
@@ -23,12 +27,12 @@ function resolveLegalEntity(
 	);
 	if (matches.length === 1) return matches[0]!;
 	if (matches.length === 0) {
-		throw new Error(
+		refuse(
 			`No legal entity named "${legalEntity}" is on file.\n` +
 				`Known entities:\n${formatNamedList(companies.map((company) => company.name))}`
 		);
 	}
-	throw new Error(
+	refuse(
 		`"${legalEntity}" matches more than one legal entity:\n${formatNamedList(matches.map((company) => company.name))}`
 	);
 }
@@ -53,25 +57,21 @@ const importSchema = Schema.Struct({
 const QUERY_LIMIT = 20_000;
 type ImportRow = Schema.Schema.Type<typeof rowSchema>;
 
-function addDays(date: string, days: number): string {
-	return new Date(Date.parse(`${date}T00:00:00.000Z`) + days * 86_400_000)
-		.toISOString()
-		.slice(0, 10);
-}
-
-function dateKey(value: string | Date | null | undefined): string {
-	if (value == null) return '';
-	return typeof value === 'string' ? value.slice(0, 10) : value.toISOString().slice(0, 10);
-}
-
-function assertValidTimeZone(timeZone: string): void {
-	try {
-		Intl.DateTimeFormat(undefined, { timeZone });
-	} catch {
-		throw new Error(
-			`"${timeZone}" is not a recognized IANA timezone. Use a place such as Asia/Kuala_Lumpur, not a fixed UTC offset.`
-		);
-	}
+function assertValidTimeZone(timeZone: string): Effect.Effect<void, never, never> {
+	return Effect.try({
+		try: () => {
+			Intl.DateTimeFormat(undefined, { timeZone });
+		},
+		catch: () => null
+	}).pipe(
+		Effect.catch(() =>
+			Effect.sync(() =>
+				refuse(
+					`"${timeZone}" is not a recognized IANA timezone. Use a place such as Asia/Kuala_Lumpur, not a fixed UTC offset.`
+				)
+			)
+		)
+	);
 }
 
 function clockMinutes(value: string): number {
@@ -81,7 +81,9 @@ function clockMinutes(value: string): number {
 
 /** An equal or earlier wall-clock close is the following calendar day. */
 function endCalendarDate(workDate: string, started: string, ended: string): string {
-	return clockMinutes(ended) <= clockMinutes(started) ? addDays(workDate, 1) : workDate;
+	return clockMinutes(ended) <= clockMinutes(started)
+		? new Date(Date.parse(`${workDate}T00:00:00.000Z`) + 86_400_000).toISOString().slice(0, 10)
+		: workDate;
 }
 
 function localWallTimeToUtcIso(calendarDate: string, clockTime: string, timeZone: string): string {
@@ -121,12 +123,12 @@ function localWallTimeToUtcIso(calendarDate: string, clockTime: string, timeZone
 		resolved += delta;
 	}
 	if (shownMilliseconds(new Date(resolved)) !== desired) {
-		throw new Error(
+		refuse(
 			`Could not resolve ${calendarDate} ${clockTime} in ${timeZone}. The local time may fall in a daylight-saving gap.`
 		);
 	}
 	const iso = new Date(resolved).toISOString();
-	if (!isUtcIsoInstant(iso)) throw new Error(`Could not resolve ${calendarDate} ${clockTime}.`);
+	if (!isUtcIsoInstant(iso)) refuse(`Could not resolve ${calendarDate} ${clockTime}.`);
 	return iso;
 }
 
@@ -161,7 +163,7 @@ export default {
 					month: fileMonth,
 					rows
 				} = Schema.decodeUnknownSync(importSchema)(input);
-				assertValidTimeZone(timezone);
+				yield* assertValidTimeZone(timezone);
 
 				if (fileMonth != null) {
 					const bounds = monthBounds(fileMonth);
@@ -173,19 +175,17 @@ export default {
 						)
 					];
 					if (outsideMonth.length > 0) {
-						throw new Error(
-							`These rows do not belong to ${fileMonth}:\n${formatNamedList(outsideMonth)}`
-						);
+						refuse(`These rows do not belong to ${fileMonth}:\n${formatNamedList(outsideMonth)}`);
 					}
 				}
 
 				let companyId: string | undefined;
 				if (legalEntity != null) {
 					const companies = yield* api.db.query.companies.findMany({
-						columns: { norbital_id: true, name: true, registration_number: true },
+						columns: { id: true, name: true, registration_number: true },
 						limit: QUERY_LIMIT
 					});
-					companyId = resolveLegalEntity(companies, legalEntity).norbital_id;
+					companyId = resolveLegalEntity(companies, legalEntity).id;
 				}
 
 				const invalidDates = [
@@ -194,22 +194,23 @@ export default {
 					)
 				];
 				if (invalidDates.length > 0) {
-					throw new Error(
+					refuse(
 						`These work_date values are not valid calendar days (YYYY-MM-DD):\n${formatNamedList(invalidDates)}`
 					);
 				}
-				const invalidClocks = rows.flatMap((row) =>
-					[
+				const invalidClocks = rows.flatMap((row): string[] => {
+					const checks = [
 						['clock_in', row.clock_in],
 						['clock_out', row.clock_out]
-					]
-						.filter((pair): pair is [string, string] => pair[1] != null && !isClockTime(pair[1]))
-						.map(
-							([field, value]) => `${row.employee_number} on ${row.work_date}: ${field} "${value}"`
-						)
-				);
+					] as const;
+					return checks.flatMap(([field, value]) =>
+						value == null || isClockTime(value)
+							? []
+							: [`${row.employee_number} on ${row.work_date}: ${field} "${value}"`]
+					);
+				});
 				if (invalidClocks.length > 0) {
-					throw new Error(
+					refuse(
 						`These clock fields are not valid local times (HH:mm):\n${formatNamedList(invalidClocks)}`
 					);
 				}
@@ -222,7 +223,7 @@ export default {
 					seen.add(key);
 				}
 				if (repeated.length > 0) {
-					throw new Error(
+					refuse(
 						`The import repeats the same employee and day:\n${formatNamedList(repeated)}\nKeep one row per person per operational day; use multiple worked intervals inside that entry when needed.`
 					);
 				}
@@ -233,29 +234,29 @@ export default {
 						employee_number: { in: employeeNumbers },
 						...(companyId == null ? {} : { company_id: { eq: companyId } })
 					},
-					columns: { norbital_id: true, employee_number: true, company_id: true },
+					columns: { id: true, employee_number: true, company_id: true },
 					limit: QUERY_LIMIT
 				});
 				const idsByNumber = new Map<string, string[]>();
 				for (const employment of employments) {
 					const ids = idsByNumber.get(employment.employee_number) ?? [];
-					ids.push(employment.norbital_id);
+					ids.push(employment.id);
 					idsByNumber.set(employment.employee_number, ids);
 				}
 				const ambiguous = employeeNumbers.filter(
 					(number) => (idsByNumber.get(number)?.length ?? 0) > 1
 				);
 				if (ambiguous.length > 0) {
-					throw new Error(
+					refuse(
 						`These employee numbers exist in more than one company:\n${formatNamedList(ambiguous)}\nSet legal_entity on the Settings sheet to the employing entity this file is for.`
 					);
 				}
 				const idByNumber = new Map(
-					employments.map((employment) => [employment.employee_number, employment.norbital_id])
+					employments.map((employment) => [employment.employee_number, employment.id])
 				);
 				const unknown = employeeNumbers.filter((number) => !idByNumber.has(number));
 				if (unknown.length > 0) {
-					throw new Error(
+					refuse(
 						companyId == null
 							? `These employee numbers are not on file:\n${formatNamedList(unknown)}`
 							: `These employee numbers are not employed by this legal entity:\n${formatNamedList(unknown)}`
@@ -263,7 +264,7 @@ export default {
 				}
 				const employmentIdFor = (number: string): string => {
 					const id = idByNumber.get(number);
-					if (id == null) throw new Error(`No employment resolved for ${number}.`);
+					if (id == null) refuse(`No employment resolved for ${number}.`);
 					return id;
 				};
 
@@ -286,7 +287,7 @@ export default {
 					)
 					.map((row) => `${row.employee_number} on ${row.work_date}`);
 				if (present.length > 0) {
-					throw new Error(
+					refuse(
 						`These days already have attendance:\n${formatNamedList(present)}\nUpdate the existing entry instead of importing a duplicate.`
 					);
 				}
@@ -311,7 +312,7 @@ export default {
 					where: {
 						employment_id: { in: employmentIds },
 						kind: { eq: 'TIME_OFF' },
-						norbital_approval_id: { isNull: true },
+						approval_id: { isNull: true },
 						from_date: { lte: last },
 						to_date: { gte: first }
 					},
@@ -330,7 +331,7 @@ export default {
 						.filter((request) => request.employment_id === employmentId)
 						.find((request) => leaveCoverage(request, row.work_date).fullDay);
 					if (covering != null) {
-						throw new Error(
+						refuse(
 							`${row.employee_number} on ${row.work_date} is covered by approved leave ` +
 								`${dateKey(covering.from_date)} → ${dateKey(covering.to_date)}. Attendance on a ` +
 								'leave day is not recorded; amend or cancel that leave first.'

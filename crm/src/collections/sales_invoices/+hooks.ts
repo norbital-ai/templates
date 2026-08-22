@@ -1,25 +1,9 @@
-import { Effect } from 'effect';
+import { Clock, Effect, Schema } from 'effect';
+import { docNoSeriesPattern, nextDocNo } from '../../lib/document-numbers.js';
 import type { Hooks, WorkspaceRow } from './$types.js';
 
-const DOC_NO_SEQUENCE_WIDTH = 4;
-
-function docNoSeriesPattern(prefix: string, year: number): string {
-	return `${prefix}-${year}-%`;
-}
-
-function nextDocNo(existingNumbers: readonly string[], prefix: string, year: number): string {
-	const seriesPrefix = `${prefix}-${year}-`;
-	let highest = 0;
-	for (const number of existingNumbers) {
-		if (!number.startsWith(seriesPrefix)) continue;
-		const sequence = Number.parseInt(number.slice(seriesPrefix.length), 10);
-		if (Number.isNaN(sequence)) continue;
-		if (sequence > highest) highest = sequence;
-	}
-	return `${seriesPrefix}${String(highest + 1).padStart(DOC_NO_SEQUENCE_WIDTH, '0')}`;
-}
-
-type InvoiceStatus = 'draft' | 'issued' | 'cancelled';
+const invoiceStatusSchema = Schema.Literals(['draft', 'issued', 'cancelled']);
+type InvoiceStatus = Schema.Schema.Type<typeof invoiceStatusSchema>;
 
 type InvoiceUpdate = {
 	-readonly [K in keyof WorkspaceRow<'sales_invoices'>]?: WorkspaceRow<'sales_invoices'>[K];
@@ -39,13 +23,17 @@ export default {
 					'Raises an invoice only against a confirmed quote, copies the account, currency and tax basis down from that quote, and assigns the next SI document number for the year.',
 				handler: ({ input, api }) =>
 					Effect.gen(function* () {
-						if (!input.quote_id) throw new Error('A sales invoice must reference a quote.');
+						if (!input.quote_id) {
+							return yield* Effect.fail(new Error('A sales invoice must reference a quote.'));
+						}
 						const quote = yield* api.db.query.quotes.findFirst({
-							where: { norbital_id: { eq: input.quote_id } }
+							where: { id: { eq: input.quote_id } }
 						});
-						if (!quote) throw new Error('Referenced quote does not exist.');
+						if (!quote) return yield* Effect.fail(new Error('Referenced quote does not exist.'));
 						if (quote.status !== 'confirmed') {
-							throw new Error('Invoices can only be raised against a confirmed quote.');
+							return yield* Effect.fail(
+								new Error('Invoices can only be raised against a confirmed quote.')
+							);
 						}
 
 						const resolved = {
@@ -60,7 +48,7 @@ export default {
 						};
 
 						if (!input.doc_no) {
-							const year = new Date().getFullYear();
+							const year = new Date(yield* Clock.currentTimeMillis).getFullYear();
 							const existing = yield* api.db.query.sales_invoices.findMany({
 								where: { doc_no: { like: docNoSeriesPattern('SI', year) } },
 								columns: { doc_no: true },
@@ -88,20 +76,28 @@ export default {
 					'Freezes a sales invoice once it is issued or cancelled, requires at least one line to issue, and requires a cancellation reason to cancel.',
 				handler: ({ input, existing, api }) =>
 					Effect.gen(function* () {
-						const newStatus = (input.status ?? existing.status) as InvoiceStatus;
-						const oldStatus = existing.status as InvoiceStatus;
+						const newStatus = yield* Schema.decodeUnknownEffect(invoiceStatusSchema)(
+							input.status ?? existing.status
+						);
+						const oldStatus = yield* Schema.decodeUnknownEffect(invoiceStatusSchema)(
+							existing.status
+						);
 
 						if (oldStatus === newStatus) {
 							if (oldStatus === 'draft') return input;
-							throw new Error(
-								`An ${oldStatus} sales invoice is immutable. Revise by raising a new invoice.`
+							return yield* Effect.fail(
+								new Error(
+									`An ${oldStatus} sales invoice is immutable. Revise by raising a new invoice.`
+								)
 							);
 						}
 
 						const allowed = VALID_TRANSITIONS[oldStatus];
 						if (!allowed.includes(newStatus)) {
-							throw new Error(
-								`Invalid status transition: ${oldStatus} → ${newStatus}. Allowed: ${allowed.join(', ')}.`
+							return yield* Effect.fail(
+								new Error(
+									`Invalid status transition: ${oldStatus} → ${newStatus}. Allowed: ${allowed.join(', ')}.`
+								)
 							);
 						}
 
@@ -109,23 +105,27 @@ export default {
 
 						if (newStatus === 'issued') {
 							const lines = yield* api.db.query.sales_invoice_lines.findMany({
-								where: { sales_invoice_id: { eq: existing.norbital_id } },
+								where: { sales_invoice_id: { eq: existing.id } },
 								limit: 1
 							});
 							if (lines.length === 0) {
-								throw new Error(
-									'A sales invoice must have at least one line before it can be issued.'
+								return yield* Effect.fail(
+									new Error('A sales invoice must have at least one line before it can be issued.')
 								);
 							}
-							if (existing.issued_at == null) updates.issued_at = new Date();
+							if (existing.issued_at == null) {
+								updates.issued_at = new Date(yield* Clock.currentTimeMillis);
+							}
 						}
 
 						if (newStatus === 'cancelled') {
 							const cancelReason = input.cancel_reason ?? existing.cancel_reason;
 							if (!cancelReason || String(cancelReason).trim() === '') {
-								throw new Error('A cancellation reason is required.');
+								return yield* Effect.fail(new Error('A cancellation reason is required.'));
 							}
-							if (existing.cancelled_at == null) updates.cancelled_at = new Date();
+							if (existing.cancelled_at == null) {
+								updates.cancelled_at = new Date(yield* Clock.currentTimeMillis);
+							}
 						}
 
 						return updates;

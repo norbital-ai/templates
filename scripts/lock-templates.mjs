@@ -10,6 +10,7 @@ import {
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import process from 'node:process';
+import { Result } from 'effect';
 import { registryConfiguration } from './lib/registry.mjs';
 import { discoverTemplates, repositoryRoot } from './lib/templates.mjs';
 
@@ -51,10 +52,10 @@ function resolveLockfile(template) {
 	const workingDirectory = mkdtempSync(path.join(tmpdir(), `norbital-lock-${template.slug}-`));
 	const storeDirectory = path.join(workingDirectory, '.pnpm-store');
 	const cacheDirectory = path.join(workingDirectory, '.pnpm-cache');
-	try {
+	const resolution = Result.try(() => {
 		copyTemplateProject(template, workingDirectory);
 		writeFileSync(path.join(workingDirectory, '.npmrc'), registryConfiguration());
-		try {
+		const installed = Result.try(() =>
 			execFileSync(
 				'pnpm',
 				[
@@ -72,17 +73,21 @@ function resolveLockfile(template) {
 					encoding: 'utf8',
 					stdio: ['ignore', 'pipe', 'pipe']
 				}
-			);
-		} catch (cause) {
-			const detail = cause?.stderr?.toString().trim() || cause?.stdout?.toString().trim();
+			)
+		);
+		if (Result.isFailure(installed)) {
+			const detail =
+				installed.failure?.stderr?.toString().trim() ||
+				installed.failure?.stdout?.toString().trim();
 			fail(`Resolving ${template.slug} failed${detail ? `:\n${detail}` : ''}`);
 		}
 		const resolved = path.join(workingDirectory, lockfileName);
 		if (!existsSync(resolved)) fail(`Resolving ${template.slug} produced no ${lockfileName}.`);
 		return readFileSync(resolved, 'utf8');
-	} finally {
-		rmSync(workingDirectory, { recursive: true, force: true });
-	}
+	});
+	rmSync(workingDirectory, { recursive: true, force: true });
+	if (Result.isFailure(resolution)) throw resolution.failure;
+	return resolution.success;
 }
 
 /**
@@ -92,7 +97,7 @@ function resolveLockfile(template) {
  */
 function verifyOfflineInstall(template, lockfile, storeDirectory) {
 	const workingDirectory = mkdtempSync(path.join(tmpdir(), `norbital-verify-${template.slug}-`));
-	try {
+	const verification = Result.try(() => {
 		copyTemplateProject(template, workingDirectory);
 		writeFileSync(path.join(workingDirectory, lockfileName), lockfile);
 		const npmrcPath = path.join(workingDirectory, '.npmrc');
@@ -104,17 +109,19 @@ function verifyOfflineInstall(template, lockfile, storeDirectory) {
 				encoding: 'utf8',
 				stdio: ['ignore', 'pipe', 'pipe']
 			});
-		try {
-			pnpm(['fetch', '--frozen-lockfile', '--store-dir', storeDirectory]);
-		} catch (cause) {
-			const detail = cause?.stderr?.toString().trim() || cause?.stdout?.toString().trim();
+		const fetched = Result.try(() =>
+			pnpm(['fetch', '--frozen-lockfile', '--store-dir', storeDirectory])
+		);
+		if (Result.isFailure(fetched)) {
+			const detail =
+				fetched.failure?.stderr?.toString().trim() || fetched.failure?.stdout?.toString().trim();
 			fail(`Warming the store for ${template.slug} failed${detail ? `:\n${detail}` : ''}`);
 		}
 		// Removing credentials before the offline install proves the sandbox needs neither
 		// network egress nor registry access once the host store is warm.
 		rmSync(npmrcPath, { force: true });
 		const started = Date.now();
-		try {
+		const installed = Result.try(() =>
 			pnpm([
 				'install',
 				'--frozen-lockfile',
@@ -122,15 +129,19 @@ function verifyOfflineInstall(template, lockfile, storeDirectory) {
 				'--ignore-scripts',
 				'--store-dir',
 				storeDirectory
-			]);
-		} catch (cause) {
-			const detail = cause?.stderr?.toString().trim() || cause?.stdout?.toString().trim();
+			])
+		);
+		if (Result.isFailure(installed)) {
+			const detail =
+				installed.failure?.stderr?.toString().trim() ||
+				installed.failure?.stdout?.toString().trim();
 			fail(`Offline install for ${template.slug} failed${detail ? `:\n${detail}` : ''}`);
 		}
 		return Date.now() - started;
-	} finally {
-		rmSync(workingDirectory, { recursive: true, force: true });
-	}
+	});
+	rmSync(workingDirectory, { recursive: true, force: true });
+	if (Result.isFailure(verification)) throw verification.failure;
+	return verification.success;
 }
 
 const options = readArguments(process.argv.slice(2));

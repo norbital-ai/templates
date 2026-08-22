@@ -19,7 +19,7 @@ export default {
 			before: {
 				description:
 					'Refuses a new contribution band whose wage, age or risk-class selector overlaps another band of the same statutory contribution over the same effective range, so no wage can match two rates at once.',
-				handler: async ({ input }) => input
+				handler: ({ input }) => input
 			}
 		}
 	},
@@ -28,7 +28,7 @@ export default {
 			before: {
 				description:
 					'Re-checks an edited contribution band against its siblings so a widened selector or effective range cannot make two rates of the same scheme apply to one wage.',
-				handler: async ({ input }) => input
+				handler: ({ input }) => input
 			}
 		}
 	}

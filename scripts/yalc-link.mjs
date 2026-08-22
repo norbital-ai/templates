@@ -14,11 +14,7 @@
 import { execFileSync } from 'node:child_process';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import {
-	ensurePureInstallation,
-	managedPackages,
-	stalePackages
-} from '../../oss/scripts/lib/yalc-consumers.mjs';
+import { linkConsumers } from '../../oss/scripts/lib/yalc-consumers.mjs';
 import { discoverTemplates, repositoryRoot } from './lib/templates.mjs';
 
 const ossRoot = path.resolve(repositoryRoot, '../oss');
@@ -58,26 +54,28 @@ if (templates.length === 0) {
 	throw new Error(`No template matches --template=${templateFilter}`);
 }
 
-for (const template of templates) {
-	if (retreat) {
+if (retreat) {
+	for (const template of templates) {
 		run(yalcBin, ['retreat', '--all'], template.directory);
 		run('pnpm', ['install', '--config.strict-dep-builds=false'], template.directory);
-		continue;
 	}
-	const packages = managedPackages(template.directory);
-	const migrated = ensurePureInstallation({
-		consumerDirectory: template.directory,
-		names: packages,
+} else {
+	const states = linkConsumers({
+		consumers: templates.map((template) => ({ ...template, name: template.slug })),
+		force,
 		yalcBin,
-		run
+		run,
+		install: (changed) => {
+			for (const template of changed) {
+				run('pnpm', ['install', '--config.strict-dep-builds=false'], template.directory);
+			}
+		}
 	});
-	const stale = stalePackages(template.directory, packages);
-	if (!force && migrated.length === 0 && stale.length === 0) {
-		console.log(`${template.slug}: already compiles against the linked build.`);
-		continue;
+	for (const state of states) {
+		console.log(
+			force || state.prepared.length > 0 || state.stale.length > 0
+				? `${state.slug}: linked ${state.stale.length > 0 ? state.stale.join(', ') : 'the Bolt packages'}.`
+				: `${state.slug}: already compiles against the linked build.`
+		);
 	}
-	run('pnpm', ['install', '--config.strict-dep-builds=false'], template.directory);
-	console.log(
-		`${template.slug}: linked ${stale.length > 0 ? stale.join(', ') : 'the Bolt packages'}.`
-	);
 }

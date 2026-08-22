@@ -71,7 +71,7 @@
 	import type { Snippet } from 'svelte';
 	import type { DayFacts, IntervalDraft, LockRung } from './roster-month.js';
 
-	export type DaySheetMode = 'controller' | 'employee';
+	type DaySheetMode = 'controller' | 'employee';
 
 	export type DaySheetPerson = {
 		/** The employment id — the board's row key and the foreign key every write carries. */
@@ -81,18 +81,18 @@
 	};
 
 	/** A roster code as the picker takes it; the same shape `Combobox` uses everywhere else. */
-	export type DaySheetRosterCodeOption = {
+	type DaySheetRosterCodeOption = {
 		readonly value: string;
 		readonly label: string;
 		readonly search_term?: string;
 	};
 
-	export type DaySheetPlanChange = {
+	type DaySheetPlanChange = {
 		readonly rosterCodeId: string;
 		readonly note: string | null;
 	};
 
-	export type DaySheetAttendanceChange = {
+	type DaySheetAttendanceChange = {
 		/** Null when nothing has been recorded for this day yet, which makes the write a create. */
 		readonly timeEntryId: string | null;
 		readonly intervals: readonly IntervalDraft[];
@@ -107,7 +107,7 @@
 		readonly attendance: DaySheetAttendanceChange | null;
 	};
 
-	export type DaySheetProps = {
+	type DaySheetProps = {
 		open: boolean;
 		mode?: DaySheetMode;
 		person: DaySheetPerson | null;
@@ -461,9 +461,9 @@
 		draftBreak = day?.shiftBreakMinutes ?? 0;
 	}
 
-	async function save(): Promise<void> {
+	function save(): void {
 		if (person == null || date == null || !savable) return;
-		await onSave?.({
+		void onSave?.({
 			employmentId: person.id,
 			date,
 			plan:

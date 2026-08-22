@@ -3,6 +3,8 @@ import { existsSync, mkdtempSync, readFileSync, readdirSync, rmSync, statSync } 
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import process from 'node:process';
+import { Result } from 'effect';
+import { decodeJsonObject, decodeJsonString } from './lib/json.mjs';
 
 const bundleRoot = path.resolve(process.argv[2] ?? 'dist/template-bundles');
 const registry = process.env.NORBITAL_PACKAGE_REGISTRY ?? 'https://npm.pkg.github.com';
@@ -17,26 +19,29 @@ function run(command, arguments_, options = {}) {
 }
 
 function manifest(directory, filename = 'package.json') {
-	return JSON.parse(readFileSync(path.join(directory, filename), 'utf8'));
+	return decodeJsonObject(
+		readFileSync(path.join(directory, filename), 'utf8'),
+		path.join(directory, filename)
+	);
 }
 
 function packageExists(name, version) {
-	try {
-		return (
-			JSON.parse(
-				run('npm', ['view', `${name}@${version}`, 'version', '--json', `--registry=${registry}`])
+	const viewed = Result.try(
+		() =>
+			decodeJsonString(
+				run('npm', ['view', `${name}@${version}`, 'version', '--json', `--registry=${registry}`]),
+				`npm view ${name}@${version} version --json`
 			) === version
-		);
-	} catch (cause) {
-		const detail = `${cause?.stdout ?? ''}\n${cause?.stderr ?? ''}`;
-		if (/E404|404 Not Found|npm error code E404/.test(detail)) return false;
-		throw cause;
-	}
+	);
+	if (Result.isSuccess(viewed)) return viewed.success;
+	const detail = `${viewed.failure?.stdout ?? ''}\n${viewed.failure?.stderr ?? ''}`;
+	if (/E404|404 Not Found|npm error code E404/.test(detail)) return false;
+	throw viewed.failure;
 }
 
 function assertPublishedBundleMatches(directory, name, version) {
 	const temporaryDirectory = mkdtempSync(path.join(tmpdir(), 'norbital-template-bundle-'));
-	try {
+	const verified = Result.try(() => {
 		const packed = run('npm', [
 			'pack',
 			`${name}@${version}`,
@@ -73,9 +78,9 @@ function assertPublishedBundleMatches(directory, name, version) {
 			);
 		}
 		console.log(`${name}@${version} already contains this exact build; skipping publish.`);
-	} finally {
-		rmSync(temporaryDirectory, { recursive: true, force: true });
-	}
+	});
+	rmSync(temporaryDirectory, { recursive: true, force: true });
+	if (Result.isFailure(verified)) throw verified.failure;
 }
 
 if (!existsSync(bundleRoot) || !statSync(bundleRoot).isDirectory()) {

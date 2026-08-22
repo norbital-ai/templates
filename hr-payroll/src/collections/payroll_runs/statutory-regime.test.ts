@@ -64,14 +64,14 @@ test('the PAID configuration snapshot retains the exact regime revision and auth
 	const snapshot = configurationSnapshot(
 		{
 			company: {
-				norbital_id: 'company-my',
+				id: 'company-my',
 				pay_cutoff_day: 21,
 				pay_day: 28,
 				overtime_calculation_method: 'STATUTORY',
 				settlement_policy: { kind: 'MONTHLY' }
 			},
 			jurisdiction: {
-				norbital_id: 'jurisdiction-my-2026',
+				id: 'jurisdiction-my-2026',
 				proration: { by: 'CALENDAR_DAYS' },
 				ordinary_rate_basis: 'DAYS_PER_MONTH',
 				ordinary_rate_divisor: 26,

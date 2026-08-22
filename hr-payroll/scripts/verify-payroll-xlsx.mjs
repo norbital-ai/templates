@@ -33,6 +33,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createServer } from 'vite';
 import ExcelJS from 'exceljs';
+import { Effect } from 'effect';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const vite = await createServer({
@@ -325,10 +326,12 @@ try {
 		'/src/collections/payroll_runs/lib/report.ts'
 	);
 
-	const bytes = await payrollReportXlsx([
-		{ period: '2026-03', payDate: '2026-03-28', payslips: [VERIFIED, JOINER] },
-		{ period: '2026-04', payDate: '2026-04-28', payslips: [SINGAPORE] }
-	]);
+	const bytes = await Effect.runPromise(
+		payrollReportXlsx([
+			{ period: '2026-03', payDate: '2026-03-28', payslips: [VERIFIED, JOINER] },
+			{ period: '2026-04', payDate: '2026-04-28', payslips: [SINGAPORE] }
+		])
+	);
 	const archive = Uint8Array.from(bytes);
 
 	// "PK\x03\x04": an XLSX is a zip, and a workbook that failed to serialise is not one.
@@ -555,7 +558,9 @@ try {
 	]);
 
 	// ── and an empty period still writes a real archive, as it always did ─────────────────────────
-	const emptyBytes = await payrollReportXlsx([{ period: 'verification', payslips: [] }]);
+	const emptyBytes = await Effect.runPromise(
+		payrollReportXlsx([{ period: 'verification', payslips: [] }])
+	);
 	const empty = new ExcelJS.Workbook();
 	await empty.xlsx.load(Uint8Array.from(emptyBytes));
 	assert.equal(empty.getWorksheet('verification')?.name, 'verification');

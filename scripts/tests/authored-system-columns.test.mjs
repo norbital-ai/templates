@@ -4,12 +4,17 @@ import { describe, it } from 'node:test';
 import {
 	auditAuthoredSystemColumns,
 	auditWorkspace,
-	authoredSourceExtensions,
-	systemColumnPrefix
+	authoredSourceExtensions
 } from '../lib/authored-system-columns.mjs';
 import { discoverTemplates } from '../lib/templates.mjs';
 
 const templates = discoverTemplates();
+
+const frameworkFixture = (markup) => `<script>
+	import { CollectionForm, CollectionTable } from '@example/framework';
+	let { record } = $props();
+</script>
+${markup}`;
 
 describe('authored system columns', () => {
 	it('walks components as well as modules, so a green result cannot mean a skipped extension', () => {
@@ -58,7 +63,7 @@ describe('authored system columns', () => {
 		const workspace = templates[0].directory;
 		assert.deepEqual(
 			auditAuthoredSystemColumns(workspace, {
-				'a.svelte': '<CollectionForm collection="x" recordId={record?.norbital_id} />'
+				'a.svelte': frameworkFixture('<CollectionForm collection="x" recordId={record?.id} />')
 			}),
 			[{ file: 'a.svelte', component: 'CollectionForm', property: 'recordId' }]
 		);
@@ -68,7 +73,9 @@ describe('authored system columns', () => {
 		const workspace = templates[0].directory;
 		assert.deepEqual(
 			auditAuthoredSystemColumns(workspace, {
-				'a.svelte': '<CollectionTable view={`employees:employments:${record.norbital_id}`} />'
+				'a.svelte': frameworkFixture(
+					'<CollectionTable view={`employees:employments:${record.id}`} />'
+				)
 			}),
 			[{ file: 'a.svelte', component: 'CollectionTable', property: 'view' }]
 		);
@@ -78,8 +85,8 @@ describe('authored system columns', () => {
 		const workspace = templates[0].directory;
 		assert.deepEqual(
 			auditAuthoredSystemColumns(workspace, {
-				'chain.svelte': "<CollectionTable view={record?.norbital_id ?? 'none'} />",
-				'computed.svelte': "<CollectionForm recordId={record['norbital_id']} />"
+				'chain.svelte': frameworkFixture("<CollectionTable view={record?.id ?? 'none'} />"),
+				'computed.svelte': frameworkFixture("<CollectionForm recordId={record['id']} />")
 			}),
 			[
 				{ file: 'chain.svelte', component: 'CollectionTable', property: 'view' },
@@ -88,8 +95,33 @@ describe('authored system columns', () => {
 		);
 	});
 
+	it('recognises every framework-owned column and no similarly named authored column', () => {
+		const workspace = templates[0].directory;
+		assert.deepEqual(
+			auditAuthoredSystemColumns(workspace, {
+				'a.svelte': frameworkFixture(`<CollectionForm
+					rowId={record.id}
+					created={record.created_at}
+					updated={record.updated_at}
+					period={record.sys_period}
+					version={record.row_version}
+					approval={record.approval_id}
+					customer={record.customer_id}
+				/>`)
+			}),
+			[
+				{ file: 'a.svelte', component: 'CollectionForm', property: 'rowId' },
+				{ file: 'a.svelte', component: 'CollectionForm', property: 'created' },
+				{ file: 'a.svelte', component: 'CollectionForm', property: 'updated' },
+				{ file: 'a.svelte', component: 'CollectionForm', property: 'period' },
+				{ file: 'a.svelte', component: 'CollectionForm', property: 'version' },
+				{ file: 'a.svelte', component: 'CollectionForm', property: 'approval' }
+			]
+		);
+	});
+
 	it('leaves the legitimate data-access reads alone', () => {
-		// `norbital_id` is a real column and the value every foreign key points at. Naming it as a
+		// `id` is a real column and the value every foreign key points at. Naming it as a
 		// query key, filtering on it, keying a list by it, linking to it, or reading it inside a
 		// callback the framework merely invokes is not the offence — handing it to a surface that
 		// already has the record is. Every shape below appears in the templates today, so a rule that
@@ -97,17 +129,59 @@ describe('authored system columns', () => {
 		const workspace = templates[0].directory;
 		assert.deepEqual(
 			auditAuthoredSystemColumns(workspace, {
-				'a.svelte': `<CollectionTable
+				'a.svelte': frameworkFixture(`<CollectionTable
 						query={{
-							where: { employee_id: { eq: record.norbital_id }, ${systemColumnPrefix}id: { in: ids } },
-							orderBy: { norbital_created_at: 'desc' }
+							where: { employee_id: { eq: record.id }, id: { in: ids } },
+							orderBy: { created_at: 'desc' }
 						}}
-						exportPipelines={[{ id: 'x', run: async ({ selectedRows }) => selectedRows.map((row) => row.norbital_id) }]}
+						exportPipelines={[{ id: 'x', run: async ({ selectedRows }) => selectedRows.map((row) => row.id) }]}
 					/>
-					{#each rows as row (row.norbital_id)}
-						<a href="/jobs/{row.norbital_id}">{row.title}</a>
-						<Button onclick={() => publish(row.norbital_id)}>Publish</Button>
-					{/each}`
+					{#each rows as row (row.id)}
+						<a href="/jobs/{row.id}">{row.title}</a>
+						<Button onclick={() => publish(row.id)}>Publish</Button>
+					{/each}`)
+			}),
+			[]
+		);
+	});
+
+	it('leaves reclamation presentation-catalogue ids on local sibling components alone', () => {
+		const workspace = templates[0].directory;
+		assert.deepEqual(
+			auditAuthoredSystemColumns(workspace, {
+				'model-panel.svelte': `<script>
+					import InfoHint from './info-hint.svelte';
+				</script>
+				<InfoHint
+					label={t('component.about_label', { label: surfaceLabel(i18n, layer.id, layer.label) })}
+					text={surfaceNote(i18n, layer.id, SURFACE_NOTE[layer.id])}
+				/>`,
+				'cost-panel.svelte': `<script>
+					import InfoHint from './info-hint.svelte';
+				</script>
+				<InfoHint
+					label={t('component.why_label', { label: manualTakeOffLabel(i18n, item.id, item.label) })}
+					text={manualTakeOffWhy(i18n, item.id, item.why)}
+				/>`
+			}),
+			[]
+		);
+	});
+
+	it('requires both a package component and the framework record binding', () => {
+		const workspace = templates[0].directory;
+		assert.deepEqual(
+			auditAuthoredSystemColumns(workspace, {
+				'local-record.svelte': `<script>
+					import InfoHint from './info-hint.svelte';
+					let { record } = $props();
+				</script>
+				<InfoHint text={record.id} />`,
+				'external-catalogue.svelte': `<script>
+					import { InfoHint } from '@example/framework';
+					let { item } = $props();
+				</script>
+				<InfoHint text={item.id} />`
 			}),
 			[]
 		);

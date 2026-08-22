@@ -13,7 +13,7 @@
 	import type { RepresentationProps } from './$types.js';
 	import { CollectionForm } from '@norbital-ai/ui/collection-form';
 	import { CollectionTable } from '@norbital-ai/ui/collection-table';
-	import { Cover, Grid, Inline, Stack } from '@norbital-ai/ui/layout';
+	import { Column, Cover, Grid, Inline, Stack } from '@norbital-ai/ui/layout';
 	import { Tabs, type TabConfig } from '@norbital-ai/ui/tabs';
 	import { inForceTodayFilter } from '../../lib/ui/calendar.js';
 	import { formatNumeric } from '../../lib/ui/display-formatters.js';
@@ -42,9 +42,9 @@
 						<Field name="name" />
 						<Field name="currency" />
 						<Field name="tax_year_start_month" label={t('component.tax_year_start_month')} />
-						<div class="col-span-full">
-							<Field name="effective_range" label={t('component.effective_period')} />
-						</div>
+						<Column span="all"
+							><Field name="effective_range" label={t('component.effective_period')} /></Column
+						>
 					</Grid>
 				</Stack>
 
@@ -84,7 +84,7 @@
 			description={t('component.statutory_contributions_description')}
 			initialFilters={inForceTodayFilter()}
 			query={{
-				where: { jurisdiction_id: { eq: record.norbital_id } },
+				where: { jurisdiction_id: { eq: record.id } },
 				orderBy: { sequence: 'asc' }
 			}}
 		>

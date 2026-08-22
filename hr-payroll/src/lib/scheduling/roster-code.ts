@@ -1,21 +1,25 @@
+import { Effect, Schema } from 'effect';
 import type { RosterCodeVariant } from '../../datatypes/roster_code_variant/+definition.js';
+import { rosterCodeVariantValueSchema } from '../../datatypes/roster_code_variant/+definition.js';
 
 const MINUTES_PER_DAY = 24 * 60;
 
-export type RosterCodeLike = {
-	readonly norbital_id?: string;
-	readonly code: string;
-	readonly variant: RosterCodeVariant;
-};
+const rosterCodeLikeSchema = Schema.Struct({
+	id: Schema.optional(Schema.String),
+	code: Schema.String,
+	variant: rosterCodeVariantValueSchema
+});
+export type RosterCodeLike = Schema.Schema.Type<typeof rosterCodeLikeSchema>;
 
-export type WorkWindow = {
-	readonly start_time: string;
-	readonly end_time: string;
-	readonly break_minutes: number;
-	readonly crosses_midnight: boolean;
-	readonly elapsed_minutes: number;
-	readonly paid_minutes: number;
-};
+const workWindowSchema = Schema.Struct({
+	start_time: Schema.String,
+	end_time: Schema.String,
+	break_minutes: Schema.Number,
+	crosses_midnight: Schema.Boolean,
+	elapsed_minutes: Schema.Number,
+	paid_minutes: Schema.Number
+});
+export type WorkWindow = Schema.Schema.Type<typeof workWindowSchema>;
 
 export function clockMinutes(value: string): number {
 	const [hours, minutes] = value.split(':').map(Number);
@@ -26,14 +30,10 @@ export function clockMinutes(value: string): number {
  * A `variant` read from storage is already a decoded `roster_code_variant` — the write boundary
  * validates the column against the strict schema, so no re-decode is needed here.
  */
-export function rosterCodeVariant(value: RosterCodeVariant | null | undefined): RosterCodeVariant {
-	if (value == null) throw new Error('A roster code variant is required.');
-	return value;
-}
-
 export function workWindow(value: RosterCodeVariant | null | undefined): WorkWindow | null {
-	const variant = rosterCodeVariant(value);
-	if (variant.kind !== 'WORK') return null;
+	if (value == null) throw new Error('A roster code variant is required.');
+	if (value.kind !== 'WORK') return null;
+	const variant = value;
 	const start = clockMinutes(variant.start_time);
 	const rawEnd = clockMinutes(variant.end_time);
 	const crossesMidnight = rawEnd <= start;
@@ -55,7 +55,8 @@ export function workWindow(value: RosterCodeVariant | null | undefined): WorkWin
 export function rosterCodeKind(
 	value: RosterCodeVariant | null | undefined
 ): RosterCodeVariant['kind'] {
-	return rosterCodeVariant(value).kind;
+	if (value == null) throw new Error('A roster code variant is required.');
+	return value.kind;
 }
 
 function clockFromMinutes(minutes: number): string {
@@ -69,12 +70,12 @@ function clockFromMinutes(minutes: number): string {
 export function workWindowHalves(
 	value: RosterCodeVariant | null | undefined
 ): { readonly span: string; readonly first: string; readonly second: string } | null {
-	let window: WorkWindow | null;
-	try {
-		window = workWindow(value);
-	} catch {
-		return null;
-	}
+	const window = Effect.runSync(
+		Effect.orElseSucceed(
+			Effect.try(() => workWindow(value)),
+			() => null
+		)
+	);
 	if (window == null) return null;
 	const start = clockMinutes(window.start_time);
 	const midpoint = clockFromMinutes(start + Math.floor(window.elapsed_minutes / 2));

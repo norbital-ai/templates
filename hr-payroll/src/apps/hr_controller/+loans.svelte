@@ -1,8 +1,10 @@
 <script lang="ts">
 	import { client } from '../../lib/workspace-client.js';
+	import { Schema } from 'effect';
 	import { useI18n } from '@norbital-ai/ui/i18n';
 	import AppHeaderActions from '@norbital-ai/bolt/client/app-header-actions';
 	import type { TenantI18nKeys } from '$bolt/i18n-keys';
+	import type { WorkspaceRow } from '$bolt/types.js';
 	import { CollectionTable } from '@norbital-ai/ui/collection-table';
 	import { Combobox } from '@norbital-ai/ui/combobox';
 	import { Bound, Cover, Inline, Stack } from '@norbital-ai/ui/layout';
@@ -13,40 +15,41 @@
 	} from '../../lib/ui/display-formatters.js';
 	import { inForceTodayFilter, todayInstant } from '../../lib/ui/calendar.js';
 
-	type RepaymentInstalmentLink = {
-		readonly amount: unknown;
-		readonly repayment_sequence: number | null;
-		readonly entry_payslip_lines?: readonly unknown[] | null;
+	type RepaymentInstalmentLink = Pick<
+		WorkspaceRow<'component_entries'>,
+		'amount' | 'repayment_sequence'
+	> & {
+		readonly entry_payslip_lines?: readonly Pick<WorkspaceRow<'payslip_lines'>, 'id'>[] | null;
 	};
 
-	type RepaymentProgress = {
-		readonly paidAmount: number;
-		readonly outstandingAmount: number;
-		readonly paidInstalments: number;
-		readonly totalInstalments: number;
-		readonly settled: boolean;
-	};
+	const RepaymentProgressSchema = Schema.Struct({
+		paidAmount: Schema.Number,
+		outstandingAmount: Schema.Number,
+		paidInstalments: Schema.Number,
+		totalInstalments: Schema.Number,
+		settled: Schema.Boolean
+	});
+	type RepaymentProgress = Schema.Schema.Type<typeof RepaymentProgressSchema>;
 
 	function repaymentProgress(
-		principal: unknown,
+		principal: number,
 		totalInstalments: number,
 		instalments: readonly RepaymentInstalmentLink[]
 	): RepaymentProgress | null {
-		const total = Number(principal);
-		if (!Number.isFinite(total) || total < 0) return null;
+		if (!Number.isFinite(principal) || principal < 0) return null;
 
 		const paidBySequence = new Map<number, number>();
 		for (const instalment of instalments) {
 			if (!instalment.entry_payslip_lines?.length) continue;
-			if (!Number.isInteger(instalment.repayment_sequence)) continue;
+			const sequence = instalment.repayment_sequence;
+			if (typeof sequence !== 'number' || !Number.isInteger(sequence)) continue;
 			const amount = Number(instalment.amount);
 			if (!Number.isFinite(amount) || amount < 0) continue;
-			const sequence = instalment.repayment_sequence as number;
 			if (!paidBySequence.has(sequence)) paidBySequence.set(sequence, amount);
 		}
 
 		const paidAmount = [...paidBySequence.values()].reduce((sum, amount) => sum + amount, 0);
-		const outstandingAmount = Math.max(0, total - paidAmount);
+		const outstandingAmount = Math.max(0, principal - paidAmount);
 		const paidInstalments = paidBySequence.size;
 		return {
 			paidAmount,
@@ -68,23 +71,25 @@
 	 * regardless: that is the page's scope picker, not a listing, and it has to default to an entity
 	 * that still exists.
 	 */
-	const companiesQuery = client.db.companies.findMany({
-		where: { norbital_approval_id: { isNull: true }, ...activeRange },
-		orderBy: { name: 'asc' },
-		limit: 500
-	});
+	const companiesQuery = $derived(
+		client.db.companies.findMany({
+			where: { approval_id: { isNull: true }, ...activeRange },
+			orderBy: { name: 'asc' },
+			limit: 500
+		})
+	);
 	const companies = $derived(companiesQuery.current ?? []);
 	const companyOptions = $derived(
 		companies.map((c) => ({
-			value: c.norbital_id,
+			value: c.id,
 			label: c.name,
 			search_term: `${c.name} ${c.registration_number ?? ''}`
 		}))
 	);
 	const selectedCompanyId = $derived(
-		companyId != null && companies.some((c) => c.norbital_id === companyId)
+		companyId != null && companies.some((c) => c.id === companyId)
 			? companyId
-			: (companies[0]?.norbital_id ?? null)
+			: (companies[0]?.id ?? null)
 	);
 
 	/**
@@ -92,30 +97,19 @@
 	 * direct relations in one nested query; an instalment is paid once a persisted payslip line
 	 * points back to it.
 	 */
-	type NestedAgreement = {
-		readonly principal: unknown;
-		readonly schedule: unknown;
-		readonly agreement_employment?: { readonly employee_number?: string | null } | null;
-		readonly agreement_pay_component?: {
-			readonly code?: string | null;
-			readonly name?: string | null;
-		} | null;
+	type NestedAgreement = WorkspaceRow<'repayment_agreements'> & {
+		readonly agreement_employment?: Pick<WorkspaceRow<'employments'>, 'employee_number'> | null;
+		readonly agreement_pay_component?: Pick<WorkspaceRow<'pay_components'>, 'code' | 'name'> | null;
 		readonly agreement_instalments?: readonly RepaymentInstalmentLink[] | null;
 	};
 
-	function nestedAgreement(row: unknown): NestedAgreement {
-		return row as NestedAgreement;
-	}
-
-	function progressLabel(row: unknown): string {
-		const agreement = nestedAgreement(row);
-		const scheduleCount = Array.isArray(agreement.schedule) ? agreement.schedule.length : 0;
+	function progressLabel(row: NestedAgreement): string {
 		const progress = repaymentProgress(
-			agreement.principal,
-			scheduleCount,
-			agreement.agreement_instalments ?? []
+			row.principal,
+			row.schedule.length,
+			row.agreement_instalments ?? []
 		);
-		if (!progress) return '—';
+		if (progress == null) return '—';
 		if (progress.settled)
 			return t('app.loans.progress_settled', {
 				paid: progress.paidInstalments,
@@ -128,12 +122,12 @@
 		});
 	}
 
-	function employmentLabel(row: unknown): string {
-		return nestedAgreement(row).agreement_employment?.employee_number ?? '—';
+	function employmentLabel(row: NestedAgreement): string {
+		return row.agreement_employment?.employee_number ?? '—';
 	}
 
-	function componentLabel(row: unknown): string {
-		const component = nestedAgreement(row).agreement_pay_component;
+	function componentLabel(row: NestedAgreement): string {
+		const component = row.agreement_pay_component;
 		if (component?.code) return component.code;
 		return '—';
 	}
@@ -166,7 +160,7 @@
 				companyId = value;
 				return;
 			}
-			companyId = companies[0]?.norbital_id ?? null;
+			companyId = companies[0]?.id ?? null;
 		}}
 		emptyPlaceholder={t('component.select_legal_entity')}
 		searchPlaceholder={t('component.search_companies')}
@@ -200,7 +194,7 @@
 					query={{
 						where: {
 							agreement_employment: {
-								norbital_approval_id: { isNull: true },
+								approval_id: { isNull: true },
 								company_id: { eq: selectedCompanyId }
 							}
 						},
@@ -209,10 +203,10 @@
 							agreement_employment: { columns: { employee_number: true } },
 							agreement_pay_component: { columns: { code: true } },
 							agreement_instalments: {
-								where: { norbital_approval_id: { isNull: true } },
+								where: { approval_id: { isNull: true } },
 								columns: { amount: true, repayment_sequence: true },
 								with: {
-									entry_payslip_lines: { columns: { norbital_id: true } }
+									entry_payslip_lines: { columns: { id: true } }
 								}
 							}
 						}

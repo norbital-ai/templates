@@ -36,7 +36,7 @@ const vite = await createServer({
 
 /** The window a Malaysian cutoff of 21 gives March, and the day it pays. */
 const RUN = {
-	norbital_id: 'run:2026-03',
+	id: 'run:2026-03',
 	period: '2026-03',
 	pay_date: '2026-03-28',
 	attendance_from: '2026-02-21',
@@ -44,19 +44,19 @@ const RUN = {
 };
 
 const DAY_SHIFT = {
-	norbital_id: 'shift:D',
+	id: 'shift:D',
 	company_id: 'company:1',
 	code: 'D',
 	variant: { kind: 'WORK', start_time: '08:30', end_time: '17:00', break_minutes: 60 }
 };
 const REST_CODE = {
-	norbital_id: 'shift:REST',
+	id: 'shift:REST',
 	company_id: 'company:1',
 	code: 'REST',
 	variant: { kind: 'REST' }
 };
 const NIGHT_SHIFT = {
-	norbital_id: 'shift:N',
+	id: 'shift:N',
 	company_id: 'company:1',
 	code: 'N',
 	variant: { kind: 'WORK', start_time: '20:30', end_time: '05:30', break_minutes: 60 }
@@ -73,13 +73,13 @@ const WEEKDAY_PATTERN = {
 		{
 			duration: { kind: 'CONTINUOUS' },
 			day_cycle: [
-				{ roster_code_id: DAY_SHIFT.norbital_id },
-				{ roster_code_id: DAY_SHIFT.norbital_id },
-				{ roster_code_id: DAY_SHIFT.norbital_id },
-				{ roster_code_id: DAY_SHIFT.norbital_id },
-				{ roster_code_id: DAY_SHIFT.norbital_id },
-				{ roster_code_id: REST_CODE.norbital_id },
-				{ roster_code_id: REST_CODE.norbital_id }
+				{ roster_code_id: DAY_SHIFT.id },
+				{ roster_code_id: DAY_SHIFT.id },
+				{ roster_code_id: DAY_SHIFT.id },
+				{ roster_code_id: DAY_SHIFT.id },
+				{ roster_code_id: DAY_SHIFT.id },
+				{ roster_code_id: REST_CODE.id },
+				{ roster_code_id: REST_CODE.id }
 			]
 		}
 	]
@@ -104,9 +104,7 @@ function patternedCode(date) {
 	);
 	return WEEKDAY_PATTERN.phases[0].day_cycle[((offset % 7) + 7) % 7].roster_code_id;
 }
-const PATTERNED_WORK_DAYS = WINDOW_DAYS.filter(
-	(date) => patternedCode(date) === DAY_SHIFT.norbital_id
-);
+const PATTERNED_WORK_DAYS = WINDOW_DAYS.filter((date) => patternedCode(date) === DAY_SHIFT.id);
 
 const range = (start, end) => ({
 	start: `${start}T00:00:00.000Z`,
@@ -115,7 +113,7 @@ const range = (start, end) => ({
 
 const EMPLOYMENTS = [
 	{
-		norbital_id: 'employment:pattern',
+		id: 'employment:pattern',
 		employee_id: 'employee:pattern',
 		employee_number: 'NHPMY0002',
 		company_id: 'company:1',
@@ -129,7 +127,7 @@ const EMPLOYMENTS = [
 		}
 	},
 	{
-		norbital_id: 'employment:leaver',
+		id: 'employment:leaver',
 		employee_id: 'employee:leaver',
 		employee_number: 'NHPMY0400',
 		company_id: 'company:1',
@@ -141,7 +139,7 @@ const EMPLOYMENTS = [
 
 const TERMS = [
 	{
-		norbital_id: 'terms:pattern',
+		id: 'terms:pattern',
 		employment_id: 'employment:pattern',
 		job_title: 'Machine Operator',
 		department: 'Assembly',
@@ -150,7 +148,7 @@ const TERMS = [
 		effective_range: range('2021-06-01', null)
 	},
 	{
-		norbital_id: 'terms:leaver',
+		id: 'terms:leaver',
 		employment_id: 'employment:leaver',
 		job_title: 'Packer',
 		department: 'Warehouse',
@@ -161,21 +159,21 @@ const TERMS = [
 ];
 
 /** One explicit override on a patterned rest day: the person was called in on a night shift. */
-const OVERRIDE_DATE = WINDOW_DAYS.find((date) => patternedCode(date) === REST_CODE.norbital_id);
+const OVERRIDE_DATE = WINDOW_DAYS.find((date) => patternedCode(date) === REST_CODE.id);
 const ROSTER_ENTRIES = [
 	{
-		norbital_id: 'roster:override',
+		id: 'roster:override',
 		employment_id: 'employment:pattern',
 		work_date: OVERRIDE_DATE,
-		shift_definition_id: NIGHT_SHIFT.norbital_id,
+		shift_definition_id: NIGHT_SHIFT.id,
 		assignment_code: null
 	}
 ];
 
 const PAYSLIPS = [
 	{
-		norbital_id: 'payslip:pattern',
-		payroll_run_id: RUN.norbital_id,
+		id: 'payslip:pattern',
+		payroll_run_id: RUN.id,
 		employment_id: 'employment:pattern',
 		currency: 'MYR',
 		gross: 3760.78,
@@ -184,8 +182,8 @@ const PAYSLIPS = [
 		employer_cost: 515.15
 	},
 	{
-		norbital_id: 'payslip:leaver',
-		payroll_run_id: RUN.norbital_id,
+		id: 'payslip:leaver',
+		payroll_run_id: RUN.id,
 		employment_id: 'employment:leaver',
 		currency: 'MYR',
 		gross: 690,
@@ -196,7 +194,7 @@ const PAYSLIPS = [
 ];
 
 const BASIC = {
-	norbital_id: 'component:basic',
+	id: 'component:basic',
 	code: 'BASIC',
 	nature: 'EARNING',
 	definition: { source: 'SCHEDULE' }
@@ -208,17 +206,17 @@ const BASIC = {
  */
 const PAYSLIP_LINES = [
 	{
-		norbital_id: 'line:basic',
+		id: 'line:basic',
 		payslip_id: 'payslip:pattern',
-		pay_component_id: BASIC.norbital_id,
+		pay_component_id: BASIC.id,
 		statutory_contribution_id: null,
-		component: { kind: 'SCHEDULE', pay_component_id: BASIC.norbital_id },
+		component: { kind: 'SCHEDULE', pay_component_id: BASIC.id },
 		amount: 3451,
 		quantity: null,
 		sequence: 1
 	},
 	{
-		norbital_id: 'line:ot-rest-day',
+		id: 'line:ot-rest-day',
 		payslip_id: 'payslip:pattern',
 		pay_component_id: null,
 		statutory_contribution_id: null,
@@ -233,7 +231,7 @@ const PAYSLIP_LINES = [
 		sequence: 2
 	},
 	{
-		norbital_id: 'line:ot-excess',
+		id: 'line:ot-excess',
 		payslip_id: 'payslip:pattern',
 		pay_component_id: null,
 		statutory_contribution_id: null,
@@ -248,11 +246,11 @@ const PAYSLIP_LINES = [
 		sequence: 3
 	},
 	{
-		norbital_id: 'line:basic-leaver',
+		id: 'line:basic-leaver',
 		payslip_id: 'payslip:leaver',
-		pay_component_id: BASIC.norbital_id,
+		pay_component_id: BASIC.id,
 		statutory_contribution_id: null,
-		component: { kind: 'SCHEDULE', pay_component_id: BASIC.norbital_id },
+		component: { kind: 'SCHEDULE', pay_component_id: BASIC.id },
 		amount: 690,
 		quantity: null,
 		sequence: 1
@@ -320,11 +318,11 @@ try {
 		roster_entries: ROSTER_ENTRIES,
 		employees: [
 			{
-				norbital_id: 'employee:pattern',
+				id: 'employee:pattern',
 				name: 'Aisyah binti Rahman',
 				identity_number: '920104-10-5522'
 			},
-			{ norbital_id: 'employee:leaver', name: 'Tan Wei Ming', identity_number: '001122-14-3311' }
+			{ id: 'employee:leaver', name: 'Tan Wei Ming', identity_number: '001122-14-3311' }
 		],
 		shift_definitions: [DAY_SHIFT, REST_CODE, NIGHT_SHIFT],
 		statutory_contributions: []
@@ -366,7 +364,7 @@ try {
 	assert.equal(row.att_ot_1x_hours, 1, 'excess hours are valued plain, so they read 1.0×');
 
 	// ── the schedule is the pattern, with the month's overrides on top ─────────────────────────────
-	const overriddenWasWork = patternedCode(OVERRIDE_DATE) === DAY_SHIFT.norbital_id;
+	const overriddenWasWork = patternedCode(OVERRIDE_DATE) === DAY_SHIFT.id;
 	assert.equal(overriddenWasWork, false, 'the override lands on a patterned rest day');
 	assert.equal(
 		patterned.attendance.normalHours,

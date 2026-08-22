@@ -1,5 +1,6 @@
 <script lang="ts">
 	import Icon from '@iconify/svelte';
+	import { Effect } from 'effect';
 	import { getErrorMessage } from '@norbital-ai/std';
 	import { Button } from '@norbital-ai/ui/button';
 	import { useI18n } from '@norbital-ai/ui/i18n';
@@ -25,23 +26,36 @@
 		ViewerWorld
 	} from './ifc_viewer.types.js';
 
-	const viewerLibraries: Promise<
-		[ViewerComponentsModule, ViewerFrontendModule, ViewerFragmentsModule, ViewerThreeModule]
-	> = Promise.all([
-		import(
-			/* @vite-ignore */ 'https://esm.sh/@thatopen/components@3.4.6?deps=three@0.185.1,@thatopen/fragments@3.4.6,web-ifc@0.0.77,camera-controls@3.1.2'
-		),
-		import(
-			/* @vite-ignore */ 'https://esm.sh/@thatopen/components-front@3.4.3?deps=@thatopen/components@3.4.6,@thatopen/fragments@3.4.6,three@0.185.1,web-ifc@0.0.77,camera-controls@3.1.2'
-		),
-		import(
-			/* @vite-ignore */ 'https://esm.sh/@thatopen/fragments@3.4.6?deps=three@0.185.1,web-ifc@0.0.77'
-		),
-		import(/* @vite-ignore */ 'https://esm.sh/three@0.185.1')
-	]);
+	/** The four esm.sh module graphs the viewer needs, loaded once per mounting build. */
+	const viewerLibraries = Effect.cached(
+		Effect.all([
+			Effect.tryPromise(
+				() =>
+					import(
+						/* @vite-ignore */ 'https://esm.sh/@thatopen/components@3.4.6?deps=three@0.185.1,@thatopen/fragments@3.4.6,web-ifc@0.0.77,camera-controls@3.1.2'
+					)
+			),
+			Effect.tryPromise(
+				() =>
+					import(
+						/* @vite-ignore */ 'https://esm.sh/@thatopen/components-front@3.4.3?deps=@thatopen/components@3.4.6,@thatopen/fragments@3.4.6,three@0.185.1,web-ifc@0.0.77,camera-controls@3.1.2'
+					)
+			),
+			Effect.tryPromise(
+				() =>
+					import(
+						/* @vite-ignore */ 'https://esm.sh/@thatopen/fragments@3.4.6?deps=three@0.185.1,web-ifc@0.0.77'
+					)
+			),
+			Effect.tryPromise(() => import(/* @vite-ignore */ 'https://esm.sh/three@0.185.1'))
+		])
+	);
 
-	function normalizeFileUrlForSameOrigin(rawUrl: string, origin: string): string {
-		try {
+	function normalizeFileUrlForSameOrigin(
+		rawUrl: string,
+		origin: string
+	): Effect.Effect<string, never> {
+		return Effect.try(() => {
 			const base = origin.endsWith('/') ? origin : `${origin}/`;
 			const parsed = new URL(rawUrl, base);
 			if (parsed.pathname.startsWith('/api/files/')) {
@@ -49,9 +63,7 @@
 				return `${originRoot}${parsed.pathname}${parsed.search}${parsed.hash}`;
 			}
 			return parsed.href;
-		} catch {
-			return rawUrl;
-		}
+		}).pipe(Effect.catch(() => Effect.succeed(rawUrl)));
 	}
 
 	type SelectedItem = {
@@ -120,80 +132,69 @@
 	let interactionLocked = $state(true);
 	let propertiesOpen = $state(false);
 
-	let viewer: IFCViewerRuntime | null = null;
-	let markerSyncFrame = 0;
+	let viewer = $state.raw<IFCViewerRuntime | null>(null);
+	let markerSyncFrame = $state.raw(0);
 
-	async function fetchIfcModelResponse(url: string): Promise<Response> {
-		const controller = new AbortController();
-		const timeoutId = setTimeout(() => {
-			controller.abort();
-		}, IFC_FETCH_TIMEOUT_MS);
-
-		try {
-			return await fetch(url, { signal: controller.signal });
-		} finally {
-			clearTimeout(timeoutId);
-		}
+	function fetchIfcModelResponse(url: string): Effect.Effect<Response, unknown> {
+		return Effect.tryPromise(() =>
+			fetch(url, { signal: AbortSignal.timeout(IFC_FETCH_TIMEOUT_MS) })
+		);
 	}
 
-	function assertIfcBodyNotHtml(response: Response, buffer: Uint8Array): void {
+	function assertIfcBodyNotHtml(
+		response: Response,
+		buffer: Uint8Array
+	): Effect.Effect<void, Error> {
 		const contentType = response.headers.get('content-type') ?? '';
 		if (contentType.toLowerCase().includes('text/html')) {
-			throw new Error(t('component.ifc_html_instead_of_bytes'));
+			return Effect.fail(new Error(t('component.ifc_html_instead_of_bytes')));
 		}
 
 		const headLen = Math.min(120, buffer.length);
-		if (headLen === 0) return;
+		if (headLen === 0) return Effect.void;
 
 		const head = new TextDecoder('utf-8', { fatal: false }).decode(buffer.subarray(0, headLen));
 		const trimmed = head.trimStart();
 		const lower = trimmed.toLowerCase();
 		if (lower.startsWith('<!doctype html') || lower.startsWith('<html')) {
-			throw new Error(t('component.ifc_html_instead_of_bytes'));
+			return Effect.fail(new Error(t('component.ifc_html_instead_of_bytes')));
 		}
+		return Effect.void;
 	}
 
 	/**
-	 * Rejects `fn` after `timeoutMs` with a labelled timeout error.
+	 * Rejects `effect` after `timeoutMs` with a labelled timeout error.
 	 *
 	 * The old `@norbital-ai/std` `withTimeout` was removed from the package; the conversion and
 	 * fragment-load steps still need the same guard, so the template keeps the identical contract
 	 * locally. The label names the step in the error message, matching the previous wording.
 	 */
-	function withTimeout<T>(fn: () => Promise<T>, timeoutMs: number, label?: string): Promise<T> {
-		const signal = AbortSignal.timeout(timeoutMs);
-
-		return new Promise<T>((resolve, reject) => {
-			const onAbort = () => {
-				const message = label
-					? `${label} exceeded ${timeoutMs}ms`
-					: `Operation exceeded ${timeoutMs}ms`;
-				reject(new Error(message));
-			};
-			signal.addEventListener('abort', onAbort, { once: true });
-
-			fn().then(
-				(result) => {
-					signal.removeEventListener('abort', onAbort);
-					resolve(result);
-				},
-				(error) => {
-					signal.removeEventListener('abort', onAbort);
-					reject(error);
-				}
-			);
-		});
+	function withTimeout<T, E>(
+		effect: Effect.Effect<T, E>,
+		timeoutMs: number,
+		label?: string
+	): Effect.Effect<T, E | Error> {
+		const message = label
+			? `${label} exceeded ${timeoutMs}ms`
+			: `Operation exceeded ${timeoutMs}ms`;
+		return effect.pipe(
+			Effect.timeoutOrElse({
+				duration: timeoutMs,
+				orElse: () => Effect.fail(new Error(message))
+			})
+		);
 	}
 
-	function getModelName(url: string): string {
-		try {
-			const parsed = new URL(url, window.location.href);
-			const fileName = parsed.pathname.split('/').pop()?.trim();
-			if (fileName) return fileName;
-		} catch (error) {
-			console.debug('[IFCViewer] Using the fallback filename for an invalid model URL.', error);
-		}
-		return 'ifc-model.ifc';
+	function getModelName(url: string): Effect.Effect<string, never> {
+		return Effect.try(() => new URL(url, window.location.href)).pipe(
+			Effect.map((parsed) => parsed.pathname.split('/').pop()?.trim() ?? 'ifc-model.ifc'),
+			Effect.catch((error) =>
+				Effect.logDebug(
+					'[IFCViewer] Using the fallback filename for an invalid model URL.',
+					error
+				).pipe(Effect.as('ifc-model.ifc'))
+			)
+		);
 	}
 
 	function resetSelectionState(): void {
@@ -205,7 +206,13 @@
 		resetSelectionState();
 		const highlighter = viewer?.highlighter;
 		if (highlighter) {
-			highlighter.clear('select');
+			void Effect.runPromise(
+				Effect.tryPromise(() => highlighter.clear('select')).pipe(
+					Effect.catch((error) =>
+						Effect.logError('[IFCViewer] Failed to clear the selection.', error)
+					)
+				)
+			);
 		}
 	}
 
@@ -225,25 +232,26 @@
 
 	function scheduleMarkerVisualization(): void {
 		if (typeof requestAnimationFrame !== 'function') {
-			void syncMarkerVisualization();
+			void Effect.runPromise(syncMarkerVisualization());
 			return;
 		}
 
 		cancelScheduledMarkerVisualization();
 		markerSyncFrame = requestAnimationFrame(() => {
 			markerSyncFrame = 0;
-			void syncMarkerVisualization();
+			void Effect.runPromise(syncMarkerVisualization());
 		});
 	}
 
-	function parseMarkerColor(css: string, Color: ViewerColorConstructor): ViewerColor {
+	function parseMarkerColor(
+		css: string,
+		Color: ViewerColorConstructor
+	): Effect.Effect<ViewerColor, never> {
 		const color = new Color();
-		try {
-			color.setStyle(resolveCssColor(css.trim()));
-		} catch {
-			color.setStyle(resolveCssColor(DEFAULT_MARKER_COLOR));
-		}
-		return color;
+		return Effect.try(() => color.setStyle(resolveCssColor(css.trim()))).pipe(
+			Effect.catch(() => Effect.sync(() => color.setStyle(resolveCssColor(DEFAULT_MARKER_COLOR)))),
+			Effect.as(color)
+		);
 	}
 
 	function readPropertyValue(properties: ViewerItemData | null, key: string): string | null {
@@ -277,69 +285,85 @@
 		};
 	}
 
-	async function clearMarkerVisualization(runtime: IFCViewerRuntime): Promise<void> {
-		const highlighter = runtime.highlighter;
-		if (highlighter === null) {
+	function clearMarkerVisualization(runtime: IFCViewerRuntime): Effect.Effect<void, unknown> {
+		return Effect.gen(function* () {
+			const highlighter = runtime.highlighter;
+			if (highlighter === null) {
+				runtime.markerStyleIds = [];
+				return;
+			}
+
+			// Highlighter state must be cleared before the matching style is deleted.
+			yield* Effect.forEach(runtime.markerStyleIds, (styleId) =>
+				Effect.tryPromise(() => highlighter.clear(styleId)).pipe(
+					Effect.andThen(() => Effect.sync(() => highlighter.styles.delete(styleId)))
+				)
+			);
+
 			runtime.markerStyleIds = [];
-			return;
-		}
-
-		// stupidity:allow A6 -- Highlighter state must be cleared before the matching style is deleted.
-		for (const styleId of runtime.markerStyleIds) {
-			await highlighter.clear(styleId);
-			highlighter.styles.delete(styleId);
-		}
-
-		runtime.markerStyleIds = [];
+		});
 	}
 
-	async function clearModel(runtime: IFCViewerRuntime): Promise<void> {
-		await clearMarkerVisualization(runtime);
-		if (runtime.highlighter !== null) {
-			runtime.highlighter.clear('select');
-		}
-		resetSelectionState();
-		const group = runtime.currentGroup;
-		if (group == null) return;
-		runtime.world.scene.three.remove(group.object);
-		await runtime.fragments.core.disposeModel(group.modelId);
-		runtime.currentGroup = null;
+	function clearModel(runtime: IFCViewerRuntime): Effect.Effect<void, unknown> {
+		return Effect.gen(function* () {
+			yield* clearMarkerVisualization(runtime);
+			const highlighter = runtime.highlighter;
+			if (highlighter !== null) {
+				yield* Effect.tryPromise(() => highlighter.clear('select')).pipe(
+					Effect.catch((error) =>
+						Effect.logError('[IFCViewer] Failed to clear the selection.', error)
+					)
+				);
+			}
+			resetSelectionState();
+			const group = runtime.currentGroup;
+			if (group == null) return;
+			runtime.world.scene.three.remove(group.object);
+			yield* Effect.tryPromise(() => runtime.fragments.core.disposeModel(group.modelId));
+			runtime.currentGroup = null;
+		});
 	}
 
-	async function createViewerRuntime(container: HTMLDivElement): Promise<IFCViewerRuntime> {
-		const [OBC, OBF, FRAGS, THREE] = await viewerLibraries;
-		const components = new OBC.Components();
-		const worlds = components.get(OBC.Worlds);
-		const world = worlds.create();
+	function createViewerRuntime(
+		container: HTMLDivElement
+	): Effect.Effect<IFCViewerRuntime, unknown> {
+		return Effect.gen(function* () {
+			const cachedLibraries = yield* viewerLibraries;
+			const [OBC, OBF, FRAGS, THREE] = yield* cachedLibraries;
+			const components = new OBC.Components();
+			const worlds = components.get(OBC.Worlds);
+			const world = worlds.create();
 
-		world.scene = new OBC.SimpleScene(components);
-		world.scene.setup();
-		world.scene.three.background = new THREE.Color(resolveCssColor(DEFAULT_BACKGROUND_COLOR));
+			world.scene = new OBC.SimpleScene(components);
+			world.scene.setup();
+			world.scene.three.background = new THREE.Color(resolveCssColor(DEFAULT_BACKGROUND_COLOR));
 
-		world.renderer = new OBC.SimpleRenderer(components, container);
-		world.camera = new OBC.SimpleCamera(components);
+			world.renderer = new OBC.SimpleRenderer(components, container);
+			world.camera = new OBC.SimpleCamera(components);
 
-		components.init();
+			components.init();
 
-		if (DEFAULT_SHOW_GRID) {
-			components.get(OBC.Grids).create(world);
-		}
+			if (DEFAULT_SHOW_GRID) {
+				components.get(OBC.Grids).create(world);
+			}
 
-		const fragments = components.get(OBC.FragmentsManager);
-		fragments.init(await OBC.FragmentsManager.getWorker());
+			const fragments = components.get(OBC.FragmentsManager);
+			const worker = yield* Effect.tryPromise(() => OBC.FragmentsManager.getWorker());
+			yield* Effect.sync(() => fragments.init(worker));
 
-		return {
-			OBC,
-			OBF,
-			FRAGS,
-			THREE,
-			components,
-			world,
-			fragments,
-			highlighter: null,
-			currentGroup: null,
-			markerStyleIds: []
-		};
+			return {
+				OBC,
+				OBF,
+				FRAGS,
+				THREE,
+				components,
+				world,
+				fragments,
+				highlighter: null,
+				currentGroup: null,
+				markerStyleIds: []
+			};
+		});
 	}
 
 	function ensureInteractionSystems(runtime: IFCViewerRuntime): ViewerHighlighter {
@@ -361,41 +385,54 @@
 		return highlighter;
 	}
 
-	async function disposeRuntime(runtime: IFCViewerRuntime): Promise<void> {
-		await clearModel(runtime);
-		runtime.components.dispose();
+	function disposeRuntime(runtime: IFCViewerRuntime): Effect.Effect<void, unknown> {
+		return Effect.gen(function* () {
+			yield* clearModel(runtime);
+			yield* Effect.sync(() => runtime.components.dispose());
+		});
 	}
 
-	async function loadIfcModelIntoRuntime(runtime: IFCViewerRuntime, url: string): Promise<void> {
-		const fetchUrl = normalizeFileUrlForSameOrigin(url, window.location.origin);
+	function loadIfcModelIntoRuntime(
+		runtime: IFCViewerRuntime,
+		url: string
+	): Effect.Effect<void, unknown> {
+		return Effect.gen(function* () {
+			const fetchUrl = yield* normalizeFileUrlForSameOrigin(url, window.location.origin);
 
-		const response = await fetchIfcModelResponse(fetchUrl);
-		if (!response.ok) {
-			throw new Error(t('component.ifc_download_failed', { status: response.status }));
-		}
+			const response = yield* fetchIfcModelResponse(fetchUrl);
+			if (!response.ok) {
+				return yield* Effect.fail(
+					new Error(t('component.ifc_download_failed', { status: response.status }))
+				);
+			}
 
-		const buffer = new Uint8Array(await response.arrayBuffer());
-		assertIfcBodyNotHtml(response, buffer);
+			const arrayBuffer = yield* Effect.tryPromise(() => response.arrayBuffer());
+			const buffer = new Uint8Array(arrayBuffer);
+			yield* assertIfcBodyNotHtml(response, buffer);
 
-		const modelName = getModelName(fetchUrl);
-		const fragmentBytes = await withTimeout(
-			() => convertIfcToFragments(buffer, t),
-			IFC_CONVERSION_TIMEOUT_MS,
-			t('component.ifc_conversion')
-		);
+			const modelName = yield* getModelName(fetchUrl);
+			const fragmentBytes = yield* withTimeout(
+				convertIfcToFragments(buffer, t),
+				IFC_CONVERSION_TIMEOUT_MS,
+				t('component.ifc_conversion')
+			);
 
-		const group = await withTimeout(
-			() =>
-				runtime.fragments.core.load(fragmentBytes, {
-					modelId: modelName,
-					camera: runtime.world.camera.three
-				}),
-			IFC_FRAGMENT_LOAD_TIMEOUT_MS,
-			t('component.ifc_fragment_load')
-		);
+			const group = yield* withTimeout(
+				Effect.tryPromise(() =>
+					runtime.fragments.core.load(fragmentBytes, {
+						modelId: modelName,
+						camera: runtime.world.camera.three
+					})
+				),
+				IFC_FRAGMENT_LOAD_TIMEOUT_MS,
+				t('component.ifc_fragment_load')
+			);
 
-		runtime.world.scene.three.add(group.object);
-		runtime.currentGroup = group;
+			yield* Effect.sync(() => {
+				runtime.world.scene.three.add(group.object);
+				runtime.currentGroup = group;
+			});
+		});
 	}
 
 	function viewerAttachment(url: string) {
@@ -407,9 +444,9 @@
 			let cancelled = false;
 			let myRuntime: IFCViewerRuntime | null = null;
 
-			// stupidity:allow V6 -- The attachment owns cancellation and teardown for this async lifecycle.
-			void (async () => {
-				try {
+			// The attachment owns cancellation and teardown for this async lifecycle.
+			void Effect.runPromise(
+				Effect.gen(function* () {
 					if (!url) {
 						cancelScheduledMarkerVisualization();
 						resetSelectionState();
@@ -419,40 +456,57 @@
 					}
 					if (!cancelled) loadBanner = 'loading';
 
-					const runtime = await createViewerRuntime(container);
-					if (cancelled) {
-						await disposeRuntime(runtime);
-						return;
-					}
+					yield* Effect.gen(function* () {
+						const runtime = yield* createViewerRuntime(container);
+						if (cancelled) {
+							yield* disposeRuntime(runtime);
+							return;
+						}
 
-					myRuntime = runtime;
-					viewer = runtime;
-					applyInteractionLock(runtime, interactionLocked);
+						myRuntime = runtime;
+						viewer = runtime;
+						applyInteractionLock(runtime, interactionLocked);
 
-					await loadIfcModelIntoRuntime(runtime, url);
-					if (cancelled) return;
+						yield* loadIfcModelIntoRuntime(runtime, url);
+						if (cancelled) return;
 
-					loadBanner = 'none';
-					scheduleMarkerVisualization();
-				} catch (error) {
-					if (cancelled) return;
-					loadBanner = {
-						error:
-							error instanceof DOMException && error.name === 'AbortError'
-								? t('component.ifc_download_timed_out')
-								: error instanceof Error
-									? getErrorMessage(error)
-									: t('component.ifc_load_failed')
-					};
-					const runtime = myRuntime;
-					if (runtime) {
-						myRuntime = null;
-						if (viewer === runtime) viewer = null;
-						await disposeRuntime(runtime);
-					}
-					console.error('[IFCViewer] Failed to initialize or load IFC viewer.', error);
-				}
-			})();
+						loadBanner = 'none';
+						scheduleMarkerVisualization();
+					}).pipe(
+						Effect.catch((error) => {
+							if (cancelled) return Effect.void;
+							loadBanner = {
+								error:
+									error instanceof DOMException && error.name === 'AbortError'
+										? t('component.ifc_download_timed_out')
+										: error instanceof Error
+											? getErrorMessage(error)
+											: t('component.ifc_load_failed')
+							};
+							return Effect.logError(
+								'[IFCViewer] Failed to initialize or load IFC viewer.',
+								error
+							).pipe(
+								Effect.andThen(() => {
+									const runtime = myRuntime;
+									if (!runtime) return Effect.void;
+									myRuntime = null;
+									if (viewer === runtime) viewer = null;
+									return disposeRuntime(runtime).pipe(
+										Effect.tapError((disposeError) =>
+											Effect.logError(
+												'[IFCViewer] Failed to dispose the failed viewer runtime.',
+												disposeError
+											)
+										),
+										Effect.ignore
+									);
+								})
+							);
+						})
+					);
+				})
+			);
 
 			return () => {
 				cancelled = true;
@@ -462,89 +516,110 @@
 				if (viewer === runtime) {
 					viewer = null;
 				}
-				if (runtime) void disposeRuntime(runtime);
+				if (runtime) {
+					void Effect.runPromise(disposeRuntime(runtime));
+				}
 			};
 		};
 	}
 
 	const viewerAttach = $derived(viewerAttachment(trimmedSrc));
 
-	async function syncMarkerVisualization(): Promise<void> {
-		const runtime = viewer;
-		const group = runtime?.currentGroup;
-		if (!runtime || !group) return;
+	function syncMarkerVisualization(): Effect.Effect<void, unknown> {
+		return Effect.gen(function* () {
+			const runtime = viewer;
+			const group = runtime?.currentGroup;
+			if (!runtime || !group) return;
 
-		const needsInteraction =
-			runtime.markerStyleIds.length > 0 || normalizedMarkerGroups.length > 0 || markers.length > 0;
+			const needsInteraction =
+				runtime.markerStyleIds.length > 0 ||
+				normalizedMarkerGroups.length > 0 ||
+				markers.length > 0;
 
-		if (needsInteraction) {
-			ensureInteractionSystems(runtime);
-		}
+			if (needsInteraction) {
+				ensureInteractionSystems(runtime);
+			}
 
-		await clearMarkerVisualization(runtime);
+			yield* clearMarkerVisualization(runtime);
 
-		const highlighter = runtime.highlighter;
-		if (highlighter === null) return;
+			const highlighter = runtime.highlighter;
+			if (highlighter === null) return;
 
-		if (normalizedMarkerGroups.length > 0) {
-			// stupidity:allow A6 -- Each style must be registered before its ordered highlighter mutation.
-			for (const [index, markerGroup] of normalizedMarkerGroups.entries()) {
-				const styleId = `ui-ifc-marker-${index}`;
+			if (normalizedMarkerGroups.length > 0) {
+				// Each style must be registered before its ordered highlighter mutation.
+				yield* Effect.forEach(normalizedMarkerGroups, (markerGroup, index) =>
+					Effect.gen(function* () {
+						const styleId = `ui-ifc-marker-${index}`;
+						const color = yield* parseMarkerColor(markerGroup.color, runtime.THREE.Color);
+						yield* Effect.sync(() => {
+							highlighter.styles.set(styleId, {
+								color,
+								opacity: 1,
+								transparent: false,
+								renderedFaces: runtime.FRAGS.RenderedFaces.TWO
+							});
+							runtime.markerStyleIds.push(styleId);
+						});
+						const fragmentIdMap = { [group.modelId]: new Set(markerGroup.expressIds) };
+						yield* Effect.tryPromise(() =>
+							highlighter.highlightByID(styleId, fragmentIdMap, true, false)
+						);
+					})
+				);
+				return;
+			}
+
+			if (markers.length === 0) return;
+
+			const styleId = 'ui-ifc-markers';
+			yield* Effect.sync(() => {
 				highlighter.styles.set(styleId, {
-					color: parseMarkerColor(markerGroup.color, runtime.THREE.Color),
+					color: new runtime.THREE.Color(resolveCssColor(DEFAULT_SELECTION_COLOR)),
 					opacity: 1,
 					transparent: false,
 					renderedFaces: runtime.FRAGS.RenderedFaces.TWO
 				});
 				runtime.markerStyleIds.push(styleId);
-				const fragmentIdMap = { [group.modelId]: new Set(markerGroup.expressIds) };
-				await highlighter.highlightByID(styleId, fragmentIdMap, true, false);
-			}
-			return;
-		}
-
-		if (markers.length === 0) return;
-
-		const styleId = 'ui-ifc-markers';
-		highlighter.styles.set(styleId, {
-			color: new runtime.THREE.Color(resolveCssColor(DEFAULT_SELECTION_COLOR)),
-			opacity: 1,
-			transparent: false,
-			renderedFaces: runtime.FRAGS.RenderedFaces.TWO
+			});
+			const fragmentIdMap = { [group.modelId]: new Set(markers) };
+			yield* Effect.tryPromise(() =>
+				highlighter.highlightByID(styleId, fragmentIdMap, true, false)
+			);
 		});
-		runtime.markerStyleIds.push(styleId);
-		const fragmentIdMap = { [group.modelId]: new Set(markers) };
-		await highlighter.highlightByID(styleId, fragmentIdMap, true, false);
 	}
 
-	async function handlePick(): Promise<void> {
-		const runtime = viewer;
-		const group = runtime?.currentGroup;
-		if (!runtime || !group) return;
+	function handlePick(): Effect.Effect<void, unknown> {
+		return Effect.gen(function* () {
+			const runtime = viewer;
+			const group = runtime?.currentGroup;
+			if (!runtime || !group) return;
 
-		const highlighter = ensureInteractionSystems(runtime);
-		await highlighter.highlight('select', true, false);
-		if (viewer !== runtime) return;
+			const highlighter = ensureInteractionSystems(runtime);
+			yield* Effect.tryPromise(() => highlighter.highlight('select', true, false));
+			if (viewer !== runtime) return;
 
-		const selection = highlighter.selection.select;
-		const modelId = Object.keys(selection)[0];
-		const id = modelId ? selection[modelId]?.values().next().value : undefined;
-		if (modelId == null || id == null) {
-			clearSelection();
-			return;
-		}
+			const selection = highlighter.selection.select;
+			const modelId = Object.keys(selection)[0];
+			const id = modelId ? selection[modelId]?.values().next().value : undefined;
+			if (modelId == null || id == null) {
+				clearSelection();
+				return;
+			}
 
-		const selectedModel = runtime.fragments.list.get(modelId);
-		const properties = selectedModel ? (await selectedModel.getItemsData([id]))[0] : null;
-		if (viewer !== runtime) return;
+			const selectedModel = runtime.fragments.list.get(modelId);
+			const properties = selectedModel
+				? (yield* Effect.tryPromise(() => selectedModel.getItemsData([id])))[0]
+				: null;
+			if (viewer !== runtime) return;
 
-		selectedItem = buildSelectedItem(modelId, id, properties ?? null);
+			selectedItem = buildSelectedItem(modelId, id, properties ?? null);
+		});
 	}
 
 	function handleKeydown(event: KeyboardEvent): void {
 		if (event.key !== 'Enter' && event.key !== ' ') return;
 		event.preventDefault();
-		void handlePick();
+		void Effect.runPromise(handlePick());
 	}
 
 	watch(
@@ -572,7 +647,7 @@
 		role="button"
 		tabindex={0}
 		aria-label={alt ?? t('component.ifc_model_preview')}
-		onclick={handlePick}
+		onclick={() => void Effect.runPromise(handlePick())}
 		onkeydown={handleKeydown}
 		{@attach viewerAttach}
 	></div>
@@ -583,18 +658,19 @@
 		gap="sm"
 		class="pointer-events-none absolute inset-x-0 top-0 z-20 p-3"
 	>
-		<div class="min-w-0">
+		<div class="min-w-0 w-full max-w-[min(38rem,100%)]">
 			{#if selectedItem}
 				{@const item = selectedItem}
-				<div
-					class="pointer-events-auto w-full max-w-[min(38rem,100%)] rounded-md border border-border/80 bg-background/95 p-2 shadow-sm"
+				<Stack
+					gap="xs"
+					class="pointer-events-auto rounded-md border border-border/80 bg-background/95 p-2 shadow-sm"
 				>
 					<button
 						type="button"
 						class="w-full min-w-0 rounded-sm px-1 py-1 text-left transition-colors hover:bg-muted/60"
 						onclick={() => (propertiesOpen = !propertiesOpen)}
 					>
-						<Inline align="start" justify="between" gap="xs" class="w-full">
+						<Inline align="start" justify="between" gap="xs">
 							<div class="min-w-0">
 								<span class="block truncate text-sm font-medium text-foreground">
 									{item.title}
@@ -632,23 +708,20 @@
 					</Button>
 
 					{#if propertiesOpen}
-						<!-- stupidity:allow UI11 -- this conditional spacer separates the disclosure card without padding its background -->
-						<div class="pt-2">
-							<div class="rounded-md border border-border/80 bg-background/95 p-3 shadow-sm">
-								<p class="text-overline pb-2">
-									{t('component.selected_element_properties')}
-								</p>
-								<Scroll
-									axis="both"
-									name="Selected element properties"
-									class="max-h-80 rounded-md bg-muted/50 p-3 text-[11px] wrap-break-word whitespace-pre-wrap text-muted-foreground"
-								>
-									<pre>{item.properties}</pre>
-								</Scroll>
-							</div>
+						<div class="rounded-md border border-border/80 bg-background/95 p-3 shadow-sm">
+							<p class="text-overline pb-2">
+								{t('component.selected_element_properties')}
+							</p>
+							<Scroll
+								axis="both"
+								name="Selected element properties"
+								class="max-h-80 rounded-md bg-muted/50 p-3 text-[11px] wrap-break-word whitespace-pre-wrap text-muted-foreground"
+							>
+								<pre>{item.properties}</pre>
+							</Scroll>
 						</div>
 					{/if}
-				</div>
+				</Stack>
 			{/if}
 		</div>
 

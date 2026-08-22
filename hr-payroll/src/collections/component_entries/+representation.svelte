@@ -21,14 +21,14 @@
 	const consumptionQuery = $derived(
 		record
 			? client.db.component_entries.findFirst({
-					where: { norbital_id: { eq: record.norbital_id } },
-					columns: { norbital_id: true, pay_period: true },
+					where: { id: { eq: record.id } },
+					columns: { id: true, pay_period: true },
 					with: {
 						entry_payslip_lines: {
-							columns: { norbital_id: true },
+							columns: { id: true },
 							with: {
 								payslip_line_payslip: {
-									columns: { norbital_id: true },
+									columns: { id: true },
 									with: {
 										payslip_payroll_run: { columns: { period: true } }
 									}
@@ -87,7 +87,7 @@
 		record
 			? sourceLock({
 					existing: true,
-					approvalId: record.norbital_approval_id,
+					approvalId: record.approval_id,
 					dates: [],
 					settledBy,
 					datePassed: 'IS_NOT_A_LOCK'

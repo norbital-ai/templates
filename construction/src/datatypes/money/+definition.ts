@@ -1,17 +1,18 @@
 import { Schema } from 'effect';
 import { defineCustomType } from '@norbital-ai/bolt/authoring';
-
-export interface MoneyOptions {
-	readonly allowedCurrencies?: readonly [string, ...string[]];
-}
+import { MoneyValueSchema, type MoneyValue } from '@norbital-ai/std/finance';
 
 /**
- * An ISO 4217 currency code, trimmed before it is checked the way the zod `z.string().trim()`
- * chain this replaced did.
+ * Options accepted by the money custom type's schema factory: the ISO 4217 codes an install may
+ * allow for a column, before the open pattern is used for the rest.
  */
-const isoCurrencyCode = Schema.decodeTo(Schema.String.check(Schema.isPattern(/^[A-Z]{3}$/)))(
-	Schema.Trim
-);
+const moneyOptionsSchema = Schema.Struct({
+	allowedCurrencies: Schema.optional(Schema.NonEmptyArray(Schema.String))
+});
+
+export type MoneyOptions = typeof moneyOptionsSchema.Type;
+
+export type { MoneyValue };
 
 export default defineCustomType({
 	name: 'money',
@@ -20,10 +21,10 @@ export default defineCustomType({
 	schema: (options: MoneyOptions = {}) =>
 		Schema.toStandardSchemaV1(
 			Schema.Struct({
-				value: Schema.Finite,
+				...MoneyValueSchema.fields,
 				currency: options.allowedCurrencies
 					? Schema.Literals(options.allowedCurrencies)
-					: isoCurrencyCode
+					: MoneyValueSchema.fields.currency
 			}),
 			{ parseOptions: { onExcessProperty: 'error' } }
 		)

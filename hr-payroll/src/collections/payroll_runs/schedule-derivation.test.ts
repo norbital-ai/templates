@@ -9,7 +9,7 @@ const NIGHT_ID = '00000000-0000-4000-8000-000000000002';
 const REST_ID = '00000000-0000-4000-8000-000000000003';
 const OFF_ID = '00000000-0000-4000-8000-000000000004';
 const code = (id, value, variant) => ({
-	norbital_id: id,
+	id: id,
 	code: value,
 	name: value,
 	variant,
@@ -29,7 +29,7 @@ const NIGHT = code(NIGHT_ID, 'N', {
 });
 const REST = code(REST_ID, 'REST', { kind: 'REST' });
 const OFF = code(OFF_ID, 'OFF', { kind: 'OFF' });
-const shiftById = new Map([DAY, NIGHT, REST, OFF].map((row) => [row.norbital_id, row]));
+const shiftById = new Map([DAY, NIGHT, REST, OFF].map((row) => [row.id, row]));
 
 const weeklyPattern = {
 	type: 'PATTERNED',

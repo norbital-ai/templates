@@ -1,4 +1,4 @@
-import { Effect } from 'effect';
+import { Clock, Effect } from 'effect';
 import type { Hooks, HookApi, WorkspaceRow } from './$types.js';
 
 const ASSIGNMENT_ERROR =
@@ -55,7 +55,7 @@ function validateJobAssignmentCompliance(
 			return yield* Effect.fail(new Error(ASSIGNMENT_ERROR));
 		}
 
-		const now = new Date().toISOString();
+		const now = new Date(yield* Clock.currentTimeMillis).toISOString();
 		const workerPermitLinks = yield* api.db.query.permits_to_work_workers.findMany({
 			where: { worker_id: { eq: workerId } },
 			limit: 250
@@ -65,7 +65,7 @@ function validateJobAssignmentCompliance(
 			permitIds.length === 0
 				? []
 				: yield* api.db.query.permits_to_work.findMany({
-						where: { norbital_id: { in: permitIds } },
+						where: { id: { in: permitIds } },
 						limit: 250
 					});
 		const permitCertificationLinks =
@@ -87,7 +87,7 @@ function validateJobAssignmentCompliance(
 			if (permit.status !== 'active') continue;
 			if (permit.validity_range?.start != null && permit.validity_range.start > now) continue;
 			if (permit.validity_range?.end != null && permit.validity_range.end < now) continue;
-			for (const certificationId of certificationIdsByPermit.get(permit.norbital_id) ?? []) {
+			for (const certificationId of certificationIdsByPermit.get(permit.id) ?? []) {
 				coveredCertificationIds.add(certificationId);
 			}
 		}

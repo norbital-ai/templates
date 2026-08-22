@@ -18,16 +18,20 @@
  * column must never find an hourly rate inside it (plan 03 §2).
  */
 
+import { Schema } from 'effect';
+import type { MoneyValue } from '@norbital-ai/std/finance';
 import type { Configuration, OvertimeCoverageRule, PayComponent } from './configuration.js';
 import type { ComponentDefinition } from '../../../datatypes/component_definition/+definition.js';
 import {
 	classifyWageComparand,
 	decideOvertimeCoverage,
 	deriveStatutoryWages,
-	type Money,
 	type WageBasis
 } from './coverage.js';
-import type { PayslipLineComponent } from '../../../datatypes/payslip_line_component/+definition.js';
+import {
+	payslipLineComponentValueSchema,
+	type PayslipLineComponent
+} from '../../../datatypes/payslip_line_component/+definition.js';
 import {
 	addDays,
 	dateKey,
@@ -52,7 +56,7 @@ import {
 	repaymentCoverageKey,
 	type ComponentEntry
 } from './entries.js';
-import { defaultPayPeriod } from './period.js';
+import { defaultPayPeriod, type PayrollWindow } from './period.js';
 import { evaluateFormula, type FormulaContext } from './formula.js';
 import type { EmploymentBundle } from './gather.js';
 import {
@@ -76,6 +80,7 @@ import {
 	priceDay,
 	type DailyOvertime,
 	type ExcessHours,
+	type OvertimeBandIdentity,
 	type PricedSegment
 } from './overtime.js';
 import {
@@ -94,7 +99,7 @@ import { patternWorkload, type PatternWorkload } from '../../../lib/scheduling/w
 import { rosterCodeKind, workWindow } from '../../../lib/scheduling/roster-code.js';
 
 /** The economic direction a line settles in — `pay_components.policy.kind` where there is one. */
-export type LineNature = NonNullable<PayComponent['policy']>['kind'];
+type LineNature = NonNullable<PayComponent['policy']>['kind'];
 
 export type MeasuredLine = {
 	/**
@@ -120,7 +125,7 @@ export type MeasuredLine = {
 	readonly sequence: number;
 };
 
-export type MeasuredEmployment = {
+type MeasuredEmployment = {
 	readonly bundle: EmploymentBundle;
 	readonly lines: readonly MeasuredLine[];
 	/** What a deferred earlier period is owed, when this run is the one paying it. */
@@ -148,7 +153,7 @@ export type MeasuredEmployment = {
  * overflow pay components, which meant a company could quietly move a statutory boundary, and two
  * of them in the same country could disagree about where it sits.
  */
-function dailyTotalWorkLimit(configuration: Configuration): number | null {
+export function dailyTotalWorkLimit(configuration: Configuration): number | null {
 	const limits = configuration.overtimeLimits.filter(
 		(limit) => limit.period === 'DAY' && limit.measures === 'TOTAL_WORK_HOURS'
 	);
@@ -166,6 +171,16 @@ function monthlyOvertimeLimit(configuration: Configuration): number | null {
 	return limits[0] == null ? null : Number(limits[0].max_hours);
 }
 
+/** Everything `isStatutoryOvertimePayCovered` tests: the jurisdiction's rule and one employment's facts. */
+type StatutoryOvertimeCoverageOptions = {
+	readonly rule: OvertimeCoverageRule | null;
+	readonly jurisdictionCode: string;
+	readonly wages: Partial<Record<WageBasis, MoneyValue>>;
+	readonly statutoryWorkCategory: string | null;
+	readonly workClassification: string | null;
+	readonly employeeNumber: string;
+};
+
 /**
  * Statutory OT / rest-day / holiday pay coverage, from the jurisdiction's own cited rule.
  *
@@ -175,14 +190,7 @@ function monthlyOvertimeLimit(configuration: Configuration): number | null {
  * payment for work done, less overtime pay — from the pay components and their entries settling
  * in this run (see `deriveStatutoryWages`). A rule is only ever answered from the basis it names.
  */
-export function isStatutoryOvertimePayCovered(options: {
-	readonly rule: OvertimeCoverageRule | null;
-	readonly jurisdictionCode: string;
-	readonly wages: Partial<Record<WageBasis, Money>>;
-	readonly statutoryWorkCategory: string | null;
-	readonly workClassification: string | null;
-	readonly employeeNumber: string;
-}): boolean {
+export function isStatutoryOvertimePayCovered(options: StatutoryOvertimeCoverageOptions): boolean {
 	const decision = decideOvertimeCoverage(options.rule, {
 		statutoryWorkCategory: options.statutoryWorkCategory,
 		workClassification: options.workClassification,
@@ -233,7 +241,7 @@ function payFrequency(value: string | null): RateTerms['pay_frequency'] {
 function rosteredWorkload(options: {
 	readonly entries: EmploymentBundle['rosterEntries'];
 	readonly configuration: Configuration;
-	readonly window: { readonly start: IsoDate; readonly end: IsoDate };
+	readonly window: PayRange;
 }): PatternWorkload {
 	let workDays = 0;
 	let paidMinutes = 0;
@@ -263,12 +271,15 @@ function rosteredWorkload(options: {
 	};
 }
 
-function termsWorkload(options: {
+/** The terms row and the schedule that turn it into a weekly pattern workload. */
+type TermsWorkloadOptions = {
 	readonly terms: EmploymentBundle['terms'][number];
 	readonly configuration: Configuration;
 	readonly rosterEntries: EmploymentBundle['rosterEntries'];
-	readonly window: { readonly start: IsoDate; readonly end: IsoDate };
-}): PatternWorkload {
+	readonly window: PayRange;
+};
+
+function termsWorkload(options: TermsWorkloadOptions): PatternWorkload {
 	const workload = patternWorkload(options.terms.work_pattern, options.configuration.shiftById);
 	return (
 		workload ??
@@ -301,16 +312,21 @@ function baseSalaryOf(terms: EmploymentBundle['terms'][number]) {
 	return salary;
 }
 
+/** The window-shaped arguments `measureEmployment` hands its helpers. */
+type PayRange = PayrollWindow['salary'];
+
 /** Measure one employment's whole payslip. */
-export function measureEmployment(options: {
+type MeasureEmploymentOptions = {
 	readonly bundle: EmploymentBundle;
 	readonly configuration: Configuration;
 	readonly period: string;
-	readonly salary: { readonly start: IsoDate; readonly end: IsoDate };
+	readonly salary: PayRange;
 	readonly periodsRemaining: number;
 	readonly headcount: number;
 	readonly policy: SettlementPolicy;
-}): MeasuredEmployment {
+};
+
+export function measureEmployment(options: MeasureEmploymentOptions): MeasuredEmployment {
 	const { bundle, configuration } = options;
 	// The attendance window is the employment's, not the run's: a leaver settling in their final
 	// period is measured to the exit date, because no later run will ever read those days.
@@ -342,7 +358,7 @@ export function measureEmployment(options: {
 	const dayWage = ordinaryDayWage(rateTerms, configuration.jurisdiction);
 
 	// ── schedule across the full calendar months touched by the settlement cutoff ───────────────
-	const complianceWindow = {
+	const complianceWindow: PayRange = {
 		start: monthBounds(monthKey(attendance.start)).start,
 		end: monthBounds(monthKey(attendance.end)).end
 	};
@@ -382,7 +398,7 @@ export function measureEmployment(options: {
 	// attendance window, and deferred joiners can ask for the previous month.
 	const takenLeaveDates = new Set<IsoDate>();
 	for (const row of bundle.ledger) {
-		if (row.kind !== 'TAKEN' || row.norbital_approval_id != null) continue;
+		if (row.kind !== 'TAKEN' || row.approval_id != null) continue;
 		const date = dateKey(row.entry_date);
 		if (date != null) takenLeaveDates.add(date);
 	}
@@ -390,7 +406,7 @@ export function measureEmployment(options: {
 		(row) => !takenLeaveDates.has(requiredDateKey(row.work_date, 'roster_entries.work_date'))
 	);
 	const workingDaysCache = new Map<string, number>();
-	const workingDaysIn = (window: { start: IsoDate; end: IsoDate }): number => {
+	const workingDaysIn = (window: PayRange): number => {
 		const key = `${window.start}:${window.end}`;
 		const cached = workingDaysCache.get(key);
 		if (cached != null) return cached;
@@ -438,7 +454,7 @@ export function measureEmployment(options: {
 	// measured against is basic plus the cash-for-work entries settling here, so the set of entries
 	// is fixed before anyone asks who the ladder covers.
 	const cutoffDay = Number(configuration.company.pay_cutoff_day);
-	const entryById = new Map(bundle.entries.map((entry) => [entry.norbital_id, entry]));
+	const entryById = new Map(bundle.entries.map((entry) => [entry.id, entry]));
 	// The arrears entry a previous build of *this* period wrote is the engine's own output, and this
 	// run is about to derive that figure again. Reading it back as an input would pay a late joiner's
 	// first month twice, once more on every rebuild. Everything else on that component — an arrears
@@ -469,8 +485,8 @@ export function measureEmployment(options: {
 	const entryTotalByComponentId = new Map<string, number>();
 	for (const component of configuration.payComponents) {
 		entryTotalByComponentId.set(
-			component.norbital_id,
-			(entriesByComponent.get(component.norbital_id) ?? []).reduce(
+			component.id,
+			(entriesByComponent.get(component.id) ?? []).reduce(
 				(total, entry) => total + entrySign(entry, entryById) * Number(entry.amount),
 				0
 			)
@@ -518,7 +534,7 @@ export function measureEmployment(options: {
 			.filter((component) => isEligible(component.eligibility, subject))
 			.map((component) => ({
 				category: classifyWageComparand(component),
-				amount: entryTotalByComponentId.get(component.norbital_id) ?? 0
+				amount: entryTotalByComponentId.get(component.id) ?? 0
 			}))
 	});
 	const paymentEligible = isStatutoryOvertimePayCovered({
@@ -599,13 +615,13 @@ export function measureEmployment(options: {
 	const entryTotals: Record<string, number> = {};
 	for (const component of configuration.payComponents) {
 		componentsByCode[component.code] = 0;
-		entryTotals[component.code] = entryTotalByComponentId.get(component.norbital_id) ?? 0;
+		entryTotals[component.code] = entryTotalByComponentId.get(component.id) ?? 0;
 	}
 	const facts: Record<string, string | number | boolean> = {};
 	for (const contribution of configuration.contributions) {
 		const fact = bundle.statutoryFacts.find(
 			(row) =>
-				row.statutory_contribution_id === contribution.row.norbital_id &&
+				row.statutory_contribution_id === contribution.row.id &&
 				coversDate(row.effective_range, options.salary.end)
 		);
 		const status = fact?.status;
@@ -627,10 +643,7 @@ export function measureEmployment(options: {
 	for (const type of configuration.leaveTypes) {
 		leaveDays[type.code] = bundle.ledger
 			.filter(
-				(row) =>
-					row.leave_type_id === type.norbital_id &&
-					row.kind === 'TAKEN' &&
-					row.norbital_approval_id == null
+				(row) => row.leave_type_id === type.id && row.kind === 'TAKEN' && row.approval_id == null
 			)
 			// The same predicate the deduction itself uses. An unpaid-absence component is a FORMULA
 			// over `leaveDays(...)`, so if this counted a different set of days than
@@ -650,7 +663,7 @@ export function measureEmployment(options: {
 					resolveEntitlement({
 						leaveType: type,
 						serviceMonths,
-						employmentId: bundle.employment.norbital_id,
+						employmentId: bundle.employment.id,
 						asOf: options.salary.end
 					}),
 				hireDate,
@@ -748,9 +761,7 @@ export function measureEmployment(options: {
 	// ── walk the catalogue in component sequence ───────────────────────────────────────────────
 	const lines: MeasuredLine[] = [];
 	if (arrears != null) {
-		const component = configuration.payComponents.find(
-			(row) => row.norbital_id === arrears.payComponentId
-		);
+		const component = configuration.payComponents.find((row) => row.id === arrears.payComponentId);
 		if (component == null)
 			throw new Error(
 				`${bundle.employment.employee_number} is owed ${arrears.period}, but the component it is ` +
@@ -758,7 +769,7 @@ export function measureEmployment(options: {
 			);
 		lines.push({
 			payComponent: component,
-			component: { kind: 'DERIVED', pay_component_id: component.norbital_id },
+			component: { kind: 'DERIVED', pay_component_id: component.id },
 			nature: component.policy?.kind ?? null,
 			label: component.code,
 			amount: arrears.amount,
@@ -771,7 +782,7 @@ export function measureEmployment(options: {
 	}
 	for (const component of configuration.payComponents) {
 		if (!isEligible(component.eligibility, subject)) continue;
-		const componentEntries = entriesByComponent.get(component.norbital_id) ?? [];
+		const componentEntries = entriesByComponent.get(component.id) ?? [];
 		const entryGroups =
 			component.definition?.source === 'ENTRY'
 				? componentEntries.map((entry) => [entry] as const)
@@ -786,7 +797,7 @@ export function measureEmployment(options: {
 				contracted: employed,
 				entries,
 				entryById,
-				unpaid: unpaidByComponent.get(component.norbital_id) ?? null,
+				unpaid: unpaidByComponent.get(component.id) ?? null,
 				workingDaysIn,
 				context,
 				subject
@@ -860,13 +871,12 @@ export function measureEmployment(options: {
  * allowances, whatever settled there, less anything unpaid. It is the same arithmetic the person
  * would have seen on a payslip, which is the only defensible definition of what they are owed.
  */
-function measureArrears(options: {
-	readonly bundle: EmploymentBundle;
-	readonly configuration: Configuration;
-	readonly periodsRemaining: number;
-	readonly headcount: number;
-	readonly policy: SettlementPolicy;
-}): MeasuredEmployment['arrears'] {
+function measureArrears(
+	options: Pick<
+		MeasureEmploymentOptions,
+		'bundle' | 'configuration' | 'periodsRemaining' | 'headcount' | 'policy'
+	>
+): MeasuredEmployment['arrears'] {
 	const owed = options.bundle.arrearsFor;
 	const payComponentId = options.policy.lateJoinerComponentId;
 	if (owed == null || payComponentId == null) return null;
@@ -907,16 +917,19 @@ function measureArrears(options: {
  * is honoured. An ineligible or non-deduction component produces nothing at all, matching the rest
  * of MEASURE.
  */
-function measureLoanInstalments(options: {
+/** What `measureLoanInstalments` needs: the bundle, its catalogue and one run's cutoff facts. */
+type MeasureLoanInstalmentsOptions = {
 	readonly bundle: EmploymentBundle;
 	readonly configuration: Configuration;
 	readonly period: string;
 	readonly cutoffDay: number;
 	readonly subject: EligibilitySubject;
-}): MeasuredLine[] {
+};
+
+function measureLoanInstalments(options: MeasureLoanInstalmentsOptions): MeasuredLine[] {
 	const lines: MeasuredLine[] = [];
 	const componentById = new Map(
-		options.configuration.payComponents.map((component) => [component.norbital_id, component])
+		options.configuration.payComponents.map((component) => [component.id, component])
 	);
 	for (const agreement of options.bundle.agreements) {
 		const component = componentById.get(agreement.pay_component_id);
@@ -932,8 +945,8 @@ function measureLoanInstalments(options: {
 				payComponent: component,
 				component: {
 					kind: 'LOAN_INSTALMENT',
-					pay_component_id: component.norbital_id,
-					agreement_id: agreement.norbital_id,
+					pay_component_id: component.id,
+					agreement_id: agreement.id,
 					sequence: index + 1
 				},
 				nature: component.policy?.kind ?? null,
@@ -948,16 +961,19 @@ function measureLoanInstalments(options: {
 	return lines;
 }
 
-type Measurement = {
-	readonly amount: number;
-	readonly quantity: number | null;
-	readonly rate: number | null;
-	readonly component: PayslipLineComponent;
-};
+/** The exact value one measured component carries, before it becomes a payslip line. */
+const MeasurementSchema = Schema.Struct({
+	amount: Schema.Number,
+	quantity: Schema.NullOr(Schema.Number),
+	rate: Schema.NullOr(Schema.Number),
+	component: payslipLineComponentValueSchema
+});
+type Measurement = Schema.Schema.Type<typeof MeasurementSchema>;
 
 type EntryCap = NonNullable<Extract<ComponentDefinition, { source: 'ENTRY' }>['cap']>;
 
-function resolveEntryCap(options: {
+/** What `resolveEntryCap` needs to read the cap and price what this run already used of it. */
+type ResolveEntryCapOptions = {
 	readonly cap: EntryCap;
 	readonly component: PayComponent;
 	readonly entry: ComponentEntry;
@@ -966,10 +982,14 @@ function resolveEntryCap(options: {
 	readonly entryById: ReadonlyMap<string, ComponentEntry>;
 	readonly context: FormulaContext;
 	readonly leaveYearStartMonth: number;
-}): { amount: number; percentage: number; exceededBy: number } | null {
+};
+
+function resolveEntryCap(
+	options: ResolveEntryCapOptions
+): { amount: number; percentage: number; exceededBy: number } | null {
 	const eventDate = entryEventDate(options.entry, options.entryById);
 	const applicable = options.cap.matrix.layers.flatMap((layer) => {
-		if (layer.level === 'EMPLOYEE' && layer.employment_id !== options.bundle.employment.norbital_id)
+		if (layer.level === 'EMPLOYEE' && layer.employment_id !== options.bundle.employment.id)
 			return [];
 		if (
 			!coversDate(layer.effective_range, eventDate) ||
@@ -1008,16 +1028,13 @@ function resolveEntryCap(options: {
 		}
 	};
 	const previouslyUsed = options.bundle.entries.reduce((total, candidate) => {
-		if (
-			candidate.pay_component_id !== options.component.norbital_id ||
-			candidate.norbital_id === options.entry.norbital_id
-		)
+		if (candidate.pay_component_id !== options.component.id || candidate.id === options.entry.id)
 			return total;
 		const candidateDate = entryEventDate(candidate, options.entryById);
 		if (
 			!samePeriod(candidate) ||
 			candidateDate > eventDate ||
-			(candidateDate === eventDate && candidate.norbital_id > options.entry.norbital_id)
+			(candidateDate === eventDate && candidate.id > options.entry.id)
 		)
 			return total;
 		return (
@@ -1028,155 +1045,174 @@ function resolveEntryCap(options: {
 	return { amount, percentage, exceededBy: Math.max(0, previouslyUsed) };
 }
 
-function measureComponent(options: {
+type MeasureComponentOptions = {
 	readonly component: PayComponent;
 	readonly bundle: EmploymentBundle;
 	readonly configuration: Configuration;
-	readonly salary: { readonly start: IsoDate; readonly end: IsoDate };
-	readonly employed: { readonly start: IsoDate; readonly end: IsoDate };
-	readonly contracted: { readonly start: IsoDate; readonly end: IsoDate };
+	readonly salary: PayRange;
+	readonly employed: PayRange;
+	readonly contracted: PayRange;
 	readonly entries: readonly ComponentEntry[];
 	readonly entryById: ReadonlyMap<string, ComponentEntry>;
 	readonly unpaid: UnpaidLeave | null;
-	readonly workingDaysIn: (window: { start: IsoDate; end: IsoDate }) => number;
+	readonly workingDaysIn: (window: PayRange) => number;
 	readonly context: () => FormulaContext;
 	readonly subject: EligibilitySubject;
-}): Measurement | null {
+};
+
+function measureComponent(options: MeasureComponentOptions): Measurement | null {
 	const definition = options.component.definition;
 	if (definition == null)
 		throw new Error(`Pay component ${options.component.code} has no definition to measure.`);
 
-	switch (definition.source) {
-		case 'SCHEDULE': {
-			// The contracted wage, prorated by employment dates. A mid-period change is two terms
-			// rows, each prorated against the same full-period divisor, and the two sum to the month.
-			let amount = 0;
-			for (const terms of options.bundle.terms) {
-				const covered = clipRange(terms.effective_range, options.contracted);
-				const fraction = prorationFraction({
-					jurisdiction: options.configuration.jurisdiction,
-					period: options.salary,
-					covered,
-					workingDaysIn: options.workingDaysIn
-				});
-				if (fraction <= 0) continue;
-				amount += Number(baseSalaryOf(terms).value) * fraction;
-			}
-			// A full-final-period policy extends the last effective wage through month end. The
-			// contract row still ends on the real exit date; only this run's settlement span extends.
-			if (options.employed.end > options.contracted.end) {
-				const tail = {
-					start: addDays(options.contracted.end, 1),
-					end: options.employed.end
-				};
-				const fraction = prorationFraction({
-					jurisdiction: options.configuration.jurisdiction,
-					period: options.salary,
-					covered: tail,
-					workingDaysIn: options.workingDaysIn
-				});
-				amount +=
-					Number(baseSalaryOf(termsAt(options.bundle, options.contracted.end)).value) * fraction;
-			}
-			return {
-				amount: cents(amount),
-				quantity: null,
-				rate: null,
-				component: { kind: 'SCHEDULE', pay_component_id: options.component.norbital_id }
-			};
-		}
-
-		case 'ENTRY': {
-			if (options.entries.length === 0) return null;
-			let amount = 0;
-			let quantity = 0;
-			let lineComponent: PayslipLineComponent | null = null;
-			for (const entry of options.entries) {
-				const cap =
-					definition.cap == null
-						? null
-						: resolveEntryCap({
-								cap: definition.cap,
-								component: options.component,
-								entry,
-								bundle: options.bundle,
-								subject: options.subject,
-								entryById: options.entryById,
-								context: options.context(),
-								leaveYearStartMonth: Number(options.configuration.company.leave_year_start_month)
-							});
-				const percentage = cap?.percentage ?? 100;
-				const sign = entrySign(entry, options.entryById);
-				const recurring = recurringRange(entry);
-				const fraction = prorates(entry)
-					? prorationFraction({
-							jurisdiction: options.configuration.jurisdiction,
-							period: options.salary,
-							covered:
-								recurring == null
-									? options.employed
-									: (intersectDays(
-											{ start: recurring.start, end: recurring.end ?? options.salary.end },
-											options.employed
-										) ?? null),
-							workingDaysIn: options.workingDaysIn
-						})
-					: 1;
-				if (fraction <= 0) continue;
-				// The reimbursable share is an economic fact per claim, so it is rounded per entry and
-				// then summed — not applied to a total that never existed.
-				const reimbursable = cents((Number(entry.amount) * fraction * percentage) / 100);
-				if (
-					cap != null &&
-					cap.exceededBy + reimbursable > cap.amount &&
-					definition.cap?.on_exceed === 'BLOCK'
-				)
-					throw new Error(
-						`${options.component.code} entitlement exceeded for ${options.bundle.employment.employee_number}: ` +
-							`${cents(cap.exceededBy + reimbursable).toFixed(2)} requested against ${cents(cap.amount).toFixed(2)} allowed.`
-					);
-				amount += sign * reimbursable;
-				quantity += sign * Number(entry.quantity ?? 0);
-				lineComponent = {
-					kind:
-						entry.origin?.kind === 'RECURRING'
-							? 'COMPONENT_ENTRY_RECURRING'
-							: 'COMPONENT_ENTRY_ONCE',
-					pay_component_id: options.component.norbital_id,
-					component_entry_id: entry.norbital_id
-				};
-			}
-			if (lineComponent == null) return null;
-			return {
-				amount: cents(amount),
-				quantity: quantity === 0 ? null : quantity,
-				rate: null,
-				component: lineComponent
-			};
-		}
-
-		case 'FORMULA': {
-			const amount = evaluateFormula({
-				code: options.component.code,
-				expr: definition.expr,
-				context: options.context()
+	/**
+	 * A `SCHEDULE` component is the contracted wage, prorated by employment dates. A mid-period
+	 * change is two terms rows, each prorated against the same full-period divisor, and the two
+	 * sum to the month.
+	 */
+	const measureSchedule = (): Measurement | null => {
+		let amount = 0;
+		for (const terms of options.bundle.terms) {
+			const covered = clipRange(terms.effective_range, options.contracted);
+			const fraction = prorationFraction({
+				jurisdiction: options.configuration.jurisdiction,
+				period: options.salary,
+				covered,
+				workingDaysIn: options.workingDaysIn
 			});
-			const quantity = options.unpaid?.days ?? null;
-			if (amount === 0 && quantity == null && definition.unit !== 'RATE') return null;
-			return {
-				amount: cents(Math.abs(amount)),
-				quantity,
-				rate: definition.unit === 'RATE' ? cents(Math.abs(amount)) : null,
-				component:
-					options.unpaid != null
-						? {
-								kind: 'LEAVE_UNPAID',
-								pay_component_id: options.component.norbital_id,
-								leave_request_ids: [...options.unpaid.leaveRequestIds]
-							}
-						: { kind: 'FORMULA', pay_component_id: options.component.norbital_id }
+			if (fraction <= 0) continue;
+			amount += Number(baseSalaryOf(terms).value) * fraction;
+		}
+		// A full-final-period policy extends the last effective wage through month end. The
+		// contract row still ends on the real exit date; only this run's settlement span extends.
+		if (options.employed.end > options.contracted.end) {
+			const tail = {
+				start: addDays(options.contracted.end, 1),
+				end: options.employed.end
+			};
+			const fraction = prorationFraction({
+				jurisdiction: options.configuration.jurisdiction,
+				period: options.salary,
+				covered: tail,
+				workingDaysIn: options.workingDaysIn
+			});
+			amount +=
+				Number(baseSalaryOf(termsAt(options.bundle, options.contracted.end)).value) * fraction;
+		}
+		return {
+			amount: cents(amount),
+			quantity: null,
+			rate: null,
+			component: { kind: 'SCHEDULE', pay_component_id: options.component.id }
+		};
+	};
+
+	/**
+	 * An `ENTRY` component sums season-limited entries, each amount treated as a percentage of
+	 * itself until its cap is reached.
+	 */
+	const measureEntry = (
+		definition: Extract<ComponentDefinition, { source: 'ENTRY' }>
+	): Measurement | null => {
+		if (options.entries.length === 0) return null;
+		let amount = 0;
+		let quantity = 0;
+		let lineComponent: PayslipLineComponent | null = null;
+		for (const entry of options.entries) {
+			const cap =
+				definition.cap == null
+					? null
+					: resolveEntryCap({
+							cap: definition.cap,
+							component: options.component,
+							entry,
+							bundle: options.bundle,
+							subject: options.subject,
+							entryById: options.entryById,
+							context: options.context(),
+							leaveYearStartMonth: Number(options.configuration.company.leave_year_start_month)
+						});
+			const percentage = cap?.percentage ?? 100;
+			const sign = entrySign(entry, options.entryById);
+			const recurring = recurringRange(entry);
+			const fraction = prorates(entry)
+				? prorationFraction({
+						jurisdiction: options.configuration.jurisdiction,
+						period: options.salary,
+						covered:
+							recurring == null
+								? options.employed
+								: (intersectDays(
+										{ start: recurring.start, end: recurring.end ?? options.salary.end },
+										options.employed
+									) ?? null),
+						workingDaysIn: options.workingDaysIn
+					})
+				: 1;
+			if (fraction <= 0) continue;
+			// The reimbursable share is an economic fact per claim, so it is rounded per entry and
+			// then summed — not applied to a total that never existed.
+			const reimbursable = cents((Number(entry.amount) * fraction * percentage) / 100);
+			if (
+				cap != null &&
+				cap.exceededBy + reimbursable > cap.amount &&
+				definition.cap?.on_exceed === 'BLOCK'
+			)
+				throw new Error(
+					`${options.component.code} entitlement exceeded for ${options.bundle.employment.employee_number}: ` +
+						`${cents(cap.exceededBy + reimbursable).toFixed(2)} requested against ${cents(cap.amount).toFixed(2)} allowed.`
+				);
+			amount += sign * reimbursable;
+			quantity += sign * Number(entry.quantity ?? 0);
+			lineComponent = {
+				kind:
+					entry.origin?.kind === 'RECURRING' ? 'COMPONENT_ENTRY_RECURRING' : 'COMPONENT_ENTRY_ONCE',
+				pay_component_id: options.component.id,
+				component_entry_id: entry.id
 			};
 		}
+		if (lineComponent == null) return null;
+		return {
+			amount: cents(amount),
+			quantity: quantity === 0 ? null : quantity,
+			rate: null,
+			component: lineComponent
+		};
+	};
+
+	/** A `FORMULA` component is a CEL expression over everything measured so far this payslip. */
+	const measureFormula = (
+		definition: Extract<ComponentDefinition, { source: 'FORMULA' }>
+	): Measurement | null => {
+		const amount = evaluateFormula({
+			code: options.component.code,
+			expr: definition.expr,
+			context: options.context()
+		});
+		const quantity = options.unpaid?.days ?? null;
+		if (amount === 0 && quantity == null && definition.unit !== 'RATE') return null;
+		return {
+			amount: cents(Math.abs(amount)),
+			quantity,
+			rate: definition.unit === 'RATE' ? cents(Math.abs(amount)) : null,
+			component:
+				options.unpaid != null
+					? {
+							kind: 'LEAVE_UNPAID',
+							pay_component_id: options.component.id,
+							leave_request_ids: [...options.unpaid.leaveRequestIds]
+						}
+					: { kind: 'FORMULA', pay_component_id: options.component.id }
+		};
+	};
+
+	switch (definition.source) {
+		case 'SCHEDULE':
+			return measureSchedule();
+		case 'ENTRY':
+			return measureEntry(definition);
+		case 'FORMULA':
+			return measureFormula(definition);
 	}
 	throw new Error(`Unsupported component source: ${Reflect.get(definition, 'source')}`);
 }
@@ -1204,13 +1240,18 @@ function measureComponent(options: {
  * components. It was a company paying above statute, and it is not expressible on a statutory band;
  * nothing in the shipped seed used it (all 28 were null), so no figure moves.
  */
-function measureOvertime(options: {
+/**
+ * Everything `measureOvertime` prices: the classified segments and the rates they were derived at.
+ */
+type MeasureOvertimeOptions = {
 	readonly segments: readonly PricedSegment[];
 	readonly excess: readonly ExcessHours[];
 	readonly hourlyRate: number;
 	readonly dayWage: number;
 	readonly overtimeCalculationMethod: OvertimeCalculationMethod;
-}): Omit<MeasuredLine, 'sequence'>[] {
+};
+
+function measureOvertime(options: MeasureOvertimeOptions): Omit<MeasuredLine, 'sequence'>[] {
 	const lines: Omit<MeasuredLine, 'sequence'>[] = [];
 	const asLine = (
 		band: OvertimeBandIdentity,
@@ -1237,19 +1278,11 @@ function measureOvertime(options: {
 		let dayWageAmount = 0;
 		let datedAmount = 0;
 		for (const segment of matched) {
-			const multiple = segment.multiple;
-			if (options.overtimeCalculationMethod === 'ANNUALISED_CONTRACT_RATE') {
-				const unitRate =
-					segment.award === 'DAY_WAGE_MULTIPLE'
-						? cents(options.dayWage * multiple)
-						: cents(options.hourlyRate * multiple);
-				const units = segment.award === 'DAY_WAGE_MULTIPLE' ? 1 : segment.hours;
-				datedAmount += cents(units * unitRate);
-			} else if (segment.award === 'DAY_WAGE_MULTIPLE') {
-				dayWageAmount += multiple * options.dayWage;
-			} else {
-				weighted += segment.hours * multiple;
-			}
+			if (options.overtimeCalculationMethod === 'ANNUALISED_CONTRACT_RATE')
+				datedAmount += annualisedSegmentAmount(segment, options.hourlyRate, options.dayWage);
+			else if (segment.award === 'DAY_WAGE_MULTIPLE')
+				dayWageAmount += segment.multiple * options.dayWage;
+			else weighted += segment.hours * segment.multiple;
 			hours += segment.hours;
 		}
 		const amount =
@@ -1274,14 +1307,7 @@ function measureOvertime(options: {
 		const rate = valuedAt === 'ORDINARY_DAY_WAGE' ? options.dayWage : options.hourlyRate;
 		const amount =
 			options.overtimeCalculationMethod === 'ANNUALISED_CONTRACT_RATE'
-				? cents(
-						matched.reduce((total, row) => {
-							if (row.valuedAt === 'ORDINARY_DAY_WAGE')
-								return total + cents(row.units * options.dayWage);
-							const multiple = row.hours === 0 ? 0 : row.units / row.hours;
-							return total + cents(row.hours * cents(options.hourlyRate * multiple));
-						}, 0)
-					)
+				? annualisedExcessAmount(matched, options.hourlyRate, options.dayWage)
 				: cents(units * rate);
 		if (amount === 0) continue;
 		lines.push(asLine(band, true, { amount, quantity: hours, rate }));
@@ -1290,11 +1316,42 @@ function measureOvertime(options: {
 	return lines;
 }
 
-type OvertimeBandIdentity = {
-	readonly dayType: 'ORDINARY' | 'REST_DAY' | 'PUBLIC_HOLIDAY';
-	readonly measure: 'BEYOND_NORMAL' | 'FROM_START_OF_DAY';
-	readonly bandFrom: number;
-};
+/**
+ * One segment's worth under the `ANNUALISED_CONTRACT_RATE` order of operations: the unit rate
+ * rounds first, then multiplies the units — per segment and per day — because that is what the
+ * source system does and what reproduces its figures to the cent.
+ */
+function annualisedSegmentAmount(
+	segment: PricedSegment,
+	hourlyRate: number,
+	dayWage: number
+): number {
+	const multiple = segment.multiple;
+	const unitRate =
+		segment.award === 'DAY_WAGE_MULTIPLE'
+			? cents(dayWage * multiple)
+			: cents(hourlyRate * multiple);
+	const units = segment.award === 'DAY_WAGE_MULTIPLE' ? 1 : segment.hours;
+	return cents(units * unitRate);
+}
+
+/**
+ * Excess rows to money under the `ANNUALISED_CONTRACT_RATE` same order: a day-wage row is its
+ * valued multiple, an hourly row its hours at an already-rounded unit rate.
+ */
+function annualisedExcessAmount(
+	rows: readonly ExcessHours[],
+	hourlyRate: number,
+	dayWage: number
+): number {
+	return cents(
+		rows.reduce((total, row) => {
+			if (row.valuedAt === 'ORDINARY_DAY_WAGE') return total + cents(row.units * dayWage);
+			const multiple = row.hours === 0 ? 0 : row.units / row.hours;
+			return total + cents(row.hours * cents(hourlyRate * multiple));
+		}, 0)
+	);
+}
 
 /**
  * Priced rows collected under the band that valued them, in the order the bands were first entered.

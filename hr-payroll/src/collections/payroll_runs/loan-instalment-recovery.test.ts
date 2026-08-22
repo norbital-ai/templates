@@ -7,7 +7,7 @@ import { defaultPayPeriod, attendanceWindow, resolveWindow } from './lib/period.
 import { PLAIN_CALENDAR } from './lib/settlement.ts';
 
 const JURISDICTION = {
-	norbital_id: 'jur-my',
+	id: 'jur-my',
 	code: 'MY',
 	proration: { by: 'CALENDAR_DAYS' },
 	ordinary_rate_divisor: 26,
@@ -17,7 +17,7 @@ const JURISDICTION = {
 };
 
 const COMPANY = {
-	norbital_id: 'co-nihon-my',
+	id: 'co-nihon-my',
 	name: 'Nihon (MY)',
 	jurisdiction_id: 'jur-my',
 	pay_cutoff_day: 21,
@@ -30,7 +30,7 @@ const COMPANY = {
 };
 
 const BASIC = {
-	norbital_id: 'pc-basic',
+	id: 'pc-basic',
 	company_id: 'co-nihon-my',
 	code: 'BASIC',
 	name: 'Basic salary',
@@ -44,7 +44,7 @@ const BASIC = {
 
 /** The loan-recovery component the agreement deducts on. */
 const LOAN = {
-	norbital_id: 'pc-hari-raya-2026',
+	id: 'pc-hari-raya-2026',
 	company_id: 'co-nihon-my',
 	code: 'HARI_RAYA_2026',
 	name: 'Loan recovery',
@@ -72,7 +72,7 @@ function configuration(payComponents = [BASIC, LOAN], rosterCodes = []) {
 		overtimeRules: [],
 		overtimeLimits: [],
 		overtimeCoverageRule: null,
-		shiftById: new Map(rosterCodes.map((row) => [row.norbital_id, row])),
+		shiftById: new Map(rosterCodes.map((row) => [row.id, row])),
 		holidays: new Map(),
 		leaveTypes: [],
 		hash: 'test'
@@ -89,9 +89,9 @@ function instalment(dueDate, amount) {
 
 function leftoverEntry(sequence, dueDate, amount) {
 	return {
-		norbital_id: `entry-${sequence}`,
+		id: `entry-${sequence}`,
 		employment_id: 'emp-nhpmy0290',
-		pay_component_id: LOAN.norbital_id,
+		pay_component_id: LOAN.id,
 		amount,
 		quantity: 1,
 		event_date: dueDate,
@@ -109,9 +109,9 @@ function leftoverEntry(sequence, dueDate, amount) {
 /** Seed leftover recoveries are ONE_OFF, not LOAN_INSTALMENT — same pair the agreement recovers. */
 function leftoverOneOffEntry(dueDate, amount) {
 	return {
-		norbital_id: 'entry-one-off-leftover',
+		id: 'entry-one-off-leftover',
 		employment_id: 'emp-nhpmy0290',
-		pay_component_id: LOAN.norbital_id,
+		pay_component_id: LOAN.id,
 		amount,
 		quantity: null,
 		event_date: dueDate,
@@ -125,9 +125,9 @@ function leftoverOneOffEntry(dueDate, amount) {
 
 function agreement(schedule) {
 	return {
-		norbital_id: 'agr-hari-raya-2026',
+		id: 'agr-hari-raya-2026',
 		employment_id: 'emp-nhpmy0290',
-		pay_component_id: LOAN.norbital_id,
+		pay_component_id: LOAN.id,
 		reference: 'Hari Raya 2026 (NHPMY0290)',
 		principal: 1000,
 		schedule,
@@ -147,7 +147,7 @@ const GUARANTEED_PATTERN = {
 
 function bundle(entries, baseSalary = 3000, extras = {}) {
 	const terms = {
-		norbital_id: 'terms-1',
+		id: 'terms-1',
 		employment_id: 'emp-nhpmy0290',
 		base_salary: { value: baseSalary, currency: 'MYR' },
 		pay_frequency: 'MONTHLY',
@@ -157,7 +157,7 @@ function bundle(entries, baseSalary = 3000, extras = {}) {
 	};
 	return {
 		employment: {
-			norbital_id: 'emp-nhpmy0290',
+			id: 'emp-nhpmy0290',
 			employee_id: 'ee-1',
 			employee_number: 'NHPMY0290',
 			company_id: 'co-nihon-my',
@@ -169,7 +169,7 @@ function bundle(entries, baseSalary = 3000, extras = {}) {
 			work_classification: 'NON_MANUAL',
 			effective_range: { start: '2021-06-01', end: null }
 		},
-		employee: { norbital_id: 'ee-1', date_of_birth: '1990-01-01', gender: 'MALE' },
+		employee: { id: 'ee-1', date_of_birth: '1990-01-01', gender: 'MALE' },
 		terms: [terms],
 		statutoryFacts: [],
 		entries,
@@ -224,7 +224,7 @@ test('the April run writes a payslip line linked to the April instalment', () =>
 	assert.equal(loanLines[0].amount, 167, 'a loan instalment is never prorated');
 	assert.deepEqual(loanLines[0].component, {
 		kind: 'LOAN_INSTALMENT',
-		pay_component_id: LOAN.norbital_id,
+		pay_component_id: LOAN.id,
 		agreement_id: 'agr-hari-raya-2026',
 		sequence: 1
 	});
@@ -279,7 +279,7 @@ test('net-pay protection reduces the instalment but still links and still report
 	const settlement = settle({ lines: measured.lines, charges: [] });
 
 	assert.equal(settlement.net, 0);
-	assert.deepEqual(settlement.shortfalls, [{ payComponentId: LOAN.norbital_id, amount: 67 }]);
+	assert.deepEqual(settlement.shortfalls, [{ payComponentId: LOAN.id, amount: 67 }]);
 
 	const loanLine = settlement.lines.find((line) => line.payComponent.code === 'HARI_RAYA_2026');
 	// The line survives the guard, so PERSIST still writes it and the instalment still resolves to a
@@ -311,7 +311,7 @@ test('an ineligible loan component drops the instalment with no line at all', ()
 
 test('an as-assigned worker derives their normalized load from that month s WORK roster codes', () => {
 	const rosterCode = {
-		norbital_id: '00000000-0000-4000-8000-000000000101',
+		id: '00000000-0000-4000-8000-000000000101',
 		code: 'PT-AM',
 		variant: { kind: 'WORK', start_time: '09:00', end_time: '13:00', break_minutes: 0 },
 		effective_range: { start: '2020-01-01', end: null }
@@ -324,9 +324,9 @@ test('an as-assigned worker derives their normalized load from that month s WORK
 		rosterCodes: [rosterCode],
 		rosterEntries: [
 			{
-				norbital_id: 'roster-entry-1',
+				id: 'roster-entry-1',
 				work_date: '2026-04-01',
-				shift_definition_id: rosterCode.norbital_id
+				shift_definition_id: rosterCode.id
 			}
 		]
 	});

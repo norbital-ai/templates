@@ -38,60 +38,70 @@
  * paid twice and none is missed. That is checked here on every read, not assumed.
  */
 
+import { Number as EffectNumber, Schema } from 'effect';
 import { addDays, dayOfMonth, monthBounds, monthDay, shiftPeriod, type IsoDate } from './dates.js';
 
 export const PAY_FREQUENCIES = ['MONTHLY', 'SEMI_MONTHLY', 'WEEKLY', 'DAILY', 'HOURLY'] as const;
 export type PayFrequency = (typeof PAY_FREQUENCIES)[number];
 
-export type DayRange = { readonly start: IsoDate; readonly end: IsoDate };
+const DayRangeSchema = Schema.Struct({ start: Schema.String, end: Schema.String });
+type DayRange = Schema.Schema.Type<typeof DayRangeSchema>;
 
 /** One pay event of a period: what it pays for, what it reads, and when it pays. */
-export type PayInstalment = {
+const PayInstalmentSchema = Schema.Struct({
 	/** 1-based position in the period. A monthly cadence has exactly one. */
-	readonly sequence: number;
+	sequence: Schema.Number,
 	/** The days the wages belong to; the proration denominator lives here. */
-	readonly salary: DayRange;
+	salary: DayRangeSchema,
 	/** The work days those wages cover. */
-	readonly attendance: DayRange;
-	readonly payDate: IsoDate;
-};
+	attendance: DayRangeSchema,
+	payDate: Schema.String
+});
+type PayInstalment = Schema.Schema.Type<typeof PayInstalmentSchema>;
 
-export type PayrollWindow = {
+const PayrollWindowSchema = Schema.Struct({
 	/** `YYYY-MM`. */
-	readonly period: string;
+	period: Schema.String,
 	/** The cadence this window was resolved for. */
-	readonly payFrequency: PayFrequency;
+	payFrequency: Schema.Literals(PAY_FREQUENCIES),
 	/** The calendar month the wages belong to; the proration denominator lives here. */
-	readonly salary: DayRange;
+	salary: DayRangeSchema,
 	/** The work days the wages cover; time entries and leave days are selected by this. */
-	readonly attendance: DayRange;
-	readonly payDate: IsoDate;
+	attendance: DayRangeSchema,
+	payDate: Schema.String,
 	/**
 	 * Every pay event of the period, in order. One for a monthly cadence, and then `salary`,
 	 * `attendance` and `payDate` above are exactly that one instalment; two for a semi-monthly
 	 * cadence, and then they are the envelope — the whole month, and the last pay date of it,
 	 * because a run settles every instalment of its period together.
 	 */
-	readonly instalments: readonly PayInstalment[];
-};
+	instalments: Schema.Array(PayInstalmentSchema)
+});
+export type PayrollWindow = Schema.Schema.Type<typeof PayrollWindowSchema>;
 
 /** What `companies` states about its calendars, as it is stored. */
-export type PayCalendarCompany = {
-	readonly pay_cutoff_day: number;
-	readonly pay_day: number;
-	readonly pay_calendar?: StoredPayCalendar;
-};
+const StoredPayCalendarSchema = Schema.NullOr(
+	Schema.Array(
+		Schema.Struct({
+			pay_frequency: Schema.String,
+			instalments: Schema.Array(
+				Schema.Struct({
+					start_day: Schema.Number,
+					end_day: Schema.Number,
+					pay_day: Schema.Number
+				})
+			)
+		})
+	)
+);
+export type StoredPayCalendar = Schema.Schema.Type<typeof StoredPayCalendarSchema>;
 
-export type StoredPayCalendar =
-	| readonly {
-			readonly pay_frequency: string;
-			readonly instalments: readonly {
-				readonly start_day: number;
-				readonly end_day: number;
-				readonly pay_day: number;
-			}[];
-	  }[]
-	| null;
+const PayCalendarCompanySchema = Schema.Struct({
+	pay_cutoff_day: Schema.Number,
+	pay_day: Schema.Number,
+	pay_calendar: Schema.optionalKey(StoredPayCalendarSchema)
+});
+type PayCalendarCompany = Schema.Schema.Type<typeof PayCalendarCompanySchema>;
 
 function periodParts(period: string): { year: number; monthIndex: number } {
 	if (!/^\d{4}-\d{2}$/.test(period))
@@ -127,7 +137,7 @@ export function payCalendarInstalments(
 	period: string,
 	company: PayCalendarCompany,
 	payFrequency: PayFrequency
-): readonly PayInstalment[] | null {
+): PayInstalment[] | null {
 	const calendars = company.pay_calendar ?? [];
 	const stated = calendars.find((entry) => entry.pay_frequency === payFrequency);
 	if (stated == null) return null;
@@ -257,7 +267,7 @@ export function defaultPayPeriod(eventDate: IsoDate, cutoffDay: number): string 
  */
 export function payPeriodsRemaining(period: string, taxYearStartMonth: number): number {
 	const month = Number(period.slice(5, 7));
-	const start = Math.min(12, Math.max(1, Math.trunc(taxYearStartMonth)));
+	const start = EffectNumber.clamp({ minimum: 1, maximum: 12 })(Math.trunc(taxYearStartMonth));
 	const elapsed = (month - start + 12) % 12;
 	return 12 - elapsed;
 }
@@ -266,12 +276,12 @@ export function payPeriodsRemaining(period: string, taxYearStartMonth: number): 
 export function taxYearOf(period: string, taxYearStartMonth: number): string {
 	const year = Number(period.slice(0, 4));
 	const month = Number(period.slice(5, 7));
-	const start = Math.min(12, Math.max(1, Math.trunc(taxYearStartMonth)));
+	const start = EffectNumber.clamp({ minimum: 1, maximum: 12 })(Math.trunc(taxYearStartMonth));
 	return String(month >= start ? year : year - 1);
 }
 
 /** The first period of the tax year `period` falls in. */
 export function taxYearFirstPeriod(period: string, taxYearStartMonth: number): string {
-	const start = Math.min(12, Math.max(1, Math.trunc(taxYearStartMonth)));
+	const start = EffectNumber.clamp({ minimum: 1, maximum: 12 })(Math.trunc(taxYearStartMonth));
 	return `${taxYearOf(period, taxYearStartMonth)}-${String(start).padStart(2, '0')}`;
 }

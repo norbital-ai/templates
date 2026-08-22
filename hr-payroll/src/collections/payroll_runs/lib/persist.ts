@@ -11,13 +11,16 @@
  * previous answer behind.
  */
 
-import { Effect } from 'effect';
-import { assertComplete, PAGE_LIMIT, type PayrollApi } from './api.js';
+import { Clock, Effect, Schema } from 'effect';
+import { PAGE_LIMIT, type PayrollApi, type ReadLog } from './api.js';
 import { dedupeClaims, type SettlementClaim } from './claims.js';
 import type { ContributionCharge } from './contribute.js';
 import type { MeasuredLine } from './measure.js';
-import type { PayslipLineComponent } from '../../../datatypes/payslip_line_component/+definition.js';
+import { payslipLineComponentValueSchema } from '../../../datatypes/payslip_line_component/+definition.js';
 import type { Settlement } from './settle.js';
+
+/** The post-write capability set with the per-run read log bound, which every engine write uses. */
+type PayrollWriteApi = PayrollApi & { readonly reads: ReadLog };
 
 export type PendingPayslip = {
 	readonly employmentId: string;
@@ -32,13 +35,6 @@ export type PendingPayslip = {
 	 */
 	readonly claims: readonly SettlementClaim[];
 };
-
-function identifier(row: Record<string, unknown>, what: string): string {
-	const id = row.norbital_id;
-	if (typeof id !== 'string')
-		throw new Error(`Writing ${what} returned a row without an identifier.`);
-	return id;
-}
 
 /**
  * Remove a run's results so it can be rebuilt from scratch.
@@ -57,13 +53,16 @@ function identifier(row: Record<string, unknown>, what: string): string {
  * `payslip_sources.payslip_id`, so the database releases every claim in the same statement. See
  * `src/collections/payslip_sources/+model.ts` for why a hook loop is not the answer.
  */
-export function clearRunResults(api: PayrollApi, runId: string): Effect.Effect<void, never, never> {
+export function clearRunResults(
+	api: PayrollWriteApi,
+	runId: string
+): Effect.Effect<void, never, never> {
 	return Effect.gen(function* () {
 		const existing = yield* api.db.query.payslips.findMany({
 			where: { payroll_run_id: { eq: runId } },
 			limit: PAGE_LIMIT
 		});
-		assertComplete(existing, 'payslips to clear');
+		api.reads.assertComplete(existing, 'payslips to clear');
 		if (existing.length === 0) return;
 
 		// The lines and the source rows go with them, and the database does it.
@@ -71,20 +70,25 @@ export function clearRunResults(api: PayrollApi, runId: string): Effect.Effect<v
 		// `+relationship.ts`, and those declarations reach the DDL — until they did, every foreign
 		// key was `NO ACTION` and deleting a payslip that still had children was refused outright.
 		// Deleting them here as well would be a second mechanism for one rule.
-		yield* api.db.payslips.delete(existing.map((row) => row.norbital_id));
+		yield* api.db.payslips.delete(existing.map((row) => row.id));
 	});
 }
 
-export function persistPayslips(options: {
-	readonly api: PayrollApi;
+/** What `persistPayslips` writes and against which run. */
+type PersistPayslipsOptions = {
+	readonly api: PayrollWriteApi;
 	readonly runId: string;
 	readonly period: string;
 	readonly pending: readonly PendingPayslip[];
-}): Effect.Effect<{ payslipCount: number; lineCount: number; claimCount: number }, never, never> {
+};
+
+export function persistPayslips(
+	options: PersistPayslipsOptions
+): Effect.Effect<{ payslipCount: number; lineCount: number; claimCount: number }, never, never> {
 	return Effect.gen(function* () {
 		if (options.pending.length === 0) return { payslipCount: 0, lineCount: 0, claimCount: 0 };
 
-		const writeMark = { at: Date.now() };
+		let writeMark = yield* Clock.currentTimeMillis;
 		/**
 		 * Each batch write timed as it lands.
 		 *
@@ -93,11 +97,12 @@ export function persistPayslips(options: {
 		 * phase in the engine is the absence of its summary line. Naming the batch and its row count
 		 * makes "which write" and "how much per row" answerable from one killed run.
 		 */
-		const wrote = (what: string, rows: number): void => {
-			const now = Date.now();
-			console.log(`[payroll-write] ${what} rows=${rows} ms=${now - writeMark.at}`);
-			writeMark.at = now;
-		};
+		const wrote = (what: string, rows: number): Effect.Effect<void> =>
+			Effect.gen(function* () {
+				const now = yield* Clock.currentTimeMillis;
+				yield* Effect.log(`[payroll-write] ${what} rows=${rows} ms=${now - writeMark}`);
+				writeMark = now;
+			});
 
 		const payslipRows = yield* options.api.db.payslips.mutate(
 			options.pending.map((payslip) => ({
@@ -110,27 +115,41 @@ export function persistPayslips(options: {
 				currency: payslip.currency
 			}))
 		);
-		wrote('payslips', options.pending.length);
-		const payslipIdByEmployment = new Map(
-			payslipRows.map((row) => [String(row.employment_id), identifier(row, 'a payslip')])
-		);
+		yield* wrote('payslips', options.pending.length);
+		const payslipIdByEmployment = new Map<string, string>();
+		for (const row of payslipRows) {
+			if (typeof row.id !== 'string')
+				return yield* Effect.die(
+					new Error('Writing a payslip returned a row without an identifier.')
+				);
+			payslipIdByEmployment.set(String(row.employment_id), row.id);
+		}
 		if (payslipIdByEmployment.size !== options.pending.length)
-			throw new Error('Not every calculated employment produced a payslip.');
+			return yield* Effect.die(new Error('Not every calculated employment produced a payslip.'));
 
-		type LineInput = {
-			readonly payslip_id: string;
-			readonly component: PayslipLineComponent;
-			readonly bucket: 'EARNING' | 'ABSENCE' | 'DEDUCTION' | 'NON_WAGE_PAYMENT' | 'EMPLOYER_COST';
-			readonly amount: number;
-			readonly quantity: number | null;
-			readonly rate: number | null;
-			readonly sequence: number;
-		};
+		const LineInputSchema = Schema.Struct({
+			payslip_id: Schema.String,
+			component: payslipLineComponentValueSchema,
+			bucket: Schema.Literals([
+				'EARNING',
+				'ABSENCE',
+				'DEDUCTION',
+				'NON_WAGE_PAYMENT',
+				'EMPLOYER_COST'
+			]),
+			amount: Schema.Number,
+			quantity: Schema.NullOr(Schema.Number),
+			rate: Schema.NullOr(Schema.Number),
+			sequence: Schema.Number
+		});
+		type LineInput = Schema.Schema.Type<typeof LineInputSchema>;
 		const lineInputs: LineInput[] = [];
 		for (const payslip of options.pending) {
 			const payslipId = payslipIdByEmployment.get(payslip.employmentId);
 			if (payslipId == null)
-				throw new Error('A calculated employment has no payslip to hang lines on.');
+				return yield* Effect.die(
+					new Error('A calculated employment has no payslip to hang lines on.')
+				);
 			let sequence = 1;
 			for (const line of payslip.settlement.lines) {
 				// Derived overtime carries its own nature — there is no component row to read one off.
@@ -147,7 +166,7 @@ export function persistPayslips(options: {
 			}
 			for (const charge of payslip.charges) {
 				const shared = {
-					statutory_contribution_id: charge.contribution.row.norbital_id,
+					statutory_contribution_id: charge.contribution.row.id,
 					base_amount: charge.base,
 					band_reference: charge.bandReference,
 					special_amounts: charge.special
@@ -175,7 +194,7 @@ export function persistPayslips(options: {
 
 		if (lineInputs.length > 0) {
 			yield* options.api.db.payslip_lines.mutate(lineInputs);
-			wrote('payslip_lines', lineInputs.length);
+			yield* wrote('payslip_lines', lineInputs.length);
 		}
 
 		/**
@@ -203,7 +222,7 @@ export function persistPayslips(options: {
 		);
 		if (sources.length > 0) {
 			yield* options.api.db.payslip_sources.mutate(sources);
-			wrote('payslip_sources', sources.length);
+			yield* wrote('payslip_sources', sources.length);
 		}
 
 		return {
@@ -214,15 +233,9 @@ export function persistPayslips(options: {
 	});
 }
 
-/**
- * Carry a shortfall into the next period.
- *
- * An arrears entry is written for what the negative-net guard could not deduct. It is keyed by the
- * period it covers, and any arrears already written for that same period on the same component is
- * removed first, so rebuilding a run cannot make an employee owe the same money twice.
- */
-export function persistShortfalls(options: {
-	readonly api: PayrollApi;
+/** A deduction that could not be taken, and the next period to carry it into. */
+type PersistShortfallsOptions = {
+	readonly api: PayrollWriteApi;
 	readonly period: string;
 	readonly nextPeriod: string;
 	readonly payDate: string;
@@ -231,7 +244,18 @@ export function persistShortfalls(options: {
 		readonly payComponentId: string;
 		readonly amount: number;
 	}[];
-}): Effect.Effect<void, never, never> {
+};
+
+/**
+ * Carry a shortfall into the next period.
+ *
+ * An arrears entry is written for what the negative-net guard could not deduct. It is keyed by the
+ * period it covers, and any arrears already written for that same period on the same component is
+ * removed first, so rebuilding a run cannot make an employee owe the same money twice.
+ */
+export function persistShortfalls(
+	options: PersistShortfallsOptions
+): Effect.Effect<void, never, never> {
 	return Effect.gen(function* () {
 		if (options.shortfalls.length === 0) return;
 		const employmentIds = [...new Set(options.shortfalls.map((row) => row.employmentId))];
@@ -241,7 +265,7 @@ export function persistShortfalls(options: {
 		});
 		// A truncated read here would leave last build's arrears standing beside this build's, and the
 		// employee would owe the same money twice.
-		assertComplete(existing, 'component entries to re-arrear');
+		options.api.reads.assertComplete(existing, 'component entries to re-arrear');
 		const stale = existing.filter(
 			(entry) =>
 				entry.origin?.kind === 'ARREARS' &&
@@ -249,7 +273,7 @@ export function persistShortfalls(options: {
 				entry.origin.covers_periods[0] === options.period
 		);
 		if (stale.length > 0)
-			yield* options.api.db.component_entries.delete(stale.map((row) => row.norbital_id));
+			yield* options.api.db.component_entries.delete(stale.map((row) => row.id));
 		yield* options.api.db.component_entries.mutate(
 			options.shortfalls.map((shortfall) => ({
 				employment_id: shortfall.employmentId,
@@ -269,15 +293,16 @@ export function persistShortfalls(options: {
 }
 
 /** A skipped joining period, and what this run is paying for it. */
-export type PendingDeferral = {
-	readonly employmentId: string;
-	readonly employeeNumber: string;
-	readonly hireDate: Date | string | null;
-	readonly coversPeriod: string;
-	readonly paidInPeriod: string;
-	readonly payComponentId: string;
-	readonly amount: number;
-};
+const PendingDeferralSchema = Schema.Struct({
+	employmentId: Schema.String,
+	employeeNumber: Schema.String,
+	hireDate: Schema.NullOr(Schema.Union([Schema.Date, Schema.String])),
+	coversPeriod: Schema.String,
+	paidInPeriod: Schema.String,
+	payComponentId: Schema.String,
+	amount: Schema.Number
+});
+export type PendingDeferral = Schema.Schema.Type<typeof PendingDeferralSchema>;
 
 /**
  * Record a skipped joining period in the employee's own entry stream.
@@ -296,7 +321,7 @@ export type PendingDeferral = {
  * record of that month's arrears, not two.
  */
 export function persistDeferrals(options: {
-	readonly api: PayrollApi;
+	readonly api: PayrollWriteApi;
 	readonly deferrals: readonly PendingDeferral[];
 }): Effect.Effect<void, never, never> {
 	return Effect.gen(function* () {
@@ -306,7 +331,7 @@ export function persistDeferrals(options: {
 			where: { employment_id: { in: employmentIds } },
 			limit: PAGE_LIMIT
 		});
-		assertComplete(existing, 'component entries to re-defer');
+		options.api.reads.assertComplete(existing, 'component entries to re-defer');
 		const owned = new Set(
 			options.deferrals.map(
 				(row) => `${row.employmentId}:${row.payComponentId}:${row.coversPeriod}`
@@ -321,7 +346,7 @@ export function persistDeferrals(options: {
 				)
 		);
 		if (stale.length > 0)
-			yield* options.api.db.component_entries.delete(stale.map((row) => row.norbital_id));
+			yield* options.api.db.component_entries.delete(stale.map((row) => row.id));
 		yield* options.api.db.component_entries.mutate(
 			options.deferrals.map((row) => {
 				const joined = row.hireDate == null ? row.coversPeriod : String(row.hireDate).slice(0, 10);

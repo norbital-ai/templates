@@ -1,7 +1,15 @@
 import { defineAutomation } from '@norbital-ai/bolt/authoring';
-import { Effect, Schema } from 'effect';
+import { Effect, Option, Schema } from 'effect';
 import { todayInstant, todayKey } from '../lib/ui/calendar.js';
-import type { StatutoryFactStatus } from '../datatypes/statutory_fact_status/+definition.js';
+import {
+	statutoryFactStatusValueSchema,
+	type StatutoryFactStatus
+} from '../datatypes/statutory_fact_status/+definition.js';
+import {
+	readRange,
+	StoredRangeSchema,
+	type StoredRange
+} from '../collections/payroll_runs/lib/effective.js';
 
 /**
  * In-force statutory alignment: which companies, facts and schemes have drifted, and which
@@ -11,193 +19,154 @@ import type { StatutoryFactStatus } from '../datatypes/statutory_fact_status/+de
  * exactly one later in-force scheme exists for the same jurisdiction and code.
  */
 
-export type StoredRange = { readonly start: string; readonly end: string | null };
+const DriftKindSchema = Schema.Union([
+	Schema.Literal('superseded_company_jurisdiction'),
+	Schema.Literal('fact_needs_successor'),
+	Schema.Literal('missing_fact'),
+	Schema.Literal('rate_gap')
+]);
+export type DriftKind = Schema.Schema.Type<typeof DriftKindSchema>;
 
-/** The stored `dateRange()` column shape: a JSONB pair of instants, bounds optional at the type. */
-export type RangeValue = { readonly start?: string; readonly end?: string | null };
+const DriftItemSchema = Schema.Struct({ kind: DriftKindSchema, label: Schema.String });
+export type DriftItem = Schema.Schema.Type<typeof DriftItemSchema>;
 
-export type JurisdictionRow = {
-	readonly norbital_id: string;
-	readonly code: string;
-	readonly name: string;
-	readonly effective_range: RangeValue | null | undefined;
-};
+const SuccessorCopySchema = Schema.Struct({
+	factId: Schema.String,
+	employmentId: Schema.String,
+	successorSchemeId: Schema.String,
+	status: Schema.NullOr(statutoryFactStatusValueSchema),
+	previousRange: StoredRangeSchema,
+	label: Schema.String
+});
+export type SuccessorCopy = Schema.Schema.Type<typeof SuccessorCopySchema>;
 
-export type SchemeRow = {
-	readonly norbital_id: string;
-	readonly jurisdiction_id: string;
-	readonly code: string;
-	readonly name: string;
-	readonly effective_range: RangeValue | null | undefined;
-};
+/**
+ * A relation value arrives through a `with` clause, whose generated type cannot say whether it is
+ * a row or a list. The runtime returns the single row or null; both shapes below are that row.
+ */
+const jurisdictionValueSchema = Schema.Struct({
+	id: Schema.String,
+	code: Schema.String,
+	name: Schema.String,
+	effective_range: Schema.optionalKey(Schema.Unknown)
+});
+export type JurisdictionRow = Schema.Schema.Type<typeof jurisdictionValueSchema>;
 
-export type RateRow = {
-	readonly norbital_id: string;
-	readonly statutory_contribution_id: string;
-	readonly summary: string | null;
-	readonly effective_range: RangeValue | null | undefined;
-};
+const schemeValueSchema = Schema.Struct({
+	id: Schema.String,
+	jurisdiction_id: Schema.String,
+	code: Schema.String,
+	name: Schema.String,
+	effective_range: Schema.optionalKey(Schema.Unknown)
+});
+export type SchemeRow = Schema.Schema.Type<typeof schemeValueSchema>;
 
-export type CompanyRow = {
-	readonly norbital_id: string;
-	readonly name: string;
-	readonly jurisdiction_id: string;
-	readonly jurisdiction: JurisdictionRow | null;
-};
+const RateRowSchema = Schema.Struct({
+	id: Schema.String,
+	statutory_contribution_id: Schema.String,
+	summary: Schema.NullOr(Schema.String),
+	effective_range: Schema.optionalKey(Schema.Unknown)
+});
+export type RateRow = Schema.Schema.Type<typeof RateRowSchema>;
 
-export type EmploymentRow = {
-	readonly norbital_id: string;
-	readonly employee_number: string;
-	readonly company_id: string;
-};
+const CompanyRowSchema = Schema.Struct({
+	id: Schema.String,
+	name: Schema.String,
+	jurisdiction_id: Schema.String,
+	jurisdiction: Schema.NullOr(jurisdictionValueSchema)
+});
+export type CompanyRow = Schema.Schema.Type<typeof CompanyRowSchema>;
 
-export type FactRow = {
-	readonly norbital_id: string;
-	readonly employment_id: string;
-	readonly statutory_contribution_id: string;
-	readonly status: StatutoryFactStatus | null;
-	readonly summary: string | null;
-	readonly effective_range: RangeValue | null | undefined;
-	readonly scheme: SchemeRow | null;
-};
+const EmploymentRowSchema = Schema.Struct({
+	id: Schema.String,
+	employee_number: Schema.String,
+	company_id: Schema.String
+});
+export type EmploymentRow = Schema.Schema.Type<typeof EmploymentRowSchema>;
 
-export type DriftKind =
-	'superseded_company_jurisdiction' | 'fact_needs_successor' | 'missing_fact' | 'rate_gap';
+const FactRowSchema = Schema.Struct({
+	id: Schema.String,
+	employment_id: Schema.String,
+	statutory_contribution_id: Schema.String,
+	status: Schema.NullOr(statutoryFactStatusValueSchema),
+	summary: Schema.NullOr(Schema.String),
+	effective_range: Schema.optionalKey(Schema.Unknown),
+	scheme: Schema.NullOr(schemeValueSchema)
+});
+export type FactRow = Schema.Schema.Type<typeof FactRowSchema>;
 
-export type DriftItem = {
-	readonly kind: DriftKind;
-	readonly label: string;
-};
-
-export type SuccessorCopy = {
-	readonly factId: string;
-	readonly employmentId: string;
-	readonly successorSchemeId: string;
-	readonly status: StatutoryFactStatus | null;
-	readonly previousRange: StoredRange;
-	readonly label: string;
-};
-
-function readRange(value: unknown): StoredRange | null {
-	if (value == null || typeof value !== 'object') return null;
-	const start = Reflect.get(value, 'start');
-	if (typeof start !== 'string' || start === '') return null;
-	const end = Reflect.get(value, 'end');
-	return { start, end: typeof end === 'string' && end !== '' ? end : null };
-}
-
-export function coversDate(range: RangeValue | null | undefined, date: string): boolean {
+export function coversDate(range: unknown, date: string): boolean {
 	const parsed = readRange(range);
 	if (!parsed) return false;
 	if (parsed.start.slice(0, 10) > date) return false;
 	return parsed.end == null || parsed.end.slice(0, 10) >= date;
 }
 
-function uniqueSuccessorScheme(
-	scheme: SchemeRow,
-	inForceSchemes: readonly SchemeRow[]
-): SchemeRow | null {
-	const successors = inForceSchemes.filter(
-		(candidate) =>
-			candidate.jurisdiction_id === scheme.jurisdiction_id &&
-			candidate.code === scheme.code &&
-			candidate.norbital_id !== scheme.norbital_id &&
-			String(readRange(candidate.effective_range)?.start ?? '') >
-				String(readRange(scheme.effective_range)?.start ?? '')
-	);
-	return successors.length === 1 ? (successors[0] ?? null) : null;
-}
-
-/**
- * A relation value arrives through a `with` clause, whose generated type cannot say whether it is
- * a row or a list. The runtime returns the single row or null.
- */
-function isRecordRow(
-	value:
-		| Readonly<Record<string, unknown>>
-		| ReadonlyArray<Readonly<Record<string, unknown>>>
-		| null
-		| undefined
-): value is Readonly<Record<string, unknown>> {
-	return value != null && !Array.isArray(value);
-}
+const decodeJurisdiction = Schema.decodeUnknownOption(jurisdictionValueSchema);
+const decodeScheme = Schema.decodeUnknownOption(schemeValueSchema);
+const decodeFactStatus = Schema.decodeUnknownOption(statutoryFactStatusValueSchema);
 
 /**
  * A company's jurisdiction arrives through the `company_jurisdiction` relation. The runtime
  * returns the single row or null.
  */
-function asJurisdiction(
-	value:
-		| Readonly<Record<string, unknown>>
-		| ReadonlyArray<Readonly<Record<string, unknown>>>
-		| null
-		| undefined
-): JurisdictionRow | null {
-	if (!isRecordRow(value)) return null;
-	const { norbital_id, code, name, effective_range } = value;
-	if (typeof norbital_id !== 'string' || typeof code !== 'string' || typeof name !== 'string') {
-		return null;
-	}
-	return {
-		norbital_id,
-		code,
-		name,
-		effective_range: readRange(effective_range)
-	};
+function asJurisdiction(value: unknown): JurisdictionRow | null {
+	const parsed = Option.getOrNull(decodeJurisdiction(value));
+	return parsed == null ? null : { ...parsed, effective_range: readRange(parsed.effective_range) };
 }
 
 /**
  * A fact's scheme arrives through the `statutory_fact_contribution` relation. The runtime returns
  * the single row or null.
  */
-function asScheme(
-	value:
-		| Readonly<Record<string, unknown>>
-		| ReadonlyArray<Readonly<Record<string, unknown>>>
-		| null
-		| undefined
-): SchemeRow | null {
-	if (!isRecordRow(value)) return null;
-	const { norbital_id, jurisdiction_id, code, name, effective_range } = value;
-	if (
-		typeof norbital_id !== 'string' ||
-		typeof jurisdiction_id !== 'string' ||
-		typeof code !== 'string' ||
-		typeof name !== 'string'
-	) {
-		return null;
-	}
-	return {
-		norbital_id,
-		jurisdiction_id,
-		code,
-		name,
-		effective_range: readRange(effective_range)
-	};
+function asScheme(value: unknown): SchemeRow | null {
+	const parsed = Option.getOrNull(decodeScheme(value));
+	return parsed == null ? null : { ...parsed, effective_range: readRange(parsed.effective_range) };
 }
 
 export function asFactStatus(value: StatutoryFactStatus | null): StatutoryFactStatus | null {
-	if (value == null) return null;
-	if (value.kind === 'REGISTERED' && typeof value.reference_number === 'string') return value;
-	if (value.kind === 'NOT_REGISTERED' && typeof value.reason === 'string') return value;
-	return null;
+	return value == null ? null : Option.getOrNull(decodeFactStatus(value));
 }
 
-export function detectStatutoryDrift(input: {
-	readonly today: string;
-	readonly inForceJurisdictions: readonly JurisdictionRow[];
-	readonly inForceSchemes: readonly SchemeRow[];
-	readonly inForceRates: readonly RateRow[];
-	readonly companies: readonly CompanyRow[];
-	readonly employments: readonly EmploymentRow[];
-	readonly facts: readonly FactRow[];
-}): { readonly items: DriftItem[]; readonly copies: SuccessorCopy[] } {
+const DriftDetectionInputSchema = Schema.Struct({
+	today: Schema.String,
+	inForceJurisdictions: Schema.Array(jurisdictionValueSchema),
+	inForceSchemes: Schema.Array(schemeValueSchema),
+	inForceRates: Schema.Array(RateRowSchema),
+	companies: Schema.Array(CompanyRowSchema),
+	employments: Schema.Array(EmploymentRowSchema),
+	facts: Schema.Array(FactRowSchema)
+});
+type DriftDetectionInput = Schema.Schema.Type<typeof DriftDetectionInputSchema>;
+
+/**
+ * A scheme successor is the unique later in-force scheme of the same jurisdiction and code. The
+ * jurisdiction identity is carried by the `candidates` index; only code and date order remain.
+ */
+function uniqueSuccessorScheme(
+	scheme: SchemeRow,
+	candidates: readonly SchemeRow[]
+): SchemeRow | null {
+	const successors = candidates.filter(
+		(candidate) =>
+			candidate.code === scheme.code &&
+			candidate.id !== scheme.id &&
+			String(readRange(candidate.effective_range)?.start ?? '') >
+				String(readRange(scheme.effective_range)?.start ?? '')
+	);
+	return successors.length === 1 ? (successors[0] ?? null) : null;
+}
+
+export function detectStatutoryDrift(input: DriftDetectionInput): {
+	readonly items: DriftItem[];
+	readonly copies: SuccessorCopy[];
+} {
 	const items: DriftItem[] = [];
 	const copies: SuccessorCopy[] = [];
 	const inForceJurisdictionByCode = new Map(
 		input.inForceJurisdictions.map((row) => [row.code, row])
 	);
-	const inForceSchemeIds = new Set(input.inForceSchemes.map((row) => row.norbital_id));
+	const inForceSchemeIds = new Set(input.inForceSchemes.map((row) => row.id));
 	const schemesByJurisdiction = new Map<string, SchemeRow[]>();
 	for (const scheme of input.inForceSchemes) {
 		const list = schemesByJurisdiction.get(scheme.jurisdiction_id) ?? [];
@@ -215,7 +184,7 @@ export function detectStatutoryDrift(input: {
 		const bound = company.jurisdiction;
 		if (!bound) continue;
 		const current = inForceJurisdictionByCode.get(bound.code);
-		if (current && current.norbital_id !== bound.norbital_id) {
+		if (current && current.id !== bound.id) {
 			items.push({
 				kind: 'superseded_company_jurisdiction',
 				label: `${company.name} is still on ${bound.name}; ${current.name} is in force for ${bound.code}`
@@ -224,7 +193,7 @@ export function detectStatutoryDrift(input: {
 	}
 
 	for (const scheme of input.inForceSchemes) {
-		const rates = (ratesByScheme.get(scheme.norbital_id) ?? []).filter((rate) =>
+		const rates = (ratesByScheme.get(scheme.id) ?? []).filter((rate) =>
 			coversDate(rate.effective_range, input.today)
 		);
 		if (rates.length === 0) {
@@ -247,19 +216,22 @@ export function detectStatutoryDrift(input: {
 		factsByEmployment.set(fact.employment_id, list);
 	}
 
-	const companyById = new Map(input.companies.map((row) => [row.norbital_id, row]));
+	const companyById = new Map(input.companies.map((row) => [row.id, row]));
 
 	for (const fact of input.facts) {
 		const scheme = fact.scheme;
 		if (!scheme) continue;
-		if (inForceSchemeIds.has(scheme.norbital_id)) continue;
-		const successor = uniqueSuccessorScheme(scheme, input.inForceSchemes);
+		if (inForceSchemeIds.has(scheme.id)) continue;
+		const successor = uniqueSuccessorScheme(
+			scheme,
+			schemesByJurisdiction.get(scheme.jurisdiction_id) ?? []
+		);
 		const previousRange = readRange(fact.effective_range);
 		if (successor && previousRange) {
 			copies.push({
-				factId: fact.norbital_id,
+				factId: fact.id,
 				employmentId: fact.employment_id,
-				successorSchemeId: successor.norbital_id,
+				successorSchemeId: successor.id,
 				status: fact.status,
 				previousRange,
 				label: `${fact.summary} → ${successor.code} ${successor.name}`
@@ -279,14 +251,13 @@ export function detectStatutoryDrift(input: {
 	for (const employment of input.employments) {
 		const company = companyById.get(employment.company_id);
 		const jurisdictionId = company?.jurisdiction
-			? (inForceJurisdictionByCode.get(company.jurisdiction.code)?.norbital_id ??
-				company.jurisdiction.norbital_id)
+			? (inForceJurisdictionByCode.get(company.jurisdiction.code)?.id ?? company.jurisdiction.id)
 			: null;
 		if (!jurisdictionId) continue;
 		const levied = schemesByJurisdiction.get(jurisdictionId) ?? [];
 		const standing = new Set(
-			(factsByEmployment.get(employment.norbital_id) ?? []).flatMap((fact) => {
-				if (!fact.scheme || !inForceSchemeIds.has(fact.scheme.norbital_id)) return [];
+			(factsByEmployment.get(employment.id) ?? []).flatMap((fact) => {
+				if (!fact.scheme || !inForceSchemeIds.has(fact.scheme.id)) return [];
 				return [fact.scheme.code];
 			})
 		);
@@ -326,7 +297,7 @@ export default defineAutomation(
 				const today = todayKey();
 				const asOf = todayInstant();
 				const live = {
-					norbital_approval_id: { isNull: true },
+					approval_id: { isNull: true },
 					effective_range: { contains_date: asOf }
 				};
 				const [inForceJurisdictions, inForceSchemes, inForceRates, companies, employments, facts] =
@@ -334,13 +305,13 @@ export default defineAutomation(
 						[
 							api.db.query.jurisdictions.findMany({
 								where: live,
-								columns: { norbital_id: true, code: true, name: true, effective_range: true },
+								columns: { id: true, code: true, name: true, effective_range: true },
 								limit: 250
 							}),
 							api.db.query.statutory_contributions.findMany({
 								where: live,
 								columns: {
-									norbital_id: true,
+									id: true,
 									jurisdiction_id: true,
 									code: true,
 									name: true,
@@ -351,7 +322,7 @@ export default defineAutomation(
 							api.db.query.contribution_rates.findMany({
 								where: live,
 								columns: {
-									norbital_id: true,
+									id: true,
 									statutory_contribution_id: true,
 									summary: true,
 									effective_range: true
@@ -360,23 +331,23 @@ export default defineAutomation(
 							}),
 							api.db.query.companies.findMany({
 								where: live,
-								columns: { norbital_id: true, name: true, jurisdiction_id: true },
+								columns: { id: true, name: true, jurisdiction_id: true },
 								with: {
 									company_jurisdiction: {
-										columns: { norbital_id: true, code: true, name: true, effective_range: true }
+										columns: { id: true, code: true, name: true, effective_range: true }
 									}
 								},
 								limit: 250
 							}),
 							api.db.query.employments.findMany({
 								where: live,
-								columns: { norbital_id: true, employee_number: true, company_id: true },
+								columns: { id: true, employee_number: true, company_id: true },
 								limit: 250
 							}),
 							api.db.query.employment_statutory_facts.findMany({
 								where: live,
 								columns: {
-									norbital_id: true,
+									id: true,
 									employment_id: true,
 									statutory_contribution_id: true,
 									status: true,
@@ -386,7 +357,7 @@ export default defineAutomation(
 								with: {
 									statutory_fact_contribution: {
 										columns: {
-											norbital_id: true,
+											id: true,
 											jurisdiction_id: true,
 											code: true,
 											name: true,
@@ -406,14 +377,14 @@ export default defineAutomation(
 					inForceSchemes,
 					inForceRates,
 					companies: companies.map((company) => ({
-						norbital_id: company.norbital_id,
+						id: company.id,
 						name: company.name,
 						jurisdiction_id: company.jurisdiction_id,
 						jurisdiction: asJurisdiction(company.company_jurisdiction)
 					})),
 					employments,
 					facts: facts.map((fact) => ({
-						norbital_id: fact.norbital_id,
+						id: fact.id,
 						employment_id: fact.employment_id,
 						statutory_contribution_id: fact.statutory_contribution_id,
 						status: fact.status,
@@ -424,13 +395,17 @@ export default defineAutomation(
 				});
 
 				const writes: string[] = [];
+				const existingSchemeIdsByEmployment = new Map<string, Set<string>>();
+				for (const fact of facts) {
+					const schemeIds =
+						existingSchemeIdsByEmployment.get(fact.employment_id) ?? new Set<string>();
+					schemeIds.add(fact.statutory_contribution_id);
+					existingSchemeIdsByEmployment.set(fact.employment_id, schemeIds);
+				}
 				for (const copy of detected.copies) {
-					const already = facts.find(
-						(fact) =>
-							fact.employment_id === copy.employmentId &&
-							fact.statutory_contribution_id === copy.successorSchemeId
-					);
-					if (already) continue;
+					if (existingSchemeIdsByEmployment.get(copy.employmentId)?.has(copy.successorSchemeId)) {
+						continue;
+					}
 					const status = asFactStatus(copy.status);
 					if (!status) continue;
 					yield* api.db.employment_statutory_facts.update(copy.factId, {

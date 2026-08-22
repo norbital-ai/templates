@@ -35,7 +35,7 @@ export default defineQueryHandler({
 			const jobs = yield* api.db.query.jobs.findMany({
 				where: { scheduled_for: { eq: scheduled_for } },
 				columns: {
-					norbital_id: true,
+					id: true,
 					site_id: true,
 					title: true,
 					status: true
@@ -48,17 +48,17 @@ export default defineQueryHandler({
 				where: {
 					scheduled_for: { gte: month.start, lte: month.end }
 				},
-				columns: { norbital_id: true, title: true },
+				columns: { id: true, title: true },
 				limit: 1000
 			});
-			const monthJobById = new Map(monthJobs.map((job) => [job.norbital_id, job.title]));
+			const monthJobById = new Map(monthJobs.map((job) => [job.id, job.title]));
 			const monthSuspectAssignments =
 				monthJobById.size === 0
 					? []
 					: yield* api.db.query.job_assignments
 							.findMany({
 								where: { job_id: { in: [...monthJobById.keys()] } },
-								columns: { norbital_id: true, job_id: true },
+								columns: { id: true, job_id: true },
 								limit: 1000
 							})
 							.pipe(
@@ -77,7 +77,7 @@ export default defineQueryHandler({
 												.findMany({
 													where: {
 														job_assignment_id: {
-															in: assignments.map((row) => row.norbital_id)
+															in: assignments.map((row) => row.id)
 														},
 														resolved_at: { isNull: true }
 													},
@@ -87,14 +87,14 @@ export default defineQueryHandler({
 												.pipe(
 													Effect.map((logs) => {
 														const flagged = new Set(logs.map((log) => log.job_assignment_id));
-														return assignments.filter((row) => flagged.has(row.norbital_id));
+														return assignments.filter((row) => flagged.has(row.id));
 													})
 												)
 								)
 							);
 			const month_suspects = monthSuspectAssignments.flatMap((assignment) => {
 				const title = monthJobById.get(assignment.job_id);
-				return title ? [{ id: assignment.norbital_id, job: title }] : [];
+				return title ? [{ id: assignment.id, job: title }] : [];
 			});
 
 			if (jobs.length === 0) {
@@ -102,9 +102,9 @@ export default defineQueryHandler({
 			}
 
 			const assignments = yield* api.db.query.job_assignments.findMany({
-				where: { job_id: { in: jobs.map((job) => job.norbital_id) } },
+				where: { job_id: { in: jobs.map((job) => job.id) } },
 				columns: {
-					norbital_id: true,
+					id: true,
 					job_id: true,
 					assignee_user_id: true,
 					status: true
@@ -115,7 +115,7 @@ export default defineQueryHandler({
 				return { assignment_cards: [], assignment_ids: [], map_points: [], month_suspects };
 			}
 
-			const jobById = new Map(jobs.map((job) => [job.norbital_id, job]));
+			const jobById = new Map(jobs.map((job) => [job.id, job]));
 			const assigneeUserIds = [
 				...new Set(assignments.map((assignment) => assignment.assignee_user_id))
 			];
@@ -133,8 +133,8 @@ export default defineQueryHandler({
 					// from a workspace collection restating it.
 					usersById(api, assigneeUserIds),
 					api.db.query.sites.findMany({
-						where: { norbital_id: { in: siteIds } },
-						columns: { norbital_id: true, name: true, location: true },
+						where: { id: { in: siteIds } },
+						columns: { id: true, name: true, location: true },
 						limit: siteIds.length
 					})
 				],
@@ -150,7 +150,7 @@ export default defineQueryHandler({
 				if (!job) continue;
 				const siteAssignments = assignmentsBySite.get(job.site_id) ?? [];
 				siteAssignments.push({
-					id: assignment.norbital_id,
+					id: assignment.id,
 					job: job.title,
 					assignee: assignees.get(assignment.assignee_user_id)?.name ?? 'Unknown assignee',
 					status: assignment.status ?? 'assigned'
@@ -159,14 +159,14 @@ export default defineQueryHandler({
 			}
 
 			return {
-				assignment_ids: assignments.map((assignment) => assignment.norbital_id),
+				assignment_ids: assignments.map((assignment) => assignment.id),
 				month_suspects,
 				assignment_cards: assignments.flatMap((assignment) => {
 					const job = jobById.get(assignment.job_id);
 					return job
 						? [
 								{
-									id: assignment.norbital_id,
+									id: assignment.id,
 									job: job.title,
 									assignee: assignees.get(assignment.assignee_user_id)?.name ?? 'Unknown assignee'
 								}
@@ -174,12 +174,12 @@ export default defineQueryHandler({
 						: [];
 				}),
 				map_points: sites.flatMap((site) => {
-					const siteAssignments = assignmentsBySite.get(site.norbital_id) ?? [];
+					const siteAssignments = assignmentsBySite.get(site.id) ?? [];
 					const geometry = site.location?.geometry;
 					if (!geometry || siteAssignments.length === 0) return [];
 					return [
 						{
-							id: site.norbital_id,
+							id: site.id,
 							name: site.name,
 							label: site.location?.formatted_address ?? site.name,
 							latitude: geometry.lat,

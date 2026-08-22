@@ -1,3 +1,5 @@
+import { Schema } from 'effect';
+
 /**
  * Money rounding.
  *
@@ -18,16 +20,18 @@
  * to the arithmetic and the audit hash it fed made a changed hash mean a changed column instead of
  * changed law.
  */
-export type RoundingMethod =
-	| 'NONE'
-	| 'NEAREST_CENT'
-	| 'NEAREST_5_CENTS'
-	| 'TRUNCATE_CENT'
-	| 'UP_5_CENTS'
-	| 'NEAREST_UNIT'
-	| 'FLOOR_UNIT'
-	| 'UP_TO_UNIT'
-	| 'TABLE';
+export const RoundingMethodSchema = Schema.Literals([
+	'NONE',
+	'NEAREST_CENT',
+	'NEAREST_5_CENTS',
+	'TRUNCATE_CENT',
+	'UP_5_CENTS',
+	'NEAREST_UNIT',
+	'FLOOR_UNIT',
+	'UP_TO_UNIT',
+	'TABLE'
+]);
+export type RoundingMethod = Schema.Schema.Type<typeof RoundingMethodSchema>;
 
 function epsilon(value: number): number {
 	return Number.EPSILON * Math.max(1, Math.abs(value)) * 4;

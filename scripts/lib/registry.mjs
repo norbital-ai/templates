@@ -5,7 +5,7 @@
  * same resolution a tenant sandbox performs. `NORBITAL_PACKAGE_REGISTRY` overrides it for a local
  * mirror or a rehearsal registry.
  */
-export const defaultRegistry = 'https://npm.pkg.github.com';
+const defaultRegistry = 'https://npm.pkg.github.com';
 
 /** Scope-to-registry mapping, plus credentials only when a token is present in the environment. */
 export function registryConfiguration({ withCredentials = true } = {}) {

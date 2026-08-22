@@ -89,17 +89,14 @@ export function settle(options: {
 		// Only a configured deduction can be reduced: the guard shrinks what a company chose to
 		// deduct, and derived overtime is neither a deduction nor anyone's to shrink.
 		const reducible = lines
-			.map((line, index) => ({ line, index, component: line.payComponent }))
-			.filter(
-				(
-					candidate
-				): candidate is typeof candidate & {
-					component: NonNullable<MeasuredLine['payComponent']>;
-				} =>
-					candidate.component != null &&
-					candidate.line.nature === 'DEDUCTION' &&
-					!PROTECTED_DEDUCTION_TYPES.has(candidate.component.code)
-			)
+			.flatMap((line, index) => {
+				const component = line.payComponent;
+				return line.nature === 'DEDUCTION' &&
+					component != null &&
+					!PROTECTED_DEDUCTION_TYPES.has(component.code)
+					? [{ line, index, component }]
+					: [];
+			})
 			.toSorted(
 				(left, right) => Number(right.component.sequence) - Number(left.component.sequence)
 			);
@@ -110,7 +107,7 @@ export function settle(options: {
 			const relief = Math.min(line.amount, outstanding);
 			if (relief <= 0) continue;
 			reduced[index] = { ...line, amount: cents(line.amount - relief) };
-			shortfalls.push({ payComponentId: component.norbital_id, amount: cents(relief) });
+			shortfalls.push({ payComponentId: component.id, amount: cents(relief) });
 			outstanding = cents(outstanding - relief);
 		}
 		lines = reduced;

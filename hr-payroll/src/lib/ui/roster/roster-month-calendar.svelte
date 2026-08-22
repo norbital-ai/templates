@@ -48,7 +48,7 @@
 
 	What survives is what an employee can actually be told, and both are readable by them:
 
-	    PENDING  — `norbital_approval_id` on their own row: the platform holds this submission.
+	    PENDING  — `approval_id` on their own row: the platform holds this submission.
 	    CONSUMED — a `payslip_sources` row: a payslip took this record, and the row names which
 	               period. `settlementLedgerGrants()` grants this deliberately, so the claim is
 	               exact, stored and per-record rather than inferred from a date landing in a window.
@@ -187,18 +187,12 @@
 		'roster.weekday_sun'
 	] as const satisfies readonly TenantI18nKeys[];
 
-	/** Monday = 0 … Sunday = 6, from a `YYYY-MM-DD` key read as a UTC calendar day. */
-	function mondayIndex(date: string): number {
-		return (new Date(`${date}T00:00:00.000Z`).getUTCDay() + 6) % 7;
-	}
-
 	const weeks = $derived.by(() => {
 		const first = days[0];
 		if (first == null) return [] as (string | null)[][];
-		const cells: (string | null)[] = [
-			...Array.from({ length: mondayIndex(first) }, () => null),
-			...days
-		];
+		// Monday = 0 … Sunday = 6, from the `YYYY-MM-DD` key read as a UTC calendar day.
+		const leading = (new Date(`${first}T00:00:00.000Z`).getUTCDay() + 6) % 7;
+		const cells: (string | null)[] = [...Array.from({ length: leading }, () => null), ...days];
 		while (cells.length % 7 !== 0) cells.push(null);
 		const rows: (string | null)[][] = [];
 		for (let index = 0; index < cells.length; index += 7) rows.push(cells.slice(index, index + 7));
@@ -342,7 +336,7 @@
 </script>
 
 {#snippet chrome()}
-	<Cluster gap="md" align="center" justify="between" class="flex-wrap">
+	<Cluster gap="md" align="center" justify="between">
 		<Inline gap="xs">
 			<Button
 				variant="outline"
@@ -431,9 +425,6 @@
 {/snippet}
 
 <!--
-	stupidity:allow UI3 -- a month of person-days is a derived join of six collections, not one
-	collection's rows, and there is no table shape that carries weeks × weekdays.
-
 	── WHY THE MONTH IS A SCROLLPORT AND NOT A COLUMN OF WEEKS ────────────────────────────────────
 	This used to be a `Stack` whose middle child was a `div.overflow-x-auto` — bounded on x, unbounded
 	on y. Six weeks of 96px tiles plus the chrome is about 700px, and the app shell clips its tab panel

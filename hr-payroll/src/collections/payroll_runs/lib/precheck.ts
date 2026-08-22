@@ -20,7 +20,7 @@
  */
 
 import { Effect } from 'effect';
-import { assertComplete, PAGE_LIMIT, type PayrollReadApi } from './api.js';
+import { PAGE_LIMIT, type PayrollReadApi, withReadLog } from './api.js';
 import type { Configuration } from './configuration.js';
 import type { PayrollWindow } from './period.js';
 import {
@@ -52,25 +52,26 @@ export function payrollRunPrecheck(options: {
 	readonly window: PayrollWindow;
 }): Effect.Effect<RunIssue[], never, never> {
 	return Effect.gen(function* () {
+		const api = withReadLog(options.api);
 		const issues: RunIssue[] = validateConfiguration(options.configuration);
-		const { query } = options.api.db;
-		const approved = { norbital_approval_id: { isNull: true } } as const;
+		const { query } = api.db;
+		const approved = { approval_id: { isNull: true } } as const;
 		// The same ceiling and the same truncation guard the build reads under. A precheck that could
 		// silently see a shorter page than the engine would admit exactly the run the engine then
 		// refuses, which is the state this whole file exists to prevent.
-		const employments = assertComplete(
+		const employments = api.reads.assertComplete(
 			yield* query.employments.findMany({
 				where: {
-					company_id: { eq: options.configuration.company.norbital_id },
+					company_id: { eq: options.configuration.company.id },
 					...approved
 				},
 				limit: PAGE_LIMIT
 			}),
 			'precheck employments'
 		);
-		const employmentIds = employments.map((row) => row.norbital_id);
+		const employmentIds = employments.map((row) => row.id);
 		if (employmentIds.length > 0) {
-			const timeEntries = assertComplete(
+			const timeEntries = api.reads.assertComplete(
 				yield* query.time_entries.findMany({
 					where: {
 						employment_id: { in: employmentIds },
@@ -99,7 +100,7 @@ export function payrollRunPrecheck(options: {
 				...validateOpenTimeEntries({
 					bundles: employments.map((employment) => ({
 						employment: { employee_number: employment.employee_number },
-						timeEntries: byEmployment.get(employment.norbital_id) ?? []
+						timeEntries: byEmployment.get(employment.id) ?? []
 					}))
 				})
 			);

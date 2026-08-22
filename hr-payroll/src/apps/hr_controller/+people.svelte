@@ -24,23 +24,25 @@
 	 * selector keeps `activeRange` in its own query: it is the page's scope picker, not a listing,
 	 * and it has to default to an entity that still exists.
 	 */
-	const companiesQuery = client.db.companies.findMany({
-		where: { norbital_approval_id: { isNull: true }, ...activeRange },
-		orderBy: { name: 'asc' },
-		limit: 500
-	});
+	const companiesQuery = $derived(
+		client.db.companies.findMany({
+			where: { approval_id: { isNull: true }, ...activeRange },
+			orderBy: { name: 'asc' },
+			limit: 500
+		})
+	);
 	const companies = $derived(companiesQuery.current ?? []);
 	const companyOptions = $derived(
 		companies.map((c) => ({
-			value: c.norbital_id,
+			value: c.id,
 			label: c.name,
 			search_term: `${c.name} ${c.registration_number ?? ''}`
 		}))
 	);
 	const selectedCompanyId = $derived(
-		companyId != null && companies.some((c) => c.norbital_id === companyId)
+		companyId != null && companies.some((c) => c.id === companyId)
 			? companyId
-			: (companies[0]?.norbital_id ?? null)
+			: (companies[0]?.id ?? null)
 	);
 
 	const employmentsQuery = $derived(
@@ -48,7 +50,7 @@
 			? null
 			: client.db.employments.findMany({
 					where: {
-						norbital_approval_id: { isNull: true },
+						approval_id: { isNull: true },
 						company_id: { eq: selectedCompanyId }
 					},
 					limit: 1000
@@ -149,7 +151,7 @@
 				companyId = value;
 				return;
 			}
-			companyId = companies[0]?.norbital_id ?? null;
+			companyId = companies[0]?.id ?? null;
 		}}
 		emptyPlaceholder={t('component.select_legal_entity')}
 		searchPlaceholder={t('component.search_companies')}
@@ -174,7 +176,7 @@
 		{#if selectedCompanyId == null}
 			<p class="text-sm text-muted-foreground">{t('app.people.empty_overview')}</p>
 		{:else}
-			<!-- stupidity:allow UI10 -- 1px hairline gutters via bg-border are not on the gap scale -->
+			<!-- repository-health:allow UI10 -- 1px hairline gutters via bg-border are not on the gap scale -->
 			<Columns count={2} gap="none" class="gap-px rounded-lg border bg-border">
 				<Stack gap="none" class="bg-card p-4">
 					<p class="text-xs font-medium text-muted-foreground">{t('app.people.current')}</p>
@@ -234,7 +236,7 @@
 				query={{
 					where: {
 						employment_employee: {
-							norbital_approval_id: { isNull: true },
+							approval_id: { isNull: true },
 							company_id: { eq: selectedCompanyId }
 						}
 					},

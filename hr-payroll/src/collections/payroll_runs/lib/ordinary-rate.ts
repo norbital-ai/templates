@@ -16,19 +16,27 @@
  * cannot replace it with a different schedule.
  */
 
+import { Schema } from 'effect';
 import type { Jurisdiction } from './configuration.js';
+import { MoneyValueSchema } from '@norbital-ai/std/finance';
 import { monthDays } from './dates.js';
 import { cents } from './rounding.js';
 import { normalDailyHours } from './schedule.js';
 
-export type RateTerms = {
-	readonly base_salary: { readonly value: number; readonly currency: string };
-	readonly pay_frequency: 'MONTHLY' | 'SEMI_MONTHLY' | 'WEEKLY' | 'DAILY' | 'HOURLY';
-	readonly ordinary_hours_per_week: number;
-	readonly working_days_per_week: number;
-};
+const payFrequencies = ['MONTHLY', 'SEMI_MONTHLY', 'WEEKLY', 'DAILY', 'HOURLY'] as const;
+const RateTermsSchema = Schema.Struct({
+	base_salary: MoneyValueSchema,
+	pay_frequency: Schema.Literals(payFrequencies),
+	ordinary_hours_per_week: Schema.Number,
+	working_days_per_week: Schema.Number
+});
+export type RateTerms = Schema.Schema.Type<typeof RateTermsSchema>;
 
-export type OvertimeCalculationMethod = 'STATUTORY_AGGREGATE' | 'ANNUALISED_CONTRACT_RATE';
+const OvertimeCalculationMethodSchema = Schema.Literals([
+	'STATUTORY_AGGREGATE',
+	'ANNUALISED_CONTRACT_RATE'
+]);
+export type OvertimeCalculationMethod = Schema.Schema.Type<typeof OvertimeCalculationMethodSchema>;
 
 export function readOvertimeCalculationMethod(value: string | null): OvertimeCalculationMethod {
 	switch (value) {
@@ -137,6 +145,14 @@ export function ordinaryDayWage(terms: RateTerms, jurisdiction: Jurisdiction): n
 		: cents(monthly / divisor);
 }
 
+/** One day of withheld pay: the contract terms and the jurisdiction's proration divisor over a period. */
+type AbsenceDayRateOptions = {
+	readonly terms: RateTerms;
+	readonly jurisdiction: Jurisdiction;
+	readonly period: { readonly start: string; readonly end: string };
+	readonly workingDaysIn: (range: { readonly start: string; readonly end: string }) => number;
+};
+
 /**
  * What one day of *withheld* pay is worth.
  *
@@ -152,12 +168,7 @@ export function ordinaryDayWage(terms: RateTerms, jurisdiction: Jurisdiction): n
  * moves the result by a cent or two on most absences, which is the difference between reproducing
  * the source system and merely being close to it.
  */
-export function absenceDayRate(options: {
-	readonly terms: RateTerms;
-	readonly jurisdiction: Jurisdiction;
-	readonly period: { readonly start: string; readonly end: string };
-	readonly workingDaysIn: (range: { readonly start: string; readonly end: string }) => number;
-}): number {
+export function absenceDayRate(options: AbsenceDayRateOptions): number {
 	const monthly = monthlyBaseSalary(options.terms);
 	const proration = options.jurisdiction.proration;
 	if (proration == null) throw new Error('The jurisdiction states no proration basis.');

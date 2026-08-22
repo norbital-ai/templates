@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { client } from '../../lib/workspace-client.js';
+	import { collectionClient } from '../../lib/collection-client.js';
 	import { useI18n } from '@norbital-ai/ui/i18n';
 	import type { TenantI18nKeys } from '$bolt/i18n-keys';
 	import type { RepresentationProps } from './$types.js';
@@ -20,7 +20,7 @@
 </svelte:head>
 
 <CollectionForm
-	{client}
+	client={collectionClient}
 	collection="jobs"
 	defaultValues={formDefaults}
 	submitLabel={record ? undefined : t('component.create_job')}

@@ -9,7 +9,7 @@ import {
 } from '../ui/roster/roster-month.ts';
 
 const employment = (start, end = null) => ({
-	norbital_id: 'employment-1',
+	id: 'employment-1',
 	effective_range: { start, end }
 });
 

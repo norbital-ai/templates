@@ -4,6 +4,7 @@
 	import type { TenantI18nKeys } from '$bolt/i18n-keys';
 	import { Button } from '@norbital-ai/ui/button';
 	import { Inline, Stack } from '@norbital-ai/ui/layout';
+	import { heatmapClass } from '../display-formatters.js';
 
 	let { companyId }: { companyId: string } = $props();
 
@@ -20,23 +21,6 @@
 	const heatmapMaximum = $derived(
 		Math.max(0, ...(analytics?.seasonal_heatmap ?? []).flatMap((row) => row.months))
 	);
-
-	function heatmapClass(count: number): string {
-		if (count === 0 || heatmapMaximum === 0) return 'bg-muted/35 text-muted-foreground';
-		const level = Math.ceil((count / heatmapMaximum) * 5);
-		switch (level) {
-			case 1:
-				return 'bg-primary/10 text-foreground';
-			case 2:
-				return 'bg-primary/25 text-foreground';
-			case 3:
-				return 'bg-primary/45 text-primary-foreground';
-			case 4:
-				return 'bg-primary/70 text-primary-foreground';
-			default:
-				return 'bg-primary text-primary-foreground';
-		}
-	}
 </script>
 
 <Stack as="section" gap="md" aria-labelledby="leave-seasonality-heading">
@@ -58,7 +42,7 @@
 			<p class="text-sm text-muted-foreground">{t('app.leave.chart_description')}</p>
 		</Stack>
 		{#if analytics}
-			<!-- stupidity:allow UI3 -- this is a derived reporting matrix, not a collection. -->
+			<!-- repository-health:allow UI3 -- this is a derived reporting matrix, not a collection. -->
 			<table class="w-full table-fixed border-separate border-spacing-1 text-center text-xs">
 				<caption class="sr-only">{t('app.leave.chart_description')}</caption>
 				<thead class="text-muted-foreground">
@@ -78,7 +62,10 @@
 							{#each row.months as count, monthIndex (`${row.year}-${monthIndex}`)}
 								<td>
 									<span
-										class="block rounded-sm py-2 font-medium tabular-nums {heatmapClass(count)}"
+										class="block rounded-sm py-2 font-medium tabular-nums {heatmapClass(
+											count,
+											heatmapMaximum
+										)}"
 										title={t('app.leave.heatmap_cell', {
 											year: row.year,
 											month: monthIndex + 1,
@@ -98,7 +85,8 @@
 				{#each [1, 2, 3, 4, 5] as level (level)}
 					<span
 						class="size-3 rounded-sm {heatmapClass(
-							Math.max(1, Math.ceil((heatmapMaximum * level) / 5))
+							Math.max(1, Math.ceil((heatmapMaximum * level) / 5)),
+							heatmapMaximum
 						)}"
 					></span>
 				{/each}

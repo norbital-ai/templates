@@ -1,5 +1,6 @@
 import { Effect } from 'effect';
 import { refuse } from '@norbital-ai/bolt/authoring';
+import { getErrorMessage } from '@norbital-ai/std/error';
 import type { SettlementPolicy } from '../../datatypes/settlement_policy/+definition.js';
 import {
 	payCalendarInstalments,
@@ -8,6 +9,26 @@ import {
 	type StoredPayCalendar
 } from '../payroll_runs/lib/period.js';
 import type { Hooks } from './$types.js';
+
+function payCalendarTiles(
+	calendar: StoredPayCalendar,
+	frequency: PayFrequency
+): Effect.Effect<void, never, never> {
+	return Effect.forEach(
+		['2026-01', '2026-02'],
+		(period) =>
+			Effect.try({
+				try: () =>
+					payCalendarInstalments(
+						period,
+						{ pay_cutoff_day: 1, pay_day: 1, pay_calendar: calendar },
+						frequency
+					),
+				catch: (error) => error
+			}).pipe(Effect.catch((error) => Effect.sync(() => refuse(getErrorMessage(error))))),
+		{ discard: true }
+	);
+}
 
 /**
  * A pay calendar that does not tile a month is refused before it is stored.
@@ -18,35 +39,31 @@ import type { Hooks } from './$types.js';
  * ordinary the whole time. Both a 31-day month and February are checked, because an instalment that
  * closes on the 30th tiles January and leaves February's last day to nobody.
  */
-function assertPayCalendar(calendar: StoredPayCalendar | undefined): void {
-	if (calendar == null) return;
-	for (const entry of calendar) {
-		const frequency: PayFrequency | undefined = PAY_FREQUENCIES.find(
-			(candidate) => candidate === entry.pay_frequency
-		);
-		if (frequency === undefined)
-			refuse(
-				`pay_calendar states a calendar for "${String(entry.pay_frequency)}", which is not a pay ` +
-					'frequency any employment terms can carry.'
-			);
-		else if (frequency === 'MONTHLY')
-			refuse(
-				'pay_calendar cannot state a MONTHLY calendar: pay_cutoff_day and pay_day are the ' +
-					'monthly calendar, and two places to write one fact is two places for them to disagree.'
-			);
-		else
-			for (const period of ['2026-01', '2026-02']) {
-				try {
-					payCalendarInstalments(
-						period,
-						{ pay_cutoff_day: 1, pay_day: 1, pay_calendar: calendar },
-						frequency
-					);
-				} catch (error) {
-					refuse(error instanceof Error ? error.message : String(error));
-				}
-			}
-	}
+function assertPayCalendar(
+	calendar: StoredPayCalendar | undefined
+): Effect.Effect<void, never, never> {
+	if (calendar == null) return Effect.void;
+	const frequencyByValue = new Map<string, PayFrequency>(
+		PAY_FREQUENCIES.map((frequency) => [frequency, frequency])
+	);
+	return Effect.forEach(
+		calendar,
+		(entry): Effect.Effect<void, never, never> => {
+			const frequency = frequencyByValue.get(entry.pay_frequency);
+			if (frequency === undefined)
+				return refuse(
+					`pay_calendar states a calendar for "${String(entry.pay_frequency)}", which is not a pay ` +
+						'frequency any employment terms can carry.'
+				);
+			if (frequency === 'MONTHLY')
+				return refuse(
+					'pay_calendar cannot state a MONTHLY calendar: pay_cutoff_day and pay_day are the ' +
+						'monthly calendar, and two places to write one fact is two places for them to disagree.'
+				);
+			return payCalendarTiles(calendar, frequency);
+		},
+		{ discard: true }
+	);
 }
 
 /**
@@ -73,7 +90,7 @@ function assertReferences(
 		const componentId = late_joiner_arrears?.defer_to_component_id;
 		if (componentId != null) {
 			const component = yield* api.db.query.pay_components.findFirst({
-				where: { norbital_id: { eq: componentId } }
+				where: { id: { eq: componentId } }
 			});
 			if (!component)
 				refuse(
@@ -90,7 +107,7 @@ function assertReferences(
 		const contributionId = extended_unpaid_leave?.population_contribution_id;
 		if (contributionId != null) {
 			const contribution = yield* api.db.query.statutory_contributions.findFirst({
-				where: { norbital_id: { eq: contributionId } }
+				where: { id: { eq: contributionId } }
 			});
 			if (!contribution)
 				refuse(
@@ -109,7 +126,7 @@ export default {
 					'Refuses a company whose pay calendar does not tile a month, restates the monthly calendar, or whose settlement policy defers late-joiner arrears to a pay component that does not exist or cannot carry an entry, or names an unknown statutory contribution as the extended-unpaid-leave population.',
 				handler: ({ input, api }) =>
 					Effect.gen(function* () {
-						assertPayCalendar(input.pay_calendar);
+						yield* assertPayCalendar(input.pay_calendar);
 						yield* assertReferences(input.settlement_policy, api);
 						return input;
 					})
@@ -123,7 +140,7 @@ export default {
 					'Re-checks the company pay calendar and settlement policy whenever either is edited, so a cadence cannot be left with a month it half covers and an arrears component or extended-leave contribution scheme cannot be pointed at an id that no longer resolves.',
 				handler: ({ input, api }) =>
 					Effect.gen(function* () {
-						if (input.pay_calendar !== undefined) assertPayCalendar(input.pay_calendar);
+						if (input.pay_calendar !== undefined) yield* assertPayCalendar(input.pay_calendar);
 						if (input.settlement_policy !== undefined)
 							yield* assertReferences(input.settlement_policy, api);
 						return input;

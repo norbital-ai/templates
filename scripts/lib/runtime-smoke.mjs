@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto';
 
-export const requiredRuntimeExports = ['activate', 'dispatch', 'manifest', 'protocolVersion'];
+const requiredRuntimeExports = ['activate', 'dispatch', 'manifest', 'protocolVersion'];
 
 /** Inspect the decoded host contract and the embedded client bytes in one place. */
 export function inspectRuntimeArtifact({ runtime, bundle, artifactVersion }) {

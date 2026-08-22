@@ -1,6 +1,18 @@
 import { Schema } from 'effect';
 
 /**
+ * The `YYYY-MM-DD` head of a stored instant, or `''` when the value is null/undefined.
+ *
+ * The single place every writer keys a day by: `lock.ts`, `leave-coverage.ts`, the leave-request
+ * hooks and the employment hooks all used to carry their own copy that is exactly this body, and
+ * a key they disagreed on would make two writers give one date two names.
+ */
+export function dateKey(value: string | Date | null | undefined): string {
+	if (value == null) return '';
+	return typeof value === 'string' ? value.slice(0, 10) : value.toISOString().slice(0, 10);
+}
+
+/**
  * A calendar day in the payroll timezone, as `2026-04-02`.
  *
  * The pattern fixes the grammar and the filter fixes the calendar, for the same reason the

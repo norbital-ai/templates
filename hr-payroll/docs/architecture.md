@@ -578,7 +578,7 @@ own strict `leave_requests.event` arms.
 
 Two different questions read that ledger, and they must not read it the same way.
 
-Payroll settles, so it acts on the **settled** basis: rows whose `norbital_approval_id` is null.
+Payroll settles, so it acts on the **settled** basis: rows whose `approval_id` is null.
 A movement still held by an approval request is not yet a fact, and paying against it would settle a
 decision nobody has made.
 
@@ -630,14 +630,14 @@ flowchart LR
   F -->|"immutable"| C["Future correction event"]
 ```
 
-| Boundary             | Current guarantee                                                                    | Why                                                                                                                               |
-| -------------------- | ------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------- |
-| Pending approval     | A record carrying `norbital_approval_id` is locked; payroll reads only approved rows | Prevents use and mutation while a decision is outstanding                                                                         |
-| Draft run            | Results may be wholly replaced by recalculation                                      | Keeps drafts responsive without mixing old and new lines                                                                          |
-| Paid run             | Recalculation and deletion are blocked; output children cannot be deleted            | Preserves the exact result used for payment, YTD and audit                                                                        |
-| Loan instalment      | A recovery entry linked to a payslip is immutable                                    | Prevents a loan balance from changing behind a paid deduction                                                                     |
-| Leave event stream   | Corrections use new adjustment events                                                | A balance correction remains visible instead of rewriting history                                                                 |
-| General event source | `sourceLock` freezes the original leave, claim, or attendance row                    | Approved (live) leave and claims, a day that has already passed, a paid payroll window, or a payslip line that consumed the entry |
+| Boundary             | Current guarantee                                                           | Why                                                                                                                               |
+| -------------------- | --------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| Pending approval     | A record carrying `approval_id` is locked; payroll reads only approved rows | Prevents use and mutation while a decision is outstanding                                                                         |
+| Draft run            | Results may be wholly replaced by recalculation                             | Keeps drafts responsive without mixing old and new lines                                                                          |
+| Paid run             | Recalculation and deletion are blocked; output children cannot be deleted   | Preserves the exact result used for payment, YTD and audit                                                                        |
+| Loan instalment      | A recovery entry linked to a payslip is immutable                           | Prevents a loan balance from changing behind a paid deduction                                                                     |
+| Leave event stream   | Corrections use new adjustment events                                       | A balance correction remains visible instead of rewriting history                                                                 |
+| General event source | `sourceLock` freezes the original leave, claim, or attendance row           | Approved (live) leave and claims, a day that has already passed, a paid payroll window, or a payslip line that consumed the entry |
 
 Leave, claims and attendance share `src/lib/scheduling/lock.ts`. Hooks refuse the write; collection
 forms disable and state the reason; collection tables disable row selection and paint a locked

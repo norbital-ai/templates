@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { Buffer } from 'node:buffer';
 import { gunzipSync } from 'node:zlib';
+import { Effect } from 'effect';
 import {
 	assertPhotoEvidenceProvenanceUnchanged,
 	decodePhotoInspection,
@@ -59,10 +60,12 @@ const canonical12MegapixelJpeg = gunzipSync(
 );
 
 test('inspects the canonical 12 MP phone-photo envelope deterministically', async () => {
-	const inspection = await inspectPhoto({
-		bytes: canonical12MegapixelJpeg,
-		mimeType: 'image/jpeg'
-	});
+	const inspection = await Effect.runPromise(
+		inspectPhoto({
+			bytes: canonical12MegapixelJpeg,
+			mimeType: 'image/jpeg'
+		})
+	);
 
 	assert.deepEqual(
 		{

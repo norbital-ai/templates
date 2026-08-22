@@ -36,25 +36,25 @@ export function entrySign(
 ): number {
 	let current = entry;
 	let depth = 0;
-	const seen = new Set<string>([entry.norbital_id]);
+	const seen = new Set<string>([entry.id]);
 	while (current.origin?.kind === 'REVERSAL') {
 		depth += 1;
 		if (depth > MAX_REVERSAL_DEPTH)
 			throw new Error(
-				`Component entry ${entry.norbital_id} sits on a reversal chain more than ` +
+				`Component entry ${entry.id} sits on a reversal chain more than ` +
 					`${MAX_REVERSAL_DEPTH} deep. That is a data fault, not a correction.`
 			);
 		const target = byId.get(current.origin.reverses_entry_id);
 		if (!target)
 			throw new Error(
-				`Component entry ${current.norbital_id} reverses ${current.origin.reverses_entry_id}, ` +
+				`Component entry ${current.id} reverses ${current.origin.reverses_entry_id}, ` +
 					'which is not in this run. A reversal must name an entry payroll can see.'
 			);
-		if (seen.has(target.norbital_id))
+		if (seen.has(target.id))
 			throw new Error(
 				`Component entries ${[...seen].join(', ')} form a reversal cycle and cannot be signed.`
 			);
-		seen.add(target.norbital_id);
+		seen.add(target.id);
 		current = target;
 	}
 	return depth % 2 === 0 ? 1 : -1;
@@ -67,7 +67,7 @@ export function entrySign(
  * not January's — so cap membership and the event date follow the root, while run membership
  * follows the reversal's own `pay_period` (decision L16 / L20).
  */
-export function rootEntry(
+function rootEntry(
 	entry: ComponentEntry,
 	byId: ReadonlyMap<string, ComponentEntry>
 ): ComponentEntry {
@@ -110,7 +110,7 @@ export function entryPayPeriod(entry: ComponentEntry, cutoffDay: number): string
 	if (incurred != null) return defaultPayPeriod(incurred, cutoffDay);
 	const eventDate = dateKey(entry.event_date);
 	if (eventDate == null)
-		throw new Error(`Component entry ${entry.norbital_id} has no event date to settle by.`);
+		throw new Error(`Component entry ${entry.id} has no event date to settle by.`);
 	return defaultPayPeriod(eventDate, cutoffDay);
 }
 
@@ -123,7 +123,7 @@ export function entryEventDate(
 	const incurred = claimIncurredOn(root);
 	if (incurred != null) return incurred;
 	const date = dateKey(root.event_date);
-	if (date == null) throw new Error(`Component entry ${root.norbital_id} has no event date.`);
+	if (date == null) throw new Error(`Component entry ${root.id} has no event date.`);
 	return date;
 }
 

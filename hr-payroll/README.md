@@ -60,7 +60,7 @@ Two invariants shape everything:
 - **Overtime, contributions, gross and net are calculated, never stored or seeded.** A run derives
   them from the input records and is compared against an independently supplied source workbook.
 - **Approval is the gate.** There is no approval column anywhere in this workspace:
-  `norbital_approval_id IS NULL` is the only definition of a live row. Payroll reads only approved
+  `approval_id IS NULL` is the only definition of a live row. Payroll reads only approved
   rows; a record still held by an approval request is locked and excluded.
 
 ## What ships in the workspace
@@ -101,7 +101,7 @@ does not mean revisiting every role declaration.
 
 **`approval_analytics`** supplies year-to-date approval counters and a five-year trend for the
 three subjects the controller pages summarise: payroll runs, leave requests and claims. It is worth
-reading for how it phrases those counts: every counter is expressed as `norbital_approval_id IS
+reading for how it phrases those counts: every counter is expressed as `approval_id IS
 NULL`, because that is the only definition of a live row.
 
 ### Agent context

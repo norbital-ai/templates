@@ -3,21 +3,25 @@
 	 * A handover document, and the project and work front it belongs to. Both were editable uuids
 	 * on the auto form.
 	 */
-	import { collectionClient } from '../../collection-client.js';
+	import { client } from '$bolt/client';
+	import { getCollectionClientForSurface } from '@norbital-ai/ui/collection-runtime';
 	import { useI18n } from '@norbital-ai/ui/i18n';
 	import type { TenantI18nKeys } from '$bolt/i18n-keys';
 	import type { RepresentationProps } from './$types.js';
 	import { CollectionForm } from '@norbital-ai/ui/collection-form';
 	import { Column, Grid } from '@norbital-ai/ui/layout';
 	import { RelationshipRenderer } from '@norbital-ai/ui/data-renderer/relationship';
+	import type { CollectionRelationOptions } from '@norbital-ai/std/collection';
 
 	let { record, close }: RepresentationProps = $props();
+
+	const workspaceClient = getCollectionClientForSurface(client, 'CollectionForm');
 
 	const { t } = useI18n<TenantI18nKeys>();
 </script>
 
 <CollectionForm
-	client={collectionClient}
+	client={workspaceClient}
 	collection="asset_documents"
 	defaultValues={record ?? undefined}
 	onAfterSubmit={record ? undefined : close}
@@ -41,7 +45,7 @@
 						},
 						orderBy: { project_number: 'asc' },
 						limit: 500
-					}
+					} satisfies CollectionRelationOptions
 				}}
 			/>
 			<Field
@@ -59,7 +63,7 @@
 						},
 						orderBy: { location_code: 'asc' },
 						limit: 500
-					}
+					} satisfies CollectionRelationOptions
 				}}
 			/>
 			<Field name="document_type" label={t('component.document_type')} />

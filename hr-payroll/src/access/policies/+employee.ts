@@ -14,7 +14,7 @@ import type { Policy } from './$types.js';
  *
  * The policy key is this file's name, `employee` — see the ladder in `src/lib/policy_grants.ts`.
  *
- * The scope root here is `${requestor.email}`, not `${requestor.norbital_id}`. That is the seed's
+ * The scope root here is `${requestor.email}`, not `${requestor.id}`. That is the seed's
  * choice and it is kept: an `employees` row is HR data with its own lifecycle and is not the same
  * object as a platform user, so there is no user id on it to match. The join is by address, folded on
  * both sides — `lower(p."email") = lower(${requestor.email})` — because HR imports and identity
@@ -36,7 +36,7 @@ const ownEmployeeRecord = { email: '${requestor.email}' } as const;
 /** Employment rows belonging to their own employee record. */
 const ownEmployment = {
 	$sql:
-		'"employee_id" IN (SELECT p."norbital_id" FROM "employees" p ' +
+		'"employee_id" IN (SELECT p."id" FROM "employees" p ' +
 		'WHERE lower(p."email") = lower(${requestor.email}))'
 } as const;
 
@@ -55,8 +55,8 @@ const ownEmployment = {
  */
 const ownEntryNotAnAdjustment = {
 	$sql:
-		'"employment_id" IN (SELECT e."norbital_id" FROM "employments" e ' +
-		'JOIN "employees" p ON p."norbital_id" = e."employee_id" ' +
+		'"employment_id" IN (SELECT e."id" FROM "employments" e ' +
+		'JOIN "employees" p ON p."id" = e."employee_id" ' +
 		'WHERE lower(p."email") = lower(${requestor.email})) ' +
 		`AND "origin"->>'kind' IS DISTINCT FROM 'MANUAL_ADJUSTMENT'`
 } as const;

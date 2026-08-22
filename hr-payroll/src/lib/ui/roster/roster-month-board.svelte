@@ -39,6 +39,7 @@
 	import { Tooltip } from '@norbital-ai/ui/tooltip';
 	import { useI18n } from '@norbital-ai/ui/i18n';
 	import type { TenantI18nKeys } from '$bolt/i18n-keys';
+	import { Number as EffectNumber } from 'effect';
 	import { Cluster, Cover, Inline, Scroll, Stack } from '@norbital-ai/ui/layout';
 	import { Skeleton } from '@norbital-ai/ui/skeleton';
 	import { cn } from '@norbital-ai/ui/utils';
@@ -170,10 +171,6 @@
 
 	const WEEKDAY_LETTERS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'] as const;
 
-	function weekdayLetter(date: string): string {
-		return WEEKDAY_LETTERS[new Date(`${date}T00:00:00.000Z`).getUTCDay()]!;
-	}
-
 	function isWeekend(date: string): boolean {
 		const day = new Date(`${date}T00:00:00.000Z`).getUTCDay();
 		return day === 0 || day === 6;
@@ -259,9 +256,6 @@
 		ownership, `validateRosterSchedule`) and both writes belong to the app, which is where the
 		transaction is.
 	*/
-	function cellKey(cell: BoardCell): string {
-		return `${cell.employmentId}:${cell.date}`;
-	}
 
 	/** Same row or same column, and not the cell itself. */
 	function swapPairAllowed(from: BoardCell, to: BoardCell): boolean {
@@ -297,8 +291,8 @@
 	});
 
 	function focusCell(personIndex: number, dayIndex: number): void {
-		const nextPerson = Math.min(Math.max(personIndex, 0), people.length - 1);
-		const nextDay = Math.min(Math.max(dayIndex, 0), days.length - 1);
+		const nextPerson = EffectNumber.clamp({ minimum: 0, maximum: people.length - 1 })(personIndex);
+		const nextDay = EffectNumber.clamp({ minimum: 0, maximum: days.length - 1 })(dayIndex);
 		const person = people[nextPerson];
 		const date = days[nextDay];
 		if (person == null || date == null) return;
@@ -311,6 +305,22 @@
 		});
 	}
 
+	/** The two-cell arrow gesture a keyboard can express, or null when the key moves nothing. */
+	function arrowMovement(key: string): readonly [number, number] | null {
+		switch (key) {
+			case 'ArrowLeft':
+				return [0, -1];
+			case 'ArrowRight':
+				return [0, 1];
+			case 'ArrowUp':
+				return [-1, 0];
+			case 'ArrowDown':
+				return [1, 0];
+			default:
+				return null;
+		}
+	}
+
 	function handleCellKeydown(event: KeyboardEvent, personIndex: number, dayIndex: number): void {
 		// Escape always disarms, whether or not the swap gesture is on offer, so a half-started
 		// gesture can never strand the board in a mode the operator cannot see a way out of.
@@ -319,19 +329,10 @@
 			swapSource = null;
 			return;
 		}
-		const movement =
-			event.key === 'ArrowLeft'
-				? [0, -1]
-				: event.key === 'ArrowRight'
-					? [0, 1]
-					: event.key === 'ArrowUp'
-						? [-1, 0]
-						: event.key === 'ArrowDown'
-							? [1, 0]
-							: null;
+		const movement = arrowMovement(event.key);
 		if (movement == null) return;
 		event.preventDefault();
-		focusCell(personIndex + movement[0]!, dayIndex + movement[1]!);
+		focusCell(personIndex + movement[0], dayIndex + movement[1]);
 	}
 
 	function scheduleSummary(day: DayFacts): string {
@@ -538,7 +539,11 @@
 						)}
 					>
 						<span class="block text-meta">
-							{settled ? '🔒' : holiday == null ? weekdayLetter(date) : HOLIDAY_PRESENTATION.mark}
+							{settled
+								? '🔒'
+								: holiday == null
+									? WEEKDAY_LETTERS[new Date(`${date}T00:00:00.000Z`).getUTCDay()]!
+									: HOLIDAY_PRESENTATION.mark}
 						</span>
 						<span class="block tabular-nums">{Number(date.slice(8, 10))}</span>
 					</div>
@@ -549,6 +554,7 @@
 {/snippet}
 
 {#snippet boardLoadingSkeleton()}
+	<!-- repository-health:allow UI3 -- the skeleton is the same person-by-day cross-tab as the board below, not one collection's rows. -->
 	<table class="border-separate border-spacing-0 text-left text-xs" aria-hidden="true">
 		<tbody>
 			{#each Array(16) as _, rowIndex (rowIndex)}
@@ -590,7 +596,7 @@
 				{#if loading}
 					{@render boardLoadingSkeleton()}
 				{:else}
-					<!-- stupidity:allow UI3 -- a person-by-day board is a derived cross-tab of four collections, not one collection's rows. -->
+					<!-- repository-health:allow UI3 -- a person-by-day board is a derived cross-tab of four collections, not one collection's rows. -->
 					<table class="border-separate border-spacing-0 text-left text-xs">
 						<tbody>
 							{#if topSpacer > 0}
@@ -642,7 +648,9 @@
 								-->
 										{@const cellOpenable = day != null && day.employmentState === 'ACTIVE'}
 										{@const armed =
-											swapSource != null && cellKey(swapSource) === `${person.id}:${date}`}
+											swapSource != null &&
+											swapSource.employmentId === person.id &&
+											swapSource.date === date}
 										{@const swapTarget =
 											swappable &&
 											cellEditable &&
@@ -793,8 +801,9 @@
 																	{person.number} · {date}
 																</p>
 															</div>
-															<div
-																class="relative space-y-3 pl-5 before:absolute before:top-1 before:bottom-1 before:left-1.5 before:w-px before:bg-primary-foreground/20"
+															<Stack
+																gap="md"
+																class="relative pl-5 before:absolute before:top-1 before:bottom-1 before:left-1.5 before:w-px before:bg-primary-foreground/20"
 															>
 																<div class="relative">
 																	<span
@@ -825,7 +834,7 @@
 																		<p class="leading-4">{dayNotes(day)}</p>
 																	</div>
 																{/if}
-															</div>
+															</Stack>
 														</Stack>
 													{/if}
 												{/snippet}

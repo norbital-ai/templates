@@ -1,5 +1,6 @@
 # Build & generated artifacts
 **/.svelte-kit/
+**/.svelte-check/
 **/build/
 **/.generated/
 **/.norbital/

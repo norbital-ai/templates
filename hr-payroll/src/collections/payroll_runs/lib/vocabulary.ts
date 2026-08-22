@@ -1,3 +1,5 @@
+import { Schema } from 'effect';
+
 /**
  * What a payroll workbook calls each statutory scheme.
  *
@@ -26,20 +28,22 @@
  */
 
 /** The four numbers a scheme produces, each of which a workbook may or may not give a column. */
-export type StatutoryRole = 'employee' | 'employer' | 'total' | 'base';
+const StatutoryRoleSchema = Schema.Literals(['employee', 'employer', 'total', 'base']);
+export type StatutoryRole = Schema.Schema.Type<typeof StatutoryRoleSchema>;
 
-export type StatutoryNaming = {
+const StatutoryNamingSchema = Schema.Struct({
 	/** `statutory_contributions.code`. */
-	readonly code: string;
+	code: Schema.String,
 	/** Column for what the employee was charged. Omitted when the scheme has no employee side. */
-	readonly employee?: string;
+	employee: Schema.optionalKey(Schema.String),
 	/** Column for what the employer was charged. Omitted when the scheme has no employer side. */
-	readonly employer?: string;
+	employer: Schema.optionalKey(Schema.String),
 	/** Column for the two shares added together, where the workbook carries one. */
-	readonly total?: string;
+	total: Schema.optionalKey(Schema.String),
 	/** Column for the wage the scheme was charged on, where the workbook carries one. */
-	readonly base?: string;
-};
+	base: Schema.optionalKey(Schema.String)
+});
+type StatutoryNaming = Schema.Schema.Type<typeof StatutoryNamingSchema>;
 
 /**
  * Two codes may share a column. Malaysia charges retirement under two schemes — the citizen ladder
@@ -47,7 +51,7 @@ export type StatutoryNaming = {
  * workbook has one EPF column, so both schemes name it and the column reports whichever charged.
  * The column means "EPF", not "the contribution whose code happens to be EPF".
  */
-export const STATUTORY_VOCABULARY: readonly StatutoryNaming[] = [
+const STATUTORY_VOCABULARY: readonly StatutoryNaming[] = [
 	// ── Malaysia ──────────────────────────────────────────────────────────────────────────────────
 	{
 		code: 'EPF',

@@ -2,13 +2,6 @@ import { defineQueryHandler } from '@norbital-ai/bolt/authoring';
 import { Effect, Schema } from 'effect';
 
 /**
- * The remote runtime binds each collection helper as a promise while the authoring surface types
- * it as an effect, so every call is bridged into the program.
- */
-const run = <A>(value: PromiseLike<A> | Effect.Effect<A, unknown>): Effect.Effect<A, unknown> =>
-	Effect.tryPromise(() => ('then' in value ? value : Effect.runPromise(value)));
-
-/**
  * Paid-to-date per document for one regarding type, so tables can derive
  * paid / partial / unpaid at render without reading every settlement row per document.
  * The status itself is never stored: a surface compares `paid` against the document gross
@@ -22,13 +15,11 @@ export default defineQueryHandler({
 	}),
 	handler: (input, api) =>
 		Effect.gen(function* () {
-			const rows = yield* run(
-				api.db.query.settlements.findMany({
-					where: { regarding_type: { eq: input.regarding_type } },
-					columns: { regarding_id: true, amount: true, currency: true },
-					limit: 5000
-				})
-			);
+			const rows = yield* api.db.query.settlements.findMany({
+				where: { regarding_type: { eq: input.regarding_type } },
+				columns: { regarding_id: true, amount: true, currency: true },
+				limit: 5000
+			});
 
 			const summaries = new Map<string, { paid: number; currency: string }>();
 			for (const row of rows) {

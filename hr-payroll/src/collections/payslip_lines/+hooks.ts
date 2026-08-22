@@ -12,13 +12,13 @@ export default {
 				handler: ({ existing, api }) =>
 					Effect.gen(function* () {
 						const payslip = yield* api.db.query.payslips.findFirst({
-							where: { norbital_id: { eq: existing.payslip_id } }
+							where: { id: { eq: existing.payslip_id } }
 						});
 						if (!payslip) {
 							refuse('A payslip line cannot be deleted without its payslip.');
 						}
 						const run = yield* api.db.query.payroll_runs.findFirst({
-							where: { norbital_id: { eq: payslip.payroll_run_id } }
+							where: { id: { eq: payslip.payroll_run_id } }
 						});
 						if (!run) {
 							refuse('A payslip line cannot be deleted without its payroll run.');

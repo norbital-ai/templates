@@ -16,10 +16,20 @@
  * a month.
  */
 
+import { Schema } from 'effect';
 import type { Jurisdiction } from './configuration.js';
 import { inclusiveDays, intersectDays, monthDays, type IsoDate } from './dates.js';
 
-export type DayWindow = { readonly start: IsoDate; readonly end: IsoDate };
+const DayWindowSchema = Schema.Struct({ start: Schema.String, end: Schema.String });
+type DayWindow = Schema.Schema.Type<typeof DayWindowSchema>;
+
+/** What `prorationFraction` needs: the jurisdiction's basis, the period and the span covered. */
+type ProrationFractionOptions = {
+	readonly jurisdiction: Jurisdiction;
+	readonly period: DayWindow;
+	readonly covered: DayWindow | null;
+	readonly workingDaysIn: (window: DayWindow) => number;
+};
 
 /**
  * The fraction of a pay period a span of employment covers.
@@ -28,12 +38,7 @@ export type DayWindow = { readonly start: IsoDate; readonly end: IsoDate };
  * caller because only the schedule knows which days those are (public holidays excluded — decision
  * E20).
  */
-export function prorationFraction(options: {
-	readonly jurisdiction: Jurisdiction;
-	readonly period: DayWindow;
-	readonly covered: DayWindow | null;
-	readonly workingDaysIn: (window: DayWindow) => number;
-}): number {
+export function prorationFraction(options: ProrationFractionOptions): number {
 	if (options.covered == null) return 0;
 	const basis = options.jurisdiction.proration;
 	if (basis == null)
@@ -57,9 +62,4 @@ export function prorationFraction(options: {
 		}
 	}
 	throw new Error(`Unsupported proration basis: ${Reflect.get(basis, 'by')}`);
-}
-
-/** Whether a fraction is a whole period, within the tolerance a day count can produce. */
-export function isWholePeriod(fraction: number): boolean {
-	return fraction >= 1 - 1e-9;
 }

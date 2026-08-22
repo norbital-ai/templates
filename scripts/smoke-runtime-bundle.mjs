@@ -5,7 +5,9 @@ import { createRequire } from 'node:module';
 import path from 'node:path';
 import process from 'node:process';
 import { pathToFileURL } from 'node:url';
+import { Effect } from 'effect';
 import { prepareDepset } from './lib/depset.mjs';
+import { decodeJsonObject } from './lib/json.mjs';
 import { inspectRuntimeArtifact } from './lib/runtime-smoke.mjs';
 import { templateArtifactPath } from './lib/template-artifact.mjs';
 import { discoverTemplates, repositoryRoot } from './lib/templates.mjs';
@@ -65,74 +67,114 @@ const storeDirectory = path.resolve(
 	options['store-dir'] ?? process.env.NORBITAL_PNPM_STORE ?? '.tmp/pnpm-store'
 );
 
-mkdirSync(path.join(repositoryRoot, '.tmp'), { recursive: true });
-const temporaryDirectory = mkdtempSync(path.join(repositoryRoot, '.tmp', 'runtime-smoke-'));
-const workspace = path.join(temporaryDirectory, 'src');
-const depsetRoot = path.join(temporaryDirectory, 'node_modules');
-const runtimeEntry = templateArtifactPath(workspace);
-let depset;
-let buildElapsedMilliseconds;
-let runtimeEntrySha256;
-let runtimeExports;
-let manifestSummary;
+const smoke = Effect.acquireUseRelease(
+	Effect.try(() => {
+		mkdirSync(path.join(repositoryRoot, '.tmp'), { recursive: true });
+		const temporaryDirectory = mkdtempSync(path.join(repositoryRoot, '.tmp', 'runtime-smoke-'));
+		const workspace = path.join(temporaryDirectory, 'src');
+		return {
+			temporaryDirectory,
+			workspace,
+			depsetRoot: path.join(temporaryDirectory, 'node_modules'),
+			runtimeEntry: templateArtifactPath(workspace)
+		};
+	}),
+	({ workspace, depsetRoot, runtimeEntry }) =>
+		Effect.gen(function* () {
+			const built = yield* Effect.try(() => {
+				mkdirSync(workspace, { recursive: true });
+				mkdirSync(storeDirectory, { recursive: true });
+				materializeTrackedTemplate(template, workspace);
+				const depset = prepareDepset({
+					templateDirectory: workspace,
+					storeDirectory,
+					depsetRoot
+				});
+				execFileSync('ln', ['-sfn', depset.path, path.join(workspace, 'node_modules')]);
+				const boltBin = path.join(
+					workspace,
+					'node_modules',
+					'@norbital-ai',
+					'bolt',
+					'build',
+					'compiler',
+					'cli.js'
+				);
+				const buildStartedAt = process.hrtime.bigint();
+				execFileSync(process.execPath, [boltBin, 'sync'], {
+					cwd: workspace,
+					stdio: 'inherit'
+				});
+				const buildElapsedMilliseconds =
+					Number(process.hrtime.bigint() - buildStartedAt) / 1_000_000;
+				if (!statSync(runtimeEntry).isFile() || statSync(runtimeEntry).size === 0) {
+					fail(`Bolt sync emitted no non-empty portable artifact at ${runtimeEntry}.`);
+				}
+				return {
+					depset,
+					buildElapsedMilliseconds,
+					runtimeEntrySha256: createHash('sha256').update(readFileSync(runtimeEntry)).digest('hex')
+				};
+			});
 
-try {
-	mkdirSync(workspace, { recursive: true });
-	mkdirSync(storeDirectory, { recursive: true });
-	materializeTrackedTemplate(template, workspace);
+			console.log('Loading .norbital/artifact/bundle.mjs from the clean workspace.');
+			const runtime = yield* Effect.tryPromise(() => import(pathToFileURL(runtimeEntry).href));
+			const requireFromWorkspace = createRequire(path.join(workspace, 'package.json'));
+			const [protocolModule, workspaceEffect] = yield* Effect.all(
+				[
+					Effect.tryPromise(
+						() =>
+							import(pathToFileURL(requireFromWorkspace.resolve('@norbital-ai/bolt-protocol')).href)
+					),
+					Effect.tryPromise(
+						() => import(pathToFileURL(requireFromWorkspace.resolve('effect')).href)
+					)
+				],
+				{ concurrency: 'unbounded' }
+			);
+			const decoded = yield* Effect.tryPromise(() =>
+				workspaceEffect.Effect.runPromise(protocolModule.decodeBoltBundleModule(runtime))
+			);
+			const inspected = yield* Effect.try(() =>
+				inspectRuntimeArtifact({
+					runtime,
+					bundle: decoded,
+					artifactVersion: decodeJsonObject(
+						readFileSync(path.join(workspace, 'package.json'), 'utf8'),
+						`${workspace}/package.json`
+					).version
+				})
+			);
+			return {
+				$schema: '../release/runtime-smoke.schema.json',
+				schemaVersion: 5,
+				template: template.slug,
+				lockHash: built.depset.lockHash,
+				buildCommand: 'bolt sync',
+				buildElapsedMilliseconds: Number(built.buildElapsedMilliseconds.toFixed(3)),
+				runtimeEntry: '.norbital/artifact/bundle.mjs',
+				runtimeEntrySha256: built.runtimeEntrySha256,
+				runtimeExports: inspected.runtimeExports,
+				manifest: inspected.manifest,
+				passed: true
+			};
+		}),
+	({ temporaryDirectory }) =>
+		Effect.sync(() => rmSync(temporaryDirectory, { recursive: true, force: true }))
+).pipe(
+	Effect.tap((result) =>
+		Effect.try(() => {
+			mkdirSync(path.dirname(outputPath), { recursive: true });
+			writeFileSync(outputPath, `${JSON.stringify(result, null, 2)}\n`);
+			console.log(JSON.stringify(result, null, 2));
+		})
+	),
+	Effect.catch((error) =>
+		Effect.sync(() => {
+			console.error(error);
+			process.exitCode = 1;
+		})
+	)
+);
 
-	depset = prepareDepset({ templateDirectory: workspace, storeDirectory, depsetRoot });
-	execFileSync('ln', ['-sfn', depset.path, path.join(workspace, 'node_modules')]);
-
-	const boltBin = path.join(
-		workspace,
-		'node_modules',
-		'@norbital-ai',
-		'bolt',
-		'build',
-		'compiler',
-		'cli.js'
-	);
-	const buildStartedAt = process.hrtime.bigint();
-	execFileSync(process.execPath, [boltBin, 'sync'], { cwd: workspace, stdio: 'inherit' });
-	buildElapsedMilliseconds = Number(process.hrtime.bigint() - buildStartedAt) / 1_000_000;
-	if (!statSync(runtimeEntry).isFile() || statSync(runtimeEntry).size === 0) {
-		fail(`Bolt sync emitted no non-empty portable artifact at ${runtimeEntry}.`);
-	}
-	runtimeEntrySha256 = createHash('sha256').update(readFileSync(runtimeEntry)).digest('hex');
-
-	console.log('Loading .norbital/artifact/bundle.mjs from the clean workspace.');
-	const runtime = await import(pathToFileURL(runtimeEntry).href);
-	const requireFromWorkspace = createRequire(path.join(workspace, 'package.json'));
-	const [{ decodeBoltBundleModule }, { Effect }] = await Promise.all([
-		import(pathToFileURL(requireFromWorkspace.resolve('@norbital-ai/bolt-protocol')).href),
-		import(pathToFileURL(requireFromWorkspace.resolve('effect')).href)
-	]);
-	const decoded = await Effect.runPromise(decodeBoltBundleModule(runtime));
-	const inspected = inspectRuntimeArtifact({
-		runtime,
-		bundle: decoded,
-		artifactVersion: JSON.parse(readFileSync(path.join(workspace, 'package.json'), 'utf8')).version
-	});
-	runtimeExports = inspected.runtimeExports;
-	manifestSummary = inspected.manifest;
-} finally {
-	rmSync(temporaryDirectory, { recursive: true, force: true });
-}
-
-const result = {
-	$schema: '../release/runtime-smoke.schema.json',
-	schemaVersion: 5,
-	template: template.slug,
-	lockHash: depset.lockHash,
-	buildCommand: 'bolt sync',
-	buildElapsedMilliseconds: Number(buildElapsedMilliseconds.toFixed(3)),
-	runtimeEntry: '.norbital/artifact/bundle.mjs',
-	runtimeEntrySha256,
-	runtimeExports,
-	manifest: manifestSummary,
-	passed: true
-};
-mkdirSync(path.dirname(outputPath), { recursive: true });
-writeFileSync(outputPath, `${JSON.stringify(result, null, 2)}\n`);
-console.log(JSON.stringify(result, null, 2));
+Effect.runFork(smoke);

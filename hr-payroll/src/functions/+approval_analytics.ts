@@ -1,12 +1,13 @@
 import { defineQueryHandler, type SchemaRawOperators } from '@norbital-ai/bolt/authoring';
-import { Effect, Schema } from 'effect';
-import { calendarDayKey } from '../lib/ui/calendar.js';
+import { Clock, Effect, Schema } from 'effect';
+import { formatDateISO } from '@norbital-ai/std/date';
 import type { EntryOrigin } from '../datatypes/entry_origin/+definition.js';
 
-export type SeasonalHeatmapRow = {
-	readonly year: string;
-	readonly months: number[];
-};
+const SeasonalHeatmapRowSchema = Schema.Struct({
+	year: Schema.String,
+	months: Schema.Array(Schema.Number)
+});
+export type SeasonalHeatmapRow = Schema.Schema.Type<typeof SeasonalHeatmapRowSchema>;
 
 export const componentSeasonalityCategories = [
 	'RECURRING',
@@ -46,14 +47,14 @@ export function bucketSeasonalHeatmap(
 	years: readonly number[],
 	fromDates: readonly (string | Date | null | undefined)[]
 ): SeasonalHeatmapRow[] {
-	const heatmap: Array<{ year: string; months: number[] }> = years.map((year) => ({
+	const heatmap = years.map((year) => ({
 		year: String(year),
 		months: Array.from({ length: 12 }, () => 0)
 	}));
 	const yearIndex = new Map(years.map((year, index) => [year, index]));
 	for (const fromDate of fromDates) {
 		if (fromDate == null) continue;
-		const key = calendarDayKey(fromDate);
+		const key = formatDateISO(fromDate);
 		const year = Number(key.slice(0, 4));
 		const month = Number(key.slice(5, 7));
 		const index = yearIndex.get(year);
@@ -79,8 +80,11 @@ export function bucketSeasonalHeatmap(
  * the chart, which avoids a second scan solely to decorate the heading.
  */
 const subjectSchema = Schema.Literals(['PAY_COMPONENT', 'LEAVE']);
-type Subject = Schema.Schema.Type<typeof subjectSchema>;
-type AnalyticsInput = { subject: Subject; company_id?: string };
+const approvalAnalyticsQuerySchema = Schema.Struct({
+	subject: subjectSchema,
+	company_id: Schema.optional(Schema.String.check(Schema.isUUID()))
+});
+type AnalyticsInput = Schema.Schema.Type<typeof approvalAnalyticsQuerySchema>;
 
 /**
  * Claims carry their economic date inside the origin union. All other entries use `event_date`.
@@ -100,13 +104,11 @@ function componentSeasonalityDate(origin: EntryOrigin, eventDate: string | Date)
 export default defineQueryHandler({
 	description:
 		'Counts time-off requests or pay-component entries and returns the last five years of monthly counts for seasonality analysis.',
-	schema: Schema.Struct({
-		subject: subjectSchema,
-		company_id: Schema.optional(Schema.String.check(Schema.isUUID()))
-	}),
+	schema: approvalAnalyticsQuerySchema,
 	handler: ({ subject, company_id }: AnalyticsInput, api) =>
 		Effect.gen(function* () {
-			const currentYear = new Date().getUTCFullYear();
+			const nowMs = yield* Clock.currentTimeMillis;
+			const currentYear = new Date(nowMs).getUTCFullYear();
 			const historyYears = seasonalityYears(currentYear);
 			const { start: windowStart, endExclusive: windowEnd } = seasonalityDateWindow(currentYear);
 

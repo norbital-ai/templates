@@ -7,6 +7,8 @@
  */
 
 import { isCalendarDate, isClockTime } from '@norbital-ai/std/date';
+import { getErrorMessage } from '@norbital-ai/std/error';
+import { Result, Schema } from 'effect';
 import { calendarDaysInMonth, monthBounds } from '../../lib/period.js';
 import { WorkbookImportError, type SheetCell, type SheetTable } from '../../lib/workbook-rows.js';
 
@@ -34,7 +36,7 @@ function pad(value: number): string {
 }
 
 /** A header that names a day of the Settings month, or an explicit `YYYY-MM-DD` column. */
-export function monthGridDateForHeader(header: string, month: string): string | undefined {
+function monthGridDateForHeader(header: string, month: string): string | undefined {
 	if (header === '' || LONG_FORM_COLUMNS.has(header)) return undefined;
 	if (isCalendarDate(header)) {
 		const bounds = monthBounds(month);
@@ -55,7 +57,7 @@ export function monthGridDateForHeader(header: string, month: string): string | 
 	return day;
 }
 
-export function monthGridDateColumns(
+function monthGridDateColumns(
 	headers: readonly string[],
 	month: string
 ): readonly { readonly header: string; readonly work_date: string }[] {
@@ -99,18 +101,20 @@ function requireMonth(month: string | undefined): string {
 	return month;
 }
 
-export interface ExpandedRosterCell {
-	readonly employee_number: string;
-	readonly work_date: string;
-	readonly shift_code: string;
-}
+const expandedRosterCellSchema = Schema.Struct({
+	employee_number: Schema.String,
+	work_date: Schema.String,
+	shift_code: Schema.String
+});
+type ExpandedRosterCell = Schema.Schema.Type<typeof expandedRosterCellSchema>;
 
-export interface ExpandedTimeCell {
-	readonly employee_number: string;
-	readonly work_date: string;
-	readonly clock_in: string;
-	readonly clock_out?: string;
-}
+const expandedTimeCellSchema = Schema.Struct({
+	employee_number: Schema.String,
+	work_date: Schema.String,
+	clock_in: Schema.String,
+	clock_out: Schema.optional(Schema.String)
+});
+type ExpandedTimeCell = Schema.Schema.Type<typeof expandedTimeCellSchema>;
 
 const RANGE_SPLIT = /\s*[-–—/]\s*/;
 
@@ -125,7 +129,7 @@ function cellAsClockText(raw: SheetCell): string {
 }
 
 /** `08:16-17:10` is a closed day; `20:31` is still open; blank is no punch. */
-export function parseClockRange(
+function parseClockRange(
 	value: string,
 	identity: string
 ): { clock_in: string; clock_out?: string } {
@@ -198,14 +202,18 @@ export function expandTimeMonthGrid(
 			const text = cellAsClockText(row.cells.get(column.header) ?? null);
 			if (text === '') continue;
 			const identity = `Row ${row.rowNumber} (${employee} on ${column.work_date})`;
-			try {
-				rows.push({
+			const parsed = Result.try({
+				try: () => ({
 					employee_number: employee,
 					work_date: column.work_date,
 					...parseClockRange(text, identity)
-				});
-			} catch (error) {
-				problems.push(error instanceof Error ? error.message : String(error));
+				}),
+				catch: (error) => error
+			});
+			if (Result.isSuccess(parsed)) {
+				rows.push(parsed.success);
+			} else {
+				problems.push(getErrorMessage(parsed.failure));
 			}
 		}
 	}

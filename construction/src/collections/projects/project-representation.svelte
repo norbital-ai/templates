@@ -4,7 +4,6 @@
 	import { useI18n } from '@norbital-ai/ui/i18n';
 	import type { TenantI18nKeys } from '$bolt/i18n-keys';
 	import type { Row } from './$types.js';
-	import type { WorkspaceRow } from '$bolt/types.js';
 	import { CollectionTable } from '@norbital-ai/ui/collection-table';
 	import {
 		Bound,
@@ -19,12 +18,8 @@
 	} from '@norbital-ai/ui/layout';
 	import { formatDateRangeLocal } from '@norbital-ai/std/date';
 	import { Tabs, type TabConfig } from '@norbital-ai/ui/tabs';
+	import type { MoneyValue } from '../../datatypes/money/+definition.js';
 	import type { IFCViewerProps } from './ifc-viewer/ifc_viewer.types.js';
-
-	interface MoneyValue {
-		value: number;
-		currency: string;
-	}
 
 	let { record }: { record: Row } = $props();
 
@@ -94,7 +89,7 @@
 		};
 	}
 
-	const projectId = $derived(record.norbital_id);
+	const projectId = $derived(record.id);
 
 	const sitesQuery = $derived(
 		collectionClient.db.site_locations.findMany({
@@ -107,11 +102,24 @@
 	const assignmentsQuery = $derived(
 		collectionClient.db.job_assignments.findMany({
 			where: { job_assignment_site_location: { project_id: { eq: projectId } } },
-			with: {
-				job_assignment_worker: { columns: { worker_name: true, trade: true } },
-				job_assignment_job: { columns: { job_title: true } }
-			},
-			orderBy: { norbital_updated_at: 'desc' },
+			orderBy: { updated_at: 'desc' },
+			limit: 500
+		})
+	);
+
+	const jobsQuery = $derived(
+		collectionClient.db.jobs.findMany({
+			where: { project_id: { eq: projectId } },
+			columns: { id: true, job_title: true },
+			orderBy: { job_title: 'asc' },
+			limit: 500
+		})
+	);
+
+	const workersQuery = $derived(
+		collectionClient.db.workers.findMany({
+			columns: { id: true, worker_name: true, trade: true },
+			orderBy: { worker_name: 'asc' },
 			limit: 500
 		})
 	);
@@ -119,7 +127,7 @@
 	const claimsQuery = $derived(
 		collectionClient.db.payment_claims.findMany({
 			where: { project_id: { eq: projectId } },
-			orderBy: { norbital_updated_at: 'desc' },
+			orderBy: { updated_at: 'desc' },
 			limit: 100
 		})
 	);
@@ -130,23 +138,19 @@
 				project_id: { eq: projectId },
 				status: { in: ['draft', 'in_review', 'issued'] }
 			},
-			orderBy: { norbital_updated_at: 'desc' },
+			orderBy: { updated_at: 'desc' },
 			limit: 100
 		})
 	);
 
-	type AssignmentRow = WorkspaceRow<'job_assignments'> & {
-		readonly job_assignment_worker?: Pick<WorkspaceRow<'workers'>, 'worker_name' | 'trade'> | null;
-		readonly job_assignment_job?: Pick<WorkspaceRow<'jobs'>, 'job_title'> | null;
-	};
+	const jobTitlesById = $derived(
+		new Map((jobsQuery.current ?? []).map((job) => [String(job.id), job.job_title]))
+	);
+	const workersById = $derived(
+		new Map((workersQuery.current ?? []).map((worker) => [String(worker.id), worker]))
+	);
 	const assignments = $derived(assignmentsQuery?.current ?? []);
 
-	function assignmentWorker(row: AssignmentRow) {
-		return row.job_assignment_worker;
-	}
-	function assignmentJob(row: AssignmentRow) {
-		return row.job_assignment_job;
-	}
 	const claims = $derived(claimsQuery.current ?? []);
 	const documents = $derived(documentsQuery.current ?? []);
 	const ifcDocument = $derived(
@@ -405,9 +409,9 @@
 			<Bound size="standard" clip>
 				<Scroll axis="x" name={t('component.manpower_allocation')} class="pb-2">
 					<Inline align="start" gap="md">
-						{#each sitesQuery.current ?? [] as site (site.norbital_id)}
+						{#each sitesQuery.current ?? [] as site (site.id)}
 							{@const siteAssignments = assignments.filter(
-								(assignment) => assignment.site_location_id === site.norbital_id
+								(assignment) => assignment.site_location_id === site.id
 							)}
 							<Stack as="section" gap="md" class="w-72 rounded-md bg-muted/50 p-3">
 								<Inline as="header" align="start" justify="between" gap="sm" class="border-b pb-3">
@@ -422,20 +426,20 @@
 									</span>
 								</Inline>
 								<Stack gap="sm">
-									{#each siteAssignments as assignment (assignment.norbital_id)}
+									{#each siteAssignments as assignment (assignment.id)}
 										<Stack as="article" gap="md" class="rounded-md border bg-card p-3 shadow-xs">
 											<Stack gap="xs">
 												<p class="text-sm font-medium">
-													{assignmentWorker(assignment)?.worker_name ?? '—'}
+													{workersById.get(String(assignment.worker_id))?.worker_name ?? '—'}
 												</p>
 												<p class="text-meta">
-													{assignmentJob(assignment)?.job_title ?? '—'}
+													{jobTitlesById.get(String(assignment.job_id)) ?? '—'}
 												</p>
 											</Stack>
 											<Inline justify="between" gap="sm" class="text-xs">
 												<span
 													>{assignment.role ??
-														assignmentWorker(assignment)?.trade ??
+														workersById.get(String(assignment.worker_id))?.trade ??
 														t('component.site_role')}</span
 												>
 												<span class="text-muted-foreground tabular-nums"
@@ -495,7 +499,7 @@
 					</p>
 				</div>
 				<div class="divide-y rounded-md border bg-card">
-					{#each claims as claim (claim.norbital_id)}
+					{#each claims as claim (claim.id)}
 						<Inline align="start" justify="between" gap="md" class="p-3">
 							<div class="min-w-0">
 								<p class="truncate text-sm font-medium">{claim.claim_number}</p>
@@ -520,7 +524,7 @@
 					</p>
 				</div>
 				<div class="divide-y rounded-md border bg-card">
-					{#each documents as document (document.norbital_id)}
+					{#each documents as document (document.id)}
 						<Inline align="start" justify="between" gap="md" class="p-3">
 							<div class="min-w-0">
 								<p class="truncate text-sm font-medium">{document.title}</p>

@@ -15,7 +15,7 @@ export default {
 				handler: ({ existing, api }) =>
 					Effect.gen(function* () {
 						const run = yield* api.db.query.payroll_runs.findFirst({
-							where: { norbital_id: { eq: existing.payroll_run_id } }
+							where: { id: { eq: existing.payroll_run_id } }
 						});
 						if (!run) {
 							refuse('A payslip cannot be deleted without its payroll run.');

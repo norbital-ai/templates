@@ -18,6 +18,7 @@
 	import { client } from '../../lib/workspace-client.js';
 	import { downloadCollectionExport } from '@norbital-ai/bolt/client';
 	import { useI18n } from '@norbital-ai/ui/i18n';
+	import { Effect, Result } from 'effect';
 	import type { TenantI18nKeys } from '$bolt/i18n-keys';
 	import type { RepresentationProps } from './$types.js';
 	import { Button } from '@norbital-ai/ui/button';
@@ -38,21 +39,38 @@
 		(_value, index) => `2026-${String(index + 1).padStart(2, '0')}`
 	);
 
+	// Company calendar data can fail `resolveWindow` (a cutoff out of range, a calendar with no
+	// instalments). The failure is a condition of membership, not an error to show — an unusable
+	// company simply offers no period — so it is carried on the Effect channel and read as `null`.
+	const windowFor = (
+		period: string,
+		company: Parameters<typeof resolveWindow>[1]
+	): ReturnType<typeof resolveWindow> | null =>
+		Result.getOrNull(
+			Effect.runSync(Effect.result(Effect.sync(() => resolveWindow(period, company))))
+		);
+
 	// Companies must be live. Runs are intentionally not filtered by approval state: a provisional
 	// row still occupies the physical company/period key and must not be offered a second time.
-	const companiesQuery = client.db.companies.findMany({
-		where: { norbital_approval_id: { isNull: true } },
-		orderBy: { name: 'asc' },
-		limit: 500
-	});
-	const jurisdictionsQuery = client.db.jurisdictions.findMany({
-		where: { norbital_approval_id: { isNull: true } },
-		limit: 500
-	});
-	const runsQuery = client.db.payroll_runs.findMany({
-		orderBy: { period: 'desc' },
-		limit: 1000
-	});
+	const companiesQuery = $derived(
+		client.db.companies.findMany({
+			where: { approval_id: { isNull: true } },
+			orderBy: { name: 'asc' },
+			limit: 500
+		})
+	);
+	const jurisdictionsQuery = $derived(
+		client.db.jurisdictions.findMany({
+			where: { approval_id: { isNull: true } },
+			limit: 500
+		})
+	);
+	const runsQuery = $derived(
+		client.db.payroll_runs.findMany({
+			orderBy: { period: 'desc' },
+			limit: 1000
+		})
+	);
 
 	let companyId = $state<string | null>(null);
 	let period = $state<string | null>(null);
@@ -61,7 +79,7 @@
 	const currencyByJurisdiction = $derived(
 		new Map(
 			(jurisdictionsQuery.current ?? []).map((jurisdiction) => [
-				jurisdiction.norbital_id,
+				jurisdiction.id,
 				jurisdiction.currency
 			])
 		)
@@ -73,64 +91,55 @@
 			if (!currency) return [];
 			return [
 				{
-					value: company.norbital_id,
+					value: company.id,
 					label: `${company.name} · ${currency}`,
 					search_term: `${company.name} ${company.registration_number} ${currency}`
 				}
 			];
 		})
 	);
-	const selectedCompany = $derived(
-		companies.find((company) => company.norbital_id === companyId) ?? null
-	);
+	const selectedCompany = $derived(companies.find((company) => company.id === companyId) ?? null);
 
 	const periodOptions = $derived.by(() => {
 		const company = selectedCompany;
 		if (!company) return [];
 		const settled = new Set(
 			(runsQuery.current ?? [])
-				.filter((run) => run.company_id === company.norbital_id)
+				.filter((run) => run.company_id === company.id)
 				.map((run) => run.period)
 		);
 		return OFFERED_PERIODS.filter((candidate) => !settled.has(candidate)).flatMap((candidate) => {
 			// A company whose pay calendar is unusable has no offerable period; it must be fixed
 			// on the company, not guessed at here.
-			try {
-				const window = resolveWindow(candidate, company);
-				return [
-					{
-						value: candidate,
-						label: `${candidate} · Pay ${formatCalendarDate(window.payDate)}`,
-						search_term: `${candidate} ${window.attendance.start} ${window.attendance.end}`
-					}
-				];
-			} catch {
-				return [];
-			}
+			const window = windowFor(candidate, company);
+			if (window == null) return [];
+			return [
+				{
+					value: candidate,
+					label: `${candidate} · Pay ${formatCalendarDate(window.payDate)}`,
+					search_term: `${candidate} ${window.attendance.start} ${window.attendance.end}`
+				}
+			];
 		});
 	});
 
 	const selectedWindow = $derived.by(() => {
 		const company = selectedCompany;
 		if (!company || !period) return null;
-		try {
-			return resolveWindow(period, company);
-		} catch {
-			return null;
-		}
+		return windowFor(period, company);
 	});
 
 	// Record display: one run, its window and its payslips.
 	const recordCompanyQuery = $derived(
 		record == null
 			? null
-			: client.db.companies.findFirst({ where: { norbital_id: { eq: record.company_id } } })
+			: client.db.companies.findFirst({ where: { id: { eq: record.company_id } } })
 	);
 	const recordCompany = $derived(recordCompanyQuery?.current ?? null);
 	const payslipCountQuery = $derived(
 		record == null
 			? null
-			: client.db.payslips.count({ where: { payroll_run_id: { eq: record.norbital_id } } })
+			: client.db.payslips.count({ where: { payroll_run_id: { eq: record.id } } })
 	);
 	// A payslip's employment column holds a uuid. The run belongs to one company, so that company's
 	// employments are the only ones the table below can show; the employee number is resolved from
@@ -139,101 +148,74 @@
 		record == null
 			? null
 			: client.db.employments.findMany({
-					where: { company_id: { eq: record.company_id }, norbital_approval_id: { isNull: true } },
+					where: { company_id: { eq: record.company_id }, approval_id: { isNull: true } },
 					limit: 1000
 				})
 	);
 	const recordEmploymentLabelsById = $derived(
 		new Map(
 			(recordEmploymentsQuery?.current ?? []).map((employment) => [
-				employment.norbital_id,
+				employment.id,
 				employment.employee_number
 			])
 		)
 	);
 
-	let pendingAction = $state<'recalculate' | 'pay' | 'delete' | 'export' | null>(null);
 	let lockArmed = $state(false);
-	/**
-	 * The engine's refusal, kept on screen rather than in a toast.
-	 *
-	 * A refused build is not a failed request: the run record is written before the engine starts —
-	 * it has to be, the engine needs a run id to hang payslips on — and the platform commits each
-	 * statement on its own, so a build that refuses leaves the record standing with nothing under it.
-	 * The refusal is therefore the only account of what happened, and it names up to twenty-five
-	 * records to fix. A toast that clears itself in a few seconds is the wrong shape for that.
-	 */
-	let refusal = $state<string | null>(null);
 	// Only while a count has actually come back. `?? 0` on a query still in flight would flash the
 	// refusal notice on every run, including the ones that built perfectly.
 	const payslipCount = $derived(payslipCountQuery?.current ?? null);
-	const emptyDraft = $derived(
-		record != null && record.lifecycle === 'DRAFT' && payslipCount === 0 && refusal == null
-	);
+	const emptyDraft = $derived(record != null && record.lifecycle === 'DRAFT' && payslipCount === 0);
 
-	async function updateDraft(action: 'recalculate' | 'pay'): Promise<void> {
+	function updateDraft(action: 'recalculate' | 'pay'): void {
 		if (record == null) return;
 		const update = client.db.payroll_runs.update;
 		if (!update) {
 			toast.error(t('component.cannot_update'));
 			return;
 		}
-		pendingAction = action;
-		try {
-			await update(record.norbital_id, {
-				lifecycle: action === 'pay' ? 'PAID' : 'DRAFT'
-			});
-			refusal = null;
-			toast.success(action === 'pay' ? t('component.marked_paid') : t('component.recalculated'));
-			void refresh().catch(() => {
-				toast.error(t('component.no_refresh'));
-			});
-		} catch (error) {
-			// The engine's own message, verbatim and in full. It is a list of the records that must be
-			// fixed, so truncating it or replacing it with a generic failure would throw away the only
-			// part an operator can act on.
-			const message = error instanceof Error ? error.message : t('component.update_failed');
-			refusal = message;
-			toast.error(message.split('\n')[0] ?? message);
-		} finally {
-			pendingAction = null;
-		}
+		void update(record.id, { lifecycle: action === 'pay' ? 'PAID' : 'DRAFT' });
 	}
 
-	async function downloadReport(): Promise<void> {
+	function downloadReport(): void {
 		if (record == null) return;
-		pendingAction = 'export';
-		try {
-			const manifest = await downloadCollectionExport(
-				{ collection_name: 'payroll_runs', record_ids: [record.norbital_id] },
-				{ includeAction: (action) => action.metadata?.kind === 'payroll-report-xlsx' }
-			);
-			if (manifest.length === 0) throw new Error(t('component.build_before_export'));
-			saveCollectionExport(manifest);
-		} catch (error) {
-			toast.error(error instanceof Error ? error.message : t('component.export_failed'));
-		} finally {
-			pendingAction = null;
-		}
+		Effect.runPromise(
+			Effect.gen(function* () {
+				const attempt = yield* Effect.result(
+					Effect.tryPromise(() =>
+						downloadCollectionExport(
+							{ collection_name: 'payroll_runs', record_ids: [record.id] },
+							{ includeAction: (action) => action.metadata?.kind === 'payroll-report-xlsx' }
+						)
+					)
+				);
+				if (Result.isFailure(attempt)) {
+					toast.error(
+						attempt.failure instanceof Error
+							? attempt.failure.message
+							: t('component.export_failed')
+					);
+					return;
+				}
+				const manifest = attempt.success;
+				if (manifest.length === 0) {
+					toast.error(t('component.build_before_export'));
+					return;
+				}
+				saveCollectionExport(manifest);
+			})
+		);
 	}
 
-	async function deleteDraft(): Promise<void> {
+	function deleteDraft(): void {
 		if (record == null) return;
 		const remove = client.db.payroll_runs.delete;
 		if (!remove) {
 			toast.error(t('component.cannot_delete'));
 			return;
 		}
-		pendingAction = 'delete';
-		try {
-			await remove(record.norbital_id);
-			toast.success(t('component.draft_deleted', { period: record.period }));
-			close();
-		} catch (error) {
-			toast.error(error instanceof Error ? error.message : t('component.delete_failed'));
-		} finally {
-			pendingAction = null;
-		}
+		void remove(record.id);
+		close();
 	}
 </script>
 
@@ -257,29 +239,14 @@
 						{record.lifecycle}
 					</span>
 					{#if record.lifecycle === 'DRAFT' && client.db.payroll_runs.update}
-						<Button
-							variant="outline"
-							size="sm"
-							disabled={pendingAction !== null}
-							onclick={downloadReport}
-						>
-							{pendingAction === 'export'
-								? t('component.exporting')
-								: t('component.export_salary_listing')}
+						<Button variant="outline" size="sm" onclick={downloadReport}>
+							{t('component.export_salary_listing')}
 						</Button>
-						<Button
-							variant="outline"
-							size="sm"
-							disabled={pendingAction !== null}
-							onclick={() => updateDraft('recalculate')}
-						>
-							{pendingAction === 'recalculate'
-								? t('component.recalculating')
-								: t('component.recalculate_draft')}
+						<Button variant="outline" size="sm" onclick={() => updateDraft('recalculate')}>
+							{t('component.recalculate_draft')}
 						</Button>
 						<Button
 							size="sm"
-							disabled={pendingAction !== null}
 							onclick={() => {
 								if (!lockArmed) {
 									lockArmed = true;
@@ -288,20 +255,11 @@
 								void updateDraft('pay');
 							}}
 						>
-							{pendingAction === 'pay'
-								? t('component.locking')
-								: lockArmed
-									? t('component.confirm_lock_pay')
-									: t('component.lock_payroll')}
+							{lockArmed ? t('component.confirm_lock_pay') : t('component.lock_payroll')}
 						</Button>
 						{#if client.db.payroll_runs.delete}
-							<Button
-								variant="outline"
-								size="sm"
-								disabled={pendingAction !== null}
-								onclick={deleteDraft}
-							>
-								{pendingAction === 'delete' ? t('component.deleting') : t('component.delete_draft')}
+							<Button variant="outline" size="sm" onclick={deleteDraft}>
+								{t('component.delete_draft')}
 							</Button>
 						{/if}
 					{/if}
@@ -335,17 +293,7 @@
 			</p>
 		{/if}
 
-		{#if refusal}
-			<Stack
-				as="section"
-				gap="xs"
-				aria-label={t('component.run_refused')}
-				class="rounded-md border border-destructive/40 bg-destructive/10 p-3"
-			>
-				<h3 class="text-sm font-semibold">{t('component.run_refused')}</h3>
-				<p class="text-sm whitespace-pre-line">{refusal}</p>
-			</Stack>
-		{:else if emptyDraft}
+		{#if emptyDraft}
 			<p class="rounded-md border border-amber-500/40 bg-amber-500/10 p-3 text-sm">
 				{t('component.draft_built_nothing')}
 			</p>
@@ -361,8 +309,8 @@
 					description={t('component.payslips_description')}
 					features={{ create: false }}
 					query={{
-						where: { payroll_run_id: { eq: record.norbital_id } },
-						orderBy: { norbital_created_at: 'asc' },
+						where: { payroll_run_id: { eq: record.id } },
+						orderBy: { created_at: 'asc' },
 						limit: 100
 					}}
 				>
@@ -399,17 +347,11 @@
 		{client}
 		collection="payroll_runs"
 		submitLabel={t('component.create_payroll_run')}
-		onSubmit={async () => {
+		onSubmit={() => {
 			const company = selectedCompany;
-			if (!company) throw new Error('Choose a legal entity.');
-			if (!period) throw new Error('Choose a payroll period.');
 			const create = client.db.payroll_runs.create;
-			if (!create) throw new Error('Payroll runs cannot be created in this workspace.');
-			// Only the two chosen facts are sent. The window, the pay date and the configuration hash
-			// are resolved by the create hook against the configuration effective at period end —
-			// the client cannot see that configuration, so it has no business asserting them. The
-			// window shown above is the same derivation, for the operator to read before committing.
-			return create({ company_id: company.norbital_id, period });
+			if (!company || !period || !create) return;
+			return create({ company_id: company.id, period });
 		}}
 		onAfterSubmit={close}
 	>

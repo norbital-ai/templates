@@ -27,23 +27,25 @@
 	 * reach superseded versions. The legal-entity selector keeps `activeRange` in its own query: it is
 	 * the page's scope picker, not a listing, and it has to default to an entity that still exists.
 	 */
-	const companiesQuery = client.db.companies.findMany({
-		where: { norbital_approval_id: { isNull: true }, ...activeRange },
-		orderBy: { name: 'asc' },
-		limit: 500
-	});
+	const companiesQuery = $derived(
+		client.db.companies.findMany({
+			where: { approval_id: { isNull: true }, ...activeRange },
+			orderBy: { name: 'asc' },
+			limit: 500
+		})
+	);
 	const companies = $derived(companiesQuery.current ?? []);
 	const companyOptions = $derived(
 		companies.map((c) => ({
-			value: c.norbital_id,
+			value: c.id,
 			label: c.name,
 			search_term: `${c.name} ${c.registration_number ?? ''}`
 		}))
 	);
 	const selectedCompanyId = $derived(
-		companyId != null && companies.some((c) => c.norbital_id === companyId)
+		companyId != null && companies.some((c) => c.id === companyId)
 			? companyId
-			: (companies[0]?.norbital_id ?? null)
+			: (companies[0]?.id ?? null)
 	);
 
 	type ComponentEntryRow = WorkspaceRow<'component_entries'> & {
@@ -92,7 +94,7 @@
 	function entryRowLock(row: ComponentEntryRow) {
 		return sourceLock({
 			existing: true,
-			approvalId: row.norbital_approval_id,
+			approvalId: row.approval_id,
 			dates: [],
 			settledBy: entrySettlement(row),
 			datePassed: 'IS_NOT_A_LOCK'
@@ -127,7 +129,7 @@
 				companyId = value;
 				return;
 			}
-			companyId = companies[0]?.norbital_id ?? null;
+			companyId = companies[0]?.id ?? null;
 		}}
 		emptyPlaceholder={t('component.select_legal_entity')}
 		searchPlaceholder={t('component.search_companies')}
@@ -169,7 +171,7 @@
 					where: {
 						repayment_agreement_id: { isNull: true },
 						entry_employment: {
-							norbital_approval_id: { isNull: true },
+							approval_id: { isNull: true },
 							company_id: { eq: selectedCompanyId }
 						}
 					},
@@ -178,10 +180,10 @@
 						entry_employment: { columns: { employee_number: true } },
 						entry_pay_component: { columns: { code: true } },
 						entry_payslip_lines: {
-							columns: { norbital_id: true },
+							columns: { id: true },
 							with: {
 								payslip_line_payslip: {
-									columns: { norbital_id: true },
+									columns: { id: true },
 									with: { payslip_payroll_run: { columns: { period: true } } }
 								}
 							}

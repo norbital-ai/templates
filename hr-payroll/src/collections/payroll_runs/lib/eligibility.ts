@@ -7,18 +7,21 @@
  * a manager simply has no overtime line rather than an overtime line of zero.
  */
 
+import { Schema } from 'effect';
 import type { WorkspaceRow } from '../$types.js';
 
-export type EligibilityRules = NonNullable<WorkspaceRow<'pay_components'>['eligibility']>;
+type EligibilityRules = NonNullable<WorkspaceRow<'pay_components'>['eligibility']>;
 
-export type EligibilitySubject = {
-	readonly employment_type: string | null;
-	readonly work_classification: string | null;
-	readonly service_months: number;
-	readonly gender: string | null;
-	readonly department: string | null;
-	readonly payroll_group: string | null;
-};
+/** The one employment's facts an eligibility rule list is answered against. */
+const EligibilitySubjectSchema = Schema.Struct({
+	employment_type: Schema.NullOr(Schema.String),
+	work_classification: Schema.NullOr(Schema.String),
+	service_months: Schema.Number,
+	gender: Schema.NullOr(Schema.String),
+	department: Schema.NullOr(Schema.String),
+	payroll_group: Schema.NullOr(Schema.String)
+});
+export type EligibilitySubject = Schema.Schema.Type<typeof EligibilitySubjectSchema>;
 
 function includes(list: readonly string[], value: string | null): boolean {
 	return value != null && list.includes(value);

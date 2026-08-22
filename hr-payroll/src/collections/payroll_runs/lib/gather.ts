@@ -5,12 +5,12 @@
  * stand with each statutory scheme, what entries they have this period, what leave they moved, what
  * they clocked and what they have already been paid this tax year.
  *
- * Only **live** rows are read — `norbital_approval_id IS NULL`. On this platform a null approval
+ * Only **live** rows are read — `approval_id IS NULL`. On this platform a null approval
  * stamp means the row is in force; a set one means it is still pending, and pending money is not
  * money. That predicate is on every query here without exception.
  *
  * It answers *liveness* and nothing else, and that boundary is worth stating because it used to be
- * crossed. `norbital_approval_id` was also being read as a write lock, so one column stood for both
+ * crossed. `approval_id` was also being read as a write lock, so one column stood for both
  * "payroll may consume this row" and "nobody may edit this row" — which meant the workspace had no
  * way at all to record that a row *had* been consumed. Settlement now lives in its own collection,
  * `payslip_sources`, written by PERSIST and released by deleting the payslips that hold the claims.
@@ -18,9 +18,10 @@
  * rebuild, so a settlement claim is not, and must never become, a filter on these queries.
  */
 
+import { refuse } from '@norbital-ai/bolt/authoring';
 import { Effect } from 'effect';
 import type { WorkspaceRow } from '../$types.js';
-import { assertComplete, groupBy, PAGE_LIMIT, type PayrollReadApi } from './api.js';
+import { groupBy, PAGE_LIMIT, type PayrollReadApi, type ReadLog } from './api.js';
 import type { Configuration } from './configuration.js';
 import {
 	completedMonths,
@@ -43,13 +44,12 @@ import {
 	type SettlementPolicy
 } from './settlement.js';
 
-export type Employment = WorkspaceRow<'employments'>;
-export type Employee = WorkspaceRow<'employees'>;
-export type EmploymentTerms = WorkspaceRow<'employment_terms'>;
-export type StatutoryFact = WorkspaceRow<'employment_statutory_facts'>;
-export type Agreement = WorkspaceRow<'repayment_agreements'>;
-export type ComponentEntry = WorkspaceRow<'component_entries'>;
-export type LeaveRequest = WorkspaceRow<'leave_requests'>;
+type Employment = WorkspaceRow<'employments'>;
+type Employee = WorkspaceRow<'employees'>;
+type EmploymentTerms = WorkspaceRow<'employment_terms'>;
+type StatutoryFact = WorkspaceRow<'employment_statutory_facts'>;
+type Agreement = WorkspaceRow<'repayment_agreements'>;
+type ComponentEntry = WorkspaceRow<'component_entries'>;
 
 /** One person's whole input to the run. */
 export type EmploymentBundle = {
@@ -88,7 +88,7 @@ export type EmploymentBundle = {
 	readonly extendedLeaveSettlesInOwnMonth: boolean;
 };
 
-export type GatheredRun = {
+type GatheredRun = {
 	/** Everyone the run measures — deferred periods included; `bundle.deferral` tells them apart. */
 	readonly bundles: readonly EmploymentBundle[];
 	/** Active employments in the company at the period end — the HEADCOUNT band selector. */
@@ -97,19 +97,24 @@ export type GatheredRun = {
 	readonly yearToDate: ReadonlyMap<string, { employee: number; employer: number; base: number }>;
 };
 
-export function gatherRun(options: {
-	readonly api: PayrollReadApi;
+/**
+ * What `gatherRun` needs: the reads, the picked law, the window and the settlement policy.
+ */
+type GatherRunOptions = {
+	readonly api: PayrollReadApi & { readonly reads: ReadLog };
 	readonly configuration: Configuration;
 	readonly window: PayrollWindow;
 	readonly policy: SettlementPolicy;
-}): Effect.Effect<GatheredRun, never, never> {
+};
+
+export function gatherRun(options: GatherRunOptions): Effect.Effect<GatheredRun, never, never> {
 	return Effect.gen(function* () {
 		const { window } = options;
 		const period = window.period;
 		const salary = window.salary;
 		const { query } = options.api.db;
-		const approved = { norbital_approval_id: { isNull: true } } as const;
-		const companyId = options.configuration.company.norbital_id;
+		const approved = { approval_id: { isNull: true } } as const;
+		const companyId = options.configuration.company.id;
 
 		const employmentRows = live(
 			yield* query.employments.findMany({
@@ -117,7 +122,7 @@ export function gatherRun(options: {
 				limit: PAGE_LIMIT
 			})
 		);
-		assertComplete(employmentRows, 'employments');
+		options.api.reads.assertComplete(employmentRows, 'employments');
 
 		// Someone is in the run if their employment touches the pay period at all — and then
 		// `settlement.ts` says which run that period actually settles in. A leaver paid to the 10th is
@@ -129,7 +134,7 @@ export function gatherRun(options: {
 		const settlementByEmployment = new Map<string, EmploymentSettlement>();
 		for (const row of touching)
 			settlementByEmployment.set(
-				row.norbital_id,
+				row.id,
 				resolveEmploymentSettlement({
 					dates: employmentDates(row),
 					window,
@@ -138,10 +143,10 @@ export function gatherRun(options: {
 			);
 
 		const employments = touching.filter((row) => {
-			const settlement = settlementByEmployment.get(row.norbital_id);
+			const settlement = settlementByEmployment.get(row.id);
 			return settlement != null && (settlement.runs || settlement.deferral != null);
 		});
-		const employmentIds = employments.map((row) => row.norbital_id);
+		const employmentIds = employments.map((row) => row.id);
 		if (employmentIds.length === 0) return { bundles: [], headcount: 0, yearToDate: new Map() };
 
 		// One query span covers everyone: the widest attendance window any employment settles over, so
@@ -176,7 +181,7 @@ export function gatherRun(options: {
 		] = yield* Effect.all(
 			[
 				query.employees.findMany({
-					where: { norbital_id: { in: employeeIds }, ...approved },
+					where: { id: { in: employeeIds }, ...approved },
 					limit: PAGE_LIMIT
 				}),
 				query.employment_terms.findMany({ where: inEmployments, limit: PAGE_LIMIT }),
@@ -207,16 +212,16 @@ export function gatherRun(options: {
 		// truncated page is the one failure mode that produces a wrong payroll rather than no payroll:
 		// a missing roster day changes a day type, a missing terms row changes a wage, and neither
 		// leaves a trace. Roster entries are the closest to the ceiling of the lot.
-		assertComplete(employeeRows, 'employees');
-		assertComplete(termRows, 'employment terms');
-		assertComplete(factRows, 'statutory facts');
-		assertComplete(entryRows, 'component entries');
-		assertComplete(requestRows, 'leave requests');
-		assertComplete(timeRows, 'time entries');
-		assertComplete(rosterRows, 'roster entries');
-		assertComplete(agreementRows, 'repayment agreements');
+		options.api.reads.assertComplete(employeeRows, 'employees');
+		options.api.reads.assertComplete(termRows, 'employment terms');
+		options.api.reads.assertComplete(factRows, 'statutory facts');
+		options.api.reads.assertComplete(entryRows, 'component entries');
+		options.api.reads.assertComplete(requestRows, 'leave requests');
+		options.api.reads.assertComplete(timeRows, 'time entries');
+		options.api.reads.assertComplete(rosterRows, 'roster entries');
+		options.api.reads.assertComplete(agreementRows, 'repayment agreements');
 
-		const employeeById = new Map(live(employeeRows).map((row) => [row.norbital_id, row]));
+		const employeeById = new Map(live(employeeRows).map((row) => [row.id, row]));
 		const termsByEmployment = groupBy(live(termRows), (row) => row.employment_id);
 		const factsByEmployment = groupBy(live(factRows), (row) => row.employment_id);
 		const liveAgreements = live(agreementRows);
@@ -236,21 +241,20 @@ export function gatherRun(options: {
 			requestRows
 		).map((request) => {
 			const event = request.event;
-			if (event == null)
-				throw new Error(`Leave request ${request.norbital_id} has no event payload.`);
+			if (event == null) refuse(`Leave request ${request.id} has no event payload.`);
 			if (event.kind === 'TIME_OFF')
 				return {
-					norbital_id: request.norbital_id,
+					id: request.id,
 					employment_id: request.employment_id,
 					leave_type_id: request.leave_type_id,
 					entry_date: event.range.start.date,
 					kind: 'TAKEN',
 					days: -Math.abs(Number(event.chargeable_days ?? 0)),
-					source_id: request.norbital_id,
-					norbital_approval_id: null
+					source_id: request.id,
+					approval_id: null
 				};
 			return {
-				norbital_id: request.norbital_id,
+				id: request.id,
 				employment_id: request.employment_id,
 				leave_type_id: request.leave_type_id,
 				entry_date: event.effective_on,
@@ -262,7 +266,7 @@ export function gatherRun(options: {
 							: 'TAKEN',
 				days: Number(event.movement_days),
 				source_id: event.source_id,
-				norbital_approval_id: null
+				approval_id: null
 			};
 		});
 		const ledgerByEmployment = groupBy(leaveMovements, (row) => row.employment_id);
@@ -270,42 +274,32 @@ export function gatherRun(options: {
 		const rosterByEmployment = groupBy(live(rosterRows), (row) => row.employment_id);
 		const agreementsByEmployment = groupBy(liveAgreements, (row) => row.employment_id);
 
-		const settlementOf = (employment: Employment): EmploymentSettlement => {
-			const settlement = settlementByEmployment.get(employment.norbital_id);
-			if (!settlement)
-				throw new Error(
-					`Employment ${employment.employee_number} was gathered without a settlement.`
-				);
-			return settlement;
-		};
-
 		const bundles: EmploymentBundle[] = [];
 		for (const employment of employments) {
 			const employee = employeeById.get(employment.employee_id);
 			if (!employee)
-				throw new Error(
-					`Employment ${employment.employee_number} has no approved employee record.`
-				);
-			const settlement = settlementOf(employment);
+				refuse(`Employment ${employment.employee_number} has no approved employee record.`);
+			const settlement = settlementByEmployment.get(employment.id);
+			if (!settlement)
+				refuse(`Employment ${employment.employee_number} was gathered without a settlement.`);
 			const hire = dateKey(employment.hire_date);
-			if (hire == null)
-				throw new Error(`Employment ${employment.employee_number} has no hire date.`);
+			if (hire == null) refuse(`Employment ${employment.employee_number} has no hire date.`);
 			const dob = dateKey(employee.date_of_birth);
-			const statutoryFacts = factsByEmployment.get(employment.norbital_id) ?? [];
+			const statutoryFacts = factsByEmployment.get(employment.id) ?? [];
 			bundles.push({
 				employment,
 				employee,
 				terms: effectiveWithin(
-					termsByEmployment.get(employment.norbital_id) ?? [],
+					termsByEmployment.get(employment.id) ?? [],
 					salary.start,
 					salary.end
 				),
 				statutoryFacts,
-				entries: entriesByEmployment.get(employment.norbital_id) ?? [],
-				ledger: ledgerByEmployment.get(employment.norbital_id) ?? [],
-				timeEntries: timeByEmployment.get(employment.norbital_id) ?? [],
-				rosterEntries: rosterByEmployment.get(employment.norbital_id) ?? [],
-				agreements: agreementsByEmployment.get(employment.norbital_id) ?? [],
+				entries: entriesByEmployment.get(employment.id) ?? [],
+				ledger: ledgerByEmployment.get(employment.id) ?? [],
+				timeEntries: timeByEmployment.get(employment.id) ?? [],
+				rosterEntries: rosterByEmployment.get(employment.id) ?? [],
+				agreements: agreementsByEmployment.get(employment.id) ?? [],
 				serviceMonths: completedMonths(hire, salary.end),
 				age: dob == null ? null : completedYears(dob, salary.end),
 				employedDays: settlement.employedDays,
@@ -351,13 +345,17 @@ export function gatherRun(options: {
  *    fed the next period's projection and nothing recomputed it when the draft was discarded. Only
  *    `PAID` runs are year-to-date (decision L35 / risk register #8).
  */
-function gatherYearToDate(options: {
-	readonly api: PayrollReadApi;
+type GatherYearToDateOptions = {
+	readonly api: PayrollReadApi & { readonly reads: ReadLog };
 	readonly configuration: Configuration;
 	readonly period: string;
 	readonly companyId: string;
 	readonly employeeIds: readonly string[];
-}): Effect.Effect<Map<string, { employee: number; employer: number; base: number }>, never, never> {
+};
+
+function gatherYearToDate(
+	options: GatherYearToDateOptions
+): Effect.Effect<Map<string, { employee: number; employer: number; base: number }>, never, never> {
 	return Effect.gen(function* () {
 		const { query } = options.api.db;
 		const startMonth = Number(options.configuration.jurisdiction.tax_year_start_month);
@@ -370,7 +368,7 @@ function gatherYearToDate(options: {
 			},
 			limit: PAGE_LIMIT
 		});
-		assertComplete(priorRunRows, 'prior payroll runs');
+		options.api.reads.assertComplete(priorRunRows, 'prior payroll runs');
 		const priorRuns = priorRunRows.filter(
 			(run) => taxYearOf(run.period, startMonth) === taxYearOf(options.period, startMonth)
 		);
@@ -386,31 +384,31 @@ function gatherYearToDate(options: {
 			},
 			limit: PAGE_LIMIT
 		});
-		assertComplete(siblingEmploymentRows, 'sibling employments');
+		options.api.reads.assertComplete(siblingEmploymentRows, 'sibling employments');
 		const siblingEmployments = live(siblingEmploymentRows);
 		const employmentToEmployee = new Map(
-			siblingEmployments.map((row) => [row.norbital_id, row.employee_id])
+			siblingEmployments.map((row) => [row.id, row.employee_id])
 		);
 		const priorPayslips = yield* query.payslips.findMany({
 			where: {
-				payroll_run_id: { in: priorRuns.map((run) => run.norbital_id) },
-				employment_id: { in: siblingEmployments.map((row) => row.norbital_id) }
+				payroll_run_id: { in: priorRuns.map((run) => run.id) },
+				employment_id: { in: siblingEmployments.map((row) => row.id) }
 			},
 			limit: PAGE_LIMIT
 		});
-		assertComplete(priorPayslips, 'prior payslips');
+		options.api.reads.assertComplete(priorPayslips, 'prior payslips');
 		if (priorPayslips.length === 0) return totals;
 
 		const contributionCodeById = new Map(
-			options.configuration.contributions.map((entry) => [entry.row.norbital_id, entry.row.code])
+			options.configuration.contributions.map((entry) => [entry.row.id, entry.row.code])
 		);
 		const charges = yield* query.payslip_lines.findMany({
-			where: { payslip_id: { in: priorPayslips.map((row) => row.norbital_id) } },
+			where: { payslip_id: { in: priorPayslips.map((row) => row.id) } },
 			limit: PAGE_LIMIT
 		});
-		assertComplete(charges, 'prior payslip lines');
+		options.api.reads.assertComplete(charges, 'prior payslip lines');
 		const employeeByPayslip = new Map(
-			priorPayslips.map((row) => [row.norbital_id, employmentToEmployee.get(row.employment_id)])
+			priorPayslips.map((row) => [row.id, employmentToEmployee.get(row.employment_id)])
 		);
 		const countedBases = new Set<string>();
 		for (const charge of charges) {
@@ -437,9 +435,4 @@ function gatherYearToDate(options: {
 		}
 		return totals;
 	});
-}
-
-/** The key `gatherYearToDate` files a total under. */
-export function yearToDateKey(employeeId: string, contributionCode: string): string {
-	return `${employeeId}:${contributionCode}`;
 }

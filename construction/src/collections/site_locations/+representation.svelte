@@ -4,15 +4,19 @@
 	 * `parent_location_id` were both editable uuids on the auto form; the parent reads as its own
 	 * `code · name`, which is the only way to tell two zones apart.
 	 */
-	import { collectionClient } from '../../collection-client.js';
+	import { client } from '$bolt/client';
+	import { getCollectionClientForSurface } from '@norbital-ai/ui/collection-runtime';
 	import { useI18n } from '@norbital-ai/ui/i18n';
 	import type { TenantI18nKeys } from '$bolt/i18n-keys';
 	import type { RepresentationProps } from './$types.js';
 	import { CollectionForm } from '@norbital-ai/ui/collection-form';
 	import { Column, Grid } from '@norbital-ai/ui/layout';
 	import { RelationshipRenderer } from '@norbital-ai/ui/data-renderer/relationship';
+	import type { CollectionRelationOptions } from '@norbital-ai/std/collection';
 
 	let { record, close }: RepresentationProps = $props();
+
+	const workspaceClient = getCollectionClientForSurface(client, 'CollectionForm');
 
 	const { t } = useI18n<TenantI18nKeys>();
 </script>
@@ -25,7 +29,7 @@
 </svelte:head>
 
 <CollectionForm
-	client={collectionClient}
+	client={workspaceClient}
 	collection="site_locations"
 	defaultValues={record ?? undefined}
 	onAfterSubmit={record ? undefined : close}
@@ -49,7 +53,7 @@
 						},
 						orderBy: { project_number: 'asc' },
 						limit: 500
-					}
+					} satisfies CollectionRelationOptions
 				}}
 			/>
 			<Field
@@ -67,14 +71,13 @@
 						},
 						orderBy: { location_code: 'asc' },
 						limit: 500
-					}
+					} satisfies CollectionRelationOptions
 				}}
 			/>
 			<Field name="location_type" label={t('component.location_type')} />
 			<Field name="grid_reference" label={t('component.grid_reference')} />
 			<!-- A text() element id from the BIM model, not a system uuid: it is the value an operator
 			matches against the model, so here the id is the answer rather than a key to one. -->
-			<!-- stupidity:allow UI17 -->
 			<Field name="bim_model_element_id" label={t('component.bim_element')} />
 			<Column span="all"><Field name="description" label={t('component.description')} /></Column>
 			<Column span="all"><Field name="coordinates" label={t('component.coordinates')} /></Column>

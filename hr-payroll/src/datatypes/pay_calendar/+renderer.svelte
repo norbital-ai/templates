@@ -23,9 +23,7 @@
 	let props: RendererProps = $props();
 	const disabled = $derived(props.mode === 'edit' ? props.disabled : true);
 	const parsed = $derived(Schema.decodeUnknownResult(payCalendarSchema)(props.value));
-	const current = $derived<Value | null>(
-		Result.isSuccess(parsed) ? (parsed.success as Value) : null
-	);
+	const current = $derived<Value | null>(Result.isSuccess(parsed) ? parsed.success : null);
 	const instalments = $derived<readonly Window[]>(
 		current?.find((entry: Value[number]) => entry.pay_frequency === 'SEMI_MONTHLY')?.instalments ??
 			[]

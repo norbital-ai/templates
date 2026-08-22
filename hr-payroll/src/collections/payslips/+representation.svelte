@@ -6,50 +6,83 @@
 	import type { RepresentationProps } from './$types.js';
 	import { CollectionTable } from '@norbital-ai/ui/collection-table';
 	import { Bound, Grid, Stack } from '@norbital-ai/ui/layout';
+	import { Result, Schema } from 'effect';
 	import { formatCalendarDate, formatNumeric } from '../../lib/ui/display-formatters.js';
 
 	let { record }: RepresentationProps = $props();
 
 	const { t } = useI18n<TenantI18nKeys>();
 
-	type PayslipSummary = {
-		readonly payslip_employment?: {
-			readonly employee_number?: string | null;
-			readonly employment_employee?: { readonly name?: string | null } | null;
-		} | null;
-	};
-	type NestedLine = {
-		readonly payslip_line_pay_component?: {
-			readonly code?: string | null;
-			readonly name?: string | null;
-		} | null;
-		readonly entry_payslip_lines?: {
-			readonly description?: string | null;
-			readonly event_date?: string | null;
-		} | null;
-		readonly payslip_line_statutory_contribution?: {
-			readonly code?: string | null;
-			readonly name?: string | null;
-		} | null;
-	};
-	type NestedSource = {
-		readonly payslip_source_time_entry?: {
-			readonly work_date?: string | null;
-			readonly time_entry_employment?: { readonly employee_number?: string | null } | null;
-		} | null;
-		readonly payslip_source_leave_request?: {
-			readonly from_date?: string | null;
-			readonly to_date?: string | null;
-			readonly leave_request_type?: { readonly code?: string | null } | null;
-		} | null;
-	};
+	// CollectionTable erases its query-specific row type at the render callback, so nested values are
+	// decoded once at that boundary instead of cast by hand.
+	const componentRefSchema = Schema.Struct({
+		code: Schema.optional(Schema.NullOr(Schema.String)),
+		name: Schema.optional(Schema.NullOr(Schema.String))
+	});
+	const payslipLineRefSchema = Schema.Struct({
+		description: Schema.optional(Schema.NullOr(Schema.String)),
+		event_date: Schema.optional(Schema.NullOr(Schema.String))
+	});
+	const nestedLineSchema = Schema.Struct({
+		payslip_line_pay_component: Schema.optional(Schema.NullOr(componentRefSchema)),
+		entry_payslip_lines: Schema.optional(Schema.NullOr(payslipLineRefSchema)),
+		payslip_line_statutory_contribution: Schema.optional(Schema.NullOr(componentRefSchema))
+	});
+	type NestedLine = Schema.Schema.Type<typeof nestedLineSchema>;
+	const attendanceSourceSchema = Schema.Struct({
+		work_date: Schema.optional(Schema.NullOr(Schema.String)),
+		time_entry_employment: Schema.optional(
+			Schema.NullOr(
+				Schema.Struct({ employee_number: Schema.optional(Schema.NullOr(Schema.String)) })
+			)
+		)
+	});
+	const leaveSourceSchema = Schema.Struct({
+		from_date: Schema.optional(Schema.NullOr(Schema.String)),
+		to_date: Schema.optional(Schema.NullOr(Schema.String)),
+		leave_request_type: Schema.optional(
+			Schema.NullOr(Schema.Struct({ code: Schema.optional(Schema.NullOr(Schema.String)) }))
+		)
+	});
+	const nestedSourceSchema = Schema.Struct({
+		source: Schema.Union([
+			Schema.Struct({
+				kind: Schema.Literal('TIME_ENTRY'),
+				id: Schema.String,
+				record: Schema.NullOr(attendanceSourceSchema)
+			}),
+			Schema.Struct({
+				kind: Schema.Literal('LEAVE_REQUEST'),
+				id: Schema.String,
+				record: Schema.NullOr(leaveSourceSchema)
+			})
+		])
+	});
+	type NestedSource = Schema.Schema.Type<typeof nestedSourceSchema>;
+	const payslipSummarySchema = Schema.Struct({
+		payslip_employment: Schema.optional(
+			Schema.NullOr(
+				Schema.Struct({
+					employee_number: Schema.optional(Schema.NullOr(Schema.String)),
+					employment_employee: Schema.optional(
+						Schema.NullOr(Schema.Struct({ name: Schema.optional(Schema.NullOr(Schema.String)) }))
+					)
+				})
+			)
+		)
+	});
+	type PayslipSummary = Schema.Schema.Type<typeof payslipSummarySchema>;
+
+	const decodeNestedLine = Schema.decodeUnknownResult(nestedLineSchema);
+	const decodeNestedSource = Schema.decodeUnknownResult(nestedSourceSchema);
+	const decodePayslipSummary = Schema.decodeUnknownResult(payslipSummarySchema);
 
 	const summaryQuery = $derived(
 		record == null
 			? null
 			: client.db.payslips.findFirst({
-					where: { norbital_id: { eq: record.norbital_id } },
-					columns: { norbital_id: true },
+					where: { id: { eq: record.id } },
+					columns: { id: true },
 					with: {
 						payslip_employment: {
 							columns: { employee_number: true },
@@ -58,40 +91,52 @@
 					}
 				})
 	);
-	const summary = $derived(summaryQuery?.current as PayslipSummary | null | undefined);
+	const summary = $derived.by((): PayslipSummary | null => {
+		const current = summaryQuery?.current;
+		if (current == null) return null;
+		const parsed = decodePayslipSummary(current);
+		return Result.isSuccess(parsed) ? parsed.success : null;
+	});
 	const employment = $derived(summary?.payslip_employment ?? null);
 
 	function componentLabel(row: unknown): string {
-		const line = row as NestedLine;
-		const component = line.payslip_line_pay_component;
+		const parsed = decodeNestedLine(row);
+		if (!Result.isSuccess(parsed)) return t('component.derived_line');
+		const component = parsed.success.payslip_line_pay_component;
 		if (component?.code) return component.code;
-		const statutory = line.payslip_line_statutory_contribution;
+		const statutory = parsed.success.payslip_line_statutory_contribution;
 		if (statutory?.code)
 			return statutory.name ? `${statutory.code} · ${statutory.name}` : statutory.code;
 		return t('component.derived_line');
 	}
 
 	function entryLabel(row: unknown): string {
-		const entry = (row as NestedLine).entry_payslip_lines;
+		const parsed = decodeNestedLine(row);
+		if (!Result.isSuccess(parsed)) return '—';
+		const entry = parsed.success.entry_payslip_lines;
 		if (entry?.description) return entry.description;
 		return entry?.event_date == null ? '—' : formatCalendarDate(entry.event_date);
 	}
 
 	function sourceKind(row: unknown): string {
-		const source = row as NestedSource;
-		if (source.payslip_source_time_entry) return t('component.attendance');
-		if (source.payslip_source_leave_request) return t('component.leave');
-		return '—';
+		const parsed = decodeNestedSource(row);
+		if (!Result.isSuccess(parsed)) return '—';
+		return parsed.success.source.kind === 'TIME_ENTRY'
+			? t('component.attendance')
+			: t('component.leave');
 	}
 
 	function sourceDetail(row: unknown): string {
-		const source = row as NestedSource;
-		const attendance = source.payslip_source_time_entry;
+		const parsed = decodeNestedSource(row);
+		if (!Result.isSuccess(parsed)) return '—';
+		const attendance =
+			parsed.success.source.kind === 'TIME_ENTRY' ? parsed.success.source.record : null;
 		if (attendance?.work_date) {
 			const employee = attendance.time_entry_employment?.employee_number;
 			return [employee, formatCalendarDate(attendance.work_date)].filter(Boolean).join(' · ');
 		}
-		const leave = source.payslip_source_leave_request;
+		const leave =
+			parsed.success.source.kind === 'LEAVE_REQUEST' ? parsed.success.source.record : null;
 		if (leave?.from_date) {
 			const range = leave.to_date
 				? `${formatCalendarDate(leave.from_date)} → ${formatCalendarDate(leave.to_date)}`
@@ -158,7 +203,7 @@
 					description={t('component.payslips_description')}
 					features={{ create: false }}
 					query={{
-						where: { payslip_id: { eq: record.norbital_id } },
+						where: { payslip_id: { eq: record.id } },
 						orderBy: { sequence: 'asc' },
 						with: {
 							payslip_line_pay_component: { columns: { code: true } },
@@ -209,15 +254,17 @@
 					description={t('component.consumed_inputs_description')}
 					features={{ create: false }}
 					query={{
-						where: { payslip_id: { eq: record.norbital_id } },
+						where: { payslip_id: { eq: record.id } },
 						with: {
-							payslip_source_time_entry: {
-								columns: { work_date: true },
-								with: { time_entry_employment: { columns: { employee_number: true } } }
-							},
-							payslip_source_leave_request: {
-								columns: { from_date: true, to_date: true },
-								with: { leave_request_type: { columns: { code: true } } }
+							source: {
+								TIME_ENTRY: {
+									columns: { work_date: true },
+									with: { time_entry_employment: { columns: { employee_number: true } } }
+								},
+								LEAVE_REQUEST: {
+									columns: { from_date: true, to_date: true },
+									with: { leave_request_type: { columns: { code: true } } }
+								}
 							}
 						},
 						limit: 500
@@ -231,10 +278,8 @@
 							render={({ row }) => sourceKind(row)}
 						/>
 						<Column
-							name="time_entry_id"
+							name="period"
 							label={t('component.source_record')}
-							card="subtitle"
-							sortable={false}
 							render={({ row }) => sourceDetail(row)}
 						/>
 					{/snippet}

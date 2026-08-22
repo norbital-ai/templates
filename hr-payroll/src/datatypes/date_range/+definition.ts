@@ -2,7 +2,6 @@ import { dateRangeSchema, defineCustomType } from '@norbital-ai/bolt/authoring';
 import { Schema } from 'effect';
 
 export { dateRangeSchema };
-export type { DateRange } from '@norbital-ai/bolt/authoring';
 
 /**
  * A UTC instant as one is stored: `2026-04-02T00:00:00.000Z`.

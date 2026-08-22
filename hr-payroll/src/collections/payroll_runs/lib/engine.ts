@@ -18,28 +18,16 @@
  * twice produces the same four collections rather than two overlapping halves.
  */
 
-import { Effect } from 'effect';
+import { Clock, Effect } from 'effect';
+import { refuse } from '@norbital-ai/bolt/authoring';
 import { accumulateBases } from './accumulate.js';
 import { claimsForBundle } from './claims.js';
-import { readLog, resetReadLog, type PayrollApi, type PayrollReadApi } from './api.js';
+import { withReadLog, type PayrollApi, type PayrollReadApi, type ReadLog } from './api.js';
 import { pickConfiguration, type Configuration } from './configuration.js';
-
-/**
- * The statutory ceiling on total hours worked in one day, or null where the jurisdiction states
- * none. Mirrors `monthlyOvertimeLimit` in `measure.ts`: one row, or a fault if the seed carries two.
- */
-function dailyWorkLimitHours(configuration: Configuration): number | null {
-	const limits = configuration.overtimeLimits.filter(
-		(limit) => limit.period === 'DAY' && limit.measures === 'TOTAL_WORK_HOURS'
-	);
-	if (limits.length > 1)
-		throw new Error('More than one daily work limit is effective for this jurisdiction.');
-	return limits[0] == null ? null : Number(limits[0].max_hours);
-}
 import { contribute, type StatutoryFactStatus } from './contribute.js';
 import { coversDate } from './effective.js';
 import { gatherRun } from './gather.js';
-import { measureEmployment } from './measure.js';
+import { dailyTotalWorkLimit, measureEmployment } from './measure.js';
 import {
 	PAY_FREQUENCIES,
 	payPeriodsRemaining,
@@ -95,11 +83,19 @@ function employmentPayFrequency(
  * shape carried the warnings out to a caller that dropped them, which meant an unmapped rest-day
  * rule or a breached hours-of-work limit reached nobody.
  */
-export type PayrollRunResult = {
+type PayrollRunResult = {
 	readonly window: PayrollWindow;
 	readonly configuration: Configuration;
 	readonly payslipCount: number;
 	readonly lineCount: number;
+};
+
+/** What `buildPayrollRun` needs: the run itself and the API it performs it on. */
+type BuildPayrollRunOptions = {
+	readonly api: PayrollApi;
+	readonly runId: string;
+	readonly companyId: string;
+	readonly period: string;
 };
 
 /** Resolve the window and the governing configuration without building anything. */
@@ -109,17 +105,16 @@ export function preparePayrollRun(options: {
 	readonly period: string;
 }): Effect.Effect<{ window: PayrollWindow; configuration: Configuration }, never, never> {
 	return Effect.gen(function* () {
-		const company = yield* options.api.db.query.companies.findFirst({
-			where: { norbital_id: { eq: options.companyId }, norbital_approval_id: { isNull: true } }
+		const api = withReadLog(options.api);
+		const company = yield* api.db.query.companies.findFirst({
+			where: { id: { eq: options.companyId }, approval_id: { isNull: true } }
 		});
-		if (!company) throw new Error(`Company ${options.companyId} does not exist.`);
+		if (!company) refuse(`Company ${options.companyId} does not exist.`);
 		const window = resolveWindow(options.period, company);
 		const configuration = yield* pickConfiguration({
-			api: options.api,
+			api,
 			companyId: options.companyId,
-			period: options.period,
-			salary: window.salary,
-			attendance: window.attendance
+			window
 		});
 		return { window, configuration };
 	});
@@ -131,20 +126,17 @@ export function preparePayrollRun(options: {
  * The run record must already exist — it carries the configuration hash and the window the build
  * was picked against, so that a payslip can always be traced to the law it was computed under.
  */
-export function buildPayrollRun(options: {
-	readonly api: PayrollApi;
-	readonly runId: string;
-	readonly companyId: string;
-	readonly period: string;
-}): Effect.Effect<PayrollRunResult, never, never> {
+export function buildPayrollRun(
+	options: BuildPayrollRunOptions
+): Effect.Effect<PayrollRunResult, never, never> {
 	return Effect.gen(function* () {
 		/**
 		 * Phase timing. The engine runs inside the tenant runtime container, so every database call is
 		 * an RPC hop before it is a query — which makes "how long did each phase take" the only honest
 		 * way to tell a slow query from a chatty one from slow arithmetic.
 		 */
-		resetReadLog();
-		const t0 = Date.now();
+		const reads = withReadLog(options.api);
+		const t0 = yield* Clock.currentTimeMillis;
 		let mark = t0;
 		const phases: [string, number][] = [];
 		/**
@@ -156,29 +148,30 @@ export function buildPayrollRun(options: {
 		 * as each phase lands means a killed run still says which phase it died in and how long
 		 * everything before it took, which is the difference between a measurement and a guess.
 		 */
-		const lap = (name: string): void => {
-			const now = Date.now();
-			phases.push([name, now - mark]);
-			console.log(
-				`[payroll-phase] ${options.period} ${name}=${now - mark}ms elapsed=${now - t0}ms | ${readLog()}`
-			);
-			mark = now;
-		};
+		const lap = (name: string): Effect.Effect<void> =>
+			Effect.gen(function* () {
+				const now = yield* Clock.currentTimeMillis;
+				phases.push([name, now - mark]);
+				yield* Effect.log(
+					`[payroll-phase] ${options.period} ${name}=${now - mark}ms elapsed=${now - t0}ms | ${reads.reads.logString()}`
+				);
+				mark = now;
+			});
 
 		// 1 — PICK
 		const { window, configuration } = yield* preparePayrollRun(options);
-		lap('pick');
+		yield* lap('pick');
 
 		// 2 — VALIDATE
 		const issues: RunIssue[] = validateConfiguration(configuration);
-		if (blockers(issues).length > 0) throw new Error(describeIssues(blockers(issues)));
-		lap('validate');
+		if (blockers(issues).length > 0) refuse(describeIssues(blockers(issues)));
+		yield* lap('validate');
 
 		// 3 — GATHER
 		const policy = readSettlementPolicy(configuration.company);
-		const gathered = yield* gatherRun({ api: options.api, configuration, window, policy });
+		const gathered = yield* gatherRun({ api: reads, configuration, window, policy });
 
-		lap('gather');
+		yield* lap('gather');
 
 		/**
 		 * The projection count is a count of **payslips**, not of pay events.
@@ -203,7 +196,7 @@ export function buildPayrollRun(options: {
 		// as issues rather than thrown one at a time, so a month with thirty-six unclosed entries
 		// yields one list instead of thirty-six consecutive builds. See `validateOpenTimeEntries`.
 		issues.push(...validateOpenTimeEntries({ bundles: gathered.bundles }));
-		if (blockers(issues).length > 0) throw new Error(describeIssues(blockers(issues)));
+		if (blockers(issues).length > 0) refuse(describeIssues(blockers(issues)));
 
 		const pending: PendingPayslip[] = [];
 		const deferrals: PendingDeferral[] = [];
@@ -236,7 +229,7 @@ export function buildPayrollRun(options: {
 			});
 			if (measured.arrears != null)
 				deferrals.push({
-					employmentId: bundle.employment.norbital_id,
+					employmentId: bundle.employment.id,
 					employeeNumber: bundle.employment.employee_number,
 					hireDate: bundle.employment.hire_date,
 					coversPeriod: measured.arrears.period,
@@ -259,7 +252,7 @@ export function buildPayrollRun(options: {
 			// It used to be a literal 12 here, which meant Malaysia's cap was applied to every country in
 			// the workspace. A jurisdiction that states no daily limit now has none enforced, rather than
 			// inheriting one from a statute that does not govern it.
-			const dailyWorkLimit = dailyWorkLimitHours(configuration);
+			const dailyWorkLimit = dailyTotalWorkLimit(configuration);
 			if (dailyWorkLimit != null)
 				issues.push(
 					...validateDailyWorkLimit({
@@ -313,10 +306,10 @@ export function buildPayrollRun(options: {
 			// 7 — SETTLE
 			const settlement = settle({ lines: measured.lines, charges });
 			for (const shortfall of settlement.shortfalls)
-				shortfalls.push({ employmentId: bundle.employment.norbital_id, ...shortfall });
+				shortfalls.push({ employmentId: bundle.employment.id, ...shortfall });
 
 			pending.push({
-				employmentId: bundle.employment.norbital_id,
+				employmentId: bundle.employment.id,
 				currency: measured.currency,
 				settlement,
 				charges,
@@ -330,38 +323,41 @@ export function buildPayrollRun(options: {
 		// hours-of-work limit for one person on one day writes no payslip for anybody. That is the point:
 		// a payroll is published whole or not at all, and the operator is told which person and which day.
 		const blocking = blockers(issues);
-		if (blocking.length > 0) throw new Error(describeIssues(blocking));
+		if (blocking.length > 0) refuse(describeIssues(blocking));
 		const warnings = issues.filter((issue) => issue.severity === 'WARNING');
 		if (warnings.length > 0)
-			console.log(`[payroll-warnings] ${options.period} ${describeIssues(warnings, 'warn')}`);
-		lap('calculate');
+			yield* Effect.logWarning(
+				`[payroll-warnings] ${options.period} ${describeIssues(warnings, 'warn')}`
+			);
+		yield* lap('calculate');
 
 		// 8 — PERSIST
-		yield* clearRunResults(options.api, options.runId);
-		lap('clear');
+		yield* clearRunResults(reads, options.runId);
+		yield* lap('clear');
 		const written = yield* persistPayslips({
-			api: options.api,
+			api: reads,
 			runId: options.runId,
 			period: options.period,
 			pending
 		});
-		lap('persist');
+		yield* lap('persist');
 		yield* persistShortfalls({
-			api: options.api,
+			api: reads,
 			period: options.period,
 			nextPeriod: shiftPeriod(options.period, 1),
 			payDate: window.payDate,
 			shortfalls
 		});
-		lap('shortfalls');
-		yield* persistDeferrals({ api: options.api, deferrals });
-		lap('deferrals');
+		yield* lap('shortfalls');
+		yield* persistDeferrals({ api: reads, deferrals });
+		yield* lap('deferrals');
 
-		console.log(
-			`[payroll-timing] ${options.period} total=${Date.now() - t0}ms ` +
+		const totalMs = (yield* Clock.currentTimeMillis) - t0;
+		yield* Effect.log(
+			`[payroll-timing] ${options.period} total=${totalMs}ms ` +
 				phases.map(([name, ms]) => `${name}=${ms}ms`).join(' ') +
 				` | employments=${gathered.bundles.length} payslips=${written.payslipCount} lines=${written.lineCount} settled=${written.claimCount}` +
-				`\n[payroll-reads] ${readLog()}`
+				`\n[payroll-reads] ${reads.reads.logString()}`
 		);
 
 		return {

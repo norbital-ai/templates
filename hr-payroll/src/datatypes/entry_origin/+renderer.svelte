@@ -93,7 +93,7 @@
 	);
 	const agreementOptions = $derived(
 		(agreementsQuery?.current ?? []).map((agreement) => ({
-			value: agreement.norbital_id,
+			value: agreement.id,
 			label:
 				agreement.reference != null && agreement.reference !== ''
 					? String(agreement.reference)
@@ -112,9 +112,9 @@
 	);
 	const entryOptions = $derived(
 		(entriesQuery?.current ?? [])
-			.filter((entry) => entry.norbital_id !== props.row?.norbital_id)
+			.filter((entry) => entry.id !== props.row?.id)
 			.map((entry) => ({
-				value: entry.norbital_id,
+				value: entry.id,
 				label:
 					[formatCalendarDate(entry.event_date), entry.description]
 						.filter((part) => part != null && part !== '' && part !== '—')
@@ -197,7 +197,7 @@
 	 * `controller-surfaces.md` §2 calls that a wrapper thinner than the thing it wraps. The pure
 	 * coercions these renderers used to duplicate did move, to lib/ui/renderer-input.ts.
 	 */
-	// stupidity:allow D1 -- closes over this file's current/emit/defaultFor; see the note above.
+	// repository-health:allow D1 -- closes over this file's current/emit/defaultFor; see the note above.
 	function selectKind(kind: OriginKind | null): void {
 		if (kind === null) {
 			emit(null);

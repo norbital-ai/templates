@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { client } from '../../lib/workspace-client.js';
+	import { collectionClient } from '../../lib/collection-client.js';
 	import { getPlatformStateContext } from '@norbital-ai/bolt/client';
 	import { useI18n, type I18nApi } from '@norbital-ai/ui/i18n';
 	import type { TenantI18nKeys } from '$bolt/i18n-keys';
@@ -36,7 +37,7 @@
 	 * the controller policy.
 	 *
 	 * Who is looking is answered by what the runtime says they may open, never by looking a record up.
-	 * Do not reach for `getPlatformStateContext()().user.norbital_id` — the shell builds it from the
+	 * Do not reach for `getPlatformStateContext()().user.id` — the shell builds it from the
 	 * display name rather than an id, so any lookup keyed on it fails against a `uuid()` column for
 	 * every viewer alive, and a failed lookup here reads as "not a contractor" and shows a contractor
 	 * the controller-only integrity overlay.
@@ -94,7 +95,7 @@
 	const jobQuery = $derived(
 		record != null
 			? client.db.jobs.findMany({
-					where: { norbital_id: { eq: record.job_id } },
+					where: { id: { eq: record.job_id } },
 					limit: 1
 				})
 			: null
@@ -102,7 +103,7 @@
 	const variationsQuery = $derived(
 		record != null
 			? client.db.variation_requests.findMany({
-					where: { job_assignment_id: { eq: record.norbital_id } },
+					where: { job_assignment_id: { eq: record.id } },
 					orderBy: { requested_at: 'desc' },
 					limit: 50
 				})
@@ -111,8 +112,8 @@
 	const directEvidenceQuery = $derived(
 		record != null
 			? client.db.photo_evidence.findMany({
-					where: { job_assignment_id: { eq: record.norbital_id } },
-					orderBy: { norbital_created_at: 'desc' },
+					where: { job_assignment_id: { eq: record.id } },
+					orderBy: { created_at: 'desc' },
 					limit: 250
 				})
 			: null
@@ -128,8 +129,8 @@
 	const suspicionQuery = $derived(
 		record != null && !isContractorViewer
 			? client.db.suspicious_activity_logs.findMany({
-					where: { job_assignment_id: { eq: record.norbital_id } },
-					orderBy: { norbital_created_at: 'desc' },
+					where: { job_assignment_id: { eq: record.id } },
+					orderBy: { created_at: 'desc' },
 					limit: 100
 				})
 			: null
@@ -140,16 +141,12 @@
 	/**
 	 * Read through helpers rather than by indexing on the record's key in a prop.
 	 *
-	 * `authored-system-columns` refuses `log.norbital_id` inside a component prop, and the rule is
+	 * `authored-system-columns` refuses `log.id` inside a component prop, and the rule is
 	 * right: a surface handing the framework its own key back is telling it something it already
 	 * knows. These ask about the *log* — what is typed, and whether it is enough to submit.
 	 */
-	const draftFor = (log: { readonly norbital_id: string }): string =>
-		resolutionDraft[log.norbital_id] ?? '';
-	const canResolve = (log: { readonly norbital_id: string }): boolean =>
-		draftFor(log).trim() !== '' && resolvingId === null;
-	let resolvingId = $state<string | null>(null);
-	let resolveFailure = $state<string | null>(null);
+	const draftFor = (log: { readonly id: string }): string => resolutionDraft[log.id] ?? '';
+	const canResolve = (log: { readonly id: string }): boolean => draftFor(log).trim() !== '';
 
 	/**
 	 * Closing a log by saying what was concluded.
@@ -158,40 +155,22 @@
 	 * sentence is a log somebody dismissed, which is the state this collection exists to make
 	 * impossible. The empty draft is refused here rather than disabled-away in the markup alone, so
 	 * the rule holds whichever path reaches it.
+	 *
+	 * The effect takes the log rather than a bare key, like the helpers above: `authored-system-columns`
+	 * refuses `log.id` inside a component prop, and the id is read where it is data, in the write below.
 	 */
-	const resolveSuspicion = async (logId: string): Promise<void> => {
+	const resolveSuspicion = (log: { readonly id: string }): void => {
+		if (!canResolve(log)) return;
+		const logId = log.id;
 		const resolution = (resolutionDraft[logId] ?? '').trim();
-		if (resolution === '' || resolvingId !== null) return;
-		resolvingId = logId;
-		resolveFailure = null;
-		try {
-			/**
-			 * `update` is optional on the client, so its absence is answered rather than chained past.
-			 *
-			 * `?.` would have made a viewer who cannot write look exactly like one whose write
-			 * succeeded — the draft clears, the log stays open, and nothing says why. A workspace that
-			 * did not grant the write should say so.
-			 *
-			 * `resolved_at` is a `Date` and not an ISO string: the column is a timestamp and the client
-			 * types it as one.
-			 */
-			const write = client.db.suspicious_activity_logs.update;
-			if (write === undefined) {
-				resolveFailure = t('component.suspicion_resolve_unavailable');
-				return;
-			}
-			await write(logId, {
-				resolution,
-				resolved_at: new Date(),
-				resolved_by: platform().user.norbital_id
-			});
-			resolutionDraft = { ...resolutionDraft, [logId]: '' };
-		} catch (cause) {
-			resolveFailure =
-				cause instanceof Error ? cause.message : t('component.suspicion_resolve_failed');
-		} finally {
-			resolvingId = null;
-		}
+		const write = client.db.suspicious_activity_logs.update;
+		if (write === undefined) return;
+		void write(logId, {
+			resolution,
+			resolved_at: new Date(),
+			resolved_by: platform().user.id
+		});
+		resolutionDraft = { ...resolutionDraft, [logId]: '' };
 	};
 
 	/** Whether anything is still waiting on a controller — what the accents below turn on. */
@@ -212,7 +191,7 @@
 
 	const scopedEvidence = $derived(
 		(directEvidenceQuery?.current ?? []).filter(
-			(evidence) => record != null && evidence.job_assignment_id === record.norbital_id
+			(evidence) => record != null && evidence.job_assignment_id === record.id
 		)
 	);
 	/**
@@ -230,13 +209,13 @@
 			const file = parsed.value;
 			return [
 				{
-					id: evidence.norbital_id,
+					id: evidence.id,
 					name: file.file_name,
 					fileSize: file.file_size,
 					url: `/api/files/${encodeURIComponent(file.storage_key)}`,
-					flags: (evidence.flags ?? []).filter((flag: unknown): flag is string => flag != null),
+					flags: (evidence.flags ?? []).filter((flag) => flag != null),
 					source: evidenceSource(evidence.source),
-					capturedAt: formatSingaporeInstant(evidence.norbital_created_at, t)
+					capturedAt: formatSingaporeInstant(evidence.created_at, t)
 				}
 			];
 		})
@@ -392,50 +371,48 @@
 	{/snippet}
 
 	{#snippet statusAndActivity()}
-		<Scroll name={t('component.assignment_and_activity')}>
-			<Stack gap="md">
-				<CollectionForm
-					{client}
-					collection="job_assignments"
-					defaultValues={record}
-					{recordMetadata}
-				>
-					{#snippet children({ Field })}
-						<Stack gap="md">
-							<div>
-								<h3 id="assignment-activity-heading" class="text-sm font-semibold">
-									{t('component.assignment_and_activity')}
-								</h3>
-								<p class="text-sm text-muted-foreground">
-									{t('component.assignment_and_activity_description')}
-								</p>
-							</div>
-							<Grid minimum="panel">
-								{#if isContractorViewer && record.status === 'suspect'}
-									<Stack gap="xs">
-										<span class="text-xs font-medium text-muted-foreground">
-											{t('component.status')}
-										</span>
-										<span class="text-sm">{contractorProgressLabel()}</span>
-									</Stack>
-								{:else}
-									<Field name="status" />
-								{/if}
-								<Field name="dispatched_at" label={t('component.dispatched_at')} />
-								<Field name="completed_at" label={t('component.completed_at')} />
-								<Field name="amount_charged" label={t('component.value_charged')} />
-								<Column span="all">
-									<Field name="summary" label={t('component.completion_summary')} />
-								</Column>
-								<Column span="all"
-									><Field name="location" label={t('component.reported_location')} /></Column
-								>
-							</Grid>
-						</Stack>
-					{/snippet}
-				</CollectionForm>
-			</Stack>
-		</Scroll>
+		<Stack gap="md">
+			<CollectionForm
+				client={collectionClient}
+				collection="job_assignments"
+				defaultValues={record}
+				{recordMetadata}
+			>
+				{#snippet children({ Field })}
+					<Stack gap="md">
+						<div>
+							<h3 id="assignment-activity-heading" class="text-sm font-semibold">
+								{t('component.assignment_and_activity')}
+							</h3>
+							<p class="text-sm text-muted-foreground">
+								{t('component.assignment_and_activity_description')}
+							</p>
+						</div>
+						<Grid minimum="panel">
+							{#if isContractorViewer && record.status === 'suspect'}
+								<Stack gap="xs">
+									<span class="text-xs font-medium text-muted-foreground">
+										{t('component.status')}
+									</span>
+									<span class="text-sm">{contractorProgressLabel()}</span>
+								</Stack>
+							{:else}
+								<Field name="status" />
+							{/if}
+							<Field name="dispatched_at" label={t('component.dispatched_at')} />
+							<Field name="completed_at" label={t('component.completed_at')} />
+							<Field name="amount_charged" label={t('component.value_charged')} />
+							<Column span="all">
+								<Field name="summary" label={t('component.completion_summary')} />
+							</Column>
+							<Column span="all"
+								><Field name="location" label={t('component.reported_location')} /></Column
+							>
+						</Grid>
+					</Stack>
+				{/snippet}
+			</CollectionForm>
+		</Stack>
 	{/snippet}
 
 	{#snippet variationHistory()}
@@ -453,7 +430,7 @@
 					</span>
 				</Inline>
 				<Stack gap="sm">
-					{#each variationsQuery?.current ?? [] as variation (variation.norbital_id)}
+					{#each variationsQuery?.current ?? [] as variation (variation.id)}
 						<Stack as="section" gap="sm" class="rounded-md border border-border bg-card p-3">
 							<Inline align="start" justify="between" gap="sm">
 								<Stack gap="xs">
@@ -495,16 +472,13 @@
 				<h3 class="text-sm font-semibold">{t('component.suspicion_logs')}</h3>
 				<p class="text-tiny text-muted-foreground">{t('component.suspicion_logs_description')}</p>
 			</Stack>
-			{#if resolveFailure}
-				<p class="text-tiny text-destructive" role="alert">{resolveFailure}</p>
-			{/if}
 			{#if suspicionQuery?.loading}
 				<p class="text-tiny text-muted-foreground">{t('component.loading')}</p>
 			{:else if suspicionRows.length === 0}
 				<p class="text-tiny text-muted-foreground">{t('component.suspicion_logs_empty')}</p>
 			{:else}
 				<Stack gap="sm">
-					{#each suspicionRows as log (log.norbital_id)}
+					{#each suspicionRows as log (log.id)}
 						<Stack
 							gap="xs"
 							class={cn(
@@ -542,18 +516,16 @@
 										oninput={(event) =>
 											(resolutionDraft = {
 												...resolutionDraft,
-												[log.norbital_id]: event.currentTarget.value
+												[log.id]: event.currentTarget.value
 											})}
 									/>
 									<Inline gap="sm" align="center">
 										<Button
 											size="sm"
 											disabled={!canResolve(log)}
-											onclick={() => void resolveSuspicion(log.norbital_id)}
+											onclick={() => void resolveSuspicion(log)}
 										>
-											{resolvingId === log.norbital_id
-												? t('component.suspicion_resolving')
-												: t('component.suspicion_resolve')}
+											{t('component.suspicion_resolve')}
 										</Button>
 									</Inline>
 								</Stack>
@@ -722,7 +694,7 @@
 	/>
 {:else}
 	<CollectionForm
-		{client}
+		client={collectionClient}
 		collection="job_assignments"
 		submitLabel={t('component.create_assignment')}
 		onAfterSubmit={close}
@@ -748,7 +720,7 @@
 				<!--
 					The assignee is a person, so the picker reads the identity directory directly.
 
-					`bolt_auth_user` is granted to any authenticated subject masked to `norbital_id` and
+					`bolt_auth_user` is granted to any authenticated subject masked to `id` and
 					`name`; there is no workspace collection describing a contractor to point at, and the one
 					that used to be here carried nothing this row does not.
 				-->

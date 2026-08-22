@@ -48,7 +48,7 @@ export default {
 							candidate: effective_range,
 							existing: siblings,
 							identity: `leave type ${code}`,
-							excludeId: existing.norbital_id
+							excludeId: existing.id
 						});
 						return input;
 					})

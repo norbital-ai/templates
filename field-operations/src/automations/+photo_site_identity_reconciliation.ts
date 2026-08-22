@@ -1,9 +1,9 @@
 import { defineAutomation } from '@norbital-ai/bolt/authoring';
-import { Effect } from 'effect';
+import { Clock, Effect, Schema } from 'effect';
 import {
 	loadPhotoSiteIdentityContexts,
-	reconcilePhotoSiteIdentity,
-	type PhotoEvidenceReviewRecord
+	photoEvidenceReviewRecordSchema,
+	reconcilePhotoSiteIdentity
 } from './photo-site-identity.js';
 
 const MAX_DAILY_EVIDENCE = 5_000;
@@ -25,7 +25,7 @@ export default defineAutomation(
 		handler: (api) =>
 			Effect.gen(function* () {
 				const columns = {
-					norbital_id: true,
+					id: true,
 					job_assignment_id: true,
 					variation_request_id: true,
 					photo: true,
@@ -86,10 +86,10 @@ export default defineAutomation(
 					...unbasedTerminalEvidence,
 					...terminalEvidence
 				];
-				const contexts = yield* loadPhotoSiteIdentityContexts(
-					api,
-					evidence as PhotoEvidenceReviewRecord[]
-				);
+				const reviewRecords = yield* Schema.decodeUnknownEffect(
+					Schema.Array(photoEvidenceReviewRecordSchema)
+				)(evidence);
+				const contexts = yield* loadPhotoSiteIdentityContexts(api, reviewRecords);
 				const results = yield* Effect.forEach(
 					contexts,
 					(context) => reconcilePhotoSiteIdentity(api, context),
@@ -101,7 +101,7 @@ export default defineAutomation(
 				}, {});
 				return {
 					automation_key: 'photo_site_identity_reconciliation',
-					reconciled_at: new Date().toISOString(),
+					reconciled_at: new Date(yield* Clock.currentTimeMillis).toISOString(),
 					evidence_count: evidence.length,
 					counts
 				};

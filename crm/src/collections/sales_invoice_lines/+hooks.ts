@@ -1,71 +1,13 @@
-import { currencyFractionDigits, fromMinorUnits, toMinorUnits } from '@norbital-ai/std/finance';
 import type { CollectionHooks } from '@norbital-ai/bolt/authoring';
 import { Effect } from 'effect';
 import type { WorkspaceSchema } from '$bolt/types.js';
+import {
+	documentTotals,
+	lineAmounts,
+	requireCurrency,
+	type LineAmounts
+} from '../../lib/pricing.js';
 import type { Hooks, WorkspaceRow } from './$types.js';
-
-function roundHalfUp(value: number, digits: number): number {
-	if (!Number.isFinite(value)) {
-		throw new Error('Cannot round a value that is not a finite number.');
-	}
-	const magnitude = Math.abs(shiftExponent(value, digits));
-	const rounded = Math.round(magnitude);
-	return shiftExponent(value < 0 ? -rounded : rounded, -digits);
-}
-
-function shiftExponent(value: number, places: number): number {
-	if (value === 0) return 0;
-	const [mantissa, exponent] = value.toExponential().split('e');
-	return Number(`${mantissa}e${Number(exponent) + places}`);
-}
-
-interface LinePricing {
-	readonly quantity: number;
-	readonly unit_price: number;
-	readonly discount_pct?: number | null;
-	readonly tax_rate?: number | null;
-	readonly tax_inclusive: boolean;
-	readonly currency: string;
-}
-
-interface LineAmounts {
-	readonly net: number;
-	readonly tax: number;
-	readonly gross: number;
-}
-
-function lineAmounts(line: LinePricing): LineAmounts {
-	const digits = currencyFractionDigits(line.currency);
-	const discount = line.discount_pct ?? 0;
-	const rate = (line.tax_rate ?? 0) / 100;
-	const base = line.quantity * line.unit_price * (1 - discount / 100);
-
-	if (line.tax_inclusive) {
-		const gross = roundHalfUp(base, digits);
-		const net = roundHalfUp(gross / (1 + rate), digits);
-		return { net, tax: roundHalfUp(gross - net, digits), gross };
-	}
-
-	const net = roundHalfUp(base, digits);
-	const tax = roundHalfUp(net * rate, digits);
-	return { net, tax, gross: roundHalfUp(net + tax, digits) };
-}
-
-function documentTotals(lines: readonly LineAmounts[], currency: string): LineAmounts {
-	let net = 0n;
-	let tax = 0n;
-	let gross = 0n;
-	for (const line of lines) {
-		net += toMinorUnits(line.net, currency);
-		tax += toMinorUnits(line.tax, currency);
-		gross += toMinorUnits(line.gross, currency);
-	}
-	return {
-		net: fromMinorUnits(net, currency),
-		tax: fromMinorUnits(tax, currency),
-		gross: fromMinorUnits(gross, currency)
-	};
-}
 
 type AfterApi = Parameters<
 	NonNullable<NonNullable<NonNullable<Hooks['create']>['perRecord']>['after']>['handler']
@@ -97,16 +39,10 @@ type SalesInvoiceLineHooks = CollectionHooks<
 	SalesInvoiceLineBatch
 >;
 
-function requireCurrency(currency: string | null): string {
-	if (!currency) throw new Error('Document currency is required.');
-	return currency;
-}
-
-interface ResolvedLineInput {
-	readonly quantity: number;
-	readonly unit_price: number;
-	readonly tax_rate?: number | null;
-}
+/** The pricing inputs a line under validation contributes, from the row's own fields. */
+type ResolvedLineInput = Partial<
+	Pick<WorkspaceRow<'sales_invoice_lines'>, 'quantity' | 'unit_price' | 'tax_rate'>
+>;
 
 function validateLineFields(input: ResolvedLineInput): void {
 	const quantity = Number(input.quantity);
@@ -125,17 +61,16 @@ function validateLineFields(input: ResolvedLineInput): void {
 
 /** Allocated quantity on live (non-cancelled) invoices for one quote line. */
 function liveAllocatedQuantity(api: BeforeApi, quoteLineId: string): Effect.Effect<number> {
-	return Effect.gen(function* () {
-		const lines = yield* api.db.query.sales_invoice_lines.findMany({
+	return api.db.query.sales_invoice_lines
+		.findMany({
 			where: {
 				quote_line_id: { eq: quoteLineId },
 				sales_invoice_line_invoice: { status: { ne: 'cancelled' } }
 			},
 			columns: { sales_invoice_id: true, quantity: true },
 			limit: LINE_LIMIT
-		});
-		return lines.reduce((sum, line) => sum + Number(line.quantity ?? 0), 0);
-	});
+		})
+		.pipe(Effect.map((lines) => lines.reduce((sum, line) => sum + Number(line.quantity ?? 0), 0)));
 }
 
 function computeLineAmounts(
@@ -143,9 +78,9 @@ function computeLineAmounts(
 	line: ResolvedLineInput
 ): LineAmounts {
 	return lineAmounts({
-		quantity: line.quantity,
-		unit_price: line.unit_price,
-		tax_rate: line.tax_rate ?? 0,
+		quantity: Number(line.quantity ?? 0),
+		unit_price: Number(line.unit_price ?? 0),
+		tax_rate: Number(line.tax_rate ?? 0),
 		tax_inclusive: invoice.tax_inclusive,
 		currency: requireCurrency(invoice.currency)
 	});
@@ -154,7 +89,7 @@ function computeLineAmounts(
 function rollupInvoice(api: AfterApi, invoiceId: string): Effect.Effect<void> {
 	return Effect.gen(function* () {
 		const invoice = yield* api.db.query.sales_invoices.findFirst({
-			where: { norbital_id: { eq: invoiceId } }
+			where: { id: { eq: invoiceId } }
 		});
 		if (!invoice) return;
 
@@ -174,7 +109,7 @@ function rollupInvoice(api: AfterApi, invoiceId: string): Effect.Effect<void> {
 		);
 
 		yield* api.db.sales_invoices.mutate([
-			{ norbital_id: invoiceId, net: totals.net, tax: totals.tax, gross: totals.gross }
+			{ id: invoiceId, net: totals.net, tax: totals.tax, gross: totals.gross }
 		]);
 	});
 }
@@ -185,10 +120,7 @@ const afterRollup = ({
 }: {
 	readonly record: { readonly sales_invoice_id: string };
 	readonly api: AfterApi;
-}) =>
-	Effect.gen(function* () {
-		yield* rollupInvoice(api, record.sales_invoice_id);
-	});
+}) => rollupInvoice(api, record.sales_invoice_id);
 
 export default {
 	create: {
@@ -204,13 +136,13 @@ export default {
 				];
 				const invoices = invoiceIds.length
 					? yield* api.db.query.sales_invoices.findMany({
-							where: { norbital_id: { in: invoiceIds } },
+							where: { id: { in: invoiceIds } },
 							limit: LINE_LIMIT
 						})
 					: [];
 				const quoteLines = quoteLineIds.length
 					? yield* api.db.query.quote_lines.findMany({
-							where: { norbital_id: { in: quoteLineIds } },
+							where: { id: { in: quoteLineIds } },
 							limit: LINE_LIMIT
 						})
 					: [];
@@ -234,8 +166,8 @@ export default {
 					);
 				}
 				return {
-					invoices: new Map(invoices.map((invoice) => [invoice.norbital_id, invoice])),
-					quoteLines: new Map(quoteLines.map((quoteLine) => [quoteLine.norbital_id, quoteLine])),
+					invoices: new Map(invoices.map((invoice) => [invoice.id, invoice])),
+					quoteLines: new Map(quoteLines.map((quoteLine) => [quoteLine.id, quoteLine])),
 					allocatedByQuoteLine
 				};
 			}),
@@ -273,7 +205,7 @@ export default {
 					};
 					validateLineFields(resolved);
 
-					const allocated = prepared.allocatedByQuoteLine.get(quoteLine.norbital_id) ?? 0;
+					const allocated = prepared.allocatedByQuoteLine.get(quoteLine.id) ?? 0;
 					const quoted = Number(quoteLine.quantity ?? 0);
 					if (allocated + Number(resolved.quantity) > quoted) {
 						throw new Error(
@@ -303,30 +235,37 @@ export default {
 							input.sales_invoice_id != null &&
 							input.sales_invoice_id !== existing.sales_invoice_id
 						) {
-							throw new Error('A line cannot be moved to a different sales invoice.');
+							return yield* Effect.fail(
+								new Error('A line cannot be moved to a different sales invoice.')
+							);
 						}
 
 						const invoice = yield* api.db.query.sales_invoices.findFirst({
-							where: { norbital_id: { eq: existing.sales_invoice_id } }
+							where: { id: { eq: existing.sales_invoice_id } }
 						});
-						if (!invoice) throw new Error('Referenced sales invoice does not exist.');
+						if (!invoice)
+							return yield* Effect.fail(new Error('Referenced sales invoice does not exist.'));
 						if (invoice.status !== 'draft') {
-							throw new Error('Lines can only be modified on draft sales invoices.');
+							return yield* Effect.fail(
+								new Error('Lines can only be modified on draft sales invoices.')
+							);
 						}
 
 						const resolved = { ...existing, ...input };
 						validateLineFields(resolved);
 
 						const quoteLine = yield* api.db.query.quote_lines.findFirst({
-							where: { norbital_id: { eq: existing.quote_line_id } }
+							where: { id: { eq: existing.quote_line_id } }
 						});
 						if (quoteLine) {
-							const allocated = yield* liveAllocatedQuantity(api, quoteLine.norbital_id);
+							const allocated = yield* liveAllocatedQuantity(api, quoteLine.id);
 							const quoted = Number(quoteLine.quantity ?? 0);
 							const own = Number(existing.quantity ?? 0);
 							if (allocated - own + Number(resolved.quantity) > quoted) {
-								throw new Error(
-									`Over-allocation: this line would push billed quantity past the quoted ${quoted}.`
+								return yield* Effect.fail(
+									new Error(
+										`Over-allocation: this line would push billed quantity past the quoted ${quoted}.`
+									)
 								);
 							}
 						}

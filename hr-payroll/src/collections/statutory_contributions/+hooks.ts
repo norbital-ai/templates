@@ -48,7 +48,7 @@ export default {
 							candidate: effective_range,
 							existing: siblings,
 							identity: `statutory contribution ${code} in this jurisdiction`,
-							excludeId: existing.norbital_id
+							excludeId: existing.id
 						});
 						return input;
 					})

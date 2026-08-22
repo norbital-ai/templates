@@ -6,6 +6,7 @@
 
 import ExcelJSBrowser from 'exceljs/dist/exceljs.bare.min.js';
 import type ExcelJS from 'exceljs';
+import { Effect, Number as EffectNumber, Schema } from 'effect';
 import {
 	VENDOR_WORKBOOK_COLUMNS,
 	VENDOR_WORKBOOK_SECTIONS,
@@ -122,6 +123,136 @@ export type WorkbookSheet = {
  * The payroll workbook: one worksheet per period, an identity block, then one column per output id
  * in the order the customer's own workbook reads — earnings and absence, gross, what is paid or
  * recovered after gross, net, the statutory charges, the totals and their bases, attendance.
+ */
+/**
+ * The one vendor-shaped sheet: the salary listing with its own masthead rows, section band and freeze.
+ *
+ * This layout is the customer's own workbook, kept as its own entry so the generic matrix below
+ * stays a single-layout function — the band places the header row differently and the identity
+ * block is eight columns wide.
+ */
+function vendorSalaryListingSheet(
+	workbook: ExcelJS.Workbook,
+	sheet: WorkbookSheet,
+	rows: readonly Record<string, string | number | null>[]
+): void {
+	const identityColumnCount = 8;
+	const cleanName = `${sheet.period} Salary Listing`.slice(0, 31);
+	const clean = workbook.addWorksheet(cleanName, {
+		views: [{ state: 'frozen', xSplit: identityColumnCount, ySplit: 5 }],
+		pageSetup: { orientation: 'landscape', fitToPage: true, fitToWidth: 1, fitToHeight: 0 }
+	});
+	clean.properties.defaultRowHeight = 20;
+	clean.columns = VENDOR_WORKBOOK_COLUMNS.map((outputId) => ({
+		key: outputId,
+		width: EffectNumber.clamp({ minimum: 12, maximum: 24 })(humanHeader(outputId).length + 2)
+	}));
+	clean.mergeCells(1, 1, 1, VENDOR_WORKBOOK_COLUMNS.length);
+	clean.getCell(1, 1).value = 'SALARY LISTING';
+	clean.getCell(1, 1).font = { bold: true, size: 16, color: { argb: 'FFFFFFFF' } };
+	clean.getCell(1, 1).fill = fill(INFOTECH_NAVY);
+	clean.getCell(1, 1).alignment = { horizontal: 'center', vertical: 'middle' };
+	clean.getRow(1).height = 28;
+	clean.mergeCells(2, 1, 2, VENDOR_WORKBOOK_COLUMNS.length);
+	clean.getCell(2, 1).value =
+		`Salary month: ${sheet.period}${sheet.payDate ? `   ·   Pay date: ${sheet.payDate}` : ''}`;
+	clean.getCell(2, 1).font = { bold: true, color: { argb: INFOTECH_NAVY } };
+	clean.getCell(2, 1).alignment = { horizontal: 'center' };
+
+	let cleanColumn = 1;
+	for (const group of VENDOR_WORKBOOK_SECTIONS) {
+		const from = cleanColumn;
+		const to = from + group.outputIds.length - 1;
+		clean.getCell(4, from).value = group.name;
+		if (from < to) clean.mergeCells(4, from, 4, to);
+		for (let position = from; position <= to; position += 1) {
+			const cell = clean.getCell(4, position);
+			cell.fill = fill(INFOTECH_LIGHT_BLUE);
+			cell.font = { bold: true, color: { argb: INFOTECH_NAVY } };
+			cell.alignment = { horizontal: 'center', vertical: 'middle' };
+			cell.border = { top: THIN_BORDER, bottom: THIN_BORDER, right: THIN_BORDER };
+		}
+		cleanColumn = to + 1;
+	}
+	for (const [index, outputId] of VENDOR_WORKBOOK_COLUMNS.entries()) {
+		const cell = clean.getCell(5, index + 1);
+		cell.value = humanHeader(outputId);
+		cell.fill = fill(INFOTECH_NAVY);
+		cell.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+		cell.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
+		cell.border = { top: THIN_BORDER, bottom: THIN_BORDER, right: THIN_BORDER };
+	}
+	clean.getRow(5).height = 34;
+	for (const row of rows) clean.addRow(row);
+	const firstDataRow = 6;
+	const lastDataRow = firstDataRow + rows.length - 1;
+	if (rows.length > 0) {
+		const total = clean.addRow({ eid: 'TOTAL' });
+		total.font = { bold: true, color: { argb: INFOTECH_NAVY } };
+		total.fill = fill(INFOTECH_LIGHT_BLUE);
+		for (let position = identityColumnCount + 1; position <= clean.columnCount; position += 1) {
+			const outputId = VENDOR_WORKBOOK_COLUMNS[position - 1]!;
+			if (outputId === 'remark' || outputId === 'att_shift_codes') continue;
+			total.getCell(position).value = {
+				formula: `SUM(${clean.getColumn(position).letter}${firstDataRow}:${clean.getColumn(position).letter}${lastDataRow})`
+			};
+		}
+	}
+	for (let rowNumber = firstDataRow; rowNumber <= clean.rowCount; rowNumber += 1) {
+		const dataRow = clean.getRow(rowNumber);
+		for (let position = 1; position <= clean.columnCount; position += 1) {
+			const cell = dataRow.getCell(position);
+			cell.border = { bottom: THIN_BORDER, right: THIN_BORDER };
+			if (position > identityColumnCount && typeof cell.value !== 'string')
+				cell.numFmt = NUMERIC_FORMAT;
+		}
+	}
+	clean.autoFilter = { from: { row: 5, column: 1 }, to: { row: 5, column: clean.columnCount } };
+}
+
+/** Paint one section's columns: numeric format where it is not the identity block, its colour, alignment and group level. */
+function styleSectionGroup(
+	worksheet: ExcelJS.Worksheet,
+	groupName: string,
+	from: number,
+	to: number,
+	grouped: number
+): void {
+	for (let position = from; position <= to; position += 1) {
+		const target = worksheet.getColumn(position);
+		if (groupName !== IDENTITY_SECTION_NAME) target.numFmt = NUMERIC_FORMAT;
+		target.fill = fill(SECTION_COLOURS[groupName] ?? SECTION_COLOURS.Other!);
+		target.alignment = { horizontal: groupName === IDENTITY_SECTION_NAME ? 'left' : 'right' };
+		if (groupName !== IDENTITY_SECTION_NAME && position <= grouped) target.outlineLevel = 1;
+	}
+}
+
+/** Paint one section-band row: the merged section label, its colour and its borders. */
+function styleSectionBand(
+	worksheet: ExcelJS.Worksheet,
+	bands: readonly { readonly section: string; readonly from: number; readonly to: number }[]
+): void {
+	const band = worksheet.getRow(SECTION_BAND_ROW);
+	for (const { section, from, to } of bands) {
+		// Column A carries the employee number; leaving it blank is what marks this row as not a
+		// payslip, so the identity band starts one column in.
+		const start = from === 1 ? 2 : from;
+		if (start > to) continue;
+		band.getCell(start).value = section;
+		for (let index = start; index <= to; index += 1) {
+			const banded = band.getCell(index);
+			banded.fill = fill(SECTION_COLOURS[section] ?? SECTION_COLOURS.Other!);
+			banded.border = { top: THIN_BORDER, bottom: THIN_BORDER, right: THIN_BORDER };
+			banded.font = { bold: true, color: { argb: 'FF3B3A31' } };
+			banded.alignment = { horizontal: 'center', vertical: 'middle' };
+		}
+		if (start < to) worksheet.mergeCells(SECTION_BAND_ROW, start, SECTION_BAND_ROW, to);
+	}
+	band.height = 20;
+}
+
+/**
+ * The workbook for one export: one matrix worksheet per period, plus the vendor listing where it applies.
  *
  * ────────────────────────────────────────────────────────────────────────────────────────────────
  * WHY THE SECTION BAND SITS **BELOW** THE HEADER ROW.
@@ -138,215 +269,162 @@ export type WorkbookSheet = {
  * how the band says "I am not a payslip".
  * ────────────────────────────────────────────────────────────────────────────────────────────────
  */
-export async function payrollReportXlsx(sheets: readonly WorkbookSheet[]): Promise<number[]> {
+function buildPayrollWorkbook(sheets: readonly WorkbookSheet[]): ExcelJS.Workbook {
 	const workbook = new ExcelJSBrowser.Workbook();
 	workbook.creator = 'Norbital';
 	workbook.subject = 'Payroll calculation report';
 
 	for (const sheet of sheets) {
-		const usesVendorWorkbookLayout = sheet.payslips.every((payslip) => payslip.currency === 'MYR');
-		// Squared off across the sheet: a scheme this population runs but did not charge one person
-		// must read as an explicit zero on that person's row, not as an unwritten cell.
-		const genericRows = usesVendorWorkbookLayout ? [] : workbookRows(sheet.payslips);
-		const rows = usesVendorWorkbookLayout
-			? sheet.payslips.map((payslip) => vendorWorkbookRow(payslip))
-			: genericRows;
-		const groups = usesVendorWorkbookLayout ? VENDOR_WORKBOOK_SECTIONS : outputGroups(genericRows);
-		const identityColumnCount = usesVendorWorkbookLayout ? 8 : IDENTITY_COLUMNS.length;
-		if (usesVendorWorkbookLayout) {
-			const cleanName = `${sheet.period} Salary Listing`.slice(0, 31);
-			const clean = workbook.addWorksheet(cleanName, {
-				views: [{ state: 'frozen', xSplit: identityColumnCount, ySplit: 5 }],
-				pageSetup: { orientation: 'landscape', fitToPage: true, fitToWidth: 1, fitToHeight: 0 }
-			});
-			clean.properties.defaultRowHeight = 20;
-			clean.columns = VENDOR_WORKBOOK_COLUMNS.map((outputId) => ({
-				key: outputId,
-				width: Math.min(24, Math.max(12, humanHeader(outputId).length + 2))
-			}));
-			clean.mergeCells(1, 1, 1, VENDOR_WORKBOOK_COLUMNS.length);
-			clean.getCell(1, 1).value = 'SALARY LISTING';
-			clean.getCell(1, 1).font = { bold: true, size: 16, color: { argb: 'FFFFFFFF' } };
-			clean.getCell(1, 1).fill = fill(INFOTECH_NAVY);
-			clean.getCell(1, 1).alignment = { horizontal: 'center', vertical: 'middle' };
-			clean.getRow(1).height = 28;
-			clean.mergeCells(2, 1, 2, VENDOR_WORKBOOK_COLUMNS.length);
-			clean.getCell(2, 1).value =
-				`Salary month: ${sheet.period}${sheet.payDate ? `   ·   Pay date: ${sheet.payDate}` : ''}`;
-			clean.getCell(2, 1).font = { bold: true, color: { argb: INFOTECH_NAVY } };
-			clean.getCell(2, 1).alignment = { horizontal: 'center' };
-
-			let cleanColumn = 1;
-			for (const group of VENDOR_WORKBOOK_SECTIONS) {
-				const from = cleanColumn;
-				const to = from + group.outputIds.length - 1;
-				clean.getCell(4, from).value = group.name;
-				if (from < to) clean.mergeCells(4, from, 4, to);
-				for (let position = from; position <= to; position += 1) {
-					const cell = clean.getCell(4, position);
-					cell.fill = fill(INFOTECH_LIGHT_BLUE);
-					cell.font = { bold: true, color: { argb: INFOTECH_NAVY } };
-					cell.alignment = { horizontal: 'center', vertical: 'middle' };
-					cell.border = { top: THIN_BORDER, bottom: THIN_BORDER, right: THIN_BORDER };
-				}
-				cleanColumn = to + 1;
-			}
-			for (const [index, outputId] of VENDOR_WORKBOOK_COLUMNS.entries()) {
-				const cell = clean.getCell(5, index + 1);
-				cell.value = humanHeader(outputId);
-				cell.fill = fill(INFOTECH_NAVY);
-				cell.font = { bold: true, color: { argb: 'FFFFFFFF' } };
-				cell.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
-				cell.border = { top: THIN_BORDER, bottom: THIN_BORDER, right: THIN_BORDER };
-			}
-			clean.getRow(5).height = 34;
-			for (const row of rows) clean.addRow(row);
-			const firstDataRow = 6;
-			const lastDataRow = firstDataRow + rows.length - 1;
-			if (rows.length > 0) {
-				const total = clean.addRow({ eid: 'TOTAL' });
-				total.font = { bold: true, color: { argb: INFOTECH_NAVY } };
-				total.fill = fill(INFOTECH_LIGHT_BLUE);
-				for (let position = identityColumnCount + 1; position <= clean.columnCount; position += 1) {
-					const outputId = VENDOR_WORKBOOK_COLUMNS[position - 1]!;
-					if (outputId === 'remark' || outputId === 'att_shift_codes') continue;
-					total.getCell(position).value = {
-						formula: `SUM(${clean.getColumn(position).letter}${firstDataRow}:${clean.getColumn(position).letter}${lastDataRow})`
-					};
-				}
-			}
-			for (let rowNumber = firstDataRow; rowNumber <= clean.rowCount; rowNumber += 1) {
-				const dataRow = clean.getRow(rowNumber);
-				for (let position = 1; position <= clean.columnCount; position += 1) {
-					const cell = dataRow.getCell(position);
-					cell.border = { bottom: THIN_BORDER, right: THIN_BORDER };
-					if (position > identityColumnCount && typeof cell.value !== 'string')
-						cell.numFmt = NUMERIC_FORMAT;
-				}
-			}
-			clean.autoFilter = { from: { row: 5, column: 1 }, to: { row: 5, column: clean.columnCount } };
-		}
-		const worksheet = workbook.addWorksheet(sheet.period, {
-			// The identity block and the two masthead rows stay put when the reader scrolls into the
-			// statutory columns: a number no one can put a name to is worthless.
-			views: [{ state: 'frozen', xSplit: identityColumnCount, ySplit: SECTION_BAND_ROW }]
-		});
-		if (usesVendorWorkbookLayout) worksheet.state = 'veryHidden';
-		worksheet.properties.defaultRowHeight = 20;
-		// A collapsed column group summarises into the column on its right — which is what makes
-		// collapsing Earnings leave Gross showing, and collapsing the post-gross block leave Net.
-		worksheet.properties.outlineProperties = { summaryBelow: false, summaryRight: true };
-		worksheet.columns = usesVendorWorkbookLayout
-			? VENDOR_WORKBOOK_COLUMNS.map((outputId) => ({
-					header: outputId,
-					key: outputId,
-					width: Math.min(28, Math.max(13, outputId.length + 3))
-				}))
-			: [
-					...IDENTITY_COLUMNS,
-					...groups.flatMap((group) =>
-						group.outputIds.map((outputId) => ({
-							header: outputId,
-							key: outputId,
-							width: Math.min(28, Math.max(13, outputId.length + 3))
-						}))
-					)
-				];
-
-		// Column styling first: exceljs pushes a column style onto the cells that exist, so the
-		// masthead rows are styled after this, and the data rows inherit it as they are added.
-		let column = usesVendorWorkbookLayout ? 1 : IDENTITY_COLUMNS.length + 1;
-		const bands: { readonly section: string; readonly from: number; readonly to: number }[] =
-			usesVendorWorkbookLayout
-				? []
-				: [{ section: IDENTITY_SECTION_NAME, from: 1, to: IDENTITY_COLUMNS.length }];
-		for (const [index, group] of groups.entries()) {
-			const from = column;
-			const to = column + group.outputIds.length - 1;
-			// Excel ends a column group at the first column left outside it, and shows that column as
-			// the group's summary. A one-column section — Gross, Net — is exactly that summary, so it
-			// stays outside every group and the band to its left collapses into it. A section that is
-			// not followed by such a summary keeps its own last column out of the group instead, or
-			// it would run into the next section and the two would collapse as one.
-			const next = groups[index + 1];
-			const grouped =
-				group.outputIds.length === 1
-					? from - 1
-					: next == null || next.outputIds.length > 1
-						? to - 1
-						: to;
-			for (let position = from; position <= to; position += 1) {
-				const target = worksheet.getColumn(position);
-				if (group.name !== IDENTITY_SECTION_NAME) target.numFmt = NUMERIC_FORMAT;
-				target.fill = fill(SECTION_COLOURS[group.name] ?? SECTION_COLOURS.Other!);
-				target.alignment = {
-					horizontal: group.name === IDENTITY_SECTION_NAME ? 'left' : 'right'
-				};
-				if (group.name !== IDENTITY_SECTION_NAME && position <= grouped) target.outlineLevel = 1;
-			}
-			bands.push({ section: group.name, from, to });
-			column = to + 1;
-		}
-
-		const band = worksheet.getRow(SECTION_BAND_ROW);
-		for (const { section, from, to } of bands) {
-			// Column A carries the employee number; leaving it blank is what marks this row as not a
-			// payslip, so the identity band starts one column in.
-			const start = from === 1 ? 2 : from;
-			if (start > to) continue;
-			band.getCell(start).value = section;
-			for (let index = start; index <= to; index += 1) {
-				const banded = band.getCell(index);
-				banded.fill = fill(SECTION_COLOURS[section] ?? SECTION_COLOURS.Other!);
-				banded.border = { top: THIN_BORDER, bottom: THIN_BORDER, right: THIN_BORDER };
-				banded.font = { bold: true, color: { argb: 'FF3B3A31' } };
-				banded.alignment = { horizontal: 'center', vertical: 'middle' };
-			}
-			if (start < to) worksheet.mergeCells(SECTION_BAND_ROW, start, SECTION_BAND_ROW, to);
-		}
-		band.height = 20;
-
-		for (const [index, payslip] of sheet.payslips.entries())
-			worksheet.addRow(
-				usesVendorWorkbookLayout
-					? rows[index]
-					: {
-							employee_number: payslip.employeeNumber,
-							employment_id: payslip.employmentId,
-							currency: payslip.currency,
-							...rows[index]
-						}
-			);
-
-		const header = worksheet.getRow(HEADER_ROW);
-		header.font = { bold: true, color: { argb: 'FFF7F7F4' } };
-		header.fill = fill('FF26251E');
-		header.alignment = { vertical: 'middle', horizontal: 'left', wrapText: false };
-		header.height = 22;
-		worksheet.autoFilter = { from: 'A1', to: { row: 1, column: worksheet.columnCount } };
+		if (sheet.payslips.every((payslip) => payslip.currency === 'MYR'))
+			addVendorSheet(workbook, sheet);
+		else addMatrixSheet(workbook, sheet);
 	}
 
-	const bytes = await workbook.xlsx.writeBuffer();
-	return [...new Uint8Array(bytes)];
+	return workbook;
+}
+
+/**
+ * One period's matrix worksheet: an identity block, one column per output id in the order the
+ * customer's own workbook reads, and two frozen masthead rows (headers, then the section band).
+ */
+function addPeriodSheet(
+	workbook: ExcelJS.Workbook,
+	sheet: WorkbookSheet,
+	rows: readonly Record<string, string | number | null>[],
+	groups: readonly { readonly name: string; readonly outputIds: readonly string[] }[],
+	vendor: boolean,
+	identityColumnCount: number
+): void {
+	const worksheet = workbook.addWorksheet(sheet.period, {
+		// The identity block and the two masthead rows stay put when the reader scrolls into the
+		// statutory columns: a number no one can put a name to is worthless.
+		views: [{ state: 'frozen', xSplit: identityColumnCount, ySplit: SECTION_BAND_ROW }]
+	});
+	if (vendor) worksheet.state = 'veryHidden';
+	worksheet.properties.defaultRowHeight = 20;
+	// A collapsed column group summarises into the column on its right — which is what makes
+	// collapsing Earnings leave Gross showing, and collapsing the post-gross block leave Net.
+	worksheet.properties.outlineProperties = { summaryBelow: false, summaryRight: true };
+	worksheet.columns = vendor
+		? VENDOR_WORKBOOK_COLUMNS.map((outputId) => ({
+				header: outputId,
+				key: outputId,
+				width: EffectNumber.clamp({ minimum: 13, maximum: 28 })(outputId.length + 3)
+			}))
+		: [
+				...IDENTITY_COLUMNS,
+				...groups.flatMap((group) =>
+					group.outputIds.map((outputId) => ({
+						header: outputId,
+						key: outputId,
+						width: EffectNumber.clamp({ minimum: 13, maximum: 28 })(outputId.length + 3)
+					}))
+				)
+			];
+
+	// Column styling first: exceljs pushes a column style onto the cells that exist, so the
+	// masthead rows are styled after this, and the data rows inherit it as they are added.
+	let column = vendor ? 1 : IDENTITY_COLUMNS.length + 1;
+	const bands: { readonly section: string; readonly from: number; readonly to: number }[] = vendor
+		? []
+		: [{ section: IDENTITY_SECTION_NAME, from: 1, to: IDENTITY_COLUMNS.length }];
+	for (const [index, group] of groups.entries()) {
+		const from = column;
+		const to = column + group.outputIds.length - 1;
+		// Excel ends a column group at the first column left outside it, and shows that column as
+		// the group's summary. A one-column section — Gross, Net — is exactly that summary, so it
+		// stays outside every group and the band to its left collapses into it. A section that is
+		// not followed by such a summary keeps its own last column out of the group instead, or
+		// it would run into the next section and the two would collapse as one.
+		const next = groups[index + 1];
+		const grouped =
+			group.outputIds.length === 1
+				? from - 1
+				: next == null || next.outputIds.length > 1
+					? to - 1
+					: to;
+		styleSectionGroup(worksheet, group.name, from, to, grouped);
+		bands.push({ section: group.name, from, to });
+		column = to + 1;
+	}
+
+	styleSectionBand(worksheet, bands);
+
+	for (const [index, payslip] of sheet.payslips.entries())
+		worksheet.addRow(
+			vendor
+				? rows[index]
+				: {
+						employee_number: payslip.employeeNumber,
+						employment_id: payslip.employmentId,
+						currency: payslip.currency,
+						...rows[index]
+					}
+		);
+
+	const header = worksheet.getRow(HEADER_ROW);
+	header.font = { bold: true, color: { argb: 'FFF7F7F4' } };
+	header.fill = fill('FF26251E');
+	header.alignment = { vertical: 'middle', horizontal: 'left', wrapText: false };
+	header.height = 22;
+	worksheet.autoFilter = { from: 'A1', to: { row: 1, column: worksheet.columnCount } };
+}
+
+/** The customer's own workbook on a period: visible vendor listing plus the hidden matrix behind it. */
+function addVendorSheet(workbook: ExcelJS.Workbook, sheet: WorkbookSheet): void {
+	const rows = sheet.payslips.map((payslip) => vendorWorkbookRow(payslip));
+	vendorSalaryListingSheet(workbook, sheet, rows);
+	addPeriodSheet(workbook, sheet, rows, VENDOR_WORKBOOK_SECTIONS, true, 8);
+}
+
+/**
+ * The generic one-sheet-per-period export for a jurisdiction with no workbook of its own.
+ *
+ * Squared off across the sheet: a scheme this population runs but did not charge one person must
+ * read as an explicit zero on that person's row, not as an unwritten cell.
+ */
+function addMatrixSheet(workbook: ExcelJS.Workbook, sheet: WorkbookSheet): void {
+	const rows = workbookRows(sheet.payslips);
+	addPeriodSheet(workbook, sheet, rows, outputGroups(rows), false, IDENTITY_COLUMNS.length);
+}
+
+/**
+ * The payroll workbook, as the bytes a download expects.
+ *
+ * The workbook is built by the imperative library — exceljs — and Effect wraps the two things that
+ * actually fail: the build and the serialization. The only promise in the module is this adapter's.
+ */
+export function payrollReportXlsx(
+	sheets: readonly WorkbookSheet[]
+): Effect.Effect<readonly number[], unknown, never> {
+	return Effect.try({
+		try: () => buildPayrollWorkbook(sheets),
+		catch: (error) => error
+	}).pipe(
+		Effect.flatMap((workbook) => Effect.tryPromise(() => workbook.xlsx.writeBuffer())),
+		Effect.map((bytes) => [...new Uint8Array(bytes)])
+	);
 }
 
 function fill(argb: string): ExcelJS.FillPattern {
 	return { type: 'pattern', pattern: 'solid', fgColor: { argb } };
 }
 
-export type BankPayment = {
-	readonly payrollRunId: string;
-	readonly paymentDate: string;
-	readonly employeeNumber: string;
-	readonly currency: string;
-	readonly net: number;
-	readonly bank: {
-		readonly account_name: string;
-		readonly bank_code: string;
-		readonly bank_name: string;
-		readonly account_number: string;
-	};
-};
+const BankAccountSchema = Schema.Struct({
+	account_name: Schema.String,
+	bank_code: Schema.String,
+	bank_name: Schema.String,
+	account_number: Schema.String
+});
+const BankPaymentSchema = Schema.Struct({
+	payrollRunId: Schema.String,
+	paymentDate: Schema.String,
+	employeeNumber: Schema.String,
+	currency: Schema.String,
+	net: Schema.Number,
+	bank: BankAccountSchema
+});
+export type BankPayment = Schema.Schema.Type<typeof BankPaymentSchema>;
 
 /** The bank file: one payment row per payslip that has a destination. */
 export function bankFileRows(payments: readonly BankPayment[]): (string | number)[][] {

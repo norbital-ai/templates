@@ -1,4 +1,4 @@
-import { Effect } from 'effect';
+import { Clock, Effect } from 'effect';
 import { defineAutomation } from '@norbital-ai/bolt/authoring';
 
 export default defineAutomation(
@@ -22,9 +22,10 @@ export default defineAutomation(
 					orderBy: { due_date: 'asc' },
 					limit: 25
 				});
+				const generatedAt = yield* Clock.currentTimeMillis;
 				return {
 					automation_key: 'rfi_followup_watch',
-					generated_at: new Date().toISOString(),
+					generated_at: new Date(generatedAt).toISOString(),
 					summary: { rfi_count: rfis.length },
 					exports: [
 						{

@@ -18,7 +18,7 @@ import {
 } from './lib/validate.ts';
 
 const DAY_WAGE_RULE = {
-	norbital_id: 'rule-rest-day-wage',
+	id: 'rule-rest-day-wage',
 	authority: 'EA 1955 s.60(3)',
 	day_type: 'REST_DAY',
 	band: { measure: 'FROM_START_OF_DAY', from_fraction: 0.5, to_fraction: null },
@@ -28,12 +28,12 @@ const DAY_WAGE_RULE = {
 /** Enough of a configuration for the overtime-completeness pass, and nothing that would add noise. */
 const configuration = (overrides = {}) => ({
 	jurisdiction: {
-		norbital_id: 'jur-my',
+		id: 'jur-my',
 		code: 'MY',
 		proration: { by: 'CALENDAR_DAYS' }
 	},
 	company: {
-		norbital_id: 'co-my',
+		id: 'co-my',
 		name: 'Nihon (MY)',
 		pay_cutoff_day: 21,
 		pay_day: 28,
@@ -79,7 +79,7 @@ test('a scheme that has not said what it does with overtime cannot charge it', (
 	 * the dangerous outcome — an under-contribution nobody notices — so the run refuses instead.
 	 */
 	const scheme = (overrides) => ({
-		row: { norbital_id: 'sc-epf', code: 'EPF', sequence: 100, relief_for: [], special_rules: [] },
+		row: { id: 'sc-epf', code: 'EPF', sequence: 100, relief_for: [], special_rules: [] },
 		rates: [],
 		overtimeTreatment: undefined,
 		overtimeExcessTreatment: undefined,
@@ -114,7 +114,7 @@ test('a scheme that has not said what it does with overtime cannot charge it', (
 
 test('an exceeded overtime ceiling honors on_exceed: WARN is advisory, BLOCK refuses', () => {
 	const limit = (on_exceed) => ({
-		norbital_id: `limit-${on_exceed}`,
+		id: `limit-${on_exceed}`,
 		period: 'MONTH',
 		measures: 'OVERTIME_HOURS',
 		max_hours: 104,
@@ -153,7 +153,7 @@ test('a total-hours ceiling is not compared against overtime hours', () => {
 			configuration: configuration({
 				overtimeLimits: [
 					{
-						norbital_id: 'limit-total',
+						id: 'limit-total',
 						period: 'MONTH',
 						measures: 'TOTAL_WORK_HOURS',
 						max_hours: 104,
@@ -176,7 +176,7 @@ test('a ceiling that was not reached raises nothing', () => {
 			configuration: configuration({
 				overtimeLimits: [
 					{
-						norbital_id: 'limit',
+						id: 'limit',
 						period: 'MONTH',
 						measures: 'OVERTIME_HOURS',
 						max_hours: 104,
@@ -229,11 +229,11 @@ test('a cadence the company has written no calendar for stops the run and names 
 		configuration: configuration(),
 		bundles: [
 			{
-				employment: { norbital_id: 'emp-1', employee_number: 'NHPMY0009' },
+				employment: { id: 'emp-1', employee_number: 'NHPMY0009' },
 				terms: [{ pay_frequency: 'SEMI_MONTHLY' }]
 			},
 			{
-				employment: { norbital_id: 'emp-2', employee_number: 'NHPMY0002' },
+				employment: { id: 'emp-2', employee_number: 'NHPMY0002' },
 				terms: [{ pay_frequency: 'MONTHLY' }]
 			}
 		]
@@ -256,7 +256,7 @@ test('a semi-monthly employment is no fault once the company states that calenda
 		validatePayCalendar({
 			configuration: configuration({
 				company: {
-					norbital_id: 'co-ph',
+					id: 'co-ph',
 					name: 'Omni Plus System Philippines, Inc.',
 					pay_cutoff_day: 21,
 					pay_day: 30,
@@ -273,11 +273,11 @@ test('a semi-monthly employment is no fault once the company states that calenda
 			}),
 			bundles: [
 				{
-					employment: { norbital_id: 'emp-1', employee_number: 'OPSPH0009' },
+					employment: { id: 'emp-1', employee_number: 'OPSPH0009' },
 					terms: [{ pay_frequency: 'SEMI_MONTHLY' }]
 				},
 				{
-					employment: { norbital_id: 'emp-2', employee_number: 'OPSPH0002' },
+					employment: { id: 'emp-2', employee_number: 'OPSPH0002' },
 					terms: [{ pay_frequency: 'MONTHLY' }]
 				}
 			]
@@ -295,7 +295,7 @@ test('a cadence no calendar of instalments could describe is still refused', () 
 	const issues = validatePayCalendar({
 		configuration: configuration({
 			company: {
-				norbital_id: 'co-ph',
+				id: 'co-ph',
 				name: 'Omni Plus System Philippines, Inc.',
 				pay_cutoff_day: 21,
 				pay_day: 30,
@@ -312,7 +312,7 @@ test('a cadence no calendar of instalments could describe is still refused', () 
 		}),
 		bundles: [
 			{
-				employment: { norbital_id: 'emp-3', employee_number: 'OPSPH0031' },
+				employment: { id: 'emp-3', employee_number: 'OPSPH0031' },
 				terms: [{ pay_frequency: 'WEEKLY' }]
 			}
 		]
@@ -328,7 +328,7 @@ test('an all-monthly company raises nothing', () => {
 			configuration: configuration(),
 			bundles: [
 				{
-					employment: { norbital_id: 'emp-2', employee_number: 'NHPMY0002' },
+					employment: { id: 'emp-2', employee_number: 'NHPMY0002' },
 					terms: [{ pay_frequency: 'MONTHLY' }, { pay_frequency: null }]
 				}
 			]
@@ -381,12 +381,12 @@ test('every unclosed time entry is reported, not just the first', () => {
 		bundles: [
 			openBundle('NHPMY0193', [
 				{
-					norbital_id: 'te-1',
+					id: 'te-1',
 					work_date: '2026-01-15',
 					worked_intervals: [{ start_at: '2026-01-15T01:00:00.000Z', end_at: null }]
 				},
 				{
-					norbital_id: 'te-2',
+					id: 'te-2',
 					work_date: '2026-01-16',
 					worked_intervals: [
 						{ start_at: '2026-01-16T01:00:00.000Z', end_at: '2026-01-16T09:00:00.000Z' }
@@ -395,7 +395,7 @@ test('every unclosed time entry is reported, not just the first', () => {
 			]),
 			openBundle('NHPMY0271', [
 				{
-					norbital_id: 'te-3',
+					id: 'te-3',
 					work_date: '2025-12-27',
 					worked_intervals: [{ start_at: null, end_at: '2025-12-27T09:00:00.000Z' }]
 				}
@@ -427,13 +427,13 @@ test('closed attendance raises nothing, and a null interval list is not an open 
 		bundles: [
 			openBundle('NHPMY0001', [
 				{
-					norbital_id: 'te-4',
+					id: 'te-4',
 					work_date: '2026-01-05',
 					worked_intervals: [
 						{ start_at: '2026-01-05T01:00:00.000Z', end_at: '2026-01-05T09:00:00.000Z' }
 					]
 				},
-				{ norbital_id: 'te-5', work_date: '2026-01-06', worked_intervals: null }
+				{ id: 'te-5', work_date: '2026-01-06', worked_intervals: null }
 			])
 		]
 	});

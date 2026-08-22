@@ -2,6 +2,8 @@ import { execFileSync } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import process from 'node:process';
+import { Result } from 'effect';
+import { decodeJsonObject } from './lib/json.mjs';
 import {
 	actualCounts,
 	discoverTemplates,
@@ -50,37 +52,40 @@ function readArguments(argv) {
 }
 
 function runGit(arguments_, options = {}) {
-	try {
-		return execFileSync('git', arguments_, {
+	const executed = Result.try(() =>
+		execFileSync('git', arguments_, {
 			cwd: repositoryRoot,
 			encoding: 'utf8',
 			stdio: ['ignore', 'pipe', 'pipe'],
 			env: { ...process.env, GIT_OPTIONAL_LOCKS: '0' },
 			...options
-		}).trim();
-	} catch (cause) {
-		const detail = cause?.stderr?.toString().trim();
-		fail(`git ${arguments_.join(' ')} failed${detail ? `: ${detail}` : ''}`);
-	}
+		}).trim()
+	);
+	if (Result.isSuccess(executed)) return executed.success;
+	const detail = executed.failure?.stderr?.toString().trim();
+	fail(`git ${arguments_.join(' ')} failed${detail ? `: ${detail}` : ''}`);
 }
 
 /** The `origin` URL, or undefined when this clone has none. Absence is not an error. */
 function originUrl() {
-	try {
-		return (
-			execFileSync('git', ['config', '--get', 'remote.origin.url'], {
-				cwd: repositoryRoot,
-				encoding: 'utf8',
-				stdio: ['ignore', 'pipe', 'ignore']
-			}).trim() || undefined
-		);
-	} catch {
-		return undefined;
-	}
+	return Result.getOrElse(
+		Result.try(
+			() =>
+				execFileSync('git', ['config', '--get', 'remote.origin.url'], {
+					cwd: repositoryRoot,
+					encoding: 'utf8',
+					stdio: ['ignore', 'pipe', 'ignore']
+				}).trim() || undefined
+		),
+		() => undefined
+	);
 }
 
 function validateStandaloneManifest(template) {
-	const manifest = JSON.parse(readFileSync(path.join(template.directory, 'package.json'), 'utf8'));
+	const manifest = decodeJsonObject(
+		readFileSync(path.join(template.directory, 'package.json'), 'utf8'),
+		`${template.directory}/package.json`
+	);
 	if (!manifest.private)
 		fail(`Template ${template.slug} must remain a private application package.`);
 	// `bolt sync` now emits the production bundle as well as generated source. There is no separate
@@ -92,7 +97,7 @@ function validateStandaloneManifest(template) {
 	}
 	const yalcLockPath = path.join(template.directory, 'yalc.lock');
 	const yalcOverlay = existsSync(yalcLockPath)
-		? JSON.parse(readFileSync(yalcLockPath, 'utf8'))
+		? decodeJsonObject(readFileSync(yalcLockPath, 'utf8'), yalcLockPath)
 		: undefined;
 	for (const section of dependencySections) {
 		for (const [name, version] of Object.entries(manifest[section] ?? {})) {

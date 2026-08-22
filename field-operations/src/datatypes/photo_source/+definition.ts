@@ -10,21 +10,22 @@ const channelInstant = Schema.String.check(
 	})
 );
 
-export const photoSourceSchema = Schema.toStandardSchemaV1(
-	Schema.Union([
-		Schema.Struct({ kind: Schema.Literal('workspace_upload') }),
-		Schema.Struct({
-			kind: Schema.Literal('channel'),
-			provider: Schema.NonEmptyString,
-			conversation_id: Schema.NonEmptyString,
-			message_id: Schema.NonEmptyString,
-			attachment_id: Schema.NonEmptyString,
-			sender_id: Schema.NonEmptyString,
-			sent_at: Schema.NullOr(channelInstant)
-		})
-	]),
-	{ parseOptions: { onExcessProperty: 'error' } }
-);
+export const photoSourceValueSchema = Schema.Union([
+	Schema.Struct({ kind: Schema.Literal('workspace_upload') }),
+	Schema.Struct({
+		kind: Schema.Literal('channel'),
+		provider: Schema.NonEmptyString,
+		conversation_id: Schema.NonEmptyString,
+		message_id: Schema.NonEmptyString,
+		attachment_id: Schema.NonEmptyString,
+		sender_id: Schema.NonEmptyString,
+		sent_at: Schema.NullOr(channelInstant)
+	})
+]);
+
+export const photoSourceSchema = Schema.toStandardSchemaV1(photoSourceValueSchema, {
+	parseOptions: { onExcessProperty: 'error' }
+});
 
 export default defineCustomType({
 	name: 'photo_source',

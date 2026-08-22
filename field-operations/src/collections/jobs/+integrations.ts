@@ -9,7 +9,7 @@ import type { Integrations } from './$types.js';
  * here now. `jobs` had no external-key column, so there was nothing for `identity.column` to point
  * at and a redelivery — which every provider does, because webhook delivery is at-least-once —
  * would have filed a second job; `external_ref` is that column and carries a unique index. And the
- * dispatch system names a site by **its** code, never by our `norbital_id`, while `map` was a pure
+ * dispatch system names a site by **its** code, never by our `id`, while `map` was a pure
  * `(record) => Row` with no way to look one up. `site_id` is a required `uuid`, so the whole
  * integration was inexpressible rather than merely awkward.
  *
@@ -64,11 +64,11 @@ export default {
 						const codes = [...new Set(records.map((job) => job.site_code))];
 						const sites = yield* api.db.query.sites.findMany({
 							where: { site_code: { in: codes } },
-							columns: { norbital_id: true, site_code: true }
+							columns: { id: true, site_code: true }
 						});
 						return new Map(
 							sites.flatMap((site) =>
-								site.site_code === null ? [] : [[site.site_code, site.norbital_id] as const]
+								site.site_code === null ? [] : [[site.site_code, site.id] as const]
 							)
 						);
 					}),
@@ -81,14 +81,14 @@ export default {
 							`job ${job.reference} names site ${job.site_code}, which this workspace has no site for`
 						);
 					}
+					const { reference: external_ref, site_code: _siteCode, ...row } = job;
 					return {
-						external_ref: job.reference,
+						...row,
+						external_ref,
 						site_id: siteId,
-						title: job.title,
-						scheduled_for: job.scheduled_for,
-						nature: job.nature ?? null,
-						description: job.description ?? '',
-						status: job.status ?? 'unassigned'
+						nature: row.nature ?? null,
+						description: row.description ?? '',
+						status: row.status ?? 'unassigned'
 					};
 				}
 			})

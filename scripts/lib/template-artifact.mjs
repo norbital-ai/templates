@@ -4,7 +4,7 @@ import path from 'node:path';
 
 /** The archive layout consumed by a host; version 2 is a single portable Bolt artifact. */
 export const templateBundleFormatVersion = 2;
-export const templateArtifactRelativePath = path.join('.norbital', 'artifact', 'bundle.mjs');
+const templateArtifactRelativePath = path.join('.norbital', 'artifact', 'bundle.mjs');
 
 export function templateArtifactPath(workspaceRoot) {
 	return path.join(workspaceRoot, templateArtifactRelativePath);

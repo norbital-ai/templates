@@ -1,19 +1,23 @@
 <script lang="ts">
-	import { collectionClient } from '../../collection-client.js';
+	import { client } from '$bolt/client';
+	import { getCollectionClientForSurface } from '@norbital-ai/ui/collection-runtime';
 	import { useI18n } from '@norbital-ai/ui/i18n';
 	import type { TenantI18nKeys } from '$bolt/i18n-keys';
 	import type { RepresentationProps } from './$types.js';
 	import { CollectionForm } from '@norbital-ai/ui/collection-form';
 	import { Grid } from '@norbital-ai/ui/layout';
 	import { RelationshipRenderer } from '@norbital-ai/ui/data-renderer/relationship';
+	import type { CollectionRelationOptions } from '@norbital-ai/std/collection';
 
 	let { record, close }: RepresentationProps = $props();
+
+	const workspaceClient = getCollectionClientForSurface(client, 'CollectionForm');
 
 	const { t } = useI18n<TenantI18nKeys>();
 </script>
 
 <CollectionForm
-	client={collectionClient}
+	client={workspaceClient}
 	collection="job_assignments"
 	defaultValues={record ?? undefined}
 	onAfterSubmit={record ? undefined : close}
@@ -35,7 +39,7 @@
 						},
 						orderBy: { job_title: 'asc' },
 						limit: 500
-					}
+					} satisfies CollectionRelationOptions
 				}}
 			/>
 			<Field
@@ -54,7 +58,7 @@
 						},
 						orderBy: { worker_number: 'asc' },
 						limit: 500
-					}
+					} satisfies CollectionRelationOptions
 				}}
 			/>
 			<Field
@@ -73,7 +77,7 @@
 						},
 						orderBy: { location_code: 'asc' },
 						limit: 500
-					}
+					} satisfies CollectionRelationOptions
 				}}
 			/>
 			<Field name="role" />

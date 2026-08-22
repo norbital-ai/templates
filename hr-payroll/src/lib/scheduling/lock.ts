@@ -1,4 +1,6 @@
+import { Schema } from 'effect';
 import type { WorkspaceRow } from '$bolt/types.js';
+import { dateKey } from '../iso-day.js';
 
 /**
  * The lock state of one calendar day, derived from the payroll runs that cover it.
@@ -32,29 +34,28 @@ import type { WorkspaceRow } from '$bolt/types.js';
  * grid itself.
  */
 
-export type PayrollRunLike = Pick<
+type PayrollRunLike = Pick<
 	WorkspaceRow<'payroll_runs'>,
 	'period' | 'lifecycle' | 'attendance_from' | 'attendance_to'
 >;
 
-export type PayrollWindow = {
-	readonly start: string;
-	readonly end: string;
-	readonly period: string;
-	readonly settled: boolean;
-};
+/** One run's assessment window, reduced to the arithmetic the day questions need. */
+const payrollWindowSchema = Schema.Struct({
+	start: Schema.String,
+	end: Schema.String,
+	period: Schema.String,
+	settled: Schema.Boolean
+});
+export type PayrollWindow = Schema.Schema.Type<typeof payrollWindowSchema>;
 
-export type DayLock =
-	| { readonly kind: 'NONE' }
-	| { readonly kind: 'IN_WINDOW'; readonly period: string }
-	| { readonly kind: 'SETTLED'; readonly period: string };
+/** How one calendar day stands, derived from the payroll runs covering it. */
+export const dayLockSchema = Schema.Union([
+	Schema.Struct({ kind: Schema.Literal('NONE') }),
+	Schema.Struct({ kind: Schema.Literal('IN_WINDOW'), period: Schema.String }),
+	Schema.Struct({ kind: Schema.Literal('SETTLED'), period: Schema.String })
+]);
+export type DayLock = Schema.Schema.Type<typeof dayLockSchema>;
 
-function dateKey(value: string | Date | null | undefined): string {
-	if (value == null) return '';
-	return typeof value === 'string' ? value.slice(0, 10) : value.toISOString().slice(0, 10);
-}
-
-/** Every run's assessment window, with whether the run has been paid. */
 export function payrollWindows(runs: readonly PayrollRunLike[]): PayrollWindow[] {
 	const windows: PayrollWindow[] = [];
 	for (const run of runs) {
@@ -128,20 +129,25 @@ function settledDayMessage(period: string, date: string, action: string): string
  * day-shaped inference a paid run's window makes about a *day*, kept here so the board's hover
  * sentence and the create guard (`assertNotSettled`) share one vocabulary with the record locks.
  */
-export type SourceLock =
-	| { readonly kind: 'NONE' }
-	| { readonly kind: 'PENDING_APPROVAL' }
-	| { readonly kind: 'SETTLED'; readonly period: string }
-	| { readonly kind: 'DATE_PASSED'; readonly date: string }
-	| { readonly kind: 'PAID_DAY'; readonly period: string; readonly date: string };
+const sourceLockSchema = Schema.Union([
+	Schema.Struct({ kind: Schema.Literal('NONE') }),
+	Schema.Struct({ kind: Schema.Literal('PENDING_APPROVAL') }),
+	Schema.Struct({ kind: Schema.Literal('SETTLED'), period: Schema.String }),
+	Schema.Struct({ kind: Schema.Literal('DATE_PASSED'), date: Schema.String }),
+	Schema.Struct({ kind: Schema.Literal('PAID_DAY'), period: Schema.String, date: Schema.String })
+]);
 
 /** The claim a `payslip_sources` row makes, reduced to what a refusal has to say. */
-export type SettlementClaim = { readonly period: string };
+const settlementClaimSchema = Schema.Struct({ period: Schema.String });
+export type SourceLock = Schema.Schema.Type<typeof sourceLockSchema>;
 
-type SourceLockFacts = {
-	readonly existing: boolean;
-	readonly approvalId?: string | null;
-	readonly dates: readonly (string | Date | null | undefined)[];
+/** The claim a `payslip_sources` row makes, reduced to what a refusal has to say. */
+export type SettlementClaim = Schema.Schema.Type<typeof settlementClaimSchema>;
+
+const sourceLockFactsSchema = Schema.Struct({
+	existing: Schema.Boolean,
+	approvalId: Schema.optional(Schema.NullOr(Schema.String)),
+	dates: Schema.Array(Schema.NullOr(Schema.Union([Schema.String, Schema.Date]))),
 	/**
 	 * The settlement claim held over this record, or null/undefined when none is.
 	 *
@@ -149,8 +155,9 @@ type SourceLockFacts = {
 	 * pure so that the write hooks and the screens that grey the row out compute the identical lock
 	 * from the identical inputs. Each caller reads `payslip_sources` through its own typed api.
 	 */
-	readonly settledBy?: SettlementClaim | null;
-};
+	settledBy: Schema.optional(Schema.NullOr(settlementClaimSchema))
+});
+type SourceLockFacts = Schema.Schema.Type<typeof sourceLockFactsSchema>;
 
 /**
  * Whether "the date is behind us" is a lock **on this collection**, stated by the caller.
@@ -172,22 +179,26 @@ type SourceLockFacts = {
  * keep freezing without being touched; opting *out* is the change, and the change is the thing
  * that has to be visible.
  */
-export type SourceLockInput = SourceLockFacts &
+type SourceLockInput = SourceLockFacts &
 	(
 		| { readonly datePassed?: 'FREEZES'; readonly today: string }
 		| { readonly datePassed: 'IS_NOT_A_LOCK'; readonly today?: never }
 	);
 
-export type SourceLockI18nKey =
-	| 'component.lock_pending_approval'
-	| 'component.lock_date_passed'
-	| 'component.lock_settled'
-	| 'component.lock_settled_by_run';
+const sourceLockI18nKeySchema = Schema.Literals([
+	'component.lock_pending_approval',
+	'component.lock_date_passed',
+	'component.lock_settled',
+	'component.lock_settled_by_run'
+]);
+type SourceLockI18nKey = Schema.Schema.Type<typeof sourceLockI18nKeySchema>;
 
-export type SourceLockI18nParams =
-	| { readonly date: string }
-	| { readonly period: string }
-	| { readonly period: string; readonly date: string };
+const sourceLockI18nParamsSchema = Schema.Union([
+	Schema.Struct({ date: Schema.String }),
+	Schema.Struct({ period: Schema.String }),
+	Schema.Struct({ period: Schema.String, date: Schema.String })
+]);
+type SourceLockI18nParams = Schema.Schema.Type<typeof sourceLockI18nParamsSchema>;
 
 /** The strongest lock that applies to this source record. */
 export function sourceLock(input: SourceLockInput): SourceLock {
@@ -199,7 +210,7 @@ export function sourceLock(input: SourceLockInput): SourceLock {
 	 * The settlement lock is the one fact that can name the period holding the record, so its
 	 * refusal is the only one that can tell the person what would have to happen to release it. It
 	 * sits below `PENDING_APPROVAL` and not above it because the two cannot both be true —
-	 * `gather.ts` only ever consumes rows whose `norbital_approval_id` is null — and because a
+	 * `gather.ts` only ever consumes rows whose `approval_id` is null — and because a
 	 * pending row is the platform's 409, which `sourceLockBlocksWrite` leaves to the platform.
 	 */
 	if (input.settledBy != null) {
@@ -282,7 +293,7 @@ export function sourceLockI18nKey(lock: SourceLock): SourceLockI18nKey | null {
 	}
 }
 
-export function sourceLockI18nParams(lock: SourceLock): SourceLockI18nParams | undefined {
+function sourceLockI18nParams(lock: SourceLock): SourceLockI18nParams | undefined {
 	switch (lock.kind) {
 		case 'DATE_PASSED':
 			return { date: lock.date };
@@ -315,7 +326,7 @@ export function sourceLockReason(
  * Projects an application-owned source lock into the collection surface contract.
  *
  * Pending approval deliberately produces no authored metadata: it is protected Bolt state and the
- * collection surfaces inject it directly from `norbital_approval_id`. This helper only adapts the
+ * collection surfaces inject it directly from `approval_id`. This helper only adapts the
  * payroll application's own refusal, keeping the hook's lock calculation as the single source of
  * truth without letting application code impersonate system metadata.
  */

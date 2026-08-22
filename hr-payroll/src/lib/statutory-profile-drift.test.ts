@@ -9,26 +9,26 @@ const oldRange = { start: '2020-01-01T00:00:00.000Z', end: '2026-01-01T00:00:00.
 const newRange = { start: '2026-01-01T00:00:00.000Z', end: null };
 
 const my = {
-	norbital_id: 'j-new',
+	id: 'j-new',
 	code: 'MY',
 	name: 'Malaysia 2026',
 	effective_range: newRange
 };
 const myOld = {
-	norbital_id: 'j-old',
+	id: 'j-old',
 	code: 'MY',
 	name: 'Malaysia 2020',
 	effective_range: oldRange
 };
 const epf = {
-	norbital_id: 's-epf-new',
+	id: 's-epf-new',
 	jurisdiction_id: 'j-new',
 	code: 'EPF',
 	name: 'Employees Provident Fund',
 	effective_range: newRange
 };
 const epfOld = {
-	norbital_id: 's-epf-old',
+	id: 's-epf-old',
 	jurisdiction_id: 'j-old',
 	code: 'EPF',
 	name: 'Employees Provident Fund',
@@ -51,7 +51,7 @@ describe('detectStatutoryDrift', () => {
 			inForceSchemes: [epf],
 			inForceRates: [
 				{
-					norbital_id: 'r1',
+					id: 'r1',
 					statutory_contribution_id: 's-epf-new',
 					summary: '0 – ∞',
 					effective_range: newRange
@@ -59,7 +59,7 @@ describe('detectStatutoryDrift', () => {
 			],
 			companies: [
 				{
-					norbital_id: 'c1',
+					id: 'c1',
 					name: 'Acme Sdn Bhd',
 					jurisdiction_id: 'j-old',
 					jurisdiction: myOld
@@ -79,7 +79,7 @@ describe('detectStatutoryDrift', () => {
 			inForceSchemes: [{ ...epf, jurisdiction_id: 'j-old' }],
 			inForceRates: [
 				{
-					norbital_id: 'r1',
+					id: 'r1',
 					statutory_contribution_id: 's-epf-new',
 					summary: '0 – ∞',
 					effective_range: newRange
@@ -89,7 +89,7 @@ describe('detectStatutoryDrift', () => {
 			employments: [],
 			facts: [
 				{
-					norbital_id: 'f1',
+					id: 'f1',
 					employment_id: 'e1',
 					statutory_contribution_id: 's-epf-old',
 					status: { kind: 'REGISTERED', reference_number: 'E-1' },
@@ -108,7 +108,7 @@ describe('detectStatutoryDrift', () => {
 			inForceSchemes: [
 				{ ...epf, jurisdiction_id: 'j-old' },
 				{
-					norbital_id: 's-epf-also',
+					id: 's-epf-also',
 					jurisdiction_id: 'j-old',
 					code: 'EPF',
 					name: 'EPF other',
@@ -120,7 +120,7 @@ describe('detectStatutoryDrift', () => {
 			employments: [],
 			facts: [
 				{
-					norbital_id: 'f1',
+					id: 'f1',
 					employment_id: 'e1',
 					statutory_contribution_id: 's-epf-old',
 					status: { kind: 'REGISTERED' },
@@ -145,13 +145,13 @@ describe('detectStatutoryDrift', () => {
 			inForceRates: [],
 			companies: [
 				{
-					norbital_id: 'c1',
+					id: 'c1',
 					name: 'Acme',
 					jurisdiction_id: 'j-new',
 					jurisdiction: my
 				}
 			],
-			employments: [{ norbital_id: 'e1', employee_number: 'A-01', company_id: 'c1' }],
+			employments: [{ id: 'e1', employee_number: 'A-01', company_id: 'c1' }],
 			facts: []
 		});
 		assert.equal(

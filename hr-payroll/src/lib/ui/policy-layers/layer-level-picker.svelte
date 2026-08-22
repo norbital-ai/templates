@@ -10,7 +10,7 @@
 	 */
 	export type PolicyLayerLevel = 'STATUTORY' | 'ORGANISATION' | 'EMPLOYEE';
 
-	export interface LayerLevelPickerProps {
+	interface LayerLevelPickerProps {
 		readonly level: PolicyLayerLevel;
 		/** The employment the EMPLOYEE arm names; `null` on the two arms that name nobody. */
 		readonly employmentId: string | null;
@@ -65,7 +65,7 @@
 	 * same boundary `payslips/+representation.svelte` draws for its summary read.
 	 */
 	type EmploymentWithName = {
-		readonly norbital_id: string;
+		readonly id: string;
 		readonly employee_number: string;
 		readonly employment_employee?: { readonly name?: string | null } | null;
 	};
@@ -86,7 +86,7 @@
 			const name = employment.employment_employee?.name ?? '';
 			const number = employment.employee_number;
 			return {
-				value: employment.norbital_id,
+				value: employment.id,
 				label: [name, number].filter((part) => part !== '').join(' · ') || '—',
 				search_term: `${name} ${number}`
 			};

@@ -1,4 +1,5 @@
 .norbital
+.svelte-check
 .tmp
 .yalc
 node_modules

@@ -14,10 +14,14 @@
  * covered" instead of an absent answer.
  */
 
-export type WageBasis = 'STATUTORY_WAGES' | 'BASE_SALARY';
-export type CategoryBasis = 'STATUTORY_WORK_CATEGORY' | 'WORK_CLASSIFICATION';
+import { MoneyValueSchema, type MoneyValue } from '@norbital-ai/std/finance';
+import { Schema } from 'effect';
 
-export type Money = { readonly value: number; readonly currency: string };
+const WageBasisSchema = Schema.Literals(['STATUTORY_WAGES', 'BASE_SALARY']);
+export type WageBasis = Schema.Schema.Type<typeof WageBasisSchema>;
+
+const CategoryBasisSchema = Schema.Literals(['STATUTORY_WORK_CATEGORY', 'WORK_CLASSIFICATION']);
+type CategoryBasis = Schema.Schema.Type<typeof CategoryBasisSchema>;
 
 /**
  * One pay component classified against the statutory definition of "wages".
@@ -46,12 +50,14 @@ export type Money = { readonly value: number; readonly currency: string };
  * population is affected by the gap — but a company that adds one must know the comparand will
  * overstate until the model carries the distinction.
  */
-export type WageComparandCategory = 'BASIC_WAGES' | 'CASH_FOR_WORK' | 'NOT_WAGES';
+const WageComparandCategorySchema = Schema.Literals(['BASIC_WAGES', 'CASH_FOR_WORK', 'NOT_WAGES']);
+type WageComparandCategory = Schema.Schema.Type<typeof WageComparandCategorySchema>;
 
-export type WageComparandComponent = {
-	readonly policy: { readonly kind: string } | null;
-	readonly definition: { readonly source: string } | null;
-};
+const WageComparandComponentSchema = Schema.Struct({
+	policy: Schema.NullOr(Schema.Struct({ kind: Schema.String })),
+	definition: Schema.NullOr(Schema.Struct({ source: Schema.String }))
+});
+type WageComparandComponent = Schema.Schema.Type<typeof WageComparandComponentSchema>;
 
 /** Classify one pay component for the wage comparand. See `WageComparandCategory`. */
 export function classifyWageComparand(component: WageComparandComponent): WageComparandCategory {
@@ -76,12 +82,12 @@ export function classifyWageComparand(component: WageComparandComponent): WageCo
  * reads when doubtful. No seeded company carries a formula earning that a coverage ceiling tests.
  */
 export function deriveStatutoryWages(options: {
-	readonly baseSalary: Money;
+	readonly baseSalary: MoneyValue;
 	readonly payments: readonly {
 		readonly category: WageComparandCategory;
 		readonly amount: number;
 	}[];
-}): Money {
+}): MoneyValue {
 	const cashForWork = options.payments
 		.filter((payment) => payment.category === 'CASH_FOR_WORK')
 		.reduce((total, payment) => total + payment.amount, 0);
@@ -99,22 +105,23 @@ export function deriveStatutoryWages(options: {
  * carry a value this build has never heard of. Narrowing happens below, where an unrecognised value
  * is a named fault rather than a silent fallthrough to whichever arm the comparison happened to miss.
  */
-export type CoverageRule = {
-	readonly wage_ceiling: Money | null;
-	readonly ceiling_is_inclusive: boolean | null;
-	readonly wage_basis: string | null;
-	readonly category_basis: string | null;
-	readonly exempt_categories: readonly string[] | null;
-	readonly excluded_categories: readonly string[] | null;
-	readonly authority: string;
-};
+const CoverageRuleSchema = Schema.Struct({
+	wage_ceiling: Schema.NullOr(MoneyValueSchema),
+	ceiling_is_inclusive: Schema.NullOr(Schema.Boolean),
+	wage_basis: Schema.NullOr(Schema.String),
+	category_basis: Schema.NullOr(Schema.String),
+	exempt_categories: Schema.NullOr(Schema.Array(Schema.String)),
+	excluded_categories: Schema.NullOr(Schema.Array(Schema.String)),
+	authority: Schema.String
+});
+type CoverageRule = Schema.Schema.Type<typeof CoverageRuleSchema>;
 
 const WAGE_BASES: readonly WageBasis[] = ['STATUTORY_WAGES', 'BASE_SALARY'];
 const CATEGORY_BASES: readonly CategoryBasis[] = ['STATUTORY_WORK_CATEGORY', 'WORK_CLASSIFICATION'];
 
-export type CoverageSubject = {
-	readonly statutoryWorkCategory: string | null;
-	readonly workClassification: string | null;
+const CoverageSubjectSchema = Schema.Struct({
+	statutoryWorkCategory: Schema.NullOr(Schema.String),
+	workClassification: Schema.NullOr(Schema.String),
 	/**
 	 * The wage figures the caller was able to resolve, each filed under the basis it genuinely is.
 	 *
@@ -123,20 +130,29 @@ export type CoverageSubject = {
 	 * changes who is covered — see `UNDETERMINED` below, which exists precisely so that this is
 	 * reported rather than papered over.
 	 */
-	readonly wages: Partial<Record<WageBasis, Money>>;
-};
+	wages: Schema.Struct({
+		STATUTORY_WAGES: Schema.optional(MoneyValueSchema),
+		BASE_SALARY: Schema.optional(MoneyValueSchema)
+	})
+});
+type CoverageSubject = Schema.Schema.Type<typeof CoverageSubjectSchema>;
 
-export type CoverageDecision =
-	| {
-			readonly outcome: 'COVERED';
-			readonly reason: 'NO_RULE' | 'EXEMPT_CATEGORY' | 'NO_WAGE_CEILING' | 'WITHIN_CEILING';
-	  }
-	| { readonly outcome: 'NOT_COVERED'; readonly reason: 'EXCLUDED_CATEGORY' | 'ABOVE_CEILING' }
-	| {
-			readonly outcome: 'UNDETERMINED';
-			readonly reason: 'WAGE_BASIS_UNAVAILABLE' | 'CEILING_CURRENCY_MISMATCH';
-			readonly requiredBasis: WageBasis;
-	  };
+const CoverageDecisionSchema = Schema.Union([
+	Schema.Struct({
+		outcome: Schema.Literal('COVERED'),
+		reason: Schema.Literals(['NO_RULE', 'EXEMPT_CATEGORY', 'NO_WAGE_CEILING', 'WITHIN_CEILING'])
+	}),
+	Schema.Struct({
+		outcome: Schema.Literal('NOT_COVERED'),
+		reason: Schema.Literals(['EXCLUDED_CATEGORY', 'ABOVE_CEILING'])
+	}),
+	Schema.Struct({
+		outcome: Schema.Literal('UNDETERMINED'),
+		reason: Schema.Literals(['WAGE_BASIS_UNAVAILABLE', 'CEILING_CURRENCY_MISMATCH']),
+		requiredBasis: WageBasisSchema
+	})
+]);
+type CoverageDecision = Schema.Schema.Type<typeof CoverageDecisionSchema>;
 
 /**
  * The one coverage rule effective for a jurisdiction, or null when none is.

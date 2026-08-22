@@ -1,6 +1,7 @@
 import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { decodeJsonObject } from './json.mjs';
 
 /**
  * Template discovery.
@@ -97,7 +98,10 @@ export function actualCounts(directory) {
 
 function readMetadata(slug) {
 	const directory = path.join(repositoryRoot, slug);
-	const metadata = JSON.parse(readFileSync(path.join(directory, templateMetadataFile), 'utf8'));
+	const metadata = decodeJsonObject(
+		readFileSync(path.join(directory, templateMetadataFile), 'utf8'),
+		`${slug}/${templateMetadataFile}`
+	);
 	if (metadata.schemaVersion !== 1) {
 		fail(`${slug}/${templateMetadataFile} must use schemaVersion 1.`);
 	}
@@ -150,11 +154,14 @@ function readMetadata(slug) {
  * one that failed would fail as "no such template" rather than as the wrong axis.
  */
 export function discoverTemplates(filter) {
-	const directories = readdirSync(repositoryRoot, { withFileTypes: true })
-		.filter((entry) => entry.isDirectory() && !entry.name.startsWith('.'))
-		.map((entry) => entry.name)
-		.filter((name) => existsSync(path.join(repositoryRoot, name, templateMetadataFile)))
-		.sort();
+	const directories = [];
+	for (const entry of readdirSync(repositoryRoot, { withFileTypes: true })) {
+		if (!entry.isDirectory() || entry.name.startsWith('.')) continue;
+		if (existsSync(path.join(repositoryRoot, entry.name, templateMetadataFile))) {
+			directories.push(entry.name);
+		}
+	}
+	directories.sort();
 	if (directories.length === 0) fail('No templates found.');
 	const templates = directories
 		.map((entry) => readMetadata(entry))

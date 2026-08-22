@@ -1,9 +1,10 @@
 import { hexToBinaryEmbedding } from '@norbital-ai/bolt/authoring';
 import type { CollectionHooks } from '@norbital-ai/bolt/authoring';
-import { Effect, Schema } from 'effect';
+import { Effect, Equivalence, Schema } from 'effect';
 import type { WorkspaceInsert, WorkspaceSchema } from '$bolt/types.js';
 import type { Hooks } from './$types.js';
-import { photoSourceSchema } from '../../datatypes/photo_source/+definition.js';
+import { photoSourceValueSchema } from '../../datatypes/photo_source/+definition.js';
+import { coordinatesOf, type LocationLike } from '../../lib/geo.js';
 import {
 	assertExactlyOnePhotoParent,
 	assertPhotoEvidenceProvenanceUnchanged,
@@ -11,23 +12,8 @@ import {
 	inspectPhoto,
 	photoIntegrityFlags,
 	planDuplicateEvidenceBatch,
-	VISUAL_DUPLICATE_MAX_L2,
-	type PhotoIntegrityFlag
+	VISUAL_DUPLICATE_MAX_L2
 } from './photo-integrity.js';
-
-type LocationLike =
-	| {
-			geometry?: { lat?: number | null; lon?: number | null } | null;
-	  }
-	| null
-	| undefined;
-
-function coordinatesOf(location: LocationLike): { lat: number; lon: number } | null {
-	const lat = location?.geometry?.lat;
-	const lon = location?.geometry?.lon;
-	if (lat == null || lon == null) return null;
-	return { lat, lon };
-}
 
 const photoEvidenceCreateInput = Schema.Struct({
 	job_assignment_id: Schema.optional(Schema.NullOr(Schema.String.check(Schema.isUUID()))),
@@ -38,7 +24,7 @@ const photoEvidenceCreateInput = Schema.Struct({
 		file_size: Schema.Number,
 		mime_type: Schema.String
 	}),
-	source: Schema.optional(photoSourceSchema)
+	source: Schema.optional(photoSourceValueSchema)
 });
 
 type PhotoCreateBefore = NonNullable<
@@ -49,7 +35,7 @@ type PhotoCreateAfter = NonNullable<
 >;
 type PhotoBeforeApi = Parameters<PhotoCreateBefore['handler']>[0]['api'];
 type PhotoAfterApi = Parameters<PhotoCreateAfter['handler']>[0]['api'];
-type PhotoCreateInput = Parameters<PhotoCreateBefore['handler']>[0]['input'];
+type PhotoCreateInput = Schema.Schema.Type<typeof photoEvidenceCreateInput>;
 type PhotoRecord = Parameters<PhotoCreateAfter['handler']>[0]['record'];
 type PhotoCreateMutation = WorkspaceInsert<'photo_evidence'>;
 
@@ -84,9 +70,10 @@ const MAX_BATCH_DUPLICATE_CORPUS = 5_000;
 const MAX_BATCH_DUPLICATE_COMPARISONS = 250_000;
 const MAX_EXACT_DUPLICATE_MATCHES = 20;
 const MAX_EXACT_DUPLICATE_CANDIDATES = 1_000;
+const photoIntegrityFlagNames = new Set<string>(photoIntegrityFlags);
 
 function sourceKey(
-	source: Schema.Schema.Type<typeof photoSourceSchema>,
+	source: Schema.Schema.Type<typeof photoSourceValueSchema>,
 	storageKey: string
 ): string {
 	return source.kind === 'channel'
@@ -131,12 +118,19 @@ function assignmentIdFromEvidence(
 	return assignmentByVariation.get(evidence.variation_request_id) ?? null;
 }
 
-function sameStringSet(
-	left: readonly string[] | null | undefined,
-	right: readonly string[] | null | undefined
-): boolean {
-	return JSON.stringify([...(left ?? [])].sort()) === JSON.stringify([...(right ?? [])].sort());
-}
+/** Two string-flag sets are the same evidence when their sorted members coincide. */
+const stringSetEquivalence = Equivalence.make(
+	(left: readonly string[] | null | undefined, right: readonly string[] | null | undefined) => {
+		const ordered = (values: readonly string[] | null | undefined) =>
+			values ? [...values].sort() : [];
+		const leftOrdered = ordered(left);
+		const rightOrdered = ordered(right);
+		return (
+			leftOrdered.length === rightOrdered.length &&
+			leftOrdered.every((value, index) => value === rightOrdered[index])
+		);
+	}
+);
 
 function assignmentIdsForEvidence(
 	api: PhotoAfterApi,
@@ -159,13 +153,13 @@ function assignmentIdsForEvidence(
 		];
 		const variations = variationIds.length
 			? yield* api.db.query.variation_requests.findMany({
-					where: { norbital_id: { in: variationIds } },
-					columns: { norbital_id: true, job_assignment_id: true },
+					where: { id: { in: variationIds } },
+					columns: { id: true, job_assignment_id: true },
 					limit: Math.max(1, variationIds.length)
 				})
 			: [];
 		return new Map(
-			variations.map((variation) => [variation.norbital_id, variation.job_assignment_id ?? null])
+			variations.map((variation) => [variation.id, variation.job_assignment_id ?? null])
 		);
 	});
 }
@@ -176,7 +170,7 @@ function runAfterPhoto(
 ): Effect.Effect<void, unknown, never> {
 	return Effect.gen(function* () {
 		const columns = {
-			norbital_id: true,
+			id: true,
 			sha256: true,
 			job_assignment_id: true,
 			variation_request_id: true
@@ -195,54 +189,50 @@ function runAfterPhoto(
 					metric: 'l2',
 					maxDistance: VISUAL_DUPLICATE_MAX_L2,
 					limit: 50,
-					excludeIds: [record.norbital_id]
+					excludeIds: [record.id]
 				})
 			],
 			{ concurrency: 'unbounded' }
 		);
 
-		const flags = new Set<PhotoIntegrityFlag>(
-			record.flags.filter((flag): flag is PhotoIntegrityFlag =>
-				photoIntegrityFlags.some((candidate) => candidate === flag)
-			)
-		);
+		const flags = new Set(record.flags.filter((flag) => photoIntegrityFlagNames.has(flag)));
 		const matchedIds = new Set<string>();
 		const candidates = [
 			...new Map(
 				[...exactMatches, ...visualMatches]
-					.filter((candidate) => candidate.norbital_id !== record.norbital_id)
-					.map((candidate) => [candidate.norbital_id, candidate])
+					.filter((candidate) => candidate.id !== record.id)
+					.map((candidate) => [candidate.id, candidate])
 			).values()
 		];
 		const assignmentByVariation = yield* assignmentIdsForEvidence(api, [record, ...candidates]);
 		const currentAssignmentId = assignmentIdFromEvidence(record, assignmentByVariation);
 		const candidateAssignmentIds = new Map(
 			candidates.map((candidate) => [
-				candidate.norbital_id,
+				candidate.id,
 				assignmentIdFromEvidence(candidate, assignmentByVariation)
 			])
 		);
 
 		let recordedExactMatches = 0;
 		for (const candidate of exactMatches) {
-			if (candidate.norbital_id === record.norbital_id) continue;
-			if (candidateAssignmentIds.get(candidate.norbital_id) === currentAssignmentId) continue;
+			if (candidate.id === record.id) continue;
+			if (candidateAssignmentIds.get(candidate.id) === currentAssignmentId) continue;
 			flags.add('exact_duplicate');
-			matchedIds.add(candidate.norbital_id);
+			matchedIds.add(candidate.id);
 			recordedExactMatches += 1;
 			if (recordedExactMatches >= MAX_EXACT_DUPLICATE_MATCHES) break;
 		}
 		for (const candidate of visualMatches) {
-			if (candidate.norbital_id === record.norbital_id) continue;
+			if (candidate.id === record.id) continue;
 			if (candidate.sha256 === record.sha256) continue;
-			if (candidateAssignmentIds.get(candidate.norbital_id) === currentAssignmentId) continue;
+			if (candidateAssignmentIds.get(candidate.id) === currentAssignmentId) continue;
 			flags.add('visual_duplicate');
-			matchedIds.add(candidate.norbital_id);
+			matchedIds.add(candidate.id);
 		}
 		const mergedFlags = [...flags];
 		yield* api.db.photo_evidence.mutate([
 			{
-				norbital_id: record.norbital_id,
+				id: record.id,
 				flags: mergedFlags,
 				matched_evidence_ids: [...matchedIds]
 			}
@@ -259,11 +249,9 @@ function preparePhoto(
 		const asset = yield* api.readFileAsset(parsed.photo);
 		const mimeType = asset.mimeType;
 		if (mimeType == null || !mimeType.toLowerCase().startsWith('image/')) {
-			throw new Error('Photo evidence requires an image file.');
+			return yield* Effect.fail(new Error('Photo evidence requires an image file.'));
 		}
-		const inspected = yield* Effect.tryPromise(() =>
-			inspectPhoto({ bytes: asset.bytes, mimeType })
-		);
+		const inspected = yield* inspectPhoto({ bytes: asset.bytes, mimeType });
 		const geoFlags = evaluateCaptureGeolocation(
 			inspected.captureLocation,
 			coordinatesOf(siteLocation)
@@ -302,13 +290,13 @@ export default {
 				];
 				const variations = variationIds.length
 					? yield* api.db.query.variation_requests.findMany({
-							where: { norbital_id: { in: variationIds } },
-							columns: { norbital_id: true, job_assignment_id: true },
+							where: { id: { in: variationIds } },
+							columns: { id: true, job_assignment_id: true },
 							limit: MAX_BATCH_DUPLICATE_CORPUS
 						})
 					: [];
 				const assignmentByVariation = new Map(
-					variations.map((variation) => [variation.norbital_id, variation.job_assignment_id])
+					variations.map((variation) => [variation.id, variation.job_assignment_id])
 				);
 				const assignmentIds = [
 					...new Set([
@@ -322,13 +310,13 @@ export default {
 				];
 				const assignments = assignmentIds.length
 					? yield* api.db.query.job_assignments.findMany({
-							where: { norbital_id: { in: assignmentIds } },
-							columns: { norbital_id: true, job_id: true },
+							where: { id: { in: assignmentIds } },
+							columns: { id: true, job_id: true },
 							limit: MAX_BATCH_DUPLICATE_CORPUS
 						})
 					: [];
 				const jobByAssignment = new Map(
-					assignments.map((assignment) => [assignment.norbital_id, assignment.job_id])
+					assignments.map((assignment) => [assignment.id, assignment.job_id])
 				);
 				const jobIds = [
 					...new Set(
@@ -337,17 +325,17 @@ export default {
 				];
 				const jobs = jobIds.length
 					? yield* api.db.query.jobs.findMany({
-							where: { norbital_id: { in: jobIds } },
-							columns: { norbital_id: true, site_id: true },
+							where: { id: { in: jobIds } },
+							columns: { id: true, site_id: true },
 							limit: MAX_BATCH_DUPLICATE_CORPUS
 						})
 					: [];
-				const siteByJob = new Map(jobs.map((job) => [job.norbital_id, job.site_id]));
+				const siteByJob = new Map(jobs.map((job) => [job.id, job.site_id]));
 				const siteIds = [...new Set(jobs.flatMap((job) => (job.site_id ? [job.site_id] : [])))];
 				const sites = siteIds.length
 					? yield* api.db.query.sites.findMany({
-							where: { norbital_id: { in: siteIds } },
-							columns: { norbital_id: true, location: true },
+							where: { id: { in: siteIds } },
+							columns: { id: true, location: true },
 							limit: MAX_BATCH_DUPLICATE_CORPUS
 						})
 					: [];
@@ -355,7 +343,7 @@ export default {
 					assignmentByVariation,
 					jobByAssignment,
 					siteByJob,
-					locationBySite: new Map(sites.map((site) => [site.norbital_id, site.location]))
+					locationBySite: new Map(sites.map((site) => [site.id, site.location]))
 				};
 			}),
 		perRecord: {
@@ -364,23 +352,28 @@ export default {
 					'Accepts a photo only as an image filed against exactly one existing job assignment or variation request, then records its hash, perceptual fingerprint, and whether its capture location contradicts the site.',
 				handler: ({ input, prepared, api }) =>
 					Effect.gen(function* () {
-						const jobAssignmentId = input.job_assignment_id;
-						const variationRequestId = input.variation_request_id;
-						assertExactlyOnePhotoParent(jobAssignmentId, variationRequestId);
+						const parsed = yield* Schema.decodeUnknownEffect(photoEvidenceCreateInput)(input);
+						const jobAssignmentId = parsed.job_assignment_id;
+						const variationRequestId = parsed.variation_request_id;
+						yield* Effect.try(() =>
+							assertExactlyOnePhotoParent(jobAssignmentId, variationRequestId)
+						);
 
 						if (jobAssignmentId != null && jobAssignmentId !== '') {
 							if (!prepared.jobByAssignment.has(jobAssignmentId)) {
-								throw new Error('Referenced job assignment does not exist.');
+								return yield* Effect.fail(new Error('Referenced job assignment does not exist.'));
 							}
 						} else if (variationRequestId != null && variationRequestId !== '') {
 							if (!prepared.assignmentByVariation.has(variationRequestId)) {
-								throw new Error('Referenced variation request does not exist.');
+								return yield* Effect.fail(
+									new Error('Referenced variation request does not exist.')
+								);
 							}
 						}
 
 						return yield* preparePhoto(
 							api,
-							input,
+							parsed,
 							siteLocationFor(prepared, jobAssignmentId, variationRequestId)
 						);
 					})
@@ -388,10 +381,7 @@ export default {
 			after: {
 				description:
 					'Compares a newly filed photo against the rest of the evidence by hash and visual likeness and records deterministic evidence attributes for the multimodal review layer.',
-				handler: ({ record, api }) =>
-					Effect.gen(function* () {
-						yield* runAfterPhoto(record, api);
-					})
+				handler: ({ record, api }) => runAfterPhoto(record, api)
 			}
 		}
 	},
@@ -403,9 +393,9 @@ export default {
 				handler: ({ input, existing }) => {
 					assertPhotoEvidenceProvenanceUnchanged(input, existing);
 					const integrityChanged =
-						(input.flags != null && !sameStringSet(input.flags, existing.flags)) ||
+						(input.flags != null && !stringSetEquivalence(input.flags, existing.flags)) ||
 						(input.matched_evidence_ids != null &&
-							!sameStringSet(input.matched_evidence_ids, existing.matched_evidence_ids));
+							!stringSetEquivalence(input.matched_evidence_ids, existing.matched_evidence_ids));
 					return Effect.succeed(
 						integrityChanged
 							? {
