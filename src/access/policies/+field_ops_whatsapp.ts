@@ -5,7 +5,7 @@ import type { Policy } from './$types.js';
  *
  * The envoy names this policy directly. Runtime mints `envoy:field_ops_whatsapp` with this policy
  * and no team. When a sender's verified number matches a workspace account, only that person's
- * `norbital_id` is adopted so `${requestor.norbital_id}` can narrow rows; their team policies and
+ * `id` is adopted so `${requestor.id}` can narrow rows; their team policies and
  * administrator status never cross the envoy boundary. Because the declaration is authenticated,
  * an unrecognised number receives registration guidance and no model turn.
  *
@@ -14,7 +14,7 @@ import type { Policy } from './$types.js';
  * This policy previously granted `job_assignments` `update` and nothing else, on the stated grounds
  * that "there is no requestor identity behind a transport message, and the platform cannot scope
  * grants by conversation or messenger". That premise is no longer true: an envoy turn carries the
- * linked contractor as its requestor, so `${requestor.norbital_id}` scopes here
+ * linked contractor as its requestor, so `${requestor.id}` scopes here
  * exactly as it does in `+field_ops_contractor.ts`.
  *
  * The old shape was also unusable in practice. An agent that may update an assignment but may read
@@ -43,21 +43,21 @@ import type { Policy } from './$types.js';
  */
 
 /** The whole of the self-scope, the same expression `+field_ops_contractor.ts` is built on. */
-const ownAssignment = { assignee_user_id: { eq: '${requestor.norbital_id}' } } as const;
+const ownAssignment = { assignee_user_id: { eq: '${requestor.id}' } } as const;
 
 /** Jobs the caller was assigned. */
 const assignedJob = {
 	$sql:
-		'"norbital_id" IN (SELECT a.job_id FROM job_assignments a ' +
-		'WHERE a.assignee_user_id = ${requestor.norbital_id})'
+		'"id" IN (SELECT a.job_id FROM job_assignments a ' +
+		'WHERE a.assignee_user_id = ${requestor.id})'
 } as const;
 
 /** Sites reachable through one of the caller's own assignments. */
 const assignedSite = {
 	$sql:
-		'"norbital_id" IN (SELECT j.site_id FROM jobs j ' +
-		'JOIN job_assignments a ON a.job_id = j.norbital_id ' +
-		'WHERE a.assignee_user_id = ${requestor.norbital_id})'
+		'"id" IN (SELECT j.site_id FROM jobs j ' +
+		'JOIN job_assignments a ON a.job_id = j.id ' +
+		'WHERE a.assignee_user_id = ${requestor.id})'
 } as const;
 
 export default {

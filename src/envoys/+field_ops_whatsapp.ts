@@ -5,7 +5,7 @@ import type { Envoy } from './$types.js';
  *
  * A sender's number is matched against the verified messaging identities on workspace accounts. A
  * match makes that contractor the policy *requestor*, so every grant carrying
- * `${requestor.norbital_id}` narrows to their own work — it does not change what this envoy may do.
+ * `${requestor.id}` narrows to their own work — it does not change what this envoy may do.
  * `field_ops_whatsapp` is the ceiling either way, and an administrator's verified number reaches no
  * more through here than anyone else's. Unknown senders get the registration prompt and no model run.
  *

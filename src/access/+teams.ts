@@ -63,7 +63,7 @@ export default {
 	 *
 	 * "Contractor" is a **role**, and this key is the whole of what one is. There is no collection
 	 * describing a contractor and nothing to link a person to: an assignment names its assignee by
-	 * `bolt_auth_user.norbital_id`, and holding this policy is what turns that person into somebody
+	 * `bolt_auth_user.id`, and holding this policy is what turns that person into somebody
 	 * who sees only their own.
 	 *
 	 * That also settles where a contractor's *company* lives, which is nowhere. A team is authority,

@@ -2,36 +2,10 @@ import { createHash } from 'node:crypto';
 import exifr from 'exifr';
 import { decode as decodePng } from 'fast-png';
 import { decode as decodeJpeg } from 'jpeg-js';
-import { Option, Schema } from 'effect';
+import { deepDiff, safeParse } from '@norbital-ai/std/json';
+import { Clock, Effect, Exit, Option, Schema } from 'effect';
 import { hashPdq, pdqHashToHex } from './pdq.js';
-
-const SITE_LOCATION_TOLERANCE_M = 500;
-
-function haversineMeters(
-	lat1: number | null | undefined,
-	lon1: number | null | undefined,
-	lat2: number | null | undefined,
-	lon2: number | null | undefined
-): number | null {
-	if (lat1 == null || lon1 == null || lat2 == null || lon2 == null) return null;
-	const R = 6371000;
-	const toRad = (deg: number) => (deg * Math.PI) / 180;
-	const dLat = toRad(lat2 - lat1);
-	const dLon = toRad(lon2 - lon1);
-	const a =
-		Math.sin(dLat / 2) ** 2 +
-		Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2;
-	return Math.round(2 * R * Math.asin(Math.sqrt(a)));
-}
-
-function exceedsSiteTolerance(
-	left: { lat: number; lon: number } | null | undefined,
-	right: { lat: number; lon: number } | null | undefined,
-	maxDistanceM = SITE_LOCATION_TOLERANCE_M
-): boolean {
-	const distanceM = haversineMeters(left?.lat, left?.lon, right?.lat, right?.lon);
-	return distanceM != null && distanceM > maxDistanceM;
-}
+import { exceedsSiteTolerance, SITE_LOCATION_TOLERANCE_M } from '../../lib/geo.js';
 
 const exifSchema = Schema.Struct({
 	DateTimeOriginal: Schema.optional(Schema.Union([Schema.Date, Schema.String])),
@@ -57,15 +31,18 @@ export const photoIntegrityFlags = [
 	'location_mismatch'
 ] as const;
 
-export type PhotoIntegrityFlag = (typeof photoIntegrityFlags)[number];
-export const PHOTO_INTEGRITY_INSPECTION_PROFILE = 'field-operations.photo-integrity.v1';
+type PhotoIntegrityFlag = (typeof photoIntegrityFlags)[number];
+
+const photoIntegrityFlagNames = new Set<string>(photoIntegrityFlags);
 
 const hexDigest = Schema.String.check(Schema.isPattern(/^[a-f0-9]{64}$/));
 const positiveInt = Schema.Int.check(Schema.isGreaterThan(0));
 
-export const photoInspectionSchema = Schema.Struct({
+const photoInspectionSchema = Schema.Struct({
 	sha256: hexDigest,
+	/** Meta PDQ hash as 64-char hex (256-bit). */
 	perceptualHash: hexDigest,
+	/** PDQ quality score 0–100; Meta recommends discarding ≤49. */
 	pdqQuality: Schema.optional(Schema.Number.check(Schema.isBetween({ minimum: 0, maximum: 100 }))),
 	width: positiveInt,
 	height: positiveInt,
@@ -76,35 +53,25 @@ export const photoInspectionSchema = Schema.Struct({
 /** Throws on any fact shape the host inspection cache was not supposed to be able to produce. */
 export const decodePhotoInspection = Schema.decodeUnknownSync(photoInspectionSchema);
 
-export interface PhotoInspection {
-	sha256: string;
-	/** Meta PDQ hash as 64-char hex (256-bit). */
-	perceptualHash: string;
-	/** PDQ quality score 0–100; Meta recommends discarding ≤49. */
-	pdqQuality?: number;
-	width: number;
-	height: number;
-	captureLocation: { lat: number; lon: number } | null;
-	flags: PhotoIntegrityFlag[];
-}
-
 /**
  * Meta PDQ near-duplicate threshold as Hamming distance (ThreatExchange default ≤31).
  * Stored as a 256-dim 0/1 `vector`; L2 distance equals √Hamming, so the DB threshold is √31.
  */
-export const VISUAL_DUPLICATE_MAX_HAMMING = 31;
+const VISUAL_DUPLICATE_MAX_HAMMING = 31;
 export const VISUAL_DUPLICATE_MAX_L2 = Math.sqrt(VISUAL_DUPLICATE_MAX_HAMMING);
 
 /** Below this PDQ quality, the hash is too featureless to trust for similarity. */
-export const PDQ_MIN_QUALITY = 50;
+const PDQ_MIN_QUALITY = 50;
 
-interface DecodedImage {
-	readonly data: Uint8Array;
-	readonly width: number;
-	readonly height: number;
-	readonly channels: 3 | 4;
-	readonly format: 'jpeg' | 'png';
-}
+const decodedImageSchema = Schema.Struct({
+	data: Schema.Uint8Array,
+	width: Schema.Int,
+	height: Schema.Int,
+	channels: Schema.Literals([3, 4]),
+	format: Schema.Literals(['jpeg', 'png'])
+});
+
+type DecodedImage = Schema.Schema.Type<typeof decodedImageSchema>;
 
 function toIsoDate(value: Date | string | undefined): string | null {
 	if (value == null) return null;
@@ -178,76 +145,76 @@ function decodeImage(bytes: Uint8Array): DecodedImage {
  * embeddings (HNSW + L2). Exact duplicates
  * still use SHA-256. EXIF/GPS stays on `exifr`.
  */
-export async function inspectPhoto(input: {
-	bytes: Uint8Array;
-	mimeType: string;
-	now?: Date;
-}): Promise<PhotoInspection> {
-	const image = decodeImage(input.bytes);
-	// PNG decodes as RGBA; JPEG already returns RGB so the common photo path holds one raster.
-	const rgb =
-		image.channels === 3
-			? image.data
-			: (() => {
-					const output = new Uint8Array(image.width * image.height * 3);
-					for (let i = 0, j = 0; i < image.data.length; i += 4, j += 3) {
-						output[j] = image.data[i];
-						output[j + 1] = image.data[i + 1];
-						output[j + 2] = image.data[i + 2];
-					}
-					return output;
-				})();
-	const pdq = await hashPdq({
-		data: rgb,
-		width: image.width,
-		height: image.height,
-		channels: 3
-	});
-	const perceptualHash = pdqHashToHex(pdq.hash);
+export const inspectPhoto = (input: { bytes: Uint8Array; mimeType: string; now?: Date }) =>
+	Effect.gen(function* () {
+		const image = yield* Effect.try(() => decodeImage(input.bytes));
+		// PNG decodes as RGBA; JPEG already returns RGB so the common photo path holds one raster.
+		const rgb =
+			image.channels === 3
+				? image.data
+				: (() => {
+						const output = new Uint8Array(image.width * image.height * 3);
+						for (let i = 0, j = 0; i < image.data.length; i += 4, j += 3) {
+							output[j] = image.data[i];
+							output[j + 1] = image.data[i + 1];
+							output[j + 2] = image.data[i + 2];
+						}
+						return output;
+					})();
+		const pdq = yield* hashPdq({
+			data: rgb,
+			width: image.width,
+			height: image.height,
+			channels: 3
+		});
+		const perceptualHash = pdqHashToHex(pdq.hash);
 
-	let exif: Exif = {};
-	try {
-		const parsed = decodeExif(
-			await exifr.parse(input.bytes, {
+		let exif: Exif = {};
+		const parsedExif = yield* Effect.tryPromise(() =>
+			exifr.parse(input.bytes, {
 				pick: ['DateTimeOriginal', 'CreateDate', 'Software', 'GPSLatitude', 'GPSLongitude']
 			})
+		).pipe(
+			Effect.map(decodeExif),
+			Effect.catch((error: unknown) =>
+				Effect.logWarning('[field-ops-photo-evidence] EXIF parsing failed', error).pipe(
+					Effect.as(Option.none<Exif>())
+				)
+			)
 		);
-		if (Option.isSome(parsed)) exif = parsed.value;
-	} catch (error) {
-		console.warn('[field-ops-photo-evidence] EXIF parsing failed', error);
-	}
+		if (Option.isSome(parsedExif)) exif = parsedExif.value;
 
-	const sha256 = createHash('sha256').update(input.bytes).digest('hex');
-	const flags = new Set<PhotoIntegrityFlag>();
-	const capturedAt = toIsoDate(exif.DateTimeOriginal ?? exif.CreateDate);
-	const now = input.now ?? new Date();
-	const expectedMime = expectedMimeType(image.format);
-	if (
-		input.mimeType.toLowerCase() !== expectedMime ||
-		(capturedAt != null && new Date(capturedAt).getTime() > now.getTime() + 24 * 60 * 60 * 1000)
-	) {
-		flags.add('metadata_anomaly');
-	}
-	if (
-		exif.Software != null &&
-		/photoshop|lightroom|gimp|snapseed|pixelmator/i.test(exif.Software)
-	) {
-		flags.add('edited_metadata');
-	}
-	if (image.width < 640 || image.height < 480 || pdq.quality < PDQ_MIN_QUALITY) {
-		flags.add('low_quality');
-	}
+		const sha256 = createHash('sha256').update(input.bytes).digest('hex');
+		const flags = new Set<PhotoIntegrityFlag>();
+		const capturedAt = toIsoDate(exif.DateTimeOriginal ?? exif.CreateDate);
+		const now = input.now ?? new Date(yield* Clock.currentTimeMillis);
+		const expectedMime = expectedMimeType(image.format);
+		if (
+			input.mimeType.toLowerCase() !== expectedMime ||
+			(capturedAt != null && new Date(capturedAt).getTime() > now.getTime() + 24 * 60 * 60 * 1000)
+		) {
+			flags.add('metadata_anomaly');
+		}
+		if (
+			exif.Software != null &&
+			/photoshop|lightroom|gimp|snapseed|pixelmator/i.test(exif.Software)
+		) {
+			flags.add('edited_metadata');
+		}
+		if (image.width < 640 || image.height < 480 || pdq.quality < PDQ_MIN_QUALITY) {
+			flags.add('low_quality');
+		}
 
-	return {
-		sha256,
-		perceptualHash,
-		pdqQuality: pdq.quality,
-		width: image.width,
-		height: image.height,
-		captureLocation: captureLocationFromExif(exif),
-		flags: [...flags]
-	};
-}
+		return {
+			sha256,
+			perceptualHash,
+			pdqQuality: pdq.quality,
+			width: image.width,
+			height: image.height,
+			captureLocation: captureLocationFromExif(exif),
+			flags: [...flags]
+		};
+	});
 
 /**
  * Compare the photo's GPS capture point against the job site's map location. Missing capture
@@ -279,13 +246,17 @@ export function assertExactlyOnePhotoParent(
 	}
 }
 
-export interface PhotoEvidenceProvenance {
-	readonly job_assignment_id?: string | null;
-	readonly variation_request_id?: string | null;
-	readonly photo?: { readonly storage_key?: unknown } | null;
-	readonly source_key?: string | null;
-	readonly source?: unknown;
-}
+const photoEvidenceProvenanceSchema = Schema.Struct({
+	job_assignment_id: Schema.optional(Schema.NullOr(Schema.String)),
+	variation_request_id: Schema.optional(Schema.NullOr(Schema.String)),
+	photo: Schema.optional(
+		Schema.NullOr(Schema.Struct({ storage_key: Schema.optional(Schema.Unknown) }))
+	),
+	source_key: Schema.optional(Schema.NullOr(Schema.String)),
+	source: Schema.optional(Schema.Unknown)
+});
+
+type PhotoEvidenceProvenance = Schema.Schema.Type<typeof photoEvidenceProvenanceSchema>;
 
 /**
  * Which bytes a `photo` value names, or nothing.
@@ -324,44 +295,43 @@ export function assertPhotoEvidenceProvenanceUnchanged(
 			);
 		}
 	}
-	if (
-		input.source !== undefined &&
-		JSON.stringify(input.source) !== JSON.stringify(existing.source)
-	) {
-		throw new Error(
-			'Photo evidence provenance is immutable; create new evidence to change its source.'
-		);
-	}
-}
-
-export interface DuplicateEvidenceInput {
-	readonly id: string;
-	readonly sha256: string;
-	readonly perceptualEmbedding: readonly number[] | string;
-	readonly flags: readonly string[];
-	readonly assignmentId: string | null;
-}
-
-export interface DuplicateEvidenceUpdate {
-	readonly id: string;
-	readonly flags: PhotoIntegrityFlag[];
-	readonly matchedEvidenceIds: string[];
-	readonly assignmentId: string | null;
-}
-
-function parseEmbedding(value: readonly number[] | string): readonly number[] | null {
-	if (typeof value === 'string') {
-		try {
-			const parsed: unknown = JSON.parse(value);
-			return Array.isArray(parsed) && parsed.every((entry) => typeof entry === 'number')
-				? parsed
-				: null;
-		} catch {
-			return null;
+	if (input.source !== undefined) {
+		if (deepDiff(input.source, existing.source).length > 0) {
+			throw new Error(
+				'Photo evidence provenance is immutable; create new evidence to change its source.'
+			);
 		}
 	}
-	return value;
 }
+
+const duplicateEvidenceInputSchema = Schema.Struct({
+	id: Schema.String,
+	sha256: Schema.String,
+	perceptualEmbedding: Schema.Union([Schema.Array(Schema.Number), Schema.String]),
+	flags: Schema.Array(Schema.Literals(photoIntegrityFlags)),
+	assignmentId: Schema.NullOr(Schema.String)
+});
+
+type DuplicateEvidenceInput = Schema.Schema.Type<typeof duplicateEvidenceInputSchema>;
+
+const duplicateEvidenceUpdateSchema = Schema.Struct({
+	id: Schema.String,
+	flags: Schema.Array(Schema.Literals(photoIntegrityFlags)),
+	matchedEvidenceIds: Schema.Array(Schema.String),
+	assignmentId: Schema.NullOr(Schema.String)
+});
+
+type DuplicateEvidenceUpdate = Schema.Schema.Type<typeof duplicateEvidenceUpdateSchema>;
+
+function parseEmbedding(value: readonly number[] | string): readonly number[] | null {
+	if (typeof value !== 'string') return value;
+	const parsed = safeParse(value);
+	if (parsed === null) return null;
+	const decoded = Schema.decodeUnknownExit(embeddingSchema)(parsed);
+	return Exit.isFailure(decoded) ? null : decoded.value;
+}
+
+const embeddingSchema = Schema.Array(Schema.Number);
 
 function squaredL2(left: readonly number[], right: readonly number[]): number | null {
 	if (left.length !== right.length || left.length === 0) return null;
@@ -393,11 +363,7 @@ export function planDuplicateEvidenceBatch(
 	}
 	return corpus.flatMap((record) => {
 		if (!targetIds.has(record.id)) return [];
-		const flags = new Set<PhotoIntegrityFlag>(
-			record.flags.filter((flag): flag is PhotoIntegrityFlag =>
-				photoIntegrityFlags.some((candidate) => candidate === flag)
-			)
-		);
+		const flags = new Set(record.flags.filter((flag) => photoIntegrityFlagNames.has(flag)));
 		const matchedEvidenceIds = new Set<string>();
 		const exactCandidates = (exactByHash.get(record.sha256) ?? [])
 			.filter(

@@ -7,14 +7,14 @@ export default {
 			'Bundles each site with its jobs, assignments, variation requests and photo evidence into one JSON file plus a CSV per table, for handover to another system.',
 		handler: ({ records }, api) =>
 			Effect.gen(function* () {
-				const siteIds = records.map((site) => site.norbital_id);
+				const siteIds = records.map((site) => site.id);
 				if (siteIds.length === 0) return [];
 
 				const jobs = yield* api.db.query.jobs.findMany({
 					where: { site_id: { in: siteIds } },
 					limit: 1_000
 				});
-				const jobIds = jobs.map((job) => job.norbital_id);
+				const jobIds = jobs.map((job) => job.id);
 				const assignments =
 					jobIds.length > 0
 						? yield* api.db.query.job_assignments.findMany({
@@ -22,7 +22,7 @@ export default {
 								limit: 5_000
 							})
 						: [];
-				const assignmentIds = assignments.map((assignment) => assignment.norbital_id);
+				const assignmentIds = assignments.map((assignment) => assignment.id);
 				const variations =
 					assignmentIds.length > 0
 						? yield* api.db.query.variation_requests.findMany({
@@ -30,7 +30,7 @@ export default {
 								limit: 5_000
 							})
 						: [];
-				const variationIds = variations.map((variation) => variation.norbital_id);
+				const variationIds = variations.map((variation) => variation.id);
 				const evidence =
 					assignmentIds.length > 0 || variationIds.length > 0
 						? yield* api.db.query.photo_evidence.findMany({
@@ -49,30 +49,26 @@ export default {
 						: [];
 
 				return records.map((site) => {
-					const siteJobs = jobs.filter((job) => job.site_id === site.norbital_id);
-					const siteJobIds = new Set(siteJobs.map((job) => job.norbital_id));
+					const siteJobs = jobs.filter((job) => job.site_id === site.id);
+					const siteJobIds = new Set(siteJobs.map((job) => job.id));
 					const siteAssignments = assignments.filter((assignment) =>
 						siteJobIds.has(assignment.job_id)
 					);
-					const siteAssignmentIds = new Set(
-						siteAssignments.map((assignment) => assignment.norbital_id)
-					);
+					const siteAssignmentIds = new Set(siteAssignments.map((assignment) => assignment.id));
 					const siteVariations = variations.filter((variation) =>
 						siteAssignmentIds.has(variation.job_assignment_id)
 					);
-					const siteVariationIds = new Set(
-						siteVariations.map((variation) => variation.norbital_id)
-					);
+					const siteVariationIds = new Set(siteVariations.map((variation) => variation.id));
 					const siteEvidence = evidence.filter(
 						(photo) =>
 							(photo.job_assignment_id != null && siteAssignmentIds.has(photo.job_assignment_id)) ||
 							(photo.variation_request_id != null &&
 								siteVariationIds.has(photo.variation_request_id))
 					);
-					const code = (site.name || site.norbital_id).replace(/[^a-z0-9_-]/gi, '_');
+					const code = (site.name || site.id).replace(/[^a-z0-9_-]/gi, '_');
 
 					const jobRows = siteJobs.map((job) => ({
-						record_id: job.norbital_id,
+						record_id: job.id,
 						site_id: job.site_id,
 						title: job.title,
 						nature: job.nature,
@@ -81,7 +77,7 @@ export default {
 						description: job.description
 					}));
 					const assignmentRows = siteAssignments.map((assignment) => ({
-						record_id: assignment.norbital_id,
+						record_id: assignment.id,
 						job_id: assignment.job_id,
 						assignee_user_id: assignment.assignee_user_id,
 						dispatched_at: assignment.dispatched_at,
@@ -92,16 +88,16 @@ export default {
 						location: assignment.location
 					}));
 					const variationRows = siteVariations.map((variation) => ({
-						record_id: variation.norbital_id,
+						record_id: variation.id,
 						job_assignment_id: variation.job_assignment_id,
 						requested_at: variation.requested_at,
 						title: variation.title,
 						description: variation.description,
 						amount: variation.amount,
-						approval_request_id: variation.norbital_approval_id
+						approval_request_id: variation.approval_id
 					}));
 					const evidenceRows = siteEvidence.map((photo) => ({
-						record_id: photo.norbital_id,
+						record_id: photo.id,
 						job_assignment_id: photo.job_assignment_id,
 						variation_request_id: photo.variation_request_id,
 						photo: photo.photo,
@@ -155,7 +151,7 @@ export default {
 						],
 						metadata: {
 							schema: 'norbital.field_operations.interoperability.v1',
-							site_id: site.norbital_id
+							site_id: site.id
 						}
 					};
 				});

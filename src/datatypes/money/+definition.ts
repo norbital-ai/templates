@@ -1,14 +1,10 @@
 import { defineCustomType } from '@norbital-ai/bolt/authoring';
+import { MoneyValueSchema } from '@norbital-ai/std/finance';
 import { Schema } from 'effect';
 
 export interface MoneyOptions {
 	readonly allowedCurrencies?: readonly [string, ...string[]];
 }
-
-const moneyValueSchema = Schema.Struct({
-	value: Schema.Finite,
-	currency: Schema.String.check(Schema.isPattern(/^[A-Z]{3}$/))
-});
 
 export default defineCustomType({
 	name: 'money',
@@ -17,10 +13,10 @@ export default defineCustomType({
 	schema: (options: MoneyOptions = {}) =>
 		Schema.toStandardSchemaV1(
 			Schema.Struct({
-				...moneyValueSchema.fields,
+				...MoneyValueSchema.fields,
 				currency: options.allowedCurrencies
 					? Schema.Literals(options.allowedCurrencies)
-					: moneyValueSchema.fields.currency
+					: MoneyValueSchema.fields.currency
 			}),
 			{ parseOptions: { onExcessProperty: 'error' } }
 		)

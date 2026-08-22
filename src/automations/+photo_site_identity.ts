@@ -1,13 +1,13 @@
 import { defineAutomation } from '@norbital-ai/bolt/authoring';
-import { Effect } from 'effect';
+import { Effect, Schema } from 'effect';
 import {
 	loadPhotoSiteIdentityContexts,
-	reconcilePhotoSiteIdentity,
-	type PhotoEvidenceReviewRecord
+	photoEvidenceReviewRecordSchema,
+	reconcilePhotoSiteIdentity
 } from './photo-site-identity.js';
 
 const reviewColumns = {
-	norbital_id: true,
+	id: true,
 	job_assignment_id: true,
 	variation_request_id: true,
 	photo: true,
@@ -35,15 +35,16 @@ export default defineAutomation(
 		handler: (api, { scope }) =>
 			Effect.gen(function* () {
 				const evidence = yield* api.db.query.photo_evidence.findFirst({
-					where: { norbital_id: { eq: scope.incoming_record.norbital_id } },
+					where: { id: { eq: scope.incoming_record.id } },
 					columns: reviewColumns
 				});
 				if (evidence == null) {
 					return { status: 'skipped', reason: 'photo evidence no longer exists' };
 				}
-				const [context] = yield* loadPhotoSiteIdentityContexts(api, [
-					evidence as PhotoEvidenceReviewRecord
-				]);
+				const reviewRecord = yield* Schema.decodeUnknownEffect(photoEvidenceReviewRecordSchema)(
+					evidence
+				);
+				const [context] = yield* loadPhotoSiteIdentityContexts(api, [reviewRecord]);
 				if (context == null) return { status: 'skipped', reason: 'review context unavailable' };
 				return yield* reconcilePhotoSiteIdentity(api, context);
 			})

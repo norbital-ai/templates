@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { client } from '../lib/workspace-client.js';
+	import { collectionClient } from '../lib/collection-client.js';
 	import { getPlatformStateContext } from '@norbital-ai/bolt/client';
 	import { useI18n } from '@norbital-ai/ui/i18n';
 	import type { TenantI18nKeys } from '$bolt/i18n-keys';
@@ -13,7 +14,7 @@
 	/**
 	 * Who is looking, answered by what the runtime says they may open — never by a client-side id.
 	 *
-	 * Never filter by `getPlatformStateContext()().user.norbital_id`. Despite its name that value is
+	 * Never filter by `getPlatformStateContext()().user.id`. Despite its name that value is
 	 * not an id at all: the shell
 	 * builds it as `user.name`, which the workspace host builds as the local part of the signed-in
 	 * address. So the filter sent `user_id = 'dion.neo'` to a `uuid()` column and every viewer got a
@@ -53,25 +54,27 @@
 	const usersQuery = $derived(
 		dispatchAuthority
 			? client.db.bolt_auth_user.findMany({
-					columns: { norbital_id: true, name: true },
+					columns: { id: true, name: true },
 					orderBy: { name: 'asc' },
 					limit: 500
 				})
 			: undefined
 	);
 	const assigneeNameById = $derived(
-		new Map((usersQuery?.current ?? []).map((user) => [user.norbital_id, user.name]))
+		new Map((usersQuery?.current ?? []).map((user) => [user.id, user.name]))
 	);
 
-	const jobsQuery = client.db.jobs.findMany({
-		orderBy: { scheduled_for: 'desc' },
-		limit: 250
-	});
-	const sitesQuery = client.db.sites.findMany({ orderBy: { name: 'asc' }, limit: 250 });
-	const siteById = $derived(
-		new Map((sitesQuery.current ?? []).map((site) => [site.norbital_id, site.name]))
+	const jobsQuery = $derived(
+		client.db.jobs.findMany({
+			orderBy: { scheduled_for: 'desc' },
+			limit: 250
+		})
 	);
-	const jobById = $derived(new Map((jobsQuery.current ?? []).map((job) => [job.norbital_id, job])));
+	const sitesQuery = $derived(client.db.sites.findMany({ orderBy: { name: 'asc' }, limit: 250 }));
+	const siteById = $derived(
+		new Map((sitesQuery.current ?? []).map((site) => [site.id, site.name]))
+	);
+	const jobById = $derived(new Map((jobsQuery.current ?? []).map((job) => [job.id, job])));
 </script>
 
 <svelte:head>
@@ -117,7 +120,7 @@
 <Cover as="main" gap="md" top={scopeNotice}>
 	<Bound size="full" inset>
 		<CollectionTable
-			{client}
+			client={collectionClient}
 			collection="job_assignments"
 			title={t('app.field_ops_contractor.dispatched_jobs')}
 			description={t('app.field_ops_contractor.dispatched_jobs_description')}

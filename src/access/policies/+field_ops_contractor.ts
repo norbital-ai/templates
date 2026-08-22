@@ -4,7 +4,7 @@ import type { Policy } from './$types.js';
  * The contractor: the jobs they were assigned, and nothing else.
  *
  * A contractor is a **user**, not a record. `job_assignments.assignee_user_id` is
- * `bolt_auth_user.norbital_id`, so the assignment collection carries the requestor directly and the
+ * `bolt_auth_user.id`, so the assignment collection carries the requestor directly and the
  * self-scope is a column comparison — `ownAssignment` below is an ordinary `where`, not a subquery.
  * Everything else is one hop from an assignment, so each remaining `$sql` reaches the requestor
  * through `job_assignments` alone.
@@ -15,7 +15,7 @@ import type { Policy } from './$types.js';
  * thing this policy used to have to subquery through, and the reason the contractor app could report
  * a lookup failure as "Could not load your contractor profile" — there is now no profile to load.
  *
- * `${requestor.norbital_id}` is **not** interpolated here: these are single-quoted strings, so the
+ * `${requestor.id}` is **not** interpolated here: these are single-quoted strings, so the
  * literal token reaches the database, and the policy compiler replaces it with a bound parameter on
  * every request. An unknown path throws rather than binding null, so a renamed scope root fails loudly.
  *
@@ -30,28 +30,28 @@ import type { Policy } from './$types.js';
  *
  * This is the whole of the self-scope. Every other condition below is written in terms of it.
  */
-const ownAssignment = { assignee_user_id: { eq: '${requestor.norbital_id}' } } as const;
+const ownAssignment = { assignee_user_id: { eq: '${requestor.id}' } } as const;
 
 /** Sites reachable through an assignment. */
 const assignedSite = {
 	$sql:
-		'"norbital_id" IN (SELECT j.site_id FROM jobs j ' +
-		'JOIN job_assignments a ON a.job_id = j.norbital_id ' +
-		'WHERE a.assignee_user_id = ${requestor.norbital_id})'
+		'"id" IN (SELECT j.site_id FROM jobs j ' +
+		'JOIN job_assignments a ON a.job_id = j.id ' +
+		'WHERE a.assignee_user_id = ${requestor.id})'
 } as const;
 
 /** Jobs they were assigned. */
 const assignedJob = {
 	$sql:
-		'"norbital_id" IN (SELECT a.job_id FROM job_assignments a ' +
-		'WHERE a.assignee_user_id = ${requestor.norbital_id})'
+		'"id" IN (SELECT a.job_id FROM job_assignments a ' +
+		'WHERE a.assignee_user_id = ${requestor.id})'
 } as const;
 
 /** Variations raised against one of their own assignments. */
 const ownVariation = {
 	$sql:
-		'"job_assignment_id" IN (SELECT a.norbital_id FROM job_assignments a ' +
-		'WHERE a.assignee_user_id = ${requestor.norbital_id})'
+		'"job_assignment_id" IN (SELECT a.id FROM job_assignments a ' +
+		'WHERE a.assignee_user_id = ${requestor.id})'
 } as const;
 
 /**
@@ -60,11 +60,11 @@ const ownVariation = {
  */
 const ownEvidence = {
 	$sql:
-		'("job_assignment_id" IN (SELECT a.norbital_id FROM job_assignments a ' +
-		'WHERE a.assignee_user_id = ${requestor.norbital_id}) ' +
-		'OR "variation_request_id" IN (SELECT variation.norbital_id FROM variation_requests variation ' +
-		'WHERE variation.job_assignment_id IN (SELECT a.norbital_id FROM job_assignments a ' +
-		'WHERE a.assignee_user_id = ${requestor.norbital_id})))'
+		'("job_assignment_id" IN (SELECT a.id FROM job_assignments a ' +
+		'WHERE a.assignee_user_id = ${requestor.id}) ' +
+		'OR "variation_request_id" IN (SELECT variation.id FROM variation_requests variation ' +
+		'WHERE variation.job_assignment_id IN (SELECT a.id FROM job_assignments a ' +
+		'WHERE a.assignee_user_id = ${requestor.id})))'
 } as const;
 
 /**

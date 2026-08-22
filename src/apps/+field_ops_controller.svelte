@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { client } from '../lib/workspace-client.js';
+	import { collectionClient } from '../lib/collection-client.js';
 	import { Button } from '@norbital-ai/ui/button';
 	import { useI18n } from '@norbital-ai/ui/i18n';
 	import type { TenantI18nKeys } from '$bolt/i18n-keys';
@@ -12,27 +13,7 @@
 	import { StaticMap, type StaticMapMarker } from '@norbital-ai/ui/static-map';
 	import { Tabs, type TabConfig } from '@norbital-ai/ui/tabs';
 	import Icon from '@iconify/svelte';
-
-	const FIELD_TIME_ZONE = 'Asia/Singapore';
-
-	function calendarDateInTimeZone(value: Date): string {
-		const parts = new Intl.DateTimeFormat('en', {
-			timeZone: FIELD_TIME_ZONE,
-			year: 'numeric',
-			month: '2-digit',
-			day: '2-digit'
-		}).formatToParts(value);
-		const valueFor = (type: Intl.DateTimeFormatPartTypes) =>
-			parts.find((part) => part.type === type)?.value ?? '';
-		return `${valueFor('year')}-${valueFor('month')}-${valueFor('day')}`;
-	}
-
-	interface AssignmentForm {
-		jobId: string | null;
-		assigneeUserId: string | null;
-		saving: boolean;
-		error: string | null;
-	}
+	import { calendarDateInTimeZone } from '../lib/calendar-date.js';
 
 	const today = calendarDateInTimeZone(new Date());
 
@@ -49,7 +30,7 @@
 	// Reactive board query: when the dispatch day changes the dashboard refetches, the assignment
 	// id list changes, and the kanban refetches automatically — no `{#key}` re-mount hack needed.
 	const boardQuery = $derived({
-		where: { norbital_id: { in: dashboardQuery.current?.assignment_ids ?? [] } },
+		where: { id: { in: dashboardQuery.current?.assignment_ids ?? [] } },
 		orderBy: { dispatched_at: 'asc' as const }
 	});
 	// View-level lane presentation: labels/colors live here, not on the model (pure data schema).
@@ -87,15 +68,13 @@
 	/**
 	 * Asked of the record, not of its key.
 	 *
-	 * Reading `assignment.norbital_id` straight into a component prop trips `authored-system-columns`,
+	 * Reading `assignment.id` straight into a component prop trips `authored-system-columns`,
 	 * and the rule is right: a surface threading the framework's own key back into a framework prop is
 	 * telling it something it already knows. The question here is "is this one flagged", so that is
 	 * what the surface asks.
 	 */
-	const isSuspicious = (assignment: { readonly norbital_id: string }): boolean =>
-		suspiciousAssignmentIds.has(assignment.norbital_id);
-	function assignmentRecordMetadata(assignment: { readonly norbital_id: string }) {
-		if (!isSuspicious(assignment)) return [] as const;
+	function assignmentRecordMetadata(assignment: { readonly id: string }) {
+		if (!suspiciousAssignmentIds.has(assignment.id)) return [] as const;
 		return [
 			{
 				kind: 'flag',
@@ -123,41 +102,44 @@
 	 * whoever a job is dispatched to.
 	 *
 	 * The directory is every user, not only contractors: a person's team is not readable through the
-	 * identity field mask (`norbital_id` and `name`, nothing else), so this list cannot be narrowed
+	 * identity field mask (`id` and `name`, nothing else), so this list cannot be narrowed
 	 * client-side to the `Contractor` team. Dispatching to somebody whose team confers no contractor
 	 * policy produces a valid assignment they simply cannot open, which is a visible mistake rather
 	 * than a silent one.
 	 */
-	const usersQuery = client.db.bolt_auth_user.findMany({
-		columns: { norbital_id: true, name: true },
-		orderBy: { name: 'asc' },
-		limit: 500
-	});
-	const sitesQuery = client.db.sites.findMany({
-		orderBy: { name: 'asc' },
-		limit: 250
-	});
-	const siteNameById = $derived(
-		new Map((sitesQuery.current ?? []).map((site) => [site.norbital_id, site.name]))
+	const usersQuery = $derived(
+		client.db.bolt_auth_user.findMany({
+			columns: { id: true, name: true },
+			orderBy: { name: 'asc' },
+			limit: 500
+		})
 	);
-	let assignment = $state<AssignmentForm>({
+	const sitesQuery = $derived(
+		client.db.sites.findMany({
+			orderBy: { name: 'asc' },
+			limit: 250
+		})
+	);
+	const siteNameById = $derived(
+		new Map((sitesQuery.current ?? []).map((site) => [site.id, site.name]))
+	);
+	/** What the assign-contractor sheet is about to submit; busy and failure states come from the mutation. */
+	const assignment = $state<{ jobId: string | null; assigneeUserId: string | null }>({
 		jobId: null,
-		assigneeUserId: null,
-		saving: false,
-		error: null
+		assigneeUserId: null
 	});
 	const assignSelectedJob = $derived(
-		(assignJobsQuery.current ?? []).find((job) => job.norbital_id === assignment.jobId)
+		(assignJobsQuery.current ?? []).find((job) => job.id === assignment.jobId)
 	);
 	const assignJobOptions = $derived(
 		(assignJobsQuery.current ?? []).map((job) => ({
-			value: job.norbital_id,
+			value: job.id,
 			label: `${job.title} · ${siteNameById.get(job.site_id) ?? '—'}`
 		}))
 	);
 	const assignContractorOptions = $derived(
 		(usersQuery.current ?? []).map((user) => ({
-			value: user.norbital_id,
+			value: user.id,
 			label: user.name
 		}))
 	);
@@ -170,35 +152,19 @@
 		if (typeof value === 'string') setDispatchDay(value);
 	}
 
-	async function refreshDispatch(): Promise<void> {
-		await dashboardQuery.refresh();
-	}
-
-	async function createAssignment(): Promise<void> {
-		if (!assignment.jobId || !assignment.assigneeUserId || assignment.saving) return;
-		assignment.saving = true;
-		assignment.error = null;
-		try {
-			const create = client.db.job_assignments.create;
-			if (!create) throw new Error(t('component.assignment_create_unavailable'));
-			await create({
-				job_id: assignment.jobId,
-				assignee_user_id: assignment.assigneeUserId,
-				status: 'dispatched',
-				site_identity_unverified: true,
-				site_identity_mismatch: false
-			});
-			assignment.jobId = null;
-			assignment.assigneeUserId = null;
-			await refreshDispatch();
-			assignContractorOpen = false;
-		} catch (reason) {
-			assignment.error =
-				reason instanceof Error ? reason.message : t('component.assignment_create_failed');
-		} finally {
-			assignment.saving = false;
-		}
-	}
+	const createAssignment = (): void => {
+		if (assignment.jobId == null || assignment.assigneeUserId == null) return;
+		void client.db.job_assignments.create({
+			job_id: assignment.jobId,
+			assignee_user_id: assignment.assigneeUserId,
+			status: 'assigned',
+			site_identity_unverified: true,
+			site_identity_mismatch: false
+		});
+		assignment.jobId = null;
+		assignment.assigneeUserId = null;
+		assignContractorOpen = false;
+	};
 
 	const mapPoints = $derived(dashboardQuery.current?.map_points ?? []);
 	const mapMarkers = $derived<StaticMapMarker[]>(
@@ -217,7 +183,6 @@
 {#snippet mapMarkerContent(_marker: StaticMapMarker, index: number)}
 	{@const point = mapPoints[index]}
 	{#if point}
-		<!-- stupidity:allow UI10 -- the map marker popover is width-constrained by the map overlay, not by a primitive -->
 		<Stack gap="sm" class="w-64">
 			<Stack gap="none">
 				<h3 class="text-sm font-medium">{point.name}</h3>
@@ -292,7 +257,6 @@
 
 {#snippet dispatchSchedule()}
 	<Cover gap="md" top={dispatchControls}>
-		<!-- stupidity:allow UI7 -- @norbital-ai/ui 0.0.15 predates Split.fill; the primitive now owns this contract in source. -->
 		<Split
 			ratio="wide"
 			collapse="switch"
@@ -303,7 +267,7 @@
 			{#snippet start()}
 				<Bound size="full" pad="sm" class="rounded-lg border bg-card">
 					<CollectionKanban
-						{client}
+						client={collectionClient}
 						collection="job_assignments"
 						groupBy="status"
 						lanes={dispatchLanes}
@@ -314,12 +278,10 @@
 						{#snippet Card(assignment)}
 							<Stack gap="xs">
 								<p class="text-sm font-medium">
-									{assignmentCardById.get(assignment.norbital_id)?.job ??
-										t('component.job_assignment')}
+									{assignmentCardById.get(assignment.id)?.job ?? t('component.job_assignment')}
 								</p>
 								<p class="text-meta">
-									{assignmentCardById.get(assignment.norbital_id)?.assignee ??
-										t('component.contractor')}
+									{assignmentCardById.get(assignment.id)?.assignee ?? t('component.contractor')}
 								</p>
 							</Stack>
 						{/snippet}
@@ -343,7 +305,7 @@
 
 {#snippet sites()}
 	<CollectionTable
-		{client}
+		client={collectionClient}
 		collection="sites"
 		title={t('app.field_ops_controller.tab_sites')}
 		description={t('app.field_ops_controller.sites_description')}
@@ -435,9 +397,6 @@
 					{t('app.field_ops_controller.no_contractors')}
 				</p>
 			{/if}
-			{#if assignment.error}
-				<p class="text-sm text-destructive" role="alert">{assignment.error}</p>
-			{/if}
 			{#if (assignJobsQuery.current ?? []).length === 0 && !assignJobsQuery.loading}
 				<p class="text-sm text-muted-foreground">
 					{t('app.field_ops_controller.no_unassigned_jobs', { date: dispatchDay })}
@@ -447,11 +406,9 @@
 			<Button
 				type="submit"
 				class="w-full"
-				disabled={!assignment.jobId || !assignment.assigneeUserId || assignment.saving}
+				disabled={!assignment.jobId || !assignment.assigneeUserId}
 			>
-				{assignment.saving
-					? t('app.field_ops_controller.assigning')
-					: t('app.field_ops_controller.assign_contractor')}
+				{t('app.field_ops_controller.assign_contractor')}
 			</Button>
 		</Stack>
 	</Sheet.Content>

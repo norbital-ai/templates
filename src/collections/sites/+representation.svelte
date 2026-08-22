@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { client } from '../../lib/workspace-client.js';
+	import { collectionClient } from '../../lib/collection-client.js';
 	import { useI18n } from '@norbital-ai/ui/i18n';
 	import type { TenantI18nKeys } from '$bolt/i18n-keys';
 	import type { RepresentationProps } from './$types.js';
@@ -7,20 +8,7 @@
 	import { CollectionTable } from '@norbital-ai/ui/collection-table';
 	import { Column, Grid, Stack } from '@norbital-ai/ui/layout';
 	import { Tabs, type TabConfig } from '@norbital-ai/ui/tabs';
-
-	const FIELD_TIME_ZONE = 'Asia/Singapore';
-
-	function calendarDateInTimeZone(value: Date): string {
-		const parts = new Intl.DateTimeFormat('en', {
-			timeZone: FIELD_TIME_ZONE,
-			year: 'numeric',
-			month: '2-digit',
-			day: '2-digit'
-		}).formatToParts(value);
-		const valueFor = (type: Intl.DateTimeFormatPartTypes) =>
-			parts.find((part) => part.type === type)?.value ?? '';
-		return `${valueFor('year')}-${valueFor('month')}-${valueFor('day')}`;
-	}
+	import { calendarDateInTimeZone } from '../../lib/calendar-date.js';
 
 	let { record, close }: RepresentationProps = $props();
 
@@ -29,7 +17,7 @@
 	// The site's key as a *query value* — what `jobs.site_id` points at. Framework surfaces are never
 	// handed this: `CollectionForm` reads the record it is given, and `CollectionTable` scopes its
 	// saved view to the open record on its own.
-	const siteId = $derived(record?.norbital_id);
+	const siteId = $derived(record?.id);
 	const today = calendarDateInTimeZone(new Date());
 	const siteJobsQuery = $derived(
 		siteId
@@ -49,9 +37,9 @@
 					(jobDate < today && (job.status === 'unassigned' || job.status === 'assigned'))
 				);
 			})
-			.map((job) => job.norbital_id)
+			.map((job) => job.id)
 	);
-	const jobById = $derived(new Map(siteJobs.map((job) => [job.norbital_id, job] as const)));
+	const jobById = $derived(new Map(siteJobs.map((job) => [job.id, job] as const)));
 </script>
 
 <svelte:head>
@@ -63,7 +51,7 @@
 
 {#if record}
 	{#snippet generalInformation()}
-		<CollectionForm {client} collection="sites" defaultValues={record}>
+		<CollectionForm client={collectionClient} collection="sites" defaultValues={record}>
 			{#snippet children({ Field })}
 				<Stack gap="md">
 					<div>
@@ -88,13 +76,13 @@
 
 	{#snippet upcomingJobs()}
 		<CollectionTable
-			{client}
+			client={collectionClient}
 			collection="jobs"
 			view="field_ops_site:upcoming"
 			title={t('component.upcoming_scheduled_jobs')}
 			description={t('component.upcoming_scheduled_jobs_description')}
 			query={{
-				where: { norbital_id: { in: upcomingJobIds } },
+				where: { id: { in: upcomingJobIds } },
 				orderBy: { scheduled_for: 'asc' }
 			}}
 		>
@@ -110,7 +98,7 @@
 
 	{#snippet activityHistory()}
 		<CollectionTable
-			{client}
+			client={collectionClient}
 			collection="job_assignments"
 			view="field_ops_site:history"
 			title={t('component.activity_history')}
@@ -175,7 +163,7 @@
 	/>
 {:else}
 	<CollectionForm
-		{client}
+		client={collectionClient}
 		collection="sites"
 		submitLabel={t('component.add_site')}
 		onAfterSubmit={close}

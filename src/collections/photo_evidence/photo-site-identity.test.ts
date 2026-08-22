@@ -18,7 +18,7 @@ const photoFile = (name: string) => ({
 function context(): PhotoSiteIdentityContext {
 	return {
 		evidence: {
-			norbital_id: 'evidence-a',
+			id: 'evidence-a',
 			job_assignment_id: 'assignment-a',
 			variation_request_id: null,
 			photo: photoFile('asset-a'),
@@ -30,14 +30,14 @@ function context(): PhotoSiteIdentityContext {
 		},
 		assignmentId: 'assignment-a',
 		assignment: {
-			norbital_id: 'assignment-a',
+			id: 'assignment-a',
 			job_id: 'job-a',
 			status: 'completed',
 			site_identity_mismatch: false
 		},
-		job: { norbital_id: 'job-a', title: 'Install grab bars', site_id: 'site-a' },
+		job: { id: 'job-a', title: 'Install grab bars', site_id: 'site-a' },
 		site: {
-			norbital_id: 'site-a',
+			id: 'site-a',
 			name: '58 Kismis Avenue',
 			location: { formatted_address: '58 Kismis Avenue, Singapore 598235' }
 		}

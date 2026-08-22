@@ -10,7 +10,7 @@
 	 * `matched_evidence_ids` points back at this same collection, so each match reads as the other
 	 * photo's own `summary` — which is why that column had to exist before this panel could.
 	 */
-	import { client } from '../../lib/workspace-client.js';
+	import { collectionClient } from '../../lib/collection-client.js';
 	import { useI18n } from '@norbital-ai/ui/i18n';
 	import type { TenantI18nKeys } from '$bolt/i18n-keys';
 	import type { RepresentationProps } from './$types.js';
@@ -31,12 +31,17 @@
 </svelte:head>
 
 {#if record}
-	<CollectionForm {client} collection="photo_evidence" defaultValues={record} disabled>
+	<CollectionForm
+		client={collectionClient}
+		collection="photo_evidence"
+		defaultValues={record}
+		disabled
+	>
 		{#snippet children({ Field })}
 			<Grid minimum="compact">
 				<!-- A file() column: the value carries the file's own name, which is what DataRenderer
 				paints, so no key or id reaches the operator. -->
-				<!-- stupidity:allow UI17 -->
+				<!-- repository-health:allow UI17 -- file values render their owned filenames here, never a system id -->
 				<Column span="all"><Field name="photo" label={t('component.photo')} /></Column>
 				<Field
 					name="job_assignment_id"

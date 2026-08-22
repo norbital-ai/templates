@@ -1,9 +1,10 @@
 <script lang="ts">
 	/**
-	 * A request to change approved scope, raised against one job assignment. `job_assignment_id` was
-	 * an editable uuid on the auto form; it reads as the assignment’s job and contractor.
+	 * A finding raised against one assignment, and the controller's answer to it.
 	 *
-	 * Approval, rejection and rollback are not here: they live only in the native approval system.
+	 * The auto form painted both uuids as editable text boxes: the assignment the finding hangs on
+	 * and the controller who answered. The assignment reads as its own record through the
+	 * relationship, and the answer a controller wrote (`resolved_by`) is a person.
 	 */
 	import { collectionClient } from '../../lib/collection-client.js';
 	import { useI18n } from '@norbital-ai/ui/i18n';
@@ -20,12 +21,12 @@
 
 <CollectionForm
 	client={collectionClient}
-	collection="variation_requests"
+	collection="suspicious_activity_logs"
 	defaultValues={record ?? undefined}
 	onAfterSubmit={record ? undefined : close}
 >
 	{#snippet children({ Field })}
-		<Grid minimum="compact">
+		<Grid minimum="panel">
 			<Field
 				name="job_assignment_id"
 				label={t('component.job_assignment')}
@@ -34,11 +35,11 @@
 					target: 'job_assignments',
 					options: {
 						label: (record) => {
-							const status = record.status;
 							const dispatched = record.dispatched_at;
 							const when = dispatched == null ? null : String(dispatched).slice(0, 10);
 							return (
-								[when, status].filter((part) => part != null && part !== '').join(' · ') || '—'
+								[when, record.status].filter((part) => part != null && part !== '').join(' · ') ||
+								'—'
 							);
 						},
 						orderBy: { dispatched_at: 'desc' },
@@ -46,10 +47,24 @@
 					}
 				}}
 			/>
-			<Field name="title" label={t('component.title')} />
-			<Field name="requested_at" label={t('component.requested_at')} />
-			<Field name="amount" label={t('component.amount')} />
-			<Column span="all"><Field name="description" label={t('component.description')} /></Column>
+			<Field name="reason" />
+			<Field name="resolution" />
+			<Column span="all"><Field name="resolved_at" /></Column>
+			<Column span="all">
+				<Field
+					name="resolved_by"
+					renderer={RelationshipRenderer}
+					rendererProps={{
+						target: 'bolt_auth_user',
+						options: {
+							label: (record) =>
+								record.name != null && record.name !== '' ? String(record.name) : '—',
+							orderBy: { name: 'asc' },
+							limit: 500
+						}
+					}}
+				/>
+			</Column>
 		</Grid>
 	{/snippet}
 </CollectionForm>
