@@ -21,4 +21,4 @@ defects, RFIs and payment claims.
 - Never quote a number you did not read out of a tool result.
 - Money is a value and a currency together; never add across currencies.
 - A permit or a compliance date is a legal fact. Quote it exactly or say you could not read it.
-- Never expose a `norbital_id`. Name a project, a site or a claim by its own reference.
+- Never expose a `id`. Name a project, a site or a claim by its own reference.

@@ -1,10 +1,10 @@
 CREATE TABLE "asset_documents" (
-	"norbital_id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-	"norbital_created_at" timestamp with time zone DEFAULT now(),
-	"norbital_updated_at" timestamp with time zone DEFAULT now(),
-	"norbital_sys_period" tstzrange DEFAULT tstzrange(CURRENT_TIMESTAMP, NULL, '[)') NOT NULL,
-	"norbital_row_version" integer DEFAULT 1,
-	"norbital_approval_id" uuid,
+	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+	"created_at" timestamp with time zone DEFAULT now(),
+	"updated_at" timestamp with time zone DEFAULT now(),
+	"sys_period" tstzrange DEFAULT tstzrange(CURRENT_TIMESTAMP, NULL, '[)') NOT NULL,
+	"row_version" integer DEFAULT 1,
+	"approval_id" uuid,
 	"title" text NOT NULL,
 	"document_number" text,
 	"project_id" uuid,
@@ -21,12 +21,12 @@ CREATE TABLE "asset_documents" (
 
 --> statement-breakpoint
 CREATE TABLE "bim_reference_matrix" (
-	"norbital_id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-	"norbital_created_at" timestamp with time zone DEFAULT now(),
-	"norbital_updated_at" timestamp with time zone DEFAULT now(),
-	"norbital_sys_period" tstzrange DEFAULT tstzrange(CURRENT_TIMESTAMP, NULL, '[)') NOT NULL,
-	"norbital_row_version" integer DEFAULT 1,
-	"norbital_approval_id" uuid,
+	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+	"created_at" timestamp with time zone DEFAULT now(),
+	"updated_at" timestamp with time zone DEFAULT now(),
+	"sys_period" tstzrange DEFAULT tstzrange(CURRENT_TIMESTAMP, NULL, '[)') NOT NULL,
+	"row_version" integer DEFAULT 1,
+	"approval_id" uuid,
 	"reference_name" text NOT NULL,
 	"reference_code" text,
 	"project_id" uuid,
@@ -43,12 +43,12 @@ CREATE TABLE "bim_reference_matrix" (
 
 --> statement-breakpoint
 CREATE TABLE "certification_types" (
-	"norbital_id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-	"norbital_created_at" timestamp with time zone DEFAULT now(),
-	"norbital_updated_at" timestamp with time zone DEFAULT now(),
-	"norbital_sys_period" tstzrange DEFAULT tstzrange(CURRENT_TIMESTAMP, NULL, '[)') NOT NULL,
-	"norbital_row_version" integer DEFAULT 1,
-	"norbital_approval_id" uuid,
+	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+	"created_at" timestamp with time zone DEFAULT now(),
+	"updated_at" timestamp with time zone DEFAULT now(),
+	"sys_period" tstzrange DEFAULT tstzrange(CURRENT_TIMESTAMP, NULL, '[)') NOT NULL,
+	"row_version" integer DEFAULT 1,
+	"approval_id" uuid,
 	"certification_name" text NOT NULL,
 	"certification_code" text,
 	"category" text,
@@ -61,12 +61,12 @@ CREATE TABLE "certification_types" (
 
 --> statement-breakpoint
 CREATE TABLE "defects" (
-	"norbital_id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-	"norbital_created_at" timestamp with time zone DEFAULT now(),
-	"norbital_updated_at" timestamp with time zone DEFAULT now(),
-	"norbital_sys_period" tstzrange DEFAULT tstzrange(CURRENT_TIMESTAMP, NULL, '[)') NOT NULL,
-	"norbital_row_version" integer DEFAULT 1,
-	"norbital_approval_id" uuid,
+	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+	"created_at" timestamp with time zone DEFAULT now(),
+	"updated_at" timestamp with time zone DEFAULT now(),
+	"sys_period" tstzrange DEFAULT tstzrange(CURRENT_TIMESTAMP, NULL, '[)') NOT NULL,
+	"row_version" integer DEFAULT 1,
+	"approval_id" uuid,
 	"title" text NOT NULL,
 	"defect_number" text,
 	"project_id" uuid,
@@ -81,18 +81,18 @@ CREATE TABLE "defects" (
 	"reported_date" date,
 	"due_date" date,
 	"closed_date" date,
-	"photos" uuid[],
+	"photos" jsonb,
 	"resolution_notes" text
 );
 
 --> statement-breakpoint
 CREATE TABLE "job_assignments" (
-	"norbital_id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-	"norbital_created_at" timestamp with time zone DEFAULT now(),
-	"norbital_updated_at" timestamp with time zone DEFAULT now(),
-	"norbital_sys_period" tstzrange DEFAULT tstzrange(CURRENT_TIMESTAMP, NULL, '[)') NOT NULL,
-	"norbital_row_version" integer DEFAULT 1,
-	"norbital_approval_id" uuid,
+	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+	"created_at" timestamp with time zone DEFAULT now(),
+	"updated_at" timestamp with time zone DEFAULT now(),
+	"sys_period" tstzrange DEFAULT tstzrange(CURRENT_TIMESTAMP, NULL, '[)') NOT NULL,
+	"row_version" integer DEFAULT 1,
+	"approval_id" uuid,
 	"assignment_code" text,
 	"job_id" uuid,
 	"worker_id" uuid,
@@ -106,12 +106,12 @@ CREATE TABLE "job_assignments" (
 
 --> statement-breakpoint
 CREATE TABLE "jobs" (
-	"norbital_id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-	"norbital_created_at" timestamp with time zone DEFAULT now(),
-	"norbital_updated_at" timestamp with time zone DEFAULT now(),
-	"norbital_sys_period" tstzrange DEFAULT tstzrange(CURRENT_TIMESTAMP, NULL, '[)') NOT NULL,
-	"norbital_row_version" integer DEFAULT 1,
-	"norbital_approval_id" uuid,
+	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+	"created_at" timestamp with time zone DEFAULT now(),
+	"updated_at" timestamp with time zone DEFAULT now(),
+	"sys_period" tstzrange DEFAULT tstzrange(CURRENT_TIMESTAMP, NULL, '[)') NOT NULL,
+	"row_version" integer DEFAULT 1,
+	"approval_id" uuid,
 	"job_title" text NOT NULL,
 	"job_number" text,
 	"project_id" uuid,
@@ -127,36 +127,36 @@ CREATE TABLE "jobs" (
 
 --> statement-breakpoint
 CREATE TABLE "jobs_certification_types" (
-	"norbital_id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-	"norbital_created_at" timestamp with time zone DEFAULT now(),
-	"norbital_updated_at" timestamp with time zone DEFAULT now(),
-	"norbital_sys_period" tstzrange DEFAULT tstzrange(CURRENT_TIMESTAMP, NULL, '[)') NOT NULL,
-	"norbital_row_version" integer DEFAULT 1,
-	"norbital_approval_id" uuid,
+	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+	"created_at" timestamp with time zone DEFAULT now(),
+	"updated_at" timestamp with time zone DEFAULT now(),
+	"sys_period" tstzrange DEFAULT tstzrange(CURRENT_TIMESTAMP, NULL, '[)') NOT NULL,
+	"row_version" integer DEFAULT 1,
+	"approval_id" uuid,
 	"job_id" uuid NOT NULL,
 	"certification_type_id" uuid NOT NULL
 );
 
 --> statement-breakpoint
 CREATE TABLE "jobs_site_locations" (
-	"norbital_id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-	"norbital_created_at" timestamp with time zone DEFAULT now(),
-	"norbital_updated_at" timestamp with time zone DEFAULT now(),
-	"norbital_sys_period" tstzrange DEFAULT tstzrange(CURRENT_TIMESTAMP, NULL, '[)') NOT NULL,
-	"norbital_row_version" integer DEFAULT 1,
-	"norbital_approval_id" uuid,
+	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+	"created_at" timestamp with time zone DEFAULT now(),
+	"updated_at" timestamp with time zone DEFAULT now(),
+	"sys_period" tstzrange DEFAULT tstzrange(CURRENT_TIMESTAMP, NULL, '[)') NOT NULL,
+	"row_version" integer DEFAULT 1,
+	"approval_id" uuid,
 	"job_id" uuid NOT NULL,
 	"site_location_id" uuid NOT NULL
 );
 
 --> statement-breakpoint
 CREATE TABLE "payment_claims" (
-	"norbital_id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-	"norbital_created_at" timestamp with time zone DEFAULT now(),
-	"norbital_updated_at" timestamp with time zone DEFAULT now(),
-	"norbital_sys_period" tstzrange DEFAULT tstzrange(CURRENT_TIMESTAMP, NULL, '[)') NOT NULL,
-	"norbital_row_version" integer DEFAULT 1,
-	"norbital_approval_id" uuid,
+	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+	"created_at" timestamp with time zone DEFAULT now(),
+	"updated_at" timestamp with time zone DEFAULT now(),
+	"sys_period" tstzrange DEFAULT tstzrange(CURRENT_TIMESTAMP, NULL, '[)') NOT NULL,
+	"row_version" integer DEFAULT 1,
+	"approval_id" uuid,
 	"claim_number" text NOT NULL,
 	"project_id" uuid,
 	"job_id" uuid,
@@ -168,17 +168,17 @@ CREATE TABLE "payment_claims" (
 	"submitted_date" date,
 	"paid_date" date,
 	"description" text,
-	"supporting_documents" uuid[]
+	"supporting_documents" jsonb
 );
 
 --> statement-breakpoint
 CREATE TABLE "permits_to_work" (
-	"norbital_id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-	"norbital_created_at" timestamp with time zone DEFAULT now(),
-	"norbital_updated_at" timestamp with time zone DEFAULT now(),
-	"norbital_sys_period" tstzrange DEFAULT tstzrange(CURRENT_TIMESTAMP, NULL, '[)') NOT NULL,
-	"norbital_row_version" integer DEFAULT 1,
-	"norbital_approval_id" uuid,
+	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+	"created_at" timestamp with time zone DEFAULT now(),
+	"updated_at" timestamp with time zone DEFAULT now(),
+	"sys_period" tstzrange DEFAULT tstzrange(CURRENT_TIMESTAMP, NULL, '[)') NOT NULL,
+	"row_version" integer DEFAULT 1,
+	"approval_id" uuid,
 	"permit_number" text NOT NULL,
 	"permit_type" text,
 	"project_id" uuid,
@@ -196,36 +196,36 @@ CREATE TABLE "permits_to_work" (
 
 --> statement-breakpoint
 CREATE TABLE "permits_to_work_certification_types" (
-	"norbital_id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-	"norbital_created_at" timestamp with time zone DEFAULT now(),
-	"norbital_updated_at" timestamp with time zone DEFAULT now(),
-	"norbital_sys_period" tstzrange DEFAULT tstzrange(CURRENT_TIMESTAMP, NULL, '[)') NOT NULL,
-	"norbital_row_version" integer DEFAULT 1,
-	"norbital_approval_id" uuid,
+	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+	"created_at" timestamp with time zone DEFAULT now(),
+	"updated_at" timestamp with time zone DEFAULT now(),
+	"sys_period" tstzrange DEFAULT tstzrange(CURRENT_TIMESTAMP, NULL, '[)') NOT NULL,
+	"row_version" integer DEFAULT 1,
+	"approval_id" uuid,
 	"permits_to_work_id" uuid NOT NULL,
 	"certification_type_id" uuid NOT NULL
 );
 
 --> statement-breakpoint
 CREATE TABLE "permits_to_work_workers" (
-	"norbital_id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-	"norbital_created_at" timestamp with time zone DEFAULT now(),
-	"norbital_updated_at" timestamp with time zone DEFAULT now(),
-	"norbital_sys_period" tstzrange DEFAULT tstzrange(CURRENT_TIMESTAMP, NULL, '[)') NOT NULL,
-	"norbital_row_version" integer DEFAULT 1,
-	"norbital_approval_id" uuid,
+	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+	"created_at" timestamp with time zone DEFAULT now(),
+	"updated_at" timestamp with time zone DEFAULT now(),
+	"sys_period" tstzrange DEFAULT tstzrange(CURRENT_TIMESTAMP, NULL, '[)') NOT NULL,
+	"row_version" integer DEFAULT 1,
+	"approval_id" uuid,
 	"permits_to_work_id" uuid NOT NULL,
 	"worker_id" uuid NOT NULL
 );
 
 --> statement-breakpoint
 CREATE TABLE "projects" (
-	"norbital_id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-	"norbital_created_at" timestamp with time zone DEFAULT now(),
-	"norbital_updated_at" timestamp with time zone DEFAULT now(),
-	"norbital_sys_period" tstzrange DEFAULT tstzrange(CURRENT_TIMESTAMP, NULL, '[)') NOT NULL,
-	"norbital_row_version" integer DEFAULT 1,
-	"norbital_approval_id" uuid,
+	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+	"created_at" timestamp with time zone DEFAULT now(),
+	"updated_at" timestamp with time zone DEFAULT now(),
+	"sys_period" tstzrange DEFAULT tstzrange(CURRENT_TIMESTAMP, NULL, '[)') NOT NULL,
+	"row_version" integer DEFAULT 1,
+	"approval_id" uuid,
 	"project_name" text NOT NULL,
 	"project_number" text,
 	"client" text,
@@ -241,12 +241,12 @@ CREATE TABLE "projects" (
 
 --> statement-breakpoint
 CREATE TABLE "rfis" (
-	"norbital_id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-	"norbital_created_at" timestamp with time zone DEFAULT now(),
-	"norbital_updated_at" timestamp with time zone DEFAULT now(),
-	"norbital_sys_period" tstzrange DEFAULT tstzrange(CURRENT_TIMESTAMP, NULL, '[)') NOT NULL,
-	"norbital_row_version" integer DEFAULT 1,
-	"norbital_approval_id" uuid,
+	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+	"created_at" timestamp with time zone DEFAULT now(),
+	"updated_at" timestamp with time zone DEFAULT now(),
+	"sys_period" tstzrange DEFAULT tstzrange(CURRENT_TIMESTAMP, NULL, '[)') NOT NULL,
+	"row_version" integer DEFAULT 1,
+	"approval_id" uuid,
 	"title" text NOT NULL,
 	"rfi_number" text,
 	"project_id" uuid,
@@ -260,18 +260,18 @@ CREATE TABLE "rfis" (
 	"submitted_date" date,
 	"due_date" date,
 	"resolved_date" date,
-	"attachments" uuid[],
+	"attachments" jsonb,
 	"related_defect_id" uuid
 );
 
 --> statement-breakpoint
 CREATE TABLE "site_locations" (
-	"norbital_id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-	"norbital_created_at" timestamp with time zone DEFAULT now(),
-	"norbital_updated_at" timestamp with time zone DEFAULT now(),
-	"norbital_sys_period" tstzrange DEFAULT tstzrange(CURRENT_TIMESTAMP, NULL, '[)') NOT NULL,
-	"norbital_row_version" integer DEFAULT 1,
-	"norbital_approval_id" uuid,
+	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+	"created_at" timestamp with time zone DEFAULT now(),
+	"updated_at" timestamp with time zone DEFAULT now(),
+	"sys_period" tstzrange DEFAULT tstzrange(CURRENT_TIMESTAMP, NULL, '[)') NOT NULL,
+	"row_version" integer DEFAULT 1,
+	"approval_id" uuid,
 	"location_name" text NOT NULL,
 	"location_code" text,
 	"project_id" uuid,
@@ -285,12 +285,12 @@ CREATE TABLE "site_locations" (
 
 --> statement-breakpoint
 CREATE TABLE "workers" (
-	"norbital_id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-	"norbital_created_at" timestamp with time zone DEFAULT now(),
-	"norbital_updated_at" timestamp with time zone DEFAULT now(),
-	"norbital_sys_period" tstzrange DEFAULT tstzrange(CURRENT_TIMESTAMP, NULL, '[)') NOT NULL,
-	"norbital_row_version" integer DEFAULT 1,
-	"norbital_approval_id" uuid,
+	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+	"created_at" timestamp with time zone DEFAULT now(),
+	"updated_at" timestamp with time zone DEFAULT now(),
+	"sys_period" tstzrange DEFAULT tstzrange(CURRENT_TIMESTAMP, NULL, '[)') NOT NULL,
+	"row_version" integer DEFAULT 1,
+	"approval_id" uuid,
 	"worker_name" text NOT NULL,
 	"worker_number" text,
 	"trade" text,
@@ -352,22 +352,22 @@ CREATE UNIQUE INDEX "workers_worker_number_index" ON "workers" ("worker_number")
 --> statement-breakpoint
 CREATE INDEX "workers_worker_name_search_trgm_idx" ON "workers" USING gin ("worker_name" gin_trgm_ops);
 --> statement-breakpoint
-ALTER TABLE "asset_documents" ADD CONSTRAINT "asset_documents_project_id_projects_fk" FOREIGN KEY ("project_id") REFERENCES "projects"("norbital_id");
+ALTER TABLE "asset_documents" ADD CONSTRAINT "asset_documents_project_id_projects_fk" FOREIGN KEY ("project_id") REFERENCES "projects"("id");
 --> statement-breakpoint
-ALTER TABLE "defects" ADD CONSTRAINT "defects_project_id_projects_fk" FOREIGN KEY ("project_id") REFERENCES "projects"("norbital_id");
+ALTER TABLE "defects" ADD CONSTRAINT "defects_project_id_projects_fk" FOREIGN KEY ("project_id") REFERENCES "projects"("id");
 --> statement-breakpoint
-ALTER TABLE "job_assignments" ADD CONSTRAINT "job_assignments_worker_id_workers_fk" FOREIGN KEY ("worker_id") REFERENCES "workers"("norbital_id");
+ALTER TABLE "job_assignments" ADD CONSTRAINT "job_assignments_worker_id_workers_fk" FOREIGN KEY ("worker_id") REFERENCES "workers"("id");
 --> statement-breakpoint
-ALTER TABLE "job_assignments" ADD CONSTRAINT "job_assignments_job_id_jobs_fk" FOREIGN KEY ("job_id") REFERENCES "jobs"("norbital_id");
+ALTER TABLE "job_assignments" ADD CONSTRAINT "job_assignments_job_id_jobs_fk" FOREIGN KEY ("job_id") REFERENCES "jobs"("id");
 --> statement-breakpoint
-ALTER TABLE "job_assignments" ADD CONSTRAINT "job_assignments_site_location_id_site_locations_fk" FOREIGN KEY ("site_location_id") REFERENCES "site_locations"("norbital_id");
+ALTER TABLE "job_assignments" ADD CONSTRAINT "job_assignments_site_location_id_site_locations_fk" FOREIGN KEY ("site_location_id") REFERENCES "site_locations"("id");
 --> statement-breakpoint
-ALTER TABLE "jobs" ADD CONSTRAINT "jobs_project_id_projects_fk" FOREIGN KEY ("project_id") REFERENCES "projects"("norbital_id");
+ALTER TABLE "jobs" ADD CONSTRAINT "jobs_project_id_projects_fk" FOREIGN KEY ("project_id") REFERENCES "projects"("id");
 --> statement-breakpoint
-ALTER TABLE "payment_claims" ADD CONSTRAINT "payment_claims_project_id_projects_fk" FOREIGN KEY ("project_id") REFERENCES "projects"("norbital_id");
+ALTER TABLE "payment_claims" ADD CONSTRAINT "payment_claims_project_id_projects_fk" FOREIGN KEY ("project_id") REFERENCES "projects"("id");
 --> statement-breakpoint
-ALTER TABLE "permits_to_work" ADD CONSTRAINT "permits_to_work_project_id_projects_fk" FOREIGN KEY ("project_id") REFERENCES "projects"("norbital_id");
+ALTER TABLE "permits_to_work" ADD CONSTRAINT "permits_to_work_project_id_projects_fk" FOREIGN KEY ("project_id") REFERENCES "projects"("id");
 --> statement-breakpoint
-ALTER TABLE "rfis" ADD CONSTRAINT "rfis_project_id_projects_fk" FOREIGN KEY ("project_id") REFERENCES "projects"("norbital_id");
+ALTER TABLE "rfis" ADD CONSTRAINT "rfis_project_id_projects_fk" FOREIGN KEY ("project_id") REFERENCES "projects"("id");
 --> statement-breakpoint
-ALTER TABLE "site_locations" ADD CONSTRAINT "site_locations_project_id_projects_fk" FOREIGN KEY ("project_id") REFERENCES "projects"("norbital_id");
+ALTER TABLE "site_locations" ADD CONSTRAINT "site_locations_project_id_projects_fk" FOREIGN KEY ("project_id") REFERENCES "projects"("id");

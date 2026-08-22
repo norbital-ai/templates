@@ -5,10 +5,7 @@
 	import { Grid, Stack } from '@norbital-ai/ui/layout';
 	import { Option, Schema } from 'effect';
 	import type { RendererProps, Value } from './$types.js';
-	import { permitSignaturesSchema } from './+definition.js';
-
-	type Signature = { readonly name: string; readonly date: string };
-	type SignatureRole = 'applicant' | 'issuer' | 'acceptor';
+	import { permitSignaturesSchema, type Signature, type SignatureRole } from './+definition.js';
 
 	const { t } = useI18n<TenantI18nKeys>();
 

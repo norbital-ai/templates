@@ -1,6 +1,7 @@
 import { Schema } from 'effect';
 import { defineCustomType } from '@norbital-ai/bolt/authoring';
 
+/** One signed party: the name entered and the date it was signed on. */
 const signatureSchema = Schema.Struct({
 	name: Schema.String,
 	date: Schema.String
@@ -11,6 +12,10 @@ export const permitSignaturesSchema = Schema.Struct({
 	issuer: Schema.NullOr(signatureSchema),
 	acceptor: Schema.NullOr(signatureSchema)
 });
+
+export type Signature = typeof signatureSchema.Type;
+const signatureRoleSchema = Schema.Literals(['applicant', 'issuer', 'acceptor']);
+export type SignatureRole = typeof signatureRoleSchema.Type;
 
 export default defineCustomType({
 	name: 'permit_signatures',

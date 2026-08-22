@@ -5,6 +5,7 @@ node_modules/
 .norbital/types/
 .norbital/tsconfig.json
 .pi/
+.svelte-check/
 .tmp/
 .vite/
 

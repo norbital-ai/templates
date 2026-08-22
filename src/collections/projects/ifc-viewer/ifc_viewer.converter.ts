@@ -1,8 +1,11 @@
+import { Effect, Schema } from 'effect';
 import converterWorkerUrl from './ifc_viewer.converter.worker.ts?worker&url';
 import type { I18nApi } from '@norbital-ai/ui/i18n';
 import type { TenantI18nKeys } from '$bolt/i18n-keys';
+import type { ConvertRequestMessage } from './ifc_viewer.types.js';
+import { WorkerResponseMessageSchema } from './ifc_viewer.types.js';
 
-export type Translator = I18nApi<TenantI18nKeys>['t'];
+type Translator = I18nApi<TenantI18nKeys>['t'];
 
 /** Error codes the converter worker posts instead of display copy. */
 const WORKER_ERROR_KEYS: Readonly<Record<string, TenantI18nKeys>> = {
@@ -15,72 +18,66 @@ function resolveWorkerError(raw: string, t: Translator): string {
 	return key === undefined ? raw : t(key);
 }
 
-type WorkerSuccessMessage = {
-	type: 'success';
-	fragmentBytes: ArrayBuffer;
-};
+/**
+ * A failure on the converter worker channel. `context` carries the crash event fields so the
+ * structured log keeps the diagnostics the console.error used to print; it is null for protocol
+ * failures that already name themselves in the message.
+ */
+class WorkerConnectionError extends Error {
+	readonly context: Readonly<Record<string, unknown>> | null;
 
-type WorkerErrorMessage = {
-	type: 'error';
-	error: string;
-};
-
-type WorkerReadyMessage = {
-	type: 'ready';
-};
-
-type WorkerResponseMessage = WorkerSuccessMessage | WorkerErrorMessage | WorkerReadyMessage;
+	constructor(message: string, context: Readonly<Record<string, unknown>> | null = null) {
+		super(message);
+		this.name = 'WorkerConnectionError';
+		this.context = context;
+	}
+}
 
 function toError(error: unknown): Error {
 	return error instanceof Error ? error : new Error(String(error));
 }
 
-async function createConverterWorker(): Promise<Worker> {
+const createConverterWorker = Effect.gen(function* () {
 	const workerUrl = new URL(converterWorkerUrl, import.meta.url);
 	// Sandboxed iframes block direct worker URLs in Chrome.
 	// Fetch the script and create a blob URL to bypass the restriction.
-	const response = await fetch(workerUrl.href);
-	const scriptText = await response.text();
+	const response = yield* Effect.tryPromise(() => fetch(workerUrl.href));
+	const scriptText = yield* Effect.tryPromise(() => response.text());
 	const blob = new Blob([scriptText], { type: 'application/javascript' });
 	const blobUrl = URL.createObjectURL(blob);
 	return new Worker(blobUrl, { name: 'norbital-ifc-converter' });
-}
+});
 
+/**
+ * A buffer this module owns outright: `Uint8Array.from` copies, so the transferred ArrayBuffer
+ * backs no view the caller still holds, and detaching it on `postMessage` cannot tear other data.
+ */
 function getTransferBuffer(bytes: Uint8Array): ArrayBuffer {
-	if (
-		bytes.buffer instanceof ArrayBuffer &&
-		bytes.byteOffset === 0 &&
-		bytes.byteLength === bytes.buffer.byteLength
-	) {
-		return bytes.buffer;
-	}
-
-	return bytes.slice().buffer;
+	return Uint8Array.from(bytes).buffer;
 }
 
-export async function convertIfcToFragments(bytes: Uint8Array, t: Translator): Promise<Uint8Array> {
-	const worker = await createConverterWorker();
-	const transferBuffer = getTransferBuffer(bytes);
-
-	return new Promise<Uint8Array>((resolve, reject) => {
+function runConversion(
+	worker: Worker,
+	transferBuffer: ArrayBuffer,
+	t: Translator
+): Effect.Effect<Uint8Array, WorkerConnectionError> {
+	return Effect.callback((send) => {
 		let settled = false;
-		const settle = (complete: () => void): void => {
+		const settle = (result: Effect.Effect<Uint8Array, WorkerConnectionError>): void => {
 			if (settled) return;
 			settled = true;
-			worker.terminate();
-			complete();
+			send(result);
 		};
 
-		worker.onmessage = (event: MessageEvent<WorkerResponseMessage>) => {
-			const message = event.data;
-			if (message.type === 'ready') {
+		worker.onmessage = (event: MessageEvent<unknown>) => {
+			const message = Schema.decodeUnknownOption(WorkerResponseMessageSchema)(event.data);
+			if (message._tag === 'None' || message.value.type === 'ready') return;
+
+			if (message.value.type === 'success') {
+				settle(Effect.succeed(new Uint8Array(message.value.fragmentBytes)));
 				return;
 			}
-			if (message.type === 'success') {
-				settle(() => resolve(new Uint8Array(message.fragmentBytes)));
-				return;
-			}
-			settle(() => reject(new Error(resolveWorkerError(message.error, t))));
+			settle(Effect.fail(new WorkerConnectionError(resolveWorkerError(message.value.error, t))));
 		};
 
 		worker.onerror = (event: ErrorEvent) => {
@@ -94,32 +91,68 @@ export async function convertIfcToFragments(bytes: Uint8Array, t: Translator): P
 				.join(', ');
 
 			const errorMessage = details || t('component.ifc_unknown_worker_error');
-			console.error('[IFCViewer] Converter worker error event:', {
-				message: event.message,
-				filename: event.filename,
-				lineno: event.lineno,
-				colno: event.colno,
-				error: event.error
-			});
-
-			settle(() => reject(event.error instanceof Error ? event.error : new Error(errorMessage)));
-		};
-
-		worker.onmessageerror = (event: MessageEvent) => {
-			console.error('[IFCViewer] Converter worker message error:', event);
-			settle(() => reject(new Error(t('component.ifc_worker_communication_failed'))));
-		};
-
-		try {
-			worker.postMessage(
-				{
-					type: 'convert',
-					bytes: transferBuffer
-				},
-				[transferBuffer]
+			settle(
+				Effect.fail(
+					new WorkerConnectionError(
+						event.error instanceof Error ? event.error.message : errorMessage,
+						{
+							message: event.message,
+							filename: event.filename ?? null,
+							lineno: event.lineno ?? null,
+							colno: event.colno ?? null,
+							error: event.error ?? null
+						}
+					)
+				)
 			);
-		} catch (error) {
-			settle(() => reject(toError(error)));
-		}
+		};
+
+		worker.onmessageerror = () => {
+			settle(
+				Effect.fail(new WorkerConnectionError(t('component.ifc_worker_communication_failed')))
+			);
+		};
+
+		Effect.runSync(
+			Effect.try(() =>
+				worker.postMessage(
+					{
+						type: 'convert',
+						bytes: transferBuffer
+					} satisfies ConvertRequestMessage,
+					[transferBuffer]
+				)
+			).pipe(
+				Effect.catch((error) =>
+					Effect.sync(() => {
+						settle(Effect.fail(new WorkerConnectionError(toError(error).message)));
+					})
+				)
+			)
+		);
 	});
+}
+
+/**
+ * Decodes IFC bytes into @thatopen fragments inside a dedicated worker, one worker per call, torn
+ * down when the conversion settles. The formatted error is translated here so the caller displays
+ * copy, not code.
+ */
+export function convertIfcToFragments(
+	bytes: Uint8Array,
+	t: Translator
+): Effect.Effect<Uint8Array, Error> {
+	const transferBuffer = getTransferBuffer(bytes);
+
+	return Effect.acquireUseRelease(
+		createConverterWorker.pipe(Effect.catch((error) => Effect.fail(toError(error)))),
+		(worker) => runConversion(worker, transferBuffer, t),
+		(worker) => Effect.sync(() => worker.terminate())
+	).pipe(
+		Effect.tapError((failure) =>
+			failure instanceof WorkerConnectionError && failure.context
+				? Effect.logError('[IFCViewer] Converter worker error event:', failure.context)
+				: Effect.void
+		)
+	);
 }
