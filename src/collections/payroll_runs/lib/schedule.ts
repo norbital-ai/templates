@@ -7,6 +7,7 @@
  * monthly roster entry overrides the employment's embedded work pattern for that date.
  */
 
+import { Schema } from 'effect';
 import { patternRosterCodeId } from '../../../lib/scheduling/work-pattern.js';
 import {
 	rosterCodeKind,
@@ -16,19 +17,22 @@ import {
 import type { Configuration, ShiftDefinition } from './configuration.js';
 import { dateKey, requiredDateKey, type IsoDate } from './dates.js';
 import { coversDate } from './effective.js';
-import type { WorkPattern } from '../../../datatypes/work_pattern/+definition.js';
+import { workPatternValueSchema } from '../../../datatypes/work_pattern/+definition.js';
+import type { PayrollWindow } from './period.js';
 
-export type DayType = 'ORDINARY' | 'REST_DAY' | 'PUBLIC_HOLIDAY' | 'OFF_DAY';
+const DayTypeSchema = Schema.Literals(['ORDINARY', 'REST_DAY', 'PUBLIC_HOLIDAY', 'OFF_DAY']);
+export type DayType = Schema.Schema.Type<typeof DayTypeSchema>;
 
 /** The overtime rules are stated for three day types; an off day is priced as an ordinary one. */
-export type RuleDayType = 'ORDINARY' | 'REST_DAY' | 'PUBLIC_HOLIDAY';
+export const RuleDayTypeSchema = Schema.Literals(['ORDINARY', 'REST_DAY', 'PUBLIC_HOLIDAY']);
+export type RuleDayType = Schema.Schema.Type<typeof RuleDayTypeSchema>;
 
 export function ruleDayType(dayType: DayType): RuleDayType {
 	return dayType === 'OFF_DAY' ? 'ORDINARY' : dayType;
 }
 
-export type ScheduledShift = WorkWindow & {
-	readonly norbital_id: string;
+type ScheduledShift = WorkWindow & {
+	readonly id: string;
 	readonly code: string;
 };
 
@@ -43,10 +47,11 @@ export type ScheduledDay = {
 	readonly normalHours: number;
 };
 
-export interface WeeklyHoursTerms {
-	readonly ordinary_hours_per_week: number;
-	readonly working_days_per_week: number;
-}
+const WeeklyHoursTermsSchema = Schema.Struct({
+	ordinary_hours_per_week: Schema.Number,
+	working_days_per_week: Schema.Number
+});
+type WeeklyHoursTerms = Schema.Schema.Type<typeof WeeklyHoursTermsSchema>;
 
 /** Kept as a derived payroll-rate shape; these are no longer independent employment fields. */
 export function normalDailyHours(terms: WeeklyHoursTerms): number {
@@ -55,15 +60,17 @@ export function normalDailyHours(terms: WeeklyHoursTerms): number {
 	return Number(terms.ordinary_hours_per_week) / days;
 }
 
-export type ScheduleTerms = {
-	readonly work_pattern: WorkPattern;
-	readonly normal_daily_hours: number;
-};
+const ScheduleTermsSchema = Schema.Struct({
+	work_pattern: workPatternValueSchema,
+	normal_daily_hours: Schema.Number
+});
+type ScheduleTerms = Schema.Schema.Type<typeof ScheduleTermsSchema>;
 
-type RosterEntry = {
-	readonly work_date: string | Date;
-	readonly shift_definition_id: string;
-};
+const RosterEntrySchema = Schema.Struct({
+	work_date: Schema.Union([Schema.String, Schema.Date]),
+	shift_definition_id: Schema.String
+});
+type RosterEntry = Schema.Schema.Type<typeof RosterEntrySchema>;
 
 function scheduledCode(
 	code: ShiftDefinition,
@@ -75,7 +82,7 @@ function scheduledCode(
 	const window = workWindow(code.variant);
 	return {
 		kind,
-		shift: window == null ? null : { norbital_id: code.norbital_id, code: code.code, ...window }
+		shift: window == null ? null : { id: code.id, code: code.code, ...window }
 	};
 }
 
@@ -90,14 +97,17 @@ function dayTypeFor(kind: 'WORK' | 'REST' | 'OFF'): Exclude<DayType, 'PUBLIC_HOL
 	}
 }
 
-/** Resolve every day of a window for one employment. */
-export function resolveSchedule(options: {
-	readonly window: { readonly start: IsoDate; readonly end: IsoDate };
+/** What `resolveSchedule` needs: the window, the days, the terms read per day, and the roster. */
+type ResolveScheduleOptions = {
+	readonly window: PayrollWindow['salary'];
 	readonly dates: readonly IsoDate[];
 	readonly terms: (date: IsoDate) => ScheduleTerms;
 	readonly rosterEntries: readonly RosterEntry[];
 	readonly configuration: Pick<Configuration, 'holidays' | 'shiftById'>;
-}): Map<IsoDate, ScheduledDay> {
+};
+
+/** Resolve every day of a window for one employment. */
+export function resolveSchedule(options: ResolveScheduleOptions): Map<IsoDate, ScheduledDay> {
 	const rosterByDate = new Map<IsoDate, RosterEntry>();
 	for (const entry of options.rosterEntries) {
 		rosterByDate.set(requiredDateKey(entry.work_date, 'roster_entries.work_date'), entry);
@@ -150,11 +160,12 @@ export function resolveSchedule(options: {
 	}
 
 	/* EA 1955 s.60D(1): a holiday on the employee's rest day moves to the next working day. */
-	const explicitlySubstituted = new Set(
-		[...options.configuration.holidays.values()]
-			.map((holiday) => dateKey(holiday.substitutes_date))
-			.filter((date): date is IsoDate => date != null)
-	);
+	const explicitlySubstituted = new Set<IsoDate>();
+	for (const holiday of options.configuration.holidays.values()) {
+		const key = dateKey(holiday.substitutes_date);
+		if (key == null) continue;
+		explicitlySubstituted.add(key);
+	}
 	const substituteDates = new Set<IsoDate>();
 	for (let index = 0; index < pending.length; index += 1) {
 		const holidayDay = pending[index]!;

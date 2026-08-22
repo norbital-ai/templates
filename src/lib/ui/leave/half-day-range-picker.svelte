@@ -1,7 +1,8 @@
 <script lang="ts" module>
-	export type DayHalf = 'FIRST' | 'SECOND';
-	export type HalfDayPoint = { readonly date: string; readonly half: DayHalf };
-	export type HalfDayRange = { readonly start: HalfDayPoint; readonly end: HalfDayPoint };
+	import type { HalfDayRange } from '../../../lib/half-day.js';
+
+	export type { HalfDayRange };
+
 	export type LeaveDayAvailability = {
 		readonly eligible: boolean;
 		readonly reason?: string;
@@ -19,11 +20,12 @@
 <script lang="ts">
 	import Icon from '@iconify/svelte';
 	import { Button } from '@norbital-ai/ui/button';
-	import { Inline, Scroll, Stack } from '@norbital-ai/ui/layout';
+	import { Grid, Inline, Scroll, Stack } from '@norbital-ai/ui/layout';
 	import * as Popover from '@norbital-ai/ui/popover';
 	import { useI18n } from '@norbital-ai/ui/i18n';
 	import type { TenantI18nKeys } from '$bolt/i18n-keys';
 	import { cn } from '@norbital-ai/ui/utils';
+	import { pointAt, pointNumber, type DayHalf, type HalfDayPoint } from '../../../lib/half-day.js';
 	import { todayKey } from '../calendar.js';
 
 	type Props = {
@@ -52,7 +54,7 @@
 	let open = $state(false);
 	let anchor = $state<HalfDayPoint | null>(null);
 	let dragging = $state(false);
-	let ignoreNextClick = false;
+	let ignoreNextClick = $state(false);
 
 	function handleOpenChange(nextOpen: boolean): void {
 		open = nextOpen;
@@ -78,18 +80,6 @@
 
 	function dayNumber(date: string): number {
 		return Math.floor(Date.parse(`${date}T00:00:00.000Z`) / DAY_MS);
-	}
-
-	function pointNumber(point: HalfDayPoint): number {
-		return dayNumber(point.date) * 2 + (point.half === 'SECOND' ? 1 : 0);
-	}
-
-	function pointAt(number: number): HalfDayPoint {
-		const day = Math.floor(number / 2);
-		return {
-			date: new Date(day * DAY_MS).toISOString().slice(0, 10),
-			half: number % 2 === 0 ? 'FIRST' : 'SECOND'
-		};
 	}
 
 	function ordered(a: HalfDayPoint, b: HalfDayPoint): HalfDayRange {
@@ -319,8 +309,9 @@
 						</Button>
 					</Inline>
 
-					<div
-						class="grid gap-1 [grid-template-columns:repeat(7,minmax(2.5rem,1fr))]"
+					<Grid
+						gap="xs"
+						tracks="repeat(7, minmax(2.5rem,1fr))"
 						role="group"
 						aria-label={t('component.leave_range')}
 						onpointerup={() => {
@@ -404,7 +395,7 @@
 								{/if}
 							</button>
 						{/each}
-					</div>
+					</Grid>
 
 					<p class="text-meta">{t('component.leave_half_hint')}</p>
 

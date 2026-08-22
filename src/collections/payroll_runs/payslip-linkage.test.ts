@@ -34,7 +34,7 @@ const SHIFT_CODES = new Map([
 	[
 		WORK_CODE,
 		{
-			norbital_id: WORK_CODE,
+			id: WORK_CODE,
 			code: 'D',
 			variant: { kind: 'WORK', start_time: '08:30', end_time: '17:30', break_minutes: 60 },
 			effective_range: { start: '2020-01-01', end: null }
@@ -43,7 +43,7 @@ const SHIFT_CODES = new Map([
 	[
 		REST_CODE,
 		{
-			norbital_id: REST_CODE,
+			id: REST_CODE,
 			code: 'RD',
 			variant: { kind: 'REST' },
 			effective_range: { start: '2020-01-01', end: null }
@@ -72,7 +72,7 @@ const SIX_DAY_WEEK = {
 };
 
 const JURISDICTION = {
-	norbital_id: 'jur-my',
+	id: 'jur-my',
 	code: 'MY',
 	currency: 'MYR',
 	proration: { by: 'CALENDAR_DAYS' },
@@ -83,7 +83,7 @@ const JURISDICTION = {
 };
 
 const COMPANY = {
-	norbital_id: 'co-my',
+	id: 'co-my',
 	name: 'Nihon (MY)',
 	jurisdiction_id: 'jur-my',
 	pay_cutoff_day: 21,
@@ -105,7 +105,7 @@ const component = (overrides) => ({
 });
 
 const BASIC = component({
-	norbital_id: '00000000-0000-4000-8000-00000000p001',
+	id: '00000000-0000-4000-8000-00000000p001',
 	code: 'BASIC',
 	name: 'Basic salary',
 	sequence: 10,
@@ -127,7 +127,7 @@ const OT_HOLIDAY = 'OT_PUBLIC_HOLIDAY_FROM_START_OF_DAY_0';
 const OT_HOLIDAY_BEYOND = 'OT_PUBLIC_HOLIDAY_BEYOND_NORMAL_0';
 
 const TRANSPORT = component({
-	norbital_id: '00000000-0000-4000-8000-00000000p008',
+	id: '00000000-0000-4000-8000-00000000p008',
 	code: 'TRANSPORT',
 	name: 'Transport allowance',
 	sequence: 50,
@@ -151,42 +151,42 @@ const PAY_COMPONENTS = [BASIC, TRANSPORT];
  */
 const OVERTIME_RULES = [
 	{
-		norbital_id: 'rule-ord',
+		id: 'rule-ord',
 		authority: 'EA 1955 s.60A(1)(a)',
 		day_type: 'ORDINARY',
 		band: { measure: 'BEYOND_NORMAL', from_hours: 0, to_hours: null },
 		award: { kind: 'HOURLY_MULTIPLE', multiple: 1.5 }
 	},
 	{
-		norbital_id: 'rule-rest-half',
+		id: 'rule-rest-half',
 		authority: 'EA 1955 s.60(3)',
 		day_type: 'REST_DAY',
 		band: { measure: 'FROM_START_OF_DAY', from_fraction: 0, to_fraction: 0.5 },
 		award: { kind: 'DAY_WAGE_MULTIPLE', multiple: 0.5 }
 	},
 	{
-		norbital_id: 'rule-rest-full',
+		id: 'rule-rest-full',
 		authority: 'EA 1955 s.60(3)',
 		day_type: 'REST_DAY',
 		band: { measure: 'FROM_START_OF_DAY', from_fraction: 0.5, to_fraction: 1 },
 		award: { kind: 'DAY_WAGE_MULTIPLE', multiple: 1 }
 	},
 	{
-		norbital_id: 'rule-rest-beyond',
+		id: 'rule-rest-beyond',
 		authority: 'EA 1955 s.60(3)(c)',
 		day_type: 'REST_DAY',
 		band: { measure: 'BEYOND_NORMAL', from_hours: 0, to_hours: null },
 		award: { kind: 'HOURLY_MULTIPLE', multiple: 2 }
 	},
 	{
-		norbital_id: 'rule-ph',
+		id: 'rule-ph',
 		authority: 'EA 1955 s.60D(3)',
 		day_type: 'PUBLIC_HOLIDAY',
 		band: { measure: 'FROM_START_OF_DAY', from_fraction: 0, to_fraction: 1 },
 		award: { kind: 'DAY_WAGE_MULTIPLE', multiple: 2 }
 	},
 	{
-		norbital_id: 'rule-ph-beyond',
+		id: 'rule-ph-beyond',
 		authority: 'EA 1955 s.60D(3)',
 		day_type: 'PUBLIC_HOLIDAY',
 		band: { measure: 'BEYOND_NORMAL', from_hours: 0, to_hours: null },
@@ -214,7 +214,7 @@ function configuration(overrides = {}) {
 
 /** Clocks are recorded at UTC+8, which is what the `+08:00` instants in a time entry hold. */
 const clock = (date, from, to) => ({
-	norbital_id: `time-${date}`,
+	id: `time-${date}`,
 	work_date: date,
 	worked_intervals: [
 		{ start_at: `${date}T${from}:00.000+08:00`, end_at: `${date}T${to}:00.000+08:00` }
@@ -223,7 +223,7 @@ const clock = (date, from, to) => ({
 });
 
 const terms = (overrides = {}) => ({
-	norbital_id: 'terms-1',
+	id: 'terms-1',
 	employment_id: 'emp-1',
 	base_salary: { value: 3451, currency: 'MYR' },
 	pay_frequency: 'MONTHLY',
@@ -244,7 +244,7 @@ const MARCH_ATTENDANCE = { start: '2026-02-21', end: '2026-03-20' };
 function bundle(overrides = {}) {
 	return {
 		employment: {
-			norbital_id: 'emp-1',
+			id: 'emp-1',
 			employee_id: 'ee-1',
 			employee_number: 'NHPMY0023',
 			company_id: 'co-my',
@@ -252,7 +252,7 @@ function bundle(overrides = {}) {
 			exit_date: null,
 			effective_range: { start: '2021-06-01', end: null }
 		},
-		employee: { norbital_id: 'ee-1', date_of_birth: '1992-01-04', gender: 'FEMALE' },
+		employee: { id: 'ee-1', date_of_birth: '1992-01-04', gender: 'FEMALE' },
 		terms: [terms()],
 		statutoryFacts: [],
 		entries: [],
@@ -361,9 +361,9 @@ test('an overtime line names the statutory band and no pay component at all', ()
 
 test('a component entry settles by the money cut-off, not by the month it is dated in', () => {
 	const entry = (date) => ({
-		norbital_id: `entry-${date}`,
+		id: `entry-${date}`,
 		employment_id: 'emp-1',
-		pay_component_id: TRANSPORT.norbital_id,
+		pay_component_id: TRANSPORT.id,
 		pay_period: null,
 		event_date: date,
 		amount: 240,
@@ -427,7 +427,7 @@ test('a public holiday is paid at its own statutory rate, from the holiday calen
 		[
 			'2026-03-10',
 			{
-				norbital_id: 'hol-1',
+				id: 'hol-1',
 				company_id: 'co-my',
 				observed_date: '2026-03-10',
 				name: 'Nuzul Al-Quran',
@@ -507,12 +507,12 @@ test('a mid-month raise is two prorated terms rows, summing to one month', () =>
 	const measured = measure({
 		terms: [
 			terms({
-				norbital_id: 'terms-old',
+				id: 'terms-old',
 				base_salary: { value: 4000, currency: 'MYR' },
 				effective_range: { start: '2020-01-01', end: '2026-03-15' }
 			}),
 			terms({
-				norbital_id: 'terms-new',
+				id: 'terms-new',
 				base_salary: { value: 4600, currency: 'MYR' },
 				effective_range: { start: '2026-03-16', end: null }
 			})
@@ -527,9 +527,9 @@ test('a mid-month raise is two prorated terms rows, summing to one month', () =>
 
 test('a standing allowance prorates with the employment; a one-off does not', () => {
 	const standing = {
-		norbital_id: 'entry-recurring',
+		id: 'entry-recurring',
 		employment_id: 'emp-1',
-		pay_component_id: TRANSPORT.norbital_id,
+		pay_component_id: TRANSPORT.id,
 		pay_period: null,
 		event_date: '2026-03-01',
 		amount: 310,
@@ -540,7 +540,7 @@ test('a standing allowance prorates with the employment; a one-off does not', ()
 			effective_range: { start: '2020-01-01', end: null }
 		}
 	};
-	const oneOff = { ...standing, norbital_id: 'entry-once', origin: { kind: 'ONE_OFF', note: 'x' } };
+	const oneOff = { ...standing, id: 'entry-once', origin: { kind: 'ONE_OFF', note: 'x' } };
 	const joined = {
 		employedDays: { start: '2026-03-16', end: '2026-03-31' },
 		wageDays: { start: '2026-03-16', end: '2026-03-31' },

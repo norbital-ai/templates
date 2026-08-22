@@ -88,9 +88,7 @@
 		typeof props.row?.company_id === 'string' ? props.row.company_id : null
 	);
 	const companyQuery = $derived(
-		companyId == null
-			? null
-			: client.db.companies.findFirst({ where: { norbital_id: { eq: companyId } } })
+		companyId == null ? null : client.db.companies.findFirst({ where: { id: { eq: companyId } } })
 	);
 	const jurisdictionId = $derived(companyQuery?.current?.jurisdiction_id ?? null);
 	const contributionsQuery = $derived(
@@ -104,7 +102,7 @@
 	);
 	const contributionOptions = $derived(
 		(contributionsQuery?.current ?? []).map((contribution) => ({
-			value: contribution.norbital_id,
+			value: contribution.id,
 			label: [contribution.code, contribution.name].filter((part) => part).join(' · ') || '—',
 			search_term: `${contribution.code ?? ''} ${contribution.name ?? ''} ${contribution.authority ?? ''}`
 		}))

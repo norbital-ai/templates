@@ -1,3 +1,5 @@
+import { Schema } from 'effect';
+import { statutoryRestBreakRuleValueSchema } from '../../datatypes/statutory_regime/+definition.js';
 import type { StatutoryRestBreakRule } from '../../datatypes/statutory_regime/+definition.js';
 
 /**
@@ -33,17 +35,18 @@ const MINUTE_MS = 60_000;
  * ISO strings, and the board hands whatever the cell carried. Accepting both is cheaper than three
  * conversions at three call sites that would each have to agree about time zones.
  */
-export type WorkedIntervalLike = {
-	readonly start_at: string | Date;
-	readonly end_at: string | Date | null;
-};
+const workedIntervalLikeSchema = Schema.Struct({
+	start_at: Schema.Union([Schema.String, Schema.Date]),
+	end_at: Schema.NullOr(Schema.Union([Schema.String, Schema.Date]))
+});
+type WorkedIntervalLike = Schema.Schema.Type<typeof workedIntervalLikeSchema>;
 
-export type RestBreakInput = {
-	readonly intervals: readonly WorkedIntervalLike[] | null | undefined;
+const restBreakInputSchema = Schema.Struct({
+	intervals: Schema.optional(Schema.NullOr(Schema.Array(workedIntervalLikeSchema))),
 	/** The flat `time_entries.break_minutes` column: how long a break was, never when it was owed. */
-	readonly breakMinutes: number | null | undefined;
+	breakMinutes: Schema.optional(Schema.NullOr(Schema.Number)),
 	/** The snapshot member, absent on every jurisdiction that declares no rule. */
-	readonly rules: readonly StatutoryRestBreakRule[] | null | undefined;
+	rules: Schema.optional(Schema.NullOr(Schema.Array(statutoryRestBreakRuleValueSchema))),
 	/**
 	 * Whether this day's work is of the kind that "must be carried on continuously and which
 	 * requires [the employee's] continual attendance" — EA 1955 s.60A(1) proviso (ii), EA 1968
@@ -51,35 +54,38 @@ export type RestBreakInput = {
 	 * it is passed in and defaults to false: claiming the proviso is claiming an exception, and an
 	 * exception nobody asserted is not available.
 	 */
-	readonly continuousAttendance?: boolean;
-};
+	continuousAttendance: Schema.optional(Schema.Boolean)
+});
+type RestBreakInput = Schema.Schema.Type<typeof restBreakInputSchema>;
 
-export type RestBreakAssessment = {
+const restBreakAssessmentSchema = Schema.Struct({
 	/** The rule that governs this day, or null when the jurisdiction declares none. */
-	readonly rule: StatutoryRestBreakRule | null;
+	rule: Schema.NullOr(statutoryRestBreakRuleValueSchema),
 	/**
 	 * An interval has no end. The day is still being worked, so the figures below describe only what
 	 * has happened so far and `shortfallMinutes` is withheld — a person mid-shift is not short of a
 	 * break they may still be about to take.
 	 */
-	readonly open: boolean;
+	open: Schema.Boolean,
 	/** Whether the rule's trigger was crossed. A rule with no trigger is owed on any worked day. */
-	readonly triggered: boolean;
+	triggered: Schema.Boolean,
 	/** The longest stretch of work no qualifying period of leisure interrupted. */
-	readonly longestRunHours: number;
+	longestRunHours: Schema.Number,
 	/**
 	 * What the rule requires: its minimum when triggered, 0 when it is not, and **null when the
 	 * statute states a trigger but no duration** (Singapore EA 1968 s.38(1)(a)). Null is not zero:
 	 * zero would claim the Act demands nothing, which is the opposite of what it says.
 	 */
-	readonly requiredMinutes: number | null;
+	requiredMinutes: Schema.NullOr(Schema.Number),
 	/** Break actually recorded: the qualifying gaps, topped up to the flat column where it is larger. */
-	readonly takenMinutes: number;
+	takenMinutes: Schema.Number,
 	/** `required − taken`, floored at zero; null wherever the question cannot be answered. */
-	readonly shortfallMinutes: number | null;
-};
+	shortfallMinutes: Schema.NullOr(Schema.Number)
+});
+export type RestBreakAssessment = Schema.Schema.Type<typeof restBreakAssessmentSchema>;
 
-type Span = { start: number; end: number };
+const spanSchema = Schema.Struct({ start: Schema.Number, end: Schema.Number });
+type Span = Schema.Schema.Type<typeof spanSchema>;
 
 function instant(value: string | Date): number {
 	return value instanceof Date ? value.getTime() : Date.parse(value);
@@ -114,7 +120,7 @@ function spansOf(intervals: readonly WorkedIntervalLike[] | null | undefined): {
 	for (const span of parsed) {
 		const previous = spans.at(-1);
 		if (previous == null || span.start > previous.end) spans.push({ ...span });
-		else previous.end = Math.max(previous.end, span.end);
+		else spans.splice(-1, 1, { start: previous.start, end: Math.max(previous.end, span.end) });
 	}
 	return { spans, open };
 }
@@ -147,10 +153,6 @@ export function selectRestBreakRule(
 	// already refuses at the write boundary, and picking a winner here would hide it from the person
 	// who can fix it.
 	return declared.find((rule) => rule.applies_when === 'ALWAYS') ?? null;
-}
-
-function roundHours(minutes: number): number {
-	return Math.round((minutes / 60) * 10_000) / 10_000;
 }
 
 /**
@@ -243,7 +245,7 @@ export function restBreakAssessment(input: RestBreakInput): RestBreakAssessment 
 		rule,
 		open,
 		triggered,
-		longestRunHours: roundHours(longestRunMinutes),
+		longestRunHours: Math.round((longestRunMinutes / 60) * 10_000) / 10_000,
 		requiredMinutes,
 		takenMinutes,
 		shortfallMinutes:

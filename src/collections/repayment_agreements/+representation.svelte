@@ -8,6 +8,7 @@
 	import { Input } from '@norbital-ai/ui/input';
 	import { Column, Grid, Stack } from '@norbital-ai/ui/layout';
 	import { RelationshipRenderer } from '@norbital-ai/ui/data-renderer/relationship';
+	import { Effect, Result } from 'effect';
 	import type { RepresentationProps } from './$types.js';
 	import {
 		distributeRepaymentSchedule,
@@ -25,11 +26,13 @@
 
 	const validation = {
 		semantic: (values) =>
-			repaymentScheduleIssues({
-				principal: values.principal,
-				effectiveRange: values.effective_range ?? {},
-				schedule: values.schedule
-			}).map((message) => ({ message, path: ['schedule'] }))
+			Effect.succeed(
+				repaymentScheduleIssues({
+					principal: values.principal,
+					effectiveRange: values.effective_range ?? {},
+					schedule: values.schedule
+				}).map((message) => ({ message, path: ['schedule'] }))
+			)
 	} satisfies CollectionFormValidation;
 </script>
 
@@ -123,15 +126,26 @@
 						variant="outline"
 						onclick={() => {
 							provisioningError = '';
-							try {
-								const values = form.values();
-								const schedule = distributeRepaymentSchedule(
-									Number(values.principal),
-									monthlyDueDates(firstDueDate, Number(instalmentCount))
-								);
-								form.setValues({ ...values, schedule });
-							} catch (cause) {
-								provisioningError = cause instanceof Error ? cause.message : String(cause);
+							const provisioned = Result.try({
+								try: () => {
+									const values = form.values();
+									return {
+										values,
+										schedule: distributeRepaymentSchedule(
+											Number(values.principal),
+											monthlyDueDates(firstDueDate, Number(instalmentCount))
+										)
+									};
+								},
+								catch: (cause) => (cause instanceof Error ? cause.message : String(cause))
+							});
+							if (Result.isSuccess(provisioned)) {
+								form.setValues({
+									...provisioned.success.values,
+									schedule: provisioned.success.schedule
+								});
+							} else {
+								provisioningError = provisioned.failure;
 							}
 						}}
 					>

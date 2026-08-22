@@ -115,12 +115,12 @@ function runHandler(result) {
 function companies() {
 	return [
 		{
-			norbital_id: COMPANY_ID,
+			id: COMPANY_ID,
 			name: 'Nihon Pigment Sdn. Bhd.',
 			registration_number: '1234567-A'
 		},
 		{
-			norbital_id: 'company:ph',
+			id: 'company:ph',
 			name: 'Omni Plus System Philippines, Inc.',
 			registration_number: 'SOURCE_NOT_PROVIDED'
 		}
@@ -131,7 +131,7 @@ function rosterApi(overrides = {}) {
 	return stubApi({
 		rosters: [
 			{
-				norbital_id: ROSTER_ID,
+				id: ROSTER_ID,
 				month: '2026-05',
 				published_at: null,
 				company_id: COMPANY_ID,
@@ -140,47 +140,47 @@ function rosterApi(overrides = {}) {
 		],
 		companies: companies(),
 		employments: [
-			{ norbital_id: 'employment:2', employee_number: 'NHPMY0002', company_id: COMPANY_ID },
-			{ norbital_id: 'employment:23', employee_number: 'NHPMY0023', company_id: COMPANY_ID }
+			{ id: 'employment:2', employee_number: 'NHPMY0002', company_id: COMPANY_ID },
+			{ id: 'employment:23', employee_number: 'NHPMY0023', company_id: COMPANY_ID }
 		],
 		shift_definitions: [
 			{
-				norbital_id: 'shift:75',
+				id: 'shift:75',
 				code: '7.5AM',
 				company_id: COMPANY_ID,
 				variant: { kind: 'WORK', start_time: '08:30', end_time: '17:00', break_minutes: 60 },
 				effective_range: { start: '2020-01-01' }
 			},
 			{
-				norbital_id: 'shift:am',
+				id: 'shift:am',
 				code: 'AM0830',
 				company_id: COMPANY_ID,
 				variant: { kind: 'WORK', start_time: '08:30', end_time: '17:30', break_minutes: 60 },
 				effective_range: { start: '2020-01-01' }
 			},
 			{
-				norbital_id: 'shift:pm',
+				id: 'shift:pm',
 				code: 'PM2030',
 				company_id: COMPANY_ID,
 				variant: { kind: 'WORK', start_time: '20:30', end_time: '05:30', break_minutes: 60 },
 				effective_range: { start: '2020-01-01' }
 			},
 			{
-				norbital_id: 'shift:rest',
+				id: 'shift:rest',
 				code: 'REST',
 				company_id: COMPANY_ID,
 				variant: { kind: 'REST' },
 				effective_range: { start: '2020-01-01' }
 			},
 			{
-				norbital_id: 'shift:off',
+				id: 'shift:off',
 				code: 'OFF',
 				company_id: COMPANY_ID,
 				variant: { kind: 'OFF' },
 				effective_range: { start: '2020-01-01' }
 			}
 		],
-		company_holidays: [{ norbital_id: 'holiday:1', company_id: COMPANY_ID, date: '2026-05-08' }],
+		company_holidays: [{ id: 'holiday:1', company_id: COMPANY_ID, date: '2026-05-08' }],
 		roster_entries: overrides.existingEntries ?? []
 	});
 }
@@ -189,8 +189,8 @@ function timeEntryApi(overrides = {}) {
 	return stubApi({
 		companies: companies(),
 		employments: [
-			{ norbital_id: 'employment:2', employee_number: 'NHPMY0002', company_id: COMPANY_ID },
-			{ norbital_id: 'employment:23', employee_number: 'NHPMY0023', company_id: COMPANY_ID }
+			{ id: 'employment:2', employee_number: 'NHPMY0002', company_id: COMPANY_ID },
+			{ id: 'employment:23', employee_number: 'NHPMY0023', company_id: COMPANY_ID }
 		],
 		time_entries: overrides.existingEntries ?? [],
 		payroll_runs: overrides.payrollRuns ?? [],

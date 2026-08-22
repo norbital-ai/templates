@@ -1,3 +1,5 @@
+import { Schema } from 'effect';
+
 /**
  * What a repayment schedule row can honestly say about itself.
  *
@@ -22,69 +24,106 @@
  * broken engine.
  */
 
-export interface RepaymentConsumptionReference {
-	readonly payslipLineId: string;
-	readonly payslipId: string;
-	readonly payrollRunId: string;
-	readonly payslipLineSequence: number;
-	readonly payrollPeriod: string;
-	readonly cycleDate: string;
-	readonly consumedAt: string;
+const repaymentConsumptionReferenceSchema = Schema.Struct({
+	payslipLineId: Schema.String,
+	payslipId: Schema.String,
+	payrollRunId: Schema.String,
+	payslipLineSequence: Schema.Number,
+	payrollPeriod: Schema.String,
+	cycleDate: Schema.String,
+	consumedAt: Schema.String,
 	/**
 	 * What payroll actually deducted, when the line records it. Lower than the scheduled amount when
 	 * the negative-net guard reduced the deduction; the remainder is carried forward as an arrears
 	 * entry by `payroll_runs/lib/persist.ts`, so the instalment is still settled — but the schedule
 	 * should say the run only took part of it rather than implying the full figure left the payslip.
 	 */
-	readonly recoveredAmount: number | null;
-}
+	recoveredAmount: Schema.NullOr(Schema.Number)
+});
+type RepaymentConsumptionReference = Schema.Schema.Type<typeof repaymentConsumptionReferenceSchema>;
 
-export type RepaymentConsumptionCell =
-	| { readonly status: 'loading' }
-	| { readonly status: 'error'; readonly message: string }
-	| { readonly status: 'consumed'; readonly reference: RepaymentConsumptionReference }
+export const repaymentConsumptionCellSchema = Schema.Union([
+	Schema.Struct({ status: Schema.Literal('loading') }),
+	Schema.Struct({ status: Schema.Literal('error'), message: Schema.String }),
+	Schema.Struct({
+		status: Schema.Literal('consumed'),
+		reference: repaymentConsumptionReferenceSchema
+	}),
 	/** The due period is in the future and no run has reached it. */
-	| { readonly status: 'not_due'; readonly period: string }
+	Schema.Struct({ status: Schema.Literal('not_due'), period: Schema.String }),
 	/** The due period is here or past, but no payroll run exists for it yet. */
-	| { readonly status: 'awaiting_run'; readonly period: string }
+	Schema.Struct({ status: Schema.Literal('awaiting_run'), period: Schema.String }),
 	/** A run exists for the due period and is still a draft — recalculating it takes the instalment. */
-	| { readonly status: 'awaiting_rebuild'; readonly period: string }
+	Schema.Struct({ status: Schema.Literal('awaiting_rebuild'), period: Schema.String }),
 	/** The due period's run is paid and did not deduct this instalment. Nothing will now. */
-	| { readonly status: 'unrecovered'; readonly period: string };
+	Schema.Struct({ status: Schema.Literal('unrecovered'), period: Schema.String })
+]);
+export type RepaymentConsumptionCell = Schema.Schema.Type<typeof repaymentConsumptionCellSchema>;
 
-export interface RepaymentScheduleMatrixRow {
-	id: string;
-	due_date: string;
-	amount: number;
-	consumed_by: RepaymentConsumptionCell;
-	consumed_at: string | null;
-}
+const repaymentScheduleMatrixRowSchema = Schema.Struct({
+	id: Schema.String,
+	due_date: Schema.String,
+	amount: Schema.Number,
+	consumed_by: repaymentConsumptionCellSchema,
+	consumed_at: Schema.NullOr(Schema.String)
+});
+export type RepaymentScheduleMatrixRow = Schema.Schema.Type<
+	typeof repaymentScheduleMatrixRowSchema
+>;
 
-export interface RepaymentConsumptionSourceRow {
-	readonly repayment_sequence?: number | null;
-	readonly entry_payslip_lines?:
-		| readonly {
-				readonly norbital_created_at?: string | null;
-				readonly norbital_id?: string | null;
-				readonly sequence?: number | null;
-				readonly amount?: unknown;
-				readonly payslip_line_payslip?: {
-					readonly norbital_id?: string | null;
-					readonly payslip_payroll_run?: {
-						readonly norbital_id?: string | null;
-						readonly period?: string | null;
-						readonly pay_date?: string | null;
-					} | null;
-				} | null;
-		  }[]
-		| null;
-}
+const repaymentConsumptionSourceRowSchema = Schema.Struct({
+	repayment_sequence: Schema.optional(Schema.NullOr(Schema.Number)),
+	entry_payslip_lines: Schema.optional(
+		Schema.NullOr(
+			Schema.Array(
+				Schema.Struct({
+					created_at: Schema.optional(Schema.NullOr(Schema.String)),
+					id: Schema.optional(Schema.NullOr(Schema.String)),
+					sequence: Schema.optional(Schema.NullOr(Schema.Number)),
+					amount: Schema.optional(Schema.Unknown),
+					payslip_line_payslip: Schema.optional(
+						Schema.NullOr(
+							Schema.Struct({
+								id: Schema.optional(Schema.NullOr(Schema.String)),
+								payslip_payroll_run: Schema.optional(
+									Schema.NullOr(
+										Schema.Struct({
+											id: Schema.optional(Schema.NullOr(Schema.String)),
+											period: Schema.optional(Schema.NullOr(Schema.String)),
+											pay_date: Schema.optional(Schema.NullOr(Schema.String))
+										})
+									)
+								)
+							})
+						)
+					)
+				})
+			)
+		)
+	)
+});
+export type RepaymentConsumptionSourceRow = Schema.Schema.Type<
+	typeof repaymentConsumptionSourceRowSchema
+>;
 
 /** A payroll run as this screen needs to read it: which period, and how settled it is. */
-export interface RepaymentPeriodRunRow {
-	readonly period?: string | null;
-	readonly lifecycle?: string | null;
-}
+const repaymentPeriodRunRowSchema = Schema.Struct({
+	period: Schema.optional(Schema.NullOr(Schema.String)),
+	lifecycle: Schema.optional(Schema.NullOr(Schema.String))
+});
+type RepaymentPeriodRunRow = Schema.Schema.Type<typeof repaymentPeriodRunRowSchema>;
+
+/** The inputs of `resolveRepaymentConsumption`, as one shape. */
+const resolveRepaymentConsumptionOptionsSchema = Schema.Struct({
+	dueDate: Schema.String,
+	reference: Schema.optional(repaymentConsumptionReferenceSchema),
+	runLifecycleByPeriod: Schema.ReadonlyMap(Schema.String, Schema.NullOr(Schema.String)),
+	/** `YYYY-MM-DD`. */
+	today: Schema.String
+});
+type ResolveRepaymentConsumptionOptions = Schema.Schema.Type<
+	typeof resolveRepaymentConsumptionOptionsSchema
+>;
 
 function nonEmpty(value: unknown): string | null {
 	return typeof value === 'string' && value.length > 0 ? value : null;
@@ -137,12 +176,12 @@ export function repaymentConsumptionBySequence(
 			const line = source;
 			const payslip = line?.payslip_line_payslip;
 			const run = payslip?.payslip_payroll_run;
-			const payslipLineId = nonEmpty(line?.norbital_id);
-			const payslipId = nonEmpty(payslip?.norbital_id);
-			const payrollRunId = nonEmpty(run?.norbital_id);
+			const payslipLineId = nonEmpty(line?.id);
+			const payslipId = nonEmpty(payslip?.id);
+			const payrollRunId = nonEmpty(run?.id);
 			const payrollPeriod = nonEmpty(run?.period);
 			const cycleDate = nonEmpty(run?.pay_date);
-			const consumedAt = nonEmpty(source.norbital_created_at);
+			const consumedAt = nonEmpty(source.created_at);
 			if (
 				payslipLineId == null ||
 				payslipId == null ||
@@ -177,13 +216,9 @@ export function repaymentConsumptionBySequence(
  * everything, and beyond that the run's own lifecycle outranks the calendar — a paid period is a
  * closed period whether or not the due date has passed.
  */
-export function resolveRepaymentConsumption(options: {
-	readonly dueDate: string;
-	readonly reference: RepaymentConsumptionReference | undefined;
-	readonly runLifecycleByPeriod: ReadonlyMap<string, string | null>;
-	/** `YYYY-MM-DD`. */
-	readonly today: string;
-}): RepaymentConsumptionCell {
+export function resolveRepaymentConsumption(
+	options: ResolveRepaymentConsumptionOptions
+): RepaymentConsumptionCell {
 	if (options.reference != null) return { status: 'consumed', reference: options.reference };
 	const period = instalmentPayPeriod(options.dueDate);
 	const lifecycle = options.runLifecycleByPeriod.get(period);

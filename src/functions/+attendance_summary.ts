@@ -1,4 +1,4 @@
-import { defineQueryHandler } from '@norbital-ai/bolt/authoring';
+import { defineQueryHandler, refuse } from '@norbital-ai/bolt/authoring';
 import { Effect, Schema } from 'effect';
 import { shiftDayKey } from '../lib/ui/calendar.js';
 import { attendanceState } from '../lib/attendance.js';
@@ -26,7 +26,7 @@ export default defineQueryHandler({
 			const employmentCount = yield* api.db.employments.count({
 				where: {
 					company_id: { eq: company_id },
-					norbital_approval_id: { isNull: true }
+					approval_id: { isNull: true }
 				}
 			});
 			if (employmentCount === 0) return [];
@@ -40,7 +40,7 @@ export default defineQueryHandler({
 				where: {
 					time_entry_employment: {
 						company_id: { eq: company_id },
-						norbital_approval_id: { isNull: true }
+						approval_id: { isNull: true }
 					},
 					work_date: { gte: from, lte: to }
 				},
@@ -48,9 +48,7 @@ export default defineQueryHandler({
 				limit: 20_000
 			});
 			if (entries.length === 20_000) {
-				throw new Error(
-					'Attendance summary reached its 20,000-row safety limit. Shorten the range.'
-				);
+				refuse('Attendance summary reached its 20,000-row safety limit. Shorten the range.');
 			}
 			return weeks.map(({ week, end }) => {
 				const inWeek = entries.filter((entry) => {

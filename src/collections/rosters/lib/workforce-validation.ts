@@ -1,43 +1,52 @@
 /** Pure publication checks for normalized monthly schedules. */
 
-export type Designation = 'WORK' | 'REST' | 'OFF';
+import { Schema } from 'effect';
 
-export type ValidationShift = {
-	readonly code: string;
-	readonly start_time: string;
-	readonly end_time: string;
-	readonly break_minutes: number;
-};
+const designationSchema = Schema.Literals(['WORK', 'REST', 'OFF']);
+type Designation = Schema.Schema.Type<typeof designationSchema>;
 
-export type ValidationDay = {
-	readonly employment_id: string;
-	readonly work_date: string;
-	readonly designation: Designation | null;
-	readonly shift: ValidationShift | null;
-};
+const validationShiftSchema = Schema.Struct({
+	code: Schema.String,
+	start_time: Schema.String,
+	end_time: Schema.String,
+	break_minutes: Schema.Number
+});
+export type ValidationShift = Schema.Schema.Type<typeof validationShiftSchema>;
 
-export type WorkloadExpectation = {
-	readonly employment_id: string;
-	readonly start_date?: string;
-	readonly end_date?: string;
-	readonly kind: 'EXACT' | 'MINIMUM' | 'MAXIMUM';
-	readonly work_days: number | null;
-	readonly paid_minutes: number;
-};
+const validationDaySchema = Schema.Struct({
+	employment_id: Schema.String,
+	work_date: Schema.String,
+	designation: Schema.NullOr(designationSchema),
+	shift: Schema.NullOr(validationShiftSchema)
+});
+export type ValidationDay = Schema.Schema.Type<typeof validationDaySchema>;
 
-export type ViolationCode =
-	| 'SCHEDULE_CODE_MISSING'
-	| 'OVERLAPPING_WORK_SHIFTS'
-	| 'WORKLOAD_BELOW_TERMS'
-	| 'WORKLOAD_ABOVE_TERMS'
-	| 'WORKLOAD_DIFFERS_FROM_PATTERN';
+const workloadExpectationSchema = Schema.Struct({
+	employment_id: Schema.String,
+	start_date: Schema.optional(Schema.String),
+	end_date: Schema.optional(Schema.String),
+	kind: Schema.Literals(['EXACT', 'MINIMUM', 'MAXIMUM']),
+	work_days: Schema.NullOr(Schema.Number),
+	paid_minutes: Schema.Number
+});
+export type WorkloadExpectation = Schema.Schema.Type<typeof workloadExpectationSchema>;
 
-export type ScheduleViolation = {
-	readonly code: ViolationCode;
-	readonly employment_id: string;
-	readonly dates: readonly string[];
-	readonly message: string;
-};
+const violationCodeSchema = Schema.Literals([
+	'SCHEDULE_CODE_MISSING',
+	'OVERLAPPING_WORK_SHIFTS',
+	'WORKLOAD_BELOW_TERMS',
+	'WORKLOAD_ABOVE_TERMS',
+	'WORKLOAD_DIFFERS_FROM_PATTERN'
+]);
+type ViolationCode = Schema.Schema.Type<typeof violationCodeSchema>;
+
+const scheduleViolationSchema = Schema.Struct({
+	code: violationCodeSchema,
+	employment_id: Schema.String,
+	dates: Schema.Array(Schema.String),
+	message: Schema.String
+});
+type ScheduleViolation = Schema.Schema.Type<typeof scheduleViolationSchema>;
 
 function clockMinutes(value: string): number {
 	const match = /^([01]\d|2[0-3]):([0-5]\d)$/.exec(value);
@@ -54,11 +63,12 @@ function paidMinutes(shift: ValidationShift): number {
 	return paid;
 }
 
-export type WorkShiftOverlap = {
-	readonly employment_id: string;
-	readonly first: ValidationDay;
-	readonly second: ValidationDay;
-};
+const workShiftOverlapSchema = Schema.Struct({
+	employment_id: Schema.String,
+	first: validationDaySchema,
+	second: validationDaySchema
+});
+type WorkShiftOverlap = Schema.Schema.Type<typeof workShiftOverlapSchema>;
 
 function dayMinutes(date: string): number {
 	const parsed = Date.parse(`${date}T00:00:00.000Z`);

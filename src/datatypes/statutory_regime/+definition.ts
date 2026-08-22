@@ -1,13 +1,13 @@
 import { defineCustomType } from '@norbital-ai/bolt/authoring';
+import { MoneyValueSchema } from '@norbital-ai/std/finance';
 import { Schema } from 'effect';
-import { moneyValueSchema } from '../money/+definition.js';
 import { overtimeAwardValueSchema } from '../overtime_award/+definition.js';
 import { overtimeBandValueSchema } from '../overtime_band/+definition.js';
 
 const authority = Schema.Trimmed.check(Schema.isMinLength(1));
 
 export const overtimeCoverageValueSchema = Schema.Struct({
-	wage_ceiling: Schema.NullOr(moneyValueSchema),
+	wage_ceiling: Schema.NullOr(MoneyValueSchema),
 	ceiling_is_inclusive: Schema.NullOr(Schema.Boolean),
 	wage_basis: Schema.NullOr(Schema.Literals(['STATUTORY_WAGES', 'BASE_SALARY'])),
 	category_basis: Schema.Literals(['STATUTORY_WORK_CATEGORY', 'WORK_CLASSIFICATION']),
@@ -117,7 +117,9 @@ export const statutoryRegimeSchema = Schema.toStandardSchemaV1(statutoryRegimeVa
 	parseOptions: { onExcessProperty: 'error' }
 });
 
-type NumericRange = { readonly from: number; readonly to: number | null };
+/** One half-open pricing band range as the overlap check reads it: `null` to is the top. */
+const numericRangeSchema = Schema.Struct({ from: Schema.Number, to: Schema.NullOr(Schema.Number) });
+type NumericRange = Schema.Schema.Type<typeof numericRangeSchema>;
 
 function rangeOf(rule: StatutoryOvertimeRule): NumericRange {
 	return rule.band.measure === 'BEYOND_NORMAL'

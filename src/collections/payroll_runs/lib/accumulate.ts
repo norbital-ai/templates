@@ -63,11 +63,7 @@ function treatmentFor(
 		default:
 			return line.payComponent == null
 				? undefined
-				: lookupTreatment(
-						configuration,
-						line.payComponent.norbital_id,
-						contribution.row.norbital_id
-					)?.treatment;
+				: lookupTreatment(configuration, line.payComponent.id, contribution.row.id)?.treatment;
 	}
 }
 

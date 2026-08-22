@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { client } from '../../lib/workspace-client.js';
+	import { Effect, Schema } from 'effect';
 	import { downloadCollectionExport } from '@norbital-ai/bolt/client';
 	import { useI18n } from '@norbital-ai/ui/i18n';
 	import AppHeaderActions from '@norbital-ai/bolt/client/app-header-actions';
@@ -24,28 +25,28 @@
 	const today = todayKey();
 	const activeRange = { effective_range: { contains_date: todayInstant() } } as const;
 
-	const companiesQuery = client.db.companies.findMany({
-		where: { norbital_approval_id: { isNull: true }, ...activeRange },
-		orderBy: { name: 'asc' },
-		limit: 500
-	});
+	const companiesQuery = $derived(
+		client.db.companies.findMany({
+			where: { approval_id: { isNull: true }, ...activeRange },
+			orderBy: { name: 'asc' },
+			limit: 500
+		})
+	);
 	const companies = $derived(companiesQuery.current ?? []);
 	const companyOptions = $derived(
 		companies.map((c) => ({
-			value: c.norbital_id,
+			value: c.id,
 			label: c.name,
 			search_term: `${c.name} ${c.registration_number ?? ''}`
 		}))
 	);
 	const selectedCompanyId = $derived(
-		companyId != null && companies.some((c) => c.norbital_id === companyId)
+		companyId != null && companies.some((c) => c.id === companyId)
 			? companyId
-			: (companies[0]?.norbital_id ?? null)
+			: (companies[0]?.id ?? null)
 	);
-	type PayrollCompanyRow = { norbital_id: string; pay_day: number };
 	const selectedCompany = $derived(
-		(companies.find((company) => company.norbital_id === selectedCompanyId) as
-			PayrollCompanyRow | undefined) ?? null
+		companies.find((company) => company.id === selectedCompanyId) ?? null
 	);
 
 	const payrollRunsQuery = $derived(
@@ -58,13 +59,14 @@
 				})
 	);
 
-	interface CycleRow {
-		period: string;
-		payDate: string;
-		status: 'late' | 'current' | 'next';
-		runState: string | null;
-		attendance: string | null;
-	}
+	const CycleRowSchema = Schema.Struct({
+		period: Schema.String,
+		payDate: Schema.String,
+		status: Schema.Literal('late', 'current', 'next'),
+		runState: Schema.NullOr(Schema.String),
+		attendance: Schema.NullOr(Schema.String)
+	});
+	type CycleRow = Schema.Schema.Type<typeof CycleRowSchema>;
 
 	/**
 	 * Three months back, the current month and three ahead for the selected company. The pay date is
@@ -135,7 +137,7 @@
 				companyId = value;
 				return;
 			}
-			companyId = companies[0]?.norbital_id ?? null;
+			companyId = companies[0]?.id ?? null;
 		}}
 		emptyPlaceholder={t('component.select_legal_entity')}
 		searchPlaceholder={t('component.search_companies')}
@@ -181,7 +183,7 @@
 						{:else if cycleBoard.length === 0}
 							<div class="p-5 text-sm text-muted-foreground">{t('app.payroll.no_open_cycles')}</div>
 						{:else}
-							<!-- stupidity:allow UI3 -- derived pay dates are not collection records. -->
+							<!-- repository-health:allow UI3 -- derived pay dates are not collection records. -->
 							<table class="w-full text-left text-sm">
 								<thead class="bg-muted/40 text-meta">
 									<tr>
@@ -253,51 +255,77 @@
 						label: t('app.payroll.export_bank_files'),
 						description: t('app.payroll.export_bank_files_description'),
 						requiresSelection: true,
-						run: async ({ selectedRows }) => {
-							const manifest = await downloadCollectionExport(
-								{
-									collection_name: 'payroll_runs',
-									record_ids: selectedRows.map((record) => record.norbital_id)
-								},
-								{ includeAction: (action) => action.metadata?.kind === 'bank-files' }
-							);
-							if (manifest.length === 0) throw new Error(t('app.payroll.export_bank_files_error'));
-							saveCollectionExport(manifest);
-						}
+						run: ({ selectedRows }) =>
+							Effect.runPromise(
+								Effect.gen(function* () {
+									const manifest = yield* Effect.tryPromise({
+										try: () =>
+											downloadCollectionExport(
+												{
+													collection_name: 'payroll_runs',
+													record_ids: selectedRows.map((record) => record.id)
+												},
+												{ includeAction: (action) => action.metadata?.kind === 'bank-files' }
+											),
+										catch: (error) => (error instanceof Error ? error : new Error(String(error)))
+									});
+									if (manifest.length === 0)
+										yield* Effect.fail(new Error(t('app.payroll.export_bank_files_error')));
+									yield* Effect.sync(() => saveCollectionExport(manifest));
+								})
+							)
 					},
 					{
 						id: 'payslip-pdfs',
 						label: t('app.payroll.export_payslip_pdfs'),
 						description: t('app.payroll.export_payslip_pdfs_description'),
 						requiresSelection: true,
-						run: async ({ selectedRows }) => {
-							const manifest = await downloadCollectionExport(
-								{
-									collection_name: 'payroll_runs',
-									record_ids: selectedRows.map((record) => record.norbital_id)
-								},
-								{ includeAction: (action) => action.metadata?.kind === 'payslip-pdfs' }
-							);
-							if (manifest.length === 0) throw new Error(t('app.payroll.export_pdfs_error'));
-							saveCollectionExport(manifest);
-						}
+						run: ({ selectedRows }) =>
+							Effect.runPromise(
+								Effect.gen(function* () {
+									const manifest = yield* Effect.tryPromise({
+										try: () =>
+											downloadCollectionExport(
+												{
+													collection_name: 'payroll_runs',
+													record_ids: selectedRows.map((record) => record.id)
+												},
+												{ includeAction: (action) => action.metadata?.kind === 'payslip-pdfs' }
+											),
+										catch: (error) => (error instanceof Error ? error : new Error(String(error)))
+									});
+									if (manifest.length === 0)
+										yield* Effect.fail(new Error(t('app.payroll.export_pdfs_error')));
+									yield* Effect.sync(() => saveCollectionExport(manifest));
+								})
+							)
 					},
 					{
 						id: 'payroll-report-xlsx',
 						label: t('app.payroll.export_workbook'),
 						description: t('app.payroll.export_workbook_description'),
 						requiresSelection: true,
-						run: async ({ selectedRows }) => {
-							const manifest = await downloadCollectionExport(
-								{
-									collection_name: 'payroll_runs',
-									record_ids: selectedRows.map((record) => record.norbital_id)
-								},
-								{ includeAction: (action) => action.metadata?.kind === 'payroll-report-xlsx' }
-							);
-							if (manifest.length === 0) throw new Error(t('app.payroll.export_pdfs_error'));
-							saveCollectionExport(manifest);
-						}
+						run: ({ selectedRows }) =>
+							Effect.runPromise(
+								Effect.gen(function* () {
+									const manifest = yield* Effect.tryPromise({
+										try: () =>
+											downloadCollectionExport(
+												{
+													collection_name: 'payroll_runs',
+													record_ids: selectedRows.map((record) => record.id)
+												},
+												{
+													includeAction: (action) => action.metadata?.kind === 'payroll-report-xlsx'
+												}
+											),
+										catch: (error) => (error instanceof Error ? error : new Error(String(error)))
+									});
+									if (manifest.length === 0)
+										yield* Effect.fail(new Error(t('app.payroll.export_pdfs_error')));
+									yield* Effect.sync(() => saveCollectionExport(manifest));
+								})
+							)
 					}
 				]}
 			>

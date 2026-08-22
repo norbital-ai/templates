@@ -5,8 +5,7 @@ import {
 	expandRosterMonthGrid,
 	expandTimeMonthGrid,
 	isLongFormImportHeaders,
-	isMonthGridImportHeaders,
-	parseClockRange
+	isMonthGridImportHeaders
 } from './import-month-grid.ts';
 import { calendarDaysInMonth, isYearMonth } from '../../lib/period.ts';
 
@@ -51,11 +50,6 @@ test('a roster month grid expands filled cells and omits blanks', () => {
 });
 
 test('a time-entry month grid reads closed ranges and open punches', () => {
-	assert.deepEqual(parseClockRange('08:16-17:10', 'row'), {
-		clock_in: '08:16',
-		clock_out: '17:10'
-	});
-	assert.deepEqual(parseClockRange('20:31', 'row'), { clock_in: '20:31' });
 	const rows = expandTimeMonthGrid(
 		{
 			sheetName: 'Time entries',

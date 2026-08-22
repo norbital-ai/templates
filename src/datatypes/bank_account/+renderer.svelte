@@ -37,9 +37,8 @@
 	 */
 	let draft = $state<Partial<BankAccount>>({});
 	const account = $derived({ ...incoming, ...draft });
-	const availableBanks = $derived(BANKS);
 	const bankOptions = $derived(
-		availableBanks.map((bank) => ({
+		BANKS.map((bank) => ({
 			value: bank.code,
 			label: bank.name,
 			description: bank.code,
@@ -74,7 +73,7 @@
 				searchPlaceholder={t('renderer.bank_account.search_banks')}
 				emptyPlaceholder={t('renderer.bank_account.no_bank')}
 				onValueChange={(code) => {
-					const selected = availableBanks.find((bank) => bank.code === code);
+					const selected = BANKS.find((bank) => bank.code === code);
 					if (selected) update({ bank_name: selected.name, bank_code: selected.code });
 				}}
 			/>

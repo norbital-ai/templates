@@ -29,46 +29,37 @@
  * numbers live on a row; nothing here is a magic constant.
  */
 
-import type { RoundingMethod } from './rounding.js';
+import { Option, Schema } from 'effect';
+import { RoundingMethodSchema, type RoundingMethod } from './rounding.js';
 
 export const ADDITIONAL_REMUNERATION = 'ADDITIONAL_REMUNERATION';
 
-const ROUNDING_METHODS = new Set<string>([
-	'NONE',
-	'NEAREST_CENT',
-	'NEAREST_5_CENTS',
-	'TRUNCATE_CENT',
-	'UP_5_CENTS',
-	'NEAREST_UNIT',
-	'FLOOR_UNIT',
-	'UP_TO_UNIT',
-	'TABLE'
-]);
-
 /** One rung of a wage-bracket ladder: while the wage is ≤ `upTo`, round it up to the next `step`. */
-export type BracketStep = { readonly upTo: number; readonly step: number };
+const BracketStepSchema = Schema.Struct({ upTo: Schema.Number, step: Schema.Number });
+type BracketStep = Schema.Schema.Type<typeof BracketStepSchema>;
 
-export type SpecialRules = {
+export const SpecialRulesSchema = Schema.Struct({
 	/** Ascending by ceiling. Empty means the base is used exactly as accumulated. */
-	readonly bracketSteps: readonly BracketStep[];
-	readonly personalRelief: number;
-	readonly spouseRelief: number;
-	readonly childRelief: number;
+	bracketSteps: Schema.Array(BracketStepSchema),
+	personalRelief: Schema.Number,
+	spouseRelief: Schema.Number,
+	childRelief: Schema.Number,
 	/** Annual ceiling on this scheme's employee share when it is a relief inside another. */
-	readonly reliefCap: number | null;
+	reliefCap: Schema.NullOr(Schema.Number),
 	/** Schemes naming the same pool share one `reliefCap`. */
-	readonly reliefPool: string | null;
+	reliefPool: Schema.NullOr(Schema.String),
 	/** Whether the relief includes the months still to run, not just the year so far. */
-	readonly reliefProjected: boolean;
+	reliefProjected: Schema.Boolean,
 	/** Suppress the regular withholding below this, per period. */
-	readonly minWithhold: number;
+	minWithhold: Schema.Number,
 	/** Applied in declaration order; empty means fall back to `statutory_contributions.rounding`. */
-	readonly roundingChain: readonly RoundingMethod[];
+	roundingChain: Schema.Array(RoundingMethodSchema),
 	/** CPF-style paired-share rounding: round the total, floor employee, assign the remainder. */
-	readonly totalRoundedEmployeeFloored: boolean;
-	readonly additionalRemuneration: boolean;
-	readonly periodicProgressive: boolean;
-};
+	totalRoundedEmployeeFloored: Schema.Boolean,
+	additionalRemuneration: Schema.Boolean,
+	periodicProgressive: Schema.Boolean
+});
+export type SpecialRules = Schema.Schema.Type<typeof SpecialRulesSchema>;
 
 const EMPTY: SpecialRules = {
 	bracketSteps: [],
@@ -84,6 +75,9 @@ const EMPTY: SpecialRules = {
 	additionalRemuneration: false,
 	periodicProgressive: false
 };
+
+/** Decoder for one `ROUND:<method>` name, built once and reused per token. */
+const decodeRoundingMethod = Schema.decodeUnknownOption(RoundingMethodSchema);
 
 function amount(token: string, argument: string | undefined): number {
 	const parsed = Number(argument);
@@ -131,9 +125,13 @@ export function parseSpecialRules(
 				parsed = { ...parsed, minWithhold: amount(token, first) };
 				break;
 			case 'ROUND':
-				if (!first || !ROUNDING_METHODS.has(first))
-					throw new Error(`Special rule "${token}" names an unknown rounding method.`);
-				roundingChain.push(first as RoundingMethod);
+				if (!first) throw new Error(`Special rule "${token}" needs a method.`);
+				{
+					const method = Option.getOrUndefined(decodeRoundingMethod(first));
+					if (method == null)
+						throw new Error(`Special rule "${token}" names an unknown rounding method.`);
+					roundingChain.push(method);
+				}
 				break;
 			case 'TOTAL_ROUNDED_TO_DOLLAR_EMPLOYEE_FLOORED':
 				parsed = { ...parsed, totalRoundedEmployeeFloored: true };

@@ -7,8 +7,11 @@
  * ISO instants and are sliced to ten characters before comparison.
  */
 
+import { Number as EffectNumber, Schema } from 'effect';
+import { calendarDay, dateKey as calendarDateKey } from '../../../lib/iso-day.js';
+
 /** A calendar day, `YYYY-MM-DD`. */
-export type IsoDate = string;
+export type IsoDate = Schema.Schema.Type<typeof calendarDay>;
 
 const DAY_MS = 86_400_000;
 
@@ -31,9 +34,8 @@ const DAY_MS = 86_400_000;
  * where it happened, at the driver's type parser, so a calendar day is never an instant again.)
  */
 export function dateKey(value: string | Date | null | undefined): IsoDate | null {
-	if (value == null) return null;
-	if (value instanceof Date) return iso(value);
-	return value.slice(0, 10);
+	const key = calendarDateKey(value);
+	return key === '' ? null : key;
 }
 
 /** Same as `dateKey`, for a value that must be present. */
@@ -68,7 +70,7 @@ export function dayOfMonth(date: IsoDate): number {
  */
 export function monthDay(year: number, monthIndex: number, day: number): IsoDate {
 	const lastDay = utc(year, monthIndex + 1, 0).getUTCDate();
-	return iso(utc(year, monthIndex, Math.min(Math.max(1, day), lastDay)));
+	return iso(utc(year, monthIndex, EffectNumber.clamp({ minimum: 1, maximum: lastDay })(day)));
 }
 
 export function addDays(date: IsoDate, days: number): IsoDate {
@@ -94,18 +96,6 @@ export function daysBetween(start: IsoDate, end: IsoDate): IsoDate[] {
 	const days: IsoDate[] = [];
 	for (let day = start; day <= end; day = addDays(day, 1)) days.push(day);
 	return days;
-}
-
-/** `0` = Sunday … `6` = Saturday, matching `Date.getUTCDay`. */
-export function weekdayIndex(date: IsoDate): number {
-	return new Date(`${date}T00:00:00.000Z`).getUTCDay();
-}
-
-/** The three-letter weekday code used by `employment_terms.rest_day`. */
-export const WEEKDAY_CODES = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'] as const;
-
-export function weekdayCode(date: IsoDate): (typeof WEEKDAY_CODES)[number] {
-	return WEEKDAY_CODES[weekdayIndex(date)]!;
 }
 
 /**

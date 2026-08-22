@@ -7,6 +7,7 @@
  * make that fact usable, not to resolve ambiguity that cannot arise.
  */
 
+import { Option, Schema } from 'effect';
 import type { IsoDate } from './dates.js';
 
 /** Payroll calendar zone. Kept here so the engine never imports `lib/ui`. */
@@ -18,17 +19,36 @@ const payrollDateFormat = new Intl.DateTimeFormat('en', {
 	month: '2-digit',
 	day: '2-digit'
 });
-const rangeBoundCache = new Map<string, IsoDate>();
 
-/** The JSONB shape of a `dateRange()` column. `end` of `null` is open-ended. */
-export type StoredRange = { readonly start: string; readonly end: string | null };
+/**
+ * The stored JSONB shape of a `dateRange()` column, read leniently.
+ *
+ * The write boundary validates both bounds as `UTC_INSTANT` values, and this read shape also
+ * accepts the legacy bounded-optional form so an older row is still readable as the open-ended
+ * statement it was written to be. `end` of `null` (or an empty string) is open-ended forever.
+ */
+const storedRangeReadSchema = Schema.Struct({
+	start: Schema.optionalKey(Schema.String),
+	end: Schema.optionalKey(Schema.NullOr(Schema.String))
+});
 
-function readRange(value: unknown): StoredRange | null {
-	if (value == null || typeof value !== 'object') return null;
-	const start = Reflect.get(value, 'start');
-	if (typeof start !== 'string' || start === '') return null;
-	const end = Reflect.get(value, 'end');
-	return { start, end: typeof end === 'string' && end !== '' ? end : null };
+/** A `dateRange()` column as the engine reads it; `end` of `null` is open-ended. */
+export const StoredRangeSchema = Schema.Struct({
+	start: Schema.String,
+	end: Schema.NullOr(Schema.String)
+});
+export type StoredRange = Schema.Schema.Type<typeof StoredRangeSchema>;
+
+/** Decode one stored range: anything that is not a legal pair of strings is `null`, never an error. */
+export function readRange(value: unknown): StoredRange | null {
+	const parsed = Option.getOrNull(Schema.decodeUnknownOption(storedRangeReadSchema)(value));
+	if (parsed == null) return null;
+	const start = parsed.start;
+	if (start == null || start === '') return null;
+	return {
+		start,
+		end: parsed.end != null && parsed.end !== '' ? parsed.end : null
+	};
 }
 
 /**
@@ -56,18 +76,10 @@ function calendarDateInTimeZone(value: Date, timeZone: string): string {
 }
 
 function rangeBoundDay(instant: string): IsoDate {
-	const cached = rangeBoundCache.get(instant);
-	if (cached != null) return cached;
 	const at = new Date(instant);
-	if (Number.isNaN(at.getTime())) {
-		const fallback = instant.slice(0, 10);
-		rangeBoundCache.set(instant, fallback);
-		return fallback;
-	}
+	if (Number.isNaN(at.getTime())) return instant.slice(0, 10);
 	const converted = calendarDateInTimeZone(at, PAYROLL_TIME_ZONE);
-	const day = converted.length === 10 ? converted : instant.slice(0, 10);
-	rangeBoundCache.set(instant, day);
-	return day;
+	return converted.length === 10 ? converted : instant.slice(0, 10);
 }
 
 /** Whether an `effective_range` covers a calendar day. Both ends inclusive. */
@@ -86,7 +98,9 @@ export function overlapsRange(range: unknown, start: IsoDate, end: IsoDate): boo
 	return parsed.end == null || rangeBoundDay(parsed.end) >= start;
 }
 
-type Dated = { readonly effective_range?: unknown };
+/** The one member `effectiveOn` and `effectiveWithin` depend on: a row with an effective range. */
+const DatedSchema = Schema.Struct({ effective_range: Schema.optionalKey(Schema.Unknown) });
+type Dated = Schema.Schema.Type<typeof DatedSchema>;
 
 /** The single row effective on a day, or `undefined`. */
 export function effectiveOn<T extends Dated>(rows: readonly T[], date: IsoDate): T | undefined {
@@ -108,17 +122,6 @@ export function effectiveWithin<T extends Dated>(
 		);
 }
 
-/** The row effective on a day, or a named error naming what was missing. */
-export function requireEffectiveOn<T extends Dated>(
-	rows: readonly T[],
-	date: IsoDate,
-	what: string
-): T {
-	const row = effectiveOn(rows, date);
-	if (!row) throw new Error(`No ${what} is effective on ${date}.`);
-	return row;
-}
-
 /** The `[start, end]` days of an effective range clipped into a window. */
 export function clipRange(
 	range: unknown,
@@ -134,8 +137,11 @@ export function clipRange(
 }
 
 /** Only rows the platform has approved. A null approval stamp means approved on this platform. */
-export type Approvable = { readonly norbital_approval_id?: string | null };
+const ApprovableSchema = Schema.Struct({
+	approval_id: Schema.optionalKey(Schema.NullOr(Schema.String))
+});
+type Approvable = Schema.Schema.Type<typeof ApprovableSchema>;
 
 export function live<T extends Approvable>(rows: readonly T[]): T[] {
-	return rows.filter((row) => row.norbital_approval_id == null);
+	return rows.filter((row) => row.approval_id == null);
 }

@@ -41,6 +41,7 @@ const PROTOCOL_KEYS = new Set([
 ]);
 
 const MAX_DEPTH = 6;
+const proxyTargets = new WeakMap();
 
 function sink() {
 	globalThis.__FIXTURE_SHAPE_FINDINGS ??= new Map();
@@ -65,7 +66,7 @@ function proxify(value, path, depth = 0) {
 	if (OPAQUE.some((type) => value instanceof type)) return value;
 	if (depth >= MAX_DEPTH) return value;
 
-	return new Proxy(value, {
+	const proxy = new Proxy(value, {
 		get(target, key, receiver) {
 			if (
 				typeof key === 'string' &&
@@ -85,6 +86,33 @@ function proxify(value, path, depth = 0) {
 			return proxify(read, `${path}.${String(key)}`, depth + 1);
 		}
 	});
+	proxyTargets.set(proxy, value);
+	return proxy;
+}
+
+/** Restore argument objects when an engine function returns them, directly or inside a result. */
+function restoreReturnedArguments(value, seen = new WeakMap()) {
+	if (value === null || (typeof value !== 'object' && typeof value !== 'function')) return value;
+	const target = proxyTargets.get(value);
+	if (target !== undefined) return target;
+	if (OPAQUE.some((type) => value instanceof type)) return value;
+	if (!Array.isArray(value) && Object.getPrototypeOf(value) !== Object.prototype) return value;
+	if (seen.has(value)) return seen.get(value);
+
+	const restoredEntries = [];
+	let changed = false;
+	seen.set(value, value);
+	for (const [key, child] of Object.entries(value)) {
+		const restored = restoreReturnedArguments(child, seen);
+		restoredEntries.push([key, restored]);
+		if (restored !== child) changed = true;
+	}
+	if (!changed) return value;
+
+	const restored = Array.isArray(value) ? [] : {};
+	seen.set(value, restored);
+	for (const [key, child] of restoredEntries) restored[key] = child;
+	return restored;
 }
 
 /** Role 2 — the shim the target script receives in place of Vite's own `createServer`. */
@@ -104,10 +132,12 @@ export async function createServer(options) {
 			const exported = namespace[key];
 			wrapped[key] =
 				typeof exported === 'function'
-					? (...args) =>
-							exported(
+					? (...args) => {
+							const returned = exported(
 								...args.map((arg, index) => proxify(arg, `${moduleName}.${key}(arg${index})`))
-							)
+							);
+							return restoreReturnedArguments(returned);
+						}
 					: exported;
 		}
 		return wrapped;

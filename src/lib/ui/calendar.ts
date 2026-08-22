@@ -7,6 +7,7 @@
  * a company's `pay_day` on a calendar so an operator can see which cycles are still open.
  */
 
+import { Effect, Number as EffectNumber } from 'effect';
 import { formatDateISO } from '@norbital-ai/std/date';
 import type { CollectionTableInitialFilter } from '@norbital-ai/ui/collection-table';
 
@@ -16,7 +17,6 @@ export const PAYROLL_TIME_ZONE = 'Asia/Kuala_Lumpur';
 /** Calendar date for an instant in an IANA timezone, formatted as YYYY-MM-DD. */
 // Every template workspace is a self-contained publishable unit with its own lockfile and no
 // cross-template import surface, so this helper is deliberately owned per template.
-// stupidity:allow D1 -- construction, crm, field-operations and reclamation carry the same copy.
 export function calendarDateInTimeZone(value: Date, timeZone: string): string {
 	const parts = new Intl.DateTimeFormat('en', {
 		timeZone,
@@ -33,13 +33,17 @@ export function calendarDateInTimeZone(value: Date, timeZone: string): string {
  * Calendar day of "now" in the payroll timezone — the reference every board on these pages is drawn
  * against, and the operand every `effective_range: { contains_date: … }` filter is prefilled with.
  *
+ * `now` is injectable so a caller with its own clock (an effect reading one, or a test) can hand the
+ * instant over; the default stays the parameter-default exemption — the calendar is a display helper
+ * and `new Date()` here is the ordinary reading of "now".
+ *
  * This used to be `new Date().toISOString().slice(0, 10)`, which is the *UTC* day.
  * `dates-and-time.md` names that expression as forbidden for exactly this use: for eight hours of
  * every day it selects yesterday's rate row, so a server hook could price against a different day
  * than the client had displayed.
  */
-export function todayKey(): string {
-	return calendarDateInTimeZone(new Date(), PAYROLL_TIME_ZONE);
+export function todayKey(now: Date = new Date()): string {
+	return calendarDateInTimeZone(now, PAYROLL_TIME_ZONE);
 }
 
 /**
@@ -122,14 +126,6 @@ export function startOfDayInstant(calendarDate: string, timeZone: string): strin
 	return new Date(utcMidnight.getTime() - timeZoneOffsetMs(firstPass, timeZone)).toISOString();
 }
 
-/**
- * `YYYY-MM-DD` from a Bolt `date()` column value. Local PGlite reads yield `Date`; wire payloads
- * yield calendar or ISO strings — both are accepted.
- */
-export function calendarDayKey(value: string | Date): string {
-	return formatDateISO(value);
-}
-
 /** A calendar day shifted by whole days without involving the browser's local timezone. */
 export function shiftDayKey(day: string, days: number): string {
 	const parsed = new Date(`${day}T00:00:00.000Z`);
@@ -141,7 +137,7 @@ export function shiftDayKey(day: string, days: number): string {
 
 /** `YYYY-MM` of a UTC calendar day (string key or live `date()` column value). */
 export function monthKey(date: string | Date): string {
-	return calendarDayKey(date).slice(0, 7);
+	return formatDateISO(date).slice(0, 7);
 }
 
 /** `YYYY-MM` offset by whole months. */
@@ -164,7 +160,7 @@ export function daysInMonth(period: string): number {
  * a 31st pay day still resolves in February.
  */
 export function payDateFor(period: string, payDay: number): string {
-	const day = Math.min(Math.max(payDay, 1), daysInMonth(period));
+	const day = EffectNumber.clamp({ minimum: 1, maximum: daysInMonth(period) })(payDay);
 	return `${period}-${String(day).padStart(2, '0')}`;
 }
 
@@ -178,12 +174,13 @@ export function daysBetweenKeys(from: string, to: string): number {
 /** The Monday of the ISO week containing `date`, as `YYYY-MM-DD`. */
 export function startOfIsoWeekDate(date: unknown): string | null {
 	if (typeof date !== 'string' && !(date instanceof Date)) return null;
-	let day: string;
-	try {
-		day = calendarDayKey(date);
-	} catch {
-		return null;
-	}
+	const day = Effect.runSync(
+		Effect.orElseSucceed(
+			Effect.try(() => formatDateISO(date)),
+			() => null
+		)
+	);
+	if (day == null) return null;
 	if (day.length < 10) return null;
 	const parsed = new Date(`${day.slice(0, 10)}T00:00:00.000Z`);
 	if (Number.isNaN(parsed.getTime())) return null;

@@ -17,12 +17,16 @@
  * ────────────────────────────────────────────────────────────────────────────────────────────────
  */
 
+import { Schema } from 'effect';
 import { isCalendarDate, isClockTime } from '@norbital-ai/std/date';
 
 /** A cell after the file format's own wrappers are stripped off. */
-export type SheetCell = string | number | boolean | Date | null;
+const sheetCellSchema = Schema.NullOr(
+	Schema.Union([Schema.String, Schema.Number, Schema.Boolean, Schema.Date])
+);
+export type SheetCell = Schema.Schema.Type<typeof sheetCellSchema>;
 /** One sheet as rows of cells, header row included. */
-export type SheetGrid = readonly (readonly SheetCell[])[];
+type SheetGrid = readonly (readonly SheetCell[])[];
 /** Every sheet in the chosen file, keyed by its name. */
 export type WorkbookGrids = ReadonlyMap<string, SheetGrid>;
 
@@ -57,7 +61,7 @@ export class WorkbookImportError extends Error {
  * computed result, a run of styled text fragments, a hyperlink and its label. All of those are still
  * one value to a reader of the file, so they are unwrapped here rather than in every caller.
  */
-export function normalizeCellValue(value: unknown): SheetCell {
+function normalizeCellValue(value: unknown): SheetCell {
 	if (value == null) return null;
 	if (typeof value === 'string') return value;
 	if (typeof value === 'number') return Number.isFinite(value) ? value : null;
@@ -92,23 +96,23 @@ export function normalizeCellValue(value: unknown): SheetCell {
  * verification script opens a file with. What the operator's browser does to a workbook is then
  * exactly what a test can do to one.
  */
-export interface WorkbookCellLike {
+interface WorkbookCellLike {
 	readonly value: unknown;
 }
-export interface WorkbookRowLike {
+interface WorkbookRowLike {
 	eachCell(
 		options: { includeEmpty: boolean },
 		callback: (cell: WorkbookCellLike, columnNumber: number) => void
 	): void;
 }
-export interface WorksheetLike {
+interface WorksheetLike {
 	readonly name: string;
 	eachRow(
 		options: { includeEmpty: boolean },
 		callback: (row: WorkbookRowLike, rowNumber: number) => void
 	): void;
 }
-export interface WorkbookLike {
+interface WorkbookLike {
 	eachSheet(callback: (worksheet: WorksheetLike, sheetId: number) => void): void;
 }
 
@@ -215,7 +219,7 @@ export function findSheet(grids: WorkbookGrids, name: string): SheetGrid | undef
  * A single-sheet file is accepted under any name: that is what a CSV is, and refusing one for not
  * being called `Roster` would be pedantry about a format that cannot carry the name.
  */
-export function requireSheet(grids: WorkbookGrids, name: string): SheetGrid {
+function requireSheet(grids: WorkbookGrids, name: string): SheetGrid {
 	const found = findSheet(grids, name);
 	if (found != null) return found;
 	if (grids.size === 1) return [...grids.values()][0]!;
@@ -227,16 +231,18 @@ export function requireSheet(grids: WorkbookGrids, name: string): SheetGrid {
 }
 
 /** One data row, with the spreadsheet row number it came from so a refusal can name it. */
-export interface SheetRow {
-	readonly rowNumber: number;
-	readonly cells: ReadonlyMap<string, SheetCell>;
-}
+const sheetRowSchema = Schema.Struct({
+	rowNumber: Schema.Number,
+	cells: Schema.ReadonlyMap(Schema.String, sheetCellSchema)
+});
+type SheetRow = Schema.Schema.Type<typeof sheetRowSchema>;
 
-export interface SheetTable {
-	readonly sheetName: string;
-	readonly headers: readonly string[];
-	readonly rows: readonly SheetRow[];
-}
+const sheetTableSchema = Schema.Struct({
+	sheetName: Schema.String,
+	headers: Schema.Array(Schema.String),
+	rows: Schema.Array(sheetRowSchema)
+});
+export type SheetTable = Schema.Schema.Type<typeof sheetTableSchema>;
 
 /**
  * The sheet as a header-keyed table.

@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { Result, Schema } from 'effect';
+	import { Effect, Result, Schema } from 'effect';
 	import { client } from '../../lib/workspace-client.js';
 	import { useI18n } from '@norbital-ai/ui/i18n';
 	import type { TenantI18nKeys } from '$bolt/i18n-keys';
@@ -33,7 +33,8 @@
 	import { payrollWindows, windowForDate } from '../../lib/scheduling/lock.js';
 	import { patternRosterCodeId } from '../../lib/scheduling/work-pattern.js';
 	import { rosterCodeKind, workWindowHalves } from '../../lib/scheduling/roster-code.js';
-	import { calendarDayKey, shiftDayKey, todayKey } from '../../lib/ui/calendar.js';
+	import { shiftDayKey, todayKey } from '../../lib/ui/calendar.js';
+	import { formatDateISO } from '@norbital-ai/std/date';
 	import { leaveEventSchema } from './+definition.js';
 	import type { RendererProps, Value } from './$types.js';
 	type LeaveEventRendererProps = RendererProps & { readonly row?: Record<string, unknown> };
@@ -72,20 +73,28 @@
 	 * `DataRenderer` types its `onValueChange` as `unknown` because it renders every column kind, so
 	 * the narrowing has to happen here. Writing the value through unchecked would put whatever the
 	 * editor produced into a schema-validated union and fail the decode on the next read, which
-	 * shows as the whole event reverting rather than as a bad certificate.
+	 * shows as the whole event reverting rather than as a bad certificate. The file column definition
+	 * is the platform's own `FileRef` shape, validated once here rather than field by field.
 	 */
-	const asCertificate = (next: unknown) => {
-		if (typeof next !== 'object' || next === null) return null;
-		const value = next as Record<string, unknown>;
-		return typeof value.storage_key === 'string' && value.storage_key !== ''
-			? {
-					storage_key: value.storage_key,
-					file_name: typeof value.file_name === 'string' ? value.file_name : value.storage_key,
-					file_size: typeof value.file_size === 'number' ? value.file_size : 0,
-					mime_type:
-						typeof value.mime_type === 'string' ? value.mime_type : 'application/octet-stream'
-				}
-			: null;
+	const certificateValueSchema = Schema.Struct({
+		storage_key: Schema.String,
+		file_name: Schema.optional(Schema.String),
+		file_size: Schema.optional(Schema.Number),
+		mime_type: Schema.optional(Schema.String)
+	});
+	type CertificateValue = Schema.Schema.Type<typeof certificateValueSchema>;
+
+	const asCertificate = (next: unknown): CertificateValue | null => {
+		const parsed = Schema.decodeUnknownResult(certificateValueSchema)(next);
+		if (!Result.isSuccess(parsed)) return null;
+		const value = parsed.success;
+		if (value.storage_key === '') return null;
+		return {
+			storage_key: value.storage_key,
+			file_name: value.file_name ?? value.storage_key,
+			file_size: value.file_size ?? 0,
+			mime_type: value.mime_type ?? 'application/octet-stream'
+		};
 	};
 
 	let props: LeaveEventRendererProps = $props();
@@ -98,13 +107,11 @@
 	const leaveTypeId = $derived(
 		typeof props.row?.leave_type_id === 'string' ? props.row.leave_type_id : null
 	);
-	const requestId = $derived(
-		typeof props.row?.norbital_id === 'string' ? props.row.norbital_id : null
-	);
+	const requestId = $derived(typeof props.row?.id === 'string' ? props.row.id : null);
 	const employmentQuery = $derived(
 		employmentId == null
 			? null
-			: client.db.employments.findFirst({ where: { norbital_id: { eq: employmentId } } })
+			: client.db.employments.findFirst({ where: { id: { eq: employmentId } } })
 	);
 	const employment = $derived(employmentQuery?.current ?? null);
 	const termsQuery = $derived(
@@ -156,12 +163,12 @@
 	const companyQuery = $derived(
 		employment == null
 			? null
-			: client.db.companies.findFirst({ where: { norbital_id: { eq: employment.company_id } } })
+			: client.db.companies.findFirst({ where: { id: { eq: employment.company_id } } })
 	);
 	const leaveTypeQuery = $derived(
 		leaveTypeId == null
 			? null
-			: client.db.leave_types.findFirst({ where: { norbital_id: { eq: leaveTypeId } } })
+			: client.db.leave_types.findFirst({ where: { id: { eq: leaveTypeId } } })
 	);
 	const leaveLedgerQuery = $derived(
 		employmentId == null || leaveTypeId == null
@@ -172,13 +179,13 @@
 				})
 	);
 	const rosterByDate = $derived(
-		new Map((rosterQuery?.current ?? []).map((entry) => [calendarDayKey(entry.work_date), entry]))
+		new Map((rosterQuery?.current ?? []).map((entry) => [formatDateISO(entry.work_date), entry]))
 	);
 	const holidayDates = $derived(
-		new Set((holidaysQuery?.current ?? []).map((holiday) => calendarDayKey(holiday.date)))
+		new Set((holidaysQuery?.current ?? []).map((holiday) => formatDateISO(holiday.date)))
 	);
 	const rosterCodeById = $derived(
-		new Map((rosterCodesQuery?.current ?? []).map((code) => [code.norbital_id, code]))
+		new Map((rosterCodesQuery?.current ?? []).map((code) => [code.id, code]))
 	);
 	const scheduleUnknown = $derived(
 		employmentId != null &&
@@ -208,17 +215,17 @@
 		if (company == null || leaveType == null || leaveType.accrual?.kind === 'PER_EVENT')
 			return null;
 		const asOf = current.range.end.date;
-		const hireDate = calendarDayKey(employment.hire_date);
+		const hireDate = formatDateISO(employment.hire_date);
 		const ledger = (leaveLedgerQuery?.current ?? [])
-			.filter((row) => row.norbital_id !== requestId && row.from_date != null)
+			.filter((row) => row.id !== requestId && row.from_date != null)
 			.map((row) => ({
-				norbital_id: row.norbital_id,
+				id: row.id,
 				leave_type_id: row.leave_type_id,
 				entry_date: row.from_date!,
 				kind: row.kind,
 				days: row.kind === 'TIME_OFF' ? -Math.abs(Number(row.days)) : Number(row.days),
 				source_id: null,
-				norbital_approval_id: row.norbital_approval_id
+				approval_id: row.approval_id
 			}));
 		const entitlementAtMonths = (serviceMonths: number) =>
 			resolveEntitlement({ leaveType, serviceMonths, employmentId, asOf });
@@ -231,7 +238,7 @@
 					leaveType,
 					entitlementAtMonths,
 					hireDate,
-					exitDate: employment.exit_date == null ? null : calendarDayKey(employment.exit_date),
+					exitDate: employment.exit_date == null ? null : formatDateISO(employment.exit_date),
 					leaveYearStartMonth: Number(company.leave_year_start_month),
 					ledger,
 					basis: 'PROJECTED'
@@ -258,7 +265,7 @@
 		}
 		const coveredByOtherRequest = (leaveLedgerQuery?.current ?? []).some(
 			(row) =>
-				row.norbital_id !== requestId &&
+				row.id !== requestId &&
 				row.kind === 'TIME_OFF' &&
 				row.from_date != null &&
 				row.to_date != null &&
@@ -277,10 +284,16 @@
 		);
 		if (term == null) return { eligible: false, reason: t('component.excluded_no_schedule') };
 		let codeId = rosterByDate.get(date)?.shift_definition_id ?? null;
-		try {
-			codeId ??= patternRosterCodeId(term.work_pattern, date);
-		} catch {
-			return { eligible: false, reason: t('component.excluded_no_schedule') };
+		if (codeId == null) {
+			const projected = Effect.runSync(
+				Effect.orElseSucceed(
+					Effect.try(() => patternRosterCodeId(term.work_pattern, date)),
+					() => null
+				)
+			);
+			if (projected == null)
+				return { eligible: false, reason: t('component.excluded_no_schedule') };
+			codeId = projected;
 		}
 		if (codeId == null) {
 			if (term.work_pattern?.type === 'ROSTERED') return { eligible: true };
@@ -355,7 +368,7 @@
 	 * `current`, `emit` and `defaultFor`. Sharing it would mean a generic taking three callbacks —
 	 * `controller-surfaces.md` §2 calls that a wrapper thinner than the thing it wraps.
 	 */
-	// stupidity:allow D1 -- closes over this file's current/emit/defaultFor; see the note above.
+	// repository-health:allow D1 -- closes over this file's current/emit/defaultFor; see the note above.
 	function selectKind(kind: EventKind | null): void {
 		if (kind === null) {
 			emit(null);

@@ -21,7 +21,7 @@ import type { Policy } from './$types.js';
  *
  *   - `payrollGrants('read')` — the view. All four payroll collections.
  *   - `payroll_runs: create` **carrying an approval** — the create that is not a create. Bolt writes
- *     the row and immediately stamps `norbital_approval_id`, so the controller gets a run to inspect
+ *     the row and immediately stamps `approval_id`, so the controller gets a run to inspect
  *     and nobody gets a payroll that has not been agreed to.
  *   - no `payroll_runs: update`, no `payroll_runs: delete` — a controller does not re-run a payroll
  *     and does not erase one. That is what "may not create it" means once the run exists.

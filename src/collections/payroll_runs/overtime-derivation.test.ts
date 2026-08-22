@@ -18,7 +18,7 @@ import { classifyOvertimeByCalendarMonth, deriveDailyOvertime, priceDay } from '
 
 /** 08:30–17:30 with an hour's scheduled break. */
 const DAY_SHIFT = {
-	norbital_id: 'shift-day',
+	id: 'shift-day',
 	code: 'D',
 	start_time: '08:30',
 	end_time: '17:30',
@@ -37,7 +37,7 @@ const interval = (start, end) => ({
 });
 
 const entry = (overrides = {}) => ({
-	norbital_id: 'time-entry',
+	id: 'time-entry',
 	work_date: '2026-03-10',
 	worked_intervals: [interval('08:30', '17:30')],
 	break_minutes: 60,
@@ -132,7 +132,7 @@ test('an open clock is refused rather than priced as if it had stopped', () => {
 // ── the hours, once derived, are priced by the seeded statutory ladder ──────────────────────────
 
 const rule = (overrides) => ({
-	norbital_id: `rule-${overrides.day_type}-${overrides.band.measure}`,
+	id: `rule-${overrides.day_type}-${overrides.band.measure}`,
 	authority: 'EA 1955',
 	...overrides
 });

@@ -1,4 +1,4 @@
-import { Effect } from 'effect';
+import { Effect, Result, Schema } from 'effect';
 import { refuse } from '@norbital-ai/bolt/authoring';
 import type { CollectionHooks } from '@norbital-ai/bolt/authoring';
 import type { WorkspaceSchema } from '$bolt/types.js';
@@ -55,14 +55,10 @@ function assertMagnitude(value: number | null | undefined): void {
 	}
 }
 
-type InstalmentEntry = {
-	readonly employment_id: string;
-	readonly pay_component_id: string;
-	readonly amount: number;
-	readonly event_date: string | Date;
-	readonly pay_period?: string | null;
-	readonly origin: EntryOrigin | null | undefined;
-};
+type InstalmentEntry = Pick<
+	WorkspaceRow<'component_entries'>,
+	'employment_id' | 'pay_component_id' | 'amount' | 'event_date' | 'pay_period' | 'origin'
+>;
 
 function assertInstalmentMatchesResolvedAgreement(
 	entry: InstalmentEntry,
@@ -105,25 +101,40 @@ function assertEntrySourceUnlocked(
 		 * write, reconcile, or load.
 		 */
 		const line = yield* api.db.query.payslip_lines.findFirst({
-			where: { component_entry_id: { eq: existing.norbital_id } },
-			columns: { norbital_id: true },
+			where: { component_entry_id: { eq: existing.id } },
+			columns: { id: true },
 			with: {
 				payslip_line_payslip: {
-					columns: { norbital_id: true },
+					columns: { id: true },
 					with: { payslip_payroll_run: { columns: { period: true } } }
 				}
 			}
 		});
-		type ConsumingLine = {
-			readonly payslip_line_payslip?: {
-				readonly payslip_payroll_run?: { readonly period?: string | null } | null;
-			} | null;
-		};
-		const period = (line as ConsumingLine | null | undefined)?.payslip_line_payslip
-			?.payslip_payroll_run?.period;
+		const consumingLineSchema = Schema.Struct({
+			payslip_line_payslip: Schema.optional(
+				Schema.NullOr(
+					Schema.Struct({
+						payslip_payroll_run: Schema.optional(
+							Schema.NullOr(
+								Schema.Struct({
+									period: Schema.optional(Schema.NullOr(Schema.String))
+								})
+							)
+						)
+					})
+				)
+			)
+		});
+		let period: string | undefined;
+		if (line != null) {
+			const decoded = Schema.decodeUnknownResult(consumingLineSchema)(line);
+			if (Result.isSuccess(decoded)) {
+				period = decoded.success.payslip_line_payslip?.payslip_payroll_run?.period ?? undefined;
+			}
+		}
 		const lock = sourceLock({
 			existing: true,
-			approvalId: existing.norbital_approval_id,
+			approvalId: existing.approval_id,
 			dates: [],
 			settledBy: line == null ? null : { period: period ?? 'linked payslip' },
 			datePassed: 'IS_NOT_A_LOCK'
@@ -142,7 +153,7 @@ function assertInstalmentMatchesAgreement(
 		const origin = instalmentOrigin(entry.origin);
 		if (!origin) return;
 		const agreement = (yield* api.db.query.repayment_agreements.findMany({
-			where: { norbital_id: { eq: origin.agreement_id } },
+			where: { id: { eq: origin.agreement_id } },
 			limit: 1
 		}))[0];
 		assertInstalmentMatchesResolvedAgreement(entry, agreement);
@@ -163,12 +174,12 @@ export default {
 				];
 				const agreements = agreementIds.length
 					? yield* api.db.query.repayment_agreements.findMany({
-							where: { norbital_id: { in: agreementIds } },
+							where: { id: { in: agreementIds } },
 							limit: LIMIT
 						})
 					: [];
 				return {
-					agreements: new Map(agreements.map((agreement) => [agreement.norbital_id, agreement]))
+					agreements: new Map(agreements.map((agreement) => [agreement.id, agreement]))
 				};
 			}),
 		perRecord: {
@@ -239,7 +250,7 @@ export default {
 						const origin = instalmentOrigin(existing.origin);
 						if (!origin) return;
 						const agreement = (yield* api.db.query.repayment_agreements.findMany({
-							where: { norbital_id: { eq: origin.agreement_id } },
+							where: { id: { eq: origin.agreement_id } },
 							limit: 1
 						}))[0];
 						if (agreement?.schedule?.[origin.sequence - 1])

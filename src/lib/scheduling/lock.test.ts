@@ -290,8 +290,8 @@ function fakeHookApi({ runs = [], sources = [] } = {}) {
 					// below was passing on a `TypeError`. Same company, stated once for both shapes.
 					findMany: ({ where }) =>
 						Effect.succeed(
-							(where?.norbital_id?.in ?? ['emp-1']).map((norbital_id) => ({
-								norbital_id,
+							(where?.id?.in ?? ['emp-1']).map((id) => ({
+								id,
 								company_id: 'co-1'
 							}))
 						)
@@ -299,9 +299,7 @@ function fakeHookApi({ runs = [], sources = [] } = {}) {
 				payroll_runs: { findMany: () => Effect.succeed(runs) },
 				payslip_sources: {
 					findFirst: ({ where }) =>
-						Effect.succeed(
-							sources.find((row) => row.time_entry_id === where.time_entry_id.eq) ?? null
-						)
+						Effect.succeed(sources.find((row) => row.source.id === where.source.eq.id) ?? null)
 				},
 				// No approved leave anywhere: the leave guard is orthogonal to the payroll locks and
 				// keeps its own tests.
@@ -312,10 +310,10 @@ function fakeHookApi({ runs = [], sources = [] } = {}) {
 }
 
 const punch = (overrides = {}) => ({
-	norbital_id: 'te-1',
+	id: 'te-1',
 	employment_id: 'emp-1',
 	work_date: '2026-07-01',
-	norbital_approval_id: null,
+	approval_id: null,
 	worked_intervals: [{ start_at: '2026-07-01T00:16:00Z', end_at: '2026-07-01T09:10:00Z' }],
 	break_minutes: 60,
 	...overrides
@@ -366,7 +364,7 @@ test('an unconsumed record inside a paid window stays editable and settles as ar
 	// A claim over the same record is what refuses, and it names the period.
 	const claimed = fakeHookApi({
 		runs: monthly,
-		sources: [{ time_entry_id: 'te-1', period: '2026-07' }]
+		sources: [{ source: { kind: 'TIME_ENTRY', id: 'te-1' }, period: '2026-07' }]
 	});
 	assert.throws(
 		() =>

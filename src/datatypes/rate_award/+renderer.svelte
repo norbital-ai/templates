@@ -54,7 +54,7 @@
 	 * `controller-surfaces.md` §2 calls that a wrapper thinner than the thing it wraps. The pure
 	 * coercions these renderers used to duplicate did move, to lib/ui/renderer-input.ts.
 	 */
-	// stupidity:allow D1 -- closes over this file's current/emit/defaultFor; see the note above.
+	// repository-health:allow D1 -- closes over this file's current/emit/defaultFor; see the note above.
 	function selectKind(kind: AwardKind | null): void {
 		if (kind === null) {
 			emit(null);

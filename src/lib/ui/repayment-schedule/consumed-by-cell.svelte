@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { Result, Schema } from 'effect';
 	import {
 		getCollectionTableNavigationContext,
 		type CollectionTableNavigationTarget
@@ -7,9 +8,10 @@
 	import type { TenantI18nKeys } from '$bolt/i18n-keys';
 	import type { MatrixCellRendererProps } from '@norbital-ai/ui/data-renderer/matrix';
 	import { formatPayrollCycleDate, repaymentShortfall } from './repayment-consumption.js';
-	import type {
-		RepaymentConsumptionCell,
-		RepaymentScheduleMatrixRow
+	import {
+		repaymentConsumptionCellSchema,
+		type RepaymentConsumptionCell,
+		type RepaymentScheduleMatrixRow
 	} from './repayment-consumption.js';
 
 	let { value, row }: MatrixCellRendererProps<RepaymentScheduleMatrixRow> = $props();
@@ -17,7 +19,16 @@
 	const { t } = useI18n<TenantI18nKeys>();
 
 	const navigation = getCollectionTableNavigationContext();
-	const consumption = $derived(value as RepaymentConsumptionCell);
+	/**
+	 * The matrix hands `value` as `unknown` (it renders every column kind); the cell is one of the
+	 * seven states `repayment-consumption.ts` owns, decoded once here.
+	 */
+	const decoded = $derived(Schema.decodeUnknownResult(repaymentConsumptionCellSchema)(value));
+	const consumption = $derived<RepaymentConsumptionCell>(
+		Result.isSuccess(decoded)
+			? decoded.success
+			: { status: 'error', message: t('component.unable_to_verify') }
+	);
 	const target = $derived.by((): CollectionTableNavigationTarget | null => {
 		if (consumption.status !== 'consumed') return null;
 		return {

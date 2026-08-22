@@ -1,3 +1,4 @@
+import { Schema } from 'effect';
 import type { WorkPattern } from '../../datatypes/work_pattern/+definition.js';
 import { rosterCodeKind, workWindow, type RosterCodeLike } from './roster-code.js';
 
@@ -61,12 +62,13 @@ export function patternRosterCodeId(pattern: WorkPattern, date: string): string 
 	return phase.day_cycle[index]!.roster_code_id;
 }
 
-export type PatternWorkload = {
-	readonly work_days: number;
-	readonly paid_minutes: number;
-	readonly reference_days: number;
-	readonly average_weekly_paid_minutes: number;
-};
+const patternWorkloadSchema = Schema.Struct({
+	work_days: Schema.Number,
+	paid_minutes: Schema.Number,
+	reference_days: Schema.Number,
+	average_weekly_paid_minutes: Schema.Number
+});
+export type PatternWorkload = Schema.Schema.Type<typeof patternWorkloadSchema>;
 
 /**
  * Derive the amount promised by a pattern. For calendar-month phases the full outer sequence is

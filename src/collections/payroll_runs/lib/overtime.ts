@@ -58,7 +58,9 @@
  * ────────────────────────────────────────────────────────────────────────────────────────────────
  */
 
+import { Equivalence, Number as EffectNumber, Schema } from 'effect';
 import type { StatutoryRestBreakRule } from '../../../datatypes/statutory_regime/+definition.js';
+import { statutoryOvertimeRuleValueSchema } from '../../../datatypes/statutory_regime/+definition.js';
 import {
 	restBreakAssessment,
 	type RestBreakAssessment
@@ -66,7 +68,13 @@ import {
 import type { OvertimeRule } from './configuration.js';
 import { monthKey, requiredDateKey, type IsoDate } from './dates.js';
 import { floorHalfHour } from './rounding.js';
-import { ruleDayType, type DayType, type RuleDayType, type ScheduledDay } from './schedule.js';
+import {
+	RuleDayTypeSchema,
+	ruleDayType,
+	type DayType,
+	type RuleDayType,
+	type ScheduledDay
+} from './schedule.js';
 
 /**
  * The wall-clock frame attendance is recorded in, in minutes east of UTC.
@@ -84,22 +92,42 @@ import { ruleDayType, type DayType, type RuleDayType, type ScheduledDay } from '
  * This constant is the single place a real timezone column would be consumed once one exists; a
  * third jurisdiction off UTC+8 requires that column rather than a change here.
  */
-export const ATTENDANCE_UTC_OFFSET_MINUTES = 8 * 60;
+const ATTENDANCE_UTC_OFFSET_MINUTES = 8 * 60;
+
+/** A rule's pricing identity: day type, authority, band bounds and the award it pays. */
+const ruleEquivalence = Equivalence.Struct({
+	day_type: Equivalence.strictEqual<string>(),
+	authority: Equivalence.strictEqual<string>(),
+	band: Equivalence.mapInput(
+		Equivalence.Array(Equivalence.strictEqual<string | number | null>()),
+		(band: OvertimeRule['band']) =>
+			band.measure === 'BEYOND_NORMAL'
+				? ['BEYOND_NORMAL', band.from_hours, band.to_hours]
+				: ['FROM_START_OF_DAY', band.from_fraction, band.to_fraction]
+	),
+	award: Equivalence.Struct({
+		kind: Equivalence.strictEqual<string>(),
+		multiple: Equivalence.strictEqual<number>()
+	})
+});
 
 const MINUTE_MS = 60_000;
 const HOUR_MS = 3_600_000;
 
-export type TimeEntryLike = {
-	readonly norbital_id: string;
-	readonly work_date: string | Date;
-	readonly worked_intervals:
-		| readonly {
-				readonly start_at: Date | string;
-				readonly end_at: Date | string | null;
-		  }[]
-		| null;
-	readonly break_minutes: number;
-};
+const TimeEntryLikeSchema = Schema.Struct({
+	id: Schema.String,
+	work_date: Schema.Union([Schema.String, Schema.Date]),
+	worked_intervals: Schema.NullOr(
+		Schema.Array(
+			Schema.Struct({
+				start_at: Schema.Union([Schema.Date, Schema.String]),
+				end_at: Schema.Union([Schema.Date, Schema.String, Schema.Null])
+			})
+		)
+	),
+	break_minutes: Schema.Number
+});
+export type TimeEntryLike = Schema.Schema.Type<typeof TimeEntryLikeSchema>;
 
 /** Minutes since midnight of a `HH:MM[:SS]` wall-clock time. */
 export function clockMinutes(value: string): number {
@@ -113,7 +141,8 @@ function instant(value: Date | string): number {
 	return value instanceof Date ? value.getTime() : Date.parse(value);
 }
 
-type Interval = { readonly start: number; readonly end: number };
+const IntervalSchema = Schema.Struct({ start: Schema.Number, end: Schema.Number });
+type Interval = Schema.Schema.Type<typeof IntervalSchema>;
 
 /**
  * Parse and union the observed intervals. Overlap is rejected by the write hook, but unioning here
@@ -129,12 +158,12 @@ export function normalizedWorkedIntervals(entry: TimeEntryLike): readonly Interv
 			// The record, not only the day. Dozens of people clock on any given date, so a refusal that
 			// named the date alone told whoever had to fix it which day to search and nothing more.
 			if (interval.end_at == null)
-				throw new Error(`Time entry ${entry.norbital_id} on ${workDate} is still open.`);
+				throw new Error(`Time entry ${entry.id} on ${workDate} is still open.`);
 			const start = instant(interval.start_at);
 			const end = instant(interval.end_at);
 			if (!Number.isFinite(start) || !Number.isFinite(end) || end <= start)
 				throw new Error(
-					`Time entry ${entry.norbital_id} on ${workDate} contains an invalid worked interval ` +
+					`Time entry ${entry.id} on ${workDate} contains an invalid worked interval ` +
 						`(${String(interval.start_at)} → ${String(interval.end_at)}).`
 				);
 			return { start, end };
@@ -295,7 +324,7 @@ export function deriveDailyOvertime(
 	if (hours <= 0) return null;
 	return {
 		date: workDate,
-		timeEntryId: entry.norbital_id,
+		timeEntryId: entry.id,
 		dayType: day.dayType,
 		hours,
 		normalHours: day.normalHours,
@@ -308,20 +337,29 @@ export function deriveDailyOvertime(
 }
 
 /** A slice of a day's overtime priced by one statutory rule. */
-export type PricedSegment = {
-	readonly rule: OvertimeRule;
-	readonly dayType: RuleDayType;
-	readonly measure: 'BEYOND_NORMAL' | 'FROM_START_OF_DAY';
+const PricedSegmentSchema = Schema.Struct({
+	rule: statutoryOvertimeRuleValueSchema,
+	dayType: RuleDayTypeSchema,
+	measure: Schema.Literals(['BEYOND_NORMAL', 'FROM_START_OF_DAY']),
 	/** The rule band's lower bound, which is how a pay component names the rule it pays. */
-	readonly bandFrom: number;
+	bandFrom: Schema.Number,
 	/** Hours in the band. Zero for a day-wage award, which pays flat. */
-	readonly hours: number;
+	hours: Schema.Number,
 	/** Multiple of the hourly rate, or of a day's wages for a `DAY_WAGE_MULTIPLE` award. */
-	readonly multiple: number;
-	readonly award: 'HOURLY_MULTIPLE' | 'DAY_WAGE_MULTIPLE';
-	readonly date: IsoDate;
-	readonly timeEntryId: string;
-};
+	multiple: Schema.Number,
+	award: Schema.Literals(['HOURLY_MULTIPLE', 'DAY_WAGE_MULTIPLE']),
+	date: Schema.String,
+	timeEntryId: Schema.String
+});
+export type PricedSegment = Schema.Schema.Type<typeof PricedSegmentSchema>;
+
+/** The band triple that names a derived overtime line: day type, measure, floor. */
+const OvertimeBandIdentitySchema = Schema.Struct({
+	dayType: Schema.Literals(['ORDINARY', 'REST_DAY', 'PUBLIC_HOLIDAY']),
+	measure: Schema.Literals(['BEYOND_NORMAL', 'FROM_START_OF_DAY']),
+	bandFrom: Schema.Number
+});
+export type OvertimeBandIdentity = Schema.Schema.Type<typeof OvertimeBandIdentitySchema>;
 
 /**
  * The stable code a derived overtime line is reported under.
@@ -332,12 +370,9 @@ export type PricedSegment = {
  * the code is built from it: `OT_ORDINARY_BEYOND_NORMAL_0`, `OT_REST_DAY_FROM_START_OF_DAY_0_5`,
  * and `OT_EXCESS_…` for the hours the daily total-work boundary reclassified.
  */
-export function overtimeBandCode(options: {
-	readonly excess: boolean;
-	readonly dayType: string;
-	readonly measure: string;
-	readonly bandFrom: number;
-}): string {
+export function overtimeBandCode(
+	options: OvertimeBandIdentity & { readonly excess: boolean }
+): string {
 	return [
 		'OT',
 		...(options.excess ? ['EXCESS'] : []),
@@ -348,22 +383,23 @@ export function overtimeBandCode(options: {
 }
 
 /** Statutory excess value reclassified to incentive rather than discarded. */
-export type ExcessHours = {
-	readonly date: IsoDate;
-	readonly timeEntryId: string;
-	readonly dayType: RuleDayType;
-	readonly measure: 'BEYOND_NORMAL' | 'FROM_START_OF_DAY';
-	readonly bandFrom: number;
-	readonly hours: number;
+const ExcessHoursSchema = Schema.Struct({
+	date: Schema.String,
+	timeEntryId: Schema.String,
+	dayType: RuleDayTypeSchema,
+	measure: Schema.Literals(['BEYOND_NORMAL', 'FROM_START_OF_DAY']),
+	bandFrom: Schema.Number,
+	hours: Schema.Number,
 	/**
 	 * Hourly awards store `hours × multiple`; day-wage awards store the additional day-wage
 	 * multiple earned beyond the retained statutory OT hours.
 	 */
-	readonly units: number;
-	readonly valuedAt: 'ORDINARY_HOURLY' | 'ORDINARY_DAY_WAGE';
-};
+	units: Schema.Number,
+	valuedAt: Schema.Literals(['ORDINARY_HOURLY', 'ORDINARY_DAY_WAGE'])
+});
+export type ExcessHours = Schema.Schema.Type<typeof ExcessHoursSchema>;
 
-export type ClassifiedDailyOvertime = {
+type ClassifiedDailyOvertime = {
 	readonly day: DailyOvertime;
 	/** Hours retained in statutory overtime components after daily and calendar-month controls. */
 	readonly retainedHours: number;
@@ -399,10 +435,8 @@ export function classifyOvertimeByCalendarMonth(options: {
 			if (options.monthlyOrdinaryOvertimeLimit != null && ruleDayType(day.dayType) === 'ORDINARY') {
 				const month = monthKey(day.date);
 				const before = ordinaryHoursByMonth.get(month) ?? 0;
-				monthlyRetained = Math.min(
-					day.hours,
-					Math.max(0, options.monthlyOrdinaryOvertimeLimit - before)
-				);
+				const clampToDay = EffectNumber.clamp({ minimum: 0, maximum: day.hours });
+				monthlyRetained = clampToDay(options.monthlyOrdinaryOvertimeLimit - before);
 				ordinaryHoursByMonth.set(month, before + day.hours);
 			}
 			const retainedHours = Math.min(day.hours, dailyRetained, monthlyRetained);
@@ -414,14 +448,25 @@ export function classifyOvertimeByCalendarMonth(options: {
 		});
 }
 
-type ResolvedRule = {
-	readonly row: OvertimeRule;
-	readonly measure: 'BEYOND_NORMAL' | 'FROM_START_OF_DAY';
-	readonly from: number;
-	readonly to: number | null;
-	readonly award: 'HOURLY_MULTIPLE' | 'DAY_WAGE_MULTIPLE';
-	readonly multiple: number;
-};
+/** Ordinary/off-day OT counted by a calendar-month cap; rest-day and public-holiday work is excluded. */
+export function regulatedMonthlyOvertimeHours(
+	days: readonly DailyOvertime[],
+	period: string
+): number {
+	return days
+		.filter((day) => monthKey(day.date) === period && ruleDayType(day.dayType) === 'ORDINARY')
+		.reduce((total, day) => total + day.hours, 0);
+}
+
+const ResolvedRuleSchema = Schema.Struct({
+	row: statutoryOvertimeRuleValueSchema,
+	measure: Schema.Literals(['BEYOND_NORMAL', 'FROM_START_OF_DAY']),
+	from: Schema.Number,
+	to: Schema.NullOr(Schema.Number),
+	award: Schema.Literals(['HOURLY_MULTIPLE', 'DAY_WAGE_MULTIPLE']),
+	multiple: Schema.Number
+});
+type ResolvedRule = Schema.Schema.Type<typeof ResolvedRuleSchema>;
 
 function resolveRule(rule: OvertimeRule): ResolvedRule {
 	const { band, award } = rule;
@@ -449,11 +494,14 @@ function rulesFor(
 	dayType: RuleDayType,
 	measure: 'BEYOND_NORMAL' | 'FROM_START_OF_DAY'
 ): ResolvedRule[] {
-	return rules
-		.filter((rule) => rule.day_type === dayType)
-		.map(resolveRule)
-		.filter((rule) => rule.measure === measure)
-		.toSorted((left, right) => left.from - right.from);
+	const resolved: ResolvedRule[] = [];
+	for (const rule of rules) {
+		if (rule.day_type !== dayType) continue;
+		const candidate = resolveRule(rule);
+		if (candidate.measure !== measure) continue;
+		resolved.push(candidate);
+	}
+	return resolved.toSorted((left, right) => left.from - right.from);
 }
 
 /**
@@ -562,7 +610,8 @@ export function priceDay(options: {
 	};
 
 	const full = statutorySegments(options.day.hours);
-	const keptHours = Math.max(0, Math.min(options.day.hours, options.retainedHours));
+	const clampHours = EffectNumber.clamp({ minimum: 0, maximum: options.day.hours });
+	const keptHours = clampHours(options.retainedHours);
 	if (keptHours === options.day.hours) return { segments: full, excess: [] };
 
 	// Classification happens after statutory pricing, through the same legal ladder.
@@ -590,12 +639,10 @@ export function priceDay(options: {
 		}
 	}
 
-	const sameRule = (left: OvertimeRule, right: OvertimeRule): boolean =>
-		left.day_type === right.day_type &&
-		JSON.stringify(left.band) === JSON.stringify(right.band) &&
-		JSON.stringify(left.award) === JSON.stringify(right.award);
+	// Two rules are the same when every member that prices an hour matches — one rule, one rate.
 	for (const fullHourly of full.filter((segment) => segment.award === 'HOURLY_MULTIPLE')) {
-		const keptHours = kept.find((segment) => sameRule(segment.rule, fullHourly.rule))?.hours ?? 0;
+		const keptHours =
+			kept.find((segment) => ruleEquivalence(segment.rule, fullHourly.rule))?.hours ?? 0;
 		const movedHours = fullHourly.hours - keptHours;
 		if (movedHours <= 0) continue;
 		excess.push({
@@ -610,14 +657,4 @@ export function priceDay(options: {
 		});
 	}
 	return { segments: kept, excess };
-}
-
-/** Ordinary/off-day OT counted by the 104-hour regulation; rest-day and PH work are excluded. */
-export function regulatedMonthlyOvertimeHours(
-	days: readonly DailyOvertime[],
-	period: string
-): number {
-	return days
-		.filter((day) => monthKey(day.date) === period && ruleDayType(day.dayType) === 'ORDINARY')
-		.reduce((total, day) => total + day.hours, 0);
 }

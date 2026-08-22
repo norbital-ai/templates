@@ -1,8 +1,10 @@
-import { Effect } from 'effect';
+import { Effect, Schema } from 'effect';
 import { refuse, type SchemaQueryConfig } from '@norbital-ai/bolt/authoring';
 import type { WorkspaceSchema } from '$bolt/types.js';
+import { dateKey } from '../../lib/iso-day.js';
+import { pointAt, pointNumber } from '../../lib/half-day.js';
 import { completedMonths } from '../payroll_runs/lib/dates.js';
-import { leaveBalance, resolveEntitlement } from '../payroll_runs/lib/leave.js';
+import { leaveBalance, resolveEntitlement, type LedgerRow } from '../payroll_runs/lib/leave.js';
 import { coversDate } from '../payroll_runs/lib/effective.js';
 import { patternRosterCodeId } from '../../lib/scheduling/work-pattern.js';
 import { rosterCodeKind } from '../../lib/scheduling/roster-code.js';
@@ -16,31 +18,14 @@ import {
 import type { LeaveEvent } from '../../datatypes/leave_event/+definition.js';
 import type { Hooks, WorkspaceRow } from './$types.js';
 
-type Half = 'FIRST' | 'SECOND';
-type Point = { readonly date: string; readonly half: Half };
+const halfSchema = Schema.Union([Schema.Literal('FIRST'), Schema.Literal('SECOND')]);
+type Half = Schema.Schema.Type<typeof halfSchema>;
+const pointSchema = Schema.Struct({ date: Schema.String, half: halfSchema });
+type Point = Schema.Schema.Type<typeof pointSchema>;
 type TimeOffEvent = Extract<LeaveEvent, { kind: 'TIME_OFF' }>;
 
 const LIMIT = 20_000;
 const DAY_MS = 86_400_000;
-
-function dateKey(value: string | Date): string {
-	return typeof value === 'string' ? value.slice(0, 10) : value.toISOString().slice(0, 10);
-}
-
-function pointNumber(point: Point): number {
-	return (
-		Math.floor(Date.parse(`${point.date}T00:00:00.000Z`) / DAY_MS) * 2 +
-		(point.half === 'SECOND' ? 1 : 0)
-	);
-}
-
-function pointAt(number: number): Point {
-	const day = Math.floor(number / 2);
-	return {
-		date: new Date(day * DAY_MS).toISOString().slice(0, 10),
-		half: number % 2 === 0 ? 'FIRST' : 'SECOND'
-	};
-}
 
 function rangeOf(event: TimeOffEvent): { start: Point; end: Point } {
 	return event.range;
@@ -80,14 +65,14 @@ type RosterEntryRow = Pick<
 	'employment_id' | 'work_date' | 'shift_definition_id'
 >;
 type CompanyHolidayRow = Pick<WorkspaceRow<'company_holidays'>, 'company_id' | 'date'>;
-type RosterCodeRow = Pick<WorkspaceRow<'shift_definitions'>, 'norbital_id' | 'variant'>;
+type RosterCodeRow = Pick<WorkspaceRow<'shift_definitions'>, 'id' | 'variant'>;
 type SettledRunRow = Pick<
 	WorkspaceRow<'payroll_runs'>,
 	'period' | 'lifecycle' | 'attendance_from' | 'attendance_to'
 >;
 type RequestRow = Pick<
 	WorkspaceRow<'leave_requests'>,
-	| 'norbital_id'
+	| 'id'
 	| 'employment_id'
 	| 'leave_type_id'
 	| 'kind'
@@ -95,7 +80,7 @@ type RequestRow = Pick<
 	| 'to_date'
 	| 'days'
 	| 'event'
-	| 'norbital_approval_id'
+	| 'approval_id'
 >;
 
 /**
@@ -168,20 +153,19 @@ function isSeedNormalizedTimeOff(event: LeaveEvent | null | undefined): boolean 
 	);
 }
 
-function normalizedTimeOff(options: {
-	readonly api: NormalizationApi;
-	readonly employmentId: string;
-	readonly leaveTypeId: string;
-	readonly event: TimeOffEvent;
-	readonly excludeId?: string;
-}): Effect.Effect<TimeOffEvent, never, never> {
+function normalizedTimeOff(
+	api: NormalizationApi,
+	employmentId: string,
+	leaveTypeId: string,
+	event: TimeOffEvent,
+	excludeId?: string
+): Effect.Effect<TimeOffEvent, never, never> {
 	return Effect.gen(function* () {
-		const { api, employmentId, leaveTypeId, event, excludeId } = options;
 		const range = rangeOf(event);
 		assertRange(range);
 
 		const employment = yield* api.db.query.employments.findFirst({
-			where: { norbital_id: { eq: employmentId } }
+			where: { id: { eq: employmentId } }
 		});
 		if (employment == null) refuse('The leave request must reference an employment on file.');
 		if (range.start.date < dateKey(employment.hire_date)) {
@@ -195,10 +179,10 @@ function normalizedTimeOff(options: {
 			yield* Effect.all(
 				[
 					api.db.query.companies.findFirst({
-						where: { norbital_id: { eq: employment.company_id } }
+						where: { id: { eq: employment.company_id } }
 					}),
 					api.db.query.leave_types.findFirst({
-						where: { norbital_id: { eq: leaveTypeId }, company_id: { eq: employment.company_id } }
+						where: { id: { eq: leaveTypeId }, company_id: { eq: employment.company_id } }
 					}),
 					api.db.query.company_holidays.findMany({
 						where: {
@@ -237,7 +221,7 @@ function normalizedTimeOff(options: {
 		}
 
 		for (const request of existingRequests) {
-			if (request.norbital_id === excludeId) continue;
+			if (request.id === excludeId) continue;
 			if (request.event == null || request.event.kind !== 'TIME_OFF') continue;
 			const other = rangeOf(request.event);
 			if (
@@ -269,9 +253,9 @@ function normalizedTimeOff(options: {
 				employment_id: { eq: employmentId },
 				leave_type_id: { eq: leaveTypeId },
 				kind: { eq: 'ENCASHMENT' },
-				norbital_approval_id: { isNull: true }
+				approval_id: { isNull: true }
 			},
-			columns: { norbital_id: true },
+			columns: { id: true },
 			limit: 100
 		});
 		if (encashed.length > 0) {
@@ -281,26 +265,22 @@ function normalizedTimeOff(options: {
 		}
 
 		const shiftIds = [
-			...new Set(
-				[
-					...rosterEntries.map((entry: RosterEntryRow) => entry.shift_definition_id),
-					...terms.flatMap((term: EmploymentTermRow) => {
-						const pattern = term.work_pattern;
-						if (pattern?.type !== 'PATTERNED') return [];
-						return pattern.phases.flatMap((phase) =>
-							phase.day_cycle.map((day) => day.roster_code_id)
-						);
-					})
-				].filter((id): id is string => typeof id === 'string')
-			)
+			...new Set([
+				...rosterEntries.map((entry: RosterEntryRow) => entry.shift_definition_id),
+				...terms.flatMap((term: EmploymentTermRow) => {
+					const pattern = term.work_pattern;
+					if (pattern?.type !== 'PATTERNED') return [];
+					return pattern.phases.flatMap((phase) =>
+						phase.day_cycle.map((day) => day.roster_code_id)
+					);
+				})
+			])
 		];
 		const rosterCodes = yield* api.db.query.shift_definitions.findMany({
-			where: { norbital_id: { in: shiftIds } },
+			where: { id: { in: shiftIds } },
 			limit: LIMIT
 		});
-		const rosterCodeById = new Map(
-			rosterCodes.map((code: RosterCodeRow) => [code.norbital_id, code])
-		);
+		const rosterCodeById = new Map(rosterCodes.map((code: RosterCodeRow) => [code.id, code]));
 		const rosterByDate: Map<string, RosterEntryRow> = new Map(
 			rosterEntries.map((entry: RosterEntryRow) => [dateKey(entry.work_date), entry])
 		);
@@ -340,17 +320,14 @@ function normalizedTimeOff(options: {
 				where: { employment_id: { eq: employmentId }, leave_type_id: { eq: leaveTypeId } },
 				limit: LIMIT
 			});
-			const projectedLedger = allLedger.flatMap((row) => {
-				if (row.norbital_id === excludeId || row.from_date == null) return [];
+			const projectedLedger: LedgerRow[] = allLedger.flatMap((row) => {
+				if (row.id === excludeId || row.from_date == null) return [];
 				return [
 					{
-						norbital_id: row.norbital_id,
-						leave_type_id: row.leave_type_id,
+						...row,
 						entry_date: row.from_date,
-						kind: row.kind,
 						days: row.kind === 'TIME_OFF' ? -Math.abs(Number(row.days)) : Number(row.days),
-						source_id: null,
-						norbital_approval_id: row.norbital_approval_id
+						source_id: null
 					}
 				];
 			});
@@ -410,12 +387,12 @@ function assertLeaveSourceUnlocked(
 		 * to release it.
 		 */
 		const claim = yield* api.db.query.payslip_sources.findFirst({
-			where: { leave_request_id: { eq: existing.norbital_id } },
+			where: { source: { eq: { kind: 'LEAVE_REQUEST', id: existing.id } } },
 			columns: { period: true }
 		});
 		const lock = sourceLock({
 			existing: true,
-			approvalId: existing.norbital_approval_id,
+			approvalId: existing.approval_id,
 			dates: [],
 			settledBy: claim == null ? null : { period: claim.period },
 			datePassed: 'IS_NOT_A_LOCK'
@@ -437,12 +414,12 @@ export default {
 						if (input.event == null || input.event.kind !== 'TIME_OFF') return input;
 						return {
 							...input,
-							event: yield* normalizedTimeOff({
+							event: yield* normalizedTimeOff(
 								api,
-								employmentId: input.employment_id,
-								leaveTypeId: input.leave_type_id,
-								event: input.event
-							})
+								input.employment_id,
+								input.leave_type_id,
+								input.event
+							)
 						};
 					})
 			}
@@ -460,13 +437,13 @@ export default {
 						if (event == null || event.kind !== 'TIME_OFF') return input;
 						return {
 							...input,
-							event: yield* normalizedTimeOff({
+							event: yield* normalizedTimeOff(
 								api,
-								employmentId: input.employment_id ?? existing.employment_id,
-								leaveTypeId: input.leave_type_id ?? existing.leave_type_id,
+								input.employment_id ?? existing.employment_id,
+								input.leave_type_id ?? existing.leave_type_id,
 								event,
-								excludeId: existing.norbital_id
-							})
+								existing.id
+							)
 						};
 					})
 			}
@@ -478,9 +455,7 @@ export default {
 				description:
 					'Refuses deleting a leave request a payroll run has already taken into account. Corrections are new events.',
 				handler: ({ existing, api }) =>
-					Effect.gen(function* () {
-						yield* assertLeaveSourceUnlocked(api, existing, 'Deleting a leave request');
-					})
+					assertLeaveSourceUnlocked(api, existing, 'Deleting a leave request')
 			}
 		}
 	}

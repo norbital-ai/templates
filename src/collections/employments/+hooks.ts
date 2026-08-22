@@ -16,15 +16,11 @@
  */
 
 import { Effect } from 'effect';
+import { dateKey } from '../../lib/iso-day.js';
 import { leaveBalance, resolveEntitlement, type LedgerRow } from '../payroll_runs/lib/leave.js';
 import type { Hooks } from './$types.js';
 
 const LIMIT = 20_000;
-
-function dateKey(value: string | Date | null | undefined): string {
-	if (value == null) return '';
-	return typeof value === 'string' ? value.slice(0, 10) : value.toISOString().slice(0, 10);
-}
 
 export default {
 	update: {
@@ -41,7 +37,7 @@ export default {
 
 						const [company, encashableTypes, allRequests] = yield* Effect.all([
 							api.db.query.companies.findFirst({
-								where: { norbital_id: { eq: employment.company_id } },
+								where: { id: { eq: employment.company_id } },
 								columns: { leave_year_start_month: true }
 							}),
 							api.db.query.leave_types.findMany({
@@ -49,22 +45,22 @@ export default {
 								limit: LIMIT
 							}),
 							api.db.query.leave_requests.findMany({
-								where: { employment_id: { eq: employment.norbital_id } },
+								where: { employment_id: { eq: employment.id } },
 								limit: LIMIT
 							})
 						]);
 						if (company == null) return;
 
 						const ledger: LedgerRow[] = allRequests
-							.filter((row) => row.norbital_approval_id == null && row.from_date != null)
+							.filter((row) => row.approval_id == null && row.from_date != null)
 							.map((row) => ({
-								norbital_id: row.norbital_id,
+								id: row.id,
 								leave_type_id: row.leave_type_id,
 								entry_date: dateKey(row.from_date),
 								kind: row.kind ?? 'TAKEN',
 								days: row.kind === 'TIME_OFF' ? -Math.abs(Number(row.days)) : Number(row.days),
 								source_id: null,
-								norbital_approval_id: null
+								approval_id: null
 							}));
 
 						const mutations: Array<{
@@ -80,7 +76,7 @@ export default {
 						}> = [];
 						for (const type of encashableTypes) {
 							const alreadyEncashed = allRequests.some(
-								(row) => row.kind === 'ENCASHMENT' && row.leave_type_id === type.norbital_id
+								(row) => row.kind === 'ENCASHMENT' && row.leave_type_id === type.id
 							);
 							if (alreadyEncashed) continue;
 							const balance = leaveBalance(
@@ -90,7 +86,7 @@ export default {
 										resolveEntitlement({
 											leaveType: type,
 											serviceMonths,
-											employmentId: employment.norbital_id,
+											employmentId: employment.id,
 											asOf: exitDate
 										}),
 									hireDate: dateKey(employment.hire_date),
@@ -103,8 +99,8 @@ export default {
 							);
 							if (balance > 0) {
 								mutations.push({
-									employment_id: employment.norbital_id,
-									leave_type_id: type.norbital_id,
+									employment_id: employment.id,
+									leave_type_id: type.id,
 									event: {
 										kind: 'ENCASHMENT',
 										effective_on: exitDate,

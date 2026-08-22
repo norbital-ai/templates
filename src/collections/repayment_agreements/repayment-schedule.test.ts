@@ -4,9 +4,13 @@ import test from 'node:test';
 import {
 	distributeRepaymentSchedule,
 	monthlyDueDates,
-	repaymentScheduleIssues,
-	repaymentScheduleTotal
+	repaymentScheduleIssues
 } from './lib/repayment-schedule.ts';
+
+/** Sum a provisioned schedule in cents and back, for the round-trip invariant. */
+function repaymentScheduleTotal(schedule) {
+	return schedule.reduce((total, entry) => total + Math.round(entry.amount * 100), 0) / 100;
+}
 
 test('equal provisioning preserves the principal exactly in cents', () => {
 	const schedule = distributeRepaymentSchedule(2044, monthlyDueDates('2026-01-31', 3));

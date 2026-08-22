@@ -107,7 +107,7 @@ five `approved_ot_*_hours` buckets were dropped in `drop_time_entry_overtime_app
 ### 1.3 What has to change to get there
 
 - `timeEntriesQuery` in `+scheduling.svelte` selects four columns; it needs `break_minutes` and
-  `norbital_id` too, and `DayFacts` needs `timeEntryId`, `breakMinutes` and `workedMinutes`.
+  `id` too, and `DayFacts` needs `timeEntryId`, `breakMinutes` and `workedMinutes`.
 - `roster-month-board.svelte` gains a lock rail and routes `onSelectDay` to the drawer.
 - A new `src/lib/ui/roster/day-sheet.svelte` owns both editors; both writes go through
   `client.db.roster_entries` and `client.db.time_entries` so every hook still runs.
@@ -536,7 +536,7 @@ that is amber for the controller is amber for the employee.
 ```
 
 So the calendar's one affordance is **report a missing punch** on an unlocked day with no entry.
-It creates a `time_entries` row that carries `norbital_approval_id` until a manager settles it,
+It creates a `time_entries` row that carries `approval_id` until a manager settles it,
 which the tile draws as a fifth rung on the ladder:
 
 ```text
@@ -548,7 +548,7 @@ which the tile draws as a fifth rung on the ladder:
              409)                            draft)
 ```
 
-`PENDING` is the platform's own lock (`norbital_approval_id`) and stays the platform's — the domain
+`PENDING` is the platform's own lock (`approval_id`) and stays the platform's — the domain
 never refuses it, it only draws it. That is already how `sourceLockBlocksWrite` treats it.
 
 ### 8.3 Retiring the raw tables

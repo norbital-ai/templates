@@ -31,24 +31,26 @@
 	 * in its own query: it is the page's scope picker, not a listing, and it has to default to an
 	 * entity that still exists.
 	 */
-	const companiesQuery = client.db.companies.findMany({
-		where: { norbital_approval_id: { isNull: true }, ...activeRange },
-		orderBy: { name: 'asc' },
-		limit: 500
-	});
+	const companiesQuery = $derived(
+		client.db.companies.findMany({
+			where: { approval_id: { isNull: true }, ...activeRange },
+			orderBy: { name: 'asc' },
+			limit: 500
+		})
+	);
 	const companies = $derived(companiesQuery.current ?? []);
 	const companiesUnknown = $derived(companiesQuery.loading && companiesQuery.current === undefined);
 	const companyOptions = $derived(
 		companies.map((c) => ({
-			value: c.norbital_id,
+			value: c.id,
 			label: c.name,
 			search_term: `${c.name} ${c.registration_number ?? ''}`
 		}))
 	);
 	const selectedCompanyId = $derived(
-		companies.some((company) => company.norbital_id === requestedCompanyId)
+		companies.some((company) => company.id === requestedCompanyId)
 			? requestedCompanyId
-			: (companies[0]?.norbital_id ?? null)
+			: (companies[0]?.id ?? null)
 	);
 	/**
 	 * The leave requests the requests table renders, read once for their ids so the settlement
@@ -60,23 +62,23 @@
 			? null
 			: client.db.leave_requests.findMany({
 					where: { leave_request_employment: { company_id: { eq: selectedCompanyId } } },
-					columns: { norbital_id: true },
+					columns: { id: true },
 					limit: 5000
 				})
 	);
 	const leaveSettlementsQuery = $derived.by(() => {
-		const ids = (leaveRequestsQuery?.current ?? []).map((row) => row.norbital_id);
+		const ids = (leaveRequestsQuery?.current ?? []).map((row) => row.id);
 		if (ids.length === 0) return null;
 		return client.db.payslip_sources.findMany({
-			where: { leave_request_id: { in: ids } },
-			columns: { leave_request_id: true, period: true },
+			where: { source: { in: ids.map((id) => ({ kind: 'LEAVE_REQUEST' as const, id })) } },
+			columns: { source: true, period: true },
 			limit: 5000
 		});
 	});
 	const settlementByRequestId = $derived(
 		new Map(
 			(leaveSettlementsQuery?.current ?? []).map((claim) => [
-				claim.leave_request_id,
+				claim.source.id,
 				{ period: claim.period }
 			])
 		)
@@ -99,9 +101,9 @@
 	function leaveRowLock(row: WorkspaceRow<'leave_requests'>) {
 		return sourceLock({
 			existing: true,
-			approvalId: row.norbital_approval_id,
+			approvalId: row.approval_id,
 			dates: [],
-			settledBy: settlementByRequestId.get(row.norbital_id) ?? null,
+			settledBy: settlementByRequestId.get(row.id) ?? null,
 			datePassed: 'IS_NOT_A_LOCK'
 		});
 	}
@@ -149,7 +151,7 @@
 				requestedCompanyId = value;
 				return;
 			}
-			requestedCompanyId = companies[0]?.norbital_id ?? null;
+			requestedCompanyId = companies[0]?.id ?? null;
 		}}
 		emptyPlaceholder={t('component.select_legal_entity')}
 		searchPlaceholder={t('component.search_companies')}
@@ -207,7 +209,7 @@
 				query={{
 					where: {
 						leave_request_employment: {
-							norbital_approval_id: { isNull: true },
+							approval_id: { isNull: true },
 							company_id: { eq: selectedCompanyId }
 						}
 					},

@@ -135,7 +135,7 @@ test('a controller may view payroll, and their create is held for hr_manager or 
 	assert.deepEqual(extra, [], 'one create grant, or the union would pick an arbitrary approval');
 
 	// `requiresApproval` is `visibility.approval !== undefined`. The presence of this object is the
-	// whole of "may not create it": Bolt writes the row, stamps `norbital_approval_id`, and waits.
+	// whole of "may not create it": Bolt writes the row, stamps `approval_id`, and waits.
 	assert.notEqual(create.approval, undefined);
 	assert.equal(create.approval.steps.length, 1);
 	// One step with two teams, not two steps. `approvals.decide` tests

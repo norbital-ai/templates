@@ -6,6 +6,7 @@
  * and `legal_entity` are the same row.
  */
 
+import { Schema } from 'effect';
 import {
 	findSheet,
 	WorkbookImportError,
@@ -16,11 +17,12 @@ import { isYearMonth } from './period.js';
 
 export const SETTINGS_SHEET_NAME = 'Settings';
 
-export interface WorkbookSettings {
-	readonly legal_entity?: string;
-	readonly month?: string;
-	readonly timezone?: string;
-}
+const workbookSettingsSchema = Schema.Struct({
+	legal_entity: Schema.optional(Schema.String),
+	month: Schema.optional(Schema.String),
+	timezone: Schema.optional(Schema.String)
+});
+type WorkbookSettings = Schema.Schema.Type<typeof workbookSettingsSchema>;
 
 function settingKey(cell: SheetCell): string {
 	return String(cell ?? '')

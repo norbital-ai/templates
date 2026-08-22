@@ -19,7 +19,7 @@ export default {
 			before: {
 				description:
 					'Validates the atomic statutory snapshot so coverage is coherent, overtime bands do not overlap, and every limit identity is unique.',
-				handler: async ({ input }) => {
+				handler: ({ input }) => {
 					assertRegime(input.regime, input.currency);
 					return input;
 				}
@@ -31,7 +31,7 @@ export default {
 			before: {
 				description:
 					'Re-validates the complete effective-dated regime whenever its currency or nested statutory policy changes.',
-				handler: async ({ input, existing }) => {
+				handler: ({ input, existing }) => {
 					assertRegime(input.regime ?? existing.regime, input.currency ?? existing.currency);
 					return input;
 				}

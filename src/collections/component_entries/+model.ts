@@ -47,7 +47,7 @@ export default defineModel(
 		indexes: [
 			// Payslip lines reference this key, not just the entry id. That makes it impossible for a
 			// line to claim a different pay component or recurrence mode from the entry it consumes.
-			{ columns: ['norbital_id', 'pay_component_id', 'usage_mode'], unique: true },
+			{ columns: ['id', 'pay_component_id', 'usage_mode'], unique: true },
 			{ columns: ['employment_id', 'pay_period'] },
 			{ columns: ['pay_component_id'] },
 			{

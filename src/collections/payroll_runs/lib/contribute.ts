@@ -31,22 +31,26 @@
  * #2).
  */
 
+import { refuse } from '@norbital-ai/bolt/authoring';
+import { Number as EffectNumber, Option, Schema } from 'effect';
 import { bandFloor, bandReference, selectBand, type BandContext } from './bands.js';
 import type { ContributionConfig } from './configuration.js';
 import type { ContributionBase } from './accumulate.js';
-import { roundMoney, type RoundingMethod } from './rounding.js';
+import { roundMoney, RoundingMethodSchema, type RoundingMethod } from './rounding.js';
 import {
 	ADDITIONAL_REMUNERATION,
+	SpecialRulesSchema,
 	bracketBase,
 	parseSpecialRules,
 	type SpecialRules
 } from './special-rules.js';
 
-export type StatutoryFactStatus = {
-	readonly kind: 'REGISTERED' | 'NOT_REGISTERED';
+const StatutoryFactStatusSchema = Schema.Struct({
+	kind: Schema.Literals(['REGISTERED', 'NOT_REGISTERED']),
 	/** Percentage award; on a progressive scheme this is a flat current-remuneration rate. */
-	readonly rate_override: number | null;
-};
+	rate_override: Schema.NullOr(Schema.Number)
+});
+export type StatutoryFactStatus = Schema.Schema.Type<typeof StatutoryFactStatusSchema>;
 
 export type ContributionCharge = {
 	readonly contribution: ContributionConfig;
@@ -89,9 +93,17 @@ function asFraction(rate: number): number {
 }
 
 function roundingFor(contribution: ContributionConfig, rules: SpecialRules): RoundingMethod[] {
-	return rules.roundingChain.length > 0
-		? [...rules.roundingChain]
-		: [contribution.row.rounding as RoundingMethod];
+	if (rules.roundingChain.length > 0) return [...rules.roundingChain];
+	const declared = Option.getOrUndefined(
+		Schema.decodeUnknownOption(RoundingMethodSchema)(contribution.row.rounding)
+	);
+	if (declared == null)
+		refuse(
+			`Statutory contribution ${contribution.row.code} states a rounding of ` +
+				`${JSON.stringify(contribution.row.rounding)}, which is not a rounding method the engine ` +
+				'can apply. Fix the seeding rather than guessing.'
+		);
+	return [declared];
 }
 
 function applyRounding(value: number, chain: readonly RoundingMethod[]): number {
@@ -115,22 +127,15 @@ function roundContributionShares(
 	};
 }
 
-/**
- * Whether a scheme charges at all.
- *
- * An unregistered employment contributes nothing, and therefore also contributes nothing to any
- * relief pool it feeds — the pool is fed by the *output*, never by a rate.
- */
-function isRegistered(status: StatutoryFactStatus | undefined): boolean {
-	return status == null || status.kind === 'REGISTERED';
-}
+/** `constant + (value − band_from) × rate%`, over the scheme's own bands. */
 
 /** Everything one scheme produced, so the schemes that read it can find it. */
-type Produced = {
-	readonly employee: number;
-	readonly employer: number;
-	readonly rules: SpecialRules;
-};
+const ProducedSchema = Schema.Struct({
+	employee: Schema.Number,
+	employer: Schema.Number,
+	rules: SpecialRulesSchema
+});
+type Produced = Schema.Schema.Type<typeof ProducedSchema>;
 
 export function contribute(input: ContributeInput): ContributionCharge[] {
 	const charges: ContributionCharge[] = [];
@@ -140,9 +145,13 @@ export function contribute(input: ContributeInput): ContributionCharge[] {
 		const contribution = entry.contribution;
 		const code = contribution.row.code;
 		const rules = parseSpecialRules(contribution.row.special_rules, code);
-		const status = input.facts.get(contribution.row.norbital_id);
+		const status = input.facts.get(contribution.row.id);
 
-		if (!isRegistered(status) || entry.base <= 0) {
+		// Whether a scheme charges at all: an unregistered employment contributes nothing, and
+		// therefore also nothing to any relief pool it feeds — the pool is fed by the *output*,
+		// never by a rate.
+		const open = status == null || status.kind === 'REGISTERED' || entry.base <= 0;
+		if (!open) {
 			produced.set(code, { employee: 0, employer: 0, rules });
 			charges.push({
 				contribution,
@@ -253,14 +262,16 @@ export function scaleProgressive(
  * actually been paid. Projecting both would overstate relief by up to eleven months' worth early in
  * the year and change the tax of every mid-band employee (decision E9).
  */
-function progressiveWithholding(options: {
+type ProgressiveWithholdingOptions = {
 	readonly entry: ContributionBase;
 	readonly contribution: ContributionConfig;
 	readonly rules: SpecialRules;
 	readonly input: ContributeInput;
 	readonly produced: ReadonlyMap<string, Produced>;
 	readonly chain: readonly RoundingMethod[];
-}): number {
+};
+
+function progressiveWithholding(options: ProgressiveWithholdingOptions): number {
 	const { entry, contribution, rules, input } = options;
 	const code = contribution.row.code;
 	const remaining = Math.max(1, input.periodsRemaining);
@@ -272,7 +283,7 @@ function progressiveWithholding(options: {
 	// scheme in `relief_for`; no year-to-date or future projection belongs in a period table.
 	if (rules.periodicProgressive) {
 		const statutoryRelief = input.bases.reduce((total, other) => {
-			if (!other.contribution.row.relief_for.includes(contribution.row.norbital_id)) return total;
+			if (!other.contribution.row.relief_for.includes(contribution.row.id)) return total;
 			return total + (options.produced.get(other.contribution.row.code)?.employee ?? 0);
 		}, 0);
 		const chargeable = Math.max(0, entry.base - statutoryRelief);
@@ -297,16 +308,15 @@ function progressiveWithholding(options: {
 	const pools = new Map<string, { total: number; cap: number | null }>();
 	for (const other of input.bases) {
 		const otherCode = other.contribution.row.code;
-		if (!other.contribution.row.relief_for.includes(contribution.row.norbital_id)) continue;
+		if (!other.contribution.row.relief_for.includes(contribution.row.id)) continue;
 		const result = options.produced.get(otherCode);
 		if (result == null) continue;
 		const priorEmployee = input.yearToDate(otherCode).employee;
 		let relievable = priorEmployee + result.employee;
 		if (result.rules.reliefProjected && result.rules.reliefCap != null) {
 			const future = remaining - 1;
-			const remainingCap = Math.min(
-				Math.max(0, result.rules.reliefCap - relievable),
-				result.rules.reliefCap
+			const remainingCap = EffectNumber.clamp({ minimum: 0, maximum: result.rules.reliefCap })(
+				result.rules.reliefCap - relievable
 			);
 			if (future > 0) relievable += Math.min(result.employee, remainingCap / future) * future;
 		}

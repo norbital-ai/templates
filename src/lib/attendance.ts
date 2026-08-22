@@ -1,6 +1,9 @@
+import { Schema } from 'effect';
 import type { WorkedInterval } from '../datatypes/worked_intervals/+definition.js';
 
-export type AttendanceState = 'OPEN' | 'COMPLETE' | 'INVALID';
+/** The one vocabulary these helpers read and the summaries they feed, all schema-owned. */
+const attendanceStateSchema = Schema.Literals(['OPEN', 'COMPLETE', 'INVALID']);
+type AttendanceState = Schema.Schema.Type<typeof attendanceStateSchema>;
 
 /**
  * A `worked_intervals` value read from storage is already decoded against the strict worked-
@@ -8,27 +11,6 @@ export type AttendanceState = 'OPEN' | 'COMPLETE' | 'INVALID';
  */
 export function attendanceState(value: readonly WorkedInterval[]): AttendanceState {
 	return value.some((interval) => interval.end_at == null) ? 'OPEN' : 'COMPLETE';
-}
-
-/**
- * Reads a stored `worked_intervals` value back into typed intervals.
- *
- * A table cell hands its value as `unknown` — the column carries no element type — so the UI needs
- * one place that decides whether a value really is a list of intervals. Returns null rather than
- * throwing: a render pass reports malformed attendance as INVALID, it does not fail the page.
- */
-export function readWorkedIntervals(value: unknown): readonly WorkedInterval[] | null {
-	if (!Array.isArray(value)) return null;
-	const intervals: WorkedInterval[] = [];
-	for (const entry of value) {
-		if (typeof entry !== 'object' || entry === null) return null;
-		const startAt = Reflect.get(entry, 'start_at');
-		const endAt = Reflect.get(entry, 'end_at');
-		if (typeof startAt !== 'string') return null;
-		if (endAt != null && typeof endAt !== 'string') return null;
-		intervals.push({ start_at: startAt, end_at: endAt ?? null });
-	}
-	return intervals;
 }
 
 export function attendanceBoundary(

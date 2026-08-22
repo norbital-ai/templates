@@ -22,6 +22,7 @@
  * request time, not at pay time (decision L9).
  */
 
+import { Number as EffectNumber, Schema } from 'effect';
 import type { Configuration, LeaveType } from './configuration.js';
 import {
 	completedMonths,
@@ -33,6 +34,17 @@ import {
 } from './dates.js';
 import { roundHalfDay } from './rounding.js';
 import { coversDate } from './effective.js';
+import type { PayrollWindow } from './period.js';
+
+const LedgerRowSchema = Schema.Struct({
+	id: Schema.String,
+	leave_type_id: Schema.String,
+	entry_date: Schema.Union([Schema.String, Schema.Date]),
+	kind: Schema.NullOr(Schema.String),
+	days: Schema.Number,
+	source_id: Schema.NullOr(Schema.String),
+	approval_id: Schema.optionalKey(Schema.NullOr(Schema.String))
+});
 
 /**
  * A ledger row as the database hands it back.
@@ -41,26 +53,15 @@ import { coversDate } from './effective.js';
  * model declares. It is compared against the three known kinds rather than narrowed by assertion,
  * so an unrecognised value is simply not `TAKEN` and cannot silently become one.
  */
-export type LedgerRow = {
-	readonly norbital_id: string;
-	readonly leave_type_id: string;
-	readonly entry_date: string | Date;
-	readonly kind: string | null;
-	readonly days: number;
-	readonly source_id: string | null;
-	readonly norbital_approval_id?: string | null;
-};
+export type LedgerRow = Schema.Schema.Type<typeof LedgerRowSchema>;
 
 /** `payroll` acts on settled rows only; a new request is checked against every row. */
-export type BalanceBasis = 'SETTLED' | 'PROJECTED';
-
-function visible(row: LedgerRow, basis: BalanceBasis): boolean {
-	return basis === 'PROJECTED' || row.norbital_approval_id == null;
-}
+const BalanceBasisSchema = Schema.Union([Schema.Literal('SETTLED'), Schema.Literal('PROJECTED')]);
+type BalanceBasis = Schema.Schema.Type<typeof BalanceBasisSchema>;
 
 /** The first day of the leave year a date falls in. */
 export function leaveYearStart(date: IsoDate, startMonth: number): IsoDate {
-	const month = Math.min(12, Math.max(1, Math.trunc(startMonth)));
+	const month = EffectNumber.clamp({ minimum: 1, maximum: 12 })(Math.trunc(startMonth));
 	const year = Number(date.slice(0, 4));
 	const inThisYear = Number(date.slice(5, 7)) >= month;
 	return `${inThisYear ? year : year - 1}-${String(month).padStart(2, '0')}-01`;
@@ -71,6 +72,18 @@ export function leaveYearOf(date: IsoDate, startMonth: number): number {
 	return Number(leaveYearStart(date, startMonth).slice(0, 4));
 }
 
+/** One band of the entitlement ladder on a leave code — its statutory, organisation or employee layer. */
+type LeaveEntitlementLayer = NonNullable<LeaveType['entitlement']>['layers'][number];
+type EmployeeLeaveEntitlementLayer = Extract<LeaveEntitlementLayer, { readonly level: 'EMPLOYEE' }>;
+
+/** What `resolveEntitlement` needs: the leave code, the service age and the employment's identity. */
+type ResolveEntitlementOptions = {
+	readonly leaveType: LeaveType;
+	readonly serviceMonths: number;
+	readonly employmentId: EmployeeLeaveEntitlementLayer['employment_id'];
+	readonly asOf: IsoDate;
+};
+
 /**
  * Entitlement in days for one leave code at a service age.
  *
@@ -78,12 +91,7 @@ export function leaveYearOf(date: IsoDate, startMonth: number): number {
  * a company that mis-types maternity leave as 60 days still owes 98, so compliance never depends on
  * the customer configuring correctly.
  */
-export function resolveEntitlement(options: {
-	readonly leaveType: LeaveType;
-	readonly serviceMonths: number;
-	readonly employmentId: string;
-	readonly asOf: IsoDate;
-}): number {
+export function resolveEntitlement(options: ResolveEntitlementOptions): number {
 	const entitlement = options.leaveType.entitlement;
 	if (entitlement == null) return 0;
 	const forLevel = (level: 'STATUTORY' | 'ORGANISATION' | 'EMPLOYEE'): number | null => {
@@ -104,6 +112,15 @@ export function resolveEntitlement(options: {
 	return Math.max(statutory, organisation, employee);
 }
 
+/** The accrual window: the employment's leave profile plus the two dates it is asked over. */
+type AccruedDaysOptions = Pick<
+	BalanceInput,
+	'leaveType' | 'entitlementAtMonths' | 'hireDate' | 'exitDate'
+> & {
+	readonly leaveYearStart: IsoDate;
+	readonly asOf: IsoDate;
+};
+
 /**
  * Days accrued between the leave-year start and a date.
  *
@@ -112,14 +129,7 @@ export function resolveEntitlement(options: {
  * prorated for free, which is why there is no `prorate_on_hire` flag. A partial first or last month
  * counts pro rata by calendar days.
  */
-export function accruedDays(options: {
-	readonly leaveType: LeaveType;
-	readonly entitlementAtMonths: (serviceMonths: number) => number;
-	readonly hireDate: IsoDate;
-	readonly exitDate: IsoDate | null;
-	readonly leaveYearStart: IsoDate;
-	readonly asOf: IsoDate;
-}): number {
+export function accruedDays(options: AccruedDaysOptions): number {
 	const accrual = options.leaveType.accrual;
 	if (accrual == null)
 		throw new Error(`Leave type ${options.leaveType.code} has no accrual and cannot be read.`);
@@ -161,7 +171,9 @@ export function ledgerDays(
 	basis: BalanceBasis
 ): number {
 	return rows.reduce((total, row) => {
-		if (row.leave_type_id !== leaveTypeId || !visible(row, basis)) return total;
+		if (row.leave_type_id !== leaveTypeId) return total;
+		// A projection of the balance reads every row; payroll only acts on a settled one.
+		if (basis !== 'PROJECTED' && row.approval_id != null) return total;
 		const date = dateKey(row.entry_date);
 		if (date == null || date < window.start || date > window.end) return total;
 		return total + Number(row.days);
@@ -179,7 +191,9 @@ type BalanceInput = {
 };
 
 function yearWindow(year: number, startMonth: number): { start: IsoDate; end: IsoDate } {
-	const month = String(Math.min(12, Math.max(1, Math.trunc(startMonth)))).padStart(2, '0');
+	const month = String(
+		EffectNumber.clamp({ minimum: 1, maximum: 12 })(Math.trunc(startMonth))
+	).padStart(2, '0');
 	const start = `${year}-${month}-01`;
 	const nextStart = `${year + 1}-${month}-01`;
 	const end = new Date(Date.parse(`${nextStart}T00:00:00.000Z`) - 86_400_000)
@@ -216,8 +230,8 @@ export function carriedInDays(input: BalanceInput, year: number): number {
 			asOf: previous.end
 		}) -
 		expiredDays(input, year - 1) +
-		ledgerDays(input.ledger, input.leaveType.norbital_id, previous, 'SETTLED');
-	return Math.max(0, Math.min(closing, carry.limit_days));
+		ledgerDays(input.ledger, input.leaveType.id, previous, 'SETTLED');
+	return EffectNumber.clamp({ minimum: 0, maximum: carry.limit_days })(closing);
 }
 
 /**
@@ -242,7 +256,7 @@ export function expiredDays(input: BalanceInput, year: number, asOf?: IsoDate): 
 		0,
 		ledgerDays(
 			input.ledger,
-			input.leaveType.norbital_id,
+			input.leaveType.id,
 			{ start: window.start, end: expiryDate },
 			'SETTLED'
 		)
@@ -265,21 +279,17 @@ export function leaveBalance(input: BalanceInput, asOf: IsoDate): number {
 			asOf
 		}) -
 		expiredDays(input, year, asOf) +
-		ledgerDays(
-			input.ledger,
-			input.leaveType.norbital_id,
-			{ start: window.start, end: asOf },
-			input.basis
-		)
+		ledgerDays(input.ledger, input.leaveType.id, { start: window.start, end: asOf }, input.basis)
 	);
 }
 
 /** Unpaid leave taken inside the attendance window, grouped by the component that carries it. */
-export type UnpaidLeave = {
-	readonly componentId: string;
-	readonly days: number;
-	readonly leaveRequestIds: readonly string[];
-};
+const UnpaidLeaveSchema = Schema.Struct({
+	componentId: Schema.String,
+	days: Schema.Number,
+	leaveRequestIds: Schema.Array(Schema.String)
+});
+export type UnpaidLeave = Schema.Schema.Type<typeof UnpaidLeaveSchema>;
 
 /** Every unpaid day this employment has ever taken, in order — the input to a spell. */
 export function unpaidLeaveDates(
@@ -287,17 +297,31 @@ export function unpaidLeaveDates(
 	leaveTypes: Configuration['leaveTypes']
 ): IsoDate[] {
 	const unpaidTypeIds = new Set(
-		leaveTypes.filter((type) => type.payroll_effect?.kind === 'UNPAID').map((t) => t.norbital_id)
+		leaveTypes.filter((type) => type.payroll_effect?.kind === 'UNPAID').map((t) => t.id)
 	);
 	const dates: IsoDate[] = [];
 	for (const row of ledger) {
-		if (row.kind !== 'TAKEN' || row.norbital_approval_id != null) continue;
+		if (row.kind !== 'TAKEN' || row.approval_id != null) continue;
 		if (!unpaidTypeIds.has(row.leave_type_id)) continue;
 		const date = dateKey(row.entry_date);
 		if (date != null) dates.push(date);
 	}
 	return dates.toSorted();
 }
+
+/**
+ * What `unpaidLeaveInWindow` selects against: the settled ledger, the attendance window and the
+ * month the run pays for, over the picked leave types.
+ */
+type UnpaidLeaveInWindowOptions = {
+	readonly ledger: readonly LedgerRow[];
+	readonly window: PayrollWindow['salary'];
+	readonly configuration: Pick<Configuration, 'leaveTypes'>;
+	/** The calendar month this run pays for — where an extended absence's days settle. */
+	readonly month?: PayrollWindow['salary'];
+	/** Days belonging to an extended absence, from `extendedAbsenceDays`. */
+	readonly extendedDates?: ReadonlySet<IsoDate>;
+};
 
 /**
  * The only thing payroll reads from leave.
@@ -317,23 +341,13 @@ export function unpaidLeaveDates(
  * sequence every unpaid day is deducted exactly once. That is the invariant, and it is the reason
  * this is one predicate here rather than an adjustment somewhere later.
  */
-export function unpaidLeaveInWindow(options: {
-	readonly ledger: readonly LedgerRow[];
-	readonly window: { readonly start: IsoDate; readonly end: IsoDate };
-	readonly configuration: Pick<Configuration, 'leaveTypes'>;
-	/** The calendar month this run pays for — where an extended absence's days settle. */
-	readonly month?: { readonly start: IsoDate; readonly end: IsoDate };
-	/** Days belonging to an extended absence, from `extendedAbsenceDays`. */
-	readonly extendedDates?: ReadonlySet<IsoDate>;
-}): UnpaidLeave[] {
-	const typeById = new Map(
-		options.configuration.leaveTypes.map((type) => [type.norbital_id, type])
-	);
+export function unpaidLeaveInWindow(options: UnpaidLeaveInWindowOptions): UnpaidLeave[] {
+	const typeById = new Map(options.configuration.leaveTypes.map((type) => [type.id, type]));
 	const extended = options.extendedDates ?? new Set<IsoDate>();
 	const month = options.month;
 	const byComponent = new Map<string, { days: number; requests: Set<string> }>();
 	for (const row of options.ledger) {
-		if (row.kind !== 'TAKEN' || row.norbital_approval_id != null) continue;
+		if (row.kind !== 'TAKEN' || row.approval_id != null) continue;
 		const date = dateKey(row.entry_date);
 		if (date == null) continue;
 		const settlesHere =

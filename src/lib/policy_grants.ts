@@ -77,13 +77,13 @@ import type { Policy } from '../access/policies/$types.js';
  * the grant is.**
  *
  * `hr_controller` gets a `payroll_runs` create grant *carrying an approval*, which is how "may not
- * create it" is expressed: the row is written and immediately held under `norbital_approval_id`,
+ * create it" is expressed: the row is written and immediately held under `approval_id`,
  * and it is `hr_manager` or `senior_management` who decide whether it stands. See
  * `payrollRunApprovalFromController` below.
  *
  * ## 3. Two locks, and why they are not the same column
  *
- * **Approval lock — `norbital_approval_id`.** Platform-owned. Bolt's runtime stamps it while an
+ * **Approval lock — `approval_id`.** Platform-owned. Bolt's runtime stamps it while an
  * approval request is open and clears it when the request settles. It answers exactly one question:
  * *is this write still waiting for a person to decide?* Nothing in this workspace may write it.
  *
@@ -103,7 +103,7 @@ import type { Policy } from '../access/policies/$types.js';
  *
  * They are different questions and they must not share storage:
  *
- *   - `gather.ts` filters every source query on `norbital_approval_id IS NULL` and calls that
+ *   - `gather.ts` filters every source query on `approval_id IS NULL` and calls that
  *     *live*. **That is today's conflation.** The same column is being read as liveness ("payroll
  *     may consume this") and, by `sourceLock`, as a write lock ("nobody may touch this"). Storing
  *     settlement there would mean the second build of a period could no longer see the rows the
@@ -111,7 +111,7 @@ import type { Policy } from '../access/policies/$types.js';
  *     approval decision on an unrelated edit would quietly release a settled payroll record.
  *
  *   - Settlement has to name *which* run holds the claim, so that deleting run A releases A's rows
- *     and leaves B's alone. `norbital_approval_id` names an approval request, not a run.
+ *     and leaves B's alone. `approval_id` names an approval request, not a run.
  *
  * Before this change there was no stored settlement at all: `src/lib/scheduling/lock.ts` inferred it
  * from arithmetic over `payroll_runs.attendance_from/attendance_to` where `lifecycle = 'PAID'`. That
@@ -208,16 +208,16 @@ export const NOT_AN_ADJUSTMENT = {
 /** Any row hanging off the requester's own employment. */
 export const ownEmploymentChild = {
 	$sql:
-		'"employment_id" IN (SELECT e."norbital_id" FROM "employments" e ' +
-		'JOIN "employees" p ON p."norbital_id" = e."employee_id" ' +
+		'"employment_id" IN (SELECT e."id" FROM "employments" e ' +
+		'JOIN "employees" p ON p."id" = e."employee_id" ' +
 		'WHERE lower(p."email") = lower(${requestor.email}))'
 } as const;
 
 /** The requester's own component entry, restricted to the employee-authored claim variant. */
 const ownClaim = {
 	$sql:
-		'"employment_id" IN (SELECT e."norbital_id" FROM "employments" e ' +
-		'JOIN "employees" p ON p."norbital_id" = e."employee_id" ' +
+		'"employment_id" IN (SELECT e."id" FROM "employments" e ' +
+		'JOIN "employees" p ON p."id" = e."employee_id" ' +
 		'WHERE lower(p."email") = lower(${requestor.email})) ' +
 		`AND "origin"->>'kind' = 'CLAIM'`
 } as const;
@@ -340,7 +340,7 @@ export const employeeReferenceGrants = (...actions: Action[]): readonly Grant[] 
 /**
  * Teams the approval steps route to, named by `team.name`.
  *
- * These used to be `team.norbital_id` values carried over from Core's seed verbatim — private
+ * These used to be `team.id` values carried over from Core's seed verbatim — private
  * identifiers from one database, sitting in a public template, checked by nothing and unsatisfiable
  * anywhere that seed had not run. A team is a runtime row, so its id cannot be declared; its name can.
  * `bolt_team.name` is unique and compared folded wherever it is compared, so the name is a stable
@@ -439,7 +439,7 @@ export const leaveApproval = {
 } as const satisfies Approval;
 
 /** A claim is money, so it skips the line manager and goes straight to HQ Payroll HR. */
-export const claimApproval = {
+const claimApproval = {
 	steps: [
 		{
 			key: 'hq_payroll_hr_review',
@@ -466,23 +466,12 @@ export const employeeSelfServiceGrants = (): readonly Grant[] => [
 	}
 ];
 
-/** Opening a run commits every payslip under it, so an HR Manager reconciles it first. */
-export const payrollRunApproval = {
-	steps: [
-		{
-			key: 'hr_manager_review',
-			approvers: [HR_MANAGER_TEAM, SENIOR_MANAGEMENT_TEAM],
-			description: 'An HR Manager reconciles the run before payslips become final.'
-		}
-	]
-} as const satisfies Approval;
-
 /**
  * The controller's route to a payroll run: raise it, and hand the decision upwards.
  *
  * This is what "an `hr_controller` MAY VIEW payroll and MAY NOT CREATE it" compiles to. A gated
  * create is not a refused create — `Collections.create` runs the hooks, writes the row, and *then*
- * stamps `norbital_approval_id`, so the controller gets a run to look at and nobody gets a payroll
+ * stamps `approval_id`, so the controller gets a run to look at and nobody gets a payroll
  * that has not been agreed to. The engine still builds it in `create.after`, and the figures stay
  * held behind the lock until the step is decided.
  *
@@ -492,8 +481,8 @@ export const payrollRunApproval = {
  * "approval from `hr_manager` **or** senior management" says. Two steps would mean *both*, and would
  * leave every controller-raised run waiting on a second signature the owner never asked for.
  *
- * It is a separate const from `payrollRunApproval` even though the approver lists match, because the
- * two are different flows on different grants and the derived id keeps them apart automatically.
+ * Its approver teams match the HR-raised run flow's, but the two are different flows on different
+ * grants and the derived id keeps them apart automatically.
  */
 export const payrollRunApprovalFromController = {
 	steps: [

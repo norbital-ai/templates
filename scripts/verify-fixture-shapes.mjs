@@ -50,7 +50,7 @@
  * put the defect back, confirm both detectors go red and the exit code is 1, then restore.
  *
  * ```
- * # in claimLine, move `nature` back onto an invented `componentType` sub-object
+ * # in restDayRule, rename `authority` to an invented `fixtureAuthority` field
  * node scripts/verify-fixture-shapes.mjs; echo EXIT=$?   # expect EXIT=1 and both detectors red
  * ```
  *

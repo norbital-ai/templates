@@ -12,26 +12,29 @@ import {
 	isLongFormImportHeaders,
 	isMonthGridImportHeaders
 } from '../../time_entries/import-month-grid.js';
+import { Schema } from 'effect';
 import { readWorkbookSettings } from '../../../lib/workbook-settings.js';
 
-export const ROSTER_SHEET_NAME = 'Roster';
+const ROSTER_SHEET_NAME = 'Roster';
 const LONG_FORM_COLUMNS = ['employee_number', 'work_date', 'shift_code'] as const;
 
-export interface RosterImportRow {
-	readonly employee_number: string;
-	readonly work_date: string;
-	/** A real company roster code, or the reserved import token PH. */
-	readonly shift_code: string;
-	readonly assignment_code?: string;
-	readonly note?: string;
-}
+/** `shift_code` is a real company roster code, or the reserved import token PH. */
+const rosterImportRowSchema = Schema.Struct({
+	employee_number: Schema.String,
+	work_date: Schema.String,
+	shift_code: Schema.String,
+	assignment_code: Schema.optional(Schema.String),
+	note: Schema.optional(Schema.String)
+});
+type RosterImportRow = Schema.Schema.Type<typeof rosterImportRowSchema>;
 
-export interface RosterImportPayload {
-	readonly roster_id: string;
-	readonly legal_entity?: string;
-	readonly month?: string;
-	readonly rows: readonly RosterImportRow[];
-}
+const rosterImportPayloadSchema = Schema.Struct({
+	roster_id: Schema.String,
+	legal_entity: Schema.optional(Schema.String),
+	month: Schema.optional(Schema.String),
+	rows: Schema.Array(rosterImportRowSchema)
+});
+type RosterImportPayload = Schema.Schema.Type<typeof rosterImportPayloadSchema>;
 
 function identifyRosterRow(reader: RowReader): string {
 	return identifyRowByColumns(reader, ['employee_number', 'work_date']);

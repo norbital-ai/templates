@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { Result, Schema } from 'effect';
+	import { Effect, Result, Schema } from 'effect';
 	import { getCollectionFormFieldContext } from '@norbital-ai/ui/collection-form';
 	import { useI18n } from '@norbital-ai/ui/i18n';
 	import type { TenantI18nKeys } from '$bolt/i18n-keys';
@@ -82,12 +82,9 @@
 	}
 
 	let props: RepaymentScheduleRendererProps = $props();
-	let formContext: ReturnType<typeof getCollectionFormFieldContext> | null = null;
-	try {
-		formContext = getCollectionFormFieldContext();
-	} catch {
-		formContext = null;
-	}
+	const formContext = Effect.runSync(
+		Effect.orElseSucceed(Effect.try(getCollectionFormFieldContext), () => null)
+	);
 	const liveRow = $derived(formContext?.row() ?? props.row ?? {});
 	const disabled = $derived(props.mode === 'edit' ? props.disabled : true);
 	const parsed = $derived(Schema.decodeUnknownResult(repaymentScheduleSchema)(props.value));
@@ -109,27 +106,25 @@
 			? `${parsed.success.length} instalment${parsed.success.length === 1 ? '' : 's'} · ${total.toFixed(2)}`
 			: 'Invalid schedule'
 	);
-	const agreementId = $derived(
-		typeof props.row?.norbital_id === 'string' ? props.row.norbital_id : null
-	);
+	const agreementId = $derived(typeof props.row?.id === 'string' ? props.row.id : null);
 	const consumptionQuery = $derived(
 		agreementId
 			? client.db.payslip_lines.findMany({
 					where: { repayment_agreement_id: { eq: agreementId } },
 					columns: {
-						norbital_id: true,
+						id: true,
 						repayment_sequence: true,
 						sequence: true,
 						amount: true,
-						norbital_created_at: true
+						created_at: true
 					},
 					with: {
 						payslip_line_payslip: {
-							columns: { norbital_id: true },
+							columns: { id: true },
 							with: {
 								payslip_payroll_run: {
 									columns: {
-										norbital_id: true,
+										id: true,
 										period: true,
 										pay_date: true
 									}
@@ -152,9 +147,14 @@
 			)
 		)
 	);
-	const pendingQuery = (query: { loading?: boolean; current?: unknown; error?: unknown } | null) =>
-		query == null || query.loading || (query.current === undefined && query.error == null);
-	const consumptionPending = $derived(Boolean(agreementId && pendingQuery(consumptionQuery)));
+	const consumptionPending = $derived(
+		Boolean(
+			agreementId &&
+			(consumptionQuery == null ||
+				consumptionQuery.loading ||
+				(consumptionQuery.current === undefined && consumptionQuery.error == null))
+		)
+	);
 	const consumptionError = $derived(consumptionQuery?.error ?? null);
 
 	function consumptionCell(sequence: number, dueDate: string): RepaymentConsumptionCell {
@@ -193,11 +193,14 @@
 
 	function nextDate(): string {
 		const lastDate = coerceDraftRow(draft.at(-1)).due_date || todayKey();
-		try {
-			return monthlyDueDates(lastDate, 2)[1] ?? lastDate;
-		} catch {
-			return monthlyDueDates(todayKey(), 2)[1] ?? todayKey();
-		}
+		return (
+			Effect.runSync(
+				Effect.orElseSucceed(
+					Effect.try(() => monthlyDueDates(lastDate, 2)[1]),
+					() => monthlyDueDates(todayKey(), 2)[1] ?? todayKey()
+				)
+			) ?? lastDate
+		);
 	}
 </script>
 
@@ -240,7 +243,7 @@
 				isRowDisabled={(row) => row.consumed_by.status === 'consumed'}
 				bounded={false}
 				onChange={(nextRows) =>
-					emit(nextRows.map(({ due_date, amount }) => ({ due_date, amount })) as Value)}
+					emit(nextRows.map(({ due_date, amount }) => ({ due_date, amount })))}
 			/>
 		</div>
 	</Stack>

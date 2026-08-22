@@ -2,7 +2,7 @@
  * Which source records a run consumed — the settlement lock's input side.
  *
  * A `payslip_sources` row says which attendance or leave record a payslip took into account. Its
- * source union is projected to real foreign keys, and this is the only place that decides which
+ * source is a database-enforced polymorphic reference, and this is the only place that decides which
  * measured records deserve those links.
  *
  * Component entries, pay components and repayment agreements are **not** derived here: the run knows
@@ -10,26 +10,22 @@
  * claims are read off the persisted lines in `persist.ts` rather than guessed from a date range.
  *
  * See `src/collections/payslip_sources/+model.ts` for what the lock is, and
- * `src/lib/policy_grants.ts` for why it is not `norbital_approval_id`.
+ * `src/lib/policy_grants.ts` for why it is not `approval_id`.
  */
 
 import { dateKey, type IsoDate } from './dates.js';
 import type { EmploymentBundle } from './gather.js';
+import type { WorkspaceInsert } from '$bolt/types.js';
 
-/** One database-enforced arm of `payslip_sources.source`. */
-export type SettlementClaim =
-	| { readonly kind: 'TIME_ENTRY'; readonly time_entry_id: string }
-	| { readonly kind: 'LEAVE_REQUEST'; readonly leave_request_id: string };
+/** The exact handle inferred from `payslip_sources.source`; no parallel union is maintained here. */
+export type SettlementClaim = WorkspaceInsert<'payslip_sources'>['source'];
 
-/** Deduplicate by the pair the per-payslip unique index is on, preserving the order claims were derived in. */
+/** Deduplicate by logical reference identity, preserving the order claims were derived in. */
 export function dedupeClaims(claims: readonly SettlementClaim[]): SettlementClaim[] {
 	const seen = new Set<string>();
 	const unique: SettlementClaim[] = [];
 	for (const claim of claims) {
-		const key =
-			claim.kind === 'TIME_ENTRY'
-				? `TIME_ENTRY:${claim.time_entry_id}`
-				: `LEAVE_REQUEST:${claim.leave_request_id}`;
+		const key = `${claim.kind}:${claim.id}`;
 		if (seen.has(key)) continue;
 		seen.add(key);
 		unique.push(claim);
@@ -86,11 +82,11 @@ export function claimsForBundle(bundle: EmploymentBundle): SettlementClaim[] {
 	const claims: SettlementClaim[] = [];
 	for (const entry of bundle.timeEntries) {
 		if (!within(span, entry.work_date)) continue;
-		claims.push({ kind: 'TIME_ENTRY', time_entry_id: entry.norbital_id });
+		claims.push({ kind: 'TIME_ENTRY', id: entry.id });
 	}
 	for (const movement of bundle.ledger) {
 		if (!within(span, movement.entry_date)) continue;
-		claims.push({ kind: 'LEAVE_REQUEST', leave_request_id: movement.norbital_id });
+		claims.push({ kind: 'LEAVE_REQUEST', id: movement.id });
 	}
 	return dedupeClaims(claims);
 }

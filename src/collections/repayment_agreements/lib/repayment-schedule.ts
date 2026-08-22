@@ -1,14 +1,23 @@
+import { Result } from 'effect';
 import type { RepaymentSchedule } from '../../../datatypes/repayment_schedule/+definition.js';
 
 const DATE = /^\d{4}-\d{2}-\d{2}$/;
 const MAX_INSTALMENTS = 600;
 
-function cents(value: number, label: string): number {
+/** Scaled-to-cents value, as a Result so the issue builder can collect several failures at once. */
+function cents(value: number, label: string): Result.Result<number, string> {
 	const scaled = value * 100;
 	const rounded = Math.round(scaled);
-	if (!Number.isFinite(value) || Math.abs(scaled - rounded) > 1e-7)
-		throw new Error(`${label} must use whole cents.`);
-	return rounded;
+	return !Number.isFinite(value) || Math.abs(scaled - rounded) > 1e-7
+		? Result.fail(`${label} must use whole cents.`)
+		: Result.succeed(rounded);
+}
+
+/** The throwing adapter for a distribution that requires the strict contract. */
+function centsOrThrow(value: number, label: string): number {
+	const parsed = cents(value, label);
+	if (Result.isFailure(parsed)) throw new Error(parsed.failure);
+	return parsed.success;
 }
 
 function date(value: unknown, label: string): string {
@@ -43,7 +52,7 @@ export function distributeRepaymentSchedule(
 	principal: number,
 	dueDates: readonly string[]
 ): RepaymentSchedule {
-	const principalCents = cents(principal, 'Loan principal');
+	const principalCents = centsOrThrow(principal, 'Loan principal');
 	if (principalCents <= 0) throw new Error('Loan principal must be positive.');
 	if (dueDates.length < 1 || dueDates.length > MAX_INSTALMENTS)
 		throw new Error(`Repayment count must be between 1 and ${MAX_INSTALMENTS}.`);
@@ -56,12 +65,6 @@ export function distributeRepaymentSchedule(
 	}));
 }
 
-export function repaymentScheduleTotal(schedule: readonly { amount: number }[]): number {
-	return (
-		schedule.reduce((total, entry) => total + cents(entry.amount, 'Repayment amount'), 0) / 100
-	);
-}
-
 /**
  * The same cross-field validation is used by the browser form and the collection hooks. Returning
  * messages rather than throwing lets the form attach every issue before the server repeats it.
@@ -72,6 +75,15 @@ function calendarDay(value: unknown): string | null {
 	return key;
 }
 
+/**
+ * The three cross-field checks a complete repayment schedule must pass, as an issue list.
+ *
+ * The validation is `repaymentScheduleIssues`, which is cross-field — instalments must total the
+ * principal to the cent, dates must strictly increase, the last one must fall inside
+ * `effective_range` — and reports every failure at once so the form can attach them all. A schema
+ * would check the shape and still leave those three to hand-written code, so the issue builder
+ * follows the validator rather than replacing it.
+ */
 export function repaymentScheduleIssues(input: {
 	readonly principal: unknown;
 	readonly effectiveRange: unknown;
@@ -80,11 +92,12 @@ export function repaymentScheduleIssues(input: {
 	const issues: string[] = [];
 	const principal = Number(input.principal);
 	let principalCents: number | null = null;
-	try {
-		principalCents = cents(principal, 'Loan principal');
+	const principalParsed = cents(principal, 'Loan principal');
+	if (Result.isFailure(principalParsed)) {
+		issues.push(principalParsed.failure);
+	} else {
+		principalCents = principalParsed.success;
 		if (principalCents <= 0) issues.push('Loan principal must be positive.');
-	} catch (cause) {
-		issues.push(cause instanceof Error ? cause.message : String(cause));
 	}
 
 	const range =
@@ -127,12 +140,12 @@ export function repaymentScheduleIssues(input: {
 				issues.push('Repayment dates must be unique and strictly increasing.');
 			previous = dueDate;
 		}
-		try {
-			const amountCents = cents(Number(Reflect.get(raw, 'amount')), `Repayment ${index + 1}`);
-			if (amountCents <= 0) issues.push(`Repayment ${index + 1} must be positive.`);
-			totalCents += amountCents;
-		} catch (cause) {
-			issues.push(cause instanceof Error ? cause.message : String(cause));
+		const amountParsed = cents(Number(Reflect.get(raw, 'amount')), `Repayment ${index + 1}`);
+		if (Result.isFailure(amountParsed)) {
+			issues.push(amountParsed.failure);
+		} else {
+			if (amountParsed.success <= 0) issues.push(`Repayment ${index + 1} must be positive.`);
+			totalCents += amountParsed.success;
 		}
 	}
 
@@ -150,27 +163,4 @@ export function repaymentScheduleIssues(input: {
 			`The final repayment ${previous} is later than the agreement period ending ${rangeEnd}.`
 		);
 	return [...new Set(issues)];
-}
-
-/**
- * Throw the collected issues, and narrow on the way through.
- *
- * The validation is `repaymentScheduleIssues`, which is cross-field — instalments must total the
- * principal to the cent, dates must strictly increase, the last one must fall inside effective_range
- * — and reports every failure at once so the form can attach them all. A schema would check the
- * shape and still leave those three to hand-written code, so the predicate follows the validator
- * rather than replacing it.
- */
-export function assertRepaymentSchedule(input: {
-	readonly principal: unknown;
-	readonly effectiveRange: unknown;
-	readonly schedule: unknown;
-	// stupidity:allow R5b -- repaymentScheduleIssues above is the validator; this only narrows.
-}): asserts input is {
-	readonly principal: number;
-	readonly effectiveRange: { start?: string; end?: string | null };
-	readonly schedule: RepaymentSchedule;
-} {
-	const issues = repaymentScheduleIssues(input);
-	if (issues.length > 0) throw new Error(issues.join(' '));
 }

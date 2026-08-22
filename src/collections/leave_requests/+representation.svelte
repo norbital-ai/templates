@@ -42,7 +42,7 @@
 	const settlementQuery = $derived(
 		record
 			? client.db.payslip_sources.findFirst({
-					where: { leave_request_id: { eq: record.norbital_id } },
+					where: { source: { eq: { kind: 'LEAVE_REQUEST', id: record.id } } },
 					columns: { period: true }
 				})
 			: null
@@ -54,7 +54,7 @@
 		record
 			? sourceLock({
 					existing: true,
-					approvalId: record.norbital_approval_id,
+					approvalId: record.approval_id,
 					dates: [],
 					settledBy,
 					datePassed: 'IS_NOT_A_LOCK'

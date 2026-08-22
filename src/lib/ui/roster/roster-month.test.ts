@@ -43,7 +43,7 @@ const DAY_SHIFT = {
 function month(overrides = {}) {
 	return buildRosterMonth({
 		month: '2026-08',
-		employments: [{ norbital_id: EMPLOYMENT, effective_range: { start: '2026-01-01', end: null } }],
+		employments: [{ id: EMPLOYMENT, effective_range: { start: '2026-01-01', end: null } }],
 		rosterEntries: [],
 		timeEntries: [],
 		leaveRequests: [],
@@ -71,7 +71,7 @@ test('a closed day reports worked minutes net of the unpaid break', () => {
 	const day = month({
 		timeEntries: [
 			{
-				norbital_id: 'entry-1',
+				id: 'entry-1',
 				employment_id: EMPLOYMENT,
 				work_date: '2026-08-04',
 				break_minutes: 60,
@@ -93,7 +93,7 @@ test('an open punch reports no worked minutes at all', () => {
 	const day = month({
 		timeEntries: [
 			{
-				norbital_id: 'entry-2',
+				id: 'entry-2',
 				employment_id: EMPLOYMENT,
 				work_date: '2026-08-20',
 				break_minutes: 0,
@@ -111,7 +111,7 @@ test('Date-valued interval ends are levelled the same way string ones are', () =
 	const day = month({
 		timeEntries: [
 			{
-				norbital_id: 'entry-3',
+				id: 'entry-3',
 				employment_id: EMPLOYMENT,
 				work_date: '2026-08-05',
 				break_minutes: 30,
@@ -132,7 +132,7 @@ test('a missing break column reads as no break, not as a missing entry', () => {
 	const day = month({
 		timeEntries: [
 			{
-				norbital_id: 'entry-4',
+				id: 'entry-4',
 				employment_id: EMPLOYMENT,
 				work_date: '2026-08-06',
 				worked_intervals: [

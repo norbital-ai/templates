@@ -120,9 +120,7 @@
 	const disabled = $derived(props.mode === 'edit' ? props.disabled : true);
 	const parsed = $derived(Schema.decodeUnknownResult(settlementPolicySchema)(props.value));
 	const current = $derived(Result.isSuccess(parsed) ? parsed.success : null);
-	const companyId = $derived(
-		typeof props.row?.norbital_id === 'string' ? props.row.norbital_id : null
-	);
+	const companyId = $derived(typeof props.row?.id === 'string' ? props.row.id : null);
 	const componentsQuery = $derived(
 		companyId == null
 			? null
@@ -136,18 +134,20 @@
 		(componentsQuery?.current ?? [])
 			.filter((component) => component.definition?.source === 'ENTRY')
 			.map((component) => ({
-				value: component.norbital_id,
+				value: component.id,
 				label: component.code || '—',
 				search_term: `${component.code ?? ''}`
 			}))
 	);
-	const contributionsQuery = client.db.statutory_contributions.findMany({
-		orderBy: { code: 'asc' },
-		limit: 500
-	});
+	const contributionsQuery = $derived(
+		client.db.statutory_contributions.findMany({
+			orderBy: { code: 'asc' },
+			limit: 500
+		})
+	);
 	const contributionOptions = $derived(
 		(contributionsQuery.current ?? []).map((contribution) => ({
-			value: contribution.norbital_id,
+			value: contribution.id,
 			label: [contribution.code, contribution.name].filter((part) => part).join(' · ') || '—',
 			search_term: `${contribution.code ?? ''} ${contribution.name ?? ''}`
 		}))

@@ -21,6 +21,7 @@ import test from 'node:test';
 import { Effect } from 'effect';
 
 import { claimsForBundle, dedupeClaims } from './lib/claims.ts';
+import { withReadLog } from './lib/api.ts';
 import { clearRunResults, persistPayslips } from './lib/persist.ts';
 import payrollRunHooks from './+hooks.ts';
 import relationships from '../+relationship.ts';
@@ -35,7 +36,7 @@ const MARCH = { start: '2026-02-21', end: '2026-03-20' };
 
 /** Enough of a gathered bundle for the claim rule, and nothing that would add noise. */
 const bundle = (overrides = {}) => ({
-	employment: { norbital_id: 'emp-1', employee_number: 'NHPMY0023' },
+	employment: { id: 'emp-1', employee_number: 'NHPMY0023' },
 	attendance: MARCH,
 	wageDays: MARCH,
 	deferral: null,
@@ -51,16 +52,16 @@ test('a payslip claims the attendance it priced and not the months it only count
 	const claims = claimsForBundle(
 		bundle({
 			timeEntries: [
-				{ norbital_id: 'te-in', work_date: '2026-03-02' },
-				{ norbital_id: 'te-edge-start', work_date: '2026-02-21' },
-				{ norbital_id: 'te-edge-end', work_date: '2026-03-20' },
-				{ norbital_id: 'te-before', work_date: '2026-02-20' },
-				{ norbital_id: 'te-after', work_date: '2026-03-21' }
+				{ id: 'te-in', work_date: '2026-03-02' },
+				{ id: 'te-edge-start', work_date: '2026-02-21' },
+				{ id: 'te-edge-end', work_date: '2026-03-20' },
+				{ id: 'te-before', work_date: '2026-02-20' },
+				{ id: 'te-after', work_date: '2026-03-21' }
 			]
 		})
 	);
 	assert.deepEqual(
-		claims.map((claim) => ('time_entry_id' in claim ? claim.time_entry_id : null)),
+		claims.map((claim) => (claim.kind === 'TIME_ENTRY' ? claim.id : null)),
 		['te-in', 'te-edge-start', 'te-edge-end']
 	);
 	for (const claim of claims) assert.equal(claim.kind, 'TIME_ENTRY');
@@ -73,10 +74,10 @@ test('a leaver’s wage window widens the claim, because it widened the measurem
 		bundle({
 			attendance: { start: '2026-02-21', end: '2026-03-10' },
 			wageDays: { start: '2026-02-21', end: '2026-03-20' },
-			ledger: [{ norbital_id: 'lr-1', entry_date: '2026-03-15' }]
+			ledger: [{ id: 'lr-1', entry_date: '2026-03-15' }]
 		})
 	);
-	assert.deepEqual(claims, [{ kind: 'LEAVE_REQUEST', leave_request_id: 'lr-1' }]);
+	assert.deepEqual(claims, [{ kind: 'LEAVE_REQUEST', id: 'lr-1' }]);
 });
 
 test('a deferred joining period claims nothing, because it consumed nothing', () => {
@@ -86,7 +87,7 @@ test('a deferred joining period claims nothing, because it consumed nothing', ()
 		claimsForBundle(
 			bundle({
 				deferral: { period: '2026-02' },
-				timeEntries: [{ norbital_id: 'te-1', work_date: '2026-03-02' }]
+				timeEntries: [{ id: 'te-1', work_date: '2026-03-02' }]
 			})
 		),
 		[]
@@ -98,13 +99,13 @@ test('the same record is claimed once, whatever derived it twice', () => {
 	// the whole run's persist would fail on a duplicate that means nothing.
 	assert.deepEqual(
 		dedupeClaims([
-			{ kind: 'TIME_ENTRY', time_entry_id: 'te-1' },
-			{ kind: 'TIME_ENTRY', time_entry_id: 'te-1' },
-			{ kind: 'LEAVE_REQUEST', leave_request_id: 'te-1' }
+			{ kind: 'TIME_ENTRY', id: 'te-1' },
+			{ kind: 'TIME_ENTRY', id: 'te-1' },
+			{ kind: 'LEAVE_REQUEST', id: 'te-1' }
 		]),
 		[
-			{ kind: 'TIME_ENTRY', time_entry_id: 'te-1' },
-			{ kind: 'LEAVE_REQUEST', leave_request_id: 'te-1' }
+			{ kind: 'TIME_ENTRY', id: 'te-1' },
+			{ kind: 'LEAVE_REQUEST', id: 'te-1' }
 		]
 	);
 });
@@ -164,7 +165,7 @@ test('a PAID payroll run refuses deletion', () => {
 	assert.throws(
 		() =>
 			payrollRunHooks.delete.perRecord.before.handler({
-				existing: { norbital_id: 'run-1', period: '2026-03', lifecycle: 'PAID' }
+				existing: { id: 'run-1', period: '2026-03', lifecycle: 'PAID' }
 			}),
 		(error) => {
 			assert.match(error.message, /2026-03/);
@@ -181,7 +182,7 @@ test('a PAID payroll run refuses deletion', () => {
 test('a DRAFT payroll run may be deleted, which is the only release the lock has', () => {
 	assert.doesNotThrow(() =>
 		payrollRunHooks.delete.perRecord.before.handler({
-			existing: { norbital_id: 'run-1', period: '2026-03', lifecycle: 'DRAFT' }
+			existing: { id: 'run-1', period: '2026-03', lifecycle: 'DRAFT' }
 		})
 	);
 });
@@ -204,7 +205,7 @@ function fakeApi(state, deleted) {
 	const remove = (collection) => ({
 		delete: (identifiers) => {
 			deleted.push([collection, [...identifiers]]);
-			state[collection] = state[collection].filter((row) => !identifiers.includes(row.norbital_id));
+			state[collection] = state[collection].filter((row) => !identifiers.includes(row.id));
 			return Effect.succeed(undefined);
 		}
 	});
@@ -221,13 +222,13 @@ function fakeApi(state, deleted) {
 test('rebuilding a draft releases its settlement locks with its payslips', () => {
 	const state = {
 		payslips: [
-			{ norbital_id: 'p-1', payroll_run_id: 'run-1' },
-			{ norbital_id: 'p-other', payroll_run_id: 'run-2' }
+			{ id: 'p-1', payroll_run_id: 'run-1' },
+			{ id: 'p-other', payroll_run_id: 'run-2' }
 		]
 	};
 	const deleted = [];
 
-	Effect.runSync(clearRunResults(fakeApi(state, deleted), 'run-1'));
+	Effect.runSync(clearRunResults(withReadLog(fakeApi(state, deleted)), 'run-1'));
 
 	// The payslips are all that is deleted. Their source rows go with them by the database's own
 	// cascade — `payslip_sources.payslip_id` is `ON DELETE CASCADE` — so a rebuild cannot re-claim
@@ -235,7 +236,7 @@ test('rebuilding a draft releases its settlement locks with its payslips', () =>
 	assert.deepEqual(deleted, [['payslips', ['p-1']]]);
 	// Another run's payslips are untouched. This is why the lock is keyed to a run and not a boolean.
 	assert.deepEqual(
-		state.payslips.map((row) => row.norbital_id),
+		state.payslips.map((row) => row.id),
 		['p-other']
 	);
 });
@@ -303,9 +304,7 @@ test('a run takes a settlement lock over every record it consumed', async () => 
 			},
 			payslips: {
 				mutate: (rows) =>
-					Effect.succeed(
-						rows.map((row, index) => ({ ...row, norbital_id: `payslip-${index + 1}` }))
-					)
+					Effect.succeed(rows.map((row, index) => ({ ...row, id: `payslip-${index + 1}` })))
 			},
 			payslip_lines: { mutate: () => Effect.succeed([]) },
 			payslip_sources: {
@@ -363,8 +362,8 @@ test('a run takes a settlement lock over every record it consumed', async () => 
 					},
 					charges: [],
 					claims: [
-						{ kind: 'TIME_ENTRY', time_entry_id: 'te-1' },
-						{ kind: 'LEAVE_REQUEST', leave_request_id: 'lv-1' }
+						{ kind: 'TIME_ENTRY', id: 'te-1' },
+						{ kind: 'LEAVE_REQUEST', id: 'lv-1' }
 					]
 				}
 			]
@@ -375,11 +374,7 @@ test('a run takes a settlement lock over every record it consumed', async () => 
 	// Component entries and loan instalments are already direct generated foreign keys on the lines.
 	assert.equal(result.claimCount, 2);
 	assert.deepEqual(
-		written.map((row) => [
-			row.payslip_id,
-			row.source.kind,
-			row.source.kind === 'TIME_ENTRY' ? row.source.time_entry_id : row.source.leave_request_id
-		]),
+		written.map((row) => [row.payslip_id, row.source.kind, row.source.id]),
 		[
 			['payslip-1', 'TIME_ENTRY', 'te-1'],
 			['payslip-1', 'LEAVE_REQUEST', 'lv-1']

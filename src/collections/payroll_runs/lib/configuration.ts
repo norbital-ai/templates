@@ -12,33 +12,35 @@
  * different hash is a rebuild against different law (decisions E32 / L29 / L30).
  */
 
+import { refuse } from '@norbital-ai/bolt/authoring';
 import { Effect } from 'effect';
 import { sha256Json } from '@norbital-ai/std/reckon';
 import type { WorkspaceRow } from '../$types.js';
-import { assertComplete, PAGE_LIMIT, type PayrollReadApi } from './api.js';
+import { PAGE_LIMIT, type PayrollReadApi, type ReadLog } from './api.js';
 import { bandAgeFloor, bandCeiling } from './bands.js';
 import { monthBounds, monthKey, type IsoDate } from './dates.js';
 import { coversDate, effectiveOn, live, overlapsRange } from './effective.js';
+import type { PayrollWindow } from './period.js';
 
-export type Company = WorkspaceRow<'companies'>;
+type Company = WorkspaceRow<'companies'>;
 export type Jurisdiction = WorkspaceRow<'jurisdictions'>;
 export type PayComponent = WorkspaceRow<'pay_components'>;
 type StatutoryRegime = NonNullable<Jurisdiction['regime']>;
 export type OvertimeRule = StatutoryRegime['overtime_rules'][number];
-export type OvertimeLimit = StatutoryRegime['overtime_limits'][number];
+type OvertimeLimit = StatutoryRegime['overtime_limits'][number];
 export type OvertimeCoverageRule = StatutoryRegime['overtime_coverage'];
 /**
  * `NonNullable` because the member is an optional key on the snapshot: a jurisdiction seeded before
  * it was restored carries no such property at all, which is the statement "this snapshot declares
  * no rest break rule" and not a missing value.
  */
-export type RestBreakRule = NonNullable<StatutoryRegime['rest_break_rules']>[number];
+type RestBreakRule = NonNullable<StatutoryRegime['rest_break_rules']>[number];
 export type ShiftDefinition = WorkspaceRow<'shift_definitions'>;
 export type LeaveType = WorkspaceRow<'leave_types'>;
 export type ContributionRate = WorkspaceRow<'contribution_rates'>;
-export type Treatment = NonNullable<PayComponent['policy']>['statutory_treatments'][number];
-export type StatutoryContribution = WorkspaceRow<'statutory_contributions'>;
-export type OvertimeTreatment = NonNullable<StatutoryContribution['overtime_treatments']>[number];
+type Treatment = NonNullable<PayComponent['policy']>['statutory_treatments'][number];
+type StatutoryContribution = WorkspaceRow<'statutory_contributions'>;
+type OvertimeTreatment = NonNullable<StatutoryContribution['overtime_treatments']>[number];
 
 /** One statutory scheme with the bands that were effective when the run was picked. */
 export type ContributionConfig = {
@@ -88,9 +90,23 @@ export type Configuration = {
 	readonly hash: string;
 };
 
+/** What `pickConfiguration` needs from the caller, apart from the window it reads. */
+type PickConfigurationOptions = {
+	readonly api: PayrollReadApi & { readonly reads: ReadLog };
+	readonly companyId: string;
+	/** The run's own window — period, salary range and attendance range, one fact. */
+	readonly window: PayrollWindow;
+};
+
 function treatmentKey(payComponentId: string, contributionId: string): string {
 	return `${payComponentId}:${contributionId}`;
 }
+
+/** The two schedule columns on a statutory contribution that each carry an overtime position set. */
+type OvertimeScheduleColumn = keyof Pick<
+	StatutoryContribution,
+	'overtime_treatments' | 'overtime_excess_treatments'
+>;
 
 /**
  * The one overtime position a scheme's schedule states for a date.
@@ -98,18 +114,21 @@ function treatmentKey(payComponentId: string, contributionId: string): string {
  * Two entries covering the same day is a seeding fault, not a preference: nothing here could pick
  * between them, and picking the first would make the answer depend on array order.
  */
-function effectiveOvertimeTreatment(options: {
-	readonly schedule: readonly OvertimeTreatment[] | null;
-	readonly code: string;
-	readonly column: string;
+type EffectiveOvertimeTreatmentOptions = {
+	readonly row: Pick<StatutoryContribution, 'code' | OvertimeScheduleColumn>;
+	readonly column: OvertimeScheduleColumn;
 	readonly asOf: IsoDate;
-}): OvertimeTreatment | undefined {
-	const covering = (options.schedule ?? []).filter((entry) =>
+};
+
+function effectiveOvertimeTreatment(
+	options: EffectiveOvertimeTreatmentOptions
+): OvertimeTreatment | undefined {
+	const covering = (options.row[options.column] ?? []).filter((entry) =>
 		coversDate(entry.effective_range, options.asOf)
 	);
 	if (covering.length > 1)
-		throw new Error(
-			`${options.code}.${options.column} states ${covering.length} overtime positions effective on ` +
+		refuse(
+			`${options.row.code}.${options.column} states ${covering.length} overtime positions effective on ` +
 				`${options.asOf}. A scheme charges overtime one way on any given day.`
 		);
 	return covering[0];
@@ -142,65 +161,66 @@ function bandOrder(left: ContributionRate, right: ContributionRate): number {
  *
  * Everything is resolved as of the period end, except shifts and holidays, which are read across
  * the whole attendance window because a shift may legitimately be revised inside it.
+ *
+ * The window comes in whole, as `resolveWindow` produces it — the period, the salary range and the
+ * attendance range are one fact in `period.ts`, and splitting them back apart here would be a
+ * second vocabulary for it.
  */
-export function pickConfiguration(options: {
-	readonly api: PayrollReadApi;
-	readonly companyId: string;
-	readonly period: string;
-	readonly salary: { readonly start: IsoDate; readonly end: IsoDate };
-	readonly attendance: { readonly start: IsoDate; readonly end: IsoDate };
-}): Effect.Effect<Configuration, never, never> {
+export function pickConfiguration(
+	options: PickConfigurationOptions
+): Effect.Effect<Configuration, never, never> {
 	return Effect.gen(function* () {
 		const { query } = options.api.db;
-		const asOf = options.salary.end;
+		const asOf = options.window.salary.end;
 		const rawWindowStart =
-			options.attendance.start < options.salary.start
-				? options.attendance.start
-				: options.salary.start;
+			options.window.attendance.start < options.window.salary.start
+				? options.window.attendance.start
+				: options.window.salary.start;
 		const rawWindowEnd =
-			options.attendance.end > options.salary.end ? options.attendance.end : options.salary.end;
+			options.window.attendance.end > options.window.salary.end
+				? options.window.attendance.end
+				: options.window.salary.end;
 		// OT is paid on the attendance cutoff, but statutory limits and substitute holidays are
 		// determined by calendar month. Pick every shift touching the full calendar months involved.
 		const windowStart = monthBounds(monthKey(rawWindowStart)).start;
 		const windowEnd = monthBounds(monthKey(rawWindowEnd)).end;
-		const approved = { norbital_approval_id: { isNull: true } } as const;
+		const approved = { approval_id: { isNull: true } } as const;
 
 		const companies = yield* query.companies.findMany({
-			where: { norbital_id: { eq: options.companyId }, ...approved },
+			where: { id: { eq: options.companyId }, ...approved },
 			limit: 100
 		});
 		const company = effectiveOn(companies, asOf);
-		if (!company) throw new Error(`No company ${options.companyId} is effective on ${asOf}.`);
+		if (!company) refuse(`No company ${options.companyId} is effective on ${asOf}.`);
 
 		const jurisdictions = yield* query.jurisdictions.findMany({
-			where: { norbital_id: { eq: company.jurisdiction_id }, ...approved },
+			where: { id: { eq: company.jurisdiction_id }, ...approved },
 			limit: 100
 		});
 		const jurisdiction = effectiveOn(jurisdictions, asOf);
-		if (!jurisdiction)
-			throw new Error(`Company ${company.name} has no jurisdiction effective on ${asOf}.`);
+		if (!jurisdiction) refuse(`Company ${company.name} has no jurisdiction effective on ${asOf}.`);
 
 		const [contributionRows, payComponentRows, shiftRows, holidayRows, leaveTypeRows] =
 			yield* Effect.all(
 				[
 					query.statutory_contributions.findMany({
-						where: { jurisdiction_id: { eq: jurisdiction.norbital_id }, ...approved },
+						where: { jurisdiction_id: { eq: jurisdiction.id }, ...approved },
 						limit: PAGE_LIMIT
 					}),
 					query.pay_components.findMany({
-						where: { company_id: { eq: company.norbital_id }, ...approved },
+						where: { company_id: { eq: company.id }, ...approved },
 						limit: PAGE_LIMIT
 					}),
 					query.shift_definitions.findMany({
-						where: { company_id: { eq: company.norbital_id }, ...approved },
+						where: { company_id: { eq: company.id }, ...approved },
 						limit: PAGE_LIMIT
 					}),
 					query.company_holidays.findMany({
-						where: { company_id: { eq: company.norbital_id }, ...approved },
+						where: { company_id: { eq: company.id }, ...approved },
 						limit: PAGE_LIMIT
 					}),
 					query.leave_types.findMany({
-						where: { company_id: { eq: company.norbital_id }, ...approved },
+						where: { company_id: { eq: company.id }, ...approved },
 						limit: PAGE_LIMIT
 					})
 				],
@@ -209,24 +229,24 @@ export function pickConfiguration(options: {
 		// Every collection pages to the same ceiling and is checked: a configuration read that came
 		// back truncated would drop law — a missing holiday, a missing band — and still produce a
 		// payslip, which is the one outcome worse than producing none.
-		assertComplete(contributionRows, 'statutory contributions');
-		assertComplete(payComponentRows, 'pay components');
-		assertComplete(shiftRows, 'shift definitions');
-		assertComplete(holidayRows, 'company holidays');
-		assertComplete(leaveTypeRows, 'leave types');
+		options.api.reads.assertComplete(contributionRows, 'statutory contributions');
+		options.api.reads.assertComplete(payComponentRows, 'pay components');
+		options.api.reads.assertComplete(shiftRows, 'shift definitions');
+		options.api.reads.assertComplete(holidayRows, 'company holidays');
+		options.api.reads.assertComplete(leaveTypeRows, 'leave types');
 
 		const contributions = live(contributionRows)
 			.filter((row) => coversDate(row.effective_range, asOf))
 			.toSorted((left, right) => Number(left.sequence) - Number(right.sequence));
 
-		const contributionIds = contributions.map((row) => row.norbital_id);
+		const contributionIds = contributions.map((row) => row.id);
 		const rateRows = contributionIds.length
 			? yield* query.contribution_rates.findMany({
 					where: { statutory_contribution_id: { in: contributionIds }, ...approved },
 					limit: PAGE_LIMIT
 				})
 			: [];
-		assertComplete(rateRows, 'contribution rates');
+		options.api.reads.assertComplete(rateRows, 'contribution rates');
 
 		const ratesByContribution = new Map<string, ContributionRate[]>();
 		for (const rate of live(rateRows)) {
@@ -247,9 +267,9 @@ export function pickConfiguration(options: {
 					!coversDate(treatment.effective_range, asOf)
 				)
 					continue;
-				const key = treatmentKey(component.norbital_id, treatment.statutory_contribution_id);
+				const key = treatmentKey(component.id, treatment.statutory_contribution_id);
 				if (treatments.has(key))
-					throw new Error(
+					refuse(
 						`Pay component ${component.code} has overlapping statutory treatments for ${treatment.statutory_contribution_id}.`
 					);
 				treatments.set(key, treatment);
@@ -262,23 +282,21 @@ export function pickConfiguration(options: {
 
 		const regime = jurisdiction.regime;
 		if (regime == null)
-			throw new Error(`Jurisdiction ${jurisdiction.code} has no statutory regime snapshot.`);
+			refuse(`Jurisdiction ${jurisdiction.code} has no statutory regime snapshot.`);
 
 		const configuration = {
 			company,
 			jurisdiction,
 			contributions: contributions.map((row) => ({
 				row,
-				rates: (ratesByContribution.get(row.norbital_id) ?? []).toSorted(bandOrder),
+				rates: (ratesByContribution.get(row.id) ?? []).toSorted(bandOrder),
 				overtimeTreatment: effectiveOvertimeTreatment({
-					schedule: row.overtime_treatments,
-					code: row.code,
+					row,
 					column: 'overtime_treatments',
 					asOf
 				}),
 				overtimeExcessTreatment: effectiveOvertimeTreatment({
-					schedule: row.overtime_excess_treatments,
-					code: row.code,
+					row,
 					column: 'overtime_excess_treatments',
 					asOf
 				})
@@ -289,14 +307,17 @@ export function pickConfiguration(options: {
 			overtimeLimits: regime.overtime_limits,
 			restBreakRules: regime.rest_break_rules ?? [],
 			overtimeCoverageRule: regime.overtime_coverage,
-			shiftById: new Map(shifts.map((row) => [row.norbital_id, row])),
+			shiftById: new Map(shifts.map((row) => [row.id, row])),
 			holidays: new Map(
 				live(holidayRows).map((row) => [String(row.date).slice(0, 10), row] as const)
 			),
 			leaveTypes: live(leaveTypeRows).filter((row) => coversDate(row.effective_range, asOf))
 		} satisfies Omit<Configuration, 'hash'>;
 
-		return { ...configuration, hash: hashConfiguration(configuration, options.period) };
+		return {
+			...configuration,
+			hash: sha256Json(configurationSnapshot(configuration, options.window.period))
+		};
 	});
 }
 
@@ -311,8 +332,8 @@ export function configurationSnapshot(
 ): Record<string, unknown> {
 	return {
 		period,
-		company: configuration.company.norbital_id,
-		jurisdiction: configuration.jurisdiction.norbital_id,
+		company: configuration.company.id,
+		jurisdiction: configuration.jurisdiction.id,
 		proration: configuration.jurisdiction.proration,
 		ordinary_rate: [
 			configuration.jurisdiction.ordinary_rate_basis,
@@ -373,8 +394,4 @@ export function configurationSnapshot(
 			.map((row) => [row.code, row.variant, row.effective_range])
 			.toSorted((left, right) => String(left[0]).localeCompare(String(right[0])))
 	};
-}
-
-function hashConfiguration(configuration: Omit<Configuration, 'hash'>, period: string): string {
-	return sha256Json(configurationSnapshot(configuration, period));
 }

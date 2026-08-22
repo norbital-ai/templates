@@ -38,6 +38,7 @@
  * and the arrears component itself come from `companies.settlement_policy` (decision L45).
  */
 
+import { Schema } from 'effect';
 import {
 	addDays,
 	dateKey,
@@ -49,29 +50,40 @@ import {
 } from './dates.js';
 import { coversDate } from './effective.js';
 import { attendanceWindow, type PayrollWindow } from './period.js';
+import type { WorkspaceRow } from '../$types.js';
+/** The company-stored settlement policy value, owned by its datatype definition. */
+import { settlementPolicyValueSchema } from '../../../datatypes/settlement_policy/+definition.js';
 
-export type SettlementPolicy = {
-	readonly lateJoinerComponentId: string | null;
-	readonly settlesInFinalPeriod: boolean;
-	readonly fullFinalPeriodWages: boolean;
-	readonly extendedUnpaidLeave: {
-		readonly minimumCalendarDays: number;
-		readonly bridgedGapDays: number;
-		readonly populationContributionId: string | null;
-	} | null;
-	readonly absenceProration: readonly {
-		readonly payFrequency: string;
-		readonly basis:
-			| { readonly by: 'CALENDAR_DAYS' }
-			| { readonly by: 'WORKING_DAYS' }
-			| { readonly by: 'FIXED_DAYS'; readonly days: number };
-	}[];
-	readonly overtimeWindows: readonly {
-		readonly payFrequency: string;
-		readonly startDay: number;
-		readonly endDay: number;
-	}[];
-};
+const prorationBasisSchema = Schema.Union([
+	Schema.Struct({ by: Schema.Literal('CALENDAR_DAYS') }),
+	Schema.Struct({ by: Schema.Literal('WORKING_DAYS') }),
+	Schema.Struct({ by: Schema.Literal('FIXED_DAYS'), days: Schema.Number })
+]);
+const absenceProrationRuleSchema = Schema.Struct({
+	payFrequency: Schema.String,
+	basis: prorationBasisSchema
+});
+const overtimeWindowSchema = Schema.Struct({
+	payFrequency: Schema.String,
+	startDay: Schema.Number,
+	endDay: Schema.Number
+});
+const extendedUnpaidLeaveSchema = Schema.Struct({
+	minimumCalendarDays: Schema.Number,
+	bridgedGapDays: Schema.Number,
+	populationContributionId: Schema.NullOr(Schema.String)
+});
+
+/** What the engine describes as "the company's settlement policy", mapped off the stored value. */
+const SettlementPolicySchema = Schema.Struct({
+	lateJoinerComponentId: Schema.NullOr(Schema.String),
+	settlesInFinalPeriod: Schema.Boolean,
+	fullFinalPeriodWages: Schema.Boolean,
+	extendedUnpaidLeave: Schema.NullOr(extendedUnpaidLeaveSchema),
+	absenceProration: Schema.Array(absenceProrationRuleSchema),
+	overtimeWindows: Schema.Array(overtimeWindowSchema)
+});
+export type SettlementPolicy = Schema.Schema.Type<typeof SettlementPolicySchema>;
 
 /** What a company with no stated policy does — the plain pay calendar, and nothing else. */
 export const PLAIN_CALENDAR: SettlementPolicy = {
@@ -83,32 +95,8 @@ export const PLAIN_CALENDAR: SettlementPolicy = {
 	overtimeWindows: []
 };
 
-type StoredPolicy = {
-	readonly late_joiner_arrears: { readonly defer_to_component_id: string } | null;
-	readonly final_period: string;
-	readonly final_period_wages: string;
-	readonly extended_unpaid_leave: {
-		readonly minimum_calendar_days: number;
-		readonly bridged_gap_days: number;
-		readonly population_contribution_id: string | null;
-	} | null;
-	readonly absence_proration?:
-		| readonly {
-				readonly pay_frequency: string;
-				readonly basis:
-					| { readonly by: 'CALENDAR_DAYS' }
-					| { readonly by: 'WORKING_DAYS' }
-					| { readonly by: 'FIXED_DAYS'; readonly days: number };
-		  }[]
-		| null;
-	readonly overtime_windows:
-		| readonly {
-				readonly pay_frequency: string;
-				readonly start_day: number;
-				readonly end_day: number;
-		  }[]
-		| null;
-} | null;
+/** The company-stored settlement policy value, owned by its datatype definition. */
+type StoredPolicy = Schema.Schema.Type<typeof settlementPolicyValueSchema> | null;
 
 /** Read the stored variant into the shape the engine reasons with. */
 export function readSettlementPolicy(company: {
@@ -148,12 +136,16 @@ export function readSettlementPolicy(company: {
  * employee can have OT/NS on 1st–15th while their NPL still follows the company-wide 21st–20th
  * window.
  */
-export function overtimeAttendanceWindow(options: {
+type OvertimeAttendanceWindowOptions = {
 	readonly policy: SettlementPolicy;
 	readonly payFrequency: string;
-	readonly salary: { readonly start: IsoDate; readonly end: IsoDate };
-	readonly fallback: { readonly start: IsoDate; readonly end: IsoDate };
-}): { readonly start: IsoDate; readonly end: IsoDate } {
+	readonly salary: PayrollWindow['salary'];
+	readonly fallback: PayrollWindow['salary'];
+};
+
+export function overtimeAttendanceWindow(
+	options: OvertimeAttendanceWindowOptions
+): PayrollWindow['salary'] {
 	const override = options.policy.overtimeWindows.find(
 		(candidate) => candidate.payFrequency === options.payFrequency
 	);
@@ -171,29 +163,33 @@ export function overtimeAttendanceWindow(options: {
 	};
 }
 
-export type EmploymentDates = {
-	readonly hire: IsoDate;
-	readonly exit: IsoDate | null;
-};
+const EmploymentDatesSchema = Schema.Struct({
+	hire: Schema.String,
+	exit: Schema.NullOr(Schema.String)
+});
+type EmploymentDates = Schema.Schema.Type<typeof EmploymentDatesSchema>;
 
-export type EmploymentSettlement = {
+const dayRangeSchema = Schema.Struct({ start: Schema.String, end: Schema.String });
+const EmploymentSettlementSchema = Schema.Struct({
 	/** Whether this run produces a payslip for the employment at all. */
-	readonly runs: boolean;
+	runs: Schema.Boolean,
 	/** The days of the pay period the employment covers, or `null` when it covers none. */
-	readonly employedDays: { readonly start: IsoDate; readonly end: IsoDate } | null;
+	employedDays: Schema.NullOr(dayRangeSchema),
 	/** The days recurring wages cover; may extend past a leaver's exit by company policy. */
-	readonly wageDays: { readonly start: IsoDate; readonly end: IsoDate } | null;
+	wageDays: Schema.NullOr(dayRangeSchema),
 	/** The attendance days this run reads for this employment — the tail of a leaver included. */
-	readonly attendance: { readonly start: IsoDate; readonly end: IsoDate };
+	attendance: dayRangeSchema,
 	/**
 	 * Set when the employment's own period is being skipped. `runs` is false whenever this is set,
 	 * and nothing at all is measured — the period is not half-paid, it is not paid.
 	 */
-	readonly deferral: {
-		readonly coversPeriod: string;
-		readonly paidInPeriod: string;
-		readonly days: { readonly start: IsoDate; readonly end: IsoDate };
-	} | null;
+	deferral: Schema.NullOr(
+		Schema.Struct({
+			coversPeriod: Schema.String,
+			paidInPeriod: Schema.String,
+			days: dayRangeSchema
+		})
+	),
 	/**
 	 * Set when this run is paying a period an earlier one skipped.
 	 *
@@ -203,13 +199,16 @@ export type EmploymentSettlement = {
 	 * January days, and a system that answered "nothing was carried forward, so nothing is owed"
 	 * would underpay in silence. Every input needed is on this run's own bundle.
 	 */
-	readonly arrearsFor: {
-		readonly period: string;
-		readonly salary: { readonly start: IsoDate; readonly end: IsoDate };
-		readonly attendance: { readonly start: IsoDate; readonly end: IsoDate };
-		readonly days: { readonly start: IsoDate; readonly end: IsoDate };
-	} | null;
-};
+	arrearsFor: Schema.NullOr(
+		Schema.Struct({
+			period: Schema.String,
+			salary: dayRangeSchema,
+			attendance: dayRangeSchema,
+			days: dayRangeSchema
+		})
+	)
+});
+export type EmploymentSettlement = Schema.Schema.Type<typeof EmploymentSettlementSchema>;
 
 /** The days of `period` an employment covers, or `null` when it covers none. */
 function employedWithin(
@@ -235,11 +234,6 @@ function startsAfterWindow(
 	attendanceEnd: IsoDate
 ): boolean {
 	return hire >= period.start && hire <= period.end && hire > attendanceEnd;
-}
-
-/** The attendance window of the period before `period`, given the same cutoff. */
-function previousAttendanceEnd(window: PayrollWindow): IsoDate {
-	return addDays(window.attendance.start, -1);
 }
 
 /**
@@ -297,7 +291,7 @@ export function resolveEmploymentSettlement(options: {
 	if (policy.lateJoinerComponentId != null) {
 		const previousPeriod = shiftPeriod(window.period, -1);
 		const previousBounds = monthBounds(previousPeriod);
-		const previousEnd = previousAttendanceEnd(window);
+		const previousEnd = addDays(window.attendance.start, -1);
 		if (startsAfterWindow(dates.hire, previousBounds, previousEnd)) {
 			const days = employedWithin(dates, previousBounds);
 			if (days != null)
@@ -410,16 +404,16 @@ export function extendedAbsenceDays(options: {
 }
 
 /** Narrow a stored hire/exit pair, failing loudly on a row that has no start. */
-export function employmentDates(employment: {
-	readonly employee_number?: string | null;
-	readonly norbital_id?: string;
-	readonly hire_date: string | Date | null;
-	readonly exit_date: string | Date | null;
-}): EmploymentDates {
+export function employmentDates(
+	employment: Pick<
+		WorkspaceRow<'employments'>,
+		'employee_number' | 'id' | 'hire_date' | 'exit_date'
+	>
+): EmploymentDates {
 	const hire = dateKey(employment.hire_date);
 	if (hire == null)
 		throw new Error(
-			`Employment ${employment.employee_number ?? employment.norbital_id ?? '(unknown)'} has no hire date.`
+			`Employment ${employment.employee_number ?? employment.id ?? '(unknown)'} has no hire date.`
 		);
 	return { hire, exit: dateKey(employment.exit_date) };
 }

@@ -11,44 +11,39 @@
 	import { useI18n } from '@norbital-ai/ui/i18n';
 	import type { TenantI18nKeys } from '$bolt/i18n-keys';
 	import { Result, Schema } from 'effect';
-	import type { RepresentationProps } from './$types.js';
+	import type { RepresentationProps, WorkspaceRow } from './$types.js';
 	import { CollectionForm } from '@norbital-ai/ui/collection-form';
 	import { CollectionTable } from '@norbital-ai/ui/collection-table';
 	import { Column, Cover, Grid, Inline, Stack } from '@norbital-ai/ui/layout';
 	import { Tabs, type TabConfig } from '@norbital-ai/ui/tabs';
 	import { renderSnippet } from '@norbital-ai/ui/utils';
 	import { workPatternSchema, type WorkPattern } from '../../datatypes/work_pattern/+definition.js';
+	import { readRange, StoredRangeSchema, type StoredRange } from '../payroll_runs/lib/effective.js';
 	import {
 		formatEffectiveRange,
 		formatStatutoryFactStatus
 	} from '../../lib/ui/display-formatters.js';
 	import { todayKey } from '../../lib/ui/calendar.js';
 
-	type EmploymentTerm = {
-		readonly employment_id: string;
-		readonly effective_range: unknown;
-		readonly work_pattern: unknown;
-	};
+	type EmploymentTerm = Pick<
+		WorkspaceRow<'employment_terms'>,
+		'employment_id' | 'effective_range' | 'work_pattern'
+	>;
 
-	type EmploymentSchedule =
-		| {
-				readonly state: 'current' | 'next';
-				readonly effectiveRange: unknown;
-				readonly summary: string;
-		  }
-		| { readonly state: 'missing' };
+	const employmentScheduleSchema = Schema.Union([
+		Schema.Struct({
+			state: Schema.Literals('current', 'next'),
+			effectiveRange: StoredRangeSchema,
+			summary: Schema.String
+		}),
+		Schema.Struct({ state: Schema.Literals('missing') })
+	]);
+	type EmploymentSchedule = Schema.Schema.Type<typeof employmentScheduleSchema>;
 
-	type Range = { readonly start: string; readonly end: string | null };
+	/** The work-pattern decoder, built once — it is stateless, and a fresh one per term does the same work. */
+	const decodeWorkPattern = Schema.decodeUnknownResult(workPatternSchema);
 
-	function rangeOf(value: unknown): Range | null {
-		if (value == null || typeof value !== 'object') return null;
-		const start = Reflect.get(value, 'start');
-		const end = Reflect.get(value, 'end');
-		if (typeof start !== 'string' || start.length === 0) return null;
-		return { start, end: typeof end === 'string' && end.length > 0 ? end : null };
-	}
-
-	function isEffectiveOn(range: Range, date: string): boolean {
+	function isEffectiveOn(range: StoredRange, date: string): boolean {
 		return (
 			range.start.slice(0, 10) <= date && (range.end == null || range.end.slice(0, 10) >= date)
 		);
@@ -78,8 +73,8 @@
 		date: string
 	): EmploymentSchedule {
 		const candidates = terms.flatMap((term) => {
-			const range = rangeOf(term.effective_range);
-			const parsed = Schema.decodeUnknownResult(workPatternSchema)(term.work_pattern);
+			const range = readRange(term.effective_range);
+			const parsed = decodeWorkPattern(term.work_pattern);
 			return range == null || !Result.isSuccess(parsed) ? [] : [{ range, pattern: parsed.success }];
 		});
 		const current = candidates.find((candidate) => isEffectiveOn(candidate.range, date));
@@ -108,20 +103,20 @@
 	let activeProfileTab = $state('person');
 	const today = todayKey();
 
-	const approved = { norbital_approval_id: { isNull: true } } as const;
+	const approved = { approval_id: { isNull: true } } as const;
 
 	const employmentsQuery = $derived(
 		record == null
 			? null
 			: client.db.employments.findMany({
-					where: { ...approved, employee_id: { eq: record.norbital_id } },
+					where: { ...approved, employee_id: { eq: record.id } },
 					orderBy: { hire_date: 'desc' },
 					limit: 100
 				})
 	);
 	const employments = $derived(employmentsQuery?.current ?? []);
 	const employmentLabelsById = $derived(
-		new Map(employments.map((employment) => [employment.norbital_id, employment.employee_number]))
+		new Map(employments.map((employment) => [employment.id, employment.employee_number]))
 	);
 	// Terms are read only while the Employments tab is open. One employee-scoped query feeds every
 	// row, so opening a profile does not mount a table or lookup per employment.
@@ -130,8 +125,8 @@
 			? null
 			: client.db.employment_terms.findMany({
 					where: {
-						norbital_approval_id: { isNull: true },
-						term_employment: { employee_id: { eq: record.norbital_id } }
+						approval_id: { isNull: true },
+						term_employment: { employee_id: { eq: record.id } }
 					},
 					limit: 500
 				})
@@ -147,18 +142,20 @@
 		return terms;
 	});
 	// One scoped query and a map per relation column, rather than a label lookup per row.
-	const companiesQuery = client.db.companies.findMany({ where: approved, limit: 500 });
+	const companiesQuery = $derived(client.db.companies.findMany({ where: approved, limit: 500 }));
 	const companyLabelsById = $derived(
-		new Map((companiesQuery.current ?? []).map((company) => [company.norbital_id, company.name]))
+		new Map((companiesQuery.current ?? []).map((company) => [company.id, company.name]))
 	);
-	const contributionsQuery = client.db.statutory_contributions.findMany({
-		where: approved,
-		limit: 500
-	});
+	const contributionsQuery = $derived(
+		client.db.statutory_contributions.findMany({
+			where: approved,
+			limit: 500
+		})
+	);
 	const contributionLabelsById = $derived(
 		new Map(
 			(contributionsQuery.current ?? []).map((contribution) => [
-				contribution.norbital_id,
+				contribution.id,
 				`${contribution.code} · ${contribution.name}`
 			])
 		)
@@ -200,7 +197,7 @@
 			title={t('component.employments')}
 			description={t('component.employments_description')}
 			query={{
-				where: { employee_id: { eq: record.norbital_id } },
+				where: { employee_id: { eq: record.id } },
 				orderBy: { hire_date: 'desc' }
 			}}
 		>
@@ -227,15 +224,8 @@
 	{/if}
 {/snippet}
 
-{#snippet employmentCell({
-	employment
-}: {
-	employment: { norbital_id: string; employee_number: unknown };
-})}
-	{@const schedule = employmentScheduleOn(
-		termsByEmployment.get(employment.norbital_id) ?? [],
-		today
-	)}
+{#snippet employmentCell({ employment }: { employment: { id: string; employee_number: unknown } })}
+	{@const schedule = employmentScheduleOn(termsByEmployment.get(employment.id) ?? [], today)}
 	<Stack gap="none" class="min-w-0 py-0.5">
 		<span class="truncate font-medium"
 			>{employment.employee_number == null ? '—' : String(employment.employee_number)}</span
@@ -270,9 +260,9 @@
 		query={{
 			where:
 				record == null
-					? { norbital_id: { in: [] } }
-					: { statutory_fact_employment: { employee_id: { eq: record.norbital_id } } },
-			orderBy: { norbital_created_at: 'desc' }
+					? { id: { in: [] } }
+					: { statutory_fact_employment: { employee_id: { eq: record.id } } },
+			orderBy: { created_at: 'desc' }
 		}}
 	>
 		{#snippet columns({ Column: TableColumn })}

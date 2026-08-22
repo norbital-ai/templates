@@ -21,14 +21,14 @@
 	 * its rows are about (`identity`) and what they say (`body`). Both snippets are required, so
 	 * neither is an escape hatch: they are where the three shapes are genuinely different.
 	 */
-	export interface PolicyLayer {
+	interface PolicyLayer {
 		readonly authority: string;
 		/** Both bounds are stored instants. Open-ended ranges are written as a far-future `end`. */
 		readonly effective_range: { readonly start: string; readonly end: string };
 	}
 
 	/** One row of the list, as handed to the `identity` and `body` snippets. */
-	export interface PolicyLayerRow<T extends PolicyLayer> {
+	interface PolicyLayerRow<T extends PolicyLayer> {
 		readonly layer: T;
 		readonly disabled: boolean;
 		/** Replace this row with an edited copy of itself. */
@@ -36,14 +36,14 @@
 	}
 
 	/** One entry of the add control: the arm an operator picks, and the row it starts from. */
-	export interface PolicyLayerAddition<T extends PolicyLayer> {
+	interface PolicyLayerAddition<T extends PolicyLayer> {
 		readonly value: string;
 		readonly label: string;
 		readonly description?: string;
 		create(): T;
 	}
 
-	export interface EffectiveLayerListProps<T extends PolicyLayer> {
+	interface EffectiveLayerListProps<T extends PolicyLayer> {
 		readonly layers: readonly T[];
 		readonly disabled: boolean;
 		/** Shown in place of the list while it holds no rows. */
@@ -133,7 +133,7 @@
 	 * will not narrow back to `T`, which is all the assertion is standing in for.
 	 */
 	function patch(index: number, layer: T, changes: Partial<PolicyLayer>): void {
-		// stupidity:allow R3c -- `changes` only names fields PolicyLayer declares; the arm is unchanged.
+		// repository-health:allow R3c -- `changes` only names fields PolicyLayer declares; the arm is unchanged.
 		replaceAt(index, { ...layer, ...changes } as T);
 	}
 

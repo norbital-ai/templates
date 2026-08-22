@@ -23,24 +23,26 @@
  * ────────────────────────────────────────────────────────────────────────────────────────────────
  */
 
+import { Schema } from 'effect';
 import { statutoryNaming, statutoryOutputIds, type StatutoryRole } from './vocabulary.js';
 
-export type ReportLine = {
-	readonly payComponentCode: string;
-	readonly payComponentName: string;
-	readonly nature: string;
-	readonly calculationSource: string;
-	readonly amount: number;
-	readonly quantity: number | null;
+const ReportLineSchema = Schema.Struct({
+	payComponentCode: Schema.String,
+	payComponentName: Schema.String,
+	nature: Schema.String,
+	calculationSource: Schema.String,
+	amount: Schema.Number,
+	quantity: Schema.NullOr(Schema.Number),
 	/** An audited company expense whose cash never passes through the employee. */
-	readonly isCompanyDirect: boolean;
+	isCompanyDirect: Schema.Boolean,
 	/** A capped employee reimbursement, excluding unrelated non-wage payments such as tax refunds. */
-	readonly isClaim: boolean;
-	readonly isLoanInstalment: boolean;
+	isClaim: Schema.Boolean,
+	isLoanInstalment: Schema.Boolean,
 	/** Derived overtime lines carry the day type of the statutory band that priced them. */
-	readonly overtimeDayType: 'ORDINARY' | 'REST_DAY' | 'PUBLIC_HOLIDAY' | null;
-	readonly isOvertimeExcess: boolean;
-};
+	overtimeDayType: Schema.NullOr(Schema.Literals(['ORDINARY', 'REST_DAY', 'PUBLIC_HOLIDAY'])),
+	isOvertimeExcess: Schema.Boolean
+});
+export type ReportLine = Schema.Schema.Type<typeof ReportLineSchema>;
 
 export type ReportPayslip = {
 	readonly employmentId: string;
@@ -67,11 +69,12 @@ export type ReportPayslip = {
 	readonly contributions: ReadonlyMap<string, { base: number; employee: number; employer: number }>;
 };
 
-export type OutputSection = {
-	readonly name: string;
-	readonly unit: 'MONEY' | 'HOURS';
-	readonly outputIds: readonly string[];
-};
+const OutputSectionSchema = Schema.Struct({
+	name: Schema.String,
+	unit: Schema.Literals(['MONEY', 'HOURS']),
+	outputIds: Schema.Array(Schema.String)
+});
+type OutputSection = Schema.Schema.Type<typeof OutputSectionSchema>;
 
 export const VENDOR_WORKBOOK_SECTIONS: readonly OutputSection[] = [
 	{
@@ -223,7 +226,7 @@ const SECTION_LAYOUT: readonly {
 ];
 
 /** The layout with its statutory roles resolved to every column the vocabulary can name. */
-export const OUTPUT_SECTIONS: readonly OutputSection[] = SECTION_LAYOUT.map((section) => ({
+const OUTPUT_SECTIONS: readonly OutputSection[] = SECTION_LAYOUT.map((section) => ({
 	name: section.name,
 	unit: section.unit,
 	outputIds: [...statutoryOutputIds(section.statutoryRoles ?? []), ...(section.outputIds ?? [])]
@@ -395,7 +398,7 @@ function statutoryOutputs(payslip: ReportPayslip): Record<string, number> {
  * would otherwise put them in. Counting them by day type overstated the multiplied buckets by
  * exactly the excess hours, which is the tally the customer reconciles against.
  */
-export function workbookRow(payslip: ReportPayslip): Record<string, number> {
+function workbookRow(payslip: ReportPayslip): Record<string, number> {
 	const overtimePay = sumLines(
 		payslip,
 		(line) => line.calculationSource === 'OVERTIME' && !line.isOvertimeExcess
@@ -487,15 +490,4 @@ export function outputGroups(rows: readonly Record<string, number>[]): OutputSec
 	return unranked.length === 0
 		? groups
 		: [...groups, { name: OTHER_SECTION_NAME, unit: 'MONEY', outputIds: unranked }];
-}
-
-/** Output ids in section order, unranked ids appended alphabetically. */
-export function orderedOutputIds(rows: readonly Record<string, number>[]): string[] {
-	return outputGroups(rows).flatMap((section) => [...section.outputIds]);
-}
-
-export function sectionOf(outputId: string): string | null {
-	for (const section of OUTPUT_SECTIONS)
-		if (section.outputIds.includes(outputId)) return section.name;
-	return null;
 }

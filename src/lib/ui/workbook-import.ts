@@ -16,6 +16,7 @@
  * ────────────────────────────────────────────────────────────────────────────────────────────────
  */
 
+import { Effect } from 'effect';
 import ExcelJSBrowser from 'exceljs/dist/exceljs.bare.min.js';
 import { importCollectionRecords } from '@norbital-ai/bolt/client';
 import { toast } from 'svelte-sonner';
@@ -36,11 +37,11 @@ const FAILURE_TOAST_MS = 20_000;
  * The input is never attached to the page. A hidden control in the layout would be one more thing
  * that can be left behind by an unmounted table; this one lives exactly as long as the question.
  */
-export async function pickWorkbookFile(t: Translator): Promise<File | null> {
+function pickWorkbookFile(t: Translator): Effect.Effect<File | null, Error> {
 	if (typeof document === 'undefined') {
-		throw new Error(t('component.workbook_browser_only'));
+		return Effect.fail(new Error(t('component.workbook_browser_only')));
 	}
-	return new Promise<File | null>((resolve) => {
+	return Effect.callback((resume) => {
 		const input = document.createElement('input');
 		input.type = 'file';
 		input.accept = ACCEPTED_FILE_TYPES;
@@ -48,7 +49,7 @@ export async function pickWorkbookFile(t: Translator): Promise<File | null> {
 		const finish = (file: File | null): void => {
 			if (settled) return;
 			settled = true;
-			resolve(file);
+			resume(Effect.succeed(file));
 		};
 		input.addEventListener('change', () => finish(input.files?.[0] ?? null), { once: true });
 		// Dismissing the dialog fires `cancel`; without it a cancelled run would hang on this promise
@@ -65,20 +66,29 @@ export async function pickWorkbookFile(t: Translator): Promise<File | null> {
  * reading costs no new dependency. A CSV has one sheet and no name of its own, so it takes the
  * file's — `requireSheet` accepts a single-sheet file under any name.
  */
-export async function readWorkbookGrids(file: File, t: Translator): Promise<WorkbookGrids> {
+function readWorkbookGrids(file: File, t: Translator): Effect.Effect<WorkbookGrids, unknown> {
 	if (file.name.toLowerCase().endsWith('.csv')) {
-		return new Map([[file.name, csvGrid(await file.text())]]);
+		return Effect.promise(() => file.text()).pipe(
+			Effect.map((text) => new Map([[file.name, csvGrid(text)]]))
+		);
 	}
-	const workbook = new ExcelJSBrowser.Workbook();
-	try {
-		await workbook.xlsx.load(await file.arrayBuffer());
-	} catch (cause) {
-		throw new WorkbookImportError(t('component.workbook_not_spreadsheet', { file: file.name }), [
-			t('component.workbook_save_as'),
-			cause instanceof Error ? cause.message : String(cause)
-		]);
-	}
-	return workbookGrids(workbook);
+	return Effect.gen(function* () {
+		const workbook = new ExcelJSBrowser.Workbook();
+		const refusal = (cause: unknown): WorkbookImportError =>
+			new WorkbookImportError(t('component.workbook_not_spreadsheet', { file: file.name }), [
+				t('component.workbook_save_as'),
+				cause instanceof Error ? cause.message : String(cause)
+			]);
+		const buffer = yield* Effect.tryPromise({
+			try: () => file.arrayBuffer(),
+			catch: refusal
+		});
+		yield* Effect.tryPromise({
+			try: () => workbook.xlsx.load(buffer),
+			catch: refusal
+		});
+		return workbookGrids(workbook);
+	});
 }
 
 /**
@@ -99,7 +109,7 @@ function reportImportFailure(fallbackHeadline: string, error: unknown, t: Transl
 	});
 }
 
-export interface WorkbookImportOptions {
+interface WorkbookImportOptions {
 	readonly collectionName: string;
 	/** Names the thing being imported in the toasts: "roster rows", "time entries". */
 	readonly recordLabel: string;
@@ -121,41 +131,57 @@ export interface WorkbookImportOptions {
  * and toasts `error.message`, which for these refusals is a headline and a bulleted list of rows
  * collapsed into a single line — so this handles its own and hands the caller a quiet return.
  */
-export async function runWorkbookImport(
-	options: WorkbookImportOptions,
-	t: Translator
-): Promise<void> {
-	const file = await pickWorkbookFile(t);
-	if (file == null) return;
-	try {
-		const payload = { ...options.buildPayload(await readWorkbookGrids(file, t)) };
-		/**
-		 * The whole file is one record, not one record per row.
-		 *
-		 * `collections.import` declares `{ records: [{ collection, id, values }] }`, and `values` is
-		 * the document the collection's import pipeline declares as its `input` — header fields and
-		 * rows together. Splitting the file across `records` would leave the header fields the
-		 * pipeline validates against (`roster_id`, `month`, `legal_entity`, `timezone`) with nowhere
-		 * to go, and each fragment would be checked against the company's records on its own.
-		 *
-		 * The id is minted here because the command requires one, not because it is used: a
-		 * pipeline-backed collection gets the ids of its writes from the rows the pipeline returns,
-		 * and this one is never stored.
-		 */
-		const imported = await importCollectionRecords({
-			records: [{ collection: options.collectionName, id: crypto.randomUUID(), values: payload }]
-		});
-		toast.success(
-			t('component.workbook_imported', {
-				// The pipeline's own row count. One posted file becomes as many records as the pipeline
-				// makes of it — a month grid is one document and a few hundred rows — so the number of
-				// things posted says nothing about the number of things imported.
-				count: imported,
-				label: options.recordLabel,
-				file: file.name
-			})
-		);
-	} catch (error) {
-		reportImportFailure(t('component.workbook_import_failed', { file: file.name }), error, t);
-	}
+export function runWorkbookImport(options: WorkbookImportOptions, t: Translator): void {
+	void Effect.runPromise(
+		Effect.gen(function* () {
+			const file = yield* pickWorkbookFile(t);
+			if (file == null) return;
+			yield* Effect.catch(
+				Effect.gen(function* () {
+					const grids = yield* readWorkbookGrids(file, t);
+					const payload = { ...options.buildPayload(grids) };
+					/**
+					 * The whole file is one record, not one record per row.
+					 *
+					 * `collections.import` declares `{ records: [{ collection, id, values }] }`, and
+					 * `values` is the document the collection's import pipeline declares as its `input`
+					 * — header fields and rows together. Splitting the file across `records` would leave
+					 * the header fields the pipeline validates against (`roster_id`, `month`,
+					 * `legal_entity`, `timezone`) with nowhere to go, and each fragment would be checked
+					 * against the company's records on its own.
+					 *
+					 * The id is minted here because the command requires one, not because it is used: a
+					 * pipeline-backed collection gets the ids of its writes from the rows the pipeline
+					 * returns, and this one is never stored.
+					 */
+					const imported = yield* Effect.promise(() =>
+						importCollectionRecords({
+							records: [
+								{
+									collection: options.collectionName,
+									id: crypto.randomUUID(),
+									values: payload
+								}
+							]
+						})
+					);
+					toast.success(
+						t('component.workbook_imported', {
+							count: imported,
+							label: options.recordLabel,
+							file: file.name
+						})
+					);
+				}),
+				(error) =>
+					Effect.sync(() =>
+						reportImportFailure(
+							t('component.workbook_import_failed', { file: file.name }),
+							error,
+							t
+						)
+					)
+			);
+		})
+	);
 }

@@ -1,3 +1,6 @@
+import { Schema } from 'effect';
+import type { StoredRange } from '../collections/payroll_runs/lib/effective.js';
+
 /**
  * Effective-range helpers shared by every effective-dated configuration collection.
  *
@@ -6,17 +9,23 @@
  * constraint and is checked here, in `create.before` / `update.before` hooks.
  */
 
-export type EffectiveRange = {
-	readonly start: string;
-	/** `null` means "open ended" — treated as +infinity. */
-	readonly end: string | null;
-};
-
 /** A row of any effective-dated collection, as far as the overlap check is concerned. */
-export type EffectiveDatedRow = {
-	readonly norbital_id: string;
-	readonly effective_range?: unknown;
-};
+const effectiveDatedRowSchema = Schema.Struct({
+	id: Schema.String,
+	effective_range: Schema.optional(Schema.Unknown)
+});
+type EffectiveDatedRow = Schema.Schema.Type<typeof effectiveDatedRowSchema>;
+
+/** The inputs the overlap check needs, as one shape so the two call sites cannot disagree. */
+const overlapCheckSchema = Schema.Struct({
+	candidate: Schema.Unknown,
+	existing: Schema.Array(effectiveDatedRowSchema),
+	/** Human-readable identity key, used in the error message. */
+	identity: Schema.String,
+	/** The row being updated, which must not conflict with itself. */
+	excludeId: Schema.optional(Schema.NullOr(Schema.String))
+});
+type OverlapCheck = Schema.Schema.Type<typeof overlapCheckSchema>;
 
 function instant(value: string, what: string): number {
 	const milliseconds = Date.parse(value);
@@ -27,7 +36,7 @@ function instant(value: string, what: string): number {
 }
 
 /** Validate and normalise a raw `effective_range` value. */
-export function parseEffectiveRange(value: unknown, what = 'effective_range'): EffectiveRange {
+function parseEffectiveRange(value: unknown, what = 'effective_range'): StoredRange {
 	if (value == null || typeof value !== 'object') {
 		throw new Error(`${what} is required.`);
 	}
@@ -50,7 +59,7 @@ export function parseEffectiveRange(value: unknown, what = 'effective_range'): E
 }
 
 /** `[aStart, aEnd)` and `[bStart, bEnd)` overlap iff `aStart < bEnd && bStart < aEnd`. */
-export function rangesOverlap(a: EffectiveRange, b: EffectiveRange): boolean {
+function rangesOverlap(a: StoredRange, b: StoredRange): boolean {
 	const aStart = instant(a.start, 'effective_range.start');
 	const bStart = instant(b.start, 'effective_range.start');
 	const aEnd = a.end === null ? Number.POSITIVE_INFINITY : instant(a.end, 'effective_range.end');
@@ -59,37 +68,15 @@ export function rangesOverlap(a: EffectiveRange, b: EffectiveRange): boolean {
 }
 
 /**
- * Half-open numeric band overlap, used for the second dimension of the two-dimensional
- * exclusions (wage bands, overtime bands). A `null` upper bound is the terminal band.
- */
-export function numericRangesOverlap(
-	aFrom: number,
-	aTo: number | null,
-	bFrom: number,
-	bTo: number | null
-): boolean {
-	const aEnd = aTo === null ? Number.POSITIVE_INFINITY : aTo;
-	const bEnd = bTo === null ? Number.POSITIVE_INFINITY : bTo;
-	return aFrom < bEnd && bFrom < aEnd;
-}
-
-/**
  * Throw when the candidate range overlaps any of `existing`.
  *
  * `existing` must already be narrowed to the rows sharing the candidate's identity key —
  * scalar parts via the database query, variant/JSONB parts by filtering in TypeScript.
  */
-export function assertNoOverlap(options: {
-	readonly candidate: unknown;
-	readonly existing: readonly EffectiveDatedRow[];
-	/** Human-readable identity key, used in the error message. */
-	readonly identity: string;
-	/** The row being updated, which must not conflict with itself. */
-	readonly excludeId?: string | null;
-}): void {
+export function assertNoOverlap(options: OverlapCheck): void {
 	const candidate = parseEffectiveRange(options.candidate, `${options.identity}: effective_range`);
 	for (const row of options.existing) {
-		if (options.excludeId != null && row.norbital_id === options.excludeId) continue;
+		if (options.excludeId != null && row.id === options.excludeId) continue;
 		const other = parseEffectiveRange(row.effective_range);
 		if (rangesOverlap(candidate, other)) {
 			throw new Error(

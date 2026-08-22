@@ -16,7 +16,7 @@
  * Which is why the delete refusal below is not merely tidiness about history: it is what makes a
  * paid period's attendance, entries and leave permanently immutable. See
  * `src/collections/payslip_sources/+model.ts`, and `src/lib/policy_grants.ts` for why this lock
- * is not `norbital_approval_id`.
+ * is not `approval_id`.
  *
  * Creating a run resolves its window and its governing configuration first, because
  * `configuration_hash`, `pay_date`, `attendance_from` and `attendance_to` are what make a payslip
@@ -84,7 +84,7 @@ export function buildPayrollRun(
 			refuse(`Payroll ${input.period} is paid. A paid run is never re-run — correct it instead.`);
 		const result = yield* runEngine({
 			api,
-			runId: run.norbital_id,
+			runId: run.id,
 			companyId: input.companyId,
 			period: input.period
 		});
@@ -181,13 +181,11 @@ export default {
 				 * strictly better than a silent partial build nobody is told about.
 				 */
 				handler: ({ record, api }) =>
-					Effect.gen(function* () {
-						yield* runEngine({
-							api,
-							runId: record.norbital_id,
-							companyId: record.company_id,
-							period: record.period
-						});
+					runEngine({
+						api,
+						runId: record.id,
+						companyId: record.company_id,
+						period: record.period
 					})
 			}
 		}
@@ -241,7 +239,7 @@ export default {
 						if (record.lifecycle !== 'DRAFT') return;
 						yield* runEngine({
 							api,
-							runId: record.norbital_id,
+							runId: record.id,
 							companyId: record.company_id,
 							period: record.period
 						});

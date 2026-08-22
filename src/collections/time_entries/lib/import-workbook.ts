@@ -23,47 +23,28 @@ import {
 	isLongFormImportHeaders,
 	isMonthGridImportHeaders
 } from '../import-month-grid.js';
+import { Schema } from 'effect';
 import { readWorkbookSettings, SETTINGS_SHEET_NAME } from '../../../lib/workbook-settings.js';
 
-export const TIME_ENTRY_SHEET_NAME = 'Time entries';
-export { SETTINGS_SHEET_NAME };
+const TIME_ENTRY_SHEET_NAME = 'Time entries';
 const LONG_FORM_COLUMNS = ['employee_number', 'work_date'] as const;
 
-export interface TimeEntryImportRow {
-	readonly employee_number: string;
-	readonly work_date: string;
-	readonly clock_in?: string;
-	readonly clock_out?: string;
-	readonly break_minutes?: number;
-}
+const timeEntryImportRowSchema = Schema.Struct({
+	employee_number: Schema.String,
+	work_date: Schema.String,
+	clock_in: Schema.optional(Schema.String),
+	clock_out: Schema.optional(Schema.String),
+	break_minutes: Schema.optional(Schema.Number)
+});
+type TimeEntryImportRow = Schema.Schema.Type<typeof timeEntryImportRowSchema>;
 
-export interface TimeEntryImportPayload {
-	readonly timezone: string;
-	readonly legal_entity?: string;
-	readonly month?: string;
-	readonly rows: readonly TimeEntryImportRow[];
-}
-
-/**
- * The timezone the file's clock times are read in.
- *
- * There is no fallback to the browser's own zone. A punch imported into the wrong zone is off by
- * hours and still looks like a plausible day's work, so a file that does not say which zone it means
- * is refused rather than guessed at.
- */
-export function timeEntryImportTimezone(grids: WorkbookGrids): string {
-	const timezone = readWorkbookSettings(grids).timezone;
-	if (timezone == null || timezone === '') {
-		throw new WorkbookImportError(
-			'This file does not say which timezone its clock times are in, so they cannot be imported.',
-			[
-				`Add a "${SETTINGS_SHEET_NAME}" sheet with a "timezone" row, as the import template has.`,
-				'Use an IANA name that identifies the place — Asia/Kuala_Lumpur, not a fixed UTC offset.'
-			]
-		);
-	}
-	return timezone;
-}
+const timeEntryImportPayloadSchema = Schema.Struct({
+	timezone: Schema.String,
+	legal_entity: Schema.optional(Schema.String),
+	month: Schema.optional(Schema.String),
+	rows: Schema.Array(timeEntryImportRowSchema)
+});
+type TimeEntryImportPayload = Schema.Schema.Type<typeof timeEntryImportPayloadSchema>;
 
 function identifyTimeEntryRow(reader: RowReader): string {
 	return identifyRowByColumns(reader, ['employee_number', 'work_date']);
@@ -87,10 +68,24 @@ function longFormTimeRows(grids: WorkbookGrids): readonly TimeEntryImportRow[] {
 	}));
 }
 
-/** Builds the import payload from the `Time entries` sheet and the file's declared timezone. */
+/** Builds the import payload from the `Time entries` sheet and the file's declared timezone.
+ *
+ * There is no fallback to the browser's own zone. A punch imported into the wrong zone is off by
+ * hours and still looks like a plausible day's work, so a file that does not say which zone it means
+ * is refused rather than guessed at.
+ */
 export function timeEntryImportPayload(grids: WorkbookGrids): TimeEntryImportPayload {
 	const settings = readWorkbookSettings(grids);
-	const timezone = timeEntryImportTimezone(grids);
+	const timezone = settings.timezone;
+	if (timezone == null || timezone === '') {
+		throw new WorkbookImportError(
+			'This file does not say which timezone its clock times are in, so they cannot be imported.',
+			[
+				`Add a "${SETTINGS_SHEET_NAME}" sheet with a "timezone" row, as the import template has.`,
+				'Use an IANA name that identifies the place — Asia/Kuala_Lumpur, not a fixed UTC offset.'
+			]
+		);
+	}
 	const table = readSheetTable(grids, TIME_ENTRY_SHEET_NAME, ['employee_number']);
 	let rows: readonly TimeEntryImportRow[];
 	if (isLongFormImportHeaders(table.headers)) {

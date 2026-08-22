@@ -79,7 +79,7 @@ export default {
 							{
 								name: `payroll_report_${label}.xlsx`,
 								contentType: 'XLSX',
-								content: yield* Effect.tryPromise(() => payrollReportXlsx(sheets))
+								content: yield* payrollReportXlsx(sheets)
 							}
 						],
 						metadata: {

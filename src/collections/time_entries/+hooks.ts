@@ -3,6 +3,7 @@ import { refuse } from '@norbital-ai/bolt/authoring';
 import type { CollectionHooks } from '@norbital-ai/bolt/authoring';
 import type { WorkspaceSchema } from '$bolt/types.js';
 import type { WorkedInterval } from '../../datatypes/worked_intervals/+definition.js';
+import { dateKey } from '../../lib/iso-day.js';
 import { leaveCoverage, type LeaveRequestLike } from '../../lib/scheduling/leave-coverage.js';
 import {
 	payrollWindows,
@@ -48,7 +49,7 @@ type TimeEntryHooks = CollectionHooks<WorkspaceSchema, 'time_entries', TimeEntry
 /**
  * The settlement lock held over one attendance record, or null when none is.
  *
- * One indexed lookup on the unique `time_entry_id` foreign key. It is asked on every update and
+ * One indexed lookup on the unique `source` reference arm. It is asked on every update and
  * every delete, and that is the point: the previous guard could only ask whether the *day* fell
  * inside a paid run's window, so a draft run that had already priced this exact entry left it
  * editable underneath its own payslips.
@@ -68,16 +69,11 @@ function settlementOver(
 ): Effect.Effect<SettlementClaim | null, never, never> {
 	return Effect.gen(function* () {
 		const claim = yield* api.db.query.payslip_sources.findFirst({
-			where: { time_entry_id: { eq: timeEntryId } },
+			where: { source: { eq: { kind: 'TIME_ENTRY', id: timeEntryId } } },
 			columns: { period: true }
 		});
 		return claim == null ? null : { period: claim.period };
 	});
-}
-
-function dateKey(value: string | Date | null | undefined): string {
-	if (value == null) return '';
-	return typeof value === 'string' ? value.slice(0, 10) : value.toISOString().slice(0, 10);
 }
 
 /**
@@ -121,7 +117,7 @@ function assertDayNotOwnedByLeave(
 			where: {
 				employment_id: { eq: employmentId },
 				kind: { eq: 'TIME_OFF' },
-				norbital_approval_id: { isNull: true },
+				approval_id: { isNull: true },
 				from_date: { lte: date },
 				to_date: { gte: date }
 			},
@@ -154,7 +150,7 @@ function assertDayHasNoPaidSilence(
 ): Effect.Effect<void, never, never> {
 	return Effect.gen(function* () {
 		const employment = yield* api.db.query.employments.findFirst({
-			where: { norbital_id: { eq: employmentId } },
+			where: { id: { eq: employmentId } },
 			columns: { company_id: true }
 		});
 		if (employment == null) return;
@@ -268,8 +264,8 @@ export default {
 					.sort();
 				const employments = employmentIds.length
 					? yield* api.db.query.employments.findMany({
-							where: { norbital_id: { in: employmentIds } },
-							columns: { norbital_id: true, company_id: true },
+							where: { id: { in: employmentIds } },
+							columns: { id: true, company_id: true },
 							limit: QUERY_LIMIT
 						})
 					: [];
@@ -311,7 +307,7 @@ export default {
 								where: {
 									employment_id: { in: employmentIds },
 									kind: { eq: 'TIME_OFF' },
-									norbital_approval_id: { isNull: true },
+									approval_id: { isNull: true },
 									from_date: { lte: to },
 									to_date: { gte: from }
 								},
@@ -333,7 +329,7 @@ export default {
 				}
 				return {
 					companyByEmployment: new Map(
-						employments.map((employment) => [employment.norbital_id, employment.company_id])
+						employments.map((employment) => [employment.id, employment.company_id])
 					),
 					windowsByCompany: new Map(
 						[...runsByCompany].map(([companyId, grouped]) => [companyId, payrollWindows(grouped)])
@@ -375,8 +371,8 @@ export default {
 					Effect.gen(function* () {
 						yield* assertRecordNotClaimed(
 							api,
-							existing.norbital_id,
-							existing.norbital_approval_id,
+							existing.id,
+							existing.approval_id,
 							'Changing attendance'
 						);
 						assertWorkedIntervals(
@@ -409,19 +405,14 @@ export default {
 			before: {
 				description:
 					'Refuses deleting attendance a payroll run has already taken into account. A record no run has consumed may be deleted whatever its date, because nothing has been paid on it.',
+				/**
+				 * No window and no leave check, for the same reason in both cases: a delete removes a
+				 * record, and the only thing that can be harmed by removing one is a run that priced
+				 * it. Deleting a punch that landed on an approved leave day is a correction, not a
+				 * conflict — `assertDayNotOwnedByLeave` exists to stop one appearing, not to keep it.
+				 */
 				handler: ({ existing, api }) =>
-					Effect.gen(function* () {
-						// No window and no leave check, for the same reason in both cases: a delete removes a
-						// record, and the only thing that can be harmed by removing one is a run that priced
-						// it. Deleting a punch that landed on an approved leave day is a correction, not a
-						// conflict — `assertDayNotOwnedByLeave` exists to stop one appearing, not to keep it.
-						yield* assertRecordNotClaimed(
-							api,
-							existing.norbital_id,
-							existing.norbital_approval_id,
-							'Deleting attendance'
-						);
-					})
+					assertRecordNotClaimed(api, existing.id, existing.approval_id, 'Deleting attendance')
 			}
 		}
 	}

@@ -12,7 +12,7 @@ const QUERY_LIMIT = 20_000;
 
 type PayComponentRange = Pick<
 	WorkspaceRow<'pay_components'>,
-	'norbital_id' | 'company_id' | 'code' | 'effective_range'
+	'id' | 'company_id' | 'code' | 'effective_range'
 >;
 
 function identityKey(companyId: string, code: string): string {
@@ -39,10 +39,9 @@ export function assertBatchHasNoOverlap(
 			identity: `pay component ${input.code}`
 		});
 		// Seeded batches carry the row id the seed assigned; interactive ones do not.
-		const assignedId = Reflect.get(input, 'norbital_id');
+		const assignedId = Reflect.get(input, 'id');
 		siblings.push({
-			norbital_id:
-				typeof assignedId === 'string' && assignedId !== '' ? assignedId : `batch:${index}`,
+			id: typeof assignedId === 'string' && assignedId !== '' ? assignedId : `batch:${index}`,
 			company_id: input.company_id,
 			code: input.code,
 			effective_range: input.effective_range
@@ -98,7 +97,7 @@ export default {
 							candidate: effective_range,
 							existing: siblings,
 							identity: `pay component ${code}`,
-							excludeId: existing.norbital_id
+							excludeId: existing.id
 						});
 						return input;
 					})
