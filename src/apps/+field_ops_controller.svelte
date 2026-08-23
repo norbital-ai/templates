@@ -108,7 +108,7 @@
 	 * than a silent one.
 	 */
 	const usersQuery = $derived(
-		client.db.bolt_auth_user.findMany({
+		client.db.user.findMany({
 			columns: { id: true, name: true },
 			orderBy: { name: 'asc' },
 			limit: 500
@@ -152,9 +152,9 @@
 		if (typeof value === 'string') setDispatchDay(value);
 	}
 
-	const createAssignment = (): void => {
+	const createAssignment = () => {
 		if (assignment.jobId == null || assignment.assigneeUserId == null) return;
-		void client.db.job_assignments.create({
+		const operation = client.db.job_assignments.mutate({
 			job_id: assignment.jobId,
 			assignee_user_id: assignment.assigneeUserId,
 			status: 'assigned',
@@ -164,6 +164,7 @@
 		assignment.jobId = null;
 		assignment.assigneeUserId = null;
 		assignContractorOpen = false;
+		return operation;
 	};
 
 	const mapPoints = $derived(dashboardQuery.current?.map_points ?? []);
@@ -406,7 +407,10 @@
 			<Button
 				type="submit"
 				class="w-full"
-				disabled={!assignment.jobId || !assignment.assigneeUserId}
+				disabled={!assignment.jobId ||
+					!assignment.assigneeUserId ||
+					client.db.job_assignments.pending > 0}
+				aria-busy={client.db.job_assignments.pending > 0}
 			>
 				{t('app.field_ops_controller.assign_contractor')}
 			</Button>

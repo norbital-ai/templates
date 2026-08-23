@@ -157,7 +157,7 @@ CREATE INDEX "variation_requests_title_search_trgm_idx" ON "variation_requests" 
 --> statement-breakpoint
 ALTER TABLE "job_assignments" ADD CONSTRAINT "job_assignments_job_id_jobs_fk" FOREIGN KEY ("job_id") REFERENCES "jobs"("id");
 --> statement-breakpoint
-ALTER TABLE "job_assignments" ADD CONSTRAINT "job_assignments_assignee_user_id_user_fk" FOREIGN KEY ("assignee_user_id") REFERENCES "bolt_auth_user"("id");
+ALTER TABLE "job_assignments" ADD CONSTRAINT "job_assignments_assignee_user_id_user_fk" FOREIGN KEY ("assignee_user_id") REFERENCES "user"("id");
 --> statement-breakpoint
 ALTER TABLE "jobs" ADD CONSTRAINT "jobs_site_id_sites_fk" FOREIGN KEY ("site_id") REFERENCES "sites"("id");
 --> statement-breakpoint

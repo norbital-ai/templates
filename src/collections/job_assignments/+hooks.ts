@@ -102,7 +102,7 @@ export interface AssignmentCreateBatchLookup {
 	/**
 	 * The assignee ids that name a real person.
 	 *
-	 * Read from `bolt_auth_user` rather than from a workspace collection: an assignee *is* a user, and
+	 * Read from `user` rather than from a workspace collection: an assignee *is* a user, and
 	 * the profile row that used to stand between the two is gone. The database enforces the same thing
 	 * through the foreign key; this exists so the refusal names the problem instead of quoting a
 	 * constraint.

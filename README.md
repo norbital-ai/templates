@@ -24,7 +24,7 @@ and a one-way suspect escalation for controllers to scrutinise).
 ### Domain shape
 
 ```text
-site → jobs → job assignment → bolt_auth_user (the assignee)
+site → jobs → job assignment → user (the assignee)
              ↓
        photo evidence ← variation request
 ```
@@ -33,7 +33,7 @@ site → jobs → job assignment → bolt_auth_user (the assignee)
   attached to it.
 - **jobs** — work scheduled for one site and one calendar day, beginning `unassigned` and following
   the assignment's progress (`assigned` → `in_progress` → `completed`).
-- **job_assignments** — one person per job. `assignee_user_id` is `bolt_auth_user.id`
+- **job_assignments** — one person per job. `assignee_user_id` is `user.id`
   directly: a contractor is a **role**, not a record — a user whose team holds `field_ops_contractor`
   — so there is no collection describing one. Identity (job + assignee) is immutable after dispatch;
   status runs `dispatched` → `in_progress` → `completed`, with `suspect` as a one-way integrity
@@ -186,11 +186,11 @@ The reply goes back over the same transport.
 ## 5. Changing the template
 
 ```bash
-pnpm sync    # compile the workspace: .norbital/generated, types, migrations
+pnpm sync    # compile types/migrations and emit .norbital/artifact/bundle.mjs
 pnpm lint    # prettier --check + svelte-check
-pnpm build   # vite build
 ```
 
+- There is no separate build command; the portable deployment artifact is an output of `sync`.
 - Never hand-edit `.norbital/` generated output. `sync` may update `.norbital/migrations/`; commit
   that history alongside the authored change. Model edits are the only thing that should produce a
   migration.
@@ -198,8 +198,9 @@ pnpm build   # vite build
 - The seed bank treats transcript job reports and their textual photo references as authoritative.
   It never reparents a simulated wrong-site photo from an overlay, OCR, image content, upload burst,
   or filename timestamp; those contradictions are precisely what this template must detect.
-- Publishing and tenant lifecycle: publish the template through the OSS release workflow, then link
-  the release into Colony (`pnpm yalc:link`) and restart `pnpm --filter colony dev` before a revision
-  reaches a tenant — the Colony dev bootstrap converges on every start, so there is no separate
-  tenant-update or environment-reset step. The template detail page on the website is generated from
-  this README and `norbital.template.json` — no separate copy.
+- Publishing and tenant lifecycle: publish through the templates release workflow. A remote Colony
+  host provisions new tenants from the exact commit advertised by
+  `refs/heads/templates/field-operations`; advancing that ref does not rewrite existing tenants.
+  `pnpm yalc:link` only tests local OSS packages inside the template and does not link template
+  source into Colony. The template detail page on the website is generated from this README and
+  `norbital.template.json` — no separate copy.

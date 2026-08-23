@@ -55,7 +55,7 @@
 					name="resolved_by"
 					renderer={RelationshipRenderer}
 					rendererProps={{
-						target: 'bolt_auth_user',
+						target: 'user',
 						options: {
 							label: (record) =>
 								record.name != null && record.name !== '' ? String(record.name) : '—',

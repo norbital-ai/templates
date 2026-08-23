@@ -4,13 +4,13 @@ import type { Policy } from './$types.js';
  * The contractor: the jobs they were assigned, and nothing else.
  *
  * A contractor is a **user**, not a record. `job_assignments.assignee_user_id` is
- * `bolt_auth_user.id`, so the assignment collection carries the requestor directly and the
+ * `user.id`, so the assignment collection carries the requestor directly and the
  * self-scope is a column comparison — `ownAssignment` below is an ordinary `where`, not a subquery.
  * Everything else is one hop from an assignment, so each remaining `$sql` reaches the requestor
  * through `job_assignments` alone.
  *
  * There is deliberately no grant on any collection describing the contractor themselves. The person
- * is `bolt_auth_user`, which the runtime's own `bolt.system-collections` policy already grants to any
+ * is `user`, which the runtime's own `bolt.system-collections` policy already grants to any
  * authenticated subject, masked to an id and a name. A workspace collection restating that was the
  * thing this policy used to have to subquery through, and the reason the contractor app could report
  * a lookup failure as "Could not load your contractor profile" — there is now no profile to load.
@@ -76,7 +76,7 @@ const ownEvidence = {
  * duplicate. This used to be `variationApproval('019f6f10-…-003', '019f6f10-…-103')`, two
  * hand-written UUID pairs that were the only part of an approval anybody could get wrong.
  *
- * The approver is named by `bolt_team.name`, and the name is `TeamName` — a union generated from
+ * The approver is named by `team.name`, and the name is `TeamName` — a union generated from
  * `access/+teams.ts`'s own keys — so a misspelling is a compile error rather than an approval nobody
  * could ever decide. `approvers: ['HR Manger']` shipped once and produced exactly that.
  *
