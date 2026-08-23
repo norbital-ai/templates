@@ -17,12 +17,12 @@ export default defineModel(
 		event: custom('leave_event').notNull(),
 		kind: text().generatedAlwaysAs(sql`event ->> 'kind'`),
 		// A stored generated column must be immutable, and a text -> date cast is only STABLE.
-		// `norbital_date` is the immutable wrapper the platform installs before any migration runs.
+		// `bolt_date` is the immutable wrapper the platform installs before any migration runs.
 		from_date: date().generatedAlwaysAs(
-			sql`CASE WHEN event ->> 'kind' = 'TIME_OFF' THEN norbital_date(event #>> '{range,start,date}') ELSE norbital_date(event ->> 'effective_on') END`
+			sql`CASE WHEN event ->> 'kind' = 'TIME_OFF' THEN bolt_date(event #>> '{range,start,date}') ELSE bolt_date(event ->> 'effective_on') END`
 		),
 		to_date: date().generatedAlwaysAs(
-			sql`CASE WHEN event ->> 'kind' = 'TIME_OFF' THEN norbital_date(event #>> '{range,end,date}') ELSE norbital_date(event ->> 'effective_on') END`
+			sql`CASE WHEN event ->> 'kind' = 'TIME_OFF' THEN bolt_date(event #>> '{range,end,date}') ELSE bolt_date(event ->> 'effective_on') END`
 		),
 		days: numeric().generatedAlwaysAs(
 			sql`CASE WHEN event ->> 'kind' = 'TIME_OFF' THEN (event ->> 'chargeable_days')::numeric ELSE (event ->> 'movement_days')::numeric END`

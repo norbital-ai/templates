@@ -7,6 +7,7 @@
 	"scripts": {
 		"sync": "bolt sync",
 		"sync:watch": "bolt sync --watch",
+		"generate:import-templates": "node scripts/generate-import-templates.mjs",
 		"format": "prettier --write .",
 		"lint": "prettier --check . && svelte-check --tsgo-experimental-api --tsconfig ./tsconfig.json",
 		"test": "node scripts/verify-overtime-controls.mjs && node scripts/verify-payroll-xlsx.mjs && node scripts/verify-payroll-export-data.mjs && node scripts/verify-workbook-import.mjs && node scripts/verify-payroll-arithmetic.mjs && node scripts/verify-fixture-shapes.mjs && node --experimental-strip-types --import ./scripts/ts-source-resolve.mjs --test src/collections/employees/*.test.ts src/collections/leave_requests/*.test.ts src/collections/repayment_agreements/*.test.ts src/collections/rosters/lib/*.test.ts src/collections/payroll_runs/*.test.ts src/collections/time_entries/*.test.ts src/lib/scheduling/*.test.ts src/lib/*.test.ts src/datatypes/*.test.ts"
@@ -14,10 +15,10 @@
 	"dependencies": {
 		"@iconify/svelte": "^5.2.2",
 		"@internationalized/date": "^3.12.3",
-		"@norbital-ai/bolt": "file:.yalc/@norbital-ai/bolt",
-		"@norbital-ai/bolt-protocol": "file:.yalc/@norbital-ai/bolt-protocol",
-		"@norbital-ai/std": "file:.yalc/@norbital-ai/std",
-		"@norbital-ai/ui": "file:.yalc/@norbital-ai/ui",
+		"@norbital-ai/bolt": "0.0.1",
+		"@norbital-ai/bolt-protocol": "0.0.1",
+		"@norbital-ai/std": "0.0.1",
+		"@norbital-ai/ui": "0.0.1",
 		"effect": "4.0.0-rc.111",
 		"exceljs": "4.4.0",
 		"mode-watcher": "^1.1.0",

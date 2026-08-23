@@ -35,7 +35,7 @@ export default defineModel(
 				elements: [
 					{ expr: 'employment_id', with: '=' },
 					{ expr: 'statutory_contribution_id', with: '=' },
-					{ expr: 'norbital_daterange(effective_range)', with: '&&' }
+					{ expr: 'bolt_daterange(effective_range)', with: '&&' }
 				]
 			}
 		]

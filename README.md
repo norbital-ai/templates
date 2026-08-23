@@ -180,14 +180,13 @@ src/
 
 ## Verification
 
-The template includes focused arithmetic and export checks. All of them run against the source, so
-`pnpm test` is the whole story and `pnpm build` only builds:
+The template includes focused arithmetic and export checks. `pnpm test` runs that suite, while
+`pnpm sync` compiles the workspace and emits its portable deployment artifact:
 
 ```bash
-pnpm sync     # regenerate .norbital (never hand-edit generated output)
+pnpm sync     # regenerate .norbital and emit .norbital/artifact/bundle.mjs
 pnpm lint     # prettier + svelte-check
 pnpm test     # everything below, plus the repayment-agreement and roster unit tests
-pnpm build    # production build only
 node scripts/verify-payroll-arithmetic.mjs   # the long-form arithmetic acceptance run
 node scripts/verify-fixture-shapes.mjs       # audits that run's fixtures against the real API shape
 ```
@@ -221,8 +220,10 @@ and local types under `.norbital/` from `src/` alone. Workflow:
 ```bash
 pnpm sync     # after any edit under src/ — regenerates .norbital (committed migrations stay put)
 pnpm lint     # prettier + svelte-check over the workspace
-pnpm build    # production build
 ```
+
+There is no separate build command. `sync` emits `.norbital/artifact/bundle.mjs`, the portable
+artifact a host deploys.
 
 - **Models** — do not change model schemas casually: each schema change produces a committed
   migration under `.norbital/migrations/`. Edit `+model.ts`, run `pnpm sync`, then review the
@@ -234,7 +235,8 @@ pnpm build    # production build
   this template, in the repository seed bank at `seed_bank/norbital_hr/statutory/`.
 - **Publishing** — the template pins `@norbital-ai/bolt` in its own `package.json` and lockfile.
   After a deliberate dependency move, refresh the template lock through the repository
-  template-lock workflow. To consume a new template release, link it into Colony
-  (`pnpm yalc:link`) and restart `pnpm --filter colony dev`, then hard-refresh the iframe — the
-  Colony dev bootstrap converges on every start, so there is no separate tenant-update or
-  environment-reset step.
+  template-lock workflow. The templates release workflow advances
+  `refs/heads/templates/hr-payroll`; a remote Colony host uses that exact commit when it provisions
+  a new tenant, while an existing tenant remains on the revision it adopted. `pnpm yalc:link` only
+  tests locally built OSS dependencies inside this template and neither publishes template source
+  nor updates Colony.

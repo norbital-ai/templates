@@ -12,7 +12,6 @@
 	import { Input } from '@norbital-ai/ui/input';
 	import { Alert, AlertDescription, AlertTitle } from '@norbital-ai/ui/alert';
 	import * as Dialog from '@norbital-ai/ui/dialog';
-	import { toast } from 'svelte-sonner';
 	import { Bound, Cluster, Cover, Grid, Inline, Scroll, Stack } from '@norbital-ai/ui/layout';
 	import { Tabs, type TabConfig } from '@norbital-ai/ui/tabs';
 	import RosterMonthCalendar from '../lib/ui/roster/roster-month-calendar.svelte';
@@ -765,26 +764,18 @@
 		daySheetOpen = true;
 	}
 
-	const saveDaySheetMutation = client.mutate(client.db.time_entries.create, {
-		onSuccess: () => {
-			daySheetOpen = false;
-			toast.success(t('app.hr_employee.report_punch_submitted'));
-		},
-		onError: (error) => toast.error(error.message)
-	});
-
 	/**
 	 * Employee mode's one write, handed back from the drawer's Save.
 	 *
 	 * The sheet assessed the draft already (the clamp is stated on its face), so this only carries
 	 * the create across the same hooks every other attendance write crosses. The row is written and
-	 * immediately held under `approval_id` — the toast says so rather than "saved",
-	 * because nothing about this day has changed for payroll yet.
+	 * immediately held under `approval_id`; the platform's mutation boundary presents that pending
+	 * approval rather than letting this component invent a second result state.
 	 */
-	function saveDaySheet(change: DaySheetChange): void {
+	function saveDaySheet(change: DaySheetChange) {
 		const attendance = change.attendance;
 		if (attendance == null || employmentId == null) return;
-		void saveDaySheetMutation.mutate({
+		const operation = client.db.time_entries.mutate({
 			employment_id: employmentId,
 			work_date: change.date,
 			worked_intervals: attendance.intervals.map((interval) => ({
@@ -793,6 +784,8 @@
 			})),
 			break_minutes: attendance.breakMinutes
 		});
+		daySheetOpen = false;
+		return operation;
 	}
 
 	const report = $state<{
@@ -802,14 +795,6 @@
 		endClock: string;
 	}>({ open: false, date: null, startClock: '', endClock: '' });
 
-	const reportMutation = client.mutate(client.db.time_entries.create, {
-		onSuccess: () => {
-			report.open = false;
-			daySheetOpen = false;
-			toast.success(t('app.hr_employee.report_punch_submitted'));
-		}
-	});
-
 	function openReport(_employmentId: string, date: string): void {
 		const day = scheduleDay(date);
 		report.date = date;
@@ -818,7 +803,6 @@
 		// with no planned window seeds empty rather than guessing one.
 		report.startClock = day?.shiftStart?.slice(0, 5) ?? '';
 		report.endClock = day?.shiftEnd?.slice(0, 5) ?? '';
-		reportMutation.reset();
 		report.open = true;
 	}
 
@@ -869,10 +853,10 @@
 		return problem == null ? null : t(ATTENDANCE_DRAFT_PROBLEM_KEY[problem]);
 	});
 
-	function submitReport(): void {
+	function submitReport() {
 		const draft = reportDraft;
 		if (draft == null || employmentId == null || draft.assessment.problem != null) return;
-		void reportMutation.mutate({
+		const operation = client.db.time_entries.mutate({
 			employment_id: employmentId,
 			work_date: draft.date,
 			worked_intervals: draft.intervals.map((interval) => ({
@@ -881,6 +865,9 @@
 			})),
 			break_minutes: draft.assessment.breakMinutes
 		});
+		report.open = false;
+		daySheetOpen = false;
+		return operation;
 	}
 </script>
 
@@ -1329,8 +1316,7 @@
 	intervals={daySheetIntervals}
 	lockRung={daySheetRung}
 	lockReason={daySheetLockReason}
-	saving={saveDaySheetMutation.loading}
-	error={saveDaySheetMutation.error?.message ?? null}
+	saving={client.db.time_entries.pending > 0}
 	onSave={(change) => saveDaySheet(change)}
 />
 
@@ -1351,7 +1337,7 @@
 					<Input
 						type="time"
 						value={report.startClock}
-						disabled={reportMutation.loading}
+						disabled={client.db.time_entries.pending > 0}
 						oninput={(event) => (report.startClock = event.currentTarget.value)}
 					/>
 				</label>
@@ -1360,7 +1346,7 @@
 					<Input
 						type="time"
 						value={report.endClock}
-						disabled={reportMutation.loading}
+						disabled={client.db.time_entries.pending > 0}
 						oninput={(event) => (report.endClock = event.currentTarget.value)}
 					/>
 				</label>
@@ -1408,14 +1394,15 @@
 			{#if reportProblem != null}
 				<p class="text-sm text-destructive">{reportProblem}</p>
 			{/if}
-			{#if reportMutation.error != null}
-				<p class="text-sm text-destructive">{reportMutation.error.message}</p>
-			{/if}
 			<p class="text-meta">{t('app.hr_employee.report_punch_approval_note')}</p>
 		</Stack>
 		<Dialog.Footer>
-			<Dialog.Close disabled={reportMutation.loading}>{t('roster.cancel')}</Dialog.Close>
-			<Button disabled={reportMutation.loading || reportProblem != null} onclick={submitReport}>
+			<Dialog.Close disabled={client.db.time_entries.pending > 0}>{t('roster.cancel')}</Dialog.Close
+			>
+			<Button
+				disabled={client.db.time_entries.pending > 0 || reportProblem != null}
+				onclick={submitReport}
+			>
 				{t('app.hr_employee.report_punch_submit')}
 			</Button>
 		</Dialog.Footer>

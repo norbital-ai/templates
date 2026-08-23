@@ -62,7 +62,7 @@
 	const CycleRowSchema = Schema.Struct({
 		period: Schema.String,
 		payDate: Schema.String,
-		status: Schema.Literal('late', 'current', 'next'),
+		status: Schema.Literals(['late', 'current', 'next']),
 		runState: Schema.NullOr(Schema.String),
 		attendance: Schema.NullOr(Schema.String)
 	});
@@ -256,24 +256,22 @@
 						description: t('app.payroll.export_bank_files_description'),
 						requiresSelection: true,
 						run: ({ selectedRows }) =>
-							Effect.runPromise(
-								Effect.gen(function* () {
-									const manifest = yield* Effect.tryPromise({
-										try: () =>
-											downloadCollectionExport(
-												{
-													collection_name: 'payroll_runs',
-													record_ids: selectedRows.map((record) => record.id)
-												},
-												{ includeAction: (action) => action.metadata?.kind === 'bank-files' }
-											),
-										catch: (error) => (error instanceof Error ? error : new Error(String(error)))
-									});
-									if (manifest.length === 0)
-										yield* Effect.fail(new Error(t('app.payroll.export_bank_files_error')));
-									yield* Effect.sync(() => saveCollectionExport(manifest));
-								})
-							)
+							Effect.gen(function* () {
+								const manifest = yield* Effect.tryPromise({
+									try: () =>
+										downloadCollectionExport(
+											{
+												collection_name: 'payroll_runs',
+												record_ids: selectedRows.map((record) => record.id)
+											},
+											{ includeAction: (action) => action.metadata?.kind === 'bank-files' }
+										),
+									catch: (error) => (error instanceof Error ? error : new Error(String(error)))
+								});
+								if (manifest.length === 0)
+									yield* Effect.fail(new Error(t('app.payroll.export_bank_files_error')));
+								yield* Effect.sync(() => saveCollectionExport(manifest));
+							})
 					},
 					{
 						id: 'payslip-pdfs',
@@ -281,24 +279,22 @@
 						description: t('app.payroll.export_payslip_pdfs_description'),
 						requiresSelection: true,
 						run: ({ selectedRows }) =>
-							Effect.runPromise(
-								Effect.gen(function* () {
-									const manifest = yield* Effect.tryPromise({
-										try: () =>
-											downloadCollectionExport(
-												{
-													collection_name: 'payroll_runs',
-													record_ids: selectedRows.map((record) => record.id)
-												},
-												{ includeAction: (action) => action.metadata?.kind === 'payslip-pdfs' }
-											),
-										catch: (error) => (error instanceof Error ? error : new Error(String(error)))
-									});
-									if (manifest.length === 0)
-										yield* Effect.fail(new Error(t('app.payroll.export_pdfs_error')));
-									yield* Effect.sync(() => saveCollectionExport(manifest));
-								})
-							)
+							Effect.gen(function* () {
+								const manifest = yield* Effect.tryPromise({
+									try: () =>
+										downloadCollectionExport(
+											{
+												collection_name: 'payroll_runs',
+												record_ids: selectedRows.map((record) => record.id)
+											},
+											{ includeAction: (action) => action.metadata?.kind === 'payslip-pdfs' }
+										),
+									catch: (error) => (error instanceof Error ? error : new Error(String(error)))
+								});
+								if (manifest.length === 0)
+									yield* Effect.fail(new Error(t('app.payroll.export_pdfs_error')));
+								yield* Effect.sync(() => saveCollectionExport(manifest));
+							})
 					},
 					{
 						id: 'payroll-report-xlsx',
@@ -306,26 +302,24 @@
 						description: t('app.payroll.export_workbook_description'),
 						requiresSelection: true,
 						run: ({ selectedRows }) =>
-							Effect.runPromise(
-								Effect.gen(function* () {
-									const manifest = yield* Effect.tryPromise({
-										try: () =>
-											downloadCollectionExport(
-												{
-													collection_name: 'payroll_runs',
-													record_ids: selectedRows.map((record) => record.id)
-												},
-												{
-													includeAction: (action) => action.metadata?.kind === 'payroll-report-xlsx'
-												}
-											),
-										catch: (error) => (error instanceof Error ? error : new Error(String(error)))
-									});
-									if (manifest.length === 0)
-										yield* Effect.fail(new Error(t('app.payroll.export_pdfs_error')));
-									yield* Effect.sync(() => saveCollectionExport(manifest));
-								})
-							)
+							Effect.gen(function* () {
+								const manifest = yield* Effect.tryPromise({
+									try: () =>
+										downloadCollectionExport(
+											{
+												collection_name: 'payroll_runs',
+												record_ids: selectedRows.map((record) => record.id)
+											},
+											{
+												includeAction: (action) => action.metadata?.kind === 'payroll-report-xlsx'
+											}
+										),
+									catch: (error) => (error instanceof Error ? error : new Error(String(error)))
+								});
+								if (manifest.length === 0)
+									yield* Effect.fail(new Error(t('app.payroll.export_pdfs_error')));
+								yield* Effect.sync(() => saveCollectionExport(manifest));
+							})
 					}
 				]}
 			>

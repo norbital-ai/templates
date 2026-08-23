@@ -123,6 +123,7 @@ function saveBlob(blob: Blob, name: string): void {
 	anchor.download = name;
 	anchor.rel = 'noopener';
 	anchor.click();
+	// repository-health:allow A1 -- This detached timer owns deferred URL revocation; cancelling it on return would leak the URL.
 	setTimeout(() => URL.revokeObjectURL(url), OBJECT_URL_LIFETIME_MS);
 }
 

@@ -25,12 +25,7 @@ import { workedMinutes } from '../../attendance.js';
 import type { WorkedInterval } from '../../../datatypes/worked_intervals/+definition.js';
 import { workPatternValueSchema } from '../../../datatypes/work_pattern/+definition.js';
 import { rosterCodeVariantValueSchema } from '../../../datatypes/roster_code_variant/+definition.js';
-import {
-	clockMinutes,
-	rosterCodeKind,
-	workWindow,
-	type RosterCodeLike
-} from '../../scheduling/roster-code.js';
+import { clockMinutes, rosterCodeKind, workWindow } from '../../scheduling/roster-code.js';
 import { patternRosterCodeId } from '../../scheduling/work-pattern.js';
 import {
 	dayLockSchema,
@@ -172,11 +167,11 @@ const employmentTermLikeSchema = Schema.Struct({
 type EmploymentTermLike = Schema.Schema.Type<typeof employmentTermLikeSchema>;
 
 /** A roster code as the board needs it: the display code and the variant it stands for. */
-type RosterCodeDisplayLike = Pick<RosterCodeLike, 'code' | 'variant'>;
 const rosterCodeDisplayLikeSchema = Schema.Struct({
 	code: Schema.String,
 	variant: rosterCodeVariantValueSchema
 });
+type RosterCodeDisplayLike = Schema.Schema.Type<typeof rosterCodeDisplayLikeSchema>;
 
 const timeEntryLikeSchema = Schema.Struct({
 	id: Schema.optional(Schema.String),

@@ -4,6 +4,7 @@
 	import { useI18n } from '@norbital-ai/ui/i18n';
 	import AppHeaderActions from '@norbital-ai/bolt/client/app-header-actions';
 	import type { TenantI18nKeys } from '$bolt/i18n-keys';
+	import type { WorkspaceRow } from '$bolt/types.js';
 	import { Tabs, type TabConfig } from '@norbital-ai/ui/tabs';
 	import { CollectionTable } from '@norbital-ai/ui/collection-table';
 	import { CollectionQueryState } from '@norbital-ai/ui/collection-query';
@@ -173,7 +174,6 @@
 		if (selectedCompanyId == null) return null;
 		return client.db.employments.findMany({
 			where: { ...approved, company_id: { eq: selectedCompanyId } },
-			with: { employment_employee: { columns: { name: true } } },
 			orderBy: { employee_number: 'asc' },
 			limit: 1000
 		});
@@ -189,12 +189,26 @@
 	const monthEmployments = $derived(
 		employments.filter((employment) => employmentOverlapsMonth(employment, month))
 	);
+	const employeesQuery = $derived(
+		monthEmployments.length === 0
+			? null
+			: client.db.employees.findMany({
+					where: {
+						...approved,
+						id: { in: monthEmployments.map((employment) => employment.employee_id) }
+					},
+					limit: 1000
+				})
+	);
+	const employeeNamesById = $derived(
+		new Map((employeesQuery?.current ?? []).map((employee) => [employee.id, employee.name]))
+	);
 	const emptyEmploymentReason = $derived(employmentMonthEmptyReason(employments, month));
 	const people = $derived(
 		monthEmployments.map((employment) => ({
 			id: employment.id,
 			number: employment.employee_number,
-			name: employment.employment_employee?.name ?? '—'
+			name: employeeNamesById.get(employment.employee_id) ?? '—'
 		}))
 	);
 
@@ -232,47 +246,95 @@
 		new Map((leaveTypesQuery?.current ?? []).map((type) => [type.id, type.code]))
 	);
 
+	const rostersQuery = $derived(
+		selectedCompanyId == null
+			? null
+			: client.db.rosters.findMany({
+					where: { ...approved, company_id: { eq: selectedCompanyId }, month: { eq: month } },
+					limit: 50
+				})
+	);
+	const rosters = $derived(rostersQuery?.current ?? []);
+	const activeRoster = $derived(rosters[0] ?? null);
+	/**
+	 * The month's draft roster, which an import and every editable matrix cell land in.
+	 *
+	 * A published month is frozen and the pipeline refuses one outright, so the import is offered
+	 * only against a draft. The operator is told which state the month is in before they choose a
+	 * file, rather than after the file has been read and sent.
+	 */
+	const draftRoster = $derived(rosters.find((roster) => roster.published_at == null) ?? null);
+
+	/**
+	 * The roster's relationship is the source of truth for both rendering and replacement writes.
+	 *
+	 * The count drives the page size and `nextCursor` proves that the page has no successor. A fixed
+	 * board-sized limit is not safe here: including a relationship in `rosters.mutate` declares that
+	 * the submitted rows are its complete desired state, so an unseen row would otherwise be deleted.
+	 * No column projection is used because every authored child field must survive a synchronization.
+	 */
+	const rosterEntryCountQuery = $derived(
+		activeRoster == null
+			? null
+			: client.db.roster_entries.count({ where: { roster_id: { eq: activeRoster.id } } })
+	);
 	const rosterEntriesQuery = $derived.by(() => {
-		if (selectedCompanyId == null || !employmentsReady) return null;
+		const roster = activeRoster;
+		const count = rosterEntryCountQuery?.current;
+		if (roster == null || count === undefined) return null;
 		return client.db.roster_entries.findMany({
-			where: {
-				...approved,
-				work_date: { gte: monthStart, lte: monthEnd },
-				...(monthEmployments.length > 0
-					? { employment_id: { in: monthEmployments.map((e) => e.id) } }
-					: {
-							roster_entry_employment: { ...approved, company_id: { eq: selectedCompanyId } }
-						})
-			},
-			columns: {
-				id: true,
-				employment_id: true,
-				work_date: true,
-				shift_definition_id: true,
-				assignment_code: true
-			},
-			limit: 5000
+			where: { roster_id: { eq: roster.id } },
+			orderBy: { id: 'asc' },
+			limit: Math.max(1, count)
 		});
 	});
+	const rosterEntries = $derived(rosterEntriesQuery?.current ?? []);
+	const rosterRelationshipComplete = $derived.by(() => {
+		const count = rosterEntryCountQuery?.current;
+		const entries = rosterEntriesQuery?.current;
+		return (
+			activeRoster != null &&
+			count !== undefined &&
+			entries !== undefined &&
+			entries.length === count &&
+			rosterEntriesQuery?.nextCursor === null
+		);
+	});
+	const rosterRelationshipError = $derived(
+		rosterEntryCountQuery?.error ?? rosterEntriesQuery?.error
+	);
+	const matrixMutationReady = $derived(
+		draftRoster != null && rosterRelationshipComplete && rosterRelationshipError == null
+	);
+
+	function completeRosterRelationship(): readonly WorkspaceRow<'roster_entries'>[] {
+		if (!rosterRelationshipComplete)
+			throw new Error(rosterRelationshipError?.message ?? t('component.loading'));
+		return rosterEntries;
+	}
+
+	/** The parent supplies `roster_id`; every other authored value is round-tripped deliberately. */
+	function preserveRosterEntry(entry: WorkspaceRow<'roster_entries'>) {
+		return {
+			id: entry.id,
+			employment_id: entry.employment_id,
+			work_date: entry.work_date,
+			shift_definition_id: entry.shift_definition_id,
+			assignment_code: entry.assignment_code,
+			origin: entry.origin,
+			note: entry.note
+		};
+	}
 	/**
 	 * The shared schema filter builder targets real roster-entry fields. Keep this second query
 	 * separate from the board data: it decides which people remain visible without erasing the other
 	 * days from their month.
 	 */
 	const filteredRosterEntriesQuery = $derived.by(() => {
-		if (selectedCompanyId == null || !employmentsReady || boardQuery.filters.length === 0)
-			return null;
+		if (activeRoster == null || boardQuery.filters.length === 0) return null;
 		return client.db.roster_entries.findMany(
 			{
-				where: {
-					...approved,
-					work_date: { gte: monthStart, lte: monthEnd },
-					...(monthEmployments.length > 0
-						? { employment_id: { in: monthEmployments.map((e) => e.id) } }
-						: {
-								roster_entry_employment: { ...approved, company_id: { eq: selectedCompanyId } }
-							})
-				},
+				where: { roster_id: { eq: activeRoster.id } },
 				columns: {
 					id: true,
 					employment_id: true,
@@ -410,6 +472,8 @@
 	 * from a slow month, so nobody reloads, and the surface looks hung rather than broken.
 	 */
 	const boardSources = $derived([
+		{ label: 'rosters', query: rostersQuery },
+		{ label: 'roster entry count', query: rosterEntryCountQuery },
 		{ label: 'roster entries', query: rosterEntriesQuery },
 		{ label: 'filtered roster entries', query: filteredRosterEntriesQuery },
 		{ label: 'attendance', query: timeEntriesQuery },
@@ -433,6 +497,8 @@
 	 * screen while the body sat on `Loading …`.
 	 */
 	const boardReadySources = $derived([
+		{ label: 'rosters', query: rostersQuery },
+		{ label: 'roster entry count', query: rosterEntryCountQuery },
 		{ label: 'roster entries', query: rosterEntriesQuery },
 		{ label: 'attendance', query: timeEntriesQuery },
 		{ label: 'leave', query: leaveQuery },
@@ -470,7 +536,6 @@
 			today
 		})
 	);
-	const rosterEntries = $derived(rosterEntriesQuery?.current ?? []);
 	const explicitEntryByKey = $derived(
 		new Map(
 			rosterEntries.map((entry) => [
@@ -516,23 +581,6 @@
 			);
 		})
 	);
-	const rostersQuery = $derived(
-		selectedCompanyId == null
-			? null
-			: client.db.rosters.findMany({
-					where: { ...approved, company_id: { eq: selectedCompanyId }, month: { eq: month } },
-					limit: 50
-				})
-	);
-	const rosters = $derived(rostersQuery?.current ?? []);
-	/**
-	 * The month's draft roster, which an import lands in.
-	 *
-	 * A published month is frozen and the pipeline refuses one outright, so the import is offered
-	 * only against a draft. The operator is told which state the month is in before they choose a
-	 * file, rather than after the file has been read and sent.
-	 */
-	const draftRoster = $derived(rosters.find((roster) => roster.published_at == null) ?? null);
 	/**
 	 * How far the month has got, which is the difference between an empty board and a broken one.
 	 *
@@ -583,22 +631,18 @@
 				: t('app.scheduling.blocker_published', { month })
 	);
 
-	function importRoster(): void {
+	function importRoster(): Effect.Effect<void, unknown> {
 		const rosterId = draftRoster?.id;
-		if (rosterId == null) return;
+		if (rosterId == null) return Effect.void;
 		// `runWorkbookImport` reports its own refusals: the pipeline answers with the rows the
 		// company's records contradict, and that list is the whole message worth showing.
-		Effect.runPromise(
-			Effect.promise(() =>
-				runWorkbookImport(
-					{
-						collectionName: 'roster_entries',
-						recordLabel: t('component.roster_rows'),
-						buildPayload: (grids) => rosterImportPayload(grids, rosterId)
-					},
-					t
-				)
-			)
+		return runWorkbookImport(
+			{
+				collectionName: 'roster_entries',
+				recordLabel: t('component.roster_rows'),
+				buildPayload: (grids) => rosterImportPayload(grids, rosterId)
+			},
+			t
 		);
 	}
 
@@ -607,32 +651,21 @@
 		boardQuery.setPageIndex(0);
 	}
 
-	function createDraftMonth(): void {
+	function createDraftMonth() {
 		if (selectedCompanyId == null) return;
-		const create = client.db.rosters.create;
-		if (create == null) {
-			toast.error(t('app.scheduling.toast_draft_not_permitted'));
-			return;
-		}
-		void create({ company_id: selectedCompanyId, month, published_at: null });
+		return client.db.rosters.mutate({
+			company_id: selectedCompanyId,
+			month,
+			published_at: null
+		});
 	}
 
-	function publish(rosterId: string): void {
-		const update = client.db.rosters.update;
-		if (update == null) {
-			toast.error(t('app.scheduling.toast_publish_not_permitted'));
-			return;
-		}
-		void update(rosterId, { published_at: new Date() });
+	function publish(rosterId: string) {
+		return client.db.rosters.mutate({ id: rosterId, published_at: new Date() });
 	}
 
-	function reopen(rosterId: string): void {
-		const update = client.db.rosters.update;
-		if (update == null) {
-			toast.error(t('app.scheduling.toast_reopen_not_permitted'));
-			return;
-		}
-		void update(rosterId, { published_at: null });
+	function reopen(rosterId: string) {
+		return client.db.rosters.mutate({ id: rosterId, published_at: null });
 	}
 
 	/* ────────────────────────────────────────────────────────────────────────────────────────────
@@ -861,7 +894,7 @@
 		}))
 	);
 	const daySheetHasExplicitEntry = $derived(
-		daySheetKey != null && explicitEntryByKey.has(daySheetKey)
+		daySheetKey != null && explicitEntryByKey.get(daySheetKey)?.roster_id === draftRoster?.id
 	);
 	const daySheetNote = $derived(
 		daySheetKey == null ? null : (explicitEntryByKey.get(daySheetKey)?.note ?? null)
@@ -883,10 +916,11 @@
 	 * change and a migration, so it is deliberately NOT built. This is the integration point: when
 	 * the arm exists, this is the derivation that stops saying "no" and starts offering it.
 	 */
-	const daySheetPlanLocked = $derived(draftRoster == null);
+	const daySheetPlanLocked = $derived(!matrixMutationReady);
 	const daySheetPlanLockedReason = $derived(
 		draftRoster != null
-			? null
+			? (rosterRelationshipError?.message ??
+					(rosterRelationshipComplete ? null : t('component.loading')))
 			: rosters.length === 0
 				? t('app.scheduling.blocker_no_draft', { month })
 				: t('app.scheduling.blocker_published', { month })
@@ -944,8 +978,8 @@
 	);
 
 	function saveDaySheet(change: DaySheetChange): void {
-		if (change.plan != null) writePlan(change.employmentId, change.date, change.plan);
-		if (change.attendance != null) writeAttendance(change);
+		if (change.plan != null) void writePlan(change.employmentId, change.date, change.plan);
+		if (change.attendance != null) void writeAttendance(change);
 		daySheet.open = false;
 	}
 
@@ -955,25 +989,33 @@
 		plan: { readonly rosterCodeId: string; readonly note: string | null }
 	) {
 		if (draftRoster == null) return;
+		const relationship = completeRosterRelationship();
 		const existing = explicitEntryByKey.get(`${employmentId}:${date}`);
-		if (existing != null) {
-			const update = client.db.roster_entries.update;
-			if (update == null) return;
-			void update(existing.id, {
-				shift_definition_id: plan.rosterCodeId,
-				note: plan.note
-			});
-			return;
-		}
-		const create = client.db.roster_entries.create;
-		if (create == null) return;
-		void create({
-			employment_id: employmentId,
-			work_date: date,
-			shift_definition_id: plan.rosterCodeId,
-			roster_id: draftRoster.id,
-			assignment_code: null,
-			note: plan.note
+		return client.db.rosters.mutate({
+			id: draftRoster.id,
+			roster_entry_roster: [
+				...relationship.map((entry) =>
+					entry.id === existing?.id
+						? {
+								...preserveRosterEntry(entry),
+								shift_definition_id: plan.rosterCodeId,
+								note: plan.note
+							}
+						: preserveRosterEntry(entry)
+				),
+				...(existing == null
+					? [
+							{
+								employment_id: employmentId,
+								work_date: date,
+								shift_definition_id: plan.rosterCodeId,
+								assignment_code: null,
+								origin: 'MANUAL',
+								note: plan.note
+							}
+						]
+					: [])
+			]
 		});
 	}
 
@@ -987,18 +1029,8 @@
 	function writeAttendance(change: DaySheetChange) {
 		const attendance = change.attendance;
 		if (attendance == null) return;
-		if (attendance.timeEntryId != null) {
-			const update = client.db.time_entries.update;
-			if (update == null) return;
-			void update(attendance.timeEntryId, {
-				worked_intervals: [...attendance.intervals],
-				break_minutes: attendance.breakMinutes
-			});
-			return;
-		}
-		const create = client.db.time_entries.create;
-		if (create == null) return;
-		void create({
+		return client.db.time_entries.mutate({
+			...(attendance.timeEntryId == null ? {} : { id: attendance.timeEntryId }),
 			employment_id: change.employmentId,
 			work_date: change.date,
 			worked_intervals: [...attendance.intervals],
@@ -1006,14 +1038,19 @@
 		});
 	}
 
-	function clearDaySheetPlan(): void {
+	function clearDaySheetPlan() {
 		if (draftRoster == null || daySheetKey == null) return;
 		const existing = explicitEntryByKey.get(daySheetKey);
 		if (existing == null) return;
-		const remove = client.db.roster_entries.delete;
-		if (remove == null) return;
-		void remove(existing.id);
+		const relationship = completeRosterRelationship();
+		const operation = client.db.rosters.mutate({
+			id: draftRoster.id,
+			roster_entry_roster: relationship
+				.filter((entry) => entry.id !== existing.id)
+				.map(preserveRosterEntry)
+		});
 		daySheet.open = false;
+		return operation;
 	}
 
 	/* ────────────────────────────────────────────────────────────────────────────────────────────
@@ -1026,12 +1063,9 @@
 	 * neither day looks wrong on its own, and finding that out at publication is finding it out a
 	 * month late.
 	 *
-	 * WHY THIS IS NOT ONE STATEMENT. The collection client writes one record per call; there is no
-	 * multi-record transaction at this boundary. So every check runs first, over the complete
-	 * post-swap month, and the two writes go out only once nothing can refuse them on their merits.
-	 * If the second still fails — a race with another operator, a lock taken in between — the first
-	 * is put back and the pair is reported as a pair. That is weaker than a transaction and it is
-	 * said out loud here rather than implied by an optimistic comment.
+	 * The two changed cells are submitted with the roster's complete `roster_entry_roster`
+	 * relationship. That makes the rendered matrix the desired relational state and lets the server
+	 * validate and commit the pair atomically rather than exposing a half-swapped month.
 	 *
 	 * SCOPED OUT: published months. `roster_entries/+hooks.ts` refuses every write in one and that
 	 * freeze is untouched. §2.4's `AMENDMENT` origin arm would open a narrow path through it; it
@@ -1039,7 +1073,7 @@
 	 * simply not offered outside a draft month.
 	 * ──────────────────────────────────────────────────────────────────────────────────────────── */
 
-	const swapEnabled = $derived(draftRoster != null);
+	const swapEnabled = $derived(matrixMutationReady && client.db.rosters.pending === 0);
 
 	/** The sentence a refused swap gets. One per pair — never one per row. */
 	function swapRefusal(from: BoardCell, to: BoardCell): string | null {
@@ -1114,7 +1148,7 @@
 		return violations[0]?.message ?? null;
 	}
 
-	function performSwap(from: BoardCell, to: BoardCell): void {
+	function performSwap(from: BoardCell, to: BoardCell) {
 		if (!swapEnabled) return;
 		const refusal = swapRefusal(from, to);
 		if (refusal != null) {
@@ -1128,35 +1162,57 @@
 		if (fromCodeId == null || toCodeId == null) return;
 
 		const note = t('roster.swap_note', { from: from.date, to: to.date });
-		writeSwapHalf(from, toCodeId, note);
-		writeSwapHalf(to, fromCodeId, note);
-	}
-
-	/**
-	 * Write one end of a swap, and hand back the undo for it.
-	 *
-	 * The undo is captured before the write rather than reconstructed after it, because after the
-	 * write the board's own query is the only record of what was there and it has not reloaded yet.
-	 */
-	function writeSwapHalf(cell: BoardCell, codeId: string, note: string) {
-		if (draftRoster == null) return;
-		const existing = explicitEntryByKey.get(`${cell.employmentId}:${cell.date}`);
-		if (existing != null) {
-			const update = client.db.roster_entries.update;
-			if (update == null) return;
-			void update(existing.id, { shift_definition_id: codeId, note });
-			return;
-		}
-		const create = client.db.roster_entries.create;
-		if (create == null) return;
-		void create({
-			employment_id: cell.employmentId,
-			work_date: cell.date,
-			shift_definition_id: codeId,
-			roster_id: draftRoster.id,
-			assignment_code: null,
-			note
+		const roster = draftRoster;
+		if (roster == null) return;
+		const fromEntry = explicitEntryByKey.get(`${from.employmentId}:${from.date}`);
+		const toEntry = explicitEntryByKey.get(`${to.employmentId}:${to.date}`);
+		const relationship = completeRosterRelationship();
+		const operation = client.db.rosters.mutate({
+			id: roster.id,
+			roster_entry_roster: [
+				...relationship.map((entry) => {
+					if (entry.id === fromEntry?.id)
+						return {
+							...preserveRosterEntry(entry),
+							shift_definition_id: toCodeId,
+							note
+						};
+					if (entry.id === toEntry?.id)
+						return {
+							...preserveRosterEntry(entry),
+							shift_definition_id: fromCodeId,
+							note
+						};
+					return preserveRosterEntry(entry);
+				}),
+				...(fromEntry == null
+					? [
+							{
+								employment_id: from.employmentId,
+								work_date: from.date,
+								shift_definition_id: toCodeId,
+								assignment_code: null,
+								origin: 'MANUAL',
+								note
+							}
+						]
+					: []),
+				...(toEntry == null
+					? [
+							{
+								employment_id: to.employmentId,
+								work_date: to.date,
+								shift_definition_id: fromCodeId,
+								assignment_code: null,
+								origin: 'MANUAL',
+								note
+							}
+						]
+					: [])
+			]
 		});
+		swap.source = null;
+		return operation;
 	}
 
 	/* ────────────────────────────────────────────────────────────────────────────────────────────
@@ -1174,18 +1230,14 @@
 	 * `expandTimeMonthGrid` collects every problem in the file and throws one `WorkbookImportError`
 	 * listing all of them, so a 300-person sheet is corrected once and re-imported once.
 	 */
-	function importAttendance(): void {
-		Effect.runPromise(
-			Effect.promise(() =>
-				runWorkbookImport(
-					{
-						collectionName: 'time_entries',
-						recordLabel: t('component.time_entries'),
-						buildPayload: timeEntryImportPayload
-					},
-					t
-				)
-			)
+	function importAttendance(): Effect.Effect<void, unknown> {
+		return runWorkbookImport(
+			{
+				collectionName: 'time_entries',
+				recordLabel: t('component.time_entries'),
+				buildPayload: timeEntryImportPayload
+			},
+			t
 		);
 	}
 
@@ -1312,7 +1364,7 @@
 					description: t('app.scheduling.import_title', { month }),
 					icon: 'lucide:upload',
 					getDisabledReason: () => rosterImportBlocker,
-					run: () => importRoster()
+					run: importRoster
 				},
 				{
 					// No `getDisabledReason`. Attendance belongs to the day, not to a roster, so a month
@@ -1321,10 +1373,9 @@
 					label: t('app.scheduling.import_attendance'),
 					description: t('app.scheduling.import_attendance_description', { month }),
 					icon: 'lucide:clock-arrow-up',
-					run: () => importAttendance()
+					run: importAttendance
 				}
-			],
-			refresh: () => rosterEntriesQuery?.refresh()
+			]
 		}}
 	/>
 {/snippet}
@@ -1340,7 +1391,7 @@
 					})}
 				</Badge>
 			{/if}
-			<Button size="sm" onclick={() => createDraftMonth()}>
+			<Button size="sm" disabled={client.db.rosters.pending > 0} onclick={() => createDraftMonth()}>
 				{t('app.scheduling.start_planning', { month })}
 			</Button>
 		{:else}
@@ -1352,11 +1403,20 @@
 							: t('app.scheduling.published')}
 					</Badge>
 					{#if roster.published_at == null}
-						<Button size="sm" onclick={() => publish(roster.id)}>
+						<Button
+							size="sm"
+							disabled={client.db.rosters.pending > 0}
+							onclick={() => publish(roster.id)}
+						>
 							{t('app.scheduling.publish_month', { month })}
 						</Button>
 					{:else}
-						<Button size="sm" variant="outline" onclick={() => reopen(roster.id)}>
+						<Button
+							size="sm"
+							variant="outline"
+							disabled={client.db.rosters.pending > 0}
+							onclick={() => reopen(roster.id)}
+						>
 							{t('app.scheduling.re_open')}
 						</Button>
 					{/if}
@@ -1487,7 +1547,7 @@
 					locks={lockMap(payrollWindows(payrollRunsQuery?.current ?? []), monthDays(month))}
 					{settlementClaims}
 					{cutoff}
-					editable={draftRoster != null}
+					editable={matrixMutationReady}
 					swappable={swapEnabled}
 					bind:swapSource={swap.source}
 					onSwapDays={(from, to) => void performSwap(from, to)}
@@ -1654,8 +1714,7 @@
 	lockReason={daySheetLockReason}
 	overlapWarning={daySheetOverlapWarning}
 	canSwap={swapEnabled}
-	saving={false}
-	error={null}
+	saving={client.db.rosters.pending > 0 || client.db.time_entries.pending > 0}
 	onPlanDraftChange={(codeId) => (daySheet.draftCodeId = codeId)}
 	onSave={(change) => saveDaySheet(change)}
 	onClearPlan={() => clearDaySheetPlan()}

@@ -16,11 +16,8 @@ import { registerHooks } from 'node:module';
 import { fileURLToPath } from 'node:url';
 
 const exists = (url) => {
-	try {
-		return existsSync(fileURLToPath(url));
-	} catch {
-		return false;
-	}
+	if (url.protocol !== 'file:') return false;
+	return existsSync(fileURLToPath(url));
 };
 
 registerHooks({

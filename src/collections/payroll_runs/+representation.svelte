@@ -31,7 +31,7 @@
 	import { formatCalendarDate, formatNumeric } from '../../lib/ui/display-formatters.js';
 	import { saveCollectionExport } from '../../lib/ui/export-download.js';
 
-	let { record, refresh, close }: RepresentationProps = $props();
+	let { record, close }: RepresentationProps = $props();
 	const { t } = useI18n<TenantI18nKeys>();
 
 	const OFFERED_PERIODS = Array.from(
@@ -167,14 +167,12 @@
 	const payslipCount = $derived(payslipCountQuery?.current ?? null);
 	const emptyDraft = $derived(record != null && record.lifecycle === 'DRAFT' && payslipCount === 0);
 
-	function updateDraft(action: 'recalculate' | 'pay'): void {
+	function updateDraft(action: 'recalculate' | 'pay') {
 		if (record == null) return;
-		const update = client.db.payroll_runs.update;
-		if (!update) {
-			toast.error(t('component.cannot_update'));
-			return;
-		}
-		void update(record.id, { lifecycle: action === 'pay' ? 'PAID' : 'DRAFT' });
+		return client.db.payroll_runs.mutate({
+			id: record.id,
+			lifecycle: action === 'pay' ? 'PAID' : 'DRAFT'
+		});
 	}
 
 	function downloadReport(): void {
@@ -206,17 +204,6 @@
 			})
 		);
 	}
-
-	function deleteDraft(): void {
-		if (record == null) return;
-		const remove = client.db.payroll_runs.delete;
-		if (!remove) {
-			toast.error(t('component.cannot_delete'));
-			return;
-		}
-		void remove(record.id);
-		close();
-	}
 </script>
 
 {#if record}
@@ -238,15 +225,21 @@
 					<span class="rounded-full bg-muted px-2.5 py-1 text-xs font-semibold">
 						{record.lifecycle}
 					</span>
-					{#if record.lifecycle === 'DRAFT' && client.db.payroll_runs.update}
+					{#if record.lifecycle === 'DRAFT'}
 						<Button variant="outline" size="sm" onclick={downloadReport}>
 							{t('component.export_salary_listing')}
 						</Button>
-						<Button variant="outline" size="sm" onclick={() => updateDraft('recalculate')}>
+						<Button
+							variant="outline"
+							size="sm"
+							disabled={client.db.payroll_runs.pending > 0}
+							onclick={() => updateDraft('recalculate')}
+						>
 							{t('component.recalculate_draft')}
 						</Button>
 						<Button
 							size="sm"
+							disabled={client.db.payroll_runs.pending > 0}
 							onclick={() => {
 								if (!lockArmed) {
 									lockArmed = true;
@@ -257,11 +250,6 @@
 						>
 							{lockArmed ? t('component.confirm_lock_pay') : t('component.lock_payroll')}
 						</Button>
-						{#if client.db.payroll_runs.delete}
-							<Button variant="outline" size="sm" onclick={deleteDraft}>
-								{t('component.delete_draft')}
-							</Button>
-						{/if}
 					{/if}
 				</Inline>
 			</Cluster>
@@ -347,12 +335,6 @@
 		{client}
 		collection="payroll_runs"
 		submitLabel={t('component.create_payroll_run')}
-		onSubmit={() => {
-			const company = selectedCompany;
-			const create = client.db.payroll_runs.create;
-			if (!company || !period || !create) return;
-			return create({ company_id: company.id, period });
-		}}
 		onAfterSubmit={close}
 	>
 		{#snippet children({ form })}

@@ -131,57 +131,54 @@ interface WorkbookImportOptions {
  * and toasts `error.message`, which for these refusals is a headline and a bulleted list of rows
  * collapsed into a single line — so this handles its own and hands the caller a quiet return.
  */
-export function runWorkbookImport(options: WorkbookImportOptions, t: Translator): void {
-	void Effect.runPromise(
-		Effect.gen(function* () {
-			const file = yield* pickWorkbookFile(t);
-			if (file == null) return;
-			yield* Effect.catch(
-				Effect.gen(function* () {
-					const grids = yield* readWorkbookGrids(file, t);
-					const payload = { ...options.buildPayload(grids) };
-					/**
-					 * The whole file is one record, not one record per row.
-					 *
-					 * `collections.import` declares `{ records: [{ collection, id, values }] }`, and
-					 * `values` is the document the collection's import pipeline declares as its `input`
-					 * — header fields and rows together. Splitting the file across `records` would leave
-					 * the header fields the pipeline validates against (`roster_id`, `month`,
-					 * `legal_entity`, `timezone`) with nowhere to go, and each fragment would be checked
-					 * against the company's records on its own.
-					 *
-					 * The id is minted here because the command requires one, not because it is used: a
-					 * pipeline-backed collection gets the ids of its writes from the rows the pipeline
-					 * returns, and this one is never stored.
-					 */
-					const imported = yield* Effect.promise(() =>
-						importCollectionRecords({
-							records: [
-								{
-									collection: options.collectionName,
-									id: crypto.randomUUID(),
-									values: payload
-								}
-							]
-						})
-					);
-					toast.success(
-						t('component.workbook_imported', {
-							count: imported,
-							label: options.recordLabel,
-							file: file.name
-						})
-					);
-				}),
-				(error) =>
-					Effect.sync(() =>
-						reportImportFailure(
-							t('component.workbook_import_failed', { file: file.name }),
-							error,
-							t
-						)
-					)
-			);
-		})
-	);
+export function runWorkbookImport(
+	options: WorkbookImportOptions,
+	t: Translator
+): Effect.Effect<void, unknown> {
+	return Effect.gen(function* () {
+		const file = yield* pickWorkbookFile(t);
+		if (file == null) return;
+		yield* Effect.catch(
+			Effect.gen(function* () {
+				const grids = yield* readWorkbookGrids(file, t);
+				const payload = { ...options.buildPayload(grids) };
+				/**
+				 * The whole file is one record, not one record per row.
+				 *
+				 * `collections.import` declares `{ records: [{ collection, id, values }] }`, and
+				 * `values` is the document the collection's import pipeline declares as its `input`
+				 * — header fields and rows together. Splitting the file across `records` would leave
+				 * the header fields the pipeline validates against (`roster_id`, `month`,
+				 * `legal_entity`, `timezone`) with nowhere to go, and each fragment would be checked
+				 * against the company's records on its own.
+				 *
+				 * The id is minted here because the command requires one, not because it is used: a
+				 * pipeline-backed collection gets the ids of its writes from the rows the pipeline
+				 * returns, and this one is never stored.
+				 */
+				const imported = yield* Effect.promise(() =>
+					importCollectionRecords({
+						records: [
+							{
+								collection: options.collectionName,
+								id: crypto.randomUUID(),
+								values: payload
+							}
+						]
+					})
+				);
+				toast.success(
+					t('component.workbook_imported', {
+						count: imported,
+						label: options.recordLabel,
+						file: file.name
+					})
+				);
+			}),
+			(error) =>
+				Effect.sync(() =>
+					reportImportFailure(t('component.workbook_import_failed', { file: file.name }), error, t)
+				)
+		);
+	});
 }

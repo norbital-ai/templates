@@ -284,6 +284,7 @@ export function vendorWorkbookRow(payslip: ReportPayslip): Record<string, string
 			!line.isOvertimeExcess &&
 			!['BPAYBS', 'ALPAY', 'PHILE'].includes(line.payComponentCode)
 	);
+	// repository-health:allow AR5 -- The vendor's fixed workbook columns are a distinct external contract; this projection intentionally renames and derives persisted payroll fields into that schema.
 	return {
 		designation: payslip.designation,
 		section: payslip.section,
