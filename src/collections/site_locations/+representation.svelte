@@ -76,8 +76,7 @@
 			/>
 			<Field name="location_type" label={t('component.location_type')} />
 			<Field name="grid_reference" label={t('component.grid_reference')} />
-			<!-- A text() element id from the BIM model, not a system uuid: it is the value an operator
-			matches against the model, so here the id is the answer rather than a key to one. -->
+			<!-- repository-health:allow UI17 -- This authored text() reference is an external BIM element label, not a system uuid. -->
 			<Field name="bim_model_element_id" label={t('component.bim_element')} />
 			<Column span="all"><Field name="description" label={t('component.description')} /></Column>
 			<Column span="all"><Field name="coordinates" label={t('component.coordinates')} /></Column>
