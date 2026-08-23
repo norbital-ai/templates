@@ -1,8 +1,8 @@
 {
   "dialect": "postgres",
-  "id": "258ce9ec-e8d1-47a7-952d-595535072e91",
+  "id": "1c969ad6-3ac2-45ee-a665-888f0e2dc6ad",
   "prevIds": [
-    "27524341-3149-497a-995b-f850f2a20ab7"
+    "6498693c-e8f0-4c36-be73-bb4e6e6c854f"
   ],
   "version": "8",
   "ddl": [
@@ -5317,7 +5317,7 @@
         "owner_id"
       ],
       "schemaTo": "public",
-      "tableTo": "bolt_auth_user",
+      "tableTo": "user",
       "columnsTo": [
         "id"
       ],
@@ -5368,7 +5368,7 @@
         "owner_id"
       ],
       "schemaTo": "public",
-      "tableTo": "bolt_auth_user",
+      "tableTo": "user",
       "columnsTo": [
         "id"
       ],
@@ -5436,7 +5436,7 @@
         "owner_id"
       ],
       "schemaTo": "public",
-      "tableTo": "bolt_auth_user",
+      "tableTo": "user",
       "columnsTo": [
         "id"
       ],
@@ -5538,7 +5538,7 @@
         "owner_id"
       ],
       "schemaTo": "public",
-      "tableTo": "bolt_auth_user",
+      "tableTo": "user",
       "columnsTo": [
         "id"
       ],
@@ -5606,7 +5606,7 @@
         "owner_id"
       ],
       "schemaTo": "public",
-      "tableTo": "bolt_auth_user",
+      "tableTo": "user",
       "columnsTo": [
         "id"
       ],
@@ -5691,7 +5691,7 @@
         "owner_id"
       ],
       "schemaTo": "public",
-      "tableTo": "bolt_auth_user",
+      "tableTo": "user",
       "columnsTo": [
         "id"
       ],
@@ -5793,7 +5793,7 @@
         "owner_id"
       ],
       "schemaTo": "public",
-      "tableTo": "bolt_auth_user",
+      "tableTo": "user",
       "columnsTo": [
         "id"
       ],

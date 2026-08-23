@@ -75,7 +75,7 @@
 	);
 
 	const usersQuery = $derived(
-		workspaceClient.db.bolt_auth_user.findMany({
+		workspaceClient.db.user.findMany({
 			columns: { id: true, name: true },
 			orderBy: { name: 'asc' }
 		})

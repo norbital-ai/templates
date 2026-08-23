@@ -11,7 +11,7 @@ import type { Teams } from '@norbital-ai/bolt/authoring';
  *
  * ## Membership is a row, authority is a diff
  *
- * A `bolt_team` row carries a name, a parent and a description, and an operator moves somebody
+ * A `team` row carries a name, a parent and a description, and an operator moves somebody
  * between teams from the dashboard without a deploy. What a team may *do* is this file, compiled
  * into the release. The two are bound by **name**, matched case-insensitively; a team row whose name
  * is absent here holds nothing — inert, not broken.
@@ -36,7 +36,7 @@ import type { Teams } from '@norbital-ai/bolt/authoring';
  *
  * ## One team per person
  *
- * `bolt_auth_user.team_id` is one team, so somebody who needs both sides of the desk needs a team
+ * `user.team_id` is one team, so somebody who needs both sides of the desk needs a team
  * that names both — `Sales & Procurement` below. That is the combination the seeded administrators
  * actually hold, and stating it here is what makes "this person sees cost *and* margin" a fact a
  * reviewer can see rather than an emergent property of two arrays.
