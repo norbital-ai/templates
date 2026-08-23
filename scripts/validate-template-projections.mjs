@@ -76,7 +76,7 @@ function sha256(bytes) {
 
 function writeTemplateBundle(template, projection, outputDirectory, workspaceRoot) {
 	const packageManifest = decodeJsonObject(
-		readFileSync(path.join(template.directory, 'package.json')),
+		readFileSync(path.join(template.directory, 'package.json'), 'utf8'),
 		`${template.directory}/package.json`
 	);
 	const lockfile = readFileSync(path.join(template.directory, 'pnpm-lock.yaml'));
