@@ -34,7 +34,7 @@ export default defineModel(
 				elements: [
 					{ expr: 'company_id', with: '=' },
 					{ expr: 'code', with: '=' },
-					{ expr: 'norbital_daterange(effective_range)', with: '&&' }
+					{ expr: 'bolt_daterange(effective_range)', with: '&&' }
 				]
 			}
 		]

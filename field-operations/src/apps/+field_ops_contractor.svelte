@@ -25,7 +25,7 @@
 	 * the requestor by column comparison on the server. There is nothing left for this app to resolve
 	 * about the viewer beyond which framing to show, and `platform.apps` answers that without an id.
 	 *
-	 * It is `AccessControl.visibleApps`: the whole registry for anybody whose `bolt_auth_user.status`
+	 * It is `AccessControl.visibleApps`: the whole registry for anybody whose `user.status`
 	 * is `admin`, and otherwise exactly the apps declared by the policies their one team holds.
 	 * `+field_ops_controller.ts` declares `apps: ['field_ops_controller', 'field_ops_contractor']`
 	 * and the contractor policy declares only its own, so the presence of the controller app in this
@@ -48,12 +48,12 @@
 	 * The people directory, for the assignee column a dispatcher needs and a contractor does not.
 	 *
 	 * Only fetched under dispatch authority: a scoped contractor sees only their own rows here, so the
-	 * column would say the same thing on every line. `bolt_auth_user` is granted to any authenticated
+	 * column would say the same thing on every line. `user` is granted to any authenticated
 	 * subject masked to an id and a name, which is exactly what a name column needs.
 	 */
 	const usersQuery = $derived(
 		dispatchAuthority
-			? client.db.bolt_auth_user.findMany({
+			? client.db.user.findMany({
 					columns: { id: true, name: true },
 					orderBy: { name: 'asc' },
 					limit: 500

@@ -30,7 +30,7 @@ export default defineModel(
 				name: 'jurisdictions_code_effective_range_no_overlap',
 				elements: [
 					{ expr: 'code', with: '=' },
-					{ expr: 'norbital_daterange(effective_range)', with: '&&' }
+					{ expr: 'bolt_daterange(effective_range)', with: '&&' }
 				]
 			}
 		]

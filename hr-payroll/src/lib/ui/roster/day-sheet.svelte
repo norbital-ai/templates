@@ -57,8 +57,8 @@
 	  restBreakNotice      Snippet | undefined        INTEGRATION POINT — see below
 	  onPlanDraftChange    (rosterCodeId: string | null) => void   controller only; keeps the
 	                       caller's live overlap check in step with the picker
-	  onSave               (change: DaySheetChange) => void | Promise<void>
-	  onClearPlan          () => void | Promise<void> remove the explicit entry (controller only)
+	  onSave               (change: DaySheetChange) => void
+	  onClearPlan          () => void                remove the explicit entry (controller only)
 	  onStartSwap          () => void                 hand the swap gesture back to the board
 	  onOpenChange         (open: boolean) => void    close requested
 
@@ -157,8 +157,8 @@
 		 * the answer comes back as `overlapWarning`. Employee mode never calls it: there is no picker.
 		 */
 		onPlanDraftChange?: (rosterCodeId: string | null) => void;
-		onSave?: (change: DaySheetChange) => void | Promise<void>;
-		onClearPlan?: () => void | Promise<void>;
+		onSave?: (change: DaySheetChange) => void;
+		onClearPlan?: () => void;
 		onStartSwap?: () => void;
 		onOpenChange?: (open: boolean) => void;
 	};

@@ -59,8 +59,8 @@ jobs:
         env:
           SOURCE_REPOSITORY_URL: ${{ github.server_url }}/${{ github.repository }}.git
 
-      # Build the exact standalone projections and package their output before any public ref moves.
-      # A failed build or upload therefore leaves every existing template ref usable.
+      # Sync the exact standalone projections and package their portable artifacts before any public
+      # ref moves. A failed compile or upload therefore leaves every existing template ref usable.
       - name: Validate projections and prepare canonical build bundles
         run: |
           node scripts/validate-template-projections.mjs \

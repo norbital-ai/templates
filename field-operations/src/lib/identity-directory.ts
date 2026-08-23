@@ -3,7 +3,7 @@ import { Effect, Schema } from 'effect';
 /**
  * The people directory, for host-side handlers.
  *
- * `bolt_auth_user` is a runtime-owned collection: `withSystemCollections` merges it into every
+ * `user` is a runtime-owned collection: `withSystemCollections` merges it into every
  * workspace definition, and the runtime's `bolt.system-collections` policy grants `read` on it to any
  * authenticated subject with the field mask `['id', 'name']`. So an id and a display name are
  * readable from a hook, a pipeline or a remote — and the address, status and team are not merely
@@ -18,7 +18,7 @@ import { Effect, Schema } from 'effect';
  * each of the three call sites.
  *
  * **This is a gap in `@norbital-ai/bolt` and should be closed there.** `approval_request` is already
- * spliced onto `db.query` as a named exception for exactly this reason; `bolt_auth_user`, typed as
+ * spliced onto `db.query` as a named exception for exactly this reason; `user`, typed as
  * `DirectoryUser`, belongs beside it. Delete this module the day it is.
  */
 
@@ -33,20 +33,22 @@ type DirectoryUser = Schema.Schema.Type<typeof directoryUserSchema>;
 /**
  * The masked row the system read policy actually returns.
  *
- * The runtime answers `bolt_auth_user` without authored types — the gap documented above — so the
+ * The runtime answers `user` without authored types — the gap documented above — so the
  * only thing that stands between this module's data and the untyped proxy is this decode. A row the
  * grant did not actually mask is a runtime bug, not data to tolerate, so it fails here.
  */
 const decodeDirectoryUser = Schema.decodeUnknownEffect(directoryUserSchema);
 
 /** The subset of the runtime collection query this module uses. */
+interface DirectoryQueryInput {
+	readonly where?: Readonly<Record<string, unknown>>;
+	readonly columns?: Readonly<Record<string, boolean>>;
+	readonly orderBy?: Readonly<Record<string, 'asc' | 'desc'>>;
+	readonly limit?: number;
+}
+
 interface DirectoryQuery {
-	readonly findMany: (input?: {
-		readonly where?: Readonly<Record<string, unknown>>;
-		readonly columns?: Readonly<Record<string, boolean>>;
-		readonly orderBy?: Readonly<Record<string, 'asc' | 'desc'>>;
-		readonly limit?: number;
-	}) => Effect.Effect<ReadonlyArray<unknown>>;
+	readonly findMany: (input?: DirectoryQueryInput) => Effect.Effect<ReadonlyArray<unknown>>;
 }
 
 /** Any authored handler's `api`, narrowed to the one member this needs. */
@@ -57,7 +59,7 @@ interface HandlerApi {
 const DIRECTORY_LIMIT = 5_000;
 
 const directoryQuery = (api: HandlerApi): DirectoryQuery =>
-	(api.db.query as Readonly<Record<string, DirectoryQuery>>).bolt_auth_user;
+	(api.db.query as Readonly<Record<string, DirectoryQuery>>).user;
 
 /**
  * The named people behind a set of ids.

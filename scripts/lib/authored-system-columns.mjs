@@ -85,9 +85,7 @@ function svelteParser(workspaceDirectory) {
 		// (scripts/tests) also runs in CI where templates are never installed — the workflow's
 		// declaration step explicitly requires none of it. Fall back to the repository root's
 		// Svelte, which this repository now declares for exactly that job.
-		Effect.catch(() =>
-			Effect.sync(() => createRequire(import.meta.url)('svelte/compiler').parse)
-		),
+		Effect.catch(() => Effect.sync(() => createRequire(import.meta.url)('svelte/compiler').parse)),
 		Effect.runSync
 	);
 }

@@ -1,8 +1,8 @@
 {
   "dialect": "postgres",
-  "id": "23e45046-b4cb-4039-a31b-c814832dba27",
+  "id": "dcf9697d-c3d6-489a-8f13-bc4126b7860e",
   "prevIds": [
-    "b72fd539-6f39-4376-bfb6-79c07ed3bf03"
+    "5ed2debe-017a-4146-8769-e9e831aefa2c"
   ],
   "version": "8",
   "ddl": [
@@ -1679,7 +1679,7 @@
         "assignee_user_id"
       ],
       "schemaTo": "public",
-      "tableTo": "bolt_auth_user",
+      "tableTo": "user",
       "columnsTo": [
         "id"
       ],

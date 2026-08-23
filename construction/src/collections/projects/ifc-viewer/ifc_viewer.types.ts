@@ -74,6 +74,7 @@ export interface ViewerItemData {
 export interface ViewerFragmentsModel {
 	modelId: string;
 	object: ViewerSceneObject;
+	// repository-health:allow EFF2 -- The pinned fragments vendor returns a native Promise, adapted with Effect.tryPromise by the viewer.
 	getItemsData(ids: number[]): Promise<Array<ViewerItemData | null | undefined>>;
 }
 
@@ -83,7 +84,9 @@ export interface ViewerFragmentsManager {
 		load(
 			bytes: Uint8Array,
 			options: { modelId: string; camera: ViewerCameraObject }
+			// repository-health:allow EFF2 -- The pinned fragments vendor returns a native Promise, adapted with Effect.tryPromise by the viewer.
 		): Promise<ViewerFragmentsModel>;
+		// repository-health:allow EFF2 -- The pinned fragments vendor returns a native Promise, adapted with Effect.tryPromise by the viewer.
 		disposeModel(modelId: string): Promise<void>;
 	};
 	list: Map<string, ViewerFragmentsModel>;
@@ -106,13 +109,16 @@ export interface ViewerHighlighter {
 	zoomToSelection: boolean;
 	styles: Map<string, ViewerHighlightStyle>;
 	selection: { select: Record<string, Set<number>> };
+	// repository-health:allow EFF2 -- The pinned highlighter vendor returns a native Promise, adapted with Effect.tryPromise by the viewer.
 	clear(styleId: string): Promise<void>;
+	// repository-health:allow EFF2 -- The pinned highlighter vendor returns a native Promise, adapted with Effect.tryPromise by the viewer.
 	highlight(styleId: string, removePrevious: boolean, zoomToSelection: boolean): Promise<void>;
 	highlightByID(
 		styleId: string,
 		fragmentIdMap: Record<string, Set<number>>,
 		removePrevious: boolean,
 		zoomToSelection: boolean
+		// repository-health:allow EFF2 -- The pinned highlighter vendor returns a native Promise, adapted with Effect.tryPromise by the viewer.
 	): Promise<void>;
 }
 
@@ -137,6 +143,7 @@ export interface ViewerComponentsModule {
 	SimpleCamera: new (components: ViewerComponents) => ViewerSimpleCamera;
 	Grids: ViewerComponentToken<ViewerGrids>;
 	FragmentsManager: ViewerComponentToken<ViewerFragmentsManager> & {
+		// repository-health:allow EFF2 -- The pinned components vendor returns a native Promise, adapted with Effect.tryPromise by the viewer.
 		getWorker(): Promise<Worker>;
 	};
 	Raycasters: ViewerComponentToken<ViewerRaycasters>;
@@ -161,6 +168,7 @@ export interface ViewerIfcApi {
 	Init(
 		customLocateFileHandler?: ViewerLocateFileHandler,
 		forceSingleThread?: boolean
+		// repository-health:allow EFF2 -- web-ifc requires its patched initialization hook to preserve the vendor's native Promise contract.
 	): Promise<void>;
 }
 
@@ -171,6 +179,7 @@ export interface ViewerIfcApiConstructor {
 
 export interface ViewerIfcImporter {
 	wasm: { path: string; absolute: boolean };
+	// repository-health:allow EFF2 -- The pinned fragments importer returns a native Promise, adapted with Effect.tryPromise by the converter worker.
 	process(input: { bytes: Uint8Array }): Promise<Uint8Array>;
 }
 

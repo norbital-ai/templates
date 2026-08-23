@@ -27,7 +27,7 @@
 	import { Option, Schema } from 'effect';
 	import JobsRepresentation from '../jobs/+representation.svelte';
 
-	let { record, close, refresh }: RepresentationProps = $props();
+	let { record, close }: RepresentationProps = $props();
 
 	const { t } = useI18n<TenantI18nKeys>();
 
@@ -159,18 +159,16 @@
 	 * The effect takes the log rather than a bare key, like the helpers above: `authored-system-columns`
 	 * refuses `log.id` inside a component prop, and the id is read where it is data, in the write below.
 	 */
-	const resolveSuspicion = (log: { readonly id: string }): void => {
+	const resolveSuspicion = (log: { readonly id: string }) => {
 		if (!canResolve(log)) return;
 		const logId = log.id;
 		const resolution = (resolutionDraft[logId] ?? '').trim();
-		const write = client.db.suspicious_activity_logs.update;
-		if (write === undefined) return;
-		void write(logId, {
+		return client.db.suspicious_activity_logs.mutate({
+			id: logId,
 			resolution,
 			resolved_at: new Date(),
 			resolved_by: platform().user.id
 		});
-		resolutionDraft = { ...resolutionDraft, [logId]: '' };
 	};
 
 	/** Whether anything is still waiting on a controller — what the accents below turn on. */
@@ -355,7 +353,7 @@
 			<Stack gap="md">
 				<Cover gap="md" top={jobScopeHeader}>
 					{#if jobQuery?.current?.[0]}
-						<JobsRepresentation record={jobQuery.current[0]} close={() => undefined} {refresh} />
+						<JobsRepresentation record={jobQuery.current[0]} close={() => undefined} />
 					{:else if jobQuery?.loading}
 						<div
 							class="h-32 rounded-md bg-muted/50 motion-safe:animate-pulse"
@@ -522,7 +520,8 @@
 									<Inline gap="sm" align="center">
 										<Button
 											size="sm"
-											disabled={!canResolve(log)}
+											disabled={!canResolve(log) || client.db.suspicious_activity_logs.pending > 0}
+											aria-busy={client.db.suspicious_activity_logs.pending > 0}
 											onclick={() => void resolveSuspicion(log)}
 										>
 											{t('component.suspicion_resolve')}
@@ -720,7 +719,7 @@
 				<!--
 					The assignee is a person, so the picker reads the identity directory directly.
 
-					`bolt_auth_user` is granted to any authenticated subject masked to `id` and
+					`user` is granted to any authenticated subject masked to `id` and
 					`name`; there is no workspace collection describing a contractor to point at, and the one
 					that used to be here carried nothing this row does not.
 				-->
@@ -729,7 +728,7 @@
 					label={t('component.contractor')}
 					renderer={RelationshipRenderer}
 					rendererProps={{
-						target: 'bolt_auth_user',
+						target: 'user',
 						options: {
 							label: (record) => {
 								const v = record.name;

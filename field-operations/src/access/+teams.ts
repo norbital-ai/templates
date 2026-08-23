@@ -5,7 +5,7 @@ import type { Teams } from '@norbital-ai/bolt/authoring';
  * WHICH POLICIES EACH TEAM HOLDS
  * ============================================================================
  *
- * `src/access/policies/` says what each policy grants; this file says who holds it. A `bolt_team` row is
+ * `src/access/policies/` says what each policy grants; this file says who holds it. A `team` row is
  * membership, editable from the dashboard without a deploy; this map is authority, compiled into the
  * release. They are bound by **name**, case-insensitively — a team row absent from this file holds
  * nothing.
@@ -34,7 +34,7 @@ import type { Teams } from '@norbital-ai/bolt/authoring';
  *
  * ## One team per person, and the collapse it makes visible
  *
- * `bolt_auth_user.team_id` is one team, so a combination of authority somebody actually holds has to
+ * `user.team_id` is one team, so a combination of authority somebody actually holds has to
  * be a named team. Here that is `Contractor (Controller)` — and it is worth being blunt about what
  * that team is, because it is the case the teams design calls out by name.
  *
@@ -63,13 +63,13 @@ export default {
 	 *
 	 * "Contractor" is a **role**, and this key is the whole of what one is. There is no collection
 	 * describing a contractor and nothing to link a person to: an assignment names its assignee by
-	 * `bolt_auth_user.id`, and holding this policy is what turns that person into somebody
+	 * `user.id`, and holding this policy is what turns that person into somebody
 	 * who sees only their own.
 	 *
 	 * That also settles where a contractor's *company* lives, which is nowhere. A team is authority,
 	 * and this file is compiled into the release — a team row absent from it holds nothing — so
 	 * modelling one company as one team would mean a deploy to onboard a contractor, and, because
-	 * `bolt_auth_user.team_id` is one team, would leave that person unable to also be in this one.
+	 * `user.team_id` is one team, would leave that person unable to also be in this one.
 	 */
 	Contractor: ['field_ops_contractor'],
 

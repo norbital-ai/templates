@@ -20,6 +20,8 @@
  * because the target script — which we do not modify — has no way to hand anything back.
  */
 
+import { Effect } from 'effect';
+
 /** Structures whose internals must not be proxied: doing so changes real behaviour. */
 const OPAQUE = [Date, Map, Set, RegExp, WeakMap, WeakSet, Promise, Error];
 
@@ -116,34 +118,43 @@ function restoreReturnedArguments(value, seen = new WeakMap()) {
 }
 
 /** Role 2 — the shim the target script receives in place of Vite's own `createServer`. */
-export async function createServer(options) {
-	const vite = await import('vite');
-	const server = await vite.createServer(options);
-	const load = server.ssrLoadModule.bind(server);
+export function createServer(options) {
+	return Effect.runPromise(
+		Effect.gen(function* () {
+			const vite = yield* Effect.tryPromise(() => import('vite'));
+			const server = yield* Effect.tryPromise(() => vite.createServer(options));
+			const load = server.ssrLoadModule.bind(server);
 
-	server.ssrLoadModule = async (id, ...rest) => {
-		const namespace = await load(id, ...rest);
-		const moduleName = id
-			.split('/')
-			.pop()
-			.replace(/\.[cm]?ts$/, '');
-		const wrapped = {};
-		for (const key of Object.keys(namespace)) {
-			const exported = namespace[key];
-			wrapped[key] =
-				typeof exported === 'function'
-					? (...args) => {
-							const returned = exported(
-								...args.map((arg, index) => proxify(arg, `${moduleName}.${key}(arg${index})`))
-							);
-							return restoreReturnedArguments(returned);
+			server.ssrLoadModule = (id, ...rest) =>
+				Effect.runPromise(
+					Effect.gen(function* () {
+						const namespace = yield* Effect.tryPromise(() => load(id, ...rest));
+						const moduleName = id
+							.split('/')
+							.pop()
+							.replace(/\.[cm]?ts$/, '');
+						const wrapped = {};
+						for (const key of Object.keys(namespace)) {
+							const exported = namespace[key];
+							wrapped[key] =
+								typeof exported === 'function'
+									? (...args) => {
+											const returned = exported(
+												...args.map((arg, index) =>
+													proxify(arg, `${moduleName}.${key}(arg${index})`)
+												)
+											);
+											return restoreReturnedArguments(returned);
+										}
+									: exported;
 						}
-					: exported;
-		}
-		return wrapped;
-	};
+						return wrapped;
+					})
+				);
 
-	return server;
+			return server;
+		})
+	);
 }
 
 // ── Role 1: module-loader hooks ─────────────────────────────────────────────────────────────────
@@ -154,7 +165,7 @@ export function initialize(data) {
 	config = data;
 }
 
-export async function resolve(specifier, context, nextResolve) {
+export function resolve(specifier, context, nextResolve) {
 	if (specifier === 'vite' && context.parentURL === config?.targetUrl) {
 		return { url: config.probeUrl, shortCircuit: true };
 	}

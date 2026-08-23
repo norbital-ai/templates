@@ -175,17 +175,15 @@ the reference and baseline model, not a replacement for native BIM files.
 
 ## Changing the template
 
-A template is a normal Bolt workspace: install once, then sync, lint, and build inside this
-directory.
+A template is a normal Bolt workspace: install once, then sync and lint inside this directory.
 
 ```bash
-pnpm sync
+pnpm sync    # derive assembly/migrations and emit .norbital/artifact/bundle.mjs
 pnpm lint
-pnpm build
 ```
 
-`sync` derives Bolt assembly and migrations. Commit authored source and `.norbital/migrations/`
-with your change, but do not edit or commit other generated `.norbital` output. Publish a template
-revision and deploy a new tenant checkpoint before expecting an existing tenant to use it — a
-tenant is forked from the published commit and never moves on its own. See the
+There is no separate build command: the portable deployment artifact is a `sync` output. Commit
+authored source and `.norbital/migrations/` with your change, but do not edit or commit other
+generated `.norbital` output. Publish a template revision before provisioning a new tenant from that
+release; existing tenants remain on the revision they adopted. See the
 [template lifecycle](../README.md#release-and-tenant-lifecycle) for the full release flow.

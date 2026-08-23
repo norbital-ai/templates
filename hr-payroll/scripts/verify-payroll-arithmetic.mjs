@@ -20,6 +20,7 @@
  */
 
 import { createServer } from 'vite';
+import { Effect, Result } from 'effect';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 import { isDeepStrictEqual } from 'node:util';
@@ -43,52 +44,82 @@ function check(name, actual, expected) {
 }
 
 function throws(name, fn) {
-	try {
-		fn();
+	const result = Effect.runSync(Effect.result(Effect.try(fn)));
+	if (Result.isSuccess(result)) {
 		failures.push(`${name}\n    expected a thrown error, received none`);
-	} catch {
+	} else {
 		passed += 1;
 	}
 }
 
-const server = await createServer({
-	root,
-	configFile: false,
-	logLevel: 'error',
-	server: { middlewareMode: true, hmr: false }
-});
-
-const { roundMoney, roundHalfDay, floorHalfHour, cents } = await server.ssrLoadModule(
-	lib('rounding')
+// repository-health:allow EFF3 -- This standalone Node entry must await Vite's asynchronous SSR module graph before running its synchronous arithmetic assertions.
+const modules = await Effect.runPromise(
+	Effect.acquireUseRelease(
+		Effect.tryPromise(() =>
+			createServer({
+				root,
+				configFile: false,
+				logLevel: 'error',
+				server: { middlewareMode: true, hmr: false }
+			})
+		),
+		(server) => {
+			const load = (name) => Effect.tryPromise(() => server.ssrLoadModule(lib(name)));
+			return Effect.all([
+				load('rounding'),
+				load('bands'),
+				load('special-rules'),
+				load('contribute'),
+				load('period'),
+				load('dates'),
+				load('leave'),
+				load('settlement'),
+				load('overtime'),
+				load('measure'),
+				load('coverage'),
+				load('ordinary-rate'),
+				load('entries'),
+				load('settle')
+			]);
+		},
+		(server) => Effect.tryPromise(() => server.close())
+	)
 );
-const { selectBand, bandFloor } = await server.ssrLoadModule(lib('bands'));
-const { bracketBase, parseSpecialRules } = await server.ssrLoadModule(lib('special-rules'));
-const { contribute, scaleProgressive } = await server.ssrLoadModule(lib('contribute'));
-const { attendanceWindow, defaultPayPeriod, payPeriodsRemaining, resolveWindow } =
-	await server.ssrLoadModule(lib('period'));
-const { inclusiveDays } = await server.ssrLoadModule(lib('dates'));
-const { accruedDays, unpaidLeaveInWindow } = await server.ssrLoadModule(lib('leave'));
-const {
-	extendedAbsenceDays,
-	inExtendedLeavePopulation,
-	overtimeAttendanceWindow,
-	readSettlementPolicy,
-	resolveEmploymentSettlement,
-	PLAIN_CALENDAR
-} = await server.ssrLoadModule(lib('settlement'));
-const {
-	classifyOvertimeByCalendarMonth,
-	deriveDailyOvertime,
-	philippineNightWorkHours,
-	priceDay,
-	regulatedMonthlyOvertimeHours
-} = await server.ssrLoadModule(lib('overtime'));
-const { isStatutoryOvertimePayCovered } = await server.ssrLoadModule(lib('measure'));
-const { classifyWageComparand, deriveStatutoryWages } = await server.ssrLoadModule(lib('coverage'));
-const { annualisedContractHourlyRate, ordinaryHourlyRate, ordinaryDayWage, overtimeHourlyRate } =
-	await server.ssrLoadModule(lib('ordinary-rate'));
-const { entrySign } = await server.ssrLoadModule(lib('entries'));
-const { settle } = await server.ssrLoadModule(lib('settle'));
+const [
+	{ roundMoney, roundHalfDay, floorHalfHour, cents },
+	{ selectBand, bandFloor },
+	{ bracketBase, parseSpecialRules },
+	{ contribute, scaleProgressive },
+	{ attendanceWindow, defaultPayPeriod, payPeriodsRemaining, resolveWindow },
+	{ inclusiveDays, dateKey: calendarDay },
+	{ accruedDays, unpaidLeaveInWindow },
+	{
+		extendedAbsenceDays,
+		inExtendedLeavePopulation,
+		overtimeAttendanceWindow,
+		readSettlementPolicy,
+		resolveEmploymentSettlement,
+		PLAIN_CALENDAR
+	},
+	{
+		classifyOvertimeByCalendarMonth,
+		deriveDailyOvertime,
+		philippineNightWorkHours,
+		priceDay,
+		regulatedMonthlyOvertimeHours
+	},
+	{ isStatutoryOvertimePayCovered },
+	{ classifyWageComparand, deriveStatutoryWages },
+	{
+		annualisedContractHourlyRate,
+		ordinaryHourlyRate,
+		ordinaryDayWage,
+		overtimeHourlyRate,
+		absenceDayRate
+	},
+	{ entrySign },
+	{ settle }
+] = modules;
 
 // ────────────────────────────────────────────────────────────────────────────────────────────────
 // Rounding — the five methods, including the ties this data is full of.
@@ -200,7 +231,12 @@ const claimLine = (settlement, amount) => ({
 // row at all: `payComponent` is null and the line carries the band that priced it.
 const overtimeLine = (amount) => ({
 	payComponent: null,
-	component: { kind: 'OVERTIME', day_type: 'ORDINARY', measure: 'BEYOND_NORMAL', band_from: 0 },
+	component: {
+		kind: 'OVERTIME',
+		day_type: 'ORDINARY',
+		measure: 'BEYOND_NORMAL',
+		band_from: 0
+	},
 	nature: 'EARNING',
 	label: 'OT_ORDINARY_BEYOND_NORMAL_0',
 	amount,
@@ -711,7 +747,11 @@ const COMPANY_B_POLICY = readSettlementPolicy({
 	}
 });
 const settle_ = (period, hire, exit, policy = COMPANY_A_POLICY) =>
-	resolveEmploymentSettlement({ dates: { hire, exit }, window: companyAWindow(period), policy });
+	resolveEmploymentSettlement({
+		dates: { hire, exit },
+		window: companyAWindow(period),
+		policy
+	});
 
 // Twenty-one January UL dates, but only the thirteen through 20 January belong to the
 // January payroll. The eight dates from 21–30 January settle in February under the ordinary cutoff.
@@ -826,7 +866,10 @@ check('with the window extended to cover them', bothRules.attendance, {
 });
 const apr0400 = settle_('2026-04', '2026-04-22', null);
 check('late joiner after window close defers April period', apr0400.runs, false);
-check('covering 22-30 April', apr0400.deferral?.days, { start: '2026-04-22', end: '2026-04-30' });
+check('covering 22-30 April', apr0400.deferral?.days, {
+	start: '2026-04-22',
+	end: '2026-04-30'
+});
 check(
 	'which is the workbook’s 690 exactly',
 	roundMoney(2300 * (inclusiveDays('2026-04-22', '2026-04-30') / 30), 'NEAREST_CENT'),
@@ -1537,22 +1580,26 @@ check('the comparand is basic plus cash-for-work, less nothing else', comparand,
 	value: 4250,
 	currency: 'MYR'
 });
+const mismatchedCurrency = Effect.runSync(
+	Effect.result(
+		Effect.try({
+			try: () =>
+				isStatutoryOvertimePayCovered({
+					...coverageArgs('NON_MANUAL', 3000),
+					rule: {
+						...MY_COVERAGE_RULE,
+						wage_ceiling: { value: 4000, currency: 'SGD' }
+					}
+				}),
+			catch: (error) => error
+		})
+	)
+);
 check(
 	'a ceiling in another currency than the wages still stops the run',
-	(() => {
-		try {
-			isStatutoryOvertimePayCovered({
-				...coverageArgs('NON_MANUAL', 3000),
-				rule: {
-					...MY_COVERAGE_RULE,
-					wage_ceiling: { value: 4000, currency: 'SGD' }
-				}
-			});
-			return 'no error';
-		} catch (error) {
-			return /different currency/.test(error.message) && /E-0001/.test(error.message);
-		}
-	})(),
+	Result.isFailure(mismatchedCurrency) &&
+		/different currency/.test(String(mismatchedCurrency.failure)) &&
+		/E-0001/.test(String(mismatchedCurrency.failure)),
 	true
 );
 
@@ -1784,7 +1831,6 @@ check(
  * Example: basic 3,451, npl 55.66 → 3451/31 = 111.32, 55.66 / 111.32 = exactly 0.5 days.
  * At the EA s.60I divisor of 26 the same half day would withhold 66.37 — 19% too much.
  */
-const { absenceDayRate } = await server.ssrLoadModule(lib('ordinary-rate'));
 const januaryTerms = {
 	base_salary: { value: 3451, currency: 'MYR' },
 	pay_frequency: 'MONTHLY',
@@ -1865,7 +1911,6 @@ check(
  * both halves of the contract — the text is taken as written, and a `Date`, if one ever appears,
  * is read as the UTC-anchored instant it is. Neither answer depends on where this process runs.
  */
-const { dateKey: calendarDay } = await server.ssrLoadModule(lib('dates'));
 check('the driver’s day text is taken as written', calendarDay('2026-01-01'), '2026-01-01');
 check('a year boundary is not rolled back', calendarDay('2026-01-01'), '2026-01-01');
 check(
@@ -1897,8 +1942,6 @@ check(
 	settle_('2026-01', '2025-12-31', null).arrearsFor?.days,
 	{ start: '2025-12-31', end: '2025-12-31' }
 );
-
-await server.close();
 
 console.log(`\n${passed} assertions passed.`);
 if (failures.length > 0) {

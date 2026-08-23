@@ -15,13 +15,7 @@ import { existsSync } from 'node:fs';
 import { registerHooks } from 'node:module';
 import { fileURLToPath } from 'node:url';
 
-const exists = (url) => {
-	try {
-		return existsSync(fileURLToPath(url));
-	} catch {
-		return false;
-	}
-};
+const exists = (url) => url.protocol === 'file:' && existsSync(fileURLToPath(url));
 
 registerHooks({
 	resolve(specifier, context, nextResolve) {

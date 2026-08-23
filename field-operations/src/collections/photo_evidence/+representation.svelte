@@ -41,7 +41,6 @@
 			<Grid minimum="compact">
 				<!-- A file() column: the value carries the file's own name, which is what DataRenderer
 				paints, so no key or id reaches the operator. -->
-				<!-- repository-health:allow UI17 -- file values render their owned filenames here, never a system id -->
 				<Column span="all"><Field name="photo" label={t('component.photo')} /></Column>
 				<Field
 					name="job_assignment_id"

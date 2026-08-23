@@ -343,14 +343,14 @@ export const employeeReferenceGrants = (...actions: Action[]): readonly Grant[] 
  * These used to be `team.id` values carried over from Core's seed verbatim — private
  * identifiers from one database, sitting in a public template, checked by nothing and unsatisfiable
  * anywhere that seed had not run. A team is a runtime row, so its id cannot be declared; its name can.
- * `bolt_team.name` is unique and compared folded wherever it is compared, so the name is a stable
+ * `team.name` is unique and compared folded wherever it is compared, so the name is a stable
  * key into whichever tenant this release is deployed into.
  *
  * Nothing checks these names at build or deploy time, and nothing can: the rows are operator data.
- * A name here with no `bolt_team` row behind it is not a refusal — it is a step nobody is eligible
+ * A name here with no `team` row behind it is not a refusal — it is a step nobody is eligible
  * to decide, which is the same outcome as a team that exists and is empty. That is a membership
  * problem, fixed by creating the team or putting somebody in it, and it is why these are the same
- * strings as the keys in `src/access/+teams.ts` and as the `bolt_team` rows this workspace is seeded
+ * strings as the keys in `src/access/+teams.ts` and as the `team` rows this workspace is seeded
  * with.
  *
  * The config and step **ids** are still carried verbatim, and that is a different thing: an in-flight
@@ -362,7 +362,7 @@ export const employeeReferenceGrants = (...actions: Action[]): readonly Grant[] 
  * That is the rule change underneath these constants. Membership used to be an array — somebody
  * could be in `HR Manager` and `L1 Manager` and `HQ Payroll HR` at once, so a step naming one team
  * was reachable by anyone who happened to also hold it. It is one team now
- * (`bolt_auth_user.team_id`), so a step naming a single team is decidable only by that exact team,
+ * (`user.team_id`), so a step naming a single team is decidable only by that exact team,
  * and every rung above it is locked out of a decision it obviously ought to be able to make.
  *
  * Approval checks each candidate against the person's own team (`subject.teamPath[0]`), so listing

@@ -99,7 +99,7 @@
 	 */
 	type NestedAgreement = WorkspaceRow<'repayment_agreements'> & {
 		readonly agreement_employment?: Pick<WorkspaceRow<'employments'>, 'employee_number'> | null;
-		readonly agreement_pay_component?: Pick<WorkspaceRow<'pay_components'>, 'code' | 'name'> | null;
+		readonly agreement_pay_component?: Pick<WorkspaceRow<'pay_components'>, 'code'> | null;
 		readonly agreement_instalments?: readonly RepaymentInstalmentLink[] | null;
 	};
 

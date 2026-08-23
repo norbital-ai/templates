@@ -330,6 +330,7 @@ export function configurationSnapshot(
 	configuration: Omit<Configuration, 'hash'>,
 	period: string
 ): Record<string, unknown> {
+	// repository-health:allow AR5 -- This is the deliberately smaller, stable hash projection: its external keys and normalized values are the configuration identity, not a reconstruction of Configuration.
 	return {
 		period,
 		company: configuration.company.id,

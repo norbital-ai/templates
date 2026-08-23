@@ -67,9 +67,9 @@ jobs:
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_REGISTRY_TOKEN || secrets.GITHUB_TOKEN }}
 
-      # The bundle format is the only cross-version contract between a template and a host, and this
-      # is the only thing that proves it: a real build against a materialized depset, whose
-      # `output/server/index.js` is then imported and checked for its `dispatch` export.
+      # The bundle format is the only cross-version contract between a template and a host. Compile
+      # a tracked template against a materialized depset, then decode and inspect the portable
+      # `.norbital/artifact/bundle.mjs` that `bolt sync` emits.
       - name: Verify the runtime bundle loads
         run: pnpm runtime:smoke
         env:

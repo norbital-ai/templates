@@ -36,12 +36,17 @@ import ExcelJS from 'exceljs';
 import { Effect } from 'effect';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const vite = await createServer({
-	root,
-	appType: 'custom',
-	logLevel: 'silent',
-	server: { middlewareMode: true }
-});
+const viteResource = Effect.acquireRelease(
+	Effect.tryPromise(() =>
+		createServer({
+			root,
+			appType: 'custom',
+			logLevel: 'silent',
+			server: { middlewareMode: true }
+		})
+	),
+	(vite) => Effect.orDie(Effect.tryPromise(() => vite.close()))
+);
 
 /** A payslip line, with every flag `report.ts` reads spelled out so no default is load-bearing. */
 const line = (overrides) => ({
@@ -318,254 +323,269 @@ function evaluateSum(sheet, rowNumber, column) {
 	return Math.round(total * 100) / 100;
 }
 
-try {
-	const { payrollReportXlsx } = await vite.ssrLoadModule(
-		'/src/collections/payroll_runs/lib/export.ts'
-	);
-	const { VENDOR_WORKBOOK_COLUMNS, VENDOR_WORKBOOK_SECTIONS } = await vite.ssrLoadModule(
-		'/src/collections/payroll_runs/lib/report.ts'
-	);
+Effect.runPromise(
+	Effect.scoped(
+		Effect.gen(function* () {
+			const vite = yield* viteResource;
+			const { payrollReportXlsx } = yield* Effect.tryPromise(() =>
+				vite.ssrLoadModule('/src/collections/payroll_runs/lib/export.ts')
+			);
+			const { VENDOR_WORKBOOK_COLUMNS, VENDOR_WORKBOOK_SECTIONS } = yield* Effect.tryPromise(() =>
+				vite.ssrLoadModule('/src/collections/payroll_runs/lib/report.ts')
+			);
 
-	const bytes = await Effect.runPromise(
-		payrollReportXlsx([
-			{ period: '2026-03', payDate: '2026-03-28', payslips: [VERIFIED, JOINER] },
-			{ period: '2026-04', payDate: '2026-04-28', payslips: [SINGAPORE] }
-		])
-	);
-	const archive = Uint8Array.from(bytes);
+			const bytes = yield* payrollReportXlsx([
+				{ period: '2026-03', payDate: '2026-03-28', payslips: [VERIFIED, JOINER] },
+				{ period: '2026-04', payDate: '2026-04-28', payslips: [SINGAPORE] }
+			]);
+			const archive = Uint8Array.from(bytes);
 
-	// "PK\x03\x04": an XLSX is a zip, and a workbook that failed to serialise is not one.
-	assert.deepEqual([...archive.subarray(0, 4)], [0x50, 0x4b, 0x03, 0x04]);
+			// "PK\x03\x04": an XLSX is a zip, and a workbook that failed to serialise is not one.
+			assert.deepEqual([...archive.subarray(0, 4)], [0x50, 0x4b, 0x03, 0x04]);
 
-	const workbook = new ExcelJS.Workbook();
-	await workbook.xlsx.load(archive);
+			const workbook = new ExcelJS.Workbook();
+			yield* Effect.tryPromise(() => workbook.xlsx.load(archive));
 
-	// ── the vendor sheet: named for the period an operator asked for ──────────────────────────────
-	const listing = workbook.getWorksheet('2026-03 Salary Listing');
-	assert.ok(listing, 'the MYR period has no "<period> Salary Listing" sheet');
-	assert.ok(listing.name.length <= 31, 'Excel refuses a worksheet name past 31 characters');
-	assert.equal(listing.state, 'visible');
-	assert.equal(listing.columnCount, VENDOR_WORKBOOK_COLUMNS.length);
-	assert.equal(VENDOR_WORKBOOK_COLUMNS.length, 58, 'the vendor column vocabulary changed');
+			// ── the vendor sheet: named for the period an operator asked for ──────────────────────────────
+			const listing = workbook.getWorksheet('2026-03 Salary Listing');
+			assert.ok(listing, 'the MYR period has no "<period> Salary Listing" sheet');
+			assert.ok(listing.name.length <= 31, 'Excel refuses a worksheet name past 31 characters');
+			assert.equal(listing.state, 'visible');
+			assert.equal(listing.columnCount, VENDOR_WORKBOOK_COLUMNS.length);
+			assert.equal(VENDOR_WORKBOOK_COLUMNS.length, 58, 'the vendor column vocabulary changed');
 
-	// ── the masthead: a title and the month, each merged across the whole sheet ───────────────────
-	assert.equal(listing.getCell(1, 1).value, 'SALARY LISTING');
-	assert.equal(mergeMaster(listing, 1, VENDOR_WORKBOOK_COLUMNS.length), 'A1');
-	assert.equal(
-		listing.getCell(2, 1).value,
-		'Salary month: 2026-03   ·   Pay date: 2026-03-28',
-		'row 2 must name the period and the pay date the run settled on'
-	);
-	assert.equal(mergeMaster(listing, 2, VENDOR_WORKBOOK_COLUMNS.length), 'A2');
-
-	// ── row 4: the section band, each name over exactly the columns of its own section ────────────
-	let column = 1;
-	const bandedSections = [];
-	for (const section of VENDOR_WORKBOOK_SECTIONS) {
-		const from = column;
-		const to = from + section.outputIds.length - 1;
-		bandedSections.push([section.name, from, to]);
-		assert.equal(
-			listing.getCell(4, from).value,
-			section.name,
-			`section ${section.name} does not start at column ${from}`
-		);
-		const owner = `${listing.getColumn(from).letter}4`;
-		for (let position = from; position <= to; position += 1)
+			// ── the masthead: a title and the month, each merged across the whole sheet ───────────────────
+			assert.equal(listing.getCell(1, 1).value, 'SALARY LISTING');
+			assert.equal(mergeMaster(listing, 1, VENDOR_WORKBOOK_COLUMNS.length), 'A1');
 			assert.equal(
-				mergeMaster(listing, 4, position),
-				from === to ? null : owner,
-				`column ${position} is not banded under ${section.name}`
+				listing.getCell(2, 1).value,
+				'Salary month: 2026-03   ·   Pay date: 2026-03-28',
+				'row 2 must name the period and the pay date the run settled on'
 			);
-		if (to + 1 <= VENDOR_WORKBOOK_COLUMNS.length)
-			assert.notEqual(
-				mergeMaster(listing, 4, to + 1),
-				owner,
-				`${section.name} bleeds past column ${to}`
-			);
-		column = to + 1;
-	}
-	assert.equal(column - 1, VENDOR_WORKBOOK_COLUMNS.length, 'the band does not cover every column');
-	assert.deepEqual(bandedSections, [
-		['Identity', 1, 8],
-		['Earnings & absence', 9, 20],
-		['Gross', 21, 21],
-		['Post-gross payments & deductions', 22, 31],
-		['Net', 32, 32],
-		['Statutory', 33, 43],
-		['Totals & bases', 44, 50],
-		['Attendance', 51, 58]
-	]);
+			assert.equal(mergeMaster(listing, 2, VENDOR_WORKBOOK_COLUMNS.length), 'A2');
 
-	// ── row 5: the column headers, in the vendor vocabulary's own order ───────────────────────────
-	assert.deepEqual(rowValues(listing, 5), VENDOR_HEADERS);
-
-	// ── row 6: what NHPMY0023 was actually paid, cell by cell ─────────────────────────────────────
-	const at = (rowNumber, outputId) =>
-		listing.getRow(rowNumber).getCell(VENDOR_WORKBOOK_COLUMNS.indexOf(outputId) + 1).value;
-	assert.equal(at(6, 'eid'), 'NHPMY0023');
-	assert.equal(at(6, 'name'), 'Aisyah binti Rahman');
-	assert.equal(at(6, 'ic_no'), '920104-10-5522');
-	assert.equal(at(6, 'designation'), 'Machine Operator');
-	assert.equal(at(6, 'basic_salary'), 3451);
-	// The overtime column carries priced overtime only; the claim is not an allowance and the
-	// unpaid-leave deduction is not netted into either.
-	assert.equal(at(6, 'allowance'), 0);
-	assert.equal(at(6, 'overtime'), 365.44);
-	assert.equal(at(6, 'no_pay_leave'), 55.66);
-	assert.equal(at(6, 'gross_salary'), 3760.78);
-	assert.equal(at(6, 'medical_claim'), 93.5);
-	assert.equal(at(6, 'net_salary'), 3454.03);
-	assert.equal(at(6, 'epf_employee'), 374);
-	assert.equal(at(6, 'epf_employer'), 442);
-	assert.equal(at(6, 'socso_employee'), 18.75);
-	assert.equal(at(6, 'socso_employer'), 65.65);
-	assert.equal(at(6, 'eis_employee'), 7.5);
-	assert.equal(at(6, 'total_epf'), 816);
-	assert.equal(at(6, 'total_socso'), 84.4);
-	assert.equal(at(6, 'total_eis'), 15);
-	assert.equal(at(6, 'epf_gross'), 3395.34);
-	assert.equal(at(6, 'socso_gross'), 3760.78);
-	// The vendor workbook prints post-EPF remuneration here, not the PCB scheme's gross input.
-	assert.equal(at(6, 'remuneration_for_tax'), 3386.78);
-	assert.equal(at(6, 'total_expenses'), 4369.43, 'gross + incentive OT + medical claim + employer');
-	// Ordinary overtime is a 1.5× bucket; nothing lands in the rest-day or holiday ones.
-	assert.equal(at(6, 'att_ot_15x_hours'), 22);
-	assert.equal(at(6, 'att_ot_1x_hours'), 0);
-	assert.equal(at(6, 'att_ot_2x_hours'), 0);
-	assert.equal(at(6, 'att_normal_hours'), 208);
-	assert.equal(at(6, 'att_actual_hours'), 230);
-	assert.equal(at(6, 'att_shift_codes'), 'D');
-
-	// ── row 7: the joiner, whose money reaches different columns from the same shapes ─────────────
-	assert.equal(at(7, 'eid'), 'NHPMY0400');
-	assert.equal(at(7, 'basic_salary'), 690, '2,300 × 9/30, the source workbook’s own figure');
-	assert.equal(at(7, 'allowance'), 150, 'a standing allowance is not overtime and not basic');
-	assert.equal(at(7, 'overtime'), 132.73, 'a rest day pays a day’s wages, not eight hourly units');
-	assert.equal(at(7, 'incentive_ot'), 33.18, 'reclassified overtime leaves the overtime column');
-	assert.equal(at(7, 'loan_recovery'), 100);
-	assert.equal(at(7, 'gross_salary'), 1005.91);
-	assert.equal(at(7, 'net_salary'), 822.86);
-	assert.equal(at(7, 'att_ot_2x_hours'), 8, 'rest-day hours are the 2.0× bucket');
-	assert.equal(at(7, 'att_ot_15x_hours'), 0);
-	assert.equal(at(7, 'att_ot_1x_hours'), 1, 'excess hours are valued plain, so they read 1.0×');
-	assert.equal(at(7, 'att_shift_codes'), 'D, N');
-
-	// ── row 8: TOTAL, and it really is the total ──────────────────────────────────────────────────
-	const totalRow = 8;
-	assert.equal(at(totalRow, 'eid'), 'TOTAL');
-	const totalOf = (outputId) =>
-		evaluateSum(listing, totalRow, VENDOR_WORKBOOK_COLUMNS.indexOf(outputId) + 1);
-	assert.equal(totalOf('basic_salary'), 4141);
-	assert.equal(totalOf('overtime'), 498.17);
-	assert.equal(totalOf('gross_salary'), 4766.69);
-	assert.equal(totalOf('net_salary'), 4276.89);
-	assert.equal(totalOf('epf_employee'), 450);
-	assert.equal(totalOf('epf_employer'), 532);
-	assert.equal(totalOf('total_expenses'), 5518.17);
-	assert.equal(totalOf('att_ot_2x_hours'), 8);
-	// Every money and hours column is totalled; the two text columns are deliberately not.
-	for (const [index, outputId] of VENDOR_WORKBOOK_COLUMNS.entries()) {
-		const value = listing.getRow(totalRow).getCell(index + 1).value;
-		if (index < 8 || outputId === 'remark' || outputId === 'att_shift_codes') {
+			// ── row 4: the section band, each name over exactly the columns of its own section ────────────
+			let column = 1;
+			const bandedSections = [];
+			for (const section of VENDOR_WORKBOOK_SECTIONS) {
+				const from = column;
+				const to = from + section.outputIds.length - 1;
+				bandedSections.push([section.name, from, to]);
+				assert.equal(
+					listing.getCell(4, from).value,
+					section.name,
+					`section ${section.name} does not start at column ${from}`
+				);
+				const owner = `${listing.getColumn(from).letter}4`;
+				for (let position = from; position <= to; position += 1)
+					assert.equal(
+						mergeMaster(listing, 4, position),
+						from === to ? null : owner,
+						`column ${position} is not banded under ${section.name}`
+					);
+				if (to + 1 <= VENDOR_WORKBOOK_COLUMNS.length)
+					assert.notEqual(
+						mergeMaster(listing, 4, to + 1),
+						owner,
+						`${section.name} bleeds past column ${to}`
+					);
+				column = to + 1;
+			}
 			assert.equal(
-				typeof value?.formula,
-				'undefined',
-				`${outputId} must not carry a SUM — it is not a number`
+				column - 1,
+				VENDOR_WORKBOOK_COLUMNS.length,
+				'the band does not cover every column'
 			);
-			continue;
-		}
-		assert.equal(typeof value?.formula, 'string', `${outputId} has no TOTAL`);
-	}
-	assert.equal(listing.rowCount, totalRow, 'nothing is written below the TOTAL row');
+			assert.deepEqual(bandedSections, [
+				['Identity', 1, 8],
+				['Earnings & absence', 9, 20],
+				['Gross', 21, 21],
+				['Post-gross payments & deductions', 22, 31],
+				['Net', 32, 32],
+				['Statutory', 33, 43],
+				['Totals & bases', 44, 50],
+				['Attendance', 51, 58]
+			]);
 
-	// ── the generic sheet is kept, and kept out of the way ────────────────────────────────────────
-	const hidden = workbook.getWorksheet('2026-03');
-	assert.ok(hidden, 'the machine-readable sheet must survive the vendor layout');
-	assert.equal(hidden.state, 'veryHidden');
-	assert.equal(hidden.getRow(1).getCell(1).value, 'designation', 'row 1 stays the output ids');
+			// ── row 5: the column headers, in the vendor vocabulary's own order ───────────────────────────
+			assert.deepEqual(rowValues(listing, 5), VENDOR_HEADERS);
 
-	// ── a non-MYR period keeps the generic layout, and its statutory columns are what CPF charged ─
-	const generic = workbook.getWorksheet('2026-04');
-	assert.ok(generic, 'the SGD period has no sheet');
-	assert.equal(generic.state, 'visible');
-	assert.equal(
-		workbook.getWorksheet('2026-04 Salary Listing'),
-		undefined,
-		'a non-MYR population must not be dressed in the Malaysian vendor layout'
-	);
-	assert.deepEqual(rowValues(generic, 1), [
-		'Employee number',
-		'Employment ID',
-		'Currency',
-		'proratedSalary',
-		'taxableBenefits',
-		'exemptBenefits',
-		'overtimePay',
-		'totalUnpaidLeaveDeduction',
-		'grossEarnings',
-		'incentiveOTPay',
-		'totalClaims',
-		'loanRecovery',
-		'adhocDeductions',
-		'netPay',
-		'cpfEmployee',
-		'cpfEmployer',
-		'sdl',
-		'totalCpf',
-		'totalDeductions',
-		'employerCost',
-		'ot10Hours',
-		'ot15Hours',
-		'ot20Hours',
-		'ot30Hours',
-		'totalOTHours'
-	]);
-	// The band sits below the headers here, and column A stays blank so a row walker can tell a band
-	// from a payslip by the absence of an employee number.
-	assert.equal(generic.getRow(2).getCell(1).value, null);
-	assert.equal(generic.getRow(2).getCell(2).value, 'Identity');
-	assert.equal(mergeMaster(generic, 2, 3), 'B2');
-	assert.equal(generic.getRow(2).getCell(4).value, 'Earnings & absence');
-	assert.equal(generic.getRow(2).getCell(9).value, 'Gross');
-	assert.equal(generic.getRow(2).getCell(15).value, 'Statutory');
-	assert.deepEqual(rowValues(generic, 3), [
-		'NHPSG0001',
-		'emp-sg-1',
-		'SGD',
-		5000,
-		0,
-		0,
-		300,
-		0,
-		5300,
-		0,
-		0,
-		0,
-		0,
-		4240,
-		1060,
-		901,
-		13.25,
-		1961,
-		1060,
-		914.25,
-		0,
-		10,
-		0,
-		0,
-		10
-	]);
+			// ── row 6: what NHPMY0023 was actually paid, cell by cell ─────────────────────────────────────
+			const at = (rowNumber, outputId) =>
+				listing.getRow(rowNumber).getCell(VENDOR_WORKBOOK_COLUMNS.indexOf(outputId) + 1).value;
+			assert.equal(at(6, 'eid'), 'NHPMY0023');
+			assert.equal(at(6, 'name'), 'Aisyah binti Rahman');
+			assert.equal(at(6, 'ic_no'), '920104-10-5522');
+			assert.equal(at(6, 'designation'), 'Machine Operator');
+			assert.equal(at(6, 'basic_salary'), 3451);
+			// The overtime column carries priced overtime only; the claim is not an allowance and the
+			// unpaid-leave deduction is not netted into either.
+			assert.equal(at(6, 'allowance'), 0);
+			assert.equal(at(6, 'overtime'), 365.44);
+			assert.equal(at(6, 'no_pay_leave'), 55.66);
+			assert.equal(at(6, 'gross_salary'), 3760.78);
+			assert.equal(at(6, 'medical_claim'), 93.5);
+			assert.equal(at(6, 'net_salary'), 3454.03);
+			assert.equal(at(6, 'epf_employee'), 374);
+			assert.equal(at(6, 'epf_employer'), 442);
+			assert.equal(at(6, 'socso_employee'), 18.75);
+			assert.equal(at(6, 'socso_employer'), 65.65);
+			assert.equal(at(6, 'eis_employee'), 7.5);
+			assert.equal(at(6, 'total_epf'), 816);
+			assert.equal(at(6, 'total_socso'), 84.4);
+			assert.equal(at(6, 'total_eis'), 15);
+			assert.equal(at(6, 'epf_gross'), 3395.34);
+			assert.equal(at(6, 'socso_gross'), 3760.78);
+			// The vendor workbook prints post-EPF remuneration here, not the PCB scheme's gross input.
+			assert.equal(at(6, 'remuneration_for_tax'), 3386.78);
+			assert.equal(
+				at(6, 'total_expenses'),
+				4369.43,
+				'gross + incentive OT + medical claim + employer'
+			);
+			// Ordinary overtime is a 1.5× bucket; nothing lands in the rest-day or holiday ones.
+			assert.equal(at(6, 'att_ot_15x_hours'), 22);
+			assert.equal(at(6, 'att_ot_1x_hours'), 0);
+			assert.equal(at(6, 'att_ot_2x_hours'), 0);
+			assert.equal(at(6, 'att_normal_hours'), 208);
+			assert.equal(at(6, 'att_actual_hours'), 230);
+			assert.equal(at(6, 'att_shift_codes'), 'D');
 
-	// ── and an empty period still writes a real archive, as it always did ─────────────────────────
-	const emptyBytes = await Effect.runPromise(
-		payrollReportXlsx([{ period: 'verification', payslips: [] }])
-	);
-	const empty = new ExcelJS.Workbook();
-	await empty.xlsx.load(Uint8Array.from(emptyBytes));
-	assert.equal(empty.getWorksheet('verification')?.name, 'verification');
+			// ── row 7: the joiner, whose money reaches different columns from the same shapes ─────────────
+			assert.equal(at(7, 'eid'), 'NHPMY0400');
+			assert.equal(at(7, 'basic_salary'), 690, '2,300 × 9/30, the source workbook’s own figure');
+			assert.equal(at(7, 'allowance'), 150, 'a standing allowance is not overtime and not basic');
+			assert.equal(
+				at(7, 'overtime'),
+				132.73,
+				'a rest day pays a day’s wages, not eight hourly units'
+			);
+			assert.equal(
+				at(7, 'incentive_ot'),
+				33.18,
+				'reclassified overtime leaves the overtime column'
+			);
+			assert.equal(at(7, 'loan_recovery'), 100);
+			assert.equal(at(7, 'gross_salary'), 1005.91);
+			assert.equal(at(7, 'net_salary'), 822.86);
+			assert.equal(at(7, 'att_ot_2x_hours'), 8, 'rest-day hours are the 2.0× bucket');
+			assert.equal(at(7, 'att_ot_15x_hours'), 0);
+			assert.equal(at(7, 'att_ot_1x_hours'), 1, 'excess hours are valued plain, so they read 1.0×');
+			assert.equal(at(7, 'att_shift_codes'), 'D, N');
 
-	console.log(`Payroll XLSX verified (${archive.byteLength} bytes, ${listing.rowCount} rows).`);
-} finally {
-	await vite.close();
-}
+			// ── row 8: TOTAL, and it really is the total ──────────────────────────────────────────────────
+			const totalRow = 8;
+			assert.equal(at(totalRow, 'eid'), 'TOTAL');
+			const totalOf = (outputId) =>
+				evaluateSum(listing, totalRow, VENDOR_WORKBOOK_COLUMNS.indexOf(outputId) + 1);
+			assert.equal(totalOf('basic_salary'), 4141);
+			assert.equal(totalOf('overtime'), 498.17);
+			assert.equal(totalOf('gross_salary'), 4766.69);
+			assert.equal(totalOf('net_salary'), 4276.89);
+			assert.equal(totalOf('epf_employee'), 450);
+			assert.equal(totalOf('epf_employer'), 532);
+			assert.equal(totalOf('total_expenses'), 5518.17);
+			assert.equal(totalOf('att_ot_2x_hours'), 8);
+			// Every money and hours column is totalled; the two text columns are deliberately not.
+			for (const [index, outputId] of VENDOR_WORKBOOK_COLUMNS.entries()) {
+				const value = listing.getRow(totalRow).getCell(index + 1).value;
+				if (index < 8 || outputId === 'remark' || outputId === 'att_shift_codes') {
+					assert.equal(
+						typeof value?.formula,
+						'undefined',
+						`${outputId} must not carry a SUM — it is not a number`
+					);
+					continue;
+				}
+				assert.equal(typeof value?.formula, 'string', `${outputId} has no TOTAL`);
+			}
+			assert.equal(listing.rowCount, totalRow, 'nothing is written below the TOTAL row');
+
+			// ── the generic sheet is kept, and kept out of the way ────────────────────────────────────────
+			const hidden = workbook.getWorksheet('2026-03');
+			assert.ok(hidden, 'the machine-readable sheet must survive the vendor layout');
+			assert.equal(hidden.state, 'veryHidden');
+			assert.equal(hidden.getRow(1).getCell(1).value, 'designation', 'row 1 stays the output ids');
+
+			// ── a non-MYR period keeps the generic layout, and its statutory columns are what CPF charged ─
+			const generic = workbook.getWorksheet('2026-04');
+			assert.ok(generic, 'the SGD period has no sheet');
+			assert.equal(generic.state, 'visible');
+			assert.equal(
+				workbook.getWorksheet('2026-04 Salary Listing'),
+				undefined,
+				'a non-MYR population must not be dressed in the Malaysian vendor layout'
+			);
+			assert.deepEqual(rowValues(generic, 1), [
+				'Employee number',
+				'Employment ID',
+				'Currency',
+				'proratedSalary',
+				'taxableBenefits',
+				'exemptBenefits',
+				'overtimePay',
+				'totalUnpaidLeaveDeduction',
+				'grossEarnings',
+				'incentiveOTPay',
+				'totalClaims',
+				'loanRecovery',
+				'adhocDeductions',
+				'netPay',
+				'cpfEmployee',
+				'cpfEmployer',
+				'sdl',
+				'totalCpf',
+				'totalDeductions',
+				'employerCost',
+				'ot10Hours',
+				'ot15Hours',
+				'ot20Hours',
+				'ot30Hours',
+				'totalOTHours'
+			]);
+			// The band sits below the headers here, and column A stays blank so a row walker can tell a band
+			// from a payslip by the absence of an employee number.
+			assert.equal(generic.getRow(2).getCell(1).value, null);
+			assert.equal(generic.getRow(2).getCell(2).value, 'Identity');
+			assert.equal(mergeMaster(generic, 2, 3), 'B2');
+			assert.equal(generic.getRow(2).getCell(4).value, 'Earnings & absence');
+			assert.equal(generic.getRow(2).getCell(9).value, 'Gross');
+			assert.equal(generic.getRow(2).getCell(15).value, 'Statutory');
+			assert.deepEqual(rowValues(generic, 3), [
+				'NHPSG0001',
+				'emp-sg-1',
+				'SGD',
+				5000,
+				0,
+				0,
+				300,
+				0,
+				5300,
+				0,
+				0,
+				0,
+				0,
+				4240,
+				1060,
+				901,
+				13.25,
+				1961,
+				1060,
+				914.25,
+				0,
+				10,
+				0,
+				0,
+				10
+			]);
+
+			// ── and an empty period still writes a real archive, as it always did ─────────────────────────
+			const emptyBytes = yield* payrollReportXlsx([{ period: 'verification', payslips: [] }]);
+			const empty = new ExcelJS.Workbook();
+			yield* Effect.tryPromise(() => empty.xlsx.load(Uint8Array.from(emptyBytes)));
+			assert.equal(empty.getWorksheet('verification')?.name, 'verification');
+
+			console.log(`Payroll XLSX verified (${archive.byteLength} bytes, ${listing.rowCount} rows).`);
+		})
+	)
+);

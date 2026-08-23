@@ -27,12 +27,17 @@ import { Effect } from 'effect';
 import { createServer } from 'vite';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const vite = await createServer({
-	root,
-	appType: 'custom',
-	logLevel: 'silent',
-	server: { middlewareMode: true }
-});
+const viteResource = Effect.acquireRelease(
+	Effect.tryPromise(() =>
+		createServer({
+			root,
+			appType: 'custom',
+			logLevel: 'silent',
+			server: { middlewareMode: true }
+		})
+	),
+	(vite) => Effect.orDie(Effect.tryPromise(() => vite.close()))
+);
 
 /** The window a Malaysian cutoff of 21 gives March, and the day it pays. */
 const RUN = {
@@ -297,120 +302,123 @@ function stubApi(tables) {
 	};
 }
 
-try {
-	const { loadRunExports } = await vite.ssrLoadModule(
-		'/src/collections/payroll_runs/lib/export-data.ts'
-	);
-	const { overtimeBandCode } = await vite.ssrLoadModule(
-		'/src/collections/payroll_runs/lib/overtime.ts'
-	);
-	const { vendorWorkbookRow } = await vite.ssrLoadModule(
-		'/src/collections/payroll_runs/lib/report.ts'
-	);
+Effect.runPromise(
+	Effect.scoped(
+		Effect.gen(function* () {
+			const vite = yield* viteResource;
+			const { loadRunExports } = yield* Effect.tryPromise(() =>
+				vite.ssrLoadModule('/src/collections/payroll_runs/lib/export-data.ts')
+			);
+			const { overtimeBandCode } = yield* Effect.tryPromise(() =>
+				vite.ssrLoadModule('/src/collections/payroll_runs/lib/overtime.ts')
+			);
+			const { vendorWorkbookRow } = yield* Effect.tryPromise(() =>
+				vite.ssrLoadModule('/src/collections/payroll_runs/lib/report.ts')
+			);
 
-	const api = stubApi({
-		payslips: PAYSLIPS,
-		payslip_lines: PAYSLIP_LINES,
-		employments: EMPLOYMENTS,
-		pay_components: [BASIC],
-		employment_terms: TERMS,
-		time_entries: [],
-		roster_entries: ROSTER_ENTRIES,
-		employees: [
-			{
-				id: 'employee:pattern',
-				name: 'Aisyah binti Rahman',
-				identity_number: '920104-10-5522'
-			},
-			{ id: 'employee:leaver', name: 'Tan Wei Ming', identity_number: '001122-14-3311' }
-		],
-		shift_definitions: [DAY_SHIFT, REST_CODE, NIGHT_SHIFT],
-		statutory_contributions: []
-	});
+			const api = stubApi({
+				payslips: PAYSLIPS,
+				payslip_lines: PAYSLIP_LINES,
+				employments: EMPLOYMENTS,
+				pay_components: [BASIC],
+				employment_terms: TERMS,
+				time_entries: [],
+				roster_entries: ROSTER_ENTRIES,
+				employees: [
+					{
+						id: 'employee:pattern',
+						name: 'Aisyah binti Rahman',
+						identity_number: '920104-10-5522'
+					},
+					{ id: 'employee:leaver', name: 'Tan Wei Ming', identity_number: '001122-14-3311' }
+				],
+				shift_definitions: [DAY_SHIFT, REST_CODE, NIGHT_SHIFT],
+				statutory_contributions: []
+			});
 
-	const [run] = await Effect.runPromise(loadRunExports(api, [RUN]));
-	assert.equal(run.period, '2026-03');
-	assert.equal(run.payDate, '2026-03-28');
-	assert.equal(run.payslips.length, 2);
+			const [run] = yield* loadRunExports(api, [RUN]);
+			assert.equal(run.period, '2026-03');
+			assert.equal(run.payDate, '2026-03-28');
+			assert.equal(run.payslips.length, 2);
 
-	const [patterned, leaver] = run.payslips;
+			const [patterned, leaver] = run.payslips;
 
-	// ── a derived overtime line has no pay component and still reaches the workbook ────────────────
-	assert.deepEqual(
-		patterned.lines.map((line) => line.payComponentCode),
-		['BASIC', 'OT_REST_DAY_FROM_START_OF_DAY_0_5', 'OT_EXCESS_REST_DAY_BEYOND_NORMAL_0'],
-		'both overtime arms report under the band code they were priced by'
-	);
-	assert.equal(
-		patterned.lines[1].payComponentCode,
-		overtimeBandCode({
-			excess: false,
-			dayType: 'REST_DAY',
-			measure: 'FROM_START_OF_DAY',
-			bandFrom: 0.5
-		}),
-		'the exported code is the same one `measure.ts` labelled the line with'
-	);
-	assert.equal(patterned.lines[1].overtimeDayType, 'REST_DAY');
-	assert.equal(patterned.lines[1].isOvertimeExcess, false);
-	assert.equal(patterned.lines[2].isOvertimeExcess, true);
-	assert.equal(patterned.lines[2].calculationSource, 'OVERTIME_EXCESS');
+			// ── a derived overtime line has no pay component and still reaches the workbook ────────────────
+			assert.deepEqual(
+				patterned.lines.map((line) => line.payComponentCode),
+				['BASIC', 'OT_REST_DAY_FROM_START_OF_DAY_0_5', 'OT_EXCESS_REST_DAY_BEYOND_NORMAL_0'],
+				'both overtime arms report under the band code they were priced by'
+			);
+			assert.equal(
+				patterned.lines[1].payComponentCode,
+				overtimeBandCode({
+					excess: false,
+					dayType: 'REST_DAY',
+					measure: 'FROM_START_OF_DAY',
+					bandFrom: 0.5
+				}),
+				'the exported code is the same one `measure.ts` labelled the line with'
+			);
+			assert.equal(patterned.lines[1].overtimeDayType, 'REST_DAY');
+			assert.equal(patterned.lines[1].isOvertimeExcess, false);
+			assert.equal(patterned.lines[2].isOvertimeExcess, true);
+			assert.equal(patterned.lines[2].calculationSource, 'OVERTIME_EXCESS');
 
-	const row = vendorWorkbookRow(patterned);
-	assert.equal(row.overtime, 132.73, 'statutory overtime is the Overtime column');
-	assert.equal(row.incentive_ot, 33.18, 'reclassified overtime is the OT Incentive column');
-	assert.equal(row.allowance, 0, 'neither arm leaks into the allowance column');
-	assert.equal(row.att_ot_2x_hours, 8, 'rest-day hours are the 2.0× bucket');
-	assert.equal(row.att_ot_1x_hours, 1, 'excess hours are valued plain, so they read 1.0×');
+			const row = vendorWorkbookRow(patterned);
+			assert.equal(row.overtime, 132.73, 'statutory overtime is the Overtime column');
+			assert.equal(row.incentive_ot, 33.18, 'reclassified overtime is the OT Incentive column');
+			assert.equal(row.allowance, 0, 'neither arm leaks into the allowance column');
+			assert.equal(row.att_ot_2x_hours, 8, 'rest-day hours are the 2.0× bucket');
+			assert.equal(row.att_ot_1x_hours, 1, 'excess hours are valued plain, so they read 1.0×');
 
-	// ── the schedule is the pattern, with the month's overrides on top ─────────────────────────────
-	const overriddenWasWork = patternedCode(OVERRIDE_DATE) === DAY_SHIFT.id;
-	assert.equal(overriddenWasWork, false, 'the override lands on a patterned rest day');
-	assert.equal(
-		patterned.attendance.normalHours,
-		PATTERNED_WORK_DAYS.length * DAY_PAID_HOURS + 8,
-		'every patterned working day counts, and the night-shift override adds its own window'
-	);
-	assert.ok(
-		PATTERNED_WORK_DAYS.length > 0,
-		'the window has patterned working days, or the assertion above proves nothing'
-	);
-	assert.deepEqual(
-		patterned.attendance.shiftCodes,
-		['D', 'N', 'REST'],
-		'the codes are the pattern’s own plus the day that departed from it'
-	);
-	assert.equal(row.att_normal_hours, patterned.attendance.normalHours);
-	assert.equal(row.att_shift_codes, 'D, N, REST');
+			// ── the schedule is the pattern, with the month's overrides on top ─────────────────────────────
+			const overriddenWasWork = patternedCode(OVERRIDE_DATE) === DAY_SHIFT.id;
+			assert.equal(overriddenWasWork, false, 'the override lands on a patterned rest day');
+			assert.equal(
+				patterned.attendance.normalHours,
+				PATTERNED_WORK_DAYS.length * DAY_PAID_HOURS + 8,
+				'every patterned working day counts, and the night-shift override adds its own window'
+			);
+			assert.ok(
+				PATTERNED_WORK_DAYS.length > 0,
+				'the window has patterned working days, or the assertion above proves nothing'
+			);
+			assert.deepEqual(
+				patterned.attendance.shiftCodes,
+				['D', 'N', 'REST'],
+				'the codes are the pattern’s own plus the day that departed from it'
+			);
+			assert.equal(row.att_normal_hours, patterned.attendance.normalHours);
+			assert.equal(row.att_shift_codes, 'D, N, REST');
 
-	// ── a leaver keeps their identity, and is scheduled only up to their last day ──────────────────
-	assert.equal(leaver.employeeNumber, 'NHPMY0400');
-	assert.equal(leaver.lastDay, '2026-03-05');
-	assert.equal(
-		leaver.designation,
-		'Packer',
-		'terms are read at the last day worked, not the pay date'
-	);
-	assert.equal(leaver.section, 'Warehouse');
-	assert.equal(leaver.group, 'MY-MONTHLY');
-	assert.equal(
-		leaver.attendance.normalHours,
-		PATTERNED_WORK_DAYS.filter((date) => date <= '2026-03-05').length * DAY_PAID_HOURS,
-		'nobody is scheduled after they leave'
-	);
+			// ── a leaver keeps their identity, and is scheduled only up to their last day ──────────────────
+			assert.equal(leaver.employeeNumber, 'NHPMY0400');
+			assert.equal(leaver.lastDay, '2026-03-05');
+			assert.equal(
+				leaver.designation,
+				'Packer',
+				'terms are read at the last day worked, not the pay date'
+			);
+			assert.equal(leaver.section, 'Warehouse');
+			assert.equal(leaver.group, 'MY-MONTHLY');
+			assert.equal(
+				leaver.attendance.normalHours,
+				PATTERNED_WORK_DAYS.filter((date) => date <= '2026-03-05').length * DAY_PAID_HOURS,
+				'nobody is scheduled after they leave'
+			);
 
-	// ── the bank file skips the payslip with no destination, and says whose ───────────────────────
-	assert.deepEqual(
-		run.bank.map((payment) => payment.employeeNumber),
-		['NHPMY0002']
-	);
-	assert.equal(run.bank[0].net, 3454.03);
-	assert.deepEqual(run.skippedEmploymentIds, ['employment:leaver']);
+			// ── the bank file skips the payslip with no destination, and says whose ───────────────────────
+			assert.deepEqual(
+				run.bank.map((payment) => payment.employeeNumber),
+				['NHPMY0002']
+			);
+			assert.equal(run.bank[0].net, 3454.03);
+			assert.deepEqual(run.skippedEmploymentIds, ['employment:leaver']);
 
-	console.log(
-		`payroll export data verified (${run.payslips.length} payslips, ` +
-			`${patterned.attendance.normalHours} normal hours, ${run.bank.length} bank payments).`
-	);
-} finally {
-	await vite.close();
-}
+			console.log(
+				`payroll export data verified (${run.payslips.length} payslips, ` +
+					`${patterned.attendance.normalHours} normal hours, ${run.bank.length} bank payments).`
+			);
+		})
+	)
+);

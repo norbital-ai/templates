@@ -64,7 +64,7 @@ export default defineModel(
 				name: 'employment_terms_no_overlap',
 				elements: [
 					{ expr: 'employment_id', with: '=' },
-					{ expr: 'norbital_daterange(effective_range)', with: '&&' }
+					{ expr: 'bolt_daterange(effective_range)', with: '&&' }
 				]
 			}
 		]

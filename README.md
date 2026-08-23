@@ -1,7 +1,7 @@
 # Norbital templates
 
 Starter workspaces for [Norbital](https://norbital.ai). Each directory here is a standalone,
-filesystem-first Bolt project that can be installed, synchronized, type-checked, built, migrated,
+filesystem-first Bolt project that can be installed, synchronized, type-checked, migrated,
 and seeded with the public Bolt CLI — and forked into a tenant.
 
 | Template                                    | Directory           | Organization handle     | Purpose                                                                        |
@@ -57,11 +57,11 @@ so you install and run inside the template directory:
 pnpm --dir crm install
 pnpm --dir crm sync
 pnpm --dir crm lint
-pnpm --dir crm build
 ```
 
-`sync` derives Bolt assembly and migrations. Commit authored source and `.norbital/migrations/`, but
-do not edit or commit other generated `.norbital` output.
+`sync` derives Bolt assembly and migrations and emits the deployable portable artifact at
+`.norbital/artifact/bundle.mjs`; there is no separate per-template build command. Commit authored
+source and `.norbital/migrations/`, but do not edit or commit other generated `.norbital` output.
 
 Repository-wide equivalents loop over every template:
 
@@ -69,7 +69,6 @@ Repository-wide equivalents loop over every template:
 pnpm templates:install
 pnpm templates:sync
 pnpm templates:lint
-pnpm templates:build
 ```
 
 Because `@norbital-ai/*` come from GitHub Packages, an install needs a `NODE_AUTH_TOKEN` with
@@ -100,16 +99,22 @@ in-product picker, and it is independent of which repository the template lives 
 
 ## Release and tenant lifecycle
 
-Publishing advances the fast-forward-only `refs/heads/templates/<key>` branch to a new commit
-produced by `git subtree split` of the template directory, so the projected tree is the template
-tree with nothing above it. A tenant is _forked_ from that commit, so it shares ancestry with the
-template and adopting a newer one is a real three-way rebase, not a conflicting re-add of every
-file. A tenant records the exact commit it adopted rather than tracking the moving branch
-implicitly, and is told when its upstream is ahead — it never moves on its own.
+Publishing advances the fast-forward-only `refs/heads/templates/<key>` branch to a commit produced
+by `git subtree split` of the template directory, so the projected tree contains the standalone
+template and nothing above it. Before that ref moves, the release workflow compiles the exact
+projection and publishes its canonical portable-artifact package.
 
-A host resolves the active set with one
-`git ls-remote --heads <url> 'refs/heads/templates/*'` round trip. There is no mirror, no catalogue
-file, and no provider API.
+A remote Colony host enumerates `refs/heads/templates/*` on each configured template origin, fetches
+the exact advertised commit into its local cache, and starts a new tenant repository from that
+commit before recording Colony revision 0. The tenant therefore retains real ancestry with the
+projected template commit, but it does not track the moving ref and is not changed when a later
+template release appears. Local-directory origins are intentionally different: they read the live
+checkout and make no projected-ref or published-artifact claim.
+
+Yalc is only a local framework-development overlay. `pnpm yalc:link` in this repository replaces
+the templates' `@norbital-ai/*` dependencies with locally built OSS packages; it does not publish a
+template, link template source into Colony, or update an existing tenant. Retreat from that overlay
+before release so every projected template carries exact registry pins and a clean lockfile.
 
 Each template pins its own `@norbital-ai/bolt` version. Nothing propagates a bump into a template: a
 developer runs `pnpm templates:lock` when they choose to move. Publishing a new Bolt version changes
@@ -119,14 +124,15 @@ no template and rebuilds no tenant.
 pnpm templates:lock          # resolve and write each template's lockfile
 pnpm templates:lock:check    # fail on drift
 pnpm templates:lock:verify   # warm one shared store, then install offline with no credentials
-pnpm templates:verify        # install/sync/lint/build each template from its tracked files alone
+pnpm templates:verify        # install/sync/lint and inspect each tracked template's emitted artifact
 ```
 
 No template archive or package tarball is committed here. Template source is distributed through
-ordinary Git refs, and dependency bytes live in one shared content-addressed pnpm store.
+ordinary Git refs, its canonical compiled artifact is published by the release workflow, and
+dependency bytes live in one shared content-addressed pnpm store.
 
-Editing this checkout never changes an existing tenant, and a tenant's local changes must be merged
-or rebased intentionally rather than overwritten by a template update.
+Editing this checkout never changes an existing tenant. Existing-tenant adoption of a later
+template release is not an automated workflow; the tenant's source history remains untouched.
 
 ## License
 

@@ -23,6 +23,7 @@ import assert from 'node:assert/strict';
 import { createRequire } from 'node:module';
 import os from 'node:os';
 import path from 'node:path';
+import { Effect } from 'effect';
 import ExcelJS from 'exceljs';
 
 /** Fixed so a re-run emits the same bytes. The value itself is arbitrary; its fixedness is not. */
@@ -217,14 +218,15 @@ function settingMap(workbook) {
 	return settings;
 }
 
-async function writeWorkbook(workbook, targetPath) {
-	await workbook.xlsx.writeFile(targetPath);
+const writeWorkbook = (workbook, targetPath) =>
+	Effect.gen(function* () {
+		yield* Effect.tryPromise(() => workbook.xlsx.writeFile(targetPath));
 
-	// Read back what was shipped, and refuse to call it done if it is not exactly the template.
-	const reloaded = new ExcelJS.Workbook();
-	await reloaded.xlsx.readFile(targetPath);
-	return reloaded;
-}
+		// Read back what was shipped, and refuse to call it done if it is not exactly the template.
+		const reloaded = new ExcelJS.Workbook();
+		yield* Effect.tryPromise(() => reloaded.xlsx.readFile(targetPath));
+		return reloaded;
+	});
 
 function headersOf(workbook, sheetName) {
 	const headerRow = workbook.getWorksheet(sheetName)?.getRow(1);
@@ -256,23 +258,6 @@ addTableSheet(
 	GRID_HEADERS,
 	ROSTER_SAMPLE_ROWS
 );
-const rosterShipped = await writeWorkbook(rosterWorkbook, ROSTER_TEMPLATE_PATH);
-assert.deepEqual(
-	[...rosterShipped.worksheets.map((sheet) => sheet.name)],
-	['Read me first', 'Settings', 'Roster']
-);
-assert.deepEqual(headersOf(rosterShipped, 'Roster'), GRID_HEADERS);
-assert.deepEqual(
-	[...settingMap(rosterShipped)],
-	[
-		['legal_entity', SAMPLE_LEGAL_ENTITY],
-		['month', SAMPLE_MONTH]
-	]
-);
-assert.equal(cellOf(rosterShipped, 'Roster', 2, '1'), '7.5AM');
-assert.equal(cellOf(rosterShipped, 'Roster', 2, '3'), 'REST');
-assert.equal(cellOf(rosterShipped, 'Roster', 3, '6'), 'OFF');
-
 const timeWorkbook = newWorkbook();
 addReadmeSheet(timeWorkbook, TIME_README);
 addTableSheet(
@@ -289,30 +274,53 @@ addTableSheet(
 	GRID_HEADERS,
 	TIME_ENTRY_SAMPLE_ROWS
 );
-const timeShipped = await writeWorkbook(timeWorkbook, TIME_TEMPLATE_PATH);
-assert.deepEqual(
-	[...timeShipped.worksheets.map((sheet) => sheet.name)],
-	['Read me first', 'Settings', 'Time entries']
-);
-assert.deepEqual(headersOf(timeShipped, 'Time entries'), GRID_HEADERS);
-assert.deepEqual(
-	[...settingMap(timeShipped)],
-	[
-		['legal_entity', SAMPLE_LEGAL_ENTITY],
-		['month', SAMPLE_MONTH],
-		['timezone', SAMPLE_TIMEZONE]
-	]
-);
-assert.equal(cellOf(timeShipped, 'Time entries', 2, '4'), '08:16-17:10');
-assert.equal(cellOf(timeShipped, 'Time entries', 3, '6'), '20:31');
-assert.ok(
-	!headersOf(timeShipped, 'Time entries').includes('break_minutes'),
-	'the issued month grid has no break_minutes column — that name belongs to long-form sheets only'
-);
+Effect.runPromise(
+	Effect.gen(function* () {
+		const rosterShipped = yield* writeWorkbook(rosterWorkbook, ROSTER_TEMPLATE_PATH);
+		assert.deepEqual(
+			[...rosterShipped.worksheets.map((sheet) => sheet.name)],
+			['Read me first', 'Settings', 'Roster']
+		);
+		assert.deepEqual(headersOf(rosterShipped, 'Roster'), GRID_HEADERS);
+		assert.deepEqual(
+			[...settingMap(rosterShipped)],
+			[
+				['legal_entity', SAMPLE_LEGAL_ENTITY],
+				['month', SAMPLE_MONTH]
+			]
+		);
+		assert.equal(cellOf(rosterShipped, 'Roster', 2, '1'), '7.5AM');
+		assert.equal(cellOf(rosterShipped, 'Roster', 2, '3'), 'REST');
+		assert.equal(cellOf(rosterShipped, 'Roster', 3, '6'), 'OFF');
 
-console.log(`${ROSTER_TEMPLATE_PATH}`);
-console.log(`  sheets: Read me first, Settings, Roster`);
-console.log(`  Roster header: employee_number, 1–${DAY_HEADERS.at(-1)} (${SAMPLE_MONTH})`);
-console.log(`${TIME_TEMPLATE_PATH}`);
-console.log(`  sheets: Read me first, Settings, Time entries`);
-console.log(`  Time entries header: employee_number, 1–${DAY_HEADERS.at(-1)} (${SAMPLE_MONTH})`);
+		const timeShipped = yield* writeWorkbook(timeWorkbook, TIME_TEMPLATE_PATH);
+		assert.deepEqual(
+			[...timeShipped.worksheets.map((sheet) => sheet.name)],
+			['Read me first', 'Settings', 'Time entries']
+		);
+		assert.deepEqual(headersOf(timeShipped, 'Time entries'), GRID_HEADERS);
+		assert.deepEqual(
+			[...settingMap(timeShipped)],
+			[
+				['legal_entity', SAMPLE_LEGAL_ENTITY],
+				['month', SAMPLE_MONTH],
+				['timezone', SAMPLE_TIMEZONE]
+			]
+		);
+		assert.equal(cellOf(timeShipped, 'Time entries', 2, '4'), '08:16-17:10');
+		assert.equal(cellOf(timeShipped, 'Time entries', 3, '6'), '20:31');
+		assert.ok(
+			!headersOf(timeShipped, 'Time entries').includes('break_minutes'),
+			'the issued month grid has no break_minutes column — that name belongs to long-form sheets only'
+		);
+
+		console.log(`${ROSTER_TEMPLATE_PATH}`);
+		console.log(`  sheets: Read me first, Settings, Roster`);
+		console.log(`  Roster header: employee_number, 1–${DAY_HEADERS.at(-1)} (${SAMPLE_MONTH})`);
+		console.log(`${TIME_TEMPLATE_PATH}`);
+		console.log(`  sheets: Read me first, Settings, Time entries`);
+		console.log(
+			`  Time entries header: employee_number, 1–${DAY_HEADERS.at(-1)} (${SAMPLE_MONTH})`
+		);
+	})
+);

@@ -32,11 +32,11 @@
 
 	const employmentScheduleSchema = Schema.Union([
 		Schema.Struct({
-			state: Schema.Literals('current', 'next'),
+			state: Schema.Literals(['current', 'next']),
 			effectiveRange: StoredRangeSchema,
 			summary: Schema.String
 		}),
-		Schema.Struct({ state: Schema.Literals('missing') })
+		Schema.Struct({ state: Schema.Literal('missing') })
 	]);
 	type EmploymentSchedule = Schema.Schema.Type<typeof employmentScheduleSchema>;
 

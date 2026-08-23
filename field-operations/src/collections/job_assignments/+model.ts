@@ -13,7 +13,7 @@ export default defineModel(
 	{
 		job_id: uuid().notNull(),
 		/**
-		 * The person this job was dispatched to — `bolt_auth_user.id`, directly.
+		 * The person this job was dispatched to — `user.id`, directly.
 		 *
 		 * There is no contractor record between the assignment and the person, and there is nothing
 		 * for one to hold: a contractor is a user whose team confers `field_ops_contractor`. Holding

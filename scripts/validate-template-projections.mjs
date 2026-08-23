@@ -2,6 +2,7 @@ import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import {
 	copyFileSync,
+	existsSync,
 	mkdirSync,
 	mkdtempSync,
 	readFileSync,
@@ -16,6 +17,10 @@ import process from 'node:process';
 import { pathToFileURL } from 'node:url';
 import { Clock, Effect } from 'effect';
 import { auditWorkspace } from './lib/authored-system-columns.mjs';
+import {
+	templateEnvironmentVariables,
+	validateTemplateEnvironmentVariables
+} from './lib/artifact-environment.mjs';
 import { decodeJsonObject } from './lib/json.mjs';
 import {
 	archiveTemplateArtifact,
@@ -127,19 +132,66 @@ function copyTrackedProjection(template, destination) {
 }
 
 /**
+ * Optional package archives for a pre-publication rehearsal.
+ *
+ * The committed lockfile still has to install frozen first: that proves the published template is
+ * self-contained. A release candidate may then replace only the four first-party packages in the
+ * temporary projection, letting the next immutable `0.0.1` package set prove every template before
+ * the existing registry versions are removed. Nothing in the tracked projection is rewritten.
+ */
+function candidatePackageArchives() {
+	const directory = process.env.NORBITAL_PACKAGE_CANDIDATES?.trim();
+	if (!directory) return [];
+	return [
+		['@norbital-ai/bolt-protocol', 'bolt-protocol.tgz'],
+		['@norbital-ai/std', 'std.tgz'],
+		['@norbital-ai/ui', 'ui.tgz'],
+		['@norbital-ai/bolt', 'bolt.tgz']
+	].map(([name, filename]) => {
+		const archive = path.resolve(directory, filename);
+		if (!existsSync(archive)) throw new Error(`Missing candidate package archive: ${archive}`);
+		return { name, archive };
+	});
+}
+
+function stageCandidatePackages(destination, candidates) {
+	const manifestPath = path.join(destination, 'package.json');
+	const manifest = decodeJsonObject(readFileSync(manifestPath, 'utf8'), manifestPath);
+	const specifiers = Object.fromEntries(
+		candidates.map(({ name, archive }) => [name, `file:${archive}`])
+	);
+	writeFileSync(
+		manifestPath,
+		`${JSON.stringify(
+			{
+				...manifest,
+				dependencies: { ...manifest.dependencies, ...specifiers }
+			},
+			null,
+			2
+		)}\n`
+	);
+	const workspacePath = path.join(destination, 'pnpm-workspace.yaml');
+	const workspace = readFileSync(workspacePath, 'utf8');
+	if (/^overrides:/m.test(workspace)) {
+		throw new Error(`${workspacePath} already declares overrides; candidate staging is ambiguous.`);
+	}
+	writeFileSync(
+		workspacePath,
+		`${workspace.trimEnd()}\n\noverrides:\n${Object.entries(specifiers)
+			.map(([name, specifier]) => `  ${JSON.stringify(name)}: ${JSON.stringify(specifier)}`)
+			.join('\n')}\n`
+	);
+}
+
+/**
  * Environment declarations are server-only, so the public artifact manifest deliberately does not
  * publish them. `secrets.status` is the supported observable projection of the compiled
  * `workspace.definition.environment.variables` declaration: decoding and dispatching the emitted
  * artifact proves the declaration survived compilation instead of merely re-reading `+env.ts`.
  */
-const expectedEnvironmentVariables = new Map([
-	['construction', ['REPORTS_WEBHOOK_SECRET']],
-	['crm', ['EXTERNAL_SYSTEM_TOKEN']],
-	['field-operations', ['DISPATCH_WEBHOOK_SECRET']]
-]);
-
 function validateArtifactEnvironment(template, destination) {
-	const expected = expectedEnvironmentVariables.get(template.slug);
+	const expected = templateEnvironmentVariables.get(template.slug);
 	if (expected === undefined) return Effect.void;
 
 	const requireFromProjection = createRequire(path.join(destination, 'package.json'));
@@ -163,7 +215,7 @@ function validateArtifactEnvironment(template, destination) {
 		const tenantId = `environment-contract-${template.slug}`;
 		const scope = { tenantId, environment: 'test', releaseId: 'environment-contract' };
 		const databaseAnswer = (input) => {
-			if (input._tag === 'Query' && input.sql.includes('from bolt_auth_session')) {
+			if (input._tag === 'Query' && input.sql.includes('from "session"')) {
 				return {
 					_tag: 'Success',
 					value: {
@@ -230,18 +282,7 @@ function validateArtifactEnvironment(template, destination) {
 			)
 			.filter(Boolean)
 			.toSorted();
-		const expectedSorted = expected.toSorted();
-		const matches = workspaceEffect.Equivalence.Array(workspaceEffect.Equivalence.String)(
-			actual,
-			expectedSorted
-		);
-		if (!matches) {
-			return yield* Effect.fail(
-				new Error(
-					`${template.slug} artifact environment variables differ: expected ${expectedSorted.join(', ')}, received ${actual.join(', ') || '(none)'}.`
-				)
-			);
-		}
+		yield* Effect.try(() => validateTemplateEnvironmentVariables(template.slug, actual));
 		console.log(
 			`Validated artifact environment declaration: ${template.slug} (${actual.join(', ')}).`
 		);
@@ -270,12 +311,9 @@ if (bundleOutput) {
 
 function runLifecycle(template, destination) {
 	return Effect.gen(function* () {
-		for (const [label, arguments_] of [
-			['install', ['install', '--frozen-lockfile']],
-			['sync', ['sync']],
-			['lint', ['lint']]
-		]) {
-			yield* Effect.try(() => run('pnpm', arguments_, { cwd: destination, env: process.env })).pipe(
+		const candidates = yield* Effect.try(candidatePackageArchives);
+		const runStep = (label, arguments_) =>
+			Effect.try(() => run('pnpm', arguments_, { cwd: destination, env: process.env })).pipe(
 				Effect.mapError((cause) => {
 					const detail = [cause?.stdout, cause?.stderr].filter(Boolean).join('\n').trim();
 					return new Error(
@@ -283,6 +321,23 @@ function runLifecycle(template, destination) {
 					);
 				})
 			);
+		yield* runStep('install', ['install', '--frozen-lockfile']);
+		if (candidates.length > 0) {
+			yield* Effect.try(() => stageCandidatePackages(destination, candidates));
+			yield* runStep('candidate format', [
+				'exec',
+				'prettier',
+				'--write',
+				'package.json',
+				'pnpm-workspace.yaml'
+			]);
+			yield* runStep('candidate install', ['install', '--no-frozen-lockfile', '--ignore-scripts']);
+		}
+		for (const [label, arguments_] of [
+			['sync', ['sync']],
+			['lint', ['lint']]
+		]) {
+			yield* runStep(label, arguments_);
 		}
 	});
 }

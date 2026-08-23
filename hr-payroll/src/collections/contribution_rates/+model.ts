@@ -64,7 +64,7 @@ export default defineModel(
 						expr: "numrange((selector->>'age_from')::numeric, (selector->>'age_to')::numeric, '[)')",
 						with: '&&'
 					},
-					{ expr: 'norbital_daterange(effective_range)', with: '&&' }
+					{ expr: 'bolt_daterange(effective_range)', with: '&&' }
 				]
 			}
 		]

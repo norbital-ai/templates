@@ -10,7 +10,7 @@ import type { Teams } from '@norbital-ai/bolt/authoring';
  *
  * ## Why this is code and membership is not
  *
- * A `bolt_team` row carries a name, a parent and a description, and an operator edits it from a
+ * A `team` row carries a name, a parent and a description, and an operator edits it from a
  * dashboard without a deploy — because who is on which team changes constantly, and waiting for a
  * release to move somebody between teams would be absurd.
  *
@@ -44,7 +44,7 @@ import type { Teams } from '@norbital-ai/bolt/authoring';
  *
  * ## One team per person, and what that forces
  *
- * `bolt_auth_user.team_id` is one own team, not a set. Descendant teams may contribute authority
+ * `user.team_id` is one own team, not a set. Descendant teams may contribute authority
  * through `teamPath`, but an operational unit that carries a distinct authority should still be
  * named here — see `Manager (HR Controller)` below. Its singleton mapping makes the effective
  * authority visible in a diff instead of depending on a multi-policy union or incidental topology.

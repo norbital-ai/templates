@@ -13,8 +13,9 @@ import { templateArtifactPath } from './lib/template-artifact.mjs';
 import { discoverTemplates, repositoryRoot } from './lib/templates.mjs';
 
 /**
- * Proves the portable artifact contract: Bolt sync against a materialized depset emits a module
- * accepted by the authoritative protocol decoder, with intact embedded browser assets.
+ * Proves the portable artifact contract: Bolt sync is the compilation step. Against a materialized
+ * depset it must emit a module accepted by the authoritative protocol decoder, with intact embedded
+ * browser assets; no separate application build participates in this lifecycle.
  */
 
 function fail(message) {
