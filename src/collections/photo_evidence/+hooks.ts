@@ -1,6 +1,6 @@
 import { hexToBinaryEmbedding } from '@norbital-ai/bolt/authoring';
 import type { CollectionHooks } from '@norbital-ai/bolt/authoring';
-import { Effect, Equivalence, Schema } from 'effect';
+import { Effect, Schema } from 'effect';
 import type { WorkspaceInsert, WorkspaceSchema } from '$bolt/types.js';
 import type { Hooks } from './$types.js';
 import { photoSourceValueSchema } from '../../datatypes/photo_source/+definition.js';
@@ -118,20 +118,6 @@ function assignmentIdFromEvidence(
 	return assignmentByVariation.get(evidence.variation_request_id) ?? null;
 }
 
-/** Two string-flag sets are the same evidence when their sorted members coincide. */
-const stringSetEquivalence = Equivalence.make(
-	(left: readonly string[] | null | undefined, right: readonly string[] | null | undefined) => {
-		const ordered = (values: readonly string[] | null | undefined) =>
-			values ? [...values].sort() : [];
-		const leftOrdered = ordered(left);
-		const rightOrdered = ordered(right);
-		return (
-			leftOrdered.length === rightOrdered.length &&
-			leftOrdered.every((value, index) => value === rightOrdered[index])
-		);
-	}
-);
-
 function assignmentIdsForEvidence(
 	api: PhotoAfterApi,
 	records: readonly {
@@ -139,29 +125,27 @@ function assignmentIdsForEvidence(
 		readonly variation_request_id?: string | null;
 	}[]
 ): Effect.Effect<ReadonlyMap<string, string | null>, unknown, never> {
-	return Effect.gen(function* () {
-		const variationIds = [
-			...new Set(
-				records.flatMap((record) =>
-					(record.job_assignment_id == null || record.job_assignment_id === '') &&
-					record.variation_request_id != null &&
-					record.variation_request_id !== ''
-						? [record.variation_request_id]
-						: []
-				)
+	const variationIds = [
+		...new Set(
+			records.flatMap((record) =>
+				(record.job_assignment_id == null || record.job_assignment_id === '') &&
+				record.variation_request_id != null &&
+				record.variation_request_id !== ''
+					? [record.variation_request_id]
+					: []
 			)
-		];
-		const variations = variationIds.length
-			? yield* api.db.query.variation_requests.findMany({
-					where: { id: { in: variationIds } },
-					columns: { id: true, job_assignment_id: true },
-					limit: Math.max(1, variationIds.length)
-				})
-			: [];
-		return new Map(
-			variations.map((variation) => [variation.id, variation.job_assignment_id ?? null])
-		);
-	});
+		)
+	];
+	if (variationIds.length === 0) return Effect.succeed(new Map<string, string | null>());
+	return Effect.map(
+		api.db.query.variation_requests.findMany({
+			where: { id: { in: variationIds } },
+			columns: { id: true, job_assignment_id: true },
+			limit: Math.max(1, variationIds.length)
+		}),
+		(variations) =>
+			new Map(variations.map((variation) => [variation.id, variation.job_assignment_id ?? null]))
+	);
 }
 
 function runAfterPhoto(
@@ -266,12 +250,7 @@ function preparePhoto(
 			sha256: inspected.sha256,
 			perceptual_embedding: hexToBinaryEmbedding(inspected.perceptualHash),
 			flags: [...new Set([...inspected.flags, ...geoFlags])],
-			matched_evidence_ids: [],
-			site_identity_status: 'pending' as const,
-			site_identity_checked_at: null,
-			site_identity_error: null,
-			site_identity_review_basis: null,
-			site_identity_reconciled_at: null
+			matched_evidence_ids: []
 		};
 	});
 }
@@ -389,25 +368,10 @@ export default {
 		perRecord: {
 			before: {
 				description:
-					'Keeps the selected image, parent, and channel provenance immutable, and returns changed deterministic integrity evidence to pending semantic reconciliation.',
+					'Keeps the selected image, parent, and channel provenance immutable. Deterministic evidence facts may change without creating or latching a suspicion judgement.',
 				handler: ({ input, existing }) => {
 					assertPhotoEvidenceProvenanceUnchanged(input, existing);
-					const integrityChanged =
-						(input.flags != null && !stringSetEquivalence(input.flags, existing.flags)) ||
-						(input.matched_evidence_ids != null &&
-							!stringSetEquivalence(input.matched_evidence_ids, existing.matched_evidence_ids));
-					return Effect.succeed(
-						integrityChanged
-							? {
-									...input,
-									site_identity_status: 'pending' as const,
-									site_identity_checked_at: null,
-									site_identity_error: null,
-									site_identity_review_basis: null,
-									site_identity_reconciled_at: null
-								}
-							: input
-					);
+					return Effect.succeed(input);
 				}
 			}
 		}

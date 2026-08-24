@@ -24,11 +24,9 @@ import type { Teams } from '@norbital-ai/bolt/authoring';
  *
  * ## `Field Operations Controllers` is load-bearing and must not be renamed alone
  *
- * `access/policies/+field_ops_contractor.ts` gates variation-request create and update behind an
- * approval whose single step lists `approvers: ['Field Operations Controllers']`. **An `approvers`
- * entry and a team name are the same string** — and it is now the *same type*: `approvers` is
- * `TeamName`, a union generated from this file's own keys, so renaming the key below without the
- * policy is a compile error rather than every scope change waiting on a team nobody is in. It is
+ * `access/policies/+field_ops_contractor.ts` gates variation-request create and update with
+ * `approveBy('Field Operations Controllers')`. The argument is `TeamName`, a union generated from
+ * this file's own keys, so renaming the key below without the policy is a compile error. It is
  * plural where the policy's file name is singular, and that mismatch is deliberate and old: one is a
  * body of staff, the other is a capability.
  *
@@ -39,10 +37,8 @@ import type { Teams } from '@norbital-ai/bolt/authoring';
  * that team is, because it is the case the teams design calls out by name.
  *
  * `field_ops_controller` grants every action on every collection, **unconditionally**. The
- * contractor policy's grants all narrow to the requestor — `job_assignments` by a direct comparison
- * on `assignee_user_id`, the rest by a subquery that reaches the requestor through it.
- * `rowPredicate` **unions** the `where` of every matching grant, so an unconditional grant beside a
- * narrowed one collapses the predicate to `true`.
+ * contractor policy narrows the same coordinates to the requestor. Holding both would state two
+ * different rules for one coordinate, so the compiler rejects the overlap instead of merging it.
  *
  * `Contractor (Controller)` used to name both, and therefore meant "everything" while reading as
  * "their own jobs plus dispatch". **The compiler refuses that combination now** — see §3.2: one
@@ -81,12 +77,8 @@ export default {
 	 * naming both changed nothing about what these two people could reach — it only made the file
 	 * read as though it did.
 	 *
-	 * That is exactly what the compiler now refuses. `rowPredicate` **unions** the `where` of every
-	 * matching grant, so an unconditional grant beside a narrowed one collapses the predicate to
-	 * `true`: this team did not mean "their own jobs plus dispatch", it meant everything, and the
-	 * self-scoping evaporated with nothing to say so. The build fails on that combination now, naming
-	 * both policies and the collection — which is the whole reason an envoy and an automation are
-	 * allowed to name arrays of policies at all.
+	 * That is exactly what the compiler now refuses: a holder cannot receive two grants for the same
+	 * collection/action coordinate. The diagnostic names both policies and the coordinate.
 	 *
 	 * So the entry says what it always meant. Bob Poh and Yu Kiat Tan hold dispatch; they are between
 	 * them the assignee of every seeded assignment, and they read every one of them because dispatch

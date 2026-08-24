@@ -4,11 +4,12 @@
 	"private": true,
 	"type": "module",
 	"scripts": {
+		"dr": "node ../../oss/packages/doctor/build/cli.js audit --root .",
 		"format": "prettier --write .",
 		"lint": "prettier --check . && svelte-check --tsgo-experimental-api --tsconfig ./tsconfig.json",
-		"test": "node --experimental-strip-types --import ./scripts/ts-source-resolve.mjs --test src/collections/*/*.test.ts",
 		"sync": "bolt sync",
-		"sync:watch": "bolt sync --watch"
+		"sync:watch": "bolt sync --watch",
+		"test": "node --experimental-strip-types --import ./scripts/ts-source-resolve.mjs --import ./scripts/test-artifact-reader.mjs --test src/collections/*/*.test.ts"
 	},
 	"dependencies": {
 		"@iconify/svelte": "^5.2.2",
@@ -27,6 +28,7 @@
 		"vite": "^8.2.2"
 	},
 	"devDependencies": {
+		"@norbital-ai/doctor": "0.0.1",
 		"@types/node": "^26.2.0",
 		"@typescript/native": "npm:typescript@7.0.2",
 		"prettier": "^3.9.6",

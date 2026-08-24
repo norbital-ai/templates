@@ -23,10 +23,35 @@ export default ((r) => ({
 		job_assignment_suspicions: r.one.job_assignments({
 			from: r.suspicious_activity_logs.job_assignment_id,
 			to: r.job_assignments.id
+		}),
+		suspicion_log_review: r.one.suspicion_reviews({
+			from: r.suspicious_activity_logs.review_id,
+			to: r.suspicion_reviews.id
+		}),
+		suspicion_log_evidence: r.one.photo_evidence({
+			from: r.suspicious_activity_logs.evidence_id,
+			to: r.photo_evidence.id
+		})
+	},
+	suspicion_reviews: {
+		job_assignment_suspicion_reviews: r.one.job_assignments({
+			from: r.suspicion_reviews.job_assignment_id,
+			to: r.job_assignments.id
+		}),
+		suspicion_review_logs: r.many.suspicious_activity_logs(),
+		suspicion_review_evidence: r.one.photo_evidence({
+			from: r.suspicion_reviews.evidence_id,
+			to: r.photo_evidence.id
+		})
+	},
+	communication_logs: {
+		job_assignment_communications: r.one.job_assignments({
+			from: r.communication_logs.job_assignment_id,
+			to: r.job_assignments.id
 		})
 	},
 	job_assignments: {
-		job_assignment_suspicions: r.many.suspicious_activity_logs(),
+		job_assignment_communications: r.many.communication_logs(),
 		job_assignment_job: r.one.jobs({
 			from: r.job_assignments.job_id,
 			to: r.jobs.id

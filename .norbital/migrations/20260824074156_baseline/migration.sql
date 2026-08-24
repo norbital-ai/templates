@@ -1,3 +1,18 @@
+CREATE TABLE "communication_logs" (
+	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+	"created_at" timestamp with time zone DEFAULT now(),
+	"updated_at" timestamp with time zone DEFAULT now(),
+	"sys_period" tstzrange DEFAULT tstzrange(CURRENT_TIMESTAMP, NULL, '[)') NOT NULL,
+	"row_version" integer DEFAULT 1,
+	"approval_id" uuid,
+	"job_assignment_id" uuid NOT NULL,
+	"message" text NOT NULL,
+	"sent_at" timestamp with time zone NOT NULL,
+	"sender" text NOT NULL,
+	"source_message_id" text NOT NULL
+);
+
+--> statement-breakpoint
 CREATE TABLE "job_assignments" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
 	"created_at" timestamp with time zone DEFAULT now(),
@@ -14,15 +29,7 @@ CREATE TABLE "job_assignments" (
 	"location" jsonb,
 	"summary" text,
 	"source_message_id" text,
-	"site_identity_unverified" boolean DEFAULT true NOT NULL,
-	"site_identity_mismatch" boolean DEFAULT false NOT NULL,
-	"site_identity_evidence_id" uuid,
-	"extracted_site_name" text,
-	"extracted_site_location" text,
-	"extracted_unit_number" text,
-	"site_identity_confidence" text,
-	"site_identity_checked_at" timestamp with time zone,
-	"site_identity_rationale" text
+	"suspicion_checked_at" timestamp with time zone
 );
 
 --> statement-breakpoint
@@ -37,7 +44,7 @@ CREATE TABLE "jobs" (
 	"site_id" uuid NOT NULL,
 	"title" text NOT NULL,
 	"nature" text,
-	"scheduled_for" date NOT NULL,
+	"scheduled_for" timestamp with time zone NOT NULL,
 	"status" text,
 	"description" text NOT NULL
 );
@@ -59,11 +66,6 @@ CREATE TABLE "photo_evidence" (
 	"perceptual_embedding" vector(256) NOT NULL,
 	"flags" text[] NOT NULL,
 	"matched_evidence_ids" uuid[] NOT NULL,
-	"site_identity_status" text DEFAULT 'pending' NOT NULL,
-	"site_identity_checked_at" timestamp with time zone,
-	"site_identity_error" text,
-	"site_identity_review_basis" text,
-	"site_identity_reconciled_at" timestamp with time zone,
 	"summary" text GENERATED ALWAYS AS (CASE source ->> 'kind'
 				WHEN 'workspace_upload' THEN 'Workspace upload'
 				WHEN 'channel' THEN 'From ' || COALESCE(NULLIF(source ->> 'provider', ''), 'a channel') || COALESCE(' · ' || LEFT(source ->> 'sent_at', 10), '')
@@ -88,6 +90,25 @@ CREATE TABLE "sites" (
 );
 
 --> statement-breakpoint
+CREATE TABLE "suspicion_reviews" (
+	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+	"created_at" timestamp with time zone DEFAULT now(),
+	"updated_at" timestamp with time zone DEFAULT now(),
+	"sys_period" tstzrange DEFAULT tstzrange(CURRENT_TIMESTAMP, NULL, '[)') NOT NULL,
+	"row_version" integer DEFAULT 1,
+	"approval_id" uuid,
+	"job_assignment_id" uuid NOT NULL,
+	"basis_hash" text NOT NULL,
+	"basis" text NOT NULL,
+	"suspicious" boolean NOT NULL,
+	"reason" text NOT NULL,
+	"evidence_id" uuid,
+	"model" text NOT NULL,
+	"reviewed_at" timestamp with time zone NOT NULL,
+	"source_key" text NOT NULL
+);
+
+--> statement-breakpoint
 CREATE TABLE "suspicious_activity_logs" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
 	"created_at" timestamp with time zone DEFAULT now(),
@@ -96,6 +117,11 @@ CREATE TABLE "suspicious_activity_logs" (
 	"row_version" integer DEFAULT 1,
 	"approval_id" uuid,
 	"job_assignment_id" uuid NOT NULL,
+	"source_key" text GENERATED ALWAYS AS (origin || ':' || job_assignment_id::text || ':' || md5(basis)) STORED NOT NULL,
+	"origin" text DEFAULT 'human' NOT NULL,
+	"basis" text,
+	"review_id" uuid,
+	"evidence_id" uuid,
 	"reason" text NOT NULL,
 	"resolution" text,
 	"resolved_at" timestamp with time zone,
@@ -118,6 +144,16 @@ CREATE TABLE "variation_requests" (
 	"source_message_id" text
 );
 
+--> statement-breakpoint
+CREATE UNIQUE INDEX "communication_logs_source_message_id_index" ON "communication_logs" ("source_message_id");
+--> statement-breakpoint
+CREATE INDEX "communication_logs_job_assignment_id_index" ON "communication_logs" ("job_assignment_id");
+--> statement-breakpoint
+CREATE INDEX "communication_logs_sent_at_index" ON "communication_logs" ("sent_at");
+--> statement-breakpoint
+CREATE INDEX "communication_logs_message_search_trgm_idx" ON "communication_logs" USING gin ("message" gin_trgm_ops);
+--> statement-breakpoint
+CREATE INDEX "communication_logs_sender_search_trgm_idx" ON "communication_logs" USING gin ("sender" gin_trgm_ops);
 --> statement-breakpoint
 CREATE UNIQUE INDEX "job_assignments_source_message_id_index" ON "job_assignments" ("source_message_id");
 --> statement-breakpoint
@@ -143,9 +179,21 @@ CREATE UNIQUE INDEX "sites_site_code_index" ON "sites" ("site_code");
 --> statement-breakpoint
 CREATE INDEX "sites_name_search_trgm_idx" ON "sites" USING gin ("name" gin_trgm_ops);
 --> statement-breakpoint
+CREATE UNIQUE INDEX "suspicion_reviews_source_key_index" ON "suspicion_reviews" ("source_key");
+--> statement-breakpoint
+CREATE UNIQUE INDEX "suspicion_reviews_job_assignment_id_basis_hash_index" ON "suspicion_reviews" ("job_assignment_id","basis_hash");
+--> statement-breakpoint
+CREATE INDEX "suspicion_reviews_reviewed_at_index" ON "suspicion_reviews" ("reviewed_at");
+--> statement-breakpoint
+CREATE INDEX "suspicion_reviews_reason_search_trgm_idx" ON "suspicion_reviews" USING gin ("reason" gin_trgm_ops);
+--> statement-breakpoint
+CREATE UNIQUE INDEX "suspicious_activity_logs_source_key_index" ON "suspicious_activity_logs" ("source_key");
+--> statement-breakpoint
 CREATE INDEX "suspicious_activity_logs_job_assignment_id_index" ON "suspicious_activity_logs" ("job_assignment_id");
 --> statement-breakpoint
 CREATE INDEX "suspicious_activity_logs_resolved_at_index" ON "suspicious_activity_logs" ("resolved_at");
+--> statement-breakpoint
+CREATE INDEX "suspicious_activity_logs_review_id_index" ON "suspicious_activity_logs" ("review_id");
 --> statement-breakpoint
 CREATE INDEX "suspicious_activity_logs_reason_search_trgm_idx" ON "suspicious_activity_logs" USING gin ("reason" gin_trgm_ops);
 --> statement-breakpoint
@@ -154,6 +202,8 @@ CREATE INDEX "suspicious_activity_logs_resolution_search_trgm_idx" ON "suspiciou
 CREATE UNIQUE INDEX "variation_requests_source_message_id_index" ON "variation_requests" ("source_message_id");
 --> statement-breakpoint
 CREATE INDEX "variation_requests_title_search_trgm_idx" ON "variation_requests" USING gin ("title" gin_trgm_ops);
+--> statement-breakpoint
+ALTER TABLE "communication_logs" ADD CONSTRAINT "communication_logs_job_assignment_id_job_assignments_fk" FOREIGN KEY ("job_assignment_id") REFERENCES "job_assignments"("id");
 --> statement-breakpoint
 ALTER TABLE "job_assignments" ADD CONSTRAINT "job_assignments_job_id_jobs_fk" FOREIGN KEY ("job_id") REFERENCES "jobs"("id");
 --> statement-breakpoint
@@ -165,6 +215,14 @@ ALTER TABLE "photo_evidence" ADD CONSTRAINT "photo_evidence_job_assignment_id_jo
 --> statement-breakpoint
 ALTER TABLE "photo_evidence" ADD CONSTRAINT "photo_evidence_variation_request_id_variation_requests_fk" FOREIGN KEY ("variation_request_id") REFERENCES "variation_requests"("id");
 --> statement-breakpoint
+ALTER TABLE "suspicion_reviews" ADD CONSTRAINT "suspicion_reviews_job_assignment_id_job_assignments_fk" FOREIGN KEY ("job_assignment_id") REFERENCES "job_assignments"("id");
+--> statement-breakpoint
+ALTER TABLE "suspicion_reviews" ADD CONSTRAINT "suspicion_reviews_evidence_id_photo_evidence_fk" FOREIGN KEY ("evidence_id") REFERENCES "photo_evidence"("id");
+--> statement-breakpoint
 ALTER TABLE "suspicious_activity_logs" ADD CONSTRAINT "suspicious_activity_logs_job_assignment_id_job_assignments_fk" FOREIGN KEY ("job_assignment_id") REFERENCES "job_assignments"("id");
+--> statement-breakpoint
+ALTER TABLE "suspicious_activity_logs" ADD CONSTRAINT "suspicious_activity_logs_review_id_suspicion_reviews_fk" FOREIGN KEY ("review_id") REFERENCES "suspicion_reviews"("id");
+--> statement-breakpoint
+ALTER TABLE "suspicious_activity_logs" ADD CONSTRAINT "suspicious_activity_logs_evidence_id_photo_evidence_fk" FOREIGN KEY ("evidence_id") REFERENCES "photo_evidence"("id");
 --> statement-breakpoint
 ALTER TABLE "variation_requests" ADD CONSTRAINT "variation_requests_job_assignment_id_job_assignments_fk" FOREIGN KEY ("job_assignment_id") REFERENCES "job_assignments"("id");

@@ -16,8 +16,8 @@ itself — the same photo can be reused, a photo can be taken somewhere else, an
 about which site it shows unless the site's identity is readable in it.
 
 Field Operations answers with a dispatch pipeline (site → job → contractor assignment)
-followed by an evidence pipeline (per-photo integrity checks, geolocation, site-identity inference,
-and a one-way suspect escalation for controllers to scrutinise).
+followed by an evidence pipeline (per-photo integrity checks, geolocation, and a bounded
+AI suspicion review whose findings a controller resolves).
 
 ## 2. The mental model
 
@@ -27,23 +27,35 @@ and a one-way suspect escalation for controllers to scrutinise).
 site → jobs → job assignment → user (the assignee)
              ↓
        photo evidence ← variation request
+       communication logs   (immutable inbound messages, one per assignment)
 ```
 
 - **site** — a physical site with client context and an optional map location. Past jobs remain
   attached to it.
-- **jobs** — work scheduled for one site and one calendar day, beginning `unassigned` and following
-  the assignment's progress (`assigned` → `in_progress` → `completed`).
+- **jobs** — work scheduled for one site and one calendar day, from `unassigned` through
+  `assigned` and `in_progress` as dispatch advances to `completed`.
 - **job_assignments** — one person per job. `assignee_user_id` is `user.id`
   directly: a contractor is a **role**, not a record — a user whose team holds `field_ops_contractor`
   — so there is no collection describing one. Identity (job + assignee) is immutable after dispatch;
-  status runs `dispatched` → `in_progress` → `completed`, with `suspect` as a one-way integrity
-  overlay (see below). Completion timestamps the assignment and advances the job.
+  status runs `unassigned` → `assigned` → `completed`. A completed assignment's completion time
+  advances the job; whether the work was legitimately done is a suspicion question and is never
+  stored on this row (`suspicion_checked_at` is the only suspicion-adjacent column, written by the
+  review automation after a run).
 - **variation_requests** — a scope change against one assignment. Creation is governed by the
   contractor policy's approval flow: writing one raises a platform approval request for a controller
   review step, not a row that is directly applied.
 - **photo_evidence** — one explicitly selected photo attached to exactly one assignment or one
-  variation, with deterministic integrity results. Conversation history and unselected media are not
-  retained.
+  variation, with deterministic integrity facts. Conversation history and unselected media are not
+  retained; the message **content** of each assignment's conversation is retained in
+  `communication_logs`.
+- **communication_logs** — the contractor's inbound messages about one assignment, immutable, one
+  row per provider message (idempotent on `source_message_id`), retained independently of agent
+  transcripts. The suspicion review reads them.
+- **suspicion_reviews** — one audit row per AI review of one assignment's evidence basis, including
+  clear decisions; controller-only.
+- **suspicious_activity_logs** — an AI or authorized-human suspicion judgement against one
+  assignment: an immutable evidence basis, the reason, and an explicit controller resolution that
+  is the only way a log closes.
 
 ### The evidence integrity pipeline
 
@@ -60,24 +72,26 @@ Every photo, from every entry path (workspace upload or channel), passes through
    `exact_duplicate` / `visual_duplicate` flags with the matched evidence ids.
 3. **Geolocation** — EXIF GPS is compared against the job site's map location (500 m tolerance).
    No GPS → `missing_geolocation`; capture beyond tolerance → `location_mismatch`.
-4. **Site identity (shared automation)** — a vision model uses multimodal judgement over the whole
-   naturally photographed scene and compares it with the transcript-assigned site. A matching
-   overlay is never proof because it can be fabricated; a contradictory visible location claim is
-   suspicious evidence and must be explained. A visibly wrong location latches
-   `site_identity_mismatch` and stores the model's rationale. The create trigger reviews new evidence
-   promptly, while a daily 02:00 reconciliation retries failures and catches seed/import paths that
-   bypass collection events. Both call the same reviewer.
-5. **Classification** — deterministic inspection records evidence attributes; it does not pretend
-   those attributes are the verdict. Missing GPS is neutral on its own because WhatsApp commonly
-   strips EXIF. Reuse and a GPS mismatch are strong signals, but the multimodal model classifies the
-   whole scene against the assigned site and writes the human-readable rationale. A scene mismatch
-   latches `suspect` and cannot be cleared by a later match. The controller dashboard shows the
-   attributes and AI rationale; contractors and the WhatsApp agent never see them.
-6. **Reconciliation state** — each photo stores `site_identity_status`, its last checked time, a
-   stable `site_identity_review_basis`, and `site_identity_reconciled_at`. The basis includes the
-   photo identity, deterministic flags/matches, and current assignment/job/site. Unchanged terminal
-   evidence is marked reconciled without another vision call; changed inputs, pending rows, and
-   failures are reviewed again. Hook updates to flags or matched evidence reset the row to `pending`.
+4. **Flags are evidence, not a verdict.** `metadata_anomaly`, `edited_metadata` and `low_quality`
+   are also noted when seen. Missing GPS is neutral on its own because WhatsApp commonly strips
+   EXIF; reuse and a GPS mismatch are strong signals but never suspicion by themselves. Nothing on
+   the photo row can latch `suspect` — the contextual judgement belongs to the review automation
+   and lives in `suspicious_activity_logs`.
+
+### The suspicion review
+
+One automation owns contextual judgement: `review_job_assignment_suspicion` (hourly, manual runs
+may name one `assignment_id`). For each non-completed assignment it assembles the assignment, its
+job and site, the deterministic photo facts, and bounded recent `communication_logs`, and passes a
+bounded visual sample (up to three photos, deterministic selection weighted by signal, capped at
+4 MiB) plus a text context to a provider model (`openai/gpt-4.1-mini`). A separate scripted record
+of every review — the canonical basis hash, the verdict, the model and the reason — lands in
+`suspicion_reviews`, so clear decisions are auditable too; a `suspicious` verdict appends an
+idempotent `suspicious_activity_logs` row (unique on `origin:job_assignment_id:md5(basis)`), and the
+assignment's `suspicion_checked_at` is stamped so a later run does not re-review the same basis.
+Only a controller's stated resolution closes a log. The flags and views never leak to the
+contractor policy or the WhatsApp envoy: only the controller dashboard renders integrity or
+suspicion state.
 
 ## 3. What ships
 
@@ -88,8 +102,8 @@ Every photo, from every entry path (workspace upload or channel), passes through
 | `field_ops_controller` | Dispatch / operations staff (the BCA controller dashboard) | A dated dispatch schedule as a status kanban beside a site map, the suspect-scrutiny panel, weekly roster CSV import, and a sites tab.                                                                 |
 | `field_ops_contractor` | Field contractor                                           | One table of its own assignments: job · site · date, dispatch time, progress, reported location, and summary. Opening a row shows the job scope, assignment activity, variations, and evidence photos. |
 
-Flag visibility is reserved for the controller dashboard: photo integrity flags, the `suspect`
-status, and the `site_identity_*` markers render only for controllers. Contractors see their own
+Flag visibility is reserved for the controller dashboard: photo integrity flags, the review
+ledger and every suspicion-log field render only for controllers. Contractors see their own
 assignment's progress and their evidence photos — never the integrity results.
 
 ### The WhatsApp envoy
@@ -115,17 +129,20 @@ The envoy runs under the strict capability lock:
 Policy grants remain row-level rather than column-level, so the task still explicitly forbids
 controller-only integrity fields even though the contractor can update their own assignment row.
 
-### Automations, policies, functions, seed
+### Automations, policies, seed
 
-| Kind       | Name                                 | What it does                                                                                                                                                                                                                          |
-| ---------- | ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Automation | `photo_site_identity`                | Created-event wrapper around the shared reviewer for prompt semantic review of newly filed evidence.                                                                                                                                  |
-| Automation | `photo_site_identity_reconciliation` | Daily 02:00 reconciliation of pending/failed evidence first, then least-recently reconciled terminal evidence; unchanged bases skip the vision call.                                                                                  |
-| Policy     | `field_ops_controller`               | Full command of every collection, both apps. The reconciliation key is the filename.                                                                                                                                                  |
-| Policy     | `field_ops_contractor`               | Requestor-scoped grants: assigned sites/jobs, own assignments (read + update, `assignee_user_id = requestor`), own variations (read + create/update behind the variation approval flow), own evidence (read + create).                |
-| Policy     | `field_ops_whatsapp`                 | The WhatsApp envoy's directly declared ceiling: read and update the caller's own assignments, and read the jobs and sites behind them. No creates, deletes, evidence or apps.                                                         |
-| Function   | `field_ops_dashboard`                | Date-specific controller query: assignment cards, board ids, map points (with suspect tones), and the month's suspect assignments.                                                                                                    |
-| Seed       | —                                    | Fixture data is host-owned and lives in the repository seed bank (`src/+seed.ts` is deliberately absent). Its job/photo map is audited against the WhatsApp transcript; the weekly roster CSV lives in `assets/` with its own README. |
+| Kind       | Name                              | What it does                                                                                                                                                                                                                          |
+| ---------- | --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Automation | `review_job_assignment_suspicion` | Hourly (and on manual request, one assignment by id): reviews non-completed assignments against a bounded visual + communication context and writes one idempotent suspicion log only when the model judges the evidence suspicious.  |
+| Policy     | `field_ops_controller`            | Full command of the operational records and both apps; the audit ledgers (communications, reviews, suspicion logs) are append-only.                                                                                                   |
+| Policy     | `field_ops_contractor`            | Requestor-scoped grants: assigned sites/jobs, own assignments (read + update, `assignee_user_id = requestor`), own variations (read + create/update behind the variation approval flow), own evidence (read + create).                |
+| Policy     | `field_ops_whatsapp`              | The WhatsApp envoy's directly declared ceiling: read and update the caller's own assignments, and read the jobs and sites behind them. No creates, deletes, evidence or apps.                                                         |
+| Policy     | `suspicion_review_automation`     | The review automation's authority: unchecked assignments only, append-only review records and suspicion logs, and the single `suspicion_checked_at` stamp that closes the review.                                                     |
+| Seed       | —                                 | Fixture data is host-owned and lives in the repository seed bank (`src/+seed.ts` is deliberately absent). Its job/photo map is audited against the WhatsApp transcript; the weekly roster CSV lives in `assets/` with its own README. |
+
+The controller reads jobs, assignments, people, sites, and open suspicion logs directly from the
+sync-backed collections. Its board cards and map points are local projections of those rows, so they
+stay live without a remote query handler or refresh control.
 
 ## 4. Under the hood
 
@@ -135,16 +152,16 @@ controller-only integrity fields even though the contractor can update their own
 src/
 ├── apps/                           +field_ops_controller.svelte, +field_ops_contractor.svelte
 ├── envoys/                         +field_ops_whatsapp.ts
-├── access/policies/                the three policies and the variation approval flow
+├── access/policies/                the four policies and the variation approval flow
 ├── collections/                    models, relationships, hooks, pipelines, representations
-│   └── photo_evidence/             photo-integrity.ts + pdq.ts — PDQ, EXIF, geo, duplicates, immutable provenance
+│   ├── photo_evidence/             photo-integrity.ts + pdq.ts — PDQ, EXIF, geo, duplicates, immutable provenance
+│   ├── suspicion_reviews/          the review ledger (controller-only)
+│   └── suspicious_activity_logs/   the suspicion judgements and their controller resolution
 ├── datatypes/
-│   ├── money/                      money value with renderer (ISO 4217 currency)
 │   └── photo_source/               where a photo came from: workspace upload or a channel message
 ├── i18n/                           messages.en.json + messages.zh.json (identical key sets)
 ├── lib/                            typed workspace client shared by server roles
-├── automations/                    immediate + daily wrappers over one batched site-identity reviewer
-├── functions/                      +field_ops_dashboard.ts
+├── automations/                    +review_job_assignment_suspicion.ts and the shared suspicion-review.ts
 ```
 
 Apps are deliberately thin because the work happens inside a record: opening an assignment brings up
@@ -171,9 +188,10 @@ and agent — not only the UI:
   signal is absent, but does not classify the photo: WhatsApp commonly strips EXIF.
   `metadata_anomaly`/`edited_metadata`/`low_quality` are also evidence attributes.
 - **Flags** live on the photo row (`flags` array, `matched_evidence_ids`). Cross-assignment reuse and
-  GPS mismatch are strong inputs, not a verdict by themselves. The multimodal site-identity layer
-  judges the whole natural scene, records its rationale, and is the layer that can latch an assignment
-  suspicious. The controller dashboard renders both the deterministic attributes and that rationale.
+  GPS mismatch are strong inputs, not a verdict by themselves. The suspicion-review automation
+  judges the whole case — scene, aggregate facts, and recent contractor communications — records its
+  rationale, and is what recommends an assignment suspicious. The controller dashboard renders both
+  the deterministic attributes and that rationale; contractors and the WhatsApp agent see neither.
 
 ### How the WhatsApp envoy works
 
@@ -181,6 +199,7 @@ The host holds the transport credential and delivers an already-authenticated in
 binds the conversation to a transcript, claims the message exactly once, and matches its sender to a
 verified WhatsApp identity. Runtime mints `envoy:field_ops_whatsapp` with the declaration's policies;
 the linked contractor supplies only `userId` for requestor predicates, never team authority or admin.
+Inbound messages also become `communication_logs` rows against the assignment they concern.
 The reply goes back over the same transport.
 
 ## 5. Changing the template

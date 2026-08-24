@@ -31,25 +31,14 @@ function lookup(
 		assigneeUserIds: new Set([assigneeUserId]),
 		occupiedJobIds: new Set(),
 		occupiedSourceMessageIds: new Set(),
-		sites: new Map([
-			[
-				siteId,
-				{
-					geometry: { lat: 1.3, lon: 103.8 },
-					formatted_address: 'Site',
-					type: 'Point',
-					srid: 4326
-				}
-			]
-		]),
 		repeatedJobIds: repeated.jobIds,
 		repeatedSourceMessageIds: repeated.sourceMessageIds,
 		...overrides
 	};
 }
 
-test('prepares assignments in caller order with the same defaults and location semantics', () => {
-	const dispatchedAt = new Date('2026-08-13T00:00:00.000Z');
+test('prepares assignments in caller order with progression defaults independent of location facts', () => {
+	const dispatchedAt = '2026-08-13T00:00:00.000Z';
 	const inputs = [
 		{
 			job_id: jobId,
@@ -79,11 +68,7 @@ test('prepares assignments in caller order with the same defaults and location s
 	assert.equal(result[1]?.dispatched_at, '2026-08-12T00:00:00.000Z');
 	// `in_progress` is one of the two old spellings of "somebody holds this", and lands on `assigned`.
 	//
-	// The second row's location is far outside the site's tolerance, which used to make this
-	// `'suspect'` — a finding written into the column that says where the work got to, erasing it.
-	// The state now survives the finding: a suspicion about this row is a `suspicious_activity_logs`
-	// entry raised by the `after` hook, and dispatch can see a job that is both suspicious and
-	// finished, which it previously could not.
+	// Location remains a fact. Only the dedicated AI/human review process may create a judgement.
 	assert.equal(result[1]?.status, 'assigned');
 });
 

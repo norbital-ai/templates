@@ -31,6 +31,7 @@ import type { Integrations } from './$types.js';
  */
 export default {
 	dispatch: {
+		policies: ['dispatch_integration'],
 		receive: {
 			job_updated: defineWebhook({
 				webhook: {
@@ -60,18 +61,18 @@ export default {
 				}),
 				identity: { column: 'external_ref', value: (job) => job.reference },
 				resolve: ({ records, api }) =>
-					Effect.gen(function* () {
-						const codes = [...new Set(records.map((job) => job.site_code))];
-						const sites = yield* api.db.query.sites.findMany({
-							where: { site_code: { in: codes } },
+					Effect.map(
+						api.db.query.sites.findMany({
+							where: { site_code: { in: [...new Set(records.map((job) => job.site_code))] } },
 							columns: { id: true, site_code: true }
-						});
-						return new Map(
-							sites.flatMap((site) =>
-								site.site_code === null ? [] : [[site.site_code, site.id] as const]
+						}),
+						(sites) =>
+							new Map(
+								sites.flatMap((site) =>
+									site.site_code === null ? [] : [[site.site_code, site.id] as const]
+								)
 							)
-						);
-					}),
+					),
 				map: (job, sites) => {
 					const siteId = sites.get(job.site_code);
 					// Refused rather than defaulted. A job filed against the wrong site is worse than a job

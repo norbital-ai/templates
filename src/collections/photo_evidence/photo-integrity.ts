@@ -1,10 +1,10 @@
-import { createHash } from 'node:crypto';
 import exifr from 'exifr';
 import { decode as decodePng } from 'fast-png';
 import { decode as decodeJpeg } from 'jpeg-js';
 import { deepDiff, safeParse } from '@norbital-ai/std/json';
-import { Clock, Effect, Exit, Option, Schema } from 'effect';
+import { Effect, Exit, Option, Schema } from 'effect';
 import { hashPdq, pdqHashToHex } from './pdq.js';
+import { currentDate } from '../../lib/clock.js';
 import { exceedsSiteTolerance, SITE_LOCATION_TOLERANCE_M } from '../../lib/geo.js';
 
 const exifSchema = Schema.Struct({
@@ -37,6 +37,28 @@ const photoIntegrityFlagNames = new Set<string>(photoIntegrityFlags);
 
 const hexDigest = Schema.String.check(Schema.isPattern(/^[a-f0-9]{64}$/));
 const positiveInt = Schema.Int.check(Schema.isGreaterThan(0));
+
+/**
+ * Whether a claimed capture time sits more than a day ahead of the moment being inspected.
+ *
+ * Parsing an EXIF timestamp is arithmetic on a value the file supplied, not a reading of the
+ * ambient clock, so it stays out of the workflow: the workflow only reads `currentDate`.
+ */
+function capturedAheadOf(capturedAt: string | null, now: Date): boolean {
+	if (capturedAt == null) return false;
+	return new Date(capturedAt).getTime() > now.getTime() + 24 * 60 * 60 * 1000;
+}
+
+function sha256Hex(bytes: Uint8Array) {
+	return Effect.tryPromise(() => {
+		const copy = Uint8Array.from(bytes);
+		return crypto.subtle.digest('SHA-256', copy.buffer);
+	}).pipe(
+		Effect.map((digest) =>
+			[...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, '0')).join('')
+		)
+	);
+}
 
 const photoInspectionSchema = Schema.Struct({
 	sha256: hexDigest,
@@ -184,15 +206,12 @@ export const inspectPhoto = (input: { bytes: Uint8Array; mimeType: string; now?:
 		);
 		if (Option.isSome(parsedExif)) exif = parsedExif.value;
 
-		const sha256 = createHash('sha256').update(input.bytes).digest('hex');
+		const sha256 = yield* sha256Hex(input.bytes);
 		const flags = new Set<PhotoIntegrityFlag>();
 		const capturedAt = toIsoDate(exif.DateTimeOriginal ?? exif.CreateDate);
-		const now = input.now ?? new Date(yield* Clock.currentTimeMillis);
+		const now = input.now ?? (yield* currentDate);
 		const expectedMime = expectedMimeType(image.format);
-		if (
-			input.mimeType.toLowerCase() !== expectedMime ||
-			(capturedAt != null && new Date(capturedAt).getTime() > now.getTime() + 24 * 60 * 60 * 1000)
-		) {
+		if (input.mimeType.toLowerCase() !== expectedMime || capturedAheadOf(capturedAt, now)) {
 			flags.add('metadata_anomaly');
 		}
 		if (
@@ -375,21 +394,22 @@ export function planDuplicateEvidenceBatch(
 			matchedEvidenceIds.add(candidate.id);
 		}
 		const recordEmbedding = embeddings.get(record.id);
-		const visualCandidates = recordEmbedding
-			? corpus
-					.filter((candidate) => candidate.id !== record.id)
-					.flatMap((candidate) => {
-						const candidateEmbedding = embeddings.get(candidate.id);
-						const distance = candidateEmbedding
-							? squaredL2(recordEmbedding, candidateEmbedding)
-							: null;
-						return distance != null && distance <= VISUAL_DUPLICATE_MAX_L2 * VISUAL_DUPLICATE_MAX_L2
-							? [{ candidate, distance }]
-							: [];
-					})
-					.sort((left, right) => left.distance - right.distance)
-					.slice(0, 50)
+		// One pass over the corpus: the identity check that used to be its own `filter` is the
+		// flatMap's first guard, so scoring, exclusion and collection happen together.
+		const scored = recordEmbedding
+			? corpus.flatMap((candidate) => {
+					if (candidate.id === record.id) return [];
+					const candidateEmbedding = embeddings.get(candidate.id);
+					const distance = candidateEmbedding
+						? squaredL2(recordEmbedding, candidateEmbedding)
+						: null;
+					return distance != null && distance <= VISUAL_DUPLICATE_MAX_L2 * VISUAL_DUPLICATE_MAX_L2
+						? [{ candidate, distance }]
+						: [];
+				})
 			: [];
+		scored.sort((left, right) => left.distance - right.distance);
+		const visualCandidates = scored.slice(0, 50);
 		for (const { candidate } of visualCandidates) {
 			if (candidate.assignmentId === record.assignmentId || candidate.sha256 === record.sha256) {
 				continue;

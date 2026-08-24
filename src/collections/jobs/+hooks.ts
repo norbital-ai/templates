@@ -19,20 +19,20 @@ type JobHooks = CollectionHooks<WorkspaceSchema, 'jobs', JobBatch>;
 
 export default {
 	create: {
-		prepare: ({ inputs, api }) =>
-			Effect.gen(function* () {
-				const siteIds = [
-					...new Set(inputs.flatMap((input) => (input.site_id ? [input.site_id] : [])))
-				];
-				const sites = siteIds.length
-					? yield* api.db.query.sites.findMany({
-							where: { id: { in: siteIds } },
-							columns: { id: true },
-							limit: SITE_BATCH_LIMIT
-						})
-					: [];
-				return { siteIds: new Set(sites.map((site) => site.id)) };
-			}),
+		prepare: ({ inputs, api }) => {
+			const siteIds = [
+				...new Set(inputs.flatMap((input) => (input.site_id ? [input.site_id] : [])))
+			];
+			if (siteIds.length === 0) return Effect.succeed({ siteIds: new Set<string>() });
+			return Effect.map(
+				api.db.query.sites.findMany({
+					where: { id: { in: siteIds } },
+					columns: { id: true },
+					limit: SITE_BATCH_LIMIT
+				}),
+				(sites) => ({ siteIds: new Set(sites.map((site) => site.id)) })
+			);
+		},
 		perRecord: {
 			before: {
 				description:

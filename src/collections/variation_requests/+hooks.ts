@@ -1,6 +1,7 @@
 import type { CollectionHooks } from '@norbital-ai/bolt/authoring';
-import { Clock, Effect } from 'effect';
+import { Effect } from 'effect';
 import type { WorkspaceSchema } from '$bolt/types.js';
+import { currentDate } from '../../lib/clock.js';
 
 const VARIATION_BATCH_LIMIT = 5000;
 
@@ -84,7 +85,7 @@ export default {
 							);
 						}
 
-						const requestedAt = input.requested_at ?? new Date(yield* Clock.currentTimeMillis);
+						const requestedAt = input.requested_at ?? (yield* currentDate).toISOString();
 						return {
 							...input,
 							requested_at: requestedAt

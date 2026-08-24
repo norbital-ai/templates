@@ -1,6 +1,6 @@
 <script lang="ts">
 	/**
-	 * One photo and its integrity result, read only.
+	 * One photo and its captured evidence facts, read only.
 	 *
 	 * Nothing here is written by hand — the ingest pipeline hashes the image and records what it
 	 * matched — so this panel explains a result rather than offering to change one. The auto form
@@ -10,6 +10,7 @@
 	 * `matched_evidence_ids` points back at this same collection, so each match reads as the other
 	 * photo's own `summary` — which is why that column had to exist before this panel could.
 	 */
+	import { client } from '../../lib/workspace-client.js';
 	import { collectionClient } from '../../lib/collection-client.js';
 	import { useI18n } from '@norbital-ai/ui/i18n';
 	import type { TenantI18nKeys } from '$bolt/i18n-keys';
@@ -21,6 +22,11 @@
 	let { record }: RepresentationProps = $props();
 
 	const { t } = useI18n<TenantI18nKeys>();
+	const suspicionReadAccessQuery = client.system.access.explain({
+		action: 'read',
+		resource: 'suspicious_activity_logs'
+	});
+	const mayReadReviewFacts = $derived(suspicionReadAccessQuery.current?.allowed === true);
 </script>
 
 <svelte:head>
@@ -76,24 +82,26 @@
 						}
 					}}
 				/>
-				<Column span="all"><Field name="source" label={t('component.source')} /></Column>
-				<Column span="all"><Field name="flags" label={t('component.integrity_flags')} /></Column>
-				<Column span="all">
-					<Field
-						name="matched_evidence_ids"
-						label={t('component.duplicates_of')}
-						renderer={RelationshipRenderer}
-						rendererProps={{
-							target: 'photo_evidence',
-							multiple: true,
-							options: {
-								label: (record) =>
-									record.summary != null && record.summary !== '' ? String(record.summary) : '—',
-								limit: 500
-							}
-						}}
-					/>
-				</Column>
+				{#if mayReadReviewFacts}
+					<Column span="all"><Field name="source" label={t('component.source')} /></Column>
+					<Column span="all"><Field name="flags" label={t('component.integrity_flags')} /></Column>
+					<Column span="all">
+						<Field
+							name="matched_evidence_ids"
+							label={t('component.duplicates_of')}
+							renderer={RelationshipRenderer}
+							rendererProps={{
+								target: 'photo_evidence',
+								multiple: true,
+								options: {
+									label: (record) =>
+										record.summary != null && record.summary !== '' ? String(record.summary) : '—',
+									limit: 500
+								}
+							}}
+						/>
+					</Column>
+				{/if}
 			</Grid>
 		{/snippet}
 	</CollectionForm>

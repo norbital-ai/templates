@@ -2,7 +2,7 @@
 	import { client } from '../../lib/workspace-client.js';
 	import { collectionClient } from '../../lib/collection-client.js';
 	import { getPlatformStateContext } from '@norbital-ai/bolt/client';
-	import { useI18n, type I18nApi } from '@norbital-ai/ui/i18n';
+	import { useI18n } from '@norbital-ai/ui/i18n';
 	import type { TenantI18nKeys } from '$bolt/i18n-keys';
 	import type { RepresentationProps } from './$types.js';
 	import { CollectionForm } from '@norbital-ai/ui/collection-form';
@@ -22,66 +22,47 @@
 	import { Textarea } from '@norbital-ai/ui/textarea';
 	import * as Dialog from '@norbital-ai/ui/dialog';
 	import { formatFileSize } from '@norbital-ai/ui/utils';
+	import { getDataRendererRuntimeContext } from '@norbital-ai/ui/data-renderer';
 	import { RelationshipRenderer } from '@norbital-ai/ui/data-renderer/relationship';
 	import Icon from '@iconify/svelte';
 	import { Option, Schema } from 'effect';
 	import JobsRepresentation from '../jobs/+representation.svelte';
+	import { formatSingaporeInstant } from '../../lib/format-singapore-instant.js';
 
 	let { record, close }: RepresentationProps = $props();
 
 	const { t } = useI18n<TenantI18nKeys>();
+	const dataRendererRuntime = getDataRendererRuntimeContext();
+	if (dataRendererRuntime === undefined) {
+		throw new Error('Field Operations requires the workspace file URL capability.');
+	}
 
-	/**
-	 * Flag visibility is reserved for dispatch. Contractors see their evidence photos but never the
-	 * integrity results, so the shared assignment sheet hides them from a viewer who does not hold
-	 * the controller policy.
-	 *
-	 * Who is looking is answered by what the runtime says they may open, never by looking a record up.
-	 * Do not reach for `getPlatformStateContext()().user.id` — the shell builds it from the
-	 * display name rather than an id, so any lookup keyed on it fails against a `uuid()` column for
-	 * every viewer alive, and a failed lookup here reads as "not a contractor" and shows a contractor
-	 * the controller-only integrity overlay.
-	 *
-	 * `platform.apps` is `AccessControl.visibleApps`: the whole registry for an `admin` status, and
-	 * otherwise the apps the policies of the viewer's one team declare. Only
-	 * `+field_ops_controller.ts` names the controller app, so its absence is exactly "this
-	 * person does not dispatch". It also fails the safe way: the shell seeds the list empty and fills
-	 * it when the runtime answers, so a viewer reads as a contractor until proven otherwise and the
-	 * overlay stays hidden through load rather than flashing.
-	 */
 	const platform = getPlatformStateContext();
-	const isContractorViewer = $derived(!platform().apps.includes('field_ops_controller'));
 
 	/**
-	 * The progress a contractor may see. The assignment's own status carries the integrity overlay
-	 * (`suspect`), which is controller-only; the linked job's status mirrors the assignment's real
-	 * progression (assigned/in_progress/completed) and never carries the overlay.
+	 * Ask the runtime about the collections themselves. App visibility is navigation, not data
+	 * authority, and using an app name as a role would make this component leak the existence of a
+	 * restricted collection whenever those two lists drifted apart.
 	 */
-	function contractorProgressLabel(): string {
-		const jobStatus = jobQuery?.current?.[0]?.status;
-		switch (jobStatus) {
-			case 'assigned':
-				return t('component.status_assigned');
-			case 'in_progress':
-				return t('component.status_in_progress');
-			case 'completed':
-				return t('component.status_completed');
-			default:
-				return '—';
-		}
-	}
-
-	type Translator = I18nApi<TenantI18nKeys>['t'];
-
-	/** Render an instant for a Singapore-local reader without depending on the viewer's browser zone. */
-	function formatSingaporeInstant(value: string | Date | null | undefined, t: Translator): string {
-		if (!value) return t('component.not_recorded');
-		return new Intl.DateTimeFormat('en-SG', {
-			dateStyle: 'medium',
-			timeStyle: 'short',
-			timeZone: 'Asia/Singapore'
-		}).format(new Date(value));
-	}
+	const suspicionReadAccessQuery = client.system.access.explain({
+		action: 'read',
+		resource: 'suspicious_activity_logs'
+	});
+	const mayReadSuspicion = $derived(suspicionReadAccessQuery.current?.allowed === true);
+	const suspicionUpdateAccessQuery = $derived(
+		mayReadSuspicion
+			? client.system.access.explain({
+					action: 'update',
+					resource: 'suspicious_activity_logs'
+				})
+			: undefined
+	);
+	const mayResolveSuspicion = $derived(suspicionUpdateAccessQuery?.current?.allowed === true);
+	const communicationReadAccessQuery = client.system.access.explain({
+		action: 'read',
+		resource: 'communication_logs'
+	});
+	const mayReadCommunication = $derived(communicationReadAccessQuery.current?.allowed === true);
 
 	const photoFileSchema = Schema.Struct({
 		file_name: Schema.String,
@@ -127,17 +108,33 @@
 	 * The tab is hidden from them for the same reason; this is the half that keeps the network quiet.
 	 */
 	const suspicionQuery = $derived(
-		record != null && !isContractorViewer
+		record != null && mayReadSuspicion
 			? client.db.suspicious_activity_logs.findMany({
 					where: { job_assignment_id: { eq: record.id } },
-					orderBy: { created_at: 'desc' },
+					orderBy: { created_at: 'asc' },
 					limit: 100
 				})
 			: null
 	);
 	const suspicionRows = $derived(suspicionQuery?.current ?? []);
-	/** What the controller is typing, per log. Cleared once the write lands. */
+	const openSuspicionRows = $derived(suspicionRows.filter((log) => log.resolved_at == null));
+	const firstOpenSuspicion = $derived(openSuspicionRows[0]);
+	const communicationQuery = $derived(
+		record != null && mayReadCommunication
+			? client.db.communication_logs.findMany({
+					where: { job_assignment_id: { eq: record.id } },
+					orderBy: { sent_at: 'asc' },
+					limit: 500
+				})
+			: null
+	);
+	const communicationRows = $derived(communicationQuery?.current ?? []);
+	/**
+	 * What the controller is typing, per log. A refused write keeps the draft available; a successful
+	 * write turns the live row into its resolved presentation, so the editor leaves the interface.
+	 */
 	let resolutionDraft = $state<Record<string, string>>({});
+	const resolvingSuspicion = $derived(client.db.suspicious_activity_logs.pending > 0);
 	/**
 	 * Read through helpers rather than by indexing on the record's key in a prop.
 	 *
@@ -156,8 +153,10 @@
 	 * impossible. The empty draft is refused here rather than disabled-away in the markup alone, so
 	 * the rule holds whichever path reaches it.
 	 *
-	 * The effect takes the log rather than a bare key, like the helpers above: `authored-system-columns`
+	 * The command takes the log rather than a bare key, like the helpers above: `authored-system-columns`
 	 * refuses `log.id` inside a component prop, and the id is read where it is data, in the write below.
+	 * Mutation pending and failure behavior belongs to the generated collection client; the sync
+	 * engine updates the live suspicion query, and a refused write leaves the draft intact.
 	 */
 	const resolveSuspicion = (log: { readonly id: string }) => {
 		if (!canResolve(log)) return;
@@ -166,26 +165,13 @@
 		return client.db.suspicious_activity_logs.mutate({
 			id: logId,
 			resolution,
-			resolved_at: new Date(),
+			resolved_at: new Date().toISOString(),
 			resolved_by: platform().user.id
 		});
 	};
 
 	/** Whether anything is still waiting on a controller — what the accents below turn on. */
-	const hasOpenSuspicion = $derived(suspicionRows.some((log) => log.resolved_at == null));
-	const recordMetadata = $derived(
-		!isContractorViewer && hasOpenSuspicion
-			? ([
-					{
-						kind: 'flag',
-						tone: 'warning',
-						icon: 'lucide:triangle-alert',
-						label: t('component.review_suspicious_evidence'),
-						description: t('component.suspicious_evidence_description')
-					}
-				] as const)
-			: ([] as const)
-	);
+	const hasOpenSuspicion = $derived(openSuspicionRows.length > 0);
 
 	const scopedEvidence = $derived(
 		(directEvidenceQuery?.current ?? []).filter(
@@ -210,40 +196,46 @@
 					id: evidence.id,
 					name: file.file_name,
 					fileSize: file.file_size,
-					url: `/api/files/${encodeURIComponent(file.storage_key)}`,
+					url: dataRendererRuntime.fileUrl(file.storage_key),
 					flags: (evidence.flags ?? []).filter((flag) => flag != null),
-					source: evidenceSource(evidence.source),
-					capturedAt: formatSingaporeInstant(evidence.created_at, t)
+					source: evidence.source == null ? null : evidenceSource(evidence.source),
+					capturedAt: formatSingaporeInstant(evidence.created_at, t('component.not_recorded'))
 				}
 			];
 		})
 	);
 	const evidenceLoading = $derived(directEvidenceQuery?.loading === true);
-	/**
-	 * Why this assignment warrants a look, kept as two distinct facts rather than one.
-	 *
-	 * `site_identity_mismatch` is a finding: a photographed identifier contradicts the assigned site.
-	 * `site_identity_unverified` is the *absence* of a finding — the model's default, "fail closed
-	 * until a linked photo visibly establishes a site identifier". Only the first was rendered, so a
-	 * row nothing had ever checked was indistinguishable from one checked and found consistent: both
-	 * showed no warning at all. Seeded rows are exactly that case, because the check runs from a
-	 * `photo_evidence` created event and the seeder writes rows without emitting one — so every
-	 * seeded assignment carries `unverified: true`, `checked_at: null`, and looked verified.
-	 *
-	 * An unverified state that renders as a verified one is worse than no check, because it answers
-	 * the question it never asked.
-	 */
-	const suspicionReasons = $derived([
-		...(hasOpenSuspicion
-			? suspicionRows.filter((log) => log.resolved_at == null).map((log) => log.reason)
-			: []),
-		...(record?.site_identity_mismatch === true
-			? [t('component.suspicion_site_identity_mismatch')]
-			: []),
-		...(record?.site_identity_mismatch !== true && record?.site_identity_unverified === true
-			? [t('component.suspicion_site_identity_unverified')]
-			: [])
-	]);
+	const evidenceFacts = $derived(
+		scopedEvidence.flatMap((evidence) => {
+			const facts: Array<{ readonly id: string; readonly label: string }> = [];
+			const flags = new Set((evidence.flags ?? []).filter((flag) => flag != null));
+			if (flags.has('exact_duplicate')) {
+				facts.push({
+					id: `${evidence.id}:exact`,
+					label: t('component.evidence_fact_exact_match')
+				});
+			}
+			if (flags.has('visual_duplicate')) {
+				facts.push({
+					id: `${evidence.id}:similar`,
+					label: t('component.evidence_fact_similar_match')
+				});
+			}
+			if (flags.has('missing_geolocation')) {
+				facts.push({
+					id: `${evidence.id}:geolocation`,
+					label: t('component.evidence_fact_missing_geolocation')
+				});
+			}
+			if (flags.has('metadata_anomaly')) {
+				facts.push({
+					id: `${evidence.id}:metadata`,
+					label: t('component.evidence_fact_missing_metadata')
+				});
+			}
+			return facts;
+		})
+	);
 
 	/**
 	 * The photo the viewer opened, or nothing.
@@ -254,10 +246,6 @@
 	 * both and closes on Escape or a click outside.
 	 */
 	let openedPhoto = $state<(typeof photoCards)[number] | undefined>(undefined);
-
-	function photoHasIntegritySignals(flags: string[]): boolean {
-		return flags.length > 0;
-	}
 
 	function integrityFlagLabel(flag: string): string {
 		switch (flag) {
@@ -301,39 +289,15 @@
 </script>
 
 {#if record}
-	{#snippet suspicionBanner()}
-		{#if !isContractorViewer && (hasOpenSuspicion || record.site_identity_mismatch || record.site_identity_unverified)}
-			<section
-				class="border-s-2 border-orange-500 bg-orange-50/70 px-4 py-3 text-orange-950 dark:bg-orange-950/30 dark:text-orange-100"
-				aria-labelledby="assignment-suspicion-heading"
-			>
-				<Inline align="start" gap="sm">
-					<Icon icon="lucide:triangle-alert" class="size-5 shrink-0 text-orange-600" />
-					<Stack gap="xs" class="min-w-0">
-						<h3 id="assignment-suspicion-heading" class="text-sm font-semibold">
-							{t('component.suspicious_evidence_title')}
-						</h3>
-						<p class="text-sm text-orange-900/80 dark:text-orange-100/80">
-							{t('component.suspicious_evidence_description')}
-						</p>
-						{#if suspicionReasons.length > 0}
-							<Stack as="ul" gap="xs" class="list-disc ps-5 text-sm">
-								{#each suspicionReasons as reason (reason)}
-									<li>{reason}</li>
-								{/each}
-							</Stack>
-						{:else}
-							<p class="text-sm">{t('component.suspicious_reason_pending')}</p>
-						{/if}
-						{#if record.site_identity_mismatch && record.site_identity_rationale}
-							<p class="text-sm text-orange-900/80 dark:text-orange-100/80">
-								<span class="font-medium">{t('component.agent_rationale')}:</span>
-								{record.site_identity_rationale}
-							</p>
-						{/if}
-					</Stack>
-				</Inline>
-			</section>
+	{#snippet suspicionHeader()}
+		{#if mayReadSuspicion && hasOpenSuspicion && firstOpenSuspicion}
+			<Inline align="start" gap="xs" class="min-w-0 px-1 text-warning" aria-live="polite">
+				<Icon icon="lucide:shield-alert" class="mt-0.5 size-4 shrink-0" aria-hidden="true" />
+				<p class="min-w-0 break-words text-sm [overflow-wrap:anywhere]">
+					<span class="font-semibold">{t('component.suspicion_open')}:</span>
+					{firstOpenSuspicion.reason}
+				</p>
+			</Inline>
 		{/if}
 	{/snippet}
 
@@ -363,19 +327,13 @@
 						<p class="text-sm text-destructive">{t('component.job_load_failed')}</p>
 					{/if}
 				</Cover>
-				{@render suspicionBanner()}
 			</Stack>
 		</Scroll>
 	{/snippet}
 
 	{#snippet statusAndActivity()}
 		<Stack gap="md">
-			<CollectionForm
-				client={collectionClient}
-				collection="job_assignments"
-				defaultValues={record}
-				{recordMetadata}
-			>
+			<CollectionForm client={collectionClient} collection="job_assignments" defaultValues={record}>
 				{#snippet children({ Field })}
 					<Stack gap="md">
 						<div>
@@ -387,16 +345,7 @@
 							</p>
 						</div>
 						<Grid minimum="panel">
-							{#if isContractorViewer && record.status === 'suspect'}
-								<Stack gap="xs">
-									<span class="text-xs font-medium text-muted-foreground">
-										{t('component.status')}
-									</span>
-									<span class="text-sm">{contractorProgressLabel()}</span>
-								</Stack>
-							{:else}
-								<Field name="status" />
-							{/if}
+							<Field name="status" />
 							<Field name="dispatched_at" label={t('component.dispatched_at')} />
 							<Field name="completed_at" label={t('component.completed_at')} />
 							<Field name="amount_charged" label={t('component.value_charged')} />
@@ -439,7 +388,10 @@
 							</Inline>
 							<p class="text-meta">
 								{t('component.requested_at_instant', {
-									instant: formatSingaporeInstant(variation.requested_at, t)
+									instant: formatSingaporeInstant(
+										variation.requested_at,
+										t('component.not_recorded')
+									)
 								})}
 							</p>
 						</Stack>
@@ -451,89 +403,174 @@
 						</div>
 					{/each}
 				</Stack>
-				{@render suspicionBanner()}
 			</Stack>
 		</Scroll>
 	{/snippet}
 
-	<!--
-		The suspicions raised about this assignment, and the controller's answer to each.
-
-		Resolving is writing a sentence, not clearing a flag. A log with an empty resolution and a log
-		somebody looked at and judged fine are different facts, and a boolean cannot hold the
-		difference — which is the same reason `site_identity_unverified` had to become visible rather
-		than be treated as "no news".
-	-->
 	{#snippet suspicionLogs()}
 		<Stack gap="md">
 			<Stack gap="xs">
 				<h3 class="text-sm font-semibold">{t('component.suspicion_logs')}</h3>
 				<p class="text-tiny text-muted-foreground">{t('component.suspicion_logs_description')}</p>
 			</Stack>
-			{#if suspicionQuery?.loading}
-				<p class="text-tiny text-muted-foreground">{t('component.loading')}</p>
-			{:else if suspicionRows.length === 0}
-				<p class="text-tiny text-muted-foreground">{t('component.suspicion_logs_empty')}</p>
-			{:else}
-				<Stack gap="sm">
-					{#each suspicionRows as log (log.id)}
-						<Stack
-							gap="xs"
-							class={cn(
-								'rounded-md border p-3',
-								log.resolved_at == null ? 'border-warning/40 bg-warning/5' : 'border-border'
-							)}
-						>
-							<Inline gap="sm" align="center">
-								<Icon
-									icon={log.resolved_at == null ? 'lucide:shield-alert' : 'lucide:shield-check'}
-									class={cn('size-4 shrink-0', log.resolved_at == null && 'text-warning')}
-								/>
-								<span class="text-tiny font-semibold">
-									{log.resolved_at == null
-										? t('component.suspicion_open')
-										: t('component.suspicion_resolved')}
-								</span>
-							</Inline>
-							<p class="text-tiny">{log.reason}</p>
-							{#if log.resolution}
-								<p class="text-tiny text-muted-foreground">{log.resolution}</p>
-							{:else}
-								<!--
-									The controller's answer, which is what closes the log.
 
-									A free-text sentence and not a yes/no: "the unit number is 1 because the block
-									entrance is numbered separately" and "the contractor was at the wrong address"
-									are both resolutions and the difference is the entire value of the record.
-								-->
-								<Stack gap="xs">
-									<Textarea
-										rows={2}
-										placeholder={t('component.suspicion_resolution_placeholder')}
-										value={draftFor(log)}
-										oninput={(event) =>
-											(resolutionDraft = {
-												...resolutionDraft,
-												[log.id]: event.currentTarget.value
-											})}
-									/>
-									<Inline gap="sm" align="center">
-										<Button
-											size="sm"
-											disabled={!canResolve(log) || client.db.suspicious_activity_logs.pending > 0}
-											aria-busy={client.db.suspicious_activity_logs.pending > 0}
-											onclick={() => void resolveSuspicion(log)}
-										>
-											{t('component.suspicion_resolve')}
-										</Button>
-									</Inline>
-								</Stack>
-							{/if}
+			<section aria-labelledby="assignment-evidence-facts-heading">
+				<Stack gap="sm">
+					<h4 id="assignment-evidence-facts-heading" class="text-sm font-semibold">
+						{t('component.evidence_facts')}
+					</h4>
+					<p class="text-tiny text-muted-foreground">
+						{t('component.evidence_facts_description')}
+					</p>
+					{#if evidenceLoading}
+						<p class="text-tiny text-muted-foreground">{t('component.loading_evidence')}</p>
+					{:else if directEvidenceQuery?.error}
+						<p class="text-tiny text-destructive" role="alert">
+							{t('component.evidence_load_failed')}
+						</p>
+					{:else if evidenceFacts.length === 0}
+						<p class="text-tiny text-muted-foreground">
+							{t('component.evidence_facts_empty')}
+						</p>
+					{:else}
+						<Stack as="ul" gap="xs" class="list-disc ps-5 text-tiny">
+							{#each evidenceFacts as fact (fact.id)}
+								<li class="break-words [overflow-wrap:anywhere]">{fact.label}</li>
+							{/each}
 						</Stack>
-					{/each}
+					{/if}
 				</Stack>
-			{/if}
+			</section>
+
+			<section aria-labelledby="assignment-judgements-heading">
+				<Stack gap="sm">
+					<h4 id="assignment-judgements-heading" class="text-sm font-semibold">
+						{t('component.suspicion_judgements')}
+					</h4>
+					{#if suspicionQuery?.loading}
+						<p class="text-tiny text-muted-foreground">{t('component.loading')}</p>
+					{:else if suspicionQuery?.error}
+						<p class="text-tiny text-destructive" role="alert">
+							{t('component.suspicion_load_failed')}
+						</p>
+					{:else if suspicionRows.length === 0}
+						<p class="text-tiny text-muted-foreground">{t('component.suspicion_logs_empty')}</p>
+					{:else}
+						<Stack gap="sm">
+							{#each suspicionRows as log (log.id)}
+								<Stack
+									gap="xs"
+									class={cn(
+										'rounded-md border p-3',
+										log.resolved_at == null ? 'border-warning/40 bg-warning/5' : 'border-border'
+									)}
+								>
+									<Inline gap="sm" align="center">
+										<Icon
+											icon={log.resolved_at == null ? 'lucide:shield-alert' : 'lucide:shield-check'}
+											class={cn('size-4 shrink-0', log.resolved_at == null && 'text-warning')}
+											aria-hidden="true"
+										/>
+										<span class="text-tiny font-semibold">
+											{log.resolved_at == null
+												? t('component.suspicion_open')
+												: t('component.suspicion_resolved')}
+										</span>
+									</Inline>
+									<p class="break-words text-tiny [overflow-wrap:anywhere]">{log.reason}</p>
+									{#if log.resolved_at != null}
+										{#if log.resolution}
+											<p
+												class="break-words text-tiny text-muted-foreground [overflow-wrap:anywhere]"
+											>
+												{log.resolution}
+											</p>
+										{:else}
+											<p class="text-tiny text-muted-foreground">
+												{t('component.suspicion_resolution_missing')}
+											</p>
+										{/if}
+									{:else if mayResolveSuspicion}
+										<Stack gap="xs">
+											<Textarea
+												rows={2}
+												placeholder={t('component.suspicion_resolution_placeholder')}
+												value={draftFor(log)}
+												oninput={(event) =>
+													(resolutionDraft = {
+														...resolutionDraft,
+														[log.id]: event.currentTarget.value
+													})}
+											/>
+											<Inline gap="sm" align="center">
+												<Button
+													size="sm"
+													disabled={!canResolve(log) || resolvingSuspicion}
+													aria-busy={resolvingSuspicion}
+													onclick={() => resolveSuspicion(log)}
+												>
+													{resolvingSuspicion
+														? t('component.suspicion_resolving')
+														: t('component.suspicion_resolve')}
+												</Button>
+											</Inline>
+										</Stack>
+									{:else}
+										<p class="text-tiny text-muted-foreground">
+											{t('component.suspicion_resolve_unavailable')}
+										</p>
+									{/if}
+								</Stack>
+							{/each}
+						</Stack>
+					{/if}
+				</Stack>
+			</section>
 		</Stack>
+	{/snippet}
+
+	{#snippet communicationHistory()}
+		<Scroll name={t('component.communication_logs')}>
+			<Stack as="section" aria-labelledby="communication-logs-heading" gap="md">
+				<Stack gap="xs">
+					<h3 id="communication-logs-heading" class="text-sm font-semibold">
+						{t('component.communication_logs')}
+					</h3>
+					<p class="text-tiny text-muted-foreground">
+						{t('component.communication_logs_description')}
+					</p>
+				</Stack>
+				{#if communicationQuery?.loading}
+					<p class="text-tiny text-muted-foreground">{t('component.loading')}</p>
+				{:else if communicationQuery?.error}
+					<p class="text-tiny text-destructive" role="alert">
+						{t('component.communication_logs_failed')}
+					</p>
+				{:else if communicationRows.length === 0}
+					<p class="text-tiny text-muted-foreground">{t('component.communication_logs_empty')}</p>
+				{:else}
+					<Stack as="ol" gap="sm">
+						{#each communicationRows as entry (entry.source_message_id)}
+							<li class="rounded-md border border-border p-3">
+								<Stack gap="xs">
+									<Cluster align="center" justify="between" gap="sm">
+										<span class="break-words text-tiny font-semibold [overflow-wrap:anywhere]">
+											{entry.sender}
+										</span>
+										<time class="text-meta">
+											{formatSingaporeInstant(entry.sent_at, t('component.not_recorded'))}
+										</time>
+									</Cluster>
+									<p class="whitespace-pre-wrap break-words text-sm [overflow-wrap:anywhere]">
+										{entry.message}
+									</p>
+								</Stack>
+							</li>
+						{/each}
+					</Stack>
+				{/if}
+			</Stack>
+		</Scroll>
 	{/snippet}
 
 	{#snippet photoGallery()}
@@ -551,10 +588,7 @@
 					</span>
 				</Inline>
 				{#if directEvidenceQuery?.error}
-					<p
-						class="rounded-md border border-destructive/40 p-3 text-sm text-destructive"
-						role="alert"
-					>
+					<p class="text-sm text-destructive" role="alert">
 						{t('component.evidence_load_failed')}
 					</p>
 				{:else if evidenceLoading && photoCards.length === 0}
@@ -586,30 +620,27 @@
 								<Stack as="section" gap="sm" class="p-3">
 									<Inline align="start" gap="xs">
 										<Icon
-											icon={isContractorViewer
-												? 'lucide:image'
-												: photoHasIntegritySignals(photo.flags)
-													? 'lucide:scan-search'
-													: 'lucide:image-check'}
-											class={isContractorViewer
-												? 'mt-0.5 size-4 shrink-0 text-muted-foreground'
-												: photoHasIntegritySignals(photo.flags)
-													? 'mt-0.5 size-4 shrink-0 text-muted-foreground'
-													: 'mt-0.5 size-4 shrink-0 text-success'}
+											icon={mayReadSuspicion && photo.flags.length > 0
+												? 'lucide:scan-search'
+												: 'lucide:image'}
+											class="mt-0.5 size-4 shrink-0 text-muted-foreground"
+											aria-hidden="true"
 										/>
 										<Stack gap="none" class="min-w-0">
 											<p class="truncate text-sm font-medium">{photo.name}</p>
 											<p class="text-meta">
-												{photo.source} · {photo.capturedAt}
+												{photo.source == null
+													? photo.capturedAt
+													: `${photo.source} · ${photo.capturedAt}`}
 											</p>
 										</Stack>
 									</Inline>
-									{#if !isContractorViewer}
+									{#if mayReadSuspicion}
 										<Cluster justify="between" gap="xs" class="text-xs">
 											<span class="text-muted-foreground">
 												{photo.flags.length > 0
 													? photo.flags.map(integrityFlagLabel).join(' · ')
-													: t('component.integrity_passed')}
+													: t('component.evidence_no_recorded_facts')}
 											</span>
 											{#if photo.fileSize != null}
 												<span class="shrink-0 tabular-nums text-muted-foreground">
@@ -637,60 +668,64 @@
 						{/each}
 					</Grid>
 				{/if}
-				{@render suspicionBanner()}
 			</Stack>
 		</Scroll>
 	{/snippet}
 
-	<Tabs
-		animate={false}
-		contentPadding={false}
-		listClass="mx-0 w-full"
-		config={[
-			{
-				name: 'scope',
-				label: t('component.job_scope'),
-				icon: 'lucide:briefcase-business',
-				content: jobScope
-			},
-			{
-				name: 'activity',
-				label: t('component.status_and_activity'),
-				icon: 'lucide:clipboard-check',
-				content: statusAndActivity
-			},
-			{
-				name: 'variations',
-				label: t('component.variations'),
-				icon: 'lucide:git-pull-request-arrow',
-				content: variationHistory
-			},
-			{
-				name: 'photos',
-				label: t('component.photos'),
-				icon: 'lucide:images',
-				content: photoGallery
-			},
-			/**
-			 * Suspicion logs, and only for somebody who can answer them.
-			 *
-			 * Spread rather than conditionally rendered inside the tab, because a tab that exists and
-			 * refuses is still a tab: it tells a contractor a file about them is being kept. The policy
-			 * is the real control — no contractor grant on `suspicious_activity_logs` exists — and this
-			 * keeps the surface agreeing with it rather than relying on it alone.
-			 */
-			...(isContractorViewer
-				? []
-				: [
-						{
-							name: 'suspicions',
-							label: t('component.suspicion_logs'),
-							icon: 'lucide:shield-alert',
-							content: suspicionLogs
-						}
-					])
-		] satisfies TabConfig[]}
-	/>
+	<Stack gap="sm">
+		{@render suspicionHeader()}
+		<Tabs
+			animate={false}
+			contentPadding={false}
+			listClass="mx-0 w-full"
+			config={[
+				{
+					name: 'scope',
+					label: t('component.job_scope'),
+					icon: 'lucide:briefcase-business',
+					content: jobScope
+				},
+				{
+					name: 'activity',
+					label: t('component.status_and_activity'),
+					icon: 'lucide:clipboard-check',
+					content: statusAndActivity
+				},
+				{
+					name: 'variations',
+					label: t('component.variations'),
+					icon: 'lucide:git-pull-request-arrow',
+					content: variationHistory
+				},
+				{
+					name: 'photos',
+					label: t('component.photos'),
+					icon: 'lucide:images',
+					content: photoGallery
+				},
+				...(mayReadCommunication
+					? [
+							{
+								name: 'communications',
+								label: t('component.communication_logs'),
+								icon: 'lucide:messages-square',
+								content: communicationHistory
+							}
+						]
+					: []),
+				...(mayReadSuspicion
+					? [
+							{
+								name: 'suspicions',
+								label: t('component.suspicion_logs'),
+								icon: 'lucide:shield-alert',
+								content: suspicionLogs
+							}
+						]
+					: [])
+			] satisfies TabConfig[]}
+		/>
+	</Stack>
 {:else}
 	<CollectionForm
 		client={collectionClient}

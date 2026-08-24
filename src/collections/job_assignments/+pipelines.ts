@@ -196,8 +196,6 @@ export default {
 					job_id: entry.jobId,
 					assignee_user_id: entry.assigneeUserId,
 					status: 'assigned' as const,
-					site_identity_unverified: true,
-					site_identity_mismatch: false,
 					summary: entry.row.summary ?? null
 				}));
 			})

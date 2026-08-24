@@ -124,6 +124,7 @@
 			collection="job_assignments"
 			title={t('app.field_ops_contractor.dispatched_jobs')}
 			description={t('app.field_ops_contractor.dispatched_jobs_description')}
+			features={{ create: dispatchAuthority }}
 			query={{ orderBy: { dispatched_at: 'desc' } }}
 		>
 			{#snippet columns({ Column })}
@@ -153,32 +154,17 @@
 				<Column
 					name="status"
 					card="badge"
-					render={({ row, value }) => {
-						// The contractor sees their assignment's progress, never the controller-only
-						// integrity overlay: a `suspect` row reads as the linked job's own progression,
-						// which the assignment hooks keep in lockstep for every non-flagged path.
-						//
-						// The overlay is withheld from the contractor, not from the surface. Somebody
-						// holding dispatch is the audience it was written for, so on their view of this
-						// same table `suspect` is reported as itself — hiding a flagged assignment from
-						// the person who has to act on it was never the point of the mask.
-						if (value === 'suspect' && dispatchAuthority) {
-							return t('component.status_suspect');
+					render={({ value }) => {
+						switch (value) {
+							case 'unassigned':
+								return t('component.status_unassigned');
+							case 'assigned':
+								return t('component.status_assigned');
+							case 'completed':
+								return t('component.status_completed');
+							default:
+								return '—';
 						}
-						if (value === 'suspect') {
-							const job = jobById.get(row.job_id);
-							switch (job?.status) {
-								case 'assigned':
-									return t('component.status_assigned');
-								case 'in_progress':
-									return t('component.status_in_progress');
-								case 'completed':
-									return t('component.status_completed');
-								default:
-									return '—';
-							}
-						}
-						return typeof value === 'string' ? value : '—';
 					}}
 				/>
 				<Column name="location" label={t('component.reported_location')} minWidth={220} />

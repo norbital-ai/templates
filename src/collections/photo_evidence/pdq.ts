@@ -1,11 +1,8 @@
-import { readFile as readFileAsync } from 'node:fs/promises';
-import { dirname, join } from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { Effect, Exit, Schema } from 'effect';
 
 /**
  * Sealed-artifact path written by `vite.config.ts` `serverAssets`. The isolate host copies that
- * sidecar into the guest; Node tests walk up from this module to the template `node_modules`.
+ * sidecar into the guest. Node tests install the same reader from their test-only preload.
  */
 const PDQ_WASM_ASSET = 'node_modules/pdq-wasm/wasm/pdq.wasm';
 
@@ -60,6 +57,9 @@ const pdqHashResultSchema = Schema.Struct({
 	quality: Schema.Int
 });
 
+/** Built once: a decoder constructed at the call site is rebuilt on every hash. */
+const decodePdqHashResult = Schema.decodeUnknownEffect(pdqHashResultSchema);
+
 const decodeWasmMemory = Schema.decodeUnknownSync(Schema.instanceOf(WebAssembly.Memory));
 const decodeWasmFunction = Schema.decodeUnknownSync(Schema.instanceOf(Function));
 const decodeWasmNumber = Schema.decodeUnknownSync(Schema.Number);
@@ -70,34 +70,21 @@ function artifactReader(): ArtifactReadBytes | null {
 	return reader ?? null;
 }
 
-/** Load the 0.3.9 WASM sidecar from the sealed artifact, or from the template install in Node. */
+/** Load the 0.3.9 WASM sidecar from the sealed artifact reader supplied by the host. */
 function readPdqWasmBytes() {
 	const reader = artifactReader();
-	if (reader) {
-		return Effect.try(() => {
-			const bytes = reader.applySync(undefined, [PDQ_WASM_ASSET], {
-				arguments: { copy: true },
-				result: { copy: true }
-			});
-			if (bytes == null) {
-				throw new Error(`Sealed runtime is missing ${PDQ_WASM_ASSET}`);
-			}
-			return bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes);
-		});
-	}
-	return Effect.gen(function* () {
-		let directory = dirname(fileURLToPath(import.meta.url));
-		for (let depth = 0; depth < 8; depth += 1) {
-			const candidate = join(directory, PDQ_WASM_ASSET);
-			const bytes = yield* Effect.tryPromise(() => readFileAsync(candidate)).pipe(
-				Effect.orElseSucceed(() => null)
-			);
-			if (bytes != null) return new Uint8Array(bytes);
-			const parent = dirname(directory);
-			if (parent === directory) break;
-			directory = parent;
+	return Effect.try(() => {
+		if (!reader) {
+			throw new Error('Sealed runtime artifact reader is unavailable');
 		}
-		return yield* Effect.fail(new Error(`pdq-wasm sidecar is not installed at ${PDQ_WASM_ASSET}`));
+		const bytes = reader.applySync(undefined, [PDQ_WASM_ASSET], {
+			arguments: { copy: true },
+			result: { copy: true }
+		});
+		if (bytes == null) {
+			throw new Error(`Sealed runtime is missing ${PDQ_WASM_ASSET}`);
+		}
+		return bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes);
 	});
 }
 
@@ -114,6 +101,36 @@ function growMemory(memory: WebAssembly.Memory, requestedSize: number): number {
 		Effect.try(() => memory.grow(Math.max(Math.ceil((needed - oldSize) / 65536), 1)))
 	);
 	return Exit.isSuccess(grown) ? 1 : 0;
+}
+
+/**
+ * The emscripten import table.
+ *
+ * Called synchronously by the WASM runtime rather than by the workflow that instantiates it — the
+ * same reason `growMemory` above is a plain function. A trap has to unwind through the WASM frame,
+ * so `getentropy` and `abort` throw, and the `Effect.try`/`Effect.tryPromise` wrapping every entry
+ * into this module is what turns that back into a typed failure.
+ *
+ * `boundMemory` is read per call because the memory is only known once the instance exists, which
+ * is after these imports have been handed to `WebAssembly.instantiate`.
+ */
+function pdqImports(boundMemory: () => WebAssembly.Memory | undefined) {
+	return {
+		a: (buffer: number, size: number) => {
+			const memory = boundMemory();
+			if (!memory) throw new Error('pdq-wasm memory is not bound');
+			crypto.getRandomValues(new Uint8Array(memory.buffer, buffer, size));
+			return 0;
+		},
+		b: () => {
+			throw new Error('pdq-wasm aborted');
+		},
+		c: (requestedSize: number) => {
+			const memory = boundMemory();
+			if (!memory) return 0;
+			return growMemory(memory, requestedSize);
+		}
+	};
 }
 
 function assertPdqExports(exports: WebAssembly.Exports): PdqWasmExports {
@@ -148,22 +165,7 @@ const loadPdq = Effect.runSync(
 			let memory: WebAssembly.Memory | undefined;
 			const compiled = yield* Effect.tryPromise(() => WebAssembly.compile(wasm.buffer));
 			const instance = yield* Effect.tryPromise(() =>
-				WebAssembly.instantiate(compiled, {
-					a: {
-						a: (buffer: number, size: number) => {
-							if (!memory) throw new Error('pdq-wasm memory is not bound');
-							crypto.getRandomValues(new Uint8Array(memory.buffer, buffer, size));
-							return 0;
-						},
-						b: () => {
-							throw new Error('pdq-wasm aborted');
-						},
-						c: (requestedSize: number) => {
-							if (!memory) return 0;
-							return growMemory(memory, requestedSize);
-						}
-					}
-				})
+				WebAssembly.instantiate(compiled, { a: pdqImports(() => memory) })
 			);
 			const loaded = yield* Effect.try(() => assertPdqExports(instance.exports));
 			memory = loaded[PDQ_EXPORT.memory];
@@ -200,15 +202,19 @@ export const hashPdq = (image: PdqHashInput) =>
 						hashPtr,
 						qualityPtr
 					);
-					if (status !== 0) {
-						throw new Error(`PDQ hashing failed with code: ${status}`);
-					}
 					const heap = new Uint8Array(loaded[PDQ_EXPORT.memory].buffer);
 					return {
+						status,
 						hash: heap.slice(hashPtr, hashPtr + 32),
 						quality: new Int32Array(loaded[PDQ_EXPORT.memory].buffer)[qualityPtr >> 2]
 					};
-				}).pipe(Effect.flatMap(Schema.decodeUnknownEffect(pdqHashResultSchema))),
+				}).pipe(
+					Effect.flatMap(({ status, hash, quality }) =>
+						status === 0
+							? decodePdqHashResult({ hash, quality })
+							: Effect.fail(new Error(`PDQ hashing failed with code: ${status}`))
+					)
+				),
 			(ptrs) =>
 				Effect.try(() => {
 					free(ptrs.imagePtr);

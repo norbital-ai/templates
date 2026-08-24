@@ -1,11 +1,26 @@
 import type { Policy } from './$types.js';
 
+/** System-managed suspicion state is intentionally absent from both masks. */
+const assignmentCreateFields = [
+	'job_id',
+	'assignee_user_id',
+	'dispatched_at',
+	'status',
+	'completed_at',
+	'amount_charged',
+	'location',
+	'summary',
+	'source_message_id'
+] as const;
+const assignmentUpdateFields = assignmentCreateFields;
+
 /**
  * The controller: full command of the dispatch surface.
  *
- * Every collection, every action, unconditional. Written out one grant per line rather than generated
- * from a loop because a permission set is read far more often than it is written, and a reader should
- * be able to see that `photo_evidence` is deletable here without first evaluating a `flatMap`.
+ * Operational records grant every applicable action unconditionally. Audit ledgers are append-only:
+ * controllers can read and create them, but cannot rewrite or delete received communications or AI
+ * decisions. Written out one grant per line rather than generated from a loop because a permission
+ * set is read far more often than it is written.
  *
  * Unconditional is the whole difference between the two field-operations policies, and it is now the
  * *only* difference in shape: `job_assignments` carries `assignee_user_id`, so the contractor policy
@@ -25,46 +40,53 @@ import type { Policy } from './$types.js';
  */
 export default {
 	description:
-		'Controller access to dispatch jobs, assignments, sites, and approval records, unconditionally.',
+		'Controller access to dispatch records, private review records, and immutable communication or AI audit ledgers.',
 	capabilities: { apps: ['field_ops_controller', 'field_ops_contractor'] },
-	grants: [
-		{ collection: 'sites', action: 'read' },
-		{ collection: 'sites', action: 'create' },
-		{ collection: 'sites', action: 'update' },
-		{ collection: 'sites', action: 'delete' },
-
-		{ collection: 'jobs', action: 'read' },
-		{ collection: 'jobs', action: 'create' },
-		{ collection: 'jobs', action: 'update' },
-		{ collection: 'jobs', action: 'delete' },
-
-		/**
-		 * Suspicion is dispatch's to see and dispatch's to answer.
-		 *
-		 * No contractor grant exists for this collection anywhere, and that absence is the access
-		 * control — a contractor cannot read a log written about their own work, so a log is a note
-		 * between controllers rather than an accusation delivered to its subject. `create` is here
-		 * because a controller may raise one by hand as well as receive one from the automation.
-		 */
-		{ collection: 'suspicious_activity_logs', action: 'read' },
-		{ collection: 'suspicious_activity_logs', action: 'create' },
-		{ collection: 'suspicious_activity_logs', action: 'update' },
-
-		{ collection: 'job_assignments', action: 'read' },
-		{ collection: 'job_assignments', action: 'create' },
-		{ collection: 'job_assignments', action: 'update' },
-		{ collection: 'job_assignments', action: 'delete' },
-
-		{ collection: 'variation_requests', action: 'read' },
-		{ collection: 'variation_requests', action: 'create' },
-		{ collection: 'variation_requests', action: 'update' },
-		{ collection: 'variation_requests', action: 'delete' },
-
-		{ collection: 'photo_evidence', action: 'read' },
-		{ collection: 'photo_evidence', action: 'create' },
-		{ collection: 'photo_evidence', action: 'update' },
-		{ collection: 'photo_evidence', action: 'delete' }
-	],
+	grants: {
+		sites: {
+			read: {},
+			create: {},
+			update: {},
+			delete: {}
+		},
+		jobs: {
+			read: {},
+			create: {},
+			update: {},
+			delete: {}
+		},
+		suspicious_activity_logs: {
+			read: {},
+			create: {},
+			update: {}
+		},
+		job_assignments: {
+			read: {},
+			create: { fields: assignmentCreateFields },
+			update: { fields: assignmentUpdateFields },
+			delete: {}
+		},
+		variation_requests: {
+			read: {},
+			create: {},
+			update: {},
+			delete: {}
+		},
+		photo_evidence: {
+			read: {},
+			create: {},
+			update: {},
+			delete: {}
+		},
+		communication_logs: {
+			read: {},
+			create: {}
+		},
+		suspicion_reviews: {
+			read: {},
+			create: {}
+		}
+	},
 	/**
 	 * What a holder of this policy may spend.
 	 *

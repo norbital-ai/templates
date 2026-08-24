@@ -1,9 +1,9 @@
-import { custom, defineModel, text, timestamp, uuid } from '@norbital-ai/bolt/authoring';
+import { custom, defineModel, instant, text, uuid } from '@norbital-ai/bolt/authoring';
 
 export default defineModel(
 	{
 		job_assignment_id: uuid().notNull(),
-		requested_at: timestamp().notNull(),
+		requested_at: instant().notNull(),
 		title: text({ search: true }).notNull(),
 		description: text().notNull(),
 		amount: custom('money'),

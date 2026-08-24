@@ -5,7 +5,6 @@ import {
 	file,
 	sql,
 	text,
-	timestamp,
 	uuid,
 	vector
 } from '@norbital-ai/bolt/authoring';
@@ -32,20 +31,6 @@ export default defineModel(
 			.array()
 			.notNull(),
 		matched_evidence_ids: uuid().array().notNull(),
-		/** Durable vision work starts pending and becomes terminal only after an authored automation. */
-		site_identity_status: enums(['pending', 'match', 'mismatch', 'inconclusive', 'failed'])
-			.notNull()
-			.default('pending'),
-		site_identity_checked_at: timestamp(),
-		site_identity_error: text(),
-		/**
-		 * Canonical snapshot of every evidence/site input used by the last semantic review. A daily
-		 * reconciliation compares this with the current snapshot, so unchanged evidence is marked as
-		 * reconciled without paying for another vision pass while any material change becomes pending.
-		 */
-		site_identity_review_basis: text(),
-		/** Last daily/immediate reconciliation attempt, including unchanged-basis skips. */
-		site_identity_reconciled_at: timestamp(),
 		/**
 		 * The photo's own title, composed in SQL.
 		 *
@@ -64,7 +49,7 @@ export default defineModel(
 	},
 	{
 		description:
-			'One explicitly selected photo and its deterministic integrity result, linked to exactly one job assignment or variation request. Conversation history and unselected media are not retained.',
+			'One explicitly selected photo and its deterministic integrity facts, linked to exactly one job assignment or variation request. Flags and similarity are evidence for a later AI or human judgement, never suspicion by themselves.',
 		recordLabel: 'summary',
 		icon: 'lucide:scan-search',
 		indexes: [

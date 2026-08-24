@@ -1,9 +1,8 @@
 import type { CollectionHooks } from '@norbital-ai/bolt/authoring';
-import { Clock, Effect, Schema } from 'effect';
+import { Effect, Schema } from 'effect';
 import type { WorkspaceSchema } from '$bolt/types.js';
+import { currentDate } from '../../lib/clock.js';
 import { usersById } from '../../lib/identity-directory.js';
-import { locationIsSuspicious, locationLikeSchema } from '../../lib/geo.js';
-import type { LocationLike } from '../../lib/geo.js';
 
 const assignmentIdentitySchema = Schema.Struct({
 	job_id: Schema.optional(Schema.NullOr(Schema.String)),
@@ -49,19 +48,6 @@ function assignmentStatus(value: string | null | undefined): AssignmentStatus {
 	}
 }
 
-/**
- * Whether where the work was reported from warrants a suspicion.
- *
- * This replaces `applySuspectOneWay`, which forced `status: 'suspect'` and was one-way — a job that
- * drifted once could never be reported as assigned or completed again, because the finding had
- * consumed the column that says where the work got to. It answers a question now instead of
- * overwriting a state: the caller raises a `suspicious_activity_logs` row and leaves `status` alone.
- *
- * Distance only. Absent coordinates are not suspicious — a messaging service that strips metadata is
- * the ordinary case, and treating silence as evidence is how a workspace fills with findings nobody
- * can act on.
- */
-
 export function assertAssignmentIdentityUnchanged(
 	input: AssignmentIdentity,
 	existing: Required<AssignmentIdentity>
@@ -78,9 +64,8 @@ const assignmentCreateInputSchema = Schema.Struct({
 	job_id: Schema.optional(Schema.NullOr(Schema.String)),
 	assignee_user_id: Schema.optional(Schema.NullOr(Schema.String)),
 	source_message_id: Schema.optional(Schema.NullOr(Schema.String)),
-	dispatched_at: Schema.optional(Schema.NullOr(Schema.Union([Schema.Date, Schema.String]))),
-	status: Schema.optional(Schema.NullOr(Schema.String)),
-	location: locationLikeSchema
+	dispatched_at: Schema.optional(Schema.NullOr(Schema.String)),
+	status: Schema.optional(Schema.NullOr(Schema.String))
 });
 
 export type AssignmentCreateInput = Schema.Schema.Type<typeof assignmentCreateInputSchema>;
@@ -88,10 +73,9 @@ export type AssignmentCreateInput = Schema.Schema.Type<typeof assignmentCreateIn
 /**
  * Everything one dispatch needs to know about the world, read once for the whole batch.
  *
- * The rule below is written for one assignment and asks five questions about it: does the job exist,
+ * The rule below is written for one assignment and asks four questions about it: does the job exist,
  * is the assignee a person this workspace knows, is the job already taken, is the source message
- * already used, and where is the site. Asked per record that is five round trips a row; asked here it
- * is five for the batch.
+ * already used. Asked per record that is four round trips a row; asked here it is four for the batch.
  *
  * `repeatedJobIds` and `repeatedSourceMessageIds` are the one thing a per-record hook genuinely
  * cannot see: two rows in the same call claiming the same job. They are derived from the inputs, not
@@ -110,7 +94,6 @@ export interface AssignmentCreateBatchLookup {
 	readonly assigneeUserIds: ReadonlySet<string>;
 	readonly occupiedJobIds: ReadonlySet<string>;
 	readonly occupiedSourceMessageIds: ReadonlySet<string>;
-	readonly sites: ReadonlyMap<string, LocationLike>;
 	readonly repeatedJobIds: ReadonlySet<string>;
 	readonly repeatedSourceMessageIds: ReadonlySet<string>;
 }
@@ -150,8 +133,8 @@ export function repeatedWithinBatch<T extends AssignmentCreateInput>(
 export function assignmentCreateValues<T extends AssignmentCreateInput>(
 	input: T,
 	lookup: AssignmentCreateBatchLookup,
-	now: () => Date = () => new Date()
-): T & { readonly dispatched_at: Date | string; readonly status: AssignmentStatus } {
+	now: () => string = () => new Date().toISOString()
+): T & { readonly dispatched_at: string; readonly status: AssignmentStatus } {
 	const jobId = requireId(input.job_id, 'Job assignment must reference a job.');
 	const assigneeUserId = requireId(
 		input.assignee_user_id,
@@ -174,14 +157,10 @@ export function assignmentCreateValues<T extends AssignmentCreateInput>(
 		throw new Error('A job assignment with this source_message_id already exists.');
 	}
 
-	const siteLocation = job.site_id ? lookup.sites.get(job.site_id) : null;
 	return {
 		...input,
 		dispatched_at: input.dispatched_at ?? now(),
-		status: assignmentStatus(input.status),
-		// Recorded on the prepared row rather than acted on here: this function returns values, and
-		// raising a log is a write. The caller that performs the insert reads it.
-		...(locationIsSuspicious(input.location, siteLocation) ? { bolt_location_suspicion: true } : {})
+		status: assignmentStatus(input.status)
 	};
 }
 
@@ -200,22 +179,21 @@ type JobAssignmentHooks = CollectionHooks<
 
 export default {
 	create: {
-		prepare: ({ inputs, api }) =>
-			Effect.gen(function* () {
-				const jobIds = [
-					...new Set(inputs.flatMap((input) => (input.job_id ? [input.job_id] : [])))
-				];
-				const assigneeUserIds = [
-					...new Set(
-						inputs.flatMap((input) => (input.assignee_user_id ? [input.assignee_user_id] : []))
-					)
-				];
-				const sourceMessageIds = [
-					...new Set(
-						inputs.flatMap((input) => (input.source_message_id ? [input.source_message_id] : []))
-					)
-				];
-				const [jobs, assignees, occupiedJobs, occupiedSources] = yield* Effect.all(
+		prepare: ({ inputs, api }) => {
+			const jobIds = [...new Set(inputs.flatMap((input) => (input.job_id ? [input.job_id] : [])))];
+			const assigneeUserIds = [
+				...new Set(
+					inputs.flatMap((input) => (input.assignee_user_id ? [input.assignee_user_id] : []))
+				)
+			];
+			const sourceMessageIds = [
+				...new Set(
+					inputs.flatMap((input) => (input.source_message_id ? [input.source_message_id] : []))
+				)
+			];
+			const repeated = repeatedWithinBatch(inputs);
+			return Effect.map(
+				Effect.all(
 					[
 						jobIds.length
 							? api.db.query.jobs.findMany({
@@ -241,24 +219,8 @@ export default {
 							: Effect.succeed([])
 					],
 					{ concurrency: 'unbounded' }
-				);
-				const locatedJobIds = new Set(
-					inputs.flatMap((input) => (input.job_id && input.location ? [input.job_id] : []))
-				);
-				const siteIds = [
-					...new Set(
-						jobs.flatMap((job) => (locatedJobIds.has(job.id) && job.site_id ? [job.site_id] : []))
-					)
-				];
-				const sites = siteIds.length
-					? yield* api.db.query.sites.findMany({
-							where: { id: { in: siteIds } },
-							columns: { id: true, location: true },
-							limit: ASSIGNMENT_BATCH_LIMIT
-						})
-					: [];
-				const repeated = repeatedWithinBatch(inputs);
-				return {
+				),
+				([jobs, assignees, occupiedJobs, occupiedSources]) => ({
 					jobs: new Map(jobs.map((job) => [job.id, job])),
 					assigneeUserIds: new Set(assignees.keys()),
 					occupiedJobIds: new Set(occupiedJobs.map((assignment) => assignment.job_id)),
@@ -267,15 +229,15 @@ export default {
 							assignment.source_message_id ? [assignment.source_message_id] : []
 						)
 					),
-					sites: new Map(sites.map((site) => [site.id, site.location])),
 					repeatedJobIds: repeated.jobIds,
 					repeatedSourceMessageIds: repeated.sourceMessageIds
-				};
-			}),
+				})
+			);
+		},
 		perRecord: {
 			before: {
 				description:
-					'Dispatches a person to an unassigned job, stamps the dispatch time, and marks the assignment suspect when the reported location sits outside the site tolerance.',
+					'Dispatches a person to an unassigned job and stamps the dispatch time. Reported location remains an evidence fact and never creates a suspicion judgement.',
 				handler: ({ input, prepared }) => assignmentCreateValues(input, prepared)
 			},
 			after: {
@@ -297,101 +259,32 @@ export default {
 		perRecord: {
 			before: {
 				description:
-					'Holds an assignment on its original job and assignee, stamps completion, and preserves a prior judgement or a contradictory reported assignment location.',
-				handler: ({ input, existing, api }) =>
-					Effect.gen(function* () {
+					'Holds an assignment on its original job and assignee, stamps completion, and keeps progression independent of evidence or suspicion judgements.',
+				handler: ({ input, existing }) =>
+					Effect.map(currentDate, (now) => {
 						assertAssignmentIdentityUnchanged(input, existing);
-						const now = new Date(yield* Clock.currentTimeMillis);
-						const withCompletion =
-							input.status === 'completed' && input.completed_at == null
-								? { ...input, completed_at: now }
-								: input;
-						const jobId = input.job_id ?? existing.job_id;
-						const location = input.location ?? existing.location;
-						const baseStatus = assignmentStatus(input.status ?? existing.status);
-						if (location == null || jobId == null) {
-							return {
-								...withCompletion,
-								status: baseStatus
-							};
-						}
-
-						const job = yield* api.db.query.jobs.findFirst({
-							where: { id: { eq: jobId } }
-						});
-						if (job == null) {
-							return {
-								...withCompletion,
-								status: baseStatus
-							};
-						}
-
-						const site = yield* api.db.query.sites.findFirst({
-							where: { id: { eq: job.site_id } }
-						});
-						if (site?.location == null) {
-							return {
-								...withCompletion,
-								status: baseStatus
-							};
-						}
-
-						// The status is what the caller asked for. Whether the location warrants a suspicion is
-						// a separate answer, and `after` raises it — a `before` hook returns the row's values
-						// and an extra key it invented would be refused as an unknown column, so a finding
-						// cannot ride out on the record it is about.
-						return { ...withCompletion, status: baseStatus };
+						if (input.status === undefined) return input;
+						return {
+							...input,
+							status: assignmentStatus(input.status),
+							...(input.status === 'completed' && input.completed_at == null
+								? { completed_at: now.toISOString() }
+								: {})
+						};
 					})
 			},
 			after: {
 				description:
-					'Carries assignment progress onto its job, and raises a suspicion log when the reported location is too far from the assigned site.',
-				handler: ({ record, api }) =>
-					Effect.gen(function* () {
-						const status = record.status;
-						if (status == null) return;
-						/**
-						 * A location that does not match, recorded as a finding beside the work.
-						 *
-						 * This used to force `status: 'suspect'`, which is why the branch above it existed —
-						 * having overwritten the state, the hook then had to reason about not rewinding job
-						 * progress it had just erased. With the finding in its own collection, progression is
-						 * one rule for every assignment and there is no overlay to special-case.
-						 */
-						const site = record.job_id
-							? yield* api.db.query.jobs.findFirst({ where: { id: { eq: record.job_id } } }).pipe(
-									Effect.flatMap((job) =>
-										job?.site_id == null
-											? Effect.succeed(null)
-											: api.db.query.sites.findFirst({
-													where: { id: { eq: job.site_id } }
-												})
-									)
-								)
-							: null;
-						if (site != null && locationIsSuspicious(record.location, site.location)) {
-							const open = yield* api.db.query.suspicious_activity_logs.findMany({
-								where: {
-									job_assignment_id: { eq: record.id },
-									resolved_at: { isNull: true }
-								},
-								limit: 1
-							});
-							// One open log per assignment for this reason. An update that runs again must not
-							// stack a second identical finding on top of one nobody has answered yet.
-							if (open.length === 0) {
-								yield* api.db.suspicious_activity_logs.create({
-									job_assignment_id: record.id,
-									reason:
-										'The location reported with this work is further from the assigned site than the tolerance allows.'
-								});
-							}
-						}
-						const jobStatus = mapAssignmentStatusToJobStatus(
-							status as 'unassigned' | 'assigned' | 'completed'
-						);
-						yield* api.db.jobs.mutate([{ id: record.job_id, status: jobStatus }]);
-					})
+					'Carries assignment progress onto its job. Evidence and suspicion are reviewed only by the dedicated automation.',
+				handler: ({ changes, record, api }) => {
+					if (!Object.hasOwn(changes, 'status')) return Effect.void;
+					const status = record.status;
+					if (status == null) return Effect.void;
+					const jobStatus = mapAssignmentStatusToJobStatus(
+						status as 'unassigned' | 'assigned' | 'completed'
+					);
+					return api.db.jobs.mutate([{ id: record.job_id, status: jobStatus }]);
+				}
 			}
 		}
 	}
