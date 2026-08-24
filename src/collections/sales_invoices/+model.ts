@@ -2,9 +2,9 @@ import {
 	boolean,
 	defineModel,
 	enums,
+	instant,
 	numeric,
 	text,
-	timestamp,
 	uuid
 } from '@norbital-ai/bolt/authoring';
 
@@ -20,8 +20,8 @@ export default defineModel(
 		tax: numeric(),
 		gross: numeric(),
 		owner_id: uuid().notNull(),
-		issued_at: timestamp(),
-		cancelled_at: timestamp(),
+		issued_at: instant(),
+		cancelled_at: instant(),
 		cancel_reason: text()
 	},
 	{

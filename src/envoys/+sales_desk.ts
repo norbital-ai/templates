@@ -17,7 +17,7 @@ import type { Envoy } from './$types.js';
 export default {
 	transport: 'telegram',
 	audience: 'public',
-	policies: ['sales_rep'],
+	policies: ['commercial_shared', 'sales_rep'],
 	groupMessages: 'disabled',
 	task: 'Answer questions about quotes and accounts for this customer.'
 } satisfies Envoy;

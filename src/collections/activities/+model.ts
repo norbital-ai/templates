@@ -1,4 +1,4 @@
-import { date, defineModel, enums, text, timestamp, uuid } from '@norbital-ai/bolt/authoring';
+import { defineModel, enums, instant, text, uuid } from '@norbital-ai/bolt/authoring';
 
 export default defineModel(
 	{
@@ -7,8 +7,8 @@ export default defineModel(
 		type: enums(['call', 'meeting', 'email', 'task', 'note']),
 		subject: text({ search: true }).notNull(),
 		description: text(),
-		due_date: date(),
-		completed_at: timestamp(),
+		due_date: instant({ precision: 'day' }),
+		completed_at: instant(),
 		owner_id: uuid().notNull()
 	},
 	{

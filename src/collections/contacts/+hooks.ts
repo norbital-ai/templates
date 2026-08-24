@@ -1,6 +1,7 @@
 import type { CollectionHooks } from '@norbital-ai/bolt/authoring';
 import { Effect } from 'effect';
 import type { WorkspaceSchema } from '$bolt/types.js';
+import { rowsById } from '../../lib/batch-reads.js';
 
 const ACCOUNT_BATCH_LIMIT = 5000;
 
@@ -17,23 +18,25 @@ interface ContactBatch {
 
 /** `Hooks` with what `prepare` returns filled in; see the note in `quote_lines/+hooks.ts`. */
 type ContactHooks = CollectionHooks<WorkspaceSchema, 'contacts', ContactBatch>;
+type PrepareApi = Parameters<NonNullable<NonNullable<ContactHooks['create']>['prepare']>>[0]['api'];
+
+/** The accounts a batch of contacts names, by id. */
+const accountsByIds = (api: PrepareApi) => (ids: readonly string[]) =>
+	api.db.query.accounts.findMany({
+		where: { id: { in: ids } },
+		columns: { id: true },
+		limit: ACCOUNT_BATCH_LIMIT
+	});
 
 export default {
 	create: {
 		prepare: ({ inputs, api }) =>
-			Effect.gen(function* () {
-				const accountIds = [
-					...new Set(inputs.flatMap((input) => (input.account_id ? [input.account_id] : [])))
-				];
-				const accounts = accountIds.length
-					? yield* api.db.query.accounts.findMany({
-							where: { id: { in: accountIds } },
-							columns: { id: true },
-							limit: ACCOUNT_BATCH_LIMIT
-						})
-					: [];
-				return { accountIds: new Set(accounts.map((account) => account.id)) };
-			}),
+			Effect.map(
+				rowsById(inputs, (input) => input.account_id, accountsByIds(api)),
+				(accounts) => ({
+					accountIds: new Set(accounts.keys())
+				})
+			),
 		perRecord: {
 			before: {
 				description: 'Refuses a contact that is not attached to an account on file.',

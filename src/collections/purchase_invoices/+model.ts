@@ -1,11 +1,10 @@
 import {
 	boolean,
-	date,
 	defineModel,
 	enums,
+	instant,
 	numeric,
 	text,
-	timestamp,
 	uuid
 } from '@norbital-ai/bolt/authoring';
 
@@ -17,7 +16,7 @@ export default defineModel(
 		supplier_code: text().notNull(),
 		supplier_name: text().notNull(),
 		invoice_reference: text(),
-		invoice_date: date(),
+		invoice_date: instant({ precision: 'day' }),
 		status: enums(['draft', 'confirmed', 'cancelled']),
 		currency: enums(['CNY', 'USD', 'EUR', 'GBP', 'JPY', 'SGD', 'HKD']),
 		tax_inclusive: boolean().notNull(),
@@ -25,8 +24,8 @@ export default defineModel(
 		tax: numeric(),
 		gross: numeric(),
 		owner_id: uuid().notNull(),
-		confirmed_at: timestamp(),
-		cancelled_at: timestamp(),
+		confirmed_at: instant(),
+		cancelled_at: instant(),
 		cancel_reason: text()
 	},
 	{

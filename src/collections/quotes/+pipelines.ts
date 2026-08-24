@@ -36,6 +36,9 @@ const quoteExportSchema = Schema.Struct({
 	)
 });
 
+/** Built once, beside its schema: a decoder rebuilt per exported record is per-record work.*/
+const decodeQuoteExport = Schema.decodeUnknownEffect(quoteExportSchema);
+
 /**
  * The push payload the outbound integration binding delivers.
  *
@@ -57,12 +60,12 @@ export default {
 					limit: 5000
 				});
 
-				return yield* Effect.forEach(records, (quote) =>
-					Effect.gen(function* () {
-						const quoteLines = lines.filter((line) => line.quote_id === quote.id);
-						const code = String(quote.doc_no ?? quote.id).replace(/[^a-z0-9_-]/gi, '_');
+				return yield* Effect.forEach(records, (quote) => {
+					const quoteLines = lines.filter((line) => line.quote_id === quote.id);
+					const code = String(quote.doc_no ?? quote.id).replace(/[^a-z0-9_-]/gi, '_');
 
-						const content = yield* Schema.decodeUnknownEffect(quoteExportSchema)({
+					return Effect.map(
+						decodeQuoteExport({
 							schema: 'norbital.crm.confirmed_quote.v1',
 							quote: {
 								doc_no: quote.doc_no,
@@ -83,9 +86,8 @@ export default {
 								tax_rate: line.tax_rate,
 								line_total: line.line_total
 							}))
-						});
-
-						return {
+						}),
+						(content) => ({
 							label: `Confirmed quote · ${quote.doc_no}`,
 							attachments: [
 								{
@@ -99,9 +101,9 @@ export default {
 								quote_id: quote.id,
 								doc_no: quote.doc_no
 							}
-						};
-					})
-				);
+						})
+					);
+				});
 			})
 	}
 } satisfies Pipelines;

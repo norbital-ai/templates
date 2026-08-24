@@ -31,7 +31,7 @@ CREATE TABLE "activities" (
 	"type" text,
 	"subject" text NOT NULL,
 	"description" text,
-	"due_date" date,
+	"due_date" timestamp with time zone,
 	"completed_at" timestamp with time zone,
 	"owner_id" uuid NOT NULL
 );
@@ -98,7 +98,7 @@ CREATE TABLE "goods_receipts" (
 	"approval_id" uuid,
 	"doc_no" text NOT NULL,
 	"purchase_order_id" uuid NOT NULL,
-	"received_date" date,
+	"received_date" timestamp with time zone,
 	"note" text,
 	"owner_id" uuid NOT NULL,
 	"received_at" timestamp with time zone
@@ -159,7 +159,7 @@ CREATE TABLE "purchase_invoices" (
 	"supplier_code" text NOT NULL,
 	"supplier_name" text NOT NULL,
 	"invoice_reference" text,
-	"invoice_date" date,
+	"invoice_date" timestamp with time zone,
 	"status" text,
 	"currency" text,
 	"tax_inclusive" boolean NOT NULL,
@@ -208,7 +208,7 @@ CREATE TABLE "purchase_orders" (
 	"status" text,
 	"currency" text,
 	"tax_inclusive" boolean NOT NULL,
-	"expected_date" date,
+	"expected_date" timestamp with time zone,
 	"net" numeric,
 	"tax" numeric,
 	"gross" numeric,
@@ -255,7 +255,7 @@ CREATE TABLE "quotes" (
 	"status" text,
 	"currency" text,
 	"tax_inclusive" boolean NOT NULL,
-	"valid_until" date,
+	"valid_until" timestamp with time zone,
 	"payment_terms" text,
 	"shipping_terms" text,
 	"place_of_loading" text,
@@ -333,7 +333,7 @@ CREATE TABLE "settlements" (
 	"regarding_id" uuid NOT NULL,
 	"amount" numeric NOT NULL,
 	"currency" text,
-	"settled_on" date,
+	"settled_on" timestamp with time zone,
 	"reference" text,
 	"owner_id" uuid NOT NULL
 );

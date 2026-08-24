@@ -1,4 +1,4 @@
-import { date, defineModel, enums, numeric, text, uuid } from '@norbital-ai/bolt/authoring';
+import { defineModel, enums, instant, numeric, text, uuid } from '@norbital-ai/bolt/authoring';
 
 export default defineModel(
 	{
@@ -6,7 +6,7 @@ export default defineModel(
 		regarding_id: uuid().notNull(),
 		amount: numeric().notNull(),
 		currency: enums(['CNY', 'USD', 'EUR', 'GBP', 'JPY', 'SGD', 'HKD']),
-		settled_on: date(),
+		settled_on: instant({ precision: 'day' }),
 		reference: text({ search: true }),
 		owner_id: uuid().notNull()
 	},

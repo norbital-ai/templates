@@ -1,13 +1,9 @@
 import type { CollectionHooks } from '@norbital-ai/bolt/authoring';
 import { Effect } from 'effect';
 import type { WorkspaceSchema } from '$bolt/types.js';
-import {
-	documentTotals,
-	lineAmounts,
-	requireCurrency,
-	type LineAmounts,
-	type LinePricing
-} from '../../lib/pricing.js';
+import { rowsById } from '../../lib/batch-reads.js';
+import { rollupDocument } from '../../lib/document-lines.js';
+import { documentLineAmounts, type LinePricing } from '../../lib/pricing.js';
 import type { Hooks, WorkspaceRow } from './$types.js';
 
 /**
@@ -42,7 +38,17 @@ type UpdateInput = Parameters<
 	NonNullable<NonNullable<NonNullable<Hooks['update']>['perRecord']>['before']>['handler']
 >[0]['input'];
 
+type PrepareApi = Parameters<NonNullable<NonNullable<Hooks['create']>['prepare']>>[0]['api'];
+
 const LINE_LIMIT = 5000;
+
+/** The quotes a batch of lines is being added to. */
+const quotesByIds = (api: PrepareApi) => (ids: readonly string[]) =>
+	api.db.query.quotes.findMany({ where: { id: { in: ids } }, limit: LINE_LIMIT });
+
+/** The catalogue products a batch of lines names. */
+const productsByIds = (api: PrepareApi) => (ids: readonly string[]) =>
+	api.db.query.products.findMany({ where: { id: { in: ids } }, limit: LINE_LIMIT });
 
 /** The line fields validation asks about, from the row's own fields. */
 type LineFieldValues = Partial<
@@ -72,44 +78,23 @@ function validateLineFields(input: LineFieldValues): LinePricingCells {
 	return { quantity, unit_price: unitPrice, discount_pct: discountPct, tax_rate: taxRate };
 }
 
-function computeLineAmounts(quote: WorkspaceRow<'quotes'>, line: LinePricingCells): LineAmounts {
-	return lineAmounts({
-		...line,
-		tax_inclusive: quote.tax_inclusive,
-		currency: requireCurrency(quote.currency)
+/** The quote a roll-up writes back to. */
+const quoteById = (api: AfterApi, quoteId: string) =>
+	api.db.query.quotes.findFirst({ where: { id: { eq: quoteId } } });
+
+/** The money cells of every line on one quote. */
+const quoteLineTotals = (api: AfterApi, quoteId: string) =>
+	api.db.query.quote_lines.findMany({
+		where: { quote_id: { eq: quoteId } },
+		columns: { net: true, tax: true, line_total: true },
+		limit: LINE_LIMIT
 	});
-}
 
 function rollupQuote(api: AfterApi, quoteId: string): Effect.Effect<void> {
-	return Effect.gen(function* () {
-		const quote = yield* api.db.query.quotes.findFirst({
-			where: { id: { eq: quoteId } }
-		});
-		if (!quote) return;
-
-		const lines = yield* api.db.query.quote_lines.findMany({
-			where: { quote_id: { eq: quoteId } },
-			columns: { net: true, tax: true, line_total: true },
-			limit: LINE_LIMIT
-		});
-
-		const totals = documentTotals(
-			lines.map((line) => ({
-				net: Number(line.net ?? 0),
-				tax: Number(line.tax ?? 0),
-				gross: Number(line.line_total ?? 0)
-			})),
-			requireCurrency(quote.currency)
-		);
-
-		yield* api.db.quotes.mutate([
-			{
-				id: quoteId,
-				net: totals.net,
-				tax: totals.tax,
-				gross: totals.gross
-			}
-		]);
+	return rollupDocument({
+		document: quoteById(api, quoteId),
+		lines: quoteLineTotals(api, quoteId),
+		write: (totals) => api.db.quotes.mutate([{ id: quoteId, ...totals }])
 	});
 }
 
@@ -124,29 +109,9 @@ const afterRollup = ({
 export default {
 	create: {
 		prepare: ({ inputs, api }) =>
-			Effect.gen(function* () {
-				const quoteIds = [
-					...new Set(inputs.flatMap((input) => (input.quote_id ? [input.quote_id] : [])))
-				];
-				const productIds = [
-					...new Set(inputs.flatMap((input) => (input.product_id ? [input.product_id] : [])))
-				];
-				const quotes = quoteIds.length
-					? yield* api.db.query.quotes.findMany({
-							where: { id: { in: quoteIds } },
-							limit: LINE_LIMIT
-						})
-					: [];
-				const products = productIds.length
-					? yield* api.db.query.products.findMany({
-							where: { id: { in: productIds } },
-							limit: LINE_LIMIT
-						})
-					: [];
-				return {
-					quotes: new Map(quotes.map((quote) => [quote.id, quote])),
-					products: new Map(products.map((product) => [product.id, product]))
-				};
+			Effect.all({
+				quotes: rowsById(inputs, (input) => input.quote_id, quotesByIds(api)),
+				products: rowsById(inputs, (input) => input.product_id, productsByIds(api))
 			}),
 		perRecord: {
 			before: {
@@ -179,7 +144,7 @@ export default {
 					};
 					const lineCells = validateLineFields(resolved);
 
-					const amounts = computeLineAmounts(quote, lineCells);
+					const amounts = documentLineAmounts(quote, lineCells);
 
 					return {
 						...resolved,
@@ -222,7 +187,7 @@ export default {
 						const resolved = { ...existing, ...input };
 						const lineCells = validateLineFields(resolved);
 
-						const amounts = computeLineAmounts(quote, lineCells);
+						const amounts = documentLineAmounts(quote, lineCells);
 
 						return {
 							...input,

@@ -42,7 +42,7 @@ function roundHalfUp(value: number, digits: number): number {
 	return shiftExponent(value < 0 ? -rounded : rounded, -digits);
 }
 
-export function lineAmounts(line: LinePricing): LineAmounts {
+function lineAmounts(line: LinePricing): LineAmounts {
 	const digits = currencyFractionDigits(line.currency);
 	const discount = line.discount_pct ?? 0;
 	const rate = (line.tax_rate ?? 0) / 100;
@@ -57,6 +57,40 @@ export function lineAmounts(line: LinePricing): LineAmounts {
 	const net = roundHalfUp(base, digits);
 	const tax = roundHalfUp(net * rate, digits);
 	return { net, tax, gross: roundHalfUp(net + tax, digits) };
+}
+
+/** The document facts that price its lines: how tax is quoted, and in which currency. */
+type PricedDocument = Pick<LinePricing, 'tax_inclusive'> & {
+	readonly currency: string | null;
+};
+
+/** A line's own pricing cells, as the row carries them, before the document is applied. */
+type DocumentLineCells = {
+	readonly quantity?: number | null;
+	readonly unit_price?: number | null;
+	readonly discount_pct?: number | null;
+	readonly tax_rate?: number | null;
+};
+
+/**
+ * One line's net, tax and gross, priced against the document that owns it.
+ *
+ * Quote lines, order lines and invoice lines all price the same way and differ only in which column
+ * carries the unit price, so the coercion and the document's tax basis are owned here rather than
+ * copied into each collection.
+ */
+export function documentLineAmounts(
+	document: PricedDocument,
+	line: DocumentLineCells
+): LineAmounts {
+	return lineAmounts({
+		quantity: Number(line.quantity ?? 0),
+		unit_price: Number(line.unit_price ?? 0),
+		discount_pct: Number(line.discount_pct ?? 0),
+		tax_rate: Number(line.tax_rate ?? 0),
+		tax_inclusive: document.tax_inclusive,
+		currency: requireCurrency(document.currency)
+	});
 }
 
 export function documentTotals(lines: readonly LineAmounts[], currency: string): LineAmounts {

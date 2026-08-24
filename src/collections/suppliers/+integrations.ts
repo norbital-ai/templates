@@ -1,5 +1,6 @@
 import { defineConnection, definePull } from '@norbital-ai/bolt/authoring';
 import { Schema } from 'effect';
+import { erpMasterColumns } from '../../lib/erp-feed.js';
 import type { Integrations } from './$types.js';
 
 const erp = defineConnection({
@@ -18,6 +19,7 @@ const Currency = Schema.Literals(['CNY', 'USD', 'EUR', 'GBP', 'JPY', 'SGD', 'HKD
  */
 export default {
 	erp: {
+		policies: ['erp_suppliers_integration'],
 		connection: erp,
 		receive: {
 			vendors_changed: definePull({
@@ -41,12 +43,9 @@ export default {
 				}),
 				identity: { column: 'external_code', value: (vendor) => vendor.external_code },
 				map: (vendor) => ({
-					external_code: vendor.external_code,
-					code: vendor.code,
-					name: vendor.name,
+					...erpMasterColumns(vendor),
 					currency: vendor.currency ?? null,
-					payment_terms_days: vendor.payment_terms_days ?? null,
-					active: vendor.active ?? true
+					payment_terms_days: vendor.payment_terms_days ?? null
 				})
 			})
 		}

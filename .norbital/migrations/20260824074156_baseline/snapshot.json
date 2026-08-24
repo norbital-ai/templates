@@ -1,8 +1,8 @@
 {
   "dialect": "postgres",
-  "id": "1c969ad6-3ac2-45ee-a665-888f0e2dc6ad",
+  "id": "fe1d2b8b-3e2a-4759-ae0d-0c6985ba2969",
   "prevIds": [
-    "6498693c-e8f0-4c36-be73-bb4e6e6c854f"
+    "16aebcd6-f963-42af-9f86-9b93f64d2cc3"
   ],
   "version": "8",
   "ddl": [
@@ -473,7 +473,7 @@
       "table": "activities"
     },
     {
-      "type": "date",
+      "type": "timestamp with time zone",
       "typeSchema": null,
       "notNull": false,
       "dimensions": 0,
@@ -1136,7 +1136,7 @@
       "table": "goods_receipts"
     },
     {
-      "type": "date",
+      "type": "timestamp with time zone",
       "typeSchema": null,
       "notNull": false,
       "dimensions": 0,
@@ -1773,7 +1773,7 @@
       "table": "purchase_invoices"
     },
     {
-      "type": "date",
+      "type": "timestamp with time zone",
       "typeSchema": null,
       "notNull": false,
       "dimensions": 0,
@@ -2306,7 +2306,7 @@
       "table": "purchase_orders"
     },
     {
-      "type": "date",
+      "type": "timestamp with time zone",
       "typeSchema": null,
       "notNull": false,
       "dimensions": 0,
@@ -2813,7 +2813,7 @@
       "table": "quotes"
     },
     {
-      "type": "date",
+      "type": "timestamp with time zone",
       "typeSchema": null,
       "notNull": false,
       "dimensions": 0,
@@ -3671,7 +3671,7 @@
       "table": "settlements"
     },
     {
-      "type": "date",
+      "type": "timestamp with time zone",
       "typeSchema": null,
       "notNull": false,
       "dimensions": 0,

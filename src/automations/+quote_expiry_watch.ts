@@ -1,5 +1,6 @@
 import { defineAutomation } from '@norbital-ai/bolt/authoring';
-import { Clock, Effect } from 'effect';
+import { Effect } from 'effect';
+import { currentInstant } from '../lib/clock.js';
 import { deskToday } from '../lib/desk-date.js';
 
 export default defineAutomation(
@@ -22,7 +23,7 @@ export default defineAutomation(
 			'Sweeps every morning for quotes still sitting at sent whose valid_until date has passed, and exports the lapsed ones for the desk to chase.',
 		handler: (api) =>
 			Effect.gen(function* () {
-				const now = new Date(yield* Clock.currentTimeMillis);
+				const now = yield* currentInstant;
 				const today = deskToday(now);
 
 				const expiredQuotes = yield* api.db.query.quotes.findMany({

@@ -6,11 +6,80 @@
 	import { CollectionTable } from '@norbital-ai/ui/collection-table';
 	import { Bound, Cover, Grid, Inline, Scroll, Stack } from '@norbital-ai/ui/layout';
 	import { Tabs, type TabConfig } from '@norbital-ai/ui/tabs';
+
+	const STATUSES = ['draft', 'submitted', 'confirmed', 'cancelled'] as const;
+	const TOP_SUPPLIER_LIMIT = 5;
+	const PURCHASE_ORDER_LIMIT = 5000;
+
 	const workspaceClient = getCollectionClientForSurface(client, 'crm_purchase');
-	const dashboard = client.invoke.procurement_dashboard({});
+	const purchaseOrdersQuery = $derived(
+		client.db.purchase_orders.findMany({
+			columns: {
+				id: true,
+				doc_no: true,
+				status: true,
+				currency: true,
+				supplier_id: true,
+				supplier_name: true,
+				gross: true
+			},
+			orderBy: { doc_no: 'desc' },
+			limit: PURCHASE_ORDER_LIMIT
+		})
+	);
 	const dashboardData = $derived.by(() => {
-		const current = dashboard.current;
-		return current !== undefined && 'status_counts' in current ? current : null;
+		const statusCounts: Record<(typeof STATUSES)[number], number> = {
+			draft: 0,
+			submitted: 0,
+			confirmed: 0,
+			cancelled: 0
+		};
+		const committedByCurrency = new Map<string, number>();
+		const committedBySupplier = new Map<
+			string,
+			{ supplier_id: string; supplier_name: string; gross: number }
+		>();
+
+		for (const order of purchaseOrdersQuery.current ?? []) {
+			const status = order.status ?? 'draft';
+			if (
+				status === 'draft' ||
+				status === 'submitted' ||
+				status === 'confirmed' ||
+				status === 'cancelled'
+			) {
+				statusCounts[status] += 1;
+			}
+			if (status !== 'submitted' && status !== 'confirmed') continue;
+
+			const gross = order.gross == null ? 0 : Number(order.gross);
+			if (order.currency != null) {
+				committedByCurrency.set(
+					order.currency,
+					(committedByCurrency.get(order.currency) ?? 0) + gross
+				);
+			}
+
+			const supplier = committedBySupplier.get(order.supplier_id) ?? {
+				supplier_id: order.supplier_id,
+				supplier_name: order.supplier_name,
+				gross: 0
+			};
+			committedBySupplier.set(order.supplier_id, {
+				...supplier,
+				gross: supplier.gross + gross
+			});
+		}
+
+		return {
+			status_counts: statusCounts,
+			committed_by_currency: [...committedByCurrency.entries()]
+				.map(([currency, total]) => ({ currency, total }))
+				.sort((left, right) => left.currency.localeCompare(right.currency)),
+			top_suppliers: [...committedBySupplier.values()]
+				.sort((left, right) => right.gross - left.gross)
+				.slice(0, TOP_SUPPLIER_LIMIT)
+		};
 	});
 
 	const usersQuery = $derived(
@@ -21,13 +90,6 @@
 	);
 	const userLabelsById = $derived(
 		new Map((usersQuery.current ?? []).map((user) => [String(user.id), String(user.name)]))
-	);
-	const purchaseOrdersQuery = $derived(
-		workspaceClient.db.purchase_orders.findMany({
-			columns: { id: true, doc_no: true },
-			orderBy: { doc_no: 'desc' },
-			limit: 5000
-		})
 	);
 	const purchaseOrderLabelsById = $derived(
 		new Map(

@@ -1,4 +1,5 @@
-import { Clock, Effect } from 'effect';
+import { Effect } from 'effect';
+import { currentInstant } from '../../lib/clock.js';
 import { deskToday } from '../../lib/desk-date.js';
 import { docNoSeriesPattern, nextDocNo } from '../../lib/document-numbers.js';
 import type { Hooks } from './$types.js';
@@ -28,11 +29,11 @@ export default {
 							);
 						}
 
-						const now = new Date(yield* Clock.currentTimeMillis);
+						const now = yield* currentInstant;
 						const resolved = {
 							...input,
 							received_date: input.received_date ?? deskToday(now),
-							received_at: input.received_at ?? now
+							received_at: input.received_at ?? now.toISOString()
 						};
 
 						if (!input.doc_no) {

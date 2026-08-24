@@ -15,38 +15,43 @@ export default {
 	description:
 		'Manages suppliers, purchase orders, and their lines. Does not access the sales pipeline app.',
 	capabilities: { apps: ['crm_purchase'] },
-	grants: [
-		{ collection: 'products', action: 'read' },
-
-		{ collection: 'suppliers', action: 'read' },
-		{ collection: 'suppliers', action: 'create' },
-		{ collection: 'suppliers', action: 'update' },
-
-		{ collection: 'purchase_orders', action: 'read' },
-		{ collection: 'purchase_orders', action: 'create' },
-		{ collection: 'purchase_orders', action: 'update' },
-
-		{ collection: 'purchase_order_lines', action: 'read' },
-		{ collection: 'purchase_order_lines', action: 'create' },
-		{ collection: 'purchase_order_lines', action: 'update' },
-		{ collection: 'purchase_order_lines', action: 'delete' },
-
-		{ collection: 'goods_receipts', action: 'read' },
-		{ collection: 'goods_receipts', action: 'create' },
-		{ collection: 'goods_receipt_lines', action: 'read' },
-		{ collection: 'goods_receipt_lines', action: 'create' },
-
-		{ collection: 'purchase_invoices', action: 'read' },
-		{ collection: 'purchase_invoices', action: 'create' },
-		{ collection: 'purchase_invoices', action: 'update' },
-		{ collection: 'purchase_invoice_lines', action: 'read' },
-		{ collection: 'purchase_invoice_lines', action: 'create' },
-		{ collection: 'purchase_invoice_lines', action: 'update' },
-		{ collection: 'purchase_invoice_lines', action: 'delete' },
-
-		{ collection: 'settlements', action: 'read' },
-		{ collection: 'settlements', action: 'create' }
-	],
+	grants: {
+		suppliers: {
+			read: {},
+			create: {},
+			update: {}
+		},
+		purchase_orders: {
+			read: {},
+			create: {},
+			update: {}
+		},
+		purchase_order_lines: {
+			read: {},
+			create: {},
+			update: {},
+			delete: {}
+		},
+		goods_receipts: {
+			read: {},
+			create: {}
+		},
+		goods_receipt_lines: {
+			read: {},
+			create: {}
+		},
+		purchase_invoices: {
+			read: {},
+			create: {},
+			update: {}
+		},
+		purchase_invoice_lines: {
+			read: {},
+			create: {},
+			update: {},
+			delete: {}
+		}
+	},
 	/**
 	 * What a holder of this policy may spend.
 	 *

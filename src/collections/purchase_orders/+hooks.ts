@@ -1,4 +1,5 @@
-import { Clock, Effect, Schema } from 'effect';
+import { Effect, Schema } from 'effect';
+import { currentInstant } from '../../lib/clock.js';
 import { deskToday } from '../../lib/desk-date.js';
 import { docNoSeriesPattern, nextDocNo } from '../../lib/document-numbers.js';
 import type { Hooks, WorkspaceRow } from './$types.js';
@@ -35,7 +36,7 @@ export default {
 					'Opens an order against an active supplier, copies down the supplier code, name and currency, sets the expected date two weeks out, and assigns the next PO document number for the year.',
 				handler: ({ input, api }) =>
 					Effect.gen(function* () {
-						const now = new Date(yield* Clock.currentTimeMillis);
+						const now = yield* currentInstant;
 						if (!input.supplier_id) {
 							return yield* Effect.fail(new Error('A purchase order must reference a supplier.'));
 						}
@@ -140,7 +141,7 @@ export default {
 						}
 
 						if (newStatus === 'confirmed' && existing.confirmed_at == null) {
-							const confirmedAt = new Date(yield* Clock.currentTimeMillis);
+							const confirmedAt = (yield* currentInstant).toISOString();
 							updates.confirmed_at = confirmedAt;
 						}
 
@@ -150,7 +151,7 @@ export default {
 								return yield* Effect.fail(new Error('A cancellation reason is required.'));
 							}
 							if (existing.cancelled_at == null) {
-								updates.cancelled_at = new Date(yield* Clock.currentTimeMillis);
+								updates.cancelled_at = (yield* currentInstant).toISOString();
 							}
 						}
 

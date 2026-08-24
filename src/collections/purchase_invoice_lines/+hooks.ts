@@ -1,12 +1,8 @@
 import type { CollectionHooks } from '@norbital-ai/bolt/authoring';
 import { Effect } from 'effect';
 import type { WorkspaceSchema } from '$bolt/types.js';
-import {
-	documentTotals,
-	lineAmounts,
-	requireCurrency,
-	type LineAmounts
-} from '../../lib/pricing.js';
+import { rollupDocument, sumQuantity } from '../../lib/document-lines.js';
+import { documentLineAmounts, type LineAmounts } from '../../lib/pricing.js';
 import type { Hooks, WorkspaceRow } from './$types.js';
 
 type AfterApi = Parameters<
@@ -59,58 +55,51 @@ function validateLineFields(input: ResolvedLineInput): void {
 	}
 }
 
+/** Lines on an invoice that still counts: a cancelled invoice claims nothing against an order. */
+const liveLinesOfOrderLine = (orderLineId: string) => ({
+	purchase_order_line_id: { eq: orderLineId },
+	purchase_invoice_line_invoice: { status: { ne: 'cancelled' } }
+});
+
 /** Invoiced quantity on live (non-cancelled) invoices for one order line. */
 function liveInvoicedQuantity(api: BeforeApi, orderLineId: string): Effect.Effect<number> {
-	return api.db.query.purchase_invoice_lines
-		.findMany({
-			where: {
-				purchase_order_line_id: { eq: orderLineId },
-				purchase_invoice_line_invoice: { status: { ne: 'cancelled' } }
-			},
-			columns: { purchase_invoice_id: true, quantity: true },
+	return sumQuantity(
+		api.db.query.purchase_invoice_lines.findMany({
+			where: liveLinesOfOrderLine(orderLineId),
+			columns: { quantity: true },
 			limit: LINE_LIMIT
 		})
-		.pipe(Effect.map((lines) => lines.reduce((sum, line) => sum + Number(line.quantity ?? 0), 0)));
+	);
 }
 
 function computeLineAmounts(
 	invoice: WorkspaceRow<'purchase_invoices'>,
 	line: ResolvedLineInput
 ): LineAmounts {
-	return lineAmounts({
-		quantity: Number(line.quantity ?? 0),
-		unit_price: Number(line.unit_cost ?? 0),
-		tax_rate: Number(line.tax_rate ?? 0),
-		tax_inclusive: invoice.tax_inclusive,
-		currency: requireCurrency(invoice.currency)
+	return documentLineAmounts(invoice, {
+		quantity: line.quantity,
+		unit_price: line.unit_cost,
+		tax_rate: line.tax_rate
 	});
 }
 
+/** The invoice a roll-up writes back to. */
+const invoiceById = (api: AfterApi, invoiceId: string) =>
+	api.db.query.purchase_invoices.findFirst({ where: { id: { eq: invoiceId } } });
+
+/** The money cells of every line on one invoice. */
+const invoiceLineTotals = (api: AfterApi, invoiceId: string) =>
+	api.db.query.purchase_invoice_lines.findMany({
+		where: { purchase_invoice_id: { eq: invoiceId } },
+		columns: { net: true, tax: true, line_total: true },
+		limit: LINE_LIMIT
+	});
+
 function rollupInvoice(api: AfterApi, invoiceId: string): Effect.Effect<void> {
-	return Effect.gen(function* () {
-		const invoice = yield* api.db.query.purchase_invoices.findFirst({
-			where: { id: { eq: invoiceId } }
-		});
-		if (!invoice) return;
-
-		const lines = yield* api.db.query.purchase_invoice_lines.findMany({
-			where: { purchase_invoice_id: { eq: invoiceId } },
-			columns: { net: true, tax: true, line_total: true },
-			limit: LINE_LIMIT
-		});
-
-		const totals = documentTotals(
-			lines.map((line) => ({
-				net: Number(line.net ?? 0),
-				tax: Number(line.tax ?? 0),
-				gross: Number(line.line_total ?? 0)
-			})),
-			requireCurrency(invoice.currency)
-		);
-
-		yield* api.db.purchase_invoices.mutate([
-			{ id: invoiceId, net: totals.net, tax: totals.tax, gross: totals.gross }
-		]);
+	return rollupDocument({
+		document: invoiceById(api, invoiceId),
+		lines: invoiceLineTotals(api, invoiceId),
+		write: (totals) => api.db.purchase_invoices.mutate([{ id: invoiceId, ...totals }])
 	});
 }
 
