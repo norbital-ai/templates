@@ -26,7 +26,7 @@ function daysBetween(start: string, end: string): string[] {
 }
 
 function rangeIntersection(
-	range: { readonly start?: string; readonly end?: string } | null,
+	range: { readonly start?: string; readonly end?: string | null } | null,
 	bounds: { readonly start: string; readonly end: string }
 ): { start: string; end: string } | null {
 	if (range?.start == null) return null;
@@ -279,19 +279,19 @@ export default {
 			before: {
 				description:
 					'Pins the legal entity and month, then validates explicit assignments against each employment work pattern before publication.',
-				handler: ({ input, existing, api }) =>
-					Effect.gen(function* () {
-						if (input.month != null && input.month !== existing.month) {
-							refuse('A roster month cannot be moved after its dated assignments exist.');
-						}
-						if (input.company_id != null && input.company_id !== existing.company_id) {
-							refuse('A monthly roster cannot be moved to another legal entity.');
-						}
-						if (input.published_at != null && existing.published_at == null) {
-							yield* assertPublishable(api, existing);
-						}
-						return input;
-					})
+				handler: ({ input, existing, api }) => {
+					if (input.month != null && input.month !== existing.month) {
+						refuse('A roster month cannot be moved after its dated assignments exist.');
+					}
+					if (input.company_id != null && input.company_id !== existing.company_id) {
+						refuse('A monthly roster cannot be moved to another legal entity.');
+					}
+					// Only the draft → published transition has anything left to validate.
+					if (input.published_at == null || existing.published_at != null) {
+						return Effect.succeed(input);
+					}
+					return Effect.as(assertPublishable(api, existing), input);
+				}
 			}
 		}
 	},

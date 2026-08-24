@@ -1,4 +1,4 @@
-import { custom, date, defineModel, enums, text, uuid } from '@norbital-ai/bolt/authoring';
+import { custom, defineModel, enums, instant, text, uuid } from '@norbital-ai/bolt/authoring';
 
 export default defineModel(
 	{
@@ -7,9 +7,9 @@ export default defineModel(
 		lifecycle: enums(['DRAFT', 'PAID']).notNull(),
 		configuration_hash: text().notNull(),
 		configuration_snapshot: custom('payroll_configuration_snapshot').notNull(),
-		pay_date: date().notNull(),
-		attendance_from: date().notNull(),
-		attendance_to: date().notNull()
+		pay_date: instant({ precision: 'day' }).notNull(),
+		attendance_from: instant({ precision: 'day' }).notNull(),
+		attendance_to: instant({ precision: 'day' }).notNull()
 	},
 	{
 		description:

@@ -1,12 +1,4 @@
-import {
-	custom,
-	dateRange,
-	defineModel,
-	enums,
-	integer,
-	text,
-	uuid
-} from '@norbital-ai/bolt/authoring';
+import { custom, defineModel, enums, integer, text, uuid } from '@norbital-ai/bolt/authoring';
 
 export default defineModel(
 	{
@@ -51,7 +43,7 @@ export default defineModel(
 		 * contribution, so empty is the correct value for them, not a gap.
 		 */
 		risk_class: text(),
-		effective_range: dateRange().notNull()
+		effective_range: custom('instant_range', { precision: 'day' }).notNull()
 	},
 	{
 		description:

@@ -3,7 +3,6 @@
 	import { PAYROLL_TIME_ZONE, startOfDayInstant, todayKey } from '../../lib/ui/calendar.js';
 	import { formatCalendarDate, formatEffectiveRange } from '../../lib/ui/display-formatters.js';
 	import { numberFrom, splitList } from '../../lib/ui/renderer-input.js';
-	import DateRangeRenderer from '../date_range/+renderer.svelte';
 	import { useI18n } from '@norbital-ai/ui/i18n';
 	import type { TenantI18nKeys } from '$bolt/i18n-keys';
 	import { client } from '../../lib/workspace-client.js';
@@ -29,7 +28,8 @@
 	} satisfies CollectionField;
 	const RANGE_FIELD = {
 		name: 'effective_range',
-		kind: 'date_range',
+		kind: 'instant_range',
+		precision: 'day',
 		nullable: false
 	} satisfies CollectionField;
 
@@ -212,20 +212,22 @@
 	<span class="block truncate" title={summary}>{summary}</span>
 {:else}
 	<Grid class="rounded-md border border-border bg-muted/20 p-3" gap="sm" minimum="compact">
-		<label class="grid gap-1.5 text-sm font-medium">
-			{t('component.origin')}
-			<Combobox
-				options={KIND_OPTIONS}
-				value={current?.kind ?? null}
-				{disabled}
-				searchable={false}
-				emptyPlaceholder={t('renderer.entry_origin.select_origin')}
-				onValueChange={selectKind}
-			/>
+		<label class="text-sm font-medium">
+			<Stack gap="xs">
+				{t('component.origin')}
+				<Combobox
+					options={KIND_OPTIONS}
+					value={current?.kind ?? null}
+					{disabled}
+					searchable={false}
+					emptyPlaceholder={t('renderer.entry_origin.select_origin')}
+					onValueChange={selectKind}
+				/>
+			</Stack>
 		</label>
 
 		{#if current?.kind === 'RECURRING'}
-			<DateRangeRenderer
+			<DataRenderer
 				field={RANGE_FIELD}
 				value={current.effective_range}
 				mode="edit"
@@ -236,24 +238,28 @@
 				}}
 			/>
 		{:else if current?.kind === 'ONE_OFF'}
-			<label class="grid gap-1.5 text-sm font-medium">
-				{t('component.note')}
-				<Input
-					value={current.note}
-					{disabled}
-					placeholder={t('component.why_this_entry_exists')}
-					oninput={(event) => emit({ kind: 'ONE_OFF', note: event.currentTarget.value })}
-				/>
+			<label class="text-sm font-medium">
+				<Stack gap="xs">
+					{t('component.note')}
+					<Input
+						value={current.note}
+						{disabled}
+						placeholder={t('component.why_this_entry_exists')}
+						oninput={(event) => emit({ kind: 'ONE_OFF', note: event.currentTarget.value })}
+					/>
+				</Stack>
 			</label>
 		{:else if current?.kind === 'CLAIM'}
-			<label class="grid gap-1.5 text-sm font-medium">
-				{t('renderer.entry_origin.incurred_on')}
-				<Input
-					type="date"
-					value={current.incurred_on}
-					{disabled}
-					oninput={(event) => emit({ ...current, incurred_on: event.currentTarget.value })}
-				/>
+			<label class="text-sm font-medium">
+				<Stack gap="xs">
+					{t('renderer.entry_origin.incurred_on')}
+					<Input
+						type="date"
+						value={current.incurred_on}
+						{disabled}
+						oninput={(event) => emit({ ...current, incurred_on: event.currentTarget.value })}
+					/>
+				</Stack>
 			</label>
 			<Stack gap="xs" class="text-sm font-medium">
 				<span>{t('component.evidence')}</span>
@@ -270,100 +276,116 @@
 				/>
 			</Stack>
 		{:else if current?.kind === 'LOAN_INSTALMENT'}
-			<label class="grid gap-1.5 text-sm font-medium">
-				{t('renderer.entry_origin.repayment_agreement')}
-				<Combobox
-					ariaLabel={t('renderer.entry_origin.repayment_agreement')}
-					options={agreementOptions}
-					value={current.agreement_id === '' ? null : current.agreement_id}
-					disabled={disabled || employmentId == null}
-					searchPlaceholder={t('renderer.entry_origin.search_agreements')}
-					emptyPlaceholder={t('renderer.entry_origin.choose_agreement')}
-					clientConfig={{
-						isLoading: agreementsQuery?.loading ?? false,
-						error: agreementsQuery?.error?.message ?? null
-					}}
-					onValueChange={(value) =>
-						emit({ ...current, agreement_id: typeof value === 'string' ? value : '' })}
-				/>
+			<label class="text-sm font-medium">
+				<Stack gap="xs">
+					{t('renderer.entry_origin.repayment_agreement')}
+					<Combobox
+						ariaLabel={t('renderer.entry_origin.repayment_agreement')}
+						options={agreementOptions}
+						value={current.agreement_id === '' ? null : current.agreement_id}
+						disabled={disabled || employmentId == null}
+						searchPlaceholder={t('renderer.entry_origin.search_agreements')}
+						emptyPlaceholder={t('renderer.entry_origin.choose_agreement')}
+						clientConfig={{
+							isLoading: agreementsQuery?.loading ?? false,
+							error: agreementsQuery?.error?.message ?? null
+						}}
+						onValueChange={(value) =>
+							emit({ ...current, agreement_id: typeof value === 'string' ? value : '' })}
+					/>
+				</Stack>
 			</label>
-			<label class="grid gap-1.5 text-sm font-medium">
-				{t('renderer.entry_origin.sequence')}
-				<Input
-					type="number"
-					min="1"
-					step="1"
-					value={current.sequence}
-					{disabled}
-					oninput={(event) =>
-						emit({ ...current, sequence: numberFrom(event.currentTarget.value, 1) })}
-				/>
+			<label class="text-sm font-medium">
+				<Stack gap="xs">
+					{t('renderer.entry_origin.sequence')}
+					<Input
+						type="number"
+						min="1"
+						step="1"
+						value={current.sequence}
+						{disabled}
+						oninput={(event) =>
+							emit({ ...current, sequence: numberFrom(event.currentTarget.value, 1) })}
+					/>
+				</Stack>
 			</label>
-			<label class="grid gap-1.5 text-sm font-medium">
-				{t('renderer.entry_origin.of')}
-				<Input
-					type="number"
-					min="1"
-					step="1"
-					value={current.of}
-					{disabled}
-					oninput={(event) => emit({ ...current, of: numberFrom(event.currentTarget.value, 1) })}
-				/>
+			<label class="text-sm font-medium">
+				<Stack gap="xs">
+					{t('renderer.entry_origin.of')}
+					<Input
+						type="number"
+						min="1"
+						step="1"
+						value={current.of}
+						{disabled}
+						oninput={(event) => emit({ ...current, of: numberFrom(event.currentTarget.value, 1) })}
+					/>
+				</Stack>
 			</label>
 		{:else if current?.kind === 'REVERSAL'}
-			<label class="grid gap-1.5 text-sm font-medium">
-				{t('renderer.entry_origin.reverses')}
-				<Combobox
-					ariaLabel={t('renderer.entry_origin.reversed_entry')}
-					options={entryOptions}
-					value={current.reverses_entry_id === '' ? null : current.reverses_entry_id}
-					disabled={disabled || employmentId == null}
-					searchPlaceholder={t('renderer.entry_origin.search_entries')}
-					emptyPlaceholder={t('renderer.entry_origin.choose_entry')}
-					clientConfig={{
-						isLoading: entriesQuery?.loading ?? false,
-						error: entriesQuery?.error?.message ?? null
-					}}
-					onValueChange={(value) =>
-						emit({ ...current, reverses_entry_id: typeof value === 'string' ? value : '' })}
-				/>
+			<label class="text-sm font-medium">
+				<Stack gap="xs">
+					{t('renderer.entry_origin.reverses')}
+					<Combobox
+						ariaLabel={t('renderer.entry_origin.reversed_entry')}
+						options={entryOptions}
+						value={current.reverses_entry_id === '' ? null : current.reverses_entry_id}
+						disabled={disabled || employmentId == null}
+						searchPlaceholder={t('renderer.entry_origin.search_entries')}
+						emptyPlaceholder={t('renderer.entry_origin.choose_entry')}
+						clientConfig={{
+							isLoading: entriesQuery?.loading ?? false,
+							error: entriesQuery?.error?.message ?? null
+						}}
+						onValueChange={(value) =>
+							emit({ ...current, reverses_entry_id: typeof value === 'string' ? value : '' })}
+					/>
+				</Stack>
 			</label>
-			<label class="grid gap-1.5 text-sm font-medium">
-				{t('renderer.entry_origin.reason')}
-				<Input
-					value={current.reason}
-					{disabled}
-					oninput={(event) => emit({ ...current, reason: event.currentTarget.value })}
-				/>
+			<label class="text-sm font-medium">
+				<Stack gap="xs">
+					{t('renderer.entry_origin.reason')}
+					<Input
+						value={current.reason}
+						{disabled}
+						oninput={(event) => emit({ ...current, reason: event.currentTarget.value })}
+					/>
+				</Stack>
 			</label>
 		{:else if current?.kind === 'ARREARS'}
-			<label class="grid gap-1.5 text-sm font-medium">
-				{t('renderer.entry_origin.covers_periods')}
-				<Input
-					value={current.covers_periods.join(', ')}
-					{disabled}
-					placeholder={t('component.pay_periods')}
-					oninput={(event) =>
-						emit({ ...current, covers_periods: splitList(event.currentTarget.value) })}
-				/>
+			<label class="text-sm font-medium">
+				<Stack gap="xs">
+					{t('renderer.entry_origin.covers_periods')}
+					<Input
+						value={current.covers_periods.join(', ')}
+						{disabled}
+						placeholder={t('component.pay_periods')}
+						oninput={(event) =>
+							emit({ ...current, covers_periods: splitList(event.currentTarget.value) })}
+					/>
+				</Stack>
 			</label>
-			<label class="grid gap-1.5 text-sm font-medium">
-				{t('renderer.entry_origin.reason')}
-				<Input
-					value={current.reason}
-					{disabled}
-					oninput={(event) => emit({ ...current, reason: event.currentTarget.value })}
-				/>
+			<label class="text-sm font-medium">
+				<Stack gap="xs">
+					{t('renderer.entry_origin.reason')}
+					<Input
+						value={current.reason}
+						{disabled}
+						oninput={(event) => emit({ ...current, reason: event.currentTarget.value })}
+					/>
+				</Stack>
 			</label>
 		{:else if current?.kind === 'MANUAL_ADJUSTMENT'}
-			<label class="grid gap-1.5 text-sm font-medium">
-				{t('renderer.entry_origin.note')}
-				<Input
-					value={current.note}
-					{disabled}
-					placeholder={t('component.blank_none_stated')}
-					oninput={(event) => emit({ ...current, note: event.currentTarget.value })}
-				/>
+			<label class="text-sm font-medium">
+				<Stack gap="xs">
+					{t('renderer.entry_origin.note')}
+					<Input
+						value={current.note}
+						{disabled}
+						placeholder={t('component.blank_none_stated')}
+						oninput={(event) => emit({ ...current, note: event.currentTarget.value })}
+					/>
+				</Stack>
 			</label>
 		{/if}
 	</Grid>

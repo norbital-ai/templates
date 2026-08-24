@@ -6,7 +6,7 @@
 	import type { RendererProps } from './$types.js';
 	import { Input } from '@norbital-ai/ui/input';
 	import { bankAccountDraftSchema, bankAccountSchema, type BankAccount } from './+definition.js';
-	import { Grid } from '@norbital-ai/ui/layout';
+	import { Grid, Stack } from '@norbital-ai/ui/layout';
 
 	const { t } = useI18n<TenantI18nKeys>();
 
@@ -63,59 +63,67 @@
 </script>
 
 <Grid class="rounded-md border border-border bg-muted/20 p-3" gap="sm" minimum="compact">
-	<label class="grid gap-1.5 text-sm font-medium">
-		Bank
-		{#if bankOptions.length > 0}
-			<Combobox
-				options={bankOptions}
-				value={account.bank_code ?? null}
-				{disabled}
-				searchPlaceholder={t('renderer.bank_account.search_banks')}
-				emptyPlaceholder={t('renderer.bank_account.no_bank')}
-				onValueChange={(code) => {
-					const selected = BANKS.find((bank) => bank.code === code);
-					if (selected) update({ bank_name: selected.name, bank_code: selected.code });
-				}}
-			/>
-		{:else}
-			<Input
-				value={account.bank_name ?? ''}
-				{disabled}
-				placeholder={t('component.bank_name')}
-				oninput={(event) => update({ bank_name: event.currentTarget.value })}
-			/>
-		{/if}
+	<label class="text-sm font-medium">
+		<Stack gap="xs">
+			Bank
+			{#if bankOptions.length > 0}
+				<Combobox
+					options={bankOptions}
+					value={account.bank_code ?? null}
+					{disabled}
+					searchPlaceholder={t('renderer.bank_account.search_banks')}
+					emptyPlaceholder={t('renderer.bank_account.no_bank')}
+					onValueChange={(code) => {
+						const selected = BANKS.find((bank) => bank.code === code);
+						if (selected) update({ bank_name: selected.name, bank_code: selected.code });
+					}}
+				/>
+			{:else}
+				<Input
+					value={account.bank_name ?? ''}
+					{disabled}
+					placeholder={t('component.bank_name')}
+					oninput={(event) => update({ bank_name: event.currentTarget.value })}
+				/>
+			{/if}
+		</Stack>
 	</label>
 	{#if bankOptions.length === 0}
-		<label class="grid gap-1.5 text-sm font-medium">
-			Bank code
-			<Input
-				value={account.bank_code ?? ''}
-				{disabled}
-				placeholder={t('component.swift_routing_code')}
-				oninput={(event) => update({ bank_code: event.currentTarget.value })}
-			/>
+		<label class="text-sm font-medium">
+			<Stack gap="xs">
+				Bank code
+				<Input
+					value={account.bank_code ?? ''}
+					{disabled}
+					placeholder={t('component.swift_routing_code')}
+					oninput={(event) => update({ bank_code: event.currentTarget.value })}
+				/>
+			</Stack>
 		</label>
 	{/if}
-	<label class="grid gap-1.5 text-sm font-medium">
-		Account holder
-		<Input
-			value={account.bank_account_name ?? ''}
-			{disabled}
-			autocomplete="name"
-			placeholder={t('component.registered_account_name')}
-			oninput={(event) => update({ bank_account_name: event.currentTarget.value })}
-		/>
+	<label class="text-sm font-medium">
+		<Stack gap="xs">
+			Account holder
+			<Input
+				value={account.bank_account_name ?? ''}
+				{disabled}
+				autocomplete="name"
+				placeholder={t('component.registered_account_name')}
+				oninput={(event) => update({ bank_account_name: event.currentTarget.value })}
+			/>
+		</Stack>
 	</label>
-	<label class="grid gap-1.5 text-sm font-medium">
-		Account number
-		<Input
-			value={account.bank_account_number ?? ''}
-			{disabled}
-			inputmode="numeric"
-			autocomplete="off"
-			placeholder={t('component.bank_account_number')}
-			oninput={(event) => update({ bank_account_number: event.currentTarget.value })}
-		/>
+	<label class="text-sm font-medium">
+		<Stack gap="xs">
+			Account number
+			<Input
+				value={account.bank_account_number ?? ''}
+				{disabled}
+				inputmode="numeric"
+				autocomplete="off"
+				placeholder={t('component.bank_account_number')}
+				oninput={(event) => update({ bank_account_number: event.currentTarget.value })}
+			/>
+		</Stack>
 	</label>
 </Grid>

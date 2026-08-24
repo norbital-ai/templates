@@ -7,9 +7,9 @@ import { Schema } from 'effect';
  * hooks and the employment hooks all used to carry their own copy that is exactly this body, and
  * a key they disagreed on would make two writers give one date two names.
  */
-export function dateKey(value: string | Date | null | undefined): string {
+export function dateKey(value: string | null | undefined): string {
 	if (value == null) return '';
-	return typeof value === 'string' ? value.slice(0, 10) : value.toISOString().slice(0, 10);
+	return value.slice(0, 10);
 }
 
 /**
@@ -30,21 +30,12 @@ export const calendarDay = Schema.String.check(
 );
 
 /**
- * A timestamp carrying a UTC offset, as `2026-04-02T10:30:00+08:00` — the spelling attendance
- * sources publish, unlike the UTC instants a date-range bound is stored as.
+ * The `Date` a timestamp column stores, from a `Clock.currentTimeMillis` stamp.
  *
- * The pattern fixes the grammar; the filter rejects `2026-02-30T00:00:00Z`, which the pattern
- * alone admits and `Date` silently rolls into March.
+ * One named conversion rather than a `new Date(...)` at each write: a bare construction reads as
+ * the ambient clock wherever it appears, and the whole point of taking the stamp from `Clock` is
+ * that it is not ambient. The millisecond value is the caller's to obtain.
  */
-export const offsetDateTime = Schema.String.check(
-	Schema.isPattern(
-		/^\d{4}-(?:0[1-9]|1[0-2])-(?:0[1-9]|[12]\d|3[01])T(?:[01]\d|2[0-3]):[0-5]\d(?::[0-5]\d(?:\.\d+)?)?(?:Z|[+-](?:0\d|1[0-4]):[0-5]\d)$/
-	),
-	Schema.makeFilter(
-		(value: string) =>
-			(!Number.isNaN(new Date(value).getTime()) &&
-				new Date(value).toISOString().slice(0, 10) === value.slice(0, 10)) ||
-			'must name a day that exists',
-		{ title: 'realCalendarDay' }
-	)
-);
+export function instantAt(milliseconds: number): Date {
+	return new Date(milliseconds);
+}

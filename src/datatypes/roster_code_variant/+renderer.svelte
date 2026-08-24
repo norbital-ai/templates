@@ -88,16 +88,18 @@
 	<span class="block truncate" title={summary}>{summary}</span>
 {:else}
 	<Stack gap="sm" class="rounded-md border bg-muted/20 p-3">
-		<label class="grid gap-1.5 text-sm font-medium">
-			Kind
-			<Combobox
-				ariaLabel="Roster code kind"
-				options={kindOptions}
-				value={current?.kind ?? null}
-				{disabled}
-				searchable={false}
-				onValueChange={selectKind}
-			/>
+		<label class="text-sm font-medium">
+			<Stack gap="xs">
+				Kind
+				<Combobox
+					ariaLabel="Roster code kind"
+					options={kindOptions}
+					value={current?.kind ?? null}
+					{disabled}
+					searchable={false}
+					onValueChange={selectKind}
+				/>
+			</Stack>
 		</label>
 		{#if current?.kind === 'WORK'}
 			<Grid gap="sm" minimum="compact">
@@ -109,17 +111,19 @@
 					{disabled}
 					onValueChange={setWorkRange}
 				/>
-				<label class="grid gap-1.5 text-sm font-medium">
-					{t('component.unpaid_break_hours')}
-					<Input
-						type="number"
-						min="0"
-						step="0.5"
-						value={current.break_minutes / 60}
-						{disabled}
-						oninput={(event) => emitBreakHours(event.currentTarget.value, false)}
-						onchange={(event) => emitBreakHours(event.currentTarget.value, true)}
-					/>
+				<label class="text-sm font-medium">
+					<Stack gap="xs">
+						{t('component.unpaid_break_hours')}
+						<Input
+							type="number"
+							min="0"
+							step="0.5"
+							value={current.break_minutes / 60}
+							{disabled}
+							oninput={(event) => emitBreakHours(event.currentTarget.value, false)}
+							onchange={(event) => emitBreakHours(event.currentTarget.value, true)}
+						/>
+					</Stack>
 				</label>
 			</Grid>
 			<p class="text-meta">{summary}</p>

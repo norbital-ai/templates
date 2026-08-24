@@ -32,8 +32,8 @@ const DAY_SHIFT = {
 const at = (date, time) => `${date}T${time}:00.000+08:00`;
 
 const interval = (start, end) => ({
-	start_at: at('2026-03-10', start),
-	end_at: end == null ? null : at('2026-03-10', end)
+	start: at('2026-03-10', start),
+	end: end == null ? null : at('2026-03-10', end)
 });
 
 const entry = (overrides = {}) => ({

@@ -290,11 +290,11 @@ export function validateOpenTimeEntries(options: {
 		readonly employment: { readonly employee_number: string };
 		readonly timeEntries: readonly {
 			readonly id: string;
-			readonly work_date: string | Date;
+			readonly work_date: string;
 			readonly worked_intervals:
 				| readonly {
-						readonly start_at: Date | string;
-						readonly end_at: Date | string | null;
+						readonly start: string;
+						readonly end: string | null;
 				  }[]
 				| null;
 		}[];
@@ -306,7 +306,7 @@ export function validateOpenTimeEntries(options: {
 			// Both bounds, not only the end. A clock-out with no clock-in is just as unpriceable as a
 			// clock that never stopped.
 			const open = entry.worked_intervals?.some(
-				(interval) => interval.end_at == null || interval.start_at == null
+				(interval) => interval.end == null || interval.start == null
 			);
 			if (open !== true) continue;
 			issues.push({

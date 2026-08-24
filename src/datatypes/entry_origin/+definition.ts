@@ -1,6 +1,6 @@
 import { defineCustomType } from '@norbital-ai/bolt/authoring';
 import { Schema } from 'effect';
-import { dateRangeValueSchema } from '../date_range/+definition.js';
+import { instantRangeValueSchema } from '@norbital-ai/bolt/authoring';
 
 /**
  * A calendar day in the payroll timezone, as `2026-04-02`.
@@ -34,7 +34,7 @@ export const entryOriginValueSchema = Schema.Union([
 	Schema.Struct({
 		kind: Schema.Literal('RECURRING'),
 		cadence: Schema.Literal('PAY_PERIOD'),
-		effective_range: dateRangeValueSchema
+		effective_range: instantRangeValueSchema
 	}),
 	Schema.Struct({ kind: Schema.Literal('ONE_OFF'), note: Schema.String }),
 	Schema.Struct({

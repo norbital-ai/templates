@@ -1,4 +1,4 @@
-import { custom, dateRange, defineModel, numeric, text, uuid } from '@norbital-ai/bolt/authoring';
+import { custom, defineModel, numeric, text, uuid } from '@norbital-ai/bolt/authoring';
 
 export default defineModel(
 	{
@@ -7,7 +7,7 @@ export default defineModel(
 		reference: text({ search: true }).notNull(),
 		principal: numeric().notNull(),
 		schedule: custom('repayment_schedule').notNull(),
-		effective_range: dateRange().notNull()
+		effective_range: custom('instant_range', { precision: 'day' }).notNull()
 	},
 	{
 		description:

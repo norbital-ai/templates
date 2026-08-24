@@ -1,6 +1,8 @@
 import {
 	grantsOn,
+	grantOn,
 	leaveApproval,
+	mergeGrants,
 	payrollGrants,
 	payrollRebuildGrants,
 	peopleGrants,
@@ -33,7 +35,7 @@ import type { Policy } from './$types.js';
  *     delete outright once `lifecycle = 'PAID'`, so this grant can only ever release a draft's claims.
  *
  * The generated groups and shared approval declarations carry over from `+hr_controller.ts`.
- * Derived approval identity includes this policy key, so the same steps reached through another
+ * Derived approval identity includes this policy key, so the same flow reached through another
  * policy remain distinct in history without hand-authored ids.
  */
 export default {
@@ -60,44 +62,33 @@ export default {
 	 * apps are for L1 management, the HR manager and the HR controller — `manager` is the L1 rung
 	 * (`policy_grants.ts` names its approver team `L1 Manager`), so `supervisor` and
 	 * `senior_management` have self-service and no HR group. That is a narrowing: both keep every
-	 * collection grant this file lists, and an approval step routed to `Senior Management` is
+	 * collection grant this file lists, and an approval flow routed to `Senior Management` is
 	 * decided from the notification and the request surface rather than from the HR app.
 	 */
 	capabilities: { apps: ['hr_employee', 'hr_controller'] },
 
-	grants: [
-		...referenceGrants('read', 'create', 'update', 'delete'),
-		...statutoryGrants('read'),
-		...peopleGrants('read'),
-		...peopleGrants('create', 'update', 'delete'),
-		...grantsOn('time_entries', ['read']),
+	grants: mergeGrants(
+		referenceGrants('read', 'create', 'update', 'delete'),
+		statutoryGrants('read'),
+		grantsOn('statutory_profile_drift_logs', ['read']),
+		peopleGrants('read'),
+		peopleGrants('create', 'update', 'delete'),
+		grantsOn('time_entries', ['read']),
 
 		// The adjustment path. Unconditional on both read and create — see `+hr_controller.ts`.
-		...grantsOn('component_entries', ['read', 'create', 'update', 'delete']),
+		grantsOn('component_entries', ['read', 'create', 'update', 'delete']),
 
-		{
-			collection: 'time_entries',
-			action: 'create',
-			approval: timeEntryApproval
-		},
-		{
-			collection: 'time_entries',
-			action: 'update',
-			approval: timeEntryApproval
-		},
-		{ collection: 'time_entries', action: 'delete' },
+		grantOn('time_entries', 'create', { approval: timeEntryApproval }),
+		grantOn('time_entries', 'update', { approval: timeEntryApproval }),
+		grantsOn('time_entries', ['delete']),
 
-		...grantsOn('leave_requests', ['read', 'update', 'delete']),
-		{
-			collection: 'leave_requests',
-			action: 'create',
-			approval: leaveApproval
-		},
+		grantsOn('leave_requests', ['read', 'update', 'delete']),
+		grantOn('leave_requests', 'create', { approval: leaveApproval }),
 
-		...payrollGrants('read'),
-		...payrollRebuildGrants(),
-		...grantsOn('payroll_runs', ['create', 'update', 'delete'])
-	],
+		payrollGrants('read'),
+		payrollRebuildGrants(),
+		grantsOn('payroll_runs', ['create', 'update', 'delete'])
+	),
 	/**
 	 * What a holder of this policy may spend.
 	 *

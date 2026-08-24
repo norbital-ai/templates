@@ -1,11 +1,19 @@
-import { custom, dateRange, defineModel, sql, text, uuid } from '@norbital-ai/bolt/authoring';
+import { custom, defineModel, sql, text, uuid } from '@norbital-ai/bolt/authoring';
 
 export default defineModel(
 	{
 		employment_id: uuid().notNull(),
 		statutory_contribution_id: uuid().notNull(),
+		/**
+		 * The predecessor this row closes when it is submitted as an automated successor.
+		 *
+		 * Ordinary people-policy field masks exclude it. The statutory-successor static identity is the
+		 * only non-administrator that may supply it, and the create hook validates and stages the linked
+		 * predecessor update into the same reviewed graph.
+		 */
+		supersedes_fact_id: uuid(),
 		status: custom('statutory_fact_status').notNull(),
-		effective_range: dateRange().notNull(),
+		effective_range: custom('instant_range', { precision: 'day' }).notNull(),
 		/**
 		 * The fact's own title, composed in SQL.
 		 *

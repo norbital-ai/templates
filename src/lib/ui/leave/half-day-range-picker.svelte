@@ -264,16 +264,18 @@
 			aria-label={t('component.leave_range')}
 			aria-disabled={disabled}
 			title={disabled ? (disabledReason ?? undefined) : undefined}
-			class="group flex h-9 w-full items-center gap-2 rounded-md border border-input bg-background px-3 text-left text-sm shadow-xs transition-colors hover:bg-accent/50 focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-60"
+			class="group h-9 w-full rounded-md border border-input bg-background px-3 text-left text-sm shadow-xs transition-colors hover:bg-accent/50 focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-60"
 		>
-			<Icon icon="lucide:calendar-range" class="size-4 shrink-0 text-muted-foreground" />
-			<span class={cn('min-w-0 flex-1 truncate', value == null && 'text-muted-foreground')}>
-				{triggerLabel}
-			</span>
-			<Icon
-				icon="lucide:chevron-down"
-				class="size-3.5 shrink-0 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100"
-			/>
+			<Inline gap="sm" align="center" fill>
+				<Icon icon="lucide:calendar-range" class="size-4 shrink-0 text-muted-foreground" />
+				<span class={cn('min-w-0 flex-1 truncate', value == null && 'text-muted-foreground')}>
+					{triggerLabel}
+				</span>
+				<Icon
+					icon="lucide:chevron-down"
+					class="size-3.5 shrink-0 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100"
+				/>
+			</Inline>
 		</Popover.Trigger>
 
 		<Popover.Content

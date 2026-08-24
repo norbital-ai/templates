@@ -5,7 +5,7 @@
 	import { splitList } from '../../lib/ui/renderer-input.js';
 	import { Combobox } from '@norbital-ai/ui/combobox';
 	import { Input } from '@norbital-ai/ui/input';
-	import { Grid } from '@norbital-ai/ui/layout';
+	import { Grid, Stack } from '@norbital-ai/ui/layout';
 	import { holidayScopeSchema } from './+definition.js';
 	import type { RendererProps, Value } from './$types.js';
 
@@ -61,27 +61,31 @@
 	<span class="block truncate" title={summary}>{summary}</span>
 {:else}
 	<Grid class="rounded-md border border-border bg-muted/20 p-3" gap="sm" minimum="compact">
-		<label class="grid gap-1.5 text-sm font-medium">
-			Scope
-			<Combobox
-				options={KIND_OPTIONS}
-				value={current?.kind ?? null}
-				{disabled}
-				searchable={false}
-				emptyPlaceholder={t('renderer.holiday_scope.select_scope')}
-				onValueChange={selectKind}
-			/>
+		<label class="text-sm font-medium">
+			<Stack gap="xs">
+				Scope
+				<Combobox
+					options={KIND_OPTIONS}
+					value={current?.kind ?? null}
+					{disabled}
+					searchable={false}
+					emptyPlaceholder={t('renderer.holiday_scope.select_scope')}
+					onValueChange={selectKind}
+				/>
+			</Stack>
 		</label>
 		{#if current?.kind === 'REGIONAL'}
-			<label class="grid gap-1.5 text-sm font-medium">
-				Location codes (comma separated)
-				<Input
-					value={current.location_codes.join(', ')}
-					{disabled}
-					placeholder={t('component.regions')}
-					oninput={(event) =>
-						emit({ kind: 'REGIONAL', location_codes: splitList(event.currentTarget.value) })}
-				/>
+			<label class="text-sm font-medium">
+				<Stack gap="xs">
+					Location codes (comma separated)
+					<Input
+						value={current.location_codes.join(', ')}
+						{disabled}
+						placeholder={t('component.regions')}
+						oninput={(event) =>
+							emit({ kind: 'REGIONAL', location_codes: splitList(event.currentTarget.value) })}
+					/>
+				</Stack>
 			</label>
 		{/if}
 	</Grid>

@@ -13,19 +13,21 @@ export default {
 				description:
 					'Blocks deleting a payslip once its payroll run has left DRAFT, so what was paid to a person stays on the record and is corrected by an entry in a later run.',
 				handler: ({ existing, api }) =>
-					Effect.gen(function* () {
-						const run = yield* api.db.query.payroll_runs.findFirst({
+					Effect.map(
+						api.db.query.payroll_runs.findFirst({
 							where: { id: { eq: existing.payroll_run_id } }
-						});
-						if (!run) {
-							refuse('A payslip cannot be deleted without its payroll run.');
+						}),
+						(run) => {
+							if (!run) {
+								refuse('A payslip cannot be deleted without its payroll run.');
+							}
+							if (run.lifecycle !== 'DRAFT') {
+								refuse(
+									`Payroll run ${run.period} is ${run.lifecycle}. Payslips can only be deleted while the run is DRAFT.`
+								);
+							}
 						}
-						if (run.lifecycle !== 'DRAFT') {
-							refuse(
-								`Payroll run ${run.period} is ${run.lifecycle}. Payslips can only be deleted while the run is DRAFT.`
-							);
-						}
-					})
+					)
 			}
 		}
 	}

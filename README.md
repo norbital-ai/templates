@@ -65,44 +65,51 @@ Two invariants shape everything:
 
 ## What ships in the workspace
 
-### Apps (9)
+### Apps (8)
 
 **`hr_employee`** — employee self-service. A person sees their profile, company and next payday,
 and can record time entries, raise leave requests and claims (each routed for approval), and read
 their own loan agreements and payslips. A person with no active employment is told so; a person
 with several chooses which one the page scopes to.
 
-**`hr_controller`** (group) — the HR operating surface, eight pages:
+**`hr_controller`** (group) — the HR operating surface, seven pages:
 
-| App                   | What a user does in it                                                                                                                                                                                                                                                  |
-| --------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **People**            | The workforce: employee profiles, employments, effective-dated terms, statutory facts, and a workforce-shape chart                                                                                                                                                      |
-| **Scheduling**        | Plans the month on a roster board — one row per person, one glyph per day — publishes it against statutory rules, and manages shifts, work patterns and holidays                                                                                                        |
-| **Time & attendance** | Review clock data: overview charts and the dated time-entry ledger                                                                                                                                                                                                      |
-| **Leave**             | Review leave requests and the leave types that entitle them, against year-to-date approval counters                                                                                                                                                                     |
-| **Loans**             | Review repayment agreements and their derived outstanding balance, with instalment recovery tracked per payslip                                                                                                                                                         |
-| **Pay components**    | The pay catalogue and the entry stream: claims, allowances, adjustments and their contribution treatment                                                                                                                                                                |
-| **Payroll**           | Runs the payroll cycle: a pay-date board (late/current/upcoming), creating and recalculating runs, locking them paid, and exporting bank files, payslip PDFs and the report workbook                                                                                    |
-| **Statutory profile** | The regime every payroll is calculated against — effective-dated jurisdiction snapshots with atomic overtime and break policy, normalized contribution schemes and rates, and the companies bound to each (file `+settings.svelte`: a file name owns an app's identity) |
+| App                   | What a user does in it                                                                                                                                                                                                                                                                                   |
+| --------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **People**            | The workforce: employee profiles, employments, effective-dated terms, statutory facts, and a workforce-shape chart                                                                                                                                                                                       |
+| **Scheduling**        | Plans the month on a roster board — one row per person, one glyph per day — publishes it against statutory rules, and manages shifts, work patterns and holidays. The attendance insight chart now lives on its Exceptions tab, and its import sits on the board's action menu beside the roster import. |
+| **Leave**             | Review leave requests and the leave types that entitle them, against year-to-date approval counters                                                                                                                                                                                                      |
+| **Loans**             | Review repayment agreements and their derived outstanding balance, with instalment recovery tracked per payslip                                                                                                                                                                                          |
+| **Pay components**    | The pay catalogue and the entry stream: claims, allowances, adjustments and their contribution treatment                                                                                                                                                                                                 |
+| **Payroll**           | Runs the payroll cycle: a pay-date board (late/current/upcoming), creating and recalculating runs, locking them paid, and exporting bank files, payslip PDFs and the report workbook                                                                                                                     |
+| **Statutory profile** | The regime every payroll is calculated against — effective-dated jurisdiction snapshots with atomic overtime and break policy, normalized contribution schemes and rates, and the companies bound to each (file `+settings.svelte`: a file name owns an app's identity)                                  |
 
-### Policies (3)
+### Policies (8)
 
-- **`employee`** — scopes self-service to the requestor: their own profile, employments and the
-  nine child collections, plus create-with-approval for time entries, claims and leave.
-- **`hr`** — administers people, scheduling, requests, loans and payroll: reads the statutory law,
-  writes the company's own configuration, and raises reviewed time, leave and payroll-run events.
-- **`management`** — reads everything HR reads and writes almost none of it: the exceptions are
-  creating/running payroll and acting on reports' time and leave, each routed for approval.
+- **`employee`** — self-service: their own profile, employments and the child collections, plus
+  create-with-approval for time entries, claims and leave.
+- **`supervisor`** — reads the team, reviews and records their attendance and leave.
+- **`manager`** — reads people operations across the company and owns their team's time and leave.
+- **`hr_controller`** — HR administration across people, scheduling, requests, loans and
+  adjustments, with payroll visible but not committable.
+- **`hr_manager`** — everything HR administration covers, plus creating, running and deleting
+  payroll runs.
+- **`senior_management`** — the full people-operations view, plus creating, running and deleting
+  payroll runs.
+- **`statutory_drift_automation`** — the automation's authority: reads statutory and employment
+  snapshots, appends deterministic successor facts, and records durable drift research evidence.
+- **`statutory_successor_automation`** — validates and submits one atomic statutory-fact successor
+  transition for HR Manager approval.
 
-A policy names the `hr_controller` app _group_ rather than each page, so adding a controller page
+Policies name the `hr_controller` app _group_ rather than each page, so adding a controller page
 does not mean revisiting every role declaration.
 
-### Function (1)
+### Live analytics
 
-**`approval_analytics`** supplies year-to-date approval counters and a five-year trend for the
-three subjects the controller pages summarise: payroll runs, leave requests and claims. It is worth
-reading for how it phrases those counts: every counter is expressed as `approval_id IS
-NULL`, because that is the only definition of a live row.
+The controller's leave, pay-component and attendance charts read the relevant collections through
+`client.db`. Those queries stay current through the workspace sync engine; the components derive
+their bounded five-year heatmaps and eight-week attendance trend locally without a polling or
+manually refreshed query function.
 
 ### Agent context
 
@@ -110,12 +117,17 @@ NULL`, because that is the only definition of a live row.
 collection meanings, money/date rules, and the boundary around statutory advice. It grants nothing;
 the signed-in person's policies remain the complete authority for a web-agent turn.
 
-### Automations (1)
+### Automations (2)
 
-**`statutory_profile_drift`** — weekly deterministic automation. Bounded reads of in-force jurisdiction
+**`statutory_profile_drift`** — weekly automation (`0 3 * * 1`). Bounded reads of in-force jurisdiction
 snapshots, contribution schemes and employment statutory facts; rule-based drift detection; optional
 successor copy of `employment_statutory_facts` when a unique successor scheme exists; `api.infer` writes
 the report. Never writes the law tables (those stay product-owned).
+
+**`apply_statutory_successor`** — a manually triggered automation with a declared input schema:
+it validates one effective-dated employment statutory successor transition and submits it for HR
+Manager approval, where the create hook stages the predecessor close and approval settlement commits
+both rows or neither.
 
 ### Integrations, seed
 
@@ -139,13 +151,12 @@ Everything the compiler knows about the workspace lives in `src/`:
 ```text
 src/
 ├── apps/                     # +<app>.svelte per app; hr_controller/+group.ts owns the group
-├── collections/              # 22 collections: +model.ts, +hooks.ts, +pipelines.ts, +representation.svelte
+├── collections/              # 23 collections: +model.ts, +hooks.ts, +pipelines.ts, +representation.svelte
 │   └── payroll_runs/lib/     # the settlement engine (phases, overtime, coverage, export)
-├── datatypes/                # 27 structured values (money, statutory_regime, work_pattern, …)
-├── access/                   # +teams.ts, anonymous limits, and six policies
-├── functions/                # approval_analytics
+├── datatypes/                # 27 structured values (statutory_regime, work_pattern, overtime_band, …)
+├── access/                   # +teams.ts, anonymous limits, and eight policies
 ├── i18n/                     # messages.en.json / messages.zh.json (same key set)
-├── automations/              # statutory_profile_drift (weekly deterministic)
+├── automations/              # statutory_profile_drift (weekly) and apply_statutory_successor
 ├── lib/                      # shared helpers: calendar, display formatters, policy grants, roster month
 └── +agents.md
 ```

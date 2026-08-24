@@ -4,7 +4,7 @@
 	import type { TenantI18nKeys } from '$bolt/i18n-keys';
 	import { Combobox } from '@norbital-ai/ui/combobox';
 	import { Input } from '@norbital-ai/ui/input';
-	import { Grid } from '@norbital-ai/ui/layout';
+	import { Grid, Stack } from '@norbital-ai/ui/layout';
 	import { prorationBasisSchema } from './+definition.js';
 	import type { RendererProps, Value } from './$types.js';
 	const { t } = useI18n<TenantI18nKeys>();
@@ -61,29 +61,33 @@
 	<span class="block truncate" title={summary}>{summary}</span>
 {:else}
 	<Grid class="rounded-md border border-border bg-muted/20 p-3" gap="sm" minimum="compact">
-		<label class="grid gap-1.5 text-sm font-medium">
-			Proration basis
-			<Combobox
-				options={BASIS_OPTIONS}
-				value={current?.by ?? null}
-				{disabled}
-				searchable={false}
-				emptyPlaceholder={t('renderer.proration_basis.select_basis')}
-				onValueChange={selectBasis}
-			/>
+		<label class="text-sm font-medium">
+			<Stack gap="xs">
+				Proration basis
+				<Combobox
+					options={BASIS_OPTIONS}
+					value={current?.by ?? null}
+					{disabled}
+					searchable={false}
+					emptyPlaceholder={t('renderer.proration_basis.select_basis')}
+					onValueChange={selectBasis}
+				/>
+			</Stack>
 		</label>
 		{#if current?.by === 'FIXED_DAYS'}
-			<label class="grid gap-1.5 text-sm font-medium">
-				Days
-				<Input
-					type="number"
-					min="0.5"
-					step="0.5"
-					value={current.days}
-					{disabled}
-					oninput={(event) =>
-						emit({ by: 'FIXED_DAYS', days: numberFrom(event.currentTarget.value, 1) })}
-				/>
+			<label class="text-sm font-medium">
+				<Stack gap="xs">
+					Days
+					<Input
+						type="number"
+						min="0.5"
+						step="0.5"
+						value={current.days}
+						{disabled}
+						oninput={(event) =>
+							emit({ by: 'FIXED_DAYS', days: numberFrom(event.currentTarget.value, 1) })}
+					/>
+				</Stack>
 			</label>
 		{/if}
 	</Grid>

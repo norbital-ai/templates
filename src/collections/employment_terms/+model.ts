@@ -1,12 +1,4 @@
-import {
-	custom,
-	dateRange,
-	defineModel,
-	enums,
-	sql,
-	text,
-	uuid
-} from '@norbital-ai/bolt/authoring';
+import { custom, defineModel, enums, sql, text, uuid } from '@norbital-ai/bolt/authoring';
 
 export default defineModel(
 	{
@@ -39,7 +31,7 @@ export default defineModel(
 		payroll_group: text(),
 		/** The employment's only schedule term. Workdays, hours, rest and off days derive from it. */
 		work_pattern: custom('work_pattern').notNull(),
-		effective_range: dateRange().notNull(),
+		effective_range: custom('instant_range', { precision: 'day' }).notNull(),
 		/**
 		 * The terms' own title, composed in SQL.
 		 *

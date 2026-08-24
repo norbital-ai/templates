@@ -1,9 +1,11 @@
 import {
 	NOT_AN_ADJUSTMENT,
 	employeeSelfServiceGrants,
+	grantOn,
 	grantsOn,
 	grantsOnWhere,
 	leaveApproval,
+	mergeGrants,
 	peopleGrants,
 	referenceGrants,
 	settlementLedgerGrants,
@@ -22,7 +24,7 @@ import type { Policy } from './$types.js';
  *
  * What rank 3 adds to rank 2 is deletion — of a time entry and of a leave request. The asymmetry is
  * the seed's and it is worth restating: removing an entry *withdraws* a claim on payroll rather than
- * making one, so it carries no approval step. Routing a withdrawal through the manager who would
+ * making one, so it carries no approval flow. Routing a withdrawal through the manager who would
  * have to notice it only leaves the bad row sitting in the run.
  *
  * Still no payroll. A manager reads people, time and leave; `payroll_runs`, `payslips` and
@@ -55,43 +57,30 @@ export default {
 	 * apps are for L1 management, the HR manager and the HR controller — `manager` is the L1 rung
 	 * (`policy_grants.ts` names its approver team `L1 Manager`), so `supervisor` and
 	 * `senior_management` have self-service and no HR group. That is a narrowing: both keep every
-	 * collection grant this file lists, and an approval step routed to `Senior Management` is
+	 * collection grant this file lists, and an approval flow routed to `Senior Management` is
 	 * decided from the notification and the request surface rather than from the HR app.
 	 */
 	capabilities: { apps: ['hr_employee', 'hr_controller'] },
 
-	grants: [
-		...employeeSelfServiceGrants(),
-		...referenceGrants('read'),
-		...statutoryGrants('read'),
-		...peopleGrants('read'),
-		...grantsOn('time_entries', ['read']),
-		...grantsOn('leave_requests', ['read']),
+	grants: mergeGrants(
+		employeeSelfServiceGrants(),
+		referenceGrants('read'),
+		statutoryGrants('read'),
+		peopleGrants('read'),
+		grantsOn('time_entries', ['read']),
+		grantsOn('leave_requests', ['read']),
 		// Restated, not inherited, and restated *with* the predicate. A manager who could see
 		// corrections could reconstruct what HR fixed about their own team's pay.
-		...grantsOnWhere('component_entries', ['read'], NOT_AN_ADJUSTMENT),
-		...settlementLedgerGrants(),
+		grantsOnWhere('component_entries', ['read'], NOT_AN_ADJUSTMENT),
+		settlementLedgerGrants(),
 
-		{
-			collection: 'time_entries',
-			action: 'create',
-			approval: timeEntryApproval
-		},
-		{
-			collection: 'time_entries',
-			action: 'update',
-			approval: timeEntryApproval
-		},
-		{ collection: 'time_entries', action: 'delete' },
+		grantOn('time_entries', 'create', { approval: timeEntryApproval }),
+		grantOn('time_entries', 'update', { approval: timeEntryApproval }),
+		grantsOn('time_entries', ['delete']),
 
-		{
-			collection: 'leave_requests',
-			action: 'create',
-			approval: leaveApproval
-		},
-		{ collection: 'leave_requests', action: 'update' },
-		{ collection: 'leave_requests', action: 'delete' }
-	],
+		grantOn('leave_requests', 'create', { approval: leaveApproval }),
+		grantsOn('leave_requests', ['update', 'delete'])
+	),
 	/**
 	 * What a holder of this policy may spend.
 	 *

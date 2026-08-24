@@ -28,7 +28,7 @@
 	import { useI18n } from '@norbital-ai/ui/i18n';
 	import type { TenantI18nKeys } from '$bolt/i18n-keys';
 	import { Combobox } from '@norbital-ai/ui/combobox';
-	import { Grid } from '@norbital-ai/ui/layout';
+	import { Grid, Stack } from '@norbital-ai/ui/layout';
 
 	let props: LayerLevelPickerProps = $props();
 
@@ -95,37 +95,42 @@
 </script>
 
 <Grid gap="sm" minimum="compact">
-	<label class="grid gap-1.5 text-sm font-medium">
-		{t('component.level')}
-		<Combobox
-			options={LEVEL_OPTIONS}
-			value={props.level}
-			disabled={props.disabled}
-			searchable={false}
-			emptyPlaceholder={t('component.select_a_level')}
-			onValueChange={(level) => {
-				if (level === 'STATUTORY' || level === 'ORGANISATION' || level === 'EMPLOYEE') {
-					props.onLevelChange(level);
-				}
-			}}
-		/>
+	<label class="text-sm font-medium">
+		<Stack gap="xs">
+			{t('component.level')}
+			<Combobox
+				options={LEVEL_OPTIONS}
+				value={props.level}
+				disabled={props.disabled}
+				searchable={false}
+				emptyPlaceholder={t('component.select_a_level')}
+				onValueChange={(level) => {
+					if (level === 'STATUTORY' || level === 'ORGANISATION' || level === 'EMPLOYEE') {
+						props.onLevelChange(level);
+					}
+				}}
+			/>
+		</Stack>
 	</label>
 	{#if props.level === 'EMPLOYEE'}
-		<label class="grid gap-1.5 text-sm font-medium">
-			{t('component.person')}
-			<Combobox
-				ariaLabel={t('component.employment')}
-				options={employmentOptions}
-				value={props.employmentId === '' ? null : props.employmentId}
-				disabled={props.disabled || props.companyId == null}
-				searchPlaceholder={t('component.search_company_people')}
-				emptyPlaceholder={t('component.choose_arrangement')}
-				clientConfig={{
-					isLoading: employmentsQuery?.loading ?? false,
-					error: employmentsQuery?.error?.message ?? null
-				}}
-				onValueChange={(value) => props.onEmploymentChange(typeof value === 'string' ? value : '')}
-			/>
+		<label class="text-sm font-medium">
+			<Stack gap="xs">
+				{t('component.person')}
+				<Combobox
+					ariaLabel={t('component.employment')}
+					options={employmentOptions}
+					value={props.employmentId === '' ? null : props.employmentId}
+					disabled={props.disabled || props.companyId == null}
+					searchPlaceholder={t('component.search_company_people')}
+					emptyPlaceholder={t('component.choose_arrangement')}
+					clientConfig={{
+						isLoading: employmentsQuery?.loading ?? false,
+						error: employmentsQuery?.error?.message ?? null
+					}}
+					onValueChange={(value) =>
+						props.onEmploymentChange(typeof value === 'string' ? value : '')}
+				/>
+			</Stack>
 		</label>
 	{/if}
 </Grid>

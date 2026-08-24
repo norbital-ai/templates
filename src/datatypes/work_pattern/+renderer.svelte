@@ -5,6 +5,7 @@
 	import { Combobox } from '@norbital-ai/ui/combobox';
 	import { Input } from '@norbital-ai/ui/input';
 	import { Cluster, Grid, Inline, Stack } from '@norbital-ai/ui/layout';
+	import { newLocalId } from '../../lib/ids.js';
 	import { numberFrom } from '../../lib/ui/renderer-input.js';
 	import { workPatternSchema } from './+definition.js';
 	import type { RendererProps, Value } from './$types.js';
@@ -111,7 +112,7 @@
 	function defaultPhase(): Phase {
 		return {
 			duration: { kind: 'CONTINUOUS' },
-			day_cycle: [{ roster_code_id: codeOptions[0]?.value ?? crypto.randomUUID() }]
+			day_cycle: [{ roster_code_id: codeOptions[0]?.value ?? newLocalId() }]
 		};
 	}
 
@@ -142,27 +143,31 @@
 	<span class="block truncate" title={summary}>{summary}</span>
 {:else}
 	<Stack gap="md" class="rounded-md border bg-muted/20 p-4">
-		<label class="grid gap-1.5 text-sm font-medium">
-			How is work planned?
-			<Combobox
-				ariaLabel="Work planning method"
-				options={typeOptions}
-				value={current?.type ?? null}
-				{disabled}
-				searchable={false}
-				onValueChange={selectType}
-			/>
+		<label class="text-sm font-medium">
+			<Stack gap="xs">
+				How is work planned?
+				<Combobox
+					ariaLabel="Work planning method"
+					options={typeOptions}
+					value={current?.type ?? null}
+					{disabled}
+					searchable={false}
+					onValueChange={selectType}
+				/>
+			</Stack>
 		</label>
 
 		{#if current?.type === 'PATTERNED'}
-			<label class="grid gap-1.5 text-sm font-medium">
-				Pattern begins
-				<Input
-					type="date"
-					value={current.anchor_date}
-					{disabled}
-					oninput={(event) => emit({ ...current, anchor_date: event.currentTarget.value })}
-				/>
+			<label class="text-sm font-medium">
+				<Stack gap="xs">
+					Pattern begins
+					<Input
+						type="date"
+						value={current.anchor_date}
+						{disabled}
+						oninput={(event) => emit({ ...current, anchor_date: event.currentTarget.value })}
+					/>
+				</Stack>
 			</label>
 
 			{#each current.phases as phase, phaseIndex (phaseIndex)}
@@ -184,46 +189,50 @@
 						</Button>
 					</Cluster>
 					<Grid gap="sm" minimum="compact">
-						<label class="grid gap-1.5 text-sm font-medium">
-							Duration
-							<Combobox
-								ariaLabel={`Phase ${phaseIndex + 1} duration`}
-								options={durationOptions}
-								value={phase.duration.kind}
-								{disabled}
-								searchable={false}
-								onValueChange={(value) => {
-									if (value === 'CONTINUOUS')
-										updatePhase(current, phaseIndex, {
-											...phase,
-											duration: { kind: 'CONTINUOUS' }
-										});
-									if (value === 'CALENDAR_MONTHS')
-										updatePhase(current, phaseIndex, {
-											...phase,
-											duration: { kind: 'CALENDAR_MONTHS', months: 3 }
-										});
-								}}
-							/>
+						<label class="text-sm font-medium">
+							<Stack gap="xs">
+								Duration
+								<Combobox
+									ariaLabel={`Phase ${phaseIndex + 1} duration`}
+									options={durationOptions}
+									value={phase.duration.kind}
+									{disabled}
+									searchable={false}
+									onValueChange={(value) => {
+										if (value === 'CONTINUOUS')
+											updatePhase(current, phaseIndex, {
+												...phase,
+												duration: { kind: 'CONTINUOUS' }
+											});
+										if (value === 'CALENDAR_MONTHS')
+											updatePhase(current, phaseIndex, {
+												...phase,
+												duration: { kind: 'CALENDAR_MONTHS', months: 3 }
+											});
+									}}
+								/>
+							</Stack>
 						</label>
 						{#if phase.duration.kind === 'CALENDAR_MONTHS'}
-							<label class="grid gap-1.5 text-sm font-medium">
-								Months
-								<Input
-									type="number"
-									min="1"
-									step="1"
-									value={phase.duration.months}
-									{disabled}
-									oninput={(event) =>
-										updatePhase(current, phaseIndex, {
-											...phase,
-											duration: {
-												kind: 'CALENDAR_MONTHS',
-												months: numberFrom(event.currentTarget.value, 1)
-											}
-										})}
-								/>
+							<label class="text-sm font-medium">
+								<Stack gap="xs">
+									Months
+									<Input
+										type="number"
+										min="1"
+										step="1"
+										value={phase.duration.months}
+										{disabled}
+										oninput={(event) =>
+											updatePhase(current, phaseIndex, {
+												...phase,
+												duration: {
+													kind: 'CALENDAR_MONTHS',
+													months: numberFrom(event.currentTarget.value, 1)
+												}
+											})}
+									/>
+								</Stack>
 							</label>
 						{/if}
 					</Grid>
@@ -304,112 +313,124 @@
 				Add phase
 			</Button>
 		{:else if current?.type === 'ROSTERED'}
-			<label class="grid gap-1.5 text-sm font-medium">
-				Assignment expectation
-				<Combobox
-					ariaLabel="Roster assignment expectation"
-					options={expectationOptions}
-					value={current.expectation.kind}
-					{disabled}
-					searchable={false}
-					onValueChange={(value) => {
-						if (value === 'AS_ASSIGNED')
-							emit({
-								type: 'ROSTERED',
-								expectation: {
-									kind: 'AS_ASSIGNED',
-									period: 'WEEK',
-									maximum_paid_minutes: null
-								}
-							});
-						if (value === 'GUARANTEED_SCHEDULE')
-							emit({
-								type: 'ROSTERED',
-								expectation: {
-									kind: 'GUARANTEED_SCHEDULE',
-									period: 'WEEK',
-									required_work_days: 5,
-									required_paid_minutes: 2400
-								}
-							});
-					}}
-				/>
-			</label>
-			<Grid gap="sm" minimum="compact">
-				<label class="grid gap-1.5 text-sm font-medium">
-					Reference period
+			<label class="text-sm font-medium">
+				<Stack gap="xs">
+					Assignment expectation
 					<Combobox
-						ariaLabel="Workload reference period"
-						options={periodOptions}
-						value={current.expectation.period}
+						ariaLabel="Roster assignment expectation"
+						options={expectationOptions}
+						value={current.expectation.kind}
 						{disabled}
 						searchable={false}
 						onValueChange={(value) => {
-							if (value === 'WEEK' || value === 'MONTH')
+							if (value === 'AS_ASSIGNED')
 								emit({
-									...current,
-									expectation: { ...current.expectation, period: value }
+									type: 'ROSTERED',
+									expectation: {
+										kind: 'AS_ASSIGNED',
+										period: 'WEEK',
+										maximum_paid_minutes: null
+									}
+								});
+							if (value === 'GUARANTEED_SCHEDULE')
+								emit({
+									type: 'ROSTERED',
+									expectation: {
+										kind: 'GUARANTEED_SCHEDULE',
+										period: 'WEEK',
+										required_work_days: 5,
+										required_paid_minutes: 2400
+									}
 								});
 						}}
 					/>
-				</label>
-				{#if current.expectation.kind === 'GUARANTEED_SCHEDULE'}
-					<label class="grid gap-1.5 text-sm font-medium">
-						Required workdays
-						<Input
-							type="number"
-							min="0.5"
-							step="0.5"
-							value={current.expectation.required_work_days}
+				</Stack>
+			</label>
+			<Grid gap="sm" minimum="compact">
+				<label class="text-sm font-medium">
+					<Stack gap="xs">
+						Reference period
+						<Combobox
+							ariaLabel="Workload reference period"
+							options={periodOptions}
+							value={current.expectation.period}
 							{disabled}
-							oninput={(event) =>
-								emit({
-									...current,
-									expectation: {
-										...current.expectation,
-										required_work_days: numberFrom(event.currentTarget.value, 1)
-									}
-								})}
-						/>
-					</label>
-					<label class="grid gap-1.5 text-sm font-medium">
-						Required paid hours
-						<Input
-							type="number"
-							min="0.5"
-							step="0.5"
-							value={current.expectation.required_paid_minutes / 60}
-							{disabled}
-							oninput={(event) =>
-								emit({
-									...current,
-									expectation: {
-										...current.expectation,
-										required_paid_minutes: Math.round(numberFrom(event.currentTarget.value, 1) * 60)
-									}
-								})}
-						/>
-					</label>
-				{:else}
-					<label class="grid gap-1.5 text-sm font-medium">
-						Maximum paid hours (optional)
-						<Input
-							type="number"
-							min="0.5"
-							step="0.5"
-							value={(current.expectation.maximum_paid_minutes ?? 0) / 60}
-							{disabled}
-							oninput={(event) => {
-								const hours = numberFrom(event.currentTarget.value, 0);
-								emit({
-									...current,
-									expectation: {
-										...current.expectation,
-										maximum_paid_minutes: hours > 0 ? Math.round(hours * 60) : null
-									}
-								});
+							searchable={false}
+							onValueChange={(value) => {
+								if (value === 'WEEK' || value === 'MONTH')
+									emit({
+										...current,
+										expectation: { ...current.expectation, period: value }
+									});
 							}}
 						/>
+					</Stack>
+				</label>
+				{#if current.expectation.kind === 'GUARANTEED_SCHEDULE'}
+					<label class="text-sm font-medium">
+						<Stack gap="xs">
+							Required workdays
+							<Input
+								type="number"
+								min="0.5"
+								step="0.5"
+								value={current.expectation.required_work_days}
+								{disabled}
+								oninput={(event) =>
+									emit({
+										...current,
+										expectation: {
+											...current.expectation,
+											required_work_days: numberFrom(event.currentTarget.value, 1)
+										}
+									})}
+							/>
+						</Stack>
+					</label>
+					<label class="text-sm font-medium">
+						<Stack gap="xs">
+							Required paid hours
+							<Input
+								type="number"
+								min="0.5"
+								step="0.5"
+								value={current.expectation.required_paid_minutes / 60}
+								{disabled}
+								oninput={(event) =>
+									emit({
+										...current,
+										expectation: {
+											...current.expectation,
+											required_paid_minutes: Math.round(
+												numberFrom(event.currentTarget.value, 1) * 60
+											)
+										}
+									})}
+							/>
+						</Stack>
+					</label>
+				{:else}
+					<label class="text-sm font-medium">
+						<Stack gap="xs">
+							Maximum paid hours (optional)
+							<Input
+								type="number"
+								min="0.5"
+								step="0.5"
+								value={(current.expectation.maximum_paid_minutes ?? 0) / 60}
+								{disabled}
+								oninput={(event) => {
+									const hours = numberFrom(event.currentTarget.value, 0);
+									emit({
+										...current,
+										expectation: {
+											...current.expectation,
+											maximum_paid_minutes: hours > 0 ? Math.round(hours * 60) : null
+										}
+									});
+								}}
+							/>
+						</Stack>
 					</label>
 				{/if}
 			</Grid>

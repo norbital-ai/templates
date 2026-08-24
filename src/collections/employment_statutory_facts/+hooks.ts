@@ -1,5 +1,7 @@
 import { refuse } from '@norbital-ai/bolt/authoring';
+import { Effect } from 'effect';
 import type { Hooks } from './$types.js';
+import { readRange } from '../payroll_runs/lib/effective.js';
 
 /**
  * One employment has at most one standing with one statutory scheme at any instant.
@@ -21,12 +23,47 @@ export default {
 		perRecord: {
 			before: {
 				description:
-					'Requires a statutory fact to name both its employment and its contribution scheme, and refuses one whose effective range overlaps an existing standing for that same employment and scheme.',
-				handler: ({ input }) => {
-					requireId(input.employment_id, 'an employment');
-					requireId(input.statutory_contribution_id, 'a statutory contribution');
-					return input;
-				}
+					'Requires both references and, for a system successor, validates and stages the predecessor close into the same approval graph.',
+				handler: ({ input, api }) =>
+					Effect.gen(function* () {
+						requireId(input.employment_id, 'an employment');
+						requireId(input.statutory_contribution_id, 'a statutory contribution');
+						if (input.supersedes_fact_id == null) return input;
+
+						const predecessor = yield* api.db.query.employment_statutory_facts.findFirst({
+							where: { id: { eq: input.supersedes_fact_id } }
+						});
+						if (predecessor == null) {
+							refuse('The statutory fact this successor is meant to replace no longer exists.');
+						}
+						if (predecessor.employment_id !== input.employment_id) {
+							refuse(
+								'A statutory successor must belong to the same employment as its predecessor.'
+							);
+						}
+						if (predecessor.statutory_contribution_id === input.statutory_contribution_id) {
+							refuse('A statutory successor must move onto a different contribution profile.');
+						}
+						const previousRange = readRange(predecessor.effective_range);
+						const successorRange = readRange(input.effective_range);
+						if (previousRange == null || successorRange == null) {
+							refuse('Both sides of a statutory successor transition need valid effective ranges.');
+						}
+						if (successorRange.start <= previousRange.start) {
+							refuse('A statutory successor must start after its predecessor started.');
+						}
+						if (previousRange.end != null && previousRange.end < successorRange.start) {
+							refuse('The predecessor already ended before this statutory successor begins.');
+						}
+
+						yield* api.db.employment_statutory_facts.update(predecessor.id, {
+							effective_range: {
+								start: previousRange.start,
+								end: successorRange.start
+							}
+						});
+						return input;
+					})
 			}
 		}
 	},

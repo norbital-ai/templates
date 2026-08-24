@@ -1,6 +1,8 @@
 import {
 	grantsOn,
+	grantOn,
 	leaveApproval,
+	mergeGrants,
 	payrollGrants,
 	payrollRunApprovalFromController,
 	peopleGrants,
@@ -38,9 +40,8 @@ import type { Policy } from './$types.js';
  * exceptions are written out below the generated blocks, which is where the interesting part of any
  * permission set lives. See `src/lib/policy_grants.ts` for why the groups are functions.
  *
- * The gated grants carry inline approval steps. Runtime derives their identities from the policy
- * key, collection, action, and stable step key, so there are no hand-authored UUIDs here to collide
- * or drift from the grant they gate.
+ * Each gated grant returns one fluent approval flow. Runtime derives durable stage identities from
+ * the policy, collection, action and stage position; authors name only approver teams.
  *
  * `apps: ['hr_controller']` names the app *group*, as the seed did. Eight apps sit under it and
  * `appAccessAllowed` matches a group prefix, so this is one grant rather than eight — and, unlike
@@ -70,17 +71,19 @@ export default {
 	 * apps are for L1 management, the HR manager and the HR controller — `manager` is the L1 rung
 	 * (`policy_grants.ts` names its approver team `L1 Manager`), so `supervisor` and
 	 * `senior_management` have self-service and no HR group. That is a narrowing: both keep every
-	 * collection grant this file lists, and an approval step routed to `Senior Management` is
+	 * collection grant this file lists, and an approval flow routed to `Senior Management` is
 	 * decided from the notification and the request surface rather than from the HR app.
 	 */
 	capabilities: { apps: ['hr_employee', 'hr_controller'] },
 
-	grants: [
-		...referenceGrants('read', 'create', 'update', 'delete'),
-		...statutoryGrants('read'),
-		...peopleGrants('read'),
-		...peopleGrants('create', 'update', 'delete'),
-		...grantsOn('time_entries', ['read']),
+	grants: mergeGrants(
+		referenceGrants('read', 'create', 'update', 'delete'),
+		statutoryGrants('read'),
+		// Research receipts are append-only worker evidence. Controllers may inspect but not alter them.
+		grantsOn('statutory_profile_drift_logs', ['read']),
+		peopleGrants('read'),
+		peopleGrants('create', 'update', 'delete'),
+		grantsOn('time_entries', ['read']),
 
 		/**
 		 * The adjustment path, unconditional and stated here rather than folded into `peopleGrants`.
@@ -94,42 +97,26 @@ export default {
 		 * Unconditional on read, too, which is the other half of the rule — `NOT_AN_ADJUSTMENT` is
 		 * absent here on purpose, so a controller sees the corrections everyone below them cannot.
 		 *
-		 * No approval step. The owner gated exactly one thing, the payroll run, and a gate nobody asked
+		 * No approval flow. The owner gated exactly one thing, the payroll run, and a gate nobody asked
 		 * for would leave every correction to a settled payslip waiting on a signature — which is the
 		 * situation adjustments exist to get out of.
 		 */
-		...grantsOn('component_entries', ['read', 'create', 'update', 'delete']),
+		grantsOn('component_entries', ['read', 'create', 'update', 'delete']),
 
 		// Attendance becomes a payroll source, so writing it is reviewed. Deleting it is not, and that
 		// asymmetry is the seed's: removing an entry withdraws a claim on payroll rather than making
 		// one, and routing a withdrawal through the manager who would have to notice it only leaves the
 		// bad row sitting in the run.
-		{
-			collection: 'time_entries',
-			action: 'create',
-			approval: timeEntryApproval
-		},
-		{
-			collection: 'time_entries',
-			action: 'update',
-			approval: timeEntryApproval
-		},
-		{ collection: 'time_entries', action: 'delete' },
+		grantOn('time_entries', 'create', { approval: timeEntryApproval }),
+		grantOn('time_entries', 'update', { approval: timeEntryApproval }),
+		grantsOn('time_entries', ['delete']),
 
-		...grantsOn('leave_requests', ['read', 'update', 'delete']),
-		{
-			collection: 'leave_requests',
-			action: 'create',
-			approval: leaveApproval
-		},
+		grantsOn('leave_requests', ['read', 'update', 'delete']),
+		grantOn('leave_requests', 'create', { approval: leaveApproval }),
 
-		...payrollGrants('read'),
-		{
-			collection: 'payroll_runs',
-			action: 'create',
-			approval: payrollRunApprovalFromController
-		}
-	],
+		payrollGrants('read'),
+		grantOn('payroll_runs', 'create', { approval: payrollRunApprovalFromController })
+	),
 	/**
 	 * What a holder of this policy may spend.
 	 *

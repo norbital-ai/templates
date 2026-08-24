@@ -880,7 +880,7 @@ function measureArrears(
 	const owed = options.bundle.arrearsFor;
 	const payComponentId = options.policy.lateJoinerComponentId;
 	if (owed == null || payComponentId == null) return null;
-	const within = <T extends { work_date: Date | string }>(rows: readonly T[]): T[] =>
+	const within = <T extends { work_date: string }>(rows: readonly T[]): T[] =>
 		rows.filter((row) => {
 			const date = requiredDateKey(row.work_date, 'work_date');
 			return date >= owed.attendance.start && date <= owed.attendance.end;
@@ -1278,12 +1278,16 @@ function measureOvertime(options: MeasureOvertimeOptions): Omit<MeasuredLine, 's
 		let dayWageAmount = 0;
 		let datedAmount = 0;
 		for (const segment of matched) {
-			if (options.overtimeCalculationMethod === 'ANNUALISED_CONTRACT_RATE')
-				datedAmount += annualisedSegmentAmount(segment, options.hourlyRate, options.dayWage);
-			else if (segment.award === 'DAY_WAGE_MULTIPLE')
-				dayWageAmount += segment.multiple * options.dayWage;
-			else weighted += segment.hours * segment.multiple;
 			hours += segment.hours;
+			if (options.overtimeCalculationMethod === 'ANNUALISED_CONTRACT_RATE') {
+				datedAmount += annualisedSegmentAmount(segment, options.hourlyRate, options.dayWage);
+				continue;
+			}
+			if (segment.award === 'DAY_WAGE_MULTIPLE') {
+				dayWageAmount += segment.multiple * options.dayWage;
+				continue;
+			}
+			weighted += segment.hours * segment.multiple;
 		}
 		const amount =
 			options.overtimeCalculationMethod === 'ANNUALISED_CONTRACT_RATE'

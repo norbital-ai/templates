@@ -67,7 +67,7 @@ const ScheduleTermsSchema = Schema.Struct({
 type ScheduleTerms = Schema.Schema.Type<typeof ScheduleTermsSchema>;
 
 const RosterEntrySchema = Schema.Struct({
-	work_date: Schema.Union([Schema.String, Schema.Date]),
+	work_date: Schema.String,
 	shift_definition_id: Schema.String
 });
 type RosterEntry = Schema.Schema.Type<typeof RosterEntrySchema>;

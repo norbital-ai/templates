@@ -36,22 +36,18 @@ import type { Teams } from '@norbital-ai/bolt/authoring';
  *                    HQ Payroll HR → HR Manager                   (payroll authority)
  * ```
  *
- * This is a safety boundary, not only a style choice. `rowPredicate` **unions** the `where` of every
- * matching grant, so an unconditional grant from one held policy erases a narrowed grant from
- * another. The compiler refuses that composition instead of silently widening access. A policy may
- * still materialize the grants of the rank beneath it, but the result is reviewed and validated as
- * one declaration rather than assembled from independently safe declarations at runtime.
+ * This is a safety boundary, not only a style choice. A holder may have only one grant for a given
+ * collection/action coordinate; the compiler rejects overlaps instead of merging them. A policy may
+ * still materialize the grants of the rank beneath it, but each coordinate has one complete rule.
  *
  * ## One team per person, and what that forces
  *
- * `user.team_id` is one own team, not a set. Descendant teams may contribute authority
- * through `teamPath`, but an operational unit that carries a distinct authority should still be
- * named here — see `Manager (HR Controller)` below. Its singleton mapping makes the effective
- * authority visible in a diff instead of depending on a multi-policy union or incidental topology.
+ * `user.team_id` is one own team, not a set. `teamPath` carries organizational scope for SQL
+ * predicates; it does not import descendant policies. Every operational authority is therefore
+ * named here explicitly — see `Manager (HR Controller)` below.
  *
- * It is also why every approval step in `policy_grants.ts` now lists each team that may decide it.
- * A step naming one team would be decidable only by that exact team, locking out every rung above
- * it.
+ * Approval flows name the exact team that may decide each stage. Broader superseding authority is
+ * explicit through `superceded_by`; administrative status alone grants none.
  */
 export default {
 	/** Rank 1. Self-service: a person's own record, their own time, their own requests. */
@@ -61,11 +57,10 @@ export default {
 	Supervisor: ['supervisor'],
 
 	/**
-	 * Rank 3, and the team an approval step means by "the direct manager".
+	 * Rank 3, and the team an approval flow means by "the direct manager".
 	 *
-	 * Named `L1 Manager` rather than `Manager` because that is the name the approval steps already
-	 * carry, and a step's `approvers` entry and a team's name are the same string. Renaming either
-	 * without the other is what produces an approval nobody can decide.
+	 * Named `L1 Manager` rather than `Manager` because `approveBy('L1 Manager')` is checked against
+	 * this generated team union. Renaming either side without the other is a compile error.
 	 */
 	'L1 Manager': ['manager'],
 
@@ -76,7 +71,7 @@ export default {
 	 * Payroll authority 1 of 2: may view payroll and may not commit it.
 	 *
 	 * A controller's `payroll_runs` create carries an approval, so the run is written and held. This
-	 * team is also what `claimApproval` routes to.
+	 * team is also what the payroll-run approval flow routes to.
 	 */
 	'HQ Payroll HR': ['hr_controller'],
 

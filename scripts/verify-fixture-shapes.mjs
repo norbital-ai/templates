@@ -1,4 +1,4 @@
-// fallow-ignore-file unused-file -- Standalone fixture-shape gate invoked from the payroll README.
+// Standalone fixture-shape gate invoked from the payroll README.
 
 /**
  * Fixture-shape verification for the payroll engine.
@@ -98,11 +98,12 @@
  * strictly cheaper than the reason it exists.
  */
 
-import { register } from 'node:module';
+import { registerHooks } from 'node:module';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { Effect, Result } from 'effect';
 import fs from 'node:fs';
 import path from 'node:path';
+import { createResolve } from './fixture-shape-probe.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const root = path.dirname(here);
@@ -177,89 +178,92 @@ function surplusFields(targetSource) {
 
 // ── Detector A: absent required fields ──────────────────────────────────────────────────────────
 
-register(probeUrl, {
-	parentURL: import.meta.url,
-	data: { targetUrl: pathToFileURL(targetPath).href, probeUrl: probeUrl.href }
+registerHooks({
+	resolve: createResolve({ targetUrl: pathToFileURL(targetPath).href, probeUrl: probeUrl.href })
 });
 
 console.log('Running verify-payroll-arithmetic.mjs under fixture-shape instrumentation…\n');
 
 Effect.runPromise(
-	Effect.gen(function* () {
-		const targetOutcome = yield* Effect.result(
-			Effect.tryPromise(() => import(pathToFileURL(targetPath).href))
-		);
-		const targetCompleted = Result.isSuccess(targetOutcome);
-		const targetFailure = Result.isFailure(targetOutcome) ? targetOutcome.failure : null;
+	Effect.map(
+		Effect.result(Effect.tryPromise(() => import(pathToFileURL(targetPath).href))),
+		(targetOutcome) => {
+			const targetCompleted = Result.isSuccess(targetOutcome);
+			const targetFailure = Result.isFailure(targetOutcome) ? targetOutcome.failure : null;
 
-		const targetAssertionsFailed = process.exitCode === 1;
-		process.exitCode = 0;
+			const targetAssertionsFailed = process.exitCode === 1;
+			process.exitCode = 0;
 
-		const runtimeFindings = [...(globalThis.__FIXTURE_SHAPE_FINDINGS ?? new Map())].sort(
-			(left, right) => right[1] - left[1]
-		);
-		const unexplained = runtimeFindings.filter(([key]) => !KNOWN_ABSENT.has(key));
-		const explained = runtimeFindings.filter(([key]) => KNOWN_ABSENT.has(key));
-		const surplus = surplusFields(fs.readFileSync(targetPath, 'utf8'));
-
-		// ── Report ──────────────────────────────────────────────────────────────────────────────────────
-
-		console.log('\n────────────────────────────────────────────────────────────────');
-		console.log('Fixture-shape audit of scripts/verify-payroll-arithmetic.mjs');
-		console.log('────────────────────────────────────────────────────────────────\n');
-
-		if (!targetCompleted) {
-			console.error('The target script did not run to completion, so this audit is INCOMPLETE.');
-			console.error(`  ${targetFailure?.message ?? targetFailure}\n`);
-		} else {
-			console.log(
-				`Target ran to completion; it reported ${targetAssertionsFailed ? 'at least one FAILED assertion' : 'no failed assertions'}.`
+			const runtimeFindings = [...(globalThis.__FIXTURE_SHAPE_FINDINGS ?? new Map())].sort(
+				(left, right) => right[1] - left[1]
 			);
-			console.log(
-				'If that differs from a plain `node scripts/verify-payroll-arithmetic.mjs` run, the\n' +
-					'instrumentation perturbed behaviour and these findings are unreliable.\n'
-			);
-		}
+			const unexplained = runtimeFindings.filter(([key]) => !KNOWN_ABSENT.has(key));
+			const explained = runtimeFindings.filter(([key]) => KNOWN_ABSENT.has(key));
+			const surplus = surplusFields(fs.readFileSync(targetPath, 'utf8'));
 
-		console.log('A — fields the engine read that the fixture does not supply');
-		if (unexplained.length === 0) {
-			console.log('  No unexplained absent fields.');
-		} else {
-			for (const [key, count] of unexplained) console.log(`  ✗ ${key}  (read ${count}×)`);
-		}
-		console.log(
-			`\n  ${explained.length} further absent-field read${explained.length === 1 ? '' : 's'} ` +
-				'suppressed by the KNOWN_ABSENT baseline.'
-		);
-		console.log('  This detector CANNOT distinguish an optional `?.` read from a missing required');
-		console.log('  field. That baseline is hand-curated judgement, not detection — a clean result');
-		console.log('  here is only as good as those entries. See the header for the full limits.\n');
+			// ── Report ──────────────────────────────────────────────────────────────────────────────────────
 
-		console.log('B — fixture keys that exist nowhere in src/');
-		if (surplus.size === 0) {
-			console.log('  No surplus fields.');
-		} else {
-			for (const [key, lineNumbers] of surplus) {
+			console.log('\n────────────────────────────────────────────────────────────────');
+			console.log('Fixture-shape audit of scripts/verify-payroll-arithmetic.mjs');
+			console.log('────────────────────────────────────────────────────────────────\n');
+
+			if (!targetCompleted) {
+				console.error('The target script did not run to completion, so this audit is INCOMPLETE.');
+				console.error(`  ${targetFailure?.message ?? targetFailure}\n`);
+			} else {
 				console.log(
-					`  ✗ ${key}  (line${lineNumbers.length === 1 ? '' : 's'} ${lineNumbers.join(', ')})`
+					`Target ran to completion; it reported ${targetAssertionsFailed ? 'at least one FAILED assertion' : 'no failed assertions'}.`
+				);
+				console.log(
+					'If that differs from a plain `node scripts/verify-payroll-arithmetic.mjs` run, the\n' +
+						'instrumentation perturbed behaviour and these findings are unreliable.\n'
 				);
 			}
-		}
-		console.log(
-			'\n  This detector only asks whether the name occurs in src/ at all, so it under-reports:\n' +
-				'  a wrong-but-real field name passes. Local label names used on both sides of an\n' +
-				'  assertion are expected here and belong in NOT_ENGINE_FIELDS with a reason.\n'
-		);
 
-		const findings = unexplained.length + surplus.size;
-		if (!targetCompleted) {
-			console.error('FAILED: audit incomplete.\n');
-			process.exitCode = 1;
-		} else if (findings > 0) {
-			console.error(`FAILED: ${findings} fixture-shape finding${findings === 1 ? '' : 's'}.\n`);
-			process.exitCode = 1;
-		} else {
-			console.log('No fixture-shape findings, within the limits stated above.\n');
+			console.log('A — fields the engine read that the fixture does not supply');
+			if (unexplained.length === 0) {
+				console.log('  No unexplained absent fields.');
+			} else {
+				for (const [key, count] of unexplained) console.log(`  ✗ ${key}  (read ${count}×)`);
+			}
+			console.log(
+				`\n  ${explained.length} further absent-field read${explained.length === 1 ? '' : 's'} ` +
+					'suppressed by the KNOWN_ABSENT baseline.'
+			);
+			console.log(
+				'  This detector CANNOT distinguish an optional `?.` read from a missing required'
+			);
+			console.log(
+				'  field. That baseline is hand-curated judgement, not detection — a clean result'
+			);
+			console.log('  here is only as good as those entries. See the header for the full limits.\n');
+
+			console.log('B — fixture keys that exist nowhere in src/');
+			if (surplus.size === 0) {
+				console.log('  No surplus fields.');
+			} else {
+				for (const [key, lineNumbers] of surplus) {
+					console.log(
+						`  ✗ ${key}  (line${lineNumbers.length === 1 ? '' : 's'} ${lineNumbers.join(', ')})`
+					);
+				}
+			}
+			console.log(
+				'\n  This detector only asks whether the name occurs in src/ at all, so it under-reports:\n' +
+					'  a wrong-but-real field name passes. Local label names used on both sides of an\n' +
+					'  assertion are expected here and belong in NOT_ENGINE_FIELDS with a reason.\n'
+			);
+
+			const findings = unexplained.length + surplus.size;
+			if (!targetCompleted) {
+				console.error('FAILED: audit incomplete.\n');
+				process.exitCode = 1;
+			} else if (findings > 0) {
+				console.error(`FAILED: ${findings} fixture-shape finding${findings === 1 ? '' : 's'}.\n`);
+				process.exitCode = 1;
+			} else {
+				console.log('No fixture-shape findings, within the limits stated above.\n');
+			}
 		}
-	})
+	)
 );

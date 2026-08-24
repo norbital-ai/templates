@@ -612,7 +612,7 @@ Smaller than it reads, because the derivation is shared:
   the interval editor, and offers `report a missing punch`.
 - ESS gains the board's six month-scoped queries, all already permitted, all `employment_id`-scoped
   rather than company-scoped — so they are 1/300th the size of the controller's.
-- `+time_attendance.svelte` deleted; its chart snippet and `attendance_summary` invoke move into a
-  Scheduling tab; its i18n keys move with it.
+- `+time_attendance.svelte` deleted; its chart snippet moves into a Scheduling tab and derives from
+  the sync-backed `time_entries` query already owned there; its i18n keys move with it.
 - ESS `attendanceRowLock` loses `today`, same as §2.2 — otherwise the employee's own calendar
   greys out every day they have actually worked.

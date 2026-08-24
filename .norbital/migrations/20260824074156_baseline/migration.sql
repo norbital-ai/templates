@@ -27,8 +27,8 @@ CREATE TABLE "company_holidays" (
 	"row_version" integer DEFAULT 1,
 	"approval_id" uuid,
 	"company_id" uuid NOT NULL,
-	"date" date NOT NULL,
-	"substitutes_date" date,
+	"date" timestamp with time zone NOT NULL,
+	"substitutes_date" timestamp with time zone,
 	"name" text NOT NULL,
 	"scope" jsonb NOT NULL
 );
@@ -45,7 +45,7 @@ CREATE TABLE "component_entries" (
 	"pay_component_id" uuid NOT NULL,
 	"amount" numeric NOT NULL,
 	"quantity" numeric,
-	"event_date" date NOT NULL,
+	"event_date" timestamp with time zone NOT NULL,
 	"pay_period" text,
 	"description" text,
 	"origin" jsonb NOT NULL,
@@ -85,7 +85,7 @@ CREATE TABLE "employees" (
 	"row_version" integer DEFAULT 1,
 	"approval_id" uuid,
 	"name" text NOT NULL,
-	"date_of_birth" date,
+	"date_of_birth" timestamp with time zone,
 	"gender" text,
 	"marital_status" text,
 	"spouse_status" text,
@@ -108,6 +108,7 @@ CREATE TABLE "employment_statutory_facts" (
 	"approval_id" uuid,
 	"employment_id" uuid NOT NULL,
 	"statutory_contribution_id" uuid NOT NULL,
+	"supersedes_fact_id" uuid,
 	"status" jsonb NOT NULL,
 	"effective_range" jsonb NOT NULL,
 	"summary" text GENERATED ALWAYS AS (CASE status ->> 'kind'
@@ -150,8 +151,8 @@ CREATE TABLE "employments" (
 	"employee_id" uuid NOT NULL,
 	"company_id" uuid NOT NULL,
 	"employee_number" text NOT NULL,
-	"hire_date" date NOT NULL,
-	"exit_date" date,
+	"hire_date" timestamp with time zone NOT NULL,
+	"exit_date" timestamp with time zone,
 	"exit_reason" text,
 	"bank" jsonb,
 	"effective_range" jsonb NOT NULL
@@ -188,8 +189,8 @@ CREATE TABLE "leave_requests" (
 	"leave_type_id" uuid NOT NULL,
 	"event" jsonb NOT NULL,
 	"kind" text GENERATED ALWAYS AS (event ->> 'kind') STORED,
-	"from_date" date GENERATED ALWAYS AS (CASE WHEN event ->> 'kind' = 'TIME_OFF' THEN bolt_date(event #>> '{range,start,date}') ELSE bolt_date(event ->> 'effective_on') END) STORED,
-	"to_date" date GENERATED ALWAYS AS (CASE WHEN event ->> 'kind' = 'TIME_OFF' THEN bolt_date(event #>> '{range,end,date}') ELSE bolt_date(event ->> 'effective_on') END) STORED,
+	"from_date" timestamp with time zone GENERATED ALWAYS AS (CASE WHEN event ->> 'kind' = 'TIME_OFF' THEN bolt_instant(event #>> '{range,start,date}') ELSE bolt_instant(event ->> 'effective_on') END) STORED,
+	"to_date" timestamp with time zone GENERATED ALWAYS AS (CASE WHEN event ->> 'kind' = 'TIME_OFF' THEN bolt_instant(event #>> '{range,end,date}') ELSE bolt_instant(event ->> 'effective_on') END) STORED,
 	"days" numeric GENERATED ALWAYS AS (CASE WHEN event ->> 'kind' = 'TIME_OFF' THEN (event ->> 'chargeable_days')::numeric ELSE (event ->> 'movement_days')::numeric END) STORED,
 	"half_day_start" boolean GENERATED ALWAYS AS (CASE WHEN event ->> 'kind' = 'TIME_OFF' THEN (event #>> '{range,start,half}') = 'SECOND' ELSE false END) STORED,
 	"half_day_end" boolean GENERATED ALWAYS AS (CASE WHEN event ->> 'kind' = 'TIME_OFF' THEN (event #>> '{range,end,half}') = 'FIRST' ELSE false END) STORED,
@@ -258,9 +259,9 @@ CREATE TABLE "payroll_runs" (
 	"lifecycle" text NOT NULL,
 	"configuration_hash" text NOT NULL,
 	"configuration_snapshot" jsonb NOT NULL,
-	"pay_date" date NOT NULL,
-	"attendance_from" date NOT NULL,
-	"attendance_to" date NOT NULL
+	"pay_date" timestamp with time zone NOT NULL,
+	"attendance_from" timestamp with time zone NOT NULL,
+	"attendance_to" timestamp with time zone NOT NULL
 );
 
 --> statement-breakpoint
@@ -343,7 +344,7 @@ CREATE TABLE "roster_entries" (
 	"row_version" integer DEFAULT 1,
 	"approval_id" uuid,
 	"employment_id" uuid NOT NULL,
-	"work_date" date NOT NULL,
+	"work_date" timestamp with time zone NOT NULL,
 	"shift_definition_id" uuid NOT NULL,
 	"roster_id" uuid,
 	"assignment_code" text,
@@ -403,6 +404,28 @@ CREATE TABLE "statutory_contributions" (
 );
 
 --> statement-breakpoint
+CREATE TABLE "statutory_profile_drift_logs" (
+	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+	"created_at" timestamp with time zone DEFAULT now(),
+	"updated_at" timestamp with time zone DEFAULT now(),
+	"sys_period" tstzrange DEFAULT tstzrange(CURRENT_TIMESTAMP, NULL, '[)') NOT NULL,
+	"row_version" integer DEFAULT 1,
+	"approval_id" uuid,
+	"status" text NOT NULL,
+	"checked_at" timestamp with time zone NOT NULL,
+	"completed_at" timestamp with time zone,
+	"local_findings_count" integer NOT NULL,
+	"local_findings" jsonb NOT NULL,
+	"successor_proposals_count" integer NOT NULL,
+	"successor_proposals" jsonb NOT NULL,
+	"web_summary" text,
+	"web_highlights" jsonb,
+	"official_sources" jsonb,
+	"changes_to_review" jsonb,
+	"error" text
+);
+
+--> statement-breakpoint
 CREATE TABLE "time_entries" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
 	"created_at" timestamp with time zone DEFAULT now(),
@@ -411,7 +434,7 @@ CREATE TABLE "time_entries" (
 	"row_version" integer DEFAULT 1,
 	"approval_id" uuid,
 	"employment_id" uuid NOT NULL,
-	"work_date" date NOT NULL,
+	"work_date" timestamp with time zone NOT NULL,
 	"worked_intervals" jsonb NOT NULL,
 	"break_minutes" integer DEFAULT 0 NOT NULL
 );
@@ -498,6 +521,14 @@ CREATE INDEX "shift_definitions_name_search_trgm_idx" ON "shift_definitions" USI
 CREATE INDEX "statutory_contributions_code_search_trgm_idx" ON "statutory_contributions" USING gin ("code" gin_trgm_ops);
 --> statement-breakpoint
 CREATE INDEX "statutory_contributions_name_search_trgm_idx" ON "statutory_contributions" USING gin ("name" gin_trgm_ops);
+--> statement-breakpoint
+CREATE INDEX "statutory_profile_drift_logs_checked_at_index" ON "statutory_profile_drift_logs" ("checked_at");
+--> statement-breakpoint
+CREATE INDEX "statutory_profile_drift_logs_status_index" ON "statutory_profile_drift_logs" ("status");
+--> statement-breakpoint
+CREATE INDEX "statutory_profile_drift_logs_error_search_trgm_idx" ON "statutory_profile_drift_logs" USING gin ("error" gin_trgm_ops);
+--> statement-breakpoint
+CREATE INDEX "statutory_profile_drift_logs_web_summary_search_trgm_idx" ON "statutory_profile_drift_logs" USING gin ("web_summary" gin_trgm_ops);
 --> statement-breakpoint
 CREATE INDEX "time_entries_employment_id_work_date_index" ON "time_entries" ("employment_id","work_date");
 --> statement-breakpoint

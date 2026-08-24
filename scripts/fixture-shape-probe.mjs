@@ -1,23 +1,21 @@
-// fallow-ignore-file unused-file -- Loaded by `verify-fixture-shapes.mjs`, never imported directly.
+// Loaded by `verify-fixture-shapes.mjs`, never imported directly.
 
 /**
  * Instrumentation half of `verify-fixture-shapes.mjs`. See that file for what the check is for.
  *
- * This module is loaded twice, in two different threads, and deliberately serves both roles:
+ * This module deliberately serves two roles in the main thread:
  *
- * 1. **In the module-loader thread** Node calls `initialize()` and `resolve()`. The only thing
- *    `resolve()` does is redirect the target script's bare `vite` specifier to this same file, so
- *    the target receives our `createServer` instead of the real one. Nothing else is touched — a
- *    `vite` import from anywhere else, including this file's own, resolves normally.
+ * 1. **As a synchronous module hook** `resolve()` redirects the target script's bare `vite`
+ *    specifier to this same file, so the target receives our `createServer` instead of the real one.
+ *    Nothing else is touched — a `vite` import from anywhere else, including this file's own,
+ *    resolves normally.
  * 2. **In the main thread** the target script imports `createServer` from here. It builds a real
  *    Vite server, then wraps `ssrLoadModule` so every function the target pulls out of the payroll
  *    engine has its arguments deep-proxied before the call.
  *
- * `vite` is imported dynamically rather than at the top level precisely so that role 1 never has to
- * load Vite into the loader thread.
- *
- * Findings accumulate on `globalThis` because the two threads cannot share module state, and
- * because the target script — which we do not modify — has no way to hand anything back.
+ * `vite` stays a dynamic import so registering the hook cannot intercept this module's own runtime
+ * dependency. Findings accumulate on `globalThis` because the target script — which we do not
+ * modify — has no way to hand anything back.
  */
 
 import { Effect } from 'effect';
@@ -72,7 +70,7 @@ function proxify(value, path, depth = 0) {
 		get(target, key, receiver) {
 			if (
 				typeof key === 'string' &&
-				!(key in target) &&
+				!Reflect.has(target, key) &&
 				!PROTOCOL_KEYS.has(key) &&
 				!/^\d+$/.test(key)
 			) {
@@ -127,29 +125,31 @@ export function createServer(options) {
 
 			server.ssrLoadModule = (id, ...rest) =>
 				Effect.runPromise(
-					Effect.gen(function* () {
-						const namespace = yield* Effect.tryPromise(() => load(id, ...rest));
-						const moduleName = id
-							.split('/')
-							.pop()
-							.replace(/\.[cm]?ts$/, '');
-						const wrapped = {};
-						for (const key of Object.keys(namespace)) {
-							const exported = namespace[key];
-							wrapped[key] =
-								typeof exported === 'function'
-									? (...args) => {
-											const returned = exported(
-												...args.map((arg, index) =>
-													proxify(arg, `${moduleName}.${key}(arg${index})`)
-												)
-											);
-											return restoreReturnedArguments(returned);
-										}
-									: exported;
+					Effect.map(
+						Effect.tryPromise(() => load(id, ...rest)),
+						(namespace) => {
+							const moduleName = id
+								.split('/')
+								.pop()
+								.replace(/\.[cm]?ts$/, '');
+							const wrapped = {};
+							for (const key of Object.keys(namespace)) {
+								const exported = namespace[key];
+								wrapped[key] =
+									typeof exported === 'function'
+										? (...args) => {
+												const returned = exported(
+													...args.map((arg, index) =>
+														proxify(arg, `${moduleName}.${key}(arg${index})`)
+													)
+												);
+												return restoreReturnedArguments(returned);
+											}
+										: exported;
+							}
+							return wrapped;
 						}
-						return wrapped;
-					})
+					)
 				);
 
 			return server;
@@ -159,15 +159,18 @@ export function createServer(options) {
 
 // ── Role 1: module-loader hooks ─────────────────────────────────────────────────────────────────
 
-let config = null;
-
-export function initialize(data) {
-	config = data;
-}
-
-export function resolve(specifier, context, nextResolve) {
-	if (specifier === 'vite' && context.parentURL === config?.targetUrl) {
-		return { url: config.probeUrl, shortCircuit: true };
-	}
-	return nextResolve(specifier, context);
+/**
+ * The synchronous resolve hook, closed over the exact target and shim URLs.
+ *
+ * A factory rather than a hook reading a module-level `config` that a second export had to set
+ * first: the two had to be sequenced correctly by every caller, and nothing said so. Here the hook
+ * cannot exist without its configuration.
+ */
+export function createResolve(config) {
+	return (specifier, context, nextResolve) => {
+		if (specifier === 'vite' && context.parentURL === config.targetUrl) {
+			return { url: config.probeUrl, shortCircuit: true };
+		}
+		return nextResolve(specifier, context);
+	};
 }

@@ -220,58 +220,64 @@
 				<p class="text-meta">How pay settles at the two ends of an employment.</p>
 			</Stack>
 			<Grid gap="sm" minimum="compact">
-				<label class="grid gap-1.5 text-sm font-medium">
-					{t('renderer.settlement_policy.late_joiners_paid_on')}
-					<Combobox
-						ariaLabel={t('renderer.settlement_policy.aria_late_joiner_component')}
-						options={componentOptions}
-						value={current?.late_joiner_arrears?.defer_to_component_id ?? null}
-						disabled={disabled || companyId == null}
-						searchPlaceholder={t('component.search_pay_components')}
-						emptyPlaceholder={t('renderer.settlement_policy.nothing_deferred')}
-						clientConfig={{
-							isLoading: componentsQuery?.loading ?? false,
-							error: componentsQuery?.error?.message ?? null
-						}}
-						onValueChange={(value) =>
-							patch({
-								late_joiner_arrears:
-									typeof value === 'string' && value !== ''
-										? { defer_to_component_id: value }
-										: null
-							})}
-					/>
-					<span class="text-xs font-normal text-muted-foreground">
-						{t('renderer.settlement_policy.hint_arrears_component')}
-					</span>
+				<label class="text-sm font-medium">
+					<Stack gap="xs">
+						{t('renderer.settlement_policy.late_joiners_paid_on')}
+						<Combobox
+							ariaLabel={t('renderer.settlement_policy.aria_late_joiner_component')}
+							options={componentOptions}
+							value={current?.late_joiner_arrears?.defer_to_component_id ?? null}
+							disabled={disabled || companyId == null}
+							searchPlaceholder={t('component.search_pay_components')}
+							emptyPlaceholder={t('renderer.settlement_policy.nothing_deferred')}
+							clientConfig={{
+								isLoading: componentsQuery?.loading ?? false,
+								error: componentsQuery?.error?.message ?? null
+							}}
+							onValueChange={(value) =>
+								patch({
+									late_joiner_arrears:
+										typeof value === 'string' && value !== ''
+											? { defer_to_component_id: value }
+											: null
+								})}
+						/>
+						<span class="text-xs font-normal text-muted-foreground">
+							{t('renderer.settlement_policy.hint_arrears_component')}
+						</span>
+					</Stack>
 				</label>
-				<label class="grid gap-1.5 text-sm font-medium">
-					{t('renderer.settlement_policy.final_period')}
-					<Combobox
-						ariaLabel={t('renderer.settlement_policy.final_period')}
-						options={FINAL_PERIOD_OPTIONS}
-						value={current?.final_period ?? EMPTY.final_period}
-						{disabled}
-						searchable={false}
-						onValueChange={(value) =>
-							patch({
-								final_period: (value as FinalPeriod | null) ?? 'FOLLOW_ATTENDANCE_WINDOW'
-							})}
-					/>
+				<label class="text-sm font-medium">
+					<Stack gap="xs">
+						{t('renderer.settlement_policy.final_period')}
+						<Combobox
+							ariaLabel={t('renderer.settlement_policy.final_period')}
+							options={FINAL_PERIOD_OPTIONS}
+							value={current?.final_period ?? EMPTY.final_period}
+							{disabled}
+							searchable={false}
+							onValueChange={(value) =>
+								patch({
+									final_period: (value as FinalPeriod | null) ?? 'FOLLOW_ATTENDANCE_WINDOW'
+								})}
+						/>
+					</Stack>
 				</label>
-				<label class="grid gap-1.5 text-sm font-medium">
-					{t('renderer.settlement_policy.final_period_wages')}
-					<Combobox
-						ariaLabel={t('renderer.settlement_policy.final_period_wages')}
-						options={FINAL_PERIOD_WAGES_OPTIONS}
-						value={current?.final_period_wages ?? EMPTY.final_period_wages}
-						{disabled}
-						searchable={false}
-						onValueChange={(value) =>
-							patch({
-								final_period_wages: (value as FinalPeriodWages | null) ?? 'PRORATE_TO_EXIT'
-							})}
-					/>
+				<label class="text-sm font-medium">
+					<Stack gap="xs">
+						{t('renderer.settlement_policy.final_period_wages')}
+						<Combobox
+							ariaLabel={t('renderer.settlement_policy.final_period_wages')}
+							options={FINAL_PERIOD_WAGES_OPTIONS}
+							value={current?.final_period_wages ?? EMPTY.final_period_wages}
+							{disabled}
+							searchable={false}
+							onValueChange={(value) =>
+								patch({
+									final_period_wages: (value as FinalPeriodWages | null) ?? 'PRORATE_TO_EXIT'
+								})}
+						/>
+					</Stack>
 				</label>
 			</Grid>
 		</Stack>
@@ -284,70 +290,76 @@
 				</p>
 			</Stack>
 			<Grid gap="sm" minimum="compact">
-				<label class="grid gap-1.5 text-sm font-medium">
-					{t('renderer.settlement_policy.extended_leave_min_days')}
-					<Input
-						type="number"
-						min="0"
-						step="1"
-						value={current?.extended_unpaid_leave?.minimum_calendar_days ?? 0}
-						{disabled}
-						oninput={(event) => {
-							const days = integerFrom(event.currentTarget.value, 0);
-							patch({
-								extended_unpaid_leave:
-									days <= 0
-										? null
-										: {
-												minimum_calendar_days: days,
-												bridged_gap_days: current?.extended_unpaid_leave?.bridged_gap_days ?? 0,
-												population_contribution_id:
-													current?.extended_unpaid_leave?.population_contribution_id ?? null
-											}
-							});
-						}}
-					/>
-				</label>
-				{#if current?.extended_unpaid_leave}
-					<label class="grid gap-1.5 text-sm font-medium">
-						{t('renderer.settlement_policy.bridged_gap_days')}
+				<label class="text-sm font-medium">
+					<Stack gap="xs">
+						{t('renderer.settlement_policy.extended_leave_min_days')}
 						<Input
 							type="number"
 							min="0"
 							step="1"
-							value={current.extended_unpaid_leave.bridged_gap_days}
+							value={current?.extended_unpaid_leave?.minimum_calendar_days ?? 0}
 							{disabled}
-							oninput={(event) =>
+							oninput={(event) => {
+								const days = integerFrom(event.currentTarget.value, 0);
 								patch({
-									extended_unpaid_leave: {
-										...current.extended_unpaid_leave!,
-										bridged_gap_days: integerFrom(event.currentTarget.value, 0)
-									}
-								})}
-						/>
-					</label>
-					<label class="grid gap-1.5 text-sm font-medium">
-						{t('renderer.settlement_policy.applies_to_employments')}
-						<Combobox
-							ariaLabel={t('renderer.settlement_policy.aria_extended_population')}
-							options={contributionOptions}
-							value={current.extended_unpaid_leave.population_contribution_id}
-							{disabled}
-							searchPlaceholder={t('renderer.settlement_policy.search_statutory_schemes')}
-							emptyPlaceholder={t('renderer.settlement_policy.every_employment')}
-							clientConfig={{
-								isLoading: contributionsQuery.loading,
-								error: contributionsQuery.error?.message ?? null
+									extended_unpaid_leave:
+										days <= 0
+											? null
+											: {
+													minimum_calendar_days: days,
+													bridged_gap_days: current?.extended_unpaid_leave?.bridged_gap_days ?? 0,
+													population_contribution_id:
+														current?.extended_unpaid_leave?.population_contribution_id ?? null
+												}
+								});
 							}}
-							onValueChange={(value) =>
-								patch({
-									extended_unpaid_leave: {
-										...current.extended_unpaid_leave!,
-										population_contribution_id:
-											typeof value === 'string' && value !== '' ? value : null
-									}
-								})}
 						/>
+					</Stack>
+				</label>
+				{#if current?.extended_unpaid_leave}
+					<label class="text-sm font-medium">
+						<Stack gap="xs">
+							{t('renderer.settlement_policy.bridged_gap_days')}
+							<Input
+								type="number"
+								min="0"
+								step="1"
+								value={current.extended_unpaid_leave.bridged_gap_days}
+								{disabled}
+								oninput={(event) =>
+									patch({
+										extended_unpaid_leave: {
+											...current.extended_unpaid_leave!,
+											bridged_gap_days: integerFrom(event.currentTarget.value, 0)
+										}
+									})}
+							/>
+						</Stack>
+					</label>
+					<label class="text-sm font-medium">
+						<Stack gap="xs">
+							{t('renderer.settlement_policy.applies_to_employments')}
+							<Combobox
+								ariaLabel={t('renderer.settlement_policy.aria_extended_population')}
+								options={contributionOptions}
+								value={current.extended_unpaid_leave.population_contribution_id}
+								{disabled}
+								searchPlaceholder={t('renderer.settlement_policy.search_statutory_schemes')}
+								emptyPlaceholder={t('renderer.settlement_policy.every_employment')}
+								clientConfig={{
+									isLoading: contributionsQuery.loading,
+									error: contributionsQuery.error?.message ?? null
+								}}
+								onValueChange={(value) =>
+									patch({
+										extended_unpaid_leave: {
+											...current.extended_unpaid_leave!,
+											population_contribution_id:
+												typeof value === 'string' && value !== '' ? value : null
+										}
+									})}
+							/>
+						</Stack>
 					</label>
 				{/if}
 			</Grid>

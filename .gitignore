@@ -1,12 +1,12 @@
 node_modules/
-.norbital/diagnosis/
-.norbital/dist/
-.norbital/generated/
-.norbital/types/
-.norbital/tsconfig.json
+
+# Generated workspace state. Migrations are authored history and stay tracked; everything else
+# under .norbital is regenerable output and must never be committed.
+.norbital/*
+!.norbital/migrations/
+!.norbital/migrations/**
+
 .pi/
 .svelte-check/
 .tmp/
 .vite/
-
-.norbital/build/

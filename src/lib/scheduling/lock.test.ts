@@ -314,7 +314,7 @@ const punch = (overrides = {}) => ({
 	employment_id: 'emp-1',
 	work_date: '2026-07-01',
 	approval_id: null,
-	worked_intervals: [{ start_at: '2026-07-01T00:16:00Z', end_at: '2026-07-01T09:10:00Z' }],
+	worked_intervals: [{ start: '2026-07-01T00:16:00Z', end: '2026-07-01T09:10:00Z' }],
 	break_minutes: 60,
 	...overrides
 });

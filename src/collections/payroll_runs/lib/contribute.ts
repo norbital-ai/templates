@@ -61,7 +61,7 @@ export type ContributionCharge = {
 	readonly special: Readonly<Record<string, number>>;
 };
 
-export type ContributeInput = {
+type ContributeInput = {
 	readonly bases: readonly ContributionBase[];
 	/** `contribution_id` → the employment's registration, or `null` where no row exists. */
 	readonly facts: ReadonlyMap<string, StatutoryFactStatus>;

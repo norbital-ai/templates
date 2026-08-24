@@ -80,9 +80,11 @@
 		beyondScheduleMinutes,
 		describeDay,
 		monthDays,
+		personDayKey,
 		planGlyph,
 		type DayFacts
 	} from './roster-month.js';
+	import { scrollBodyByWheel, syncHeaderTrack } from './header-scroll.js';
 
 	const { t } = useI18n<TenantI18nKeys>();
 
@@ -149,24 +151,12 @@
 
 	/** The weekday row is shell chrome; only its horizontal position follows the body. */
 	function syncCalendarHeader(): void {
-		if (calendarScrollElement == null || calendarHeaderTrack == null) return;
-		calendarHeaderTrack.style.transform = `translateX(${-calendarScrollElement.scrollLeft}px)`;
+		syncHeaderTrack(calendarScrollElement, calendarHeaderTrack);
 	}
 
 	/** Wheel input over the fixed header still moves the body it labels. */
 	function handleCalendarHeaderWheel(event: WheelEvent): void {
-		if (calendarScrollElement == null || (event.deltaX === 0 && event.deltaY === 0)) return;
-		const beforeLeft = calendarScrollElement.scrollLeft;
-		const beforeTop = calendarScrollElement.scrollTop;
-		calendarScrollElement.scrollLeft += event.deltaX;
-		calendarScrollElement.scrollTop += event.deltaY;
-		// Preserve scroll chaining when the body has already reached the edge in this direction.
-		if (
-			calendarScrollElement.scrollLeft !== beforeLeft ||
-			calendarScrollElement.scrollTop !== beforeTop
-		) {
-			event.preventDefault();
-		}
+		scrollBodyByWheel(calendarScrollElement, event);
 	}
 
 	/**
@@ -200,7 +190,7 @@
 	});
 
 	function dayOf(date: string): DayFacts | undefined {
-		return facts.get(`${employmentId}:${date}`);
+		return facts.get(personDayKey(employmentId, date));
 	}
 
 	/**

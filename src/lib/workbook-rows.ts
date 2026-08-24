@@ -24,6 +24,21 @@ import { isCalendarDate, isClockTime } from '@norbital-ai/std/date';
 const sheetCellSchema = Schema.NullOr(
 	Schema.Union([Schema.String, Schema.Number, Schema.Boolean, Schema.Date])
 );
+const cellErrorValueSchema = Schema.Struct({ error: Schema.Unknown });
+const cellFormulaResultSchema = Schema.Struct({ result: Schema.Unknown });
+const cellRichTextValueSchema = Schema.Struct({
+	richText: Schema.Array(Schema.Struct({ text: Schema.Unknown }))
+});
+const cellTextValueSchema = Schema.Struct({ text: Schema.Unknown });
+const cellFormulaSchema = Schema.Union([
+	Schema.Struct({ formula: Schema.Unknown }),
+	Schema.Struct({ sharedFormula: Schema.Unknown })
+]);
+const isCellErrorValue = Schema.is(cellErrorValueSchema);
+const isCellFormulaResult = Schema.is(cellFormulaResultSchema);
+const isCellRichTextValue = Schema.is(cellRichTextValueSchema);
+const isCellTextValue = Schema.is(cellTextValueSchema);
+const isCellFormula = Schema.is(cellFormulaSchema);
 export type SheetCell = Schema.Schema.Type<typeof sheetCellSchema>;
 /** One sheet as rows of cells, header row included. */
 type SheetGrid = readonly (readonly SheetCell[])[];
@@ -69,22 +84,14 @@ function normalizeCellValue(value: unknown): SheetCell {
 	if (value instanceof Date) return Number.isNaN(value.getTime()) ? null : value;
 	if (typeof value !== 'object') return null;
 
-	// The wrapper shapes an ExcelJS cell value can take, told apart one property at a time: the
-	// `in` operator narrows `object` to the member it names, so nothing here needs a cast.
-	if ('error' in value) return null;
-	if ('result' in value) return normalizeCellValue(value.result);
-	if ('richText' in value && Array.isArray(value.richText)) {
-		const fragments: readonly unknown[] = value.richText;
-		return fragments
-			.map((fragment) =>
-				typeof fragment === 'object' && fragment !== null && 'text' in fragment
-					? String(fragment.text ?? '')
-					: ''
-			)
-			.join('');
+	// Decode the wrapper shapes ExcelJS can return against one explicit boundary vocabulary.
+	if (isCellErrorValue(value)) return null;
+	if (isCellFormulaResult(value)) return normalizeCellValue(value.result);
+	if (isCellRichTextValue(value)) {
+		return value.richText.map((fragment) => String(fragment.text ?? '')).join('');
 	}
-	if ('text' in value) return normalizeCellValue(value.text);
-	if ('formula' in value || 'sharedFormula' in value) return null;
+	if (isCellTextValue(value)) return normalizeCellValue(value.text);
+	if (isCellFormula(value)) return null;
 	return null;
 }
 
@@ -170,19 +177,35 @@ export function csvGrid(text: string): SheetGrid {
 
 	for (let index = 0; index < source.length; index += 1) {
 		const character = source[index]!;
-		if (quoted) {
-			if (character !== '"') cell += character;
-			else if (source[index + 1] === '"') {
-				cell += '"';
-				index += 1;
-			} else quoted = false;
+		// A doubled quote inside a quoted cell is one literal quote, and the only escape RFC 4180 has;
+		// a lone quote closes the cell.
+		if (quoted && character !== '"') {
+			cell += character;
 			continue;
 		}
-		if (character === '"') quoted = true;
-		else if (character === ',') endCell();
-		else if (character === '\r') continue;
-		else if (character === '\n') endRow();
-		else cell += character;
+		if (quoted && source[index + 1] !== '"') {
+			quoted = false;
+			continue;
+		}
+		if (quoted) {
+			cell += '"';
+			index += 1;
+			continue;
+		}
+		if (character === '"') {
+			quoted = true;
+			continue;
+		}
+		if (character === ',') {
+			endCell();
+			continue;
+		}
+		if (character === '\r') continue;
+		if (character === '\n') {
+			endRow();
+			continue;
+		}
+		cell += character;
 	}
 	if (cell !== '' || row.length > 0) endRow();
 	return rows;

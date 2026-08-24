@@ -1,4 +1,4 @@
-import { custom, dateRange, defineModel, text, uuid } from '@norbital-ai/bolt/authoring';
+import { custom, defineModel, text, uuid } from '@norbital-ai/bolt/authoring';
 
 export default defineModel(
 	{
@@ -6,7 +6,7 @@ export default defineModel(
 		code: text({ search: true }).notNull(),
 		name: text({ search: true }).notNull(),
 		variant: custom('roster_code_variant').notNull(),
-		effective_range: dateRange().notNull()
+		effective_range: custom('instant_range', { precision: 'day' }).notNull()
 	},
 	{
 		description:

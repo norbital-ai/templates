@@ -383,21 +383,19 @@ test('every unclosed time entry is reported, not just the first', () => {
 				{
 					id: 'te-1',
 					work_date: '2026-01-15',
-					worked_intervals: [{ start_at: '2026-01-15T01:00:00.000Z', end_at: null }]
+					worked_intervals: [{ start: '2026-01-15T01:00:00.000Z', end: null }]
 				},
 				{
 					id: 'te-2',
 					work_date: '2026-01-16',
-					worked_intervals: [
-						{ start_at: '2026-01-16T01:00:00.000Z', end_at: '2026-01-16T09:00:00.000Z' }
-					]
+					worked_intervals: [{ start: '2026-01-16T01:00:00.000Z', end: '2026-01-16T09:00:00.000Z' }]
 				}
 			]),
 			openBundle('NHPMY0271', [
 				{
 					id: 'te-3',
 					work_date: '2025-12-27',
-					worked_intervals: [{ start_at: null, end_at: '2025-12-27T09:00:00.000Z' }]
+					worked_intervals: [{ start: null, end: '2025-12-27T09:00:00.000Z' }]
 				}
 			])
 		]
@@ -429,9 +427,7 @@ test('closed attendance raises nothing, and a null interval list is not an open 
 				{
 					id: 'te-4',
 					work_date: '2026-01-05',
-					worked_intervals: [
-						{ start_at: '2026-01-05T01:00:00.000Z', end_at: '2026-01-05T09:00:00.000Z' }
-					]
+					worked_intervals: [{ start: '2026-01-05T01:00:00.000Z', end: '2026-01-05T09:00:00.000Z' }]
 				},
 				{ id: 'te-5', work_date: '2026-01-06', worked_intervals: null }
 			])

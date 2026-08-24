@@ -75,7 +75,7 @@ const SG_LEISURE = {
 /** `HH:MM` on one day, in a fixed offset. The offset is irrelevant to every span measured here. */
 const at = (time: string): string => `2026-08-11T${time}:00+08:00`;
 const worked = (...pairs: [string, string | null][]) =>
-	pairs.map(([start, end]) => ({ start_at: at(start), end_at: end === null ? null : at(end) }));
+	pairs.map(([start, end]) => ({ start: at(start), end: end === null ? null : at(end) }));
 
 describe('Malaysia — EA 1955 s.60A(1)(a)', () => {
 	it('owes thirty minutes once five consecutive hours are exceeded', () => {
@@ -356,7 +356,7 @@ describe('the absence of a rule, and days that cannot be measured', () => {
 		const result = restBreakAssessment({
 			intervals: [
 				...worked(['08:00', '18:00'], ['08:00', '18:00']),
-				{ start_at: 'not a time', end_at: 'not a time either' }
+				{ start: 'not a time', end: 'not a time either' }
 			],
 			breakMinutes: 30,
 			rules: [MY_GENERAL]

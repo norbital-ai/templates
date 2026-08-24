@@ -12,7 +12,7 @@
 	import { Combobox } from '@norbital-ai/ui/combobox';
 	import type { CollectionField } from '@norbital-ai/ui/data-renderer';
 	import { Input } from '@norbital-ai/ui/input';
-	import { Column, Grid, Stack } from '@norbital-ai/ui/layout';
+	import { Column, Grid, Inline, Stack } from '@norbital-ai/ui/layout';
 	import { componentDefinitionSchema } from './+definition.js';
 	import type { RendererProps, Value } from './$types.js';
 
@@ -124,7 +124,7 @@
 	 *
 	 * Built rather than declared as a constant because its bounds are instants resolved in the
 	 * payroll timezone. The literal this replaced read `{ start: '2026-01-01', end: null }`, which is
-	 * neither an instant nor a permitted `end` — `dateRangeSchema` requires both bounds — so
+	 * neither an instant nor a permitted `end` — `instantRangeSchema` requires both bounds — so
 	 * ticking the box seeded a cap the form could not save.
 	 */
 	function defaultCap(): Cap {
@@ -198,92 +198,106 @@
 	<span class="block truncate" title={summary}>{summary}</span>
 {:else}
 	<Grid class="rounded-md border border-border bg-muted/20 p-3" gap="sm" minimum="compact">
-		<label class="grid gap-1.5 text-sm font-medium">
-			Source
-			<Combobox
-				options={SOURCE_OPTIONS}
-				value={current?.source ?? null}
-				{disabled}
-				searchable={false}
-				emptyPlaceholder={t('renderer.component_definition.select_source')}
-				onValueChange={selectSource}
-			/>
+		<label class="text-sm font-medium">
+			<Stack gap="xs">
+				Source
+				<Combobox
+					options={SOURCE_OPTIONS}
+					value={current?.source ?? null}
+					{disabled}
+					searchable={false}
+					emptyPlaceholder={t('renderer.component_definition.select_source')}
+					onValueChange={selectSource}
+				/>
+			</Stack>
 		</label>
 
 		{#if current?.source === 'ENTRY'}
-			<label class="grid gap-1.5 text-sm font-medium">
-				Unit
-				<Combobox
-					options={ENTRY_UNIT_OPTIONS}
-					value={current.unit}
-					{disabled}
-					searchable={false}
-					onValueChange={(unit) => {
-						if (unit !== null) emit({ ...current, unit });
-					}}
-				/>
+			<label class="text-sm font-medium">
+				<Stack gap="xs">
+					Unit
+					<Combobox
+						options={ENTRY_UNIT_OPTIONS}
+						value={current.unit}
+						{disabled}
+						searchable={false}
+						onValueChange={(unit) => {
+							if (unit !== null) emit({ ...current, unit });
+						}}
+					/>
+				</Stack>
 			</label>
-			<label class="grid gap-1.5 text-sm font-medium">
-				Evidence
-				<Combobox
-					options={EVIDENCE_OPTIONS}
-					value={current.evidence}
-					{disabled}
-					searchable={false}
-					onValueChange={(evidence) => {
-						if (evidence !== null) emit({ ...current, evidence });
-					}}
-				/>
+			<label class="text-sm font-medium">
+				<Stack gap="xs">
+					Evidence
+					<Combobox
+						options={EVIDENCE_OPTIONS}
+						value={current.evidence}
+						{disabled}
+						searchable={false}
+						onValueChange={(evidence) => {
+							if (evidence !== null) emit({ ...current, evidence });
+						}}
+					/>
+				</Stack>
 			</label>
-			<label class="grid gap-1.5 text-sm font-medium">
-				Settlement
-				<Combobox
-					options={SETTLEMENT_OPTIONS}
-					value={current.settlement}
-					{disabled}
-					searchable={false}
-					onValueChange={(settlement) => {
-						if (settlement !== null) emit({ ...current, settlement });
-					}}
-				/>
+			<label class="text-sm font-medium">
+				<Stack gap="xs">
+					Settlement
+					<Combobox
+						options={SETTLEMENT_OPTIONS}
+						value={current.settlement}
+						{disabled}
+						searchable={false}
+						onValueChange={(settlement) => {
+							if (settlement !== null) emit({ ...current, settlement });
+						}}
+					/>
+				</Stack>
 			</label>
-			<label class="flex items-center gap-2 self-end text-sm font-medium">
-				<input
-					type="checkbox"
-					class="size-4"
-					checked={current.cap !== null}
-					{disabled}
-					onchange={(event) =>
-						emit({ ...current, cap: event.currentTarget.checked ? defaultCap() : null })}
-				/>
-				Capped
+			<label class="self-end text-sm font-medium">
+				<Inline gap="sm">
+					<input
+						type="checkbox"
+						class="size-4"
+						checked={current.cap !== null}
+						{disabled}
+						onchange={(event) =>
+							emit({ ...current, cap: event.currentTarget.checked ? defaultCap() : null })}
+					/>
+					Capped
+				</Inline>
 			</label>
 
 			{#if current.cap !== null}
 				{@const cap = current.cap}
-				<label class="grid gap-1.5 text-sm font-medium">
-					Cap period
-					<Combobox
-						options={CAP_PERIOD_OPTIONS}
-						value={cap.period}
-						{disabled}
-						searchable={false}
-						onValueChange={(period) => {
-							if (period !== null) emit({ ...current, cap: { ...cap, period } });
-						}}
-					/>
+				<label class="text-sm font-medium">
+					<Stack gap="xs">
+						Cap period
+						<Combobox
+							options={CAP_PERIOD_OPTIONS}
+							value={cap.period}
+							{disabled}
+							searchable={false}
+							onValueChange={(period) => {
+								if (period !== null) emit({ ...current, cap: { ...cap, period } });
+							}}
+						/>
+					</Stack>
 				</label>
-				<label class="grid gap-1.5 text-sm font-medium">
-					On exceed
-					<Combobox
-						options={CAP_ON_EXCEED_OPTIONS}
-						value={cap.on_exceed}
-						{disabled}
-						searchable={false}
-						onValueChange={(onExceed) => {
-							if (onExceed !== null) emit({ ...current, cap: { ...cap, on_exceed: onExceed } });
-						}}
-					/>
+				<label class="text-sm font-medium">
+					<Stack gap="xs">
+						On exceed
+						<Combobox
+							options={CAP_ON_EXCEED_OPTIONS}
+							value={cap.on_exceed}
+							{disabled}
+							searchable={false}
+							onValueChange={(onExceed) => {
+								if (onExceed !== null) emit({ ...current, cap: { ...cap, on_exceed: onExceed } });
+							}}
+						/>
+					</Stack>
 				</label>
 				<Column span="all">
 					<EffectiveLayerList
@@ -326,65 +340,76 @@
 
 						{#snippet body(row)}
 							<Grid gap="sm" minimum="compact">
-								<label class="grid gap-1.5 text-sm font-medium">
-									Ceiling
-									<Combobox
-										options={AWARD_OPTIONS}
-										value={row.layer.award.kind}
-										disabled={row.disabled}
-										searchable={false}
-										onValueChange={(kind) => {
-											if (kind !== null && kind !== row.layer.award.kind)
-												row.replace({ ...row.layer, award: defaultAward(kind) });
-										}}
-									/>
+								<label class="text-sm font-medium">
+									<Stack gap="xs">
+										Ceiling
+										<Combobox
+											options={AWARD_OPTIONS}
+											value={row.layer.award.kind}
+											disabled={row.disabled}
+											searchable={false}
+											onValueChange={(kind) => {
+												if (kind !== null && kind !== row.layer.award.kind)
+													row.replace({ ...row.layer, award: defaultAward(kind) });
+											}}
+										/>
+									</Stack>
 								</label>
 								{#if row.layer.award.kind === 'FIXED'}
-									<label class="grid gap-1.5 text-sm font-medium">
-										Amount
+									<label class="text-sm font-medium">
+										<Stack gap="xs">
+											Amount
+											<Input
+												type="number"
+												min="0"
+												step="0.01"
+												value={row.layer.award.amount}
+												disabled={row.disabled}
+												oninput={(event) =>
+													row.replace({
+														...row.layer,
+														award: {
+															kind: 'FIXED',
+															amount: numberFrom(event.currentTarget.value, 0)
+														}
+													})}
+											/>
+										</Stack>
+									</label>
+								{:else}
+									<label class="text-sm font-medium">
+										<Stack gap="xs">
+											Expression
+											<Input
+												value={row.layer.award.expr}
+												disabled={row.disabled}
+												placeholder={t('component.cel_expression')}
+												oninput={(event) =>
+													row.replace({
+														...row.layer,
+														award: { kind: 'FORMULA', expr: event.currentTarget.value }
+													})}
+											/>
+										</Stack>
+									</label>
+								{/if}
+								<label class="text-sm font-medium">
+									<Stack gap="xs">
+										Reimbursed (%)
 										<Input
 											type="number"
 											min="0"
-											step="0.01"
-											value={row.layer.award.amount}
+											max="100"
+											step="1"
+											value={row.layer.reimbursement_percentage}
 											disabled={row.disabled}
 											oninput={(event) =>
 												row.replace({
 													...row.layer,
-													award: { kind: 'FIXED', amount: numberFrom(event.currentTarget.value, 0) }
+													reimbursement_percentage: numberFrom(event.currentTarget.value, 100)
 												})}
 										/>
-									</label>
-								{:else}
-									<label class="grid gap-1.5 text-sm font-medium">
-										Expression
-										<Input
-											value={row.layer.award.expr}
-											disabled={row.disabled}
-											placeholder={t('component.cel_expression')}
-											oninput={(event) =>
-												row.replace({
-													...row.layer,
-													award: { kind: 'FORMULA', expr: event.currentTarget.value }
-												})}
-										/>
-									</label>
-								{/if}
-								<label class="grid gap-1.5 text-sm font-medium">
-									Reimbursed (%)
-									<Input
-										type="number"
-										min="0"
-										max="100"
-										step="1"
-										value={row.layer.reimbursement_percentage}
-										disabled={row.disabled}
-										oninput={(event) =>
-											row.replace({
-												...row.layer,
-												reimbursement_percentage: numberFrom(event.currentTarget.value, 100)
-											})}
-									/>
+									</Stack>
 								</label>
 								<Column span="all">
 									<Stack gap="xs" class="text-sm font-medium">
@@ -406,37 +431,43 @@
 				</Column>
 			{/if}
 		{:else if current?.source === 'FORMULA'}
-			<label class="grid gap-1.5 text-sm font-medium">
-				Unit
-				<Combobox
-					options={FORMULA_UNIT_OPTIONS}
-					value={current.unit}
-					{disabled}
-					searchable={false}
-					onValueChange={(unit) => {
-						if (unit !== null) emit({ ...current, unit });
-					}}
-				/>
+			<label class="text-sm font-medium">
+				<Stack gap="xs">
+					Unit
+					<Combobox
+						options={FORMULA_UNIT_OPTIONS}
+						value={current.unit}
+						{disabled}
+						searchable={false}
+						onValueChange={(unit) => {
+							if (unit !== null) emit({ ...current, unit });
+						}}
+					/>
+				</Stack>
 			</label>
-			<label class="grid gap-1.5 text-sm font-medium">
-				Expression
-				<Input
-					value={current.expr}
-					{disabled}
-					placeholder={t('component.cel_expression')}
-					oninput={(event) => emit({ ...current, expr: event.currentTarget.value })}
-				/>
+			<label class="text-sm font-medium">
+				<Stack gap="xs">
+					Expression
+					<Input
+						value={current.expr}
+						{disabled}
+						placeholder={t('component.cel_expression')}
+						oninput={(event) => emit({ ...current, expr: event.currentTarget.value })}
+					/>
+				</Stack>
 			</label>
 		{:else if current?.source === 'SCHEDULE'}
-			<label class="flex items-center gap-2 self-end text-sm font-medium">
-				<input
-					type="checkbox"
-					class="size-4"
-					checked={current.reducible}
-					{disabled}
-					onchange={(event) => emit({ ...current, reducible: event.currentTarget.checked })}
-				/>
-				Reducible by unpaid absence
+			<label class="self-end text-sm font-medium">
+				<Inline gap="sm">
+					<input
+						type="checkbox"
+						class="size-4"
+						checked={current.reducible}
+						{disabled}
+						onchange={(event) => emit({ ...current, reducible: event.currentTarget.checked })}
+					/>
+					Reducible by unpaid absence
+				</Inline>
 			</label>
 		{/if}
 	</Grid>

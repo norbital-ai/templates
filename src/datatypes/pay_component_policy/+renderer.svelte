@@ -156,16 +156,18 @@
 	<span class="block truncate" title={summary}>{summary}</span>
 {:else}
 	<Stack gap="sm" class="rounded-md border border-border bg-muted/20 p-3">
-		<label class="grid gap-1.5 text-sm font-medium">
-			Economic type
-			<Combobox
-				options={KIND_OPTIONS}
-				value={current?.kind ?? null}
-				{disabled}
-				searchable={false}
-				emptyPlaceholder={t('renderer.pay_component_policy.select_economic_type')}
-				onValueChange={selectKind}
-			/>
+		<label class="text-sm font-medium">
+			<Stack gap="xs">
+				Economic type
+				<Combobox
+					options={KIND_OPTIONS}
+					value={current?.kind ?? null}
+					{disabled}
+					searchable={false}
+					emptyPlaceholder={t('renderer.pay_component_policy.select_economic_type')}
+					onValueChange={selectKind}
+				/>
+			</Stack>
 		</label>
 		{#if current !== null}
 			<p class="text-meta">
@@ -189,27 +191,29 @@
 				onChange={(next) => emit(atKind(current.kind, next))}
 			>
 				{#snippet identity(row)}
-					<label class="grid gap-1.5 text-sm font-medium">
-						Statutory scheme
-						<Combobox
-							ariaLabel={t('component.statutory_scheme')}
-							options={contributionOptions}
-							value={row.layer.statutory_contribution_id === ''
-								? null
-								: row.layer.statutory_contribution_id}
-							disabled={row.disabled || jurisdictionId == null}
-							searchPlaceholder={t('renderer.pay_component_policy.search_schemes')}
-							emptyPlaceholder={t('renderer.pay_component_policy.choose_scheme')}
-							clientConfig={{
-								isLoading: contributionsQuery?.loading ?? false,
-								error: contributionsQuery?.error?.message ?? null
-							}}
-							onValueChange={(value) =>
-								row.replace({
-									...row.layer,
-									statutory_contribution_id: typeof value === 'string' ? value : ''
-								})}
-						/>
+					<label class="text-sm font-medium">
+						<Stack gap="xs">
+							Statutory scheme
+							<Combobox
+								ariaLabel={t('component.statutory_scheme')}
+								options={contributionOptions}
+								value={row.layer.statutory_contribution_id === ''
+									? null
+									: row.layer.statutory_contribution_id}
+								disabled={row.disabled || jurisdictionId == null}
+								searchPlaceholder={t('renderer.pay_component_policy.search_schemes')}
+								emptyPlaceholder={t('renderer.pay_component_policy.choose_scheme')}
+								clientConfig={{
+									isLoading: contributionsQuery?.loading ?? false,
+									error: contributionsQuery?.error?.message ?? null
+								}}
+								onValueChange={(value) =>
+									row.replace({
+										...row.layer,
+										statutory_contribution_id: typeof value === 'string' ? value : ''
+									})}
+							/>
+						</Stack>
 					</label>
 				{/snippet}
 

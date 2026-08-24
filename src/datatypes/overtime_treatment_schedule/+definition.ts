@@ -1,7 +1,7 @@
 import { defineCustomType } from '@norbital-ai/bolt/authoring';
 import { Schema } from 'effect';
 import { contributionTreatmentValueSchema } from '../contribution_treatment/+definition.js';
-import { dateRangeValueSchema } from '../date_range/+definition.js';
+import { instantRangeValueSchema } from '@norbital-ai/bolt/authoring';
 
 /**
  * How one statutory scheme charges derived overtime, over time.
@@ -23,7 +23,7 @@ export const overtimeTreatmentScheduleValueSchema = Schema.Array(
 	Schema.Struct({
 		authority: Schema.NonEmptyString,
 		treatment: contributionTreatmentValueSchema,
-		effective_range: dateRangeValueSchema
+		effective_range: instantRangeValueSchema
 	})
 );
 

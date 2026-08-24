@@ -1,4 +1,4 @@
-// fallow-ignore-file unused-file -- Standalone arithmetic gate invoked directly from the payroll README.
+// Standalone arithmetic gate invoked directly from the payroll README.
 
 /**
  * Arithmetic verification for the payroll engine.
@@ -26,9 +26,9 @@ import path from 'node:path';
 import { isDeepStrictEqual } from 'node:util';
 
 const root = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
-const lib = (name) => `/src/collections/payroll_runs/lib/${name}.ts`;
 
-let passed = 0;
+/** Both tallies are records, kept the same way, so the summary reads off one shape. */
+const passes = [];
 const failures = [];
 
 function check(name, actual, expected) {
@@ -36,7 +36,7 @@ function check(name, actual, expected) {
 		typeof expected === 'number' && typeof actual === 'number'
 			? Math.abs(actual - expected) < 1e-9
 			: isDeepStrictEqual(actual, expected);
-	if (ok) passed += 1;
+	if (ok) passes.push(name);
 	else
 		failures.push(
 			`${name}\n    expected ${JSON.stringify(expected)}\n    received ${JSON.stringify(actual)}`
@@ -48,7 +48,7 @@ function throws(name, fn) {
 	if (Result.isSuccess(result)) {
 		failures.push(`${name}\n    expected a thrown error, received none`);
 	} else {
-		passed += 1;
+		passes.push(name);
 	}
 }
 
@@ -64,7 +64,10 @@ const modules = await Effect.runPromise(
 			})
 		),
 		(server) => {
-			const load = (name) => Effect.tryPromise(() => server.ssrLoadModule(lib(name)));
+			const load = (name) =>
+				Effect.tryPromise(() =>
+					server.ssrLoadModule(`/src/collections/payroll_runs/lib/${name}.ts`)
+				);
 			return Effect.all([
 				load('rounding'),
 				load('bands'),
@@ -153,7 +156,7 @@ const restDayPunches = {
 	id: 'rest-day-entry',
 	work_date: '2026-01-17',
 	worked_intervals: [
-		{ start_at: '2026-01-17T08:29:00.000+08:00', end_at: '2026-01-17T13:41:00.000+08:00' }
+		{ start: '2026-01-17T08:29:00.000+08:00', end: '2026-01-17T13:41:00.000+08:00' }
 	],
 	break_minutes: 60
 };
@@ -1233,7 +1236,7 @@ check(
 		id: 'night',
 		work_date: '2026-02-03',
 		worked_intervals: [
-			{ start_at: '2026-02-03T20:22:00.000+08:00', end_at: '2026-02-04T08:30:00.000+08:00' }
+			{ start: '2026-02-03T20:22:00.000+08:00', end: '2026-02-04T08:30:00.000+08:00' }
 		],
 		break_minutes: 0
 	}),
@@ -1245,7 +1248,7 @@ check(
 		id: 'day',
 		work_date: '2026-02-03',
 		worked_intervals: [
-			{ start_at: '2026-02-03T08:30:00.000+08:00', end_at: '2026-02-03T17:30:00.000+08:00' }
+			{ start: '2026-02-03T08:30:00.000+08:00', end: '2026-02-03T17:30:00.000+08:00' }
 		],
 		break_minutes: 0
 	}),
@@ -1900,16 +1903,9 @@ check(
 );
 /* ── A calendar day survives the process time zone ─────────────────────────────────────────────
  *
- * A `date` column has no time zone, and it must mean the same day in every process that reads it.
- * The Postgres driver used to hand one over as a `Date` at the **host's** local midnight — an
- * instant, and an instant is a different day in a different zone. A tenant workspace runs in a
- * container with no `TZ` while the host that queried for it runs wherever the operator is, so a
- * hire date of 2026-01-01 read on a machine in Asia/Singapore arrived in the runtime as
- * 2025-12-31: a day earlier, in the previous month, in a period with no terms covering it.
- *
- * The driver now yields the day as the `YYYY-MM-DD` text it read off the wire, and this checks
- * both halves of the contract — the text is taken as written, and a `Date`, if one ever appears,
- * is read as the UTC-anchored instant it is. Neither answer depends on where this process runs.
+ * Day precision does not create a second column type. The driver yields the same ISO string as any
+ * other instant, and the payroll calendar takes its first ten characters without consulting the
+ * host's time zone.
  */
 check('the driver’s day text is taken as written', calendarDay('2026-01-01'), '2026-01-01');
 check('a year boundary is not rolled back', calendarDay('2026-01-01'), '2026-01-01');
@@ -1918,12 +1914,7 @@ check(
 	calendarDay('2026-01-01T00:00:00.000Z'),
 	'2026-01-01'
 );
-check('a UTC-anchored Date keeps its day', calendarDay(new Date('2026-01-01')), '2026-01-01');
-check(
-	'a UTC-anchored month boundary keeps its day',
-	calendarDay(new Date('2026-03-01')),
-	'2026-03-01'
-);
+check('an ISO month boundary keeps its day', calendarDay('2026-03-01T00:00:00.000Z'), '2026-03-01');
 
 /* And the consequence that actually broke a run: someone hired on the first of the period is a
  * plain starter, not a late joiner owed the month before. The arrears rule is right — feed it the
@@ -1943,7 +1934,7 @@ check(
 	{ start: '2025-12-31', end: '2025-12-31' }
 );
 
-console.log(`\n${passed} assertions passed.`);
+console.log(`\n${passes.length} assertions passed.`);
 if (failures.length > 0) {
 	console.error(`\n${failures.length} FAILED:\n`);
 	for (const failure of failures) console.error(`  ✗ ${failure}\n`);

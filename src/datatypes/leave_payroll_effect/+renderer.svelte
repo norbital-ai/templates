@@ -12,7 +12,7 @@
 	 */
 	import { client } from '../../lib/workspace-client.js';
 	import { Combobox } from '@norbital-ai/ui/combobox';
-	import { Grid } from '@norbital-ai/ui/layout';
+	import { Grid, Stack } from '@norbital-ai/ui/layout';
 	import { leavePayrollEffectSchema } from './+definition.js';
 	import type { RendererProps, Value } from './$types.js';
 
@@ -103,34 +103,38 @@
 	<span class="block truncate" title={summary}>{summary}</span>
 {:else}
 	<Grid class="rounded-md border border-border bg-muted/20 p-3" gap="sm" minimum="compact">
-		<label class="grid gap-1.5 text-sm font-medium">
-			{t('renderer.leave_payroll_effect.payroll_effect')}
-			<Combobox
-				options={KIND_OPTIONS}
-				value={current?.kind ?? null}
-				{disabled}
-				searchable={false}
-				emptyPlaceholder={t('renderer.leave_payroll_effect.select_effect')}
-				onValueChange={selectKind}
-			/>
+		<label class="text-sm font-medium">
+			<Stack gap="xs">
+				{t('renderer.leave_payroll_effect.payroll_effect')}
+				<Combobox
+					options={KIND_OPTIONS}
+					value={current?.kind ?? null}
+					{disabled}
+					searchable={false}
+					emptyPlaceholder={t('renderer.leave_payroll_effect.select_effect')}
+					onValueChange={selectKind}
+				/>
+			</Stack>
 		</label>
 		{#if current?.kind === 'UNPAID'}
-			<label class="grid gap-1.5 text-sm font-medium">
-				{t('renderer.leave_payroll_effect.deducted_on')}
-				<Combobox
-					ariaLabel={t('renderer.leave_payroll_effect.aria_deduction_component')}
-					options={componentOptions}
-					value={current.component_id === '' ? null : current.component_id}
-					disabled={disabled || companyId == null}
-					searchPlaceholder={t('component.search_pay_components')}
-					emptyPlaceholder={t('renderer.leave_payroll_effect.choose_component_carries_wage')}
-					clientConfig={{
-						isLoading: componentsQuery?.loading ?? false,
-						error: componentsQuery?.error?.message ?? null
-					}}
-					onValueChange={(value) =>
-						emit({ kind: 'UNPAID', component_id: typeof value === 'string' ? value : '' })}
-				/>
+			<label class="text-sm font-medium">
+				<Stack gap="xs">
+					{t('renderer.leave_payroll_effect.deducted_on')}
+					<Combobox
+						ariaLabel={t('renderer.leave_payroll_effect.aria_deduction_component')}
+						options={componentOptions}
+						value={current.component_id === '' ? null : current.component_id}
+						disabled={disabled || companyId == null}
+						searchPlaceholder={t('component.search_pay_components')}
+						emptyPlaceholder={t('renderer.leave_payroll_effect.choose_component_carries_wage')}
+						clientConfig={{
+							isLoading: componentsQuery?.loading ?? false,
+							error: componentsQuery?.error?.message ?? null
+						}}
+						onValueChange={(value) =>
+							emit({ kind: 'UNPAID', component_id: typeof value === 'string' ? value : '' })}
+					/>
+				</Stack>
 			</label>
 		{/if}
 	</Grid>

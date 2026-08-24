@@ -1,7 +1,7 @@
 // @ts-nocheck -- executed directly by Node with --experimental-strip-types.
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
-import { dateRangeSchema } from '@norbital-ai/bolt/authoring';
+import { instantRangeSchema } from '@norbital-ai/bolt/authoring';
 import { accrualKeySchema } from './accrual_key/+definition.js';
 import { componentDefinitionSchema } from './component_definition/+definition.js';
 import { contributionTreatmentSchema } from './contribution_treatment/+definition.js';
@@ -44,37 +44,37 @@ const accepts = (schema: Parameters<typeof refuses>[0], value: unknown): boolean
 
 const RANGE = { start: '2026-01-01T00:00:00.000Z', end: '2026-12-31T23:59:59.999Z' };
 
-describe('date_range', () => {
+describe('instant_range', () => {
 	it('accepts a pair of UTC instants', () => {
-		assert.ok(accepts(dateRangeSchema, RANGE));
+		assert.ok(accepts(instantRangeSchema, RANGE));
 	});
 
 	// The zod value declared both bounds optional and three of its five users left them that way.
 	// Nothing downstream can price a half-open nested range, so both are now required — this is the
 	// assertion that says the tightening is deliberate rather than an artefact of the conversion.
 	it('refuses a range missing either bound', () => {
-		assert.ok(refuses(dateRangeSchema, { start: RANGE.start }));
-		assert.ok(refuses(dateRangeSchema, { end: RANGE.end }));
-		assert.ok(refuses(dateRangeSchema, {}));
+		assert.ok(refuses(instantRangeSchema, { start: RANGE.start }));
+		assert.ok(refuses(instantRangeSchema, { end: RANGE.end }));
+		assert.ok(refuses(instantRangeSchema, {}));
 	});
 
 	it('refuses a zoned or local spelling, as the ISO check it replaced did', () => {
-		assert.ok(refuses(dateRangeSchema, { start: '2026-01-01T00:00:00+08:00', end: RANGE.end }));
-		assert.ok(refuses(dateRangeSchema, { start: '2026-01-01T00:00:00', end: RANGE.end }));
-		assert.ok(refuses(dateRangeSchema, { start: '2026-01-01', end: RANGE.end }));
+		assert.ok(refuses(instantRangeSchema, { start: '2026-01-01T00:00:00+08:00', end: RANGE.end }));
+		assert.ok(refuses(instantRangeSchema, { start: '2026-01-01T00:00:00', end: RANGE.end }));
+		assert.ok(refuses(instantRangeSchema, { start: '2026-01-01', end: RANGE.end }));
 	});
 
 	// A pattern alone admits these; `Date` then rolls them into the following month, so a layer would
 	// take effect on a day that does not exist.
 	it('refuses a day the calendar does not have', () => {
-		assert.ok(refuses(dateRangeSchema, { start: '2026-02-30T00:00:00.000Z', end: RANGE.end }));
-		assert.ok(refuses(dateRangeSchema, { start: '2026-02-29T00:00:00.000Z', end: RANGE.end }));
-		assert.ok(accepts(dateRangeSchema, { start: '2028-02-29T00:00:00.000Z', end: RANGE.end }));
-		assert.ok(refuses(dateRangeSchema, { start: '2026-04-31T00:00:00.000Z', end: RANGE.end }));
+		assert.ok(refuses(instantRangeSchema, { start: '2026-02-30T00:00:00.000Z', end: RANGE.end }));
+		assert.ok(refuses(instantRangeSchema, { start: '2026-02-29T00:00:00.000Z', end: RANGE.end }));
+		assert.ok(accepts(instantRangeSchema, { start: '2028-02-29T00:00:00.000Z', end: RANGE.end }));
+		assert.ok(refuses(instantRangeSchema, { start: '2026-04-31T00:00:00.000Z', end: RANGE.end }));
 	});
 
 	it('refuses a key it does not declare rather than dropping it', () => {
-		assert.ok(refuses(dateRangeSchema, { ...RANGE, strat: RANGE.start }));
+		assert.ok(refuses(instantRangeSchema, { ...RANGE, strat: RANGE.start }));
 	});
 });
 

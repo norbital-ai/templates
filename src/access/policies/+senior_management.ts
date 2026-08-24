@@ -1,6 +1,8 @@
 import {
 	grantsOn,
+	grantOn,
 	leaveApproval,
+	mergeGrants,
 	payrollGrants,
 	payrollRebuildGrants,
 	peopleGrants,
@@ -14,7 +16,7 @@ import type { Policy } from './$types.js';
  * Rank 4 of 4, and the top of both columns.
  *
  * The owner names this rank twice: once as the highest ordinary level, and once beside `hr_manager`
- * as a role that **may view, create and run payroll**. So this file is the union of the manager
+ * as a role that **may view, create and run payroll**. So this file materializes the manager
  * ladder and the HR manager's payroll authority, composed from the same builders both of them use.
  *
  * Spelled `senior_management`, not `senior management`, because the filename is the policy key.
@@ -56,48 +58,36 @@ export default {
 	 * apps are for L1 management, the HR manager and the HR controller — `manager` is the L1 rung
 	 * (`policy_grants.ts` names its approver team `L1 Manager`), so `supervisor` and
 	 * `senior_management` have self-service and no HR group. That is a narrowing: both keep every
-	 * collection grant this file lists, and an approval step routed to `Senior Management` is
+	 * collection grant this file lists, and an approval flow routed to `Senior Management` is
 	 * decided from the notification and the request surface rather than from the HR app.
 	 */
 	capabilities: { apps: ['hr_employee'] },
 
-	grants: [
+	grants: mergeGrants(
 		// The ordinary ladder, widened: senior management writes the configuration a manager only reads.
-		...referenceGrants('read', 'create', 'update', 'delete'),
-		...statutoryGrants('read'),
-		...peopleGrants('read'),
-		...peopleGrants('create', 'update', 'delete'),
-		...grantsOn('time_entries', ['read']),
+		referenceGrants('read', 'create', 'update', 'delete'),
+		statutoryGrants('read'),
+		peopleGrants('read'),
+		peopleGrants('create', 'update', 'delete'),
+		grantsOn('time_entries', ['read']),
 
 		// Unconditional, so corrections are visible. See the note above for why this rank and not the
 		// one below it.
-		...grantsOn('component_entries', ['read', 'create', 'update', 'delete']),
+		grantsOn('component_entries', ['read', 'create', 'update', 'delete']),
 
-		{
-			collection: 'time_entries',
-			action: 'create',
-			approval: timeEntryApproval
-		},
-		{
-			collection: 'time_entries',
-			action: 'update',
-			approval: timeEntryApproval
-		},
-		{ collection: 'time_entries', action: 'delete' },
+		grantOn('time_entries', 'create', { approval: timeEntryApproval }),
+		grantOn('time_entries', 'update', { approval: timeEntryApproval }),
+		grantsOn('time_entries', ['delete']),
 
-		...grantsOn('leave_requests', ['read', 'update', 'delete']),
-		{
-			collection: 'leave_requests',
-			action: 'create',
-			approval: leaveApproval
-		},
+		grantsOn('leave_requests', ['read', 'update', 'delete']),
+		grantOn('leave_requests', 'create', { approval: leaveApproval }),
 
 		// The payroll authority, identical to `hr_manager`'s. Stated as the same three builder calls so
 		// that a change to what "running payroll" costs in permissions lands on both policies at once.
-		...payrollGrants('read'),
-		...payrollRebuildGrants(),
-		...grantsOn('payroll_runs', ['create', 'update', 'delete'])
-	],
+		payrollGrants('read'),
+		payrollRebuildGrants(),
+		grantsOn('payroll_runs', ['create', 'update', 'delete'])
+	),
 	/**
 	 * What a holder of this policy may spend.
 	 *

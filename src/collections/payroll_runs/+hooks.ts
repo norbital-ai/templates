@@ -196,54 +196,57 @@ export default {
 			before: {
 				description:
 					'Refuses hand edits to the engine-owned period, pay date, attendance window and configuration hash, refuses any change to a PAID run, and re-resolves that window and configuration when a draft is recalculated.',
-				handler: ({ input, existing, api }) =>
-					Effect.gen(function* () {
-						for (const column of DERIVED_COLUMNS)
-							if (input[column] != null && String(input[column]) !== String(existing[column]))
-								refuse(
-									`Payroll run ${column} is derived from the period and the configuration, and cannot be edited.`
-								);
-						const next = input.lifecycle ?? existing.lifecycle;
-						if (next === existing.lifecycle) {
-							if (next !== 'DRAFT') return input;
-							const { window, configuration } = yield* preparePayrollRun({
-								api,
-								companyId: existing.company_id,
-								period: existing.period
-							});
-							return {
-								...input,
-								configuration_hash: configuration.hash,
-								configuration_snapshot: {
-									kind: 'CAPTURED' as const,
-									configuration_hash: configuration.hash,
-									configuration: configurationSnapshot(configuration, existing.period)
-								},
-								pay_date: window.payDate,
-								attendance_from: window.attendance.start,
-								attendance_to: window.attendance.end
-							};
-						}
+				handler: ({ input, existing, api }) => {
+					for (const column of DERIVED_COLUMNS)
+						if (input[column] != null && String(input[column]) !== String(existing[column]))
+							refuse(
+								`Payroll run ${column} is derived from the period and the configuration, and cannot be edited.`
+							);
+					const next = input.lifecycle ?? existing.lifecycle;
+					if (next !== existing.lifecycle) {
 						if (existing.lifecycle === 'PAID')
 							refuse('A paid payroll run is immutable. Correct it with a later adjustment entry.');
-						return input;
-					})
+						return Effect.succeed(input);
+					}
+					// A same-state update is only a recalculation while the run is still a draft.
+					if (next !== 'DRAFT') return Effect.succeed(input);
+					return Effect.map(
+						preparePayrollRun({
+							api,
+							companyId: existing.company_id,
+							period: existing.period
+						}),
+						({ window, configuration }) => ({
+							...input,
+							configuration_hash: configuration.hash,
+							configuration_snapshot: {
+								kind: 'CAPTURED' as const,
+								configuration_hash: configuration.hash,
+								configuration: configurationSnapshot(configuration, existing.period)
+							},
+							pay_date: window.payDate,
+							attendance_from: window.attendance.start,
+							attendance_to: window.attendance.end
+						})
+					);
+				}
 			},
 			after: {
 				description:
 					'Rebuilds a draft run’s payslips and lines from scratch after its source time entries, component entries or rules have changed, and leaves a paid run untouched.',
-				handler: ({ record, api }) =>
-					Effect.gen(function* () {
-						// A same-state DRAFT update is the explicit recalculation action after source entries
-						// change. The platform carries the approval/revision context; payroll only rebuilds.
-						if (record.lifecycle !== 'DRAFT') return;
-						yield* runEngine({
+				handler: ({ record, api }) => {
+					// A same-state DRAFT update is the explicit recalculation action after source entries
+					// change. The platform carries the approval/revision context; payroll only rebuilds.
+					if (record.lifecycle !== 'DRAFT') return Effect.void;
+					return Effect.asVoid(
+						runEngine({
 							api,
 							runId: record.id,
 							companyId: record.company_id,
 							period: record.period
-						});
-					})
+						})
+					);
+				}
 			}
 		}
 	},

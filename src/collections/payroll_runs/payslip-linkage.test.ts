@@ -216,9 +216,7 @@ function configuration(overrides = {}) {
 const clock = (date, from, to) => ({
 	id: `time-${date}`,
 	work_date: date,
-	worked_intervals: [
-		{ start_at: `${date}T${from}:00.000+08:00`, end_at: `${date}T${to}:00.000+08:00` }
-	],
+	worked_intervals: [{ start: `${date}T${from}:00.000+08:00`, end: `${date}T${to}:00.000+08:00` }],
 	break_minutes: 60
 });
 

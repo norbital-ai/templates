@@ -5,7 +5,7 @@
 	import { numberFrom } from '../../lib/ui/renderer-input.js';
 	import { Combobox } from '@norbital-ai/ui/combobox';
 	import { Input } from '@norbital-ai/ui/input';
-	import { Grid } from '@norbital-ai/ui/layout';
+	import { Grid, Inline, Stack } from '@norbital-ai/ui/layout';
 	import { leaveAccrualSchema, type LeaveCarry } from './+definition.js';
 	import type { RendererProps, Value } from './$types.js';
 	const { t } = useI18n<TenantI18nKeys>();
@@ -71,62 +71,70 @@
 	<span class="block truncate" title={summary}>{summary}</span>
 {:else}
 	<Grid class="rounded-md border border-border bg-muted/20 p-3" gap="sm" minimum="compact">
-		<label class="grid gap-1.5 text-sm font-medium">
-			Accrual
-			<Combobox
-				options={KIND_OPTIONS}
-				value={current?.kind ?? null}
-				{disabled}
-				searchable={false}
-				emptyPlaceholder={t('renderer.leave_accrual.select_accrual')}
-				onValueChange={selectKind}
-			/>
+		<label class="text-sm font-medium">
+			<Stack gap="xs">
+				Accrual
+				<Combobox
+					options={KIND_OPTIONS}
+					value={current?.kind ?? null}
+					{disabled}
+					searchable={false}
+					emptyPlaceholder={t('renderer.leave_accrual.select_accrual')}
+					onValueChange={selectKind}
+				/>
+			</Stack>
 		</label>
 
 		{#if current?.kind === 'MONTHLY' || current?.kind === 'UPFRONT'}
-			<label class="flex items-center gap-2 self-end text-sm font-medium">
-				<input
-					type="checkbox"
-					class="size-4"
-					checked={current.carry !== null}
-					{disabled}
-					onchange={(event) =>
-						emit({ ...current, carry: event.currentTarget.checked ? DEFAULT_CARRY : null })}
-				/>
-				Carry forward
+			<label class="self-end text-sm font-medium">
+				<Inline gap="sm">
+					<input
+						type="checkbox"
+						class="size-4"
+						checked={current.carry !== null}
+						{disabled}
+						onchange={(event) =>
+							emit({ ...current, carry: event.currentTarget.checked ? DEFAULT_CARRY : null })}
+					/>
+					Carry forward
+				</Inline>
 			</label>
 
 			{#if current.carry !== null}
 				{@const carry = current.carry}
-				<label class="grid gap-1.5 text-sm font-medium">
-					Carry limit (days)
-					<Input
-						type="number"
-						min="0"
-						step="0.5"
-						value={carry.limit_days}
-						{disabled}
-						oninput={(event) =>
-							emit({
-								...current,
-								carry: { ...carry, limit_days: numberFrom(event.currentTarget.value, 0) }
-							})}
-					/>
+				<label class="text-sm font-medium">
+					<Stack gap="xs">
+						Carry limit (days)
+						<Input
+							type="number"
+							min="0"
+							step="0.5"
+							value={carry.limit_days}
+							{disabled}
+							oninput={(event) =>
+								emit({
+									...current,
+									carry: { ...carry, limit_days: numberFrom(event.currentTarget.value, 0) }
+								})}
+						/>
+					</Stack>
 				</label>
-				<label class="grid gap-1.5 text-sm font-medium">
-					Expires after (months)
-					<Input
-						type="number"
-						min="0"
-						step="1"
-						value={carry.expiry_months}
-						{disabled}
-						oninput={(event) =>
-							emit({
-								...current,
-								carry: { ...carry, expiry_months: numberFrom(event.currentTarget.value, 0) }
-							})}
-					/>
+				<label class="text-sm font-medium">
+					<Stack gap="xs">
+						Expires after (months)
+						<Input
+							type="number"
+							min="0"
+							step="1"
+							value={carry.expiry_months}
+							{disabled}
+							oninput={(event) =>
+								emit({
+									...current,
+									carry: { ...carry, expiry_months: numberFrom(event.currentTarget.value, 0) }
+								})}
+						/>
+					</Stack>
 				</label>
 			{/if}
 		{/if}

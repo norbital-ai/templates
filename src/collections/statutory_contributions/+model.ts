@@ -1,12 +1,4 @@
-import {
-	custom,
-	dateRange,
-	defineModel,
-	enums,
-	integer,
-	text,
-	uuid
-} from '@norbital-ai/bolt/authoring';
+import { custom, defineModel, enums, integer, text, uuid } from '@norbital-ai/bolt/authoring';
 
 export default defineModel(
 	{
@@ -42,7 +34,7 @@ export default defineModel(
 		 */
 		overtime_treatments: custom('overtime_treatment_schedule').notNull(),
 		overtime_excess_treatments: custom('overtime_treatment_schedule').notNull(),
-		effective_range: dateRange().notNull()
+		effective_range: custom('instant_range', { precision: 'day' }).notNull()
 	},
 	{
 		description:

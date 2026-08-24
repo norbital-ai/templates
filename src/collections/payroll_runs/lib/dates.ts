@@ -22,24 +22,16 @@ const DAY_MS = 86_400_000;
  * driver read off the wire — which is the only representation of a calendar day that no host can
  * move. Slicing it is therefore the whole conversion, and it is exact.
  *
- * A `Date` is something else: an instant, and an instant is only a calendar day once a zone has
- * been chosen. This module's zone is UTC, as stated above, so the UTC components are read. Do not
- * be tempted into local ones — a value like `new Date('2026-01-01')` is anchored at UTC midnight,
- * and reading it locally moves the day backwards everywhere west of Greenwich.
- *
- * (This is the shape of a bug that reached production once: the driver used to hand `date` columns
- * over as a `Date` at the **host's** local midnight, an instant that means a different day in the
- * tenant runtime's zone. A hire date of 2026-01-01 arrived as 2025-12-31, which put the employment
- * in the previous month — deferred out of a December that had no terms covering it. That is fixed
- * where it happened, at the driver's type parser, so a calendar day is never an instant again.)
+ * Authored instants are always ISO strings. Day precision is presentation metadata, so the first
+ * ten characters are stable without consulting the host's local time zone.
  */
-export function dateKey(value: string | Date | null | undefined): IsoDate | null {
+export function dateKey(value: string | null | undefined): IsoDate | null {
 	const key = calendarDateKey(value);
 	return key === '' ? null : key;
 }
 
 /** Same as `dateKey`, for a value that must be present. */
-export function requiredDateKey(value: string | Date, what: string): IsoDate {
+export function requiredDateKey(value: string, what: string): IsoDate {
 	const key = dateKey(value);
 	if (key == null || key.length !== 10) throw new Error(`${what} is not a calendar date.`);
 	return key;

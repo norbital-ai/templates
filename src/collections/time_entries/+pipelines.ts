@@ -145,7 +145,7 @@ function createPayload(row: ImportRow, timeZone: string, employmentId: string) {
 	return {
 		employment_id: employmentId,
 		work_date: row.work_date,
-		worked_intervals: [{ start_at: start, end_at: end }],
+		worked_intervals: [{ start: start, end: end }],
 		break_minutes: row.break_minutes ?? 0
 	};
 }

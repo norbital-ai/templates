@@ -2,23 +2,56 @@
 	import { client } from '../../../lib/workspace-client.js';
 	import { useI18n } from '@norbital-ai/ui/i18n';
 	import type { TenantI18nKeys } from '$bolt/i18n-keys';
-	import { Button } from '@norbital-ai/ui/button';
 	import { Inline, Stack } from '@norbital-ai/ui/layout';
 	import * as ToggleGroup from '@norbital-ai/ui/toggle-group';
 	import { heatmapClass } from '../display-formatters.js';
+	import {
+		bucketSeasonalHeatmap,
+		componentSeasonalityCategories,
+		componentSeasonalityDate,
+		seasonalityDateWindow,
+		seasonalityYears
+	} from '../../seasonality.js';
 
 	let { companyId }: { companyId: string } = $props();
 
 	const { t } = useI18n<TenantI18nKeys>();
 
-	// The parent keys this instance on companyId. Wrapping invoke in `$derived` resubscribed
-	// the heatmap to every load and left it on the error state.
-	// svelte-ignore state_referenced_locally
-	const analyticsQuery = client.invoke.approval_analytics({
-		subject: 'PAY_COMPONENT',
-		company_id: companyId
+	const currentYear = new Date().getUTCFullYear();
+	const historyYears = seasonalityYears(currentYear);
+	const { start: windowStart, endExclusive: windowEnd } = seasonalityDateWindow(currentYear);
+	const analyticsQuery = $derived(
+		client.db.component_entries.findMany({
+			where: { entry_employment: { company_id: { eq: companyId } } },
+			columns: { origin: true, event_date: true },
+			limit: 5000
+		})
+	);
+	const analytics = $derived.by(() => {
+		const rows = analyticsQuery.current;
+		if (rows === undefined) return null;
+		const dated = rows
+			.map((row) => ({
+				category: row.origin.kind,
+				date: componentSeasonalityDate(row.origin, row.event_date)
+			}))
+			.filter((row) => row.date >= windowStart && row.date < windowEnd);
+		return {
+			total: dated.length,
+			seasonal_heatmap: bucketSeasonalHeatmap(
+				historyYears,
+				dated.map((row) => row.date)
+			),
+			categories: componentSeasonalityCategories.map((category) => {
+				const dates = dated.filter((row) => row.category === category).map((row) => row.date);
+				return {
+					category,
+					total: dates.length,
+					seasonal_heatmap: bucketSeasonalHeatmap(historyYears, dates)
+				};
+			})
+		};
 	});
-	const analytics = $derived(analyticsQuery.current ?? null);
 	let selectedCategory = $state('ALL');
 	const selectedAnalytics = $derived.by(() => {
 		if (!analytics || selectedCategory === 'ALL') return analytics;
@@ -137,21 +170,9 @@
 				<span class="text-meta">{t('app.pay_components.heatmap_more')}</span>
 			</Inline>
 		{:else if analyticsQuery.error}
-			<Stack gap="sm" class="py-8">
-				<p class="text-center text-sm text-destructive">
-					{t('app.pay_components.seasonality_error')}
-				</p>
-				<Inline justify="center">
-					<Button
-						size="sm"
-						variant="outline"
-						disabled={analyticsQuery.loading}
-						onclick={() => void analyticsQuery.refresh()}
-					>
-						{t('app.pay_components.seasonality_retry')}
-					</Button>
-				</Inline>
-			</Stack>
+			<p class="py-8 text-center text-sm text-destructive">
+				{t('app.pay_components.seasonality_error')}
+			</p>
 		{:else}
 			<p class="py-8 text-center text-sm text-muted-foreground">
 				{t('app.pay_components.loading_seasonality')}

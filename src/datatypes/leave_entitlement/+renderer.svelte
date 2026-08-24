@@ -160,17 +160,19 @@
 							}}
 						/>
 					</Stack>
-					<label class="grid gap-1.5 text-sm font-medium">
-						Days granted
-						<Input
-							type="number"
-							min="0"
-							step="0.5"
-							value={row.layer.days}
-							disabled={row.disabled}
-							oninput={(event) =>
-								row.replace({ ...row.layer, days: numberFrom(event.currentTarget.value, 0) })}
-						/>
+					<label class="text-sm font-medium">
+						<Stack gap="xs">
+							Days granted
+							<Input
+								type="number"
+								min="0"
+								step="0.5"
+								value={row.layer.days}
+								disabled={row.disabled}
+								oninput={(event) =>
+									row.replace({ ...row.layer, days: numberFrom(event.currentTarget.value, 0) })}
+							/>
+						</Stack>
 					</label>
 				</Grid>
 			{/snippet}

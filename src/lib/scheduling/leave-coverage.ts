@@ -10,11 +10,11 @@ import { dateKey } from '../iso-day.js';
  * boundary dates — the morning-free start day or the afternoon-free end day.
  */
 
-/** A leave request as every reader holds it: the wire decodes strings, a local replica hands Dates. */
+/** A leave request as every reader holds it: authored instants are ISO strings on every path. */
 const leaveRequestLikeSchema = Schema.Struct({
 	kind: Schema.optional(Schema.NullOr(Schema.String)),
-	from_date: Schema.optional(Schema.NullOr(Schema.Union([Schema.String, Schema.Date]))),
-	to_date: Schema.optional(Schema.NullOr(Schema.Union([Schema.String, Schema.Date]))),
+	from_date: Schema.optional(Schema.NullOr(Schema.String)),
+	to_date: Schema.optional(Schema.NullOr(Schema.String)),
 	half_day_start: Schema.optional(Schema.NullOr(Schema.Boolean)),
 	half_day_end: Schema.optional(Schema.NullOr(Schema.Boolean))
 });

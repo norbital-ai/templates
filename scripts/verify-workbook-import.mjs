@@ -24,6 +24,7 @@ import { fileURLToPath } from 'node:url';
 import ExcelJS from 'exceljs';
 import { Cause, Effect } from 'effect';
 import { createServer } from 'vite';
+import { stubApi as tableStub } from './lib/stub-api.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -89,6 +90,9 @@ const SETTINGS_ROWS = [
 ];
 
 const ROSTER_ID = 'roster:2026-05';
+
+/** The instant the published-roster refusal is checked against; a fixture value, not a clock. */
+const PUBLISHED_AT = new Date('2026-04-20T00:00:00.000Z');
 const COMPANY_ID = 'company:1';
 
 function matches(row, where = {}) {
@@ -102,19 +106,7 @@ function matches(row, where = {}) {
 }
 
 /** A stand-in for the workspace tables the pipelines resolve names against. */
-function stubApi(tables) {
-	const query = Object.fromEntries(
-		Object.entries(tables).map(([name, rows]) => [
-			name,
-			{
-				findFirst: ({ where } = {}) =>
-					Effect.succeed(rows.find((row) => matches(row, where)) ?? null),
-				findMany: ({ where } = {}) => Effect.succeed(rows.filter((row) => matches(row, where)))
-			}
-		])
-	);
-	return { db: { query } };
-}
+const stubApi = (tables) => tableStub(tables, matches);
 
 /** Resolve an authored handler result the way the runtime does: Effect, promise, or value. */
 function runHandler(result) {
@@ -399,7 +391,7 @@ const program = Effect.gen(function* () {
 				return yield* runHandlerCall(() =>
 					rosterPipeline.import.handler(
 						{ input: rosterImportPayload(grids, ROSTER_ID) },
-						rosterApi({ roster: { published_at: new Date('2026-04-20T00:00:00.000Z') } })
+						rosterApi({ roster: { published_at: PUBLISHED_AT } })
 					)
 				);
 			})
@@ -524,9 +516,7 @@ const program = Effect.gen(function* () {
 			{
 				employment_id: 'employment:2',
 				work_date: '2026-05-04',
-				worked_intervals: [
-					{ start_at: '2026-05-04T00:16:00.000Z', end_at: '2026-05-04T09:10:00.000Z' }
-				],
+				worked_intervals: [{ start: '2026-05-04T00:16:00.000Z', end: '2026-05-04T09:10:00.000Z' }],
 				break_minutes: 0
 			},
 			'both clocks present close the entry, and a break nobody wrote lands as none'
@@ -536,15 +526,13 @@ const program = Effect.gen(function* () {
 			{
 				employment_id: 'employment:23',
 				work_date: '2026-05-04',
-				worked_intervals: [
-					{ start_at: '2026-05-04T12:30:00.000Z', end_at: '2026-05-04T21:15:00.000Z' }
-				],
+				worked_intervals: [{ start: '2026-05-04T12:30:00.000Z', end: '2026-05-04T21:15:00.000Z' }],
 				break_minutes: 0
 			},
 			'a night shift closes on the next calendar day, eight hours behind UTC'
 		);
 		assert.equal(
-			landed[4].worked_intervals[0].end_at,
+			landed[4].worked_intervals[0].end,
 			null,
 			'a missing close remains an open interval'
 		);
@@ -669,7 +657,7 @@ const program = Effect.gen(function* () {
 			timeEntryPipeline.import.handler({ input: timeGridPayload }, timeEntryApi())
 		);
 		assert.equal(timeGridWritten.length, 5);
-		assert.equal(timeGridWritten[4].worked_intervals[0].end_at, null);
+		assert.equal(timeGridWritten[4].worked_intervals[0].end, null);
 
 		const wrongEntity = yield* refusal(() =>
 			runHandlerCall(() =>

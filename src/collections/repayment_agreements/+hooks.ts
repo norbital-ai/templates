@@ -26,17 +26,18 @@ function agreementEntries(
 	api: ReadApi,
 	agreement: Pick<WorkspaceRow<'repayment_agreements'>, 'id'>
 ) {
-	return Effect.gen(function* () {
-		const rows = yield* api.db.query.component_entries.findMany({
+	return Effect.map(
+		api.db.query.component_entries.findMany({
 			where: { repayment_agreement_id: { eq: agreement.id } },
 			with: { entry_payslip_lines: { columns: { id: true } } },
 			limit: LIMIT
-		});
-		return checked(rows, 'Component entries').map((row) => ({
-			...row,
-			entry_payslip_lines: Array.isArray(row.entry_payslip_lines) ? row.entry_payslip_lines : null
-		}));
-	});
+		}),
+		(rows) =>
+			checked(rows, 'Component entries').map((row) => ({
+				...row,
+				entry_payslip_lines: Array.isArray(row.entry_payslip_lines) ? row.entry_payslip_lines : null
+			}))
+	);
 }
 
 /** "Consumed" is not a flag: it is the existence of the nested persisted source relation. */
@@ -62,8 +63,7 @@ function protectPaidInstalments(
 		readonly schedule: WorkspaceRow<'repayment_agreements'>['schedule'];
 	}
 ): Effect.Effect<void, never, never> {
-	return Effect.gen(function* () {
-		const entries = yield* agreementEntries(api, existing);
+	return Effect.map(agreementEntries(api, existing), (entries) => {
 		const linked = linkedEntryIds(entries);
 		if (linked.size === 0) return;
 		if (
@@ -113,20 +113,21 @@ export default {
 			before: {
 				description:
 					'Re-checks that the amended schedule still clears the principal inside the agreement period, and refuses to change the amount, due date, employment or component of any instalment already paid out on a payslip.',
-				handler: ({ input, existing, api }) =>
-					Effect.gen(function* () {
-						const principal = input.principal ?? existing.principal;
-						const effectiveRange = input.effective_range ?? existing.effective_range;
-						const schedule = input.schedule ?? existing.schedule;
-						const scheduleIssues = repaymentScheduleIssues({ principal, effectiveRange, schedule });
-						if (scheduleIssues.length > 0) refuse(scheduleIssues.join(' '));
-						yield* protectPaidInstalments(api, existing, {
+				handler: ({ input, existing, api }) => {
+					const principal = input.principal ?? existing.principal;
+					const effectiveRange = input.effective_range ?? existing.effective_range;
+					const schedule = input.schedule ?? existing.schedule;
+					const scheduleIssues = repaymentScheduleIssues({ principal, effectiveRange, schedule });
+					if (scheduleIssues.length > 0) refuse(scheduleIssues.join(' '));
+					return Effect.as(
+						protectPaidInstalments(api, existing, {
 							employment_id: input.employment_id ?? existing.employment_id,
 							pay_component_id: input.pay_component_id ?? existing.pay_component_id,
 							schedule
-						});
-						return input;
-					})
+						}),
+						input
+					);
+				}
 			}
 		}
 	},

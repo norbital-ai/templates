@@ -4,7 +4,7 @@
 	import type { TenantI18nKeys } from '$bolt/i18n-keys';
 	import { Combobox } from '@norbital-ai/ui/combobox';
 	import { Input } from '@norbital-ai/ui/input';
-	import { Grid } from '@norbital-ai/ui/layout';
+	import { Grid, Stack } from '@norbital-ai/ui/layout';
 	import { accrualKeySchema } from './+definition.js';
 	import type { CollectionField } from '@norbital-ai/ui/data-renderer';
 	import type { RendererProps, Value } from './$types.js';
@@ -73,29 +73,33 @@
 	<span class="block truncate" title={summary}>{summary}</span>
 {:else}
 	<Grid class="rounded-md border border-border bg-muted/20 p-3" gap="sm" minimum="compact">
-		<label class="grid gap-1.5 text-sm font-medium">
-			Keyed by
-			<Combobox
-				options={KEY_OPTIONS}
-				value={current?.by ?? null}
-				{disabled}
-				searchable={false}
-				emptyPlaceholder={t('renderer.accrual_key.select_key')}
-				onValueChange={selectKey}
-			/>
+		<label class="text-sm font-medium">
+			<Stack gap="xs">
+				Keyed by
+				<Combobox
+					options={KEY_OPTIONS}
+					value={current?.by ?? null}
+					{disabled}
+					searchable={false}
+					emptyPlaceholder={t('renderer.accrual_key.select_key')}
+					onValueChange={selectKey}
+				/>
+			</Stack>
 		</label>
 		{#if current?.by === 'SERVICE_MONTHS'}
-			<label class="grid gap-1.5 text-sm font-medium">
-				Band from (completed months)
-				<Input
-					type="number"
-					min="0"
-					step="1"
-					value={current.band_from}
-					{disabled}
-					oninput={(event) =>
-						emit({ by: 'SERVICE_MONTHS', band_from: numberFrom(event.currentTarget.value, 0) })}
-				/>
+			<label class="text-sm font-medium">
+				<Stack gap="xs">
+					Band from (completed months)
+					<Input
+						type="number"
+						min="0"
+						step="1"
+						value={current.band_from}
+						{disabled}
+						oninput={(event) =>
+							emit({ by: 'SERVICE_MONTHS', band_from: numberFrom(event.currentTarget.value, 0) })}
+					/>
+				</Stack>
 			</label>
 		{/if}
 	</Grid>

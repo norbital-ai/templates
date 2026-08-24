@@ -51,7 +51,7 @@ function measuredSpan(bundle: EmploymentBundle): { start: IsoDate; end: IsoDate 
 	};
 }
 
-function within(span: { start: IsoDate; end: IsoDate }, value: string | Date | null): boolean {
+function within(span: { start: IsoDate; end: IsoDate }, value: string | null): boolean {
 	const key = dateKey(value);
 	return key != null && key >= span.start && key <= span.end;
 }

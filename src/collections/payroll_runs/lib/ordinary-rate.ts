@@ -76,7 +76,7 @@ function ordinaryRateDivisor(terms: RateTerms, jurisdiction: Jurisdiction): numb
  * Weekly, daily and hourly contracts are converted because those are genuinely different wage
  * bases. They still need their own proration story before those populations are trusted.
  */
-export function monthlyBaseSalary(terms: RateTerms): number {
+function monthlyBaseSalary(terms: RateTerms): number {
 	const value = Number(terms.base_salary.value);
 	const hoursPerDay = Number(terms.ordinary_hours_per_week) / Number(terms.working_days_per_week);
 	switch (terms.pay_frequency) {

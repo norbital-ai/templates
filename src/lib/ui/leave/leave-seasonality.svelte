@@ -2,22 +2,47 @@
 	import { client } from '../../../lib/workspace-client.js';
 	import { useI18n } from '@norbital-ai/ui/i18n';
 	import type { TenantI18nKeys } from '$bolt/i18n-keys';
-	import { Button } from '@norbital-ai/ui/button';
+	import { formatDateISO } from '@norbital-ai/std/date';
 	import { Inline, Stack } from '@norbital-ai/ui/layout';
 	import { heatmapClass } from '../display-formatters.js';
+	import {
+		bucketSeasonalHeatmap,
+		seasonalityDateWindow,
+		seasonalityYears
+	} from '../../seasonality.js';
 
 	let { companyId }: { companyId: string } = $props();
 
 	const { t } = useI18n<TenantI18nKeys>();
 
-	// The parent keys this instance on companyId. Wrapping invoke in `$derived` resubscribed
-	// the heatmap to every load and left it on the error state.
-	// svelte-ignore state_referenced_locally
-	const analyticsQuery = client.invoke.approval_analytics({
-		subject: 'LEAVE',
-		company_id: companyId
+	const currentYear = new Date().getUTCFullYear();
+	const historyYears = seasonalityYears(currentYear);
+	const { start: windowStart, endExclusive: windowEnd } = seasonalityDateWindow(currentYear);
+	const companyScope = $derived({
+		leave_request_employment: { company_id: { eq: companyId } }
+	} as const);
+	const analyticsQuery = $derived(
+		client.db.leave_requests.findMany({
+			where: { ...companyScope, kind: { eq: 'TIME_OFF' } },
+			columns: { from_date: true },
+			limit: 5000
+		})
+	);
+	const analytics = $derived.by(() => {
+		const rows = analyticsQuery.current;
+		if (rows === undefined) return null;
+		const seasonalRows = rows.filter((row) => {
+			const date = row.from_date == null ? '' : formatDateISO(row.from_date);
+			return date >= windowStart && date < windowEnd;
+		});
+		return {
+			total: rows.length,
+			seasonal_heatmap: bucketSeasonalHeatmap(
+				historyYears,
+				seasonalRows.map((row) => row.from_date)
+			)
+		};
 	});
-	const analytics = $derived(analyticsQuery.current ?? null);
 	const heatmapMaximum = $derived(
 		Math.max(0, ...(analytics?.seasonal_heatmap ?? []).flatMap((row) => row.months))
 	);
@@ -93,21 +118,9 @@
 				<span class="text-meta">{t('app.leave.heatmap_more')}</span>
 			</Inline>
 		{:else if analyticsQuery.error}
-			<Stack gap="sm" class="py-8">
-				<p class="text-center text-sm text-destructive">
-					{t('app.leave.seasonality_error')}
-				</p>
-				<Inline justify="center">
-					<Button
-						size="sm"
-						variant="outline"
-						disabled={analyticsQuery.loading}
-						onclick={() => void analyticsQuery.refresh()}
-					>
-						{t('app.leave.seasonality_retry')}
-					</Button>
-				</Inline>
-			</Stack>
+			<p class="py-8 text-center text-sm text-destructive">
+				{t('app.leave.seasonality_error')}
+			</p>
 		{:else}
 			<p class="py-8 text-center text-sm text-muted-foreground">
 				{t('app.leave.loading_seasonality')}
