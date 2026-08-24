@@ -60,10 +60,6 @@
 			| null;
 	};
 
-	function employmentLabel(row: ComponentEntryRow): string {
-		return row.entry_employment?.employee_number ?? '—';
-	}
-
 	function componentLabel(row: ComponentEntryRow): string {
 		const component = row.entry_pay_component;
 		if (component?.code) return component.code;
@@ -201,7 +197,8 @@
 					<Column
 						name="employment_id"
 						label={t('component.employment')}
-						render={({ row }) => employmentLabel(row)}
+						render={({ row }: { row: ComponentEntryRow }) =>
+							row.entry_employment?.employee_number ?? '—'}
 					/>
 					<Column
 						name="amount"

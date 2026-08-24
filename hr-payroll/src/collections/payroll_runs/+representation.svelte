@@ -33,6 +33,11 @@
 
 	let { record, close }: RepresentationProps = $props();
 	const { t } = useI18n<TenantI18nKeys>();
+	const updateAccessQuery = client.system.access.explain({
+		action: 'update',
+		resource: 'payroll_runs'
+	});
+	const mayUpdatePayroll = $derived(updateAccessQuery.current?.allowed === true);
 
 	const OFFERED_PERIODS = Array.from(
 		{ length: 12 },
@@ -178,30 +183,32 @@
 	function downloadReport(): void {
 		if (record == null) return;
 		Effect.runPromise(
-			Effect.gen(function* () {
-				const attempt = yield* Effect.result(
+			Effect.map(
+				Effect.result(
 					Effect.tryPromise(() =>
 						downloadCollectionExport(
 							{ collection_name: 'payroll_runs', record_ids: [record.id] },
 							{ includeAction: (action) => action.metadata?.kind === 'payroll-report-xlsx' }
 						)
 					)
-				);
-				if (Result.isFailure(attempt)) {
-					toast.error(
-						attempt.failure instanceof Error
-							? attempt.failure.message
-							: t('component.export_failed')
-					);
-					return;
+				),
+				(attempt) => {
+					if (Result.isFailure(attempt)) {
+						toast.error(
+							attempt.failure instanceof Error
+								? attempt.failure.message
+								: t('component.export_failed')
+						);
+						return;
+					}
+					const manifest = attempt.success;
+					if (manifest.length === 0) {
+						toast.error(t('component.build_before_export'));
+						return;
+					}
+					saveCollectionExport(manifest);
 				}
-				const manifest = attempt.success;
-				if (manifest.length === 0) {
-					toast.error(t('component.build_before_export'));
-					return;
-				}
-				saveCollectionExport(manifest);
-			})
+			)
 		);
 	}
 </script>
@@ -229,27 +236,29 @@
 						<Button variant="outline" size="sm" onclick={downloadReport}>
 							{t('component.export_salary_listing')}
 						</Button>
-						<Button
-							variant="outline"
-							size="sm"
-							disabled={client.db.payroll_runs.pending > 0}
-							onclick={() => updateDraft('recalculate')}
-						>
-							{t('component.recalculate_draft')}
-						</Button>
-						<Button
-							size="sm"
-							disabled={client.db.payroll_runs.pending > 0}
-							onclick={() => {
-								if (!lockArmed) {
-									lockArmed = true;
-									return;
-								}
-								void updateDraft('pay');
-							}}
-						>
-							{lockArmed ? t('component.confirm_lock_pay') : t('component.lock_payroll')}
-						</Button>
+						{#if mayUpdatePayroll}
+							<Button
+								variant="outline"
+								size="sm"
+								disabled={client.db.payroll_runs.pending > 0}
+								onclick={() => updateDraft('recalculate')}
+							>
+								{t('component.recalculate_draft')}
+							</Button>
+							<Button
+								size="sm"
+								disabled={client.db.payroll_runs.pending > 0}
+								onclick={() => {
+									if (!lockArmed) {
+										lockArmed = true;
+										return;
+									}
+									void updateDraft('pay');
+								}}
+							>
+								{lockArmed ? t('component.confirm_lock_pay') : t('component.lock_payroll')}
+							</Button>
+						{/if}
 					{/if}
 				</Inline>
 			</Cluster>
@@ -283,7 +292,9 @@
 
 		{#if emptyDraft}
 			<p class="rounded-md border border-amber-500/40 bg-amber-500/10 p-3 text-sm">
-				{t('component.draft_built_nothing')}
+				{mayUpdatePayroll
+					? t('component.draft_built_nothing')
+					: t('component.draft_built_nothing_view_only')}
 			</p>
 		{/if}
 
@@ -340,38 +351,42 @@
 		{#snippet children({ form })}
 			<Stack gap="lg">
 				<Grid gap="md" minimum="compact">
-					<label class="grid gap-1.5 text-sm font-medium">
-						{t('component.legal_entity')}
-						<Combobox
-							ariaLabel={t('component.legal_entity')}
-							options={companyOptions}
-							value={companyId}
-							onValueChange={(value) => {
-								companyId = value;
-								period = null;
-								form.setValues({ company_id: value });
-							}}
-							searchPlaceholder={t('component.search_companies')}
-							emptyPlaceholder={t('component.choose_legal_entity')}
-							disabled={companiesQuery.loading || jurisdictionsQuery.loading}
-						/>
+					<label class="text-sm font-medium">
+						<Stack gap="xs">
+							{t('component.legal_entity')}
+							<Combobox
+								ariaLabel={t('component.legal_entity')}
+								options={companyOptions}
+								value={companyId}
+								onValueChange={(value) => {
+									companyId = value;
+									period = null;
+									form.setValues({ company_id: value });
+								}}
+								searchPlaceholder={t('component.search_companies')}
+								emptyPlaceholder={t('component.choose_legal_entity')}
+								disabled={companiesQuery.loading || jurisdictionsQuery.loading}
+							/>
+						</Stack>
 					</label>
-					<label class="grid gap-1.5 text-sm font-medium">
-						{t('component.pay_period')}
-						<Combobox
-							ariaLabel={t('component.pay_period')}
-							options={periodOptions}
-							value={period}
-							onValueChange={(value) => {
-								period = value;
-								form.setValues({ company_id: companyId, period: value });
-							}}
-							searchPlaceholder={t('component.search_payroll_periods')}
-							emptyPlaceholder={companyId
-								? t('component.choose_payroll_period')
-								: t('component.choose_entity_first')}
-							disabled={!companyId || runsQuery.loading}
-						/>
+					<label class="text-sm font-medium">
+						<Stack gap="xs">
+							{t('component.pay_period')}
+							<Combobox
+								ariaLabel={t('component.pay_period')}
+								options={periodOptions}
+								value={period}
+								onValueChange={(value) => {
+									period = value;
+									form.setValues({ company_id: companyId, period: value });
+								}}
+								searchPlaceholder={t('component.search_payroll_periods')}
+								emptyPlaceholder={companyId
+									? t('component.choose_payroll_period')
+									: t('component.choose_entity_first')}
+								disabled={!companyId || runsQuery.loading}
+							/>
+						</Stack>
 					</label>
 				</Grid>
 				{#if selectedWindow}

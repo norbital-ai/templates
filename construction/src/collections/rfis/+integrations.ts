@@ -24,6 +24,7 @@ const reports = defineConnection({
 
 export default {
 	reports: {
+		policies: ['reports_integration'],
 		connection: reports,
 		receive: {
 			rfi: definePull({

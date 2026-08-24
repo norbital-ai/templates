@@ -1,13 +1,13 @@
 import { defineCustomType } from '@norbital-ai/bolt/authoring';
 import { Schema } from 'effect';
 import { contributionTreatmentValueSchema } from '../contribution_treatment/+definition.js';
-import { dateRangeValueSchema } from '../date_range/+definition.js';
+import { instantRangeValueSchema } from '@norbital-ai/bolt/authoring';
 
 const statutoryTreatmentSchema = Schema.Struct({
 	statutory_contribution_id: Schema.String.check(Schema.isUUID()),
 	authority: Schema.NonEmptyString,
 	treatment: contributionTreatmentValueSchema,
-	effective_range: dateRangeValueSchema
+	effective_range: instantRangeValueSchema
 });
 const treatments = Schema.Array(statutoryTreatmentSchema);
 

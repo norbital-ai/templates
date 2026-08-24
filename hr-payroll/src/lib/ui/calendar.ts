@@ -108,7 +108,7 @@ function timeZoneOffsetMs(at: Date, timeZone: string): number {
 /**
  * The canonical UTC instant at which `calendarDate` begins in `timeZone`.
  *
- * A `dateRange()` bound is an instant, and its picker offers a calendar day. Appending `Z` to that
+ * A `custom('instant_range', { precision: 'day' })` bound is an instant, and its picker offers a calendar day. Appending `Z` to that
  * day — `` `${date}T00:00:00.000Z` `` — labels local wall time as UTC, which
  * [dates-and-time.md](../../../../skills/authoring-tenant-workspace/references/dates-and-time.md)
  * forbids: east of Greenwich it places the boundary eight hours into the previous local day.

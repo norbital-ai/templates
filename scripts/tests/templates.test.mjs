@@ -6,25 +6,17 @@ import {
 	actualCounts,
 	discoverTemplates,
 	repositoryRoot,
-	templateBundlePackageManifest,
-	templateBundlePublishAccess,
-	templateBundleVersion,
 	templateMetadataFile,
 	templateRefNamespace
 } from '../lib/templates.mjs';
 
 describe('template discovery', () => {
-	it('uses 0.0.1 for the repository, template manifests, and canonical build bundles', () => {
+	it('uses 0.0.1 for the repository and template manifests', () => {
 		assert.equal(
 			JSON.parse(readFileSync(path.join(repositoryRoot, 'package.json'))).version,
 			'0.0.1'
 		);
-		assert.equal(templateBundleVersion, '0.0.1');
-		assert.equal(templateBundlePublishAccess, 'public');
 		for (const template of discoverTemplates()) {
-			const bundleManifest = templateBundlePackageManifest(template);
-			assert.equal(bundleManifest.version, '0.0.1', template.slug);
-			assert.equal(bundleManifest.publishConfig.access, 'public', template.slug);
 			assert.equal(
 				JSON.parse(readFileSync(path.join(template.directory, 'package.json'))).version,
 				'0.0.1',
@@ -43,6 +35,19 @@ describe('template discovery', () => {
 			);
 			assert.equal(template.ref, `${templateRefNamespace}/${template.slug}`);
 		}
+	});
+
+	it('publishes validated source refs without prebuilt template packages', () => {
+		const workflow = readFileSync(
+			path.join(repositoryRoot, '.github', 'workflows', 'template-refs.yml'),
+			'utf8'
+		);
+		assert.match(workflow, /Validate standalone projections/);
+		assert.doesNotMatch(workflow, /template-bundles|publish-template-bundles/);
+		assert.equal(
+			existsSync(path.join(repositoryRoot, 'scripts', 'publish-template-bundles.mjs')),
+			false
+		);
 	});
 
 	it('projects the organization handle without tying it to the directory', () => {

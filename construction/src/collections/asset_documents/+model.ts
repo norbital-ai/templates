@@ -1,4 +1,4 @@
-import { dateRange, defineModel, enums, text, uuid } from '@norbital-ai/bolt/authoring';
+import { custom, defineModel, enums, text, uuid } from '@norbital-ai/bolt/authoring';
 
 export default defineModel(
 	{
@@ -17,7 +17,7 @@ export default defineModel(
 		asset_tag: text(),
 		asset_category: enums(['bim_model', 'handover', 'operations']),
 		status: enums(['draft', 'in_review', 'issued', 'superseded', 'archived']),
-		validity_range: dateRange(),
+		validity_range: custom('instant_range', { precision: 'day' }),
 		document_url: text(),
 		version: text(),
 		tags: text().array()

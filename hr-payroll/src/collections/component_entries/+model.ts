@@ -1,7 +1,7 @@
 import {
 	custom,
-	date,
 	defineModel,
+	instant,
 	integer,
 	numeric,
 	sql,
@@ -15,7 +15,7 @@ export default defineModel(
 		pay_component_id: uuid().notNull(),
 		amount: numeric().notNull(),
 		quantity: numeric(),
-		event_date: date().notNull(),
+		event_date: instant({ precision: 'day' }).notNull(),
 		pay_period: text(),
 		/**
 		 * Human-readable provenance — where this amount came from in the source the customer

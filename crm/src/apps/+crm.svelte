@@ -140,18 +140,6 @@
 					}
 				}
 	);
-
-	const pipelineDashboard = $derived.by(() => {
-		const params: { account_id?: string; owner_id?: string } = {};
-		if (selectedAccountId != null) params.account_id = selectedAccountId;
-		if (selectedOwnerId !== '') params.owner_id = selectedOwnerId;
-		return client.invoke.pipeline_dashboard(params);
-	});
-
-	const pipelineCards = $derived.by(() => {
-		const cards = pipelineDashboard.current?.cards ?? [];
-		return new Map(cards.map((card) => [card.id, card]));
-	});
 </script>
 
 <svelte:head>
@@ -195,15 +183,17 @@
 
 {#snippet pipeline()}
 	{#snippet pipelineScope()}
-		<label class="grid max-w-72 gap-1.5 text-sm">
-			<span class="font-medium">{t('component.owner')}</span>
-			<Combobox
-				options={ownerOptions}
-				bind:value={selectedOwnerId}
-				emptyPlaceholder={t('app.crm.select_rep')}
-				searchPlaceholder={t('app.crm.search_reps')}
-				clientConfig={{ isLoading: usersQuery.loading }}
-			/>
+		<label class="max-w-72 text-sm">
+			<Stack gap="xs">
+				<span class="font-medium">{t('component.owner')}</span>
+				<Combobox
+					options={ownerOptions}
+					bind:value={selectedOwnerId}
+					emptyPlaceholder={t('app.crm.select_rep')}
+					searchPlaceholder={t('app.crm.search_reps')}
+					clientConfig={{ isLoading: usersQuery.loading }}
+				/>
+			</Stack>
 		</label>
 	{/snippet}
 	<Cover gap="md" top={pipelineScope}>
@@ -219,9 +209,9 @@
 			{#snippet Card(quote)}
 				<Stack gap="xs">
 					<p class="text-sm font-medium">{quote.doc_no}: {quote.title}</p>
-					{#if pipelineCards.get(String(quote.id))?.account}
+					{#if accountLabelsById.get(String(quote.account_id))}
 						<p class="text-meta">
-							{pipelineCards.get(String(quote.id))?.account}
+							{accountLabelsById.get(String(quote.account_id))}
 						</p>
 					{/if}
 					{#if quote.gross != null}

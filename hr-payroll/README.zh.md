@@ -68,9 +68,9 @@ pay_components <-------------------------- payslip_lines
 
 策略按 `hr_controller` 应用*组*命名而非逐页命名，因此新增控制器页面无需改动任何角色声明。
 
-### 远程函数（1 个）
+### 实时分析
 
-**`approval_analytics`** 为控制器页面汇总的三个主题——薪资运行、休假申请与报销——提供年初至今的审批计数与五年趋势。值得一读的是它如何表述这些计数：每个计数都以 `approval_id IS NULL` 表达，因为这是"有效行"的唯一定义。
+控制器的休假、薪资组件与考勤图表直接通过 `client.db` 读取相关集合。这些查询由工作区同步引擎自动保持最新；组件在本地派生有界的五年热力图与八周考勤趋势，无需轮询、手动刷新或查询函数。
 
 ### 代理上下文
 
@@ -97,7 +97,6 @@ src/
 │   └── payroll_runs/lib/     # 结算引擎（阶段、加班、覆盖、导出）
 ├── datatypes/                # 24 个结构化值（money、component_definition、eligibility_rules、……）
 ├── access/                   # +teams.ts、匿名限流与六个策略
-├── functions/               # approval_analytics
 ├── i18n/                     # messages.en.json / messages.zh.json（相同的键集）
 ├── automations/              # statutory_profile_drift（每周确定性执行）
 ├── lib/                      # 共享辅助：日历、显示格式化、策略授权、排班月

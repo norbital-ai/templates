@@ -76,8 +76,8 @@ test('a closed day reports worked minutes net of the unpaid break', () => {
 				work_date: '2026-08-04',
 				break_minutes: 60,
 				worked_intervals: [
-					{ start_at: '2026-08-04T00:16:00.000Z', end_at: '2026-08-04T04:30:00.000Z' },
-					{ start_at: '2026-08-04T05:00:00.000Z', end_at: '2026-08-04T09:10:00.000Z' }
+					{ start: '2026-08-04T00:16:00.000Z', end: '2026-08-04T04:30:00.000Z' },
+					{ start: '2026-08-04T05:00:00.000Z', end: '2026-08-04T09:10:00.000Z' }
 				]
 			}
 		]
@@ -97,7 +97,7 @@ test('an open punch reports no worked minutes at all', () => {
 				employment_id: EMPLOYMENT,
 				work_date: '2026-08-20',
 				break_minutes: 0,
-				worked_intervals: [{ start_at: '2026-08-20T00:02:00.000Z', end_at: null }]
+				worked_intervals: [{ start: '2026-08-20T00:02:00.000Z', end: null }]
 			}
 		]
 	}).get(`${EMPLOYMENT}:2026-08-20`);
@@ -117,8 +117,8 @@ test('Date-valued interval ends are levelled the same way string ones are', () =
 				break_minutes: 30,
 				worked_intervals: [
 					{
-						start_at: new Date('2026-08-05T00:00:00.000Z'),
-						end_at: new Date('2026-08-05T08:00:00.000Z')
+						start: new Date('2026-08-05T00:00:00.000Z'),
+						end: new Date('2026-08-05T08:00:00.000Z')
 					}
 				]
 			}
@@ -135,9 +135,7 @@ test('a missing break column reads as no break, not as a missing entry', () => {
 				id: 'entry-4',
 				employment_id: EMPLOYMENT,
 				work_date: '2026-08-06',
-				worked_intervals: [
-					{ start_at: '2026-08-06T00:00:00.000Z', end_at: '2026-08-06T04:00:00.000Z' }
-				]
+				worked_intervals: [{ start: '2026-08-06T00:00:00.000Z', end: '2026-08-06T04:00:00.000Z' }]
 			}
 		]
 	}).get(`${EMPLOYMENT}:2026-08-06`);
@@ -196,8 +194,8 @@ test('the hover sentence is a SourceLock, so it comes from sourceLockReason', ()
 function span(startMinute, endMinute) {
 	const base = Date.parse('2026-08-04T00:00:00.000Z');
 	return {
-		start_at: new Date(base + startMinute * 60_000).toISOString(),
-		end_at: endMinute == null ? null : new Date(base + endMinute * 60_000).toISOString()
+		start: new Date(base + startMinute * 60_000).toISOString(),
+		end: endMinute == null ? null : new Date(base + endMinute * 60_000).toISOString()
 	};
 }
 

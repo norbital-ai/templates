@@ -5,7 +5,7 @@
 	import { nullableNumberFrom, numberFrom } from '../../lib/ui/renderer-input.js';
 	import { Combobox } from '@norbital-ai/ui/combobox';
 	import { Input } from '@norbital-ai/ui/input';
-	import { Grid } from '@norbital-ai/ui/layout';
+	import { Grid, Stack } from '@norbital-ai/ui/layout';
 	import { rateSelectorSchema } from './+definition.js';
 	import type { RendererProps, Value } from './$types.js';
 
@@ -72,170 +72,200 @@
 	<span class="block truncate" title={summary}>{summary}</span>
 {:else}
 	<Grid class="rounded-md border border-border bg-muted/20 p-3" gap="sm" minimum="compact">
-		<label class="grid gap-1.5 text-sm font-medium">
-			Keyed by
-			<Combobox
-				options={KEY_OPTIONS}
-				value={current?.by ?? null}
-				{disabled}
-				searchable={false}
-				emptyPlaceholder={t('renderer.rate_selector.select_selector')}
-				onValueChange={selectKey}
-			/>
+		<label class="text-sm font-medium">
+			<Stack gap="xs">
+				Keyed by
+				<Combobox
+					options={KEY_OPTIONS}
+					value={current?.by ?? null}
+					{disabled}
+					searchable={false}
+					emptyPlaceholder={t('renderer.rate_selector.select_selector')}
+					onValueChange={selectKey}
+				/>
+			</Stack>
 		</label>
 
 		{#if current?.by === 'WAGE'}
-			<label class="grid gap-1.5 text-sm font-medium">
-				Wage from
-				<Input
-					type="number"
-					min="0"
-					step="0.01"
-					value={current.from}
-					{disabled}
-					oninput={(event) => emit({ ...current, from: numberFrom(event.currentTarget.value, 0) })}
-				/>
+			<label class="text-sm font-medium">
+				<Stack gap="xs">
+					Wage from
+					<Input
+						type="number"
+						min="0"
+						step="0.01"
+						value={current.from}
+						{disabled}
+						oninput={(event) =>
+							emit({ ...current, from: numberFrom(event.currentTarget.value, 0) })}
+					/>
+				</Stack>
 			</label>
-			<label class="grid gap-1.5 text-sm font-medium">
-				Wage to (blank = open ended)
-				<Input
-					type="number"
-					min="0"
-					step="0.01"
-					value={current.to ?? ''}
-					{disabled}
-					oninput={(event) =>
-						emit({ ...current, to: nullableNumberFrom(event.currentTarget.value) })}
-				/>
+			<label class="text-sm font-medium">
+				<Stack gap="xs">
+					Wage to (blank = open ended)
+					<Input
+						type="number"
+						min="0"
+						step="0.01"
+						value={current.to ?? ''}
+						{disabled}
+						oninput={(event) =>
+							emit({ ...current, to: nullableNumberFrom(event.currentTarget.value) })}
+					/>
+				</Stack>
 			</label>
 		{:else if current?.by === 'WAGE_AND_AGE'}
-			<label class="grid gap-1.5 text-sm font-medium">
-				Wage from
-				<Input
-					type="number"
-					min="0"
-					step="0.01"
-					value={current.from}
-					{disabled}
-					oninput={(event) => emit({ ...current, from: numberFrom(event.currentTarget.value, 0) })}
-				/>
+			<label class="text-sm font-medium">
+				<Stack gap="xs">
+					Wage from
+					<Input
+						type="number"
+						min="0"
+						step="0.01"
+						value={current.from}
+						{disabled}
+						oninput={(event) =>
+							emit({ ...current, from: numberFrom(event.currentTarget.value, 0) })}
+					/>
+				</Stack>
 			</label>
-			<label class="grid gap-1.5 text-sm font-medium">
-				Wage to (blank = open ended)
-				<Input
-					type="number"
-					min="0"
-					step="0.01"
-					value={current.to ?? ''}
-					{disabled}
-					oninput={(event) =>
-						emit({ ...current, to: nullableNumberFrom(event.currentTarget.value) })}
-				/>
+			<label class="text-sm font-medium">
+				<Stack gap="xs">
+					Wage to (blank = open ended)
+					<Input
+						type="number"
+						min="0"
+						step="0.01"
+						value={current.to ?? ''}
+						{disabled}
+						oninput={(event) =>
+							emit({ ...current, to: nullableNumberFrom(event.currentTarget.value) })}
+					/>
+				</Stack>
 			</label>
-			<label class="grid gap-1.5 text-sm font-medium">
-				Age from
-				<Input
-					type="number"
-					min="0"
-					step="1"
-					value={current.age_from}
-					{disabled}
-					oninput={(event) =>
-						emit({ ...current, age_from: numberFrom(event.currentTarget.value, 0) })}
-				/>
+			<label class="text-sm font-medium">
+				<Stack gap="xs">
+					Age from
+					<Input
+						type="number"
+						min="0"
+						step="1"
+						value={current.age_from}
+						{disabled}
+						oninput={(event) =>
+							emit({ ...current, age_from: numberFrom(event.currentTarget.value, 0) })}
+					/>
+				</Stack>
 			</label>
-			<label class="grid gap-1.5 text-sm font-medium">
-				Age to (blank = open ended)
-				<Input
-					type="number"
-					min="0"
-					step="1"
-					value={current.age_to ?? ''}
-					{disabled}
-					oninput={(event) =>
-						emit({ ...current, age_to: nullableNumberFrom(event.currentTarget.value) })}
-				/>
+			<label class="text-sm font-medium">
+				<Stack gap="xs">
+					Age to (blank = open ended)
+					<Input
+						type="number"
+						min="0"
+						step="1"
+						value={current.age_to ?? ''}
+						{disabled}
+						oninput={(event) =>
+							emit({ ...current, age_to: nullableNumberFrom(event.currentTarget.value) })}
+					/>
+				</Stack>
 			</label>
 		{:else if current?.by === 'WAGE_AND_MARITAL'}
-			<label class="grid gap-1.5 text-sm font-medium">
-				Wage from
-				<Input
-					type="number"
-					min="0"
-					step="0.01"
-					value={current.from}
-					{disabled}
-					oninput={(event) => emit({ ...current, from: numberFrom(event.currentTarget.value, 0) })}
-				/>
+			<label class="text-sm font-medium">
+				<Stack gap="xs">
+					Wage from
+					<Input
+						type="number"
+						min="0"
+						step="0.01"
+						value={current.from}
+						{disabled}
+						oninput={(event) =>
+							emit({ ...current, from: numberFrom(event.currentTarget.value, 0) })}
+					/>
+				</Stack>
 			</label>
-			<label class="grid gap-1.5 text-sm font-medium">
-				Wage to (blank = open ended)
-				<Input
-					type="number"
-					min="0"
-					step="0.01"
-					value={current.to ?? ''}
-					{disabled}
-					oninput={(event) =>
-						emit({ ...current, to: nullableNumberFrom(event.currentTarget.value) })}
-				/>
+			<label class="text-sm font-medium">
+				<Stack gap="xs">
+					Wage to (blank = open ended)
+					<Input
+						type="number"
+						min="0"
+						step="0.01"
+						value={current.to ?? ''}
+						{disabled}
+						oninput={(event) =>
+							emit({ ...current, to: nullableNumberFrom(event.currentTarget.value) })}
+					/>
+				</Stack>
 			</label>
-			<label class="grid gap-1.5 text-sm font-medium">
-				Marital category
-				<Combobox
-					options={[
-						{
-							value: 'SINGLE',
-							label: 'No dependent spouse',
-							description: 'Unmarried, or married to a spouse who has income'
-						},
-						{
-							value: 'MARRIED',
-							label: 'Dependent spouse',
-							description: 'Married to a spouse who has no income of their own'
-						}
-					]}
-					value={current.marital}
-					{disabled}
-					searchable={false}
-					emptyPlaceholder={t('renderer.rate_selector.select_category')}
-					onValueChange={(next) =>
-						emit({ ...current, marital: next === 'MARRIED' ? 'MARRIED' : 'SINGLE' })}
-				/>
+			<label class="text-sm font-medium">
+				<Stack gap="xs">
+					Marital category
+					<Combobox
+						options={[
+							{
+								value: 'SINGLE',
+								label: 'No dependent spouse',
+								description: 'Unmarried, or married to a spouse who has income'
+							},
+							{
+								value: 'MARRIED',
+								label: 'Dependent spouse',
+								description: 'Married to a spouse who has no income of their own'
+							}
+						]}
+						value={current.marital}
+						{disabled}
+						searchable={false}
+						emptyPlaceholder={t('renderer.rate_selector.select_category')}
+						onValueChange={(next) =>
+							emit({ ...current, marital: next === 'MARRIED' ? 'MARRIED' : 'SINGLE' })}
+					/>
+				</Stack>
 			</label>
 		{:else if current?.by === 'HEADCOUNT'}
-			<label class="grid gap-1.5 text-sm font-medium">
-				Headcount from
-				<Input
-					type="number"
-					min="0"
-					step="1"
-					value={current.from}
-					{disabled}
-					oninput={(event) => emit({ ...current, from: numberFrom(event.currentTarget.value, 0) })}
-				/>
+			<label class="text-sm font-medium">
+				<Stack gap="xs">
+					Headcount from
+					<Input
+						type="number"
+						min="0"
+						step="1"
+						value={current.from}
+						{disabled}
+						oninput={(event) =>
+							emit({ ...current, from: numberFrom(event.currentTarget.value, 0) })}
+					/>
+				</Stack>
 			</label>
-			<label class="grid gap-1.5 text-sm font-medium">
-				Headcount to (blank = open ended)
-				<Input
-					type="number"
-					min="0"
-					step="1"
-					value={current.to ?? ''}
-					{disabled}
-					oninput={(event) =>
-						emit({ ...current, to: nullableNumberFrom(event.currentTarget.value) })}
-				/>
+			<label class="text-sm font-medium">
+				<Stack gap="xs">
+					Headcount to (blank = open ended)
+					<Input
+						type="number"
+						min="0"
+						step="1"
+						value={current.to ?? ''}
+						{disabled}
+						oninput={(event) =>
+							emit({ ...current, to: nullableNumberFrom(event.currentTarget.value) })}
+					/>
+				</Stack>
 			</label>
 		{:else if current?.by === 'RISK_CLASS'}
-			<label class="grid gap-1.5 text-sm font-medium">
-				Risk class
-				<Input
-					value={current.class}
-					{disabled}
-					placeholder={t('component.rate_example')}
-					oninput={(event) => emit({ by: 'RISK_CLASS', class: event.currentTarget.value })}
-				/>
+			<label class="text-sm font-medium">
+				<Stack gap="xs">
+					Risk class
+					<Input
+						value={current.class}
+						{disabled}
+						placeholder={t('component.rate_example')}
+						oninput={(event) => emit({ by: 'RISK_CLASS', class: event.currentTarget.value })}
+					/>
+				</Stack>
 			</label>
 		{/if}
 	</Grid>

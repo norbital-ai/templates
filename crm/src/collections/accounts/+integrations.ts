@@ -34,6 +34,7 @@ const Currency = Schema.Literals(['CNY', 'USD', 'EUR', 'GBP', 'JPY', 'SGD', 'HKD
  */
 export default {
 	erp: {
+		policies: ['erp_accounts_integration'],
 		connection: erp,
 		receive: {
 			customers_changed: definePull({

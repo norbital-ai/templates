@@ -1,11 +1,13 @@
 import {
 	employeeSelfServiceGrants,
 	employeeReferenceGrants,
-	leaveApproval,
+	employeeLeaveRequestCreateGrant,
+	employeeTimeEntryCreateGrant,
+	grantOn,
+	mergeGrants,
 	ownEmploymentChild,
 	settlementLedgerGrants,
-	statutoryGrants,
-	timeEntryApproval
+	statutoryGrants
 } from '../../lib/policy_grants.js';
 import type { Policy } from './$types.js';
 
@@ -78,40 +80,23 @@ export default {
 	 */
 	capabilities: { apps: ['hr_employee'] },
 
-	grants: [
-		{ collection: 'employees', action: 'read', where: ownEmployeeRecord },
-		{ collection: 'employments', action: 'read', where: ownEmployment },
-
-		{ collection: 'employment_terms', action: 'read', where: ownEmploymentChild },
-		{ collection: 'employment_statutory_facts', action: 'read', where: ownEmploymentChild },
-		{ collection: 'roster_entries', action: 'read', where: ownEmploymentChild },
-		{ collection: 'repayment_agreements', action: 'read', where: ownEmploymentChild },
-		{ collection: 'component_entries', action: 'read', where: ownEntryNotAnAdjustment },
-		{ collection: 'time_entries', action: 'read', where: ownEmploymentChild },
-		{ collection: 'leave_requests', action: 'read', where: ownEmploymentChild },
-
-		{
-			collection: 'time_entries',
-			action: 'create',
-			where: ownEmploymentChild,
-			approval: timeEntryApproval
-		},
-		...employeeSelfServiceGrants(),
-		{
-			collection: 'leave_requests',
-			action: 'create',
-			where: ownEmploymentChild,
-			approval: leaveApproval
-		},
-
-		// Reference data an employee needs to read their own numbers. Unconditional, and correctly so:
-		// a holiday calendar and a leave type are company-wide facts, not personal records.
-		...employeeReferenceGrants('read'),
-		...statutoryGrants('read'),
-		// Why an employee reads the settlement ledger at all: see `settlementLedgerGrants`. Without it
-		// the refusal on a settled time entry is an access denial instead of an explanation.
-		...settlementLedgerGrants()
-	],
+	grants: mergeGrants(
+		grantOn('employees', 'read', { where: ownEmployeeRecord }),
+		grantOn('employments', 'read', { where: ownEmployment }),
+		grantOn('employment_terms', 'read', { where: ownEmploymentChild }),
+		grantOn('employment_statutory_facts', 'read', { where: ownEmploymentChild }),
+		grantOn('roster_entries', 'read', { where: ownEmploymentChild }),
+		grantOn('repayment_agreements', 'read', { where: ownEmploymentChild }),
+		grantOn('component_entries', 'read', { where: ownEntryNotAnAdjustment }),
+		grantOn('time_entries', 'read', { where: ownEmploymentChild }),
+		grantOn('leave_requests', 'read', { where: ownEmploymentChild }),
+		employeeTimeEntryCreateGrant(),
+		employeeSelfServiceGrants(),
+		employeeLeaveRequestCreateGrant(),
+		employeeReferenceGrants('read'),
+		statutoryGrants('read'),
+		settlementLedgerGrants()
+	),
 	/**
 	 * What a holder of this policy may spend.
 	 *

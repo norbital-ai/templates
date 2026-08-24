@@ -10,7 +10,7 @@ import {
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import process from 'node:process';
-import { Result } from 'effect';
+import { Clock, Effect, Result } from 'effect';
 import { registryConfiguration } from './lib/registry.mjs';
 import { discoverTemplates, repositoryRoot } from './lib/templates.mjs';
 
@@ -19,6 +19,14 @@ const workspaceConfigName = 'pnpm-workspace.yaml';
 
 function fail(message) {
 	throw new Error(message);
+}
+
+/**
+ * Wall-clock milliseconds through Effect's `Clock`, so the one measurement this script takes has an
+ * injectable source rather than an ambient one.
+ */
+function currentTimeMillis() {
+	return Effect.runSync(Clock.currentTimeMillis);
 }
 
 function copyTemplateProject(template, workingDirectory) {
@@ -31,10 +39,19 @@ function readArguments(argv) {
 	const options = { check: false, verifyInstall: false, filter: undefined };
 	for (let index = 0; index < argv.length; index += 1) {
 		const argument = argv[index];
-		if (argument === '--check') options.check = true;
-		else if (argument === '--verify-install') options.verifyInstall = true;
-		else if (argument === '--filter') options.filter = argv[++index];
-		else fail(`Unknown argument: ${argument}`);
+		if (argument === '--check') {
+			options.check = true;
+			continue;
+		}
+		if (argument === '--verify-install') {
+			options.verifyInstall = true;
+			continue;
+		}
+		if (argument === '--filter') {
+			options.filter = argv[++index];
+			continue;
+		}
+		fail(`Unknown argument: ${argument}`);
 	}
 	if (options.filter === '') fail('--filter requires a template key.');
 	return options;
@@ -120,7 +137,7 @@ function verifyOfflineInstall(template, lockfile, storeDirectory) {
 		// Removing credentials before the offline install proves the sandbox needs neither
 		// network egress nor registry access once the host store is warm.
 		rmSync(npmrcPath, { force: true });
-		const started = Date.now();
+		const started = currentTimeMillis();
 		const installed = Result.try(() =>
 			pnpm([
 				'install',
@@ -137,7 +154,7 @@ function verifyOfflineInstall(template, lockfile, storeDirectory) {
 				installed.failure?.stdout?.toString().trim();
 			fail(`Offline install for ${template.slug} failed${detail ? `:\n${detail}` : ''}`);
 		}
-		return Date.now() - started;
+		return currentTimeMillis() - started;
 	});
 	rmSync(workingDirectory, { recursive: true, force: true });
 	if (Result.isFailure(verification)) throw verification.failure;

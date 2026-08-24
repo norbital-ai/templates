@@ -1,3 +1,5 @@
+import { approveBy } from '@norbital-ai/bolt/authoring';
+import { Effect } from 'effect';
 import type { Policy } from './$types.js';
 
 /**
@@ -67,60 +69,186 @@ const ownEvidence = {
 		'WHERE a.assignee_user_id = ${requestor.id})))'
 } as const;
 
+/** Messages retained against one of their own assignments. */
+const ownCommunication = {
+	$sql:
+		'"job_assignment_id" IN (SELECT a.id FROM job_assignments a ' +
+		'WHERE a.assignee_user_id = ${requestor.id})'
+} as const;
+
+/**
+ * Read masks are part of the security boundary, not presentation preferences.
+ *
+ * A record can carry processing and provenance fields used by dispatch without making those fields
+ * contractor data. Keeping the allowlists beside the grants also means a new model field is private
+ * until somebody deliberately adds it here.
+ */
+const siteReadFields = [
+	'id',
+	'site_code',
+	'name',
+	'location',
+	'client_name',
+	'house_type',
+	'floor_area_sqm'
+] as const;
+const jobReadFields = [
+	'id',
+	'site_id',
+	'title',
+	'nature',
+	'scheduled_for',
+	'status',
+	'description'
+] as const;
+const assignmentReadFields = [
+	'id',
+	'job_id',
+	'dispatched_at',
+	'status',
+	'completed_at',
+	'amount_charged',
+	'location',
+	'summary'
+] as const;
+const assignmentUpdateFields = [
+	'status',
+	'completed_at',
+	'amount_charged',
+	'location',
+	'summary'
+] as const;
+const variationReadFields = [
+	'id',
+	'job_assignment_id',
+	'requested_at',
+	'title',
+	'description',
+	'amount'
+] as const;
+const variationCreateFields = [
+	'job_assignment_id',
+	'requested_at',
+	'title',
+	'description',
+	'amount'
+] as const;
+const variationUpdateFields = ['title', 'description', 'amount'] as const;
+const evidenceReadFields = [
+	'id',
+	'job_assignment_id',
+	'variation_request_id',
+	'photo',
+	'summary'
+] as const;
+const evidenceCreateFields = ['job_assignment_id', 'variation_request_id', 'photo'] as const;
+const communicationReadFields = [
+	'id',
+	'job_assignment_id',
+	'message',
+	'sent_at',
+	'sender'
+] as const;
+
 /**
  * A scope change is a commercial decision, so writing a variation raises a request instead of a row.
  *
- * **There are no ids here, and that is the change.** A request's identity now derives from
- * `(policy, collection, action, step key)` — `describePolicy` computes it — so two grants are never
- * the same approval, nothing can collide, and there is no authored UUID for a copy-paste to
- * duplicate. This used to be `variationApproval('019f6f10-…-003', '019f6f10-…-103')`, two
- * hand-written UUID pairs that were the only part of an approval anybody could get wrong.
+ * There are no authored flow or stage ids. Runtime derives them from the policy, collection, action
+ * and stage position, so copied UUIDs cannot collide.
  *
- * The approver is named by `team.name`, and the name is `TeamName` — a union generated from
+ * The approver is named by `team.name`, and the argument to `approveBy` is `TeamName` — generated from
  * `access/+teams.ts`'s own keys — so a misspelling is a compile error rather than an approval nobody
- * could ever decide. `approvers: ['HR Manger']` shipped once and produced exactly that.
+ * could ever decide.
  *
- * `key` is required and is what the id derives from, so reordering the steps below cannot silently
- * rebind an approval that is already in flight. Order carries no meaning; the key does.
- *
- * A `const` rather than a factory, because both grants want the same steps and sharing one is
+ * A `const` rather than a factory, because both grants want the same flow and sharing one is
  * ordinary TypeScript — there is no framework concept and nothing to name.
  */
 const variationApproval = {
-	steps: [
-		{
-			key: 'controller_review',
-			approvers: ['Field Operations Controllers'],
-			description: 'Controller verifies scope change and selected photo evidence.'
-		}
-	]
-} as const satisfies NonNullable<Policy['grants'][number]['approval']>;
+	flow: () => approveBy('Field Operations Controllers'),
+	superceded_by: []
+} as const;
 
 export default {
 	description:
-		'Self-scoped access to assigned jobs and sites, with field updates on own assignments and linked variation or photo evidence.',
+		'Self-scoped access to assigned work, with narrowly fielded updates and linked evidence.',
 	capabilities: { apps: ['field_ops_contractor'] },
-	grants: [
-		{ collection: 'sites', action: 'read', where: assignedSite },
-		{ collection: 'jobs', action: 'read', where: assignedJob },
-		{ collection: 'job_assignments', action: 'read', where: ownAssignment },
-		{ collection: 'job_assignments', action: 'update', where: ownAssignment },
-		{ collection: 'variation_requests', action: 'read', where: ownVariation },
-		{
-			collection: 'variation_requests',
-			action: 'create',
-			where: ownVariation,
-			approval: variationApproval
+	grants: {
+		sites: {
+			read: {
+				where: assignedSite,
+				fields: siteReadFields
+			}
 		},
-		{
-			collection: 'variation_requests',
-			action: 'update',
-			where: ownVariation,
-			approval: variationApproval
+		jobs: {
+			read: {
+				where: assignedJob,
+				fields: jobReadFields
+			}
 		},
-		{ collection: 'photo_evidence', action: 'read', where: ownEvidence },
-		{ collection: 'photo_evidence', action: 'create', where: ownEvidence }
-	],
+		job_assignments: {
+			read: {
+				where: ownAssignment,
+				fields: assignmentReadFields
+			},
+			update: {
+				authorize: ({ record }, api) => record.assignee_user_id === api.requestor.id,
+				fields: assignmentUpdateFields
+			}
+		},
+		variation_requests: {
+			read: {
+				where: ownVariation,
+				fields: variationReadFields
+			},
+			create: {
+				authorize: ({ record }, api) =>
+					api.db.query.job_assignments
+						.findFirst({ where: { id: { eq: record.job_assignment_id } } })
+						.pipe(Effect.map((assignment) => assignment !== undefined)),
+				fields: variationCreateFields,
+				approval: variationApproval
+			},
+			update: {
+				authorize: ({ record }, api) =>
+					api.db.query.job_assignments
+						.findFirst({ where: { id: { eq: record.job_assignment_id } } })
+						.pipe(Effect.map((assignment) => assignment !== undefined)),
+				fields: variationUpdateFields,
+				approval: variationApproval
+			}
+		},
+		photo_evidence: {
+			read: {
+				where: ownEvidence,
+				fields: evidenceReadFields
+			},
+			create: {
+				authorize: ({ record }, api) =>
+					Effect.gen(function* () {
+						if (record.job_assignment_id !== null) {
+							return (
+								(yield* api.db.query.job_assignments.findFirst({
+									where: { id: { eq: record.job_assignment_id } }
+								})) !== undefined
+							);
+						}
+						if (record.variation_request_id === null) return false;
+						return (
+							(yield* api.db.query.variation_requests.findFirst({
+								where: { id: { eq: record.variation_request_id } }
+							})) !== undefined
+						);
+					}),
+				fields: evidenceCreateFields
+			}
+		},
+		communication_logs: {
+			read: {
+				where: ownCommunication,
+				fields: communicationReadFields
+			}
+		}
+	},
 	/**
 	 * What a holder of this policy may spend.
 	 *

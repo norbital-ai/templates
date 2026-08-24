@@ -87,20 +87,37 @@ function assertInstalmentMatchesResolvedAgreement(
 	// its 23505 into a caller-facing conflict; a sibling SELECT would add one round trip per instalment.
 }
 
+/** The part of a consuming payslip line this check reads: the period that settled the entry. */
+const consumingLineSchema = Schema.Struct({
+	payslip_line_payslip: Schema.optional(
+		Schema.NullOr(
+			Schema.Struct({
+				payslip_payroll_run: Schema.optional(
+					Schema.NullOr(
+						Schema.Struct({
+							period: Schema.optional(Schema.NullOr(Schema.String))
+						})
+					)
+				)
+			})
+		)
+	)
+});
+
 function assertEntrySourceUnlocked(
 	api: BeforeApi,
 	existing: WorkspaceRow<'component_entries'>,
 	action: string
 ): Effect.Effect<void, never, never> {
-	return Effect.gen(function* () {
-		/**
-		 * The settlement lock, read on its own.
-		 *
-		 * Component entries already have a real foreign key from `payslip_lines.component_entry_id`.
-		 * Reading that indexed relation is the consumption check; there is no second settlement row to
-		 * write, reconcile, or load.
-		 */
-		const line = yield* api.db.query.payslip_lines.findFirst({
+	/**
+	 * The settlement lock, read on its own.
+	 *
+	 * Component entries already have a real foreign key from `payslip_lines.component_entry_id`.
+	 * Reading that indexed relation is the consumption check; there is no second settlement row to
+	 * write, reconcile, or load.
+	 */
+	return Effect.map(
+		api.db.query.payslip_lines.findFirst({
 			where: { component_entry_id: { eq: existing.id } },
 			columns: { id: true },
 			with: {
@@ -109,79 +126,71 @@ function assertEntrySourceUnlocked(
 					with: { payslip_payroll_run: { columns: { period: true } } }
 				}
 			}
-		});
-		const consumingLineSchema = Schema.Struct({
-			payslip_line_payslip: Schema.optional(
-				Schema.NullOr(
-					Schema.Struct({
-						payslip_payroll_run: Schema.optional(
-							Schema.NullOr(
-								Schema.Struct({
-									period: Schema.optional(Schema.NullOr(Schema.String))
-								})
-							)
-						)
-					})
-				)
-			)
-		});
-		let period: string | undefined;
-		if (line != null) {
-			const decoded = Schema.decodeUnknownResult(consumingLineSchema)(line);
-			if (Result.isSuccess(decoded)) {
-				period = decoded.success.payslip_line_payslip?.payslip_payroll_run?.period ?? undefined;
+		}),
+		(line) => {
+			let period: string | undefined;
+			if (line != null) {
+				const decoded = Schema.decodeUnknownResult(consumingLineSchema)(line);
+				if (Result.isSuccess(decoded)) {
+					period = decoded.success.payslip_line_payslip?.payslip_payroll_run?.period ?? undefined;
+				}
+			}
+			const lock = sourceLock({
+				existing: true,
+				approvalId: existing.approval_id,
+				dates: [],
+				settledBy: line == null ? null : { period: period ?? 'linked payslip' },
+				datePassed: 'IS_NOT_A_LOCK'
+			});
+			if (sourceLockBlocksWrite(lock)) {
+				refuse(sourceLockMessage(lock, action));
 			}
 		}
-		const lock = sourceLock({
-			existing: true,
-			approvalId: existing.approval_id,
-			dates: [],
-			settledBy: line == null ? null : { period: period ?? 'linked payslip' },
-			datePassed: 'IS_NOT_A_LOCK'
-		});
-		if (sourceLockBlocksWrite(lock)) {
-			refuse(sourceLockMessage(lock, action));
-		}
-	});
+	);
 }
 
 function assertInstalmentMatchesAgreement(
 	api: BeforeApi,
 	entry: InstalmentEntry
 ): Effect.Effect<void, never, never> {
-	return Effect.gen(function* () {
-		const origin = instalmentOrigin(entry.origin);
-		if (!origin) return;
-		const agreement = (yield* api.db.query.repayment_agreements.findMany({
+	const origin = instalmentOrigin(entry.origin);
+	if (!origin) return Effect.void;
+	return Effect.map(
+		api.db.query.repayment_agreements.findMany({
 			where: { id: { eq: origin.agreement_id } },
 			limit: 1
-		}))[0];
-		assertInstalmentMatchesResolvedAgreement(entry, agreement);
-	});
+		}),
+		(agreements) => assertInstalmentMatchesResolvedAgreement(entry, agreements[0])
+	);
 }
 
 export default {
 	create: {
-		prepare: ({ inputs, api }) =>
-			Effect.gen(function* () {
-				const agreementIds = [
-					...new Set(
-						inputs.flatMap((input) => {
-							const origin = instalmentOrigin(input.origin);
-							return origin ? [origin.agreement_id] : [];
-						})
-					)
-				];
-				const agreements = agreementIds.length
-					? yield* api.db.query.repayment_agreements.findMany({
-							where: { id: { in: agreementIds } },
-							limit: LIMIT
-						})
-					: [];
-				return {
+		prepare: ({ inputs, api }) => {
+			const agreementIds = [
+				...new Set(
+					inputs.flatMap((input) => {
+						const origin = instalmentOrigin(input.origin);
+						return origin ? [origin.agreement_id] : [];
+					})
+				)
+			];
+			// No instalment in the batch cites an agreement, so there is nothing to read.
+			if (agreementIds.length === 0) {
+				return Effect.succeed({
+					agreements: new Map<string, WorkspaceRow<'repayment_agreements'>>()
+				});
+			}
+			return Effect.map(
+				api.db.query.repayment_agreements.findMany({
+					where: { id: { in: agreementIds } },
+					limit: LIMIT
+				}),
+				(agreements) => ({
 					agreements: new Map(agreements.map((agreement) => [agreement.id, agreement]))
-				};
-			}),
+				})
+			);
+		},
 		perRecord: {
 			before: {
 				description:

@@ -1,9 +1,11 @@
 import {
 	NOT_AN_ADJUSTMENT,
 	employeeSelfServiceGrants,
+	grantOn,
 	grantsOn,
 	grantsOnWhere,
 	leaveApproval,
+	mergeGrants,
 	peopleGrants,
 	referenceGrants,
 	settlementLedgerGrants,
@@ -24,7 +26,7 @@ import type { Policy } from './$types.js';
  * The team view is company-wide, not reports-only, and that is a limit of the data rather than a
  * decision: nothing in `employments` or `employees` records a reporting line, so "their own reports"
  * cannot be written as a row predicate today. The direct-manager gate is not lost — it lives where
- * this template already put it, in the `L1 Manager` approval step every time-entry and leave write
+ * this template already put it, in the `L1 Manager` approval flow every time-entry and leave write
  * below routes to. Inventing a `manager_id` column to narrow the read would be a schema change made
  * to satisfy a policy comment, and it would still be unpopulated.
  *
@@ -58,48 +60,35 @@ export default {
 	 * apps are for L1 management, the HR manager and the HR controller — `manager` is the L1 rung
 	 * (`policy_grants.ts` names its approver team `L1 Manager`), so `supervisor` and
 	 * `senior_management` have self-service and no HR group. That is a narrowing: both keep every
-	 * collection grant this file lists, and an approval step routed to `Senior Management` is
+	 * collection grant this file lists, and an approval flow routed to `Senior Management` is
 	 * decided from the notification and the request surface rather than from the HR app.
 	 */
 	capabilities: { apps: ['hr_employee'] },
 
-	grants: [
-		...employeeSelfServiceGrants(),
-		...referenceGrants('read'),
-		...statutoryGrants('read'),
-		...peopleGrants('read'),
-		...grantsOn('time_entries', ['read']),
-		...grantsOn('leave_requests', ['read']),
+	grants: mergeGrants(
+		employeeSelfServiceGrants(),
+		referenceGrants('read'),
+		statutoryGrants('read'),
+		peopleGrants('read'),
+		grantsOn('time_entries', ['read']),
+		grantsOn('leave_requests', ['read']),
 		// The narrowing has to be stated here, not subtracted higher up: one unconditional
 		// `component_entries` read in any policy this subject matches would erase it.
-		...grantsOnWhere('component_entries', ['read'], NOT_AN_ADJUSTMENT),
-		...settlementLedgerGrants(),
+		grantsOnWhere('component_entries', ['read'], NOT_AN_ADJUSTMENT),
+		settlementLedgerGrants(),
 
 		// Attendance becomes a payroll source, so writing it is reviewed by the direct manager even
-		// when a supervisor is the one writing it. Their own config ids: the same flow reached by a
-		// different role is a different config row, and collapsing them would make a supervisor-raised
-		// correction indistinguishable from HR's in the approval history.
-		{
-			collection: 'time_entries',
-			action: 'create',
-			approval: timeEntryApproval
-		},
-		{
-			collection: 'time_entries',
-			action: 'update',
-			approval: timeEntryApproval
-		},
+		// when a supervisor is the one writing it. Runtime derives the durable configuration identity
+		// from this policy and grant coordinate, keeping its history distinct from HR's.
+		grantOn('time_entries', 'create', { approval: timeEntryApproval }),
+		grantOn('time_entries', 'update', { approval: timeEntryApproval }),
 
 		// Raising leave is reviewed; amending one already raised is not. A supervisor amending a
 		// request is acting as its reviewer, so routing that back through review would ask them to
 		// approve themselves. Deleting is not theirs — a withdrawal at this rank goes to a manager.
-		{
-			collection: 'leave_requests',
-			action: 'create',
-			approval: leaveApproval
-		},
-		{ collection: 'leave_requests', action: 'update' }
-	],
+		grantOn('leave_requests', 'create', { approval: leaveApproval }),
+		grantsOn('leave_requests', ['update'])
+	),
 	/**
 	 * What a holder of this policy may spend.
 	 *

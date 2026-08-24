@@ -4,7 +4,6 @@
 	import AppHeaderActions from '@norbital-ai/bolt/client/app-header-actions';
 	import type { TenantI18nKeys } from '$bolt/i18n-keys';
 	import type { WorkspaceRow } from '$bolt/types.js';
-	import type { LeaveEvent } from '../../datatypes/leave_event/+definition.js';
 	import { Tabs, type TabConfig } from '@norbital-ai/ui/tabs';
 	import { CollectionTable } from '@norbital-ai/ui/collection-table';
 	import { Combobox } from '@norbital-ai/ui/combobox';
@@ -14,6 +13,7 @@
 		formatCalendarDate,
 		formatLeaveAccrual,
 		formatLeavePayrollEffect,
+		formatLeaveRange,
 		formatNumeric
 	} from '../../lib/ui/display-formatters.js';
 	import { inForceTodayFilter, todayInstant } from '../../lib/ui/calendar.js';
@@ -113,17 +113,6 @@
 		if (leaveType?.code && leaveType.name) return `${leaveType.code} · ${leaveType.name}`;
 		if (leaveType?.code) return leaveType.code;
 		return '—';
-	}
-
-	function employmentLabel(row: LeaveRequestRow): string {
-		return row.leave_request_employment?.employee_number ?? '—';
-	}
-
-	function leaveRangeLabel(event: LeaveEvent | null | undefined): string {
-		if (event == null || event.kind !== 'TIME_OFF') return '—';
-		const half = (value: 'FIRST' | 'SECOND') =>
-			value === 'FIRST' ? t('component.first_half') : t('component.second_half');
-		return `${formatCalendarDate(event.range.start.date)}, ${half(event.range.start.half)} → ${formatCalendarDate(event.range.end.date)}, ${half(event.range.end.half)}`;
 	}
 </script>
 
@@ -231,12 +220,13 @@
 						name="employment_id"
 						label={t('component.employment')}
 						card="subtitle"
-						render={({ row }) => employmentLabel(row)}
+						render={({ row }: { row: LeaveRequestRow }) =>
+							row.leave_request_employment?.employee_number ?? '—'}
 					/>
 					<Column
 						name="event"
 						label={t('component.leave_range')}
-						render={({ row }) => leaveRangeLabel(row.event)}
+						render={({ row }) => formatLeaveRange(row.event, t)}
 					/>
 					<Column name="kind" label={t('component.event')} card="badge" />
 					<Column

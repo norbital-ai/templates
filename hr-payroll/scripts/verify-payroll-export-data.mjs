@@ -25,6 +25,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { Effect } from 'effect';
 import { createServer } from 'vite';
+import { stubApi as tableStub } from './lib/stub-api.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const viteResource = Effect.acquireRelease(
@@ -285,22 +286,8 @@ function matches(row, where = {}) {
 	});
 }
 
-function stubApi(tables) {
-	return {
-		db: {
-			query: Object.fromEntries(
-				Object.entries(tables).map(([name, rows]) => [
-					name,
-					{
-						findFirst: ({ where } = {}) =>
-							Effect.succeed(rows.find((row) => matches(row, where)) ?? null),
-						findMany: ({ where } = {}) => Effect.succeed(rows.filter((row) => matches(row, where)))
-					}
-				])
-			)
-		}
-	};
-}
+/** A stand-in for the workspace tables the export readers resolve names against. */
+const stubApi = (tables) => tableStub(tables, matches);
 
 Effect.runPromise(
 	Effect.scoped(

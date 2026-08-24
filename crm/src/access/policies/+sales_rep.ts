@@ -15,67 +15,57 @@ export default {
 	description:
 		'Owns their own quotes and activities; reads shared accounts, contacts, and the product catalogue.',
 	capabilities: { apps: ['crm'] },
-	grants: [
-		{ collection: 'accounts', action: 'read' },
-		{ collection: 'contacts', action: 'read' },
-		{ collection: 'products', action: 'read' },
-
-		{
-			collection: 'quotes',
-			action: 'read',
-			where: { owner_id: { eq: '${requestor.id}' } }
+	grants: {
+		accounts: {
+			read: {}
 		},
-		{ collection: 'quotes', action: 'create' },
-		{
-			collection: 'quotes',
-			action: 'update',
-			where: { owner_id: { eq: '${requestor.id}' } }
+		contacts: {
+			read: {}
 		},
-
-		// Lines carry no owner of their own, so they are granted unscoped, matching how the
-		// document — the thing the requestor is narrowed to — is the unit of ownership.
-		{ collection: 'quote_lines', action: 'read' },
-		{ collection: 'quote_lines', action: 'create' },
-		{ collection: 'quote_lines', action: 'update' },
-		{ collection: 'quote_lines', action: 'delete' },
-
-		{ collection: 'activities', action: 'read' },
-		{ collection: 'activities', action: 'create' },
-
-		{
-			collection: 'sales_invoices',
-			action: 'read',
-			where: { owner_id: { eq: '${requestor.id}' } }
+		quotes: {
+			read: {
+				where: { owner_id: { eq: '${requestor.id}' } }
+			},
+			create: {},
+			update: {
+				authorize: ({ record }, api) => record.owner_id === api.requestor.id
+			}
 		},
-		{ collection: 'sales_invoices', action: 'create' },
-		{
-			collection: 'sales_invoices',
-			action: 'update',
-			where: { owner_id: { eq: '${requestor.id}' } }
+		quote_lines: {
+			read: {},
+			create: {},
+			update: {},
+			delete: {}
 		},
-
-		// Invoice lines carry no owner of their own, so they are granted unscoped, matching how
-		// the document — the thing the requestor is narrowed to — is the unit of ownership.
-		{ collection: 'sales_invoice_lines', action: 'read' },
-		{ collection: 'sales_invoice_lines', action: 'create' },
-		{ collection: 'sales_invoice_lines', action: 'update' },
-		{ collection: 'sales_invoice_lines', action: 'delete' },
-
-		{
-			collection: 'contract_signings',
-			action: 'read',
-			where: { owner_id: { eq: '${requestor.id}' } }
+		activities: {
+			read: {},
+			create: {}
 		},
-		{ collection: 'contract_signings', action: 'create' },
-		{
-			collection: 'contract_signings',
-			action: 'update',
-			where: { owner_id: { eq: '${requestor.id}' } }
+		sales_invoices: {
+			read: {
+				where: { owner_id: { eq: '${requestor.id}' } }
+			},
+			create: {},
+			update: {
+				authorize: ({ record }, api) => record.owner_id === api.requestor.id
+			}
 		},
-
-		{ collection: 'settlements', action: 'read' },
-		{ collection: 'settlements', action: 'create' }
-	],
+		sales_invoice_lines: {
+			read: {},
+			create: {},
+			update: {},
+			delete: {}
+		},
+		contract_signings: {
+			read: {
+				where: { owner_id: { eq: '${requestor.id}' } }
+			},
+			create: {},
+			update: {
+				authorize: ({ record }, api) => record.owner_id === api.requestor.id
+			}
+		}
+	},
 	/**
 	 * What a holder of this policy may spend.
 	 *

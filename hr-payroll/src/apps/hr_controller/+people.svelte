@@ -11,6 +11,7 @@
 	import { Tabs, type TabConfig } from '@norbital-ai/ui/tabs';
 	import { formatCalendarDate } from '../../lib/ui/display-formatters.js';
 	import { employedTodayFilter, todayKey, todayInstant } from '../../lib/ui/calendar.js';
+	import { inForceOnDay } from '../../lib/effective_range.js';
 
 	const { t } = useI18n<TenantI18nKeys>();
 
@@ -68,14 +69,7 @@
 	const currentEmployeeIds = $derived(
 		new Set(
 			(employmentsQuery?.current ?? [])
-				.filter(
-					(employment) =>
-						employment.effective_range != null &&
-						employment.effective_range.start != null &&
-						employment.effective_range.start.slice(0, 10) <= today &&
-						(employment.effective_range.end == null ||
-							employment.effective_range.end.slice(0, 10) >= today)
-				)
+				.filter((employment) => inForceOnDay(employment.effective_range, today))
 				.map((employment) => employment.employee_id)
 		)
 	);

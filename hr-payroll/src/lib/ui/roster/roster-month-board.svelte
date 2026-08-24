@@ -57,12 +57,14 @@
 		lockRungFreezes,
 		lockRungSourceLock,
 		monthDays,
+		personDayKey,
 		planGlyph,
 		shiftTimeCue,
 		unrosteredReason,
 		type DayFacts,
 		type LockRung
 	} from './roster-month.js';
+	import { scrollBodyByWheel, syncHeaderTrack } from './header-scroll.js';
 	import { sourceLockReason, type SettlementClaim } from '../../scheduling/lock.js';
 
 	type Person = { readonly id: string; readonly number: string; readonly name: string };
@@ -140,21 +142,12 @@
 
 	/** Keep the fixed day header horizontally aligned with the internally scrolling rows. */
 	function syncBoardHeader(): void {
-		if (boardElement == null || boardHeaderTrack == null) return;
-		boardHeaderTrack.style.transform = `translateX(${-boardElement.scrollLeft}px)`;
+		syncHeaderTrack(boardElement, boardHeaderTrack);
 	}
 
 	/** Wheel input over the fixed header controls the body it labels. */
 	function handleBoardHeaderWheel(event: WheelEvent): void {
-		if (boardElement == null || (event.deltaX === 0 && event.deltaY === 0)) return;
-		const beforeLeft = boardElement.scrollLeft;
-		const beforeTop = boardElement.scrollTop;
-		boardElement.scrollLeft += event.deltaX;
-		boardElement.scrollTop += event.deltaY;
-		// Preserve scroll chaining when the board is already at the edge in this direction.
-		if (boardElement.scrollLeft !== beforeLeft || boardElement.scrollTop !== beforeTop) {
-			event.preventDefault();
-		}
+		scrollBodyByWheel(boardElement, event);
 	}
 	const rowVirtualizer = createVirtualizer({
 		count: () => people.length,
@@ -287,7 +280,7 @@
 				return requestedCellKey;
 			}
 		}
-		return people[0] == null || days[0] == null ? '' : `${people[0].id}:${days[0]}`;
+		return people[0] == null || days[0] == null ? '' : personDayKey(people[0].id, days[0]);
 	});
 
 	function focusCell(personIndex: number, dayIndex: number): void {
@@ -296,7 +289,7 @@
 		const person = people[nextPerson];
 		const date = days[nextDay];
 		if (person == null || date == null) return;
-		requestedCellKey = `${person.id}:${date}`;
+		requestedCellKey = personDayKey(person.id, date);
 		rowVirtualizer.scrollToIndex(nextPerson, { align: 'auto' });
 		requestAnimationFrame(() => {
 			boardElement
@@ -471,15 +464,17 @@
 		-->
 		<button
 			type="button"
-			class="inline-flex items-center gap-1 underline underline-offset-2"
+			class="underline underline-offset-2"
 			aria-expanded={marksOpen}
 			onclick={() => (marksOpen = !marksOpen)}
 		>
-			<IconWrapper
-				name={marksOpen ? 'lucide:chevron-down' : 'lucide:chevron-right'}
-				class="size-3"
-			/>
-			{t('roster.legend_marks')}
+			<Inline as="span" gap="xs" align="center">
+				<IconWrapper
+					name={marksOpen ? 'lucide:chevron-down' : 'lucide:chevron-right'}
+					class="size-3"
+				/>
+				{t('roster.legend_marks')}
+			</Inline>
 		</button>
 	</Cluster>
 	{#if marksOpen}
@@ -618,7 +613,7 @@
 										>
 									</th>
 									{#each days as date, dayIndex (date)}
-										{@const day = facts.get(`${person.id}:${date}`)}
+										{@const day = facts.get(personDayKey(person.id, date))}
 										{@const rung = rungOf(day)}
 										<!--
 									`day.past !== true` used to be a fourth condition here, and deleting it is
@@ -672,7 +667,7 @@
 														type="button"
 														aria-label={describeDay(day, `${person.name} · ${date}`, t)}
 														aria-haspopup={cellOpenable ? 'dialog' : undefined}
-														tabindex={activeCellKey === `${person.id}:${date}` ? 0 : -1}
+														tabindex={activeCellKey === personDayKey(person.id, date) ? 0 : -1}
 														data-roster-cell={`${personIndex}:${dayIndex}`}
 														draggable={swappable && cellEditable}
 														class={cn(
@@ -712,7 +707,7 @@
 															}
 															if (cellOpenable) onSelectDay?.(person.id, date);
 														}}
-														onfocus={() => (requestedCellKey = `${person.id}:${date}`)}
+														onfocus={() => (requestedCellKey = personDayKey(person.id, date))}
 														onkeydown={(event) => {
 															if (
 																swappable &&
@@ -732,7 +727,10 @@
 															armSwap({ employmentId: person.id, date });
 															// Firefox refuses to start a drag without payload; the pair is read
 															// from `swapSource`, so the value itself is only ever a marker.
-															event.dataTransfer?.setData('text/plain', `${person.id}:${date}`);
+															event.dataTransfer?.setData(
+																'text/plain',
+																personDayKey(person.id, date)
+															);
 														}}
 														ondragover={(event) => {
 															if (swapTarget) event.preventDefault();

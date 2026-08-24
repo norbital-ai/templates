@@ -3,6 +3,7 @@
 	import type { CollectionField } from '@norbital-ai/ui/data-renderer';
 	import { MatrixRenderer, type MatrixColumn } from '@norbital-ai/ui/data-renderer/matrix';
 	import { Stack } from '@norbital-ai/ui/layout';
+	import { newLocalId } from '../../lib/ids.js';
 	import { payCalendarSchema } from './+definition.js';
 	import type { RendererProps, Value } from './$types.js';
 
@@ -64,9 +65,9 @@
 	function createInstalment(): InstalmentRow {
 		const previous = rows.at(-1);
 		return previous == null
-			? { id: crypto.randomUUID(), start_day: 1, end_day: 15, pay_day: 15 }
+			? { id: newLocalId(), start_day: 1, end_day: 15, pay_day: 15 }
 			: {
-					id: crypto.randomUUID(),
+					id: newLocalId(),
 					start_day: Math.min(previous.end_day + 1, 31),
 					end_day: 31,
 					pay_day: 30

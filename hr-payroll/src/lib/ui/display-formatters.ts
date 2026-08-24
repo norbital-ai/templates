@@ -9,9 +9,9 @@ import { Result, Schema } from 'effect';
 import type { TenantI18nKeys } from '$bolt/i18n-keys';
 import type { Translator } from './roster/roster-month.js';
 import { PAYROLL_TIME_ZONE, calendarDateInTimeZone } from './calendar.js';
-import { formatDateISO } from '@norbital-ai/std/date';
 import { entryOriginSchema } from '../../datatypes/entry_origin/+definition.js';
 import { holidayScopeSchema } from '../../datatypes/holiday_scope/+definition.js';
+import type { LeaveEvent } from '../../datatypes/leave_event/+definition.js';
 import { leaveAccrualSchema } from '../../datatypes/leave_accrual/+definition.js';
 import { leavePayrollEffectSchema } from '../../datatypes/leave_payroll_effect/+definition.js';
 import { rateAwardSchema } from '../../datatypes/rate_award/+definition.js';
@@ -71,17 +71,11 @@ const MONTH_NAMES = [
 ] as const;
 
 /**
- * A `YYYY-MM-DD` calendar day from a `date()` column value, or `null` when there is not one.
- *
- * Local PGlite reads of a `date()` column yield a `Date` at UTC midnight; wire payloads yield the
- * calendar string, sometimes with the `T00:00:00.000Z` suffix still attached. Strings are read as
- * characters and never routed through `Date` — turning a calendar day into an instant and back is
- * exactly how `dates-and-time.md` says a birthday moves.
+ * A `YYYY-MM-DD` calendar day from a day-precision instant, or `null` when there is not one.
+ * Strings are read as characters and never routed through `Date`: precision changes presentation,
+ * not the one ISO-string record shape.
  */
 function calendarDayFrom(value: unknown): string | null {
-	if (value instanceof Date) {
-		return Number.isNaN(value.getTime()) ? null : formatDateISO(value);
-	}
 	if (typeof value !== 'string') return null;
 	return /^\d{4}-\d{2}-\d{2}/.test(value) ? value.slice(0, 10) : null;
 }
@@ -109,7 +103,7 @@ export function formatCalendarDate(value: unknown): string {
 }
 
 /**
- * A `dateRange()` value `{ start, end }` of UTC ISO instants, as the two calendar days an operator
+ * A `custom('instant_range', { precision: 'day' })` value `{ start, end }` of UTC ISO instants, as the two calendar days an operator
  * picked.
  *
  * The bound is an *instant*, so it is resolved through the payroll timezone rather than sliced.
@@ -127,6 +121,19 @@ export function formatEffectiveRange(value: unknown): string {
 		return formatCalendarDate(calendarDateInTimeZone(at, PAYROLL_TIME_ZONE));
 	};
 	return `${bound(Reflect.get(value, 'start'), '…')} → ${bound(Reflect.get(value, 'end'), '∞')}`;
+}
+
+/**
+ * The half-day-stepped range of a leave event, as one line.
+ *
+ * Two app pages print the same leave column, and a range that reads differently on the employee's
+ * page and the controller's is two answers to one question.
+ */
+export function formatLeaveRange(event: LeaveEvent | null | undefined, t: Translator): string {
+	if (event == null || event.kind !== 'TIME_OFF') return '—';
+	const half = (part: 'FIRST' | 'SECOND') =>
+		part === 'FIRST' ? t('component.first_half') : t('component.second_half');
+	return `${formatCalendarDate(event.range.start.date)}, ${half(event.range.start.half)} → ${formatCalendarDate(event.range.end.date)}, ${half(event.range.end.half)}`;
 }
 
 export function formatEntryOrigin(value: unknown, t: Translator): string {

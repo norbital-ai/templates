@@ -296,7 +296,7 @@ export function persistShortfalls(
 const PendingDeferralSchema = Schema.Struct({
 	employmentId: Schema.String,
 	employeeNumber: Schema.String,
-	hireDate: Schema.NullOr(Schema.Union([Schema.Date, Schema.String])),
+	hireDate: Schema.NullOr(Schema.String),
 	coversPeriod: Schema.String,
 	paidInPeriod: Schema.String,
 	payComponentId: Schema.String,

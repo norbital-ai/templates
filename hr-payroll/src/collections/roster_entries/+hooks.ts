@@ -68,8 +68,7 @@ function assertResolvedAssignment(
 
 /** Whether the monthly roster a change lands on is still open. Pure; the reads are its callers'. */
 function assertRosterOpenIn(
-	roster:
-		{ readonly month: string; readonly published_at: string | Date | null } | null | undefined,
+	roster: { readonly month: string; readonly published_at: string | null } | null | undefined,
 	rosterId: string | null | undefined
 ): void {
 	if (rosterId == null) return;
@@ -85,19 +84,19 @@ function assertRosterOpen(
 	api: HookApi,
 	rosterId: string | null | undefined
 ): Effect.Effect<void, never, never> {
-	return Effect.gen(function* () {
-		if (rosterId == null) return;
-		const roster = yield* api.db.query.rosters.findFirst({
+	if (rosterId == null) return Effect.void;
+	return Effect.map(
+		api.db.query.rosters.findFirst({
 			where: { id: { eq: rosterId } },
 			columns: { month: true, published_at: true }
-		});
-		assertRosterOpenIn(roster, rosterId);
-	});
+		}),
+		(roster) => assertRosterOpenIn(roster, rosterId)
+	);
 }
 
 function assertAssignment(api: HookApi, value: AssignmentValue): Effect.Effect<void, never, never> {
-	return Effect.gen(function* () {
-		const [employment, code, roster] = yield* Effect.all(
+	return Effect.map(
+		Effect.all(
 			[
 				api.db.query.employments.findFirst({
 					where: { id: { eq: value.employment_id } },
@@ -115,9 +114,9 @@ function assertAssignment(api: HookApi, value: AssignmentValue): Effect.Effect<v
 						})
 			],
 			{ concurrency: 'unbounded' }
-		);
-		assertResolvedAssignment(value, employment, code, roster);
-	});
+		),
+		([employment, code, roster]) => assertResolvedAssignment(value, employment, code, roster)
+	);
 }
 
 /**
@@ -125,14 +124,14 @@ function assertAssignment(api: HookApi, value: AssignmentValue): Effect.Effect<v
  * settled, and a WORK day that approved leave already owns is not assignable — one writer wins
  * the day. Pending leave is deliberately NOT checked here; the board warns instead.
  */
-function assertDayNotSettledIn(windows: readonly PayrollWindow[], workDate: string | Date): void {
+function assertDayNotSettledIn(windows: readonly PayrollWindow[], workDate: string): void {
 	assertNotSettled(windows, dateKey(workDate), 'Changing a roster assignment');
 }
 
 function assertDayNotSettled(
 	api: HookApi,
 	employmentId: string,
-	workDate: string | Date
+	workDate: string
 ): Effect.Effect<void, never, never> {
 	return Effect.gen(function* () {
 		const employment = yield* api.db.query.employments.findFirst({
@@ -158,7 +157,7 @@ function assertDayNotSettled(
 function assertLeaveDoesNotOwnDay(
 	requests: readonly LeaveRequestLike[],
 	variant: RosterCodeVariant | null | undefined,
-	workDate: string | Date
+	workDate: string
 ): void {
 	if (variant == null || rosterCodeKind(variant) !== 'WORK') return;
 	const date = dateKey(workDate);
@@ -175,7 +174,7 @@ function assertLeaveDoesNotOwnDay(
 function assertDayNotOwnedByLeave(
 	api: HookApi,
 	employmentId: string,
-	workDate: string | Date,
+	workDate: string,
 	shiftDefinitionId: string
 ): Effect.Effect<void, never, never> {
 	return Effect.gen(function* () {

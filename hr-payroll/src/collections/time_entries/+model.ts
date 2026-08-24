@@ -1,10 +1,10 @@
-import { custom, date, defineModel, integer, uuid } from '@norbital-ai/bolt/authoring';
+import { custom, defineModel, instant, integer, uuid } from '@norbital-ai/bolt/authoring';
 
 export default defineModel(
 	{
 		employment_id: uuid().notNull(),
-		work_date: date().notNull(),
-		worked_intervals: custom('worked_intervals').notNull(),
+		work_date: instant({ precision: 'day' }).notNull(),
+		worked_intervals: custom('instant_range', { multiple: true }).notNull(),
 		/**
 		 * The unpaid break, in whole minutes.
 		 *

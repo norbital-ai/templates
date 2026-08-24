@@ -5,7 +5,7 @@
 	import { nullableNumberFrom } from '../../lib/ui/renderer-input.js';
 	import { Combobox } from '@norbital-ai/ui/combobox';
 	import { Input } from '@norbital-ai/ui/input';
-	import { Grid } from '@norbital-ai/ui/layout';
+	import { Grid, Stack } from '@norbital-ai/ui/layout';
 	import { statutoryFactStatusSchema } from './+definition.js';
 	import type { RendererProps, Value } from './$types.js';
 
@@ -71,48 +71,56 @@
 	<span class="block truncate" title={summary}>{summary}</span>
 {:else}
 	<Grid class="rounded-md border border-border bg-muted/20 p-3" gap="sm" minimum="compact">
-		<label class="grid gap-1.5 text-sm font-medium">
-			Status
-			<Combobox
-				options={KIND_OPTIONS}
-				value={current?.kind ?? null}
-				{disabled}
-				searchable={false}
-				emptyPlaceholder={t('renderer.statutory_fact_status.select_status')}
-				onValueChange={selectKind}
-			/>
+		<label class="text-sm font-medium">
+			<Stack gap="xs">
+				Status
+				<Combobox
+					options={KIND_OPTIONS}
+					value={current?.kind ?? null}
+					{disabled}
+					searchable={false}
+					emptyPlaceholder={t('renderer.statutory_fact_status.select_status')}
+					onValueChange={selectKind}
+				/>
+			</Stack>
 		</label>
 		{#if current?.kind === 'REGISTERED'}
-			<label class="grid gap-1.5 text-sm font-medium">
-				Reference number
-				<Input
-					value={current.reference_number}
-					{disabled}
-					placeholder={t('component.authority_reference')}
-					oninput={(event) => emit({ ...current, reference_number: event.currentTarget.value })}
-				/>
+			<label class="text-sm font-medium">
+				<Stack gap="xs">
+					Reference number
+					<Input
+						value={current.reference_number}
+						{disabled}
+						placeholder={t('component.authority_reference')}
+						oninput={(event) => emit({ ...current, reference_number: event.currentTarget.value })}
+					/>
+				</Stack>
 			</label>
-			<label class="grid gap-1.5 text-sm font-medium">
-				Rate override (blank = use the band)
-				<Input
-					type="number"
-					min="0"
-					step="0.01"
-					value={current.rate_override ?? ''}
-					{disabled}
-					oninput={(event) =>
-						emit({ ...current, rate_override: nullableNumberFrom(event.currentTarget.value) })}
-				/>
+			<label class="text-sm font-medium">
+				<Stack gap="xs">
+					Rate override (blank = use the band)
+					<Input
+						type="number"
+						min="0"
+						step="0.01"
+						value={current.rate_override ?? ''}
+						{disabled}
+						oninput={(event) =>
+							emit({ ...current, rate_override: nullableNumberFrom(event.currentTarget.value) })}
+					/>
+				</Stack>
 			</label>
 		{:else if current?.kind === 'NOT_REGISTERED'}
-			<label class="grid gap-1.5 text-sm font-medium">
-				Reason
-				<Input
-					value={current.reason}
-					{disabled}
-					placeholder={t('component.why_out_of_scope')}
-					oninput={(event) => emit({ kind: 'NOT_REGISTERED', reason: event.currentTarget.value })}
-				/>
+			<label class="text-sm font-medium">
+				<Stack gap="xs">
+					Reason
+					<Input
+						value={current.reason}
+						{disabled}
+						placeholder={t('component.why_out_of_scope')}
+						oninput={(event) => emit({ kind: 'NOT_REGISTERED', reason: event.currentTarget.value })}
+					/>
+				</Stack>
 			</label>
 		{/if}
 	</Grid>

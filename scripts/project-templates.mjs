@@ -24,6 +24,14 @@ function fail(message) {
 	throw new Error(message);
 }
 
+/** Arguments that consume the next token, mapped to the option they set. */
+const valueArguments = new Map([
+	['--push', 'pushRemote'],
+	['--output', 'output'],
+	['--source-revision', 'sourceRevision'],
+	['--repository', 'repository']
+]);
+
 function readArguments(argv) {
 	const options = {
 		check: false,
@@ -35,13 +43,17 @@ function readArguments(argv) {
 	};
 	for (let index = 0; index < argv.length; index += 1) {
 		const argument = argv[index];
-		if (argument === '--check') options.check = true;
-		else if (argument === '--update-local') options.updateLocal = true;
-		else if (argument === '--push') options.pushRemote = argv[++index];
-		else if (argument === '--output') options.output = argv[++index];
-		else if (argument === '--source-revision') options.sourceRevision = argv[++index];
-		else if (argument === '--repository') options.repository = argv[++index];
-		else fail(`Unknown argument: ${argument}`);
+		if (argument === '--check') {
+			options.check = true;
+			continue;
+		}
+		if (argument === '--update-local') {
+			options.updateLocal = true;
+			continue;
+		}
+		const optionKey = valueArguments.get(argument);
+		if (optionKey === undefined) fail(`Unknown argument: ${argument}`);
+		options[optionKey] = argv[++index];
 	}
 	if (!options.check && !options.updateLocal && !options.pushRemote && !options.output) {
 		fail('Choose --check, --update-local, --push <remote>, or --output <path>.');

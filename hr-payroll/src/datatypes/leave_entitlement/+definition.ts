@@ -1,7 +1,7 @@
 import { defineCustomType } from '@norbital-ai/bolt/authoring';
 import { Schema } from 'effect';
 import { accrualKeyValueSchema } from '../accrual_key/+definition.js';
-import { dateRangeValueSchema } from '../date_range/+definition.js';
+import { instantRangeValueSchema } from '@norbital-ai/bolt/authoring';
 
 /**
  * `Finite` rather than `Number` for `days`: `Number` admits `NaN` and `Infinity`, and the
@@ -12,7 +12,7 @@ const award = {
 	key: accrualKeyValueSchema,
 	days: Schema.Finite.check(Schema.isGreaterThanOrEqualTo(0)),
 	authority: Schema.NonEmptyString,
-	effective_range: dateRangeValueSchema
+	effective_range: instantRangeValueSchema
 } as const;
 
 /** One closed policy layer. A row can never accidentally be statutory and individual at once. */

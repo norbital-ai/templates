@@ -1,5 +1,4 @@
 import { execFileSync } from 'node:child_process';
-import { createHash } from 'node:crypto';
 import {
 	copyFileSync,
 	existsSync,
@@ -7,7 +6,6 @@ import {
 	mkdtempSync,
 	readFileSync,
 	rmSync,
-	statSync,
 	writeFileSync
 } from 'node:fs';
 import { createRequire } from 'node:module';
@@ -22,17 +20,9 @@ import {
 	validateTemplateEnvironmentVariables
 } from './lib/artifact-environment.mjs';
 import { decodeJsonObject } from './lib/json.mjs';
-import {
-	archiveTemplateArtifact,
-	templateArtifactPath,
-	templateBundleFormatVersion
-} from './lib/template-artifact.mjs';
+import { templateArtifactPath } from './lib/template-artifact.mjs';
 import { registryConfiguration } from './lib/registry.mjs';
-import {
-	discoverTemplates,
-	repositoryRoot,
-	templateBundlePackageManifest
-} from './lib/templates.mjs';
+import { discoverTemplates, repositoryRoot } from './lib/templates.mjs';
 
 /**
  * Prove each template stands alone.
@@ -56,64 +46,9 @@ function run(command, arguments_, options = {}) {
 }
 
 function readArguments(argv) {
-	const options = { filter: undefined, bundleOutput: undefined, revisions: undefined };
-	for (let index = 0; index < argv.length; index += 1) {
-		const argument = argv[index];
-		if (argument === '--bundle-output') options.bundleOutput = argv[++index];
-		else if (argument === '--revisions') options.revisions = argv[++index];
-		else if (!options.filter) options.filter = argument;
-		else throw new Error(`Unknown argument: ${argument}`);
-	}
-	if (Boolean(options.bundleOutput) !== Boolean(options.revisions)) {
-		throw new Error('--bundle-output and --revisions must be provided together.');
-	}
-	return options;
-}
-
-function sha256(bytes) {
-	return createHash('sha256').update(bytes).digest('hex');
-}
-
-function writeTemplateBundle(template, projection, outputDirectory, workspaceRoot) {
-	const packageManifest = decodeJsonObject(
-		readFileSync(path.join(template.directory, 'package.json'), 'utf8'),
-		`${template.directory}/package.json`
-	);
-	const lockfile = readFileSync(path.join(template.directory, 'pnpm-lock.yaml'));
-	const lockHash = sha256(lockfile).slice(0, 32);
-	const boltVersion = packageManifest.dependencies?.['@norbital-ai/bolt'];
-	if (typeof boltVersion !== 'string' || boltVersion.length === 0) {
-		throw new Error(`Template ${template.slug} pins no @norbital-ai/bolt version.`);
-	}
-	const packageDirectory = path.join(outputDirectory, template.slug);
-	mkdirSync(packageDirectory, { recursive: true });
-	const bundlePath = path.join(packageDirectory, 'bundle.tar');
-	archiveTemplateArtifact(workspaceRoot, bundlePath);
-	const bundle = readFileSync(bundlePath);
-	writeFileSync(
-		path.join(packageDirectory, 'norbital.template-build.json'),
-		`${JSON.stringify(
-			{
-				schemaVersion: 1,
-				templateSlug: template.slug,
-				templateHandle: template.handle,
-				sourceCommit: projection.revision,
-				bundleFormatVersion: templateBundleFormatVersion,
-				lockHash,
-				boltVersion,
-				packageKey: lockHash.slice(0, 16),
-				bundleSha256: sha256(bundle),
-				bundleBytes: statSync(bundlePath).size
-			},
-			null,
-			2
-		)}\n`
-	);
-	writeFileSync(
-		path.join(packageDirectory, 'package.json'),
-		`${JSON.stringify(templateBundlePackageManifest(template), null, 2)}\n`
-	);
-	console.log(`Prepared canonical build package for ${template.slug}@${projection.revision}.`);
+	const [filter, ...unexpected] = argv;
+	if (unexpected.length > 0) throw new Error(`Unknown argument: ${unexpected[0]}`);
+	return { filter };
 }
 
 function copyTrackedProjection(template, destination) {
@@ -135,12 +70,12 @@ function copyTrackedProjection(template, destination) {
  * Optional package archives for a pre-publication rehearsal.
  *
  * The committed lockfile still has to install frozen first: that proves the published template is
- * self-contained. A release candidate may then replace only the four first-party packages in the
- * temporary projection, letting the next immutable `0.0.1` package set prove every template before
- * the existing registry versions are removed. Nothing in the tracked projection is rewritten.
+ * self-contained. A pre-publication archive set may then replace the four first-party packages in
+ * the temporary projection, proving the next `0.0.1` package set before the existing registry
+ * versions are removed. Nothing in the tracked projection is rewritten.
  */
-function candidatePackageArchives() {
-	const directory = process.env.NORBITAL_PACKAGE_CANDIDATES?.trim();
+function packageArchives() {
+	const directory = process.env.NORBITAL_PACKAGE_ARCHIVES?.trim();
 	if (!directory) return [];
 	return [
 		['@norbital-ai/bolt-protocol', 'bolt-protocol.tgz'],
@@ -149,16 +84,16 @@ function candidatePackageArchives() {
 		['@norbital-ai/bolt', 'bolt.tgz']
 	].map(([name, filename]) => {
 		const archive = path.resolve(directory, filename);
-		if (!existsSync(archive)) throw new Error(`Missing candidate package archive: ${archive}`);
+		if (!existsSync(archive)) throw new Error(`Missing package archive: ${archive}`);
 		return { name, archive };
 	});
 }
 
-function stageCandidatePackages(destination, candidates) {
+function stagePackageArchives(destination, archives) {
 	const manifestPath = path.join(destination, 'package.json');
 	const manifest = decodeJsonObject(readFileSync(manifestPath, 'utf8'), manifestPath);
 	const specifiers = Object.fromEntries(
-		candidates.map(({ name, archive }) => [name, `file:${archive}`])
+		archives.map(({ name, archive }) => [name, `file:${archive}`])
 	);
 	writeFileSync(
 		manifestPath,
@@ -174,7 +109,7 @@ function stageCandidatePackages(destination, candidates) {
 	const workspacePath = path.join(destination, 'pnpm-workspace.yaml');
 	const workspace = readFileSync(workspacePath, 'utf8');
 	if (/^overrides:/m.test(workspace)) {
-		throw new Error(`${workspacePath} already declares overrides; candidate staging is ambiguous.`);
+		throw new Error(`${workspacePath} already declares overrides; archive staging is ambiguous.`);
 	}
 	writeFileSync(
 		workspacePath,
@@ -214,32 +149,45 @@ function validateArtifactEnvironment(template, destination) {
 		);
 		const tenantId = `environment-contract-${template.slug}`;
 		const scope = { tenantId, environment: 'test', releaseId: 'environment-contract' };
+		let databaseRead = 0;
 		const databaseAnswer = (input) => {
-			if (input._tag === 'Query' && input.sql.includes('from "session"')) {
+			if (input._tag !== 'Query') {
+				return {
+					_tag: 'Failure',
+					error: {
+						code: 'unexpected_database_request',
+						message: `Environment contract issued an unexpected database request: ${input._tag}`,
+						retryable: false,
+						outcome: 'known'
+					}
+				};
+			}
+			databaseRead += 1;
+			if (databaseRead === 1) {
 				return {
 					_tag: 'Success',
 					value: {
 						rows: [
 							{
-								userId: 'environment-contract-admin',
+								id: 'environment-contract-admin',
 								tenantId,
 								status: 'admin',
-								team_id: null,
-								teamPath: []
+								team_id: null
 							}
 						],
 						affectedRows: 0
 					}
 				};
 			}
-			if (input._tag === 'Query' && input.sql === 'select name, updated_at from bolt_secrets') {
+			// Authentication resolves team ancestry, then secrets.status reads configured vault names.
+			if (databaseRead === 2 || databaseRead === 3) {
 				return { _tag: 'Success', value: { rows: [], affectedRows: 0 } };
 			}
 			return {
 				_tag: 'Failure',
 				error: {
 					code: 'unexpected_database_request',
-					message: `Environment contract issued an unexpected database request: ${input._tag}`,
+					message: `Environment contract issued unexpected database read #${databaseRead}`,
 					retryable: false,
 					outcome: 'known'
 				}
@@ -290,28 +238,10 @@ function validateArtifactEnvironment(template, destination) {
 }
 
 const options = readArguments(process.argv.slice(2));
-const parsedRevisions = options.revisions
-	? decodeJsonObject(
-			readFileSync(path.resolve(repositoryRoot, options.revisions), 'utf8'),
-			path.resolve(repositoryRoot, options.revisions)
-		)
-	: null;
-if (options.revisions && !Array.isArray(parsedRevisions.entries)) {
-	throw new Error(`${options.revisions} must contain { entries: [...] }.`);
-}
-const revisions = parsedRevisions;
-const projections = new Map((revisions?.entries ?? []).map((entry) => [entry.slug, entry]));
-const bundleOutput = options.bundleOutput
-	? path.resolve(repositoryRoot, options.bundleOutput)
-	: null;
-if (bundleOutput) {
-	rmSync(bundleOutput, { recursive: true, force: true });
-	mkdirSync(bundleOutput, { recursive: true });
-}
 
 function runLifecycle(template, destination) {
 	return Effect.gen(function* () {
-		const candidates = yield* Effect.try(candidatePackageArchives);
+		const archives = yield* Effect.try(packageArchives);
 		const runStep = (label, arguments_) =>
 			Effect.try(() => run('pnpm', arguments_, { cwd: destination, env: process.env })).pipe(
 				Effect.mapError((cause) => {
@@ -322,16 +252,20 @@ function runLifecycle(template, destination) {
 				})
 			);
 		yield* runStep('install', ['install', '--frozen-lockfile']);
-		if (candidates.length > 0) {
-			yield* Effect.try(() => stageCandidatePackages(destination, candidates));
-			yield* runStep('candidate format', [
+		if (archives.length > 0) {
+			yield* Effect.try(() => stagePackageArchives(destination, archives));
+			yield* runStep('package archive format', [
 				'exec',
 				'prettier',
 				'--write',
 				'package.json',
 				'pnpm-workspace.yaml'
 			]);
-			yield* runStep('candidate install', ['install', '--no-frozen-lockfile', '--ignore-scripts']);
+			yield* runStep('package archive install', [
+				'install',
+				'--no-frozen-lockfile',
+				'--ignore-scripts'
+			]);
 		}
 		for (const [label, arguments_] of [
 			['sync', ['sync']],
@@ -351,26 +285,22 @@ function validateProjection(template, temporaryDirectory) {
 			writeFileSync(path.join(destination, '.npmrc'), registryConfiguration());
 		});
 		yield* runLifecycle(template, destination);
-		yield* Effect.try(() => {
-			const { findings } = auditWorkspace(destination);
-			if (findings.length === 0) return;
+		const { findings } = yield* Effect.try(() => auditWorkspace(destination));
+		if (findings.length > 0) {
 			const detail = findings
 				.map(
 					(finding) =>
 						`${path.relative(destination, finding.file)} <${finding.component} ${finding.property}>`
 				)
 				.join('\n  ');
-			throw new Error(
-				`${template.slug} projection hands a framework system column to a component:\n  ${detail}`
+			return yield* Effect.fail(
+				new Error(
+					`${template.slug} projection hands a framework system column to a component:\n  ${detail}`
+				)
 			);
-		});
+		}
 		yield* validateArtifactEnvironment(template, destination);
-		yield* Effect.try(() => {
-			if (bundleOutput) {
-				const projection = projections.get(template.slug);
-				if (!projection) throw new Error(`No projected revision recorded for ${template.slug}.`);
-				writeTemplateBundle(template, projection, bundleOutput, destination);
-			}
+		yield* Effect.sync(() => {
 			console.log(`Validated clean standalone projection: ${template.slug}.`);
 		});
 	});

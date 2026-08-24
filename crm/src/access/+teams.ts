@@ -29,10 +29,11 @@ import type { Teams } from '@norbital-ai/bolt/authoring';
  *
  * ## The buy/sell boundary, and why it survives being written down
  *
- * The two policies are deliberately disjoint rather than a ladder: procurement has no `quotes`
+ * The two role policies are deliberately disjoint rather than a ladder: procurement has no `quotes`
  * grant, so it never sees a sell price or a margin, and sales has no `purchase_order_lines` grant,
- * so it never sees a buy cost. `products` is the one shared surface, and it carries sell prices
- * only. Nothing here inherits from anything, because neither side is the other's senior.
+ * so it never sees a buy cost. Shared product and settlement coordinates live only in
+ * `commercial_shared`, so combining the policies creates no overlapping grant. Nothing here
+ * inherits from anything, because neither side is the other's senior.
  *
  * ## One team per person
  *
@@ -41,24 +42,23 @@ import type { Teams } from '@norbital-ai/bolt/authoring';
  * actually hold, and stating it here is what makes "this person sees cost *and* margin" a fact a
  * reviewer can see rather than an emergent property of two arrays.
  *
- * No grant in this workspace carries an `approval`, so no team name here is also an `approvers`
- * entry. If one is ever added, the step's `approvers` string and a key below have to be the same
- * string, or the approval is undecidable.
+ * No grant in this workspace carries an approval. If one is added, `approveBy(...)` is checked
+ * against these exact team names.
  */
 export default {
 	/** The sell side: own quotes, invoices and signings, plus the shared account and product book. */
-	Sales: ['sales_rep'],
+	Sales: ['commercial_shared', 'sales_rep'],
 
 	/** The buy side: suppliers, purchase orders, receipts and purchase invoices. Never the pipeline. */
-	Procurement: ['procurement_officer'],
+	Procurement: ['commercial_shared', 'procurement_officer'],
 
 	/**
 	 * Both sides of the desk.
 	 *
 	 * `&` rather than hr-payroll's `Base (Extra)` parenthetical, because neither policy is a rank
-	 * above the other — this is a union of two peers, not an escalation of one. It is what the three
+	 * above the other — this combines two disjoint peers, not an escalation of one. It is what the three
 	 * seeded administrators hold today, and it is the only team in this workspace that can see a buy
 	 * cost and a sell margin at the same time.
 	 */
-	'Sales & Procurement': ['sales_rep', 'procurement_officer']
+	'Sales & Procurement': ['commercial_shared', 'sales_rep', 'procurement_officer']
 } satisfies Teams;

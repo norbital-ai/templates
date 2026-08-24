@@ -1,4 +1,4 @@
-import { custom, date, defineModel, enums, text } from '@norbital-ai/bolt/authoring';
+import { custom, defineModel, enums, instant, text } from '@norbital-ai/bolt/authoring';
 
 export default defineModel(
 	{
@@ -9,11 +9,11 @@ export default defineModel(
 		phone: text(),
 		email: text(),
 		emergency_contact: custom('emergency_contact'),
-		date_of_birth: date(),
+		date_of_birth: instant({ precision: 'day' }),
 		nationality: text(),
-		work_permit_expiry: date(),
-		medical_check_date: date(),
-		safety_induction_date: date()
+		work_permit_expiry: instant({ precision: 'day' }),
+		medical_check_date: instant({ precision: 'day' }),
+		safety_induction_date: instant({ precision: 'day' })
 	},
 	{
 		description: 'Worker roster used for job assignment and compliance checks.',

@@ -20,18 +20,17 @@ const exists = (url) => {
 	return existsSync(fileURLToPath(url));
 };
 
+/** The `.ts` sibling a relative `.js` specifier should resolve to, or `null` to leave it alone. */
+const sourceSibling = (specifier, parentURL) => {
+	if (parentURL == null || !specifier.endsWith('.js')) return null;
+	if (!specifier.startsWith('./') && !specifier.startsWith('../')) return null;
+	if (exists(new URL(specifier, parentURL))) return null;
+	const candidate = `${specifier.slice(0, -3)}.ts`;
+	return exists(new URL(candidate, parentURL)) ? candidate : null;
+};
+
 registerHooks({
 	resolve(specifier, context, nextResolve) {
-		if (
-			context.parentURL != null &&
-			specifier.endsWith('.js') &&
-			(specifier.startsWith('./') || specifier.startsWith('../'))
-		) {
-			const emitted = new URL(specifier, context.parentURL);
-			const source = new URL(`${specifier.slice(0, -3)}.ts`, context.parentURL);
-			if (!exists(emitted) && exists(source))
-				return nextResolve(`${specifier.slice(0, -3)}.ts`, context);
-		}
-		return nextResolve(specifier, context);
+		return nextResolve(sourceSibling(specifier, context.parentURL) ?? specifier, context);
 	}
 });

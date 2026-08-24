@@ -8,11 +8,10 @@
  * are restated below as one-line helpers, quoted where they came from, because a test that could
  * not name what it is checking would be checking a shape rather than a rule:
  *
- *   - `policiesHeld`       — each team in `teamPath` contributes the policy filename keys declared
- *                            for it in `access/+teams.ts`.
- *   - `matches`           — `grants.some((grant) => grant.collection === resource && grant.action === action)`.
- *   - `requiresApproval`  — `definition.approvalLock === true || visibility.approval !== undefined`,
- *                           where `visibility.approval` is the `approval` on the matching grant.
+ *   - `policiesHeld`       — a person's own team contributes the policy filename keys declared for
+ *                            it in `access/+teams.ts`.
+ *   - `matches`            — the collection/action key is present in the policy grant map.
+ *   - approval             — the matching write grant carries a live `flow` function.
  *
  * The restatement is the known weakness: if the runtime's matcher changes, these keep passing
  * against a stale copy. It is three lines rather than three hundred for exactly that reason, and
@@ -51,13 +50,17 @@ const heldNameOf = (policy) => nameOf(policy).toLocaleLowerCase();
 
 /** `matches`: the grants this policy has for one collection and one action. */
 const grantsFor = (policy, collection, action) =>
-	policy.grants.filter((grant) => grant.collection === collection && grant.action === action);
+	policy.grants[collection]?.[action] === undefined ? [] : [policy.grants[collection][action]];
 
 const may = (policy, collection, action) => grantsFor(policy, collection, action).length > 0;
 
 /** Every `(collection, action)` pair a policy grants at all. */
 const surfaceOf = (policy) =>
-	new Set(policy.grants.map((grant) => `${grant.collection}:${grant.action}`));
+	new Set(
+		Object.entries(policy.grants).flatMap(([collection, actions]) =>
+			Object.keys(actions).map((action) => `${collection}:${action}`)
+		)
+	);
 
 test('the six policies are the six names a team may declare', () => {
 	assert.deepEqual(
@@ -134,19 +137,19 @@ test('a controller may view payroll, and their create is held for hr_manager or 
 	const [create, ...extra] = grantsFor(hrController, 'payroll_runs', 'create');
 	assert.deepEqual(extra, [], 'one create grant, or the union would pick an arbitrary approval');
 
-	// `requiresApproval` is `visibility.approval !== undefined`. The presence of this object is the
-	// whole of "may not create it": Bolt writes the row, stamps `approval_id`, and waits.
+	// The live flow returns one concrete route. There are no authored step ids or names.
 	assert.notEqual(create.approval, undefined);
-	assert.equal(create.approval.steps.length, 1);
+	const flow = create.approval.flow();
+	assert.equal(flow.stages.length, 1);
 	// One step with two teams, not two steps. `approvals.decide` tests
 	// each candidate is compared with `subject.teamPath[0]` — a person has one own team — so either
 	// team is sufficient, which is what "approval from hr_manager OR senior
 	// management" says. Two steps would demand both.
-	assert.deepEqual(create.approval.steps[0].approvers, ['HR Manager', 'Senior Management']);
+	assert.deepEqual(flow.stages[0].approvers, ['HR Manager', 'Senior Management']);
 	// The approver names are team names, and a team name is what `+teams.ts` keys on. A step naming
 	// a team no key spells is a step nobody is eligible to decide, and nothing else would say so.
 	const teamNames = new Set(Object.keys(teams).map((name) => name.toLocaleLowerCase()));
-	for (const approver of create.approval.steps[0].approvers)
+	for (const approver of flow.stages[0].approvers)
 		assert.ok(teamNames.has(approver.toLocaleLowerCase()), `no team named ${approver}`);
 
 	// Viewing is not running. A controller holds neither the recalculate nor the delete, so the
@@ -200,16 +203,13 @@ test('an employee cannot read an adjustment, and no ordinary policy erases the p
 	}
 });
 
-test('ordinary ranks may create only their own reviewed claim; HR may create adjustments', () => {
-	// The shared self-service grant is pinned to the requester's employment and the CLAIM arm.
-	// Without both clauses a manager's materialized team policy could post an adjustment, or a claim
-	// for another employee, through the same collection.
+test('ordinary ranks authorize only their own reviewed claim; HR may create adjustments', () => {
+	// Writes use pure TypeScript/Effect authorization over the prepared record, not a SQL where.
 	for (const policy of [employee, supervisor, manager]) {
 		const [claim, ...extra] = grantsFor(policy, 'component_entries', 'create');
 		assert.deepEqual(extra, [], `${nameOf(policy)} has more than one component entry create`);
-		assert.match(claim.where.$sql, /requestor\.email/, nameOf(policy));
-		assert.match(claim.where.$sql, /'CLAIM'/, nameOf(policy));
-		assert.doesNotMatch(claim.where.$sql, /MANUAL_ADJUSTMENT/, nameOf(policy));
+		assert.equal(typeof claim.authorize, 'function', nameOf(policy));
+		assert.equal(claim.where, undefined, nameOf(policy));
 		assert.notEqual(claim.approval, undefined, `${nameOf(policy)} claim must be reviewed`);
 	}
 
@@ -220,28 +220,41 @@ test('ordinary ranks may create only their own reviewed claim; HR may create adj
 	}
 });
 
-test('no team holder combines narrowed and unconditional grants for one operation', () => {
+test('no team holder receives the same operation from two policies', () => {
 	const conflicts = [];
 	for (const [team, heldNames] of Object.entries(teams)) {
-		const grantsByOperation = new Map();
+		const ownersByOperation = new Map();
 		for (const heldName of heldNames) {
 			const policy = policiesByFileKey[heldName.toLocaleLowerCase()];
-			for (const grant of policy.grants) {
-				const operation = `${grant.action} on ${grant.collection}`;
-				const scopes = grantsByOperation.get(operation) ?? { narrowed: [], unconditional: [] };
-				const where = grant.where;
-				const bucket =
-					where === undefined || Object.keys(where).length === 0 ? 'unconditional' : 'narrowed';
-				scopes[bucket].push(heldName);
-				grantsByOperation.set(operation, scopes);
+			for (const [collection, actions] of Object.entries(policy.grants)) {
+				for (const action of Object.keys(actions)) {
+					const operation = `${action} on ${collection}`;
+					const owners = ownersByOperation.get(operation) ?? [];
+					owners.push(heldName);
+					ownersByOperation.set(operation, owners);
+				}
 			}
 		}
-		for (const [operation, scopes] of grantsByOperation) {
-			if (scopes.narrowed.length > 0 && scopes.unconditional.length > 0)
-				conflicts.push({ team, operation, ...scopes });
+		for (const [operation, owners] of ownersByOperation) {
+			if (owners.length > 1) conflicts.push({ team, operation, owners });
 		}
 	}
 	assert.deepEqual(conflicts, []);
+});
+
+test('no human policy may author the system-only statutory predecessor instruction', () => {
+	for (const policy of policies) {
+		for (const action of ['create', 'update']) {
+			for (const grant of grantsFor(policy, 'employment_statutory_facts', action)) {
+				assert.ok(Array.isArray(grant.fields), `${nameOf(policy)} ${action} needs a field mask`);
+				assert.equal(
+					grant.fields.includes('supersedes_fact_id'),
+					false,
+					`${nameOf(policy)} ${action} exposes the system transition instruction`
+				);
+			}
+		}
+	}
 });
 
 test('every policy can read the settlement ledger, or its refusal becomes an access denial', () => {

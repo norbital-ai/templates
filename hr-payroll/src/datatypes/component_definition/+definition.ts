@@ -1,7 +1,7 @@
 import { defineCustomType } from '@norbital-ai/bolt/authoring';
 import { Schema } from 'effect';
 import { eligibilityRulesValueSchema } from '../eligibility_rules/+definition.js';
-import { dateRangeValueSchema } from '../date_range/+definition.js';
+import { instantRangeValueSchema } from '@norbital-ai/bolt/authoring';
 
 /**
  * `Finite` rather than `Number` throughout this file: `Number` admits `NaN` and `Infinity`, and the
@@ -20,7 +20,7 @@ const capLayer = {
 	authority: Schema.NonEmptyString,
 	award: capAwardSchema,
 	reimbursement_percentage: Schema.Finite.check(Schema.isBetween({ minimum: 0, maximum: 100 })),
-	effective_range: dateRangeValueSchema
+	effective_range: instantRangeValueSchema
 } as const;
 const capLayerSchema = Schema.Union([
 	Schema.Struct({ level: Schema.Literal('STATUTORY'), ...capLayer }),

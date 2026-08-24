@@ -1,11 +1,10 @@
 import {
-	boolean,
+	custom,
 	defineModel,
 	enums,
 	geolocation,
-	custom,
+	instant,
 	text,
-	timestamp,
 	uuid
 } from '@norbital-ai/bolt/authoring';
 
@@ -21,7 +20,7 @@ export default defineModel(
 		 * subquery, and what removes a profile row a contractor could fail to have.
 		 */
 		assignee_user_id: uuid().notNull(),
-		dispatched_at: timestamp(),
+		dispatched_at: instant(),
 		/**
 		 * Where the work has got to, and nothing else.
 		 *
@@ -38,26 +37,17 @@ export default defineModel(
 		 * difference and no rule turned on it.
 		 */
 		status: enums(['unassigned', 'assigned', 'completed']),
-		completed_at: timestamp(),
+		completed_at: instant(),
 		amount_charged: custom('money'),
 		location: geolocation(),
 		summary: text({ search: true }),
 		source_message_id: text(),
-		/** Fail closed until a linked photo visibly establishes a site identifier. */
-		site_identity_unverified: boolean().notNull().default(true),
-		/** One-way integrity finding: a photographed identifier contradicts the assigned site. */
-		site_identity_mismatch: boolean().notNull().default(false),
-		site_identity_evidence_id: uuid(),
-		extracted_site_name: text(),
-		extracted_site_location: text(),
-		extracted_unit_number: text(),
-		site_identity_confidence: enums(['low', 'medium', 'high']),
-		site_identity_checked_at: timestamp(),
-		site_identity_rationale: text()
+		/** Written only by the suspicion-review automation after a successful review. */
+		suspicion_checked_at: instant()
 	},
 	{
 		description:
-			'A job dispatched to one person. Tracks dispatch, on-site progression, and photo evidence.',
+			'A job dispatched to one person. Tracks dispatch and on-site progression; evidence facts and suspicion judgements live in their own collections.',
 		recordLabel: 'summary',
 		icon: 'lucide:clipboard-check',
 		indexes: [

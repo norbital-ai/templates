@@ -18,6 +18,7 @@ minimumReleaseAgeExclude:
   - '@norbital-ai/bolt@0.0.1'
   - '@norbital-ai/bolt-protocol@0.0.1'
   - '@norbital-ai/config@0.0.1'
+  - '@norbital-ai/doctor@0.0.1'
   - '@norbital-ai/std@0.0.1'
   - '@norbital-ai/ui@0.0.1'
 # Host tools execute from this depset, while tenant builds execute in a Linux/musl microVM.
@@ -33,3 +34,10 @@ supportedArchitectures:
   libc:
     - glibc
     - musl
+
+# pnpm 11 repairs node_modules against the lockfile before running any script. A template is
+# developed against a local yalc overlay whose pins are deliberately kept out of source control, so
+# that repair silently reinstalls the published package over the linked one — and `bolt sync` then
+# regenerates this template's client from a stale bundle while reporting success. Installing stays
+# explicit: `pnpm install` still reconciles, and `pnpm yalc:retreat` restores the registry versions.
+verifyDepsBeforeRun: false

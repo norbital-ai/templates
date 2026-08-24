@@ -1,4 +1,4 @@
-import { date, defineModel, enums, text, uuid } from '@norbital-ai/bolt/authoring';
+import { defineModel, enums, instant, text, uuid } from '@norbital-ai/bolt/authoring';
 
 /**
  * One explicit person-day assignment or override.
@@ -18,7 +18,7 @@ import { date, defineModel, enums, text, uuid } from '@norbital-ai/bolt/authorin
 export default defineModel(
 	{
 		employment_id: uuid().notNull(),
-		work_date: date().notNull(),
+		work_date: instant({ precision: 'day' }).notNull(),
 		/** The assigned roster code (WORK, REST or OFF). */
 		shift_definition_id: uuid().notNull(),
 		/**

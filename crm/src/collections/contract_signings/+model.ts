@@ -1,4 +1,4 @@
-import { defineModel, enums, file, text, timestamp, uuid } from '@norbital-ai/bolt/authoring';
+import { defineModel, enums, file, instant, text, uuid } from '@norbital-ai/bolt/authoring';
 
 export default defineModel(
 	{
@@ -11,9 +11,9 @@ export default defineModel(
 			mimeTypes: ['application/pdf', 'image/jpeg', 'image/png']
 		}),
 		share_token_hash: text(),
-		share_expires_at: timestamp(),
-		share_revoked_at: timestamp(),
-		acknowledged_at: timestamp(),
+		share_expires_at: instant(),
+		share_revoked_at: instant(),
+		acknowledged_at: instant(),
 		void_reason: text(),
 		owner_id: uuid().notNull()
 	},

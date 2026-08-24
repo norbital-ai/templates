@@ -1,4 +1,5 @@
-import { Clock, Effect, Schema } from 'effect';
+import { Effect, Schema } from 'effect';
+import { currentInstant } from '../../lib/clock.js';
 import { docNoSeriesPattern, nextDocNo } from '../../lib/document-numbers.js';
 import type { Hooks, WorkspaceRow } from './$types.js';
 
@@ -56,7 +57,7 @@ export default {
 						}
 
 						if (!input.doc_no) {
-							const year = new Date(yield* Clock.currentTimeMillis).getFullYear();
+							const year = (yield* currentInstant).getFullYear();
 							const existing = yield* api.db.query.quotes.findMany({
 								where: { doc_no: { like: docNoSeriesPattern('QT', year) } },
 								columns: { doc_no: true },
@@ -176,7 +177,7 @@ export default {
 						}
 
 						if (newStatus === 'confirmed' && existing.confirmed_at == null) {
-							updates.confirmed_at = new Date(yield* Clock.currentTimeMillis);
+							updates.confirmed_at = (yield* currentInstant).toISOString();
 						}
 
 						if (newStatus === 'draft' && oldStatus === 'sent') {
@@ -192,7 +193,7 @@ export default {
 								return yield* Effect.fail(new Error('A cancellation reason is required.'));
 							}
 							if (existing.cancelled_at == null) {
-								updates.cancelled_at = new Date(yield* Clock.currentTimeMillis);
+								updates.cancelled_at = (yield* currentInstant).toISOString();
 							}
 						}
 

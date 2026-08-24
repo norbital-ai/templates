@@ -111,13 +111,17 @@
 						</p>
 					</Stack>
 					<Grid gap="md" minimum="compact">
-						<label class="grid gap-1.5 text-sm font-medium">
-							{t('component.first_repayment_date')}
-							<Input type="date" bind:value={firstDueDate} />
+						<label class="text-sm font-medium">
+							<Stack gap="xs">
+								{t('component.first_repayment_date')}
+								<Input type="date" bind:value={firstDueDate} />
+							</Stack>
 						</label>
-						<label class="grid gap-1.5 text-sm font-medium">
-							{t('component.number_of_instalments')}
-							<Input type="number" min="1" max="600" step="1" bind:value={instalmentCount} />
+						<label class="text-sm font-medium">
+							<Stack gap="xs">
+								{t('component.number_of_instalments')}
+								<Input type="number" min="1" max="600" step="1" bind:value={instalmentCount} />
+							</Stack>
 						</label>
 					</Grid>
 					<Button

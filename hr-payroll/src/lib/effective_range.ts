@@ -1,10 +1,10 @@
-import { Schema } from 'effect';
+import { Effect, Schema } from 'effect';
 import type { StoredRange } from '../collections/payroll_runs/lib/effective.js';
 
 /**
  * Effective-range helpers shared by every effective-dated configuration collection.
  *
- * `effective_range` is a `dateRange()` column: JSONB `{ start, end }` holding UTC ISO instants,
+ * `effective_range` is a `custom('instant_range', { precision: 'day' })` column: JSONB `{ start, end }` holding UTC ISO instants,
  * NOT a Postgres range type. Overlap therefore cannot be enforced by an `EXCLUDE USING gist`
  * constraint and is checked here, in `create.before` / `update.before` hooks.
  */
@@ -86,4 +86,42 @@ export function assertNoOverlap(options: OverlapCheck): void {
 			);
 		}
 	}
+}
+
+/**
+ * Read the siblings that share an exclusion key, assert the candidate range clears them, and hand
+ * the input straight back.
+ *
+ * Every effective-dated catalogue runs this same `before` shape and differs only in which column
+ * scopes the code and what a row is called in the message. Those two are arguments; the shape is
+ * stated once, here.
+ */
+export function guardEffectiveRange<Input, E, R>(
+	siblings: Effect.Effect<ReadonlyArray<EffectiveDatedRow>, E, R>,
+	candidate: unknown,
+	identity: string,
+	input: Input,
+	excludeId?: string
+): Effect.Effect<Input, E, R> {
+	return Effect.map(siblings, (existing) => {
+		assertNoOverlap({ candidate, existing, identity, excludeId });
+		return input;
+	});
+}
+
+/**
+ * Whether a stored `effective_range` is in force on a calendar day, keyed by the day head of each
+ * bound. Both ends inclusive; an absent end is open.
+ *
+ * This is the day-head comparison the app pages make, not the timezone-resolved one
+ * `payroll_runs/lib/effective.ts` makes for pricing. Keeping the two apart is deliberate: a list
+ * filter reads the stored text, a rate lookup resolves the instant.
+ */
+export function inForceOnDay(
+	range: Readonly<{ start?: string | null; end?: string | null }> | null | undefined,
+	day: string
+): boolean {
+	if (range?.start == null) return false;
+	if (range.start.slice(0, 10) > day) return false;
+	return range.end == null || range.end.slice(0, 10) >= day;
 }

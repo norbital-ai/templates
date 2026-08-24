@@ -116,12 +116,12 @@ const HOUR_MS = 3_600_000;
 
 const TimeEntryLikeSchema = Schema.Struct({
 	id: Schema.String,
-	work_date: Schema.Union([Schema.String, Schema.Date]),
+	work_date: Schema.String,
 	worked_intervals: Schema.NullOr(
 		Schema.Array(
 			Schema.Struct({
-				start_at: Schema.Union([Schema.Date, Schema.String]),
-				end_at: Schema.Union([Schema.Date, Schema.String, Schema.Null])
+				start: Schema.String,
+				end: Schema.NullOr(Schema.String)
 			})
 		)
 	),
@@ -137,8 +137,8 @@ export function clockMinutes(value: string): number {
 	return hours! * 60 + minutes!;
 }
 
-function instant(value: Date | string): number {
-	return value instanceof Date ? value.getTime() : Date.parse(value);
+function instant(value: string): number {
+	return Date.parse(value);
 }
 
 const IntervalSchema = Schema.Struct({ start: Schema.Number, end: Schema.Number });
@@ -157,14 +157,14 @@ export function normalizedWorkedIntervals(entry: TimeEntryLike): readonly Interv
 		.map((interval) => {
 			// The record, not only the day. Dozens of people clock on any given date, so a refusal that
 			// named the date alone told whoever had to fix it which day to search and nothing more.
-			if (interval.end_at == null)
+			if (interval.end == null)
 				throw new Error(`Time entry ${entry.id} on ${workDate} is still open.`);
-			const start = instant(interval.start_at);
-			const end = instant(interval.end_at);
+			const start = instant(interval.start);
+			const end = instant(interval.end);
 			if (!Number.isFinite(start) || !Number.isFinite(end) || end <= start)
 				throw new Error(
 					`Time entry ${entry.id} on ${workDate} contains an invalid worked interval ` +
-						`(${String(interval.start_at)} → ${String(interval.end_at)}).`
+						`(${String(interval.start)} → ${String(interval.end)}).`
 				);
 			return { start, end };
 		})
@@ -191,7 +191,7 @@ function midnight(date: IsoDate): number {
  * never below zero — the schema records a flat `break_minutes` rather than break windows, so an
  * overlap test is not available here (see the note in the module report).
  */
-export function clockedWorkHours(entry: TimeEntryLike): number {
+function clockedWorkHours(entry: TimeEntryLike): number {
 	const elapsed = normalizedWorkedIntervals(entry).reduce(
 		(total, interval) => total + (interval.end - interval.start) / HOUR_MS,
 		0

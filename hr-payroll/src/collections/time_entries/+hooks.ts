@@ -2,7 +2,7 @@ import { Effect } from 'effect';
 import { refuse } from '@norbital-ai/bolt/authoring';
 import type { CollectionHooks } from '@norbital-ai/bolt/authoring';
 import type { WorkspaceSchema } from '$bolt/types.js';
-import type { WorkedInterval } from '../../datatypes/worked_intervals/+definition.js';
+import type { InstantRangeValue as WorkedInterval } from '@norbital-ai/bolt/authoring';
 import { dateKey } from '../../lib/iso-day.js';
 import { leaveCoverage, type LeaveRequestLike } from '../../lib/scheduling/leave-coverage.js';
 import {
@@ -67,13 +67,13 @@ function settlementOver(
 	api: HookApi,
 	timeEntryId: string
 ): Effect.Effect<SettlementClaim | null, never, never> {
-	return Effect.gen(function* () {
-		const claim = yield* api.db.query.payslip_sources.findFirst({
+	return Effect.map(
+		api.db.query.payslip_sources.findFirst({
 			where: { source: { eq: { kind: 'TIME_ENTRY', id: timeEntryId } } },
 			columns: { period: true }
-		});
-		return claim == null ? null : { period: claim.period };
-	});
+		}),
+		(claim) => (claim == null ? null : { period: claim.period })
+	);
 }
 
 /**
@@ -84,10 +84,7 @@ function settlementOver(
  * write that leaves a record standing on a day — create and update, on the patched date — and not
  * delete, which leaves none.
  */
-function refuseIfLeaveOwnsDay(
-	requests: readonly LeaveRequestLike[],
-	workDate: string | Date
-): void {
+function refuseIfLeaveOwnsDay(requests: readonly LeaveRequestLike[], workDate: string): void {
 	const date = dateKey(workDate);
 	const covering = requests.find((request) => leaveCoverage(request, date).fullDay);
 	if (covering != null) {
@@ -109,11 +106,11 @@ function refuseIfLeaveOwnsDay(
 function assertDayNotOwnedByLeave(
 	api: HookApi,
 	employmentId: string,
-	workDate: string | Date
+	workDate: string
 ): Effect.Effect<void, never, never> {
-	return Effect.gen(function* () {
-		const date = dateKey(workDate);
-		const requests = yield* api.db.query.leave_requests.findMany({
+	const date = dateKey(workDate);
+	return Effect.map(
+		api.db.query.leave_requests.findMany({
 			where: {
 				employment_id: { eq: employmentId },
 				kind: { eq: 'TIME_OFF' },
@@ -123,9 +120,9 @@ function assertDayNotOwnedByLeave(
 			},
 			columns: { from_date: true, to_date: true, half_day_start: true, half_day_end: true },
 			limit: 200
-		});
-		refuseIfLeaveOwnsDay(requests, date);
-	});
+		}),
+		(requests) => refuseIfLeaveOwnsDay(requests, date)
+	);
 }
 
 /**
@@ -145,7 +142,7 @@ function assertDayNotOwnedByLeave(
 function assertDayHasNoPaidSilence(
 	api: HookApi,
 	employmentId: string,
-	workDate: string | Date,
+	workDate: string,
 	action: string
 ): Effect.Effect<void, never, never> {
 	return Effect.gen(function* () {
@@ -193,8 +190,7 @@ function assertRecordNotClaimed(
 	approvalId: string | null | undefined,
 	action: string
 ): Effect.Effect<void, never, never> {
-	return Effect.gen(function* () {
-		const settledBy = yield* settlementOver(api, timeEntryId);
+	return Effect.map(settlementOver(api, timeEntryId), (settledBy) => {
 		const lock = sourceLock({
 			existing: true,
 			approvalId,
@@ -222,8 +218,8 @@ function assertWorkedIntervals(
 	let previousEnd = Number.NEGATIVE_INFINITY;
 	let closedMinutes = 0;
 	for (const [index, interval] of value.entries()) {
-		const startedAt = Date.parse(interval.start_at);
-		const endedAt = interval.end_at == null ? null : Date.parse(interval.end_at);
+		const startedAt = Date.parse(interval.start);
+		const endedAt = interval.end == null ? null : Date.parse(interval.end);
 		if (index > 0 && startedAt < previousEnd) {
 			refuse('Worked intervals must be in time order and cannot overlap.');
 		}
@@ -245,7 +241,7 @@ function assertWorkedIntervals(
 	if (!Number.isInteger(unpaidBreak) || unpaidBreak < 0) {
 		refuse('Unpaid break must be a non-negative whole number of minutes.');
 	}
-	const hasOpenInterval = value.some((interval) => interval.end_at == null);
+	const hasOpenInterval = value.some((interval) => interval.end == null);
 	if (!hasOpenInterval && unpaidBreak >= closedMinutes) {
 		refuse('Unpaid break must be shorter than the recorded worked time.');
 	}
@@ -259,8 +255,10 @@ export default {
 					...new Set(inputs.flatMap((input) => (input.employment_id ? [input.employment_id] : [])))
 				];
 				const dates = inputs
-					.map((input) => dateKey(input.work_date))
-					.filter((date) => date !== '')
+					.flatMap((input) => {
+						const date = dateKey(input.work_date);
+						return date === '' ? [] : [date];
+					})
 					.sort();
 				const employments = employmentIds.length
 					? yield* api.db.query.employments.findMany({

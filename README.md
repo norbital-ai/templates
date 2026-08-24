@@ -93,23 +93,24 @@ whole registration — discovery reads the tree, not a catalogue:
 ```
 
 Drop `assets/thumbnail.svg` once for website cards and `og:image` — no manifest field needed
-unless the path differs. `counts` are recomputed from source by `pnpm templates:check`, so they
-cannot drift. `visibility` is `public` or `unlisted`; `unlisted` hides a template from the
+unless the path differs. `counts` are checked against the source tree by `pnpm templates:check`, so
+they cannot drift. `visibility` is `public` or `unlisted`; `unlisted` hides a template from the
 in-product picker, and it is independent of which repository the template lives in.
 
 ## Release and tenant lifecycle
 
-Publishing advances the fast-forward-only `refs/heads/templates/<key>` branch to a commit produced
+Publishing advances the fast-forward-only `refs/heads/templates/<slug>` branch to a commit produced
 by `git subtree split` of the template directory, so the projected tree contains the standalone
-template and nothing above it. Before that ref moves, the release workflow compiles the exact
-projection and publishes its canonical portable-artifact package.
+template and nothing above it. Before that ref moves, the release workflow installs, syncs, and
+lints the exact standalone projection. There is no prebuilt template package: Preview compiles the
+exact selected commit only when someone asks to see it.
 
 A remote Colony host enumerates `refs/heads/templates/*` on each configured template origin, fetches
 the exact advertised commit into its local cache, and starts a new tenant repository from that
 commit before recording Colony revision 0. The tenant therefore retains real ancestry with the
 projected template commit, but it does not track the moving ref and is not changed when a later
 template release appears. Local-directory origins are intentionally different: they read the live
-checkout and make no projected-ref or published-artifact claim.
+checkout and make no projected-ref claim.
 
 Yalc is only a local framework-development overlay. `pnpm yalc:link` in this repository replaces
 the templates' `@norbital-ai/*` dependencies with locally built OSS packages; it does not publish a
@@ -128,7 +129,7 @@ pnpm templates:verify        # install/sync/lint and inspect each tracked templa
 ```
 
 No template archive or package tarball is committed here. Template source is distributed through
-ordinary Git refs, its canonical compiled artifact is published by the release workflow, and
+ordinary Git refs, Preview builds are ephemeral and tied to the exact commit under review, and
 dependency bytes live in one shared content-addressed pnpm store.
 
 Editing this checkout never changes an existing tenant. Existing-tenant adoption of a later

@@ -39,7 +39,7 @@ import type { PayrollWindow } from './period.js';
 const LedgerRowSchema = Schema.Struct({
 	id: Schema.String,
 	leave_type_id: Schema.String,
-	entry_date: Schema.Union([Schema.String, Schema.Date]),
+	entry_date: Schema.String,
 	kind: Schema.NullOr(Schema.String),
 	days: Schema.Number,
 	source_id: Schema.NullOr(Schema.String),
@@ -164,7 +164,7 @@ export function accruedDays(options: AccruedDaysOptions): number {
 }
 
 /** Days moved by the ledger inside a window. */
-export function ledgerDays(
+function ledgerDays(
 	rows: readonly LedgerRow[],
 	leaveTypeId: string,
 	window: { readonly start: IsoDate; readonly end: IsoDate },
@@ -209,7 +209,7 @@ function yearWindow(year: number, startMonth: number): { start: IsoDate; end: Is
  * levels of the same arithmetic — about 120 band lookups and one ledger scan — which is cheap
  * enough to run on every page load, which is why nothing needs caching.
  */
-export function carriedInDays(input: BalanceInput, year: number): number {
+function carriedInDays(input: BalanceInput, year: number): number {
 	const hireYear = leaveYearOf(input.hireDate, input.leaveYearStartMonth);
 	if (year <= hireYear) return 0;
 	const accrual = input.leaveType.accrual;
@@ -242,7 +242,7 @@ export function carriedInDays(input: BalanceInput, year: number): number {
  * this would remove days already spent, and the balance would be wrong by exactly what was taken
  * before the deadline.
  */
-export function expiredDays(input: BalanceInput, year: number, asOf?: IsoDate): number {
+function expiredDays(input: BalanceInput, year: number, asOf?: IsoDate): number {
 	const accrual = input.leaveType.accrual;
 	if (accrual == null || accrual.kind === 'PER_EVENT') return 0;
 	const carry = accrual.carry;

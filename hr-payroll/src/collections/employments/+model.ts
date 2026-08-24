@@ -1,15 +1,15 @@
-import { custom, date, dateRange, defineModel, text, uuid } from '@norbital-ai/bolt/authoring';
+import { custom, defineModel, instant, text, uuid } from '@norbital-ai/bolt/authoring';
 
 export default defineModel(
 	{
 		employee_id: uuid().notNull(),
 		company_id: uuid().notNull(),
 		employee_number: text({ search: true }).notNull(),
-		hire_date: date().notNull(),
-		exit_date: date(),
+		hire_date: instant({ precision: 'day' }).notNull(),
+		exit_date: instant({ precision: 'day' }),
 		exit_reason: text(),
 		bank: custom('bank_account'),
-		effective_range: dateRange().notNull()
+		effective_range: custom('instant_range', { precision: 'day' }).notNull()
 	},
 	{
 		description:

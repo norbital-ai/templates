@@ -276,11 +276,9 @@
 				workDate == null
 					? []
 					: intervals.map((interval) => ({
-							startMinutes: minutesFromDayStart(interval.start_at, workDate, timeZone),
+							startMinutes: minutesFromDayStart(interval.start, workDate, timeZone),
 							endMinutes:
-								interval.end_at == null
-									? null
-									: minutesFromDayStart(interval.end_at, workDate, timeZone)
+								interval.end == null ? null : minutesFromDayStart(interval.end, workDate, timeZone)
 						}));
 		});
 	});
@@ -290,8 +288,8 @@
 			date == null
 				? []
 				: draftIntervals.map((interval) => ({
-						start_at: instantFromDayStart(date, interval.startMinutes, timeZone),
-						end_at:
+						start: instantFromDayStart(date, interval.startMinutes, timeZone),
+						end:
 							interval.endMinutes == null
 								? null
 								: instantFromDayStart(date, interval.endMinutes, timeZone)
@@ -474,8 +472,8 @@
 				? {
 						timeEntryId: day?.timeEntryId ?? null,
 						intervals: draftIntervals.map((interval) => ({
-							start_at: instantFromDayStart(date, interval.startMinutes, timeZone),
-							end_at:
+							start: instantFromDayStart(date, interval.startMinutes, timeZone),
+							end:
 								interval.endMinutes == null
 									? null
 									: instantFromDayStart(date, interval.endMinutes, timeZone)

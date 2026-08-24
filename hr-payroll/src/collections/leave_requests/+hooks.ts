@@ -373,34 +373,36 @@ function assertLeaveSourceUnlocked(
 	existing: WorkspaceRow<'leave_requests'>,
 	action: string
 ): Effect.Effect<void, never, never> {
-	return Effect.gen(function* () {
-		/**
-		 * The settlement lock, and now the only thing that freezes an existing leave request.
-		 *
-		 * Leave used to be held by three facts that were not consumption: an approval stamp, a passed
-		 * date, and a paid window around the request's days. The owner's rule is that a record locks
-		 * only when a payslip consumed it — so `APPROVED` and `DATE_PASSED` stop blocking here, and
-		 * the window keeps only its create-side job, which is the `assertNotSettled` loop in
-		 * `normalizedTimeOff`: a new or moved range may not touch days a paid run already priced.
-		 * What is left is a `payslip_sources` row naming this request, which says payroll `period`
-		 * took it into account and names the run that has to be deleted (while it is still a draft)
-		 * to release it.
-		 */
-		const claim = yield* api.db.query.payslip_sources.findFirst({
+	/**
+	 * The settlement lock, and now the only thing that freezes an existing leave request.
+	 *
+	 * Leave used to be held by three facts that were not consumption: an approval stamp, a passed
+	 * date, and a paid window around the request's days. The owner's rule is that a record locks
+	 * only when a payslip consumed it — so `APPROVED` and `DATE_PASSED` stop blocking here, and
+	 * the window keeps only its create-side job, which is the `assertNotSettled` loop in
+	 * `normalizedTimeOff`: a new or moved range may not touch days a paid run already priced.
+	 * What is left is a `payslip_sources` row naming this request, which says payroll `period`
+	 * took it into account and names the run that has to be deleted (while it is still a draft)
+	 * to release it.
+	 */
+	return Effect.map(
+		api.db.query.payslip_sources.findFirst({
 			where: { source: { eq: { kind: 'LEAVE_REQUEST', id: existing.id } } },
 			columns: { period: true }
-		});
-		const lock = sourceLock({
-			existing: true,
-			approvalId: existing.approval_id,
-			dates: [],
-			settledBy: claim == null ? null : { period: claim.period },
-			datePassed: 'IS_NOT_A_LOCK'
-		});
-		if (sourceLockBlocksWrite(lock)) {
-			refuse(sourceLockMessage(lock, action));
+		}),
+		(claim) => {
+			const lock = sourceLock({
+				existing: true,
+				approvalId: existing.approval_id,
+				dates: [],
+				settledBy: claim == null ? null : { period: claim.period },
+				datePassed: 'IS_NOT_A_LOCK'
+			});
+			if (sourceLockBlocksWrite(lock)) {
+				refuse(sourceLockMessage(lock, action));
+			}
 		}
-	});
+	);
 }
 
 export default {
@@ -409,19 +411,13 @@ export default {
 			before: {
 				description:
 					'Normalizes one half-day-stepped leave range, excludes observed holidays and scheduled rest/off days, refuses overlaps and requests beyond the projected balance.',
-				handler: ({ input, api }) =>
-					Effect.gen(function* () {
-						if (input.event == null || input.event.kind !== 'TIME_OFF') return input;
-						return {
-							...input,
-							event: yield* normalizedTimeOff(
-								api,
-								input.employment_id,
-								input.leave_type_id,
-								input.event
-							)
-						};
-					})
+				handler: ({ input, api }) => {
+					if (input.event == null || input.event.kind !== 'TIME_OFF') return Effect.succeed(input);
+					return Effect.map(
+						normalizedTimeOff(api, input.employment_id, input.leave_type_id, input.event),
+						(event) => ({ ...input, event })
+					);
+				}
 			}
 		}
 	},

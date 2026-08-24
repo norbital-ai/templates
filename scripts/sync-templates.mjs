@@ -21,5 +21,8 @@ for (const template of discoverTemplates(filter)) {
 		);
 	}
 	console.log(`Synchronizing ${template.slug}...`);
-	execFileSync('pnpm', ['sync'], { cwd: template.directory, stdio: 'inherit' });
+	execFileSync('pnpm', ['--config.verify-deps-before-run=false', 'sync'], {
+		cwd: template.directory,
+		stdio: 'inherit'
+	});
 }

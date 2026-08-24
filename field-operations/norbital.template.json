@@ -6,9 +6,9 @@
 	"description": "Generic construction field operations: site jobs, contractor dispatch, variations, and multimodal photo evidence review.",
 	"visibility": "public",
 	"counts": {
-		"collections": 6,
+		"collections": 8,
 		"apps": 2,
-		"automations": 2
+		"automations": 1
 	},
 	"tags": ["Construction", "Field ops", "Compliance"],
 	"name_zh": "现场运营",

@@ -23,8 +23,8 @@
 	 */
 	interface PolicyLayer {
 		readonly authority: string;
-		/** Both bounds are stored instants. Open-ended ranges are written as a far-future `end`. */
-		readonly effective_range: { readonly start: string; readonly end: string };
+		/** Both bounds are stored instants; `null` is the canonical open-ended range. */
+		readonly effective_range: { readonly start: string; readonly end: string | null };
 	}
 
 	/** One row of the list, as handed to the `identity` and `body` snippets. */
@@ -86,8 +86,7 @@
 	import { Grid, Inline, Stack } from '@norbital-ai/ui/layout';
 	import { useI18n } from '@norbital-ai/ui/i18n';
 	import type { TenantI18nKeys } from '$bolt/i18n-keys';
-	import DateRangeRenderer from '../../../datatypes/date_range/+renderer.svelte';
-	import type { CollectionField } from '@norbital-ai/ui/data-renderer';
+	import { DataRenderer, type CollectionField } from '@norbital-ai/ui/data-renderer';
 	import { todayInstant } from '../calendar.js';
 
 	let props: EffectiveLayerListProps<T> = $props();
@@ -105,7 +104,10 @@
 
 	function standingOf(layer: PolicyLayer): Standing {
 		const start = Date.parse(layer.effective_range.start);
-		const end = Date.parse(layer.effective_range.end);
+		const end =
+			layer.effective_range.end == null
+				? Number.POSITIVE_INFINITY
+				: Date.parse(layer.effective_range.end);
 		if (Number.isFinite(start) && now < start) return 'SCHEDULED';
 		if (Number.isFinite(end) && now >= end) return 'SUPERSEDED';
 		return 'IN_FORCE';
@@ -117,9 +119,17 @@
 
 	const RANGE_FIELD = {
 		name: 'effective_range',
-		kind: 'date_range',
+		kind: 'instant_range',
+		precision: 'day',
 		nullable: false
 	} satisfies CollectionField;
+
+	function isInstantRange(value: unknown): value is PolicyLayer['effective_range'] {
+		if (value == null || typeof value !== 'object') return false;
+		const start = Reflect.get(value, 'start');
+		const end = Reflect.get(value, 'end');
+		return typeof start === 'string' && (end === null || typeof end === 'string');
+	}
 
 	function replaceAt(index: number, next: T): void {
 		props.onChange(props.layers.map((layer, position) => (position === index ? next : layer)));
@@ -133,7 +143,6 @@
 	 * will not narrow back to `T`, which is all the assertion is standing in for.
 	 */
 	function patch(index: number, layer: T, changes: Partial<PolicyLayer>): void {
-		// repository-health:allow R3c -- `changes` only names fields PolicyLayer declares; the arm is unchanged.
 		replaceAt(index, { ...layer, ...changes } as T);
 	}
 
@@ -182,22 +191,24 @@
 			})}
 
 			<Grid gap="sm" minimum="compact">
-				<label class="grid gap-1.5 text-sm font-medium">
-					{t('component.authority')}
-					<Input
-						value={layer.authority}
-						disabled={props.disabled}
-						placeholder={t('component.authority_placeholder')}
-						oninput={(event) => patch(index, layer, { authority: event.currentTarget.value })}
-					/>
+				<label class="text-sm font-medium">
+					<Stack gap="xs">
+						{t('component.authority')}
+						<Input
+							value={layer.authority}
+							disabled={props.disabled}
+							placeholder={t('component.authority_placeholder')}
+							oninput={(event) => patch(index, layer, { authority: event.currentTarget.value })}
+						/>
+					</Stack>
 				</label>
-				<DateRangeRenderer
+				<DataRenderer
 					field={RANGE_FIELD}
 					value={layer.effective_range}
 					mode="edit"
 					disabled={props.disabled}
 					onValueChange={(next) => {
-						if (next !== null) patch(index, layer, { effective_range: next });
+						if (isInstantRange(next)) patch(index, layer, { effective_range: next });
 					}}
 				/>
 			</Grid>

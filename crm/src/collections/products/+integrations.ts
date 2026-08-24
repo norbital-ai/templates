@@ -1,5 +1,6 @@
 import { defineConnection, definePull } from '@norbital-ai/bolt/authoring';
 import { Schema } from 'effect';
+import { erpMasterColumns } from '../../lib/erp-feed.js';
 import type { Integrations } from './$types.js';
 
 const erp = defineConnection({
@@ -16,6 +17,7 @@ const erp = defineConnection({
  */
 export default {
 	erp: {
+		policies: ['erp_products_integration'],
 		connection: erp,
 		receive: {
 			items_changed: definePull({
@@ -37,12 +39,9 @@ export default {
 				}),
 				identity: { column: 'external_code', value: (item) => item.external_code },
 				map: (item) => ({
-					external_code: item.external_code,
-					code: item.code,
-					name: item.name,
+					...erpMasterColumns(item),
 					unit: item.unit ?? null,
-					unit_price: item.unit_price ?? null,
-					active: item.active ?? true
+					unit_price: item.unit_price ?? null
 				})
 			})
 		}

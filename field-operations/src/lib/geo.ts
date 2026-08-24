@@ -8,7 +8,7 @@ const geoPointSchema = Schema.Struct({
 });
 
 /** A geolocation as a `geolocation()` column or a site's `location` read back, tolerating nulls. */
-export const locationLikeSchema = Schema.optional(
+const locationLikeSchema = Schema.optional(
 	Schema.NullOr(Schema.Struct({ geometry: Schema.optional(Schema.NullOr(geoPointSchema)) }))
 );
 
@@ -46,14 +46,6 @@ export function exceedsSiteTolerance(
 ): boolean {
 	const distanceM = haversineMeters(left?.lat, left?.lon, right?.lat, right?.lon);
 	return distanceM != null && distanceM > maxDistanceM;
-}
-
-/** Whether where the work was reported from is further from the assigned site than the limit. */
-export function locationIsSuspicious(
-	assignmentLocation: LocationLike,
-	siteLocation: LocationLike
-): boolean {
-	return exceedsSiteTolerance(coordinatesOf(assignmentLocation), coordinatesOf(siteLocation));
 }
 
 export { SITE_LOCATION_TOLERANCE_M };

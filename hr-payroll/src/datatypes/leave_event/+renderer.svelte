@@ -397,17 +397,19 @@
 	<span class="block truncate" title={summary}>{summary}</span>
 {:else}
 	<Grid class="rounded-md border border-border bg-muted/20 p-3" gap="sm" minimum="compact">
-		<label class="grid gap-1.5 text-sm font-medium">
-			{t('renderer.leave_event.event')}
-			<Combobox
-				ariaLabel={t('renderer.leave_event.event')}
-				options={KIND_OPTIONS}
-				value={current?.kind ?? null}
-				{disabled}
-				searchable={false}
-				emptyPlaceholder={t('renderer.leave_event.select_kind')}
-				onValueChange={(value) => selectKind(value)}
-			/>
+		<label class="text-sm font-medium">
+			<Stack gap="xs">
+				{t('renderer.leave_event.event')}
+				<Combobox
+					ariaLabel={t('renderer.leave_event.event')}
+					options={KIND_OPTIONS}
+					value={current?.kind ?? null}
+					{disabled}
+					searchable={false}
+					emptyPlaceholder={t('renderer.leave_event.select_kind')}
+					onValueChange={(value) => selectKind(value)}
+				/>
+			</Stack>
 		</label>
 
 		{#if current?.kind === 'TIME_OFF'}
@@ -421,14 +423,16 @@
 					onValueChange={setTimeOffRange}
 				/>
 			</div>
-			<label class="grid gap-1.5 text-sm font-medium">
-				{t('renderer.leave_event.reason')}
-				<Input
-					value={current.reason ?? ''}
-					{disabled}
-					placeholder={t('component.blank_none_stated')}
-					oninput={(event) => emit({ ...current, reason: textOrNull(event.currentTarget.value) })}
-				/>
+			<label class="text-sm font-medium">
+				<Stack gap="xs">
+					{t('renderer.leave_event.reason')}
+					<Input
+						value={current.reason ?? ''}
+						{disabled}
+						placeholder={t('component.blank_none_stated')}
+						oninput={(event) => emit({ ...current, reason: textOrNull(event.currentTarget.value) })}
+					/>
+				</Stack>
 			</label>
 			<Stack gap="xs" class="text-sm font-medium">
 				<span>{t('component.certificate')}</span>
@@ -445,37 +449,43 @@
 				/>
 			</Stack>
 		{:else if current !== null}
-			<label class="grid gap-1.5 text-sm font-medium">
-				{t('renderer.leave_event.effective_on')}
-				<Input
-					type="date"
-					value={current.effective_on}
-					{disabled}
-					oninput={(event) => emit({ ...current, effective_on: event.currentTarget.value })}
-				/>
+			<label class="text-sm font-medium">
+				<Stack gap="xs">
+					{t('renderer.leave_event.effective_on')}
+					<Input
+						type="date"
+						value={current.effective_on}
+						{disabled}
+						oninput={(event) => emit({ ...current, effective_on: event.currentTarget.value })}
+					/>
+				</Stack>
 			</label>
-			<label class="grid gap-1.5 text-sm font-medium">
-				{t('renderer.leave_event.movement_days')}
-				<Input
-					type="number"
-					step="0.5"
-					value={current.movement_days}
-					{disabled}
-					oninput={(event) =>
-						emit({ ...current, movement_days: numberFrom(event.currentTarget.value, 0) })}
-				/>
-				<span class="text-xs font-normal text-muted-foreground">
-					{t('renderer.leave_event.movement_hint')}
-				</span>
+			<label class="text-sm font-medium">
+				<Stack gap="xs">
+					{t('renderer.leave_event.movement_days')}
+					<Input
+						type="number"
+						step="0.5"
+						value={current.movement_days}
+						{disabled}
+						oninput={(event) =>
+							emit({ ...current, movement_days: numberFrom(event.currentTarget.value, 0) })}
+					/>
+					<span class="text-xs font-normal text-muted-foreground">
+						{t('renderer.leave_event.movement_hint')}
+					</span>
+				</Stack>
 			</label>
-			<label class="grid gap-1.5 text-sm font-medium">
-				{t('component.note')}
-				<Input
-					value={current.note ?? ''}
-					{disabled}
-					placeholder={t('component.blank_none_stated')}
-					oninput={(event) => emit({ ...current, note: textOrNull(event.currentTarget.value) })}
-				/>
+			<label class="text-sm font-medium">
+				<Stack gap="xs">
+					{t('component.note')}
+					<Input
+						value={current.note ?? ''}
+						{disabled}
+						placeholder={t('component.blank_none_stated')}
+						oninput={(event) => emit({ ...current, note: textOrNull(event.currentTarget.value) })}
+					/>
+				</Stack>
 			</label>
 		{/if}
 	</Grid>

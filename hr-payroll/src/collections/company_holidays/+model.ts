@@ -1,11 +1,11 @@
-import { custom, date, defineModel, text, uuid } from '@norbital-ai/bolt/authoring';
+import { custom, defineModel, instant, text, uuid } from '@norbital-ai/bolt/authoring';
 
 export default defineModel(
 	{
 		company_id: uuid().notNull(),
-		date: date().notNull(),
+		date: instant({ precision: 'day' }).notNull(),
 		/** Original holiday date when this row is an explicitly scheduled substitute holiday. */
-		substitutes_date: date(),
+		substitutes_date: instant({ precision: 'day' }),
 		name: text({ search: true }).notNull(),
 		scope: custom('holiday_scope').notNull()
 	},

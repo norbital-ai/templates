@@ -22,7 +22,7 @@ import { Schema } from 'effect';
 import { daysInMonth, startOfDayInstant } from '../calendar.js';
 import { formatDateISO } from '@norbital-ai/std/date';
 import { workedMinutes } from '../../attendance.js';
-import type { WorkedInterval } from '../../../datatypes/worked_intervals/+definition.js';
+import type { InstantRangeValue as WorkedInterval } from '@norbital-ai/bolt/authoring';
 import { workPatternValueSchema } from '../../../datatypes/work_pattern/+definition.js';
 import { rosterCodeVariantValueSchema } from '../../../datatypes/roster_code_variant/+definition.js';
 import { clockMinutes, rosterCodeKind, workWindow } from '../../scheduling/roster-code.js';
@@ -38,6 +38,17 @@ import type { TenantI18nKeys } from '$bolt/i18n-keys';
 
 /** The translation callback a display helper takes, so it stays locale-reactive at the call site. */
 export type Translator = I18nApi<TenantI18nKeys>['t'];
+
+/**
+ * The key every person-day map in this module is written and read by.
+ *
+ * `DayFacts`, the roster index, the time index and the two leave indexes are all keyed this way,
+ * and both attendance surfaces look rows up with it. One spelling, one owner: two writers that
+ * disagreed on the separator would give one person-day two names and quietly find nothing.
+ */
+export function personDayKey(employmentId: string, date: string): string {
+	return `${employmentId}:${date}`;
+}
 
 const designationSchema = Schema.Literals(['WORK', 'REST', 'OFF']);
 type Designation = Schema.Schema.Type<typeof designationSchema>;
@@ -72,7 +83,7 @@ type ConflictKind = Schema.Schema.Type<typeof conflictKindSchema>;
  * derived type keeps the per-field contract above the construction, while the value itself stays a
  * plain display object that is never decoded from the wire.
  */
-export const dayFactsSchema = Schema.Struct({
+const dayFactsSchema = Schema.Struct({
 	employmentId: Schema.String,
 	date: Schema.String,
 	employmentState: Schema.Literals(['BEFORE_START', 'ACTIVE', 'EXITED']),
@@ -135,8 +146,8 @@ export const dayFactsSchema = Schema.Struct({
 });
 export type DayFacts = Schema.Schema.Type<typeof dayFactsSchema>;
 
-/** A stored instant as the board reads it: the wire decodes strings, a local replica hands Dates. */
-const calendarInstantSchema = Schema.Union([Schema.String, Schema.Date]);
+/** A stored instant as every board data source reads it: one ISO-string record shape. */
+const calendarInstantSchema = Schema.String;
 
 /** The one effective-range shape every effective-dated row carries. */
 const effectiveRangeLikeSchema = Schema.Struct({
@@ -180,8 +191,8 @@ const timeEntryLikeSchema = Schema.Struct({
 	worked_intervals: Schema.NullOr(
 		Schema.Array(
 			Schema.Struct({
-				start_at: calendarInstantSchema,
-				end_at: Schema.NullOr(calendarInstantSchema)
+				start: calendarInstantSchema,
+				end: Schema.NullOr(calendarInstantSchema)
 			})
 		)
 	),
@@ -192,21 +203,13 @@ type TimeEntryLike = Schema.Schema.Type<typeof timeEntryLikeSchema>;
 /**
  * The stored intervals as the attendance helpers take them.
  *
- * `TimeEntryLike` accepts `Date` on both ends because a local PGlite read yields dates where the
- * wire yields strings, and the board is fed by both. `workedMinutes` measures instants by parsing
- * strings, so the two shapes are levelled here — once, at the one place they meet — rather than in
- * the arithmetic, which would then have to know about storage at all.
+ * Local and remote reads both expose ISO strings, so this adapter only removes the nullable row
+ * wrapper before the arithmetic receives the intervals.
  */
 function toWorkedIntervals(entry: TimeEntryLike | undefined): readonly WorkedInterval[] {
 	return (entry?.worked_intervals ?? []).map((interval) => ({
-		start_at:
-			typeof interval.start_at === 'string' ? interval.start_at : interval.start_at.toISOString(),
-		end_at:
-			interval.end_at == null
-				? null
-				: typeof interval.end_at === 'string'
-					? interval.end_at
-					: interval.end_at.toISOString()
+		start: interval.start,
+		end: interval.end
 	}));
 }
 
@@ -392,12 +395,12 @@ function buildDayIndexes(
 
 	const roster = new Map<string, RosterEntryLike>();
 	for (const entry of options.rosterEntries) {
-		roster.set(`${entry.employment_id}:${formatDateISO(entry.work_date)}`, entry);
+		roster.set(personDayKey(entry.employment_id, formatDateISO(entry.work_date)), entry);
 	}
 
 	const time = new Map<string, TimeEntryLike>();
 	for (const entry of options.timeEntries) {
-		time.set(`${entry.employment_id}:${formatDateISO(entry.work_date)}`, entry);
+		time.set(personDayKey(entry.employment_id, formatDateISO(entry.work_date)), entry);
 	}
 
 	const leave = new Map<string, { code: string; halfDay: boolean }>();
@@ -414,7 +417,7 @@ function buildDayIndexes(
 		const toIndex = days.findLastIndex((date) => date <= to);
 		for (let index = fromIndex; index >= 0 && index <= toIndex && index < days.length; index += 1) {
 			const date = days[index]!;
-			leave.set(`${request.employment_id}:${date}`, {
+			leave.set(personDayKey(request.employment_id, date), {
 				code,
 				halfDay: (halfStart && date === from) || (halfEnd && date === to)
 			});
@@ -431,7 +434,7 @@ function buildDayIndexes(
 		const fromIndex = days.findIndex((date) => date >= from);
 		const toIndex = days.findLastIndex((date) => date <= to);
 		for (let index = fromIndex; index >= 0 && index <= toIndex && index < days.length; index += 1) {
-			pendingLeave.set(`${request.employment_id}:${days[index]!}`, true);
+			pendingLeave.set(personDayKey(request.employment_id, days[index]!), true);
 		}
 	}
 
@@ -453,7 +456,7 @@ function factsForDate(
 	employmentEnd: string | null,
 	date: string
 ): DayFacts {
-	const key = `${employmentId}:${date}`;
+	const key = personDayKey(employmentId, date);
 	const roster = indexes.roster.get(key);
 	const time = indexes.time.get(key);
 	const intervals = toWorkedIntervals(time);
@@ -506,11 +509,7 @@ function factsForDate(
 		clockedIn: intervals.length > 0,
 		workedIntervalCount: intervals.length,
 		attendanceState:
-			time == null
-				? null
-				: intervals.some((interval) => interval.end_at == null)
-					? 'OPEN'
-					: 'CLOSED',
+			time == null ? null : intervals.some((interval) => interval.end == null) ? 'OPEN' : 'CLOSED',
 		timeEntryId: time?.id ?? null,
 		breakMinutes: time == null ? null : (time.break_minutes ?? 0),
 		// `workedMinutes` returns null for an open interval by itself, which is exactly the
@@ -551,7 +550,7 @@ export function buildRosterMonth(options: BuildRosterMonthOptions): Map<string, 
 				: formatDateISO(employment.effective_range.end);
 		for (const date of days) {
 			facts.set(
-				`${employmentId}:${date}`,
+				personDayKey(employmentId, date),
 				factsForDate(options, indexes, employmentId, employmentStart, employmentEnd, date)
 			);
 		}
@@ -800,12 +799,8 @@ export const LOCK_RAIL_PRESENTATION: Record<
 export const DAY_MINUTES = 1440;
 
 /** How far into the work date an instant falls, in minutes, in the business timezone. */
-export function minutesFromDayStart(
-	instant: string | Date,
-	workDate: string,
-	timeZone: string
-): number {
-	const at = instant instanceof Date ? instant.getTime() : Date.parse(instant);
+export function minutesFromDayStart(instant: string, workDate: string, timeZone: string): number {
+	const at = Date.parse(instant);
 	return Math.round((at - Date.parse(startOfDayInstant(workDate, timeZone))) / 60_000);
 }
 
@@ -873,10 +868,25 @@ export function beyondScheduleMinutes(day: DayFacts): number | null {
 
 /** One interval as an editor holds it: instants, with the final end still possibly unset. */
 const intervalDraftSchema = Schema.Struct({
-	start_at: Schema.String,
-	end_at: Schema.NullOr(Schema.String)
+	start: Schema.String,
+	end: Schema.NullOr(Schema.String)
 });
 export type IntervalDraft = Schema.Schema.Type<typeof intervalDraftSchema>;
+
+/**
+ * The stored punches of a day, as the editor holds them.
+ *
+ * A stored bound reaches the client as ISO text. Both attendance surfaces open the same drawer, so
+ * they read the day through the same exact record shape.
+ */
+export function intervalDrafts(
+	intervals: readonly { readonly start: string; readonly end: string | null }[] | null | undefined
+): readonly IntervalDraft[] {
+	return (intervals ?? []).map((interval) => ({
+		start: interval.start,
+		end: interval.end
+	}));
+}
 
 /**
  * Why a draft cannot be written, in the order `time_entries/+hooks.ts` refuses it.
@@ -946,8 +956,8 @@ export function assessAttendanceDraft(
 	let hasOpenInterval = false;
 
 	for (const [index, interval] of intervals.entries()) {
-		const startedAt = Date.parse(interval.start_at);
-		const endedAt = interval.end_at == null ? null : Date.parse(interval.end_at);
+		const startedAt = Date.parse(interval.start);
+		const endedAt = interval.end == null ? null : Date.parse(interval.end);
 		if (problem == null && index > 0 && startedAt < previousEnd) problem = 'OUT_OF_ORDER';
 		if (endedAt == null) {
 			hasOpenInterval = true;

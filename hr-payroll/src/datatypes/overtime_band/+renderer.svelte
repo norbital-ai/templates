@@ -5,7 +5,7 @@
 	import { nullableNumberFrom, numberFrom } from '../../lib/ui/renderer-input.js';
 	import { Combobox } from '@norbital-ai/ui/combobox';
 	import { Input } from '@norbital-ai/ui/input';
-	import { Grid } from '@norbital-ai/ui/layout';
+	import { Grid, Stack } from '@norbital-ai/ui/layout';
 	import { overtimeBandSchema } from './+definition.js';
 	import type { CollectionField } from '@norbital-ai/ui/data-renderer';
 	import type { RendererProps, Value } from './$types.js';
@@ -73,67 +73,77 @@
 	<span class="block truncate" title={summary}>{summary}</span>
 {:else}
 	<Grid class="rounded-md border border-border bg-muted/20 p-3" gap="sm" minimum="compact">
-		<label class="grid gap-1.5 text-sm font-medium">
-			Measure
-			<Combobox
-				options={MEASURE_OPTIONS}
-				value={current?.measure ?? null}
-				{disabled}
-				searchable={false}
-				emptyPlaceholder={t('renderer.overtime_band.select_measure')}
-				onValueChange={selectMeasure}
-			/>
+		<label class="text-sm font-medium">
+			<Stack gap="xs">
+				Measure
+				<Combobox
+					options={MEASURE_OPTIONS}
+					value={current?.measure ?? null}
+					{disabled}
+					searchable={false}
+					emptyPlaceholder={t('renderer.overtime_band.select_measure')}
+					onValueChange={selectMeasure}
+				/>
+			</Stack>
 		</label>
 
 		{#if current?.measure === 'BEYOND_NORMAL'}
-			<label class="grid gap-1.5 text-sm font-medium">
-				From (hours)
-				<Input
-					type="number"
-					min="0"
-					step="0.25"
-					value={current.from_hours}
-					{disabled}
-					oninput={(event) =>
-						emit({ ...current, from_hours: numberFrom(event.currentTarget.value, 0) })}
-				/>
+			<label class="text-sm font-medium">
+				<Stack gap="xs">
+					From (hours)
+					<Input
+						type="number"
+						min="0"
+						step="0.25"
+						value={current.from_hours}
+						{disabled}
+						oninput={(event) =>
+							emit({ ...current, from_hours: numberFrom(event.currentTarget.value, 0) })}
+					/>
+				</Stack>
 			</label>
-			<label class="grid gap-1.5 text-sm font-medium">
-				To (hours, blank = open ended)
-				<Input
-					type="number"
-					min="0"
-					step="0.25"
-					value={current.to_hours ?? ''}
-					{disabled}
-					oninput={(event) =>
-						emit({ ...current, to_hours: nullableNumberFrom(event.currentTarget.value) })}
-				/>
+			<label class="text-sm font-medium">
+				<Stack gap="xs">
+					To (hours, blank = open ended)
+					<Input
+						type="number"
+						min="0"
+						step="0.25"
+						value={current.to_hours ?? ''}
+						{disabled}
+						oninput={(event) =>
+							emit({ ...current, to_hours: nullableNumberFrom(event.currentTarget.value) })}
+					/>
+				</Stack>
 			</label>
 		{:else if current?.measure === 'FROM_START_OF_DAY'}
-			<label class="grid gap-1.5 text-sm font-medium">
-				From (fraction of a normal day)
-				<Input
-					type="number"
-					min="0"
-					step="0.01"
-					value={current.from_fraction}
-					{disabled}
-					oninput={(event) =>
-						emit({ ...current, from_fraction: numberFrom(event.currentTarget.value, 0) })}
-				/>
+			<label class="text-sm font-medium">
+				<Stack gap="xs">
+					From (fraction of a normal day)
+					<Input
+						type="number"
+						min="0"
+						step="0.01"
+						value={current.from_fraction}
+						{disabled}
+						oninput={(event) =>
+							emit({ ...current, from_fraction: numberFrom(event.currentTarget.value, 0) })}
+					/>
+				</Stack>
 			</label>
-			<label class="grid gap-1.5 text-sm font-medium">
-				To (fraction, blank = open ended)
-				<Input
-					type="number"
-					min="0"
-					step="0.01"
-					value={current.to_fraction ?? ''}
-					{disabled}
-					oninput={(event) =>
-						emit({ ...current, to_fraction: nullableNumberFrom(event.currentTarget.value) })}
-				/>
+			<label class="text-sm font-medium">
+				<Stack gap="xs">
+					To (fraction, blank = open ended)
+					<Input
+						type="number"
+						min="0"
+						step="0.01"
+						value={current.to_fraction ?? ''}
+						{disabled}
+						oninput={(event) =>
+							emit({ ...current, to_fraction: nullableNumberFrom(event.currentTarget.value) })}
+					/>
+				</Stack>
 			</label>
 		{/if}
 	</Grid>

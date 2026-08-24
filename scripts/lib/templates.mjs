@@ -15,9 +15,9 @@ import { decodeJsonObject } from './json.mjs';
  * same string:
  *
  *   - `slug` is the directory this template occupies at the repository root. It is what
- *     `git subtree split --prefix=` splits, what the published ref is named after, what the website
- *     serves `/templates/<slug>` from, and what the standalone build package is named after. It is a
- *     *repository* fact, and renaming it rewrites published refs and public URLs.
+ *     `git subtree split --prefix=` splits, what the published ref is named after, and what the
+ *     website serves `/templates/<slug>` from. It is a *repository* fact, and renaming it rewrites
+ *     published refs and public URLs.
  *   - `handle` is the manifest's `key`: the organization handle a Colony host provisions the
  *     workspace under, which is also its tenant id and the string a person types on `/login`. It is
  *     a *product* fact, and it is the one the `norbital_*` scheme names.
@@ -39,21 +39,8 @@ export const repositoryRoot = path.resolve(
 );
 export const templateRefNamespace = 'refs/heads/templates';
 export const templateMetadataFile = 'norbital.template.json';
-export const templateBundleVersion = '0.0.1';
-export const templateBundlePublishAccess = 'public';
 
-export function templateBundlePackageManifest(template) {
-	return {
-		name: `@norbital-ai/bolt-template-${template.slug}`,
-		version: templateBundleVersion,
-		private: false,
-		license: 'UNLICENSED',
-		files: ['bundle.tar', 'norbital.template-build.json'],
-		publishConfig: { access: templateBundlePublishAccess }
-	};
-}
-
-/** A repository directory name, and so also a ref name, a URL path segment and a package suffix. */
+/** A repository directory name, and so also a ref name and a URL path segment. */
 const slugPattern = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 /**
  * An organization handle. Underscores are the whole reason this differs from `slugPattern`: the

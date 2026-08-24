@@ -41,9 +41,11 @@
 		holidayNamesByDate,
 		lockRung,
 		lockRungFreezes,
+		intervalDrafts,
 		lockRungSourceLock,
 		monthDays,
 		monthProgress,
+		personDayKey,
 		type DayFacts,
 		type DayStatus,
 		type IntervalDraft,
@@ -51,6 +53,7 @@
 	} from '../../lib/ui/roster/roster-month.js';
 	import { patternRosterCodeId } from '../../lib/scheduling/work-pattern.js';
 	import { rosterCodeKind, workWindow } from '../../lib/scheduling/roster-code.js';
+	import { attendanceState } from '../../lib/attendance.js';
 	import {
 		payrollWindows,
 		lockMap,
@@ -539,7 +542,7 @@
 	const explicitEntryByKey = $derived(
 		new Map(
 			rosterEntries.map((entry) => [
-				`${entry.employment_id}:${formatDateISO(entry.work_date)}`,
+				personDayKey(entry.employment_id, formatDateISO(entry.work_date)),
 				entry
 			])
 		)
@@ -660,14 +663,6 @@
 		});
 	}
 
-	function publish(rosterId: string) {
-		return client.db.rosters.mutate({ id: rosterId, published_at: new Date() });
-	}
-
-	function reopen(rosterId: string) {
-		return client.db.rosters.mutate({ id: rosterId, published_at: null });
-	}
-
 	/* ────────────────────────────────────────────────────────────────────────────────────────────
 	 * SCHEDULE FACTS THE SWAP AND THE OVERLAP CHECK BOTH NEED
 	 * ──────────────────────────────────────────────────────────────────────────────────────────── */
@@ -675,7 +670,7 @@
 	const timeEntryByKey = $derived(
 		new Map(
 			(timeEntriesQuery?.current ?? []).map((entry) => [
-				`${entry.employment_id}:${formatDateISO(entry.work_date)}`,
+				personDayKey(entry.employment_id, formatDateISO(entry.work_date)),
 				entry
 			])
 		)
@@ -686,7 +681,12 @@
 	}
 
 	function termCovers(
-		term: { readonly effective_range: { start?: string | Date; end?: string | Date } | null },
+		term: {
+			readonly effective_range: {
+				start?: string;
+				end?: string | null;
+			} | null;
+		},
 		date: string
 	): boolean {
 		if (term.effective_range?.start == null) return false;
@@ -710,7 +710,7 @@
 	 * was never there.
 	 */
 	function effectiveCodeId(employmentId: string, date: string): string | null {
-		const explicit = explicitEntryByKey.get(`${employmentId}:${date}`);
+		const explicit = explicitEntryByKey.get(personDayKey(employmentId, date));
 		if (explicit != null) return explicit.shift_definition_id;
 		const term = activeTermFor(employmentId, date);
 		return term == null ? null : patternRosterCodeId(term.work_pattern, date);
@@ -739,7 +739,7 @@
 	/** The day before and the day after, which is where a shift can overrun into another one. */
 	function adjacentValidationDays(employmentId: string, date: string): ValidationDay[] {
 		return [shiftDayKey(date, -1), shiftDayKey(date, 1)].flatMap((neighbour) => {
-			const day = facts.get(`${employmentId}:${neighbour}`);
+			const day = facts.get(personDayKey(employmentId, neighbour));
 			return day?.designation === 'WORK' && day.shiftStart != null && day.shiftEnd != null
 				? [
 						{
@@ -863,7 +863,7 @@
 	const daySheetKey = $derived(
 		daySheet.employmentId == null || daySheet.date == null
 			? null
-			: `${daySheet.employmentId}:${daySheet.date}`
+			: personDayKey(daySheet.employmentId, daySheet.date)
 	);
 	const daySheetDay = $derived(daySheetKey == null ? undefined : facts.get(daySheetKey));
 	const daySheetPerson = $derived(
@@ -880,18 +880,7 @@
 	 * a glyph — so this is the one place the list itself is needed.
 	 */
 	const daySheetIntervals = $derived<readonly IntervalDraft[]>(
-		(daySheetEntry?.worked_intervals ?? []).map((interval) => ({
-			start_at:
-				typeof interval.start_at === 'string'
-					? interval.start_at
-					: new Date(interval.start_at).toISOString(),
-			end_at:
-				interval.end_at == null
-					? null
-					: typeof interval.end_at === 'string'
-						? interval.end_at
-						: new Date(interval.end_at).toISOString()
-		}))
+		intervalDrafts(daySheetEntry?.worked_intervals)
 	);
 	const daySheetHasExplicitEntry = $derived(
 		daySheetKey != null && explicitEntryByKey.get(daySheetKey)?.roster_id === draftRoster?.id
@@ -990,7 +979,7 @@
 	) {
 		if (draftRoster == null) return;
 		const relationship = completeRosterRelationship();
-		const existing = explicitEntryByKey.get(`${employmentId}:${date}`);
+		const existing = explicitEntryByKey.get(personDayKey(employmentId, date));
 		return client.db.rosters.mutate({
 			id: draftRoster.id,
 			roster_entry_roster: [
@@ -1077,8 +1066,8 @@
 
 	/** The sentence a refused swap gets. One per pair — never one per row. */
 	function swapRefusal(from: BoardCell, to: BoardCell): string | null {
-		const fromDay = facts.get(`${from.employmentId}:${from.date}`);
-		const toDay = facts.get(`${to.employmentId}:${to.date}`);
+		const fromDay = facts.get(personDayKey(from.employmentId, from.date));
+		const toDay = facts.get(personDayKey(to.employmentId, to.date));
 		if (fromDay == null || toDay == null) return t('roster.swap_refused_unknown');
 
 		// 1. Both cells unlocked, by the ladder. One consumed day refuses the swap whole.
@@ -1124,17 +1113,17 @@
 
 		// 4. The publish gate, run early over the post-swap month for both employments.
 		const overrides = new Map<string, string | null>([
-			[`${from.employmentId}:${from.date}`, toCodeId],
-			[`${to.employmentId}:${to.date}`, fromCodeId]
+			[personDayKey(from.employmentId, from.date), toCodeId],
+			[personDayKey(to.employmentId, to.date), fromCodeId]
 		]);
 		const employmentIds = [...new Set([from.employmentId, to.employmentId])];
 		const days: ValidationDay[] = [];
 		for (const employmentId of employmentIds) {
 			for (const date of monthDays(month)) {
-				const day = facts.get(`${employmentId}:${date}`);
+				const day = facts.get(personDayKey(employmentId, date));
 				if (day == null || day.employmentState !== 'ACTIVE') continue;
 				const codeId =
-					overrides.get(`${employmentId}:${date}`) ?? effectiveCodeId(employmentId, date);
+					overrides.get(personDayKey(employmentId, date)) ?? effectiveCodeId(employmentId, date);
 				// A ROSTERED month leaves unassigned days genuinely unassigned; the publish check
 				// treats those as absent rather than as a missing code, so they are skipped here too.
 				if (codeId == null) continue;
@@ -1164,8 +1153,8 @@
 		const note = t('roster.swap_note', { from: from.date, to: to.date });
 		const roster = draftRoster;
 		if (roster == null) return;
-		const fromEntry = explicitEntryByKey.get(`${from.employmentId}:${from.date}`);
-		const toEntry = explicitEntryByKey.get(`${to.employmentId}:${to.date}`);
+		const fromEntry = explicitEntryByKey.get(personDayKey(from.employmentId, from.date));
+		const toEntry = explicitEntryByKey.get(personDayKey(to.employmentId, to.date));
 		const relationship = completeRosterRelationship();
 		const operation = client.db.rosters.mutate({
 			id: roster.id,
@@ -1250,18 +1239,43 @@
 	const attendanceSummaryQuery = $derived(
 		selectedCompanyId == null
 			? null
-			: client.invoke.attendance_summary({
-					company_id: selectedCompanyId,
-					from: trendStart,
-					to: today
+			: client.db.time_entries.findMany({
+					where: {
+						...approved,
+						time_entry_employment: {
+							...approved,
+							company_id: { eq: selectedCompanyId }
+						},
+						work_date: { gte: trendStart, lte: today }
+					},
+					columns: { work_date: true, worked_intervals: true },
+					limit: 20_000
 				})
 	);
+	const attendanceTrend = $derived.by(() => {
+		const entries = attendanceSummaryQuery?.current;
+		if (!employmentsReady || employments.length === 0 || entries === undefined) return [];
+		const weeks: Array<{ week: string; end: string }> = [];
+		for (let week = trendStart; week <= today; week = shiftDayKey(week, 7)) {
+			weeks.push({ week, end: [shiftDayKey(week, 6), today].sort()[0]! });
+		}
+		return weeks.map(({ week, end }) => {
+			const inWeek = entries.filter((entry) => {
+				const date = formatDateISO(entry.work_date);
+				return date >= week && date <= end;
+			});
+			const incomplete = inWeek.filter(
+				(entry) => attendanceState(entry.worked_intervals) !== 'COMPLETE'
+			).length;
+			return { week, exceptionRate: inWeek.length === 0 ? 0 : incomplete / inWeek.length };
+		});
+	});
 	const attendanceChart = $derived({
 		kind: 'line',
 		loading: attendanceSummaryQuery?.loading ?? false,
 		title: t('app.scheduling.exception_chart_title'),
 		description: t('app.scheduling.exception_chart_description'),
-		data: attendanceSummaryQuery?.current ?? [],
+		data: attendanceTrend,
 		xKey: 'week',
 		series: ['exceptionRate'],
 		config: {
@@ -1406,7 +1420,8 @@
 						<Button
 							size="sm"
 							disabled={client.db.rosters.pending > 0}
-							onclick={() => publish(roster.id)}
+							onclick={() =>
+								client.db.rosters.mutate({ id: roster.id, published_at: new Date().toISOString() })}
 						>
 							{t('app.scheduling.publish_month', { month })}
 						</Button>
@@ -1415,7 +1430,7 @@
 							size="sm"
 							variant="outline"
 							disabled={client.db.rosters.pending > 0}
-							onclick={() => reopen(roster.id)}
+							onclick={() => client.db.rosters.mutate({ id: roster.id, published_at: null })}
 						>
 							{t('app.scheduling.re_open')}
 						</Button>
@@ -1500,27 +1515,14 @@
 		<Cover gap="md" top={boardChrome}>
 			{#if boardErrors.length > 0}
 				<!-- A terminal state, so a board that cannot be built says so instead of pretending to
-				     still be loading. Retry rebuilds the queries in place; the month, the search and the
-				     filters all survive it. -->
+				     still be loading. -->
 				<Alert variant="destructive">
 					<AlertTitle>{t('app.scheduling.board_load_failed', { month })}</AlertTitle>
 					<AlertDescription>
-						<Stack gap="sm">
-							<Stack as="ul" gap="xs" class="list-disc pl-4">
-								{#each boardErrors as boardError (boardError)}
-									<li>{boardError}</li>
-								{/each}
-							</Stack>
-							<Inline>
-								<Button
-									size="sm"
-									variant="outline"
-									onclick={() => void rosterEntriesQuery?.refresh()}
-								>
-									<IconWrapper name="lucide:refresh-cw" class="size-4" />
-									{t('app.scheduling.retry')}
-								</Button>
-							</Inline>
+						<Stack as="ul" gap="xs" class="list-disc pl-4">
+							{#each boardErrors as boardError (boardError)}
+								<li>{boardError}</li>
+							{/each}
 						</Stack>
 					</AlertDescription>
 				</Alert>

@@ -1,12 +1,4 @@
-import {
-	boolean,
-	custom,
-	dateRange,
-	defineModel,
-	integer,
-	text,
-	uuid
-} from '@norbital-ai/bolt/authoring';
+import { custom, boolean, defineModel, integer, text, uuid } from '@norbital-ai/bolt/authoring';
 
 export default defineModel(
 	{
@@ -20,7 +12,7 @@ export default defineModel(
 		accrual: custom('leave_accrual').notNull(),
 		entitlement: custom('leave_entitlement').notNull(),
 		payroll_effect: custom('leave_payroll_effect').notNull(),
-		effective_range: dateRange().notNull()
+		effective_range: custom('instant_range', { precision: 'day' }).notNull()
 	},
 	{
 		description:

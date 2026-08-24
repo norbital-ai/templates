@@ -34,6 +34,9 @@ const purchaseOrderExportSchema = Schema.Struct({
 	)
 });
 
+/** Built once, beside its schema: a decoder rebuilt per exported record is per-record work.*/
+const decodePurchaseOrderExport = Schema.decodeUnknownEffect(purchaseOrderExportSchema);
+
 /**
  * The push payload the outbound integration binding delivers.
  *
@@ -56,12 +59,12 @@ export default {
 					limit: 5000
 				});
 
-				return yield* Effect.forEach(records, (order) =>
-					Effect.gen(function* () {
-						const orderLines = lines.filter((line) => line.purchase_order_id === order.id);
-						const code = String(order.doc_no ?? order.id).replace(/[^a-z0-9_-]/gi, '_');
+				return yield* Effect.forEach(records, (order) => {
+					const orderLines = lines.filter((line) => line.purchase_order_id === order.id);
+					const code = String(order.doc_no ?? order.id).replace(/[^a-z0-9_-]/gi, '_');
 
-						const content = yield* Schema.decodeUnknownEffect(purchaseOrderExportSchema)({
+					return Effect.map(
+						decodePurchaseOrderExport({
 							schema: 'norbital.crm.confirmed_purchase_order.v1',
 							purchase_order: {
 								doc_no: order.doc_no,
@@ -82,9 +85,8 @@ export default {
 								tax_rate: line.tax_rate,
 								line_total: line.line_total
 							}))
-						});
-
-						return {
+						}),
+						(content) => ({
 							label: `Confirmed purchase order · ${order.doc_no}`,
 							attachments: [
 								{
@@ -98,9 +100,9 @@ export default {
 								purchase_order_id: order.id,
 								doc_no: order.doc_no
 							}
-						};
-					})
-				);
+						})
+					);
+				});
 			})
 	}
 } satisfies Pipelines;

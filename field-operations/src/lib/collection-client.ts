@@ -13,16 +13,20 @@ import type { CollectionClient } from '@norbital-ai/std/collection';
  * `resolveCollectionClient` verifies it, then typed against the generated `WorkspaceCollections`
  * registry so surfaces get fully typed rows and field names.
  */
-function resolveWorkspaceClient(candidate: object): CollectionClient<WorkspaceCollections> {
+function isWorkspaceClient(candidate: object): candidate is CollectionClient<WorkspaceCollections> {
+	const db = Reflect.get(candidate, 'db');
 	const collections = Reflect.get(candidate, 'collections');
 	const records = Reflect.get(candidate, 'records');
-	if (collections == null || typeof collections !== 'object') {
-		throw new Error('Workspace collection client is unavailable: missing collections catalog.');
-	}
-	if (records == null || typeof records !== 'object') {
-		throw new Error('Workspace collection client is unavailable: missing records accessor.');
-	}
-	return candidate as CollectionClient<WorkspaceCollections>;
+	return (
+		db !== null &&
+		typeof db === 'object' &&
+		collections !== null &&
+		typeof collections === 'object' &&
+		records !== null &&
+		typeof records === 'object' &&
+		typeof Reflect.get(records, 'findMany') === 'function'
+	);
 }
 
-export const collectionClient = resolveWorkspaceClient(client);
+if (!isWorkspaceClient(client)) throw new Error('Workspace collection client is unavailable.');
+export const collectionClient = client;

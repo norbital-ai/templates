@@ -1,11 +1,11 @@
-import { custom, dateRange, defineModel, sql, text, uuid } from '@norbital-ai/bolt/authoring';
+import { custom, defineModel, sql, text, uuid } from '@norbital-ai/bolt/authoring';
 
 export default defineModel(
 	{
 		statutory_contribution_id: uuid().notNull(),
 		selector: custom('rate_selector').notNull(),
 		award: custom('rate_award').notNull(),
-		effective_range: dateRange().notNull(),
+		effective_range: custom('instant_range', { precision: 'day' }).notNull(),
 		/**
 		 * The band's own title, composed in SQL.
 		 *

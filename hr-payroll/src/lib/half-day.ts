@@ -18,7 +18,7 @@ const halfDayPointSchema = Schema.Struct({ date: Schema.String, half: dayHalfSch
 export type HalfDayPoint = Schema.Schema.Type<typeof halfDayPointSchema>;
 
 /** The two ends of a half-day leave range, first and second, both inclusive. */
-export const halfDayRangeSchema = Schema.Struct({
+const halfDayRangeSchema = Schema.Struct({
 	start: halfDayPointSchema,
 	end: halfDayPointSchema
 });

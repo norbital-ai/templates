@@ -1,12 +1,4 @@
-import {
-	custom,
-	dateRange,
-	defineModel,
-	integer,
-	sql,
-	text,
-	uuid
-} from '@norbital-ai/bolt/authoring';
+import { custom, defineModel, integer, sql, text, uuid } from '@norbital-ai/bolt/authoring';
 
 export default defineModel(
 	{
@@ -24,7 +16,7 @@ export default defineModel(
 		sequence: integer().notNull(),
 		eligibility: custom('eligibility_rules').notNull(),
 		definition: custom('component_definition').notNull(),
-		effective_range: dateRange().notNull()
+		effective_range: custom('instant_range', { precision: 'day' }).notNull()
 	},
 	{
 		description:

@@ -1,9 +1,20 @@
-import { defineModel, text, timestamp, uuid } from '@norbital-ai/bolt/authoring';
+import { defineModel, enums, instant, sql, text, uuid } from '@norbital-ai/bolt/authoring';
 
 export default defineModel(
 	{
 		job_assignment_id: uuid().notNull(),
-		/** What the system or a controller saw. Written when the suspicion is raised, never edited. */
+		/** Stable origin key derived from immutable judgement inputs, never supplied by a form. */
+		source_key: text()
+			.notNull()
+			.generatedAlwaysAs(sql`origin || ':' || job_assignment_id::text || ':' || md5(basis)`),
+		origin: enums(['automation', 'human']).notNull().default('human'),
+		/** Canonical facts on which this judgement was made. Written once and never edited. */
+		basis: text(),
+		/** Optional durable inference review that caused this log. */
+		review_id: uuid(),
+		/** Optional primary photo cited by the judge; the full fact set remains in `basis`. */
+		evidence_id: uuid(),
+		/** The AI or authorized controller's judgement. Written when raised, never edited. */
 		reason: text({ search: true }).notNull(),
 		/**
 		 * What a controller concluded, and the only thing that closes a log.
@@ -13,14 +24,19 @@ export default defineModel(
 		 * next reader unable to tell "looked at and fine" from "nobody has looked".
 		 */
 		resolution: text({ search: true }),
-		resolved_at: timestamp(),
+		resolved_at: instant(),
 		resolved_by: uuid()
 	},
 	{
 		description:
-			'A suspicion raised against one job assignment, and what a controller concluded about it. Visible to controllers only.',
+			'An AI or authorized-human suspicion judgement against one job assignment, with immutable evidence basis and an explicit controller resolution.',
 		recordLabel: 'reason',
 		icon: 'lucide:shield-alert',
-		indexes: [{ columns: ['job_assignment_id'] }, { columns: ['resolved_at'] }]
+		indexes: [
+			{ columns: ['source_key'], unique: true },
+			{ columns: ['job_assignment_id'] },
+			{ columns: ['resolved_at'] },
+			{ columns: ['review_id'] }
+		]
 	}
 );

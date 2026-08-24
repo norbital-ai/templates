@@ -18,7 +18,7 @@
 	} from '@norbital-ai/ui/layout';
 	import { formatDateRangeLocal } from '@norbital-ai/std/date';
 	import { Tabs, type TabConfig } from '@norbital-ai/ui/tabs';
-	import type { MoneyValue } from '../../datatypes/money/+definition.js';
+	import type { MoneyValue } from '@norbital-ai/std/finance';
 	import type { IFCViewerProps } from './ifc-viewer/ifc_viewer.types.js';
 
 	let { record }: { record: Row } = $props();
@@ -36,17 +36,17 @@
 	/** The business timezone every calendar-day filter and "today" default resolves in. */
 	const PROJECT_TIME_ZONE = 'Asia/Singapore';
 
+	/** `en-CA` is the locale whose numeric date *is* `YYYY-MM-DD`, so no part has to be reassembled. */
+	const projectCalendarDate = new Intl.DateTimeFormat('en-CA', {
+		timeZone: PROJECT_TIME_ZONE,
+		year: 'numeric',
+		month: '2-digit',
+		day: '2-digit'
+	});
+
 	/** Calendar date for an instant in this workspace's business timezone, as `YYYY-MM-DD`. */
 	function calendarDateInTimeZone(value: Date): string {
-		const parts = new Intl.DateTimeFormat('en', {
-			timeZone: PROJECT_TIME_ZONE,
-			year: 'numeric',
-			month: '2-digit',
-			day: '2-digit'
-		}).formatToParts(value);
-		const valueFor = (type: Intl.DateTimeFormatPartTypes) =>
-			parts.find((part) => part.type === type)?.value ?? '';
-		return `${valueFor('year')}-${valueFor('month')}-${valueFor('day')}`;
+		return projectCalendarDate.format(value);
 	}
 
 	/** Midnight of `calendarDate` in the business timezone, as the UTC instant that moment actually is. */
@@ -61,14 +61,6 @@
 			instant += naive - shown;
 		}
 		return new Date(instant).toISOString();
-	}
-
-	/**
-	 * "Now", as the instant a `contains_date` filter wants. A calendar day is not an instant, and the
-	 * server refuses one rather than guessing which timezone turns it into a moment.
-	 */
-	function todayInstant(): string {
-		return startOfDayInstant(calendarDateInTimeZone(new Date()));
 	}
 
 	/** The IFC viewer is a heavy esm.sh WebGL module graph; lazy-load it only when a model is linked. */
@@ -170,7 +162,7 @@
 		sitesQuery.error ?? assignmentsQuery?.error ?? claimsQuery.error ?? documentsQuery.error
 	);
 
-	function formatDate(value: Date | string | null | undefined): string {
+	function formatDate(value: string | null | undefined): string {
 		if (!value) return t('component.not_set');
 		return new Intl.DateTimeFormat(undefined, { dateStyle: 'medium', timeZone: 'UTC' }).format(
 			new Date(value)
@@ -557,7 +549,10 @@
 			query={{
 				where: {
 					project_id: { eq: projectId },
-					validity_range: { contains_date: todayInstant() }
+					// The filter requires an instant, not a calendar day whose timezone would be ambiguous.
+					validity_range: {
+						contains_date: startOfDayInstant(calendarDateInTimeZone(new Date()))
+					}
 				},
 				limit: 50
 			}}

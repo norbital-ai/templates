@@ -13,7 +13,7 @@ importers:
         version: 5.2.2(svelte@5.56.10)
       '@norbital-ai/bolt':
         specifier: 0.0.1
-        version: 0.0.1(@types/node@26.2.0)(effect@4.0.0-rc.111)(jiti@2.7.0)(svelte@5.56.10)(zod@4.4.3)
+        version: 0.0.1(@norbital-ai/doctor@0.0.1)(@types/node@26.2.0)(effect@4.0.0-rc.111)(jiti@2.7.0)(svelte@5.56.10)(zod@4.4.3)
       '@norbital-ai/bolt-protocol':
         specifier: 0.0.1
         version: 0.0.1(effect@4.0.0-rc.111)
@@ -51,6 +51,9 @@ importers:
         specifier: ^8.2.2
         version: 8.2.2(@types/node@26.2.0)(jiti@2.7.0)
     devDependencies:
+      '@norbital-ai/doctor':
+        specifier: 0.0.1
+        version: 0.0.1
       '@types/node':
         specifier: ^26.2.0
         version: 26.2.0
@@ -207,8 +210,8 @@ packages:
     peerDependencies:
       '@electric-sql/pglite': 0.5.5
 
-  '@electric-sql/pglite@0.5.5':
-    resolution: {integrity: sha512-QeZ+oB7QaU4EJj2awrB8hwFZ5TXxLRBQ9Gfq0dQauYDdWsRtuWRCERgtri35vRfL07KQHlVlc/4Qxvn7a5AXeA==}
+  '@electric-sql/pglite@0.5.7':
+    resolution: {integrity: sha512-6WBks0NFO6YUhGP03mCNkbJuVFWwrZPrzZ/vsnAPnsCD28pybdZ+yoTrlLlWFoZst3kdaju5pxIslV/jrr36nQ==}
 
   '@esbuild/aix-ppc64@0.25.12':
     resolution: {integrity: sha512-Hhmwd6CInZ3dwpuGTF8fJG6yoWmsToE+vYgD4nytZVxcu1ulHpUQRAB1UJ8+N1Am3Mz4+xOByoQoSZf4D+CpkA==}
@@ -501,24 +504,29 @@ packages:
     engines: {node: '>= 20.19.0'}
 
   '@norbital-ai/bolt-protocol@0.0.1':
-    resolution: {integrity: sha512-N0uAuhm7DoxbmxJ9jOaHpbP+I+uL1AaGfqFgKce1VHcCRGoKdz/CINX5LsjKNXV6MC8ZezutWcnXloblLJC1gA==, tarball: https://npm.pkg.github.com/download/@norbital-ai/bolt-protocol/0.0.1/9ef3a8e8482a6fa58f4f08876c0143d6349d13bd}
+    resolution: {integrity: sha512-QE3XEC1WOvf8Rn6CGYBQl5tyl4gHywx50t1ifMAjHItmcagMq/nTkoWGJ1TVDRojw6J4GMk1uHFBs9Rn1N0bCg==, tarball: https://npm.pkg.github.com/download/@norbital-ai/bolt-protocol/0.0.1/b3d10b48c6d3f6edaf77142688a16b9d677dff0f}
     peerDependencies:
       effect: 4.0.0-rc.111
 
   '@norbital-ai/bolt@0.0.1':
-    resolution: {integrity: sha512-tS2uSe8H63gwifgpuRF5gLypTc39cDahaYk/pCMvrc7udt5G1hKrpLqnd4UkGhyLJnBQVtVHJF4IzeTn5kIEYg==, tarball: https://npm.pkg.github.com/download/@norbital-ai/bolt/0.0.1/03274be4d48ab2ea754b0f476f3f0d0b8a7fc840}
+    resolution: {integrity: sha512-1JztoIWBQU7NPuJlpj4X/tt29ofDCgt7pwtLoUWdvf+KAOeuRzZ+1kTDRjLkKoDiVwnxc2TtsmszrxJCvDc5KQ==, tarball: https://npm.pkg.github.com/download/@norbital-ai/bolt/0.0.1/0dcf67c55fd1c67cdabe20041e3d2114e0a94f3d}
     hasBin: true
     peerDependencies:
+      '@norbital-ai/doctor': 0.0.1
       effect: 4.0.0-rc.111
       svelte: ^5.0.0
 
+  '@norbital-ai/doctor@0.0.1':
+    resolution: {integrity: sha512-cZwQ+AmuoPUp+StYcnFEZMvwv28kTf0ub6fdbTqVAwhWRTXIEYmjlAN7qH4C8h8HykKjATsOwKsAO+QacE6XmA==, tarball: https://npm.pkg.github.com/download/@norbital-ai/doctor/0.0.1/e320ab1af2b6f5876b17b55ea356e856357a8235}
+    hasBin: true
+
   '@norbital-ai/std@0.0.1':
-    resolution: {integrity: sha512-ya8csgFZufGwJRqeZJgXT6K4rEIGzYwqjA2Ivj0qqgabiL1XcS8A6Vv1opYyCVEdNEZ8FE1l5Md+0cfHitDpnw==, tarball: https://npm.pkg.github.com/download/@norbital-ai/std/0.0.1/4cb62cf8a34c24a36c3c228f56dbe912adad8dd1}
+    resolution: {integrity: sha512-oXnx1sLtEwAIx2zBw9RrK5ECStjjyYUWv260aAhXFZyBL2h99yCfaV+ESf193TzuYQZuwliyp9mpYByozVo/9g==, tarball: https://npm.pkg.github.com/download/@norbital-ai/std/0.0.1/134a4a4d4422df29d371c32712839a545d309131}
     peerDependencies:
       effect: 4.0.0-rc.111
 
   '@norbital-ai/ui@0.0.1':
-    resolution: {integrity: sha512-Sm63LOkVBLF7KdKY/Zq8kj+H7gGA8n/3lMtZzBmV6Dx/IpxFMbJSZYDYdEHxWR7VzHU4+xQc3nNIOJgLLaHzog==, tarball: https://npm.pkg.github.com/download/@norbital-ai/ui/0.0.1/87d42189610ca52679901727b536b48f856ba94d}
+    resolution: {integrity: sha512-hg+QNQPg0haT1myDtekN++lBl1S9+4yh2Z5uQETYyOWTtLRse/vcpRx4LXUok/67OB1/uikz7ZHIps4+QT6iNA==, tarball: https://npm.pkg.github.com/download/@norbital-ai/ui/0.0.1/b3830622ec36de3f581455f05f98cf44ff8bebae}
     peerDependencies:
       '@norbital-ai/std': 0.0.1
       effect: 4.0.0-rc.111
@@ -2327,12 +2335,12 @@ snapshots:
       nanostores: 1.5.2
       zod: 4.4.3
 
-  '@better-auth/drizzle-adapter@1.7.1(@better-auth/core@1.7.1(@better-auth/utils@0.4.2)(@better-fetch/fetch@1.3.1)(better-call@1.4.0(zod@4.4.3))(jose@6.2.10)(kysely@0.29.5)(nanostores@1.5.2))(@better-auth/utils@0.4.2)(drizzle-orm@1.0.0-rc.4(@electric-sql/pglite@0.5.5)(effect@4.0.0-rc.111)(zod@4.4.3))':
+  '@better-auth/drizzle-adapter@1.7.1(@better-auth/core@1.7.1(@better-auth/utils@0.4.2)(@better-fetch/fetch@1.3.1)(better-call@1.4.0(zod@4.4.3))(jose@6.2.10)(kysely@0.29.5)(nanostores@1.5.2))(@better-auth/utils@0.4.2)(drizzle-orm@1.0.0-rc.4(@electric-sql/pglite@0.5.7)(effect@4.0.0-rc.111)(zod@4.4.3))':
     dependencies:
       '@better-auth/core': 1.7.1(@better-auth/utils@0.4.2)(@better-fetch/fetch@1.3.1)(better-call@1.4.0(zod@4.4.3))(jose@6.2.10)(kysely@0.29.5)(nanostores@1.5.2)
       '@better-auth/utils': 0.4.2
     optionalDependencies:
-      drizzle-orm: 1.0.0-rc.4(@electric-sql/pglite@0.5.5)(effect@4.0.0-rc.111)(zod@4.4.3)
+      drizzle-orm: 1.0.0-rc.4(@electric-sql/pglite@0.5.7)(effect@4.0.0-rc.111)(zod@4.4.3)
 
   '@better-auth/kysely-adapter@1.7.1(@better-auth/core@1.7.1(@better-auth/utils@0.4.2)(@better-fetch/fetch@1.3.1)(better-call@1.4.0(zod@4.4.3))(jose@6.2.10)(kysely@0.29.5)(nanostores@1.5.2))(@better-auth/utils@0.4.2)(kysely@0.29.5)':
     dependencies:
@@ -2481,11 +2489,11 @@ snapshots:
 
   '@drizzle-team/brocli@0.12.0': {}
 
-  '@electric-sql/pglite-pgvector@0.0.6(@electric-sql/pglite@0.5.5)':
+  '@electric-sql/pglite-pgvector@0.0.6(@electric-sql/pglite@0.5.7)':
     dependencies:
-      '@electric-sql/pglite': 0.5.5
+      '@electric-sql/pglite': 0.5.7
 
-  '@electric-sql/pglite@0.5.5': {}
+  '@electric-sql/pglite@0.5.7': {}
 
   '@esbuild/aix-ppc64@0.25.12':
     optional: true
@@ -2718,20 +2726,21 @@ snapshots:
     dependencies:
       effect: 4.0.0-rc.111
 
-  '@norbital-ai/bolt@0.0.1(@types/node@26.2.0)(effect@4.0.0-rc.111)(jiti@2.7.0)(svelte@5.56.10)(zod@4.4.3)':
+  '@norbital-ai/bolt@0.0.1(@norbital-ai/doctor@0.0.1)(@types/node@26.2.0)(effect@4.0.0-rc.111)(jiti@2.7.0)(svelte@5.56.10)(zod@4.4.3)':
     dependencies:
-      '@electric-sql/pglite': 0.5.5
-      '@electric-sql/pglite-pgvector': 0.0.6(@electric-sql/pglite@0.5.5)
+      '@electric-sql/pglite': 0.5.7
+      '@electric-sql/pglite-pgvector': 0.0.6(@electric-sql/pglite@0.5.7)
       '@iconify/svelte': 5.2.2(svelte@5.56.10)
       '@norbital-ai/bolt-protocol': 0.0.1(effect@4.0.0-rc.111)
+      '@norbital-ai/doctor': 0.0.1
       '@norbital-ai/std': 0.0.1(effect@4.0.0-rc.111)
       '@norbital-ai/ui': 0.0.1(@norbital-ai/std@0.0.1(effect@4.0.0-rc.111))(effect@4.0.0-rc.111)(svelte@5.56.10)(tailwindcss@4.3.3)(zod@4.4.3)
       '@sveltejs/vite-plugin-svelte': 7.3.0(svelte@5.56.10)(vite@8.2.2(@types/node@26.2.0)(jiti@2.7.0))
       '@tailwindcss/vite': 4.3.3(vite@8.2.2(@types/node@26.2.0)(jiti@2.7.0))
       '@xyflow/svelte': 1.6.3(svelte@5.56.10)
-      better-auth: 1.7.1(drizzle-kit@1.0.0-rc.4)(drizzle-orm@1.0.0-rc.4(@electric-sql/pglite@0.5.5)(effect@4.0.0-rc.111)(zod@4.4.3))(svelte@5.56.10)
+      better-auth: 1.7.1(drizzle-kit@1.0.0-rc.4)(drizzle-orm@1.0.0-rc.4(@electric-sql/pglite@0.5.7)(effect@4.0.0-rc.111)(zod@4.4.3))(svelte@5.56.10)
       drizzle-kit: 1.0.0-rc.4
-      drizzle-orm: 1.0.0-rc.4(@electric-sql/pglite@0.5.5)(effect@4.0.0-rc.111)(zod@4.4.3)
+      drizzle-orm: 1.0.0-rc.4(@electric-sql/pglite@0.5.7)(effect@4.0.0-rc.111)(zod@4.4.3)
       effect: 4.0.0-rc.111
       mode-watcher: 1.1.0(svelte@5.56.10)
       qrcode: 1.5.4
@@ -2811,6 +2820,10 @@ snapshots:
       - vue
       - yaml
       - zod
+
+  '@norbital-ai/doctor@0.0.1':
+    dependencies:
+      typescript: 6.0.3
 
   '@norbital-ai/std@0.0.1(effect@4.0.0-rc.111)':
     dependencies:
@@ -3358,10 +3371,10 @@ snapshots:
 
   axobject-query@4.1.0: {}
 
-  better-auth@1.7.1(drizzle-kit@1.0.0-rc.4)(drizzle-orm@1.0.0-rc.4(@electric-sql/pglite@0.5.5)(effect@4.0.0-rc.111)(zod@4.4.3))(svelte@5.56.10):
+  better-auth@1.7.1(drizzle-kit@1.0.0-rc.4)(drizzle-orm@1.0.0-rc.4(@electric-sql/pglite@0.5.7)(effect@4.0.0-rc.111)(zod@4.4.3))(svelte@5.56.10):
     dependencies:
       '@better-auth/core': 1.7.1(@better-auth/utils@0.4.2)(@better-fetch/fetch@1.3.1)(better-call@1.4.0(zod@4.4.3))(jose@6.2.10)(kysely@0.29.5)(nanostores@1.5.2)
-      '@better-auth/drizzle-adapter': 1.7.1(@better-auth/core@1.7.1(@better-auth/utils@0.4.2)(@better-fetch/fetch@1.3.1)(better-call@1.4.0(zod@4.4.3))(jose@6.2.10)(kysely@0.29.5)(nanostores@1.5.2))(@better-auth/utils@0.4.2)(drizzle-orm@1.0.0-rc.4(@electric-sql/pglite@0.5.5)(effect@4.0.0-rc.111)(zod@4.4.3))
+      '@better-auth/drizzle-adapter': 1.7.1(@better-auth/core@1.7.1(@better-auth/utils@0.4.2)(@better-fetch/fetch@1.3.1)(better-call@1.4.0(zod@4.4.3))(jose@6.2.10)(kysely@0.29.5)(nanostores@1.5.2))(@better-auth/utils@0.4.2)(drizzle-orm@1.0.0-rc.4(@electric-sql/pglite@0.5.7)(effect@4.0.0-rc.111)(zod@4.4.3))
       '@better-auth/kysely-adapter': 1.7.1(@better-auth/core@1.7.1(@better-auth/utils@0.4.2)(@better-fetch/fetch@1.3.1)(better-call@1.4.0(zod@4.4.3))(jose@6.2.10)(kysely@0.29.5)(nanostores@1.5.2))(@better-auth/utils@0.4.2)(kysely@0.29.5)
       '@better-auth/memory-adapter': 1.7.1(@better-auth/core@1.7.1(@better-auth/utils@0.4.2)(@better-fetch/fetch@1.3.1)(better-call@1.4.0(zod@4.4.3))(jose@6.2.10)(kysely@0.29.5)(nanostores@1.5.2))(@better-auth/utils@0.4.2)
       '@better-auth/mongo-adapter': 1.7.1(@better-auth/core@1.7.1(@better-auth/utils@0.4.2)(@better-fetch/fetch@1.3.1)(better-call@1.4.0(zod@4.4.3))(jose@6.2.10)(kysely@0.29.5)(nanostores@1.5.2))(@better-auth/utils@0.4.2)
@@ -3379,7 +3392,7 @@ snapshots:
       zod: 4.4.3
     optionalDependencies:
       drizzle-kit: 1.0.0-rc.4
-      drizzle-orm: 1.0.0-rc.4(@electric-sql/pglite@0.5.5)(effect@4.0.0-rc.111)(zod@4.4.3)
+      drizzle-orm: 1.0.0-rc.4(@electric-sql/pglite@0.5.7)(effect@4.0.0-rc.111)(zod@4.4.3)
       svelte: 5.56.10
     transitivePeerDependencies:
       - '@cloudflare/workers-types'
@@ -3613,9 +3626,9 @@ snapshots:
       get-tsconfig: 4.14.3
       jiti: 2.7.0
 
-  drizzle-orm@1.0.0-rc.4(@electric-sql/pglite@0.5.5)(effect@4.0.0-rc.111)(zod@4.4.3):
+  drizzle-orm@1.0.0-rc.4(@electric-sql/pglite@0.5.7)(effect@4.0.0-rc.111)(zod@4.4.3):
     optionalDependencies:
-      '@electric-sql/pglite': 0.5.5
+      '@electric-sql/pglite': 0.5.7
       effect: 4.0.0-rc.111
       zod: 4.4.3
 

@@ -1,9 +1,9 @@
 import {
 	boolean,
 	custom,
-	date,
 	defineModel,
 	file,
+	instant,
 	numeric,
 	sql,
 	text,
@@ -16,13 +16,14 @@ export default defineModel(
 		leave_type_id: uuid().notNull(),
 		event: custom('leave_event').notNull(),
 		kind: text().generatedAlwaysAs(sql`event ->> 'kind'`),
-		// A stored generated column must be immutable, and a text -> date cast is only STABLE.
-		// `bolt_date` is the immutable wrapper the platform installs before any migration runs.
-		from_date: date().generatedAlwaysAs(
-			sql`CASE WHEN event ->> 'kind' = 'TIME_OFF' THEN bolt_date(event #>> '{range,start,date}') ELSE bolt_date(event ->> 'effective_on') END`
+		// The custom value carries calendar-day semantics, but the projected column is still an
+		// instant. `bolt_instant` anchors the canonical day at UTC midnight through an immutable
+		// function the platform installs before migrations run.
+		from_date: instant({ precision: 'day' }).generatedAlwaysAs(
+			sql`CASE WHEN event ->> 'kind' = 'TIME_OFF' THEN bolt_instant(event #>> '{range,start,date}') ELSE bolt_instant(event ->> 'effective_on') END`
 		),
-		to_date: date().generatedAlwaysAs(
-			sql`CASE WHEN event ->> 'kind' = 'TIME_OFF' THEN bolt_date(event #>> '{range,end,date}') ELSE bolt_date(event ->> 'effective_on') END`
+		to_date: instant({ precision: 'day' }).generatedAlwaysAs(
+			sql`CASE WHEN event ->> 'kind' = 'TIME_OFF' THEN bolt_instant(event #>> '{range,end,date}') ELSE bolt_instant(event ->> 'effective_on') END`
 		),
 		days: numeric().generatedAlwaysAs(
 			sql`CASE WHEN event ->> 'kind' = 'TIME_OFF' THEN (event ->> 'chargeable_days')::numeric ELSE (event ->> 'movement_days')::numeric END`
@@ -54,7 +55,7 @@ export default defineModel(
 		 * The row's own title, composed in SQL rather than by `recordLabel`.
 		 *
 		 * `recordLabel` compiles to a CEL concatenation of the named columns, and CEL has no `+`
-		 * overload for anything but strings: a `date()` column reaches the client as a `Date`, so
+		 * overload for anything but strings: an `instant()` column reaches the client as a `Date`, so
 		 * `['from_date', 'to_date']` threw, the label resolved to nothing, and the record detail fell
 		 * back to joining every scalar column — which painted `employment_id` and `leave_type_id` as
 		 * raw uuids at the top of the panel. Text in, text out, and the two arms of the union get the

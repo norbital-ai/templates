@@ -95,14 +95,13 @@ claims, project documents, and current permits to work). Site locations, asset d
 permits to work have no tab of their own anywhere and are reached only through a project — the only
 context in which any of them means much.
 
-Three policies match those three apps one for one, and their grant sets are identical: unconditional
-read on the same twelve collections. The narrowing is `apps`, not `where`. That is deliberate rather
+Four files split one policy contract: `+construction_read.ts` owns the twelve unconditional read
+grants, and the three app policies carry only `capabilities` — they open an application, and the
+application opens the grants. The narrowing is `apps`, not `where`. That is deliberate rather
 than lazy — construction carries no requestor-bearing column on any of these collections, so there
 is nothing for a `where` clause to scope to, and what actually separates a delivery user from a
-settings administrator is which application they can open. The three files repeat the twelve grant
-lines instead of sharing a list, because `src/access/policies` admits only `+<name>.ts`; twelve
-literal lines per file is the price of keeping a policy's whole grant set readable in the file that
-names it.
+settings administrator is which application they can open. The shared grant list lives in one file
+(`src/access/policies` admits only `+<name>.ts`) so the whole set stays readable where it is named.
 
 ## Daily operational watches
 
@@ -116,12 +115,10 @@ review; they do not send messages, escalate records, or mutate business state.
 | `rfi_followup_watch`            | `rfis`            | `rfi-followup-watch.json`            |
 | `payment_claim_readiness_watch` | `payment_claims`  | `payment-claim-readiness-watch.json` |
 
-All four share one shape: read at most 250 rows, report that number as the summary count, and
-export the first 25 as the file body. Two different bounds because they answer two different
-questions — a reviewer wants a sense of scale and a handful of rows to look at, not a full table in
-a JSON blob. The summary count therefore saturates at 250 and is a floor once a subject grows past
-that, not a total. If a deployment needs alerts, an integration or delivery facility must be added
-explicitly; these read-only watches notify no one on their own.
+All four share one shape: read at most 25 rows, report that number as the summary count, and export
+the same rows as the file body. The bounds hold a review a reviewer can read — the sweep is a
+morning digest, not a full table in a JSON blob. If a deployment needs alerts, an integration or
+delivery facility must be added explicitly; these read-only watches notify no one on their own.
 
 ## Under the hood
 
@@ -131,11 +128,11 @@ under `.norbital/`.
 
 ```text
 src/apps/                              the three applications (+<app>.svelte)
-src/access/policies/                   one read-only policy per application
+src/access/policies/                   one shared read authority + one per application (+<name>.ts)
 src/collections/                       models (+model.ts), relations (+relationship.ts),
                                        the compliance hook, and form/detail representations
 src/automations/                       the four daily review watches (+<name>.ts)
-src/datatypes/                         money, project address, site coordinates,
+src/datatypes/                         project address, site coordinates,
                                        emergency contact, permit signatures (+definition.ts + renderer)
 src/i18n/                              English and Chinese copy, same key sets (messages.en/zh.json)
 src/collections/projects/ifc-viewer/   the embedded IFC viewer and its converter worker
@@ -155,18 +152,20 @@ How the pieces work:
   surface for the esm.sh-loaded viewer libraries (`ifc_viewer.types.ts`). It is mounted inside the
   project record when a linked `asset_documents` row carries an `ifc_model` document (or a
   `.ifc` URL); the sample model under `assets/ifc/` is what a freshly seeded tenant shows.
-- **Custom types.** Structured values that cannot be plain columns: `money` (ISO 4217 currency
-  with an optional `allowedCurrencies` restriction), `project_address`, `site_coordinates`,
-  `emergency_contact`, and `permit_signatures`. Each has a definition (the only schema) and a
-  renderer (display and edit).
+- **Custom types.** Structured values that cannot be plain columns: `project_address`,
+  `site_coordinates`, `emergency_contact`, and `permit_signatures`. Each has a definition (the only
+  schema) and a renderer (display and edit). Money follows the same custom-type contract and access
+  pattern, but its definition is injected by the platform: use `custom('money', {
+allowedCurrencies })` from `@norbital-ai/bolt/authoring`.
 - **i18n.** The workspace ships English and Chinese catalogs with exactly the same keys. App
   metadata in `<svelte:head>` stays static English; the sidebar label and page copy localize via
   the catalogs.
-- **Seed data.** The workspace ships no `+seed.ts`. Fixture data (projects, jobs, workers,
-  permits, RFIs, defects, claims, the BIM matrix, documents) is provisioned by the host's
-  construction seed plan, which serves the committed `assets/` files at
-  `/__bolt/request/api/template-seed-assets/construction/...` — including the sample IFC model used by the
-  project record's viewer.
+- **Seed data.** The workspace ships no `+seed.ts`. Fixture rows (projects, jobs, workers,
+  permits, RFIs, defects, claims, the BIM matrix, documents) are loaded by the host's construction
+  seed plan from the seed bank, while the committed `assets/` files — including the sample IFC model
+  — ship inside the compiled artifact and are served at
+  `/__bolt/request/api/template-seed-assets/construction/...`, which is what the project record's
+  viewer uses.
 
 Use collection hooks for non-negotiable server rules, a custom type when a reusable field needs its
 own validation and renderer, and a collection representation only when schema-derived UI is

@@ -12,8 +12,8 @@ import type { Teams } from '@norbital-ai/bolt/authoring';
  *
  * ## The values are policy names, and a policy is named by its file
  *
- * The three policies are named for their files — `construction_project_workspace`,
- * `construction_settings_reference_matrix` and `construction_settings_workforce` — and
+ * The policies are named for their files — the shared `construction_read` policy plus the three
+ * app-capability policies — and
  * `policiesHeldByTeam` resolves a team's policies against that `name`. `Teams` narrows the strings
  * below to the generated `PolicyName` union, so a name no file declares fails the build.
  *
@@ -23,15 +23,12 @@ import type { Teams } from '@norbital-ai/bolt/authoring';
  *
  * ## What actually separates the three policies is `apps`, and that is what makes teams useful here
  *
- * All three policies grant the *same twelve reads* and no writes anywhere — the sibling policy files
- * say at length why that repetition is deliberate rather than an oversight to tidy. They differ in
- * exactly one thing: which application they open. So a team in this workspace is a statement about
- * which surface somebody works in, not about which rows they can reach, and the four entries below
- * are the four combinations of surfaces that make sense.
+ * `construction_read` owns every data coordinate exactly once. The three sibling policies grant no
+ * data at all; each opens one application. So a team combines one read policy with whichever app
+ * surfaces it needs without creating overlapping grants.
  *
- * A consequence worth stating plainly: composing these by `parent_id` inheritance would buy nothing,
- * because there is no narrowing to preserve. Every grant is unconditional, so the union of any two
- * of these policies is the same twelve reads with two apps instead of one.
+ * `parent_id` remains organizational scope, not policy inheritance. The complete effective set is
+ * visible in each entry below.
  *
  * ## One team per person
  *
@@ -44,26 +41,28 @@ import type { Teams } from '@norbital-ai/bolt/authoring';
  */
 export default {
 	/** Delivery: projects, jobs, RFIs, defects, permits and payment claims, through one app. */
-	'Project Delivery': ['construction_project_workspace'],
+	'Project Delivery': ['construction_read', 'construction_project_workspace'],
 
 	/** The BIM reference matrix settings surface. Reads the projects and assets that cite the matrix. */
-	'Reference Matrix Administrators': ['construction_settings_reference_matrix'],
+	'Reference Matrix Administrators': [
+		'construction_read',
+		'construction_settings_reference_matrix'
+	],
 
 	/** The workforce settings surface: the worker library and certification compliance. */
-	'Workforce Administrators': ['construction_settings_workforce'],
+	'Workforce Administrators': ['construction_read', 'construction_settings_workforce'],
 
 	/**
 	 * All three surfaces at once — the delivery app and both settings apps.
 	 *
-	 * The whole set is listed rather than a pointer at the teams above, matching hr-payroll's
-	 * convention: `rowPredicate` unions the `where` of every matching grant, so what a team confers
-	 * is the union of its policies whatever order they appear in, and a list that reads top to bottom
-	 * is worth more than a derivation to run in your head.
+	 * The whole set is listed rather than a pointer at the teams above. Only `construction_read`
+	 * carries data grants, so this composition cannot overlap collection/action coordinates.
 	 *
 	 * This is the team every seeded person is in, and it is what their three `roles` entries meant
 	 * before roles were deleted.
 	 */
 	'Construction Administrators': [
+		'construction_read',
 		'construction_project_workspace',
 		'construction_settings_reference_matrix',
 		'construction_settings_workforce'

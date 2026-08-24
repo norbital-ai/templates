@@ -1,4 +1,4 @@
-import { date, defineModel, enums, text, uuid } from '@norbital-ai/bolt/authoring';
+import { defineModel, enums, instant, text, uuid } from '@norbital-ai/bolt/authoring';
 
 export default defineModel(
 	{
@@ -13,7 +13,7 @@ export default defineModel(
 		site_id: uuid().notNull(),
 		title: text({ search: true }).notNull(),
 		nature: text(),
-		scheduled_for: date().notNull(),
+		scheduled_for: instant({ precision: 'day' }).notNull(),
 		status: enums(['unassigned', 'assigned', 'in_progress', 'completed']),
 		description: text().notNull()
 	},

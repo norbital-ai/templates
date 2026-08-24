@@ -131,117 +131,132 @@
 				{#if rule.field === 'EMPLOYMENT_TYPE'}
 					<Cluster gap="sm">
 						{#each EMPLOYMENT_TYPES as option (option)}
-							<label class="flex items-center gap-1.5 text-sm">
-								<input
-									type="checkbox"
-									class="size-4"
-									checked={rule.in.includes(option)}
-									{disabled}
-									onchange={() => {
-										const next = toggled(rule.in, option);
-										if (next !== null) replaceAt(index, { field: 'EMPLOYMENT_TYPE', in: next });
-									}}
-								/>
-								{option}
+							<label class="text-sm">
+								<Inline gap="xs">
+									<input
+										type="checkbox"
+										class="size-4"
+										checked={rule.in.includes(option)}
+										{disabled}
+										onchange={() => {
+											const next = toggled(rule.in, option);
+											if (next !== null) replaceAt(index, { field: 'EMPLOYMENT_TYPE', in: next });
+										}}
+									/>
+									{option}
+								</Inline>
 							</label>
 						{/each}
 					</Cluster>
 				{:else if rule.field === 'WORK_CLASSIFICATION'}
 					<Cluster gap="sm">
 						{#each CLASSIFICATIONS as option (option)}
-							<label class="flex items-center gap-1.5 text-sm">
-								<input
-									type="checkbox"
-									class="size-4"
-									checked={rule.in.includes(option)}
-									{disabled}
-									onchange={() => {
-										const next = toggled(rule.in, option);
-										if (next !== null) replaceAt(index, { field: 'WORK_CLASSIFICATION', in: next });
-									}}
-								/>
-								{option}
+							<label class="text-sm">
+								<Inline gap="xs">
+									<input
+										type="checkbox"
+										class="size-4"
+										checked={rule.in.includes(option)}
+										{disabled}
+										onchange={() => {
+											const next = toggled(rule.in, option);
+											if (next !== null)
+												replaceAt(index, { field: 'WORK_CLASSIFICATION', in: next });
+										}}
+									/>
+									{option}
+								</Inline>
 							</label>
 						{/each}
 					</Cluster>
 				{:else if rule.field === 'GENDER'}
 					<Cluster gap="sm">
 						{#each GENDERS as option (option)}
-							<label class="flex items-center gap-1.5 text-sm">
-								<input
-									type="checkbox"
-									class="size-4"
-									checked={rule.in.includes(option)}
-									{disabled}
-									onchange={() => {
-										const next = toggled(rule.in, option);
-										if (next !== null) replaceAt(index, { field: 'GENDER', in: next });
-									}}
-								/>
-								{option}
+							<label class="text-sm">
+								<Inline gap="xs">
+									<input
+										type="checkbox"
+										class="size-4"
+										checked={rule.in.includes(option)}
+										{disabled}
+										onchange={() => {
+											const next = toggled(rule.in, option);
+											if (next !== null) replaceAt(index, { field: 'GENDER', in: next });
+										}}
+									/>
+									{option}
+								</Inline>
 							</label>
 						{/each}
 					</Cluster>
 				{:else if rule.field === 'SERVICE_MONTHS'}
 					<Grid gap="xs" minimum="compact">
-						<label class="grid gap-1.5 text-sm font-medium">
-							From (months)
-							<Input
-								type="number"
-								min="0"
-								step="1"
-								value={rule.from}
-								{disabled}
-								oninput={(event) =>
-									replaceAt(index, {
-										...rule,
-										from: numberFrom(event.currentTarget.value, 0)
-									})}
-							/>
+						<label class="text-sm font-medium">
+							<Stack gap="xs">
+								From (months)
+								<Input
+									type="number"
+									min="0"
+									step="1"
+									value={rule.from}
+									{disabled}
+									oninput={(event) =>
+										replaceAt(index, {
+											...rule,
+											from: numberFrom(event.currentTarget.value, 0)
+										})}
+								/>
+							</Stack>
 						</label>
-						<label class="grid gap-1.5 text-sm font-medium">
-							To (blank = no upper bound)
-							<Input
-								type="number"
-								min="0"
-								step="1"
-								value={rule.to ?? ''}
-								{disabled}
-								oninput={(event) =>
-									replaceAt(index, {
-										...rule,
-										to: nullableNumberFrom(event.currentTarget.value)
-									})}
-							/>
+						<label class="text-sm font-medium">
+							<Stack gap="xs">
+								To (blank = no upper bound)
+								<Input
+									type="number"
+									min="0"
+									step="1"
+									value={rule.to ?? ''}
+									{disabled}
+									oninput={(event) =>
+										replaceAt(index, {
+											...rule,
+											to: nullableNumberFrom(event.currentTarget.value)
+										})}
+								/>
+							</Stack>
 						</label>
 					</Grid>
 				{:else if rule.field === 'DEPARTMENT'}
-					<label class="grid gap-1.5 text-sm font-medium">
-						Departments (comma separated)
-						<Input
-							value={rule.in.join(', ')}
-							{disabled}
-							placeholder={t('component.operations_finance')}
-							oninput={(event) =>
-								replaceAt(index, {
-									field: 'DEPARTMENT',
-									in: splitList(event.currentTarget.value)
-								})}
-						/>
+					<label class="text-sm font-medium">
+						<Stack gap="xs">
+							Departments (comma separated)
+							<Input
+								value={rule.in.join(', ')}
+								{disabled}
+								placeholder={t('component.operations_finance')}
+								oninput={(event) =>
+									replaceAt(index, {
+										field: 'DEPARTMENT',
+										in: splitList(event.currentTarget.value)
+									})}
+							/>
+						</Stack>
 					</label>
 				{:else if rule.field === 'PAYROLL_GROUP'}
-					<label class="grid gap-1.5 text-sm font-medium">
-						Payroll groups (comma separated)
-						<Input
-							value={rule.in.join(', ')}
-							{disabled}
-							placeholder={t('component.monthly_weekly')}
-							oninput={(event) =>
-								replaceAt(index, {
-									field: 'PAYROLL_GROUP',
-									in: splitList(event.currentTarget.value)
-								})}
-						/>
+					<label class="text-sm font-medium">
+						<Stack gap="xs">
+							Payroll groups (comma separated)
+							<Input
+								value={rule.in.join(', ')}
+								{disabled}
+								placeholder={t('component.monthly_weekly')}
+								oninput={(event) =>
+									replaceAt(index, {
+										field: 'PAYROLL_GROUP',
+										in: splitList(event.currentTarget.value)
+									})}
+							/>
+						</Stack>
 					</label>
 				{/if}
 			</Grid>

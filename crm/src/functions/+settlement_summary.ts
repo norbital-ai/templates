@@ -14,27 +14,28 @@ export default defineQueryHandler({
 		regarding_type: Schema.Literals(['quotes', 'purchase_orders', 'purchase_invoices'])
 	}),
 	handler: (input, api) =>
-		Effect.gen(function* () {
-			const rows = yield* api.db.query.settlements.findMany({
+		Effect.map(
+			api.db.query.settlements.findMany({
 				where: { regarding_type: { eq: input.regarding_type } },
 				columns: { regarding_id: true, amount: true, currency: true },
 				limit: 5000
-			});
+			}),
+			(rows) => {
+				const summaries = new Map<string, { paid: number; currency: string }>();
+				for (const row of rows) {
+					const current = summaries.get(row.regarding_id) ?? {
+						paid: 0,
+						currency: row.currency ?? ''
+					};
+					summaries.set(row.regarding_id, {
+						paid: current.paid + Number(row.amount ?? 0),
+						currency: current.currency
+					});
+				}
 
-			const summaries = new Map<string, { paid: number; currency: string }>();
-			for (const row of rows) {
-				const current = summaries.get(row.regarding_id) ?? {
-					paid: 0,
-					currency: row.currency ?? ''
+				return {
+					summaries: Object.fromEntries(summaries.entries())
 				};
-				summaries.set(row.regarding_id, {
-					paid: current.paid + Number(row.amount ?? 0),
-					currency: current.currency
-				});
 			}
-
-			return {
-				summaries: Object.fromEntries(summaries.entries())
-			};
-		})
+		)
 });

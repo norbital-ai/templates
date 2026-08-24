@@ -1,12 +1,4 @@
-import {
-	custom,
-	date,
-	dateRange,
-	defineModel,
-	enums,
-	text,
-	uuid
-} from '@norbital-ai/bolt/authoring';
+import { custom, instant, defineModel, enums, text, uuid } from '@norbital-ai/bolt/authoring';
 
 export default defineModel(
 	{
@@ -33,8 +25,8 @@ export default defineModel(
 			'suspended',
 			'closed'
 		]),
-		requested_date: date(),
-		validity_range: dateRange(),
+		requested_date: instant({ precision: 'day' }),
+		validity_range: custom('instant_range', { precision: 'day' }),
 		approved_by: text(),
 		hazards_identified: text().array(),
 		control_measures: text().array(),

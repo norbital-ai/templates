@@ -122,10 +122,6 @@
 		});
 	}
 
-	function employmentLabel(row: NestedAgreement): string {
-		return row.agreement_employment?.employee_number ?? '—';
-	}
-
 	function componentLabel(row: NestedAgreement): string {
 		const component = row.agreement_pay_component;
 		if (component?.code) return component.code;
@@ -218,7 +214,8 @@
 							name="employment_id"
 							label={t('component.employment')}
 							card="subtitle"
-							render={({ row }) => employmentLabel(row)}
+							render={({ row }: { row: NestedAgreement }) =>
+								row.agreement_employment?.employee_number ?? '—'}
 						/>
 						<Column
 							name="pay_component_id"

@@ -1,8 +1,8 @@
 import {
-	date,
 	defineModel,
 	enums,
 	geolocation,
+	instant,
 	integer,
 	phone,
 	text,
@@ -12,7 +12,7 @@ import {
 export default defineModel(
 	{
 		name: text({ search: true }).notNull(),
-		date_of_birth: date(),
+		date_of_birth: instant({ precision: 'day' }),
 		gender: enums(['MALE', 'FEMALE']),
 		marital_status: enums(['SINGLE', 'MARRIED', 'DIVORCED', 'WIDOWED']),
 		/**

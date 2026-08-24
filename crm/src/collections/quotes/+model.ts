@@ -1,11 +1,10 @@
 import {
 	boolean,
-	date,
 	defineModel,
 	enums,
+	instant,
 	numeric,
 	text,
-	timestamp,
 	uuid
 } from '@norbital-ai/bolt/authoring';
 
@@ -18,7 +17,7 @@ export default defineModel(
 		status: enums(['draft', 'sent', 'won', 'confirmed', 'lost', 'cancelled']),
 		currency: enums(['CNY', 'USD', 'EUR', 'GBP', 'JPY', 'SGD', 'HKD']),
 		tax_inclusive: boolean().notNull(),
-		valid_until: date(),
+		valid_until: instant({ precision: 'day' }),
 		payment_terms: text(),
 		shipping_terms: text(),
 		place_of_loading: text(),
@@ -34,9 +33,9 @@ export default defineModel(
 		description: text(),
 		revision_of: uuid(),
 		revision_number: numeric(),
-		confirmed_at: timestamp(),
+		confirmed_at: instant(),
 		credit_acknowledged: boolean(),
-		cancelled_at: timestamp(),
+		cancelled_at: instant(),
 		cancel_reason: text()
 	},
 	{

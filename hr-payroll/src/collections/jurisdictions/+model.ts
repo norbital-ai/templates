@@ -1,12 +1,4 @@
-import {
-	custom,
-	dateRange,
-	defineModel,
-	enums,
-	integer,
-	numeric,
-	text
-} from '@norbital-ai/bolt/authoring';
+import { custom, defineModel, enums, integer, numeric, text } from '@norbital-ai/bolt/authoring';
 
 export default defineModel(
 	{
@@ -18,7 +10,7 @@ export default defineModel(
 		ordinary_rate_basis: enums(['DAYS_PER_MONTH', 'HOURS_PER_MONTH']).notNull(),
 		ordinary_rate_divisor: numeric().notNull(),
 		regime: custom('statutory_regime').notNull(),
-		effective_range: dateRange().notNull()
+		effective_range: custom('instant_range', { precision: 'day' }).notNull()
 	},
 	{
 		description:

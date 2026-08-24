@@ -15,7 +15,11 @@ import { discoverTemplates } from './lib/templates.mjs';
 const [command, filter] = process.argv.slice(2);
 if (!command) throw new Error('Usage: for-each-template.mjs <pnpm-command> [template-key]');
 
-const arguments_ = command === 'install' ? ['install'] : ['run', command];
+// Yalc validation deliberately restores the committed registry manifest after materialising the
+// local package bytes. pnpm 11 otherwise auto-installs those registry coordinates before a script
+// and silently replaces the candidate being tested.
+const arguments_ =
+	command === 'install' ? ['install'] : ['--config.verify-deps-before-run=false', 'run', command];
 
 for (const template of discoverTemplates(filter)) {
 	console.log(`\n=== ${template.slug}: pnpm ${arguments_.join(' ')} ===`);

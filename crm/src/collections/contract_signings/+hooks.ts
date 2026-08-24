@@ -1,4 +1,5 @@
-import { Clock, Effect, Schema } from 'effect';
+import { Effect, Schema } from 'effect';
+import { currentInstant } from '../../lib/clock.js';
 import type { Hooks, WorkspaceRow } from './$types.js';
 
 const signingStatusSchema = Schema.Literals([
@@ -162,7 +163,7 @@ export default {
 								);
 							}
 							if (existing.acknowledged_at == null) {
-								updates.acknowledged_at = new Date(yield* Clock.currentTimeMillis);
+								updates.acknowledged_at = (yield* currentInstant).toISOString();
 							}
 						}
 

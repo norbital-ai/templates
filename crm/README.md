@@ -124,28 +124,30 @@ One `erp` connection (a placeholder `baseUrl`, and a bearer token referenced by 
   `transform` shapes it into the request body (`POST /docs/confirmed`), and delivery retries with
   capped backoff and dead-letters after ten attempts.
 
-| Policy                | Apps           | What it owns                                                                                                                                                        |
-| --------------------- | -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `sales_rep`           | `crm`          | Its own quotes, sales invoices, and contract signings (scoped to the requestor), their lines, settlements, activities; reads accounts, contacts, and the catalogue. |
-| `procurement_officer` | `crm_purchase` | Suppliers, purchase orders and lines, goods receipts, purchase invoices and lines, settlements; reads the catalogue.                                                |
+| Policy                | Apps           | What it owns                                                                                                                                                                                        |
+| --------------------- | -------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `commercial_shared`   | —              | The shared book: catalogue read (`products`) and the settlement ledger (`settlements` read/create), owned once so the composition stays unambiguous.                                                |
+| `sales_rep`           | `crm`          | Its own quotes, sales invoices, and contract signings (scoped to the requestor), their lines, contacts and activities; reads accounts. The catalogue and settlements come from `commercial_shared`. |
+| `procurement_officer` | `crm_purchase` | Suppliers, purchase orders and lines, goods receipts, purchase invoices and lines; the settlement ledger and catalogue come from `commercial_shared`.                                               |
 
 The sales/procurement split is drawn by **omission**, not masking. Bolt policies are
 collection-scoped, so buy cost stays off the sales surface because sales has no grant for
 `purchase_order_lines` (the only collection carrying a cost column) — and the buy side gets no
-quote grant, so it never sees sell prices or margin. The shared catalogue exposes sell prices only.
+quote grant, so it never sees sell prices or margin. The shared catalogue grant exposes sell prices
+only.
 
-### Remotes
+### Functions
 
-| Remote                  | Purpose                                                                                                            |
-| ----------------------- | ------------------------------------------------------------------------------------------------------------------ |
-| `pipeline_dashboard`    | Pipeline cards enriched with account names; optional `owner_id` / `account_id` scope. Mounted on the pipeline tab. |
-| `procurement_dashboard` | PO counts per status, committed spend per currency, top suppliers. Mounted on the purchase dashboard.              |
-| `purchase_matching`     | Ordered / received / invoiced per order line — the three-way match review. Cancelled invoices do not count.        |
-| `settlement_summary`    | Paid-to-date per document for one regarding type — the input to derived paid / partial / unpaid badges.            |
+| Function             | Purpose                                                                                                     |
+| -------------------- | ----------------------------------------------------------------------------------------------------------- |
+| `purchase_matching`  | Ordered / received / invoiced per order line — the three-way match review. Cancelled invoices do not count. |
+| `settlement_summary` | Paid-to-date per document for one regarding type — the input to derived paid / partial / unpaid badges.     |
 
-The last two are not mounted on any default surface: `purchase_matching` is the review a tenant
+Neither function is mounted on a default surface: `purchase_matching` is the review a tenant
 wires into its own match screen, and `settlement_summary` powers payment-status columns wherever a
-tenant wants them. Both are ready to call through `client.invoke`.
+tenant wants them. Both are ready to call through `client.invoke`. The mounted sales and purchasing
+dashboards read their collections directly and derive their presentation locally, so the sync engine
+updates them without a remote live-query function or refresh control.
 
 ### Channel
 
@@ -172,10 +174,10 @@ src/
 │       ├── +integrations.ts  the erp connection: pull bindings, outbox send bindings
 │       └── +representation.svelte  create/edit form with human-readable relation labels
 ├── apps/                     the two app surfaces
-├── automation/               quote_expiry_watch
-├── remotes/                  the four query handlers above
-├── policies/                 sales_rep, procurement_officer
-├── channels/                 sales_desk
+├── automations/              quote_expiry_watch
+├── functions/                the two on-demand query handlers above
+├── access/policies/          commercial_shared, sales_rep, procurement_officer
+├── envoys/                   sales_desk
 ├── lib/
 │   ├── pricing.ts            the only place rounding is decided
 │   ├── numbering.ts          PREFIX-YYYY-NNNN document numbering

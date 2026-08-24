@@ -21,7 +21,7 @@ const payrollDateFormat = new Intl.DateTimeFormat('en', {
 });
 
 /**
- * The stored JSONB shape of a `dateRange()` column, read leniently.
+ * The stored JSONB shape of a `custom('instant_range', { precision: 'day' })` column, read leniently.
  *
  * The write boundary validates both bounds as `UTC_INSTANT` values, and this read shape also
  * accepts the legacy bounded-optional form so an older row is still readable as the open-ended
@@ -32,7 +32,7 @@ const storedRangeReadSchema = Schema.Struct({
 	end: Schema.optionalKey(Schema.NullOr(Schema.String))
 });
 
-/** A `dateRange()` column as the engine reads it; `end` of `null` is open-ended. */
+/** A `custom('instant_range', { precision: 'day' })` column as the engine reads it; `end` of `null` is open-ended. */
 export const StoredRangeSchema = Schema.Struct({
 	start: Schema.String,
 	end: Schema.NullOr(Schema.String)
@@ -52,7 +52,7 @@ export function readRange(value: unknown): StoredRange | null {
 }
 
 /**
- * Calendar day of a `dateRange()` instant in the payroll timezone.
+ * Calendar day of a `custom('instant_range', { precision: 'day' })` instant in the payroll timezone.
  *
  * UTC `.slice(0, 10)` is forbidden: a KL midnight bound is the previous UTC day, so the first
  * local day of a term would miss. Far-future seeds such as `9999-12-31T23:59:59.999Z` convert to
@@ -84,10 +84,8 @@ function rangeBoundDay(instant: string): IsoDate {
 
 /** Whether an `effective_range` covers a calendar day. Both ends inclusive. */
 export function coversDate(range: unknown, date: IsoDate): boolean {
-	const parsed = readRange(range);
-	if (!parsed) return false;
-	if (rangeBoundDay(parsed.start) > date) return false;
-	return parsed.end == null || rangeBoundDay(parsed.end) >= date;
+	// A single day is the degenerate window, so there is one implementation of the comparison.
+	return overlapsRange(range, date, date);
 }
 
 /** Whether an `effective_range` touches any day of `[start, end]`. */

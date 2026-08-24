@@ -21,6 +21,7 @@ const erp = defineConnection({
  */
 export default {
 	erp: {
+		policies: [],
 		connection: erp,
 		send: {
 			confirm: {

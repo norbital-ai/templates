@@ -281,126 +281,142 @@
 			{#if current.overtime_coverage}
 				{@const coverage = current.overtime_coverage}
 				<Grid gap="sm" minimum="compact">
-					<label class="grid gap-1.5 text-sm font-medium">
-						Category basis
-						<Combobox
-							options={CATEGORY_BASES}
-							value={coverage.category_basis}
-							{disabled}
-							searchable={false}
-							onValueChange={(value) => {
-								if (value) replaceCoverage({ ...coverage, category_basis: value });
-							}}
-						/>
+					<label class="text-sm font-medium">
+						<Stack gap="xs">
+							Category basis
+							<Combobox
+								options={CATEGORY_BASES}
+								value={coverage.category_basis}
+								{disabled}
+								searchable={false}
+								onValueChange={(value) => {
+									if (value) replaceCoverage({ ...coverage, category_basis: value });
+								}}
+							/>
+						</Stack>
 					</label>
-					<label class="grid gap-1.5 text-sm font-medium">
-						Wage basis
-						<Combobox
-							options={WAGE_BASES}
-							value={coverage.wage_basis}
-							{disabled}
-							searchable={false}
-							emptyPlaceholder="No wage ceiling"
-							onValueChange={(value) => {
-								if (value) replaceCoverage({ ...coverage, wage_basis: value });
-							}}
-						/>
+					<label class="text-sm font-medium">
+						<Stack gap="xs">
+							Wage basis
+							<Combobox
+								options={WAGE_BASES}
+								value={coverage.wage_basis}
+								{disabled}
+								searchable={false}
+								emptyPlaceholder="No wage ceiling"
+								onValueChange={(value) => {
+									if (value) replaceCoverage({ ...coverage, wage_basis: value });
+								}}
+							/>
+						</Stack>
 					</label>
-					<label class="grid gap-1.5 text-sm font-medium">
-						Ceiling amount
-						<Input
-							type="number"
-							min="0"
-							step="0.01"
-							value={coverage.wage_ceiling?.value ?? ''}
-							{disabled}
-							oninput={(event) => {
-								const value = nullableNumberFrom(event.currentTarget.value);
-								replaceCoverage({
-									...coverage,
-									wage_ceiling:
-										value === null
-											? null
-											: { value, currency: coverage.wage_ceiling?.currency ?? '' },
-									wage_basis: value === null ? null : (coverage.wage_basis ?? 'STATUTORY_WAGES'),
-									ceiling_is_inclusive:
-										value === null ? null : (coverage.ceiling_is_inclusive ?? true)
-								});
-							}}
-						/>
-					</label>
-					<label class="grid gap-1.5 text-sm font-medium">
-						Currency
-						<Input
-							value={coverage.wage_ceiling?.currency ?? ''}
-							maxlength={3}
-							{disabled}
-							oninput={(event) => {
-								if (coverage.wage_ceiling)
+					<label class="text-sm font-medium">
+						<Stack gap="xs">
+							Ceiling amount
+							<Input
+								type="number"
+								min="0"
+								step="0.01"
+								value={coverage.wage_ceiling?.value ?? ''}
+								{disabled}
+								oninput={(event) => {
+									const value = nullableNumberFrom(event.currentTarget.value);
 									replaceCoverage({
 										...coverage,
-										wage_ceiling: {
-											...coverage.wage_ceiling,
-											currency: event.currentTarget.value.toUpperCase()
-										}
+										wage_ceiling:
+											value === null
+												? null
+												: { value, currency: coverage.wage_ceiling?.currency ?? '' },
+										wage_basis: value === null ? null : (coverage.wage_basis ?? 'STATUTORY_WAGES'),
+										ceiling_is_inclusive:
+											value === null ? null : (coverage.ceiling_is_inclusive ?? true)
 									});
-							}}
-						/>
+								}}
+							/>
+						</Stack>
 					</label>
-					<label class="grid gap-1.5 text-sm font-medium">
-						At the ceiling
-						<Combobox
-							options={[
-								{ value: 'inclusive', label: 'Eligible' },
-								{ value: 'exclusive', label: 'Not eligible' }
-							]}
-							value={coverage.ceiling_is_inclusive === null
-								? null
-								: coverage.ceiling_is_inclusive
-									? 'inclusive'
-									: 'exclusive'}
-							{disabled}
-							searchable={false}
-							onValueChange={(value) => {
-								if (value)
-									replaceCoverage({ ...coverage, ceiling_is_inclusive: value === 'inclusive' });
-							}}
-						/>
+					<label class="text-sm font-medium">
+						<Stack gap="xs">
+							Currency
+							<Input
+								value={coverage.wage_ceiling?.currency ?? ''}
+								maxlength={3}
+								{disabled}
+								oninput={(event) => {
+									if (coverage.wage_ceiling)
+										replaceCoverage({
+											...coverage,
+											wage_ceiling: {
+												...coverage.wage_ceiling,
+												currency: event.currentTarget.value.toUpperCase()
+											}
+										});
+								}}
+							/>
+						</Stack>
 					</label>
-					<label class="grid gap-1.5 text-sm font-medium">
-						Always eligible categories
-						<Input
-							value={coverage.exempt_categories.join(', ')}
-							{disabled}
-							placeholder="Comma separated"
-							oninput={(event) =>
-								replaceCoverage({
-									...coverage,
-									exempt_categories: splitList(event.currentTarget.value)
-								})}
-						/>
+					<label class="text-sm font-medium">
+						<Stack gap="xs">
+							At the ceiling
+							<Combobox
+								options={[
+									{ value: 'inclusive', label: 'Eligible' },
+									{ value: 'exclusive', label: 'Not eligible' }
+								]}
+								value={coverage.ceiling_is_inclusive === null
+									? null
+									: coverage.ceiling_is_inclusive
+										? 'inclusive'
+										: 'exclusive'}
+								{disabled}
+								searchable={false}
+								onValueChange={(value) => {
+									if (value)
+										replaceCoverage({ ...coverage, ceiling_is_inclusive: value === 'inclusive' });
+								}}
+							/>
+						</Stack>
 					</label>
-					<label class="grid gap-1.5 text-sm font-medium">
-						Excluded categories
-						<Input
-							value={coverage.excluded_categories.join(', ')}
-							{disabled}
-							placeholder="Comma separated"
-							oninput={(event) =>
-								replaceCoverage({
-									...coverage,
-									excluded_categories: splitList(event.currentTarget.value)
-								})}
-						/>
+					<label class="text-sm font-medium">
+						<Stack gap="xs">
+							Always eligible categories
+							<Input
+								value={coverage.exempt_categories.join(', ')}
+								{disabled}
+								placeholder="Comma separated"
+								oninput={(event) =>
+									replaceCoverage({
+										...coverage,
+										exempt_categories: splitList(event.currentTarget.value)
+									})}
+							/>
+						</Stack>
 					</label>
-					<label class="col-span-full grid gap-1.5 text-sm font-medium">
-						Authority
-						<Input
-							value={coverage.authority}
-							{disabled}
-							oninput={(event) =>
-								replaceCoverage({ ...coverage, authority: event.currentTarget.value })}
-						/>
+					<label class="text-sm font-medium">
+						<Stack gap="xs">
+							Excluded categories
+							<Input
+								value={coverage.excluded_categories.join(', ')}
+								{disabled}
+								placeholder="Comma separated"
+								oninput={(event) =>
+									replaceCoverage({
+										...coverage,
+										excluded_categories: splitList(event.currentTarget.value)
+									})}
+							/>
+						</Stack>
+					</label>
+					<label class="col-span-full text-sm font-medium">
+						<Stack gap="xs">
+							Authority
+							<Input
+								value={coverage.authority}
+								{disabled}
+								oninput={(event) =>
+									replaceCoverage({ ...coverage, authority: event.currentTarget.value })}
+							/>
+						</Stack>
 					</label>
 				</Grid>
 			{/if}

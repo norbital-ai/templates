@@ -1,13 +1,13 @@
-import { date, defineModel, text, timestamp, uuid } from '@norbital-ai/bolt/authoring';
+import { defineModel, instant, text, uuid } from '@norbital-ai/bolt/authoring';
 
 export default defineModel(
 	{
 		doc_no: text({ search: true }).notNull(),
 		purchase_order_id: uuid().notNull(),
-		received_date: date(),
+		received_date: instant({ precision: 'day' }),
 		note: text(),
 		owner_id: uuid().notNull(),
-		received_at: timestamp()
+		received_at: instant()
 	},
 	{
 		description:

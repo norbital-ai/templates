@@ -147,7 +147,7 @@ export type SettlementClaim = Schema.Schema.Type<typeof settlementClaimSchema>;
 const sourceLockFactsSchema = Schema.Struct({
 	existing: Schema.Boolean,
 	approvalId: Schema.optional(Schema.NullOr(Schema.String)),
-	dates: Schema.Array(Schema.NullOr(Schema.Union([Schema.String, Schema.Date]))),
+	dates: Schema.Array(Schema.NullOr(Schema.String)),
 	/**
 	 * The settlement claim held over this record, or null/undefined when none is.
 	 *

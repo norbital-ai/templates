@@ -5,7 +5,6 @@
 	import { useI18n } from '@norbital-ai/ui/i18n';
 	import type { TenantI18nKeys } from '$bolt/i18n-keys';
 	import type { WorkspaceRow } from '$bolt/types.js';
-	import type { LeaveEvent } from '../datatypes/leave_event/+definition.js';
 	import { CollectionTable } from '@norbital-ai/ui/collection-table';
 	import { Combobox } from '@norbital-ai/ui/combobox';
 	import { Button } from '@norbital-ai/ui/button';
@@ -23,6 +22,7 @@
 		formatCalendarDate,
 		formatDurationHours,
 		formatEntryOrigin,
+		formatLeaveRange,
 		formatNumeric,
 		formatRepaymentSchedule
 	} from '../lib/ui/display-formatters.js';
@@ -35,6 +35,7 @@
 		shiftMonthKey,
 		todayKey
 	} from '../lib/ui/calendar.js';
+	import { inForceOnDay } from '../lib/effective_range.js';
 	import { formatDateISO } from '@norbital-ai/std/date';
 	import {
 		ATTENDANCE_DRAFT_PROBLEM_KEY,
@@ -45,6 +46,7 @@
 		dayMinutesToClock,
 		holidayNamesByDate,
 		instantFromDayStart,
+		intervalDrafts,
 		minutesFromDayStart,
 		monthDays,
 		type DayFacts,
@@ -67,13 +69,6 @@
 
 	/** Every catalogue read on this page skips rows still held under an approval request. */
 	const approved = { approval_id: { isNull: true } } as const;
-
-	function leaveRangeLabel(event: LeaveEvent | null | undefined): string {
-		if (event == null || event.kind !== 'TIME_OFF') return '—';
-		const half = (part: 'FIRST' | 'SECOND') =>
-			part === 'FIRST' ? t('component.first_half') : t('component.second_half');
-		return `${formatCalendarDate(event.range.start.date)}, ${half(event.range.start.half)} → ${formatCalendarDate(event.range.end.date)}, ${half(event.range.end.half)}`;
-	}
 
 	/**
 	 * My loans opens on the agreements still being repaid today, as a filter chip the reader can drop
@@ -132,13 +127,8 @@
 			: null
 	);
 	const activeEmployments = $derived(
-		(employmentsQuery?.current ?? []).filter(
-			(employment) =>
-				employment.effective_range != null &&
-				employment.effective_range.start != null &&
-				employment.effective_range.start.slice(0, 10) <= today &&
-				(employment.effective_range.end == null ||
-					employment.effective_range.end.slice(0, 10) >= today)
+		(employmentsQuery?.current ?? []).filter((employment) =>
+			inForceOnDay(employment.effective_range, today)
 		)
 	);
 	let selectedEmploymentId = $state<string | null>(null);
@@ -736,18 +726,7 @@
 					null)
 	);
 	const daySheetIntervals = $derived<readonly IntervalDraft[]>(
-		(daySheetEntry?.worked_intervals ?? []).map((interval) => ({
-			start_at:
-				typeof interval.start_at === 'string'
-					? interval.start_at
-					: new Date(interval.start_at).toISOString(),
-			end_at:
-				interval.end_at == null
-					? null
-					: typeof interval.end_at === 'string'
-						? interval.end_at
-						: new Date(interval.end_at).toISOString()
-		}))
+		intervalDrafts(daySheetEntry?.worked_intervals)
 	);
 	const daySheetEntryLock = $derived(
 		daySheetEntry == null ? null : attendanceRowLock(daySheetEntry)
@@ -779,8 +758,8 @@
 			employment_id: employmentId,
 			work_date: change.date,
 			worked_intervals: attendance.intervals.map((interval) => ({
-				start_at: interval.start_at,
-				end_at: interval.end_at
+				start: interval.start,
+				end: interval.end
 			})),
 			break_minutes: attendance.breakMinutes
 		});
@@ -830,12 +809,8 @@
 		const crossesMidnight = end <= start;
 		const intervals: readonly IntervalDraft[] = [
 			{
-				start_at: instantFromDayStart(date, start, PAYROLL_TIME_ZONE),
-				end_at: instantFromDayStart(
-					date,
-					crossesMidnight ? end + DAY_MINUTES : end,
-					PAYROLL_TIME_ZONE
-				)
+				start: instantFromDayStart(date, start, PAYROLL_TIME_ZONE),
+				end: instantFromDayStart(date, crossesMidnight ? end + DAY_MINUTES : end, PAYROLL_TIME_ZONE)
 			}
 		];
 		const requestedBreak = scheduleDay(date)?.shiftBreakMinutes ?? 0;
@@ -860,8 +835,8 @@
 			employment_id: employmentId,
 			work_date: draft.date,
 			worked_intervals: draft.intervals.map((interval) => ({
-				start_at: interval.start_at,
-				end_at: interval.end_at
+				start: interval.start,
+				end: interval.end
 			})),
 			break_minutes: draft.assessment.breakMinutes
 		});
@@ -904,14 +879,16 @@
 					{t('app.hr_employee.choose_employment_description')}
 				</p>
 			</Stack>
-			<label class="grid gap-1.5 text-sm font-medium">
-				{t('app.hr_employee.working_as')}
-				<Combobox
-					options={employmentOptions}
-					bind:value={selectedEmploymentId}
-					searchPlaceholder={t('app.hr_employee.search_employment')}
-					emptyPlaceholder={t('app.hr_employee.no_matching_employment')}
-				/>
+			<label class="text-sm font-medium">
+				<Stack gap="xs">
+					{t('app.hr_employee.working_as')}
+					<Combobox
+						options={employmentOptions}
+						bind:value={selectedEmploymentId}
+						searchPlaceholder={t('app.hr_employee.search_employment')}
+						emptyPlaceholder={t('app.hr_employee.no_matching_employment')}
+					/>
+				</Stack>
 			</label>
 		</Stack>
 	{:else if activeEmployments.length > 1 && selectedEmployment}
@@ -926,14 +903,16 @@
 					})}
 				</p>
 			</Stack>
-			<label class="grid w-full gap-1.5 text-sm font-medium">
-				{t('app.hr_employee.switch_employment')}
-				<Combobox
-					options={employmentOptions}
-					bind:value={selectedEmploymentId}
-					searchPlaceholder={t('app.hr_employee.search_employment')}
-					emptyPlaceholder={t('app.hr_employee.no_matching_employment')}
-				/>
+			<label class="w-full text-sm font-medium">
+				<Stack gap="xs">
+					{t('app.hr_employee.switch_employment')}
+					<Combobox
+						options={employmentOptions}
+						bind:value={selectedEmploymentId}
+						searchPlaceholder={t('app.hr_employee.search_employment')}
+						emptyPlaceholder={t('app.hr_employee.no_matching_employment')}
+					/>
+				</Stack>
 			</label>
 		</Cluster>
 	{/if}
@@ -1110,7 +1089,7 @@
 				<Column
 					name="event"
 					label={t('component.leave_range')}
-					render={({ row }) => leaveRangeLabel(row.event)}
+					render={({ row }) => formatLeaveRange(row.event, t)}
 				/>
 				<Column
 					name="days"
@@ -1332,23 +1311,27 @@
 		</Dialog.Header>
 		<Stack gap="sm">
 			<Inline gap="sm" align="end">
-				<label class="grid flex-1 gap-1.5 text-sm font-medium">
-					{t('app.hr_employee.report_punch_start')}
-					<Input
-						type="time"
-						value={report.startClock}
-						disabled={client.db.time_entries.pending > 0}
-						oninput={(event) => (report.startClock = event.currentTarget.value)}
-					/>
+				<label class="flex-1 text-sm font-medium">
+					<Stack gap="xs">
+						{t('app.hr_employee.report_punch_start')}
+						<Input
+							type="time"
+							value={report.startClock}
+							disabled={client.db.time_entries.pending > 0}
+							oninput={(event) => (report.startClock = event.currentTarget.value)}
+						/>
+					</Stack>
 				</label>
-				<label class="grid flex-1 gap-1.5 text-sm font-medium">
-					{t('app.hr_employee.report_punch_end')}
-					<Input
-						type="time"
-						value={report.endClock}
-						disabled={client.db.time_entries.pending > 0}
-						oninput={(event) => (report.endClock = event.currentTarget.value)}
-					/>
+				<label class="flex-1 text-sm font-medium">
+					<Stack gap="xs">
+						{t('app.hr_employee.report_punch_end')}
+						<Input
+							type="time"
+							value={report.endClock}
+							disabled={client.db.time_entries.pending > 0}
+							oninput={(event) => (report.endClock = event.currentTarget.value)}
+						/>
+					</Stack>
 				</label>
 			</Inline>
 

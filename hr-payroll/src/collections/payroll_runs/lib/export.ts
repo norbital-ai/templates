@@ -112,7 +112,7 @@ function humanHeader(outputId: string): string {
 	);
 }
 
-export type WorkbookSheet = {
+type WorkbookSheet = {
 	/** The worksheet name — one sheet per period. */
 	readonly period: string;
 	readonly payDate?: string;
@@ -424,7 +424,7 @@ const BankPaymentSchema = Schema.Struct({
 	net: Schema.Number,
 	bank: BankAccountSchema
 });
-export type BankPayment = Schema.Schema.Type<typeof BankPaymentSchema>;
+type BankPayment = Schema.Schema.Type<typeof BankPaymentSchema>;
 
 /** The bank file: one payment row per payslip that has a destination. */
 export function bankFileRows(payments: readonly BankPayment[]): (string | number)[][] {

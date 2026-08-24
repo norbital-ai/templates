@@ -1,4 +1,4 @@
-import { date, defineModel, enums, file, text, uuid } from '@norbital-ai/bolt/authoring';
+import { defineModel, enums, file, instant, text, uuid } from '@norbital-ai/bolt/authoring';
 
 export default defineModel(
 	{
@@ -13,9 +13,9 @@ export default defineModel(
 		severity: enums(['low', 'medium', 'high', 'critical']),
 		status: enums(['open', 'in_review', 'ready_for_closeout', 'closed']),
 		description: text(),
-		reported_date: date(),
-		due_date: date(),
-		closed_date: date(),
+		reported_date: instant({ precision: 'day' }),
+		due_date: instant({ precision: 'day' }),
+		closed_date: instant({ precision: 'day' }),
 		photos: file({ mimeTypes: ['image/jpeg', 'image/png'], multiple: true }),
 		resolution_notes: text()
 	},

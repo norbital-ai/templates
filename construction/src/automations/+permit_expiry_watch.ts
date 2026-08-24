@@ -1,5 +1,6 @@
-import { Clock, Effect } from 'effect';
+import { Effect } from 'effect';
 import { defineAutomation } from '@norbital-ai/bolt/authoring';
+import { currentInstantIso } from '../lib/clock.js';
 
 export default defineAutomation(
 	{ schedule: '0 6 * * *' },
@@ -22,10 +23,10 @@ export default defineAutomation(
 					orderBy: { requested_date: 'asc' },
 					limit: 25
 				});
-				const generatedAt = yield* Clock.currentTimeMillis;
+				const generatedAt = yield* currentInstantIso;
 				return {
 					automation_key: 'permit_expiry_watch',
-					generated_at: new Date(generatedAt).toISOString(),
+					generated_at: generatedAt,
 					summary: { permit_count: permits.length },
 					exports: [
 						{

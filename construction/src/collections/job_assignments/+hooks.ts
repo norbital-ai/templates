@@ -1,4 +1,5 @@
-import { Clock, Effect } from 'effect';
+import { Effect } from 'effect';
+import { currentInstantIso } from '../../lib/clock.js';
 import type { Hooks, HookApi, WorkspaceRow } from './$types.js';
 
 const ASSIGNMENT_ERROR =
@@ -15,13 +16,13 @@ export default {
 				description:
 					'Refuses a new job assignment unless the worker holds active permits to work covering every certification required by a job at that site location.',
 				handler: ({ input, api }) =>
-					Effect.gen(function* () {
-						yield* validateJobAssignmentCompliance(
+					Effect.map(
+						validateJobAssignmentCompliance(
 							{ site_location_id: input.site_location_id, worker_id: input.worker_id },
 							api
-						);
-						return input;
-					})
+						),
+						() => input
+					)
 			}
 		}
 	},
@@ -30,15 +31,16 @@ export default {
 			before: {
 				description:
 					'Re-checks the worker against the site location whenever either is changed, so an assignment cannot be moved onto work the worker is not certified for.',
-				handler: ({ input, existing, api }) =>
-					Effect.gen(function* () {
-						const record = { ...existing, ...input };
-						yield* validateJobAssignmentCompliance(
+				handler: ({ input, existing, api }) => {
+					const record = { ...existing, ...input };
+					return Effect.map(
+						validateJobAssignmentCompliance(
 							{ site_location_id: record.site_location_id, worker_id: record.worker_id },
 							api
-						);
-						return input;
-					})
+						),
+						() => input
+					);
+				}
 			}
 		}
 	}
@@ -55,7 +57,7 @@ function validateJobAssignmentCompliance(
 			return yield* Effect.fail(new Error(ASSIGNMENT_ERROR));
 		}
 
-		const now = new Date(yield* Clock.currentTimeMillis).toISOString();
+		const now = yield* currentInstantIso;
 		const workerPermitLinks = yield* api.db.query.permits_to_work_workers.findMany({
 			where: { worker_id: { eq: workerId } },
 			limit: 250

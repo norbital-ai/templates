@@ -1,4 +1,4 @@
-import { custom, dateRange, defineModel, enums, text, uuid } from '@norbital-ai/bolt/authoring';
+import { custom, defineModel, enums, text, uuid } from '@norbital-ai/bolt/authoring';
 
 export default defineModel(
 	{
@@ -7,7 +7,7 @@ export default defineModel(
 		project_id: uuid(),
 		job_type: text(),
 		status: enums(['planned', 'ready', 'in_progress', 'completed', 'blocked', 'cancelled']),
-		schedule_range: dateRange(),
+		schedule_range: custom('instant_range', { precision: 'day' }),
 		budget: custom('money'),
 		bim_reference_id: uuid(),
 		site_location_id: uuid(),

@@ -29,15 +29,12 @@ import type { StatutoryRestBreakRule } from '../../datatypes/statutory_regime/+d
 const MINUTE_MS = 60_000;
 
 /**
- * One worked interval, as loosely as every caller already holds it.
- *
- * A row read through the typed api hands `Date`s, an imported grid and the custom-type decoder hand
- * ISO strings, and the board hands whatever the cell carried. Accepting both is cheaper than three
- * conversions at three call sites that would each have to agree about time zones.
+ * One worked interval in the authored record shape. Workbook dates are normalized before they reach
+ * this rule, so all callers supply the same ISO-string boundaries.
  */
 const workedIntervalLikeSchema = Schema.Struct({
-	start_at: Schema.Union([Schema.String, Schema.Date]),
-	end_at: Schema.NullOr(Schema.Union([Schema.String, Schema.Date]))
+	start: Schema.String,
+	end: Schema.NullOr(Schema.String)
 });
 type WorkedIntervalLike = Schema.Schema.Type<typeof workedIntervalLikeSchema>;
 
@@ -87,8 +84,8 @@ export type RestBreakAssessment = Schema.Schema.Type<typeof restBreakAssessmentS
 const spanSchema = Schema.Struct({ start: Schema.Number, end: Schema.Number });
 type Span = Schema.Schema.Type<typeof spanSchema>;
 
-function instant(value: string | Date): number {
-	return value instanceof Date ? value.getTime() : Date.parse(value);
+function instant(value: string): number {
+	return Date.parse(value);
 }
 
 /**
@@ -106,12 +103,12 @@ function spansOf(intervals: readonly WorkedIntervalLike[] | null | undefined): {
 	let open = false;
 	const parsed: Span[] = [];
 	for (const interval of intervals ?? []) {
-		if (interval.end_at == null) {
+		if (interval.end == null) {
 			open = true;
 			continue;
 		}
-		const start = instant(interval.start_at);
-		const end = instant(interval.end_at);
+		const start = instant(interval.start);
+		const end = instant(interval.end);
 		if (!Number.isFinite(start) || !Number.isFinite(end) || end <= start) continue;
 		parsed.push({ start, end });
 	}

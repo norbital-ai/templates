@@ -1,4 +1,4 @@
-import { dateRange, defineModel, enums, numeric, text, uuid } from '@norbital-ai/bolt/authoring';
+import { custom, defineModel, enums, numeric, text, uuid } from '@norbital-ai/bolt/authoring';
 
 export default defineModel(
 	{
@@ -7,7 +7,7 @@ export default defineModel(
 		worker_id: uuid(),
 		site_location_id: uuid(),
 		role: text(),
-		assignment_range: dateRange(),
+		assignment_range: custom('instant_range', { precision: 'day' }),
 		status: enums(['assigned', 'in_progress', 'completed', 'cancelled']),
 		hours_per_day: numeric(),
 		required_certifications: text().array()

@@ -1,3 +1,4 @@
+import { Effect } from 'effect';
 import type { Policy } from './$types.js';
 
 /**
@@ -24,22 +25,9 @@ import type { Policy } from './$types.js';
  * other; scoping the grants is what resolves the contradiction without widening anything: every
  * grant below is narrowed to rows that already belong to the caller.
  *
- * ## What stays absent, deliberately
- *
- * - **No creates and no deletes.** A phone message may advance work that exists. Raising a variation
- *   request is a decision with an approval flow behind it and belongs in the app, where the
- *   contractor can see what they are committing to.
- * - **No `photo_evidence`.** WhatsApp media filing is not supported, and the envoy `task` directs
- *   uploads to the app. A read grant here would let the agent describe evidence it cannot accept.
- * - **No apps.** The principal never opens a surface.
- * - **No controller-only fields, by construction.** `flags`, `suspect` and the `site_identity_*`
- *   markers live on rows this policy either cannot read or reads only for the caller's own work; the
- *   `task` forbids repeating them either way.
- *
- * One limit is the platform's rather than this file's, and is stated so nobody mistakes the lock for
- * a stronger one: grants are row-level, not column-level, so the `update` below covers every column
- * of a row the caller owns — including the integrity fields. The envoy `task` forbids writing
- * them; a column-level grant is the real fix and does not exist yet.
+ * The policy is a positive allowlist. It can read enough operational context to identify existing
+ * work, update five progress fields, append the sender's message, and file an attached image against
+ * that same assignment. It cannot create, delete, or reassign work; it receives no app surface.
  */
 
 /** The whole of the self-scope, the same expression `+field_ops_contractor.ts` is built on. */
@@ -60,26 +48,112 @@ const assignedSite = {
 		'WHERE a.assignee_user_id = ${requestor.id})'
 } as const;
 
+const siteReadFields = [
+	'id',
+	'site_code',
+	'name',
+	'location',
+	'client_name',
+	'house_type',
+	'floor_area_sqm'
+] as const;
+const jobReadFields = [
+	'id',
+	'site_id',
+	'title',
+	'nature',
+	'scheduled_for',
+	'status',
+	'description'
+] as const;
+const assignmentReadFields = [
+	'id',
+	'job_id',
+	'dispatched_at',
+	'status',
+	'completed_at',
+	'amount_charged',
+	'location',
+	'summary'
+] as const;
+const assignmentUpdateFields = [
+	'status',
+	'completed_at',
+	'location',
+	'summary',
+	'amount_charged'
+] as const;
+const communicationCreateFields = [
+	'job_assignment_id',
+	'message',
+	'sent_at',
+	'sender',
+	'source_message_id'
+] as const;
+const evidenceCreateFields = ['job_assignment_id', 'photo', 'source'] as const;
+
 export default {
 	description:
-		'The WhatsApp envoy: read and update the caller’s own job assignments, and read the jobs and sites behind them. No creates, no deletes, no evidence, no apps.',
-	capabilities: { apps: [] },
-	grants: [
-		{ collection: 'sites', action: 'read', where: assignedSite },
-		{ collection: 'jobs', action: 'read', where: assignedJob },
-		{ collection: 'job_assignments', action: 'read', where: ownAssignment },
-		{ collection: 'job_assignments', action: 'update', where: ownAssignment }
-	],
+		'The WhatsApp envoy: read existing assigned work, update its operational progress, and append incoming messages or images. No work creation, deletion, reassignment, or apps.',
+	capabilities: { apps: [], envoyHistory: 'this_envoy' },
+	grants: {
+		sites: {
+			read: {
+				where: assignedSite,
+				fields: siteReadFields
+			}
+		},
+		jobs: {
+			read: {
+				where: assignedJob,
+				fields: jobReadFields
+			}
+		},
+		job_assignments: {
+			read: {
+				where: ownAssignment,
+				fields: assignmentReadFields
+			},
+			update: {
+				authorize: ({ record }, api) => record.assignee_user_id === api.requestor.id,
+				fields: assignmentUpdateFields
+			}
+		},
+		communication_logs: {
+			create: {
+				authorize: ({ record }, api) =>
+					api.db.query.job_assignments
+						.findFirst({ where: { id: { eq: record.job_assignment_id } } })
+						.pipe(Effect.map((assignment) => assignment !== undefined)),
+				fields: communicationCreateFields
+			}
+		},
+		photo_evidence: {
+			create: {
+				authorize: ({ record }, api) =>
+					record.job_assignment_id === null
+						? false
+						: api.db.query.job_assignments
+								.findFirst({ where: { id: { eq: record.job_assignment_id } } })
+								.pipe(Effect.map((assignment) => assignment !== undefined)),
+				fields: evidenceCreateFields
+			}
+		}
+	},
 	/**
 	 * What a holder of this policy may spend.
 	 *
 	 * Declared here rather than in a workspace-wide file, because a rate limit is only meaningful in
-	 * terms of who is spending it: `collections.*` is authenticated and cheap, `agents.turn` is
-	 * authenticated and costs money at a model provider. Two classes of person holding two policies
+	 * terms of who is spending it: `collections.*` is authenticated and cheap, while ingress is
+	 * bounded once per outside sender and again for the envoy as a whole. Two classes holding policies
 	 * can now be given two budgets for the same command, which one file for everybody could not say.
 	 */
 	limits: {
 		'collections.*': { window: '1 min', limit: 600, key: 'subject' },
-		'agents.turn': { window: '1 hour', limit: 100, key: 'subject' }
+		'envoys.receive': [
+			{ window: '1 min', limit: 30, key: 'sender' },
+			{ window: '1 min', limit: 300, key: 'subject' }
+		],
+		'envoys.registration': { window: '1 hour', limit: 1, key: 'sender' }
 	}
 } satisfies Policy;

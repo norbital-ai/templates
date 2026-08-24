@@ -1,4 +1,4 @@
-import { defineModel, text, timestamp, uuid } from '@norbital-ai/bolt/authoring';
+import { defineModel, instant, text, uuid } from '@norbital-ai/bolt/authoring';
 
 export default defineModel(
 	{
@@ -10,7 +10,7 @@ export default defineModel(
 		 * editable. Setting it runs the statutory checks and freezes the month's entries, so the
 		 * roster the payroll engine reads is one somebody signed off rather than one still in flux.
 		 */
-		published_at: timestamp()
+		published_at: instant()
 	},
 	{
 		description:

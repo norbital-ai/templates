@@ -220,8 +220,6 @@ export function assertNoOverlappingAssignments(
 	api: HookApi,
 	changes: readonly AssignmentChange[]
 ): Effect.Effect<void, never, never> {
-	return Effect.gen(function* () {
-		if (changes.length === 0) return;
-		assertNoOverlap(yield* readOverlapData(api, changes), changes);
-	});
+	if (changes.length === 0) return Effect.void;
+	return Effect.map(readOverlapData(api, changes), (data) => assertNoOverlap(data, changes));
 }
