@@ -48,14 +48,6 @@ const createConverterWorker = Effect.gen(function* () {
 	return new Worker(blobUrl, { name: 'norbital-ifc-converter' });
 });
 
-/**
- * A buffer this module owns outright: `Uint8Array.from` copies, so the transferred ArrayBuffer
- * backs no view the caller still holds, and detaching it on `postMessage` cannot tear other data.
- */
-function getTransferBuffer(bytes: Uint8Array): ArrayBuffer {
-	return Uint8Array.from(bytes).buffer;
-}
-
 function runConversion(
 	worker: Worker,
 	transferBuffer: ArrayBuffer,
@@ -142,7 +134,9 @@ export function convertIfcToFragments(
 	bytes: Uint8Array,
 	t: Translator
 ): Effect.Effect<Uint8Array, Error> {
-	const transferBuffer = getTransferBuffer(bytes);
+	// Copy so the transferred buffer backs no view the caller still holds; detaching it cannot tear
+	// other data.
+	const transferBuffer = Uint8Array.from(bytes).buffer;
 
 	return Effect.acquireUseRelease(
 		createConverterWorker.pipe(Effect.catch((error) => Effect.fail(toError(error)))),

@@ -98,7 +98,6 @@
 	const DEFAULT_SHOW_GRID = false;
 
 	function resolveCssColor(css: string): string {
-		if (typeof document === 'undefined') return '#f2f1ed';
 		if (!css.startsWith('var(')) return css;
 		const name = css.slice(4, -1).trim();
 		const value = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
@@ -286,21 +285,25 @@
 	}
 
 	function clearMarkerVisualization(runtime: IFCViewerRuntime): Effect.Effect<void, unknown> {
-		return Effect.gen(function* () {
+		// `suspend` keeps the read of `runtime.highlighter` where it was: on every run of the effect,
+		// not once when it is described.
+		return Effect.suspend(() => {
 			const highlighter = runtime.highlighter;
-			if (highlighter === null) {
-				runtime.markerStyleIds = [];
-				return;
-			}
-
 			// Highlighter state must be cleared before the matching style is deleted.
-			yield* Effect.forEach(runtime.markerStyleIds, (styleId) =>
-				Effect.tryPromise(() => highlighter.clear(styleId)).pipe(
-					Effect.andThen(() => Effect.sync(() => highlighter.styles.delete(styleId)))
-				)
+			const cleared: Effect.Effect<unknown, unknown> =
+				highlighter === null
+					? Effect.void
+					: Effect.forEach(runtime.markerStyleIds, (styleId) =>
+							Effect.tryPromise(() => highlighter.clear(styleId)).pipe(
+								Effect.andThen(() => Effect.sync(() => highlighter.styles.delete(styleId)))
+							)
+						);
+			return Effect.andThen(
+				cleared,
+				Effect.sync(() => {
+					runtime.markerStyleIds = [];
+				})
 			);
-
-			runtime.markerStyleIds = [];
 		});
 	}
 

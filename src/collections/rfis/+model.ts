@@ -1,4 +1,4 @@
-import { date, defineModel, enums, file, text, uuid } from '@norbital-ai/bolt/authoring';
+import { defineModel, enums, file, instant, text, uuid } from '@norbital-ai/bolt/authoring';
 
 export default defineModel(
 	{
@@ -12,9 +12,9 @@ export default defineModel(
 		answer: text(),
 		status: enums(['open', 'answered', 'closed']),
 		priority: enums(['low', 'medium', 'high', 'critical']),
-		submitted_date: date(),
-		due_date: date(),
-		resolved_date: date(),
+		submitted_date: instant({ precision: 'day' }),
+		due_date: instant({ precision: 'day' }),
+		resolved_date: instant({ precision: 'day' }),
 		attachments: file({ multiple: true }),
 		related_defect_id: uuid()
 	},

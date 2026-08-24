@@ -2,8 +2,9 @@
 	import { Input } from '@norbital-ai/ui/input';
 	import { useI18n } from '@norbital-ai/ui/i18n';
 	import type { TenantI18nKeys } from '$bolt/i18n-keys';
-	import { Grid } from '@norbital-ai/ui/layout';
+	import { Grid, Stack } from '@norbital-ai/ui/layout';
 	import { Option, Schema } from 'effect';
+	import { patchedOrNull } from '../../lib/structured-value.js';
 	import type { RendererProps, Value } from './$types.js';
 	import { projectAddressSchema } from './+definition.js';
 
@@ -46,59 +47,69 @@
 
 	function update(patch: Partial<Value>): void {
 		if (props.mode !== 'edit') return;
-		const next = { ...address, ...patch };
-		const hasValue = Object.values(next).some((value) => value != null && value !== '');
-		props.onValueChange(hasValue ? next : null);
+		props.onValueChange(patchedOrNull(address, patch));
 	}
 </script>
 
 <Grid class="rounded-md border border-border bg-muted/20 p-3" gap="sm" minimum="compact">
-	<label class="grid gap-1.5 text-sm font-medium">
-		{t('component.address_line_1')}
-		<Input
-			value={address.line_1 ?? ''}
-			{disabled}
-			oninput={(event) => update({ line_1: event.currentTarget.value })}
-		/>
+	<label class="text-sm font-medium">
+		<Stack gap="xs">
+			{t('component.address_line_1')}
+			<Input
+				value={address.line_1 ?? ''}
+				{disabled}
+				oninput={(event) => update({ line_1: event.currentTarget.value })}
+			/>
+		</Stack>
 	</label>
-	<label class="grid gap-1.5 text-sm font-medium">
-		{t('component.address_line_2')}
-		<Input
-			value={address.line_2 ?? ''}
-			{disabled}
-			oninput={(event) => update({ line_2: event.currentTarget.value || null })}
-		/>
+	<label class="text-sm font-medium">
+		<Stack gap="xs">
+			{t('component.address_line_2')}
+			<Input
+				value={address.line_2 ?? ''}
+				{disabled}
+				oninput={(event) => update({ line_2: event.currentTarget.value || null })}
+			/>
+		</Stack>
 	</label>
-	<label class="grid gap-1.5 text-sm font-medium">
-		{t('component.city')}
-		<Input
-			value={address.city ?? ''}
-			{disabled}
-			oninput={(event) => update({ city: event.currentTarget.value })}
-		/>
+	<label class="text-sm font-medium">
+		<Stack gap="xs">
+			{t('component.city')}
+			<Input
+				value={address.city ?? ''}
+				{disabled}
+				oninput={(event) => update({ city: event.currentTarget.value })}
+			/>
+		</Stack>
 	</label>
-	<label class="grid gap-1.5 text-sm font-medium">
-		{t('component.state')}
-		<Input
-			value={address.state ?? ''}
-			{disabled}
-			oninput={(event) => update({ state: event.currentTarget.value || null })}
-		/>
+	<label class="text-sm font-medium">
+		<Stack gap="xs">
+			{t('component.state')}
+			<Input
+				value={address.state ?? ''}
+				{disabled}
+				oninput={(event) => update({ state: event.currentTarget.value || null })}
+			/>
+		</Stack>
 	</label>
-	<label class="grid gap-1.5 text-sm font-medium">
-		{t('component.postal_code')}
-		<Input
-			value={address.postal_code ?? ''}
-			{disabled}
-			oninput={(event) => update({ postal_code: event.currentTarget.value })}
-		/>
+	<label class="text-sm font-medium">
+		<Stack gap="xs">
+			{t('component.postal_code')}
+			<Input
+				value={address.postal_code ?? ''}
+				{disabled}
+				oninput={(event) => update({ postal_code: event.currentTarget.value })}
+			/>
+		</Stack>
 	</label>
-	<label class="grid gap-1.5 text-sm font-medium">
-		{t('component.country')}
-		<Input
-			value={address.country ?? ''}
-			{disabled}
-			oninput={(event) => update({ country: event.currentTarget.value })}
-		/>
+	<label class="text-sm font-medium">
+		<Stack gap="xs">
+			{t('component.country')}
+			<Input
+				value={address.country ?? ''}
+				{disabled}
+				oninput={(event) => update({ country: event.currentTarget.value })}
+			/>
+		</Stack>
 	</label>
 </Grid>

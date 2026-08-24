@@ -1,13 +1,4 @@
-import {
-	custom,
-	date,
-	dateRange,
-	defineModel,
-	enums,
-	file,
-	text,
-	uuid
-} from '@norbital-ai/bolt/authoring';
+import { custom, instant, defineModel, enums, file, text, uuid } from '@norbital-ai/bolt/authoring';
 
 export default defineModel(
 	{
@@ -18,9 +9,9 @@ export default defineModel(
 		status: enums(['draft', 'submitted', 'certified', 'paid', 'rejected']),
 		claimed_amount: custom('money'),
 		certified_amount: custom('money'),
-		claim_period: dateRange(),
-		submitted_date: date(),
-		paid_date: date(),
+		claim_period: custom('instant_range', { precision: 'day' }),
+		submitted_date: instant({ precision: 'day' }),
+		paid_date: instant({ precision: 'day' }),
 		description: text(),
 		supporting_documents: file({ multiple: true })
 	},

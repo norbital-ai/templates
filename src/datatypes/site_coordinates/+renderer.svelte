@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { Input } from '@norbital-ai/ui/input';
-	import { Grid } from '@norbital-ai/ui/layout';
+	import { Grid, Stack } from '@norbital-ai/ui/layout';
 	import { Option, Schema } from 'effect';
 	import type { RendererProps, Value } from './$types.js';
 	import { siteCoordinatesSchema } from './+definition.js';
@@ -27,15 +27,17 @@
 
 <Grid class="rounded-md border border-border bg-muted/20 p-3" gap="sm" minimum="compact">
 	{#each axes as axis (axis)}
-		<label class="grid gap-1.5 text-sm font-medium">
-			{axis.toUpperCase()}
-			<Input
-				type="number"
-				step="any"
-				value={coordinates[axis] ?? ''}
-				{disabled}
-				oninput={(event) => update({ [axis]: numberOrNull(event.currentTarget.value) })}
-			/>
+		<label class="text-sm font-medium">
+			<Stack gap="xs">
+				{axis.toUpperCase()}
+				<Input
+					type="number"
+					step="any"
+					value={coordinates[axis] ?? ''}
+					{disabled}
+					oninput={(event) => update({ [axis]: numberOrNull(event.currentTarget.value) })}
+				/>
+			</Stack>
 		</label>
 	{/each}
 </Grid>

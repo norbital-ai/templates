@@ -42,22 +42,26 @@
 	{#each roles as role (role.key)}
 		<Stack class="rounded-md border border-border bg-muted/20 p-3" gap="sm">
 			<p class="text-sm font-semibold">{role.label}</p>
-			<label class="grid gap-1.5 text-sm font-medium">
-				{t('component.name')}
-				<Input
-					value={signatures[role.key]?.name ?? ''}
-					{disabled}
-					oninput={(event) => update(role.key, { name: event.currentTarget.value })}
-				/>
+			<label class="text-sm font-medium">
+				<Stack gap="xs">
+					{t('component.name')}
+					<Input
+						value={signatures[role.key]?.name ?? ''}
+						{disabled}
+						oninput={(event) => update(role.key, { name: event.currentTarget.value })}
+					/>
+				</Stack>
 			</label>
-			<label class="grid gap-1.5 text-sm font-medium">
-				{t('component.date')}
-				<Input
-					type="date"
-					value={signatures[role.key]?.date ?? ''}
-					{disabled}
-					oninput={(event) => update(role.key, { date: event.currentTarget.value })}
-				/>
+			<label class="text-sm font-medium">
+				<Stack gap="xs">
+					{t('component.date')}
+					<Input
+						type="date"
+						value={signatures[role.key]?.date ?? ''}
+						{disabled}
+						oninput={(event) => update(role.key, { date: event.currentTarget.value })}
+					/>
+				</Stack>
 			</label>
 		</Stack>
 	{/each}

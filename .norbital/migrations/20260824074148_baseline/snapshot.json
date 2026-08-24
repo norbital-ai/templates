@@ -1,8 +1,8 @@
 {
   "dialect": "postgres",
-  "id": "211ab4e8-954e-4927-8813-18ba562eb535",
+  "id": "44151b22-ace7-4aa1-b63e-f6faa57d0f69",
   "prevIds": [
-    "e5a460a2-5f46-4bfd-be70-e1e6460e4c25"
+    "96ecce26-f13b-49ed-8138-b8f619ca1fab"
   ],
   "version": "8",
   "ddl": [
@@ -974,7 +974,7 @@
       "table": "defects"
     },
     {
-      "type": "date",
+      "type": "timestamp with time zone",
       "typeSchema": null,
       "notNull": false,
       "dimensions": 0,
@@ -987,7 +987,7 @@
       "table": "defects"
     },
     {
-      "type": "date",
+      "type": "timestamp with time zone",
       "typeSchema": null,
       "notNull": false,
       "dimensions": 0,
@@ -1000,7 +1000,7 @@
       "table": "defects"
     },
     {
-      "type": "date",
+      "type": "timestamp with time zone",
       "typeSchema": null,
       "notNull": false,
       "dimensions": 0,
@@ -1845,7 +1845,7 @@
       "table": "payment_claims"
     },
     {
-      "type": "date",
+      "type": "timestamp with time zone",
       "typeSchema": null,
       "notNull": false,
       "dimensions": 0,
@@ -1858,7 +1858,7 @@
       "table": "payment_claims"
     },
     {
-      "type": "date",
+      "type": "timestamp with time zone",
       "typeSchema": null,
       "notNull": false,
       "dimensions": 0,
@@ -2066,7 +2066,7 @@
       "table": "permits_to_work"
     },
     {
-      "type": "date",
+      "type": "timestamp with time zone",
       "typeSchema": null,
       "notNull": false,
       "dimensions": 0,
@@ -2781,7 +2781,7 @@
       "table": "rfis"
     },
     {
-      "type": "date",
+      "type": "timestamp with time zone",
       "typeSchema": null,
       "notNull": false,
       "dimensions": 0,
@@ -2794,7 +2794,7 @@
       "table": "rfis"
     },
     {
-      "type": "date",
+      "type": "timestamp with time zone",
       "typeSchema": null,
       "notNull": false,
       "dimensions": 0,
@@ -2807,7 +2807,7 @@
       "table": "rfis"
     },
     {
-      "type": "date",
+      "type": "timestamp with time zone",
       "typeSchema": null,
       "notNull": false,
       "dimensions": 0,
@@ -3210,7 +3210,7 @@
       "table": "workers"
     },
     {
-      "type": "date",
+      "type": "timestamp with time zone",
       "typeSchema": null,
       "notNull": false,
       "dimensions": 0,
@@ -3236,7 +3236,7 @@
       "table": "workers"
     },
     {
-      "type": "date",
+      "type": "timestamp with time zone",
       "typeSchema": null,
       "notNull": false,
       "dimensions": 0,
@@ -3249,7 +3249,7 @@
       "table": "workers"
     },
     {
-      "type": "date",
+      "type": "timestamp with time zone",
       "typeSchema": null,
       "notNull": false,
       "dimensions": 0,
@@ -3262,7 +3262,7 @@
       "table": "workers"
     },
     {
-      "type": "date",
+      "type": "timestamp with time zone",
       "typeSchema": null,
       "notNull": false,
       "dimensions": 0,

@@ -1,4 +1,4 @@
-import { custom, dateRange, defineModel, enums, text } from '@norbital-ai/bolt/authoring';
+import { custom, defineModel, enums, text } from '@norbital-ai/bolt/authoring';
 
 export default defineModel(
 	{
@@ -7,7 +7,7 @@ export default defineModel(
 		client: text(),
 		main_contractor: text(),
 		status: enums(['planned', 'active', 'on_hold', 'complete', 'cancelled']),
-		schedule_range: dateRange(),
+		schedule_range: custom('instant_range', { precision: 'day' }),
 		contract_value: custom('money'),
 		project_type: text(),
 		address: custom('project_address'),

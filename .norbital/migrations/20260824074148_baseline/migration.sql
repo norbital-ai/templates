@@ -78,9 +78,9 @@ CREATE TABLE "defects" (
 	"severity" text,
 	"status" text,
 	"description" text,
-	"reported_date" date,
-	"due_date" date,
-	"closed_date" date,
+	"reported_date" timestamp with time zone,
+	"due_date" timestamp with time zone,
+	"closed_date" timestamp with time zone,
 	"photos" jsonb,
 	"resolution_notes" text
 );
@@ -165,8 +165,8 @@ CREATE TABLE "payment_claims" (
 	"claimed_amount" jsonb,
 	"certified_amount" jsonb,
 	"claim_period" jsonb,
-	"submitted_date" date,
-	"paid_date" date,
+	"submitted_date" timestamp with time zone,
+	"paid_date" timestamp with time zone,
 	"description" text,
 	"supporting_documents" jsonb
 );
@@ -186,7 +186,7 @@ CREATE TABLE "permits_to_work" (
 	"job_id" uuid,
 	"worker_id" uuid,
 	"status" text,
-	"requested_date" date,
+	"requested_date" timestamp with time zone,
 	"validity_range" jsonb,
 	"approved_by" text,
 	"hazards_identified" text[],
@@ -257,9 +257,9 @@ CREATE TABLE "rfis" (
 	"answer" text,
 	"status" text,
 	"priority" text,
-	"submitted_date" date,
-	"due_date" date,
-	"resolved_date" date,
+	"submitted_date" timestamp with time zone,
+	"due_date" timestamp with time zone,
+	"resolved_date" timestamp with time zone,
 	"attachments" jsonb,
 	"related_defect_id" uuid
 );
@@ -298,11 +298,11 @@ CREATE TABLE "workers" (
 	"phone" text,
 	"email" text,
 	"emergency_contact" jsonb,
-	"date_of_birth" date,
+	"date_of_birth" timestamp with time zone,
 	"nationality" text,
-	"work_permit_expiry" date,
-	"medical_check_date" date,
-	"safety_induction_date" date
+	"work_permit_expiry" timestamp with time zone,
+	"medical_check_date" timestamp with time zone,
+	"safety_induction_date" timestamp with time zone
 );
 
 --> statement-breakpoint
