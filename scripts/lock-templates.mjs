@@ -10,6 +10,7 @@ import {
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import process from 'node:process';
+import { parseArgs } from 'node:util';
 import { Clock, Effect, Result } from 'effect';
 import { registryConfiguration } from './lib/registry.mjs';
 import { discoverTemplates, repositoryRoot } from './lib/templates.mjs';
@@ -36,25 +37,22 @@ function copyTemplateProject(template, workingDirectory) {
 }
 
 function readArguments(argv) {
-	const options = { check: false, verifyInstall: false, filter: undefined };
-	for (let index = 0; index < argv.length; index += 1) {
-		const argument = argv[index];
-		if (argument === '--check') {
-			options.check = true;
-			continue;
-		}
-		if (argument === '--verify-install') {
-			options.verifyInstall = true;
-			continue;
-		}
-		if (argument === '--filter') {
-			options.filter = argv[++index];
-			continue;
-		}
-		fail(`Unknown argument: ${argument}`);
-	}
-	if (options.filter === '') fail('--filter requires a template key.');
-	return options;
+	const { values } = parseArgs({
+		args: argv,
+		options: {
+			check: { type: 'boolean' },
+			'verify-install': { type: 'boolean' },
+			filter: { type: 'string' }
+		},
+		strict: true,
+		allowPositionals: false
+	});
+	if (values.filter === '') fail('--filter requires a template key.');
+	return {
+		check: values.check ?? false,
+		verifyInstall: values['verify-install'] ?? false,
+		filter: values.filter
+	};
 }
 
 /**

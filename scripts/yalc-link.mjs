@@ -14,23 +14,32 @@
 import { execFileSync } from 'node:child_process';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { parseArgs } from 'node:util';
 import { linkConsumers } from '../../oss/scripts/lib/yalc-consumers.mjs';
 import { discoverTemplates, repositoryRoot } from './lib/templates.mjs';
 
 const ossRoot = path.resolve(repositoryRoot, '../oss');
 const yalcBin = path.join(ossRoot, 'node_modules/.bin/yalc');
-const retreat = process.argv.includes('--retreat');
-const force = process.argv.includes('--force');
-const templateFilter = process.argv
-	.find((argument) => argument.startsWith('--template='))
-	?.slice(11);
-const onlyFlag = process.argv.find((argument) => argument.startsWith('--only='));
+const { values: arguments_ } = parseArgs({
+	options: {
+		retreat: { type: 'boolean' },
+		force: { type: 'boolean' },
+		template: { type: 'string' },
+		only: { type: 'string' },
+		'skip-publish': { type: 'boolean' }
+	},
+	strict: true,
+	allowPositionals: false
+});
+const retreat = arguments_.retreat ?? false;
+const force = arguments_.force ?? false;
+const templateFilter = arguments_.template;
 
 const run = (command, args, cwd) => {
 	execFileSync(command, args, { cwd, stdio: 'inherit' });
 };
 
-if (!retreat && !process.argv.includes('--skip-publish')) {
+if (!retreat && !arguments_['skip-publish']) {
 	run(
 		'pnpm',
 		[
@@ -39,7 +48,7 @@ if (!retreat && !process.argv.includes('--skip-publish')) {
 			'scripts/yalc-publish.mjs',
 			'--push',
 			...(force ? ['--force'] : []),
-			...(onlyFlag === undefined ? [] : [onlyFlag])
+			...(arguments_.only === undefined ? [] : [`--only=${arguments_.only}`])
 		],
 		ossRoot
 	);

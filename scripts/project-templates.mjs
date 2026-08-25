@@ -2,7 +2,8 @@ import { execFileSync } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import process from 'node:process';
-import { Result } from 'effect';
+import { parseArgs } from 'node:util';
+import { Effect, Result } from 'effect';
 import { decodeJsonObject } from './lib/json.mjs';
 import {
 	actualCounts,
@@ -24,37 +25,27 @@ function fail(message) {
 	throw new Error(message);
 }
 
-/** Arguments that consume the next token, mapped to the option they set. */
-const valueArguments = new Map([
-	['--push', 'pushRemote'],
-	['--output', 'output'],
-	['--source-revision', 'sourceRevision'],
-	['--repository', 'repository']
-]);
-
-function readArguments(argv) {
+function readArguments() {
+	const { values } = parseArgs({
+		options: {
+			check: { type: 'boolean' },
+			'update-local': { type: 'boolean' },
+			push: { type: 'string' },
+			output: { type: 'string' },
+			'source-revision': { type: 'string' },
+			repository: { type: 'string' }
+		},
+		strict: true,
+		allowPositionals: false
+	});
 	const options = {
-		check: false,
-		updateLocal: false,
-		pushRemote: undefined,
-		output: undefined,
-		sourceRevision: 'HEAD',
-		repository: undefined
+		check: values.check ?? false,
+		updateLocal: values['update-local'] ?? false,
+		pushRemote: values.push,
+		output: values.output,
+		sourceRevision: values['source-revision'] ?? 'HEAD',
+		repository: values.repository
 	};
-	for (let index = 0; index < argv.length; index += 1) {
-		const argument = argv[index];
-		if (argument === '--check') {
-			options.check = true;
-			continue;
-		}
-		if (argument === '--update-local') {
-			options.updateLocal = true;
-			continue;
-		}
-		const optionKey = valueArguments.get(argument);
-		if (optionKey === undefined) fail(`Unknown argument: ${argument}`);
-		options[optionKey] = argv[++index];
-	}
 	if (!options.check && !options.updateLocal && !options.pushRemote && !options.output) {
 		fail('Choose --check, --update-local, --push <remote>, or --output <path>.');
 	}
@@ -148,15 +139,19 @@ function validateStandaloneManifest(template) {
 }
 
 function validate(template) {
-	validateStandaloneManifest(template);
-	const actual = actualCounts(template.directory);
-	for (const key of ['collections', 'apps', 'automations']) {
-		if (template.counts[key] !== actual[key]) {
-			fail(
-				`Template ${template.slug} declares ${template.counts[key]} ${key} in ${templateMetadataFile}; found ${actual[key]}.`
-			);
+	return Effect.gen(function* () {
+		yield* Effect.try(() => validateStandaloneManifest(template));
+		const actual = yield* Effect.tryPromise(() => actualCounts(template.directory));
+		for (const key of ['collections', 'apps', 'automations']) {
+			if (template.counts[key] !== actual[key]) {
+				return yield* Effect.fail(
+					new Error(
+						`Template ${template.slug} declares ${template.counts[key]} ${key} in ${templateMetadataFile}; found ${actual[key]}.`
+					)
+				);
+			}
 		}
-	}
+	});
 }
 
 function projectTemplate(template, sourceRevision) {
@@ -168,68 +163,81 @@ function projectTemplate(template, sourceRevision) {
 	return revision;
 }
 
-const options = readArguments(process.argv.slice(2));
+const options = readArguments();
 const templates = discoverTemplates();
-for (const template of templates) validate(template);
 
-if (options.check && !options.updateLocal && !options.pushRemote && !options.output) {
-	console.log(`Validated ${templates.length} template declarations.`);
-	process.exit(0);
-}
+const projection = Effect.gen(function* () {
+	yield* Effect.forEach(templates, validate, { concurrency: 'unbounded', discard: true });
+	yield* Effect.try(() => {
+		if (options.check && !options.updateLocal && !options.pushRemote && !options.output) {
+			console.log(`Validated ${templates.length} template declarations.`);
+			return;
+		}
 
-const sourceRevision = runGit(['rev-parse', '--verify', `${options.sourceRevision}^{commit}`]);
-// Only `--output` records where the projection came from. `git config --get` exits non-zero when
-// the key is unset, so reading it through `runGit` turned "this clone has no origin" into a hard
-// failure of `--check` and `--update-local`, neither of which needs a URL at all.
-const sourceRepository = options.repository ?? originUrl();
-if (!sourceRepository && options.output) {
-	fail('A source repository is required for output; pass --repository <url>.');
-}
+		const sourceRevision = runGit(['rev-parse', '--verify', `${options.sourceRevision}^{commit}`]);
+		// Only `--output` records where the projection came from. `git config --get` exits non-zero when
+		// the key is unset, so reading it through `runGit` turned "this clone has no origin" into a hard
+		// failure of `--check` and `--update-local`, neither of which needs a URL at all.
+		const sourceRepository = options.repository ?? originUrl();
+		if (!sourceRepository && options.output) {
+			fail('A source repository is required for output; pass --repository <url>.');
+		}
 
-const entries = [];
-for (const template of templates) {
-	const revision = projectTemplate(template, sourceRevision);
-	if (options.updateLocal) runGit(['update-ref', template.ref, revision]);
-	entries.push({
-		// The repository axis (`slug`) and the product axis (`handle`) are both recorded, because a
-		// consumer of this file needs one or the other and guessing which is which from a single
-		// `key` is what this split exists to stop.
-		slug: template.slug,
-		handle: template.handle,
-		ref: template.ref,
-		revision,
-		name: template.name,
-		industry: template.industry,
-		description: template.description,
-		visibility: template.visibility,
-		counts: template.counts
+		const entries = [];
+		for (const template of templates) {
+			const revision = projectTemplate(template, sourceRevision);
+			if (options.updateLocal) runGit(['update-ref', template.ref, revision]);
+			entries.push({
+				// The repository axis (`slug`) and the product axis (`handle`) are both recorded, because a
+				// consumer of this file needs one or the other and guessing which is which from a single
+				// `key` is what this split exists to stop.
+				slug: template.slug,
+				handle: template.handle,
+				ref: template.ref,
+				revision,
+				name: template.name,
+				industry: template.industry,
+				description: template.description,
+				visibility: template.visibility,
+				counts: template.counts
+			});
+			console.log(`${template.slug}: ${template.ref} -> ${revision}`);
+		}
+
+		if (options.pushRemote) {
+			runGit([
+				'push',
+				'--atomic',
+				options.pushRemote,
+				...entries.map((entry) => `${entry.revision}:${entry.ref}`)
+			]);
+		}
+
+		if (options.output) {
+			const outputPath = path.resolve(repositoryRoot, options.output);
+			mkdirSync(path.dirname(outputPath), { recursive: true });
+			writeFileSync(
+				outputPath,
+				`${JSON.stringify(
+					{
+						schemaVersion: 1,
+						source: { repository: sourceRepository, revision: sourceRevision },
+						entries
+					},
+					null,
+					2
+				)}\n`
+			);
+			console.log(`Wrote ${path.relative(repositoryRoot, outputPath)}.`);
+		}
 	});
-	console.log(`${template.slug}: ${template.ref} -> ${revision}`);
-}
+}).pipe(
+	Effect.catch((error) =>
+		Effect.sync(() => {
+			console.error(error);
+			process.exitCode = 1;
+		})
+	)
+);
 
-if (options.pushRemote) {
-	runGit([
-		'push',
-		'--atomic',
-		options.pushRemote,
-		...entries.map((entry) => `${entry.revision}:${entry.ref}`)
-	]);
-}
-
-if (options.output) {
-	const outputPath = path.resolve(repositoryRoot, options.output);
-	mkdirSync(path.dirname(outputPath), { recursive: true });
-	writeFileSync(
-		outputPath,
-		`${JSON.stringify(
-			{
-				schemaVersion: 1,
-				source: { repository: sourceRepository, revision: sourceRevision },
-				entries
-			},
-			null,
-			2
-		)}\n`
-	);
-	console.log(`Wrote ${path.relative(repositoryRoot, outputPath)}.`);
-}
+Effect.runFork(projection);

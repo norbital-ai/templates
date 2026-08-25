@@ -1,4 +1,5 @@
 import { existsSync, readFileSync, readdirSync } from 'node:fs';
+import { glob } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { decodeJsonObject } from './json.mjs';
@@ -54,32 +55,25 @@ function fail(message) {
 	throw new Error(message);
 }
 
-function countMatchingFiles(directory, predicate) {
-	if (!existsSync(directory)) return 0;
+async function countMatchingFiles(directory, pattern) {
 	let count = 0;
-	for (const entry of readdirSync(directory, { withFileTypes: true })) {
-		const entryPath = path.join(directory, entry.name);
-		if (entry.isDirectory()) count += countMatchingFiles(entryPath, predicate);
-		else if (entry.isFile() && predicate(entry.name)) count += 1;
+	for await (const entry of glob(pattern, { cwd: directory, withFileTypes: true })) {
+		if (entry.isFile()) count += 1;
 	}
 	return count;
 }
 
 /** Counts derived from the tree, so declared picker metadata cannot drift from reality. */
-export function actualCounts(directory) {
+export async function actualCounts(directory) {
+	const [collections, apps, automations] = await Promise.all([
+		countMatchingFiles(path.join(directory, 'src', 'collections'), '**/+model.ts'),
+		countMatchingFiles(path.join(directory, 'src', 'apps'), '**/+*.svelte'),
+		countMatchingFiles(path.join(directory, 'src', 'automations'), '**/+*.ts')
+	]);
 	return {
-		collections: countMatchingFiles(
-			path.join(directory, 'src', 'collections'),
-			(filename) => filename === '+model.ts'
-		),
-		apps: countMatchingFiles(
-			path.join(directory, 'src', 'apps'),
-			(filename) => filename.startsWith('+') && filename.endsWith('.svelte')
-		),
-		automations: countMatchingFiles(
-			path.join(directory, 'src', 'automations'),
-			(filename) => filename.startsWith('+') && filename.endsWith('.ts')
-		)
+		collections,
+		apps,
+		automations
 	};
 }
 

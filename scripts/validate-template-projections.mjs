@@ -285,7 +285,7 @@ function validateProjection(template, temporaryDirectory) {
 			writeFileSync(path.join(destination, '.npmrc'), registryConfiguration());
 		});
 		yield* runLifecycle(template, destination);
-		const { findings } = yield* Effect.try(() => auditWorkspace(destination));
+		const { findings } = yield* auditWorkspace(destination);
 		if (findings.length > 0) {
 			const detail = findings
 				.map(

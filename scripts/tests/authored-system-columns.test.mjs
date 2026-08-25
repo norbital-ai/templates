@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import path from 'node:path';
 import { describe, it } from 'node:test';
+import { Effect } from 'effect';
 import {
 	auditAuthoredSystemColumns,
 	auditWorkspace,
@@ -16,46 +17,64 @@ const frameworkFixture = (markup) => `<script>
 </script>
 ${markup}`;
 
-describe('authored system columns', () => {
-	it('walks components as well as modules, so a green result cannot mean a skipped extension', () => {
-		// The precedent this rule follows filtered its file walk with `path.endsWith('.ts')`, which
-		// meant every `.svelte` file bypassed it and the check was green for the wrong reason.
-		//
-		// The expectation is spelled out here rather than read from `authoredSourceExtensions`. A
-		// first draft of this test iterated that export, which made narrowing the walk to `['.ts']`
-		// narrow the assertion with it — the same silent pass, reproduced inside the test written to
-		// prevent it. A literal cannot be shrunk from the other side.
-		const required = ['.svelte', '.ts'];
-		assert.deepEqual([...authoredSourceExtensions].sort(), [...required].sort());
-		for (const template of templates) {
-			const { files } = auditWorkspace(template.directory);
-			const counted = Object.fromEntries(
-				required.map((extension) => [
-					extension,
-					Object.keys(files).filter((file) => path.extname(file) === extension).length
-				])
-			);
-			for (const extension of required) {
-				assert.ok(
-					counted[extension] > 0,
-					`${template.slug} contributed no ${extension} files: ${JSON.stringify(counted)}`
-				);
-			}
-		}
-	});
+const auditTemplates = () =>
+	Effect.forEach(
+		templates,
+		(template) =>
+			auditWorkspace(template.directory).pipe(Effect.map((result) => ({ template, result }))),
+		{ concurrency: 'unbounded' }
+	);
 
-	it('hands no framework system column to a framework component', () => {
-		// Every template is audited before anything is asserted. A per-template assertion inside the
-		// loop stops at the first offender and reports the rest as clean, which reads exactly like a
-		// clean scan.
-		const offences = templates.flatMap((template) =>
-			auditWorkspace(template.directory).findings.map(
-				(finding) =>
-					`${template.slug}/${path.relative(template.directory, finding.file)} <${finding.component} ${finding.property}>`
-			)
-		);
-		assert.deepEqual(offences, [], 'the framework supplies what a surface already knows');
-	});
+describe('authored system columns', () => {
+	it('walks components as well as modules, so a green result cannot mean a skipped extension', () =>
+		Effect.runPromise(
+			Effect.gen(function* () {
+				// The precedent this rule follows filtered its file walk with `path.endsWith('.ts')`, which
+				// meant every `.svelte` file bypassed it and the check was green for the wrong reason.
+				//
+				// The expectation is spelled out here rather than read from `authoredSourceExtensions`. A
+				// first draft of this test iterated that export, which made narrowing the walk to `['.ts']`
+				// narrow the assertion with it — the same silent pass, reproduced inside the test written to
+				// prevent it. A literal cannot be shrunk from the other side.
+				const required = ['.svelte', '.ts'];
+				assert.deepEqual([...authoredSourceExtensions].sort(), [...required].sort());
+				const audits = yield* auditTemplates();
+				for (const {
+					template,
+					result: { files }
+				} of audits) {
+					const counted = Object.fromEntries(
+						required.map((extension) => [
+							extension,
+							Object.keys(files).filter((file) => path.extname(file) === extension).length
+						])
+					);
+					for (const extension of required) {
+						assert.ok(
+							counted[extension] > 0,
+							`${template.slug} contributed no ${extension} files: ${JSON.stringify(counted)}`
+						);
+					}
+				}
+			})
+		));
+
+	it('hands no framework system column to a framework component', () =>
+		Effect.runPromise(
+			Effect.gen(function* () {
+				// Every template is audited before anything is asserted. A per-template assertion inside the
+				// loop stops at the first offender and reports the rest as clean, which reads exactly like a
+				// clean scan.
+				const audits = yield* auditTemplates();
+				const offences = audits.flatMap(({ template, result }) =>
+					result.findings.map(
+						(finding) =>
+							`${template.slug}/${path.relative(template.directory, finding.file)} <${finding.component} ${finding.property}>`
+					)
+				);
+				assert.deepEqual(offences, [], 'the framework supplies what a surface already knows');
+			})
+		));
 
 	it('reports a record key threaded back into a framework prop', () => {
 		// The positive control. A rule asserted only against clean source is satisfied just as well by

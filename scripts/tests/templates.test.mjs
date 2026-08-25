@@ -76,10 +76,12 @@ describe('template discovery', () => {
 		}
 	});
 
-	it('keeps declared picker counts equal to what the tree actually contains', () => {
-		for (const template of discoverTemplates()) {
-			assert.deepEqual(template.counts, actualCounts(template.directory), template.slug);
-		}
+	it('keeps declared picker counts equal to what the tree actually contains', async () => {
+		await Promise.all(
+			discoverTemplates().map(async (template) => {
+				assert.deepEqual(template.counts, await actualCounts(template.directory), template.slug);
+			})
+		);
 	});
 
 	it('pins its own Bolt version, exactly', () => {

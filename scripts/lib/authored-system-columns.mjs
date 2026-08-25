@@ -1,5 +1,5 @@
 import { createRequire } from 'node:module';
-import { readFileSync, readdirSync, statSync } from 'node:fs';
+import { readFile, readdir } from 'node:fs/promises';
 import path from 'node:path';
 import { Effect } from 'effect';
 
@@ -61,15 +61,21 @@ export const authoredSourceExtensions = ['.svelte', '.ts'];
 /** Authored source files under a workspace's `src/`, newest-first order irrelevant. */
 function authoredSourceFiles(workspaceDirectory) {
 	const root = path.join(workspaceDirectory, 'src');
-	const walk = (directory) =>
-		readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
-			const entryPath = path.join(directory, entry.name);
-			if (entry.isDirectory()) return walk(entryPath);
-			return authoredSourceExtensions.some((extension) => entry.name.endsWith(extension))
-				? [entryPath]
-				: [];
-		});
-	return statSync(root, { throwIfNoEntry: false }) ? walk(root) : [];
+	return Effect.tryPromise({
+		try: () => readdir(root, { recursive: true, withFileTypes: true }),
+		catch: (cause) => cause
+	}).pipe(
+		Effect.catch((error) => (error?.code === 'ENOENT' ? Effect.succeed([]) : Effect.fail(error))),
+		Effect.map((entries) =>
+			entries
+				.filter(
+					(entry) =>
+						entry.isFile() &&
+						authoredSourceExtensions.some((extension) => entry.name.endsWith(extension))
+				)
+				.map((entry) => path.join(entry.parentPath, entry.name))
+		)
+	);
 }
 
 /**
@@ -264,8 +270,17 @@ export function auditAuthoredSystemColumns(workspaceDirectory, files) {
 
 /** Convenience for a gate: read a workspace's authored tree and audit it in one call. */
 export function auditWorkspace(workspaceDirectory) {
-	const files = Object.fromEntries(
-		authoredSourceFiles(workspaceDirectory).map((file) => [file, readFileSync(file, 'utf8')])
-	);
-	return { files, findings: auditAuthoredSystemColumns(workspaceDirectory, files) };
+	return Effect.gen(function* () {
+		const sourceFiles = yield* authoredSourceFiles(workspaceDirectory);
+		const entries = yield* Effect.forEach(
+			sourceFiles,
+			(file) =>
+				Effect.tryPromise(() => readFile(file, 'utf8')).pipe(
+					Effect.map((source) => [file, source])
+				),
+			{ concurrency: 'unbounded' }
+		);
+		const files = Object.fromEntries(entries);
+		return { files, findings: auditAuthoredSystemColumns(workspaceDirectory, files) };
+	});
 }
