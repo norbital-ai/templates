@@ -84,7 +84,7 @@ with several chooses which one the page scopes to.
 | **Payroll**           | Runs the payroll cycle: a pay-date board (late/current/upcoming), creating and recalculating runs, locking them paid, and exporting bank files, payslip PDFs and the report workbook                                                                                                                     |
 | **Statutory profile** | The regime every payroll is calculated against — effective-dated jurisdiction snapshots with atomic overtime and break policy, normalized contribution schemes and rates, and the companies bound to each (file `+settings.svelte`: a file name owns an app's identity)                                  |
 
-### Policies (8)
+### Policies (7)
 
 - **`employee`** — self-service: their own profile, employments and the child collections, plus
   create-with-approval for time entries, claims and leave.
@@ -98,8 +98,6 @@ with several chooses which one the page scopes to.
   payroll runs.
 - **`statutory_drift_automation`** — the automation's authority: reads statutory and employment
   snapshots, appends deterministic successor facts, and records durable drift research evidence.
-- **`statutory_successor_automation`** — validates and submits one atomic statutory-fact successor
-  transition for HR Manager approval.
 
 Policies name the `hr_controller` app _group_ rather than each page, so adding a controller page
 does not mean revisiting every role declaration.
@@ -117,17 +115,13 @@ manually refreshed query function.
 collection meanings, money/date rules, and the boundary around statutory advice. It grants nothing;
 the signed-in person's policies remain the complete authority for a web-agent turn.
 
-### Automations (2)
+### Automations (1)
 
 **`statutory_profile_drift`** — weekly automation (`0 3 * * 1`). Bounded reads of in-force jurisdiction
 snapshots, contribution schemes and employment statutory facts; rule-based drift detection; optional
-successor copy of `employment_statutory_facts` when a unique successor scheme exists; `api.infer` writes
-the report. Never writes the law tables (those stay product-owned).
-
-**`apply_statutory_successor`** — a manually triggered automation with a declared input schema:
-it validates one effective-dated employment statutory successor transition and submits it for HR
-Manager approval, where the create hook stages the predecessor close and approval settlement commits
-both rows or neither.
+successor copy of `employment_statutory_facts` when a unique successor scheme exists; its policy
+requires HR Manager approval, and the create hook stages the predecessor close so approval settlement
+commits both rows or neither. `api.infer` writes the report. It never writes the law tables.
 
 ### Integrations, seed
 
@@ -154,9 +148,9 @@ src/
 ├── collections/              # 23 collections: +model.ts, +hooks.ts, +pipelines.ts, +representation.svelte
 │   └── payroll_runs/lib/     # the settlement engine (phases, overtime, coverage, export)
 ├── datatypes/                # 27 structured values (statutory_regime, work_pattern, overtime_band, …)
-├── access/                   # +teams.ts, anonymous limits, and eight policies
+├── access/                   # +teams.ts, anonymous limits, and seven policies
 ├── i18n/                     # messages.en.json / messages.zh.json (same key set)
-├── automations/              # statutory_profile_drift (weekly) and apply_statutory_successor
+├── automations/              # statutory_profile_drift (weekly and manually triggerable)
 ├── lib/                      # shared helpers: calendar, display formatters, policy grants, roster month
 └── +agents.md
 ```

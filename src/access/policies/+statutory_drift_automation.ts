@@ -1,12 +1,18 @@
+import { approveBy } from '@norbital-ai/bolt/authoring';
 import type { Policy } from './$types.js';
+
+/** The direct successor create and hook-staged predecessor close share one review route. */
+const statutoryChangeApproval = {
+	flow: () => approveBy('HR Manager'),
+	superceded_by: ['Senior Management']
+} as const;
 
 /**
  * The weekly statutory research worker's discovery authority, held by no human team.
  *
- * Statutory configuration and employment facts are read-only here. A discovered deterministic
- * transition is delegated to `apply_statutory_successor`, whose separate static identity holds the
- * narrowly field-masked, HR-approved write grants. Web or model output can therefore recommend a
- * review but cannot rewrite the tables payroll calculates from.
+ * Statutory configuration remains read-only. A deterministic successor transition is submitted
+ * directly under this identity, through narrowly field-masked create/update grants whose one
+ * concrete path requires HR Manager approval. Web research output never writes law tables.
  */
 export default {
 	description:
@@ -28,7 +34,21 @@ export default {
 			read: {}
 		},
 		employment_statutory_facts: {
-			read: {}
+			read: {},
+			create: {
+				fields: [
+					'employment_id',
+					'statutory_contribution_id',
+					'status',
+					'effective_range',
+					'supersedes_fact_id'
+				],
+				approval: statutoryChangeApproval
+			},
+			update: {
+				fields: ['effective_range'],
+				approval: statutoryChangeApproval
+			}
 		},
 		statutory_profile_drift_logs: {
 			create: {},
