@@ -375,16 +375,34 @@
 			limit: 5000
 		});
 	});
-	/** Requests are stored once at `from_date`, so the window is widened to catch one spanning in. */
+	/**
+	 * All leave states needed by the board, in one month-scoped read.
+	 *
+	 * Approved and pending requests differ only by `approval_id`; issuing two otherwise identical
+	 * relationship-filtered queries made the board pay for the same company/employment join twice.
+	 * The board already knows the exact employments it can render, so query those ids directly and
+	 * split the narrow result locally. Requests are stored once at `from_date`, so the window remains
+	 * widened to catch one spanning into the month.
+	 */
 	const leaveQuery = $derived.by(() => {
-		if (selectedCompanyId == null) return null;
+		if (selectedCompanyId == null || !employmentsReady || monthEmployments.length === 0)
+			return null;
 		return client.db.leave_requests.findMany({
 			where: {
-				...approved,
-				leave_request_employment: { ...approved, company_id: { eq: selectedCompanyId } },
+				employment_id: { in: monthEmployments.map((employment) => employment.id) },
 				kind: { eq: 'TIME_OFF' },
 				from_date: { lte: monthEnd },
 				to_date: { gte: monthStart }
+			},
+			columns: {
+				approval_id: true,
+				employment_id: true,
+				leave_type_id: true,
+				kind: true,
+				from_date: true,
+				to_date: true,
+				half_day_start: true,
+				half_day_end: true
 			},
 			limit: 2000
 		});
@@ -394,19 +412,12 @@
 	 * but it warns an operator who plans work into it. The roster hook allows the assignment; the
 	 * conflict flag makes the approval a decision rather than a silent double-book.
 	 */
-	const pendingLeaveQuery = $derived.by(() => {
-		if (selectedCompanyId == null) return null;
-		return client.db.leave_requests.findMany({
-			where: {
-				approval_id: { isNotNull: true },
-				leave_request_employment: { ...approved, company_id: { eq: selectedCompanyId } },
-				kind: { eq: 'TIME_OFF' },
-				from_date: { lte: monthEnd },
-				to_date: { gte: monthStart }
-			},
-			limit: 2000
-		});
-	});
+	const approvedLeaveRequests = $derived(
+		(leaveQuery?.current ?? []).filter((request) => request.approval_id == null)
+	);
+	const pendingLeaveRequests = $derived(
+		(leaveQuery?.current ?? []).filter((request) => request.approval_id != null)
+	);
 	/**
 	 * Every payroll run the company has, not just this month's: the board's lock stripes come from
 	 * whichever run's window covers each day, and a paid window is drawn and enforced everywhere.
@@ -461,6 +472,7 @@
 				company_id: { eq: selectedCompanyId },
 				date: { gte: monthStart, lte: monthEnd }
 			},
+			columns: { date: true, name: true },
 			limit: 200
 		});
 	});
@@ -481,7 +493,6 @@
 		{ label: 'filtered roster entries', query: filteredRosterEntriesQuery },
 		{ label: 'attendance', query: timeEntriesQuery },
 		{ label: 'leave', query: leaveQuery },
-		{ label: 'pending leave', query: pendingLeaveQuery },
 		{ label: 'holidays', query: holidaysQuery },
 		{ label: 'employments', query: employmentsQuery },
 		{ label: 'employment schedules', query: employmentTermsQuery },
@@ -529,8 +540,8 @@
 			employmentTerms: employmentTermsQuery?.current ?? [],
 			rosterEntries: rosterEntriesQuery?.current ?? [],
 			timeEntries: timeEntriesQuery?.current ?? [],
-			leaveRequests: leaveQuery?.current ?? [],
-			pendingLeaveRequests: pendingLeaveQuery?.current ?? [],
+			leaveRequests: approvedLeaveRequests,
+			pendingLeaveRequests,
 			holidays: companyHolidays,
 			rosterCodesById,
 			leaveCodeById,

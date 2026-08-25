@@ -38,6 +38,17 @@ const templateFilter = arguments_.template;
 const run = (command, args, cwd) => {
 	execFileSync(command, args, { cwd, stdio: 'inherit' });
 };
+/**
+ * Installs must not depend on a TTY. pnpm asks a person to confirm a modules purge exactly when the
+ * yalc link has just rewritten the manifest — which is precisely the automated case this script runs
+ * in — so answer "yes" on its behalf by running as CI.
+ */
+const install = (directory) =>
+	execFileSync('pnpm', ['install', '--no-frozen-lockfile', '--config.strict-dep-builds=false'], {
+		cwd: directory,
+		stdio: 'inherit',
+		env: { ...process.env, CI: 'true' }
+	});
 
 if (!retreat && !arguments_['skip-publish']) {
 	run(
@@ -66,7 +77,7 @@ if (templates.length === 0) {
 if (retreat) {
 	for (const template of templates) {
 		run(yalcBin, ['retreat', '--all'], template.directory);
-		run('pnpm', ['install', '--config.strict-dep-builds=false'], template.directory);
+		install(template.directory);
 	}
 } else {
 	const states = linkConsumers({
@@ -76,7 +87,7 @@ if (retreat) {
 		run,
 		install: (changed) => {
 			for (const template of changed) {
-				run('pnpm', ['install', '--config.strict-dep-builds=false'], template.directory);
+				install(template.directory);
 			}
 		}
 	});
