@@ -744,15 +744,14 @@ export const runStatutoryProfileDrift = (api: AutomationApi) =>
 				}
 				const status = asFactStatus(copy.status);
 				if (!status) continue;
-				const proposal = yield* api.automations.run('apply_statutory_successor', {
-					predecessor_fact_id: copy.factId,
+				yield* api.db.employment_statutory_facts.create({
 					employment_id: copy.employmentId,
-					successor_contribution_id: copy.successorSchemeId,
+					statutory_contribution_id: copy.successorSchemeId,
+					supersedes_fact_id: copy.factId,
 					status,
-					effective_start: asOf,
-					label: copy.label
+					effective_range: { start: asOf, end: null }
 				});
-				submittedProposals.push(`${copy.label} · task ${proposal.taskId}`);
+				submittedProposals.push(`${copy.label} · awaiting HR Manager approval`);
 				existingSchemeIdsByEmployment.get(copy.employmentId)?.add(copy.successorSchemeId);
 			}
 
@@ -940,7 +939,7 @@ export default defineAutomation(
 		 */
 		policies: ['statutory_drift_automation'],
 		description:
-			'Weekly official-source review of every configured statutory payroll profile, with deterministic successor proposals delegated to a separately approved system worker.',
+			'Weekly official-source review of every configured statutory payroll profile, directly submitting deterministic successor proposals for HR Manager approval.',
 		handler: runStatutoryProfileDrift
 	}
 );

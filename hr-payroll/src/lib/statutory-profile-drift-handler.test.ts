@@ -11,7 +11,6 @@ import {
 	statutoryResearchFindingContext,
 	validateResearchReceipt
 } from '../automations/+statutory_profile_drift.ts';
-import { applyStatutorySuccessor } from '../automations/+apply_statutory_successor.ts';
 
 const officialReport = {
 	summary: 'Official sources were checked; one possible CPF wording change needs review.',
@@ -57,19 +56,10 @@ const fakeApi = (infer, queryRows = {}) => {
 	const logUpdates = [];
 	const factCreates = [];
 	const factUpdates = [];
-	const automationRuns = [];
 	const inferenceRequests = [];
 	const query = (name) => ({ findMany: () => Effect.succeed(queryRows[name] ?? []) });
 	const api = {
 		progress: (snapshot) => Effect.sync(() => progress.push(snapshot)),
-		automations: {
-			run: (name, input) =>
-				Effect.sync(() => {
-					const taskId = `task-${automationRuns.length + 1}`;
-					automationRuns.push({ name, input, taskId });
-					return { taskId };
-				})
-		},
 		infer: (request) =>
 			Effect.sync(() => inferenceRequests.push(request)).pipe(Effect.flatMap(() => infer(request))),
 		db: {
@@ -114,53 +104,11 @@ const fakeApi = (infer, queryRows = {}) => {
 		logUpdates,
 		factCreates,
 		factUpdates,
-		automationRuns,
 		inferenceRequests
 	};
 };
 
 describe('statutory profile drift authored handler', () => {
-	it('submits one successor root carrying the predecessor identity', async () => {
-		const creates = [];
-		const api = {
-			db: {
-				query: {
-					employment_statutory_facts: {
-						findFirst: () => Effect.succeed(undefined)
-					}
-				},
-				employment_statutory_facts: {
-					create: (input) =>
-						Effect.sync(() => {
-							creates.push(input);
-							return { id: 'successor', ...input };
-						})
-				}
-			}
-		};
-		const output = await Effect.runPromise(
-			applyStatutorySuccessor(api, {
-				predecessor_fact_id: 'fact-old',
-				employment_id: 'employment-1',
-				successor_contribution_id: 'cpf-new',
-				status: { kind: 'REGISTERED', reference_number: 'CPF-1', rate_override: null },
-				effective_start: '2026-08-24T00:00:00.000Z',
-				label: 'CPF transition'
-			})
-		);
-
-		assert.deepEqual(output, { status: 'submitted', label: 'CPF transition' });
-		assert.deepEqual(creates, [
-			{
-				employment_id: 'employment-1',
-				statutory_contribution_id: 'cpf-new',
-				supersedes_fact_id: 'fact-old',
-				status: { kind: 'REGISTERED', reference_number: 'CPF-1', rate_override: null },
-				effective_range: { start: '2026-08-24T00:00:00.000Z', end: null }
-			}
-		]);
-	});
-
 	it('bounds large local-finding sets as counts and deterministic research samples', () => {
 		const findings = Array.from({ length: 398 }, (_, index) => ({
 			kind: 'missing_fact',
@@ -353,7 +301,7 @@ describe('statutory profile drift authored handler', () => {
 		);
 	});
 
-	it('delegates a unique deterministic successor to the approved system worker', async () => {
+	it('submits a unique deterministic successor directly under its approved policy', async () => {
 		const harness = fakeApi(() => Effect.succeed(officialReport), {
 			jurisdictions: [
 				{
@@ -407,27 +355,23 @@ describe('statutory profile drift authored handler', () => {
 		const output = await Effect.runPromise(runStatutoryProfileDrift(harness.api));
 
 		assert.equal(output.proposals, 1);
-		assert.equal(harness.automationRuns.length, 1);
-		const submitted = harness.automationRuns[0];
-		assert.equal(submitted.name, 'apply_statutory_successor');
-		assert.equal(submitted.taskId, 'task-1');
-		assert.match(submitted.input.effective_start, /^\d{4}-\d{2}-\d{2}T/);
+		assert.equal(harness.factCreates.length, 1);
+		const submitted = harness.factCreates[0];
+		assert.match(submitted.effective_range.start, /^\d{4}-\d{2}-\d{2}T/);
 		assert.deepEqual(
-			{ ...submitted.input, effective_start: '<instant>' },
+			{ ...submitted, effective_range: { start: '<instant>', end: null } },
 			{
-				predecessor_fact_id: 'fact-old',
 				employment_id: 'employment-1',
-				successor_contribution_id: 'cpf-new',
+				statutory_contribution_id: 'cpf-new',
+				supersedes_fact_id: 'fact-old',
 				status: { kind: 'REGISTERED', reference_number: 'CPF-1', rate_override: null },
-				effective_start: '<instant>',
-				label: 'Registered · CPF-1 → CPF CPF current'
+				effective_range: { start: '<instant>', end: null }
 			}
 		);
-		assert.equal(harness.factCreates.length, 0);
 		assert.equal(harness.factUpdates.length, 0);
 		const completed = harness.logUpdates.at(-1)?.values;
 		assert.equal(completed.successor_proposals_count, 1);
-		assert.match(completed.successor_proposals[0], /task task-1$/);
+		assert.match(completed.successor_proposals[0], /awaiting HR Manager approval$/);
 	});
 
 	it('persists a failed receipt and rethrows a provider failure', async () => {

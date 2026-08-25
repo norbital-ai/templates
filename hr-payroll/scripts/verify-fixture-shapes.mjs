@@ -149,13 +149,10 @@ const NOT_ENGINE_FIELDS = new Map([
 // ── Detector B: surplus fields ──────────────────────────────────────────────────────────────────
 
 function sourceFiles(dir) {
-	const out = [];
-	for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
-		const full = path.join(dir, entry.name);
-		if (entry.isDirectory()) out.push(...sourceFiles(full));
-		else if (/\.(ts|svelte)$/.test(entry.name)) out.push(full);
-	}
-	return out;
+	return fs
+		.readdirSync(dir, { withFileTypes: true, recursive: true })
+		.filter((entry) => entry.isFile() && /\.(ts|svelte)$/.test(entry.name))
+		.map((entry) => path.join(entry.parentPath, entry.name));
 }
 
 function surplusFields(targetSource) {
