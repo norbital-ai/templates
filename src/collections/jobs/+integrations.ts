@@ -62,7 +62,7 @@ export default {
 				identity: { column: 'external_ref', value: (job) => job.reference },
 				resolve: ({ records, api }) =>
 					Effect.map(
-						api.db.query.sites.findMany({
+						api.db.sites.findMany({
 							where: { site_code: { in: [...new Set(records.map((job) => job.site_code))] } },
 							columns: { id: true, site_code: true }
 						}),

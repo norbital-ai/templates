@@ -4,7 +4,6 @@
 	import type { TenantI18nKeys } from '$bolt/i18n-keys';
 	import type { RepresentationProps } from './$types.js';
 	import { CollectionForm } from '@norbital-ai/ui/collection-form';
-	import { RelationshipRenderer } from '@norbital-ai/ui/data-renderer/relationship';
 	import { Column, Grid } from '@norbital-ai/ui/layout';
 
 	let { record, close }: RepresentationProps = $props();
@@ -27,18 +26,16 @@
 	onAfterSubmit={record ? undefined : close}
 >
 	{#snippet children({ Field })}
+		<Field name="external_ref" hidden />
+		<Field name="status" hidden />
 		<Grid minimum="panel">
 			<Field
 				name="site_id"
 				label={t('component.site')}
-				renderer={RelationshipRenderer}
-				rendererProps={{
-					target: 'sites',
-					options: {
-						label: (site) => String(site.name || '—'),
-						orderBy: { name: 'asc' },
-						limit: 500
-					}
+				relationOptions={{
+					label: (site) => String(site.name || '—'),
+					orderBy: { name: 'asc' },
+					limit: 500
 				}}
 			/>
 			<Field name="title" label={t('component.job_title')} />

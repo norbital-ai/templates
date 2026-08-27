@@ -1,11 +1,13 @@
 <script lang="ts">
 	import { client } from '../../lib/workspace-client.js';
 	import { collectionClient } from '../../lib/collection-client.js';
+	import { currentDate } from '../../lib/clock.js';
 	import { getPlatformStateContext } from '@norbital-ai/bolt/client';
 	import { useI18n } from '@norbital-ai/ui/i18n';
 	import type { TenantI18nKeys } from '$bolt/i18n-keys';
 	import type { RepresentationProps } from './$types.js';
 	import { CollectionForm } from '@norbital-ai/ui/collection-form';
+	import { CollectionTable } from '@norbital-ai/ui/collection-table';
 	import {
 		Cluster,
 		Column,
@@ -23,9 +25,8 @@
 	import * as Dialog from '@norbital-ai/ui/dialog';
 	import { formatFileSize } from '@norbital-ai/ui/utils';
 	import { getDataRendererRuntimeContext } from '@norbital-ai/ui/data-renderer';
-	import { RelationshipRenderer } from '@norbital-ai/ui/data-renderer/relationship';
 	import Icon from '@iconify/svelte';
-	import { Option, Schema } from 'effect';
+	import { Effect, Option, Schema } from 'effect';
 	import JobsRepresentation from '../jobs/+representation.svelte';
 	import { formatSingaporeInstant } from '../../lib/format-singapore-instant.js';
 
@@ -119,16 +120,6 @@
 	const suspicionRows = $derived(suspicionQuery?.current ?? []);
 	const openSuspicionRows = $derived(suspicionRows.filter((log) => log.resolved_at == null));
 	const firstOpenSuspicion = $derived(openSuspicionRows[0]);
-	const communicationQuery = $derived(
-		record != null && mayReadCommunication
-			? client.db.communication_logs.findMany({
-					where: { job_assignment_id: { eq: record.id } },
-					orderBy: { sent_at: 'asc' },
-					limit: 500
-				})
-			: null
-	);
-	const communicationRows = $derived(communicationQuery?.current ?? []);
 	/**
 	 * What the controller is typing, per log. A refused write keeps the draft available; a successful
 	 * write turns the live row into its resolved presentation, so the editor leaves the interface.
@@ -158,16 +149,38 @@
 	 * Mutation pending and failure behavior belongs to the generated collection client; the sync
 	 * engine updates the live suspicion query, and a refused write leaves the draft intact.
 	 */
-	const resolveSuspicion = (log: { readonly id: string }) => {
+	const resolveSuspicion = (log: { readonly id: string }): void => {
 		if (!canResolve(log)) return;
 		const logId = log.id;
 		const resolution = (resolutionDraft[logId] ?? '').trim();
-		return client.db.suspicious_activity_logs.mutate({
-			id: logId,
-			resolution,
-			resolved_at: new Date().toISOString(),
-			resolved_by: platform().user.id
-		});
+		Effect.runFork(
+			// The stamp is read through `Clock`, not the ambient constructor: the same workflow has to
+			// mean the same thing under `TestClock`, and a resolution timestamp is part of what this
+			// write asserts.
+			Effect.flatMap(currentDate, (now) =>
+				Effect.tryPromise({
+					try: () =>
+						client.db.suspicious_activity_logs.mutate({
+							id: logId,
+							resolution,
+							resolved_at: now.toISOString(),
+							resolved_by: platform().user.id
+						}),
+					catch: (cause) => cause
+				})
+			).pipe(
+				Effect.tap(() =>
+					Effect.sync(() => {
+						// The live row now reads through the durable overlay. Retire the editor draft only
+						// after that local commit; a later refusal is surfaced by the sync engine.
+						const next = { ...resolutionDraft };
+						delete next[logId];
+						resolutionDraft = next;
+					})
+				),
+				Effect.asVoid
+			)
+		);
 	};
 
 	/** Whether anything is still waiting on a controller — what the accents below turn on. */
@@ -332,34 +345,36 @@
 	{/snippet}
 
 	{#snippet statusAndActivity()}
-		<Stack gap="md">
-			<CollectionForm client={collectionClient} collection="job_assignments" defaultValues={record}>
-				{#snippet children({ Field })}
-					<Stack gap="md">
-						<div>
-							<h3 id="assignment-activity-heading" class="text-sm font-semibold">
-								{t('component.assignment_and_activity')}
-							</h3>
-							<p class="text-sm text-muted-foreground">
-								{t('component.assignment_and_activity_description')}
-							</p>
-						</div>
-						<Grid minimum="panel">
-							<Field name="status" />
-							<Field name="dispatched_at" label={t('component.dispatched_at')} />
-							<Field name="completed_at" label={t('component.completed_at')} />
-							<Field name="amount_charged" label={t('component.value_charged')} />
-							<Column span="all">
-								<Field name="summary" label={t('component.completion_summary')} />
-							</Column>
-							<Column span="all"
-								><Field name="location" label={t('component.reported_location')} /></Column
-							>
-						</Grid>
-					</Stack>
-				{/snippet}
-			</CollectionForm>
-		</Stack>
+		<CollectionForm client={collectionClient} collection="job_assignments" defaultValues={record}>
+			{#snippet children({ Field })}
+				<Field name="job_id" hidden />
+				<Field name="assignee_user_id" hidden />
+				<Field name="source_message_id" hidden />
+				<Field name="suspicion_checked_at" hidden />
+				<Stack gap="md">
+					<div>
+						<h3 id="assignment-activity-heading" class="text-sm font-semibold">
+							{t('component.assignment_and_activity')}
+						</h3>
+						<p class="text-sm text-muted-foreground">
+							{t('component.assignment_and_activity_description')}
+						</p>
+					</div>
+					<Grid minimum="panel">
+						<Field name="status" />
+						<Field name="dispatched_at" label={t('component.dispatched_at')} />
+						<Field name="completed_at" label={t('component.completed_at')} />
+						<Field name="amount_charged" label={t('component.value_charged')} />
+						<Column span="all">
+							<Field name="summary" label={t('component.completion_summary')} />
+						</Column>
+						<Column span="all"
+							><Field name="location" label={t('component.reported_location')} /></Column
+						>
+					</Grid>
+				</Stack>
+			{/snippet}
+		</CollectionForm>
 	{/snippet}
 
 	{#snippet variationHistory()}
@@ -408,168 +423,168 @@
 	{/snippet}
 
 	{#snippet suspicionLogs()}
-		<Stack gap="md">
-			<Stack gap="xs">
-				<h3 class="text-sm font-semibold">{t('component.suspicion_logs')}</h3>
-				<p class="text-tiny text-muted-foreground">{t('component.suspicion_logs_description')}</p>
-			</Stack>
-
-			<section aria-labelledby="assignment-evidence-facts-heading">
-				<Stack gap="sm">
-					<h4 id="assignment-evidence-facts-heading" class="text-sm font-semibold">
-						{t('component.evidence_facts')}
-					</h4>
+		<Scroll name={t('component.suspicion_logs')}>
+			<Stack gap="md">
+				<Stack gap="xs">
+					<h3 class="text-sm font-semibold">{t('component.suspicion_logs')}</h3>
 					<p class="text-tiny text-muted-foreground">
-						{t('component.evidence_facts_description')}
+						{t('component.suspicion_logs_description')}
 					</p>
-					{#if evidenceLoading}
-						<p class="text-tiny text-muted-foreground">{t('component.loading_evidence')}</p>
-					{:else if directEvidenceQuery?.error}
-						<p class="text-tiny text-destructive" role="alert">
-							{t('component.evidence_load_failed')}
-						</p>
-					{:else if evidenceFacts.length === 0}
-						<p class="text-tiny text-muted-foreground">
-							{t('component.evidence_facts_empty')}
-						</p>
-					{:else}
-						<Stack as="ul" gap="xs" class="list-disc ps-5 text-tiny">
-							{#each evidenceFacts as fact (fact.id)}
-								<li class="break-words [overflow-wrap:anywhere]">{fact.label}</li>
-							{/each}
-						</Stack>
-					{/if}
 				</Stack>
-			</section>
 
-			<section aria-labelledby="assignment-judgements-heading">
-				<Stack gap="sm">
-					<h4 id="assignment-judgements-heading" class="text-sm font-semibold">
-						{t('component.suspicion_judgements')}
-					</h4>
-					{#if suspicionQuery?.loading}
-						<p class="text-tiny text-muted-foreground">{t('component.loading')}</p>
-					{:else if suspicionQuery?.error}
-						<p class="text-tiny text-destructive" role="alert">
-							{t('component.suspicion_load_failed')}
+				<section aria-labelledby="assignment-evidence-facts-heading">
+					<Stack gap="sm">
+						<h4 id="assignment-evidence-facts-heading" class="text-sm font-semibold">
+							{t('component.evidence_facts')}
+						</h4>
+						<p class="text-tiny text-muted-foreground">
+							{t('component.evidence_facts_description')}
 						</p>
-					{:else if suspicionRows.length === 0}
-						<p class="text-tiny text-muted-foreground">{t('component.suspicion_logs_empty')}</p>
-					{:else}
-						<Stack gap="sm">
-							{#each suspicionRows as log (log.id)}
-								<Stack
-									gap="xs"
-									class={cn(
-										'rounded-md border p-3',
-										log.resolved_at == null ? 'border-warning/40 bg-warning/5' : 'border-border'
-									)}
-								>
-									<Inline gap="sm" align="center">
-										<Icon
-											icon={log.resolved_at == null ? 'lucide:shield-alert' : 'lucide:shield-check'}
-											class={cn('size-4 shrink-0', log.resolved_at == null && 'text-warning')}
-											aria-hidden="true"
-										/>
-										<span class="text-tiny font-semibold">
-											{log.resolved_at == null
-												? t('component.suspicion_open')
-												: t('component.suspicion_resolved')}
-										</span>
-									</Inline>
-									<p class="break-words text-tiny [overflow-wrap:anywhere]">{log.reason}</p>
-									{#if log.resolved_at != null}
-										{#if log.resolution}
-											<p
-												class="break-words text-tiny text-muted-foreground [overflow-wrap:anywhere]"
-											>
-												{log.resolution}
-											</p>
+						{#if evidenceLoading}
+							<p class="text-tiny text-muted-foreground">{t('component.loading_evidence')}</p>
+						{:else if directEvidenceQuery?.error}
+							<p class="text-tiny text-destructive" role="alert">
+								{t('component.evidence_load_failed')}
+							</p>
+						{:else if evidenceFacts.length === 0}
+							<p class="text-tiny text-muted-foreground">
+								{t('component.evidence_facts_empty')}
+							</p>
+						{:else}
+							<Stack as="ul" gap="xs" class="list-disc ps-5 text-tiny">
+								{#each evidenceFacts as fact (fact.id)}
+									<li class="break-words [overflow-wrap:anywhere]">{fact.label}</li>
+								{/each}
+							</Stack>
+						{/if}
+					</Stack>
+				</section>
+
+				<section aria-labelledby="assignment-judgements-heading">
+					<Stack gap="sm">
+						<h4 id="assignment-judgements-heading" class="text-sm font-semibold">
+							{t('component.suspicion_judgements')}
+						</h4>
+						{#if suspicionQuery?.loading}
+							<p class="text-tiny text-muted-foreground">{t('component.loading')}</p>
+						{:else if suspicionQuery?.error}
+							<p class="text-tiny text-destructive" role="alert">
+								{t('component.suspicion_load_failed')}
+							</p>
+						{:else if suspicionRows.length === 0}
+							<p class="text-tiny text-muted-foreground">{t('component.suspicion_logs_empty')}</p>
+						{:else}
+							<Stack gap="sm">
+								{#each suspicionRows as log (log.id)}
+									<Stack
+										gap="xs"
+										class={cn(
+											'rounded-md border p-3',
+											log.resolved_at == null ? 'border-warning/40 bg-warning/5' : 'border-border'
+										)}
+									>
+										<Inline gap="sm" align="center">
+											<Icon
+												icon={log.resolved_at == null
+													? 'lucide:shield-alert'
+													: 'lucide:shield-check'}
+												class={cn('size-4 shrink-0', log.resolved_at == null && 'text-warning')}
+												aria-hidden="true"
+											/>
+											<span class="text-tiny font-semibold">
+												{log.resolved_at == null
+													? t('component.suspicion_open')
+													: t('component.suspicion_resolved')}
+											</span>
+										</Inline>
+										<p class="break-words text-tiny [overflow-wrap:anywhere]">{log.reason}</p>
+										{#if log.resolved_at != null}
+											{#if log.resolution}
+												<p
+													class="break-words text-tiny text-muted-foreground [overflow-wrap:anywhere]"
+												>
+													{log.resolution}
+												</p>
+											{:else}
+												<p class="text-tiny text-muted-foreground">
+													{t('component.suspicion_resolution_missing')}
+												</p>
+											{/if}
+										{:else if mayResolveSuspicion}
+											<Stack gap="xs">
+												<Textarea
+													rows={2}
+													placeholder={t('component.suspicion_resolution_placeholder')}
+													value={draftFor(log)}
+													oninput={(event) =>
+														(resolutionDraft = {
+															...resolutionDraft,
+															[log.id]: event.currentTarget.value
+														})}
+												/>
+												<Inline gap="sm" align="center">
+													<Button
+														size="sm"
+														disabled={!canResolve(log) || resolvingSuspicion}
+														aria-busy={resolvingSuspicion}
+														onclick={() => resolveSuspicion(log)}
+													>
+														{resolvingSuspicion
+															? t('component.suspicion_resolving')
+															: t('component.suspicion_resolve')}
+													</Button>
+												</Inline>
+											</Stack>
 										{:else}
 											<p class="text-tiny text-muted-foreground">
-												{t('component.suspicion_resolution_missing')}
+												{t('component.suspicion_resolve_unavailable')}
 											</p>
 										{/if}
-									{:else if mayResolveSuspicion}
-										<Stack gap="xs">
-											<Textarea
-												rows={2}
-												placeholder={t('component.suspicion_resolution_placeholder')}
-												value={draftFor(log)}
-												oninput={(event) =>
-													(resolutionDraft = {
-														...resolutionDraft,
-														[log.id]: event.currentTarget.value
-													})}
-											/>
-											<Inline gap="sm" align="center">
-												<Button
-													size="sm"
-													disabled={!canResolve(log) || resolvingSuspicion}
-													aria-busy={resolvingSuspicion}
-													onclick={() => resolveSuspicion(log)}
-												>
-													{resolvingSuspicion
-														? t('component.suspicion_resolving')
-														: t('component.suspicion_resolve')}
-												</Button>
-											</Inline>
-										</Stack>
-									{:else}
-										<p class="text-tiny text-muted-foreground">
-											{t('component.suspicion_resolve_unavailable')}
-										</p>
-									{/if}
-								</Stack>
-							{/each}
-						</Stack>
-					{/if}
-				</Stack>
-			</section>
-		</Stack>
+									</Stack>
+								{/each}
+							</Stack>
+						{/if}
+					</Stack>
+				</section>
+			</Stack>
+		</Scroll>
 	{/snippet}
 
 	{#snippet communicationHistory()}
 		<Scroll name={t('component.communication_logs')}>
-			<Stack as="section" aria-labelledby="communication-logs-heading" gap="md">
-				<Stack gap="xs">
-					<h3 id="communication-logs-heading" class="text-sm font-semibold">
-						{t('component.communication_logs')}
-					</h3>
-					<p class="text-tiny text-muted-foreground">
-						{t('component.communication_logs_description')}
-					</p>
-				</Stack>
-				{#if communicationQuery?.loading}
-					<p class="text-tiny text-muted-foreground">{t('component.loading')}</p>
-				{:else if communicationQuery?.error}
-					<p class="text-tiny text-destructive" role="alert">
-						{t('component.communication_logs_failed')}
-					</p>
-				{:else if communicationRows.length === 0}
-					<p class="text-tiny text-muted-foreground">{t('component.communication_logs_empty')}</p>
-				{:else}
-					<Stack as="ol" gap="sm">
-						{#each communicationRows as entry (entry.source_message_id)}
-							<li class="rounded-md border border-border p-3">
-								<Stack gap="xs">
-									<Cluster align="center" justify="between" gap="sm">
-										<span class="break-words text-tiny font-semibold [overflow-wrap:anywhere]">
-											{entry.sender}
-										</span>
-										<time class="text-meta">
-											{formatSingaporeInstant(entry.sent_at, t('component.not_recorded'))}
-										</time>
-									</Cluster>
-									<p class="whitespace-pre-wrap break-words text-sm [overflow-wrap:anywhere]">
-										{entry.message}
-									</p>
-								</Stack>
-							</li>
-						{/each}
-					</Stack>
-				{/if}
-			</Stack>
+			<CollectionTable
+				client={collectionClient}
+				collection="communication_logs"
+				view="field_ops_assignment:communications"
+				title={t('component.communication_logs')}
+				description={t('component.communication_logs_description')}
+				features={{ create: false }}
+				query={{
+					where: { job_assignment_id: { eq: record.id } },
+					orderBy: { sent_at: 'asc' }
+				}}
+			>
+				{#snippet columns({ Column: TableColumn })}
+					<TableColumn
+						name="sender"
+						label={t('component.communication_sender')}
+						card="title"
+						minWidth={180}
+					/>
+					<TableColumn
+						name="sent_at"
+						label={t('component.communication_sent_at')}
+						card="badge"
+						minWidth={180}
+					/>
+					<TableColumn
+						name="message"
+						label={t('component.communication_message')}
+						card="subtitle"
+						minWidth={360}
+					/>
+				{/snippet}
+			</CollectionTable>
 		</Scroll>
 	{/snippet}
 
@@ -672,8 +687,7 @@
 		</Scroll>
 	{/snippet}
 
-	<Stack gap="sm">
-		{@render suspicionHeader()}
+	<Cover gap="sm" top={suspicionHeader}>
 		<Tabs
 			animate={false}
 			contentPadding={false}
@@ -725,7 +739,7 @@
 					: [])
 			] satisfies TabConfig[]}
 		/>
-	</Stack>
+	</Cover>
 {:else}
 	<CollectionForm
 		client={collectionClient}
@@ -734,21 +748,25 @@
 		onAfterSubmit={close}
 	>
 		{#snippet children({ Field })}
+			<Field name="dispatched_at" hidden />
+			<Field name="status" hidden />
+			<Field name="completed_at" hidden />
+			<Field name="amount_charged" hidden />
+			<Field name="location" hidden />
+			<Field name="summary" hidden />
+			<Field name="source_message_id" hidden />
+			<Field name="suspicion_checked_at" hidden />
 			<Grid minimum="panel">
 				<Field
 					name="job_id"
 					label={t('component.job')}
-					renderer={RelationshipRenderer}
-					rendererProps={{
-						target: 'jobs',
-						options: {
-							label: (record) => {
-								const v = record.title;
-								return v != null && v !== '' ? String(v) : '—';
-							},
-							orderBy: { title: 'asc' },
-							limit: 500
-						}
+					relationOptions={{
+						label: (record) => {
+							const v = record.title;
+							return v != null && v !== '' ? String(v) : '—';
+						},
+						orderBy: { title: 'asc' },
+						limit: 500
 					}}
 				/>
 				<!--
@@ -761,17 +779,13 @@
 				<Field
 					name="assignee_user_id"
 					label={t('component.contractor')}
-					renderer={RelationshipRenderer}
-					rendererProps={{
-						target: 'user',
-						options: {
-							label: (record) => {
-								const v = record.name;
-								return v != null && v !== '' ? String(v) : '—';
-							},
-							orderBy: { name: 'asc' },
-							limit: 500
-						}
+					relationOptions={{
+						label: (record) => {
+							const v = record.name;
+							return v != null && v !== '' ? String(v) : '—';
+						},
+						orderBy: { name: 'asc' },
+						limit: 500
 					}}
 				/>
 			</Grid>

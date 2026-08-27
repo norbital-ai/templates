@@ -6,6 +6,7 @@ import { currentDate } from '../lib/clock.js';
 // The judgement consumes photographs and a strict JSON Schema in the same turn. Keep it on a
 // provider model with native support for both instead of relying on best-effort JSON wrapping.
 const SUSPICION_REVIEW_MODEL = 'openai/gpt-4.1-mini';
+export const ASSIGNMENT_PAGE_SIZE = 500;
 const MAX_RELATED_ROWS = 5_000;
 export const MAX_INFERENCE_IMAGES = 3;
 export const MAX_INFERENCE_IMAGE_BYTES = 4 * 1024 * 1024;
@@ -97,10 +98,52 @@ export type SuspicionReviewFacts = {
 };
 
 export function shouldReviewAssignment(
-	status: string | null,
+	_status: string | null,
 	checkedAt: string | null = null
 ): boolean {
-	return checkedAt === null && status !== 'completed';
+	return checkedAt === null;
+}
+
+/**
+ * Materialise the unchecked worklist before reviewing it. Reviews stamp rows as they succeed, so
+ * paging while processing would make offset pages shrink and skip assignments.
+ */
+export function loadUncheckedAssignments(api: Api, assignmentId?: string) {
+	const where =
+		assignmentId == null
+			? { suspicion_checked_at: { isNull: true } as const }
+			: {
+					id: { eq: assignmentId },
+					suspicion_checked_at: { isNull: true } as const
+				};
+	const columns = {
+		id: true,
+		job_id: true,
+		status: true,
+		summary: true,
+		location: true,
+		suspicion_checked_at: true
+	} as const;
+	return Effect.gen(function* () {
+		if (assignmentId != null) {
+			return yield* api.db.job_assignments.findMany({ where, columns, limit: 1 });
+		}
+
+		const assignments: Array<SuspicionReviewFacts['assignment']> = [];
+		let offset = 0;
+		for (;;) {
+			const page = yield* api.db.job_assignments.findMany({
+				where,
+				columns,
+				orderBy: { id: 'asc' },
+				limit: ASSIGNMENT_PAGE_SIZE,
+				offset
+			});
+			assignments.push(...page);
+			if (page.length < ASSIGNMENT_PAGE_SIZE) return assignments;
+			offset += page.length;
+		}
+	});
 }
 
 /** Canonical facts only: flags and similarities remain evidence and never become a verdict here. */
@@ -321,7 +364,7 @@ export function suspicionPrompt(
 	representativePhotos = selectSuspicionInferencePhotos(facts.photos)
 ): string {
 	return [
-		'Review this active field-work assignment and decide whether an unresolved suspicion should be raised.',
+		'Review this field-work assignment and decide whether an unresolved suspicion should be raised.',
 		representativePhotos.length === 0
 			? 'No photo fit the bounded attachment budget. Judge from the assigned job and site, aggregate deterministic photo facts, and bounded recent contractor communications; do not pretend a scene was visible.'
 			: `Use the ${representativePhotos.length} attached representative photographed scene${representativePhotos.length === 1 ? '' : 's'}, assigned job and site, aggregate deterministic photo facts, and bounded recent contractor communications together.`,
@@ -338,7 +381,7 @@ export function suspicionPrompt(
 
 function loadFacts(api: Api, assignment: SuspicionReviewFacts['assignment']) {
 	return Effect.gen(function* () {
-		const job = yield* api.db.query.jobs.findFirst({
+		const job = yield* api.db.jobs.findFirst({
 			where: { id: { eq: assignment.job_id } },
 			columns: {
 				id: true,
@@ -352,17 +395,17 @@ function loadFacts(api: Api, assignment: SuspicionReviewFacts['assignment']) {
 		const site =
 			job == null
 				? null
-				: ((yield* api.db.query.sites.findFirst({
+				: ((yield* api.db.sites.findFirst({
 						where: { id: { eq: job.site_id } },
 						columns: { id: true, name: true, location: true, house_type: true }
 					})) ?? null);
-		const variations = yield* api.db.query.variation_requests.findMany({
+		const variations = yield* api.db.variation_requests.findMany({
 			where: { job_assignment_id: { eq: assignment.id } },
 			columns: { id: true },
 			limit: MAX_RELATED_ROWS
 		});
 		const variationIds = variations.map((variation) => variation.id);
-		const photos = yield* api.db.query.photo_evidence.findMany({
+		const photos = yield* api.db.photo_evidence.findMany({
 			where:
 				variationIds.length === 0
 					? { job_assignment_id: { eq: assignment.id } }
@@ -382,7 +425,7 @@ function loadFacts(api: Api, assignment: SuspicionReviewFacts['assignment']) {
 			},
 			limit: MAX_RELATED_ROWS
 		});
-		const communications = yield* api.db.query.communication_logs.findMany({
+		const communications = yield* api.db.communication_logs.findMany({
 			where: { job_assignment_id: { eq: assignment.id } },
 			columns: {
 				source_message_id: true,
@@ -412,40 +455,41 @@ function loadFacts(api: Api, assignment: SuspicionReviewFacts['assignment']) {
 }
 
 type SuspicionReviewResult =
-	| { readonly status: 'skipped_completed' | 'skipped_open' | 'skipped_unchanged' }
+	| { readonly status: 'skipped_checked' }
 	| { readonly status: 'clear'; readonly review_id: string }
+	| { readonly status: 'clear_existing'; readonly review_id: string }
 	| { readonly status: 'suspicious'; readonly review_id: string; readonly log_id: string }
-	| { readonly status: 'completed_during_review'; readonly review_id: string };
+	| {
+			readonly status: 'suspicious_open_exists';
+			readonly review_id: string;
+			readonly log_id: string;
+	  }
+	| {
+			readonly status: 'suspicious_log_exists';
+			readonly review_id: string;
+			readonly log_id: string;
+	  };
+
+type SuspicionReviewLifecycle = Readonly<{
+	readonly inferenceStarted?: (assignmentId: string) => void;
+	readonly inferenceSucceeded?: (assignmentId: string) => void;
+	readonly reviewPersisted?: (assignmentId: string) => void;
+}>;
 
 export function reviewAssignmentSuspicion(
 	api: Api,
-	assignment: SuspicionReviewFacts['assignment']
+	assignment: SuspicionReviewFacts['assignment'],
+	lifecycle: SuspicionReviewLifecycle = {}
 ): Effect.Effect<SuspicionReviewResult, unknown, never> {
 	return Effect.gen(function* () {
 		if (!shouldReviewAssignment(assignment.status, assignment.suspicion_checked_at ?? null))
-			return { status: 'skipped_completed' as const };
-		const open = yield* api.db.query.suspicious_activity_logs.findFirst({
-			where: {
-				job_assignment_id: { eq: assignment.id },
-				resolved_at: { isNull: true }
-			},
-			columns: { id: true }
-		});
-		if (open != null) return { status: 'skipped_open' as const };
+			return { status: 'skipped_checked' as const };
 
 		const facts = yield* loadFacts(api, assignment);
 		const basis = buildSuspicionReviewBasis(facts);
 		const basisHash = suspicionReviewHash(basis);
-		const existingReview = yield* api.db.query.suspicion_reviews.findFirst({
-			where: {
-				job_assignment_id: { eq: assignment.id },
-				basis_hash: { eq: basisHash }
-			},
-			columns: { id: true }
-		});
-		if (existingReview != null) return { status: 'skipped_unchanged' as const };
-
 		const representativePhotos = selectSuspicionInferencePhotos(facts.photos);
+		lifecycle.inferenceStarted?.(assignment.id);
 		const decision = yield* api.infer({
 			model: SUSPICION_REVIEW_MODEL,
 			schema: suspicionInferenceSchema,
@@ -455,11 +499,34 @@ export function reviewAssignmentSuspicion(
 			})),
 			prompt: suspicionPrompt(facts, representativePhotos)
 		});
+		lifecycle.inferenceSucceeded?.(assignment.id);
 		const photoIds = new Set(representativePhotos.map((photo) => photo.id));
 		const evidenceId = validDecisionEvidenceId(decision, photoIds);
 		const reviewedAt = (yield* currentDate).toISOString();
-		const reviewWrite = yield* api.db.suspicion_reviews
-			.create({
+		/**
+		 * Write, then read the judgement back by the key that makes it unique.
+		 *
+		 * `mutate` answers with nothing, so the row this wrote is found the same way a row an earlier
+		 * attempt wrote is found: `(job_assignment_id, basis_hash)` identifies exactly one review. The
+		 * write is allowed to fail for that reason — a concurrent attempt won the unique index — and
+		 * the read below then returns the winner's row, which is the same answer this call would have
+		 * produced. A read that finds nothing after either outcome is a real failure, not a race.
+		 */
+		const reviewIdentity = {
+			where: {
+				job_assignment_id: { eq: assignment.id },
+				basis_hash: { eq: basisHash }
+			},
+			columns: {
+				id: true,
+				basis: true,
+				suspicious: true,
+				reason: true,
+				evidence_id: true
+			}
+		} as const;
+		const created = yield* api.db.suspicion_reviews
+			.mutate({
 				job_assignment_id: assignment.id,
 				basis_hash: basisHash,
 				basis,
@@ -471,40 +538,35 @@ export function reviewAssignmentSuspicion(
 				source_key: reviewSourceKey(assignment.id, basisHash)
 			})
 			.pipe(
-				Effect.map((review) => ({ review, created: true as const })),
-				Effect.catch((error) =>
-					api.db.query.suspicion_reviews
-						.findFirst({
-							where: {
-								job_assignment_id: { eq: assignment.id },
-								basis_hash: { eq: basisHash }
-							},
-							columns: { id: true }
-						})
-						.pipe(
-							Effect.flatMap((review) =>
-								review == null
-									? Effect.fail(error)
-									: Effect.succeed({ review, created: false as const })
-							)
-						)
-				)
+				Effect.as(true as const),
+				Effect.catch(() => Effect.succeed(false as const))
 			);
-		if (!reviewWrite.created) return { status: 'skipped_unchanged' as const };
-		const review = reviewWrite.review;
-		if (!shouldCreateSuspicionLog(decision)) {
-			return { status: 'clear' as const, review_id: review.id };
+		const review = yield* api.db.suspicion_reviews.findFirst(reviewIdentity);
+		if (review == null) {
+			return yield* Effect.fail(
+				new Error('The suspicion review was written but could not be read back by its basis hash.')
+			);
+		}
+		lifecycle.reviewPersisted?.(assignment.id);
+		const persistedDecision = created
+			? { basis, suspicious: decision.suspicious, reason: decision.reason, evidence_id: evidenceId }
+			: review;
+		if (!persistedDecision.suspicious) {
+			return {
+				status: created ? ('clear' as const) : ('clear_existing' as const),
+				review_id: review.id
+			};
 		}
 
-		// Inference is external I/O. Re-read the two conditions before turning its answer into an open
-		// judgement so a completion or a controller action during the call cannot be overwritten.
-		const [current, newlyOpen] = yield* Effect.all(
+		// Inference is external I/O. Re-read the durable judgements after it completes so retries and a
+		// controller action during the call cannot create a duplicate suspicion log.
+		const [reviewLog, newlyOpen] = yield* Effect.all(
 			[
-				api.db.query.job_assignments.findFirst({
-					where: { id: { eq: assignment.id } },
-					columns: { status: true }
+				api.db.suspicious_activity_logs.findFirst({
+					where: { review_id: { eq: review.id } },
+					columns: { id: true }
 				}),
-				api.db.query.suspicious_activity_logs.findFirst({
+				api.db.suspicious_activity_logs.findFirst({
 					where: {
 						job_assignment_id: { eq: assignment.id },
 						resolved_at: { isNull: true }
@@ -514,19 +576,40 @@ export function reviewAssignmentSuspicion(
 			],
 			{ concurrency: 'unbounded' }
 		);
-		if (current == null || current.status === 'completed') {
-			return { status: 'completed_during_review' as const, review_id: review.id };
+		if (reviewLog != null) {
+			return {
+				status: 'suspicious_log_exists' as const,
+				review_id: review.id,
+				log_id: reviewLog.id
+			};
 		}
-		if (newlyOpen != null) return { status: 'skipped_open' as const };
+		if (newlyOpen != null) {
+			return {
+				status: 'suspicious_open_exists' as const,
+				review_id: review.id,
+				log_id: newlyOpen.id
+			};
+		}
 
-		const log = yield* api.db.suspicious_activity_logs.create({
+		yield* api.db.suspicious_activity_logs.mutate({
 			job_assignment_id: assignment.id,
 			origin: 'automation',
-			basis,
+			basis: persistedDecision.basis,
 			review_id: review.id,
-			evidence_id: evidenceId,
-			reason: decision.reason
+			evidence_id: persistedDecision.evidence_id,
+			reason: persistedDecision.reason
 		});
+		// One log per review, which is the query two branches above already rely on to decide that a
+		// log exists — so it is also how the log just written is identified.
+		const log = yield* api.db.suspicious_activity_logs.findFirst({
+			where: { review_id: { eq: review.id } },
+			columns: { id: true }
+		});
+		if (log == null) {
+			return yield* Effect.fail(
+				new Error('The suspicion log was written but could not be read back by its review id.')
+			);
+		}
 		return { status: 'suspicious' as const, review_id: review.id, log_id: log.id };
 	});
 }

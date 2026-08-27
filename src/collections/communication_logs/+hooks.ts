@@ -34,7 +34,7 @@ export default {
 			];
 			if (assignmentIds.length === 0) return Effect.succeed(new Set<string>());
 			return Effect.map(
-				api.db.query.job_assignments.findMany({
+				api.db.job_assignments.findMany({
 					where: { id: { in: assignmentIds } },
 					columns: { id: true },
 					limit: COMMUNICATION_BATCH_LIMIT

@@ -51,15 +51,21 @@ interface DirectoryQuery {
 	readonly findMany: (input?: DirectoryQueryInput) => Effect.Effect<ReadonlyArray<unknown>>;
 }
 
-/** Any authored handler's `api`, narrowed to the one member this needs. */
+/**
+ * Any authored handler's `api`, narrowed to the one member this needs.
+ *
+ * `user` is a platform collection rather than one this workspace declares, so it is absent from the
+ * generated schema and cannot be named in the type. The cast below is the seam where that is
+ * admitted once, rather than at every call.
+ */
 interface HandlerApi {
-	readonly db: { readonly query: unknown };
+	readonly db: unknown;
 }
 
 const DIRECTORY_LIMIT = 5_000;
 
 const directoryQuery = (api: HandlerApi): DirectoryQuery =>
-	(api.db.query as Readonly<Record<string, DirectoryQuery>>).user;
+	(api.db as Readonly<Record<string, DirectoryQuery>>).user;
 
 /**
  * The named people behind a set of ids.

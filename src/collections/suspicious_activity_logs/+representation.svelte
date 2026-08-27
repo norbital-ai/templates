@@ -10,7 +10,6 @@
 	import type { RepresentationProps } from './$types.js';
 	import { CollectionForm } from '@norbital-ai/ui/collection-form';
 	import { Grid, Inline, Stack } from '@norbital-ai/ui/layout';
-	import { RelationshipRenderer } from '@norbital-ai/ui/data-renderer/relationship';
 	import Icon from '@iconify/svelte';
 	import { formatSingaporeInstant } from '../../lib/format-singapore-instant.js';
 
@@ -90,25 +89,28 @@
 		onAfterSubmit={close}
 	>
 		{#snippet children({ Field })}
+			<Field name="origin" hidden />
+			<Field name="basis" hidden />
+			<Field name="review_id" hidden />
+			<Field name="evidence_id" hidden />
+			<Field name="resolution" hidden />
+			<Field name="resolved_at" hidden />
+			<Field name="resolved_by" hidden />
 			<Grid minimum="panel">
 				<Field
 					name="job_assignment_id"
 					label={t('component.job_assignment')}
-					renderer={RelationshipRenderer}
-					rendererProps={{
-						target: 'job_assignments',
-						options: {
-							label: (record) => {
-								const dispatched = record.dispatched_at;
-								const when = dispatched == null ? null : String(dispatched).slice(0, 10);
-								return (
-									[when, record.status].filter((part) => part != null && part !== '').join(' · ') ||
-									'—'
-								);
-							},
-							orderBy: { dispatched_at: 'desc' },
-							limit: 500
-						}
+					relationOptions={{
+						label: (record) => {
+							const dispatched = record.dispatched_at;
+							const when = dispatched == null ? null : String(dispatched).slice(0, 10);
+							return (
+								[when, record.status].filter((part) => part != null && part !== '').join(' · ') ||
+								'—'
+							);
+						},
+						orderBy: { dispatched_at: 'desc' },
+						limit: 500
 					}}
 				/>
 				<Field name="reason" label={t('component.suspicion_judgement')} />

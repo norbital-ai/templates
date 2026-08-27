@@ -81,14 +81,18 @@ Every photo, from every entry path (workspace upload or channel), passes through
 ### The suspicion review
 
 One automation owns contextual judgement: `review_job_assignment_suspicion` (hourly, manual runs
-may name one `assignment_id`). For each non-completed assignment it assembles the assignment, its
-job and site, the deterministic photo facts, and bounded recent `communication_logs`, and passes a
-bounded visual sample (up to three photos, deterministic selection weighted by signal, capped at
-4 MiB) plus a text context to a provider model (`openai/gpt-4.1-mini`). A separate scripted record
-of every review — the canonical basis hash, the verdict, the model and the reason — lands in
-`suspicion_reviews`, so clear decisions are auditable too; a `suspicious` verdict appends an
-idempotent `suspicious_activity_logs` row (unique on `origin:job_assignment_id:md5(basis)`), and the
-assignment's `suspicion_checked_at` is stamped so a later run does not re-review the same basis.
+may name one `assignment_id`). It pages through every unchecked assignment, including completed
+work, and assembles the assignment, its job and site, the deterministic photo facts, and bounded
+recent `communication_logs`. It passes a bounded visual sample (up to three photos, deterministic
+selection weighted by signal, capped at 4 MiB) plus a text context to a provider model
+(`openai/gpt-4.1-mini`). A separate scripted record of every review — the canonical basis hash, the
+verdict, the model and the reason — lands in `suspicion_reviews`, so clear decisions are auditable
+too; a `suspicious` verdict appends an idempotent `suspicious_activity_logs` row (unique on
+`origin:job_assignment_id:md5(basis)`). The assignment's `suspicion_checked_at` is stamped only
+after inference and durable review persistence succeed. Failures remain unchecked for retry, and
+the run output reports selected assignments, actual inference invocations, failure count, and up
+to 100 assignment/stage failure details. A fact-loading failure necessarily happens before an
+inference can be invoked and is reported separately instead of claiming an inference occurred.
 Only a controller's stated resolution closes a log. The flags and views never leak to the
 contractor policy or the WhatsApp envoy: only the controller dashboard renders integrity or
 suspicion state.
@@ -131,14 +135,14 @@ controller-only integrity fields even though the contractor can update their own
 
 ### Automations, policies, seed
 
-| Kind       | Name                              | What it does                                                                                                                                                                                                                          |
-| ---------- | --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Automation | `review_job_assignment_suspicion` | Hourly (and on manual request, one assignment by id): reviews non-completed assignments against a bounded visual + communication context and writes one idempotent suspicion log only when the model judges the evidence suspicious.  |
-| Policy     | `field_ops_controller`            | Full command of the operational records and both apps; the audit ledgers (communications, reviews, suspicion logs) are append-only.                                                                                                   |
-| Policy     | `field_ops_contractor`            | Requestor-scoped grants: assigned sites/jobs, own assignments (read + update, `assignee_user_id = requestor`), own variations (read + create/update behind the variation approval flow), own evidence (read + create).                |
-| Policy     | `field_ops_whatsapp`              | The WhatsApp envoy's directly declared ceiling: read and update the caller's own assignments, and read the jobs and sites behind them. No creates, deletes, evidence or apps.                                                         |
-| Policy     | `suspicion_review_automation`     | The review automation's authority: unchecked assignments only, append-only review records and suspicion logs, and the single `suspicion_checked_at` stamp that closes the review.                                                     |
-| Seed       | —                                 | Fixture data is host-owned and lives in the repository seed bank (`src/+seed.ts` is deliberately absent). Its job/photo map is audited against the WhatsApp transcript; the weekly roster CSV lives in `assets/` with its own README. |
+| Kind       | Name                              | What it does                                                                                                                                                                                                                                              |
+| ---------- | --------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Automation | `review_job_assignment_suspicion` | Hourly (and on manual request, one assignment by id): pages through all unchecked assignments, reviews each against a bounded visual + communication context, and writes one idempotent suspicion log only when the model judges the evidence suspicious. |
+| Policy     | `field_ops_controller`            | Full command of the operational records and both apps; the audit ledgers (communications, reviews, suspicion logs) are append-only.                                                                                                                       |
+| Policy     | `field_ops_contractor`            | Requestor-scoped grants: assigned sites/jobs, own assignments (read + update, `assignee_user_id = requestor`), own variations (read + create/update behind the variation approval flow), own evidence (read + create).                                    |
+| Policy     | `field_ops_whatsapp`              | The WhatsApp envoy's directly declared ceiling: read and update the caller's own assignments, and read the jobs and sites behind them. No creates, deletes, evidence or apps.                                                                             |
+| Policy     | `suspicion_review_automation`     | The review automation's authority: unchecked assignments only, append-only review records and suspicion logs, and the single `suspicion_checked_at` stamp that closes the review.                                                                         |
+| Seed       | —                                 | Fixture data is host-owned and lives in the repository seed bank (there is no `src/+seed.ts` compiler role). Its job/photo map is audited against the WhatsApp transcript; the weekly roster CSV lives in `assets/` with its own README.                  |
 
 The controller reads jobs, assignments, people, sites, and open suspicion logs directly from the
 sync-backed collections. Its board cards and map points are local projections of those rows, so they
@@ -158,7 +162,7 @@ src/
 │   ├── suspicion_reviews/          the review ledger (controller-only)
 │   └── suspicious_activity_logs/   the suspicion judgements and their controller resolution
 ├── datatypes/
-│   └── photo_source/               where a photo came from: workspace upload or a channel message
+│   └── photo_source/               where a photo came from: workspace upload or an envoy message
 ├── i18n/                           messages.en.json + messages.zh.json (identical key sets)
 ├── lib/                            typed workspace client shared by server roles
 ├── automations/                    +review_job_assignment_suspicion.ts and the shared suspicion-review.ts
@@ -175,7 +179,7 @@ and agent — not only the UI:
 - Assignment identity cannot be moved after dispatch; a reported location beyond the site tolerance
   forces `suspect` (one-way); completion advances the job state.
 - Photo evidence: JPEG/PNG only, exactly one parent, fingerprints and integrity flags recorded;
-  its asset, parent, and channel provenance cannot be swapped after those checks settle.
+  its asset, parent, and envoy provenance cannot be swapped after those checks settle.
 
 ### How photo integrity works
 
@@ -213,7 +217,7 @@ pnpm lint    # prettier --check + svelte-check
 - Never hand-edit `.norbital/` generated output. `sync` may update `.norbital/migrations/`; commit
   that history alongside the authored change. Model edits are the only thing that should produce a
   migration.
-- Seed data stays host-owned in the repository seed bank; tenant fixtures belong in `src/+seed.ts` (deliberately absent here).
+- Seed data stays host-owned in the repository seed bank; there is no `src/+seed.ts` compiler role (fixtures never live in a template).
 - The seed bank treats transcript job reports and their textual photo references as authoritative.
   It never reparents a simulated wrong-site photo from an overlay, OCR, image content, upload burst,
   or filename timestamp; those contradictions are precisely what this template must detect.

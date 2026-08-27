@@ -1,5 +1,6 @@
 import { Effect } from 'effect';
-import type { WorkspaceInsert } from '$bolt/types.js';
+import type { CollectionMutationValues } from '@norbital-ai/bolt/authoring';
+import type { WorkspaceSchema } from '$bolt/types.js';
 import type { Hooks } from './$types.js';
 
 const immutableJudgementFields = [
@@ -26,7 +27,7 @@ type ResolutionTuple = {
 	readonly resolved_by?: string | null;
 };
 
-type SuspicionJudgement = WorkspaceInsert<'suspicious_activity_logs'>;
+type SuspicionJudgement = CollectionMutationValues<WorkspaceSchema, 'suspicious_activity_logs'>;
 type SuspicionJudgementReferences = Partial<
 	Pick<SuspicionJudgement, 'job_assignment_id' | 'origin' | 'review_id' | 'evidence_id'>
 >;
@@ -153,21 +154,21 @@ export default {
 				const [assignments, reviews, evidence] = yield* Effect.all(
 					[
 						assignmentIds.length
-							? api.db.query.job_assignments.findMany({
+							? api.db.job_assignments.findMany({
 									where: { id: { in: assignmentIds } },
 									columns: { id: true },
 									limit: SUSPICION_BATCH_LIMIT
 								})
 							: Effect.succeed([]),
 						reviewIds.length
-							? api.db.query.suspicion_reviews.findMany({
+							? api.db.suspicion_reviews.findMany({
 									where: { id: { in: reviewIds } },
 									columns: { id: true, job_assignment_id: true },
 									limit: SUSPICION_BATCH_LIMIT
 								})
 							: Effect.succeed([]),
 						evidenceIds.length
-							? api.db.query.photo_evidence.findMany({
+							? api.db.photo_evidence.findMany({
 									where: { id: { in: evidenceIds } },
 									columns: { id: true, job_assignment_id: true, variation_request_id: true },
 									limit: SUSPICION_BATCH_LIMIT
@@ -186,7 +187,7 @@ export default {
 					)
 				];
 				const variations = variationIds.length
-					? yield* api.db.query.variation_requests.findMany({
+					? yield* api.db.variation_requests.findMany({
 							where: { id: { in: variationIds } },
 							columns: { id: true, job_assignment_id: true },
 							limit: SUSPICION_BATCH_LIMIT

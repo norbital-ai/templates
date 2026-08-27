@@ -1,18 +1,18 @@
-import exifr from 'exifr';
 import { decode as decodePng } from 'fast-png';
 import { decode as decodeJpeg } from 'jpeg-js';
 import { deepDiff, safeParse } from '@norbital-ai/std/json';
 import { Effect, Exit, Option, Schema } from 'effect';
 import { hashPdq, pdqHashToHex } from './pdq.js';
 import { currentDate } from '../../lib/clock.js';
+import { parse as parseExif } from '../../lib/exif-parser.mjs';
 import { exceedsSiteTolerance, SITE_LOCATION_TOLERANCE_M } from '../../lib/geo.js';
 
 const exifSchema = Schema.Struct({
 	DateTimeOriginal: Schema.optional(Schema.Union([Schema.Date, Schema.String])),
 	CreateDate: Schema.optional(Schema.Union([Schema.Date, Schema.String])),
 	Software: Schema.optional(Schema.String),
-	GPSLatitude: Schema.optional(Schema.Number),
-	GPSLongitude: Schema.optional(Schema.Number)
+	latitude: Schema.optional(Schema.Number),
+	longitude: Schema.optional(Schema.Number)
 });
 
 type Exif = Schema.Schema.Type<typeof exifSchema>;
@@ -115,8 +115,8 @@ function expectedMimeType(format: 'jpeg' | 'png'): string {
 }
 
 function captureLocationFromExif(exif: Exif): { lat: number; lon: number } | null {
-	const lat = exif.GPSLatitude;
-	const lon = exif.GPSLongitude;
+	const lat = exif.latitude;
+	const lon = exif.longitude;
 	if (lat == null || lon == null) return null;
 	return { lat, lon };
 }
@@ -193,8 +193,13 @@ export const inspectPhoto = (input: { bytes: Uint8Array; mimeType: string; now?:
 
 		let exif: Exif = {};
 		const parsedExif = yield* Effect.tryPromise(() =>
-			exifr.parse(input.bytes, {
-				pick: ['DateTimeOriginal', 'CreateDate', 'Software', 'GPSLatitude', 'GPSLongitude']
+			parseExif(input.bytes, image.format, {
+				ifd0: { pick: ['Software'] },
+				exif: { pick: ['DateTimeOriginal', 'CreateDate'] },
+				// The reference tags are required for Exifr's derived signed decimal coordinates.
+				gps: {
+					pick: ['GPSLatitudeRef', 'GPSLatitude', 'GPSLongitudeRef', 'GPSLongitude']
+				}
 			})
 		).pipe(
 			Effect.map(decodeExif),

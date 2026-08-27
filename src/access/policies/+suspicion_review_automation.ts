@@ -20,11 +20,16 @@ const uncheckedAssignmentChild = {
 	$sql: '"job_assignment_id" IN (SELECT assignment.id FROM job_assignments assignment WHERE assignment.suspicion_checked_at IS NULL)'
 } as const;
 
+/** Linking collections only; every target collection already has its own generation edge. */
+const assignmentScopeDependencies = ['job_assignments'] as const;
+const siteScopeDependencies = ['jobs', 'job_assignments'] as const;
+const evidenceScopeDependencies = ['job_assignments', 'variation_requests'] as const;
+
 const referencesUncheckedAssignment = (
 	record: Readonly<{ job_assignment_id: string }>,
 	api: PolicyDecisionApi<WorkspaceSchema>
 ) =>
-	api.db.query.job_assignments
+	api.db.job_assignments
 		.findFirst({ where: { id: { eq: record.job_assignment_id } } })
 		.pipe(Effect.map((assignment) => assignment !== undefined));
 
@@ -43,13 +48,21 @@ export default {
 					record.suspicion_checked_at != null
 			}
 		},
-		jobs: { read: { where: uncheckedJob } },
-		sites: { read: { where: uncheckedSite } },
-		variation_requests: { read: { where: uncheckedVariation } },
-		photo_evidence: { read: { where: uncheckedEvidence } },
-		communication_logs: { read: { where: uncheckedAssignmentChild } },
+		jobs: {
+			read: { where: uncheckedJob, dependencies: assignmentScopeDependencies }
+		},
+		sites: { read: { where: uncheckedSite, dependencies: siteScopeDependencies } },
+		variation_requests: {
+			read: { where: uncheckedVariation, dependencies: assignmentScopeDependencies }
+		},
+		photo_evidence: {
+			read: { where: uncheckedEvidence, dependencies: evidenceScopeDependencies }
+		},
+		communication_logs: {
+			read: { where: uncheckedAssignmentChild, dependencies: assignmentScopeDependencies }
+		},
 		suspicious_activity_logs: {
-			read: { where: uncheckedAssignmentChild },
+			read: { where: uncheckedAssignmentChild, dependencies: assignmentScopeDependencies },
 			create: {
 				fields: ['job_assignment_id', 'origin', 'basis', 'review_id', 'evidence_id', 'reason'],
 				authorize: ({ record }, api) =>
@@ -57,7 +70,7 @@ export default {
 			}
 		},
 		suspicion_reviews: {
-			read: { where: uncheckedAssignmentChild },
+			read: { where: uncheckedAssignmentChild, dependencies: assignmentScopeDependencies },
 			create: {
 				fields: [
 					'job_assignment_id',

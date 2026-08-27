@@ -10,7 +10,6 @@
 	import type { RepresentationProps } from './$types.js';
 	import { CollectionForm } from '@norbital-ai/ui/collection-form';
 	import { Column, Grid } from '@norbital-ai/ui/layout';
-	import { RelationshipRenderer } from '@norbital-ai/ui/data-renderer/relationship';
 
 	let { record }: RepresentationProps = $props();
 
@@ -25,19 +24,16 @@
 		disabled
 	>
 		{#snippet children({ Field })}
+			<Field name="source_message_id" hidden />
 			<Grid minimum="compact">
 				<Column span="all">
 					<Field
 						name="job_assignment_id"
 						label={t('component.job_assignment')}
-						renderer={RelationshipRenderer}
-						rendererProps={{
-							target: 'job_assignments',
-							options: {
-								label: jobAssignmentLabel,
-								orderBy: { dispatched_at: 'desc' },
-								limit: 500
-							}
+						relationOptions={{
+							label: jobAssignmentLabel,
+							orderBy: { dispatched_at: 'desc' },
+							limit: 500
 						}}
 					/>
 				</Column>

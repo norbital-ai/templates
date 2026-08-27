@@ -77,6 +77,14 @@ const ownCommunication = {
 } as const;
 
 /**
+ * Exact linking collections for sync generations. The grant's own collection is deliberately absent:
+ * Bolt always advances that generation for direct writes to the target collection.
+ */
+const assignmentScopeDependencies = ['job_assignments'] as const;
+const siteScopeDependencies = ['jobs', 'job_assignments'] as const;
+const evidenceScopeDependencies = ['job_assignments', 'variation_requests'] as const;
+
+/**
  * Read masks are part of the security boundary, not presentation preferences.
  *
  * A record can carry processing and provenance fields used by dispatch without making those fields
@@ -176,12 +184,14 @@ export default {
 		sites: {
 			read: {
 				where: assignedSite,
+				dependencies: siteScopeDependencies,
 				fields: siteReadFields
 			}
 		},
 		jobs: {
 			read: {
 				where: assignedJob,
+				dependencies: assignmentScopeDependencies,
 				fields: jobReadFields
 			}
 		},
@@ -198,11 +208,12 @@ export default {
 		variation_requests: {
 			read: {
 				where: ownVariation,
+				dependencies: assignmentScopeDependencies,
 				fields: variationReadFields
 			},
 			create: {
 				authorize: ({ record }, api) =>
-					api.db.query.job_assignments
+					api.db.job_assignments
 						.findFirst({ where: { id: { eq: record.job_assignment_id } } })
 						.pipe(Effect.map((assignment) => assignment !== undefined)),
 				fields: variationCreateFields,
@@ -210,7 +221,7 @@ export default {
 			},
 			update: {
 				authorize: ({ record }, api) =>
-					api.db.query.job_assignments
+					api.db.job_assignments
 						.findFirst({ where: { id: { eq: record.job_assignment_id } } })
 						.pipe(Effect.map((assignment) => assignment !== undefined)),
 				fields: variationUpdateFields,
@@ -220,6 +231,7 @@ export default {
 		photo_evidence: {
 			read: {
 				where: ownEvidence,
+				dependencies: evidenceScopeDependencies,
 				fields: evidenceReadFields
 			},
 			create: {
@@ -227,14 +239,14 @@ export default {
 					Effect.gen(function* () {
 						if (record.job_assignment_id !== null) {
 							return (
-								(yield* api.db.query.job_assignments.findFirst({
+								(yield* api.db.job_assignments.findFirst({
 									where: { id: { eq: record.job_assignment_id } }
 								})) !== undefined
 							);
 						}
 						if (record.variation_request_id === null) return false;
 						return (
-							(yield* api.db.query.variation_requests.findFirst({
+							(yield* api.db.variation_requests.findFirst({
 								where: { id: { eq: record.variation_request_id } }
 							})) !== undefined
 						);
@@ -245,6 +257,7 @@ export default {
 		communication_logs: {
 			read: {
 				where: ownCommunication,
+				dependencies: assignmentScopeDependencies,
 				fields: communicationReadFields
 			}
 		}

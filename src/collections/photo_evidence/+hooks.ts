@@ -1,7 +1,8 @@
 import { hexToBinaryEmbedding } from '@norbital-ai/bolt/authoring';
 import type { CollectionHooks } from '@norbital-ai/bolt/authoring';
 import { Effect, Schema } from 'effect';
-import type { WorkspaceInsert, WorkspaceSchema } from '$bolt/types.js';
+import type { CollectionMutationValues } from '@norbital-ai/bolt/authoring';
+import type { WorkspaceSchema } from '$bolt/types.js';
 import type { Hooks } from './$types.js';
 import { photoSourceValueSchema } from '../../datatypes/photo_source/+definition.js';
 import { coordinatesOf, type LocationLike } from '../../lib/geo.js';
@@ -37,7 +38,18 @@ type PhotoBeforeApi = Parameters<PhotoCreateBefore['handler']>[0]['api'];
 type PhotoAfterApi = Parameters<PhotoCreateAfter['handler']>[0]['api'];
 type PhotoCreateInput = Schema.Schema.Type<typeof photoEvidenceCreateInput>;
 type PhotoRecord = Parameters<PhotoCreateAfter['handler']>[0]['record'];
-type PhotoCreateMutation = WorkspaceInsert<'photo_evidence'>;
+/**
+ * What `prepare` hands the create path: the insert branch of the collection's declarative write.
+ *
+ * `CollectionMutationValues` is the whole write shape — create *or* update — and the update branch
+ * makes every column optional. A prepared create is not optional in any of them, so the branch that
+ * carries the required columns is the one named here; `sha256` is required on insert and absent
+ * from no created photo, which is what picks it out.
+ */
+type PhotoCreateMutation = Extract<
+	CollectionMutationValues<WorkspaceSchema, 'photo_evidence'>,
+	{ readonly sha256: string }
+>;
 
 /**
  * The parent chain every photo in the batch hangs off, walked once for all of them.
@@ -138,7 +150,7 @@ function assignmentIdsForEvidence(
 	];
 	if (variationIds.length === 0) return Effect.succeed(new Map<string, string | null>());
 	return Effect.map(
-		api.db.query.variation_requests.findMany({
+		api.db.variation_requests.findMany({
 			where: { id: { in: variationIds } },
 			columns: { id: true, job_assignment_id: true },
 			limit: Math.max(1, variationIds.length)
@@ -161,19 +173,21 @@ function runAfterPhoto(
 		} as const;
 		const [exactMatches, visualMatches] = yield* Effect.all(
 			[
-				api.db.query.photo_evidence.findMany({
+				api.db.photo_evidence.findMany({
 					where: { sha256: { eq: record.sha256 } },
 					columns,
 					// Read past same-assignment copies before applying the 20-match evidence cap below.
 					limit: MAX_EXACT_DUPLICATE_CANDIDATES + 1
 				}),
-				api.db.query.photo_evidence.findNearest({
+				api.db.photo_evidence.findNearest({
 					column: 'perceptual_embedding',
 					probe: record.perceptual_embedding,
 					metric: 'l2',
 					maxDistance: VISUAL_DUPLICATE_MAX_L2,
 					limit: 50,
-					excludeIds: [record.id]
+					columns,
+					// The probe's own row is nearest to itself; excluding it is the ordinary where clause.
+					where: { id: { ne: record.id } }
 				})
 			],
 			{ concurrency: 'unbounded' }
@@ -214,13 +228,11 @@ function runAfterPhoto(
 			matchedIds.add(candidate.id);
 		}
 		const mergedFlags = [...flags];
-		yield* api.db.photo_evidence.mutate([
-			{
-				id: record.id,
-				flags: mergedFlags,
-				matched_evidence_ids: [...matchedIds]
-			}
-		]);
+		yield* api.db.photo_evidence.mutate({
+			id: record.id,
+			flags: mergedFlags,
+			matched_evidence_ids: [...matchedIds]
+		});
 	});
 }
 
@@ -268,7 +280,7 @@ export default {
 					)
 				];
 				const variations = variationIds.length
-					? yield* api.db.query.variation_requests.findMany({
+					? yield* api.db.variation_requests.findMany({
 							where: { id: { in: variationIds } },
 							columns: { id: true, job_assignment_id: true },
 							limit: MAX_BATCH_DUPLICATE_CORPUS
@@ -288,7 +300,7 @@ export default {
 					])
 				];
 				const assignments = assignmentIds.length
-					? yield* api.db.query.job_assignments.findMany({
+					? yield* api.db.job_assignments.findMany({
 							where: { id: { in: assignmentIds } },
 							columns: { id: true, job_id: true },
 							limit: MAX_BATCH_DUPLICATE_CORPUS
@@ -303,7 +315,7 @@ export default {
 					)
 				];
 				const jobs = jobIds.length
-					? yield* api.db.query.jobs.findMany({
+					? yield* api.db.jobs.findMany({
 							where: { id: { in: jobIds } },
 							columns: { id: true, site_id: true },
 							limit: MAX_BATCH_DUPLICATE_CORPUS
@@ -312,7 +324,7 @@ export default {
 				const siteByJob = new Map(jobs.map((job) => [job.id, job.site_id]));
 				const siteIds = [...new Set(jobs.flatMap((job) => (job.site_id ? [job.site_id] : [])))];
 				const sites = siteIds.length
-					? yield* api.db.query.sites.findMany({
+					? yield* api.db.sites.findMany({
 							where: { id: { in: siteIds } },
 							columns: { id: true, location: true },
 							limit: MAX_BATCH_DUPLICATE_CORPUS

@@ -40,14 +40,14 @@ export default {
 					)
 				];
 				const assignments = assignmentIds.length
-					? yield* api.db.query.job_assignments.findMany({
+					? yield* api.db.job_assignments.findMany({
 							where: { id: { in: assignmentIds } },
 							columns: { id: true },
 							limit: VARIATION_BATCH_LIMIT
 						})
 					: [];
 				const taken = sourceMessageIds.length
-					? yield* api.db.query.variation_requests.findMany({
+					? yield* api.db.variation_requests.findMany({
 							where: { source_message_id: { in: sourceMessageIds } },
 							columns: { source_message_id: true },
 							limit: VARIATION_BATCH_LIMIT

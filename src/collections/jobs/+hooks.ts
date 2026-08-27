@@ -25,7 +25,7 @@ export default {
 			];
 			if (siteIds.length === 0) return Effect.succeed({ siteIds: new Set<string>() });
 			return Effect.map(
-				api.db.query.sites.findMany({
+				api.db.sites.findMany({
 					where: { id: { in: siteIds } },
 					columns: { id: true },
 					limit: SITE_BATCH_LIMIT
