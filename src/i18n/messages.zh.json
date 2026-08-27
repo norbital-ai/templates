@@ -156,7 +156,7 @@
 	"component.suspicion_resolution": "处理结论",
 	"component.suspicion_basis": "证据依据",
 	"component.suspicion_resolved_at": "处理于 {instant}",
-	"component.suspicion_resolution_missing": "此旧记录已标记为处理完成，但处理结论文本不可用。",
+	"component.suspicion_resolution_missing": "此记录已标记为处理完成，但处理结论文本不可用。",
 	"component.suspicion_resolve_from_assignment": "请打开任务分配中的“疑点记录”标签页，在查看证据后处理此判断。",
 	"component.communication_logs": "沟通记录",
 	"component.communication_logs_description": "按发送顺序显示为此任务分配捕获的消息。",

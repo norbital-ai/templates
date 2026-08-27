@@ -156,7 +156,7 @@
 	"component.suspicion_resolution": "Resolution",
 	"component.suspicion_basis": "Evidence basis",
 	"component.suspicion_resolved_at": "Resolved {instant}",
-	"component.suspicion_resolution_missing": "This legacy record is marked resolved, but its resolution text is unavailable.",
+	"component.suspicion_resolution_missing": "This record is marked resolved, but its resolution text is unavailable.",
 	"component.suspicion_resolve_from_assignment": "Open the assignment's Suspicion logs tab to review the evidence and resolve this judgement.",
 	"component.communication_logs": "Communication logs",
 	"component.communication_logs_description": "Messages captured for this assignment, shown in the order they were sent.",
