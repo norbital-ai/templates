@@ -2,7 +2,7 @@ import { Effect } from 'effect';
 import type { Hooks } from './$types.js';
 
 export default {
-	update: {
+	mutate: {
 		perRecord: {
 			before: {
 				description: 'Keeps every automated suspicion decision and its evidence basis immutable.',
