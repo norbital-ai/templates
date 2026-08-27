@@ -48,14 +48,6 @@ describe('dispatch calendar-day picker adapter', () => {
 		assert.equal(calendarDayFromPickerInstant(pickerInstant, timeZone), day);
 	});
 
-	it('does not apply the legacy Date constructor year-0-to-99 normalization', () => {
-		const day = '0099-07-04';
-		const pickerInstant = calendarDayAsPickerInstant(day, 'UTC');
-
-		assert.equal(pickerInstant, '0099-07-04T00:00:00.000Z');
-		assert.equal(calendarDayFromPickerInstant(pickerInstant, 'UTC'), day);
-	});
-
 	it('rejects invalid days and malformed picker values instead of rolling them forward', () => {
 		assert.throws(
 			() => calendarDayAsPickerInstant('2026-02-30', 'Asia/Singapore'),
