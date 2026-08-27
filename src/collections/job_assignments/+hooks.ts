@@ -1,3 +1,4 @@
+import type { MutateBeforeContext, MutateEditContext } from '@norbital-ai/bolt/authoring';
 import { Effect } from 'effect';
 import { currentInstantIso } from '../../lib/clock.js';
 import type { Api, Hooks, WorkspaceRow } from './$types.js';
@@ -9,15 +10,8 @@ type ComplianceTarget = Partial<
 	Pick<WorkspaceRow<'job_assignments'>, 'site_location_id' | 'worker_id'>
 >;
 
-/** The context a `mutate.before` handler receives, named so the two halves can be hoisted. */
-type BeforeContext = Parameters<
-	NonNullable<NonNullable<NonNullable<Hooks['mutate']>['perRecord']>['before']>['handler']
->[0];
-
-/** The same context on an edit, where `existing` is the stored row rather than undefined. */
-type EditContext = BeforeContext & {
-	readonly existing: NonNullable<BeforeContext['existing']>;
-};
+type BeforeContext = MutateBeforeContext<Hooks>;
+type EditContext = MutateEditContext<Hooks>;
 
 /** A create states the whole record and has no `existing`. */
 const beforeCreate = ({ input, api }: BeforeContext) =>
