@@ -141,8 +141,30 @@ export const payrollGrants = (...actions: ReadonlyArray<'read'>): Grants =>
 		grantsOn('payslip_sources', actions)
 	);
 
+/**
+ * Write access to the payroll result, for whoever may run payroll.
+ *
+ * The engine builds inside `payroll_runs.create.before` and `update.before`, and a `before` hook
+ * runs as the **requesting subject** — not elevated, the way `create.after` was. So the person who
+ * asks for a payroll is the person whose authority its payslips are written under, and without
+ * these grants a run refuses on its own output.
+ *
+ * That is a narrower arrangement than it looks, and narrower than the one it replaces:
+ *
+ *  - `payroll_runs.create` is what confers it in practice. There is no surface anywhere in this
+ *    workspace that creates a payslip on its own, and `createPayrollRunInput` is a closed struct —
+ *    a caller cannot smuggle `payslip_payroll_run` past it, so every payslip that reaches the
+ *    database was computed by the engine from approved inputs.
+ *  - The deletes are unchanged in kind but no longer separate in cause. A recalculation states the
+ *    run's complete set of payslips, and the ones left out are removed by that same statement; the
+ *    grants that used to exist for `clearRunResults` now serve the replacement it became.
+ */
 export const payrollRebuildGrants = (): Grants =>
-	mergeGrants(grantsOn('payslips', ['delete']), grantsOn('payslip_lines', ['delete']));
+	mergeGrants(
+		grantsOn('payslips', ['create', 'delete']),
+		grantsOn('payslip_lines', ['create', 'delete']),
+		grantsOn('payslip_sources', ['create', 'delete'])
+	);
 
 export const settlementLedgerGrants = (): Grants => grantsOn('payslip_sources', ['read']);
 

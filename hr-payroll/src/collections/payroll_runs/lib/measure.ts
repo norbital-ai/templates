@@ -324,6 +324,8 @@ type MeasureEmploymentOptions = {
 	readonly periodsRemaining: number;
 	readonly headcount: number;
 	readonly policy: SettlementPolicy;
+	/** `${agreement_id}:${sequence}` → what earlier PAID runs already took. See `gather.ts`. */
+	readonly consumedInstalments: ReadonlyMap<string, number>;
 };
 
 export function measureEmployment(options: MeasureEmploymentOptions): MeasuredEmployment {
@@ -840,7 +842,8 @@ export function measureEmployment(options: MeasureEmploymentOptions): MeasuredEm
 		configuration,
 		period: options.period,
 		cutoffDay,
-		subject
+		subject,
+		consumedInstalments: options.consumedInstalments
 	})) {
 		const running = (componentAmounts.get(line.label) ?? 0) + line.amount;
 		componentAmounts.set(line.label, running);
@@ -874,7 +877,7 @@ export function measureEmployment(options: MeasureEmploymentOptions): MeasuredEm
 function measureArrears(
 	options: Pick<
 		MeasureEmploymentOptions,
-		'bundle' | 'configuration' | 'periodsRemaining' | 'headcount' | 'policy'
+		'bundle' | 'configuration' | 'periodsRemaining' | 'headcount' | 'policy' | 'consumedInstalments'
 	>
 ): MeasuredEmployment['arrears'] {
 	const owed = options.bundle.arrearsFor;
@@ -901,7 +904,12 @@ function measureArrears(
 		salary: owed.salary,
 		periodsRemaining: options.periodsRemaining,
 		headcount: options.headcount,
-		policy: options.policy
+		policy: options.policy,
+		// Carried through rather than emptied, so the deferred pass sees the same loan facts this one
+		// does. Its deduction lines are discarded either way — only `gross` is read below — but a
+		// second, differently-informed view of the same agreement is the kind of thing that is true
+		// until somebody reads more than gross out of it.
+		consumedInstalments: options.consumedInstalments
 	});
 	// The deferred period's **gross**, by SETTLE's own definition of it and not a second one. What is
 	// owed for a month is what that month's payslip would have said was earned; charging statutory
@@ -924,6 +932,7 @@ type MeasureLoanInstalmentsOptions = {
 	readonly period: string;
 	readonly cutoffDay: number;
 	readonly subject: EligibilitySubject;
+	readonly consumedInstalments: ReadonlyMap<string, number>;
 };
 
 function measureLoanInstalments(options: MeasureLoanInstalmentsOptions): MeasuredLine[] {
@@ -938,8 +947,18 @@ function measureLoanInstalments(options: MeasureLoanInstalmentsOptions): Measure
 		const schedule = agreement.schedule ?? [];
 		for (const [index, row] of schedule.entries()) {
 			const due = dateKey(row.due_date) ?? String(row.due_date).slice(0, 10);
-			if (defaultPayPeriod(due, options.cutoffDay) !== options.period) continue;
-			const amount = cents(Number(row.amount));
+			/**
+			 * Due by now, not due exactly now.
+			 *
+			 * An instalment an earlier run could not take in full is still owed, and this is where it
+			 * is recovered — by re-deriving it from the schedule against what was actually taken,
+			 * rather than by a copy of it written into next month's entries. An instalment already
+			 * settled in full nets to zero here and produces no line, so the widened window costs a
+			 * subtraction and never a double deduction.
+			 */
+			if (defaultPayPeriod(due, options.cutoffDay) > options.period) continue;
+			const consumed = options.consumedInstalments.get(`${agreement.id}:${index + 1}`) ?? 0;
+			const amount = cents(Number(row.amount) - consumed);
 			if (amount <= 0) continue;
 			lines.push({
 				payComponent: component,

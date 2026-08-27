@@ -22,7 +22,7 @@ import { Effect } from 'effect';
 
 import { claimsForBundle, dedupeClaims } from './lib/claims.ts';
 import { withReadLog } from './lib/api.ts';
-import { clearRunResults, persistPayslips } from './lib/persist.ts';
+import { payrollRunGraph } from './lib/graph.ts';
 import payrollRunHooks from './+hooks.ts';
 import relationships from '../+relationship.ts';
 import {
@@ -215,26 +215,21 @@ function fakeApi(state, deleted) {
 	};
 }
 
-test('rebuilding a draft releases its settlement locks with its payslips', () => {
-	const state = {
-		payslips: [
-			{ id: 'p-1', payroll_run_id: 'run-1' },
-			{ id: 'p-other', payroll_run_id: 'run-2' }
-		]
-	};
-	const deleted = [];
-
-	Effect.runSync(clearRunResults(withReadLog(fakeApi(state, deleted)), 'run-1'));
-
-	// The payslips are all that is deleted. Their source rows go with them by the database's own
-	// cascade — `payslip_sources.payslip_id` is `ON DELETE CASCADE` — so a rebuild cannot re-claim
-	// against its own stale rows, and there is nothing left for this function to release.
-	assert.deepEqual(deleted, [['payslips', ['p-1']]]);
-	// Another run's payslips are untouched. This is why the lock is keyed to a run and not a boolean.
-	assert.deepEqual(
-		state.payslips.map((row) => row.id),
-		['p-other']
-	);
+/**
+ * A rebuild releases the previous build's locks, and nothing in this repository does it.
+ *
+ * `clearRunResults` used to: a `mutate` stating `payslip_payroll_run: []`, issued before the write
+ * that then stated the real list. Both statements said the same thing, because an included `many`
+ * relationship is the parent's complete desired state — so the second one already removed what the
+ * first one removed, and the pair only added a window in which a failure left a run with no results.
+ *
+ * What is left is one invariant, and it is load-bearing: the graph must **always state** the
+ * relationship. An omitted key means "touch nothing", so a run that produced no payslips and said
+ * nothing about them would keep the previous build's — a payroll reporting figures it did not
+ * calculate, with locks over records it did not read. Stating an empty list is what deletes them.
+ */
+test('a build always states its payslips, so a rebuild that produces none releases them all', () => {
+	assert.deepEqual(payrollRunGraph({ pending: [], period: '2026-03' }), []);
 });
 
 test('deleting a payroll run releases its settlement locks — the declarations that cascade', () => {
@@ -291,90 +286,72 @@ test('deleting a payroll run releases its settlement locks — the declarations 
  * nothing to consume or refuses before PERSIST. The mechanism is testable regardless of whether
  * the fixtures can reach it.
  */
-test('a run takes a settlement lock over every record it consumed', async () => {
-	const written = [];
-	// The payslips, their lines and their locks arrive as one graph under the run, so the double
-	// stands where the runtime does: it assigns each created payslip its identifier and hangs the
-	// nested rows off it. That link is no longer something the code under test carries — which is
-	// the point of the change this asserts against.
-	const api = {
-		db: {
-			payroll_runs: {
-				mutate: ({ payslip_payroll_run: payslips }) => {
-					(payslips ?? []).forEach((payslip, index) => {
-						const payslipId = `payslip-${index + 1}`;
-						for (const source of payslip.payslip_source_payslip ?? []) {
-							written.push({ payslip_id: payslipId, ...source });
-						}
-					});
-					return Effect.succeed(undefined);
-				}
-			}
-		}
-	};
-
-	const result = await Effect.runPromise(
-		persistPayslips({
-			api,
-			runId: 'run-1',
-			period: '2026-03',
-			pending: [
-				{
-					employmentId: 'emp-1',
-					currency: 'MYR',
-					settlement: {
-						lines: [
-							{
-								nature: 'EARNING',
-								amount: 1200,
-								quantity: null,
-								rate: null,
-								component: { kind: 'SCHEDULE', pay_component_id: 'pc-salary' }
-							},
-							{
-								nature: 'DEDUCTION',
-								amount: 80,
-								quantity: null,
-								rate: null,
-								component: {
-									kind: 'COMPONENT_ENTRY_ONCE',
-									pay_component_id: 'pc-allowance',
-									component_entry_id: 'ce-1'
-								}
-							},
-							{
-								nature: 'DEDUCTION',
-								amount: 50,
-								quantity: null,
-								rate: null,
-								component: {
-									kind: 'LOAN_INSTALMENT',
-									pay_component_id: 'pc-loan',
-									agreement_id: 'ag-1',
-									sequence: 1
-								}
+test('a run takes a settlement lock over every record it consumed', () => {
+	// No api, no `mutate`, no double for one. The run's whole result is a value now, so what used to
+	// need a fake database to observe is observed by reading the return.
+	const graph = payrollRunGraph({
+		period: '2026-03',
+		pending: [
+			{
+				employmentId: 'emp-1',
+				currency: 'MYR',
+				settlement: {
+					lines: [
+						{
+							nature: 'EARNING',
+							amount: 1200,
+							quantity: null,
+							rate: null,
+							component: { kind: 'SCHEDULE', pay_component_id: 'pc-salary' }
+						},
+						{
+							nature: 'DEDUCTION',
+							amount: 80,
+							quantity: null,
+							rate: null,
+							component: {
+								kind: 'COMPONENT_ENTRY_ONCE',
+								pay_component_id: 'pc-allowance',
+								component_entry_id: 'ce-1'
 							}
-						],
-						shortfalls: []
-					},
-					charges: [],
-					claims: [
-						{ kind: 'TIME_ENTRY', id: 'te-1' },
-						{ kind: 'LEAVE_REQUEST', id: 'lv-1' }
-					]
-				}
-			]
-		})
-	);
+						},
+						{
+							nature: 'DEDUCTION',
+							amount: 50,
+							quantity: null,
+							rate: null,
+							component: {
+								kind: 'LOAN_INSTALMENT',
+								pay_component_id: 'pc-loan',
+								agreement_id: 'ag-1',
+								sequence: 1
+							}
+						}
+					],
+					shortfalls: []
+				},
+				charges: [],
+				claims: [
+					{ kind: 'TIME_ENTRY', id: 'te-1' },
+					{ kind: 'LEAVE_REQUEST', id: 'lv-1' }
+				]
+			}
+		]
+	});
 
+	// A line carries no `payslip_id` and a source row carries no `payslip_id`: both are nested under
+	// the payslip that owns them, and the runtime fills the foreign key from the parent it assigned.
+	const written = graph.flatMap((payslip) => payslip.payslip_source_payslip);
+	assert.equal(graph.length, 1);
+	assert.equal(graph[0].payslip_line_payslip.length, 3);
 	// Attendance and leave need source rows because neither naturally produces a payslip line.
 	// Component entries and loan instalments are already direct generated foreign keys on the lines.
-	assert.equal(result.claimCount, 2);
+	assert.equal(written.length, 2);
 	assert.deepEqual(
-		written.map((row) => [row.payslip_id, row.source.kind, row.source.id]),
+		written.map((row) => [row.source.kind, row.source.id]),
 		[
-			['payslip-1', 'TIME_ENTRY', 'te-1'],
-			['payslip-1', 'LEAVE_REQUEST', 'lv-1']
+			['TIME_ENTRY', 'te-1'],
+			['LEAVE_REQUEST', 'lv-1']
 		]
 	);
 	// The period travels with the lock: two runs of different periods can each hold their own

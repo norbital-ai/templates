@@ -196,7 +196,8 @@ function measureApril(entries, options = {}) {
 		salary: { start: '2026-04-01', end: '2026-04-30' },
 		periodsRemaining: 9,
 		headcount: 1,
-		policy: PLAIN_CALENDAR
+		policy: PLAIN_CALENDAR,
+		consumedInstalments: new Map(options.consumedInstalments ?? [])
 	});
 }
 
@@ -333,4 +334,63 @@ test('an as-assigned worker derives their normalized load from that month s WORK
 	assert.equal(measured.schedule.get('2026-04-01').shift.code, 'PT-AM');
 	assert.equal(measured.schedule.get('2026-04-01').normalHours, 4);
 	assert.ok(Number.isFinite(measured.ordinaryHourlyRate));
+});
+
+/**
+ * What a run could not take is not carried anywhere — it is simply still owed.
+ *
+ * The version this replaces wrote the shortfall into a **new `component_entries` row** dated next
+ * month, one facility call per employee, guarded by a `persistShortfalls` that had to delete last
+ * build's copies before writing this build's so a rebuild could not make somebody owe the same
+ * money twice. That was a second representation of a debt the agreement already records, and every
+ * one of its failure modes came from the two copies disagreeing.
+ *
+ * The debt now stays where it was born. What a run took is on the payslip line that took it, so
+ * what is outstanding is the schedule minus the sum of those lines — read from earlier PAID runs by
+ * `gather.ts` and handed here. These three tests are that arithmetic: nothing taken, something
+ * taken, everything taken.
+ */
+test('an untouched instalment is deducted in full', () => {
+	const measured = measureApril([], {
+		agreements: [agreement([instalment('2026-04-01', 167)])],
+		consumedInstalments: []
+	});
+	const loanLines = measured.lines.filter((line) => line.payComponent.code === 'HARI_RAYA_2026');
+	assert.equal(loanLines.length, 1);
+	assert.equal(loanLines[0].amount, 167);
+});
+
+test('an instalment an earlier run could only part-pay is re-derived for the remainder', () => {
+	// March took 100 of the 167 because net reached zero. April owes the other 67 — and finds it by
+	// subtracting what was taken from what the schedule says, never by reading a carried-forward row.
+	const measured = measureApril([], {
+		agreements: [agreement([instalment('2026-03-01', 167)])],
+		consumedInstalments: [['agr-hari-raya-2026:1', 100]]
+	});
+	const loanLines = measured.lines.filter((line) => line.payComponent.code === 'HARI_RAYA_2026');
+
+	assert.equal(loanLines.length, 1, 'the unpaid remainder must still be recovered');
+	assert.equal(loanLines[0].amount, 67);
+	assert.equal(
+		loanLines[0].component.sequence,
+		1,
+		'the remainder belongs to the instalment it came from, not to a new one'
+	);
+});
+
+test('an instalment already settled in full produces no line at all', () => {
+	// The widened due-date window is what makes catching up possible, and this is what stops it
+	// becoming a second deduction: a settled instalment nets to zero and never reaches a payslip.
+	const measured = measureApril([], {
+		agreements: [agreement([instalment('2026-03-01', 167), instalment('2026-04-01', 167)])],
+		consumedInstalments: [
+			['agr-hari-raya-2026:1', 167],
+			['agr-hari-raya-2026:2', 0]
+		]
+	});
+	const loanLines = measured.lines
+		.filter((line) => line.payComponent.code === 'HARI_RAYA_2026')
+		.map((line) => [line.component.sequence, line.amount]);
+
+	assert.deepEqual(loanLines, [[2, 167]], 'only the instalment still owed may appear');
 });
