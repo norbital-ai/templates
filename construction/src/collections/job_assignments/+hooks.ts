@@ -9,38 +9,48 @@ type ComplianceTarget = Partial<
 	Pick<WorkspaceRow<'job_assignments'>, 'site_location_id' | 'worker_id'>
 >;
 
+/** The context a `mutate.before` handler receives, named so the two halves can be hoisted. */
+type BeforeContext = Parameters<
+	NonNullable<NonNullable<NonNullable<Hooks['mutate']>['perRecord']>['before']>['handler']
+>[0];
+
+/** The same context on an edit, where `existing` is the stored row rather than undefined. */
+type EditContext = BeforeContext & {
+	readonly existing: NonNullable<BeforeContext['existing']>;
+};
+
+/** A create states the whole record and has no `existing`. */
+const beforeCreate = ({ input, api }: BeforeContext) =>
+	Effect.map(
+		validateJobAssignmentCompliance(
+			{ site_location_id: input.site_location_id, worker_id: input.worker_id },
+			api
+		),
+		() => input
+	);
+
+/** An edit lands on a stored row; `existing` is what tells the two apart. */
+const beforeUpdate = ({ input, existing, api }: EditContext) => {
+	const record = { ...existing, ...input };
+	return Effect.map(
+		validateJobAssignmentCompliance(
+			{ site_location_id: record.site_location_id, worker_id: record.worker_id },
+			api
+		),
+		() => input
+	);
+};
+
 export default {
-	create: {
+	mutate: {
 		perRecord: {
 			before: {
 				description:
-					'Refuses a new job assignment unless the worker holds active permits to work covering every certification required by a job at that site location.',
-				handler: ({ input, api }) =>
-					Effect.map(
-						validateJobAssignmentCompliance(
-							{ site_location_id: input.site_location_id, worker_id: input.worker_id },
-							api
-						),
-						() => input
-					)
-			}
-		}
-	},
-	update: {
-		perRecord: {
-			before: {
-				description:
-					'Re-checks the worker against the site location whenever either is changed, so an assignment cannot be moved onto work the worker is not certified for.',
-				handler: ({ input, existing, api }) => {
-					const record = { ...existing, ...input };
-					return Effect.map(
-						validateJobAssignmentCompliance(
-							{ site_location_id: record.site_location_id, worker_id: record.worker_id },
-							api
-						),
-						() => input
-					);
-				}
+					'Refuses a new job assignment unless the worker holds active permits to work covering every certification required by a job at that site location. Re-checks the worker against the site location whenever either is changed, so an assignment cannot be moved onto work the worker is not certified for.',
+				handler: (context) =>
+					context.existing === undefined
+						? beforeCreate(context)
+						: beforeUpdate({ ...context, existing: context.existing })
 			}
 		}
 	}

@@ -132,8 +132,34 @@ export function assertResolutionTransition(
 	}
 }
 
+/** The context a `mutate.before` handler receives, named so the two halves can be hoisted. */
+type BeforeContext = Parameters<
+	NonNullable<
+		NonNullable<NonNullable<Hooks<SuspicionCreatePrepared>['mutate']>['perRecord']>['before']
+	>['handler']
+>[0];
+
+/** The same context on an edit, where `existing` is the stored row rather than undefined. */
+type EditContext = BeforeContext & {
+	readonly existing: NonNullable<BeforeContext['existing']>;
+};
+
+/** A create states the whole record and has no `existing`. */
+const beforeCreate = ({ input, prepared }: BeforeContext) => {
+	const normalized = normalizeOpenJudgement(input);
+	assertOpenJudgement(normalized);
+	assertJudgementReferences(normalized, prepared);
+	return normalized;
+};
+
+/** An edit lands on a stored row; `existing` is what tells the two apart. */
+const beforeUpdate = ({ input, existing }: EditContext) => {
+	assertResolutionTransition(input, existing);
+	return input;
+};
+
 export default {
-	create: {
+	mutate: {
 		prepare: ({ inputs, api }) =>
 			Effect.gen(function* () {
 				const assignmentIds = [
@@ -215,25 +241,11 @@ export default {
 		perRecord: {
 			before: {
 				description:
-					'Creates an open AI or authorized-human judgement with a stable source key and immutable evidence basis.',
-				handler: ({ input, prepared }) => {
-					const normalized = normalizeOpenJudgement(input);
-					assertOpenJudgement(normalized);
-					assertJudgementReferences(normalized, prepared);
-					return normalized;
-				}
-			}
-		}
-	},
-	update: {
-		perRecord: {
-			before: {
-				description:
-					'Keeps the judgement immutable and permits exactly one atomic open-to-resolved transition.',
-				handler: ({ input, existing }) => {
-					assertResolutionTransition(input, existing);
-					return input;
-				}
+					'Creates an open AI or authorized-human judgement with a stable source key and immutable evidence basis. Keeps the judgement immutable and permits exactly one atomic open-to-resolved transition.',
+				handler: (context) =>
+					context.existing === undefined
+						? beforeCreate(context)
+						: beforeUpdate({ ...context, existing: context.existing })
 			}
 		}
 	},
