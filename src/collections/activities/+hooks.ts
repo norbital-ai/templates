@@ -3,7 +3,7 @@ import { currentDeskDate } from '../../lib/clock.js';
 import type { Hooks } from './$types.js';
 
 export default {
-	create: {
+	mutate: {
 		perRecord: {
 			before: {
 				description:

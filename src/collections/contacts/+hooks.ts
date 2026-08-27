@@ -29,7 +29,7 @@ const accountsByIds = (api: PrepareApi) => (ids: readonly string[]) =>
 	});
 
 export default {
-	create: {
+	mutate: {
 		prepare: ({ inputs, api }) =>
 			Effect.map(
 				rowsById(inputs, (input) => input.account_id, accountsByIds(api)),

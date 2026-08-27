@@ -1,7 +1,7 @@
 import type { Hooks } from './$types.js';
 
 export default {
-	update: {
+	mutate: {
 		perRecord: {
 			before: {
 				description:
