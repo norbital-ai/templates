@@ -377,7 +377,12 @@ test('an overtime adjustment names the statutory band, the work day, and no pay 
 	assert.deepEqual(row.source, { kind: 'WORK_DAY', id: day.id });
 
 	// And no catalogue row was consulted to produce it: this company's catalogue has two rows.
-	assert.deepEqual(paid(measured).map((item) => item.label).toSorted(), ['BASIC', OT_ORDINARY]);
+	assert.deepEqual(
+		paid(measured)
+			.map((item) => item.label)
+			.toSorted(),
+		['BASIC', OT_ORDINARY]
+	);
 });
 
 test('an obligation settles by the money cut-off, not by the month it is dated in', () => {

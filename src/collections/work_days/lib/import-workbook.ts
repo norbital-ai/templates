@@ -108,11 +108,14 @@ function readSheet<TRow>(
 	if (isMonthGridImportHeaders(table.headers)) {
 		return options.monthGrid(table, settings.month);
 	}
-	throw new WorkbookImportError(`The "${sheetName}" sheet is missing the columns the import needs.`, [
-		'A month grid needs day-number or YYYY-MM-DD columns, as the import template has.',
-		`A long-form sheet needs ${options.longFormColumns.join(', ')}.`,
-		`Columns found: ${table.headers.filter((header) => header !== '').join(', ') || '(none)'}.`
-	]);
+	throw new WorkbookImportError(
+		`The "${sheetName}" sheet is missing the columns the import needs.`,
+		[
+			'A month grid needs day-number or YYYY-MM-DD columns, as the import template has.',
+			`A long-form sheet needs ${options.longFormColumns.join(', ')}.`,
+			`Columns found: ${table.headers.filter((header) => header !== '').join(', ') || '(none)'}.`
+		]
+	);
 }
 
 /** Blank shift cells are absent assignments, not inferred rest days. */

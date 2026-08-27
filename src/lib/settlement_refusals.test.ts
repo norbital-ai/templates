@@ -37,7 +37,11 @@ test('the ceiling is what earlier paid runs already took, not what one run takes
 	// instalments recovered across eleven runs, each of them a separate payslip claiming the same
 	// obligation. Every one of these is legitimate.
 	for (const consumed of [0, 100, 500, 1100]) {
-		assert.equal(overConsumesObligation(consumption({ consumed, proposed: 100 })), false, `${consumed}`);
+		assert.equal(
+			overConsumesObligation(consumption({ consumed, proposed: 100 })),
+			false,
+			`${consumed}`
+		);
 	}
 	// And the twelfth run, which would take the loan past its principal, is not.
 	assert.equal(overConsumesObligation(consumption({ consumed: 1200, proposed: 100 })), true);
@@ -47,9 +51,15 @@ test('the ceiling is what earlier paid runs already took, not what one run takes
 test('a part-recovered instalment may be finished by a later run', () => {
 	// The shortfall case in full. A run could only afford 40 of a 100 instalment; nothing is copied
 	// into a fresh row, so the next run comes back for the remaining 60 against the same obligation.
-	assert.equal(overConsumesObligation(consumption({ entitlement: 100, consumed: 40, proposed: 60 })), false);
+	assert.equal(
+		overConsumesObligation(consumption({ entitlement: 100, consumed: 40, proposed: 60 })),
+		false
+	);
 	// Asking for 61 is one more than the obligation is worth, and that is the whole rule.
-	assert.equal(overConsumesObligation(consumption({ entitlement: 100, consumed: 40, proposed: 61 })), true);
+	assert.equal(
+		overConsumesObligation(consumption({ entitlement: 100, consumed: 40, proposed: 61 })),
+		true
+	);
 });
 
 test('rounding is not over-consumption, and a cent past rounding is', () => {
@@ -85,5 +95,8 @@ test('the refusal names itself, the obligation, what is left, and what was asked
 
 	// An obligation with no customer reference still produces a readable sentence rather than
 	// "Obligation null".
-	assert.match(obligationOverConsumedMessage(consumption({ reference: null })), /^OBLIGATION_OVER_CONSUMED: This obligation/);
+	assert.match(
+		obligationOverConsumedMessage(consumption({ reference: null })),
+		/^OBLIGATION_OVER_CONSUMED: This obligation/
+	);
 });

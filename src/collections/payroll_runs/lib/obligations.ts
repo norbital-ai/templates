@@ -80,10 +80,7 @@ export function obligationSign(
  * not January's — so cap membership and the event date follow the root, while run membership
  * follows the reversal's own `pay_period` (decision L16 / L20).
  */
-function rootObligation(
-	obligation: Obligation,
-	byId: ReadonlyMap<string, Obligation>
-): Obligation {
+function rootObligation(obligation: Obligation, byId: ReadonlyMap<string, Obligation>): Obligation {
 	let current = obligation;
 	let depth = 0;
 	while (current.terms === 'REVERSAL' && depth < MAX_REVERSAL_DEPTH) {
@@ -108,7 +105,8 @@ export function obligationPayPeriod(obligation: Obligation, cutoffDay: number): 
 	const incurred = claimIncurredOn(obligation);
 	if (incurred != null) return defaultPayPeriod(incurred, cutoffDay);
 	const eventDate = dateKey(obligation.event_date);
-	if (eventDate == null) throw new Error(`Obligation ${obligation.id} has no event date to settle by.`);
+	if (eventDate == null)
+		throw new Error(`Obligation ${obligation.id} has no event date to settle by.`);
 	return defaultPayPeriod(eventDate, cutoffDay);
 }
 

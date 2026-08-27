@@ -51,10 +51,7 @@ import manager from '../access/policies/+manager.ts';
 import seniorManagement from '../access/policies/+senior_management.ts';
 import hrController from '../access/policies/+hr_controller.ts';
 import hrManager from '../access/policies/+hr_manager.ts';
-import {
-	WORK_DAY_ATTENDANCE_FIELDS,
-	WORK_DAY_PLANNED_FIELDS
-} from './policy_grants.ts';
+import { WORK_DAY_ATTENDANCE_FIELDS, WORK_DAY_PLANNED_FIELDS } from './policy_grants.ts';
 
 /** Keyed by the filename each one was imported from: the filename is the policy's only name. */
 const policiesByFileKey = {
@@ -99,7 +96,10 @@ test('a supervisor cannot edit attendance on their own authority', () => {
 	// A write that carries attendance is reviewed. `worked_intervals` present — even as the empty
 	// array, which claims "this day was read and nothing was worked" — is an attendance claim.
 	const create = grantFor(supervisor, 'work_days', 'create');
-	for (const worked of [[], [{ start: '2026-08-03T01:00:00.000Z', end: '2026-08-03T09:00:00.000Z' }]]) {
+	for (const worked of [
+		[],
+		[{ start: '2026-08-03T01:00:00.000Z', end: '2026-08-03T09:00:00.000Z' }]
+	]) {
 		const flow = create.approval.flow({
 			record: { employment_id: 'e', work_date: '2026-08-03', worked_intervals: worked }
 		});
@@ -140,7 +140,10 @@ test('no rank below HR may write the schedule half of a work day', () => {
 			// The mask has to be usable as well as narrow: a create that cannot say which person or
 			// which day is a grant that refuses every write it permits.
 			for (const identity of ['employment_id', 'work_date']) {
-				assert.ok(grant.fields.includes(identity), `${nameOf(policy)} ${action} cannot say ${identity}`);
+				assert.ok(
+					grant.fields.includes(identity),
+					`${nameOf(policy)} ${action} cannot say ${identity}`
+				);
 			}
 		}
 	}
@@ -196,7 +199,8 @@ test('the HR ranks keep both halves, and a roster edit is not reviewed as attend
 
 		const update = grantFor(policy, 'work_days', 'update');
 		assert.equal(
-			update.approval.flow({ previous: {}, changes: { assignment_code: 'AMRES' }, record: {} })._tag,
+			update.approval.flow({ previous: {}, changes: { assignment_code: 'AMRES' }, record: {} })
+				._tag,
 			'NoApproval'
 		);
 		assert.equal(
@@ -224,5 +228,9 @@ test('one team, one policy — so a field mask cannot be widened by a second gra
 	// cannot happen while every team holds exactly one policy, and this is the assertion that says
 	// so out loud, at the place the masks are.
 	for (const [team, held] of Object.entries(teams))
-		assert.equal(held.length, 1, `team ${team} holds more than one policy; the work_day masks union`);
+		assert.equal(
+			held.length,
+			1,
+			`team ${team} holds more than one policy; the work_day masks union`
+		);
 });

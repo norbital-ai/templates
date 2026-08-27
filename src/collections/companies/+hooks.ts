@@ -80,7 +80,7 @@ function assertPayCalendar(
 function assertReferences(
 	policy: SettlementPolicy | null | undefined,
 	api: Parameters<
-		NonNullable<NonNullable<NonNullable<Hooks['create']>['perRecord']>['before']>['handler']
+		NonNullable<NonNullable<NonNullable<Hooks['mutate']>['perRecord']>['before']>['handler']
 	>[0]['api']
 ): Effect.Effect<void, never, never> {
 	return Effect.gen(function* () {
@@ -119,27 +119,16 @@ function assertReferences(
 }
 
 export default {
-	create: {
+	mutate: {
 		perRecord: {
 			before: {
 				description:
-					'Refuses a company whose pay calendar does not tile a month, restates the monthly calendar, or whose settlement policy defers late-joiner arrears to a pay component that does not exist or cannot carry an entry, or names an unknown statutory contribution as the extended-unpaid-leave population.',
+					'Refuses a company whose pay calendar does not tile a month or restates the monthly calendar, and whose settlement policy defers late-joiner arrears to a pay component that does not exist or cannot carry an entry, or names an unknown statutory contribution as the extended-unpaid-leave population. Both are re-checked whenever either column is edited, so a cadence cannot be left with a month it half covers.',
 				handler: ({ input, api }) =>
 					Effect.gen(function* () {
-						yield* assertPayCalendar(input.pay_calendar);
-						yield* assertReferences(input.settlement_policy, api);
-						return input;
-					})
-			}
-		}
-	},
-	update: {
-		perRecord: {
-			before: {
-				description:
-					'Re-checks the company pay calendar and settlement policy whenever either is edited, so a cadence cannot be left with a month it half covers and an arrears component or extended-leave contribution scheme cannot be pointed at an id that no longer resolves.',
-				handler: ({ input, api }) =>
-					Effect.gen(function* () {
+						// Guarding on `!== undefined` rather than on whether this is a create: a create that
+						// states no calendar has nothing to check, and an update that does not touch the
+						// column must not be refused for a value it never sent.
 						if (input.pay_calendar !== undefined) yield* assertPayCalendar(input.pay_calendar);
 						if (input.settlement_policy !== undefined)
 							yield* assertReferences(input.settlement_policy, api);

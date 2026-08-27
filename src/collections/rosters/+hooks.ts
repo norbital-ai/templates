@@ -269,35 +269,30 @@ function assertPublishable(
 }
 
 export default {
-	create: {
-		perRecord: {
-			before: {
-				description: 'Requires a YYYY-MM company roster to start as a draft.',
-				handler: ({ input }) => {
-					if (!MONTH_PATTERN.test(input.month)) {
-						refuse(`Roster month must be written YYYY-MM, not "${input.month}".`);
-					}
-					if (input.published_at != null) {
-						refuse('Create the monthly roster as a draft, then publish it after review.');
-					}
-					return input;
-				}
-			}
-		}
-	},
-	update: {
+	mutate: {
 		perRecord: {
 			before: {
 				description:
-					'Pins the legal entity and month, then validates explicit assignments against each employment work pattern before publication.',
+					'Requires a YYYY-MM company roster to start as a draft, then pins its legal entity and month and validates explicit assignments against each employment work pattern before publication.',
 				handler: ({ input, existing, api }) => {
+					// A create states the month; an edit may omit it. Checking the shape whenever it is
+					// stated covers both without asking which operation this is.
+					if (input.month != null && !MONTH_PATTERN.test(input.month)) {
+						refuse(`Roster month must be written YYYY-MM, not "${input.month}".`);
+					}
+					if (existing === undefined) {
+						if (input.published_at != null) {
+							refuse('Create the monthly roster as a draft, then publish it after review.');
+						}
+						return Effect.succeed(input);
+					}
 					if (input.month != null && input.month !== existing.month) {
 						refuse('A roster month cannot be moved after its dated assignments exist.');
 					}
 					if (input.company_id != null && input.company_id !== existing.company_id) {
 						refuse('A monthly roster cannot be moved to another legal entity.');
 					}
-					// Only the draft → published transition has anything left to validate.
+					// Only the draft -> published transition has anything left to validate.
 					if (input.published_at == null || existing.published_at != null) {
 						return Effect.succeed(input);
 					}

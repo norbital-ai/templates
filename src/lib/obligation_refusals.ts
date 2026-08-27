@@ -24,11 +24,14 @@
  */
 
 /** The columns the arm rule reads. Anything that can produce a candidate row can supply these. */
-export type ObligationTermsCandidate = Readonly<{
+type ObligationTermsCandidate = Readonly<{
 	readonly terms: string;
 	readonly occasion?: string | null;
 	readonly effective_range?: unknown;
-	readonly instalments?: ReadonlyArray<{ readonly due_date: string; readonly amount: number }> | null;
+	readonly instalments?: ReadonlyArray<{
+		readonly due_date: string;
+		readonly amount: number;
+	}> | null;
 	readonly note?: string | null;
 	readonly reason?: string | null;
 	readonly incurred_on?: string | null;
@@ -143,7 +146,9 @@ export const obligationTermsIssues = (
 	//    on every arm — the failure mode a positive list has and this one does not.
 	const permitted = new Set<string>([...allowed, ...occasionPayload]);
 	const carrier =
-		candidate.terms === 'ONE_OFF' ? `A ${candidate.occasion} obligation` : `A ${candidate.terms} obligation`;
+		candidate.terms === 'ONE_OFF'
+			? `A ${candidate.occasion} obligation`
+			: `A ${candidate.terms} obligation`;
 	for (const column of PAYLOAD_COLUMNS) {
 		if (permitted.has(column) || !present(candidate[column])) continue;
 		issues.push(`${carrier} cannot carry ${LABELS[column]}.`);
@@ -160,7 +165,9 @@ export const obligationTermsIssues = (
 				if (periods.length === 0) issues.push('Arrears must name at least one period they cover.');
 				const malformed = periods.filter((period) => !PAY_PERIOD.test(period));
 				if (malformed.length > 0) {
-					issues.push(`These covered periods are not months written YYYY-MM: ${malformed.join(', ')}.`);
+					issues.push(
+						`These covered periods are not months written YYYY-MM: ${malformed.join(', ')}.`
+					);
 				}
 				if (!nonEmptyText(candidate.reason)) issues.push('Arrears must state a reason.');
 			}

@@ -9,7 +9,18 @@ type AttendanceState = Schema.Schema.Type<typeof attendanceStateSchema>;
  * A `worked_intervals` value read from storage is already decoded against the strict worked-
  * intervals schema at the write boundary, so these helpers read the typed intervals directly.
  */
-export function attendanceState(value: readonly WorkedInterval[]): AttendanceState {
+/**
+ * `null` and `[]` are different facts on a work day and must not be conflated.
+ *
+ * A merged `work_days` row carries a plan, attendance, or both. `worked_intervals` NULL means no
+ * attendance was ever recorded — the day is a plan and nothing else. `[]` means the day WAS read and
+ * nothing was worked, which is a settled statement payroll prices at zero. Collapsing the first into
+ * the second with `?? []` would report every unrecorded day as complete.
+ */
+export function attendanceState(
+	value: readonly WorkedInterval[] | null | undefined
+): AttendanceState {
+	if (value == null) return 'OPEN';
 	return value.some((interval) => interval.end == null) ? 'OPEN' : 'COMPLETE';
 }
 

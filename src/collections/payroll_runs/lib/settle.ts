@@ -138,10 +138,9 @@ export function settle(options: {
 					? [{ plane, index, amount: item.amount, component }]
 					: [];
 			});
-		const reducible = [
-			...collect(base, 'BASE'),
-			...collect(adjustments, 'ADJUSTMENT')
-		].toSorted((left, right) => Number(right.component.sequence) - Number(left.component.sequence));
+		const reducible = [...collect(base, 'BASE'), ...collect(adjustments, 'ADJUSTMENT')].toSorted(
+			(left, right) => Number(right.component.sequence) - Number(left.component.sequence)
+		);
 		const reducedBase = [...base];
 		const reducedAdjustments = [...adjustments];
 		let outstanding = -net;

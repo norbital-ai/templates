@@ -100,8 +100,9 @@
 						label={t('component.shift')}
 						relationOptions={{
 							label: (shift) =>
-								[shift.code, shift.name].filter((part) => part != null && part !== '').join(' · ') ||
-								'—',
+								[shift.code, shift.name]
+									.filter((part) => part != null && part !== '')
+									.join(' · ') || '—',
 							orderBy: { code: 'asc' },
 							limit: 500
 						}}
@@ -117,7 +118,9 @@
 						}}
 					/>
 					<Field name="assignment_code" label={t('component.source_roster_token')} />
-					<Column span="all"><Field name="planned_note" label={t('component.planned_note')} /></Column>
+					<Column span="all"
+						><Field name="planned_note" label={t('component.planned_note')} /></Column
+					>
 				</Grid>
 			</Stack>
 

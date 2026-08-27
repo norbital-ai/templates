@@ -578,14 +578,14 @@ Store a ledger only when the business fact cannot be represented by the originat
 paid payroll result. A ledger exists to preserve independently dated movements whose order and
 running balance matter.
 
-| Subject                        | Authoritative transaction                             | Separate ledger?         | Reason                                                                                                                               |
-| ------------------------------ | ----------------------------------------------------- | ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------ |
-| Leave taken                    | Approved `leave_request`                              | No duplicate `TAKEN` row | The request already contains type, dates, quantity and approval. Counting both would double-consume leave.                           |
-| Leave correction or encashment | `leave_requests.event` adjustment/encashment arm      | No second table          | It remains a signed, dated event, structurally distinct from a time-off request in the same authoritative stream.                    |
-| Claim or allowance             | Approved `obligation`                                 | No                       | The obligation is already the money transaction and carries the incurred date, pay period, evidence and occasion.                    |
-| Loan                           | One SCHEDULED `obligation` carrying its instalments   | No, the schedule inlines | Principal, due dates and every instalment reconcile on one row; what is still owed is the principal less what paid runs recovered.   |
-| Payroll/YTD                    | Paid payslips and contributions                       | No mutable accumulator   | Earlier paid results are the immutable accounting history. YTD is their sum.                                                         |
-| Payment file                   | Projection from a paid run                            | No                       | A file is an output transport, not another source of payroll truth.                                                                  |
+| Subject                        | Authoritative transaction                           | Separate ledger?         | Reason                                                                                                                             |
+| ------------------------------ | --------------------------------------------------- | ------------------------ | ---------------------------------------------------------------------------------------------------------------------------------- |
+| Leave taken                    | Approved `leave_request`                            | No duplicate `TAKEN` row | The request already contains type, dates, quantity and approval. Counting both would double-consume leave.                         |
+| Leave correction or encashment | `leave_requests.event` adjustment/encashment arm    | No second table          | It remains a signed, dated event, structurally distinct from a time-off request in the same authoritative stream.                  |
+| Claim or allowance             | Approved `obligation`                               | No                       | The obligation is already the money transaction and carries the incurred date, pay period, evidence and occasion.                  |
+| Loan                           | One SCHEDULED `obligation` carrying its instalments | No, the schedule inlines | Principal, due dates and every instalment reconcile on one row; what is still owed is the principal less what paid runs recovered. |
+| Payroll/YTD                    | Paid payslips and contributions                     | No mutable accumulator   | Earlier paid results are the immutable accounting history. YTD is their sum.                                                       |
+| Payment file                   | Projection from a paid run                          | No                       | A file is an output transport, not another source of payroll truth.                                                                |
 
 Approved `TIME_OFF` requests create taken movements directly. Adjustments and encashments use their
 own strict `leave_requests.event` arms.
@@ -646,14 +646,14 @@ flowchart LR
   F -->|"immutable"| C["Future correction event"]
 ```
 
-| Boundary             | Current guarantee                                                           | Why                                                                                                                               |
-| -------------------- | --------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
-| Pending approval     | A record carrying `approval_id` is locked; payroll reads only approved rows | Prevents use and mutation while a decision is outstanding                                                                         |
-| Draft run            | Results may be wholly replaced by recalculation                             | Keeps drafts responsive without mixing old and new lines                                                                          |
-| Paid run             | Recalculation and deletion are blocked; output children cannot be deleted   | Preserves the exact result used for payment, YTD and audit                                                                        |
-| Loan instalment      | A recovery entry linked to a payslip is immutable                           | Prevents a loan balance from changing behind a paid deduction                                                                     |
-| Leave event stream   | Corrections use new adjustment events                                       | A balance correction remains visible instead of rewriting history                                                                 |
-| General event source | `sourceLock` freezes the original leave, obligation, or person-day row      | A pending approval, or a `payslip_adjustments` row that consumed the record — including one of amount 0                          |
+| Boundary             | Current guarantee                                                           | Why                                                                                                     |
+| -------------------- | --------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
+| Pending approval     | A record carrying `approval_id` is locked; payroll reads only approved rows | Prevents use and mutation while a decision is outstanding                                               |
+| Draft run            | Results may be wholly replaced by recalculation                             | Keeps drafts responsive without mixing old and new lines                                                |
+| Paid run             | Recalculation and deletion are blocked; output children cannot be deleted   | Preserves the exact result used for payment, YTD and audit                                              |
+| Loan instalment      | A recovery entry linked to a payslip is immutable                           | Prevents a loan balance from changing behind a paid deduction                                           |
+| Leave event stream   | Corrections use new adjustment events                                       | A balance correction remains visible instead of rewriting history                                       |
+| General event source | `sourceLock` freezes the original leave, obligation, or person-day row      | A pending approval, or a `payslip_adjustments` row that consumed the record — including one of amount 0 |
 
 Leave, obligations and person-days share `src/lib/scheduling/lock.ts`. Hooks refuse the write; collection
 forms disable and state the reason; collection tables disable row selection and paint a locked
