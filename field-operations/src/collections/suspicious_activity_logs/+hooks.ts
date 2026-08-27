@@ -1,3 +1,4 @@
+import type { MutateBeforeContext, MutateEditContext } from '@norbital-ai/bolt/authoring';
 import { Effect } from 'effect';
 import type { CollectionMutationValues } from '@norbital-ai/bolt/authoring';
 import type { WorkspaceSchema } from '$bolt/types.js';
@@ -133,16 +134,10 @@ export function assertResolutionTransition(
 }
 
 /** The context a `mutate.before` handler receives, named so the two halves can be hoisted. */
-type BeforeContext = Parameters<
-	NonNullable<
-		NonNullable<NonNullable<Hooks<SuspicionCreatePrepared>['mutate']>['perRecord']>['before']
-	>['handler']
->[0];
+type BeforeContext = MutateBeforeContext<Hooks<SuspicionCreatePrepared>>;
 
 /** The same context on an edit, where `existing` is the stored row rather than undefined. */
-type EditContext = BeforeContext & {
-	readonly existing: NonNullable<BeforeContext['existing']>;
-};
+type EditContext = MutateEditContext<Hooks<SuspicionCreatePrepared>>;
 
 /** A create states the whole record and has no `existing`. */
 const beforeCreate = ({ input, prepared }: BeforeContext) => {

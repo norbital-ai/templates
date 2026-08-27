@@ -1,4 +1,8 @@
-import type { CollectionHooks } from '@norbital-ai/bolt/authoring';
+import type {
+	CollectionHooks,
+	MutateBeforeContext,
+	MutateEditContext
+} from '@norbital-ai/bolt/authoring';
 import { Effect } from 'effect';
 import type { WorkspaceSchema } from '$bolt/types.js';
 import { rowsById } from '../../lib/batch-reads.js';
@@ -106,15 +110,8 @@ const afterRollup = ({
 	readonly api: AfterApi;
 }) => rollupQuote(api, record.quote_id);
 
-/** The context a `mutate.before` handler receives, named so the two halves can be hoisted. */
-type BeforeContext = Parameters<
-	NonNullable<NonNullable<NonNullable<QuoteLineHooks['mutate']>['perRecord']>['before']>['handler']
->[0];
-
-/** The same context on an edit, where `existing` is the stored row rather than undefined. */
-type EditContext = BeforeContext & {
-	readonly existing: NonNullable<BeforeContext['existing']>;
-};
+type BeforeContext = MutateBeforeContext<QuoteLineHooks>;
+type EditContext = MutateEditContext<QuoteLineHooks>;
 
 /** A create states the whole record and has no `existing`. */
 const beforeCreate = ({ input, prepared }: BeforeContext) => {

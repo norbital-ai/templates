@@ -1,3 +1,4 @@
+import type { MutateBeforeContext, MutateEditContext } from '@norbital-ai/bolt/authoring';
 import type { CollectionHooks } from '@norbital-ai/bolt/authoring';
 import { Effect } from 'effect';
 import type { WorkspaceSchema } from '$bolt/types.js';
@@ -111,16 +112,10 @@ const afterRollup = ({
 }) => rollupPurchaseOrder(api, record.purchase_order_id);
 
 /** The context a `mutate.before` handler receives, named so the two halves can be hoisted. */
-type BeforeContext = Parameters<
-	NonNullable<
-		NonNullable<NonNullable<PurchaseOrderLineHooks['mutate']>['perRecord']>['before']
-	>['handler']
->[0];
+type BeforeContext = MutateBeforeContext<PurchaseOrderLineHooks>;
 
 /** The same context on an edit, where `existing` is the stored row rather than undefined. */
-type EditContext = BeforeContext & {
-	readonly existing: NonNullable<BeforeContext['existing']>;
-};
+type EditContext = MutateEditContext<PurchaseOrderLineHooks>;
 
 /** A create states the whole record and has no `existing`. */
 const beforeCreate = ({ input, prepared }: BeforeContext) => {
