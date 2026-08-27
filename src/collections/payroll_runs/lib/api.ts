@@ -1,38 +1,32 @@
 /**
  * The database surface the engine runs against.
  *
- * The build happens in the payroll run's `after` hook, so it holds the post-write capabilities:
- * relational reads plus elevated `mutate`/`delete`. Deriving the type from the hook signature
- * rather than restating it keeps the engine honest — if the platform narrows what an `after` hook
- * may do, this stops compiling instead of failing at run time.
+ * The build happens in `create.prepare` and `create.before`, which hold **reads only**. That is not
+ * a restriction the engine works around — it is the design. A payroll run writes exactly one thing,
+ * the graph its `before` hook returns, and the runtime performs that write as part of the create.
+ * An engine that cannot call `mutate` cannot have a side effect, so "no side effects" stops being a
+ * rule somebody has to keep and becomes a type.
+ *
+ * Deriving the type from the hook signature rather than restating it keeps this honest — if the
+ * platform narrows what a `before` hook may do, this stops compiling instead of failing at run time.
  */
 
 import type { Hooks } from '../$types.js';
 
-type CreateAfterHook = NonNullable<
-	NonNullable<NonNullable<Hooks['create']>['perRecord']>['after']
+type CreateBeforeHook = NonNullable<
+	NonNullable<NonNullable<Hooks['create']>['perRecord']>['before']
 >['handler'];
 
-/** Reads plus the elevated `mutate`/`delete` the build needs to write its four result collections. */
-export type PayrollApi = Parameters<CreateAfterHook>[0]['api'];
-
 /**
- * Reads only.
+ * Reads. There is no write half.
  *
- * `create.before`, `create.after` and an export pipeline are each handed a differently-shaped
- * capability set, and only the relational query surface is common to all three. Anything that only
- * reads is typed against this so it can be called from any of them.
- *
- * Reads are now every collection minus its `mutate`, rather than one `query` member: the authored
- * database no longer has a read half and a write half to pick between — a collection carries its
- * own reads, and the write is one more method on it. Subtracting that method is what "reads only"
- * means, and it stays derived, so a new read arriving on the platform reaches the engine for free.
+ * This used to be `PayrollApi` — the elevated `create.after` capability set, with `mutate` and
+ * `delete` on every collection — and four functions in `persist.ts` used it. All four are gone: the
+ * payslips, their lines and their settlement locks are children of the graph `create.before`
+ * returns, and the arrears entries that were the only writes outside that graph are derived now
+ * rather than carried forward.
  */
-export type PayrollReadApi = {
-	readonly db: {
-		readonly [Collection in keyof PayrollApi['db']]: Omit<PayrollApi['db'][Collection], 'mutate'>;
-	};
-};
+export type PayrollReadApi = Parameters<CreateBeforeHook>[0]['api'];
 
 /** The largest page any single engine query will pull. A run that exceeds it is a run that lies. */
 export const PAGE_LIMIT = 20_000;

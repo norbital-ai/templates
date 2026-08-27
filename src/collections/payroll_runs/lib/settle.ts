@@ -23,8 +23,17 @@
  * ## The negative-net guard
  *
  * If net would fall below zero, deductions are reduced in **reverse component-type sequence** until
- * net is exactly zero, and the shortfall carries forward as an arrears entry on the next period.
- * Nothing is ever reduced below zero and nothing is ever written off.
+ * net is exactly zero. Nothing is ever reduced below zero and nothing is ever written off.
+ *
+ * What could not be taken **is not carried anywhere.** It used to be: a fresh `component_entries`
+ * row dated next month, written one facility call per employee by a `persistShortfalls` that had to
+ * delete last build's copies first so a rebuild could not make somebody owe the same money twice.
+ * That was a second representation of a debt its own agreement already recorded.
+ *
+ * The debt now stays where it was born. The line below records what was *actually* taken, so what is
+ * still owed is the obligation minus the sum of the lines that took it — read back from earlier PAID
+ * runs by `gather.ts` and re-derived by `measureLoanInstalments`. `shortfalls` is retained as a
+ * statement of what this run reduced and by how much; nothing persists it, and nothing needs to.
  *
  * The plan makes reducibility a `definition.reducible` flag on the pay component. The schema
  * carries that flag only on the `SCHEDULE` arm, so it cannot be read for a deduction; the order is

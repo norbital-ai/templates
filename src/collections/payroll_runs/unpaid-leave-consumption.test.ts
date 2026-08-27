@@ -159,7 +159,8 @@ test('unpaid leave emits a LEAVE_UNPAID line linked to the leave requests', () =
 		salary: { start: '2026-04-01', end: '2026-04-30' },
 		periodsRemaining: 9,
 		headcount: 1,
-		policy: PLAIN_CALENDAR
+		policy: PLAIN_CALENDAR,
+		consumedInstalments: new Map()
 	});
 	const npl = measured.lines.filter((line) => line.payComponent.code === 'NPL');
 	assert.equal(npl.length, 1);
@@ -179,7 +180,8 @@ test('a formula component with no unpaid leave in the window stays a bare FORMUL
 		salary: { start: '2026-04-01', end: '2026-04-30' },
 		periodsRemaining: 9,
 		headcount: 1,
-		policy: PLAIN_CALENDAR
+		policy: PLAIN_CALENDAR,
+		consumedInstalments: new Map()
 	});
 	const npl = measured.lines.filter((line) => line.payComponent.code === 'NPL');
 	assert.equal(npl.length, 1);

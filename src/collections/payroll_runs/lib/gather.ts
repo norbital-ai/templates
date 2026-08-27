@@ -88,13 +88,27 @@ export type EmploymentBundle = {
 	readonly extendedLeaveSettlesInOwnMonth: boolean;
 };
 
-type GatheredRun = {
+export type GatheredRun = {
 	/** Everyone the run measures — deferred periods included; `bundle.deferral` tells them apart. */
 	readonly bundles: readonly EmploymentBundle[];
 	/** Active employments in the company at the period end — the HEADCOUNT band selector. */
 	readonly headcount: number;
 	/** `${employee_id}:${contribution_code}` → what has already been charged this tax year. */
 	readonly yearToDate: ReadonlyMap<string, { employee: number; employer: number; base: number }>;
+	/**
+	 * `${repayment_agreement_id}:${sequence}` → what earlier PAID runs actually took for it.
+	 *
+	 * This is what replaces carried-forward arrears. A deduction the negative-net guard could not
+	 * take used to be copied into a new `component_entries` row dated next month — a second
+	 * representation of a debt the agreement already records, written one facility call per employee,
+	 * and guarded by a `persistShortfalls` that had to delete last build's copies before writing this
+	 * build's so a rebuild could not make somebody owe the same money twice.
+	 *
+	 * None of that exists now. What a run took is on the payslip line that took it, so what is still
+	 * owed is the schedule minus the sum of those lines. Nothing is carried, so nothing can be
+	 * carried twice, and a rebuild is idempotent because it re-derives rather than re-writes.
+	 */
+	readonly consumedInstalments: ReadonlyMap<string, number>;
 };
 
 /**
@@ -147,7 +161,8 @@ export function gatherRun(options: GatherRunOptions): Effect.Effect<GatheredRun,
 			return settlement != null && (settlement.runs || settlement.deferral != null);
 		});
 		const employmentIds = employments.map((row) => row.id);
-		if (employmentIds.length === 0) return { bundles: [], headcount: 0, yearToDate: new Map() };
+		if (employmentIds.length === 0)
+			return { bundles: [], headcount: 0, yearToDate: new Map(), consumedInstalments: new Map() };
 
 		// One query span covers everyone: the widest attendance window any employment settles over, so
 		// a leaver's tail is read in the same round trip as everybody else's window.
@@ -320,13 +335,13 @@ export function gatherRun(options: GatherRunOptions): Effect.Effect<GatheredRun,
 			// Headcount is who the run pays. A deferred joining period pays nobody, and counting it would
 			// move a headcount-banded contribution for everyone else in the company.
 			headcount: bundles.filter((bundle) => bundle.deferral == null).length,
-			yearToDate: yield* gatherYearToDate({
+			...(yield* gatherPriorSettlement({
 				api: options.api,
 				configuration: options.configuration,
 				period,
 				employeeIds,
 				companyId
-			})
+			}))
 		};
 	});
 }
@@ -345,7 +360,7 @@ export function gatherRun(options: GatherRunOptions): Effect.Effect<GatheredRun,
  *    fed the next period's projection and nothing recomputed it when the draft was discarded. Only
  *    `PAID` runs are year-to-date (decision L35 / risk register #8).
  */
-type GatherYearToDateOptions = {
+type GatherPriorSettlementOptions = {
 	readonly api: PayrollReadApi & { readonly reads: ReadLog };
 	readonly configuration: Configuration;
 	readonly period: string;
@@ -353,27 +368,49 @@ type GatherYearToDateOptions = {
 	readonly employeeIds: readonly string[];
 };
 
-function gatherYearToDate(
-	options: GatherYearToDateOptions
-): Effect.Effect<Map<string, { employee: number; employer: number; base: number }>, never, never> {
+type PriorSettlement = {
+	readonly yearToDate: Map<string, { employee: number; employer: number; base: number }>;
+	readonly consumedInstalments: Map<string, number>;
+};
+
+function gatherPriorSettlement(
+	options: GatherPriorSettlementOptions
+): Effect.Effect<PriorSettlement, never, never> {
 	return Effect.gen(function* () {
 		const db = options.api.db;
 		const startMonth = Number(options.configuration.jurisdiction.tax_year_start_month);
 		const firstPeriod = taxYearFirstPeriod(options.period, startMonth);
+		/**
+		 * Every earlier settled run, not only this tax year's.
+		 *
+		 * Year-to-date is a tax-year question and is still filtered as one below. What a loan has
+		 * repaid is not: an agreement written in November is still being recovered in February, and
+		 * reading only the current tax year would report its instalments as untouched and deduct them
+		 * a second time. One read answers both questions; only the summing differs.
+		 */
 		const priorRunRows = yield* db.payroll_runs.findMany({
 			where: {
 				company_id: { eq: options.companyId },
-				period: { gte: firstPeriod, lt: options.period },
+				period: { lt: options.period },
 				lifecycle: { eq: 'PAID' }
 			},
 			limit: PAGE_LIMIT
 		});
 		options.api.reads.assertComplete(priorRunRows, 'prior payroll runs');
-		const priorRuns = priorRunRows.filter(
-			(run) => taxYearOf(run.period, startMonth) === taxYearOf(options.period, startMonth)
+		const priorRuns = priorRunRows;
+		const inTaxYear = new Set(
+			priorRuns
+				.filter(
+					(run) =>
+						run.period >= firstPeriod &&
+						taxYearOf(run.period, startMonth) === taxYearOf(options.period, startMonth)
+				)
+				.map((run) => run.id)
 		);
 		const totals = new Map<string, { employee: number; employer: number; base: number }>();
-		if (priorRuns.length === 0 || options.employeeIds.length === 0) return totals;
+		const consumedInstalments = new Map<string, number>();
+		const empty = { yearToDate: totals, consumedInstalments };
+		if (priorRuns.length === 0 || options.employeeIds.length === 0) return empty;
 
 		// Employments are resolved employee-first so a mid-year transfer keeps its history: the person
 		// is the taxpayer, not the contract.
@@ -397,7 +434,7 @@ function gatherYearToDate(
 			limit: PAGE_LIMIT
 		});
 		options.api.reads.assertComplete(priorPayslips, 'prior payslips');
-		if (priorPayslips.length === 0) return totals;
+		if (priorPayslips.length === 0) return empty;
 
 		const contributionCodeById = new Map(
 			options.configuration.contributions.map((entry) => [entry.row.id, entry.row.code])
@@ -410,8 +447,27 @@ function gatherYearToDate(
 		const employeeByPayslip = new Map(
 			priorPayslips.map((row) => [row.id, employmentToEmployee.get(row.employment_id)])
 		);
+		const taxYearPayslips = new Set(
+			priorPayslips.filter((row) => inTaxYear.has(row.payroll_run_id)).map((row) => row.id)
+		);
 		const countedBases = new Set<string>();
 		for (const charge of charges) {
+			/**
+			 * What this line took against a loan instalment, whatever run it belongs to.
+			 *
+			 * Summed rather than counted, because a line may hold less than the instalment it names:
+			 * SETTLE reduces a deduction that would have driven net below zero, and the reduced figure
+			 * is what was actually taken. The difference is not written anywhere — it is simply still
+			 * outstanding, and it is outstanding *here*, in the gap between the schedule and this sum.
+			 */
+			if (charge.repayment_agreement_id != null && charge.repayment_sequence != null) {
+				const key = `${charge.repayment_agreement_id}:${charge.repayment_sequence}`;
+				consumedInstalments.set(
+					key,
+					(consumedInstalments.get(key) ?? 0) + Number(charge.amount ?? 0)
+				);
+			}
+			if (!taxYearPayslips.has(charge.payslip_id)) continue;
 			if (charge.statutory_contribution_id == null) continue;
 			const component = charge.component;
 			if (component == null) continue;
@@ -433,6 +489,6 @@ function gatherYearToDate(
 				base: running.base + base
 			});
 		}
-		return totals;
+		return { yearToDate: totals, consumedInstalments };
 	});
 }

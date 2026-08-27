@@ -1,5 +1,5 @@
 /**
- * The payroll run's lifecycle, and the entry point that builds one.
+ * The payroll run's lifecycle, and the hook that builds one.
  *
  * ```
  *  DRAFT ──mark paid──► PAID
@@ -7,29 +7,42 @@
  *    └──── recalculate
  * ```
  *
- * The platform owns permissions, approval locks, request-change comments, and audit history. This
- * hook owns the payroll invariant: draft figures may be rebuilt; paid figures are immutable and
- * later corrections arrive as adjustment entries in a future draft.
+ * ## The run and its result are one write
  *
- * It also owns one end of the **settlement lock**. A run that persists claims every source record it
- * consumed in `payslip_sources`; deleting the run cascades those claims away with its payslips.
- * Which is why the delete refusal below is not merely tidiness about history: it is what makes a
- * paid period's attendance, entries and leave permanently immutable. See
- * `src/collections/payslip_sources/+model.ts`, and `src/lib/policy_grants.ts` for why this lock
- * is not `approval_id`.
+ * A `before` hook's return is the record the runtime persists, and it may carry the records that
+ * belong to it. So this hook returns the run's columns **and its payslips**, and the whole payroll —
+ * the run, every payslip, every line, every settlement lock — lands in the create that asked for it.
  *
- * Creating a run resolves its window and its governing configuration first, because
- * `configuration_hash`, `pay_date`, `attendance_from` and `attendance_to` are what make a payslip
- * traceable to the law it was computed under — a run that had to be built before it could say what
- * it was built against would be unauditable. The build itself then runs after the record exists.
+ * There is no `after` on this collection, and that is the point rather than a tidy-up. The build
+ * used to run there, where the row was already committed and the database facility has no
+ * transaction to take it back:
+ *
+ *  - a refusal left a DRAFT run with no payslips — a record asserting a period had been calculated,
+ *    blocking the next period, describing a calculation that never happened;
+ *  - the engine's own writes landed on `payroll_runs` as a DRAFT update indistinguishable from a
+ *    person pressing recalculate, so `update.after` re-entered the engine until the host refused
+ *    with `nesting_limit_exceeded`, and a guard had to be invented to tell the engine apart from a
+ *    human; and
+ *  - the arrears it wrote were one facility call per employee, which is where a 290-person run spent
+ *    eight minutes.
+ *
+ * All three are gone because the engine cannot write. `create.prepare` reads, `create.before`
+ * calculates and returns, and the runtime does the only write there is.
+ *
+ * ## The settlement lock
+ *
+ * A run that persists claims every source record it consumed in `payslip_sources`; deleting the run
+ * cascades those claims away with its payslips. Which is why the delete refusal below is not merely
+ * tidiness about history: it is what makes a paid period's attendance, entries and leave permanently
+ * immutable. See `src/collections/payslip_sources/+model.ts`, and `src/lib/policy_grants.ts` for why
+ * this lock is not `approval_id`.
  */
 
 import { Effect } from 'effect';
 import { refuse } from '@norbital-ai/bolt/authoring';
 import { Schema } from 'effect';
 import type { Hooks } from './$types.js';
-import { buildPayrollRun as runEngine, preparePayrollRun } from './lib/engine.js';
-import type { PayrollApi } from './lib/api.js';
+import { buildPayrollRun, gatherPayrollRun, type PreparedRun } from './lib/engine.js';
 import { configurationSnapshot } from './lib/configuration.js';
 import { payrollRunPrecheck } from './lib/precheck.js';
 import { describeIssues } from './lib/validate.js';
@@ -39,6 +52,13 @@ import { describeIssues } from './lib/validate.js';
  * record is derived below, so the generated create schema — which requires every non-nullable column,
  * `lifecycle` and the whole resolved window among them — would demand figures the caller has no way
  * to know and no business asserting.
+ *
+ * It does **not** narrow what a caller may nest, and it is worth being exact about why that is still
+ * safe. `create.input` decodes a record's own columns, after the graph path has already split the
+ * relationship keys off — so a submitted `payslip_payroll_run` survives this struct. What defeats it
+ * is that the hook below always returns that relationship, and a returned relationship replaces the
+ * submitted one of the same name. Every payslip that reaches the database was computed by the
+ * engine because the engine always states them, not because the caller was prevented from trying.
  */
 const createPayrollRunInput = Schema.Struct({
 	company_id: Schema.String.check(Schema.isUUID()),
@@ -60,47 +80,76 @@ const DERIVED_COLUMNS = [
 	'attendance_to'
 ] as const;
 
-/**
- * Build (or rebuild) one company's payroll for one period.
- *
- * This is what a representation calls. The run record must already exist — `create.after` calls it
- * for a new run, and recalculating a draft calls it again. It is idempotent: the run's existing
- * results are cleared before the new ones are written.
- */
-export function buildPayrollRun(
-	input: { readonly companyId: string; readonly period: string },
-	api: PayrollApi
-): Effect.Effect<{ payslipCount: number; lineCount: number }, never, never> {
-	return Effect.gen(function* () {
-		const run = yield* api.db.payroll_runs.findFirst({
-			where: { company_id: { eq: input.companyId }, period: { eq: input.period } }
-		});
-		if (!run)
-			refuse(
-				`There is no payroll run for ${input.period}. Create the run first; building it is what ` +
-					'creating it does.'
-			);
-		if (run.lifecycle === 'PAID')
-			refuse(`Payroll ${input.period} is paid. A paid run is never re-run — correct it instead.`);
-		const result = yield* runEngine({
-			api,
-			runId: run.id,
-			companyId: input.companyId,
-			period: input.period
-		});
-		return { payslipCount: result.payslipCount, lineCount: result.lineCount };
+/** The key a prepared run is filed under, so a batch of runs cannot read each other's facts. */
+const runKey = (companyId: string, period: string): string => `${companyId}:${period}`;
+
+/** What `create.prepare` hands `create.before`: one entry per run in the batch, keyed by `runKey`. */
+type PreparedRuns = ReadonlyMap<string, PreparedRun>;
+
+/** The run's own derived columns, from the facts `prepare` resolved. */
+const derivedColumns = (prepared: PreparedRun) => ({
+	configuration_hash: prepared.configuration.hash,
+	configuration_snapshot: {
+		kind: 'CAPTURED' as const,
+		configuration_hash: prepared.configuration.hash,
+		configuration: configurationSnapshot(prepared.configuration, prepared.period)
+	},
+	pay_date: prepared.window.payDate,
+	attendance_from: prepared.window.attendance.start,
+	attendance_to: prepared.window.attendance.end
+});
+
+/** Calculate, and hand back the run's columns with every payslip it produced nested under them. */
+const buildGraph = (prepared: PreparedRun) =>
+	Effect.gen(function* () {
+		const built = buildPayrollRun(prepared);
+		if (built.warnings.length > 0)
+			yield* Effect.logWarning(`[payroll-warnings] ${prepared.period} ${built.warnings.join(' ')}`);
+		yield* Effect.log(
+			`[payroll-result] ${prepared.period} payslips=${built.payslipCount} ` +
+				`lines=${built.lineCount} settled=${built.claimCount} | ${prepared.readLog.logString()}`
+		);
+		return {
+			...derivedColumns(prepared),
+			payslip_payroll_run: built.payslip_payroll_run
+		};
 	});
-}
 
 export default {
 	create: {
 		input: createPayrollRunInput,
+		/**
+		 * Every read one payroll run performs, taken before anything decides anything.
+		 *
+		 * Batched by construction: `prepare` runs once for the whole write, so creating twelve periods
+		 * at once reads each one's facts once and `before` decides twelve times over them. Nothing here
+		 * refuses — a rule in `prepare` would be a rule that runs a different number of times from the
+		 * records it governs.
+		 */
+		prepare: ({ inputs, api }) =>
+			Effect.gen(function* () {
+				const prepared = new Map<string, PreparedRun>();
+				for (const input of inputs) {
+					prepared.set(
+						runKey(input.company_id, input.period),
+						yield* gatherPayrollRun({
+							api,
+							companyId: input.company_id,
+							period: input.period
+						})
+					);
+				}
+				return prepared;
+			}),
 		perRecord: {
 			before: {
 				description:
-					'Refuses a second run for a company and period, and refuses one while an earlier period is still a draft, then resolves the pay date, attendance window and configuration snapshot the run will be computed under.',
-				handler: ({ input, api }) =>
+					'Refuses a second run for a company and period, refuses one while an earlier period is still a draft, then calculates the whole payroll and returns the run together with every payslip, payslip line and settlement lock it produced.',
+				handler: ({ input, prepared, api }) =>
 					Effect.gen(function* () {
+						const facts = prepared.get(runKey(input.company_id, input.period));
+						if (facts == null)
+							refuse(`Payroll ${input.period} was not prepared. This is a bug, not a data fault.`);
 						const existing = yield* api.db.payroll_runs.findFirst({
 							where: { company_id: { eq: input.company_id }, period: { eq: input.period } }
 						});
@@ -112,11 +161,6 @@ export default {
 									'Open that run, or delete it first if it is still a draft.'
 							);
 						}
-						const { window, configuration } = yield* preparePayrollRun({
-							api,
-							companyId: input.company_id,
-							period: input.period
-						});
 						// The previous period must be settled before this one is calculated, so a year-to-date
 						// figure can never be assembled from a period that is still moving.
 						const previous = yield* api.db.payroll_runs.findMany({
@@ -131,61 +175,17 @@ export default {
 								`Payroll ${unsettled.period} is still a draft. Settle it before calculating ${input.period}: ` +
 									'its figures are this period’s year-to-date.'
 							);
-						/**
-						 * The last refusal that can still be free.
-						 *
-						 * These checks used to live inside the engine, which runs in `create.after` — after the
-						 * row is committed and with no transaction to take it back. A run refused for an
-						 * unclosed clock therefore left a DRAFT payroll run with no payslips under it: a record
-						 * asserting that a period had been calculated, blocking the next period, describing a
-						 * calculation that never happened. Every one of those had to be found and deleted by
-						 * hand.
-						 *
-						 * Moving them here is the whole of the fix, and it is a fix precisely because `before`
-						 * has a property `after` cannot have: it runs before the insert, so a refusal leaves
-						 * nothing behind. The engine keeps its own copies of these checks — this is the cheap,
-						 * early answer, not the authoritative one.
-						 */
-						const blocking = yield* payrollRunPrecheck({ api, configuration, window });
+						const blocking = yield* payrollRunPrecheck({
+							api,
+							configuration: facts.configuration,
+							window: facts.window
+						});
 						if (blocking.length > 0) refuse(describeIssues(blocking));
 						return {
 							...input,
 							lifecycle: 'DRAFT' as const,
-							configuration_hash: configuration.hash,
-							configuration_snapshot: {
-								kind: 'CAPTURED' as const,
-								configuration_hash: configuration.hash,
-								configuration: configurationSnapshot(configuration, input.period)
-							},
-							pay_date: window.payDate,
-							attendance_from: window.attendance.start,
-							attendance_to: window.attendance.end
+							...(yield* buildGraph(facts))
 						};
-					})
-			},
-			after: {
-				description:
-					'Runs the payroll engine for the newly created run, producing its payslips and payslip lines from the attendance, entries and statutory rules in the resolved window.',
-				/**
-				 * The build, and it stays here.
-				 *
-				 * By the time this runs the row is a fact, and it cannot be unwritten — the database
-				 * facility has no transaction primitive, so every statement the engine issues is its own
-				 * autocommitted call and so was the insert that caused it. That is the right place for the
-				 * *build*: producing payslips is work that follows a run existing, not a condition of it
-				 * existing. What moved out is validation, which had no business being downstream of a
-				 * commit it could not undo.
-				 *
-				 * A failure here is reported, never swallowed. The run exists and has no payslips, which is
-				 * a state an operator can see and act on — recalculating a draft is one click — and it is
-				 * strictly better than a silent partial build nobody is told about.
-				 */
-				handler: ({ record, api }) =>
-					runEngine({
-						api,
-						runId: record.id,
-						companyId: record.company_id,
-						period: record.period
 					})
 			}
 		}
@@ -195,58 +195,40 @@ export default {
 		perRecord: {
 			before: {
 				description:
-					'Refuses hand edits to the engine-owned period, pay date, attendance window and configuration hash, refuses any change to a PAID run, and re-resolves that window and configuration when a draft is recalculated.',
-				handler: ({ input, existing, api }) => {
-					for (const column of DERIVED_COLUMNS)
-						if (input[column] != null && String(input[column]) !== String(existing[column]))
-							refuse(
-								`Payroll run ${column} is derived from the period and the configuration, and cannot be edited.`
-							);
-					const next = input.lifecycle ?? existing.lifecycle;
-					if (next !== existing.lifecycle) {
-						if (existing.lifecycle === 'PAID')
-							refuse('A paid payroll run is immutable. Correct it with a later adjustment entry.');
-						return Effect.succeed(input);
-					}
-					// A same-state update is only a recalculation while the run is still a draft.
-					if (next !== 'DRAFT') return Effect.succeed(input);
-					return Effect.map(
-						preparePayrollRun({
+					'Refuses hand edits to the engine-owned period, pay date, attendance window and configuration hash, refuses any change to a PAID run, and rebuilds a recalculated draft — returning the fresh payslips, which replace the previous build because an included relationship is the run’s complete desired state.',
+				handler: ({ input, existing, api }) =>
+					Effect.gen(function* () {
+						for (const column of DERIVED_COLUMNS)
+							if (input[column] != null && String(input[column]) !== String(existing[column]))
+								refuse(
+									`Payroll run ${column} is derived from the period and the configuration, and cannot be edited.`
+								);
+						const next = input.lifecycle ?? existing.lifecycle;
+						if (next !== existing.lifecycle) {
+							if (existing.lifecycle === 'PAID')
+								refuse(
+									'A paid payroll run is immutable. Correct it with a later adjustment entry.'
+								);
+							return input;
+						}
+						// A same-state update is only a recalculation while the run is still a draft.
+						if (next !== 'DRAFT') return input;
+						/**
+						 * The rebuild, and the reason there is no `isBuildingRun` guard any more.
+						 *
+						 * The engine writes nothing, so this hook cannot be triggered by the engine — the
+						 * only thing that reaches here is somebody asking for a recalculation. What comes
+						 * back replaces the previous build wholesale: `payslip_payroll_run` is an included
+						 * relationship, which states the run's complete set of payslips, and the payslips
+						 * left out are removed with their lines and locks by the same statement.
+						 */
+						const prepared = yield* gatherPayrollRun({
 							api,
 							companyId: existing.company_id,
 							period: existing.period
-						}),
-						({ window, configuration }) => ({
-							...input,
-							configuration_hash: configuration.hash,
-							configuration_snapshot: {
-								kind: 'CAPTURED' as const,
-								configuration_hash: configuration.hash,
-								configuration: configurationSnapshot(configuration, existing.period)
-							},
-							pay_date: window.payDate,
-							attendance_from: window.attendance.start,
-							attendance_to: window.attendance.end
-						})
-					);
-				}
-			},
-			after: {
-				description:
-					'Rebuilds a draft run’s payslips and lines from scratch after its source time entries, component entries or rules have changed, and leaves a paid run untouched.',
-				handler: ({ record, api }) => {
-					// A same-state DRAFT update is the explicit recalculation action after source entries
-					// change. The platform carries the approval/revision context; payroll only rebuilds.
-					if (record.lifecycle !== 'DRAFT') return Effect.void;
-					return Effect.asVoid(
-						runEngine({
-							api,
-							runId: record.id,
-							companyId: record.company_id,
-							period: record.period
-						})
-					);
-				}
+						});
+						return { ...input, ...(yield* buildGraph(prepared)) };
+					})
 			}
 		}
 	},
@@ -259,17 +241,6 @@ export default {
 	 * and repayment agreements are dropped by the database in the same statement that drops the run —
 	 * and the records become editable again the moment the run stops standing. That is the owner's rule
 	 * verbatim: locked while the run stands, released only if the run is deleted.
-	 *
-	 * There is no `delete.after` releasing them by hand, and that is deliberate. A hook release would
-	 * have to page through the claims and delete them one at a time, and the reachable delete —
-	 * `api.db.<collection>.delete(identifiers)` — takes `identifiers[0]` and ignores the rest, so a
-	 * release written that way would quietly free one record out of several hundred and report
-	 * success. A cascade cannot half-happen; a loop over a single-id delete can.
-	 *
-	 * The cascade is honoured: `cascade(...)` in `+relationship.ts` reaches the DDL as
-	 * `ON DELETE CASCADE` (see `20260818183224_cascade_payroll_ownership`). So today a draft run that
-	 * has written payslips is deleted with its payslips, lines and source rows in one statement. See
-	 * `src/collections/payslip_sources/+model.ts`.
 	 */
 	delete: {
 		perRecord: {
@@ -292,4 +263,4 @@ export default {
 			}
 		}
 	}
-} satisfies Hooks;
+} satisfies Hooks<PreparedRuns>;

@@ -63,8 +63,29 @@ export default defineModel(
 				unique: true,
 				where: '"component_entry_usage" = \'SINGLE_USE\''
 			},
+			/**
+			 * One line per instalment **per payslip**, not one globally.
+			 *
+			 * Global uniqueness said an instalment is consumed exactly once, and that was true only
+			 * while a shortfall was copied into a fresh `component_entries` row for the next period.
+			 * Nothing is copied now: an instalment the negative-net guard could only part-pay stays
+			 * outstanding on its own agreement, and the next run recovers the remainder against the
+			 * same sequence — which the global constraint refused outright.
+			 *
+			 * What has to remain impossible is deducting one instalment twice inside one payslip, and
+			 * that is what this states. The cross-run ceiling is arithmetic instead of a constraint:
+			 * `measureLoanInstalments` subtracts what earlier PAID runs took, so a settled instalment
+			 * nets to zero and never reaches a line. That is a real trade — an invariant the database
+			 * held is now one the engine holds — and the three tests in
+			 * `loan-instalment-recovery.test.ts` named for it are what hold it.
+			 */
 			{
-				columns: ['repayment_agreement_id', 'repayment_sequence'],
+				// Named, because the change from the two-column form is a drop and an add. Drizzle tries
+				// to resolve a same-shape index as a rename and asks an interactive question that a
+				// `bolt sync` has nobody to answer — see the `HintsHandler` failure. A distinct name is
+				// two unambiguous statements instead of one question.
+				name: 'payslip_lines_instalment_per_payslip',
+				columns: ['repayment_agreement_id', 'repayment_sequence', 'payslip_id'],
 				unique: true,
 				where: '"repayment_agreement_id" IS NOT NULL'
 			}

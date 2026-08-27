@@ -278,7 +278,8 @@ function measure(overrides = {}, configurationOverrides = {}) {
 		salary: MARCH,
 		periodsRemaining: 10,
 		headcount: 1,
-		policy: PLAIN_CALENDAR
+		policy: PLAIN_CALENDAR,
+		consumedInstalments: new Map()
 	});
 }
 
