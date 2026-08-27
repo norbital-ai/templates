@@ -18,7 +18,7 @@ interface JobBatch {
 type JobHooks = CollectionHooks<WorkspaceSchema, 'jobs', JobBatch>;
 
 export default {
-	create: {
+	mutate: {
 		prepare: ({ inputs, api }) => {
 			const siteIds = [
 				...new Set(inputs.flatMap((input) => (input.site_id ? [input.site_id] : [])))

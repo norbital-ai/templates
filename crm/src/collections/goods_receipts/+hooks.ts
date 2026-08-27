@@ -5,7 +5,7 @@ import { docNoSeriesPattern, nextDocNo } from '../../lib/document-numbers.js';
 import type { Hooks } from './$types.js';
 
 export default {
-	create: {
+	mutate: {
 		perRecord: {
 			before: {
 				description:

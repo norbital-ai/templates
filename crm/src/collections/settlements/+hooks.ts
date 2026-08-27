@@ -10,7 +10,7 @@ const COMMITTED_TARGETS = {
 type TargetType = keyof typeof COMMITTED_TARGETS;
 
 export default {
-	create: {
+	mutate: {
 		perRecord: {
 			before: {
 				description:

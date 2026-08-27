@@ -26,7 +26,7 @@ type VariationRequestHooks = CollectionHooks<
 >;
 
 export default {
-	create: {
+	mutate: {
 		prepare: ({ inputs, api }) =>
 			Effect.gen(function* () {
 				const assignmentIds = [
