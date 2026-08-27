@@ -10,7 +10,7 @@
 	 *
 	 * `oninput` emits the typed value untouched so a half-finished "0.75" is never snapped out from
 	 * under the caret; `onchange` — which fires when the field is committed — snaps to the half hour.
-	 * A value already stored off the step (a legacy 45 min) survives display and is only rounded once
+	 * A value already stored off the step (45 min, say) survives display and is only rounded once
 	 * the operator actually edits it.
 	 */
 	import { Input } from '@norbital-ai/ui/input';
