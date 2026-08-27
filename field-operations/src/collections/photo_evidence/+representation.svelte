@@ -17,7 +17,6 @@
 	import type { RepresentationProps } from './$types.js';
 	import { CollectionForm } from '@norbital-ai/ui/collection-form';
 	import { Column, Grid } from '@norbital-ai/ui/layout';
-	import { RelationshipRenderer } from '@norbital-ai/ui/data-renderer/relationship';
 
 	let { record }: RepresentationProps = $props();
 
@@ -44,6 +43,9 @@
 		disabled
 	>
 		{#snippet children({ Field })}
+			<Field name="source_key" hidden />
+			<Field name="sha256" hidden />
+			<Field name="perceptual_embedding" hidden />
 			<Grid minimum="compact">
 				<!-- A file() column: the value carries the file's own name, which is what DataRenderer
 				paints, so no key or id reaches the operator. -->
@@ -51,35 +53,27 @@
 				<Field
 					name="job_assignment_id"
 					label={t('component.job_assignment')}
-					renderer={RelationshipRenderer}
-					rendererProps={{
-						target: 'job_assignments',
-						options: {
-							label: (record) => {
-								const dispatched = record.dispatched_at;
-								const when = dispatched == null ? null : String(dispatched).slice(0, 10);
-								return (
-									[when, record.status].filter((part) => part != null && part !== '').join(' · ') ||
-									'—'
-								);
-							},
-							orderBy: { dispatched_at: 'desc' },
-							limit: 500
-						}
+					relationOptions={{
+						label: (record) => {
+							const dispatched = record.dispatched_at;
+							const when = dispatched == null ? null : String(dispatched).slice(0, 10);
+							return (
+								[when, record.status].filter((part) => part != null && part !== '').join(' · ') ||
+								'—'
+							);
+						},
+						orderBy: { dispatched_at: 'desc' },
+						limit: 500
 					}}
 				/>
 				<Field
 					name="variation_request_id"
 					label={t('component.variation_request')}
-					renderer={RelationshipRenderer}
-					rendererProps={{
-						target: 'variation_requests',
-						options: {
-							label: (record) =>
-								record.title != null && record.title !== '' ? String(record.title) : '—',
-							orderBy: { requested_at: 'desc' },
-							limit: 500
-						}
+					relationOptions={{
+						label: (record) =>
+							record.title != null && record.title !== '' ? String(record.title) : '—',
+						orderBy: { requested_at: 'desc' },
+						limit: 500
 					}}
 				/>
 				{#if mayReadReviewFacts}
@@ -89,15 +83,10 @@
 						<Field
 							name="matched_evidence_ids"
 							label={t('component.duplicates_of')}
-							renderer={RelationshipRenderer}
-							rendererProps={{
-								target: 'photo_evidence',
-								multiple: true,
-								options: {
-									label: (record) =>
-										record.summary != null && record.summary !== '' ? String(record.summary) : '—',
-									limit: 500
-								}
+							relationOptions={{
+								label: (record) =>
+									record.summary != null && record.summary !== '' ? String(record.summary) : '—',
+								limit: 500
 							}}
 						/>
 					</Column>

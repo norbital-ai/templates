@@ -10,7 +10,6 @@
 	import type { RepresentationProps } from './$types.js';
 	import { CollectionForm } from '@norbital-ai/ui/collection-form';
 	import { Grid } from '@norbital-ai/ui/layout';
-	import { RelationshipRenderer } from '@norbital-ai/ui/data-renderer/relationship';
 	import type { CollectionRelationOptions } from '@norbital-ai/std/collection';
 
 	let { record, close }: RepresentationProps = $props();
@@ -31,36 +30,28 @@
 			<Field
 				name="permits_to_work_id"
 				label={t('component.permit_to_work')}
-				renderer={RelationshipRenderer}
-				rendererProps={{
-					target: 'permits_to_work',
-					options: {
-						label: (record) =>
-							record.permit_number != null && record.permit_number !== ''
-								? String(record.permit_number)
-								: '—',
-						orderBy: { permit_number: 'asc' },
-						limit: 500
-					} satisfies CollectionRelationOptions
-				}}
+				relationOptions={{
+					label: (record) =>
+						record.permit_number != null && record.permit_number !== ''
+							? String(record.permit_number)
+							: '—',
+					orderBy: { permit_number: 'asc' },
+					limit: 500
+				} satisfies CollectionRelationOptions}
 			/>
 			<Field
 				name="worker_id"
 				label={t('component.worker')}
-				renderer={RelationshipRenderer}
-				rendererProps={{
-					target: 'workers',
-					options: {
-						label: (record) => {
-							const code = record.worker_number;
-							const name = record.worker_name;
-							if (code && name) return `${code} · ${name}`;
-							return name != null && name !== '' ? String(name) : '—';
-						},
-						orderBy: { worker_number: 'asc' },
-						limit: 500
-					} satisfies CollectionRelationOptions
-				}}
+				relationOptions={{
+					label: (record) => {
+						const code = record.worker_number;
+						const name = record.worker_name;
+						if (code && name) return `${code} · ${name}`;
+						return name != null && name !== '' ? String(name) : '—';
+					},
+					orderBy: { worker_number: 'asc' },
+					limit: 500
+				} satisfies CollectionRelationOptions}
 			/>
 		</Grid>
 	{/snippet}

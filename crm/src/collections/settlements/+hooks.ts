@@ -35,7 +35,7 @@ export default {
 						}
 
 						if (regardingType === 'quotes') {
-							const quote = yield* api.db.query.quotes.findFirst({
+							const quote = yield* api.db.quotes.findFirst({
 								where: { id: { eq: input.regarding_id } }
 							});
 							if (!quote) {
@@ -55,7 +55,7 @@ export default {
 						}
 
 						if (regardingType === 'purchase_orders') {
-							const order = yield* api.db.query.purchase_orders.findFirst({
+							const order = yield* api.db.purchase_orders.findFirst({
 								where: { id: { eq: input.regarding_id } }
 							});
 							if (!order) {
@@ -74,7 +74,7 @@ export default {
 							return { ...input, currency: input.currency ?? order.currency };
 						}
 
-						const invoice = yield* api.db.query.purchase_invoices.findFirst({
+						const invoice = yield* api.db.purchase_invoices.findFirst({
 							where: { id: { eq: input.regarding_id } }
 						});
 						if (!invoice) {

@@ -106,7 +106,7 @@ export function preparePayrollRun(options: {
 }): Effect.Effect<{ window: PayrollWindow; configuration: Configuration }, never, never> {
 	return Effect.gen(function* () {
 		const api = withReadLog(options.api);
-		const company = yield* api.db.query.companies.findFirst({
+		const company = yield* api.db.companies.findFirst({
 			where: { id: { eq: options.companyId }, approval_id: { isNull: true } }
 		});
 		if (!company) refuse(`Company ${options.companyId} does not exist.`);

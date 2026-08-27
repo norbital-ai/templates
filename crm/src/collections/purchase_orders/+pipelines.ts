@@ -54,7 +54,7 @@ export default {
 				const orderIds = records.map((order) => order.id);
 				if (orderIds.length === 0) return [];
 
-				const lines = yield* api.db.query.purchase_order_lines.findMany({
+				const lines = yield* api.db.purchase_order_lines.findMany({
 					where: { purchase_order_id: { in: orderIds } },
 					limit: 5000
 				});

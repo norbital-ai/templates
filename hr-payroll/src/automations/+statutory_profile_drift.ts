@@ -590,7 +590,7 @@ export const runStatutoryProfileDrift = (api: AutomationApi) =>
 		let proposals: readonly string[] = [];
 
 		yield* api.progress({ progress: 0.02, text: 'Opening statutory profile review' });
-		const runLog = yield* api.db.statutory_profile_drift_logs.create({
+		yield* api.db.statutory_profile_drift_logs.mutate({
 			status: 'RUNNING',
 			checked_at: checkedAt,
 			local_findings_count: 0,
@@ -598,6 +598,23 @@ export const runStatutoryProfileDrift = (api: AutomationApi) =>
 			successor_proposals_count: 0,
 			successor_proposals: []
 		});
+		/**
+		 * The run log's id, read back rather than returned.
+		 *
+		 * `mutate` answers with nothing, so the row this run just opened is identified by the instant
+		 * it stamped on it. `checkedAt` is read once at the top of the run and written nowhere else,
+		 * so it names this run's log and no other — a weekly review does not open two in the same
+		 * millisecond.
+		 */
+		const runLog = yield* api.db.statutory_profile_drift_logs.findFirst({
+			where: { checked_at: { eq: checkedAt } },
+			columns: { id: true }
+		});
+		if (runLog == null) {
+			return yield* Effect.fail(
+				new Error('The statutory drift run log was opened but could not be read back.')
+			);
+		}
 
 		const execution = Effect.gen(function* () {
 			yield* api.progress({ progress: 0.12, text: 'Reading in-force statutory profiles' });
@@ -608,7 +625,7 @@ export const runStatutoryProfileDrift = (api: AutomationApi) =>
 			const [inForceJurisdictions, inForceSchemes, inForceRates, companies, employments, facts] =
 				yield* Effect.all(
 					[
-						api.db.query.jurisdictions.findMany({
+						api.db.jurisdictions.findMany({
 							where: live,
 							columns: {
 								id: true,
@@ -624,7 +641,7 @@ export const runStatutoryProfileDrift = (api: AutomationApi) =>
 							},
 							limit: 250
 						}),
-						api.db.query.statutory_contributions.findMany({
+						api.db.statutory_contributions.findMany({
 							where: live,
 							columns: {
 								id: true,
@@ -642,7 +659,7 @@ export const runStatutoryProfileDrift = (api: AutomationApi) =>
 							},
 							limit: 250
 						}),
-						api.db.query.contribution_rates.findMany({
+						api.db.contribution_rates.findMany({
 							where: live,
 							columns: {
 								id: true,
@@ -654,7 +671,7 @@ export const runStatutoryProfileDrift = (api: AutomationApi) =>
 							},
 							limit: 250
 						}),
-						api.db.query.companies.findMany({
+						api.db.companies.findMany({
 							where: live,
 							columns: { id: true, name: true, jurisdiction_id: true },
 							with: {
@@ -664,12 +681,12 @@ export const runStatutoryProfileDrift = (api: AutomationApi) =>
 							},
 							limit: 250
 						}),
-						api.db.query.employments.findMany({
+						api.db.employments.findMany({
 							where: live,
 							columns: { id: true, employee_number: true, company_id: true },
 							limit: 250
 						}),
-						api.db.query.employment_statutory_facts.findMany({
+						api.db.employment_statutory_facts.findMany({
 							where: live,
 							columns: {
 								id: true,
@@ -720,7 +737,8 @@ export const runStatutoryProfileDrift = (api: AutomationApi) =>
 				}))
 			});
 			detectedItems = detected.items;
-			yield* api.db.statutory_profile_drift_logs.update(runLog.id, {
+			yield* api.db.statutory_profile_drift_logs.mutate({
+				id: runLog.id,
 				local_findings_count: detected.items.length,
 				local_findings: detected.items
 			});
@@ -744,7 +762,7 @@ export const runStatutoryProfileDrift = (api: AutomationApi) =>
 				}
 				const status = asFactStatus(copy.status);
 				if (!status) continue;
-				yield* api.db.employment_statutory_facts.create({
+				yield* api.db.employment_statutory_facts.mutate({
 					employment_id: copy.employmentId,
 					statutory_contribution_id: copy.successorSchemeId,
 					supersedes_fact_id: copy.factId,
@@ -874,7 +892,8 @@ export const runStatutoryProfileDrift = (api: AutomationApi) =>
 			}
 
 			yield* api.progress({ progress: 0.9, text: 'Saving the statutory research receipt' });
-			yield* api.db.statutory_profile_drift_logs.update(runLog.id, {
+			yield* api.db.statutory_profile_drift_logs.mutate({
+				id: runLog.id,
 				status: 'SUCCEEDED',
 				completed_at: instantAt(yield* Clock.currentTimeMillis).toISOString(),
 				local_findings_count: detected.items.length,
@@ -906,7 +925,8 @@ export const runStatutoryProfileDrift = (api: AutomationApi) =>
 			Effect.gen(function* () {
 				const message = errorMessage(error);
 				yield* api.db.statutory_profile_drift_logs
-					.update(runLog.id, {
+					.mutate({
+						id: runLog.id,
 						status: 'FAILED',
 						completed_at: instantAt(yield* Clock.currentTimeMillis).toISOString(),
 						local_findings_count: detectedItems.length,

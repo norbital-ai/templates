@@ -117,7 +117,7 @@ function assertEntrySourceUnlocked(
 	 * write, reconcile, or load.
 	 */
 	return Effect.map(
-		api.db.query.payslip_lines.findFirst({
+		api.db.payslip_lines.findFirst({
 			where: { component_entry_id: { eq: existing.id } },
 			columns: { id: true },
 			with: {
@@ -156,7 +156,7 @@ function assertInstalmentMatchesAgreement(
 	const origin = instalmentOrigin(entry.origin);
 	if (!origin) return Effect.void;
 	return Effect.map(
-		api.db.query.repayment_agreements.findMany({
+		api.db.repayment_agreements.findMany({
 			where: { id: { eq: origin.agreement_id } },
 			limit: 1
 		}),
@@ -182,7 +182,7 @@ export default {
 				});
 			}
 			return Effect.map(
-				api.db.query.repayment_agreements.findMany({
+				api.db.repayment_agreements.findMany({
 					where: { id: { in: agreementIds } },
 					limit: LIMIT
 				}),
@@ -258,7 +258,7 @@ export default {
 						yield* assertEntrySourceUnlocked(api, existing, 'Deleting a pay entry');
 						const origin = instalmentOrigin(existing.origin);
 						if (!origin) return;
-						const agreement = (yield* api.db.query.repayment_agreements.findMany({
+						const agreement = (yield* api.db.repayment_agreements.findMany({
 							where: { id: { eq: origin.agreement_id } },
 							limit: 1
 						}))[0];

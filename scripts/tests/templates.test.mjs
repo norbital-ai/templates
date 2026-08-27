@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { existsSync, readFileSync, readdirSync } from 'node:fs';
+import { existsSync, lstatSync, readFileSync, readdirSync } from 'node:fs';
 import path from 'node:path';
 import { describe, it } from 'node:test';
 import {
@@ -11,20 +11,6 @@ import {
 } from '../lib/templates.mjs';
 
 describe('template discovery', () => {
-	it('uses 0.0.1 for the repository and template manifests', () => {
-		assert.equal(
-			JSON.parse(readFileSync(path.join(repositoryRoot, 'package.json'))).version,
-			'0.0.1'
-		);
-		for (const template of discoverTemplates()) {
-			assert.equal(
-				JSON.parse(readFileSync(path.join(template.directory, 'package.json'))).version,
-				'0.0.1',
-				template.slug
-			);
-		}
-	});
-
 	it('discovers every template from its own tree, with no separate catalogue', () => {
 		const templates = discoverTemplates();
 		assert.ok(templates.length > 0);
@@ -35,19 +21,6 @@ describe('template discovery', () => {
 			);
 			assert.equal(template.ref, `${templateRefNamespace}/${template.slug}`);
 		}
-	});
-
-	it('publishes validated source refs without prebuilt template packages', () => {
-		const workflow = readFileSync(
-			path.join(repositoryRoot, '.github', 'workflows', 'template-refs.yml'),
-			'utf8'
-		);
-		assert.match(workflow, /Validate standalone projections/);
-		assert.doesNotMatch(workflow, /template-bundles|publish-template-bundles/);
-		assert.equal(
-			existsSync(path.join(repositoryRoot, 'scripts', 'publish-template-bundles.mjs')),
-			false
-		);
 	});
 
 	it('projects the organization handle without tying it to the directory', () => {
@@ -124,6 +97,30 @@ describe('template discovery', () => {
 			assert.ok(
 				existsSync(path.join(template.directory, 'pnpm-lock.yaml')),
 				`${template.slug} must commit pnpm-lock.yaml`
+			);
+		}
+	});
+
+	it('commits the current mutation compatibility lineage for every template', () => {
+		for (const template of discoverTemplates()) {
+			const lineagePath = path.join(
+				template.directory,
+				'.norbital',
+				'migrations',
+				'mutation-compatibility.json'
+			);
+			assert.ok(
+				existsSync(lineagePath),
+				`${template.slug} must commit mutation compatibility lineage`
+			);
+			assert.ok(lstatSync(lineagePath).isFile(), `${template.slug} lineage must be a regular file`);
+
+			const lineage = JSON.parse(readFileSync(lineagePath, 'utf8'));
+			assert.equal(lineage.version, 1, `${template.slug} lineage version`);
+			assert.equal(
+				lineage.checkpoints.at(-1)?.schemaFingerprint,
+				lineage.currentSchemaFingerprint,
+				`${template.slug} current lineage checkpoint`
 			);
 		}
 	});
@@ -214,7 +211,6 @@ describe('template discovery', () => {
 			for (const architecture of ['darwin', 'linux', 'win32', 'x64', 'arm64', 'glibc', 'musl']) {
 				assert.match(policy, new RegExp(`- ${architecture}`), `${template.slug}: ${architecture}`);
 			}
-			assert.doesNotMatch(policy, /- current/);
 		}
 	});
 

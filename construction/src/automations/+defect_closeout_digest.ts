@@ -18,7 +18,7 @@ export default defineAutomation(
 			'Counts the defect register every morning at 6am and publishes the first 25 defects as a JSON extract for the closeout meeting.',
 		handler: (api) =>
 			Effect.gen(function* () {
-				const defects = yield* api.db.query.defects.findMany({
+				const defects = yield* api.db.defects.findMany({
 					where: { status: { in: ['open', 'in_review', 'ready_for_closeout'] } },
 					orderBy: { due_date: 'asc' },
 					limit: 25

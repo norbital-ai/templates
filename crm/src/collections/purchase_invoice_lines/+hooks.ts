@@ -64,7 +64,7 @@ const liveLinesOfOrderLine = (orderLineId: string) => ({
 /** Invoiced quantity on live (non-cancelled) invoices for one order line. */
 function liveInvoicedQuantity(api: BeforeApi, orderLineId: string): Effect.Effect<number> {
 	return sumQuantity(
-		api.db.query.purchase_invoice_lines.findMany({
+		api.db.purchase_invoice_lines.findMany({
 			where: liveLinesOfOrderLine(orderLineId),
 			columns: { quantity: true },
 			limit: LINE_LIMIT
@@ -85,11 +85,11 @@ function computeLineAmounts(
 
 /** The invoice a roll-up writes back to. */
 const invoiceById = (api: AfterApi, invoiceId: string) =>
-	api.db.query.purchase_invoices.findFirst({ where: { id: { eq: invoiceId } } });
+	api.db.purchase_invoices.findFirst({ where: { id: { eq: invoiceId } } });
 
 /** The money cells of every line on one invoice. */
 const invoiceLineTotals = (api: AfterApi, invoiceId: string) =>
-	api.db.query.purchase_invoice_lines.findMany({
+	api.db.purchase_invoice_lines.findMany({
 		where: { purchase_invoice_id: { eq: invoiceId } },
 		columns: { net: true, tax: true, line_total: true },
 		limit: LINE_LIMIT
@@ -99,7 +99,7 @@ function rollupInvoice(api: AfterApi, invoiceId: string): Effect.Effect<void> {
 	return rollupDocument({
 		document: invoiceById(api, invoiceId),
 		lines: invoiceLineTotals(api, invoiceId),
-		write: (totals) => api.db.purchase_invoices.mutate([{ id: invoiceId, ...totals }])
+		write: (totals) => api.db.purchase_invoices.mutate({ id: invoiceId, ...totals })
 	});
 }
 
@@ -130,20 +130,20 @@ export default {
 					)
 				];
 				const invoices = invoiceIds.length
-					? yield* api.db.query.purchase_invoices.findMany({
+					? yield* api.db.purchase_invoices.findMany({
 							where: { id: { in: invoiceIds } },
 							limit: LINE_LIMIT
 						})
 					: [];
 				const orderLines = orderLineIds.length
-					? yield* api.db.query.purchase_order_lines.findMany({
+					? yield* api.db.purchase_order_lines.findMany({
 							where: { id: { in: orderLineIds } },
 							limit: LINE_LIMIT
 						})
 					: [];
 				// The same filter `liveInvoicedQuantity` applied one order line at a time, asked once.
 				const invoiced = orderLineIds.length
-					? yield* api.db.query.purchase_invoice_lines.findMany({
+					? yield* api.db.purchase_invoice_lines.findMany({
 							where: {
 								purchase_order_line_id: { in: orderLineIds },
 								purchase_invoice_line_invoice: { status: { ne: 'cancelled' } }
@@ -238,7 +238,7 @@ export default {
 							);
 						}
 
-						const invoice = yield* api.db.query.purchase_invoices.findFirst({
+						const invoice = yield* api.db.purchase_invoices.findFirst({
 							where: { id: { eq: existing.purchase_invoice_id } }
 						});
 						if (!invoice)
@@ -252,7 +252,7 @@ export default {
 						const resolved = { ...existing, ...input };
 						validateLineFields(resolved);
 
-						const orderLine = yield* api.db.query.purchase_order_lines.findFirst({
+						const orderLine = yield* api.db.purchase_order_lines.findFirst({
 							where: { id: { eq: existing.purchase_order_line_id } }
 						});
 						if (orderLine) {

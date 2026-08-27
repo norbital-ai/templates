@@ -14,7 +14,7 @@ import {
 	readOverlapData,
 	type OverlapData
 } from './lib/assignment-overlap.js';
-import type { HookApi, Hooks, WorkspaceRow } from './$types.js';
+import type { Api, Hooks, WorkspaceRow } from './$types.js';
 
 type CreateInput = Parameters<
 	NonNullable<
@@ -81,12 +81,12 @@ function assertRosterOpenIn(
 }
 
 function assertRosterOpen(
-	api: HookApi,
+	api: Api,
 	rosterId: string | null | undefined
 ): Effect.Effect<void, never, never> {
 	if (rosterId == null) return Effect.void;
 	return Effect.map(
-		api.db.query.rosters.findFirst({
+		api.db.rosters.findFirst({
 			where: { id: { eq: rosterId } },
 			columns: { month: true, published_at: true }
 		}),
@@ -94,21 +94,21 @@ function assertRosterOpen(
 	);
 }
 
-function assertAssignment(api: HookApi, value: AssignmentValue): Effect.Effect<void, never, never> {
+function assertAssignment(api: Api, value: AssignmentValue): Effect.Effect<void, never, never> {
 	return Effect.map(
 		Effect.all(
 			[
-				api.db.query.employments.findFirst({
+				api.db.employments.findFirst({
 					where: { id: { eq: value.employment_id } },
 					columns: { company_id: true }
 				}),
-				api.db.query.shift_definitions.findFirst({
+				api.db.shift_definitions.findFirst({
 					where: { id: { eq: value.shift_definition_id } },
 					columns: { company_id: true, code: true, variant: true, effective_range: true }
 				}),
 				value.roster_id == null
 					? Effect.succeed(null)
-					: api.db.query.rosters.findFirst({
+					: api.db.rosters.findFirst({
 							where: { id: { eq: value.roster_id } },
 							columns: { company_id: true, month: true, published_at: true }
 						})
@@ -129,17 +129,17 @@ function assertDayNotSettledIn(windows: readonly PayrollWindow[], workDate: stri
 }
 
 function assertDayNotSettled(
-	api: HookApi,
+	api: Api,
 	employmentId: string,
 	workDate: string
 ): Effect.Effect<void, never, never> {
 	return Effect.gen(function* () {
-		const employment = yield* api.db.query.employments.findFirst({
+		const employment = yield* api.db.employments.findFirst({
 			where: { id: { eq: employmentId } },
 			columns: { company_id: true }
 		});
 		if (employment == null) return;
-		const runs = yield* api.db.query.payroll_runs.findMany({
+		const runs = yield* api.db.payroll_runs.findMany({
 			where: { company_id: { eq: employment.company_id } },
 			columns: {
 				period: true,
@@ -172,19 +172,19 @@ function assertLeaveDoesNotOwnDay(
 }
 
 function assertDayNotOwnedByLeave(
-	api: HookApi,
+	api: Api,
 	employmentId: string,
 	workDate: string,
 	shiftDefinitionId: string
 ): Effect.Effect<void, never, never> {
 	return Effect.gen(function* () {
-		const code = yield* api.db.query.shift_definitions.findFirst({
+		const code = yield* api.db.shift_definitions.findFirst({
 			where: { id: { eq: shiftDefinitionId } },
 			columns: { variant: true }
 		});
 		if (code == null || rosterCodeKind(code.variant) !== 'WORK') return;
 		const date = dateKey(workDate);
-		const requests = yield* api.db.query.leave_requests.findMany({
+		const requests = yield* api.db.leave_requests.findMany({
 			where: {
 				employment_id: { eq: employmentId },
 				kind: { eq: 'TIME_OFF' },
@@ -249,14 +249,14 @@ export default {
 				const [employments, codes, rosters] = yield* Effect.all(
 					[
 						employmentIds.length
-							? api.db.query.employments.findMany({
+							? api.db.employments.findMany({
 									where: { id: { in: employmentIds } },
 									columns: { id: true, company_id: true },
 									limit: QUERY_LIMIT
 								})
 							: Effect.succeed([]),
 						codeIds.length
-							? api.db.query.shift_definitions.findMany({
+							? api.db.shift_definitions.findMany({
 									where: { id: { in: codeIds } },
 									columns: {
 										id: true,
@@ -269,7 +269,7 @@ export default {
 								})
 							: Effect.succeed([]),
 						rosterIds.length
-							? api.db.query.rosters.findMany({
+							? api.db.rosters.findMany({
 									where: { id: { in: rosterIds } },
 									columns: {
 										id: true,
@@ -285,7 +285,7 @@ export default {
 				);
 				const companyIds = [...new Set(employments.map((employment) => employment.company_id))];
 				const runs = companyIds.length
-					? yield* api.db.query.payroll_runs.findMany({
+					? yield* api.db.payroll_runs.findMany({
 							where: { company_id: { in: companyIds } },
 							columns: {
 								company_id: true,
@@ -307,7 +307,7 @@ export default {
 				const last = dates[dates.length - 1];
 				const requests =
 					employmentIds.length && first != null && last != null
-						? yield* api.db.query.leave_requests.findMany({
+						? yield* api.db.leave_requests.findMany({
 								where: {
 									employment_id: { in: employmentIds },
 									kind: { eq: 'TIME_OFF' },

@@ -12,7 +12,7 @@ export default defineQueryHandler({
 	schema: Schema.Struct({ purchase_order_id: Schema.String }),
 	handler: (input, api) =>
 		Effect.gen(function* () {
-			const orderLines = yield* api.db.query.purchase_order_lines.findMany({
+			const orderLines = yield* api.db.purchase_order_lines.findMany({
 				where: { purchase_order_id: { eq: input.purchase_order_id } },
 				columns: {
 					id: true,
@@ -27,12 +27,12 @@ export default defineQueryHandler({
 
 			const [receiptLines, invoiceLines] = yield* Effect.all(
 				[
-					api.db.query.goods_receipt_lines.findMany({
+					api.db.goods_receipt_lines.findMany({
 						where: { purchase_order_line_id: { in: lineIds } },
 						columns: { purchase_order_line_id: true, quantity_received: true },
 						limit: 5000
 					}),
-					api.db.query.purchase_invoice_lines.findMany({
+					api.db.purchase_invoice_lines.findMany({
 						where: {
 							purchase_order_line_id: { in: lineIds },
 							purchase_invoice_line_invoice: { status: { ne: 'cancelled' } }

@@ -3,7 +3,6 @@ import {
 	employeeSelfServiceGrants,
 	grantOn,
 	grantsOn,
-	grantsOnWhere,
 	leaveApproval,
 	mergeGrants,
 	peopleGrants,
@@ -74,7 +73,10 @@ export default {
 		grantsOn('leave_requests', ['read']),
 		// The narrowing has to be stated here, not subtracted higher up: one unconditional
 		// `component_entries` read in any policy this subject matches would erase it.
-		grantsOnWhere('component_entries', ['read'], NOT_AN_ADJUSTMENT),
+		grantOn('component_entries', 'read', {
+			where: NOT_AN_ADJUSTMENT,
+			dependencies: []
+		}),
 		settlementLedgerGrants(),
 
 		// Attendance becomes a payroll source, so writing it is reviewed by the direct manager even

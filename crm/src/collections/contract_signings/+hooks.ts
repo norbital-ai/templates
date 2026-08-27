@@ -38,7 +38,7 @@ type BeforeApi = Parameters<
 /** Fingerprint the quote substance a contract is bound to. */
 function bindingHashFor(api: BeforeApi, quoteId: string): Effect.Effect<string, unknown> {
 	return Effect.gen(function* () {
-		const quote = yield* api.db.query.quotes.findFirst({
+		const quote = yield* api.db.quotes.findFirst({
 			where: { id: { eq: quoteId } },
 			columns: {
 				account_id: true,
@@ -49,7 +49,7 @@ function bindingHashFor(api: BeforeApi, quoteId: string): Effect.Effect<string, 
 				gross: true
 			}
 		});
-		const lines = yield* api.db.query.quote_lines.findMany({
+		const lines = yield* api.db.quote_lines.findMany({
 			where: { quote_id: { eq: quoteId } },
 			columns: {
 				product_code: true,
@@ -76,7 +76,7 @@ export default {
 						if (!input.quote_id) {
 							return yield* Effect.fail(new Error('A contract signing must reference a quote.'));
 						}
-						const quote = yield* api.db.query.quotes.findFirst({
+						const quote = yield* api.db.quotes.findFirst({
 							where: { id: { eq: input.quote_id } }
 						});
 						if (!quote) {
@@ -88,7 +88,7 @@ export default {
 							);
 						}
 
-						const existing = yield* api.db.query.contract_signings.findMany({
+						const existing = yield* api.db.contract_signings.findMany({
 							where: { quote_id: { eq: input.quote_id } },
 							columns: { status: true },
 							limit: 5000
@@ -153,7 +153,7 @@ export default {
 						}
 
 						if (newStatus === 'acknowledged') {
-							const quote = yield* api.db.query.quotes.findFirst({
+							const quote = yield* api.db.quotes.findFirst({
 								where: { id: { eq: existing.quote_id } },
 								columns: { status: true }
 							});

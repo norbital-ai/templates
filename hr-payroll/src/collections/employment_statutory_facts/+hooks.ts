@@ -30,7 +30,7 @@ export default {
 						requireId(input.statutory_contribution_id, 'a statutory contribution');
 						if (input.supersedes_fact_id == null) return input;
 
-						const predecessor = yield* api.db.query.employment_statutory_facts.findFirst({
+						const predecessor = yield* api.db.employment_statutory_facts.findFirst({
 							where: { id: { eq: input.supersedes_fact_id } }
 						});
 						if (predecessor == null) {
@@ -56,7 +56,8 @@ export default {
 							refuse('The predecessor already ended before this statutory successor begins.');
 						}
 
-						yield* api.db.employment_statutory_facts.update(predecessor.id, {
+						yield* api.db.employment_statutory_facts.mutate({
+							id: predecessor.id,
 							effective_range: {
 								start: previousRange.start,
 								end: successorRange.start

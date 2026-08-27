@@ -194,27 +194,23 @@ test('a DRAFT payroll run may be deleted, which is the only release the lock has
  * authoring api, and the one thing this has to be right about is which rows a release removes.
  */
 function fakeApi(state, deleted) {
-	const find = (collection) => ({
-		findMany: ({ where }) =>
-			Effect.succeed(
-				state[collection].filter((row) => row.payroll_run_id === where.payroll_run_id.eq)
-			)
-	});
-	// A collection is reached as a property, the one way the authoring api offers: `db.<name>.delete`,
-	// beside `db.query.<name>.findMany`.
-	const remove = (collection) => ({
-		delete: (identifiers) => {
-			deleted.push([collection, [...identifiers]]);
-			state[collection] = state[collection].filter((row) => !identifiers.includes(row.id));
-			return Effect.succeed(undefined);
-		}
-	});
+	// A release is now one declarative write on the run: an included `many` relationship is its
+	// complete desired state, so the payslips left out of the list are the payslips removed. The
+	// double models that rule and nothing else — a broader fake would be a second, silently
+	// divergent description of the authoring api.
 	return {
 		db: {
-			query: {
-				payslips: find('payslips')
-			},
-			payslips: remove('payslips')
+			payroll_runs: {
+				mutate: ({ id, payslip_payroll_run: desired }) => {
+					const kept = new Set((desired ?? []).map((child) => child.id));
+					const released = state.payslips.filter(
+						(row) => row.payroll_run_id === id && !kept.has(row.id)
+					);
+					deleted.push(['payslips', released.map((row) => row.id)]);
+					state.payslips = state.payslips.filter((row) => !released.includes(row));
+					return Effect.succeed(undefined);
+				}
+			}
 		}
 	};
 }
@@ -297,20 +293,21 @@ test('deleting a payroll run releases its settlement locks — the declarations 
  */
 test('a run takes a settlement lock over every record it consumed', async () => {
 	const written = [];
+	// The payslips, their lines and their locks arrive as one graph under the run, so the double
+	// stands where the runtime does: it assigns each created payslip its identifier and hangs the
+	// nested rows off it. That link is no longer something the code under test carries — which is
+	// the point of the change this asserts against.
 	const api = {
 		db: {
-			query: {
-				payslips: { findMany: () => Effect.succeed([]) }
-			},
-			payslips: {
-				mutate: (rows) =>
-					Effect.succeed(rows.map((row, index) => ({ ...row, id: `payslip-${index + 1}` })))
-			},
-			payslip_lines: { mutate: () => Effect.succeed([]) },
-			payslip_sources: {
-				mutate: (rows) => {
-					written.push(...rows);
-					return Effect.succeed(rows);
+			payroll_runs: {
+				mutate: ({ payslip_payroll_run: payslips }) => {
+					(payslips ?? []).forEach((payslip, index) => {
+						const payslipId = `payslip-${index + 1}`;
+						for (const source of payslip.payslip_source_payslip ?? []) {
+							written.push({ payslip_id: payslipId, ...source });
+						}
+					});
+					return Effect.succeed(undefined);
 				}
 			}
 		}

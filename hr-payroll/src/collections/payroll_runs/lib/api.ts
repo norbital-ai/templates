@@ -22,8 +22,17 @@ export type PayrollApi = Parameters<CreateAfterHook>[0]['api'];
  * `create.before`, `create.after` and an export pipeline are each handed a differently-shaped
  * capability set, and only the relational query surface is common to all three. Anything that only
  * reads is typed against this so it can be called from any of them.
+ *
+ * Reads are now every collection minus its `mutate`, rather than one `query` member: the authored
+ * database no longer has a read half and a write half to pick between — a collection carries its
+ * own reads, and the write is one more method on it. Subtracting that method is what "reads only"
+ * means, and it stays derived, so a new read arriving on the platform reaches the engine for free.
  */
-export type PayrollReadApi = { readonly db: Pick<PayrollApi['db'], 'query'> };
+export type PayrollReadApi = {
+	readonly db: {
+		readonly [Collection in keyof PayrollApi['db']]: Omit<PayrollApi['db'][Collection], 'mutate'>;
+	};
+};
 
 /** The largest page any single engine query will pull. A run that exceeds it is a run that lies. */
 export const PAGE_LIMIT = 20_000;

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { FormattedValueRenderer } from '@norbital-ai/ui/data-renderer';
 	import { client } from '../../lib/workspace-client.js';
 	import { Schema } from 'effect';
 	import { useI18n } from '@norbital-ai/ui/i18n';
@@ -214,23 +215,24 @@
 							name="employment_id"
 							label={t('component.employment')}
 							card="subtitle"
-							render={({ row }: { row: NestedAgreement }) =>
-								row.agreement_employment?.employee_number ?? '—'}
+							renderer={FormattedValueRenderer}
+							rendererProps={{
+								format: ({ row }: { row: NestedAgreement }) =>
+									row.agreement_employment?.employee_number ?? '—'
+							}}
 						/>
 						<Column
 							name="pay_component_id"
 							label={t('app.loans.deducted_as')}
-							render={({ row }) => componentLabel(row)}
+							renderer={FormattedValueRenderer}
+							rendererProps={{ format: ({ row }) => componentLabel(row) }}
 						/>
-						<Column
-							name="principal"
-							label={t('app.loans.principal_outstanding')}
-							render={({ row, value }) => `${formatNumeric(value)} · ${progressLabel(row)}`}
-						/>
+						<Column name="principal" label={t('app.loans.principal_outstanding')} />
 						<Column
 							name="schedule"
 							label={t('component.schedule')}
-							render={({ value }) => formatRepaymentSchedule(value, t)}
+							renderer={FormattedValueRenderer}
+							rendererProps={{ format: ({ value }) => formatRepaymentSchedule(value, t) }}
 						/>
 						<Column name="effective_range" />
 					{/snippet}

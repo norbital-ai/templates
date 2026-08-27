@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { FormattedValueRenderer } from '@norbital-ai/ui/data-renderer';
 	/**
 	 * One statutory scheme, and the rate bands that price it.
 	 *
@@ -14,7 +15,6 @@
 	import type { RepresentationProps } from './$types.js';
 	import { CollectionForm } from '@norbital-ai/ui/collection-form';
 	import { CollectionTable } from '@norbital-ai/ui/collection-table';
-	import { RelationshipRenderer } from '@norbital-ai/ui/data-renderer/relationship';
 	import { Column, Cover, Grid, Inline, Stack } from '@norbital-ai/ui/layout';
 	import { Tabs, type TabConfig } from '@norbital-ai/ui/tabs';
 	import { inForceTodayFilter } from '../../lib/ui/calendar.js';
@@ -63,17 +63,13 @@
 						<Field
 							name="jurisdiction_id"
 							label={t('component.jurisdiction')}
-							renderer={RelationshipRenderer}
-							rendererProps={{
-								target: 'jurisdictions',
-								options: {
-									label: (jurisdiction) =>
-										[jurisdiction.code, jurisdiction.name]
-											.filter((part) => part != null && part !== '')
-											.join(' · ') || '—',
-									orderBy: { code: 'asc' },
-									limit: 200
-								}
+							relationOptions={{
+								label: (jurisdiction) =>
+									[jurisdiction.code, jurisdiction.name]
+										.filter((part) => part != null && part !== '')
+										.join(' · ') || '—',
+								orderBy: { code: 'asc' },
+								limit: 200
 							}}
 						/>
 						<Field name="code" />
@@ -108,18 +104,13 @@
 					<Field
 						name="relief_for"
 						label={t('component.gives_relief_for')}
-						renderer={RelationshipRenderer}
-						rendererProps={{
-							target: 'statutory_contributions',
-							multiple: true,
-							options: {
-								label: (contribution) =>
-									[contribution.code, contribution.name]
-										.filter((part) => part != null && part !== '')
-										.join(' · ') || '—',
-								orderBy: { sequence: 'asc' },
-								limit: 500
-							}
+						relationOptions={{
+							label: (contribution) =>
+								[contribution.code, contribution.name]
+									.filter((part) => part != null && part !== '')
+									.join(' · ') || '—',
+							orderBy: { sequence: 'asc' },
+							limit: 500
 						}}
 					/>
 					<Field name="special_rules" label={t('component.named_special_rules')} />
@@ -146,6 +137,17 @@
 			submitLabel={t('component.save_scheme')}
 		>
 			{#snippet children({ Field })}
+				<Field name="jurisdiction_id" hidden />
+				<Field name="code" hidden />
+				<Field name="name" hidden />
+				<Field name="authority" hidden />
+				<Field name="payer" hidden />
+				<Field name="keyed_by" hidden />
+				<Field name="rounding" hidden />
+				<Field name="relief_for" hidden />
+				<Field name="sequence" hidden />
+				<Field name="special_rules" hidden />
+				<Field name="effective_range" hidden />
 				<Stack gap="lg">
 					<Stack as="section" gap="sm">
 						<Stack gap="xs">
@@ -188,13 +190,15 @@
 					name="selector"
 					label={t('component.applies_to')}
 					card="title"
-					render={({ value }) => formatRateSelector(value, t)}
+					renderer={FormattedValueRenderer}
+					rendererProps={{ format: ({ value }) => formatRateSelector(value, t) }}
 				/>
 				<TableColumn
 					name="award"
 					label={t('component.award')}
 					card="subtitle"
-					render={({ value }) => formatRateAward(value, t)}
+					renderer={FormattedValueRenderer}
+					rendererProps={{ format: ({ value }) => formatRateAward(value, t) }}
 				/>
 				<TableColumn name="effective_range" label={t('component.effective')} />
 			{/snippet}

@@ -53,7 +53,7 @@ export default {
 					month: fileMonth,
 					rows
 				} = Schema.decodeUnknownSync(importSchema)(input);
-				const roster = yield* api.db.query.rosters.findFirst({
+				const roster = yield* api.db.rosters.findFirst({
 					where: { id: { eq: rosterId } },
 					columns: { month: true, published_at: true, company_id: true }
 				});
@@ -67,7 +67,7 @@ export default {
 					);
 				}
 				if (legalEntity != null) {
-					const companies = yield* api.db.query.companies.findMany({
+					const companies = yield* api.db.companies.findMany({
 						columns: { id: true, name: true, registration_number: true },
 						limit: QUERY_LIMIT
 					});
@@ -103,7 +103,7 @@ export default {
 				}
 
 				const employeeNumbers = [...new Set(rows.map((row) => row.employee_number))];
-				const employments = yield* api.db.query.employments.findMany({
+				const employments = yield* api.db.employments.findMany({
 					where: {
 						company_id: { eq: roster.company_id },
 						employee_number: { in: employeeNumbers }
@@ -128,7 +128,7 @@ export default {
 				);
 				if (holidayRows.length > 0) {
 					const dates = [...new Set(holidayRows.map((row) => row.work_date))];
-					const holidays = yield* api.db.query.company_holidays.findMany({
+					const holidays = yield* api.db.company_holidays.findMany({
 						where: { company_id: { eq: roster.company_id }, date: { in: dates } },
 						columns: { date: true },
 						limit: QUERY_LIMIT
@@ -143,7 +143,7 @@ export default {
 				}
 
 				const codes = [...new Set(assignments.map((row) => row.shift_code))];
-				const rosterCodes = yield* api.db.query.shift_definitions.findMany({
+				const rosterCodes = yield* api.db.shift_definitions.findMany({
 					where: { company_id: { eq: roster.company_id }, code: { in: codes } },
 					columns: { id: true, code: true, variant: true, effective_range: true },
 					limit: QUERY_LIMIT
@@ -179,7 +179,7 @@ export default {
 				const existing =
 					employmentIds.length === 0
 						? []
-						: yield* api.db.query.roster_entries.findMany({
+						: yield* api.db.roster_entries.findMany({
 								where: { employment_id: { in: employmentIds }, work_date: { in: workDates } },
 								columns: { employment_id: true, work_date: true },
 								limit: QUERY_LIMIT

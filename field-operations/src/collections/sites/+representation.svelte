@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { FormattedValueRenderer } from '@norbital-ai/ui/data-renderer';
 	import { client } from '../../lib/workspace-client.js';
 	import { collectionClient } from '../../lib/collection-client.js';
 	import { useI18n } from '@norbital-ai/ui/i18n';
@@ -53,6 +54,7 @@
 	{#snippet generalInformation()}
 		<CollectionForm client={collectionClient} collection="sites" defaultValues={record}>
 			{#snippet children({ Field })}
+				<Field name="site_code" hidden />
 				<Stack gap="md">
 					<div>
 						<h3 id="site-general-heading" class="text-sm font-semibold">
@@ -119,11 +121,14 @@
 					label={t('component.job_site_date')}
 					minWidth={360}
 					card="title"
-					render={({ row }) => {
-						const job = jobById.get(row.job_id);
-						return job
-							? `${job.title} · ${record.name} · ${job.scheduled_for}`
-							: t('component.job');
+					renderer={FormattedValueRenderer}
+					rendererProps={{
+						format: ({ row }) => {
+							const job = jobById.get(row.job_id);
+							return job
+								? `${job.title} · ${record.name} · ${job.scheduled_for}`
+								: t('component.job');
+						}
 					}}
 				/>
 				<Column name="dispatched_at" label={t('component.dispatched')} />
@@ -169,6 +174,7 @@
 		onAfterSubmit={close}
 	>
 		{#snippet children({ Field })}
+			<Field name="site_code" hidden />
 			<Grid minimum="panel">
 				<Field name="name" />
 				<Field name="client_name" label={t('component.client_tenant')} />

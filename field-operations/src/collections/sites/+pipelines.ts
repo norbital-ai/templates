@@ -10,14 +10,14 @@ export default {
 				const siteIds = records.map((site) => site.id);
 				if (siteIds.length === 0) return [];
 
-				const jobs = yield* api.db.query.jobs.findMany({
+				const jobs = yield* api.db.jobs.findMany({
 					where: { site_id: { in: siteIds } },
 					limit: 1_000
 				});
 				const jobIds = jobs.map((job) => job.id);
 				const assignments =
 					jobIds.length > 0
-						? yield* api.db.query.job_assignments.findMany({
+						? yield* api.db.job_assignments.findMany({
 								where: { job_id: { in: jobIds } },
 								limit: 5_000
 							})
@@ -25,7 +25,7 @@ export default {
 				const assignmentIds = assignments.map((assignment) => assignment.id);
 				const variations =
 					assignmentIds.length > 0
-						? yield* api.db.query.variation_requests.findMany({
+						? yield* api.db.variation_requests.findMany({
 								where: { job_assignment_id: { in: assignmentIds } },
 								limit: 5_000
 							})
@@ -33,7 +33,7 @@ export default {
 				const variationIds = variations.map((variation) => variation.id);
 				const evidence =
 					assignmentIds.length > 0 || variationIds.length > 0
-						? yield* api.db.query.photo_evidence.findMany({
+						? yield* api.db.photo_evidence.findMany({
 								where: {
 									OR: [
 										...(assignmentIds.length > 0

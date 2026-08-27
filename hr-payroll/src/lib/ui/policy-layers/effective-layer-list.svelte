@@ -87,11 +87,17 @@
 	import { useI18n } from '@norbital-ai/ui/i18n';
 	import type { TenantI18nKeys } from '$bolt/i18n-keys';
 	import { DataRenderer, type CollectionField } from '@norbital-ai/ui/data-renderer';
-	import { todayInstant } from '../calendar.js';
+	import {
+		PAYROLL_TIME_ZONE,
+		instantRangeAsDayPickerValue,
+		instantRangeFromDayPickerValue,
+		todayInstant
+	} from '../calendar.js';
 
 	let props: EffectiveLayerListProps<T> = $props();
 
 	const { t } = useI18n<TenantI18nKeys>();
+	const PICKER_TIME_ZONE = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
 	const STANDING_LABEL = $derived<Record<Standing, string>>({
 		IN_FORCE: t('component.in_force_today'),
@@ -123,13 +129,6 @@
 		precision: 'day',
 		nullable: false
 	} satisfies CollectionField;
-
-	function isInstantRange(value: unknown): value is PolicyLayer['effective_range'] {
-		if (value == null || typeof value !== 'object') return false;
-		const start = Reflect.get(value, 'start');
-		const end = Reflect.get(value, 'end');
-		return typeof start === 'string' && (end === null || typeof end === 'string');
-	}
 
 	function replaceAt(index: number, next: T): void {
 		props.onChange(props.layers.map((layer, position) => (position === index ? next : layer)));
@@ -204,11 +203,20 @@
 				</label>
 				<DataRenderer
 					field={RANGE_FIELD}
-					value={layer.effective_range}
+					value={instantRangeAsDayPickerValue(
+						layer.effective_range,
+						PAYROLL_TIME_ZONE,
+						PICKER_TIME_ZONE
+					)}
 					mode="edit"
 					disabled={props.disabled}
 					onValueChange={(next) => {
-						if (isInstantRange(next)) patch(index, layer, { effective_range: next });
+						const effectiveRange = instantRangeFromDayPickerValue(
+							next,
+							PAYROLL_TIME_ZONE,
+							PICKER_TIME_ZONE
+						);
+						if (effectiveRange !== null) patch(index, layer, { effective_range: effectiveRange });
 					}}
 				/>
 			</Grid>

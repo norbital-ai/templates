@@ -9,7 +9,7 @@
 	},
 	"scripts": {
 		"check": "pnpm templates:check && pnpm test && pnpm format:check && pnpm templates:lock:check && pnpm templates:verify",
-		"dr": "node ../oss/packages/doctor/build/cli.js audit --root .",
+		"dr": "node scripts/for-each-template.mjs dr",
 		"format": "prettier --write .",
 		"format:check": "prettier --check .",
 		"runtime:smoke": "node scripts/smoke-runtime-bundle.mjs",

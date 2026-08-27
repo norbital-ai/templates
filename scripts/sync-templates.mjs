@@ -15,13 +15,18 @@ import { discoverTemplates } from './lib/templates.mjs';
 const filter = process.argv[2];
 
 for (const template of discoverTemplates(filter)) {
-	if (!existsSync(path.join(template.directory, 'node_modules', '.bin', 'bolt'))) {
+	const bolt = path.join(template.directory, 'node_modules', '.bin', 'bolt');
+	if (!existsSync(bolt)) {
 		throw new Error(
 			`${template.slug} is not installed. Run \`pnpm --dir ${template.slug} install\`.`
 		);
 	}
 	console.log(`Synchronizing ${template.slug}...`);
-	execFileSync('pnpm', ['--config.verify-deps-before-run=false', 'sync'], {
+	execFileSync(bolt, ['migrate'], {
+		cwd: template.directory,
+		stdio: 'inherit'
+	});
+	execFileSync(bolt, ['sync'], {
 		cwd: template.directory,
 		stdio: 'inherit'
 	});

@@ -6,7 +6,6 @@
 	import type { RepresentationProps } from './$types.js';
 	import { CollectionForm } from '@norbital-ai/ui/collection-form';
 	import { Column, Grid } from '@norbital-ai/ui/layout';
-	import { RelationshipRenderer } from '@norbital-ai/ui/data-renderer/relationship';
 	import type { CollectionRelationOptions } from '@norbital-ai/std/collection';
 
 	let { record, close }: RepresentationProps = $props();
@@ -29,21 +28,17 @@
 			<Field
 				name="project_id"
 				label={t('component.project')}
-				renderer={RelationshipRenderer}
-				rendererProps={{
-					target: 'projects',
-					options: {
-						label: (record) => {
-							const number = record.project_number;
-							const name = record.project_name;
-							if (number && name) return `${number} · ${name}`;
-							const v = record.project_name;
-							return v != null && v !== '' ? String(v) : '—';
-						},
-						orderBy: { project_number: 'asc' },
-						limit: 500
-					} satisfies CollectionRelationOptions
-				}}
+				relationOptions={{
+					label: (record) => {
+						const number = record.project_number;
+						const name = record.project_name;
+						if (number && name) return `${number} · ${name}`;
+						const v = record.project_name;
+						return v != null && v !== '' ? String(v) : '—';
+					},
+					orderBy: { project_number: 'asc' },
+					limit: 500
+				} satisfies CollectionRelationOptions}
 			/>
 			<Field name="category" />
 			<Field name="subcategory" />

@@ -1,7 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { Schema } from 'effect';
+import { Effect, Schema } from 'effect';
+import suspicionReviewAutomation from '../../automations/+review_job_assignment_suspicion.js';
 import {
+	ASSIGNMENT_PAGE_SIZE,
 	MAX_INFERENCE_CONTEXT_CHARS,
 	MAX_INFERENCE_EVIDENCE_ID_CHARS,
 	MAX_INFERENCE_IMAGE_BYTES,
@@ -9,6 +11,7 @@ import {
 	MAX_INFERENCE_REASON_CHARS,
 	buildSuspicionInferenceContext,
 	buildSuspicionReviewBasis,
+	loadUncheckedAssignments,
 	reviewSourceKey,
 	selectSuspicionInferencePhotos,
 	shouldCreateSuspicionLog,
@@ -26,6 +29,206 @@ import {
 	assertResolutionTransition,
 	normalizeOpenJudgement
 } from './+hooks.js';
+
+type Assignment = SuspicionReviewFacts['assignment'];
+
+type RunResult = {
+	readonly reviewed_at: string;
+	readonly assignment_count: number;
+	readonly inference_count: number;
+	readonly failure_count: number;
+	readonly failure_details: ReadonlyArray<{
+		readonly assignment_id: string;
+		readonly stage: string;
+	}>;
+	readonly failure_details_truncated: boolean;
+	readonly counts: Readonly<Record<string, number>>;
+};
+
+type ExistingReview = {
+	readonly id: string;
+	readonly basis: string;
+	readonly suspicious: boolean;
+	readonly reason: string;
+	readonly evidence_id: string | null;
+};
+
+function assignment(id: string, status = 'assigned'): Assignment {
+	return {
+		id,
+		job_id: `job-${id}`,
+		status,
+		summary: null,
+		location: null,
+		suspicion_checked_at: null
+	};
+}
+
+function assignmentIdFromPrompt(prompt: string): string {
+	const marker = '"assignment":{"id":"';
+	const start = prompt.indexOf(marker);
+	assert.notEqual(start, -1);
+	const valueStart = start + marker.length;
+	const end = prompt.indexOf('"', valueStart);
+	assert.notEqual(end, -1);
+	return prompt.slice(valueStart, end);
+}
+
+function automationHarness(options: {
+	readonly assignments: ReadonlyArray<Assignment>;
+	readonly decisions?: Readonly<Record<string, { suspicious: boolean; reason: string }>>;
+	readonly factLoadFailures?: ReadonlySet<string>;
+	readonly inferenceFailures?: ReadonlySet<string>;
+	readonly reviewPersistenceFailures?: ReadonlySet<string>;
+	readonly openSuspicionIds?: Readonly<Record<string, string>>;
+	readonly existingReviews?: Readonly<Record<string, ExistingReview>>;
+}) {
+	const inferenceCounts = new Map<string, number>();
+	const reviewCreateAttempts: Array<string> = [];
+	const logCreates: Array<string> = [];
+	const updates: Array<string> = [];
+	const assignmentPageOffsets: Array<number> = [];
+	const existingReviews = { ...options.existingReviews };
+	const logsByReview: Record<string, { readonly id: string } | undefined> = {};
+	const api = {
+		progress: () => Effect.void,
+		infer: (input: { readonly prompt: string }) => {
+			const assignmentId = assignmentIdFromPrompt(input.prompt);
+			inferenceCounts.set(assignmentId, (inferenceCounts.get(assignmentId) ?? 0) + 1);
+			if (options.inferenceFailures?.has(assignmentId) === true) {
+				return Effect.fail(new Error(`Inference failed for ${assignmentId}`));
+			}
+			const decision = options.decisions?.[assignmentId] ?? {
+				suspicious: false,
+				reason: 'The evidence does not justify a suspicion.'
+			};
+			return Effect.succeed({ ...decision, evidence_id: null });
+		},
+		/**
+		 * The database double, in the shape the authored api now has.
+		 *
+		 * There is no `query` half and no `create`/`update` half: a collection carries its reads and
+		 * its one declarative `mutate`. `mutate` answers with nothing, so the rows it accepts have to
+		 * become visible to the `findFirst` that reads them back — which is exactly what the real
+		 * runtime does, and what a double that returned the written row would have let the code under
+		 * test skip.
+		 */
+		db: {
+			job_assignments: {
+				findMany: (input: {
+					readonly where?: { readonly id?: { readonly eq?: string } };
+					readonly offset?: number;
+					readonly limit?: number;
+				}) => {
+					const targeted = input.where?.id?.eq;
+					if (targeted != null) {
+						return Effect.succeed(options.assignments.filter(({ id }) => id === targeted));
+					}
+					const offset = input.offset ?? 0;
+					assignmentPageOffsets.push(offset);
+					return Effect.succeed(
+						options.assignments.slice(offset, offset + (input.limit ?? ASSIGNMENT_PAGE_SIZE))
+					);
+				},
+				mutate: (values: { readonly id: string }) => {
+					updates.push(values.id);
+					return Effect.void;
+				}
+			},
+			jobs: {
+				findFirst: (input: { readonly where: { readonly id: { readonly eq: string } } }) => {
+					const assignmentId = input.where.id.eq.slice('job-'.length);
+					if (options.factLoadFailures?.has(assignmentId) === true) {
+						return Effect.fail(new Error(`Facts failed for ${assignmentId}`));
+					}
+					return Effect.succeed({
+						id: input.where.id.eq,
+						site_id: `site-${input.where.id.eq}`,
+						title: 'Field work',
+						nature: null,
+						scheduled_for: null,
+						description: 'Complete the assigned field work.'
+					});
+				}
+			},
+			sites: {
+				findFirst: () =>
+					Effect.succeed({
+						id: 'site-a',
+						name: 'Site A',
+						location: null,
+						house_type: null
+					})
+			},
+			variation_requests: { findMany: () => Effect.succeed([]) },
+			photo_evidence: { findMany: () => Effect.succeed([]) },
+			communication_logs: { findMany: () => Effect.succeed([]) },
+			suspicion_reviews: {
+				findFirst: (input: {
+					readonly where: { readonly job_assignment_id: { readonly eq: string } };
+				}) => Effect.succeed(existingReviews[input.where.job_assignment_id.eq]),
+				mutate: (values: {
+					readonly job_assignment_id: string;
+					readonly basis: string;
+					readonly suspicious: boolean;
+					readonly reason: string;
+					readonly evidence_id: string | null;
+				}) => {
+					reviewCreateAttempts.push(values.job_assignment_id);
+					if (options.reviewPersistenceFailures?.has(values.job_assignment_id) === true) {
+						return Effect.fail(new Error('review persistence failed'));
+					}
+					if (existingReviews[values.job_assignment_id] != null) {
+						return Effect.fail(new Error('duplicate review basis'));
+					}
+					existingReviews[values.job_assignment_id] = {
+						...values,
+						id: `review-${values.job_assignment_id}`
+					};
+					return Effect.void;
+				}
+			},
+			suspicious_activity_logs: {
+				findFirst: (input: {
+					readonly where: {
+						readonly job_assignment_id?: { readonly eq: string };
+						readonly review_id?: { readonly eq: string };
+					};
+				}) => {
+					const reviewId = input.where.review_id?.eq;
+					if (reviewId != null) return Effect.succeed(logsByReview[reviewId]);
+					const assignmentId = input.where.job_assignment_id?.eq;
+					const id = assignmentId == null ? undefined : options.openSuspicionIds?.[assignmentId];
+					return Effect.succeed(id == null ? undefined : { id });
+				},
+				mutate: (values: { readonly job_assignment_id: string; readonly review_id: string }) => {
+					logCreates.push(values.job_assignment_id);
+					logsByReview[values.review_id] = { id: `log-${values.job_assignment_id}` };
+					return Effect.void;
+				}
+			}
+		}
+	};
+	return {
+		api,
+		assignmentPageOffsets,
+		inferenceCounts,
+		reviewCreateAttempts,
+		logCreates,
+		updates
+	};
+}
+
+async function runAutomation(api: unknown): Promise<RunResult> {
+	const effect = suspicionReviewAutomation.spec.handler(
+		api as never,
+		{
+			args: {},
+			scope: {}
+		} as never
+	);
+	return Effect.runPromise(effect as Effect.Effect<RunResult, unknown, never>);
+}
 
 function facts(): SuspicionReviewFacts {
 	return {
@@ -94,12 +297,160 @@ function facts(): SuspicionReviewFacts {
 	};
 }
 
-test('reviews only assignments that are not completed', () => {
+test('reviews every unchecked assignment, including completed rows', () => {
 	assert.equal(shouldReviewAssignment('assigned'), true);
 	assert.equal(shouldReviewAssignment('unassigned'), true);
 	assert.equal(shouldReviewAssignment(null), true);
-	assert.equal(shouldReviewAssignment('completed'), false);
+	assert.equal(shouldReviewAssignment('completed'), true);
 	assert.equal(shouldReviewAssignment('assigned', '2026-08-24T01:00:00.000Z'), false);
+});
+
+test('materialises every unchecked assignment across pages beyond 500', async () => {
+	const assignments = Array.from({ length: ASSIGNMENT_PAGE_SIZE + 1 }, (_, index) =>
+		assignment(
+			`assignment-${String(index).padStart(4, '0')}`,
+			index === 500 ? 'completed' : 'assigned'
+		)
+	);
+	const harness = automationHarness({ assignments });
+	const selected = await Effect.runPromise(loadUncheckedAssignments(harness.api as never));
+
+	assert.equal(selected.length, ASSIGNMENT_PAGE_SIZE + 1);
+	assert.equal(selected.at(-1)?.status, 'completed');
+	assert.deepEqual(harness.assignmentPageOffsets, [0, ASSIGNMENT_PAGE_SIZE]);
+});
+
+test('infers, persists, and stamps a completed unchecked assignment', async () => {
+	const completed = assignment('assignment-completed', 'completed');
+	const harness = automationHarness({ assignments: [completed] });
+	const result = await runAutomation(harness.api);
+
+	assert.equal(result.assignment_count, 1);
+	assert.equal(result.inference_count, 1);
+	assert.equal(result.failure_count, 0);
+	assert.equal(result.counts.checked, 1);
+	assert.equal(result.counts.clear, 1);
+	assert.equal(harness.inferenceCounts.get(completed.id), 1);
+	assert.deepEqual(harness.reviewCreateAttempts, [completed.id]);
+	assert.deepEqual(harness.updates, [completed.id]);
+});
+
+test('still performs exactly one inference and persists a review when a suspicion is already open', async () => {
+	const selected = assignment('assignment-open');
+	const harness = automationHarness({
+		assignments: [selected],
+		decisions: { [selected.id]: { suspicious: true, reason: 'Visible contradiction.' } },
+		openSuspicionIds: { [selected.id]: 'log-already-open' }
+	});
+	const result = await runAutomation(harness.api);
+
+	assert.equal(result.assignment_count, 1);
+	assert.equal(result.inference_count, 1);
+	assert.equal(result.failure_count, 0);
+	assert.equal(result.counts.suspicious_open_exists, 1);
+	assert.equal(harness.inferenceCounts.get(selected.id), 1);
+	assert.deepEqual(harness.reviewCreateAttempts, [selected.id]);
+	assert.deepEqual(harness.logCreates, []);
+	assert.deepEqual(harness.updates, [selected.id]);
+});
+
+test('still performs exactly one inference and stamps when the evidence basis already has a durable review', async () => {
+	const selected = assignment('assignment-reviewed');
+	const harness = automationHarness({
+		assignments: [selected],
+		decisions: { [selected.id]: { suspicious: true, reason: 'A new non-durable answer.' } },
+		existingReviews: {
+			[selected.id]: {
+				id: 'review-existing',
+				basis: '{"durable":true}',
+				suspicious: false,
+				reason: 'The durable review was clear.',
+				evidence_id: null
+			}
+		}
+	});
+	const result = await runAutomation(harness.api);
+
+	assert.equal(result.assignment_count, 1);
+	assert.equal(result.inference_count, 1);
+	assert.equal(result.failure_count, 0);
+	assert.equal(result.counts.clear_existing, 1);
+	assert.equal(harness.inferenceCounts.get(selected.id), 1);
+	assert.deepEqual(harness.reviewCreateAttempts, [selected.id]);
+	assert.deepEqual(harness.logCreates, []);
+	assert.deepEqual(harness.updates, [selected.id]);
+});
+
+test('counts failed inference invocations, leaves those assignments unchecked, and continues', async () => {
+	const failed = assignment('assignment-inference-failed');
+	const succeeded = assignment('assignment-after-failure');
+	const harness = automationHarness({
+		assignments: [failed, succeeded],
+		inferenceFailures: new Set([failed.id])
+	});
+	const result = await runAutomation(harness.api);
+
+	assert.equal(result.assignment_count, 2);
+	assert.equal(result.inference_count, 2);
+	assert.equal(result.failure_count, 1);
+	assert.equal(result.counts.failed, 1);
+	assert.equal(result.counts.checked, 1);
+	assert.deepEqual(result.failure_details, [{ assignment_id: failed.id, stage: 'inference' }]);
+	assert.equal(harness.inferenceCounts.get(failed.id), 1);
+	assert.equal(harness.inferenceCounts.get(succeeded.id), 1);
+	assert.deepEqual(harness.updates, [succeeded.id]);
+});
+
+test('does not stamp after inference when no review can be durably persisted', async () => {
+	const selected = assignment('assignment-review-failed');
+	const harness = automationHarness({
+		assignments: [selected],
+		reviewPersistenceFailures: new Set([selected.id])
+	});
+	const result = await runAutomation(harness.api);
+
+	assert.equal(result.assignment_count, 1);
+	assert.equal(result.inference_count, 1);
+	assert.equal(result.failure_count, 1);
+	assert.deepEqual(result.failure_details, [
+		{ assignment_id: selected.id, stage: 'review_persistence' }
+	]);
+	assert.equal(harness.inferenceCounts.get(selected.id), 1);
+	assert.deepEqual(harness.updates, []);
+});
+
+test('reports a pre-inference fact-load failure without claiming an inference invocation', async () => {
+	const selected = assignment('assignment-facts-failed');
+	const harness = automationHarness({
+		assignments: [selected],
+		factLoadFailures: new Set([selected.id])
+	});
+	const result = await runAutomation(harness.api);
+
+	assert.equal(result.assignment_count, 1);
+	assert.equal(result.inference_count, 0);
+	assert.equal(result.failure_count, 1);
+	assert.deepEqual(result.failure_details, [{ assignment_id: selected.id, stage: 'fact_loading' }]);
+	assert.equal(harness.inferenceCounts.has(selected.id), false);
+	assert.deepEqual(harness.updates, []);
+});
+
+test('bounds failure details while retaining the complete failure count', async () => {
+	const assignments = Array.from({ length: 101 }, (_, index) =>
+		assignment(`assignment-facts-failed-${index}`)
+	);
+	const harness = automationHarness({
+		assignments,
+		factLoadFailures: new Set(assignments.map(({ id }) => id))
+	});
+	const result = await runAutomation(harness.api);
+
+	assert.equal(result.assignment_count, 101);
+	assert.equal(result.inference_count, 0);
+	assert.equal(result.failure_count, 101);
+	assert.equal(result.failure_details.length, 100);
+	assert.equal(result.failure_details_truncated, true);
+	assert.deepEqual(harness.updates, []);
 });
 
 test('bounds every free-form decision field in the provider and runtime schemas', () => {

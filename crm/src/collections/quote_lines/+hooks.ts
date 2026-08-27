@@ -44,11 +44,11 @@ const LINE_LIMIT = 5000;
 
 /** The quotes a batch of lines is being added to. */
 const quotesByIds = (api: PrepareApi) => (ids: readonly string[]) =>
-	api.db.query.quotes.findMany({ where: { id: { in: ids } }, limit: LINE_LIMIT });
+	api.db.quotes.findMany({ where: { id: { in: ids } }, limit: LINE_LIMIT });
 
 /** The catalogue products a batch of lines names. */
 const productsByIds = (api: PrepareApi) => (ids: readonly string[]) =>
-	api.db.query.products.findMany({ where: { id: { in: ids } }, limit: LINE_LIMIT });
+	api.db.products.findMany({ where: { id: { in: ids } }, limit: LINE_LIMIT });
 
 /** The line fields validation asks about, from the row's own fields. */
 type LineFieldValues = Partial<
@@ -80,11 +80,11 @@ function validateLineFields(input: LineFieldValues): LinePricingCells {
 
 /** The quote a roll-up writes back to. */
 const quoteById = (api: AfterApi, quoteId: string) =>
-	api.db.query.quotes.findFirst({ where: { id: { eq: quoteId } } });
+	api.db.quotes.findFirst({ where: { id: { eq: quoteId } } });
 
 /** The money cells of every line on one quote. */
 const quoteLineTotals = (api: AfterApi, quoteId: string) =>
-	api.db.query.quote_lines.findMany({
+	api.db.quote_lines.findMany({
 		where: { quote_id: { eq: quoteId } },
 		columns: { net: true, tax: true, line_total: true },
 		limit: LINE_LIMIT
@@ -94,7 +94,7 @@ function rollupQuote(api: AfterApi, quoteId: string): Effect.Effect<void> {
 	return rollupDocument({
 		document: quoteById(api, quoteId),
 		lines: quoteLineTotals(api, quoteId),
-		write: (totals) => api.db.quotes.mutate([{ id: quoteId, ...totals }])
+		write: (totals) => api.db.quotes.mutate({ id: quoteId, ...totals })
 	});
 }
 
@@ -174,7 +174,7 @@ export default {
 							);
 						}
 
-						const quote = yield* api.db.query.quotes.findFirst({
+						const quote = yield* api.db.quotes.findFirst({
 							where: { id: { eq: existing.quote_id } }
 						});
 						if (!quote) return yield* Effect.fail(new Error('Referenced quote does not exist.'));

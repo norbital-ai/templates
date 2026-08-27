@@ -181,7 +181,7 @@ export default {
 
 				let companyId: string | undefined;
 				if (legalEntity != null) {
-					const companies = yield* api.db.query.companies.findMany({
+					const companies = yield* api.db.companies.findMany({
 						columns: { id: true, name: true, registration_number: true },
 						limit: QUERY_LIMIT
 					});
@@ -229,7 +229,7 @@ export default {
 				}
 
 				const employeeNumbers = [...new Set(rows.map((row) => row.employee_number))];
-				const employments = yield* api.db.query.employments.findMany({
+				const employments = yield* api.db.employments.findMany({
 					where: {
 						employee_number: { in: employeeNumbers },
 						...(companyId == null ? {} : { company_id: { eq: companyId } })
@@ -268,7 +268,7 @@ export default {
 					return id;
 				};
 
-				const existing = yield* api.db.query.time_entries.findMany({
+				const existing = yield* api.db.time_entries.findMany({
 					where: {
 						employment_id: {
 							in: [...new Set(rows.map((row) => employmentIdFor(row.employee_number)))]
@@ -300,7 +300,7 @@ export default {
 				const last = workDates.at(-1)!;
 				const companyIds = [...new Set(employments.map((employment) => employment.company_id))];
 				if (companyIds.length > 0) {
-					const runs = yield* api.db.query.payroll_runs.findMany({
+					const runs = yield* api.db.payroll_runs.findMany({
 						where: { company_id: { in: companyIds } },
 						columns: { period: true, lifecycle: true, attendance_from: true, attendance_to: true },
 						limit: QUERY_LIMIT
@@ -308,7 +308,7 @@ export default {
 					const windows = payrollWindows(runs);
 					for (const row of rows) assertNotSettled(windows, row.work_date, 'Importing attendance');
 				}
-				const leaveRows = yield* api.db.query.leave_requests.findMany({
+				const leaveRows = yield* api.db.leave_requests.findMany({
 					where: {
 						employment_id: { in: employmentIds },
 						kind: { eq: 'TIME_OFF' },

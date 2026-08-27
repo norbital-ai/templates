@@ -64,7 +64,7 @@ const liveLinesOfQuoteLine = (quoteLineId: string) => ({
 /** Allocated quantity on live (non-cancelled) invoices for one quote line. */
 function liveAllocatedQuantity(api: BeforeApi, quoteLineId: string): Effect.Effect<number> {
 	return sumQuantity(
-		api.db.query.sales_invoice_lines.findMany({
+		api.db.sales_invoice_lines.findMany({
 			where: liveLinesOfQuoteLine(quoteLineId),
 			columns: { quantity: true },
 			limit: LINE_LIMIT
@@ -85,11 +85,11 @@ function computeLineAmounts(
 
 /** The invoice a roll-up writes back to. */
 const invoiceById = (api: AfterApi, invoiceId: string) =>
-	api.db.query.sales_invoices.findFirst({ where: { id: { eq: invoiceId } } });
+	api.db.sales_invoices.findFirst({ where: { id: { eq: invoiceId } } });
 
 /** The money cells of every line on one invoice. */
 const invoiceLineTotals = (api: AfterApi, invoiceId: string) =>
-	api.db.query.sales_invoice_lines.findMany({
+	api.db.sales_invoice_lines.findMany({
 		where: { sales_invoice_id: { eq: invoiceId } },
 		columns: { net: true, tax: true, line_total: true },
 		limit: LINE_LIMIT
@@ -99,7 +99,7 @@ function rollupInvoice(api: AfterApi, invoiceId: string): Effect.Effect<void> {
 	return rollupDocument({
 		document: invoiceById(api, invoiceId),
 		lines: invoiceLineTotals(api, invoiceId),
-		write: (totals) => api.db.sales_invoices.mutate([{ id: invoiceId, ...totals }])
+		write: (totals) => api.db.sales_invoices.mutate({ id: invoiceId, ...totals })
 	});
 }
 
@@ -124,13 +124,13 @@ export default {
 					...new Set(inputs.flatMap((input) => (input.quote_line_id ? [input.quote_line_id] : [])))
 				];
 				const invoices = invoiceIds.length
-					? yield* api.db.query.sales_invoices.findMany({
+					? yield* api.db.sales_invoices.findMany({
 							where: { id: { in: invoiceIds } },
 							limit: LINE_LIMIT
 						})
 					: [];
 				const quoteLines = quoteLineIds.length
-					? yield* api.db.query.quote_lines.findMany({
+					? yield* api.db.quote_lines.findMany({
 							where: { id: { in: quoteLineIds } },
 							limit: LINE_LIMIT
 						})
@@ -138,7 +138,7 @@ export default {
 				// What is already billed against every quote line this call touches, in one read —
 				// the same filter `liveAllocatedQuantity` applied one line at a time.
 				const allocations = quoteLineIds.length
-					? yield* api.db.query.sales_invoice_lines.findMany({
+					? yield* api.db.sales_invoice_lines.findMany({
 							where: {
 								quote_line_id: { in: quoteLineIds },
 								sales_invoice_line_invoice: { status: { ne: 'cancelled' } }
@@ -229,7 +229,7 @@ export default {
 							);
 						}
 
-						const invoice = yield* api.db.query.sales_invoices.findFirst({
+						const invoice = yield* api.db.sales_invoices.findFirst({
 							where: { id: { eq: existing.sales_invoice_id } }
 						});
 						if (!invoice)
@@ -243,7 +243,7 @@ export default {
 						const resolved = { ...existing, ...input };
 						validateLineFields(resolved);
 
-						const quoteLine = yield* api.db.query.quote_lines.findFirst({
+						const quoteLine = yield* api.db.quote_lines.findFirst({
 							where: { id: { eq: existing.quote_line_id } }
 						});
 						if (quoteLine) {

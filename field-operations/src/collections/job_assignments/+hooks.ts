@@ -196,7 +196,7 @@ export default {
 				Effect.all(
 					[
 						jobIds.length
-							? api.db.query.jobs.findMany({
+							? api.db.jobs.findMany({
 									where: { id: { in: jobIds } },
 									columns: { id: true, site_id: true },
 									limit: ASSIGNMENT_BATCH_LIMIT
@@ -204,14 +204,14 @@ export default {
 							: Effect.succeed([]),
 						usersById(api, assigneeUserIds),
 						jobIds.length
-							? api.db.query.job_assignments.findMany({
+							? api.db.job_assignments.findMany({
 									where: { job_id: { in: jobIds } },
 									columns: { job_id: true },
 									limit: ASSIGNMENT_BATCH_LIMIT
 								})
 							: Effect.succeed([]),
 						sourceMessageIds.length
-							? api.db.query.job_assignments.findMany({
+							? api.db.job_assignments.findMany({
 									where: { source_message_id: { in: sourceMessageIds } },
 									columns: { source_message_id: true },
 									limit: ASSIGNMENT_BATCH_LIMIT
@@ -245,11 +245,11 @@ export default {
 					'Moves a job from unassigned to assigned as soon as its first assignee is dispatched.',
 				handler: ({ record, api }) =>
 					Effect.gen(function* () {
-						const job = yield* api.db.query.jobs.findFirst({
+						const job = yield* api.db.jobs.findFirst({
 							where: { id: { eq: record.job_id } }
 						});
 						if (job?.status === 'unassigned') {
-							yield* api.db.jobs.mutate([{ id: record.job_id, status: 'assigned' }]);
+							yield* api.db.jobs.mutate({ id: record.job_id, status: 'assigned' });
 						}
 					})
 			}
@@ -283,7 +283,7 @@ export default {
 					const jobStatus = mapAssignmentStatusToJobStatus(
 						status as 'unassigned' | 'assigned' | 'completed'
 					);
-					return api.db.jobs.mutate([{ id: record.job_id, status: jobStatus }]);
+					return api.db.jobs.mutate({ id: record.job_id, status: jobStatus });
 				}
 			}
 		}

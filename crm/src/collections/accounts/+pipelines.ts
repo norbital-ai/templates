@@ -44,7 +44,7 @@ export default {
 				const { customers } = yield* decodeCustomers(input);
 				const codes = customers.map((customer) => customer.external_code);
 
-				const existing = yield* api.db.query.accounts.findMany({
+				const existing = yield* api.db.accounts.findMany({
 					where: { external_code: { in: codes } },
 					columns: { external_code: true },
 					limit: 20000

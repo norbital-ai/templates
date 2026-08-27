@@ -43,7 +43,7 @@
 	min="0"
 	step="0.5"
 	value={hours}
-	disabled={props.disabled || props.readonly}
+	disabled={props.disabled || props.mode === 'display'}
 	placeholder={props.placeholder}
 	oninput={(event) => emitHours(event.currentTarget.value, false)}
 	onchange={(event) => emitHours(event.currentTarget.value, true)}

@@ -233,9 +233,10 @@ artifact a host deploys.
 - **Models** — do not change model schemas casually: each schema change produces a committed
   migration under `.norbital/migrations/`. Edit `+model.ts`, run `pnpm sync`, then review the
   migration the compiler emits.
-- **Seed** — new-tenant fixture behavior belongs in `src/+seed.ts`; it does not evolve deployed
-  data. For an existing tenant, write the next lineage entry with `pnpm exec bolt migrate --name
-<name>`, edit its SQL, and deploy it through Colony.
+- **Seed** — fixture data is host-owned and lives in the repository seed bank; there is no
+  `src/+seed.ts` role, and seeding does not evolve deployed data. For an existing tenant, write the
+  next lineage entry with `pnpm exec bolt migrate --name <name>`, edit its SQL, and deploy it
+  through Colony.
   Sensitive statutory seed (the jurisdiction regime snapshots and contribution rows) stays outside
   this template, in the repository seed bank at `seed_bank/norbital_hr/statutory/`.
 - **Publishing** — the template pins `@norbital-ai/bolt` in its own `package.json` and lockfile.

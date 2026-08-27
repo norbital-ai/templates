@@ -11,7 +11,6 @@
 	import type { RepresentationProps } from './$types.js';
 	import { CollectionForm } from '@norbital-ai/ui/collection-form';
 	import { Column, Grid } from '@norbital-ai/ui/layout';
-	import { RelationshipRenderer } from '@norbital-ai/ui/data-renderer/relationship';
 
 	let { record, close }: RepresentationProps = $props();
 	const { t } = useI18n<TenantI18nKeys>();
@@ -28,15 +27,11 @@
 			<Field
 				name="payslip_id"
 				label={t('component.payslip')}
-				renderer={RelationshipRenderer}
-				rendererProps={{
-					target: 'payslips',
-					options: {
-						label: (payslip) =>
-							payslip.period != null && payslip.period !== '' ? String(payslip.period) : '—',
-						orderBy: { period: 'desc' },
-						limit: 500
-					}
+				relationOptions={{
+					label: (payslip) =>
+						payslip.period != null && payslip.period !== '' ? String(payslip.period) : '—',
+					orderBy: { period: 'desc' },
+					limit: 500
 				}}
 			/>
 			<Field name="period" label={t('component.pay_period')} />

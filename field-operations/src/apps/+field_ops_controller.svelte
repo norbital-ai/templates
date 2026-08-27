@@ -13,14 +13,29 @@
 	import { StaticMap, type StaticMapMarker } from '@norbital-ai/ui/static-map';
 	import { Tabs, type TabConfig } from '@norbital-ai/ui/tabs';
 	import Icon from '@iconify/svelte';
-	import { calendarDateInTimeZone } from '../lib/calendar-date.js';
+	import { Effect } from 'effect';
+	import {
+		calendarDateInTimeZone,
+		calendarDayAsPickerInstant,
+		calendarDayFromPickerInstant
+	} from '../lib/calendar-date.js';
 
 	const today = calendarDateInTimeZone(new Date());
+	const pickerTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
 	const { t } = useI18n<TenantI18nKeys>();
 
 	let dispatchDay = $state(today);
+	/**
+	 * The platform picker edits instants, while `jobs.scheduled_for` is deliberately a calendar-day
+	 * key. Represent that day at the viewer's local midnight so the picker always shows the same day
+	 * the query uses, including outside Singapore; converting a UTC midnight for display could move
+	 * it into the previous day in western time zones.
+	 */
+	const dispatchPickerInstant = $derived(calendarDayAsPickerInstant(dispatchDay, pickerTimeZone));
 	let assignContractorOpen = $state(false);
+	let assignmentSettling = $state(false);
+	let assignmentSettlementError = $state<string | null>(null);
 	const jobsQuery = $derived(
 		client.db.jobs.findMany({
 			where: { scheduled_for: { eq: dispatchDay } },
@@ -182,7 +197,8 @@
 	}
 
 	function updateDispatchDate(value: unknown): void {
-		if (typeof value === 'string') setDispatchDay(value);
+		const selectedDay = calendarDayFromPickerInstant(value, pickerTimeZone);
+		if (selectedDay !== null) setDispatchDay(selectedDay);
 	}
 
 	function assignmentStatusLabel(status: string): string {
@@ -198,17 +214,47 @@
 		}
 	}
 
-	const createAssignment = () => {
+	const createAssignment = (): void => {
 		if (assignment.jobId == null || assignment.assigneeUserId == null) return;
-		const operation = client.db.job_assignments.mutate({
-			job_id: assignment.jobId,
-			assignee_user_id: assignment.assigneeUserId,
-			status: 'assigned'
-		});
-		assignment.jobId = null;
-		assignment.assigneeUserId = null;
-		assignContractorOpen = false;
-		return operation;
+		const jobId = assignment.jobId;
+		const assigneeUserId = assignment.assigneeUserId;
+		assignmentSettling = true;
+		assignmentSettlementError = null;
+		Effect.runFork(
+			Effect.gen(function* () {
+				const local = yield* Effect.tryPromise({
+					try: () =>
+						client.db.job_assignments.mutate({
+							job_id: jobId,
+							assignee_user_id: assigneeUserId,
+							status: 'assigned'
+						}),
+					catch: (cause) => cause
+				});
+				// A dispatch is a scarce-resource allocation. Local durability is deliberately not enough to
+				// dismiss its sheet: keep it visibly pending until policy and invariants settle on the server.
+				const settlement = yield* Effect.tryPromise({
+					try: () => local.settlement.wait(),
+					catch: (cause) => cause
+				});
+				if (settlement.kind !== 'accepted' && settlement.kind !== 'rebased') {
+					assignmentSettlementError =
+						settlement.kind === 'rejected' ? settlement.message : settlement.quarantine.message;
+					return;
+				}
+				assignment.jobId = null;
+				assignment.assigneeUserId = null;
+				assignContractorOpen = false;
+			}).pipe(
+				Effect.catch((cause) =>
+					Effect.sync(() => {
+						assignmentSettlementError =
+							cause instanceof Error ? cause.message : t('component.assignment_create_failed');
+					})
+				),
+				Effect.ensuring(Effect.sync(() => (assignmentSettling = false)))
+			)
+		);
 	};
 
 	const mapPoints = $derived.by(() => {
@@ -324,8 +370,13 @@
 				</Inline>
 				<div class="min-w-0">
 					<DataRenderer
-						field={{ name: 'dispatch_date', kind: 'date', nullable: false }}
-						value={dispatchDay}
+						field={{
+							name: 'dispatch_date',
+							kind: 'instant',
+							nullable: false,
+							precision: 'day'
+						}}
+						value={dispatchPickerInstant}
 						mode="edit"
 						placeholder={t('app.field_ops_controller.select_dispatch_date')}
 						onValueChange={updateDispatchDate}
@@ -369,6 +420,10 @@
 							rows={2}
 							query={boardQuery}
 						>
+							{#snippet fields({ Field })}
+								<Field name="job_id" card="title" />
+								<Field name="assignee_user_id" card="subtitle" />
+							{/snippet}
 							{#snippet Card(assignment)}
 								<Stack gap="xs">
 									<Inline align="start" gap="xs" class="min-w-0">
@@ -450,7 +505,13 @@
 	/>
 </Cover>
 
-<Sheet.Root bind:open={assignContractorOpen}>
+<Sheet.Root
+	open={assignContractorOpen}
+	onOpenChange={(open) => {
+		if (!open && assignmentSettling) return;
+		assignContractorOpen = open;
+	}}
+>
 	<Sheet.Content flush class="sm:max-w-lg">
 		<Sheet.Header class="border-b border-border px-5 py-4">
 			<Sheet.Title>{t('app.field_ops_controller.sheet_title')}</Sheet.Title>
@@ -464,7 +525,7 @@
 			class="p-5"
 			onsubmit={(event) => {
 				event.preventDefault();
-				void createAssignment();
+				createAssignment();
 			}}
 		>
 			<label class="block text-sm">
@@ -473,6 +534,7 @@
 					<Combobox
 						options={assignJobOptions}
 						bind:value={assignment.jobId}
+						disabled={assignmentSettling}
 						emptyPlaceholder={t('app.field_ops_controller.select_unassigned_job')}
 						searchPlaceholder={t('app.field_ops_controller.search_unassigned_jobs')}
 						clientConfig={{
@@ -495,7 +557,7 @@
 							isLoading: usersQuery.loading,
 							error: usersQuery.error?.message ?? null
 						}}
-						disabled={!assignSelectedJob}
+						disabled={!assignSelectedJob || assignmentSettling}
 					/>
 				</Stack>
 			</label>
@@ -510,16 +572,26 @@
 					{t('app.field_ops_controller.no_unassigned_jobs', { date: dispatchDay })}
 				</p>
 			{/if}
+			{#if assignmentSettling}
+				<p class="text-sm text-muted-foreground" role="status">
+					{t('app.field_ops_controller.assigning')}
+				</p>
+			{:else if assignmentSettlementError}
+				<p class="text-sm text-destructive" role="alert">{assignmentSettlementError}</p>
+			{/if}
 
 			<Button
 				type="submit"
 				class="w-full"
 				disabled={!assignment.jobId ||
 					!assignment.assigneeUserId ||
-					client.db.job_assignments.pending > 0}
-				aria-busy={client.db.job_assignments.pending > 0}
+					client.db.job_assignments.pending > 0 ||
+					assignmentSettling}
+				aria-busy={client.db.job_assignments.pending > 0 || assignmentSettling}
 			>
-				{t('app.field_ops_controller.assign_contractor')}
+				{assignmentSettling
+					? t('app.field_ops_controller.assigning')
+					: t('app.field_ops_controller.assign_contractor')}
 			</Button>
 		</Stack>
 	</Sheet.Content>

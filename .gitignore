@@ -1,13 +1,15 @@
 # Dependencies
 node_modules/
 
-# Build output. Migrations are authored history and stay tracked.
+# Build output. Migrations and doctor configuration are authored and stay tracked.
 **/build/
 **/.svelte-kit/
 **/.generated/
 **/.norbital/*
 !**/.norbital/migrations/
 !**/.norbital/migrations/**
+!**/.norbital/config/
+!**/.norbital/config/**
 *.tsbuildinfo
 
 # Package-manager lockfiles other than the committed pnpm lockfiles

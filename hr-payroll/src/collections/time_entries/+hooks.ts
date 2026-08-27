@@ -14,7 +14,7 @@ import {
 	type PayrollWindow,
 	type SettlementClaim
 } from '../../lib/scheduling/lock.js';
-import type { HookApi } from './$types.js';
+import type { Api } from './$types.js';
 
 const QUERY_LIMIT = 20_000;
 
@@ -64,11 +64,11 @@ type TimeEntryHooks = CollectionHooks<WorkspaceSchema, 'time_entries', TimeEntry
  * that tells them what to do.
  */
 function settlementOver(
-	api: HookApi,
+	api: Api,
 	timeEntryId: string
 ): Effect.Effect<SettlementClaim | null, never, never> {
 	return Effect.map(
-		api.db.query.payslip_sources.findFirst({
+		api.db.payslip_sources.findFirst({
 			where: { source: { eq: { kind: 'TIME_ENTRY', id: timeEntryId } } },
 			columns: { period: true }
 		}),
@@ -104,13 +104,13 @@ function refuseIfLeaveOwnsDay(requests: readonly LeaveRequestLike[], workDate: s
  * above. The decision is written once; only where its input comes from differs.
  */
 function assertDayNotOwnedByLeave(
-	api: HookApi,
+	api: Api,
 	employmentId: string,
 	workDate: string
 ): Effect.Effect<void, never, never> {
 	const date = dateKey(workDate);
 	return Effect.map(
-		api.db.query.leave_requests.findMany({
+		api.db.leave_requests.findMany({
 			where: {
 				employment_id: { eq: employmentId },
 				kind: { eq: 'TIME_OFF' },
@@ -140,18 +140,18 @@ function assertDayNotOwnedByLeave(
  * a punch keyed in after a run was paid, consumed by nobody, refused because of where it was dated.
  */
 function assertDayHasNoPaidSilence(
-	api: HookApi,
+	api: Api,
 	employmentId: string,
 	workDate: string,
 	action: string
 ): Effect.Effect<void, never, never> {
 	return Effect.gen(function* () {
-		const employment = yield* api.db.query.employments.findFirst({
+		const employment = yield* api.db.employments.findFirst({
 			where: { id: { eq: employmentId } },
 			columns: { company_id: true }
 		});
 		if (employment == null) return;
-		const runs = yield* api.db.query.payroll_runs.findMany({
+		const runs = yield* api.db.payroll_runs.findMany({
 			where: { company_id: { eq: employment.company_id } },
 			columns: { period: true, lifecycle: true, attendance_from: true, attendance_to: true },
 			limit: QUERY_LIMIT
@@ -185,7 +185,7 @@ function assertDayHasNoPaidSilence(
  * adjustment.
  */
 function assertRecordNotClaimed(
-	api: HookApi,
+	api: Api,
 	timeEntryId: string,
 	approvalId: string | null | undefined,
 	action: string
@@ -261,7 +261,7 @@ export default {
 					})
 					.sort();
 				const employments = employmentIds.length
-					? yield* api.db.query.employments.findMany({
+					? yield* api.db.employments.findMany({
 							where: { id: { in: employmentIds } },
 							columns: { id: true, company_id: true },
 							limit: QUERY_LIMIT
@@ -277,7 +277,7 @@ export default {
 				// Every run of every company this batch touches, in one read. The windows are grouped by
 				// company because that is the key a record can reach on its own: employment → company.
 				const runs = companyIds.length
-					? yield* api.db.query.payroll_runs.findMany({
+					? yield* api.db.payroll_runs.findMany({
 							where: { company_id: { in: companyIds } },
 							columns: {
 								company_id: true,
@@ -301,7 +301,7 @@ export default {
 				const to = dates[dates.length - 1];
 				const requests =
 					employmentIds.length && from != null && to != null
-						? yield* api.db.query.leave_requests.findMany({
+						? yield* api.db.leave_requests.findMany({
 								where: {
 									employment_id: { in: employmentIds },
 									kind: { eq: 'TIME_OFF' },

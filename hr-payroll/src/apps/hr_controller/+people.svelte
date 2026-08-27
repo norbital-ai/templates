@@ -9,7 +9,6 @@
 	import { Combobox } from '@norbital-ai/ui/combobox';
 	import { Bound, Columns, Cover, Inline, Scroll, Split, Stack } from '@norbital-ai/ui/layout';
 	import { Tabs, type TabConfig } from '@norbital-ai/ui/tabs';
-	import { formatCalendarDate } from '../../lib/ui/display-formatters.js';
 	import { employedTodayFilter, todayKey, todayInstant } from '../../lib/ui/calendar.js';
 	import { inForceOnDay } from '../../lib/effective_range.js';
 
@@ -242,11 +241,7 @@
 					<Column name="email" />
 					<Column name="phone" />
 					<Column name="nationality" />
-					<Column
-						name="date_of_birth"
-						label={t('app.people.date_of_birth')}
-						render={({ value }) => formatCalendarDate(value)}
-					/>
+					<Column name="date_of_birth" label={t('app.people.date_of_birth')} />
 					<Column name="dependents_count" label={t('app.people.dependents')} />
 				{/snippet}
 				{#snippet ListCard(person)}

@@ -72,7 +72,7 @@ export function buildPayrollRun(
 	api: PayrollApi
 ): Effect.Effect<{ payslipCount: number; lineCount: number }, never, never> {
 	return Effect.gen(function* () {
-		const run = yield* api.db.query.payroll_runs.findFirst({
+		const run = yield* api.db.payroll_runs.findFirst({
 			where: { company_id: { eq: input.companyId }, period: { eq: input.period } }
 		});
 		if (!run)
@@ -101,7 +101,7 @@ export default {
 					'Refuses a second run for a company and period, and refuses one while an earlier period is still a draft, then resolves the pay date, attendance window and configuration snapshot the run will be computed under.',
 				handler: ({ input, api }) =>
 					Effect.gen(function* () {
-						const existing = yield* api.db.query.payroll_runs.findFirst({
+						const existing = yield* api.db.payroll_runs.findFirst({
 							where: { company_id: { eq: input.company_id }, period: { eq: input.period } }
 						});
 						if (existing) {
@@ -119,7 +119,7 @@ export default {
 						});
 						// The previous period must be settled before this one is calculated, so a year-to-date
 						// figure can never be assembled from a period that is still moving.
-						const previous = yield* api.db.query.payroll_runs.findMany({
+						const previous = yield* api.db.payroll_runs.findMany({
 							where: { company_id: { eq: input.company_id }, period: { lt: input.period } },
 							limit: 1000
 						});

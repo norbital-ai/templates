@@ -21,6 +21,7 @@
 	onAfterSubmit={record ? undefined : close}
 >
 	{#snippet children({ Field })}
+		<Field name="emergency_contact" hidden />
 		<Grid minimum="compact">
 			<Field name="worker_name" />
 			<Field name="worker_number" />

@@ -1,0 +1,2201 @@
+{
+  "version": 1,
+  "offlineHorizonMillis": 1209600000,
+  "currentSchemaFingerprint": "sha256:45df01934c0423e5f1f4e7085b70490fc8b6ea9ea4062559699c0557a74f22df",
+  "checkpoints": [
+    {
+      "schemaFingerprint": "sha256:45df01934c0423e5f1f4e7085b70490fc8b6ea9ea4062559699c0557a74f22df",
+      "activatedAtEpochMs": 1787762763039,
+      "schema": {
+        "collections": {
+          "asset_documents": {
+            "fields": {
+              "approval_id": {
+                "type": "uuid",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "asset_category": {
+                "type": "text",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "asset_tag": {
+                "type": "text",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "created_at": {
+                "type": "timestamp with time zone",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": "now()",
+                "generated": null
+              },
+              "document_number": {
+                "type": "text",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "document_type": {
+                "type": "text",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "document_url": {
+                "type": "text",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "id": {
+                "type": "uuid",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": "gen_random_uuid()",
+                "generated": null
+              },
+              "project_id": {
+                "type": "uuid",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "row_version": {
+                "type": "integer",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": "1",
+                "generated": null
+              },
+              "site_location_id": {
+                "type": "uuid",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "status": {
+                "type": "text",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "sys_period": {
+                "type": "tstzrange",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": "tstzrange(CURRENT_TIMESTAMP, NULL, '[)')",
+                "generated": null
+              },
+              "tags": {
+                "type": "text",
+                "typeSchema": null,
+                "dimensions": 1,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "title": {
+                "type": "text",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": null,
+                "generated": null
+              },
+              "updated_at": {
+                "type": "timestamp with time zone",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": "now()",
+                "generated": null
+              },
+              "validity_range": {
+                "type": "jsonb",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "version": {
+                "type": "text",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              }
+            }
+          },
+          "bim_reference_matrix": {
+            "fields": {
+              "approval_id": {
+                "type": "uuid",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "bim_guid": {
+                "type": "text",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "carbon_unit": {
+                "type": "text",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "category": {
+                "type": "text",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "created_at": {
+                "type": "timestamp with time zone",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": "now()",
+                "generated": null
+              },
+              "data_source": {
+                "type": "text",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "embodied_carbon_per_unit": {
+                "type": "numeric",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "id": {
+                "type": "uuid",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": "gen_random_uuid()",
+                "generated": null
+              },
+              "project_id": {
+                "type": "uuid",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "rate": {
+                "type": "jsonb",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "reference_code": {
+                "type": "text",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "reference_name": {
+                "type": "text",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": null,
+                "generated": null
+              },
+              "row_version": {
+                "type": "integer",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": "1",
+                "generated": null
+              },
+              "specification": {
+                "type": "text",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "subcategory": {
+                "type": "text",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "sys_period": {
+                "type": "tstzrange",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": "tstzrange(CURRENT_TIMESTAMP, NULL, '[)')",
+                "generated": null
+              },
+              "unit_of_measure": {
+                "type": "text",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "updated_at": {
+                "type": "timestamp with time zone",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": "now()",
+                "generated": null
+              }
+            }
+          },
+          "certification_types": {
+            "fields": {
+              "approval_id": {
+                "type": "uuid",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "category": {
+                "type": "text",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "certification_code": {
+                "type": "text",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "certification_name": {
+                "type": "text",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": null,
+                "generated": null
+              },
+              "created_at": {
+                "type": "timestamp with time zone",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": "now()",
+                "generated": null
+              },
+              "description": {
+                "type": "text",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "id": {
+                "type": "uuid",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": "gen_random_uuid()",
+                "generated": null
+              },
+              "issuing_body": {
+                "type": "text",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "requirements": {
+                "type": "text",
+                "typeSchema": null,
+                "dimensions": 1,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "requires_refresher": {
+                "type": "boolean",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "row_version": {
+                "type": "integer",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": "1",
+                "generated": null
+              },
+              "sys_period": {
+                "type": "tstzrange",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": "tstzrange(CURRENT_TIMESTAMP, NULL, '[)')",
+                "generated": null
+              },
+              "updated_at": {
+                "type": "timestamp with time zone",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": "now()",
+                "generated": null
+              },
+              "validity_period_months": {
+                "type": "numeric",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              }
+            }
+          },
+          "defects": {
+            "fields": {
+              "approval_id": {
+                "type": "uuid",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "assigned_to": {
+                "type": "text",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "category": {
+                "type": "text",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "closed_date": {
+                "type": "timestamp with time zone",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "created_at": {
+                "type": "timestamp with time zone",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": "now()",
+                "generated": null
+              },
+              "defect_number": {
+                "type": "text",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "description": {
+                "type": "text",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "due_date": {
+                "type": "timestamp with time zone",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "id": {
+                "type": "uuid",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": "gen_random_uuid()",
+                "generated": null
+              },
+              "job_id": {
+                "type": "uuid",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "photos": {
+                "type": "jsonb",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "project_id": {
+                "type": "uuid",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "reported_by": {
+                "type": "text",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "reported_date": {
+                "type": "timestamp with time zone",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "resolution_notes": {
+                "type": "text",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "row_version": {
+                "type": "integer",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": "1",
+                "generated": null
+              },
+              "severity": {
+                "type": "text",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "site_location_id": {
+                "type": "uuid",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "status": {
+                "type": "text",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "sys_period": {
+                "type": "tstzrange",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": "tstzrange(CURRENT_TIMESTAMP, NULL, '[)')",
+                "generated": null
+              },
+              "title": {
+                "type": "text",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": null,
+                "generated": null
+              },
+              "updated_at": {
+                "type": "timestamp with time zone",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": "now()",
+                "generated": null
+              }
+            }
+          },
+          "job_assignments": {
+            "fields": {
+              "approval_id": {
+                "type": "uuid",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "assignment_code": {
+                "type": "text",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "assignment_range": {
+                "type": "jsonb",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "created_at": {
+                "type": "timestamp with time zone",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": "now()",
+                "generated": null
+              },
+              "hours_per_day": {
+                "type": "numeric",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "id": {
+                "type": "uuid",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": "gen_random_uuid()",
+                "generated": null
+              },
+              "job_id": {
+                "type": "uuid",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "required_certifications": {
+                "type": "text",
+                "typeSchema": null,
+                "dimensions": 1,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "role": {
+                "type": "text",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "row_version": {
+                "type": "integer",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": "1",
+                "generated": null
+              },
+              "site_location_id": {
+                "type": "uuid",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "status": {
+                "type": "text",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "sys_period": {
+                "type": "tstzrange",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": "tstzrange(CURRENT_TIMESTAMP, NULL, '[)')",
+                "generated": null
+              },
+              "updated_at": {
+                "type": "timestamp with time zone",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": "now()",
+                "generated": null
+              },
+              "worker_id": {
+                "type": "uuid",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              }
+            }
+          },
+          "jobs": {
+            "fields": {
+              "approval_id": {
+                "type": "uuid",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "bim_reference_id": {
+                "type": "uuid",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "budget": {
+                "type": "jsonb",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "created_at": {
+                "type": "timestamp with time zone",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": "now()",
+                "generated": null
+              },
+              "description": {
+                "type": "text",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "id": {
+                "type": "uuid",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": "gen_random_uuid()",
+                "generated": null
+              },
+              "job_number": {
+                "type": "text",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "job_title": {
+                "type": "text",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": null,
+                "generated": null
+              },
+              "job_type": {
+                "type": "text",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "priority": {
+                "type": "text",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "project_id": {
+                "type": "uuid",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "row_version": {
+                "type": "integer",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": "1",
+                "generated": null
+              },
+              "schedule_range": {
+                "type": "jsonb",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "site_location_id": {
+                "type": "uuid",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "status": {
+                "type": "text",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "sys_period": {
+                "type": "tstzrange",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": "tstzrange(CURRENT_TIMESTAMP, NULL, '[)')",
+                "generated": null
+              },
+              "updated_at": {
+                "type": "timestamp with time zone",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": "now()",
+                "generated": null
+              }
+            }
+          },
+          "jobs_certification_types": {
+            "fields": {
+              "approval_id": {
+                "type": "uuid",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "certification_type_id": {
+                "type": "uuid",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": null,
+                "generated": null
+              },
+              "created_at": {
+                "type": "timestamp with time zone",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": "now()",
+                "generated": null
+              },
+              "id": {
+                "type": "uuid",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": "gen_random_uuid()",
+                "generated": null
+              },
+              "job_id": {
+                "type": "uuid",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": null,
+                "generated": null
+              },
+              "row_version": {
+                "type": "integer",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": "1",
+                "generated": null
+              },
+              "sys_period": {
+                "type": "tstzrange",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": "tstzrange(CURRENT_TIMESTAMP, NULL, '[)')",
+                "generated": null
+              },
+              "updated_at": {
+                "type": "timestamp with time zone",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": "now()",
+                "generated": null
+              }
+            }
+          },
+          "jobs_site_locations": {
+            "fields": {
+              "approval_id": {
+                "type": "uuid",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "created_at": {
+                "type": "timestamp with time zone",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": "now()",
+                "generated": null
+              },
+              "id": {
+                "type": "uuid",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": "gen_random_uuid()",
+                "generated": null
+              },
+              "job_id": {
+                "type": "uuid",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": null,
+                "generated": null
+              },
+              "row_version": {
+                "type": "integer",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": "1",
+                "generated": null
+              },
+              "site_location_id": {
+                "type": "uuid",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": null,
+                "generated": null
+              },
+              "sys_period": {
+                "type": "tstzrange",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": "tstzrange(CURRENT_TIMESTAMP, NULL, '[)')",
+                "generated": null
+              },
+              "updated_at": {
+                "type": "timestamp with time zone",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": "now()",
+                "generated": null
+              }
+            }
+          },
+          "payment_claims": {
+            "fields": {
+              "approval_id": {
+                "type": "uuid",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "certified_amount": {
+                "type": "jsonb",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "claim_number": {
+                "type": "text",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": null,
+                "generated": null
+              },
+              "claim_period": {
+                "type": "jsonb",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "claim_type": {
+                "type": "text",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "claimed_amount": {
+                "type": "jsonb",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "created_at": {
+                "type": "timestamp with time zone",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": "now()",
+                "generated": null
+              },
+              "description": {
+                "type": "text",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "id": {
+                "type": "uuid",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": "gen_random_uuid()",
+                "generated": null
+              },
+              "job_id": {
+                "type": "uuid",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "paid_date": {
+                "type": "timestamp with time zone",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "project_id": {
+                "type": "uuid",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "row_version": {
+                "type": "integer",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": "1",
+                "generated": null
+              },
+              "status": {
+                "type": "text",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "submitted_date": {
+                "type": "timestamp with time zone",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "supporting_documents": {
+                "type": "jsonb",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "sys_period": {
+                "type": "tstzrange",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": "tstzrange(CURRENT_TIMESTAMP, NULL, '[)')",
+                "generated": null
+              },
+              "updated_at": {
+                "type": "timestamp with time zone",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": "now()",
+                "generated": null
+              }
+            }
+          },
+          "permits_to_work": {
+            "fields": {
+              "approval_id": {
+                "type": "uuid",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "approved_by": {
+                "type": "text",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "control_measures": {
+                "type": "text",
+                "typeSchema": null,
+                "dimensions": 1,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "created_at": {
+                "type": "timestamp with time zone",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": "now()",
+                "generated": null
+              },
+              "hazards_identified": {
+                "type": "text",
+                "typeSchema": null,
+                "dimensions": 1,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "id": {
+                "type": "uuid",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": "gen_random_uuid()",
+                "generated": null
+              },
+              "job_id": {
+                "type": "uuid",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "permit_number": {
+                "type": "text",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": null,
+                "generated": null
+              },
+              "permit_type": {
+                "type": "text",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "project_id": {
+                "type": "uuid",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "requested_date": {
+                "type": "timestamp with time zone",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "row_version": {
+                "type": "integer",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": "1",
+                "generated": null
+              },
+              "signatures": {
+                "type": "jsonb",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "site_location_id": {
+                "type": "uuid",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "status": {
+                "type": "text",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "sys_period": {
+                "type": "tstzrange",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": "tstzrange(CURRENT_TIMESTAMP, NULL, '[)')",
+                "generated": null
+              },
+              "updated_at": {
+                "type": "timestamp with time zone",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": "now()",
+                "generated": null
+              },
+              "validity_range": {
+                "type": "jsonb",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "worker_id": {
+                "type": "uuid",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              }
+            }
+          },
+          "permits_to_work_certification_types": {
+            "fields": {
+              "approval_id": {
+                "type": "uuid",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "certification_type_id": {
+                "type": "uuid",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": null,
+                "generated": null
+              },
+              "created_at": {
+                "type": "timestamp with time zone",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": "now()",
+                "generated": null
+              },
+              "id": {
+                "type": "uuid",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": "gen_random_uuid()",
+                "generated": null
+              },
+              "permits_to_work_id": {
+                "type": "uuid",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": null,
+                "generated": null
+              },
+              "row_version": {
+                "type": "integer",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": "1",
+                "generated": null
+              },
+              "sys_period": {
+                "type": "tstzrange",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": "tstzrange(CURRENT_TIMESTAMP, NULL, '[)')",
+                "generated": null
+              },
+              "updated_at": {
+                "type": "timestamp with time zone",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": "now()",
+                "generated": null
+              }
+            }
+          },
+          "permits_to_work_workers": {
+            "fields": {
+              "approval_id": {
+                "type": "uuid",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "created_at": {
+                "type": "timestamp with time zone",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": "now()",
+                "generated": null
+              },
+              "id": {
+                "type": "uuid",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": "gen_random_uuid()",
+                "generated": null
+              },
+              "permits_to_work_id": {
+                "type": "uuid",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": null,
+                "generated": null
+              },
+              "row_version": {
+                "type": "integer",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": "1",
+                "generated": null
+              },
+              "sys_period": {
+                "type": "tstzrange",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": "tstzrange(CURRENT_TIMESTAMP, NULL, '[)')",
+                "generated": null
+              },
+              "updated_at": {
+                "type": "timestamp with time zone",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": "now()",
+                "generated": null
+              },
+              "worker_id": {
+                "type": "uuid",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": null,
+                "generated": null
+              }
+            }
+          },
+          "projects": {
+            "fields": {
+              "address": {
+                "type": "jsonb",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "approval_id": {
+                "type": "uuid",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "client": {
+                "type": "text",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "contract_value": {
+                "type": "jsonb",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "created_at": {
+                "type": "timestamp with time zone",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": "now()",
+                "generated": null
+              },
+              "description": {
+                "type": "text",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "id": {
+                "type": "uuid",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": "gen_random_uuid()",
+                "generated": null
+              },
+              "main_contractor": {
+                "type": "text",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "project_manager": {
+                "type": "text",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "project_name": {
+                "type": "text",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": null,
+                "generated": null
+              },
+              "project_number": {
+                "type": "text",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "project_type": {
+                "type": "text",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "row_version": {
+                "type": "integer",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": "1",
+                "generated": null
+              },
+              "schedule_range": {
+                "type": "jsonb",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "status": {
+                "type": "text",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "sys_period": {
+                "type": "tstzrange",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": "tstzrange(CURRENT_TIMESTAMP, NULL, '[)')",
+                "generated": null
+              },
+              "updated_at": {
+                "type": "timestamp with time zone",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": "now()",
+                "generated": null
+              }
+            }
+          },
+          "rfis": {
+            "fields": {
+              "answer": {
+                "type": "text",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "approval_id": {
+                "type": "uuid",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "asked_by": {
+                "type": "text",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "assigned_to": {
+                "type": "text",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "attachments": {
+                "type": "jsonb",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "created_at": {
+                "type": "timestamp with time zone",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": "now()",
+                "generated": null
+              },
+              "due_date": {
+                "type": "timestamp with time zone",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "id": {
+                "type": "uuid",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": "gen_random_uuid()",
+                "generated": null
+              },
+              "priority": {
+                "type": "text",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "project_id": {
+                "type": "uuid",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "question": {
+                "type": "text",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "related_defect_id": {
+                "type": "uuid",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "resolved_date": {
+                "type": "timestamp with time zone",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "rfi_number": {
+                "type": "text",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "row_version": {
+                "type": "integer",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": "1",
+                "generated": null
+              },
+              "status": {
+                "type": "text",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "subject": {
+                "type": "text",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "submitted_date": {
+                "type": "timestamp with time zone",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "sys_period": {
+                "type": "tstzrange",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": "tstzrange(CURRENT_TIMESTAMP, NULL, '[)')",
+                "generated": null
+              },
+              "title": {
+                "type": "text",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": null,
+                "generated": null
+              },
+              "updated_at": {
+                "type": "timestamp with time zone",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": "now()",
+                "generated": null
+              }
+            }
+          },
+          "site_locations": {
+            "fields": {
+              "approval_id": {
+                "type": "uuid",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "bim_model_element_id": {
+                "type": "text",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "coordinates": {
+                "type": "jsonb",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "created_at": {
+                "type": "timestamp with time zone",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": "now()",
+                "generated": null
+              },
+              "description": {
+                "type": "text",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "grid_reference": {
+                "type": "text",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "id": {
+                "type": "uuid",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": "gen_random_uuid()",
+                "generated": null
+              },
+              "location_code": {
+                "type": "text",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "location_name": {
+                "type": "text",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": null,
+                "generated": null
+              },
+              "location_type": {
+                "type": "text",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "parent_location_id": {
+                "type": "uuid",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "project_id": {
+                "type": "uuid",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "row_version": {
+                "type": "integer",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": "1",
+                "generated": null
+              },
+              "sys_period": {
+                "type": "tstzrange",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": "tstzrange(CURRENT_TIMESTAMP, NULL, '[)')",
+                "generated": null
+              },
+              "updated_at": {
+                "type": "timestamp with time zone",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": "now()",
+                "generated": null
+              }
+            }
+          },
+          "workers": {
+            "fields": {
+              "approval_id": {
+                "type": "uuid",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "created_at": {
+                "type": "timestamp with time zone",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": "now()",
+                "generated": null
+              },
+              "date_of_birth": {
+                "type": "timestamp with time zone",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "email": {
+                "type": "text",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "emergency_contact": {
+                "type": "jsonb",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "id": {
+                "type": "uuid",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": "gen_random_uuid()",
+                "generated": null
+              },
+              "medical_check_date": {
+                "type": "timestamp with time zone",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "nationality": {
+                "type": "text",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "phone": {
+                "type": "text",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "row_version": {
+                "type": "integer",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": "1",
+                "generated": null
+              },
+              "safety_induction_date": {
+                "type": "timestamp with time zone",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "status": {
+                "type": "text",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "sys_period": {
+                "type": "tstzrange",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": "tstzrange(CURRENT_TIMESTAMP, NULL, '[)')",
+                "generated": null
+              },
+              "trade": {
+                "type": "text",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "updated_at": {
+                "type": "timestamp with time zone",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": "now()",
+                "generated": null
+              },
+              "work_permit_expiry": {
+                "type": "timestamp with time zone",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "worker_name": {
+                "type": "text",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": null,
+                "generated": null
+              },
+              "worker_number": {
+                "type": "text",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              }
+            }
+          }
+        },
+        "relations": [
+          {
+            "name": "asset_documents_projects",
+            "source": "asset_documents",
+            "target": "projects",
+            "cardinality": "one"
+          },
+          {
+            "name": "jobs_certification_types",
+            "source": "certification_types",
+            "target": "jobs",
+            "cardinality": "many"
+          },
+          {
+            "name": "permits_to_work_certification_types",
+            "source": "certification_types",
+            "target": "permits_to_work",
+            "cardinality": "many"
+          },
+          {
+            "name": "defects_projects",
+            "source": "defects",
+            "target": "projects",
+            "cardinality": "one"
+          },
+          {
+            "name": "job_assignment_job",
+            "source": "job_assignments",
+            "target": "jobs",
+            "cardinality": "one"
+          },
+          {
+            "name": "job_assignment_site_location",
+            "source": "job_assignments",
+            "target": "site_locations",
+            "cardinality": "one"
+          },
+          {
+            "name": "job_assignment_worker",
+            "source": "job_assignments",
+            "target": "workers",
+            "cardinality": "one"
+          },
+          {
+            "name": "job_assignment_job",
+            "source": "jobs",
+            "target": "job_assignments",
+            "cardinality": "many"
+          },
+          {
+            "name": "jobs_certification_types",
+            "source": "jobs",
+            "target": "certification_types",
+            "cardinality": "many"
+          },
+          {
+            "name": "jobs_projects",
+            "source": "jobs",
+            "target": "projects",
+            "cardinality": "one"
+          },
+          {
+            "name": "jobs_site_locations",
+            "source": "jobs",
+            "target": "site_locations",
+            "cardinality": "many"
+          },
+          {
+            "name": "payment_claims_projects",
+            "source": "payment_claims",
+            "target": "projects",
+            "cardinality": "one"
+          },
+          {
+            "name": "permits_to_work_certification_types",
+            "source": "permits_to_work",
+            "target": "certification_types",
+            "cardinality": "many"
+          },
+          {
+            "name": "permits_to_work_projects",
+            "source": "permits_to_work",
+            "target": "projects",
+            "cardinality": "one"
+          },
+          {
+            "name": "permits_to_work_workers",
+            "source": "permits_to_work",
+            "target": "workers",
+            "cardinality": "many"
+          },
+          {
+            "name": "asset_documents_projects",
+            "source": "projects",
+            "target": "asset_documents",
+            "cardinality": "many"
+          },
+          {
+            "name": "defects_projects",
+            "source": "projects",
+            "target": "defects",
+            "cardinality": "many"
+          },
+          {
+            "name": "jobs_projects",
+            "source": "projects",
+            "target": "jobs",
+            "cardinality": "many"
+          },
+          {
+            "name": "payment_claims_projects",
+            "source": "projects",
+            "target": "payment_claims",
+            "cardinality": "many"
+          },
+          {
+            "name": "permits_to_work_projects",
+            "source": "projects",
+            "target": "permits_to_work",
+            "cardinality": "many"
+          },
+          {
+            "name": "rfis_projects",
+            "source": "projects",
+            "target": "rfis",
+            "cardinality": "many"
+          },
+          {
+            "name": "site_locations_projects",
+            "source": "projects",
+            "target": "site_locations",
+            "cardinality": "many"
+          },
+          {
+            "name": "rfis_projects",
+            "source": "rfis",
+            "target": "projects",
+            "cardinality": "one"
+          },
+          {
+            "name": "job_assignment_site_location",
+            "source": "site_locations",
+            "target": "job_assignments",
+            "cardinality": "many"
+          },
+          {
+            "name": "jobs_site_locations",
+            "source": "site_locations",
+            "target": "jobs",
+            "cardinality": "many"
+          },
+          {
+            "name": "site_locations_projects",
+            "source": "site_locations",
+            "target": "projects",
+            "cardinality": "one"
+          },
+          {
+            "name": "job_assignment_worker",
+            "source": "workers",
+            "target": "job_assignments",
+            "cardinality": "many"
+          },
+          {
+            "name": "permits_to_work_workers",
+            "source": "workers",
+            "target": "permits_to_work",
+            "cardinality": "many"
+          }
+        ]
+      }
+    }
+  ]
+}

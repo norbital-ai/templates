@@ -11,7 +11,7 @@ import {
 	type ValidationShift,
 	type WorkloadExpectation
 } from './lib/workforce-validation.js';
-import type { HookApi, Hooks, WorkspaceRow } from './$types.js';
+import type { Api, Hooks, WorkspaceRow } from './$types.js';
 
 const MONTH_PATTERN = /^\d{4}-(0[1-9]|1[0-2])$/;
 const QUERY_LIMIT = 20_000;
@@ -167,23 +167,23 @@ function appraiseTerm(
 }
 
 function assertPublishable(
-	api: HookApi,
+	api: Api,
 	roster: { readonly id: string; readonly company_id: string; readonly month: string }
 ): Effect.Effect<void, never, never> {
 	return Effect.gen(function* () {
 		const bounds = monthBounds(roster.month);
 		const [entries, employments, codes] = yield* Effect.all(
 			[
-				api.db.query.roster_entries.findMany({
+				api.db.roster_entries.findMany({
 					where: { roster_id: { eq: roster.id } },
 					limit: QUERY_LIMIT
 				}),
-				api.db.query.employments.findMany({
+				api.db.employments.findMany({
 					where: { company_id: { eq: roster.company_id } },
 					columns: { id: true, employee_number: true, effective_range: true },
 					limit: QUERY_LIMIT
 				}),
-				api.db.query.shift_definitions.findMany({
+				api.db.shift_definitions.findMany({
 					where: { company_id: { eq: roster.company_id } },
 					columns: {
 						id: true,
@@ -205,7 +205,7 @@ function assertPublishable(
 		const terms =
 			employmentIds.length === 0
 				? []
-				: yield* api.db.query.employment_terms.findMany({
+				: yield* api.db.employment_terms.findMany({
 						where: { employment_id: { in: employmentIds } },
 						columns: { employment_id: true, work_pattern: true, effective_range: true },
 						limit: QUERY_LIMIT

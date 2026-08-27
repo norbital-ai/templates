@@ -1,5 +1,5 @@
 import { guardEffectiveRange } from '../../lib/effective_range.js';
-import type { HookApi, Hooks } from './$types.js';
+import type { Api, Hooks } from './$types.js';
 
 /**
  * Exclusion key (plan 02 §7): jurisdiction =, code =, effective range &&.
@@ -11,8 +11,8 @@ import type { HookApi, Hooks } from './$types.js';
  */
 
 /** The stored rows that share a candidate's exclusion key. */
-const siblings = (api: HookApi, jurisdiction_id: string, code: string) =>
-	api.db.query.statutory_contributions.findMany({
+const siblings = (api: Api, jurisdiction_id: string, code: string) =>
+	api.db.statutory_contributions.findMany({
 		where: { jurisdiction_id: { eq: jurisdiction_id }, code: { eq: code } }
 	});
 
@@ -21,7 +21,7 @@ type Keyed = Readonly<{ jurisdiction_id: string; code: string }>;
 
 /** An edit carries only the fields it changes, so the key is read through the stored row. */
 const editedSiblings = (
-	api: HookApi,
+	api: Api,
 	input: Readonly<{ jurisdiction_id?: string | null; code?: string | null }>,
 	existing: Keyed
 ) => siblings(api, input.jurisdiction_id ?? existing.jurisdiction_id, input.code ?? existing.code);

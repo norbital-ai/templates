@@ -26,7 +26,7 @@ export default defineAutomation(
 				const now = yield* currentInstant;
 				const today = deskToday(now);
 
-				const expiredQuotes = yield* api.db.query.quotes.findMany({
+				const expiredQuotes = yield* api.db.quotes.findMany({
 					where: {
 						status: { eq: 'sent' },
 						valid_until: { lte: today }

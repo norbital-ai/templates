@@ -98,12 +98,12 @@ export default {
 				const scheduledDates = [...new Set(rows.map((row) => row.scheduled_for))];
 				const [sites, contractorByName, jobs, existingAssignments] = yield* Effect.all(
 					[
-						api.db.query.sites.findMany({
+						api.db.sites.findMany({
 							columns: { id: true, name: true },
 							limit: QUERY_LIMIT
 						}),
 						usersByName(api),
-						api.db.query.jobs.findMany({
+						api.db.jobs.findMany({
 							where: { scheduled_for: { in: scheduledDates } },
 							columns: {
 								id: true,
@@ -114,7 +114,7 @@ export default {
 							},
 							limit: QUERY_LIMIT
 						}),
-						api.db.query.job_assignments.findMany({
+						api.db.job_assignments.findMany({
 							columns: { id: true, job_id: true },
 							limit: QUERY_LIMIT
 						})

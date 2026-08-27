@@ -20,7 +20,6 @@
 	import type { RepresentationProps } from './$types.js';
 	import { CollectionForm } from '@norbital-ai/ui/collection-form';
 	import { Column, Grid } from '@norbital-ai/ui/layout';
-	import { RelationshipRenderer } from '@norbital-ai/ui/data-renderer/relationship';
 	import { sourceLock, sourceLockRecordMetadata } from '../../lib/scheduling/lock.js';
 
 	let { record, close }: RepresentationProps = $props();
@@ -84,33 +83,25 @@
 			<Field
 				name="employment_id"
 				label={t('component.person')}
-				renderer={RelationshipRenderer}
-				rendererProps={{
-					target: 'employments',
-					options: {
-						label: (employment) =>
-							employment.employee_number != null && employment.employee_number !== ''
-								? String(employment.employee_number)
-								: '—',
-						orderBy: { employee_number: 'asc' },
-						limit: 1000
-					}
+				relationOptions={{
+					label: (employment) =>
+						employment.employee_number != null && employment.employee_number !== ''
+							? String(employment.employee_number)
+							: '—',
+					orderBy: { employee_number: 'asc' },
+					limit: 1000
 				}}
 			/>
 			<Field
 				name="leave_type_id"
 				label={t('component.leave_type')}
-				renderer={RelationshipRenderer}
-				rendererProps={{
-					target: 'leave_types',
-					options: {
-						label: (leaveType) =>
-							[leaveType.code, leaveType.name]
-								.filter((part) => part != null && part !== '')
-								.join(' · ') || '—',
-						orderBy: { code: 'asc' },
-						limit: 500
-					}
+				relationOptions={{
+					label: (leaveType) =>
+						[leaveType.code, leaveType.name]
+							.filter((part) => part != null && part !== '')
+							.join(' · ') || '—',
+					orderBy: { code: 'asc' },
+					limit: 500
 				}}
 			/>
 			<Column span="all"><Field name="event" label={t('component.what_happened')} /></Column>

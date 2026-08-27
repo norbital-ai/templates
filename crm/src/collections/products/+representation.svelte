@@ -6,7 +6,6 @@
 	import type { RepresentationProps } from './$types.js';
 	import { CollectionForm } from '@norbital-ai/ui/collection-form';
 	import { Column, Grid } from '@norbital-ai/ui/layout';
-	import { RelationshipRenderer } from '@norbital-ai/ui/data-renderer/relationship';
 	import type { CollectionRelationOptions } from '@norbital-ai/std/collection';
 
 	let { record, close }: RepresentationProps = $props();
@@ -35,20 +34,16 @@
 			<Field
 				name="main_supplier_id"
 				label={t('component.supplier')}
-				renderer={RelationshipRenderer}
-				rendererProps={{
-					target: 'suppliers',
-					options: {
-						label: (record) => {
-							const code = record.code;
-							const name = record.name;
-							if (code && name) return `${code} · ${name}`;
-							return name != null && name !== '' ? String(name) : '—';
-						},
-						orderBy: { name: 'asc' },
-						limit: 5000
-					} satisfies CollectionRelationOptions
-				}}
+				relationOptions={{
+					label: (record) => {
+						const code = record.code;
+						const name = record.name;
+						if (code && name) return `${code} · ${name}`;
+						return name != null && name !== '' ? String(name) : '—';
+					},
+					orderBy: { name: 'asc' },
+					limit: 5000
+				} satisfies CollectionRelationOptions}
 			/>
 			<Column span="all"><Field name="description" /></Column>
 			<Column span="all"><Field name="spec" /></Column>

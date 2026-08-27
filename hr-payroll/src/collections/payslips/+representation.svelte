@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { FormattedValueRenderer } from '@norbital-ai/ui/data-renderer';
 	/** One person's settlement. Every row below is the physical payslip-to-component junction. */
 	import { client } from '../../lib/workspace-client.js';
 	import { useI18n } from '@norbital-ai/ui/i18n';
@@ -219,18 +220,20 @@
 							name="pay_component_id"
 							label={t('component.component')}
 							card="title"
-							render={({ row }) => componentLabel(row)}
+							renderer={FormattedValueRenderer}
+							rendererProps={{ format: ({ row }) => componentLabel(row) }}
 						/>
 						<Column name="component" label={t('component.line_kind')} card="subtitle" />
 						<Column
 							name="component_entry_id"
 							label={t('component.input_entry')}
-							render={({ row }) => entryLabel(row)}
+							renderer={FormattedValueRenderer}
+							rendererProps={{ format: ({ row }) => entryLabel(row) }}
 						/>
 						<Column name="bucket" card="badge" />
-						<Column name="quantity" render={({ value }) => formatNumeric(value)} />
-						<Column name="rate" render={({ value }) => formatNumeric(value)} />
-						<Column name="amount" card="badge" render={({ value }) => formatNumeric(value)} />
+						<Column name="quantity" />
+						<Column name="rate" />
+						<Column name="amount" card="badge" />
 					{/snippet}
 				</CollectionTable>
 			</Bound>
@@ -275,12 +278,14 @@
 							name="source"
 							label={t('component.input_type')}
 							card="title"
-							render={({ row }) => sourceKind(row)}
+							renderer={FormattedValueRenderer}
+							rendererProps={{ format: ({ row }) => sourceKind(row) }}
 						/>
 						<Column
 							name="period"
 							label={t('component.source_record')}
-							render={({ row }) => sourceDetail(row)}
+							renderer={FormattedValueRenderer}
+							rendererProps={{ format: ({ row }) => sourceDetail(row) }}
 						/>
 					{/snippet}
 				</CollectionTable>

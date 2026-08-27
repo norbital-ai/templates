@@ -58,41 +58,50 @@ const fakeApi = (infer, queryRows = {}) => {
 	const factUpdates = [];
 	const inferenceRequests = [];
 	const query = (name) => ({ findMany: () => Effect.succeed(queryRows[name] ?? []) });
+	let openedRunLog;
 	const api = {
 		progress: (snapshot) => Effect.sync(() => progress.push(snapshot)),
 		infer: (request) =>
 			Effect.sync(() => inferenceRequests.push(request)).pipe(Effect.flatMap(() => infer(request))),
+		/**
+		 * One declarative `mutate` per collection, split back into create and update by the presence
+		 * of an id — which is the rule the runtime itself applies, and the reason the two used to be
+		 * separate methods and no longer are.
+		 *
+		 * `mutate` returns nothing, so the run log the handler opens has to be readable afterwards:
+		 * `findFirst` answers with the row this double accepted, keyed the way the handler looks it
+		 * up. A double that handed back the written row would let the handler skip a read it now
+		 * genuinely performs.
+		 */
 		db: {
-			query: {
-				jurisdictions: query('jurisdictions'),
-				statutory_contributions: query('statutory_contributions'),
-				contribution_rates: query('contribution_rates'),
-				companies: query('companies'),
-				employments: query('employments'),
-				employment_statutory_facts: query('employment_statutory_facts')
-			},
+			jurisdictions: query('jurisdictions'),
+			statutory_contributions: query('statutory_contributions'),
+			contribution_rates: query('contribution_rates'),
+			companies: query('companies'),
+			employments: query('employments'),
 			statutory_profile_drift_logs: {
-				create: (values) =>
+				findFirst: () => Effect.succeed(openedRunLog),
+				mutate: (values) =>
 					Effect.sync(() => {
-						logCreates.push(values);
-						return { id: 'run-log-1', ...values };
-					}),
-				update: (id, values) =>
-					Effect.sync(() => {
-						logUpdates.push({ id, values });
-						return { id, ...values };
+						if (values.id == null) {
+							logCreates.push(values);
+							openedRunLog = { id: 'run-log-1', ...values };
+							return;
+						}
+						const { id, ...rest } = values;
+						logUpdates.push({ id, values: rest });
 					})
 			},
 			employment_statutory_facts: {
-				create: (values) =>
+				findMany: () => Effect.succeed(queryRows['employment_statutory_facts'] ?? []),
+				mutate: (values) =>
 					Effect.sync(() => {
-						factCreates.push(values);
-						return values;
-					}),
-				update: (id, values) =>
-					Effect.sync(() => {
-						factUpdates.push({ id, values });
-						return { id, ...values };
+						if (values.id == null) {
+							factCreates.push(values);
+							return;
+						}
+						const { id, ...rest } = values;
+						factUpdates.push({ id, values: rest });
 					})
 			}
 		}

@@ -5,7 +5,6 @@
 	import type { RepresentationProps } from './$types.js';
 	import { CollectionForm } from '@norbital-ai/ui/collection-form';
 	import { Column, Grid } from '@norbital-ai/ui/layout';
-	import { RelationshipRenderer } from '@norbital-ai/ui/data-renderer/relationship';
 
 	let { record, close }: RepresentationProps = $props();
 	const { t } = useI18n<TenantI18nKeys>();
@@ -22,15 +21,11 @@
 			<Field
 				name="company_id"
 				label={t('component.company')}
-				renderer={RelationshipRenderer}
-				rendererProps={{
-					target: 'companies',
-					options: {
-						label: (record) =>
-							record.name != null && record.name !== '' ? String(record.name) : '—',
-						orderBy: { name: 'asc' },
-						limit: 500
-					}
+				relationOptions={{
+					label: (record) =>
+						record.name != null && record.name !== '' ? String(record.name) : '—',
+					orderBy: { name: 'asc' },
+					limit: 500
 				}}
 			/>
 			<Field name="code" />

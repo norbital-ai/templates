@@ -15,10 +15,14 @@
 
 import { dateKey, type IsoDate } from './dates.js';
 import type { EmploymentBundle } from './gather.js';
-import type { WorkspaceInsert } from '$bolt/types.js';
+import type { CollectionMutationValues } from '@norbital-ai/bolt/authoring';
+import type { WorkspaceSchema } from '$bolt/types.js';
 
 /** The exact handle inferred from `payslip_sources.source`; no parallel union is maintained here. */
-export type SettlementClaim = WorkspaceInsert<'payslip_sources'>['source'];
+export type SettlementClaim = Extract<
+	CollectionMutationValues<WorkspaceSchema, 'payslip_sources'>,
+	{ readonly source: unknown }
+>['source'];
 
 /** Deduplicate by logical reference identity, preserving the order claims were derived in. */
 export function dedupeClaims(claims: readonly SettlementClaim[]): SettlementClaim[] {

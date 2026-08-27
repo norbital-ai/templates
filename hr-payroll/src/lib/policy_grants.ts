@@ -55,15 +55,6 @@ export const grantsOn = <const C extends Collection>(
 		[collection]: Object.fromEntries(actions.map((action) => [action, {}]))
 	}) as Grants;
 
-export const grantsOnWhere = <const C extends Collection>(
-	collection: C,
-	actions: ReadonlyArray<'read' | 'history'>,
-	where: ReadWhere<C>
-): Grants =>
-	({
-		[collection]: Object.fromEntries(actions.map((action) => [action, { where }]))
-	}) as Grants;
-
 export const NOT_AN_ADJUSTMENT = {
 	$sql: "\"origin\"->>'kind' IS DISTINCT FROM 'MANUAL_ADJUSTMENT'"
 } as const;
@@ -195,11 +186,11 @@ const employmentBelongsToRequestor = (
 	api: Parameters<NonNullable<Grant<'time_entries', 'create'>['authorize']>>[1]
 ) =>
 	Effect.gen(function* () {
-		const employment = yield* api.db.query.employments.findFirst({
+		const employment = yield* api.db.employments.findFirst({
 			where: { id: { eq: employmentId } }
 		});
 		if (employment === undefined) return false;
-		const employee = yield* api.db.query.employees.findFirst({
+		const employee = yield* api.db.employees.findFirst({
 			where: { id: { eq: employment.employee_id } }
 		});
 		return employee?.email?.toLocaleLowerCase() === api.requestor.email?.toLocaleLowerCase();
@@ -220,16 +211,19 @@ export const employeeLeaveRequestCreateGrant = (): Grants =>
 /** Personal reads and a claim create validated against the prepared JS candidate. */
 export const employeeSelfServiceGrants = (): Grants =>
 	mergeGrants(
-		grantOn('payslips', 'read', { where: ownEmploymentChild }),
+		grantOn('payslips', 'read', {
+			where: ownEmploymentChild,
+			dependencies: ['employments', 'employees']
+		}),
 		grantOn('component_entries', 'create', {
 			authorize: ({ record }, api) =>
 				Effect.gen(function* () {
 					if (record.origin.kind !== 'CLAIM') return false;
-					const employment = yield* api.db.query.employments.findFirst({
+					const employment = yield* api.db.employments.findFirst({
 						where: { id: { eq: record.employment_id } }
 					});
 					if (employment === undefined) return false;
-					const employee = yield* api.db.query.employees.findFirst({
+					const employee = yield* api.db.employees.findFirst({
 						where: { id: { eq: employment.employee_id } }
 					});
 					return employee?.email?.toLocaleLowerCase() === api.requestor.email?.toLocaleLowerCase();

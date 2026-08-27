@@ -78,7 +78,7 @@ pay_components <-------------------------- payslip_lines
 
 ### 自动化、集成与种子数据
 
-本模板包含每周执行的 `statutory_profile_drift` 自动化，不附带外部集成。租户同样**没有 `+seed.ts`**：法定与敏感夹具种子存放在仓库的种子库中（见下文），薪资输入属于 [`docs/data.md`](docs/data.md) 所述的对账工作流。
+本模板包含每周执行的 `statutory_profile_drift` 自动化，不附带外部集成。租户**不存在 `+seed.ts` 编译器角色**：法定与敏感夹具种子存放在仓库的种子库中（见下文），薪资输入属于 [`docs/data.md`](docs/data.md) 所述的对账工作流。
 
 ## 运营边界
 
@@ -147,5 +147,5 @@ pnpm build    # 生产构建
 ```
 
 - **模型** —— 不要随意更改模型模式：每次模式变更都会在 `.norbital/migrations/` 下产生一条已提交的迁移。编辑 `+model.ts`、运行 `pnpm sync`，然后审阅编译器产出的迁移。
-- **种子数据** —— 新租户的夹具行为属于 `src/+seed.ts`；它不演进已部署的数据。对既有租户，用 `pnpm exec bolt migrate --name <name>` 写入下一条迁移谱系条目、编辑其 SQL，再经由 Colony 部署。敏感法定种子（加班阶梯、覆盖与休息行）不在本模板内，而在仓库种子库的 `seed_bank/norbital_hr/statutory/`。
+- **种子数据** —— 夹具数据由宿主持有，存放在仓库种子库；不存在 `src/+seed.ts` 角色，播种也不会演进已部署的数据。对既有租户，用 `pnpm exec bolt migrate --name <name>` 写入下一条迁移谱系条目、编辑其 SQL，再经由 Colony 部署。敏感法定种子（加班阶梯、覆盖与休息行）不在本模板内，而在仓库种子库的 `seed_bank/norbital_hr/statutory/`。
 - **发布** —— 模板在自己的 `package.json` 与锁文件中固定 `@norbital-ai/bolt` 版本。刻意调整依赖后，请通过仓库的模板锁定流程刷新模板锁。要消费新的模板版本，请用 `pnpm yalc:link` 将其链接进 Colony 并重启 `pnpm --filter colony dev`，然后硬刷新 iframe —— Colony 的 dev 引导每次启动都会收敛，因此不存在单独的租户更新或环境重置步骤。

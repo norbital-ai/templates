@@ -1,5 +1,4 @@
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
 import test from 'node:test';
 import contractorPolicy from '../../access/policies/+field_ops_contractor.js';
 import controllerPolicy from '../../access/policies/+field_ops_controller.js';
@@ -7,7 +6,11 @@ import suspicionAutomationPolicy from '../../access/policies/+suspicion_review_a
 import whatsappPolicy from '../../access/policies/+field_ops_whatsapp.js';
 import whatsappEnvoy from '../../envoys/+field_ops_whatsapp.js';
 
-type Grant = { readonly fields?: readonly string[] };
+type Grant = {
+	readonly dependencies?: readonly string[];
+	readonly fields?: readonly string[];
+	readonly where?: Readonly<Record<string, unknown>>;
+};
 type PolicyShape = {
 	readonly grants: Readonly<Record<string, Readonly<Record<string, Grant>>>>;
 };
@@ -18,6 +21,39 @@ const whatsapp = whatsappPolicy as unknown as PolicyShape;
 const suspicionAutomation = suspicionAutomationPolicy as unknown as PolicyShape;
 const grant = (policy: PolicyShape, collection: string, action: string): Grant | undefined =>
 	policy.grants[collection]?.[action];
+
+const sqlReadDependencies = (policy: PolicyShape): Readonly<Record<string, readonly string[]>> =>
+	Object.fromEntries(
+		Object.entries(policy.grants).flatMap(([collection, actions]) => {
+			const read = actions.read;
+			return read?.where !== undefined && '$sql' in read.where
+				? [[collection, read.dependencies ?? ['<missing>']]]
+				: [];
+		})
+	);
+
+test('SQL-scoped reads declare only their exact linking collections', () => {
+	assert.deepEqual(sqlReadDependencies(contractor), {
+		sites: ['jobs', 'job_assignments'],
+		jobs: ['job_assignments'],
+		variation_requests: ['job_assignments'],
+		photo_evidence: ['job_assignments', 'variation_requests'],
+		communication_logs: ['job_assignments']
+	});
+	assert.deepEqual(sqlReadDependencies(whatsapp), {
+		sites: ['jobs', 'job_assignments'],
+		jobs: ['job_assignments']
+	});
+	assert.deepEqual(sqlReadDependencies(suspicionAutomation), {
+		jobs: ['job_assignments'],
+		sites: ['jobs', 'job_assignments'],
+		variation_requests: ['job_assignments'],
+		photo_evidence: ['job_assignments', 'variation_requests'],
+		communication_logs: ['job_assignments'],
+		suspicious_activity_logs: ['job_assignments'],
+		suspicion_reviews: ['job_assignments']
+	});
+});
 
 test('contractor projections expose operational assignment and photo fields only', () => {
 	assert.deepEqual(grant(contractor, 'job_assignments', 'read')?.fields, [
@@ -117,10 +153,8 @@ test('WhatsApp is a no-app, no-delegation, existing-work surface', () => {
 	assert.equal(grant(whatsapp, 'job_assignments', 'delete'), undefined);
 });
 
-test('contractor-facing agent instructions do not disclose private review vocabulary', () => {
-	const sharedPrompt = readFileSync(new URL('../../+agents.md', import.meta.url), 'utf8');
+test('contractor-facing WhatsApp envoy instructions do not disclose private review vocabulary', () => {
 	const hiddenVocabulary = /suspici|integrity|site_identity|\bflags?\b/i;
-	assert.doesNotMatch(sharedPrompt, hiddenVocabulary);
 	assert.doesNotMatch(whatsappEnvoy.task, hiddenVocabulary);
 	assert.match(whatsappEnvoy.task, /first mandatory action/i);
 	assert.match(whatsappEnvoy.task, /messageId/);

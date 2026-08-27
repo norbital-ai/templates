@@ -7,24 +7,6 @@
 	import { Tabs, type TabConfig } from '@norbital-ai/ui/tabs';
 
 	const { t } = useI18n<TenantI18nKeys>();
-
-	const projectsQuery = $derived(
-		collectionClient.db.projects.findMany({
-			columns: { id: true, project_name: true, project_number: true },
-			orderBy: { project_name: 'asc' },
-			limit: 500
-		})
-	);
-	const projectLabelsById = $derived(
-		new Map(
-			(projectsQuery.current ?? []).map((project) => [
-				project.id,
-				project.project_number
-					? `${project.project_number} · ${project.project_name}`
-					: project.project_name
-			])
-		)
-	);
 </script>
 
 <svelte:head>
@@ -72,13 +54,7 @@
 		{#snippet columns({ Column })}
 			<Column name="job_title" />
 			<Column name="job_number" />
-			<Column
-				name="project_id"
-				label={t('component.project')}
-				minWidth={200}
-				render={({ value }) =>
-					value == null || value === '' ? '—' : (projectLabelsById.get(String(value)) ?? '—')}
-			/>
+			<Column name="project_id" label={t('component.project')} minWidth={200} />
 			<Column name="job_type" />
 			<Column name="status" />
 			<Column name="priority" />

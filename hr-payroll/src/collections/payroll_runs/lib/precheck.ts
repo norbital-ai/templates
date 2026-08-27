@@ -54,13 +54,13 @@ export function payrollRunPrecheck(options: {
 	return Effect.gen(function* () {
 		const api = withReadLog(options.api);
 		const issues: RunIssue[] = validateConfiguration(options.configuration);
-		const { query } = api.db;
+		const db = api.db;
 		const approved = { approval_id: { isNull: true } } as const;
 		// The same ceiling and the same truncation guard the build reads under. A precheck that could
 		// silently see a shorter page than the engine would admit exactly the run the engine then
 		// refuses, which is the state this whole file exists to prevent.
 		const employments = api.reads.assertComplete(
-			yield* query.employments.findMany({
+			yield* db.employments.findMany({
 				where: {
 					company_id: { eq: options.configuration.company.id },
 					...approved
@@ -72,7 +72,7 @@ export function payrollRunPrecheck(options: {
 		const employmentIds = employments.map((row) => row.id);
 		if (employmentIds.length > 0) {
 			const timeEntries = api.reads.assertComplete(
-				yield* query.time_entries.findMany({
+				yield* db.time_entries.findMany({
 					where: {
 						employment_id: { in: employmentIds },
 						work_date: {

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { FormattedValueRenderer } from '@norbital-ai/ui/data-renderer';
 	import { client } from '../lib/workspace-client.js';
 	import { collectionClient } from '../lib/collection-client.js';
 	import { getPlatformStateContext } from '@norbital-ai/bolt/client';
@@ -133,11 +134,14 @@
 					label={t('component.job_site_date')}
 					minWidth={360}
 					card="title"
-					render={({ row }) => {
-						const job = jobById.get(row.job_id);
-						return job
-							? `${job.title} · ${siteById.get(job.site_id) ?? '—'} · ${job.scheduled_for}`
-							: t('component.job');
+					renderer={FormattedValueRenderer}
+					rendererProps={{
+						format: ({ row }) => {
+							const job = jobById.get(row.job_id);
+							return job
+								? `${job.title} · ${siteById.get(job.site_id) ?? '—'} · ${job.scheduled_for}`
+								: t('component.job');
+						}
 					}}
 				/>
 				{#if dispatchAuthority}
@@ -147,23 +151,29 @@
 						label={t('component.contractor')}
 						minWidth={220}
 						card="subtitle"
-						render={({ row }) => assigneeNameById.get(row.assignee_user_id) ?? '—'}
+						renderer={FormattedValueRenderer}
+						rendererProps={{
+							format: ({ row }) => assigneeNameById.get(row.assignee_user_id) ?? '—'
+						}}
 					/>
 				{/if}
 				<Column name="dispatched_at" label={t('component.dispatched')} />
 				<Column
 					name="status"
 					card="badge"
-					render={({ value }) => {
-						switch (value) {
-							case 'unassigned':
-								return t('component.status_unassigned');
-							case 'assigned':
-								return t('component.status_assigned');
-							case 'completed':
-								return t('component.status_completed');
-							default:
-								return '—';
+					renderer={FormattedValueRenderer}
+					rendererProps={{
+						format: ({ value }) => {
+							switch (value) {
+								case 'unassigned':
+									return t('component.status_unassigned');
+								case 'assigned':
+									return t('component.status_assigned');
+								case 'completed':
+									return t('component.status_completed');
+								default:
+									return '—';
+							}
 						}
 					}}
 				/>

@@ -48,6 +48,10 @@ const assignedSite = {
 		'WHERE a.assignee_user_id = ${requestor.id})'
 } as const;
 
+/** Linking collections only; direct target writes already advance their compiler-owned generation. */
+const assignmentScopeDependencies = ['job_assignments'] as const;
+const siteScopeDependencies = ['jobs', 'job_assignments'] as const;
+
 const siteReadFields = [
 	'id',
 	'site_code',
@@ -100,12 +104,14 @@ export default {
 		sites: {
 			read: {
 				where: assignedSite,
+				dependencies: siteScopeDependencies,
 				fields: siteReadFields
 			}
 		},
 		jobs: {
 			read: {
 				where: assignedJob,
+				dependencies: assignmentScopeDependencies,
 				fields: jobReadFields
 			}
 		},
@@ -122,7 +128,7 @@ export default {
 		communication_logs: {
 			create: {
 				authorize: ({ record }, api) =>
-					api.db.query.job_assignments
+					api.db.job_assignments
 						.findFirst({ where: { id: { eq: record.job_assignment_id } } })
 						.pipe(Effect.map((assignment) => assignment !== undefined)),
 				fields: communicationCreateFields
@@ -133,7 +139,7 @@ export default {
 				authorize: ({ record }, api) =>
 					record.job_assignment_id === null
 						? false
-						: api.db.query.job_assignments
+						: api.db.job_assignments
 								.findFirst({ where: { id: { eq: record.job_assignment_id } } })
 								.pipe(Effect.map((assignment) => assignment !== undefined)),
 				fields: evidenceCreateFields

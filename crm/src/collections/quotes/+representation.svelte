@@ -6,7 +6,6 @@
 	import type { RepresentationProps } from './$types.js';
 	import { CollectionForm } from '@norbital-ai/ui/collection-form';
 	import { Column, Grid } from '@norbital-ai/ui/layout';
-	import { RelationshipRenderer } from '@norbital-ai/ui/data-renderer/relationship';
 	import type { CollectionRelationOptions } from '@norbital-ai/std/collection';
 
 	let { record, close }: RepresentationProps = $props();
@@ -30,42 +29,41 @@
 	onAfterSubmit={record ? undefined : close}
 >
 	{#snippet children({ Field, form })}
+		<Field name="net" hidden />
+		<Field name="tax" hidden />
+		<Field name="gross" hidden />
+		<Field name="confirmed_at" hidden />
+		<Field name="credit_acknowledged" hidden />
+		<Field name="cancelled_at" hidden />
+		<Field name="cancel_reason" hidden />
 		{@const values = form.values()}
 		<Grid minimum="compact">
 			<Field name="doc_no" label={t('component.doc_no')} />
 			<Field
 				name="account_id"
 				label={t('component.account')}
-				renderer={RelationshipRenderer}
-				rendererProps={{
-					target: 'accounts',
-					options: {
-						label: (record) =>
-							record.name != null && record.name !== '' ? String(record.name) : '—',
-						orderBy: { name: 'asc' },
-						limit: 5000
-					} satisfies CollectionRelationOptions
-				}}
+				relationOptions={{
+					label: (record) =>
+						record.name != null && record.name !== '' ? String(record.name) : '—',
+					orderBy: { name: 'asc' },
+					limit: 5000
+				} satisfies CollectionRelationOptions}
 			/>
 			{#key values.account_id}
 				<Field
 					name="contact_id"
 					label={t('component.contact')}
-					renderer={RelationshipRenderer}
-					rendererProps={{
-						target: 'contacts',
-						options: {
-							label: (record) => {
-								const first = record.first_name;
-								const last = record.last_name;
-								if (first && last) return `${first} ${last}`;
-								return first != null && first !== '' ? String(first) : '—';
-							},
-							...(values.account_id ? { where: { account_id: { eq: values.account_id } } } : {}),
-							orderBy: { last_name: 'asc' },
-							limit: 5000
-						} satisfies CollectionRelationOptions
-					}}
+					relationOptions={{
+						label: (record) => {
+							const first = record.first_name;
+							const last = record.last_name;
+							if (first && last) return `${first} ${last}`;
+							return first != null && first !== '' ? String(first) : '—';
+						},
+						...(values.account_id ? { where: { account_id: { eq: values.account_id } } } : {}),
+						orderBy: { last_name: 'asc' },
+						limit: 5000
+					} satisfies CollectionRelationOptions}
 				/>
 			{/key}
 			<Field name="title" />
@@ -84,34 +82,26 @@
 			<Field
 				name="owner_id"
 				label={t('component.owner')}
-				renderer={RelationshipRenderer}
-				rendererProps={{
-					target: 'user',
-					options: {
-						label: (record) =>
-							record.name != null && record.name !== '' ? String(record.name) : '—',
-						orderBy: { name: 'asc' },
-						limit: 500
-					} satisfies CollectionRelationOptions
-				}}
+				relationOptions={{
+					label: (record) =>
+						record.name != null && record.name !== '' ? String(record.name) : '—',
+					orderBy: { name: 'asc' },
+					limit: 500
+				} satisfies CollectionRelationOptions}
 			/>
 			<Field
 				name="revision_of"
 				label={t('component.revision_of')}
-				renderer={RelationshipRenderer}
-				rendererProps={{
-					target: 'quotes',
-					options: {
-						label: (record) => {
-							const docNo = record.doc_no;
-							const title = record.title;
-							if (docNo && title) return `${docNo}: ${title}`;
-							return docNo != null && docNo !== '' ? String(docNo) : '—';
-						},
-						orderBy: { doc_no: 'desc' },
-						limit: 5000
-					} satisfies CollectionRelationOptions
-				}}
+				relationOptions={{
+					label: (record) => {
+						const docNo = record.doc_no;
+						const title = record.title;
+						if (docNo && title) return `${docNo}: ${title}`;
+						return docNo != null && docNo !== '' ? String(docNo) : '—';
+					},
+					orderBy: { doc_no: 'desc' },
+					limit: 5000
+				} satisfies CollectionRelationOptions}
 			/>
 			<Field name="revision_number" label={t('component.revision_number')} />
 			<Column span="all"><Field name="description" /></Column>

@@ -240,6 +240,7 @@
 	"app.scheduling.draft": "Draft",
 	"app.scheduling.published": "Published",
 	"app.scheduling.publish_month": "Publish {month}",
+	"app.scheduling.publish_pending": "Publishing — waiting for server confirmation…",
 	"app.scheduling.re_open": "Re-open",
 	"app.scheduling.days_assigned": "{rostered} of {total} days assigned",
 	"app.scheduling.board_help": "How this board works",

@@ -18,7 +18,7 @@ export default defineAutomation(
 			'Counts the payment claims on the books every morning at 6am and publishes the first 25 as a JSON extract so the commercial team can check progress-claim readiness.',
 		handler: (api) =>
 			Effect.gen(function* () {
-				const claims = yield* api.db.query.payment_claims.findMany({
+				const claims = yield* api.db.payment_claims.findMany({
 					where: { status: { in: ['draft', 'submitted'] } },
 					orderBy: { updated_at: 'desc' },
 					limit: 25

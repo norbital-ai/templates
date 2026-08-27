@@ -55,7 +55,7 @@ export default {
 				const quoteIds = records.map((quote) => quote.id);
 				if (quoteIds.length === 0) return [];
 
-				const lines = yield* api.db.query.quote_lines.findMany({
+				const lines = yield* api.db.quote_lines.findMany({
 					where: { quote_id: { in: quoteIds } },
 					limit: 5000
 				});
