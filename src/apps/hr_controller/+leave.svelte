@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { FormattedValueRenderer } from '@norbital-ai/ui/data-renderer';
 	import { client } from '../../lib/workspace-client.js';
 	import { useI18n } from '@norbital-ai/ui/i18n';
 	import AppHeaderActions from '@norbital-ai/bolt/client/app-header-actions';
@@ -10,11 +11,9 @@
 	import { Bound, Cover, Inline, Scroll } from '@norbital-ai/ui/layout';
 	import { Spinner } from '@norbital-ai/ui/spinner';
 	import {
-		formatCalendarDate,
 		formatLeaveAccrual,
 		formatLeavePayrollEffect,
-		formatLeaveRange,
-		formatNumeric
+		formatLeaveRange
 	} from '../../lib/ui/display-formatters.js';
 	import { inForceTodayFilter, todayInstant } from '../../lib/ui/calendar.js';
 	import LeaveSeasonality from '../../lib/ui/leave/leave-seasonality.svelte';
@@ -214,30 +213,34 @@
 						name="leave_type_id"
 						label={t('component.leave_type')}
 						card="title"
-						render={({ row }) => leaveTypeLabel(row)}
+						renderer={FormattedValueRenderer}
+						rendererProps={{ format: ({ row }) => leaveTypeLabel(row) }}
 					/>
 					<Column
 						name="employment_id"
 						label={t('component.employment')}
 						card="subtitle"
-						render={({ row }: { row: LeaveRequestRow }) =>
-							row.leave_request_employment?.employee_number ?? '—'}
+						renderer={FormattedValueRenderer}
+						rendererProps={{
+							format: ({ row }: { row: LeaveRequestRow }) =>
+								row.leave_request_employment?.employee_number ?? '—'
+						}}
 					/>
 					<Column
 						name="event"
 						label={t('component.leave_range')}
-						render={({ row }) => formatLeaveRange(row.event, t)}
+						renderer={FormattedValueRenderer}
+						rendererProps={{ format: ({ row }) => formatLeaveRange(row.event, t) }}
 					/>
 					<Column name="kind" label={t('component.event')} card="badge" />
-					<Column
-						name="days"
-						label={t('component.days')}
-						render={({ value }) => formatNumeric(value)}
-					/>
+					<Column name="days" label={t('component.days')} />
 					<Column
 						name="certificate_file"
 						label={t('component.certificate')}
-						render={({ value }) => (value == null || value === '' ? '—' : t('app.leave.attached'))}
+						renderer={FormattedValueRenderer}
+						rendererProps={{
+							format: ({ value }) => (value == null || value === '' ? '—' : t('app.leave.attached'))
+						}}
 					/>
 				{/snippet}
 			</CollectionTable>
@@ -275,13 +278,15 @@
 					<Column
 						name="accrual"
 						label={t('app.leave.accrual')}
-						render={({ value }) => formatLeaveAccrual(value, t)}
+						renderer={FormattedValueRenderer}
+						rendererProps={{ format: ({ value }) => formatLeaveAccrual(value, t) }}
 					/>
 					<Column name="entitlement" label={t('app.leave.entitlement_matrix')} />
 					<Column
 						name="payroll_effect"
 						label={t('app.leave.payroll_effect')}
-						render={({ value }) => formatLeavePayrollEffect(value, t)}
+						renderer={FormattedValueRenderer}
+						rendererProps={{ format: ({ value }) => formatLeavePayrollEffect(value, t) }}
 					/>
 					<Column name="encash_on_exit" label={t('app.leave.encash_on_exit')} />
 					<Column name="effective_range" label={t('component.effective')} />

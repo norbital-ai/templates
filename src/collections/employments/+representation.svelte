@@ -5,7 +5,6 @@
 	import type { RepresentationProps } from './$types.js';
 	import { CollectionForm } from '@norbital-ai/ui/collection-form';
 	import { Column, Grid } from '@norbital-ai/ui/layout';
-	import { RelationshipRenderer } from '@norbital-ai/ui/data-renderer/relationship';
 
 	let { record, close }: RepresentationProps = $props();
 	const { t } = useI18n<TenantI18nKeys>();
@@ -30,29 +29,21 @@
 			<Field
 				name="employee_id"
 				label={t('component.person')}
-				renderer={RelationshipRenderer}
-				rendererProps={{
-					target: 'employees',
-					options: {
-						label: (person) =>
-							person.name != null && person.name !== '' ? String(person.name) : '—',
-						orderBy: { name: 'asc' },
-						limit: 1000
-					}
+				relationOptions={{
+					label: (person) =>
+						person.name != null && person.name !== '' ? String(person.name) : '—',
+					orderBy: { name: 'asc' },
+					limit: 1000
 				}}
 			/>
 			<Field
 				name="company_id"
 				label={t('component.legal_entity')}
-				renderer={RelationshipRenderer}
-				rendererProps={{
-					target: 'companies',
-					options: {
-						label: (company) =>
-							company.name != null && company.name !== '' ? String(company.name) : '—',
-						orderBy: { name: 'asc' },
-						limit: 500
-					}
+				relationOptions={{
+					label: (company) =>
+						company.name != null && company.name !== '' ? String(company.name) : '—',
+					orderBy: { name: 'asc' },
+					limit: 500
 				}}
 			/>
 			<Field name="employee_number" label={t('component.employee_number')} />

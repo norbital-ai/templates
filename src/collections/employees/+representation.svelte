@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { FormattedValueRenderer } from '@norbital-ai/ui/data-renderer';
 	/**
 	 * One person's whole file: who they are, the engagements they hold, the terms of each engagement
 	 * and where each stands with the statutory schemes.
@@ -16,7 +17,6 @@
 	import { CollectionTable } from '@norbital-ai/ui/collection-table';
 	import { Column, Cover, Grid, Inline, Stack } from '@norbital-ai/ui/layout';
 	import { Tabs, type TabConfig } from '@norbital-ai/ui/tabs';
-	import { renderSnippet } from '@norbital-ai/ui/utils';
 	import { workPatternSchema, type WorkPattern } from '../../datatypes/work_pattern/+definition.js';
 	import { readRange, StoredRangeSchema, type StoredRange } from '../payroll_runs/lib/effective.js';
 	import {
@@ -115,9 +115,6 @@
 				})
 	);
 	const employments = $derived(employmentsQuery?.current ?? []);
-	const employmentLabelsById = $derived(
-		new Map(employments.map((employment) => [employment.id, employment.employee_number]))
-	);
 	// Terms are read only while the Employments tab is open. One employee-scoped query feeds every
 	// row, so opening a profile does not mount a table or lookup per employment.
 	const employmentTermsQuery = $derived(
@@ -131,6 +128,22 @@
 					limit: 500
 				})
 	);
+	function employmentSummary(employment: { id: string; employee_number: unknown }): string {
+		const employeeNumber =
+			employment.employee_number == null ? '—' : String(employment.employee_number);
+		const schedule = employmentScheduleOn(termsByEmployment.get(employment.id) ?? [], today);
+		if (employmentTermsQuery?.loading) {
+			return `${employeeNumber} · ${t('component.schedule_loading')}`;
+		}
+		if (schedule.state === 'missing') {
+			return `${employeeNumber} · ${t('component.schedule_not_configured')}`;
+		}
+		const scheduleLabel =
+			schedule.state === 'current'
+				? t('component.schedule_current', { summary: schedule.summary })
+				: t('component.schedule_next', { summary: schedule.summary });
+		return `${employeeNumber} · ${scheduleLabel} · ${t('component.effective')} ${formatEffectiveRange(schedule.effectiveRange)}`;
+	}
 	const termsByEmployment = $derived.by(() => {
 		const terms = new Map<string, EmploymentTerm[]>();
 		for (const term of employmentTermsQuery?.current ?? []) {
@@ -141,25 +154,6 @@
 		}
 		return terms;
 	});
-	// One scoped query and a map per relation column, rather than a label lookup per row.
-	const companiesQuery = $derived(client.db.companies.findMany({ where: approved, limit: 500 }));
-	const companyLabelsById = $derived(
-		new Map((companiesQuery.current ?? []).map((company) => [company.id, company.name]))
-	);
-	const contributionsQuery = $derived(
-		client.db.statutory_contributions.findMany({
-			where: approved,
-			limit: 500
-		})
-	);
-	const contributionLabelsById = $derived(
-		new Map(
-			(contributionsQuery.current ?? []).map((contribution) => [
-				contribution.id,
-				`${contribution.code} · ${contribution.name}`
-			])
-		)
-	);
 </script>
 
 {#snippet person()}
@@ -171,6 +165,7 @@
 		onAfterSubmit={record ? undefined : close}
 	>
 		{#snippet children({ Field })}
+			<Field name="user_id" hidden />
 			<Grid gap="md" minimum="panel">
 				<Field name="name" />
 				<Field name="email" />
@@ -206,15 +201,12 @@
 					name="employee_number"
 					card="title"
 					minWidth={280}
-					render={({ row }) => renderSnippet(employmentCell, { employment: row })}
+					renderer={FormattedValueRenderer}
+					rendererProps={{
+						format: ({ row }) => employmentSummary(row as { id: string; employee_number: unknown })
+					}}
 				/>
-				<TableColumn
-					name="company_id"
-					label={t('component.legal_entity')}
-					card="subtitle"
-					render={({ value }) =>
-						value == null || value === '' ? '—' : (companyLabelsById.get(String(value)) ?? '—')}
-				/>
+				<TableColumn name="company_id" label={t('component.legal_entity')} card="subtitle" />
 				<TableColumn name="hire_date" label={t('component.hired')} />
 				<TableColumn name="exit_date" label={t('component.exited')} />
 				<TableColumn name="exit_reason" label={t('component.exit_reason')} />
@@ -222,32 +214,6 @@
 			{/snippet}
 		</CollectionTable>
 	{/if}
-{/snippet}
-
-{#snippet employmentCell({ employment }: { employment: { id: string; employee_number: unknown } })}
-	{@const schedule = employmentScheduleOn(termsByEmployment.get(employment.id) ?? [], today)}
-	<Stack gap="none" class="min-w-0 py-0.5">
-		<span class="truncate font-medium"
-			>{employment.employee_number == null ? '—' : String(employment.employee_number)}</span
-		>
-		{#if employmentTermsQuery?.loading}
-			<span class="truncate text-tiny text-muted-foreground">{t('component.schedule_loading')}</span
-			>
-		{:else if schedule.state === 'missing'}
-			<span class="truncate text-tiny text-muted-foreground"
-				>{t('component.schedule_not_configured')}</span
-			>
-		{:else}
-			<span class="truncate text-tiny text-muted-foreground">
-				{schedule.state === 'current'
-					? t('component.schedule_current', { summary: schedule.summary })
-					: t('component.schedule_next', { summary: schedule.summary })}
-			</span>
-			<span class="truncate text-micro text-muted-foreground">
-				{t('component.effective')} · {formatEffectiveRange(schedule.effectiveRange)}
-			</span>
-		{/if}
-	</Stack>
 {/snippet}
 
 {#snippet statutoryFacts()}
@@ -266,24 +232,17 @@
 		}}
 	>
 		{#snippet columns({ Column: TableColumn })}
-			<TableColumn
-				name="employment_id"
-				label={t('component.employment')}
-				card="title"
-				render={({ value }) =>
-					value == null || value === '' ? '—' : (employmentLabelsById.get(String(value)) ?? '—')}
-			/>
+			<TableColumn name="employment_id" label={t('component.employment')} card="title" />
 			<TableColumn
 				name="statutory_contribution_id"
 				label={t('component.contribution')}
 				card="subtitle"
-				render={({ value }) =>
-					value == null || value === '' ? '—' : (contributionLabelsById.get(String(value)) ?? '—')}
 			/>
 			<TableColumn
 				name="status"
 				label={t('component.registration')}
-				render={({ value }) => formatStatutoryFactStatus(value, t)}
+				renderer={FormattedValueRenderer}
+				rendererProps={{ format: ({ value }) => formatStatutoryFactStatus(value, t) }}
 			/>
 			<TableColumn name="effective_range" label={t('component.effective')} />
 		{/snippet}

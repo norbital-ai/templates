@@ -1,6 +1,7 @@
 <script lang="ts">
+	import { FormattedValueRenderer } from '@norbital-ai/ui/data-renderer';
 	import { client } from '../lib/workspace-client.js';
-	import { Number as EffectNumber } from 'effect';
+	import { Effect, Number as EffectNumber } from 'effect';
 	import { getPlatformStateContext } from '@norbital-ai/bolt/client';
 	import { useI18n } from '@norbital-ai/ui/i18n';
 	import type { TenantI18nKeys } from '$bolt/i18n-keys';
@@ -87,17 +88,11 @@
 	const companyById = $derived(
 		new Map((companiesQuery.current ?? []).map((company) => [company.id, company]))
 	);
-	// A relation column holds a uuid and would render as one. These catalogues are small and load
-	// once per page, so the label is resolved from memory rather than by mounting a lookup per row.
-	// A miss renders as an em dash — never the underlying uuid.
 	const leaveTypesQuery = $derived(
 		client.db.leave_types.findMany({
 			where: { approval_id: { isNull: true } },
 			limit: 200
 		})
-	);
-	const leaveTypeLabelsById = $derived(
-		new Map((leaveTypesQuery.current ?? []).map((leaveType) => [leaveType.id, leaveType.name]))
 	);
 	/**
 	 * The same catalogue keyed to the short code rather than the name.
@@ -108,15 +103,6 @@
 	 */
 	const leaveCodeById = $derived(
 		new Map((leaveTypesQuery.current ?? []).map((leaveType) => [leaveType.id, leaveType.code]))
-	);
-	const payComponentsQuery = $derived(
-		client.db.pay_components.findMany({
-			where: { approval_id: { isNull: true } },
-			limit: 500
-		})
-	);
-	const payComponentLabelsById = $derived(
-		new Map((payComponentsQuery.current ?? []).map((component) => [component.id, component.code]))
 	);
 	const employmentsQuery = $derived(
 		employeeId
@@ -751,20 +737,33 @@
 	 * immediately held under `approval_id`; the platform's mutation boundary presents that pending
 	 * approval rather than letting this component invent a second result state.
 	 */
-	function saveDaySheet(change: DaySheetChange) {
+	function saveDaySheet(change: DaySheetChange): void {
 		const attendance = change.attendance;
 		if (attendance == null || employmentId == null) return;
-		const operation = client.db.time_entries.mutate({
-			employment_id: employmentId,
-			work_date: change.date,
-			worked_intervals: attendance.intervals.map((interval) => ({
-				start: interval.start,
-				end: interval.end
-			})),
-			break_minutes: attendance.breakMinutes
-		});
-		daySheetOpen = false;
-		return operation;
+		const targetEmploymentId = employmentId;
+		Effect.runFork(
+			Effect.tryPromise({
+				try: () =>
+					client.db.time_entries.mutate({
+						employment_id: targetEmploymentId,
+						work_date: change.date,
+						worked_intervals: attendance.intervals.map((interval) => ({
+							start: interval.start,
+							end: interval.end
+						})),
+						break_minutes: attendance.breakMinutes
+					}),
+				catch: (cause) => cause
+			}).pipe(
+				Effect.tap(() =>
+					Effect.sync(() => {
+						// Close only after the write is durable and reflected by the local overlay.
+						daySheetOpen = false;
+					})
+				),
+				Effect.asVoid
+			)
+		);
 	}
 
 	const report = $state<{
@@ -828,21 +827,33 @@
 		return problem == null ? null : t(ATTENDANCE_DRAFT_PROBLEM_KEY[problem]);
 	});
 
-	function submitReport() {
+	function submitReport(): void {
 		const draft = reportDraft;
 		if (draft == null || employmentId == null || draft.assessment.problem != null) return;
-		const operation = client.db.time_entries.mutate({
-			employment_id: employmentId,
-			work_date: draft.date,
-			worked_intervals: draft.intervals.map((interval) => ({
-				start: interval.start,
-				end: interval.end
-			})),
-			break_minutes: draft.assessment.breakMinutes
-		});
-		report.open = false;
-		daySheetOpen = false;
-		return operation;
+		const targetEmploymentId = employmentId;
+		Effect.runFork(
+			Effect.tryPromise({
+				try: () =>
+					client.db.time_entries.mutate({
+						employment_id: targetEmploymentId,
+						work_date: draft.date,
+						worked_intervals: draft.intervals.map((interval) => ({
+							start: interval.start,
+							end: interval.end
+						})),
+						break_minutes: draft.assessment.breakMinutes
+					}),
+				catch: (cause) => cause
+			}).pipe(
+				Effect.tap(() =>
+					Effect.sync(() => {
+						report.open = false;
+						daySheetOpen = false;
+					})
+				),
+				Effect.asVoid
+			)
+		);
 	}
 </script>
 
@@ -1079,23 +1090,14 @@
 			}}
 		>
 			{#snippet columns({ Column })}
-				<Column
-					name="leave_type_id"
-					label={t('component.leave_type')}
-					card="title"
-					render={({ value }) =>
-						value == null || value === '' ? '—' : (leaveTypeLabelsById.get(String(value)) ?? '—')}
-				/>
+				<Column name="leave_type_id" label={t('component.leave_type')} card="title" />
 				<Column
 					name="event"
 					label={t('component.leave_range')}
-					render={({ row }) => formatLeaveRange(row.event, t)}
+					renderer={FormattedValueRenderer}
+					rendererProps={{ format: ({ row }) => formatLeaveRange(row.event, t) }}
 				/>
-				<Column
-					name="days"
-					label={t('component.days')}
-					render={({ value }) => formatNumeric(value)}
-				/>
+				<Column name="days" label={t('component.days')} />
 			{/snippet}
 		</CollectionTable>
 	</Cover>
@@ -1116,30 +1118,15 @@
 			}}
 		>
 			{#snippet columns({ Column })}
-				<Column
-					name="pay_component_id"
-					label={t('component.component')}
-					card="title"
-					render={({ value }) =>
-						value == null || value === ''
-							? '—'
-							: (payComponentLabelsById.get(String(value)) ?? '—')}
-				/>
-				<Column
-					name="amount"
-					label={t('component.amount')}
-					render={({ value }) => formatNumeric(value)}
-				/>
-				<Column
-					name="event_date"
-					label={t('component.date')}
-					render={({ value }) => formatCalendarDate(value)}
-				/>
+				<Column name="pay_component_id" label={t('component.component')} card="title" />
+				<Column name="amount" label={t('component.amount')} />
+				<Column name="event_date" label={t('component.date')} />
 				<Column
 					name="origin"
 					label={t('component.origin')}
 					card="subtitle"
-					render={({ value }) => formatEntryOrigin(value, t)}
+					renderer={FormattedValueRenderer}
+					rendererProps={{ format: ({ value }) => formatEntryOrigin(value, t) }}
 				/>
 			{/snippet}
 		</CollectionTable>
@@ -1165,16 +1152,13 @@
 		>
 			{#snippet columns({ Column })}
 				<Column name="reference" card="title" />
-				<Column
-					name="principal"
-					label={t('component.principal')}
-					render={({ value }) => formatNumeric(value)}
-				/>
+				<Column name="principal" label={t('component.principal')} />
 				<Column
 					name="schedule"
 					label={t('component.schedule')}
 					card="subtitle"
-					render={({ value }) => formatRepaymentSchedule(value, t)}
+					renderer={FormattedValueRenderer}
+					rendererProps={{ format: ({ value }) => formatRepaymentSchedule(value, t) }}
 				/>
 				<Column name="effective_range" />
 			{/snippet}
@@ -1201,23 +1185,12 @@
 				<Column
 					name="payroll_run_id"
 					label={t('app.hr_employee.pay_run')}
-					render={({ row }) => payrollRunPeriod(row)}
+					renderer={FormattedValueRenderer}
+					rendererProps={{ format: ({ row }) => payrollRunPeriod(row) }}
 				/>
-				<Column
-					name="gross"
-					label={t('component.gross')}
-					render={({ value }) => formatNumeric(value)}
-				/>
-				<Column
-					name="total_deductions"
-					label={t('component.deductions')}
-					render={({ value }) => formatNumeric(value)}
-				/>
-				<Column
-					name="net"
-					label={t('component.net')}
-					render={({ value }) => formatNumeric(value)}
-				/>
+				<Column name="gross" label={t('component.gross')} />
+				<Column name="total_deductions" label={t('component.deductions')} />
+				<Column name="net" label={t('component.net')} />
 				<Column name="currency" />
 			{/snippet}
 			{#snippet ListCard(payslip)}

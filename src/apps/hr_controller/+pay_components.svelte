@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { FormattedValueRenderer } from '@norbital-ai/ui/data-renderer';
 	import { client } from '../../lib/workspace-client.js';
 	import { useI18n } from '@norbital-ai/ui/i18n';
 	import AppHeaderActions from '@norbital-ai/bolt/client/app-header-actions';
@@ -9,11 +10,7 @@
 	import { Combobox } from '@norbital-ai/ui/combobox';
 	import { Bound, Cover, Scroll } from '@norbital-ai/ui/layout';
 	import ClaimSeasonality from '../../lib/ui/pay-components/claim-seasonality.svelte';
-	import {
-		formatCalendarDate,
-		formatEntryOrigin,
-		formatNumeric
-	} from '../../lib/ui/display-formatters.js';
+	import { formatEntryOrigin } from '../../lib/ui/display-formatters.js';
 	import { inForceTodayFilter, todayInstant } from '../../lib/ui/calendar.js';
 	import { sourceLock, sourceLockRecordMetadata } from '../../lib/scheduling/lock.js';
 
@@ -192,31 +189,28 @@
 						name="pay_component_id"
 						label={t('component.component')}
 						card="title"
-						render={({ row }) => componentLabel(row)}
+						renderer={FormattedValueRenderer}
+						rendererProps={{ format: ({ row }) => componentLabel(row) }}
 					/>
 					<Column
 						name="employment_id"
 						label={t('component.employment')}
-						render={({ row }: { row: ComponentEntryRow }) =>
-							row.entry_employment?.employee_number ?? '—'}
+						renderer={FormattedValueRenderer}
+						rendererProps={{
+							format: ({ row }: { row: ComponentEntryRow }) =>
+								row.entry_employment?.employee_number ?? '—'
+						}}
 					/>
-					<Column
-						name="amount"
-						label={t('component.amount')}
-						render={({ value }) => formatNumeric(value)}
-					/>
+					<Column name="amount" label={t('component.amount')} />
 					<Column name="quantity" label={t('component.quantity')} />
-					<Column
-						name="event_date"
-						label={t('component.date')}
-						render={({ value }) => formatCalendarDate(value)}
-					/>
+					<Column name="event_date" label={t('component.date')} />
 					<Column name="pay_period" label={t('component.pay_period')} />
 					<Column
 						name="repayment_agreement_id"
 						label={t('component.payroll_consumption')}
 						sortable={false}
-						render={({ row }) => entryConsumptionLabel(row)}
+						renderer={FormattedValueRenderer}
+						rendererProps={{ format: ({ row }) => entryConsumptionLabel(row) }}
 					/>
 					<Column name="usage_mode" label={t('app.pay_components.payslip_usage')} card="badge" />
 					<Column name="description" />
@@ -224,7 +218,8 @@
 						name="origin"
 						label={t('component.origin')}
 						card="subtitle"
-						render={({ value }) => formatEntryOrigin(value, t)}
+						renderer={FormattedValueRenderer}
+						rendererProps={{ format: ({ value }) => formatEntryOrigin(value, t) }}
 					/>
 				{/snippet}
 			</CollectionTable>

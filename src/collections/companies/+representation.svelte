@@ -13,7 +13,6 @@
 	import type { RepresentationProps } from './$types.js';
 	import { CollectionForm } from '@norbital-ai/ui/collection-form';
 	import { Column, Grid, Stack } from '@norbital-ai/ui/layout';
-	import { RelationshipRenderer } from '@norbital-ai/ui/data-renderer/relationship';
 
 	let { record, close }: RepresentationProps = $props();
 	const { t } = useI18n<TenantI18nKeys>();
@@ -41,17 +40,13 @@
 					<Field
 						name="jurisdiction_id"
 						label={t('component.payroll_regime')}
-						renderer={RelationshipRenderer}
-						rendererProps={{
-							target: 'jurisdictions',
-							options: {
-								label: (jurisdiction) =>
-									[jurisdiction.code, jurisdiction.name]
-										.filter((part) => part != null && part !== '')
-										.join(' · ') || '—',
-								orderBy: { name: 'asc' },
-								limit: 500
-							}
+						relationOptions={{
+							label: (jurisdiction) =>
+								[jurisdiction.code, jurisdiction.name]
+									.filter((part) => part != null && part !== '')
+									.join(' · ') || '—',
+							orderBy: { name: 'asc' },
+							limit: 500
 						}}
 					/>
 					<Column span="all">

@@ -6,7 +6,6 @@
 	import type { RepresentationProps } from './$types.js';
 	import { CollectionForm } from '@norbital-ai/ui/collection-form';
 	import { Grid } from '@norbital-ai/ui/layout';
-	import { RelationshipRenderer } from '@norbital-ai/ui/data-renderer/relationship';
 
 	let { record, close }: RepresentationProps = $props();
 	const { t } = useI18n<TenantI18nKeys>();
@@ -20,51 +19,41 @@
 	onAfterSubmit={record ? undefined : close}
 >
 	{#snippet children({ Field })}
+		<Field name="origin" hidden />
+		<Field name="note" hidden />
 		<Grid gap="md" minimum="panel">
 			<Field
 				name="employment_id"
 				label={t('component.employment')}
-				renderer={RelationshipRenderer}
-				rendererProps={{
-					target: 'employments',
-					options: {
-						label: (employment) =>
-							employment.employee_number != null && employment.employee_number !== ''
-								? String(employment.employee_number)
-								: '—',
-						orderBy: { employee_number: 'asc' },
-						limit: 1000
-					}
+				relationOptions={{
+					label: (employment) =>
+						employment.employee_number != null && employment.employee_number !== ''
+							? String(employment.employee_number)
+							: '—',
+					orderBy: { employee_number: 'asc' },
+					limit: 1000
 				}}
 			/>
 			<Field name="work_date" label={t('component.day')} />
 			<Field
 				name="shift_definition_id"
 				label={t('component.shift')}
-				renderer={RelationshipRenderer}
-				rendererProps={{
-					target: 'shift_definitions',
-					options: {
-						label: (shift) =>
-							[shift.code, shift.name].filter((part) => part != null && part !== '').join(' · ') ||
-							'—',
-						orderBy: { code: 'asc' },
-						limit: 500
-					}
+				relationOptions={{
+					label: (shift) =>
+						[shift.code, shift.name].filter((part) => part != null && part !== '').join(' · ') ||
+						'—',
+					orderBy: { code: 'asc' },
+					limit: 500
 				}}
 			/>
 			<Field
 				name="roster_id"
 				label={t('component.drafted_month')}
-				renderer={RelationshipRenderer}
-				rendererProps={{
-					target: 'rosters',
-					options: {
-						label: (roster) =>
-							roster.month != null && roster.month !== '' ? String(roster.month) : '—',
-						orderBy: { month: 'desc' },
-						limit: 500
-					}
+				relationOptions={{
+					label: (roster) =>
+						roster.month != null && roster.month !== '' ? String(roster.month) : '—',
+					orderBy: { month: 'desc' },
+					limit: 500
 				}}
 			/>
 			<Field name="assignment_code" label={t('component.source_roster_token')} />

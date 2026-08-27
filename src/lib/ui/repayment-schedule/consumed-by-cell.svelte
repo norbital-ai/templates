@@ -1,9 +1,9 @@
 <script lang="ts">
 	import { Result, Schema } from 'effect';
 	import {
-		getCollectionTableNavigationContext,
-		type CollectionTableNavigationTarget
-	} from '@norbital-ai/ui/collection-table';
+		getCollectionNavigationContext,
+		type CollectionNavigationTarget
+	} from '@norbital-ai/ui/collection-navigation';
 	import { useI18n } from '@norbital-ai/ui/i18n';
 	import type { TenantI18nKeys } from '$bolt/i18n-keys';
 	import type { MatrixCellRendererProps } from '@norbital-ai/ui/data-renderer/matrix';
@@ -18,7 +18,7 @@
 
 	const { t } = useI18n<TenantI18nKeys>();
 
-	const navigation = getCollectionTableNavigationContext();
+	const navigation = getCollectionNavigationContext();
 	/**
 	 * The matrix hands `value` as `unknown` (it renders every column kind); the cell is one of the
 	 * seven states `repayment-consumption.ts` owns, decoded once here.
@@ -29,7 +29,7 @@
 			? decoded.success
 			: { status: 'error', message: t('component.unable_to_verify') }
 	);
-	const target = $derived.by((): CollectionTableNavigationTarget | null => {
+	const target = $derived.by((): CollectionNavigationTarget | null => {
 		if (consumption.status !== 'consumed') return null;
 		return {
 			collectionName: 'payslip_lines',

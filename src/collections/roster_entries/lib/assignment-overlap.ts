@@ -9,7 +9,7 @@ import {
 	overlappingWorkShifts,
 	type ValidationDay
 } from '../../rosters/lib/workforce-validation.js';
-import type { HookApi, WorkspaceRow } from '../$types.js';
+import type { Api, WorkspaceRow } from '../$types.js';
 
 const QUERY_LIMIT = 20_000;
 const DAY_MS = 86_400_000;
@@ -59,7 +59,7 @@ function addDays(date: string, amount: number): string {
 
 /** The four reads. Data only — every refusal below is `assertNoOverlap`'s. */
 export function readOverlapData(
-	api: HookApi,
+	api: Api,
 	changes: readonly AssignmentChange[]
 ): Effect.Effect<OverlapData, never, never> {
 	return Effect.gen(function* () {
@@ -69,17 +69,17 @@ export function readOverlapData(
 		const last = addDays(changedDates.toSorted().at(-1)!, 1);
 		const [employments, terms, existingEntries] = yield* Effect.all(
 			[
-				api.db.query.employments.findMany({
+				api.db.employments.findMany({
 					where: { id: { in: employmentIds } },
 					columns: { id: true, company_id: true },
 					limit: Math.max(1, employmentIds.length)
 				}),
-				api.db.query.employment_terms.findMany({
+				api.db.employment_terms.findMany({
 					where: { employment_id: { in: employmentIds } },
 					columns: { employment_id: true, work_pattern: true, effective_range: true },
 					limit: QUERY_LIMIT
 				}),
-				api.db.query.roster_entries.findMany({
+				api.db.roster_entries.findMany({
 					where: {
 						employment_id: { in: employmentIds },
 						work_date: { gte: first, lte: last }
@@ -99,7 +99,7 @@ export function readOverlapData(
 			refuse('This schedule is too large to validate safely in one write.');
 		}
 		const companyIds = [...new Set(employments.map((employment) => employment.company_id))];
-		const codes = yield* api.db.query.shift_definitions.findMany({
+		const codes = yield* api.db.shift_definitions.findMany({
 			where: { company_id: { in: companyIds } },
 			columns: { id: true, code: true, variant: true },
 			limit: QUERY_LIMIT
@@ -217,7 +217,7 @@ export function assertNoOverlap(data: OverlapData, changes: readonly AssignmentC
  * either way; only where its data comes from differs.
  */
 export function assertNoOverlappingAssignments(
-	api: HookApi,
+	api: Api,
 	changes: readonly AssignmentChange[]
 ): Effect.Effect<void, never, never> {
 	if (changes.length === 0) return Effect.void;

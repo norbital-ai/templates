@@ -170,7 +170,7 @@ export function pickConfiguration(
 	options: PickConfigurationOptions
 ): Effect.Effect<Configuration, never, never> {
 	return Effect.gen(function* () {
-		const { query } = options.api.db;
+		const db = options.api.db;
 		const asOf = options.window.salary.end;
 		const rawWindowStart =
 			options.window.attendance.start < options.window.salary.start
@@ -186,14 +186,14 @@ export function pickConfiguration(
 		const windowEnd = monthBounds(monthKey(rawWindowEnd)).end;
 		const approved = { approval_id: { isNull: true } } as const;
 
-		const companies = yield* query.companies.findMany({
+		const companies = yield* db.companies.findMany({
 			where: { id: { eq: options.companyId }, ...approved },
 			limit: 100
 		});
 		const company = effectiveOn(companies, asOf);
 		if (!company) refuse(`No company ${options.companyId} is effective on ${asOf}.`);
 
-		const jurisdictions = yield* query.jurisdictions.findMany({
+		const jurisdictions = yield* db.jurisdictions.findMany({
 			where: { id: { eq: company.jurisdiction_id }, ...approved },
 			limit: 100
 		});
@@ -203,23 +203,23 @@ export function pickConfiguration(
 		const [contributionRows, payComponentRows, shiftRows, holidayRows, leaveTypeRows] =
 			yield* Effect.all(
 				[
-					query.statutory_contributions.findMany({
+					db.statutory_contributions.findMany({
 						where: { jurisdiction_id: { eq: jurisdiction.id }, ...approved },
 						limit: PAGE_LIMIT
 					}),
-					query.pay_components.findMany({
+					db.pay_components.findMany({
 						where: { company_id: { eq: company.id }, ...approved },
 						limit: PAGE_LIMIT
 					}),
-					query.shift_definitions.findMany({
+					db.shift_definitions.findMany({
 						where: { company_id: { eq: company.id }, ...approved },
 						limit: PAGE_LIMIT
 					}),
-					query.company_holidays.findMany({
+					db.company_holidays.findMany({
 						where: { company_id: { eq: company.id }, ...approved },
 						limit: PAGE_LIMIT
 					}),
-					query.leave_types.findMany({
+					db.leave_types.findMany({
 						where: { company_id: { eq: company.id }, ...approved },
 						limit: PAGE_LIMIT
 					})
@@ -241,7 +241,7 @@ export function pickConfiguration(
 
 		const contributionIds = contributions.map((row) => row.id);
 		const rateRows = contributionIds.length
-			? yield* query.contribution_rates.findMany({
+			? yield* db.contribution_rates.findMany({
 					where: { statutory_contribution_id: { in: contributionIds }, ...approved },
 					limit: PAGE_LIMIT
 				})

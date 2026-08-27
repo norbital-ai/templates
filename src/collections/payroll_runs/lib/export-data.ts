@@ -71,7 +71,7 @@ export function loadRunExports(
 		const runIds = runs.map((run) => run.id);
 		if (runIds.length === 0) return [];
 
-		const payslips = yield* readApi.db.query.payslips.findMany({
+		const payslips = yield* readApi.db.payslips.findMany({
 			where: { payroll_run_id: { in: runIds } },
 			limit: PAGE_LIMIT
 		});
@@ -97,27 +97,27 @@ export function loadRunExports(
 			.at(-1)!;
 		const [lines, employments, payComponents, terms, timeEntries, rosters] = yield* Effect.all(
 			[
-				api.db.query.payslip_lines.findMany({
+				api.db.payslip_lines.findMany({
 					where: { payslip_id: { in: payslipIds } },
 					limit: PAGE_LIMIT
 				}),
-				api.db.query.employments.findMany({
+				api.db.employments.findMany({
 					where: { id: { in: employmentIds } },
 					limit: PAGE_LIMIT
 				}),
-				api.db.query.pay_components.findMany({ limit: PAGE_LIMIT }),
-				api.db.query.employment_terms.findMany({
+				api.db.pay_components.findMany({ limit: PAGE_LIMIT }),
+				api.db.employment_terms.findMany({
 					where: { employment_id: { in: employmentIds } },
 					limit: PAGE_LIMIT
 				}),
-				api.db.query.time_entries.findMany({
+				api.db.time_entries.findMany({
 					where: {
 						employment_id: { in: employmentIds },
 						work_date: { gte: attendanceFrom, lte: attendanceTo }
 					},
 					limit: PAGE_LIMIT
 				}),
-				api.db.query.roster_entries.findMany({
+				api.db.roster_entries.findMany({
 					where: {
 						employment_id: { in: employmentIds },
 						work_date: { gte: attendanceFrom, lte: attendanceTo }
@@ -147,12 +147,12 @@ export function loadRunExports(
 		];
 		const [employees, shifts] = yield* Effect.all(
 			[
-				api.db.query.employees.findMany({
+				api.db.employees.findMany({
 					where: { id: { in: employeeIds } },
 					limit: PAGE_LIMIT
 				}),
 				shiftIds.length
-					? api.db.query.shift_definitions.findMany({
+					? api.db.shift_definitions.findMany({
 							where: { id: { in: shiftIds } },
 							limit: PAGE_LIMIT
 						})
@@ -171,7 +171,7 @@ export function loadRunExports(
 			)
 		];
 		const contributions = contributionIds.length
-			? yield* api.db.query.statutory_contributions.findMany({
+			? yield* api.db.statutory_contributions.findMany({
 					where: { id: { in: contributionIds } },
 					limit: PAGE_LIMIT
 				})

@@ -27,7 +27,7 @@ function agreementEntries(
 	agreement: Pick<WorkspaceRow<'repayment_agreements'>, 'id'>
 ) {
 	return Effect.map(
-		api.db.query.component_entries.findMany({
+		api.db.component_entries.findMany({
 			where: { repayment_agreement_id: { eq: agreement.id } },
 			with: { entry_payslip_lines: { columns: { id: true } } },
 			limit: LIMIT

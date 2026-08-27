@@ -8,22 +8,6 @@
 	import { inForceTodayFilter } from '../../lib/ui/calendar.js';
 
 	const { t } = useI18n<TenantI18nKeys>();
-
-	/**
-	 * Relation column labels, not a listing — deliberately unfiltered by the effective window so a
-	 * superseded jurisdiction still resolves to its name instead of an em dash when history is shown.
-	 */
-	const jurisdictionsQuery = $derived(
-		client.db.jurisdictions.findMany({
-			where: { approval_id: { isNull: true } },
-			limit: 200
-		})
-	);
-	const jurisdictionLabelsById = $derived(
-		new Map(
-			(jurisdictionsQuery.current ?? []).map((jurisdiction) => [jurisdiction.id, jurisdiction.name])
-		)
-	);
 </script>
 
 <svelte:head>
@@ -75,12 +59,7 @@
 		{#snippet columns({ Column })}
 			<Column name="name" card="title" />
 			<Column name="registration_number" card="subtitle" />
-			<Column
-				name="jurisdiction_id"
-				label={t('app.settings.jurisdiction')}
-				render={({ value }) =>
-					value == null || value === '' ? '—' : (jurisdictionLabelsById.get(String(value)) ?? '—')}
-			/>
+			<Column name="jurisdiction_id" label={t('app.settings.jurisdiction')} />
 			<Column name="pay_day" label={t('app.settings.pay_day')} />
 			<Column name="effective_range" label={t('component.effective')} />
 		{/snippet}

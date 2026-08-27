@@ -90,52 +90,50 @@ type RequestRow = Pick<
  */
 type NormalizationApi = {
 	db: {
-		query: {
-			employments: {
-				findFirst(
-					options: SchemaQueryConfig<WorkspaceSchema, 'employments'>
-				): Effect.Effect<WorkspaceRow<'employments'> | undefined, never, never>;
-			};
-			companies: {
-				findFirst(
-					options: SchemaQueryConfig<WorkspaceSchema, 'companies'>
-				): Effect.Effect<WorkspaceRow<'companies'> | undefined, never, never>;
-			};
-			leave_types: {
-				findFirst(
-					options: SchemaQueryConfig<WorkspaceSchema, 'leave_types'>
-				): Effect.Effect<WorkspaceRow<'leave_types'> | undefined, never, never>;
-			};
-			company_holidays: {
-				findMany(
-					options: SchemaQueryConfig<WorkspaceSchema, 'company_holidays'>
-				): Effect.Effect<CompanyHolidayRow[], never, never>;
-			};
-			employment_terms: {
-				findMany(
-					options: SchemaQueryConfig<WorkspaceSchema, 'employment_terms'>
-				): Effect.Effect<EmploymentTermRow[], never, never>;
-			};
-			roster_entries: {
-				findMany(
-					options: SchemaQueryConfig<WorkspaceSchema, 'roster_entries'>
-				): Effect.Effect<RosterEntryRow[], never, never>;
-			};
-			leave_requests: {
-				findMany(
-					options: SchemaQueryConfig<WorkspaceSchema, 'leave_requests'>
-				): Effect.Effect<RequestRow[], never, never>;
-			};
-			payroll_runs: {
-				findMany(
-					options: SchemaQueryConfig<WorkspaceSchema, 'payroll_runs'>
-				): Effect.Effect<SettledRunRow[], never, never>;
-			};
-			shift_definitions: {
-				findMany(
-					options: SchemaQueryConfig<WorkspaceSchema, 'shift_definitions'>
-				): Effect.Effect<RosterCodeRow[], never, never>;
-			};
+		employments: {
+			findFirst(
+				options: SchemaQueryConfig<WorkspaceSchema, 'employments'>
+			): Effect.Effect<WorkspaceRow<'employments'> | undefined, never, never>;
+		};
+		companies: {
+			findFirst(
+				options: SchemaQueryConfig<WorkspaceSchema, 'companies'>
+			): Effect.Effect<WorkspaceRow<'companies'> | undefined, never, never>;
+		};
+		leave_types: {
+			findFirst(
+				options: SchemaQueryConfig<WorkspaceSchema, 'leave_types'>
+			): Effect.Effect<WorkspaceRow<'leave_types'> | undefined, never, never>;
+		};
+		company_holidays: {
+			findMany(
+				options: SchemaQueryConfig<WorkspaceSchema, 'company_holidays'>
+			): Effect.Effect<CompanyHolidayRow[], never, never>;
+		};
+		employment_terms: {
+			findMany(
+				options: SchemaQueryConfig<WorkspaceSchema, 'employment_terms'>
+			): Effect.Effect<EmploymentTermRow[], never, never>;
+		};
+		roster_entries: {
+			findMany(
+				options: SchemaQueryConfig<WorkspaceSchema, 'roster_entries'>
+			): Effect.Effect<RosterEntryRow[], never, never>;
+		};
+		leave_requests: {
+			findMany(
+				options: SchemaQueryConfig<WorkspaceSchema, 'leave_requests'>
+			): Effect.Effect<RequestRow[], never, never>;
+		};
+		payroll_runs: {
+			findMany(
+				options: SchemaQueryConfig<WorkspaceSchema, 'payroll_runs'>
+			): Effect.Effect<SettledRunRow[], never, never>;
+		};
+		shift_definitions: {
+			findMany(
+				options: SchemaQueryConfig<WorkspaceSchema, 'shift_definitions'>
+			): Effect.Effect<RosterCodeRow[], never, never>;
 		};
 	};
 };
@@ -164,7 +162,7 @@ function normalizedTimeOff(
 		const range = rangeOf(event);
 		assertRange(range);
 
-		const employment = yield* api.db.query.employments.findFirst({
+		const employment = yield* api.db.employments.findFirst({
 			where: { id: { eq: employmentId } }
 		});
 		if (employment == null) refuse('The leave request must reference an employment on file.');
@@ -178,31 +176,31 @@ function normalizedTimeOff(
 		const [company, leaveType, holidays, terms, rosterEntries, existingRequests] =
 			yield* Effect.all(
 				[
-					api.db.query.companies.findFirst({
+					api.db.companies.findFirst({
 						where: { id: { eq: employment.company_id } }
 					}),
-					api.db.query.leave_types.findFirst({
+					api.db.leave_types.findFirst({
 						where: { id: { eq: leaveTypeId }, company_id: { eq: employment.company_id } }
 					}),
-					api.db.query.company_holidays.findMany({
+					api.db.company_holidays.findMany({
 						where: {
 							company_id: { eq: employment.company_id },
 							date: { gte: range.start.date, lte: range.end.date }
 						},
 						limit: LIMIT
 					}),
-					api.db.query.employment_terms.findMany({
+					api.db.employment_terms.findMany({
 						where: { employment_id: { eq: employmentId } },
 						limit: LIMIT
 					}),
-					api.db.query.roster_entries.findMany({
+					api.db.roster_entries.findMany({
 						where: {
 							employment_id: { eq: employmentId },
 							work_date: { gte: range.start.date, lte: range.end.date }
 						},
 						limit: LIMIT
 					}),
-					api.db.query.leave_requests.findMany({
+					api.db.leave_requests.findMany({
 						where: {
 							employment_id: { eq: employmentId },
 							kind: { eq: 'TIME_OFF' },
@@ -236,7 +234,7 @@ function normalizedTimeOff(
 
 		// A leave range must not touch a day a paid payroll run already settled: those days are the
 		// record of what was paid, and moving leave across them would rewrite settled money.
-		const settledRuns = yield* api.db.query.payroll_runs.findMany({
+		const settledRuns = yield* api.db.payroll_runs.findMany({
 			where: { company_id: { eq: employment.company_id }, lifecycle: { eq: 'PAID' } },
 			columns: { period: true, lifecycle: true, attendance_from: true, attendance_to: true },
 			limit: LIMIT
@@ -248,7 +246,7 @@ function normalizedTimeOff(
 
 		// An encashment pays the remaining balance out. Once it exists for this leave type, nothing
 		// further may be taken against it — the balance the guard checks has been settled as money.
-		const encashed = yield* api.db.query.leave_requests.findMany({
+		const encashed = yield* api.db.leave_requests.findMany({
 			where: {
 				employment_id: { eq: employmentId },
 				leave_type_id: { eq: leaveTypeId },
@@ -276,7 +274,7 @@ function normalizedTimeOff(
 				})
 			])
 		];
-		const rosterCodes = yield* api.db.query.shift_definitions.findMany({
+		const rosterCodes = yield* api.db.shift_definitions.findMany({
 			where: { id: { in: shiftIds } },
 			limit: LIMIT
 		});
@@ -316,7 +314,7 @@ function normalizedTimeOff(
 		}
 
 		if (leaveType.accrual?.kind !== 'PER_EVENT') {
-			const allLedger = yield* api.db.query.leave_requests.findMany({
+			const allLedger = yield* api.db.leave_requests.findMany({
 				where: { employment_id: { eq: employmentId }, leave_type_id: { eq: leaveTypeId } },
 				limit: LIMIT
 			});
@@ -386,7 +384,7 @@ function assertLeaveSourceUnlocked(
 	 * to release it.
 	 */
 	return Effect.map(
-		api.db.query.payslip_sources.findFirst({
+		api.db.payslip_sources.findFirst({
 			where: { source: { eq: { kind: 'LEAVE_REQUEST', id: existing.id } } },
 			columns: { period: true }
 		}),

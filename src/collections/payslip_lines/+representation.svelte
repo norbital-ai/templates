@@ -16,7 +16,6 @@
 	import type { RepresentationProps } from './$types.js';
 	import { CollectionForm } from '@norbital-ai/ui/collection-form';
 	import { Column, Grid } from '@norbital-ai/ui/layout';
-	import { RelationshipRenderer } from '@norbital-ai/ui/data-renderer/relationship';
 
 	let { record }: RepresentationProps = $props();
 	const { t } = useI18n<TenantI18nKeys>();
@@ -29,16 +28,12 @@
 				<Field
 					name="payslip_id"
 					label={t('component.payslip')}
-					renderer={RelationshipRenderer}
-					rendererProps={{
-						target: 'payslips',
-						options: {
-							label: (payslip) =>
-								[payslip.currency, payslip.net]
-									.filter((part) => part != null && part !== '')
-									.join(' ') || '—',
-							limit: 500
-						}
+					relationOptions={{
+						label: (payslip) =>
+							[payslip.currency, payslip.net]
+								.filter((part) => part != null && part !== '')
+								.join(' ') || '—',
+						limit: 500
 					}}
 				/>
 				<Field name="sequence" label={t('component.applied_at')} />
@@ -49,46 +44,34 @@
 				<Field
 					name="pay_component_id"
 					label={t('component.pay_component')}
-					renderer={RelationshipRenderer}
-					rendererProps={{
-						target: 'pay_components',
-						options: {
-							label: (component: { readonly code?: unknown }) =>
-								component.code != null && component.code !== '' ? String(component.code) : '—',
-							orderBy: { code: 'asc' },
-							limit: 500
-						}
+					relationOptions={{
+						label: (component: { readonly code?: unknown }) =>
+							component.code != null && component.code !== '' ? String(component.code) : '—',
+						orderBy: { code: 'asc' },
+						limit: 500
 					}}
 				/>
 				<Field
 					name="statutory_contribution_id"
 					label={t('component.statutory_scheme')}
-					renderer={RelationshipRenderer}
-					rendererProps={{
-						target: 'statutory_contributions',
-						options: {
-							label: (contribution) =>
-								[contribution.code, contribution.name]
-									.filter((part) => part != null && part !== '')
-									.join(' · ') || '—',
-							orderBy: { code: 'asc' },
-							limit: 500
-						}
+					relationOptions={{
+						label: (contribution) =>
+							[contribution.code, contribution.name]
+								.filter((part) => part != null && part !== '')
+								.join(' · ') || '—',
+						orderBy: { code: 'asc' },
+						limit: 500
 					}}
 				/>
 				<Field
 					name="component_entry_id"
 					label={t('component.input_entry')}
-					renderer={RelationshipRenderer}
-					rendererProps={{
-						target: 'component_entries',
-						options: {
-							label: (entry) =>
-								entry.description != null && entry.description !== ''
-									? String(entry.description)
-									: '—',
-							limit: 500
-						}
+					relationOptions={{
+						label: (entry) =>
+							entry.description != null && entry.description !== ''
+								? String(entry.description)
+								: '—',
+						limit: 500
 					}}
 				/>
 				<Column span="all"><Field name="component" label={t('component.line_kind')} /></Column>

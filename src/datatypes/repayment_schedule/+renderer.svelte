@@ -10,7 +10,11 @@
 	import { repaymentScheduleSchema } from './+definition.js';
 	import type { RendererProps, Value } from './$types.js';
 	import ConsumedByCell from '../../lib/ui/repayment-schedule/consumed-by-cell.svelte';
-	import { todayKey } from '../../lib/ui/calendar.js';
+	import {
+		calendarDayAsPickerInstant,
+		calendarDayFromPickerInstant,
+		todayKey
+	} from '../../lib/ui/calendar.js';
 	import {
 		repaymentConsumptionBySequence,
 		resolveRepaymentConsumption,
@@ -24,6 +28,7 @@
 	} from '../../collections/repayment_agreements/lib/repayment-schedule.js';
 
 	const { t } = useI18n<TenantI18nKeys>();
+	const PICKER_TIME_ZONE = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
 	type RepaymentScheduleRendererProps = RendererProps & {
 		readonly row?: Record<string, unknown>;
@@ -37,7 +42,12 @@
 		{
 			key: 'due_date',
 			label: 'Due date',
-			field: { name: 'due_date', kind: 'date', nullable: false } satisfies CollectionField,
+			field: {
+				name: 'due_date',
+				kind: 'instant',
+				precision: 'day',
+				nullable: false
+			} satisfies CollectionField,
 			width: 180
 		},
 		{
@@ -64,7 +74,8 @@
 			label: 'Consumed at',
 			field: {
 				name: 'consumed_at',
-				kind: 'timestamptz',
+				kind: 'instant',
+				precision: 'minute',
 				nullable: true,
 				readOnly: true
 			} satisfies CollectionField,
@@ -79,6 +90,20 @@
 			due_date: String(Reflect.get(raw, 'due_date') ?? ''),
 			amount: Number(Reflect.get(raw, 'amount'))
 		};
+	}
+
+	function dueDatePickerValue(day: string): string {
+		return Result.getOrElse(
+			Result.try(() => calendarDayAsPickerInstant(day, PICKER_TIME_ZONE)),
+			() => ''
+		);
+	}
+
+	function dueDateFromPicker(value: string): string {
+		return Result.getOrElse(
+			Result.try(() => calendarDayFromPickerInstant(value, PICKER_TIME_ZONE)),
+			() => value
+		);
 	}
 
 	let props: RepaymentScheduleRendererProps = $props();
@@ -176,7 +201,7 @@
 			const consumedBy = consumptionCell(sequence + 1, coerced.due_date);
 			return {
 				id: `instalment-${sequence}`,
-				due_date: coerced.due_date,
+				due_date: dueDatePickerValue(coerced.due_date),
 				amount: coerced.amount,
 				consumed_by: consumedBy,
 				consumed_at: consumedBy.status === 'consumed' ? consumedBy.reference.consumedAt : null
@@ -230,7 +255,7 @@
 					const dueDate = nextDate();
 					return {
 						id: crypto.randomUUID(),
-						due_date: dueDate,
+						due_date: dueDatePickerValue(dueDate),
 						amount: 0.01,
 						consumed_by: consumptionCell(draft.length + 1, dueDate),
 						consumed_at: null
@@ -243,7 +268,12 @@
 				isRowDisabled={(row) => row.consumed_by.status === 'consumed'}
 				bounded={false}
 				onChange={(nextRows) =>
-					emit(nextRows.map(({ due_date, amount }) => ({ due_date, amount })))}
+					emit(
+						nextRows.map(({ due_date, amount }) => ({
+							due_date: dueDateFromPicker(due_date),
+							amount
+						}))
+					)}
 			/>
 		</div>
 	</Stack>

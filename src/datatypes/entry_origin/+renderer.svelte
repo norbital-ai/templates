@@ -1,6 +1,12 @@
 <script lang="ts">
 	import { Result, Schema } from 'effect';
-	import { PAYROLL_TIME_ZONE, startOfDayInstant, todayKey } from '../../lib/ui/calendar.js';
+	import {
+		PAYROLL_TIME_ZONE,
+		instantRangeAsDayPickerValue,
+		instantRangeFromDayPickerValue,
+		startOfDayInstant,
+		todayKey
+	} from '../../lib/ui/calendar.js';
 	import { formatCalendarDate, formatEffectiveRange } from '../../lib/ui/display-formatters.js';
 	import { numberFrom, splitList } from '../../lib/ui/renderer-input.js';
 	import { useI18n } from '@norbital-ai/ui/i18n';
@@ -14,6 +20,7 @@
 	import type { RendererProps, Value } from './$types.js';
 
 	const { t } = useI18n<TenantI18nKeys>();
+	const PICKER_TIME_ZONE = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
 	type OriginKind = Value['kind'];
 	type EntryOriginRendererProps = RendererProps & {
@@ -229,12 +236,25 @@
 		{#if current?.kind === 'RECURRING'}
 			<DataRenderer
 				field={RANGE_FIELD}
-				value={current.effective_range}
+				value={instantRangeAsDayPickerValue(
+					current.effective_range,
+					PAYROLL_TIME_ZONE,
+					PICKER_TIME_ZONE
+				)}
 				mode="edit"
 				{disabled}
 				onValueChange={(next) => {
-					if (next !== null)
-						emit({ kind: 'RECURRING', cadence: 'PAY_PERIOD', effective_range: next });
+					const effectiveRange = instantRangeFromDayPickerValue(
+						next,
+						PAYROLL_TIME_ZONE,
+						PICKER_TIME_ZONE
+					);
+					if (effectiveRange !== null)
+						emit({
+							kind: 'RECURRING',
+							cadence: 'PAY_PERIOD',
+							effective_range: effectiveRange
+						});
 				}}
 			/>
 		{:else if current?.kind === 'ONE_OFF'}

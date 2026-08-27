@@ -240,6 +240,7 @@
 	"app.scheduling.draft": "草稿",
 	"app.scheduling.published": "已发布",
 	"app.scheduling.publish_month": "发布 {month}",
+	"app.scheduling.publish_pending": "正在发布——等待服务器确认…",
 	"app.scheduling.re_open": "重新打开",
 	"app.scheduling.days_assigned": "已分配 {rostered}/{total} 天",
 	"app.scheduling.board_help": "看板说明",

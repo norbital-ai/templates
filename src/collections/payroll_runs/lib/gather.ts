@@ -112,12 +112,12 @@ export function gatherRun(options: GatherRunOptions): Effect.Effect<GatheredRun,
 		const { window } = options;
 		const period = window.period;
 		const salary = window.salary;
-		const { query } = options.api.db;
+		const db = options.api.db;
 		const approved = { approval_id: { isNull: true } } as const;
 		const companyId = options.configuration.company.id;
 
 		const employmentRows = live(
-			yield* query.employments.findMany({
+			yield* db.employments.findMany({
 				where: { company_id: { eq: companyId }, ...approved },
 				limit: PAGE_LIMIT
 			})
@@ -180,15 +180,15 @@ export function gatherRun(options: GatherRunOptions): Effect.Effect<GatheredRun,
 			agreementRows
 		] = yield* Effect.all(
 			[
-				query.employees.findMany({
+				db.employees.findMany({
 					where: { id: { in: employeeIds }, ...approved },
 					limit: PAGE_LIMIT
 				}),
-				query.employment_terms.findMany({ where: inEmployments, limit: PAGE_LIMIT }),
-				query.employment_statutory_facts.findMany({ where: inEmployments, limit: PAGE_LIMIT }),
-				query.component_entries.findMany({ where: inEmployments, limit: PAGE_LIMIT }),
-				query.leave_requests.findMany({ where: inEmployments, limit: PAGE_LIMIT }),
-				query.time_entries.findMany({
+				db.employment_terms.findMany({ where: inEmployments, limit: PAGE_LIMIT }),
+				db.employment_statutory_facts.findMany({ where: inEmployments, limit: PAGE_LIMIT }),
+				db.component_entries.findMany({ where: inEmployments, limit: PAGE_LIMIT }),
+				db.leave_requests.findMany({ where: inEmployments, limit: PAGE_LIMIT }),
+				db.time_entries.findMany({
 					where: {
 						employment_id: { in: employmentIds },
 						work_date: { gte: complianceSpan.start, lte: complianceSpan.end },
@@ -196,7 +196,7 @@ export function gatherRun(options: GatherRunOptions): Effect.Effect<GatheredRun,
 					},
 					limit: PAGE_LIMIT
 				}),
-				query.roster_entries.findMany({
+				db.roster_entries.findMany({
 					where: {
 						employment_id: { in: employmentIds },
 						work_date: { gte: complianceSpan.start, lte: complianceSpan.end },
@@ -204,7 +204,7 @@ export function gatherRun(options: GatherRunOptions): Effect.Effect<GatheredRun,
 					},
 					limit: PAGE_LIMIT
 				}),
-				query.repayment_agreements.findMany({ where: inEmployments, limit: PAGE_LIMIT })
+				db.repayment_agreements.findMany({ where: inEmployments, limit: PAGE_LIMIT })
 			],
 			{ concurrency: 'unbounded' }
 		);
@@ -357,10 +357,10 @@ function gatherYearToDate(
 	options: GatherYearToDateOptions
 ): Effect.Effect<Map<string, { employee: number; employer: number; base: number }>, never, never> {
 	return Effect.gen(function* () {
-		const { query } = options.api.db;
+		const db = options.api.db;
 		const startMonth = Number(options.configuration.jurisdiction.tax_year_start_month);
 		const firstPeriod = taxYearFirstPeriod(options.period, startMonth);
-		const priorRunRows = yield* query.payroll_runs.findMany({
+		const priorRunRows = yield* db.payroll_runs.findMany({
 			where: {
 				company_id: { eq: options.companyId },
 				period: { gte: firstPeriod, lt: options.period },
@@ -377,7 +377,7 @@ function gatherYearToDate(
 
 		// Employments are resolved employee-first so a mid-year transfer keeps its history: the person
 		// is the taxpayer, not the contract.
-		const siblingEmploymentRows = yield* query.employments.findMany({
+		const siblingEmploymentRows = yield* db.employments.findMany({
 			where: {
 				company_id: { eq: options.companyId },
 				employee_id: { in: [...options.employeeIds] }
@@ -389,7 +389,7 @@ function gatherYearToDate(
 		const employmentToEmployee = new Map(
 			siblingEmployments.map((row) => [row.id, row.employee_id])
 		);
-		const priorPayslips = yield* query.payslips.findMany({
+		const priorPayslips = yield* db.payslips.findMany({
 			where: {
 				payroll_run_id: { in: priorRuns.map((run) => run.id) },
 				employment_id: { in: siblingEmployments.map((row) => row.id) }
@@ -402,7 +402,7 @@ function gatherYearToDate(
 		const contributionCodeById = new Map(
 			options.configuration.contributions.map((entry) => [entry.row.id, entry.row.code])
 		);
-		const charges = yield* query.payslip_lines.findMany({
+		const charges = yield* db.payslip_lines.findMany({
 			where: { payslip_id: { in: priorPayslips.map((row) => row.id) } },
 			limit: PAGE_LIMIT
 		});

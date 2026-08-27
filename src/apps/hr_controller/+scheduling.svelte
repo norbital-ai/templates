@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { FormattedValueRenderer } from '@norbital-ai/ui/data-renderer';
 	import { client } from '../../lib/workspace-client.js';
 	import { Effect, Number as EffectNumber } from 'effect';
 	import { useI18n } from '@norbital-ai/ui/i18n';
@@ -18,7 +19,7 @@
 	import { Display, type ChartDisplaySpec } from '@norbital-ai/ui/chart';
 	import { Bound, Cluster, Cover, Grid, Inline, Scroll, Stack } from '@norbital-ai/ui/layout';
 	import { toast } from 'svelte-sonner';
-	import { formatCalendarDate, formatHolidayScope } from '../../lib/ui/display-formatters.js';
+	import { formatHolidayScope } from '../../lib/ui/display-formatters.js';
 	import { runWorkbookImport } from '../../lib/ui/workbook-import.js';
 	import { rosterImportPayload } from '../../collections/roster_entries/lib/import-workbook.js';
 	import { timeEntryImportPayload } from '../../collections/time_entries/lib/import-workbook.js';
@@ -69,6 +70,10 @@
 	import type { WorkPattern } from '../../datatypes/work_pattern/+definition.js';
 
 	const { t } = useI18n<TenantI18nKeys>();
+	const locallyDurable = <Result,>(
+		operation: () => PromiseLike<Result> // repository-health:allow EFF2 -- generated browser mutations expose one PromiseLike seam, immediately adapted into Effect.
+	): Effect.Effect<void, unknown> =>
+		Effect.tryPromise({ try: operation, catch: (cause) => cause }).pipe(Effect.asVoid);
 
 	let companyId = $state<string | null>(null);
 	let month = $state<string>(monthKey(todayKey()));
@@ -95,6 +100,7 @@
 	 * guards the two writes of the pair.
 	 */
 	const swap = $state({ source: null as BoardCell | null });
+	let rosterSettlementId = $state<string | null>(null);
 	/** Which exception counter the operator drilled into, or null for the whole month. */
 	let exceptionFilter = $state<DayStatus | null>(null);
 	let activeTab = $state('board');
@@ -665,13 +671,18 @@
 		boardQuery.setPageIndex(0);
 	}
 
-	function createDraftMonth() {
+	function createDraftMonth(): void {
 		if (selectedCompanyId == null) return;
-		return client.db.rosters.mutate({
-			company_id: selectedCompanyId,
-			month,
-			published_at: null
-		});
+		const companyId = selectedCompanyId;
+		Effect.runFork(
+			locallyDurable(() =>
+				client.db.rosters.mutate({
+					company_id: companyId,
+					month,
+					published_at: null
+				})
+			)
+		);
 	}
 
 	/* ────────────────────────────────────────────────────────────────────────────────────────────
@@ -978,45 +989,59 @@
 	);
 
 	function saveDaySheet(change: DaySheetChange): void {
-		if (change.plan != null) void writePlan(change.employmentId, change.date, change.plan);
-		if (change.attendance != null) void writeAttendance(change);
-		daySheet.open = false;
+		const writes: Effect.Effect<void, unknown>[] = [];
+		if (change.plan != null) writes.push(writePlan(change.employmentId, change.date, change.plan));
+		if (change.attendance != null) writes.push(writeAttendance(change));
+		Effect.runFork(
+			Effect.all(writes, { concurrency: 'unbounded', discard: true }).pipe(
+				Effect.tap(() =>
+					Effect.sync(() => {
+						// Both records are durable in their local overlays. Settlement and any refusal
+						// continue through the platform sync surface.
+						daySheet.open = false;
+					})
+				)
+			)
+		);
 	}
 
 	function writePlan(
 		employmentId: string,
 		date: string,
 		plan: { readonly rosterCodeId: string; readonly note: string | null }
-	) {
-		if (draftRoster == null) return;
+	): Effect.Effect<void, unknown> {
+		if (draftRoster == null) return Effect.void;
 		const relationship = completeRosterRelationship();
 		const existing = explicitEntryByKey.get(personDayKey(employmentId, date));
-		return client.db.rosters.mutate({
-			id: draftRoster.id,
-			roster_entry_roster: [
-				...relationship.map((entry) =>
-					entry.id === existing?.id
-						? {
-								...preserveRosterEntry(entry),
-								shift_definition_id: plan.rosterCodeId,
-								note: plan.note
-							}
-						: preserveRosterEntry(entry)
-				),
-				...(existing == null
-					? [
-							{
-								employment_id: employmentId,
-								work_date: date,
-								shift_definition_id: plan.rosterCodeId,
-								assignment_code: null,
-								origin: 'MANUAL',
-								note: plan.note
-							}
-						]
-					: [])
-			]
-		});
+		const rosterId = draftRoster.id;
+		return locallyDurable(() =>
+			client.db.rosters.mutate({
+				id: rosterId,
+				roster_entry_roster: [
+					...relationship.map((entry) =>
+						entry.id === existing?.id
+							? {
+									...preserveRosterEntry(entry),
+									shift_definition_id: plan.rosterCodeId,
+									note: plan.note
+								}
+							: preserveRosterEntry(entry)
+					),
+					...(existing == null
+						? [
+								{
+									employment_id: employmentId,
+									work_date: date,
+									shift_definition_id: plan.rosterCodeId,
+									assignment_code: null,
+									origin: 'MANUAL',
+									note: plan.note
+								}
+							]
+						: [])
+				]
+			})
+		);
 	}
 
 	/**
@@ -1026,31 +1051,36 @@
 	 * same arithmetic `assertWorkedIntervals` uses — so this write cannot be refused for a break
 	 * longer than the day, and the operator was told about the clamp before pressing save.
 	 */
-	function writeAttendance(change: DaySheetChange) {
+	function writeAttendance(change: DaySheetChange): Effect.Effect<void, unknown> {
 		const attendance = change.attendance;
-		if (attendance == null) return;
-		return client.db.time_entries.mutate({
-			...(attendance.timeEntryId == null ? {} : { id: attendance.timeEntryId }),
-			employment_id: change.employmentId,
-			work_date: change.date,
-			worked_intervals: [...attendance.intervals],
-			break_minutes: attendance.breakMinutes
-		});
+		if (attendance == null) return Effect.void;
+		return locallyDurable(() =>
+			client.db.time_entries.mutate({
+				...(attendance.timeEntryId == null ? {} : { id: attendance.timeEntryId }),
+				employment_id: change.employmentId,
+				work_date: change.date,
+				worked_intervals: [...attendance.intervals],
+				break_minutes: attendance.breakMinutes
+			})
+		);
 	}
 
-	function clearDaySheetPlan() {
+	function clearDaySheetPlan(): void {
 		if (draftRoster == null || daySheetKey == null) return;
 		const existing = explicitEntryByKey.get(daySheetKey);
 		if (existing == null) return;
 		const relationship = completeRosterRelationship();
-		const operation = client.db.rosters.mutate({
-			id: draftRoster.id,
-			roster_entry_roster: relationship
-				.filter((entry) => entry.id !== existing.id)
-				.map(preserveRosterEntry)
-		});
-		daySheet.open = false;
-		return operation;
+		const rosterId = draftRoster.id;
+		Effect.runFork(
+			locallyDurable(() =>
+				client.db.rosters.mutate({
+					id: rosterId,
+					roster_entry_roster: relationship
+						.filter((entry) => entry.id !== existing.id)
+						.map(preserveRosterEntry)
+				})
+			).pipe(Effect.tap(() => Effect.sync(() => (daySheet.open = false))))
+		);
 	}
 
 	/* ────────────────────────────────────────────────────────────────────────────────────────────
@@ -1148,7 +1178,7 @@
 		return violations[0]?.message ?? null;
 	}
 
-	function performSwap(from: BoardCell, to: BoardCell) {
+	function performSwap(from: BoardCell, to: BoardCell): void {
 		if (!swapEnabled) return;
 		const refusal = swapRefusal(from, to);
 		if (refusal != null) {
@@ -1167,52 +1197,95 @@
 		const fromEntry = explicitEntryByKey.get(personDayKey(from.employmentId, from.date));
 		const toEntry = explicitEntryByKey.get(personDayKey(to.employmentId, to.date));
 		const relationship = completeRosterRelationship();
-		const operation = client.db.rosters.mutate({
-			id: roster.id,
-			roster_entry_roster: [
-				...relationship.map((entry) => {
-					if (entry.id === fromEntry?.id)
-						return {
-							...preserveRosterEntry(entry),
-							shift_definition_id: toCodeId,
-							note
-						};
-					if (entry.id === toEntry?.id)
-						return {
-							...preserveRosterEntry(entry),
-							shift_definition_id: fromCodeId,
-							note
-						};
-					return preserveRosterEntry(entry);
-				}),
-				...(fromEntry == null
-					? [
-							{
-								employment_id: from.employmentId,
-								work_date: from.date,
-								shift_definition_id: toCodeId,
-								assignment_code: null,
-								origin: 'MANUAL',
-								note
-							}
-						]
-					: []),
-				...(toEntry == null
-					? [
-							{
-								employment_id: to.employmentId,
-								work_date: to.date,
-								shift_definition_id: fromCodeId,
-								assignment_code: null,
-								origin: 'MANUAL',
-								note
-							}
-						]
-					: [])
-			]
-		});
-		swap.source = null;
-		return operation;
+		Effect.runFork(
+			locallyDurable(() =>
+				client.db.rosters.mutate({
+					id: roster.id,
+					roster_entry_roster: [
+						...relationship.map((entry) => {
+							if (entry.id === fromEntry?.id)
+								return {
+									...preserveRosterEntry(entry),
+									shift_definition_id: toCodeId,
+									note
+								};
+							if (entry.id === toEntry?.id)
+								return {
+									...preserveRosterEntry(entry),
+									shift_definition_id: fromCodeId,
+									note
+								};
+							return preserveRosterEntry(entry);
+						}),
+						...(fromEntry == null
+							? [
+									{
+										employment_id: from.employmentId,
+										work_date: from.date,
+										shift_definition_id: toCodeId,
+										assignment_code: null,
+										origin: 'MANUAL',
+										note
+									}
+								]
+							: []),
+						...(toEntry == null
+							? [
+									{
+										employment_id: to.employmentId,
+										work_date: to.date,
+										shift_definition_id: fromCodeId,
+										assignment_code: null,
+										origin: 'MANUAL',
+										note
+									}
+								]
+							: [])
+					]
+				})
+			).pipe(Effect.tap(() => Effect.sync(() => (swap.source = null))))
+		);
+	}
+
+	function setRosterPublication(rosterId: string, publishedAt: string | null): void {
+		const publishing = publishedAt !== null;
+		if (publishing) rosterSettlementId = rosterId;
+		Effect.runFork(
+			Effect.gen(function* () {
+				const local = yield* Effect.tryPromise({
+					try: () => client.db.rosters.mutate({ id: rosterId, published_at: publishedAt }),
+					catch: (cause) => cause
+				});
+				if (!publishing) return;
+				// Publishing freezes the month's allocations. The local overlay may render the published
+				// roster immediately, but this action stays pending until server validation settles.
+				const settlement = yield* Effect.tryPromise({
+					try: () => local.settlement.wait(),
+					catch: (cause) => cause
+				});
+				if (settlement.kind !== 'accepted' && settlement.kind !== 'rebased') {
+					return yield* Effect.fail(
+						new Error(
+							settlement.kind === 'rejected' ? settlement.message : settlement.quarantine.message
+						)
+					);
+				}
+				toast.success(t('app.scheduling.toast_published', { month }));
+			}).pipe(
+				Effect.catch((cause) =>
+					Effect.sync(() =>
+						toast.error(t('app.scheduling.toast_publish_failed'), {
+							description: cause instanceof Error ? cause.message : undefined
+						})
+					)
+				),
+				Effect.ensuring(
+					Effect.sync(() => {
+						if (publishing) rosterSettlementId = null;
+					})
+				)
+			)
+		);
 	}
 
 	/* ────────────────────────────────────────────────────────────────────────────────────────────
@@ -1423,16 +1496,17 @@
 			{#each rosters as roster (roster.id)}
 				<Inline gap="xs">
 					<Badge variant={roster.published_at == null ? 'outline' : 'default'}>
-						{roster.published_at == null
-							? t('app.scheduling.draft')
-							: t('app.scheduling.published')}
+						{rosterSettlementId === roster.id
+							? t('app.scheduling.publish_pending')
+							: roster.published_at == null
+								? t('app.scheduling.draft')
+								: t('app.scheduling.published')}
 					</Badge>
 					{#if roster.published_at == null}
 						<Button
 							size="sm"
-							disabled={client.db.rosters.pending > 0}
-							onclick={() =>
-								client.db.rosters.mutate({ id: roster.id, published_at: new Date().toISOString() })}
+							disabled={client.db.rosters.pending > 0 || rosterSettlementId !== null}
+							onclick={() => void setRosterPublication(roster.id, new Date().toISOString())}
 						>
 							{t('app.scheduling.publish_month', { month })}
 						</Button>
@@ -1440,8 +1514,8 @@
 						<Button
 							size="sm"
 							variant="outline"
-							disabled={client.db.rosters.pending > 0}
-							onclick={() => client.db.rosters.mutate({ id: roster.id, published_at: null })}
+							disabled={client.db.rosters.pending > 0 || rosterSettlementId !== null}
+							onclick={() => void setRosterPublication(roster.id, null)}
 						>
 							{t('app.scheduling.re_open')}
 						</Button>
@@ -1681,17 +1755,13 @@
 				}}
 			>
 				{#snippet columns({ Column })}
-					<Column
-						name="date"
-						label={t('component.date')}
-						card="title"
-						render={({ value }) => formatCalendarDate(value)}
-					/>
+					<Column name="date" label={t('component.date')} card="title" />
 					<Column name="name" card="subtitle" />
 					<Column
 						name="scope"
 						label={t('component.scope')}
-						render={({ value }) => formatHolidayScope(value, t)}
+						renderer={FormattedValueRenderer}
+						rendererProps={{ format: ({ value }) => formatHolidayScope(value, t) }}
 					/>
 				{/snippet}
 			</CollectionTable>

@@ -54,6 +54,16 @@ const grantsFor = (policy, collection, action) =>
 
 const may = (policy, collection, action) => grantsFor(policy, collection, action).length > 0;
 
+const sqlReadDependencies = (policy) =>
+	Object.fromEntries(
+		Object.entries(policy.grants).flatMap(([collection, actions]) => {
+			const read = actions.read;
+			return read?.where?.$sql === undefined
+				? []
+				: [[collection, read.dependencies ?? ['<missing>']]];
+		})
+	);
+
 /** Every `(collection, action)` pair a policy grants at all. */
 const surfaceOf = (policy) =>
 	new Set(
@@ -77,6 +87,31 @@ test('the six policies are the six names a team may declare', () => {
 	// One filename key per policy, and no two declarations sharing one. `policiesHeld` returns a set of
 	// folded names, so two policies folding together would be two policies one name reaches.
 	assert.equal(new Set(policies.map(heldNameOf)).size, policies.length);
+});
+
+test('SQL-scoped reads declare only their exact linking collections', () => {
+	assert.deepEqual(sqlReadDependencies(employee), {
+		employments: ['employees'],
+		employment_terms: ['employments', 'employees'],
+		employment_statutory_facts: ['employments', 'employees'],
+		roster_entries: ['employments', 'employees'],
+		repayment_agreements: ['employments', 'employees'],
+		component_entries: ['employments', 'employees'],
+		time_entries: ['employments', 'employees'],
+		leave_requests: ['employments', 'employees'],
+		payslips: ['employments', 'employees']
+	});
+	assert.deepEqual(sqlReadDependencies(supervisor), {
+		payslips: ['employments', 'employees'],
+		component_entries: []
+	});
+	assert.deepEqual(sqlReadDependencies(manager), {
+		payslips: ['employments', 'employees'],
+		component_entries: []
+	});
+	for (const policy of [seniorManagement, hrController, hrManager]) {
+		assert.deepEqual(sqlReadDependencies(policy), {}, nameOf(policy));
+	}
 });
 
 test('every name `+teams.ts` declares is a policy this workspace ships', () => {

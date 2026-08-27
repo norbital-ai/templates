@@ -1,5 +1,5 @@
 import { assertNoOverlap, guardEffectiveRange } from '../../lib/effective_range.js';
-import type { HookApi, Hooks, WorkspaceRow } from './$types.js';
+import type { Api, Hooks, WorkspaceRow } from './$types.js';
 
 type CreateInput = Parameters<
 	NonNullable<
@@ -60,8 +60,8 @@ export function assertBatchHasNoOverlap(
  */
 
 /** The stored rows that share a candidate's exclusion key. */
-const siblings = (api: HookApi, company_id: string, code: string) =>
-	api.db.query.pay_components.findMany({
+const siblings = (api: Api, company_id: string, code: string) =>
+	api.db.pay_components.findMany({
 		where: { company_id: { eq: company_id }, code: { eq: code } }
 	});
 
@@ -70,7 +70,7 @@ type Keyed = Readonly<{ company_id: string; code: string }>;
 
 /** An edit carries only the fields it changes, so the key is read through the stored row. */
 const editedSiblings = (
-	api: HookApi,
+	api: Api,
 	input: Readonly<{ company_id?: string | null; code?: string | null }>,
 	existing: Keyed
 ) => siblings(api, input.company_id ?? existing.company_id, input.code ?? existing.code);

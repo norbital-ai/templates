@@ -63,6 +63,13 @@ const ownEntryNotAnAdjustment = {
 		`AND "origin"->>'kind' IS DISTINCT FROM 'MANUAL_ADJUSTMENT'`
 } as const;
 
+/**
+ * Exact linking collections for sync generations. The target collection is omitted because Bolt
+ * always owns its direct-write generation edge.
+ */
+const employeeScopeDependencies = ['employees'] as const;
+const employmentScopeDependencies = ['employments', 'employees'] as const;
+
 export default {
 	description: 'Employee self-service access to profile, time, requests, loans, and payslips.',
 	/**
@@ -82,14 +89,38 @@ export default {
 
 	grants: mergeGrants(
 		grantOn('employees', 'read', { where: ownEmployeeRecord }),
-		grantOn('employments', 'read', { where: ownEmployment }),
-		grantOn('employment_terms', 'read', { where: ownEmploymentChild }),
-		grantOn('employment_statutory_facts', 'read', { where: ownEmploymentChild }),
-		grantOn('roster_entries', 'read', { where: ownEmploymentChild }),
-		grantOn('repayment_agreements', 'read', { where: ownEmploymentChild }),
-		grantOn('component_entries', 'read', { where: ownEntryNotAnAdjustment }),
-		grantOn('time_entries', 'read', { where: ownEmploymentChild }),
-		grantOn('leave_requests', 'read', { where: ownEmploymentChild }),
+		grantOn('employments', 'read', {
+			where: ownEmployment,
+			dependencies: employeeScopeDependencies
+		}),
+		grantOn('employment_terms', 'read', {
+			where: ownEmploymentChild,
+			dependencies: employmentScopeDependencies
+		}),
+		grantOn('employment_statutory_facts', 'read', {
+			where: ownEmploymentChild,
+			dependencies: employmentScopeDependencies
+		}),
+		grantOn('roster_entries', 'read', {
+			where: ownEmploymentChild,
+			dependencies: employmentScopeDependencies
+		}),
+		grantOn('repayment_agreements', 'read', {
+			where: ownEmploymentChild,
+			dependencies: employmentScopeDependencies
+		}),
+		grantOn('component_entries', 'read', {
+			where: ownEntryNotAnAdjustment,
+			dependencies: employmentScopeDependencies
+		}),
+		grantOn('time_entries', 'read', {
+			where: ownEmploymentChild,
+			dependencies: employmentScopeDependencies
+		}),
+		grantOn('leave_requests', 'read', {
+			where: ownEmploymentChild,
+			dependencies: employmentScopeDependencies
+		}),
 		employeeTimeEntryCreateGrant(),
 		employeeSelfServiceGrants(),
 		employeeLeaveRequestCreateGrant(),

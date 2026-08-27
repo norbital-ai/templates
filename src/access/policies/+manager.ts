@@ -3,7 +3,6 @@ import {
 	employeeSelfServiceGrants,
 	grantOn,
 	grantsOn,
-	grantsOnWhere,
 	leaveApproval,
 	mergeGrants,
 	peopleGrants,
@@ -71,7 +70,10 @@ export default {
 		grantsOn('leave_requests', ['read']),
 		// Restated, not inherited, and restated *with* the predicate. A manager who could see
 		// corrections could reconstruct what HR fixed about their own team's pay.
-		grantsOnWhere('component_entries', ['read'], NOT_AN_ADJUSTMENT),
+		grantOn('component_entries', 'read', {
+			where: NOT_AN_ADJUSTMENT,
+			dependencies: []
+		}),
 		settlementLedgerGrants(),
 
 		grantOn('time_entries', 'create', { approval: timeEntryApproval }),

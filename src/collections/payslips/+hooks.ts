@@ -14,7 +14,7 @@ export default {
 					'Blocks deleting a payslip once its payroll run has left DRAFT, so what was paid to a person stays on the record and is corrected by an entry in a later run.',
 				handler: ({ existing, api }) =>
 					Effect.map(
-						api.db.query.payroll_runs.findFirst({
+						api.db.payroll_runs.findFirst({
 							where: { id: { eq: existing.payroll_run_id } }
 						}),
 						(run) => {

@@ -146,38 +146,80 @@
 			? null
 			: client.db.payslips.count({ where: { payroll_run_id: { eq: record.id } } })
 	);
-	// A payslip's employment column holds a uuid. The run belongs to one company, so that company's
-	// employments are the only ones the table below can show; the employee number is resolved from
-	// that one set rather than by mounting a lookup per row, and a miss renders as an em dash.
-	const recordEmploymentsQuery = $derived(
-		record == null
-			? null
-			: client.db.employments.findMany({
-					where: { company_id: { eq: record.company_id }, approval_id: { isNull: true } },
-					limit: 1000
-				})
-	);
-	const recordEmploymentLabelsById = $derived(
-		new Map(
-			(recordEmploymentsQuery?.current ?? []).map((employment) => [
-				employment.id,
-				employment.employee_number
-			])
-		)
-	);
-
 	let lockArmed = $state(false);
+	let payrollRecalculationPending = $state(false);
+	let payrollFinalizationPending = $state(false);
 	// Only while a count has actually come back. `?? 0` on a query still in flight would flash the
 	// refusal notice on every run, including the ones that built perfectly.
 	const payslipCount = $derived(payslipCountQuery?.current ?? null);
 	const emptyDraft = $derived(record != null && record.lifecycle === 'DRAFT' && payslipCount === 0);
 
-	function updateDraft(action: 'recalculate' | 'pay') {
+	function updateDraft(action: 'recalculate' | 'pay'): void {
 		if (record == null) return;
-		return client.db.payroll_runs.mutate({
-			id: record.id,
-			lifecycle: action === 'pay' ? 'PAID' : 'DRAFT'
-		});
+		const payrollRunId = record.id;
+		if (action === 'recalculate') {
+			payrollRecalculationPending = true;
+			Effect.runFork(
+				Effect.gen(function* () {
+					const local = yield* Effect.tryPromise({
+						try: () => client.db.payroll_runs.mutate({ id: payrollRunId, lifecycle: 'DRAFT' }),
+						catch: (cause) => cause
+					});
+					// Recalculation's useful values are produced by server hooks, not by the local row.
+					// Keep progress visible until settlement; the payslip queries read the result reactively.
+					const settlement = yield* Effect.tryPromise({
+						try: () => local.settlement.wait(),
+						catch: (cause) => cause
+					});
+					if (settlement.kind !== 'accepted' && settlement.kind !== 'rebased') {
+						return yield* Effect.fail(
+							new Error(
+								settlement.kind === 'rejected' ? settlement.message : settlement.quarantine.message
+							)
+						);
+					}
+				}).pipe(
+					Effect.catch((cause) =>
+						Effect.sync(() =>
+							toast.error(cause instanceof Error ? cause.message : t('component.update_failed'))
+						)
+					),
+					Effect.ensuring(Effect.sync(() => (payrollRecalculationPending = false)))
+				)
+			);
+			return;
+		}
+
+		payrollFinalizationPending = true;
+		Effect.runFork(
+			Effect.gen(function* () {
+				const local = yield* Effect.tryPromise({
+					try: () => client.db.payroll_runs.mutate({ id: payrollRunId, lifecycle: 'PAID' }),
+					catch: (cause) => cause
+				});
+				// Paying is irreversible and globally constrained. The overlay may show PAID immediately,
+				// but the operator-facing action remains pending until authoritative settlement is known.
+				const settlement = yield* Effect.tryPromise({
+					try: () => local.settlement.wait(),
+					catch: (cause) => cause
+				});
+				if (settlement.kind !== 'accepted' && settlement.kind !== 'rebased') {
+					return yield* Effect.fail(
+						new Error(
+							settlement.kind === 'rejected' ? settlement.message : settlement.quarantine.message
+						)
+					);
+				}
+				lockArmed = false;
+			}).pipe(
+				Effect.catch((cause) =>
+					Effect.sync(() =>
+						toast.error(cause instanceof Error ? cause.message : t('component.update_failed'))
+					)
+				),
+				Effect.ensuring(Effect.sync(() => (payrollFinalizationPending = false)))
+			)
+		);
 	}
 
 	function downloadReport(): void {
@@ -230,7 +272,7 @@
 				</Stack>
 				<Inline gap="xs" justify="end" shrink={false}>
 					<span class="rounded-full bg-muted px-2.5 py-1 text-xs font-semibold">
-						{record.lifecycle}
+						{payrollFinalizationPending ? t('component.locking') : record.lifecycle}
 					</span>
 					{#if record.lifecycle === 'DRAFT'}
 						<Button variant="outline" size="sm" onclick={downloadReport}>
@@ -240,23 +282,33 @@
 							<Button
 								variant="outline"
 								size="sm"
-								disabled={client.db.payroll_runs.pending > 0}
+								disabled={client.db.payroll_runs.pending > 0 ||
+									payrollRecalculationPending ||
+									payrollFinalizationPending}
 								onclick={() => updateDraft('recalculate')}
 							>
-								{t('component.recalculate_draft')}
+								{payrollRecalculationPending
+									? t('component.recalculating')
+									: t('component.recalculate_draft')}
 							</Button>
 							<Button
 								size="sm"
-								disabled={client.db.payroll_runs.pending > 0}
+								disabled={client.db.payroll_runs.pending > 0 ||
+									payrollRecalculationPending ||
+									payrollFinalizationPending}
 								onclick={() => {
 									if (!lockArmed) {
 										lockArmed = true;
 										return;
 									}
-									void updateDraft('pay');
+									updateDraft('pay');
 								}}
 							>
-								{lockArmed ? t('component.confirm_lock_pay') : t('component.lock_payroll')}
+								{payrollFinalizationPending
+									? t('component.locking')
+									: lockArmed
+										? t('component.confirm_lock_pay')
+										: t('component.lock_payroll')}
 							</Button>
 						{/if}
 					{/if}
@@ -289,6 +341,11 @@
 				{t('component.lock_warning')}
 			</p>
 		{/if}
+		{#if payrollFinalizationPending}
+			<p class="rounded-md border border-amber-500/40 bg-amber-500/10 p-3 text-sm" role="status">
+				{t('component.locking')}
+			</p>
+		{/if}
 
 		{#if emptyDraft}
 			<p class="rounded-md border border-amber-500/40 bg-amber-500/10 p-3 text-sm">
@@ -314,28 +371,12 @@
 					}}
 				>
 					{#snippet columns({ Column })}
-						<Column
-							name="employment_id"
-							label={t('component.employee')}
-							card="title"
-							render={({ value }) =>
-								value == null || value === ''
-									? '—'
-									: (recordEmploymentLabelsById.get(String(value)) ?? '—')}
-						/>
+						<Column name="employment_id" label={t('component.employee')} card="title" />
 						<Column name="currency" card="badge" />
-						<Column name="gross" render={({ value }) => formatNumeric(value)} />
-						<Column
-							name="total_deductions"
-							label={t('component.deductions')}
-							render={({ value }) => formatNumeric(value)}
-						/>
-						<Column name="net" card="subtitle" render={({ value }) => formatNumeric(value)} />
-						<Column
-							name="employer_cost"
-							label={t('component.employer_cost')}
-							render={({ value }) => formatNumeric(value)}
-						/>
+						<Column name="gross" />
+						<Column name="total_deductions" label={t('component.deductions')} />
+						<Column name="net" card="subtitle" />
+						<Column name="employer_cost" label={t('component.employer_cost')} />
 					{/snippet}
 				</CollectionTable>
 			</Bound>
@@ -348,7 +389,15 @@
 		submitLabel={t('component.create_payroll_run')}
 		onAfterSubmit={close}
 	>
-		{#snippet children({ form })}
+		{#snippet children({ form, Field })}
+			<Field name="company_id" hidden />
+			<Field name="period" hidden />
+			<Field name="lifecycle" hidden />
+			<Field name="configuration_hash" hidden />
+			<Field name="configuration_snapshot" hidden />
+			<Field name="pay_date" hidden />
+			<Field name="attendance_from" hidden />
+			<Field name="attendance_to" hidden />
 			<Stack gap="lg">
 				<Grid gap="md" minimum="compact">
 					<label class="text-sm font-medium">

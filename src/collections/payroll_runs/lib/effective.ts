@@ -20,18 +20,6 @@ const payrollDateFormat = new Intl.DateTimeFormat('en', {
 	day: '2-digit'
 });
 
-/**
- * The stored JSONB shape of a `custom('instant_range', { precision: 'day' })` column, read leniently.
- *
- * The write boundary validates both bounds as `UTC_INSTANT` values, and this read shape also
- * accepts the legacy bounded-optional form so an older row is still readable as the open-ended
- * statement it was written to be. `end` of `null` (or an empty string) is open-ended forever.
- */
-const storedRangeReadSchema = Schema.Struct({
-	start: Schema.optionalKey(Schema.String),
-	end: Schema.optionalKey(Schema.NullOr(Schema.String))
-});
-
 /** A `custom('instant_range', { precision: 'day' })` column as the engine reads it; `end` of `null` is open-ended. */
 export const StoredRangeSchema = Schema.Struct({
 	start: Schema.String,
@@ -41,14 +29,9 @@ export type StoredRange = Schema.Schema.Type<typeof StoredRangeSchema>;
 
 /** Decode one stored range: anything that is not a legal pair of strings is `null`, never an error. */
 export function readRange(value: unknown): StoredRange | null {
-	const parsed = Option.getOrNull(Schema.decodeUnknownOption(storedRangeReadSchema)(value));
-	if (parsed == null) return null;
-	const start = parsed.start;
-	if (start == null || start === '') return null;
-	return {
-		start,
-		end: parsed.end != null && parsed.end !== '' ? parsed.end : null
-	};
+	const parsed = Option.getOrNull(Schema.decodeUnknownOption(StoredRangeSchema)(value));
+	if (parsed == null || parsed.start === '') return null;
+	return { start: parsed.start, end: parsed.end === '' ? null : parsed.end };
 }
 
 /**

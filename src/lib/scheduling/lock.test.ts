@@ -281,30 +281,28 @@ test('a claim refuses whatever the run’s lifecycle, and whatever the windows s
 function fakeHookApi({ runs = [], sources = [] } = {}) {
 	return {
 		db: {
-			query: {
-				employments: {
-					findFirst: () => Effect.succeed({ company_id: 'co-1' }),
-					// `create.prepare` asks for the whole batch's employments at once, where the
-					// per-record path asked one at a time. The double kept only `findFirst`, so
-					// `yield* undefined(...)` threw before any guard ran and the refusal assertion
-					// below was passing on a `TypeError`. Same company, stated once for both shapes.
-					findMany: ({ where }) =>
-						Effect.succeed(
-							(where?.id?.in ?? ['emp-1']).map((id) => ({
-								id,
-								company_id: 'co-1'
-							}))
-						)
-				},
-				payroll_runs: { findMany: () => Effect.succeed(runs) },
-				payslip_sources: {
-					findFirst: ({ where }) =>
-						Effect.succeed(sources.find((row) => row.source.id === where.source.eq.id) ?? null)
-				},
-				// No approved leave anywhere: the leave guard is orthogonal to the payroll locks and
-				// keeps its own tests.
-				leave_requests: { findMany: () => Effect.succeed([]) }
-			}
+			employments: {
+				findFirst: () => Effect.succeed({ company_id: 'co-1' }),
+				// `create.prepare` asks for the whole batch's employments at once, where the
+				// per-record path asked one at a time. The double kept only `findFirst`, so
+				// `yield* undefined(...)` threw before any guard ran and the refusal assertion
+				// below was passing on a `TypeError`. Same company, stated once for both shapes.
+				findMany: ({ where }) =>
+					Effect.succeed(
+						(where?.id?.in ?? ['emp-1']).map((id) => ({
+							id,
+							company_id: 'co-1'
+						}))
+					)
+			},
+			payroll_runs: { findMany: () => Effect.succeed(runs) },
+			payslip_sources: {
+				findFirst: ({ where }) =>
+					Effect.succeed(sources.find((row) => row.source.id === where.source.eq.id) ?? null)
+			},
+			// No approved leave anywhere: the leave guard is orthogonal to the payroll locks and
+			// keeps its own tests.
+			leave_requests: { findMany: () => Effect.succeed([]) }
 		}
 	};
 }

@@ -89,7 +89,7 @@ function assertReferences(
 
 		const componentId = late_joiner_arrears?.defer_to_component_id;
 		if (componentId != null) {
-			const component = yield* api.db.query.pay_components.findFirst({
+			const component = yield* api.db.pay_components.findFirst({
 				where: { id: { eq: componentId } }
 			});
 			if (!component)
@@ -106,7 +106,7 @@ function assertReferences(
 
 		const contributionId = extended_unpaid_leave?.population_contribution_id;
 		if (contributionId != null) {
-			const contribution = yield* api.db.query.statutory_contributions.findFirst({
+			const contribution = yield* api.db.statutory_contributions.findFirst({
 				where: { id: { eq: contributionId } }
 			});
 			if (!contribution)

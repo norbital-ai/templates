@@ -36,15 +36,15 @@ export default {
 						if (exitDate === '') return;
 
 						const [company, encashableTypes, allRequests] = yield* Effect.all([
-							api.db.query.companies.findFirst({
+							api.db.companies.findFirst({
 								where: { id: { eq: employment.company_id } },
 								columns: { leave_year_start_month: true }
 							}),
-							api.db.query.leave_types.findMany({
+							api.db.leave_types.findMany({
 								where: { company_id: { eq: employment.company_id }, encash_on_exit: { eq: true } },
 								limit: LIMIT
 							}),
-							api.db.query.leave_requests.findMany({
+							api.db.leave_requests.findMany({
 								where: { employment_id: { eq: employment.id } },
 								limit: LIMIT
 							})
@@ -112,7 +112,12 @@ export default {
 							}
 						}
 						if (mutations.length === 0) return;
-						yield* api.db.leave_requests.mutate(mutations);
+						// One declarative write per encashment. Nesting them under the employment would
+						// state that employment's *complete* set of leave requests, which would remove
+						// every request this exit is not about; these are additions, not a replacement.
+						yield* Effect.forEach(mutations, (values) => api.db.leave_requests.mutate(values), {
+							discard: true
+						});
 					})
 			}
 		}

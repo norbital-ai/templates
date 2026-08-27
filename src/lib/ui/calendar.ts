@@ -7,9 +7,9 @@
  * a company's `pay_day` on a calendar so an operator can see which cycles are still open.
  */
 
-import { Effect, Number as EffectNumber } from 'effect';
-import { formatDateISO } from '@norbital-ai/std/date';
-import type { CollectionTableInitialFilter } from '@norbital-ai/ui/collection-table';
+import { Effect, Number as EffectNumber, Result } from 'effect';
+import { formatDateISO, isCalendarDate } from '@norbital-ai/std/date';
+import type { CollectionInitialFilter } from '@norbital-ai/ui/collection-surface';
 
 /** The business timezone every calendar-day default and `contains_date` filter resolves in. */
 export const PAYROLL_TIME_ZONE = 'Asia/Kuala_Lumpur';
@@ -59,7 +59,7 @@ export function todayKey(now: Date = new Date()): string {
  * so handing it an instant here would double-convert. A `where` clause has no such step and still
  * needs `todayInstant()`.
  */
-export function inForceTodayFilter(): readonly CollectionTableInitialFilter[] {
+export function inForceTodayFilter(): readonly CollectionInitialFilter[] {
 	return [{ field: 'effective_range', operator: 'contains_date', value: todayKey() }];
 }
 
@@ -74,7 +74,7 @@ export function inForceTodayFilter(): readonly CollectionTableInitialFilter[] {
  * employment in force" and "has an employment here" are two conditions and a relation filter cannot
  * insist that one employment satisfies both.
  */
-export function employedTodayFilter(): readonly CollectionTableInitialFilter[] {
+export function employedTodayFilter(): readonly CollectionInitialFilter[] {
 	return [
 		{ field: 'employment_employee.effective_range', operator: 'contains_date', value: todayKey() }
 	];
@@ -118,12 +118,81 @@ function timeZoneOffsetMs(at: Date, timeZone: string): number {
  * actually in force at the answer.
  */
 export function startOfDayInstant(calendarDate: string, timeZone: string): string {
-	const utcMidnight = new Date(`${calendarDate}T00:00:00.000Z`);
-	if (Number.isNaN(utcMidnight.getTime())) {
+	if (!isCalendarDate(calendarDate)) {
 		throw new Error(`"${calendarDate}" is not a YYYY-MM-DD calendar date.`);
 	}
+	const utcMidnight = new Date(`${calendarDate}T00:00:00.000Z`);
 	const firstPass = new Date(utcMidnight.getTime() - timeZoneOffsetMs(utcMidnight, timeZone));
 	return new Date(utcMidnight.getTime() - timeZoneOffsetMs(firstPass, timeZone)).toISOString();
+}
+
+/**
+ * Represent a calendar-day key as the instant the platform day picker expects.
+ *
+ * A nested custom datatype can deliberately store `YYYY-MM-DD` rather than an instant. The
+ * platform's canonical day picker still edits an `instant`, so its adapter must place that day at
+ * midnight in the viewer's timezone. UTC midnight would show the previous day for viewers west of
+ * Greenwich.
+ */
+export function calendarDayAsPickerInstant(calendarDate: string, pickerTimeZone: string): string {
+	return startOfDayInstant(calendarDate, pickerTimeZone);
+}
+
+/** Recover the calendar-day key selected by a platform day picker in the viewer's timezone. */
+export function calendarDayFromPickerInstant(value: string, pickerTimeZone: string): string {
+	const instant = new Date(value);
+	if (Number.isNaN(instant.getTime())) throw new Error(`"${value}" is not a valid instant.`);
+	return calendarDateInTimeZone(instant, pickerTimeZone);
+}
+
+/** The canonical range shape accepted by a day-precision platform picker. */
+export interface DayPickerInstantRange {
+	readonly start: string;
+	readonly end?: string;
+}
+
+/**
+ * Present a stored calendar-day instant range to a viewer without changing either visible day.
+ * An absent upper bound stays absent rather than becoming a made-up sentinel date.
+ */
+export function instantRangeAsDayPickerValue(
+	range: Readonly<{ start: string; end: string | null }>,
+	calendarTimeZone: string,
+	pickerTimeZone: string
+): DayPickerInstantRange {
+	const pickerBound = (value: string) =>
+		calendarDayAsPickerInstant(
+			calendarDateInTimeZone(new Date(value), calendarTimeZone),
+			pickerTimeZone
+		);
+	return range.end === null
+		? { start: pickerBound(range.start) }
+		: { start: pickerBound(range.start), end: pickerBound(range.end) };
+}
+
+/** Translate a day-precision picker range back to calendar boundaries in the business timezone. */
+export function instantRangeFromDayPickerValue(
+	value: unknown,
+	calendarTimeZone: string,
+	pickerTimeZone: string
+): { readonly start: string; readonly end: string | null } | null {
+	if (value == null || typeof value !== 'object') return null;
+	const start = Reflect.get(value, 'start');
+	const end = Reflect.get(value, 'end');
+	if (typeof start !== 'string' || (end != null && typeof end !== 'string')) return null;
+	return Result.getOrElse(
+		Result.try(() => ({
+			start: startOfDayInstant(
+				calendarDayFromPickerInstant(start, pickerTimeZone),
+				calendarTimeZone
+			),
+			end:
+				end == null
+					? null
+					: startOfDayInstant(calendarDayFromPickerInstant(end, pickerTimeZone), calendarTimeZone)
+		})),
+		() => null
+	);
 }
 
 /** A calendar day shifted by whole days without involving the browser's local timezone. */

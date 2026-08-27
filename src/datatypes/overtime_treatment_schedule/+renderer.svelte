@@ -7,9 +7,12 @@
 	import { Stack } from '@norbital-ai/ui/layout';
 	import {
 		PAYROLL_TIME_ZONE,
-		calendarDateInTimeZone,
+		calendarDayAsPickerInstant,
+		instantRangeAsDayPickerValue,
+		instantRangeFromDayPickerValue,
 		startOfDayInstant,
-		todayKey
+		todayKey,
+		type DayPickerInstantRange
 	} from '../../lib/ui/calendar.js';
 	import { overtimeTreatmentScheduleSchema } from './+definition.js';
 	import type { RendererProps, Value } from './$types.js';
@@ -18,24 +21,28 @@
 	type TreatmentKind = Entry['treatment']['kind'];
 	type TreatmentRow = {
 		readonly id: string;
-		readonly effective_from: string;
-		readonly effective_to: string;
+		readonly effective_range: DayPickerInstantRange;
 		readonly treatment: TreatmentKind;
 		readonly special_rule: string | null;
 		readonly authority: string;
 	};
 
 	const { t } = useI18n<TenantI18nKeys>();
+	const PICKER_TIME_ZONE = Intl.DateTimeFormat().resolvedOptions().timeZone;
 	const OPEN_ENDED_DAY = '9999-12-31';
-	const dateField = (name: string): CollectionField => ({ name, kind: 'date', nullable: false });
+	const RANGE_FIELD = {
+		name: 'effective_range',
+		kind: 'instant_range',
+		precision: 'day',
+		nullable: false
+	} satisfies CollectionField;
 	const COLUMNS = [
 		{
-			key: 'effective_from',
-			label: 'Effective from',
-			field: dateField('effective_from'),
-			width: 170
+			key: 'effective_range',
+			label: 'Effective dates',
+			field: RANGE_FIELD,
+			width: 320
 		},
-		{ key: 'effective_to', label: 'Effective to', field: dateField('effective_to'), width: 170 },
 		{
 			key: 'treatment',
 			label: 'Chargeability',
@@ -73,16 +80,17 @@
 	const rows = $derived(
 		entries.map((entry, index): TreatmentRow => ({
 			id: `treatment-${index}`,
-			effective_from: calendarDateInTimeZone(
-				new Date(entry.effective_range.start),
-				PAYROLL_TIME_ZONE
+			effective_range: instantRangeAsDayPickerValue(
+				entry.effective_range,
+				PAYROLL_TIME_ZONE,
+				PICKER_TIME_ZONE
 			),
-			effective_to: calendarDateInTimeZone(new Date(entry.effective_range.end), PAYROLL_TIME_ZONE),
 			treatment: entry.treatment.kind,
 			special_rule: entry.treatment.kind === 'SPECIAL' ? entry.treatment.rule : null,
 			authority: entry.authority
 		}))
 	);
+
 	const summary = $derived(
 		!Result.isSuccess(parsed)
 			? '—'
@@ -106,13 +114,18 @@
 	function emit(nextRows: TreatmentRow[]): void {
 		if (props.mode !== 'edit') return;
 		props.onValueChange(
-			nextRows.map((row) => ({
+			nextRows.map((row, index) => ({
 				authority: row.authority,
 				treatment: treatmentOf(row),
-				effective_range: {
-					start: startOfDayInstant(row.effective_from, PAYROLL_TIME_ZONE),
-					end: startOfDayInstant(row.effective_to, PAYROLL_TIME_ZONE)
-				}
+				effective_range: instantRangeFromDayPickerValue(
+					row.effective_range,
+					PAYROLL_TIME_ZONE,
+					PICKER_TIME_ZONE
+				) ??
+					entries[index]?.effective_range ?? {
+						start: startOfDayInstant(todayKey(), PAYROLL_TIME_ZONE),
+						end: startOfDayInstant(OPEN_ENDED_DAY, PAYROLL_TIME_ZONE)
+					}
 			}))
 		);
 	}
@@ -131,8 +144,10 @@
 			addRowLabel="Add overtime position"
 			createRow={(): TreatmentRow => ({
 				id: crypto.randomUUID(),
-				effective_from: todayKey(),
-				effective_to: OPEN_ENDED_DAY,
+				effective_range: {
+					start: calendarDayAsPickerInstant(todayKey(), PICKER_TIME_ZONE),
+					end: calendarDayAsPickerInstant(OPEN_ENDED_DAY, PICKER_TIME_ZONE)
+				},
 				treatment: 'UNSET',
 				special_rule: null,
 				authority: ''
