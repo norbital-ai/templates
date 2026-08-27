@@ -178,7 +178,7 @@ type JobAssignmentHooks = CollectionHooks<
 >;
 
 export default {
-	create: {
+	mutate: {
 		prepare: ({ inputs, api }) => {
 			const jobIds = [...new Set(inputs.flatMap((input) => (input.job_id ? [input.job_id] : [])))];
 			const assigneeUserIds = [
@@ -237,46 +237,35 @@ export default {
 		perRecord: {
 			before: {
 				description:
-					'Dispatches a person to an unassigned job and stamps the dispatch time. Reported location remains an evidence fact and never creates a suspicion judgement.',
-				handler: ({ input, prepared }) => assignmentCreateValues(input, prepared)
+					'Dispatches a person to an unassigned job and stamps the dispatch time, then holds the assignment on its original job and assignee, stamps completion, and keeps progression independent of evidence or suspicion judgements. Reported location remains an evidence fact and never creates a suspicion judgement.',
+				handler: ({ input, existing, prepared }) =>
+					existing === undefined
+						? assignmentCreateValues(input, prepared)
+						: Effect.map(currentDate, (now) => {
+								assertAssignmentIdentityUnchanged(input, existing);
+								if (input.status === undefined) return input;
+								return {
+									...input,
+									status: assignmentStatus(input.status),
+									...(input.status === 'completed' && input.completed_at == null
+										? { completed_at: now.toISOString() }
+										: {})
+								};
+							})
 			},
 			after: {
 				description:
-					'Moves a job from unassigned to assigned as soon as its first assignee is dispatched.',
-				handler: ({ record, api }) =>
-					Effect.gen(function* () {
-						const job = yield* api.db.jobs.findFirst({
-							where: { id: { eq: record.job_id } }
+					'Moves a job from unassigned to assigned as soon as its first assignee is dispatched, and thereafter carries assignment progress onto its job. Evidence and suspicion are reviewed only by the dedicated automation.',
+				handler: ({ previous, changes, record, api }) => {
+					// `previous` is undefined on a create: the first dispatch promotes the job, while a
+					// later edit maps whatever the assignment moved to onto the job.
+					if (previous === undefined)
+						return Effect.gen(function* () {
+							const job = yield* api.db.jobs.findFirst({ where: { id: { eq: record.job_id } } });
+							if (job?.status === 'unassigned') {
+								yield* api.db.jobs.mutate({ id: record.job_id, status: 'assigned' });
+							}
 						});
-						if (job?.status === 'unassigned') {
-							yield* api.db.jobs.mutate({ id: record.job_id, status: 'assigned' });
-						}
-					})
-			}
-		}
-	},
-	update: {
-		perRecord: {
-			before: {
-				description:
-					'Holds an assignment on its original job and assignee, stamps completion, and keeps progression independent of evidence or suspicion judgements.',
-				handler: ({ input, existing }) =>
-					Effect.map(currentDate, (now) => {
-						assertAssignmentIdentityUnchanged(input, existing);
-						if (input.status === undefined) return input;
-						return {
-							...input,
-							status: assignmentStatus(input.status),
-							...(input.status === 'completed' && input.completed_at == null
-								? { completed_at: now.toISOString() }
-								: {})
-						};
-					})
-			},
-			after: {
-				description:
-					'Carries assignment progress onto its job. Evidence and suspicion are reviewed only by the dedicated automation.',
-				handler: ({ changes, record, api }) => {
 					if (!Object.hasOwn(changes, 'status')) return Effect.void;
 					const status = record.status;
 					if (status == null) return Effect.void;

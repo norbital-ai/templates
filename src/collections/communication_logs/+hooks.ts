@@ -22,8 +22,43 @@ export function assertCommunicationUnchanged(
 	}
 }
 
+/** The context a `mutate.before` handler receives, named so the two halves can be hoisted. */
+type BeforeContext = Parameters<
+	NonNullable<
+		NonNullable<NonNullable<Hooks<ReadonlySet<string>>['mutate']>['perRecord']>['before']
+	>['handler']
+>[0];
+
+/** The same context on an edit, where `existing` is the stored row rather than undefined. */
+type EditContext = BeforeContext & {
+	readonly existing: NonNullable<BeforeContext['existing']>;
+};
+
+/** A create states the whole record and has no `existing`. */
+const beforeCreate = ({ input, prepared }: BeforeContext) => {
+	if (input.job_assignment_id == null || !prepared.has(input.job_assignment_id)) {
+		throw new Error('Communication log must reference an existing job assignment.');
+	}
+	if (input.message == null || input.message.trim() === '') {
+		throw new Error('Communication log message cannot be empty.');
+	}
+	if (input.sender == null || input.sender.trim() === '') {
+		throw new Error('Communication log sender cannot be empty.');
+	}
+	if (input.source_message_id == null || input.source_message_id.trim() === '') {
+		throw new Error('Communication log source_message_id cannot be empty.');
+	}
+	return input;
+};
+
+/** An edit lands on a stored row; `existing` is what tells the two apart. */
+const beforeUpdate = ({ input, existing }: EditContext) => {
+	assertCommunicationUnchanged(input, existing);
+	return input;
+};
+
 export default {
-	create: {
+	mutate: {
 		prepare: ({ inputs, api }) => {
 			const assignmentIds = [
 				...new Set(
@@ -45,33 +80,11 @@ export default {
 		perRecord: {
 			before: {
 				description:
-					'Requires a non-empty provider message and stable source id; the assignment foreign key establishes its scope.',
-				handler: ({ input, prepared }) => {
-					if (input.job_assignment_id == null || !prepared.has(input.job_assignment_id)) {
-						throw new Error('Communication log must reference an existing job assignment.');
-					}
-					if (input.message == null || input.message.trim() === '') {
-						throw new Error('Communication log message cannot be empty.');
-					}
-					if (input.sender == null || input.sender.trim() === '') {
-						throw new Error('Communication log sender cannot be empty.');
-					}
-					if (input.source_message_id == null || input.source_message_id.trim() === '') {
-						throw new Error('Communication log source_message_id cannot be empty.');
-					}
-					return input;
-				}
-			}
-		}
-	},
-	update: {
-		perRecord: {
-			before: {
-				description: 'Preserves an inbound field communication exactly as it was received.',
-				handler: ({ input, existing }) => {
-					assertCommunicationUnchanged(input, existing);
-					return input;
-				}
+					'Requires a non-empty provider message and stable source id; the assignment foreign key establishes its scope. Preserves an inbound field communication exactly as it was received.',
+				handler: (context) =>
+					context.existing === undefined
+						? beforeCreate(context)
+						: beforeUpdate({ ...context, existing: context.existing })
 			}
 		}
 	},

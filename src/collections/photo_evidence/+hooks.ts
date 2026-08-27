@@ -29,10 +29,10 @@ const photoEvidenceCreateInput = Schema.Struct({
 });
 
 type PhotoCreateBefore = NonNullable<
-	NonNullable<NonNullable<Hooks['create']>['perRecord']>['before']
+	NonNullable<NonNullable<PhotoEvidenceHooks['mutate']>['perRecord']>['before']
 >;
 type PhotoCreateAfter = NonNullable<
-	NonNullable<NonNullable<Hooks['create']>['perRecord']>['after']
+	NonNullable<NonNullable<PhotoEvidenceHooks['mutate']>['perRecord']>['after']
 >;
 type PhotoBeforeApi = Parameters<PhotoCreateBefore['handler']>[0]['api'];
 type PhotoAfterApi = Parameters<PhotoCreateAfter['handler']>[0]['api'];
@@ -267,9 +267,11 @@ function preparePhoto(
 	});
 }
 
+/** What a caller may state on a write; it types `api.db.photo_evidence.mutate` too. */
+export const input = photoEvidenceCreateInput;
+
 export default {
-	create: {
-		input: photoEvidenceCreateInput,
+	mutate: {
 		prepare: ({ inputs, api }) =>
 			Effect.gen(function* () {
 				const variationIds = [
@@ -340,9 +342,14 @@ export default {
 		perRecord: {
 			before: {
 				description:
-					'Accepts a photo only as an image filed against exactly one existing job assignment or variation request, then records its hash, perceptual fingerprint, and whether its capture location contradicts the site.',
-				handler: ({ input, prepared, api }) =>
-					Effect.gen(function* () {
+					'Records one photograph against its parent and channel, and thereafter keeps the selected image, parent and channel provenance immutable. Deterministic evidence facts may change without creating or latching a suspicion judgement.',
+				handler: ({ input, existing, prepared, api }) => {
+					// An edit may not move the photograph; only a create runs the preparation pass.
+					if (existing !== undefined) {
+						assertPhotoEvidenceProvenanceUnchanged(input, existing);
+						return Effect.succeed(input);
+					}
+					return Effect.gen(function* () {
 						const parsed = yield* Schema.decodeUnknownEffect(photoEvidenceCreateInput)(input);
 						const jobAssignmentId = parsed.job_assignment_id;
 						const variationRequestId = parsed.variation_request_id;
@@ -367,24 +374,14 @@ export default {
 							parsed,
 							siteLocationFor(prepared, jobAssignmentId, variationRequestId)
 						);
-					})
+					});
+				}
 			},
 			after: {
-				description:
-					'Compares a newly filed photo against the rest of the evidence by hash and visual likeness and records deterministic evidence attributes for the multimodal review layer.',
-				handler: ({ record, api }) => runAfterPhoto(record, api)
-			}
-		}
-	},
-	update: {
-		perRecord: {
-			before: {
-				description:
-					'Keeps the selected image, parent, and channel provenance immutable. Deterministic evidence facts may change without creating or latching a suspicion judgement.',
-				handler: ({ input, existing }) => {
-					assertPhotoEvidenceProvenanceUnchanged(input, existing);
-					return Effect.succeed(input);
-				}
+				description: 'Runs the deterministic evidence pass over a newly recorded photograph.',
+				handler: ({ previous, record, api }) =>
+					// Only a newly recorded photograph is passed; an edit changes facts the pass already read.
+					previous === undefined ? runAfterPhoto(record, api) : Effect.void
 			}
 		}
 	}
