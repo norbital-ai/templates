@@ -127,20 +127,15 @@ export default {
 		 * records it governs.
 		 */
 		prepare: ({ inputs, api }) =>
-			Effect.gen(function* () {
-				const prepared = new Map<string, PreparedRun>();
-				for (const input of inputs) {
-					prepared.set(
-						runKey(input.company_id, input.period),
-						yield* gatherPayrollRun({
-							api,
-							companyId: input.company_id,
-							period: input.period
-						})
-					);
-				}
-				return prepared;
-			}),
+			Effect.map(
+				Effect.forEach(inputs, (input) =>
+					Effect.map(
+						gatherPayrollRun({ api, companyId: input.company_id, period: input.period }),
+						(run) => [runKey(input.company_id, input.period), run] as const
+					)
+				),
+				(entries) => new Map(entries)
+			),
 		perRecord: {
 			before: {
 				description:

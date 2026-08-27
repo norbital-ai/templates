@@ -89,8 +89,14 @@ function employmentPayFrequency(
 	return stated ?? 'MONTHLY';
 }
 
-/** Resolve the window and the governing configuration without reading a single employee. */
-export function preparePayrollRun(options: {
+/**
+ * Resolve the window and the governing configuration without reading a single employee.
+ *
+ * Module-local: `gatherPayrollRun` below is its only caller. The hook used to import it to derive
+ * the run's own columns before the build; it now asks for the whole prepared run instead, so the
+ * export had no consumer left — which `bolt audit` refuses (EXP1), and rightly.
+ */
+function preparePayrollRun(options: {
 	readonly api: PayrollReadApi;
 	readonly companyId: string;
 	readonly period: string;
@@ -171,7 +177,7 @@ export function gatherPayrollRun(options: {
 }
 
 /** What one build produced, and what the run's `before` hook returns alongside its own columns. */
-export type PayrollRunGraph = {
+type PayrollRunGraph = {
 	readonly payslip_payroll_run: ReturnType<typeof payrollRunGraph>;
 	readonly payslipCount: number;
 	readonly lineCount: number;
