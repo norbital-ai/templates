@@ -9,16 +9,14 @@ import { Result, Schema } from 'effect';
 import type { TenantI18nKeys } from '$bolt/i18n-keys';
 import type { Translator } from './roster/roster-month.js';
 import { PAYROLL_TIME_ZONE, calendarDateInTimeZone } from './calendar.js';
-import { entryOriginSchema } from '../../datatypes/entry_origin/+definition.js';
 import { holidayScopeSchema } from '../../datatypes/holiday_scope/+definition.js';
 import type { LeaveEvent } from '../../datatypes/leave_event/+definition.js';
 import { leaveAccrualSchema } from '../../datatypes/leave_accrual/+definition.js';
 import { leavePayrollEffectSchema } from '../../datatypes/leave_payroll_effect/+definition.js';
 import { rateAwardSchema } from '../../datatypes/rate_award/+definition.js';
 import { rateSelectorSchema } from '../../datatypes/rate_selector/+definition.js';
-import { repaymentScheduleSchema } from '../../datatypes/repayment_schedule/+definition.js';
+import { obligationInstalmentValueSchema } from '../../datatypes/obligation_instalment/+definition.js';
 import { statutoryFactStatusSchema } from '../../datatypes/statutory_fact_status/+definition.js';
-import type { PayslipLineComponent } from '../../datatypes/payslip_line_component/+definition.js';
 
 const DECIMAL = new Intl.NumberFormat(undefined, {
 	minimumFractionDigits: 2,
@@ -109,8 +107,8 @@ export function formatCalendarDate(value: unknown): string {
  * The bound is an *instant*, so it is resolved through the payroll timezone rather than sliced.
  * `'2026-03-01'` picked in Kuala Lumpur is stored as `2026-02-28T16:00:00.000Z`; taking the first
  * ten characters of that would report the range as starting the day before it does, and effective
- * dating is what decides which rate row prices a run. This is the same resolution the
- * `entry_origin` renderer already performs.
+ * dating is what decides which rate row prices a run. Every screen that prints an effective range
+ * resolves it here, so a rate window cannot read one way on a form and another in a table.
  */
 export function formatEffectiveRange(value: unknown): string {
 	if (value == null || typeof value !== 'object') return '—';
@@ -136,73 +134,74 @@ export function formatLeaveRange(event: LeaveEvent | null | undefined, t: Transl
 	return `${formatCalendarDate(event.range.start.date)}, ${half(event.range.start.half)} → ${formatCalendarDate(event.range.end.date)}, ${half(event.range.end.half)}`;
 }
 
-export function formatEntryOrigin(value: unknown, t: Translator): string {
-	const parsed = Schema.decodeUnknownResult(entryOriginSchema)(value, {
-		onExcessProperty: 'error'
-	});
-	if (!Result.isSuccess(parsed)) return t('component.origin_invalid');
-	const origin = parsed.success;
-	switch (origin.kind) {
-		case 'RECURRING':
-			return t('component.origin_recurring', {
-				range: formatEffectiveRange(origin.effective_range)
-			});
-		case 'ONE_OFF':
-			return origin.note
-				? t('component.origin_one_off_note', { note: origin.note })
-				: t('component.origin_one_off');
-		case 'CLAIM':
-			return `${t('component.origin_claim', { date: formatCalendarDate(origin.incurred_on) })}${
-				origin.evidence_file ? t('component.origin_evidence') : ''
-			}`;
-		case 'LOAN_INSTALMENT':
-			return t('component.origin_instalment', {
-				sequence: origin.sequence,
-				of: origin.of
-			});
-		case 'REVERSAL':
-			return t('component.origin_reversal', { reason: origin.reason });
-		case 'ARREARS':
-			return t('component.origin_arrears', { periods: origin.covers_periods.join(', ') });
-		case 'MANUAL_ADJUSTMENT':
-			return t('component.origin_manual_adjustment', { note: origin.note });
-		default:
-			return origin satisfies never;
-	}
+/** The columns a terms sentence is composed from. Anything holding an obligation row supplies them. */
+type ObligationTermsRow = {
+	readonly terms?: unknown;
+	readonly occasion?: unknown;
+	readonly effective_range?: unknown;
+	readonly instalments?: unknown;
+	readonly note?: unknown;
+	readonly reason?: unknown;
+	readonly incurred_on?: unknown;
+	readonly evidence_file?: unknown;
+	readonly covers_periods?: unknown;
+};
+
+function text(value: unknown): string {
+	return typeof value === 'string' ? value : '';
 }
 
-const DAY_TYPE_LABELS: Readonly<Record<string, TenantI18nKeys>> = {
-	ORDINARY: 'component.overtime_day_ordinary',
-	REST_DAY: 'component.overtime_day_rest',
-	PUBLIC_HOLIDAY: 'component.overtime_day_holiday'
-};
-
-const MEASURE_LABELS: Readonly<Record<string, TenantI18nKeys>> = {
-	BEYOND_NORMAL: 'component.overtime_measure_beyond',
-	FROM_START_OF_DAY: 'component.overtime_measure_from_start'
-};
-
-/** One of the two derived-overtime arms of a payslip line: the band that priced it. */
-type OvertimeLine = Extract<
-	PayslipLineComponent,
-	{ readonly kind: 'OVERTIME' | 'OVERTIME_EXCESS' }
->;
-
 /**
- * What to call a derived overtime line.
+ * How an obligation comes due, as one sentence.
  *
- * There is no pay component behind one, so nothing supplies a name; the statutory band that priced
- * it is its identity, and it is what an operator needs to see — which day, counted how, from where.
+ * It reads the row and not a single column, because the arm *is* several columns now: `terms` says
+ * how the money comes due, `occasion` says why a one-off was raised, and each arm's payload sits
+ * beside them. Its predecessor read one jsonb union — which is exactly the shape that put a foreign
+ * key and a file inside a blob and left a field grant nothing to mask.
+ *
+ * Nothing here decides whether the row is *valid*: `obligationTermsIssues` in
+ * `src/lib/obligation_refusals.ts` is the arm rule, and this only describes what it finds.
  */
-export function formatOvertimeLineBand(line: OvertimeLine, t: Translator): string {
-	return t(
-		line.kind === 'OVERTIME_EXCESS' ? 'component.overtime_excess_line' : 'component.overtime_line',
-		{
-			day: labelOf(t, DAY_TYPE_LABELS, line.day_type),
-			measure: labelOf(t, MEASURE_LABELS, line.measure),
-			from: line.band_from
-		}
-	);
+export function formatObligationTerms(row: unknown, t: Translator): string {
+	if (row == null || typeof row !== 'object') return t('component.terms_invalid');
+	const obligation = row as ObligationTermsRow;
+	switch (obligation.terms) {
+		case 'RECURRING':
+			return t('component.terms_recurring', {
+				range: formatEffectiveRange(obligation.effective_range)
+			});
+		case 'SCHEDULED':
+			return t('component.terms_scheduled', {
+				count: Array.isArray(obligation.instalments) ? obligation.instalments.length : 0,
+				range: formatEffectiveRange(obligation.effective_range)
+			});
+		case 'REVERSAL':
+			return t('component.terms_reversal', { reason: text(obligation.reason) });
+		case 'ONE_OFF':
+			break;
+		default:
+			return t('component.terms_invalid');
+	}
+	switch (obligation.occasion) {
+		case 'ENTERED':
+			return text(obligation.note)
+				? t('component.occasion_entered_note', { note: text(obligation.note) })
+				: t('component.occasion_entered');
+		case 'CLAIM':
+			return `${t('component.occasion_claim', {
+				date: formatCalendarDate(obligation.incurred_on)
+			})}${obligation.evidence_file ? t('component.occasion_evidence') : ''}`;
+		case 'ARREARS':
+			return t('component.occasion_arrears', {
+				periods: Array.isArray(obligation.covers_periods)
+					? obligation.covers_periods.join(', ')
+					: ''
+			});
+		case 'ADJUSTMENT':
+			return t('component.occasion_adjustment', { note: text(obligation.note) });
+		default:
+			return t('component.terms_invalid');
+	}
 }
 
 const ACCRUAL_KIND_LABELS: Readonly<Record<string, TenantI18nKeys>> = {
@@ -272,14 +271,17 @@ export function formatLeavePayrollEffect(value: unknown, t: Translator): string 
 	return parsed.success.kind === 'PAID' ? t('component.effect_paid') : t('component.effect_unpaid');
 }
 
-export function formatRepaymentSchedule(value: unknown, t: Translator): string {
-	const parsed = Schema.decodeUnknownResult(repaymentScheduleSchema)(value);
+const instalmentsSchema = Schema.Array(obligationInstalmentValueSchema);
+
+/** A scheduled obligation's instalments, as a count and a total. */
+export function formatInstalments(value: unknown, t: Translator): string {
+	const parsed = Schema.decodeUnknownResult(instalmentsSchema)(value ?? []);
 	if (!Result.isSuccess(parsed)) return t('component.schedule_invalid');
-	const schedule = parsed.success;
-	const total = schedule.reduce((sum, entry) => sum + entry.amount, 0);
+	const instalments = parsed.success;
+	const total = instalments.reduce((sum, instalment) => sum + instalment.amount, 0);
 	return t('component.schedule_instalments', {
-		count: schedule.length,
-		s: schedule.length === 1 ? '' : 's',
+		count: instalments.length,
+		s: instalments.length === 1 ? '' : 's',
 		total: DECIMAL.format(total)
 	});
 }

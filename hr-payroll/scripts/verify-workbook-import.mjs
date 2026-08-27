@@ -13,6 +13,11 @@
  *
  * The time-entry sheet carries four columns, one row per person per day.
  *
+ * Both sheets now land in ONE collection through ONE pipeline: `work_days` has a single `import`,
+ * and the payload's `sheet` tag decides which arm reads it. So the upsert is exercised here too —
+ * a punch imported onto a day the roster import already wrote is an UPDATE of that row, issued
+ * through `api.db.work_days.mutate`, and only the genuinely new person-days come back as rows.
+ *
  * The refusal cases matter as much as the happy one: the platform writes an import in a single
  * transaction and has no per-row rejection, so a bad row must refuse the WHOLE file and say which
  * row it was.
@@ -188,21 +193,41 @@ function rosterApi(overrides = {}) {
 			}
 		],
 		company_holidays: [{ id: 'holiday:1', company_id: COMPANY_ID, date: '2026-05-08' }],
-		roster_entries: overrides.existingEntries ?? []
+		work_days: overrides.existingDays ?? []
 	});
 }
 
-function timeEntryApi(overrides = {}) {
+function attendanceApi(overrides = {}) {
 	return stubApi({
 		companies: companies(),
 		employments: [
 			{ id: 'employment:2', employee_number: 'NHPMY0002', company_id: COMPANY_ID },
 			{ id: 'employment:23', employee_number: 'NHPMY0023', company_id: COMPANY_ID }
 		],
-		time_entries: overrides.existingEntries ?? [],
+		work_days: overrides.existingDays ?? [],
 		payroll_runs: overrides.payrollRuns ?? [],
 		leave_requests: overrides.leaveRequests ?? []
 	});
+}
+
+/**
+ * Every `mutate` the pipeline issued, in order.
+ *
+ * The import pipeline's return value is inserted by the runtime, so the UPDATE half of the upsert
+ * cannot ride on it: an existing person-day is written through `api.db.work_days.mutate({ id, … })`
+ * instead. That call is the thing to assert on, so it is recorded rather than swallowed.
+ */
+function recordingApi(api, recorded) {
+	return {
+		...api,
+		db: {
+			...api.db,
+			work_days: {
+				...api.db.work_days,
+				mutate: (values) => Effect.sync(() => void recorded.push(values))
+			}
+		}
+	};
 }
 
 function refusal(run) {
@@ -230,20 +255,14 @@ const program = Effect.gen(function* () {
 	);
 
 	const verification = Effect.gen(function* () {
-		const { rosterImportPayload } = yield* tryPromise(() =>
-			vite.ssrLoadModule('/src/collections/roster_entries/lib/import-workbook.ts')
-		);
-		const { timeEntryImportPayload } = yield* tryPromise(() =>
-			vite.ssrLoadModule('/src/collections/time_entries/lib/import-workbook.ts')
+		const { attendanceImportPayload, rosterImportPayload } = yield* tryPromise(() =>
+			vite.ssrLoadModule('/src/collections/work_days/lib/import-workbook.ts')
 		);
 		const { workbookGrids, csvGrid } = yield* tryPromise(() =>
 			vite.ssrLoadModule('/src/lib/workbook-rows.ts')
 		);
-		const rosterPipeline = (yield* tryPromise(() =>
-			vite.ssrLoadModule('/src/collections/roster_entries/+pipelines.ts')
-		)).default;
-		const timeEntryPipeline = (yield* tryPromise(() =>
-			vite.ssrLoadModule('/src/collections/time_entries/+pipelines.ts')
+		const workDayPipeline = (yield* tryPromise(() =>
+			vite.ssrLoadModule('/src/collections/work_days/+pipelines.ts')
 		)).default;
 
 		const rosterGrids = (rows) =>
@@ -260,6 +279,7 @@ const program = Effect.gen(function* () {
 
 		// ── The roster workbook, from bytes to written rows ────────────────────────────────────────────
 		const rosterPayload = rosterImportPayload(yield* rosterGrids(ROSTER_ROWS), ROSTER_ID);
+		assert.equal(rosterPayload.sheet, 'ROSTER', 'the arm is tagged, not inferred from which fields are set');
 		assert.equal(rosterPayload.roster_id, ROSTER_ID);
 		assert.equal(rosterPayload.rows.length, 9, 'blank assignment rows are omitted');
 		assert.deepEqual(
@@ -269,7 +289,7 @@ const program = Effect.gen(function* () {
 				work_date: '2026-05-01',
 				shift_code: '7.5AM',
 				assignment_code: undefined,
-				note: undefined
+				planned_note: undefined
 			},
 			'a row naming a shift reads as a working day on that shift'
 		);
@@ -280,13 +300,13 @@ const program = Effect.gen(function* () {
 				work_date: '2026-05-03',
 				shift_code: 'REST',
 				assignment_code: undefined,
-				note: undefined
+				planned_note: undefined
 			},
 			'REST is a real roster-code variant'
 		);
 
 		const written = yield* runHandler(
-			rosterPipeline.import.handler({ input: rosterPayload }, rosterApi())
+			workDayPipeline.import.handler({ input: rosterPayload }, rosterApi())
 		);
 		assert.equal(written.length, 8, 'the validated PH token is not stored per person');
 		assert.deepEqual(
@@ -311,14 +331,18 @@ const program = Effect.gen(function* () {
 				shift_definition_id: 'shift:off',
 				roster_id: ROSTER_ID,
 				assignment_code: null,
-				origin: 'IMPORT',
-				note: null
+				planned_origin: 'IMPORT',
+				planned_note: null
 			},
 			'OFF remains explicit and its meaning comes from the referenced code variant'
 		);
 		assert.ok(
-			written.every((row) => row.origin === 'IMPORT'),
-			'a workbook row is IMPORT provenance, not the MANUAL default the board writes'
+			written.every((row) => row.planned_origin === 'IMPORT'),
+			'a workbook row is IMPORT provenance, not the MANUAL the board writes'
+		);
+		assert.ok(
+			written.every((row) => !('worked_intervals' in row) && !('break_minutes' in row)),
+			'the roster arm writes the plan and never touches the clock'
 		);
 
 		// ── Every column the long-form sheet declares reaches the row that is written ──────────────────
@@ -332,7 +356,7 @@ const program = Effect.gen(function* () {
 			]
 		]);
 		const annotated = yield* runHandler(
-			rosterPipeline.import.handler(
+			workDayPipeline.import.handler(
 				{
 					input: rosterImportPayload(workbookGrids(annotatedWorkbook), ROSTER_ID)
 				},
@@ -346,8 +370,8 @@ const program = Effect.gen(function* () {
 				shift_definition_id: 'shift:75',
 				roster_id: ROSTER_ID,
 				assignment_code: 'AMRES',
-				origin: 'IMPORT',
-				note: 'swap with 03 May'
+				planned_origin: 'IMPORT',
+				planned_note: 'swap with 03 May'
 			}
 		]);
 
@@ -356,7 +380,7 @@ const program = Effect.gen(function* () {
 			Effect.gen(function* () {
 				const grids = yield* rosterGrids([...ROSTER_ROWS, ['NHPMY9999', '2026-05-06', '7.5AM']]);
 				return yield* runHandlerCall(() =>
-					rosterPipeline.import.handler(
+					workDayPipeline.import.handler(
 						{ input: rosterImportPayload(grids, ROSTER_ID) },
 						rosterApi()
 					)
@@ -375,7 +399,7 @@ const program = Effect.gen(function* () {
 			Effect.gen(function* () {
 				const grids = yield* rosterGrids([...ROSTER_ROWS, ['NHPMY0002', '2026-06-01', '7.5AM']]);
 				return yield* runHandlerCall(() =>
-					rosterPipeline.import.handler(
+					workDayPipeline.import.handler(
 						{ input: rosterImportPayload(grids, ROSTER_ID) },
 						rosterApi()
 					)
@@ -389,7 +413,7 @@ const program = Effect.gen(function* () {
 			Effect.gen(function* () {
 				const grids = yield* rosterGrids(ROSTER_ROWS);
 				return yield* runHandlerCall(() =>
-					rosterPipeline.import.handler(
+					workDayPipeline.import.handler(
 						{ input: rosterImportPayload(grids, ROSTER_ID) },
 						rosterApi({ roster: { published_at: PUBLISHED_AT } })
 					)
@@ -402,10 +426,18 @@ const program = Effect.gen(function* () {
 			Effect.gen(function* () {
 				const grids = yield* rosterGrids(ROSTER_ROWS);
 				return yield* runHandlerCall(() =>
-					rosterPipeline.import.handler(
+					workDayPipeline.import.handler(
 						{ input: rosterImportPayload(grids, ROSTER_ID) },
 						rosterApi({
-							existingEntries: [{ employment_id: 'employment:2', work_date: '2026-05-04' }]
+							existingDays: [
+								{
+									id: 'day:1',
+									employment_id: 'employment:2',
+									work_date: '2026-05-04',
+									shift_definition_id: 'shift:75',
+									worked_intervals: null
+								}
+							]
 						})
 					)
 				);
@@ -482,12 +514,13 @@ const program = Effect.gen(function* () {
 				work_date: '2026-05-04',
 				shift_code: '7.5AM',
 				assignment_code: undefined,
-				note: undefined
+				planned_note: undefined
 			}
 		]);
 
 		// ── The time-entry workbook ────────────────────────────────────────────────────────────────────
-		const timePayload = timeEntryImportPayload(yield* timeEntryGrids(TIME_ENTRY_ROWS));
+		const timePayload = attendanceImportPayload(yield* timeEntryGrids(TIME_ENTRY_ROWS));
+		assert.equal(timePayload.sheet, 'ATTENDANCE');
 		assert.equal(
 			timePayload.timezone,
 			'Asia/Kuala_Lumpur',
@@ -508,7 +541,7 @@ const program = Effect.gen(function* () {
 		assert.equal(timePayload.rows[4].clock_out, undefined, 'an unclosed punch stays unclosed');
 
 		const landed = yield* runHandler(
-			timeEntryPipeline.import.handler({ input: timePayload }, timeEntryApi())
+			workDayPipeline.import.handler({ input: timePayload }, attendanceApi())
 		);
 		assert.equal(landed.length, 5);
 		assert.deepEqual(
@@ -537,6 +570,106 @@ const program = Effect.gen(function* () {
 			'a missing close remains an open interval'
 		);
 
+		// ── THE UPSERT: a punch on a rostered day updates that day, it does not make a second one ──
+		//
+		// This is the whole point of the merge. `unique(employment_id, work_date)` means a person-day
+		// is one row, so attendance landing on a day the roster import already wrote is an UPDATE of
+		// that row, issued through `mutate` with the stored id — and only the days that did not exist
+		// come back as rows for the runtime to insert.
+		const rosteredDays = [
+			{
+				id: 'day:2-05-04',
+				employment_id: 'employment:2',
+				work_date: '2026-05-04',
+				shift_definition_id: 'shift:75',
+				worked_intervals: null
+			},
+			{
+				id: 'day:2-05-05',
+				employment_id: 'employment:2',
+				work_date: '2026-05-05',
+				shift_definition_id: 'shift:75',
+				worked_intervals: null
+			}
+		];
+		const upserts = [];
+		const onRostered = yield* runHandler(
+			workDayPipeline.import.handler(
+				{ input: timePayload },
+				recordingApi(attendanceApi({ existingDays: rosteredDays }), upserts)
+			)
+		);
+		assert.equal(
+			onRostered.length,
+			3,
+			'only the three person-days that did not exist are returned for insertion'
+		);
+		assert.deepEqual(
+			upserts.map((values) => values.id),
+			['day:2-05-04', 'day:2-05-05'],
+			'the two rostered days are updated by id rather than inserted a second time'
+		);
+		assert.deepEqual(
+			upserts[0],
+			{
+				id: 'day:2-05-04',
+				worked_intervals: [{ start: '2026-05-04T00:16:00.000Z', end: '2026-05-04T09:10:00.000Z' }],
+				break_minutes: 0
+			},
+			'the attendance arm writes the clock and never touches the plan it landed on'
+		);
+
+		const alreadyAttended = yield* refusal(() =>
+			runHandlerCall(() =>
+				workDayPipeline.import.handler(
+					{ input: timePayload },
+					attendanceApi({
+						existingDays: [
+							{
+								id: 'day:2-05-04',
+								employment_id: 'employment:2',
+								work_date: '2026-05-04',
+								shift_definition_id: null,
+								worked_intervals: []
+							}
+						]
+					})
+				)
+			)
+		);
+		// An empty array is attendance: the day was read and nothing was worked. NULL is the absence
+		// this import is allowed to fill in, and the two are deliberately different claims.
+		assert.match(alreadyAttended, /already have attendance/);
+		assert.match(alreadyAttended, /• NHPMY0002 on 2026-05-04/);
+
+		const rosterOntoAttendance = yield* runHandler(
+			workDayPipeline.import.handler(
+				{ input: rosterPayload },
+				recordingApi(
+					rosterApi({
+						existingDays: [
+							{
+								id: 'day:attendance-first',
+								employment_id: 'employment:2',
+								work_date: '2026-05-01',
+								shift_definition_id: null,
+								worked_intervals: [
+									{ start: '2026-05-01T00:16:00.000Z', end: '2026-05-01T09:10:00.000Z' }
+								]
+							}
+						]
+					}),
+					[]
+				)
+			)
+		);
+		assert.equal(
+			rosterOntoAttendance.length,
+			7,
+			'a day that exists only because attendance arrived first is not a roster conflict — the ' +
+				'plan lands on it as an update, leaving seven of the eight assignments to insert'
+		);
+
 		const unknownPuncher = yield* refusal(() =>
 			Effect.gen(function* () {
 				const grids = yield* timeEntryGrids([
@@ -544,7 +677,7 @@ const program = Effect.gen(function* () {
 					['NHPMY9999', '2026-05-04', '08:00', '17:00']
 				]);
 				return yield* runHandlerCall(() =>
-					timeEntryPipeline.import.handler({ input: timeEntryImportPayload(grids) }, timeEntryApi())
+					workDayPipeline.import.handler({ input: attendanceImportPayload(grids) }, attendanceApi())
 				);
 			})
 		);
@@ -553,7 +686,7 @@ const program = Effect.gen(function* () {
 
 		const noTimezone = yield* refusal(() =>
 			tryMap(gridsOf([['Time entries', [TIME_ENTRY_HEADERS, ...TIME_ENTRY_ROWS]]]), (workbook) =>
-				timeEntryImportPayload(workbookGrids(workbook))
+				attendanceImportPayload(workbookGrids(workbook))
 			)
 		);
 		assert.match(noTimezone, /does not say which timezone/);
@@ -564,7 +697,7 @@ const program = Effect.gen(function* () {
 					['NHPMY0002', '2026-05-04', '8.30am', '17:00'],
 					['NHPMY0023', '05/05/2026', '20:30', '05:15']
 				]),
-				timeEntryImportPayload
+				attendanceImportPayload
 			)
 		);
 		assert.match(badClock, /clock_in is "8\.30am", expected a local time as HH:mm/);
@@ -625,11 +758,11 @@ const program = Effect.gen(function* () {
 			]
 		);
 		const rosterGridWritten = yield* runHandler(
-			rosterPipeline.import.handler({ input: rosterGridPayload }, rosterApi())
+			workDayPipeline.import.handler({ input: rosterGridPayload }, rosterApi())
 		);
 		assert.equal(rosterGridWritten.length, 8);
 
-		const timeGridPayload = timeEntryImportPayload(
+		const timeGridPayload = attendanceImportPayload(
 			workbookGrids(
 				yield* gridsOf([
 					['Read me first', [['Time entries import — one legal entity, one month']]],
@@ -654,14 +787,14 @@ const program = Effect.gen(function* () {
 			clock_in: '20:31'
 		});
 		const timeGridWritten = yield* runHandler(
-			timeEntryPipeline.import.handler({ input: timeGridPayload }, timeEntryApi())
+			workDayPipeline.import.handler({ input: timeGridPayload }, attendanceApi())
 		);
 		assert.equal(timeGridWritten.length, 5);
 		assert.equal(timeGridWritten[4].worked_intervals[0].end, null);
 
 		const wrongEntity = yield* refusal(() =>
 			runHandlerCall(() =>
-				rosterPipeline.import.handler(
+				workDayPipeline.import.handler(
 					{
 						input: {
 							...rosterGridPayload,

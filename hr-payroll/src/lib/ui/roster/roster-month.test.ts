@@ -44,8 +44,7 @@ function month(overrides = {}) {
 	return buildRosterMonth({
 		month: '2026-08',
 		employments: [{ id: EMPLOYMENT, effective_range: { start: '2026-01-01', end: null } }],
-		rosterEntries: [],
-		timeEntries: [],
+		workDays: [],
 		leaveRequests: [],
 		pendingLeaveRequests: [],
 		holidays: [],
@@ -61,17 +60,59 @@ function month(overrides = {}) {
 
 test('a day with no attendance carries nulls, not zeroes', () => {
 	const day = month().get(`${EMPLOYMENT}:2026-08-04`);
-	assert.equal(day.timeEntryId, null);
+	assert.equal(day.workDayId, null);
 	assert.equal(day.breakMinutes, null);
 	// Zero would be a claim that the person worked no minutes. Null is the claim that nobody said.
 	assert.equal(day.workedMinutes, null);
 });
 
+test('a rostered day nobody has punched has a row id and still no attendance', () => {
+	const day = month({
+		workDays: [
+			{
+				id: 'day-plan',
+				employment_id: EMPLOYMENT,
+				work_date: '2026-08-04',
+				shift_definition_id: 'code-a',
+				planned_origin: 'IMPORT',
+				worked_intervals: null
+			}
+		]
+	}).get(`${EMPLOYMENT}:2026-08-04`);
+	// The plan and the clock are one row now, so the id exists as soon as either half does — which
+	// is what makes recording a punch on a rostered day an update rather than a second row.
+	assert.equal(day.workDayId, 'day-plan');
+	assert.equal(day.plannedOrigin, 'IMPORT');
+	assert.equal(day.designation, 'WORK');
+	assert.equal(day.attendanceState, null);
+	assert.equal(day.breakMinutes, null);
+	assert.equal(day.workedMinutes, null);
+	assert.equal(day.clockedIn, false);
+});
+
+test('an empty interval array is a day that was read, not a day nobody answered for', () => {
+	const day = month({
+		workDays: [
+			{
+				id: 'day-read',
+				employment_id: EMPLOYMENT,
+				work_date: '2026-08-07',
+				worked_intervals: [],
+				break_minutes: 0
+			}
+		]
+	}).get(`${EMPLOYMENT}:2026-08-07`);
+	assert.equal(day.attendanceState, 'CLOSED');
+	assert.equal(day.breakMinutes, 0);
+	assert.equal(day.workedMinutes, 0);
+	assert.equal(day.clockedIn, false);
+});
+
 test('a closed day reports worked minutes net of the unpaid break', () => {
 	const day = month({
-		timeEntries: [
+		workDays: [
 			{
-				id: 'entry-1',
+				id: 'day-1',
 				employment_id: EMPLOYMENT,
 				work_date: '2026-08-04',
 				break_minutes: 60,
@@ -82,7 +123,7 @@ test('a closed day reports worked minutes net of the unpaid break', () => {
 			}
 		]
 	}).get(`${EMPLOYMENT}:2026-08-04`);
-	assert.equal(day.timeEntryId, 'entry-1');
+	assert.equal(day.workDayId, 'day-1');
 	assert.equal(day.breakMinutes, 60);
 	// 254 + 250 gross, less the 60-minute unpaid break.
 	assert.equal(day.workedMinutes, 444);
@@ -91,9 +132,9 @@ test('a closed day reports worked minutes net of the unpaid break', () => {
 
 test('an open punch reports no worked minutes at all', () => {
 	const day = month({
-		timeEntries: [
+		workDays: [
 			{
-				id: 'entry-2',
+				id: 'day-2',
 				employment_id: EMPLOYMENT,
 				work_date: '2026-08-20',
 				break_minutes: 0,
@@ -102,16 +143,16 @@ test('an open punch reports no worked minutes at all', () => {
 		]
 	}).get(`${EMPLOYMENT}:2026-08-20`);
 	assert.equal(day.attendanceState, 'OPEN');
-	assert.equal(day.timeEntryId, 'entry-2');
+	assert.equal(day.workDayId, 'day-2');
 	// A running total would read as a short day on the board, which is the one thing it must not do.
 	assert.equal(day.workedMinutes, null);
 });
 
 test('Date-valued interval ends are levelled the same way string ones are', () => {
 	const day = month({
-		timeEntries: [
+		workDays: [
 			{
-				id: 'entry-3',
+				id: 'day-3',
 				employment_id: EMPLOYMENT,
 				work_date: '2026-08-05',
 				break_minutes: 30,
@@ -130,9 +171,9 @@ test('Date-valued interval ends are levelled the same way string ones are', () =
 
 test('a missing break column reads as no break, not as a missing entry', () => {
 	const day = month({
-		timeEntries: [
+		workDays: [
 			{
-				id: 'entry-4',
+				id: 'day-4',
 				employment_id: EMPLOYMENT,
 				work_date: '2026-08-06',
 				worked_intervals: [{ start: '2026-08-06T00:00:00.000Z', end: '2026-08-06T04:00:00.000Z' }]

@@ -14,8 +14,8 @@ import { dateKey } from '../iso-day.js';
  * It is a question about **days**, and it used to be asked about records too. That was the mistake:
  * a record is settled because a payslip consumed it, not because it happens to be dated inside a
  * paid window, and the two answers differ for every draft run that has already produced payslips.
- * The record-level answer now lives in the `payslip_sources` collection and reaches `sourceLock`
- * below as `settledBy`. See `src/collections/payslip_sources/+model.ts`.
+ * The record-level answer is a `payslip_adjustments` row naming the record, and it reaches
+ * `sourceLock` below as `settledBy`. See `src/collections/payslip_adjustments/+model.ts`.
  *
  * The division of labour is worth stating in one line, because every guard in the workspace is one
  * side of it:
@@ -27,7 +27,7 @@ import { dateKey } from '../iso-day.js';
  * So the window arithmetic below answers exactly one write-side question — "may a record appear on
  * this day at all?" — and never "may this record change?". An existing record dated inside a paid
  * window that no run ever consumed stays editable and settles as arrears in a later run; that is
- * the case `payslip_sources/+model.ts` calls the second direction the old inference got wrong.
+ * the second direction the old inference got wrong.
  *
  * `period` can name a whole month (`2026-08`) or half of one (`2026-08-1`, `2026-08-2`), matching
  * the company's pay grid. The board and the hooks only need the windows; they never interpret the
@@ -121,9 +121,12 @@ function settledDayMessage(period: string, date: string, action: string): string
  * Why a leave, claim, or attendance record cannot be written again.
  *
  * Pending approval is the platform's write-then-lock stamp, and it stays the 409. The only other
- * domain freeze is the **settlement lock**: a database-enforced relation naming the record a payslip
- * took into account. Approval completion is not consumption and never freezes a record. A passed
- * date remains available only for the collections that explicitly ask for that policy.
+ * domain freeze is the **settlement lock**: a `payslip_adjustments` row whose database-enforced
+ * `restrict` reference names the record a payslip took into account. Its amount is irrelevant — a
+ * zero says the run read the source and priced it at nothing, which is a settlement and not an
+ * absence — so the lock asks whether such a row exists and never what it is worth. Approval
+ * completion is not consumption and never freezes a record. A passed date remains available only
+ * for the collections that explicitly ask for that policy.
  *
  * `PAID_DAY` is not produced by `sourceLock` — nothing a record carries can raise it. It is the
  * day-shaped inference a paid run's window makes about a *day*, kept here so the board's hover
@@ -137,11 +140,11 @@ const sourceLockSchema = Schema.Union([
 	Schema.Struct({ kind: Schema.Literal('PAID_DAY'), period: Schema.String, date: Schema.String })
 ]);
 
-/** The claim a `payslip_sources` row makes, reduced to what a refusal has to say. */
+/** The claim a `payslip_adjustments` row makes, reduced to what a refusal has to say. */
 const settlementClaimSchema = Schema.Struct({ period: Schema.String });
 export type SourceLock = Schema.Schema.Type<typeof sourceLockSchema>;
 
-/** The claim a `payslip_sources` row makes, reduced to what a refusal has to say. */
+/** The claim a `payslip_adjustments` row makes, reduced to what a refusal has to say. */
 export type SettlementClaim = Schema.Schema.Type<typeof settlementClaimSchema>;
 
 const sourceLockFactsSchema = Schema.Struct({
@@ -153,7 +156,8 @@ const sourceLockFactsSchema = Schema.Struct({
 	 *
 	 * Passed in rather than looked up, for the same reason every other input is: this module stays
 	 * pure so that the write hooks and the screens that grey the row out compute the identical lock
-	 * from the identical inputs. Each caller reads `payslip_sources` through its own typed api.
+	 * from the identical inputs. Each caller reads `payslip_adjustments` through its own typed api,
+	 * asking only whether a row names the record — never what that row is worth.
 	 */
 	settledBy: Schema.optional(Schema.NullOr(settlementClaimSchema))
 });

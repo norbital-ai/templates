@@ -39,27 +39,55 @@ type ProrationFractionOptions = {
  * E20).
  */
 export function prorationFraction(options: ProrationFractionOptions): number {
-	if (options.covered == null) return 0;
+	const segment = prorationSegment(options);
+	return segment == null || segment.denominator <= 0 ? 0 : segment.days / segment.denominator;
+}
+
+/**
+ * The same arithmetic, with its working shown.
+ *
+ * A payslip stores `payslip_proration` entries, and every input to the fraction is stored beside
+ * its result there — the days, the divisor they were taken over and the basis that counted them —
+ * because a payslip has to be re-readable years after a jurisdiction changed how it prorates.
+ * `prorationFraction` is this function's numerator over its denominator and nothing else, so the
+ * figure a segment records and the figure the money was computed from cannot drift.
+ *
+ * `null` means the span does not touch the period at all, which is not the same as a fraction of
+ * zero: there is no segment to record, rather than a segment that paid nothing.
+ */
+export function prorationSegment(options: ProrationFractionOptions): {
+	readonly from: IsoDate;
+	readonly to: IsoDate;
+	readonly basis: NonNullable<Jurisdiction['proration']>;
+	readonly days: number;
+	readonly denominator: number;
+} | null {
+	if (options.covered == null) return null;
 	const basis = options.jurisdiction.proration;
 	if (basis == null)
 		throw new Error(`Jurisdiction ${options.jurisdiction.code} states no proration basis.`);
 	const covered = intersectDays(options.covered, options.period);
-	if (covered == null) return 0;
-	switch (basis.by) {
-		case 'CALENDAR_DAYS': {
-			const divisor = monthDays(options.period.start);
-			return inclusiveDays(covered.start, covered.end) / divisor;
+	if (covered == null) return null;
+	const measured = ((): { days: number; denominator: number } => {
+		switch (basis.by) {
+			case 'CALENDAR_DAYS':
+				return {
+					days: inclusiveDays(covered.start, covered.end),
+					denominator: monthDays(options.period.start)
+				};
+			case 'WORKING_DAYS':
+				return {
+					days: options.workingDaysIn(covered),
+					denominator: options.workingDaysIn(options.period)
+				};
+			case 'FIXED_DAYS': {
+				const divisor = Number(basis.days);
+				if (!(divisor > 0))
+					throw new Error('A FIXED_DAYS proration basis needs a positive divisor.');
+				return { days: inclusiveDays(covered.start, covered.end), denominator: divisor };
+			}
 		}
-		case 'WORKING_DAYS': {
-			const divisor = options.workingDaysIn(options.period);
-			if (divisor <= 0) return 0;
-			return options.workingDaysIn(covered) / divisor;
-		}
-		case 'FIXED_DAYS': {
-			const divisor = Number(basis.days);
-			if (!(divisor > 0)) throw new Error('A FIXED_DAYS proration basis needs a positive divisor.');
-			return inclusiveDays(covered.start, covered.end) / divisor;
-		}
-	}
-	throw new Error(`Unsupported proration basis: ${Reflect.get(basis, 'by')}`);
+		throw new Error(`Unsupported proration basis: ${Reflect.get(basis, 'by')}`);
+	})();
+	return { from: covered.start, to: covered.end, basis, ...measured };
 }

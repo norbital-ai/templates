@@ -52,7 +52,7 @@ export type ComponentCap = typeof componentCapSchema.Type;
  * - `FORMULA`   — a CEL expression over the payslip context.
  * - `SCHEDULE`  — the contracted amount from `employment_terms` (basic salary).
  *
- * There is deliberately NO overtime source. Overtime is derived from `time_entries` priced against
+ * There is deliberately NO overtime source. Overtime is derived from `work_days` priced against
  * the jurisdiction's `statutory_regime.overtime_rules`, and an overtime multiple comes from statute
  * rather than from tenant configuration — modelling it here let two companies in one jurisdiction
  * disagree about what the law says. Its statutory treatment lives on the scheme that charges it,

@@ -11,10 +11,15 @@
 	A right-hand sheet leaves the board on screen, which is what makes an overlap warning legible.
 
 	── WHAT THIS COMPONENT IS NOT ───────────────────────────────────────────────────────────────────
-	It writes nothing. Every save is handed back through `onSave`, because the two records behind a
-	day belong to two collections with two different write paths, and both must go through
+	It writes nothing. Every save is handed back through `onSave`, because the write must go through
 	`client.db.*` so every hook still runs. A component that reached for the client itself would be a
 	second write path, and the first thing it would skip is the lock ladder.
+
+	`DaySheetChange` still carries the plan and the actual as two independently-null halves even
+	though they are now two halves of ONE row. That is not legacy: the two are separately gated —
+	the plan needs a draft month and a controller, the clock needs neither — and each is written by
+	whoever is allowed to write it. One row, two authorities, which is exactly the split the field
+	grants on `work_days` draw.
 
 	── OVERTIME ─────────────────────────────────────────────────────────────────────────────────────
 	There is no overtime field here and none may be added. `overtime_authorized` and the five
@@ -23,7 +28,7 @@
 	that let somebody type an overtime figure would be re-introducing the buckets by another name.
 
 	── THE BREAK CLAMP ──────────────────────────────────────────────────────────────────────────────
-	`time_entries/+hooks.ts` refuses a closed day whose unpaid break is not strictly shorter than the
+	`work_days/+hooks.ts` refuses a closed day whose unpaid break is not strictly shorter than the
 	recorded worked time. That is not a hypothetical: four seeded rows carried a sixty-minute break
 	against nineteen to forty-one minutes of attendance, which is exactly the shape a naive editor
 	produces — it shortens a punch and leaves the break at the roster code's scheduled hour. So the
@@ -45,7 +50,8 @@
 	  rosterCodeOptions    readonly DaySheetRosterCodeOption[]   controller only; ignored otherwise
 	  rosterCodeId         string | null              the code the day currently carries
 	  note                 string | null              the note on the explicit entry, if any
-	  hasExplicitEntry     boolean                    false when the day is pattern-projected
+	  hasExplicitEntry     boolean                    false when the day carries no plan of its own
+	                       (pattern-projected, or a row that holds only attendance)
 	  planLocked           boolean                    the plan cannot be changed (no draft, published)
 	  planLockedReason     string | null              why, in the operator's words
 	  lockRung             LockRung                   OPEN | IN_DRAFT_RUN | CONSUMED | PAID
@@ -63,8 +69,8 @@
 	  onOpenChange         (open: boolean) => void    close requested
 
 	`DaySheetChange` carries `plan` and `attendance` independently, each null when that half is
-	unchanged, hidden or locked — they are two records in two collections and they save separately
-	even though one button starts both.
+	unchanged, hidden or locked — they are the two halves of one person-day, written by two different
+	authorities, and one button starts both.
 	════════════════════════════════════════════════════════════════════════════════════════════════
 -->
 <script lang="ts" module>
@@ -93,8 +99,12 @@
 	};
 
 	type DaySheetAttendanceChange = {
-		/** Null when nothing has been recorded for this day yet, which makes the write a create. */
-		readonly timeEntryId: string | null;
+		/**
+		 * The stored person-day, or null when no row exists for this day at all — which makes the
+		 * write a create. A row that exists only as a PLAN still carries an id, and a punch on it is
+		 * an update: `unique(employment_id, work_date)` is what says a person-day is one row.
+		 */
+		readonly workDayId: string | null;
 		readonly intervals: readonly IntervalDraft[];
 		/** Already clamped by `assessAttendanceDraft`, so the write path cannot refuse it for length. */
 		readonly breakMinutes: number;
@@ -306,7 +316,7 @@
 
 	/** Employee mode's one affordance: a day with nothing recorded, on a day that is not locked. */
 	const canReportMissingPunch = $derived(
-		mode === 'employee' && !frozen && !reporting && day?.timeEntryId == null && day?.past === true
+		mode === 'employee' && !frozen && !reporting && day?.attendanceState == null && day?.past === true
 	);
 
 	const planned = $derived(day == null ? null : scheduledMinutes(day));
@@ -357,7 +367,7 @@
 	/**
 	 * The plan half saves only when it CHANGED.
 	 *
-	 * The dialog this replaced wrote a `roster_entries` row on every save, which meant that editing a
+	 * The dialog this replaced wrote an explicit plan on every save, which meant that editing a
 	 * punch on a pattern-projected day quietly materialised an explicit assignment for it. An
 	 * explicit row is not a neutral record of the same fact: it is what stops the pattern from
 	 * re-projecting that day, so a month of attendance corrections used to pin a month of the
@@ -470,7 +480,7 @@
 					: null,
 			attendance: attendanceTouched
 				? {
-						timeEntryId: day?.timeEntryId ?? null,
+						workDayId: day?.workDayId ?? null,
 						intervals: draftIntervals.map((interval) => ({
 							start: instantFromDayStart(date, interval.startMinutes, timeZone),
 							end:
@@ -534,7 +544,7 @@
 								This button used to be rendered only when `canSwap`, so in a published month — or a
 								month nobody has drafted yet — the affordance simply was not there, and the operator
 								was left to conclude that swapping shifts is not something this product does. It is:
-								a swap is two `roster_entries` writes, and `roster_entries/+hooks.ts` refuses both in
+								a swap is two `work_days` writes, and `work_days/+hooks.ts` refuses both in
 								a month that is not a draft. That refusal is a fact worth stating, and the sentence
 								for it is already on screen — `planLockedReason` renders under the picker below and
 								names which of the two cases this is. A frozen day (payroll has taken it) disables it
@@ -595,7 +605,7 @@
 					{@render fieldRow(
 						t('roster.day_sheet_source'),
 						hasExplicitEntry
-							? day.origin === 'IMPORT'
+							? day.plannedOrigin === 'IMPORT'
 								? t('roster.origin_import')
 								: t('roster.origin_manual')
 							: t('roster.day_sheet_source_pattern')
@@ -820,9 +830,9 @@
 								: t('roster.day_sheet_lock_open'))}
 					</p>
 					<!--
-						SCOPED OUT — the `AMENDMENT` origin arm for a published month (§2.4 of the proposal).
+						SCOPED OUT — the `AMENDMENT` provenance arm for a published month (§2.4 of the proposal).
 						A single-cell write in a published month is refused whole today, and that stays true:
-						opening a narrow amendment path needs a new `roster_entries.origin` enum arm and a
+						opening a narrow amendment path needs a new `work_days.planned_origin` enum arm and a
 						migration, and the decision has not been taken. When it is, this panel is where the
 						amendment is offered and `planLockedReason` is the sentence it replaces.
 					-->
@@ -845,10 +855,10 @@
 			{/if}
 			<Sheet.Close disabled={saving}>{t('roster.cancel')}</Sheet.Close>
 			<!--
-				The label names what THIS mode's save actually writes. An employee has no `roster_entries`
-				grant and never sees the picker, so "Save assignment" described, to the one reader who
-				cannot do it, the half of the sheet they are not looking at — while the half they are
-				looking at is a punch.
+				The label names what THIS mode's save actually writes. An employee's `work_days` grant is
+				masked to the clock fields and they never see the picker, so "Save assignment" described,
+				to the one reader who cannot do it, the half of the sheet they are not looking at — while
+				the half they are looking at is a punch.
 			-->
 			<Button disabled={!savable} onclick={() => void save()}>
 				{mode === 'controller' ? t('roster.save_assignment') : t('roster.save_punch')}

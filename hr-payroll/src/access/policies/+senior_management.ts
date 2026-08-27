@@ -8,7 +8,7 @@ import {
 	peopleGrants,
 	referenceGrants,
 	statutoryGrants,
-	timeEntryApproval
+	workDayWriteGrants
 } from '../../lib/policy_grants.js';
 import type { Policy } from './$types.js';
 
@@ -32,7 +32,7 @@ import type { Policy } from './$types.js';
  * role is one of the two the controller's payroll create escalates to, and approving a run whose
  * corrections you are forbidden to read is a signature on a figure you cannot check. That is a
  * choice, and the narrower reading — HR only — is one grant away: put `NOT_AN_ADJUSTMENT` on the
- * `component_entries` read below, exactly as `+manager.ts` does.
+ * `obligations` read below, exactly as `+manager.ts` does.
  */
 export default {
 	description:
@@ -69,15 +69,19 @@ export default {
 		statutoryGrants('read'),
 		peopleGrants('read'),
 		peopleGrants('create', 'update', 'delete'),
-		grantsOn('time_entries', ['read']),
+		grantsOn('work_days', ['read']),
 
 		// Unconditional, so corrections are visible. See the note above for why this rank and not the
 		// one below it.
-		grantsOn('component_entries', ['read', 'create', 'update', 'delete']),
+		grantsOn('obligations', ['read', 'create', 'update', 'delete']),
 
-		grantOn('time_entries', 'create', { approval: timeEntryApproval }),
-		grantOn('time_entries', 'update', { approval: timeEntryApproval }),
-		grantsOn('time_entries', ['delete']),
+		// Both sides of the person-day: publish the schedule, and record what happened against it.
+		// The approval resolver decides per write — a roster edit is not reviewed, and an attendance
+		// write is, which is exactly what the two collections said before they became one. Deleting
+		// is unreviewed and always was: removing a day withdraws a claim on payroll rather than
+		// making one, and routing a withdrawal through the manager who would have to notice it only
+		// leaves the bad row sitting in the run.
+		workDayWriteGrants(),
 
 		grantsOn('leave_requests', ['read', 'update', 'delete']),
 		grantOn('leave_requests', 'create', { approval: leaveApproval }),

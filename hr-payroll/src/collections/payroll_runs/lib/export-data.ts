@@ -1,8 +1,14 @@
 /**
  * Loading a settled run back out for export.
  *
- * The workbook, the bank file and the payslips are all views of the same four collections. This
- * assembles that view once, so the three artefacts never disagree with each other.
+ * The workbook, the bank file and the payslips are all views of the same records. This assembles
+ * that view once, so the three artefacts never disagree with each other.
+ *
+ * Everything the run settled is read back from where it was stored and never recomputed: the
+ * contracted amounts and the statutory charges are inlined on the payslip, and everything one input
+ * caused is a `payslip_adjustments` row. Rows whose amount is zero are settlement claims rather than
+ * figures — the run read the source and priced it at nothing — so they carry no pay component and
+ * contribute no workbook line.
  */
 
 import { Effect, Schema } from 'effect';
@@ -14,7 +20,7 @@ import type { ReportLine, ReportPayslip } from './report.js';
 import { rosterCodeKind, workWindow } from '../../../lib/scheduling/roster-code.js';
 import { patternRosterCodeId } from '../../../lib/scheduling/work-pattern.js';
 import type { WorkPattern } from '../../../datatypes/work_pattern/+definition.js';
-import { normalizedWorkedIntervals, overtimeBandCode, type TimeEntryLike } from './overtime.js';
+import { normalizedWorkedIntervals, overtimeBandCode, type WorkDayLike } from './overtime.js';
 import type { WorkspaceRow } from '../$types.js';
 
 type RunExport = {
@@ -47,7 +53,7 @@ type RunRow = Pick<
 	'id' | 'period' | 'pay_date' | 'attendance_from' | 'attendance_to'
 >;
 
-function timestampHours(row: TimeEntryLike): number {
+function timestampHours(row: WorkDayLike): number {
 	const elapsed = normalizedWorkedIntervals(row).reduce(
 		(total, interval) => total + (interval.end - interval.start) / 3_600_000,
 		0
@@ -95,10 +101,14 @@ export function loadRunExports(
 			.map((run) => requiredDateKey(run.attendance_to, 'payroll_runs.attendance_to'))
 			.toSorted()
 			.at(-1)!;
-		const [lines, employments, payComponents, terms, timeEntries, rosters] = yield* Effect.all(
+		const [adjustments, employments, payComponents, terms, workDays] = yield* Effect.all(
 			[
-				api.db.payslip_lines.findMany({
+				api.db.payslip_adjustments.findMany({
 					where: { payslip_id: { in: payslipIds } },
+					// The obligation's own arm, hydrated through the reference rather than fetched by a
+					// second query: the workbook reports loan recovery in its own column, and
+					// `terms = SCHEDULED` is the whole of what makes an adjustment one.
+					with: { source: { OBLIGATION: { columns: { terms: true } } } },
 					limit: PAGE_LIMIT
 				}),
 				api.db.employments.findMany({
@@ -110,14 +120,10 @@ export function loadRunExports(
 					where: { employment_id: { in: employmentIds } },
 					limit: PAGE_LIMIT
 				}),
-				api.db.time_entries.findMany({
-					where: {
-						employment_id: { in: employmentIds },
-						work_date: { gte: attendanceFrom, lte: attendanceTo }
-					},
-					limit: PAGE_LIMIT
-				}),
-				api.db.roster_entries.findMany({
+				// One read where there were two. Plan and punch are one row, so the schedule this
+				// export reports and the hours it reports come from the same query and cannot disagree
+				// about which days existed.
+				api.db.work_days.findMany({
 					where: {
 						employment_id: { in: employmentIds },
 						work_date: { gte: attendanceFrom, lte: attendanceTo }
@@ -127,10 +133,9 @@ export function loadRunExports(
 			],
 			{ concurrency: 'unbounded' }
 		);
-		readApi.reads.assertComplete(lines, 'payslip lines');
+		readApi.reads.assertComplete(adjustments, 'payslip adjustments');
 		readApi.reads.assertComplete(terms, 'employment terms');
-		readApi.reads.assertComplete(timeEntries, 'time entries');
-		readApi.reads.assertComplete(rosters, 'roster entries');
+		readApi.reads.assertComplete(workDays, 'work days');
 
 		const employeeIds = [...new Set(employments.map((row) => row.employee_id))];
 		// Only working days name a shift; rest and off days schedule none.
@@ -141,7 +146,7 @@ export function loadRunExports(
 		// export reports as the fraction of it somebody happened to override.
 		const shiftIds = [
 			...new Set([
-				...rosters.map((row) => row.shift_definition_id).filter((id) => id != null),
+				...workDays.map((row) => row.shift_definition_id).filter((id) => id != null),
 				...terms.flatMap((row) => patternRosterCodeIds(row.work_pattern))
 			])
 		];
@@ -163,10 +168,12 @@ export function loadRunExports(
 		readApi.reads.assertComplete(employees, 'employees');
 		readApi.reads.assertComplete(shifts, 'shift definitions');
 
+		// The schemes charged are on the payslips themselves now, one entry per scheme with both
+		// shares on it, so the ids come out of the rows already in hand rather than out of a join.
 		const contributionIds = [
 			...new Set(
-				lines.flatMap((line) =>
-					line.statutory_contribution_id == null ? [] : [line.statutory_contribution_id]
+				payslips.flatMap((payslip) =>
+					payslip.statutory.map((charge) => charge.statutory_contribution_id)
 				)
 			)
 		];
@@ -181,11 +188,10 @@ export function loadRunExports(
 		const employmentById = new Map(employments.map((row) => [row.id, row]));
 		const employeeById = new Map(employees.map((row) => [row.id, row]));
 		const termsByEmployment = groupBy(terms, (row) => row.employment_id);
-		const timeByEmployment = groupBy(timeEntries, (row) => row.employment_id);
-		const rosterByEmployment = groupBy(rosters, (row) => row.employment_id);
+		const workDaysByEmployment = groupBy(workDays, (row) => row.employment_id);
 		const shiftById = new Map(shifts.map((row) => [row.id, row]));
 		const contributionCodeById = new Map(contributions.map((row) => [row.id, row.code]));
-		const linesByPayslip = groupBy(lines, (row) => row.payslip_id);
+		const adjustmentsByPayslip = groupBy(adjustments, (row) => row.payslip_id);
 		const payslipsByRun = groupBy(payslips, (row) => row.payroll_run_id);
 
 		return runs.map((run) => {
@@ -218,14 +224,15 @@ export function loadRunExports(
 				// out blank. The terms in force are the ones covering the last day they were employed.
 				const termsAsOf = exitDate != null && exitDate < runPayDate ? exitDate : runPayDate;
 				const activeTerms = effectiveOn(employmentTerms, termsAsOf);
-				const rosterByDate = new Map(
-					(rosterByEmployment.get(payslip.employment_id) ?? []).map((row) => [
-						requiredDateKey(row.work_date, 'roster_entries.work_date'),
-						row
-					])
+				const employmentDays = workDaysByEmployment.get(payslip.employment_id) ?? [];
+				const plannedByDate = new Map(
+					employmentDays.map((row) => [requiredDateKey(row.work_date, 'work_days.work_date'), row])
 				);
-				const runTimes = (timeByEmployment.get(payslip.employment_id) ?? []).filter(
-					(row) => row.work_date >= runAttendanceFrom && row.work_date <= runAttendanceTo
+				const runTimes = employmentDays.filter(
+					(row) =>
+						row.worked_intervals != null &&
+						row.work_date >= runAttendanceFrom &&
+						row.work_date <= runAttendanceTo
 				);
 				/**
 				 * The schedule the run priced, day by day, on the same rule the engine resolves it by:
@@ -239,8 +246,8 @@ export function loadRunExports(
 				 * Normal Hours column of zero beside an Actual Hours column of a full month.
 				 */
 				const scheduled = runDates.flatMap((date) => {
-					const explicit = rosterByDate.get(date);
-					if (explicit != null) {
+					const explicit = plannedByDate.get(date);
+					if (explicit?.shift_definition_id != null) {
 						const shift = shiftById.get(explicit.shift_definition_id);
 						return shift == null ? [] : [{ code: explicit.assignment_code ?? shift.code, shift }];
 					}
@@ -269,78 +276,102 @@ export function loadRunExports(
 							account_number: account.bank_account_number
 						}
 					});
-				const settledLines = linesByPayslip.get(payslip.id) ?? [];
-				const reportLines: ReportLine[] = settledLines
-					.toSorted((left, right) => Number(left.sequence) - Number(right.sequence))
-					.flatMap((line): ReportLine[] => {
-						const kind = line.component?.kind;
-						// A derived overtime line links to no pay component, because there is none: it
+				/**
+				 * The report's line list, assembled from the two planes the payslip stores.
+				 *
+				 * The contracted amounts come first, in the catalogue's own order, then everything one
+				 * input caused in the order the run settled it. Proration is not a line: it is the
+				 * working behind a base amount, and a workbook column that summed it would count the
+				 * wage twice.
+				 */
+				const payslipAdjustments = (adjustmentsByPayslip.get(payslip.id) ?? []).toSorted(
+					(left, right) => Number(left.sequence) - Number(right.sequence)
+				);
+				const reportLine = (
+					payComponentId: string | null,
+					amount: number,
+					quantity: number | null
+				): ReportLine[] => {
+					if (payComponentId == null) return [];
+					const payComponent = componentById.get(payComponentId);
+					const definition = payComponent?.definition ?? null;
+					return [
+						{
+							payComponentCode: payComponent?.code ?? 'UNKNOWN',
+							payComponentName: payComponent?.code ?? 'Unknown component',
+							nature: payComponent?.nature ?? 'INFORMATION',
+							calculationSource: definition?.source ?? 'DERIVED',
+							amount,
+							quantity,
+							isCompanyDirect:
+								definition?.source === 'ENTRY' && definition.settlement === 'COMPANY_DIRECT',
+							isClaim: definition?.source === 'ENTRY' && definition.cap != null,
+							isLoanInstalment: false,
+							overtimeDayType: null,
+							isOvertimeExcess: false
+						}
+					];
+				};
+				const reportLines: ReportLine[] = [
+					...payslip.base.flatMap((entry) =>
+						reportLine(entry.pay_component_id, Number(entry.amount), null)
+					),
+					...payslipAdjustments.flatMap((row): ReportLine[] => {
+						const band = row.overtime_band;
+						// A derived overtime row links to no pay component, because there is none: it
 						// names the statutory band that priced it, and that band supplies its code, its
 						// day type and the fact that it is an earning.
-						if (kind === 'OVERTIME' || kind === 'OVERTIME_EXCESS') {
-							const excess = kind === 'OVERTIME_EXCESS';
+						if (band != null) {
 							const code = overtimeBandCode({
-								excess,
-								dayType: line.component.day_type,
-								measure: line.component.measure,
-								bandFrom: Number(line.component.band_from)
+								excess: band.excess,
+								dayType: band.day_type,
+								measure: band.measure,
+								bandFrom: Number(band.band_from)
 							});
 							return [
 								{
 									payComponentCode: code,
 									payComponentName: code,
 									nature: 'EARNING',
-									calculationSource: kind,
-									amount: Number(line.amount),
-									quantity: line.quantity == null ? null : Number(line.quantity),
+									calculationSource: band.excess ? 'OVERTIME_EXCESS' : 'OVERTIME',
+									amount: Number(row.amount),
+									quantity: row.quantity == null ? null : Number(row.quantity),
 									isCompanyDirect: false,
 									isClaim: false,
 									isLoanInstalment: false,
-									overtimeDayType: line.component.day_type,
-									isOvertimeExcess: excess
+									overtimeDayType: band.day_type,
+									isOvertimeExcess: band.excess
 								}
 							];
 						}
-						if (line.pay_component_id == null) return [];
-						const payComponent = componentById.get(line.pay_component_id);
-						const definition = payComponent?.definition ?? null;
-						return [
-							{
-								payComponentCode: payComponent?.code ?? 'UNKNOWN',
-								payComponentName: payComponent?.code ?? 'Unknown component',
-								nature: payComponent?.nature ?? 'INFORMATION',
-								calculationSource: definition?.source ?? 'DERIVED',
-								amount: Number(line.amount),
-								quantity: line.quantity == null ? null : Number(line.quantity),
-								isCompanyDirect:
-									definition?.source === 'ENTRY' && definition.settlement === 'COMPANY_DIRECT',
-								isClaim: definition?.source === 'ENTRY' && definition.cap != null,
-								isLoanInstalment: kind === 'LOAN_INSTALMENT',
-								overtimeDayType: null,
-								isOvertimeExcess: false
-							}
-						];
-					});
+						// A settlement-lock row priced its source at nothing and names no component; it
+						// is a claim, not a figure, and a workbook has no column for it.
+						return reportLine(
+							row.pay_component_id,
+							Number(row.amount),
+							row.quantity == null ? null : Number(row.quantity)
+						).map((line) => ({
+							...line,
+							// Recovery of a SCHEDULED obligation is the one adjustment a workbook reports
+							// separately, and the obligation's arm is what says so.
+							isLoanInstalment:
+								row.source.kind === 'OBLIGATION' && row.source.record?.terms === 'SCHEDULED'
+						}));
+					})
+				];
 				const contributionTotals = new Map<
 					string,
 					{ base: number; employee: number; employer: number }
 				>();
-				for (const line of settledLines) {
-					if (line.statutory_contribution_id == null) continue;
-					const code = contributionCodeById.get(line.statutory_contribution_id);
+				for (const charge of payslip.statutory) {
+					const code = contributionCodeById.get(charge.statutory_contribution_id);
 					if (code == null) continue;
-					const component = line.component;
-					if (component == null) continue;
-					if (component.kind !== 'STATUTORY_EMPLOYEE' && component.kind !== 'STATUTORY_EMPLOYER')
-						continue;
-					const current = contributionTotals.get(code) ?? { base: 0, employee: 0, employer: 0 };
+					// One entry per scheme, both shares on it, so there is no second row to pair with
+					// and no base to guard against double-counting.
 					contributionTotals.set(code, {
-						base: Math.max(current.base, Number(component.base_amount)),
-						employee:
-							current.employee +
-							(component.kind === 'STATUTORY_EMPLOYEE' ? Number(line.amount) : 0),
-						employer:
-							current.employer + (component.kind === 'STATUTORY_EMPLOYER' ? Number(line.amount) : 0)
+						base: Number(charge.base_amount),
+						employee: Number(charge.employee_amount),
+						employer: Number(charge.employer_amount)
 					});
 				}
 				return {

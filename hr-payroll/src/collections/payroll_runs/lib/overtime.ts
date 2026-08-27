@@ -3,12 +3,12 @@
  *
  * Overtime is the one place payroll depends on what actually happened rather than what was agreed,
  * and it is where a rebuild is most likely to silently change someone's pay. Overtime is **computed
- * here, never stored**: a time entry records punches, and every hour of overtime on this payslip is
+ * here, never stored**: a work day records punches, and every hour of overtime on this payslip is
  * derived from those punches, the statutory day type and the effective employment terms. Nothing
  * upstream may hand payroll a duration it did not derive, because a stored duration and the clock it
  * came from can disagree, and only one of them is what the employee actually worked.
  *
- * A time entry stores only observed work intervals and one actual unpaid-break total. There is no
+ * A work day stores only observed work intervals and one actual unpaid-break total. There is no
  * overtime punch, overtime state or payable overtime field to drift from those observations. On an
  * ordinary day, overtime is the observed work outside the scheduled WORK-code window. On a REST,
  * OFF or observed public holiday, every observed worked hour is overtime. The result is floored to
@@ -114,7 +114,7 @@ const ruleEquivalence = Equivalence.Struct({
 const MINUTE_MS = 60_000;
 const HOUR_MS = 3_600_000;
 
-const TimeEntryLikeSchema = Schema.Struct({
+const WorkDayLikeSchema = Schema.Struct({
 	id: Schema.String,
 	work_date: Schema.String,
 	worked_intervals: Schema.NullOr(
@@ -127,7 +127,7 @@ const TimeEntryLikeSchema = Schema.Struct({
 	),
 	break_minutes: Schema.Number
 });
-export type TimeEntryLike = Schema.Schema.Type<typeof TimeEntryLikeSchema>;
+export type WorkDayLike = Schema.Schema.Type<typeof WorkDayLikeSchema>;
 
 /** Minutes since midnight of a `HH:MM[:SS]` wall-clock time. */
 export function clockMinutes(value: string): number {
@@ -149,21 +149,21 @@ type Interval = Schema.Schema.Type<typeof IntervalSchema>;
  * makes payroll safe against historical/imported duplicates: the same minute can never be paid
  * twice. A missing end is the sole representation of an open clock and blocks the run.
  */
-export function normalizedWorkedIntervals(entry: TimeEntryLike): readonly Interval[] {
-	const workDate = requiredDateKey(entry.work_date, 'time_entries.work_date');
+export function normalizedWorkedIntervals(entry: WorkDayLike): readonly Interval[] {
+	const workDate = requiredDateKey(entry.work_date, 'work_days.work_date');
 	if (entry.worked_intervals == null)
-		throw new Error(`Time entry on ${workDate} has no worked intervals.`);
+		throw new Error(`Work day ${entry.id} on ${workDate} recorded no attendance at all.`);
 	const parsed = entry.worked_intervals
 		.map((interval) => {
 			// The record, not only the day. Dozens of people clock on any given date, so a refusal that
 			// named the date alone told whoever had to fix it which day to search and nothing more.
 			if (interval.end == null)
-				throw new Error(`Time entry ${entry.id} on ${workDate} is still open.`);
+				throw new Error(`Work day ${entry.id} on ${workDate} is still open.`);
 			const start = instant(interval.start);
 			const end = instant(interval.end);
 			if (!Number.isFinite(start) || !Number.isFinite(end) || end <= start)
 				throw new Error(
-					`Time entry ${entry.id} on ${workDate} contains an invalid worked interval ` +
+					`Work day ${entry.id} on ${workDate} contains an invalid worked interval ` +
 						`(${String(interval.start)} → ${String(interval.end)}).`
 				);
 			return { start, end };
@@ -191,7 +191,7 @@ function midnight(date: IsoDate): number {
  * never below zero — the schema records a flat `break_minutes` rather than break windows, so an
  * overlap test is not available here (see the note in the module report).
  */
-function clockedWorkHours(entry: TimeEntryLike): number {
+function clockedWorkHours(entry: WorkDayLike): number {
 	const elapsed = normalizedWorkedIntervals(entry).reduce(
 		(total, interval) => total + (interval.end - interval.start) / HOUR_MS,
 		0
@@ -222,8 +222,8 @@ function overlapHours(intervals: readonly Interval[], start: number, end: number
  * scheduled night shift. The overlap is derived from the actual clock rather than a payroll
  * workbook amount.
  */
-export function philippineNightWorkHours(entry: TimeEntryLike): number {
-	const workDate = requiredDateKey(entry.work_date, 'time_entries.work_date');
+export function philippineNightWorkHours(entry: WorkDayLike): number {
+	const workDate = requiredDateKey(entry.work_date, 'work_days.work_date');
 	const nightStart = midnight(workDate) + 22 * HOUR_MS;
 	const nightEnd = midnight(workDate) + 30 * HOUR_MS;
 	return overlapHours(normalizedWorkedIntervals(entry), nightStart, nightEnd);
@@ -232,7 +232,7 @@ export function philippineNightWorkHours(entry: TimeEntryLike): number {
 /** One day's overtime, before it is priced. */
 export type DailyOvertime = {
 	readonly date: IsoDate;
-	readonly timeEntryId: string;
+	readonly workDayId: string;
 	readonly dayType: DayType;
 	/**
 	 * Floored to the half hour, and already net of any unpaid statutory break shortfall. Never
@@ -260,7 +260,7 @@ export type DailyOvertime = {
 };
 
 /**
- * Derive one day's overtime hours from one attendance record.
+ * Derive one day's overtime hours from one work day's attendance.
  *
  * Returns `null` when the day earns nothing, which is the common case: the gates fire, or the
  * overrun floors away to zero. A day that earns nothing produces no entry at all rather than a
@@ -272,11 +272,11 @@ export type DailyOvertime = {
  * nothing is assessed and nothing is deducted.
  */
 export function deriveDailyOvertime(
-	entry: TimeEntryLike,
+	entry: WorkDayLike,
 	day: ScheduledDay,
 	restBreakRules?: readonly StatutoryRestBreakRule[] | null
 ): DailyOvertime | null {
-	const workDate = requiredDateKey(entry.work_date, 'time_entries.work_date');
+	const workDate = requiredDateKey(entry.work_date, 'work_days.work_date');
 	const intervals = normalizedWorkedIntervals(entry);
 	const totalWorkHours = clockedWorkHours(entry);
 	let raw = totalWorkHours;
@@ -324,7 +324,7 @@ export function deriveDailyOvertime(
 	if (hours <= 0) return null;
 	return {
 		date: workDate,
-		timeEntryId: entry.id,
+		workDayId: entry.id,
 		dayType: day.dayType,
 		hours,
 		normalHours: day.normalHours,
@@ -349,7 +349,7 @@ const PricedSegmentSchema = Schema.Struct({
 	multiple: Schema.Number,
 	award: Schema.Literals(['HOURLY_MULTIPLE', 'DAY_WAGE_MULTIPLE']),
 	date: Schema.String,
-	timeEntryId: Schema.String
+	workDayId: Schema.String
 });
 export type PricedSegment = Schema.Schema.Type<typeof PricedSegmentSchema>;
 
@@ -385,7 +385,7 @@ export function overtimeBandCode(
 /** Statutory excess value reclassified to incentive rather than discarded. */
 const ExcessHoursSchema = Schema.Struct({
 	date: Schema.String,
-	timeEntryId: Schema.String,
+	workDayId: Schema.String,
 	dayType: RuleDayTypeSchema,
 	measure: Schema.Literals(['BEYOND_NORMAL', 'FROM_START_OF_DAY']),
 	bandFrom: Schema.Number,
@@ -587,7 +587,7 @@ export function priceDay(options: {
 				multiple: highest.multiple,
 				award: highest.award,
 				date: options.day.date,
-				timeEntryId: options.day.timeEntryId
+				workDayId: options.day.workDayId
 			});
 		}
 
@@ -603,7 +603,7 @@ export function priceDay(options: {
 				multiple: slice.rule.multiple,
 				award: slice.rule.award,
 				date: options.day.date,
-				timeEntryId: options.day.timeEntryId
+				workDayId: options.day.workDayId
 			});
 		}
 		return segments;
@@ -626,7 +626,7 @@ export function priceDay(options: {
 		if (additionalMultiple > 0) {
 			excess.push({
 				date: options.day.date,
-				timeEntryId: options.day.timeEntryId,
+				workDayId: options.day.workDayId,
 				dayType,
 				measure: fullDayWage.measure,
 				bandFrom: fullDayWage.bandFrom,
@@ -647,7 +647,7 @@ export function priceDay(options: {
 		if (movedHours <= 0) continue;
 		excess.push({
 			date: options.day.date,
-			timeEntryId: options.day.timeEntryId,
+			workDayId: options.day.workDayId,
 			dayType,
 			measure: fullHourly.measure,
 			bandFrom: fullHourly.bandFrom,

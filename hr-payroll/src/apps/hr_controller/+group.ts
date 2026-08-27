@@ -3,7 +3,7 @@ import { group } from '@norbital-ai/bolt/authoring';
 /**
  * Seven apps, not eight.
  *
- * `+time_attendance.svelte` was retired: it held one chart and one editable `time_entries` table,
+ * `+time_attendance.svelte` was retired: it held one chart and one editable attendance table,
  * and an app that is one chart is not an app. The chart is now Scheduling's "Exceptions" tab, its
  * import is on the board's action menu beside the roster import, and the table is deleted rather
  * than moved — a table of punches beside a board of person-days is two places to read the same

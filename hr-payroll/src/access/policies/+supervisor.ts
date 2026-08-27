@@ -1,5 +1,6 @@
 import {
 	NOT_AN_ADJUSTMENT,
+	attendanceWriteGrants,
 	employeeSelfServiceGrants,
 	grantOn,
 	grantsOn,
@@ -8,8 +9,7 @@ import {
 	peopleGrants,
 	referenceGrants,
 	settlementLedgerGrants,
-	statutoryGrants,
-	timeEntryApproval
+	statutoryGrants
 } from '../../lib/policy_grants.js';
 import type { Policy } from './$types.js';
 
@@ -29,7 +29,8 @@ import type { Policy } from './$types.js';
  * below routes to. Inventing a `manager_id` column to narrow the read would be a schema change made
  * to satisfy a policy comment, and it would still be unpopulated.
  *
- * No `payroll_runs`, `payslips` or `payslip_lines` grant of any kind. Viewing payroll is enumerated
+ * No `payroll_runs` or `payslips` grant of any kind, and only the settlement-claim columns of
+ * `payslip_adjustments`. Viewing payroll is enumerated
  * authority held by `hr_controller`, `hr_manager` and `senior_management`; it is not something rank
  * accumulates. The `hr_controller` app group is still granted so the review screens are reachable,
  * and the payroll screen inside it renders empty — which is the correct outcome: navigation is not
@@ -69,11 +70,13 @@ export default {
 		referenceGrants('read'),
 		statutoryGrants('read'),
 		peopleGrants('read'),
-		grantsOn('time_entries', ['read']),
+		// The whole person-day, read. A supervisor sees the team's schedule and the team's clock;
+		// what they may *write* is the narrower half, below.
+		grantsOn('work_days', ['read']),
 		grantsOn('leave_requests', ['read']),
 		// The narrowing has to be stated here, not subtracted higher up: one unconditional
-		// `component_entries` read in any policy this subject matches would erase it.
-		grantOn('component_entries', 'read', {
+		// `obligations` read in any policy this subject matches would erase it.
+		grantOn('obligations', 'read', {
 			where: NOT_AN_ADJUSTMENT,
 			dependencies: []
 		}),
@@ -82,8 +85,14 @@ export default {
 		// Attendance becomes a payroll source, so writing it is reviewed by the direct manager even
 		// when a supervisor is the one writing it. Runtime derives the durable configuration identity
 		// from this policy and grant coordinate, keeping its history distinct from HR's.
-		grantOn('time_entries', 'create', { approval: timeEntryApproval }),
-		grantOn('time_entries', 'update', { approval: timeEntryApproval }),
+		//
+		// The field mask is the other half, and it is new. `roster_entries` and `time_entries` merged
+		// into one collection, and a supervisor held read on the first and write on the second; an
+		// unmasked write grant on the merged row would have handed this rank the roster board it never
+		// had. `attendanceWriteGrants` permits the clock columns and nothing else, and every column it
+		// permits is one the approval resolver reviews — so a supervisor cannot touch attendance on
+		// their own authority, and cannot touch the schedule on anybody's.
+		attendanceWriteGrants('create', 'update'),
 
 		// Raising leave is reviewed; amending one already raised is not. A supervisor amending a
 		// request is acting as its reviewer, so routing that back through review would ask them to

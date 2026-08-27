@@ -1,12 +1,24 @@
 <script lang="ts">
+	/**
+	 * One person's settlement, in the four things a payslip comprises.
+	 *
+	 * BASE, PRORATION and STATUTORY are columns on this record — they point at no input, which is
+	 * exactly why they are inlined — so they are read straight off `record` and need no table.
+	 * ADJUSTMENTS is the one relation, and the one polymorphic thing: a row exists there only when
+	 * there is a single concrete input to name.
+	 *
+	 * This replaces two tables. `payslip_lines` said what was produced and `payslip_sources` said
+	 * what was read, and every question about overtime needed both — the line named a statutory band
+	 * and the clock records that priced it sat in another table with no amount on them. One row says
+	 * both now, and a row that produced nothing is a zero, not an absence.
+	 */
 	import { FormattedValueRenderer } from '@norbital-ai/ui/data-renderer';
-	/** One person's settlement. Every row below is the physical payslip-to-component junction. */
 	import { client } from '../../lib/workspace-client.js';
 	import { useI18n } from '@norbital-ai/ui/i18n';
 	import type { TenantI18nKeys } from '$bolt/i18n-keys';
 	import type { RepresentationProps } from './$types.js';
 	import { CollectionTable } from '@norbital-ai/ui/collection-table';
-	import { Bound, Grid, Stack } from '@norbital-ai/ui/layout';
+	import { Bound, Grid, Scroll, Stack } from '@norbital-ai/ui/layout';
 	import { Result, Schema } from 'effect';
 	import { formatCalendarDate, formatNumeric } from '../../lib/ui/display-formatters.js';
 
@@ -16,23 +28,14 @@
 
 	// CollectionTable erases its query-specific row type at the render callback, so nested values are
 	// decoded once at that boundary instead of cast by hand.
-	const componentRefSchema = Schema.Struct({
-		code: Schema.optional(Schema.NullOr(Schema.String)),
-		name: Schema.optional(Schema.NullOr(Schema.String))
-	});
-	const payslipLineRefSchema = Schema.Struct({
+	const obligationSourceSchema = Schema.Struct({
+		reference: Schema.optional(Schema.NullOr(Schema.String)),
 		description: Schema.optional(Schema.NullOr(Schema.String)),
 		event_date: Schema.optional(Schema.NullOr(Schema.String))
 	});
-	const nestedLineSchema = Schema.Struct({
-		payslip_line_pay_component: Schema.optional(Schema.NullOr(componentRefSchema)),
-		entry_payslip_lines: Schema.optional(Schema.NullOr(payslipLineRefSchema)),
-		payslip_line_statutory_contribution: Schema.optional(Schema.NullOr(componentRefSchema))
-	});
-	type NestedLine = Schema.Schema.Type<typeof nestedLineSchema>;
-	const attendanceSourceSchema = Schema.Struct({
+	const workDaySourceSchema = Schema.Struct({
 		work_date: Schema.optional(Schema.NullOr(Schema.String)),
-		time_entry_employment: Schema.optional(
+		work_day_employment: Schema.optional(
 			Schema.NullOr(
 				Schema.Struct({ employee_number: Schema.optional(Schema.NullOr(Schema.String)) })
 			)
@@ -45,12 +48,20 @@
 			Schema.NullOr(Schema.Struct({ code: Schema.optional(Schema.NullOr(Schema.String)) }))
 		)
 	});
-	const nestedSourceSchema = Schema.Struct({
+	const adjustmentRowSchema = Schema.Struct({
+		payslip_adjustment_pay_component: Schema.optional(
+			Schema.NullOr(Schema.Struct({ code: Schema.optional(Schema.NullOr(Schema.String)) }))
+		),
 		source: Schema.Union([
 			Schema.Struct({
-				kind: Schema.Literal('TIME_ENTRY'),
+				kind: Schema.Literal('OBLIGATION'),
 				id: Schema.String,
-				record: Schema.NullOr(attendanceSourceSchema)
+				record: Schema.NullOr(obligationSourceSchema)
+			}),
+			Schema.Struct({
+				kind: Schema.Literal('WORK_DAY'),
+				id: Schema.String,
+				record: Schema.NullOr(workDaySourceSchema)
 			}),
 			Schema.Struct({
 				kind: Schema.Literal('LEAVE_REQUEST'),
@@ -59,7 +70,6 @@
 			})
 		])
 	});
-	type NestedSource = Schema.Schema.Type<typeof nestedSourceSchema>;
 	const payslipSummarySchema = Schema.Struct({
 		payslip_employment: Schema.optional(
 			Schema.NullOr(
@@ -74,8 +84,7 @@
 	});
 	type PayslipSummary = Schema.Schema.Type<typeof payslipSummarySchema>;
 
-	const decodeNestedLine = Schema.decodeUnknownResult(nestedLineSchema);
-	const decodeNestedSource = Schema.decodeUnknownResult(nestedSourceSchema);
+	const decodeAdjustmentRow = Schema.decodeUnknownResult(adjustmentRowSchema);
 	const decodePayslipSummary = Schema.decodeUnknownResult(payslipSummarySchema);
 
 	const summaryQuery = $derived(
@@ -100,51 +109,98 @@
 	});
 	const employment = $derived(summary?.payslip_employment ?? null);
 
-	function componentLabel(row: unknown): string {
-		const parsed = decodeNestedLine(row);
-		if (!Result.isSuccess(parsed)) return t('component.derived_line');
-		const component = parsed.success.payslip_line_pay_component;
-		if (component?.code) return component.code;
-		const statutory = parsed.success.payslip_line_statutory_contribution;
-		if (statutory?.code)
-			return statutory.name ? `${statutory.code} · ${statutory.name}` : statutory.code;
-		return t('component.derived_line');
-	}
+	/**
+	 * The catalogue names the inlined arrays deliberately do not carry.
+	 *
+	 * `payslips.base` holds a `pay_components` id and no foreign key, because a settled payslip is a
+	 * frozen statement of what was paid and does not become wrong when a component is archived. The
+	 * screen still has to say `BASIC` rather than a uuid, so it resolves the ids it is holding — one
+	 * query for the whole payslip, not one per row.
+	 */
+	const base = $derived(record?.base ?? []);
+	const proration = $derived(record?.proration ?? []);
+	const statutory = $derived(record?.statutory ?? []);
 
-	function entryLabel(row: unknown): string {
-		const parsed = decodeNestedLine(row);
-		if (!Result.isSuccess(parsed)) return '—';
-		const entry = parsed.success.entry_payslip_lines;
-		if (entry?.description) return entry.description;
-		return entry?.event_date == null ? '—' : formatCalendarDate(entry.event_date);
+	const componentsQuery = $derived.by(() => {
+		const ids = [...new Set(base.map((entry) => entry.pay_component_id))];
+		if (ids.length === 0) return null;
+		return client.db.pay_components.findMany({
+			where: { id: { in: ids } },
+			columns: { id: true, code: true, name: true },
+			limit: 200
+		});
+	});
+	const componentLabelById = $derived(
+		new Map(
+			(componentsQuery?.current ?? []).map((component) => [
+				component.id,
+				[component.code, component.name].filter((part) => part != null && part !== '').join(' · ')
+			])
+		)
+	);
+
+	const schemesQuery = $derived.by(() => {
+		const ids = [...new Set(statutory.map((charge) => charge.statutory_contribution_id))];
+		if (ids.length === 0) return null;
+		return client.db.statutory_contributions.findMany({
+			where: { id: { in: ids } },
+			columns: { id: true, code: true, name: true },
+			limit: 200
+		});
+	});
+	const schemeLabelById = $derived(
+		new Map(
+			(schemesQuery?.current ?? []).map((scheme) => [
+				scheme.id,
+				[scheme.code, scheme.name].filter((part) => part != null && part !== '').join(' · ')
+			])
+		)
+	);
+
+	function componentLabel(row: unknown): string {
+		const parsed = decodeAdjustmentRow(row);
+		if (!Result.isSuccess(parsed)) return t('component.derived_line');
+		const code = parsed.success.payslip_adjustment_pay_component?.code;
+		return code ? code : t('component.derived_line');
 	}
 
 	function sourceKind(row: unknown): string {
-		const parsed = decodeNestedSource(row);
+		const parsed = decodeAdjustmentRow(row);
 		if (!Result.isSuccess(parsed)) return '—';
-		return parsed.success.source.kind === 'TIME_ENTRY'
-			? t('component.attendance')
-			: t('component.leave');
+		switch (parsed.success.source.kind) {
+			case 'OBLIGATION':
+				return t('component.obligation');
+			case 'WORK_DAY':
+				return t('component.attendance');
+			case 'LEAVE_REQUEST':
+				return t('component.leave');
+		}
 	}
 
 	function sourceDetail(row: unknown): string {
-		const parsed = decodeNestedSource(row);
+		const parsed = decodeAdjustmentRow(row);
 		if (!Result.isSuccess(parsed)) return '—';
-		const attendance =
-			parsed.success.source.kind === 'TIME_ENTRY' ? parsed.success.source.record : null;
-		if (attendance?.work_date) {
-			const employee = attendance.time_entry_employment?.employee_number;
-			return [employee, formatCalendarDate(attendance.work_date)].filter(Boolean).join(' · ');
+		const source = parsed.success.source;
+		if (source.kind === 'OBLIGATION') {
+			const obligation = source.record;
+			if (obligation == null) return '—';
+			const named = obligation.reference ?? obligation.description;
+			if (named) return named;
+			return obligation.event_date == null ? '—' : formatCalendarDate(obligation.event_date);
 		}
-		const leave =
-			parsed.success.source.kind === 'LEAVE_REQUEST' ? parsed.success.source.record : null;
-		if (leave?.from_date) {
-			const range = leave.to_date
-				? `${formatCalendarDate(leave.from_date)} → ${formatCalendarDate(leave.to_date)}`
-				: formatCalendarDate(leave.from_date);
-			return [leave.leave_request_type?.code, range].filter(Boolean).join(' · ');
+		if (source.kind === 'WORK_DAY') {
+			const day = source.record;
+			if (day?.work_date == null) return '—';
+			return [day.work_day_employment?.employee_number, formatCalendarDate(day.work_date)]
+				.filter(Boolean)
+				.join(' · ');
 		}
-		return '—';
+		const leave = source.record;
+		if (leave?.from_date == null) return '—';
+		const range = leave.to_date
+			? `${formatCalendarDate(leave.from_date)} → ${formatCalendarDate(leave.to_date)}`
+			: formatCalendarDate(leave.from_date);
+		return [leave.leave_request_type?.code, range].filter(Boolean).join(' · ');
 	}
 </script>
 
@@ -188,81 +244,150 @@
 			as="section"
 			gap="sm"
 			class="border-t border-border pt-4"
-			aria-labelledby="payslip-lines-heading"
+			aria-labelledby="payslip-base-heading"
 		>
-			<h3 id="payslip-lines-heading" class="text-sm font-semibold">
-				{t('component.component_breakdown')}
-			</h3>
-			<p class="text-meta">
-				{t('component.component_breakdown_description')}
-			</p>
-			<Bound size="standard">
-				<CollectionTable
-					{client}
-					collection="payslip_lines"
-					title={t('component.component_breakdown')}
-					description={t('component.payslips_description')}
-					features={{ create: false }}
-					query={{
-						where: { payslip_id: { eq: record.id } },
-						orderBy: { sequence: 'asc' },
-						with: {
-							payslip_line_pay_component: { columns: { code: true } },
-							entry_payslip_lines: { columns: { description: true, event_date: true } },
-							payslip_line_statutory_contribution: { columns: { code: true, name: true } }
-						},
-						limit: 200
-					}}
-				>
-					{#snippet columns({ Column })}
-						<Column name="sequence" label={t('component.sequence_hash')} />
-						<Column
-							name="pay_component_id"
-							label={t('component.component')}
-							card="title"
-							renderer={FormattedValueRenderer}
-							rendererProps={{ format: ({ row }) => componentLabel(row) }}
-						/>
-						<Column name="component" label={t('component.line_kind')} card="subtitle" />
-						<Column
-							name="component_entry_id"
-							label={t('component.input_entry')}
-							renderer={FormattedValueRenderer}
-							rendererProps={{ format: ({ row }) => entryLabel(row) }}
-						/>
-						<Column name="bucket" card="badge" />
-						<Column name="quantity" />
-						<Column name="rate" />
-						<Column name="amount" card="badge" />
-					{/snippet}
-				</CollectionTable>
-			</Bound>
+			<h3 id="payslip-base-heading" class="text-sm font-semibold">{t('component.payslip_base')}</h3>
+			<p class="text-meta">{t('component.payslip_base_description')}</p>
+			{#if base.length === 0}
+				<p class="text-sm text-muted-foreground">{t('component.payslip_base_none')}</p>
+			{:else}
+				<Stack as="ul" gap="none" class="text-sm tabular-nums">
+					{#each base as entry (entry.pay_component_id)}
+						<li class="flex justify-between gap-3 border-t border-border py-1">
+							<span class="truncate"
+								>{componentLabelById.get(entry.pay_component_id) ?? entry.pay_component_id}</span
+							>
+							<span class="font-medium">{formatNumeric(entry.amount)}</span>
+						</li>
+					{/each}
+				</Stack>
+			{/if}
 		</Stack>
+
+		{#if proration.length > 0}
+			<Stack
+				as="section"
+				gap="sm"
+				class="border-t border-border pt-4"
+				aria-labelledby="payslip-proration-heading"
+			>
+				<h3 id="payslip-proration-heading" class="text-sm font-semibold">
+					{t('component.payslip_proration')}
+				</h3>
+				<p class="text-meta">{t('component.payslip_proration_description')}</p>
+				<Scroll axis="x" name={t('component.payslip_proration')}>
+					<table class="w-full text-sm tabular-nums">
+						<thead>
+							<tr class="text-meta text-left">
+								<th class="py-1 pr-3 font-normal">{t('renderer.payslip_proration.segment')}</th>
+								<th class="py-1 pr-3 text-right font-normal"
+									>{t('renderer.payslip_proration.fraction')}</th
+								>
+								<th class="py-1 pr-3 text-right font-normal"
+									>{t('renderer.payslip_proration.contract_amount')}</th
+								>
+								<th class="py-1 text-right font-normal"
+									>{t('renderer.payslip_proration.prorated_amount')}</th
+								>
+							</tr>
+						</thead>
+						<tbody>
+							{#each proration as segment (`${segment.term_id}:${segment.from}`)}
+								<tr class="border-t border-border">
+									<td class="py-1 pr-3 whitespace-nowrap"
+										>{formatCalendarDate(segment.from)} → {formatCalendarDate(segment.to)}</td
+									>
+									<td class="py-1 pr-3 text-right">{segment.days} / {segment.denominator}</td>
+									<td class="py-1 pr-3 text-right">{formatNumeric(segment.contract_amount)}</td>
+									<td class="py-1 text-right font-medium"
+										>{formatNumeric(segment.prorated_amount)}</td
+									>
+								</tr>
+							{/each}
+						</tbody>
+					</table>
+				</Scroll>
+			</Stack>
+		{/if}
+
+		{#if statutory.length > 0}
+			<Stack
+				as="section"
+				gap="sm"
+				class="border-t border-border pt-4"
+				aria-labelledby="payslip-statutory-heading"
+			>
+				<h3 id="payslip-statutory-heading" class="text-sm font-semibold">
+					{t('component.payslip_statutory')}
+				</h3>
+				<p class="text-meta">{t('component.payslip_statutory_description')}</p>
+				<Scroll axis="x" name={t('component.payslip_statutory')}>
+					<table class="w-full text-sm tabular-nums">
+						<thead>
+							<tr class="text-meta text-left">
+								<th class="py-1 pr-3 font-normal">{t('component.statutory_scheme')}</th>
+								<th class="py-1 pr-3 font-normal">{t('renderer.payslip_statutory.band')}</th>
+								<th class="py-1 pr-3 text-right font-normal"
+									>{t('renderer.payslip_statutory.base_amount')}</th
+								>
+								<th class="py-1 pr-3 text-right font-normal"
+									>{t('renderer.payslip_statutory.employee_amount')}</th
+								>
+								<th class="py-1 text-right font-normal"
+									>{t('renderer.payslip_statutory.employer_amount')}</th
+								>
+							</tr>
+						</thead>
+						<tbody>
+							{#each statutory as charge (charge.statutory_contribution_id)}
+								<tr class="border-t border-border">
+									<td class="py-1 pr-3"
+										>{schemeLabelById.get(charge.statutory_contribution_id) ??
+											charge.statutory_contribution_id}</td
+									>
+									<td class="py-1 pr-3">{charge.band_reference ?? '—'}</td>
+									<td class="py-1 pr-3 text-right">{formatNumeric(charge.base_amount)}</td>
+									<td class="py-1 pr-3 text-right font-medium"
+										>{formatNumeric(charge.employee_amount)}</td
+									>
+									<td class="py-1 text-right">{formatNumeric(charge.employer_amount)}</td>
+								</tr>
+							{/each}
+						</tbody>
+					</table>
+				</Scroll>
+			</Stack>
+		{/if}
 
 		<Stack
 			as="section"
 			gap="sm"
 			class="border-t border-border pt-4"
-			aria-labelledby="payslip-inputs-heading"
+			aria-labelledby="payslip-adjustments-heading"
 		>
-			<h3 id="payslip-inputs-heading" class="text-sm font-semibold">
-				{t('component.consumed_inputs')}
+			<h3 id="payslip-adjustments-heading" class="text-sm font-semibold">
+				{t('component.payslip_adjustments')}
 			</h3>
-			<p class="text-meta">{t('component.consumed_inputs_description')}</p>
+			<p class="text-meta">{t('component.payslip_adjustments_description')}</p>
 			<Bound size="standard">
 				<CollectionTable
 					{client}
-					collection="payslip_sources"
-					title={t('component.consumed_inputs')}
-					description={t('component.consumed_inputs_description')}
+					collection="payslip_adjustments"
+					title={t('component.payslip_adjustments')}
+					description={t('component.payslip_adjustments_description')}
 					features={{ create: false }}
 					query={{
 						where: { payslip_id: { eq: record.id } },
+						orderBy: { sequence: 'asc' },
 						with: {
+							payslip_adjustment_pay_component: { columns: { code: true } },
 							source: {
-								TIME_ENTRY: {
+								OBLIGATION: {
+									columns: { reference: true, description: true, event_date: true }
+								},
+								WORK_DAY: {
 									columns: { work_date: true },
-									with: { time_entry_employment: { columns: { employee_number: true } } }
+									with: { work_day_employment: { columns: { employee_number: true } } }
 								},
 								LEAVE_REQUEST: {
 									columns: { from_date: true, to_date: true },
@@ -274,10 +399,19 @@
 					}}
 				>
 					{#snippet columns({ Column })}
+						<Column name="sequence" label={t('component.sequence_hash')} />
+						<Column
+							name="pay_component_id"
+							label={t('component.component')}
+							card="title"
+							renderer={FormattedValueRenderer}
+							rendererProps={{ format: ({ row }) => componentLabel(row) }}
+						/>
+						<Column name="overtime_band" label={t('component.overtime_band')} />
 						<Column
 							name="source"
 							label={t('component.input_type')}
-							card="title"
+							card="subtitle"
 							renderer={FormattedValueRenderer}
 							rendererProps={{ format: ({ row }) => sourceKind(row) }}
 						/>
@@ -287,6 +421,10 @@
 							renderer={FormattedValueRenderer}
 							rendererProps={{ format: ({ row }) => sourceDetail(row) }}
 						/>
+						<Column name="bucket" card="badge" />
+						<Column name="quantity" />
+						<Column name="rate" />
+						<Column name="amount" card="badge" />
 					{/snippet}
 				</CollectionTable>
 			</Bound>

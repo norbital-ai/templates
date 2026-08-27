@@ -60,8 +60,15 @@ type EmploymentTermRow = Pick<
 	WorkspaceRow<'employment_terms'>,
 	'employment_id' | 'work_pattern' | 'effective_range'
 >;
-type RosterEntryRow = Pick<
-	WorkspaceRow<'roster_entries'>,
+/**
+ * The planned half of a work day, which is all a leave calculation reads.
+ *
+ * `shift_definition_id` is nullable: a `work_days` row may carry only attendance, and such a day
+ * states no assignment, so the employment's work pattern supplies the schedule exactly as it does
+ * for a day with no row at all.
+ */
+type WorkDayRow = Pick<
+	WorkspaceRow<'work_days'>,
 	'employment_id' | 'work_date' | 'shift_definition_id'
 >;
 type CompanyHolidayRow = Pick<WorkspaceRow<'company_holidays'>, 'company_id' | 'date'>;
@@ -115,10 +122,10 @@ type NormalizationApi = {
 				options: SchemaQueryConfig<WorkspaceSchema, 'employment_terms'>
 			): Effect.Effect<EmploymentTermRow[], never, never>;
 		};
-		roster_entries: {
+		work_days: {
 			findMany(
-				options: SchemaQueryConfig<WorkspaceSchema, 'roster_entries'>
-			): Effect.Effect<RosterEntryRow[], never, never>;
+				options: SchemaQueryConfig<WorkspaceSchema, 'work_days'>
+			): Effect.Effect<WorkDayRow[], never, never>;
 		};
 		leave_requests: {
 			findMany(
@@ -173,7 +180,7 @@ function normalizedTimeOff(
 			refuse('Leave cannot end after the employment exit date.');
 		}
 
-		const [company, leaveType, holidays, terms, rosterEntries, existingRequests] =
+		const [company, leaveType, holidays, terms, workDays, existingRequests] =
 			yield* Effect.all(
 				[
 					api.db.companies.findFirst({
@@ -193,7 +200,7 @@ function normalizedTimeOff(
 						where: { employment_id: { eq: employmentId } },
 						limit: LIMIT
 					}),
-					api.db.roster_entries.findMany({
+					api.db.work_days.findMany({
 						where: {
 							employment_id: { eq: employmentId },
 							work_date: { gte: range.start.date, lte: range.end.date }
@@ -264,7 +271,9 @@ function normalizedTimeOff(
 
 		const shiftIds = [
 			...new Set([
-				...rosterEntries.map((entry: RosterEntryRow) => entry.shift_definition_id),
+				...workDays.flatMap((day: WorkDayRow) =>
+					day.shift_definition_id == null ? [] : [day.shift_definition_id]
+				),
 				...terms.flatMap((term: EmploymentTermRow) => {
 					const pattern = term.work_pattern;
 					if (pattern?.type !== 'PATTERNED') return [];
@@ -279,8 +288,8 @@ function normalizedTimeOff(
 			limit: LIMIT
 		});
 		const rosterCodeById = new Map(rosterCodes.map((code: RosterCodeRow) => [code.id, code]));
-		const rosterByDate: Map<string, RosterEntryRow> = new Map(
-			rosterEntries.map((entry: RosterEntryRow) => [dateKey(entry.work_date), entry])
+		const plannedByDate: Map<string, WorkDayRow> = new Map(
+			workDays.map((day: WorkDayRow) => [dateKey(day.work_date), day])
 		);
 		const holidayDates = new Set(
 			holidays.map((holiday: CompanyHolidayRow) => dateKey(holiday.date))
@@ -293,7 +302,8 @@ function normalizedTimeOff(
 			);
 			if (term == null) refuse(`No employment terms cover ${date}, so leave cannot be measured.`);
 			const rosterCodeId =
-				rosterByDate.get(date)?.shift_definition_id ?? patternRosterCodeId(term.work_pattern, date);
+				plannedByDate.get(date)?.shift_definition_id ??
+				patternRosterCodeId(term.work_pattern, date);
 			if (rosterCodeId == null) {
 				return term.work_pattern?.type === 'ROSTERED';
 			}
@@ -379,12 +389,16 @@ function assertLeaveSourceUnlocked(
 	 * only when a payslip consumed it — so `APPROVED` and `DATE_PASSED` stop blocking here, and
 	 * the window keeps only its create-side job, which is the `assertNotSettled` loop in
 	 * `normalizedTimeOff`: a new or moved range may not touch days a paid run already priced.
-	 * What is left is a `payslip_sources` row naming this request, which says payroll `period`
+	 * What is left is a `payslip_adjustments` row naming this request, which says payroll `period`
 	 * took it into account and names the run that has to be deleted (while it is still a draft)
 	 * to release it.
+	 *
+	 * A row with an amount of **zero** locks exactly as hard as one that deducted money: it says
+	 * the run read this request and priced it at nothing, which is a settlement and not an absence.
+	 * That is why the query asks for any row at all rather than for one with an amount.
 	 */
 	return Effect.map(
-		api.db.payslip_sources.findFirst({
+		api.db.payslip_adjustments.findFirst({
 			where: { source: { eq: { kind: 'LEAVE_REQUEST', id: existing.id } } },
 			columns: { period: true }
 		}),

@@ -6,7 +6,7 @@ import { instantRangeValueSchema } from '@norbital-ai/bolt/authoring';
 /**
  * How one statutory scheme charges derived overtime, over time.
  *
- * Overtime is not a pay component. It is derived from `time_entries` priced against the
+ * Overtime is not a pay component. It is derived from `work_days` priced against the
  * jurisdiction's `statutory_regime.overtime_rules`, so there is no component row to hang a
  * `statutory_treatments` cell on — and there should never have been one. "EPF excludes overtime" is
  * a fact about EPF, not a fact about a company's catalogue; when it lived on the component, two

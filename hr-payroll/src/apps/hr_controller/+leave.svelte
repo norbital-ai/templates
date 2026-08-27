@@ -68,7 +68,7 @@
 	const leaveSettlementsQuery = $derived.by(() => {
 		const ids = (leaveRequestsQuery?.current ?? []).map((row) => row.id);
 		if (ids.length === 0) return null;
-		return client.db.payslip_sources.findMany({
+		return client.db.payslip_adjustments.findMany({
 			where: { source: { in: ids.map((id) => ({ kind: 'LEAVE_REQUEST' as const, id })) } },
 			columns: { source: true, period: true },
 			limit: 5000
@@ -93,7 +93,7 @@
 	 *
 	 * Approval and passed dates used to freeze leave here and in `leave_requests/+hooks.ts`; both
 	 * stopped, so this table's locks and the hook's refusals agree that a request is held only by a
-	 * `payslip_sources` claim — which names the period that holds it. The day-shaped guard is still
+	 * `payslip_adjustments` claim — which names the period that holds it. The day-shaped guard is still
 	 * alive, but on the create side only: `normalizedTimeOff` refuses a *new* range touching days a
 	 * paid run already priced.
 	 */

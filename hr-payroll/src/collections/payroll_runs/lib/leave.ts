@@ -287,7 +287,15 @@ export function leaveBalance(input: BalanceInput, asOf: IsoDate): number {
 const UnpaidLeaveSchema = Schema.Struct({
 	componentId: Schema.String,
 	days: Schema.Number,
-	leaveRequestIds: Schema.Array(Schema.String)
+	/**
+	 * The requests that caused it, each with the days it contributed.
+	 *
+	 * The days are carried per request rather than only in total because a `payslip_adjustments`
+	 * row names exactly ONE source: an unpaid absence spanning three requests is three rows, and the
+	 * amount the formula produced for the whole absence is apportioned across them by these days.
+	 * Summing them back gives `days`, which is what the payslip's quantity has always been.
+	 */
+	requests: Schema.Array(Schema.Struct({ id: Schema.String, days: Schema.Number }))
 });
 export type UnpaidLeave = Schema.Schema.Type<typeof UnpaidLeaveSchema>;
 
@@ -345,7 +353,7 @@ export function unpaidLeaveInWindow(options: UnpaidLeaveInWindowOptions): Unpaid
 	const typeById = new Map(options.configuration.leaveTypes.map((type) => [type.id, type]));
 	const extended = options.extendedDates ?? new Set<IsoDate>();
 	const month = options.month;
-	const byComponent = new Map<string, { days: number; requests: Set<string> }>();
+	const byComponent = new Map<string, { days: number; requests: Map<string, number> }>();
 	for (const row of options.ledger) {
 		if (row.kind !== 'TAKEN' || row.approval_id != null) continue;
 		const date = dateKey(row.entry_date);
@@ -359,15 +367,20 @@ export function unpaidLeaveInWindow(options: UnpaidLeaveInWindowOptions): Unpaid
 		if (!type) continue;
 		const effect = type.payroll_effect;
 		if (effect == null || effect.kind !== 'UNPAID') continue;
-		const bucket = byComponent.get(effect.component_id) ?? { days: 0, requests: new Set<string>() };
+		const bucket = byComponent.get(effect.component_id) ?? {
+			days: 0,
+			requests: new Map<string, number>()
+		};
 		// A TAKEN row is negative; the deduction it causes is a magnitude.
-		bucket.days += Math.abs(Number(row.days));
-		if (row.source_id != null) bucket.requests.add(row.source_id);
+		const days = Math.abs(Number(row.days));
+		bucket.days += days;
+		if (row.source_id != null)
+			bucket.requests.set(row.source_id, (bucket.requests.get(row.source_id) ?? 0) + days);
 		byComponent.set(effect.component_id, bucket);
 	}
 	return [...byComponent].map(([componentId, bucket]) => ({
 		componentId,
 		days: bucket.days,
-		leaveRequestIds: [...bucket.requests]
+		requests: [...bucket.requests].map(([id, days]) => ({ id, days }))
 	}));
 }

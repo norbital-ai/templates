@@ -4,15 +4,15 @@
  *
  * ```
  *  create.prepare ─┬─ 1 PICK       resolve the governing configuration → configuration_hash
- *   the only I/O   └─ 3 GATHER     employments, terms, facts, entries, leave, time, roster,
- *                                  agreements, and what earlier PAID runs already settled
+ *   the only I/O   └─ 3 GATHER     employments, terms, facts, obligations, leave, work days,
+ *                                  and what earlier PAID runs already settled
  *
  *  create.before  ─┬─ 2 VALIDATE   everything that can be wrong before a person is measured
- *   pure           ├─ 4 MEASURE    in component-type sequence, produce amounts
- *                  ├─ 5 ACCUMULATE each line through the grid → contribution bases
+ *   pure           ├─ 4 MEASURE    in component sequence: base, proration and adjustments
+ *                  ├─ 5 ACCUMULATE every amount through the grid → contribution bases
  *                  ├─ 6 CONTRIBUTE each scheme in sequence: base → employee and employer amounts
  *                  ├─ 7 SETTLE     gross, total deductions, net, employer cost
- *                  └─ 8 GRAPH      the payslips, their lines and their settlement locks,
+ *                  └─ 8 GRAPH      the payslips and their adjustments, settlement locks included,
  *                                  returned rather than written
  * ```
  *
@@ -29,7 +29,7 @@
  *    statement doing what the first one does.
  *  - `persistPayslips` — the graph is returned, not written.
  *  - `persistShortfalls` and `persistDeferrals` — one facility call **per employee**, and the reason
- *    a 290-person run took eight minutes. Both wrote arrears: a second copy of a debt the agreement
+ *    a 290-person run took eight minutes. Both wrote arrears: a second copy of a debt the obligation
  *    already records. What is still owed is now derived from what earlier runs actually took.
  *  - `buildingRuns` / `isBuildingRun` — the engine used to persist from `create.after`, which landed
  *    on `payroll_runs` as an ordinary DRAFT update, which `update.after` read as "recalculate", which
@@ -43,7 +43,6 @@
 import { Clock, Effect } from 'effect';
 import { refuse } from '@norbital-ai/bolt/authoring';
 import { accumulateBases } from './accumulate.js';
-import { claimsForBundle } from './claims.js';
 import { withReadLog, type PayrollReadApi, type ReadLog } from './api.js';
 import { pickConfiguration, type Configuration } from './configuration.js';
 import { contribute, type StatutoryFactStatus } from './contribute.js';
@@ -65,7 +64,7 @@ import {
 	describeIssues,
 	validateConfiguration,
 	validateDailyWorkLimit,
-	validateOpenTimeEntries,
+	validateOpenWorkDays,
 	validateOvertimeLimits,
 	validatePayCalendar,
 	type RunIssue
@@ -180,8 +179,11 @@ export function gatherPayrollRun(options: {
 type PayrollRunGraph = {
 	readonly payslip_payroll_run: ReturnType<typeof payrollRunGraph>;
 	readonly payslipCount: number;
-	readonly lineCount: number;
-	readonly claimCount: number;
+	/** Inlined base entries plus the proration segments behind them. */
+	readonly baseCount: number;
+	readonly adjustmentCount: number;
+	/** Adjustments that priced their source at nothing — the settlement locks. */
+	readonly lockCount: number;
 	readonly warnings: readonly string[];
 };
 
@@ -206,9 +208,9 @@ export function buildPayrollRun(prepared: PreparedRun): PayrollRunGraph {
 	issues.push(...validatePayCalendar({ configuration, bundles: gathered.bundles }));
 	// An open clock is caught here rather than three phases in, where `normalizedWorkedIntervals`
 	// refuses it as an "invalid interval" — true, but a long way from the record at fault. Reported
-	// as issues rather than thrown one at a time, so a month with thirty-six unclosed entries
-	// yields one list instead of thirty-six consecutive builds.
-	issues.push(...validateOpenTimeEntries({ bundles: gathered.bundles }));
+	// as issues rather than thrown one at a time, so a month with thirty-six unclosed days yields
+	// one list instead of thirty-six consecutive builds.
+	issues.push(...validateOpenWorkDays({ bundles: gathered.bundles }));
 	if (blockers(issues).length > 0) refuse(describeIssues(blockers(issues)));
 
 	const pending: PendingPayslip[] = [];
@@ -237,7 +239,7 @@ export function buildPayrollRun(prepared: PreparedRun): PayrollRunGraph {
 			periodsRemaining: prepared.periodsRemaining,
 			headcount: gathered.headcount,
 			policy,
-			consumedInstalments: gathered.consumedInstalments
+			consumedObligations: gathered.consumedObligations
 		});
 
 		for (const [calendarMonth, monthHours] of measured.calendarMonthOvertimeHours) {
@@ -265,9 +267,14 @@ export function buildPayrollRun(prepared: PreparedRun): PayrollRunGraph {
 			);
 
 		// 5 — ACCUMULATE
+		//
+		// Both planes at once. A contribution base is a fact about the payslip, so which table an
+		// amount will be stored in cannot change what it is charged on; proration is deliberately
+		// absent, because it is the working behind a base amount and charging it would double the
+		// wage.
 		const bases = accumulateBases({
 			configuration,
-			lines: measured.lines,
+			items: [...measured.base, ...measured.adjustments],
 			employeeNumber: bundle.employment.employee_number
 		});
 
@@ -307,19 +314,23 @@ export function buildPayrollRun(prepared: PreparedRun): PayrollRunGraph {
 
 		// 7 — SETTLE
 		//
-		// A deduction the guard could not take is not carried anywhere. The line records what was
-		// actually taken, and the difference between that and the obligation is what remains owed —
-		// derived by the next run from these very lines, never copied into it.
-		const settlement = settle({ lines: measured.lines, charges });
+		// A deduction the guard could not take is not carried anywhere. The adjustment records what
+		// was actually taken, and the difference between that and the obligation is what remains owed
+		// — derived by the next run from these very rows, never copied into one.
+		const settlement = settle({
+			base: measured.base,
+			adjustments: measured.adjustments,
+			charges
+		});
 
 		pending.push({
 			employmentId: bundle.employment.id,
 			currency: measured.currency,
 			settlement,
-			charges,
-			// Derived here, where the bundle is in scope, because the claim is a statement about
-			// what this run *read* — and the graph only ever sees what it produced.
-			claims: claimsForBundle(bundle)
+			// Evidence, not money: the segments explain the base amounts, and the negative-net guard
+			// only ever touches deductions.
+			proration: measured.proration,
+			charges
 		});
 	}
 
@@ -332,11 +343,18 @@ export function buildPayrollRun(prepared: PreparedRun): PayrollRunGraph {
 
 	// 8 — GRAPH
 	const graph = payrollRunGraph({ pending, period });
+	const adjustments = graph.flatMap((payslip) => payslip.payslip_adjustment_payslip);
 	return {
 		payslip_payroll_run: graph,
 		payslipCount: pending.length,
-		lineCount: graph.reduce((total, payslip) => total + payslip.payslip_line_payslip.length, 0),
-		claimCount: graph.reduce((total, payslip) => total + payslip.payslip_source_payslip.length, 0),
+		baseCount: graph.reduce(
+			(total, payslip) => total + payslip.base.length + payslip.proration.length,
+			0
+		),
+		adjustmentCount: adjustments.length,
+		// A zero-amount row consumed nothing and still holds the claim: counted separately so the run
+		// log distinguishes "read and priced at nothing" from "produced money".
+		lockCount: adjustments.filter((row) => row.amount === 0).length,
 		warnings: issues
 			.filter((issue) => issue.severity === 'WARNING')
 			.map((issue) => describeIssues([issue], 'warn'))

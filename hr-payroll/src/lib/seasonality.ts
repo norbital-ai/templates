@@ -1,19 +1,27 @@
 import { formatDateISO } from '@norbital-ai/std/date';
-import type { EntryOrigin } from '../datatypes/entry_origin/+definition.js';
 
 interface SeasonalHeatmapRow {
 	readonly year: string;
 	readonly months: number[];
 }
 
-export const componentSeasonalityCategories = [
+/**
+ * The categories money is grouped by on the pay-components activity chart.
+ *
+ * They are `occasion` where an obligation has one and `terms` where it does not, because that is
+ * exactly what the two columns mean: `terms` says HOW money comes due and `occasion` says WHY a
+ * one-off was raised, and only the second is interesting when it exists. `LOAN_INSTALMENT` is gone
+ * from the list because those rows are gone from the workspace — a loan is one SCHEDULED obligation
+ * carrying its instalments, not N copies of itself.
+ */
+export const obligationSeasonalityCategories = [
 	'RECURRING',
-	'ONE_OFF',
-	'CLAIM',
-	'LOAN_INSTALMENT',
+	'SCHEDULED',
 	'REVERSAL',
+	'ENTERED',
+	'CLAIM',
 	'ARREARS',
-	'MANUAL_ADJUSTMENT'
+	'ADJUSTMENT'
 ] as const;
 
 /** Five calendar years ending in the live year, so an in-progress year is never hidden. */
@@ -56,7 +64,21 @@ export function bucketSeasonalHeatmap(
 	return heatmap;
 }
 
-/** Claims use their economic date; every other component entry uses its event date. */
-export function componentSeasonalityDate(origin: EntryOrigin, eventDate: string | Date): string {
-	return origin.kind === 'CLAIM' ? origin.incurred_on : formatDateISO(eventDate);
+/** One obligation as the chart buckets it: its occasion where it has one, its terms otherwise. */
+export function obligationSeasonalityCategory(row: {
+	readonly terms: string;
+	readonly occasion?: string | null;
+}): string {
+	return row.occasion ?? row.terms;
+}
+
+/** Claims use their economic date; every other obligation uses its event date. */
+export function obligationSeasonalityDate(row: {
+	readonly occasion?: string | null;
+	readonly incurred_on?: string | Date | null;
+	readonly event_date: string | Date;
+}): string {
+	return row.occasion === 'CLAIM' && row.incurred_on != null
+		? formatDateISO(row.incurred_on)
+		: formatDateISO(row.event_date);
 }

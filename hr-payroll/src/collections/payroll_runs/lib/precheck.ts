@@ -26,7 +26,7 @@ import type { PayrollWindow } from './period.js';
 import {
 	blockers,
 	validateConfiguration,
-	validateOpenTimeEntries,
+	validateOpenWorkDays,
 	type RunIssue
 } from './validate.js';
 
@@ -40,7 +40,7 @@ import {
  *
  * - **the configuration**, which `preparePayrollRun` has already resolved by the time this is
  *   called, so it costs nothing at all;
- * - **open time entries**, read directly over the attendance window rather than out of a gathered
+ * - **open clocks**, read directly over the attendance window rather than out of a gathered
  *   bundle. This is the one that was actually refusing builds and leaving drafts behind.
  *
  * Everything else the engine validates — overtime ceilings, daily work limits, pay-calendar cadences
@@ -71,8 +71,8 @@ export function payrollRunPrecheck(options: {
 		);
 		const employmentIds = employments.map((row) => row.id);
 		if (employmentIds.length > 0) {
-			const timeEntries = api.reads.assertComplete(
-				yield* db.time_entries.findMany({
+			const workDays = api.reads.assertComplete(
+				yield* db.work_days.findMany({
 					where: {
 						employment_id: { in: employmentIds },
 						work_date: {
@@ -83,24 +83,24 @@ export function payrollRunPrecheck(options: {
 					},
 					limit: PAGE_LIMIT
 				}),
-				'precheck time entries'
+				'precheck work days'
 			);
-			// Re-shaped into the bundles `validateOpenTimeEntries` reads, rather than reimplementing
-			// what an unclosed interval is. The rule and its sentence live in one place, and this is
-			// only a second way of reaching it — a second implementation would be a second chance to
-			// disagree with the build about what "open" means, and disagreeing here would refuse runs
-			// the engine would have accepted.
-			const byEmployment = new Map<string, (typeof timeEntries)[number][]>();
-			for (const entry of timeEntries) {
-				const existing = byEmployment.get(entry.employment_id);
-				if (existing === undefined) byEmployment.set(entry.employment_id, [entry]);
-				else existing.push(entry);
+			// Re-shaped into the bundles `validateOpenWorkDays` reads, rather than reimplementing what
+			// an unclosed interval is. The rule and its sentence live in one place, and this is only a
+			// second way of reaching it — a second implementation would be a second chance to disagree
+			// with the build about what "open" means, and disagreeing here would refuse runs the
+			// engine would have accepted.
+			const byEmployment = new Map<string, (typeof workDays)[number][]>();
+			for (const day of workDays) {
+				const existing = byEmployment.get(day.employment_id);
+				if (existing === undefined) byEmployment.set(day.employment_id, [day]);
+				else existing.push(day);
 			}
 			issues.push(
-				...validateOpenTimeEntries({
+				...validateOpenWorkDays({
 					bundles: employments.map((employment) => ({
 						employment: { employee_number: employment.employee_number },
-						timeEntries: byEmployment.get(employment.id) ?? []
+						workDays: byEmployment.get(employment.id) ?? []
 					}))
 				})
 			);

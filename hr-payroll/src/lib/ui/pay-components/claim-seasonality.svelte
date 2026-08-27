@@ -7,8 +7,9 @@
 	import { heatmapClass } from '../display-formatters.js';
 	import {
 		bucketSeasonalHeatmap,
-		componentSeasonalityCategories,
-		componentSeasonalityDate,
+		obligationSeasonalityCategories,
+		obligationSeasonalityCategory,
+		obligationSeasonalityDate,
 		seasonalityDateWindow,
 		seasonalityYears
 	} from '../../seasonality.js';
@@ -21,9 +22,9 @@
 	const historyYears = seasonalityYears(currentYear);
 	const { start: windowStart, endExclusive: windowEnd } = seasonalityDateWindow(currentYear);
 	const analyticsQuery = $derived(
-		client.db.component_entries.findMany({
-			where: { entry_employment: { company_id: { eq: companyId } } },
-			columns: { origin: true, event_date: true },
+		client.db.obligations.findMany({
+			where: { obligation_employment: { company_id: { eq: companyId } } },
+			columns: { terms: true, occasion: true, incurred_on: true, event_date: true },
 			limit: 5000
 		})
 	);
@@ -32,8 +33,8 @@
 		if (rows === undefined) return null;
 		const dated = rows
 			.map((row) => ({
-				category: row.origin.kind,
-				date: componentSeasonalityDate(row.origin, row.event_date)
+				category: obligationSeasonalityCategory(row),
+				date: obligationSeasonalityDate(row)
 			}))
 			.filter((row) => row.date >= windowStart && row.date < windowEnd);
 		return {
@@ -42,7 +43,7 @@
 				historyYears,
 				dated.map((row) => row.date)
 			),
-			categories: componentSeasonalityCategories.map((category) => {
+			categories: obligationSeasonalityCategories.map((category) => {
 				const dates = dated.filter((row) => row.category === category).map((row) => row.date);
 				return {
 					category,
@@ -65,18 +66,18 @@
 		switch (category) {
 			case 'RECURRING':
 				return t('app.pay_components.category_recurring');
-			case 'ONE_OFF':
-				return t('app.pay_components.category_one_off');
-			case 'CLAIM':
-				return t('app.pay_components.category_claim');
-			case 'LOAN_INSTALMENT':
-				return t('app.pay_components.category_loan_instalment');
+			case 'SCHEDULED':
+				return t('app.pay_components.category_scheduled');
 			case 'REVERSAL':
 				return t('app.pay_components.category_reversal');
+			case 'ENTERED':
+				return t('app.pay_components.category_entered');
+			case 'CLAIM':
+				return t('app.pay_components.category_claim');
 			case 'ARREARS':
 				return t('app.pay_components.category_arrears');
-			case 'MANUAL_ADJUSTMENT':
-				return t('app.pay_components.category_manual_adjustment');
+			case 'ADJUSTMENT':
+				return t('app.pay_components.category_adjustment');
 			default:
 				return t('app.pay_components.category_all');
 		}

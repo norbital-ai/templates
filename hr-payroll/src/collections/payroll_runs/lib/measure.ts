@@ -1,25 +1,47 @@
 /**
  * Step 4 — MEASURE.
  *
- * Every plane of input — a contract, an entry, a clock, a formula — arrives here and leaves as
+ * Every plane of input — a contract, an obligation, a clock, a formula — arrives here and leaves as
  * money. Components are measured in `pay_components.sequence` order, so the hourly rate exists
  * before overtime needs it and every earning exists before the grid sums them.
+ *
+ * ## Three shapes out, not one list
+ *
+ * A payslip comprises four things and the kind of each is DERIVED from what caused it, so MEASURE
+ * emits them separately rather than emitting one flat list somebody later has to sort:
+ *
+ * ```
+ *   base         employment_terms x period            caused by no record       inlined on payslips
+ *   proration    what the calendar did to base        caused by no record       inlined on payslips
+ *   adjustment   caused by exactly ONE input          names that input          payslip_adjustments
+ * ```
+ *
+ * STATUTORY is the fourth and is not measured here: it is charged on the sum of the other two by
+ * ACCUMULATE and CONTRIBUTE, which is why it is caused by no record either.
+ *
+ * **Proration is no longer folded into base.** The old shape summed a mid-month salary change into
+ * one line and discarded the working; each segment is recorded here, with the terms row that
+ * covered it, the days, the divisor and the basis, so a payslip stays re-readable after a
+ * jurisdiction changes how it prorates.
  *
  * Two rules hold throughout:
  *
  * - **an amount is a magnitude.** Direction is the pay component's `nature` and the treatment's
- *   decision; no line here carries a minus sign, including unpaid absence, whose type is `ABSENCE`
- *   and whose grid row is `REDUCE`.
- * - **an ineligible component produces nothing at all.** Not a zero line — nothing. A manager has
- *   no overtime row, rather than an overtime row of zero.
+ *   decision; no amount here carries a minus sign, including unpaid absence, whose type is
+ *   `ABSENCE` and whose grid row is `REDUCE`.
+ * - **an ineligible component produces nothing at all.** Not a zero, nothing. A manager has no
+ *   overtime row, rather than an overtime row of zero. The one deliberate exception is the
+ *   settlement lock: a source the run READ and priced at nothing is a zero-amount adjustment,
+ *   because "consumed nothing" and "was never read" are different claims.
  *
  * `INFORMATION` components are measured, because later formulas read them, but they are not written
  * to the payslip: they are not money, the grid does not apply to them, and a report that sums a
  * column must never find an hourly rate inside it (plan 03 §2).
  */
 
-import { Schema } from 'effect';
 import type { MoneyValue } from '@norbital-ai/std/finance';
+import type { CollectionMutationValues } from '@norbital-ai/bolt/authoring';
+import type { WorkspaceSchema } from '$bolt/types.js';
 import type { Configuration, OvertimeCoverageRule, PayComponent } from './configuration.js';
 import type { ComponentDefinition } from '../../../datatypes/component_definition/+definition.js';
 import {
@@ -28,10 +50,9 @@ import {
 	deriveStatutoryWages,
 	type WageBasis
 } from './coverage.js';
-import {
-	payslipLineComponentValueSchema,
-	type PayslipLineComponent
-} from '../../../datatypes/payslip_line_component/+definition.js';
+import type { PayslipBase } from '../../../datatypes/payslip_base/+definition.js';
+import type { PayslipProration } from '../../../datatypes/payslip_proration/+definition.js';
+import type { OvertimeBandReference } from '../../../datatypes/overtime_band_reference/+definition.js';
 import {
 	addDays,
 	dateKey,
@@ -47,15 +68,14 @@ import {
 import { clipRange, coversDate } from './effective.js';
 import { isEligible, type EligibilitySubject } from './eligibility.js';
 import {
-	entryEventDate,
-	entryPayPeriod,
-	entrySign,
-	isLoanInstalmentEntry,
+	depletes,
+	obligationEventDate,
+	obligationPayPeriod,
+	obligationSign,
 	prorates,
 	recurringRange,
-	repaymentCoverageKey,
-	type ComponentEntry
-} from './entries.js';
+	type Obligation
+} from './obligations.js';
 import { defaultPayPeriod, type PayrollWindow } from './period.js';
 import { evaluateFormula, type FormulaContext } from './formula.js';
 import type { EmploymentBundle } from './gather.js';
@@ -91,43 +111,95 @@ import {
 	type OvertimeCalculationMethod,
 	type RateTerms
 } from './ordinary-rate.js';
-import { prorationFraction } from './proration.js';
+import { prorationFraction, prorationSegment } from './proration.js';
 import { cents } from './rounding.js';
 import { normalDailyHours, resolveSchedule, type ScheduledDay } from './schedule.js';
 import { settle } from './settle.js';
+import {
+	obligationOverConsumedMessage,
+	overConsumesObligation
+} from '../../../lib/settlement_refusals.js';
 import { patternWorkload, type PatternWorkload } from '../../../lib/scheduling/work-pattern.js';
 import { rosterCodeKind, workWindow } from '../../../lib/scheduling/roster-code.js';
 
 /** The economic direction a line settles in — `pay_components.policy.kind` where there is one. */
 type LineNature = NonNullable<PayComponent['policy']>['kind'];
 
-export type MeasuredLine = {
-	/**
-	 * The catalogue row this line pays, or `null` for a line the statute derives.
-	 *
-	 * Overtime has no pay component: it is priced from `time_entries` against the jurisdiction's
-	 * own overtime rules, and the band it was priced under is on `component` instead.
-	 */
+/**
+ * The one input that caused an adjustment, in the exact shape `payslip_adjustments.source` is
+ * written in. Inferred from the collection rather than restated, so no parallel union exists to
+ * drift from the reference the database enforces.
+ */
+type AdjustmentSource = Extract<
+	CollectionMutationValues<WorkspaceSchema, 'payslip_adjustments'>,
+	{ readonly source: unknown }
+>['source'];
+
+/**
+ * What a measured amount looks like to the steps that price the whole payslip.
+ *
+ * ACCUMULATE and SETTLE ask three questions of every amount — what it settles as, which catalogue
+ * row (if any) it pays, and whether the statute derived it — and those questions are the same for a
+ * contracted amount and for one an input caused. They are asked of this shape, which both planes
+ * satisfy structurally, so neither step reshapes anything on the way in.
+ */
+export type PricedItem = {
+	/** The catalogue row this pays, or `null` for an amount the statute derived. */
 	readonly payComponent: PayComponent | null;
-	readonly component: PayslipLineComponent;
+	/** Set on derived overtime and nothing else; it is what stands in for a pay component there. */
+	readonly overtimeBand?: OvertimeBandReference | null;
 	/**
-	 * What the line settles as, carried on the line rather than read back off the component, because
-	 * a derived overtime line has no component to read it from. It is always an `EARNING`.
+	 * What the amount settles as, carried rather than read back off the component, because derived
+	 * overtime has none to read it from. It is always an `EARNING`.
 	 */
 	readonly nature: LineNature | null;
-	/** What to call this line in an engine message — a component code, or the band that paid it. */
+	/** What to call this in an engine message — a component code, or the band that paid it. */
 	readonly label: string;
 	/** Always a magnitude. */
 	readonly amount: number;
-	/** Hours, days or units where the line has a natural quantity; `null` otherwise. */
+};
+
+/**
+ * One contracted amount, before any input touched it.
+ *
+ * BASE is `employment_terms x period`: it points at nothing, which is why it is inlined on
+ * `payslips` rather than being a row in `payslip_adjustments`. A formula over the contract is base
+ * for the same reason — nobody can edit a record that caused it, because no such record exists.
+ */
+export type MeasuredBase = PricedItem & {
+	readonly payComponent: PayComponent;
+	/** The stored shape, produced here so nothing downstream has to assemble it. */
+	readonly entry: PayslipBase;
+};
+
+/**
+ * One thing an input caused, in the shape `payslip_adjustments` stores.
+ *
+ * A zero amount is not an absence: it says the run read the source and priced it at nothing, which
+ * is the whole of what `payslip_sources` used to be. The row still holds the settlement claim.
+ */
+export type MeasuredAdjustment = PricedItem & {
+	readonly source: AdjustmentSource;
+	readonly overtimeBand: OvertimeBandReference | null;
 	readonly quantity: number | null;
 	readonly rate: number | null;
-	readonly sequence: number;
 };
 
 type MeasuredEmployment = {
 	readonly bundle: EmploymentBundle;
-	readonly lines: readonly MeasuredLine[];
+	/** The contracted amounts. One entry per pay component, never one per terms row. */
+	readonly base: readonly MeasuredBase[];
+	/**
+	 * What the calendar did to the contracted wage, one entry per segment.
+	 *
+	 * These are evidence rather than money: they are the working behind a `base` amount the calendar
+	 * split, and their `prorated_amount` sums to it. Proration is no longer folded silently into
+	 * base — a mid-month salary change is two segments here and one base entry, so the halves are
+	 * readable years later against a proration basis that may since have changed.
+	 */
+	readonly proration: readonly PayslipProration[];
+	/** One entry per thing exactly one input caused, settlement-lock rows included. */
+	readonly adjustments: readonly MeasuredAdjustment[];
 	/** What a deferred earlier period is owed, when this run is the one paying it. */
 	readonly arrears: {
 		readonly period: string;
@@ -239,20 +311,22 @@ function payFrequency(value: string | null): RateTerms['pay_frequency'] {
 }
 
 function rosteredWorkload(options: {
-	readonly entries: EmploymentBundle['rosterEntries'];
+	readonly days: EmploymentBundle['workDays'];
 	readonly configuration: Configuration;
 	readonly window: PayRange;
 }): PatternWorkload {
 	let workDays = 0;
 	let paidMinutes = 0;
-	for (const entry of options.entries) {
-		const date = requiredDateKey(entry.work_date, 'roster_entries.work_date');
+	for (const day of options.days) {
+		// The planned half or nothing. A day carrying only attendance states no assignment, so it
+		// contributes no scheduled load — which is the presence test the merged row is read by.
+		const shiftId = day.shift_definition_id;
+		if (shiftId == null) continue;
+		const date = requiredDateKey(day.work_date, 'work_days.work_date');
 		if (date < options.window.start || date > options.window.end) continue;
-		const code = options.configuration.shiftById.get(entry.shift_definition_id);
+		const code = options.configuration.shiftById.get(shiftId);
 		if (code == null)
-			throw new Error(
-				`Roster on ${date} names roster code ${entry.shift_definition_id}, which is missing.`
-			);
+			throw new Error(`Work day ${date} names roster code ${shiftId}, which is missing.`);
 		if (rosterCodeKind(code.variant) !== 'WORK') continue;
 		workDays += 1;
 		paidMinutes += workWindow(code.variant)!.paid_minutes;
@@ -260,7 +334,7 @@ function rosteredWorkload(options: {
 	const referenceDays = inclusiveDays(options.window.start, options.window.end);
 	if (workDays === 0 || paidMinutes === 0)
 		throw new Error(
-			'An AS_ASSIGNED employment has no WORK roster entries in the payroll reference window, so ' +
+			'An AS_ASSIGNED employment has no assigned WORK days in the payroll reference window, so ' +
 				'ordinary weekly and daily hours cannot be derived.'
 		);
 	return {
@@ -275,7 +349,7 @@ function rosteredWorkload(options: {
 type TermsWorkloadOptions = {
 	readonly terms: EmploymentBundle['terms'][number];
 	readonly configuration: Configuration;
-	readonly rosterEntries: EmploymentBundle['rosterEntries'];
+	readonly workDays: EmploymentBundle['workDays'];
 	readonly window: PayRange;
 };
 
@@ -284,7 +358,7 @@ function termsWorkload(options: TermsWorkloadOptions): PatternWorkload {
 	return (
 		workload ??
 		rosteredWorkload({
-			entries: options.rosterEntries,
+			days: options.workDays,
 			configuration: options.configuration,
 			window: options.window
 		})
@@ -324,8 +398,8 @@ type MeasureEmploymentOptions = {
 	readonly periodsRemaining: number;
 	readonly headcount: number;
 	readonly policy: SettlementPolicy;
-	/** `${agreement_id}:${sequence}` → what earlier PAID runs already took. See `gather.ts`. */
-	readonly consumedInstalments: ReadonlyMap<string, number>;
+	/** `obligation_id` → what earlier PAID runs already took from it. See `gather.ts`. */
+	readonly consumedObligations: ReadonlyMap<string, number>;
 };
 
 export function measureEmployment(options: MeasureEmploymentOptions): MeasuredEmployment {
@@ -344,7 +418,7 @@ export function measureEmployment(options: MeasureEmploymentOptions): MeasuredEm
 	const closingWorkload = termsWorkload({
 		terms: closingTerms,
 		configuration,
-		rosterEntries: bundle.rosterEntries,
+		workDays: bundle.workDays,
 		window: options.salary
 	});
 	const rateTerms = asRateTerms(closingTerms, closingWorkload);
@@ -375,7 +449,7 @@ export function measureEmployment(options: MeasureEmploymentOptions): MeasuredEm
 		const workload = termsWorkload({
 			terms: row,
 			configuration,
-			rosterEntries: bundle.rosterEntries,
+			workDays: bundle.workDays,
 			window: complianceWindow
 		});
 		return {
@@ -387,7 +461,7 @@ export function measureEmployment(options: MeasureEmploymentOptions): MeasuredEm
 		window: complianceWindow,
 		dates: attendanceDays,
 		terms: scheduleTermsAt,
-		rosterEntries: bundle.rosterEntries,
+		workDays: bundle.workDays,
 		configuration
 	});
 
@@ -404,8 +478,8 @@ export function measureEmployment(options: MeasureEmploymentOptions): MeasuredEm
 		const date = dateKey(row.entry_date);
 		if (date != null) takenLeaveDates.add(date);
 	}
-	const prorationRosterEntries = bundle.rosterEntries.filter(
-		(row) => !takenLeaveDates.has(requiredDateKey(row.work_date, 'roster_entries.work_date'))
+	const prorationWorkDays = bundle.workDays.filter(
+		(row) => !takenLeaveDates.has(requiredDateKey(row.work_date, 'work_days.work_date'))
 	);
 	const workingDaysCache = new Map<string, number>();
 	const workingDaysIn = (window: PayRange): number => {
@@ -417,7 +491,7 @@ export function measureEmployment(options: MeasureEmploymentOptions): MeasuredEm
 			window,
 			dates,
 			terms: scheduleTermsAt,
-			rosterEntries: prorationRosterEntries,
+			workDays: prorationWorkDays,
 			configuration
 		});
 		const days = dates.filter((date) => prorationSchedule.get(date)?.dayType === 'ORDINARY').length;
@@ -450,46 +524,52 @@ export function measureEmployment(options: MeasureEmploymentOptions): MeasuredEm
 		workingDaysIn
 	});
 
-	// ── entries settling in this run ───────────────────────────────────────────────────────────
+	// ── obligations settling in this run ───────────────────────────────────────────────────────
 	//
 	// Collected before the coverage test because the test reads them: the wage the ceiling is
-	// measured against is basic plus the cash-for-work entries settling here, so the set of entries
-	// is fixed before anyone asks who the ladder covers.
+	// measured against is basic plus the cash-for-work obligations settling here, so the set is
+	// fixed before anyone asks who the ladder covers.
+	//
+	// A `SCHEDULED` obligation is not in here. It is recovered from its own instalment plan below,
+	// against what earlier paid runs already took — the loan instalment rows that used to be copied
+	// into `component_entries` so payroll could find them no longer exist, and the schedule they
+	// were copied from is read directly.
 	const cutoffDay = Number(configuration.company.pay_cutoff_day);
-	const entryById = new Map(bundle.entries.map((entry) => [entry.id, entry]));
-	// The arrears entry a previous build of *this* period wrote is the engine's own output, and this
-	// run is about to derive that figure again. Reading it back as an input would pay a late joiner's
-	// first month twice, once more on every rebuild. Everything else on that component — an arrears
-	// row HR keyed, a back-payment for any other period — is ordinary input and is read normally.
-	const ownedArrears = (entry: ComponentEntry): boolean =>
+	const obligationById = new Map(bundle.obligations.map((row) => [row.id, row]));
+	// The arrears obligation a previous build of *this* period wrote is the engine's own output, and
+	// this run is about to derive that figure again. Reading it back as an input would pay a late
+	// joiner's first month twice, once more on every rebuild. Everything else on that component — an
+	// arrears row HR keyed, a back-payment for any other period — is ordinary input, read normally.
+	//
+	// `occasion` and `covers_periods` are plain columns now, so this is a comparison rather than a
+	// decode: there is no `terms->'occasion'->>'of'` path left to walk.
+	const ownedArrears = (row: Obligation): boolean =>
 		bundle.arrearsFor != null &&
-		entry.pay_component_id === options.policy.lateJoinerComponentId &&
-		entry.origin?.kind === 'ARREARS' &&
-		entry.origin.covers_periods.length === 1 &&
-		entry.origin.covers_periods[0] === bundle.arrearsFor.period;
-	const coveredByAgreement = new Set(bundle.agreements.map(repaymentCoverageKey));
-	const periodEntries = bundle.entries.filter((entry) => {
-		if (isLoanInstalmentEntry(entry) || ownedArrears(entry)) return false;
-		if (coveredByAgreement.has(repaymentCoverageKey(entry))) return false;
-		const recurring = recurringRange(entry);
-		if (recurring == null) return entryPayPeriod(entry, cutoffDay) === options.period;
+		row.pay_component_id === options.policy.lateJoinerComponentId &&
+		row.occasion === 'ARREARS' &&
+		row.covers_periods?.length === 1 &&
+		row.covers_periods[0] === bundle.arrearsFor.period;
+	const periodObligations = bundle.obligations.filter((row) => {
+		if (row.terms === 'SCHEDULED' || ownedArrears(row)) return false;
+		const recurring = recurringRange(row);
+		if (recurring == null) return obligationPayPeriod(row, cutoffDay) === options.period;
 		return (
 			recurring.start <= options.salary.end &&
 			(recurring.end == null || recurring.end >= options.salary.start)
 		);
 	});
-	const entriesByComponent = new Map<string, ComponentEntry[]>();
-	for (const entry of periodEntries) {
-		const bucket = entriesByComponent.get(entry.pay_component_id);
-		if (bucket) bucket.push(entry);
-		else entriesByComponent.set(entry.pay_component_id, [entry]);
+	const obligationsByComponent = new Map<string, Obligation[]>();
+	for (const row of periodObligations) {
+		const bucket = obligationsByComponent.get(row.pay_component_id);
+		if (bucket) bucket.push(row);
+		else obligationsByComponent.set(row.pay_component_id, [row]);
 	}
-	const entryTotalByComponentId = new Map<string, number>();
+	const obligationTotalByComponentId = new Map<string, number>();
 	for (const component of configuration.payComponents) {
-		entryTotalByComponentId.set(
+		obligationTotalByComponentId.set(
 			component.id,
-			(entriesByComponent.get(component.id) ?? []).reduce(
-				(total, entry) => total + entrySign(entry, entryById) * Number(entry.amount),
+			(obligationsByComponent.get(component.id) ?? []).reduce(
+				(total, row) => total + obligationSign(row, obligationById) * Number(row.amount),
 				0
 			)
 		);
@@ -505,6 +585,12 @@ export function measureEmployment(options: MeasureEmploymentOptions): MeasuredEm
 	};
 
 	// ── overtime, derived from clocks and split only beyond the total-work-hours boundary ───────
+	//
+	// `worked_intervals` is the presence test for the actual half of a work day: NULL means no
+	// attendance was recorded at all, while an empty array means the day was read and nothing was
+	// worked. Only the second is attendance, and only attendance can be priced or claimed — a day
+	// carrying nothing but a plan has no clock to derive an hour from and no punch to freeze.
+	const attendedDays = bundle.workDays.filter((day) => day.worked_intervals != null);
 	const dailyWorkLimit = dailyTotalWorkLimit(configuration);
 	const overtimeAttendance = overtimeAttendanceWindow({
 		policy: options.policy,
@@ -515,8 +601,8 @@ export function measureEmployment(options: MeasureEmploymentOptions): MeasuredEm
 	const overtimeDays: DailyOvertime[] = [];
 	const segments: PricedSegment[] = [];
 	const excess: ExcessHours[] = [];
-	for (const entry of bundle.timeEntries) {
-		const workDate = requiredDateKey(entry.work_date, 'time_entries.work_date');
+	for (const entry of attendedDays) {
+		const workDate = requiredDateKey(entry.work_date, 'work_days.work_date');
 		if (workDate < complianceWindow.start || workDate > complianceWindow.end) continue;
 		const day = schedule.get(workDate);
 		if (!day) continue;
@@ -528,15 +614,15 @@ export function measureEmployment(options: MeasureEmploymentOptions): MeasuredEm
 	}
 	// The wage the ceiling is measured against is derived per Employment Act 1955 s.2 as narrowed by
 	// First Schedule para 3 — basic plus every other cash payment for work done, less overtime pay —
-	// from the employee's own components and entries. Only components this employment is eligible for
-	// count: an allowance someone is not entitled to is not part of their wages.
+	// from the employee's own components and obligations. Only components this employment is eligible
+	// for count: an allowance someone is not entitled to is not part of their wages.
 	const statutoryWages = deriveStatutoryWages({
 		baseSalary: rateTerms.base_salary,
 		payments: configuration.payComponents
 			.filter((component) => isEligible(component.eligibility, subject))
 			.map((component) => ({
 				category: classifyWageComparand(component),
-				amount: entryTotalByComponentId.get(component.id) ?? 0
+				amount: obligationTotalByComponentId.get(component.id) ?? 0
 			}))
 	});
 	const paymentEligible = isStatutoryOvertimePayCovered({
@@ -614,10 +700,12 @@ export function measureEmployment(options: MeasureEmploymentOptions): MeasuredEm
 	// ── the formula context, emitted complete: CEL throws on a missing key ─────────────────────
 	const componentAmounts = new Map<string, number>();
 	const componentsByCode: Record<string, number> = {};
+	// `entry(CODE)` is the formula vocabulary and it is unchanged: an obligation is what a person
+	// entered against a component this period, which is exactly what the word always meant.
 	const entryTotals: Record<string, number> = {};
 	for (const component of configuration.payComponents) {
 		componentsByCode[component.code] = 0;
-		entryTotals[component.code] = entryTotalByComponentId.get(component.id) ?? 0;
+		entryTotals[component.code] = obligationTotalByComponentId.get(component.id) ?? 0;
 	}
 	const facts: Record<string, string | number | boolean> = {};
 	for (const contribution of configuration.contributions) {
@@ -680,9 +768,9 @@ export function measureEmployment(options: MeasureEmploymentOptions): MeasuredEm
 	const periodCalendarDays = monthDays(options.salary.start);
 	const nightShiftHours =
 		configuration.jurisdiction.code === 'PH'
-			? bundle.timeEntries
+			? attendedDays
 					.filter((entry) => {
-						const date = requiredDateKey(entry.work_date, 'time_entries.work_date');
+						const date = requiredDateKey(entry.work_date, 'work_days.work_date');
 						return date >= overtimeAttendance.start && date <= overtimeAttendance.end;
 					})
 					.reduce((total, entry) => total + philippineNightWorkHours(entry), 0)
@@ -740,28 +828,31 @@ export function measureEmployment(options: MeasureEmploymentOptions): MeasuredEm
 	//
 	// The arrears is **this same function**, run against the deferred period's own windows. That is
 	// what makes the figure "what that month would have paid" rather than a second, parallel
-	// calculation of it — a prorated wage, its recurring allowances and the entries that settled
+	// calculation of it — a prorated wage, its recurring allowances and the obligations that settled
 	// there, all under the terms and the law in force then. Nothing carries across from the earlier
 	// run, because there may not have been one.
 	//
 	// The recursion is one level deep by construction: the derived bundle owes nothing itself.
 	const calculatedArrears = measureArrears(options);
 	// A source payroll instruction can state the same late-joiner back pay that the settlement
-	// policy is able to derive. The source entry is authoritative evidence and already produces a
-	// fully linked line below; adding the identical derived line would pay it twice and leave that
-	// duplicate without record provenance. Only suppress the derived copy when the current period
-	// contains an exact same-component, same-amount entry.
-	const explicitArrearsEntry =
+	// policy is able to derive. The source obligation is authoritative evidence and already produces
+	// a fully linked adjustment below; adding the identical derived amount would pay it twice and
+	// leave that duplicate with no record to point at. Only suppress the derived copy when the
+	// current period contains an exact same-component, same-amount obligation.
+	const explicitArrears =
 		calculatedArrears == null
 			? undefined
-			: (entriesByComponent.get(calculatedArrears.payComponentId) ?? []).find(
-					(entry) =>
-						cents(entrySign(entry, entryById) * Number(entry.amount)) === calculatedArrears.amount
+			: (obligationsByComponent.get(calculatedArrears.payComponentId) ?? []).find(
+					(row) =>
+						cents(obligationSign(row, obligationById) * Number(row.amount)) ===
+						calculatedArrears.amount
 				);
-	const arrears = explicitArrearsEntry == null ? calculatedArrears : null;
+	const arrears = explicitArrears == null ? calculatedArrears : null;
 
 	// ── walk the catalogue in component sequence ───────────────────────────────────────────────
-	const lines: MeasuredLine[] = [];
+	const base: MeasuredBase[] = [];
+	const proration: PayslipProration[] = [];
+	const adjustments: MeasuredAdjustment[] = [];
 	if (arrears != null) {
 		const component = configuration.payComponents.find((row) => row.id === arrears.payComponentId);
 		if (component == null)
@@ -769,27 +860,26 @@ export function measureEmployment(options: MeasureEmploymentOptions): MeasuredEm
 				`${bundle.employment.employee_number} is owed ${arrears.period}, but the component it is ` +
 					'paid back on is not in this company’s catalogue.'
 			);
-		lines.push({
+		// Derived back pay points at nothing a person can edit — the settlement policy and the earlier
+		// month's own contract produced it — so it is base, exactly like the wage it stands in for.
+		base.push({
 			payComponent: component,
-			component: { kind: 'DERIVED', pay_component_id: component.id },
 			nature: component.policy?.kind ?? null,
 			label: component.code,
 			amount: arrears.amount,
-			quantity: null,
-			rate: null,
-			sequence: lines.length + 1
+			entry: { pay_component_id: component.id, amount: arrears.amount }
 		});
 		componentAmounts.set(component.code, arrears.amount);
 		componentsByCode[component.code] = arrears.amount;
 	}
 	for (const component of configuration.payComponents) {
 		if (!isEligible(component.eligibility, subject)) continue;
-		const componentEntries = entriesByComponent.get(component.id) ?? [];
-		const entryGroups =
-			component.definition?.source === 'ENTRY'
-				? componentEntries.map((entry) => [entry] as const)
-				: [componentEntries];
-		for (const entries of entryGroups) {
+		const componentObligations = obligationsByComponent.get(component.id) ?? [];
+		// One obligation, one measurement, because one adjustment row names one source. Everything
+		// else measures once for the component: a schedule and a formula have no obligation at all.
+		const groups: readonly (Obligation | null)[] =
+			component.definition?.source === 'ENTRY' ? componentObligations : [null];
+		for (const obligation of groups) {
 			const measured = measureComponent({
 				component,
 				bundle,
@@ -797,8 +887,10 @@ export function measureEmployment(options: MeasureEmploymentOptions): MeasuredEm
 				salary: options.salary,
 				employed: wageDays,
 				contracted: employed,
-				entries,
-				entryById,
+				obligation,
+				obligationById,
+				consumedObligations: options.consumedObligations,
+				period: options.period,
 				unpaid: unpaidByComponent.get(component.id) ?? null,
 				workingDaysIn,
 				context,
@@ -806,54 +898,105 @@ export function measureEmployment(options: MeasureEmploymentOptions): MeasuredEm
 			});
 			if (measured == null) continue;
 			// `+`, not `=`: a back-pay component can carry both this run's derived arrears and an
-			// entry HR keyed by hand, and a formula reading that code must see the whole of it.
+			// obligation HR keyed by hand, and a formula reading that code must see the whole of it.
 			const running = (componentAmounts.get(component.code) ?? 0) + measured.amount;
 			componentAmounts.set(component.code, running);
 			componentsByCode[component.code] = running;
 			// Information is measured so formulas can read it, and stops there: it is not money.
 			if (component.nature === 'INFORMATION') continue;
-			lines.push({
-				payComponent: component,
-				component: measured.component,
-				nature: component.policy?.kind ?? null,
-				label: component.code,
-				amount: measured.amount,
-				quantity: measured.quantity,
-				rate: measured.rate,
-				sequence: lines.length + 1
-			});
+			base.push(...measured.base);
+			proration.push(...measured.proration);
+			adjustments.push(...measured.adjustments);
 		}
 	}
 	// Overtime is not in the catalogue, so it is not produced by walking it. The priced segments
-	// *are* the overtime: each one already names the statutory band that valued it, and a line is
-	// one band's worth of them.
-	for (const line of measureOvertime({
-		segments,
-		excess,
-		hourlyRate,
-		dayWage,
-		overtimeCalculationMethod
-	})) {
-		lines.push({ ...line, sequence: lines.length + 1 });
-	}
+	// *are* the overtime: each one already names the statutory band that valued it and the work day
+	// whose clock it came from, and an adjustment is one band's worth of them **on one day**.
+	adjustments.push(
+		...measureOvertime({
+			segments,
+			excess,
+			hourlyRate,
+			dayWage,
+			overtimeCalculationMethod
+		})
+	);
 
-	for (const line of measureLoanInstalments({
+	for (const recovery of measureScheduledObligations({
 		bundle,
 		configuration,
 		period: options.period,
 		cutoffDay,
 		subject,
-		consumedInstalments: options.consumedInstalments
+		consumedObligations: options.consumedObligations
 	})) {
-		const running = (componentAmounts.get(line.label) ?? 0) + line.amount;
-		componentAmounts.set(line.label, running);
-		componentsByCode[line.label] = running;
-		lines.push({ ...line, sequence: lines.length + 1 });
+		const running = (componentAmounts.get(recovery.label) ?? 0) + recovery.amount;
+		componentAmounts.set(recovery.label, running);
+		componentsByCode[recovery.label] = running;
+		adjustments.push(recovery);
+	}
+
+	/**
+	 * The settlement lock, as rows rather than as a second collection.
+	 *
+	 * Everything the run READ and priced at nothing still has to be frozen, and a zero-amount
+	 * adjustment says exactly that: the source was taken into account, and it produced no money.
+	 * That is the whole of what `payslip_sources` was, at no extra collection and with no second
+	 * derivation — the claim is emitted beside the amounts rather than guessed afterwards from a
+	 * date range, which is why `claims.ts` no longer exists.
+	 *
+	 * Only sources that produced nothing get one: a day that earned overtime and a leave request
+	 * that cost a deduction already have a row naming them, and `unique(source, payslip_id)` means
+	 * one row per source per payslip.
+	 */
+	const claimed = new Set(adjustments.map((row) => `${row.source.kind}:${row.source.id}`));
+	const lockSpan = {
+		start: wageDays.start < attendance.start ? wageDays.start : attendance.start,
+		end: wageDays.end > attendance.end ? wageDays.end : attendance.end
+	};
+	// The band GATHER reads is wider than the run prices — both calendar months the cutoff touches,
+	// so the monthly statutory overtime counter can reset — and those extra days belong to a
+	// neighbouring period. Locking them would freeze attendance a future run has not settled yet.
+	for (const day of attendedDays) {
+		const date = requiredDateKey(day.work_date, 'work_days.work_date');
+		if (date < lockSpan.start || date > lockSpan.end) continue;
+		if (claimed.has(`WORK_DAY:${day.id}`)) continue;
+		claimed.add(`WORK_DAY:${day.id}`);
+		adjustments.push({
+			source: { kind: 'WORK_DAY', id: day.id },
+			payComponent: null,
+			overtimeBand: null,
+			// The pot the day would have paid into had it produced anything. Nothing is added to
+			// gross by a zero, so this states the shape of the claim rather than moving money.
+			nature: 'EARNING',
+			label: `WORK_DAY_${date}`,
+			amount: 0,
+			quantity: null,
+			rate: null
+		});
+	}
+	for (const movement of bundle.ledger) {
+		const date = dateKey(movement.entry_date);
+		if (date == null || date < lockSpan.start || date > lockSpan.end) continue;
+		if (claimed.has(`LEAVE_REQUEST:${movement.id}`)) continue;
+		claimed.add(`LEAVE_REQUEST:${movement.id}`);
+		adjustments.push({
+			source: { kind: 'LEAVE_REQUEST', id: movement.id },
+			payComponent: null,
+			overtimeBand: null,
+			nature: 'ABSENCE',
+			label: `LEAVE_${date}`,
+			amount: 0,
+			quantity: null,
+			rate: null
+		});
 	}
 
 	return {
 		bundle,
-		lines,
+		base,
+		proration,
+		adjustments,
 		arrears,
 		componentAmounts,
 		ordinaryHourlyRate: hourlyRate,
@@ -869,7 +1012,7 @@ export function measureEmployment(options: MeasureEmploymentOptions): MeasuredEm
  * What the deferred period would have paid, measured by measuring it.
  *
  * The bundle is rebuilt against the earlier month — its own employed days, its own attendance
- * window, and only the entries and clocks that fall inside it — and then handed back to
+ * window, and only the obligations and clocks that fall inside it — and then handed back to
  * `measureEmployment`. The number that comes out is that month's gross: prorated wage, standing
  * allowances, whatever settled there, less anything unpaid. It is the same arithmetic the person
  * would have seen on a payslip, which is the only defensible definition of what they are owed.
@@ -877,22 +1020,25 @@ export function measureEmployment(options: MeasureEmploymentOptions): MeasuredEm
 function measureArrears(
 	options: Pick<
 		MeasureEmploymentOptions,
-		'bundle' | 'configuration' | 'periodsRemaining' | 'headcount' | 'policy' | 'consumedInstalments'
+		| 'bundle'
+		| 'configuration'
+		| 'periodsRemaining'
+		| 'headcount'
+		| 'policy'
+		| 'consumedObligations'
 	>
 ): MeasuredEmployment['arrears'] {
 	const owed = options.bundle.arrearsFor;
 	const payComponentId = options.policy.lateJoinerComponentId;
 	if (owed == null || payComponentId == null) return null;
-	const within = <T extends { work_date: string }>(rows: readonly T[]): T[] =>
-		rows.filter((row) => {
-			const date = requiredDateKey(row.work_date, 'work_date');
-			return date >= owed.attendance.start && date <= owed.attendance.end;
-		});
 	const measured = measureEmployment({
 		bundle: {
 			...options.bundle,
-			timeEntries: within(options.bundle.timeEntries),
-			rosterEntries: within(options.bundle.rosterEntries),
+			// One list now, plan and punch on the same row, so one filter covers both halves.
+			workDays: options.bundle.workDays.filter((row) => {
+				const date = requiredDateKey(row.work_date, 'work_days.work_date');
+				return date >= owed.attendance.start && date <= owed.attendance.end;
+			}),
 			employedDays: owed.days,
 			wageDays: owed.days,
 			attendance: owed.attendance,
@@ -905,108 +1051,162 @@ function measureArrears(
 		periodsRemaining: options.periodsRemaining,
 		headcount: options.headcount,
 		policy: options.policy,
-		// Carried through rather than emptied, so the deferred pass sees the same loan facts this one
-		// does. Its deduction lines are discarded either way — only `gross` is read below — but a
-		// second, differently-informed view of the same agreement is the kind of thing that is true
+		// Carried through rather than emptied, so the deferred pass sees the same obligation facts
+		// this one does. Its deductions are discarded either way — only `gross` is read below — but a
+		// second, differently-informed view of the same obligation is the kind of thing that is true
 		// until somebody reads more than gross out of it.
-		consumedInstalments: options.consumedInstalments
+		consumedObligations: options.consumedObligations
 	});
 	// The deferred period's **gross**, by SETTLE's own definition of it and not a second one. What is
 	// owed for a month is what that month's payslip would have said was earned; charging statutory
 	// on it is this run's job, on this run's combined wage, which is what the source system does.
-	const amount = settle({ lines: measured.lines, charges: [] }).gross;
+	const amount = settle({
+		base: measured.base,
+		adjustments: measured.adjustments,
+		charges: []
+	}).gross;
 	return amount <= 0 ? null : { period: owed.period, payComponentId, amount };
 }
 
 /**
- * Loan recovery from the gathered agreement schedule — not from leftover component_entries.
+ * Recovery of a SCHEDULED obligation, from its own instalments and from nothing else.
+ *
+ * There are no `LOAN_INSTALMENT` rows to find any more. A loan's instalments used to be *copied*
+ * into `component_entries` so payroll could locate them, which cost two generated projections, a
+ * global unique index over them and a relation whose only job was to keep the copy pointing at the
+ * original; the schedule is read directly now and the copies are gone.
  *
  * Each instalment belongs to the run `defaultPayPeriod(due_date, cutoff)` names, so a 21st cutoff
  * is honoured. An ineligible or non-deduction component produces nothing at all, matching the rest
  * of MEASURE.
+ *
+ * **One adjustment per obligation, not per instalment.** `payslip_adjustments` records the source
+ * and the amount, and the source is the obligation — there is no instalment ordinal on the row and
+ * `unique(source, payslip_id)` would refuse a second one. That is also the granularity outstanding
+ * is defined at: `obligation.amount − Σ(what earlier paid runs took)`, which is what makes a
+ * part-recovered instalment catch up without any row being carried forward.
  */
-/** What `measureLoanInstalments` needs: the bundle, its catalogue and one run's cutoff facts. */
-type MeasureLoanInstalmentsOptions = {
+/** What `measureScheduledObligations` needs: the bundle, its catalogue and one run's cutoff facts. */
+type MeasureScheduledObligationsOptions = {
 	readonly bundle: EmploymentBundle;
 	readonly configuration: Configuration;
 	readonly period: string;
 	readonly cutoffDay: number;
 	readonly subject: EligibilitySubject;
-	readonly consumedInstalments: ReadonlyMap<string, number>;
+	readonly consumedObligations: ReadonlyMap<string, number>;
 };
 
-function measureLoanInstalments(options: MeasureLoanInstalmentsOptions): MeasuredLine[] {
-	const lines: MeasuredLine[] = [];
+function measureScheduledObligations(
+	options: MeasureScheduledObligationsOptions
+): MeasuredAdjustment[] {
+	const recoveries: MeasuredAdjustment[] = [];
 	const componentById = new Map(
 		options.configuration.payComponents.map((component) => [component.id, component])
 	);
-	for (const agreement of options.bundle.agreements) {
-		const component = componentById.get(agreement.pay_component_id);
+	for (const obligation of options.bundle.obligations) {
+		if (obligation.terms !== 'SCHEDULED') continue;
+		const component = componentById.get(obligation.pay_component_id);
 		if (component == null || component.nature !== 'DEDUCTION') continue;
 		if (!isEligible(component.eligibility, options.subject)) continue;
-		const schedule = agreement.schedule ?? [];
-		for (const [index, row] of schedule.entries()) {
-			const due = dateKey(row.due_date) ?? String(row.due_date).slice(0, 10);
-			/**
-			 * Due by now, not due exactly now.
-			 *
-			 * An instalment an earlier run could not take in full is still owed, and this is where it
-			 * is recovered — by re-deriving it from the schedule against what was actually taken,
-			 * rather than by a copy of it written into next month's entries. An instalment already
-			 * settled in full nets to zero here and produces no line, so the widened window costs a
-			 * subtraction and never a double deduction.
-			 */
-			if (defaultPayPeriod(due, options.cutoffDay) > options.period) continue;
-			const consumed = options.consumedInstalments.get(`${agreement.id}:${index + 1}`) ?? 0;
-			const amount = cents(Number(row.amount) - consumed);
-			if (amount <= 0) continue;
-			lines.push({
-				payComponent: component,
-				component: {
-					kind: 'LOAN_INSTALMENT',
-					pay_component_id: component.id,
-					agreement_id: agreement.id,
-					sequence: index + 1
-				},
-				nature: component.policy?.kind ?? null,
-				label: component.code,
-				amount,
-				quantity: null,
-				rate: null,
-				sequence: 0
-			});
-		}
+		/**
+		 * Due by now, not due exactly now.
+		 *
+		 * An instalment an earlier run could not take in full is still owed, and this is where it is
+		 * recovered — by re-deriving it from the schedule against what was actually taken, rather
+		 * than by a copy of it written into next month's obligations. A schedule already settled in
+		 * full nets to zero here and produces nothing, so the widened window costs a subtraction and
+		 * never a double deduction.
+		 */
+		const dueByNow = (obligation.instalments ?? []).reduce((total, instalment) => {
+			const due = dateKey(instalment.due_date) ?? String(instalment.due_date).slice(0, 10);
+			return defaultPayPeriod(due, options.cutoffDay) > options.period
+				? total
+				: total + Number(instalment.amount);
+		}, 0);
+		if (dueByNow <= 0) continue;
+		const consumed = options.consumedObligations.get(obligation.id) ?? 0;
+		const amount = cents(dueByNow - consumed);
+		if (amount <= 0) continue;
+		assertWithinObligation({ obligation, consumed, proposed: amount, period: options.period });
+		recoveries.push({
+			source: { kind: 'OBLIGATION', id: obligation.id },
+			payComponent: component,
+			overtimeBand: null,
+			nature: component.policy?.kind ?? null,
+			label: component.code,
+			amount,
+			quantity: null,
+			rate: null
+		});
 	}
-	return lines;
+	return recoveries;
 }
 
-/** The exact value one measured component carries, before it becomes a payslip line. */
-const MeasurementSchema = Schema.Struct({
-	amount: Schema.Number,
-	quantity: Schema.NullOr(Schema.Number),
-	rate: Schema.NullOr(Schema.Number),
-	component: payslipLineComponentValueSchema
-});
-type Measurement = Schema.Schema.Type<typeof MeasurementSchema>;
+/**
+ * The cross-run ceiling, raised where the amount is derived.
+ *
+ * `payslip_sources.source` used to be globally `unique`, so the database itself made it impossible
+ * for two payslips to draw on one input. Partial consumption killed that constraint — a
+ * part-recovered instalment is legitimately touched by two payslips — so the index became
+ * `unique(source, payslip_id)` and the cross-run ceiling became arithmetic. This is that
+ * arithmetic, and `OBLIGATION_OVER_CONSUMED` is its name.
+ *
+ * Only an obligation the arm says is depleting has a ceiling: a `RECURRING` allowance states an
+ * amount per period and pays it whole every period, so subtracting what earlier runs took would
+ * stop it after its first month.
+ */
+function assertWithinObligation(options: {
+	readonly obligation: Obligation;
+	readonly consumed: number;
+	readonly proposed: number;
+	readonly period: string;
+}): void {
+	if (!depletes(options.obligation)) return;
+	const consumption = {
+		obligation_id: options.obligation.id,
+		reference: options.obligation.reference,
+		entitlement: Number(options.obligation.amount),
+		consumed: options.consumed,
+		proposed: options.proposed,
+		period: options.period
+	};
+	if (overConsumesObligation(consumption)) throw new Error(obligationOverConsumedMessage(consumption));
+}
+
+/**
+ * What one measured component produced, in the three shapes a payslip stores.
+ *
+ * `amount` is the total, and it is what the formula context reads back; the three arrays are where
+ * that total is *recorded*, and which one it lands in is derived from what caused it rather than
+ * declared on it. A contracted amount has no source and is `base`; the segments the calendar split
+ * it into are `proration`; anything one editable record caused is an `adjustment` naming that
+ * record.
+ */
+type Measurement = {
+	readonly amount: number;
+	readonly base: readonly MeasuredBase[];
+	readonly proration: readonly PayslipProration[];
+	readonly adjustments: readonly MeasuredAdjustment[];
+};
 
 type EntryCap = NonNullable<Extract<ComponentDefinition, { source: 'ENTRY' }>['cap']>;
 
-/** What `resolveEntryCap` needs to read the cap and price what this run already used of it. */
-type ResolveEntryCapOptions = {
+/** What `resolveObligationCap` needs to read the cap and price what this run already used of it. */
+type ResolveObligationCapOptions = {
 	readonly cap: EntryCap;
 	readonly component: PayComponent;
-	readonly entry: ComponentEntry;
+	readonly obligation: Obligation;
 	readonly bundle: EmploymentBundle;
 	readonly subject: EligibilitySubject;
-	readonly entryById: ReadonlyMap<string, ComponentEntry>;
+	readonly obligationById: ReadonlyMap<string, Obligation>;
 	readonly context: FormulaContext;
 	readonly leaveYearStartMonth: number;
 };
 
-function resolveEntryCap(
-	options: ResolveEntryCapOptions
+function resolveObligationCap(
+	options: ResolveObligationCapOptions
 ): { amount: number; percentage: number; exceededBy: number } | null {
-	const eventDate = entryEventDate(options.entry, options.entryById);
+	const eventDate = obligationEventDate(options.obligation, options.obligationById);
 	const applicable = options.cap.matrix.layers.flatMap((layer) => {
 		if (layer.level === 'EMPLOYEE' && layer.employment_id !== options.bundle.employment.id)
 			return [];
@@ -1028,8 +1228,8 @@ function resolveEntryCap(
 	if (applicable.length === 0) return null;
 	const amount = Math.max(...applicable.map((layer) => layer.amount));
 	const percentage = Math.max(...applicable.map((layer) => layer.percentage));
-	const samePeriod = (candidate: ComponentEntry): boolean => {
-		const candidateDate = entryEventDate(candidate, options.entryById);
+	const samePeriod = (candidate: Obligation): boolean => {
+		const candidateDate = obligationEventDate(candidate, options.obligationById);
 		switch (options.cap.period) {
 			case 'PER_EVENT':
 				return false;
@@ -1046,19 +1246,23 @@ function resolveEntryCap(
 				);
 		}
 	};
-	const previouslyUsed = options.bundle.entries.reduce((total, candidate) => {
-		if (candidate.pay_component_id !== options.component.id || candidate.id === options.entry.id)
+	const previouslyUsed = options.bundle.obligations.reduce((total, candidate) => {
+		if (
+			candidate.pay_component_id !== options.component.id ||
+			candidate.id === options.obligation.id
+		)
 			return total;
-		const candidateDate = entryEventDate(candidate, options.entryById);
+		const candidateDate = obligationEventDate(candidate, options.obligationById);
 		if (
 			!samePeriod(candidate) ||
 			candidateDate > eventDate ||
-			(candidateDate === eventDate && candidate.id > options.entry.id)
+			(candidateDate === eventDate && candidate.id > options.obligation.id)
 		)
 			return total;
 		return (
 			total +
-			(entrySign(candidate, options.entryById) * Number(candidate.amount) * percentage) / 100
+			(obligationSign(candidate, options.obligationById) * Number(candidate.amount) * percentage) /
+				100
 		);
 	}, 0);
 	return { amount, percentage, exceededBy: Math.max(0, previouslyUsed) };
@@ -1071,8 +1275,11 @@ type MeasureComponentOptions = {
 	readonly salary: PayRange;
 	readonly employed: PayRange;
 	readonly contracted: PayRange;
-	readonly entries: readonly ComponentEntry[];
-	readonly entryById: ReadonlyMap<string, ComponentEntry>;
+	/** The one obligation this call measures, or `null` for a component no obligation feeds. */
+	readonly obligation: Obligation | null;
+	readonly obligationById: ReadonlyMap<string, Obligation>;
+	readonly consumedObligations: ReadonlyMap<string, number>;
+	readonly period: string;
 	readonly unpaid: UnpaidLeave | null;
 	readonly workingDaysIn: (window: PayRange) => number;
 	readonly context: () => FormulaContext;
@@ -1083,123 +1290,189 @@ function measureComponent(options: MeasureComponentOptions): Measurement | null 
 	const definition = options.component.definition;
 	if (definition == null)
 		throw new Error(`Pay component ${options.component.code} has no definition to measure.`);
+	const nature = options.component.policy?.kind ?? null;
 
 	/**
-	 * A `SCHEDULE` component is the contracted wage, prorated by employment dates. A mid-period
-	 * change is two terms rows, each prorated against the same full-period divisor, and the two
-	 * sum to the month.
+	 * A `SCHEDULE` component is the contracted wage, and the calendar is recorded rather than folded
+	 * away.
+	 *
+	 * A mid-period change is two terms rows, each prorated against the same full-period divisor.
+	 * Both segments are written down — the terms row that covered them, the days, the divisor those
+	 * days were taken over, the basis that counted them, and both the contract amount and the
+	 * prorated result — and the base entry is their sum. That is the difference this restructure
+	 * exists for: the old shape summed the two fractions into one line and threw the working away,
+	 * so a payslip could not be re-read years after a jurisdiction changed how it prorates.
 	 */
 	const measureSchedule = (): Measurement | null => {
-		let amount = 0;
-		for (const terms of options.bundle.terms) {
-			const covered = clipRange(terms.effective_range, options.contracted);
-			const fraction = prorationFraction({
+		const measured: {
+			readonly segment: NonNullable<ReturnType<typeof prorationSegment>>;
+			readonly termId: string;
+			readonly contract: number;
+			readonly exact: number;
+		}[] = [];
+		const record = (
+			terms: EmploymentBundle['terms'][number],
+			covered: ReturnType<typeof clipRange>
+		): void => {
+			const segment = prorationSegment({
 				jurisdiction: options.configuration.jurisdiction,
 				period: options.salary,
 				covered,
 				workingDaysIn: options.workingDaysIn
 			});
-			if (fraction <= 0) continue;
-			amount += Number(baseSalaryOf(terms).value) * fraction;
-		}
+			if (segment == null || segment.denominator <= 0 || segment.days <= 0) return;
+			const contract = Number(baseSalaryOf(terms).value);
+			measured.push({
+				segment,
+				termId: terms.id,
+				contract,
+				exact: contract * (segment.days / segment.denominator)
+			});
+		};
+		for (const terms of options.bundle.terms)
+			record(terms, clipRange(terms.effective_range, options.contracted));
 		// A full-final-period policy extends the last effective wage through month end. The
 		// contract row still ends on the real exit date; only this run's settlement span extends.
-		if (options.employed.end > options.contracted.end) {
-			const tail = {
+		if (options.employed.end > options.contracted.end)
+			record(termsAt(options.bundle, options.contracted.end), {
 				start: addDays(options.contracted.end, 1),
 				end: options.employed.end
-			};
-			const fraction = prorationFraction({
-				jurisdiction: options.configuration.jurisdiction,
-				period: options.salary,
-				covered: tail,
-				workingDaysIn: options.workingDaysIn
 			});
-			amount +=
-				Number(baseSalaryOf(termsAt(options.bundle, options.contracted.end)).value) * fraction;
-		}
+		/**
+		 * The month is rounded once, and the segments are made to add up to it.
+		 *
+		 * Rounding each segment on its own and summing the results is a different number: 4,000 x
+		 * 15/31 and 4,600 x 16/31 round to 1,935.48 and 2,374.19, which total 4,309.67, while the
+		 * month itself is 4,309.68. The month's figure is the one that reconciles against the source
+		 * system, so it is the one that is paid — and the residue lands on the final segment rather
+		 * than being left as a cent nobody can account for. `payslip_proration` says the segments
+		 * sum; this is what makes that true rather than nearly true.
+		 */
+		const amount = cents(measured.reduce((total, entry) => total + entry.exact, 0));
+		let allocated = 0;
+		const segments: PayslipProration[] = measured.map((entry, index) => {
+			const prorated =
+				index === measured.length - 1 ? cents(amount - allocated) : cents(entry.exact);
+			allocated = cents(allocated + prorated);
+			return {
+				term_id: entry.termId,
+				from: entry.segment.from,
+				to: entry.segment.to,
+				basis: entry.segment.basis,
+				days: entry.segment.days,
+				denominator: entry.segment.denominator,
+				contract_amount: entry.contract,
+				prorated_amount: prorated
+			};
+		});
 		return {
-			amount: cents(amount),
-			quantity: null,
-			rate: null,
-			component: { kind: 'SCHEDULE', pay_component_id: options.component.id }
+			amount,
+			base: [
+				{
+					payComponent: options.component,
+					nature,
+					label: options.component.code,
+					amount,
+					entry: { pay_component_id: options.component.id, amount }
+				}
+			],
+			// A period one terms row covers whole is still one segment, and it is still recorded:
+			// "31 of 31 days at the contract" is a statement, and a payslip that only carries it
+			// sometimes is a payslip whose reader has to know when.
+			proration: segments,
+			adjustments: []
 		};
 	};
 
 	/**
-	 * An `ENTRY` component sums season-limited entries, each amount treated as a percentage of
-	 * itself until its cap is reached.
+	 * An `ENTRY` component measures exactly ONE obligation, and produces exactly one adjustment.
+	 *
+	 * It used to sum every obligation on the component into a single line and link that line to
+	 * whichever one happened to be last — which is a line whose provenance was arbitrary. A row
+	 * names one source now, so the arbitrary choice has nowhere left to be made.
 	 */
 	const measureEntry = (
-		definition: Extract<ComponentDefinition, { source: 'ENTRY' }>
+		definition: Extract<ComponentDefinition, { source: 'ENTRY' }>,
+		obligation: Obligation
 	): Measurement | null => {
-		if (options.entries.length === 0) return null;
-		let amount = 0;
-		let quantity = 0;
-		let lineComponent: PayslipLineComponent | null = null;
-		for (const entry of options.entries) {
-			const cap =
-				definition.cap == null
-					? null
-					: resolveEntryCap({
-							cap: definition.cap,
-							component: options.component,
-							entry,
-							bundle: options.bundle,
-							subject: options.subject,
-							entryById: options.entryById,
-							context: options.context(),
-							leaveYearStartMonth: Number(options.configuration.company.leave_year_start_month)
-						});
-			const percentage = cap?.percentage ?? 100;
-			const sign = entrySign(entry, options.entryById);
-			const recurring = recurringRange(entry);
-			const fraction = prorates(entry)
-				? prorationFraction({
-						jurisdiction: options.configuration.jurisdiction,
-						period: options.salary,
-						covered:
-							recurring == null
-								? options.employed
-								: (intersectDays(
-										{ start: recurring.start, end: recurring.end ?? options.salary.end },
-										options.employed
-									) ?? null),
-						workingDaysIn: options.workingDaysIn
-					})
-				: 1;
-			if (fraction <= 0) continue;
-			// The reimbursable share is an economic fact per claim, so it is rounded per entry and
-			// then summed — not applied to a total that never existed.
-			const reimbursable = cents((Number(entry.amount) * fraction * percentage) / 100);
-			if (
-				cap != null &&
-				cap.exceededBy + reimbursable > cap.amount &&
-				definition.cap?.on_exceed === 'BLOCK'
-			)
-				throw new Error(
-					`${options.component.code} entitlement exceeded for ${options.bundle.employment.employee_number}: ` +
-						`${cents(cap.exceededBy + reimbursable).toFixed(2)} requested against ${cents(cap.amount).toFixed(2)} allowed.`
-				);
-			amount += sign * reimbursable;
-			quantity += sign * Number(entry.quantity ?? 0);
-			lineComponent = {
-				kind:
-					entry.origin?.kind === 'RECURRING' ? 'COMPONENT_ENTRY_RECURRING' : 'COMPONENT_ENTRY_ONCE',
-				pay_component_id: options.component.id,
-				component_entry_id: entry.id
-			};
-		}
-		if (lineComponent == null) return null;
+		const cap =
+			definition.cap == null
+				? null
+				: resolveObligationCap({
+						cap: definition.cap,
+						component: options.component,
+						obligation,
+						bundle: options.bundle,
+						subject: options.subject,
+						obligationById: options.obligationById,
+						context: options.context(),
+						leaveYearStartMonth: Number(options.configuration.company.leave_year_start_month)
+					});
+		const percentage = cap?.percentage ?? 100;
+		const sign = obligationSign(obligation, options.obligationById);
+		const recurring = recurringRange(obligation);
+		const fraction = prorates(obligation)
+			? prorationFraction({
+					jurisdiction: options.configuration.jurisdiction,
+					period: options.salary,
+					covered:
+						recurring == null
+							? options.employed
+							: (intersectDays(
+									{ start: recurring.start, end: recurring.end ?? options.salary.end },
+									options.employed
+								) ?? null),
+					workingDaysIn: options.workingDaysIn
+				})
+			: 1;
+		if (fraction <= 0) return null;
+		// The reimbursable share is an economic fact per claim, so it is rounded per obligation.
+		const reimbursable = cents((Number(obligation.amount) * fraction * percentage) / 100);
+		if (
+			cap != null &&
+			cap.exceededBy + reimbursable > cap.amount &&
+			definition.cap?.on_exceed === 'BLOCK'
+		)
+			throw new Error(
+				`${options.component.code} entitlement exceeded for ${options.bundle.employment.employee_number}: ` +
+					`${cents(cap.exceededBy + reimbursable).toFixed(2)} requested against ${cents(cap.amount).toFixed(2)} allowed.`
+			);
+		const amount = cents(sign * reimbursable);
+		const quantity = sign * Number(obligation.quantity ?? 0);
+		assertWithinObligation({
+			obligation,
+			consumed: options.consumedObligations.get(obligation.id) ?? 0,
+			proposed: amount,
+			period: options.period
+		});
 		return {
-			amount: cents(amount),
-			quantity: quantity === 0 ? null : quantity,
-			rate: null,
-			component: lineComponent
+			amount,
+			base: [],
+			proration: [],
+			adjustments: [
+				{
+					source: { kind: 'OBLIGATION', id: obligation.id },
+					payComponent: options.component,
+					overtimeBand: null,
+					nature,
+					label: options.component.code,
+					amount,
+					quantity: quantity === 0 ? null : quantity,
+					rate: null
+				}
+			]
 		};
 	};
 
-	/** A `FORMULA` component is a CEL expression over everything measured so far this payslip. */
+	/**
+	 * A `FORMULA` component is a CEL expression over everything measured so far this payslip.
+	 *
+	 * Where the formula is an unpaid absence it has sources — the leave requests whose days it
+	 * priced — and one row cannot name several, so the amount is apportioned across them by the days
+	 * each contributed and the rounding residue lands on the last. The parts sum to the amount the
+	 * formula produced, and their quantities sum to the days it was produced from. Every other
+	 * formula is caused by no record anybody can edit, so it is base.
+	 */
 	const measureFormula = (
 		definition: Extract<ComponentDefinition, { source: 'FORMULA' }>
 	): Measurement | null => {
@@ -1208,28 +1481,52 @@ function measureComponent(options: MeasureComponentOptions): Measurement | null 
 			expr: definition.expr,
 			context: options.context()
 		});
-		const quantity = options.unpaid?.days ?? null;
+		const unpaid = options.unpaid;
+		const quantity = unpaid?.days ?? null;
 		if (amount === 0 && quantity == null && definition.unit !== 'RATE') return null;
-		return {
-			amount: cents(Math.abs(amount)),
-			quantity,
-			rate: definition.unit === 'RATE' ? cents(Math.abs(amount)) : null,
-			component:
-				options.unpaid != null
-					? {
-							kind: 'LEAVE_UNPAID',
-							pay_component_id: options.component.id,
-							leave_request_ids: [...options.unpaid.leaveRequestIds]
-						}
-					: { kind: 'FORMULA', pay_component_id: options.component.id }
-		};
+		const magnitude = cents(Math.abs(amount));
+		if (unpaid == null || unpaid.requests.length === 0)
+			return {
+				amount: magnitude,
+				base: [
+					{
+						payComponent: options.component,
+						nature,
+						label: options.component.code,
+						amount: magnitude,
+						entry: { pay_component_id: options.component.id, amount: magnitude }
+					}
+				],
+				proration: [],
+				adjustments: []
+			};
+		const totalDays = unpaid.requests.reduce((total, request) => total + request.days, 0);
+		let allocated = 0;
+		const adjustments = unpaid.requests.map((request, index) => {
+			const last = index === unpaid.requests.length - 1;
+			const share = last
+				? cents(magnitude - allocated)
+				: cents(totalDays === 0 ? 0 : (magnitude * request.days) / totalDays);
+			allocated = cents(allocated + share);
+			return {
+				source: { kind: 'LEAVE_REQUEST' as const, id: request.id },
+				payComponent: options.component,
+				overtimeBand: null,
+				nature,
+				label: options.component.code,
+				amount: share,
+				quantity: request.days,
+				rate: definition.unit === 'RATE' ? magnitude : null
+			};
+		});
+		return { amount: magnitude, base: [], proration: [], adjustments };
 	};
 
 	switch (definition.source) {
 		case 'SCHEDULE':
 			return measureSchedule();
 		case 'ENTRY':
-			return measureEntry(definition);
+			return options.obligation == null ? null : measureEntry(definition, options.obligation);
 		case 'FORMULA':
 			return measureFormula(definition);
 	}
@@ -1239,12 +1536,21 @@ function measureComponent(options: MeasureComponentOptions): Measurement | null 
 /**
  * Overtime, priced from the clocks and the statute and from nothing else.
  *
- * Every hour that reached this point has already been derived from a time entry, classified against
+ * Every hour that reached this point has already been derived from a work day, classified against
  * the daily and calendar-month controls, and valued by one band of the jurisdiction's
- * `overtime_rules`. A line is one band's segments summed: the band triple — day type, measure, band
- * floor — is the line's whole identity, and it is what the payslip line carries in place of a pay
- * component, because there is no pay component. A company cannot add an overtime band, remove one,
- * or pay a different multiple for one; those are the statute's to say.
+ * `overtime_rules`. An adjustment is one band's segments **on one day** summed: the band triple —
+ * day type, measure, band floor — plus the excess flag is the whole of what identifies the rule,
+ * and it is what the row carries in place of a pay component, because there is no pay component. A
+ * company cannot add an overtime band, remove one, or pay a different multiple for one; those are
+ * the statute's to say.
+ *
+ * ## Why the day is part of the grouping now
+ *
+ * `payslip_lines` had no source, so a line could be one band's worth of a whole month. A
+ * `payslip_adjustments` row points at exactly ONE work day, and a row that summed five days could
+ * name only one of them — so the grouping is `(work day x band)` and a month produces more rows
+ * than it used to. That is the correct number: each one is a claim over the clock that priced it,
+ * and the settlement lock is the row rather than a second collection.
  *
  * The three valuation branches are the arithmetic exactly as it was when a component owned it:
  *
@@ -1253,11 +1559,9 @@ function measureComponent(options: MeasureComponentOptions): Measurement | null 
  *   figures to the cent.
  * - otherwise hourly awards accumulate multiplier-weighted hours and are priced once against the
  *   ordinary hourly rate, while stepped day-wage awards accumulate day-wage multiples.
- * - a band that comes out at zero produces no line at all, not a zero one.
- *
- * The per-component `minimum` floor — `max(statutory multiple, company minimum)` — is gone with the
- * components. It was a company paying above statute, and it is not expressible on a statutory band;
- * nothing in the shipped seed used it (all 28 were null), so no figure moves.
+ * - a band that comes out at zero produces no row at all, not a zero one. The day is still claimed:
+ *   it falls through to the settlement-lock row `measureEmployment` writes for every day it read
+ *   and priced at nothing.
  */
 /**
  * Everything `measureOvertime` prices: the classified segments and the rates they were derived at.
@@ -1270,19 +1574,21 @@ type MeasureOvertimeOptions = {
 	readonly overtimeCalculationMethod: OvertimeCalculationMethod;
 };
 
-function measureOvertime(options: MeasureOvertimeOptions): Omit<MeasuredLine, 'sequence'>[] {
-	const lines: Omit<MeasuredLine, 'sequence'>[] = [];
-	const asLine = (
+function measureOvertime(options: MeasureOvertimeOptions): MeasuredAdjustment[] {
+	const rows: MeasuredAdjustment[] = [];
+	const asAdjustment = (
 		band: OvertimeBandIdentity,
+		workDayId: string,
 		excess: boolean,
 		measurement: { amount: number; quantity: number; rate: number }
-	): Omit<MeasuredLine, 'sequence'> => ({
+	): MeasuredAdjustment => ({
+		source: { kind: 'WORK_DAY', id: workDayId },
 		payComponent: null,
-		component: {
-			kind: excess ? 'OVERTIME_EXCESS' : 'OVERTIME',
+		overtimeBand: {
 			day_type: band.dayType,
 			measure: band.measure,
-			band_from: band.bandFrom
+			band_from: band.bandFrom,
+			excess
 		},
 		nature: 'EARNING',
 		label: overtimeBandCode({ excess, ...band }),
@@ -1291,7 +1597,7 @@ function measureOvertime(options: MeasureOvertimeOptions): Omit<MeasuredLine, 's
 		rate: measurement.rate
 	});
 
-	for (const [band, matched] of groupByBand(options.segments)) {
+	for (const [key, matched] of groupByDayAndBand(options.segments)) {
 		let hours = 0;
 		let weighted = 0;
 		let dayWageAmount = 0;
@@ -1313,15 +1619,21 @@ function measureOvertime(options: MeasureOvertimeOptions): Omit<MeasuredLine, 's
 				? cents(datedAmount)
 				: cents(weighted * options.hourlyRate + dayWageAmount);
 		if (amount === 0) continue;
-		lines.push(asLine(band, false, { amount, quantity: hours, rate: options.hourlyRate }));
+		rows.push(
+			asAdjustment(key.band, key.workDayId, false, {
+				amount,
+				quantity: hours,
+				rate: options.hourlyRate
+			})
+		);
 	}
 
-	for (const [band, matched] of groupByBand(options.excess)) {
+	for (const [key, matched] of groupByDayAndBand(options.excess)) {
 		const valuedAt = matched[0]!.valuedAt;
 		if (matched.some((row) => row.valuedAt !== valuedAt))
 			throw new Error(
-				`The ${overtimeBandCode({ excess: true, ...band })} band produced excess hours valued both ` +
-					'as an hourly award and as a day wage. One band values its hours one way.'
+				`The ${overtimeBandCode({ excess: true, ...key.band })} band produced excess hours valued ` +
+					'both as an hourly award and as a day wage. One band values its hours one way.'
 			);
 		// Units are already the legal value factor: multiplier-weighted hours for hourly awards,
 		// or the incremental statutory day-wage multiple for a stepped flat award.
@@ -1333,10 +1645,10 @@ function measureOvertime(options: MeasureOvertimeOptions): Omit<MeasuredLine, 's
 				? annualisedExcessAmount(matched, options.hourlyRate, options.dayWage)
 				: cents(units * rate);
 		if (amount === 0) continue;
-		lines.push(asLine(band, true, { amount, quantity: hours, rate }));
+		rows.push(asAdjustment(key.band, key.workDayId, true, { amount, quantity: hours, rate }));
 	}
 
-	return lines;
+	return rows;
 }
 
 /**
@@ -1377,24 +1689,31 @@ function annualisedExcessAmount(
 }
 
 /**
- * Priced rows collected under the band that valued them, in the order the bands were first entered.
+ * Priced rows collected under the work day and the band that valued them, first-seen order.
  *
  * Order is the days' order, which is stable for the same clocks; nothing about the money depends on
- * it, but a payslip whose line order moved between two identical builds would look like a change.
+ * it, but a payslip whose row order moved between two identical builds would look like a change.
+ *
+ * The day is in the key because a `payslip_adjustments` row names exactly one source. A month's
+ * worth of one band used to be one line; it is now one row per day, which is more rows and the
+ * right ones — each is the claim over the clock that priced it.
  */
-function groupByBand<T extends OvertimeBandIdentity>(
+function groupByDayAndBand<T extends OvertimeBandIdentity & { readonly workDayId: string }>(
 	rows: readonly T[]
-): Map<OvertimeBandIdentity, T[]> {
-	const byKey = new Map<string, { band: OvertimeBandIdentity; rows: T[] }>();
+): Map<{ band: OvertimeBandIdentity; workDayId: string }, T[]> {
+	const byKey = new Map<string, { key: { band: OvertimeBandIdentity; workDayId: string }; rows: T[] }>();
 	for (const row of rows) {
-		const key = `${row.dayType}:${row.measure}:${row.bandFrom}`;
+		const key = `${row.workDayId}:${row.dayType}:${row.measure}:${row.bandFrom}`;
 		const bucket = byKey.get(key);
 		if (bucket) bucket.rows.push(row);
 		else
 			byKey.set(key, {
-				band: { dayType: row.dayType, measure: row.measure, bandFrom: row.bandFrom },
+				key: {
+					band: { dayType: row.dayType, measure: row.measure, bandFrom: row.bandFrom },
+					workDayId: row.workDayId
+				},
 				rows: [row]
 			});
 	}
-	return new Map([...byKey.values()].map((entry) => [entry.band, entry.rows]));
+	return new Map([...byKey.values()].map((entry) => [entry.key, entry.rows]));
 }

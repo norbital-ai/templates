@@ -94,20 +94,20 @@ test('SQL-scoped reads declare only their exact linking collections', () => {
 		employments: ['employees'],
 		employment_terms: ['employments', 'employees'],
 		employment_statutory_facts: ['employments', 'employees'],
-		roster_entries: ['employments', 'employees'],
-		repayment_agreements: ['employments', 'employees'],
-		component_entries: ['employments', 'employees'],
-		time_entries: ['employments', 'employees'],
+		// One entry each where there used to be two. `roster_entries` and `time_entries` are
+		// `work_days`; `component_entries` and `repayment_agreements` are `obligations`.
+		work_days: ['employments', 'employees'],
+		obligations: ['employments', 'employees'],
 		leave_requests: ['employments', 'employees'],
 		payslips: ['employments', 'employees']
 	});
 	assert.deepEqual(sqlReadDependencies(supervisor), {
 		payslips: ['employments', 'employees'],
-		component_entries: []
+		obligations: []
 	});
 	assert.deepEqual(sqlReadDependencies(manager), {
 		payslips: ['employments', 'employees'],
-		component_entries: []
+		obligations: []
 	});
 	for (const policy of [seniorManagement, hrController, hrManager]) {
 		assert.deepEqual(sqlReadDependencies(policy), {}, nameOf(policy));
@@ -203,19 +203,25 @@ test('hr_manager and senior management create, run and delete payroll without a 
 
 		// Running a draft again clears the previous results first, through `api.db.delete`, which
 		// authorizes against the requesting subject rather than running elevated. Without these two
-		// a recalculation fails on the clear and the run silently keeps last build's figures. The
-		// source rows go with the payslips by the database's own cascade, so `payslip_sources`
-		// needs no delete grant at all.
-		for (const collection of ['payslips', 'payslip_lines'])
+		// a recalculation fails on the clear and the run silently keeps last build's figures. There
+		// is no third collection to grant now: the settlement claim a run holds over a source record
+		// is a column on the adjustment, and it is released with it.
+		for (const collection of ['payslips', 'payslip_adjustments'])
 			assert.equal(may(policy, collection, 'delete'), true, `${nameOf(policy)} ${collection}`);
 	}
 });
 
 test('an employee cannot read an adjustment, and no ordinary policy erases the predicate', () => {
-	const [read, ...extra] = grantsFor(employee, 'component_entries', 'read');
+	const [read, ...extra] = grantsFor(employee, 'obligations', 'read');
 	assert.deepEqual(extra, [], 'a second read grant would be OR-ed in and would widen this one');
-	assert.match(read.where.$sql, /MANUAL_ADJUSTMENT/);
-	assert.match(read.where.$sql, /IS DISTINCT FROM/);
+	// An adjustment is a ONE_OFF obligation whose `occasion` column is ADJUSTMENT. The merge folded
+	// `repayment_agreements` — which had no such filter — into this same collection, so the
+	// predicate now has to be the one that survives both readings.
+	assert.match(read.where.$sql, /"occasion" IS DISTINCT FROM 'ADJUSTMENT'/);
+	// And it reads a COLUMN, not a path into a jsonb blob. That is not a style preference: a field
+	// grant can mask a column and cannot mask a jsonb sub-path, and this release grants fields on
+	// `work_days`. A `->` or `->>` creeping back in here is the shape regressing.
+	assert.doesNotMatch(read.where.$sql, /->/);
 	// The ownership half has to survive beside the adjustment half, or the predicate would exclude
 	// corrections and admit every colleague's entries in the same breath.
 	assert.match(read.where.$sql, /requestor\.email/);
@@ -224,15 +230,16 @@ test('an employee cannot read an adjustment, and no ordinary policy erases the p
 	// is unconditional. So the narrowing cannot be applied at the top by subtraction: it has to be
 	// present on every policy that must not see corrections. This is that check.
 	for (const policy of [employee, supervisor, manager]) {
-		for (const grant of grantsFor(policy, 'component_entries', 'read')) {
+		for (const grant of grantsFor(policy, 'obligations', 'read')) {
 			assert.notEqual(grant.where, undefined, `${nameOf(policy)} has an unconditional entry read`);
-			assert.match(grant.where.$sql, /MANUAL_ADJUSTMENT/, nameOf(policy));
+			assert.match(grant.where.$sql, /"occasion" IS DISTINCT FROM 'ADJUSTMENT'/, nameOf(policy));
+			assert.doesNotMatch(grant.where.$sql, /->/, `${nameOf(policy)} reads a jsonb path`);
 		}
 	}
 
 	// And the HR policies do see them, or the adjustment path would have no readers at all.
 	for (const policy of [hrController, hrManager, seniorManagement]) {
-		const [grant] = grantsFor(policy, 'component_entries', 'read');
+		const [grant] = grantsFor(policy, 'obligations', 'read');
 		assert.notEqual(grant, undefined, nameOf(policy));
 		assert.equal(grant.where, undefined, `${nameOf(policy)} must read corrections unconditionally`);
 	}
@@ -241,7 +248,7 @@ test('an employee cannot read an adjustment, and no ordinary policy erases the p
 test('ordinary ranks authorize only their own reviewed claim; HR may create adjustments', () => {
 	// Writes use pure TypeScript/Effect authorization over the prepared record, not a SQL where.
 	for (const policy of [employee, supervisor, manager]) {
-		const [claim, ...extra] = grantsFor(policy, 'component_entries', 'create');
+		const [claim, ...extra] = grantsFor(policy, 'obligations', 'create');
 		assert.deepEqual(extra, [], `${nameOf(policy)} has more than one component entry create`);
 		assert.equal(typeof claim.authorize, 'function', nameOf(policy));
 		assert.equal(claim.where, undefined, nameOf(policy));
@@ -249,7 +256,7 @@ test('ordinary ranks authorize only their own reviewed claim; HR may create adju
 	}
 
 	for (const policy of [hrController, hrManager, seniorManagement]) {
-		const [create] = grantsFor(policy, 'component_entries', 'create');
+		const [create] = grantsFor(policy, 'obligations', 'create');
 		assert.notEqual(create, undefined, nameOf(policy));
 		assert.equal(create.where, undefined, `${nameOf(policy)} must create entries unconditionally`);
 	}
@@ -293,11 +300,28 @@ test('no human policy may author the system-only statutory predecessor instructi
 });
 
 test('every policy can read the settlement ledger, or its refusal becomes an access denial', () => {
-	// The hook that refuses a settled record reads `payslip_sources` under the editing person's
+	// The hook that refuses a settled record reads `payslip_adjustments` under the editing person's
 	// own subject. A policy without this grant turns "payroll 2026-03 has already taken this record
 	// into account" into a bare denial naming a collection they have never heard of.
 	for (const policy of policies)
-		assert.equal(may(policy, 'payslip_sources', 'read'), true, nameOf(policy));
+		assert.equal(may(policy, 'payslip_adjustments', 'read'), true, nameOf(policy));
+
+	// `payslip_sources` was a collection of nothing but the claim, so reading all of it was safe.
+	// The merged collection carries `amount`, and the ranks with no payroll authority must reach the
+	// claim without reaching what it paid. That is the field mask, and this is the check that it is
+	// still there — without it the merge quietly hands every employee the whole payroll.
+	for (const policy of [employee, supervisor, manager]) {
+		const [claim] = grantsFor(policy, 'payslip_adjustments', 'read');
+		assert.ok(Array.isArray(claim.fields), `${nameOf(policy)} reads the ledger unmasked`);
+		assert.deepEqual(claim.fields.toSorted(), ['id', 'payslip_id', 'period', 'source']);
+		assert.equal(claim.fields.includes('amount'), false, nameOf(policy));
+	}
+
+	// And the payroll ranks read it whole, or a payslip could not be rendered.
+	for (const policy of [hrController, hrManager, seniorManagement]) {
+		const [full] = grantsFor(policy, 'payslip_adjustments', 'read');
+		assert.equal(full.fields, undefined, `${nameOf(policy)} cannot render a payslip`);
+	}
 });
 
 test('each rank composes the rank beneath it, because nothing inherits at run time', () => {
@@ -318,6 +342,6 @@ test('each rank composes the rank beneath it, because nothing inherits at run ti
 	// remain scoped without composing that policy with `employee` at runtime.
 	for (const policy of [employee, supervisor, manager]) {
 		assert.equal(may(policy, 'payslips', 'read'), true, nameOf(policy));
-		assert.equal(may(policy, 'component_entries', 'create'), true, nameOf(policy));
+		assert.equal(may(policy, 'obligations', 'create'), true, nameOf(policy));
 	}
 });

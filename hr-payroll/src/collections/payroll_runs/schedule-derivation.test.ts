@@ -56,7 +56,7 @@ test('a fixed week is generated directly from the embedded pattern when no roste
 		window: { start: '2026-03-06', end: '2026-03-08' },
 		dates: ['2026-03-06', '2026-03-07', '2026-03-08'],
 		terms: terms(),
-		rosterEntries: [],
+		workDays: [],
 		configuration: { shiftById, holidays: new Map() }
 	});
 	assert.equal(schedule.get('2026-03-06').dayType, 'ORDINARY');
@@ -69,7 +69,7 @@ test('a WORK roster assignment on a patterned REST day is explicit scheduled ove
 		window: { start: '2026-03-08', end: '2026-03-08' },
 		dates: ['2026-03-08'],
 		terms: terms(),
-		rosterEntries: [{ work_date: '2026-03-08', shift_definition_id: DAY_ID }],
+		workDays: [{ work_date: '2026-03-08', shift_definition_id: DAY_ID }],
 		configuration: { shiftById, holidays: new Map() }
 	});
 	const sunday = schedule.get('2026-03-08');
@@ -82,7 +82,7 @@ test('an observed public holiday overlays the pattern and roster instead of beco
 		window: { start: '2026-03-06', end: '2026-03-06' },
 		dates: ['2026-03-06'],
 		terms: terms(),
-		rosterEntries: [],
+		workDays: [],
 		configuration: {
 			shiftById,
 			holidays: new Map([
@@ -113,7 +113,7 @@ test('calendar-month phases support a three-month day / three-month night rotati
 		window: { start: '2026-03-31', end: '2026-04-01' },
 		dates: ['2026-03-31', '2026-04-01'],
 		terms: terms(phased),
-		rosterEntries: [],
+		workDays: [],
 		configuration: { shiftById, holidays: new Map() }
 	});
 	assert.equal(schedule.get('2026-03-31').shift.code, 'D');

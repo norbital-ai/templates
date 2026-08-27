@@ -6,7 +6,7 @@ import { accrualKeySchema } from './accrual_key/+definition.js';
 import { componentDefinitionSchema } from './component_definition/+definition.js';
 import { contributionTreatmentSchema } from './contribution_treatment/+definition.js';
 import { eligibilityRulesSchema } from './eligibility_rules/+definition.js';
-import { entryOriginSchema } from './entry_origin/+definition.js';
+import { obligationInstalmentSchema } from './obligation_instalment/+definition.js';
 import { leaveEntitlementSchema } from './leave_entitlement/+definition.js';
 import { overtimeTreatmentScheduleSchema } from './overtime_treatment_schedule/+definition.js';
 import { payComponentPolicySchema } from './pay_component_policy/+definition.js';
@@ -139,125 +139,39 @@ describe('eligibility_rules', () => {
 	});
 });
 
-describe('entry_origin', () => {
-	const recurring = { kind: 'RECURRING', cadence: 'PAY_PERIOD', effective_range: RANGE };
-	const uuid = '7f9c8b2e-4c1a-4d3b-9f6e-2a1b3c4d5e6f';
-
-	it('accepts each arm the workspace writes', () => {
-		assert.ok(accepts(entryOriginSchema, recurring));
-		assert.ok(
-			accepts(entryOriginSchema, { kind: 'CLAIM', evidence_file: null, incurred_on: '2026-04-02' })
-		);
-		assert.ok(
-			accepts(entryOriginSchema, {
-				kind: 'LOAN_INSTALMENT',
-				agreement_id: uuid,
-				sequence: 1,
-				of: 12
-			})
-		);
+describe('obligation_instalment', () => {
+	// The only inline shape `obligations` keeps. What it does NOT carry is the point: no agreement
+	// id, no sequence, no file — nothing a foreign key, a row predicate or a field grant would need
+	// to reach. The arm rules that used to live in the union beside it (at least one instalment, at
+	// most 600, and only on the SCHEDULED arm) are real-column rules now and are held by
+	// `OBLIGATION_TERMS_MISMATCH` in `src/lib/obligation_refusals.test.ts`.
+	it('accepts a dated positive instalment', () => {
+		assert.ok(accepts(obligationInstalmentSchema, { due_date: '2026-04-30', amount: 500 }));
 	});
 
 	// `Schema.Natural` admits zero; the `z.positive()` this replaced does not. Instalment 0 of 0 is
-	// not an instalment, and a schema that accepts it stores a loan row nothing can settle.
-	it('refuses a zero or negative instalment number', () => {
+	// not an instalment, and a schedule that holds one recovers nothing.
+	it('refuses a zero or negative amount', () => {
+		assert.ok(refuses(obligationInstalmentSchema, { due_date: '2026-04-30', amount: 0 }));
+		assert.ok(refuses(obligationInstalmentSchema, { due_date: '2026-04-30', amount: -1 }));
+		assert.ok(refuses(obligationInstalmentSchema, { due_date: '2026-04-30', amount: Number.NaN }));
+	});
+
+	it('refuses a due date the calendar does not have', () => {
+		assert.ok(refuses(obligationInstalmentSchema, { due_date: '2026-02-30', amount: 500 }));
 		assert.ok(
-			refuses(entryOriginSchema, {
-				kind: 'LOAN_INSTALMENT',
-				agreement_id: uuid,
-				sequence: 0,
-				of: 12
-			})
-		);
-		assert.ok(
-			refuses(entryOriginSchema, {
-				kind: 'LOAN_INSTALMENT',
-				agreement_id: uuid,
-				sequence: 1,
-				of: 0
-			})
-		);
-		assert.ok(
-			refuses(entryOriginSchema, {
-				kind: 'LOAN_INSTALMENT',
-				agreement_id: uuid,
-				sequence: -1,
-				of: 12
-			})
+			refuses(obligationInstalmentSchema, { due_date: '2026-04-30T00:00:00Z', amount: 500 })
 		);
 	});
 
-	it('refuses an identifier that is not a UUID', () => {
+	// A member no instalment declares is refused rather than stripped. `sequence` is the one that
+	// matters: an instalment's number is its position in the array, and a stored ordinal accepted
+	// here would be a second copy of the index that can disagree with it.
+	it('refuses a member the struct does not declare, sequence above all', () => {
 		assert.ok(
-			refuses(entryOriginSchema, {
-				kind: 'LOAN_INSTALMENT',
-				agreement_id: 'agreement-1',
-				sequence: 1,
-				of: 12
-			})
+			refuses(obligationInstalmentSchema, { due_date: '2026-04-30', amount: 500, sequence: 1 })
 		);
-		assert.ok(
-			refuses(entryOriginSchema, {
-				kind: 'REVERSAL',
-				reverses_entry_id: 'entry-1',
-				reason: 'duplicate'
-			})
-		);
-	});
-
-	it('refuses a reversal or arrears with no stated reason', () => {
-		assert.ok(
-			refuses(entryOriginSchema, { kind: 'REVERSAL', reverses_entry_id: uuid, reason: '' })
-		);
-		assert.ok(
-			refuses(entryOriginSchema, { kind: 'ARREARS', covers_periods: ['2026-01'], reason: '' })
-		);
-	});
-
-	it('refuses arrears covering nothing, or a period that is not a month', () => {
-		assert.ok(
-			accepts(entryOriginSchema, { kind: 'ARREARS', covers_periods: ['2026-01'], reason: 'late' })
-		);
-		assert.ok(refuses(entryOriginSchema, { kind: 'ARREARS', covers_periods: [], reason: 'late' }));
-		assert.ok(
-			refuses(entryOriginSchema, {
-				kind: 'ARREARS',
-				covers_periods: ['2026-01-01'],
-				reason: 'late'
-			})
-		);
-	});
-
-	it('refuses a claim incurred on a day the calendar does not have', () => {
-		assert.ok(
-			refuses(entryOriginSchema, { kind: 'CLAIM', evidence_file: null, incurred_on: '2026-02-30' })
-		);
-		assert.ok(
-			refuses(entryOriginSchema, {
-				kind: 'CLAIM',
-				evidence_file: null,
-				incurred_on: '2026-04-02T00:00:00Z'
-			})
-		);
-	});
-
-	// The arms differ by one literal, so a member belonging to another arm must be refused rather
-	// than stripped — stripping stores an origin nobody declared and the loss shows up much later.
-	it('refuses a member no arm declares, including inside the nested range', () => {
-		assert.ok(refuses(entryOriginSchema, { ...recurring, note: 'why' }));
-		assert.ok(
-			refuses(entryOriginSchema, { ...recurring, effective_range: { ...RANGE, until: RANGE.end } })
-		);
-	});
-
-	it('refuses a recurring origin whose range is half open', () => {
-		assert.ok(
-			refuses(entryOriginSchema, {
-				kind: 'RECURRING',
-				cadence: 'PAY_PERIOD',
-				effective_range: { start: RANGE.start }
-			})
-		);
+		assert.ok(refuses(obligationInstalmentSchema, { due_date: '2026-04-30' }));
 	});
 });
 

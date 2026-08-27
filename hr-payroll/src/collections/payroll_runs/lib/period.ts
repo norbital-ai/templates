@@ -235,11 +235,11 @@ export function resolveWindow(
 }
 
 /**
- * Which run a component entry belongs to when its `pay_period` was left blank.
+ * Which run an obligation belongs to when its `pay_period` was left blank.
  *
- * This is the money cutoff, not the attendance cutoff: an entry dated on or before the cutoff pays
- * this month, one dated after it pays next month. `component_entries.pay_period` overrides it and
- * is authoritative wherever it is set, because a late-submitted December claim is still December's
+ * This is the money cutoff, not the attendance cutoff: an obligation dated on or before the cutoff
+ * pays this month, one dated after it pays next month. `obligations.pay_period` overrides it and is
+ * authoritative wherever it is set, because a late-submitted December claim is still December's
  * money (decision L16).
  */
 export function defaultPayPeriod(eventDate: IsoDate, cutoffDay: number): string {

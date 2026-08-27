@@ -22,10 +22,10 @@
 	import {
 		formatCalendarDate,
 		formatDurationHours,
-		formatEntryOrigin,
+		formatObligationTerms,
 		formatLeaveRange,
 		formatNumeric,
-		formatRepaymentSchedule
+		formatInstalments
 	} from '../lib/ui/display-formatters.js';
 	import {
 		PAYROLL_TIME_ZONE,
@@ -181,7 +181,7 @@
 	 * employee can honestly know about a lock is exactly two things, and both are readable:
 	 *
 	 *   - PENDING  — `approval_id` on their own row. The platform's own stamp.
-	 *   - CONSUMED — a `payslip_sources` row naming the payslip that took the record. Granted by
+	 *   - CONSUMED — a `payslip_adjustments` row naming the payslip that took the record. Granted by
 	 *                `settlementLedgerGrants()`, exact, stored, per-record. It is strictly better
 	 *                than the window inference it replaces: the window guessed from a date, this
 	 *                names the period.
@@ -192,16 +192,7 @@
 	/** No window means no day lock on this page: it is stated once instead of mapped over the month. */
 	const NO_DAY_LOCKS: ReadonlyMap<string, DayLock> = new Map();
 
-	type ClaimRow = WorkspaceRow<'component_entries'>;
-	type ClaimConsumptionRow = Pick<WorkspaceRow<'component_entries'>, 'id'> & {
-		readonly entry_payslip_lines?:
-			| readonly {
-					readonly payslip_line_payslip?: {
-						readonly payslip_payroll_run?: Pick<WorkspaceRow<'payroll_runs'>, 'period'> | null;
-					} | null;
-			  }[]
-			| null;
-	};
+	type ClaimRow = WorkspaceRow<'obligations'>;
 	type PayslipRow = WorkspaceRow<'payslips'> & {
 		readonly payslip_payroll_run?: Pick<WorkspaceRow<'payroll_runs'>, 'period'> | null;
 	};
@@ -219,7 +210,7 @@
 	/**
 	 * What holds one attendance record — and, deliberately, nothing about what day it falls on.
 	 *
-	 * This is the §2.2/§8.4 correction, and it is the same call `time_entries/+hooks.ts` makes on
+	 * This is the §2.2/§8.4 correction, and it is the same call `work_days/+hooks.ts` makes on
 	 * its update and delete paths, argument for argument, so the screen and the write path cannot
 	 * disagree about a row:
 	 *
@@ -233,12 +224,12 @@
 	 * screen. An employee's reported punch carries `approval_id` until a manager settles it,
 	 * and that is the rung the calendar draws as "waiting on your manager".
 	 */
-	function attendanceRowLock(row: WorkspaceRow<'time_entries'>): SourceLock {
+	function attendanceRowLock(row: WorkspaceRow<'work_days'>): SourceLock {
 		return sourceLock({
 			existing: true,
 			approvalId: row.approval_id,
 			dates: [],
-			settledBy: settlementByEntryId.get(row.id) ?? null,
+			settledBy: settlementByWorkDayId.get(row.id) ?? null,
 			datePassed: 'IS_NOT_A_LOCK'
 		});
 	}
@@ -248,7 +239,7 @@
 			existing: true,
 			approvalId: row.approval_id,
 			dates: [],
-			settledBy: claimSettlementByEntryId.get(row.id) ?? null,
+			settledBy: claimSettlementByObligationId.get(row.id) ?? null,
 			datePassed: 'IS_NOT_A_LOCK'
 		});
 	}
@@ -274,14 +265,14 @@
 	 * The controller's board and this calendar are one derived fact table drawn at two densities.
 	 * Every query below is the board's query with `company_id` swapped for `employment_id`, which is
 	 * why they are roughly 1/300th of its size and why none of them needed a policy change: the
-	 * `employee` policy already scopes `roster_entries`, `time_entries`, `leave_requests` and
+	 * `employee` policy already scopes `work_days`, `leave_requests` and
 	 * `employment_terms` to the reader's own employments, and `employeeReferenceGrants` already hands
 	 * them the company-wide calendars — holidays, shift definitions, rosters — that a personal
 	 * schedule is meaningless without.
 	 *
 	 * ONE THING IS DELIBERATELY ABSENT, and it is a ruling rather than a gap: `payroll_runs` is not
 	 * readable by an employee, so this calendar has no day axis at all. It draws the record axis —
-	 * pending, and consumed-by-payslip from `payslip_sources` — and nothing else. See the note above
+	 * pending, and consumed-by-payslip from `payslip_adjustments` — and nothing else. See the note above
 	 * `NO_DAY_LOCKS`, and the ladder note in `roster-month-calendar.svelte` for why a rung that
 	 * could never light was removed instead of being left dark.
 	 * ────────────────────────────────────────────────────────────────────────────────────────────── */
@@ -303,32 +294,24 @@
 	 * columns. The board narrows its own because it asks for three hundred people at once; here a
 	 * column list would only be a second place to forget a field when `DayFacts` grows one.
 	 */
-	const scheduleRosterQuery = $derived(
-		employmentId == null
-			? null
-			: client.db.roster_entries.findMany({
-					where: {
-						...approved,
-						employment_id: { eq: employmentId },
-						work_date: { gte: scheduleMonthStart, lte: scheduleMonthEnd }
-					},
-					limit: 200
-				})
-	);
 	/**
 	 * Deliberately NOT filtered to approved rows, which is the one place this query differs from the
 	 * board's.
 	 *
-	 * A punch the reader reported themselves carries `approval_id` until a manager settles
-	 * it, and it is invisible to every approved-only query — including the one that feeds
-	 * `buildRosterMonth`. Filtering here would hide the employee's own submission from the employee,
-	 * which is precisely the state §8.2 calls the most important one on this screen. The rows are
-	 * split below: approved ones become facts, pending ones become the PENDING rung.
+	 * A punch the reader reported themselves carries `approval_id` until a manager settles it, and
+	 * it is invisible to every approved-only query — including the one that feeds `buildRosterMonth`.
+	 * Filtering here would hide the employee's own submission from the employee, which is precisely
+	 * the state §8.2 calls the most important one on this screen.
+	 *
+	 * The plan and the punch were two queries and are one, because they are one row. What the split
+	 * used to do — approved rows become facts, pending ones become the PENDING rung — is done by
+	 * `scheduleFactWorkDays` below, on the CLOCK rather than on the row: a pending submission must
+	 * not read as attendance, and the plan on that same row must not disappear with it.
 	 */
-	const scheduleTimeQuery = $derived(
+	const scheduleWorkDaysQuery = $derived(
 		employmentId == null
 			? null
-			: client.db.time_entries.findMany({
+			: client.db.work_days.findMany({
 					where: {
 						employment_id: { eq: employmentId },
 						work_date: { gte: scheduleMonthStart, lte: scheduleMonthEnd }
@@ -412,13 +395,29 @@
 				})
 	);
 
-	const scheduleTimeEntries = $derived(scheduleTimeQuery?.current ?? []);
-	const scheduleApprovedTimeEntries = $derived(
-		scheduleTimeEntries.filter((row) => row.approval_id == null)
+	const scheduleWorkDays = $derived(scheduleWorkDaysQuery?.current ?? []);
+	/**
+	 * The month as FACTS, with an unapproved clock masked out of it.
+	 *
+	 * A pending submission is not yet attendance, and it used to be excluded by dropping the whole
+	 * row — which was correct while the row was nothing but the punch. It is not correct now: the
+	 * same row carries the roster assignment, and dropping it would erase the plan from the calendar
+	 * of the one person who reported against that plan. So the mask is on the two clock columns and
+	 * on nothing else.
+	 *
+	 * Every row is rebuilt rather than passed through, because a projection that returns some of its
+	 * inputs by reference gives a downstream `$state` assignment nothing to notice.
+	 */
+	const scheduleFactWorkDays = $derived(
+		scheduleWorkDays.map((row) =>
+			row.approval_id == null
+				? { ...row }
+				: { ...row, worked_intervals: null, break_minutes: null }
+		)
 	);
 	const schedulePendingDates = $derived(
 		new Set(
-			scheduleTimeEntries
+			scheduleWorkDays
 				.filter((row) => row.approval_id != null)
 				.map((row) => formatDateISO(row.work_date))
 		)
@@ -430,15 +429,15 @@
 	 * deliberately — see `src/lib/policy_grants.ts`.
 	 */
 	const scheduleSettlementsQuery = $derived.by(() => {
-		const ids = scheduleTimeEntries.map((row) => row.id);
+		const ids = scheduleWorkDays.map((row) => row.id);
 		if (ids.length === 0) return null;
-		return client.db.payslip_sources.findMany({
-			where: { source: { in: ids.map((id) => ({ kind: 'TIME_ENTRY' as const, id })) } },
+		return client.db.payslip_adjustments.findMany({
+			where: { source: { in: ids.map((id) => ({ kind: 'WORK_DAY' as const, id })) } },
 			columns: { source: true, period: true },
 			limit: 200
 		});
 	});
-	const settlementByEntryId = $derived(
+	const settlementByWorkDayId = $derived(
 		new Map(
 			(scheduleSettlementsQuery?.current ?? []).map((claim) => [
 				claim.source.id,
@@ -464,7 +463,7 @@
 	const myLeaveSettlementsQuery = $derived.by(() => {
 		const ids = (myLeaveIdsQuery?.current ?? []).map((row) => row.id);
 		if (ids.length === 0) return null;
-		return client.db.payslip_sources.findMany({
+		return client.db.payslip_adjustments.findMany({
 			where: { source: { in: ids.map((id) => ({ kind: 'LEAVE_REQUEST' as const, id })) } },
 			columns: { source: true, period: true },
 			limit: 500
@@ -478,36 +477,40 @@
 			])
 		)
 	);
-	const myClaimConsumptionQuery = $derived(
+	/**
+	 * The claim lookup for the obligations table, in the same two reads the other two use.
+	 *
+	 * It was a three-level nested walk — entry, to payslip line, to payslip, to run — because the
+	 * period lived on the run. `payslip_adjustments` names the obligation directly and carries the
+	 * period on the row, and `settlementLedgerGrants()` exposes exactly that pair, so the walk is
+	 * gone and so is every level of it an employee had no grant to make.
+	 */
+	const myObligationIdsQuery = $derived(
 		employmentId == null
 			? null
-			: client.db.component_entries.findMany({
+			: client.db.obligations.findMany({
 					where: { employment_id: { eq: employmentId } },
 					columns: { id: true },
-					with: {
-						entry_payslip_lines: {
-							columns: { id: true },
-							with: {
-								payslip_line_payslip: {
-									columns: { id: true },
-									with: { payslip_payroll_run: { columns: { period: true } } }
-								}
-							}
-						}
-					},
 					limit: 500
 				})
 	);
-	const claimSettlementByEntryId = $derived.by(() => {
-		const settled = new Map<string, { period: string }>();
-		for (const entry of (myClaimConsumptionQuery?.current ??
-			[]) as readonly ClaimConsumptionRow[]) {
-			const period =
-				entry.entry_payslip_lines?.[0]?.payslip_line_payslip?.payslip_payroll_run?.period;
-			if (period) settled.set(entry.id, { period });
-		}
-		return settled;
+	const myObligationSettlementsQuery = $derived.by(() => {
+		const ids = (myObligationIdsQuery?.current ?? []).map((row) => row.id);
+		if (ids.length === 0) return null;
+		return client.db.payslip_adjustments.findMany({
+			where: { source: { in: ids.map((id) => ({ kind: 'OBLIGATION' as const, id })) } },
+			columns: { source: true, period: true },
+			limit: 500
+		});
 	});
+	const claimSettlementByObligationId = $derived(
+		new Map(
+			(myObligationSettlementsQuery?.current ?? []).map((claim) => [
+				claim.source.id,
+				{ period: claim.period }
+			])
+		)
+	);
 
 	const scheduleHolidays = $derived(scheduleHolidaysQuery?.current ?? []);
 	const scheduleHolidayNames = $derived(holidayNamesByDate(scheduleHolidays));
@@ -547,8 +550,7 @@
 			month: scheduleMonth,
 			employments: activeEmployment == null ? [] : [activeEmployment],
 			employmentTerms: scheduleTermsQuery?.current ?? [],
-			rosterEntries: scheduleRosterQuery?.current ?? [],
-			timeEntries: scheduleApprovedTimeEntries,
+			workDays: scheduleFactWorkDays,
 			leaveRequests: scheduleLeaveQuery?.current ?? [],
 			pendingLeaveRequests: schedulePendingLeaveQuery?.current ?? [],
 			holidays: scheduleHolidays,
@@ -568,7 +570,7 @@
 	/** The record axis of the lock rail: one `SourceLock` per date that carries an entry at all. */
 	const scheduleEntryLocks = $derived(
 		new Map(
-			scheduleTimeEntries.map(
+			scheduleWorkDays.map(
 				(row) => [formatDateISO(row.work_date), attendanceRowLock(row)] as const
 			)
 		)
@@ -584,7 +586,7 @@
 	 */
 	const schedulePunchWindows = $derived.by(() => {
 		const windows = new Map<string, { first: string | null; last: string | null }>();
-		for (const row of scheduleTimeEntries) {
+		for (const row of scheduleWorkDays) {
 			const date = formatDateISO(row.work_date);
 			const intervals = row.worked_intervals ?? [];
 			const first = attendanceBoundary(intervals, 'FIRST');
@@ -609,15 +611,24 @@
 	 *
 	 *   - not `ACTIVE`        — the day is outside the employment; there is nothing to report about it
 	 *   - in the future       — a punch that has not happened yet is not a missing punch
-	 *   - an entry exists     — an employee has `create` and no `update`; changing one is a controller's
-	 *                           job, and offering a second create would make two records for one day
+	 *   - a person-day row exists — an employee has `create` on `work_days` and no `update`, and
+	 *                           `unique(employment_id, work_date)` makes a second row impossible. That
+	 *                           is STRICTER than it used to be and it is a real loss of reach: before
+	 *                           the merge a rostered day carried a `roster_entries` row and no
+	 *                           `time_entries` row, so a create landed. Now the plan and the clock are
+	 *                           one row, so the same create collides. Restoring the affordance on a
+	 *                           rostered day needs a masked `update` grant on `work_days` for the
+	 *                           reader's own employment — the attendance fields only — beside
+	 *                           `employeeWorkDayCreateGrant()` in `src/lib/policy_grants.ts`. Until
+	 *                           that grant exists, offering the button here would draw an affordance
+	 *                           the write path refuses, which is the one thing this list forbids.
 	 *   - already pending     — the platform holds their first report; a second would queue behind it
 	 *   - full-day leave      — `assertDayNotOwnedByLeave`: one writer wins the day. A HALF day is
 	 *                           still reportable, because the hook only refuses full coverage
 	 *
 	 * ONE REFUSAL IS DELIBERATELY NOT PRE-CHECKED HERE, AND MUST NOT BE ADDED.
 	 *
-	 * `assertDayHasNoPaidSilence` in `time_entries/+hooks.ts` refuses a punch reported on a day a
+	 * `assertDayHasNoPaidSilence` in `work_days/+hooks.ts` refuses a punch reported on a day a
 	 * paid run has already priced as silence. Deciding that on the client needs the run's window,
 	 * and an employee has no `read` grant on `payroll_runs` — by ruling, not by omission. There is no
 	 * honest way to pre-disable this button, and every dishonest way is worse than not trying:
@@ -636,7 +647,7 @@
 	function scheduleReportable(day: DayFacts): boolean {
 		if (day.employmentState !== 'ACTIVE') return false;
 		if (day.date > today) return false;
-		if (day.timeEntryId != null) return false;
+		if (day.workDayId != null) return false;
 		if (schedulePendingDates.has(day.date)) return false;
 		if (day.leaveCode != null && !day.halfDayLeave) return false;
 		return true;
@@ -651,8 +662,7 @@
 	);
 
 	const scheduleSources = $derived([
-		{ label: t('app.hr_employee.source_roster'), query: scheduleRosterQuery },
-		{ label: t('app.hr_employee.source_attendance'), query: scheduleTimeQuery },
+		{ label: t('app.hr_employee.source_person_days'), query: scheduleWorkDaysQuery },
 		{ label: t('app.hr_employee.source_leave'), query: scheduleLeaveQuery },
 		{ label: t('app.hr_employee.source_holidays'), query: scheduleHolidaysQuery },
 		{ label: t('app.hr_employee.source_shifts'), query: scheduleShiftsQuery },
@@ -708,8 +718,7 @@
 	const daySheetEntry = $derived(
 		daySheetDate == null
 			? null
-			: (scheduleApprovedTimeEntries.find((row) => formatDateISO(row.work_date) === daySheetDate) ??
-					null)
+			: (scheduleFactWorkDays.find((row) => formatDateISO(row.work_date) === daySheetDate) ?? null)
 	);
 	const daySheetIntervals = $derived<readonly IntervalDraft[]>(
 		intervalDrafts(daySheetEntry?.worked_intervals)
@@ -744,7 +753,7 @@
 		Effect.runFork(
 			Effect.tryPromise({
 				try: () =>
-					client.db.time_entries.mutate({
+					client.db.work_days.mutate({
 						employment_id: targetEmploymentId,
 						work_date: change.date,
 						worked_intervals: attendance.intervals.map((interval) => ({
@@ -786,7 +795,7 @@
 
 	/**
 	 * What a report would actually write, assessed by the same function the day sheet uses and
-	 * against the same rules `time_entries/+hooks.ts` enforces.
+	 * against the same rules `work_days/+hooks.ts` enforces.
 	 *
 	 * The break is the part that matters and the reason this is not a one-click submit. A reported
 	 * punch is frequently SHORT — twenty minutes on a day somebody stepped in — and carrying the
@@ -834,7 +843,7 @@
 		Effect.runFork(
 			Effect.tryPromise({
 				try: () =>
-					client.db.time_entries.mutate({
+					client.db.work_days.mutate({
 						employment_id: targetEmploymentId,
 						work_date: draft.date,
 						worked_intervals: draft.intervals.map((interval) => ({
@@ -1107,13 +1116,17 @@
 	<Cover gap="md" top={contextGate}>
 		<CollectionTable
 			{client}
-			collection="component_entries"
+			collection="obligations"
+			view="hr_employee:claims"
 			title={t('app.hr_employee.my_components_title')}
 			description={t('app.hr_employee.my_components_description')}
 			disabled={!employmentId}
 			recordMetadata={(row) => sourceLockRecordMetadata(claimRowLock(row), t)}
 			query={{
-				where: { employment_id: employmentId ? { eq: employmentId } : undefined },
+				where: {
+					terms: { ne: 'SCHEDULED' },
+					employment_id: employmentId ? { eq: employmentId } : undefined
+				},
 				orderBy: { event_date: 'desc' }
 			}}
 		>
@@ -1122,11 +1135,11 @@
 				<Column name="amount" label={t('component.amount')} />
 				<Column name="event_date" label={t('component.date')} />
 				<Column
-					name="origin"
-					label={t('component.origin')}
+					name="terms"
+					label={t('component.obligation_terms')}
 					card="subtitle"
 					renderer={FormattedValueRenderer}
-					rendererProps={{ format: ({ value }) => formatEntryOrigin(value, t) }}
+					rendererProps={{ format: ({ row }) => formatObligationTerms(row, t) }}
 				/>
 			{/snippet}
 		</CollectionTable>
@@ -1137,7 +1150,8 @@
 	<Cover gap="md" top={contextGate}>
 		<CollectionTable
 			{client}
-			collection="repayment_agreements"
+			collection="obligations"
+			view="hr_employee:loans"
 			features={{ create: false }}
 			title={t('app.hr_employee.my_loans_title')}
 			description={t('app.hr_employee.my_loans_description')}
@@ -1145,6 +1159,7 @@
 			initialFilters={inForceTodayFilter()}
 			query={{
 				where: {
+					terms: { eq: 'SCHEDULED' },
 					employment_id: employmentId ? { eq: employmentId } : undefined
 				},
 				orderBy: { effective_range: 'desc' }
@@ -1152,13 +1167,13 @@
 		>
 			{#snippet columns({ Column })}
 				<Column name="reference" card="title" />
-				<Column name="principal" label={t('component.principal')} />
+				<Column name="amount" label={t('component.principal')} />
 				<Column
-					name="schedule"
-					label={t('component.schedule')}
+					name="instalments"
+					label={t('component.recovery_instalments')}
 					card="subtitle"
 					renderer={FormattedValueRenderer}
-					rendererProps={{ format: ({ value }) => formatRepaymentSchedule(value, t) }}
+					rendererProps={{ format: ({ value }) => formatInstalments(value, t) }}
 				/>
 				<Column name="effective_range" />
 			{/snippet}
@@ -1255,8 +1270,9 @@
 
 	`mode="employee"` is the whole difference: the roster-code picker and the interval editor are the
 	controller's affordances and an employee has neither grant behind them — `create` on
-	`time_entries` scoped to their own employment, no `update`, no `delete`. The sheet's Save is
-	routed back out to `saveDaySheet`, so this app owns the single place a `time_entries` row is
+	`work_days` scoped to their own employment and masked to the clock fields, no `update`, no
+	`delete`. The sheet's Save is routed back out to `saveDaySheet`, so this app owns the single
+	place a `work_days` row is
 	created; the tile's report chip opens the preview dialog below, which writes the same row shape.
 -->
 <DaySheet
@@ -1268,7 +1284,7 @@
 	intervals={daySheetIntervals}
 	lockRung={daySheetRung}
 	lockReason={daySheetLockReason}
-	saving={client.db.time_entries.pending > 0}
+	saving={client.db.work_days.pending > 0}
 	onSave={(change) => saveDaySheet(change)}
 />
 
@@ -1290,7 +1306,7 @@
 						<Input
 							type="time"
 							value={report.startClock}
-							disabled={client.db.time_entries.pending > 0}
+							disabled={client.db.work_days.pending > 0}
 							oninput={(event) => (report.startClock = event.currentTarget.value)}
 						/>
 					</Stack>
@@ -1301,7 +1317,7 @@
 						<Input
 							type="time"
 							value={report.endClock}
-							disabled={client.db.time_entries.pending > 0}
+							disabled={client.db.work_days.pending > 0}
 							oninput={(event) => (report.endClock = event.currentTarget.value)}
 						/>
 					</Stack>
@@ -1353,10 +1369,10 @@
 			<p class="text-meta">{t('app.hr_employee.report_punch_approval_note')}</p>
 		</Stack>
 		<Dialog.Footer>
-			<Dialog.Close disabled={client.db.time_entries.pending > 0}>{t('roster.cancel')}</Dialog.Close
+			<Dialog.Close disabled={client.db.work_days.pending > 0}>{t('roster.cancel')}</Dialog.Close
 			>
 			<Button
-				disabled={client.db.time_entries.pending > 0 || reportProblem != null}
+				disabled={client.db.work_days.pending > 0 || reportProblem != null}
 				onclick={submitReport}
 			>
 				{t('app.hr_employee.report_punch_submit')}

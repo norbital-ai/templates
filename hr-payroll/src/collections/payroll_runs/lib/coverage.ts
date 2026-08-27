@@ -38,7 +38,7 @@ type CategoryBasis = Schema.Schema.Type<typeof CategoryBasisSchema>;
  *                     `NON_WAGE_PAYMENT` reimbursements, none of which is a cash payment for work.
  *
  * Para 3's third exclusion, overtime payment, needs no category. Overtime is not a pay component at
- * all — it is derived from `time_entries` against the jurisdiction's overtime rules — so it is
+ * all — it is derived from `work_days` against the jurisdiction's overtime rules — so it is
  * never in the set being classified, and the comparand excludes it structurally rather than by
  * filtering it back out.
  *
