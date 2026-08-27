@@ -8,7 +8,7 @@ import {
 	peopleGrants,
 	referenceGrants,
 	statutoryGrants,
-	timeEntryApproval
+	workDayWriteGrants
 } from '../../lib/policy_grants.js';
 import type { Policy } from './$types.js';
 
@@ -28,7 +28,7 @@ import type { Policy } from './$types.js';
  *   - no `payroll_runs: update`, no `payroll_runs: delete` — a controller does not re-run a payroll
  *     and does not erase one. That is what "may not create it" means once the run exists.
  *
- * There is deliberately no `payslips`/`payslip_lines`/`payslip_sources` delete grant either.
+ * There is deliberately no `payslips`/`payslip_adjustments` delete grant either.
  * `clearRunResults` needs those to rebuild a draft, and a controller never rebuilds one: their only
  * write is the initial create, and a run with no payslips yet has nothing to clear. See
  * `payrollRebuildGrants` in `src/lib/policy_grants.ts`, which is the grant `hr_manager` and
@@ -83,13 +83,13 @@ export default {
 		grantsOn('statutory_profile_drift_logs', ['read']),
 		peopleGrants('read'),
 		peopleGrants('create', 'update', 'delete'),
-		grantsOn('time_entries', ['read']),
+		grantsOn('work_days', ['read']),
 
 		/**
 		 * The adjustment path, unconditional and stated here rather than folded into `peopleGrants`.
 		 *
 		 * This is the whole of "only HR-policy holders may create adjustments": no policy on the
-		 * ordinary ladder has an unconditional `component_entries` create. Employee, supervisor and
+		 * ordinary ladder has an unconditional `obligations` create. Employee, supervisor and
 		 * manager share one grant pinned to their own employment and `origin.kind = 'CLAIM'`; it cannot
 		 * create the `MANUAL_ADJUSTMENT` variant. There is nothing to subtract, because adjustment
 		 * authority was never added below this policy.
@@ -101,15 +101,15 @@ export default {
 		 * for would leave every correction to a settled payslip waiting on a signature — which is the
 		 * situation adjustments exist to get out of.
 		 */
-		grantsOn('component_entries', ['read', 'create', 'update', 'delete']),
+		grantsOn('obligations', ['read', 'create', 'update', 'delete']),
 
-		// Attendance becomes a payroll source, so writing it is reviewed. Deleting it is not, and that
-		// asymmetry is the seed's: removing an entry withdraws a claim on payroll rather than making
-		// one, and routing a withdrawal through the manager who would have to notice it only leaves the
-		// bad row sitting in the run.
-		grantOn('time_entries', 'create', { approval: timeEntryApproval }),
-		grantOn('time_entries', 'update', { approval: timeEntryApproval }),
-		grantsOn('time_entries', ['delete']),
+		// Both sides of the person-day: publish the schedule, and record what happened against it.
+		// The approval resolver decides per write — a roster edit is not reviewed, and an attendance
+		// write is, which is exactly what the two collections said before they became one. Deleting
+		// is unreviewed and always was: removing a day withdraws a claim on payroll rather than
+		// making one, and routing a withdrawal through the manager who would have to notice it only
+		// leaves the bad row sitting in the run.
+		workDayWriteGrants(),
 
 		grantsOn('leave_requests', ['read', 'update', 'delete']),
 		grantOn('leave_requests', 'create', { approval: leaveApproval }),

@@ -11,7 +11,7 @@
 	which is the failure mode this whole surface exists to remove.
 
 	── WHY A CALENDAR AND NOT THE TABLE IT REPLACES ───────────────────────────────────────────────
-	The ESS "My time" tab was a `time_entries` table. It showed punches and nothing about what the
+	The ESS "My time" tab was a raw attendance table. It showed punches and nothing about what the
 	person was *supposed* to work — no shift, no rest day, no holiday, no leave — so it could not
 	answer "am I on tomorrow?", which is the single most common question self-service exists to
 	answer. A punch on its own is only half a day.
@@ -49,11 +49,11 @@
 	What survives is what an employee can actually be told, and both are readable by them:
 
 	    PENDING  — `approval_id` on their own row: the platform holds this submission.
-	    CONSUMED — a `payslip_sources` row: a payslip took this record, and the row names which
+	    CONSUMED — a `payslip_adjustments` row: a payslip took this record, and the row names which
 	               period. `settlementLedgerGrants()` grants this deliberately, so the claim is
 	               exact, stored and per-record rather than inferred from a date landing in a window.
 
-	CONSUMED does not split into "draft run" and "paid" here, and must not be made to: a source
+	CONSUMED does not split into "draft run" and "paid" here, and must not be made to: an adjustment
 	row carries a payslip id and a period and no lifecycle, so telling those apart needs the run —
 	which is the read this reader does not have. The tile says a payslip took the record; the hover
 	text carries `sourceLockReason`, which names the period and says what would release it.
@@ -122,10 +122,10 @@
 		/** Keep the calendar shell mounted while a new month's live queries settle. */
 		loading?: boolean;
 		/**
-		 * The record-axis lock, keyed by date: what holds the *time entry* on that day.
+		 * The record-axis lock, keyed by date: what holds the *person-day* on that day.
 		 *
 		 * Computed by the caller rather than here, because the only honest way to compute it is the
-		 * `sourceLock` call `time_entries/+hooks.ts` makes — same inputs, same answer — and the rows
+		 * `sourceLock` call `work_days/+hooks.ts` makes — same inputs, same answer — and the rows
 		 * and settlement claims it needs are the caller's queries, not this component's.
 		 */
 		entryLocks?: ReadonlyMap<string, SourceLock>;

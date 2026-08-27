@@ -1,7 +1,7 @@
 // @ts-nocheck -- executed directly by Node with --experimental-strip-types.
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { entryEventDate, entryPayPeriod } from './lib/entries.ts';
+import { obligationEventDate, obligationPayPeriod } from './lib/obligations.ts';
 import { measureEmployment } from './lib/measure.ts';
 import { PLAIN_CALENDAR } from './lib/settlement.ts';
 
@@ -124,11 +124,9 @@ function bundle(ledger = []) {
 			}
 		],
 		statutoryFacts: [],
-		entries: [],
+		obligations: [],
 		ledger,
-		timeEntries: [],
-		rosterEntries: [],
-		agreements: [],
+		workDays: [],
 		serviceMonths: 58,
 		age: 36,
 		employedDays: { start: '2026-04-01', end: '2026-04-30' },
@@ -140,74 +138,113 @@ function bundle(ledger = []) {
 	};
 }
 
-test('unpaid leave emits a LEAVE_UNPAID line linked to the leave requests', () => {
-	const leaveRequestId = '00000000-0000-4000-8000-0000000000r1';
-	const measured = measureEmployment({
-		bundle: bundle([
-			{
-				id: leaveRequestId,
-				leave_type_id: NPL_TYPE.id,
-				entry_date: '2026-04-10',
-				kind: 'TAKEN',
-				days: -1,
-				source_id: leaveRequestId,
-				approval_id: null
-			}
-		]),
-		configuration: configuration(),
-		period: '2026-04',
-		salary: { start: '2026-04-01', end: '2026-04-30' },
-		periodsRemaining: 9,
-		headcount: 1,
-		policy: PLAIN_CALENDAR,
-		consumedInstalments: new Map()
-	});
-	const npl = measured.lines.filter((line) => line.payComponent.code === 'NPL');
-	assert.equal(npl.length, 1);
-	assert.deepEqual(npl[0].component, {
-		kind: 'LEAVE_UNPAID',
-		pay_component_id: NPL.id,
-		leave_request_ids: [leaveRequestId]
-	});
-	assert.equal(npl[0].quantity, 1);
+const leaveDay = (id, date, days = -1) => ({
+	id,
+	leave_type_id: NPL_TYPE.id,
+	entry_date: date,
+	kind: 'TAKEN',
+	days,
+	source_id: id,
+	approval_id: null
 });
 
-test('a formula component with no unpaid leave in the window stays a bare FORMULA', () => {
-	const measured = measureEmployment({
-		bundle: bundle([]),
+function measure(ledger) {
+	return measureEmployment({
+		bundle: bundle(ledger),
 		configuration: configuration(),
 		period: '2026-04',
 		salary: { start: '2026-04-01', end: '2026-04-30' },
 		periodsRemaining: 9,
 		headcount: 1,
 		policy: PLAIN_CALENDAR,
-		consumedInstalments: new Map()
+		consumedObligations: new Map()
 	});
-	const npl = measured.lines.filter((line) => line.payComponent.code === 'NPL');
+}
+
+test('unpaid leave is an adjustment naming the leave request that caused it', () => {
+	const leaveRequestId = '00000000-0000-4000-8000-0000000000r1';
+	const measured = measure([leaveDay(leaveRequestId, '2026-04-10')]);
+	const npl = measured.adjustments.filter((row) => row.label === 'NPL');
 	assert.equal(npl.length, 1);
-	assert.deepEqual(npl[0].component, {
-		kind: 'FORMULA',
-		pay_component_id: NPL.id
-	});
+	// The source replaces `LEAVE_UNPAID`'s `leave_request_ids` array. One row, one request, and the
+	// database enforces the arc: a `restrict` foreign key on the LEAVE_REQUEST arm is the lock.
+	assert.deepEqual(npl[0].source, { kind: 'LEAVE_REQUEST', id: leaveRequestId });
+	assert.equal(npl[0].payComponent.id, NPL.id);
+	assert.equal(npl[0].quantity, 1);
+	assert.equal(npl[0].amount, 100, 'the formula’s own figure, unapportioned: there is one request');
+	// And it is not base. Base is what the contract produced; this was caused by a record somebody
+	// can edit, and that is the whole of what makes it an adjustment.
+	assert.deepEqual(
+		measured.base.map((item) => item.label),
+		['BASIC']
+	);
+});
+
+test('one absence across three requests is three rows that sum to the formula’s amount', () => {
+	// `unique(source, payslip_id)` means a row cannot name three requests, and the old
+	// `leave_request_ids` array is exactly the shape that had to go. The amount is apportioned by
+	// the days each request contributed and the rounding residue lands on the last, so the parts sum
+	// to what the formula produced and the quantities sum to the days it was produced from.
+	const measured = measure([
+		leaveDay('lr-a', '2026-04-08'),
+		leaveDay('lr-b', '2026-04-09'),
+		leaveDay('lr-c', '2026-04-10')
+	]);
+	const npl = measured.adjustments.filter((row) => row.label === 'NPL');
+	assert.deepEqual(
+		npl.map((row) => row.source.id),
+		['lr-a', 'lr-b', 'lr-c']
+	);
+	assert.equal(
+		Math.round(npl.reduce((total, row) => total + row.amount, 0) * 100) / 100,
+		100,
+		'100.00 over three days is 33.33 + 33.33 + 33.34, never 99.99'
+	);
+	assert.deepEqual(
+		npl.map((row) => row.amount),
+		[33.33, 33.33, 33.34]
+	);
+	assert.equal(
+		npl.reduce((total, row) => total + row.quantity, 0),
+		3
+	);
+});
+
+test('a formula component with no unpaid leave in the window is base, because nothing caused it', () => {
+	const measured = measure([]);
+	const npl = measured.base.filter((item) => item.label === 'NPL');
+	assert.equal(npl.length, 1);
+	assert.deepEqual(npl[0].entry, { pay_component_id: NPL.id, amount: 100 });
+	// No adjustment at all: an amount with no source is not an adjustment, it is base — and there is
+	// no `kind` column anywhere to declare which, because the kind is derived from what it points at.
+	assert.deepEqual(
+		measured.adjustments.filter((row) => row.label === 'NPL'),
+		[]
+	);
 });
 
 test('a claim with incurred_on settles by that date, not event_date', () => {
+	// `occasion` and `incurred_on` are plain columns; nothing decodes a union to find them.
 	const claim = {
 		id: 'claim-1',
+		terms: 'ONE_OFF',
+		occasion: 'CLAIM',
 		pay_period: null,
 		event_date: '2026-04-25',
-		origin: { kind: 'CLAIM', evidence_file: null, incurred_on: '2026-04-10' }
+		incurred_on: '2026-04-10'
 	};
-	assert.equal(entryPayPeriod(claim, 21), '2026-04');
-	assert.equal(entryEventDate(claim, new Map([[claim.id, claim]])), '2026-04-10');
+	assert.equal(obligationPayPeriod(claim, 21), '2026-04');
+	assert.equal(obligationEventDate(claim, new Map([[claim.id, claim]])), '2026-04-10');
 });
 
-test('a claim without incurred_on falls back to event_date for the cutoff', () => {
-	const claim = {
+test('an obligation that is not a claim falls back to event_date for the cutoff', () => {
+	const entered = {
 		id: 'claim-2',
+		terms: 'ONE_OFF',
+		occasion: 'ENTERED',
 		pay_period: null,
 		event_date: '2026-04-25',
-		origin: { kind: 'ONE_OFF', note: 'adhoc' }
+		incurred_on: null
 	};
-	assert.equal(entryPayPeriod(claim, 21), '2026-05');
+	assert.equal(obligationPayPeriod(entered, 21), '2026-05');
 });

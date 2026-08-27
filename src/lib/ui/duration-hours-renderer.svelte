@@ -3,7 +3,7 @@
 	 * Half-hour-stepped **hours** input over an integer **minutes** column.
 	 *
 	 * `shift_definitions.break_minutes`, `shift_definitions.overtime_break_minutes` and
-	 * `time_entries.break_minutes` all stay `integer()` minutes: that is the unit the overtime
+	 * `work_days.break_minutes` all stay `integer()` minutes: that is the unit the overtime
 	 * engine, the roster validation, the payroll export and the customer time-entries workbook all
 	 * measure in, and 0.5 h is exactly 30 min, so the conversion is lossless in both directions. Only
 	 * what the operator types and reads is hours.

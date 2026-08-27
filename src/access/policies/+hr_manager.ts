@@ -8,7 +8,7 @@ import {
 	peopleGrants,
 	referenceGrants,
 	statutoryGrants,
-	timeEntryApproval
+	workDayWriteGrants
 } from '../../lib/policy_grants.js';
 import type { Policy } from './$types.js';
 
@@ -30,7 +30,7 @@ import type { Policy } from './$types.js';
  *     subject rather than running elevated. Without these three deletes a recalculation fails on the
  *     clear, and the run would keep the previous build's figures while reporting a fresh one.
  *   - `payroll_runs: delete` — the release path for the settlement lock. Deleting a run cascades to
- *     its payslips and their `payslip_sources` rows, which is what unlocks the time entries,
+ *     its payslips and their `payslip_adjustments` rows, which is what unlocks the work days,
  *     component entries and leave requests that run consumed. `payroll_runs/+hooks.ts` refuses the
  *     delete outright once `lifecycle = 'PAID'`, so this grant can only ever release a draft's claims.
  *
@@ -73,14 +73,18 @@ export default {
 		grantsOn('statutory_profile_drift_logs', ['read']),
 		peopleGrants('read'),
 		peopleGrants('create', 'update', 'delete'),
-		grantsOn('time_entries', ['read']),
+		grantsOn('work_days', ['read']),
 
 		// The adjustment path. Unconditional on both read and create — see `+hr_controller.ts`.
-		grantsOn('component_entries', ['read', 'create', 'update', 'delete']),
+		grantsOn('obligations', ['read', 'create', 'update', 'delete']),
 
-		grantOn('time_entries', 'create', { approval: timeEntryApproval }),
-		grantOn('time_entries', 'update', { approval: timeEntryApproval }),
-		grantsOn('time_entries', ['delete']),
+		// Both sides of the person-day: publish the schedule, and record what happened against it.
+		// The approval resolver decides per write — a roster edit is not reviewed, and an attendance
+		// write is, which is exactly what the two collections said before they became one. Deleting
+		// is unreviewed and always was: removing a day withdraws a claim on payroll rather than
+		// making one, and routing a withdrawal through the manager who would have to notice it only
+		// leaves the bad row sitting in the run.
+		workDayWriteGrants(),
 
 		grantsOn('leave_requests', ['read', 'update', 'delete']),
 		grantOn('leave_requests', 'create', { approval: leaveApproval }),

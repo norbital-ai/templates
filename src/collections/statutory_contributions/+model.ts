@@ -22,7 +22,7 @@ export default defineModel(
 		 * How this scheme charges derived overtime, and how it charges the excess overtime the daily
 		 * total-work-hours boundary reclassifies.
 		 *
-		 * Overtime is derived from `time_entries` and the jurisdiction's own `overtime_rules`; it is
+		 * Overtime is derived from `work_days` and the jurisdiction's own `overtime_rules`; it is
 		 * never a pay component, so there is no `pay_components.policy` cell to state its treatment on.
 		 * "EPF excludes overtime" is a fact about EPF — one row, one statement — and putting it on the
 		 * catalogue instead let two companies in one jurisdiction disagree about what the law says.

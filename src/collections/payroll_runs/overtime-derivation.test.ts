@@ -37,7 +37,7 @@ const interval = (start, end) => ({
 });
 
 const entry = (overrides = {}) => ({
-	id: 'time-entry',
+	id: 'work-day',
 	work_date: '2026-03-10',
 	worked_intervals: [interval('08:30', '17:30')],
 	break_minutes: 60,
@@ -66,7 +66,7 @@ test('an ordinary day is observed work outside the scheduled shift window', () =
 	assert.equal(day.hours, 3);
 	assert.equal(day.dayType, 'ORDINARY');
 	assert.equal(day.date, '2026-03-10');
-	assert.equal(day.timeEntryId, 'time-entry');
+	assert.equal(day.workDayId, 'work-day');
 });
 
 test('overtime floors to the half hour below, with no one-hour minimum', () => {
@@ -158,7 +158,7 @@ const REST_DAY_BEYOND = rule({
 test('a full rest day pays one day s wages, and only the hours beyond the normal day run the ladder', () => {
 	const day = {
 		date: '2026-03-08',
-		timeEntryId: 'time-entry',
+		workDayId: 'work-day',
 		dayType: 'REST_DAY',
 		hours: 10,
 		normalHours: 8,
@@ -184,7 +184,7 @@ test('a rest-day rule with no pay component behind it would still be priced — 
 	const { segments } = priceDay({
 		day: {
 			date: '2026-03-08',
-			timeEntryId: 'time-entry',
+			workDayId: 'work-day',
 			dayType: 'REST_DAY',
 			hours: 6,
 			normalHours: 8,
@@ -202,7 +202,7 @@ test('hours past the daily work limit are reclassified, never dropped', () => {
 		days: [
 			{
 				date: '2026-03-10',
-				timeEntryId: 'time-entry',
+				workDayId: 'work-day',
 				dayType: 'ORDINARY',
 				hours: 4.5,
 				normalHours: 8,

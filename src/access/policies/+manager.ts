@@ -1,5 +1,6 @@
 import {
 	NOT_AN_ADJUSTMENT,
+	attendanceWriteGrants,
 	employeeSelfServiceGrants,
 	grantOn,
 	grantsOn,
@@ -8,8 +9,7 @@ import {
 	peopleGrants,
 	referenceGrants,
 	settlementLedgerGrants,
-	statutoryGrants,
-	timeEntryApproval
+	statutoryGrants
 } from '../../lib/policy_grants.js';
 import type { Policy } from './$types.js';
 
@@ -27,7 +27,7 @@ import type { Policy } from './$types.js';
  * have to notice it only leaves the bad row sitting in the run.
  *
  * Still no payroll. A manager reads people, time and leave; `payroll_runs`, `payslips` and
- * `payslip_lines` are enumerated authority that begins at `hr_controller` and `senior_management`.
+ * `payslip_adjustments` are enumerated authority that begins at `hr_controller` and `senior_management`.
  * The previous `Management` policy in this template granted a manager read, create, update and
  * delete on `payroll_runs`; under the owner's ladder that was three authorities too many, and its
  * payroll-create approval it carried is retired with it.
@@ -66,19 +66,22 @@ export default {
 		referenceGrants('read'),
 		statutoryGrants('read'),
 		peopleGrants('read'),
-		grantsOn('time_entries', ['read']),
+		grantsOn('work_days', ['read']),
 		grantsOn('leave_requests', ['read']),
 		// Restated, not inherited, and restated *with* the predicate. A manager who could see
 		// corrections could reconstruct what HR fixed about their own team's pay.
-		grantOn('component_entries', 'read', {
+		grantOn('obligations', 'read', {
 			where: NOT_AN_ADJUSTMENT,
 			dependencies: []
 		}),
 		settlementLedgerGrants(),
 
-		grantOn('time_entries', 'create', { approval: timeEntryApproval }),
-		grantOn('time_entries', 'update', { approval: timeEntryApproval }),
-		grantsOn('time_entries', ['delete']),
+		// Attendance, masked to the clock columns and reviewed, exactly as at rank 2. The delete this
+		// rank adds is the withdrawal a supervisor may not make, and it is authorized only on a day
+		// that carries no plan — a delete takes the whole row, and a manager may not write the plan,
+		// so a manager may not remove one either. Clearing attendance from a rostered day is an
+		// update, and that update is reviewed.
+		attendanceWriteGrants('create', 'update', 'delete'),
 
 		grantOn('leave_requests', 'create', { approval: leaveApproval }),
 		grantsOn('leave_requests', ['update', 'delete'])

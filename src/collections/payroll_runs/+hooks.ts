@@ -11,7 +11,8 @@
  *
  * A `before` hook's return is the record the runtime persists, and it may carry the records that
  * belong to it. So this hook returns the run's columns **and its payslips**, and the whole payroll —
- * the run, every payslip, every line, every settlement lock — lands in the create that asked for it.
+ * the run, every payslip, its inlined base, proration and statutory entries, and every adjustment
+ * including the zero-amount settlement locks — lands in the create that asked for it.
  *
  * There is no `after` on this collection, and that is the point rather than a tidy-up. The build
  * used to run there, where the row was already committed and the database facility has no
@@ -31,11 +32,14 @@
  *
  * ## The settlement lock
  *
- * A run that persists claims every source record it consumed in `payslip_sources`; deleting the run
- * cascades those claims away with its payslips. Which is why the delete refusal below is not merely
- * tidiness about history: it is what makes a paid period's attendance, entries and leave permanently
- * immutable. See `src/collections/payslip_sources/+model.ts`, and `src/lib/policy_grants.ts` for why
- * this lock is not `approval_id`.
+ * A run that persists claims every source record it consumed as a `payslip_adjustments` row naming
+ * it — including the ones it priced at nothing, whose amount is zero and whose claim is exactly as
+ * binding. Deleting the run cascades those rows away with its payslips. Which is why the delete
+ * refusal below is not merely tidiness about history: it is what makes a paid period's attendance,
+ * obligations and leave permanently immutable. See
+ * `src/collections/payslip_adjustments/+model.ts`, `src/lib/settlement_refusals.ts` for the
+ * cross-run ceiling the merge traded a database invariant for, and `src/lib/policy_grants.ts` for
+ * why this lock is not `approval_id`.
  */
 
 import { Effect } from 'effect';
@@ -107,7 +111,8 @@ const buildGraph = (prepared: PreparedRun) =>
 			yield* Effect.logWarning(`[payroll-warnings] ${prepared.period} ${built.warnings.join(' ')}`);
 		yield* Effect.log(
 			`[payroll-result] ${prepared.period} payslips=${built.payslipCount} ` +
-				`lines=${built.lineCount} settled=${built.claimCount} | ${prepared.readLog.logString()}`
+				`base=${built.baseCount} adjustments=${built.adjustmentCount} ` +
+				`locks=${built.lockCount} | ${prepared.readLog.logString()}`
 		);
 		return {
 			...derivedColumns(prepared),
@@ -139,7 +144,7 @@ export default {
 		perRecord: {
 			before: {
 				description:
-					'Refuses a second run for a company and period, refuses one while an earlier period is still a draft, then calculates the whole payroll and returns the run together with every payslip, payslip line and settlement lock it produced.',
+					'Refuses a second run for a company and period, refuses one while an earlier period is still a draft, then calculates the whole payroll and returns the run together with every payslip and every adjustment — settlement locks included — it produced.',
 				handler: ({ input, prepared, api }) =>
 					Effect.gen(function* () {
 						const facts = prepared.get(runKey(input.company_id, input.period));
@@ -215,7 +220,7 @@ export default {
 						 * only thing that reaches here is somebody asking for a recalculation. What comes
 						 * back replaces the previous build wholesale: `payslip_payroll_run` is an included
 						 * relationship, which states the run's complete set of payslips, and the payslips
-						 * left out are removed with their lines and locks by the same statement.
+						 * left out are removed with their adjustments by the same statement.
 						 */
 						const prepared = yield* gatherPayrollRun({
 							api,
@@ -231,17 +236,17 @@ export default {
 	/**
 	 * Deleting a run is the settlement lock's release, and the only one.
 	 *
-	 * `payslips.payroll_run_id` is declared to cascade, and `payslip_sources.payslip_id` with it, so
-	 * the rows this run claimed over time entries, component entries, leave requests, pay components
-	 * and repayment agreements are dropped by the database in the same statement that drops the run —
-	 * and the records become editable again the moment the run stops standing. That is the owner's rule
-	 * verbatim: locked while the run stands, released only if the run is deleted.
+	 * `payslips.payroll_run_id` is declared to cascade, and `payslip_adjustments.payslip_id` with it,
+	 * so the rows this run claimed over work days, obligations and leave requests are dropped by the
+	 * database in the same statement that drops the run — and the records become editable again the
+	 * moment the run stops standing. That is the owner's rule verbatim: locked while the run stands,
+	 * released only if the run is deleted.
 	 */
 	delete: {
 		perRecord: {
 			before: {
 				description:
-					'Allows a payroll run to be deleted only while it is still a draft, so a period that has been paid can never be erased and the settlement locks it holds over attendance, entries, leave, components and repayment agreements are never released.',
+					'Allows a payroll run to be deleted only while it is still a draft, so a period that has been paid can never be erased and the settlement locks it holds over work days, obligations and leave requests are never released.',
 				handler: ({ existing }) => {
 					// The refusal that makes a paid run's locks permanent. Deleting a PAID run would cascade
 					// its settlement claims away and quietly reopen every record behind money that has
@@ -251,8 +256,8 @@ export default {
 						refuse(
 							`Payroll run ${existing.period} is ${existing.lifecycle} and cannot be deleted. ` +
 								'A paid run is the record of money that has been paid, and deleting it would ' +
-								'release every attendance, entry and leave record it settled. Correct it with an ' +
-								'adjustment entry in a later draft run instead.'
+								'release every work day, obligation and leave record it settled. Correct it with ' +
+								'an adjustment obligation in a later draft run instead.'
 						);
 				}
 			}

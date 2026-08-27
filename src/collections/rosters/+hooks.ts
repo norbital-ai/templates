@@ -44,8 +44,15 @@ type AppraisedCode = Pick<
 	WorkspaceRow<'shift_definitions'>,
 	'id' | 'code' | 'variant' | 'effective_range'
 >;
-type AppraisedEntry = Pick<
-	WorkspaceRow<'roster_entries'>,
+/**
+ * The planned half of a `work_days` row, which is the half publication validates.
+ *
+ * A day belonging to this roster may still carry no assignment — it was imported for its
+ * attendance, or its plan was cleared — so `shift_definition_id` is nullable and the work pattern
+ * supplies the schedule wherever it is absent, exactly as it does for a day with no row at all.
+ */
+type AppraisedDay = Pick<
+	WorkspaceRow<'work_days'>,
 	'employment_id' | 'work_date' | 'shift_definition_id'
 >;
 
@@ -60,7 +67,7 @@ type AppraisedEntry = Pick<
 function appraiseTerm(
 	term: AppraisedTerm,
 	bounds: { readonly start: string; readonly end: string },
-	entryByKey: ReadonlyMap<string, AppraisedEntry>,
+	dayByKey: ReadonlyMap<string, AppraisedDay>,
 	codeById: ReadonlyMap<string, AppraisedCode>
 ): {
 	handledKeys: readonly string[];
@@ -77,11 +84,11 @@ function appraiseTerm(
 	let expectedPaidMinutes = 0;
 
 	for (const date of activeDates) {
-		const entryKey = `${term.employment_id}:${date}`;
-		const entry = entryByKey.get(entryKey);
-		if (entry != null) handledKeys.push(entryKey);
+		const dayKey = `${term.employment_id}:${date}`;
+		const day = dayByKey.get(dayKey);
+		if (day != null) handledKeys.push(dayKey);
 		const projectedId = pattern.type === 'PATTERNED' ? patternRosterCodeId(pattern, date) : null;
-		const codeId = entry?.shift_definition_id ?? projectedId;
+		const codeId = day?.shift_definition_id ?? projectedId;
 		const code = codeId == null ? null : codeById.get(codeId);
 		if (codeId != null && code == null) {
 			refuse(`${date} names a roster code that is missing or belongs to another entity.`);
@@ -172,9 +179,9 @@ function assertPublishable(
 ): Effect.Effect<void, never, never> {
 	return Effect.gen(function* () {
 		const bounds = monthBounds(roster.month);
-		const [entries, employments, codes] = yield* Effect.all(
+		const [days, employments, codes] = yield* Effect.all(
 			[
-				api.db.roster_entries.findMany({
+				api.db.work_days.findMany({
 					where: { roster_id: { eq: roster.id } },
 					limit: QUERY_LIMIT
 				}),
@@ -196,7 +203,7 @@ function assertPublishable(
 			],
 			{ concurrency: 'unbounded' }
 		);
-		if ([entries, employments, codes].some((rows) => rows.length === QUERY_LIMIT)) {
+		if ([days, employments, codes].some((rows) => rows.length === QUERY_LIMIT)) {
 			refuse(`Roster ${roster.month} is too large to validate in one page.`);
 		}
 		const employmentIds = employments
@@ -215,25 +222,29 @@ function assertPublishable(
 		}
 
 		const codeById = new Map(codes.map((code) => [code.id, code]));
-		const entryByKey = new Map(
-			entries.map((entry) => [`${entry.employment_id}:${dateKey(entry.work_date)}`, entry])
+		const dayByKey = new Map(
+			days.map((day) => [`${day.employment_id}:${dateKey(day.work_date)}`, day])
 		);
 		const validationDays: ValidationDay[] = [];
 		const expectations: WorkloadExpectation[] = [];
-		const handledEntryKeys = new Set<string>();
+		const handledDayKeys = new Set<string>();
 
 		for (const term of terms) {
-			const appraised = appraiseTerm(term, bounds, entryByKey, codeById);
+			const appraised = appraiseTerm(term, bounds, dayByKey, codeById);
 			if (appraised == null) continue;
-			for (const key of appraised.handledKeys) handledEntryKeys.add(key);
+			for (const key of appraised.handledKeys) handledDayKeys.add(key);
 			validationDays.push(...appraised.days);
 			if (appraised.expectation != null) expectations.push(appraised.expectation);
 		}
-		const orphanedEntries = entries.filter(
-			(entry) => !handledEntryKeys.has(`${entry.employment_id}:${dateKey(entry.work_date)}`)
+		// A day this roster owns whose employment has no effective terms here. Only assigned days
+		// count: one that carries nothing but attendance makes no schedule claim to validate.
+		const orphanedDays = days.filter(
+			(day) =>
+				day.shift_definition_id != null &&
+				!handledDayKeys.has(`${day.employment_id}:${dateKey(day.work_date)}`)
 		);
-		if (orphanedEntries.length > 0) {
-			const first = orphanedEntries[0]!;
+		if (orphanedDays.length > 0) {
+			const first = orphanedDays[0]!;
 			refuse(
 				`${dateKey(first.work_date)} has an assignment for an employment with no effective terms in this legal entity.`
 			);
@@ -298,12 +309,48 @@ export default {
 	delete: {
 		perRecord: {
 			before: {
-				description: 'Refuses to delete a published monthly roster.',
-				handler: ({ existing }) => {
-					if (existing.published_at != null) {
-						refuse(`Re-open roster ${existing.month} before deleting it.`);
-					}
-				}
+				description:
+					'Refuses to delete a published monthly roster, and releases a draft month’s work days — clearing the roster they name — before the roster row goes, so the attendance recorded on those days survives the delete.',
+				/**
+				 * Deleting a roster releases its month; it never takes the month with it.
+				 *
+				 * `work_day_roster` is deliberately **not** a cascade. It was, while the row was only a
+				 * plan — but the same row carries attendance now, and a drafted month must not be able
+				 * to delete a punch. The edge is `restrict`, so the database refuses the delete while
+				 * any work day still names this roster, and releasing them is what un-publishing a
+				 * month actually means: the days stay, their plan stays, and only the claim that they
+				 * belong to a drafted month is dropped.
+				 *
+				 * One `mutate` per day, because there is no batched way to say it. The nested-`many`
+				 * path cannot: an included relationship is the parent's complete desired state, so
+				 * stating it empty would DELETE every day, and stating them all would leave
+				 * `roster_id` untouched — the runtime strips the ownership column from a nested child
+				 * rather than letting a write reparent it. A roster delete is a rare administrative
+				 * act on an unpublished month, so the cost is paid where it is visible; nothing on the
+				 * payroll path writes per record.
+				 */
+				handler: ({ existing, api }) =>
+					Effect.gen(function* () {
+						if (existing.published_at != null) {
+							refuse(`Re-open roster ${existing.month} before deleting it.`);
+						}
+						const days = yield* api.db.work_days.findMany({
+							where: { roster_id: { eq: existing.id } },
+							columns: { id: true },
+							limit: QUERY_LIMIT
+						});
+						if (days.length === QUERY_LIMIT) {
+							refuse(
+								`Roster ${existing.month} holds more days than one page can release. ` +
+									'Clear the month in parts, then delete it.'
+							);
+						}
+						yield* Effect.forEach(
+							days,
+							(day) => api.db.work_days.mutate({ id: day.id, roster_id: null }),
+							{ concurrency: 'unbounded', discard: true }
+						);
+					})
 			}
 		}
 	}

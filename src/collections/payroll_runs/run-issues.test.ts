@@ -12,7 +12,7 @@ import {
 	describeIssues,
 	validateConfiguration,
 	validateDailyWorkLimit,
-	validateOpenTimeEntries,
+	validateOpenWorkDays,
 	validateOvertimeLimits,
 	validatePayCalendar
 } from './lib/validate.ts';
@@ -199,7 +199,7 @@ test('a day past the hours-of-work limit is a warning that names whose day it wa
 		days: [
 			{
 				date: '2026-03-10',
-				timeEntryId: 'time-entry-1',
+				workDayId: 'work-day-1',
 				dayType: 'ORDINARY',
 				hours: 4.5,
 				normalHours: 8,
@@ -207,7 +207,7 @@ test('a day past the hours-of-work limit is a warning that names whose day it wa
 			},
 			{
 				date: '2026-03-11',
-				timeEntryId: 'time-entry-2',
+				workDayId: 'work-day-2',
 				dayType: 'ORDINARY',
 				hours: 2,
 				normalHours: 8,
@@ -220,8 +220,8 @@ test('a day past the hours-of-work limit is a warning that names whose day it wa
 	assert.equal(issues[0].severity, 'WARNING');
 	assert.equal(blockers(issues).length, 0);
 	assert.match(issues[0].message, /NHPMY0002 worked 13\.25 hours on 2026-03-10/);
-	assert.equal(issues[0].collection, 'time_entries');
-	assert.equal(issues[0].recordId, 'time-entry-1', 'the issue links to the attendance row to fix');
+	assert.equal(issues[0].collection, 'work_days');
+	assert.equal(issues[0].recordId, 'work-day-1', 'the issue links to the attendance row to fix');
 });
 
 test('a cadence the company has written no calendar for stops the run and names the people on it', () => {
@@ -371,29 +371,29 @@ test('one issue reads as one issue, and a flood is capped with an honest count',
  * thirty-six of them — an ordinary month, people forget to clock out — took thirty-six builds to
  * enumerate. Nihon's own January 2026 attendance is exactly that shape.
  */
-const openBundle = (employeeNumber, entries) => ({
+const openBundle = (employeeNumber, days) => ({
 	employment: { employee_number: employeeNumber },
-	timeEntries: entries
+	workDays: days
 });
 
-test('every unclosed time entry is reported, not just the first', () => {
-	const issues = validateOpenTimeEntries({
+test('every unclosed clock is reported, not just the first', () => {
+	const issues = validateOpenWorkDays({
 		bundles: [
 			openBundle('NHPMY0193', [
 				{
-					id: 'te-1',
+					id: 'wd-1',
 					work_date: '2026-01-15',
 					worked_intervals: [{ start: '2026-01-15T01:00:00.000Z', end: null }]
 				},
 				{
-					id: 'te-2',
+					id: 'wd-2',
 					work_date: '2026-01-16',
 					worked_intervals: [{ start: '2026-01-16T01:00:00.000Z', end: '2026-01-16T09:00:00.000Z' }]
 				}
 			]),
 			openBundle('NHPMY0271', [
 				{
-					id: 'te-3',
+					id: 'wd-3',
 					work_date: '2025-12-27',
 					worked_intervals: [{ start: null, end: '2025-12-27T09:00:00.000Z' }]
 				}
@@ -403,33 +403,33 @@ test('every unclosed time entry is reported, not just the first', () => {
 	assert.equal(issues.length, 2);
 	assert.deepEqual(
 		issues.map((issue) => issue.recordId),
-		['te-1', 'te-3']
+		['wd-1', 'wd-3']
 	);
 	// A blocker, exactly as hard as the throw it replaced: this reports, it does not forgive.
 	assert.equal(blockers(issues).length, 2);
 	for (const issue of issues) {
-		assert.equal(issue.code, 'TIME_ENTRY_OPEN');
-		assert.equal(issue.collection, 'time_entries');
+		assert.equal(issue.code, 'WORK_DAY_OPEN');
+		assert.equal(issue.collection, 'work_days');
 	}
 	// The employee, not only the date — dozens of people clock on any given day.
-	assert.match(issues[0].message, /NHPMY0193 has an unclosed time entry on 2026-01-15/);
+	assert.match(issues[0].message, /NHPMY0193 has an unclosed clock on 2026-01-15/);
 	// A clock-out with no clock-in is just as unpriceable as a clock that never stopped.
-	assert.match(issues[1].message, /NHPMY0271 has an unclosed time entry on 2025-12-27/);
+	assert.match(issues[1].message, /NHPMY0271 has an unclosed clock on 2025-12-27/);
 });
 
 test('closed attendance raises nothing, and a null interval list is not an open clock', () => {
-	// `worked_intervals: null` is a separate fault with its own message in `normalizedWorkedIntervals`
-	// — a day with no intervals at all, rather than one whose clock is still running. Claiming it here
-	// would report the wrong thing to fix.
-	const issues = validateOpenTimeEntries({
+	// `worked_intervals: null` is the presence test for the actual half of a work day: it says no
+	// attendance was recorded at all, which is a plan rather than a clock that is still running.
+	// Claiming it here would report the wrong thing to fix.
+	const issues = validateOpenWorkDays({
 		bundles: [
 			openBundle('NHPMY0001', [
 				{
-					id: 'te-4',
+					id: 'wd-4',
 					work_date: '2026-01-05',
 					worked_intervals: [{ start: '2026-01-05T01:00:00.000Z', end: '2026-01-05T09:00:00.000Z' }]
 				},
-				{ id: 'te-5', work_date: '2026-01-06', worked_intervals: null }
+				{ id: 'wd-5', work_date: '2026-01-06', worked_intervals: null }
 			])
 		]
 	});

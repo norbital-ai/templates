@@ -261,13 +261,13 @@ export function validateDailyWorkLimit(options: {
 				`${options.employeeNumber} worked ${day.totalWorkHours.toFixed(2)} hours on ${day.date}, ` +
 				`above the ${options.maxWorkHours}-hour daily limit. The run will still be built; ` +
 				'correct the attendance for that day, or record why the hours stand.',
-			collection: 'time_entries',
-			recordId: day.timeEntryId
+			collection: 'work_days',
+			recordId: day.workDayId
 		}));
 }
 
 /**
- * Time entries whose clock never stopped.
+ * Work days whose clock never stopped.
  *
  * An open interval has no duration, so nothing downstream can price it: `normalizedWorkedIntervals`
  * refuses one by name three phases further in, and the engine used to pre-empt that with a bare
@@ -279,16 +279,16 @@ export function validateDailyWorkLimit(options: {
  * exactly as hard as it did before. This does not decide *whether* an open clock blocks payroll; it
  * decides that the operator is told the whole list the first time.
  *
- * Every entry GATHER read is checked, not only the ones inside the attendance window. That is
+ * Every work day GATHER read is checked, not only the ones inside the attendance window. That is
  * deliberate and it matches what MEASURE consumes: the schedule is walked across both calendar
  * months the cutoff touches so the monthly statutory overtime counter resets correctly, so an open
  * clock on the 29th of a month whose window closed on the 20th is still read by this run, and still
  * stops it.
  */
-export function validateOpenTimeEntries(options: {
+export function validateOpenWorkDays(options: {
 	readonly bundles: readonly {
 		readonly employment: { readonly employee_number: string };
-		readonly timeEntries: readonly {
+		readonly workDays: readonly {
 			readonly id: string;
 			readonly work_date: string;
 			readonly worked_intervals:
@@ -302,20 +302,21 @@ export function validateOpenTimeEntries(options: {
 }): RunIssue[] {
 	const issues: RunIssue[] = [];
 	for (const bundle of options.bundles) {
-		for (const entry of bundle.timeEntries) {
+		for (const entry of bundle.workDays) {
 			// Both bounds, not only the end. A clock-out with no clock-in is just as unpriceable as a
-			// clock that never stopped.
+			// clock that never stopped. A NULL `worked_intervals` is neither of those: it says no
+			// attendance was recorded for the day at all, which is a plan and not an open clock.
 			const open = entry.worked_intervals?.some(
 				(interval) => interval.end == null || interval.start == null
 			);
 			if (open !== true) continue;
 			issues.push({
-				code: 'TIME_ENTRY_OPEN',
+				code: 'WORK_DAY_OPEN',
 				message:
-					`${bundle.employment.employee_number} has an unclosed time entry on ` +
-					`${requiredDateKey(entry.work_date, 'time_entries.work_date')}. Payroll cannot price a ` +
-					'clock that has not stopped — close it, or delete the entry.',
-				collection: 'time_entries',
+					`${bundle.employment.employee_number} has an unclosed clock on ` +
+					`${requiredDateKey(entry.work_date, 'work_days.work_date')}. Payroll cannot price a ` +
+					'clock that has not stopped — close it, or clear that day’s attendance.',
+				collection: 'work_days',
 				recordId: entry.id
 			});
 		}

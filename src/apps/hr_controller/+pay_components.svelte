@@ -10,7 +10,7 @@
 	import { Combobox } from '@norbital-ai/ui/combobox';
 	import { Bound, Cover, Scroll } from '@norbital-ai/ui/layout';
 	import ClaimSeasonality from '../../lib/ui/pay-components/claim-seasonality.svelte';
-	import { formatEntryOrigin } from '../../lib/ui/display-formatters.js';
+	import { formatObligationTerms } from '../../lib/ui/display-formatters.js';
 	import { inForceTodayFilter, todayInstant } from '../../lib/ui/calendar.js';
 	import { sourceLock, sourceLockRecordMetadata } from '../../lib/scheduling/lock.js';
 
@@ -45,38 +45,67 @@
 			: (companies[0]?.id ?? null)
 	);
 
-	type ComponentEntryRow = WorkspaceRow<'component_entries'> & {
-		readonly entry_employment?: Pick<WorkspaceRow<'employments'>, 'employee_number'> | null;
-		readonly entry_pay_component?: Pick<WorkspaceRow<'pay_components'>, 'code'> | null;
-		readonly entry_payslip_lines?:
-			| readonly {
-					readonly payslip_line_payslip?: {
-						readonly payslip_payroll_run?: Pick<WorkspaceRow<'payroll_runs'>, 'period'> | null;
-					} | null;
-			  }[]
-			| null;
+	type ObligationRow = WorkspaceRow<'obligations'> & {
+		readonly obligation_employment?: Pick<WorkspaceRow<'employments'>, 'employee_number'> | null;
+		readonly obligation_pay_component?: Pick<WorkspaceRow<'pay_components'>, 'code'> | null;
 	};
 
-	function componentLabel(row: ComponentEntryRow): string {
-		const component = row.entry_pay_component;
+	function componentLabel(row: ObligationRow): string {
+		const component = row.obligation_pay_component;
 		if (component?.code) return component.code;
 		return '—';
 	}
 
 	/**
-	 * The direct component-entry foreign key on a payslip line is the consumption fact. The nested
-	 * run is only used to give that link a human period label.
+	 * The settlement claims over this entity's obligations, in two reads rather than a nested one.
+	 *
+	 * `payslip_adjustments.source` is a `reference(...)`, and a reference owns its own target edges,
+	 * so there is no `many` inverse to nest under an obligation the way `entry_payslip_lines` was
+	 * nested under a component entry. What it costs in a second read it gives back in depth: the
+	 * period is a column ON the claim now, so the walk through the payslip to its run is gone
+	 * entirely — and `period` is one of the four fields `settlementLedgerGrants()` exposes, so this
+	 * read is the one a rank with no payroll authority can also make.
 	 */
-	function entrySettlement(row: ComponentEntryRow): { period: string } | null {
-		for (const line of row.entry_payslip_lines ?? []) {
-			const period = line.payslip_line_payslip?.payslip_payroll_run?.period;
-			if (period) return { period };
-		}
-		return null;
+	const obligationIdsQuery = $derived(
+		selectedCompanyId == null
+			? null
+			: client.db.obligations.findMany({
+					where: {
+						terms: { ne: 'SCHEDULED' },
+						obligation_employment: {
+							approval_id: { isNull: true },
+							company_id: { eq: selectedCompanyId }
+						}
+					},
+					columns: { id: true },
+					limit: 5000
+				})
+	);
+	const settlementsQuery = $derived.by(() => {
+		const ids = (obligationIdsQuery?.current ?? []).map((row) => row.id);
+		if (ids.length === 0) return null;
+		return client.db.payslip_adjustments.findMany({
+			where: { source: { in: ids.map((id) => ({ kind: 'OBLIGATION' as const, id })) } },
+			columns: { source: true, period: true },
+			limit: 20_000
+		});
+	});
+	const settlementByObligationId = $derived(
+		new Map(
+			(settlementsQuery?.current ?? []).flatMap((claim) =>
+				claim.source.kind !== 'OBLIGATION'
+					? []
+					: [[claim.source.id, { period: claim.period }] as const]
+			)
+		)
+	);
+
+	function obligationSettlement(row: ObligationRow): { period: string } | null {
+		return settlementByObligationId.get(row.id) ?? null;
 	}
 
-	function entryConsumptionLabel(row: ComponentEntryRow): string {
-		const claim = entrySettlement(row);
+	function obligationConsumptionLabel(row: ObligationRow): string {
+		const claim = obligationSettlement(row);
 		if (claim) {
 			return t('component.paid_in', { period: claim.period });
 		}
@@ -84,12 +113,12 @@
 		return '—';
 	}
 
-	function entryRowLock(row: ComponentEntryRow) {
+	function obligationRowLock(row: ObligationRow) {
 		return sourceLock({
 			existing: true,
 			approvalId: row.approval_id,
 			dates: [],
-			settledBy: entrySettlement(row),
+			settledBy: obligationSettlement(row),
 			datePassed: 'IS_NOT_A_LOCK'
 		});
 	}
@@ -99,7 +128,7 @@
 	<title>Pay components</title>
 	<meta
 		name="description"
-		content="Review pay-component entries — allowances, claims, arrears, reversals, and loan instalments — and their payroll linkage"
+		content="Review obligations — allowances, claims, arrears and reversals — and their payroll linkage"
 	/>
 	<meta name="bolt:icon" content="lucide:coins" />
 	<meta
@@ -157,30 +186,25 @@
 		{#key selectedCompanyId}
 			<CollectionTable
 				{client}
-				collection="component_entries"
+				collection="obligations"
 				view={`hr_controller:pay_components:entries:${selectedCompanyId}`}
-				recordMetadata={(row) => sourceLockRecordMetadata(entryRowLock(row), t)}
+				recordMetadata={(row) => sourceLockRecordMetadata(obligationRowLock(row), t)}
 				query={{
 					where: {
-						repayment_agreement_id: { isNull: true },
-						entry_employment: {
+						// SCHEDULED obligations are loans and have their own screen, which can show a
+						// recovery position this one has no room for. The predecessor said the same thing
+						// as `repayment_agreement_id IS NULL`, back when a loan's instalments were copied
+						// into this table as rows of their own.
+						terms: { ne: 'SCHEDULED' },
+						obligation_employment: {
 							approval_id: { isNull: true },
 							company_id: { eq: selectedCompanyId }
 						}
 					},
 					orderBy: { event_date: 'desc' },
 					with: {
-						entry_employment: { columns: { employee_number: true } },
-						entry_pay_component: { columns: { code: true } },
-						entry_payslip_lines: {
-							columns: { id: true },
-							with: {
-								payslip_line_payslip: {
-									columns: { id: true },
-									with: { payslip_payroll_run: { columns: { period: true } } }
-								}
-							}
-						}
+						obligation_employment: { columns: { employee_number: true } },
+						obligation_pay_component: { columns: { code: true } }
 					}
 				}}
 			>
@@ -197,8 +221,8 @@
 						label={t('component.employment')}
 						renderer={FormattedValueRenderer}
 						rendererProps={{
-							format: ({ row }: { row: ComponentEntryRow }) =>
-								row.entry_employment?.employee_number ?? '—'
+							format: ({ row }: { row: ObligationRow }) =>
+								row.obligation_employment?.employee_number ?? '—'
 						}}
 					/>
 					<Column name="amount" label={t('component.amount')} />
@@ -206,20 +230,19 @@
 					<Column name="event_date" label={t('component.date')} />
 					<Column name="pay_period" label={t('component.pay_period')} />
 					<Column
-						name="repayment_agreement_id"
+						name="reference"
 						label={t('component.payroll_consumption')}
 						sortable={false}
 						renderer={FormattedValueRenderer}
-						rendererProps={{ format: ({ row }) => entryConsumptionLabel(row) }}
+						rendererProps={{ format: ({ row }) => obligationConsumptionLabel(row) }}
 					/>
-					<Column name="usage_mode" label={t('app.pay_components.payslip_usage')} card="badge" />
 					<Column name="description" />
 					<Column
-						name="origin"
-						label={t('component.origin')}
+						name="terms"
+						label={t('component.obligation_terms')}
 						card="subtitle"
 						renderer={FormattedValueRenderer}
-						rendererProps={{ format: ({ value }) => formatEntryOrigin(value, t) }}
+						rendererProps={{ format: ({ row }) => formatObligationTerms(row, t) }}
 					/>
 				{/snippet}
 			</CollectionTable>

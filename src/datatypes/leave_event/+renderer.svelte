@@ -125,7 +125,7 @@
 	const rosterQuery = $derived(
 		employmentId == null
 			? null
-			: client.db.roster_entries.findMany({
+			: client.db.work_days.findMany({
 					where: { employment_id: { eq: employmentId } },
 					limit: 20_000
 				})

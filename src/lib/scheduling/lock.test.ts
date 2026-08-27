@@ -2,7 +2,15 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { Effect } from 'effect';
-import timeEntryHooks from '../../collections/time_entries/+hooks.ts';
+/**
+ * The attendance write path these locks govern.
+ *
+ * `time_entries` and `roster_entries` are one collection now, so the hooks that refuse a punch on a
+ * settled day live on `work_days`. This file owns the lock arithmetic; the cases below are here
+ * because a lock nothing enforces is a lock nobody has, and they are the only place the two halves
+ * are asserted together.
+ */
+import workDayHooks from '../../collections/work_days/+hooks.ts';
 import {
 	payrollWindows,
 	lockStateForDate,
@@ -296,7 +304,10 @@ function fakeHookApi({ runs = [], sources = [] } = {}) {
 					)
 			},
 			payroll_runs: { findMany: () => Effect.succeed(runs) },
-			payslip_sources: {
+			// A claim is a `payslip_adjustments` row naming the record. Its amount is deliberately not
+			// consulted: a zero says the run read this day and priced it at nothing, which locks the
+			// record exactly as hard as a row that paid overtime on it.
+			payslip_adjustments: {
 				findFirst: ({ where }) =>
 					Effect.succeed(sources.find((row) => row.source.id === where.source.eq.id) ?? null)
 			},
@@ -308,7 +319,7 @@ function fakeHookApi({ runs = [], sources = [] } = {}) {
 }
 
 const punch = (overrides = {}) => ({
-	id: 'te-1',
+	id: 'wd-1',
 	employment_id: 'emp-1',
 	work_date: '2026-07-01',
 	approval_id: null,
@@ -328,9 +339,9 @@ test('a create inside a paid window is refused: that day’s silence is already 
 	// goes through `runSync` — wrapping the second was the other half of why this read as a
 	// TypeError rather than a refusal.
 	const refuse = (input) =>
-		timeEntryHooks.create.perRecord.before.handler({
+		workDayHooks.create.perRecord.before.handler({
 			input,
-			prepared: Effect.runSync(timeEntryHooks.create.prepare({ inputs: [input], api })),
+			prepared: Effect.runSync(workDayHooks.create.prepare({ inputs: [input], api })),
 			api
 		});
 	assert.throws(() => refuse(punch()), /inside paid payroll 2026-07/);
@@ -346,7 +357,7 @@ test('an unconsumed record inside a paid window stays editable and settles as ar
 	const existing = punch();
 	assert.doesNotThrow(() =>
 		Effect.runSync(
-			timeEntryHooks.update.perRecord.before.handler({
+			workDayHooks.update.perRecord.before.handler({
 				input: { break_minutes: 30 },
 				existing,
 				api
@@ -362,12 +373,12 @@ test('an unconsumed record inside a paid window stays editable and settles as ar
 	// A claim over the same record is what refuses, and it names the period.
 	const claimed = fakeHookApi({
 		runs: monthly,
-		sources: [{ source: { kind: 'TIME_ENTRY', id: 'te-1' }, period: '2026-07' }]
+		sources: [{ source: { kind: 'WORK_DAY', id: 'wd-1' }, period: '2026-07' }]
 	});
 	assert.throws(
 		() =>
 			Effect.runSync(
-				timeEntryHooks.update.perRecord.before.handler({
+				workDayHooks.update.perRecord.before.handler({
 					input: { break_minutes: 30 },
 					existing,
 					api: claimed
@@ -384,7 +395,7 @@ test('re-dating a record into a paid window is a create onto that day, and is re
 	assert.throws(
 		() =>
 			Effect.runSync(
-				timeEntryHooks.update.perRecord.before.handler({
+				workDayHooks.update.perRecord.before.handler({
 					input: { work_date: '2026-07-02' },
 					existing: punch({ work_date: '2026-08-02' }),
 					api
@@ -394,7 +405,7 @@ test('re-dating a record into a paid window is a create onto that day, and is re
 	);
 	assert.doesNotThrow(() =>
 		Effect.runSync(
-			timeEntryHooks.update.perRecord.before.handler({
+			workDayHooks.update.perRecord.before.handler({
 				input: { work_date: '2026-08-03' },
 				existing: punch({ work_date: '2026-08-02' }),
 				api

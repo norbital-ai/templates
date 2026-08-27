@@ -5,7 +5,6 @@
 	import { useI18n } from '@norbital-ai/ui/i18n';
 	import AppHeaderActions from '@norbital-ai/bolt/client/app-header-actions';
 	import type { TenantI18nKeys } from '$bolt/i18n-keys';
-	import type { WorkspaceRow } from '$bolt/types.js';
 	import { Tabs, type TabConfig } from '@norbital-ai/ui/tabs';
 	import { CollectionTable } from '@norbital-ai/ui/collection-table';
 	import { CollectionQueryState } from '@norbital-ai/ui/collection-query';
@@ -21,8 +20,10 @@
 	import { toast } from 'svelte-sonner';
 	import { formatHolidayScope } from '../../lib/ui/display-formatters.js';
 	import { runWorkbookImport } from '../../lib/ui/workbook-import.js';
-	import { rosterImportPayload } from '../../collections/roster_entries/lib/import-workbook.js';
-	import { timeEntryImportPayload } from '../../collections/time_entries/lib/import-workbook.js';
+	import {
+		attendanceImportPayload,
+		rosterImportPayload
+	} from '../../collections/work_days/lib/import-workbook.js';
 	import {
 		monthKey,
 		shiftDayKey,
@@ -275,73 +276,64 @@
 	const draftRoster = $derived(rosters.find((roster) => roster.published_at == null) ?? null);
 
 	/**
-	 * The roster's relationship is the source of truth for both rendering and replacement writes.
+	 * The month's person-days: ONE query where there were two.
 	 *
-	 * The count drives the page size and `nextCursor` proves that the page has no successor. A fixed
-	 * board-sized limit is not safe here: including a relationship in `rosters.mutate` declares that
-	 * the submitted rows are its complete desired state, so an unseen row would otherwise be deleted.
-	 * No column projection is used because every authored child field must survive a synchronization.
+	 * The board used to read the roster's own relationship for the plan and a month-scoped
+	 * attendance query for the clock, then put the two together per cell. They are one row now, so
+	 * the read is one query scoped the way the board is scoped — this month, these employments —
+	 * and the plan and the clock arrive together or not at all.
+	 *
+	 * The roster-relationship machinery that stood here is gone with it: a count query, a page-size
+	 * derived from that count, a completeness gate and a whole-row round-trip, all of
+	 * which existed to make `rosters.mutate({ roster_entry_roster: [...] })` safe. That write is
+	 * gone too — see `writePlan`. A nested `many` states the child relationship's COMPLETE desired
+	 * state, and the children now carry attendance nobody's roster owns; one forgotten column in the
+	 * round-trip would erase a month of punches. Every plan write below is a write to its own row.
 	 */
-	const rosterEntryCountQuery = $derived(
-		activeRoster == null
-			? null
-			: client.db.roster_entries.count({ where: { roster_id: { eq: activeRoster.id } } })
-	);
-	const rosterEntriesQuery = $derived.by(() => {
-		const roster = activeRoster;
-		const count = rosterEntryCountQuery?.current;
-		if (roster == null || count === undefined) return null;
-		return client.db.roster_entries.findMany({
-			where: { roster_id: { eq: roster.id } },
-			orderBy: { id: 'asc' },
-			limit: Math.max(1, count)
+	const workDaysQuery = $derived.by(() => {
+		if (selectedCompanyId == null || !employmentsReady) return null;
+		return client.db.work_days.findMany({
+			where: {
+				...approved,
+				work_date: { gte: monthStart, lte: monthEnd },
+				...(monthEmployments.length > 0
+					? { employment_id: { in: monthEmployments.map((e) => e.id) } }
+					: {
+							work_day_employment: { ...approved, company_id: { eq: selectedCompanyId } }
+						})
+			},
+			// `id` and `break_minutes` are needed by the same surface: the day sheet updates *this*
+			// row rather than creating a second one for the day, and it cannot assess the unpaid
+			// break without knowing what it is.
+			columns: {
+				id: true,
+				employment_id: true,
+				work_date: true,
+				shift_definition_id: true,
+				roster_id: true,
+				assignment_code: true,
+				planned_origin: true,
+				planned_note: true,
+				worked_intervals: true,
+				break_minutes: true
+			},
+			limit: 20_000
 		});
 	});
-	const rosterEntries = $derived(rosterEntriesQuery?.current ?? []);
-	const rosterRelationshipComplete = $derived.by(() => {
-		const count = rosterEntryCountQuery?.current;
-		const entries = rosterEntriesQuery?.current;
-		return (
-			activeRoster != null &&
-			count !== undefined &&
-			entries !== undefined &&
-			entries.length === count &&
-			rosterEntriesQuery?.nextCursor === null
-		);
-	});
-	const rosterRelationshipError = $derived(
-		rosterEntryCountQuery?.error ?? rosterEntriesQuery?.error
-	);
+	const workDays = $derived(workDaysQuery?.current ?? []);
+	const workDaysError = $derived(workDaysQuery?.error ?? null);
 	const matrixMutationReady = $derived(
-		draftRoster != null && rosterRelationshipComplete && rosterRelationshipError == null
+		draftRoster != null && workDaysQuery?.current !== undefined && workDaysError == null
 	);
 
-	function completeRosterRelationship(): readonly WorkspaceRow<'roster_entries'>[] {
-		if (!rosterRelationshipComplete)
-			throw new Error(rosterRelationshipError?.message ?? t('component.loading'));
-		return rosterEntries;
-	}
-
-	/** The parent supplies `roster_id`; every other authored value is round-tripped deliberately. */
-	function preserveRosterEntry(entry: WorkspaceRow<'roster_entries'>) {
-		return {
-			id: entry.id,
-			employment_id: entry.employment_id,
-			work_date: entry.work_date,
-			shift_definition_id: entry.shift_definition_id,
-			assignment_code: entry.assignment_code,
-			origin: entry.origin,
-			note: entry.note
-		};
-	}
 	/**
-	 * The shared schema filter builder targets real roster-entry fields. Keep this second query
+	 * The shared schema filter builder targets real `work_days` fields. Keep this second query
 	 * separate from the board data: it decides which people remain visible without erasing the other
 	 * days from their month.
 	 */
-	const filteredRosterEntriesQuery = $derived.by(() => {
+	const filteredWorkDaysQuery = $derived.by(() => {
 		if (activeRoster == null || boardQuery.filters.length === 0) return null;
-		return client.db.roster_entries.findMany(
+		return client.db.work_days.findMany(
 			{
 				where: { roster_id: { eq: activeRoster.id } },
 				columns: {
@@ -355,31 +347,6 @@
 			},
 			boardQuery.queryOptions
 		);
-	});
-	const timeEntriesQuery = $derived.by(() => {
-		if (selectedCompanyId == null || !employmentsReady) return null;
-		return client.db.time_entries.findMany({
-			where: {
-				...approved,
-				work_date: { gte: monthStart, lte: monthEnd },
-				...(monthEmployments.length > 0
-					? { employment_id: { in: monthEmployments.map((e) => e.id) } }
-					: {
-							time_entry_employment: { ...approved, company_id: { eq: selectedCompanyId } }
-						})
-			},
-			// `id` and `break_minutes` are what §1.3 of the proposal adds, and both are needed
-			// by the same surface: the day sheet updates *this* record rather than creating a second
-			// one for the day, and it cannot assess the unpaid break without knowing what it is.
-			columns: {
-				id: true,
-				employment_id: true,
-				work_date: true,
-				worked_intervals: true,
-				break_minutes: true
-			},
-			limit: 5000
-		});
 	});
 	/**
 	 * All leave states needed by the board, in one month-scoped read.
@@ -441,29 +408,30 @@
 	 *
 	 * The board could already say "this day is inside a paid period" — arithmetic over
 	 * `payroll_runs` windows. It could not say "a run has taken THIS record", which is the fact the
-	 * owner actually asked to see and the only one that is stored. `payslip_sources` answers it,
+	 * owner actually asked to see and the only one that is stored. `payslip_adjustments` answers it,
 	 * and `+hr_controller.ts` already grants the read: `settlementLedgerGrants` exists so that
-	 * a refusal can be an explanation rather than an access denial.
+	 * a refusal can be an explanation rather than an access denial. A run that read a day and priced
+	 * it at nothing wrote a row here with amount 0, and that row is still the claim.
 	 *
-	 * Scoped by the entry ids the month's own query returned, so it is at most one row per person-day
-	 * and never a scan of every claim the company has ever taken.
+	 * Scoped by the person-day ids the month's own query returned, so it is at most one row per
+	 * person-day and never a scan of every claim the company has ever taken.
 	 */
 	const settlementsQuery = $derived.by(() => {
-		const entryIds = (timeEntriesQuery?.current ?? []).map((entry) => entry.id);
-		if (selectedCompanyId == null || entryIds.length === 0) return null;
-		return client.db.payslip_sources.findMany({
+		const dayIds = workDays.map((day) => day.id);
+		if (selectedCompanyId == null || dayIds.length === 0) return null;
+		return client.db.payslip_adjustments.findMany({
 			where: {
 				...approved,
-				source: { in: entryIds.map((id) => ({ kind: 'TIME_ENTRY' as const, id })) }
+				source: { in: dayIds.map((id) => ({ kind: 'WORK_DAY' as const, id })) }
 			},
 			columns: { source: true, period: true },
-			limit: 5000
+			limit: 20_000
 		});
 	});
 	const settlementClaims = $derived(
 		new Map<string, SettlementClaim>(
 			(settlementsQuery?.current ?? []).flatMap((claim) =>
-				claim.source.kind !== 'TIME_ENTRY'
+				claim.source.kind !== 'WORK_DAY'
 					? []
 					: [[claim.source.id, { period: claim.period }] as const]
 			)
@@ -494,10 +462,8 @@
 	 */
 	const boardSources = $derived([
 		{ label: 'rosters', query: rostersQuery },
-		{ label: 'roster entry count', query: rosterEntryCountQuery },
-		{ label: 'roster entries', query: rosterEntriesQuery },
-		{ label: 'filtered roster entries', query: filteredRosterEntriesQuery },
-		{ label: 'attendance', query: timeEntriesQuery },
+		{ label: 'person-days', query: workDaysQuery },
+		{ label: 'filtered person-days', query: filteredWorkDaysQuery },
 		{ label: 'leave', query: leaveQuery },
 		{ label: 'holidays', query: holidaysQuery },
 		{ label: 'employments', query: employmentsQuery },
@@ -518,9 +484,7 @@
 	 */
 	const boardReadySources = $derived([
 		{ label: 'rosters', query: rostersQuery },
-		{ label: 'roster entry count', query: rosterEntryCountQuery },
-		{ label: 'roster entries', query: rosterEntriesQuery },
-		{ label: 'attendance', query: timeEntriesQuery },
+		{ label: 'person-days', query: workDaysQuery },
 		{ label: 'leave', query: leaveQuery },
 		{ label: 'holidays', query: holidaysQuery },
 		{ label: 'employments', query: employmentsQuery },
@@ -544,8 +508,7 @@
 			month,
 			employments: monthEmployments,
 			employmentTerms: employmentTermsQuery?.current ?? [],
-			rosterEntries: rosterEntriesQuery?.current ?? [],
-			timeEntries: timeEntriesQuery?.current ?? [],
+			workDays,
 			leaveRequests: approvedLeaveRequests,
 			pendingLeaveRequests,
 			holidays: companyHolidays,
@@ -556,22 +519,26 @@
 			today
 		})
 	);
-	const explicitEntryByKey = $derived(
+	/**
+	 * The month's stored person-days by key. One index where there were two.
+	 *
+	 * A row here may hold a plan, attendance, or both — `shift_definition_id` non-NULL is the
+	 * presence test for a plan, and that is the test every "explicit assignment" question below
+	 * asks. The row existing is no longer the same question as the day being assigned.
+	 */
+	const workDayByKey = $derived(
 		new Map(
-			rosterEntries.map((entry) => [
-				personDayKey(entry.employment_id, formatDateISO(entry.work_date)),
-				entry
-			])
+			workDays.map((day) => [personDayKey(day.employment_id, formatDateISO(day.work_date)), day])
 		)
 	);
 
 	const filteredEmploymentIds = $derived(
-		new Set((filteredRosterEntriesQuery?.current ?? []).map((entry) => entry.employment_id))
+		new Set((filteredWorkDaysQuery?.current ?? []).map((day) => day.employment_id))
 	);
 	/**
 	 * The people an exception drill-through leaves on the board.
 	 *
-	 * This is the argument for deleting the raw `time_entries` table rather than moving it. A list of
+	 * This is the argument for deleting the raw attendance table rather than moving it. A list of
 	 * exceptions beside a board of person-days is two places to read the same month, and the table
 	 * half has no idea what a rest day is. Narrowing the board *is* the list — the person-days that
 	 * are wrong stay on screen with the plan and the lock still drawn beside them, which is what an
@@ -596,7 +563,7 @@
 			if (exceptionEmploymentIds != null && !exceptionEmploymentIds.has(person.id)) return false;
 			return (
 				boardQuery.filters.length === 0 ||
-				filteredRosterEntriesQuery?.current === undefined ||
+				filteredWorkDaysQuery?.current === undefined ||
 				filteredEmploymentIds.has(person.id)
 			);
 		})
@@ -658,7 +625,7 @@
 		// company's records contradict, and that list is the whole message worth showing.
 		return runWorkbookImport(
 			{
-				collectionName: 'roster_entries',
+				collectionName: 'work_days',
 				recordLabel: t('component.roster_rows'),
 				buildPayload: (grids) => rosterImportPayload(grids, rosterId)
 			},
@@ -689,17 +656,8 @@
 	 * SCHEDULE FACTS THE SWAP AND THE OVERLAP CHECK BOTH NEED
 	 * ──────────────────────────────────────────────────────────────────────────────────────────── */
 
-	const timeEntryByKey = $derived(
-		new Map(
-			(timeEntriesQuery?.current ?? []).map((entry) => [
-				personDayKey(entry.employment_id, formatDateISO(entry.work_date)),
-				entry
-			])
-		)
-	);
-
-	function claimFor(day: { readonly timeEntryId: string | null }): SettlementClaim | null {
-		return day.timeEntryId == null ? null : (settlementClaims.get(day.timeEntryId) ?? null);
+	function claimFor(day: { readonly workDayId: string | null }): SettlementClaim | null {
+		return day.workDayId == null ? null : (settlementClaims.get(day.workDayId) ?? null);
 	}
 
 	function termCovers(
@@ -732,8 +690,10 @@
 	 * was never there.
 	 */
 	function effectiveCodeId(employmentId: string, date: string): string | null {
-		const explicit = explicitEntryByKey.get(personDayKey(employmentId, date));
-		if (explicit != null) return explicit.shift_definition_id;
+		// A row exists as soon as EITHER half of the day does, so "is this day assigned" is a
+		// question about `shift_definition_id` and not about the row being there.
+		const explicit = workDayByKey.get(personDayKey(employmentId, date))?.shift_definition_id;
+		if (explicit != null) return explicit;
 		const term = activeTermFor(employmentId, date);
 		return term == null ? null : patternRosterCodeId(term.work_pattern, date);
 	}
@@ -892,7 +852,7 @@
 		people.find((person) => person.id === daySheet.employmentId) ?? null
 	);
 	const daySheetEntry = $derived(
-		daySheetKey == null ? null : (timeEntryByKey.get(daySheetKey) ?? null)
+		daySheetKey == null ? null : (workDayByKey.get(daySheetKey) ?? null)
 	);
 	/**
 	 * The punches the drawer edits.
@@ -904,11 +864,19 @@
 	const daySheetIntervals = $derived<readonly IntervalDraft[]>(
 		intervalDrafts(daySheetEntry?.worked_intervals)
 	);
-	const daySheetHasExplicitEntry = $derived(
-		daySheetKey != null && explicitEntryByKey.get(daySheetKey)?.roster_id === draftRoster?.id
-	);
+	/**
+	 * Whether this day carries a plan of the draft month's own.
+	 *
+	 * Two conditions, not one: the row may exist purely because somebody punched on it, and a row
+	 * with no `shift_definition_id` is a day with no assignment to clear.
+	 */
+	const daySheetHasExplicitEntry = $derived.by(() => {
+		if (daySheetKey == null) return false;
+		const stored = workDayByKey.get(daySheetKey);
+		return stored?.shift_definition_id != null && stored.roster_id === draftRoster?.id;
+	});
 	const daySheetNote = $derived(
-		daySheetKey == null ? null : (explicitEntryByKey.get(daySheetKey)?.note ?? null)
+		daySheetKey == null ? null : (workDayByKey.get(daySheetKey)?.planned_note ?? null)
 	);
 	const daySheetRung = $derived(
 		daySheetDay == null ? 'OPEN' : lockRung(daySheetDay, claimFor(daySheetDay))
@@ -921,8 +889,8 @@
 	/**
 	 * The plan half is frozen by publication, which is a third axis and not part of the lock ladder.
 	 *
-	 * `roster_entries/+hooks.ts` refuses every write in a published month, and that freeze stays
-	 * exactly as it is. §2.4 of the proposal argues for a narrow `AMENDMENT` origin arm that would
+	 * `work_days/+hooks.ts` refuses every plan write in a published month, and that freeze stays
+	 * exactly as it is. §2.4 of the proposal argues for a narrow `AMENDMENT` provenance arm that would
 	 * open single-cell writes in a published month; it is an unresolved decision that needs an enum
 	 * change and a migration, so it is deliberately NOT built. This is the integration point: when
 	 * the arm exists, this is the derivation that stops saying "no" and starts offering it.
@@ -930,8 +898,8 @@
 	const daySheetPlanLocked = $derived(!matrixMutationReady);
 	const daySheetPlanLockedReason = $derived(
 		draftRoster != null
-			? (rosterRelationshipError?.message ??
-					(rosterRelationshipComplete ? null : t('component.loading')))
+			? (workDaysError?.message ??
+					(workDaysQuery?.current === undefined ? t('component.loading') : null))
 			: rosters.length === 0
 				? t('app.scheduling.blocker_no_draft', { month })
 				: t('app.scheduling.blocker_published', { month })
@@ -1005,47 +973,46 @@
 		);
 	}
 
+	/**
+	 * The plan half, written to the person-day itself.
+	 *
+	 * It used to be submitted as the roster's COMPLETE `roster_entry_roster` relationship, so that
+	 * one changed cell went out with every other cell of the month beside it. That was the correct
+	 * shape while a roster owned its children outright; it is the wrong one now, twice over. The
+	 * rows carry attendance the roster does not own, and a nested `many` removes every child left
+	 * out of the array — so a round-trip that forgot `worked_intervals` would delete a month of
+	 * punches, and `work_day_roster` is deliberately not a cascade for exactly that reason.
+	 *
+	 * `planned_origin` is `MANUAL` because that is what a board write is; the workbook import writes
+	 * `IMPORT`, and the two must stay distinguishable.
+	 */
 	function writePlan(
 		employmentId: string,
 		date: string,
 		plan: { readonly rosterCodeId: string; readonly note: string | null }
 	): Effect.Effect<void, unknown> {
 		if (draftRoster == null) return Effect.void;
-		const relationship = completeRosterRelationship();
-		const existing = explicitEntryByKey.get(personDayKey(employmentId, date));
-		const rosterId = draftRoster.id;
+		const existing = workDayByKey.get(personDayKey(employmentId, date));
 		return locallyDurable(() =>
-			client.db.rosters.mutate({
-				id: rosterId,
-				roster_entry_roster: [
-					...relationship.map((entry) =>
-						entry.id === existing?.id
-							? {
-									...preserveRosterEntry(entry),
-									shift_definition_id: plan.rosterCodeId,
-									note: plan.note
-								}
-							: preserveRosterEntry(entry)
-					),
-					...(existing == null
-						? [
-								{
-									employment_id: employmentId,
-									work_date: date,
-									shift_definition_id: plan.rosterCodeId,
-									assignment_code: null,
-									origin: 'MANUAL',
-									note: plan.note
-								}
-							]
-						: [])
-				]
+			client.db.work_days.mutate({
+				...(existing == null
+					? { employment_id: employmentId, work_date: date }
+					: { id: existing.id }),
+				shift_definition_id: plan.rosterCodeId,
+				roster_id: draftRoster.id,
+				planned_origin: 'MANUAL',
+				planned_note: plan.note
 			})
 		);
 	}
 
 	/**
-	 * The attendance half, written through `client.db.time_entries` so every hook still runs.
+	 * The attendance half, written through `client.db.work_days` so every hook still runs.
+	 *
+	 * `workDayId` is the id of the row the day already has — which now includes a day that carries
+	 * only a plan, because the plan and the clock are one row. A punch on a rostered day is
+	 * therefore an update of that row and never a second one; `unique(employment_id, work_date)`
+	 * would refuse the second anyway.
 	 *
 	 * The break the drawer sends has already been clamped by `assessAttendanceDraft`, which is the
 	 * same arithmetic `assertWorkedIntervals` uses — so this write cannot be refused for a break
@@ -1055,29 +1022,37 @@
 		const attendance = change.attendance;
 		if (attendance == null) return Effect.void;
 		return locallyDurable(() =>
-			client.db.time_entries.mutate({
-				...(attendance.timeEntryId == null ? {} : { id: attendance.timeEntryId }),
-				employment_id: change.employmentId,
-				work_date: change.date,
+			client.db.work_days.mutate({
+				...(attendance.workDayId == null
+					? { employment_id: change.employmentId, work_date: change.date }
+					: { id: attendance.workDayId }),
 				worked_intervals: [...attendance.intervals],
 				break_minutes: attendance.breakMinutes
 			})
 		);
 	}
 
+	/**
+	 * Clearing the plan clears the PLAN, and never the row.
+	 *
+	 * Removing the assignment used to mean removing the roster entry, because the roster entry was
+	 * the whole of the record. The same row may now hold attendance that nobody's roster owns, so
+	 * the write nulls the four plan columns and leaves the clock exactly where it was. The pattern
+	 * baseline resumes for that day, which is what clearing an override has always meant.
+	 */
 	function clearDaySheetPlan(): void {
 		if (draftRoster == null || daySheetKey == null) return;
-		const existing = explicitEntryByKey.get(daySheetKey);
-		if (existing == null) return;
-		const relationship = completeRosterRelationship();
-		const rosterId = draftRoster.id;
+		const existing = workDayByKey.get(daySheetKey);
+		if (existing?.shift_definition_id == null) return;
 		Effect.runFork(
 			locallyDurable(() =>
-				client.db.rosters.mutate({
-					id: rosterId,
-					roster_entry_roster: relationship
-						.filter((entry) => entry.id !== existing.id)
-						.map(preserveRosterEntry)
+				client.db.work_days.mutate({
+					id: existing.id,
+					shift_definition_id: null,
+					roster_id: null,
+					assignment_code: null,
+					planned_note: null,
+					planned_origin: null
 				})
 			).pipe(Effect.tap(() => Effect.sync(() => (daySheet.open = false))))
 		);
@@ -1093,12 +1068,15 @@
 	 * neither day looks wrong on its own, and finding that out at publication is finding it out a
 	 * month late.
 	 *
-	 * The two changed cells are submitted with the roster's complete `roster_entry_roster`
-	 * relationship. That makes the rendered matrix the desired relational state and lets the server
-	 * validate and commit the pair atomically rather than exposing a half-swapped month.
+	 * The two changed cells are two writes to two person-days, issued together. They were one write
+	 * of the roster's complete `roster_entry_roster` relationship, which committed the pair
+	 * atomically; that shape is gone because the children now carry attendance the roster does not
+	 * own and a nested `many` deletes every child left out of the array. The atomicity it bought is
+	 * genuinely lost, and it is bought back where it matters: `swapRefusal` decides the PAIR before
+	 * either write is issued, so a swap that cannot land does not land halfway.
 	 *
-	 * SCOPED OUT: published months. `roster_entries/+hooks.ts` refuses every write in one and that
-	 * freeze is untouched. §2.4's `AMENDMENT` origin arm would open a narrow path through it; it
+	 * SCOPED OUT: published months. `work_days/+hooks.ts` refuses every plan write in one and that
+	 * freeze is untouched. §2.4's `AMENDMENT` provenance arm would open a narrow path through it; it
 	 * needs an enum change and a migration and the decision has not been taken, so the gesture is
 	 * simply not offered outside a draft month.
 	 * ──────────────────────────────────────────────────────────────────────────────────────────── */
@@ -1194,55 +1172,13 @@
 		const note = t('roster.swap_note', { from: from.date, to: to.date });
 		const roster = draftRoster;
 		if (roster == null) return;
-		const fromEntry = explicitEntryByKey.get(personDayKey(from.employmentId, from.date));
-		const toEntry = explicitEntryByKey.get(personDayKey(to.employmentId, to.date));
-		const relationship = completeRosterRelationship();
 		Effect.runFork(
-			locallyDurable(() =>
-				client.db.rosters.mutate({
-					id: roster.id,
-					roster_entry_roster: [
-						...relationship.map((entry) => {
-							if (entry.id === fromEntry?.id)
-								return {
-									...preserveRosterEntry(entry),
-									shift_definition_id: toCodeId,
-									note
-								};
-							if (entry.id === toEntry?.id)
-								return {
-									...preserveRosterEntry(entry),
-									shift_definition_id: fromCodeId,
-									note
-								};
-							return preserveRosterEntry(entry);
-						}),
-						...(fromEntry == null
-							? [
-									{
-										employment_id: from.employmentId,
-										work_date: from.date,
-										shift_definition_id: toCodeId,
-										assignment_code: null,
-										origin: 'MANUAL',
-										note
-									}
-								]
-							: []),
-						...(toEntry == null
-							? [
-									{
-										employment_id: to.employmentId,
-										work_date: to.date,
-										shift_definition_id: fromCodeId,
-										assignment_code: null,
-										origin: 'MANUAL',
-										note
-									}
-								]
-							: [])
-					]
-				})
+			Effect.all(
+				[
+					writePlan(from.employmentId, from.date, { rosterCodeId: toCodeId, note }),
+					writePlan(to.employmentId, to.date, { rosterCodeId: fromCodeId, note })
+				],
+				{ concurrency: 'unbounded', discard: true }
 			).pipe(Effect.tap(() => Effect.sync(() => (swap.source = null))))
 		);
 	}
@@ -1302,13 +1238,17 @@
 	 *
 	 * `expandTimeMonthGrid` collects every problem in the file and throws one `WorkbookImportError`
 	 * listing all of them, so a 300-person sheet is corrected once and re-imported once.
+	 *
+	 * Both imports name the same collection, because both sheets describe the same person-day. The
+	 * pipeline dispatches on the payload's own `sheet` tag, and a punch landing on a day the roster
+	 * import already wrote is an update of that day rather than a refusal.
 	 */
 	function importAttendance(): Effect.Effect<void, unknown> {
 		return runWorkbookImport(
 			{
-				collectionName: 'time_entries',
-				recordLabel: t('component.time_entries'),
-				buildPayload: timeEntryImportPayload
+				collectionName: 'work_days',
+				recordLabel: t('component.work_days'),
+				buildPayload: attendanceImportPayload
 			},
 			t
 		);
@@ -1323,10 +1263,10 @@
 	const attendanceSummaryQuery = $derived(
 		selectedCompanyId == null
 			? null
-			: client.db.time_entries.findMany({
+			: client.db.work_days.findMany({
 					where: {
 						...approved,
-						time_entry_employment: {
+						work_day_employment: {
 							...approved,
 							company_id: { eq: selectedCompanyId }
 						},
@@ -1440,8 +1380,8 @@
 {/snippet}
 
 <!--
-	The board's rows are people, while its filters are generated from the roster-entry schema. A
-	matching roster entry keeps its person on screen and the board still shows that person's complete
+	The board's rows are people, while its filters are generated from the `work_days` schema. A
+	matching person-day keeps its person on screen and the board still shows that person's complete
 	month, so a filter narrows the roster without stripping away the calendar context.
 
 	Import is an ordinary import pipeline, which is what lets it state its own refusal. A published
@@ -1451,7 +1391,7 @@
 {#snippet boardToolbar()}
 	<CollectionActionToolbar
 		{client}
-		collection="roster_entries"
+		collection="work_days"
 		query={boardQuery}
 		navigation={monthNavigation}
 		operations={{
@@ -1467,7 +1407,7 @@
 				{
 					// No `getDisabledReason`. Attendance belongs to the day, not to a roster, so a month
 					// that was never drafted still takes its punches — see `importAttendance`.
-					id: 'time-entry-workbook',
+					id: 'attendance-workbook',
 					label: t('app.scheduling.import_attendance'),
 					description: t('app.scheduling.import_attendance_description', { month }),
 					icon: 'lucide:clock-arrow-up',
@@ -1648,7 +1588,7 @@
 <!--
 	EXCEPTIONS — the whole of what `+time_attendance.svelte` was, minus the table.
 
-	That app held two things: this chart, and an editable `time_entries` table. The table is deleted
+	That app held two things: this chart, and an editable attendance table. The table is deleted
 	rather than moved, because a table of punches beside a board of person-days is two places to read
 	the same month and only one of them knows what a rest day is. What remains is a trend and a set
 	of counters, and neither of those is an app — they are a second view of the month the board is
@@ -1797,7 +1737,7 @@
 	lockReason={daySheetLockReason}
 	overlapWarning={daySheetOverlapWarning}
 	canSwap={swapEnabled}
-	saving={client.db.rosters.pending > 0 || client.db.time_entries.pending > 0}
+	saving={client.db.work_days.pending > 0}
 	onPlanDraftChange={(codeId) => (daySheet.draftCodeId = codeId)}
 	onSave={(change) => saveDaySheet(change)}
 	onClearPlan={() => clearDaySheetPlan()}

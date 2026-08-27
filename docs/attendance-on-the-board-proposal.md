@@ -8,6 +8,15 @@ from the board.
 Read `docs/architecture.md` §"Time, overtime and cutoffs" and §"Run snapshot and locking" first;
 this document only records what changes.
 
+> **Since this proposal was written, `roster_entries` and `time_entries` have merged into
+> `work_days`, and `payslip_sources` into `payslip_adjustments`.** Every name below has been updated
+> to the collection that now holds the fact; the argument is unchanged, and in two places the merge
+> is what finally made it true. §1's "one fact table, two renderers" is now one fact table in the
+> database as well as in `buildRosterMonth`. §2.3's swap no longer submits the roster's whole
+> relationship, because those rows carry attendance a roster does not own. The one place the merge
+> made something HARDER is §4's "report a missing punch": a rostered day already has a row, so an
+> employee's create-only grant can no longer land on one — see the note in `+hr_employee.svelte`.
+
 ---
 
 ## 0. Summary of the five answers
@@ -17,11 +26,11 @@ this document only records what changes.
 | 1   | Fold time entries into the month board    | The facts are already there. What is missing is a **day sheet** to edit them and three fields on the board's query.                                                                                                                      |
 | 2   | Attendance managed solely here            | Yes — but `+time_attendance.svelte` keeps its table as the exception queue and analytics surface. The board is where a day is _changed_.                                                                                                 |
 | 2.1 | Show what is locked                       | A four-rung **lock ladder** drawn on a channel of its own, because a cell already carries plan and actual and cannot spend either on lock state.                                                                                         |
-| 2.2 | Consumption locks; a passed date does not | The stored `payroll_settlements` claim is already exactly this. `DATE_PASSED` and the window inference are **over-applied** and must be pulled back — see §2.                                                                            |
+| 2.2 | Consumption locks; a passed date does not | The stored `payslip_adjustments` claim is already exactly this. `DATE_PASSED` and the window inference are **over-applied** and must be pulled back — see §2.                                                                            |
 | 2.3 | Locked / manage entries / swap            | One day sheet, one swap gesture, one amendment path for a published month.                                                                                                                                                               |
 | 2.4 | Break minutes owed after long hours       | A `rest_break_rules` member returns to `statutory_regime`. The primary text is already transcribed in `seed_bank/norbital_hr/statutory/rest_break_rules.json`; it was removed for having no consumer, and this proposal is the consumer. |
 | 2.5 | Upload a month of attendance              | Already built (`expandTimeMonthGrid`), only reachable from the wrong screen. Move it onto the board beside the roster import.                                                                                                            |
-| 3   | Retire the raw tables                     | One fact table, two renderers: the controller's people×days board and the employee's single-person calendar. Both raw `time_entries` tables go — see §8.                                                                                 |
+| 3   | Retire the raw tables                     | One fact table, two renderers: the controller's people×days board and the employee's single-person calendar. Both raw attendance tables go — see §8.                                                                                 |
 | 4   | Employee self-service calendar            | Roster **and** punches on one month view. Every read it needs is already granted; the one write it offers (report a missing punch) already exists as an approval-gated create.                                                           |
 
 ---
@@ -35,11 +44,11 @@ today — `actualMark(day)` is the small glyph under the shift code. What it can
 ```text
                          WHAT A CELL ALREADY KNOWS                 WHAT IT CANNOT DO YET
    ┌──────────────────────────────────────────────┐          ┌──────────────────────────────┐
-   │ roster_entries ──┐                           │          │ • edit punches               │
+   │ work_days ──┐                               │          │ • edit punches               │
    │ work_pattern   ──┼─► designation, shiftCode  │          │ • edit break minutes         │
    │ shift_defs     ──┘   shiftStart/End/Break    │          │ • swap two assignments       │
    │                                              │          │ • say WHY it is read-only    │
-   │ time_entries   ──► clockedIn, attendanceState│          └──────────────────────────────┘
+   │ work_days       ──► clockedIn, attendanceState│          └──────────────────────────────┘
    │ leave_requests ──► leaveCode, pendingLeave   │
    │ company_holidays ► holidayName               │
    │ payroll_runs   ──► lock: DayLock             │
@@ -110,7 +119,7 @@ five `approved_ot_*_hours` buckets were dropped in `drop_time_entry_overtime_app
   `id` too, and `DayFacts` needs `timeEntryId`, `breakMinutes` and `workedMinutes`.
 - `roster-month-board.svelte` gains a lock rail and routes `onSelectDay` to the drawer.
 - A new `src/lib/ui/roster/day-sheet.svelte` owns both editors; both writes go through
-  `client.db.roster_entries` and `client.db.time_entries` so every hook still runs.
+  `client.db.work_days` so every hook still runs.
 
 ---
 
@@ -121,8 +130,8 @@ This is the part with real defects, and the design the owner described is alread
 ### 2.1 Three locks exist; only one of them is a fact
 
 ```text
-   payroll_settlements row            ← STORED FACT
-   "run 2026-08 consumed time_entries/abc123"
+   payslip_adjustments row            ← STORED FACT
+   "run 2026-08 consumed work_days/abc123"
         released only by deleting the run; a PAID run is never deleted
               │
               ▼
@@ -142,7 +151,7 @@ This is the part with real defects, and the design the owner described is alread
    sourceLock() ─────────────► DATE_PASSED     ❌ delete from the attendance path
 ```
 
-`payroll_settlements/+model.ts` already argues this case in its own doc comment: window arithmetic
+`payslip_adjustments/+model.ts` already argues this case in its own doc comment: window arithmetic
 "was wrong in both directions", and it names the second direction precisely — a record merely
 _dated_ inside a paid window was frozen "even when no payslip had ever consumed it, which froze
 arrears entries the run had deliberately pushed into the next period." The stored claim was added
@@ -154,7 +163,7 @@ to fix that. It was added, and the inference was left switched on beside it.
 | ------------------------------------------- | ---------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------ |
 | `roster-month-board.svelte:cellEditable`    | `&& day.past !== true`                                                                                     | Delete the clause. A past day is the _normal_ day to be editing attendance on. |
 | `+time_attendance.svelte:attendanceRowLock` | passes `today`, so every historical row renders frozen                                                     | Stop asking for `DATE_PASSED` on attendance.                                   |
-| `time_entries/+hooks.ts` update & delete    | `assertAttendanceSourceUnlocked` (claim **+** window **+** date) then `assertDayNotSettled` (window again) | Claim decides for an existing record. Window decides only for a create.        |
+| `work_days/+hooks.ts` update & delete    | `assertAttendanceSourceUnlocked` (claim **+** window **+** date) then `assertDayNotSettled` (window again) | Claim decides for an existing record. Window decides only for a create.        |
 
 The rule in one line:
 
@@ -173,7 +182,7 @@ Write-path decision, in order:
         │
         ├─ approval pending on the row?  ──────────────► platform 409, untouched
         │
-        ├─ payroll_settlements claim on this record?
+        ├─ payslip_adjustments claim on this record?
         │     ├─ run is DRAFT  ─► refuse: "delete run 2026-08 to release it"
         │     └─ run is PAID   ─► refuse: "correct with an adjustment entry"
         │
@@ -189,13 +198,13 @@ Write-path decision, in order:
 
 An existing, **unconsumed** record whose date falls inside a paid window — a punch keyed in after
 the run was paid. Under the rule above it stays editable and settles as arrears in the next run.
-That is what `payroll_settlements`' own reasoning implies, and it is the recommendation. It does
+That is what `payslip_adjustments`' own reasoning implies, and it is the recommendation. It does
 mean the board will show an editable cell inside a period the operator thinks of as "closed", so
 the rail draws it as **in a paid period** with the arrears sentence on hover rather than as open.
 
 ### 2.4 Publication is a third axis, and it should not lock a swap
 
-`roster_entries/+hooks.ts` refuses every write in a published month. That is right for the plan of
+`work_days/+hooks.ts` refuses every plan write in a published month. That is right for the plan of
 record and wrong for operations: a swap on the 12th of a published month is the ordinary case, and
 "re-open the whole month" is not a proportionate answer — re-opening also un-freezes the other 300
 people's days.
@@ -204,7 +213,7 @@ Proposal: keep the freeze for **bulk** paths (import, pattern re-projection) and
 amendment path for single-cell writes in a published month.
 
 ```text
-   roster_entries.origin :  IMPORT │ MANUAL │ AMENDMENT   ← new arm
+   work_days.planned_origin : IMPORT │ MANUAL │ AMENDMENT  ← new arm
 
    published month + single write + non-empty note  ──►  origin = AMENDMENT, allowed
    published month + import/bulk                    ──►  refused, as today
@@ -314,7 +323,7 @@ So the input is punches, never an overtime total:
    └────────────────────────────────────────────────────────────────────────────────────────┘
         │              │                    │
         ▼              ▼                    ▼
-   day sheet      roster publish       time_entries hook
+   day sheet      roster publish       work_days hook   
    ⚠ badge        gate: a WORK code     on_exceed = WARN → toast, saves
    + citation     window whose span     on_exceed = BLOCK → refuse with the citation
                   exceeds the trigger
@@ -342,7 +351,7 @@ buried in the overtime engine.
 
 ## 5. Uploading a month of attendance
 
-This is built. `expandTimeMonthGrid` in `time_entries/import-month-grid.ts` reads exactly the shape
+This is built. `expandTimeMonthGrid` in `work_days/import-month-grid.ts` reads exactly the shape
 the roster import reads — people down the side, days across the top — with `HH:mm-HH:mm` cells, or
 `HH:mm` for a punch still open. The `Settings` sheet carries the timezone and the month, and a file
 that omits the timezone is refused rather than guessed at.
@@ -354,8 +363,8 @@ is the analytics screen. The board is where a month is worked on.
    ┌──────────── Scheduling · Month board · 2026-08 ────────────────────────────────┐
    │                                                                                │
    │   [ Import ▾ ]                                                                 │
-   │     ├─ Roster for 2026-08          → roster_entries   (needs a DRAFT month)    │
-   │     └─ Attendance for 2026-08      → time_entries     (needs no draft at all)  │
+   │     ├─ Roster for 2026-08          → work_days · ROSTER sheet   (needs a DRAFT) │
+   │     └─ Attendance for 2026-08      → work_days · ATTENDANCE     (needs no draft) │
    │                                                                                │
    │   [ Download template ▾ ]                                                      │
    │     ├─ Roster grid    — people × days, pre-filled with the current plan        │
@@ -486,7 +495,7 @@ looking at the same `DayFacts` the controller is looking at, drawn larger.
 
 ### 8.1 The employee's month
 
-The ESS "My time" tab is a `time_entries` table today. It shows punches and **nothing about what the
+The ESS "My time" tab was a raw attendance table. It shows punches and **nothing about what the
 person was supposed to work** — no shift, no rest day, no holiday, no leave. An employee cannot
 answer "am I on tomorrow?" from their own self-service app, which is the single most common question
 self-service exists to answer.
@@ -522,21 +531,21 @@ that is amber for the controller is amber for the employee.
 `src/access/policies/+employee.ts` already grants every read this calendar makes, and exactly one write:
 
 ```text
-   READ   employees · employments · employment_terms · roster_entries · time_entries
-          leave_requests · payslips · component_entries · repayment_agreements
+   READ   employees · employments · employment_terms · work_days
+          leave_requests · payslips · obligations
           + employeeReferenceGrants: companies, company_holidays, shift_definitions,
             rosters, pay_components, leave_types
-          + settlementLedgerGrants: payroll_settlements
+          + settlementLedgerGrants: payslip_adjustments
                     ▲
                     └─ the ledger read is why a refusal on a settled day is an EXPLANATION
                        for the employee rather than an access denial. Already deliberate.
 
-   CREATE time_entries, scoped to own employment, via timeEntryApproval(...)
+   CREATE work_days, scoped to own employment and masked to the clock fields
           ── no update, no delete. An employee reports; a controller decides.
 ```
 
 So the calendar's one affordance is **report a missing punch** on an unlocked day with no entry.
-It creates a `time_entries` row that carries `approval_id` until a manager settles it,
+It creates a `work_days` row that carries `approval_id` until a manager settles it,
 which the tile draws as a fifth rung on the ladder:
 
 ```text
@@ -558,9 +567,9 @@ editing surface that does not know what the day means:
 
 | Surface                                          | Today                         | After                            |
 | ------------------------------------------------ | ----------------------------- | -------------------------------- |
-| HR Controller → Time & Attendance → **Entries**  | editable `time_entries` table | **deleted**                      |
+| HR Controller → Time & Attendance → **Entries**  | editable attendance table     | **deleted**                      |
 | HR Controller → Time & Attendance → **Overview** | exception-rate chart          | moves to Scheduling → Exceptions |
-| Employee Self-Service → **My time**              | `time_entries` table          | becomes **My schedule** calendar |
+| Employee Self-Service → **My time**              | attendance table              | becomes **My schedule** calendar |
 
 Which leaves `+time_attendance.svelte` holding a chart, and an app that is one chart is not an app.
 The recommendation is to retire it and fold both halves into Scheduling:
@@ -613,6 +622,6 @@ Smaller than it reads, because the derivation is shared:
 - ESS gains the board's six month-scoped queries, all already permitted, all `employment_id`-scoped
   rather than company-scoped — so they are 1/300th the size of the controller's.
 - `+time_attendance.svelte` deleted; its chart snippet moves into a Scheduling tab and derives from
-  the sync-backed `time_entries` query already owned there; its i18n keys move with it.
+  the sync-backed attendance query already owned there; its i18n keys move with it.
 - ESS `attendanceRowLock` loses `today`, same as §2.2 — otherwise the employee's own calendar
   greys out every day they have actually worked.

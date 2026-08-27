@@ -126,8 +126,8 @@
 		editable?: boolean;
 		/**
 		 * Whether the swap gesture is offered. Draft months only: a swap is two writes to
-		 * `roster_entries`, and `roster_entries/+hooks.ts` refuses every one of them in a published
-		 * month. Offering a gesture the write path will refuse is worse than not offering it.
+		 * `work_days`, and `work_days/+hooks.ts` refuses every one of them in a published month.
+		 * Offering a gesture the write path will refuse is worse than not offering it.
 		 */
 		swappable?: boolean;
 		/** The armed end of a swap, bindable so the day sheet's own Swap button can arm it. */
@@ -214,7 +214,7 @@
 		if (day == null) return 'OPEN';
 		return lockRung(
 			day,
-			(day.timeEntryId == null ? null : settlementClaims.get(day.timeEntryId)) ?? null
+			(day.workDayId == null ? null : settlementClaims.get(day.workDayId)) ?? null
 		);
 	}
 
@@ -228,7 +228,7 @@
 	 */
 	function lockNote(day: DayFacts | undefined): string | null {
 		if (day == null) return null;
-		const claim = day.timeEntryId == null ? null : (settlementClaims.get(day.timeEntryId) ?? null);
+		const claim = day.workDayId == null ? null : (settlementClaims.get(day.workDayId) ?? null);
 		const lock = lockRungSourceLock(day, claim);
 		return lock == null ? null : sourceLockReason(lock, t);
 	}
@@ -367,9 +367,9 @@
 				: `${day.leaveCode}${day.halfDayLeave ? ` (${t('roster.half_day')})` : ''}`,
 			day.pendingLeave ? t('roster.pending_leave') : null,
 			day.plannedOT ? t('roster.planned_ot') : null,
-			day.origin == null
+			day.plannedOrigin == null
 				? null
-				: day.origin === 'IMPORT'
+				: day.plannedOrigin === 'IMPORT'
 					? t('roster.origin_import')
 					: t('roster.origin_manual'),
 			...day.conflicts.map((conflict) => t(CONFLICT_PRESENTATION[conflict].labelKey)),

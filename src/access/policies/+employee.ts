@@ -2,7 +2,7 @@ import {
 	employeeSelfServiceGrants,
 	employeeReferenceGrants,
 	employeeLeaveRequestCreateGrant,
-	employeeTimeEntryCreateGrant,
+	employeeWorkDayCreateGrant,
 	grantOn,
 	mergeGrants,
 	ownEmploymentChild,
@@ -43,24 +43,33 @@ const ownEmployment = {
 } as const;
 
 /**
- * Their own component entries, minus the corrections HR raises about them.
+ * Their own obligations, minus the corrections HR raises about them.
  *
- * An adjustment is a `MANUAL_ADJUSTMENT` origin. The owner's rule is that adjustments are visible
- * only to the HR policies, and this is where that is enforced — in the row predicate, not by leaving
- * the screen off the employee app. An employee who guessed the collection name and queried it
- * directly gets the same answer the screen gives them, because it is the same predicate.
+ * An adjustment is a ONE_OFF obligation whose `occasion` column is `ADJUSTMENT`. The owner's rule is
+ * that adjustments are visible only to the HR policies, and this is where that is enforced — in the
+ * row predicate, not by leaving the screen off the employee app. An employee who guessed the
+ * collection name and queried it directly gets the same answer the screen gives them, because it is
+ * the same predicate.
+ *
+ * This is one grant where there used to be two: `component_entries` scoped and filtered, and
+ * `repayment_agreements` scoped only. A staff loan is a SCHEDULED obligation and carries no
+ * `occasion`, so the filter's `IS DISTINCT FROM` reads NULL and leaves it visible — the two rules
+ * merge without either of them changing what it decides.
+ *
+ * `occasion` is a real column and not a path into a jsonb blob, which is what makes this a predicate
+ * a field grant could also express. See `NOT_AN_ADJUSTMENT` in `src/lib/policy_grants.ts`.
  *
  * `NOT_AN_ADJUSTMENT` is not reused verbatim here because a grant carries **one** `where` and this
  * one has to be both scoped and filtered; the clause is the same clause, AND-ed onto the ownership
  * subquery rather than OR-ed into a second grant. A second grant would be a union — it would show
  * the employee every adjustment in the workspace.
  */
-const ownEntryNotAnAdjustment = {
+const ownObligationNotAnAdjustment = {
 	$sql:
 		'"employment_id" IN (SELECT e."id" FROM "employments" e ' +
 		'JOIN "employees" p ON p."id" = e."employee_id" ' +
 		'WHERE lower(p."email") = lower(${requestor.email})) ' +
-		`AND "origin"->>'kind' IS DISTINCT FROM 'MANUAL_ADJUSTMENT'`
+		`AND "occasion" IS DISTINCT FROM 'ADJUSTMENT'`
 } as const;
 
 /**
@@ -101,27 +110,21 @@ export default {
 			where: ownEmploymentChild,
 			dependencies: employmentScopeDependencies
 		}),
-		grantOn('roster_entries', 'read', {
+		// One grant for the person-day, where the roster and the punch used to be two collections.
+		// Reading is unmasked: a person may see their own schedule and their own clock in full.
+		grantOn('work_days', 'read', {
 			where: ownEmploymentChild,
 			dependencies: employmentScopeDependencies
 		}),
-		grantOn('repayment_agreements', 'read', {
-			where: ownEmploymentChild,
-			dependencies: employmentScopeDependencies
-		}),
-		grantOn('component_entries', 'read', {
-			where: ownEntryNotAnAdjustment,
-			dependencies: employmentScopeDependencies
-		}),
-		grantOn('time_entries', 'read', {
-			where: ownEmploymentChild,
+		grantOn('obligations', 'read', {
+			where: ownObligationNotAnAdjustment,
 			dependencies: employmentScopeDependencies
 		}),
 		grantOn('leave_requests', 'read', {
 			where: ownEmploymentChild,
 			dependencies: employmentScopeDependencies
 		}),
-		employeeTimeEntryCreateGrant(),
+		employeeWorkDayCreateGrant(),
 		employeeSelfServiceGrants(),
 		employeeLeaveRequestCreateGrant(),
 		employeeReferenceGrants('read'),

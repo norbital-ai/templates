@@ -4,7 +4,8 @@
  * A roster code is the single polymorphic scheduling vocabulary: WORK owns its clock window,
  * REST is the protected weekly rest, and OFF is another planned non-working day. Public holidays
  * are never stored as codes; they are overlaid from the observed company holiday calendar. A
- * monthly roster entry overrides the employment's embedded work pattern for that date.
+ * `work_days` row that names a roster code overrides the employment's embedded work pattern for
+ * that date; one that names none carries only attendance and leaves the pattern in force.
  */
 
 import { Schema } from 'effect';
@@ -66,11 +67,18 @@ const ScheduleTermsSchema = Schema.Struct({
 });
 type ScheduleTerms = Schema.Schema.Type<typeof ScheduleTermsSchema>;
 
-const RosterEntrySchema = Schema.Struct({
+/**
+ * The planned half of a `work_days` row, which is the only half a schedule reads.
+ *
+ * `shift_definition_id` is nullable and its absence is the presence test: a day carrying only
+ * attendance names no roster code, and falls back to whatever the employment's work pattern
+ * projects for it exactly as a day with no row at all does.
+ */
+const PlannedDaySchema = Schema.Struct({
 	work_date: Schema.String,
-	shift_definition_id: Schema.String
+	shift_definition_id: Schema.NullOr(Schema.String)
 });
-type RosterEntry = Schema.Schema.Type<typeof RosterEntrySchema>;
+type PlannedDay = Schema.Schema.Type<typeof PlannedDaySchema>;
 
 function scheduledCode(
 	code: ShiftDefinition,
@@ -97,20 +105,20 @@ function dayTypeFor(kind: 'WORK' | 'REST' | 'OFF'): Exclude<DayType, 'PUBLIC_HOL
 	}
 }
 
-/** What `resolveSchedule` needs: the window, the days, the terms read per day, and the roster. */
+/** What `resolveSchedule` needs: the window, the days, the terms read per day, and the plans. */
 type ResolveScheduleOptions = {
 	readonly window: PayrollWindow['salary'];
 	readonly dates: readonly IsoDate[];
 	readonly terms: (date: IsoDate) => ScheduleTerms;
-	readonly rosterEntries: readonly RosterEntry[];
+	readonly workDays: readonly PlannedDay[];
 	readonly configuration: Pick<Configuration, 'holidays' | 'shiftById'>;
 };
 
 /** Resolve every day of a window for one employment. */
 export function resolveSchedule(options: ResolveScheduleOptions): Map<IsoDate, ScheduledDay> {
-	const rosterByDate = new Map<IsoDate, RosterEntry>();
-	for (const entry of options.rosterEntries) {
-		rosterByDate.set(requiredDateKey(entry.work_date, 'roster_entries.work_date'), entry);
+	const plannedByDate = new Map<IsoDate, PlannedDay>();
+	for (const day of options.workDays) {
+		plannedByDate.set(requiredDateKey(day.work_date, 'work_days.work_date'), day);
 	}
 
 	const codeFor = (id: string, date: IsoDate): ShiftDefinition => {
@@ -131,9 +139,9 @@ export function resolveSchedule(options: ResolveScheduleOptions): Map<IsoDate, S
 
 	for (const date of options.dates) {
 		const terms = options.terms(date);
-		const roster = rosterByDate.get(date);
+		const planned = plannedByDate.get(date);
 		const patternCodeId = patternRosterCodeId(terms.work_pattern, date);
-		const assignmentCodeId = roster?.shift_definition_id ?? patternCodeId;
+		const assignmentCodeId = planned?.shift_definition_id ?? patternCodeId;
 		// A ROSTERED employment has no generated assignment. An absent monthly entry is simply OFF;
 		// publication validation is responsible for enforcing any guaranteed load.
 		const assignmentCode =

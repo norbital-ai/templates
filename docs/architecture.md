@@ -9,16 +9,18 @@ keeps business inputs separate from settled output, but does not add projection 
 APPROVED INPUTS                         SETTLED OUTPUT
 
 employment_terms --+                 +-> payroll_runs [one policy snapshot]
-time_entries -------+                 |        |
-leave_requests -----+--> calculator -+        v
-component_entries --+                          payslips
-       |                                        |
-       v                                        v
-pay_components <-------------------------- payslip_lines
+work_days ---------+                 |        |
+leave_requests ----+--> calculator --+        v
+obligations -------+                          payslips
+       |                                       |- base[]       (no source)
+       |                                       |- proration[]  (no source)
+       |                                       `- statutory[]  (no source)
+       v                                        |
+pay_components <-------------------------- payslip_adjustments
  [policy + calculation +                    [the only junction]
-  entitlement union]                        |- pay_component_id
-                                             |- component_entry_id (when entry-backed)
-                                             `- statutory_contribution_id (when statutory)
+  entitlement union]                        |- source: OBLIGATION | WORK_DAY | LEAVE_REQUEST
+                                            |- pay_component_id  (NULL for overtime)
+                                            `- overtime_band     (set only for overtime)
 
 leave_types
  [accrual + payroll effect + entitlement layers]
@@ -28,20 +30,34 @@ leave_types
            + employee enhancement
 ```
 
+**A payslip comprises four things, and the kind is derived, never declared.** Base, proration and
+statutory point at no input, so they are inlined on `payslips` as arrays. An adjustment is caused by
+exactly one input, so it is a row that names it. There is no `kind` column anywhere: pointing at
+nothing IS base or proration; pointing at a source IS an adjustment.
+
 The payroll-output core is five collections:
 
 1. `pay_components` — one reusable definition with a strict settlement/statutory policy and a
    polymorphic calculation definition.
-2. `component_entries` — approved monetary events such as claims, allowances, adjustments and loan
-   instalments.
+2. `obligations` — the only door money enters payroll through: claims, allowances, bonuses, HR
+   adjustments, arrears corrections, and staff loans with their instalments inline. `terms` says how
+   money comes due; `occasion` says why a one-off was raised, and NULL there means "not an
+   adjustment", which is what the row predicate hiding HR's corrections reads.
 3. `payroll_runs` — one company-period calculation and one captured policy snapshot.
-4. `payslips` — one employment's totals in a run.
-5. `payslip_lines` — the direct payslip-to-component junction and complete breakdown.
+4. `payslips` — one employment's totals in a run, plus base, proration and statutory inline.
+5. `payslip_adjustments` — the payslip-to-input junction, and the settlement claim.
 
-`payslip_lines.component` is a closed union. Ordinary lines must name a pay component; entry-backed
-lines must also name exactly one component entry; statutory lines must name a statutory scheme.
-Generated relational columns and composite foreign keys enforce those links physically. A
-single-use entry has one line globally. A recurring entry may have one line per payslip.
+`source` is a `reference(...)`: one real foreign key per arm and a database-enforced exclusive arc,
+where `payslip_lines` hand-rolled the same thing with a union in jsonb, six `generatedAlwaysAs`
+projections of it and a composite foreign key. The index is `unique(source, payslip_id)`, so one
+input cannot be consumed twice **inside one run**; the cross-run ceiling is arithmetic, carried by
+`OBLIGATION_OVER_CONSUMED` in `src/lib/settlement_refusals.ts`.
+
+**A zero-amount adjustment is the settlement lock.** `payslip_sources` existed to say "this run took
+this record into account" separately from "this record produced money". It does not need to be a
+second collection: a day the run read and priced at nothing is a row here with `amount` 0. It
+consumed nothing and it is still frozen, because the `restrict` foreign key on its arm refuses the
+delete.
 
 ## Leave and layered entitlement
 
@@ -126,7 +142,7 @@ therefore belongs to the new window, not the closing one.
 
 #### Money-event cutoff
 
-A `component_entry` may state `pay_period` explicitly. That is authoritative. If it is absent, the
+An `obligation` may state `pay_period` explicitly. That is authoritative. If it is absent, the
 default is:
 
 ```text
@@ -242,7 +258,7 @@ An overtime amount is produced only when all relevant gates pass:
 3. the applicable effective-dated coverage and pricing rules permit an award; and
 4. payable duration remains after flooring.
 
-**Overtime is a calculated value, never a stored one.** A `time_entries` row records what happened
+**Overtime is a calculated value, never a stored one.** A `work_days` row records what happened
 on the clock — one or more worked intervals and the unpaid break — and nothing about what those hours
 are worth or who agreed to them. Open/closed state is derived from whether the final interval has an
 end. The payroll run derives duration from the intervals, and the
@@ -406,7 +422,7 @@ consecutive-hours window, the minimum length, whether the statute counts the bre
 — and every field of it was resolved, snapshotted and read by nothing: no line was priced, no run
 was blocked, no screen quoted a figure. It was removed rather than left as data entry that pays
 for itself with an audit token. Whether a break was taken is measured from punches, which is
-`time_entries` and `shift_definitions` work; the cited statutory transcriptions are retained in
+`work_days` and `shift_definitions` work; the cited statutory transcriptions are retained in
 the repository seed bank (`seed_bank/norbital_hr/statutory/rest_break_rules.json`) so the
 requirement can be modelled again from the primary text rather than from memory.
 
@@ -528,7 +544,7 @@ YTD is not a mutable ledger table. It is the sum of earlier paid results in the 
 
 ```text
 YTD contribution base/share
-  = SUM(payslip_lines WHERE component.kind starts with 'STATUTORY_')
+  = SUM(payslips.statutory[].employee_amount)
     over earlier PAID runs for the employee and statutory scheme
 ```
 
@@ -566,8 +582,8 @@ running balance matter.
 | ------------------------------ | ----------------------------------------------------- | ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------ |
 | Leave taken                    | Approved `leave_request`                              | No duplicate `TAKEN` row | The request already contains type, dates, quantity and approval. Counting both would double-consume leave.                           |
 | Leave correction or encashment | `leave_requests.event` adjustment/encashment arm      | No second table          | It remains a signed, dated event, structurally distinct from a time-off request in the same authoritative stream.                    |
-| Claim or allowance             | Approved `component_entry`                            | No                       | The entry is already the money transaction and carries service date, pay period, evidence and origin.                                |
-| Loan                           | `repayment_agreement` plus scheduled recovery entries | Yes, as a schedule       | Principal, due date and every instalment must reconcile before payroll; each instalment can then be linked and frozen independently. |
+| Claim or allowance             | Approved `obligation`                                 | No                       | The obligation is already the money transaction and carries the incurred date, pay period, evidence and occasion.                    |
+| Loan                           | One SCHEDULED `obligation` carrying its instalments   | No, the schedule inlines | Principal, due dates and every instalment reconcile on one row; what is still owed is the principal less what paid runs recovered.   |
 | Payroll/YTD                    | Paid payslips and contributions                       | No mutable accumulator   | Earlier paid results are the immutable accounting history. YTD is their sum.                                                         |
 | Payment file                   | Projection from a paid run                            | No                       | A file is an output transport, not another source of payroll truth.                                                                  |
 
@@ -637,9 +653,9 @@ flowchart LR
 | Paid run             | Recalculation and deletion are blocked; output children cannot be deleted   | Preserves the exact result used for payment, YTD and audit                                                                        |
 | Loan instalment      | A recovery entry linked to a payslip is immutable                           | Prevents a loan balance from changing behind a paid deduction                                                                     |
 | Leave event stream   | Corrections use new adjustment events                                       | A balance correction remains visible instead of rewriting history                                                                 |
-| General event source | `sourceLock` freezes the original leave, claim, or attendance row           | Approved (live) leave and claims, a day that has already passed, a paid payroll window, or a payslip line that consumed the entry |
+| General event source | `sourceLock` freezes the original leave, obligation, or person-day row      | A pending approval, or a `payslip_adjustments` row that consumed the record — including one of amount 0                          |
 
-Leave, claims and attendance share `src/lib/scheduling/lock.ts`. Hooks refuse the write; collection
+Leave, obligations and person-days share `src/lib/scheduling/lock.ts`. Hooks refuse the write; collection
 forms disable and state the reason; collection tables disable row selection and paint a locked
 leading accent. Corrections are new events, never edits of a consumed source.
 
@@ -649,35 +665,43 @@ leading accent. Corrections are new events, never edits of a consumed source.
 effective configuration ---> payroll_runs.configuration_snapshot
                                       |
 employment ------------------------> payslip
-                                      |
+                                      |- base[]       -> pay_component_id (inlined, not an FK)
+                                      |- proration[]  -> term_id          (inlined, not an FK)
+                                      |- statutory[]  -> statutory_contribution_id (inlined)
                                       v
-pay_component <---------------- payslip_line ----------------> statutory scheme
-                                      |
-                                      `----------------------> component_entry
+pay_component <-------- payslip_adjustment --------> obligation | work_day | leave_request
 ```
 
-There is no line-source collection. The payslip line is the physical junction and directly answers:
+The adjustment is the physical junction and directly answers:
 
-- which component produced the amount;
-- which monetary event was consumed, when the line is entry-backed;
-- which statutory scheme, base, band and special amounts produced a statutory line; and
-- which payslip and run froze the result.
+- which component produced the amount, or which statutory overtime band did when there is none;
+- which single input was consumed, through one real per-arm foreign key; and
+- which payslip and run froze the result, with the period copied onto the row.
+
+The three inlined arrays name catalogue ids and deliberately hold **no** foreign key. That is the
+point of inlining: a settled payslip is a frozen statement of what was paid, and it does not become
+wrong because somebody later archived a component or superseded a terms row.
 
 The configuration snapshot is housed once by the pay run because every payslip in that run shares
 the same picked policy.
 
-Single-use and recurring consumption are database invariants:
+Consumption is one database invariant and one arithmetic one:
 
 ```text
-SINGLE_USE: unique(component_entry_id)
-RECURRING:  unique(component_entry_id, payslip_id)
-MATCHING:   FK(line.entry_id, line.component_id, line.usage)
-            -> component_entry(id, component_id, usage)
+PER RUN:   unique(source, payslip_id)            enforced by the database
+CROSS RUN: SUM(adjustments in PAID runs) <= obligation.amount
+           enforced by OBLIGATION_OVER_CONSUMED in src/lib/settlement_refusals.ts
 ```
 
-Scheduled and formula lines link to their pay component and remain reproducible from the run
+The second was `unique(component_entry_id)` and could not survive partial consumption: a loan
+instalment the negative-net guard could only part-pay stays outstanding on its obligation, and the
+next run recovers the remainder against the same obligation. A database invariant was traded for an
+arithmetic one, and the trade is carried by a named refusal and a test rather than by a comment.
+
+Scheduled and formula adjustments link to their pay component and remain reproducible from the run
 snapshot plus approved inputs. Overtime lines link to no component at all — they name the statutory
-band that priced them, and `payslip_lines.pay_component_id` is simply NULL for them.
+band that priced them — `payslip_adjustments.overtime_band` — and `pay_component_id` is simply NULL
+for them. Exactly one of the two is set on any row.
 
 ## Statutory overtime coverage: what is encoded, and what is not
 
@@ -768,7 +792,7 @@ written "irrespective of the amount of wages he earns" outranks it too. **No row
 
 The run picks the jurisdiction snapshot once and records its complete regime, so it can say which
 break requirements governed it. **Nothing enforces them yet**: whether a break was actually
-taken is a question over punches (`time_entries`, `shift_definitions`), which payroll does not
+taken is a question over punches (`work_days`, `shift_definitions`), which payroll does not
 answer. The rows are law made addressable, and the figures a future check will quote are already
 the statute's, not a literal waiting to be copied.
 
@@ -912,6 +936,6 @@ A jurisdiction that states no daily limit now has none enforced, rather than inh
 - **`eligibility_rules` still cannot express any of this.** Its predicates carry no wage term and it
   reads `work_classification`, not `statutory_work_category`.
 - **Rest and meal breaks are unmodelled.** The regime no longer carries them: whether a break was
-  taken is measured from clock data, which is `time_entries` and `shift_definitions` work, and
+  taken is measured from clock data, which is `work_days` and `shift_definitions` work, and
   until something measures it the requirement is transcription, not a column. The cited statute
   stays in the repository seed bank.

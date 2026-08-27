@@ -1,23 +1,28 @@
 /**
  * Step 7 — SETTLE.
  *
- * Four numbers, derived entirely from `pay_components.nature` and the statutory lines. Nothing
+ * Four numbers, derived entirely from `pay_components.policy` and the statutory charges. Nothing
  * here reads a component code.
  *
  * ```
  * gross            = Σ EARNING − Σ ABSENCE
- * statutory (ee)   = Σ payslip_lines(STATUTORY_EMPLOYEE).amount
- * other deductions = Σ DEDUCTION lines
- * payments         = Σ NON_WAGE_PAYMENT lines settled through payroll
+ * statutory (ee)   = Σ payslips.statutory[].employee_amount
+ * other deductions = Σ DEDUCTION
+ * payments         = Σ NON_WAGE_PAYMENT settled through payroll
  *
  * net              = gross − statutory − other + payments
- * employer cost    = Σ employer_amount + Σ EMPLOYER_COST lines + Σ company-direct entries
+ * employer cost    = Σ employer_amount + Σ EMPLOYER_COST + Σ company-direct obligations
  * ```
+ *
+ * The sums run over **both planes at once** — the contracted amounts inlined on the payslip and the
+ * adjustments each input caused — because gross is a fact about the payslip and not about which
+ * table a figure ended up in. Which plane an amount belongs to is decided by what caused it, in
+ * MEASURE; nothing here re-decides it, and nothing here reshapes one plane into the other.
  *
  * `total_deductions` includes the employee's statutory contributions and excludes reimbursements.
  * A payroll-settled reimbursement repays the employee's own outlay, so it is added to net without
- * ever having been part of gross. A company-direct entry (for example, a panel-clinic invoice) is
- * instead an employer cost: the line remains on the payslip for provenance, but no cash passes
+ * ever having been part of gross. A company-direct obligation (for example, a panel-clinic invoice)
+ * is instead an employer cost: the row remains on the payslip for provenance, but no cash passes
  * through the employee.
  *
  * ## The negative-net guard
@@ -28,11 +33,11 @@
  * What could not be taken **is not carried anywhere.** It used to be: a fresh `component_entries`
  * row dated next month, written one facility call per employee by a `persistShortfalls` that had to
  * delete last build's copies first so a rebuild could not make somebody owe the same money twice.
- * That was a second representation of a debt its own agreement already recorded.
+ * That was a second representation of a debt its own obligation already recorded.
  *
- * The debt now stays where it was born. The line below records what was *actually* taken, so what is
- * still owed is the obligation minus the sum of the lines that took it — read back from earlier PAID
- * runs by `gather.ts` and re-derived by `measureLoanInstalments`. `shortfalls` is retained as a
+ * The debt now stays where it was born. The row below records what was *actually* taken, so what is
+ * still owed is `obligation.amount − Σ(what earlier paid runs took)` — read back from earlier PAID
+ * runs by `gather.ts` and re-derived by `measureScheduledObligations`. `shortfalls` is retained as a
  * statement of what this run reduced and by how much; nothing persists it, and nothing needs to.
  *
  * The plan makes reducibility a `definition.reducible` flag on the pay component. The schema
@@ -44,7 +49,7 @@
  */
 
 import type { ContributionCharge } from './contribute.js';
-import type { MeasuredLine } from './measure.js';
+import type { MeasuredAdjustment, MeasuredBase, PricedItem } from './measure.js';
 import { cents } from './rounding.js';
 
 /** Types that a shortfall may never touch, in the order the guard would otherwise reach them. */
@@ -55,41 +60,68 @@ export type Settlement = {
 	readonly totalDeductions: number;
 	readonly net: number;
 	readonly employerCost: number;
-	/** Lines after the guard has run; identical to the input when net never went negative. */
-	readonly lines: readonly MeasuredLine[];
+	/** Both planes after the guard has run; identical to the input when net never went negative. */
+	readonly base: readonly MeasuredBase[];
+	readonly adjustments: readonly MeasuredAdjustment[];
 	/** What could not be deducted this period, per pay component. Empty in the ordinary case. */
 	readonly shortfalls: readonly { readonly payComponentId: string; readonly amount: number }[];
 };
 
+/**
+ * A company-direct obligation costs the employer and never reaches the employee's net.
+ *
+ * `nature`, not `payComponent.nature`: derived overtime has no pay component to read it from, and
+ * it is an EARNING like any other.
+ */
+function isCompanyDirect(item: PricedItem): boolean {
+	return (
+		item.payComponent?.definition?.source === 'ENTRY' &&
+		item.payComponent.definition.settlement === 'COMPANY_DIRECT'
+	);
+}
+
+/** Where a reducible deduction sits, so the guard can put the reduced amount back in place. */
+type Reducible = {
+	readonly plane: 'BASE' | 'ADJUSTMENT';
+	readonly index: number;
+	readonly amount: number;
+	readonly component: NonNullable<PricedItem['payComponent']>;
+};
+
 export function settle(options: {
-	readonly lines: readonly MeasuredLine[];
+	readonly base: readonly MeasuredBase[];
+	readonly adjustments: readonly MeasuredAdjustment[];
 	readonly charges: readonly ContributionCharge[];
 }): Settlement {
 	const statutoryEmployee = options.charges.reduce((total, charge) => total + charge.employee, 0);
 	const statutoryEmployer = options.charges.reduce((total, charge) => total + charge.employer, 0);
 
-	// `line.nature`, not `line.payComponent.nature`: derived overtime has no pay component to read
-	// it from, and it is an EARNING like any other.
-	const sumOf = (lines: readonly MeasuredLine[], nature: string): number =>
-		lines.reduce((total, line) => total + (line.nature === nature ? line.amount : 0), 0);
-	const isCompanyDirect = (line: MeasuredLine): boolean =>
-		line.payComponent?.definition?.source === 'ENTRY' &&
-		line.payComponent.definition.settlement === 'COMPANY_DIRECT';
-
-	const gross = cents(sumOf(options.lines, 'EARNING') - sumOf(options.lines, 'ABSENCE'));
-	const payments = options.lines.reduce(
-		(total, line) =>
-			total + (line.nature === 'NON_WAGE_PAYMENT' && !isCompanyDirect(line) ? line.amount : 0),
-		0
+	const sumOf = (items: readonly PricedItem[], nature: string): number =>
+		items.reduce((total, item) => total + (item.nature === nature ? item.amount : 0), 0);
+	const gross = cents(
+		sumOf(options.base, 'EARNING') +
+			sumOf(options.adjustments, 'EARNING') -
+			sumOf(options.base, 'ABSENCE') -
+			sumOf(options.adjustments, 'ABSENCE')
 	);
-	const employerLines = options.lines.reduce(
-		(total, line) =>
-			total + (line.nature === 'EMPLOYER_COST' || isCompanyDirect(line) ? line.amount : 0),
-		0
-	);
+	const paymentsOf = (items: readonly PricedItem[]): number =>
+		items.reduce(
+			(total, item) =>
+				total + (item.nature === 'NON_WAGE_PAYMENT' && !isCompanyDirect(item) ? item.amount : 0),
+			0
+		);
+	const employerOf = (items: readonly PricedItem[]): number =>
+		items.reduce(
+			(total, item) =>
+				total + (item.nature === 'EMPLOYER_COST' || isCompanyDirect(item) ? item.amount : 0),
+			0
+		);
+	const payments = paymentsOf(options.base) + paymentsOf(options.adjustments);
+	const employerAmounts = employerOf(options.base) + employerOf(options.adjustments);
 
-	let lines = options.lines;
-	let otherDeductions = sumOf(lines, 'DEDUCTION');
+	let base = options.base;
+	let adjustments = options.adjustments;
+	let otherDeductions = sumOf(base, 'DEDUCTION') + sumOf(adjustments, 'DEDUCTION');
 	let net = cents(gross - statutoryEmployee - otherDeductions + payments);
 	const shortfalls: { payComponentId: string; amount: number }[] = [];
 
@@ -97,30 +129,43 @@ export function settle(options: {
 		// Reverse type sequence: the least essential deduction gives way first.
 		// Only a configured deduction can be reduced: the guard shrinks what a company chose to
 		// deduct, and derived overtime is neither a deduction nor anyone's to shrink.
-		const reducible = lines
-			.flatMap((line, index) => {
-				const component = line.payComponent;
-				return line.nature === 'DEDUCTION' &&
+		const collect = (items: readonly PricedItem[], plane: Reducible['plane']): Reducible[] =>
+			items.flatMap((item, index) => {
+				const component = item.payComponent;
+				return item.nature === 'DEDUCTION' &&
 					component != null &&
 					!PROTECTED_DEDUCTION_TYPES.has(component.code)
-					? [{ line, index, component }]
+					? [{ plane, index, amount: item.amount, component }]
 					: [];
-			})
-			.toSorted(
-				(left, right) => Number(right.component.sequence) - Number(left.component.sequence)
-			);
-		const reduced = [...lines];
+			});
+		const reducible = [
+			...collect(base, 'BASE'),
+			...collect(adjustments, 'ADJUSTMENT')
+		].toSorted((left, right) => Number(right.component.sequence) - Number(left.component.sequence));
+		const reducedBase = [...base];
+		const reducedAdjustments = [...adjustments];
 		let outstanding = -net;
-		for (const { line, index, component } of reducible) {
+		for (const entry of reducible) {
 			if (outstanding <= 0) break;
-			const relief = Math.min(line.amount, outstanding);
+			const relief = Math.min(entry.amount, outstanding);
 			if (relief <= 0) continue;
-			reduced[index] = { ...line, amount: cents(line.amount - relief) };
-			shortfalls.push({ payComponentId: component.id, amount: cents(relief) });
+			const amount = cents(entry.amount - relief);
+			if (entry.plane === 'BASE') {
+				const item = reducedBase[entry.index]!;
+				reducedBase[entry.index] = {
+					...item,
+					amount,
+					entry: { ...item.entry, amount }
+				};
+			} else {
+				reducedAdjustments[entry.index] = { ...reducedAdjustments[entry.index]!, amount };
+			}
+			shortfalls.push({ payComponentId: entry.component.id, amount: cents(relief) });
 			outstanding = cents(outstanding - relief);
 		}
-		lines = reduced;
-		otherDeductions = sumOf(lines, 'DEDUCTION');
+		base = reducedBase;
+		adjustments = reducedAdjustments;
+		otherDeductions = sumOf(base, 'DEDUCTION') + sumOf(adjustments, 'DEDUCTION');
 		net = cents(gross - statutoryEmployee - otherDeductions + payments);
 	}
 
@@ -128,8 +173,9 @@ export function settle(options: {
 		gross,
 		totalDeductions: cents(statutoryEmployee + otherDeductions),
 		net,
-		employerCost: cents(statutoryEmployer + employerLines),
-		lines,
+		employerCost: cents(statutoryEmployer + employerAmounts),
+		base,
+		adjustments,
 		shortfalls
 	};
 }

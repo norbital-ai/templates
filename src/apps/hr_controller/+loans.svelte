@@ -1,7 +1,28 @@
 <script lang="ts">
+	/**
+	 * Staff loans, salary advances and overpayment recoveries — the SCHEDULED arm of `obligations`.
+	 *
+	 * ## What is no longer stored, and what replaces it
+	 *
+	 * A loan used to be a `repayment_agreements` row whose instalments were COPIED into
+	 * `component_entries` as `LOAN_INSTALMENT` rows, so this page could ask "which instalments have
+	 * a payslip line pointing at them" and count them. Those rows do not exist. The schedule holds
+	 * its own instalments as an inline array, and what has been recovered is the sum of what paid
+	 * runs actually took from the obligation — which is one read of `payslip_adjustments` against
+	 * the obligation, not a per-instalment link.
+	 *
+	 * So `paidInstalments` is DERIVED here rather than counted: instalments are recovered in the
+	 * order they are listed, so the number settled is the number of leading instalments the
+	 * recovered total covers. That is faithful to how the engine recovers — `measure.ts` takes every
+	 * instalment due on or before the period and nets off what earlier runs already took — and it is
+	 * stated as a derivation rather than presented as a stored fact.
+	 *
+	 * Only PAID runs count. A draft run has produced adjustments and paid nobody, and showing its
+	 * figures as recovered would report a loan as settled before the money moved.
+	 */
 	import { FormattedValueRenderer } from '@norbital-ai/ui/data-renderer';
 	import { client } from '../../lib/workspace-client.js';
-	import { Schema } from 'effect';
+	import { Result, Schema } from 'effect';
 	import { useI18n } from '@norbital-ai/ui/i18n';
 	import AppHeaderActions from '@norbital-ai/bolt/client/app-header-actions';
 	import type { TenantI18nKeys } from '$bolt/i18n-keys';
@@ -11,20 +32,15 @@
 	import { Bound, Cover, Inline, Stack } from '@norbital-ai/ui/layout';
 	import {
 		formatEffectiveRange,
-		formatNumeric,
-		formatRepaymentSchedule
+		formatInstalments,
+		formatNumeric
 	} from '../../lib/ui/display-formatters.js';
 	import { inForceTodayFilter, todayInstant } from '../../lib/ui/calendar.js';
 
-	type RepaymentInstalmentLink = Pick<
-		WorkspaceRow<'component_entries'>,
-		'amount' | 'repayment_sequence'
-	> & {
-		readonly entry_payslip_lines?: readonly Pick<WorkspaceRow<'payslip_lines'>, 'id'>[] | null;
-	};
+	const { t } = useI18n<TenantI18nKeys>();
 
 	const RepaymentProgressSchema = Schema.Struct({
-		paidAmount: Schema.Number,
+		recoveredAmount: Schema.Number,
 		outstandingAmount: Schema.Number,
 		paidInstalments: Schema.Number,
 		totalInstalments: Schema.Number,
@@ -32,42 +48,41 @@
 	});
 	type RepaymentProgress = Schema.Schema.Type<typeof RepaymentProgressSchema>;
 
+	/**
+	 * How far a schedule has been recovered, from the principal and what paid runs took.
+	 *
+	 * The tolerance mirrors `overConsumesObligation` in `src/lib/settlement_refusals.ts`: amounts are
+	 * rounded to the currency's minor unit on the way into a payslip, so a schedule that sums to its
+	 * principal exactly can land a hundredth either side of it across a dozen runs.
+	 */
 	function repaymentProgress(
 		principal: number,
-		totalInstalments: number,
-		instalments: readonly RepaymentInstalmentLink[]
+		instalments: readonly { readonly amount: number }[],
+		recoveredAmount: number
 	): RepaymentProgress | null {
 		if (!Number.isFinite(principal) || principal < 0) return null;
-
-		const paidBySequence = new Map<number, number>();
+		const outstandingAmount = Math.max(0, principal - recoveredAmount);
+		let covered = 0;
+		let paidInstalments = 0;
 		for (const instalment of instalments) {
-			if (!instalment.entry_payslip_lines?.length) continue;
-			const sequence = instalment.repayment_sequence;
-			if (typeof sequence !== 'number' || !Number.isInteger(sequence)) continue;
-			const amount = Number(instalment.amount);
-			if (!Number.isFinite(amount) || amount < 0) continue;
-			if (!paidBySequence.has(sequence)) paidBySequence.set(sequence, amount);
+			covered += instalment.amount;
+			if (covered - recoveredAmount > 0.01) break;
+			paidInstalments += 1;
 		}
-
-		const paidAmount = [...paidBySequence.values()].reduce((sum, amount) => sum + amount, 0);
-		const outstandingAmount = Math.max(0, principal - paidAmount);
-		const paidInstalments = paidBySequence.size;
 		return {
-			paidAmount,
+			recoveredAmount,
 			outstandingAmount,
 			paidInstalments,
-			totalInstalments,
-			settled: outstandingAmount === 0 && paidInstalments >= totalInstalments
+			totalInstalments: instalments.length,
+			settled: outstandingAmount <= 0.01
 		};
 	}
-
-	const { t } = useI18n<TenantI18nKeys>();
 
 	let companyId = $state<string | null>(null);
 	const activeRange = { effective_range: { contains_date: todayInstant() } } as const;
 
 	/**
-	 * The ledger opens on the agreements still running today, as a filter chip the operator can drop
+	 * The ledger opens on the obligations still running today, as a filter chip the operator can drop
 	 * to see settled and future ones. The legal-entity selector keeps `activeRange` in its own query
 	 * regardless: that is the page's scope picker, not a listing, and it has to default to an entity
 	 * that still exists.
@@ -94,21 +109,86 @@
 	);
 
 	/**
-	 * There is no mutable `state` or `outstanding` column. The table asks for each agreement and its
-	 * direct relations in one nested query; an instalment is paid once a persisted payslip line
-	 * points back to it.
+	 * The recovery ledger, in two reads rather than a nested one.
+	 *
+	 * `payslip_adjustments.source` is a `reference(...)`, so the edge is owned by the reference and
+	 * there is no `many` inverse to nest under an obligation. The ids are therefore read first and
+	 * the claims scoped by them — the same shape every other settlement lookup in this workspace
+	 * uses, and bounded by the company rather than by the whole ledger.
 	 */
-	type NestedAgreement = WorkspaceRow<'repayment_agreements'> & {
-		readonly agreement_employment?: Pick<WorkspaceRow<'employments'>, 'employee_number'> | null;
-		readonly agreement_pay_component?: Pick<WorkspaceRow<'pay_components'>, 'code'> | null;
-		readonly agreement_instalments?: readonly RepaymentInstalmentLink[] | null;
+	const scheduledIdsQuery = $derived(
+		selectedCompanyId == null
+			? null
+			: client.db.obligations.findMany({
+					where: {
+						terms: { eq: 'SCHEDULED' },
+						obligation_employment: {
+							approval_id: { isNull: true },
+							company_id: { eq: selectedCompanyId }
+						}
+					},
+					columns: { id: true },
+					limit: 2000
+				})
+	);
+	const recoveriesQuery = $derived.by(() => {
+		const ids = (scheduledIdsQuery?.current ?? []).map((row) => row.id);
+		if (ids.length === 0) return null;
+		return client.db.payslip_adjustments.findMany({
+			where: { source: { in: ids.map((id) => ({ kind: 'OBLIGATION' as const, id })) } },
+			columns: { source: true, amount: true },
+			with: {
+				payslip_adjustment_payslip: {
+					columns: { id: true },
+					with: { payslip_payroll_run: { columns: { lifecycle: true } } }
+				}
+			},
+			limit: 20_000
+		});
+	});
+
+	const recoveryRowSchema = Schema.Struct({
+		amount: Schema.Unknown,
+		source: Schema.Struct({ kind: Schema.String, id: Schema.String }),
+		payslip_adjustment_payslip: Schema.optional(
+			Schema.NullOr(
+				Schema.Struct({
+					payslip_payroll_run: Schema.optional(
+						Schema.NullOr(
+							Schema.Struct({ lifecycle: Schema.optional(Schema.NullOr(Schema.String)) })
+						)
+					)
+				})
+			)
+		)
+	});
+	const decodeRecoveryRow = Schema.decodeUnknownResult(recoveryRowSchema);
+
+	const recoveredByObligationId = $derived.by(() => {
+		const recovered = new Map<string, number>();
+		for (const row of recoveriesQuery?.current ?? []) {
+			const parsed = decodeRecoveryRow(row);
+			if (!Result.isSuccess(parsed)) continue;
+			const claim = parsed.success;
+			if (claim.source.kind !== 'OBLIGATION') continue;
+			if (claim.payslip_adjustment_payslip?.payslip_payroll_run?.lifecycle !== 'PAID') continue;
+			const amount = Number(claim.amount);
+			if (!Number.isFinite(amount)) continue;
+			recovered.set(claim.source.id, (recovered.get(claim.source.id) ?? 0) + amount);
+		}
+		return recovered;
+	});
+
+	type NestedObligation = WorkspaceRow<'obligations'> & {
+		readonly obligation_employment?: Pick<WorkspaceRow<'employments'>, 'employee_number'> | null;
+		readonly obligation_pay_component?: Pick<WorkspaceRow<'pay_components'>, 'code'> | null;
 	};
 
-	function progressLabel(row: NestedAgreement): string {
+	function progressLabel(row: NestedObligation): string {
 		const progress = repaymentProgress(
-			row.principal,
-			row.schedule.length,
-			row.agreement_instalments ?? []
+			Number(row.amount),
+			row.instalments ?? [],
+			recoveredByObligationId.get(row.id) ?? 0
 		);
 		if (progress == null) return '—';
 		if (progress.settled)
@@ -123,8 +203,8 @@
 		});
 	}
 
-	function componentLabel(row: NestedAgreement): string {
-		const component = row.agreement_pay_component;
+	function componentLabel(row: NestedObligation): string {
+		const component = row.obligation_pay_component;
 		if (component?.code) return component.code;
 		return '—';
 	}
@@ -183,29 +263,23 @@
 			{#key selectedCompanyId}
 				<CollectionTable
 					{client}
-					collection="repayment_agreements"
+					collection="obligations"
 					view={`hr_controller:loans:${selectedCompanyId}`}
-					title={t('app.loans.repayment_agreements')}
-					description={t('app.loans.repayment_agreements_description')}
+					title={t('app.loans.agreements')}
+					description={t('app.loans.agreements_description')}
 					initialFilters={inForceTodayFilter()}
 					query={{
 						where: {
-							agreement_employment: {
+							terms: { eq: 'SCHEDULED' },
+							obligation_employment: {
 								approval_id: { isNull: true },
 								company_id: { eq: selectedCompanyId }
 							}
 						},
 						orderBy: { effective_range: 'desc' },
 						with: {
-							agreement_employment: { columns: { employee_number: true } },
-							agreement_pay_component: { columns: { code: true } },
-							agreement_instalments: {
-								where: { approval_id: { isNull: true } },
-								columns: { amount: true, repayment_sequence: true },
-								with: {
-									entry_payslip_lines: { columns: { id: true } }
-								}
-							}
+							obligation_employment: { columns: { employee_number: true } },
+							obligation_pay_component: { columns: { code: true } }
 						}
 					}}
 				>
@@ -217,8 +291,8 @@
 							card="subtitle"
 							renderer={FormattedValueRenderer}
 							rendererProps={{
-								format: ({ row }: { row: NestedAgreement }) =>
-									row.agreement_employment?.employee_number ?? '—'
+								format: ({ row }: { row: NestedObligation }) =>
+									row.obligation_employment?.employee_number ?? '—'
 							}}
 						/>
 						<Column
@@ -227,27 +301,27 @@
 							renderer={FormattedValueRenderer}
 							rendererProps={{ format: ({ row }) => componentLabel(row) }}
 						/>
-						<Column name="principal" label={t('app.loans.principal_outstanding')} />
+						<Column name="amount" label={t('app.loans.principal_outstanding')} />
 						<Column
-							name="schedule"
-							label={t('component.schedule')}
+							name="instalments"
+							label={t('component.recovery_instalments')}
 							renderer={FormattedValueRenderer}
-							rendererProps={{ format: ({ value }) => formatRepaymentSchedule(value, t) }}
+							rendererProps={{ format: ({ value }) => formatInstalments(value, t) }}
 						/>
 						<Column name="effective_range" />
 					{/snippet}
-					{#snippet ListCard(agreement)}
+					{#snippet ListCard(obligation)}
 						<Stack gap="xs">
 							<Inline align="start" justify="between" gap="sm">
-								<p class="truncate font-medium">{agreement.reference}</p>
+								<p class="truncate font-medium">{obligation.reference}</p>
 								<span class="shrink-0 text-meta">
-									{formatEffectiveRange(agreement.effective_range)}
+									{formatEffectiveRange(obligation.effective_range)}
 								</span>
 							</Inline>
 							<p class="truncate text-sm text-muted-foreground">
-								{formatRepaymentSchedule(agreement.schedule, t)}
+								{formatInstalments(obligation.instalments, t)}
 							</p>
-							<p class="text-sm">{progressLabel(agreement)}</p>
+							<p class="text-sm">{progressLabel(obligation)}</p>
 						</Stack>
 					{/snippet}
 				</CollectionTable>

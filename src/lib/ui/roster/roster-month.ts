@@ -1,14 +1,19 @@
 /**
  * One person-day, assembled from every source that has an opinion about it.
  *
- * A roster says what was *planned*; a time entry says whether the person *appeared*; leave and the
- * holiday calendar say why an empty day is empty. Shown separately these are four screens nobody
+ * A `work_days` row says what was *planned* and whether the person *appeared*; leave and the
+ * holiday calendar say why an empty day is empty. Shown separately these are screens nobody
  * cross-references, which is how a rostered shift with no attendance stays invisible until payroll.
  * Merged into one cell they answer the question an operator actually has: is this day settled, and
  * if not, what is wrong with it.
  *
+ * The plan and the clock used to be two collections and are one row now, which is why there is one
+ * index below where there were two. Their absence still means two different things: a day with no
+ * `shift_definition_id` carries no plan, and a day whose `worked_intervals` is NULL has no
+ * attendance at all — an empty array is a day that was read and had nothing worked.
+ *
  * A public holiday is NOT one of those answers. It is a property of the calendar rather than of one
- * person's roster — `roster_entries` has no holiday arm for the same reason — so it is carried here
+ * person's roster — `work_days` has no holiday arm for the same reason — so it is carried here
  * as an overlay on the date and drawn as a column of the board, leaving each cell free to keep
  * saying what that person's day is. A holiday that replaced the cell would hide whether the person
  * was rostered to work it and whether they turned up, which is precisely what an operator needs to
@@ -101,8 +106,8 @@ const dayFactsSchema = Schema.Struct({
 	shiftBreakMinutes: Schema.NullOr(Schema.Number),
 	/** The source roster token, e.g. `AMRES` or `OFF/S`, when the roster carried one. */
 	assignmentCode: Schema.NullOr(Schema.String),
-	/** Where the explicit entry came from: `IMPORT`, `MANUAL`, or null when none exists. */
-	origin: Schema.NullOr(Schema.String),
+	/** Where the plan came from: `IMPORT`, `MANUAL`, or null when the day carries no plan. */
+	plannedOrigin: Schema.NullOr(Schema.String),
 	/** Overlaid from `company_holidays`, never stored on the entry. */
 	holidayName: Schema.NullOr(Schema.String),
 	leaveCode: Schema.NullOr(Schema.String),
@@ -115,14 +120,16 @@ const dayFactsSchema = Schema.Struct({
 	workedIntervalCount: Schema.Number,
 	attendanceState: Schema.NullOr(Schema.Literals(['OPEN', 'CLOSED'])),
 	/**
-	 * The `time_entries` row behind this day, or `null` when nobody has recorded one.
+	 * The `work_days` row behind this day, or `null` when no row exists for it at all.
 	 *
-	 * The day sheet needs the identity, not just the numbers: editing a punch is an update of *this*
-	 * record, and recording one where none exists is a create. Without the id the sheet would have to
-	 * re-query the collection it is already looking at, and the two answers could differ by a write.
+	 * The day sheet needs the identity, not just the numbers: recording a punch on a day that is
+	 * already rostered is an UPDATE of this row, not a second one — `unique(employment_id,
+	 * work_date)` says so — and recording one where no row exists is a create. Without the id the
+	 * sheet would have to re-query the collection it is already looking at, and the two answers
+	 * could differ by a write.
 	 */
-	timeEntryId: Schema.NullOr(Schema.String),
-	/** The unpaid break the entry records, in whole minutes. `null` when there is no entry. */
+	workDayId: Schema.NullOr(Schema.String),
+	/** The unpaid break the day records, in whole minutes. `null` when no attendance was recorded. */
 	breakMinutes: Schema.NullOr(Schema.Number),
 	/**
 	 * Worked minutes net of the unpaid break, or `null` when a punch is still open.
@@ -161,15 +168,6 @@ const employmentMonthLikeSchema = Schema.Struct({
 });
 type EmploymentMonthLike = Schema.Schema.Type<typeof employmentMonthLikeSchema>;
 
-const rosterEntryLikeSchema = Schema.Struct({
-	employment_id: Schema.String,
-	work_date: calendarInstantSchema,
-	shift_definition_id: Schema.String,
-	assignment_code: Schema.NullOr(Schema.String),
-	origin: Schema.optional(Schema.NullOr(Schema.String))
-});
-type RosterEntryLike = Schema.Schema.Type<typeof rosterEntryLikeSchema>;
-
 const employmentTermLikeSchema = Schema.Struct({
 	employment_id: Schema.String,
 	work_pattern: workPatternValueSchema,
@@ -184,30 +182,45 @@ const rosterCodeDisplayLikeSchema = Schema.Struct({
 });
 type RosterCodeDisplayLike = Schema.Schema.Type<typeof rosterCodeDisplayLikeSchema>;
 
-const timeEntryLikeSchema = Schema.Struct({
+/**
+ * One person-day as every board data source reads it: both halves, both optional.
+ *
+ * Every column is optional because the surfaces project different subsets of the row — the board
+ * needs the plan and the clock, the employee's calendar needs only what it is granted — and a
+ * display shape that demanded all of them would refuse a legitimately narrower read.
+ */
+const workDayLikeSchema = Schema.Struct({
 	id: Schema.optional(Schema.String),
 	employment_id: Schema.String,
 	work_date: calendarInstantSchema,
-	worked_intervals: Schema.NullOr(
-		Schema.Array(
-			Schema.Struct({
-				start: calendarInstantSchema,
-				end: Schema.NullOr(calendarInstantSchema)
-			})
+	shift_definition_id: Schema.optional(Schema.NullOr(Schema.String)),
+	assignment_code: Schema.optional(Schema.NullOr(Schema.String)),
+	planned_origin: Schema.optional(Schema.NullOr(Schema.String)),
+	worked_intervals: Schema.optional(
+		Schema.NullOr(
+			Schema.Array(
+				Schema.Struct({
+					start: calendarInstantSchema,
+					end: Schema.NullOr(calendarInstantSchema)
+				})
+			)
 		)
 	),
 	break_minutes: Schema.optional(Schema.NullOr(Schema.Number))
 });
-type TimeEntryLike = Schema.Schema.Type<typeof timeEntryLikeSchema>;
+type WorkDayLike = Schema.Schema.Type<typeof workDayLikeSchema>;
 
 /**
- * The stored intervals as the attendance helpers take them.
+ * The stored intervals as the attendance helpers take them, or `null` when none were recorded.
  *
- * Local and remote reads both expose ISO strings, so this adapter only removes the nullable row
- * wrapper before the arithmetic receives the intervals.
+ * The null is the point. `worked_intervals` of NULL means nobody has recorded attendance for this
+ * day; an empty array means somebody read the day and nothing was worked. Collapsing the two into
+ * `[]` would make a rostered day nobody has answered for look identical to one answered with a
+ * zero, and the board's ABSENT ladder is built on exactly that difference.
  */
-function toWorkedIntervals(entry: TimeEntryLike | undefined): readonly WorkedInterval[] {
-	return (entry?.worked_intervals ?? []).map((interval) => ({
+function attendanceIntervals(day: WorkDayLike | undefined): readonly WorkedInterval[] | null {
+	if (day?.worked_intervals == null) return null;
+	return day.worked_intervals.map((interval) => ({
 		start: interval.start,
 		end: interval.end
 	}));
@@ -350,8 +363,7 @@ function statusOf(facts: Omit<DayFacts, 'status'>): DayStatus {
 const buildRosterMonthOptionsSchema = Schema.Struct({
 	month: Schema.String,
 	employments: Schema.Array(employmentMonthLikeSchema),
-	rosterEntries: Schema.Array(rosterEntryLikeSchema),
-	timeEntries: Schema.Array(timeEntryLikeSchema),
+	workDays: Schema.Array(workDayLikeSchema),
 	leaveRequests: Schema.Array(leaveRequestLikeSchema),
 	/** Leave requests that have not been approved yet; drawn as pending coverage, never as taken. */
 	pendingLeaveRequests: Schema.Array(leaveRequestLikeSchema),
@@ -368,8 +380,7 @@ type BuildRosterMonthOptions = Schema.Schema.Type<typeof buildRosterMonthOptions
 
 /** The month's per-day indexes `factsForDate` reads, built once per month. */
 const dayIndexesSchema = Schema.Struct({
-	roster: Schema.ReadonlyMap(Schema.String, rosterEntryLikeSchema),
-	time: Schema.ReadonlyMap(Schema.String, timeEntryLikeSchema),
+	workDay: Schema.ReadonlyMap(Schema.String, workDayLikeSchema),
 	leave: Schema.ReadonlyMap(
 		Schema.String,
 		Schema.Struct({ code: Schema.String, halfDay: Schema.Boolean })
@@ -393,14 +404,9 @@ function buildDayIndexes(
 ): DayIndexes {
 	const holidayByDate = holidayNamesByDate(options.holidays);
 
-	const roster = new Map<string, RosterEntryLike>();
-	for (const entry of options.rosterEntries) {
-		roster.set(personDayKey(entry.employment_id, formatDateISO(entry.work_date)), entry);
-	}
-
-	const time = new Map<string, TimeEntryLike>();
-	for (const entry of options.timeEntries) {
-		time.set(personDayKey(entry.employment_id, formatDateISO(entry.work_date)), entry);
+	const workDay = new Map<string, WorkDayLike>();
+	for (const day of options.workDays) {
+		workDay.set(personDayKey(day.employment_id, formatDateISO(day.work_date)), day);
 	}
 
 	const leave = new Map<string, { code: string; halfDay: boolean }>();
@@ -438,15 +444,15 @@ function buildDayIndexes(
 		}
 	}
 
-	return { roster, time, leave, pendingLeave, holidayByDate };
+	return { workDay, leave, pendingLeave, holidayByDate };
 }
 
 /**
  * The facts of one person-day: what the roster planned, what actually happened, and why.
  *
- * The five writers of a day — roster, time entry, leave, holiday calendar, payroll windows — are
- * put against each other nowhere else, which is itself why the assembly lives here and not in each
- * surface that reads it.
+ * The four writers of a day — the person-day row (plan and clock), leave, the holiday calendar and
+ * the payroll windows — are put against each other nowhere else, which is itself why the assembly
+ * lives here and not in each surface that reads it.
  */
 function factsForDate(
 	options: BuildRosterMonthOptions,
@@ -457,16 +463,18 @@ function factsForDate(
 	date: string
 ): DayFacts {
 	const key = personDayKey(employmentId, date);
-	const roster = indexes.roster.get(key);
-	const time = indexes.time.get(key);
-	const intervals = toWorkedIntervals(time);
+	const workDay = indexes.workDay.get(key);
+	const recorded = attendanceIntervals(workDay);
+	const intervals = recorded ?? [];
 	const leave = indexes.leave.get(key);
 	const pendingLeave = indexes.pendingLeave.get(key) === true;
 	const term = activeTerm(options.employmentTerms, employmentId, date);
 	const scheduleKind = term == null ? null : scheduleKindOf(term.work_pattern);
 	const projectedId =
-		roster == null && term != null ? patternRosterCodeId(term.work_pattern, date) : null;
-	const rosterCodeId = roster?.shift_definition_id ?? projectedId;
+		workDay?.shift_definition_id == null && term != null
+			? patternRosterCodeId(term.work_pattern, date)
+			: null;
+	const rosterCodeId = workDay?.shift_definition_id ?? projectedId;
 	const rosterCode = rosterCodeId == null ? null : options.rosterCodesById.get(rosterCodeId);
 	const designation = rosterCode == null ? null : rosterCodeKind(rosterCode.variant);
 	const baselineId = term == null ? null : patternRosterCodeId(term.work_pattern, date);
@@ -496,8 +504,8 @@ function factsForDate(
 		shiftStart: employmentState === 'ACTIVE' ? (window?.start_time ?? null) : null,
 		shiftEnd: employmentState === 'ACTIVE' ? (window?.end_time ?? null) : null,
 		shiftBreakMinutes: employmentState === 'ACTIVE' ? (window?.break_minutes ?? null) : null,
-		assignmentCode: roster?.assignment_code ?? null,
-		origin: roster?.origin ?? null,
+		assignmentCode: workDay?.assignment_code ?? null,
+		plannedOrigin: workDay?.planned_origin ?? null,
 		holidayName,
 		leaveCode: leave?.code ?? null,
 		halfDayLeave: leave?.halfDay ?? false,
@@ -509,13 +517,17 @@ function factsForDate(
 		clockedIn: intervals.length > 0,
 		workedIntervalCount: intervals.length,
 		attendanceState:
-			time == null ? null : intervals.some((interval) => interval.end == null) ? 'OPEN' : 'CLOSED',
-		timeEntryId: time?.id ?? null,
-		breakMinutes: time == null ? null : (time.break_minutes ?? 0),
+			recorded == null
+				? null
+				: recorded.some((interval) => interval.end == null)
+					? 'OPEN'
+					: 'CLOSED',
+		workDayId: workDay?.id ?? null,
+		breakMinutes: recorded == null ? null : (workDay?.break_minutes ?? 0),
 		// `workedMinutes` returns null for an open interval by itself, which is exactly the
 		// contract this field states — so an open punch reaches the day sheet as "not known
 		// yet" rather than as a number nobody should act on.
-		workedMinutes: time == null ? null : workedMinutes(intervals, time.break_minutes),
+		workedMinutes: recorded == null ? null : workedMinutes(recorded, workDay?.break_minutes),
 		withinCutoff:
 			options.cutoff != null && date >= options.cutoff.start && date <= options.cutoff.end,
 		lock: options.locks.get(date) ?? { kind: 'NONE' },
@@ -677,12 +689,13 @@ export const DAY_MARK_KEY: readonly { readonly mark: string; readonly labelKey: 
  *   OPEN          nothing covers the day.
  *   IN_DRAFT_RUN  the day falls inside a DRAFT run's assessment window. Advisory only — a draft is
  *                 rebuilt from the records, so editing one is ordinary work, not a violation.
- *   CONSUMED      a `payslip_sources` row claims *this attendance record*. Stored, exact, and
- *                 released only by deleting the payslip — and so the run — that holds it.
+ *   CONSUMED      a `payslip_adjustments` row claims *this person-day*. Stored, exact, and
+ *                 released only by deleting the payslip — and so the run — that holds it. A run
+ *                 that read the day and priced it at nothing still wrote that row, with amount 0.
  *   PAID          a PAID run's window covers the day. Permanent; corrections are adjustments.
  *
  * `CONSUMED` reads a claim over a record and `PAID` reads arithmetic over a day, and that is the
- * distinction `src/lib/scheduling/lock.ts` and `payslip_sources/+model.ts` both argue at length:
+ * distinction `src/lib/scheduling/lock.ts` and `payslip_adjustments/+model.ts` both argue at length:
  * a record is settled because a payslip took it, not because of the date it carries. A day with no
  * record at all has no claim to ask, so the window is the only answer available for it — which is
  * why the two live on one ladder rather than in two places.
@@ -693,7 +706,7 @@ export type LockRung = Schema.Schema.Type<typeof lockRungSchema>;
 /**
  * Which rung a person-day sits on.
  *
- * `claim` is the `payslip_sources` row held over this day's time entry, or null when no payslip has
+ * `claim` is the `payslip_adjustments` row held over this person-day, or null when no payslip has
  * taken it. It is passed in rather than looked up for the same reason `sourceLock` takes its
  * inputs: this module stays pure, so the board and the day sheet cannot compute different ladders
  * from the same month.
@@ -889,7 +902,7 @@ export function intervalDrafts(
 }
 
 /**
- * Why a draft cannot be written, in the order `time_entries/+hooks.ts` refuses it.
+ * Why a draft cannot be written, in the order `work_days/+hooks.ts` refuses it.
  *
  * These are not new rules. Each one names a refusal `assertWorkedIntervals` already makes, and it is
  * restated here for one reason: a form that lets the operator press Save and then shows them the

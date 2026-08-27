@@ -4,13 +4,29 @@ import { cascade } from '@norbital-ai/bolt/authoring';
 /**
  * The relation graph. Foreign keys are derived from here, never declared in a `+model.ts`.
  *
- * Variant identifiers remain in their discriminated unions as audit provenance. High-traffic join
- * paths use read-only generated projections so they can be indexed and related without creating a
- * second writable source of truth. The remaining families deliberately have NO relation:
- *   - `leave_types.payroll_effect`     → component_id on the UNPAID arm
- *   - `component_entries.origin`       → reverses_entry_id / evidence_file
- * Referential integrity for those is checked in `+hooks.ts` (validation gate A3), not by the
- * database. See docs/architecture.md (Provenance and audit).
+ * ## Ownership is declared once, by `cascade(...)`
+ *
+ * A `cascade(...)` on the `one` side says the child cannot meaningfully exist without that parent:
+ * deleting the parent deletes it, and a nested `many` in a `mutate` may hard-delete the children it
+ * leaves out. Everything not wrapped is `restrict` - the parent cannot be deleted while children
+ * point at it - and that is a deliberate answer, not an omission. `work_days` is the case worth
+ * reading twice: a `rosters` row owns a *plan*, but the same day also carries attendance nobody's
+ * roster owns, so that edge is NOT a cascade and deleting a drafted month must release its days
+ * first rather than take their attendance with it.
+ *
+ * ## Where an edge is not declared here
+ *
+ * `payslip_adjustments.source` is a `reference(...)`, and a reference owns its own target edges -
+ * one real foreign key per arm, plus the exclusive-arc check that makes exactly one of them set.
+ * Only the payslip ownership of that row is declared below.
+ *
+ * The remaining families deliberately have NO relation:
+ *   - `leave_types.payroll_effect`   -> component_id on the UNPAID arm
+ *   - `payslips.base/proration/statutory` -> pay_component_id, term_id, statutory_contribution_id
+ * The last of those is the point of inlining: a settled payslip is a frozen statement of what was
+ * paid and does not become wrong because a catalogue row was later archived. Referential integrity
+ * for the first two is checked in `+hooks.ts` (validation gate A3), not by the database.
+ * See docs/architecture.md (Provenance and audit).
  */
 export default ((r) => ({
 	jurisdictions: {
@@ -24,8 +40,7 @@ export default ((r) => ({
 			to: r.jurisdictions.id
 		}),
 		rate_contribution: r.many.contribution_rates(),
-		statutory_fact_contribution: r.many.employment_statutory_facts(),
-		payslip_line_statutory_contribution: r.many.payslip_lines()
+		statutory_fact_contribution: r.many.employment_statutory_facts()
 	},
 
 	contribution_rates: {
@@ -56,9 +71,8 @@ export default ((r) => ({
 			from: r.pay_components.company_id,
 			to: r.companies.id
 		}),
-		entry_pay_component: r.many.component_entries(),
-		agreement_pay_component: r.many.repayment_agreements(),
-		payslip_line_pay_component: r.many.payslip_lines()
+		obligation_pay_component: r.many.obligations(),
+		payslip_adjustment_pay_component: r.many.payslip_adjustments()
 	},
 
 	leave_types: {
@@ -74,7 +88,7 @@ export default ((r) => ({
 			from: r.shift_definitions.company_id,
 			to: r.companies.id
 		}),
-		roster_entry_shift: r.many.roster_entries()
+		work_day_shift: r.many.work_days()
 	},
 
 	rosters: {
@@ -82,7 +96,7 @@ export default ((r) => ({
 			from: r.rosters.company_id,
 			to: r.companies.id
 		}),
-		roster_entry_roster: r.many.roster_entries()
+		work_day_roster: r.many.work_days()
 	},
 
 	company_holidays: {
@@ -109,11 +123,9 @@ export default ((r) => ({
 		}),
 		term_employment: r.many.employment_terms(),
 		statutory_fact_employment: r.many.employment_statutory_facts(),
-		entry_employment: r.many.component_entries(),
-		agreement_employment: r.many.repayment_agreements(),
+		obligation_employment: r.many.obligations(),
 		leave_request_employment: r.many.leave_requests(),
-		roster_entry_employment: r.many.roster_entries(),
-		time_entry_employment: r.many.time_entries(),
+		work_day_employment: r.many.work_days(),
 		payslip_employment: r.many.payslips()
 	},
 
@@ -139,33 +151,44 @@ export default ((r) => ({
 		})
 	},
 
-	component_entries: {
-		entry_employment: r.one.employments({
-			from: r.component_entries.employment_id,
+	/**
+	 * Not owned by the employment, deliberately.
+	 *
+	 * An obligation is money that moved, or is owed. Deleting an employment must not silently take
+	 * a settled loan or a paid claim with it; the `restrict` this leaves in place is what says so.
+	 */
+	obligations: {
+		obligation_employment: r.one.employments({
+			from: r.obligations.employment_id,
 			to: r.employments.id
 		}),
-		entry_pay_component: r.one.pay_components({
-			from: r.component_entries.pay_component_id,
+		obligation_pay_component: r.one.pay_components({
+			from: r.obligations.pay_component_id,
 			to: r.pay_components.id
 		}),
-		agreement_instalments: r.one.repayment_agreements({
-			from: r.component_entries.repayment_agreement_id,
-			to: r.repayment_agreements.id
-		}),
-		entry_payslip_lines: r.many.payslip_lines()
-	},
-
-	repayment_agreements: {
-		agreement_employment: r.one.employments({
-			from: r.repayment_agreements.employment_id,
-			to: r.employments.id
-		}),
-		agreement_pay_component: r.one.pay_components({
-			from: r.repayment_agreements.pay_component_id,
-			to: r.pay_components.id
-		}),
-		agreement_instalments: r.many.component_entries(),
-		payslip_line_repayment_agreement: r.many.payslip_lines()
+		/**
+		 * A REVERSAL points at the obligation it undoes, and the database holds that edge.
+		 *
+		 * It was a uuid inside a jsonb union in the first draft of this collection, which is a live
+		 * reference the database cannot enforce, `bolt migrate` cannot see and the replica cannot
+		 * reason about. It is a real self-referencing foreign key now.
+		 *
+		 * Declared as the `one` side only, with no `many` inverse. The inverse would be
+		 * `obligations` -> `obligations`, and `resolveWritableManyRelation` identifies a writable
+		 * pair by *reversed collections and endpoints* rather than by name — on a self-reference
+		 * both sides read the same, which is precisely the ambiguity it refuses to resolve. Nothing
+		 * needs to nest "the obligations that reverse this one" today, and an edge that exists only
+		 * to be ambiguous is worse than one that is not declared. The foreign key is emitted from
+		 * this side alone.
+		 *
+		 * NOT a cascade, in both directions: a reversal is the evidence that an earlier obligation
+		 * was undone. Deleting the original is refused while the reversal names it, and deleting the
+		 * reversal never touches the original.
+		 */
+		obligation_reverses: r.one.obligations({
+			from: r.obligations.reverses_obligation_id,
+			to: r.obligations.id
+		})
 	},
 
 	leave_requests: {
@@ -179,27 +202,27 @@ export default ((r) => ({
 		})
 	},
 
-	roster_entries: {
-		roster_entry_employment: r.one.employments({
-			from: r.roster_entries.employment_id,
+	/**
+	 * Owned by nothing.
+	 *
+	 * `roster_entries` used to cascade from `rosters`, and that was correct while the row was only a
+	 * plan. It is not correct now: the same row carries attendance, and a drafted month must not be
+	 * able to delete a punch. `work_day_roster` is therefore a plain edge - deleting a roster is
+	 * refused while its days still name it, and releasing them (clearing `roster_id`) is the act
+	 * that un-publishes a month.
+	 */
+	work_days: {
+		work_day_employment: r.one.employments({
+			from: r.work_days.employment_id,
 			to: r.employments.id
 		}),
-		roster_entry_shift: r.one.shift_definitions({
-			from: r.roster_entries.shift_definition_id,
+		work_day_shift: r.one.shift_definitions({
+			from: r.work_days.shift_definition_id,
 			to: r.shift_definitions.id
 		}),
-		roster_entry_roster: cascade(
-			r.one.rosters({
-				from: r.roster_entries.roster_id,
-				to: r.rosters.id
-			})
-		)
-	},
-
-	time_entries: {
-		time_entry_employment: r.one.employments({
-			from: r.time_entries.employment_id,
-			to: r.employments.id
+		work_day_roster: r.one.rosters({
+			from: r.work_days.roster_id,
+			to: r.rosters.id
 		})
 	},
 
@@ -222,42 +245,30 @@ export default ((r) => ({
 			from: r.payslips.employment_id,
 			to: r.employments.id
 		}),
-		payslip_line_payslip: r.many.payslip_lines(),
-		payslip_source_payslip: r.many.payslip_sources()
+		payslip_adjustment_payslip: r.many.payslip_adjustments()
 	},
 
-	/** `source: reference(...)` owns its target edges; only payslip ownership is declared here. */
-	payslip_sources: {
-		payslip_source_payslip: cascade(
+	/**
+	 * Owned by its payslip, which is owned by its run.
+	 *
+	 * That chain is what makes a recalculation a REPLACEMENT rather than a merge: a nested `many`
+	 * in a `mutate` treats the array it is given as the child relationship's complete desired state
+	 * and removes every row left out of it, and a parent delete only reaches children through a
+	 * cascade edge. Without this an adjustment would outlive the payslip that computed it and the
+	 * settlement claim it holds would never be released.
+	 *
+	 * `source: reference(...)` owns its three target edges; only payslip ownership is declared here.
+	 */
+	payslip_adjustments: {
+		payslip_adjustment_payslip: cascade(
 			r.one.payslips({
-				from: r.payslip_sources.payslip_id,
-				to: r.payslips.id
-			})
-		)
-	},
-
-	payslip_lines: {
-		payslip_line_payslip: cascade(
-			r.one.payslips({
-				from: r.payslip_lines.payslip_id,
+				from: r.payslip_adjustments.payslip_id,
 				to: r.payslips.id
 			})
 		),
-		payslip_line_pay_component: r.one.pay_components({
-			from: r.payslip_lines.pay_component_id,
+		payslip_adjustment_pay_component: r.one.pay_components({
+			from: r.payslip_adjustments.pay_component_id,
 			to: r.pay_components.id
-		}),
-		entry_payslip_lines: r.one.component_entries({
-			from: r.payslip_lines.component_entry_id,
-			to: r.component_entries.id
-		}),
-		payslip_line_statutory_contribution: r.one.statutory_contributions({
-			from: r.payslip_lines.statutory_contribution_id,
-			to: r.statutory_contributions.id
-		}),
-		payslip_line_repayment_agreement: r.one.repayment_agreements({
-			from: r.payslip_lines.repayment_agreement_id,
-			to: r.repayment_agreements.id
 		})
 	}
 })) satisfies Relationships;

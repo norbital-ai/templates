@@ -14,7 +14,7 @@ import type { StatutoryRestBreakRule } from '../../datatypes/statutory_regime/+d
  * hours. So the input is intervals and a break total, never a derived overtime figure.
  *
  * Pure, like `lock.ts` and for the identical reason: a badge on the day sheet, a roster publish
- * gate and a `time_entries` write hook must quote the same number, and the only way to guarantee
+ * gate and a `work_days` write hook must quote the same number, and the only way to guarantee
  * that is for all three to call one function over inputs each of them reads for itself.
  *
  * It produces a **compliance assessment with a citation, never a priced quantity.** No caller may
@@ -40,7 +40,7 @@ type WorkedIntervalLike = Schema.Schema.Type<typeof workedIntervalLikeSchema>;
 
 const restBreakInputSchema = Schema.Struct({
 	intervals: Schema.optional(Schema.NullOr(Schema.Array(workedIntervalLikeSchema))),
-	/** The flat `time_entries.break_minutes` column: how long a break was, never when it was owed. */
+	/** The flat `work_days.break_minutes` column: how long a break was, never when it was owed. */
 	breakMinutes: Schema.optional(Schema.NullOr(Schema.Number)),
 	/** The snapshot member, absent on every jurisdiction that declares no rule. */
 	rules: Schema.optional(Schema.NullOr(Schema.Array(statutoryRestBreakRuleValueSchema))),

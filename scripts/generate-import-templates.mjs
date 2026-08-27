@@ -1,8 +1,8 @@
 /**
  * The two import templates operators are issued, written to `~/Desktop`.
  *
- * The sheets mirror exactly what the readers in `src/collections/roster_entries/lib` and
- * `src/collections/time_entries/lib` accept as the designed layout: one legal entity × one month,
+ * The sheets mirror exactly what the reader in `src/collections/work_days/lib` accepts as the
+ * designed layout — both of them, because both sheets describe the same person-day: one entity × one month,
  * a person down the side and a calendar day across the top. Roster cells carry a company roster
  * code (or the reserved `PH` token). Time-entry cells carry a local punch range `HH:mm-HH:mm`, or
  * `HH:mm` when still open. Blank cells are omitted — they are not inferred rest days and not

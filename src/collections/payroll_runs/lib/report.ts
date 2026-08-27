@@ -7,9 +7,9 @@
  * model. A pay component knows its code, its type and how it is measured; it does not know what a
  * spreadsheet calls it.
  *
- * Everything below is derived from what was persisted — ordinary and statutory `payslip_lines`,
- * plus the payslip's own four totals. No output id
- * is stored anywhere.
+ * Everything below is derived from what was persisted — the payslip's inlined base, proration and
+ * statutory entries, its `payslip_adjustments` rows, and its own four totals. No output id is
+ * stored anywhere.
  *
  * ────────────────────────────────────────────────────────────────────────────────────────────────
  * NO JURISDICTION IS NAMED IN THIS FILE.
