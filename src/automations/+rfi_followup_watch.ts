@@ -18,7 +18,7 @@ export default defineAutomation(
 			'Sweeps the RFI register every morning at 6am and publishes the first 25 as a JSON extract so queries still waiting on the design team can be chased.',
 		handler: (api) =>
 			Effect.gen(function* () {
-				const rfis = yield* api.db.query.rfis.findMany({
+				const rfis = yield* api.db.rfis.findMany({
 					where: { status: { eq: 'open' } },
 					orderBy: { due_date: 'asc' },
 					limit: 25

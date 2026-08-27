@@ -11,7 +11,6 @@
 	import type { RepresentationProps } from './$types.js';
 	import { CollectionForm } from '@norbital-ai/ui/collection-form';
 	import { Column, Grid } from '@norbital-ai/ui/layout';
-	import { RelationshipRenderer } from '@norbital-ai/ui/data-renderer/relationship';
 	import type { CollectionRelationOptions } from '@norbital-ai/std/collection';
 
 	let { record, close }: RepresentationProps = $props();
@@ -41,38 +40,30 @@
 			<Field
 				name="project_id"
 				label={t('component.project')}
-				renderer={RelationshipRenderer}
-				rendererProps={{
-					target: 'projects',
-					options: {
-						label: (record) => {
-							const code = record.project_number;
-							const name = record.project_name;
-							if (code && name) return `${code} · ${name}`;
-							return name != null && name !== '' ? String(name) : '—';
-						},
-						orderBy: { project_number: 'asc' },
-						limit: 500
-					} satisfies CollectionRelationOptions
-				}}
+				relationOptions={{
+					label: (record) => {
+						const code = record.project_number;
+						const name = record.project_name;
+						if (code && name) return `${code} · ${name}`;
+						return name != null && name !== '' ? String(name) : '—';
+					},
+					orderBy: { project_number: 'asc' },
+					limit: 500
+				} satisfies CollectionRelationOptions}
 			/>
 			<Field
 				name="parent_location_id"
 				label={t('component.parent_location')}
-				renderer={RelationshipRenderer}
-				rendererProps={{
-					target: 'site_locations',
-					options: {
-						label: (record) => {
-							const code = record.location_code;
-							const name = record.location_name;
-							if (code && name) return `${code} · ${name}`;
-							return name != null && name !== '' ? String(name) : '—';
-						},
-						orderBy: { location_code: 'asc' },
-						limit: 500
-					} satisfies CollectionRelationOptions
-				}}
+				relationOptions={{
+					label: (record) => {
+						const code = record.location_code;
+						const name = record.location_name;
+						if (code && name) return `${code} · ${name}`;
+						return name != null && name !== '' ? String(name) : '—';
+					},
+					orderBy: { location_code: 'asc' },
+					limit: 500
+				} satisfies CollectionRelationOptions}
 			/>
 			<Field name="location_type" label={t('component.location_type')} />
 			<Field name="grid_reference" label={t('component.grid_reference')} />

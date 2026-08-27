@@ -1,6 +1,6 @@
 import { Effect } from 'effect';
 import { currentInstantIso } from '../../lib/clock.js';
-import type { Hooks, HookApi, WorkspaceRow } from './$types.js';
+import type { Api, Hooks, WorkspaceRow } from './$types.js';
 
 const ASSIGNMENT_ERROR =
 	'Worker must satisfy at least one site-location job requirement with all required active certifications before assignment.';
@@ -48,7 +48,7 @@ export default {
 
 function validateJobAssignmentCompliance(
 	incoming: ComplianceTarget,
-	api: HookApi
+	api: Api
 ): Effect.Effect<void, Error> {
 	return Effect.gen(function* () {
 		const siteLocationId = incoming.site_location_id;
@@ -58,7 +58,7 @@ function validateJobAssignmentCompliance(
 		}
 
 		const now = yield* currentInstantIso;
-		const workerPermitLinks = yield* api.db.query.permits_to_work_workers.findMany({
+		const workerPermitLinks = yield* api.db.permits_to_work_workers.findMany({
 			where: { worker_id: { eq: workerId } },
 			limit: 250
 		});
@@ -66,14 +66,14 @@ function validateJobAssignmentCompliance(
 		const permits =
 			permitIds.length === 0
 				? []
-				: yield* api.db.query.permits_to_work.findMany({
+				: yield* api.db.permits_to_work.findMany({
 						where: { id: { in: permitIds } },
 						limit: 250
 					});
 		const permitCertificationLinks =
 			permitIds.length === 0
 				? []
-				: yield* api.db.query.permits_to_work_certification_types.findMany({
+				: yield* api.db.permits_to_work_certification_types.findMany({
 						where: { permits_to_work_id: { in: permitIds } },
 						limit: 250
 					});
@@ -94,7 +94,7 @@ function validateJobAssignmentCompliance(
 			}
 		}
 
-		const siteJobLinks = yield* api.db.query.jobs_site_locations.findMany({
+		const siteJobLinks = yield* api.db.jobs_site_locations.findMany({
 			where: { site_location_id: { eq: siteLocationId } },
 			limit: 250
 		});
@@ -102,7 +102,7 @@ function validateJobAssignmentCompliance(
 		const jobCertificationLinks =
 			jobIds.length === 0
 				? []
-				: yield* api.db.query.jobs_certification_types.findMany({
+				: yield* api.db.jobs_certification_types.findMany({
 						where: { job_id: { in: jobIds } },
 						limit: 250
 					});

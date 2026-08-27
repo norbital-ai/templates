@@ -14,6 +14,7 @@
 	onAfterSubmit={record ? undefined : close}
 >
 	{#snippet children({ Field })}
+		<Field name="requirements" hidden />
 		<Grid minimum="compact">
 			<Field name="certification_name" />
 			<Field name="certification_code" />
