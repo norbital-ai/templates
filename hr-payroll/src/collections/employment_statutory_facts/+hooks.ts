@@ -19,16 +19,22 @@ function requireId(value: string | null | undefined, what: string): string {
 }
 
 export default {
-	create: {
+	mutate: {
 		perRecord: {
 			before: {
 				description:
-					'Requires both references and, for a system successor, validates and stages the predecessor close into the same approval graph.',
-				handler: ({ input, api }) =>
+					'Requires both references and, for a system successor, validates and stages the predecessor close into the same approval graph. On an edit it re-checks both references so an employment never ends up with two overlapping standings in one contribution scheme.',
+				handler: ({ input, existing, api }) =>
 					Effect.gen(function* () {
-						requireId(input.employment_id, 'an employment');
-						requireId(input.statutory_contribution_id, 'a statutory contribution');
-						if (input.supersedes_fact_id == null) return input;
+						requireId(input.employment_id ?? existing?.employment_id, 'an employment');
+						requireId(
+							input.statutory_contribution_id ?? existing?.statutory_contribution_id,
+							'a statutory contribution'
+						);
+						// Closing the predecessor is a create-time transition and nothing else: by the time a
+						// successor is edited its predecessor was already closed, so re-staging the close would
+						// move an end date that a later fact may already sit against.
+						if (existing !== undefined || input.supersedes_fact_id == null) return input;
 
 						const predecessor = yield* api.db.employment_statutory_facts.findFirst({
 							where: { id: { eq: input.supersedes_fact_id } }
@@ -65,22 +71,6 @@ export default {
 						});
 						return input;
 					})
-			}
-		}
-	},
-	update: {
-		perRecord: {
-			before: {
-				description:
-					'Re-checks an edited statutory fact so an employment never ends up with two overlapping standings in the same contribution scheme at one instant.',
-				handler: ({ input, existing }) => {
-					requireId(input.employment_id ?? existing.employment_id, 'an employment');
-					requireId(
-						input.statutory_contribution_id ?? existing.statutory_contribution_id,
-						'a statutory contribution'
-					);
-					return input;
-				}
 			}
 		}
 	}

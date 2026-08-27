@@ -12,7 +12,7 @@
 	import { Result, Schema } from 'effect';
 	import { useI18n } from '@norbital-ai/ui/i18n';
 	import type { TenantI18nKeys } from '$bolt/i18n-keys';
-	import { Stack } from '@norbital-ai/ui/layout';
+	import { Inline, Stack } from '@norbital-ai/ui/layout';
 	import { formatNumeric } from '../../lib/ui/display-formatters.js';
 	import { payslipBaseValueSchema } from './+definition.js';
 	import type { RendererProps } from './$types.js';
@@ -46,10 +46,10 @@
 		<p class="text-meta">{t('renderer.payslip_base.identity')}</p>
 		<Stack as="ul" gap="none" class="text-sm tabular-nums">
 			{#each amounts as entry (entry.pay_component_id)}
-				<li class="flex justify-between gap-3 border-t border-border py-1">
+				<Inline as="li" justify="between" gap="sm" class="border-t border-border py-1">
 					<span class="truncate font-mono text-xs">{entry.pay_component_id}</span>
 					<span class="font-medium">{formatNumeric(entry.amount)}</span>
-				</li>
+				</Inline>
 			{/each}
 		</Stack>
 	</Stack>

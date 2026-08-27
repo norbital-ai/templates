@@ -120,9 +120,10 @@ const buildGraph = (prepared: PreparedRun) =>
 		};
 	});
 
+export const input = createPayrollRunInput;
+
 export default {
-	create: {
-		input: createPayrollRunInput,
+	mutate: {
 		/**
 		 * Every read one payroll run performs, taken before anything decides anything.
 		 *
@@ -133,11 +134,19 @@ export default {
 		 */
 		prepare: ({ inputs, api }) =>
 			Effect.map(
-				Effect.forEach(inputs, (input) =>
-					Effect.map(
-						gatherPayrollRun({ api, companyId: input.company_id, period: input.period }),
-						(run) => [runKey(input.company_id, input.period), run] as const
-					)
+				Effect.forEach(
+					// Only a create states a company and a period; a recalculation names the run by id
+					// and gathers its own facts, so there is nothing here to batch for it.
+					inputs.flatMap((one) =>
+						one.company_id != null && one.period != null
+							? [{ companyId: one.company_id, period: one.period }]
+							: []
+					),
+					({ companyId, period }) =>
+						Effect.map(
+							gatherPayrollRun({ api, companyId, period }),
+							(run) => [runKey(companyId, period), run] as const
+						)
 				),
 				(entries) => new Map(entries)
 			),
@@ -145,16 +154,56 @@ export default {
 			before: {
 				description:
 					'Refuses a second run for a company and period, refuses one while an earlier period is still a draft, then calculates the whole payroll and returns the run together with every payslip and every adjustment — settlement locks included — it produced.',
-				handler: ({ input, prepared, api }) =>
+				handler: ({ input, existing, prepared, api }) =>
 					Effect.gen(function* () {
-						const facts = prepared.get(runKey(input.company_id, input.period));
+						// `existing` is undefined on a create and is the only thing that tells the two apart —
+						// the same distinction the runtime already makes from the id. Every branch below returns,
+						// so the create path is unreachable once this one is taken.
+						if (existing !== undefined) {
+							for (const column of DERIVED_COLUMNS)
+								if (input[column] != null && String(input[column]) !== String(existing[column]))
+									refuse(
+										`Payroll run ${column} is derived from the period and the configuration, and cannot be edited.`
+									);
+							const next = input.lifecycle ?? existing.lifecycle;
+							if (next !== existing.lifecycle) {
+								if (existing.lifecycle === 'PAID')
+									refuse(
+										'A paid payroll run is immutable. Correct it with a later adjustment entry.'
+									);
+								return input;
+							}
+							// A same-state update is only a recalculation while the run is still a draft.
+							if (next !== 'DRAFT') return input;
+							/**
+							 * The rebuild, and the reason there is no `isBuildingRun` guard any more.
+							 *
+							 * The engine writes nothing, so this hook cannot be triggered by the engine — the
+							 * only thing that reaches here is somebody asking for a recalculation. What comes
+							 * back replaces the previous build wholesale: `payslip_payroll_run` is an included
+							 * relationship, which states the run's complete set of payslips, and the payslips
+							 * left out are removed with their adjustments by the same statement.
+							 */
+							const rebuilt = yield* gatherPayrollRun({
+								api,
+								companyId: existing.company_id,
+								period: existing.period
+							});
+							return { ...input, ...(yield* buildGraph(rebuilt)) };
+						}
+						// `refuse` returns `never`, so these two narrow for the rest of the create path. The
+						// hook's own `input` schema requires both; this states it where the types can see it.
+						const { company_id: companyId, period } = input;
+						if (companyId == null || period == null)
+							refuse('A payroll run states the company and the period it settles.');
+						const facts = prepared.get(runKey(companyId, period));
 						if (facts == null)
-							refuse(`Payroll ${input.period} was not prepared. This is a bug, not a data fault.`);
-						const existing = yield* api.db.payroll_runs.findFirst({
-							where: { company_id: { eq: input.company_id }, period: { eq: input.period } }
+							refuse(`Payroll ${period} was not prepared. This is a bug, not a data fault.`);
+						const duplicate = yield* api.db.payroll_runs.findFirst({
+							where: { company_id: { eq: companyId }, period: { eq: period } }
 						});
-						if (existing) {
-							const lifecycle = existing.lifecycle;
+						if (duplicate) {
+							const lifecycle = duplicate.lifecycle;
 							if (lifecycle == null) refuse(`Payroll ${input.period} already exists.`);
 							refuse(
 								`Payroll ${input.period} already exists (${lifecycle.toLowerCase()}). ` +
@@ -186,48 +235,6 @@ export default {
 							lifecycle: 'DRAFT' as const,
 							...(yield* buildGraph(facts))
 						};
-					})
-			}
-		}
-	},
-
-	update: {
-		perRecord: {
-			before: {
-				description:
-					'Refuses hand edits to the engine-owned period, pay date, attendance window and configuration hash, refuses any change to a PAID run, and rebuilds a recalculated draft — returning the fresh payslips, which replace the previous build because an included relationship is the run’s complete desired state.',
-				handler: ({ input, existing, api }) =>
-					Effect.gen(function* () {
-						for (const column of DERIVED_COLUMNS)
-							if (input[column] != null && String(input[column]) !== String(existing[column]))
-								refuse(
-									`Payroll run ${column} is derived from the period and the configuration, and cannot be edited.`
-								);
-						const next = input.lifecycle ?? existing.lifecycle;
-						if (next !== existing.lifecycle) {
-							if (existing.lifecycle === 'PAID')
-								refuse(
-									'A paid payroll run is immutable. Correct it with a later adjustment entry.'
-								);
-							return input;
-						}
-						// A same-state update is only a recalculation while the run is still a draft.
-						if (next !== 'DRAFT') return input;
-						/**
-						 * The rebuild, and the reason there is no `isBuildingRun` guard any more.
-						 *
-						 * The engine writes nothing, so this hook cannot be triggered by the engine — the
-						 * only thing that reaches here is somebody asking for a recalculation. What comes
-						 * back replaces the previous build wholesale: `payslip_payroll_run` is an included
-						 * relationship, which states the run's complete set of payslips, and the payslips
-						 * left out are removed with their adjustments by the same statement.
-						 */
-						const prepared = yield* gatherPayrollRun({
-							api,
-							companyId: existing.company_id,
-							period: existing.period
-						});
-						return { ...input, ...(yield* buildGraph(prepared)) };
 					})
 			}
 		}

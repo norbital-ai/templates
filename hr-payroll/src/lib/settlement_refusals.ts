@@ -51,7 +51,7 @@ const obligationConsumptionSchema = Schema.Struct({
 	period: Schema.String
 });
 
-export type ObligationConsumption = Schema.Schema.Type<typeof obligationConsumptionSchema>;
+type ObligationConsumption = Schema.Schema.Type<typeof obligationConsumptionSchema>;
 
 /**
  * Whether this proposal would break the ceiling.
@@ -72,7 +72,8 @@ export const overConsumesObligation = (consumption: ObligationConsumption): bool
  */
 export const obligationOverConsumedMessage = (consumption: ObligationConsumption): string => {
 	const remaining = consumption.entitlement - consumption.consumed;
-	const named = consumption.reference == null ? 'This obligation' : `Obligation ${consumption.reference}`;
+	const named =
+		consumption.reference == null ? 'This obligation' : `Obligation ${consumption.reference}`;
 	return (
 		`${OBLIGATION_OVER_CONSUMED}: ${named} is worth ${consumption.entitlement.toFixed(2)} and ` +
 		`earlier paid runs have already taken ${consumption.consumed.toFixed(2)} of it. Payroll ` +

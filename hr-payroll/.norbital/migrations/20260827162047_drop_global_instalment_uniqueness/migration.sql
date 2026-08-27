@@ -1,1 +1,0 @@
-DROP INDEX "payslip_lines_repayment_agreement_id_repayment_sequence_index";

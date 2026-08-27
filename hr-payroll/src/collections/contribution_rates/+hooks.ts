@@ -14,20 +14,11 @@ import type { Hooks } from './$types.js';
  * add one database round trip per rate to bulk statutory tables.
  */
 export default {
-	create: {
+	mutate: {
 		perRecord: {
 			before: {
 				description:
-					'Refuses a new contribution band whose wage, age or risk-class selector overlaps another band of the same statutory contribution over the same effective range, so no wage can match two rates at once.',
-				handler: ({ input }) => input
-			}
-		}
-	},
-	update: {
-		perRecord: {
-			before: {
-				description:
-					'Re-checks an edited contribution band against its siblings so a widened selector or effective range cannot make two rates of the same scheme apply to one wage.',
+					'Refuses a contribution band whose wage, age or risk-class selector overlaps another band of the same statutory contribution over the same effective range, so no wage can match two rates at once. Re-checked on every edit, because a widened selector or effective range makes two rates of one scheme apply to the same wage.',
 				handler: ({ input }) => input
 			}
 		}

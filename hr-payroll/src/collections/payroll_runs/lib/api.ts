@@ -1,7 +1,7 @@
 /**
  * The database surface the engine runs against.
  *
- * The build happens in `create.prepare` and `create.before`, which hold **reads only**. That is not
+ * The build happens in `mutate.prepare` and `mutate.before`, which hold **reads only**. That is not
  * a restriction the engine works around — it is the design. A payroll run writes exactly one thing,
  * the graph its `before` hook returns, and the runtime performs that write as part of the create.
  * An engine that cannot call `mutate` cannot have a side effect, so "no side effects" stops being a
@@ -13,20 +13,20 @@
 
 import type { Hooks } from '../$types.js';
 
-type CreateBeforeHook = NonNullable<
-	NonNullable<NonNullable<Hooks['create']>['perRecord']>['before']
+type MutateBeforeHook = NonNullable<
+	NonNullable<NonNullable<Hooks['mutate']>['perRecord']>['before']
 >['handler'];
 
 /**
  * Reads. There is no write half.
  *
- * This used to be `PayrollApi` — the elevated `create.after` capability set, with `mutate` and
+ * This used to be `PayrollApi` — the elevated after-hook capability set, with `mutate` and
  * `delete` on every collection — and four functions in `persist.ts` used it. All four are gone: the
  * payslips, their lines and their settlement locks are children of the graph `create.before`
  * returns, and the arrears entries that were the only writes outside that graph are derived now
  * rather than carried forward.
  */
-export type PayrollReadApi = Parameters<CreateBeforeHook>[0]['api'];
+export type PayrollReadApi = Parameters<MutateBeforeHook>[0]['api'];
 
 /** The largest page any single engine query will pull. A run that exceeds it is a run that lies. */
 export const PAGE_LIMIT = 20_000;

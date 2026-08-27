@@ -14,25 +14,19 @@ function assertRegime(regime: unknown, currency: string): void {
 }
 
 export default {
-	create: {
+	mutate: {
 		perRecord: {
 			before: {
 				description:
-					'Validates the atomic statutory snapshot so coverage is coherent, overtime bands do not overlap, and every limit identity is unique.',
-				handler: ({ input }) => {
-					assertRegime(input.regime, input.currency);
-					return input;
-				}
-			}
-		}
-	},
-	update: {
-		perRecord: {
-			before: {
-				description:
-					'Re-validates the complete effective-dated regime whenever its currency or nested statutory policy changes.',
+					'Validates the atomic statutory snapshot so coverage is coherent, overtime bands do not overlap, and every limit identity is unique. Re-validated whenever the currency or nested statutory policy changes.',
 				handler: ({ input, existing }) => {
-					assertRegime(input.regime ?? existing.regime, input.currency ?? existing.currency);
+					const regime = input.regime ?? existing?.regime;
+					const currency = input.currency ?? existing?.currency;
+					// A create states both; an edit may restate neither and keep what is stored. `refuse`
+					// returns `never`, so the call below sees them narrowed.
+					if (regime == null || currency == null)
+						refuse('A jurisdiction states its statutory regime and its currency.');
+					assertRegime(regime, currency);
 					return input;
 				}
 			}

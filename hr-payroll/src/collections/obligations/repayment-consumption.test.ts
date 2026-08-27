@@ -95,7 +95,9 @@ function fakeApi({ runs = [], payslips = [], adjustments = [] } = {}) {
 				(where.period?.lt == null || row.period < where.period.lt)
 			);
 		if (collection === 'payslips')
-			return where.payroll_run_id?.in == null || where.payroll_run_id.in.includes(row.payroll_run_id);
+			return (
+				where.payroll_run_id?.in == null || where.payroll_run_id.in.includes(row.payroll_run_id)
+			);
 		if (collection === 'payslip_adjustments')
 			return (
 				(where.payslip_id?.in == null || where.payslip_id.in.includes(row.payslip_id)) &&

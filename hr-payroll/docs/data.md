@@ -24,15 +24,15 @@ cleaned archive and document it in the seed audit. All other conflicts and omiss
 A typical private reconciliation exercise supplies the following input families. Counts vary by
 engagement; the audit must report exact coverage for the dataset under test, not assumed totals.
 
-| Input family                    | Seed rule                                       | Typical audit question                                  |
-| ------------------------------- | ----------------------------------------------- | ------------------------------------------------------- |
-| Medical claims                  | One seeded row per approved cleaned claim       | Does every tracker row map 1:1?                         |
+| Input family                    | Seed rule                                                | Typical audit question                                  |
+| ------------------------------- | -------------------------------------------------------- | ------------------------------------------------------- |
+| Medical claims                  | One seeded row per approved cleaned claim                | Does every tracker row map 1:1?                         |
 | Loan instalments                | The obligation's inline schedule plus explicit reversals | Are unsupported schedules excluded rather than altered? |
-| Direct allowances               | Source-backed money entries only                | Are calculated incentive columns excluded?              |
-| Obligations                     | Claims, adjustments, recoveries with provenance | Is any payslip output copied back as input?             |
-| Leave requests                  | Approved cleaned requests linked to employments | Do quantities and dates match the source?               |
-| Employee master and employments | Codes, hire dates, terms, statutory facts       | Are incomplete master gaps disclosed?                   |
-| Attendance                      | Dated rows per employment                       | Are rows without a complete master left unseeded?       |
+| Direct allowances               | Source-backed money entries only                         | Are calculated incentive columns excluded?              |
+| Obligations                     | Claims, adjustments, recoveries with provenance          | Is any payslip output copied back as input?             |
+| Leave requests                  | Approved cleaned requests linked to employments          | Do quantities and dates match the source?               |
+| Employee master and employments | Codes, hire dates, terms, statutory facts                | Are incomplete master gaps disclosed?                   |
+| Attendance                      | Dated rows per employment                                | Are rows without a complete master left unseeded?       |
 
 Calculated payslip columns — basic earned, overtime amounts, incentive overtime, unpaid-leave
 deductions, contributions, tax, gross, net and year-to-date totals — never enter seed. They are
@@ -54,25 +54,25 @@ produced by a fresh run and compared against the independent source workbook.
 
 The seed audit must list every source record that cannot be seeded. Common categories:
 
-| Missing source                                                               | Payroll impact                                                                                      |
-| ---------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
-| Employee master for a population with attendance only                        | Attendance cannot form complete employments or money inputs                                         |
-| Payslips withheld for blind testing                                          | Output can run but cannot yet be reconciled                                                         |
-| Payslip amount that disagrees with the specialist tracker                    | Remains an input gap until HR confirms the paid amount; then seed the paid value with that evidence |
-| Incomplete June joiner master while attendance exists                        | Keep cleaned attendance; key master/terms in UI for testing — do not invent                         |
-| Loan whose principal does not equal the stated instalment schedule           | Period recoveries may pay, but the obligation cannot be represented consistently                    |
-| Shift catalogue, roster definitions or independent medical register          | Identity, schedule and claim provenance remain incomplete                                           |
-| Loan disbursement dates                                                      | Valid schedules exist, but origination-date audit is incomplete                                     |
+| Missing source                                                      | Payroll impact                                                                                      |
+| ------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
+| Employee master for a population with attendance only               | Attendance cannot form complete employments or money inputs                                         |
+| Payslips withheld for blind testing                                 | Output can run but cannot yet be reconciled                                                         |
+| Payslip amount that disagrees with the specialist tracker           | Remains an input gap until HR confirms the paid amount; then seed the paid value with that evidence |
+| Incomplete June joiner master while attendance exists               | Keep cleaned attendance; key master/terms in UI for testing — do not invent                         |
+| Loan whose principal does not equal the stated instalment schedule  | Period recoveries may pay, but the obligation cannot be represented consistently                    |
+| Shift catalogue, roster definitions or independent medical register | Identity, schedule and claim provenance remain incomplete                                           |
+| Loan disbursement dates                                             | Valid schedules exist, but origination-date audit is incomplete                                     |
 
 ## Source-to-seed contract
 
 ### Three field classes
 
-| Class                     | Examples                                                                                                        | Seed rule                                                                               |
-| ------------------------- | --------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
-| Supplied input            | employee master, terms, shift assignment, attendance, approved leave, claim, allowance, loan and its schedule   | Map one-to-one with provenance; normalise representation only                           |
-| Derivable input structure | roster day generated from a supplied shift assignment and calendar                                              | Generate only when the governing source rule is present and retain the source code/date |
-| Payroll output            | basic earned, OT amount, incentive OT, NPL amount, contributions, tax, gross, net, YTD                          | Never seed; calculate and compare                                                       |
+| Class                     | Examples                                                                                                      | Seed rule                                                                               |
+| ------------------------- | ------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
+| Supplied input            | employee master, terms, shift assignment, attendance, approved leave, claim, allowance, loan and its schedule | Map one-to-one with provenance; normalise representation only                           |
+| Derivable input structure | roster day generated from a supplied shift assignment and calendar                                            | Generate only when the governing source rule is present and retain the source code/date |
+| Payroll output            | basic earned, OT amount, incentive OT, NPL amount, contributions, tax, gross, net, YTD                        | Never seed; calculate and compare                                                       |
 
 The source payslip is test evidence, not seed. A matching output amount is not permission to copy it
 back into an input table.

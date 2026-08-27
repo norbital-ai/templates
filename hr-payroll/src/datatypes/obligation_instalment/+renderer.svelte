@@ -35,7 +35,7 @@
 	} from '../../lib/ui/calendar.js';
 	import { monthlyDueDates } from '../../collections/obligations/lib/repayment-schedule.js';
 	import { obligationInstalmentValueSchema, type ObligationInstalment } from './+definition.js';
-	import type { RendererProps, Value } from './$types.js';
+	import type { RendererProps } from './$types.js';
 
 	type InstalmentRow = {
 		readonly id: string;
@@ -136,7 +136,13 @@
 			due_date: dueDateFromPicker(row.due_date),
 			amount: row.amount
 		}));
-		props.onValueChange(next as unknown as Value);
+		// `Value` is the datatype's own shape, and a datatype renderer serves both a single column and
+		// a `multiple: true` one — the generated type cannot tell which, so it names one element while
+		// this column always carries the whole array. The cast is on the callback rather than on the
+		// data: it states the runtime contract for a multiple column once, instead of asserting that
+		// an array is an element.
+		const emitSchedule = props.onValueChange as (value: readonly ObligationInstalment[]) => void;
+		emitSchedule(next);
 	}
 </script>
 

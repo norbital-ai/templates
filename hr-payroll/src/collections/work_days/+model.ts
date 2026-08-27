@@ -1,4 +1,12 @@
-import { custom, defineModel, enums, instant, integer, text, uuid } from '@norbital-ai/bolt/authoring';
+import {
+	custom,
+	defineModel,
+	enums,
+	instant,
+	integer,
+	text,
+	uuid
+} from '@norbital-ai/bolt/authoring';
 
 /**
  * One person-day: what was PLANNED for it, and what ACTUALLY happened on it.

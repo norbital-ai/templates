@@ -1,9 +1,10 @@
+import { refuse } from '@norbital-ai/bolt/authoring';
 import { assertNoOverlap, guardEffectiveRange } from '../../lib/effective_range.js';
 import type { Api, Hooks, WorkspaceRow } from './$types.js';
 
 type CreateInput = Parameters<
 	NonNullable<
-		NonNullable<NonNullable<NonNullable<Hooks['create']>['perRecord']>['before']>['handler']
+		NonNullable<NonNullable<NonNullable<Hooks['mutate']>['perRecord']>['before']>['handler']
 	>
 >[0]['input'];
 
@@ -68,42 +69,29 @@ const siblings = (api: Api, company_id: string, code: string) =>
 /** The exclusion key as a stored row holds it. */
 type Keyed = Readonly<{ company_id: string; code: string }>;
 
-/** An edit carries only the fields it changes, so the key is read through the stored row. */
-const editedSiblings = (
-	api: Api,
-	input: Readonly<{ company_id?: string | null; code?: string | null }>,
-	existing: Keyed
-) => siblings(api, input.company_id ?? existing.company_id, input.code ?? existing.code);
-
 export default {
-	create: {
+	mutate: {
 		perRecord: {
 			before: {
 				description:
-					'Refuses a pay component whose effective range overlaps another component with the same code in the same company, so a payslip line can only ever resolve one definition for that code.',
-				handler: ({ input, api }) =>
-					guardEffectiveRange(
-						siblings(api, input.company_id, input.code),
-						input.effective_range,
-						`pay component ${input.code}`,
-						input
-					)
-			}
-		}
-	},
-	update: {
-		perRecord: {
-			before: {
-				description:
-					'Re-checks an edited pay component so a catalogue change becomes an end-date plus a successor row rather than two versions of one code in force at once.',
-				handler: ({ input, existing, api }) =>
-					guardEffectiveRange(
-						editedSiblings(api, input, existing),
-						input.effective_range ?? existing.effective_range,
-						`pay component ${input.code ?? existing.code}`,
+					'Refuses a pay component whose effective range overlaps another component with the same code in the same company, so a payslip line can only ever resolve one definition for that code. A catalogue change must become an end-date plus a successor row.',
+				handler: ({ input, existing, api }) => {
+					// One resolution of the key for both operations: a create states it, an edit may omit
+					// it and keep what is stored. `refuse` returns `never`, so both narrow below.
+					const company_id = input.company_id ?? existing?.company_id;
+					const code = input.code ?? existing?.code;
+					if (company_id == null || code == null)
+						refuse('A pay component states a company and a code.');
+					return guardEffectiveRange(
+						siblings(api, company_id, code),
+						input.effective_range ?? existing?.effective_range,
+						`pay component ${code}`,
 						input,
-						existing.id
-					)
+						// Undefined on a create, so the row excludes nothing; on an edit it excludes itself,
+						// which is what lets a row keep the range it already holds.
+						existing?.id
+					);
+				}
 			}
 		}
 	}

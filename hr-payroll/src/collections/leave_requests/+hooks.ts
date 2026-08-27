@@ -53,7 +53,7 @@ function monthRanges(start: string, end: string): Array<{ start: string; end: st
 }
 
 type HookApi = Parameters<
-	NonNullable<NonNullable<NonNullable<Hooks['create']>['perRecord']>['before']>['handler']
+	NonNullable<NonNullable<NonNullable<Hooks['mutate']>['perRecord']>['before']>['handler']
 >[0]['api'];
 
 type EmploymentTermRow = Pick<
@@ -180,45 +180,44 @@ function normalizedTimeOff(
 			refuse('Leave cannot end after the employment exit date.');
 		}
 
-		const [company, leaveType, holidays, terms, workDays, existingRequests] =
-			yield* Effect.all(
-				[
-					api.db.companies.findFirst({
-						where: { id: { eq: employment.company_id } }
-					}),
-					api.db.leave_types.findFirst({
-						where: { id: { eq: leaveTypeId }, company_id: { eq: employment.company_id } }
-					}),
-					api.db.company_holidays.findMany({
-						where: {
-							company_id: { eq: employment.company_id },
-							date: { gte: range.start.date, lte: range.end.date }
-						},
-						limit: LIMIT
-					}),
-					api.db.employment_terms.findMany({
-						where: { employment_id: { eq: employmentId } },
-						limit: LIMIT
-					}),
-					api.db.work_days.findMany({
-						where: {
-							employment_id: { eq: employmentId },
-							work_date: { gte: range.start.date, lte: range.end.date }
-						},
-						limit: LIMIT
-					}),
-					api.db.leave_requests.findMany({
-						where: {
-							employment_id: { eq: employmentId },
-							kind: { eq: 'TIME_OFF' },
-							from_date: { lte: range.end.date },
-							to_date: { gte: range.start.date }
-						},
-						limit: LIMIT
-					})
-				],
-				{ concurrency: 'unbounded' }
-			);
+		const [company, leaveType, holidays, terms, workDays, existingRequests] = yield* Effect.all(
+			[
+				api.db.companies.findFirst({
+					where: { id: { eq: employment.company_id } }
+				}),
+				api.db.leave_types.findFirst({
+					where: { id: { eq: leaveTypeId }, company_id: { eq: employment.company_id } }
+				}),
+				api.db.company_holidays.findMany({
+					where: {
+						company_id: { eq: employment.company_id },
+						date: { gte: range.start.date, lte: range.end.date }
+					},
+					limit: LIMIT
+				}),
+				api.db.employment_terms.findMany({
+					where: { employment_id: { eq: employmentId } },
+					limit: LIMIT
+				}),
+				api.db.work_days.findMany({
+					where: {
+						employment_id: { eq: employmentId },
+						work_date: { gte: range.start.date, lte: range.end.date }
+					},
+					limit: LIMIT
+				}),
+				api.db.leave_requests.findMany({
+					where: {
+						employment_id: { eq: employmentId },
+						kind: { eq: 'TIME_OFF' },
+						from_date: { lte: range.end.date },
+						to_date: { gte: range.start.date }
+					},
+					limit: LIMIT
+				})
+			],
+			{ concurrency: 'unbounded' }
+		);
 		if (company == null) refuse('The employing entity no longer exists.');
 		if (leaveType == null) refuse('That leave type does not belong to the employing entity.');
 		if (!coversDate(leaveType.effective_range, range.start.date)) {
@@ -418,39 +417,26 @@ function assertLeaveSourceUnlocked(
 }
 
 export default {
-	create: {
+	mutate: {
 		perRecord: {
 			before: {
 				description:
-					'Normalizes one half-day-stepped leave range, excludes observed holidays and scheduled rest/off days, refuses overlaps and requests beyond the projected balance.',
-				handler: ({ input, api }) => {
-					if (input.event == null || input.event.kind !== 'TIME_OFF') return Effect.succeed(input);
-					return Effect.map(
-						normalizedTimeOff(api, input.employment_id, input.leave_type_id, input.event),
-						(event) => ({ ...input, event })
-					);
-				}
-			}
-		}
-	},
-	update: {
-		perRecord: {
-			before: {
-				description:
-					'Refuses a leave request a payroll run has already taken into account, then re-checks the patched range so a change cannot bypass schedule exclusions, overlap protection or balance limits.',
+					'Normalizes one half-day-stepped leave range, excludes observed holidays and scheduled rest/off days, refuses overlaps and requests beyond the projected balance. On an edit it first refuses a request a payroll run has already taken into account, then re-checks the patched range so a change cannot bypass schedule exclusions, overlap protection or balance limits.',
 				handler: ({ input, existing, api }) =>
 					Effect.gen(function* () {
-						yield* assertLeaveSourceUnlocked(api, existing, 'Changing a leave request');
-						const event = input.event ?? existing.event;
+						// Only an edit can violate a settlement: a create has no prior run that consumed it.
+						if (existing !== undefined)
+							yield* assertLeaveSourceUnlocked(api, existing, 'Changing a leave request');
+						const event = input.event ?? existing?.event;
 						if (event == null || event.kind !== 'TIME_OFF') return input;
 						return {
 							...input,
 							event: yield* normalizedTimeOff(
 								api,
-								input.employment_id ?? existing.employment_id,
-								input.leave_type_id ?? existing.leave_type_id,
+								input.employment_id ?? existing?.employment_id,
+								input.leave_type_id ?? existing?.leave_type_id,
 								event,
-								existing.id
+								existing?.id
 							)
 						};
 					})

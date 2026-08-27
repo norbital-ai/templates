@@ -402,9 +402,7 @@ test('a cent of rounding across a dozen runs is not an over-consumption', () => 
 	// into a payslip, so a schedule that sums to its principal exactly can still land a hundredth
 	// over it. One cent is rounding; a cent more than that is a fault, and the test either side of
 	// this one is what proves the boundary is a boundary rather than a hole.
-	assert.doesNotThrow(() =>
-		measureApril([loan([instalment('2026-04-01', 1000.01)], 1000)])
-	);
+	assert.doesNotThrow(() => measureApril([loan([instalment('2026-04-01', 1000.01)], 1000)]));
 });
 
 test('a RECURRING obligation is not depleted by what earlier runs paid on it', () => {

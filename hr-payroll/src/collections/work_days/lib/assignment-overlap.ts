@@ -221,18 +221,3 @@ export function assertNoOverlap(data: OverlapData, changes: readonly AssignmentC
 		);
 	}
 }
-
-/**
- * Read, then decide — for the two paths that have no batch to read for.
- *
- * `update` and `delete` are authored for one existing record and the platform gives them no view of
- * the call they arrived in, so they pay their own four reads. The decision is `assertNoOverlap`'s
- * either way; only where its data comes from differs.
- */
-export function assertNoOverlappingAssignments(
-	api: Api,
-	changes: readonly AssignmentChange[]
-): Effect.Effect<void, never, never> {
-	if (changes.length === 0) return Effect.void;
-	return Effect.map(readOverlapData(api, changes), (data) => assertNoOverlap(data, changes));
-}

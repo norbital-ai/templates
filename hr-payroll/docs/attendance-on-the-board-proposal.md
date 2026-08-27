@@ -30,7 +30,7 @@ this document only records what changes.
 | 2.3 | Locked / manage entries / swap            | One day sheet, one swap gesture, one amendment path for a published month.                                                                                                                                                               |
 | 2.4 | Break minutes owed after long hours       | A `rest_break_rules` member returns to `statutory_regime`. The primary text is already transcribed in `seed_bank/norbital_hr/statutory/rest_break_rules.json`; it was removed for having no consumer, and this proposal is the consumer. |
 | 2.5 | Upload a month of attendance              | Already built (`expandTimeMonthGrid`), only reachable from the wrong screen. Move it onto the board beside the roster import.                                                                                                            |
-| 3   | Retire the raw tables                     | One fact table, two renderers: the controller's people×days board and the employee's single-person calendar. Both raw attendance tables go — see §8.                                                                                 |
+| 3   | Retire the raw tables                     | One fact table, two renderers: the controller's people×days board and the employee's single-person calendar. Both raw attendance tables go — see §8.                                                                                     |
 | 4   | Employee self-service calendar            | Roster **and** punches on one month view. Every read it needs is already granted; the one write it offers (report a missing punch) already exists as an approval-gated create.                                                           |
 
 ---
@@ -163,7 +163,7 @@ to fix that. It was added, and the inference was left switched on beside it.
 | ------------------------------------------- | ---------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------ |
 | `roster-month-board.svelte:cellEditable`    | `&& day.past !== true`                                                                                     | Delete the clause. A past day is the _normal_ day to be editing attendance on. |
 | `+time_attendance.svelte:attendanceRowLock` | passes `today`, so every historical row renders frozen                                                     | Stop asking for `DATE_PASSED` on attendance.                                   |
-| `work_days/+hooks.ts` update & delete    | `assertAttendanceSourceUnlocked` (claim **+** window **+** date) then `assertDayNotSettled` (window again) | Claim decides for an existing record. Window decides only for a create.        |
+| `work_days/+hooks.ts` update & delete       | `assertAttendanceSourceUnlocked` (claim **+** window **+** date) then `assertDayNotSettled` (window again) | Claim decides for an existing record. Window decides only for a create.        |
 
 The rule in one line:
 
@@ -323,7 +323,7 @@ So the input is punches, never an overtime total:
    └────────────────────────────────────────────────────────────────────────────────────────┘
         │              │                    │
         ▼              ▼                    ▼
-   day sheet      roster publish       work_days hook   
+   day sheet      roster publish       work_days hook
    ⚠ badge        gate: a WORK code     on_exceed = WARN → toast, saves
    + citation     window whose span     on_exceed = BLOCK → refuse with the citation
                   exceeds the trigger
@@ -565,11 +565,11 @@ never refuses it, it only draws it. That is already how `sourceLockBlocksWrite` 
 Three collection tables over the same two collections exist today, and every one of them is an
 editing surface that does not know what the day means:
 
-| Surface                                          | Today                         | After                            |
-| ------------------------------------------------ | ----------------------------- | -------------------------------- |
-| HR Controller → Time & Attendance → **Entries**  | editable attendance table     | **deleted**                      |
-| HR Controller → Time & Attendance → **Overview** | exception-rate chart          | moves to Scheduling → Exceptions |
-| Employee Self-Service → **My time**              | attendance table              | becomes **My schedule** calendar |
+| Surface                                          | Today                     | After                            |
+| ------------------------------------------------ | ------------------------- | -------------------------------- |
+| HR Controller → Time & Attendance → **Entries**  | editable attendance table | **deleted**                      |
+| HR Controller → Time & Attendance → **Overview** | exception-rate chart      | moves to Scheduling → Exceptions |
+| Employee Self-Service → **My time**              | attendance table          | becomes **My schedule** calendar |
 
 Which leaves `+time_attendance.svelte` holding a chart, and an app that is one chart is not an app.
 The recommendation is to retire it and fold both halves into Scheduling:

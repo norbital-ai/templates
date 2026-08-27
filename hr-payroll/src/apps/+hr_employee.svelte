@@ -410,9 +410,11 @@
 	 */
 	const scheduleFactWorkDays = $derived(
 		scheduleWorkDays.map((row) =>
-			row.approval_id == null
-				? { ...row }
-				: { ...row, worked_intervals: null, break_minutes: null }
+			// A pending submission's clock is masked, not deleted. `worked_intervals` is nullable and
+			// NULL is the honest "no attendance visible" value; `break_minutes` is NOT NULL with a
+			// default of 0, so 0 is its masked form — a null there would state a value the column
+			// cannot hold.
+			row.approval_id == null ? { ...row } : { ...row, worked_intervals: null, break_minutes: 0 }
 		)
 	);
 	const schedulePendingDates = $derived(
@@ -570,9 +572,7 @@
 	/** The record axis of the lock rail: one `SourceLock` per date that carries an entry at all. */
 	const scheduleEntryLocks = $derived(
 		new Map(
-			scheduleWorkDays.map(
-				(row) => [formatDateISO(row.work_date), attendanceRowLock(row)] as const
-			)
+			scheduleWorkDays.map((row) => [formatDateISO(row.work_date), attendanceRowLock(row)] as const)
 		)
 	);
 
@@ -1369,8 +1369,7 @@
 			<p class="text-meta">{t('app.hr_employee.report_punch_approval_note')}</p>
 		</Stack>
 		<Dialog.Footer>
-			<Dialog.Close disabled={client.db.work_days.pending > 0}>{t('roster.cancel')}</Dialog.Close
-			>
+			<Dialog.Close disabled={client.db.work_days.pending > 0}>{t('roster.cancel')}</Dialog.Close>
 			<Button
 				disabled={client.db.work_days.pending > 0 || reportProblem != null}
 				onclick={submitReport}

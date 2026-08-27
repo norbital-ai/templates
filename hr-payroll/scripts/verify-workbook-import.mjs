@@ -279,7 +279,11 @@ const program = Effect.gen(function* () {
 
 		// ── The roster workbook, from bytes to written rows ────────────────────────────────────────────
 		const rosterPayload = rosterImportPayload(yield* rosterGrids(ROSTER_ROWS), ROSTER_ID);
-		assert.equal(rosterPayload.sheet, 'ROSTER', 'the arm is tagged, not inferred from which fields are set');
+		assert.equal(
+			rosterPayload.sheet,
+			'ROSTER',
+			'the arm is tagged, not inferred from which fields are set'
+		);
 		assert.equal(rosterPayload.roster_id, ROSTER_ID);
 		assert.equal(rosterPayload.rows.length, 9, 'blank assignment rows are omitted');
 		assert.deepEqual(

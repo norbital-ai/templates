@@ -301,7 +301,8 @@ const workDayUpdateApproval: WorkDayUpdateApproval = {
  * stated as a decision about the row instead. Removing attendance from a rostered day is an update
  * that clears `worked_intervals`, and that update is reviewed like every other attendance write.
  */
-const attendanceOnlyRow: WorkDayDeleteAuthorize = ({ record }) => record.shift_definition_id == null;
+const attendanceOnlyRow: WorkDayDeleteAuthorize = ({ record }) =>
+	record.shift_definition_id == null;
 
 /**
  * Record attendance, never the schedule. The approval resolver above makes every write this mask

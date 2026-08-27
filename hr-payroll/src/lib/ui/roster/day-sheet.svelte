@@ -316,7 +316,11 @@
 
 	/** Employee mode's one affordance: a day with nothing recorded, on a day that is not locked. */
 	const canReportMissingPunch = $derived(
-		mode === 'employee' && !frozen && !reporting && day?.attendanceState == null && day?.past === true
+		mode === 'employee' &&
+			!frozen &&
+			!reporting &&
+			day?.attendanceState == null &&
+			day?.past === true
 	);
 
 	const planned = $derived(day == null ? null : scheduledMinutes(day));

@@ -23,7 +23,7 @@ import type { Hooks } from './$types.js';
 const LIMIT = 20_000;
 
 export default {
-	update: {
+	mutate: {
 		perRecord: {
 			after: {
 				description:

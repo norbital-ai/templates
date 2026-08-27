@@ -18,7 +18,7 @@
 	import type { TenantI18nKeys } from '$bolt/i18n-keys';
 	import type { RepresentationProps } from './$types.js';
 	import { CollectionTable } from '@norbital-ai/ui/collection-table';
-	import { Bound, Grid, Scroll, Stack } from '@norbital-ai/ui/layout';
+	import { Bound, Grid, Inline, Scroll, Stack } from '@norbital-ai/ui/layout';
 	import { Result, Schema } from 'effect';
 	import { formatCalendarDate, formatNumeric } from '../../lib/ui/display-formatters.js';
 
@@ -121,32 +121,31 @@
 	const proration = $derived(record?.proration ?? []);
 	const statutory = $derived(record?.statutory ?? []);
 
-	const componentsQuery = $derived.by(() => {
-		const ids = [...new Set(base.map((entry) => entry.pay_component_id))];
-		if (ids.length === 0) return null;
-		return client.db.pay_components.findMany({
+	/** Distinct ids to look up, or nothing to ask — the shape both catalogue reads below share. */
+	const catalogueIds = (values: readonly string[]): readonly string[] | null => {
+		const ids = [...new Set(values)];
+		return ids.length === 0 ? null : ids;
+	};
+	const CATALOGUE_LIMIT = 200;
+	/** Both catalogue reads ask the same question of different collections. */
+	const catalogueQuery = (ids: readonly string[]) =>
+		({
 			where: { id: { in: ids } },
-			columns: { id: true, code: true, name: true },
-			limit: 200
-		});
+			columns: { id: true, code: true },
+			limit: CATALOGUE_LIMIT
+		}) as const;
+
+	const componentsQuery = $derived.by(() => {
+		const ids = catalogueIds(base.map((entry) => entry.pay_component_id));
+		return ids == null ? null : client.db.pay_components.findMany(catalogueQuery(ids));
 	});
 	const componentLabelById = $derived(
-		new Map(
-			(componentsQuery?.current ?? []).map((component) => [
-				component.id,
-				[component.code, component.name].filter((part) => part != null && part !== '').join(' · ')
-			])
-		)
+		new Map((componentsQuery?.current ?? []).map((component) => [component.id, component.code]))
 	);
 
 	const schemesQuery = $derived.by(() => {
-		const ids = [...new Set(statutory.map((charge) => charge.statutory_contribution_id))];
-		if (ids.length === 0) return null;
-		return client.db.statutory_contributions.findMany({
-			where: { id: { in: ids } },
-			columns: { id: true, code: true, name: true },
-			limit: 200
-		});
+		const ids = catalogueIds(statutory.map((charge) => charge.statutory_contribution_id));
+		return ids == null ? null : client.db.statutory_contributions.findMany(catalogueQuery(ids));
 	});
 	const schemeLabelById = $derived(
 		new Map(
@@ -253,12 +252,12 @@
 			{:else}
 				<Stack as="ul" gap="none" class="text-sm tabular-nums">
 					{#each base as entry (entry.pay_component_id)}
-						<li class="flex justify-between gap-3 border-t border-border py-1">
+						<Inline as="li" justify="between" gap="sm" class="border-t border-border py-1">
 							<span class="truncate"
 								>{componentLabelById.get(entry.pay_component_id) ?? entry.pay_component_id}</span
 							>
 							<span class="font-medium">{formatNumeric(entry.amount)}</span>
-						</li>
+						</Inline>
 					{/each}
 				</Stack>
 			{/if}

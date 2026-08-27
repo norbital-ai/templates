@@ -1020,12 +1020,7 @@ export function measureEmployment(options: MeasureEmploymentOptions): MeasuredEm
 function measureArrears(
 	options: Pick<
 		MeasureEmploymentOptions,
-		| 'bundle'
-		| 'configuration'
-		| 'periodsRemaining'
-		| 'headcount'
-		| 'policy'
-		| 'consumedObligations'
+		'bundle' | 'configuration' | 'periodsRemaining' | 'headcount' | 'policy' | 'consumedObligations'
 	>
 ): MeasuredEmployment['arrears'] {
 	const owed = options.bundle.arrearsFor;
@@ -1155,12 +1150,14 @@ function measureScheduledObligations(
  * amount per period and pays it whole every period, so subtracting what earlier runs took would
  * stop it after its first month.
  */
-function assertWithinObligation(options: {
+type ObligationCeiling = Readonly<{
 	readonly obligation: Obligation;
 	readonly consumed: number;
 	readonly proposed: number;
 	readonly period: string;
-}): void {
+}>;
+
+function assertWithinObligation(options: ObligationCeiling): void {
 	if (!depletes(options.obligation)) return;
 	const consumption = {
 		obligation_id: options.obligation.id,
@@ -1170,7 +1167,8 @@ function assertWithinObligation(options: {
 		proposed: options.proposed,
 		period: options.period
 	};
-	if (overConsumesObligation(consumption)) throw new Error(obligationOverConsumedMessage(consumption));
+	if (overConsumesObligation(consumption))
+		throw new Error(obligationOverConsumedMessage(consumption));
 }
 
 /**
@@ -1701,7 +1699,10 @@ function annualisedExcessAmount(
 function groupByDayAndBand<T extends OvertimeBandIdentity & { readonly workDayId: string }>(
 	rows: readonly T[]
 ): Map<{ band: OvertimeBandIdentity; workDayId: string }, T[]> {
-	const byKey = new Map<string, { key: { band: OvertimeBandIdentity; workDayId: string }; rows: T[] }>();
+	const byKey = new Map<
+		string,
+		{ key: { band: OvertimeBandIdentity; workDayId: string }; rows: T[] }
+	>();
 	for (const row of rows) {
 		const key = `${row.workDayId}:${row.dayType}:${row.measure}:${row.bandFrom}`;
 		const bucket = byKey.get(key);

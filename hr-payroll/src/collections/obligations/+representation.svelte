@@ -103,12 +103,21 @@
 					terms: String(values.terms ?? ''),
 					occasion: optionalText(values.occasion),
 					effective_range: values.effective_range,
-					instalments: values.instalments,
+					// A form's values arrive untyped; the refusal module owns the shape, so narrow here
+					// rather than widening its candidate type to accept whatever a field emitted.
+					instalments: Array.isArray(values.instalments)
+						? (values.instalments as readonly {
+								readonly due_date: string;
+								readonly amount: number;
+							}[])
+						: null,
 					note: optionalText(values.note),
 					reason: optionalText(values.reason),
 					incurred_on: optionalText(values.incurred_on),
 					evidence_file: values.evidence_file,
-					covers_periods: values.covers_periods?.map((period) => String(period)),
+					covers_periods: Array.isArray(values.covers_periods)
+						? values.covers_periods.map((period) => String(period))
+						: null,
 					reverses_obligation_id: optionalText(values.reverses_obligation_id),
 					amount: values.amount == null ? null : Number(values.amount)
 				}).map((message) => ({ message, path: ['terms'] }))
