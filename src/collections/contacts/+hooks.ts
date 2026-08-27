@@ -18,7 +18,7 @@ interface ContactBatch {
 
 /** `Hooks` with what `prepare` returns filled in; see the note in `quote_lines/+hooks.ts`. */
 type ContactHooks = CollectionHooks<WorkspaceSchema, 'contacts', ContactBatch>;
-type PrepareApi = Parameters<NonNullable<NonNullable<ContactHooks['create']>['prepare']>>[0]['api'];
+type PrepareApi = Parameters<NonNullable<NonNullable<ContactHooks['mutate']>['prepare']>>[0]['api'];
 
 /** The accounts a batch of contacts names, by id. */
 const accountsByIds = (api: PrepareApi) => (ids: readonly string[]) =>

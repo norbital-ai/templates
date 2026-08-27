@@ -32,13 +32,13 @@ interface QuoteLineBatch {
 type QuoteLineHooks = CollectionHooks<WorkspaceSchema, 'quote_lines', QuoteLineBatch>;
 
 type AfterApi = Parameters<
-	NonNullable<NonNullable<NonNullable<Hooks['create']>['perRecord']>['after']>['handler']
+	NonNullable<NonNullable<NonNullable<Hooks['mutate']>['perRecord']>['after']>['handler']
 >[0]['api'];
 type UpdateInput = Parameters<
-	NonNullable<NonNullable<NonNullable<Hooks['update']>['perRecord']>['before']>['handler']
+	NonNullable<NonNullable<NonNullable<QuoteLineHooks['mutate']>['perRecord']>['before']>['handler']
 >[0]['input'];
 
-type PrepareApi = Parameters<NonNullable<NonNullable<Hooks['create']>['prepare']>>[0]['api'];
+type PrepareApi = Parameters<NonNullable<NonNullable<Hooks['mutate']>['prepare']>>[0]['api'];
 
 const LINE_LIMIT = 5000;
 
@@ -106,8 +106,84 @@ const afterRollup = ({
 	readonly api: AfterApi;
 }) => rollupQuote(api, record.quote_id);
 
+/** The context a `mutate.before` handler receives, named so the two halves can be hoisted. */
+type BeforeContext = Parameters<
+	NonNullable<NonNullable<NonNullable<QuoteLineHooks['mutate']>['perRecord']>['before']>['handler']
+>[0];
+
+/** The same context on an edit, where `existing` is the stored row rather than undefined. */
+type EditContext = BeforeContext & {
+	readonly existing: NonNullable<BeforeContext['existing']>;
+};
+
+/** A create states the whole record and has no `existing`. */
+const beforeCreate = ({ input, prepared }: BeforeContext) => {
+	if (!input.quote_id) throw new Error('A quote line must reference a quote.');
+	const quote = prepared.quotes.get(input.quote_id);
+	if (!quote) throw new Error('Referenced quote does not exist.');
+	if (quote.status !== 'draft') {
+		throw new Error('Line items can only be added to draft quotes.');
+	}
+
+	if (!input.product_id) throw new Error('A quote line must reference a product.');
+	const product = prepared.products.get(input.product_id);
+	if (!product) throw new Error('Referenced product does not exist.');
+	if (!product.active) {
+		throw new Error('Cannot add a line for an inactive product.');
+	}
+
+	const resolved = {
+		...input,
+		quantity: input.quantity,
+		unit_price: input.unit_price ?? product.unit_price ?? 0,
+		discount_pct: input.discount_pct ?? 0,
+		tax_rate: input.tax_rate ?? product.tax_rate ?? 0,
+		product_code: input.product_code ?? product.code,
+		product_name: input.product_name ?? product.name,
+		product_unit: input.product_unit ?? product.unit ?? ''
+	};
+	const lineCells = validateLineFields(resolved);
+
+	const amounts = documentLineAmounts(quote, lineCells);
+
+	return {
+		...resolved,
+		net: amounts.net,
+		tax: amounts.tax,
+		line_total: amounts.gross
+	};
+};
+
+/** An edit lands on a stored row; `existing` is what tells the two apart. */
+const beforeUpdate = ({ input, existing, api }: EditContext) =>
+	Effect.gen(function* () {
+		if (input.quote_id != null && input.quote_id !== existing.quote_id) {
+			return yield* Effect.fail(new Error('A line item cannot be moved to a different quote.'));
+		}
+
+		const quote = yield* api.db.quotes.findFirst({
+			where: { id: { eq: existing.quote_id } }
+		});
+		if (!quote) return yield* Effect.fail(new Error('Referenced quote does not exist.'));
+		if (quote.status !== 'draft') {
+			return yield* Effect.fail(new Error('Line items can only be modified on draft quotes.'));
+		}
+
+		const resolved = { ...existing, ...input };
+		const lineCells = validateLineFields(resolved);
+
+		const amounts = documentLineAmounts(quote, lineCells);
+
+		return {
+			...input,
+			net: amounts.net,
+			tax: amounts.tax,
+			line_total: amounts.gross
+		} satisfies UpdateInput;
+	});
+
 export default {
-	create: {
+	mutate: {
 		prepare: ({ inputs, api }) =>
 			Effect.all({
 				quotes: rowsById(inputs, (input) => input.quote_id, quotesByIds(api)),
@@ -116,90 +192,15 @@ export default {
 		perRecord: {
 			before: {
 				description:
-					'Adds a line only to a draft quote for an active product, fills the product code, name, unit and tax rate from the catalogue, and computes the line net, tax and total from quantity, unit price and discount.',
-				handler: ({ input, prepared }) => {
-					if (!input.quote_id) throw new Error('A quote line must reference a quote.');
-					const quote = prepared.quotes.get(input.quote_id);
-					if (!quote) throw new Error('Referenced quote does not exist.');
-					if (quote.status !== 'draft') {
-						throw new Error('Line items can only be added to draft quotes.');
-					}
-
-					if (!input.product_id) throw new Error('A quote line must reference a product.');
-					const product = prepared.products.get(input.product_id);
-					if (!product) throw new Error('Referenced product does not exist.');
-					if (!product.active) {
-						throw new Error('Cannot add a line for an inactive product.');
-					}
-
-					const resolved = {
-						...input,
-						quantity: input.quantity,
-						unit_price: input.unit_price ?? product.unit_price ?? 0,
-						discount_pct: input.discount_pct ?? 0,
-						tax_rate: input.tax_rate ?? product.tax_rate ?? 0,
-						product_code: input.product_code ?? product.code,
-						product_name: input.product_name ?? product.name,
-						product_unit: input.product_unit ?? product.unit ?? ''
-					};
-					const lineCells = validateLineFields(resolved);
-
-					const amounts = documentLineAmounts(quote, lineCells);
-
-					return {
-						...resolved,
-						net: amounts.net,
-						tax: amounts.tax,
-						line_total: amounts.gross
-					};
-				}
+					'Adds a line only to a draft quote for an active product, fills the product code, name, unit and tax rate from the catalogue, and computes the line net, tax and total from quantity, unit price and discount. Keeps a line on its own draft quote and recomputes its net, tax and total from the changed quantity, unit price or discount.',
+				handler: (context) =>
+					context.existing === undefined
+						? beforeCreate(context)
+						: beforeUpdate({ ...context, existing: context.existing })
 			},
 			after: {
 				description:
-					'Recomputes the quote net, tax and gross from its lines after a line is added.',
-				handler: afterRollup
-			}
-		}
-	},
-	update: {
-		perRecord: {
-			before: {
-				description:
-					'Keeps a line on its own draft quote and recomputes its net, tax and total from the changed quantity, unit price or discount.',
-				handler: ({ input, existing, api }) =>
-					Effect.gen(function* () {
-						if (input.quote_id != null && input.quote_id !== existing.quote_id) {
-							return yield* Effect.fail(
-								new Error('A line item cannot be moved to a different quote.')
-							);
-						}
-
-						const quote = yield* api.db.quotes.findFirst({
-							where: { id: { eq: existing.quote_id } }
-						});
-						if (!quote) return yield* Effect.fail(new Error('Referenced quote does not exist.'));
-						if (quote.status !== 'draft') {
-							return yield* Effect.fail(
-								new Error('Line items can only be modified on draft quotes.')
-							);
-						}
-
-						const resolved = { ...existing, ...input };
-						const lineCells = validateLineFields(resolved);
-
-						const amounts = documentLineAmounts(quote, lineCells);
-
-						return {
-							...input,
-							net: amounts.net,
-							tax: amounts.tax,
-							line_total: amounts.gross
-						} satisfies UpdateInput;
-					})
-			},
-			after: {
-				description:
-					'Recomputes the quote net, tax and gross from its lines after a line is changed.',
+					'Recomputes the quote net, tax and gross from its lines after a line is added. Recomputes the quote net, tax and gross from its lines after a line is changed.',
 				handler: afterRollup
 			}
 		}

@@ -6,10 +6,12 @@ import { documentLineAmounts, type LineAmounts } from '../../lib/pricing.js';
 import type { Hooks, WorkspaceRow } from './$types.js';
 
 type AfterApi = Parameters<
-	NonNullable<NonNullable<NonNullable<Hooks['create']>['perRecord']>['after']>['handler']
+	NonNullable<NonNullable<NonNullable<Hooks['mutate']>['perRecord']>['after']>['handler']
 >[0]['api'];
 type BeforeApi = Parameters<
-	NonNullable<NonNullable<NonNullable<Hooks['create']>['perRecord']>['before']>['handler']
+	NonNullable<
+		NonNullable<NonNullable<SalesInvoiceLineHooks['mutate']>['perRecord']>['before']
+	>['handler']
 >[0]['api'];
 
 const LINE_LIMIT = 5000;
@@ -111,8 +113,101 @@ const afterRollup = ({
 	readonly api: AfterApi;
 }) => rollupInvoice(api, record.sales_invoice_id);
 
+/** The context a `mutate.before` handler receives, named so the two halves can be hoisted. */
+type BeforeContext = Parameters<
+	NonNullable<
+		NonNullable<NonNullable<SalesInvoiceLineHooks['mutate']>['perRecord']>['before']
+	>['handler']
+>[0];
+
+/** The same context on an edit, where `existing` is the stored row rather than undefined. */
+type EditContext = BeforeContext & {
+	readonly existing: NonNullable<BeforeContext['existing']>;
+};
+
+/** A create states the whole record and has no `existing`. */
+const beforeCreate = ({ input, prepared }: BeforeContext) => {
+	if (!input.sales_invoice_id) {
+		throw new Error('A sales invoice line must reference a sales invoice.');
+	}
+	const invoice = prepared.invoices.get(input.sales_invoice_id);
+	if (!invoice) throw new Error('Referenced sales invoice does not exist.');
+	if (invoice.status !== 'draft') {
+		throw new Error('Lines can only be added to draft sales invoices.');
+	}
+
+	if (!input.quote_line_id) {
+		throw new Error('A sales invoice line must reference a quote line.');
+	}
+	const quoteLine = prepared.quoteLines.get(input.quote_line_id);
+	if (!quoteLine) throw new Error('Referenced quote line does not exist.');
+	if (quoteLine.quote_id !== invoice.quote_id) {
+		throw new Error('The billed line belongs to a different quote.');
+	}
+
+	const resolved = {
+		...input,
+		quantity: input.quantity,
+		product_code: input.product_code ?? quoteLine.product_code,
+		product_name: input.product_name ?? quoteLine.product_name,
+		product_unit: input.product_unit ?? quoteLine.product_unit ?? '',
+		unit_price: input.unit_price ?? quoteLine.unit_price,
+		tax_rate: input.tax_rate ?? quoteLine.tax_rate ?? 0
+	};
+	validateLineFields(resolved);
+
+	const allocated = prepared.allocatedByQuoteLine.get(quoteLine.id) ?? 0;
+	const quoted = Number(quoteLine.quantity ?? 0);
+	if (allocated + Number(resolved.quantity) > quoted) {
+		throw new Error(
+			`Over-allocation: ${allocated} of ${quoted} billed so far; this line would exceed the quoted quantity.`
+		);
+	}
+
+	const amounts = computeLineAmounts(invoice, resolved);
+	return { ...resolved, net: amounts.net, tax: amounts.tax, line_total: amounts.gross };
+};
+
+/** An edit lands on a stored row; `existing` is what tells the two apart. */
+const beforeUpdate = ({ input, existing, api }: EditContext) =>
+	Effect.gen(function* () {
+		if (input.sales_invoice_id != null && input.sales_invoice_id !== existing.sales_invoice_id) {
+			return yield* Effect.fail(new Error('A line cannot be moved to a different sales invoice.'));
+		}
+
+		const invoice = yield* api.db.sales_invoices.findFirst({
+			where: { id: { eq: existing.sales_invoice_id } }
+		});
+		if (!invoice) return yield* Effect.fail(new Error('Referenced sales invoice does not exist.'));
+		if (invoice.status !== 'draft') {
+			return yield* Effect.fail(new Error('Lines can only be modified on draft sales invoices.'));
+		}
+
+		const resolved = { ...existing, ...input };
+		validateLineFields(resolved);
+
+		const quoteLine = yield* api.db.quote_lines.findFirst({
+			where: { id: { eq: existing.quote_line_id } }
+		});
+		if (quoteLine) {
+			const allocated = yield* liveAllocatedQuantity(api, quoteLine.id);
+			const quoted = Number(quoteLine.quantity ?? 0);
+			const own = Number(existing.quantity ?? 0);
+			if (allocated - own + Number(resolved.quantity) > quoted) {
+				return yield* Effect.fail(
+					new Error(
+						`Over-allocation: this line would push billed quantity past the quoted ${quoted}.`
+					)
+				);
+			}
+		}
+
+		const amounts = computeLineAmounts(invoice, resolved);
+		return { ...input, net: amounts.net, tax: amounts.tax, line_total: amounts.gross };
+	});
+
 export default {
-	create: {
+	mutate: {
 		prepare: ({ inputs, api }) =>
 			Effect.gen(function* () {
 				const invoiceIds = [
@@ -163,109 +258,15 @@ export default {
 		perRecord: {
 			before: {
 				description:
-					'Bills a quote line belonging to the same quote as the invoice and refuses to bill more than was quoted, counting only lines on invoices that are not cancelled.',
-				handler: ({ input, prepared }) => {
-					if (!input.sales_invoice_id) {
-						throw new Error('A sales invoice line must reference a sales invoice.');
-					}
-					const invoice = prepared.invoices.get(input.sales_invoice_id);
-					if (!invoice) throw new Error('Referenced sales invoice does not exist.');
-					if (invoice.status !== 'draft') {
-						throw new Error('Lines can only be added to draft sales invoices.');
-					}
-
-					if (!input.quote_line_id) {
-						throw new Error('A sales invoice line must reference a quote line.');
-					}
-					const quoteLine = prepared.quoteLines.get(input.quote_line_id);
-					if (!quoteLine) throw new Error('Referenced quote line does not exist.');
-					if (quoteLine.quote_id !== invoice.quote_id) {
-						throw new Error('The billed line belongs to a different quote.');
-					}
-
-					const resolved = {
-						...input,
-						quantity: input.quantity,
-						product_code: input.product_code ?? quoteLine.product_code,
-						product_name: input.product_name ?? quoteLine.product_name,
-						product_unit: input.product_unit ?? quoteLine.product_unit ?? '',
-						unit_price: input.unit_price ?? quoteLine.unit_price,
-						tax_rate: input.tax_rate ?? quoteLine.tax_rate ?? 0
-					};
-					validateLineFields(resolved);
-
-					const allocated = prepared.allocatedByQuoteLine.get(quoteLine.id) ?? 0;
-					const quoted = Number(quoteLine.quantity ?? 0);
-					if (allocated + Number(resolved.quantity) > quoted) {
-						throw new Error(
-							`Over-allocation: ${allocated} of ${quoted} billed so far; this line would exceed the quoted quantity.`
-						);
-					}
-
-					const amounts = computeLineAmounts(invoice, resolved);
-					return { ...resolved, net: amounts.net, tax: amounts.tax, line_total: amounts.gross };
-				}
+					'Bills a quote line belonging to the same quote as the invoice and refuses to bill more than was quoted, counting only lines on invoices that are not cancelled. Keeps a line on its own draft invoice, re-prices it from the changed quantity or unit price, and refuses to push the billed quantity past the quantity quoted.',
+				handler: (context) =>
+					context.existing === undefined
+						? beforeCreate(context)
+						: beforeUpdate({ ...context, existing: context.existing })
 			},
 			after: {
 				description:
-					'Recomputes the sales invoice net, tax and gross from its lines after a line is added.',
-				handler: afterRollup
-			}
-		}
-	},
-	update: {
-		perRecord: {
-			before: {
-				description:
-					'Keeps a line on its own draft invoice, re-prices it from the changed quantity or unit price, and refuses to push the billed quantity past the quantity quoted.',
-				handler: ({ input, existing, api }) =>
-					Effect.gen(function* () {
-						if (
-							input.sales_invoice_id != null &&
-							input.sales_invoice_id !== existing.sales_invoice_id
-						) {
-							return yield* Effect.fail(
-								new Error('A line cannot be moved to a different sales invoice.')
-							);
-						}
-
-						const invoice = yield* api.db.sales_invoices.findFirst({
-							where: { id: { eq: existing.sales_invoice_id } }
-						});
-						if (!invoice)
-							return yield* Effect.fail(new Error('Referenced sales invoice does not exist.'));
-						if (invoice.status !== 'draft') {
-							return yield* Effect.fail(
-								new Error('Lines can only be modified on draft sales invoices.')
-							);
-						}
-
-						const resolved = { ...existing, ...input };
-						validateLineFields(resolved);
-
-						const quoteLine = yield* api.db.quote_lines.findFirst({
-							where: { id: { eq: existing.quote_line_id } }
-						});
-						if (quoteLine) {
-							const allocated = yield* liveAllocatedQuantity(api, quoteLine.id);
-							const quoted = Number(quoteLine.quantity ?? 0);
-							const own = Number(existing.quantity ?? 0);
-							if (allocated - own + Number(resolved.quantity) > quoted) {
-								return yield* Effect.fail(
-									new Error(
-										`Over-allocation: this line would push billed quantity past the quoted ${quoted}.`
-									)
-								);
-							}
-						}
-
-						const amounts = computeLineAmounts(invoice, resolved);
-						return { ...input, net: amounts.net, tax: amounts.tax, line_total: amounts.gross };
-					})
-			},
-			after: {
-				description:
-					'Recomputes the sales invoice net, tax and gross from its lines after a line is changed.',
+					'Recomputes the sales invoice net, tax and gross from its lines after a line is added. Recomputes the sales invoice net, tax and gross from its lines after a line is changed.',
 				handler: afterRollup
 			}
 		}

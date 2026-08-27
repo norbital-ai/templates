@@ -6,10 +6,12 @@ import { documentLineAmounts, type LineAmounts } from '../../lib/pricing.js';
 import type { Hooks, WorkspaceRow } from './$types.js';
 
 type AfterApi = Parameters<
-	NonNullable<NonNullable<NonNullable<Hooks['create']>['perRecord']>['after']>['handler']
+	NonNullable<NonNullable<NonNullable<Hooks['mutate']>['perRecord']>['after']>['handler']
 >[0]['api'];
 type BeforeApi = Parameters<
-	NonNullable<NonNullable<NonNullable<Hooks['create']>['perRecord']>['before']>['handler']
+	NonNullable<
+		NonNullable<NonNullable<PurchaseInvoiceLineHooks['mutate']>['perRecord']>['before']
+	>['handler']
 >[0]['api'];
 
 const LINE_LIMIT = 5000;
@@ -111,8 +113,113 @@ const afterRollup = ({
 	readonly api: AfterApi;
 }) => rollupInvoice(api, record.purchase_invoice_id);
 
+/** The context a `mutate.before` handler receives, named so the two halves can be hoisted. */
+type BeforeContext = Parameters<
+	NonNullable<
+		NonNullable<NonNullable<PurchaseInvoiceLineHooks['mutate']>['perRecord']>['before']
+	>['handler']
+>[0];
+
+/** The same context on an edit, where `existing` is the stored row rather than undefined. */
+type EditContext = BeforeContext & {
+	readonly existing: NonNullable<BeforeContext['existing']>;
+};
+
+/** A create states the whole record and has no `existing`. */
+const beforeCreate = ({ input, prepared }: BeforeContext) => {
+	if (!input.purchase_invoice_id) {
+		throw new Error('A purchase invoice line must reference a purchase invoice.');
+	}
+	const invoice = prepared.invoices.get(input.purchase_invoice_id);
+	if (!invoice) throw new Error('Referenced purchase invoice does not exist.');
+	if (invoice.status !== 'draft') {
+		throw new Error('Lines can only be added to draft purchase invoices.');
+	}
+
+	if (!input.purchase_order_line_id) {
+		throw new Error('A purchase invoice line must reference a purchase order line.');
+	}
+	const orderLine = prepared.orderLines.get(input.purchase_order_line_id);
+	if (!orderLine) throw new Error('Referenced purchase order line does not exist.');
+	if (orderLine.purchase_order_id !== invoice.purchase_order_id) {
+		throw new Error('The invoiced line belongs to a different purchase order.');
+	}
+
+	const resolved = {
+		...input,
+		quantity: input.quantity,
+		product_code: input.product_code ?? orderLine.product_code,
+		product_name: input.product_name ?? orderLine.product_name,
+		unit_cost: input.unit_cost ?? orderLine.unit_cost,
+		tax_rate: input.tax_rate ?? orderLine.tax_rate ?? 0
+	};
+	validateLineFields(resolved);
+
+	const alreadyInvoiced = prepared.invoicedByOrderLine.get(orderLine.id) ?? 0;
+	const ordered = Number(orderLine.quantity ?? 0);
+	if (alreadyInvoiced + Number(resolved.quantity) > ordered) {
+		throw new Error(
+			`Over-invoice: ${alreadyInvoiced} of ${ordered} invoiced so far; this line would exceed the ordered quantity.`
+		);
+	}
+
+	const amounts = computeLineAmounts(invoice, resolved);
+	return {
+		...resolved,
+		net: amounts.net,
+		tax: amounts.tax,
+		line_total: amounts.gross
+	};
+};
+
+/** An edit lands on a stored row; `existing` is what tells the two apart. */
+const beforeUpdate = ({ input, existing, api }: EditContext) =>
+	Effect.gen(function* () {
+		if (
+			input.purchase_invoice_id != null &&
+			input.purchase_invoice_id !== existing.purchase_invoice_id
+		) {
+			return yield* Effect.fail(
+				new Error('A line cannot be moved to a different purchase invoice.')
+			);
+		}
+
+		const invoice = yield* api.db.purchase_invoices.findFirst({
+			where: { id: { eq: existing.purchase_invoice_id } }
+		});
+		if (!invoice)
+			return yield* Effect.fail(new Error('Referenced purchase invoice does not exist.'));
+		if (invoice.status !== 'draft') {
+			return yield* Effect.fail(
+				new Error('Lines can only be modified on draft purchase invoices.')
+			);
+		}
+
+		const resolved = { ...existing, ...input };
+		validateLineFields(resolved);
+
+		const orderLine = yield* api.db.purchase_order_lines.findFirst({
+			where: { id: { eq: existing.purchase_order_line_id } }
+		});
+		if (orderLine) {
+			const invoiced = yield* liveInvoicedQuantity(api, orderLine.id);
+			const ordered = Number(orderLine.quantity ?? 0);
+			const own = Number(existing.quantity ?? 0);
+			if (invoiced - own + Number(resolved.quantity) > ordered) {
+				return yield* Effect.fail(
+					new Error(
+						`Over-invoice: this line would push invoiced quantity past the ordered ${ordered}.`
+					)
+				);
+			}
+		}
+
+		const amounts = computeLineAmounts(invoice, resolved);
+		return { ...input, net: amounts.net, tax: amounts.tax, line_total: amounts.gross };
+	});
+
 export default {
-	create: {
+	mutate: {
 		prepare: ({ inputs, api }) =>
 			Effect.gen(function* () {
 				const invoiceIds = [
@@ -168,113 +275,15 @@ export default {
 		perRecord: {
 			before: {
 				description:
-					'Matches an invoice line to a purchase order line on the same order and refuses to invoice more than was ordered, counting only lines on invoices that are not cancelled.',
-				handler: ({ input, prepared }) => {
-					if (!input.purchase_invoice_id) {
-						throw new Error('A purchase invoice line must reference a purchase invoice.');
-					}
-					const invoice = prepared.invoices.get(input.purchase_invoice_id);
-					if (!invoice) throw new Error('Referenced purchase invoice does not exist.');
-					if (invoice.status !== 'draft') {
-						throw new Error('Lines can only be added to draft purchase invoices.');
-					}
-
-					if (!input.purchase_order_line_id) {
-						throw new Error('A purchase invoice line must reference a purchase order line.');
-					}
-					const orderLine = prepared.orderLines.get(input.purchase_order_line_id);
-					if (!orderLine) throw new Error('Referenced purchase order line does not exist.');
-					if (orderLine.purchase_order_id !== invoice.purchase_order_id) {
-						throw new Error('The invoiced line belongs to a different purchase order.');
-					}
-
-					const resolved = {
-						...input,
-						quantity: input.quantity,
-						product_code: input.product_code ?? orderLine.product_code,
-						product_name: input.product_name ?? orderLine.product_name,
-						unit_cost: input.unit_cost ?? orderLine.unit_cost,
-						tax_rate: input.tax_rate ?? orderLine.tax_rate ?? 0
-					};
-					validateLineFields(resolved);
-
-					const alreadyInvoiced = prepared.invoicedByOrderLine.get(orderLine.id) ?? 0;
-					const ordered = Number(orderLine.quantity ?? 0);
-					if (alreadyInvoiced + Number(resolved.quantity) > ordered) {
-						throw new Error(
-							`Over-invoice: ${alreadyInvoiced} of ${ordered} invoiced so far; this line would exceed the ordered quantity.`
-						);
-					}
-
-					const amounts = computeLineAmounts(invoice, resolved);
-					return {
-						...resolved,
-						net: amounts.net,
-						tax: amounts.tax,
-						line_total: amounts.gross
-					};
-				}
+					'Matches an invoice line to a purchase order line on the same order and refuses to invoice more than was ordered, counting only lines on invoices that are not cancelled. Keeps a line on its own draft invoice, re-prices it from the changed quantity or unit cost, and refuses to push the invoiced quantity past the quantity ordered.',
+				handler: (context) =>
+					context.existing === undefined
+						? beforeCreate(context)
+						: beforeUpdate({ ...context, existing: context.existing })
 			},
 			after: {
 				description:
-					'Recomputes the purchase invoice net, tax and gross from its lines after a line is added.',
-				handler: afterRollup
-			}
-		}
-	},
-	update: {
-		perRecord: {
-			before: {
-				description:
-					'Keeps a line on its own draft invoice, re-prices it from the changed quantity or unit cost, and refuses to push the invoiced quantity past the quantity ordered.',
-				handler: ({ input, existing, api }) =>
-					Effect.gen(function* () {
-						if (
-							input.purchase_invoice_id != null &&
-							input.purchase_invoice_id !== existing.purchase_invoice_id
-						) {
-							return yield* Effect.fail(
-								new Error('A line cannot be moved to a different purchase invoice.')
-							);
-						}
-
-						const invoice = yield* api.db.purchase_invoices.findFirst({
-							where: { id: { eq: existing.purchase_invoice_id } }
-						});
-						if (!invoice)
-							return yield* Effect.fail(new Error('Referenced purchase invoice does not exist.'));
-						if (invoice.status !== 'draft') {
-							return yield* Effect.fail(
-								new Error('Lines can only be modified on draft purchase invoices.')
-							);
-						}
-
-						const resolved = { ...existing, ...input };
-						validateLineFields(resolved);
-
-						const orderLine = yield* api.db.purchase_order_lines.findFirst({
-							where: { id: { eq: existing.purchase_order_line_id } }
-						});
-						if (orderLine) {
-							const invoiced = yield* liveInvoicedQuantity(api, orderLine.id);
-							const ordered = Number(orderLine.quantity ?? 0);
-							const own = Number(existing.quantity ?? 0);
-							if (invoiced - own + Number(resolved.quantity) > ordered) {
-								return yield* Effect.fail(
-									new Error(
-										`Over-invoice: this line would push invoiced quantity past the ordered ${ordered}.`
-									)
-								);
-							}
-						}
-
-						const amounts = computeLineAmounts(invoice, resolved);
-						return { ...input, net: amounts.net, tax: amounts.tax, line_total: amounts.gross };
-					})
-			},
-			after: {
-				description:
-					'Recomputes the purchase invoice net, tax and gross from its lines after a line is changed.',
+					'Recomputes the purchase invoice net, tax and gross from its lines after a line is added. Recomputes the purchase invoice net, tax and gross from its lines after a line is changed.',
 				handler: afterRollup
 			}
 		}

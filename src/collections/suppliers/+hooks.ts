@@ -19,37 +19,47 @@ function validatePaymentTermsDays(value: number | null | undefined): void {
 	}
 }
 
+/** The context a `mutate.before` handler receives, named so the two halves can be hoisted. */
+type BeforeContext = Parameters<
+	NonNullable<NonNullable<NonNullable<Hooks['mutate']>['perRecord']>['before']>['handler']
+>[0];
+
+/** The same context on an edit, where `existing` is the stored row rather than undefined. */
+type EditContext = BeforeContext & {
+	readonly existing: NonNullable<BeforeContext['existing']>;
+};
+
+/** A create states the whole record and has no `existing`. */
+const beforeCreate = ({ input }: BeforeContext) => {
+	validatePaymentTermsDays(input.payment_terms_days);
+	return {
+		...input,
+		code: normalizeCode(input.code),
+		name: normalizeName(input.name),
+		active: input.active ?? true
+	};
+};
+
+/** An edit lands on a stored row; `existing` is what tells the two apart. */
+const beforeUpdate = ({ input, existing }: EditContext) => {
+	if (input.code != null && input.code !== existing.code) {
+		throw new Error('Supplier code cannot be changed once set.');
+	}
+	if (input.name != null) normalizeName(input.name);
+	validatePaymentTermsDays(input.payment_terms_days ?? existing.payment_terms_days);
+	return input;
+};
+
 export default {
-	create: {
+	mutate: {
 		perRecord: {
 			before: {
 				description:
-					'Uppercases the supplier code, trims the name, defaults the supplier to active, and rejects payment terms outside 0 to 365 days.',
-				handler: ({ input }) => {
-					validatePaymentTermsDays(input.payment_terms_days);
-					return {
-						...input,
-						code: normalizeCode(input.code),
-						name: normalizeName(input.name),
-						active: input.active ?? true
-					};
-				}
-			}
-		}
-	},
-	update: {
-		perRecord: {
-			before: {
-				description:
-					'Refuses to change a supplier code once it is set and keeps the name and payment terms within range.',
-				handler: ({ input, existing }) => {
-					if (input.code != null && input.code !== existing.code) {
-						throw new Error('Supplier code cannot be changed once set.');
-					}
-					if (input.name != null) normalizeName(input.name);
-					validatePaymentTermsDays(input.payment_terms_days ?? existing.payment_terms_days);
-					return input;
-				}
+					'Uppercases the supplier code, trims the name, defaults the supplier to active, and rejects payment terms outside 0 to 365 days. Refuses to change a supplier code once it is set and keeps the name and payment terms within range.',
+				handler: (context) =>
+					context.existing === undefined
+						? beforeCreate(context)
+						: beforeUpdate({ ...context, existing: context.existing })
 			}
 		}
 	}

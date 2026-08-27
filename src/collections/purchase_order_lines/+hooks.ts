@@ -32,9 +32,9 @@ type PurchaseOrderLineHooks = CollectionHooks<
 >;
 
 type AfterApi = Parameters<
-	NonNullable<NonNullable<NonNullable<Hooks['create']>['perRecord']>['after']>['handler']
+	NonNullable<NonNullable<NonNullable<Hooks['mutate']>['perRecord']>['after']>['handler']
 >[0]['api'];
-type PrepareApi = Parameters<NonNullable<NonNullable<Hooks['create']>['prepare']>>[0]['api'];
+type PrepareApi = Parameters<NonNullable<NonNullable<Hooks['mutate']>['prepare']>>[0]['api'];
 
 const LINE_LIMIT = 5000;
 
@@ -110,8 +110,88 @@ const afterRollup = ({
 	readonly api: AfterApi;
 }) => rollupPurchaseOrder(api, record.purchase_order_id);
 
+/** The context a `mutate.before` handler receives, named so the two halves can be hoisted. */
+type BeforeContext = Parameters<
+	NonNullable<
+		NonNullable<NonNullable<PurchaseOrderLineHooks['mutate']>['perRecord']>['before']
+	>['handler']
+>[0];
+
+/** The same context on an edit, where `existing` is the stored row rather than undefined. */
+type EditContext = BeforeContext & {
+	readonly existing: NonNullable<BeforeContext['existing']>;
+};
+
+/** A create states the whole record and has no `existing`. */
+const beforeCreate = ({ input, prepared }: BeforeContext) => {
+	if (!input.purchase_order_id) {
+		throw new Error('A purchase order line must reference a purchase order.');
+	}
+	const order = prepared.orders.get(input.purchase_order_id);
+	if (!order) throw new Error('Referenced purchase order does not exist.');
+	if (order.status !== 'draft') {
+		throw new Error('Line items can only be added to draft purchase orders.');
+	}
+
+	if (!input.product_id) throw new Error('A purchase order line must reference a product.');
+	const product = prepared.products.get(input.product_id);
+	if (!product) throw new Error('Referenced product does not exist.');
+	if (!product.active) {
+		throw new Error('Cannot add a line for an inactive product.');
+	}
+
+	const resolved = {
+		...input,
+		product_code: input.product_code ?? product.code,
+		product_name: input.product_name ?? product.name,
+		product_unit: input.product_unit ?? product.unit ?? '',
+		unit_cost: input.unit_cost,
+		tax_rate: input.tax_rate ?? product.tax_rate ?? 0
+	};
+	validateLineFields(resolved);
+
+	const amounts = computeLineAmounts(order, resolved);
+	return {
+		...resolved,
+		net: amounts.net,
+		tax: amounts.tax,
+		line_total: amounts.gross
+	};
+};
+
+/** An edit lands on a stored row; `existing` is what tells the two apart. */
+const beforeUpdate = ({ input, existing, api }: EditContext) =>
+	Effect.gen(function* () {
+		if (input.purchase_order_id != null && input.purchase_order_id !== existing.purchase_order_id) {
+			return yield* Effect.fail(
+				new Error('A line item cannot be moved to a different purchase order.')
+			);
+		}
+
+		const order = yield* api.db.purchase_orders.findFirst({
+			where: { id: { eq: existing.purchase_order_id } }
+		});
+		if (!order) return yield* Effect.fail(new Error('Referenced purchase order does not exist.'));
+		if (order.status !== 'draft') {
+			return yield* Effect.fail(
+				new Error('Line items can only be modified on draft purchase orders.')
+			);
+		}
+
+		const resolved = { ...existing, ...input };
+		validateLineFields(resolved);
+
+		const amounts = computeLineAmounts(order, resolved);
+		return {
+			...input,
+			net: amounts.net,
+			tax: amounts.tax,
+			line_total: amounts.gross
+		};
+	});
+
 export default {
-	create: {
+	mutate: {
 		prepare: ({ inputs, api }) =>
 			Effect.all({
 				orders: rowsById(inputs, (input) => input.purchase_order_id, ordersByIds(api)),
@@ -120,92 +200,15 @@ export default {
 		perRecord: {
 			before: {
 				description:
-					'Adds a line only to a draft order for an active product, fills the product code, name, unit and tax rate from the catalogue, and prices the line net, tax and total from quantity and unit cost.',
-				handler: ({ input, prepared }) => {
-					if (!input.purchase_order_id) {
-						throw new Error('A purchase order line must reference a purchase order.');
-					}
-					const order = prepared.orders.get(input.purchase_order_id);
-					if (!order) throw new Error('Referenced purchase order does not exist.');
-					if (order.status !== 'draft') {
-						throw new Error('Line items can only be added to draft purchase orders.');
-					}
-
-					if (!input.product_id) throw new Error('A purchase order line must reference a product.');
-					const product = prepared.products.get(input.product_id);
-					if (!product) throw new Error('Referenced product does not exist.');
-					if (!product.active) {
-						throw new Error('Cannot add a line for an inactive product.');
-					}
-
-					const resolved = {
-						...input,
-						product_code: input.product_code ?? product.code,
-						product_name: input.product_name ?? product.name,
-						product_unit: input.product_unit ?? product.unit ?? '',
-						unit_cost: input.unit_cost,
-						tax_rate: input.tax_rate ?? product.tax_rate ?? 0
-					};
-					validateLineFields(resolved);
-
-					const amounts = computeLineAmounts(order, resolved);
-					return {
-						...resolved,
-						net: amounts.net,
-						tax: amounts.tax,
-						line_total: amounts.gross
-					};
-				}
+					'Adds a line only to a draft order for an active product, fills the product code, name, unit and tax rate from the catalogue, and prices the line net, tax and total from quantity and unit cost. Keeps a line on its own draft order and re-prices its net, tax and total from the changed quantity, unit cost or tax rate.',
+				handler: (context) =>
+					context.existing === undefined
+						? beforeCreate(context)
+						: beforeUpdate({ ...context, existing: context.existing })
 			},
 			after: {
 				description:
-					'Recomputes the purchase order net, tax and gross from its lines after a line is added.',
-				handler: afterRollup
-			}
-		}
-	},
-	update: {
-		perRecord: {
-			before: {
-				description:
-					'Keeps a line on its own draft order and re-prices its net, tax and total from the changed quantity, unit cost or tax rate.',
-				handler: ({ input, existing, api }) =>
-					Effect.gen(function* () {
-						if (
-							input.purchase_order_id != null &&
-							input.purchase_order_id !== existing.purchase_order_id
-						) {
-							return yield* Effect.fail(
-								new Error('A line item cannot be moved to a different purchase order.')
-							);
-						}
-
-						const order = yield* api.db.purchase_orders.findFirst({
-							where: { id: { eq: existing.purchase_order_id } }
-						});
-						if (!order)
-							return yield* Effect.fail(new Error('Referenced purchase order does not exist.'));
-						if (order.status !== 'draft') {
-							return yield* Effect.fail(
-								new Error('Line items can only be modified on draft purchase orders.')
-							);
-						}
-
-						const resolved = { ...existing, ...input };
-						validateLineFields(resolved);
-
-						const amounts = computeLineAmounts(order, resolved);
-						return {
-							...input,
-							net: amounts.net,
-							tax: amounts.tax,
-							line_total: amounts.gross
-						};
-					})
-			},
-			after: {
-				description:
-					'Recomputes the purchase order net, tax and gross from its lines after a line is changed.',
+					'Recomputes the purchase order net, tax and gross from its lines after a line is added. Recomputes the purchase order net, tax and gross from its lines after a line is changed.',
 				handler: afterRollup
 			}
 		}
