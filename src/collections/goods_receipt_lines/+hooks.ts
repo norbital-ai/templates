@@ -44,19 +44,19 @@ export default {
 					)
 				];
 				const receipts = receiptIds.length
-					? yield* api.db.query.goods_receipts.findMany({
+					? yield* api.db.goods_receipts.findMany({
 							where: { id: { in: receiptIds } },
 							limit: LINE_LIMIT
 						})
 					: [];
 				const orderLines = orderLineIds.length
-					? yield* api.db.query.purchase_order_lines.findMany({
+					? yield* api.db.purchase_order_lines.findMany({
 							where: { id: { in: orderLineIds } },
 							limit: LINE_LIMIT
 						})
 					: [];
 				const prior = orderLineIds.length
-					? yield* api.db.query.goods_receipt_lines.findMany({
+					? yield* api.db.goods_receipt_lines.findMany({
 							where: { purchase_order_line_id: { in: orderLineIds } },
 							columns: { purchase_order_line_id: true, quantity_received: true },
 							limit: LINE_LIMIT

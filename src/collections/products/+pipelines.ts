@@ -45,7 +45,7 @@ export default {
 				const { items } = yield* decodeItems(input);
 				const codes = items.map((item) => item.external_code);
 
-				const existing = yield* api.db.query.products.findMany({
+				const existing = yield* api.db.products.findMany({
 					where: { external_code: { in: codes } },
 					columns: { external_code: true },
 					limit: 20000

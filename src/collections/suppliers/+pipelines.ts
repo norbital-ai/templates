@@ -47,7 +47,7 @@ export default {
 				const { vendors } = yield* decodeVendors(input);
 				const codes = vendors.map((vendor) => vendor.external_code);
 
-				const existing = yield* api.db.query.suppliers.findMany({
+				const existing = yield* api.db.suppliers.findMany({
 					where: { external_code: { in: codes } },
 					columns: { external_code: true },
 					limit: 20000

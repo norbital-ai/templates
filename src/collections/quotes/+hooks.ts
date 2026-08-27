@@ -37,7 +37,7 @@ export default {
 						if (!input.account_id) {
 							return yield* Effect.fail(new Error('A quote must reference an account.'));
 						}
-						const account = yield* api.db.query.accounts.findFirst({
+						const account = yield* api.db.accounts.findFirst({
 							where: { id: { eq: input.account_id } }
 						});
 						if (!account) {
@@ -49,7 +49,7 @@ export default {
 							);
 						}
 						if (input.contact_id != null) {
-							const contact = yield* api.db.query.contacts.findFirst({
+							const contact = yield* api.db.contacts.findFirst({
 								where: { id: { eq: input.contact_id } }
 							});
 							if (!contact)
@@ -58,7 +58,7 @@ export default {
 
 						if (!input.doc_no) {
 							const year = (yield* currentInstant).getFullYear();
-							const existing = yield* api.db.query.quotes.findMany({
+							const existing = yield* api.db.quotes.findMany({
 								where: { doc_no: { like: docNoSeriesPattern('QT', year) } },
 								columns: { doc_no: true },
 								limit: 5000
@@ -117,7 +117,7 @@ export default {
 						const updates: QuoteUpdate = { ...input };
 
 						if (newStatus === 'confirmed') {
-							const account = yield* api.db.query.accounts.findFirst({
+							const account = yield* api.db.accounts.findFirst({
 								where: { id: { eq: existing.account_id } }
 							});
 							if (!account) {
@@ -147,7 +147,7 @@ export default {
 								);
 							}
 
-							const lines = yield* api.db.query.quote_lines.findMany({
+							const lines = yield* api.db.quote_lines.findMany({
 								where: { quote_id: { eq: existing.id } },
 								columns: { product_id: true },
 								limit: 5000
@@ -159,7 +159,7 @@ export default {
 							}
 
 							const productIds = [...new Set(lines.map((line) => line.product_id))];
-							const products = yield* api.db.query.products.findMany({
+							const products = yield* api.db.products.findMany({
 								where: { id: { in: productIds } },
 								columns: { name: true, active: true },
 								limit: 5000

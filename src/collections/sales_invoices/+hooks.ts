@@ -27,7 +27,7 @@ export default {
 						if (!input.quote_id) {
 							return yield* Effect.fail(new Error('A sales invoice must reference a quote.'));
 						}
-						const quote = yield* api.db.query.quotes.findFirst({
+						const quote = yield* api.db.quotes.findFirst({
 							where: { id: { eq: input.quote_id } }
 						});
 						if (!quote) return yield* Effect.fail(new Error('Referenced quote does not exist.'));
@@ -50,7 +50,7 @@ export default {
 
 						if (!input.doc_no) {
 							const year = (yield* currentInstant).getFullYear();
-							const existing = yield* api.db.query.sales_invoices.findMany({
+							const existing = yield* api.db.sales_invoices.findMany({
 								where: { doc_no: { like: docNoSeriesPattern('SI', year) } },
 								columns: { doc_no: true },
 								limit: 5000
@@ -105,7 +105,7 @@ export default {
 						const updates: InvoiceUpdate = { ...input };
 
 						if (newStatus === 'issued') {
-							const lines = yield* api.db.query.sales_invoice_lines.findMany({
+							const lines = yield* api.db.sales_invoice_lines.findMany({
 								where: { sales_invoice_id: { eq: existing.id } },
 								limit: 1
 							});

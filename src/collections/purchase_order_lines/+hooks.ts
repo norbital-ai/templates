@@ -40,11 +40,11 @@ const LINE_LIMIT = 5000;
 
 /** The orders a batch of lines is being added to. */
 const ordersByIds = (api: PrepareApi) => (ids: readonly string[]) =>
-	api.db.query.purchase_orders.findMany({ where: { id: { in: ids } }, limit: LINE_LIMIT });
+	api.db.purchase_orders.findMany({ where: { id: { in: ids } }, limit: LINE_LIMIT });
 
 /** The catalogue products a batch of lines names. */
 const productsByIds = (api: PrepareApi) => (ids: readonly string[]) =>
-	api.db.query.products.findMany({ where: { id: { in: ids } }, limit: LINE_LIMIT });
+	api.db.products.findMany({ where: { id: { in: ids } }, limit: LINE_LIMIT });
 
 /** The pricing inputs a line under validation contributes, from the row's own fields. */
 type ResolvedLineInput = Partial<
@@ -84,11 +84,11 @@ function computeLineAmounts(
 
 /** The order a roll-up writes back to. */
 const orderById = (api: AfterApi, purchaseOrderId: string) =>
-	api.db.query.purchase_orders.findFirst({ where: { id: { eq: purchaseOrderId } } });
+	api.db.purchase_orders.findFirst({ where: { id: { eq: purchaseOrderId } } });
 
 /** The money cells of every line on one order. */
 const orderLineTotals = (api: AfterApi, purchaseOrderId: string) =>
-	api.db.query.purchase_order_lines.findMany({
+	api.db.purchase_order_lines.findMany({
 		where: { purchase_order_id: { eq: purchaseOrderId } },
 		columns: { net: true, tax: true, line_total: true },
 		limit: LINE_LIMIT
@@ -98,7 +98,7 @@ function rollupPurchaseOrder(api: AfterApi, purchaseOrderId: string): Effect.Eff
 	return rollupDocument({
 		document: orderById(api, purchaseOrderId),
 		lines: orderLineTotals(api, purchaseOrderId),
-		write: (totals) => api.db.purchase_orders.mutate([{ id: purchaseOrderId, ...totals }])
+		write: (totals) => api.db.purchase_orders.mutate({ id: purchaseOrderId, ...totals })
 	});
 }
 
@@ -180,7 +180,7 @@ export default {
 							);
 						}
 
-						const order = yield* api.db.query.purchase_orders.findFirst({
+						const order = yield* api.db.purchase_orders.findFirst({
 							where: { id: { eq: existing.purchase_order_id } }
 						});
 						if (!order)

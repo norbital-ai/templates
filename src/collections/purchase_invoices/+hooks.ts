@@ -29,7 +29,7 @@ export default {
 								new Error('A purchase invoice must reference a purchase order.')
 							);
 						}
-						const order = yield* api.db.query.purchase_orders.findFirst({
+						const order = yield* api.db.purchase_orders.findFirst({
 							where: { id: { eq: input.purchase_order_id } }
 						});
 						if (!order) {
@@ -56,7 +56,7 @@ export default {
 
 						if (!input.doc_no) {
 							const year = (yield* currentInstant).getFullYear();
-							const existing = yield* api.db.query.purchase_invoices.findMany({
+							const existing = yield* api.db.purchase_invoices.findMany({
 								where: { doc_no: { like: docNoSeriesPattern('PI', year) } },
 								columns: { doc_no: true },
 								limit: 5000
@@ -111,7 +111,7 @@ export default {
 						const updates: InvoiceUpdate = { ...input };
 
 						if (newStatus === 'confirmed') {
-							const lines = yield* api.db.query.purchase_invoice_lines.findMany({
+							const lines = yield* api.db.purchase_invoice_lines.findMany({
 								where: { purchase_invoice_id: { eq: existing.id } },
 								limit: 1
 							});

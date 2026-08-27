@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { FormattedValueRenderer } from '@norbital-ai/ui/data-renderer';
 	import { client } from '$bolt/client';
 	import { getCollectionClientForSurface } from '@norbital-ai/ui/collection-runtime';
 	import { useI18n } from '@norbital-ai/ui/i18n';
@@ -82,15 +83,6 @@
 		};
 	});
 
-	const usersQuery = $derived(
-		workspaceClient.db.user.findMany({
-			columns: { id: true, name: true },
-			orderBy: { name: 'asc' }
-		})
-	);
-	const userLabelsById = $derived(
-		new Map((usersQuery.current ?? []).map((user) => [String(user.id), String(user.name)]))
-	);
 	const purchaseOrderLabelsById = $derived(
 		new Map(
 			(purchaseOrdersQuery.current ?? []).map((order) => [String(order.id), String(order.doc_no)])
@@ -103,11 +95,6 @@
 			orderBy: { doc_no: 'desc' },
 			limit: 5000
 		})
-	);
-	const receiptLabelsById = $derived(
-		new Map(
-			(receiptsQuery.current ?? []).map((receipt) => [String(receipt.id), String(receipt.doc_no)])
-		)
 	);
 	const receiptIds = $derived((receiptsQuery.current ?? []).map((receipt) => receipt.id));
 	const purchaseInvoicesQuery = $derived(
@@ -128,24 +115,6 @@
 	const purchaseInvoiceIds = $derived(
 		(purchaseInvoicesQuery.current ?? []).map((invoice) => invoice.id)
 	);
-	const orderLinesQuery = $derived(
-		workspaceClient.db.purchase_order_lines.findMany({
-			columns: { id: true, product_name: true, quantity: true },
-			orderBy: { product_name: 'asc' },
-			limit: 5000
-		})
-	);
-	const orderLineLabelsById = $derived(
-		new Map(
-			(orderLinesQuery.current ?? []).map((line) => [
-				String(line.id),
-				line.quantity != null
-					? `${String(line.product_name)} × ${line.quantity}`
-					: String(line.product_name)
-			])
-		)
-	);
-
 	const { t, has } = useI18n<TenantI18nKeys>();
 
 	/** The stage labels the purchase pipeline reports, so a dynamic status name never needs a cast. */
@@ -236,12 +205,7 @@
 			<Column name="expected_date" label={t('component.expected')} />
 			<Column name="gross" label={t('component.gross_amount')} />
 			<Column name="confirmed_at" label={t('component.confirmed')} />
-			<Column
-				name="owner_id"
-				label={t('component.owner')}
-				render={({ value }) =>
-					value == null || value === '' ? '—' : (userLabelsById.get(String(value)) ?? '—')}
-			/>
+			<Column name="owner_id" label={t('component.owner')} />
 		{/snippet}
 	</CollectionTable>
 {/snippet}
@@ -260,8 +224,6 @@
 				label={t('component.purchase_order')}
 				minWidth={200}
 				card="title"
-				render={({ value }) =>
-					value == null || value === '' ? '—' : (purchaseOrderLabelsById.get(String(value)) ?? '—')}
 			/>
 			<Column name="product_code" label={t('component.code')} minWidth={100} />
 			<Column name="product_name" label={t('component.product')} minWidth={200} />
@@ -307,16 +269,9 @@
 				label={t('component.purchase_order')}
 				minWidth={200}
 				card="title"
-				render={({ value }) =>
-					value == null || value === '' ? '—' : (purchaseOrderLabelsById.get(String(value)) ?? '—')}
 			/>
 			<Column name="received_date" label={t('component.received')} />
-			<Column
-				name="owner_id"
-				label={t('component.receiver')}
-				render={({ value }) =>
-					value == null || value === '' ? '—' : (userLabelsById.get(String(value)) ?? '—')}
-			/>
+			<Column name="owner_id" label={t('component.receiver')} />
 		{/snippet}
 	</CollectionTable>
 {/snippet}
@@ -341,16 +296,12 @@
 					label={t('component.receipt')}
 					minWidth={140}
 					card="badge"
-					render={({ value }) =>
-						value == null || value === '' ? '—' : (receiptLabelsById.get(String(value)) ?? '—')}
 				/>
 				<Column
 					name="purchase_order_line_id"
 					label={t('component.order_line')}
 					minWidth={200}
 					card="title"
-					render={({ value }) =>
-						value == null || value === '' ? '—' : (orderLineLabelsById.get(String(value)) ?? '—')}
 				/>
 				<Column name="quantity_received" label={t('component.received')} />
 			{/snippet}
@@ -368,13 +319,7 @@
 	>
 		{#snippet columns({ Column })}
 			<Column name="doc_no" label={t('component.doc_no')} minWidth={140} card="badge" />
-			<Column
-				name="purchase_order_id"
-				label={t('component.purchase_order')}
-				minWidth={200}
-				render={({ value }) =>
-					value == null || value === '' ? '—' : (purchaseOrderLabelsById.get(String(value)) ?? '—')}
-			/>
+			<Column name="purchase_order_id" label={t('component.purchase_order')} minWidth={200} />
 			<Column name="supplier_name" label={t('component.supplier')} minWidth={200} card="title" />
 			<Column name="invoice_reference" label={t('component.supplier_no')} minWidth={140} />
 			<Column name="status" card="badge" />
@@ -403,10 +348,6 @@
 					label={t('component.invoice')}
 					minWidth={140}
 					card="badge"
-					render={({ value }) =>
-						value == null || value === ''
-							? '—'
-							: (purchaseInvoiceLabelsById.get(String(value)) ?? '—')}
 				/>
 				<Column name="product_code" label={t('component.code')} minWidth={100} />
 				<Column name="product_name" label={t('component.product')} minWidth={200} card="title" />
@@ -441,13 +382,16 @@
 				label={t('component.document')}
 				minWidth={200}
 				card="title"
-				render={({ row, value }) => {
-					if (value == null || value === '') return '—';
-					const map =
-						row.regarding_type === 'purchase_orders'
-							? purchaseOrderLabelsById
-							: purchaseInvoiceLabelsById;
-					return map.get(String(value)) ?? '—';
+				renderer={FormattedValueRenderer}
+				rendererProps={{
+					format: ({ row, value }) => {
+						if (value == null || value === '') return '—';
+						const map =
+							row.regarding_type === 'purchase_orders'
+								? purchaseOrderLabelsById
+								: purchaseInvoiceLabelsById;
+						return map.get(String(value)) ?? '—';
+					}
 				}}
 			/>
 			<Column name="amount" card="badge" />

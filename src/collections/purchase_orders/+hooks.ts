@@ -40,7 +40,7 @@ export default {
 						if (!input.supplier_id) {
 							return yield* Effect.fail(new Error('A purchase order must reference a supplier.'));
 						}
-						const supplier = yield* api.db.query.suppliers.findFirst({
+						const supplier = yield* api.db.suppliers.findFirst({
 							where: { id: { eq: input.supplier_id } }
 						});
 						if (!supplier)
@@ -66,7 +66,7 @@ export default {
 
 						if (!input.doc_no) {
 							const year = now.getFullYear();
-							const existing = yield* api.db.query.purchase_orders.findMany({
+							const existing = yield* api.db.purchase_orders.findMany({
 								where: { doc_no: { like: docNoSeriesPattern('PO', year) } },
 								columns: { doc_no: true },
 								limit: 5000
@@ -127,7 +127,7 @@ export default {
 						const updates: PurchaseOrderUpdate = { ...input };
 
 						if (newStatus === 'submitted') {
-							const lines = yield* api.db.query.purchase_order_lines.findMany({
+							const lines = yield* api.db.purchase_order_lines.findMany({
 								where: { purchase_order_id: { eq: existing.id } },
 								limit: 1
 							});

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { FormattedValueRenderer } from '@norbital-ai/ui/data-renderer';
 	import { client } from '$bolt/client';
 	import { getCollectionClientForSurface } from '@norbital-ai/ui/collection-runtime';
 	import { useI18n } from '@norbital-ai/ui/i18n';
@@ -89,10 +90,6 @@
 		}))
 	]);
 
-	const userLabelsById = $derived(
-		new Map((usersQuery.current ?? []).map((user) => [user.id, user.name]))
-	);
-
 	const scopedQuotesQuery = $derived(
 		selectedAccountId == null
 			? null
@@ -122,9 +119,6 @@
 					orderBy: { doc_no: 'desc' },
 					limit: 5000
 				})
-	);
-	const invoiceLabelsById = $derived(
-		new Map((scopedInvoicesQuery?.current ?? []).map((invoice) => [invoice.id, invoice.doc_no]))
 	);
 	const scopedInvoiceIds = $derived(
 		(scopedInvoicesQuery?.current ?? []).map((invoice) => invoice.id)
@@ -206,6 +200,13 @@
 			rows={2}
 			query={pipelineKanbanQuery}
 		>
+			{#snippet fields({ Field })}
+				<Field name="doc_no" card="title" />
+				<Field name="title" card="subtitle" />
+				<Field name="account_id" card="subtitle" />
+				<Field name="currency" />
+				<Field name="gross" card="badge" />
+			{/snippet}
 			{#snippet Card(quote)}
 				<Stack gap="xs">
 					<p class="text-sm font-medium">{quote.doc_no}: {quote.title}</p>
@@ -249,12 +250,7 @@
 				<Column name="currency" />
 				<Column name="valid_until" label={t('component.valid_until')} />
 				<Column name="confirmed_at" label={t('component.confirmed')} />
-				<Column
-					name="owner_id"
-					label={t('component.owner')}
-					render={({ value }) =>
-						value == null || value === '' ? '—' : (userLabelsById.get(String(value)) ?? '—')}
-				/>
+				<Column name="owner_id" label={t('component.owner')} />
 			{/snippet}
 		</CollectionTable>
 	{/if}
@@ -278,14 +274,7 @@
 			}}
 		>
 			{#snippet columns({ Column })}
-				<Column
-					name="quote_id"
-					label={t('component.quote')}
-					minWidth={200}
-					card="title"
-					render={({ value }) =>
-						value == null || value === '' ? '—' : (quoteLabelsById.get(String(value)) ?? '—')}
-				/>
+				<Column name="quote_id" label={t('component.quote')} minWidth={200} card="title" />
 				<Column name="product_code" label={t('component.code')} minWidth={100} />
 				<Column name="product_name" label={t('component.product')} minWidth={200} />
 				<Column name="quantity" />
@@ -313,10 +302,13 @@
 			<Column
 				name="credit_limit"
 				label={t('component.credit_available')}
-				render={({ row }) => {
-					if (row.credit_hold === true) return t('component.hold');
-					if (row.credit_limit == null) return '—';
-					return (Number(row.credit_limit) - Number(row.credit_used ?? 0)).toLocaleString();
+				renderer={FormattedValueRenderer}
+				rendererProps={{
+					format: ({ row }) => {
+						if (row.credit_hold === true) return t('component.hold');
+						if (row.credit_limit == null) return '—';
+						return (Number(row.credit_limit) - Number(row.credit_used ?? 0)).toLocaleString();
+					}
 				}}
 			/>
 			<Column name="active" />
@@ -408,19 +400,17 @@
 					name="regarding_id"
 					label={t('component.regarding')}
 					minWidth={200}
-					render={({ row, value }) => {
-						const map = row.regarding_type === 'accounts' ? accountLabelsById : quoteLabelsById;
-						return value == null || value === '' ? '—' : (map.get(String(value)) ?? '—');
+					renderer={FormattedValueRenderer}
+					rendererProps={{
+						format: ({ row, value }) => {
+							const map = row.regarding_type === 'accounts' ? accountLabelsById : quoteLabelsById;
+							return value == null || value === '' ? '—' : (map.get(String(value)) ?? '—');
+						}
 					}}
 				/>
 				<Column name="due_date" label={t('component.due')} />
 				<Column name="completed_at" label={t('component.completed')} />
-				<Column
-					name="owner_id"
-					label={t('component.owner')}
-					render={({ value }) =>
-						value == null || value === '' ? '—' : (userLabelsById.get(String(value)) ?? '—')}
-				/>
+				<Column name="owner_id" label={t('component.owner')} />
 			{/snippet}
 		</CollectionTable>
 	{/if}
@@ -443,23 +433,11 @@
 		>
 			{#snippet columns({ Column })}
 				<Column name="doc_no" label={t('component.doc_no')} minWidth={140} card="badge" />
-				<Column
-					name="quote_id"
-					label={t('component.quote')}
-					minWidth={200}
-					card="title"
-					render={({ value }) =>
-						value == null || value === '' ? '—' : (quoteLabelsById.get(String(value)) ?? '—')}
-				/>
+				<Column name="quote_id" label={t('component.quote')} minWidth={200} card="title" />
 				<Column name="status" card="badge" />
 				<Column name="currency" card="badge" />
 				<Column name="gross" label={t('component.gross_amount')} />
-				<Column
-					name="owner_id"
-					label={t('component.owner')}
-					render={({ value }) =>
-						value == null || value === '' ? '—' : (userLabelsById.get(String(value)) ?? '—')}
-				/>
+				<Column name="owner_id" label={t('component.owner')} />
 			{/snippet}
 		</CollectionTable>
 	{/if}
@@ -488,8 +466,6 @@
 					label={t('component.invoice')}
 					minWidth={140}
 					card="badge"
-					render={({ value }) =>
-						value == null || value === '' ? '—' : (invoiceLabelsById.get(String(value)) ?? '—')}
 				/>
 				<Column name="product_code" label={t('component.code')} minWidth={100} />
 				<Column name="product_name" label={t('component.product')} minWidth={200} card="title" />
@@ -516,23 +492,11 @@
 			query={{ where: { contract_signing_quote: { account_id: { eq: selectedAccountId } } } }}
 		>
 			{#snippet columns({ Column })}
-				<Column
-					name="quote_id"
-					label={t('component.quote')}
-					minWidth={200}
-					card="title"
-					render={({ value }) =>
-						value == null || value === '' ? '—' : (quoteLabelsById.get(String(value)) ?? '—')}
-				/>
+				<Column name="quote_id" label={t('component.quote')} minWidth={200} card="title" />
 				<Column name="variant" card="badge" />
 				<Column name="status" card="badge" />
 				<Column name="acknowledged_at" label={t('component.acknowledged')} />
-				<Column
-					name="owner_id"
-					label={t('component.owner')}
-					render={({ value }) =>
-						value == null || value === '' ? '—' : (userLabelsById.get(String(value)) ?? '—')}
-				/>
+				<Column name="owner_id" label={t('component.owner')} />
 			{/snippet}
 		</CollectionTable>
 	{/if}
@@ -555,14 +519,7 @@
 			}}
 		>
 			{#snippet columns({ Column })}
-				<Column
-					name="regarding_id"
-					label={t('component.quote')}
-					minWidth={200}
-					card="title"
-					render={({ value }) =>
-						value == null || value === '' ? '—' : (quoteLabelsById.get(String(value)) ?? '—')}
-				/>
+				<Column name="regarding_id" label={t('component.quote')} minWidth={200} card="title" />
 				<Column name="amount" card="badge" />
 				<Column name="currency" card="badge" />
 				<Column name="settled_on" label={t('component.settled_on')} />

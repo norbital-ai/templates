@@ -22,7 +22,7 @@ type PrepareApi = Parameters<NonNullable<NonNullable<ContactHooks['create']>['pr
 
 /** The accounts a batch of contacts names, by id. */
 const accountsByIds = (api: PrepareApi) => (ids: readonly string[]) =>
-	api.db.query.accounts.findMany({
+	api.db.accounts.findMany({
 		where: { id: { in: ids } },
 		columns: { id: true },
 		limit: ACCOUNT_BATCH_LIMIT

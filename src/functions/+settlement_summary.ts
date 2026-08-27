@@ -15,7 +15,7 @@ export default defineQueryHandler({
 	}),
 	handler: (input, api) =>
 		Effect.map(
-			api.db.query.settlements.findMany({
+			api.db.settlements.findMany({
 				where: { regarding_type: { eq: input.regarding_type } },
 				columns: { regarding_id: true, amount: true, currency: true },
 				limit: 5000

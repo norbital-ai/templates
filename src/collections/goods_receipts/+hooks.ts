@@ -17,7 +17,7 @@ export default {
 								new Error('A goods receipt must reference a purchase order.')
 							);
 						}
-						const order = yield* api.db.query.purchase_orders.findFirst({
+						const order = yield* api.db.purchase_orders.findFirst({
 							where: { id: { eq: input.purchase_order_id } }
 						});
 						if (!order) {
@@ -38,7 +38,7 @@ export default {
 
 						if (!input.doc_no) {
 							const year = now.getFullYear();
-							const existing = yield* api.db.query.goods_receipts.findMany({
+							const existing = yield* api.db.goods_receipts.findMany({
 								where: { doc_no: { like: docNoSeriesPattern('GRN', year) } },
 								columns: { doc_no: true },
 								limit: 5000
