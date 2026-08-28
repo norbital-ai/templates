@@ -31,9 +31,13 @@
 	import { resolveWindow } from './lib/period.js';
 	import { formatCalendarDate, formatNumeric } from '../../lib/ui/display-formatters.js';
 	import { saveCollectionExport } from '../../lib/ui/export-download.js';
+	import type { WorkspaceRow } from '$bolt/types.js';
 
 	let { record, close }: RepresentationProps = $props();
 	const { t } = useI18n<TenantI18nKeys>();
+	type PayslipWithEmployment = WorkspaceRow<'payslips'> & {
+		readonly payslip_employment?: Pick<WorkspaceRow<'employments'>, 'employee_number'> | null;
+	};
 	const updateAccessQuery = client.system.access.explain({
 		action: 'update',
 		resource: 'payroll_runs'
@@ -368,11 +372,23 @@
 					query={{
 						where: { payroll_run_id: { eq: record.id } },
 						orderBy: { created_at: 'asc' },
+						with: {
+							payslip_employment: { columns: { employee_number: true } }
+						},
 						limit: 100
 					}}
 				>
 					{#snippet columns({ Column })}
-						<Column name="employment_id" label={t('component.employee')} card="title" />
+						<Column
+							name="employment_id"
+							label={t('component.employee')}
+							card="title"
+							renderer={FormattedValueRenderer}
+							rendererProps={{
+								format: ({ row }: { row: PayslipWithEmployment }) =>
+									row.payslip_employment?.employee_number ?? '—'
+							}}
+						/>
 						<Column name="currency" card="badge" />
 						<Column
 							name="gross"
