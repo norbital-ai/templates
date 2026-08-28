@@ -2,8 +2,8 @@ import { createHash } from 'node:crypto';
 
 const requiredRuntimeExports = ['activate', 'dispatch', 'manifest', 'protocolVersion'];
 
-/** Inspect the decoded host contract and the embedded client bytes in one place. */
-export function inspectRuntimeArtifact({ runtime, bundle, artifactVersion }) {
+/** Inspect the decoded host contract and its content-addressed sidecar assets in one place. */
+export function inspectRuntimeArtifact({ runtime, bundle, artifactVersion, readAsset }) {
 	const runtimeExports = Object.keys(runtime).toSorted();
 	for (const name of requiredRuntimeExports) {
 		if (!runtimeExports.includes(name)) throw new Error(`Runtime entry does not export ${name}.`);
@@ -17,15 +17,20 @@ export function inspectRuntimeArtifact({ runtime, bundle, artifactVersion }) {
 			`Runtime artifact version ${manifest.artifactVersion} does not match ${artifactVersion}.`
 		);
 	}
-	for (const asset of manifest.staticAssets) {
-		const digest = createHash('sha256').update(asset.bytes).digest('hex');
-		if (asset.bytes.byteLength === 0 || digest !== asset.sha256) {
-			throw new Error(`Embedded asset ${asset.path} is empty or has the wrong digest.`);
+	for (const asset of [...manifest.browserAssets, ...manifest.serverAssets]) {
+		const bytes = readAsset(asset);
+		const digest = createHash('sha256').update(bytes).digest('hex');
+		if (
+			bytes.byteLength === 0 ||
+			bytes.byteLength !== asset.byteLength ||
+			digest !== asset.sha256
+		) {
+			throw new Error(`Sidecar asset ${asset.path} is empty or has the wrong size or digest.`);
 		}
 	}
-	const workspaceEntry = manifest.staticAssets.find(({ path }) => path === '/workspace.js');
+	const workspaceEntry = manifest.browserAssets.find(({ path }) => path === '/workspace.js');
 	if (workspaceEntry === undefined) {
-		throw new Error('Runtime manifest contains no embedded /workspace.js client entry.');
+		throw new Error('Runtime manifest contains no browser /workspace.js client entry.');
 	}
 	return {
 		runtimeExports,
@@ -35,7 +40,8 @@ export function inspectRuntimeArtifact({ runtime, bundle, artifactVersion }) {
 			artifactVersion: manifest.artifactVersion,
 			schemaFingerprint: manifest.schemaFingerprint,
 			requiredFacilities: [...manifest.requiredFacilities].toSorted(),
-			staticAssetCount: manifest.staticAssets.length,
+			browserAssetCount: manifest.browserAssets.length,
+			serverAssetCount: manifest.serverAssets.length,
 			integrationCount: manifest.integrations.length,
 			workspaceEntrySha256: workspaceEntry.sha256
 		}

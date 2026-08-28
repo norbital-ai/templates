@@ -14,8 +14,8 @@ import { discoverTemplates, repositoryRoot } from './lib/templates.mjs';
 
 /**
  * Proves the portable artifact contract: Bolt sync is the compilation step. Against a materialized
- * depset it must emit a module accepted by the authoritative protocol decoder, with intact embedded
- * browser assets; no separate application build participates in this lifecycle.
+ * depset it must emit a module accepted by the authoritative protocol decoder, with intact
+ * content-addressed browser assets; no separate application build participates in this lifecycle.
  */
 
 function fail(message) {
@@ -143,12 +143,16 @@ const smoke = Effect.acquireUseRelease(
 					artifactVersion: decodeJsonObject(
 						readFileSync(path.join(workspace, 'package.json'), 'utf8'),
 						`${workspace}/package.json`
-					).version
+					).version,
+					readAsset: ({ sha256 }) =>
+						readFileSync(
+							path.join(path.dirname(runtimeEntry), protocolModule.ARTIFACT_ASSET_DIRECTORY, sha256)
+						)
 				})
 			);
 			return {
 				$schema: '../release/runtime-smoke.schema.json',
-				schemaVersion: 5,
+				schemaVersion: 6,
 				template: template.slug,
 				lockHash: built.depset.lockHash,
 				buildCommand: 'bolt sync',

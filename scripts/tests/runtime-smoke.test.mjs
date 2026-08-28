@@ -11,14 +11,15 @@ const validArtifact = () => {
 		artifactVersion: '0.0.1',
 		schemaFingerprint: `sha256:${'a'.repeat(64)}`,
 		requiredFacilities: ['tasks', 'ai', 'database'],
-		staticAssets: [
+		browserAssets: [
 			{
 				path: '/workspace.js',
 				contentType: 'text/javascript',
 				sha256: createHash('sha256').update(bytes).digest('hex'),
-				bytes
+				byteLength: bytes.byteLength
 			}
 		],
+		serverAssets: [],
 		integrations: []
 	};
 	const runtime = {
@@ -27,11 +28,11 @@ const validArtifact = () => {
 		manifest,
 		protocolVersion: 2
 	};
-	return { runtime, bundle: runtime, artifactVersion: '0.0.1' };
+	return { runtime, bundle: runtime, artifactVersion: '0.0.1', readAsset: () => bytes };
 };
 
 describe('runtime smoke contract', () => {
-	it('summarizes the decoded portable artifact and its embedded client', () => {
+	it('summarizes the decoded portable artifact and its sidecar client asset', () => {
 		assert.deepEqual(inspectRuntimeArtifact(validArtifact()), {
 			runtimeExports: ['activate', 'dispatch', 'manifest', 'protocolVersion'],
 			manifest: {
@@ -40,7 +41,8 @@ describe('runtime smoke contract', () => {
 				artifactVersion: '0.0.1',
 				schemaFingerprint: `sha256:${'a'.repeat(64)}`,
 				requiredFacilities: ['ai', 'database', 'tasks'],
-				staticAssetCount: 1,
+				browserAssetCount: 1,
+				serverAssetCount: 0,
 				integrationCount: 0,
 				workspaceEntrySha256: createHash('sha256')
 					.update(new TextEncoder().encode('workspace client'))
@@ -55,9 +57,9 @@ describe('runtime smoke contract', () => {
 		assert.throws(() => inspectRuntimeArtifact(fixture), /protocol versions do not agree/);
 	});
 
-	it('rejects corrupt embedded client bytes', () => {
+	it('rejects corrupt sidecar client bytes', () => {
 		const fixture = validArtifact();
-		fixture.bundle.manifest.staticAssets[0].sha256 = '0'.repeat(64);
-		assert.throws(() => inspectRuntimeArtifact(fixture), /wrong digest/);
+		fixture.bundle.manifest.browserAssets[0].sha256 = '0'.repeat(64);
+		assert.throws(() => inspectRuntimeArtifact(fixture), /wrong size or digest/);
 	});
 });
