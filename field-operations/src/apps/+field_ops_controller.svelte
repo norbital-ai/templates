@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { client } from '../lib/workspace-client.js';
-	import { collectionClient } from '../lib/collection-client.js';
 	import { Button } from '@norbital-ai/ui/button';
+	import { getCollectionClientForSurface } from '@norbital-ai/ui/collection-runtime';
 	import { useI18n } from '@norbital-ai/ui/i18n';
 	import type { TenantI18nKeys } from '$bolt/i18n-keys';
 	import { CollectionKanban } from '@norbital-ai/ui/collection-kanban';
@@ -24,6 +24,7 @@
 	const pickerTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
 	const { t } = useI18n<TenantI18nKeys>();
+	const collectionClient = getCollectionClientForSurface(client, 'field_ops_controller');
 
 	let dispatchDay = $state(today);
 	/**
@@ -46,27 +47,37 @@
 	);
 	const jobs = $derived(jobsQuery.current ?? []);
 	const jobById = $derived(new Map(jobs.map((job) => [job.id, job])));
-	const jobIds = $derived(jobs.map((job) => job.id));
 	const assignmentsQuery = $derived(
-		jobIds.length > 0
-			? client.db.job_assignments.findMany({
-					where: { job_id: { in: jobIds } },
-					columns: {
-						id: true,
-						job_id: true,
-						assignee_user_id: true,
-						status: true
-					},
-					orderBy: { dispatched_at: 'asc' },
-					limit: 1000
-				})
-			: undefined
+		client.db.job_assignments.findMany({
+			where: {
+				job_assignment_job: { scheduled_for: { eq: dispatchDay } }
+			},
+			columns: {
+				id: true,
+				job_id: true,
+				assignee_user_id: true,
+				status: true,
+				summary: true,
+				search_text: true
+			},
+			orderBy: { dispatched_at: 'asc' },
+			limit: 1000
+		})
 	);
-	const assignments = $derived(assignmentsQuery?.current ?? []);
+	const assignments = $derived(assignmentsQuery.current ?? []);
 	const visibleAssignmentIds = $derived(assignments.map((assignment) => assignment.id));
-	// The board consumes the same sync-backed assignment ids as the cards and map.
+	/**
+	 * Date changes start the assignment list and board together.
+	 *
+	 * This used to wait for jobs, then assignments, then feed those assignment ids into the board —
+	 * three serial reactive reads before a card could appear. The relationship predicate is the same
+	 * date fact expressed at the assignment boundary, so both live queries can start as soon as the
+	 * picker changes while the jobs and sites needed by the map load alongside them.
+	 */
 	const boardQuery = $derived({
-		where: { id: { in: visibleAssignmentIds } },
+		where: {
+			job_assignment_job: { scheduled_for: { eq: dispatchDay } }
+		},
 		orderBy: { dispatched_at: 'asc' as const }
 	});
 	// View-level lane presentation: labels/colors live here, not on the model (pure data schema).
@@ -83,12 +94,6 @@
 		{ value: 'assigned', label: t('component.status_assigned'), color: 'blue' },
 		{ value: 'completed', label: t('component.status_completed'), color: 'green' }
 	]);
-	const suspicionReadAccessQuery = client.system.access.explain({
-		action: 'read',
-		resource: 'suspicious_activity_logs'
-	});
-	const mayReadSuspicion = $derived(suspicionReadAccessQuery.current?.allowed === true);
-
 	/**
 	 * Which assignments have a suspicion nobody has answered.
 	 *
@@ -97,7 +102,7 @@
 	 * boolean each.
 	 */
 	const openSuspicionQuery = $derived(
-		mayReadSuspicion && visibleAssignmentIds.length > 0
+		visibleAssignmentIds.length > 0
 			? client.db.suspicious_activity_logs.findMany({
 					where: {
 						resolved_at: { isNull: true },
@@ -122,24 +127,12 @@
 		})
 	);
 	/**
-	 * Who a job can be dispatched to: the workspace's people, read straight from the directory.
-	 *
-	 * One read, because there is one description of a person. The picker names the person directly
-	 * rather than a company standing in front of them, so the same rows fill the picker and render
-	 * whoever a job is dispatched to.
-	 *
-	 * The directory is every user, not only contractors: a person's team is not readable through the
-	 * identity field mask (`id` and `name`, nothing else), so this list cannot be narrowed
-	 * client-side to the `Contractor` team. Dispatching to somebody whose team confers no contractor
-	 * policy produces a valid assignment they simply cannot open, which is a visible mistake rather
-	 * than a silent one.
+	 * The relation field delegates identity lookup to the platform relationship renderer. Authored
+	 * workspace code declares which relation it is editing, but never receives a query handle for the
+	 * platform-owned user table.
 	 */
-	const usersQuery = $derived(
-		client.db.user.findMany({
-			columns: { id: true, name: true },
-			orderBy: { name: 'asc' },
-			limit: 500
-		})
+	const assigneeField = collectionClient.collections.job_assignments.fields.find(
+		(field) => field.name === 'assignee_user_id'
 	);
 	const sitesQuery = $derived(
 		client.db.sites.findMany({
@@ -149,27 +142,6 @@
 	);
 	const siteNameById = $derived(
 		new Map((sitesQuery.current ?? []).map((site) => [site.id, site.name]))
-	);
-	const userNameById = $derived(
-		new Map((usersQuery.current ?? []).map((user) => [user.id, user.name]))
-	);
-	const assignmentCardById = $derived(
-		new Map(
-			assignments.flatMap((assignment) => {
-				const job = jobById.get(assignment.job_id);
-				return job
-					? [
-							[
-								assignment.id,
-								{
-									job: job.title,
-									assignee: userNameById.get(assignment.assignee_user_id) ?? 'Unknown assignee'
-								}
-							] as const
-						]
-					: [];
-			})
-		)
 	);
 	/** What the assign-contractor sheet is about to submit; busy and failure states come from the mutation. */
 	const assignment = $state<{ jobId: string | null; assigneeUserId: string | null }>({
@@ -185,13 +157,6 @@
 			label: `${job.title} · ${siteNameById.get(job.site_id) ?? '—'}`
 		}))
 	);
-	const assignContractorOptions = $derived(
-		(usersQuery.current ?? []).map((user) => ({
-			value: user.id,
-			label: user.name
-		}))
-	);
-
 	function setDispatchDay(next: string): void {
 		dispatchDay = next;
 	}
@@ -260,7 +225,7 @@
 	const mapPoints = $derived.by(() => {
 		const assignmentsBySite = new Map<
 			string,
-			Array<{ id: string; job: string; assignee: string; status: string }>
+			Array<{ id: string; job: string; summary: string | null; status: string }>
 		>();
 		for (const assignment of assignments) {
 			const job = jobById.get(assignment.job_id);
@@ -269,7 +234,7 @@
 			siteAssignments.push({
 				id: assignment.id,
 				job: job.title,
-				assignee: userNameById.get(assignment.assignee_user_id) ?? 'Unknown assignee',
+				summary: assignment.summary?.trim() || null,
 				status: assignment.status ?? 'assigned'
 			});
 			assignmentsBySite.set(job.site_id, siteAssignments);
@@ -328,7 +293,9 @@
 							</p>
 						</Inline>
 						<p class="text-muted-foreground">
-							{assignment.assignee} · {assignmentStatusLabel(assignment.status)}
+							{assignment.summary
+								? `${assignment.summary} · ${assignmentStatusLabel(assignment.status)}`
+								: assignmentStatusLabel(assignment.status)}
 						</p>
 					</li>
 				{/each}
@@ -397,7 +364,7 @@
 
 {#snippet dispatchSchedule()}
 	<Stack gap="sm" fill>
-		{#if suspicionReadAccessQuery.error || openSuspicionQuery?.error}
+		{#if openSuspicionQuery?.error}
 			<p class="px-1 text-sm text-destructive" role="alert">
 				{t('app.field_ops_controller.review_status_failed')}
 			</p>
@@ -419,29 +386,20 @@
 							lanes={dispatchLanes}
 							rows={2}
 							query={boardQuery}
+							recordMetadata={(assignment) =>
+								typeof assignment.id === 'string' && suspiciousAssignmentIds.has(assignment.id)
+									? [
+											{
+												kind: 'flag',
+												tone: 'warning',
+												label: t('component.suspicion_open')
+											}
+										]
+									: []}
 						>
 							{#snippet fields({ Field })}
 								<Field name="job_id" card="title" />
 								<Field name="assignee_user_id" card="subtitle" />
-							{/snippet}
-							{#snippet Card(assignment)}
-								<Stack gap="xs">
-									<Inline align="start" gap="xs" class="min-w-0">
-										{#if suspiciousAssignmentIds.has(assignment.id)}
-											<Icon
-												icon="lucide:shield-alert"
-												class="mt-0.5 size-4 shrink-0 text-warning"
-												aria-label={t('component.suspicion_open')}
-											/>
-										{/if}
-										<p class="min-w-0 break-words text-sm font-medium [overflow-wrap:anywhere]">
-											{assignmentCardById.get(assignment.id)?.job ?? t('component.job_assignment')}
-										</p>
-									</Inline>
-									<p class="text-meta">
-										{assignmentCardById.get(assignment.id)?.assignee ?? t('component.contractor')}
-									</p>
-								</Stack>
 							{/snippet}
 						</CollectionKanban>
 					</Bound>
@@ -548,25 +506,20 @@
 			<label class="block text-sm">
 				<Stack gap="xs">
 					<span class="font-medium">{t('component.contractor')}</span>
-					<Combobox
-						options={assignContractorOptions}
-						bind:value={assignment.assigneeUserId}
-						emptyPlaceholder={t('app.field_ops_controller.select_contractor')}
-						searchPlaceholder={t('app.field_ops_controller.search_contractors')}
-						clientConfig={{
-							isLoading: usersQuery.loading,
-							error: usersQuery.error?.message ?? null
-						}}
-						disabled={!assignSelectedJob || assignmentSettling}
-					/>
+					{#if assigneeField}
+						<DataRenderer
+							field={assigneeField}
+							value={assignment.assigneeUserId}
+							mode="edit"
+							placeholder={t('app.field_ops_controller.select_contractor')}
+							disabled={!assignSelectedJob || assignmentSettling}
+							onValueChange={(value) =>
+								(assignment.assigneeUserId = typeof value === 'string' ? value : null)}
+						/>
+					{/if}
 				</Stack>
 			</label>
 
-			{#if assignSelectedJob && (usersQuery.current ?? []).length === 0}
-				<p class="text-sm text-destructive" role="alert">
-					{t('app.field_ops_controller.no_contractors')}
-				</p>
-			{/if}
 			{#if (assignJobsQuery.current ?? []).length === 0 && !assignJobsQuery.loading}
 				<p class="text-sm text-muted-foreground">
 					{t('app.field_ops_controller.no_unassigned_jobs', { date: dispatchDay })}

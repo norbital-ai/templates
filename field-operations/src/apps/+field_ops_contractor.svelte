@@ -45,26 +45,6 @@
 	const authoritySettled = $derived(visibleApps.includes('field_ops_contractor'));
 	const dispatchAuthority = $derived(visibleApps.includes('field_ops_controller'));
 
-	/**
-	 * The people directory, for the assignee column a dispatcher needs and a contractor does not.
-	 *
-	 * Only fetched under dispatch authority: a scoped contractor sees only their own rows here, so the
-	 * column would say the same thing on every line. `user` is granted to any authenticated
-	 * subject masked to an id and a name, which is exactly what a name column needs.
-	 */
-	const usersQuery = $derived(
-		dispatchAuthority
-			? client.db.user.findMany({
-					columns: { id: true, name: true },
-					orderBy: { name: 'asc' },
-					limit: 500
-				})
-			: undefined
-	);
-	const assigneeNameById = $derived(
-		new Map((usersQuery?.current ?? []).map((user) => [user.id, user.name]))
-	);
-
 	const jobsQuery = $derived(
 		client.db.jobs.findMany({
 			orderBy: { scheduled_for: 'desc' },
@@ -151,9 +131,13 @@
 						label={t('component.contractor')}
 						minWidth={220}
 						card="subtitle"
-						renderer={FormattedValueRenderer}
-						rendererProps={{
-							format: ({ row }) => assigneeNameById.get(row.assignee_user_id) ?? '—'
+						relationOptions={{
+							label: (record) => {
+								const name = record.name;
+								return name != null && name !== '' ? String(name) : '—';
+							},
+							orderBy: { name: 'asc' },
+							limit: 500
 						}}
 					/>
 				{/if}

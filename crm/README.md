@@ -200,10 +200,10 @@ src/
   would be the UTC day, a day behind for part of every day on a server west of Greenwich. Task
   `due_date` defaults and purchase-order `expected_date` (two weeks out) use it.
 - **Apps** are declarative: `$state` for operator input (account selector, rep filter), `$derived`
-  for everything downstream — label maps and queries. Every relation column renders through a
-  label map from one page-level query (`client.db.user`, the scoped quote/invoice lists), never a
-  query per row, and never a UUID. Owner names come from `client.db.user`; the platform's user
-  table is not duplicated.
+  for everything downstream — label maps and queries. Collection surfaces bulk-resolve relation
+  columns, while standalone relation pickers use the generic relationship renderer; authored code
+  never queries platform-owned identity tables and never renders a UUID. The platform's user table
+  remains internal and is not duplicated as a workspace collection.
 - **Representations** are the collection-owned create/edit surfaces. Relation fields use the
   `RelationshipRenderer` with human labels (`doc_no: title`, `code · name`, `first last`), and the
   activities and settlements forms switch their target field by `regarding_type`.

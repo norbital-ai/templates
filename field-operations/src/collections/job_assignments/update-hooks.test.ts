@@ -58,3 +58,20 @@ test('a system-only checked flag update does not rewrite status or touch the par
 	);
 	assert.equal(parentWrites, 0);
 });
+
+test('an update cannot replace the hook-owned board search label', async () => {
+	const prepared = await settle(
+		mutateHook('before')({
+			input: { summary: 'Visit complete', search_text: 'forged title' },
+			existing: {
+				id: '019f6f10-3000-7000-8000-000000000008',
+				job_id: '019f6f10-2000-7000-8000-000000000008',
+				assignee_user_id: '019f6f10-0003-7000-8000-000000000012',
+				status: 'assigned',
+				search_text: 'Installation — 112, Hillview Crescent'
+			}
+		})
+	);
+
+	assert.deepEqual(prepared, { summary: 'Visit complete' });
+});

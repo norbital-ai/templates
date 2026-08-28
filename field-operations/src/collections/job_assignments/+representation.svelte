@@ -41,29 +41,19 @@
 	const platform = getPlatformStateContext();
 
 	/**
-	 * Ask the runtime about the collections themselves. App visibility is navigation, not data
-	 * authority, and using an app name as a role would make this component leak the existence of a
-	 * restricted collection whenever those two lists drifted apart.
+	 * Keep authored workspace code on the public capability surface. System access decisions stay
+	 * inside Bolt's wiring; this representation only chooses its framing from the apps the shell
+	 * already made visible. The collection policies remain the authority for every read and write.
+	 *
+	 * Both controller teams expose `field_ops_controller`; both controller and contractor teams
+	 * expose `field_ops_contractor`. Those declarations are adjacent to the collection grants in the
+	 * policies, so the controller-only review UI and the shared communication UI follow the same
+	 * capability boundary without querying Bolt's private system API.
 	 */
-	const suspicionReadAccessQuery = client.system.access.explain({
-		action: 'read',
-		resource: 'suspicious_activity_logs'
-	});
-	const mayReadSuspicion = $derived(suspicionReadAccessQuery.current?.allowed === true);
-	const suspicionUpdateAccessQuery = $derived(
-		mayReadSuspicion
-			? client.system.access.explain({
-					action: 'update',
-					resource: 'suspicious_activity_logs'
-				})
-			: undefined
-	);
-	const mayResolveSuspicion = $derived(suspicionUpdateAccessQuery?.current?.allowed === true);
-	const communicationReadAccessQuery = client.system.access.explain({
-		action: 'read',
-		resource: 'communication_logs'
-	});
-	const mayReadCommunication = $derived(communicationReadAccessQuery.current?.allowed === true);
+	const visibleApps = $derived(platform().apps);
+	const mayReadSuspicion = $derived(visibleApps.includes('field_ops_controller'));
+	const mayResolveSuspicion = $derived(visibleApps.includes('field_ops_controller'));
+	const mayReadCommunication = $derived(visibleApps.includes('field_ops_contractor'));
 
 	const photoFileSchema = Schema.Struct({
 		file_name: Schema.String,

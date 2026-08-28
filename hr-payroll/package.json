@@ -16,10 +16,10 @@
 	"dependencies": {
 		"@iconify/svelte": "^5.2.2",
 		"@internationalized/date": "^3.12.3",
-		"@norbital-ai/bolt": "0.0.8",
-		"@norbital-ai/bolt-protocol": "0.0.8",
-		"@norbital-ai/std": "0.0.8",
-		"@norbital-ai/ui": "0.0.8",
+		"@norbital-ai/bolt": "0.0.9",
+		"@norbital-ai/bolt-protocol": "0.0.9",
+		"@norbital-ai/std": "0.0.9",
+		"@norbital-ai/ui": "0.0.9",
 		"effect": "4.0.0-rc.111",
 		"exceljs": "4.4.0",
 		"mode-watcher": "^1.1.0",
@@ -29,7 +29,7 @@
 		"vite": "^8.2.2"
 	},
 	"devDependencies": {
-		"@norbital-ai/doctor": "0.0.8",
+		"@norbital-ai/doctor": "0.0.9",
 		"@typescript/native": "npm:typescript@7.0.2",
 		"prettier": "^3.9.6",
 		"prettier-plugin-svelte": "^4.1.1",

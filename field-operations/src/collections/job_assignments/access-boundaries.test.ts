@@ -64,7 +64,8 @@ test('contractor projections expose operational assignment and photo fields only
 		'completed_at',
 		'amount_charged',
 		'location',
-		'summary'
+		'summary',
+		'search_text'
 	]);
 	assert.deepEqual(grant(contractor, 'job_assignments', 'update')?.fields, [
 		'status',
@@ -122,6 +123,15 @@ test('only the static review automation can mark assignments checked', () => {
 	assert.equal(grant(suspicionAutomation, 'suspicious_activity_logs', 'delete'), undefined);
 });
 
+test('controller mutations can carry the hook-owned search label through field authorization', () => {
+	for (const action of ['create', 'update'] as const) {
+		assert.equal(
+			grant(controller, 'job_assignments', action)?.fields?.includes('search_text'),
+			true
+		);
+	}
+});
+
 test('WhatsApp is a no-app, no-delegation, existing-work surface', () => {
 	assert.equal(whatsappEnvoy.delegation, 'disabled');
 	assert.deepEqual(whatsappPolicy.capabilities?.apps, []);
@@ -134,7 +144,8 @@ test('WhatsApp is a no-app, no-delegation, existing-work surface', () => {
 		'completed_at',
 		'amount_charged',
 		'location',
-		'summary'
+		'summary',
+		'search_text'
 	]);
 	assert.deepEqual(grant(whatsapp, 'job_assignments', 'update')?.fields, [
 		'status',

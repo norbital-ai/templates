@@ -1,7 +1,6 @@
 import { isCalendarDate } from '@norbital-ai/std/date';
 import { Effect, Schema } from 'effect';
 import type { Pipelines } from './$types.js';
-import { usersByName } from '../../lib/identity-directory.js';
 
 function shiftCalendarDate(value: string, days: number): string {
 	if (!isCalendarDate(value)) {
@@ -14,20 +13,19 @@ function shiftCalendarDate(value: string, days: number): string {
 
 /** One non-blank text value as a roster cell carries it: `trim().min(1)` on the wire. */
 const rosterText = Schema.String.check(Schema.isPattern(/^\s*\S[\s\S]*$/));
+const rosterUserId = Schema.String.check(
+	Schema.isPattern(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)
+);
 
 const rowSchema = Schema.Struct({
 	site_name: rosterText,
 	scheduled_for: rosterText,
 	job_title: rosterText,
 	/**
-	 * Who the job goes to, by the name they sign in under.
-	 *
-	 * A contractor is a user, not a company, so the roster names a person and the import resolves them
-	 * against `user`. A name is the only identifying field the identity
-	 * grant's mask exposes — the address is not readable through it — so a name shared by two people
-	 * is refused by `usersByName` rather than resolved to whichever row came back first.
+	 * The declared relationship value, supplied by the operator rather than resolved through a
+	 * private identity query. The relationship's database foreign key is the existence check.
 	 */
-	contractor_name: rosterText,
+	assignee_user_id: rosterUserId,
 	summary: Schema.optional(Schema.String)
 });
 
@@ -57,7 +55,7 @@ function rowLabel(row: RosterRow, index: number): string {
 export default {
 	import: {
 		description:
-			'Turns a week of roster rows into dispatched assignments by matching each row to a single unassigned job by site, date and title, and each named contractor to the user they sign in as.',
+			'Turns a week of roster rows into dispatched assignments by matching each row to a single unassigned job by site, date and title, using the explicit assignee user relationship value supplied in the roster.',
 		input: importSchema,
 		handler: ({ input }, api) =>
 			Effect.gen(function* () {
@@ -96,13 +94,12 @@ export default {
 				}
 
 				const scheduledDates = [...new Set(rows.map((row) => row.scheduled_for))];
-				const [sites, contractorByName, jobs, existingAssignments] = yield* Effect.all(
+				const [sites, jobs, existingAssignments] = yield* Effect.all(
 					[
 						api.db.sites.findMany({
 							columns: { id: true, name: true },
 							limit: QUERY_LIMIT
 						}),
-						usersByName(api),
 						api.db.jobs.findMany({
 							where: { scheduled_for: { in: scheduledDates } },
 							columns: {
@@ -150,12 +147,6 @@ export default {
 						continue;
 					}
 
-					const contractor = contractorByName.get(normalizeKey(row.contractor_name));
-					if (contractor == null) {
-						problems.push(`${label}: no single workspace user is named "${row.contractor_name}".`);
-						continue;
-					}
-
 					const matchKey = `${site.id}\t${row.scheduled_for}\t${normalizeKey(row.job_title)}`;
 					const matchingJobs = (jobsByMatchKey.get(matchKey) ?? []).filter(
 						(job) => job.status === 'unassigned' && !assignmentByJobId.has(job.id)
@@ -182,7 +173,7 @@ export default {
 					resolvedRows.push({
 						row,
 						jobId: job.id,
-						assigneeUserId: contractor.id
+						assigneeUserId: row.assignee_user_id
 					});
 				}
 

@@ -78,7 +78,8 @@ const assignmentReadFields = [
 	'completed_at',
 	'amount_charged',
 	'location',
-	'summary'
+	'summary',
+	'search_text'
 ] as const;
 const assignmentUpdateFields = [
 	'status',

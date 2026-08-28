@@ -1,2 +1,2 @@
-week_start,site_name,scheduled_for,job_title,contractor_name,summary
-2026-07-06,REPLACE_SITE_NAME,2026-07-07,REPLACE_JOB_TITLE,REPLACE_CONTRACTOR_NAME,Optional note — delete this example row before import
+week_start,site_name,scheduled_for,job_title,assignee_user_id,summary
+2026-07-06,REPLACE_SITE_NAME,2026-07-07,REPLACE_JOB_TITLE,00000000-0000-0000-0000-000000000000,Optional note — delete this example row before import
