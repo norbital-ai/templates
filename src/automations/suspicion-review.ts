@@ -573,6 +573,7 @@ export function reviewAssignmentSuspicion(
 				evidence_id: true
 			}
 		} as const;
+		let persistenceError: unknown;
 		const created = yield* api.db.suspicion_reviews
 			.mutate({
 				job_assignment_id: assignment.id,
@@ -587,12 +588,20 @@ export function reviewAssignmentSuspicion(
 			})
 			.pipe(
 				Effect.as(true as const),
-				Effect.catch(() => Effect.succeed(false as const))
+				Effect.catch((error: unknown) =>
+					Effect.sync(() => {
+						persistenceError = error;
+						return false as const;
+					})
+				)
 			);
 		const review = yield* api.db.suspicion_reviews.findFirst(reviewIdentity);
 		if (review == null) {
 			return yield* Effect.fail(
-				new Error('The suspicion review was written but could not be read back by its basis hash.')
+				persistenceError ??
+					new Error(
+						'The suspicion review was written but could not be read back by its basis hash.'
+					)
 			);
 		}
 		lifecycle.reviewPersisted?.(assignment.id);

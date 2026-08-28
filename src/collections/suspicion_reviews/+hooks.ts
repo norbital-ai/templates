@@ -6,8 +6,12 @@ export default {
 		perRecord: {
 			before: {
 				description: 'Keeps every automated suspicion decision and its evidence basis immutable.',
-				handler: () =>
-					Effect.fail(new Error('Automated suspicion reviews cannot be changed after inference.'))
+				handler: ({ input, existing }) =>
+					existing === undefined
+						? input
+						: Effect.fail(
+								new Error('Automated suspicion reviews cannot be changed after inference.')
+							)
 			}
 		}
 	},

@@ -22,6 +22,30 @@ const OutputSchema = Schema.Struct({
 
 const MAX_FAILURE_DETAILS = 100;
 
+export type SuspicionReviewAutomationResult = Readonly<{
+	reviewed_at: string;
+	assignment_count: number;
+	inference_count: number;
+	failure_count: number;
+	failure_details: ReadonlyArray<Readonly<{ assignment_id: string; stage: string }>>;
+	failure_details_truncated: boolean;
+	counts: Readonly<Record<string, number>>;
+}>;
+
+/** Keeps the complete bounded audit summary on a failed run while making its task status truthful. */
+export class SuspicionReviewIncompleteError extends Error {
+	readonly outcome: SuspicionReviewAutomationResult;
+
+	constructor(outcome: SuspicionReviewAutomationResult) {
+		const first = outcome.failure_details[0];
+		super(
+			`Suspicion review did not complete: ${outcome.failure_count} of ${outcome.assignment_count} assignments failed${first === undefined ? '.' : `; first failure ${first.assignment_id} at ${first.stage}.`}`
+		);
+		this.name = 'SuspicionReviewIncompleteError';
+		this.outcome = outcome;
+	}
+}
+
 export default defineAutomation(
 	{ schedule: '0 * * * *' },
 	{
@@ -37,6 +61,7 @@ export default defineAutomation(
 				const counts: Record<string, number> = { checked: 0, failed: 0 };
 				let inferenceCount = 0;
 				let failureCount = 0;
+				let firstFailureLogged = false;
 				const failureDetails: Array<{ assignment_id: string; stage: string }> = [];
 				const recordFailure = (assignmentId: string, stage: string) => {
 					failureCount += 1;
@@ -65,7 +90,14 @@ export default defineAutomation(
 						}
 					}).pipe(
 						Effect.map((result) => ({ success: true as const, result })),
-						Effect.catch(() => Effect.succeed({ success: false as const }))
+						Effect.catch((error: unknown) => {
+							if (firstFailureLogged) return Effect.succeed({ success: false as const });
+							firstFailureLogged = true;
+							return Effect.logError(
+								`[field-ops-suspicion-review] first assignment failure (${assignment.id})`,
+								error
+							).pipe(Effect.as({ success: false as const }));
+						})
 					);
 					if (!review.success) {
 						counts.failed += 1;
@@ -100,7 +132,7 @@ export default defineAutomation(
 					counts[review.result.status] = (counts[review.result.status] ?? 0) + 1;
 				}
 				yield* api.progress({ progress: 1, text: 'Suspicion review complete' });
-				return {
+				const outcome = {
 					reviewed_at: (yield* currentDate).toISOString(),
 					assignment_count: assignments.length,
 					inference_count: inferenceCount,
@@ -108,7 +140,10 @@ export default defineAutomation(
 					failure_details: failureDetails,
 					failure_details_truncated: failureCount > failureDetails.length,
 					counts
-				};
+				} satisfies SuspicionReviewAutomationResult;
+				if (failureCount > 0)
+					return yield* Effect.fail(new SuspicionReviewIncompleteError(outcome));
+				return outcome;
 			})
 	}
 );

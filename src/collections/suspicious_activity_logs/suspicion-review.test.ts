@@ -1,7 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { Effect, Schema } from 'effect';
-import suspicionReviewAutomation from '../../automations/+review_job_assignment_suspicion.js';
+import suspicionReviewAutomation, {
+	SuspicionReviewIncompleteError
+} from '../../automations/+review_job_assignment_suspicion.js';
 import {
 	ASSIGNMENT_PAGE_SIZE,
 	MAX_INFERENCE_CONTEXT_CHARS,
@@ -228,7 +230,12 @@ async function runAutomation(api: unknown): Promise<RunResult> {
 			scope: {}
 		} as never
 	);
-	return Effect.runPromise(effect as Effect.Effect<RunResult, unknown, never>);
+	try {
+		return await Effect.runPromise(effect as Effect.Effect<RunResult, unknown, never>);
+	} catch (error) {
+		if (error instanceof SuspicionReviewIncompleteError) return error.outcome;
+		throw error;
+	}
 }
 
 function facts(): SuspicionReviewFacts {
