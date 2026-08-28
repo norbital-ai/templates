@@ -81,7 +81,7 @@ const modules = await Effect.runPromise(
 				load('measure'),
 				load('coverage'),
 				load('ordinary-rate'),
-				load('entries'),
+				load('obligations'),
 				load('settle')
 			]);
 		},
@@ -120,7 +120,7 @@ const [
 		overtimeHourlyRate,
 		absenceDayRate
 	},
-	{ entrySign },
+	{ obligationSign },
 	{ settle }
 ] = modules;
 
@@ -248,16 +248,21 @@ const overtimeLine = (amount) => ({
 	sequence: 2
 });
 const claimSettlement = settle({
-	lines: [claimLine('PAYROLL', 100), claimLine('COMPANY_DIRECT', 75)],
+	base: [],
+	adjustments: [claimLine('PAYROLL', 100), claimLine('COMPANY_DIRECT', 75)],
 	charges: []
 });
 check('a payroll-settled claim reaches employee net', claimSettlement.net, 100);
 check('a company-direct claim is an employer cost', claimSettlement.employerCost, 75);
-check('both claim lines remain available for audit', claimSettlement.lines.length, 2);
+check('both claim adjustments remain available for audit', claimSettlement.adjustments.length, 2);
 
 // Overtime reaches gross with no pay component behind it. Before it was lifted out of the
 // catalogue, SETTLE read `payComponent.nature` and a component-less line would have thrown.
-const derivedOvertimeSettlement = settle({ lines: [overtimeLine(74.66)], charges: [] });
+const derivedOvertimeSettlement = settle({
+	base: [],
+	adjustments: [overtimeLine(74.66)],
+	charges: []
+});
 check(
 	'a derived overtime line is gross without a component',
 	derivedOvertimeSettlement.gross,
@@ -1341,7 +1346,7 @@ const ordinaryRule = {
 };
 const sixHourDay = {
 	date: '2026-01-06',
-	timeEntryId: 't1',
+	workDayId: 'wd1',
 	dayType: 'ORDINARY',
 	hours: 6,
 	normalHours: 8,
@@ -1609,31 +1614,34 @@ check(
 // ────────────────────────────────────────────────────────────────────────────────────────────────
 // Reversal signs are transitive — reversing a reversal restores the original.
 // ────────────────────────────────────────────────────────────────────────────────────────────────
-const original = { id: 'e1', origin: { kind: 'ONE_OFF', note: '' } };
+const original = { id: 'e1', terms: 'ONE_OFF', reverses_obligation_id: null };
 const reversal = {
 	id: 'e2',
-	origin: { kind: 'REVERSAL', reverses_entry_id: 'e1', reason: 'wrong' }
+	terms: 'REVERSAL',
+	reverses_obligation_id: 'e1'
 };
 const reversalOfReversal = {
 	id: 'e3',
-	origin: { kind: 'REVERSAL', reverses_entry_id: 'e2', reason: 'oops' }
+	terms: 'REVERSAL',
+	reverses_obligation_id: 'e2'
 };
-const entryIndex = new Map(
-	[original, reversal, reversalOfReversal].map((entry) => [entry.id, entry])
+const obligationIndex = new Map(
+	[original, reversal, reversalOfReversal].map((obligation) => [obligation.id, obligation])
 );
-check('an ordinary entry pays', entrySign(original, entryIndex), 1);
-check('a reversal takes back', entrySign(reversal, entryIndex), -1);
+check('an ordinary obligation pays', obligationSign(original, obligationIndex), 1);
+check('a reversal takes back', obligationSign(reversal, obligationIndex), -1);
 check(
 	'a reversal of a reversal restores — it does not double the negative',
-	entrySign(reversalOfReversal, entryIndex),
+	obligationSign(reversalOfReversal, obligationIndex),
 	1
 );
 const selfReversing = {
 	id: 'e4',
-	origin: { kind: 'REVERSAL', reverses_entry_id: 'e4', reason: 'loop' }
+	terms: 'REVERSAL',
+	reverses_obligation_id: 'e4'
 };
 throws('a reversal cycle is refused rather than hanging the run', () =>
-	entrySign(selfReversing, new Map([['e4', selfReversing]]))
+	obligationSign(selfReversing, new Map([['e4', selfReversing]]))
 );
 
 /* ── Rest-day and public-holiday work is priced by statute, from the seeded rules ──────────────
@@ -1663,7 +1671,7 @@ const malaysiaRestDay = [
 ];
 const restDay = (hours) => ({
 	date: '2026-01-11',
-	timeEntryId: 't-rest',
+	workDayId: 'wd-rest',
 	dayType: 'REST_DAY',
 	hours,
 	normalHours: 8,

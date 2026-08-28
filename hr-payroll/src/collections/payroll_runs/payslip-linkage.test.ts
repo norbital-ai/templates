@@ -348,13 +348,31 @@ test('a clock past the cut-off is in the bundle, is derived, and is still not pa
 });
 
 test('the same clock one day earlier is inside the cut-off and is paid', () => {
-	// The control for the case above: identical hours, identical everything, one day earlier. If the
-	// window check were removed both cases would read 6 h; if it were over-broad both would read 3.
+	// The control for the case above: identical hours, identical everything, one day earlier. Both
+	// days are paid, but each remains its own adjustment because a payslip adjustment names exactly
+	// one work day. If the window check were removed there would be a third row; if it were
+	// over-broad there would be only one.
 	const measured = measure({
 		workDays: [clock('2026-03-20', '08:30', '20:30'), clock('2026-03-19', '08:30', '20:30')]
 	});
-	assert.equal(lineOf(measured, OT_ORDINARY).quantity, 6);
-	assert.equal(amountOf(measured, OT_ORDINARY), 149.31, '6 h × 1.5 × 16.59');
+	const overtime = measured.adjustments.filter((row) => row.label === OT_ORDINARY);
+	assert.deepEqual(
+		overtime.map((row) => [row.source.id, row.quantity, row.amount]),
+		[
+			['day-2026-03-19', 3, 74.66],
+			['day-2026-03-20', 3, 74.66]
+		]
+	);
+	assert.equal(
+		overtime.reduce((total, row) => total + Number(row.quantity), 0),
+		6,
+		'the two source-specific rows still pay all six hours'
+	);
+	assert.equal(
+		overtime.reduce((total, row) => total + row.amount, 0),
+		149.32,
+		'each source-specific adjustment rounds its own three-hour amount'
+	);
 });
 
 test('an overtime adjustment names the statutory band, the work day, and no pay component', () => {

@@ -4,21 +4,20 @@
 	import { useI18n } from '@norbital-ai/ui/i18n';
 	import type { TenantI18nKeys } from '$bolt/i18n-keys';
 	/**
-	 * The leave event **is** the leave request, so this is the whole request form.
+	 * The leave event is the core of the leave request, so this is its event editor.
 	 *
-	 * Every other column on `leave_requests` — `kind`, `from_date`, `to_date`, `days`, the two
-	 * half-day flags, `reason`, `certificate_file` — is `generatedAlwaysAs` over this value:
+	 * Every other event-derived column on `leave_requests` — `kind`, `from_date`, `to_date`, `days`,
+	 * the two half-day flags and `reason` — is `generatedAlwaysAs` over this value:
 	 * read-only projections the database computes so the row can be indexed, filtered and listed.
-	 * Painting them beside this editor showed the operator the same eight facts twice, once as raw
+	 * Painting them beside this editor showed the operator the same event facts twice, once as raw
 	 * JSON and once as fields that could not be typed into. The request is entered here, once, and
 	 * the projections follow from it.
 	 *
-	 * `certificate_file` is the file itself — key, name, size, mime type — and `source_id` is
-	 * provenance the migration wrote; neither is ever shown as a uuid. The certificate is uploaded
-	 * through the platform's own file editor, and `source_id` is carried through an edit untouched.
+	 * `source_id` is provenance the migration wrote and is carried through an edit untouched. A
+	 * certificate is an ordinary `leave_requests.certificate_file` column rendered by the collection
+	 * form beside this event editor, so it is no longer hidden inside this JSON value.
 	 */
 	import { Combobox } from '@norbital-ai/ui/combobox';
-	import { DataRenderer, type CollectionField } from '@norbital-ai/ui/data-renderer';
 	import { Input } from '@norbital-ai/ui/input';
 	import { Grid, Stack } from '@norbital-ai/ui/layout';
 	import { numberFrom } from '../../lib/ui/renderer-input.js';
@@ -60,42 +59,6 @@
 			description: t('renderer.leave_event.kind_encashment_desc')
 		}
 	]);
-
-	const CERTIFICATE_FIELD = {
-		name: 'certificate_file',
-		kind: 'file',
-		nullable: true
-	} satisfies CollectionField;
-
-	/**
-	 * What the file editor hands back, narrowed to what the event stores.
-	 *
-	 * `DataRenderer` types its `onValueChange` as `unknown` because it renders every column kind, so
-	 * the narrowing has to happen here. Writing the value through unchecked would put whatever the
-	 * editor produced into a schema-validated union and fail the decode on the next read, which
-	 * shows as the whole event reverting rather than as a bad certificate. The file column definition
-	 * is the platform's own `FileRef` shape, validated once here rather than field by field.
-	 */
-	const certificateValueSchema = Schema.Struct({
-		storage_key: Schema.String,
-		file_name: Schema.optional(Schema.String),
-		file_size: Schema.optional(Schema.Number),
-		mime_type: Schema.optional(Schema.String)
-	});
-	type CertificateValue = Schema.Schema.Type<typeof certificateValueSchema>;
-
-	const asCertificate = (next: unknown): CertificateValue | null => {
-		const parsed = Schema.decodeUnknownResult(certificateValueSchema)(next);
-		if (!Result.isSuccess(parsed)) return null;
-		const value = parsed.success;
-		if (value.storage_key === '') return null;
-		return {
-			storage_key: value.storage_key,
-			file_name: value.file_name ?? value.storage_key,
-			file_size: value.file_size ?? 0,
-			mime_type: value.mime_type ?? 'application/octet-stream'
-		};
-	};
 
 	let props: LeaveEventRendererProps = $props();
 	const disabled = $derived(props.mode === 'edit' ? props.disabled : true);
@@ -349,8 +312,7 @@
 					end: { date: on, half: 'SECOND' }
 				},
 				chargeable_days: null,
-				reason: null,
-				certificate_file: null
+				reason: null
 			};
 		}
 		const on = today();
@@ -434,20 +396,6 @@
 					/>
 				</Stack>
 			</label>
-			<Stack gap="xs" class="text-sm font-medium">
-				<span>{t('component.certificate')}</span>
-				<DataRenderer
-					field={CERTIFICATE_FIELD}
-					value={current.certificate_file}
-					mode="edit"
-					{disabled}
-					onValueChange={(next) =>
-						emit({
-							...current,
-							certificate_file: asCertificate(next)
-						})}
-				/>
-			</Stack>
 		{:else if current !== null}
 			<label class="text-sm font-medium">
 				<Stack gap="xs">

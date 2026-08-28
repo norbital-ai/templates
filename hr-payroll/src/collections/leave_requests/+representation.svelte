@@ -1,15 +1,16 @@
 <script lang="ts">
 	/**
-	 * A leave request is three facts: who, which leave, and what happened.
+	 * A leave request is three core facts — who, which leave, and what happened — plus optional
+	 * certificate evidence on time off.
 	 *
 	 * The auto form painted all twelve columns. `kind`, `from_date`, `to_date`, `days`,
-	 * `half_day_start`, `half_day_end`, `reason`, `certificate_file` and `summary` are every one of
-	 * them `generatedAlwaysAs` projections of `event` — the database computes them so the collection
-	 * can be indexed, ordered, searched and listed — so offering them as form fields showed the same
+	 * `half_day_start`, `half_day_end`, `reason` and `summary` are `generatedAlwaysAs` projections of
+	 * `event` — the database computes them so the collection can be indexed, ordered, searched and
+	 * listed — so offering them as form fields showed the same
 	 * values a second time, in inputs the database will not accept a write on.
 	 *
 	 * They are omitted here, not deleted from the model. Each is read: the leave tables order and
-	 * print `from_date`/`to_date`/`days`/`certificate_file`, the approval analytics remote filters on
+	 * print `from_date`/`to_date`/`days`, the approval analytics remote filters on
 	 * `kind`, the scheduling board marks half days from `half_day_start`/`half_day_end`, `reason` and
 	 * `summary` carry the row's search text, and the `(employment_id, leave_type_id, from_date)`
 	 * index is built on three of them. The event is the source; they are its shadow.
@@ -19,8 +20,14 @@
 	import type { TenantI18nKeys } from '$bolt/i18n-keys';
 	import type { RepresentationProps } from './$types.js';
 	import { CollectionForm } from '@norbital-ai/ui/collection-form';
+	import type { CollectionFormValidation } from '@norbital-ai/ui/collection-form';
 	import { Column, Grid } from '@norbital-ai/ui/layout';
+	import { Effect } from 'effect';
 	import { sourceLock, sourceLockRecordMetadata } from '../../lib/scheduling/lock.js';
+	import {
+		certificatePolicyIssues,
+		certificatePolicyMismatchMessage
+	} from './certificate-policy.js';
 
 	let { record, close }: RepresentationProps = $props();
 	const { t } = useI18n<TenantI18nKeys>();
@@ -61,6 +68,25 @@
 			: { kind: 'NONE' as const }
 	);
 	const recordMetadata = $derived(sourceLockRecordMetadata(lock, t));
+
+	/** The browser and the write hook enforce the same arm rule for the ordinary file column. */
+	const validation = {
+		semantic: (values) => {
+			const event =
+				typeof values.event === 'object' && values.event !== null
+					? (values.event as { readonly kind?: unknown })
+					: null;
+			return Effect.succeed(
+				certificatePolicyIssues({
+					eventKind: typeof event?.kind === 'string' ? event.kind : null,
+					certificateFile: values.certificate_file
+				}).map((message) => ({
+					message: certificatePolicyMismatchMessage([message]),
+					path: ['certificate_file']
+				}))
+			);
+		}
+	} satisfies CollectionFormValidation;
 </script>
 
 <svelte:head>
@@ -75,6 +101,7 @@
 	collection="leave_requests"
 	defaultValues={record ?? undefined}
 	{recordMetadata}
+	{validation}
 	submitLabel={record ? t('component.save_leave') : t('component.submit_leave')}
 	onAfterSubmit={record ? undefined : close}
 >
@@ -105,6 +132,9 @@
 				}}
 			/>
 			<Column span="all"><Field name="event" label={t('component.what_happened')} /></Column>
+			<Column span="all"
+				><Field name="certificate_file" label={t('component.certificate')} /></Column
+			>
 		</Grid>
 	{/snippet}
 </CollectionForm>

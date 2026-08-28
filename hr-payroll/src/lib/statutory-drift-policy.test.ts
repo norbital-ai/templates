@@ -38,6 +38,7 @@ test('one drift worker reads law and submits only approved employment successors
 	]);
 	assert.deepEqual(actionsOn(statutoryDriftAutomation, 'statutory_profile_drift_logs'), [
 		'create',
+		'read',
 		'update'
 	]);
 });

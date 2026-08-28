@@ -20,6 +20,7 @@ import {
 	suspicionPrompt,
 	suspicionReviewHash,
 	validDecisionEvidenceId,
+	withinAssignmentExactShaGroups,
 	type SuspicionReviewFacts
 } from '../../automations/suspicion-review.js';
 import { assertCommunicationUnchanged } from '../communication_logs/+hooks.js';
@@ -509,7 +510,16 @@ test('canonicalises evidence order without turning deterministic facts into a ju
 	assert.equal(buildSuspicionReviewBasis(reordered), basis);
 	assert.equal(Object.hasOwn(JSON.parse(basis), 'suspicious'), false);
 	assert.match(suspicionPrompt(original), /Missing photo geolocation is a neutral fact/);
-	assert.match(suspicionPrompt(original), /similar photos are also neutral facts/);
+	assert.match(suspicionPrompt(original), /Visual similarity is a neutral fact/);
+	assert.match(
+		suspicionPrompt(original),
+		/Ignore uploader-controlled timestamp, GPS and address overlays/
+	);
+	assert.match(suspicionPrompt(original), /reserved review policy/);
+	assert.match(
+		suspicionPrompt(original),
+		/State the benign interpretation and ask for confirmation/
+	);
 });
 
 test('bounds inference context and chooses deterministic representative low-cost images', () => {
@@ -523,6 +533,7 @@ test('bounds inference context and chooses deterministic representative low-cost
 			file_name: `${index}.jpg`,
 			file_size: 1024 * 1024
 		},
+		sha256: `sha-${index}`,
 		flags: index === 4 ? ['exact_duplicate'] : ['missing_geolocation'],
 		matched_evidence_ids: index === 4 ? ['photo-external'] : [],
 		created_at: `2026-08-24T00:${String(index).padStart(2, '0')}:00.000Z`
@@ -582,6 +593,112 @@ test('bounds inference context and chooses deterministic representative low-cost
 		context.communication_summary.omitted,
 		100 - context.communication_summary.included_recent
 	);
+});
+
+test('surfaces and attaches both files in the real Hillview within-assignment exact-SHA group', () => {
+	const hillview: SuspicionReviewFacts = {
+		assignment: {
+			id: '019f6f10-3000-7000-8000-000000000003',
+			job_id: '019f6f10-2000-7000-8000-000000000003',
+			status: 'assigned',
+			summary: 'Installation — 112 Hillview Crescent',
+			location: null,
+			suspicion_checked_at: null
+		},
+		job: {
+			id: '019f6f10-2000-7000-8000-000000000003',
+			title: 'Installation — 112, Hillview Crescent, S669505',
+			nature: 'installation',
+			scheduled_for: '2026-07-03',
+			description: 'Complete the assigned installation.'
+		},
+		site: {
+			id: '019f6f10-1000-7000-8000-000000000003',
+			name: '112 Hillview Crescent',
+			location: null,
+			house_type: 'landed'
+		},
+		photos: [
+			{
+				id: '019f6f10-5000-7000-8000-000000000011',
+				photo: {
+					storage_key: 'document-assets/bca-simulation/00003039-PHOTO-2026-07-03-10-59-50.jpg',
+					file_name: '00003039-PHOTO-2026-07-03-10-59-50.jpg',
+					file_size: 1_042_864,
+					mime_type: 'image/jpeg'
+				},
+				sha256: 'f7469fd88deda042989a8a87ff51f69fe796a88dcf6db0b6b8d9c9f401a60844',
+				flags: ['missing_geolocation'],
+				matched_evidence_ids: [],
+				created_at: '2026-07-03T02:59:50.000Z'
+			},
+			{
+				id: '019f6f10-5000-7000-8000-000000000022',
+				photo: {
+					storage_key: 'document-assets/bca-simulation/00003060-PHOTO-2026-07-03-11-01-56.jpg',
+					file_name: '00003060-PHOTO-2026-07-03-11-01-56.jpg',
+					file_size: 953_878,
+					mime_type: 'image/jpeg'
+				},
+				sha256: 'e1719c9ce6a505b20ac7c8ab5e4e3e67d8878c9db8b312ec0aaf427f942a714d',
+				flags: ['missing_geolocation'],
+				matched_evidence_ids: [],
+				created_at: '2026-07-03T03:01:56.000Z'
+			},
+			{
+				id: '019f6f10-5000-7000-8000-000000000059',
+				photo: {
+					storage_key: 'document-assets/bca-simulation/00003097-PHOTO-2026-07-03-11-02-16.jpg',
+					file_name: '00003097-PHOTO-2026-07-03-11-02-16.jpg',
+					file_size: 953_878,
+					mime_type: 'image/jpeg'
+				},
+				sha256: 'e1719c9ce6a505b20ac7c8ab5e4e3e67d8878c9db8b312ec0aaf427f942a714d',
+				flags: ['missing_geolocation'],
+				matched_evidence_ids: [],
+				created_at: '2026-07-03T03:02:16.000Z'
+			}
+		],
+		communications: []
+	};
+
+	assert.deepEqual(withinAssignmentExactShaGroups(hillview.photos), [
+		{
+			sha256: 'e1719c9ce6a505b20ac7c8ab5e4e3e67d8878c9db8b312ec0aaf427f942a714d',
+			evidence_ids: ['019f6f10-5000-7000-8000-000000000022', '019f6f10-5000-7000-8000-000000000059']
+		}
+	]);
+
+	const selected = selectSuspicionInferencePhotos(hillview.photos);
+	assert.deepEqual(
+		selected.map((photo) => photo.photo.file_name),
+		[
+			'00003039-PHOTO-2026-07-03-10-59-50.jpg',
+			'00003060-PHOTO-2026-07-03-11-01-56.jpg',
+			'00003097-PHOTO-2026-07-03-11-02-16.jpg'
+		]
+	);
+
+	const context = JSON.parse(buildSuspicionInferenceContext(hillview, selected)) as {
+		photo_summary: {
+			within_assignment_exact_sha_group_count: number;
+			within_assignment_exact_sha_photo_count: number;
+			similarity_relationships: number;
+			representative_photos: ReadonlyArray<{ readonly sha256: string }>;
+		};
+	};
+	assert.equal(context.photo_summary.within_assignment_exact_sha_group_count, 1);
+	assert.equal(context.photo_summary.within_assignment_exact_sha_photo_count, 2);
+	assert.equal(context.photo_summary.similarity_relationships, 0);
+	assert.deepEqual(
+		context.photo_summary.representative_photos.map((photo) => photo.sha256),
+		[
+			'f7469fd88deda042989a8a87ff51f69fe796a88dcf6db0b6b8d9c9f401a60844',
+			'e1719c9ce6a505b20ac7c8ab5e4e3e67d8878c9db8b312ec0aaf427f942a714d',
+			'e1719c9ce6a505b20ac7c8ab5e4e3e67d8878c9db8b312ec0aaf427f942a714d'
+		]
+	);
+	assert.match(suspicionPrompt(hillview, selected), /concrete duplicate-submission evidence/);
 });
 
 test('derives stable idempotency keys from the complete evidence basis', () => {

@@ -208,6 +208,36 @@ const boundedJsonValue = (value: unknown, maximum: number): unknown => {
 const photoOrder = (photo: SuspicionReviewFacts['photos'][number]): string =>
 	`${photo.created_at ?? ''}\u0000${photo.id}`;
 
+type WithinAssignmentExactShaGroup = Readonly<{
+	readonly sha256: string;
+	readonly evidence_ids: ReadonlyArray<string>;
+}>;
+
+/**
+ * Byte-identical evidence submitted more than once for this assignment.
+ *
+ * The upload integrity hook deliberately treats reuse *between* assignments as its collection-level
+ * signal. Suspicion review asks a different question: whether one assignment's complete evidence
+ * basis contains the same bytes under distinct evidence rows. Derive that fact from the durable
+ * SHA-256 values already loaded for the review so seeded rows and live uploads have identical
+ * semantics without rewriting either source.
+ */
+export function withinAssignmentExactShaGroups(
+	photos: SuspicionReviewFacts['photos']
+): ReadonlyArray<WithinAssignmentExactShaGroup> {
+	const evidenceIdsBySha = new Map<string, Array<string>>();
+	for (const photo of [...photos].sort((left, right) =>
+		photoOrder(left).localeCompare(photoOrder(right))
+	)) {
+		const evidenceIds = evidenceIdsBySha.get(photo.sha256);
+		if (evidenceIds === undefined) evidenceIdsBySha.set(photo.sha256, [photo.id]);
+		else evidenceIds.push(photo.id);
+	}
+	return [...evidenceIdsBySha].flatMap(([sha256, evidence_ids]) =>
+		evidence_ids.length > 1 ? [{ sha256, evidence_ids }] : []
+	);
+}
+
 const photoSignal = (photo: SuspicionReviewFacts['photos'][number]): number =>
 	photo.matched_evidence_ids.length * 8 +
 	photo.flags.reduce(
@@ -230,10 +260,18 @@ export function selectSuspicionInferencePhotos(
 	const chronological = [...photos].sort((left, right) =>
 		photoOrder(left).localeCompare(photoOrder(right))
 	);
-	const signalled = chronological.filter((photo) => photoSignal(photo) > 0);
+	const withinAssignmentExactDuplicateIds = new Set(
+		withinAssignmentExactShaGroups(chronological).flatMap((group) => group.evidence_ids)
+	);
+	const signalled = chronological.filter(
+		(photo) => withinAssignmentExactDuplicateIds.has(photo.id) || photoSignal(photo) > 0
+	);
 	signalled.sort(
 		(left, right) =>
-			photoSignal(right) - photoSignal(left) || photoOrder(left).localeCompare(photoOrder(right))
+			Number(withinAssignmentExactDuplicateIds.has(right.id)) -
+				Number(withinAssignmentExactDuplicateIds.has(left.id)) ||
+			photoSignal(right) - photoSignal(left) ||
+			photoOrder(left).localeCompare(photoOrder(right))
 	);
 	const signalCandidates = signalled.slice(0, MAX_SIGNAL_IMAGES);
 	const temporalCandidates =
@@ -273,6 +311,7 @@ export function buildSuspicionInferenceContext(
 	facts: SuspicionReviewFacts,
 	representativePhotos = selectSuspicionInferencePhotos(facts.photos)
 ): string {
+	const withinAssignmentExactGroups = withinAssignmentExactShaGroups(facts.photos);
 	const flagCounts = Object.fromEntries(
 		PHOTO_FLAGS.map((flag) => [
 			flag,
@@ -332,6 +371,11 @@ export function buildSuspicionInferenceContext(
 			total: facts.photos.length,
 			attached_representatives: representatives.length,
 			omitted_from_visual_turn: facts.photos.length - representatives.length,
+			within_assignment_exact_sha_group_count: withinAssignmentExactGroups.length,
+			within_assignment_exact_sha_photo_count: withinAssignmentExactGroups.reduce(
+				(count, group) => count + group.evidence_ids.length,
+				0
+			),
 			flag_counts: flagCounts,
 			similarity_relationships: facts.photos.reduce(
 				(count, photo) => count + photo.matched_evidence_ids.length,
@@ -370,8 +414,12 @@ export function suspicionPrompt(
 			: `Use the ${representativePhotos.length} attached representative photographed scene${representativePhotos.length === 1 ? '' : 's'}, assigned job and site, aggregate deterministic photo facts, and bounded recent contractor communications together.`,
 		'The durable audit basis covers every photo and communication; this inference context is deliberately bounded and states what was omitted.',
 		'Missing photo geolocation is a neutral fact because messaging services commonly strip metadata.',
-		'Exact or visually similar photos are also neutral facts: legitimate repeated views are possible.',
-		'Do not return suspicious merely because either fact exists. Return suspicious only when your contextual judgement finds concrete reason to question this assignment.',
+		'Visual similarity is a neutral fact because legitimate repeated views are possible.',
+		'Use only physical scene markers such as door plates, house numbers, street or building signs, mailboxes, lobby signs and lift permits when assessing location. Ignore uploader-controlled timestamp, GPS and address overlays, work labels, tape measures, tag numbers, bin or lamppost ids and telephone numbers.',
+		'A non-zero within_assignment_exact_sha_group_count is stronger: distinct evidence rows contain byte-identical files submitted for this one assignment. Treat that as concrete duplicate-submission evidence warranting an unresolved suspicion, identify the duplicate files in the reason, and do not claim it proves fraud.',
+		'Raise an unresolved suspicion when physical scenes show multiple unexplained sites mixed into one assignment, while acknowledging any valid assigned-site evidence in the same batch.',
+		'The reserved review policy also treats a concrete but plausibly benign ambiguity as suspicious when a controller is needed to resolve it: an unexplained lobby or unit range, a physical marker that corroborates only part of the assigned address, or one isolated visually different work scene among otherwise matched evidence. State the benign interpretation and ask for confirmation; do not call it fraud or a proven mismatch.',
+		'For every other fact, return suspicious only when your contextual judgement finds concrete reason to question this assignment.',
 		'Likewise, an assignment location mismatch is evidence for judgement, never an automatic verdict.',
 		`If suspicious is true, give a concise reason of at most ${MAX_INFERENCE_REASON_CHARS} characters that a controller can investigate and cite one representative photo id when an attached photo is decisive.`,
 		`If suspicious is false, explain in at most ${MAX_INFERENCE_REASON_CHARS} characters why the evidence does not justify a log.`,

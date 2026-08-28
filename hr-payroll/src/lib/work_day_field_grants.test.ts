@@ -43,6 +43,7 @@
  */
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import { Effect } from 'effect';
 
 import teams from '../access/+teams.ts';
 import employee from '../access/policies/+employee.ts';
@@ -77,6 +78,61 @@ const may = (policy, collection, action) => grantFor(policy, collection, action)
 const ORDINARY_RANKS = [employee, supervisor, manager];
 /** The ranks that own the roster board, and always did. */
 const SCHEDULE_RANKS = [seniorManagement, hrController, hrManager];
+
+test('an employee may update only their own attendance on an existing person-day', async () => {
+	const grant = grantFor(employee, 'work_days', 'update');
+	assert.notEqual(grant, undefined, 'an employee cannot report against a roster-only day');
+	assert.deepEqual(grant.fields, WORK_DAY_ATTENDANCE_FIELDS);
+	for (const field of [...WORK_DAY_PLANNED_FIELDS, 'employment_id', 'work_date']) {
+		assert.equal(grant.fields.includes(field), false, `employee update can write ${field}`);
+	}
+	assert.equal(typeof grant.authorize, 'function');
+	assert.notEqual(grant.approval, undefined);
+
+	const api = {
+		requestor: { email: 'employee@example.com' },
+		db: {
+			employments: {
+				findFirst: ({ where }) =>
+					Effect.succeed(
+						where.id.eq === 'own-employment'
+							? { employee_id: 'own-employee' }
+							: where.id.eq === 'foreign-employment'
+								? { employee_id: 'foreign-employee' }
+								: undefined
+					)
+			},
+			employees: {
+				findFirst: ({ where }) =>
+					Effect.succeed(
+						where.id.eq === 'own-employee'
+							? { email: 'EMPLOYEE@example.com' }
+							: where.id.eq === 'foreign-employee'
+								? { email: 'colleague@example.com' }
+								: undefined
+					)
+			}
+		}
+	};
+	const context = (employment_id) => ({
+		previous: { employment_id },
+		changes: { break_minutes: 30 },
+		record: { employment_id }
+	});
+	assert.equal(await Effect.runPromise(grant.authorize(context('own-employment'), api)), true);
+	assert.equal(await Effect.runPromise(grant.authorize(context('foreign-employment'), api)), false);
+	assert.equal(await Effect.runPromise(grant.authorize(context('missing-employment'), api)), false);
+
+	for (const field of WORK_DAY_ATTENDANCE_FIELDS) {
+		const flow = grant.approval.flow({
+			previous: {},
+			changes: { [field]: field === 'break_minutes' ? 30 : [] },
+			record: {}
+		});
+		assert.equal(flow._tag, 'Review', `employee update of ${field} is not reviewed`);
+		assert.deepEqual(flow.stages[0].approvers, ['L1 Manager', 'HR Manager', 'Senior Management']);
+	}
+});
 
 test('a supervisor cannot edit attendance on their own authority', () => {
 	// Every write a supervisor holds on `work_days` is masked to the clock columns, and every write
@@ -137,20 +193,21 @@ test('no rank below HR may write the schedule half of a work day', () => {
 					`${nameOf(policy)} ${action} can write ${planned}`
 				);
 			}
-			// The mask has to be usable as well as narrow: a create that cannot say which person or
-			// which day is a grant that refuses every write it permits.
-			for (const identity of ['employment_id', 'work_date']) {
-				assert.ok(
-					grant.fields.includes(identity),
-					`${nameOf(policy)} ${action} cannot say ${identity}`
-				);
+			// A create has to say which person and day. The employee update's intentionally smaller
+			// identity-free mask is asserted in its dedicated test above.
+			if (action === 'create') {
+				for (const identity of ['employment_id', 'work_date'])
+					assert.ok(
+						grant.fields.includes(identity),
+						`${nameOf(policy)} ${action} cannot say ${identity}`
+					);
 			}
 		}
 	}
 
-	// An employee raises their own attendance and nothing else — no update at any rank 1, and no
-	// delete anywhere below HR except the manager's, which is checked next.
-	assert.equal(may(employee, 'work_days', 'update'), false);
+	// An employee raises or updates their own attendance and nothing else. There is still no delete
+	// anywhere below HR except the manager's, which is checked next.
+	assert.equal(may(employee, 'work_days', 'update'), true);
 	assert.equal(may(employee, 'work_days', 'delete'), false);
 });
 

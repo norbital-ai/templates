@@ -25,6 +25,7 @@
 	import { CollectionForm } from '@norbital-ai/ui/collection-form';
 	import { CollectionTable } from '@norbital-ai/ui/collection-table';
 	import { Combobox } from '@norbital-ai/ui/combobox';
+	import { FormattedValueRenderer } from '@norbital-ai/ui/data-renderer';
 	import { Bound, Cluster, Grid, Inline, Stack } from '@norbital-ai/ui/layout';
 	import { toast } from 'svelte-sonner';
 	import { resolveWindow } from './lib/period.js';
@@ -373,10 +374,29 @@
 					{#snippet columns({ Column })}
 						<Column name="employment_id" label={t('component.employee')} card="title" />
 						<Column name="currency" card="badge" />
-						<Column name="gross" />
-						<Column name="total_deductions" label={t('component.deductions')} />
-						<Column name="net" card="subtitle" />
-						<Column name="employer_cost" label={t('component.employer_cost')} />
+						<Column
+							name="gross"
+							renderer={FormattedValueRenderer}
+							rendererProps={{ format: ({ value }) => formatNumeric(value) }}
+						/>
+						<Column
+							name="total_deductions"
+							label={t('component.deductions')}
+							renderer={FormattedValueRenderer}
+							rendererProps={{ format: ({ value }) => formatNumeric(value) }}
+						/>
+						<Column
+							name="net"
+							card="subtitle"
+							renderer={FormattedValueRenderer}
+							rendererProps={{ format: ({ value }) => formatNumeric(value) }}
+						/>
+						<Column
+							name="employer_cost"
+							label={t('component.employer_cost')}
+							renderer={FormattedValueRenderer}
+							rendererProps={{ format: ({ value }) => formatNumeric(value) }}
+						/>
 					{/snippet}
 				</CollectionTable>
 			</Bound>

@@ -3,7 +3,7 @@
  *
  * `verify-payroll-xlsx.mjs` starts from a `ReportPayslip` and checks the workbook built from it.
  * That leaves the half that *produces* a `ReportPayslip` — `lib/export-data.ts`, which reads the
- * payslips, their lines, the employments, the terms, the attendance and the schedule back out —
+ * payslips, their adjustments, the employments, the terms and the unified work-day rows back out —
  * unexercised, and it is the half that decides what the cells contain.
  *
  * Three things are pinned here, each of which was wrong or unstated before:
@@ -166,36 +166,15 @@ const TERMS = [
 
 /** One explicit override on a patterned rest day: the person was called in on a night shift. */
 const OVERRIDE_DATE = WINDOW_DAYS.find((date) => patternedCode(date) === REST_CODE.id);
-const ROSTER_ENTRIES = [
+const WORK_DAYS = [
 	{
-		id: 'roster:override',
+		id: 'work-day:override',
 		employment_id: 'employment:pattern',
 		work_date: OVERRIDE_DATE,
 		shift_definition_id: NIGHT_SHIFT.id,
-		assignment_code: null
-	}
-];
-
-const PAYSLIPS = [
-	{
-		id: 'payslip:pattern',
-		payroll_run_id: RUN.id,
-		employment_id: 'employment:pattern',
-		currency: 'MYR',
-		gross: 3760.78,
-		total_deductions: 400.25,
-		net: 3454.03,
-		employer_cost: 515.15
-	},
-	{
-		id: 'payslip:leaver',
-		payroll_run_id: RUN.id,
-		employment_id: 'employment:leaver',
-		currency: 'MYR',
-		gross: 690,
-		total_deductions: 0,
-		net: 690,
-		employer_cost: 0
+		assignment_code: null,
+		worked_intervals: null,
+		break_minutes: 0
 	}
 ];
 
@@ -206,28 +185,44 @@ const BASIC = {
 	definition: { source: 'SCHEDULE' }
 };
 
-/**
- * Four lines, two of which link to no pay component at all: the statutory rest-day day-wage award
- * and the hours the daily ceiling reclassified out of it.
- */
-const PAYSLIP_LINES = [
+const PAYSLIPS = [
 	{
-		id: 'line:basic',
-		payslip_id: 'payslip:pattern',
-		pay_component_id: BASIC.id,
-		statutory_contribution_id: null,
-		component: { kind: 'SCHEDULE', pay_component_id: BASIC.id },
-		amount: 3451,
-		quantity: null,
-		sequence: 1
+		id: 'payslip:pattern',
+		payroll_run_id: RUN.id,
+		employment_id: 'employment:pattern',
+		currency: 'MYR',
+		gross: 3760.78,
+		total_deductions: 400.25,
+		net: 3454.03,
+		employer_cost: 515.15,
+		base: [{ pay_component_id: BASIC.id, amount: 3451 }],
+		statutory: []
 	},
 	{
-		id: 'line:ot-rest-day',
+		id: 'payslip:leaver',
+		payroll_run_id: RUN.id,
+		employment_id: 'employment:leaver',
+		currency: 'MYR',
+		gross: 690,
+		total_deductions: 0,
+		net: 690,
+		employer_cost: 0,
+		base: [{ pay_component_id: BASIC.id, amount: 690 }],
+		statutory: []
+	}
+];
+/**
+ * Two adjustments link to no pay component at all: the statutory rest-day day-wage award and the
+ * hours the daily ceiling reclassified out of it. Contracted basic pay is inlined in `payslips.base`.
+ */
+const PAYSLIP_ADJUSTMENTS = [
+	{
+		id: 'adjustment:ot-rest-day',
 		payslip_id: 'payslip:pattern',
 		pay_component_id: null,
-		statutory_contribution_id: null,
-		component: {
-			kind: 'OVERTIME',
+		source: { kind: 'WORK_DAY', id: 'work-day:override' },
+		overtime_band: {
+			excess: false,
 			day_type: 'REST_DAY',
 			measure: 'FROM_START_OF_DAY',
 			band_from: 0.5
@@ -237,12 +232,12 @@ const PAYSLIP_LINES = [
 		sequence: 2
 	},
 	{
-		id: 'line:ot-excess',
+		id: 'adjustment:ot-excess',
 		payslip_id: 'payslip:pattern',
 		pay_component_id: null,
-		statutory_contribution_id: null,
-		component: {
-			kind: 'OVERTIME_EXCESS',
+		source: { kind: 'WORK_DAY', id: 'work-day:override' },
+		overtime_band: {
+			excess: true,
 			day_type: 'REST_DAY',
 			measure: 'BEYOND_NORMAL',
 			band_from: 0
@@ -250,16 +245,6 @@ const PAYSLIP_LINES = [
 		amount: 33.18,
 		quantity: 1,
 		sequence: 3
-	},
-	{
-		id: 'line:basic-leaver',
-		payslip_id: 'payslip:leaver',
-		pay_component_id: BASIC.id,
-		statutory_contribution_id: null,
-		component: { kind: 'SCHEDULE', pay_component_id: BASIC.id },
-		amount: 690,
-		quantity: null,
-		sequence: 1
 	}
 ];
 
@@ -305,12 +290,11 @@ Effect.runPromise(
 
 			const api = stubApi({
 				payslips: PAYSLIPS,
-				payslip_lines: PAYSLIP_LINES,
+				payslip_adjustments: PAYSLIP_ADJUSTMENTS,
 				employments: EMPLOYMENTS,
 				pay_components: [BASIC],
 				employment_terms: TERMS,
-				time_entries: [],
-				roster_entries: ROSTER_ENTRIES,
+				work_days: WORK_DAYS,
 				employees: [
 					{
 						id: 'employee:pattern',

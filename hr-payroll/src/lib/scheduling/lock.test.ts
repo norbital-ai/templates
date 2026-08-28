@@ -27,7 +27,7 @@ import {
 /**
  * Two runs of one company, in the shape the real read returns them.
  *
- * `company_id` is not decoration: `create.prepare` selects it and groups the windows by it, because
+ * `company_id` is not decoration: `mutate.prepare` selects it and groups the windows by it, because
  * company is the key a record can reach on its own (employment → company). Without it every window
  * landed under `undefined`, the lookup for `co-1` found nothing, and the paid-window refusal below
  * silently did not fire — a fixture describing a response the api does not return.
@@ -291,7 +291,7 @@ function fakeHookApi({ runs = [], sources = [] } = {}) {
 		db: {
 			employments: {
 				findFirst: () => Effect.succeed({ company_id: 'co-1' }),
-				// `create.prepare` asks for the whole batch's employments at once, where the
+				// `mutate.prepare` asks for the whole batch's employments at once, where the
 				// per-record path asked one at a time. The double kept only `findFirst`, so
 				// `yield* undefined(...)` threw before any guard ran and the refusal assertion
 				// below was passing on a `TypeError`. Same company, stated once for both shapes.
@@ -303,6 +303,9 @@ function fakeHookApi({ runs = [], sources = [] } = {}) {
 						}))
 					)
 			},
+			employment_terms: { findMany: () => Effect.succeed([]) },
+			work_days: { findMany: () => Effect.succeed([]) },
+			shift_definitions: { findMany: () => Effect.succeed([]) },
 			payroll_runs: { findMany: () => Effect.succeed(runs) },
 			// A claim is a `payslip_adjustments` row naming the record. Its amount is deliberately not
 			// consulted: a zero says the run read this day and priced it at nothing, which locks the
@@ -328,25 +331,39 @@ const punch = (overrides = {}) => ({
 	...overrides
 });
 
+/** Run the unified mutation hook exactly as the runtime does: prepare once, then decide one row. */
+function runMutateBefore({ changes, existing, api }) {
+	const input =
+		existing == null
+			? changes
+			: {
+					employment_id: existing.employment_id,
+					work_date: existing.work_date,
+					shift_definition_id: existing.shift_definition_id ?? null,
+					worked_intervals: existing.worked_intervals,
+					break_minutes: existing.break_minutes,
+					...changes,
+					id: existing.id
+				};
+	const prepared = Effect.runSync(workDayHooks.mutate.prepare({ inputs: [input], api }));
+	return Effect.runSync(
+		workDayHooks.mutate.perRecord.before.handler({ input, existing, prepared, api })
+	);
+}
+
 test('a create inside a paid window is refused: that day’s silence is already priced', () => {
 	const api = fakeHookApi({ runs: monthly });
-	// `create` is two stages, and the second cannot answer without the first. `prepare` runs once
+	// `mutate` is two stages, and the second cannot answer without the first. `prepare` runs once
 	// per batch and gathers the employment→company and company→window maps; `perRecord.before`
-	// only reads them. Calling `before` alone used to work because it did its own per-record
-	// lookups, and this test still did — so it was asserting on a `TypeError` for a missing
-	// `prepared`, not on the refusal it names. Run the real pipeline in order instead.
-	// `prepare` is an Effect; `perRecord.before` is a plain function that throws. Only the first
-	// goes through `runSync` — wrapping the second was the other half of why this read as a
-	// TypeError rather than a refusal.
-	const refuse = (input) =>
-		workDayHooks.create.perRecord.before.handler({
-			input,
-			prepared: Effect.runSync(workDayHooks.create.prepare({ inputs: [input], api })),
-			api
-		});
-	assert.throws(() => refuse(punch()), /inside paid payroll 2026-07/);
+	// reads them. The helper above deliberately runs both stages through their Effects, so this
+	// assertion can only pass on the authored refusal rather than on a stale namespace TypeError.
+	const create = (overrides = {}) => {
+		const { id: _id, approval_id: _approvalId, ...changes } = punch(overrides);
+		return runMutateBefore({ changes, existing: undefined, api });
+	};
+	assert.throws(() => create(), /inside paid payroll 2026-07/);
 	// The same create one window along, where the run is still a draft, lands.
-	assert.doesNotThrow(() => refuse(punch({ work_date: '2026-08-01' })));
+	assert.doesNotThrow(() => create({ work_date: '2026-08-01' }));
 });
 
 test('an unconsumed record inside a paid window stays editable and settles as arrears', () => {
@@ -355,15 +372,7 @@ test('an unconsumed record inside a paid window stays editable and settles as ar
 	// The board badges the day; the write path permits it.
 	const api = fakeHookApi({ runs: monthly });
 	const existing = punch();
-	assert.doesNotThrow(() =>
-		Effect.runSync(
-			workDayHooks.update.perRecord.before.handler({
-				input: { break_minutes: 30 },
-				existing,
-				api
-			})
-		)
-	);
+	assert.doesNotThrow(() => runMutateBefore({ changes: { break_minutes: 30 }, existing, api }));
 	// The window has not stopped meaning anything — asked the day-shaped question it still refuses a
 	// record appearing on that day. Two answers, because two questions.
 	assert.deepEqual(lockStateForDate(payrollWindows(monthly), '2026-07-01'), {
@@ -376,14 +385,7 @@ test('an unconsumed record inside a paid window stays editable and settles as ar
 		sources: [{ source: { kind: 'WORK_DAY', id: 'wd-1' }, period: '2026-07' }]
 	});
 	assert.throws(
-		() =>
-			Effect.runSync(
-				workDayHooks.update.perRecord.before.handler({
-					input: { break_minutes: 30 },
-					existing,
-					api: claimed
-				})
-			),
+		() => runMutateBefore({ changes: { break_minutes: 30 }, existing, api: claimed }),
 		/payroll 2026-07 has already taken this record into account/
 	);
 });
@@ -394,23 +396,19 @@ test('re-dating a record into a paid window is a create onto that day, and is re
 	const api = fakeHookApi({ runs: monthly });
 	assert.throws(
 		() =>
-			Effect.runSync(
-				workDayHooks.update.perRecord.before.handler({
-					input: { work_date: '2026-07-02' },
-					existing: punch({ work_date: '2026-08-02' }),
-					api
-				})
-			),
+			runMutateBefore({
+				changes: { work_date: '2026-07-02' },
+				existing: punch({ work_date: '2026-08-02' }),
+				api
+			}),
 		/inside paid payroll 2026-07/
 	);
 	assert.doesNotThrow(() =>
-		Effect.runSync(
-			workDayHooks.update.perRecord.before.handler({
-				input: { work_date: '2026-08-03' },
-				existing: punch({ work_date: '2026-08-02' }),
-				api
-			})
-		)
+		runMutateBefore({
+			changes: { work_date: '2026-08-03' },
+			existing: punch({ work_date: '2026-08-02' }),
+			api
+		})
 	);
 });
 

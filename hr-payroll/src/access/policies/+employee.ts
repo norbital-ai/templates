@@ -3,6 +3,7 @@ import {
 	employeeReferenceGrants,
 	employeeLeaveRequestCreateGrant,
 	employeeWorkDayCreateGrant,
+	employeeWorkDayUpdateGrant,
 	grantOn,
 	mergeGrants,
 	ownEmploymentChild,
@@ -125,6 +126,7 @@ export default {
 			dependencies: employmentScopeDependencies
 		}),
 		employeeWorkDayCreateGrant(),
+		employeeWorkDayUpdateGrant(),
 		employeeSelfServiceGrants(),
 		employeeLeaveRequestCreateGrant(),
 		employeeReferenceGrants('read'),

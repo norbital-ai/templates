@@ -4,15 +4,15 @@ import { Effect } from 'effect';
 import hooks from './+hooks.js';
 
 type Hook = (context: unknown) => unknown;
-const updateHook = (phase: 'before' | 'after'): Hook => {
+const mutateHook = (phase: 'before' | 'after'): Hook => {
 	const hook = (
 		hooks as unknown as {
-			readonly update?: {
+			readonly mutate?: {
 				readonly perRecord?: Readonly<Record<'before' | 'after', { readonly handler: Hook }>>;
 			};
 		}
-	).update?.perRecord?.[phase]?.handler;
-	if (hook === undefined) throw new Error(`job_assignments update.${phase} hook is missing`);
+	).mutate?.perRecord?.[phase]?.handler;
+	if (hook === undefined) throw new Error(`job_assignments mutate.${phase} hook is missing`);
 	return hook;
 };
 
@@ -23,7 +23,7 @@ const settle = async (value: unknown): Promise<unknown> =>
 
 test('a system-only checked flag update does not rewrite status or touch the parent job', async () => {
 	const prepared = await settle(
-		updateHook('before')({
+		mutateHook('before')({
 			input: { suspicion_checked_at: '2026-08-24T08:30:14.312Z' },
 			existing: {
 				id: '019f6f10-3000-7000-8000-000000000008',
@@ -37,7 +37,7 @@ test('a system-only checked flag update does not rewrite status or touch the par
 
 	let parentWrites = 0;
 	await settle(
-		updateHook('after')({
+		mutateHook('after')({
 			previous: { status: 'unassigned' },
 			changes: prepared,
 			record: {

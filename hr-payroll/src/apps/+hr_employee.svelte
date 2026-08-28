@@ -15,6 +15,7 @@
 	import { Bound, Cluster, Cover, Grid, Inline, Scroll, Stack } from '@norbital-ai/ui/layout';
 	import { Tabs, type TabConfig } from '@norbital-ai/ui/tabs';
 	import RosterMonthCalendar from '../lib/ui/roster/roster-month-calendar.svelte';
+	import { employeeMissingPunchReportable } from '../lib/ui/roster/employee-reportability.js';
 	import DaySheet, {
 		type DaySheetChange,
 		type DaySheetPerson
@@ -611,20 +612,15 @@
 	 *
 	 *   - not `ACTIVE`        — the day is outside the employment; there is nothing to report about it
 	 *   - in the future       — a punch that has not happened yet is not a missing punch
-	 *   - a person-day row exists — an employee has `create` on `work_days` and no `update`, and
-	 *                           `unique(employment_id, work_date)` makes a second row impossible. That
-	 *                           is STRICTER than it used to be and it is a real loss of reach: before
-	 *                           the merge a rostered day carried a `roster_entries` row and no
-	 *                           `time_entries` row, so a create landed. Now the plan and the clock are
-	 *                           one row, so the same create collides. Restoring the affordance on a
-	 *                           rostered day needs a masked `update` grant on `work_days` for the
-	 *                           reader's own employment — the attendance fields only — beside
-	 *                           `employeeWorkDayCreateGrant()` in `src/lib/policy_grants.ts`. Until
-	 *                           that grant exists, offering the button here would draw an affordance
-	 *                           the write path refuses, which is the one thing this list forbids.
+	 *   - attendance exists    — a second report would overwrite an answer already recorded
 	 *   - already pending     — the platform holds their first report; a second would queue behind it
+	 *   - already settled     — the readable settlement claim says payroll consumed this exact row
 	 *   - full-day leave      — `assertDayNotOwnedByLeave`: one writer wins the day. A HALF day is
 	 *                           still reportable, because the hook only refuses full coverage
+	 *
+	 * A roster-only person-day is deliberately NOT a blocker. The employee update grant is scoped to
+	 * their own employment and masked to `worked_intervals` / `break_minutes`, so a report updates
+	 * the clock on that row while leaving the plan intact. A day with no row still uses create.
 	 *
 	 * ONE REFUSAL IS DELIBERATELY NOT PRE-CHECKED HERE, AND MUST NOT BE ADDED.
 	 *
@@ -645,12 +641,7 @@
 	 * is the ordinary case for one, and the table this screen replaces let an employee file it.
 	 */
 	function scheduleReportable(day: DayFacts): boolean {
-		if (day.employmentState !== 'ACTIVE') return false;
-		if (day.date > today) return false;
-		if (day.workDayId != null) return false;
-		if (schedulePendingDates.has(day.date)) return false;
-		if (day.leaveCode != null && !day.halfDayLeave) return false;
-		return true;
+		return employeeMissingPunchReportable(day, today, schedulePendingDates, settlementByWorkDayId);
 	}
 	const scheduleReportableDates = $derived(
 		new Set(
@@ -742,9 +733,10 @@
 	 * Employee mode's one write, handed back from the drawer's Save.
 	 *
 	 * The sheet assessed the draft already (the clamp is stated on its face), so this only carries
-	 * the create across the same hooks every other attendance write crosses. The row is written and
-	 * immediately held under `approval_id`; the platform's mutation boundary presents that pending
-	 * approval rather than letting this component invent a second result state.
+	 * the create or update across the same hooks every other attendance write crosses. A roster-only
+	 * day carries its existing id and is updated; a day with no row carries employment and date and
+	 * is created. Either write is immediately held under `approval_id`, which the platform's mutation
+	 * boundary presents rather than letting this component invent a second result state.
 	 */
 	function saveDaySheet(change: DaySheetChange): void {
 		const attendance = change.attendance;
@@ -754,8 +746,9 @@
 			Effect.tryPromise({
 				try: () =>
 					client.db.work_days.mutate({
-						employment_id: targetEmploymentId,
-						work_date: change.date,
+						...(attendance.workDayId == null
+							? { employment_id: targetEmploymentId, work_date: change.date }
+							: { id: attendance.workDayId }),
 						worked_intervals: attendance.intervals.map((interval) => ({
 							start: interval.start,
 							end: interval.end
@@ -840,12 +833,14 @@
 		const draft = reportDraft;
 		if (draft == null || employmentId == null || draft.assessment.problem != null) return;
 		const targetEmploymentId = employmentId;
+		const workDayId = scheduleDay(draft.date)?.workDayId ?? null;
 		Effect.runFork(
 			Effect.tryPromise({
 				try: () =>
 					client.db.work_days.mutate({
-						employment_id: targetEmploymentId,
-						work_date: draft.date,
+						...(workDayId == null
+							? { employment_id: targetEmploymentId, work_date: draft.date }
+							: { id: workDayId }),
 						worked_intervals: draft.intervals.map((interval) => ({
 							start: interval.start,
 							end: interval.end
@@ -1269,11 +1264,11 @@
 	The day detail, shared with the controller's board and told which audience it has.
 
 	`mode="employee"` is the whole difference: the roster-code picker and the interval editor are the
-	controller's affordances and an employee has neither grant behind them — `create` on
-	`work_days` scoped to their own employment and masked to the clock fields, no `update`, no
-	`delete`. The sheet's Save is routed back out to `saveDaySheet`, so this app owns the single
-	place a `work_days` row is
-	created; the tile's report chip opens the preview dialog below, which writes the same row shape.
+		controller's affordances and an employee has neither grant behind them — `create` and `update`
+		on `work_days` are scoped to their own employment and masked to the clock fields, with no delete.
+		The sheet's Save is routed back out to `saveDaySheet`, so this app owns the single place a
+		`work_days` row is created or its attendance is updated; the tile's report chip opens the preview
+		dialog below, which writes the same row shape.
 -->
 <DaySheet
 	bind:open={daySheetOpen}

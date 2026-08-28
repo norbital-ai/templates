@@ -17,6 +17,7 @@ import {
 } from '../../lib/scheduling/lock.js';
 import type { LeaveEvent } from '../../datatypes/leave_event/+definition.js';
 import type { Hooks, WorkspaceRow } from './$types.js';
+import { certificatePolicyIssues, certificatePolicyMismatchMessage } from './certificate-policy.js';
 
 const halfSchema = Schema.Union([Schema.Literal('FIRST'), Schema.Literal('SECOND')]);
 type Half = Schema.Schema.Type<typeof halfSchema>;
@@ -321,7 +322,6 @@ function normalizedTimeOff(
 				'The selected range contains no scheduled work half-days after holidays and rest/off days are excluded.'
 			);
 		}
-
 		if (leaveType.accrual?.kind !== 'PER_EVENT') {
 			const allLedger = yield* api.db.leave_requests.findMany({
 				where: { employment_id: { eq: employmentId }, leave_type_id: { eq: leaveTypeId } },
@@ -421,13 +421,23 @@ export default {
 		perRecord: {
 			before: {
 				description:
-					'Normalizes one half-day-stepped leave range, excludes observed holidays and scheduled rest/off days, refuses overlaps and requests beyond the projected balance. On an edit it first refuses a request a payroll run has already taken into account, then re-checks the patched range so a change cannot bypass schedule exclusions, overlap protection or balance limits.',
+					'Normalizes one half-day-stepped leave range, excludes observed holidays and scheduled rest/off days, refuses overlaps, requests beyond the projected balance and certificates attached to a non-time-off event. On an edit it first refuses a request a payroll run has already taken into account, then re-checks the patched range so a change cannot bypass schedule exclusions, overlap protection or balance limits.',
 				handler: ({ input, existing, api }) =>
 					Effect.gen(function* () {
 						// Only an edit can violate a settlement: a create has no prior run that consumed it.
 						if (existing !== undefined)
 							yield* assertLeaveSourceUnlocked(api, existing, 'Changing a leave request');
 						const event = input.event ?? existing?.event;
+						const certificateFile =
+							input.certificate_file !== undefined
+								? input.certificate_file
+								: existing?.certificate_file;
+						const certificateIssues = certificatePolicyIssues({
+							eventKind: event?.kind ?? null,
+							certificateFile
+						});
+						if (certificateIssues.length > 0)
+							refuse(certificatePolicyMismatchMessage(certificateIssues));
 						if (event == null || event.kind !== 'TIME_OFF') return input;
 						return {
 							...input,
