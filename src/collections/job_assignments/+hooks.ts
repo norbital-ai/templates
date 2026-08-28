@@ -2,7 +2,6 @@ import type { CollectionHooks } from '@norbital-ai/bolt/authoring';
 import { Effect, Schema } from 'effect';
 import type { WorkspaceSchema } from '$bolt/types.js';
 import { currentDate } from '../../lib/clock.js';
-import { usersById } from '../../lib/identity-directory.js';
 
 const assignmentIdentitySchema = Schema.Struct({
 	job_id: Schema.optional(Schema.NullOr(Schema.String)),
@@ -73,25 +72,20 @@ export type AssignmentCreateInput = Schema.Schema.Type<typeof assignmentCreateIn
 /**
  * Everything one dispatch needs to know about the world, read once for the whole batch.
  *
- * The rule below is written for one assignment and asks four questions about it: does the job exist,
- * is the assignee a person this workspace knows, is the job already taken, is the source message
- * already used. Asked per record that is four round trips a row; asked here it is four for the batch.
+ * The rule below is written for one assignment and asks three workspace-data questions about it:
+ * does the job exist, is the job already taken, and is the source message already used. Asked per
+ * record that is three round trips a row; asked here it is three for the batch.
+ *
+ * Assignee existence is deliberately not a fourth authored query. `assignee_user_id` has a declared
+ * relationship to Bolt's private user table, so the database foreign key owns that integrity check.
+ * Authored hooks neither receive nor reconstruct a query handle for private identity data.
  *
  * `repeatedJobIds` and `repeatedSourceMessageIds` are the one thing a per-record hook genuinely
  * cannot see: two rows in the same call claiming the same job. They are derived from the inputs, not
  * read — `prepare` still decides nothing — and the refusal itself is written once, below.
  */
 export interface AssignmentCreateBatchLookup {
-	readonly jobs: ReadonlyMap<string, { readonly site_id: string | null }>;
-	/**
-	 * The assignee ids that name a real person.
-	 *
-	 * Read from `user` rather than from a workspace collection: an assignee *is* a user, and
-	 * the profile row that used to stand between the two is gone. The database enforces the same thing
-	 * through the foreign key; this exists so the refusal names the problem instead of quoting a
-	 * constraint.
-	 */
-	readonly assigneeUserIds: ReadonlySet<string>;
+	readonly jobs: ReadonlyMap<string, { readonly site_id: string | null; readonly title: string }>;
 	readonly occupiedJobIds: ReadonlySet<string>;
 	readonly occupiedSourceMessageIds: ReadonlySet<string>;
 	readonly repeatedJobIds: ReadonlySet<string>;
@@ -134,17 +128,18 @@ export function assignmentCreateValues<T extends AssignmentCreateInput>(
 	input: T,
 	lookup: AssignmentCreateBatchLookup,
 	now: () => string = () => new Date().toISOString()
-): T & { readonly dispatched_at: string; readonly status: AssignmentStatus } {
+): T & {
+	readonly dispatched_at: string;
+	readonly status: AssignmentStatus;
+	readonly search_text: string;
+} {
 	const jobId = requireId(input.job_id, 'Job assignment must reference a job.');
-	const assigneeUserId = requireId(
+	requireId(
 		input.assignee_user_id,
 		'Job assignment must reference the person it is dispatched to.'
 	);
 	const job = lookup.jobs.get(jobId);
 	if (!job) throw new Error('Referenced job does not exist.');
-	if (!lookup.assigneeUserIds.has(assigneeUserId)) {
-		throw new Error('Referenced assignee is not a user of this workspace.');
-	}
 	if (lookup.occupiedJobIds.has(jobId) || lookup.repeatedJobIds.has(jobId)) {
 		throw new Error('This job already has an assignment.');
 	}
@@ -160,7 +155,9 @@ export function assignmentCreateValues<T extends AssignmentCreateInput>(
 	return {
 		...input,
 		dispatched_at: input.dispatched_at ?? now(),
-		status: assignmentStatus(input.status)
+		status: assignmentStatus(input.status),
+		// Derived last so a caller cannot forge or stale the board's search label.
+		search_text: job.title
 	};
 }
 
@@ -181,11 +178,6 @@ export default {
 	mutate: {
 		prepare: ({ inputs, api }) => {
 			const jobIds = [...new Set(inputs.flatMap((input) => (input.job_id ? [input.job_id] : [])))];
-			const assigneeUserIds = [
-				...new Set(
-					inputs.flatMap((input) => (input.assignee_user_id ? [input.assignee_user_id] : []))
-				)
-			];
 			const sourceMessageIds = [
 				...new Set(
 					inputs.flatMap((input) => (input.source_message_id ? [input.source_message_id] : []))
@@ -198,11 +190,10 @@ export default {
 						jobIds.length
 							? api.db.jobs.findMany({
 									where: { id: { in: jobIds } },
-									columns: { id: true, site_id: true },
+									columns: { id: true, site_id: true, title: true },
 									limit: ASSIGNMENT_BATCH_LIMIT
 								})
 							: Effect.succeed([]),
-						usersById(api, assigneeUserIds),
 						jobIds.length
 							? api.db.job_assignments.findMany({
 									where: { job_id: { in: jobIds } },
@@ -220,9 +211,8 @@ export default {
 					],
 					{ concurrency: 'unbounded' }
 				),
-				([jobs, assignees, occupiedJobs, occupiedSources]) => ({
+				([jobs, occupiedJobs, occupiedSources]) => ({
 					jobs: new Map(jobs.map((job) => [job.id, job])),
-					assigneeUserIds: new Set(assignees.keys()),
 					occupiedJobIds: new Set(occupiedJobs.map((assignment) => assignment.job_id)),
 					occupiedSourceMessageIds: new Set(
 						occupiedSources.flatMap((assignment) =>
@@ -238,20 +228,23 @@ export default {
 			before: {
 				description:
 					'Dispatches a person to an unassigned job and stamps the dispatch time, then holds the assignment on its original job and assignee, stamps completion, and keeps progression independent of evidence or suspicion judgements. Reported location remains an evidence fact and never creates a suspicion judgement.',
-				handler: ({ input, existing, prepared }) =>
-					existing === undefined
-						? assignmentCreateValues(input, prepared)
-						: Effect.map(currentDate, (now) => {
-								assertAssignmentIdentityUnchanged(input, existing);
-								if (input.status === undefined) return input;
-								return {
-									...input,
-									status: assignmentStatus(input.status),
-									...(input.status === 'completed' && input.completed_at == null
-										? { completed_at: now.toISOString() }
-										: {})
-								};
-							})
+				handler: ({ input, existing, prepared }) => {
+					if (existing === undefined) return assignmentCreateValues(input, prepared);
+					// `search_text` is hook-owned. Existing assignments keep their derived value on every
+					// ordinary progress edit, even if a client attempts to supply a replacement.
+					const { search_text: _ignoredSearchText, ...writableInput } = input;
+					return Effect.map(currentDate, (now) => {
+						assertAssignmentIdentityUnchanged(writableInput, existing);
+						if (writableInput.status === undefined) return writableInput;
+						return {
+							...writableInput,
+							status: assignmentStatus(writableInput.status),
+							...(writableInput.status === 'completed' && writableInput.completed_at == null
+								? { completed_at: now.toISOString() }
+								: {})
+						};
+					});
+				}
 			},
 			after: {
 				description:

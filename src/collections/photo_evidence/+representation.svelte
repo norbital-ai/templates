@@ -10,8 +10,8 @@
 	 * `matched_evidence_ids` points back at this same collection, so each match reads as the other
 	 * photo's own `summary` — which is why that column had to exist before this panel could.
 	 */
-	import { client } from '../../lib/workspace-client.js';
 	import { collectionClient } from '../../lib/collection-client.js';
+	import { getPlatformStateContext } from '@norbital-ai/bolt/client';
 	import { useI18n } from '@norbital-ai/ui/i18n';
 	import type { TenantI18nKeys } from '$bolt/i18n-keys';
 	import type { RepresentationProps } from './$types.js';
@@ -21,11 +21,13 @@
 	let { record }: RepresentationProps = $props();
 
 	const { t } = useI18n<TenantI18nKeys>();
-	const suspicionReadAccessQuery = client.system.access.explain({
-		action: 'read',
-		resource: 'suspicious_activity_logs'
-	});
-	const mayReadReviewFacts = $derived(suspicionReadAccessQuery.current?.allowed === true);
+	const platform = getPlatformStateContext();
+	/**
+	 * Integrity review facts are controller framing. The shell already exposes the apps this subject
+	 * may open; the collection policy remains the authority for the underlying record read.
+	 * Authored surfaces do not query Bolt's private system access API.
+	 */
+	const mayReadReviewFacts = $derived(platform().apps.includes('field_ops_controller'));
 </script>
 
 <svelte:head>

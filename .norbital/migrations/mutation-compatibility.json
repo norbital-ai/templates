@@ -1,7 +1,7 @@
 {
   "version": 1,
   "offlineHorizonMillis": 1209600000,
-  "currentSchemaFingerprint": "sha256:328f38c3b2495f9da17063fc251e3a474d6bf4ccfa72bee1c1c923f874ccbdb1",
+  "currentSchemaFingerprint": "sha256:16038eb0344a74d50197ccb0469085fa4d3357707ef3167a9c5da85e956b54fc",
   "checkpoints": [
     {
       "schemaFingerprint": "sha256:328f38c3b2495f9da17063fc251e3a474d6bf4ccfa72bee1c1c923f874ccbdb1",
@@ -180,6 +180,1062 @@
                 "dimensions": 0,
                 "notNull": false,
                 "default": "1",
+                "generated": null
+              },
+              "source_message_id": {
+                "type": "text",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "status": {
+                "type": "text",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "summary": {
+                "type": "text",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "suspicion_checked_at": {
+                "type": "timestamp with time zone",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "sys_period": {
+                "type": "tstzrange",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": "tstzrange(CURRENT_TIMESTAMP, NULL, '[)')",
+                "generated": null
+              },
+              "updated_at": {
+                "type": "timestamp with time zone",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": "now()",
+                "generated": null
+              }
+            }
+          },
+          "jobs": {
+            "fields": {
+              "approval_id": {
+                "type": "uuid",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "created_at": {
+                "type": "timestamp with time zone",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": "now()",
+                "generated": null
+              },
+              "description": {
+                "type": "text",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": null,
+                "generated": null
+              },
+              "external_ref": {
+                "type": "text",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "id": {
+                "type": "uuid",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": "gen_random_uuid()",
+                "generated": null
+              },
+              "nature": {
+                "type": "text",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "row_version": {
+                "type": "integer",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": "1",
+                "generated": null
+              },
+              "scheduled_for": {
+                "type": "timestamp with time zone",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": null,
+                "generated": null
+              },
+              "site_id": {
+                "type": "uuid",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": null,
+                "generated": null
+              },
+              "status": {
+                "type": "text",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "sys_period": {
+                "type": "tstzrange",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": "tstzrange(CURRENT_TIMESTAMP, NULL, '[)')",
+                "generated": null
+              },
+              "title": {
+                "type": "text",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": null,
+                "generated": null
+              },
+              "updated_at": {
+                "type": "timestamp with time zone",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": "now()",
+                "generated": null
+              }
+            }
+          },
+          "photo_evidence": {
+            "fields": {
+              "approval_id": {
+                "type": "uuid",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "created_at": {
+                "type": "timestamp with time zone",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": "now()",
+                "generated": null
+              },
+              "flags": {
+                "type": "text",
+                "typeSchema": null,
+                "dimensions": 1,
+                "notNull": true,
+                "default": null,
+                "generated": null
+              },
+              "id": {
+                "type": "uuid",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": "gen_random_uuid()",
+                "generated": null
+              },
+              "job_assignment_id": {
+                "type": "uuid",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "matched_evidence_ids": {
+                "type": "uuid",
+                "typeSchema": null,
+                "dimensions": 1,
+                "notNull": true,
+                "default": null,
+                "generated": null
+              },
+              "perceptual_embedding": {
+                "type": "vector(256)",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": null,
+                "generated": null
+              },
+              "photo": {
+                "type": "jsonb",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": null,
+                "generated": null
+              },
+              "row_version": {
+                "type": "integer",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": "1",
+                "generated": null
+              },
+              "sha256": {
+                "type": "text",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": null,
+                "generated": null
+              },
+              "source": {
+                "type": "jsonb",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": null,
+                "generated": null
+              },
+              "source_key": {
+                "type": "text",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": null,
+                "generated": null
+              },
+              "summary": {
+                "type": "text",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": "CASE source ->> 'kind'\n\t\t\t\tWHEN 'workspace_upload' THEN 'Workspace upload'\n\t\t\t\tWHEN 'channel' THEN 'From ' || COALESCE(NULLIF(source ->> 'provider', ''), 'a channel') || COALESCE(' · ' || LEFT(source ->> 'sent_at', 10), '')\n\t\t\t\tELSE 'Photo'\n\t\t\tEND"
+              },
+              "sys_period": {
+                "type": "tstzrange",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": "tstzrange(CURRENT_TIMESTAMP, NULL, '[)')",
+                "generated": null
+              },
+              "updated_at": {
+                "type": "timestamp with time zone",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": "now()",
+                "generated": null
+              },
+              "variation_request_id": {
+                "type": "uuid",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              }
+            }
+          },
+          "sites": {
+            "fields": {
+              "approval_id": {
+                "type": "uuid",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "client_name": {
+                "type": "text",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "created_at": {
+                "type": "timestamp with time zone",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": "now()",
+                "generated": null
+              },
+              "floor_area_sqm": {
+                "type": "numeric",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "house_type": {
+                "type": "text",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "id": {
+                "type": "uuid",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": "gen_random_uuid()",
+                "generated": null
+              },
+              "location": {
+                "type": "jsonb",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "name": {
+                "type": "text",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": null,
+                "generated": null
+              },
+              "row_version": {
+                "type": "integer",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": "1",
+                "generated": null
+              },
+              "site_code": {
+                "type": "text",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "sys_period": {
+                "type": "tstzrange",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": "tstzrange(CURRENT_TIMESTAMP, NULL, '[)')",
+                "generated": null
+              },
+              "updated_at": {
+                "type": "timestamp with time zone",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": "now()",
+                "generated": null
+              }
+            }
+          },
+          "suspicion_reviews": {
+            "fields": {
+              "approval_id": {
+                "type": "uuid",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "basis": {
+                "type": "text",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": null,
+                "generated": null
+              },
+              "basis_hash": {
+                "type": "text",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": null,
+                "generated": null
+              },
+              "created_at": {
+                "type": "timestamp with time zone",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": "now()",
+                "generated": null
+              },
+              "evidence_id": {
+                "type": "uuid",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "id": {
+                "type": "uuid",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": "gen_random_uuid()",
+                "generated": null
+              },
+              "job_assignment_id": {
+                "type": "uuid",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": null,
+                "generated": null
+              },
+              "model": {
+                "type": "text",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": null,
+                "generated": null
+              },
+              "reason": {
+                "type": "text",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": null,
+                "generated": null
+              },
+              "reviewed_at": {
+                "type": "timestamp with time zone",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": null,
+                "generated": null
+              },
+              "row_version": {
+                "type": "integer",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": "1",
+                "generated": null
+              },
+              "source_key": {
+                "type": "text",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": null,
+                "generated": null
+              },
+              "suspicious": {
+                "type": "boolean",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": null,
+                "generated": null
+              },
+              "sys_period": {
+                "type": "tstzrange",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": "tstzrange(CURRENT_TIMESTAMP, NULL, '[)')",
+                "generated": null
+              },
+              "updated_at": {
+                "type": "timestamp with time zone",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": "now()",
+                "generated": null
+              }
+            }
+          },
+          "suspicious_activity_logs": {
+            "fields": {
+              "approval_id": {
+                "type": "uuid",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "basis": {
+                "type": "text",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "created_at": {
+                "type": "timestamp with time zone",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": "now()",
+                "generated": null
+              },
+              "evidence_id": {
+                "type": "uuid",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "id": {
+                "type": "uuid",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": "gen_random_uuid()",
+                "generated": null
+              },
+              "job_assignment_id": {
+                "type": "uuid",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": null,
+                "generated": null
+              },
+              "origin": {
+                "type": "text",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": "'human'",
+                "generated": null
+              },
+              "reason": {
+                "type": "text",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": null,
+                "generated": null
+              },
+              "resolution": {
+                "type": "text",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "resolved_at": {
+                "type": "timestamp with time zone",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "resolved_by": {
+                "type": "uuid",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "review_id": {
+                "type": "uuid",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "row_version": {
+                "type": "integer",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": "1",
+                "generated": null
+              },
+              "source_key": {
+                "type": "text",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": null,
+                "generated": "origin || ':' || job_assignment_id::text || ':' || md5(basis)"
+              },
+              "sys_period": {
+                "type": "tstzrange",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": "tstzrange(CURRENT_TIMESTAMP, NULL, '[)')",
+                "generated": null
+              },
+              "updated_at": {
+                "type": "timestamp with time zone",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": "now()",
+                "generated": null
+              }
+            }
+          },
+          "variation_requests": {
+            "fields": {
+              "amount": {
+                "type": "jsonb",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "approval_id": {
+                "type": "uuid",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "created_at": {
+                "type": "timestamp with time zone",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": "now()",
+                "generated": null
+              },
+              "description": {
+                "type": "text",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": null,
+                "generated": null
+              },
+              "id": {
+                "type": "uuid",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": "gen_random_uuid()",
+                "generated": null
+              },
+              "job_assignment_id": {
+                "type": "uuid",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": null,
+                "generated": null
+              },
+              "requested_at": {
+                "type": "timestamp with time zone",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": null,
+                "generated": null
+              },
+              "row_version": {
+                "type": "integer",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": "1",
+                "generated": null
+              },
+              "source_message_id": {
+                "type": "text",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "sys_period": {
+                "type": "tstzrange",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": "tstzrange(CURRENT_TIMESTAMP, NULL, '[)')",
+                "generated": null
+              },
+              "title": {
+                "type": "text",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": null,
+                "generated": null
+              },
+              "updated_at": {
+                "type": "timestamp with time zone",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": "now()",
+                "generated": null
+              }
+            }
+          }
+        },
+        "relations": [
+          {
+            "name": "job_assignment_communications",
+            "source": "communication_logs",
+            "target": "job_assignments",
+            "cardinality": "one"
+          },
+          {
+            "name": "job_assignment_assignee",
+            "source": "job_assignments",
+            "target": "user",
+            "cardinality": "one"
+          },
+          {
+            "name": "job_assignment_communications",
+            "source": "job_assignments",
+            "target": "communication_logs",
+            "cardinality": "many"
+          },
+          {
+            "name": "job_assignment_job",
+            "source": "job_assignments",
+            "target": "jobs",
+            "cardinality": "one"
+          },
+          {
+            "name": "job_assignment_photo_evidence",
+            "source": "job_assignments",
+            "target": "photo_evidence",
+            "cardinality": "many"
+          },
+          {
+            "name": "job_assignment_variations",
+            "source": "job_assignments",
+            "target": "variation_requests",
+            "cardinality": "many"
+          },
+          {
+            "name": "job_assignment_job",
+            "source": "jobs",
+            "target": "job_assignments",
+            "cardinality": "many"
+          },
+          {
+            "name": "site_jobs",
+            "source": "jobs",
+            "target": "sites",
+            "cardinality": "one"
+          },
+          {
+            "name": "job_assignment_photo_evidence",
+            "source": "photo_evidence",
+            "target": "job_assignments",
+            "cardinality": "one"
+          },
+          {
+            "name": "variation_request_photo_evidence",
+            "source": "photo_evidence",
+            "target": "variation_requests",
+            "cardinality": "one"
+          },
+          {
+            "name": "site_jobs",
+            "source": "sites",
+            "target": "jobs",
+            "cardinality": "many"
+          },
+          {
+            "name": "job_assignment_suspicion_reviews",
+            "source": "suspicion_reviews",
+            "target": "job_assignments",
+            "cardinality": "one"
+          },
+          {
+            "name": "suspicion_review_evidence",
+            "source": "suspicion_reviews",
+            "target": "photo_evidence",
+            "cardinality": "one"
+          },
+          {
+            "name": "suspicion_review_logs",
+            "source": "suspicion_reviews",
+            "target": "suspicious_activity_logs",
+            "cardinality": "many"
+          },
+          {
+            "name": "job_assignment_suspicions",
+            "source": "suspicious_activity_logs",
+            "target": "job_assignments",
+            "cardinality": "one"
+          },
+          {
+            "name": "suspicion_log_evidence",
+            "source": "suspicious_activity_logs",
+            "target": "photo_evidence",
+            "cardinality": "one"
+          },
+          {
+            "name": "suspicion_log_review",
+            "source": "suspicious_activity_logs",
+            "target": "suspicion_reviews",
+            "cardinality": "one"
+          },
+          {
+            "name": "job_assignment_variations",
+            "source": "variation_requests",
+            "target": "job_assignments",
+            "cardinality": "one"
+          },
+          {
+            "name": "variation_request_photo_evidence",
+            "source": "variation_requests",
+            "target": "photo_evidence",
+            "cardinality": "many"
+          }
+        ]
+      },
+      "retiredAtEpochMs": 1787898108669,
+      "adapterToCurrent": {
+        "fromSchemaFingerprint": "sha256:328f38c3b2495f9da17063fc251e3a474d6bf4ccfa72bee1c1c923f874ccbdb1"
+      }
+    },
+    {
+      "schemaFingerprint": "sha256:16038eb0344a74d50197ccb0469085fa4d3357707ef3167a9c5da85e956b54fc",
+      "activatedAtEpochMs": 1787898108669,
+      "schema": {
+        "collections": {
+          "communication_logs": {
+            "fields": {
+              "approval_id": {
+                "type": "uuid",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "created_at": {
+                "type": "timestamp with time zone",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": "now()",
+                "generated": null
+              },
+              "id": {
+                "type": "uuid",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": "gen_random_uuid()",
+                "generated": null
+              },
+              "job_assignment_id": {
+                "type": "uuid",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": null,
+                "generated": null
+              },
+              "message": {
+                "type": "text",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": null,
+                "generated": null
+              },
+              "row_version": {
+                "type": "integer",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": "1",
+                "generated": null
+              },
+              "sender": {
+                "type": "text",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": null,
+                "generated": null
+              },
+              "sent_at": {
+                "type": "timestamp with time zone",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": null,
+                "generated": null
+              },
+              "source_message_id": {
+                "type": "text",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": null,
+                "generated": null
+              },
+              "sys_period": {
+                "type": "tstzrange",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": "tstzrange(CURRENT_TIMESTAMP, NULL, '[)')",
+                "generated": null
+              },
+              "updated_at": {
+                "type": "timestamp with time zone",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": "now()",
+                "generated": null
+              }
+            }
+          },
+          "job_assignments": {
+            "fields": {
+              "amount_charged": {
+                "type": "jsonb",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "approval_id": {
+                "type": "uuid",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "assignee_user_id": {
+                "type": "uuid",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": null,
+                "generated": null
+              },
+              "completed_at": {
+                "type": "timestamp with time zone",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "created_at": {
+                "type": "timestamp with time zone",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": "now()",
+                "generated": null
+              },
+              "dispatched_at": {
+                "type": "timestamp with time zone",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "id": {
+                "type": "uuid",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": "gen_random_uuid()",
+                "generated": null
+              },
+              "job_id": {
+                "type": "uuid",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": null,
+                "generated": null
+              },
+              "location": {
+                "type": "jsonb",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "row_version": {
+                "type": "integer",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": "1",
+                "generated": null
+              },
+              "search_text": {
+                "type": "text",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
                 "generated": null
               },
               "source_message_id": {

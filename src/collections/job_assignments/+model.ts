@@ -41,6 +41,15 @@ export default defineModel(
 		amount_charged: custom('money'),
 		location: geolocation(),
 		summary: text({ search: true }),
+		/**
+		 * Search-only copy of the related job title.
+		 *
+		 * Collection search is deliberately compiled from searchable columns on the collection being
+		 * queried; it does not smuggle relationship labels into a root predicate. The create hook owns
+		 * this value and overwrites caller input from `jobs.title`, so a board card titled “PINE GROVE”
+		 * can be found by the same words without changing what `summary` means to the contractor.
+		 */
+		search_text: text({ search: true }),
 		source_message_id: text(),
 		/** Written only by the suspicion-review automation after a successful review. */
 		suspicion_checked_at: instant()

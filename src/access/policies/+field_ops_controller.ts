@@ -10,6 +10,7 @@ const assignmentCreateFields = [
 	'amount_charged',
 	'location',
 	'summary',
+	'search_text',
 	'source_message_id'
 ] as const;
 const assignmentUpdateFields = assignmentCreateFields;

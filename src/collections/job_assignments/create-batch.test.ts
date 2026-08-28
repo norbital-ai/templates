@@ -25,10 +25,9 @@ function lookup(
 	const repeated = repeatedWithinBatch(inputs);
 	return {
 		jobs: new Map([
-			[jobId, { site_id: siteId }],
-			[secondJobId, { site_id: siteId }]
+			[jobId, { site_id: siteId, title: 'Survey & Installation — 1F, PINE GROVE' }],
+			[secondJobId, { site_id: siteId, title: 'Survey Only — 3, RIDGEWOOD CLOSE' }]
 		]),
-		assigneeUserIds: new Set([assigneeUserId]),
 		occupiedJobIds: new Set(),
 		occupiedSourceMessageIds: new Set(),
 		repeatedJobIds: repeated.jobIds,
@@ -65,11 +64,25 @@ test('prepares assignments in caller order with progression defaults independent
 	assert.equal(result[0]?.dispatched_at, dispatchedAt);
 	// A row that says nothing about its state is assigned: somebody holds the work.
 	assert.equal(result[0]?.status, 'assigned');
+	assert.equal(result[0]?.search_text, 'Survey & Installation — 1F, PINE GROVE');
 	assert.equal(result[1]?.dispatched_at, '2026-08-12T00:00:00.000Z');
 	// `in_progress` is one of the two old spellings of "somebody holds this", and lands on `assigned`.
 	//
 	// Location remains a fact. Only the dedicated AI/human review process may create a judgement.
 	assert.equal(result[1]?.status, 'assigned');
+	assert.equal(result[1]?.search_text, 'Survey Only — 3, RIDGEWOOD CLOSE');
+});
+
+test('overwrites caller-supplied search text from the related job title', () => {
+	const input = {
+		job_id: jobId,
+		assignee_user_id: assigneeUserId,
+		search_text: 'forged or stale title'
+	};
+
+	const result = assignmentCreateValues(input, lookup([input]));
+
+	assert.equal(result.search_text, 'Survey & Installation — 1F, PINE GROVE');
 });
 
 /**
