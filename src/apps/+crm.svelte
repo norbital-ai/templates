@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { FormattedValueRenderer } from '@norbital-ai/ui/data-renderer';
+	import { DataRenderer, FormattedValueRenderer } from '@norbital-ai/ui/data-renderer';
 	import { client } from '$bolt/client';
 	import { getCollectionClientForSurface } from '@norbital-ai/ui/collection-runtime';
 	import { useI18n } from '@norbital-ai/ui/i18n';
@@ -75,20 +75,13 @@
 		new Map(accountRows.map((account) => [account.id, account.name]))
 	);
 
-	const usersQuery = $derived(
-		workspaceClient.db.user.findMany({
-			columns: { id: true, name: true },
-			orderBy: { name: 'asc' }
-		})
+	/**
+	 * The owner selector delegates its relationship lookup to the collection renderer. The workspace
+	 * can filter quotes by the chosen id without ever receiving a query handle for platform identity.
+	 */
+	const quoteOwnerField = workspaceClient.collections.quotes.fields.find(
+		(field) => field.name === 'owner_id'
 	);
-
-	const ownerOptions = $derived([
-		{ value: '', label: t('app.crm.all_reps') },
-		...(usersQuery.current ?? []).map((user) => ({
-			value: String(user.id),
-			label: String(user.name || '—')
-		}))
-	]);
 
 	const scopedQuotesQuery = $derived(
 		selectedAccountId == null
@@ -180,13 +173,15 @@
 		<label class="max-w-72 text-sm">
 			<Stack gap="xs">
 				<span class="font-medium">{t('component.owner')}</span>
-				<Combobox
-					options={ownerOptions}
-					bind:value={selectedOwnerId}
-					emptyPlaceholder={t('app.crm.select_rep')}
-					searchPlaceholder={t('app.crm.search_reps')}
-					clientConfig={{ isLoading: usersQuery.loading }}
-				/>
+				{#if quoteOwnerField}
+					<DataRenderer
+						field={quoteOwnerField}
+						value={selectedOwnerId || null}
+						mode="edit"
+						placeholder={t('app.crm.all_reps')}
+						onValueChange={(value) => (selectedOwnerId = typeof value === 'string' ? value : '')}
+					/>
+				{/if}
 			</Stack>
 		</label>
 	{/snippet}
