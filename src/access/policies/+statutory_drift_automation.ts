@@ -51,6 +51,7 @@ export default {
 			}
 		},
 		statutory_profile_drift_logs: {
+			read: {},
 			create: {},
 			update: {}
 		}

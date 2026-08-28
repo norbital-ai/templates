@@ -136,6 +136,9 @@
 	} = $props();
 
 	const days = $derived(monthDays(month));
+	const PERSON_TRACK_REM = 10;
+	const DAY_TRACK_REM = 3.75;
+	const boardTrackWidth = $derived(`${PERSON_TRACK_REM + days.length * DAY_TRACK_REM}rem`);
 	let boardElement: HTMLElement | null = $state(null);
 	let boardHeaderTrack: HTMLElement | null = $state(null);
 	let requestedCellKey = $state('');
@@ -524,7 +527,7 @@
 					<div
 						title={holiday == null ? undefined : `${t(HOLIDAY_PRESENTATION.labelKey)}: ${holiday}`}
 						class={cn(
-							'flex h-10 w-13 min-w-13 flex-col items-center justify-center bg-card text-center font-medium',
+							'flex h-10 w-15 min-w-15 max-w-15 flex-col items-center justify-center bg-card text-center font-medium',
 							isWeekend(date) && 'bg-muted',
 							holiday != null && HOLIDAY_PRESENTATION.headerClassName,
 							date === today && 'font-semibold ring-2 ring-inset ring-brand',
@@ -548,20 +551,34 @@
 	</div>
 {/snippet}
 
+{#snippet boardColumns()}
+	<col style:width={`${PERSON_TRACK_REM}rem`} />
+	{#each days as date (date)}
+		<col style:width={`${DAY_TRACK_REM}rem`} />
+	{/each}
+{/snippet}
+
 {#snippet boardLoadingSkeleton()}
 	<!-- repository-health:allow UI3 -- the skeleton is the same person-by-day cross-tab as the board below, not one collection's rows. -->
-	<table class="border-separate border-spacing-0 text-left text-xs" aria-hidden="true">
+	<table
+		class="table-fixed border-separate border-spacing-0 text-left text-xs"
+		style:width={boardTrackWidth}
+		aria-hidden="true"
+	>
+		<colgroup>{@render boardColumns()}</colgroup>
 		<tbody>
 			{#each Array(16) as _, rowIndex (rowIndex)}
 				<tr>
-					<th class="sticky left-0 z-10 w-40 min-w-40 border-r border-b bg-card px-3 py-1.5">
+					<th
+						class="sticky left-0 z-10 w-40 min-w-40 max-w-40 border-r border-b bg-card px-3 py-1.5"
+					>
 						<Stack gap="xs">
 							<Skeleton class="h-3 w-16" />
 							<Skeleton class="h-2.5 w-24" />
 						</Stack>
 					</th>
 					{#each days as date (date)}
-						<td class="w-13 min-w-13 border-b p-1">
+						<td class="w-15 min-w-15 max-w-15 border-b p-1">
 							<Skeleton class="h-9 w-full rounded-sm" />
 						</td>
 					{/each}
@@ -592,7 +609,11 @@
 					{@render boardLoadingSkeleton()}
 				{:else}
 					<!-- repository-health:allow UI3 -- a person-by-day board is a derived cross-tab of four collections, not one collection's rows. -->
-					<table class="border-separate border-spacing-0 text-left text-xs">
+					<table
+						class="table-fixed border-separate border-spacing-0 text-left text-xs"
+						style:width={boardTrackWidth}
+					>
+						<colgroup>{@render boardColumns()}</colgroup>
 						<tbody>
 							{#if topSpacer > 0}
 								<tr aria-hidden="true"
@@ -605,7 +626,7 @@
 								<tr data-index={personIndex}>
 									<th
 										scope="row"
-										class="sticky left-0 z-10 w-40 min-w-40 border-r border-b bg-card px-3 py-1.5 text-left font-normal"
+										class="sticky left-0 z-10 w-40 min-w-40 max-w-40 border-r border-b bg-card px-3 py-1.5 text-left font-normal"
 									>
 										<span class="block truncate font-mono tabular-nums">{person.number}</span>
 										<span class="block truncate text-micro text-muted-foreground"
@@ -654,7 +675,7 @@
 										{@const firstConflict = day?.conflicts[0] ?? null}
 										<td
 											class={cn(
-												'w-13 min-w-13 border-b p-0.5 text-center',
+												'w-15 min-w-15 max-w-15 border-b p-0.5 text-center',
 												holidayNames.has(date) && HOLIDAY_PRESENTATION.className,
 												date === cutoffStartsAt && 'border-l-2 border-l-brand',
 												day?.lock.kind === 'SETTLED' && 'border-r-2 border-r-brand/60'

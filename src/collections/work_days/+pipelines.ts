@@ -17,11 +17,10 @@
  * imported onto a day that is already rostered is an UPDATE of `worked_intervals`, not a second
  * row, and a roster imported onto a day somebody already punched is an UPDATE of the plan.
  *
- * An import pipeline's return value is inserted, so the update half cannot ride on it: rows that
- * already exist are written through `api.db.work_days.mutate({ id, … })` — the declarative
- * record mutation, given an id, which is an update — and only the genuinely new person-days are
- * returned. The count the operator is shown is therefore the rows created, which is what the
- * platform's import contract means by it.
+ * An import pipeline returns mutation rows: no `id` creates, while a stored `id` updates through the
+ * same platform mutation path. The pipeline therefore returns both halves together and performs no
+ * template-side writes. The count shown to the operator is the person-days the file stated, whether
+ * each one created a row or filled the other half of an existing row.
  *
  * Each arm still updates only its own half of the row. The roster arm never touches the clock and
  * the attendance arm never touches the plan, which is the same boundary
@@ -37,6 +36,7 @@ import { leaveCoverage } from '../../lib/scheduling/leave-coverage.js';
 import { payrollWindows, assertNotSettled } from '../../lib/scheduling/lock.js';
 import { rosterCodeVariantSchema } from '../../datatypes/roster_code_variant/+definition.js';
 import { coversDate } from '../payroll_runs/lib/effective.js';
+import { personDayMutations } from './lib/person-day-mutations.js';
 import type { Api, Pipelines, WorkspaceRow } from './$types.js';
 
 const QUERY_LIMIT = 20_000;
@@ -163,70 +163,6 @@ function readExistingDays(
 					}
 				])
 			)
-	);
-}
-
-/** The planned half of a person-day, as the roster sheet states it. */
-type PlannedValues = {
-	readonly shift_definition_id: string;
-	readonly roster_id: string;
-	readonly assignment_code: string | null;
-	readonly planned_origin: 'IMPORT';
-	readonly planned_note: string | null;
-};
-
-/** The actual half of a person-day, as the attendance sheet states it. */
-type AttendanceValues = {
-	readonly worked_intervals: ReadonlyArray<{ readonly start: string; readonly end: string | null }>;
-	readonly break_minutes: number;
-};
-
-/**
- * One arm's half of a row. Never both: each sheet writes its own side and leaves the other alone,
- * which is the same boundary the field grants draw.
- */
-type PersonDayValues = PlannedValues | AttendanceValues;
-
-type PersonDayWrite = {
-	readonly employment_id: string;
-	readonly work_date: string;
-	readonly values: PersonDayValues;
-};
-
-type PersonDayInsert = PersonDayValues & {
-	readonly employment_id: string;
-	readonly work_date: string;
-};
-
-/**
- * Splits one file's person-days into the rows to create and the rows to update.
- *
- * An existing person-day becomes a mutate carrying the stored id, which the declarative mutation
- * reads as an update of exactly the columns given; a new one is returned to the runtime and
- * inserted. One mutate per updated day is the honest cost of an import pipeline whose return value
- * is only ever inserted — they run concurrently, and a fresh drafted month has none of them.
- */
-function upsertPersonDays(
-	api: Api,
-	existing: ReadonlyMap<string, ExistingDay>,
-	rows: readonly PersonDayWrite[]
-): Effect.Effect<ReadonlyArray<PersonDayInsert>, never, never> {
-	const creates: PersonDayInsert[] = [];
-	const updates: (PersonDayValues & { readonly id: string })[] = [];
-	for (const row of rows) {
-		const stored = existing.get(personDayKey(row.employment_id, row.work_date));
-		if (stored == null) {
-			creates.push({ ...row.values, employment_id: row.employment_id, work_date: row.work_date });
-		} else {
-			updates.push({ ...row.values, id: stored.id });
-		}
-	}
-	return Effect.as(
-		Effect.forEach(updates, (update) => api.db.work_days.mutate(update), {
-			concurrency: 'unbounded',
-			discard: true
-		}),
-		creates
 	);
 }
 
@@ -383,8 +319,7 @@ function importRosterMonth(payload: RosterImport, api: Api) {
 		// made a whole imported month indistinguishable from an operator's ad hoc edits. The note is
 		// an optional column of the long-form sheet, so a file that carries one carries it through
 		// rather than having it read and discarded.
-		return yield* upsertPersonDays(
-			api,
+		return personDayMutations(
 			existing,
 			assignments.map((row) => {
 				const code = codeByName.get(row.shift_code);
@@ -400,7 +335,8 @@ function importRosterMonth(payload: RosterImport, api: Api) {
 						planned_note: row.planned_note ?? null
 					}
 				};
-			})
+			}),
+			personDayKey
 		);
 	});
 }
@@ -674,14 +610,14 @@ function importAttendanceMonth(payload: AttendanceImport, api: Api) {
 			}
 		}
 
-		return yield* upsertPersonDays(
-			api,
+		return personDayMutations(
 			existing,
 			rows.map((row) => ({
 				employment_id: employmentIdFor(row.employee_number),
 				work_date: row.work_date,
 				values: attendanceValues(row, timezone)
-			}))
+			})),
+			personDayKey
 		);
 	});
 }
@@ -692,11 +628,10 @@ export default {
 			'Loads one month of person-days for one legal entity, from either sheet of the scheduling workbook: the Roster sheet loads planned roster-code assignments, and the Time entries sheet loads local attendance punches as generic worked intervals. A day already held by the other sheet is updated rather than duplicated. The import never labels or stores overtime; payroll derives it from actual intervals and the schedule.',
 		input: importSchema,
 		handler: ({ input }, api) =>
-			Effect.suspend(() => {
+			Effect.gen(function* () {
 				const payload = Schema.decodeUnknownSync(importSchema)(input);
-				return payload.sheet === 'ROSTER'
-					? importRosterMonth(payload, api)
-					: importAttendanceMonth(payload, api);
+				if (payload.sheet === 'ROSTER') return yield* importRosterMonth(payload, api);
+				return yield* importAttendanceMonth(payload, api);
 			})
 	}
 } satisfies Pipelines;

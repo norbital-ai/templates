@@ -391,6 +391,21 @@ export const employeeWorkDayCreateGrant = (): Grants =>
 		approval: workDayCreateApproval
 	});
 
+/**
+ * Add attendance to an existing person-day belonging to the requestor.
+ *
+ * Unlike create, update does not need the employment or date in its field mask: the stored row
+ * already owns both, and accepting either in the patch would let self-service move somebody's day.
+ * The authorization runs against the complete resulting record, so a row id from another
+ * employment is refused even though the submitted patch contains only clock fields.
+ */
+export const employeeWorkDayUpdateGrant = (): Grants =>
+	grantOn('work_days', 'update', {
+		fields: WORK_DAY_ATTENDANCE_FIELDS,
+		authorize: ({ record }, api) => employmentBelongsToRequestor(record.employment_id, api),
+		approval: workDayUpdateApproval
+	});
+
 export const employeeLeaveRequestCreateGrant = (): Grants =>
 	grantOn('leave_requests', 'create', {
 		authorize: ({ record }, api) => employmentBelongsToRequestor(record.employment_id, api),

@@ -15,8 +15,9 @@
  *
  * Both sheets now land in ONE collection through ONE pipeline: `work_days` has a single `import`,
  * and the payload's `sheet` tag decides which arm reads it. So the upsert is exercised here too —
- * a punch imported onto a day the roster import already wrote is an UPDATE of that row, issued
- * through `api.db.work_days.mutate`, and only the genuinely new person-days come back as rows.
+ * a punch imported onto a day the roster import already wrote is an UPDATE of that row. The
+ * pipeline returns both creates and updates; the stored id is the update assertion the runtime
+ * sends through the same canonical mutation path as every other imported row.
  *
  * The refusal cases matter as much as the happy one: the platform writes an import in a single
  * transaction and has no per-row rejection, so a bad row must refuse the WHOLE file and say which
@@ -161,35 +162,35 @@ function rosterApi(overrides = {}) {
 				code: '7.5AM',
 				company_id: COMPANY_ID,
 				variant: { kind: 'WORK', start_time: '08:30', end_time: '17:00', break_minutes: 60 },
-				effective_range: { start: '2020-01-01' }
+				effective_range: { start: '2020-01-01', end: null }
 			},
 			{
 				id: 'shift:am',
 				code: 'AM0830',
 				company_id: COMPANY_ID,
 				variant: { kind: 'WORK', start_time: '08:30', end_time: '17:30', break_minutes: 60 },
-				effective_range: { start: '2020-01-01' }
+				effective_range: { start: '2020-01-01', end: null }
 			},
 			{
 				id: 'shift:pm',
 				code: 'PM2030',
 				company_id: COMPANY_ID,
 				variant: { kind: 'WORK', start_time: '20:30', end_time: '05:30', break_minutes: 60 },
-				effective_range: { start: '2020-01-01' }
+				effective_range: { start: '2020-01-01', end: null }
 			},
 			{
 				id: 'shift:rest',
 				code: 'REST',
 				company_id: COMPANY_ID,
 				variant: { kind: 'REST' },
-				effective_range: { start: '2020-01-01' }
+				effective_range: { start: '2020-01-01', end: null }
 			},
 			{
 				id: 'shift:off',
 				code: 'OFF',
 				company_id: COMPANY_ID,
 				variant: { kind: 'OFF' },
-				effective_range: { start: '2020-01-01' }
+				effective_range: { start: '2020-01-01', end: null }
 			}
 		],
 		company_holidays: [{ id: 'holiday:1', company_id: COMPANY_ID, date: '2026-05-08' }],
@@ -208,26 +209,6 @@ function attendanceApi(overrides = {}) {
 		payroll_runs: overrides.payrollRuns ?? [],
 		leave_requests: overrides.leaveRequests ?? []
 	});
-}
-
-/**
- * Every `mutate` the pipeline issued, in order.
- *
- * The import pipeline's return value is inserted by the runtime, so the UPDATE half of the upsert
- * cannot ride on it: an existing person-day is written through `api.db.work_days.mutate({ id, … })`
- * instead. That call is the thing to assert on, so it is recorded rather than swallowed.
- */
-function recordingApi(api, recorded) {
-	return {
-		...api,
-		db: {
-			...api.db,
-			work_days: {
-				...api.db.work_days,
-				mutate: (values) => Effect.sync(() => void recorded.push(values))
-			}
-		}
-	};
 }
 
 function refusal(run) {
@@ -577,9 +558,8 @@ const program = Effect.gen(function* () {
 		// ── THE UPSERT: a punch on a rostered day updates that day, it does not make a second one ──
 		//
 		// This is the whole point of the merge. `unique(employment_id, work_date)` means a person-day
-		// is one row, so attendance landing on a day the roster import already wrote is an UPDATE of
-		// that row, issued through `mutate` with the stored id — and only the days that did not exist
-		// come back as rows for the runtime to insert.
+		// is one row, so attendance landing on a day the roster import already wrote is an UPDATE row
+		// carrying the stored id. New rows omit id; both remain in one ordered mutation batch.
 		const rosteredDays = [
 			{
 				id: 'day:2-05-04',
@@ -596,27 +576,28 @@ const program = Effect.gen(function* () {
 				worked_intervals: null
 			}
 		];
-		const upserts = [];
 		const onRostered = yield* runHandler(
 			workDayPipeline.import.handler(
 				{ input: timePayload },
-				recordingApi(attendanceApi({ existingDays: rosteredDays }), upserts)
+				attendanceApi({ existingDays: rosteredDays })
 			)
 		);
 		assert.equal(
 			onRostered.length,
-			3,
-			'only the three person-days that did not exist are returned for insertion'
+			5,
+			'the import returns its complete ordered create/update mutation batch'
 		);
 		assert.deepEqual(
-			upserts.map((values) => values.id),
+			onRostered.filter((values) => values.id != null).map((values) => values.id),
 			['day:2-05-04', 'day:2-05-05'],
-			'the two rostered days are updated by id rather than inserted a second time'
+			'the two rostered days assert their stored ids rather than creating duplicates'
 		);
 		assert.deepEqual(
-			upserts[0],
+			onRostered[0],
 			{
 				id: 'day:2-05-04',
+				employment_id: 'employment:2',
+				work_date: '2026-05-04',
 				worked_intervals: [{ start: '2026-05-04T00:16:00.000Z', end: '2026-05-04T09:10:00.000Z' }],
 				break_minutes: 0
 			},
@@ -649,30 +630,28 @@ const program = Effect.gen(function* () {
 		const rosterOntoAttendance = yield* runHandler(
 			workDayPipeline.import.handler(
 				{ input: rosterPayload },
-				recordingApi(
-					rosterApi({
-						existingDays: [
-							{
-								id: 'day:attendance-first',
-								employment_id: 'employment:2',
-								work_date: '2026-05-01',
-								shift_definition_id: null,
-								worked_intervals: [
-									{ start: '2026-05-01T00:16:00.000Z', end: '2026-05-01T09:10:00.000Z' }
-								]
-							}
-						]
-					}),
-					[]
-				)
+				rosterApi({
+					existingDays: [
+						{
+							id: 'day:attendance-first',
+							employment_id: 'employment:2',
+							work_date: '2026-05-01',
+							shift_definition_id: null,
+							worked_intervals: [
+								{ start: '2026-05-01T00:16:00.000Z', end: '2026-05-01T09:10:00.000Z' }
+							]
+						}
+					]
+				})
 			)
 		);
 		assert.equal(
 			rosterOntoAttendance.length,
-			7,
+			8,
 			'a day that exists only because attendance arrived first is not a roster conflict — the ' +
-				'plan lands on it as an update, leaving seven of the eight assignments to insert'
+				'plan lands on it as one id-bearing update beside seven creates'
 		);
+		assert.equal(rosterOntoAttendance[0].id, 'day:attendance-first');
 
 		const unknownPuncher = yield* refusal(() =>
 			Effect.gen(function* () {

@@ -1,7 +1,7 @@
 {
   "version": 1,
   "offlineHorizonMillis": 1209600000,
-  "currentSchemaFingerprint": "sha256:23a71752fe02aeb29bb880e3a0bcae68a5a07032a0d0695ffe9897332cbbb3aa",
+  "currentSchemaFingerprint": "sha256:4d21afc38459fb5549129d07ba5f0c4b2cc2189af5078b6612a1610bd4c56c88",
   "checkpoints": [
     {
       "schemaFingerprint": "sha256:23a71752fe02aeb29bb880e3a0bcae68a5a07032a0d0695ffe9897332cbbb3aa",
@@ -985,6 +985,2883 @@
                 "notNull": false,
                 "default": null,
                 "generated": "CASE WHEN event ->> 'kind' = 'TIME_OFF' AND jsonb_typeof(event -> 'certificate_file') = 'object' THEN event -> 'certificate_file' END"
+              },
+              "created_at": {
+                "type": "timestamp with time zone",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": "now()",
+                "generated": null
+              },
+              "days": {
+                "type": "numeric",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": "CASE WHEN event ->> 'kind' = 'TIME_OFF' THEN (event ->> 'chargeable_days')::numeric ELSE (event ->> 'movement_days')::numeric END"
+              },
+              "employment_id": {
+                "type": "uuid",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": null,
+                "generated": null
+              },
+              "event": {
+                "type": "jsonb",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": null,
+                "generated": null
+              },
+              "from_date": {
+                "type": "timestamp with time zone",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": "CASE WHEN event ->> 'kind' = 'TIME_OFF' THEN bolt_instant(event #>> '{range,start,date}') ELSE bolt_instant(event ->> 'effective_on') END"
+              },
+              "half_day_end": {
+                "type": "boolean",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": "CASE WHEN event ->> 'kind' = 'TIME_OFF' THEN (event #>> '{range,end,half}') = 'FIRST' ELSE false END"
+              },
+              "half_day_start": {
+                "type": "boolean",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": "CASE WHEN event ->> 'kind' = 'TIME_OFF' THEN (event #>> '{range,start,half}') = 'SECOND' ELSE false END"
+              },
+              "id": {
+                "type": "uuid",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": "gen_random_uuid()",
+                "generated": null
+              },
+              "kind": {
+                "type": "text",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": "event ->> 'kind'"
+              },
+              "leave_type_id": {
+                "type": "uuid",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": null,
+                "generated": null
+              },
+              "reason": {
+                "type": "text",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": "CASE WHEN event ->> 'kind' = 'TIME_OFF' THEN event ->> 'reason' ELSE event ->> 'note' END"
+              },
+              "row_version": {
+                "type": "integer",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": "1",
+                "generated": null
+              },
+              "summary": {
+                "type": "text",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": "CASE\n\t\t\t\tWHEN event ->> 'kind' = 'TIME_OFF'\n\t\t\t\t\tTHEN 'Time off · ' || (event #>> '{range,start,date}') || ' → ' || (event #>> '{range,end,date}') || ' · ' || (event ->> 'chargeable_days') || 'd'\n\t\t\t\tWHEN event ->> 'kind' = 'BALANCE_ADJUSTMENT'\n\t\t\t\t\tTHEN 'Balance adjustment · ' || (event ->> 'effective_on') || ' · ' || (event ->> 'movement_days') || 'd'\n\t\t\t\tWHEN event ->> 'kind' = 'ENCASHMENT'\n\t\t\t\t\tTHEN 'Encashment · ' || (event ->> 'effective_on') || ' · ' || (event ->> 'movement_days') || 'd'\n\t\t\t\tELSE 'Leave movement · ' || (event ->> 'effective_on') || ' · ' || (event ->> 'movement_days') || 'd'\n\t\t\tEND"
+              },
+              "sys_period": {
+                "type": "tstzrange",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": "tstzrange(CURRENT_TIMESTAMP, NULL, '[)')",
+                "generated": null
+              },
+              "to_date": {
+                "type": "timestamp with time zone",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": "CASE WHEN event ->> 'kind' = 'TIME_OFF' THEN bolt_instant(event #>> '{range,end,date}') ELSE bolt_instant(event ->> 'effective_on') END"
+              },
+              "updated_at": {
+                "type": "timestamp with time zone",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": "now()",
+                "generated": null
+              }
+            }
+          },
+          "leave_types": {
+            "fields": {
+              "accrual": {
+                "type": "jsonb",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": null,
+                "generated": null
+              },
+              "aggregates_with": {
+                "type": "text",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "approval_id": {
+                "type": "uuid",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "code": {
+                "type": "text",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": null,
+                "generated": null
+              },
+              "company_id": {
+                "type": "uuid",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": null,
+                "generated": null
+              },
+              "created_at": {
+                "type": "timestamp with time zone",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": "now()",
+                "generated": null
+              },
+              "effective_range": {
+                "type": "jsonb",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": null,
+                "generated": null
+              },
+              "eligibility": {
+                "type": "jsonb",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": null,
+                "generated": null
+              },
+              "encash_on_exit": {
+                "type": "boolean",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": null,
+                "generated": null
+              },
+              "entitlement": {
+                "type": "jsonb",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": null,
+                "generated": null
+              },
+              "id": {
+                "type": "uuid",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": "gen_random_uuid()",
+                "generated": null
+              },
+              "name": {
+                "type": "text",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": null,
+                "generated": null
+              },
+              "payroll_effect": {
+                "type": "jsonb",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": null,
+                "generated": null
+              },
+              "requires_certificate_after_days": {
+                "type": "integer",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "row_version": {
+                "type": "integer",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": "1",
+                "generated": null
+              },
+              "sys_period": {
+                "type": "tstzrange",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": "tstzrange(CURRENT_TIMESTAMP, NULL, '[)')",
+                "generated": null
+              },
+              "updated_at": {
+                "type": "timestamp with time zone",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": "now()",
+                "generated": null
+              }
+            }
+          },
+          "obligations": {
+            "fields": {
+              "amount": {
+                "type": "numeric",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": null,
+                "generated": null
+              },
+              "approval_id": {
+                "type": "uuid",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "covers_periods": {
+                "type": "text",
+                "typeSchema": null,
+                "dimensions": 1,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "created_at": {
+                "type": "timestamp with time zone",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": "now()",
+                "generated": null
+              },
+              "description": {
+                "type": "text",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "effective_range": {
+                "type": "jsonb",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "employment_id": {
+                "type": "uuid",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": null,
+                "generated": null
+              },
+              "event_date": {
+                "type": "timestamp with time zone",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": null,
+                "generated": null
+              },
+              "evidence_file": {
+                "type": "jsonb",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "id": {
+                "type": "uuid",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": "gen_random_uuid()",
+                "generated": null
+              },
+              "incurred_on": {
+                "type": "timestamp with time zone",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "instalments": {
+                "type": "jsonb",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "note": {
+                "type": "text",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "occasion": {
+                "type": "text",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "pay_component_id": {
+                "type": "uuid",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": null,
+                "generated": null
+              },
+              "pay_period": {
+                "type": "text",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "quantity": {
+                "type": "numeric",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "reason": {
+                "type": "text",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "reference": {
+                "type": "text",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "reverses_obligation_id": {
+                "type": "uuid",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "row_version": {
+                "type": "integer",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": "1",
+                "generated": null
+              },
+              "sys_period": {
+                "type": "tstzrange",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": "tstzrange(CURRENT_TIMESTAMP, NULL, '[)')",
+                "generated": null
+              },
+              "terms": {
+                "type": "text",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": null,
+                "generated": null
+              },
+              "updated_at": {
+                "type": "timestamp with time zone",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": "now()",
+                "generated": null
+              }
+            }
+          },
+          "pay_components": {
+            "fields": {
+              "approval_id": {
+                "type": "uuid",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "code": {
+                "type": "text",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": null,
+                "generated": null
+              },
+              "company_id": {
+                "type": "uuid",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": null,
+                "generated": null
+              },
+              "created_at": {
+                "type": "timestamp with time zone",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": "now()",
+                "generated": null
+              },
+              "definition": {
+                "type": "jsonb",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": null,
+                "generated": null
+              },
+              "effective_range": {
+                "type": "jsonb",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": null,
+                "generated": null
+              },
+              "eligibility": {
+                "type": "jsonb",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": null,
+                "generated": null
+              },
+              "id": {
+                "type": "uuid",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": "gen_random_uuid()",
+                "generated": null
+              },
+              "nature": {
+                "type": "text",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": "policy ->> 'kind'"
+              },
+              "policy": {
+                "type": "jsonb",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": null,
+                "generated": null
+              },
+              "row_version": {
+                "type": "integer",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": "1",
+                "generated": null
+              },
+              "sequence": {
+                "type": "integer",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": null,
+                "generated": null
+              },
+              "sys_period": {
+                "type": "tstzrange",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": "tstzrange(CURRENT_TIMESTAMP, NULL, '[)')",
+                "generated": null
+              },
+              "updated_at": {
+                "type": "timestamp with time zone",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": "now()",
+                "generated": null
+              }
+            }
+          },
+          "payroll_runs": {
+            "fields": {
+              "approval_id": {
+                "type": "uuid",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "attendance_from": {
+                "type": "timestamp with time zone",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": null,
+                "generated": null
+              },
+              "attendance_to": {
+                "type": "timestamp with time zone",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": null,
+                "generated": null
+              },
+              "company_id": {
+                "type": "uuid",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": null,
+                "generated": null
+              },
+              "configuration_hash": {
+                "type": "text",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": null,
+                "generated": null
+              },
+              "configuration_snapshot": {
+                "type": "jsonb",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": null,
+                "generated": null
+              },
+              "created_at": {
+                "type": "timestamp with time zone",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": "now()",
+                "generated": null
+              },
+              "id": {
+                "type": "uuid",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": "gen_random_uuid()",
+                "generated": null
+              },
+              "lifecycle": {
+                "type": "text",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": null,
+                "generated": null
+              },
+              "pay_date": {
+                "type": "timestamp with time zone",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": null,
+                "generated": null
+              },
+              "period": {
+                "type": "text",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": null,
+                "generated": null
+              },
+              "row_version": {
+                "type": "integer",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": "1",
+                "generated": null
+              },
+              "sys_period": {
+                "type": "tstzrange",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": "tstzrange(CURRENT_TIMESTAMP, NULL, '[)')",
+                "generated": null
+              },
+              "updated_at": {
+                "type": "timestamp with time zone",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": "now()",
+                "generated": null
+              }
+            }
+          },
+          "payslip_adjustments": {
+            "fields": {
+              "amount": {
+                "type": "numeric",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": null,
+                "generated": null
+              },
+              "approval_id": {
+                "type": "uuid",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "bucket": {
+                "type": "text",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": null,
+                "generated": null
+              },
+              "created_at": {
+                "type": "timestamp with time zone",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": "now()",
+                "generated": null
+              },
+              "id": {
+                "type": "uuid",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": "gen_random_uuid()",
+                "generated": null
+              },
+              "overtime_band": {
+                "type": "jsonb",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "pay_component_id": {
+                "type": "uuid",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "payslip_id": {
+                "type": "uuid",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": null,
+                "generated": null
+              },
+              "period": {
+                "type": "text",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": null,
+                "generated": null
+              },
+              "quantity": {
+                "type": "numeric",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "rate": {
+                "type": "numeric",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "row_version": {
+                "type": "integer",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": "1",
+                "generated": null
+              },
+              "sequence": {
+                "type": "integer",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": null,
+                "generated": null
+              },
+              "source__leave_request_id": {
+                "type": "uuid",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "source__obligation_id": {
+                "type": "uuid",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "source__work_day_id": {
+                "type": "uuid",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "sys_period": {
+                "type": "tstzrange",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": "tstzrange(CURRENT_TIMESTAMP, NULL, '[)')",
+                "generated": null
+              },
+              "updated_at": {
+                "type": "timestamp with time zone",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": "now()",
+                "generated": null
+              }
+            }
+          },
+          "payslips": {
+            "fields": {
+              "approval_id": {
+                "type": "uuid",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "base": {
+                "type": "jsonb",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": null,
+                "generated": null
+              },
+              "created_at": {
+                "type": "timestamp with time zone",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": "now()",
+                "generated": null
+              },
+              "currency": {
+                "type": "text",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": null,
+                "generated": null
+              },
+              "employer_cost": {
+                "type": "numeric",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": null,
+                "generated": null
+              },
+              "employment_id": {
+                "type": "uuid",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": null,
+                "generated": null
+              },
+              "gross": {
+                "type": "numeric",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": null,
+                "generated": null
+              },
+              "id": {
+                "type": "uuid",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": "gen_random_uuid()",
+                "generated": null
+              },
+              "net": {
+                "type": "numeric",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": null,
+                "generated": null
+              },
+              "payroll_run_id": {
+                "type": "uuid",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": null,
+                "generated": null
+              },
+              "proration": {
+                "type": "jsonb",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": null,
+                "generated": null
+              },
+              "row_version": {
+                "type": "integer",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": "1",
+                "generated": null
+              },
+              "statutory": {
+                "type": "jsonb",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": null,
+                "generated": null
+              },
+              "sys_period": {
+                "type": "tstzrange",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": "tstzrange(CURRENT_TIMESTAMP, NULL, '[)')",
+                "generated": null
+              },
+              "total_deductions": {
+                "type": "numeric",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": null,
+                "generated": null
+              },
+              "updated_at": {
+                "type": "timestamp with time zone",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": "now()",
+                "generated": null
+              }
+            }
+          },
+          "rosters": {
+            "fields": {
+              "approval_id": {
+                "type": "uuid",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "company_id": {
+                "type": "uuid",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": null,
+                "generated": null
+              },
+              "created_at": {
+                "type": "timestamp with time zone",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": "now()",
+                "generated": null
+              },
+              "id": {
+                "type": "uuid",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": "gen_random_uuid()",
+                "generated": null
+              },
+              "month": {
+                "type": "text",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": null,
+                "generated": null
+              },
+              "published_at": {
+                "type": "timestamp with time zone",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "row_version": {
+                "type": "integer",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": "1",
+                "generated": null
+              },
+              "sys_period": {
+                "type": "tstzrange",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": "tstzrange(CURRENT_TIMESTAMP, NULL, '[)')",
+                "generated": null
+              },
+              "updated_at": {
+                "type": "timestamp with time zone",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": "now()",
+                "generated": null
+              }
+            }
+          },
+          "shift_definitions": {
+            "fields": {
+              "approval_id": {
+                "type": "uuid",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "code": {
+                "type": "text",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": null,
+                "generated": null
+              },
+              "company_id": {
+                "type": "uuid",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": null,
+                "generated": null
+              },
+              "created_at": {
+                "type": "timestamp with time zone",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": "now()",
+                "generated": null
+              },
+              "effective_range": {
+                "type": "jsonb",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": null,
+                "generated": null
+              },
+              "id": {
+                "type": "uuid",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": "gen_random_uuid()",
+                "generated": null
+              },
+              "name": {
+                "type": "text",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": null,
+                "generated": null
+              },
+              "row_version": {
+                "type": "integer",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": "1",
+                "generated": null
+              },
+              "sys_period": {
+                "type": "tstzrange",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": "tstzrange(CURRENT_TIMESTAMP, NULL, '[)')",
+                "generated": null
+              },
+              "updated_at": {
+                "type": "timestamp with time zone",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": "now()",
+                "generated": null
+              },
+              "variant": {
+                "type": "jsonb",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": null,
+                "generated": null
+              }
+            }
+          },
+          "statutory_contributions": {
+            "fields": {
+              "approval_id": {
+                "type": "uuid",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "authority": {
+                "type": "text",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": null,
+                "generated": null
+              },
+              "code": {
+                "type": "text",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": null,
+                "generated": null
+              },
+              "created_at": {
+                "type": "timestamp with time zone",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": "now()",
+                "generated": null
+              },
+              "effective_range": {
+                "type": "jsonb",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": null,
+                "generated": null
+              },
+              "id": {
+                "type": "uuid",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": "gen_random_uuid()",
+                "generated": null
+              },
+              "jurisdiction_id": {
+                "type": "uuid",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": null,
+                "generated": null
+              },
+              "keyed_by": {
+                "type": "text",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": null,
+                "generated": null
+              },
+              "name": {
+                "type": "text",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": null,
+                "generated": null
+              },
+              "overtime_excess_treatments": {
+                "type": "jsonb",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": null,
+                "generated": null
+              },
+              "overtime_treatments": {
+                "type": "jsonb",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": null,
+                "generated": null
+              },
+              "payer": {
+                "type": "text",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": null,
+                "generated": null
+              },
+              "relief_for": {
+                "type": "uuid",
+                "typeSchema": null,
+                "dimensions": 1,
+                "notNull": true,
+                "default": null,
+                "generated": null
+              },
+              "rounding": {
+                "type": "text",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": null,
+                "generated": null
+              },
+              "row_version": {
+                "type": "integer",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": "1",
+                "generated": null
+              },
+              "sequence": {
+                "type": "integer",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": null,
+                "generated": null
+              },
+              "special_rules": {
+                "type": "text",
+                "typeSchema": null,
+                "dimensions": 1,
+                "notNull": true,
+                "default": null,
+                "generated": null
+              },
+              "sys_period": {
+                "type": "tstzrange",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": "tstzrange(CURRENT_TIMESTAMP, NULL, '[)')",
+                "generated": null
+              },
+              "updated_at": {
+                "type": "timestamp with time zone",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": "now()",
+                "generated": null
+              }
+            }
+          },
+          "statutory_profile_drift_logs": {
+            "fields": {
+              "approval_id": {
+                "type": "uuid",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "changes_to_review": {
+                "type": "jsonb",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "checked_at": {
+                "type": "timestamp with time zone",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": null,
+                "generated": null
+              },
+              "completed_at": {
+                "type": "timestamp with time zone",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "created_at": {
+                "type": "timestamp with time zone",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": "now()",
+                "generated": null
+              },
+              "error": {
+                "type": "text",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "id": {
+                "type": "uuid",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": "gen_random_uuid()",
+                "generated": null
+              },
+              "local_findings": {
+                "type": "jsonb",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": null,
+                "generated": null
+              },
+              "local_findings_count": {
+                "type": "integer",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": null,
+                "generated": null
+              },
+              "official_sources": {
+                "type": "jsonb",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "row_version": {
+                "type": "integer",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": "1",
+                "generated": null
+              },
+              "status": {
+                "type": "text",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": null,
+                "generated": null
+              },
+              "successor_proposals": {
+                "type": "jsonb",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": null,
+                "generated": null
+              },
+              "successor_proposals_count": {
+                "type": "integer",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": null,
+                "generated": null
+              },
+              "sys_period": {
+                "type": "tstzrange",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": "tstzrange(CURRENT_TIMESTAMP, NULL, '[)')",
+                "generated": null
+              },
+              "updated_at": {
+                "type": "timestamp with time zone",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": "now()",
+                "generated": null
+              },
+              "web_highlights": {
+                "type": "jsonb",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "web_summary": {
+                "type": "text",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              }
+            }
+          },
+          "work_days": {
+            "fields": {
+              "approval_id": {
+                "type": "uuid",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "assignment_code": {
+                "type": "text",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "break_minutes": {
+                "type": "integer",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": "0",
+                "generated": null
+              },
+              "created_at": {
+                "type": "timestamp with time zone",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": "now()",
+                "generated": null
+              },
+              "employment_id": {
+                "type": "uuid",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": null,
+                "generated": null
+              },
+              "id": {
+                "type": "uuid",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": "gen_random_uuid()",
+                "generated": null
+              },
+              "planned_note": {
+                "type": "text",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "planned_origin": {
+                "type": "text",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "roster_id": {
+                "type": "uuid",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "row_version": {
+                "type": "integer",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": "1",
+                "generated": null
+              },
+              "shift_definition_id": {
+                "type": "uuid",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "sys_period": {
+                "type": "tstzrange",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": "tstzrange(CURRENT_TIMESTAMP, NULL, '[)')",
+                "generated": null
+              },
+              "updated_at": {
+                "type": "timestamp with time zone",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": "now()",
+                "generated": null
+              },
+              "work_date": {
+                "type": "timestamp with time zone",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": null,
+                "generated": null
+              },
+              "worked_intervals": {
+                "type": "jsonb",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              }
+            }
+          }
+        },
+        "relations": [
+          {
+            "name": "company_holiday_company",
+            "source": "companies",
+            "target": "company_holidays",
+            "cardinality": "many"
+          },
+          {
+            "name": "company_jurisdiction",
+            "source": "companies",
+            "target": "jurisdictions",
+            "cardinality": "one"
+          },
+          {
+            "name": "employment_company",
+            "source": "companies",
+            "target": "employments",
+            "cardinality": "many"
+          },
+          {
+            "name": "leave_type_company",
+            "source": "companies",
+            "target": "leave_types",
+            "cardinality": "many"
+          },
+          {
+            "name": "pay_component_company",
+            "source": "companies",
+            "target": "pay_components",
+            "cardinality": "many"
+          },
+          {
+            "name": "payroll_run_company",
+            "source": "companies",
+            "target": "payroll_runs",
+            "cardinality": "many"
+          },
+          {
+            "name": "roster_company",
+            "source": "companies",
+            "target": "rosters",
+            "cardinality": "many"
+          },
+          {
+            "name": "shift_definition_company",
+            "source": "companies",
+            "target": "shift_definitions",
+            "cardinality": "many"
+          },
+          {
+            "name": "company_holiday_company",
+            "source": "company_holidays",
+            "target": "companies",
+            "cardinality": "one"
+          },
+          {
+            "name": "rate_contribution",
+            "source": "contribution_rates",
+            "target": "statutory_contributions",
+            "cardinality": "one"
+          },
+          {
+            "name": "employment_employee",
+            "source": "employees",
+            "target": "employments",
+            "cardinality": "many"
+          },
+          {
+            "name": "statutory_fact_contribution",
+            "source": "employment_statutory_facts",
+            "target": "statutory_contributions",
+            "cardinality": "one"
+          },
+          {
+            "name": "statutory_fact_employment",
+            "source": "employment_statutory_facts",
+            "target": "employments",
+            "cardinality": "one"
+          },
+          {
+            "name": "term_employment",
+            "source": "employment_terms",
+            "target": "employments",
+            "cardinality": "one"
+          },
+          {
+            "name": "employment_company",
+            "source": "employments",
+            "target": "companies",
+            "cardinality": "one"
+          },
+          {
+            "name": "employment_employee",
+            "source": "employments",
+            "target": "employees",
+            "cardinality": "one"
+          },
+          {
+            "name": "leave_request_employment",
+            "source": "employments",
+            "target": "leave_requests",
+            "cardinality": "many"
+          },
+          {
+            "name": "obligation_employment",
+            "source": "employments",
+            "target": "obligations",
+            "cardinality": "many"
+          },
+          {
+            "name": "payslip_employment",
+            "source": "employments",
+            "target": "payslips",
+            "cardinality": "many"
+          },
+          {
+            "name": "statutory_fact_employment",
+            "source": "employments",
+            "target": "employment_statutory_facts",
+            "cardinality": "many"
+          },
+          {
+            "name": "term_employment",
+            "source": "employments",
+            "target": "employment_terms",
+            "cardinality": "many"
+          },
+          {
+            "name": "work_day_employment",
+            "source": "employments",
+            "target": "work_days",
+            "cardinality": "many"
+          },
+          {
+            "name": "company_jurisdiction",
+            "source": "jurisdictions",
+            "target": "companies",
+            "cardinality": "many"
+          },
+          {
+            "name": "contribution_jurisdiction",
+            "source": "jurisdictions",
+            "target": "statutory_contributions",
+            "cardinality": "many"
+          },
+          {
+            "name": "leave_request_employment",
+            "source": "leave_requests",
+            "target": "employments",
+            "cardinality": "one"
+          },
+          {
+            "name": "leave_request_type",
+            "source": "leave_requests",
+            "target": "leave_types",
+            "cardinality": "one"
+          },
+          {
+            "name": "leave_request_type",
+            "source": "leave_types",
+            "target": "leave_requests",
+            "cardinality": "many"
+          },
+          {
+            "name": "leave_type_company",
+            "source": "leave_types",
+            "target": "companies",
+            "cardinality": "one"
+          },
+          {
+            "name": "obligation_employment",
+            "source": "obligations",
+            "target": "employments",
+            "cardinality": "one"
+          },
+          {
+            "name": "obligation_pay_component",
+            "source": "obligations",
+            "target": "pay_components",
+            "cardinality": "one"
+          },
+          {
+            "name": "obligation_reverses",
+            "source": "obligations",
+            "target": "obligations",
+            "cardinality": "one"
+          },
+          {
+            "name": "obligation_pay_component",
+            "source": "pay_components",
+            "target": "obligations",
+            "cardinality": "many"
+          },
+          {
+            "name": "pay_component_company",
+            "source": "pay_components",
+            "target": "companies",
+            "cardinality": "one"
+          },
+          {
+            "name": "payslip_adjustment_pay_component",
+            "source": "pay_components",
+            "target": "payslip_adjustments",
+            "cardinality": "many"
+          },
+          {
+            "name": "payroll_run_company",
+            "source": "payroll_runs",
+            "target": "companies",
+            "cardinality": "one"
+          },
+          {
+            "name": "payslip_payroll_run",
+            "source": "payroll_runs",
+            "target": "payslips",
+            "cardinality": "many"
+          },
+          {
+            "name": "payslip_adjustment_pay_component",
+            "source": "payslip_adjustments",
+            "target": "pay_components",
+            "cardinality": "one"
+          },
+          {
+            "name": "payslip_adjustment_payslip",
+            "source": "payslip_adjustments",
+            "target": "payslips",
+            "cardinality": "one"
+          },
+          {
+            "name": "payslip_adjustment_payslip",
+            "source": "payslips",
+            "target": "payslip_adjustments",
+            "cardinality": "many"
+          },
+          {
+            "name": "payslip_employment",
+            "source": "payslips",
+            "target": "employments",
+            "cardinality": "one"
+          },
+          {
+            "name": "payslip_payroll_run",
+            "source": "payslips",
+            "target": "payroll_runs",
+            "cardinality": "one"
+          },
+          {
+            "name": "roster_company",
+            "source": "rosters",
+            "target": "companies",
+            "cardinality": "one"
+          },
+          {
+            "name": "work_day_roster",
+            "source": "rosters",
+            "target": "work_days",
+            "cardinality": "many"
+          },
+          {
+            "name": "shift_definition_company",
+            "source": "shift_definitions",
+            "target": "companies",
+            "cardinality": "one"
+          },
+          {
+            "name": "work_day_shift",
+            "source": "shift_definitions",
+            "target": "work_days",
+            "cardinality": "many"
+          },
+          {
+            "name": "contribution_jurisdiction",
+            "source": "statutory_contributions",
+            "target": "jurisdictions",
+            "cardinality": "one"
+          },
+          {
+            "name": "rate_contribution",
+            "source": "statutory_contributions",
+            "target": "contribution_rates",
+            "cardinality": "many"
+          },
+          {
+            "name": "statutory_fact_contribution",
+            "source": "statutory_contributions",
+            "target": "employment_statutory_facts",
+            "cardinality": "many"
+          },
+          {
+            "name": "work_day_employment",
+            "source": "work_days",
+            "target": "employments",
+            "cardinality": "one"
+          },
+          {
+            "name": "work_day_roster",
+            "source": "work_days",
+            "target": "rosters",
+            "cardinality": "one"
+          },
+          {
+            "name": "work_day_shift",
+            "source": "work_days",
+            "target": "shift_definitions",
+            "cardinality": "one"
+          }
+        ]
+      },
+      "retiredAtEpochMs": 1787871066962,
+      "adapterToCurrent": {
+        "fromSchemaFingerprint": "sha256:23a71752fe02aeb29bb880e3a0bcae68a5a07032a0d0695ffe9897332cbbb3aa",
+        "incompatibleActions": {
+          "leave_requests": [
+            "create"
+          ]
+        }
+      }
+    },
+    {
+      "schemaFingerprint": "sha256:4d21afc38459fb5549129d07ba5f0c4b2cc2189af5078b6612a1610bd4c56c88",
+      "activatedAtEpochMs": 1787871066962,
+      "schema": {
+        "collections": {
+          "companies": {
+            "fields": {
+              "approval_id": {
+                "type": "uuid",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "created_at": {
+                "type": "timestamp with time zone",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": "now()",
+                "generated": null
+              },
+              "effective_range": {
+                "type": "jsonb",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": null,
+                "generated": null
+              },
+              "id": {
+                "type": "uuid",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": "gen_random_uuid()",
+                "generated": null
+              },
+              "jurisdiction_id": {
+                "type": "uuid",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": null,
+                "generated": null
+              },
+              "leave_year_start_month": {
+                "type": "integer",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": null,
+                "generated": null
+              },
+              "name": {
+                "type": "text",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": null,
+                "generated": null
+              },
+              "overtime_calculation_method": {
+                "type": "text",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": "'STATUTORY_AGGREGATE'",
+                "generated": null
+              },
+              "pay_calendar": {
+                "type": "jsonb",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "pay_cutoff_day": {
+                "type": "integer",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": null,
+                "generated": null
+              },
+              "pay_day": {
+                "type": "integer",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": null,
+                "generated": null
+              },
+              "registration_number": {
+                "type": "text",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": null,
+                "generated": null
+              },
+              "risk_class": {
+                "type": "text",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "row_version": {
+                "type": "integer",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": "1",
+                "generated": null
+              },
+              "settlement_policy": {
+                "type": "jsonb",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "sys_period": {
+                "type": "tstzrange",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": "tstzrange(CURRENT_TIMESTAMP, NULL, '[)')",
+                "generated": null
+              },
+              "updated_at": {
+                "type": "timestamp with time zone",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": "now()",
+                "generated": null
+              }
+            }
+          },
+          "company_holidays": {
+            "fields": {
+              "approval_id": {
+                "type": "uuid",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "company_id": {
+                "type": "uuid",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": null,
+                "generated": null
+              },
+              "created_at": {
+                "type": "timestamp with time zone",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": "now()",
+                "generated": null
+              },
+              "date": {
+                "type": "timestamp with time zone",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": null,
+                "generated": null
+              },
+              "id": {
+                "type": "uuid",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": "gen_random_uuid()",
+                "generated": null
+              },
+              "name": {
+                "type": "text",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": null,
+                "generated": null
+              },
+              "row_version": {
+                "type": "integer",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": "1",
+                "generated": null
+              },
+              "scope": {
+                "type": "jsonb",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": null,
+                "generated": null
+              },
+              "substitutes_date": {
+                "type": "timestamp with time zone",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "sys_period": {
+                "type": "tstzrange",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": "tstzrange(CURRENT_TIMESTAMP, NULL, '[)')",
+                "generated": null
+              },
+              "updated_at": {
+                "type": "timestamp with time zone",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": "now()",
+                "generated": null
+              }
+            }
+          },
+          "contribution_rates": {
+            "fields": {
+              "approval_id": {
+                "type": "uuid",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "award": {
+                "type": "jsonb",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": null,
+                "generated": null
+              },
+              "created_at": {
+                "type": "timestamp with time zone",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": "now()",
+                "generated": null
+              },
+              "effective_range": {
+                "type": "jsonb",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": null,
+                "generated": null
+              },
+              "id": {
+                "type": "uuid",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": "gen_random_uuid()",
+                "generated": null
+              },
+              "row_version": {
+                "type": "integer",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": "1",
+                "generated": null
+              },
+              "selector": {
+                "type": "jsonb",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": null,
+                "generated": null
+              },
+              "statutory_contribution_id": {
+                "type": "uuid",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": null,
+                "generated": null
+              },
+              "summary": {
+                "type": "text",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": "CASE selector ->> 'by'\n\t\t\t\tWHEN 'WAGE' THEN (selector ->> 'from') || ' – ' || COALESCE(selector ->> 'to', '∞')\n\t\t\t\tWHEN 'WAGE_AND_AGE' THEN (selector ->> 'from') || ' – ' || COALESCE(selector ->> 'to', '∞') || ' · age ' || (selector ->> 'age_from') || '–' || COALESCE(selector ->> 'age_to', '∞')\n\t\t\t\tWHEN 'WAGE_AND_MARITAL' THEN (selector ->> 'from') || ' – ' || COALESCE(selector ->> 'to', '∞') || ' · ' || LOWER(selector ->> 'marital')\n\t\t\t\tWHEN 'HEADCOUNT' THEN 'headcount ' || (selector ->> 'from') || ' – ' || COALESCE(selector ->> 'to', '∞')\n\t\t\t\tWHEN 'RISK_CLASS' THEN 'risk ' || (selector ->> 'class')\n\t\t\t\tELSE 'band'\n\t\t\tEND || ' · from ' || LEFT(effective_range ->> 'start', 10)"
+              },
+              "sys_period": {
+                "type": "tstzrange",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": "tstzrange(CURRENT_TIMESTAMP, NULL, '[)')",
+                "generated": null
+              },
+              "updated_at": {
+                "type": "timestamp with time zone",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": "now()",
+                "generated": null
+              }
+            }
+          },
+          "employees": {
+            "fields": {
+              "address": {
+                "type": "jsonb",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "approval_id": {
+                "type": "uuid",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "created_at": {
+                "type": "timestamp with time zone",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": "now()",
+                "generated": null
+              },
+              "date_of_birth": {
+                "type": "timestamp with time zone",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "dependents_count": {
+                "type": "integer",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": "0",
+                "generated": null
+              },
+              "email": {
+                "type": "text",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "gender": {
+                "type": "text",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "id": {
+                "type": "uuid",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": "gen_random_uuid()",
+                "generated": null
+              },
+              "identity_number": {
+                "type": "text",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "marital_status": {
+                "type": "text",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "name": {
+                "type": "text",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": null,
+                "generated": null
+              },
+              "nationality": {
+                "type": "text",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "phone": {
+                "type": "text",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "row_version": {
+                "type": "integer",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": "1",
+                "generated": null
+              },
+              "spouse_status": {
+                "type": "text",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "sys_period": {
+                "type": "tstzrange",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": "tstzrange(CURRENT_TIMESTAMP, NULL, '[)')",
+                "generated": null
+              },
+              "updated_at": {
+                "type": "timestamp with time zone",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": "now()",
+                "generated": null
+              },
+              "user_id": {
+                "type": "uuid",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              }
+            }
+          },
+          "employment_statutory_facts": {
+            "fields": {
+              "approval_id": {
+                "type": "uuid",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "created_at": {
+                "type": "timestamp with time zone",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": "now()",
+                "generated": null
+              },
+              "effective_range": {
+                "type": "jsonb",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": null,
+                "generated": null
+              },
+              "employment_id": {
+                "type": "uuid",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": null,
+                "generated": null
+              },
+              "id": {
+                "type": "uuid",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": "gen_random_uuid()",
+                "generated": null
+              },
+              "row_version": {
+                "type": "integer",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": "1",
+                "generated": null
+              },
+              "status": {
+                "type": "jsonb",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": null,
+                "generated": null
+              },
+              "statutory_contribution_id": {
+                "type": "uuid",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": null,
+                "generated": null
+              },
+              "summary": {
+                "type": "text",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": "CASE status ->> 'kind'\n\t\t\t\tWHEN 'REGISTERED' THEN 'Registered · ' || COALESCE(NULLIF(status ->> 'reference_number', ''), 'no reference')\n\t\t\t\tWHEN 'NOT_REGISTERED' THEN 'Not registered · ' || COALESCE(NULLIF(status ->> 'reason', ''), 'no reason given')\n\t\t\t\tELSE 'Statutory fact'\n\t\t\tEND || ' · from ' || LEFT(effective_range ->> 'start', 10)"
+              },
+              "supersedes_fact_id": {
+                "type": "uuid",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "sys_period": {
+                "type": "tstzrange",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": "tstzrange(CURRENT_TIMESTAMP, NULL, '[)')",
+                "generated": null
+              },
+              "updated_at": {
+                "type": "timestamp with time zone",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": "now()",
+                "generated": null
+              }
+            }
+          },
+          "employment_terms": {
+            "fields": {
+              "approval_id": {
+                "type": "uuid",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "base_salary": {
+                "type": "jsonb",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": null,
+                "generated": null
+              },
+              "created_at": {
+                "type": "timestamp with time zone",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": "now()",
+                "generated": null
+              },
+              "department": {
+                "type": "text",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "effective_range": {
+                "type": "jsonb",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": null,
+                "generated": null
+              },
+              "employment_id": {
+                "type": "uuid",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": null,
+                "generated": null
+              },
+              "employment_type": {
+                "type": "text",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": null,
+                "generated": null
+              },
+              "id": {
+                "type": "uuid",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": "gen_random_uuid()",
+                "generated": null
+              },
+              "job_title": {
+                "type": "text",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "pay_frequency": {
+                "type": "text",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": null,
+                "generated": null
+              },
+              "payroll_group": {
+                "type": "text",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "row_version": {
+                "type": "integer",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": "1",
+                "generated": null
+              },
+              "statutory_work_category": {
+                "type": "text",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": "'NON_MANUAL'",
+                "generated": null
+              },
+              "summary": {
+                "type": "text",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": "COALESCE(job_title || ' · ', '') || employment_type"
+              },
+              "sys_period": {
+                "type": "tstzrange",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": "tstzrange(CURRENT_TIMESTAMP, NULL, '[)')",
+                "generated": null
+              },
+              "updated_at": {
+                "type": "timestamp with time zone",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": "now()",
+                "generated": null
+              },
+              "work_classification": {
+                "type": "text",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": null,
+                "generated": null
+              },
+              "work_pattern": {
+                "type": "jsonb",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": null,
+                "generated": null
+              }
+            }
+          },
+          "employments": {
+            "fields": {
+              "approval_id": {
+                "type": "uuid",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "bank": {
+                "type": "jsonb",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "company_id": {
+                "type": "uuid",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": null,
+                "generated": null
+              },
+              "created_at": {
+                "type": "timestamp with time zone",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": "now()",
+                "generated": null
+              },
+              "effective_range": {
+                "type": "jsonb",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": null,
+                "generated": null
+              },
+              "employee_id": {
+                "type": "uuid",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": null,
+                "generated": null
+              },
+              "employee_number": {
+                "type": "text",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": null,
+                "generated": null
+              },
+              "exit_date": {
+                "type": "timestamp with time zone",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "exit_reason": {
+                "type": "text",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "hire_date": {
+                "type": "timestamp with time zone",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": null,
+                "generated": null
+              },
+              "id": {
+                "type": "uuid",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": "gen_random_uuid()",
+                "generated": null
+              },
+              "row_version": {
+                "type": "integer",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": "1",
+                "generated": null
+              },
+              "sys_period": {
+                "type": "tstzrange",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": "tstzrange(CURRENT_TIMESTAMP, NULL, '[)')",
+                "generated": null
+              },
+              "updated_at": {
+                "type": "timestamp with time zone",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": "now()",
+                "generated": null
+              }
+            }
+          },
+          "jurisdictions": {
+            "fields": {
+              "approval_id": {
+                "type": "uuid",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "code": {
+                "type": "text",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": null,
+                "generated": null
+              },
+              "created_at": {
+                "type": "timestamp with time zone",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": "now()",
+                "generated": null
+              },
+              "currency": {
+                "type": "text",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": null,
+                "generated": null
+              },
+              "effective_range": {
+                "type": "jsonb",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": null,
+                "generated": null
+              },
+              "id": {
+                "type": "uuid",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": "gen_random_uuid()",
+                "generated": null
+              },
+              "name": {
+                "type": "text",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": null,
+                "generated": null
+              },
+              "ordinary_rate_basis": {
+                "type": "text",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": null,
+                "generated": null
+              },
+              "ordinary_rate_divisor": {
+                "type": "numeric",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": null,
+                "generated": null
+              },
+              "proration": {
+                "type": "jsonb",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": null,
+                "generated": null
+              },
+              "regime": {
+                "type": "jsonb",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": null,
+                "generated": null
+              },
+              "row_version": {
+                "type": "integer",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": "1",
+                "generated": null
+              },
+              "sys_period": {
+                "type": "tstzrange",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": "tstzrange(CURRENT_TIMESTAMP, NULL, '[)')",
+                "generated": null
+              },
+              "tax_year_start_month": {
+                "type": "integer",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": true,
+                "default": null,
+                "generated": null
+              },
+              "updated_at": {
+                "type": "timestamp with time zone",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": "now()",
+                "generated": null
+              }
+            }
+          },
+          "leave_requests": {
+            "fields": {
+              "approval_id": {
+                "type": "uuid",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
+              },
+              "certificate_file": {
+                "type": "jsonb",
+                "typeSchema": null,
+                "dimensions": 0,
+                "notNull": false,
+                "default": null,
+                "generated": null
               },
               "created_at": {
                 "type": "timestamp with time zone",
