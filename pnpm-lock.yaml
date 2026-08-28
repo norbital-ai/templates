@@ -12,17 +12,17 @@ importers:
         specifier: ^5.2.2
         version: 5.2.2(svelte@5.56.10)
       '@norbital-ai/bolt':
-        specifier: 0.0.9
-        version: 0.0.9(@norbital-ai/doctor@0.0.9)(effect@4.0.0-rc.111)(jiti@2.7.0)(svelte@5.56.10)(yaml@2.9.0)(zod@4.4.3)
+        specifier: 0.0.10
+        version: 0.0.10(@norbital-ai/doctor@0.0.10)(effect@4.0.0-rc.111)(jiti@2.7.0)(svelte@5.56.10)(yaml@2.9.0)(zod@4.4.3)
       '@norbital-ai/bolt-protocol':
-        specifier: 0.0.9
-        version: 0.0.9(effect@4.0.0-rc.111)
+        specifier: 0.0.10
+        version: 0.0.10(effect@4.0.0-rc.111)
       '@norbital-ai/std':
-        specifier: 0.0.9
-        version: 0.0.9(effect@4.0.0-rc.111)
+        specifier: 0.0.10
+        version: 0.0.10(effect@4.0.0-rc.111)
       '@norbital-ai/ui':
-        specifier: 0.0.9
-        version: 0.0.9(@norbital-ai/std@0.0.9(effect@4.0.0-rc.111))(effect@4.0.0-rc.111)(svelte@5.56.10)(tailwindcss@4.3.3)(zod@4.4.3)
+        specifier: 0.0.10
+        version: 0.0.10(@norbital-ai/std@0.0.10(effect@4.0.0-rc.111))(effect@4.0.0-rc.111)(svelte@5.56.10)(tailwindcss@4.3.3)(zod@4.4.3)
       effect:
         specifier: 4.0.0-rc.111
         version: 4.0.0-rc.111
@@ -40,8 +40,8 @@ importers:
         version: 8.2.2(jiti@2.7.0)(yaml@2.9.0)
     devDependencies:
       '@norbital-ai/doctor':
-        specifier: 0.0.9
-        version: 0.0.9
+        specifier: 0.0.10
+        version: 0.0.10
       '@typescript/native':
         specifier: npm:typescript@7.0.2
         version: typescript@7.0.2
@@ -480,40 +480,40 @@ packages:
     cpu: [x64]
     os: [win32]
 
-  '@noble/ciphers@2.3.0':
-    resolution: {integrity: sha512-Clu/xdfgVTf9o7ngLOURaxePwR0j8sjclKEtVij10/jGulwFsPWCvvRgG/XjUVf8Nei+jLG6uwyXzUTGY1DQrw==}
+  '@noble/ciphers@2.4.0':
+    resolution: {integrity: sha512-AnjFn0Jv92laAkvMrghlFZq4qQCIN/4DxFV/eooqtC2YTjB7kBeLMS2T9KJX4Dn+ZVXLOwK0lSgqDtx9gvxtiw==}
     engines: {node: '>= 20.19.0'}
 
-  '@noble/hashes@2.3.0':
-    resolution: {integrity: sha512-oN+QwyX7VSHotibwubG3kpzbwKrfnyR6OOO+3Nk/53ADL7FmgHHz4TgrbaYKvvOw09u6QTx0oiH1cNCIOuN0CQ==}
+  '@noble/hashes@2.4.0':
+    resolution: {integrity: sha512-X5XaVWZIBCT7HHZGm5I7ZQXDwLG+bGXuSrMQAW+7Zvl87h1kmc1ZB1VSRJcpUfoUrGQp4Fkoxm5kZ+Ms+aW+eA==}
     engines: {node: '>= 20.19.0'}
 
-  '@norbital-ai/bolt-protocol@0.0.9':
-    resolution: {integrity: sha512-/QIDjEJxqYy14DK4Wo2AqNHG2EUULoiwqcpVNNLrzu/zaB5WTDwadF/uifAKD8pnpW0SpavO27bve6ofhIVwKA==, tarball: https://npm.pkg.github.com/download/@norbital-ai/bolt-protocol/0.0.9/d0f77136ce08cd2d74bf3cdf530755bb8147e30d}
+  '@norbital-ai/bolt-protocol@0.0.10':
+    resolution: {integrity: sha512-Arac0/FNm288gyp4z31s+rs+1lxihm/DSuNDBeAfyQeuA4EIyR09D5PihA+wDYUklVU9NfIGfsGOs+BF07uZ4w==, tarball: https://npm.pkg.github.com/download/@norbital-ai/bolt-protocol/0.0.10/16805f33c31f15391e12e352f255264dac3e83a6}
     peerDependencies:
       effect: 4.0.0-rc.111
 
-  '@norbital-ai/bolt@0.0.9':
-    resolution: {integrity: sha512-G6xB1HOw7jQYgihcDBYQf5S4s57WuhsomW4P4A022mvf9Ofw/16a/wgzHfbsHYmrRLvV/VWfWHE4EPULJhDUnQ==, tarball: https://npm.pkg.github.com/download/@norbital-ai/bolt/0.0.9/ec64105a71fed5cc142a9a0882bed7a04fbb4120}
+  '@norbital-ai/bolt@0.0.10':
+    resolution: {integrity: sha512-iShlJRaBkVZxNtkIlopqftAhNg2fK5COfhUe8wZc3OSkP9Bt0MX6eEdlBfmalAFO20YITL0eQgcaUTq09IkxuQ==, tarball: https://npm.pkg.github.com/download/@norbital-ai/bolt/0.0.10/32e3b3c457e4ebb13f31fe0fb95f760bcd302f01}
     hasBin: true
     peerDependencies:
-      '@norbital-ai/doctor': 0.0.9
+      '@norbital-ai/doctor': 0.0.10
       effect: 4.0.0-rc.111
       svelte: ^5.0.0
 
-  '@norbital-ai/doctor@0.0.9':
-    resolution: {integrity: sha512-0LkWbJ3C2Ti+es/CFBxfakQLqca+L+DZIhz3LhFZBQaBsfHqpYdSiqvhdt+MFPo5/GiAIPEXe29KCgeglbo8Lg==, tarball: https://npm.pkg.github.com/download/@norbital-ai/doctor/0.0.9/68917dd0296e3c188b3731fd751920825fc22ca5}
+  '@norbital-ai/doctor@0.0.10':
+    resolution: {integrity: sha512-o27X0HVdLSIi+Tnp7Hb3RQ2wr3QzvqBxNDeGLQkAx9QdGxEj5gwIG7pumyCK2f+CJcsffMrCIDEsUv30ZnTvcA==, tarball: https://npm.pkg.github.com/download/@norbital-ai/doctor/0.0.10/5e2bcda9cbf9972d5f9a25235116ab14e2832d64}
     hasBin: true
 
-  '@norbital-ai/std@0.0.9':
-    resolution: {integrity: sha512-vwVQSR30LJB9JNmgzVxRdvAQ52Ufjh34uaZUuloB/NDiYPp3OuQ8MnYwm2qexgofJqSU+iXVKZy8AMYqjL6LDg==, tarball: https://npm.pkg.github.com/download/@norbital-ai/std/0.0.9/740f38920998867af7568fbe7084da95ae991125}
+  '@norbital-ai/std@0.0.10':
+    resolution: {integrity: sha512-KSThKT5M/iOaJtxesAnhQxF4bE1QvQarB/W38OS4fzeU2p33ejov1Bu/uylof09zvJOC7Wo3tBLPvu7DnE1d1g==, tarball: https://npm.pkg.github.com/download/@norbital-ai/std/0.0.10/d827a518f82f8724f53346057fe1c6f8b0ab01c5}
     peerDependencies:
       effect: 4.0.0-rc.111
 
-  '@norbital-ai/ui@0.0.9':
-    resolution: {integrity: sha512-vxAEfrpghTr/yj7zjfGCEaWbbxu0atBCEVnr4IXoRL8hjK+pChpGIdTItFL77xUHy4lAy7nJmCAiFt/E543JFw==, tarball: https://npm.pkg.github.com/download/@norbital-ai/ui/0.0.9/8f78e631e05019f39e524a18f7b10f3b6d8eef05}
+  '@norbital-ai/ui@0.0.10':
+    resolution: {integrity: sha512-kEhiwIBuhcR3YEM9VHjQH1iU4O9bfGOw22imyq/xpsaGu8Nl6wmXp7Bd06fiV3UbHzsoMINyxVAGkIx0PK0Y7A==, tarball: https://npm.pkg.github.com/download/@norbital-ai/ui/0.0.10/4c8656537ac4ea8a775443d7d5f2d5cfe33faa2d}
     peerDependencies:
-      '@norbital-ai/std': 0.0.9
+      '@norbital-ai/std': 0.0.10
       effect: 4.0.0-rc.111
       svelte: ^5.56.10
 
@@ -1407,8 +1407,8 @@ packages:
     resolution: {integrity: sha512-Btj2BOOO83o3WyH59e8MgXsxEQVcarkUOpEYrubB0urwnN10yQ364rsiByU11nZlqWYZm05i/of7io4mzihBtQ==}
     engines: {node: '>=8'}
 
-  devalue@5.9.1:
-    resolution: {integrity: sha512-+17vil3EVQRzvtDJSFuTWEb8XJRvXqAiV3qZyQWD398QeXUa6CxsUyMdD1fxzEhUrd4FojitFz7lhIHBTlV4fw==}
+  devalue@5.9.2:
+    resolution: {integrity: sha512-po4PAY5c53tw5XMocSnf8A/5OHhbbUftpr93aEN6BBoAdntUmK7vu7wOATqvt7cXO7m1Cl4gMVn6p7n6n4mj0w==}
 
   devlop@1.1.0:
     resolution: {integrity: sha512-RWmIqhcFf1lRYBvNmr7qTNuyCt/7/ns2jbpp1+PalgE/rDQcBT0fioSMUpJ93irlUhC5hrg4cYqe6U+0ImW0rA==}
@@ -2337,11 +2337,11 @@ snapshots:
 
   '@better-auth/utils@0.4.2':
     dependencies:
-      '@noble/hashes': 2.3.0
+      '@noble/hashes': 2.4.0
 
   '@better-auth/utils@0.5.0':
     dependencies:
-      '@noble/hashes': 2.3.0
+      '@noble/hashes': 2.4.0
 
   '@better-fetch/fetch@1.3.1': {}
 
@@ -2683,23 +2683,23 @@ snapshots:
   '@msgpackr-extract/msgpackr-extract-win32-x64@3.0.4':
     optional: true
 
-  '@noble/ciphers@2.3.0': {}
+  '@noble/ciphers@2.4.0': {}
 
-  '@noble/hashes@2.3.0': {}
+  '@noble/hashes@2.4.0': {}
 
-  '@norbital-ai/bolt-protocol@0.0.9(effect@4.0.0-rc.111)':
+  '@norbital-ai/bolt-protocol@0.0.10(effect@4.0.0-rc.111)':
     dependencies:
       effect: 4.0.0-rc.111
 
-  '@norbital-ai/bolt@0.0.9(@norbital-ai/doctor@0.0.9)(effect@4.0.0-rc.111)(jiti@2.7.0)(svelte@5.56.10)(yaml@2.9.0)(zod@4.4.3)':
+  '@norbital-ai/bolt@0.0.10(@norbital-ai/doctor@0.0.10)(effect@4.0.0-rc.111)(jiti@2.7.0)(svelte@5.56.10)(yaml@2.9.0)(zod@4.4.3)':
     dependencies:
       '@electric-sql/pglite': 0.5.8
       '@electric-sql/pglite-pgvector': 0.0.6(@electric-sql/pglite@0.5.8)
       '@iconify/svelte': 5.2.2(svelte@5.56.10)
-      '@norbital-ai/bolt-protocol': 0.0.9(effect@4.0.0-rc.111)
-      '@norbital-ai/doctor': 0.0.9
-      '@norbital-ai/std': 0.0.9(effect@4.0.0-rc.111)
-      '@norbital-ai/ui': 0.0.9(@norbital-ai/std@0.0.9(effect@4.0.0-rc.111))(effect@4.0.0-rc.111)(svelte@5.56.10)(tailwindcss@4.3.3)(zod@4.4.3)
+      '@norbital-ai/bolt-protocol': 0.0.10(effect@4.0.0-rc.111)
+      '@norbital-ai/doctor': 0.0.10
+      '@norbital-ai/std': 0.0.10(effect@4.0.0-rc.111)
+      '@norbital-ai/ui': 0.0.10(@norbital-ai/std@0.0.10(effect@4.0.0-rc.111))(effect@4.0.0-rc.111)(svelte@5.56.10)(tailwindcss@4.3.3)(zod@4.4.3)
       '@sveltejs/vite-plugin-svelte': 7.3.0(svelte@5.56.10)(vite@8.2.2(jiti@2.7.0)(yaml@2.9.0))
       '@tailwindcss/vite': 4.3.3(vite@8.2.2(jiti@2.7.0)(yaml@2.9.0))
       '@xyflow/svelte': 1.6.3(svelte@5.56.10)
@@ -2786,19 +2786,19 @@ snapshots:
       - yaml
       - zod
 
-  '@norbital-ai/doctor@0.0.9':
+  '@norbital-ai/doctor@0.0.10':
     dependencies:
-      '@norbital-ai/std': 0.0.9(effect@4.0.0-rc.111)
+      '@norbital-ai/std': 0.0.10(effect@4.0.0-rc.111)
       effect: 4.0.0-rc.111
       typescript: 6.0.3
       yaml: 2.9.0
 
-  '@norbital-ai/std@0.0.9(effect@4.0.0-rc.111)':
+  '@norbital-ai/std@0.0.10(effect@4.0.0-rc.111)':
     dependencies:
       '@marcbachmann/cel-js': 8.0.0
       effect: 4.0.0-rc.111
 
-  '@norbital-ai/ui@0.0.9(@norbital-ai/std@0.0.9(effect@4.0.0-rc.111))(effect@4.0.0-rc.111)(svelte@5.56.10)(tailwindcss@4.3.3)(zod@4.4.3)':
+  '@norbital-ai/ui@0.0.10(@norbital-ai/std@0.0.10(effect@4.0.0-rc.111))(effect@4.0.0-rc.111)(svelte@5.56.10)(tailwindcss@4.3.3)(zod@4.4.3)':
     dependencies:
       '@codemirror/lang-javascript': 6.2.5
       '@codemirror/lang-json': 6.0.2
@@ -2813,7 +2813,7 @@ snapshots:
       '@iconify/svelte': 5.2.2(svelte@5.56.10)
       '@internationalized/date': 3.12.3
       '@lezer/highlight': 1.2.3
-      '@norbital-ai/std': 0.0.9(effect@4.0.0-rc.111)
+      '@norbital-ai/std': 0.0.10(effect@4.0.0-rc.111)
       '@tailwindcss/typography': 0.5.20(tailwindcss@4.3.3)
       '@tiptap/core': 3.30.5(@tiptap/pm@3.30.5)
       '@tiptap/extension-bubble-menu': 3.30.5(@tiptap/core@3.30.5(@tiptap/pm@3.30.5))(@tiptap/pm@3.30.5)
@@ -3346,8 +3346,8 @@ snapshots:
       '@better-auth/telemetry': 1.7.2(@better-auth/core@1.7.2(@better-auth/utils@0.4.2)(@better-fetch/fetch@1.3.1)(better-call@1.4.0(zod@4.4.3))(jose@6.2.10)(kysely@0.29.5)(nanostores@1.5.2))(@better-auth/utils@0.4.2)(@better-fetch/fetch@1.3.1)
       '@better-auth/utils': 0.4.2
       '@better-fetch/fetch': 1.3.1
-      '@noble/ciphers': 2.3.0
-      '@noble/hashes': 2.3.0
+      '@noble/ciphers': 2.4.0
+      '@noble/hashes': 2.4.0
       better-call: 1.4.0(zod@4.4.3)
       defu: 6.1.7
       jose: 6.2.10
@@ -3574,7 +3574,7 @@ snapshots:
 
   detect-libc@2.1.2: {}
 
-  devalue@5.9.1: {}
+  devalue@5.9.2: {}
 
   devlop@1.1.0:
     dependencies:
@@ -4183,7 +4183,7 @@ snapshots:
       aria-query: 5.3.1
       axobject-query: 4.1.0
       clsx: 2.1.1
-      devalue: 5.9.1
+      devalue: 5.9.2
       esm-env: 1.2.2
       esrap: 2.3.6
       is-reference: 3.0.3
