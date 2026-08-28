@@ -26,23 +26,20 @@
 	import { CollectionTable } from '@norbital-ai/ui/collection-table';
 	import { Combobox } from '@norbital-ai/ui/combobox';
 	import { FormattedValueRenderer } from '@norbital-ai/ui/data-renderer';
-	import { Bound, Cluster, Grid, Inline, Stack } from '@norbital-ai/ui/layout';
+	import { Cluster, Grid, Inline, Stack } from '@norbital-ai/ui/layout';
 	import { toast } from 'svelte-sonner';
 	import { resolveWindow } from './lib/period.js';
-	import { formatCalendarDate, formatNumeric } from '../../lib/ui/display-formatters.js';
+	import { formatCalendarDate } from '../../lib/ui/display-formatters.js';
 	import { saveCollectionExport } from '../../lib/ui/export-download.js';
-	import type { WorkspaceRow } from '$bolt/types.js';
+	import {
+		payrollRunPayslipsQuery,
+		payslipAmount,
+		payslipEmployeeCode,
+		type PayrollRunPayslipRow
+	} from './payslip-table.js';
 
 	let { record, close }: RepresentationProps = $props();
 	const { t } = useI18n<TenantI18nKeys>();
-	type PayslipWithEmployment = WorkspaceRow<'payslips'> & {
-		readonly payslip_employment?: Pick<WorkspaceRow<'employments'>, 'employee_number'> | null;
-	};
-	const updateAccessQuery = client.system.access.explain({
-		action: 'update',
-		resource: 'payroll_runs'
-	});
-	const mayUpdatePayroll = $derived(updateAccessQuery.current?.allowed === true);
 
 	const OFFERED_PERIODS = Array.from(
 		{ length: 12 },
@@ -151,6 +148,9 @@
 			? null
 			: client.db.payslips.count({ where: { payroll_run_id: { eq: record.id } } })
 	);
+	const payslipsTableQuery = $derived(
+		record == null ? undefined : payrollRunPayslipsQuery(record.id)
+	);
 	let lockArmed = $state(false);
 	let payrollRecalculationPending = $state(false);
 	let payrollFinalizationPending = $state(false);
@@ -159,6 +159,8 @@
 	const payslipCount = $derived(payslipCountQuery?.current ?? null);
 	const emptyDraft = $derived(record != null && record.lifecycle === 'DRAFT' && payslipCount === 0);
 
+	// Auth policy remains server-private. The mutation and its authoritative settlement decide whether
+	// this viewer may update the run; a refusal follows the same error path as every other failed write.
 	function updateDraft(action: 'recalculate' | 'pay'): void {
 		if (record == null) return;
 		const payrollRunId = record.id;
@@ -283,39 +285,37 @@
 						<Button variant="outline" size="sm" onclick={downloadReport}>
 							{t('component.export_salary_listing')}
 						</Button>
-						{#if mayUpdatePayroll}
-							<Button
-								variant="outline"
-								size="sm"
-								disabled={client.db.payroll_runs.pending > 0 ||
-									payrollRecalculationPending ||
-									payrollFinalizationPending}
-								onclick={() => updateDraft('recalculate')}
-							>
-								{payrollRecalculationPending
-									? t('component.recalculating')
-									: t('component.recalculate_draft')}
-							</Button>
-							<Button
-								size="sm"
-								disabled={client.db.payroll_runs.pending > 0 ||
-									payrollRecalculationPending ||
-									payrollFinalizationPending}
-								onclick={() => {
-									if (!lockArmed) {
-										lockArmed = true;
-										return;
-									}
-									updateDraft('pay');
-								}}
-							>
-								{payrollFinalizationPending
-									? t('component.locking')
-									: lockArmed
-										? t('component.confirm_lock_pay')
-										: t('component.lock_payroll')}
-							</Button>
-						{/if}
+						<Button
+							variant="outline"
+							size="sm"
+							disabled={client.db.payroll_runs.pending > 0 ||
+								payrollRecalculationPending ||
+								payrollFinalizationPending}
+							onclick={() => updateDraft('recalculate')}
+						>
+							{payrollRecalculationPending
+								? t('component.recalculating')
+								: t('component.recalculate_draft')}
+						</Button>
+						<Button
+							size="sm"
+							disabled={client.db.payroll_runs.pending > 0 ||
+								payrollRecalculationPending ||
+								payrollFinalizationPending}
+							onclick={() => {
+								if (!lockArmed) {
+									lockArmed = true;
+									return;
+								}
+								updateDraft('pay');
+							}}
+						>
+							{payrollFinalizationPending
+								? t('component.locking')
+								: lockArmed
+									? t('component.confirm_lock_pay')
+									: t('component.lock_payroll')}
+						</Button>
 					{/if}
 				</Inline>
 			</Cluster>
@@ -354,68 +354,67 @@
 
 		{#if emptyDraft}
 			<p class="rounded-md border border-amber-500/40 bg-amber-500/10 p-3 text-sm">
-				{mayUpdatePayroll
-					? t('component.draft_built_nothing')
-					: t('component.draft_built_nothing_view_only')}
+				{t('component.draft_built_nothing')}
 			</p>
 		{/if}
 
 		<Stack as="section" gap="sm" aria-labelledby="run-payslips-heading">
 			<h3 id="run-payslips-heading" class="text-sm font-semibold">{t('component.payslips')}</h3>
-			<Bound size="tall">
-				<CollectionTable
-					{client}
-					collection="payslips"
-					title={t('component.payslips')}
-					description={t('component.payslips_description')}
-					features={{ create: false }}
-					query={{
-						where: { payroll_run_id: { eq: record.id } },
-						orderBy: { created_at: 'asc' },
-						with: {
-							payslip_employment: { columns: { employee_number: true } }
-						},
-						limit: 100
-					}}
-				>
-					{#snippet columns({ Column })}
-						<Column
-							name="employment_id"
-							label={t('component.employee')}
-							card="title"
-							renderer={FormattedValueRenderer}
-							rendererProps={{
-								format: ({ row }: { row: PayslipWithEmployment }) =>
-									row.payslip_employment?.employee_number ?? '—'
-							}}
-						/>
-						<Column name="currency" card="badge" />
-						<Column
-							name="gross"
-							renderer={FormattedValueRenderer}
-							rendererProps={{ format: ({ value }) => formatNumeric(value) }}
-						/>
-						<Column
-							name="total_deductions"
-							label={t('component.deductions')}
-							renderer={FormattedValueRenderer}
-							rendererProps={{ format: ({ value }) => formatNumeric(value) }}
-						/>
-						<Column
-							name="net"
-							card="subtitle"
-							renderer={FormattedValueRenderer}
-							rendererProps={{ format: ({ value }) => formatNumeric(value) }}
-						/>
-						<Column
-							name="employer_cost"
-							label={t('component.employer_cost')}
-							renderer={FormattedValueRenderer}
-							rendererProps={{ format: ({ value }) => formatNumeric(value) }}
-						/>
-					{/snippet}
-				</CollectionTable>
-			</Bound>
+			<CollectionTable
+				{client}
+				collection="payslips"
+				title={t('component.payslips')}
+				description={t('component.payslips_description')}
+				features={{ create: false }}
+				query={payslipsTableQuery}
+				bounded={false}
+			>
+				{#snippet columns({ Column })}
+					<Column
+						name="employment_id"
+						label={t('component.employee')}
+						card="title"
+						renderer={FormattedValueRenderer}
+						rendererProps={{
+							format: ({ row }: { row: PayrollRunPayslipRow }) => payslipEmployeeCode(row)
+						}}
+					/>
+					<Column name="currency" card="badge" />
+					<Column
+						name="gross"
+						renderer={FormattedValueRenderer}
+						rendererProps={{
+							format: ({ row }: { row: PayrollRunPayslipRow }) => payslipAmount(row, 'gross')
+						}}
+					/>
+					<Column
+						name="total_deductions"
+						label={t('component.deductions')}
+						renderer={FormattedValueRenderer}
+						rendererProps={{
+							format: ({ row }: { row: PayrollRunPayslipRow }) =>
+								payslipAmount(row, 'total_deductions')
+						}}
+					/>
+					<Column
+						name="net"
+						card="subtitle"
+						renderer={FormattedValueRenderer}
+						rendererProps={{
+							format: ({ row }: { row: PayrollRunPayslipRow }) => payslipAmount(row, 'net')
+						}}
+					/>
+					<Column
+						name="employer_cost"
+						label={t('component.employer_cost')}
+						renderer={FormattedValueRenderer}
+						rendererProps={{
+							format: ({ row }: { row: PayrollRunPayslipRow }) =>
+								payslipAmount(row, 'employer_cost')
+						}}
+					/>
+				{/snippet}
+			</CollectionTable>
 		</Stack>
 	</Stack>
 {:else}
