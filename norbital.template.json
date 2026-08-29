@@ -11,6 +11,23 @@
 		"automations": 1
 	},
 	"tags": ["Construction", "Field ops", "Compliance"],
+	"seed": {
+		"bankTree": "field-operations",
+		"layout": "snapshots",
+		"stages": [
+			["team"],
+			["user", "sites"],
+			["jobs"],
+			["job_assignments"],
+			["communication_logs", "photo_evidence"]
+		],
+		"producers": [
+			{
+				"collection": "photo_evidence",
+				"kind": "field-operations-photo-evidence"
+			}
+		]
+	},
 	"name_zh": "现场运营",
 	"description_zh": "将合格承包商派往现场作业，跟踪现场进度、管理变更并核验照片证据。"
 }
