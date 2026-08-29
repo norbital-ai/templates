@@ -57,7 +57,19 @@ export default defineModel(
 	{
 		description:
 			'A job dispatched to one person. Tracks dispatch and on-site progression; evidence facts and suspicion judgements live in their own collections.',
-		recordLabel: 'summary',
+		/**
+		 * The job this assignment is for, not the contractor's shorthand about it.
+		 *
+		 * `summary` is what the contractor wrote on completion — real values in the corpus are
+		 * `N/A`, `Handrail`, `GB, SS, SRT,BS`. As the record label that made a detail page announce
+		 * itself as “SRT”, which names nothing anyone can act on and is empty for every assignment
+		 * that has not been completed yet.
+		 *
+		 * `search_text` is already the hook-owned copy of `jobs.title` plus the site — “Installation
+		 * — 112, Hillview Crescent, S669505”. It exists because a label has to be a column on this
+		 * collection, and it is the only column here that says which job this is.
+		 */
+		recordLabel: 'search_text',
 		icon: 'lucide:clipboard-check',
 		indexes: [
 			{ columns: ['source_message_id'], unique: true },

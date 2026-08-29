@@ -8,7 +8,7 @@
 	import { CollectionTable } from '@norbital-ai/ui/collection-table';
 	import { Combobox } from '@norbital-ai/ui/combobox';
 	import { DataRenderer } from '@norbital-ai/ui/data-renderer';
-	import { Bound, Cluster, Cover, Inline, Split, Stack } from '@norbital-ai/ui/layout';
+	import { Bound, Cover, Inline, Split, Stack } from '@norbital-ai/ui/layout';
 	import * as Sheet from '@norbital-ai/ui/sheet';
 	import { StaticMap, type StaticMapMarker } from '@norbital-ai/ui/static-map';
 	import { Tabs, type TabConfig } from '@norbital-ai/ui/tabs';
@@ -319,47 +319,47 @@
 </svelte:head>
 
 {#snippet dispatchControls()}
-	<Split ratio="wide" collapse="stack" gap="md" class="rounded-lg border bg-card p-3">
-		{#snippet start()}
-			<Stack gap="xs" class="max-w-md">
-				<Inline justify="between" gap="sm">
-					<span class="text-xs font-medium text-muted-foreground">
-						{t('app.field_ops_controller.dispatch_date')}
-					</span>
-					<Button
-						variant="ghost"
-						size="sm"
-						class="h-6 px-2 text-xs"
-						onclick={() => setDispatchDay(today)}
-					>
-						{t('app.field_ops_controller.today')}
-					</Button>
-				</Inline>
-				<div class="min-w-0">
-					<DataRenderer
-						field={{
-							name: 'dispatch_date',
-							kind: 'instant',
-							nullable: false,
-							precision: 'day'
-						}}
-						value={dispatchPickerInstant}
-						mode="edit"
-						placeholder={t('app.field_ops_controller.select_dispatch_date')}
-						onValueChange={updateDispatchDate}
-					/>
-				</div>
-			</Stack>
-		{/snippet}
-		{#snippet end()}
-			<Cluster gap="sm" justify="end">
-				<Button variant="secondary" onclick={() => (assignContractorOpen = true)}>
-					<Icon icon="lucide:user-round-check" class="size-4 shrink-0" />
-					{t('app.field_ops_controller.assign_contractor')}
-				</Button>
-			</Cluster>
-		{/snippet}
-	</Split>
+	<!--
+		One row, above the board it controls.
+
+		This was a full-width `Split` stacking a label over the picker, and it spent a banded strip
+		across the whole dashboard on one date and one button. Collapsed to a single line it sits
+		inside the board column, which is what leaves the map a real column of its own rather than
+		the leftover third of the page.
+	-->
+	<Inline justify="between" align="center" gap="sm" class="rounded-lg border bg-card px-3 py-2">
+		<Inline align="center" gap="sm" class="min-w-0">
+			<span class="shrink-0 text-xs font-medium text-muted-foreground">
+				{t('app.field_ops_controller.dispatch_date')}
+			</span>
+			<div class="min-w-0">
+				<DataRenderer
+					field={{
+						name: 'dispatch_date',
+						kind: 'instant',
+						nullable: false,
+						precision: 'day'
+					}}
+					value={dispatchPickerInstant}
+					mode="edit"
+					placeholder={t('app.field_ops_controller.select_dispatch_date')}
+					onValueChange={updateDispatchDate}
+				/>
+			</div>
+			<Button
+				variant="ghost"
+				size="sm"
+				class="h-6 shrink-0 px-2 text-xs"
+				onclick={() => setDispatchDay(today)}
+			>
+				{t('app.field_ops_controller.today')}
+			</Button>
+		</Inline>
+		<Button variant="secondary" size="sm" onclick={() => (assignContractorOpen = true)}>
+			<Icon icon="lucide:user-round-check" class="size-4 shrink-0" />
+			{t('app.field_ops_controller.assign_contractor')}
+		</Button>
+	</Inline>
 {/snippet}
 
 {#snippet dispatchSchedule()}
@@ -369,15 +369,15 @@
 				{t('app.field_ops_controller.review_status_failed')}
 			</p>
 		{/if}
-		<Cover gap="md" top={dispatchControls}>
-			<Split
-				ratio="wide"
-				collapse="switch"
-				switchLabels={[t('app.field_ops_controller.board'), t('app.field_ops_controller.map')]}
-				gap="md"
-				class="h-full"
-			>
-				{#snippet start()}
+		<Split
+			ratio="wide"
+			collapse="switch"
+			switchLabels={[t('app.field_ops_controller.board'), t('app.field_ops_controller.map')]}
+			gap="md"
+			class="h-full"
+		>
+			{#snippet start()}
+				<Cover gap="sm" top={dispatchControls}>
 					<Bound size="full" pad="sm" class="rounded-lg border bg-card">
 						<CollectionKanban
 							client={collectionClient}
@@ -401,22 +401,52 @@
 								<Field name="job_id" card="title" />
 								<Field name="assignee_user_id" card="subtitle" />
 							{/snippet}
+							<!--
+								The two declared fields above are reference columns, and the board query does
+								not expand either relation — so the automatic card had nothing to resolve them
+								against and printed the target collection names, "Jobs" and "User", on every
+								card. What a dispatcher needs to read is the job and where it is.
+
+								Both are already in this component for the map: `jobById` from the same
+								day-filtered jobs query the board is scoped to, and `siteNameById` from the
+								sites query. Rendering from them costs no extra round trip, and keeps the
+								visible words the related job's own title rather than the hidden search copy.
+							-->
+							{#snippet Card(assignment)}
+								{@const job = jobById.get(String(assignment.job_id))}
+								<Stack gap="xs">
+									<!--
+										`nature`, not `title`. A job's title is composed as
+										"<nature> — <site name>", so pairing it with the site underneath printed
+										the same address twice and pushed the card past its own height. The
+										nature is the half a dispatcher cannot infer from the address.
+									-->
+									<p class="line-clamp-2 text-sm leading-snug font-medium">
+										{job?.nature ?? '—'}
+									</p>
+									{#if job}
+										<p class="line-clamp-2 text-meta leading-snug">
+											{siteNameById.get(job.site_id) ?? '—'}
+										</p>
+									{/if}
+								</Stack>
+							{/snippet}
 						</CollectionKanban>
 					</Bound>
-				{/snippet}
-				{#snippet end()}
-					<Bound size="full" clip class="rounded-lg">
-						<StaticMap
-							markers={mapMarkers}
-							ariaLabel={t('app.field_ops_controller.dispatch_map_for', { date: dispatchDay })}
-							emptyDescription={t('app.field_ops_controller.map_empty', { date: dispatchDay })}
-							class="size-full"
-							markerContent={mapMarkerContent}
-						/>
-					</Bound>
-				{/snippet}
-			</Split>
-		</Cover>
+				</Cover>
+			{/snippet}
+			{#snippet end()}
+				<Bound size="full" clip class="rounded-lg">
+					<StaticMap
+						markers={mapMarkers}
+						ariaLabel={t('app.field_ops_controller.dispatch_map_for', { date: dispatchDay })}
+						emptyDescription={t('app.field_ops_controller.map_empty', { date: dispatchDay })}
+						class="size-full"
+						markerContent={mapMarkerContent}
+					/>
+				</Bound>
+			{/snippet}
+		</Split>
 	</Stack>
 {/snippet}
 

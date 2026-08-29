@@ -1,7 +1,7 @@
 import { decode as decodePng } from 'fast-png';
 import { decode as decodeJpeg } from 'jpeg-js';
-import { deepDiff, safeParse } from '@norbital-ai/std/json';
-import { Effect, Exit, Option, Schema } from 'effect';
+import { deepDiff } from '@norbital-ai/std/json';
+import { Effect, Option, Schema } from 'effect';
 import { hashPdq, pdqHashToHex } from './pdq.js';
 import { currentDate } from '../../lib/clock.js';
 import { parse as parseExif } from '../../lib/exif-parser.mjs';
@@ -22,7 +22,6 @@ const decodeExif = Schema.decodeUnknownOption(exifSchema);
 
 /** Keep in sync with `photo_evidence` model `flags` enum. */
 export const photoIntegrityFlags = [
-	'exact_duplicate',
 	'visual_duplicate',
 	'metadata_anomaly',
 	'edited_metadata',
@@ -326,109 +325,4 @@ export function assertPhotoEvidenceProvenanceUnchanged(
 			);
 		}
 	}
-}
-
-const duplicateEvidenceInputSchema = Schema.Struct({
-	id: Schema.String,
-	sha256: Schema.String,
-	perceptualEmbedding: Schema.Union([Schema.Array(Schema.Number), Schema.String]),
-	flags: Schema.Array(Schema.Literals(photoIntegrityFlags)),
-	assignmentId: Schema.NullOr(Schema.String)
-});
-
-type DuplicateEvidenceInput = Schema.Schema.Type<typeof duplicateEvidenceInputSchema>;
-
-const duplicateEvidenceUpdateSchema = Schema.Struct({
-	id: Schema.String,
-	flags: Schema.Array(Schema.Literals(photoIntegrityFlags)),
-	matchedEvidenceIds: Schema.Array(Schema.String),
-	assignmentId: Schema.NullOr(Schema.String)
-});
-
-type DuplicateEvidenceUpdate = Schema.Schema.Type<typeof duplicateEvidenceUpdateSchema>;
-
-function parseEmbedding(value: readonly number[] | string): readonly number[] | null {
-	if (typeof value !== 'string') return value;
-	const parsed = safeParse(value);
-	if (parsed === null) return null;
-	const decoded = Schema.decodeUnknownExit(embeddingSchema)(parsed);
-	return Exit.isFailure(decoded) ? null : decoded.value;
-}
-
-const embeddingSchema = Schema.Array(Schema.Number);
-
-function squaredL2(left: readonly number[], right: readonly number[]): number | null {
-	if (left.length !== right.length || left.length === 0) return null;
-	let squaredDistance = 0;
-	for (let index = 0; index < left.length; index += 1) {
-		const difference = left[index] - right[index];
-		squaredDistance += difference * difference;
-	}
-	return squaredDistance;
-}
-
-/**
- * Plan duplicate flags for selected rows against one bounded corpus. The corpus includes both rows
- * that predated this createMany call and every row inserted by it, so cross-batch and within-batch
- * reuse have identical semantics without an indexed query per new photo.
- */
-export function planDuplicateEvidenceBatch(
-	corpus: readonly DuplicateEvidenceInput[],
-	targetIds: ReadonlySet<string>
-): DuplicateEvidenceUpdate[] {
-	const embeddings = new Map(
-		corpus.map((evidence) => [evidence.id, parseEmbedding(evidence.perceptualEmbedding)])
-	);
-	const exactByHash = new Map<string, DuplicateEvidenceInput[]>();
-	for (const evidence of corpus) {
-		const matches = exactByHash.get(evidence.sha256);
-		if (matches == null) exactByHash.set(evidence.sha256, [evidence]);
-		else matches.push(evidence);
-	}
-	return corpus.flatMap((record) => {
-		if (!targetIds.has(record.id)) return [];
-		const flags = new Set(record.flags.filter((flag) => photoIntegrityFlagNames.has(flag)));
-		const matchedEvidenceIds = new Set<string>();
-		const exactCandidates = (exactByHash.get(record.sha256) ?? [])
-			.filter(
-				(candidate) => candidate.id !== record.id && candidate.assignmentId !== record.assignmentId
-			)
-			.slice(0, 20);
-		for (const candidate of exactCandidates) {
-			flags.add('exact_duplicate');
-			matchedEvidenceIds.add(candidate.id);
-		}
-		const recordEmbedding = embeddings.get(record.id);
-		// One pass over the corpus: the identity check that used to be its own `filter` is the
-		// flatMap's first guard, so scoring, exclusion and collection happen together.
-		const scored = recordEmbedding
-			? corpus.flatMap((candidate) => {
-					if (candidate.id === record.id) return [];
-					const candidateEmbedding = embeddings.get(candidate.id);
-					const distance = candidateEmbedding
-						? squaredL2(recordEmbedding, candidateEmbedding)
-						: null;
-					return distance != null && distance <= VISUAL_DUPLICATE_MAX_L2 * VISUAL_DUPLICATE_MAX_L2
-						? [{ candidate, distance }]
-						: [];
-				})
-			: [];
-		scored.sort((left, right) => left.distance - right.distance);
-		const visualCandidates = scored.slice(0, 50);
-		for (const { candidate } of visualCandidates) {
-			if (candidate.assignmentId === record.assignmentId || candidate.sha256 === record.sha256) {
-				continue;
-			}
-			flags.add('visual_duplicate');
-			matchedEvidenceIds.add(candidate.id);
-		}
-		return [
-			{
-				id: record.id,
-				flags: [...flags],
-				matchedEvidenceIds: [...matchedEvidenceIds],
-				assignmentId: record.assignmentId
-			}
-		];
-	});
 }

@@ -17,6 +17,21 @@ const MAX_INFERENCE_COMMUNICATIONS = 24;
 const MAX_INFERENCE_MESSAGE_CHARS = 800;
 const MAX_SIGNAL_IMAGES = 2;
 
+/**
+ * Cross-assignment reuse candidates are retrieved with a deliberately generous perceptual band.
+ *
+ * The deterministic `visual_duplicate` flag stays on the strict near-duplicate bar (Hamming ≤ 31),
+ * which a crop, a zoom or a recompression easily exceeds. Candidates pulled here only nominate a
+ * pair for visual judgement; the inference decides whether two photos show the same scene, so the
+ * band can stay wide enough to catch reused-and-cropped evidence without flagging anything by
+ * itself.
+ */
+export const CROSS_ASSIGNMENT_MAX_HAMMING = 64;
+const CROSS_ASSIGNMENT_MAX_L2 = Math.sqrt(CROSS_ASSIGNMENT_MAX_HAMMING);
+const MAX_CROSS_ASSIGNMENT_CANDIDATES = 2;
+/** Candidates above this size are listed as facts but do not consume the visual attachment budget. */
+const MAX_CANDIDATE_IMAGE_BYTES = 1024 * 1024;
+
 const PHOTO_FLAGS = [
 	'exact_duplicate',
 	'visual_duplicate',
@@ -88,6 +103,34 @@ export type SuspicionReviewFacts = {
 		readonly flags: ReadonlyArray<string>;
 		readonly matched_evidence_ids: ReadonlyArray<string>;
 		readonly created_at: string | null;
+		/** Loaded only for the review's own rows, as the probe for candidate retrieval. */
+		readonly perceptual_embedding?: readonly number[];
+		/**
+		 * The platform's record embedding, which is what candidate retrieval actually probes with.
+		 *
+		 * PDQ answers "are these the same pixels"; this answers "are these the same scene". The
+		 * Kismis/Lorong reuse — a crop of one ceiling re-submitted from a different phone — sits at
+		 * 116 bits of PDQ distance while unrelated pairs bottom out at 88, so no perceptual band can
+		 * separate them. `perceptual_embedding` stays for the strict `visual_duplicate` net.
+		 */
+		readonly record_embedding?: readonly number[] | null;
+	}>;
+	/**
+	 * Photographs from OTHER assignments retrieved against this assignment's own representative
+	 * photos by perceptual proximity. Nominations only — the inference judges whether a candidate
+	 * is the same scene reused, which the deterministic flags alone cannot decide for crops.
+	 */
+	readonly candidates: ReadonlyArray<{
+		readonly id: string;
+		readonly photo: {
+			readonly storage_key: string;
+			readonly file_name: string;
+			readonly file_size: number;
+			readonly mime_type: string;
+		};
+		readonly sha256: string;
+		readonly distance: number;
+		readonly matched_photo_ids: ReadonlyArray<string>;
 	}>;
 	readonly communications: ReadonlyArray<{
 		readonly source_message_id: string;
@@ -162,6 +205,15 @@ export function buildSuspicionReviewBasis(facts: SuspicionReviewFacts): string {
 				matched_evidence_ids: [...photo.matched_evidence_ids].sort(),
 				created_at: photo.created_at
 			})),
+		candidates: [...facts.candidates]
+			.sort((left, right) => left.id.localeCompare(right.id))
+			.map((candidate) => ({
+				id: candidate.id,
+				storage_key: candidate.photo.storage_key,
+				sha256: candidate.sha256,
+				distance: candidate.distance,
+				matched_photo_ids: [...candidate.matched_photo_ids].sort()
+			})),
 		communications: [...facts.communications]
 			.sort((left, right) => left.source_message_id.localeCompare(right.source_message_id))
 			.map((communication) => ({
@@ -208,36 +260,6 @@ const boundedJsonValue = (value: unknown, maximum: number): unknown => {
 const photoOrder = (photo: SuspicionReviewFacts['photos'][number]): string =>
 	`${photo.created_at ?? ''}\u0000${photo.id}`;
 
-type WithinAssignmentExactShaGroup = Readonly<{
-	readonly sha256: string;
-	readonly evidence_ids: ReadonlyArray<string>;
-}>;
-
-/**
- * Byte-identical evidence submitted more than once for this assignment.
- *
- * The upload integrity hook deliberately treats reuse *between* assignments as its collection-level
- * signal. Suspicion review asks a different question: whether one assignment's complete evidence
- * basis contains the same bytes under distinct evidence rows. Derive that fact from the durable
- * SHA-256 values already loaded for the review so seeded rows and live uploads have identical
- * semantics without rewriting either source.
- */
-export function withinAssignmentExactShaGroups(
-	photos: SuspicionReviewFacts['photos']
-): ReadonlyArray<WithinAssignmentExactShaGroup> {
-	const evidenceIdsBySha = new Map<string, Array<string>>();
-	for (const photo of [...photos].sort((left, right) =>
-		photoOrder(left).localeCompare(photoOrder(right))
-	)) {
-		const evidenceIds = evidenceIdsBySha.get(photo.sha256);
-		if (evidenceIds === undefined) evidenceIdsBySha.set(photo.sha256, [photo.id]);
-		else evidenceIds.push(photo.id);
-	}
-	return [...evidenceIdsBySha].flatMap(([sha256, evidence_ids]) =>
-		evidence_ids.length > 1 ? [{ sha256, evidence_ids }] : []
-	);
-}
-
 const photoSignal = (photo: SuspicionReviewFacts['photos'][number]): number =>
 	photo.matched_evidence_ids.length * 8 +
 	photo.flags.reduce(
@@ -260,18 +282,14 @@ export function selectSuspicionInferencePhotos(
 	const chronological = [...photos].sort((left, right) =>
 		photoOrder(left).localeCompare(photoOrder(right))
 	);
-	const withinAssignmentExactDuplicateIds = new Set(
-		withinAssignmentExactShaGroups(chronological).flatMap((group) => group.evidence_ids)
-	);
-	const signalled = chronological.filter(
-		(photo) => withinAssignmentExactDuplicateIds.has(photo.id) || photoSignal(photo) > 0
-	);
+	// Duplicate reuse only signals when the identical file belongs to a *different* assignment:
+	// the upload integrity hook encodes that as exact_duplicate/visual_duplicate flags and their
+	// matched_evidence_ids, all of which photoSignal already counts. Identical rows within this
+	// one assignment are a neutral repeat, not evidence.
+	const signalled = chronological.filter((photo) => photoSignal(photo) > 0);
 	signalled.sort(
 		(left, right) =>
-			Number(withinAssignmentExactDuplicateIds.has(right.id)) -
-				Number(withinAssignmentExactDuplicateIds.has(left.id)) ||
-			photoSignal(right) - photoSignal(left) ||
-			photoOrder(left).localeCompare(photoOrder(right))
+			photoSignal(right) - photoSignal(left) || photoOrder(left).localeCompare(photoOrder(right))
 	);
 	const signalCandidates = signalled.slice(0, MAX_SIGNAL_IMAGES);
 	const temporalCandidates =
@@ -302,6 +320,157 @@ export function selectSuspicionInferencePhotos(
 	return selected.sort((left, right) => photoOrder(left).localeCompare(photoOrder(right)));
 }
 
+/** One `findNearest` hit for a probe photo, before assignment filtering and capping. */
+interface CandidateHit {
+	readonly id: string;
+	readonly photo: SuspicionReviewFacts['photos'][number]['photo'];
+	readonly sha256: string;
+	readonly job_assignment_id: string | null;
+	readonly variation_request_id: string | null;
+	readonly record_embedding: readonly number[] | null;
+}
+
+/**
+ * How far apart two record embeddings may sit and still be worth a look.
+ *
+ * Cosine, not L2: the embedding model returns unnormalised vectors, so magnitude carries no meaning
+ * across records and only the angle does. 0.5 is the starting band — wide enough to nominate a crop
+ * of the same scene, narrow enough that the vision step is not asked to adjudicate the whole corpus.
+ * It is a retrieval band, never a verdict: `MAX_CROSS_ASSIGNMENT_CANDIDATES` survive it and the
+ * inference decides whether two photographs actually show the same place.
+ */
+const RECORD_EMBEDDING_MAX_COSINE = 0.35;
+
+/** Angular distance in the same units `findNearest` sorted by, so a recomputed figure is comparable. */
+const cosineDistance = (left: readonly number[], right: readonly number[]): number => {
+	let dot = 0;
+	let leftNorm = 0;
+	let rightNorm = 0;
+	for (let index = 0; index < left.length; index += 1) {
+		const a = left[index] ?? 0;
+		const b = right[index] ?? 0;
+		dot += a * b;
+		leftNorm += a * a;
+		rightNorm += b * b;
+	}
+	const magnitude = Math.sqrt(leftNorm) * Math.sqrt(rightNorm);
+	return magnitude === 0 ? 1 : 1 - dot / magnitude;
+};
+
+const roundedDistance = (squared: number): number => Math.round(Math.sqrt(squared) * 1000) / 1000;
+
+/**
+ * Retrieve photographs from OTHER assignments that sit close to this assignment's representative
+ * photos in perceptual space.
+ *
+ * The wide band exists to nominate crop/zoom/recompression reuse the strict `visual_duplicate`
+ * bar misses; same-assignment hits and parentless rows are dropped, distances are recomputed from
+ * the durable embeddings so the audit basis is stable, and only the closest
+ * `MAX_CROSS_ASSIGNMENT_CANDIDATES` survive.
+ */
+export function loadCrossAssignmentCandidates(
+	api: Api,
+	ownAssignmentId: string,
+	probes: SuspicionReviewFacts['photos']
+): Effect.Effect<SuspicionReviewFacts['candidates'], unknown, never> {
+	return Effect.gen(function* () {
+		const probeRows = probes.slice(0, MAX_INFERENCE_IMAGES);
+		const hits = new Map<string, { row: CandidateHit; matched: Set<string> }>();
+		for (const probe of probeRows) {
+			// `photos` declares the embedding optional, so a probe without one is skipped rather than
+			// searched: `findNearest` needs a vector, and passing an absent one would either widen the
+			// facts type into a lie or search on `undefined`. The column is `notNull()`, so this is a
+			// type-level possibility rather than a row anyone will see — but the loop must still say
+			// which it does. Copied because the query takes a mutable array and the facts are readonly.
+			const embedding = probe.record_embedding;
+			// A row whose embedding has not been written yet cannot be probed with. That is an ordinary
+			// state, not a fault: the vector is maintained best-effort, so a photograph uploaded during
+			// a provider outage simply does not nominate candidates until it is filled in.
+			if (embedding == null || embedding.length === 0) continue;
+			const rows = (yield* api.db.photo_evidence.findNearest({
+				column: 'record_embedding',
+				probe: [...embedding],
+				metric: 'cosine',
+				maxDistance: RECORD_EMBEDDING_MAX_COSINE,
+				limit: 12,
+				columns: {
+					id: true,
+					photo: true,
+					sha256: true,
+					job_assignment_id: true,
+					variation_request_id: true,
+					record_embedding: true
+				}
+			})) as readonly CandidateHit[];
+			for (const row of rows) {
+				if (row.id === probe.id) continue;
+				const existing = hits.get(row.id);
+				if (existing != null) {
+					existing.matched.add(probe.id);
+					continue;
+				}
+				hits.set(row.id, { row, matched: new Set([probe.id]) });
+			}
+		}
+		if (hits.size === 0) return [];
+		const variationIds = [
+			...new Set(
+				[...hits.values()]
+					.map(({ row }) => row.variation_request_id)
+					.filter((id): id is string => id != null && id !== '')
+			)
+		];
+		const assignmentByVariation =
+			variationIds.length === 0
+				? new Map<string, string | null>()
+				: new Map(
+						(yield* api.db.variation_requests.findMany({
+							where: { id: { in: variationIds } },
+							columns: { id: true, job_assignment_id: true },
+							limit: Math.max(1, variationIds.length)
+						})).map((variation) => [variation.id, variation.job_assignment_id ?? null])
+					);
+		const probeEmbeddings = new Map(probeRows.map((probe) => [probe.id, probe.record_embedding]));
+		const candidates = [...hits.entries()]
+			.map(([id, { row, matched }]) => {
+				const assignmentId =
+					row.job_assignment_id != null && row.job_assignment_id !== ''
+						? row.job_assignment_id
+						: (assignmentByVariation.get(row.variation_request_id ?? '') ?? null);
+				let best = Number.POSITIVE_INFINITY;
+				for (const probeId of matched) {
+					const probeEmbedding = probeEmbeddings.get(probeId);
+					if (probeEmbedding == null || row.record_embedding == null) continue;
+					best = Math.min(best, cosineDistance(probeEmbedding, row.record_embedding));
+				}
+				return {
+					id,
+					photo: row.photo,
+					sha256: row.sha256,
+					distance: Math.round(best * 1000) / 1000,
+					matched_photo_ids: [...matched].sort(),
+					assignmentId
+				};
+			})
+			.filter(
+				(candidate) =>
+					candidate.assignmentId != null &&
+					candidate.assignmentId !== '' &&
+					candidate.assignmentId !== ownAssignmentId
+			);
+		candidates.sort(
+			(left, right) => left.distance - right.distance || left.id.localeCompare(right.id)
+		);
+		return candidates.slice(0, MAX_CROSS_ASSIGNMENT_CANDIDATES).map((candidate) => ({
+			id: candidate.id,
+			photo: candidate.photo,
+			sha256: candidate.sha256,
+			distance: candidate.distance,
+			matched_photo_ids: candidate.matched_photo_ids
+		}));
+	});
+}
+
 const communicationInstant = (
 	communication: SuspicionReviewFacts['communications'][number]
 ): string => communication.sent_at;
@@ -311,7 +480,6 @@ export function buildSuspicionInferenceContext(
 	facts: SuspicionReviewFacts,
 	representativePhotos = selectSuspicionInferencePhotos(facts.photos)
 ): string {
-	const withinAssignmentExactGroups = withinAssignmentExactShaGroups(facts.photos);
 	const flagCounts = Object.fromEntries(
 		PHOTO_FLAGS.map((flag) => [
 			flag,
@@ -371,18 +539,20 @@ export function buildSuspicionInferenceContext(
 			total: facts.photos.length,
 			attached_representatives: representatives.length,
 			omitted_from_visual_turn: facts.photos.length - representatives.length,
-			within_assignment_exact_sha_group_count: withinAssignmentExactGroups.length,
-			within_assignment_exact_sha_photo_count: withinAssignmentExactGroups.reduce(
-				(count, group) => count + group.evidence_ids.length,
-				0
-			),
 			flag_counts: flagCounts,
 			similarity_relationships: facts.photos.reduce(
 				(count, photo) => count + photo.matched_evidence_ids.length,
 				0
 			),
 			representative_photos: representatives
-		}
+		},
+		cross_assignment_candidates: facts.candidates.map((candidate) => ({
+			id: candidate.id,
+			sha256: candidate.sha256,
+			distance: candidate.distance,
+			matched_photo_ids: [...candidate.matched_photo_ids].sort().slice(0, 12),
+			attached_image: candidate.photo.file_size <= MAX_CANDIDATE_IMAGE_BYTES
+		}))
 	};
 	let communications = recentCommunications;
 	for (;;) {
@@ -414,9 +584,12 @@ export function suspicionPrompt(
 			: `Use the ${representativePhotos.length} attached representative photographed scene${representativePhotos.length === 1 ? '' : 's'}, assigned job and site, aggregate deterministic photo facts, and bounded recent contractor communications together.`,
 		'The durable audit basis covers every photo and communication; this inference context is deliberately bounded and states what was omitted.',
 		'Missing photo geolocation is a neutral fact because messaging services commonly strip metadata.',
-		'Visual similarity is a neutral fact because legitimate repeated views are possible.',
+		'Visual similarity inside one assignment is a neutral fact because legitimate repeated views are possible.',
 		'Use only physical scene markers such as door plates, house numbers, street or building signs, mailboxes, lobby signs and lift permits when assessing location. Ignore uploader-controlled timestamp, GPS and address overlays, work labels, tape measures, tag numbers, bin or lamppost ids and telephone numbers.',
-		'A non-zero within_assignment_exact_sha_group_count is stronger: distinct evidence rows contain byte-identical files submitted for this one assignment. Treat that as concrete duplicate-submission evidence warranting an unresolved suspicion, identify the duplicate files in the reason, and do not claim it proves fraud.',
+		'Duplicate reuse only matters between distinct assignments: an identical file submitted under the same assignment is a neutral repeat, never evidence.',
+		'The context may list cross_assignment_candidates: photographs retrieved from OTHER assignments whose perceptual hash sits close to one of this assignment\u2019s photos. A candidate with attached_image true is also attached to this turn, after this assignment\u2019s own photos.',
+		'If a candidate photo shows the same physical scene as the photo it was matched with \u2014 the same view cropped, zoomed, recompressed, re-photographed or re-sent \u2014 the same evidence is serving two assignments. Raise an unresolved suspicion, name both photos in the reason, and cite this assignment\u2019s photo id.',
+		'A candidate showing a different unit, storey, house or street, or a plausibly distinct scene of the same trade, is not reuse; treat the pair as cleared.',
 		'Raise an unresolved suspicion when physical scenes show multiple unexplained sites mixed into one assignment, while acknowledging any valid assigned-site evidence in the same batch.',
 		'The reserved review policy also treats a concrete but plausibly benign ambiguity as suspicious when a controller is needed to resolve it: an unexplained lobby or unit range, a physical marker that corroborates only part of the assigned address, or one isolated visually different work scene among otherwise matched evidence. State the benign interpretation and ask for confirmation; do not call it fraud or a proven mismatch.',
 		'For every other fact, return suspicious only when your contextual judgement finds concrete reason to question this assignment.',
@@ -469,7 +642,9 @@ function loadFacts(api: Api, assignment: SuspicionReviewFacts['assignment']) {
 				sha256: true,
 				flags: true,
 				matched_evidence_ids: true,
-				created_at: true
+				created_at: true,
+				perceptual_embedding: true,
+				record_embedding: true
 			},
 			limit: MAX_RELATED_ROWS
 		});
@@ -497,6 +672,8 @@ function loadFacts(api: Api, assignment: SuspicionReviewFacts['assignment']) {
 						},
 			site,
 			photos,
+			// Candidates are retrieved against the selected representatives only, after this load.
+			candidates: [],
 			communications
 		} satisfies SuspicionReviewFacts;
 	});
@@ -533,18 +710,34 @@ export function reviewAssignmentSuspicion(
 		if (!shouldReviewAssignment(assignment.status, assignment.suspicion_checked_at ?? null))
 			return { status: 'skipped_checked' as const };
 
-		const facts = yield* loadFacts(api, assignment);
+		const loadedFacts = yield* loadFacts(api, assignment);
+		const representativePhotos = selectSuspicionInferencePhotos(loadedFacts.photos);
+		const candidates = yield* loadCrossAssignmentCandidates(
+			api,
+			assignment.id,
+			representativePhotos
+		);
+		const facts: SuspicionReviewFacts = { ...loadedFacts, candidates };
 		const basis = buildSuspicionReviewBasis(facts);
 		const basisHash = suspicionReviewHash(basis);
-		const representativePhotos = selectSuspicionInferencePhotos(facts.photos);
 		lifecycle.inferenceStarted?.(assignment.id);
 		const decision = yield* api.infer({
 			model: SUSPICION_REVIEW_MODEL,
 			schema: suspicionInferenceSchema,
-			images: representativePhotos.map((photo) => ({
-				file: photo.photo,
-				detail: 'low' as const
-			})),
+			images: [
+				...representativePhotos.map((photo) => ({
+					file: photo.photo,
+					detail: 'low' as const
+				})),
+				// Candidates follow the assignment's own photos so reuse pairs are visible in one turn;
+				// oversized files stay context-only facts rather than consuming the attachment budget.
+				...candidates
+					.filter((candidate) => candidate.photo.file_size <= MAX_CANDIDATE_IMAGE_BYTES)
+					.map((candidate) => ({
+						file: candidate.photo,
+						detail: 'low' as const
+					}))
+			],
 			prompt: suspicionPrompt(facts, representativePhotos)
 		});
 		lifecycle.inferenceSucceeded?.(assignment.id);
