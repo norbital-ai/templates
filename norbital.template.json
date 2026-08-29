@@ -11,6 +11,26 @@
 		"automations": 4
 	},
 	"tags": ["Operations", "Compliance", "Projects"],
+	"seed": {
+		"bankTree": "construction",
+		"layout": "snapshots",
+		"stages": [
+			["team"],
+			["user"],
+			["projects", "certification_types", "workers"],
+			["site_locations", "bim_reference_matrix"],
+			["jobs", "asset_documents"],
+			[
+				"jobs_site_locations",
+				"jobs_certification_types",
+				"defects",
+				"job_assignments",
+				"payment_claims",
+				"permits_to_work"
+			],
+			["rfis", "permits_to_work_workers", "permits_to_work_certification_types"]
+		]
+	},
 	"name_zh": "施工",
 	"description_zh": "在统一运营模型中管理项目、许可证、劳动力合规、缺陷、RFI、索赔与 BIM 参考数据。"
 }
