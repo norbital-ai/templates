@@ -11,6 +11,33 @@
 		"automations": 1
 	},
 	"tags": ["HR", "Finance", "Approvals"],
+	"seed": {
+		"bankTree": "norbital_hr",
+		"layout": "hr-records",
+		"stages": [
+			["team", "jurisdictions"],
+			["user"],
+			["companies", "statutory_contributions"],
+			[
+				"company_holidays",
+				"contribution_rates",
+				"employees",
+				"leave_types",
+				"pay_components",
+				"shift_definitions"
+			],
+			["employments"],
+			[
+				"employment_statutory_facts",
+				"employment_terms",
+				"leave_requests",
+				"repayment_agreements",
+				"roster_entries",
+				"time_entries"
+			],
+			["component_entries"]
+		]
+	},
 	"name_zh": "HR 与薪资",
 	"description_zh": "基于生效日期的雇佣事实、考勤、休假与法定缴款规则，运行多国 HR 与薪资。"
 }
