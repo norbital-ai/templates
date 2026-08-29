@@ -11,6 +11,21 @@
 		"automations": 1
 	},
 	"tags": ["Sales", "Finance", "Procurement"],
+	"seed": {
+		"bankTree": "crm",
+		"layout": "snapshots",
+		"stages": [
+			["team"],
+			["user"],
+			["accounts", "products", "suppliers"],
+			["contacts"],
+			["quotes"],
+			["quote_lines"],
+			["purchase_orders"],
+			["purchase_order_lines"],
+			["activities"]
+		]
+	},
 	"name_zh": "CRM",
 	"description_zh": "端到端 B2B 交易工作区：账户、报价、采购、履约、开票、库存与收付款。"
 }
