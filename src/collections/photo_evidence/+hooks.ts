@@ -12,7 +12,6 @@ import {
 	evaluateCaptureGeolocation,
 	inspectPhoto,
 	photoIntegrityFlags,
-	planDuplicateEvidenceBatch,
 	VISUAL_DUPLICATE_MAX_L2
 } from './photo-integrity.js';
 
@@ -80,8 +79,6 @@ type PhotoEvidenceHooks = CollectionHooks<WorkspaceSchema, 'photo_evidence', Pho
 
 const MAX_BATCH_DUPLICATE_CORPUS = 5_000;
 const MAX_BATCH_DUPLICATE_COMPARISONS = 250_000;
-const MAX_EXACT_DUPLICATE_MATCHES = 20;
-const MAX_EXACT_DUPLICATE_CANDIDATES = 1_000;
 const photoIntegrityFlagNames = new Set<string>(photoIntegrityFlags);
 
 function sourceKey(
@@ -171,33 +168,22 @@ function runAfterPhoto(
 			job_assignment_id: true,
 			variation_request_id: true
 		} as const;
-		const [exactMatches, visualMatches] = yield* Effect.all(
-			[
-				api.db.photo_evidence.findMany({
-					where: { sha256: { eq: record.sha256 } },
-					columns,
-					// Read past same-assignment copies before applying the 20-match evidence cap below.
-					limit: MAX_EXACT_DUPLICATE_CANDIDATES + 1
-				}),
-				api.db.photo_evidence.findNearest({
-					column: 'perceptual_embedding',
-					probe: record.perceptual_embedding,
-					metric: 'l2',
-					maxDistance: VISUAL_DUPLICATE_MAX_L2,
-					limit: 50,
-					columns,
-					// The probe's own row is nearest to itself; excluding it is the ordinary where clause.
-					where: { id: { ne: record.id } }
-				})
-			],
-			{ concurrency: 'unbounded' }
-		);
+		const visualMatches = yield* api.db.photo_evidence.findNearest({
+			column: 'perceptual_embedding',
+			probe: record.perceptual_embedding,
+			metric: 'l2',
+			maxDistance: VISUAL_DUPLICATE_MAX_L2,
+			limit: 50,
+			columns,
+			// The probe's own row is nearest to itself; excluding it is the ordinary where clause.
+			where: { id: { ne: record.id } }
+		});
 
 		const flags = new Set(record.flags.filter((flag) => photoIntegrityFlagNames.has(flag)));
 		const matchedIds = new Set<string>();
 		const candidates = [
 			...new Map(
-				[...exactMatches, ...visualMatches]
+				visualMatches
 					.filter((candidate) => candidate.id !== record.id)
 					.map((candidate) => [candidate.id, candidate])
 			).values()
@@ -211,15 +197,6 @@ function runAfterPhoto(
 			])
 		);
 
-		let recordedExactMatches = 0;
-		for (const candidate of exactMatches) {
-			if (candidate.id === record.id) continue;
-			if (candidateAssignmentIds.get(candidate.id) === currentAssignmentId) continue;
-			flags.add('exact_duplicate');
-			matchedIds.add(candidate.id);
-			recordedExactMatches += 1;
-			if (recordedExactMatches >= MAX_EXACT_DUPLICATE_MATCHES) break;
-		}
 		for (const candidate of visualMatches) {
 			if (candidate.id === record.id) continue;
 			if (candidate.sha256 === record.sha256) continue;

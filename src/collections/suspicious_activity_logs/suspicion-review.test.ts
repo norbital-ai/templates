@@ -1,11 +1,15 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { existsSync, readFileSync } from 'node:fs';
 import { Effect, Schema } from 'effect';
+import { hexToBinaryEmbedding } from '@norbital-ai/bolt/authoring';
+import { decode as decodeJpeg } from 'jpeg-js';
 import suspicionReviewAutomation, {
 	SuspicionReviewIncompleteError
 } from '../../automations/+review_job_assignment_suspicion.js';
 import {
 	ASSIGNMENT_PAGE_SIZE,
+	CROSS_ASSIGNMENT_MAX_HAMMING,
 	MAX_INFERENCE_CONTEXT_CHARS,
 	MAX_INFERENCE_EVIDENCE_ID_CHARS,
 	MAX_INFERENCE_IMAGE_BYTES,
@@ -13,6 +17,7 @@ import {
 	MAX_INFERENCE_REASON_CHARS,
 	buildSuspicionInferenceContext,
 	buildSuspicionReviewBasis,
+	loadCrossAssignmentCandidates,
 	loadUncheckedAssignments,
 	reviewSourceKey,
 	selectSuspicionInferencePhotos,
@@ -22,10 +27,10 @@ import {
 	suspicionPrompt,
 	suspicionReviewHash,
 	validDecisionEvidenceId,
-	withinAssignmentExactShaGroups,
 	type SuspicionReviewFacts
 } from '../../automations/suspicion-review.js';
 import { assertCommunicationUnchanged } from '../communication_logs/+hooks.js';
+import { hashPdq, pdqHashToHex } from '../photo_evidence/pdq.js';
 import {
 	assertJudgementReferences,
 	assertOpenJudgement,
@@ -164,7 +169,10 @@ function automationHarness(options: {
 					})
 			},
 			variation_requests: { findMany: () => Effect.succeed([]) },
-			photo_evidence: { findMany: () => Effect.succeed([]) },
+			photo_evidence: {
+				findMany: () => Effect.succeed([]),
+				findNearest: () => Effect.succeed([])
+			},
 			communication_logs: { findMany: () => Effect.succeed([]) },
 			suspicion_reviews: {
 				findFirst: (input: {
@@ -288,6 +296,7 @@ function facts(): SuspicionReviewFacts {
 				created_at: '2026-08-24T00:00:00.000Z'
 			}
 		],
+		candidates: [],
 		communications: [
 			{
 				source_message_id: 'message-b',
@@ -517,7 +526,10 @@ test('canonicalises evidence order without turning deterministic facts into a ju
 	assert.equal(buildSuspicionReviewBasis(reordered), basis);
 	assert.equal(Object.hasOwn(JSON.parse(basis), 'suspicious'), false);
 	assert.match(suspicionPrompt(original), /Missing photo geolocation is a neutral fact/);
-	assert.match(suspicionPrompt(original), /Visual similarity is a neutral fact/);
+	assert.match(
+		suspicionPrompt(original),
+		/Visual similarity inside one assignment is a neutral fact/
+	);
 	assert.match(
 		suspicionPrompt(original),
 		/Ignore uploader-controlled timestamp, GPS and address overlays/
@@ -602,8 +614,9 @@ test('bounds inference context and chooses deterministic representative low-cost
 	);
 });
 
-test('surfaces and attaches both files in the real Hillview within-assignment exact-SHA group', () => {
+test('treats identical files within one assignment as a neutral repeat, not duplicate evidence', () => {
 	const hillview: SuspicionReviewFacts = {
+		candidates: [],
 		assignment: {
 			id: '019f6f10-3000-7000-8000-000000000003',
 			job_id: '019f6f10-2000-7000-8000-000000000003',
@@ -669,13 +682,6 @@ test('surfaces and attaches both files in the real Hillview within-assignment ex
 		communications: []
 	};
 
-	assert.deepEqual(withinAssignmentExactShaGroups(hillview.photos), [
-		{
-			sha256: 'e1719c9ce6a505b20ac7c8ab5e4e3e67d8878c9db8b312ec0aaf427f942a714d',
-			evidence_ids: ['019f6f10-5000-7000-8000-000000000022', '019f6f10-5000-7000-8000-000000000059']
-		}
-	]);
-
 	const selected = selectSuspicionInferencePhotos(hillview.photos);
 	assert.deepEqual(
 		selected.map((photo) => photo.photo.file_name),
@@ -688,15 +694,19 @@ test('surfaces and attaches both files in the real Hillview within-assignment ex
 
 	const context = JSON.parse(buildSuspicionInferenceContext(hillview, selected)) as {
 		photo_summary: {
-			within_assignment_exact_sha_group_count: number;
-			within_assignment_exact_sha_photo_count: number;
 			similarity_relationships: number;
 			representative_photos: ReadonlyArray<{ readonly sha256: string }>;
 		};
 	};
-	assert.equal(context.photo_summary.within_assignment_exact_sha_group_count, 1);
-	assert.equal(context.photo_summary.within_assignment_exact_sha_photo_count, 2);
 	assert.equal(context.photo_summary.similarity_relationships, 0);
+	assert.equal(
+		Object.hasOwn(context.photo_summary, 'within_assignment_exact_sha_group_count'),
+		false
+	);
+	assert.equal(
+		Object.hasOwn(context.photo_summary, 'within_assignment_exact_sha_photo_count'),
+		false
+	);
 	assert.deepEqual(
 		context.photo_summary.representative_photos.map((photo) => photo.sha256),
 		[
@@ -705,8 +715,189 @@ test('surfaces and attaches both files in the real Hillview within-assignment ex
 			'e1719c9ce6a505b20ac7c8ab5e4e3e67d8878c9db8b312ec0aaf427f942a714d'
 		]
 	);
-	assert.match(suspicionPrompt(hillview, selected), /concrete duplicate-submission evidence/);
+	const prompt = suspicionPrompt(hillview, selected);
+	assert.match(prompt, /Visual similarity inside one assignment is a neutral fact/);
+	assert.match(prompt, /an identical file submitted under the same assignment is a neutral repeat/);
+	assert.doesNotMatch(prompt, /duplicate-submission evidence/);
+	assert.doesNotMatch(prompt, /within_assignment_exact_sha/);
 });
+
+/**
+ * The real cross-assignment crop fixture, hashed by the same pdq.wasm the evidence hook ships.
+ *
+ * `00003592` (18 Lorong Pisang Udang) shows the same white ceiling as `00003139`/`00003140`
+ * (58 Kismis Avenue) in a tighter, recompressed framing. The byte hashes differ, and the PDQ
+ * bit distances (116 and 130) sit far past the strict `visual_duplicate` bar of 31 — but also
+ * past every unrelated-pair floor in this corpus (88 bits), so perceptual distance alone cannot
+ * nominate this pair. That limit is pinned by `pins the real Kismis-Lorong crop pair` below.
+ */
+const hammingHex = (left: string, right: string): number => {
+	let distance = 0;
+	for (let index = 0; index < left.length; index += 1) {
+		let difference = parseInt(left[index]!, 16) ^ parseInt(right[index]!, 16);
+		while (difference !== 0) {
+			distance += difference & 1;
+			difference >>= 1;
+		}
+	}
+	return distance;
+};
+
+/** Brute-force stand-in for the HNSW `findNearest`: every corpus row within the cosine band. */
+const nearestStub =
+	(corpus: ReadonlyArray<Record<string, unknown>>) =>
+	(input: { readonly probe: readonly number[]; readonly maxDistance: number }) =>
+		Effect.succeed(
+			corpus.filter((row) => {
+				const embedding = row.record_embedding as readonly number[];
+				let dot = 0;
+				let left = 0;
+				let right = 0;
+				for (let index = 0; index < embedding.length; index += 1) {
+					const a = input.probe[index] ?? 0;
+					const b = embedding[index] ?? 0;
+					dot += a * b;
+					left += a * a;
+					right += b * b;
+				}
+				const magnitude = Math.sqrt(left) * Math.sqrt(right);
+				return (magnitude === 0 ? 1 : 1 - dot / magnitude) <= input.maxDistance;
+			})
+		);
+
+const embed = (hex: string): readonly number[] => hexToBinaryEmbedding(hex) as readonly number[];
+
+test('retrieves in-band cross-assignment candidates and excludes same-assignment hits', async () => {
+	/**
+	 * Three vectors at known angles from one probe: an own-assignment twin and a foreign candidate
+	 * inside the 0.5 cosine band, and a foreign photo outside it. Built by rotating in a plane so the
+	 * cosine is the rotation itself rather than a number that happens to fall where the test wants.
+	 */
+	const base = [1, 0, ...Array.from({ length: 254 }, () => 0)];
+	const atCosineDistance = (distance: number): readonly number[] => {
+		const angle = Math.acos(1 - distance);
+		return [Math.cos(angle), Math.sin(angle), ...Array.from({ length: 254 }, () => 0)];
+	};
+	const ceiling = (id: string, embedding: readonly number[], assignmentId: string) => ({
+		id,
+		photo: {
+			storage_key: `document-assets/bca-simulation/${id}.jpg`,
+			file_name: `${id}.jpg`,
+			file_size: 900_000,
+			mime_type: 'image/jpeg'
+		},
+		sha256: `${id}-sha`,
+		flags: ['missing_geolocation'],
+		matched_evidence_ids: [],
+		created_at: null,
+		job_assignment_id: assignmentId,
+		variation_request_id: null,
+		record_embedding: embedding
+	});
+	const corpus = [
+		ceiling('own-twin', atCosineDistance(0.2), 'assignment-kismis'),
+		ceiling('foreign-near', atCosineDistance(0.3), 'assignment-lorong'),
+		ceiling('foreign-far', atCosineDistance(0.9), 'assignment-other')
+	];
+	const probes = [
+		{ ...ceiling('00003139', base, 'assignment-kismis'), photo: corpus[0]!.photo },
+		{ ...ceiling('00003140', base, 'assignment-kismis'), photo: corpus[1]!.photo }
+	];
+	const api = {
+		db: {
+			photo_evidence: { findNearest: nearestStub(corpus) },
+			variation_requests: { findMany: () => Effect.succeed([]) }
+		}
+	} as never;
+
+	const candidates = await Effect.runPromise(
+		loadCrossAssignmentCandidates(api, 'assignment-kismis', probes)
+	);
+
+	assert.deepEqual(
+		candidates.map((candidate) => candidate.id),
+		['foreign-near']
+	);
+	// The rotation the candidate was built at, recomputed from the durable vectors rather than
+	// taken from the retrieval — that recomputation is what the assertion is really pinning.
+	assert.equal(candidates[0]?.distance, 0.3);
+	assert.deepEqual(candidates[0]?.matched_photo_ids, ['00003139', '00003140']);
+
+	const withCandidates: SuspicionReviewFacts = {
+		...facts(),
+		assignment: { ...facts().assignment, id: 'assignment-kismis' },
+		candidates
+	};
+	const context = JSON.parse(buildSuspicionInferenceContext(withCandidates)) as {
+		cross_assignment_candidates: ReadonlyArray<{
+			readonly id: string;
+			readonly sha256: string;
+			readonly distance: number;
+			readonly matched_photo_ids: ReadonlyArray<string>;
+			readonly attached_image: boolean;
+		}>;
+	};
+	assert.deepEqual(context.cross_assignment_candidates, [
+		{
+			id: 'foreign-near',
+			sha256: 'foreign-near-sha',
+			distance: 0.3,
+			matched_photo_ids: ['00003139', '00003140'],
+			attached_image: true
+		}
+	]);
+	const prompt = suspicionPrompt(withCandidates);
+	assert.match(prompt, /cross_assignment_candidates/);
+	assert.match(prompt, /same physical scene as the photo it was matched with/);
+	assert.match(prompt, /different unit, storey, house or street/);
+});
+
+test('pins the real Kismis-Lorong crop pair past every perceptual band', () => {
+	const kismisFirst = 'ff460171fe8e0179fe870558feaf00d07d4f02b07d5ea6a15a5ea5285a97254c';
+	const kismisSecond = '3f86d0593f96c0a92f97d0683ea7c1583fafc1503caf82607d5f1228aad7156c';
+	const lorongCrop = 'd24a124bf2dd1243d7583cda8a1fb9604d16edf40927edb40d27e9240da7e5bc';
+
+	// Bit-exact PDQ distances of the real files (rank 39/62/327 in each other's cross-assignment
+	// neighbour lists — behind hundreds of unrelated pairs, whose corpus floor is 88 bits).
+	assert.equal(hammingHex(kismisFirst, lorongCrop), 116);
+	assert.equal(hammingHex(kismisSecond, lorongCrop), 130);
+	assert.ok(hammingHex(kismisFirst, lorongCrop) > CROSS_ASSIGNMENT_MAX_HAMMING);
+	assert.ok(hammingHex(kismisFirst, lorongCrop) > 31);
+	// Same-scene, same-assignment shots are equally far apart — repeats stay neutral regardless.
+	assert.equal(hammingHex(kismisFirst, kismisSecond), 84);
+});
+
+test(
+	'hashes the actual seed crop bytes into the pinned cross-assignment pair',
+	{ skip: !existsSync('../../seed_bank/field-operations/assets') },
+	async () => {
+		const hashAsset = async (fileName: string) => {
+			const bytes = readFileSync(`../../seed_bank/field-operations/assets/${fileName}`);
+			const image = decodeJpeg(bytes, {
+				useTArray: true,
+				formatAsRGBA: false,
+				maxResolutionInMP: 40,
+				maxMemoryUsageInMB: 256
+			});
+			const { hash } = await Effect.runPromise(
+				hashPdq({ data: image.data, width: image.width, height: image.height, channels: 3 })
+			);
+			return { width: image.width, hex: pdqHashToHex(hash) };
+		};
+		const kismis = await hashAsset('00003139-PHOTO-2026-07-03-11-09-32.jpg');
+		const crop = await hashAsset('00003592-PHOTO-2026-07-03-12-10-12.jpg');
+		assert.equal(kismis.width, 1440);
+		assert.equal(crop.width, 1233);
+		assert.equal(kismis.hex, 'ff460171fe8e0179fe870558feaf00d07d4f02b07d5ea6a15a5ea5285a97254c');
+		assert.equal(crop.hex, 'd24a124bf2dd1243d7583cda8a1fb9604d16edf40927edb40d27e9240da7e5bc');
+		const distance = hammingHex(kismis.hex, crop.hex);
+		assert.ok(distance > 31, 'the crop must sit past the strict near-duplicate bar');
+		assert.ok(
+			distance > CROSS_ASSIGNMENT_MAX_HAMMING,
+			'the real fixture is a re-photographed featureless scene that no perceptual band can nominate'
+		);
+	}
+);
 
 test('derives stable idempotency keys from the complete evidence basis', () => {
 	const basis = buildSuspicionReviewBasis(facts());
