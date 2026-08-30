@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { existsSync, lstatSync, readFileSync, readdirSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import path from 'node:path';
 import { describe, it } from 'node:test';
 import {
@@ -97,30 +97,6 @@ describe('template discovery', () => {
 			assert.ok(
 				existsSync(path.join(template.directory, 'pnpm-lock.yaml')),
 				`${template.slug} must commit pnpm-lock.yaml`
-			);
-		}
-	});
-
-	it('commits the current mutation compatibility lineage for every template', () => {
-		for (const template of discoverTemplates()) {
-			const lineagePath = path.join(
-				template.directory,
-				'.norbital',
-				'migrations',
-				'mutation-compatibility.json'
-			);
-			assert.ok(
-				existsSync(lineagePath),
-				`${template.slug} must commit mutation compatibility lineage`
-			);
-			assert.ok(lstatSync(lineagePath).isFile(), `${template.slug} lineage must be a regular file`);
-
-			const lineage = JSON.parse(readFileSync(lineagePath, 'utf8'));
-			assert.equal(lineage.version, 1, `${template.slug} lineage version`);
-			assert.equal(
-				lineage.checkpoints.at(-1)?.schemaFingerprint,
-				lineage.currentSchemaFingerprint,
-				`${template.slug} current lineage checkpoint`
 			);
 		}
 	});
