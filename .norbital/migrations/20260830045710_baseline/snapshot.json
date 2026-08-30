@@ -1,8 +1,8 @@
 {
   "dialect": "postgres",
-  "id": "44151b22-ace7-4aa1-b63e-f6faa57d0f69",
+  "id": "b80b737f-36af-4b2a-b0f8-f91f62954616",
   "prevIds": [
-    "96ecce26-f13b-49ed-8138-b8f619ca1fab"
+    "409b4717-09d1-4dc7-bfb4-e8a77a3b8cea"
   ],
   "version": "8",
   "ddl": [
@@ -176,6 +176,22 @@
       "generated": null,
       "identity": null,
       "name": "approval_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "asset_documents"
+    },
+    {
+      "type": "tsvector",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": {
+        "as": "to_tsvector('simple'::regconfig, coalesce(\"title\", ''))",
+        "type": "stored"
+      },
+      "identity": null,
+      "name": "search_document",
       "entityType": "columns",
       "schema": "public",
       "table": "asset_documents"
@@ -415,6 +431,22 @@
       "table": "bim_reference_matrix"
     },
     {
+      "type": "tsvector",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": {
+        "as": "to_tsvector('simple'::regconfig, coalesce(\"reference_name\", ''))",
+        "type": "stored"
+      },
+      "identity": null,
+      "name": "search_document",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "bim_reference_matrix"
+    },
+    {
       "type": "text",
       "typeSchema": null,
       "notNull": true,
@@ -649,6 +681,22 @@
       "table": "certification_types"
     },
     {
+      "type": "tsvector",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": {
+        "as": "to_tsvector('simple'::regconfig, coalesce(\"certification_name\", ''))",
+        "type": "stored"
+      },
+      "identity": null,
+      "name": "search_document",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "certification_types"
+    },
+    {
       "type": "text",
       "typeSchema": null,
       "notNull": true,
@@ -826,6 +874,22 @@
       "generated": null,
       "identity": null,
       "name": "approval_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "defects"
+    },
+    {
+      "type": "tsvector",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": {
+        "as": "to_tsvector('simple'::regconfig, coalesce(\"title\", ''))",
+        "type": "stored"
+      },
+      "identity": null,
+      "name": "search_document",
       "entityType": "columns",
       "schema": "public",
       "table": "defects"
@@ -1117,6 +1181,22 @@
       "table": "job_assignments"
     },
     {
+      "type": "tsvector",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": {
+        "as": "to_tsvector('simple'::regconfig, coalesce(\"assignment_code\", ''))",
+        "type": "stored"
+      },
+      "identity": null,
+      "name": "search_document",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "job_assignments"
+    },
+    {
       "type": "text",
       "typeSchema": null,
       "notNull": false,
@@ -1307,6 +1387,22 @@
       "generated": null,
       "identity": null,
       "name": "approval_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "jobs"
+    },
+    {
+      "type": "tsvector",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": {
+        "as": "to_tsvector('simple'::regconfig, coalesce(\"job_title\", ''))",
+        "type": "stored"
+      },
+      "identity": null,
+      "name": "search_document",
       "entityType": "columns",
       "schema": "public",
       "table": "jobs"
@@ -1741,6 +1837,22 @@
       "table": "payment_claims"
     },
     {
+      "type": "tsvector",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": {
+        "as": "to_tsvector('simple'::regconfig, coalesce(\"claim_number\", ''))",
+        "type": "stored"
+      },
+      "identity": null,
+      "name": "search_document",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "payment_claims"
+    },
+    {
       "type": "text",
       "typeSchema": null,
       "notNull": true,
@@ -1970,6 +2082,22 @@
       "generated": null,
       "identity": null,
       "name": "approval_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "permits_to_work"
+    },
+    {
+      "type": "tsvector",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": {
+        "as": "to_tsvector('simple'::regconfig, coalesce(\"permit_number\", ''))",
+        "type": "stored"
+      },
+      "identity": null,
+      "name": "search_document",
       "entityType": "columns",
       "schema": "public",
       "table": "permits_to_work"
@@ -2430,6 +2558,22 @@
       "table": "projects"
     },
     {
+      "type": "tsvector",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": {
+        "as": "to_tsvector('simple'::regconfig, coalesce(\"project_name\", ''))",
+        "type": "stored"
+      },
+      "identity": null,
+      "name": "search_document",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "projects"
+    },
+    {
       "type": "text",
       "typeSchema": null,
       "notNull": true,
@@ -2646,6 +2790,22 @@
       "generated": null,
       "identity": null,
       "name": "approval_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "rfis"
+    },
+    {
+      "type": "tsvector",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": {
+        "as": "to_tsvector('simple'::regconfig, coalesce(\"title\", ''))",
+        "type": "stored"
+      },
+      "identity": null,
+      "name": "search_document",
       "entityType": "columns",
       "schema": "public",
       "table": "rfis"
@@ -2924,6 +3084,22 @@
       "table": "site_locations"
     },
     {
+      "type": "tsvector",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": {
+        "as": "to_tsvector('simple'::regconfig, coalesce(\"location_name\", ''))",
+        "type": "stored"
+      },
+      "identity": null,
+      "name": "search_document",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "site_locations"
+    },
+    {
       "type": "text",
       "typeSchema": null,
       "notNull": true,
@@ -3119,6 +3295,22 @@
       "table": "workers"
     },
     {
+      "type": "tsvector",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": {
+        "as": "to_tsvector('simple'::regconfig, coalesce(\"worker_name\", ''))",
+        "type": "stored"
+      },
+      "identity": null,
+      "name": "search_document",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "workers"
+    },
+    {
       "type": "text",
       "typeSchema": null,
       "notNull": true,
@@ -3299,14 +3491,11 @@
       "nameExplicit": true,
       "columns": [
         {
-          "value": "title",
+          "value": "search_document",
           "isExpression": false,
           "asc": true,
           "nullsFirst": false,
-          "opclass": {
-            "name": "gin_trgm_ops",
-            "default": false
-          }
+          "opclass": null
         }
       ],
       "isUnique": false,
@@ -3314,7 +3503,28 @@
       "with": "",
       "method": "gin",
       "concurrently": false,
-      "name": "asset_documents_title_search_trgm_idx",
+      "name": "asset_documents_search_document_gin_idx",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "asset_documents"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        {
+          "value": "(coalesce(\"title\", '')) gin_trgm_ops",
+          "isExpression": true,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "with": "",
+      "method": "gin",
+      "concurrently": false,
+      "name": "asset_documents_search_text_trgm_idx",
       "entityType": "indexes",
       "schema": "public",
       "table": "asset_documents"
@@ -3344,14 +3554,11 @@
       "nameExplicit": true,
       "columns": [
         {
-          "value": "reference_name",
+          "value": "search_document",
           "isExpression": false,
           "asc": true,
           "nullsFirst": false,
-          "opclass": {
-            "name": "gin_trgm_ops",
-            "default": false
-          }
+          "opclass": null
         }
       ],
       "isUnique": false,
@@ -3359,7 +3566,28 @@
       "with": "",
       "method": "gin",
       "concurrently": false,
-      "name": "bim_reference_matrix_reference_name_search_trgm_idx",
+      "name": "bim_reference_matrix_search_document_gin_idx",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "bim_reference_matrix"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        {
+          "value": "(coalesce(\"reference_name\", '')) gin_trgm_ops",
+          "isExpression": true,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "with": "",
+      "method": "gin",
+      "concurrently": false,
+      "name": "bim_reference_matrix_search_text_trgm_idx",
       "entityType": "indexes",
       "schema": "public",
       "table": "bim_reference_matrix"
@@ -3389,14 +3617,11 @@
       "nameExplicit": true,
       "columns": [
         {
-          "value": "certification_name",
+          "value": "search_document",
           "isExpression": false,
           "asc": true,
           "nullsFirst": false,
-          "opclass": {
-            "name": "gin_trgm_ops",
-            "default": false
-          }
+          "opclass": null
         }
       ],
       "isUnique": false,
@@ -3404,7 +3629,28 @@
       "with": "",
       "method": "gin",
       "concurrently": false,
-      "name": "certification_types_certification_name_search_trgm_idx",
+      "name": "certification_types_search_document_gin_idx",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "certification_types"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        {
+          "value": "(coalesce(\"certification_name\", '')) gin_trgm_ops",
+          "isExpression": true,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "with": "",
+      "method": "gin",
+      "concurrently": false,
+      "name": "certification_types_search_text_trgm_idx",
       "entityType": "indexes",
       "schema": "public",
       "table": "certification_types"
@@ -3434,14 +3680,11 @@
       "nameExplicit": true,
       "columns": [
         {
-          "value": "title",
+          "value": "search_document",
           "isExpression": false,
           "asc": true,
           "nullsFirst": false,
-          "opclass": {
-            "name": "gin_trgm_ops",
-            "default": false
-          }
+          "opclass": null
         }
       ],
       "isUnique": false,
@@ -3449,7 +3692,7 @@
       "with": "",
       "method": "gin",
       "concurrently": false,
-      "name": "defects_title_search_trgm_idx",
+      "name": "defects_search_document_gin_idx",
       "entityType": "indexes",
       "schema": "public",
       "table": "defects"
@@ -3458,14 +3701,11 @@
       "nameExplicit": true,
       "columns": [
         {
-          "value": "assignment_code",
-          "isExpression": false,
+          "value": "(coalesce(\"title\", '')) gin_trgm_ops",
+          "isExpression": true,
           "asc": true,
           "nullsFirst": false,
-          "opclass": {
-            "name": "gin_trgm_ops",
-            "default": false
-          }
+          "opclass": null
         }
       ],
       "isUnique": false,
@@ -3473,7 +3713,49 @@
       "with": "",
       "method": "gin",
       "concurrently": false,
-      "name": "job_assignments_assignment_code_search_trgm_idx",
+      "name": "defects_search_text_trgm_idx",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "defects"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        {
+          "value": "search_document",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "with": "",
+      "method": "gin",
+      "concurrently": false,
+      "name": "job_assignments_search_document_gin_idx",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "job_assignments"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        {
+          "value": "(coalesce(\"assignment_code\", '')) gin_trgm_ops",
+          "isExpression": true,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "with": "",
+      "method": "gin",
+      "concurrently": false,
+      "name": "job_assignments_search_text_trgm_idx",
       "entityType": "indexes",
       "schema": "public",
       "table": "job_assignments"
@@ -3503,14 +3785,11 @@
       "nameExplicit": true,
       "columns": [
         {
-          "value": "job_title",
+          "value": "search_document",
           "isExpression": false,
           "asc": true,
           "nullsFirst": false,
-          "opclass": {
-            "name": "gin_trgm_ops",
-            "default": false
-          }
+          "opclass": null
         }
       ],
       "isUnique": false,
@@ -3518,7 +3797,28 @@
       "with": "",
       "method": "gin",
       "concurrently": false,
-      "name": "jobs_job_title_search_trgm_idx",
+      "name": "jobs_search_document_gin_idx",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "jobs"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        {
+          "value": "(coalesce(\"job_title\", '')) gin_trgm_ops",
+          "isExpression": true,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "with": "",
+      "method": "gin",
+      "concurrently": false,
+      "name": "jobs_search_text_trgm_idx",
       "entityType": "indexes",
       "schema": "public",
       "table": "jobs"
@@ -3548,14 +3848,11 @@
       "nameExplicit": true,
       "columns": [
         {
-          "value": "claim_number",
+          "value": "search_document",
           "isExpression": false,
           "asc": true,
           "nullsFirst": false,
-          "opclass": {
-            "name": "gin_trgm_ops",
-            "default": false
-          }
+          "opclass": null
         }
       ],
       "isUnique": false,
@@ -3563,7 +3860,28 @@
       "with": "",
       "method": "gin",
       "concurrently": false,
-      "name": "payment_claims_claim_number_search_trgm_idx",
+      "name": "payment_claims_search_document_gin_idx",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "payment_claims"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        {
+          "value": "(coalesce(\"claim_number\", '')) gin_trgm_ops",
+          "isExpression": true,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "with": "",
+      "method": "gin",
+      "concurrently": false,
+      "name": "payment_claims_search_text_trgm_idx",
       "entityType": "indexes",
       "schema": "public",
       "table": "payment_claims"
@@ -3593,14 +3911,11 @@
       "nameExplicit": true,
       "columns": [
         {
-          "value": "permit_number",
+          "value": "search_document",
           "isExpression": false,
           "asc": true,
           "nullsFirst": false,
-          "opclass": {
-            "name": "gin_trgm_ops",
-            "default": false
-          }
+          "opclass": null
         }
       ],
       "isUnique": false,
@@ -3608,7 +3923,28 @@
       "with": "",
       "method": "gin",
       "concurrently": false,
-      "name": "permits_to_work_permit_number_search_trgm_idx",
+      "name": "permits_to_work_search_document_gin_idx",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "permits_to_work"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        {
+          "value": "(coalesce(\"permit_number\", '')) gin_trgm_ops",
+          "isExpression": true,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "with": "",
+      "method": "gin",
+      "concurrently": false,
+      "name": "permits_to_work_search_text_trgm_idx",
       "entityType": "indexes",
       "schema": "public",
       "table": "permits_to_work"
@@ -3638,14 +3974,11 @@
       "nameExplicit": true,
       "columns": [
         {
-          "value": "project_name",
+          "value": "search_document",
           "isExpression": false,
           "asc": true,
           "nullsFirst": false,
-          "opclass": {
-            "name": "gin_trgm_ops",
-            "default": false
-          }
+          "opclass": null
         }
       ],
       "isUnique": false,
@@ -3653,7 +3986,28 @@
       "with": "",
       "method": "gin",
       "concurrently": false,
-      "name": "projects_project_name_search_trgm_idx",
+      "name": "projects_search_document_gin_idx",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "projects"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        {
+          "value": "(coalesce(\"project_name\", '')) gin_trgm_ops",
+          "isExpression": true,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "with": "",
+      "method": "gin",
+      "concurrently": false,
+      "name": "projects_search_text_trgm_idx",
       "entityType": "indexes",
       "schema": "public",
       "table": "projects"
@@ -3683,14 +4037,11 @@
       "nameExplicit": true,
       "columns": [
         {
-          "value": "title",
+          "value": "search_document",
           "isExpression": false,
           "asc": true,
           "nullsFirst": false,
-          "opclass": {
-            "name": "gin_trgm_ops",
-            "default": false
-          }
+          "opclass": null
         }
       ],
       "isUnique": false,
@@ -3698,7 +4049,28 @@
       "with": "",
       "method": "gin",
       "concurrently": false,
-      "name": "rfis_title_search_trgm_idx",
+      "name": "rfis_search_document_gin_idx",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "rfis"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        {
+          "value": "(coalesce(\"title\", '')) gin_trgm_ops",
+          "isExpression": true,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "with": "",
+      "method": "gin",
+      "concurrently": false,
+      "name": "rfis_search_text_trgm_idx",
       "entityType": "indexes",
       "schema": "public",
       "table": "rfis"
@@ -3728,14 +4100,11 @@
       "nameExplicit": true,
       "columns": [
         {
-          "value": "location_name",
+          "value": "search_document",
           "isExpression": false,
           "asc": true,
           "nullsFirst": false,
-          "opclass": {
-            "name": "gin_trgm_ops",
-            "default": false
-          }
+          "opclass": null
         }
       ],
       "isUnique": false,
@@ -3743,7 +4112,28 @@
       "with": "",
       "method": "gin",
       "concurrently": false,
-      "name": "site_locations_location_name_search_trgm_idx",
+      "name": "site_locations_search_document_gin_idx",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "site_locations"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        {
+          "value": "(coalesce(\"location_name\", '')) gin_trgm_ops",
+          "isExpression": true,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "with": "",
+      "method": "gin",
+      "concurrently": false,
+      "name": "site_locations_search_text_trgm_idx",
       "entityType": "indexes",
       "schema": "public",
       "table": "site_locations"
@@ -3773,14 +4163,11 @@
       "nameExplicit": true,
       "columns": [
         {
-          "value": "worker_name",
+          "value": "search_document",
           "isExpression": false,
           "asc": true,
           "nullsFirst": false,
-          "opclass": {
-            "name": "gin_trgm_ops",
-            "default": false
-          }
+          "opclass": null
         }
       ],
       "isUnique": false,
@@ -3788,7 +4175,28 @@
       "with": "",
       "method": "gin",
       "concurrently": false,
-      "name": "workers_worker_name_search_trgm_idx",
+      "name": "workers_search_document_gin_idx",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "workers"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        {
+          "value": "(coalesce(\"worker_name\", '')) gin_trgm_ops",
+          "isExpression": true,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "with": "",
+      "method": "gin",
+      "concurrently": false,
+      "name": "workers_search_text_trgm_idx",
       "entityType": "indexes",
       "schema": "public",
       "table": "workers"

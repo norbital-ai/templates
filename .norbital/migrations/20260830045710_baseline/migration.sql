@@ -5,6 +5,7 @@ CREATE TABLE "asset_documents" (
 	"sys_period" tstzrange DEFAULT tstzrange(CURRENT_TIMESTAMP, NULL, '[)') NOT NULL,
 	"row_version" integer DEFAULT 1,
 	"approval_id" uuid,
+	"search_document" tsvector GENERATED ALWAYS AS (to_tsvector('simple'::regconfig, coalesce("title", ''))) STORED,
 	"title" text NOT NULL,
 	"document_number" text,
 	"project_id" uuid,
@@ -27,6 +28,7 @@ CREATE TABLE "bim_reference_matrix" (
 	"sys_period" tstzrange DEFAULT tstzrange(CURRENT_TIMESTAMP, NULL, '[)') NOT NULL,
 	"row_version" integer DEFAULT 1,
 	"approval_id" uuid,
+	"search_document" tsvector GENERATED ALWAYS AS (to_tsvector('simple'::regconfig, coalesce("reference_name", ''))) STORED,
 	"reference_name" text NOT NULL,
 	"reference_code" text,
 	"project_id" uuid,
@@ -49,6 +51,7 @@ CREATE TABLE "certification_types" (
 	"sys_period" tstzrange DEFAULT tstzrange(CURRENT_TIMESTAMP, NULL, '[)') NOT NULL,
 	"row_version" integer DEFAULT 1,
 	"approval_id" uuid,
+	"search_document" tsvector GENERATED ALWAYS AS (to_tsvector('simple'::regconfig, coalesce("certification_name", ''))) STORED,
 	"certification_name" text NOT NULL,
 	"certification_code" text,
 	"category" text,
@@ -67,6 +70,7 @@ CREATE TABLE "defects" (
 	"sys_period" tstzrange DEFAULT tstzrange(CURRENT_TIMESTAMP, NULL, '[)') NOT NULL,
 	"row_version" integer DEFAULT 1,
 	"approval_id" uuid,
+	"search_document" tsvector GENERATED ALWAYS AS (to_tsvector('simple'::regconfig, coalesce("title", ''))) STORED,
 	"title" text NOT NULL,
 	"defect_number" text,
 	"project_id" uuid,
@@ -93,6 +97,7 @@ CREATE TABLE "job_assignments" (
 	"sys_period" tstzrange DEFAULT tstzrange(CURRENT_TIMESTAMP, NULL, '[)') NOT NULL,
 	"row_version" integer DEFAULT 1,
 	"approval_id" uuid,
+	"search_document" tsvector GENERATED ALWAYS AS (to_tsvector('simple'::regconfig, coalesce("assignment_code", ''))) STORED,
 	"assignment_code" text,
 	"job_id" uuid,
 	"worker_id" uuid,
@@ -112,6 +117,7 @@ CREATE TABLE "jobs" (
 	"sys_period" tstzrange DEFAULT tstzrange(CURRENT_TIMESTAMP, NULL, '[)') NOT NULL,
 	"row_version" integer DEFAULT 1,
 	"approval_id" uuid,
+	"search_document" tsvector GENERATED ALWAYS AS (to_tsvector('simple'::regconfig, coalesce("job_title", ''))) STORED,
 	"job_title" text NOT NULL,
 	"job_number" text,
 	"project_id" uuid,
@@ -157,6 +163,7 @@ CREATE TABLE "payment_claims" (
 	"sys_period" tstzrange DEFAULT tstzrange(CURRENT_TIMESTAMP, NULL, '[)') NOT NULL,
 	"row_version" integer DEFAULT 1,
 	"approval_id" uuid,
+	"search_document" tsvector GENERATED ALWAYS AS (to_tsvector('simple'::regconfig, coalesce("claim_number", ''))) STORED,
 	"claim_number" text NOT NULL,
 	"project_id" uuid,
 	"job_id" uuid,
@@ -179,6 +186,7 @@ CREATE TABLE "permits_to_work" (
 	"sys_period" tstzrange DEFAULT tstzrange(CURRENT_TIMESTAMP, NULL, '[)') NOT NULL,
 	"row_version" integer DEFAULT 1,
 	"approval_id" uuid,
+	"search_document" tsvector GENERATED ALWAYS AS (to_tsvector('simple'::regconfig, coalesce("permit_number", ''))) STORED,
 	"permit_number" text NOT NULL,
 	"permit_type" text,
 	"project_id" uuid,
@@ -226,6 +234,7 @@ CREATE TABLE "projects" (
 	"sys_period" tstzrange DEFAULT tstzrange(CURRENT_TIMESTAMP, NULL, '[)') NOT NULL,
 	"row_version" integer DEFAULT 1,
 	"approval_id" uuid,
+	"search_document" tsvector GENERATED ALWAYS AS (to_tsvector('simple'::regconfig, coalesce("project_name", ''))) STORED,
 	"project_name" text NOT NULL,
 	"project_number" text,
 	"client" text,
@@ -247,6 +256,7 @@ CREATE TABLE "rfis" (
 	"sys_period" tstzrange DEFAULT tstzrange(CURRENT_TIMESTAMP, NULL, '[)') NOT NULL,
 	"row_version" integer DEFAULT 1,
 	"approval_id" uuid,
+	"search_document" tsvector GENERATED ALWAYS AS (to_tsvector('simple'::regconfig, coalesce("title", ''))) STORED,
 	"title" text NOT NULL,
 	"rfi_number" text,
 	"project_id" uuid,
@@ -272,6 +282,7 @@ CREATE TABLE "site_locations" (
 	"sys_period" tstzrange DEFAULT tstzrange(CURRENT_TIMESTAMP, NULL, '[)') NOT NULL,
 	"row_version" integer DEFAULT 1,
 	"approval_id" uuid,
+	"search_document" tsvector GENERATED ALWAYS AS (to_tsvector('simple'::regconfig, coalesce("location_name", ''))) STORED,
 	"location_name" text NOT NULL,
 	"location_code" text,
 	"project_id" uuid,
@@ -291,6 +302,7 @@ CREATE TABLE "workers" (
 	"sys_period" tstzrange DEFAULT tstzrange(CURRENT_TIMESTAMP, NULL, '[)') NOT NULL,
 	"row_version" integer DEFAULT 1,
 	"approval_id" uuid,
+	"search_document" tsvector GENERATED ALWAYS AS (to_tsvector('simple'::regconfig, coalesce("worker_name", ''))) STORED,
 	"worker_name" text NOT NULL,
 	"worker_number" text,
 	"trade" text,
@@ -308,49 +320,73 @@ CREATE TABLE "workers" (
 --> statement-breakpoint
 CREATE UNIQUE INDEX "asset_documents_document_number_index" ON "asset_documents" ("document_number");
 --> statement-breakpoint
-CREATE INDEX "asset_documents_title_search_trgm_idx" ON "asset_documents" USING gin ("title" gin_trgm_ops);
+CREATE INDEX "asset_documents_search_document_gin_idx" ON "asset_documents" USING gin ("search_document");
+--> statement-breakpoint
+CREATE INDEX "asset_documents_search_text_trgm_idx" ON "asset_documents" USING gin ((coalesce("title", '')) gin_trgm_ops);
 --> statement-breakpoint
 CREATE UNIQUE INDEX "bim_reference_matrix_reference_code_index" ON "bim_reference_matrix" ("reference_code");
 --> statement-breakpoint
-CREATE INDEX "bim_reference_matrix_reference_name_search_trgm_idx" ON "bim_reference_matrix" USING gin ("reference_name" gin_trgm_ops);
+CREATE INDEX "bim_reference_matrix_search_document_gin_idx" ON "bim_reference_matrix" USING gin ("search_document");
+--> statement-breakpoint
+CREATE INDEX "bim_reference_matrix_search_text_trgm_idx" ON "bim_reference_matrix" USING gin ((coalesce("reference_name", '')) gin_trgm_ops);
 --> statement-breakpoint
 CREATE UNIQUE INDEX "certification_types_certification_code_index" ON "certification_types" ("certification_code");
 --> statement-breakpoint
-CREATE INDEX "certification_types_certification_name_search_trgm_idx" ON "certification_types" USING gin ("certification_name" gin_trgm_ops);
+CREATE INDEX "certification_types_search_document_gin_idx" ON "certification_types" USING gin ("search_document");
+--> statement-breakpoint
+CREATE INDEX "certification_types_search_text_trgm_idx" ON "certification_types" USING gin ((coalesce("certification_name", '')) gin_trgm_ops);
 --> statement-breakpoint
 CREATE UNIQUE INDEX "defects_defect_number_index" ON "defects" ("defect_number");
 --> statement-breakpoint
-CREATE INDEX "defects_title_search_trgm_idx" ON "defects" USING gin ("title" gin_trgm_ops);
+CREATE INDEX "defects_search_document_gin_idx" ON "defects" USING gin ("search_document");
 --> statement-breakpoint
-CREATE INDEX "job_assignments_assignment_code_search_trgm_idx" ON "job_assignments" USING gin ("assignment_code" gin_trgm_ops);
+CREATE INDEX "defects_search_text_trgm_idx" ON "defects" USING gin ((coalesce("title", '')) gin_trgm_ops);
+--> statement-breakpoint
+CREATE INDEX "job_assignments_search_document_gin_idx" ON "job_assignments" USING gin ("search_document");
+--> statement-breakpoint
+CREATE INDEX "job_assignments_search_text_trgm_idx" ON "job_assignments" USING gin ((coalesce("assignment_code", '')) gin_trgm_ops);
 --> statement-breakpoint
 CREATE UNIQUE INDEX "jobs_job_number_index" ON "jobs" ("job_number");
 --> statement-breakpoint
-CREATE INDEX "jobs_job_title_search_trgm_idx" ON "jobs" USING gin ("job_title" gin_trgm_ops);
+CREATE INDEX "jobs_search_document_gin_idx" ON "jobs" USING gin ("search_document");
+--> statement-breakpoint
+CREATE INDEX "jobs_search_text_trgm_idx" ON "jobs" USING gin ((coalesce("job_title", '')) gin_trgm_ops);
 --> statement-breakpoint
 CREATE UNIQUE INDEX "payment_claims_claim_number_index" ON "payment_claims" ("claim_number");
 --> statement-breakpoint
-CREATE INDEX "payment_claims_claim_number_search_trgm_idx" ON "payment_claims" USING gin ("claim_number" gin_trgm_ops);
+CREATE INDEX "payment_claims_search_document_gin_idx" ON "payment_claims" USING gin ("search_document");
+--> statement-breakpoint
+CREATE INDEX "payment_claims_search_text_trgm_idx" ON "payment_claims" USING gin ((coalesce("claim_number", '')) gin_trgm_ops);
 --> statement-breakpoint
 CREATE UNIQUE INDEX "permits_to_work_permit_number_index" ON "permits_to_work" ("permit_number");
 --> statement-breakpoint
-CREATE INDEX "permits_to_work_permit_number_search_trgm_idx" ON "permits_to_work" USING gin ("permit_number" gin_trgm_ops);
+CREATE INDEX "permits_to_work_search_document_gin_idx" ON "permits_to_work" USING gin ("search_document");
+--> statement-breakpoint
+CREATE INDEX "permits_to_work_search_text_trgm_idx" ON "permits_to_work" USING gin ((coalesce("permit_number", '')) gin_trgm_ops);
 --> statement-breakpoint
 CREATE UNIQUE INDEX "projects_project_number_index" ON "projects" ("project_number");
 --> statement-breakpoint
-CREATE INDEX "projects_project_name_search_trgm_idx" ON "projects" USING gin ("project_name" gin_trgm_ops);
+CREATE INDEX "projects_search_document_gin_idx" ON "projects" USING gin ("search_document");
+--> statement-breakpoint
+CREATE INDEX "projects_search_text_trgm_idx" ON "projects" USING gin ((coalesce("project_name", '')) gin_trgm_ops);
 --> statement-breakpoint
 CREATE UNIQUE INDEX "rfis_rfi_number_index" ON "rfis" ("rfi_number");
 --> statement-breakpoint
-CREATE INDEX "rfis_title_search_trgm_idx" ON "rfis" USING gin ("title" gin_trgm_ops);
+CREATE INDEX "rfis_search_document_gin_idx" ON "rfis" USING gin ("search_document");
+--> statement-breakpoint
+CREATE INDEX "rfis_search_text_trgm_idx" ON "rfis" USING gin ((coalesce("title", '')) gin_trgm_ops);
 --> statement-breakpoint
 CREATE UNIQUE INDEX "site_locations_location_code_index" ON "site_locations" ("location_code");
 --> statement-breakpoint
-CREATE INDEX "site_locations_location_name_search_trgm_idx" ON "site_locations" USING gin ("location_name" gin_trgm_ops);
+CREATE INDEX "site_locations_search_document_gin_idx" ON "site_locations" USING gin ("search_document");
+--> statement-breakpoint
+CREATE INDEX "site_locations_search_text_trgm_idx" ON "site_locations" USING gin ((coalesce("location_name", '')) gin_trgm_ops);
 --> statement-breakpoint
 CREATE UNIQUE INDEX "workers_worker_number_index" ON "workers" ("worker_number");
 --> statement-breakpoint
-CREATE INDEX "workers_worker_name_search_trgm_idx" ON "workers" USING gin ("worker_name" gin_trgm_ops);
+CREATE INDEX "workers_search_document_gin_idx" ON "workers" USING gin ("search_document");
+--> statement-breakpoint
+CREATE INDEX "workers_search_text_trgm_idx" ON "workers" USING gin ((coalesce("worker_name", '')) gin_trgm_ops);
 --> statement-breakpoint
 ALTER TABLE "asset_documents" ADD CONSTRAINT "asset_documents_project_id_projects_fk" FOREIGN KEY ("project_id") REFERENCES "projects"("id");
 --> statement-breakpoint

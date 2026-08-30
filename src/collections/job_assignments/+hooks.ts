@@ -1,4 +1,8 @@
-import type { MutateBeforeContext, MutateEditContext } from '@norbital-ai/bolt/authoring';
+import {
+	refuse,
+	type MutateBeforeContext,
+	type MutateEditContext
+} from '@norbital-ai/bolt/authoring';
 import { Effect } from 'effect';
 import { currentInstantIso } from '../../lib/clock.js';
 import type { Api, Hooks, WorkspaceRow } from './$types.js';
@@ -53,12 +57,12 @@ export default {
 function validateJobAssignmentCompliance(
 	incoming: ComplianceTarget,
 	api: Api
-): Effect.Effect<void, Error> {
+): Effect.Effect<void, never> {
 	return Effect.gen(function* () {
 		const siteLocationId = incoming.site_location_id;
 		const workerId = incoming.worker_id;
 		if (siteLocationId == null || workerId == null) {
-			return yield* Effect.fail(new Error(ASSIGNMENT_ERROR));
+			refuse(ASSIGNMENT_ERROR);
 		}
 
 		const now = yield* currentInstantIso;
@@ -112,7 +116,7 @@ function validateJobAssignmentCompliance(
 					});
 
 		if (jobIds.length === 0) {
-			return yield* Effect.fail(new Error(ASSIGNMENT_ERROR));
+			refuse(ASSIGNMENT_ERROR);
 		}
 		const certificationIdsByJob = new Map<string, string[]>();
 		for (const link of jobCertificationLinks) {
@@ -130,7 +134,7 @@ function validateJobAssignmentCompliance(
 		});
 
 		if (!hasRequiredCertification) {
-			return yield* Effect.fail(new Error(ASSIGNMENT_ERROR));
+			refuse(ASSIGNMENT_ERROR);
 		}
 	});
 }
