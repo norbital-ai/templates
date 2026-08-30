@@ -47,8 +47,25 @@ jobs:
         run: pnpm templates:check && pnpm test && pnpm format:check
 
       - name: Check template lockfiles
-        run: pnpm templates:lock:check
+        run: |
+          diff_base="$LOCKFILE_DIFF_BASE"
+          if ! git cat-file -e "$diff_base^{commit}" 2>/dev/null; then
+            diff_base="HEAD^"
+          fi
+          while IFS= read -r template; do
+            if git diff --quiet "$diff_base" "$GITHUB_SHA" -- \
+              "$template/package.json" \
+              "$template/pnpm-workspace.yaml" \
+              "$template/pnpm-lock.yaml"; then
+              continue
+            fi
+            node scripts/lock-templates.mjs --check --filter="$template"
+          done < <(
+            node --input-type=module -e \
+              "import { discoverTemplates } from './scripts/lib/templates.mjs'; for (const template of discoverTemplates()) console.log(template.slug)"
+          )
         env:
+          LOCKFILE_DIFF_BASE: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
           NODE_AUTH_TOKEN: ${{ secrets.NPM_REGISTRY_TOKEN || secrets.GITHUB_TOKEN }}
 
       # The load-bearing gate: copy only each template's tracked files somewhere else, then install
