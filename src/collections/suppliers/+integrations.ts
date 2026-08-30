@@ -19,7 +19,8 @@ const Currency = Schema.Literals(['CNY', 'USD', 'EUR', 'GBP', 'JPY', 'SGD', 'HKD
  */
 export default {
 	erp: {
-		policies: ['erp_suppliers_integration'],
+		// Procurement and this mirror compose the one policy that owns all supplier coordinates.
+		policies: ['suppliers_manage'],
 		connection: erp,
 		receive: {
 			vendors_changed: definePull({

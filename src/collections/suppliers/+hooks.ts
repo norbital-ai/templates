@@ -1,22 +1,26 @@
-import type { MutateBeforeContext, MutateEditContext } from '@norbital-ai/bolt/authoring';
-import type { Hooks, WorkspaceRow } from './$types.js';
+import {
+	refuse,
+	type MutateBeforeContext,
+	type MutateEditContext
+} from '@norbital-ai/bolt/authoring';
+import type { Hooks } from './$types.js';
 
 function normalizeCode(code: string): string {
 	const normalized = code.trim().toUpperCase();
-	if (!normalized) throw new Error('Supplier code is required.');
+	if (!normalized) refuse('Supplier code is required.');
 	return normalized;
 }
 
 function normalizeName(name: string): string {
 	const normalized = name.trim();
-	if (!normalized) throw new Error('Supplier name is required.');
+	if (!normalized) refuse('Supplier name is required.');
 	return normalized;
 }
 
 function validatePaymentTermsDays(value: number | null | undefined): void {
 	if (value == null) return;
 	if (!Number.isInteger(value) || value < 0 || value > 365) {
-		throw new Error('Payment terms must be an integer between 0 and 365 days.');
+		refuse('Payment terms must be an integer between 0 and 365 days.');
 	}
 }
 
@@ -26,6 +30,8 @@ type EditContext = MutateEditContext<Hooks>;
 /** A create states the whole record and has no `existing`. */
 const beforeCreate = ({ input }: BeforeContext) => {
 	validatePaymentTermsDays(input.payment_terms_days);
+	if (input.code == null) refuse('Supplier code is required.');
+	if (input.name == null) refuse('Supplier name is required.');
 	return {
 		...input,
 		code: normalizeCode(input.code),
@@ -37,7 +43,7 @@ const beforeCreate = ({ input }: BeforeContext) => {
 /** An edit lands on a stored row; `existing` is what tells the two apart. */
 const beforeUpdate = ({ input, existing }: EditContext) => {
 	if (input.code != null && input.code !== existing.code) {
-		throw new Error('Supplier code cannot be changed once set.');
+		refuse('Supplier code cannot be changed once set.');
 	}
 	if (input.name != null) normalizeName(input.name);
 	validatePaymentTermsDays(input.payment_terms_days ?? existing.payment_terms_days);

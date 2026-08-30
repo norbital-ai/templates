@@ -1,3 +1,4 @@
+import { refuse } from '@norbital-ai/bolt/authoring';
 import type { Hooks } from './$types.js';
 
 export default {
@@ -14,7 +15,7 @@ export default {
 						input.external_code != null &&
 						input.external_code !== existing.external_code
 					) {
-						throw new Error('External customer code cannot be changed once set.');
+						refuse('External customer code cannot be changed once set.');
 					}
 					return input;
 				}

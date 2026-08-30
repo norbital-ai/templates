@@ -1,3 +1,4 @@
+import { refuse } from '@norbital-ai/bolt/authoring';
 import { Effect } from 'effect';
 import { currentInstant } from '../../lib/clock.js';
 import { deskToday } from '../../lib/desk-date.js';
@@ -12,21 +13,14 @@ export default {
 					'Accepts a receipt only against a confirmed purchase order, defaults the received date to today, and assigns the next GRN document number for the year.',
 				handler: ({ input, api }) =>
 					Effect.gen(function* () {
-						if (!input.purchase_order_id) {
-							return yield* Effect.fail(
-								new Error('A goods receipt must reference a purchase order.')
-							);
-						}
+						if (!input.purchase_order_id)
+							refuse('A goods receipt must reference a purchase order.');
 						const order = yield* api.db.purchase_orders.findFirst({
 							where: { id: { eq: input.purchase_order_id } }
 						});
-						if (!order) {
-							return yield* Effect.fail(new Error('Referenced purchase order does not exist.'));
-						}
+						if (!order) refuse('Referenced purchase order does not exist.');
 						if (order.status !== 'confirmed') {
-							return yield* Effect.fail(
-								new Error('Goods can only be received against a confirmed purchase order.')
-							);
+							refuse('Goods can only be received against a confirmed purchase order.');
 						}
 
 						const now = yield* currentInstant;

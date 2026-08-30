@@ -124,11 +124,16 @@ One `erp` connection (a placeholder `baseUrl`, and a bearer token referenced by 
   `transform` shapes it into the request body (`POST /docs/confirmed`), and delivery retries with
   capped backoff and dead-letters after ten attempts.
 
-| Policy                | Apps           | What it owns                                                                                                                                                                                        |
-| --------------------- | -------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `commercial_shared`   | —              | The shared book: catalogue read (`products`) and the settlement ledger (`settlements` read/create), owned once so the composition stays unambiguous.                                                |
-| `sales_rep`           | `crm`          | Its own quotes, sales invoices, and contract signings (scoped to the requestor), their lines, contacts and activities; reads accounts. The catalogue and settlements come from `commercial_shared`. |
-| `procurement_officer` | `crm_purchase` | Suppliers, purchase orders and lines, goods receipts, purchase invoices and lines; the settlement ledger and catalogue come from `commercial_shared`.                                               |
+| Policy                     | Apps           | What it owns                                                                                                 |
+| -------------------------- | -------------- | ------------------------------------------------------------------------------------------------------------ |
+| `accounts_read`            | —              | The sole account-read grant, composed into Sales, the sales envoy, and the ERP customer pull.                |
+| `products_read`            | —              | The sole product-read grant, composed into both desks, the sales envoy, and the ERP item pull.               |
+| `suppliers_manage`         | —              | The sole supplier read/mutate grant (new and existing), composed into Procurement and the ERP vendor pull.   |
+| `commercial_shared`        | —              | The settlement ledger (`settlements` read plus mutate for new records), shared by both desks and owned once. |
+| `sales_rep`                | `crm`          | Requestor-scoped quotes, sales invoices, and contract signings, plus their lines, contacts, and activities.  |
+| `procurement_officer`      | `crm_purchase` | Purchase orders and lines, goods receipts, and purchase invoices and lines.                                  |
+| `erp_accounts_integration` | —              | Account mutate (new and existing) for the ERP customer pull; account read comes from `accounts_read`.        |
+| `erp_products_integration` | —              | Product mutate (new and existing) for the ERP item pull; product read comes from `products_read`.            |
 
 The sales/procurement split is drawn by **omission**, not masking. Bolt policies are
 collection-scoped, so buy cost stays off the sales surface because sales has no grant for
@@ -152,7 +157,8 @@ updates them without a remote live-query function or refresh control.
 ### Channel
 
 `sales_desk` — a Telegram channel for customer-facing sales enquiries. The agent answers under the
-`sales_rep` policy, so a message from a customer cannot become a way around the permission model.
+same `accounts_read`, `products_read`, `commercial_shared`, and `sales_rep` policy set as the Sales
+team, so a message from a customer cannot become a way around the permission model.
 
 ### Seed
 
@@ -176,7 +182,7 @@ src/
 ├── apps/                     the two app surfaces
 ├── automations/              quote_expiry_watch
 ├── functions/                the two on-demand query handlers above
-├── access/policies/          commercial_shared, sales_rep, procurement_officer
+├── access/policies/          narrow shared coordinate owners plus sales, procurement, and ERP writes
 ├── envoys/                   sales_desk
 ├── lib/
 │   ├── pricing.ts            the only place rounding is decided
@@ -234,6 +240,6 @@ template installs, syncs, lints, and exposes its compiled contracts from tracked
 - Publishing: pushing to `main` of the templates repository republishes
   `refs/heads/templates/crm` — a fast-forward-only subtree split of this directory. A tenant is
   forked from the exact advertised commit when Colony provisions it, so it shares ancestry but never
-  moves merely because the ref advances. `pnpm yalc:link` is only for testing local OSS packages
-  inside this template; it does not link a template release into Colony or update a tenant. The
-  templates repository README documents the full release and tenant lifecycle.
+  moves merely because the ref advances. From the Norbital checkout, `pnpm run env -- link` tests
+  local OSS packages inside this template; it does not link a template release into Colony or
+  update a tenant. The templates repository README documents the full release and tenant lifecycle.

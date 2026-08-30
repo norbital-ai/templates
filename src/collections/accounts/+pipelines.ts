@@ -1,3 +1,5 @@
+import { refuse } from '@norbital-ai/bolt/authoring';
+import { getErrorMessage } from '@norbital-ai/std/error';
 import { Effect, Schema } from 'effect';
 import type { Pipelines } from './$types.js';
 
@@ -41,7 +43,9 @@ export default {
 		input: customersSchema,
 		handler: ({ input }, api) =>
 			Effect.gen(function* () {
-				const { customers } = yield* decodeCustomers(input);
+				const { customers } = yield* decodeCustomers(input).pipe(
+					Effect.catch((error) => Effect.sync(() => refuse(getErrorMessage(error))))
+				);
 				const codes = customers.map((customer) => customer.external_code);
 
 				const existing = yield* api.db.accounts.findMany({

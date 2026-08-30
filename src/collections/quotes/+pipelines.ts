@@ -1,3 +1,5 @@
+import { refuse } from '@norbital-ai/bolt/authoring';
+import { getErrorMessage } from '@norbital-ai/std/error';
 import { Effect, Schema } from 'effect';
 import type { Pipelines } from './$types.js';
 
@@ -86,7 +88,7 @@ export default {
 								tax_rate: line.tax_rate,
 								line_total: line.line_total
 							}))
-						}),
+						}).pipe(Effect.catch((error) => Effect.sync(() => refuse(getErrorMessage(error))))),
 						(content) => ({
 							label: `Confirmed quote · ${quote.doc_no}`,
 							attachments: [

@@ -1,19 +1,16 @@
-import type { MutateBeforeContext, MutateEditContext } from '@norbital-ai/bolt/authoring';
-import type { CollectionHooks } from '@norbital-ai/bolt/authoring';
+import {
+	refuse,
+	type MutateAfterContext,
+	type MutateBeforeContext,
+	type MutateEditContext
+} from '@norbital-ai/bolt/authoring';
 import { Effect } from 'effect';
-import type { WorkspaceSchema } from '$bolt/types.js';
 import { rollupDocument, sumQuantity } from '../../lib/document-lines.js';
 import { documentLineAmounts, type LineAmounts } from '../../lib/pricing.js';
 import type { Hooks, WorkspaceRow } from './$types.js';
 
-type AfterApi = Parameters<
-	NonNullable<NonNullable<NonNullable<Hooks['mutate']>['perRecord']>['after']>['handler']
->[0]['api'];
-type BeforeApi = Parameters<
-	NonNullable<
-		NonNullable<NonNullable<PurchaseInvoiceLineHooks['mutate']>['perRecord']>['before']
-	>['handler']
->[0]['api'];
+type AfterApi = MutateAfterContext<Hooks<PurchaseInvoiceLineBatch>>['api'];
+type BeforeApi = MutateBeforeContext<Hooks<PurchaseInvoiceLineBatch>>['api'];
 
 const LINE_LIMIT = 5000;
 
@@ -30,13 +27,6 @@ interface PurchaseInvoiceLineBatch {
 	readonly invoicedByOrderLine: ReadonlyMap<string, number>;
 }
 
-/** `Hooks` with what `prepare` returns filled in; see the note in `quote_lines/+hooks.ts`. */
-type PurchaseInvoiceLineHooks = CollectionHooks<
-	WorkspaceSchema,
-	'purchase_invoice_lines',
-	PurchaseInvoiceLineBatch
->;
-
 /** The pricing inputs a line under validation contributes, from the row's own fields. */
 type ResolvedLineInput = Partial<
 	Pick<WorkspaceRow<'purchase_invoice_lines'>, 'quantity' | 'unit_cost' | 'tax_rate'>
@@ -45,16 +35,16 @@ type ResolvedLineInput = Partial<
 function validateLineFields(input: ResolvedLineInput): void {
 	const quantity = Number(input.quantity);
 	if (Number.isNaN(quantity) || quantity <= 0) {
-		throw new Error('Quantity must be greater than zero.');
+		refuse('Quantity must be greater than zero.');
 	}
 	const unitCost = Number(input.unit_cost);
 	if (input.unit_cost == null || Number.isNaN(unitCost)) {
-		throw new Error('Unit cost is required.');
+		refuse('Unit cost is required.');
 	}
-	if (unitCost < 0) throw new Error('Unit cost cannot be negative.');
+	if (unitCost < 0) refuse('Unit cost cannot be negative.');
 	const taxRate = Number(input.tax_rate ?? 0);
 	if (taxRate < 0 || taxRate > 100) {
-		throw new Error('Tax rate must be between 0 and 100.');
+		refuse('Tax rate must be between 0 and 100.');
 	}
 }
 
@@ -115,29 +105,29 @@ const afterRollup = ({
 }) => rollupInvoice(api, record.purchase_invoice_id);
 
 /** The context a `mutate.before` handler receives, named so the two halves can be hoisted. */
-type BeforeContext = MutateBeforeContext<PurchaseInvoiceLineHooks>;
+type BeforeContext = MutateBeforeContext<Hooks<PurchaseInvoiceLineBatch>>;
 
 /** The same context on an edit, where `existing` is the stored row rather than undefined. */
-type EditContext = MutateEditContext<PurchaseInvoiceLineHooks>;
+type EditContext = MutateEditContext<Hooks<PurchaseInvoiceLineBatch>>;
 
 /** A create states the whole record and has no `existing`. */
 const beforeCreate = ({ input, prepared }: BeforeContext) => {
 	if (!input.purchase_invoice_id) {
-		throw new Error('A purchase invoice line must reference a purchase invoice.');
+		refuse('A purchase invoice line must reference a purchase invoice.');
 	}
 	const invoice = prepared.invoices.get(input.purchase_invoice_id);
-	if (!invoice) throw new Error('Referenced purchase invoice does not exist.');
+	if (!invoice) refuse('Referenced purchase invoice does not exist.');
 	if (invoice.status !== 'draft') {
-		throw new Error('Lines can only be added to draft purchase invoices.');
+		refuse('Lines can only be added to draft purchase invoices.');
 	}
 
 	if (!input.purchase_order_line_id) {
-		throw new Error('A purchase invoice line must reference a purchase order line.');
+		refuse('A purchase invoice line must reference a purchase order line.');
 	}
 	const orderLine = prepared.orderLines.get(input.purchase_order_line_id);
-	if (!orderLine) throw new Error('Referenced purchase order line does not exist.');
+	if (!orderLine) refuse('Referenced purchase order line does not exist.');
 	if (orderLine.purchase_order_id !== invoice.purchase_order_id) {
-		throw new Error('The invoiced line belongs to a different purchase order.');
+		refuse('The invoiced line belongs to a different purchase order.');
 	}
 
 	const resolved = {
@@ -153,7 +143,7 @@ const beforeCreate = ({ input, prepared }: BeforeContext) => {
 	const alreadyInvoiced = prepared.invoicedByOrderLine.get(orderLine.id) ?? 0;
 	const ordered = Number(orderLine.quantity ?? 0);
 	if (alreadyInvoiced + Number(resolved.quantity) > ordered) {
-		throw new Error(
+		refuse(
 			`Over-invoice: ${alreadyInvoiced} of ${ordered} invoiced so far; this line would exceed the ordered quantity.`
 		);
 	}
@@ -174,20 +164,15 @@ const beforeUpdate = ({ input, existing, api }: EditContext) =>
 			input.purchase_invoice_id != null &&
 			input.purchase_invoice_id !== existing.purchase_invoice_id
 		) {
-			return yield* Effect.fail(
-				new Error('A line cannot be moved to a different purchase invoice.')
-			);
+			refuse('A line cannot be moved to a different purchase invoice.');
 		}
 
 		const invoice = yield* api.db.purchase_invoices.findFirst({
 			where: { id: { eq: existing.purchase_invoice_id } }
 		});
-		if (!invoice)
-			return yield* Effect.fail(new Error('Referenced purchase invoice does not exist.'));
+		if (!invoice) refuse('Referenced purchase invoice does not exist.');
 		if (invoice.status !== 'draft') {
-			return yield* Effect.fail(
-				new Error('Lines can only be modified on draft purchase invoices.')
-			);
+			refuse('Lines can only be modified on draft purchase invoices.');
 		}
 
 		const resolved = { ...existing, ...input };
@@ -201,11 +186,7 @@ const beforeUpdate = ({ input, existing, api }: EditContext) =>
 			const ordered = Number(orderLine.quantity ?? 0);
 			const own = Number(existing.quantity ?? 0);
 			if (invoiced - own + Number(resolved.quantity) > ordered) {
-				return yield* Effect.fail(
-					new Error(
-						`Over-invoice: this line would push invoiced quantity past the ordered ${ordered}.`
-					)
-				);
+				refuse(`Over-invoice: this line would push invoiced quantity past the ordered ${ordered}.`);
 			}
 		}
 
@@ -292,4 +273,4 @@ export default {
 			}
 		}
 	}
-} satisfies PurchaseInvoiceLineHooks;
+} satisfies Hooks<PurchaseInvoiceLineBatch>;

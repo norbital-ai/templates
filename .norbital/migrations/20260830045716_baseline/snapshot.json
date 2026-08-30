@@ -1,8 +1,8 @@
 {
   "dialect": "postgres",
-  "id": "fe1d2b8b-3e2a-4759-ae0d-0c6985ba2969",
+  "id": "9456574c-abab-47a1-a652-0dc99fe8133d",
   "prevIds": [
-    "16aebcd6-f963-42af-9f86-9b93f64d2cc3"
+    "6e3e6f94-9f29-430b-a109-2e23bb93baaf"
   ],
   "version": "8",
   "ddl": [
@@ -182,6 +182,22 @@
       "generated": null,
       "identity": null,
       "name": "approval_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "accounts"
+    },
+    {
+      "type": "tsvector",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": {
+        "as": "to_tsvector('simple'::regconfig, coalesce(\"name\", ''))",
+        "type": "stored"
+      },
+      "identity": null,
+      "name": "search_document",
       "entityType": "columns",
       "schema": "public",
       "table": "accounts"
@@ -408,6 +424,22 @@
       "table": "activities"
     },
     {
+      "type": "tsvector",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": {
+        "as": "to_tsvector('simple'::regconfig, coalesce(\"subject\", ''))",
+        "type": "stored"
+      },
+      "identity": null,
+      "name": "search_document",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "activities"
+    },
+    {
       "type": "text",
       "typeSchema": null,
       "notNull": true,
@@ -590,6 +622,22 @@
       "table": "contacts"
     },
     {
+      "type": "tsvector",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": {
+        "as": "to_tsvector('simple'::regconfig, coalesce(\"first_name\", '') || ' ' || coalesce(\"last_name\", ''))",
+        "type": "stored"
+      },
+      "identity": null,
+      "name": "search_document",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "contacts"
+    },
+    {
       "type": "uuid",
       "typeSchema": null,
       "notNull": true,
@@ -754,6 +802,22 @@
       "generated": null,
       "identity": null,
       "name": "approval_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "contract_signings"
+    },
+    {
+      "type": "tsvector",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": {
+        "as": "to_tsvector('simple'::regconfig, coalesce(\"binding_hash\", ''))",
+        "type": "stored"
+      },
+      "identity": null,
+      "name": "search_document",
       "entityType": "columns",
       "schema": "public",
       "table": "contract_signings"
@@ -1110,6 +1174,22 @@
       "table": "goods_receipts"
     },
     {
+      "type": "tsvector",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": {
+        "as": "to_tsvector('simple'::regconfig, coalesce(\"doc_no\", ''))",
+        "type": "stored"
+      },
+      "identity": null,
+      "name": "search_document",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "goods_receipts"
+    },
+    {
       "type": "text",
       "typeSchema": null,
       "notNull": true,
@@ -1261,6 +1341,22 @@
       "generated": null,
       "identity": null,
       "name": "approval_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "products"
+    },
+    {
+      "type": "tsvector",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": {
+        "as": "to_tsvector('simple'::regconfig, coalesce(\"name\", ''))",
+        "type": "stored"
+      },
+      "identity": null,
+      "name": "search_document",
       "entityType": "columns",
       "schema": "public",
       "table": "products"
@@ -1487,6 +1583,22 @@
       "table": "purchase_invoice_lines"
     },
     {
+      "type": "tsvector",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": {
+        "as": "to_tsvector('simple'::regconfig, coalesce(\"product_name\", ''))",
+        "type": "stored"
+      },
+      "identity": null,
+      "name": "search_document",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "purchase_invoice_lines"
+    },
+    {
       "type": "uuid",
       "typeSchema": null,
       "notNull": true,
@@ -1690,6 +1802,22 @@
       "generated": null,
       "identity": null,
       "name": "approval_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "purchase_invoices"
+    },
+    {
+      "type": "tsvector",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": {
+        "as": "to_tsvector('simple'::regconfig, coalesce(\"doc_no\", ''))",
+        "type": "stored"
+      },
+      "identity": null,
+      "name": "search_document",
       "entityType": "columns",
       "schema": "public",
       "table": "purchase_invoices"
@@ -1994,6 +2122,22 @@
       "table": "purchase_order_lines"
     },
     {
+      "type": "tsvector",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": {
+        "as": "to_tsvector('simple'::regconfig, coalesce(\"product_name\", ''))",
+        "type": "stored"
+      },
+      "identity": null,
+      "name": "search_document",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "purchase_order_lines"
+    },
+    {
       "type": "uuid",
       "typeSchema": null,
       "notNull": true,
@@ -2210,6 +2354,22 @@
       "generated": null,
       "identity": null,
       "name": "approval_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "purchase_orders"
+    },
+    {
+      "type": "tsvector",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": {
+        "as": "to_tsvector('simple'::regconfig, coalesce(\"doc_no\", ''))",
+        "type": "stored"
+      },
+      "identity": null,
+      "name": "search_document",
       "entityType": "columns",
       "schema": "public",
       "table": "purchase_orders"
@@ -2488,6 +2648,22 @@
       "table": "quote_lines"
     },
     {
+      "type": "tsvector",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": {
+        "as": "to_tsvector('simple'::regconfig, coalesce(\"product_name\", ''))",
+        "type": "stored"
+      },
+      "identity": null,
+      "name": "search_document",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "quote_lines"
+    },
+    {
       "type": "uuid",
       "typeSchema": null,
       "notNull": true,
@@ -2717,6 +2893,22 @@
       "generated": null,
       "identity": null,
       "name": "approval_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "quotes"
+    },
+    {
+      "type": "tsvector",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": {
+        "as": "to_tsvector('simple'::regconfig, coalesce(\"doc_no\", ''))",
+        "type": "stored"
+      },
+      "identity": null,
+      "name": "search_document",
       "entityType": "columns",
       "schema": "public",
       "table": "quotes"
@@ -3151,6 +3343,22 @@
       "table": "sales_invoice_lines"
     },
     {
+      "type": "tsvector",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": {
+        "as": "to_tsvector('simple'::regconfig, coalesce(\"product_name\", ''))",
+        "type": "stored"
+      },
+      "identity": null,
+      "name": "search_document",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "sales_invoice_lines"
+    },
+    {
       "type": "uuid",
       "typeSchema": null,
       "notNull": true,
@@ -3367,6 +3575,22 @@
       "generated": null,
       "identity": null,
       "name": "approval_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "sales_invoices"
+    },
+    {
+      "type": "tsvector",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": {
+        "as": "to_tsvector('simple'::regconfig, coalesce(\"doc_no\", ''))",
+        "type": "stored"
+      },
+      "identity": null,
+      "name": "search_document",
       "entityType": "columns",
       "schema": "public",
       "table": "sales_invoices"
@@ -3619,6 +3843,22 @@
       "table": "settlements"
     },
     {
+      "type": "tsvector",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": {
+        "as": "to_tsvector('simple'::regconfig, coalesce(\"reference\", ''))",
+        "type": "stored"
+      },
+      "identity": null,
+      "name": "search_document",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "settlements"
+    },
+    {
       "type": "text",
       "typeSchema": null,
       "notNull": false,
@@ -3783,6 +4023,22 @@
       "generated": null,
       "identity": null,
       "name": "approval_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "suppliers"
+    },
+    {
+      "type": "tsvector",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": {
+        "as": "to_tsvector('simple'::regconfig, coalesce(\"name\", ''))",
+        "type": "stored"
+      },
+      "identity": null,
+      "name": "search_document",
       "entityType": "columns",
       "schema": "public",
       "table": "suppliers"
@@ -3955,14 +4211,11 @@
       "nameExplicit": true,
       "columns": [
         {
-          "value": "name",
+          "value": "search_document",
           "isExpression": false,
           "asc": true,
           "nullsFirst": false,
-          "opclass": {
-            "name": "gin_trgm_ops",
-            "default": false
-          }
+          "opclass": null
         }
       ],
       "isUnique": false,
@@ -3970,7 +4223,28 @@
       "with": "",
       "method": "gin",
       "concurrently": false,
-      "name": "accounts_name_search_trgm_idx",
+      "name": "accounts_search_document_gin_idx",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "accounts"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        {
+          "value": "(coalesce(\"name\", '')) gin_trgm_ops",
+          "isExpression": true,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "with": "",
+      "method": "gin",
+      "concurrently": false,
+      "name": "accounts_search_text_trgm_idx",
       "entityType": "indexes",
       "schema": "public",
       "table": "accounts"
@@ -4049,14 +4323,11 @@
       "nameExplicit": true,
       "columns": [
         {
-          "value": "subject",
+          "value": "search_document",
           "isExpression": false,
           "asc": true,
           "nullsFirst": false,
-          "opclass": {
-            "name": "gin_trgm_ops",
-            "default": false
-          }
+          "opclass": null
         }
       ],
       "isUnique": false,
@@ -4064,7 +4335,28 @@
       "with": "",
       "method": "gin",
       "concurrently": false,
-      "name": "activities_subject_search_trgm_idx",
+      "name": "activities_search_document_gin_idx",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "activities"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        {
+          "value": "(coalesce(\"subject\", '')) gin_trgm_ops",
+          "isExpression": true,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "with": "",
+      "method": "gin",
+      "concurrently": false,
+      "name": "activities_search_text_trgm_idx",
       "entityType": "indexes",
       "schema": "public",
       "table": "activities"
@@ -4094,14 +4386,11 @@
       "nameExplicit": true,
       "columns": [
         {
-          "value": "first_name",
+          "value": "search_document",
           "isExpression": false,
           "asc": true,
           "nullsFirst": false,
-          "opclass": {
-            "name": "gin_trgm_ops",
-            "default": false
-          }
+          "opclass": null
         }
       ],
       "isUnique": false,
@@ -4109,7 +4398,7 @@
       "with": "",
       "method": "gin",
       "concurrently": false,
-      "name": "contacts_first_name_search_trgm_idx",
+      "name": "contacts_search_document_gin_idx",
       "entityType": "indexes",
       "schema": "public",
       "table": "contacts"
@@ -4118,14 +4407,11 @@
       "nameExplicit": true,
       "columns": [
         {
-          "value": "last_name",
-          "isExpression": false,
+          "value": "(coalesce(\"first_name\", '') || ' ' || coalesce(\"last_name\", '')) gin_trgm_ops",
+          "isExpression": true,
           "asc": true,
           "nullsFirst": false,
-          "opclass": {
-            "name": "gin_trgm_ops",
-            "default": false
-          }
+          "opclass": null
         }
       ],
       "isUnique": false,
@@ -4133,7 +4419,7 @@
       "with": "",
       "method": "gin",
       "concurrently": false,
-      "name": "contacts_last_name_search_trgm_idx",
+      "name": "contacts_search_text_trgm_idx",
       "entityType": "indexes",
       "schema": "public",
       "table": "contacts"
@@ -4184,14 +4470,11 @@
       "nameExplicit": true,
       "columns": [
         {
-          "value": "binding_hash",
+          "value": "search_document",
           "isExpression": false,
           "asc": true,
           "nullsFirst": false,
-          "opclass": {
-            "name": "gin_trgm_ops",
-            "default": false
-          }
+          "opclass": null
         }
       ],
       "isUnique": false,
@@ -4199,7 +4482,28 @@
       "with": "",
       "method": "gin",
       "concurrently": false,
-      "name": "contract_signings_binding_hash_search_trgm_idx",
+      "name": "contract_signings_search_document_gin_idx",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "contract_signings"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        {
+          "value": "(coalesce(\"binding_hash\", '')) gin_trgm_ops",
+          "isExpression": true,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "with": "",
+      "method": "gin",
+      "concurrently": false,
+      "name": "contract_signings_search_text_trgm_idx",
       "entityType": "indexes",
       "schema": "public",
       "table": "contract_signings"
@@ -4313,14 +4617,11 @@
       "nameExplicit": true,
       "columns": [
         {
-          "value": "doc_no",
+          "value": "search_document",
           "isExpression": false,
           "asc": true,
           "nullsFirst": false,
-          "opclass": {
-            "name": "gin_trgm_ops",
-            "default": false
-          }
+          "opclass": null
         }
       ],
       "isUnique": false,
@@ -4328,7 +4629,28 @@
       "with": "",
       "method": "gin",
       "concurrently": false,
-      "name": "goods_receipts_doc_no_search_trgm_idx",
+      "name": "goods_receipts_search_document_gin_idx",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "goods_receipts"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        {
+          "value": "(coalesce(\"doc_no\", '')) gin_trgm_ops",
+          "isExpression": true,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "with": "",
+      "method": "gin",
+      "concurrently": false,
+      "name": "goods_receipts_search_text_trgm_idx",
       "entityType": "indexes",
       "schema": "public",
       "table": "goods_receipts"
@@ -4379,14 +4701,11 @@
       "nameExplicit": true,
       "columns": [
         {
-          "value": "name",
+          "value": "search_document",
           "isExpression": false,
           "asc": true,
           "nullsFirst": false,
-          "opclass": {
-            "name": "gin_trgm_ops",
-            "default": false
-          }
+          "opclass": null
         }
       ],
       "isUnique": false,
@@ -4394,7 +4713,28 @@
       "with": "",
       "method": "gin",
       "concurrently": false,
-      "name": "products_name_search_trgm_idx",
+      "name": "products_search_document_gin_idx",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "products"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        {
+          "value": "(coalesce(\"name\", '')) gin_trgm_ops",
+          "isExpression": true,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "with": "",
+      "method": "gin",
+      "concurrently": false,
+      "name": "products_search_text_trgm_idx",
       "entityType": "indexes",
       "schema": "public",
       "table": "products"
@@ -4445,14 +4785,11 @@
       "nameExplicit": true,
       "columns": [
         {
-          "value": "product_name",
+          "value": "search_document",
           "isExpression": false,
           "asc": true,
           "nullsFirst": false,
-          "opclass": {
-            "name": "gin_trgm_ops",
-            "default": false
-          }
+          "opclass": null
         }
       ],
       "isUnique": false,
@@ -4460,7 +4797,28 @@
       "with": "",
       "method": "gin",
       "concurrently": false,
-      "name": "purchase_invoice_lines_product_name_search_trgm_idx",
+      "name": "purchase_invoice_lines_search_document_gin_idx",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "purchase_invoice_lines"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        {
+          "value": "(coalesce(\"product_name\", '')) gin_trgm_ops",
+          "isExpression": true,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "with": "",
+      "method": "gin",
+      "concurrently": false,
+      "name": "purchase_invoice_lines_search_text_trgm_idx",
       "entityType": "indexes",
       "schema": "public",
       "table": "purchase_invoice_lines"
@@ -4553,14 +4911,11 @@
       "nameExplicit": true,
       "columns": [
         {
-          "value": "doc_no",
+          "value": "search_document",
           "isExpression": false,
           "asc": true,
           "nullsFirst": false,
-          "opclass": {
-            "name": "gin_trgm_ops",
-            "default": false
-          }
+          "opclass": null
         }
       ],
       "isUnique": false,
@@ -4568,7 +4923,28 @@
       "with": "",
       "method": "gin",
       "concurrently": false,
-      "name": "purchase_invoices_doc_no_search_trgm_idx",
+      "name": "purchase_invoices_search_document_gin_idx",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "purchase_invoices"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        {
+          "value": "(coalesce(\"doc_no\", '')) gin_trgm_ops",
+          "isExpression": true,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "with": "",
+      "method": "gin",
+      "concurrently": false,
+      "name": "purchase_invoices_search_text_trgm_idx",
       "entityType": "indexes",
       "schema": "public",
       "table": "purchase_invoices"
@@ -4619,14 +4995,11 @@
       "nameExplicit": true,
       "columns": [
         {
-          "value": "product_name",
+          "value": "search_document",
           "isExpression": false,
           "asc": true,
           "nullsFirst": false,
-          "opclass": {
-            "name": "gin_trgm_ops",
-            "default": false
-          }
+          "opclass": null
         }
       ],
       "isUnique": false,
@@ -4634,7 +5007,28 @@
       "with": "",
       "method": "gin",
       "concurrently": false,
-      "name": "purchase_order_lines_product_name_search_trgm_idx",
+      "name": "purchase_order_lines_search_document_gin_idx",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "purchase_order_lines"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        {
+          "value": "(coalesce(\"product_name\", '')) gin_trgm_ops",
+          "isExpression": true,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "with": "",
+      "method": "gin",
+      "concurrently": false,
+      "name": "purchase_order_lines_search_text_trgm_idx",
       "entityType": "indexes",
       "schema": "public",
       "table": "purchase_order_lines"
@@ -4748,14 +5142,11 @@
       "nameExplicit": true,
       "columns": [
         {
-          "value": "doc_no",
+          "value": "search_document",
           "isExpression": false,
           "asc": true,
           "nullsFirst": false,
-          "opclass": {
-            "name": "gin_trgm_ops",
-            "default": false
-          }
+          "opclass": null
         }
       ],
       "isUnique": false,
@@ -4763,7 +5154,28 @@
       "with": "",
       "method": "gin",
       "concurrently": false,
-      "name": "purchase_orders_doc_no_search_trgm_idx",
+      "name": "purchase_orders_search_document_gin_idx",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "purchase_orders"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        {
+          "value": "(coalesce(\"doc_no\", '')) gin_trgm_ops",
+          "isExpression": true,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "with": "",
+      "method": "gin",
+      "concurrently": false,
+      "name": "purchase_orders_search_text_trgm_idx",
       "entityType": "indexes",
       "schema": "public",
       "table": "purchase_orders"
@@ -4814,14 +5226,11 @@
       "nameExplicit": true,
       "columns": [
         {
-          "value": "product_name",
+          "value": "search_document",
           "isExpression": false,
           "asc": true,
           "nullsFirst": false,
-          "opclass": {
-            "name": "gin_trgm_ops",
-            "default": false
-          }
+          "opclass": null
         }
       ],
       "isUnique": false,
@@ -4829,7 +5238,28 @@
       "with": "",
       "method": "gin",
       "concurrently": false,
-      "name": "quote_lines_product_name_search_trgm_idx",
+      "name": "quote_lines_search_document_gin_idx",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "quote_lines"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        {
+          "value": "(coalesce(\"product_name\", '')) gin_trgm_ops",
+          "isExpression": true,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "with": "",
+      "method": "gin",
+      "concurrently": false,
+      "name": "quote_lines_search_text_trgm_idx",
       "entityType": "indexes",
       "schema": "public",
       "table": "quote_lines"
@@ -4943,14 +5373,11 @@
       "nameExplicit": true,
       "columns": [
         {
-          "value": "doc_no",
+          "value": "search_document",
           "isExpression": false,
           "asc": true,
           "nullsFirst": false,
-          "opclass": {
-            "name": "gin_trgm_ops",
-            "default": false
-          }
+          "opclass": null
         }
       ],
       "isUnique": false,
@@ -4958,7 +5385,28 @@
       "with": "",
       "method": "gin",
       "concurrently": false,
-      "name": "quotes_doc_no_search_trgm_idx",
+      "name": "quotes_search_document_gin_idx",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "quotes"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        {
+          "value": "(coalesce(\"doc_no\", '')) gin_trgm_ops",
+          "isExpression": true,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "with": "",
+      "method": "gin",
+      "concurrently": false,
+      "name": "quotes_search_text_trgm_idx",
       "entityType": "indexes",
       "schema": "public",
       "table": "quotes"
@@ -5009,14 +5457,11 @@
       "nameExplicit": true,
       "columns": [
         {
-          "value": "product_name",
+          "value": "search_document",
           "isExpression": false,
           "asc": true,
           "nullsFirst": false,
-          "opclass": {
-            "name": "gin_trgm_ops",
-            "default": false
-          }
+          "opclass": null
         }
       ],
       "isUnique": false,
@@ -5024,7 +5469,28 @@
       "with": "",
       "method": "gin",
       "concurrently": false,
-      "name": "sales_invoice_lines_product_name_search_trgm_idx",
+      "name": "sales_invoice_lines_search_document_gin_idx",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "sales_invoice_lines"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        {
+          "value": "(coalesce(\"product_name\", '')) gin_trgm_ops",
+          "isExpression": true,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "with": "",
+      "method": "gin",
+      "concurrently": false,
+      "name": "sales_invoice_lines_search_text_trgm_idx",
       "entityType": "indexes",
       "schema": "public",
       "table": "sales_invoice_lines"
@@ -5117,14 +5583,11 @@
       "nameExplicit": true,
       "columns": [
         {
-          "value": "doc_no",
+          "value": "search_document",
           "isExpression": false,
           "asc": true,
           "nullsFirst": false,
-          "opclass": {
-            "name": "gin_trgm_ops",
-            "default": false
-          }
+          "opclass": null
         }
       ],
       "isUnique": false,
@@ -5132,7 +5595,28 @@
       "with": "",
       "method": "gin",
       "concurrently": false,
-      "name": "sales_invoices_doc_no_search_trgm_idx",
+      "name": "sales_invoices_search_document_gin_idx",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "sales_invoices"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        {
+          "value": "(coalesce(\"doc_no\", '')) gin_trgm_ops",
+          "isExpression": true,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "with": "",
+      "method": "gin",
+      "concurrently": false,
+      "name": "sales_invoices_search_text_trgm_idx",
       "entityType": "indexes",
       "schema": "public",
       "table": "sales_invoices"
@@ -5183,14 +5667,11 @@
       "nameExplicit": true,
       "columns": [
         {
-          "value": "reference",
+          "value": "search_document",
           "isExpression": false,
           "asc": true,
           "nullsFirst": false,
-          "opclass": {
-            "name": "gin_trgm_ops",
-            "default": false
-          }
+          "opclass": null
         }
       ],
       "isUnique": false,
@@ -5198,7 +5679,28 @@
       "with": "",
       "method": "gin",
       "concurrently": false,
-      "name": "settlements_reference_search_trgm_idx",
+      "name": "settlements_search_document_gin_idx",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "settlements"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        {
+          "value": "(coalesce(\"reference\", '')) gin_trgm_ops",
+          "isExpression": true,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "with": "",
+      "method": "gin",
+      "concurrently": false,
+      "name": "settlements_search_text_trgm_idx",
       "entityType": "indexes",
       "schema": "public",
       "table": "settlements"
@@ -5291,14 +5793,11 @@
       "nameExplicit": true,
       "columns": [
         {
-          "value": "name",
+          "value": "search_document",
           "isExpression": false,
           "asc": true,
           "nullsFirst": false,
-          "opclass": {
-            "name": "gin_trgm_ops",
-            "default": false
-          }
+          "opclass": null
         }
       ],
       "isUnique": false,
@@ -5306,7 +5805,28 @@
       "with": "",
       "method": "gin",
       "concurrently": false,
-      "name": "suppliers_name_search_trgm_idx",
+      "name": "suppliers_search_document_gin_idx",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "suppliers"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        {
+          "value": "(coalesce(\"name\", '')) gin_trgm_ops",
+          "isExpression": true,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "with": "",
+      "method": "gin",
+      "concurrently": false,
+      "name": "suppliers_search_text_trgm_idx",
       "entityType": "indexes",
       "schema": "public",
       "table": "suppliers"

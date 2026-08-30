@@ -1,4 +1,8 @@
-import type { MutateBeforeContext, MutateEditContext } from '@norbital-ai/bolt/authoring';
+import {
+	refuse,
+	type MutateBeforeContext,
+	type MutateEditContext
+} from '@norbital-ai/bolt/authoring';
 import { Effect, Schema } from 'effect';
 import { currentInstant } from '../../lib/clock.js';
 import { docNoSeriesPattern, nextDocNo } from '../../lib/document-numbers.js';
@@ -13,6 +17,15 @@ const quoteStatusSchema = Schema.Literals([
 	'cancelled'
 ]);
 type QuoteStatus = Schema.Schema.Type<typeof quoteStatusSchema>;
+
+const decodeQuoteStatus = (value: unknown) =>
+	Schema.decodeUnknownEffect(quoteStatusSchema)(value).pipe(
+		Effect.catch(() =>
+			Effect.sync(() =>
+				refuse('Quote status must be draft, sent, won, confirmed, lost, or cancelled.')
+			)
+		)
+	);
 
 type QuoteUpdate = {
 	-readonly [K in keyof WorkspaceRow<'quotes'>]?: WorkspaceRow<'quotes'>[K];
@@ -33,23 +46,21 @@ type EditContext = MutateEditContext<Hooks>;
 /** A create states the whole record and has no `existing`. */
 const beforeCreate = ({ input, api }: BeforeContext) =>
 	Effect.gen(function* () {
-		if (!input.account_id) {
-			return yield* Effect.fail(new Error('A quote must reference an account.'));
-		}
+		if (!input.account_id) refuse('A quote must reference an account.');
 		const account = yield* api.db.accounts.findFirst({
 			where: { id: { eq: input.account_id } }
 		});
 		if (!account) {
-			return yield* Effect.fail(new Error('Referenced account does not exist.'));
+			refuse('Referenced account does not exist.');
 		}
 		if (!account.active) {
-			return yield* Effect.fail(new Error('Cannot create a quote for an inactive account.'));
+			refuse('Cannot create a quote for an inactive account.');
 		}
 		if (input.contact_id != null) {
 			const contact = yield* api.db.contacts.findFirst({
 				where: { id: { eq: input.contact_id } }
 			});
-			if (!contact) return yield* Effect.fail(new Error('Referenced contact does not exist.'));
+			if (!contact) refuse('Referenced contact does not exist.');
 		}
 
 		if (!input.doc_no) {
@@ -81,26 +92,18 @@ const beforeCreate = ({ input, api }: BeforeContext) =>
 /** An edit lands on a stored row; `existing` is what tells the two apart. */
 const beforeUpdate = ({ input, existing, api }: EditContext) =>
 	Effect.gen(function* () {
-		const newStatus = yield* Schema.decodeUnknownEffect(quoteStatusSchema)(
-			input.status ?? existing.status
-		);
-		const oldStatus = yield* Schema.decodeUnknownEffect(quoteStatusSchema)(existing.status);
+		const newStatus = yield* decodeQuoteStatus(input.status ?? existing.status);
+		const oldStatus = yield* decodeQuoteStatus(existing.status);
 
 		if (oldStatus === newStatus) {
 			if (oldStatus === 'draft') return input;
-			return yield* Effect.fail(
-				new Error(
-					`A ${oldStatus} document is immutable. Revise by reopening to draft status first.`
-				)
-			);
+			refuse(`A ${oldStatus} document is immutable. Revise by reopening to draft status first.`);
 		}
 
 		const allowed = VALID_TRANSITIONS[oldStatus];
 		if (!allowed.includes(newStatus)) {
-			return yield* Effect.fail(
-				new Error(
-					`Invalid status transition: ${oldStatus} → ${newStatus}. Allowed: ${allowed.join(', ')}.`
-				)
+			refuse(
+				`Invalid status transition: ${oldStatus} → ${newStatus}. Allowed: ${allowed.join(', ')}.`
 			);
 		}
 
@@ -111,10 +114,10 @@ const beforeUpdate = ({ input, existing, api }: EditContext) =>
 				where: { id: { eq: existing.account_id } }
 			});
 			if (!account) {
-				return yield* Effect.fail(new Error('Referenced account does not exist.'));
+				refuse('Referenced account does not exist.');
 			}
 			if (!account.active) {
-				return yield* Effect.fail(new Error('Cannot confirm a quote for an inactive account.'));
+				refuse('Cannot confirm a quote for an inactive account.');
 			}
 
 			// Credit is warn-never-blocks: an adverse verdict does not refuse the confirm, it
@@ -127,10 +130,8 @@ const beforeUpdate = ({ input, existing, api }: EditContext) =>
 			const acknowledged =
 				input.credit_acknowledged === true || existing.credit_acknowledged === true;
 			if (creditAdverse && !acknowledged) {
-				return yield* Effect.fail(
-					new Error(
-						'Credit check is adverse (hold or over-limit). Set credit_acknowledged to confirm anyway.'
-					)
+				refuse(
+					'Credit check is adverse (hold or over-limit). Set credit_acknowledged to confirm anyway.'
 				);
 			}
 
@@ -140,9 +141,7 @@ const beforeUpdate = ({ input, existing, api }: EditContext) =>
 				limit: 5000
 			});
 			if (lines.length === 0) {
-				return yield* Effect.fail(
-					new Error('A quote must have at least one line before it can be confirmed.')
-				);
+				refuse('A quote must have at least one line before it can be confirmed.');
 			}
 
 			const productIds = [...new Set(lines.map((line) => line.product_id))];
@@ -155,11 +154,7 @@ const beforeUpdate = ({ input, existing, api }: EditContext) =>
 				.filter((product) => !product.active)
 				.map((product) => product.name);
 			if (inactiveProducts.length > 0) {
-				return yield* Effect.fail(
-					new Error(
-						`Cannot confirm a quote with inactive products: ${inactiveProducts.join(', ')}.`
-					)
-				);
+				refuse(`Cannot confirm a quote with inactive products: ${inactiveProducts.join(', ')}.`);
 			}
 		}
 
@@ -177,7 +172,7 @@ const beforeUpdate = ({ input, existing, api }: EditContext) =>
 		if (newStatus === 'cancelled') {
 			const cancelReason = input.cancel_reason ?? existing.cancel_reason;
 			if (!cancelReason || String(cancelReason).trim() === '') {
-				return yield* Effect.fail(new Error('A cancellation reason is required.'));
+				refuse('A cancellation reason is required.');
 			}
 			if (existing.cancelled_at == null) {
 				updates.cancelled_at = (yield* currentInstant).toISOString();
