@@ -16,6 +16,7 @@ import {
 	MAX_INFERENCE_IMAGE_BYTES,
 	MAX_INFERENCE_IMAGES,
 	MAX_INFERENCE_REASON_CHARS,
+	RECORD_EMBEDDING_MIN_DISTINCTIVENESS,
 	buildSuspicionInferenceContext,
 	buildSuspicionReviewBasis,
 	loadCrossAssignmentCandidates,
@@ -870,7 +871,7 @@ test('retrieves in-band cross-assignment candidates and excludes same-assignment
 	// The rotation the candidate was built at, recomputed from the durable vectors rather than
 	// taken from the retrieval — that recomputation is what the assertion is really pinning.
 	assert.equal(candidates[0]?.distance, 0.3);
-	assert.deepEqual(candidates[0]?.matched_photo_ids, ['00003139', '00003140']);
+	assert.deepEqual(candidates[0]?.matched_photo_ids, ['00003139']);
 
 	const withCandidates: SuspicionReviewFacts = {
 		...facts(),
@@ -890,6 +891,8 @@ test('retrieves in-band cross-assignment candidates and excludes same-assignment
 			readonly sha256: string;
 			readonly distance: number;
 			readonly matched_photo_ids: ReadonlyArray<string>;
+			readonly best_match_photo_id: string | null;
+			readonly best_match_attached_image_index: number | null;
 			readonly attached_image_index: number | null;
 		}>;
 	};
@@ -909,7 +912,9 @@ test('retrieves in-band cross-assignment candidates and excludes same-assignment
 			file_name: 'foreign-near.jpg',
 			sha256: 'foreign-near-sha',
 			distance: 0.3,
-			matched_photo_ids: ['00003139', '00003140'],
+			matched_photo_ids: ['00003139'],
+			best_match_photo_id: '00003139',
+			best_match_attached_image_index: null,
 			attached_image_index: 3
 		}
 	]);
@@ -918,6 +923,101 @@ test('retrieves in-band cross-assignment candidates and excludes same-assignment
 	assert.match(prompt, /attached_image_index/);
 	assert.match(prompt, /same physical scene as the photo it was matched with/);
 	assert.match(prompt, /different unit, storey, house or street/);
+});
+
+test('keeps the real Kismis ceiling winner and rejects the ambiguous Eng Kong cluster', async () => {
+	assert.equal(RECORD_EMBEDDING_MIN_DISTINCTIVENESS, 0.02);
+	const probe = (plane: number): readonly number[] =>
+		Array.from({ length: 6 }, (_, index) => Number(index === plane * 2));
+	const atDistance = (plane: number, distance: number): readonly number[] => {
+		const angle = Math.acos(1 - distance);
+		return Array.from({ length: 6 }, (_, index) => {
+			if (index === plane * 2) return Math.cos(angle);
+			if (index === plane * 2 + 1) return Math.sin(angle);
+			return 0;
+		});
+	};
+	const row = (
+		id: string,
+		fileName: string,
+		assignmentId: string,
+		embedding: readonly number[]
+	) => ({
+		id,
+		photo: {
+			storage_key: `document-assets/bca-simulation/${fileName}`,
+			file_name: fileName,
+			file_size: 800_000,
+			mime_type: 'image/jpeg'
+		},
+		sha256: `${id}-sha`,
+		flags: [],
+		matched_evidence_ids: [],
+		created_at: null,
+		job_assignment_id: assignmentId,
+		variation_request_id: null,
+		record_embedding: embedding
+	});
+
+	/**
+	 * Distances captured from the 426-photo local BCA seed on 2026-08-31:
+	 *
+	 * - the wrong door/handrail probe `00003149` has two effectively tied neighbours, 0.102007 and
+	 *   0.103903, so neither is distinctive;
+	 * - the named ceiling probe `00003140` selects `00003592` at 0.121798, with its runner-up at
+	 *   0.160457;
+	 * - another generic fixture probe is only 0.011670 ahead of its runner-up and is rejected too.
+	 *
+	 * Separate orthogonal planes preserve exactly those observed rankings without checking provider
+	 * vectors into source control.
+	 */
+	const corpus = [
+		row(
+			'019f6f10-5000-7000-8000-000000000198',
+			'00003288.jpg',
+			'assignment-eng-kong',
+			atDistance(0, 0.102007)
+		),
+		row(
+			'019f6f10-5000-7000-8000-000000000196',
+			'00003286.jpg',
+			'assignment-eng-kong',
+			atDistance(0, 0.103903)
+		),
+		row(
+			'019f6f10-5000-7000-8000-000000000426',
+			'00003592.jpg',
+			'assignment-lorong',
+			atDistance(1, 0.121798)
+		),
+		row('ceiling-runner-up', '00003265.jpg', 'assignment-hazel', atDistance(1, 0.160457)),
+		row('generic-winner', '00003056.jpg', 'assignment-hillview', atDistance(2, 0.125904)),
+		row('generic-runner-up', '00003264.jpg', 'assignment-hazel', atDistance(2, 0.137574))
+	];
+	const probes = [
+		row('019f6f10-5000-7000-8000-000000000097', '00003149.jpg', 'assignment-kismis', probe(0)),
+		row('019f6f10-5000-7000-8000-000000000088', '00003140.jpg', 'assignment-kismis', probe(1)),
+		row('019f6f10-5000-7000-8000-000000000101', '00003153.jpg', 'assignment-kismis', probe(2))
+	];
+	const api = {
+		db: {
+			photo_evidence: { findNearest: nearestStub(corpus) },
+			variation_requests: { findMany: () => Effect.succeed([]) }
+		}
+	} as never;
+
+	const candidates = await Effect.runPromise(
+		loadCrossAssignmentCandidates(api, 'assignment-kismis', probes)
+	);
+	assert.deepEqual(candidates, [
+		{
+			id: '019f6f10-5000-7000-8000-000000000426',
+			photo: corpus[2]!.photo,
+			sha256: '019f6f10-5000-7000-8000-000000000426-sha',
+			distance: 0.122,
+			matched_photo_ids: ['019f6f10-5000-7000-8000-000000000088']
+		}
+	]);
 });
 
 test('pins the real Kismis-Lorong crop pair past every perceptual band', () => {

@@ -371,6 +371,7 @@ interface CandidateHit {
 	readonly sha256: string;
 	readonly job_assignment_id: string | null;
 	readonly variation_request_id: string | null;
+	readonly distance: number;
 	readonly record_embedding: readonly number[] | null;
 }
 
@@ -378,12 +379,24 @@ interface CandidateHit {
  * How far apart two record embeddings may sit and still be worth a look.
  *
  * Cosine, not L2: the embedding model returns unnormalised vectors, so magnitude carries no meaning
- * across records and only the angle does. 0.5 is the starting band — wide enough to nominate a crop
+ * across records and only the angle does. 0.35 is the starting band — wide enough to nominate a crop
  * of the same scene, narrow enough that the vision step is not asked to adjudicate the whole corpus.
  * It is a retrieval band, never a verdict: `MAX_CROSS_ASSIGNMENT_CANDIDATES` survive it and the
  * inference decides whether two photographs actually show the same place.
  */
 const RECORD_EMBEDDING_MAX_COSINE = 0.35;
+
+/**
+ * A reusable scene must be a distinctive nearest neighbour, not merely one member of a dense
+ * cluster of common trade fixtures.
+ *
+ * The real BCA corpus pins the boundary: Kismis `00003140` selects Lorong `00003592` with a
+ * 0.038659 gap to its runner-up. The false door/handrail match `00003149` → `00003288` has a
+ * 0.001896 gap because several ordinary doors look interchangeable to the embedding. Requiring a
+ * two-point cosine margin keeps candidate retrieval conservative while leaving the final visual
+ * judgement to the model.
+ */
+export const RECORD_EMBEDDING_MIN_DISTINCTIVENESS = 0.02;
 
 /** Angular distance in the same units `findNearest` sorted by, so a recomputed figure is comparable. */
 const cosineDistance = (left: readonly number[], right: readonly number[]): number => {
@@ -401,8 +414,6 @@ const cosineDistance = (left: readonly number[], right: readonly number[]): numb
 	return magnitude === 0 ? 1 : 1 - dot / magnitude;
 };
 
-const roundedDistance = (squared: number): number => Math.round(Math.sqrt(squared) * 1000) / 1000;
-
 /**
  * Retrieve photographs from OTHER assignments that sit close to this assignment's representative
  * photos in perceptual space.
@@ -419,7 +430,7 @@ export function loadCrossAssignmentCandidates(
 ): Effect.Effect<SuspicionReviewFacts['candidates'], unknown, never> {
 	return Effect.gen(function* () {
 		const probeRows = selectCrossAssignmentProbePhotos(probes);
-		const hits = new Map<string, { row: CandidateHit; matched: Set<string> }>();
+		const hits = new Map<string, { row: CandidateHit; matched: Map<string, number> }>();
 		for (const probe of probeRows) {
 			// `photos` declares the embedding optional, so a probe without one is skipped rather than
 			// searched: `findNearest` needs a vector, and passing an absent one would either widen the
@@ -448,12 +459,14 @@ export function loadCrossAssignmentCandidates(
 			})) as readonly CandidateHit[];
 			for (const row of rows) {
 				if (row.id === probe.id) continue;
+				if (row.record_embedding == null || row.record_embedding.length === 0) continue;
+				const distance = cosineDistance(embedding, row.record_embedding);
 				const existing = hits.get(row.id);
 				if (existing != null) {
-					existing.matched.add(probe.id);
+					existing.matched.set(probe.id, distance);
 					continue;
 				}
-				hits.set(row.id, { row, matched: new Set([probe.id]) });
+				hits.set(row.id, { row, matched: new Map([[probe.id, distance]]) });
 			}
 		}
 		if (hits.size === 0) return [];
@@ -474,25 +487,22 @@ export function loadCrossAssignmentCandidates(
 							limit: Math.max(1, variationIds.length)
 						})).map((variation) => [variation.id, variation.job_assignment_id ?? null])
 					);
-		const probeEmbeddings = new Map(probeRows.map((probe) => [probe.id, probe.record_embedding]));
 		const candidates = [...hits.entries()]
 			.map(([id, { row, matched }]) => {
 				const assignmentId =
 					row.job_assignment_id != null && row.job_assignment_id !== ''
 						? row.job_assignment_id
 						: (assignmentByVariation.get(row.variation_request_id ?? '') ?? null);
-				let best = Number.POSITIVE_INFINITY;
-				for (const probeId of matched) {
-					const probeEmbedding = probeEmbeddings.get(probeId);
-					if (probeEmbedding == null || row.record_embedding == null) continue;
-					best = Math.min(best, cosineDistance(probeEmbedding, row.record_embedding));
-				}
+				const rankedMatches = [...matched.entries()].sort(
+					([leftId, leftDistance], [rightId, rightDistance]) =>
+						leftDistance - rightDistance || leftId.localeCompare(rightId)
+				);
 				return {
 					id,
 					photo: row.photo,
 					sha256: row.sha256,
-					distance: Math.round(best * 1000) / 1000,
-					matched_photo_ids: [...matched].sort(),
+					distance: rankedMatches[0]?.[1] ?? Number.POSITIVE_INFINITY,
+					matches: new Map(rankedMatches),
 					assignmentId
 				};
 			})
@@ -502,15 +512,53 @@ export function loadCrossAssignmentCandidates(
 					candidate.assignmentId !== '' &&
 					candidate.assignmentId !== ownAssignmentId
 			);
-		candidates.sort(
+
+		/**
+		 * Nominate at most one foreign photo for each own photo, and only when it wins by a useful
+		 * margin. The old global sort admitted several nearly tied doors from one probe before the
+		 * distinctive ceiling match from another probe. It also retained every in-band probe id on a
+		 * candidate while displaying only the candidate's best distance, which made weak pairs look as
+		 * strong as the best one. One exact winning pair keeps the visual turn and audit UI honest.
+		 */
+		const nominations = new Map<string, (typeof candidates)[number] & { probeId: string }>();
+		for (const probe of probeRows) {
+			const ranked = candidates
+				.flatMap((candidate) => {
+					const distance = candidate.matches.get(probe.id);
+					return distance === undefined ? [] : [{ candidate, distance }];
+				})
+				.sort(
+					(left, right) =>
+						left.distance - right.distance || left.candidate.id.localeCompare(right.candidate.id)
+				);
+			const winner = ranked[0];
+			if (winner === undefined) continue;
+			const runnerUp = ranked[1];
+			if (
+				runnerUp !== undefined &&
+				runnerUp.distance - winner.distance < RECORD_EMBEDDING_MIN_DISTINCTIVENESS
+			) {
+				continue;
+			}
+			const previous = nominations.get(winner.candidate.id);
+			if (previous == null || winner.distance < previous.distance) {
+				nominations.set(winner.candidate.id, {
+					...winner.candidate,
+					distance: winner.distance,
+					probeId: probe.id
+				});
+			}
+		}
+		const selected = [...nominations.values()];
+		selected.sort(
 			(left, right) => left.distance - right.distance || left.id.localeCompare(right.id)
 		);
-		return candidates.slice(0, MAX_CROSS_ASSIGNMENT_CANDIDATES).map((candidate) => ({
+		return selected.slice(0, MAX_CROSS_ASSIGNMENT_CANDIDATES).map((candidate) => ({
 			id: candidate.id,
 			photo: candidate.photo,
 			sha256: candidate.sha256,
-			distance: candidate.distance,
-			matched_photo_ids: candidate.matched_photo_ids
+			distance: Math.round(candidate.distance * 1000) / 1000,
+			matched_photo_ids: [candidate.probeId]
 		}));
 	});
 }
@@ -601,7 +649,11 @@ export function buildSuspicionInferenceContext(
 			file_name: candidate.photo.file_name,
 			sha256: candidate.sha256,
 			distance: candidate.distance,
-			matched_photo_ids: [...candidate.matched_photo_ids].sort().slice(0, 12),
+			matched_photo_ids: [...candidate.matched_photo_ids],
+			best_match_photo_id: candidate.matched_photo_ids[0] ?? null,
+			best_match_attached_image_index:
+				representatives.findIndex((photo) => photo.id === candidate.matched_photo_ids[0]) + 1 ||
+				null,
 			attached_image_index: attachedCandidateIndex.get(candidate.id) ?? null
 		}))
 	};
@@ -638,7 +690,9 @@ export function suspicionPrompt(
 		'Visual similarity inside one assignment is a neutral fact because legitimate repeated views are possible.',
 		'Use only physical scene markers such as door plates, house numbers, street or building signs, mailboxes, lobby signs and lift permits when assessing location. Ignore uploader-controlled timestamp, GPS and address overlays, work labels, tape measures, tag numbers, bin or lamppost ids and telephone numbers.',
 		'Duplicate reuse only matters between distinct assignments: an identical file submitted under the same assignment is a neutral repeat, never evidence.',
-		'The context may list cross_assignment_candidates: photographs retrieved from OTHER assignments whose learned image embedding sits close to one of this assignment\u2019s photos. Every attached photo is identified by attached_image_index; use those indices and matched_photo_ids to compare the intended pairs rather than guessing attachment order.',
+		'The context may list cross_assignment_candidates: photographs retrieved from OTHER assignments whose learned image embedding selected one distinctive nearest neighbour. Every attached photo is identified by attached_image_index; compare each candidate only with its best_match_photo_id and best_match_attached_image_index rather than guessing attachment order.',
+		'Embedding distance is retrieval ranking, not evidence. Similar colours, doors, handrails, grab bars, stairwells, bathrooms or other common trade fixtures are expected across unrelated installations and must be cleared even at a low distance.',
+		'Reuse requires distinctive shared scene geometry: the same spatial arrangement of permanent edges, openings, vents, holes, stains, fixtures and background structure. A lower distance never overrides visible geometric differences.',
 		'If a candidate photo shows the same physical scene as the photo it was matched with \u2014 the same view cropped, zoomed, recompressed, re-photographed or re-sent \u2014 the same evidence is serving two assignments. Raise an unresolved suspicion, name both photos in the reason, and cite this assignment\u2019s photo id.',
 		'A candidate showing a different unit, storey, house or street, or a plausibly distinct scene of the same trade, is not reuse; treat the pair as cleared.',
 		'Raise an unresolved suspicion when physical scenes show multiple unexplained sites mixed into one assignment, while acknowledging any valid assigned-site evidence in the same batch.',
