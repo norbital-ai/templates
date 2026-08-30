@@ -1,6 +1,7 @@
 import { decode as decodePng } from 'fast-png';
 import { decode as decodeJpeg } from 'jpeg-js';
 import { deepDiff } from '@norbital-ai/std/json';
+import { refuse } from '@norbital-ai/bolt/authoring';
 import { Effect, Option, Schema } from 'effect';
 import { hashPdq, pdqHashToHex } from './pdq.js';
 import { currentDate } from '../../lib/clock.js';
@@ -263,9 +264,7 @@ export function assertExactlyOnePhotoParent(
 	const hasJobAssignment = jobAssignmentId != null && jobAssignmentId !== '';
 	const hasVariation = variationRequestId != null && variationRequestId !== '';
 	if (hasJobAssignment === hasVariation) {
-		throw new Error(
-			'Photo evidence must reference exactly one job assignment or variation request.'
-		);
+		refuse('Photo evidence must reference exactly one job assignment or variation request.');
 	}
 }
 
@@ -306,23 +305,21 @@ export function assertPhotoEvidenceProvenanceUnchanged(
 	existing: Required<PhotoEvidenceProvenance>
 ): void {
 	if (input.photo !== undefined && photoKey(input.photo) !== photoKey(existing.photo)) {
-		throw new Error(
+		refuse(
 			'Photo evidence provenance is immutable; create new evidence to change its photo or parent.'
 		);
 	}
 	const scalarFields = ['job_assignment_id', 'variation_request_id', 'source_key'] as const;
 	for (const field of scalarFields) {
 		if (input[field] !== undefined && input[field] !== existing[field]) {
-			throw new Error(
+			refuse(
 				'Photo evidence provenance is immutable; create new evidence to change its photo or parent.'
 			);
 		}
 	}
 	if (input.source !== undefined) {
 		if (deepDiff(input.source, existing.source).length > 0) {
-			throw new Error(
-				'Photo evidence provenance is immutable; create new evidence to change its source.'
-			);
+			refuse('Photo evidence provenance is immutable; create new evidence to change its source.');
 		}
 	}
 }

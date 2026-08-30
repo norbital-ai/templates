@@ -1,24 +1,24 @@
-import type { PolicyDecisionApi } from '@norbital-ai/bolt/authoring';
+import { policySql, type PolicyDecisionApi } from '@norbital-ai/bolt/authoring';
 import type { WorkspaceSchema } from '$bolt/types.js';
 import { Effect } from 'effect';
 import type { Policy } from './$types.js';
 
 const uncheckedAssignment = { suspicion_checked_at: { isNull: true } } as const;
-const uncheckedJob = {
-	$sql: '"id" IN (SELECT assignment.job_id FROM job_assignments assignment WHERE assignment.suspicion_checked_at IS NULL)'
-} as const;
-const uncheckedSite = {
-	$sql: '"id" IN (SELECT job.site_id FROM jobs job JOIN job_assignments assignment ON assignment.job_id = job.id WHERE assignment.suspicion_checked_at IS NULL)'
-} as const;
-const uncheckedVariation = {
-	$sql: '"job_assignment_id" IN (SELECT assignment.id FROM job_assignments assignment WHERE assignment.suspicion_checked_at IS NULL)'
-} as const;
-const uncheckedEvidence = {
-	$sql: '("job_assignment_id" IN (SELECT assignment.id FROM job_assignments assignment WHERE assignment.suspicion_checked_at IS NULL) OR "variation_request_id" IN (SELECT variation.id FROM variation_requests variation JOIN job_assignments assignment ON assignment.id = variation.job_assignment_id WHERE assignment.suspicion_checked_at IS NULL))'
-} as const;
-const uncheckedAssignmentChild = {
-	$sql: '"job_assignment_id" IN (SELECT assignment.id FROM job_assignments assignment WHERE assignment.suspicion_checked_at IS NULL)'
-} as const;
+const uncheckedJob = policySql(
+	'"id" IN (SELECT assignment.job_id FROM job_assignments assignment WHERE assignment.suspicion_checked_at IS NULL)'
+);
+const uncheckedSite = policySql(
+	'"id" IN (SELECT job.site_id FROM jobs job JOIN job_assignments assignment ON assignment.job_id = job.id WHERE assignment.suspicion_checked_at IS NULL)'
+);
+const uncheckedVariation = policySql(
+	'"job_assignment_id" IN (SELECT assignment.id FROM job_assignments assignment WHERE assignment.suspicion_checked_at IS NULL)'
+);
+const uncheckedEvidence = policySql(
+	'("job_assignment_id" IN (SELECT assignment.id FROM job_assignments assignment WHERE assignment.suspicion_checked_at IS NULL) OR "variation_request_id" IN (SELECT variation.id FROM variation_requests variation JOIN job_assignments assignment ON assignment.id = variation.job_assignment_id WHERE assignment.suspicion_checked_at IS NULL))'
+);
+const uncheckedAssignmentChild = policySql(
+	'"job_assignment_id" IN (SELECT assignment.id FROM job_assignments assignment WHERE assignment.suspicion_checked_at IS NULL)'
+);
 
 /** Linking collections only; every target collection already has its own generation edge. */
 const assignmentScopeDependencies = ['job_assignments'] as const;
@@ -40,12 +40,14 @@ export default {
 	grants: {
 		job_assignments: {
 			read: { where: uncheckedAssignment },
-			update: {
-				fields: ['suspicion_checked_at'],
-				authorize: ({ previous, changes, record }) =>
-					previous.suspicion_checked_at === null &&
-					changes.suspicion_checked_at != null &&
-					record.suspicion_checked_at != null
+			mutate: {
+				existing: {
+					fields: ['suspicion_checked_at'],
+					authorize: ({ previous, changes, record }) =>
+						previous.suspicion_checked_at === null &&
+						changes.suspicion_checked_at != null &&
+						record.suspicion_checked_at != null
+				}
 			}
 		},
 		jobs: {
@@ -63,27 +65,31 @@ export default {
 		},
 		suspicious_activity_logs: {
 			read: { where: uncheckedAssignmentChild, dependencies: assignmentScopeDependencies },
-			create: {
-				fields: ['job_assignment_id', 'origin', 'basis', 'review_id', 'evidence_id', 'reason'],
-				authorize: ({ record }, api) =>
-					record.origin === 'automation' && referencesUncheckedAssignment(record, api)
+			mutate: {
+				new: {
+					fields: ['job_assignment_id', 'origin', 'basis', 'review_id', 'evidence_id', 'reason'],
+					authorize: ({ record }, api) =>
+						record.origin === 'automation' && referencesUncheckedAssignment(record, api)
+				}
 			}
 		},
 		suspicion_reviews: {
 			read: { where: uncheckedAssignmentChild, dependencies: assignmentScopeDependencies },
-			create: {
-				fields: [
-					'job_assignment_id',
-					'basis_hash',
-					'basis',
-					'suspicious',
-					'reason',
-					'evidence_id',
-					'model',
-					'reviewed_at',
-					'source_key'
-				],
-				authorize: ({ record }, api) => referencesUncheckedAssignment(record, api)
+			mutate: {
+				new: {
+					fields: [
+						'job_assignment_id',
+						'basis_hash',
+						'basis',
+						'suspicious',
+						'reason',
+						'evidence_id',
+						'model',
+						'reviewed_at',
+						'source_key'
+					],
+					authorize: ({ record }, api) => referencesUncheckedAssignment(record, api)
+				}
 			}
 		}
 	},

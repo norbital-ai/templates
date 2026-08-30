@@ -1,5 +1,5 @@
 import { defineAutomation } from '@norbital-ai/bolt/authoring';
-import { Effect, Schema } from 'effect';
+import { Effect, Schema, Semaphore } from 'effect';
 import { currentDate } from '../lib/clock.js';
 import { loadUncheckedAssignments, reviewAssignmentSuspicion } from './suspicion-review.js';
 
@@ -21,6 +21,8 @@ const OutputSchema = Schema.Struct({
 });
 
 const MAX_FAILURE_DETAILS = 100;
+/** Four provider turns finish the full 34-assignment seed well inside the five-minute host lease. */
+export const SUSPICION_REVIEW_CONCURRENCY = 4;
 
 export type SuspicionReviewAutomationResult = Readonly<{
 	reviewed_at: string;
@@ -58,9 +60,11 @@ export default defineAutomation(
 			Effect.gen(function* () {
 				yield* api.progress({ progress: 0.02, text: 'Loading unchecked assignments' });
 				const assignments = yield* loadUncheckedAssignments(api, args.assignment_id);
+				const progressLock = yield* Semaphore.make(1);
 				const counts: Record<string, number> = { checked: 0, failed: 0 };
 				let inferenceCount = 0;
 				let failureCount = 0;
+				let completedCount = 0;
 				let firstFailureLogged = false;
 				const failureDetails: Array<{ assignment_id: string; stage: string }> = [];
 				const recordFailure = (assignmentId: string, stage: string) => {
@@ -69,68 +73,85 @@ export default defineAutomation(
 						failureDetails.push({ assignment_id: assignmentId, stage });
 					}
 				};
-				for (const [index, assignment] of assignments.entries()) {
-					yield* api.progress({
-						progress: assignments.length === 0 ? 0.9 : 0.05 + (index / assignments.length) * 0.9,
-						text: `Reviewing assignment ${index + 1} of ${assignments.length}`
-					});
-					let inferenceStarted = false;
-					let inferenceSucceeded = false;
-					let reviewPersisted = false;
-					const review = yield* reviewAssignmentSuspicion(api, assignment, {
-						inferenceStarted: () => {
-							inferenceStarted = true;
-							inferenceCount += 1;
-						},
-						inferenceSucceeded: () => {
-							inferenceSucceeded = true;
-						},
-						reviewPersisted: () => {
-							reviewPersisted = true;
-						}
-					}).pipe(
-						Effect.map((result) => ({ success: true as const, result })),
-						Effect.catch((error: unknown) => {
-							if (firstFailureLogged) return Effect.succeed({ success: false as const });
-							firstFailureLogged = true;
-							return Effect.logError(
-								`[field-ops-suspicion-review] first assignment failure (${assignment.id})`,
-								error
-							).pipe(Effect.as({ success: false as const }));
+				const publishCompletion = () =>
+					progressLock.withPermit(
+						Effect.gen(function* () {
+							completedCount += 1;
+							yield* api.progress({
+								progress:
+									assignments.length === 0
+										? 0.95
+										: 0.05 + (completedCount / assignments.length) * 0.9,
+								text: `Reviewed assignment ${completedCount} of ${assignments.length}`
+							});
 						})
 					);
-					if (!review.success) {
-						counts.failed += 1;
-						recordFailure(
-							assignment.id,
-							!inferenceStarted
-								? 'fact_loading'
-								: !inferenceSucceeded
-									? 'inference'
-									: !reviewPersisted
-										? 'review_persistence'
-										: 'suspicion_log_persistence'
-						);
-						continue;
-					}
-					const stamped = yield* currentDate.pipe(
-						Effect.flatMap((checkedAt) =>
-							api.db.job_assignments.mutate({
-								id: assignment.id,
-								suspicion_checked_at: checkedAt.toISOString()
-							})
-						),
-						Effect.map(() => true as const),
-						Effect.catch(() => Effect.succeed(false as const))
-					);
-					if (!stamped) {
-						counts.failed += 1;
-						recordFailure(assignment.id, 'check_stamp');
-						continue;
-					}
-					counts.checked += 1;
-					counts[review.result.status] = (counts[review.result.status] ?? 0) + 1;
-				}
+				yield* Effect.forEach(
+					assignments,
+					(assignment) =>
+						Effect.gen(function* () {
+							let inferenceStarted = false;
+							let inferenceSucceeded = false;
+							let reviewPersisted = false;
+							const review = yield* reviewAssignmentSuspicion(api, assignment, {
+								inferenceStarted: () => {
+									inferenceStarted = true;
+									inferenceCount += 1;
+								},
+								inferenceSucceeded: () => {
+									inferenceSucceeded = true;
+								},
+								reviewPersisted: () => {
+									reviewPersisted = true;
+								}
+							}).pipe(
+								Effect.map((result) => ({ success: true as const, result })),
+								Effect.catch((error: unknown) => {
+									if (firstFailureLogged) return Effect.succeed({ success: false as const });
+									firstFailureLogged = true;
+									return Effect.logError(
+										`[field-ops-suspicion-review] first assignment failure (${assignment.id})`,
+										error
+									).pipe(Effect.as({ success: false as const }));
+								})
+							);
+							if (!review.success) {
+								counts.failed += 1;
+								recordFailure(
+									assignment.id,
+									!inferenceStarted
+										? 'fact_loading'
+										: !inferenceSucceeded
+											? 'inference'
+											: !reviewPersisted
+												? 'review_persistence'
+												: 'suspicion_log_persistence'
+								);
+								yield* publishCompletion();
+								return;
+							}
+							const stamped = yield* currentDate.pipe(
+								Effect.flatMap((checkedAt) =>
+									api.db.job_assignments.mutate({
+										id: assignment.id,
+										suspicion_checked_at: checkedAt.toISOString()
+									})
+								),
+								Effect.map(() => true as const),
+								Effect.catch(() => Effect.succeed(false as const))
+							);
+							if (!stamped) {
+								counts.failed += 1;
+								recordFailure(assignment.id, 'check_stamp');
+								yield* publishCompletion();
+								return;
+							}
+							counts.checked += 1;
+							counts[review.result.status] = (counts[review.result.status] ?? 0) + 1;
+							yield* publishCompletion();
+						}),
+					{ concurrency: SUSPICION_REVIEW_CONCURRENCY, discard: true }
+				);
 				yield* api.progress({ progress: 1, text: 'Suspicion review complete' });
 				const outcome = {
 					reviewed_at: (yield* currentDate).toISOString(),

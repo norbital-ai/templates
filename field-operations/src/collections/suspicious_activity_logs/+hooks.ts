@@ -1,4 +1,8 @@
-import type { MutateBeforeContext, MutateEditContext } from '@norbital-ai/bolt/authoring';
+import {
+	refuse,
+	type MutateBeforeContext,
+	type MutateEditContext
+} from '@norbital-ai/bolt/authoring';
 import { Effect } from 'effect';
 import type { CollectionMutationValues } from '@norbital-ai/bolt/authoring';
 import type { WorkspaceSchema } from '$bolt/types.js';
@@ -38,7 +42,7 @@ type OpenJudgementInput = Partial<
 
 export function assertOpenJudgement(input: ResolutionTuple): void {
 	if (input.resolution != null || input.resolved_at != null || input.resolved_by != null) {
-		throw new Error('A new suspicion judgement must start unresolved.');
+		refuse('A new suspicion judgement must start unresolved.');
 	}
 }
 
@@ -46,13 +50,13 @@ export function normalizeOpenJudgement<T extends OpenJudgementInput>(
 	input: T
 ): T & { readonly origin: 'automation' | 'human'; readonly basis: string } {
 	if (input.reason == null || input.reason.trim() === '') {
-		throw new Error('Suspicion judgement reason cannot be empty.');
+		refuse('Suspicion judgement reason cannot be empty.');
 	}
 	if (input.origin != null && input.origin !== 'automation' && input.origin !== 'human') {
-		throw new Error('Suspicion judgement origin must be automation or human.');
+		refuse('Suspicion judgement origin must be automation or human.');
 	}
 	if (input.origin === 'automation' && (input.basis == null || input.basis.trim() === '')) {
-		throw new Error('An automated suspicion judgement must supply its reviewed evidence basis.');
+		refuse('An automated suspicion judgement must supply its reviewed evidence basis.');
 	}
 	return {
 		...input,
@@ -74,25 +78,25 @@ export function assertJudgementReferences(
 ): void {
 	const assignmentId = input.job_assignment_id;
 	if (assignmentId == null || !prepared.assignmentIds.has(assignmentId)) {
-		throw new Error('Suspicion judgement must reference an existing job assignment.');
+		refuse('Suspicion judgement must reference an existing job assignment.');
 	}
 	if (input.origin === 'automation' && input.review_id == null) {
-		throw new Error('An automated suspicion judgement must reference its inference review.');
+		refuse('An automated suspicion judgement must reference its inference review.');
 	}
 	if (input.origin === 'human' && input.review_id != null) {
-		throw new Error('A human suspicion judgement cannot claim an automated inference review.');
+		refuse('A human suspicion judgement cannot claim an automated inference review.');
 	}
 	if (
 		input.review_id != null &&
 		prepared.assignmentByReviewId.get(input.review_id) !== assignmentId
 	) {
-		throw new Error('Suspicion review belongs to another job assignment.');
+		refuse('Suspicion review belongs to another job assignment.');
 	}
 	if (
 		input.evidence_id != null &&
 		prepared.assignmentByEvidenceId.get(input.evidence_id) !== assignmentId
 	) {
-		throw new Error('Suspicion evidence belongs to another job assignment.');
+		refuse('Suspicion evidence belongs to another job assignment.');
 	}
 }
 
@@ -102,7 +106,7 @@ export function assertResolutionTransition(
 ): void {
 	for (const field of immutableJudgementFields) {
 		if (input[field] !== undefined && input[field] !== existing[field]) {
-			throw new Error('A suspicion judgement and its evidence basis are immutable.');
+			refuse('A suspicion judgement and its evidence basis are immutable.');
 		}
 	}
 
@@ -112,7 +116,7 @@ export function assertResolutionTransition(
 			input.resolved_at !== undefined ||
 			input.resolved_by !== undefined
 		) {
-			throw new Error('A resolved suspicion judgement cannot be reopened or rewritten.');
+			refuse('A resolved suspicion judgement cannot be reopened or rewritten.');
 		}
 		return;
 	}
@@ -129,7 +133,7 @@ export function assertResolutionTransition(
 		resolvedBy == null ||
 		resolvedBy === ''
 	) {
-		throw new Error('Resolution, resolved_at, and resolved_by must be written together.');
+		refuse('Resolution, resolved_at, and resolved_by must be written together.');
 	}
 }
 
@@ -248,7 +252,7 @@ export default {
 		perRecord: {
 			before: {
 				description: 'Retains suspicion judgements and their resolutions as an audit trail.',
-				handler: () => Effect.fail(new Error('Suspicion judgements cannot be deleted.'))
+				handler: () => refuse('Suspicion judgements cannot be deleted.')
 			}
 		}
 	}

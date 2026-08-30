@@ -1,8 +1,8 @@
 {
   "dialect": "postgres",
-  "id": "87035967-a5a4-4c16-b202-d7250d2a8423",
+  "id": "39b461b3-1b59-4ae5-a7af-1e694338c559",
   "prevIds": [
-    "d2fa61ac-9383-4495-85c5-aeecfd1e4a92"
+    "dcc0fef1-1b45-4287-bcd8-e1d7da6eca3b"
   ],
   "version": "8",
   "ddl": [
@@ -128,6 +128,22 @@
       "generated": null,
       "identity": null,
       "name": "approval_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "communication_logs"
+    },
+    {
+      "type": "tsvector",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": {
+        "as": "to_tsvector('simple'::regconfig, coalesce(\"message\", '') || ' ' || coalesce(\"sender\", ''))",
+        "type": "stored"
+      },
+      "identity": null,
+      "name": "search_document",
       "entityType": "columns",
       "schema": "public",
       "table": "communication_logs"
@@ -271,6 +287,22 @@
       "generated": null,
       "identity": null,
       "name": "approval_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "job_assignments"
+    },
+    {
+      "type": "tsvector",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": {
+        "as": "to_tsvector('simple'::regconfig, coalesce(\"search_text\", '') || ' ' || coalesce(\"summary\", ''))",
+        "type": "stored"
+      },
+      "identity": null,
+      "name": "search_document",
       "entityType": "columns",
       "schema": "public",
       "table": "job_assignments"
@@ -497,6 +529,22 @@
       "table": "jobs"
     },
     {
+      "type": "tsvector",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": {
+        "as": "to_tsvector('simple'::regconfig, coalesce(\"title\", ''))",
+        "type": "stored"
+      },
+      "identity": null,
+      "name": "search_document",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "jobs"
+    },
+    {
       "type": "text",
       "typeSchema": null,
       "notNull": false,
@@ -661,6 +709,61 @@
       "generated": null,
       "identity": null,
       "name": "approval_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "photo_evidence"
+    },
+    {
+      "type": "tsvector",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": {
+        "as": "to_tsvector('simple'::regconfig, coalesce((CASE source ->> 'kind'\n\t\t\t\tWHEN 'workspace_upload' THEN 'Workspace upload'\n\t\t\t\tWHEN 'channel' THEN 'From ' || COALESCE(NULLIF(source ->> 'provider', ''), 'a channel') || COALESCE(' · ' || LEFT(source ->> 'sent_at', 10), '')\n\t\t\t\tELSE 'Photo'\n\t\t\tEND), ''))",
+        "type": "stored"
+      },
+      "identity": null,
+      "name": "search_document",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "photo_evidence"
+    },
+    {
+      "type": "vector(256)",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "record_embedding",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "photo_evidence"
+    },
+    {
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "embedded_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "photo_evidence"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "record_embedding_fingerprint",
       "entityType": "columns",
       "schema": "public",
       "table": "photo_evidence"
@@ -877,6 +980,22 @@
       "table": "sites"
     },
     {
+      "type": "tsvector",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": {
+        "as": "to_tsvector('simple'::regconfig, coalesce(\"name\", ''))",
+        "type": "stored"
+      },
+      "identity": null,
+      "name": "search_document",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "sites"
+    },
+    {
       "type": "text",
       "typeSchema": null,
       "notNull": false,
@@ -1028,6 +1147,22 @@
       "generated": null,
       "identity": null,
       "name": "approval_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "suspicion_reviews"
+    },
+    {
+      "type": "tsvector",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": {
+        "as": "to_tsvector('simple'::regconfig, coalesce(\"reason\", ''))",
+        "type": "stored"
+      },
+      "identity": null,
+      "name": "search_document",
       "entityType": "columns",
       "schema": "public",
       "table": "suspicion_reviews"
@@ -1223,6 +1358,22 @@
       "generated": null,
       "identity": null,
       "name": "approval_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "suspicious_activity_logs"
+    },
+    {
+      "type": "tsvector",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": {
+        "as": "to_tsvector('simple'::regconfig, coalesce(\"reason\", '') || ' ' || coalesce(\"resolution\", ''))",
+        "type": "stored"
+      },
+      "identity": null,
+      "name": "search_document",
       "entityType": "columns",
       "schema": "public",
       "table": "suspicious_activity_logs"
@@ -1439,6 +1590,22 @@
       "table": "variation_requests"
     },
     {
+      "type": "tsvector",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": {
+        "as": "to_tsvector('simple'::regconfig, coalesce(\"title\", ''))",
+        "type": "stored"
+      },
+      "identity": null,
+      "name": "search_document",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "variation_requests"
+    },
+    {
       "type": "uuid",
       "typeSchema": null,
       "notNull": true,
@@ -1583,14 +1750,11 @@
       "nameExplicit": true,
       "columns": [
         {
-          "value": "message",
+          "value": "search_document",
           "isExpression": false,
           "asc": true,
           "nullsFirst": false,
-          "opclass": {
-            "name": "gin_trgm_ops",
-            "default": false
-          }
+          "opclass": null
         }
       ],
       "isUnique": false,
@@ -1598,7 +1762,7 @@
       "with": "",
       "method": "gin",
       "concurrently": false,
-      "name": "communication_logs_message_search_trgm_idx",
+      "name": "communication_logs_search_document_gin_idx",
       "entityType": "indexes",
       "schema": "public",
       "table": "communication_logs"
@@ -1607,14 +1771,11 @@
       "nameExplicit": true,
       "columns": [
         {
-          "value": "sender",
-          "isExpression": false,
+          "value": "(coalesce(\"message\", '') || ' ' || coalesce(\"sender\", '')) gin_trgm_ops",
+          "isExpression": true,
           "asc": true,
           "nullsFirst": false,
-          "opclass": {
-            "name": "gin_trgm_ops",
-            "default": false
-          }
+          "opclass": null
         }
       ],
       "isUnique": false,
@@ -1622,7 +1783,7 @@
       "with": "",
       "method": "gin",
       "concurrently": false,
-      "name": "communication_logs_sender_search_trgm_idx",
+      "name": "communication_logs_search_text_trgm_idx",
       "entityType": "indexes",
       "schema": "public",
       "table": "communication_logs"
@@ -1694,14 +1855,11 @@
       "nameExplicit": true,
       "columns": [
         {
-          "value": "search_text",
+          "value": "search_document",
           "isExpression": false,
           "asc": true,
           "nullsFirst": false,
-          "opclass": {
-            "name": "gin_trgm_ops",
-            "default": false
-          }
+          "opclass": null
         }
       ],
       "isUnique": false,
@@ -1709,7 +1867,7 @@
       "with": "",
       "method": "gin",
       "concurrently": false,
-      "name": "job_assignments_search_text_search_trgm_idx",
+      "name": "job_assignments_search_document_gin_idx",
       "entityType": "indexes",
       "schema": "public",
       "table": "job_assignments"
@@ -1718,14 +1876,11 @@
       "nameExplicit": true,
       "columns": [
         {
-          "value": "summary",
-          "isExpression": false,
+          "value": "(coalesce(\"search_text\", '') || ' ' || coalesce(\"summary\", '')) gin_trgm_ops",
+          "isExpression": true,
           "asc": true,
           "nullsFirst": false,
-          "opclass": {
-            "name": "gin_trgm_ops",
-            "default": false
-          }
+          "opclass": null
         }
       ],
       "isUnique": false,
@@ -1733,7 +1888,7 @@
       "with": "",
       "method": "gin",
       "concurrently": false,
-      "name": "job_assignments_summary_search_trgm_idx",
+      "name": "job_assignments_search_text_trgm_idx",
       "entityType": "indexes",
       "schema": "public",
       "table": "job_assignments"
@@ -1763,14 +1918,11 @@
       "nameExplicit": true,
       "columns": [
         {
-          "value": "title",
+          "value": "search_document",
           "isExpression": false,
           "asc": true,
           "nullsFirst": false,
-          "opclass": {
-            "name": "gin_trgm_ops",
-            "default": false
-          }
+          "opclass": null
         }
       ],
       "isUnique": false,
@@ -1778,7 +1930,28 @@
       "with": "",
       "method": "gin",
       "concurrently": false,
-      "name": "jobs_title_search_trgm_idx",
+      "name": "jobs_search_document_gin_idx",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "jobs"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        {
+          "value": "(coalesce(\"title\", '')) gin_trgm_ops",
+          "isExpression": true,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "with": "",
+      "method": "gin",
+      "concurrently": false,
+      "name": "jobs_search_text_trgm_idx",
       "entityType": "indexes",
       "schema": "public",
       "table": "jobs"
@@ -1832,14 +2005,11 @@
       "nameExplicit": true,
       "columns": [
         {
-          "value": "summary",
+          "value": "search_document",
           "isExpression": false,
           "asc": true,
           "nullsFirst": false,
-          "opclass": {
-            "name": "gin_trgm_ops",
-            "default": false
-          }
+          "opclass": null
         }
       ],
       "isUnique": false,
@@ -1847,7 +2017,52 @@
       "with": "",
       "method": "gin",
       "concurrently": false,
-      "name": "photo_evidence_summary_search_trgm_idx",
+      "name": "photo_evidence_search_document_gin_idx",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "photo_evidence"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        {
+          "value": "(coalesce(\"summary\", '')) gin_trgm_ops",
+          "isExpression": true,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "with": "",
+      "method": "gin",
+      "concurrently": false,
+      "name": "photo_evidence_search_text_trgm_idx",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "photo_evidence"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        {
+          "value": "record_embedding",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": {
+            "name": "vector_cosine_ops",
+            "default": false
+          }
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "with": "",
+      "method": "hnsw",
+      "concurrently": false,
+      "name": "photo_evidence_record_embedding_hnsw_idx",
       "entityType": "indexes",
       "schema": "public",
       "table": "photo_evidence"
@@ -1877,14 +2092,11 @@
       "nameExplicit": true,
       "columns": [
         {
-          "value": "name",
+          "value": "search_document",
           "isExpression": false,
           "asc": true,
           "nullsFirst": false,
-          "opclass": {
-            "name": "gin_trgm_ops",
-            "default": false
-          }
+          "opclass": null
         }
       ],
       "isUnique": false,
@@ -1892,7 +2104,28 @@
       "with": "",
       "method": "gin",
       "concurrently": false,
-      "name": "sites_name_search_trgm_idx",
+      "name": "sites_search_document_gin_idx",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "sites"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        {
+          "value": "(coalesce(\"name\", '')) gin_trgm_ops",
+          "isExpression": true,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "with": "",
+      "method": "gin",
+      "concurrently": false,
+      "name": "sites_search_text_trgm_idx",
       "entityType": "indexes",
       "schema": "public",
       "table": "sites"
@@ -1971,14 +2204,11 @@
       "nameExplicit": true,
       "columns": [
         {
-          "value": "reason",
+          "value": "search_document",
           "isExpression": false,
           "asc": true,
           "nullsFirst": false,
-          "opclass": {
-            "name": "gin_trgm_ops",
-            "default": false
-          }
+          "opclass": null
         }
       ],
       "isUnique": false,
@@ -1986,7 +2216,28 @@
       "with": "",
       "method": "gin",
       "concurrently": false,
-      "name": "suspicion_reviews_reason_search_trgm_idx",
+      "name": "suspicion_reviews_search_document_gin_idx",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "suspicion_reviews"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        {
+          "value": "(coalesce(\"reason\", '')) gin_trgm_ops",
+          "isExpression": true,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "with": "",
+      "method": "gin",
+      "concurrently": false,
+      "name": "suspicion_reviews_search_text_trgm_idx",
       "entityType": "indexes",
       "schema": "public",
       "table": "suspicion_reviews"
@@ -2079,14 +2330,11 @@
       "nameExplicit": true,
       "columns": [
         {
-          "value": "reason",
+          "value": "search_document",
           "isExpression": false,
           "asc": true,
           "nullsFirst": false,
-          "opclass": {
-            "name": "gin_trgm_ops",
-            "default": false
-          }
+          "opclass": null
         }
       ],
       "isUnique": false,
@@ -2094,7 +2342,7 @@
       "with": "",
       "method": "gin",
       "concurrently": false,
-      "name": "suspicious_activity_logs_reason_search_trgm_idx",
+      "name": "suspicious_activity_logs_search_document_gin_idx",
       "entityType": "indexes",
       "schema": "public",
       "table": "suspicious_activity_logs"
@@ -2103,14 +2351,11 @@
       "nameExplicit": true,
       "columns": [
         {
-          "value": "resolution",
-          "isExpression": false,
+          "value": "(coalesce(\"reason\", '') || ' ' || coalesce(\"resolution\", '')) gin_trgm_ops",
+          "isExpression": true,
           "asc": true,
           "nullsFirst": false,
-          "opclass": {
-            "name": "gin_trgm_ops",
-            "default": false
-          }
+          "opclass": null
         }
       ],
       "isUnique": false,
@@ -2118,7 +2363,7 @@
       "with": "",
       "method": "gin",
       "concurrently": false,
-      "name": "suspicious_activity_logs_resolution_search_trgm_idx",
+      "name": "suspicious_activity_logs_search_text_trgm_idx",
       "entityType": "indexes",
       "schema": "public",
       "table": "suspicious_activity_logs"
@@ -2148,14 +2393,11 @@
       "nameExplicit": true,
       "columns": [
         {
-          "value": "title",
+          "value": "search_document",
           "isExpression": false,
           "asc": true,
           "nullsFirst": false,
-          "opclass": {
-            "name": "gin_trgm_ops",
-            "default": false
-          }
+          "opclass": null
         }
       ],
       "isUnique": false,
@@ -2163,7 +2405,28 @@
       "with": "",
       "method": "gin",
       "concurrently": false,
-      "name": "variation_requests_title_search_trgm_idx",
+      "name": "variation_requests_search_document_gin_idx",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "variation_requests"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        {
+          "value": "(coalesce(\"title\", '')) gin_trgm_ops",
+          "isExpression": true,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "with": "",
+      "method": "gin",
+      "concurrently": false,
+      "name": "variation_requests_search_text_trgm_idx",
       "entityType": "indexes",
       "schema": "public",
       "table": "variation_requests"

@@ -1,4 +1,4 @@
-import { approveBy } from '@norbital-ai/bolt/authoring';
+import { approveBy, policySql } from '@norbital-ai/bolt/authoring';
 import { Effect } from 'effect';
 import type { Policy } from './$types.js';
 
@@ -8,7 +8,7 @@ import type { Policy } from './$types.js';
  * A contractor is a **user**, not a record. `job_assignments.assignee_user_id` is
  * `user.id`, so the assignment collection carries the requestor directly and the
  * self-scope is a column comparison — `ownAssignment` below is an ordinary `where`, not a subquery.
- * Everything else is one hop from an assignment, so each remaining `$sql` reaches the requestor
+ * Everything else is one hop from an assignment, so each remaining `policySql` reaches the requestor
  * through `job_assignments` alone.
  *
  * There is deliberately no grant on any collection describing the contractor themselves. The person
@@ -21,7 +21,7 @@ import type { Policy } from './$types.js';
  * literal token reaches the database, and the policy compiler replaces it with a bound parameter on
  * every request. An unknown path throws rather than binding null, so a renamed scope root fails loudly.
  *
- * Use `$sql`, never `RAW`. `RAW` is a function; a grant is stored as jsonb and round-tripped through
+ * Use `policySql`, never `RAW`. `RAW` is a function; a grant is stored as jsonb and round-tripped through
  * the manifest, so the function disappears and the grant lands with empty conditions — which the guard
  * reads as unconditional access to the whole collection. A narrowing that silently inverts into a
  * widening is the worst thing a permission rule can do, so `definePolicy` refuses it outright.
@@ -35,46 +35,40 @@ import type { Policy } from './$types.js';
 const ownAssignment = { assignee_user_id: { eq: '${requestor.id}' } } as const;
 
 /** Sites reachable through an assignment. */
-const assignedSite = {
-	$sql:
-		'"id" IN (SELECT j.site_id FROM jobs j ' +
+const assignedSite = policySql(
+	'"id" IN (SELECT j.site_id FROM jobs j ' +
 		'JOIN job_assignments a ON a.job_id = j.id ' +
 		'WHERE a.assignee_user_id = ${requestor.id})'
-} as const;
+);
 
 /** Jobs they were assigned. */
-const assignedJob = {
-	$sql:
-		'"id" IN (SELECT a.job_id FROM job_assignments a ' +
-		'WHERE a.assignee_user_id = ${requestor.id})'
-} as const;
+const assignedJob = policySql(
+	'"id" IN (SELECT a.job_id FROM job_assignments a ' + 'WHERE a.assignee_user_id = ${requestor.id})'
+);
 
 /** Variations raised against one of their own assignments. */
-const ownVariation = {
-	$sql:
-		'"job_assignment_id" IN (SELECT a.id FROM job_assignments a ' +
+const ownVariation = policySql(
+	'"job_assignment_id" IN (SELECT a.id FROM job_assignments a ' +
 		'WHERE a.assignee_user_id = ${requestor.id})'
-} as const;
+);
 
 /**
  * Photos hang off exactly one of an assignment or a variation, so both legs are needed; a condition on
  * `job_assignment_id` alone would hide every photo attached to their own variation request.
  */
-const ownEvidence = {
-	$sql:
-		'("job_assignment_id" IN (SELECT a.id FROM job_assignments a ' +
+const ownEvidence = policySql(
+	'("job_assignment_id" IN (SELECT a.id FROM job_assignments a ' +
 		'WHERE a.assignee_user_id = ${requestor.id}) ' +
 		'OR "variation_request_id" IN (SELECT variation.id FROM variation_requests variation ' +
 		'WHERE variation.job_assignment_id IN (SELECT a.id FROM job_assignments a ' +
 		'WHERE a.assignee_user_id = ${requestor.id})))'
-} as const;
+);
 
 /** Messages retained against one of their own assignments. */
-const ownCommunication = {
-	$sql:
-		'"job_assignment_id" IN (SELECT a.id FROM job_assignments a ' +
+const ownCommunication = policySql(
+	'"job_assignment_id" IN (SELECT a.id FROM job_assignments a ' +
 		'WHERE a.assignee_user_id = ${requestor.id})'
-} as const;
+);
 
 /**
  * Exact linking collections for sync generations. The grant's own collection is deliberately absent:
@@ -120,7 +114,7 @@ const assignmentReadFields = [
 	'summary',
 	'search_text'
 ] as const;
-const assignmentUpdateFields = [
+const assignmentExistingMutationFields = [
 	'status',
 	'completed_at',
 	'amount_charged',
@@ -135,14 +129,14 @@ const variationReadFields = [
 	'description',
 	'amount'
 ] as const;
-const variationCreateFields = [
+const variationNewMutationFields = [
 	'job_assignment_id',
 	'requested_at',
 	'title',
 	'description',
 	'amount'
 ] as const;
-const variationUpdateFields = ['title', 'description', 'amount'] as const;
+const variationExistingMutationFields = ['title', 'description', 'amount'] as const;
 const evidenceReadFields = [
 	'id',
 	'job_assignment_id',
@@ -150,7 +144,7 @@ const evidenceReadFields = [
 	'photo',
 	'summary'
 ] as const;
-const evidenceCreateFields = ['job_assignment_id', 'variation_request_id', 'photo'] as const;
+const evidenceNewMutationFields = ['job_assignment_id', 'variation_request_id', 'photo'] as const;
 const communicationReadFields = [
 	'id',
 	'job_assignment_id',
@@ -179,7 +173,7 @@ const variationApproval = {
 
 export default {
 	description:
-		'Self-scoped access to assigned work, with narrowly fielded updates and linked evidence.',
+		'Self-scoped access to assigned work, with narrowly fielded mutations and linked evidence.',
 	capabilities: { apps: ['field_ops_contractor'] },
 	grants: {
 		sites: {
@@ -201,9 +195,11 @@ export default {
 				where: ownAssignment,
 				fields: assignmentReadFields
 			},
-			update: {
-				authorize: ({ record }, api) => record.assignee_user_id === api.requestor.id,
-				fields: assignmentUpdateFields
+			mutate: {
+				existing: {
+					authorize: ({ record }, api) => record.assignee_user_id === api.requestor.id,
+					fields: assignmentExistingMutationFields
+				}
 			}
 		},
 		variation_requests: {
@@ -212,21 +208,23 @@ export default {
 				dependencies: assignmentScopeDependencies,
 				fields: variationReadFields
 			},
-			create: {
-				authorize: ({ record }, api) =>
-					api.db.job_assignments
-						.findFirst({ where: { id: { eq: record.job_assignment_id } } })
-						.pipe(Effect.map((assignment) => assignment !== undefined)),
-				fields: variationCreateFields,
-				approval: variationApproval
-			},
-			update: {
-				authorize: ({ record }, api) =>
-					api.db.job_assignments
-						.findFirst({ where: { id: { eq: record.job_assignment_id } } })
-						.pipe(Effect.map((assignment) => assignment !== undefined)),
-				fields: variationUpdateFields,
-				approval: variationApproval
+			mutate: {
+				new: {
+					authorize: ({ record }, api) =>
+						api.db.job_assignments
+							.findFirst({ where: { id: { eq: record.job_assignment_id } } })
+							.pipe(Effect.map((assignment) => assignment !== undefined)),
+					fields: variationNewMutationFields,
+					approval: variationApproval
+				},
+				existing: {
+					authorize: ({ record }, api) =>
+						api.db.job_assignments
+							.findFirst({ where: { id: { eq: record.job_assignment_id } } })
+							.pipe(Effect.map((assignment) => assignment !== undefined)),
+					fields: variationExistingMutationFields,
+					approval: variationApproval
+				}
 			}
 		},
 		photo_evidence: {
@@ -235,24 +233,26 @@ export default {
 				dependencies: evidenceScopeDependencies,
 				fields: evidenceReadFields
 			},
-			create: {
-				authorize: ({ record }, api) =>
-					Effect.gen(function* () {
-						if (record.job_assignment_id !== null) {
+			mutate: {
+				new: {
+					authorize: ({ record }, api) =>
+						Effect.gen(function* () {
+							if (record.job_assignment_id !== null) {
+								return (
+									(yield* api.db.job_assignments.findFirst({
+										where: { id: { eq: record.job_assignment_id } }
+									})) !== undefined
+								);
+							}
+							if (record.variation_request_id === null) return false;
 							return (
-								(yield* api.db.job_assignments.findFirst({
-									where: { id: { eq: record.job_assignment_id } }
+								(yield* api.db.variation_requests.findFirst({
+									where: { id: { eq: record.variation_request_id } }
 								})) !== undefined
 							);
-						}
-						if (record.variation_request_id === null) return false;
-						return (
-							(yield* api.db.variation_requests.findFirst({
-								where: { id: { eq: record.variation_request_id } }
-							})) !== undefined
-						);
-					}),
-				fields: evidenceCreateFields
+						}),
+					fields: evidenceNewMutationFields
+				}
 			}
 		},
 		communication_logs: {

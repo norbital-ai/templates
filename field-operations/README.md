@@ -41,9 +41,9 @@ site → jobs → job assignment → user (the assignee)
   advances the job; whether the work was legitimately done is a suspicion question and is never
   stored on this row (`suspicion_checked_at` is the only suspicion-adjacent column, written by the
   review automation after a run).
-- **variation_requests** — a scope change against one assignment. Creation is governed by the
-  contractor policy's approval flow: writing one raises a platform approval request for a controller
-  review step, not a row that is directly applied.
+- **variation_requests** — a scope change against one assignment. The new-record mutation is governed
+  by the contractor policy's approval flow: writing one raises a platform approval request for a
+  controller review step, not a row that is directly applied.
 - **photo_evidence** — one explicitly selected photo attached to exactly one assignment or one
   variation, with deterministic integrity facts. Conversation history and unselected media are not
   retained; the message **content** of each assignment's conversation is retained in
@@ -60,13 +60,13 @@ site → jobs → job assignment → user (the assignee)
 ### The evidence integrity pipeline
 
 Every photo, from every entry path (workspace upload or channel), passes through the same
-`photo_evidence` create hooks:
+the new-record branch of the `photo_evidence` mutate hooks:
 
 1. **Ingest** — JPEG/PNG only, exactly one parent (assignment or variation), SHA-256 fingerprint,
    Meta PDQ perceptual hash (256-bit), EXIF parse (`exifr`), and quality/metadata signals. The
    selected asset, parent, and source provenance become immutable: correcting a filing requires new
    evidence so every check runs again.
-2. **Duplicate check** — the create `after` hook compares the new photo against everything already
+2. **Duplicate check** — the mutate `after` hook compares the new photo against everything already
    stored: exact SHA-256 matches, and perceptual near-duplicates via `findNearest` on a 256-dim 0/1
    vector indexed with HNSW (L2 metric, threshold √31 ≈ PDQ Hamming 31). Matches are recorded as
    `exact_duplicate` / `visual_duplicate` flags with the matched evidence ids.
@@ -120,18 +120,21 @@ The envoy runs under the strict capability lock:
 
 - **The ceiling is `field_ops_whatsapp`, not the contractor policy.** The envoy names that policy
   directly, and it is the complete answer to what any turn may reach — for a linked contractor
-  exactly as for anyone. It is narrower than
-  `field_ops_contractor`: no variation requests, no photo evidence, no apps.
-- **The linked account is the requestor, which only narrows.** `${requestor.id}` conditions
-  resolve to that person, so they see their own assignments rather than none — matched on
-  `job_assignments.assignee_user_id`. It confers nothing: a contractor who administers the web app
-  reaches no more here than an ordinary one, and their `admin` flag is dropped at the boundary.
+  exactly as for anyone. It has one grant: `job_assignments.mutate.existing`, limited to approved
+  progress fields. It has no read, search, new-record mutation, delete, evidence, communication-log,
+  review, suspicion-log, or app authority.
+- **The linked account is the requestor, which only authorizes the target.** `${requestor.id}` must
+  match `job_assignments.assignee_user_id` on the existing row. It confers nothing: a contractor who
+  administers the web app reaches no more here than an ordinary one, and their `admin` flag is
+  dropped at the boundary.
 - **DMs are private; groups are shared.** Every assigned member sees profile group transcripts in
   Agent UI, while only the DM owner and administrators see a private transcript.
-- The task never exposes controller-only integrity fields and directs photo uploads to the app.
+- Without an exact assignment reference already supplied by trusted context, the task directs the
+  contractor to the app or a controller. It cannot discover a target itself.
 
 Policy grants remain row-level rather than column-level, so the task still explicitly forbids
-controller-only integrity fields even though the contractor can update their own assignment row.
+controller-only integrity fields even though the contractor can mutate approved fields on their own
+assignment row.
 
 ### Automations, policies, seed
 
@@ -139,8 +142,8 @@ controller-only integrity fields even though the contractor can update their own
 | ---------- | --------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Automation | `review_job_assignment_suspicion` | Hourly (and on manual request, one assignment by id): pages through all unchecked assignments, reviews each against a bounded visual + communication context, and writes one idempotent suspicion log only when the model judges the evidence suspicious. |
 | Policy     | `field_ops_controller`            | Full command of the operational records and both apps; the audit ledgers (communications, reviews, suspicion logs) are append-only.                                                                                                                       |
-| Policy     | `field_ops_contractor`            | Requestor-scoped grants: assigned sites/jobs, own assignments (read + update, `assignee_user_id = requestor`), own variations (read + create/update behind the variation approval flow), own evidence (read + create).                                    |
-| Policy     | `field_ops_whatsapp`              | The WhatsApp envoy's directly declared ceiling: read and update the caller's own assignments, and read the jobs and sites behind them. No creates, deletes, evidence or apps.                                                                             |
+| Policy     | `field_ops_contractor`            | Requestor-scoped grants: assigned sites/jobs; own assignments (`read` + `mutate.existing`, `assignee_user_id = requestor`); own variations (`read` + both `mutate` branches behind the approval flow); own evidence (`read` + `mutate.new`).              |
+| Policy     | `field_ops_whatsapp`              | The WhatsApp envoy's directly declared ceiling: `mutate.existing` for approved progress fields on an exact assignment owned by the linked contractor. No reads, searches, new-record mutations, deletes, evidence, logs, reviews, suspicion data or apps. |
 | Policy     | `suspicion_review_automation`     | The review automation's authority: unchecked assignments only, append-only review records and suspicion logs, and the single `suspicion_checked_at` stamp that closes the review.                                                                         |
 | Seed       | —                                 | Fixture data is host-owned and lives in the repository seed bank (there is no `src/+seed.ts` compiler role). Its job/photo map is audited against the WhatsApp transcript; the weekly roster CSV lives in `assets/` with its own README.                  |
 
@@ -203,8 +206,8 @@ The host holds the transport credential and delivers an already-authenticated in
 binds the conversation to a transcript, claims the message exactly once, and matches its sender to a
 verified WhatsApp identity. Runtime mints `envoy:field_ops_whatsapp` with the declaration's policies;
 the linked contractor supplies only `userId` for requestor predicates, never team authority or admin.
-Inbound messages also become `communication_logs` rows against the assignment they concern.
-The reply goes back over the same transport.
+The transport retains its own conversation transcript, but the envoy has no authority to write a
+domain `communication_logs` row. The reply goes back over the same transport.
 
 ## 5. Changing the template
 
@@ -224,6 +227,6 @@ pnpm lint    # prettier --check + svelte-check
 - Publishing and tenant lifecycle: publish through the templates release workflow. A remote Colony
   host provisions new tenants from the exact commit advertised by
   `refs/heads/templates/field-operations`; advancing that ref does not rewrite existing tenants.
-  `pnpm yalc:link` only tests local OSS packages inside the template and does not link template
-  source into Colony. The template detail page on the website is generated from this README and
-  `norbital.template.json` — no separate copy.
+  From the Norbital checkout, `pnpm run env -- link` only tests local OSS packages inside the
+  template and does not link template source into Colony. The template detail page on the website
+  is generated from this README and `norbital.template.json` — no separate copy.

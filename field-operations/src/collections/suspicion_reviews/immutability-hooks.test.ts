@@ -38,14 +38,16 @@ test('the immutable review ledger accepts its initial automated create', async (
 	assert.deepEqual(await settle(beforeMutate({ input, existing: undefined })), input);
 });
 
-test('the immutable review ledger refuses edits after creation', async () => {
-	await assert.rejects(
-		settle(
+test('the immutable review ledger refuses edits after creation', () => {
+	assert.throws(
+		() =>
 			beforeMutate({
 				input: { reason: 'Rewritten' },
 				existing: { id: '019f6f10-4000-7000-8000-000000000001', reason: 'Original' }
-			})
-		),
-		/Automated suspicion reviews cannot be changed after inference/
+			}),
+		{
+			_tag: 'Bolt.Authored.Refusal',
+			message: 'Automated suspicion reviews cannot be changed after inference.'
+		}
 	);
 });

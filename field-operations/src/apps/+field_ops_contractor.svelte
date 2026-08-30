@@ -51,7 +51,13 @@
 			limit: 250
 		})
 	);
-	const sitesQuery = $derived(client.db.sites.findMany({ orderBy: { name: 'asc' }, limit: 250 }));
+	const sitesQuery = $derived(
+		client.db.sites.findMany({
+			columns: { id: true, name: true },
+			orderBy: { name: 'asc' },
+			limit: 250
+		})
+	);
 	const siteById = $derived(
 		new Map((sitesQuery.current ?? []).map((site) => [site.id, site.name]))
 	);

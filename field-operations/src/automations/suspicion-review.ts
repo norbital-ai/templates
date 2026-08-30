@@ -16,6 +16,7 @@ export const MAX_INFERENCE_EVIDENCE_ID_CHARS = 128;
 const MAX_INFERENCE_COMMUNICATIONS = 24;
 const MAX_INFERENCE_MESSAGE_CHARS = 800;
 const MAX_SIGNAL_IMAGES = 2;
+const MAX_CROSS_ASSIGNMENT_PROBES = 64;
 
 /**
  * Cross-assignment reuse candidates are retrieved with a deliberately generous perceptual band.
@@ -149,16 +150,9 @@ export function shouldReviewAssignment(
 
 /**
  * Materialise the unchecked worklist before reviewing it. Reviews stamp rows as they succeed, so
- * paging while processing would make offset pages shrink and skip assignments.
+ * paging while processing would make the worklist shrink and skip assignments.
  */
 export function loadUncheckedAssignments(api: Api, assignmentId?: string) {
-	const where =
-		assignmentId == null
-			? { suspicion_checked_at: { isNull: true } as const }
-			: {
-					id: { eq: assignmentId },
-					suspicion_checked_at: { isNull: true } as const
-				};
 	const columns = {
 		id: true,
 		job_id: true,
@@ -169,22 +163,46 @@ export function loadUncheckedAssignments(api: Api, assignmentId?: string) {
 	} as const;
 	return Effect.gen(function* () {
 		if (assignmentId != null) {
-			return yield* api.db.job_assignments.findMany({ where, columns, limit: 1 });
+			return yield* api.db.job_assignments.findMany({
+				where: {
+					id: { eq: assignmentId },
+					suspicion_checked_at: { isNull: true }
+				},
+				columns,
+				limit: 1
+			});
 		}
 
 		const assignments: Array<SuspicionReviewFacts['assignment']> = [];
-		let offset = 0;
+		let afterId: string | undefined;
 		for (;;) {
 			const page = yield* api.db.job_assignments.findMany({
-				where,
+				where:
+					afterId === undefined
+						? { suspicion_checked_at: { isNull: true } }
+						: {
+								id: { gt: afterId },
+								suspicion_checked_at: { isNull: true }
+							},
 				columns,
 				orderBy: { id: 'asc' },
-				limit: ASSIGNMENT_PAGE_SIZE,
-				offset
+				limit: ASSIGNMENT_PAGE_SIZE
 			});
+			let nextAfterId = afterId;
+			for (const assignment of page) {
+				if (nextAfterId !== undefined && assignment.id <= nextAfterId) {
+					return yield* Effect.fail(
+						new Error(
+							`Unchecked assignment pagination did not advance beyond ${nextAfterId}; received ${assignment.id}.`
+						)
+					);
+				}
+				nextAfterId = assignment.id;
+			}
 			assignments.push(...page);
 			if (page.length < ASSIGNMENT_PAGE_SIZE) return assignments;
-			offset += page.length;
+			if (nextAfterId === undefined) return assignments;
+			afterId = nextAfterId;
 		}
 	});
 }
@@ -277,11 +295,17 @@ const photoSignal = (photo: SuspicionReviewFacts['photos'][number]): number =>
  * Oversized files remain represented in the aggregate facts but do not consume the image budget.
  */
 export function selectSuspicionInferencePhotos(
-	photos: SuspicionReviewFacts['photos']
+	photos: SuspicionReviewFacts['photos'],
+	preferredPhotoIds: ReadonlyArray<string> = []
 ): SuspicionReviewFacts['photos'] {
 	const chronological = [...photos].sort((left, right) =>
 		photoOrder(left).localeCompare(photoOrder(right))
 	);
+	const photoById = new Map(chronological.map((photo) => [photo.id, photo]));
+	const preferred = preferredPhotoIds.flatMap((id) => {
+		const photo = photoById.get(id);
+		return photo === undefined ? [] : [photo];
+	});
 	// Duplicate reuse only signals when the identical file belongs to a *different* assignment:
 	// the upload integrity hook encodes that as exact_duplicate/visual_duplicate flags and their
 	// matched_evidence_ids, all of which photoSignal already counts. Identical rows within this
@@ -300,7 +324,7 @@ export function selectSuspicionInferencePhotos(
 					chronological[Math.floor((chronological.length - 1) / 2)],
 					chronological[chronological.length - 1]
 				];
-	const candidates = [...signalCandidates, ...temporalCandidates, ...chronological];
+	const candidates = [...preferred, ...signalCandidates, ...temporalCandidates, ...chronological];
 	const selected: Array<SuspicionReviewFacts['photos'][number]> = [];
 	const selectedIds = new Set<string>();
 	let selectedBytes = 0;
@@ -319,6 +343,26 @@ export function selectSuspicionInferencePhotos(
 	}
 	return selected.sort((left, right) => photoOrder(left).localeCompare(photoOrder(right)));
 }
+
+/**
+ * Candidate retrieval is cheaper than visual inference and must not inherit its three-image cap.
+ * Search every ordinary assignment photo; only exceptionally large records are sampled uniformly
+ * so one pathological upload cannot issue thousands of vector queries in a single review.
+ */
+const selectCrossAssignmentProbePhotos = (
+	photos: SuspicionReviewFacts['photos']
+): SuspicionReviewFacts['photos'] => {
+	const chronological = [...photos].sort((left, right) =>
+		photoOrder(left).localeCompare(photoOrder(right))
+	);
+	if (chronological.length <= MAX_CROSS_ASSIGNMENT_PROBES) return chronological;
+	return Array.from({ length: MAX_CROSS_ASSIGNMENT_PROBES }, (_, index) => {
+		const position = Math.round(
+			(index * (chronological.length - 1)) / (MAX_CROSS_ASSIGNMENT_PROBES - 1)
+		);
+		return chronological[position]!;
+	});
+};
 
 /** One `findNearest` hit for a probe photo, before assignment filtering and capping. */
 interface CandidateHit {
@@ -374,7 +418,7 @@ export function loadCrossAssignmentCandidates(
 	probes: SuspicionReviewFacts['photos']
 ): Effect.Effect<SuspicionReviewFacts['candidates'], unknown, never> {
 	return Effect.gen(function* () {
-		const probeRows = probes.slice(0, MAX_INFERENCE_IMAGES);
+		const probeRows = selectCrossAssignmentProbePhotos(probes);
 		const hits = new Map<string, { row: CandidateHit; matched: Set<string> }>();
 		for (const probe of probeRows) {
 			// `photos` declares the embedding optional, so a probe without one is skipped rather than
@@ -486,7 +530,8 @@ export function buildSuspicionInferenceContext(
 			facts.photos.reduce((count, photo) => count + Number(photo.flags.includes(flag)), 0)
 		]).filter(([, count]) => count !== 0)
 	);
-	const representatives = representativePhotos.map((photo) => ({
+	const representatives = representativePhotos.map((photo, index) => ({
+		attached_image_index: index + 1,
 		id: photo.id,
 		file_name: clipText(photo.photo.file_name, 256),
 		file_size: photo.photo.file_size,
@@ -511,6 +556,11 @@ export function buildSuspicionInferenceContext(
 			sent_at: communicationInstant(communication),
 			message: clipText(communication.message, MAX_INFERENCE_MESSAGE_CHARS)
 		}));
+	const attachedCandidateIndex = new Map(
+		facts.candidates
+			.filter((candidate) => candidate.photo.file_size <= MAX_CANDIDATE_IMAGE_BYTES)
+			.map((candidate, index) => [candidate.id, representatives.length + index + 1])
+	);
 	const base = {
 		assignment: {
 			...facts.assignment,
@@ -548,10 +598,11 @@ export function buildSuspicionInferenceContext(
 		},
 		cross_assignment_candidates: facts.candidates.map((candidate) => ({
 			id: candidate.id,
+			file_name: candidate.photo.file_name,
 			sha256: candidate.sha256,
 			distance: candidate.distance,
 			matched_photo_ids: [...candidate.matched_photo_ids].sort().slice(0, 12),
-			attached_image: candidate.photo.file_size <= MAX_CANDIDATE_IMAGE_BYTES
+			attached_image_index: attachedCandidateIndex.get(candidate.id) ?? null
 		}))
 	};
 	let communications = recentCommunications;
@@ -587,7 +638,7 @@ export function suspicionPrompt(
 		'Visual similarity inside one assignment is a neutral fact because legitimate repeated views are possible.',
 		'Use only physical scene markers such as door plates, house numbers, street or building signs, mailboxes, lobby signs and lift permits when assessing location. Ignore uploader-controlled timestamp, GPS and address overlays, work labels, tape measures, tag numbers, bin or lamppost ids and telephone numbers.',
 		'Duplicate reuse only matters between distinct assignments: an identical file submitted under the same assignment is a neutral repeat, never evidence.',
-		'The context may list cross_assignment_candidates: photographs retrieved from OTHER assignments whose perceptual hash sits close to one of this assignment\u2019s photos. A candidate with attached_image true is also attached to this turn, after this assignment\u2019s own photos.',
+		'The context may list cross_assignment_candidates: photographs retrieved from OTHER assignments whose learned image embedding sits close to one of this assignment\u2019s photos. Every attached photo is identified by attached_image_index; use those indices and matched_photo_ids to compare the intended pairs rather than guessing attachment order.',
 		'If a candidate photo shows the same physical scene as the photo it was matched with \u2014 the same view cropped, zoomed, recompressed, re-photographed or re-sent \u2014 the same evidence is serving two assignments. Raise an unresolved suspicion, name both photos in the reason, and cite this assignment\u2019s photo id.',
 		'A candidate showing a different unit, storey, house or street, or a plausibly distinct scene of the same trade, is not reuse; treat the pair as cleared.',
 		'Raise an unresolved suspicion when physical scenes show multiple unexplained sites mixed into one assignment, while acknowledging any valid assigned-site evidence in the same batch.',
@@ -711,11 +762,16 @@ export function reviewAssignmentSuspicion(
 			return { status: 'skipped_checked' as const };
 
 		const loadedFacts = yield* loadFacts(api, assignment);
-		const representativePhotos = selectSuspicionInferencePhotos(loadedFacts.photos);
-		const candidates = yield* loadCrossAssignmentCandidates(
-			api,
-			assignment.id,
-			representativePhotos
+		const candidates = yield* loadCrossAssignmentCandidates(api, assignment.id, loadedFacts.photos);
+		// Guarantee one visible own-side photo for each winning cross-assignment pair before filling
+		// the remaining attachment slots with ordinary signal/temporal representatives.
+		const matchedPhotoPriority = [
+			...candidates.flatMap((candidate) => candidate.matched_photo_ids.slice(0, 1)),
+			...candidates.flatMap((candidate) => candidate.matched_photo_ids)
+		];
+		const representativePhotos = selectSuspicionInferencePhotos(
+			loadedFacts.photos,
+			matchedPhotoPriority
 		);
 		const facts: SuspicionReviewFacts = { ...loadedFacts, candidates };
 		const basis = buildSuspicionReviewBasis(facts);

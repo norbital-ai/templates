@@ -1,7 +1,7 @@
-import type { CollectionHooks } from '@norbital-ai/bolt/authoring';
+import { refuse } from '@norbital-ai/bolt/authoring';
 import { Effect, Schema } from 'effect';
-import type { WorkspaceSchema } from '$bolt/types.js';
 import { currentDate } from '../../lib/clock.js';
+import type { Hooks } from './$types.js';
 
 const assignmentIdentitySchema = Schema.Struct({
 	job_id: Schema.optional(Schema.NullOr(Schema.String)),
@@ -17,7 +17,7 @@ type AssignmentStatus = Schema.Schema.Type<typeof assignmentStatusSchema>;
 const ASSIGNMENT_BATCH_LIMIT = 5_000;
 
 function requireId(value: string | null | undefined, message: string): string {
-	if (!value) throw new Error(message);
+	if (!value) refuse(message);
 	return value;
 }
 
@@ -43,7 +43,7 @@ function assignmentStatus(value: string | null | undefined): AssignmentStatus {
 		case null:
 			return 'assigned';
 		default:
-			throw new Error(`Unsupported assignment status: ${value}.`);
+			refuse(`Unsupported assignment status: ${value}.`);
 	}
 }
 
@@ -52,10 +52,10 @@ export function assertAssignmentIdentityUnchanged(
 	existing: Required<AssignmentIdentity>
 ): void {
 	if (input.job_id != null && input.job_id !== existing.job_id) {
-		throw new Error('A dispatched assignment cannot be moved to another job.');
+		refuse('A dispatched assignment cannot be moved to another job.');
 	}
 	if (input.assignee_user_id != null && input.assignee_user_id !== existing.assignee_user_id) {
-		throw new Error('A dispatched assignment cannot be moved to another assignee.');
+		refuse('A dispatched assignment cannot be moved to another assignee.');
 	}
 }
 
@@ -116,13 +116,13 @@ export function repeatedWithinBatch<T extends AssignmentCreateInput>(
 /**
  * One dispatch, decided.
  *
- * This is the whole of the create rule, and it is written once. It used to be written twice — a
- * `batchHandler` beside the per-record `handler`, only the second of which the runtime ever called —
- * and the two had already drifted: only the batch copy refused a job claimed twice inside one call.
+ * This is the whole of the create rule, and it is written once, per record — the per-record handler
+ * is the only rule the runtime runs, so every row in a batch is decided by exactly this code, and a
+ * job claimed twice inside one call is refused on every row that claims it.
  *
- * That refusal is kept here, and it now refuses *every* row claiming a repeated job rather than
- * sparing the first. The outcome is the same either way, because a batch is one transaction and a
- * refusal fails all of it; the difference is only which row the message names.
+ * The refusal is kept here, and it refuses *every* row claiming a repeated job rather than sparing
+ * the first. The outcome is the same either way, because a batch is one transaction and a refusal
+ * fails all of it; the difference is only which row the message names.
  */
 export function assignmentCreateValues<T extends AssignmentCreateInput>(
 	input: T,
@@ -139,9 +139,9 @@ export function assignmentCreateValues<T extends AssignmentCreateInput>(
 		'Job assignment must reference the person it is dispatched to.'
 	);
 	const job = lookup.jobs.get(jobId);
-	if (!job) throw new Error('Referenced job does not exist.');
+	if (!job) refuse('Referenced job does not exist.');
 	if (lookup.occupiedJobIds.has(jobId) || lookup.repeatedJobIds.has(jobId)) {
-		throw new Error('This job already has an assignment.');
+		refuse('This job already has an assignment.');
 	}
 	const sourceMessageId = input.source_message_id;
 	if (
@@ -149,7 +149,7 @@ export function assignmentCreateValues<T extends AssignmentCreateInput>(
 		(lookup.occupiedSourceMessageIds.has(sourceMessageId) ||
 			lookup.repeatedSourceMessageIds.has(sourceMessageId))
 	) {
-		throw new Error('A job assignment with this source_message_id already exists.');
+		refuse('A job assignment with this source_message_id already exists.');
 	}
 
 	return {
@@ -164,16 +164,9 @@ export function assignmentCreateValues<T extends AssignmentCreateInput>(
 /**
  * `Hooks` with what `prepare` returns filled in.
  *
- * The generated `Hooks` alias fixes that parameter at `void`, so a collection that prepares anything
- * has to name the type itself. Once `bolt sync` emits `Hooks<Prepared = void>` this becomes
- * `satisfies Hooks<AssignmentCreateBatchLookup>`.
+ * The generated `Hooks` alias carries the `Prepared` parameter, so a collection that prepares
+ * anything names it at the `satisfies` below.
  */
-type JobAssignmentHooks = CollectionHooks<
-	WorkspaceSchema,
-	'job_assignments',
-	AssignmentCreateBatchLookup
->;
-
 export default {
 	mutate: {
 		prepare: ({ inputs, api }) => {
@@ -270,7 +263,7 @@ export default {
 			}
 		}
 	}
-} satisfies JobAssignmentHooks;
+} satisfies Hooks<AssignmentCreateBatchLookup>;
 
 /**
  * A job's state, from the state of the assignment on it.
