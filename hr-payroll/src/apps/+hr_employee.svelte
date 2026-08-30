@@ -23,11 +23,21 @@
 	import {
 		formatCalendarDate,
 		formatDurationHours,
-		formatObligationTerms,
 		formatLeaveRange,
-		formatNumeric,
-		formatInstalments
+		formatNumeric
 	} from '../lib/ui/display-formatters.js';
+	import {
+		leaveBalance,
+		resolveEntitlement,
+		carriedInDays,
+		accruedDays,
+		expiredDays,
+		leaveYearStart,
+		leaveYearOf,
+		type BalanceInput
+	} from '../collections/payroll_runs/lib/leave.js';
+	import { sealedProfileCovering } from '../lib/statutory_profile.js';
+	import { completedMonths } from '../collections/payroll_runs/lib/dates.js';
 	import {
 		PAYROLL_TIME_ZONE,
 		daysBetweenKeys,
@@ -68,6 +78,23 @@
 	const today = todayKey();
 
 	const { t } = useI18n<TenantI18nKeys>();
+
+	/**
+	 * Source id → the period that holds its capture, from one junction read.
+	 *
+	 * The three settlement lookups on this screen — attendance, leave, entries — share one shape,
+	 * so the index is built once here and each junction read stays a one-expression query.
+	 */
+	function capturesBySource(
+		rows: readonly { readonly period: string }[] | undefined,
+		sourceColumn: string
+	): Map<string, { readonly period: string }> {
+		const byId = new Map<string, { readonly period: string }>();
+		if (rows == null) return byId;
+		for (const row of rows)
+			byId.set(String(Reflect.get(row, sourceColumn)), { period: row.period });
+		return byId;
+	}
 
 	/** Every catalogue read on this page skips rows still held under an approval request. */
 	const approved = { approval_id: { isNull: true } } as const;
@@ -193,7 +220,7 @@
 	/** No window means no day lock on this page: it is stated once instead of mapped over the month. */
 	const NO_DAY_LOCKS: ReadonlyMap<string, DayLock> = new Map();
 
-	type ClaimRow = WorkspaceRow<'obligations'>;
+	type ClaimRow = WorkspaceRow<'component_entries'>;
 	type PayslipRow = WorkspaceRow<'payslips'> & {
 		readonly payslip_payroll_run?: Pick<WorkspaceRow<'payroll_runs'>, 'period'> | null;
 	};
@@ -240,7 +267,7 @@
 			existing: true,
 			approvalId: row.approval_id,
 			dates: [],
-			settledBy: claimSettlementByObligationId.get(row.id) ?? null,
+			settledBy: claimSettlementByEntryId.get(row.id) ?? null,
 			datePassed: 'IS_NOT_A_LOCK'
 		});
 	}
@@ -434,25 +461,55 @@
 	const scheduleSettlementsQuery = $derived.by(() => {
 		const ids = scheduleWorkDays.map((row) => row.id);
 		if (ids.length === 0) return null;
-		return client.db.payslip_adjustments.findMany({
-			where: { source: { in: ids.map((id) => ({ kind: 'WORK_DAY' as const, id })) } },
-			columns: { source: true, period: true },
+		return client.db.payslip_work_day_inputs.findMany({
+			where: { work_day_id: { in: ids } },
+			columns: { work_day_id: true, period: true },
 			limit: 200
 		});
 	});
-	const settlementByWorkDayId = $derived(
-		new Map(
-			(scheduleSettlementsQuery?.current ?? []).map((claim) => [
-				claim.source.id,
-				{ period: claim.period }
-			])
-		)
+	/**
+	 * The governing statutory profile: the SEALED version of the company's law family covering
+	 * today. The balance panel reads its floors; without one the panel renders nothing rather than
+	 * a wrong zero.
+	 */
+	const profileAnchorQuery = $derived(
+		company?.jurisdiction_id == null
+			? null
+			: client.db.jurisdictions.findFirst({
+					where: { id: { eq: company.jurisdiction_id } },
+					columns: { code: true }
+				})
+	);
+	const profileRowsQuery = $derived(
+		profileAnchorQuery?.current?.code == null
+			? null
+			: client.db.jurisdictions.findMany({
+					where: {
+						code: { eq: profileAnchorQuery.current.code },
+						lifecycle: { eq: 'SEALED' }
+					},
+					limit: 100
+				})
+	);
+	const governingProfile = $derived.by(() => {
+		const rows = profileRowsQuery?.current;
+		if (rows == null || rows.length === 0) return null;
+		return sealedProfileCovering(rows, rows[0].code, today);
+	});
+	const childFactsQuery = $derived(
+		employmentId == null
+			? null
+			: client.db.employee_children.findMany({
+					where: { employment_id: { eq: employmentId } },
+					limit: 200
+				})
 	);
 
 	/**
-	 * The same claim lookup for the leave table and the claims table below, scoped by the rows each
-	 * self-contained table renders. The tables own their own queries, so the ids are read once and
-	 * the claims scoped by them — the identical pattern `scheduleSettlementsQuery` uses.
+	 * The same capture lookup for the leave table and the claims table below, scoped by the rows
+	 * each self-contained table renders. `settlementLedgerGrants()` exposes exactly the source-id +
+	 * period pair, so the walk through payslip and run the predecessor needed is gone and so is
+	 * every level of it an employee had no grant to make.
 	 */
 	const myLeaveIdsQuery = $derived(
 		employmentId == null
@@ -463,57 +520,153 @@
 					limit: 500
 				})
 	);
-	const myLeaveSettlementsQuery = $derived.by(() => {
-		const ids = (myLeaveIdsQuery?.current ?? []).map((row) => row.id);
-		if (ids.length === 0) return null;
-		return client.db.payslip_adjustments.findMany({
-			where: { source: { in: ids.map((id) => ({ kind: 'LEAVE_REQUEST' as const, id })) } },
-			columns: { source: true, period: true },
-			limit: 500
-		});
-	});
-	const leaveSettlementByRequestId = $derived(
-		new Map(
-			(myLeaveSettlementsQuery?.current ?? []).map((claim) => [
-				claim.source.id,
-				{ period: claim.period }
-			])
-		)
-	);
-	/**
-	 * The claim lookup for the obligations table, in the same two reads the other two use.
-	 *
-	 * It was a three-level nested walk — entry, to payslip line, to payslip, to run — because the
-	 * period lived on the run. `payslip_adjustments` names the obligation directly and carries the
-	 * period on the row, and `settlementLedgerGrants()` exposes exactly that pair, so the walk is
-	 * gone and so is every level of it an employee had no grant to make.
-	 */
-	const myObligationIdsQuery = $derived(
+	const myEntryIdsQuery = $derived(
 		employmentId == null
 			? null
-			: client.db.obligations.findMany({
+			: client.db.component_entries.findMany({
 					where: { employment_id: { eq: employmentId } },
 					columns: { id: true },
 					limit: 500
 				})
 	);
-	const myObligationSettlementsQuery = $derived.by(() => {
-		const ids = (myObligationIdsQuery?.current ?? []).map((row) => row.id);
-		if (ids.length === 0) return null;
-		return client.db.payslip_adjustments.findMany({
-			where: { source: { in: ids.map((id) => ({ kind: 'OBLIGATION' as const, id })) } },
-			columns: { source: true, period: true },
-			limit: 500
+	/** The balance ledger: every settled movement of every leave type, for the panel's derivation. */
+	const myLeaveLedgerQuery = $derived(
+		employmentId == null
+			? null
+			: client.db.leave_requests.findMany({
+					where: { employment_id: { eq: employmentId }, approval_id: { isNull: true } },
+					columns: { id: true, leave_type_id: true, from_date: true, kind: true, days: true },
+					limit: 500
+				})
+	);
+	const myLeaveCapturesQuery = $derived(
+		employmentId == null
+			? null
+			: client.db.payslip_leave_request_inputs.findMany({
+					where: {
+						leave_request_id: { in: (myLeaveIdsQuery?.current ?? []).map((row) => row.id) }
+					},
+					columns: { leave_request_id: true, period: true },
+					limit: 500
+				})
+	);
+	const myEntryCapturesQuery = $derived(
+		employmentId == null
+			? null
+			: client.db.payslip_component_entry_inputs.findMany({
+					where: {
+						component_entry_id: { in: (myEntryIdsQuery?.current ?? []).map((row) => row.id) }
+					},
+					columns: { component_entry_id: true, period: true },
+					limit: 500
+				})
+	);
+	const leaveSettlementByRequestId = $derived(
+		capturesBySource(myLeaveCapturesQuery?.current, 'leave_request_id')
+	);
+	const claimSettlementByEntryId = $derived(
+		capturesBySource(myEntryCapturesQuery?.current, 'component_entry_id')
+	);
+	const settlementByWorkDayId = $derived(
+		capturesBySource(scheduleSettlementsQuery?.current, 'work_day_id')
+	);
+
+	/**
+	 * The leave balance panel: per live leave type of the active employment, the full derivation —
+	 * entitlement, carried-in, accrued, taken, encashed, expired, remaining. The same pure
+	 * functions the request guard and the engine run, over the employee's own readable rows; no new
+	 * storage, no new grant beyond the child facts read.
+	 */
+	const profileLeaveTypes = $derived(
+		governingProfile == null
+			? []
+			: (leaveTypesQuery.current ?? []).filter(
+					(type) => type.statutory_profile_id === governingProfile.id
+				)
+	);
+	const leaveLedgerRows = $derived(
+		(myLeaveLedgerQuery?.current ?? []).flatMap((row) => {
+			if (row.from_date == null) return [];
+			return [
+				{
+					id: row.id,
+					leave_type_id: row.leave_type_id,
+					entry_date: formatDateISO(row.from_date),
+					kind: row.kind ?? 'TAKEN',
+					days: Number(row.days),
+					source_id: null,
+					approval_id: null
+				}
+			];
+		})
+	);
+	const childFactRows = $derived(childFactsQuery?.current ?? []);
+	const leaveBalanceRows = $derived.by(() => {
+		const profile = governingProfile;
+		const employment = activeEmployment;
+		if (profile == null || employment == null) return [];
+		const hire = formatDateISO(employment.hire_date) || today;
+		const exit =
+			employment.exit_date == null ? null : (formatDateISO(employment.exit_date) ?? null);
+		const yearStart = Number(company?.leave_year_start_month ?? 1);
+		return profileLeaveTypes.map((type) => {
+			const entitlementAt = (serviceMonths: number, asOf: string) =>
+				resolveEntitlement({
+					leaveType: type,
+					profile,
+					children: childFactRows,
+					serviceMonths,
+					employmentId: employment.id,
+					asOf
+				});
+			const input: BalanceInput = {
+				leaveType: type,
+				entitlementAt,
+				hireDate: hire,
+				exitDate: exit,
+				leaveYearStartMonth: yearStart,
+				ledger: leaveLedgerRows,
+				basis: 'SETTLED'
+			};
+			const year = leaveYearOf(today, yearStart);
+			const entitlement = entitlementAt(completedMonths(hire, today), today);
+			return {
+				type,
+				entitlement,
+				carried: carriedInDays(input, year),
+				accrued: accruedDays({
+					leaveType: type,
+					entitlementAt,
+					hireDate: hire,
+					exitDate: exit,
+					leaveYearStart: leaveYearStart(today, yearStart),
+					asOf: today
+				}),
+				expired: expiredDays(input, year, today),
+				taken: Math.abs(
+					leaveLedgerRows
+						.filter(
+							(row) =>
+								row.leave_type_id === type.id &&
+								Number(row.days) < 0 &&
+								row.entry_date >= leaveYearStart(today, yearStart) &&
+								row.entry_date <= today
+						)
+						.reduce((total, row) => total + Number(row.days), 0)
+				),
+				encashed: -leaveLedgerRows
+					.filter(
+						(row) =>
+							row.leave_type_id === type.id &&
+							Number(row.days) > 0 &&
+							row.entry_date >= leaveYearStart(today, yearStart) &&
+							row.entry_date <= today
+					)
+					.reduce((total, row) => total + Number(row.days), 0),
+				remaining: leaveBalance(input, today)
+			};
 		});
 	});
-	const claimSettlementByObligationId = $derived(
-		new Map(
-			(myObligationSettlementsQuery?.current ?? []).map((claim) => [
-				claim.source.id,
-				{ period: claim.period }
-			])
-		)
-	);
 
 	const scheduleHolidays = $derived(scheduleHolidaysQuery?.current ?? []);
 	const scheduleHolidayNames = $derived(holidayNamesByDate(scheduleHolidays));
@@ -618,9 +771,9 @@
 	 *   - full-day leave      — `assertDayNotOwnedByLeave`: one writer wins the day. A HALF day is
 	 *                           still reportable, because the hook only refuses full coverage
 	 *
-	 * A roster-only person-day is deliberately NOT a blocker. The employee update grant is scoped to
-	 * their own employment and masked to `worked_intervals` / `break_minutes`, so a report updates
-	 * the clock on that row while leaving the plan intact. A day with no row still uses create.
+	 * A roster-only person-day is deliberately NOT a blocker. The employee `mutate.existing` grant is
+	 * scoped to their own employment and masked to `worked_intervals` / `break_minutes`, so a report
+	 * changes the clock on that row while leaving the plan intact. A day with no row uses `mutate.new`.
 	 *
 	 * ONE REFUSAL IS DELIBERATELY NOT PRE-CHECKED HERE, AND MUST NOT BE ADDED.
 	 *
@@ -1111,7 +1264,7 @@
 	<Cover gap="md" top={contextGate}>
 		<CollectionTable
 			{client}
-			collection="obligations"
+			collection="component_entries"
 			view="hr_employee:claims"
 			title={t('app.hr_employee.my_components_title')}
 			description={t('app.hr_employee.my_components_description')}
@@ -1119,7 +1272,6 @@
 			recordMetadata={(row) => sourceLockRecordMetadata(claimRowLock(row), t)}
 			query={{
 				where: {
-					terms: { ne: 'SCHEDULED' },
 					employment_id: employmentId ? { eq: employmentId } : undefined
 				},
 				orderBy: { event_date: 'desc' }
@@ -1129,13 +1281,7 @@
 				<Column name="pay_component_id" label={t('component.component')} card="title" />
 				<Column name="amount" label={t('component.amount')} />
 				<Column name="event_date" label={t('component.date')} />
-				<Column
-					name="terms"
-					label={t('component.obligation_terms')}
-					card="subtitle"
-					renderer={FormattedValueRenderer}
-					rendererProps={{ format: ({ row }) => formatObligationTerms(row, t) }}
-				/>
+				<Column name="event" card="subtitle" />
 			{/snippet}
 		</CollectionTable>
 	</Cover>
@@ -1145,7 +1291,7 @@
 	<Cover gap="md" top={contextGate}>
 		<CollectionTable
 			{client}
-			collection="obligations"
+			collection="loans"
 			view="hr_employee:loans"
 			features={{ create: false }}
 			title={t('app.hr_employee.my_loans_title')}
@@ -1154,7 +1300,6 @@
 			initialFilters={inForceTodayFilter()}
 			query={{
 				where: {
-					terms: { eq: 'SCHEDULED' },
 					employment_id: employmentId ? { eq: employmentId } : undefined
 				},
 				orderBy: { effective_range: 'desc' }
@@ -1162,14 +1307,7 @@
 		>
 			{#snippet columns({ Column })}
 				<Column name="reference" card="title" />
-				<Column name="amount" label={t('component.principal')} />
-				<Column
-					name="instalments"
-					label={t('component.recovery_instalments')}
-					card="subtitle"
-					renderer={FormattedValueRenderer}
-					rendererProps={{ format: ({ value }) => formatInstalments(value, t) }}
-				/>
+				<Column name="principal" label={t('component.principal')} />
 				<Column name="effective_range" />
 			{/snippet}
 		</CollectionTable>
@@ -1264,8 +1402,9 @@
 	The day detail, shared with the controller's board and told which audience it has.
 
 	`mode="employee"` is the whole difference: the roster-code picker and the interval editor are the
-		controller's affordances and an employee has neither grant behind them — `create` and `update`
-		on `work_days` are scoped to their own employment and masked to the clock fields, with no delete.
+		controller's affordances and an employee has neither grant behind them — `mutate.new` and
+		`mutate.existing` on `work_days` are scoped to their own employment and masked to the clock fields,
+		with no delete.
 		The sheet's Save is routed back out to `saveDaySheet`, so this app owns the single place a
 		`work_days` row is created or its attendance is updated; the tile's report chip opens the preview
 		dialog below, which writes the same row shape.

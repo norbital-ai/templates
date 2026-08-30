@@ -3,10 +3,34 @@ import { refuse } from '@norbital-ai/bolt/authoring';
 import type { Hooks } from './$types.js';
 
 /**
- * Results belong to their run. Once a run has been calculated or paid its payslips are the record of
- * what was settled; a correction is a compensating entry in a later run, not a deletion.
+ * A payslip is engine output, and output is create-and-delete, never edit.
+ *
+ * The engine builds a run inside `payroll_runs` hooks and returns it as one declarative payload;
+ * a recalculation deletes the previous build's rows and creates new ones in the same statement, so
+ * no legitimate write path ever patches a stored payslip. No policy grants `mutate.existing` on this
+ * collection, and this hook is the second lock: even a mis-granted direct write refuses here,
+ * because a settled figure that can be quietly edited is not a settled figure.
+ *
+ * Deletion keeps its own guard — a payslip may leave with a draft recalculation, and never
+ * after the run has been paid.
  */
 export default {
+	mutate: {
+		perRecord: {
+			before: {
+				description:
+					'Refuses updating a payslip. Output rows are created and replaced by the payroll engine only; a correction is a component entry in a later draft run.',
+				handler: ({ input, existing }) => {
+					if (existing !== undefined)
+						refuse(
+							'A payslip is engine output and cannot be edited. Recalculate its draft run, or ' +
+								'correct a paid one with a component entry in a later draft run.'
+						);
+					return input;
+				}
+			}
+		}
+	},
 	delete: {
 		perRecord: {
 			before: {

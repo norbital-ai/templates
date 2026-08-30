@@ -1,4 +1,8 @@
-import type { MutateBeforeContext, MutateEditContext } from '@norbital-ai/bolt/authoring';
+import {
+	refuse,
+	type MutateBeforeContext,
+	type MutateEditContext
+} from '@norbital-ai/bolt/authoring';
 import { Effect, Schema } from 'effect';
 import { currentInstant } from '../../lib/clock.js';
 import { docNoSeriesPattern, nextDocNo } from '../../lib/document-numbers.js';
@@ -6,6 +10,13 @@ import type { Hooks, WorkspaceRow } from './$types.js';
 
 const invoiceStatusSchema = Schema.Literals(['draft', 'confirmed', 'cancelled']);
 type InvoiceStatus = Schema.Schema.Type<typeof invoiceStatusSchema>;
+
+const decodeInvoiceStatus = (value: unknown) =>
+	Schema.decodeUnknownEffect(invoiceStatusSchema)(value).pipe(
+		Effect.catch(() =>
+			Effect.sync(() => refuse('Purchase invoice status must be draft, confirmed, or cancelled.'))
+		)
+	);
 
 type InvoiceUpdate = {
 	-readonly [K in keyof WorkspaceRow<'purchase_invoices'>]?: WorkspaceRow<'purchase_invoices'>[K];
@@ -24,18 +35,16 @@ type EditContext = MutateEditContext<Hooks>;
 const beforeCreate = ({ input, api }: BeforeContext) =>
 	Effect.gen(function* () {
 		if (!input.purchase_order_id) {
-			return yield* Effect.fail(new Error('A purchase invoice must reference a purchase order.'));
+			refuse('A purchase invoice must reference a purchase order.');
 		}
 		const order = yield* api.db.purchase_orders.findFirst({
 			where: { id: { eq: input.purchase_order_id } }
 		});
 		if (!order) {
-			return yield* Effect.fail(new Error('Referenced purchase order does not exist.'));
+			refuse('Referenced purchase order does not exist.');
 		}
 		if (order.status !== 'confirmed') {
-			return yield* Effect.fail(
-				new Error('Invoices can only be booked against a confirmed purchase order.')
-			);
+			refuse('Invoices can only be booked against a confirmed purchase order.');
 		}
 
 		const resolved = {
@@ -74,24 +83,18 @@ const beforeCreate = ({ input, api }: BeforeContext) =>
 /** An edit lands on a stored row; `existing` is what tells the two apart. */
 const beforeUpdate = ({ input, existing, api }: EditContext) =>
 	Effect.gen(function* () {
-		const newStatus = yield* Schema.decodeUnknownEffect(invoiceStatusSchema)(
-			input.status ?? existing.status
-		);
-		const oldStatus = yield* Schema.decodeUnknownEffect(invoiceStatusSchema)(existing.status);
+		const newStatus = yield* decodeInvoiceStatus(input.status ?? existing.status);
+		const oldStatus = yield* decodeInvoiceStatus(existing.status);
 
 		if (oldStatus === newStatus) {
 			if (oldStatus === 'draft') return input;
-			return yield* Effect.fail(
-				new Error(`A ${oldStatus} purchase invoice is immutable. Revise by booking a new invoice.`)
-			);
+			refuse(`A ${oldStatus} purchase invoice is immutable. Revise by booking a new invoice.`);
 		}
 
 		const allowed = VALID_TRANSITIONS[oldStatus];
 		if (!allowed.includes(newStatus)) {
-			return yield* Effect.fail(
-				new Error(
-					`Invalid status transition: ${oldStatus} → ${newStatus}. Allowed: ${allowed.join(', ')}.`
-				)
+			refuse(
+				`Invalid status transition: ${oldStatus} → ${newStatus}. Allowed: ${allowed.join(', ')}.`
 			);
 		}
 
@@ -103,9 +106,7 @@ const beforeUpdate = ({ input, existing, api }: EditContext) =>
 				limit: 1
 			});
 			if (lines.length === 0) {
-				return yield* Effect.fail(
-					new Error('A purchase invoice must have at least one line before it can be confirmed.')
-				);
+				refuse('A purchase invoice must have at least one line before it can be confirmed.');
 			}
 			if (existing.confirmed_at == null) {
 				updates.confirmed_at = (yield* currentInstant).toISOString();
@@ -115,7 +116,7 @@ const beforeUpdate = ({ input, existing, api }: EditContext) =>
 		if (newStatus === 'cancelled') {
 			const cancelReason = input.cancel_reason ?? existing.cancel_reason;
 			if (!cancelReason || String(cancelReason).trim() === '') {
-				return yield* Effect.fail(new Error('A cancellation reason is required.'));
+				refuse('A cancellation reason is required.');
 			}
 			if (existing.cancelled_at == null) {
 				updates.cancelled_at = (yield* currentInstant).toISOString();

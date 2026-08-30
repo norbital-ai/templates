@@ -8,52 +8,61 @@ This template is a multi-country HR and payroll settlement workspace. It turns a
 attendance, leave and money events into auditable payroll results: effective-dated employment terms,
 roster-based day classification, statutory overtime and contributions, repayment schedules, draft
 recalculation, paid-run locking and source-linked payslip lines. It is built for countries whose
-statutes the engine encodes as data — Malaysia, the Philippines and Indonesia carry cited,
-effective-dated statutory rows — and everything a run pays is traceable back to the approved input
-that produced it.
+statutes the engine encodes as data — Malaysia, the Philippines and Indonesia carry cited law,
+versioned as sealed statutory profiles — and everything a run pays is traceable back to the approved
+input that produced it.
 
 ## The mental model
 
-Payroll is a deterministic settlement engine over approved, effective-dated facts. Inputs and
-outputs never share a table: approved inputs feed a calculator, and the only junction between a
-payslip and what produced it is the `payslip_lines` row.
+Payroll is a deterministic settlement engine over approved, effective-dated facts. Its two halves
+never share a table: **inputs** are the approved records a run read, and **outputs** are the
+immutable values it calculated from them. Every linkage is a real foreign key — four engine-owned
+input junctions tie each payslip to the work days, component entries, loan repayments and leave
+requests it consumed, and every payslip adjustment names exactly one of those captures.
 
 ```text
-APPROVED INPUTS                         SETTLED OUTPUT
+APPROVED INPUTS                          SETTLED OUTPUT
 
-employment_terms --+                 +-> payroll_runs [one policy snapshot]
-time_entries -------+                 |        |
+employment_terms --+                  +-> payroll_runs [one policy + statutory snapshot]
+work_days ----------+                 |        |
 leave_requests -----+--> calculator -+        v
 component_entries --+                          payslips
-       |                                        |
-       v                                        v
-pay_components <-------------------------- payslip_lines
- [policy + calculation +                    [the only junction]
-  entitlement union]                        |- pay_component_id
-                                             |- component_entry_id (when entry-backed)
-                                             `- statutory_contribution_id (when statutory)
+loan_repayments ----+                          |
+                                               |- base / proration / statutory (inlined)
+pay_components <-----------+                   |- payslip_work_day_inputs
+ [policy + calculation]    |                   |- payslip_component_entry_inputs
+                           |                   |- payslip_leave_request_inputs
+loans -> loan_repayments <-+                   |- payslip_loan_repayment_inputs
+                                               `- payslip_adjustments
+                                                  |- input: one captured input link
+                                                  |- label + bucket + amount (frozen)
+                                                  `- statutory_rule_key (work-day only)
 ```
 
 Five collections carry the payroll core:
 
 1. **`pay_components`** — one reusable definition with a strict settlement/statutory policy and a
    polymorphic calculation definition (`SCHEDULE`, `ENTRY`, `FORMULA`). Overtime is deliberately
-   not among them: it is derived from time entries priced against the jurisdiction's own overtime
+   not among them: it is derived from work days priced against the jurisdiction's own overtime
    rules, and its statutory treatment lives on the scheme that charges it.
-2. **`component_entries`** — approved monetary events: claims, allowances, adjustments, loan
-   instalments.
-3. **`payroll_runs`** — one company-period calculation with one captured configuration snapshot.
-4. **`payslips`** — one employment's totals in a run.
-5. **`payslip_lines`** — the direct payslip-to-component junction and complete breakdown.
+2. **`component_entries`** — approved employee-specific monetary facts: claims, standing
+   allowances, bonuses, arrears settlements and HR manual corrections.
+3. **`payroll_runs`** — one company-period calculation naming the statutory snapshot that governed
+   it and the calculation version that produced its outputs.
+4. **`payslips`** — one employment's totals, its inlined base/proration/statutory planes, and its
+   four captured-input junctions.
+5. **`payslip_adjustments`** — one settled thing per captured input, frozen so later catalogue or
+   law changes cannot rewrite history.
 
 Around that core: `companies` and `jurisdictions` scope the legal entity; `employments`,
 `employment_terms` and `employment_statutory_facts` describe a person's working facts;
-`shift_definitions`, `rosters`, `roster_entries`, `time_entries`,
-`company_holidays`, `leave_types` and `leave_requests` supply the schedule and leave facts;
-each effective-dated `jurisdictions` snapshot atomically owns overtime coverage, pricing and
-limits; `statutory_contributions` and `contribution_rates` remain normalized
-because contribution programmes and their bands have independent identities; and
-`repayment_agreements` carries staff loans and overpayment recoveries.
+`shift_definitions`, `rosters`, `work_days`, `company_holidays`, `leave_types` and
+`leave_requests` supply the schedule and leave facts; a sealed `jurisdictions` profile version
+atomically owns overtime coverage, pricing, limits and the statutory leave floors, and scopes the
+leave and pay catalogues; `statutory_contributions` and `contribution_rates` remain normalized
+because contribution programmes and their bands have independent identities, scoped to the profile
+and sealed with it; and `loans` with their `loan_repayments` carry staff loans and
+overpayment recoveries — the agreement, and the amounts due under it.
 
 Two invariants shape everything:
 
@@ -74,15 +83,15 @@ with several chooses which one the page scopes to.
 
 **`hr_controller`** (group) — the HR operating surface, seven pages:
 
-| App                   | What a user does in it                                                                                                                                                                                                                                                                                   |
-| --------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **People**            | The workforce: employee profiles, employments, effective-dated terms, statutory facts, and a workforce-shape chart                                                                                                                                                                                       |
-| **Scheduling**        | Plans the month on a roster board — one row per person, one glyph per day — publishes it against statutory rules, and manages shifts, work patterns and holidays. The attendance insight chart now lives on its Exceptions tab, and its import sits on the board's action menu beside the roster import. |
-| **Leave**             | Review leave requests and the leave types that entitle them, against year-to-date approval counters                                                                                                                                                                                                      |
-| **Loans**             | Review repayment agreements and their derived outstanding balance, with instalment recovery tracked per payslip                                                                                                                                                                                          |
-| **Pay components**    | The pay catalogue and the entry stream: claims, allowances, adjustments and their contribution treatment                                                                                                                                                                                                 |
-| **Payroll**           | Runs the payroll cycle: a pay-date board (late/current/upcoming), creating and recalculating runs, locking them paid, and exporting bank files, payslip PDFs and the report workbook                                                                                                                     |
-| **Statutory profile** | The regime every payroll is calculated against — effective-dated jurisdiction snapshots with atomic overtime and break policy, normalized contribution schemes and rates, and the companies bound to each (file `+settings.svelte`: a file name owns an app's identity)                                  |
+| App                   | What a user does in it                                                                                                                                                                                                                                                                                               |
+| --------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **People**            | The workforce: employee profiles, employments, effective-dated terms, statutory facts, and a workforce-shape chart                                                                                                                                                                                                   |
+| **Scheduling**        | Plans the month on a roster board — one row per person, one glyph per day — publishes it against statutory rules, and manages shifts, work patterns and holidays. The attendance insight chart now lives on its Exceptions tab, and its import sits on the board's action menu beside the roster import.             |
+| **Leave**             | Review leave requests and the leave types that entitle them, against year-to-date approval counters                                                                                                                                                                                                                  |
+| **Loans**             | Review loan agreements and their derived outstanding balance, with recovery tracked per repayment                                                                                                                                                                                                                    |
+| **Pay components**    | The pay catalogue and the entry stream: claims, allowances, bonuses, arrears and corrections, with their contribution treatment                                                                                                                                                                                      |
+| **Payroll**           | Runs the payroll cycle: a pay-date board (late/current/upcoming), creating and recalculating runs, locking them paid, and exporting bank files, payslip PDFs and the report workbook                                                                                                                                 |
+| **Statutory profile** | The regime every payroll is calculated against — versioned jurisdiction profiles (DRAFT → SEALED → VOIDED) with atomic overtime, break policy and statutory leave floors, their scoped contribution schemes and rates, and the companies bound to each (file `+settings.svelte`: a file name owns an app's identity) |
 
 ### Policies (7)
 
@@ -91,13 +100,14 @@ with several chooses which one the page scopes to.
 - **`supervisor`** — reads the team, reviews and records their attendance and leave.
 - **`manager`** — reads people operations across the company and owns their team's time and leave.
 - **`hr_controller`** — HR administration across people, scheduling, requests, loans and
-  adjustments, with payroll visible but not committable.
+  entries, with payroll visible but not committable.
 - **`hr_manager`** — everything HR administration covers, plus creating, running and deleting
   payroll runs.
 - **`senior_management`** — the full people-operations view, plus creating, running and deleting
   payroll runs.
-- **`statutory_drift_automation`** — the automation's authority: reads statutory and employment
-  snapshots, appends deterministic successor facts, and records durable drift research evidence.
+- **`statutory_drift_automation`** — the automation's authority: reads sealed statutory profiles
+  and employment facts, appends deterministic successor facts, and records durable drift research
+  evidence.
 
 Policies name the `hr_controller` app _group_ rather than each page, so adding a controller page
 does not mean revisiting every role declaration.
@@ -117,11 +127,13 @@ the signed-in person's policies remain the complete authority for a web-agent tu
 
 ### Automations (1)
 
-**`statutory_profile_drift`** — weekly automation (`0 3 * * 1`). Bounded reads of in-force jurisdiction
-snapshots, contribution schemes and employment statutory facts; rule-based drift detection; optional
-successor copy of `employment_statutory_facts` when a unique successor scheme exists; its policy
-requires HR Manager approval, and the create hook stages the predecessor close so approval settlement
-commits both rows or neither. `api.infer` writes the report. It never writes the law tables.
+**`statutory_profile_drift`** — weekly automation (`0 3 * * 1`). Bounded reads of the sealed
+statutory profiles in force, their contribution schemes and rates, and employment statutory facts;
+rule-based drift detection against the governing profile version; optional successor copy of
+`employment_statutory_facts` when the governing profile holds exactly one same-code scheme; its
+policy requires HR Manager approval, and the mutate hook stages the predecessor close so approval
+settlement commits both rows or neither. `api.infer` writes the report. It never writes the law
+tables.
 
 ### Integrations, seed
 
@@ -145,9 +157,9 @@ Everything the compiler knows about the workspace lives in `src/`:
 ```text
 src/
 ├── apps/                     # +<app>.svelte per app; hr_controller/+group.ts owns the group
-├── collections/              # 23 collections: +model.ts, +hooks.ts, +pipelines.ts, +representation.svelte
+├── collections/              # 27 collections: +model.ts, +hooks.ts, +pipelines.ts, +representation.svelte
 │   └── payroll_runs/lib/     # the settlement engine (phases, overtime, coverage, export)
-├── datatypes/                # 27 structured values (statutory_regime, work_pattern, overtime_band, …)
+├── datatypes/                # 30 structured values (statutory_regime, statutory_leave_profile, component_entry_event, …)
 ├── access/                   # +teams.ts, anonymous limits, and seven policies
 ├── i18n/                     # messages.en.json / messages.zh.json (same key set)
 ├── automations/              # statutory_profile_drift (weekly and manually triggerable)
@@ -159,18 +171,18 @@ src/
   `src/collections/+relationship.ts` owns the relation graph — foreign keys are derived from it,
   never declared in a model.
 - **Hooks** validate and derive. The payroll create hook resolves the run's attendance window, pay
-  date and configuration hash; the roster hooks enforce publishability; the repayment hooks keep an
-  instalment schedule exactly reconciled with its principal.
-  Effective-dated overlap and loan-instalment uniqueness are database constraints, not per-row hook
-  SELECTs: `createMany` must retain one hook invocation per record without turning a statutory table
-  or derived repayment schedule into one remote database round trip per row.
-- **Pipelines** (`+pipelines.ts` on `roster_entries`, `time_entries` and `payroll_runs`) shape
+  date and configuration hash; the roster hooks enforce publishability; the loan hooks keep a
+  repayment schedule exactly reconciled with its principal.
+  Effective-dated overlap and repayment-sequence uniqueness are database constraints, not per-row
+  hook SELECTs: a batched `mutate` must retain one hook invocation per record without turning a
+  statutory table or derived repayment schedule into one remote database round trip per row.
+- **Pipelines** (`+pipelines.ts` on `work_days` and `payroll_runs`) shape
   workbook import/export: the roster and attendance importers accept a month grid (or a long-form
   person-day sheet) for one legal entity, and the payroll exporter produces the bank file, payslip
   PDFs and report workbook the app offers.
 - **Representations** decide create/display/edit per collection. `payroll_runs` and `payslips`
   refuse hand-created output; a payslip is written by the engine, never by hand.
-- **i18n** — both catalogs carry the same 867 keys; app metadata in `<svelte:head>` stays static
+- **i18n** — both catalogs carry the same key set; app metadata in `<svelte:head>` stays static
   English, and per-locale sidebar labels come from the catalogs.
 
 ### The docs
@@ -191,7 +203,7 @@ The template includes focused arithmetic and export checks. `pnpm test` runs tha
 ```bash
 pnpm sync     # regenerate .norbital and emit .norbital/artifact/bundle.mjs
 pnpm lint     # prettier + svelte-check
-pnpm test     # everything below, plus the repayment-agreement and roster unit tests
+pnpm test     # everything below, plus the loan-recovery and roster unit tests
 node scripts/verify-payroll-arithmetic.mjs   # the long-form arithmetic acceptance run
 node scripts/verify-fixture-shapes.mjs       # audits that run's fixtures against the real API shape
 ```
@@ -237,12 +249,12 @@ artifact a host deploys.
   `src/+seed.ts` role, and seeding does not evolve deployed data. For an existing tenant, write the
   next lineage entry with `pnpm exec bolt migrate --name <name>`, edit its SQL, and deploy it
   through Colony.
-  Sensitive statutory seed (the jurisdiction regime snapshots and contribution rows) stays outside
+  Sensitive statutory seed (the statutory profile rows and contribution rows) stays outside
   this template, in the repository seed bank at `seed_bank/norbital_hr/statutory/`.
 - **Publishing** — the template pins `@norbital-ai/bolt` in its own `package.json` and lockfile.
   After a deliberate dependency move, refresh the template lock through the repository
   template-lock workflow. The templates release workflow advances
   `refs/heads/templates/hr-payroll`; a remote Colony host uses that exact commit when it provisions
-  a new tenant, while an existing tenant remains on the revision it adopted. `pnpm yalc:link` only
-  tests locally built OSS dependencies inside this template and neither publishes template source
-  nor updates Colony.
+  a new tenant, while an existing tenant remains on the revision it adopted. From the Norbital
+  checkout, `pnpm run env -- link` only tests locally built OSS dependencies inside this template
+  and neither publishes template source nor updates Colony.

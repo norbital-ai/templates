@@ -1,4 +1,5 @@
 import {
+	captureLedgerGrants,
 	grantsOn,
 	grantOn,
 	leaveApproval,
@@ -8,6 +9,7 @@ import {
 	peopleGrants,
 	referenceGrants,
 	statutoryGrants,
+	statutoryProfileGrants,
 	workDayWriteGrants
 } from '../../lib/policy_grants.js';
 import type { Policy } from './$types.js';
@@ -29,10 +31,10 @@ import type { Policy } from './$types.js';
  *
  * **Adjustments are visible here, and the ladder below cannot see them.** The owner scoped
  * adjustment visibility to `hr_controller`/`hr_manager`; senior management is included because this
- * role is one of the two the controller's payroll create escalates to, and approving a run whose
- * corrections you are forbidden to read is a signature on a figure you cannot check. That is a
- * choice, and the narrower reading — HR only — is one grant away: put `NOT_AN_ADJUSTMENT` on the
- * `obligations` read below, exactly as `+manager.ts` does.
+ * role is one of the two the controller's `payroll_runs.mutate.new` grant escalates to, and approving
+ * a run whose corrections you are forbidden to read is a signature on a figure you cannot check. That is a
+ * choice, and the narrower reading — HR only — is one grant away: put `NOT_A_CORRECTION` on the
+ * `component_entries` read below, exactly as `+manager.ts` does.
  */
 export default {
 	description:
@@ -64,16 +66,23 @@ export default {
 	capabilities: { apps: ['hr_employee'] },
 
 	grants: mergeGrants(
+		// The capture-junction reads the lock refusals quote — the one part of the self-service
+		// surface a rank this high still needs and does not get from `payrollGrants`. Stated rather
+		// than inherited; see the composition test.
+		captureLedgerGrants(),
 		// The ordinary ladder, widened: senior management writes the configuration a manager only reads.
-		referenceGrants('read', 'create', 'update', 'delete'),
+		referenceGrants('read', 'mutate.new', 'mutate.existing', 'delete'),
 		statutoryGrants('read'),
+		statutoryProfileGrants(),
 		peopleGrants('read'),
-		peopleGrants('create', 'update', 'delete'),
+		peopleGrants('mutate.new', 'mutate.existing', 'delete'),
 		grantsOn('work_days', ['read']),
 
 		// Unconditional, so corrections are visible. See the note above for why this rank and not the
 		// one below it.
-		grantsOn('obligations', ['read', 'create', 'update', 'delete']),
+		grantsOn('component_entries', ['read', 'mutate.new', 'mutate.existing', 'delete']),
+		grantsOn('loans', ['read', 'mutate.new', 'mutate.existing', 'delete']),
+		grantsOn('loan_repayments', ['read', 'mutate.new', 'mutate.existing', 'delete']),
 
 		// Both sides of the person-day: publish the schedule, and record what happened against it.
 		// The approval resolver decides per write — a roster edit is not reviewed, and an attendance
@@ -83,14 +92,14 @@ export default {
 		// leaves the bad row sitting in the run.
 		workDayWriteGrants(),
 
-		grantsOn('leave_requests', ['read', 'update', 'delete']),
-		grantOn('leave_requests', 'create', { approval: leaveApproval }),
+		grantsOn('leave_requests', ['read', 'mutate.existing', 'delete']),
+		grantOn('leave_requests', 'mutate.new', { approval: leaveApproval }),
 
 		// The payroll authority, identical to `hr_manager`'s. Stated as the same three builder calls so
 		// that a change to what "running payroll" costs in permissions lands on both policies at once.
 		payrollGrants('read'),
 		payrollRebuildGrants(),
-		grantsOn('payroll_runs', ['create', 'update', 'delete'])
+		grantsOn('payroll_runs', ['mutate.new', 'mutate.existing', 'delete'])
 	),
 	/**
 	 * What a holder of this policy may spend.

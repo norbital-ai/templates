@@ -19,8 +19,9 @@
  *
  * ## What "a supervisor cannot edit attendance" means here, precisely
  *
- * A supervisor **can** write attendance — they always could; `time_entries` create and update were
- * theirs before the merge. What they cannot do, and must still not be able to do, is:
+ * A supervisor **can** write attendance — they always could; `time_entries.mutate.new` and
+ * `time_entries.mutate.existing` were theirs before the merge. What they cannot do, and must still
+ * not be able to do, is:
  *
  *   1. write attendance on their OWN authority — every attendance write they hold is reviewed by
  *      the direct manager, and the review is what makes the write land as a held request rather
@@ -69,22 +70,32 @@ const namesByPolicy = new Map(
 );
 const nameOf = (policy) => namesByPolicy.get(policy) ?? '<unknown policy>';
 
-/** `matches`: the grant this policy has for one collection and one action, or undefined. */
-const grantFor = (policy, collection, action) => policy.grants[collection]?.[action];
+/** `matches`: the grant this policy has for one collection and grant coordinate, or undefined. */
+const grantFor = (policy, collection, coordinate) => {
+	const [operation, phase] = coordinate.split('.');
+	return phase === undefined
+		? policy.grants[collection]?.[operation]
+		: policy.grants[collection]?.[operation]?.[phase];
+};
 
-const may = (policy, collection, action) => grantFor(policy, collection, action) !== undefined;
+const may = (policy, collection, coordinate) =>
+	grantFor(policy, collection, coordinate) !== undefined;
 
 /** The ranks below HR: the ones whose authority the merge could have widened. */
 const ORDINARY_RANKS = [employee, supervisor, manager];
 /** The ranks that own the roster board, and always did. */
 const SCHEDULE_RANKS = [seniorManagement, hrController, hrManager];
 
-test('an employee may update only their own attendance on an existing person-day', async () => {
-	const grant = grantFor(employee, 'work_days', 'update');
+test('an employee may mutate only their own existing person-day attendance', async () => {
+	const grant = grantFor(employee, 'work_days', 'mutate.existing');
 	assert.notEqual(grant, undefined, 'an employee cannot report against a roster-only day');
 	assert.deepEqual(grant.fields, WORK_DAY_ATTENDANCE_FIELDS);
 	for (const field of [...WORK_DAY_PLANNED_FIELDS, 'employment_id', 'work_date']) {
-		assert.equal(grant.fields.includes(field), false, `employee update can write ${field}`);
+		assert.equal(
+			grant.fields.includes(field),
+			false,
+			`employee mutate.existing can write ${field}`
+		);
 	}
 	assert.equal(typeof grant.authorize, 'function');
 	assert.notEqual(grant.approval, undefined);
@@ -129,7 +140,7 @@ test('an employee may update only their own attendance on an existing person-day
 			changes: { [field]: field === 'break_minutes' ? 30 : [] },
 			record: {}
 		});
-		assert.equal(flow._tag, 'Review', `employee update of ${field} is not reviewed`);
+		assert.equal(flow._tag, 'Review', `employee mutate.existing of ${field} is not reviewed`);
 		assert.deepEqual(flow.stages[0].approvers, ['L1 Manager', 'HR Manager', 'Senior Management']);
 	}
 });
@@ -138,11 +149,11 @@ test('a supervisor cannot edit attendance on their own authority', () => {
 	// Every write a supervisor holds on `work_days` is masked to the clock columns, and every write
 	// the resolver sees on a clock column is reviewed. So there is no reachable path by which a
 	// supervisor's edit to attendance becomes a stored fact without the direct manager deciding it.
-	for (const action of ['create', 'update']) {
-		const grant = grantFor(supervisor, 'work_days', action);
-		assert.notEqual(grant, undefined, `supervisor must still be able to raise a ${action}`);
-		assert.ok(Array.isArray(grant.fields), `supervisor ${action} has no field mask`);
-		assert.notEqual(grant.approval, undefined, `supervisor ${action} is not reviewed`);
+	for (const coordinate of ['mutate.new', 'mutate.existing']) {
+		const grant = grantFor(supervisor, 'work_days', coordinate);
+		assert.notEqual(grant, undefined, `supervisor must still be able to raise ${coordinate}`);
+		assert.ok(Array.isArray(grant.fields), `supervisor ${coordinate} has no field mask`);
+		assert.notEqual(grant.approval, undefined, `supervisor ${coordinate} is not reviewed`);
 		assert.equal(typeof grant.approval.flow, 'function');
 		// The resolver decides per write, so this is the shape check, not the decision check. The
 		// decision is checked below, where the record is the input.
@@ -151,26 +162,26 @@ test('a supervisor cannot edit attendance on their own authority', () => {
 
 	// A write that carries attendance is reviewed. `worked_intervals` present — even as the empty
 	// array, which claims "this day was read and nothing was worked" — is an attendance claim.
-	const create = grantFor(supervisor, 'work_days', 'create');
+	const newGrant = grantFor(supervisor, 'work_days', 'mutate.new');
 	for (const worked of [
 		[],
 		[{ start: '2026-08-03T01:00:00.000Z', end: '2026-08-03T09:00:00.000Z' }]
 	]) {
-		const flow = create.approval.flow({
+		const flow = newGrant.approval.flow({
 			record: { employment_id: 'e', work_date: '2026-08-03', worked_intervals: worked }
 		});
-		assert.equal(flow._tag, 'Review', 'an attendance create must be reviewed');
+		assert.equal(flow._tag, 'Review', 'an attendance mutate.new must be reviewed');
 		assert.deepEqual(flow.stages[0].approvers, ['L1 Manager', 'HR Manager', 'Senior Management']);
 	}
 
-	const update = grantFor(supervisor, 'work_days', 'update');
+	const existingGrant = grantFor(supervisor, 'work_days', 'mutate.existing');
 	for (const field of WORK_DAY_ATTENDANCE_FIELDS) {
-		const flow = update.approval.flow({
+		const flow = existingGrant.approval.flow({
 			previous: {},
 			changes: { [field]: field === 'break_minutes' ? 45 : [] },
 			record: {}
 		});
-		assert.equal(flow._tag, 'Review', `an update touching ${field} must be reviewed`);
+		assert.equal(flow._tag, 'Review', `mutate.existing touching ${field} must be reviewed`);
 	}
 
 	// And a supervisor may not take the day away instead. There is no `fields` mask on a delete —
@@ -182,32 +193,32 @@ test('no rank below HR may write the schedule half of a work day', () => {
 	// The merge's one real hazard, stated once per rank. A planned column inside a mask held by
 	// employee, supervisor or manager is the roster board handed to somebody who never had it.
 	for (const policy of ORDINARY_RANKS) {
-		for (const action of ['create', 'update']) {
-			const grant = grantFor(policy, 'work_days', action);
+		for (const coordinate of ['mutate.new', 'mutate.existing']) {
+			const grant = grantFor(policy, 'work_days', coordinate);
 			if (grant === undefined) continue;
-			assert.ok(Array.isArray(grant.fields), `${nameOf(policy)} ${action} has no field mask`);
+			assert.ok(Array.isArray(grant.fields), `${nameOf(policy)} ${coordinate} has no field mask`);
 			for (const planned of WORK_DAY_PLANNED_FIELDS) {
 				assert.equal(
 					grant.fields.includes(planned),
 					false,
-					`${nameOf(policy)} ${action} can write ${planned}`
+					`${nameOf(policy)} ${coordinate} can write ${planned}`
 				);
 			}
-			// A create has to say which person and day. The employee update's intentionally smaller
-			// identity-free mask is asserted in its dedicated test above.
-			if (action === 'create') {
+			// `mutate.new` has to say which person and day. The employee `mutate.existing` grant's
+			// intentionally smaller identity-free mask is asserted in its dedicated test above.
+			if (coordinate === 'mutate.new') {
 				for (const identity of ['employment_id', 'work_date'])
 					assert.ok(
 						grant.fields.includes(identity),
-						`${nameOf(policy)} ${action} cannot say ${identity}`
+						`${nameOf(policy)} ${coordinate} cannot say ${identity}`
 					);
 			}
 		}
 	}
 
-	// An employee raises or updates their own attendance and nothing else. There is still no delete
+	// An employee mutates their own attendance and nothing else. There is still no delete
 	// anywhere below HR except the manager's, which is checked next.
-	assert.equal(may(employee, 'work_days', 'update'), true);
+	assert.equal(may(employee, 'work_days', 'mutate.existing'), true);
 	assert.equal(may(employee, 'work_days', 'delete'), false);
 });
 
@@ -225,43 +236,50 @@ test("a manager's work-day delete cannot reach a day that carries a plan", () =>
 
 test('the HR ranks keep both halves, and a roster edit is not reviewed as attendance is', () => {
 	for (const policy of SCHEDULE_RANKS) {
-		for (const action of ['create', 'update']) {
-			const grant = grantFor(policy, 'work_days', action);
-			assert.notEqual(grant, undefined, `${nameOf(policy)} ${action}`);
+		for (const coordinate of ['mutate.new', 'mutate.existing']) {
+			const grant = grantFor(policy, 'work_days', coordinate);
+			assert.notEqual(grant, undefined, `${nameOf(policy)} ${coordinate}`);
 			for (const planned of WORK_DAY_PLANNED_FIELDS)
-				assert.ok(grant.fields.includes(planned), `${nameOf(policy)} ${action} lost ${planned}`);
+				assert.ok(
+					grant.fields.includes(planned),
+					`${nameOf(policy)} ${coordinate} lost ${planned}`
+				);
 			for (const actual of WORK_DAY_ATTENDANCE_FIELDS)
-				assert.ok(grant.fields.includes(actual), `${nameOf(policy)} ${action} lost ${actual}`);
+				assert.ok(grant.fields.includes(actual), `${nameOf(policy)} ${coordinate} lost ${actual}`);
 		}
 		assert.equal(may(policy, 'work_days', 'delete'), true, nameOf(policy));
 
 		// The half the merge would have lost by accident. `roster_entries` writes were never
 		// reviewed and `time_entries` writes always were; one grant per coordinate means one of the
 		// two rules had to move off the table name and onto the record. This is that rule.
-		const create = grantFor(policy, 'work_days', 'create');
+		const newGrant = grantFor(policy, 'work_days', 'mutate.new');
 		assert.equal(
-			create.approval.flow({
+			newGrant.approval.flow({
 				record: { employment_id: 'e', work_date: '2026-08-03', shift_definition_id: 's' }
 			})._tag,
 			'NoApproval',
 			`${nameOf(policy)} now needs a signature to publish a roster`
 		);
 		assert.equal(
-			create.approval.flow({
+			newGrant.approval.flow({
 				record: { employment_id: 'e', work_date: '2026-08-03', worked_intervals: [] }
 			})._tag,
 			'Review',
 			`${nameOf(policy)} can record attendance unreviewed`
 		);
 
-		const update = grantFor(policy, 'work_days', 'update');
+		const existingGrant = grantFor(policy, 'work_days', 'mutate.existing');
 		assert.equal(
-			update.approval.flow({ previous: {}, changes: { assignment_code: 'AMRES' }, record: {} })
-				._tag,
+			existingGrant.approval.flow({
+				previous: {},
+				changes: { assignment_code: 'AMRES' },
+				record: {}
+			})._tag,
 			'NoApproval'
 		);
 		assert.equal(
-			update.approval.flow({ previous: {}, changes: { break_minutes: 30 }, record: {} })._tag,
+			existingGrant.approval.flow({ previous: {}, changes: { break_minutes: 30 }, record: {} })
+				._tag,
 			'Review'
 		);
 	}

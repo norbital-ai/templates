@@ -18,6 +18,7 @@
 import { Effect } from 'effect';
 import { dateKey } from '../../lib/iso-day.js';
 import { leaveBalance, resolveEntitlement, type LedgerRow } from '../payroll_runs/lib/leave.js';
+import { sealedProfileCovering } from '../../lib/statutory_profile.js';
 import type { Hooks } from './$types.js';
 
 const LIMIT = 20_000;
@@ -35,10 +36,10 @@ export default {
 						const exitDate = dateKey(employment.exit_date);
 						if (exitDate === '') return;
 
-						const [company, encashableTypes, allRequests] = yield* Effect.all([
+						const [company, encashableTypes, allRequests, childFacts] = yield* Effect.all([
 							api.db.companies.findFirst({
 								where: { id: { eq: employment.company_id } },
-								columns: { leave_year_start_month: true }
+								columns: { leave_year_start_month: true, jurisdiction_id: true }
 							}),
 							api.db.leave_types.findMany({
 								where: { company_id: { eq: employment.company_id }, encash_on_exit: { eq: true } },
@@ -47,9 +48,35 @@ export default {
 							api.db.leave_requests.findMany({
 								where: { employment_id: { eq: employment.id } },
 								limit: LIMIT
+							}),
+							api.db.employee_children.findMany({
+								where: { employment_id: { eq: employment.id } },
+								limit: LIMIT
 							})
 						]);
 						if (company == null) return;
+						// The governing profile: the SEALED version of the company's law family covering the
+						// exit date. Without one, no statutory floor resolves and nothing is encashed — the
+						// company can still enact a version and settle the leaver afterwards.
+						const anchor =
+							company.jurisdiction_id == null
+								? undefined
+								: yield* api.db.jurisdictions.findFirst({
+										where: { id: { eq: company.jurisdiction_id } },
+										columns: { code: true }
+									});
+						const governingProfile =
+							anchor == null
+								? null
+								: sealedProfileCovering(
+										yield* api.db.jurisdictions.findMany({
+											where: { code: { eq: anchor.code }, lifecycle: { eq: 'SEALED' } },
+											limit: LIMIT
+										}),
+										anchor.code,
+										exitDate
+									);
+						if (governingProfile == null) return;
 
 						const ledger: LedgerRow[] = allRequests
 							.filter((row) => row.approval_id == null && row.from_date != null)
@@ -82,12 +109,14 @@ export default {
 							const balance = leaveBalance(
 								{
 									leaveType: type,
-									entitlementAtMonths: (serviceMonths: number) =>
+									entitlementAt: (serviceMonths: number, asOf: string) =>
 										resolveEntitlement({
 											leaveType: type,
+											profile: governingProfile,
+											children: childFacts,
 											serviceMonths,
 											employmentId: employment.id,
-											asOf: exitDate
+											asOf
 										}),
 									hireDate: dateKey(employment.hire_date),
 									exitDate,

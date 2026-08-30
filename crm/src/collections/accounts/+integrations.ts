@@ -34,7 +34,8 @@ const Currency = Schema.Literals(['CNY', 'USD', 'EUR', 'GBP', 'JPY', 'SGD', 'HKD
  */
 export default {
 	erp: {
-		policies: ['erp_accounts_integration'],
+		// Read is owned once by `accounts_read`; this binding-specific policy adds only import writes.
+		policies: ['accounts_read', 'erp_accounts_integration'],
 		connection: erp,
 		receive: {
 			customers_changed: definePull({

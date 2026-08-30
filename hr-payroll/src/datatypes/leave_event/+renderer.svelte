@@ -28,6 +28,7 @@
 	} from '../../lib/ui/leave/half-day-range-picker.svelte';
 	import { coversDate } from '../../collections/payroll_runs/lib/effective.js';
 	import { leaveBalance, resolveEntitlement } from '../../collections/payroll_runs/lib/leave.js';
+	import { sealedProfileCovering } from '../../lib/statutory_profile.js';
 	import { completedMonths } from '../../collections/payroll_runs/lib/dates.js';
 	import { payrollWindows, windowForDate } from '../../lib/scheduling/lock.js';
 	import { patternRosterCodeId } from '../../lib/scheduling/work-pattern.js';
@@ -128,6 +129,37 @@
 			? null
 			: client.db.companies.findFirst({ where: { id: { eq: employment.company_id } } })
 	);
+	/** The governing profile: the SEALED version of the company's law family covering today. */
+	const profileAnchorQuery = $derived(
+		companyQuery?.current?.jurisdiction_id == null
+			? null
+			: client.db.jurisdictions.findFirst({
+					where: { id: { eq: companyQuery.current.jurisdiction_id } },
+					columns: { code: true }
+				})
+	);
+	const profileQuery = $derived.by(() => {
+		const anchor = profileAnchorQuery?.current;
+		if (anchor == null) return null;
+		return client.db.jurisdictions.findMany({
+			where: { code: { eq: anchor.code }, lifecycle: { eq: 'SEALED' } },
+			limit: 100
+		});
+	});
+	const governingProfile = $derived.by(() => {
+		const rows = profileQuery?.current;
+		if (rows == null || rows.length === 0) return null;
+		const today = formatDateISO(new Date());
+		return sealedProfileCovering(rows, rows[0]?.code ?? '', today);
+	});
+	const childFactsQuery = $derived(
+		employmentId == null
+			? null
+			: client.db.employee_children.findMany({
+					where: { employment_id: { eq: employmentId } },
+					limit: 200
+				})
+	);
 	const leaveTypeQuery = $derived(
 		leaveTypeId == null
 			? null
@@ -190,16 +222,26 @@
 				source_id: null,
 				approval_id: row.approval_id
 			}));
-		const entitlementAtMonths = (serviceMonths: number) =>
-			resolveEntitlement({ leaveType, serviceMonths, employmentId, asOf });
+		const profile = governingProfile;
+		if (profile == null) return null;
+		const childFacts = childFactsQuery?.current ?? [];
+		const entitlementAt = (serviceMonths: number, asOfDate: string) =>
+			resolveEntitlement({
+				leaveType,
+				profile,
+				children: childFacts,
+				serviceMonths,
+				employmentId,
+				asOf: asOfDate
+			});
 		// Resolve once so a malformed entitlement layer is shown before submit, not after the drag.
-		entitlementAtMonths(completedMonths(hireDate, asOf));
+		entitlementAt(completedMonths(hireDate, asOf), asOf);
 		return Math.max(
 			0,
 			leaveBalance(
 				{
 					leaveType,
-					entitlementAtMonths,
+					entitlementAt,
 					hireDate,
 					exitDate: employment.exit_date == null ? null : formatDateISO(employment.exit_date),
 					leaveYearStartMonth: Number(company.leave_year_start_month),

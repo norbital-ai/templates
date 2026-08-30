@@ -20,7 +20,7 @@ import type { ReportLine, ReportPayslip } from './report.js';
 import { rosterCodeKind, workWindow } from '../../../lib/scheduling/roster-code.js';
 import { patternRosterCodeId } from '../../../lib/scheduling/work-pattern.js';
 import type { WorkPattern } from '../../../datatypes/work_pattern/+definition.js';
-import { normalizedWorkedIntervals, overtimeBandCode, type WorkDayLike } from './overtime.js';
+import { normalizedWorkedIntervals, type WorkDayLike } from './overtime.js';
 import type { WorkspaceRow } from '../$types.js';
 
 type RunExport = {
@@ -59,6 +59,33 @@ function timestampHours(row: WorkDayLike): number {
 		0
 	);
 	return Math.max(0, elapsed - Math.max(0, Number(row.break_minutes)) / 60);
+}
+
+/**
+ * The statutory day type a rule key names.
+ *
+ * The key spells the band as `OT_[EXCESS_]<day type>_<measure>_<from>` — the same shape
+ * `overtimeBandCode` writes — so the day type is the key's own words rather than a decode of a
+ * band blob. Two of the three day types are themselves two words long (`REST_DAY`,
+ * `PUBLIC_HOLIDAY`), so the match is prefix-based longest-first, not a split on `_`; an unknown
+ * key still names itself in the workbook column.
+ */
+const RULE_KEY_DAY_TYPES = ['REST_DAY', 'PUBLIC_HOLIDAY', 'ORDINARY'] as const;
+
+function overtimeRuleKeyDayType(
+	ruleKey: string
+): 'ORDINARY' | 'REST_DAY' | 'PUBLIC_HOLIDAY' | null {
+	const withoutPrefix = ruleKey.replace('OT_', '').replace('EXCESS_', '');
+	return (
+		RULE_KEY_DAY_TYPES.find(
+			(dayType) => withoutPrefix.startsWith(`${dayType}_`) || withoutPrefix === dayType
+		) ?? null
+	);
+}
+
+/** Whether a rule key names the excess above the statutory ceiling. */
+function overtimeRuleKeyIsExcess(ruleKey: string): boolean {
+	return ruleKey.includes('_EXCESS_');
 }
 
 /** Every roster code a pattern can project, so the shift definitions behind one can be loaded. */
@@ -105,10 +132,10 @@ export function loadRunExports(
 			[
 				api.db.payslip_adjustments.findMany({
 					where: { payslip_id: { in: payslipIds } },
-					// The obligation's own arm, hydrated through the reference rather than fetched by a
-					// second query: the workbook reports loan recovery in its own column, and
-					// `terms = SCHEDULED` is the whole of what makes an adjustment one.
-					with: { source: { OBLIGATION: { columns: { terms: true } } } },
+					// The repayment's own arm, hydrated through the reference rather than fetched by a
+					// second query: the workbook reports loan recovery in its own column, and the input
+					// family is the whole of what makes an adjustment one.
+					with: { input: { LOAN_REPAYMENT_INPUT: { columns: { loan_repayment_id: true } } } },
 					limit: PAGE_LIMIT
 				}),
 				api.db.employments.findMany({
@@ -169,28 +196,13 @@ export function loadRunExports(
 		readApi.reads.assertComplete(shifts, 'shift definitions');
 
 		// The schemes charged are on the payslips themselves now, one entry per scheme with both
-		// shares on it, so the ids come out of the rows already in hand rather than out of a join.
-		const contributionIds = [
-			...new Set(
-				payslips.flatMap((payslip) =>
-					payslip.statutory.map((charge) => charge.statutory_contribution_id)
-				)
-			)
-		];
-		const contributions = contributionIds.length
-			? yield* api.db.statutory_contributions.findMany({
-					where: { id: { in: contributionIds } },
-					limit: PAGE_LIMIT
-				})
-			: [];
-
-		const componentById = new Map(payComponents.map((row) => [row.id, row]));
+		// shares on it, and named by their code — so no id-to-code join is left at all.
+		const componentByCode = new Map(payComponents.map((row) => [row.code, row]));
 		const employmentById = new Map(employments.map((row) => [row.id, row]));
 		const employeeById = new Map(employees.map((row) => [row.id, row]));
 		const termsByEmployment = groupBy(terms, (row) => row.employment_id);
 		const workDaysByEmployment = groupBy(workDays, (row) => row.employment_id);
 		const shiftById = new Map(shifts.map((row) => [row.id, row]));
-		const contributionCodeById = new Map(contributions.map((row) => [row.id, row.code]));
 		const adjustmentsByPayslip = groupBy(adjustments, (row) => row.payslip_id);
 		const payslipsByRun = groupBy(payslips, (row) => row.payroll_run_id);
 
@@ -288,17 +300,16 @@ export function loadRunExports(
 					(left, right) => Number(left.sequence) - Number(right.sequence)
 				);
 				const reportLine = (
-					payComponentId: string | null,
+					componentCode: string,
 					amount: number,
 					quantity: number | null
 				): ReportLine[] => {
-					if (payComponentId == null) return [];
-					const payComponent = componentById.get(payComponentId);
+					const payComponent = componentByCode.get(componentCode);
 					const definition = payComponent?.definition ?? null;
 					return [
 						{
-							payComponentCode: payComponent?.code ?? 'UNKNOWN',
-							payComponentName: payComponent?.code ?? 'Unknown component',
+							payComponentCode: componentCode,
+							payComponentName: componentCode,
 							nature: payComponent?.nature ?? 'INFORMATION',
 							calculationSource: definition?.source ?? 'DERIVED',
 							amount,
@@ -314,48 +325,43 @@ export function loadRunExports(
 				};
 				const reportLines: ReportLine[] = [
 					...payslip.base.flatMap((entry) =>
-						reportLine(entry.pay_component_id, Number(entry.amount), null)
+						reportLine(entry.component_code, Number(entry.amount), null)
 					),
 					...payslipAdjustments.flatMap((row): ReportLine[] => {
-						const band = row.overtime_band;
+						const ruleKey = row.statutory_rule_key;
 						// A derived overtime row links to no pay component, because there is none: it
-						// names the statutory band that priced it, and that band supplies its code, its
-						// day type and the fact that it is an earning.
-						if (band != null) {
-							const code = overtimeBandCode({
-								excess: band.excess,
-								dayType: band.day_type,
-								measure: band.measure,
-								bandFrom: Number(band.band_from)
-							});
+						// names the statutory rule that priced it, and that rule key supplies its code,
+						// its day type and the fact that it is an earning. The rule key spells the band
+						// as `OT_[EXCESS_]<day type>_<measure>_<from>` — the same shape `overtimeBandCode`
+						// writes — so the workbook reads the key rather than decoding a band blob.
+						if (ruleKey != null) {
 							return [
 								{
-									payComponentCode: code,
-									payComponentName: code,
+									payComponentCode: ruleKey,
+									payComponentName: ruleKey,
 									nature: 'EARNING',
-									calculationSource: band.excess ? 'OVERTIME_EXCESS' : 'OVERTIME',
+									calculationSource: overtimeRuleKeyIsExcess(ruleKey)
+										? 'OVERTIME_EXCESS'
+										: 'OVERTIME',
 									amount: Number(row.amount),
 									quantity: row.quantity == null ? null : Number(row.quantity),
 									isCompanyDirect: false,
 									isClaim: false,
 									isLoanInstalment: false,
-									overtimeDayType: band.day_type,
-									isOvertimeExcess: band.excess
+									overtimeDayType: overtimeRuleKeyDayType(ruleKey),
+									isOvertimeExcess: overtimeRuleKeyIsExcess(ruleKey)
 								}
 							];
 						}
-						// A settlement-lock row priced its source at nothing and names no component; it
-						// is a claim, not a figure, and a workbook has no column for it.
 						return reportLine(
-							row.pay_component_id,
+							row.label,
 							Number(row.amount),
 							row.quantity == null ? null : Number(row.quantity)
 						).map((line) => ({
 							...line,
-							// Recovery of a SCHEDULED obligation is the one adjustment a workbook reports
-							// separately, and the obligation's arm is what says so.
-							isLoanInstalment:
-								row.source.kind === 'OBLIGATION' && row.source.record?.terms === 'SCHEDULED'
+							// Recovery of a loan repayment is the one adjustment a workbook reports
+							// separately, and the input family is what says so.
+							isLoanInstalment: row.input.kind === 'LOAN_REPAYMENT_INPUT'
 						}));
 					})
 				];
@@ -364,11 +370,9 @@ export function loadRunExports(
 					{ base: number; employee: number; employer: number }
 				>();
 				for (const charge of payslip.statutory) {
-					const code = contributionCodeById.get(charge.statutory_contribution_id);
-					if (code == null) continue;
-					// One entry per scheme, both shares on it, so there is no second row to pair with
-					// and no base to guard against double-counting.
-					contributionTotals.set(code, {
+					// One entry per scheme, both shares on it, named by its code — so there is no second
+					// row to pair with and no base to guard against double-counting.
+					contributionTotals.set(charge.scheme_code, {
 						base: Number(charge.base_amount),
 						employee: Number(charge.employee_amount),
 						employer: Number(charge.employer_amount)

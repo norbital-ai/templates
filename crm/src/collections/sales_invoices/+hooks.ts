@@ -1,4 +1,8 @@
-import type { MutateBeforeContext, MutateEditContext } from '@norbital-ai/bolt/authoring';
+import {
+	refuse,
+	type MutateBeforeContext,
+	type MutateEditContext
+} from '@norbital-ai/bolt/authoring';
 import { Effect, Schema } from 'effect';
 import { currentInstant } from '../../lib/clock.js';
 import { docNoSeriesPattern, nextDocNo } from '../../lib/document-numbers.js';
@@ -6,6 +10,13 @@ import type { Hooks, WorkspaceRow } from './$types.js';
 
 const invoiceStatusSchema = Schema.Literals(['draft', 'issued', 'cancelled']);
 type InvoiceStatus = Schema.Schema.Type<typeof invoiceStatusSchema>;
+
+const decodeInvoiceStatus = (value: unknown) =>
+	Schema.decodeUnknownEffect(invoiceStatusSchema)(value).pipe(
+		Effect.catch(() =>
+			Effect.sync(() => refuse('Sales invoice status must be draft, issued, or cancelled.'))
+		)
+	);
 
 type InvoiceUpdate = {
 	-readonly [K in keyof WorkspaceRow<'sales_invoices'>]?: WorkspaceRow<'sales_invoices'>[K];
@@ -23,17 +34,13 @@ type EditContext = MutateEditContext<Hooks>;
 /** A create states the whole record and has no `existing`. */
 const beforeCreate = ({ input, api }: BeforeContext) =>
 	Effect.gen(function* () {
-		if (!input.quote_id) {
-			return yield* Effect.fail(new Error('A sales invoice must reference a quote.'));
-		}
+		if (!input.quote_id) refuse('A sales invoice must reference a quote.');
 		const quote = yield* api.db.quotes.findFirst({
 			where: { id: { eq: input.quote_id } }
 		});
-		if (!quote) return yield* Effect.fail(new Error('Referenced quote does not exist.'));
+		if (!quote) refuse('Referenced quote does not exist.');
 		if (quote.status !== 'confirmed') {
-			return yield* Effect.fail(
-				new Error('Invoices can only be raised against a confirmed quote.')
-			);
+			refuse('Invoices can only be raised against a confirmed quote.');
 		}
 
 		const resolved = {
@@ -70,24 +77,18 @@ const beforeCreate = ({ input, api }: BeforeContext) =>
 /** An edit lands on a stored row; `existing` is what tells the two apart. */
 const beforeUpdate = ({ input, existing, api }: EditContext) =>
 	Effect.gen(function* () {
-		const newStatus = yield* Schema.decodeUnknownEffect(invoiceStatusSchema)(
-			input.status ?? existing.status
-		);
-		const oldStatus = yield* Schema.decodeUnknownEffect(invoiceStatusSchema)(existing.status);
+		const newStatus = yield* decodeInvoiceStatus(input.status ?? existing.status);
+		const oldStatus = yield* decodeInvoiceStatus(existing.status);
 
 		if (oldStatus === newStatus) {
 			if (oldStatus === 'draft') return input;
-			return yield* Effect.fail(
-				new Error(`An ${oldStatus} sales invoice is immutable. Revise by raising a new invoice.`)
-			);
+			refuse(`An ${oldStatus} sales invoice is immutable. Revise by raising a new invoice.`);
 		}
 
 		const allowed = VALID_TRANSITIONS[oldStatus];
 		if (!allowed.includes(newStatus)) {
-			return yield* Effect.fail(
-				new Error(
-					`Invalid status transition: ${oldStatus} → ${newStatus}. Allowed: ${allowed.join(', ')}.`
-				)
+			refuse(
+				`Invalid status transition: ${oldStatus} → ${newStatus}. Allowed: ${allowed.join(', ')}.`
 			);
 		}
 
@@ -99,9 +100,7 @@ const beforeUpdate = ({ input, existing, api }: EditContext) =>
 				limit: 1
 			});
 			if (lines.length === 0) {
-				return yield* Effect.fail(
-					new Error('A sales invoice must have at least one line before it can be issued.')
-				);
+				refuse('A sales invoice must have at least one line before it can be issued.');
 			}
 			if (existing.issued_at == null) {
 				updates.issued_at = (yield* currentInstant).toISOString();
@@ -111,7 +110,7 @@ const beforeUpdate = ({ input, existing, api }: EditContext) =>
 		if (newStatus === 'cancelled') {
 			const cancelReason = input.cancel_reason ?? existing.cancel_reason;
 			if (!cancelReason || String(cancelReason).trim() === '') {
-				return yield* Effect.fail(new Error('A cancellation reason is required.'));
+				refuse('A cancellation reason is required.');
 			}
 			if (existing.cancelled_at == null) {
 				updates.cancelled_at = (yield* currentInstant).toISOString();

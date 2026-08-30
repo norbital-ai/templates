@@ -4,15 +4,15 @@
  *
  * ```
  *  create.prepare ─┬─ 1 PICK       resolve the governing configuration → configuration_hash
- *   the only I/O   └─ 3 GATHER     employments, terms, facts, obligations, leave, work days,
- *                                  and what earlier PAID runs already settled
+ *   the only I/O   └─ 3 GATHER     employments, terms, facts, component entries, loan repayments,
+ *                                  leave, work days, and what earlier PAID runs already consumed
  *
  *  create.before  ─┬─ 2 VALIDATE   everything that can be wrong before a person is measured
  *   pure           ├─ 4 MEASURE    in component sequence: base, proration and adjustments
  *                  ├─ 5 ACCUMULATE every amount through the grid → contribution bases
  *                  ├─ 6 CONTRIBUTE each scheme in sequence: base → employee and employer amounts
  *                  ├─ 7 SETTLE     gross, total deductions, net, employer cost
- *                  └─ 8 GRAPH      the payslips and their adjustments, settlement locks included,
+ *                  └─ 8 GRAPH      the payslips, their captured inputs and their adjustments,
  *                                  returned rather than written
  * ```
  *
@@ -29,8 +29,8 @@
  *    statement doing what the first one does.
  *  - `persistPayslips` — the graph is returned, not written.
  *  - `persistShortfalls` and `persistDeferrals` — one facility call **per employee**, and the reason
- *    a 290-person run took eight minutes. Both wrote arrears: a second copy of a debt the obligation
- *    already records. What is still owed is now derived from what earlier runs actually took.
+ *    a 290-person run took eight minutes. Both wrote arrears: a second copy of a debt the source
+ *    already records. What is still owed is derived from what earlier PAID runs actually took.
  *  - `buildingRuns` / `isBuildingRun` — the engine used to persist from `create.after`, which landed
  *    on `payroll_runs` as an ordinary DRAFT update, which `update.after` read as "recalculate", which
  *    re-entered the engine until the host refused with `nesting_limit_exceeded`. There is no write to
@@ -69,6 +69,28 @@ import {
 	validatePayCalendar,
 	type RunIssue
 } from './validate.js';
+
+/**
+ * The engine/build identity stamped on every run this code produces.
+ *
+ * A configuration hash identifies data, not code: without a durable identity for the code that
+ * interpreted it, the same captured configuration could be interpreted differently after an engine
+ * change and leave nothing on the run to explain the difference. Bump this when the payroll
+ * algorithm changes in a way a settled payslip's reader would need to know.
+ */
+export const CALCULATION_VERSION = '2026-08-payslip-input-output-separation' as const;
+
+/** What one build produced, and what the run's `before` hook returns alongside its own columns. */
+type PayrollRunGraph = {
+	readonly payslip_payroll_run: ReturnType<typeof payrollRunGraph>;
+	readonly payslipCount: number;
+	/** Inlined base entries plus the proration segments behind them. */
+	readonly baseCount: number;
+	readonly adjustmentCount: number;
+	/** Junction rows the run wrote — every captured input, zero-value ones included. */
+	readonly capturedCount: number;
+	readonly warnings: readonly string[];
+};
 
 /**
  * The cadence an employment is paid on, as of the day the period closes.
@@ -175,18 +197,6 @@ export function gatherPayrollRun(options: {
 	});
 }
 
-/** What one build produced, and what the run's `before` hook returns alongside its own columns. */
-type PayrollRunGraph = {
-	readonly payslip_payroll_run: ReturnType<typeof payrollRunGraph>;
-	readonly payslipCount: number;
-	/** Inlined base entries plus the proration segments behind them. */
-	readonly baseCount: number;
-	readonly adjustmentCount: number;
-	/** Adjustments that priced their source at nothing — the settlement locks. */
-	readonly lockCount: number;
-	readonly warnings: readonly string[];
-};
-
 /**
  * Turn prepared facts into the run's complete result. Pure: no database, no clock, no writes.
  *
@@ -239,7 +249,8 @@ export function buildPayrollRun(prepared: PreparedRun): PayrollRunGraph {
 			periodsRemaining: prepared.periodsRemaining,
 			headcount: gathered.headcount,
 			policy,
-			consumedObligations: gathered.consumedObligations
+			consumedEntries: gathered.consumedEntries,
+			consumedRepayments: gathered.consumedRepayments
 		});
 
 		for (const [calendarMonth, monthHours] of measured.calendarMonthOvertimeHours) {
@@ -315,7 +326,7 @@ export function buildPayrollRun(prepared: PreparedRun): PayrollRunGraph {
 		// 7 — SETTLE
 		//
 		// A deduction the guard could not take is not carried anywhere. The adjustment records what
-		// was actually taken, and the difference between that and the obligation is what remains owed
+		// was actually taken, and the difference between that and the source is what remains owed
 		// — derived by the next run from these very rows, never copied into one.
 		const settlement = settle({
 			base: measured.base,
@@ -330,7 +341,10 @@ export function buildPayrollRun(prepared: PreparedRun): PayrollRunGraph {
 			// Evidence, not money: the segments explain the base amounts, and the negative-net guard
 			// only ever touches deductions.
 			proration: measured.proration,
-			charges
+			charges,
+			// The captured inputs: every source the run read, whether or not it produced money. The
+			// junction rows are the settlement lock, so zero-value sources ride with the payslip too.
+			captured: measured.captured
 		});
 	}
 
@@ -352,9 +366,18 @@ export function buildPayrollRun(prepared: PreparedRun): PayrollRunGraph {
 			0
 		),
 		adjustmentCount: adjustments.length,
-		// A zero-amount row consumed nothing and still holds the claim: counted separately so the run
-		// log distinguishes "read and priced at nothing" from "produced money".
-		lockCount: adjustments.filter((row) => row.amount === 0).length,
+		// Junction rows, counted separately so the run log distinguishes "captured and priced at
+		// nothing" from "produced money". A source that calculated to zero was still consumed and is
+		// still locked — by its junction row, never by a zero-amount output.
+		capturedCount: graph.reduce(
+			(total, payslip) =>
+				total +
+				payslip.payslip_work_day_input_payslip.length +
+				payslip.payslip_component_entry_input_payslip.length +
+				payslip.payslip_leave_request_input_payslip.length +
+				payslip.payslip_loan_repayment_input_payslip.length,
+			0
+		),
 		warnings: issues
 			.filter((issue) => issue.severity === 'WARNING')
 			.map((issue) => describeIssues([issue], 'warn'))

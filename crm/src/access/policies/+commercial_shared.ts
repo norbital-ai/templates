@@ -1,10 +1,9 @@
 import type { Policy } from './$types.js';
 
-/** Coordinates shared by sales and procurement, owned once so composition stays unambiguous. */
+/** Settlement authority shared by sales and procurement, owned once for unambiguous composition. */
 export default {
-	description: 'Shared product catalogue and settlement ledger.',
+	description: 'Shared settlement ledger.',
 	grants: {
-		products: { read: {} },
-		settlements: { read: {}, create: {} }
+		settlements: { read: {}, mutate: { new: {} } }
 	}
 } satisfies Policy;

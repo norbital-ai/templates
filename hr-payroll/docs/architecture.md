@@ -6,21 +6,25 @@ keeps business inputs separate from settled output, but does not add projection 
 ## The model in one map
 
 ```text
-APPROVED INPUTS                         SETTLED OUTPUT
+APPROVED INPUTS                          SETTLED OUTPUT
 
-employment_terms --+                 +-> payroll_runs [one policy snapshot]
-work_days ---------+                 |        |
-leave_requests ----+--> calculator --+        v
-obligations -------+                          payslips
-       |                                       |- base[]       (no source)
-       |                                       |- proration[]  (no source)
-       |                                       `- statutory[]  (no source)
-       v                                        |
+employment_terms --+                  +-> payroll_runs [one policy + sealed statutory profile]
+work_days ----------+                 |        |
+leave_requests -----+--> calculator --+        v
+component_entries --+                          payslips
+loan_repayments ----+                          |- base[]       (caused by no input)
+       |                                       |- proration[]  (caused by no input)
+       |                                       |- statutory[]  (caused by no input)
+       v                                       |
 pay_components <-------------------------- payslip_adjustments
- [policy + calculation +                    [the only junction]
-  entitlement union]                        |- source: OBLIGATION | WORK_DAY | LEAVE_REQUEST
-                                            |- pay_component_id  (NULL for overtime)
-                                            `- overtime_band     (set only for overtime)
+ [policy + calculation]                     [one output relation]
+                                            |- input: WORK_DAY_INPUT | COMPONENT_ENTRY_INPUT
+                                            |        | LEAVE_REQUEST_INPUT | LOAN_REPAYMENT_INPUT
+                                            |- label + bucket + amount (frozen)
+                                            `- statutory_rule_key (work-day only)
+
+loans -> loan_repayments
+ [the agreement, and the amounts due under it]
 
 leave_types
  [accrual + payroll effect + entitlement layers]
@@ -31,33 +35,35 @@ leave_types
 ```
 
 **A payslip comprises four things, and the kind is derived, never declared.** Base, proration and
-statutory point at no input, so they are inlined on `payslips` as arrays. An adjustment is caused by
-exactly one input, so it is a row that names it. There is no `kind` column anywhere: pointing at
-nothing IS base or proration; pointing at a source IS an adjustment.
+statutory are caused by no editable record, so they are inlined on `payslips` as arrays. An
+adjustment is caused by exactly one captured input, so it is a row that names one. There is no
+`kind` column anywhere: pointing at nothing IS base or proration; pointing at a capture IS an
+adjustment.
 
-The payroll-output core is five collections:
+The payroll core is five collections:
 
 1. `pay_components` — one reusable definition with a strict settlement/statutory policy and a
    polymorphic calculation definition.
-2. `obligations` — the only door money enters payroll through: claims, allowances, bonuses, HR
-   adjustments, arrears corrections, and staff loans with their instalments inline. `terms` says how
-   money comes due; `occasion` says why a one-off was raised, and NULL there means "not an
-   adjustment", which is what the row predicate hiding HR's corrections reads.
-3. `payroll_runs` — one company-period calculation and one captured policy snapshot.
-4. `payslips` — one employment's totals in a run, plus base, proration and statutory inline.
-5. `payslip_adjustments` — the payslip-to-input junction, and the settlement claim.
+2. `component_entries` — the employee-specific monetary facts: claims, standing allowances,
+   bonuses, arrears settlements and HR manual corrections. The `event` union says why the entry
+   exists; the amount is a positive magnitude and direction comes from the component policy.
+3. `payroll_runs` — one company-period calculation, naming the sealed statutory profile that
+   governed it and the calculation version that interpreted the captured configuration.
+4. `payslips` — one employment's totals in a run, plus base, proration and statutory inline, and
+   the four captured-input junction relations.
+5. `payslip_adjustments` — the one output relation, every row naming the capture that caused it.
 
-`source` is a `reference(...)`: one real foreign key per arm and a database-enforced exclusive arc,
-where `payslip_lines` hand-rolled the same thing with a union in jsonb, six `generatedAlwaysAs`
-projections of it and a composite foreign key. The index is `unique(source, payslip_id)`, so one
-input cannot be consumed twice **inside one run**; the cross-run ceiling is arithmetic, carried by
-`OBLIGATION_OVER_CONSUMED` in `src/lib/settlement_refusals.ts`.
+`input` is a `reference(...)`: one real foreign key per arm and a database-enforced exclusive arc,
+plus a write hook proving the captured input belongs to the adjustment's own payslip. Double
+consumption within one run is unrepresentable — the junction's `unique(payslip_id, source)` makes
+it so — and the cross-run ceilings are arithmetic, carried by `ENTRY_OVER_CONSUMED` and
+`REPAYMENT_OVER_RECOVERED` in `src/lib/settlement_refusals.ts`.
 
-**A zero-amount adjustment is the settlement lock.** `payslip_sources` existed to say "this run took
-this record into account" separately from "this record produced money". It does not need to be a
-second collection: a day the run read and priced at nothing is a row here with `amount` 0. It
-consumed nothing and it is still frozen, because the `restrict` foreign key on its arm refuses the
-delete.
+**The capture is the settlement lock.** The four `payslip_*_inputs` junctions exist to say "this
+run took this record into account" separately from "this record produced money". A day the run
+read and priced at nothing is a junction row with no adjustment beside it: consumed nothing and was
+never read are different claims, and the junction's `restrict` FK into the business source is what
+refuses the delete.
 
 ## Leave and layered entitlement
 
@@ -65,21 +71,40 @@ Leave is not itself money. `leave_requests` is the approved event stream, `leave
 entitlement/accrual policy, and a mapped `pay_component` owns only the monetary effect (for example,
 unpaid-leave deduction or encashment).
 
-The entitlement matrix is embedded in `leave_types` as a strict layer union:
+The statutory floor is not hand-typed per company: it lives on the sealed statutory profile's
+`statutory_leave` member, per canonical kind, scaled by the employee's child facts where the law
+conditions it. The company's own layers stay on the leave type as an effective-dated union:
 
 ```text
-effective entitlement = max(statutory floor, organisation layer, employee layer)
+effective entitlement = max(profile floor by statutory_kind, organisation layer, employee layer)
 ```
 
 The same layering principle applies to claim and allowance caps in their pay-component definition:
-statutory policy cannot be weakened, while organisation and employee layers may enhance it. This is
-policy data, not a reason to add one collection per benefit kind.
+a cap is the most generous of the company's own organisation and employee layers — the statutory
+floor is never re-typed there. This is policy data, not a reason to add one collection per benefit
+kind.
 
 ## Run snapshot and locking
 
 Configuration is captured once on `payroll_runs`, never once per payslip. Every payslip in a run was
 calculated from the same picked company and statutory policy. Repeating the snapshot per payslip
 would duplicate identical JSON and permit impossible disagreement inside one run.
+
+The run names its law twice, as two different kinds of fact:
+
+```text
+statutory_snapshot_id     real FK to the sealed statutory profile that governed the
+                          calculation. Engine-owned, restrict on the law's end, replaced whole on
+                          a draft recalculation, and append-only once a run is paid: legislation
+                          changes enact a new profile version, never an edit of a used one.
+calculation_version       the engine/build identity that interpreted the captured configuration.
+                          A configuration hash identifies data, not code — without a durable
+                          version stamp, two builds of the same captured rules after an engine
+                          change would have no explanation on the run of what differed.
+```
+
+Both are engine-owned derived columns: no policy grants a person the write, and a recalculation
+resolves them again from scratch rather than editing them in place.
 
 ```text
 DRAFT run --recalculate--> DRAFT run --lock & pay--> PAID run
@@ -109,16 +134,16 @@ correction is a new approved event in a later draft.
 
 ### Eight phases
 
-| Phase      | Reads or produces                                                                                                           | Failure behaviour                                                   |
-| ---------- | --------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------- |
-| PICK       | Company, jurisdiction, component catalogue, rates, OT rules, shifts, holidays and leave policy; produces configuration hash | Fails when no effective configuration resolves                      |
-| VALIDATE   | Mapping completeness, pay calendar and rule integrity                                                                       | Blocks before reading an employee                                   |
-| GATHER     | Approved employee, terms, facts, money entries, leave, roster, clocks, agreements and earlier paid YTD                      | Refuses a truncated query or missing required employment facts      |
-| MEASURE    | Converts schedule, entries, formulas and overtime into typed monetary lines                                                 | Refuses unpriced hours, missing terms or invalid formula inputs     |
-| ACCUMULATE | Applies every line's statutory treatment to each contribution base                                                          | Refuses missing or undecided treatment cells                        |
-| CONTRIBUTE | Applies effective rate bands and statutory special rules                                                                    | Refuses an uncovered band or missing selector fact                  |
-| SETTLE     | Calculates gross, deductions, net, employer cost and deduction shortfall                                                    | Does not allow a negative net; carries an unpaid recovery forward   |
-| PERSIST    | Replaces draft results with payslips and their complete direct component/statutory lines                                    | Writes in dependency order; a partial prior result is cleared first |
+| Phase      | Reads or produces                                                                                                                                                                           | Failure behaviour                                                                                                       |
+| ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| PICK       | Company, jurisdiction, component catalogue, rates, OT rules, shifts, holidays and leave policy; produces the configuration hash and resolves the sealed statutory profile the run will name | Fails when no sealed profile covers the period                                                                          |
+| VALIDATE   | Mapping completeness, pay calendar and rule integrity                                                                                                                                       | Blocks before reading an employee                                                                                       |
+| GATHER     | Approved employees, terms, facts, component entries, loan repayments, leave, work days and what earlier PAID runs consumed                                                                  | Refuses a truncated query, a missing required employment fact, or a one-off entry another standing run already captured |
+| MEASURE    | Converts schedule, entries, formulas and overtime into typed monetary lines, and names each line's causal input                                                                             | Refuses unpriced hours, missing terms or invalid formula inputs                                                         |
+| ACCUMULATE | Applies every line's statutory treatment to each contribution base                                                                                                                          | Refuses missing or undecided treatment cells                                                                            |
+| CONTRIBUTE | Applies effective rate bands and statutory special rules                                                                                                                                    | Refuses an uncovered band or missing selector fact                                                                      |
+| SETTLE     | Calculates gross, deductions, net and employer cost                                                                                                                                         | Reduces a deduction that would drive net below zero; what remains owed stays on the source, re-derived next run         |
+| PERSIST    | Returns the run, its payslips, the four captured-input junctions and every adjustment as one declarative payload from the `before` hook; the runtime performs the only write there is       | Writes parent-first in one transaction; a draft replacement replaces the whole prior graph or nothing                   |
 
 ### Periods and cutoffs
 
@@ -142,7 +167,7 @@ therefore belongs to the new window, not the closing one.
 
 #### Money-event cutoff
 
-An `obligation` may state `pay_period` explicitly. That is authoritative. If it is absent, the
+A component entry may state `pay_period` explicitly. That is authoritative. If it is absent, the
 default is:
 
 ```text
@@ -399,7 +424,7 @@ coverage/pricing policy. There is no `employment_terms.overtime_eligible` switch
 the statutory facts would eventually drift from the rule it claims to summarize. The legacy
 `work_classification = NON_EA` label is not, by itself, proof that the Employment Act does not apply.
 
-For Malaysia the snapshot encodes the Employment Act 1955 First Schedule as substituted by the
+For Malaysia the profile encodes the Employment Act 1955 First Schedule as substituted by the
 Employment (Amendment of First Schedule) Order 2022 [P.U. (A) 262]: a ceiling of RM4,000 a month,
 **inclusive** because paragraph 1A disapplies the ladder to wages that "exceeds" that figure; the
 paragraph 2 categories — manual labour, supervisors of manual labour, and commercial vehicle
@@ -578,14 +603,14 @@ Store a ledger only when the business fact cannot be represented by the originat
 paid payroll result. A ledger exists to preserve independently dated movements whose order and
 running balance matter.
 
-| Subject                        | Authoritative transaction                           | Separate ledger?         | Reason                                                                                                                             |
-| ------------------------------ | --------------------------------------------------- | ------------------------ | ---------------------------------------------------------------------------------------------------------------------------------- |
-| Leave taken                    | Approved `leave_request`                            | No duplicate `TAKEN` row | The request already contains type, dates, quantity and approval. Counting both would double-consume leave.                         |
-| Leave correction or encashment | `leave_requests.event` adjustment/encashment arm    | No second table          | It remains a signed, dated event, structurally distinct from a time-off request in the same authoritative stream.                  |
-| Claim or allowance             | Approved `obligation`                               | No                       | The obligation is already the money transaction and carries the incurred date, pay period, evidence and occasion.                  |
-| Loan                           | One SCHEDULED `obligation` carrying its instalments | No, the schedule inlines | Principal, due dates and every instalment reconcile on one row; what is still owed is the principal less what paid runs recovered. |
-| Payroll/YTD                    | Paid payslips and contributions                     | No mutable accumulator   | Earlier paid results are the immutable accounting history. YTD is their sum.                                                       |
-| Payment file                   | Projection from a paid run                          | No                       | A file is an output transport, not another source of payroll truth.                                                                |
+| Subject                        | Authoritative transaction                        | Separate ledger?         | Reason                                                                                                                                                 |
+| ------------------------------ | ------------------------------------------------ | ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Leave taken                    | Approved `leave_request`                         | No duplicate `TAKEN` row | The request already contains type, dates, quantity and approval. Counting both would double-consume leave.                                             |
+| Leave correction or encashment | `leave_requests.event` adjustment/encashment arm | No second table          | It remains a signed, dated event, structurally distinct from a time-off request in the same authoritative stream.                                      |
+| Claim or allowance             | Approved `component_entries` row                 | No                       | The entry is already the money transaction and carries the incurred date and evidence.                                                                 |
+| Loan                           | `loans` row with its `loan_repayments` plan      | No, the plan is rows     | Principal, due dates and every repayment reconcile across the pair; what is still owed on a repayment is its amount due less what paid runs recovered. |
+| Payroll/YTD                    | Paid payslips and contributions                  | No mutable accumulator   | Earlier paid results are the immutable accounting history. YTD is their sum.                                                                           |
+| Payment file                   | Projection from a paid run                       | No                       | A file is an output transport, not another source of payroll truth.                                                                                    |
 
 Approved `TIME_OFF` requests create taken movements directly. Adjustments and encashments use their
 own strict `leave_requests.event` arms.
@@ -605,18 +630,19 @@ the pair overdraws.
 
 ### Loan schedule
 
-Creating an agreement provisions an exact instalment schedule. Equal instalments are a convenience,
-not a restriction: the final remainder is adjusted so that the schedule reconciles exactly.
+Creating an agreement provisions a repayment plan. Equal repayments are a convenience, not a
+restriction: the final remainder is adjusted so that the plan reconciles exactly.
 
 ```text
-SUM(instalment amounts) = principal
-last instalment date    ≤ repay-by date
+SUM(repayment amounts) = principal
+last repayment date    ≤ repay-by date
 ```
 
-Both client and server reject either invariant when it fails. Each scheduled recovery is an approved
-component entry, and a paid payslip line links to the entry it consumed. A linked instalment cannot
-be edited or deleted; an unlinked future instalment may be changed while the two agreement
-invariants remain true.
+The provisioning schedule builds both invariants in, the write hooks reject a row that breaks them
+against its neighbours, and the loan update path re-checks the plan the database holds. Each
+recovery is an approved deduction captured by the run that took it. A captured repayment cannot be
+edited or deleted; an unlinked future repayment may be changed while the two agreement invariants
+remain true.
 
 ### Corrections and back pay
 
@@ -631,8 +657,55 @@ Corrections are classified by cause before they are entered:
 | A paid amount was wrong                                                                        | Correct prospectively          | Add an approved future-period adjustment or reversal; never rewrite a paid run                           |
 
 Amounts are positive magnitudes. Earning or deduction direction comes from the pay component policy. A
-reversal uses `origin = REVERSAL` and links to its original entry rather than storing a negative
-amount.
+manual correction names the settled adjustment it fixes through `corrects_adjustment_id`; a reversal
+operation settles in the opposite bucket of that output rather than storing a negative amount.
+
+### Recovering from a mistake after payment
+
+A paid run is frozen — never edited, never deleted — so every recovery is a **new approved event in
+a later draft run**. The next cycle carries the correction; history carries the evidence. Two
+ledgers are involved and they are corrected separately:
+
+- the **money** a run moved, corrected through `component_entries`; and
+- the **leave ledger** a balance is derived from, corrected through `leave_requests.event`
+  `BALANCE_ADJUSTMENT` rows (signed movements; the balance is derived, so it heals once the event
+  is approved).
+
+A leave request a run has captured is itself frozen (`refuseIfCaptured`), so a cancellation is
+never an edit of the original request — the original stays exactly as it was settled, and the
+correction states what changed and why.
+
+| What went wrong                                                            | Leave ledger correction                                              | Money correction in the next draft                                                                                                                                                                                              |
+| -------------------------------------------------------------------------- | -------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Approved leave was taken, payroll deducted it, then it was cancelled       | New `BALANCE_ADJUSTMENT` event restoring the days                    | `MANUAL_ADJUSTMENT` with operation `REVERSAL` on the same unpaid-leave component, `corrects_adjustment_id` naming the settled absence adjustment; the flipped sign restores net while keeping the component code on the payslip |
+| Person was paid for leave they did not take, or salary was paid in error   | Negative `BALANCE_ADJUSTMENT` taking the days back                   | `ARREARS` entry on a deduction-kind component, `covers_periods` naming the paid period, reason stating the cause — recovered in the next run, subject to the negative-net guard                                                 |
+| A claim or allowance was missed or underpaid                               | —                                                                    | The missing entry (or a `CORRECTION` naming the settled output it supersedes) on the earning component                                                                                                                          |
+| A statutory figure was computed under a law value that was mis-transcribed | —                                                                    | Component-entry correction for the money delta (statutory lines of a paid run are never re-edited); see the profile amendment path below                                                                                        |
+| A leave balance was seeded or carried wrong                                | Dated `BALANCE_ADJUSTMENT` events until the derived balance is right | —                                                                                                                                                                                                                               |
+
+Every correction is itself captured by the run that settles it — `corrects_adjustment_id` reaches
+back to the frozen output it fixes, `covers_periods` and `reason` say why — so the audit chain runs
+unbroken from the correction back through the paid run to the input it consumed. The negative-net
+guard bounds what a recovery can take: an overpayment larger than the person's next net is
+recovered across as many cycles as the guard allows.
+
+#### Amending a statutory profile
+
+The law a paid run cited is frozen in place, but the system is built so that is never a dead end:
+
+```text
+1. Void the wrong profile version    (the lifecycle seal refuses every other edit; the void
+                                      records the reason and names the successor)
+2. Enact the corrected version       (a new DRAFT profile — law members and catalogues copied
+                                      forward, corrected, then sealed on HR Manager approval)
+3. Correct the money                 (component entries in a later draft, as above)
+```
+
+What the amendment must not do is rewrite history: the paid run still names the profile that
+governed it, its `configuration_snapshot` holds the regime whole, and `calculation_version` names
+the code that interpreted it — so any auditor can reconstruct what was believed at payment time,
+and the corrected profile shows what is believed now. Drafts that have not been paid simply
+recalculate onto the successor profile; nothing about them is frozen.
 
 ### Locks
 
@@ -646,16 +719,18 @@ flowchart LR
   F -->|"immutable"| C["Future correction event"]
 ```
 
-| Boundary             | Current guarantee                                                           | Why                                                                                                     |
-| -------------------- | --------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
-| Pending approval     | A record carrying `approval_id` is locked; payroll reads only approved rows | Prevents use and mutation while a decision is outstanding                                               |
-| Draft run            | Results may be wholly replaced by recalculation                             | Keeps drafts responsive without mixing old and new lines                                                |
-| Paid run             | Recalculation and deletion are blocked; output children cannot be deleted   | Preserves the exact result used for payment, YTD and audit                                              |
-| Loan instalment      | A recovery entry linked to a payslip is immutable                           | Prevents a loan balance from changing behind a paid deduction                                           |
-| Leave event stream   | Corrections use new adjustment events                                       | A balance correction remains visible instead of rewriting history                                       |
-| General event source | `sourceLock` freezes the original leave, obligation, or person-day row      | A pending approval, or a `payslip_adjustments` row that consumed the record — including one of amount 0 |
+| Boundary             | Current guarantee                                                                                                             | Why                                                                                                                    |
+| -------------------- | ----------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| Pending approval     | A record carrying `approval_id` is locked; payroll reads only approved rows                                                   | Prevents use and mutation while a decision is outstanding                                                              |
+| Draft run            | Results may be wholly replaced by recalculation                                                                               | Keeps drafts responsive without mixing old and new lines                                                               |
+| Paid run             | Any update of the run row refuses outright, as does deletion                                                                  | Preserves the exact result used for payment, YTD and audit                                                             |
+| Payslip output       | Payslips, adjustments and the four capture junctions refuse updates outright; deletes only while the run is a draft           | Output rows are create-and-replace under the engine's one write; a correction is a new event in a later cycle          |
+| Statutory profile    | SEALED or VOIDED profiles refuse law-member edits outright (seal freeze, paid-run freeze backstop); deletion restrict-blocked | The citation is the record of what law governed the money; amendments void the version and enact a corrected successor |
+| Loan repayment       | A captured repayment is immutable                                                                                             | Prevents a loan balance from changing behind a paid deduction                                                          |
+| Leave event stream   | Corrections use new adjustment events                                                                                         | A balance correction remains visible instead of rewriting history                                                      |
+| General event source | `sourceLock` freezes the original leave, entry, repayment or person-day row                                                   | A pending approval, or a captured input in the record's input junction — with or without a monetary output             |
 
-Leave, obligations and person-days share `src/lib/scheduling/lock.ts`. Hooks refuse the write; collection
+Leave, entries and person-days share `src/lib/scheduling/lock.ts`. Hooks refuse the write; collection
 forms disable and state the reason; collection tables disable row selection and paint a locked
 leading accent. Corrections are new events, never edits of a consumed source.
 
@@ -663,45 +738,49 @@ leading accent. Corrections are new events, never edits of a consumed source.
 
 ```text
 effective configuration ---> payroll_runs.configuration_snapshot
-                                      |
+statutory law ------------> payroll_runs.statutory_snapshot_id (FK to jurisdictions)
 employment ------------------------> payslip
-                                      |- base[]       -> pay_component_id (inlined, not an FK)
-                                      |- proration[]  -> term_id          (inlined, not an FK)
-                                      |- statutory[]  -> statutory_contribution_id (inlined)
+                                      |- base[]       -> component_code           (frozen label)
+                                      |- proration[]  -> term_key                (frozen label)
+                                      |- statutory[]  -> scheme_code + band_key  (frozen)
                                       v
-pay_component <-------- payslip_adjustment --------> obligation | work_day | leave_request
+pay_component <-------- payslip_adjustment --------> captured input junction → business source
 ```
 
-The adjustment is the physical junction and directly answers:
+The adjustment is the output relation and directly answers:
 
-- which component produced the amount, or which statutory overtime band did when there is none;
-- which single input was consumed, through one real per-arm foreign key; and
+- which component produced the amount — its frozen `label` — or, when none does, which statutory
+  rule did (`statutory_rule_key`, work-day rows only);
+- which single captured input was consumed, through one real per-arm foreign key; and
 - which payslip and run froze the result, with the period copied onto the row.
 
-The three inlined arrays name catalogue ids and deliberately hold **no** foreign key. That is the
+The three inlined arrays name codes and keys and deliberately hold **no** foreign key. That is the
 point of inlining: a settled payslip is a frozen statement of what was paid, and it does not become
-wrong because somebody later archived a component or superseded a terms row.
+wrong because somebody later archived a component or superseded a terms row. The catalogue the
+component-entry adjustments reached lives in the run's captured configuration, and the run names
+the sealed statutory profile that governed its law.
 
 The configuration snapshot is housed once by the pay run because every payslip in that run shares
 the same picked policy.
 
-Consumption is one database invariant and one arithmetic one:
+Consumption is one database invariant per junction and one arithmetic one:
 
 ```text
-PER RUN:   unique(source, payslip_id)            enforced by the database
-CROSS RUN: SUM(adjustments in PAID runs) <= obligation.amount
-           enforced by OBLIGATION_OVER_CONSUMED in src/lib/settlement_refusals.ts
+PER RUN:   unique(payslip_id, source) on each payslip_*_inputs junction   enforced by the database
+CROSS RUN: SUM(recovery adjustments in PAID runs) <= loan_repayments.amount_due
+           enforced by REPAYMENT_OVER_RECOVERED in src/lib/settlement_refusals.ts
 ```
 
-The second was `unique(component_entry_id)` and could not survive partial consumption: a loan
-instalment the negative-net guard could only part-pay stays outstanding on its obligation, and the
-next run recovers the remainder against the same obligation. A database invariant was traded for an
-arithmetic one, and the trade is carried by a named refusal and a test rather than by a comment.
+The cross-run ceiling could not be a database constraint: a loan repayment the negative-net guard
+could only part-recover stays outstanding on the repayment row, and the next run recovers the
+remainder against the same repayment — so one repayment is legitimately touched by several
+payslips. The trade is carried by a named refusal and a test rather than by a comment.
 
-Scheduled and formula adjustments link to their pay component and remain reproducible from the run
-snapshot plus approved inputs. Overtime lines link to no component at all — they name the statutory
-band that priced them — `payslip_adjustments.overtime_band` — and `pay_component_id` is simply NULL
-for them. Exactly one of the two is set on any row.
+Scheduled and formula adjustments settle under the component their input names, and remain
+reproducible from the run snapshot plus approved inputs. Overtime adjustments link to no component
+at all: their `statutory_rule_key` names the band that priced them, resolved inside the run's
+sealed statutory profile, and `label` is that same key. A component-entry or loan-repayment adjustment
+reaches its component through the real source relationships, so no row here repeats it.
 
 ## Statutory overtime coverage: what is encoded, and what is not
 
@@ -719,7 +798,7 @@ under [Still not encoded](#still-not-encoded), not quietly defaulted.
 
 ### Encoded
 
-#### Overtime multipliers — six members of the Malaysian regime snapshot
+#### Overtime multipliers — six members of the Malaysian regime
 
 Seeded from the repository seed bank, `seed_bank/norbital_hr/statutory/` (§4.4). The source fixture
 keeps named builder arrays for review (`overtime_rules.json`), then embeds them without IDs or
@@ -764,9 +843,9 @@ Reclassifying and refusing are separate acts on the same statutory number — `o
 used to be `pay_components.definition.after_total_work_hours` on the overflow components, which let
 a company quietly move a statutory boundary.
 
-#### Coverage — one nullable member per snapshot
+#### Coverage — one nullable member per profile
 
-Seeded from the seed bank inside each jurisdiction snapshot. The nullable, cited member decides **who** the
+Seeded from the seed bank inside each statutory profile. The nullable, cited member decides **who** the
 ladder applies to, as distinct from what an hour is worth.
 
 | Column                                  | Meaning                                                                |
@@ -777,20 +856,20 @@ ladder applies to, as distinct from what an hour is worth.
 | `category_basis` (enum)                 | Which employment column the two arrays name values from                |
 | `exempt_categories` (text[])            | Covered whatever the wage                                              |
 | `excluded_categories` (text[])          | Never covered, whatever the wage                                       |
-| `authority`                             | Citation for the member; the parent snapshot owns `effective_range`    |
+| `authority`                             | Citation for the member; the parent profile owns `effective_range`     |
 
-`decideOvertimeCoverage` in `payroll_runs/lib/coverage.ts` reads the snapshot member and returns
+`decideOvertimeCoverage` in `payroll_runs/lib/coverage.ts` reads the profile member and returns
 `COVERED`, `NOT_COVERED` or `UNDETERMINED`. Order is exclusion, then exemption, then the ceiling: a
 statute that disapplies a whole Part to a class of worker outranks a wage test, and a category
 written "irrespective of the amount of wages he earns" outranks it too. **No row means covered.**
 
-#### Breaks — members of the same snapshot
+#### Breaks — members of the same profile
 
 `after_consecutive_hours` (nullable), `minimum_minutes`, `counts_as_worked_time` (nullable),
-`applies_when`, plus authority. The parent jurisdiction owns the effective range. The window is the field the flat
+`applies_when`, plus authority. The parent profile owns the effective range. The window is the field the flat
 `break_minutes` columns cannot supply: those record how long a break was, never when it was owed.
 
-The run picks the jurisdiction snapshot once and records its complete regime, so it can say which
+The run picks the statutory profile once and records its complete regime, so it can say which
 break requirements governed it. **Nothing enforces them yet**: whether a break was actually
 taken is a question over punches (`work_days`, `shift_definitions`), which payroll does not
 answer. The rows are law made addressable, and the figures a future check will quote are already

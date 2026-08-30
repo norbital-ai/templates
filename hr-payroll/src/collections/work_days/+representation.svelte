@@ -28,10 +28,10 @@
 	 * contract of `lib/scheduling/lock.ts` — so this query is the screen's half of the stored claim.
 	 * Without it the panel would say a day is editable right up until the hook refused it.
 	 *
-	 * It reads `payslip_adjustments`, which is what `payslip_sources` became: a run that read this
-	 * day and priced it at nothing still wrote a row, and that zero-amount row is the claim.
-	 * `settlementLedgerGrants()` is why an ordinary rank may read it at all — see
-	 * `src/lib/policy_grants.ts`; the grant exposes the claim and never the amounts.
+	 * It reads the work-day input junction: a run that read this day captures it whether or not it
+	 * produced money, and the capture is the claim. `settlementLedgerGrants()` is why an ordinary
+	 * rank may read it at all — see `src/lib/policy_grants.ts`; the grant exposes the claim and
+	 * never the amounts.
 	 *
 	 * Nothing else is asked. A person-day is held by the claim and by nothing else: a passed date is
 	 * not a lock on this collection, and a paid window governs days that have no record, never a
@@ -39,8 +39,8 @@
 	 */
 	const settlementQuery = $derived(
 		record
-			? client.db.payslip_adjustments.findFirst({
-					where: { source: { eq: { kind: 'WORK_DAY', id: record.id } } },
+			? client.db.payslip_work_day_inputs.findFirst({
+					where: { work_day_id: { eq: record.id } },
 					columns: { period: true }
 				})
 			: null

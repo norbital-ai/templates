@@ -286,7 +286,7 @@ test('a claim refuses whatever the run’s lifecycle, and whatever the windows s
  * for the reason `payslip-sources-lock.test.ts` keeps its narrow: a broader fake is a second,
  * silently divergent description of the authoring api.
  */
-function fakeHookApi({ runs = [], sources = [] } = {}) {
+function fakeHookApi({ runs = [], captures = [] } = {}) {
 	return {
 		db: {
 			employments: {
@@ -307,12 +307,12 @@ function fakeHookApi({ runs = [], sources = [] } = {}) {
 			work_days: { findMany: () => Effect.succeed([]) },
 			shift_definitions: { findMany: () => Effect.succeed([]) },
 			payroll_runs: { findMany: () => Effect.succeed(runs) },
-			// A claim is a `payslip_adjustments` row naming the record. Its amount is deliberately not
-			// consulted: a zero says the run read this day and priced it at nothing, which locks the
-			// record exactly as hard as a row that paid overtime on it.
-			payslip_adjustments: {
+			// A capture is a `payslip_work_day_inputs` junction row naming the day. Its payslip's
+			// amount is deliberately not consulted: a zero says the run read this day and priced it
+			// at nothing, which locks the record exactly as hard as a row that paid overtime on it.
+			payslip_work_day_inputs: {
 				findFirst: ({ where }) =>
-					Effect.succeed(sources.find((row) => row.source.id === where.source.eq.id) ?? null)
+					Effect.succeed(captures.find((row) => row.work_day_id === where.work_day_id.eq) ?? null)
 			},
 			// No approved leave anywhere: the leave guard is orthogonal to the payroll locks and
 			// keeps its own tests.
@@ -382,7 +382,7 @@ test('an unconsumed record inside a paid window stays editable and settles as ar
 	// A claim over the same record is what refuses, and it names the period.
 	const claimed = fakeHookApi({
 		runs: monthly,
-		sources: [{ source: { kind: 'WORK_DAY', id: 'wd-1' }, period: '2026-07' }]
+		captures: [{ work_day_id: 'wd-1', period: '2026-07' }]
 	});
 	assert.throws(
 		() => runMutateBefore({ changes: { break_minutes: 30 }, existing, api: claimed }),

@@ -1,4 +1,8 @@
-import type { MutateBeforeContext, MutateEditContext } from '@norbital-ai/bolt/authoring';
+import {
+	refuse,
+	type MutateBeforeContext,
+	type MutateEditContext
+} from '@norbital-ai/bolt/authoring';
 import { Effect, Schema } from 'effect';
 import { currentInstant } from '../../lib/clock.js';
 import type { Hooks, WorkspaceRow } from './$types.js';
@@ -23,21 +27,22 @@ const VALID_TRANSITIONS: Record<SigningStatus, readonly SigningStatus[]> = {
 };
 
 function sha256Hex(text: string) {
-	return Effect.tryPromise(() =>
-		crypto.subtle.digest('SHA-256', new TextEncoder().encode(text))
-	).pipe(
-		Effect.map((digest) =>
-			[...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, '0')).join('')
+	// A digest of an in-memory string cannot fail for a data reason, so the error channel stays
+	// clean: a host crypto fault dies as a defect instead of posing as a hook failure.
+	return Effect.orDie(
+		Effect.tryPromise(() => crypto.subtle.digest('SHA-256', new TextEncoder().encode(text))).pipe(
+			Effect.map((digest) =>
+				[...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, '0')).join('')
+			)
 		)
 	);
 }
 
-type BeforeApi = Parameters<
-	NonNullable<NonNullable<NonNullable<Hooks['mutate']>['perRecord']>['before']>['handler']
->[0]['api'];
+/** The api a `mutate.before` handler reads through, named from the collection's hooks type. */
+type BeforeApi = MutateBeforeContext<Hooks>['api'];
 
 /** Fingerprint the quote substance a contract is bound to. */
-function bindingHashFor(api: BeforeApi, quoteId: string): Effect.Effect<string, unknown> {
+function bindingHashFor(api: BeforeApi, quoteId: string): Effect.Effect<string> {
 	return Effect.gen(function* () {
 		const quote = yield* api.db.quotes.findFirst({
 			where: { id: { eq: quoteId } },
@@ -72,19 +77,15 @@ type EditContext = MutateEditContext<Hooks>;
 /** A create states the whole record and has no `existing`. */
 const beforeCreate = ({ input, api }: BeforeContext) =>
 	Effect.gen(function* () {
-		if (!input.quote_id) {
-			return yield* Effect.fail(new Error('A contract signing must reference a quote.'));
-		}
+		if (!input.quote_id) refuse('A contract signing must reference a quote.');
 		const quote = yield* api.db.quotes.findFirst({
 			where: { id: { eq: input.quote_id } }
 		});
 		if (!quote) {
-			return yield* Effect.fail(new Error('Referenced quote does not exist.'));
+			refuse('Referenced quote does not exist.');
 		}
 		if (quote.status !== 'confirmed') {
-			return yield* Effect.fail(
-				new Error('A contract can only be generated from a confirmed quote.')
-			);
+			refuse('A contract can only be generated from a confirmed quote.');
 		}
 
 		const existing = yield* api.db.contract_signings.findMany({
@@ -93,10 +94,8 @@ const beforeCreate = ({ input, api }: BeforeContext) =>
 			limit: 5000
 		});
 		if (existing.some((signing) => signing.status !== 'voided')) {
-			return yield* Effect.fail(
-				new Error(
-					'An active contract signing already exists for this quote. Void it before re-signing.'
-				)
+			refuse(
+				'An active contract signing already exists for this quote. Void it before re-signing.'
 			);
 		}
 
@@ -118,17 +117,15 @@ const beforeUpdate = ({ input, existing, api }: EditContext) =>
 
 		if (oldStatus === newStatus) {
 			if (oldStatus === 'voided') {
-				return yield* Effect.fail(new Error('A voided contract signing is immutable.'));
+				refuse('A voided contract signing is immutable.');
 			}
 			return input;
 		}
 
 		const allowed = VALID_TRANSITIONS[oldStatus];
 		if (!allowed.includes(newStatus)) {
-			return yield* Effect.fail(
-				new Error(
-					`Invalid status transition: ${oldStatus} → ${newStatus}. Allowed: ${allowed.join(', ')}.`
-				)
+			refuse(
+				`Invalid status transition: ${oldStatus} → ${newStatus}. Allowed: ${allowed.join(', ')}.`
 			);
 		}
 
@@ -137,9 +134,7 @@ const beforeUpdate = ({ input, existing, api }: EditContext) =>
 		if (newStatus === 'counterparty_stamped') {
 			const counterpartyFile = input.counterparty_file ?? existing.counterparty_file;
 			if (counterpartyFile == null) {
-				return yield* Effect.fail(
-					new Error('The counterparty-stamped contract file is required to stamp.')
-				);
+				refuse('The counterparty-stamped contract file is required to stamp.');
 			}
 		}
 
@@ -149,7 +144,7 @@ const beforeUpdate = ({ input, existing, api }: EditContext) =>
 				columns: { status: true }
 			});
 			if (!quote || quote.status !== 'confirmed') {
-				return yield* Effect.fail(new Error('The underlying quote is no longer confirmed.'));
+				refuse('The underlying quote is no longer confirmed.');
 			}
 			if (existing.acknowledged_at == null) {
 				updates.acknowledged_at = (yield* currentInstant).toISOString();
@@ -159,7 +154,7 @@ const beforeUpdate = ({ input, existing, api }: EditContext) =>
 		if (newStatus === 'voided') {
 			const voidReason = input.void_reason ?? existing.void_reason;
 			if (!voidReason || String(voidReason).trim() === '') {
-				return yield* Effect.fail(new Error('A void reason is required.'));
+				refuse('A void reason is required.');
 			}
 		}
 

@@ -34,12 +34,12 @@
 		view="hr_controller:settings:jurisdictions"
 		title={t('app.settings.jurisdictions_title')}
 		description={t('app.settings.jurisdictions_description')}
-		initialFilters={inForceTodayFilter()}
 		query={{ orderBy: { code: 'asc' } }}
 	>
 		{#snippet columns({ Column })}
 			<Column name="code" card="title" />
 			<Column name="name" card="subtitle" />
+			<Column name="lifecycle" card="badge" />
 			<Column name="currency" />
 			<Column name="effective_range" label={t('component.effective')} />
 		{/snippet}

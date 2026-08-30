@@ -1,5 +1,5 @@
 import { Effect } from 'effect';
-import { refuse } from '@norbital-ai/bolt/authoring';
+import { refuse, type MutateBeforeContext } from '@norbital-ai/bolt/authoring';
 import { getErrorMessage } from '@norbital-ai/std/error';
 import type { SettlementPolicy } from '../../datatypes/settlement_policy/+definition.js';
 import {
@@ -79,9 +79,7 @@ function assertPayCalendar(
  */
 function assertReferences(
 	policy: SettlementPolicy | null | undefined,
-	api: Parameters<
-		NonNullable<NonNullable<NonNullable<Hooks['mutate']>['perRecord']>['before']>['handler']
-	>[0]['api']
+	api: MutateBeforeContext<Hooks>['api']
 ): Effect.Effect<void, never, never> {
 	return Effect.gen(function* () {
 		if (policy == null) return;

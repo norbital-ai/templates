@@ -41,14 +41,21 @@
 					limit: 500
 				}}
 			/>
+			<Field
+				name="statutory_profile_id"
+				label={t('component.statutory_profile')}
+				relationOptions={{
+					label: (profile) =>
+						profile.name != null && profile.name !== '' ? String(profile.name) : '—',
+					orderBy: { code: 'asc' },
+					limit: 200
+				}}
+			/>
 			<Field name="code" label={t('component.code')} />
 			<Field name="sequence" label={t('component.applied_at')} />
 			<Column span="all"><Field name="policy" label={t('component.economic_type')} /></Column>
 			<Column span="all"><Field name="definition" label={t('component.how_calculated')} /></Column>
 			<Column span="all"><Field name="eligibility" label={t('component.who_receives')} /></Column>
-			<Column span="all"
-				><Field name="effective_range" label={t('component.effective_period')} /></Column
-			>
 		</Grid>
 	{/snippet}
 </CollectionForm>

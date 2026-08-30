@@ -81,7 +81,7 @@ const modules = await Effect.runPromise(
 				load('measure'),
 				load('coverage'),
 				load('ordinary-rate'),
-				load('obligations'),
+				load('entries'),
 				load('settle')
 			]);
 		},
@@ -120,7 +120,7 @@ const [
 		overtimeHourlyRate,
 		absenceDayRate
 	},
-	{ obligationSign },
+	{ entrySign, prorates: entryProrates, recurringRange: entryRecurringRange, entryPayPeriod },
 	{ settle }
 ] = modules;
 
@@ -285,7 +285,9 @@ const annualLeave = {
 const accrue = (asOf, entitlement = () => 21) =>
 	accruedDays({
 		leaveType: annualLeave,
-		entitlementAtMonths: entitlement,
+		// The merged entitlement at a service age and a date — the engine calls it per month, so a
+		// mid-year band crossing accrues at both rates.
+		entitlementAt: (serviceMonths) => entitlement(serviceMonths),
 		hireDate: '2020-01-01',
 		exitDate: null,
 		leaveYearStart: '2026-01-01',
@@ -1612,36 +1614,66 @@ check(
 );
 
 // ────────────────────────────────────────────────────────────────────────────────────────────────
-// Reversal signs are transitive — reversing a reversal restores the original.
+// Entry direction is one fact, read once: a REVERSAL correction is the only signed arm.
 // ────────────────────────────────────────────────────────────────────────────────────────────────
-const original = { id: 'e1', terms: 'ONE_OFF', reverses_obligation_id: null };
+const correction = {
+	id: 'e1',
+	event: { kind: 'MANUAL_ADJUSTMENT', operation: 'CORRECTION', reason: 'x' }
+};
 const reversal = {
 	id: 'e2',
-	terms: 'REVERSAL',
-	reverses_obligation_id: 'e1'
+	event: { kind: 'MANUAL_ADJUSTMENT', operation: 'REVERSAL', reason: 'x' }
 };
-const reversalOfReversal = {
-	id: 'e3',
-	terms: 'REVERSAL',
-	reverses_obligation_id: 'e2'
-};
-const obligationIndex = new Map(
-	[original, reversal, reversalOfReversal].map((obligation) => [obligation.id, obligation])
-);
-check('an ordinary obligation pays', obligationSign(original, obligationIndex), 1);
-check('a reversal takes back', obligationSign(reversal, obligationIndex), -1);
 check(
-	'a reversal of a reversal restores — it does not double the negative',
-	obligationSign(reversalOfReversal, obligationIndex),
+	'an ordinary entry pays under its component',
+	entrySign({ id: 'e0', event: { kind: 'CLAIM', incurred_on: '2026-03-02', description: null } }),
 	1
 );
-const selfReversing = {
-	id: 'e4',
-	terms: 'REVERSAL',
-	reverses_obligation_id: 'e4'
-};
-throws('a reversal cycle is refused rather than hanging the run', () =>
-	obligationSign(selfReversing, new Map([['e4', selfReversing]]))
+check(
+	'a reversal takes back — it names the settled output it corrects',
+	entrySign({ id: 'e2', event: { kind: 'MANUAL_ADJUSTMENT', operation: 'REVERSAL', reason: 'x' } }),
+	-1
+);
+check(
+	'prorating is an allowance fact and nothing else',
+	entryProrates({
+		event: { kind: 'ALLOWANCE' },
+		effective_range: { start: '2026-01-01T00:00:00.000Z', end: null }
+	}),
+	true
+);
+check(
+	'a claim never prorates',
+	entryProrates({
+		id: 'e9',
+		event: { kind: 'CLAIM', incurred_on: '2026-03-02', description: null },
+		effective_range: null
+	}),
+	false
+);
+check(
+	'an allowance range is its own, day-precision',
+	JSON.stringify(
+		entryRecurringRange({
+			id: 'e10',
+			event: { kind: 'ALLOWANCE' },
+			effective_range: { start: '2026-01-01T00:00:00.000Z', end: null }
+		})
+	),
+	JSON.stringify({ start: '2026-01-01', end: null })
+);
+check(
+	'a claim settles by its incurred date under the cutoff',
+	entryPayPeriod(
+		{
+			id: 'e10',
+			event: { kind: 'CLAIM', incurred_on: '2026-04-10', description: null },
+			pay_period: null,
+			event_date: '2026-04-25T00:00:00.000Z'
+		},
+		21
+	),
+	'2026-04'
 );
 
 /* ── Rest-day and public-holiday work is priced by statute, from the seeded rules ──────────────

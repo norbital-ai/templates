@@ -1,5 +1,5 @@
 import {
-	NOT_AN_ADJUSTMENT,
+	NOT_A_CORRECTION,
 	attendanceWriteGrants,
 	employeeSelfServiceGrants,
 	grantOn,
@@ -8,7 +8,6 @@ import {
 	mergeGrants,
 	peopleGrants,
 	referenceGrants,
-	settlementLedgerGrants,
 	statutoryGrants
 } from '../../lib/policy_grants.js';
 import type { Policy } from './$types.js';
@@ -28,9 +27,9 @@ import type { Policy } from './$types.js';
  *
  * Still no payroll. A manager reads people, time and leave; `payroll_runs`, `payslips` and
  * `payslip_adjustments` are enumerated authority that begins at `hr_controller` and `senior_management`.
- * The previous `Management` policy in this template granted a manager read, create, update and
- * delete on `payroll_runs`; under the owner's ladder that was three authorities too many, and its
- * payroll-create approval it carried is retired with it.
+ * The previous `Management` policy in this template granted a manager read, `mutate.new`,
+ * `mutate.existing` and delete on `payroll_runs`; under the owner's ladder that was three
+ * authorities too many, and its new-run approval is retired with it.
  */
 export default {
 	description:
@@ -70,21 +69,22 @@ export default {
 		grantsOn('leave_requests', ['read']),
 		// Restated, not inherited, and restated *with* the predicate. A manager who could see
 		// corrections could reconstruct what HR fixed about their own team's pay.
-		grantOn('obligations', 'read', {
-			where: NOT_AN_ADJUSTMENT,
+		grantOn('component_entries', 'read', {
+			where: NOT_A_CORRECTION,
 			dependencies: []
 		}),
-		settlementLedgerGrants(),
+		// `employeeSelfServiceGrants` already carries `settlementLedgerGrants`; restating it is a
+		// duplicate grant, which `mergeGrants` refuses.
 
 		// Attendance, masked to the clock columns and reviewed, exactly as at rank 2. The delete this
 		// rank adds is the withdrawal a supervisor may not make, and it is authorized only on a day
 		// that carries no plan — a delete takes the whole row, and a manager may not write the plan,
 		// so a manager may not remove one either. Clearing attendance from a rostered day is an
-		// update, and that update is reviewed.
-		attendanceWriteGrants('create', 'update', 'delete'),
+		// `mutate.existing`, and that mutation is reviewed.
+		attendanceWriteGrants('mutate.new', 'mutate.existing', 'delete'),
 
-		grantOn('leave_requests', 'create', { approval: leaveApproval }),
-		grantsOn('leave_requests', ['update', 'delete'])
+		grantOn('leave_requests', 'mutate.new', { approval: leaveApproval }),
+		grantsOn('leave_requests', ['mutate.existing', 'delete'])
 	),
 	/**
 	 * What a holder of this policy may spend.

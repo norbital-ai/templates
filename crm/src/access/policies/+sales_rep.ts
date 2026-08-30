@@ -1,7 +1,7 @@
 import type { Policy } from './$types.js';
 
 /**
- * A sales representative: their own pipeline, and the shared reference data behind it.
+ * A sales representative's sales surface and pipeline authority.
  *
  * Declared here rather than seeded so the permission set ships with the workspace — a fresh database
  * has it, and changing it shows up in a diff.
@@ -13,12 +13,9 @@ import type { Policy } from './$types.js';
  */
 export default {
 	description:
-		'Owns their own quotes and activities; reads shared accounts, contacts, and the product catalogue.',
+		'Opens the sales app and owns the requestor-scoped pipeline, contacts, activities, and sales documents.',
 	capabilities: { apps: ['crm'] },
 	grants: {
-		accounts: {
-			read: {}
-		},
 		contacts: {
 			read: {}
 		},
@@ -26,43 +23,53 @@ export default {
 			read: {
 				where: { owner_id: { eq: '${requestor.id}' } }
 			},
-			create: {},
-			update: {
-				authorize: ({ record }, api) => record.owner_id === api.requestor.id
+			mutate: {
+				new: {},
+				existing: {
+					authorize: ({ record }, api) => record.owner_id === api.requestor.id
+				}
 			}
 		},
 		quote_lines: {
 			read: {},
-			create: {},
-			update: {},
+			mutate: {
+				new: {},
+				existing: {}
+			},
 			delete: {}
 		},
 		activities: {
 			read: {},
-			create: {}
+			mutate: { new: {} }
 		},
 		sales_invoices: {
 			read: {
 				where: { owner_id: { eq: '${requestor.id}' } }
 			},
-			create: {},
-			update: {
-				authorize: ({ record }, api) => record.owner_id === api.requestor.id
+			mutate: {
+				new: {},
+				existing: {
+					authorize: ({ record }, api) => record.owner_id === api.requestor.id
+				}
 			}
 		},
 		sales_invoice_lines: {
 			read: {},
-			create: {},
-			update: {},
+			mutate: {
+				new: {},
+				existing: {}
+			},
 			delete: {}
 		},
 		contract_signings: {
 			read: {
 				where: { owner_id: { eq: '${requestor.id}' } }
 			},
-			create: {},
-			update: {
-				authorize: ({ record }, api) => record.owner_id === api.requestor.id
+			mutate: {
+				new: {},
+				existing: {
+					authorize: ({ record }, api) => record.owner_id === api.requestor.id
+				}
 			}
 		}
 	},

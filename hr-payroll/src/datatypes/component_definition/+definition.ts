@@ -23,7 +23,6 @@ const capLayer = {
 	effective_range: instantRangeValueSchema
 } as const;
 const capLayerSchema = Schema.Union([
-	Schema.Struct({ level: Schema.Literal('STATUTORY'), ...capLayer }),
 	Schema.Struct({ level: Schema.Literal('ORGANISATION'), ...capLayer }),
 	Schema.Struct({
 		level: Schema.Literal('EMPLOYEE'),
@@ -36,14 +35,12 @@ const capLayerSchema = Schema.Union([
 export const componentCapSchema = Schema.Struct({
 	period: Schema.Literals(['CALENDAR_YEAR', 'LEAVE_YEAR', 'MONTH', 'LIFETIME', 'PER_EVENT']),
 	matrix: Schema.Struct({
-		merge: Schema.Literal('MAX_WITH_STATUTORY_FLOOR'),
+		merge: Schema.Literal('MAX_WITH_COMPANY_LAYERS'),
 		// At least one layer: an empty matrix is not "no cap", it is a cap every claim exceeds.
 		layers: Schema.Array(capLayerSchema).check(Schema.isMinLength(1))
 	}),
 	on_exceed: Schema.Literals(['BLOCK', 'ALLOW'])
 });
-
-export type ComponentCap = typeof componentCapSchema.Type;
 
 /**
  * How a pay component produces its amount.

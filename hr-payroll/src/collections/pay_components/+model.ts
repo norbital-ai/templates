@@ -3,6 +3,7 @@ import { custom, defineModel, integer, sql, text, uuid } from '@norbital-ai/bolt
 export default defineModel(
 	{
 		company_id: uuid().notNull(),
+		statutory_profile_id: uuid().notNull(),
 		/** The one label of a pay item. Code and description are the same field; nothing else names it. */
 		code: text({ search: true }).notNull(),
 		/**
@@ -15,24 +16,16 @@ export default defineModel(
 		/** Formula/dependency and deduction-reduction order. */
 		sequence: integer().notNull(),
 		eligibility: custom('eligibility_rules').notNull(),
-		definition: custom('component_definition').notNull(),
-		effective_range: custom('instant_range', { precision: 'day' }).notNull()
+		definition: custom('component_definition').notNull()
 	},
 	{
 		description:
-			"The customer's complete pay catalogue: code, strict settlement/statutory policy, eligibility and polymorphic calculation definition in one row.",
+			"The company's pay catalogue within one statutory profile: code, strict settlement/statutory policy, eligibility and polymorphic calculation definition. Versioned and sealed with the profile it belongs to.",
 		recordLabel: ['code'],
 		icon: 'lucide:receipt',
-		// Plan 02 §7: company =, code =, effective range &&.
-		exclusions: [
-			{
-				name: 'pay_components_no_overlap',
-				elements: [
-					{ expr: 'company_id', with: '=' },
-					{ expr: 'code', with: '=' },
-					{ expr: 'bolt_daterange(effective_range)', with: '&&' }
-				]
-			}
+		indexes: [
+			{ columns: ['company_id', 'code'], unique: true },
+			{ columns: ['statutory_profile_id'] }
 		]
 	}
 );

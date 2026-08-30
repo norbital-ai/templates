@@ -1,20 +1,17 @@
 <script lang="ts">
 	/**
-	 * Staff loans, salary advances and overpayment recoveries — the SCHEDULED arm of `obligations`.
+	 * Staff loans, salary advances and overpayment recoveries — the agreement, and the plan it owns.
 	 *
-	 * ## What is no longer stored, and what replaces it
+	 * ## What is stored, and what is derived
 	 *
-	 * A loan used to be a `repayment_agreements` row whose instalments were COPIED into
-	 * `component_entries` as `LOAN_INSTALMENT` rows, so this page could ask "which instalments have
-	 * a payslip line pointing at them" and count them. Those rows do not exist. The schedule holds
-	 * its own instalments as an inline array, and what has been recovered is the sum of what paid
-	 * runs actually took from the obligation — which is one read of `payslip_adjustments` against
-	 * the obligation, not a per-instalment link.
+	 * The loan is the agreement; the amounts due under it are `loan_repayments` rows, which is what
+	 * payroll consumes. What has been recovered is the sum of what paid runs actually took, read off
+	 * the recovery adjustments through the repayment-capture junction — not a per-master link.
 	 *
-	 * So `paidInstalments` is DERIVED here rather than counted: instalments are recovered in the
-	 * order they are listed, so the number settled is the number of leading instalments the
-	 * recovered total covers. That is faithful to how the engine recovers — `measure.ts` takes every
-	 * instalment due on or before the period and nets off what earlier runs already took — and it is
+	 * `paidRepayments` is DERIVED here rather than counted: repayments are recovered in the order
+	 * they are scheduled, so the number settled is the number of leading repayments the recovered
+	 * total covers. That is faithful to how the engine recovers — `measure.ts` takes every repayment
+	 * due on or before the period and nets off what earlier runs already recovered — and it is
 	 * stated as a derivation rather than presented as a stored fact.
 	 *
 	 * Only PAID runs count. A draft run has produced adjustments and paid nobody, and showing its
@@ -30,11 +27,7 @@
 	import { CollectionTable } from '@norbital-ai/ui/collection-table';
 	import { Combobox } from '@norbital-ai/ui/combobox';
 	import { Bound, Cover, Inline, Stack } from '@norbital-ai/ui/layout';
-	import {
-		formatEffectiveRange,
-		formatInstalments,
-		formatNumeric
-	} from '../../lib/ui/display-formatters.js';
+	import { formatEffectiveRange, formatNumeric } from '../../lib/ui/display-formatters.js';
 	import { inForceTodayFilter, todayInstant } from '../../lib/ui/calendar.js';
 
 	const { t } = useI18n<TenantI18nKeys>();
@@ -42,8 +35,8 @@
 	const RepaymentProgressSchema = Schema.Struct({
 		recoveredAmount: Schema.Number,
 		outstandingAmount: Schema.Number,
-		paidInstalments: Schema.Number,
-		totalInstalments: Schema.Number,
+		paidRepayments: Schema.Number,
+		totalRepayments: Schema.Number,
 		settled: Schema.Boolean
 	});
 	type RepaymentProgress = Schema.Schema.Type<typeof RepaymentProgressSchema>;
@@ -51,29 +44,36 @@
 	/**
 	 * How far a schedule has been recovered, from the principal and what paid runs took.
 	 *
-	 * The tolerance mirrors `overConsumesObligation` in `src/lib/settlement_refusals.ts`: amounts are
+	 * The tolerance mirrors `overRecoversRepayment` in `src/lib/settlement_refusals.ts`: amounts are
+	 * rounded to the currency's minor unit on the way into a payslip, so a schedule that sums to its
+	 * principal exactly can land a hundredth either side of it across a dozen runs.
+	 */
+	/**
+	 * How far a schedule has been recovered, from the plan and what paid runs took.
+	 *
+	 * The tolerance mirrors `overRecoversRepayment` in `src/lib/settlement_refusals.ts`: amounts are
 	 * rounded to the currency's minor unit on the way into a payslip, so a schedule that sums to its
 	 * principal exactly can land a hundredth either side of it across a dozen runs.
 	 */
 	function repaymentProgress(
-		principal: number,
-		instalments: readonly { readonly amount: number }[],
+		repayments: readonly { readonly amount_due: unknown }[],
 		recoveredAmount: number
 	): RepaymentProgress | null {
+		const principal = repayments.reduce((total, row) => total + Number(row.amount_due), 0);
 		if (!Number.isFinite(principal) || principal < 0) return null;
 		const outstandingAmount = Math.max(0, principal - recoveredAmount);
 		let covered = 0;
-		let paidInstalments = 0;
-		for (const instalment of instalments) {
-			covered += instalment.amount;
+		let paidRepayments = 0;
+		for (const repayment of repayments) {
+			covered += Number(repayment.amount_due);
 			if (covered - recoveredAmount > 0.01) break;
-			paidInstalments += 1;
+			paidRepayments += 1;
 		}
 		return {
 			recoveredAmount,
 			outstandingAmount,
-			paidInstalments,
-			totalInstalments: instalments.length,
+			paidRepayments,
+			totalRepayments: repayments.length,
 			settled: outstandingAmount <= 0.01
 		};
 	}
@@ -82,7 +82,7 @@
 	const activeRange = { effective_range: { contains_date: todayInstant() } } as const;
 
 	/**
-	 * The ledger opens on the obligations still running today, as a filter chip the operator can drop
+	 * The ledger opens on the loans still running today, as a filter chip the operator can drop
 	 * to see settled and future ones. The legal-entity selector keeps `activeRange` in its own query
 	 * regardless: that is the page's scope picker, not a listing, and it has to default to an entity
 	 * that still exists.
@@ -109,34 +109,54 @@
 	);
 
 	/**
-	 * The recovery ledger, in two reads rather than a nested one.
+	 * The recovery ledger, in three reads rather than a nested one.
 	 *
-	 * `payslip_adjustments.source` is a `reference(...)`, so the edge is owned by the reference and
-	 * there is no `many` inverse to nest under an obligation. The ids are therefore read first and
-	 * the claims scoped by them — the same shape every other settlement lookup in this workspace
-	 * uses, and bounded by the company rather than by the whole ledger.
+	 * `payslip_adjustments.input` is a `reference(...)` to the repayment-input junction, so the
+	 * repayment ids are read first and the claims scoped by them — the same shape every other
+	 * settlement lookup in this workspace uses, and bounded by the company rather than by the whole
+	 * ledger. The loans table carries the plan's count; the repayments carry their amounts.
 	 */
-	const scheduledIdsQuery = $derived(
+	const loansQuery = $derived(
 		selectedCompanyId == null
 			? null
-			: client.db.obligations.findMany({
+			: client.db.loans.findMany({
 					where: {
-						terms: { eq: 'SCHEDULED' },
-						obligation_employment: {
+						loan_employment: {
 							approval_id: { isNull: true },
 							company_id: { eq: selectedCompanyId }
 						}
 					},
 					columns: { id: true },
+					orderBy: { effective_range: 'desc' },
 					limit: 2000
 				})
 	);
+	const repaymentsQuery = $derived.by(() => {
+		const ids = (loansQuery?.current ?? []).map((row) => row.id);
+		if (ids.length === 0) return null;
+		return client.db.loan_repayments.findMany({
+			where: { loan_id: { in: ids } },
+			columns: { id: true, loan_id: true, amount_due: true, sequence: true },
+			limit: 20_000
+		});
+	});
+	const repaymentsByLoanId = $derived.by(() => {
+		const byLoan = new Map<string, { readonly id: string; readonly amount_due: unknown }[]>();
+		for (const row of repaymentsQuery?.current ?? []) {
+			const bucket = byLoan.get(row.loan_id) ?? [];
+			bucket.push(row);
+			byLoan.set(row.loan_id, bucket);
+		}
+		return byLoan;
+	});
 	const recoveriesQuery = $derived.by(() => {
-		const ids = (scheduledIdsQuery?.current ?? []).map((row) => row.id);
+		const ids = (repaymentsQuery?.current ?? []).map((row) => row.id);
 		if (ids.length === 0) return null;
 		return client.db.payslip_adjustments.findMany({
-			where: { source: { in: ids.map((id) => ({ kind: 'OBLIGATION' as const, id })) } },
-			columns: { source: true, amount: true },
+			where: {
+				input: { in: ids.map((id) => ({ kind: 'LOAN_REPAYMENT_INPUT' as const, id })) }
+			},
+			columns: { input: true, amount: true },
 			with: {
 				payslip_adjustment_payslip: {
 					columns: { id: true },
@@ -149,7 +169,7 @@
 
 	const recoveryRowSchema = Schema.Struct({
 		amount: Schema.Unknown,
-		source: Schema.Struct({ kind: Schema.String, id: Schema.String }),
+		input: Schema.Struct({ kind: Schema.String, id: Schema.String }),
 		payslip_adjustment_payslip: Schema.optional(
 			Schema.NullOr(
 				Schema.Struct({
@@ -164,47 +184,49 @@
 	});
 	const decodeRecoveryRow = Schema.decodeUnknownResult(recoveryRowSchema);
 
-	const recoveredByObligationId = $derived.by(() => {
+	const recoveredByRepaymentId = $derived.by(() => {
 		const recovered = new Map<string, number>();
 		for (const row of recoveriesQuery?.current ?? []) {
 			const parsed = decodeRecoveryRow(row);
 			if (!Result.isSuccess(parsed)) continue;
 			const claim = parsed.success;
-			if (claim.source.kind !== 'OBLIGATION') continue;
+			if (claim.input.kind !== 'LOAN_REPAYMENT_INPUT') continue;
 			if (claim.payslip_adjustment_payslip?.payslip_payroll_run?.lifecycle !== 'PAID') continue;
 			const amount = Number(claim.amount);
 			if (!Number.isFinite(amount)) continue;
-			recovered.set(claim.source.id, (recovered.get(claim.source.id) ?? 0) + amount);
+			recovered.set(claim.input.id, (recovered.get(claim.input.id) ?? 0) + amount);
 		}
 		return recovered;
 	});
 
-	type NestedObligation = WorkspaceRow<'obligations'> & {
-		readonly obligation_employment?: Pick<WorkspaceRow<'employments'>, 'employee_number'> | null;
-		readonly obligation_pay_component?: Pick<WorkspaceRow<'pay_components'>, 'code'> | null;
+	type NestedLoan = WorkspaceRow<'loans'> & {
+		readonly loan_employment?: Pick<WorkspaceRow<'employments'>, 'employee_number'> | null;
+		readonly loan_pay_component?: Pick<WorkspaceRow<'pay_components'>, 'code'> | null;
 	};
 
-	function progressLabel(row: NestedObligation): string {
+	function progressLabel(row: NestedLoan): string {
 		const progress = repaymentProgress(
-			Number(row.amount),
-			row.instalments ?? [],
-			recoveredByObligationId.get(row.id) ?? 0
+			repaymentsByLoanId.get(row.id) ?? [],
+			[...(repaymentsByLoanId.get(row.id) ?? [])].reduce(
+				(total, repayment) => total + (recoveredByRepaymentId.get(repayment.id) ?? 0),
+				0
+			)
 		);
 		if (progress == null) return '—';
 		if (progress.settled)
 			return t('app.loans.progress_settled', {
-				paid: progress.paidInstalments,
-				total: progress.totalInstalments
+				paid: progress.paidRepayments,
+				total: progress.totalRepayments
 			});
 		return t('app.loans.progress_partial', {
 			outstanding: formatNumeric(progress.outstandingAmount),
-			paid: progress.paidInstalments,
-			total: progress.totalInstalments
+			paid: progress.paidRepayments,
+			total: progress.totalRepayments
 		});
 	}
 
-	function componentLabel(row: NestedObligation): string {
-		const component = row.obligation_pay_component;
+	function componentLabel(row: NestedLoan): string {
+		const component = row.loan_pay_component;
 		if (component?.code) return component.code;
 		return '—';
 	}
@@ -263,23 +285,22 @@
 			{#key selectedCompanyId}
 				<CollectionTable
 					{client}
-					collection="obligations"
+					collection="loans"
 					view={`hr_controller:loans:${selectedCompanyId}`}
 					title={t('app.loans.agreements')}
 					description={t('app.loans.agreements_description')}
 					initialFilters={inForceTodayFilter()}
 					query={{
 						where: {
-							terms: { eq: 'SCHEDULED' },
-							obligation_employment: {
+							loan_employment: {
 								approval_id: { isNull: true },
 								company_id: { eq: selectedCompanyId }
 							}
 						},
 						orderBy: { effective_range: 'desc' },
 						with: {
-							obligation_employment: { columns: { employee_number: true } },
-							obligation_pay_component: { columns: { code: true } }
+							loan_employment: { columns: { employee_number: true } },
+							loan_pay_component: { columns: { code: true } }
 						}
 					}}
 				>
@@ -291,8 +312,8 @@
 							card="subtitle"
 							renderer={FormattedValueRenderer}
 							rendererProps={{
-								format: ({ row }: { row: NestedObligation }) =>
-									row.obligation_employment?.employee_number ?? '—'
+								format: ({ row }: { row: NestedLoan }) =>
+									row.loan_employment?.employee_number ?? '—'
 							}}
 						/>
 						<Column
@@ -301,27 +322,18 @@
 							renderer={FormattedValueRenderer}
 							rendererProps={{ format: ({ row }) => componentLabel(row) }}
 						/>
-						<Column name="amount" label={t('app.loans.principal_outstanding')} />
-						<Column
-							name="instalments"
-							label={t('component.recovery_instalments')}
-							renderer={FormattedValueRenderer}
-							rendererProps={{ format: ({ value }) => formatInstalments(value, t) }}
-						/>
+						<Column name="principal" label={t('app.loans.principal_outstanding')} />
 						<Column name="effective_range" />
 					{/snippet}
-					{#snippet ListCard(obligation)}
+					{#snippet ListCard(loan)}
 						<Stack gap="xs">
 							<Inline align="start" justify="between" gap="sm">
-								<p class="truncate font-medium">{obligation.reference}</p>
+								<p class="truncate font-medium">{loan.reference ?? '—'}</p>
 								<span class="shrink-0 text-meta">
-									{formatEffectiveRange(obligation.effective_range)}
+									{formatEffectiveRange(loan.effective_range)}
 								</span>
 							</Inline>
-							<p class="truncate text-sm text-muted-foreground">
-								{formatInstalments(obligation.instalments, t)}
-							</p>
-							<p class="text-sm">{progressLabel(obligation)}</p>
+							<p class="text-sm">{progressLabel(loan)}</p>
 						</Stack>
 					{/snippet}
 				</CollectionTable>

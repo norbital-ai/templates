@@ -183,7 +183,7 @@ facts. It is not an `overtime_eligible` boolean on employment terms.
 
 ## Leave request UX
 
-The leave overview treats an unresolved replica query as loading, never as an authoritative empty
+The leave overview treats an unresolved live query as loading, never as an authoritative empty
 result. Its seasonality heat map uses the rolling five-year window through the current year, so the
 latest seeded or live requests appear immediately instead of being pushed into an unlabelled future
 bucket.

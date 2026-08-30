@@ -72,7 +72,7 @@
 					</tr>
 				</thead>
 				<tbody>
-					{#each segments as segment (`${segment.term_id}:${segment.from}`)}
+					{#each segments as segment (`${segment.term_key}:${segment.from}`)}
 						<tr class="border-t border-border">
 							<td class="py-1 pr-3 whitespace-nowrap"
 								>{formatCalendarDate(segment.from)} → {formatCalendarDate(segment.to)}</td

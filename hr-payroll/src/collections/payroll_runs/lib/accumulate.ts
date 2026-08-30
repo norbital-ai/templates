@@ -1,34 +1,11 @@
 /**
  * Step 5 — ACCUMULATE.
  *
- * Every measured amount passes through the treatment grid and becomes part of a contribution base.
- * Nothing in this step knows the word "EPF": an amount and a contribution meet in exactly one cell,
- * and the cell says what to do.
- *
- * An amount reaches its cell down one of two roads, and which road it takes is the whole of what
- * this step knows about overtime. A configured component asks the component; derived overtime asks
- * the scheme, because there is no component to ask.
- *
- * ```
- * base  MEAL_ALLOWANCE  120.00              adjustment  OT · ORDINARY · BEYOND_NORMAL · 0
- *       │  pay_components.policy                    │  statutory_contributions.overtime_treatments
- *       ▼                                           ▼
- * MEAL × EPF    INCLUDE ──► EPF base += 120   EPF.overtime   EXCLUDE ──► EPF base   unchanged
- * MEAL × SOCSO  INCLUDE ──► SOCSO    += 120   SOCSO.overtime INCLUDE ──► SOCSO base += 288.45
- * ```
- *
- * The second road exists because "EPF excludes overtime" is a fact about EPF and not about anyone's
- * pay catalogue. It is stated once on the scheme, effective-dated, and every company in the
- * jurisdiction reads the same statement.
- *
- * `REDUCE` is why unpaid leave needs no second mechanism: its amount is a positive magnitude typed
- * `UNPAID_ABSENCE`, and the cell subtracts it from every base. `SPECIAL` is why no cell is ever
- * blank — "it's complicated" is a value, and it routes the amount to a named side-channel instead
- * of the ordinary base.
- *
- * `UNSET` cannot reach a run, and neither road may be silent. A missing decision must never be read
- * as `EXCLUDE`, which is the dangerous outcome: an under-contribution nobody notices. Both paths
- * therefore throw on absence rather than defaulting.
+ * Every measured amount, whichever plane holds it, is routed through the effective-dated treatment
+ * grid into the chargeable base of each scheme. The grid is `pay_components.policy.statutory_
+ * treatments` — the company's answer to "what does this scheme do with this money" — and both
+ * paths throw on absence rather than defaulting, because an undecided cell used twice is the
+ * dangerous kind: an under-contribution nobody notices.
  */
 
 import { lookupTreatment, type Configuration, type ContributionConfig } from './configuration.js';
@@ -47,27 +24,27 @@ export type ContributionBase = {
 /**
  * The one cell deciding this amount against this scheme, or `undefined` where nobody has decided.
  *
- * `overtimeBand` is the whole of the test. It is set on derived overtime and on nothing else — an
- * amount with a band has no pay component to ask, which is exactly the case the scheme answers for
- * — and its `excess` flag chooses between the scheme's two overtime positions.
+ * `statutoryRuleKey` is the whole of the test. It is set on derived overtime and on nothing else —
+ * an amount with a rule key has no pay component to ask, which is exactly the case the scheme
+ * answers for — and the key's excess segment chooses between the scheme's two overtime positions.
  */
 function treatmentFor(
 	configuration: Configuration,
 	contribution: ContributionConfig,
 	item: PricedItem
 ): ContributionTreatment | undefined {
-	const band = item.overtimeBand;
-	if (band != null)
-		return band.excess
+	const excess = item.label.includes('_EXCESS_');
+	if (item.payComponent == null)
+		return excess
 			? contribution.overtimeExcessTreatment?.treatment
 			: contribution.overtimeTreatment?.treatment;
-	return item.payComponent == null
-		? undefined
-		: lookupTreatment(configuration, item.payComponent.id, contribution.row.id)?.treatment;
+	return lookupTreatment(configuration, item.payComponent.id, contribution.row.id)?.treatment;
 }
 
 /**
  * Every measured amount passes through the grid, whichever plane holds it.
+ *
+, whichever plane holds it.
  *
  * `items` is the contracted amounts and the adjustments concatenated, and that is deliberate: a
  * contribution base is a fact about the payslip, so which table a figure will be stored in cannot
@@ -86,15 +63,19 @@ export function accumulateBases(options: {
 			// Information is not money, so the grid does not apply to it and it carries no cell.
 			if (item.nature === 'INFORMATION') continue;
 			/**
-			 * A settlement claim is not money either, and it is the one thing here that has no cell.
+			 * An amount naming neither a catalogue row nor a statutory rule has nothing to charge.
 			 *
-			 * An adjustment naming neither a catalogue row nor a statutory band is a source the run
-			 * read and priced at nothing — the zero-amount row that replaced `payslip_sources`. There
-			 * is no component to ask and no scheme to ask for it, and there is nothing to charge: it
-			 * carries an amount of zero by construction. Skipping it is not a silent default, which
-			 * is what the throw below exists to prevent — it is the absence of anything to decide.
+			 * A derived overtime row names its rule; anything else with no component is a measured
+			 * nothing, and the grid has no cell for it. Skipping it is not a silent default — it is
+			 * the absence of anything to decide.
 			 */
-			if (item.payComponent == null && item.overtimeBand == null) continue;
+			if (
+				item.payComponent == null &&
+				!item.label.includes('_EXCESS_') &&
+				!item.label.startsWith('OT_')
+			)
+				continue;
+			if (item.payComponent == null && item.amount === 0) continue;
 			const treatment = treatmentFor(options.configuration, contribution, item);
 			if (treatment == null)
 				throw new Error(

@@ -11,7 +11,7 @@
  * payments         = Σ NON_WAGE_PAYMENT settled through payroll
  *
  * net              = gross − statutory − other + payments
- * employer cost    = Σ employer_amount + Σ EMPLOYER_COST + Σ company-direct obligations
+ * employer cost    = Σ employer_amount + Σ EMPLOYER_COST + Σ company-direct entries
  * ```
  *
  * The sums run over **both planes at once** — the contracted amounts inlined on the payslip and the
@@ -21,7 +21,7 @@
  *
  * `total_deductions` includes the employee's statutory contributions and excludes reimbursements.
  * A payroll-settled reimbursement repays the employee's own outlay, so it is added to net without
- * ever having been part of gross. A company-direct obligation (for example, a panel-clinic invoice)
+ * ever having been part of gross. A company-direct entry (for example, a panel-clinic invoice)
  * is instead an employer cost: the row remains on the payslip for provenance, but no cash passes
  * through the employee.
  *
@@ -33,11 +33,11 @@
  * What could not be taken **is not carried anywhere.** It used to be: a fresh `component_entries`
  * row dated next month, written one facility call per employee by a `persistShortfalls` that had to
  * delete last build's copies first so a rebuild could not make somebody owe the same money twice.
- * That was a second representation of a debt its own obligation already recorded.
+ * That was a second representation of a debt its own source already records.
  *
  * The debt now stays where it was born. The row below records what was *actually* taken, so what is
- * still owed is `obligation.amount − Σ(what earlier paid runs took)` — read back from earlier PAID
- * runs by `gather.ts` and re-derived by `measureScheduledObligations`. `shortfalls` is retained as a
+ * still owed is `source amount − Σ(what earlier paid runs took)` — read back from earlier PAID
+ * runs by `gather.ts` and re-derived by `measureLoanRecoveries`. `shortfalls` is retained as a
  * statement of what this run reduced and by how much; nothing persists it, and nothing needs to.
  *
  * The plan makes reducibility a `definition.reducible` flag on the pay component. The schema
@@ -68,7 +68,7 @@ export type Settlement = {
 };
 
 /**
- * A company-direct obligation costs the employer and never reaches the employee's net.
+ * A company-direct entry costs the employer and never reaches the employee's net.
  *
  * `nature`, not `payComponent.nature`: derived overtime has no pay component to read it from, and
  * it is an EARNING like any other.

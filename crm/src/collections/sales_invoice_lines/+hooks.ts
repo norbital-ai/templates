@@ -1,19 +1,16 @@
-import type { MutateBeforeContext, MutateEditContext } from '@norbital-ai/bolt/authoring';
-import type { CollectionHooks } from '@norbital-ai/bolt/authoring';
+import {
+	refuse,
+	type MutateAfterContext,
+	type MutateBeforeContext,
+	type MutateEditContext
+} from '@norbital-ai/bolt/authoring';
 import { Effect } from 'effect';
-import type { WorkspaceSchema } from '$bolt/types.js';
 import { rollupDocument, sumQuantity } from '../../lib/document-lines.js';
 import { documentLineAmounts, type LineAmounts } from '../../lib/pricing.js';
 import type { Hooks, WorkspaceRow } from './$types.js';
 
-type AfterApi = Parameters<
-	NonNullable<NonNullable<NonNullable<Hooks['mutate']>['perRecord']>['after']>['handler']
->[0]['api'];
-type BeforeApi = Parameters<
-	NonNullable<
-		NonNullable<NonNullable<SalesInvoiceLineHooks['mutate']>['perRecord']>['before']
-	>['handler']
->[0]['api'];
+type AfterApi = MutateAfterContext<Hooks<SalesInvoiceLineBatch>>['api'];
+type BeforeApi = MutateBeforeContext<Hooks<SalesInvoiceLineBatch>>['api'];
 
 const LINE_LIMIT = 5000;
 
@@ -31,13 +28,6 @@ interface SalesInvoiceLineBatch {
 	readonly allocatedByQuoteLine: ReadonlyMap<string, number>;
 }
 
-/** `Hooks` with what `prepare` returns filled in; see the note in `quote_lines/+hooks.ts`. */
-type SalesInvoiceLineHooks = CollectionHooks<
-	WorkspaceSchema,
-	'sales_invoice_lines',
-	SalesInvoiceLineBatch
->;
-
 /** The pricing inputs a line under validation contributes, from the row's own fields. */
 type ResolvedLineInput = Partial<
 	Pick<WorkspaceRow<'sales_invoice_lines'>, 'quantity' | 'unit_price' | 'tax_rate'>
@@ -46,15 +36,15 @@ type ResolvedLineInput = Partial<
 function validateLineFields(input: ResolvedLineInput): void {
 	const quantity = Number(input.quantity);
 	if (Number.isNaN(quantity) || quantity <= 0) {
-		throw new Error('Quantity must be greater than zero.');
+		refuse('Quantity must be greater than zero.');
 	}
 	const unitPrice = Number(input.unit_price);
 	if (Number.isNaN(unitPrice) || unitPrice < 0) {
-		throw new Error('Unit price cannot be negative.');
+		refuse('Unit price cannot be negative.');
 	}
 	const taxRate = Number(input.tax_rate ?? 0);
 	if (taxRate < 0 || taxRate > 100) {
-		throw new Error('Tax rate must be between 0 and 100.');
+		refuse('Tax rate must be between 0 and 100.');
 	}
 }
 
@@ -115,29 +105,29 @@ const afterRollup = ({
 }) => rollupInvoice(api, record.sales_invoice_id);
 
 /** The context a `mutate.before` handler receives, named so the two halves can be hoisted. */
-type BeforeContext = MutateBeforeContext<SalesInvoiceLineHooks>;
+type BeforeContext = MutateBeforeContext<Hooks<SalesInvoiceLineBatch>>;
 
 /** The same context on an edit, where `existing` is the stored row rather than undefined. */
-type EditContext = MutateEditContext<SalesInvoiceLineHooks>;
+type EditContext = MutateEditContext<Hooks<SalesInvoiceLineBatch>>;
 
 /** A create states the whole record and has no `existing`. */
 const beforeCreate = ({ input, prepared }: BeforeContext) => {
 	if (!input.sales_invoice_id) {
-		throw new Error('A sales invoice line must reference a sales invoice.');
+		refuse('A sales invoice line must reference a sales invoice.');
 	}
 	const invoice = prepared.invoices.get(input.sales_invoice_id);
-	if (!invoice) throw new Error('Referenced sales invoice does not exist.');
+	if (!invoice) refuse('Referenced sales invoice does not exist.');
 	if (invoice.status !== 'draft') {
-		throw new Error('Lines can only be added to draft sales invoices.');
+		refuse('Lines can only be added to draft sales invoices.');
 	}
 
 	if (!input.quote_line_id) {
-		throw new Error('A sales invoice line must reference a quote line.');
+		refuse('A sales invoice line must reference a quote line.');
 	}
 	const quoteLine = prepared.quoteLines.get(input.quote_line_id);
-	if (!quoteLine) throw new Error('Referenced quote line does not exist.');
+	if (!quoteLine) refuse('Referenced quote line does not exist.');
 	if (quoteLine.quote_id !== invoice.quote_id) {
-		throw new Error('The billed line belongs to a different quote.');
+		refuse('The billed line belongs to a different quote.');
 	}
 
 	const resolved = {
@@ -154,7 +144,7 @@ const beforeCreate = ({ input, prepared }: BeforeContext) => {
 	const allocated = prepared.allocatedByQuoteLine.get(quoteLine.id) ?? 0;
 	const quoted = Number(quoteLine.quantity ?? 0);
 	if (allocated + Number(resolved.quantity) > quoted) {
-		throw new Error(
+		refuse(
 			`Over-allocation: ${allocated} of ${quoted} billed so far; this line would exceed the quoted quantity.`
 		);
 	}
@@ -167,15 +157,15 @@ const beforeCreate = ({ input, prepared }: BeforeContext) => {
 const beforeUpdate = ({ input, existing, api }: EditContext) =>
 	Effect.gen(function* () {
 		if (input.sales_invoice_id != null && input.sales_invoice_id !== existing.sales_invoice_id) {
-			return yield* Effect.fail(new Error('A line cannot be moved to a different sales invoice.'));
+			refuse('A line cannot be moved to a different sales invoice.');
 		}
 
 		const invoice = yield* api.db.sales_invoices.findFirst({
 			where: { id: { eq: existing.sales_invoice_id } }
 		});
-		if (!invoice) return yield* Effect.fail(new Error('Referenced sales invoice does not exist.'));
+		if (!invoice) refuse('Referenced sales invoice does not exist.');
 		if (invoice.status !== 'draft') {
-			return yield* Effect.fail(new Error('Lines can only be modified on draft sales invoices.'));
+			refuse('Lines can only be modified on draft sales invoices.');
 		}
 
 		const resolved = { ...existing, ...input };
@@ -189,11 +179,7 @@ const beforeUpdate = ({ input, existing, api }: EditContext) =>
 			const quoted = Number(quoteLine.quantity ?? 0);
 			const own = Number(existing.quantity ?? 0);
 			if (allocated - own + Number(resolved.quantity) > quoted) {
-				return yield* Effect.fail(
-					new Error(
-						`Over-allocation: this line would push billed quantity past the quoted ${quoted}.`
-					)
-				);
+				refuse(`Over-allocation: this line would push billed quantity past the quoted ${quoted}.`);
 			}
 		}
 
@@ -275,4 +261,4 @@ export default {
 			}
 		}
 	}
-} satisfies SalesInvoiceLineHooks;
+} satisfies Hooks<SalesInvoiceLineBatch>;

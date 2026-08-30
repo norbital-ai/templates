@@ -16,8 +16,13 @@ import { prorationBasisValueSchema } from '../proration_basis/+definition.js';
  * `contract_amount x fraction` is `prorated_amount`; nothing downstream recomputes it.
  */
 export const payslipProrationValueSchema = Schema.Struct({
-	/** The `employment_terms` row that covered this segment. Inlined, so not a foreign key. */
-	term_id: Schema.String.check(Schema.isUUID()),
+	/**
+	 * The terms segment this proration came from, as an immutable label/snapshot key rather than a
+	 * `employment_terms` id: an output is a frozen fact and a naked uuid with no foreign key is not
+	 * a relationship. The key composes the terms' own title with the day its effective range
+	 * opens, which is exactly as much identity as a settled segment needs to stay re-readable.
+	 */
+	term_key: Schema.NonEmptyString,
 	from: calendarDay,
 	to: calendarDay,
 	/** The jurisdiction's divisor rule, copied at settlement so a later change cannot rewrite it. */
@@ -42,6 +47,6 @@ export const payslipProrationSchema = Schema.toStandardSchemaV1(payslipProration
 export default defineCustomType({
 	name: 'payslip_proration',
 	description:
-		'One segment of a prorated period on a payslip: the employment terms it came from, the days it covered, the divisor they were taken over, and both the contract amount and the prorated result.',
+		'One segment of a prorated period on a payslip: the terms label it came from, the days it covered, the divisor they were taken over, and both the contract amount and the prorated result.',
 	schema: payslipProrationSchema
 });

@@ -9,13 +9,13 @@ Read `docs/architecture.md` §"Time, overtime and cutoffs" and §"Run snapshot a
 this document only records what changes.
 
 > **Since this proposal was written, `roster_entries` and `time_entries` have merged into
-> `work_days`, and `payslip_sources` into `payslip_adjustments`.** Every name below has been updated
+> `work_days`, and the settlement claim into the captured-input junctions.** Every name below has been updated
 > to the collection that now holds the fact; the argument is unchanged, and in two places the merge
 > is what finally made it true. §1's "one fact table, two renderers" is now one fact table in the
 > database as well as in `buildRosterMonth`. §2.3's swap no longer submits the roster's whole
 > relationship, because those rows carry attendance a roster does not own. The one place the merge
 > made something HARDER is §4's "report a missing punch": a rostered day already has a row, so an
-> employee's create-only grant can no longer land on one — see the note in `+hr_employee.svelte`.
+> employee's `mutate.new`-only grant can no longer land on one — see the note in `+hr_employee.svelte`.
 
 ---
 
@@ -31,7 +31,7 @@ this document only records what changes.
 | 2.4 | Break minutes owed after long hours       | A `rest_break_rules` member returns to `statutory_regime`. The primary text is already transcribed in `seed_bank/norbital_hr/statutory/rest_break_rules.json`; it was removed for having no consumer, and this proposal is the consumer. |
 | 2.5 | Upload a month of attendance              | Already built (`expandTimeMonthGrid`), only reachable from the wrong screen. Move it onto the board beside the roster import.                                                                                                            |
 | 3   | Retire the raw tables                     | One fact table, two renderers: the controller's people×days board and the employee's single-person calendar. Both raw attendance tables go — see §8.                                                                                     |
-| 4   | Employee self-service calendar            | Roster **and** punches on one month view. Every read it needs is already granted; the one write it offers (report a missing punch) already exists as an approval-gated create.                                                           |
+| 4   | Employee self-service calendar            | Roster **and** punches on one month view. Every read it needs is already granted; the one write it offers (report a missing punch) already exists as an approval-gated `mutate.new`.                                                     |
 
 ---
 
@@ -272,7 +272,7 @@ screen that quotes the figure. The primary text survived the deletion in
 than a fresh transcription.
 
 ```text
-   jurisdictions (effective-dated)
+   jurisdictions (profile versions)
      └── regime : statutory_regime
            ├── overtime_coverage    (who the ladder applies to)
            ├── overtime_rules       (bands → awards)
@@ -433,7 +433,7 @@ application of a payroll-period upload is how two systems end up disagreeing abo
    ⑧ ESS calendar ──────────────────────────────────────────────► needs ③'s day sheet only
       roster-month-calendar.svelte over the same DayFacts, employment-scoped;
       day sheet in mode="employee"; report-a-missing-punch on the existing
-      approval-gated create. No policy change, no new collection.
+      approval-gated mutate.new. No policy change, no new collection.
               │
               ▼
    ⑨ retire the raw tables ─────────────────────────────────────► last, because it removes
@@ -532,10 +532,10 @@ that is amber for the controller is amber for the employee.
 
 ```text
    READ   employees · employments · employment_terms · work_days
-          leave_requests · payslips · obligations
+          leave_requests · payslips · component_entries
           + employeeReferenceGrants: companies, company_holidays, shift_definitions,
             rosters, pay_components, leave_types
-          + settlementLedgerGrants: payslip_adjustments
+          + settlementLedgerGrants: the captured-input junctions
                     ▲
                     └─ the ledger read is why a refusal on a settled day is an EXPLANATION
                        for the employee rather than an access denial. Already deliberate.

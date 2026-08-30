@@ -112,10 +112,11 @@ projected template commit, but it does not track the moving ref and is not chang
 template release appears. Local-directory origins are intentionally different: they read the live
 checkout and make no projected-ref claim.
 
-Yalc is only a local framework-development overlay. `pnpm yalc:link` in this repository replaces
-the templates' `@norbital-ai/*` dependencies with locally built OSS packages; it does not publish a
-template, link template source into Colony, or update an existing tenant. Retreat from that overlay
-before release so every projected template carries exact registry pins and a clean lockfile.
+The local framework-development overlay is managed from the Norbital checkout with
+`pnpm run env -- link`. It replaces the templates' `@norbital-ai/*` dependencies with locally built
+OSS packages; it does not publish a template, link template source into Colony, or update an
+existing tenant. Run `pnpm run env -- retreat` there before release so every projected template
+carries exact registry pins and a clean lockfile.
 
 Each template pins its own `@norbital-ai/bolt` version. Nothing propagates a bump into a template: a
 developer runs `pnpm templates:lock` when they choose to move. Publishing a new Bolt version changes

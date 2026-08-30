@@ -3,10 +3,10 @@
 	import { useI18n } from '@norbital-ai/ui/i18n';
 	import type { TenantI18nKeys } from '$bolt/i18n-keys';
 	/**
-	 * The entitlement matrix had no editor at all — it was a display-only count, so a leave type's
-	 * statutory, organisation and employee bands could not be corrected by hand at all. The frame
-	 * below is the one `pay_component_policy` and `component_definition` also mount; what belongs
-	 * only to this shape is the accrual band and the number of days.
+	 * The company's own entitlement layers. The statutory floor is the profile's — versioned and
+	 * sealed with the law revision that states it — so this editor mounts the company arms only
+	 * (ORGANISATION, EMPLOYEE) on the frame `pay_component_policy` and `component_definition` also
+	 * mount; what belongs only to this shape is the accrual band and the number of days.
 	 */
 	import EffectiveLayerList from '../../lib/ui/policy-layers/effective-layer-list.svelte';
 	import LayerLevelPicker, {
@@ -25,6 +25,8 @@
 
 	type Layer = Value['layers'][number];
 	type AccrualBand = Layer['key'];
+
+	const LAYER_LEVELS = ['ORGANISATION', 'EMPLOYEE'] as const;
 
 	/** A layer the leave year has not yet reached; the successor row end-dates it. */
 	const OPEN_ENDED = '9999-12-31T00:00:00.000Z';
@@ -56,18 +58,18 @@
 	 */
 	const summary = $derived(
 		Result.isSuccess(parsed)
-			? `${parsed.success.layers.length} statutory / organisation / employee entitlement layer${parsed.success.layers.length === 1 ? '' : 's'}`
+			? `${parsed.success.layers.length} organisation / employee entitlement layer${parsed.success.layers.length === 1 ? '' : 's'}`
 			: '—'
 	);
 
 	function emit(next: Layer[]): void {
 		if (props.mode === 'edit')
-			props.onValueChange({ merge: 'MAX_WITH_STATUTORY_FLOOR', layers: next });
+			props.onValueChange({ merge: 'MAX_WITH_COMPANY_LAYERS', layers: next });
 	}
 
 	function newLayer(level: PolicyLayerLevel): Layer {
 		const band = {
-			key: { by: 'FLAT' } as const,
+			key: { by: 'SERVICE_MONTHS', band_from: 0 },
 			days: 0,
 			authority: '',
 			effective_range: {
@@ -76,8 +78,6 @@
 			}
 		};
 		switch (level) {
-			case 'STATUTORY':
-				return { level: 'STATUTORY', ...band };
 			case 'ORGANISATION':
 				return { level: 'ORGANISATION', ...band };
 			case 'EMPLOYEE':
@@ -89,14 +89,12 @@
 	 * Move a layer to another arm, carrying everything the arms share.
 	 *
 	 * Written out rather than spread so the EMPLOYEE arm's extra field is added and dropped
-	 * explicitly: a spread would leave it behind on a STATUTORY row, which `strictObject` rejects
-	 * only at save time, long after the operator has moved on.
+	 * explicitly: a spread would leave it behind on a row that does not declare it, which
+	 * `strictObject` rejects only at save time, long after the operator has moved on.
 	 */
 	function atLevel(layer: Layer, level: PolicyLayerLevel): Layer {
 		const { key, days, authority, effective_range } = layer;
 		switch (level) {
-			case 'STATUTORY':
-				return { level: 'STATUTORY', key, days, authority, effective_range };
 			case 'ORGANISATION':
 				return { level: 'ORGANISATION', key, days, authority, effective_range };
 			case 'EMPLOYEE':
@@ -122,7 +120,6 @@
 			emptyMessage={t('renderer.leave_entitlement.empty')}
 			addPlaceholder={t('renderer.leave_entitlement.add_placeholder')}
 			additions={[
-				{ value: 'STATUTORY', label: 'Statutory layer', create: () => newLayer('STATUTORY') },
 				{
 					value: 'ORGANISATION',
 					label: 'Organisation layer',
@@ -134,6 +131,7 @@
 		>
 			{#snippet identity(row)}
 				<LayerLevelPicker
+					levels={LAYER_LEVELS}
 					level={row.layer.level}
 					employmentId={row.layer.level === 'EMPLOYEE' ? row.layer.employment_id : null}
 					{companyId}

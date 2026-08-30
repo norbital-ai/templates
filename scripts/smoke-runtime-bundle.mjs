@@ -6,7 +6,12 @@ import path from 'node:path';
 import process from 'node:process';
 import { pathToFileURL } from 'node:url';
 import { Effect } from 'effect';
-import { prepareDepset } from './lib/depset.mjs';
+import {
+	candidatePackageArchives,
+	materializeCandidateTemplate,
+	stageCandidatePackageArchives
+} from './lib/candidate-template.mjs';
+import { lockHash, prepareDepset } from './lib/depset.mjs';
 import { decodeJsonObject } from './lib/json.mjs';
 import { inspectRuntimeArtifact } from './lib/runtime-smoke.mjs';
 import { templateArtifactPath } from './lib/template-artifact.mjs';
@@ -32,25 +37,6 @@ function argumentsFrom(argv) {
 		options[argument.slice(2)] = value;
 	}
 	return options;
-}
-
-function materializeTrackedTemplate(template, destination) {
-	const sourceRoot = path.join(repositoryRoot, template.path);
-	const tracked = execFileSync('git', ['ls-files', '--', template.path], {
-		cwd: repositoryRoot,
-		encoding: 'utf8'
-	})
-		.trim()
-		.split('\n')
-		.filter(Boolean);
-	if (tracked.length === 0) fail(`Template ${template.slug} has no tracked files.`);
-	for (const trackedFile of tracked) {
-		const source = path.join(repositoryRoot, trackedFile);
-		const target = path.join(destination, path.relative(sourceRoot, source));
-		mkdirSync(path.dirname(target), { recursive: true });
-		execFileSync('cp', [source, target]);
-	}
-	return destination;
 }
 
 const options = argumentsFrom(process.argv.slice(2));
@@ -85,13 +71,31 @@ const smoke = Effect.acquireUseRelease(
 			const built = yield* Effect.try(() => {
 				mkdirSync(workspace, { recursive: true });
 				mkdirSync(storeDirectory, { recursive: true });
-				materializeTrackedTemplate(template, workspace);
-				const depset = prepareDepset({
-					templateDirectory: workspace,
-					storeDirectory,
-					depsetRoot
-				});
-				execFileSync('ln', ['-sfn', depset.path, path.join(workspace, 'node_modules')]);
+				materializeCandidateTemplate({ repositoryRoot, template, destination: workspace });
+				const archives = candidatePackageArchives();
+				if (archives.length > 0) {
+					stageCandidatePackageArchives(workspace, archives);
+					execFileSync('pnpm', ['install', '--no-frozen-lockfile', '--ignore-scripts'], {
+						cwd: workspace,
+						stdio: 'inherit'
+					});
+				}
+				const depset =
+					archives.length > 0
+						? {
+								lockHash: lockHash(readFileSync(path.join(workspace, 'pnpm-lock.yaml'), 'utf8')),
+								path: path.join(workspace, 'node_modules'),
+								installed: true,
+								elapsedMs: 0
+							}
+						: prepareDepset({
+								templateDirectory: workspace,
+								storeDirectory,
+								depsetRoot
+							});
+				if (archives.length === 0) {
+					execFileSync('ln', ['-sfn', depset.path, path.join(workspace, 'node_modules')]);
+				}
 				const boltBin = path.join(
 					workspace,
 					'node_modules',

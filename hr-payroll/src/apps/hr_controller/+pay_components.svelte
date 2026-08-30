@@ -10,7 +10,6 @@
 	import { Combobox } from '@norbital-ai/ui/combobox';
 	import { Bound, Cover, Scroll } from '@norbital-ai/ui/layout';
 	import ClaimSeasonality from '../../lib/ui/pay-components/claim-seasonality.svelte';
-	import { formatObligationTerms } from '../../lib/ui/display-formatters.js';
 	import { inForceTodayFilter, todayInstant } from '../../lib/ui/calendar.js';
 	import { sourceLock, sourceLockRecordMetadata } from '../../lib/scheduling/lock.js';
 
@@ -45,34 +44,36 @@
 			: (companies[0]?.id ?? null)
 	);
 
-	type ObligationRow = WorkspaceRow<'obligations'> & {
-		readonly obligation_employment?: Pick<WorkspaceRow<'employments'>, 'employee_number'> | null;
-		readonly obligation_pay_component?: Pick<WorkspaceRow<'pay_components'>, 'code'> | null;
+	type EntryRow = WorkspaceRow<'component_entries'> & {
+		readonly component_entry_employment?: Pick<
+			WorkspaceRow<'employments'>,
+			'employee_number'
+		> | null;
+		readonly component_entry_pay_component?: Pick<WorkspaceRow<'pay_components'>, 'code'> | null;
 	};
 
-	function componentLabel(row: ObligationRow): string {
-		const component = row.obligation_pay_component;
+	function componentLabel(row: EntryRow): string {
+		const component = row.component_entry_pay_component;
 		if (component?.code) return component.code;
 		return '—';
 	}
 
 	/**
-	 * The settlement claims over this entity's obligations, in two reads rather than a nested one.
+	 * The captured inputs over this entity's entries, in two reads rather than a nested one.
 	 *
-	 * `payslip_adjustments.source` is a `reference(...)`, and a reference owns its own target edges,
-	 * so there is no `many` inverse to nest under an obligation the way `entry_payslip_lines` was
-	 * nested under a component entry. What it costs in a second read it gives back in depth: the
-	 * period is a column ON the claim now, so the walk through the payslip to its run is gone
-	 * entirely — and `period` is one of the four fields `settlementLedgerGrants()` exposes, so this
-	 * read is the one a rank with no payroll authority can also make.
+	 * `payslip_adjustments.input` is a `reference(...)` to the junction, and the junction owns its
+	 * source edge, so there is no `many` inverse to nest under an entry. What it costs in a second
+	 * read it gives back in depth: the period is a column ON the capture, so the walk through the
+	 * payslip to its run is gone entirely — and `period` is one of the fields
+	 * `settlementLedgerGrants()` exposes, so this read is the one a rank with no payroll authority
+	 * can also make.
 	 */
-	const obligationIdsQuery = $derived(
+	const entryIdsQuery = $derived(
 		selectedCompanyId == null
 			? null
-			: client.db.obligations.findMany({
+			: client.db.component_entries.findMany({
 					where: {
-						terms: { ne: 'SCHEDULED' },
-						obligation_employment: {
+						component_entry_employment: {
 							approval_id: { isNull: true },
 							company_id: { eq: selectedCompanyId }
 						}
@@ -81,44 +82,43 @@
 					limit: 5000
 				})
 	);
-	const settlementsQuery = $derived.by(() => {
-		const ids = (obligationIdsQuery?.current ?? []).map((row) => row.id);
+	const capturesQuery = $derived.by(() => {
+		const ids = (entryIdsQuery?.current ?? []).map((row) => row.id);
 		if (ids.length === 0) return null;
-		return client.db.payslip_adjustments.findMany({
-			where: { source: { in: ids.map((id) => ({ kind: 'OBLIGATION' as const, id })) } },
-			columns: { source: true, period: true },
+		return client.db.payslip_component_entry_inputs.findMany({
+			where: { component_entry_id: { in: ids } },
+			columns: { component_entry_id: true, period: true },
 			limit: 20_000
 		});
 	});
-	const settlementByObligationId = $derived(
+	const captureByEntryId = $derived(
 		new Map(
-			(settlementsQuery?.current ?? []).flatMap((claim) =>
-				claim.source.kind !== 'OBLIGATION'
-					? []
-					: [[claim.source.id, { period: claim.period }] as const]
-			)
+			(capturesQuery?.current ?? []).map((capture) => [
+				capture.component_entry_id,
+				{ period: capture.period }
+			])
 		)
 	);
 
-	function obligationSettlement(row: ObligationRow): { period: string } | null {
-		return settlementByObligationId.get(row.id) ?? null;
+	function entryCapture(row: EntryRow): { period: string } | null {
+		return captureByEntryId.get(row.id) ?? null;
 	}
 
-	function obligationConsumptionLabel(row: ObligationRow): string {
-		const claim = obligationSettlement(row);
-		if (claim) {
-			return t('component.paid_in', { period: claim.period });
+	function entryConsumptionLabel(row: EntryRow): string {
+		const capture = entryCapture(row);
+		if (capture) {
+			return t('component.paid_in', { period: capture.period });
 		}
 		if (!row.pay_period) return t('component.settled_outside_payroll');
 		return '—';
 	}
 
-	function obligationRowLock(row: ObligationRow) {
+	function entryRowLock(row: EntryRow) {
 		return sourceLock({
 			existing: true,
 			approvalId: row.approval_id,
 			dates: [],
-			settledBy: obligationSettlement(row),
+			settledBy: entryCapture(row),
 			datePassed: 'IS_NOT_A_LOCK'
 		});
 	}
@@ -128,7 +128,7 @@
 	<title>Pay components</title>
 	<meta
 		name="description"
-		content="Review obligations — allowances, claims, arrears and reversals — and their payroll linkage"
+		content="Review pay entries — claims, allowances, bonuses, arrears and corrections — and their payroll linkage"
 	/>
 	<meta name="bolt:icon" content="lucide:coins" />
 	<meta
@@ -186,25 +186,22 @@
 		{#key selectedCompanyId}
 			<CollectionTable
 				{client}
-				collection="obligations"
+				collection="component_entries"
 				view={`hr_controller:pay_components:entries:${selectedCompanyId}`}
-				recordMetadata={(row) => sourceLockRecordMetadata(obligationRowLock(row), t)}
+				recordMetadata={(row) => sourceLockRecordMetadata(entryRowLock(row), t)}
 				query={{
 					where: {
-						// SCHEDULED obligations are loans and have their own screen, which can show a
-						// recovery position this one has no room for. The predecessor said the same thing
-						// as `repayment_agreement_id IS NULL`, back when a loan's instalments were copied
-						// into this table as rows of their own.
-						terms: { ne: 'SCHEDULED' },
-						obligation_employment: {
+						// Loan recoveries are repayments and have their own screen, which can show a
+						// recovery position this one has no room for. An entry never names a loan.
+						component_entry_employment: {
 							approval_id: { isNull: true },
 							company_id: { eq: selectedCompanyId }
 						}
 					},
 					orderBy: { event_date: 'desc' },
 					with: {
-						obligation_employment: { columns: { employee_number: true } },
-						obligation_pay_component: { columns: { code: true } }
+						component_entry_employment: { columns: { employee_number: true } },
+						component_entry_pay_component: { columns: { code: true } }
 					}
 				}}
 			>
@@ -221,8 +218,8 @@
 						label={t('component.employment')}
 						renderer={FormattedValueRenderer}
 						rendererProps={{
-							format: ({ row }: { row: ObligationRow }) =>
-								row.obligation_employment?.employee_number ?? '—'
+							format: ({ row }: { row: EntryRow }) =>
+								row.component_entry_employment?.employee_number ?? '—'
 						}}
 					/>
 					<Column name="amount" label={t('component.amount')} />
@@ -230,19 +227,11 @@
 					<Column name="event_date" label={t('component.date')} />
 					<Column name="pay_period" label={t('component.pay_period')} />
 					<Column
-						name="reference"
+						name="event"
 						label={t('component.payroll_consumption')}
-						sortable={false}
-						renderer={FormattedValueRenderer}
-						rendererProps={{ format: ({ row }) => obligationConsumptionLabel(row) }}
-					/>
-					<Column name="description" />
-					<Column
-						name="terms"
-						label={t('component.obligation_terms')}
 						card="subtitle"
 						renderer={FormattedValueRenderer}
-						rendererProps={{ format: ({ row }) => formatObligationTerms(row, t) }}
+						rendererProps={{ format: ({ row }) => entryConsumptionLabel(row) }}
 					/>
 				{/snippet}
 			</CollectionTable>
@@ -275,7 +264,6 @@
 					<Column name="policy" label={t('app.pay_components.settlement_policy')} />
 					<Column name="definition" label={t('app.pay_components.calculation')} />
 					<Column name="sequence" label={t('app.pay_components.order')} />
-					<Column name="effective_range" label={t('component.effective')} />
 				{/snippet}
 			</CollectionTable>
 		{/key}

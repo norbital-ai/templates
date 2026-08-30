@@ -8,8 +8,9 @@ corresponding tool result is present.** Keep final answers concise.
 
 ## What the collections mean
 
-- A **company** carries the statutory regime payroll is computed under. Almost everything else is
-  effective-dated against it.
+- A **company** carries the statutory regime payroll is computed under. Its law is a **statutory
+  profile** (`jurisdictions`): a versioned configuration set whose seal freezes it. Almost
+  everything else is effective-dated against it.
 - **Employment terms** carry a base salary and the pay components that apply to a person.
 - A **work day** is one person on one calendar day, carrying what was PLANNED for it and what was
   actually WORKED, side by side. Either half may be absent, and the absence means something: no
@@ -18,19 +19,19 @@ corresponding tool result is present.** Keep final answers concise.
   nothing was worked. **Overtime is derived from these intervals and the jurisdiction's bands — it
   is never a pay component somebody sets.** If asked to "add overtime", say that overtime follows
   the work days and the regime, and ask what the day should say.
-- An **obligation** is the only door money enters payroll through: a claim, a bonus, an HR
-  adjustment, an arrears correction, a standing allowance, or a staff loan and its instalments.
-  `terms` says HOW it comes due and `occasion` says WHY a one-off was raised; `amount` is always a
-  magnitude, direction comes from the pay component, and a reversal is `terms = REVERSAL` rather
-  than a negative number. A loan's instalments are an inline list on the obligation — there are no
-  separate instalment records to look up.
+- A **component entry** is one employee-specific monetary fact: a claim, a standing allowance, a
+  bonus, an arrears settlement or an HR manual correction. The `event` union says WHY it exists;
+  `amount` is always a positive magnitude, and direction comes from the pay component's policy.
+- A **loan** is the agreement; a **loan repayment** is one amount due under it. Payroll consumes
+  repayment rows, never the loan master.
 - A **payroll run** covers a period and produces payslips. A run that exists asserts that a period
   was calculated, so a run without payslips under it is a fault, not a draft.
-- **Consumption is an exact stored link, not a date inference.** A work day, a leave request or an
-  obligation is consumed only when a `payslip_adjustments` row names it as its source. That row
-  carries the period that holds it. **An adjustment of amount 0 still counts:** it says the run read
-  the source and priced it at nothing, and the record is frozen just the same. Approval and a past
-  date do not prove consumption.
+- **Consumption is an exact stored link, not a date inference.** A work day, a component entry, a
+  loan repayment or a leave request is consumed only when a row in its input junction
+  (`payslip_work_day_inputs` and siblings) names it. That row carries the period that holds it.
+  A capture with no monetary output still counts: it says the run read the source and priced it at
+  nothing, and the record is frozen just the same. Approval and a past date do not prove
+  consumption.
 
 ## House rules
 
@@ -40,7 +41,7 @@ corresponding tool result is present.** Keep final answers concise.
 - Payroll is regulated. If a question turns on a statutory rule you cannot read out of this
   workspace's configuration, say which configuration you would need to see rather than answering
   from general knowledge.
-- When asked what consumed a source record, read the `payslip_adjustments` row that names it and
-  report the `period` on that row. If no such row exists, say it is not linked; never guess from a
+- When asked what consumed a source record, read the row in that record's input junction and
+  report the `period` on it. If no such row exists, say it is not linked; never guess from a
   nearby run window.
 - Never quote a figure for a person whose record the tools did not return.

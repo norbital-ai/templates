@@ -37,7 +37,7 @@ import type { Teams } from '@norbital-ai/bolt/authoring';
  * ```
  *
  * This is a safety boundary, not only a style choice. A holder may have only one grant for a given
- * collection/action coordinate; the compiler rejects overlaps instead of merging them. A policy may
+ * grant coordinate; the compiler rejects overlaps instead of merging them. A policy may
  * still materialize the grants of the rank beneath it, but each coordinate has one complete rule.
  *
  * ## One team per person, and what that forces
@@ -70,21 +70,22 @@ export default {
 	/**
 	 * Payroll authority 1 of 2: may view payroll and may not commit it.
 	 *
-	 * A controller's `payroll_runs` create carries an approval, so the run is written and held. This
+	 * A controller's `payroll_runs.mutate.new` grant carries an approval, so the run is written and
+	 * held. This
 	 * team is also what the payroll-run approval flow routes to.
 	 */
 	'HQ Payroll HR': ['hr_controller'],
 
 	/**
-	 * Payroll authority 2 of 2: everything a controller may do, plus create without review, re-run
-	 * and delete.
+	 * Payroll authority 2 of 2: everything a controller may do, plus `mutate.new` without review,
+	 * `mutate.existing` for re-runs, and delete.
 	 */
 	'HR Manager': ['hr_manager'],
 
 	/**
 	 * The named combination that used to be two policies at once.
 	 *
-	 * `hr_controller` already materializes every collection/action pair `manager` has, plus payroll
+	 * `hr_controller` already materializes every grant coordinate `manager` has, plus payroll
 	 * authority, so it is the complete declaration for this team. Mapping both policies would add no
 	 * capability, but it would combine their differently scoped grants and be refused as a potential
 	 * widening. Nobody is in this team today; it remains named because the operational identity and

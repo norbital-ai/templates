@@ -1,7 +1,6 @@
-import type { CollectionHooks } from '@norbital-ai/bolt/authoring';
+import { refuse } from '@norbital-ai/bolt/authoring';
 import { Effect } from 'effect';
-import type { WorkspaceSchema } from '$bolt/types.js';
-import type { WorkspaceRow } from './$types.js';
+import type { Hooks, WorkspaceRow } from './$types.js';
 
 const LINE_LIMIT = 5000;
 
@@ -19,13 +18,6 @@ interface GoodsReceiptLineBatch {
 	readonly orderLines: ReadonlyMap<string, WorkspaceRow<'purchase_order_lines'>>;
 	readonly receivedByOrderLine: ReadonlyMap<string, number>;
 }
-
-/** `Hooks` with what `prepare` returns filled in; see the note in `quote_lines/+hooks.ts`. */
-type GoodsReceiptLineHooks = CollectionHooks<
-	WorkspaceSchema,
-	'goods_receipt_lines',
-	GoodsReceiptLineBatch
->;
 
 export default {
 	mutate: {
@@ -82,29 +74,29 @@ export default {
 					'Ties a received line to a purchase order line on the same order and rejects a delivery that would take the cumulative received quantity past the quantity ordered.',
 				handler: ({ input, prepared }) => {
 					if (!input.goods_receipt_id) {
-						throw new Error('A goods receipt line must reference a goods receipt.');
+						refuse('A goods receipt line must reference a goods receipt.');
 					}
 					const receipt = prepared.receipts.get(input.goods_receipt_id);
-					if (!receipt) throw new Error('Referenced goods receipt does not exist.');
+					if (!receipt) refuse('Referenced goods receipt does not exist.');
 
 					if (!input.purchase_order_line_id) {
-						throw new Error('A goods receipt line must reference a purchase order line.');
+						refuse('A goods receipt line must reference a purchase order line.');
 					}
 					const orderLine = prepared.orderLines.get(input.purchase_order_line_id);
-					if (!orderLine) throw new Error('Referenced purchase order line does not exist.');
+					if (!orderLine) refuse('Referenced purchase order line does not exist.');
 					if (orderLine.purchase_order_id !== receipt.purchase_order_id) {
-						throw new Error('The received line belongs to a different purchase order.');
+						refuse('The received line belongs to a different purchase order.');
 					}
 
 					const quantity = Number(input.quantity_received);
 					if (Number.isNaN(quantity) || quantity <= 0) {
-						throw new Error('Received quantity must be greater than zero.');
+						refuse('Received quantity must be greater than zero.');
 					}
 
 					const receivedSoFar = prepared.receivedByOrderLine.get(orderLine.id) ?? 0;
 					const ordered = Number(orderLine.quantity ?? 0);
 					if (receivedSoFar + quantity > ordered) {
-						throw new Error(
+						refuse(
 							`Over-delivery: ${receivedSoFar} of ${ordered} received so far; this receipt would exceed the ordered quantity.`
 						);
 					}
@@ -114,4 +106,4 @@ export default {
 			}
 		}
 	}
-} satisfies GoodsReceiptLineHooks;
+} satisfies Hooks<GoodsReceiptLineBatch>;

@@ -23,9 +23,7 @@
 		"templates:project": "node scripts/project-templates.mjs --update-local --output .tmp/template-revisions.json",
 		"templates:sync": "node scripts/sync-templates.mjs",
 		"templates:verify": "node scripts/validate-template-projections.mjs",
-		"test": "node --test scripts/tests/*.test.mjs",
-		"yalc:link": "node scripts/yalc-link.mjs",
-		"yalc:retreat": "node scripts/yalc-link.mjs --retreat"
+		"test": "node --test scripts/tests/*.test.mjs"
 	},
 	"devDependencies": {
 		"effect": "4.0.0-rc.111",

@@ -1,13 +1,5 @@
 import { execFileSync } from 'node:child_process';
-import {
-	copyFileSync,
-	existsSync,
-	mkdirSync,
-	mkdtempSync,
-	readFileSync,
-	rmSync,
-	writeFileSync
-} from 'node:fs';
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
@@ -15,6 +7,11 @@ import process from 'node:process';
 import { pathToFileURL } from 'node:url';
 import { Clock, Effect } from 'effect';
 import { auditWorkspace } from './lib/authored-system-columns.mjs';
+import {
+	candidatePackageArchives,
+	materializeCandidateTemplate,
+	stageCandidatePackageArchives
+} from './lib/candidate-template.mjs';
 import {
 	templateEnvironmentVariables,
 	validateTemplateEnvironmentVariables
@@ -27,13 +24,14 @@ import { discoverTemplates, repositoryRoot } from './lib/templates.mjs';
 /**
  * Prove each template stands alone.
  *
- * What publishes is `git subtree split` of the template directory — the tracked files, and only
- * those. This copies exactly that set somewhere else and runs a tenant's lifecycle against it, so
- * a projection that silently depends on an untracked file, or on something this repository happens
- * to provide at its root, fails here rather than inside a tenant sandbox.
+ * Publication is `git subtree split` of a committed template directory. Before commit, this
+ * rehearsal materializes the effective candidate worktree: current tracked files plus nonignored
+ * additions, without tracked deletions. It therefore proves a hard-cut replacement as one coherent
+ * tree while still excluding repository-root dependencies and ignored local/generated state.
  *
- * The install is `--frozen-lockfile` against the committed per-template lockfile, because that
- * lockfile is what a sandbox installs. `pnpm templates:lock:check` owns whether it is current.
+ * The install is `--frozen-lockfile` against the candidate per-template lockfile, because that
+ * lockfile is what a sandbox installs once the candidate is committed. `pnpm templates:lock:check`
+ * owns whether it is current.
  */
 
 function run(command, arguments_, options = {}) {
@@ -49,74 +47,6 @@ function readArguments(argv) {
 	const [filter, ...unexpected] = argv;
 	if (unexpected.length > 0) throw new Error(`Unknown argument: ${unexpected[0]}`);
 	return { filter };
-}
-
-function copyTrackedProjection(template, destination) {
-	const trackedFiles = run('git', ['ls-files', '--', template.path])
-		.trim()
-		.split('\n')
-		.filter(Boolean);
-	if (trackedFiles.length === 0) throw new Error(`Template ${template.slug} has no tracked files.`);
-	for (const trackedFile of trackedFiles) {
-		const source = path.join(repositoryRoot, trackedFile);
-		const relative = path.relative(template.directory, source);
-		const target = path.join(destination, relative);
-		mkdirSync(path.dirname(target), { recursive: true });
-		copyFileSync(source, target);
-	}
-}
-
-/**
- * Optional package archives for a pre-publication rehearsal.
- *
- * The committed lockfile still has to install frozen first: that proves the published template is
- * self-contained. A pre-publication archive set may then replace the four first-party packages in
- * the temporary projection, proving the next `0.0.1` package set before the existing registry
- * versions are removed. Nothing in the tracked projection is rewritten.
- */
-function packageArchives() {
-	const directory = process.env.NORBITAL_PACKAGE_ARCHIVES?.trim();
-	if (!directory) return [];
-	return [
-		['@norbital-ai/bolt-protocol', 'bolt-protocol.tgz'],
-		['@norbital-ai/std', 'std.tgz'],
-		['@norbital-ai/ui', 'ui.tgz'],
-		['@norbital-ai/bolt', 'bolt.tgz']
-	].map(([name, filename]) => {
-		const archive = path.resolve(directory, filename);
-		if (!existsSync(archive)) throw new Error(`Missing package archive: ${archive}`);
-		return { name, archive };
-	});
-}
-
-function stagePackageArchives(destination, archives) {
-	const manifestPath = path.join(destination, 'package.json');
-	const manifest = decodeJsonObject(readFileSync(manifestPath, 'utf8'), manifestPath);
-	const specifiers = Object.fromEntries(
-		archives.map(({ name, archive }) => [name, `file:${archive}`])
-	);
-	writeFileSync(
-		manifestPath,
-		`${JSON.stringify(
-			{
-				...manifest,
-				dependencies: { ...manifest.dependencies, ...specifiers }
-			},
-			null,
-			2
-		)}\n`
-	);
-	const workspacePath = path.join(destination, 'pnpm-workspace.yaml');
-	const workspace = readFileSync(workspacePath, 'utf8');
-	if (/^overrides:/m.test(workspace)) {
-		throw new Error(`${workspacePath} already declares overrides; archive staging is ambiguous.`);
-	}
-	writeFileSync(
-		workspacePath,
-		`${workspace.trimEnd()}\n\noverrides:\n${Object.entries(specifiers)
-			.map(([name, specifier]) => `  ${JSON.stringify(name)}: ${JSON.stringify(specifier)}`)
-			.join('\n')}\n`
-	);
 }
 
 /**
@@ -241,7 +171,7 @@ const options = readArguments(process.argv.slice(2));
 
 function runLifecycle(template, destination) {
 	return Effect.gen(function* () {
-		const archives = yield* Effect.try(packageArchives);
+		const archives = yield* Effect.try(candidatePackageArchives);
 		const runStep = (label, arguments_) =>
 			Effect.try(() => run('pnpm', arguments_, { cwd: destination, env: process.env })).pipe(
 				Effect.mapError((cause) => {
@@ -253,7 +183,7 @@ function runLifecycle(template, destination) {
 			);
 		yield* runStep('install', ['install', '--frozen-lockfile']);
 		if (archives.length > 0) {
-			yield* Effect.try(() => stagePackageArchives(destination, archives));
+			yield* Effect.try(() => stageCandidatePackageArchives(destination, archives));
 			yield* runStep('package archive format', [
 				'exec',
 				'prettier',
@@ -281,7 +211,7 @@ function validateProjection(template, temporaryDirectory) {
 	return Effect.gen(function* () {
 		yield* Effect.try(() => {
 			mkdirSync(destination, { recursive: true });
-			copyTrackedProjection(template, destination);
+			materializeCandidateTemplate({ repositoryRoot, template, destination });
 			writeFileSync(path.join(destination, '.npmrc'), registryConfiguration());
 		});
 		yield* runLifecycle(template, destination);

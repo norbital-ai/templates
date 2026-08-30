@@ -15,9 +15,12 @@ const award = {
 	effective_range: instantRangeValueSchema
 } as const;
 
-/** One closed policy layer. A row can never accidentally be statutory and individual at once. */
+/**
+ * The company's own policy layers. The STATUTORY arm this union once carried moved into the
+ * statutory profile's `statutory_leave` member — the floor is law, versioned and sealed with the
+ * profile revision that states it, not hand-typed per company.
+ */
 export const leaveEntitlementLayerSchema = Schema.Union([
-	Schema.Struct({ level: Schema.Literal('STATUTORY'), ...award }),
 	Schema.Struct({ level: Schema.Literal('ORGANISATION'), ...award }),
 	Schema.Struct({
 		level: Schema.Literal('EMPLOYEE'),
@@ -27,11 +30,9 @@ export const leaveEntitlementLayerSchema = Schema.Union([
 ]);
 
 export const leaveEntitlementValueSchema = Schema.Struct({
-	merge: Schema.Literal('MAX_WITH_STATUTORY_FLOOR'),
+	merge: Schema.Literal('MAX_WITH_COMPANY_LAYERS'),
 	layers: Schema.Array(leaveEntitlementLayerSchema)
 });
-
-export type LeaveEntitlement = Schema.Schema.Type<typeof leaveEntitlementValueSchema>;
 
 /** Strict standard view: a key no layer declares is refused rather than stripped. */
 export const leaveEntitlementSchema = Schema.toStandardSchemaV1(leaveEntitlementValueSchema, {
@@ -41,6 +42,6 @@ export const leaveEntitlementSchema = Schema.toStandardSchemaV1(leaveEntitlement
 export default defineCustomType({
 	name: 'leave_entitlement',
 	description:
-		'The statutory, organisation and per-employee layers of leave days for one leave type, each with its authority and effective range, merged by taking the most generous layer above the statutory floor.',
+		'The organisation and per-employee leave layers for one leave type, each with its authority and effective range, merged by taking the most generous layer above the statutory floor the linked statutory profile states.',
 	schema: leaveEntitlementSchema
 });

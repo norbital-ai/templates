@@ -24,7 +24,8 @@ const reports = defineConnection({
 
 export default {
 	reports: {
-		policies: ['reports_integration'],
+		// Compose the sole shared read owner with this binding's write-only import authority.
+		policies: ['construction_read', 'reports_integration'],
 		connection: reports,
 		receive: {
 			rfi: definePull({

@@ -17,7 +17,8 @@ const erp = defineConnection({
  */
 export default {
 	erp: {
-		policies: ['erp_products_integration'],
+		// Read is owned once by `products_read`; this binding-specific policy adds only import writes.
+		policies: ['products_read', 'erp_products_integration'],
 		connection: erp,
 		receive: {
 			items_changed: definePull({

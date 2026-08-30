@@ -5,40 +5,46 @@ import hrController from '../access/policies/+hr_controller.ts';
 import hrManager from '../access/policies/+hr_manager.ts';
 import statutoryDriftAutomation from '../access/policies/+statutory_drift_automation.ts';
 
-const actionsOn = (policy, collection) => Object.keys(policy.grants[collection] ?? {}).toSorted();
+const grantsOn = (policy, collection) =>
+	Object.entries(policy.grants[collection] ?? {})
+		.flatMap(([operation, grant]) =>
+			operation === 'mutate' ? Object.keys(grant).map((phase) => `mutate.${phase}`) : [operation]
+		)
+		.toSorted();
 
 test('controllers can read but cannot rewrite statutory drift receipts', () => {
-	assert.deepEqual(actionsOn(hrController, 'statutory_profile_drift_logs'), ['read']);
-	assert.deepEqual(actionsOn(hrManager, 'statutory_profile_drift_logs'), ['read']);
+	assert.deepEqual(grantsOn(hrController, 'statutory_profile_drift_logs'), ['read']);
+	assert.deepEqual(grantsOn(hrManager, 'statutory_profile_drift_logs'), ['read']);
 });
 
 test('one drift worker reads law and submits only approved employment successors', () => {
 	for (const collection of ['jurisdictions', 'statutory_contributions', 'contribution_rates']) {
-		assert.deepEqual(actionsOn(statutoryDriftAutomation, collection), ['read'], collection);
+		assert.deepEqual(grantsOn(statutoryDriftAutomation, collection), ['read'], collection);
 	}
-	assert.deepEqual(actionsOn(statutoryDriftAutomation, 'employment_statutory_facts'), [
-		'create',
-		'read',
-		'update'
+	assert.deepEqual(grantsOn(statutoryDriftAutomation, 'employment_statutory_facts'), [
+		'mutate.existing',
+		'mutate.new',
+		'read'
 	]);
-	for (const action of ['create', 'update']) {
-		const grant = statutoryDriftAutomation.grants.employment_statutory_facts[action];
+	for (const phase of ['new', 'existing']) {
+		const grant = statutoryDriftAutomation.grants.employment_statutory_facts.mutate[phase];
 		assert.equal(typeof grant.approval?.flow, 'function');
 		assert.deepEqual(grant.approval?.superceded_by, ['Senior Management']);
 	}
-	assert.deepEqual(statutoryDriftAutomation.grants.employment_statutory_facts.create.fields, [
+	assert.deepEqual(statutoryDriftAutomation.grants.employment_statutory_facts.mutate.new.fields, [
 		'employment_id',
 		'statutory_contribution_id',
 		'status',
 		'effective_range',
 		'supersedes_fact_id'
 	]);
-	assert.deepEqual(statutoryDriftAutomation.grants.employment_statutory_facts.update.fields, [
-		'effective_range'
-	]);
-	assert.deepEqual(actionsOn(statutoryDriftAutomation, 'statutory_profile_drift_logs'), [
-		'create',
-		'read',
-		'update'
+	assert.deepEqual(
+		statutoryDriftAutomation.grants.employment_statutory_facts.mutate.existing.fields,
+		['effective_range']
+	);
+	assert.deepEqual(grantsOn(statutoryDriftAutomation, 'statutory_profile_drift_logs'), [
+		'mutate.existing',
+		'mutate.new',
+		'read'
 	]);
 });

@@ -6,11 +6,8 @@ import { leaveCoverage, type LeaveRequestLike } from '../../lib/scheduling/leave
 import {
 	payrollWindows,
 	assertNotSettled,
-	sourceLock,
-	sourceLockBlocksWrite,
-	sourceLockMessage,
-	type PayrollWindow,
-	type SettlementClaim
+	refuseIfCaptured,
+	type PayrollWindow
 } from '../../lib/scheduling/lock.js';
 import type { Api, Hooks } from './$types.js';
 import { assertNoOverlap, readOverlapData, type OverlapData } from './lib/assignment-overlap.js';
@@ -30,12 +27,6 @@ const QUERY_LIMIT = 20_000;
  * span this batch covers. `prepare` decides nothing — both refusals are still written once, below,
  * against the same pure functions the update path calls with its own reads.
  */
-interface TimeEntryBatch {
-	readonly companyByEmployment: ReadonlyMap<string, string | null>;
-	readonly windowsByCompany: ReadonlyMap<string, ReadonlyArray<PayrollWindow>>;
-	readonly leaveByEmployment: ReadonlyMap<string, ReadonlyArray<LeaveRequestLike>>;
-}
-
 /**
  * `Hooks` with what `prepare` returns filled in.
  *
@@ -57,25 +48,10 @@ interface TimeEntryBatch {
  * putting to a record — see `assertRecordNotClaimed`.
  *
  * Read through the requesting person's own subject, like every other hook read. That is why every
- * policy in `src/access/policies` carries a `payslip_sources` read grant — without one this would fail
+ * policy in `src/access/policies` carries a settlement-junction read grant — without one this would fail
  * as an access denial naming a collection the person has never heard of, instead of the sentence
  * that tells them what to do.
  */
-function settlementOver(
-	api: Api,
-	workDayId: string
-): Effect.Effect<SettlementClaim | null, never, never> {
-	return Effect.map(
-		// A zero-amount adjustment is the settlement lock: the run read this day and priced it, even
-		// at nothing. `payslip_sources` was that row before the merge; it is an adjustment arm now.
-		api.db.payslip_adjustments.findFirst({
-			where: { source: { eq: { kind: 'WORK_DAY', id: workDayId } } },
-			columns: { period: true }
-		}),
-		(claim) => (claim == null ? null : { period: claim.period })
-	);
-}
-
 /**
  * One writer wins the day: attendance must not record work on a day approved leave already owns.
  * Half-day leave still allows the other half, which is why only fully covered dates refuse.
@@ -131,12 +107,12 @@ function assertDayNotOwnedByLeave(
  * It answers "may a record appear on this person-day at all?", never "may this record change?".
  * A paid run priced every day in its assessment window, including the days it found nothing on:
  * silence on those days was already sold as absence, and dropping a punch into one afterwards
- * would move money that has been paid. There is no `payslip_sources` claim to consult, because
+ * would move money that has been paid. There is no capture to consult, because
  * there was no record for the run to claim — so the window is the only fact available, and here it
  * is the right one.
  *
  * That is the whole of its remit. It used to run on updates and deletes too, beside the claim
- * lookup below, which is what froze the arrears case `payslip_sources/+model.ts` argues about:
+ * lookup below, which is what froze the arrears case this window guard once argued about:
  * a punch keyed in after a run was paid, consumed by nobody, refused because of where it was dated.
  */
 function assertDayHasNoPaidSilence(
@@ -168,7 +144,7 @@ function assertDayHasNoPaidSilence(
  *
  *   - `windows: []` — the window is an inference about *days* and this row is a *record*. Whether
  *     it is editable is answered by whether a run took it, and a run that took it says so in
- *     `payslip_sources`. A record dated inside a paid window that no run consumed settles as
+ *     a captured input. A record dated inside a paid window that no run consumed settles as
  *     arrears in a later run (§2.3), so consulting the window here would refuse exactly the write
  *     that is supposed to happen. With no windows there is nothing left for the employment and
  *     `payroll_runs` reads to feed, so both queries are gone from the update and delete paths.
@@ -184,26 +160,6 @@ function assertDayHasNoPaidSilence(
  * tell a person what would have to happen to release it: delete the draft, or correct it with an
  * adjustment.
  */
-function assertRecordNotClaimed(
-	api: Api,
-	timeEntryId: string,
-	approvalId: string | null | undefined,
-	action: string
-): Effect.Effect<void, never, never> {
-	return Effect.map(settlementOver(api, timeEntryId), (settledBy) => {
-		const lock = sourceLock({
-			existing: true,
-			approvalId,
-			dates: [],
-			settledBy,
-			datePassed: 'IS_NOT_A_LOCK'
-		});
-		if (sourceLockBlocksWrite(lock)) {
-			refuse(sourceLockMessage(lock, action));
-		}
-	});
-}
-
 /**
  * Attendance is an ordered set of observations. It does not classify any interval as overtime:
  * premium work is derived later from these intervals, the effective schedule and statutory rules.
@@ -274,19 +230,49 @@ type Prepared = {
 	readonly overlap: OverlapData;
 };
 
+type WorkDayCoordinate = Readonly<{
+	employment_id: string;
+	work_date: string;
+	shift_definition_id: string | null;
+}>;
+
 export default {
 	mutate: {
 		prepare: ({ inputs, api }) =>
 			Effect.gen(function* () {
-				const employmentIds = [
-					...new Set(inputs.flatMap((input) => (input.employment_id ? [input.employment_id] : [])))
-				];
-				const dates = inputs
-					.flatMap((input) => {
-						const date = dateKey(input.work_date);
-						return date === '' ? [] : [date];
-					})
-					.sort();
+				const existingIds = inputs.flatMap((input) => (input.id === undefined ? [] : [input.id]));
+				const existingRows = existingIds.length
+					? yield* api.db.work_days.findMany({
+							where: { id: { in: existingIds } },
+							columns: {
+								id: true,
+								employment_id: true,
+								work_date: true,
+								shift_definition_id: true
+							},
+							limit: QUERY_LIMIT
+						})
+					: [];
+				const existingById = new Map(existingRows.map((row) => [row.id, row]));
+				const coordinates: WorkDayCoordinate[] = [];
+				for (const input of inputs) {
+					const stored = input.id === undefined ? undefined : existingById.get(input.id);
+					const employmentId = input.employment_id ?? stored?.employment_id;
+					const rawWorkDate = input.work_date ?? stored?.work_date;
+					if (employmentId == null || rawWorkDate == null) continue;
+					const workDate = dateKey(rawWorkDate);
+					if (workDate === '') continue;
+					coordinates.push({
+						employment_id: employmentId,
+						work_date: workDate,
+						shift_definition_id:
+							input.shift_definition_id !== undefined
+								? input.shift_definition_id
+								: (stored?.shift_definition_id ?? null)
+					});
+				}
+				const employmentIds = [...new Set(coordinates.map((row) => row.employment_id))];
+				const dates = coordinates.map((row) => row.work_date).sort();
 				const employments = employmentIds.length
 					? yield* api.db.employments.findMany({
 							where: { id: { in: employmentIds } },
@@ -350,14 +336,14 @@ export default {
 				}
 				// The plan half's read, batched the same way: one three-day neighbourhood query for the
 				// whole write rather than one per row.
-				const overlap: OverlapData = yield* readOverlapData(
-					api,
-					inputs.map((input) => ({
-						employment_id: input.employment_id,
-						work_date: input.work_date,
-						shift_definition_id: input.shift_definition_id ?? null
-					}))
-				);
+				const overlap: OverlapData =
+					coordinates.length > 0
+						? yield* readOverlapData(api, coordinates)
+						: {
+								termsByEmployment: new Map(),
+								explicitByKey: new Map(),
+								codeById: new Map()
+							};
 				return {
 					companyByEmployment: new Map(
 						employments.map((employment) => [employment.id, employment.company_id])
@@ -375,53 +361,65 @@ export default {
 					'Requires ordered, non-overlapping worked intervals with only the final one open, refuses attendance on a day approved leave owns or inside a paid run’s window whose silence that run already priced as absence, refuses any change to a row a payroll run has taken into account, and refuses a planned shift that would overlap the person’s adjacent-day assignments.',
 				handler: ({ input, existing, prepared, api }) =>
 					Effect.gen(function* () {
-						assertWorkedIntervals(input.worked_intervals, input.break_minutes);
+						const employmentId = input.employment_id ?? existing?.employment_id;
+						if (employmentId == null) refuse('A work day must reference an employment on file.');
+						const workDate = input.work_date ?? existing?.work_date;
+						if (workDate == null) refuse('A work day must specify a work date.');
+						const shiftDefinitionId =
+							input.shift_definition_id !== undefined
+								? input.shift_definition_id
+								: (existing?.shift_definition_id ?? null);
+						assertWorkedIntervals(
+							input.worked_intervals !== undefined
+								? input.worked_intervals
+								: existing?.worked_intervals,
+							input.break_minutes !== undefined ? input.break_minutes : existing?.break_minutes
+						);
 						// An edit is the only write that can disturb something already settled: a create has
 						// no prior row for a run to have consumed.
 						if (existing !== undefined) {
-							yield* assertRecordNotClaimed(
-								api,
-								existing.id,
-								existing.approval_id,
-								'Changing this work day'
-							);
+							yield* refuseIfCaptured({
+								capture: api.db.payslip_work_day_inputs.findFirst({
+									where: { work_day_id: { eq: existing.id } },
+									columns: { period: true }
+								}),
+								approvalId: existing.approval_id,
+								action: 'Changing this work day'
+							});
 							// Editing in place never asks the window; *moving* a row does, because the row
 							// lands on a person-day it was not on before, governed by exactly the rule a
 							// create is governed by. Without this the create guard is two writes away from
 							// decorative: create on an open day, then re-date into the paid period.
 							const moved =
-								input.employment_id !== existing.employment_id ||
-								dateKey(input.work_date) !== dateKey(existing.work_date);
+								employmentId !== existing.employment_id ||
+								dateKey(workDate) !== dateKey(existing.work_date);
 							if (moved)
 								yield* assertDayHasNoPaidSilence(
 									api,
-									input.employment_id,
-									input.work_date,
+									employmentId,
+									workDate,
 									'Moving this work day'
 								);
-							yield* assertDayNotOwnedByLeave(api, input.employment_id, input.work_date);
+							yield* assertDayNotOwnedByLeave(api, employmentId, workDate);
 						} else {
 							// A create has no record to ask about, so the batch's window is the only fact
 							// there is. An employment the batch could not find has no company and therefore
 							// no window — the same silence a per-record lookup produced when it found nothing.
-							const companyId = prepared.companyByEmployment.get(input.employment_id) ?? null;
+							const companyId = prepared.companyByEmployment.get(employmentId) ?? null;
 							assertNotSettled(
 								(companyId == null ? undefined : prepared.windowsByCompany.get(companyId)) ?? [],
-								dateKey(input.work_date),
+								dateKey(workDate),
 								'Recording this work day'
 							);
-							refuseIfLeaveOwnsDay(
-								prepared.leaveByEmployment.get(input.employment_id) ?? [],
-								input.work_date
-							);
+							refuseIfLeaveOwnsDay(prepared.leaveByEmployment.get(employmentId) ?? [], workDate);
 						}
 						// The plan half. `unique(employment_id, work_date)` cannot express this: the conflict
 						// is between work windows on ADJACENT days, not two rows on one day.
 						assertNoOverlap(prepared.overlap, [
 							{
-								employment_id: input.employment_id,
-								work_date: input.work_date,
-								shift_definition_id: input.shift_definition_id ?? null,
+								employment_id: employmentId,
+								work_date: workDate,
+								shift_definition_id: shiftDefinitionId,
 								...(existing === undefined ? {} : { existing_id: existing.id })
 							}
 						]);
@@ -441,7 +439,14 @@ export default {
 				 * punch that landed on an approved leave day is a correction, not a conflict.
 				 */
 				handler: ({ existing, api }) =>
-					assertRecordNotClaimed(api, existing.id, existing.approval_id, 'Deleting this work day')
+					refuseIfCaptured({
+						capture: api.db.payslip_work_day_inputs.findFirst({
+							where: { work_day_id: { eq: existing.id } },
+							columns: { period: true }
+						}),
+						approvalId: existing.approval_id,
+						action: 'Deleting this work day'
+					})
 			}
 		}
 	}

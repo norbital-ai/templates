@@ -4,37 +4,39 @@
 
 ## 这个工作区是什么
 
-本模板是一个多国 HR 与薪资结算工作区。它把经审批的雇佣、考勤、休假与薪资事件转化为可审计的薪资结果：生效日期雇佣条款、按排班表的日分类、法定加班与缴款、还款计划、草稿重算、已发薪期锁定以及与来源关联的工资单行。它面向法律被引擎编码为数据的国家构建——马来西亚、菲律宾与印度尼西亚都有带引用、按生效日期生效的法定数据行——而每一次发薪都能追溯到产生它的已审批输入。
+本模板是一个多国 HR 与薪资结算工作区。它把经审批的雇佣、考勤、休假与薪资事件转化为可审计的薪资结果：生效日期雇佣条款、按排班表的日分类、法定加班与缴款、还款计划、草稿重算、已发薪期锁定以及与来源关联的工资单行。它面向法律被引擎编码为数据的国家构建——马来西亚、菲律宾与印度尼西亚都有带引用的法规，以封存的法定档案版本化——而每一次发薪都能追溯到产生它的已审批输入。
 
 ## 心智模型
 
-薪资是一个运行于已审批、按生效日期生效的事实之上的确定性结算引擎。输入与输出从不共享同一张表：已审批输入进入计算器，而工资单与产生它的内容之间唯一的连接点是 `payslip_lines` 行。
+薪资是一个运行于已审批、按生效日期生效的事实之上的确定性结算引擎。它的两半从不共享同一张表：**输入**是运行读取的已审批记录，**输出**是由它们计算出的不可变值。每一条链接都是真正的外键——四个引擎拥有的输入连接集合把每张工资单与它消费的考勤日、组件条目、贷款还款和休假申请关联起来，而每项工资调整恰好指明其中一个捕获。
 
-```text
-APPROVED INPUTS                         SETTLED OUTPUT
+````text
+APPROVED INPUTS                          SETTLED OUTPUT
 
-employment_terms --+                 +-> payroll_runs [one policy snapshot]
-time_entries -------+                 |        |
+employment_terms --+                  +-> payroll_runs [one policy + sealed statutory profile]
+work_days ----------+                 |        |
 leave_requests -----+--> calculator -+        v
 component_entries --+                          payslips
-       |                                        |
-       v                                        v
-pay_components <-------------------------- payslip_lines
- [policy + calculation +                    [the only junction]
-  entitlement union]                        |- pay_component_id
-                                             |- component_entry_id (when entry-backed)
-                                             `- statutory_contribution_id (when statutory)
-```
+loan_repayments ----+                          |
+                                               |- base / proration / statutory（内联）
+pay_components <-----------+                   |- payslip_work_day_inputs
+ [policy + calculation]    |                   |- payslip_component_entry_inputs
+                           |                   |- payslip_leave_request_inputs
+loans -> loan_repayments <-+                   |- payslip_loan_repayment_inputs
+                                               `- payslip_adjustments
+                                                  |- input: 一个捕获的输入链接
+                                                  |- label + bucket + amount（冻结）
+                                                  `- statutory_rule_key（仅考勤日）
 
 薪资核心由五个集合承载：
 
-1. **`pay_components`** —— 一个可复用的定义，带严格的结算/法定策略与多态计算定义（`SCHEDULE`、`ENTRY`、`FORMULA`、`OVERTIME`、`OVERTIME_EXCESS`）。
-2. **`component_entries`** —— 已审批的货币事件：报销、津贴、调整、贷款分期。
-3. **`payroll_runs`** —— 一次公司-期间计算，带一份捕获的配置快照。
-4. **`payslips`** —— 一次运行中某雇佣的合计。
-5. **`payslip_lines`** —— 工资单与组成部分之间的直接连接点与完整明细。
+1. **`pay_components`** —— 一个可复用的定义，带严格的结算/法定策略与多态计算定义（`SCHEDULE`、`ENTRY`、`FORMULA`）。加班刻意不在其中：它由工作日按辖区自身的加班规则计价推导，其法定处理由征费的方案承担。
+2. **`component_entries`** —— 已审批的员工级货币事实：报销、固定津贴、奖金、补发与更正。
+3. **`payroll_runs`** —— 一次公司-期间计算，指明管辖它的封存法定档案与产出结果的计算版本。
+4. **`payslips`** —— 一次运行中某雇佣的合计、内联的输出平面及其捕获的输入。
+5. **`payslip_adjustments`** —— 每个捕获输入对应一项已结算内容，其溯源是真正的外键。
 
-核心之外：`companies` 与 `jurisdictions` 划定法律实体；`employments`、`employment_terms` 与 `employment_statutory_facts` 描述一个人的工作事实；`shift_definitions`、`rosters`、`roster_entries`、`time_entries`、`company_holidays`、`leave_types` 与 `leave_requests` 提供排班与休假事实；每一个生效日期化的 `jurisdictions` 快照原子地拥有加班覆盖范围、计价与上限；`statutory_contributions` 与 `contribution_rates` 承载缴款方案；`repayment_agreements` 承载员工贷款与多付追回。
+核心之外：`companies` 与 `jurisdictions` 划定法律实体；`employments`、`employment_terms` 与 `employment_statutory_facts` 描述一个人的工作事实；`shift_definitions`、`rosters`、`work_days`、`company_holidays`、`leave_types` 与 `leave_requests` 提供排班与休假事实；每一个封存的 `jurisdictions` 档案版本原子地拥有加班覆盖范围、计价、上限以及法定假期最低天数，并界定休假与薪资目录；`statutory_contributions` 与 `contribution_rates` 按档案界定范围并随之封存；`loans` 及其 `loan_repayments` 承载员工贷款与多付追回 —— 协议本身，以及其下到期的金额。
 
 两条不变量塑造了一切：
 
@@ -93,19 +95,19 @@ pay_components <-------------------------- payslip_lines
 ```text
 src/
 ├── apps/                     # 每个应用一个 +<app>.svelte；hr_controller/+group.ts 归属组
-├── collections/              # 26 个集合：+model.ts、+hooks.ts、+pipelines.ts、+representation.svelte
+├── collections/              # 27 个集合：+model.ts、+hooks.ts、+pipelines.ts、+representation.svelte
 │   └── payroll_runs/lib/     # 结算引擎（阶段、加班、覆盖、导出）
-├── datatypes/                # 24 个结构化值（money、component_definition、eligibility_rules、……）
+├── datatypes/                # 30 个结构化值（statutory_regime、statutory_leave_profile、component_entry_event、……）
 ├── access/                   # +teams.ts、匿名限流与六个策略
 ├── i18n/                     # messages.en.json / messages.zh.json（相同的键集）
 ├── automations/              # statutory_profile_drift（每周确定性执行）
 ├── lib/                      # 共享辅助：日历、显示格式化、策略授权、排班月
 └── +agents.md
-```
+````
 
 - **模型**只描述存储；呈现属于应用与 representation。`src/collections/+relationship.ts` 拥有关系图——外键由它推导，绝不在模型中声明。
 - **钩子**负责校验与推导。薪资创建钩子解析运行的考勤窗口、发薪日与配置哈希；排班钩子强制可发布性；还款钩子让分期计划与本金精确对账。
-- **流水线**（`roster_entries`、`time_entries` 与 `payroll_runs` 上的 `+pipelines.ts`）塑造工作簿导入/导出：排班与考勤导入器把来源工作簿映射为行，薪资导出器生成应用提供的银行文件、工资单 PDF 与报告工作簿。
+- **流水线**（`work_days` 与 `payroll_runs` 上的 `+pipelines.ts`）塑造工作簿导入/导出：排班与考勤导入器把来源工作簿映射为行，薪资导出器生成应用提供的银行文件、工资单 PDF 与报告工作簿。
 - **Representation** 决定每个集合的创建/展示/编辑。`payroll_runs` 与 `payslips` 拒绝手工创建输出；工资单由引擎写出，绝不手工生成。
 - **i18n** —— 两个目录都承载相同的 867 个键；`<svelte:head>` 中的应用元数据保持静态英文，按语言环境的侧边栏标签来自目录。
 
@@ -148,4 +150,4 @@ pnpm build    # 生产构建
 
 - **模型** —— 不要随意更改模型模式：每次模式变更都会在 `.norbital/migrations/` 下产生一条已提交的迁移。编辑 `+model.ts`、运行 `pnpm sync`，然后审阅编译器产出的迁移。
 - **种子数据** —— 夹具数据由宿主持有，存放在仓库种子库；不存在 `src/+seed.ts` 角色，播种也不会演进已部署的数据。对既有租户，用 `pnpm exec bolt migrate --name <name>` 写入下一条迁移谱系条目、编辑其 SQL，再经由 Colony 部署。敏感法定种子（加班阶梯、覆盖与休息行）不在本模板内，而在仓库种子库的 `seed_bank/norbital_hr/statutory/`。
-- **发布** —— 模板在自己的 `package.json` 与锁文件中固定 `@norbital-ai/bolt` 版本。刻意调整依赖后，请通过仓库的模板锁定流程刷新模板锁。要消费新的模板版本，请用 `pnpm yalc:link` 将其链接进 Colony 并重启 `pnpm --filter colony dev`，然后硬刷新 iframe —— Colony 的 dev 引导每次启动都会收敛，因此不存在单独的租户更新或环境重置步骤。
+- **发布** —— 模板在自己的 `package.json` 与锁文件中固定 `@norbital-ai/bolt` 版本。刻意调整依赖后，请通过仓库的模板锁定流程刷新模板锁。要在本地测试 OSS 依赖，请在 Norbital 检出中运行 `pnpm run env -- link`；如需启动 Colony UI，则运行 `pnpm run env -- dev --ui`。Colony 的 dev 引导每次启动都会收敛，因此不存在单独的租户更新或环境重置步骤。

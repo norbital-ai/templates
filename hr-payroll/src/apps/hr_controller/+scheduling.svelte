@@ -419,22 +419,18 @@
 	const settlementsQuery = $derived.by(() => {
 		const dayIds = workDays.map((day) => day.id);
 		if (selectedCompanyId == null || dayIds.length === 0) return null;
-		return client.db.payslip_adjustments.findMany({
-			where: {
-				...approved,
-				source: { in: dayIds.map((id) => ({ kind: 'WORK_DAY' as const, id })) }
-			},
-			columns: { source: true, period: true },
+		return client.db.payslip_work_day_inputs.findMany({
+			where: { ...approved, work_day_id: { in: dayIds } },
+			columns: { work_day_id: true, period: true },
 			limit: 20_000
 		});
 	});
 	const settlementClaims = $derived(
 		new Map<string, SettlementClaim>(
-			(settlementsQuery?.current ?? []).flatMap((claim) =>
-				claim.source.kind !== 'WORK_DAY'
-					? []
-					: [[claim.source.id, { period: claim.period }] as const]
-			)
+			(settlementsQuery?.current ?? []).map((capture) => [
+				capture.work_day_id,
+				{ period: capture.period }
+			])
 		)
 	);
 

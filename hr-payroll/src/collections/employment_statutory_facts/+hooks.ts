@@ -8,7 +8,7 @@ import { readRange } from '../payroll_runs/lib/effective.js';
  *
  * The database is the guarantee — `employment_statutory_facts_no_overlap` in +model.ts rejects an
  * overlap with SQLSTATE 23P01 whatever path the write takes, including a concurrent one or another
- * row in the same createMany statement. Bolt translates that constraint into a caller-facing
+ * row in the same batched mutate statement. Bolt translates that constraint into a caller-facing
  * overlap refusal. A SELECT precheck would be weaker and add one database round trip per bulk row.
  */
 function requireId(value: string | null | undefined, what: string): string {

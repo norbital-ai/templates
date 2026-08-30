@@ -1,7 +1,11 @@
-import type { MutateBeforeContext, MutateEditContext } from '@norbital-ai/bolt/authoring';
-import type { CollectionHooks } from '@norbital-ai/bolt/authoring';
+import {
+	refuse,
+	type MutateAfterContext,
+	type MutateBeforeContext,
+	type MutateEditContext,
+	type MutatePrepareContext
+} from '@norbital-ai/bolt/authoring';
 import { Effect } from 'effect';
-import type { WorkspaceSchema } from '$bolt/types.js';
 import { rowsById } from '../../lib/batch-reads.js';
 import { rollupDocument } from '../../lib/document-lines.js';
 import { documentLineAmounts, type LineAmounts } from '../../lib/pricing.js';
@@ -19,23 +23,8 @@ interface PurchaseOrderLineBatch {
 	readonly products: ReadonlyMap<string, WorkspaceRow<'products'>>;
 }
 
-/**
- * `Hooks` with what `prepare` returns filled in.
- *
- * The generated `Hooks` alias fixes that parameter at `void`, so a collection that prepares anything
- * has to name the type itself. Once `bolt sync` emits `Hooks<Prepared = void>` this becomes
- * `satisfies Hooks<PurchaseOrderLineBatch>` and both lines go away.
- */
-type PurchaseOrderLineHooks = CollectionHooks<
-	WorkspaceSchema,
-	'purchase_order_lines',
-	PurchaseOrderLineBatch
->;
-
-type AfterApi = Parameters<
-	NonNullable<NonNullable<NonNullable<Hooks['mutate']>['perRecord']>['after']>['handler']
->[0]['api'];
-type PrepareApi = Parameters<NonNullable<NonNullable<Hooks['mutate']>['prepare']>>[0]['api'];
+type AfterApi = MutateAfterContext<Hooks<PurchaseOrderLineBatch>>['api'];
+type PrepareApi = MutatePrepareContext<Hooks<PurchaseOrderLineBatch>>['api'];
 
 const LINE_LIMIT = 5000;
 
@@ -55,20 +44,20 @@ type ResolvedLineInput = Partial<
 function validateLineFields(input: ResolvedLineInput): void {
 	const quantity = Number(input.quantity);
 	if (Number.isNaN(quantity) || quantity <= 0) {
-		throw new Error('Quantity must be greater than zero.');
+		refuse('Quantity must be greater than zero.');
 	}
 
 	const unitCost = Number(input.unit_cost);
 	if (input.unit_cost == null || Number.isNaN(unitCost)) {
-		throw new Error('Unit cost is required.');
+		refuse('Unit cost is required.');
 	}
 	if (unitCost < 0) {
-		throw new Error('Unit cost cannot be negative.');
+		refuse('Unit cost cannot be negative.');
 	}
 
 	const taxRate = Number(input.tax_rate ?? 0);
 	if (taxRate < 0 || taxRate > 100) {
-		throw new Error('Tax rate must be between 0 and 100.');
+		refuse('Tax rate must be between 0 and 100.');
 	}
 }
 
@@ -112,27 +101,27 @@ const afterRollup = ({
 }) => rollupPurchaseOrder(api, record.purchase_order_id);
 
 /** The context a `mutate.before` handler receives, named so the two halves can be hoisted. */
-type BeforeContext = MutateBeforeContext<PurchaseOrderLineHooks>;
+type BeforeContext = MutateBeforeContext<Hooks<PurchaseOrderLineBatch>>;
 
 /** The same context on an edit, where `existing` is the stored row rather than undefined. */
-type EditContext = MutateEditContext<PurchaseOrderLineHooks>;
+type EditContext = MutateEditContext<Hooks<PurchaseOrderLineBatch>>;
 
 /** A create states the whole record and has no `existing`. */
 const beforeCreate = ({ input, prepared }: BeforeContext) => {
 	if (!input.purchase_order_id) {
-		throw new Error('A purchase order line must reference a purchase order.');
+		refuse('A purchase order line must reference a purchase order.');
 	}
 	const order = prepared.orders.get(input.purchase_order_id);
-	if (!order) throw new Error('Referenced purchase order does not exist.');
+	if (!order) refuse('Referenced purchase order does not exist.');
 	if (order.status !== 'draft') {
-		throw new Error('Line items can only be added to draft purchase orders.');
+		refuse('Line items can only be added to draft purchase orders.');
 	}
 
-	if (!input.product_id) throw new Error('A purchase order line must reference a product.');
+	if (!input.product_id) refuse('A purchase order line must reference a product.');
 	const product = prepared.products.get(input.product_id);
-	if (!product) throw new Error('Referenced product does not exist.');
+	if (!product) refuse('Referenced product does not exist.');
 	if (!product.active) {
-		throw new Error('Cannot add a line for an inactive product.');
+		refuse('Cannot add a line for an inactive product.');
 	}
 
 	const resolved = {
@@ -158,19 +147,15 @@ const beforeCreate = ({ input, prepared }: BeforeContext) => {
 const beforeUpdate = ({ input, existing, api }: EditContext) =>
 	Effect.gen(function* () {
 		if (input.purchase_order_id != null && input.purchase_order_id !== existing.purchase_order_id) {
-			return yield* Effect.fail(
-				new Error('A line item cannot be moved to a different purchase order.')
-			);
+			refuse('A line item cannot be moved to a different purchase order.');
 		}
 
 		const order = yield* api.db.purchase_orders.findFirst({
 			where: { id: { eq: existing.purchase_order_id } }
 		});
-		if (!order) return yield* Effect.fail(new Error('Referenced purchase order does not exist.'));
+		if (!order) refuse('Referenced purchase order does not exist.');
 		if (order.status !== 'draft') {
-			return yield* Effect.fail(
-				new Error('Line items can only be modified on draft purchase orders.')
-			);
+			refuse('Line items can only be modified on draft purchase orders.');
 		}
 
 		const resolved = { ...existing, ...input };
@@ -217,4 +202,4 @@ export default {
 			}
 		}
 	}
-} satisfies PurchaseOrderLineHooks;
+} satisfies Hooks<PurchaseOrderLineBatch>;

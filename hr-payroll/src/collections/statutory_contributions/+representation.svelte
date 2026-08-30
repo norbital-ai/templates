@@ -17,24 +17,10 @@
 	import { CollectionTable } from '@norbital-ai/ui/collection-table';
 	import { Column, Cover, Grid, Inline, Stack } from '@norbital-ai/ui/layout';
 	import { Tabs, type TabConfig } from '@norbital-ai/ui/tabs';
-	import { inForceTodayFilter } from '../../lib/ui/calendar.js';
 	import { formatRateAward, formatRateSelector } from '../../lib/ui/display-formatters.js';
 
 	let { record, close }: RepresentationProps = $props();
 	const { t } = useI18n<TenantI18nKeys>();
-
-	/*
-	 * Bands are effective-dated, so the ladder opens on the rung in force *today* — the one payroll
-	 * would actually use — seeded as a removable filter chip rather than a page-level toggle. The
-	 * chip says what is being hidden, the operator widens it in place, and clearing it is
-	 * remembered. `inForceTodayFilter()` writes the seed in the filter builder's vocabulary — a
-	 * plain calendar day — and the existing conversion turns it into the instant `contains_date`
-	 * compares against.
-	 *
-	 * `contribution_rates` carries `effective_range` itself, which is what the seed needs: an
-	 * unknown field is skipped in silence, so a seed pointed at a related collection's dating would
-	 * look like a working filter while filtering nothing.
-	 */
 
 	const payerLabel = $derived(
 		record?.payer === 'BOTH' ? 'employee and employer' : (record?.payer?.toLowerCase() ?? 'nobody')
@@ -61,6 +47,18 @@
 					</Stack>
 					<Grid gap="md" minimum="panel">
 						<Field
+							name="statutory_profile_id"
+							label={t('component.statutory_profile')}
+							relationOptions={{
+								label: (profile) =>
+									[profile.code, profile.name, profile.lifecycle]
+										.filter((part) => part != null && part !== '')
+										.join(' · ') || '—',
+								orderBy: { code: 'asc' },
+								limit: 200
+							}}
+						/>
+						<Field
 							name="jurisdiction_id"
 							label={t('component.jurisdiction')}
 							relationOptions={{
@@ -75,9 +73,6 @@
 						<Field name="code" />
 						<Field name="name" />
 						<Field name="authority" />
-						<Column span="all">
-							<Field name="effective_range" label={t('component.effective_period')} />
-						</Column>
 					</Grid>
 				</Stack>
 
@@ -138,6 +133,7 @@
 		>
 			{#snippet children({ Field })}
 				<Field name="jurisdiction_id" hidden />
+				<Field name="statutory_profile_id" hidden />
 				<Field name="code" hidden />
 				<Field name="name" hidden />
 				<Field name="authority" hidden />
@@ -147,7 +143,6 @@
 				<Field name="relief_for" hidden />
 				<Field name="sequence" hidden />
 				<Field name="special_rules" hidden />
-				<Field name="effective_range" hidden />
 				<Stack gap="lg">
 					<Stack as="section" gap="sm">
 						<Stack gap="xs">
@@ -179,7 +174,6 @@
 			view="statutory_contributions:rates"
 			title={t('component.rate_bands')}
 			description={t('component.rate_bands_description')}
-			initialFilters={inForceTodayFilter()}
 			query={{
 				where: { statutory_contribution_id: { eq: record.id } },
 				orderBy: { created_at: 'desc' }
@@ -200,7 +194,6 @@
 					renderer={FormattedValueRenderer}
 					rendererProps={{ format: ({ value }) => formatRateAward(value, t) }}
 				/>
-				<TableColumn name="effective_range" label={t('component.effective')} />
 			{/snippet}
 		</CollectionTable>
 	{/if}

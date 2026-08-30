@@ -1,4 +1,8 @@
-import type { MutateBeforeContext, MutateEditContext } from '@norbital-ai/bolt/authoring';
+import {
+	refuse,
+	type MutateBeforeContext,
+	type MutateEditContext
+} from '@norbital-ai/bolt/authoring';
 import { Effect, Schema } from 'effect';
 import { currentInstant } from '../../lib/clock.js';
 import { deskToday } from '../../lib/desk-date.js';
@@ -7,16 +11,25 @@ import type { Hooks, WorkspaceRow } from './$types.js';
 
 function shiftCalendarDate(value: string, days: number): string {
 	if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) {
-		throw new Error('Calendar date must use YYYY-MM-DD.');
+		refuse('Calendar date must use YYYY-MM-DD.');
 	}
 	const date = new Date(`${value}T00:00:00.000Z`);
-	if (Number.isNaN(date.getTime())) throw new Error('Calendar date is invalid.');
+	if (Number.isNaN(date.getTime())) refuse('Calendar date is invalid.');
 	date.setUTCDate(date.getUTCDate() + days);
 	return date.toISOString().slice(0, 10);
 }
 
 const purchaseOrderStatusSchema = Schema.Literals(['draft', 'submitted', 'confirmed', 'cancelled']);
 type PurchaseOrderStatus = Schema.Schema.Type<typeof purchaseOrderStatusSchema>;
+
+const decodePurchaseOrderStatus = (value: unknown) =>
+	Schema.decodeUnknownEffect(purchaseOrderStatusSchema)(value).pipe(
+		Effect.catch(() =>
+			Effect.sync(() =>
+				refuse('Purchase order status must be draft, submitted, confirmed, or cancelled.')
+			)
+		)
+	);
 
 type PurchaseOrderUpdate = {
 	-readonly [K in keyof WorkspaceRow<'purchase_orders'>]?: WorkspaceRow<'purchase_orders'>[K];
@@ -36,17 +49,13 @@ type EditContext = MutateEditContext<Hooks>;
 const beforeCreate = ({ input, api }: BeforeContext) =>
 	Effect.gen(function* () {
 		const now = yield* currentInstant;
-		if (!input.supplier_id) {
-			return yield* Effect.fail(new Error('A purchase order must reference a supplier.'));
-		}
+		if (!input.supplier_id) refuse('A purchase order must reference a supplier.');
 		const supplier = yield* api.db.suppliers.findFirst({
 			where: { id: { eq: input.supplier_id } }
 		});
-		if (!supplier) return yield* Effect.fail(new Error('Referenced supplier does not exist.'));
+		if (!supplier) refuse('Referenced supplier does not exist.');
 		if (!supplier.active) {
-			return yield* Effect.fail(
-				new Error('Cannot create a purchase order for an inactive supplier.')
-			);
+			refuse('Cannot create a purchase order for an inactive supplier.');
 		}
 
 		const resolved = {
@@ -86,27 +95,21 @@ const beforeCreate = ({ input, api }: BeforeContext) =>
 const beforeUpdate = ({ input, existing, api }: EditContext) =>
 	Effect.gen(function* () {
 		if (input.supplier_id != null && input.supplier_id !== existing.supplier_id) {
-			return yield* Effect.fail(new Error('Supplier cannot be changed on a purchase order.'));
+			refuse('Supplier cannot be changed on a purchase order.');
 		}
 
-		const newStatus = yield* Schema.decodeUnknownEffect(purchaseOrderStatusSchema)(
-			input.status ?? existing.status
-		);
-		const oldStatus = yield* Schema.decodeUnknownEffect(purchaseOrderStatusSchema)(existing.status);
+		const newStatus = yield* decodePurchaseOrderStatus(input.status ?? existing.status);
+		const oldStatus = yield* decodePurchaseOrderStatus(existing.status);
 
 		if (oldStatus === newStatus) {
 			if (oldStatus === 'draft') return input;
-			return yield* Effect.fail(
-				new Error(`A ${oldStatus} purchase order is immutable. Revise by starting a new order.`)
-			);
+			refuse(`A ${oldStatus} purchase order is immutable. Revise by starting a new order.`);
 		}
 
 		const allowed = VALID_TRANSITIONS[oldStatus];
 		if (!allowed.includes(newStatus)) {
-			return yield* Effect.fail(
-				new Error(
-					`Invalid status transition: ${oldStatus} → ${newStatus}. Allowed: ${allowed.join(', ')}.`
-				)
+			refuse(
+				`Invalid status transition: ${oldStatus} → ${newStatus}. Allowed: ${allowed.join(', ')}.`
 			);
 		}
 
@@ -118,9 +121,7 @@ const beforeUpdate = ({ input, existing, api }: EditContext) =>
 				limit: 1
 			});
 			if (lines.length === 0) {
-				return yield* Effect.fail(
-					new Error('A purchase order must have at least one line before it can be submitted.')
-				);
+				refuse('A purchase order must have at least one line before it can be submitted.');
 			}
 		}
 
@@ -132,7 +133,7 @@ const beforeUpdate = ({ input, existing, api }: EditContext) =>
 		if (newStatus === 'cancelled') {
 			const cancelReason = input.cancel_reason ?? existing.cancel_reason;
 			if (!cancelReason || String(cancelReason).trim() === '') {
-				return yield* Effect.fail(new Error('A cancellation reason is required.'));
+				refuse('A cancellation reason is required.');
 			}
 			if (existing.cancelled_at == null) {
 				updates.cancelled_at = (yield* currentInstant).toISOString();

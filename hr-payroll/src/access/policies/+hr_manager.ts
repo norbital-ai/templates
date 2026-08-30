@@ -8,23 +8,25 @@ import {
 	peopleGrants,
 	referenceGrants,
 	statutoryGrants,
+	statutoryProfileGrants,
 	workDayWriteGrants
 } from '../../lib/policy_grants.js';
 import type { Policy } from './$types.js';
 
 /**
  * Special role 2 of 2. Everything an `hr_controller` may do, and the three payroll authorities a
- * controller may not hold: create without review, re-run, and delete.
+ * controller may not hold: `mutate.new` without review, `mutate.existing` for re-runs, and delete.
  *
  * The owner's words: an `hr_manager` — and senior management — may **view, create and run** payroll.
  * Those map to four grants, and the fourth is the one that is easy to miss:
  *
  *   - `payrollGrants('read')` — view.
- *   - `payroll_runs: create`, with **no** approval — create. This is the difference from
- *     `hr_controller` and it is the entire difference: same collection, same action, no gate. It is
- *     also the other end of the controller's escalation, since it is holders of this role who sit in
- *     the `HR Manager` team the controller's step routes to.
- *   - `payroll_runs: update` — run. A same-state DRAFT update is this workspace's recalculate.
+ *   - `payroll_runs.mutate.new`, with **no** approval. This is the difference from `hr_controller`:
+ *     same collection and grant coordinate, no gate. It is also the other end of the controller's
+ *     escalation, since it is holders of this role who sit in the `HR Manager` team the
+ *     controller's step routes to.
+ *   - `payroll_runs.mutate.existing` — run. A same-state DRAFT mutation is this workspace's
+ *     recalculate.
  *   - `payrollRebuildGrants()` — run, continued. `clearRunResults` wipes the previous results before
  *     writing new ones and does it through `api.db.delete`, which authorizes against the requesting
  *     subject rather than running elevated. Without these three deletes a recalculation fails on the
@@ -68,15 +70,18 @@ export default {
 	capabilities: { apps: ['hr_employee', 'hr_controller'] },
 
 	grants: mergeGrants(
-		referenceGrants('read', 'create', 'update', 'delete'),
+		referenceGrants('read', 'mutate.new', 'mutate.existing', 'delete'),
 		statutoryGrants('read'),
+		statutoryProfileGrants(),
 		grantsOn('statutory_profile_drift_logs', ['read']),
 		peopleGrants('read'),
-		peopleGrants('create', 'update', 'delete'),
+		peopleGrants('mutate.new', 'mutate.existing', 'delete'),
 		grantsOn('work_days', ['read']),
 
-		// The adjustment path. Unconditional on both read and create — see `+hr_controller.ts`.
-		grantsOn('obligations', ['read', 'create', 'update', 'delete']),
+		// The adjustment path. Unconditional on both read and `mutate.new` — see `+hr_controller.ts`.
+		grantsOn('component_entries', ['read', 'mutate.new', 'mutate.existing', 'delete']),
+		grantsOn('loans', ['read', 'mutate.new', 'mutate.existing', 'delete']),
+		grantsOn('loan_repayments', ['read', 'mutate.new', 'mutate.existing', 'delete']),
 
 		// Both sides of the person-day: publish the schedule, and record what happened against it.
 		// The approval resolver decides per write — a roster edit is not reviewed, and an attendance
@@ -86,12 +91,12 @@ export default {
 		// leaves the bad row sitting in the run.
 		workDayWriteGrants(),
 
-		grantsOn('leave_requests', ['read', 'update', 'delete']),
-		grantOn('leave_requests', 'create', { approval: leaveApproval }),
+		grantsOn('leave_requests', ['read', 'mutate.existing', 'delete']),
+		grantOn('leave_requests', 'mutate.new', { approval: leaveApproval }),
 
 		payrollGrants('read'),
 		payrollRebuildGrants(),
-		grantsOn('payroll_runs', ['create', 'update', 'delete'])
+		grantsOn('payroll_runs', ['mutate.new', 'mutate.existing', 'delete'])
 	),
 	/**
 	 * What a holder of this policy may spend.

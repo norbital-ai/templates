@@ -1,5 +1,5 @@
 import {
-	NOT_AN_ADJUSTMENT,
+	NOT_A_CORRECTION,
 	attendanceWriteGrants,
 	employeeSelfServiceGrants,
 	grantOn,
@@ -8,7 +8,6 @@ import {
 	mergeGrants,
 	peopleGrants,
 	referenceGrants,
-	settlementLedgerGrants,
 	statutoryGrants
 } from '../../lib/policy_grants.js';
 import type { Policy } from './$types.js';
@@ -75,12 +74,13 @@ export default {
 		grantsOn('work_days', ['read']),
 		grantsOn('leave_requests', ['read']),
 		// The narrowing has to be stated here, not subtracted higher up: one unconditional
-		// `obligations` read in any policy this subject matches would erase it.
-		grantOn('obligations', 'read', {
-			where: NOT_AN_ADJUSTMENT,
+		// `component_entries` read in any policy this subject matches would erase it.
+		grantOn('component_entries', 'read', {
+			where: NOT_A_CORRECTION,
 			dependencies: []
 		}),
-		settlementLedgerGrants(),
+		// `employeeSelfServiceGrants` already carries `settlementLedgerGrants`; restating it is a
+		// duplicate grant, which `mergeGrants` refuses.
 
 		// Attendance becomes a payroll source, so writing it is reviewed by the direct manager even
 		// when a supervisor is the one writing it. Runtime derives the durable configuration identity
@@ -92,13 +92,13 @@ export default {
 		// had. `attendanceWriteGrants` permits the clock columns and nothing else, and every column it
 		// permits is one the approval resolver reviews — so a supervisor cannot touch attendance on
 		// their own authority, and cannot touch the schedule on anybody's.
-		attendanceWriteGrants('create', 'update'),
+		attendanceWriteGrants('mutate.new', 'mutate.existing'),
 
 		// Raising leave is reviewed; amending one already raised is not. A supervisor amending a
 		// request is acting as its reviewer, so routing that back through review would ask them to
 		// approve themselves. Deleting is not theirs — a withdrawal at this rank goes to a manager.
-		grantOn('leave_requests', 'create', { approval: leaveApproval }),
-		grantsOn('leave_requests', ['update'])
+		grantOn('leave_requests', 'mutate.new', { approval: leaveApproval }),
+		grantsOn('leave_requests', ['mutate.existing'])
 	),
 	/**
 	 * What a holder of this policy may spend.
