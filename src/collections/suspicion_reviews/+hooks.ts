@@ -1,4 +1,4 @@
-import { Effect } from 'effect';
+import { refuse } from '@norbital-ai/bolt/authoring';
 import type { Hooks } from './$types.js';
 
 export default {
@@ -9,9 +9,7 @@ export default {
 				handler: ({ input, existing }) =>
 					existing === undefined
 						? input
-						: Effect.fail(
-								new Error('Automated suspicion reviews cannot be changed after inference.')
-							)
+						: refuse('Automated suspicion reviews cannot be changed after inference.')
 			}
 		}
 	},
@@ -19,7 +17,7 @@ export default {
 		perRecord: {
 			before: {
 				description: 'Retains automated suspicion reviews as a durable inference audit trail.',
-				handler: () => Effect.fail(new Error('Automated suspicion reviews cannot be deleted.'))
+				handler: () => refuse('Automated suspicion reviews cannot be deleted.')
 			}
 		}
 	}

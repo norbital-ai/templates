@@ -29,6 +29,7 @@
 	import { Effect, Option, Schema } from 'effect';
 	import JobsRepresentation from '../jobs/+representation.svelte';
 	import { formatSingaporeInstant } from '../../lib/format-singapore-instant.js';
+	import { reviewCandidatesFrom } from './suspicion-evidence.js';
 
 	let { record, close }: RepresentationProps = $props();
 
@@ -108,6 +109,42 @@
 			: null
 	);
 	const suspicionRows = $derived(suspicionQuery?.current ?? []);
+	const suspicionReviewQuery = $derived(
+		record != null && mayReadSuspicion
+			? client.db.suspicion_reviews.findMany({
+					where: { job_assignment_id: { eq: record.id } },
+					orderBy: { reviewed_at: 'desc' },
+					limit: 100
+				})
+			: null
+	);
+	const reviewCandidates = $derived(
+		reviewCandidatesFrom((suspicionReviewQuery?.current ?? []).map((review) => review.basis))
+	);
+	const candidateEvidenceIds = $derived(reviewCandidates.map((candidate) => candidate.id));
+	const candidateEvidenceQuery = $derived(
+		candidateEvidenceIds.length > 0
+			? client.db.photo_evidence.findMany({
+					where: { id: { in: candidateEvidenceIds } },
+					limit: 250
+				})
+			: null
+	);
+	const candidateAssignmentIds = $derived([
+		...new Set(
+			(candidateEvidenceQuery?.current ?? []).flatMap((evidence) =>
+				evidence.job_assignment_id == null ? [] : [evidence.job_assignment_id]
+			)
+		)
+	]);
+	const candidateAssignmentQuery = $derived(
+		candidateAssignmentIds.length > 0
+			? client.db.job_assignments.findMany({
+					where: { id: { in: candidateAssignmentIds } },
+					limit: 250
+				})
+			: null
+	);
 	const openSuspicionRows = $derived(suspicionRows.filter((log) => log.resolved_at == null));
 	const firstOpenSuspicion = $derived(openSuspicionRows[0]);
 	/**
@@ -208,35 +245,43 @@
 		})
 	);
 	const evidenceLoading = $derived(directEvidenceQuery?.loading === true);
-	const evidenceFacts = $derived(
-		scopedEvidence.flatMap((evidence) => {
-			const facts: Array<{ readonly id: string; readonly label: string }> = [];
-			const flags = new Set((evidence.flags ?? []).filter((flag) => flag != null));
-			if (flags.has('exact_duplicate')) {
-				facts.push({
-					id: `${evidence.id}:exact`,
-					label: t('component.evidence_fact_exact_match')
-				});
-			}
-			if (flags.has('visual_duplicate')) {
-				facts.push({
-					id: `${evidence.id}:similar`,
-					label: t('component.evidence_fact_similar_match')
-				});
-			}
-			if (flags.has('missing_geolocation')) {
-				facts.push({
-					id: `${evidence.id}:geolocation`,
-					label: t('component.evidence_fact_missing_geolocation')
-				});
-			}
-			if (flags.has('metadata_anomaly')) {
-				facts.push({
-					id: `${evidence.id}:metadata`,
-					label: t('component.evidence_fact_missing_metadata')
-				});
-			}
-			return facts;
+	const evidenceFactCards = $derived(
+		photoCards.flatMap((photo) => {
+			const facts = [...new Set(photo.flags.map(integrityFlagLabel))];
+			return facts.length === 0 ? [] : [{ ...photo, facts }];
+		})
+	);
+	const similarPhotoPairs = $derived(
+		reviewCandidates.flatMap((candidate) => {
+			const candidateEvidence = (candidateEvidenceQuery?.current ?? []).find(
+				(evidence) => evidence.id === candidate.id
+			);
+			const parsedCandidate =
+				candidateEvidence === undefined ? Option.none() : decodePhotoFile(candidateEvidence.photo);
+			const candidateName = Option.isSome(parsedCandidate)
+				? parsedCandidate.value.file_name
+				: (candidate.storageKey.split('/').at(-1) ?? t('component.photo'));
+			const candidateUrl = dataRendererRuntime.fileUrl(
+				Option.isSome(parsedCandidate) ? parsedCandidate.value.storage_key : candidate.storageKey
+			);
+			const assignment = (candidateAssignmentQuery?.current ?? []).find(
+				(row) => row.id === candidateEvidence?.job_assignment_id
+			);
+			return candidate.matchedPhotoIds.flatMap((matchedPhotoId) => {
+				const submitted = photoCards.find((photo) => photo.id === matchedPhotoId);
+				return submitted === undefined
+					? []
+					: [
+							{
+								id: `${submitted.id}:${candidate.id}`,
+								distance: candidate.distance,
+								submitted,
+								candidate: { name: candidateName, url: candidateUrl },
+								assignment:
+									assignment?.search_text ?? t('component.similar_photo_assignment_unavailable')
+							}
+						];
+			});
 		})
 	);
 
@@ -248,7 +293,7 @@
 	 * checking the photograph against, which is the one thing they need beside it. An overlay keeps
 	 * both and closes on Escape or a click outside.
 	 */
-	let openedPhoto = $state<(typeof photoCards)[number] | undefined>(undefined);
+	let openedPhoto = $state<{ readonly name: string; readonly url: string } | undefined>(undefined);
 
 	function integrityFlagLabel(flag: string): string {
 		switch (flag) {
@@ -443,14 +488,146 @@
 							<p class="text-tiny text-destructive" role="alert">
 								{t('component.evidence_load_failed')}
 							</p>
-						{:else if evidenceFacts.length === 0}
+						{:else if evidenceFactCards.length === 0}
 							<p class="text-tiny text-muted-foreground">
 								{t('component.evidence_facts_empty')}
 							</p>
 						{:else}
-							<Stack as="ul" gap="xs" class="list-disc ps-5 text-tiny">
-								{#each evidenceFacts as fact (fact.id)}
-									<li class="break-words [overflow-wrap:anywhere]">{fact.label}</li>
+							<Grid minimum="card" gap="sm">
+								{#each evidenceFactCards as photo (photo.id)}
+									<article class="flex min-w-0 gap-3 rounded-md border border-border bg-card p-2.5">
+										<button
+											type="button"
+											class="size-20 shrink-0 overflow-hidden rounded-md bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+											aria-label={t('component.open_photo', { name: photo.name })}
+											onclick={() => (openedPhoto = photo)}
+										>
+											<img
+												src={photo.url}
+												alt={photo.name}
+												class="size-full object-cover"
+												loading="lazy"
+												decoding="async"
+											/>
+										</button>
+										<Stack gap="xs" class="min-w-0 py-0.5">
+											<p class="truncate text-tiny font-medium">{photo.name}</p>
+											<Cluster gap="xs">
+												{#each photo.facts as fact}
+													<span
+														class="rounded-full bg-muted px-2 py-0.5 text-micro text-muted-foreground"
+														>{fact}</span
+													>
+												{/each}
+											</Cluster>
+										</Stack>
+									</article>
+								{/each}
+							</Grid>
+						{/if}
+					</Stack>
+				</section>
+
+				<section aria-labelledby="assignment-similar-photos-heading">
+					<Stack gap="sm">
+						<Stack gap="xs">
+							<Inline align="center" gap="xs">
+								<Icon
+									icon="lucide:images"
+									class="size-4 text-muted-foreground"
+									aria-hidden="true"
+								/>
+								<h4 id="assignment-similar-photos-heading" class="text-sm font-semibold">
+									{t('component.similar_photos_other_assignments')}
+								</h4>
+							</Inline>
+							<p class="text-tiny text-muted-foreground">
+								{t('component.similar_photos_other_assignments_description')}
+							</p>
+						</Stack>
+						{#if suspicionReviewQuery?.loading || candidateEvidenceQuery?.loading || candidateAssignmentQuery?.loading}
+							<p class="text-tiny text-muted-foreground">{t('component.loading_evidence')}</p>
+						{:else if suspicionReviewQuery?.error || candidateEvidenceQuery?.error || candidateAssignmentQuery?.error}
+							<p class="text-tiny text-destructive" role="alert">
+								{t('component.evidence_load_failed')}
+							</p>
+						{:else if similarPhotoPairs.length === 0}
+							<p
+								class="rounded-md border border-dashed border-border p-3 text-tiny text-muted-foreground"
+							>
+								{t('component.similar_photos_other_assignments_empty')}
+							</p>
+						{:else}
+							<Stack gap="sm">
+								{#each similarPhotoPairs as pair (pair.id)}
+									<article class="rounded-md border border-border bg-card p-3">
+										<Stack gap="sm">
+											<Inline justify="between" align="center" gap="sm">
+												<span
+													class="text-micro font-semibold uppercase tracking-wide text-muted-foreground"
+												>
+													{t('component.shown_to_review_agent')}
+												</span>
+												<span class="shrink-0 text-micro tabular-nums text-muted-foreground">
+													{t('component.similar_photo_distance', {
+														distance: pair.distance.toFixed(3)
+													})}
+												</span>
+											</Inline>
+											<div
+												class="grid min-w-0 items-center gap-2 sm:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)]"
+											>
+												<button
+													type="button"
+													class="flex min-w-0 items-center gap-2 rounded-md bg-muted/45 p-2 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+													onclick={() => (openedPhoto = pair.submitted)}
+												>
+													<img
+														src={pair.submitted.url}
+														alt={pair.submitted.name}
+														class="size-16 shrink-0 rounded object-cover"
+														loading="lazy"
+														decoding="async"
+													/>
+													<Stack gap="none" class="min-w-0">
+														<span class="text-micro text-muted-foreground">
+															{t('component.this_assignment')}
+														</span>
+														<span class="truncate text-tiny font-medium">{pair.submitted.name}</span
+														>
+													</Stack>
+												</button>
+												<Icon
+													icon="lucide:arrow-left-right"
+													class="mx-auto size-4 rotate-90 text-muted-foreground sm:rotate-0"
+													aria-hidden="true"
+												/>
+												<button
+													type="button"
+													class="flex min-w-0 items-center gap-2 rounded-md bg-warning/5 p-2 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+													onclick={() => (openedPhoto = pair.candidate)}
+												>
+													<img
+														src={pair.candidate.url}
+														alt={pair.candidate.name}
+														class="size-16 shrink-0 rounded object-cover"
+														loading="lazy"
+														decoding="async"
+													/>
+													<Stack gap="none" class="min-w-0">
+														<span class="text-micro text-warning"
+															>{t('component.other_assignment')}</span
+														>
+														<span class="truncate text-tiny font-medium">{pair.candidate.name}</span
+														>
+														<span class="line-clamp-2 text-micro text-muted-foreground">
+															{pair.assignment}
+														</span>
+													</Stack>
+												</button>
+											</div>
+										</Stack>
+									</article>
 								{/each}
 							</Stack>
 						{/if}

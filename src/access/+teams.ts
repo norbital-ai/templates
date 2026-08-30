@@ -24,7 +24,7 @@ import type { Teams } from '@norbital-ai/bolt/authoring';
  *
  * ## `Field Operations Controllers` is load-bearing and must not be renamed alone
  *
- * `access/policies/+field_ops_contractor.ts` gates variation-request create and update with
+ * `access/policies/+field_ops_contractor.ts` gates both variation-request mutation branches with
  * `approveBy('Field Operations Controllers')`. The argument is `TeamName`, a union generated from
  * this file's own keys, so renaming the key below without the policy is a compile error. It is
  * plural where the policy's file name is singular, and that mismatch is deliberate and old: one is a

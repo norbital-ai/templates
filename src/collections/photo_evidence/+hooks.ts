@@ -1,7 +1,10 @@
-import { hexToBinaryEmbedding } from '@norbital-ai/bolt/authoring';
-import type { CollectionHooks } from '@norbital-ai/bolt/authoring';
+import { hexToBinaryEmbedding, refuse } from '@norbital-ai/bolt/authoring';
+import type {
+	CollectionMutationValues,
+	MutateAfterContext,
+	MutateBeforeContext
+} from '@norbital-ai/bolt/authoring';
 import { Effect, Schema } from 'effect';
-import type { CollectionMutationValues } from '@norbital-ai/bolt/authoring';
 import type { WorkspaceSchema } from '$bolt/types.js';
 import type { Hooks } from './$types.js';
 import { photoSourceValueSchema } from '../../datatypes/photo_source/+definition.js';
@@ -27,16 +30,10 @@ const photoEvidenceCreateInput = Schema.Struct({
 	source: Schema.optional(photoSourceValueSchema)
 });
 
-type PhotoCreateBefore = NonNullable<
-	NonNullable<NonNullable<PhotoEvidenceHooks['mutate']>['perRecord']>['before']
->;
-type PhotoCreateAfter = NonNullable<
-	NonNullable<NonNullable<PhotoEvidenceHooks['mutate']>['perRecord']>['after']
->;
-type PhotoBeforeApi = Parameters<PhotoCreateBefore['handler']>[0]['api'];
-type PhotoAfterApi = Parameters<PhotoCreateAfter['handler']>[0]['api'];
+type PhotoBeforeApi = MutateBeforeContext<Hooks<PhotoEvidenceBatch>>['api'];
+type PhotoAfterApi = MutateAfterContext<Hooks<PhotoEvidenceBatch>>['api'];
 type PhotoCreateInput = Schema.Schema.Type<typeof photoEvidenceCreateInput>;
-type PhotoRecord = Parameters<PhotoCreateAfter['handler']>[0]['record'];
+type PhotoRecord = MutateAfterContext<Hooks<PhotoEvidenceBatch>>['record'];
 /**
  * What `prepare` hands the create path: the insert branch of the collection's declarative write.
  *
@@ -67,15 +64,6 @@ interface PhotoEvidenceBatch {
 	readonly siteByJob: ReadonlyMap<string, string | null>;
 	readonly locationBySite: ReadonlyMap<string, LocationLike>;
 }
-
-/**
- * `Hooks` with what `prepare` returns filled in.
- *
- * The generated `Hooks` alias fixes that parameter at `void`, so a collection that prepares anything
- * has to name the type itself. Once `bolt sync` emits `Hooks<Prepared = void>` this becomes
- * `satisfies Hooks<PhotoEvidenceBatch>`.
- */
-type PhotoEvidenceHooks = CollectionHooks<WorkspaceSchema, 'photo_evidence', PhotoEvidenceBatch>;
 
 const MAX_BATCH_DUPLICATE_CORPUS = 5_000;
 const MAX_BATCH_DUPLICATE_COMPARISONS = 250_000;
@@ -133,7 +121,7 @@ function assignmentIdsForEvidence(
 		readonly job_assignment_id?: string | null;
 		readonly variation_request_id?: string | null;
 	}[]
-): Effect.Effect<ReadonlyMap<string, string | null>, unknown, never> {
+): Effect.Effect<ReadonlyMap<string, string | null>> {
 	const variationIds = [
 		...new Set(
 			records.flatMap((record) =>
@@ -157,10 +145,7 @@ function assignmentIdsForEvidence(
 	);
 }
 
-function runAfterPhoto(
-	record: PhotoRecord,
-	api: PhotoAfterApi
-): Effect.Effect<void, unknown, never> {
+function runAfterPhoto(record: PhotoRecord, api: PhotoAfterApi): Effect.Effect<void> {
 	return Effect.gen(function* () {
 		const columns = {
 			id: true,
@@ -217,14 +202,16 @@ function preparePhoto(
 	api: PhotoBeforeApi,
 	parsed: PhotoCreateInput,
 	siteLocation: LocationLike
-): Effect.Effect<PhotoCreateMutation, unknown, never> {
+): Effect.Effect<PhotoCreateMutation> {
 	return Effect.gen(function* () {
 		const asset = yield* api.readFileAsset(parsed.photo);
 		const mimeType = asset.mimeType;
 		if (mimeType == null || !mimeType.toLowerCase().startsWith('image/')) {
-			return yield* Effect.fail(new Error('Photo evidence requires an image file.'));
+			refuse('Photo evidence requires an image file.');
 		}
-		const inspected = yield* inspectPhoto({ bytes: asset.bytes, mimeType });
+		// A photograph the decoders cannot read is a fault of the bytes, not a rule about the row:
+		// it dies as a defect instead of wearing a refusal it does not deserve.
+		const inspected = yield* Effect.orDie(inspectPhoto({ bytes: asset.bytes, mimeType }));
 		const geoFlags = evaluateCaptureGeolocation(
 			inspected.captureLocation,
 			coordinatesOf(siteLocation)
@@ -330,19 +317,15 @@ export default {
 						const parsed = yield* Schema.decodeUnknownEffect(photoEvidenceCreateInput)(input);
 						const jobAssignmentId = parsed.job_assignment_id;
 						const variationRequestId = parsed.variation_request_id;
-						yield* Effect.try(() =>
-							assertExactlyOnePhotoParent(jobAssignmentId, variationRequestId)
-						);
+						assertExactlyOnePhotoParent(jobAssignmentId, variationRequestId);
 
 						if (jobAssignmentId != null && jobAssignmentId !== '') {
 							if (!prepared.jobByAssignment.has(jobAssignmentId)) {
-								return yield* Effect.fail(new Error('Referenced job assignment does not exist.'));
+								refuse('Referenced job assignment does not exist.');
 							}
 						} else if (variationRequestId != null && variationRequestId !== '') {
 							if (!prepared.assignmentByVariation.has(variationRequestId)) {
-								return yield* Effect.fail(
-									new Error('Referenced variation request does not exist.')
-								);
+								refuse('Referenced variation request does not exist.');
 							}
 						}
 
@@ -362,4 +345,4 @@ export default {
 			}
 		}
 	}
-} satisfies PhotoEvidenceHooks;
+} satisfies Hooks<PhotoEvidenceBatch>;

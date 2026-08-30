@@ -1,7 +1,7 @@
 import type { Policy } from './$types.js';
 
 /** System-managed suspicion state is intentionally absent from both masks. */
-const assignmentCreateFields = [
+const assignmentNewMutationFields = [
 	'job_id',
 	'assignee_user_id',
 	'dispatched_at',
@@ -13,13 +13,13 @@ const assignmentCreateFields = [
 	'search_text',
 	'source_message_id'
 ] as const;
-const assignmentUpdateFields = assignmentCreateFields;
+const assignmentExistingMutationFields = assignmentNewMutationFields;
 
 /**
  * The controller: full command of the dispatch surface.
  *
  * Operational records grant every applicable action unconditionally. Audit ledgers are append-only:
- * controllers can read and create them, but cannot rewrite or delete received communications or AI
+ * controllers can read and append them, but cannot rewrite or delete received communications or AI
  * decisions. Written out one grant per line rather than generated from a loop because a permission
  * set is read far more often than it is written.
  *
@@ -46,46 +46,43 @@ export default {
 	grants: {
 		sites: {
 			read: {},
-			create: {},
-			update: {},
+			mutate: { new: {}, existing: {} },
 			delete: {}
 		},
 		jobs: {
 			read: {},
-			create: {},
-			update: {},
+			mutate: { new: {}, existing: {} },
 			delete: {}
 		},
 		suspicious_activity_logs: {
 			read: {},
-			create: {},
-			update: {}
+			mutate: { new: {}, existing: {} }
 		},
 		job_assignments: {
 			read: {},
-			create: { fields: assignmentCreateFields },
-			update: { fields: assignmentUpdateFields },
+			mutate: {
+				new: { fields: assignmentNewMutationFields },
+				existing: { fields: assignmentExistingMutationFields }
+			},
 			delete: {}
 		},
 		variation_requests: {
 			read: {},
-			create: {},
-			update: {},
+			mutate: { new: {}, existing: {} },
 			delete: {}
 		},
 		photo_evidence: {
 			read: {},
-			create: {},
-			update: {},
+			mutate: { new: {}, existing: {} },
 			delete: {}
 		},
 		communication_logs: {
 			read: {},
-			create: {}
+			mutate: { new: {} }
 		},
 		suspicion_reviews: {
 			read: {},
-			create: {}
+			mutate: { new: {} }
 		}
 	},
 	/**

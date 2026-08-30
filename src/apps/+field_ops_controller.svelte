@@ -34,13 +34,15 @@
 	 * it into the previous day in western time zones.
 	 */
 	const dispatchPickerInstant = $derived(calendarDayAsPickerInstant(dispatchDay, pickerTimeZone));
+	/** Day-precision instants are stored and compared at UTC midnight by the collection runtime. */
+	const dispatchQueryInstant = $derived(`${dispatchDay}T00:00:00.000Z`);
 	let assignContractorOpen = $state(false);
 	let assignmentSettling = $state(false);
 	let assignmentSettlementError = $state<string | null>(null);
 	const jobsQuery = $derived(
 		client.db.jobs.findMany({
-			where: { scheduled_for: { eq: dispatchDay } },
-			columns: { id: true, site_id: true, title: true },
+			where: { scheduled_for: { eq: dispatchQueryInstant } },
+			columns: { id: true, site_id: true, title: true, nature: true },
 			orderBy: { title: 'asc' },
 			limit: 1000
 		})
@@ -121,7 +123,7 @@
 	// Assign-contractor sheet — pairs an unassigned job for the day with the person who will do it.
 	const assignJobsQuery = $derived(
 		client.db.jobs.findMany({
-			where: { scheduled_for: { eq: dispatchDay }, status: { eq: 'unassigned' } },
+			where: { scheduled_for: { eq: dispatchQueryInstant }, status: { eq: 'unassigned' } },
 			orderBy: { title: 'asc' },
 			limit: 250
 		})
@@ -136,6 +138,7 @@
 	);
 	const sitesQuery = $derived(
 		client.db.sites.findMany({
+			columns: { id: true, name: true, location: true },
 			orderBy: { name: 'asc' },
 			limit: 250
 		})

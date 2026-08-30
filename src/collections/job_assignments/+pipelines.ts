@@ -1,10 +1,12 @@
+import { refuse } from '@norbital-ai/bolt/authoring';
 import { isCalendarDate } from '@norbital-ai/std/date';
+import { getErrorMessage } from '@norbital-ai/std/error';
 import { Effect, Schema } from 'effect';
 import type { Pipelines } from './$types.js';
 
 function shiftCalendarDate(value: string, days: number): string {
 	if (!isCalendarDate(value)) {
-		throw new Error('Calendar date must use YYYY-MM-DD.');
+		refuse('Calendar date must use YYYY-MM-DD.');
 	}
 	const date = new Date(`${value}T00:00:00.000Z`);
 	date.setUTCDate(date.getUTCDate() + days);
@@ -35,6 +37,7 @@ const importInputSchema = Schema.Struct({
 });
 
 const importSchema = Schema.toStandardSchemaV1(importInputSchema);
+const decodeImportInput = Schema.decodeUnknownEffect(importInputSchema);
 
 type RosterRow = Schema.Schema.Type<typeof rowSchema>;
 
@@ -59,13 +62,14 @@ export default {
 		input: importSchema,
 		handler: ({ input }, api) =>
 			Effect.gen(function* () {
-				// The import boundary decodes the wire payload against the declared `input` schema, so
-				// the handler receives the validated week directly.
-				const { week_start: weekStart, rows } =
-					yield* Schema.decodeUnknownEffect(importInputSchema)(input);
+				// The authored import handler receives an unknown document. Decode it against the same
+				// schema the pipeline declares before reading any roster fields.
+				const { week_start: weekStart, rows } = yield* decodeImportInput(input).pipe(
+					Effect.catch((error) => Effect.sync(() => refuse(getErrorMessage(error))))
+				);
 
 				if (!isCalendarDate(weekStart)) {
-					return yield* Effect.fail(new Error('week_start must be a calendar date (YYYY-MM-DD).'));
+					refuse('week_start must be a calendar date (YYYY-MM-DD).');
 				}
 
 				const weekEnd = shiftCalendarDate(weekStart, 6);
@@ -75,10 +79,8 @@ export default {
 					)
 				];
 				if (invalidDates.length > 0) {
-					return yield* Effect.fail(
-						new Error(
-							`These scheduled_for values are not valid calendar days (YYYY-MM-DD):\n${formatNamedList(invalidDates)}`
-						)
+					refuse(
+						`These scheduled_for values are not valid calendar days (YYYY-MM-DD):\n${formatNamedList(invalidDates)}`
 					);
 				}
 
@@ -86,10 +88,8 @@ export default {
 					.filter((row) => row.scheduled_for < weekStart || row.scheduled_for > weekEnd)
 					.map((row, index) => rowLabel(row, index));
 				if (outsideWeek.length > 0) {
-					return yield* Effect.fail(
-						new Error(
-							`Every scheduled_for must fall within the week starting ${weekStart}:\n${formatNamedList(outsideWeek)}`
-						)
+					refuse(
+						`Every scheduled_for must fall within the week starting ${weekStart}:\n${formatNamedList(outsideWeek)}`
 					);
 				}
 
@@ -178,9 +178,7 @@ export default {
 				}
 
 				if (problems.length > 0) {
-					return yield* Effect.fail(
-						new Error(`The roster could not be imported:\n${formatNamedList(problems)}`)
-					);
+					refuse(`The roster could not be imported:\n${formatNamedList(problems)}`);
 				}
 
 				return resolvedRows.map((entry) => ({

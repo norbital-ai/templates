@@ -5,8 +5,10 @@ export default {
 	grants: {
 		jobs: {
 			read: {},
-			create: {},
-			update: {}
+			mutate: {
+				new: {},
+				existing: {}
+			}
 		},
 		sites: {
 			read: { fields: ['id', 'site_code'] }

@@ -5,6 +5,7 @@ import { Effect, Schema } from 'effect';
 import { hexToBinaryEmbedding } from '@norbital-ai/bolt/authoring';
 import { decode as decodeJpeg } from 'jpeg-js';
 import suspicionReviewAutomation, {
+	SUSPICION_REVIEW_CONCURRENCY,
 	SuspicionReviewIncompleteError
 } from '../../automations/+review_job_assignment_suspicion.js';
 import {
@@ -90,28 +91,37 @@ function automationHarness(options: {
 	readonly reviewPersistenceFailures?: ReadonlySet<string>;
 	readonly openSuspicionIds?: Readonly<Record<string, string>>;
 	readonly existingReviews?: Readonly<Record<string, ExistingReview>>;
+	readonly stallAssignmentPagination?: boolean;
+	readonly inferenceDelayMillis?: number;
 }) {
 	const inferenceCounts = new Map<string, number>();
+	let activeInferences = 0;
+	let maxInferenceConcurrency = 0;
 	const reviewCreateAttempts: Array<string> = [];
 	const logCreates: Array<string> = [];
 	const updates: Array<string> = [];
-	const assignmentPageOffsets: Array<number> = [];
+	const assignmentPageAfterIds: Array<string | undefined> = [];
 	const existingReviews = { ...options.existingReviews };
 	const logsByReview: Record<string, { readonly id: string } | undefined> = {};
 	const api = {
 		progress: () => Effect.void,
-		infer: (input: { readonly prompt: string }) => {
-			const assignmentId = assignmentIdFromPrompt(input.prompt);
-			inferenceCounts.set(assignmentId, (inferenceCounts.get(assignmentId) ?? 0) + 1);
-			if (options.inferenceFailures?.has(assignmentId) === true) {
-				return Effect.fail(new Error(`Inference failed for ${assignmentId}`));
-			}
-			const decision = options.decisions?.[assignmentId] ?? {
-				suspicious: false,
-				reason: 'The evidence does not justify a suspicion.'
-			};
-			return Effect.succeed({ ...decision, evidence_id: null });
-		},
+		infer: (input: { readonly prompt: string }) =>
+			Effect.gen(function* () {
+				const assignmentId = assignmentIdFromPrompt(input.prompt);
+				inferenceCounts.set(assignmentId, (inferenceCounts.get(assignmentId) ?? 0) + 1);
+				activeInferences += 1;
+				maxInferenceConcurrency = Math.max(maxInferenceConcurrency, activeInferences);
+				if ((options.inferenceDelayMillis ?? 0) > 0)
+					yield* Effect.sleep(options.inferenceDelayMillis ?? 0);
+				if (options.inferenceFailures?.has(assignmentId) === true) {
+					return yield* Effect.fail(new Error(`Inference failed for ${assignmentId}`));
+				}
+				const decision = options.decisions?.[assignmentId] ?? {
+					suspicious: false,
+					reason: 'The evidence does not justify a suspicion.'
+				};
+				return { ...decision, evidence_id: null };
+			}).pipe(Effect.ensuring(Effect.sync(() => (activeInferences -= 1)))),
 		/**
 		 * The database double, in the shape the authored api now has.
 		 *
@@ -124,19 +134,24 @@ function automationHarness(options: {
 		db: {
 			job_assignments: {
 				findMany: (input: {
-					readonly where?: { readonly id?: { readonly eq?: string } };
-					readonly offset?: number;
+					readonly where?: {
+						readonly id?: { readonly eq?: string; readonly gt?: string };
+					};
 					readonly limit?: number;
 				}) => {
 					const targeted = input.where?.id?.eq;
 					if (targeted != null) {
 						return Effect.succeed(options.assignments.filter(({ id }) => id === targeted));
 					}
-					const offset = input.offset ?? 0;
-					assignmentPageOffsets.push(offset);
-					return Effect.succeed(
-						options.assignments.slice(offset, offset + (input.limit ?? ASSIGNMENT_PAGE_SIZE))
-					);
+					const afterId = input.where?.id?.gt;
+					assignmentPageAfterIds.push(afterId);
+					const eligible = options.assignments
+						.filter(
+							({ id }) =>
+								options.stallAssignmentPagination === true || afterId === undefined || id > afterId
+						)
+						.sort((left, right) => left.id.localeCompare(right.id));
+					return Effect.succeed(eligible.slice(0, input.limit ?? ASSIGNMENT_PAGE_SIZE));
 				},
 				mutate: (values: { readonly id: string }) => {
 					updates.push(values.id);
@@ -222,11 +237,12 @@ function automationHarness(options: {
 	};
 	return {
 		api,
-		assignmentPageOffsets,
+		assignmentPageAfterIds,
 		inferenceCounts,
 		reviewCreateAttempts,
 		logCreates,
-		updates
+		updates,
+		maxInferenceConcurrency: () => maxInferenceConcurrency
 	};
 }
 
@@ -334,7 +350,19 @@ test('materialises every unchecked assignment across pages beyond 500', async ()
 
 	assert.equal(selected.length, ASSIGNMENT_PAGE_SIZE + 1);
 	assert.equal(selected.at(-1)?.status, 'completed');
-	assert.deepEqual(harness.assignmentPageOffsets, [0, ASSIGNMENT_PAGE_SIZE]);
+	assert.deepEqual(harness.assignmentPageAfterIds, [undefined, 'assignment-0499']);
+});
+
+test('fails closed when an unchecked-assignment keyset page does not advance', async () => {
+	const assignments = Array.from({ length: ASSIGNMENT_PAGE_SIZE }, (_, index) =>
+		assignment(`assignment-${String(index).padStart(4, '0')}`)
+	);
+	const harness = automationHarness({ assignments, stallAssignmentPagination: true });
+
+	await assert.rejects(
+		Effect.runPromise(loadUncheckedAssignments(harness.api as never)),
+		/Unchecked assignment pagination did not advance beyond assignment-0499; received assignment-0000/
+	);
 });
 
 test('infers, persists, and stamps a completed unchecked assignment', async () => {
@@ -350,6 +378,18 @@ test('infers, persists, and stamps a completed unchecked assignment', async () =
 	assert.equal(harness.inferenceCounts.get(completed.id), 1);
 	assert.deepEqual(harness.reviewCreateAttempts, [completed.id]);
 	assert.deepEqual(harness.updates, [completed.id]);
+});
+
+test('reviews assignments in a bounded parallel lane', async () => {
+	const assignments = Array.from({ length: SUSPICION_REVIEW_CONCURRENCY * 2 }, (_, index) =>
+		assignment(`assignment-parallel-${index}`)
+	);
+	const harness = automationHarness({ assignments, inferenceDelayMillis: 10 });
+	const result = await runAutomation(harness.api);
+
+	assert.equal(result.failure_count, 0);
+	assert.equal(result.counts.checked, assignments.length);
+	assert.equal(harness.maxInferenceConcurrency(), SUSPICION_REVIEW_CONCURRENCY);
 });
 
 test('still performs exactly one inference and persists a review when a suspicion is already open', async () => {
@@ -569,6 +609,7 @@ test('bounds inference context and chooses deterministic representative low-cost
 	const crowded: SuspicionReviewFacts = { ...original, photos, communications };
 	const selected = selectSuspicionInferencePhotos(photos);
 	const reordered = selectSuspicionInferencePhotos([...photos].reverse());
+	const preferred = selectSuspicionInferencePhotos(photos, ['photo-03']);
 
 	assert.deepEqual(
 		selected.map(({ id }) => id),
@@ -577,6 +618,10 @@ test('bounds inference context and chooses deterministic representative low-cost
 	assert.deepEqual(
 		reordered.map(({ id }) => id),
 		selected.map(({ id }) => id)
+	);
+	assert.deepEqual(
+		preferred.map(({ id }) => id),
+		['photo-00', 'photo-03', 'photo-04']
 	);
 	assert.ok(selected.length <= MAX_INFERENCE_IMAGES);
 	assert.ok(
@@ -799,9 +844,13 @@ test('retrieves in-band cross-assignment candidates and excludes same-assignment
 		ceiling('foreign-near', atCosineDistance(0.3), 'assignment-lorong'),
 		ceiling('foreign-far', atCosineDistance(0.9), 'assignment-other')
 	];
+	const orthogonal = [0, 0, 1, ...Array.from({ length: 253 }, () => 0)];
 	const probes = [
-		{ ...ceiling('00003139', base, 'assignment-kismis'), photo: corpus[0]!.photo },
-		{ ...ceiling('00003140', base, 'assignment-kismis'), photo: corpus[1]!.photo }
+		ceiling('unrelated-own-1', orthogonal, 'assignment-kismis'),
+		ceiling('unrelated-own-2', orthogonal, 'assignment-kismis'),
+		ceiling('unrelated-own-3', orthogonal, 'assignment-kismis'),
+		{ ...ceiling('00003140', base, 'assignment-kismis'), photo: corpus[1]!.photo },
+		{ ...ceiling('00003139', base, 'assignment-kismis'), photo: corpus[0]!.photo }
 	];
 	const api = {
 		db: {
@@ -829,25 +878,44 @@ test('retrieves in-band cross-assignment candidates and excludes same-assignment
 		candidates
 	};
 	const context = JSON.parse(buildSuspicionInferenceContext(withCandidates)) as {
+		photo_summary: {
+			representative_photos: ReadonlyArray<{
+				readonly id: string;
+				readonly attached_image_index: number;
+			}>;
+		};
 		cross_assignment_candidates: ReadonlyArray<{
 			readonly id: string;
+			readonly file_name: string;
 			readonly sha256: string;
 			readonly distance: number;
 			readonly matched_photo_ids: ReadonlyArray<string>;
-			readonly attached_image: boolean;
+			readonly attached_image_index: number | null;
 		}>;
 	};
+	assert.deepEqual(
+		context.photo_summary.representative_photos.map(({ id, attached_image_index }) => ({
+			id,
+			attached_image_index
+		})),
+		[
+			{ id: 'photo-a', attached_image_index: 1 },
+			{ id: 'photo-b', attached_image_index: 2 }
+		]
+	);
 	assert.deepEqual(context.cross_assignment_candidates, [
 		{
 			id: 'foreign-near',
+			file_name: 'foreign-near.jpg',
 			sha256: 'foreign-near-sha',
 			distance: 0.3,
 			matched_photo_ids: ['00003139', '00003140'],
-			attached_image: true
+			attached_image_index: 3
 		}
 	]);
 	const prompt = suspicionPrompt(withCandidates);
 	assert.match(prompt, /cross_assignment_candidates/);
+	assert.match(prompt, /attached_image_index/);
 	assert.match(prompt, /same physical scene as the photo it was matched with/);
 	assert.match(prompt, /different unit, storey, house or street/);
 });

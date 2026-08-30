@@ -1,7 +1,7 @@
-import type { CollectionHooks } from '@norbital-ai/bolt/authoring';
+import { refuse } from '@norbital-ai/bolt/authoring';
 import { Effect } from 'effect';
-import type { WorkspaceSchema } from '$bolt/types.js';
 import { currentDate } from '../../lib/clock.js';
+import type { Hooks } from './$types.js';
 
 const VARIATION_BATCH_LIMIT = 5000;
 
@@ -17,13 +17,6 @@ interface VariationRequestBatch {
 	readonly assignmentIds: ReadonlySet<string>;
 	readonly takenSourceMessageIds: ReadonlySet<string>;
 }
-
-/** `Hooks` with what `prepare` returns filled in; see the note in `quote_lines/+hooks.ts`. */
-type VariationRequestHooks = CollectionHooks<
-	WorkspaceSchema,
-	'variation_requests',
-	VariationRequestBatch
->;
 
 export default {
 	mutate: {
@@ -67,12 +60,10 @@ export default {
 				handler: ({ input, prepared }) =>
 					Effect.gen(function* () {
 						if (input.job_assignment_id == null || input.job_assignment_id === '') {
-							return yield* Effect.fail(
-								new Error('Variation request must reference a job assignment.')
-							);
+							refuse('Variation request must reference a job assignment.');
 						}
 						if (!prepared.assignmentIds.has(input.job_assignment_id)) {
-							return yield* Effect.fail(new Error('Referenced job assignment does not exist.'));
+							refuse('Referenced job assignment does not exist.');
 						}
 
 						if (
@@ -80,9 +71,7 @@ export default {
 							input.source_message_id !== '' &&
 							prepared.takenSourceMessageIds.has(input.source_message_id)
 						) {
-							return yield* Effect.fail(
-								new Error('A variation request with this source_message_id already exists.')
-							);
+							refuse('A variation request with this source_message_id already exists.');
 						}
 
 						const requestedAt = input.requested_at ?? (yield* currentDate).toISOString();
@@ -94,4 +83,4 @@ export default {
 			}
 		}
 	}
-} satisfies VariationRequestHooks;
+} satisfies Hooks<VariationRequestBatch>;

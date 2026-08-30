@@ -24,8 +24,17 @@ test('the dispatch board search contract indexes the hook-owned job-title copy',
 test('date-dependent reads and the board query are derived from the selected day', () => {
 	assert.match(
 		controllerSource,
-		/const jobsQuery = \$derived\(\s*client\.db\.jobs\.findMany\(\{[\s\S]*?scheduled_for: \{ eq: dispatchDay \}/
+		/const dispatchQueryInstant = \$derived\(`\$\{dispatchDay\}T00:00:00\.000Z`\)/
 	);
+	assert.match(
+		controllerSource,
+		/const jobsQuery = \$derived\(\s*client\.db\.jobs\.findMany\(\{[\s\S]*?scheduled_for: \{ eq: dispatchQueryInstant \}/
+	);
+	assert.match(
+		controllerSource,
+		/columns: \{ id: true, site_id: true, title: true, nature: true \}/
+	);
+	assert.match(controllerSource, /columns: \{ id: true, name: true, location: true \}/);
 	assert.match(
 		controllerSource,
 		/const assignmentsQuery = \$derived\(\s*client\.db\.job_assignments\.findMany\(\{[\s\S]*?job_assignment_job: \{ scheduled_for: \{ eq: dispatchDay \} \}/
