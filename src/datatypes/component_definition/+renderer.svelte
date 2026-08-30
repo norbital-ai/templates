@@ -82,8 +82,6 @@
 			}
 		};
 		switch (level) {
-			case 'STATUTORY':
-				return { level: 'STATUTORY', ...ceiling };
 			case 'ORGANISATION':
 				return { level: 'ORGANISATION', ...ceiling };
 			case 'EMPLOYEE':
@@ -95,15 +93,13 @@
 	 * Move a cap layer to another arm, carrying everything the arms share.
 	 *
 	 * Written out rather than spread so the EMPLOYEE arm's extra field is added and dropped
-	 * explicitly: a spread would leave it behind on a STATUTORY layer, which `strictObject` rejects
-	 * only at save time, long after the operator has moved on.
+	 * explicitly: a spread would leave it behind when the arm narrows, which `strictObject`
+	 * rejects only at save time, long after the operator has moved on.
 	 */
 	function atCapLevel(layer: CapLayer, level: PolicyLayerLevel): CapLayer {
 		const { eligibility, authority, award, reimbursement_percentage, effective_range } = layer;
 		const ceiling = { eligibility, authority, award, reimbursement_percentage, effective_range };
 		switch (level) {
-			case 'STATUTORY':
-				return { level: 'STATUTORY', ...ceiling };
 			case 'ORGANISATION':
 				return { level: 'ORGANISATION', ...ceiling };
 			case 'EMPLOYEE':
@@ -130,7 +126,7 @@
 	function defaultCap(): Cap {
 		return {
 			period: 'CALENDAR_YEAR',
-			matrix: { merge: 'MAX_WITH_STATUTORY_FLOOR', layers: [newCapLayer('ORGANISATION')] },
+			matrix: { merge: 'MAX_WITH_COMPANY_LAYERS', layers: [newCapLayer('ORGANISATION')] },
 			on_exceed: 'BLOCK'
 		};
 	}
@@ -307,11 +303,6 @@
 						addPlaceholder={t('renderer.component_definition.add_placeholder')}
 						additions={[
 							{
-								value: 'STATUTORY',
-								label: 'Statutory layer',
-								create: () => newCapLayer('STATUTORY')
-							},
-							{
 								value: 'ORGANISATION',
 								label: 'Organisation layer',
 								create: () => newCapLayer('ORGANISATION')
@@ -321,11 +312,12 @@
 						onChange={(layers) =>
 							emit({
 								...current,
-								cap: { ...cap, matrix: { merge: 'MAX_WITH_STATUTORY_FLOOR', layers } }
+								cap: { ...cap, matrix: { merge: 'MAX_WITH_COMPANY_LAYERS', layers } }
 							})}
 					>
 						{#snippet identity(row)}
 							<LayerLevelPicker
+								levels={['ORGANISATION', 'EMPLOYEE']}
 								level={row.layer.level}
 								employmentId={row.layer.level === 'EMPLOYEE' ? row.layer.employment_id : null}
 								{companyId}

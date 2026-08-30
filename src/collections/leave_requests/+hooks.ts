@@ -1,20 +1,19 @@
 import { Effect, Schema } from 'effect';
-import { refuse, type SchemaQueryConfig } from '@norbital-ai/bolt/authoring';
+import {
+	refuse,
+	type MutateBeforeContext,
+	type SchemaQueryConfig
+} from '@norbital-ai/bolt/authoring';
 import type { WorkspaceSchema } from '$bolt/types.js';
 import { dateKey } from '../../lib/iso-day.js';
 import { pointAt, pointNumber } from '../../lib/half-day.js';
 import { completedMonths } from '../payroll_runs/lib/dates.js';
 import { leaveBalance, resolveEntitlement, type LedgerRow } from '../payroll_runs/lib/leave.js';
+import { sealedProfileCovering } from '../../lib/statutory_profile.js';
 import { coversDate } from '../payroll_runs/lib/effective.js';
 import { patternRosterCodeId } from '../../lib/scheduling/work-pattern.js';
 import { rosterCodeKind } from '../../lib/scheduling/roster-code.js';
-import {
-	payrollWindows,
-	assertNotSettled,
-	sourceLock,
-	sourceLockBlocksWrite,
-	sourceLockMessage
-} from '../../lib/scheduling/lock.js';
+import { payrollWindows, assertNotSettled, refuseIfCaptured } from '../../lib/scheduling/lock.js';
 import type { LeaveEvent } from '../../datatypes/leave_event/+definition.js';
 import type { Hooks, WorkspaceRow } from './$types.js';
 import { certificatePolicyIssues, certificatePolicyMismatchMessage } from './certificate-policy.js';
@@ -53,9 +52,7 @@ function monthRanges(start: string, end: string): Array<{ start: string; end: st
 	return ranges;
 }
 
-type HookApi = Parameters<
-	NonNullable<NonNullable<NonNullable<Hooks['mutate']>['perRecord']>['before']>['handler']
->[0]['api'];
+type HookApi = MutateBeforeContext<Hooks>['api'];
 
 type EmploymentTermRow = Pick<
 	WorkspaceRow<'employment_terms'>,
@@ -98,6 +95,19 @@ type RequestRow = Pick<
  */
 type NormalizationApi = {
 	db: {
+		jurisdictions: {
+			findFirst(
+				options: SchemaQueryConfig<WorkspaceSchema, 'jurisdictions'>
+			): Effect.Effect<WorkspaceRow<'jurisdictions'> | undefined, never, never>;
+			findMany(
+				options: SchemaQueryConfig<WorkspaceSchema, 'jurisdictions'>
+			): Effect.Effect<WorkspaceRow<'jurisdictions'>[], never, never>;
+		};
+		employee_children: {
+			findMany(
+				options: SchemaQueryConfig<WorkspaceSchema, 'employee_children'>
+			): Effect.Effect<WorkspaceRow<'employee_children'>[], never, never>;
+		};
 		employments: {
 			findFirst(
 				options: SchemaQueryConfig<WorkspaceSchema, 'employments'>
@@ -221,9 +231,6 @@ function normalizedTimeOff(
 		);
 		if (company == null) refuse('The employing entity no longer exists.');
 		if (leaveType == null) refuse('That leave type does not belong to the employing entity.');
-		if (!coversDate(leaveType.effective_range, range.start.date)) {
-			refuse('That leave type is not effective when the selected range starts.');
-		}
 
 		for (const request of existingRequests) {
 			if (request.id === excludeId) continue;
@@ -323,6 +330,28 @@ function normalizedTimeOff(
 			);
 		}
 		if (leaveType.accrual?.kind !== 'PER_EVENT') {
+			// The statutory floor is the profile's: resolve the company's SEALED profile covering the
+			// range end, and the employment's child facts for a child-scaled kind.
+			const anchor = yield* api.db.jurisdictions.findFirst({
+				where: { id: { eq: company.jurisdiction_id } },
+				columns: { code: true }
+			});
+			if (anchor == null)
+				refuse('The company states no jurisdiction anchor, so the statutory floor cannot resolve.');
+			const profileRows = yield* api.db.jurisdictions.findMany({
+				where: { code: { eq: anchor.code }, lifecycle: { eq: 'SEALED' } },
+				limit: LIMIT
+			});
+			const profile = sealedProfileCovering(profileRows, anchor.code, range.end.date);
+			if (profile == null)
+				refuse(
+					`No sealed statutory profile covers ${range.end.date}, so the statutory leave floor ` +
+						'cannot resolve. Seal a version of the law family first.'
+				);
+			const childFacts = yield* api.db.employee_children.findMany({
+				where: { employment_id: { eq: employmentId } },
+				limit: LIMIT
+			});
 			const allLedger = yield* api.db.leave_requests.findMany({
 				where: { employment_id: { eq: employmentId }, leave_type_id: { eq: leaveTypeId } },
 				limit: LIMIT
@@ -338,17 +367,19 @@ function normalizedTimeOff(
 					}
 				];
 			});
-			const entitlementAtMonths = (serviceMonths: number) =>
+			const entitlementAt = (serviceMonths: number, asOf: string) =>
 				resolveEntitlement({
 					leaveType,
+					profile,
+					children: childFacts,
 					serviceMonths,
 					employmentId,
-					asOf: range.end.date
+					asOf
 				});
 			const available = leaveBalance(
 				{
 					leaveType,
-					entitlementAtMonths,
+					entitlementAt,
 					hireDate: dateKey(employment.hire_date),
 					exitDate: employment.exit_date == null ? null : dateKey(employment.exit_date),
 					leaveYearStartMonth: Number(company.leave_year_start_month),
@@ -364,7 +395,7 @@ function normalizedTimeOff(
 				);
 			}
 			// Resolve once here as a loud policy check even when no accrued balance exists yet.
-			entitlementAtMonths(completedMonths(dateKey(employment.hire_date), range.end.date));
+			entitlementAt(completedMonths(dateKey(employment.hire_date), range.end.date), range.end.date);
 		}
 
 		return {
@@ -375,6 +406,7 @@ function normalizedTimeOff(
 	});
 }
 
+/** The shared settlement-lock refusal, over the leave-request capture junction. */
 function assertLeaveSourceUnlocked(
 	api: HookApi,
 	existing: WorkspaceRow<'leave_requests'>,
@@ -388,32 +420,22 @@ function assertLeaveSourceUnlocked(
 	 * only when a payslip consumed it — so `APPROVED` and `DATE_PASSED` stop blocking here, and
 	 * the window keeps only its create-side job, which is the `assertNotSettled` loop in
 	 * `normalizedTimeOff`: a new or moved range may not touch days a paid run already priced.
-	 * What is left is a `payslip_adjustments` row naming this request, which says payroll `period`
-	 * took it into account and names the run that has to be deleted (while it is still a draft)
-	 * to release it.
+	 * What is left is a row in the leave-request input junction naming this request, which says
+	 * payroll `period` took it into account and names the run that has to be deleted (while it is
+	 * still a draft) to release it.
 	 *
-	 * A row with an amount of **zero** locks exactly as hard as one that deducted money: it says
-	 * the run read this request and priced it at nothing, which is a settlement and not an absence.
-	 * That is why the query asks for any row at all rather than for one with an amount.
+	 * A capture with no monetary output locks exactly as hard as one that deducted money: it says
+	 * the run read this request and priced it at nothing, which is a settlement and not an
+	 * absence. That is why the lookup asks whether a capture exists rather than what it paid.
 	 */
-	return Effect.map(
-		api.db.payslip_adjustments.findFirst({
-			where: { source: { eq: { kind: 'LEAVE_REQUEST', id: existing.id } } },
+	return refuseIfCaptured({
+		capture: api.db.payslip_leave_request_inputs.findFirst({
+			where: { leave_request_id: { eq: existing.id } },
 			columns: { period: true }
 		}),
-		(claim) => {
-			const lock = sourceLock({
-				existing: true,
-				approvalId: existing.approval_id,
-				dates: [],
-				settledBy: claim == null ? null : { period: claim.period },
-				datePassed: 'IS_NOT_A_LOCK'
-			});
-			if (sourceLockBlocksWrite(lock)) {
-				refuse(sourceLockMessage(lock, action));
-			}
-		}
-	);
+		approvalId: existing.approval_id,
+		action
+	});
 }
 
 export default {
@@ -439,15 +461,15 @@ export default {
 						if (certificateIssues.length > 0)
 							refuse(certificatePolicyMismatchMessage(certificateIssues));
 						if (event == null || event.kind !== 'TIME_OFF') return input;
+						const employmentId = input.employment_id ?? existing?.employment_id;
+						if (employmentId == null)
+							refuse('A time-off request must reference an employment on file.');
+						const leaveTypeId = input.leave_type_id ?? existing?.leave_type_id;
+						if (leaveTypeId == null)
+							refuse('A time-off request must reference a leave type on file.');
 						return {
 							...input,
-							event: yield* normalizedTimeOff(
-								api,
-								input.employment_id ?? existing?.employment_id,
-								input.leave_type_id ?? existing?.leave_type_id,
-								event,
-								existing?.id
-							)
+							event: yield* normalizedTimeOff(api, employmentId, leaveTypeId, event, existing?.id)
 						};
 					})
 			}

@@ -23,9 +23,11 @@
  */
 
 import { Number as EffectNumber, Schema } from 'effect';
-import type { Configuration, LeaveType } from './configuration.js';
+import type { WorkspaceRow } from '../$types.js';
+import type { Configuration, Jurisdiction, LeaveType } from './configuration.js';
 import {
 	completedMonths,
+	completedYears,
 	dateKey,
 	monthDays,
 	monthKey,
@@ -35,6 +37,9 @@ import {
 import { roundHalfDay } from './rounding.js';
 import { coversDate } from './effective.js';
 import type { PayrollWindow } from './period.js';
+
+/** One child fact as the leave floor reads it: the employment's non-superseded rows. */
+export type ChildFact = WorkspaceRow<'employee_children'>;
 
 const LedgerRowSchema = Schema.Struct({
 	id: Schema.String,
@@ -72,50 +77,104 @@ export function leaveYearOf(date: IsoDate, startMonth: number): number {
 	return Number(leaveYearStart(date, startMonth).slice(0, 4));
 }
 
-/** One band of the entitlement ladder on a leave code — its statutory, organisation or employee layer. */
+/** One band of the company entitlement layers on a leave code — organisation or employee. */
 type LeaveEntitlementLayer = NonNullable<LeaveType['entitlement']>['layers'][number];
 type EmployeeLeaveEntitlementLayer = Extract<LeaveEntitlementLayer, { readonly level: 'EMPLOYEE' }>;
 
-/** What `resolveEntitlement` needs: the leave code, the service age and the employment's identity. */
+/** What `resolveEntitlement` needs: the leave code, the profile, the children facts and the dates. */
 type ResolveEntitlementOptions = {
 	readonly leaveType: LeaveType;
+	/** The sealed statutory profile the leave type's `statutory_kind` floors against. */
+	readonly profile: Jurisdiction;
+	/** The employment's non-superseded child facts. */
+	readonly children: readonly ChildFact[];
 	readonly serviceMonths: number;
 	readonly employmentId: EmployeeLeaveEntitlementLayer['employment_id'];
 	readonly asOf: IsoDate;
 };
 
 /**
+ * The statutory floor one profile kind states at a service age, scaled by the employee's children.
+ *
+ * The ladder band whose `band_from` is the highest one at or below the service months supplies the
+ * base. Where the law scales by children (`per_child`), the employee's eligible children — under
+ * the age limit as of the date, within the fact's legal span — add `per_child.days` each, capped by
+ * `max_days`; a child-conditioned kind whose gate is not met (`eligible < min_children`) grants
+ * nothing. `kind: null` on the leave type means no statute mandates it and the floor is absent.
+ */
+function statutoryLeaveFloor(
+	profile: Jurisdiction,
+	kind: string,
+	children: readonly ChildFact[],
+	serviceMonths: number,
+	asOf: IsoDate
+): number | null {
+	const member = profile.statutory_leave.find((entry) => entry.kind === kind);
+	if (member == null) return null;
+	const ladderDays = member.ladder.reduce(
+		(best, band) => (band.band_from <= serviceMonths ? Math.max(best, band.days) : best),
+		0
+	);
+	if (member.per_child == null) return ladderDays;
+	const eligible = eligibleChildren(children, member.per_child.age_limit, asOf);
+	if (eligible < member.per_child.min_children) return 0;
+	const scaled = ladderDays + member.per_child.days * eligible;
+	return member.max_days == null ? scaled : Math.min(scaled, member.max_days);
+}
+
+/**
  * Entitlement in days for one leave code at a service age.
  *
- * Three layers collapse to `max(statutory, company ?? statutory)`. The statutory floor is a floor:
- * a company that mis-types maternity leave as 60 days still owes 98, so compliance never depends on
- * the customer configuring correctly.
+ * Three layers collapse to `max(profile statutory floor, company ?? floor)`. The floor is a floor:
+ * a company that mis-types maternity leave as 60 days still owes the statute's 98, so compliance
+ * never depends on the customer configuring correctly.
  */
 export function resolveEntitlement(options: ResolveEntitlementOptions): number {
 	const entitlement = options.leaveType.entitlement;
-	if (entitlement == null) return 0;
-	const forLevel = (level: 'STATUTORY' | 'ORGANISATION' | 'EMPLOYEE'): number | null => {
+	const kind = options.leaveType.statutory_kind;
+	const statutory =
+		kind == null
+			? 0
+			: (statutoryLeaveFloor(
+					options.profile,
+					kind,
+					options.children,
+					options.serviceMonths,
+					options.asOf
+				) ?? 0);
+	const forLevel = (level: 'ORGANISATION' | 'EMPLOYEE'): number | null => {
 		let best: { floor: number; days: number } | null = null;
+		if (entitlement == null) return null;
 		for (const layer of entitlement.layers) {
 			if (layer.level !== level) continue;
 			if (layer.level === 'EMPLOYEE' && layer.employment_id !== options.employmentId) continue;
 			if (!coversDate(layer.effective_range, options.asOf)) continue;
-			const floor = layer.key.by === 'FLAT' ? 0 : layer.key.band_from;
-			if (floor > options.serviceMonths) continue;
-			if (best == null || floor > best.floor) best = { floor, days: Number(layer.days) };
+			if (layer.key.band_from > options.serviceMonths) continue;
+			if (best == null || layer.key.band_from > best.floor)
+				best = { floor: layer.key.band_from, days: Number(layer.days) };
 		}
 		return best?.days ?? null;
 	};
-	const statutory = forLevel('STATUTORY') ?? 0;
 	const organisation = forLevel('ORGANISATION') ?? statutory;
 	const employee = forLevel('EMPLOYEE') ?? organisation;
 	return Math.max(statutory, organisation, employee);
 }
 
+/** How many of the employment's children are eligible for a child-scaled floor on a date. */
+function eligibleChildren(children: readonly ChildFact[], ageLimit: number, asOf: IsoDate): number {
+	return children.filter((child) => {
+		if (child.supersedes_id != null) return false;
+		if (child.effective_range != null && !coversDate(child.effective_range, asOf)) return false;
+		const born = dateKey(child.child_birthdate);
+		if (born == null) return false;
+		return completedYears(born, asOf) < ageLimit;
+	}).length;
+}
+
 /** The accrual window: the employment's leave profile plus the two dates it is asked over. */
 type AccruedDaysOptions = Pick<
 	BalanceInput,
-	'leaveType' | 'entitlementAtMonths' | 'hireDate' | 'exitDate'
+	'leaveType' | 'entitlementAt' | 'hireDate' | 'exitDate'
 > & {
 	readonly leaveYearStart: IsoDate;
 	readonly asOf: IsoDate;
@@ -145,7 +204,7 @@ export function accruedDays(options: AccruedDaysOptions): number {
 		// The whole entitlement exists from the start of the leave year. Upfront means upfront: it is
 		// not re-prorated by hire date, which is both the plain meaning and the behaviour of record
 		// (decision L8).
-		return options.entitlementAtMonths(completedMonths(options.hireDate, end));
+		return options.entitlementAt(completedMonths(options.hireDate, end), end);
 	}
 
 	let total = 0;
@@ -157,7 +216,7 @@ export function accruedDays(options: AccruedDaysOptions): number {
 		const to = lastDay < end ? lastDay : end;
 		if (to < from) continue;
 		const coveredDays = Number(to.slice(8, 10)) - Number(from.slice(8, 10)) + 1;
-		const entitlement = options.entitlementAtMonths(completedMonths(options.hireDate, to));
+		const entitlement = options.entitlementAt(completedMonths(options.hireDate, to), to);
 		total += (entitlement / 12) * (coveredDays / monthLength);
 	}
 	return roundHalfDay(total);
@@ -180,9 +239,10 @@ function ledgerDays(
 	}, 0);
 }
 
-type BalanceInput = {
+export type BalanceInput = {
 	readonly leaveType: LeaveType;
-	readonly entitlementAtMonths: (serviceMonths: number) => number;
+	/** The merged entitlement at a service age and a date — child scaling moves with the date. */
+	readonly entitlementAt: (serviceMonths: number, asOf: IsoDate) => number;
 	readonly hireDate: IsoDate;
 	readonly exitDate: IsoDate | null;
 	readonly leaveYearStartMonth: number;
@@ -209,7 +269,7 @@ function yearWindow(year: number, startMonth: number): { start: IsoDate; end: Is
  * levels of the same arithmetic — about 120 band lookups and one ledger scan — which is cheap
  * enough to run on every page load, which is why nothing needs caching.
  */
-function carriedInDays(input: BalanceInput, year: number): number {
+export function carriedInDays(input: BalanceInput, year: number): number {
 	const hireYear = leaveYearOf(input.hireDate, input.leaveYearStartMonth);
 	if (year <= hireYear) return 0;
 	const accrual = input.leaveType.accrual;
@@ -223,7 +283,7 @@ function carriedInDays(input: BalanceInput, year: number): number {
 		carriedInDays(input, year - 1) +
 		accruedDays({
 			leaveType: input.leaveType,
-			entitlementAtMonths: input.entitlementAtMonths,
+			entitlementAt: input.entitlementAt,
 			hireDate: input.hireDate,
 			exitDate: input.exitDate,
 			leaveYearStart: previous.start,
@@ -242,7 +302,7 @@ function carriedInDays(input: BalanceInput, year: number): number {
  * this would remove days already spent, and the balance would be wrong by exactly what was taken
  * before the deadline.
  */
-function expiredDays(input: BalanceInput, year: number, asOf?: IsoDate): number {
+export function expiredDays(input: BalanceInput, year: number, asOf?: IsoDate): number {
 	const accrual = input.leaveType.accrual;
 	if (accrual == null || accrual.kind === 'PER_EVENT') return 0;
 	const carry = accrual.carry;
@@ -272,7 +332,7 @@ export function leaveBalance(input: BalanceInput, asOf: IsoDate): number {
 		carriedInDays(input, year) +
 		accruedDays({
 			leaveType: input.leaveType,
-			entitlementAtMonths: input.entitlementAtMonths,
+			entitlementAt: input.entitlementAt,
 			hireDate: input.hireDate,
 			exitDate: input.exitDate,
 			leaveYearStart: window.start,

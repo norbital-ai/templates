@@ -6,15 +6,16 @@ import { Schema } from 'effect';
  *
  * BASE is what the contract says, before the calendar touches it. It is caused by no input — there
  * is nothing to point at — which is exactly why it is inlined on `payslips` rather than being a row
- * in the adjustments table: a row with a null source would be a row whose kind had to be declared,
- * and the kind is derived, never declared.
+ * in the adjustments table: a row with no causal input is not an adjustment, it is base.
  *
- * `pay_component_id` is a `pay_components` id and deliberately not a foreign key. Inlining is the
- * decision; a settled payslip is a frozen statement of what was paid, and it does not become wrong
- * because somebody later archived a component. The catalogue link a screen needs is the same id.
+ * `component_code` is the catalogue code the amount settled under, frozen at settlement. It is
+ * deliberately not a `pay_components` id: an output is a frozen fact, and a naked uuid that looks
+ * like a relationship but carries no foreign key is exactly what this workspace refuses to store.
+ * The component the code names lives on in the run's configuration snapshot, so the settled figure
+ * stays re-readable after the catalogue row is archived or renamed.
  */
 export const payslipBaseValueSchema = Schema.Struct({
-	pay_component_id: Schema.String.check(Schema.isUUID()),
+	component_code: Schema.NonEmptyString,
 	amount: Schema.Finite
 });
 
@@ -28,6 +29,6 @@ export const payslipBaseSchema = Schema.toStandardSchemaV1(payslipBaseValueSchem
 export default defineCustomType({
 	name: 'payslip_base',
 	description:
-		'One contracted amount on a payslip: the pay component the employment terms name, and what it pays for the whole period.',
+		'One contracted amount on a payslip: the pay component code it settled under, and what it pays for the whole period.',
 	schema: payslipBaseSchema
 });

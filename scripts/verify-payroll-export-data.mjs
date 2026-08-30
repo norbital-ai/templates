@@ -195,7 +195,7 @@ const PAYSLIPS = [
 		total_deductions: 400.25,
 		net: 3454.03,
 		employer_cost: 515.15,
-		base: [{ pay_component_id: BASIC.id, amount: 3451 }],
+		base: [{ component_code: BASIC.code, amount: 3451 }],
 		statutory: []
 	},
 	{
@@ -207,7 +207,7 @@ const PAYSLIPS = [
 		total_deductions: 0,
 		net: 690,
 		employer_cost: 0,
-		base: [{ pay_component_id: BASIC.id, amount: 690 }],
+		base: [{ component_code: BASIC.code, amount: 690 }],
 		statutory: []
 	}
 ];
@@ -219,14 +219,10 @@ const PAYSLIP_ADJUSTMENTS = [
 	{
 		id: 'adjustment:ot-rest-day',
 		payslip_id: 'payslip:pattern',
-		pay_component_id: null,
-		source: { kind: 'WORK_DAY', id: 'work-day:override' },
-		overtime_band: {
-			excess: false,
-			day_type: 'REST_DAY',
-			measure: 'FROM_START_OF_DAY',
-			band_from: 0.5
-		},
+		input: { kind: 'WORK_DAY_INPUT', id: 'capture:ot-rest-day' },
+		label: 'OT_REST_DAY_FROM_START_OF_DAY_0_5',
+		bucket: 'EARNING',
+		statutory_rule_key: 'OT_REST_DAY_FROM_START_OF_DAY_0_5',
 		amount: 132.73,
 		quantity: 8,
 		sequence: 2
@@ -234,14 +230,10 @@ const PAYSLIP_ADJUSTMENTS = [
 	{
 		id: 'adjustment:ot-excess',
 		payslip_id: 'payslip:pattern',
-		pay_component_id: null,
-		source: { kind: 'WORK_DAY', id: 'work-day:override' },
-		overtime_band: {
-			excess: true,
-			day_type: 'REST_DAY',
-			measure: 'BEYOND_NORMAL',
-			band_from: 0
-		},
+		input: { kind: 'WORK_DAY_INPUT', id: 'capture:ot-excess' },
+		label: 'OT_EXCESS_REST_DAY_BEYOND_NORMAL_0',
+		bucket: 'EARNING',
+		statutory_rule_key: 'OT_EXCESS_REST_DAY_BEYOND_NORMAL_0',
 		amount: 33.18,
 		quantity: 1,
 		sequence: 3

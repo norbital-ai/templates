@@ -6,7 +6,7 @@ import { accrualKeySchema } from './accrual_key/+definition.js';
 import { componentDefinitionSchema } from './component_definition/+definition.js';
 import { contributionTreatmentSchema } from './contribution_treatment/+definition.js';
 import { eligibilityRulesSchema } from './eligibility_rules/+definition.js';
-import { obligationInstalmentSchema } from './obligation_instalment/+definition.js';
+import { componentEntryEventSchema } from './component_entry_event/+definition.js';
 import { leaveEntitlementSchema } from './leave_entitlement/+definition.js';
 import { overtimeTreatmentScheduleSchema } from './overtime_treatment_schedule/+definition.js';
 import { payComponentPolicySchema } from './pay_component_policy/+definition.js';
@@ -79,8 +79,7 @@ describe('instant_range', () => {
 });
 
 describe('accrual_key', () => {
-	it('accepts both arms', () => {
-		assert.ok(accepts(accrualKeySchema, { by: 'FLAT' }));
+	it('accepts the one arm — a flat entitlement is band_from 0', () => {
 		assert.ok(accepts(accrualKeySchema, { by: 'SERVICE_MONTHS', band_from: 0 }));
 	});
 
@@ -95,8 +94,8 @@ describe('accrual_key', () => {
 		);
 	});
 
-	it('refuses an excess key and an unknown arm', () => {
-		assert.ok(refuses(accrualKeySchema, { by: 'FLAT', band_from: 1 }));
+	it('refuses the dropped FLAT arm and an unknown arm', () => {
+		assert.ok(refuses(accrualKeySchema, { by: 'FLAT' }));
 		assert.ok(refuses(accrualKeySchema, { by: 'SENIORITY' }));
 	});
 });
@@ -139,54 +138,76 @@ describe('eligibility_rules', () => {
 	});
 });
 
-describe('obligation_instalment', () => {
-	// The only inline shape `obligations` keeps. What it does NOT carry is the point: no agreement
-	// id, no sequence, no file — nothing a foreign key, a row predicate or a field grant would need
-	// to reach. The arm rules that used to live in the union beside it (at least one instalment, at
-	// most 600, and only on the SCHEDULED arm) are real-column rules now and are held by
-	// `OBLIGATION_TERMS_MISMATCH` in `src/lib/obligation_refusals.test.ts`.
-	it('accepts a dated positive instalment', () => {
-		assert.ok(accepts(obligationInstalmentSchema, { due_date: '2026-04-30', amount: 500 }));
-	});
-
-	// `Schema.Natural` admits zero; the `z.positive()` this replaced does not. Instalment 0 of 0 is
-	// not an instalment, and a schedule that holds one recovers nothing.
-	it('refuses a zero or negative amount', () => {
-		assert.ok(refuses(obligationInstalmentSchema, { due_date: '2026-04-30', amount: 0 }));
-		assert.ok(refuses(obligationInstalmentSchema, { due_date: '2026-04-30', amount: -1 }));
-		assert.ok(refuses(obligationInstalmentSchema, { due_date: '2026-04-30', amount: Number.NaN }));
-	});
-
-	it('refuses a due date the calendar does not have', () => {
-		assert.ok(refuses(obligationInstalmentSchema, { due_date: '2026-02-30', amount: 500 }));
+describe('component_entry_event', () => {
+	// The union that states WHY a component entry exists. What it does NOT carry is the point: no
+	// employment, no component, no amount — those are columns on the row, because a foreign key and
+	// a field grant cannot reach inside a blob. The arm rules beside it are held by
+	// `COMPONENT_ENTRY_EVENT_MISMATCH` in `src/lib/component_entry_refusals.test.ts`.
+	it('accepts each arm with its own payload', () => {
 		assert.ok(
-			refuses(obligationInstalmentSchema, { due_date: '2026-04-30T00:00:00Z', amount: 500 })
+			accepts(componentEntryEventSchema, {
+				kind: 'CLAIM',
+				incurred_on: '2026-04-02',
+				description: null
+			})
+		);
+		assert.ok(accepts(componentEntryEventSchema, { kind: 'ALLOWANCE' }));
+		assert.ok(accepts(componentEntryEventSchema, { kind: 'BONUS', note: null }));
+		assert.ok(
+			accepts(componentEntryEventSchema, {
+				kind: 'ARREARS',
+				covers_periods: ['2026-01'],
+				reason: 'late start'
+			})
+		);
+		assert.ok(
+			accepts(componentEntryEventSchema, {
+				kind: 'MANUAL_ADJUSTMENT',
+				operation: 'CORRECTION',
+				reason: 'wrong rate'
+			})
 		);
 	});
 
-	// A member no instalment declares is refused rather than stripped. `sequence` is the one that
-	// matters: an instalment's number is its position in the array, and a stored ordinal accepted
-	// here would be a second copy of the index that can disagree with it.
-	it('refuses a member the struct does not declare, sequence above all', () => {
+	// `onExcessProperty: 'error'` is the strict standard view: an arm carrying another arm's payload
+	// is refused rather than stripped, which is what made the jsonb-union shape a defect the last
+	// time this workspace held money in one.
+	it('refuses an unknown key on an arm', () => {
+		assert.ok(refuses(componentEntryEventSchema, { kind: 'ALLOWANCE', note: 'x' }));
 		assert.ok(
-			refuses(obligationInstalmentSchema, { due_date: '2026-04-30', amount: 500, sequence: 1 })
+			refuses(componentEntryEventSchema, { kind: 'CLAIM', incurred_on: '2026-04-02', note: 'x' })
 		);
-		assert.ok(refuses(obligationInstalmentSchema, { due_date: '2026-04-30' }));
+	});
+
+	it('refuses an unknown arm', () => {
+		assert.ok(refuses(componentEntryEventSchema, { kind: 'REVERSAL' }));
+		assert.ok(refuses(componentEntryEventSchema, { kind: 'ENTERED' }));
 	});
 });
 
 describe('leave_entitlement', () => {
+	// The STATUTORY arm this union once carried moved into the statutory profile's
+	// `statutory_leave` member; what remains are the company's own layers.
 	const layer = {
-		level: 'STATUTORY',
-		key: { by: 'FLAT' },
+		level: 'ORGANISATION',
+		key: { by: 'SERVICE_MONTHS', band_from: 0 },
 		days: 8,
-		authority: 'EA 1955',
+		authority: 'Company policy 2026',
 		effective_range: RANGE
 	};
-	const entitlement = { merge: 'MAX_WITH_STATUTORY_FLOOR', layers: [layer] };
+	const entitlement = { merge: 'MAX_WITH_COMPANY_LAYERS', layers: [layer] };
 
-	it('accepts a statutory layer', () => {
+	it('accepts a company layer', () => {
 		assert.ok(accepts(leaveEntitlementSchema, entitlement));
+	});
+
+	it('refuses the dropped STATUTORY arm', () => {
+		assert.ok(
+			refuses(leaveEntitlementSchema, {
+				...entitlement,
+				layers: [{ ...layer, level: 'STATUTORY' }]
+			})
+		);
 	});
 
 	// `Schema.Number` admits both; `z.number()` admitted neither. A `NaN` entitlement survives every
@@ -327,7 +348,7 @@ describe('component_definition', () => {
 		settlement: 'PAYROLL',
 		cap: {
 			period: 'CALENDAR_YEAR',
-			matrix: { merge: 'MAX_WITH_STATUTORY_FLOOR', layers: [capLayer] },
+			matrix: { merge: 'MAX_WITH_COMPANY_LAYERS', layers: [capLayer] },
 			on_exceed: 'BLOCK'
 		}
 	};
@@ -343,7 +364,7 @@ describe('component_definition', () => {
 		assert.ok(
 			refuses(componentDefinitionSchema, {
 				...entry,
-				cap: { ...entry.cap, matrix: { merge: 'MAX_WITH_STATUTORY_FLOOR', layers: [] } }
+				cap: { ...entry.cap, matrix: { merge: 'MAX_WITH_COMPANY_LAYERS', layers: [] } }
 			})
 		);
 	});
@@ -353,7 +374,7 @@ describe('component_definition', () => {
 			...entry,
 			cap: {
 				...entry.cap,
-				matrix: { merge: 'MAX_WITH_STATUTORY_FLOOR', layers: [{ ...capLayer, ...patch }] }
+				matrix: { merge: 'MAX_WITH_COMPANY_LAYERS', layers: [{ ...capLayer, ...patch }] }
 			}
 		});
 		assert.ok(refuses(componentDefinitionSchema, withLayer({ reimbursement_percentage: 101 })));

@@ -1,4 +1,4 @@
-import { Effect, Schema } from 'effect';
+import { Schema } from 'effect';
 import type { StoredRange } from '../collections/payroll_runs/lib/effective.js';
 
 /**
@@ -86,27 +86,6 @@ export function assertNoOverlap(options: OverlapCheck): void {
 			);
 		}
 	}
-}
-
-/**
- * Read the siblings that share an exclusion key, assert the candidate range clears them, and hand
- * the input straight back.
- *
- * Every effective-dated catalogue runs this same `before` shape and differs only in which column
- * scopes the code and what a row is called in the message. Those two are arguments; the shape is
- * stated once, here.
- */
-export function guardEffectiveRange<Input, E, R>(
-	siblings: Effect.Effect<ReadonlyArray<EffectiveDatedRow>, E, R>,
-	candidate: unknown,
-	identity: string,
-	input: Input,
-	excludeId?: string
-): Effect.Effect<Input, E, R> {
-	return Effect.map(siblings, (existing) => {
-		assertNoOverlap({ candidate, existing, identity, excludeId });
-		return input;
-	});
 }
 
 /**

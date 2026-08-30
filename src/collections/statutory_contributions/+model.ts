@@ -3,6 +3,7 @@ import { custom, defineModel, enums, integer, text, uuid } from '@norbital-ai/bo
 export default defineModel(
 	{
 		jurisdiction_id: uuid().notNull(),
+		statutory_profile_id: uuid().notNull(),
 		code: text({ search: true }).notNull(),
 		name: text({ search: true }).notNull(),
 		authority: text().notNull(),
@@ -27,30 +28,20 @@ export default defineModel(
 		 * "EPF excludes overtime" is a fact about EPF — one row, one statement — and putting it on the
 		 * catalogue instead let two companies in one jurisdiction disagree about what the law says.
 		 *
-		 * Each is a list rather than a single value because the position moves: Vietnamese PIT includes
-		 * the overtime line until 1 July 2026 and excludes it after, and repricing an old period must
-		 * read the entry that covered its own dates. An empty list is an undecided scheme, not an
-		 * exempt one, and ACCUMULATE refuses to pay against it.
+		 * Each is a list rather than a single value because the position moves: a law revision that
+		 * changes the position is a new profile version with its own schedule.
 		 */
 		overtime_treatments: custom('overtime_treatment_schedule').notNull(),
-		overtime_excess_treatments: custom('overtime_treatment_schedule').notNull(),
-		effective_range: custom('instant_range', { precision: 'day' }).notNull()
+		overtime_excess_treatments: custom('overtime_treatment_schedule').notNull()
 	},
 	{
 		description:
-			'One statutory scheme in one jurisdiction — EPF, SOCSO, EIS, PCB, HRDF and their equivalents — with who pays, what keys its bands, how it rounds and which named special rules it implements.',
+			'One statutory scheme scoped to one statutory profile — EPF, SOCSO, EIS, PCB, HRDF and their equivalents — with who pays, what keys its bands, how it rounds and which named special rules it implements. Versioned and sealed with the profile.',
 		recordLabel: ['code', 'name'],
 		icon: 'lucide:landmark',
-		// Plan 02 §7: jurisdiction =, code =, effective range &&.
-		exclusions: [
-			{
-				name: 'statutory_contributions_no_overlap',
-				elements: [
-					{ expr: 'jurisdiction_id', with: '=' },
-					{ expr: 'code', with: '=' },
-					{ expr: 'bolt_daterange(effective_range)', with: '&&' }
-				]
-			}
+		indexes: [
+			{ columns: ['statutory_profile_id', 'code'], unique: true },
+			{ columns: ['jurisdiction_id'] }
 		]
 	}
 );

@@ -10,7 +10,7 @@
  *
  *   - `policiesHeld`       — a person's own team contributes the policy filename keys declared for
  *                            it in `access/+teams.ts`.
- *   - `matches`            — the collection/action key is present in the policy grant map.
+ *   - `matches`            — the collection/grant coordinate is present in the policy grant map.
  *   - approval             — the matching write grant carries a live `flow` function.
  *
  * The restatement is the known weakness: if the runtime's matcher changes, these keep passing
@@ -48,27 +48,38 @@ const nameOf = (policy) => namesByPolicy.get(policy) ?? '<unknown policy>';
 /** The filename key a team has to declare for a subject to hold this policy. */
 const heldNameOf = (policy) => nameOf(policy).toLocaleLowerCase();
 
-/** `matches`: the grants this policy has for one collection and one action. */
-const grantsFor = (policy, collection, action) =>
-	policy.grants[collection]?.[action] === undefined ? [] : [policy.grants[collection][action]];
+/** `matches`: the grants this policy has for one collection and one grant coordinate. */
+const grantsFor = (policy, collection, coordinate) => {
+	const [operation, phase] = coordinate.split('.');
+	const grant =
+		phase === undefined
+			? policy.grants[collection]?.[operation]
+			: policy.grants[collection]?.[operation]?.[phase];
+	return grant === undefined ? [] : [grant];
+};
 
-const may = (policy, collection, action) => grantsFor(policy, collection, action).length > 0;
+const may = (policy, collection, coordinate) =>
+	grantsFor(policy, collection, coordinate).length > 0;
 
 const sqlReadDependencies = (policy) =>
 	Object.fromEntries(
 		Object.entries(policy.grants).flatMap(([collection, actions]) => {
 			const read = actions.read;
-			return read?.where?.$sql === undefined
+			return read?.where?.kind !== 'policy-sql'
 				? []
 				: [[collection, read.dependencies ?? ['<missing>']]];
 		})
 	);
 
-/** Every `(collection, action)` pair a policy grants at all. */
+/** Every `(collection, grant coordinate)` pair a policy grants at all. */
 const surfaceOf = (policy) =>
 	new Set(
 		Object.entries(policy.grants).flatMap(([collection, actions]) =>
-			Object.keys(actions).map((action) => `${collection}:${action}`)
+			Object.entries(actions).flatMap(([operation, grant]) =>
+				operation === 'mutate'
+					? Object.keys(grant).map((phase) => `${collection}:mutate.${phase}`)
+					: [`${collection}:${operation}`]
+			)
 		)
 	);
 
@@ -89,25 +100,56 @@ test('the six policies are the six names a team may declare', () => {
 	assert.equal(new Set(policies.map(heldNameOf)).size, policies.length);
 });
 
+test('write grants use only mutate.new and mutate.existing authoring coordinates', () => {
+	for (const policy of policies) {
+		for (const [collection, grants] of Object.entries(policy.grants)) {
+			assert.equal(
+				Object.hasOwn(grants, 'create'),
+				false,
+				`${nameOf(policy)} ${collection}.create`
+			);
+			assert.equal(
+				Object.hasOwn(grants, 'update'),
+				false,
+				`${nameOf(policy)} ${collection}.update`
+			);
+			if (grants.mutate !== undefined) {
+				for (const phase of Object.keys(grants.mutate))
+					assert.ok(
+						phase === 'new' || phase === 'existing',
+						`${nameOf(policy)} ${collection}.mutate.${phase}`
+					);
+			}
+		}
+	}
+
+	assert.deepEqual(Object.keys(hrManager.grants.payroll_runs.mutate).toSorted(), [
+		'existing',
+		'new'
+	]);
+});
+
 test('SQL-scoped reads declare only their exact linking collections', () => {
 	assert.deepEqual(sqlReadDependencies(employee), {
 		employments: ['employees'],
 		employment_terms: ['employments', 'employees'],
 		employment_statutory_facts: ['employments', 'employees'],
-		// One entry each where there used to be two. `roster_entries` and `time_entries` are
-		// `work_days`; `component_entries` and `repayment_agreements` are `obligations`.
+		// One collection where there used to be four. `roster_entries` and `time_entries` are
+		// `work_days`; the money rows are `component_entries` and the loans pair.
 		work_days: ['employments', 'employees'],
-		obligations: ['employments', 'employees'],
+		component_entries: ['employments', 'employees'],
+		loans: ['employments', 'employees'],
+		employee_children: ['employments', 'employees'],
 		leave_requests: ['employments', 'employees'],
 		payslips: ['employments', 'employees']
 	});
 	assert.deepEqual(sqlReadDependencies(supervisor), {
 		payslips: ['employments', 'employees'],
-		obligations: []
+		component_entries: []
 	});
 	assert.deepEqual(sqlReadDependencies(manager), {
 		payslips: ['employments', 'employees'],
-		obligations: []
+		component_entries: []
 	});
 	for (const policy of [seniorManagement, hrController, hrManager]) {
 		assert.deepEqual(sqlReadDependencies(policy), {}, nameOf(policy));
@@ -145,13 +187,13 @@ test('every name `+teams.ts` declares is a policy this workspace ships', () => {
 	});
 });
 
-test('an employee cannot create a payroll run, and neither can a supervisor or a manager', () => {
+test('an employee cannot mutate a new payroll run, and neither can a supervisor or a manager', () => {
 	// The owner's ladder enumerates payroll authority rather than accumulating it with rank. There is
 	// no grant to gate, so there is nothing to review and nothing to hold: `matches` finds no grant,
-	// `decide` falls through to "no matching allow policy", and the create is refused outright.
+	// `decide` falls through to "no matching allow policy", and `mutate.new` is refused outright.
 	for (const policy of [employee, supervisor, manager]) {
-		assert.equal(may(policy, 'payroll_runs', 'create'), false, nameOf(policy));
-		assert.equal(may(policy, 'payroll_runs', 'update'), false, nameOf(policy));
+		assert.equal(may(policy, 'payroll_runs', 'mutate.new'), false, nameOf(policy));
+		assert.equal(may(policy, 'payroll_runs', 'mutate.existing'), false, nameOf(policy));
 		assert.equal(may(policy, 'payroll_runs', 'delete'), false, nameOf(policy));
 		// And they cannot look at one either, which is the half that is easy to leave behind.
 		assert.equal(may(policy, 'payroll_runs', 'read'), false, nameOf(policy));
@@ -162,19 +204,23 @@ test('an employee cannot create a payroll run, and neither can a supervisor or a
 	for (const policy of [employee, supervisor, manager]) {
 		const [ownPayslip, ...extra] = grantsFor(policy, 'payslips', 'read');
 		assert.deepEqual(extra, [], `${nameOf(policy)} has more than one payslip read`);
-		assert.match(ownPayslip.where.$sql, /requestor\.email/, nameOf(policy));
+		assert.match(ownPayslip.where.statement, /requestor\.email/, nameOf(policy));
 	}
 });
 
-test('a controller may view payroll, and their create is held for hr_manager or senior management', () => {
+test('a controller may view payroll, and mutate.new is held for hr_manager or senior management', () => {
 	assert.equal(may(hrController, 'payroll_runs', 'read'), true);
 
-	const [create, ...extra] = grantsFor(hrController, 'payroll_runs', 'create');
-	assert.deepEqual(extra, [], 'one create grant, or the union would pick an arbitrary approval');
+	const [newGrant, ...extra] = grantsFor(hrController, 'payroll_runs', 'mutate.new');
+	assert.deepEqual(
+		extra,
+		[],
+		'one mutate.new grant, or the union would pick an arbitrary approval'
+	);
 
 	// The live flow returns one concrete route. There are no authored step ids or names.
-	assert.notEqual(create.approval, undefined);
-	const flow = create.approval.flow();
+	assert.notEqual(newGrant.approval, undefined);
+	const flow = newGrant.approval.flow();
 	assert.equal(flow.stages.length, 1);
 	// One step with two teams, not two steps. `approvals.decide` tests
 	// each candidate is compared with `subject.teamPath[0]` — a person has one own team — so either
@@ -189,16 +235,16 @@ test('a controller may view payroll, and their create is held for hr_manager or 
 
 	// Viewing is not running. A controller holds neither the recalculate nor the delete, so the
 	// approved run is theirs to look at and nobody else's to be surprised by.
-	assert.equal(may(hrController, 'payroll_runs', 'update'), false);
+	assert.equal(may(hrController, 'payroll_runs', 'mutate.existing'), false);
 	assert.equal(may(hrController, 'payroll_runs', 'delete'), false);
 });
 
-test('hr_manager and senior management create, run and delete payroll without a gate', () => {
+test('hr_manager and senior management mutate new and existing payroll runs without a gate', () => {
 	for (const policy of [hrManager, seniorManagement]) {
-		const [create] = grantsFor(policy, 'payroll_runs', 'create');
-		assert.notEqual(create, undefined, nameOf(policy));
-		assert.equal(create.approval, undefined, `${nameOf(policy)} create must not be gated`);
-		assert.equal(may(policy, 'payroll_runs', 'update'), true, nameOf(policy));
+		const [newGrant] = grantsFor(policy, 'payroll_runs', 'mutate.new');
+		assert.notEqual(newGrant, undefined, nameOf(policy));
+		assert.equal(newGrant.approval, undefined, `${nameOf(policy)} mutate.new must not be gated`);
+		assert.equal(may(policy, 'payroll_runs', 'mutate.existing'), true, nameOf(policy));
 		assert.equal(may(policy, 'payroll_runs', 'delete'), true, nameOf(policy));
 
 		// Running a draft again clears the previous results first, through `api.db.delete`, which
@@ -211,54 +257,51 @@ test('hr_manager and senior management create, run and delete payroll without a 
 	}
 });
 
-test('an employee cannot read an adjustment, and no ordinary policy erases the predicate', () => {
-	const [read, ...extra] = grantsFor(employee, 'obligations', 'read');
+test('an employee cannot read a correction, and no ordinary policy erases the predicate', () => {
+	const [read, ...extra] = grantsFor(employee, 'component_entries', 'read');
 	assert.deepEqual(extra, [], 'a second read grant would be OR-ed in and would widen this one');
-	// An adjustment is a ONE_OFF obligation whose `occasion` column is ADJUSTMENT. The merge folded
-	// `repayment_agreements` — which had no such filter — into this same collection, so the
-	// predicate now has to be the one that survives both readings.
-	assert.match(read.where.$sql, /"occasion" IS DISTINCT FROM 'ADJUSTMENT'/);
-	// And it reads a COLUMN, not a path into a jsonb blob. That is not a style preference: a field
-	// grant can mask a column and cannot mask a jsonb sub-path, and this release grants fields on
-	// `work_days`. A `->` or `->>` creeping back in here is the shape regressing.
-	assert.doesNotMatch(read.where.$sql, /->/);
-	// The ownership half has to survive beside the adjustment half, or the predicate would exclude
+	// A correction is a `MANUAL_ADJUSTMENT` event on a component entry, and the event's own
+	// discriminator is what the predicate reads — one level into jsonb, which is the level a
+	// field grant could also mask and therefore the only level a union may hold.
+	assert.match(read.where.statement, /"event"->>'kind' IS DISTINCT FROM 'MANUAL_ADJUSTMENT'/);
+	// The ownership half has to survive beside the correction half, or the predicate would exclude
 	// corrections and admit every colleague's entries in the same breath.
-	assert.match(read.where.$sql, /requestor\.email/);
+	assert.match(read.where.statement, /requestor\.email/);
 
 	// `rowPredicate` unions the matching grants and short-circuits to `true` the moment one of them
 	// is unconditional. So the narrowing cannot be applied at the top by subtraction: it has to be
 	// present on every policy that must not see corrections. This is that check.
-	for (const policy of [employee, supervisor, manager]) {
-		for (const grant of grantsFor(policy, 'obligations', 'read')) {
+	for (const policy of [supervisor, manager]) {
+		for (const grant of grantsFor(policy, 'component_entries', 'read')) {
 			assert.notEqual(grant.where, undefined, `${nameOf(policy)} has an unconditional entry read`);
-			assert.match(grant.where.$sql, /"occasion" IS DISTINCT FROM 'ADJUSTMENT'/, nameOf(policy));
-			assert.doesNotMatch(grant.where.$sql, /->/, `${nameOf(policy)} reads a jsonb path`);
+			assert.match(
+				grant.where.statement,
+				/"event"->>'kind' IS DISTINCT FROM 'MANUAL_ADJUSTMENT'/,
+				nameOf(policy)
+			);
 		}
 	}
 
-	// And the HR policies do see them, or the adjustment path would have no readers at all.
+	// And the HR policies do see them, or the correction path would have no readers at all.
 	for (const policy of [hrController, hrManager, seniorManagement]) {
-		const [grant] = grantsFor(policy, 'obligations', 'read');
+		const [grant] = grantsFor(policy, 'component_entries', 'read');
 		assert.notEqual(grant, undefined, nameOf(policy));
 		assert.equal(grant.where, undefined, `${nameOf(policy)} must read corrections unconditionally`);
 	}
 });
 
-test('ordinary ranks authorize only their own reviewed claim; HR may create adjustments', () => {
+test('ordinary ranks authorize only their own reviewed claim; HR may mutate new corrections', () => {
 	// Writes use pure TypeScript/Effect authorization over the prepared record, not a SQL where.
-	for (const policy of [employee, supervisor, manager]) {
-		const [claim, ...extra] = grantsFor(policy, 'obligations', 'create');
-		assert.deepEqual(extra, [], `${nameOf(policy)} has more than one component entry create`);
-		assert.equal(typeof claim.authorize, 'function', nameOf(policy));
-		assert.equal(claim.where, undefined, nameOf(policy));
-		assert.notEqual(claim.approval, undefined, `${nameOf(policy)} claim must be reviewed`);
-	}
+	const [claim, ...extra] = grantsFor(employee, 'component_entries', 'mutate.new');
+	assert.deepEqual(extra, [], 'the employee has more than one component entry mutate.new grant');
+	assert.equal(typeof claim.authorize, 'function');
+	assert.equal(claim.where, undefined);
+	assert.notEqual(claim.approval, undefined, 'an employee claim must be reviewed');
 
 	for (const policy of [hrController, hrManager, seniorManagement]) {
-		const [create] = grantsFor(policy, 'obligations', 'create');
-		assert.notEqual(create, undefined, nameOf(policy));
-		assert.equal(create.where, undefined, `${nameOf(policy)} must create entries unconditionally`);
+		const [newGrant] = grantsFor(policy, 'component_entries', 'mutate.new');
+		assert.notEqual(newGrant, undefined, nameOf(policy));
+		assert.equal(newGrant.where, undefined, `${nameOf(policy)} mutate.new must be unconditional`);
 	}
 });
 
@@ -268,13 +311,12 @@ test('no team holder receives the same operation from two policies', () => {
 		const ownersByOperation = new Map();
 		for (const heldName of heldNames) {
 			const policy = policiesByFileKey[heldName.toLocaleLowerCase()];
-			for (const [collection, actions] of Object.entries(policy.grants)) {
-				for (const action of Object.keys(actions)) {
-					const operation = `${action} on ${collection}`;
-					const owners = ownersByOperation.get(operation) ?? [];
-					owners.push(heldName);
-					ownersByOperation.set(operation, owners);
-				}
+			for (const pair of surfaceOf(policy)) {
+				const [collection, coordinate] = pair.split(':');
+				const operation = `${coordinate} on ${collection}`;
+				const owners = ownersByOperation.get(operation) ?? [];
+				owners.push(heldName);
+				ownersByOperation.set(operation, owners);
 			}
 		}
 		for (const [operation, owners] of ownersByOperation) {
@@ -286,13 +328,16 @@ test('no team holder receives the same operation from two policies', () => {
 
 test('no human policy may author the system-only statutory predecessor instruction', () => {
 	for (const policy of policies) {
-		for (const action of ['create', 'update']) {
-			for (const grant of grantsFor(policy, 'employment_statutory_facts', action)) {
-				assert.ok(Array.isArray(grant.fields), `${nameOf(policy)} ${action} needs a field mask`);
+		for (const coordinate of ['mutate.new', 'mutate.existing']) {
+			for (const grant of grantsFor(policy, 'employment_statutory_facts', coordinate)) {
+				assert.ok(
+					Array.isArray(grant.fields),
+					`${nameOf(policy)} ${coordinate} needs a field mask`
+				);
 				assert.equal(
 					grant.fields.includes('supersedes_fact_id'),
 					false,
-					`${nameOf(policy)} ${action} exposes the system transition instruction`
+					`${nameOf(policy)} ${coordinate} exposes the system transition instruction`
 				);
 			}
 		}
@@ -306,14 +351,14 @@ test('every policy can read the settlement ledger, or its refusal becomes an acc
 	for (const policy of policies)
 		assert.equal(may(policy, 'payslip_adjustments', 'read'), true, nameOf(policy));
 
-	// `payslip_sources` was a collection of nothing but the claim, so reading all of it was safe.
+	// The captured-input junctions carry nothing but the claim, so reading them is safe.
 	// The merged collection carries `amount`, and the ranks with no payroll authority must reach the
 	// claim without reaching what it paid. That is the field mask, and this is the check that it is
 	// still there — without it the merge quietly hands every employee the whole payroll.
 	for (const policy of [employee, supervisor, manager]) {
 		const [claim] = grantsFor(policy, 'payslip_adjustments', 'read');
 		assert.ok(Array.isArray(claim.fields), `${nameOf(policy)} reads the ledger unmasked`);
-		assert.deepEqual(claim.fields.toSorted(), ['id', 'payslip_id', 'period', 'source']);
+		assert.deepEqual(claim.fields.toSorted(), ['id', 'input', 'payslip_id', 'period']);
 		assert.equal(claim.fields.includes('amount'), false, nameOf(policy));
 	}
 
@@ -342,6 +387,6 @@ test('each rank composes the rank beneath it, because nothing inherits at run ti
 	// remain scoped without composing that policy with `employee` at runtime.
 	for (const policy of [employee, supervisor, manager]) {
 		assert.equal(may(policy, 'payslips', 'read'), true, nameOf(policy));
-		assert.equal(may(policy, 'obligations', 'create'), true, nameOf(policy));
+		assert.equal(may(policy, 'component_entries', 'mutate.new'), true, nameOf(policy));
 	}
 });

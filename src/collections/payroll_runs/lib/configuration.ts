@@ -20,6 +20,7 @@ import { PAGE_LIMIT, type PayrollReadApi, type ReadLog } from './api.js';
 import { bandAgeFloor, bandCeiling } from './bands.js';
 import { monthBounds, monthKey, type IsoDate } from './dates.js';
 import { coversDate, effectiveOn, live, overlapsRange } from './effective.js';
+import { sealedProfileCovering } from '../../../lib/statutory_profile.js';
 import type { PayrollWindow } from './period.js';
 
 type Company = WorkspaceRow<'companies'>;
@@ -193,22 +194,35 @@ export function pickConfiguration(
 		const company = effectiveOn(companies, asOf);
 		if (!company) refuse(`No company ${options.companyId} is effective on ${asOf}.`);
 
-		const jurisdictions = yield* db.jurisdictions.findMany({
+		// The company binds to a law family through its jurisdiction anchor; the governing profile is
+		// the SEALED version of that family whose period covers the run. DRAFT profiles never govern;
+		// VOIDED profiles keep their citations but are retired.
+		const anchor = yield* db.jurisdictions.findFirst({
 			where: { id: { eq: company.jurisdiction_id }, ...approved },
+			columns: { code: true }
+		});
+		if (anchor == null)
+			refuse(`Company ${company.name} states no jurisdiction anchor for ${asOf}.`);
+		const profileRows = yield* db.jurisdictions.findMany({
+			where: { code: { eq: anchor.code }, ...approved },
 			limit: 100
 		});
-		const jurisdiction = effectiveOn(jurisdictions, asOf);
-		if (!jurisdiction) refuse(`Company ${company.name} has no jurisdiction effective on ${asOf}.`);
+		const jurisdiction = sealedProfileCovering(live(profileRows), anchor.code, asOf);
+		if (jurisdiction == null)
+			refuse(
+				`Company ${company.name} has no sealed statutory profile covering ${asOf}. Seal a ` +
+					'version of its law family first.'
+			);
 
 		const [contributionRows, payComponentRows, shiftRows, holidayRows, leaveTypeRows] =
 			yield* Effect.all(
 				[
 					db.statutory_contributions.findMany({
-						where: { jurisdiction_id: { eq: jurisdiction.id }, ...approved },
+						where: { statutory_profile_id: { eq: jurisdiction.id }, ...approved },
 						limit: PAGE_LIMIT
 					}),
 					db.pay_components.findMany({
-						where: { company_id: { eq: company.id }, ...approved },
+						where: { statutory_profile_id: { eq: jurisdiction.id }, ...approved },
 						limit: PAGE_LIMIT
 					}),
 					db.shift_definitions.findMany({
@@ -235,9 +249,10 @@ export function pickConfiguration(
 		options.api.reads.assertComplete(holidayRows, 'company holidays');
 		options.api.reads.assertComplete(leaveTypeRows, 'leave types');
 
-		const contributions = live(contributionRows)
-			.filter((row) => coversDate(row.effective_range, asOf))
-			.toSorted((left, right) => Number(left.sequence) - Number(right.sequence));
+		// Profile scoping replaces per-row effective dating: the version governs its period whole.
+		const contributions = live(contributionRows).toSorted(
+			(left, right) => Number(left.sequence) - Number(right.sequence)
+		);
 
 		const contributionIds = contributions.map((row) => row.id);
 		const rateRows = contributionIds.length
@@ -250,15 +265,14 @@ export function pickConfiguration(
 
 		const ratesByContribution = new Map<string, ContributionRate[]>();
 		for (const rate of live(rateRows)) {
-			if (!coversDate(rate.effective_range, asOf)) continue;
 			const bucket = ratesByContribution.get(rate.statutory_contribution_id);
 			if (bucket) bucket.push(rate);
 			else ratesByContribution.set(rate.statutory_contribution_id, [rate]);
 		}
 
-		const payComponents = live(payComponentRows)
-			.filter((row) => coversDate(row.effective_range, asOf))
-			.toSorted((left, right) => Number(left.sequence) - Number(right.sequence));
+		const payComponents = live(payComponentRows).toSorted(
+			(left, right) => Number(left.sequence) - Number(right.sequence)
+		);
 		const treatments = new Map<string, Treatment>();
 		for (const component of payComponents) {
 			for (const treatment of component.policy?.statutory_treatments ?? []) {
@@ -311,7 +325,7 @@ export function pickConfiguration(
 			holidays: new Map(
 				live(holidayRows).map((row) => [String(row.date).slice(0, 10), row] as const)
 			),
-			leaveTypes: live(leaveTypeRows).filter((row) => coversDate(row.effective_range, asOf))
+			leaveTypes: live(leaveTypeRows)
 		} satisfies Omit<Configuration, 'hash'>;
 
 		return {
@@ -383,6 +397,7 @@ export function configurationSnapshot(
 			effective_range: configuration.jurisdiction.effective_range,
 			value: configuration.jurisdiction.regime
 		},
+		statutory_leave: configuration.jurisdiction.statutory_leave,
 		holidays: [...configuration.holidays.values()]
 			.map((row) => [String(row.date).slice(0, 10), row.substitutes_date, row.scope])
 			.toSorted((left, right) => String(left[0]).localeCompare(String(right[0]))),

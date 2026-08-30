@@ -76,9 +76,9 @@
 					</tr>
 				</thead>
 				<tbody>
-					{#each charges as charge (charge.statutory_contribution_id)}
+					{#each charges as charge (charge.scheme_code)}
 						<tr class="border-t border-border">
-							<td class="py-1 pr-3">{charge.band_reference ?? '—'}</td>
+							<td class="py-1 pr-3">{charge.band_key ?? '—'}</td>
 							<td class="py-1 pr-3 text-right">{formatNumeric(charge.base_amount)}</td>
 							<td class="py-1 pr-3 text-right font-medium"
 								>{formatNumeric(charge.employee_amount)}</td

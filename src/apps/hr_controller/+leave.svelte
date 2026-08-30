@@ -15,24 +15,22 @@
 		formatLeavePayrollEffect,
 		formatLeaveRange
 	} from '../../lib/ui/display-formatters.js';
-	import { inForceTodayFilter, todayInstant } from '../../lib/ui/calendar.js';
+	import { inForceTodayFilter } from '../../lib/ui/calendar.js';
 	import LeaveSeasonality from '../../lib/ui/leave/leave-seasonality.svelte';
 	import { sourceLock, sourceLockRecordMetadata } from '../../lib/scheduling/lock.js';
 
 	const { t } = useI18n<TenantI18nKeys>();
 
 	let requestedCompanyId = $state<string | null>(null);
-	const activeRange = { effective_range: { contains_date: todayInstant() } } as const;
 
 	/**
-	 * The leave-type catalogue opens on the entitlements in force today, as a filter chip the
-	 * operator can drop to reach superseded versions. The legal-entity selector keeps `activeRange`
-	 * in its own query: it is the page's scope picker, not a listing, and it has to default to an
+	 * The leave-type catalogue opens on the entitlements of the selected legal entity. The
+	 * legal-entity selector is the page's scope picker, not a listing, and it has to default to an
 	 * entity that still exists.
 	 */
 	const companiesQuery = $derived(
 		client.db.companies.findMany({
-			where: { approval_id: { isNull: true }, ...activeRange },
+			where: { approval_id: { isNull: true } },
 			orderBy: { name: 'asc' },
 			limit: 500
 		})
@@ -68,17 +66,17 @@
 	const leaveSettlementsQuery = $derived.by(() => {
 		const ids = (leaveRequestsQuery?.current ?? []).map((row) => row.id);
 		if (ids.length === 0) return null;
-		return client.db.payslip_adjustments.findMany({
-			where: { source: { in: ids.map((id) => ({ kind: 'LEAVE_REQUEST' as const, id })) } },
-			columns: { source: true, period: true },
+		return client.db.payslip_leave_request_inputs.findMany({
+			where: { leave_request_id: { in: ids } },
+			columns: { leave_request_id: true, period: true },
 			limit: 5000
 		});
 	});
 	const settlementByRequestId = $derived(
 		new Map(
-			(leaveSettlementsQuery?.current ?? []).map((claim) => [
-				claim.source.id,
-				{ period: claim.period }
+			(leaveSettlementsQuery?.current ?? []).map((capture) => [
+				capture.leave_request_id,
+				{ period: capture.period }
 			])
 		)
 	);
@@ -289,7 +287,6 @@
 						rendererProps={{ format: ({ value }) => formatLeavePayrollEffect(value, t) }}
 					/>
 					<Column name="encash_on_exit" label={t('app.leave.encash_on_exit')} />
-					<Column name="effective_range" label={t('component.effective')} />
 				{/snippet}
 			</CollectionTable>
 		{/key}

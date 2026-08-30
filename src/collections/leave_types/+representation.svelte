@@ -1,7 +1,9 @@
 <script lang="ts">
 	/**
-	 * A leave type belongs to one company's catalogue. The auto form asked for `company_id` as an
-	 * editable uuid; it is a relationship and reads as the entity's name.
+	 * A leave type belongs to one company's catalogue within one statutory profile. The auto form
+	 * asked for `company_id` as an editable uuid; it is a relationship and reads as the entity's
+	 * name. `statutory_kind` names the canonical leave the profile floors, when a statute mandates
+	 * this type; the floor itself merges from the linked profile, never from this row.
 	 */
 	import { client } from '../../lib/workspace-client.js';
 	import { useI18n } from '@norbital-ai/ui/i18n';
@@ -33,9 +35,19 @@
 					limit: 500
 				}}
 			/>
+			<Field
+				name="statutory_profile_id"
+				label={t('component.statutory_profile')}
+				relationOptions={{
+					label: (profile) =>
+						profile.name != null && profile.name !== '' ? String(profile.name) : '—',
+					orderBy: { code: 'asc' },
+					limit: 200
+				}}
+			/>
 			<Field name="code" label={t('component.code')} />
 			<Field name="name" label={t('component.name')} />
-			<Field name="aggregates_with" label={t('component.aggregates_with')} />
+			<Field name="statutory_kind" label={t('component.statutory_kind')} />
 			<Field name="encash_on_exit" label={t('component.encashed_on_exit')} />
 			<Field
 				name="requires_certificate_after_days"
@@ -49,9 +61,6 @@
 			<Column span="all"><Field name="accrual" label={t('component.accrual_and_carry')} /></Column>
 			<Column span="all"
 				><Field name="payroll_effect" label={t('component.effect_on_pay')} /></Column
-			>
-			<Column span="all"
-				><Field name="effective_range" label={t('component.effective_period')} /></Column
 			>
 		</Grid>
 	{/snippet}

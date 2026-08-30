@@ -1,18 +1,22 @@
 <script lang="ts" module>
 	/**
-	 * The three arms `component_definition.cap.matrix.layers[]` and `leave_entitlement.layers[]`
-	 * both declare, and the picker for the one id either of them can name.
+	 * The arms `component_definition.cap.matrix.layers[]` and `leave_entitlement.layers[]` declare,
+	 * and the picker for the one id either of them can name.
 	 *
-	 * The arms are identical between the two shapes — same three literals, same `employment_id` on
-	 * the EMPLOYEE arm and on no other — and the scoping rule ("the people of the company this
-	 * matrix belongs to, read as name · number") is a correctness rule rather than presentation.
-	 * Duplicating it would give the two matrices two chances to drift apart on who may be named.
+	 * The arms are identical between the two shapes — same literals, `employment_id` on the
+	 * EMPLOYEE arm and on no other — and the scoping rule ("the people of the company this matrix
+	 * belongs to, read as name · number") is a correctness rule rather than presentation.
+	 * Duplicating it would give the matrices two chances to drift apart on who may be named. The
+	 * STATUTORY arm both matrices once carried is gone: the statutory floor is the profile's, not
+	 * a company-typed layer, so both shapes state company arms only.
 	 */
-	export type PolicyLayerLevel = 'STATUTORY' | 'ORGANISATION' | 'EMPLOYEE';
+	export type PolicyLayerLevel = 'ORGANISATION' | 'EMPLOYEE';
 
 	interface LayerLevelPickerProps {
 		readonly level: PolicyLayerLevel;
-		/** The employment the EMPLOYEE arm names; `null` on the two arms that name nobody. */
+		/** The arms the caller's matrix declares, in picker order. */
+		readonly levels: readonly PolicyLayerLevel[];
+		/** The employment the EMPLOYEE arm names; `null` on the arms that name nobody. */
 		readonly employmentId: string | null;
 		/** The company whose people the EMPLOYEE arm may name. */
 		readonly companyId: string | null;
@@ -34,23 +38,22 @@
 
 	const { t } = useI18n<TenantI18nKeys>();
 
-	const LEVEL_OPTIONS = $derived([
+	const ALL_LEVELS = [
 		{
-			value: 'STATUTORY',
-			label: t('component.level_statutory'),
-			description: t('component.level_statutory_description')
-		},
-		{
-			value: 'ORGANISATION',
+			value: 'ORGANISATION' as const,
 			label: t('component.level_organisation'),
 			description: t('component.level_organisation_description')
 		},
 		{
-			value: 'EMPLOYEE',
+			value: 'EMPLOYEE' as const,
 			label: t('component.level_employee'),
 			description: t('component.level_employee_description')
 		}
-	]);
+	];
+
+	const LEVEL_OPTIONS = $derived(
+		ALL_LEVELS.filter((option) => props.levels.includes(option.value))
+	);
 
 	/*
 	 * The EMPLOYEE arm's id is a foreign key no constraint can declare — a layer is one JSONB value
@@ -105,7 +108,7 @@
 				searchable={false}
 				emptyPlaceholder={t('component.select_a_level')}
 				onValueChange={(level) => {
-					if (level === 'STATUTORY' || level === 'ORGANISATION' || level === 'EMPLOYEE') {
+					if (level === 'ORGANISATION' || level === 'EMPLOYEE') {
 						props.onLevelChange(level);
 					}
 				}}

@@ -1,6 +1,6 @@
 // @ts-nocheck -- executed directly by Node with --experimental-strip-types.
 /**
- * A payroll run consumes pay components, obligations and clocks, and produces the three shapes a
+ * A payroll run consumes pay components, entries, repayments and clocks, and produces the shapes a
  * payslip stores.
  *
  * The pieces of that sentence are each pinned somewhere already: `overtime-derivation.test.ts`
@@ -107,7 +107,6 @@ const component = (overrides) => ({
 	nature: 'EARNING',
 	policy: { kind: 'EARNING', settlement: 'ADD', statutory_treatments: [] },
 	eligibility: [],
-	effective_range: { start: '2020-01-01', end: null },
 	...overrides
 });
 
@@ -261,7 +260,9 @@ function bundle(overrides = {}) {
 		employee: { id: 'ee-1', date_of_birth: '1992-01-04', gender: 'FEMALE' },
 		terms: [terms()],
 		statutoryFacts: [],
-		obligations: [],
+		componentEntries: [],
+		loans: [],
+		loanRepayments: [],
 		ledger: [],
 		workDays: [],
 		serviceMonths: 57,
@@ -285,7 +286,8 @@ function measure(overrides = {}, configurationOverrides = {}) {
 		periodsRemaining: 10,
 		headcount: 1,
 		policy: PLAIN_CALENDAR,
-		consumedObligations: new Map()
+		consumedEntries: new Map(),
+		consumedRepayments: new Map()
 	});
 }
 
@@ -357,7 +359,7 @@ test('the same clock one day earlier is inside the cut-off and is paid', () => {
 	});
 	const overtime = measured.adjustments.filter((row) => row.label === OT_ORDINARY);
 	assert.deepEqual(
-		overtime.map((row) => [row.source.id, row.quantity, row.amount]),
+		overtime.map((row) => [row.input.id, row.quantity, row.amount]),
 		[
 			['day-2026-03-19', 3, 74.66],
 			['day-2026-03-20', 3, 74.66]
@@ -382,17 +384,14 @@ test('an overtime adjustment names the statutory band, the work day, and no pay 
 	const measured = measure({ workDays: [day] });
 	const row = lineOf(measured, OT_ORDINARY);
 	assert.equal(row.payComponent, null);
-	assert.deepEqual(row.overtimeBand, {
-		day_type: 'ORDINARY',
-		measure: 'BEYOND_NORMAL',
-		band_from: 0,
-		excess: false
-	});
+	// The band the row was priced by, as the rule key the payslip stores — the same code
+	// `overtimeBandCode` writes and the workbook reads.
+	assert.equal(row.statutoryRuleKey, OT_ORDINARY);
 	assert.equal(row.nature, 'EARNING', 'overtime settles as an earning without a policy to say so');
-	// The source is the clock that priced it. `payslip_lines` could not say this — an overtime line
+	// The source is the clock that priced it — an overtime line
 	// named its band and nothing else, and the records behind it sat in another table with no
 	// amount on them. It is one row now, and it points at the day.
-	assert.deepEqual(row.source, { kind: 'WORK_DAY', id: day.id });
+	assert.deepEqual(row.input, { family: 'WORK_DAY', id: day.id });
 
 	// And no catalogue row was consulted to produce it: this company's catalogue has two rows.
 	assert.deepEqual(
@@ -403,70 +402,57 @@ test('an overtime adjustment names the statutory band, the work day, and no pay 
 	);
 });
 
-test('an obligation settles by the money cut-off, not by the month it is dated in', () => {
-	// The arm is columns now: `terms` and `occasion` are enums beside `amount`, not a union nested
-	// in jsonb. Nothing here decodes a payload to find out how the money comes due.
-	const obligation = (date) => ({
-		id: `obligation-${date}`,
+test('an entry settles by the money cut-off, not by the month it is dated in', () => {
+	// The event is one union on one row. Nothing here decodes a payload to find out how the money
+	// comes due; the cutoff reads the entry's own date.
+	const entry = (date) => ({
+		id: `entry-${date}`,
 		employment_id: 'emp-1',
 		pay_component_id: TRANSPORT.id,
 		pay_period: null,
-		event_date: date,
+		event_date: `${date}T00:00:00.000Z`,
 		amount: 240,
 		quantity: null,
-		terms: 'ONE_OFF',
-		occasion: 'ENTERED',
-		note: 'travel',
-		effective_range: null,
-		instalments: null,
-		reverses_obligation_id: null,
-		covers_periods: null,
-		incurred_on: null
+		event: { kind: 'BONUS', note: 'travel' },
+		effective_range: null
 	});
 
-	assert.equal(amountOf(measure({ obligations: [obligation('2026-03-20')] }), 'TRANSPORT'), 240);
+	assert.equal(amountOf(measure({ componentEntries: [entry('2026-03-20')] }), 'TRANSPORT'), 240);
 	assert.equal(
-		amountOf(measure({ obligations: [obligation('2026-03-22')] }), 'TRANSPORT'),
+		amountOf(measure({ componentEntries: [entry('2026-03-22')] }), 'TRANSPORT'),
 		null,
-		'an obligation dated after the 21st is next period’s money and produces nothing here'
+		'an entry dated after the 21st is next period’s money and produces nothing here'
 	);
 	// And the March run does not reach backwards into a period that has already been paid.
-	assert.equal(amountOf(measure({ obligations: [obligation('2026-02-10')] }), 'TRANSPORT'), null);
+	assert.equal(amountOf(measure({ componentEntries: [entry('2026-02-10')] }), 'TRANSPORT'), null);
 });
 
-test('an obligation produces an adjustment naming it, and nothing produces two', () => {
-	// `unique(source, payslip_id)` is what makes this load-bearing. `measureEntry` used to sum every
-	// entry on a component into ONE line and link that line to whichever entry happened to be last —
-	// a line whose provenance was arbitrary. One obligation, one row, and the row names it.
-	const obligation = (id, amount) => ({
+test('an entry produces an adjustment naming it, and nothing produces two', () => {
+	// One entry, one adjustment: `measureEntry` measures exactly one captured input, so the
+	// arbitrary provenance the old summed line had has nowhere left to be made.
+	const entry = (id, amount) => ({
 		id,
 		employment_id: 'emp-1',
 		pay_component_id: TRANSPORT.id,
 		pay_period: '2026-03',
-		event_date: '2026-03-05',
+		event_date: '2026-03-05T00:00:00.000Z',
 		amount,
 		quantity: null,
-		terms: 'ONE_OFF',
-		occasion: 'ENTERED',
-		note: 'travel',
-		effective_range: null,
-		instalments: null,
-		reverses_obligation_id: null,
-		covers_periods: null,
-		incurred_on: null
+		event: { kind: 'BONUS', note: 'travel' },
+		effective_range: null
 	});
 	const measured = measure({
-		obligations: [obligation('ob-a', 240), obligation('ob-b', 60)]
+		componentEntries: [entry('en-a', 240), entry('en-b', 60)]
 	});
 	const transport = measured.adjustments.filter((row) => row.label === 'TRANSPORT');
 	assert.deepEqual(
-		transport.map((row) => [row.source.kind, row.source.id, row.amount]),
+		transport.map((row) => [row.input.family, row.input.id, row.amount]),
 		[
-			['OBLIGATION', 'ob-a', 240],
-			['OBLIGATION', 'ob-b', 60]
+			['COMPONENT_ENTRY', 'en-a', 240],
+			['COMPONENT_ENTRY', 'en-b', 60]
 		]
 	);
-	// And nothing about them landed in base: an obligation is a record somebody can edit, which is
+	// And nothing about them landed in base: an entry is a record somebody can edit, which is
 	// the whole of what makes an amount an adjustment.
 	assert.deepEqual(
 		measured.base.map((item) => item.label),
@@ -627,7 +613,9 @@ test('a mid-month raise is two recorded proration segments, summing to one month
 	 */
 	assert.deepEqual(measured.proration, [
 		{
-			term_id: 'terms-old',
+			// The label snapshot `payslip_proration.term_key` states: title (or employment type),
+			// the day the terms range opens, and the contract amount.
+			term_key: 'PERMANENT @ 2020-01-01 · 4000.00',
 			from: '2026-03-01',
 			to: '2026-03-15',
 			basis: { by: 'CALENDAR_DAYS' },
@@ -637,7 +625,7 @@ test('a mid-month raise is two recorded proration segments, summing to one month
 			prorated_amount: 1935.48
 		},
 		{
-			term_id: 'terms-new',
+			term_key: 'PERMANENT @ 2026-03-16 · 4600.00',
 			from: '2026-03-16',
 			to: '2026-03-31',
 			basis: { by: 'CALENDAR_DAYS' },
@@ -650,10 +638,11 @@ test('a mid-month raise is two recorded proration segments, summing to one month
 		}
 	]);
 	// One base entry, not two. Proration is the working; base is what was settled, and a reader
-	// summing base must never have to know whether segments happen to exist.
+	// summing base must never have to know whether segments happen to exist. `payslip_base`
+	// carries the frozen component code, not an id.
 	assert.deepEqual(
-		measured.base.map((item) => [item.entry.pay_component_id, item.entry.amount]),
-		[[BASIC.id, 4309.68]]
+		measured.base.map((item) => [item.entry.component_code, item.entry.amount]),
+		[['BASIC', 4309.68]]
 	);
 	// The invariant `payslip_proration` states: the segments sum, exactly.
 	assert.equal(
@@ -670,7 +659,7 @@ test('a whole month is still one recorded segment, not an absence of one', () =>
 	const measured = measure();
 	assert.deepEqual(measured.proration, [
 		{
-			term_id: 'terms-1',
+			term_key: 'PERMANENT @ 2020-01-01 · 3451.00',
 			from: '2026-03-01',
 			to: '2026-03-31',
 			basis: { by: 'CALENDAR_DAYS' },
@@ -683,32 +672,24 @@ test('a whole month is still one recorded segment, not an absence of one', () =>
 });
 
 test('a standing allowance prorates with the employment; a one-off does not', () => {
-	// `cadence: 'PAY_PERIOD'` is gone with the union: it was a literal with exactly one value, which
-	// is not a fact but a constant written into every row. A RECURRING obligation is its range.
+	// The allowance's own effective range is its cadence: an ALLOWANCE event pays every period the
+	// range covers, and no other arm prorates at all.
 	const standing = {
-		id: 'obligation-recurring',
+		id: 'entry-recurring',
 		employment_id: 'emp-1',
 		pay_component_id: TRANSPORT.id,
 		pay_period: null,
-		event_date: '2026-03-01',
+		event_date: '2026-03-01T00:00:00.000Z',
 		amount: 310,
 		quantity: null,
-		terms: 'RECURRING',
-		occasion: null,
-		effective_range: { start: '2020-01-01', end: null },
-		instalments: null,
-		note: null,
-		reverses_obligation_id: null,
-		covers_periods: null,
-		incurred_on: null
+		event: { kind: 'ALLOWANCE' },
+		effective_range: { start: '2020-01-01T00:00:00.000Z', end: null }
 	};
 	const oneOff = {
 		...standing,
-		id: 'obligation-once',
-		terms: 'ONE_OFF',
-		occasion: 'ENTERED',
-		effective_range: null,
-		note: 'x'
+		id: 'entry-once',
+		event: { kind: 'BONUS', note: 'x' },
+		effective_range: null
 	};
 	const joined = {
 		employedDays: { start: '2026-03-16', end: '2026-03-31' },
@@ -716,14 +697,14 @@ test('a standing allowance prorates with the employment; a one-off does not', ()
 		terms: [terms({ effective_range: { start: '2026-03-16', end: null } })]
 	};
 
-	assert.equal(amountOf(measure({ obligations: [standing] }), 'TRANSPORT'), 310);
+	assert.equal(amountOf(measure({ componentEntries: [standing] }), 'TRANSPORT'), 310);
 	assert.equal(
-		amountOf(measure({ ...joined, obligations: [standing] }), 'TRANSPORT'),
+		amountOf(measure({ ...joined, componentEntries: [standing] }), 'TRANSPORT'),
 		160,
 		'310 × 16/31'
 	);
 	assert.equal(
-		amountOf(measure({ ...joined, obligations: [oneOff] }), 'TRANSPORT'),
+		amountOf(measure({ ...joined, componentEntries: [oneOff] }), 'TRANSPORT'),
 		310,
 		'a one-off is a whole amount for a moment in time and is never divided by a month'
 	);

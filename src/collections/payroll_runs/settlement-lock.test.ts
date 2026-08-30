@@ -3,20 +3,22 @@
  * The settlement lock: taken when a run persists, released when the payslip that holds it is
  * deleted, and permanent once the run is paid.
  *
- * `payslip_sources` no longer exists. The claim it carried is a `payslip_adjustments` row naming
- * the source — and the row a run reads and prices at nothing has an `amount` of zero, which is
- * the whole of what the second collection was for. One collection, both facts.
+ * The lock is a row in one of the four input junctions — the capture itself, not an adjustment
+ * beside it. A source the run read and priced at nothing is a junction row with no output, which
+ * is the whole of what the old zero-amount rows were for: "consumed nothing" and "was never read"
+ * are different claims, and the junction row is the claim.
  *
  * Five things are exercised here and they are deliberately five different kinds of check, because
  * the lock is enforced in five different places:
  *
- *   1. MEASURE — which sources a payslip claims, and that a source producing no money is claimed
+ *   1. MEASURE — which sources a payslip captures, and that a source producing no money is captured
  *      anyway. Pure, over one gathered bundle.
- *   2. GRAPH — that the claim reaches the returned record, with its period and its sequence.
+ *   2. GRAPH — that the capture reaches the returned record as a junction row, and that every
+ *      adjustment's `input` handle names a junction its own payslip holds.
  *   3. `sourceLock` — how a claim reads as a refusal. Pure, shared verbatim with the screens.
- *   4. `payroll_runs` `delete.before` — the refusal that makes a PAID run's claims permanent. The
+ *   4. `payroll_runs` `delete.before` — the refusal that makes a PAID run's captures permanent. The
  *      real authored handler, called directly.
- *   5. `+relationship.ts` — that the two cascade hops a release depends on are declared.
+ *   5. `+relationship.ts` — that the cascade hops a release depends on are declared.
  *
  * What is *not* exercised is the cascade itself, because Postgres performs it. What is checked is
  * that it is declared, which is the only thing this workspace controls.
@@ -36,7 +38,7 @@ import {
 	sourceLockI18nKey
 } from '../../lib/scheduling/lock.ts';
 
-// ── 1. what a payslip claims ────────────────────────────────────────────────────────────────────
+// ── 1. what a payslip captures ──────────────────────────────────────────────────────────────────
 
 const JURISDICTION = {
 	id: 'jur-my',
@@ -125,7 +127,9 @@ function measure(overrides = {}) {
 				}
 			],
 			statutoryFacts: [],
-			obligations: [],
+			componentEntries: [],
+			loans: [],
+			loanRepayments: [],
 			ledger: [],
 			workDays: [],
 			serviceMonths: 57,
@@ -157,32 +161,34 @@ function measure(overrides = {}) {
 		periodsRemaining: 10,
 		headcount: 1,
 		policy: PLAIN_CALENDAR,
-		consumedObligations: new Map()
+		consumedEntries: new Map(),
+		consumedRepayments: new Map()
 	});
 }
 
-const claimsOf = (measured) =>
-	measured.adjustments.map((row) => [row.source.kind, row.source.id, row.amount]);
+const capturesOf = (measured) => measured.captured.workDays;
 
-test('a day the run read and priced at nothing is claimed with an amount of zero', () => {
-	// This is the whole of what `payslip_sources` was. The day produced no overtime — it produced
-	// nothing at all — and it is still frozen, because the `restrict` foreign key on the WORK_DAY
-	// arm is what refuses the delete and the row is what the refusal quotes the period back from.
+test('a day the run read and priced at nothing is captured anyway', () => {
+	// This is the whole of the old settlement lock, moved onto the junction: the day produced no
+	// overtime — it produced nothing at all — and it is still frozen, because the junction row
+	// exists and its restrict FK into `work_days` is what refuses the delete. An output that
+	// settles to nothing is no output; the capture is the claim.
 	const measured = measure({ workDays: [readDay('wd-1', '2026-03-02')] });
-	assert.deepEqual(claimsOf(measured), [['WORK_DAY', 'wd-1', 0]]);
+	assert.deepEqual(measured.captured.workDays, ['wd-1']);
+	assert.deepEqual(measured.adjustments, []);
 	// "Consumed nothing" and "was never read" are different claims, and only one of them is a row.
 	const untouched = measure();
-	assert.deepEqual(claimsOf(untouched), []);
+	assert.deepEqual(untouched.captured.workDays, []);
 });
 
-test('a payslip claims the span it measured and not the months it only counted', () => {
+test('a payslip captures the span it measured and not the months it only counted', () => {
 	// GATHER reads both calendar months the cutoff touches, so the statutory overtime counter can
 	// reset on the 1st. Days before the span this employment was measured over belong to a period
-	// already settled: locking them would freeze attendance an earlier run priced.
+	// already settled: capturing them would freeze attendance an earlier run priced.
 	//
 	// The span is the union of the attendance window and the wage window, because they genuinely
 	// differ and both are consumed — attendance prices the days worked, and the wage window is what
-	// recurring salary covers. So the tail of the salary month is claimed even though the cutoff
+	// recurring salary covers. So the tail of the salary month is captured even though the cutoff
 	// closed on the 20th, and that is the same span the settlement claim has always used.
 	const measured = measure({
 		workDays: [
@@ -194,14 +200,15 @@ test('a payslip claims the span it measured and not the months it only counted',
 			readDay('wd-wage-tail', '2026-03-31')
 		]
 	});
-	assert.deepEqual(
-		measured.adjustments.map((row) => row.source.id),
-		['wd-edge-start', 'wd-in', 'wd-cutoff', 'wd-wage-tail']
-	);
-	for (const row of measured.adjustments) assert.equal(row.source.kind, 'WORK_DAY');
+	assert.deepEqual(measured.captured.workDays, [
+		'wd-edge-start',
+		'wd-in',
+		'wd-cutoff',
+		'wd-wage-tail'
+	]);
 });
 
-test('a day carrying only a plan is not claimed, because there is no punch to freeze', () => {
+test('a day carrying only a plan is not captured, because there is no punch to freeze', () => {
 	// `worked_intervals: null` says no attendance was recorded at all. The day-shaped window guard
 	// is what stops a record appearing on a settled day; a record lock needs a record.
 	const measured = measure({
@@ -215,12 +222,12 @@ test('a day carrying only a plan is not claimed, because there is no punch to fr
 			}
 		]
 	});
-	assert.deepEqual(claimsOf(measured), []);
+	assert.deepEqual(measured.captured.workDays, []);
 });
 
-test('a leaver’s wage window widens the claim, because it widened the measurement', () => {
+test('a leaver\u2019s wage window widens the capture, because it widened the measurement', () => {
 	// A leaver settling in their final period is measured to their exit date rather than to the end
-	// of the attendance window. The claim span is the union of both for exactly that reason.
+	// of the attendance window. The capture span is the union of both for exactly that reason.
 	const measured = measure({
 		attendance: { start: '2026-02-21', end: '2026-03-10' },
 		wageDays: { start: '2026-02-21', end: '2026-03-20' },
@@ -236,32 +243,19 @@ test('a leaver’s wage window widens the claim, because it widened the measurem
 			}
 		]
 	});
-	assert.deepEqual(claimsOf(measured), [['LEAVE_REQUEST', 'lr-1', 0]]);
+	assert.deepEqual(measured.captured.leaveRequests, ['lr-1']);
+	assert.deepEqual(measured.captured.workDays, []);
 });
 
-test('the same source is claimed once, whatever derived it', () => {
-	// `unique(source, payslip_id)` would refuse the second row, and the whole run's write would fail
-	// on a duplicate that means nothing. The lock pass skips a source an amount already named.
-	const day = {
-		id: 'wd-1',
-		work_date: '2026-03-02',
-		shift_definition_id: null,
-		worked_intervals: [],
-		break_minutes: 0
-	};
-	const measured = measure({ workDays: [day, { ...day }] });
-	assert.deepEqual(claimsOf(measured), [['WORK_DAY', 'wd-1', 0]]);
-});
-
-// ── 2. the claim reaches the returned record ────────────────────────────────────────────────────
+// ── 2. the capture reaches the returned record ──────────────────────────────────────────────────
 
 /**
- * A run that priced attendance takes a lock over every record it read.
+ * A run that priced attendance captures every record it read.
  *
  * No api, no `mutate`, no double for one. The run's whole result is a value, so what used to need a
  * fake database to observe is observed by reading the return.
  */
-test('a run takes a settlement lock over every record it consumed', () => {
+test('a run captures every record it consumed, and adjustments name the captures', () => {
 	const graph = payrollRunGraph({
 		period: '2026-03',
 		pending: [
@@ -270,7 +264,7 @@ test('a run takes a settlement lock over every record it consumed', () => {
 				currency: 'MYR',
 				proration: [
 					{
-						term_id: 'terms-1',
+						term_key: 'Permanent @ 2020-01-01 · 1200.00',
 						from: '2026-03-01',
 						to: '2026-03-31',
 						basis: { by: 'CALENDAR_DAYS' },
@@ -291,93 +285,123 @@ test('a run takes a settlement lock over every record it consumed', () => {
 							nature: 'EARNING',
 							label: 'BASIC',
 							amount: 1200,
-							entry: { pay_component_id: 'pc-salary', amount: 1200 }
+							entry: { component_code: 'BASIC', amount: 1200 }
 						}
 					],
 					adjustments: [
 						{
-							source: { kind: 'OBLIGATION', id: 'ob-1' },
+							input: { family: 'LOAN_REPAYMENT', id: 'rp-1' },
 							payComponent: { id: 'pc-loan' },
-							overtimeBand: null,
 							nature: 'DEDUCTION',
 							label: 'LOAN',
 							amount: 80,
 							quantity: null,
-							rate: null
+							rate: null,
+							statutoryRuleKey: null
 						},
 						{
-							source: { kind: 'WORK_DAY', id: 'wd-1' },
+							input: { family: 'WORK_DAY', id: 'wd-1' },
 							payComponent: null,
-							overtimeBand: {
-								day_type: 'ORDINARY',
-								measure: 'BEYOND_NORMAL',
-								band_from: 0,
-								excess: false
-							},
 							nature: 'EARNING',
 							label: 'OT_ORDINARY_BEYOND_NORMAL_0',
 							amount: 74.66,
 							quantity: 3,
-							rate: 16.59
+							rate: 16.59,
+							statutoryRuleKey: 'OT_ORDINARY_BEYOND_NORMAL_0'
 						},
 						{
-							source: { kind: 'LEAVE_REQUEST', id: 'lr-1' },
+							input: { family: 'LEAVE_REQUEST', id: 'lr-1' },
 							payComponent: null,
-							overtimeBand: null,
 							nature: 'ABSENCE',
-							label: 'LEAVE_2026-03-04',
-							amount: 0,
-							quantity: null,
-							rate: null
+							label: 'NPL',
+							amount: 25.8,
+							quantity: 1,
+							rate: null,
+							statutoryRuleKey: null
 						}
 					],
 					shortfalls: []
 				},
-				charges: []
+				charges: [],
+				captured: {
+					workDays: ['wd-1', 'wd-zero'],
+					componentEntries: [],
+					leaveRequests: ['lr-1'],
+					loanRepayments: ['rp-1']
+				}
 			}
 		]
 	});
 
 	assert.equal(graph.length, 1);
 	const payslip = graph[0];
-	// Base, proration and statutory are columns on the payslip; only adjustments are a relation.
-	assert.deepEqual(payslip.base, [{ pay_component_id: 'pc-salary', amount: 1200 }]);
+	// Base, proration and statutory are columns on the payslip; the junctions and adjustments are
+	// the relations.
+	assert.deepEqual(payslip.base, [{ component_code: 'BASIC', amount: 1200 }]);
 	assert.equal(payslip.proration.length, 1);
 	assert.deepEqual(payslip.statutory, []);
 
+	// The four captured-input junctions, each with a runtime-minted id and the period that holds it.
+	assert.deepEqual(
+		payslip.payslip_work_day_input_payslip.map((row) => [row.work_day_id, row.period !== '']),
+		[
+			['wd-1', true],
+			['wd-zero', true]
+		]
+	);
+	assert.deepEqual(
+		payslip.payslip_leave_request_input_payslip.map((row) => [row.leave_request_id]),
+		[['lr-1']]
+	);
+	assert.deepEqual(
+		payslip.payslip_loan_repayment_input_payslip.map((row) => [row.loan_repayment_id]),
+		[['rp-1']]
+	);
+
 	const rows = payslip.payslip_adjustment_payslip;
-	// An adjustment carries no `payslip_id`: nested under the payslip that owns it, the runtime
-	// fills the foreign key from the parent it assigned.
 	for (const row of rows) assert.equal(Object.hasOwn(row, 'payslip_id'), false);
 	assert.deepEqual(
-		rows.map((row) => [row.source.kind, row.source.id, row.amount, row.sequence]),
+		rows.map((row) => [row.input.kind, row.amount, row.sequence]),
 		[
-			['OBLIGATION', 'ob-1', 80, 1],
-			['WORK_DAY', 'wd-1', 74.66, 2],
-			['LEAVE_REQUEST', 'lr-1', 0, 3]
+			['LOAN_REPAYMENT_INPUT', 80, 1],
+			['WORK_DAY_INPUT', 74.66, 2],
+			['LEAVE_REQUEST_INPUT', 25.8, 3]
 		]
 	);
-	// Exactly one of the two on every row: a catalogue component, or the band that priced it.
+	// Every adjustment's input id is one of this payslip's junction rows, and every junction id is
+	// held by exactly the payslip that stored it.
+	const junctionIds = new Set([
+		...payslip.payslip_work_day_input_payslip.map((row) => row.id),
+		...payslip.payslip_component_entry_input_payslip.map((row) => row.id),
+		...payslip.payslip_leave_request_input_payslip.map((row) => row.id),
+		...payslip.payslip_loan_repayment_input_payslip.map((row) => row.id)
+	]);
+	for (const row of rows) assert.ok(junctionIds.has(row.input.id), row.input.id);
+	assert.equal(junctionIds.size, 4);
+
+	// Zero-value sources are captured and produce no output at all — "consumed nothing" and "was
+	// never read" are different claims, and only the first is a junction row.
+	const workDayCaptured = new Set(
+		payslip.payslip_work_day_input_payslip.map((row) => row.work_day_id)
+	);
+	assert.ok(workDayCaptured.has('wd-zero'));
+	// The work-day adjustment carries the rule key that priced it and no catalogue id; the recovery
+	// names no rule at all.
 	assert.deepEqual(
-		rows.map((row) => [row.pay_component_id, row.overtime_band?.day_type ?? null]),
+		rows.map((row) => [row.label, row.statutory_rule_key]),
 		[
-			['pc-loan', null],
-			[null, 'ORDINARY'],
-			[null, null]
+			['LOAN', null],
+			['OT_ORDINARY_BEYOND_NORMAL_0', 'OT_ORDINARY_BEYOND_NORMAL_0'],
+			['NPL', null]
 		]
 	);
-	// The zero row is a claim, not a figure, and it carries a bucket like any other.
-	assert.deepEqual(
-		rows.map((row) => row.bucket),
-		['DEDUCTION', 'EARNING', 'ABSENCE']
-	);
-	// The period travels with the lock: two runs of different periods can each hold their own
-	// claims, and a release names the payslip rather than sweeping a collection.
+	// The period travels with every row: two runs of different periods can each hold their own
+	// captures, and a release names the payslip rather than sweeping a collection.
 	assert.deepEqual([...new Set(rows.map((row) => row.period))], ['2026-03']);
 });
 
 /**
- * A rebuild releases the previous build's locks, and nothing in this repository does it.
+ * A rebuild releases the previous build's captures, and nothing in this repository does it.
  *
  * `clearRunResults` used to: a `mutate` stating `payslip_payroll_run: []`, issued before the write
  * that then stated the real list. Both statements said the same thing, because an included `many`
@@ -387,7 +411,7 @@ test('a run takes a settlement lock over every record it consumed', () => {
  * What is left is one invariant, and it is load-bearing: the graph must **always state** the
  * relationship. An omitted key means "touch nothing", so a run that produced no payslips and said
  * nothing about them would keep the previous build's — a payroll reporting figures it did not
- * calculate, with locks over records it did not read. Stating an empty list is what deletes them.
+ * calculate, with captures over records it did not read. Stating an empty list is what deletes them.
  */
 test('a build always states its payslips, so a rebuild that produces none releases them all', () => {
 	assert.deepEqual(payrollRunGraph({ pending: [], period: '2026-03' }), []);
@@ -415,10 +439,10 @@ test('a settled work day refuses mutation, and the refusal names the adjustment 
 	assert.match(message, /Delete that run/);
 });
 
-test('a draft run’s claim locks the record, which the paid-window arithmetic never did', () => {
-	// No window is consulted at all — the record lock is the stored claim and nothing else. The old
-	// arithmetic froze nothing while the run was still a draft; the claim freezes it the moment the
-	// payslip that priced it exists.
+test('a draft run\u2019s capture locks the record, which the paid-window arithmetic never did', () => {
+	// No window is consulted at all — the record lock is the stored capture and nothing else. The old
+	// arithmetic froze nothing while the run was still a draft; the capture freezes it the moment
+	// the junction row that names it exists.
 	assert.equal(
 		sourceLock({ existing: true, approvalId: null, dates: [], settledBy: null }).kind,
 		'NONE'
@@ -434,7 +458,7 @@ test('a draft run’s claim locks the record, which the paid-window arithmetic n
 	);
 });
 
-test('a pending approval still answers first, because it is the platform’s lock and not ours', () => {
+test('a pending approval still answers first, because it is the platform\u2019s lock and not ours', () => {
 	const lock = sourceLock({
 		existing: true,
 		approvalId: '019efa4b-b947-755a-990e-53c8da7b855f',
@@ -446,7 +470,7 @@ test('a pending approval still answers first, because it is the platform’s loc
 	assert.equal(sourceLockBlocksWrite(lock), false);
 });
 
-// ── 4. the refusal that makes a paid run's claims permanent ─────────────────────────────────────
+// ── 4. the refusal that makes a paid run's captures permanent ───────────────────────────────────
 
 test('a PAID payroll run refuses deletion', () => {
 	assert.throws(
@@ -457,10 +481,10 @@ test('a PAID payroll run refuses deletion', () => {
 		(error) => {
 			assert.match(error.message, /2026-03/);
 			assert.match(error.message, /PAID/);
-			// The reason, not just the rule: deleting it would cascade its settlement claims away and
+			// The reason, not just the rule: deleting it would cascade its captured inputs away and
 			// reopen every record behind money that has already been paid.
-			assert.match(error.message, /release every work day, obligation and leave record it settled/);
-			assert.match(error.message, /adjustment obligation/);
+			assert.match(error.message, /release every work day, entry, repayment and leave record/);
+			assert.match(error.message, /component entry/);
 			return true;
 		}
 	);
@@ -476,12 +500,13 @@ test('a DRAFT payroll run may be deleted, which is the only release the lock has
 
 // ── 5. the declarations the release depends on ──────────────────────────────────────────────────
 
-test('deleting a payroll run releases its settlement locks — the declarations that cascade', () => {
+test('deleting a payroll run releases its captures — the declarations that cascade', () => {
 	/**
 	 * What this asserts is the *declaration*, and the title says so because the distinction is real:
-	 * the two-hop cascade — run → payslips → adjustments — is performed by Postgres, and what this
-	 * workspace controls is that each hop is declared. A single `cascade(` wrapper is the whole of
-	 * that declaration: the compiler turns it into `ON DELETE CASCADE` in the migration lineage.
+	 * the multi-hop cascade — run → payslips → junctions and adjustments — is performed by Postgres,
+	 * and what this workspace controls is that each hop is declared. A single `cascade(` wrapper is
+	 * the whole of that declaration: the compiler turns it into `ON DELETE CASCADE` in the migration
+	 * lineage.
 	 *
 	 * The alternative — a hook looping over `api.db.<collection>.delete(identifiers)` — would have
 	 * been wrong in a way no happy-path test catches, because that call takes `identifiers[0]` and
@@ -504,22 +529,52 @@ test('deleting a payroll run releases its settlement locks — the declarations 
 
 	assert.ok(
 		markersOf(graph.payslip_adjustments.payslip_adjustment_payslip).includes('cascade'),
-		'payslip_adjustments must cascade from payslips, or deleting a run leaves its locks standing'
+		'payslip_adjustments must cascade from payslips, or deleting a run leaves its outputs standing'
 	);
-	// The first hop, asserted beside it so the two are visibly one chain. If one of them ever
-	// renders `ON DELETE CASCADE` and the other does not, this is where that shows up.
+	assert.ok(
+		markersOf(graph.payslip_work_day_inputs.payslip_work_day_input_payslip).includes('cascade'),
+		'work-day captures must cascade from payslips, or deleting a run leaves the source locked'
+	);
+	assert.ok(
+		markersOf(graph.payslip_component_entry_inputs.payslip_component_entry_input_payslip).includes(
+			'cascade'
+		)
+	);
+	assert.ok(
+		markersOf(graph.payslip_leave_request_inputs.payslip_leave_request_input_payslip).includes(
+			'cascade'
+		)
+	);
+	assert.ok(
+		markersOf(graph.payslip_loan_repayment_inputs.payslip_loan_repayment_input_payslip).includes(
+			'cascade'
+		)
+	);
+	// The first hop, asserted beside it so the chain is visibly one chain.
 	assert.ok(markersOf(graph.payslips.payslip_payroll_run).includes('cascade'));
 
 	/**
-	 * And the edge that must NOT cascade, asserted for the same reason.
+	 * And the edges that must NOT cascade, asserted for the same reason.
 	 *
-	 * `rosters → work_days` was a cascade while the row was only a plan. It is not one now: the same
-	 * row carries attendance, and a drafted month must not be able to delete a punch. Deleting a
-	 * roster releases its days instead — see `rosters/+hooks.ts`.
+	 * The junction's source edge is `restrict`: a captured work day, component entry, loan repayment
+	 * or leave request cannot be deleted out from under the run that read it. That restrict is the
+	 * settlement lock's second half. And `rosters → work_days` is not a cascade either: the same row
+	 * carries attendance, and a drafted month must not be able to delete a punch.
 	 */
-	assert.equal(
-		markersOf(graph.work_days.work_day_roster).includes('cascade'),
-		false,
-		'work_days must not cascade from rosters, or deleting a drafted month deletes attendance'
-	);
+	for (const [edge, name] of [
+		[graph.payslip_work_day_inputs.payslip_work_day_input_work_day, 'work days'],
+		[
+			graph.payslip_component_entry_inputs.component_entry_input_component_entry,
+			'component entries'
+		],
+		[graph.payslip_leave_request_inputs.leave_request_input_leave_request, 'leave requests'],
+		[graph.payslip_loan_repayment_inputs.loan_repayment_input_loan_repayment, 'loan repayments'],
+		[graph.work_days.work_day_roster, 'rostered work days']
+	]) {
+		assert.equal(
+			markersOf(edge).includes('cascade'),
+			false,
+			`${name} must not cascade into the junction's source, or deleting it would erase a consumed record`
+		);
+	}
 });

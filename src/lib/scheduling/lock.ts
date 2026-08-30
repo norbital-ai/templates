@@ -1,4 +1,5 @@
-import { Schema } from 'effect';
+import { Effect, Schema } from 'effect';
+import { refuse } from '@norbital-ai/bolt/authoring';
 import type { WorkspaceRow } from '$bolt/types.js';
 import { dateKey } from '../iso-day.js';
 
@@ -120,7 +121,7 @@ function settledDayMessage(period: string, date: string, action: string): string
 /**
  * Why a leave, claim, or attendance record cannot be written again.
  *
- * Pending approval is the platform's write-then-lock stamp, and it stays the 409. The only other
+ * Pending approval is the platform's hold-before-commit state, and it stays the 409. The only other
  * domain freeze is the **settlement lock**: a `payslip_adjustments` row whose database-enforced
  * `restrict` reference names the record a payslip took into account. Its amount is irrelevant — a
  * zero says the run read the source and priced it at nothing, which is a settlement and not an
@@ -348,4 +349,32 @@ export function sourceLockRecordMetadata(
 			reason
 		}
 	] as const;
+}
+
+/**
+ * The shared settlement-lock read, for every source family's update and delete hooks.
+ *
+ * Each hook supplies the capture lookup over its own junction — the generated client keeps its
+ * per-collection query types — and this one decision turns whatever it finds into the same refusal
+ * the screens compute from the same inputs. A pending approval still answers first (the platform's
+ * 409, not ours); a capture names the period that has to release the record. The four junctions
+ * carry the denormalized `period` exactly so this refusal never needs a `payroll_runs` read grant.
+ */
+export function refuseIfCaptured(options: {
+	readonly capture: Effect.Effect<{ readonly period: string } | undefined, never, never>;
+	readonly approvalId: string | null | undefined;
+	readonly action: string;
+}): Effect.Effect<void, never, never> {
+	return Effect.map(options.capture, (row) => {
+		const lock = sourceLock({
+			existing: true,
+			approvalId: options.approvalId,
+			dates: [],
+			settledBy: row == null ? null : { period: row.period },
+			datePassed: 'IS_NOT_A_LOCK'
+		});
+		if (sourceLockBlocksWrite(lock)) {
+			refuse(sourceLockMessage(lock, options.action));
+		}
+	});
 }

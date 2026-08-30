@@ -15,7 +15,6 @@ import { leaveAccrualSchema } from '../../datatypes/leave_accrual/+definition.js
 import { leavePayrollEffectSchema } from '../../datatypes/leave_payroll_effect/+definition.js';
 import { rateAwardSchema } from '../../datatypes/rate_award/+definition.js';
 import { rateSelectorSchema } from '../../datatypes/rate_selector/+definition.js';
-import { obligationInstalmentValueSchema } from '../../datatypes/obligation_instalment/+definition.js';
 import { statutoryFactStatusSchema } from '../../datatypes/statutory_fact_status/+definition.js';
 
 const DECIMAL = new Intl.NumberFormat(undefined, {
@@ -134,76 +133,6 @@ export function formatLeaveRange(event: LeaveEvent | null | undefined, t: Transl
 	return `${formatCalendarDate(event.range.start.date)}, ${half(event.range.start.half)} → ${formatCalendarDate(event.range.end.date)}, ${half(event.range.end.half)}`;
 }
 
-/** The columns a terms sentence is composed from. Anything holding an obligation row supplies them. */
-type ObligationTermsRow = {
-	readonly terms?: unknown;
-	readonly occasion?: unknown;
-	readonly effective_range?: unknown;
-	readonly instalments?: unknown;
-	readonly note?: unknown;
-	readonly reason?: unknown;
-	readonly incurred_on?: unknown;
-	readonly evidence_file?: unknown;
-	readonly covers_periods?: unknown;
-};
-
-function text(value: unknown): string {
-	return typeof value === 'string' ? value : '';
-}
-
-/**
- * How an obligation comes due, as one sentence.
- *
- * It reads the row and not a single column, because the arm *is* several columns now: `terms` says
- * how the money comes due, `occasion` says why a one-off was raised, and each arm's payload sits
- * beside them. Its predecessor read one jsonb union — which is exactly the shape that put a foreign
- * key and a file inside a blob and left a field grant nothing to mask.
- *
- * Nothing here decides whether the row is *valid*: `obligationTermsIssues` in
- * `src/lib/obligation_refusals.ts` is the arm rule, and this only describes what it finds.
- */
-export function formatObligationTerms(row: unknown, t: Translator): string {
-	if (row == null || typeof row !== 'object') return t('component.terms_invalid');
-	const obligation = row as ObligationTermsRow;
-	switch (obligation.terms) {
-		case 'RECURRING':
-			return t('component.terms_recurring', {
-				range: formatEffectiveRange(obligation.effective_range)
-			});
-		case 'SCHEDULED':
-			return t('component.terms_scheduled', {
-				count: Array.isArray(obligation.instalments) ? obligation.instalments.length : 0,
-				range: formatEffectiveRange(obligation.effective_range)
-			});
-		case 'REVERSAL':
-			return t('component.terms_reversal', { reason: text(obligation.reason) });
-		case 'ONE_OFF':
-			break;
-		default:
-			return t('component.terms_invalid');
-	}
-	switch (obligation.occasion) {
-		case 'ENTERED':
-			return text(obligation.note)
-				? t('component.occasion_entered_note', { note: text(obligation.note) })
-				: t('component.occasion_entered');
-		case 'CLAIM':
-			return `${t('component.occasion_claim', {
-				date: formatCalendarDate(obligation.incurred_on)
-			})}${obligation.evidence_file ? t('component.occasion_evidence') : ''}`;
-		case 'ARREARS':
-			return t('component.occasion_arrears', {
-				periods: Array.isArray(obligation.covers_periods)
-					? obligation.covers_periods.join(', ')
-					: ''
-			});
-		case 'ADJUSTMENT':
-			return t('component.occasion_adjustment', { note: text(obligation.note) });
-		default:
-			return t('component.terms_invalid');
-	}
-}
-
 const ACCRUAL_KIND_LABELS: Readonly<Record<string, TenantI18nKeys>> = {
 	MONTHLY: 'component.accrual_kind_monthly',
 	UPFRONT: 'component.accrual_kind_upfront'
@@ -269,21 +198,6 @@ export function formatLeavePayrollEffect(value: unknown, t: Translator): string 
 	const parsed = Schema.decodeUnknownResult(leavePayrollEffectSchema)(value);
 	if (!Result.isSuccess(parsed)) return t('component.effect_invalid');
 	return parsed.success.kind === 'PAID' ? t('component.effect_paid') : t('component.effect_unpaid');
-}
-
-const instalmentsSchema = Schema.Array(obligationInstalmentValueSchema);
-
-/** A scheduled obligation's instalments, as a count and a total. */
-export function formatInstalments(value: unknown, t: Translator): string {
-	const parsed = Schema.decodeUnknownResult(instalmentsSchema)(value ?? []);
-	if (!Result.isSuccess(parsed)) return t('component.schedule_invalid');
-	const instalments = parsed.success;
-	const total = instalments.reduce((sum, instalment) => sum + instalment.amount, 0);
-	return t('component.schedule_instalments', {
-		count: instalments.length,
-		s: instalments.length === 1 ? '' : 's',
-		total: DECIMAL.format(total)
-	});
 }
 
 export function formatHolidayScope(value: unknown, t: Translator): string {

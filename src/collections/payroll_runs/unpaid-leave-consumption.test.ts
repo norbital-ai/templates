@@ -1,7 +1,7 @@
 // @ts-nocheck -- executed directly by Node with --experimental-strip-types.
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { obligationEventDate, obligationPayPeriod } from './lib/obligations.ts';
+import { entryEventDate, entryPayPeriod } from './lib/entries.ts';
 import { measureEmployment } from './lib/measure.ts';
 import { PLAIN_CALENDAR } from './lib/settlement.ts';
 
@@ -37,8 +37,7 @@ const BASIC = {
 	policy: { kind: 'EARNING', settlement: 'ADD', statutory_treatments: [] },
 	sequence: 10,
 	eligibility: [],
-	definition: { source: 'SCHEDULE', unit: 'MONEY', reducible: false },
-	effective_range: { start: '2020-01-01', end: null }
+	definition: { source: 'SCHEDULE', unit: 'MONEY', reducible: false }
 };
 
 const NPL = {
@@ -50,8 +49,7 @@ const NPL = {
 	policy: { kind: 'ABSENCE', settlement: 'DEDUCT', statutory_treatments: [] },
 	sequence: 20,
 	eligibility: [],
-	definition: { source: 'FORMULA', unit: 'MONEY', expr: '100.0' },
-	effective_range: { start: '2020-01-01', end: null }
+	definition: { source: 'FORMULA', unit: 'MONEY', expr: '100.0' }
 };
 
 const NPL_TYPE = {
@@ -60,13 +58,12 @@ const NPL_TYPE = {
 	code: 'NPL',
 	name: 'Unpaid leave',
 	eligibility: [],
-	aggregates_with: null,
+	statutory_kind: null,
 	encash_on_exit: false,
 	requires_certificate_after_days: null,
 	accrual: { kind: 'PER_EVENT' },
 	entitlement: { layers: [] },
-	payroll_effect: { kind: 'UNPAID', component_id: NPL.id },
-	effective_range: { start: '2020-01-01', end: null }
+	payroll_effect: { kind: 'UNPAID', component_id: NPL.id }
 };
 
 const GUARANTEED_PATTERN = {
@@ -124,7 +121,9 @@ function bundle(ledger = []) {
 			}
 		],
 		statutoryFacts: [],
-		obligations: [],
+		componentEntries: [],
+		loans: [],
+		loanRepayments: [],
 		ledger,
 		workDays: [],
 		serviceMonths: 58,
@@ -157,7 +156,8 @@ function measure(ledger) {
 		periodsRemaining: 9,
 		headcount: 1,
 		policy: PLAIN_CALENDAR,
-		consumedObligations: new Map()
+		consumedEntries: new Map(),
+		consumedRepayments: new Map()
 	});
 }
 
@@ -166,9 +166,9 @@ test('unpaid leave is an adjustment naming the leave request that caused it', ()
 	const measured = measure([leaveDay(leaveRequestId, '2026-04-10')]);
 	const npl = measured.adjustments.filter((row) => row.label === 'NPL');
 	assert.equal(npl.length, 1);
-	// The source replaces `LEAVE_UNPAID`'s `leave_request_ids` array. One row, one request, and the
+	// The input replaces `LEAVE_UNPAID`'s `leave_request_ids` array. One row, one request, and the
 	// database enforces the arc: a `restrict` foreign key on the LEAVE_REQUEST arm is the lock.
-	assert.deepEqual(npl[0].source, { kind: 'LEAVE_REQUEST', id: leaveRequestId });
+	assert.deepEqual(npl[0].input, { family: 'LEAVE_REQUEST', id: leaveRequestId });
 	assert.equal(npl[0].payComponent.id, NPL.id);
 	assert.equal(npl[0].quantity, 1);
 	assert.equal(npl[0].amount, 100, 'the formula’s own figure, unapportioned: there is one request');
@@ -192,7 +192,7 @@ test('one absence across three requests is three rows that sum to the formula’
 	]);
 	const npl = measured.adjustments.filter((row) => row.label === 'NPL');
 	assert.deepEqual(
-		npl.map((row) => row.source.id),
+		npl.map((row) => row.input.id),
 		['lr-a', 'lr-b', 'lr-c']
 	);
 	assert.equal(
@@ -214,7 +214,7 @@ test('a formula component with no unpaid leave in the window is base, because no
 	const measured = measure([]);
 	const npl = measured.base.filter((item) => item.label === 'NPL');
 	assert.equal(npl.length, 1);
-	assert.deepEqual(npl[0].entry, { pay_component_id: NPL.id, amount: 100 });
+	assert.deepEqual(npl[0].entry, { component_code: 'NPL', amount: 100 });
 	// No adjustment at all: an amount with no source is not an adjustment, it is base — and there is
 	// no `kind` column anywhere to declare which, because the kind is derived from what it points at.
 	assert.deepEqual(
@@ -223,28 +223,24 @@ test('a formula component with no unpaid leave in the window is base, because no
 	);
 });
 
-test('a claim with incurred_on settles by that date, not event_date', () => {
-	// `occasion` and `incurred_on` are plain columns; nothing decodes a union to find them.
+test('a claim with an incurred date settles by that date, not event_date', () => {
+	// The claim's incurred day is the economic fact; the cutoff reads it, not the entry date.
 	const claim = {
 		id: 'claim-1',
-		terms: 'ONE_OFF',
-		occasion: 'CLAIM',
+		event: { kind: 'CLAIM', incurred_on: '2026-04-10', description: null },
 		pay_period: null,
-		event_date: '2026-04-25',
-		incurred_on: '2026-04-10'
+		event_date: '2026-04-25T00:00:00.000Z'
 	};
-	assert.equal(obligationPayPeriod(claim, 21), '2026-04');
-	assert.equal(obligationEventDate(claim, new Map([[claim.id, claim]])), '2026-04-10');
+	assert.equal(entryPayPeriod(claim, 21), '2026-04');
+	assert.equal(entryEventDate(claim), '2026-04-10');
 });
 
-test('an obligation that is not a claim falls back to event_date for the cutoff', () => {
+test('an entry that is not a claim falls back to its event date for the cutoff', () => {
 	const entered = {
 		id: 'claim-2',
-		terms: 'ONE_OFF',
-		occasion: 'ENTERED',
+		event: { kind: 'BONUS', note: null },
 		pay_period: null,
-		event_date: '2026-04-25',
-		incurred_on: null
+		event_date: '2026-04-25T00:00:00.000Z'
 	};
-	assert.equal(obligationPayPeriod(entered, 21), '2026-05');
+	assert.equal(entryPayPeriod(entered, 21), '2026-05');
 });

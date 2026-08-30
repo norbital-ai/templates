@@ -1,16 +1,15 @@
 <script lang="ts">
 	/**
-	 * One person's settlement, in the four things a payslip comprises.
+	 * One person's settlement, in its two deliberately separate halves.
 	 *
-	 * BASE, PRORATION and STATUTORY are columns on this record — they point at no input, which is
-	 * exactly why they are inlined — so they are read straight off `record` and need no table.
-	 * ADJUSTMENTS is the one relation, and the one polymorphic thing: a row exists there only when
-	 * there is a single concrete input to name.
+	 * OUTPUTS: BASE, PRORATION and STATUTORY are columns on this record — they are caused by no
+	 * input, which is exactly why they are inlined — so they are read straight off `record` and need
+	 * no table. ADJUSTMENTS is the one output relation: a row exists there only when exactly one
+	 * captured input caused it.
 	 *
-	 * This replaces two tables. `payslip_lines` said what was produced and `payslip_sources` said
-	 * what was read, and every question about overtime needed both — the line named a statutory band
-	 * and the clock records that priced it sat in another table with no amount on them. One row says
-	 * both now, and a row that produced nothing is a zero, not an absence.
+	 * INPUTS are the four junction relations — work days, component entries, leave requests, loan
+	 * repayments — each a real FK into the business source. They are read beside the adjustments so
+	 * the payslip answers "what was read" as directly as it answers "what was calculated".
 	 */
 	import { FormattedValueRenderer } from '@norbital-ai/ui/data-renderer';
 	import { client } from '../../lib/workspace-client.js';
@@ -28,46 +27,14 @@
 
 	// CollectionTable erases its query-specific row type at the render callback, so nested values are
 	// decoded once at that boundary instead of cast by hand.
-	const obligationSourceSchema = Schema.Struct({
-		reference: Schema.optional(Schema.NullOr(Schema.String)),
-		description: Schema.optional(Schema.NullOr(Schema.String)),
-		event_date: Schema.optional(Schema.NullOr(Schema.String))
-	});
-	const workDaySourceSchema = Schema.Struct({
-		work_date: Schema.optional(Schema.NullOr(Schema.String)),
-		work_day_employment: Schema.optional(
-			Schema.NullOr(
-				Schema.Struct({ employee_number: Schema.optional(Schema.NullOr(Schema.String)) })
-			)
-		)
-	});
-	const leaveSourceSchema = Schema.Struct({
-		from_date: Schema.optional(Schema.NullOr(Schema.String)),
-		to_date: Schema.optional(Schema.NullOr(Schema.String)),
-		leave_request_type: Schema.optional(
-			Schema.NullOr(Schema.Struct({ code: Schema.optional(Schema.NullOr(Schema.String)) }))
-		)
-	});
 	const adjustmentRowSchema = Schema.Struct({
-		payslip_adjustment_pay_component: Schema.optional(
-			Schema.NullOr(Schema.Struct({ code: Schema.optional(Schema.NullOr(Schema.String)) }))
-		),
-		source: Schema.Union([
-			Schema.Struct({
-				kind: Schema.Literal('OBLIGATION'),
-				id: Schema.String,
-				record: Schema.NullOr(obligationSourceSchema)
-			}),
-			Schema.Struct({
-				kind: Schema.Literal('WORK_DAY'),
-				id: Schema.String,
-				record: Schema.NullOr(workDaySourceSchema)
-			}),
-			Schema.Struct({
-				kind: Schema.Literal('LEAVE_REQUEST'),
-				id: Schema.String,
-				record: Schema.NullOr(leaveSourceSchema)
-			})
+		label: Schema.optional(Schema.NullOr(Schema.String)),
+		statutory_rule_key: Schema.optional(Schema.NullOr(Schema.String)),
+		input: Schema.Union([
+			Schema.Struct({ kind: Schema.Literal('WORK_DAY_INPUT'), id: Schema.String }),
+			Schema.Struct({ kind: Schema.Literal('COMPONENT_ENTRY_INPUT'), id: Schema.String }),
+			Schema.Struct({ kind: Schema.Literal('LEAVE_REQUEST_INPUT'), id: Schema.String }),
+			Schema.Struct({ kind: Schema.Literal('LOAN_REPAYMENT_INPUT'), id: Schema.String })
 		])
 	});
 	const payslipSummarySchema = Schema.Struct({
@@ -110,96 +77,30 @@
 	const employment = $derived(summary?.payslip_employment ?? null);
 
 	/**
-	 * The catalogue names the inlined arrays deliberately do not carry.
+	 * The outputs, read straight off the record.
 	 *
-	 * `payslips.base` holds a `pay_components` id and no foreign key, because a settled payslip is a
-	 * frozen statement of what was paid and does not become wrong when a component is archived. The
-	 * screen still has to say `BASIC` rather than a uuid, so it resolves the ids it is holding — one
-	 * query for the whole payslip, not one per row.
+	 * Base, proration and statutory are frozen facts that name their source by code and key, so the
+	 * screen prints what the row already says and resolves nothing. The catalogue link a screen
+	 * needs is not there by design — a settled payslip does not become wrong when a component is
+	 * archived.
 	 */
 	const base = $derived(record?.base ?? []);
 	const proration = $derived(record?.proration ?? []);
 	const statutory = $derived(record?.statutory ?? []);
 
-	/** Distinct ids to look up, or nothing to ask — the shape both catalogue reads below share. */
-	const catalogueIds = (values: readonly string[]): readonly string[] | null => {
-		const ids = [...new Set(values)];
-		return ids.length === 0 ? null : ids;
-	};
-	const CATALOGUE_LIMIT = 200;
-	/** Both catalogue reads ask the same question of different collections. */
-	const catalogueQuery = (ids: readonly string[]) =>
-		({
-			where: { id: { in: ids } },
-			columns: { id: true, code: true },
-			limit: CATALOGUE_LIMIT
-		}) as const;
-
-	const componentsQuery = $derived.by(() => {
-		const ids = catalogueIds(base.map((entry) => entry.pay_component_id));
-		return ids == null ? null : client.db.pay_components.findMany(catalogueQuery(ids));
-	});
-	const componentLabelById = $derived(
-		new Map((componentsQuery?.current ?? []).map((component) => [component.id, component.code]))
-	);
-
-	const schemesQuery = $derived.by(() => {
-		const ids = catalogueIds(statutory.map((charge) => charge.statutory_contribution_id));
-		return ids == null ? null : client.db.statutory_contributions.findMany(catalogueQuery(ids));
-	});
-	const schemeLabelById = $derived(
-		new Map(
-			(schemesQuery?.current ?? []).map((scheme) => [
-				scheme.id,
-				[scheme.code, scheme.name].filter((part) => part != null && part !== '').join(' · ')
-			])
-		)
-	);
-
-	function componentLabel(row: unknown): string {
-		const parsed = decodeAdjustmentRow(row);
-		if (!Result.isSuccess(parsed)) return t('component.derived_line');
-		const code = parsed.success.payslip_adjustment_pay_component?.code;
-		return code ? code : t('component.derived_line');
-	}
-
-	function sourceKind(row: unknown): string {
+	function inputKind(row: unknown): string {
 		const parsed = decodeAdjustmentRow(row);
 		if (!Result.isSuccess(parsed)) return '—';
-		switch (parsed.success.source.kind) {
-			case 'OBLIGATION':
-				return t('component.obligation');
-			case 'WORK_DAY':
+		switch (parsed.success.input.kind) {
+			case 'COMPONENT_ENTRY_INPUT':
+				return t('component.entry_kind');
+			case 'WORK_DAY_INPUT':
 				return t('component.attendance');
-			case 'LEAVE_REQUEST':
+			case 'LEAVE_REQUEST_INPUT':
 				return t('component.leave');
+			case 'LOAN_REPAYMENT_INPUT':
+				return t('app.loans.agreements');
 		}
-	}
-
-	function sourceDetail(row: unknown): string {
-		const parsed = decodeAdjustmentRow(row);
-		if (!Result.isSuccess(parsed)) return '—';
-		const source = parsed.success.source;
-		if (source.kind === 'OBLIGATION') {
-			const obligation = source.record;
-			if (obligation == null) return '—';
-			const named = obligation.reference ?? obligation.description;
-			if (named) return named;
-			return obligation.event_date == null ? '—' : formatCalendarDate(obligation.event_date);
-		}
-		if (source.kind === 'WORK_DAY') {
-			const day = source.record;
-			if (day?.work_date == null) return '—';
-			return [day.work_day_employment?.employee_number, formatCalendarDate(day.work_date)]
-				.filter(Boolean)
-				.join(' · ');
-		}
-		const leave = source.record;
-		if (leave?.from_date == null) return '—';
-		const range = leave.to_date
-			? `${formatCalendarDate(leave.from_date)} → ${formatCalendarDate(leave.to_date)}`
-			: formatCalendarDate(leave.from_date);
-		return [leave.leave_request_type?.code, range].filter(Boolean).join(' · ');
 	}
 </script>
 
@@ -251,11 +152,9 @@
 				<p class="text-sm text-muted-foreground">{t('component.payslip_base_none')}</p>
 			{:else}
 				<Stack as="ul" gap="none" class="text-sm tabular-nums">
-					{#each base as entry (entry.pay_component_id)}
+					{#each base as entry (entry.component_code)}
 						<Inline as="li" justify="between" gap="sm" class="border-t border-border py-1">
-							<span class="truncate"
-								>{componentLabelById.get(entry.pay_component_id) ?? entry.pay_component_id}</span
-							>
+							<span class="truncate">{entry.component_code}</span>
 							<span class="font-medium">{formatNumeric(entry.amount)}</span>
 						</Inline>
 					{/each}
@@ -291,7 +190,7 @@
 							</tr>
 						</thead>
 						<tbody>
-							{#each proration as segment (`${segment.term_id}:${segment.from}`)}
+							{#each proration as segment (`${segment.term_key}:${segment.from}`)}
 								<tr class="border-t border-border">
 									<td class="py-1 pr-3 whitespace-nowrap"
 										>{formatCalendarDate(segment.from)} → {formatCalendarDate(segment.to)}</td
@@ -338,13 +237,12 @@
 							</tr>
 						</thead>
 						<tbody>
-							{#each statutory as charge (charge.statutory_contribution_id)}
+							{#each statutory as charge (charge.scheme_code)}
 								<tr class="border-t border-border">
-									<td class="py-1 pr-3"
-										>{schemeLabelById.get(charge.statutory_contribution_id) ??
-											charge.statutory_contribution_id}</td
-									>
-									<td class="py-1 pr-3">{charge.band_reference ?? '—'}</td>
+									<td class="py-1 pr-3">
+										{charge.scheme_code}{charge.authority ? ` · ${charge.authority}` : ''}
+									</td>
+									<td class="py-1 pr-3">{charge.band_key ?? '—'}</td>
 									<td class="py-1 pr-3 text-right">{formatNumeric(charge.base_amount)}</td>
 									<td class="py-1 pr-3 text-right font-medium"
 										>{formatNumeric(charge.employee_amount)}</td
@@ -378,47 +276,28 @@
 					query={{
 						where: { payslip_id: { eq: record.id } },
 						orderBy: { sequence: 'asc' },
-						with: {
-							payslip_adjustment_pay_component: { columns: { code: true } },
-							source: {
-								OBLIGATION: {
-									columns: { reference: true, description: true, event_date: true }
-								},
-								WORK_DAY: {
-									columns: { work_date: true },
-									with: { work_day_employment: { columns: { employee_number: true } } }
-								},
-								LEAVE_REQUEST: {
-									columns: { from_date: true, to_date: true },
-									with: { leave_request_type: { columns: { code: true } } }
-								}
-							}
+						columns: {
+							sequence: true,
+							label: true,
+							bucket: true,
+							amount: true,
+							quantity: true,
+							rate: true,
+							statutory_rule_key: true,
+							input: true
 						},
 						limit: 500
 					}}
 				>
 					{#snippet columns({ Column })}
 						<Column name="sequence" label={t('component.sequence_hash')} />
+						<Column name="label" label={t('component.component')} card="title" />
 						<Column
-							name="pay_component_id"
-							label={t('component.component')}
-							card="title"
-							renderer={FormattedValueRenderer}
-							rendererProps={{ format: ({ row }) => componentLabel(row) }}
-						/>
-						<Column name="overtime_band" label={t('component.overtime_band')} />
-						<Column
-							name="source"
+							name="input"
 							label={t('component.input_type')}
 							card="subtitle"
 							renderer={FormattedValueRenderer}
-							rendererProps={{ format: ({ row }) => sourceKind(row) }}
-						/>
-						<Column
-							name="period"
-							label={t('component.source_record')}
-							renderer={FormattedValueRenderer}
-							rendererProps={{ format: ({ row }) => sourceDetail(row) }}
+							rendererProps={{ format: ({ row }) => inputKind(row) }}
 						/>
 						<Column name="bucket" card="badge" />
 						<Column name="quantity" />

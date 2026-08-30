@@ -317,6 +317,7 @@ describe('statutory profile drift authored handler', () => {
 					id: 'j-sg',
 					code: 'SG',
 					name: 'Singapore',
+					lifecycle: 'SEALED',
 					effective_range: { start: '2020-01-01T00:00:00.000Z', end: null }
 				}
 			],
@@ -324,17 +325,16 @@ describe('statutory profile drift authored handler', () => {
 				{
 					id: 'cpf-new',
 					jurisdiction_id: 'j-sg',
+					statutory_profile_id: 'j-sg',
 					code: 'CPF',
-					name: 'CPF current',
-					effective_range: { start: '2025-01-01T00:00:00.000Z', end: null }
+					name: 'CPF current'
 				}
 			],
 			contribution_rates: [
 				{
 					id: 'rate-current',
 					statutory_contribution_id: 'cpf-new',
-					summary: 'Current CPF rate',
-					effective_range: { start: '2025-01-01T00:00:00.000Z', end: null }
+					summary: 'Current CPF rate'
 				}
 			],
 			companies: [],
@@ -350,12 +350,9 @@ describe('statutory profile drift authored handler', () => {
 					statutory_fact_contribution: {
 						id: 'cpf-old',
 						jurisdiction_id: 'j-sg',
+						statutory_profile_id: 'j-sg',
 						code: 'CPF',
-						name: 'CPF former',
-						effective_range: {
-							start: '2020-01-01T00:00:00.000Z',
-							end: '2024-12-31T00:00:00.000Z'
-						}
+						name: 'CPF former'
 					}
 				}
 			]
@@ -413,6 +410,7 @@ describe('statutory profile drift authored handler', () => {
 						id: 'j-my',
 						code: 'MY',
 						name: 'Malaysia',
+						lifecycle: 'SEALED',
 						effective_range: { start: '2020-01-01T00:00:00.000Z', end: null }
 					}
 				]
@@ -445,12 +443,14 @@ describe('statutory profile drift authored handler', () => {
 						id: 'j-sg',
 						code: 'SG',
 						name: 'Singapore',
+						lifecycle: 'SEALED',
 						effective_range: { start: '2020-01-01T00:00:00.000Z', end: null }
 					},
 					{
 						id: 'j-my',
 						code: 'MY',
 						name: 'Malaysia',
+						lifecycle: 'SEALED',
 						effective_range: { start: '2020-01-01T00:00:00.000Z', end: null }
 					}
 				]
@@ -489,6 +489,7 @@ describe('statutory profile drift authored handler', () => {
 						id: 'j-id',
 						code: 'ID',
 						name: 'Indonesia',
+						lifecycle: 'SEALED',
 						effective_range: { start: '2020-01-01T00:00:00.000Z', end: null }
 					}
 				]

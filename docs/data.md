@@ -24,15 +24,15 @@ cleaned archive and document it in the seed audit. All other conflicts and omiss
 A typical private reconciliation exercise supplies the following input families. Counts vary by
 engagement; the audit must report exact coverage for the dataset under test, not assumed totals.
 
-| Input family                    | Seed rule                                                | Typical audit question                                  |
-| ------------------------------- | -------------------------------------------------------- | ------------------------------------------------------- |
-| Medical claims                  | One seeded row per approved cleaned claim                | Does every tracker row map 1:1?                         |
-| Loan instalments                | The obligation's inline schedule plus explicit reversals | Are unsupported schedules excluded rather than altered? |
-| Direct allowances               | Source-backed money entries only                         | Are calculated incentive columns excluded?              |
-| Obligations                     | Claims, adjustments, recoveries with provenance          | Is any payslip output copied back as input?             |
-| Leave requests                  | Approved cleaned requests linked to employments          | Do quantities and dates match the source?               |
-| Employee master and employments | Codes, hire dates, terms, statutory facts                | Are incomplete master gaps disclosed?                   |
-| Attendance                      | Dated rows per employment                                | Are rows without a complete master left unseeded?       |
+| Input family                    | Seed rule                                                                           | Typical audit question                                  |
+| ------------------------------- | ----------------------------------------------------------------------------------- | ------------------------------------------------------- |
+| Medical claims                  | One seeded row per approved cleaned claim                                           | Does every tracker row map 1:1?                         |
+| Loan repayment plan             | The loan's `loan_repayments` rows, provisioned equal with the remainder on the last | Are unsupported schedules excluded rather than altered? |
+| Direct allowances               | Source-backed money entries only                                                    | Are calculated incentive columns excluded?              |
+| Component entries               | Claims, allowances, bonuses, arrears and corrections                                | Is any payslip output copied back as input?             |
+| Leave requests                  | Approved cleaned requests linked to employments                                     | Do quantities and dates match the source?               |
+| Employee master and employments | Codes, hire dates, terms, statutory facts                                           | Are incomplete master gaps disclosed?                   |
+| Attendance                      | Dated rows per employment                                                           | Are rows without a complete master left unseeded?       |
 
 Calculated payslip columns — basic earned, overtime amounts, incentive overtime, unpaid-leave
 deductions, contributions, tax, gross, net and year-to-date totals — never enter seed. They are
@@ -42,7 +42,7 @@ produced by a fresh run and compared against the independent source workbook.
 
 - Remove placeholder employments when the employee master is incomplete; retain cleaned attendance
   rows so the missing-data boundary stays visible.
-- Exclude loans whose principal and instalment schedule disagree; keep period recoveries
+- Exclude loans whose principal and repayment plan disagree; keep period recoveries
   that the source states explicitly.
 - Do not seed business incentive overtime from a payslip column when no input policy or event exists.
 - Do not seed derived late-joiner basic arrears; let the engine calculate them from hire date and
@@ -60,7 +60,7 @@ The seed audit must list every source record that cannot be seeded. Common categ
 | Payslips withheld for blind testing                                 | Output can run but cannot yet be reconciled                                                         |
 | Payslip amount that disagrees with the specialist tracker           | Remains an input gap until HR confirms the paid amount; then seed the paid value with that evidence |
 | Incomplete June joiner master while attendance exists               | Keep cleaned attendance; key master/terms in UI for testing — do not invent                         |
-| Loan whose principal does not equal the stated instalment schedule  | Period recoveries may pay, but the obligation cannot be represented consistently                    |
+| Loan whose principal does not equal its repayment plan              | Period recoveries may pay, but the agreement cannot be represented consistently                     |
 | Shift catalogue, roster definitions or independent medical register | Identity, schedule and claim provenance remain incomplete                                           |
 | Loan disbursement dates                                             | Valid schedules exist, but origination-date audit is incomplete                                     |
 
@@ -108,12 +108,12 @@ not invent a missing receipt date beyond the settlement window.
 Preserve both the event date and settlement assignment:
 
 ```text
-event_date = when the attendance, claim, leave or instalment occurred
+event_date = when the attendance, claim, leave or repayment occurred
 pay_period = explicit payroll assignment, when supplied
 ```
 
 Do not move an event date to force it through a cutoff. Attendance is selected by the configured
-21st–20th window. Obligations use explicit `pay_period` when present; otherwise their default
+21st–20th window. Component entries use explicit `pay_period` when present; otherwise their default
 cutoff rule applies.
 
 ### Source-specific boundaries

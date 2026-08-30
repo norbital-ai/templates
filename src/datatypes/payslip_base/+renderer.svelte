@@ -45,9 +45,9 @@
 	<Stack gap="xs">
 		<p class="text-meta">{t('renderer.payslip_base.identity')}</p>
 		<Stack as="ul" gap="none" class="text-sm tabular-nums">
-			{#each amounts as entry (entry.pay_component_id)}
+			{#each amounts as entry (entry.component_code)}
 				<Inline as="li" justify="between" gap="sm" class="border-t border-border py-1">
-					<span class="truncate font-mono text-xs">{entry.pay_component_id}</span>
+					<span class="truncate font-mono text-xs">{entry.component_code}</span>
 					<span class="font-medium">{formatNumeric(entry.amount)}</span>
 				</Inline>
 			{/each}

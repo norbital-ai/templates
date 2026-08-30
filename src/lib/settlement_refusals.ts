@@ -2,46 +2,42 @@ import { Schema } from 'effect';
 
 /**
  * ============================================================================
- * THE INVARIANT THE DATABASE NO LONGER HOLDS
+ * THE CEILINGS THE DATABASE DOES NOT HOLD
  * ============================================================================
  *
- * `payslip_sources.source` used to be globally `unique`. One concrete input belonged to exactly one
- * payslip, the database said so, and nothing in the engine had to be trusted for it to be true.
+ * Two families of payroll input are consumed across more than one payslip, and the junctions make
+ * that legal: a one-off component entry may settle under a cap that pays less than it asked for, and
+ * a loan repayment may be part-recovered when net-pay protection reduces what a run could take.
+ * `unique(payslip_id, source)` on the junctions keeps double-consumption *within* one run
+ * impossible; what the database does not say is that the sum across every paid run stays inside
+ * what the source is worth.
  *
- * That constraint cannot survive partial consumption. A loan instalment the negative-net guard could
- * only part-pay stays outstanding on its obligation, and the next run recovers the remainder against
- * the same instalment - so one obligation is legitimately touched by several payslips. Under the
- * merged shape the constraint is `unique(source, payslip_id)`, which still makes it impossible to
- * consume one input twice **inside one run**.
- *
- * What is gone is the cross-run ceiling: nothing at the database level now stops the sum of what
- * every run took from an obligation exceeding what the obligation is worth. That ceiling is
- * arithmetic now, and this file is where the arithmetic is named.
+ * That is arithmetic, and this file is where the arithmetic is named:
  *
  *     A DATABASE INVARIANT WAS TRADED FOR AN ARITHMETIC ONE.
  *     It is stated here, raised by the payroll engine, and held by a test - not by a comment.
  *
- * The refusal is declared in the declaration layer rather than inside the engine on purpose. The
- * rule belongs to the shape: it is the reason `payslip_adjustments` may carry several rows for one
- * `source`, and anything that reads that shape has to be able to name the thing that bounds it.
+ * The refusals are declared in the declaration layer rather than inside the engine on purpose. The
+ * rules belong to the shape: they are the reason a captured input may feed several payslips, and
+ * anything that reads that shape has to be able to name the thing that bounds it.
  */
 
 /**
- * The refusal raised when a run would take more from an obligation than the obligation is worth.
+ * The refusal raised when a run would take more from a component entry than the entry is worth.
  *
- * **This exact string is the name.** The engine raises it, the settlement test asserts on it, and
- * an operator reads it in the sentence below. Renaming it in one place and not the others silently
- * unhooks the only guard the cross-run ceiling has.
+ * **This exact string is the name.** The engine raises it, the test asserts on it, and an operator
+ * reads it in the sentence below. Renaming it in one place and not the others silently unhooks the
+ * only guard the consumption ceiling has.
  */
-export const OBLIGATION_OVER_CONSUMED = 'OBLIGATION_OVER_CONSUMED' as const;
+export const ENTRY_OVER_CONSUMED = 'ENTRY_OVER_CONSUMED' as const;
 
-/** What the engine knows when it is about to exceed an obligation. */
-const obligationConsumptionSchema = Schema.Struct({
-	/** The `obligations` row being drawn against. */
-	obligation_id: Schema.String.check(Schema.isUUID()),
-	/** The customer's name for it, where it has one; used to make the sentence readable. */
-	reference: Schema.NullOr(Schema.String),
-	/** What the obligation is worth in total - its principal, or its single amount. */
+/** What the engine knows when it is about to exceed a component entry. */
+const entryConsumptionSchema = Schema.Struct({
+	/** The `component_entries` row being drawn against. */
+	component_entry_id: Schema.String.check(Schema.isUUID()),
+	/** The pay component code it settles under, to make the sentence readable. */
+	component_code: Schema.String,
+	/** What the entry is worth — its approved magnitude. */
 	entitlement: Schema.Finite,
 	/** What every earlier PAID run already took from it. */
 	consumed: Schema.Finite,
@@ -51,34 +47,92 @@ const obligationConsumptionSchema = Schema.Struct({
 	period: Schema.String
 });
 
-type ObligationConsumption = Schema.Schema.Type<typeof obligationConsumptionSchema>;
+type EntryConsumption = Schema.Schema.Type<typeof entryConsumptionSchema>;
 
 /**
  * Whether this proposal would break the ceiling.
  *
  * A tolerance is deliberate and small: amounts are rounded to the currency's minor unit on the way
- * into a payslip, so a schedule that sums to its principal exactly can still land a hundredth over
- * it across a dozen runs. One cent of rounding is not an over-consumption; a cent more than that is.
+ * into a payslip, so a reimbursement percentage can land a hundredth over the entry across a
+ * handful of runs. One cent of rounding is not an over-consumption; a cent more than that is.
  */
-export const overConsumesObligation = (consumption: ObligationConsumption): boolean =>
+export const overConsumesEntry = (consumption: EntryConsumption): boolean =>
 	consumption.consumed + consumption.proposed - consumption.entitlement > 0.01;
 
 /**
  * The sentence the refusal carries.
  *
- * It names the obligation, what is left, and what was asked for - because the only two ways out are
- * amending the obligation or letting the run settle for the remainder, and neither is choosable from
+ * It names the entry, what is left, and what was asked for — because the only two ways out are
+ * amending the entry or letting the run settle the remainder, and neither is choosable from
  * "over-consumed".
  */
-export const obligationOverConsumedMessage = (consumption: ObligationConsumption): string => {
+export const entryOverConsumedMessage = (consumption: EntryConsumption): string => {
 	const remaining = consumption.entitlement - consumption.consumed;
-	const named =
-		consumption.reference == null ? 'This obligation' : `Obligation ${consumption.reference}`;
 	return (
-		`${OBLIGATION_OVER_CONSUMED}: ${named} is worth ${consumption.entitlement.toFixed(2)} and ` +
-		`earlier paid runs have already taken ${consumption.consumed.toFixed(2)} of it. Payroll ` +
-		`${consumption.period} asked for ${consumption.proposed.toFixed(2)}, which is more than the ` +
-		`${remaining.toFixed(2)} outstanding. Amend the obligation, or let the run settle the ` +
-		'remainder only.'
+		`${ENTRY_OVER_CONSUMED}: the ${consumption.component_code} entry is worth ` +
+		`${consumption.entitlement.toFixed(2)} and earlier paid runs have already taken ` +
+		`${consumption.consumed.toFixed(2)} of it. Payroll ${consumption.period} asked for ` +
+		`${consumption.proposed.toFixed(2)}, which is more than the ${remaining.toFixed(2)} ` +
+		'outstanding. Amend the entry, or let the run settle the remainder only.'
+	);
+};
+
+/** The refusal raised when paid recovery across payslips would exceed a repayment's amount due. */
+export const REPAYMENT_OVER_RECOVERED = 'REPAYMENT_OVER_RECOVERED' as const;
+
+/**
+ * The refusal raised when a one-off entry is already captured by another standing payroll.
+ *
+ * Single-use means one standing/paid payslip — not "until output amounts add up to the requested
+ * amount". A $100 claim reimbursed at 80% is fully settled by one $80 output and must not leave an
+ * invented $20 balance behind for a later run to "catch up". Declared here beside the other
+ * ceilings because it is the same shape: a rule the junction unique indexes cannot state alone.
+ */
+export const ENTRY_ALREADY_CAPTURED = 'ENTRY_ALREADY_CAPTURED' as const;
+
+/** What the engine knows when a one-off entry is already held by a standing run. */
+const entryCaptureSchema = Schema.Struct({
+	/** The period of the run that already holds the entry. */
+	capturedBy: Schema.String,
+	/** The period of the run that asked to capture it. */
+	period: Schema.String
+});
+
+type EntryCapture = Schema.Schema.Type<typeof entryCaptureSchema>;
+
+export const entryAlreadyCapturedMessage = (capture: EntryCapture): string =>
+	`${ENTRY_ALREADY_CAPTURED}: this one-off entry is already captured by payroll ` +
+	`${capture.capturedBy}. A one-off claim, bonus, arrears settlement or correction settles in ` +
+	'one standing payroll; correct a settled payslip with a new component entry, not by ' +
+	'capturing the same one twice.';
+
+/** What the engine knows when a recovery would overrun a repayment. */
+const repaymentConsumptionSchema = Schema.Struct({
+	/** The `loan_repayments` row being recovered. */
+	loan_repayment_id: Schema.String.check(Schema.isUUID()),
+	/** The due date, to make the sentence readable. */
+	due_date: Schema.String,
+	amount_due: Schema.Finite,
+	/** What every earlier PAID run already recovered from it. */
+	consumed: Schema.Finite,
+	/** What this run is proposing to recover on top. */
+	proposed: Schema.Finite,
+	period: Schema.String
+});
+
+type RepaymentConsumption = Schema.Schema.Type<typeof repaymentConsumptionSchema>;
+
+/** The ceiling is exact: a repayment is recovered to its amount due and never past it. */
+export const overRecoversRepayment = (consumption: RepaymentConsumption): boolean =>
+	consumption.consumed + consumption.proposed - consumption.amount_due > 0.01;
+
+export const repaymentOverRecoveredMessage = (consumption: RepaymentConsumption): string => {
+	const remaining = consumption.amount_due - consumption.consumed;
+	return (
+		`${REPAYMENT_OVER_RECOVERED}: the repayment due ${consumption.due_date} is worth ` +
+		`${consumption.amount_due.toFixed(2)} and earlier paid runs have already recovered ` +
+		`${consumption.consumed.toFixed(2)} of it. Payroll ${consumption.period} asked for ` +
+		`${consumption.proposed.toFixed(2)}, which is more than the ${remaining.toFixed(2)} ` +
+		'outstanding.'
 	);
 };

@@ -11,7 +11,7 @@
 
 import { Effect } from 'effect';
 import type { Pipelines } from './$types.js';
-import type { TExportManifest } from '@norbital-ai/bolt/authoring';
+import { refuse, type TExportManifest } from '@norbital-ai/bolt/authoring';
 import { loadRunExports } from './lib/export-data.js';
 
 export default {
@@ -22,6 +22,14 @@ export default {
 			Effect.gen(function* () {
 				const { bankFileRows, payrollReportXlsx, payslipPdf } = yield* Effect.tryPromise(
 					() => import('./lib/export.js')
+				).pipe(
+					Effect.catch(() =>
+						Effect.sync(() =>
+							refuse(
+								'Payroll export support could not be loaded. Reload the workspace and try again.'
+							)
+						)
+					)
 				);
 				const exports = yield* loadRunExports(api, records);
 				const actions: TExportManifest = [];
@@ -79,7 +87,15 @@ export default {
 							{
 								name: `payroll_report_${label}.xlsx`,
 								contentType: 'XLSX',
-								content: yield* payrollReportXlsx(sheets)
+								content: yield* payrollReportXlsx(sheets).pipe(
+									Effect.catch(() =>
+										Effect.sync(() =>
+											refuse(
+												'Payroll workbook creation failed. Reload the workspace and try again.'
+											)
+										)
+									)
+								)
 							}
 						],
 						metadata: {

@@ -6,18 +6,14 @@ import {
 	statutoryFactStatusValueSchema,
 	type StatutoryFactStatus
 } from '../datatypes/statutory_fact_status/+definition.js';
-import {
-	readRange,
-	StoredRangeSchema,
-	type StoredRange
-} from '../collections/payroll_runs/lib/effective.js';
+import { readRange, StoredRangeSchema } from '../collections/payroll_runs/lib/effective.js';
 
 /**
  * In-force statutory alignment: which companies, facts and schemes have drifted, and which
  * employment facts have a unique successor scheme to copy onto.
  *
  * The law tables themselves are never written from here. A successor copy is proposed only when
- * exactly one later in-force scheme exists for the same jurisdiction and code.
+ * exactly one later governing-profile scheme exists for the same jurisdiction and code.
  */
 
 const DriftKindSchema = Schema.Union([
@@ -85,12 +81,14 @@ const jurisdictionValueSchema = Schema.Struct({
 	id: Schema.String,
 	code: Schema.String,
 	name: Schema.String,
+	lifecycle: Schema.optionalKey(Schema.String),
 	currency: Schema.optionalKey(Schema.String),
 	tax_year_start_month: Schema.optionalKey(Schema.Number),
 	proration: Schema.optionalKey(Schema.Unknown),
 	ordinary_rate_basis: Schema.optionalKey(Schema.String),
 	ordinary_rate_divisor: Schema.optionalKey(Schema.Unknown),
 	regime: Schema.optionalKey(Schema.Unknown),
+	statutory_leave: Schema.optionalKey(Schema.Unknown),
 	effective_range: Schema.optionalKey(Schema.Unknown)
 });
 export type JurisdictionRow = Schema.Schema.Type<typeof jurisdictionValueSchema>;
@@ -98,6 +96,7 @@ export type JurisdictionRow = Schema.Schema.Type<typeof jurisdictionValueSchema>
 const schemeValueSchema = Schema.Struct({
 	id: Schema.String,
 	jurisdiction_id: Schema.String,
+	statutory_profile_id: Schema.String,
 	code: Schema.String,
 	name: Schema.String,
 	authority: Schema.optionalKey(Schema.String),
@@ -106,8 +105,7 @@ const schemeValueSchema = Schema.Struct({
 	rounding: Schema.optionalKey(Schema.String),
 	special_rules: Schema.optionalKey(Schema.Unknown),
 	overtime_treatments: Schema.optionalKey(Schema.Unknown),
-	overtime_excess_treatments: Schema.optionalKey(Schema.Unknown),
-	effective_range: Schema.optionalKey(Schema.Unknown)
+	overtime_excess_treatments: Schema.optionalKey(Schema.Unknown)
 });
 export type SchemeRow = Schema.Schema.Type<typeof schemeValueSchema>;
 
@@ -116,25 +114,9 @@ const RateRowSchema = Schema.Struct({
 	statutory_contribution_id: Schema.String,
 	summary: Schema.NullOr(Schema.String),
 	selector: Schema.optionalKey(Schema.Unknown),
-	award: Schema.optionalKey(Schema.Unknown),
-	effective_range: Schema.optionalKey(Schema.Unknown)
+	award: Schema.optionalKey(Schema.Unknown)
 });
 export type RateRow = Schema.Schema.Type<typeof RateRowSchema>;
-
-const CompanyRowSchema = Schema.Struct({
-	id: Schema.String,
-	name: Schema.String,
-	jurisdiction_id: Schema.String,
-	jurisdiction: Schema.NullOr(jurisdictionValueSchema)
-});
-export type CompanyRow = Schema.Schema.Type<typeof CompanyRowSchema>;
-
-const EmploymentRowSchema = Schema.Struct({
-	id: Schema.String,
-	employee_number: Schema.String,
-	company_id: Schema.String
-});
-export type EmploymentRow = Schema.Schema.Type<typeof EmploymentRowSchema>;
 
 const FactRowSchema = Schema.Struct({
 	id: Schema.String,
@@ -146,13 +128,6 @@ const FactRowSchema = Schema.Struct({
 	scheme: Schema.NullOr(schemeValueSchema)
 });
 export type FactRow = Schema.Schema.Type<typeof FactRowSchema>;
-
-export function coversDate(range: unknown, date: string): boolean {
-	const parsed = readRange(range);
-	if (!parsed) return false;
-	if (parsed.start.slice(0, 10) > date) return false;
-	return parsed.end == null || parsed.end.slice(0, 10) >= date;
-}
 
 const decodeJurisdiction = Schema.decodeUnknownOption(jurisdictionValueSchema);
 const decodeScheme = Schema.decodeUnknownOption(schemeValueSchema);
@@ -173,60 +148,62 @@ function asJurisdiction(value: unknown): JurisdictionRow | null {
  */
 function asScheme(value: unknown): SchemeRow | null {
 	const parsed = Option.getOrNull(decodeScheme(value));
-	return parsed == null ? null : { ...parsed, effective_range: readRange(parsed.effective_range) };
+	return parsed == null ? null : { ...parsed };
 }
 
 export function asFactStatus(value: StatutoryFactStatus | null): StatutoryFactStatus | null {
 	return value == null ? null : Option.getOrNull(decodeFactStatus(value));
 }
 
-const DriftDetectionInputSchema = Schema.Struct({
-	today: Schema.String,
-	inForceJurisdictions: Schema.Array(jurisdictionValueSchema),
-	inForceSchemes: Schema.Array(schemeValueSchema),
-	inForceRates: Schema.Array(RateRowSchema),
-	companies: Schema.Array(CompanyRowSchema),
-	employments: Schema.Array(EmploymentRowSchema),
-	facts: Schema.Array(FactRowSchema)
-});
-type DriftDetectionInput = Schema.Schema.Type<typeof DriftDetectionInputSchema>;
-
-/**
- * A scheme successor is the unique later in-force scheme of the same jurisdiction and code. The
- * jurisdiction identity is carried by the `candidates` index; only code and date order remain.
- */
-function uniqueSuccessorScheme(
-	scheme: SchemeRow,
-	candidates: readonly SchemeRow[]
-): SchemeRow | null {
-	const successors = candidates.filter(
-		(candidate) =>
-			candidate.code === scheme.code &&
-			candidate.id !== scheme.id &&
-			String(readRange(candidate.effective_range)?.start ?? '') >
-				String(readRange(scheme.effective_range)?.start ?? '')
-	);
-	return successors.length === 1 ? (successors[0] ?? null) : null;
-}
-
-export function detectStatutoryDrift(input: DriftDetectionInput): {
+export function detectStatutoryDrift(input: {
+	readonly governingProfiles: ReadonlyArray<JurisdictionRow>;
+	readonly profileSchemes: ReadonlyArray<SchemeRow>;
+	readonly profileRates: ReadonlyArray<RateRow>;
+	readonly companies: ReadonlyArray<
+		Readonly<{
+			id: string;
+			name: string;
+			jurisdiction: JurisdictionRow | null;
+		}>
+	>;
+	readonly employments: ReadonlyArray<
+		Readonly<{ id: string; employee_number: string; company_id: string }>
+	>;
+	readonly facts: ReadonlyArray<FactRow>;
+}): {
 	readonly items: DriftItem[];
 	readonly copies: SuccessorCopy[];
 } {
 	const items: DriftItem[] = [];
 	const copies: SuccessorCopy[] = [];
-	const inForceJurisdictionByCode = new Map(
-		input.inForceJurisdictions.map((row) => [row.code, row])
+	// A profile governs by its code family and its sealed period; the company's anchor names the
+	// family and the covering SEALED version is the one that governs today.
+	const governingProfileByCode = new Map(input.governingProfiles.map((row) => [row.code, row]));
+	const schemeIdsOfGoverningProfiles = new Set(
+		input.profileSchemes
+			.filter((scheme) =>
+				input.governingProfiles.some((profile) => profile.id === scheme.statutory_profile_id)
+			)
+			.map((row) => row.id)
 	);
-	const inForceSchemeIds = new Set(input.inForceSchemes.map((row) => row.id));
-	const schemesByJurisdiction = new Map<string, SchemeRow[]>();
-	for (const scheme of input.inForceSchemes) {
-		const list = schemesByJurisdiction.get(scheme.jurisdiction_id) ?? [];
+	const schemesByCode: Record<string, SchemeRow[]> = {};
+	for (const scheme of input.profileSchemes) {
+		const code = scheme.code;
+		schemesByCode[code] = [...(schemesByCode[code] ?? []), scheme];
+	}
+	/**
+	 * The schemes a profile's own code family may choose from are the same-code rows of the
+	 * governing profile; a candidate scheme in another profile version of the same family never
+	 * answers a code the governing profile already states.
+	 */
+	const schemesByProfile = new Map<string, SchemeRow[]>();
+	for (const scheme of input.profileSchemes) {
+		const list = schemesByProfile.get(scheme.statutory_profile_id) ?? [];
 		list.push(scheme);
-		schemesByJurisdiction.set(scheme.jurisdiction_id, list);
+		schemesByProfile.set(scheme.statutory_profile_id, list);
 	}
 	const ratesByScheme = new Map<string, RateRow[]>();
-	for (const rate of input.inForceRates) {
+	for (const rate of input.profileRates) {
 		const list = ratesByScheme.get(rate.statutory_contribution_id) ?? [];
 		list.push(rate);
 		ratesByScheme.set(rate.statutory_contribution_id, list);
@@ -235,29 +212,24 @@ export function detectStatutoryDrift(input: DriftDetectionInput): {
 	for (const company of input.companies) {
 		const bound = company.jurisdiction;
 		if (!bound) continue;
-		const current = inForceJurisdictionByCode.get(bound.code);
+		const current = governingProfileByCode.get(bound.code);
 		if (current && current.id !== bound.id) {
 			items.push({
 				kind: 'superseded_company_jurisdiction',
-				label: `${company.name} is still on ${bound.name}; ${current.name} is in force for ${bound.code}`
+				label: `${company.name} is still anchored to ${bound.name}; ${current.name} is the sealed profile in force for ${bound.code}`
 			});
 		}
 	}
 
-	for (const scheme of input.inForceSchemes) {
-		const rates = (ratesByScheme.get(scheme.id) ?? []).filter((rate) =>
-			coversDate(rate.effective_range, input.today)
-		);
-		if (rates.length === 0) {
-			items.push({
-				kind: 'rate_gap',
-				label: `${scheme.code} ${scheme.name} has no rate band covering ${input.today}`
-			});
-		} else if (rates.length > 1) {
-			items.push({
-				kind: 'rate_gap',
-				label: `${scheme.code} ${scheme.name} has overlapping rate bands on ${input.today}`
-			});
+	for (const profile of input.governingProfiles) {
+		for (const scheme of schemesByProfile.get(profile.id) ?? []) {
+			const rates = ratesByScheme.get(scheme.id) ?? [];
+			if (rates.length === 0) {
+				items.push({
+					kind: 'rate_gap',
+					label: `${scheme.code} ${scheme.name} (${profile.code}) has no rate band`
+				});
+			}
 		}
 	}
 
@@ -273,11 +245,20 @@ export function detectStatutoryDrift(input: DriftDetectionInput): {
 	for (const fact of input.facts) {
 		const scheme = fact.scheme;
 		if (!scheme) continue;
-		if (inForceSchemeIds.has(scheme.id)) continue;
-		const successor = uniqueSuccessorScheme(
-			scheme,
-			schemesByJurisdiction.get(scheme.jurisdiction_id) ?? []
+		if (schemeIdsOfGoverningProfiles.has(scheme.id)) continue;
+		/**
+		 * The successor is the same-code scheme of the same law family that the profile now
+		 * governing that family states. `jurisdiction_id` is the scheme's provenance — the family
+		 * anchor a copy-on-write successor keeps — so matching on it scopes the candidates to one
+		 * family without an employment→company detour.
+		 */
+		const successors = input.profileSchemes.filter(
+			(candidate) =>
+				candidate.code === scheme.code &&
+				candidate.jurisdiction_id === scheme.jurisdiction_id &&
+				schemeIdsOfGoverningProfiles.has(candidate.id)
 		);
+		const successor = successors.length === 1 ? (successors[0] ?? null) : null;
 		const previousRange = readRange(fact.effective_range);
 		if (successor && previousRange) {
 			copies.push({
@@ -295,21 +276,20 @@ export function detectStatutoryDrift(input: DriftDetectionInput): {
 		} else {
 			items.push({
 				kind: 'fact_needs_successor',
-				label: `${fact.summary} sits on a scheme that is not in force; successor is ambiguous or missing`
+				label: `${fact.summary} sits on a scheme of a superseded profile; successor is ambiguous or missing`
 			});
 		}
 	}
 
 	for (const employment of input.employments) {
 		const company = companyById.get(employment.company_id);
-		const jurisdictionId = company?.jurisdiction
-			? (inForceJurisdictionByCode.get(company.jurisdiction.code)?.id ?? company.jurisdiction.id)
-			: null;
-		if (!jurisdictionId) continue;
-		const levied = schemesByJurisdiction.get(jurisdictionId) ?? [];
+		if (!company?.jurisdiction) continue;
+		const governing = governingProfileByCode.get(company.jurisdiction.code);
+		if (!governing) continue;
+		const levied = schemesByProfile.get(governing.id) ?? [];
 		const standing = new Set(
 			(factsByEmployment.get(employment.id) ?? []).flatMap((fact) => {
-				if (!fact.scheme || !inForceSchemeIds.has(fact.scheme.id)) return [];
+				if (!fact.scheme || !schemeIdsOfGoverningProfiles.has(fact.scheme.id)) return [];
 				return [fact.scheme.code];
 			})
 		);
@@ -617,112 +597,121 @@ export const runStatutoryProfileDrift = (api: AutomationApi) =>
 		}
 
 		const execution = Effect.gen(function* () {
-			yield* api.progress({ progress: 0.12, text: 'Reading in-force statutory profiles' });
-			const live = {
-				approval_id: { isNull: true },
-				effective_range: { contains_date: asOf }
-			};
-			const [inForceJurisdictions, inForceSchemes, inForceRates, companies, employments, facts] =
-				yield* Effect.all(
-					[
-						api.db.jurisdictions.findMany({
-							where: live,
-							columns: {
-								id: true,
-								code: true,
-								name: true,
-								currency: true,
-								tax_year_start_month: true,
-								proration: true,
-								ordinary_rate_basis: true,
-								ordinary_rate_divisor: true,
-								regime: true,
-								effective_range: true
-							},
-							limit: 250
-						}),
-						api.db.statutory_contributions.findMany({
-							where: live,
-							columns: {
-								id: true,
-								jurisdiction_id: true,
-								code: true,
-								name: true,
-								authority: true,
-								payer: true,
-								keyed_by: true,
-								rounding: true,
-								special_rules: true,
-								overtime_treatments: true,
-								overtime_excess_treatments: true,
-								effective_range: true
-							},
-							limit: 250
-						}),
-						api.db.contribution_rates.findMany({
-							where: live,
-							columns: {
-								id: true,
-								statutory_contribution_id: true,
-								summary: true,
-								selector: true,
-								award: true,
-								effective_range: true
-							},
-							limit: 250
-						}),
-						api.db.companies.findMany({
-							where: live,
-							columns: { id: true, name: true, jurisdiction_id: true },
-							with: {
-								company_jurisdiction: {
-									columns: { id: true, code: true, name: true, effective_range: true }
+			yield* api.progress({ progress: 0.12, text: 'Reading sealed statutory profiles' });
+			// The governing set: SEALED profiles of each law family whose period covers today. A
+			// DRAFT profile never governs, a VOIDED one is retired — the same pick the engine makes.
+			const governingProfiles = yield* api.db.jurisdictions.findMany({
+				where: {
+					approval_id: { isNull: true },
+					lifecycle: { eq: 'SEALED' },
+					effective_range: { contains_date: asOf }
+				},
+				columns: {
+					id: true,
+					code: true,
+					name: true,
+					lifecycle: true,
+					currency: true,
+					tax_year_start_month: true,
+					proration: true,
+					ordinary_rate_basis: true,
+					ordinary_rate_divisor: true,
+					regime: true,
+					statutory_leave: true,
+					effective_range: true
+				},
+				limit: 250
+			});
+			// Catalogue rows are scoped to a profile by statutory_profile_id and carry no per-row
+			// effective dating; the profile's period does that job. Rates are read whole per scheme.
+			const profileIds = governingProfiles.map((row) => row.id);
+			const [profileSchemes, profileRates, companies, employments, facts] = yield* Effect.all(
+				[
+					api.db.statutory_contributions.findMany({
+						where: {
+							approval_id: { isNull: true },
+							statutory_profile_id: { in: profileIds }
+						},
+						columns: {
+							id: true,
+							jurisdiction_id: true,
+							statutory_profile_id: true,
+							code: true,
+							name: true,
+							authority: true,
+							payer: true,
+							keyed_by: true,
+							rounding: true,
+							special_rules: true,
+							overtime_treatments: true,
+							overtime_excess_treatments: true
+						},
+						limit: 250
+					}),
+					api.db.contribution_rates.findMany({
+						where: { approval_id: { isNull: true } },
+						columns: {
+							id: true,
+							statutory_contribution_id: true,
+							summary: true,
+							selector: true,
+							award: true
+						},
+						limit: 250
+					}),
+					api.db.companies.findMany({
+						where: {
+							approval_id: { isNull: true },
+							effective_range: { contains_date: asOf }
+						},
+						columns: { id: true, name: true },
+						with: {
+							company_jurisdiction: {
+								columns: { id: true, code: true, name: true, effective_range: true }
+							}
+						},
+						limit: 250
+					}),
+					api.db.employments.findMany({
+						where: { approval_id: { isNull: true } },
+						columns: { id: true, employee_number: true, company_id: true },
+						limit: 250
+					}),
+					api.db.employment_statutory_facts.findMany({
+						where: { approval_id: { isNull: true } },
+						columns: {
+							id: true,
+							employment_id: true,
+							statutory_contribution_id: true,
+							status: true,
+							summary: true,
+							effective_range: true
+						},
+						with: {
+							statutory_fact_contribution: {
+								columns: {
+									id: true,
+									jurisdiction_id: true,
+									statutory_profile_id: true,
+									code: true,
+									name: true
 								}
-							},
-							limit: 250
-						}),
-						api.db.employments.findMany({
-							where: live,
-							columns: { id: true, employee_number: true, company_id: true },
-							limit: 250
-						}),
-						api.db.employment_statutory_facts.findMany({
-							where: live,
-							columns: {
-								id: true,
-								employment_id: true,
-								statutory_contribution_id: true,
-								status: true,
-								summary: true,
-								effective_range: true
-							},
-							with: {
-								statutory_fact_contribution: {
-									columns: {
-										id: true,
-										jurisdiction_id: true,
-										code: true,
-										name: true,
-										effective_range: true
-									}
-								}
-							},
-							limit: 250
-						})
-					],
-					{ concurrency: 'unbounded' }
-				);
+							}
+						},
+						limit: 250
+					})
+				],
+				{ concurrency: 'unbounded' }
+			);
 
 			yield* api.progress({ progress: 0.3, text: 'Comparing local effective-dated facts' });
 			const detected = detectStatutoryDrift({
-				today,
-				inForceJurisdictions,
-				inForceSchemes,
-				inForceRates,
+				governingProfiles,
+				profileSchemes,
+				profileRates,
 				companies: companies.map((company) => ({
 					id: company.id,
 					name: company.name,
-					jurisdiction_id: company.jurisdiction_id,
 					jurisdiction: asJurisdiction(company.company_jurisdiction)
 				})),
 				employments,
@@ -774,14 +763,14 @@ export const runStatutoryProfileDrift = (api: AutomationApi) =>
 			}
 
 			let report: StatutoryResearchReport;
-			if (inForceJurisdictions.length === 0) {
+			if (governingProfiles.length === 0) {
 				yield* api.progress({ progress: 0.62, text: 'Researching current official guidance' });
 				const inferredReport = yield* api.infer({
 					model: STATUTORY_RESEARCH_MODEL,
 					schema: StatutoryResearchReportSchema,
 					webSearch: { maxResults: 4, allowedDomains: OFFICIAL_STATUTORY_DOMAINS },
 					prompt: [
-						`Today is ${today}. No in-force statutory jurisdiction is configured.`,
+						`Today is ${today}. No sealed statutory profile is configured.`,
 						'Web research is still required: verify whether the workspace has enough statutory scope to assess, using only official sources.',
 						'Do not invent a jurisdiction or a change. An empty official_sources list is valid when there is genuinely nothing configured to research.'
 					].join('\n')
@@ -792,16 +781,16 @@ export const runStatutoryProfileDrift = (api: AutomationApi) =>
 				});
 			} else {
 				const receipts: Array<Readonly<{ code: string; report: StatutoryResearchReport }>> = [];
-				for (const [index, jurisdiction] of inForceJurisdictions.entries()) {
+				for (const [index, jurisdiction] of governingProfiles.entries()) {
 					const code = jurisdiction.code.toLocaleUpperCase();
-					const progress = 0.62 + (index / inForceJurisdictions.length) * 0.24;
+					const progress = 0.62 + (index / governingProfiles.length) * 0.24;
 					yield* api.progress({
 						progress,
-						text: `Researching official guidance for ${code} (${index + 1}/${inForceJurisdictions.length})`
+						text: `Researching official guidance for ${code} (${index + 1}/${governingProfiles.length})`
 					});
 
-					const jurisdictionSchemes = inForceSchemes.filter(
-						(scheme) => scheme.jurisdiction_id === jurisdiction.id
+					const jurisdictionSchemes = profileSchemes.filter(
+						(scheme) => scheme.statutory_profile_id === jurisdiction.id
 					);
 					const jurisdictionCompanies = companies
 						.filter(
@@ -810,6 +799,7 @@ export const runStatutoryProfileDrift = (api: AutomationApi) =>
 						.map((company) => company.name);
 					const localSnapshot = {
 						jurisdiction: {
+							profile_id: jurisdiction.id,
 							code,
 							name: jurisdiction.name,
 							currency: jurisdiction.currency,
@@ -818,6 +808,7 @@ export const runStatutoryProfileDrift = (api: AutomationApi) =>
 							ordinary_rate_basis: jurisdiction.ordinary_rate_basis,
 							ordinary_rate_divisor: jurisdiction.ordinary_rate_divisor,
 							regime: jurisdiction.regime,
+							statutory_leave: jurisdiction.statutory_leave,
 							effective_range: jurisdiction.effective_range
 						},
 						companies: jurisdictionCompanies,
@@ -831,14 +822,12 @@ export const runStatutoryProfileDrift = (api: AutomationApi) =>
 							special_rules: scheme.special_rules,
 							overtime_treatments: scheme.overtime_treatments,
 							overtime_excess_treatments: scheme.overtime_excess_treatments,
-							effective_range: scheme.effective_range,
-							rates: inForceRates
+							rates: profileRates
 								.filter((rate) => rate.statutory_contribution_id === scheme.id)
 								.map((rate) => ({
 									summary: rate.summary,
 									selector: rate.selector,
-									award: rate.award,
-									effective_range: rate.effective_range
+									award: rate.award
 								}))
 						}))
 					};

@@ -1,46 +1,40 @@
 import { refuse } from '@norbital-ai/bolt/authoring';
-import { guardEffectiveRange } from '../../lib/effective_range.js';
-import type { Api, Hooks } from './$types.js';
+import { Effect } from 'effect';
+import type { Hooks } from './$types.js';
 
 /**
- * Exclusion key (plan 02 §7): jurisdiction =, code =, effective range &&.
+ * Statutory schemes are pure law transcription, scoped to a statutory profile and sealed with it.
  *
- * The database is the guarantee — `statutory_contributions_no_overlap` in +model.ts rejects an
- * overlap with SQLSTATE 23P01 whatever path the write takes, including a concurrent one. This
- * hook is the message: it fails first and names the row and the clash instead of raising a raw
- * constraint violation.
+ * The profile's period is when the version governs — per-scheme effective dating is gone. What the
+ * hook holds is the **seal**: a scheme of a SEALED or VOIDED profile refuses create, update and
+ * delete, because a contribution rule a paid run was charged under cannot be rewritten. A change
+ * of law enacts a new profile version through the approval flow.
  */
-
-/** The stored rows that share a candidate's exclusion key. */
-const siblings = (api: Api, jurisdiction_id: string, code: string) =>
-	api.db.statutory_contributions.findMany({
-		where: { jurisdiction_id: { eq: jurisdiction_id }, code: { eq: code } }
-	});
-
-/** The exclusion key as a stored row holds it. */
-type Keyed = Readonly<{ jurisdiction_id: string; code: string }>;
-
 export default {
 	mutate: {
 		perRecord: {
 			before: {
 				description:
-					'Refuses a statutory contribution scheme whose effective range overlaps another scheme with the same code in the same jurisdiction, so a deduction like EPF or SOCSO resolves to one scheme per date. A change of law must become an end-date plus a successor row, never two versions in force at once.',
+					'Refuses any write on a scheme whose statutory profile is SEALED or VOIDED; schemes of a DRAFT profile may be prepared and edited until the seal.',
 				handler: ({ input, existing, api }) => {
-					// One resolution of the key for both operations: a create states it, an edit may omit
-					// it and keep what is stored. `refuse` returns `never`, so both narrow below.
-					const jurisdiction_id = input.jurisdiction_id ?? existing?.jurisdiction_id;
-					const code = input.code ?? existing?.code;
-					if (jurisdiction_id == null || code == null)
-						refuse('A statutory contribution states a jurisdiction and a code.');
-					return guardEffectiveRange(
-						siblings(api, jurisdiction_id, code),
-						input.effective_range ?? existing?.effective_range,
-						`statutory contribution ${code} in this jurisdiction`,
-						input,
-						// Undefined on a create, so the row excludes nothing; on an edit it excludes itself,
-						// which is what lets a row keep the range it already holds.
-						existing?.id
+					const profileId = input.statutory_profile_id ?? existing?.statutory_profile_id;
+					if (profileId == null)
+						refuse('A statutory contribution states the statutory profile it belongs to.');
+					return Effect.flatMap(
+						api.db.jurisdictions.findFirst({
+							where: { id: { eq: String(profileId) } },
+							columns: { lifecycle: true }
+						}),
+						(profile) => {
+							if (profile == null)
+								refuse('The statutory profile this scheme names does not exist.');
+							if (profile.lifecycle !== 'DRAFT')
+								refuse(
+									'The statutory profile this scheme belongs to is sealed, so its schemes are ' +
+										'frozen. Enact a new profile version to change the law transcription.'
+								);
+							return Effect.succeed(input);
+						}
 					);
 				}
 			}

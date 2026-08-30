@@ -1,0 +1,217 @@
+{
+	"benchmark": "hr-payroll-prepared-run-guest-cpu",
+	"fixture": {
+		"id": "hr-payroll:my-monthly-basic-epf-pcb:2026-04:290:v1",
+		"employeeCount": 290,
+		"period": "2026-04",
+		"profile": "290 monthly Malaysian employments; one scheduled salary; EPF-style bracketed percentage and progressive withholding; no attendance, leave, loans, entries or host reads"
+	},
+	"calculationVersion": "2026-08-payslip-input-output-separation",
+	"measurementBoundary": "process.cpuUsage around synchronous buildPayrollRun(prepared); PreparedRun construction and all host I/O excluded",
+	"runtime": {
+		"node": "v26.0.0",
+		"platform": "darwin",
+		"arch": "arm64",
+		"cpu": "Apple M5 Pro"
+	},
+	"repetitions": {
+		"cold": 5,
+		"warm": 30,
+		"untimedWarmups": 5
+	},
+	"cold": {
+		"unit": "cpu-milliseconds",
+		"repetitions": 5,
+		"p50": 120.325,
+		"p95": 127.2,
+		"min": 119.132,
+		"max": 127.2,
+		"samples": [
+			{
+				"cpuMillis": 127.2,
+				"userCpuMillis": 124.597,
+				"systemCpuMillis": 2.603
+			},
+			{
+				"cpuMillis": 119.452,
+				"userCpuMillis": 117.408,
+				"systemCpuMillis": 2.044
+			},
+			{
+				"cpuMillis": 120.325,
+				"userCpuMillis": 118.731,
+				"systemCpuMillis": 1.594
+			},
+			{
+				"cpuMillis": 120.428,
+				"userCpuMillis": 118.912,
+				"systemCpuMillis": 1.516
+			},
+			{
+				"cpuMillis": 119.132,
+				"userCpuMillis": 117.146,
+				"systemCpuMillis": 1.986
+			}
+		]
+	},
+	"warm": {
+		"unit": "cpu-milliseconds",
+		"repetitions": 30,
+		"p50": 56.034,
+		"p95": 65.435,
+		"min": 55.33,
+		"max": 66.388,
+		"samples": [
+			{
+				"cpuMillis": 57.822,
+				"userCpuMillis": 57.526,
+				"systemCpuMillis": 0.296
+			},
+			{
+				"cpuMillis": 65.435,
+				"userCpuMillis": 65.095,
+				"systemCpuMillis": 0.34
+			},
+			{
+				"cpuMillis": 57.819,
+				"userCpuMillis": 57.507,
+				"systemCpuMillis": 0.312
+			},
+			{
+				"cpuMillis": 56.034,
+				"userCpuMillis": 55.817,
+				"systemCpuMillis": 0.217
+			},
+			{
+				"cpuMillis": 57.025,
+				"userCpuMillis": 56.652,
+				"systemCpuMillis": 0.373
+			},
+			{
+				"cpuMillis": 56.025,
+				"userCpuMillis": 55.742,
+				"systemCpuMillis": 0.283
+			},
+			{
+				"cpuMillis": 55.918,
+				"userCpuMillis": 55.682,
+				"systemCpuMillis": 0.236
+			},
+			{
+				"cpuMillis": 55.778,
+				"userCpuMillis": 55.555,
+				"systemCpuMillis": 0.223
+			},
+			{
+				"cpuMillis": 55.393,
+				"userCpuMillis": 55.194,
+				"systemCpuMillis": 0.199
+			},
+			{
+				"cpuMillis": 57.505,
+				"userCpuMillis": 57.264,
+				"systemCpuMillis": 0.241
+			},
+			{
+				"cpuMillis": 56.899,
+				"userCpuMillis": 56.6,
+				"systemCpuMillis": 0.299
+			},
+			{
+				"cpuMillis": 55.781,
+				"userCpuMillis": 55.585,
+				"systemCpuMillis": 0.196
+			},
+			{
+				"cpuMillis": 58.13,
+				"userCpuMillis": 57.897,
+				"systemCpuMillis": 0.233
+			},
+			{
+				"cpuMillis": 55.564,
+				"userCpuMillis": 55.353,
+				"systemCpuMillis": 0.211
+			},
+			{
+				"cpuMillis": 62.399,
+				"userCpuMillis": 62.062,
+				"systemCpuMillis": 0.337
+			},
+			{
+				"cpuMillis": 55.765,
+				"userCpuMillis": 55.434,
+				"systemCpuMillis": 0.331
+			},
+			{
+				"cpuMillis": 55.763,
+				"userCpuMillis": 55.536,
+				"systemCpuMillis": 0.227
+			},
+			{
+				"cpuMillis": 55.33,
+				"userCpuMillis": 55.124,
+				"systemCpuMillis": 0.206
+			},
+			{
+				"cpuMillis": 66.388,
+				"userCpuMillis": 66.091,
+				"systemCpuMillis": 0.297
+			},
+			{
+				"cpuMillis": 55.759,
+				"userCpuMillis": 55.455,
+				"systemCpuMillis": 0.304
+			},
+			{
+				"cpuMillis": 56.182,
+				"userCpuMillis": 55.854,
+				"systemCpuMillis": 0.328
+			},
+			{
+				"cpuMillis": 55.731,
+				"userCpuMillis": 55.423,
+				"systemCpuMillis": 0.308
+			},
+			{
+				"cpuMillis": 55.426,
+				"userCpuMillis": 55.209,
+				"systemCpuMillis": 0.217
+			},
+			{
+				"cpuMillis": 57.703,
+				"userCpuMillis": 57.354,
+				"systemCpuMillis": 0.349
+			},
+			{
+				"cpuMillis": 56.906,
+				"userCpuMillis": 56.679,
+				"systemCpuMillis": 0.227
+			},
+			{
+				"cpuMillis": 56.261,
+				"userCpuMillis": 55.84,
+				"systemCpuMillis": 0.421
+			},
+			{
+				"cpuMillis": 56.535,
+				"userCpuMillis": 56.149,
+				"systemCpuMillis": 0.386
+			},
+			{
+				"cpuMillis": 57.46,
+				"userCpuMillis": 57.018,
+				"systemCpuMillis": 0.442
+			},
+			{
+				"cpuMillis": 55.869,
+				"userCpuMillis": 55.448,
+				"systemCpuMillis": 0.421
+			},
+			{
+				"cpuMillis": 55.514,
+				"userCpuMillis": 55.221,
+				"systemCpuMillis": 0.293
+			}
+		]
+	}
+}

@@ -6,7 +6,7 @@
 	"description": "Multi-country HR, attendance, leave, payroll, and statutory reporting.",
 	"visibility": "public",
 	"counts": {
-		"collections": 20,
+		"collections": 27,
 		"apps": 8,
 		"automations": 1
 	},
@@ -27,15 +27,10 @@
 				"shift_definitions"
 			],
 			["employments"],
-			[
-				"employment_statutory_facts",
-				"employment_terms",
-				"leave_requests",
-				"repayment_agreements",
-				"roster_entries",
-				"time_entries"
-			],
-			["component_entries"]
+			["employee_children", "employment_statutory_facts", "employment_terms", "leave_requests"],
+			["work_days"],
+			["component_entries", "loans"],
+			["loan_repayments"]
 		]
 	},
 	"name_zh": "HR 与薪资",

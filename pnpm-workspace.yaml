@@ -39,5 +39,6 @@ supportedArchitectures:
 # developed against a local yalc overlay whose pins are deliberately kept out of source control, so
 # that repair silently reinstalls the published package over the linked one — and `bolt sync` then
 # regenerates this template's client from a stale bundle while reporting success. Installing stays
-# explicit: `pnpm install` still reconciles, and `pnpm yalc:retreat` restores the registry versions.
+# explicit: `pnpm install` still reconciles, and `pnpm run env -- retreat` from the Norbital checkout
+# restores the registry versions.
 verifyDepsBeforeRun: false

@@ -1,11 +1,12 @@
 <script lang="ts">
 	/**
-	 * One dated statutory snapshot, edited as one unit.
+	 * One versioned statutory profile, edited as one unit while it is a DRAFT.
 	 *
-	 * Working-time coverage, prices and limits are attributes of the snapshot. They are not
-	 * sibling collections with independent dates, which prevents payroll from assembling one result
-	 * out of incompatible law revisions. Contribution schemes remain separate because they are
-	 * independently versioned programs and own genuine rate-band collections.
+	 * Working-time coverage, prices, limits and the statutory leave floors are attributes of the
+	 * version. They are not sibling collections with independent dates, which prevents payroll from
+	 * assembling one result out of incompatible law revisions. Contribution schemes remain separate
+	 * because they are independently versioned programs and own genuine rate-band collections, but
+	 * they are scoped to this profile and sealed with it.
 	 */
 	import { client } from '../../lib/workspace-client.js';
 	import { useI18n } from '@norbital-ai/ui/i18n';
@@ -15,7 +16,6 @@
 	import { CollectionTable } from '@norbital-ai/ui/collection-table';
 	import { Column, Cover, Grid, Inline, Stack } from '@norbital-ai/ui/layout';
 	import { Tabs, type TabConfig } from '@norbital-ai/ui/tabs';
-	import { inForceTodayFilter } from '../../lib/ui/calendar.js';
 	import { formatNumeric } from '../../lib/ui/display-formatters.js';
 
 	let { record, close }: RepresentationProps = $props();
@@ -35,11 +35,15 @@
 				<Stack as="section" gap="sm">
 					<Stack gap="xs">
 						<h3 class="text-sm font-semibold">Identity and validity</h3>
-						<p class="text-meta">The jurisdiction snapshot payroll selects for a pay date.</p>
+						<p class="text-meta">
+							The profile version payroll selects for a pay date. A change of law enacts a new
+							version; sealing freezes this one.
+						</p>
 					</Stack>
 					<Grid gap="md" minimum="panel">
 						<Field name="code" />
 						<Field name="name" />
+						<Field name="lifecycle" />
 						<Field name="currency" />
 						<Field name="tax_year_start_month" label={t('component.tax_year_start_month')} />
 						<Column span="all"
@@ -69,6 +73,17 @@
 					</Stack>
 					<Field name="regime" label={t('component.regime')} />
 				</Stack>
+
+				<Stack as="section" gap="sm" class="border-t border-border pt-5">
+					<Stack gap="xs">
+						<h3 class="text-sm font-semibold">Statutory leave floors</h3>
+						<p class="text-meta">
+							The minimum days per canonical kind this version states, with the service ladder and
+							child scaling the law conditions.
+						</p>
+					</Stack>
+					<Field name="statutory_leave" />
+				</Stack>
 			</Stack>
 		{/snippet}
 	</CollectionForm>
@@ -82,9 +97,8 @@
 			view="jurisdictions:contributions"
 			title={t('component.statutory_contributions')}
 			description={t('component.statutory_contributions_description')}
-			initialFilters={inForceTodayFilter()}
 			query={{
-				where: { jurisdiction_id: { eq: record.id } },
+				where: { statutory_profile_id: { eq: record.id } },
 				orderBy: { sequence: 'asc' }
 			}}
 		>
@@ -96,7 +110,6 @@
 				<TableColumn name="keyed_by" label={t('component.keyed_by')} />
 				<TableColumn name="rounding" />
 				<TableColumn name="sequence" label={t('component.applied_at')} />
-				<TableColumn name="effective_range" label={t('component.effective')} />
 			{/snippet}
 		</CollectionTable>
 	{/if}

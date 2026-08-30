@@ -76,7 +76,7 @@ test('the PAID configuration snapshot retains the exact regime revision and auth
 				ordinary_rate_basis: 'DAYS_PER_MONTH',
 				ordinary_rate_divisor: 26,
 				tax_year_start_month: 1,
-				effective_range: { from: '2026-01-01', to: null },
+				effective_range: { start: '2026-01-01', end: null },
 				regime: value
 			},
 			contributions: [],
@@ -93,7 +93,7 @@ test('the PAID configuration snapshot retains the exact regime revision and auth
 	);
 
 	assert.deepEqual(snapshot.statutory_regime, {
-		effective_range: { from: '2026-01-01', to: null },
+		effective_range: { start: '2026-01-01', end: null },
 		value
 	});
 	assert.equal(

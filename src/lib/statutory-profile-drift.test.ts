@@ -1,7 +1,8 @@
 // @ts-nocheck -- executed directly by Node with --experimental-strip-types.
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
-import { coversDate, detectStatutoryDrift } from '../automations/+statutory_profile_drift.ts';
+import { detectStatutoryDrift } from '../automations/+statutory_profile_drift.ts';
+import { coversDate } from '../collections/payroll_runs/lib/effective.ts';
 
 const today = '2026-08-14';
 const open = { start: '2020-01-01T00:00:00.000Z', end: null };
@@ -12,27 +13,31 @@ const my = {
 	id: 'j-new',
 	code: 'MY',
 	name: 'Malaysia 2026',
+	lifecycle: 'SEALED',
 	effective_range: newRange
 };
 const myOld = {
 	id: 'j-old',
 	code: 'MY',
 	name: 'Malaysia 2020',
+	lifecycle: 'SEALED',
 	effective_range: oldRange
 };
+// `jurisdiction_id` is the law-family anchor a copy-on-write successor keeps; only
+// `statutory_profile_id` moves between versions.
 const epf = {
 	id: 's-epf-new',
-	jurisdiction_id: 'j-new',
+	jurisdiction_id: 'j-family',
+	statutory_profile_id: 'j-new',
 	code: 'EPF',
-	name: 'Employees Provident Fund',
-	effective_range: newRange
+	name: 'Employees Provident Fund'
 };
 const epfOld = {
 	id: 's-epf-old',
-	jurisdiction_id: 'j-old',
+	jurisdiction_id: 'j-family',
+	statutory_profile_id: 'j-old',
 	code: 'EPF',
-	name: 'Employees Provident Fund',
-	effective_range: oldRange
+	name: 'Employees Provident Fund'
 };
 
 describe('coversDate', () => {
@@ -44,24 +49,21 @@ describe('coversDate', () => {
 });
 
 describe('detectStatutoryDrift', () => {
-	it('flags a company still bound to a superseded jurisdiction snapshot', () => {
+	it('flags a company still anchored to a superseded profile version', () => {
 		const result = detectStatutoryDrift({
-			today,
-			inForceJurisdictions: [my],
-			inForceSchemes: [epf],
-			inForceRates: [
+			governingProfiles: [my],
+			profileSchemes: [epf],
+			profileRates: [
 				{
 					id: 'r1',
 					statutory_contribution_id: 's-epf-new',
-					summary: '0 – ∞',
-					effective_range: newRange
+					summary: '0 – ∞'
 				}
 			],
 			companies: [
 				{
 					id: 'c1',
 					name: 'Acme Sdn Bhd',
-					jurisdiction_id: 'j-old',
 					jurisdiction: myOld
 				}
 			],
@@ -72,17 +74,15 @@ describe('detectStatutoryDrift', () => {
 		assert.match(result.items[0]?.label ?? '', /Acme Sdn Bhd/);
 	});
 
-	it('plans a unique successor copy and skips an ambiguous one', () => {
+	it('plans a unique successor copy onto the governing profile and skips an ambiguous one', () => {
 		const unique = detectStatutoryDrift({
-			today,
-			inForceJurisdictions: [my],
-			inForceSchemes: [{ ...epf, jurisdiction_id: 'j-old' }],
-			inForceRates: [
+			governingProfiles: [my],
+			profileSchemes: [epf],
+			profileRates: [
 				{
 					id: 'r1',
 					statutory_contribution_id: 's-epf-new',
-					summary: '0 – ∞',
-					effective_range: newRange
+					summary: '0 – ∞'
 				}
 			],
 			companies: [],
@@ -103,19 +103,18 @@ describe('detectStatutoryDrift', () => {
 		assert.equal(unique.copies[0]?.successorSchemeId, 's-epf-new');
 
 		const ambiguous = detectStatutoryDrift({
-			today,
-			inForceJurisdictions: [my],
-			inForceSchemes: [
-				{ ...epf, jurisdiction_id: 'j-old' },
+			governingProfiles: [my],
+			profileSchemes: [
+				epf,
 				{
 					id: 's-epf-also',
-					jurisdiction_id: 'j-old',
+					jurisdiction_id: 'j-family',
+					statutory_profile_id: 'j-new',
 					code: 'EPF',
-					name: 'EPF other',
-					effective_range: newRange
+					name: 'EPF other'
 				}
 			],
-			inForceRates: [],
+			profileRates: [],
 			companies: [],
 			employments: [],
 			facts: [
@@ -137,17 +136,15 @@ describe('detectStatutoryDrift', () => {
 		);
 	});
 
-	it('flags a missing fact and a scheme with no rate covering today', () => {
+	it('flags a missing fact and a bandless scheme of the governing profile', () => {
 		const result = detectStatutoryDrift({
-			today,
-			inForceJurisdictions: [my],
-			inForceSchemes: [epf],
-			inForceRates: [],
+			governingProfiles: [my],
+			profileSchemes: [epf],
+			profileRates: [],
 			companies: [
 				{
 					id: 'c1',
 					name: 'Acme',
-					jurisdiction_id: 'j-new',
 					jurisdiction: my
 				}
 			],

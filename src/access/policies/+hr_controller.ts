@@ -8,6 +8,7 @@ import {
 	peopleGrants,
 	referenceGrants,
 	statutoryGrants,
+	statutoryProfileGrants,
 	workDayWriteGrants
 } from '../../lib/policy_grants.js';
 import type { Policy } from './$types.js';
@@ -16,21 +17,21 @@ import type { Policy } from './$types.js';
  * Special role 1 of 2. HR administration, and the one role that may look at payroll without being
  * able to commit it.
  *
- * The owner's words: an `hr_controller` **may view** payroll and **may not create** it; a create
- * raised by a controller requires approval from `hr_manager` or senior management. Those are three
- * separate statements about three different grants and they are written out below rather than
- * summarised:
+ * The owner's words: an `hr_controller` **may view** payroll but may not land a new run directly;
+ * a new-row mutation raised by a controller requires approval from `hr_manager` or senior
+ * management. Those are three separate statements about three different grants and they are
+ * written out below rather than summarised:
  *
  *   - `payrollGrants('read')` — the view. All four payroll collections.
- *   - `payroll_runs: create` **carrying an approval** — the create that is not a create. Bolt writes
- *     the row and immediately stamps `approval_id`, so the controller gets a run to inspect
- *     and nobody gets a payroll that has not been agreed to.
- *   - no `payroll_runs: update`, no `payroll_runs: delete` — a controller does not re-run a payroll
- *     and does not erase one. That is what "may not create it" means once the run exists.
+ *   - `payroll_runs.mutate.new` **carrying an approval** — Bolt writes the row and immediately
+ *     stamps `approval_id`, so the controller gets a run to inspect and nobody gets a payroll that
+ *     has not been agreed to.
+ *   - no `payroll_runs.mutate.existing`, no `payroll_runs.delete` — a controller does not re-run a
+ *     payroll and does not erase one.
  *
  * There is deliberately no `payslips`/`payslip_adjustments` delete grant either.
  * `clearRunResults` needs those to rebuild a draft, and a controller never rebuilds one: their only
- * write is the initial create, and a run with no payslips yet has nothing to clear. See
+ * write is the initial `mutate.new`, and a run with no payslips yet has nothing to clear. See
  * `payrollRebuildGrants` in `src/lib/policy_grants.ts`, which is the grant `hr_manager` and
  * `senior_management` hold instead.
  *
@@ -41,7 +42,7 @@ import type { Policy } from './$types.js';
  * permission set lives. See `src/lib/policy_grants.ts` for why the groups are functions.
  *
  * Each gated grant returns one fluent approval flow. Runtime derives durable stage identities from
- * the policy, collection, action and stage position; authors name only approver teams.
+ * the policy, collection, grant coordinate and stage position; authors name only approver teams.
  *
  * `apps: ['hr_controller']` names the app *group*, as the seed did. Eight apps sit under it and
  * `appAccessAllowed` matches a group prefix, so this is one grant rather than eight — and, unlike
@@ -77,31 +78,35 @@ export default {
 	capabilities: { apps: ['hr_employee', 'hr_controller'] },
 
 	grants: mergeGrants(
-		referenceGrants('read', 'create', 'update', 'delete'),
+		referenceGrants('read', 'mutate.new', 'mutate.existing', 'delete'),
 		statutoryGrants('read'),
+		statutoryProfileGrants(),
 		// Research receipts are append-only worker evidence. Controllers may inspect but not alter them.
 		grantsOn('statutory_profile_drift_logs', ['read']),
 		peopleGrants('read'),
-		peopleGrants('create', 'update', 'delete'),
+		peopleGrants('mutate.new', 'mutate.existing', 'delete'),
 		grantsOn('work_days', ['read']),
 
 		/**
-		 * The adjustment path, unconditional and stated here rather than folded into `peopleGrants`.
+		 * The entry path, unconditional and stated here rather than folded into `peopleGrants`.
 		 *
-		 * This is the whole of "only HR-policy holders may create adjustments": no policy on the
-		 * ordinary ladder has an unconditional `obligations` create. Employee, supervisor and
-		 * manager share one grant pinned to their own employment and `origin.kind = 'CLAIM'`; it cannot
-		 * create the `MANUAL_ADJUSTMENT` variant. There is nothing to subtract, because adjustment
+		 * This is the whole of "only HR-policy holders may add corrections": no policy on the ordinary
+		 * ladder has an unconditional `component_entries.mutate.new`. Employee, supervisor and
+		 * manager share one grant pinned to their own employment and a `CLAIM` event; it cannot
+		 * add the `MANUAL_ADJUSTMENT` variant. There is nothing to subtract, because correction
 		 * authority was never added below this policy.
 		 *
-		 * Unconditional on read, too, which is the other half of the rule — `NOT_AN_ADJUSTMENT` is
-		 * absent here on purpose, so a controller sees the corrections everyone below them cannot.
+		 * Unconditional on read, too, which is the other half of the rule — a correction-hiding
+		 * predicate is absent here on purpose, so a controller sees the corrections everyone below
+		 * them cannot.
 		 *
 		 * No approval flow. The owner gated exactly one thing, the payroll run, and a gate nobody asked
 		 * for would leave every correction to a settled payslip waiting on a signature — which is the
-		 * situation adjustments exist to get out of.
+		 * situation corrections exist to get out of.
 		 */
-		grantsOn('obligations', ['read', 'create', 'update', 'delete']),
+		grantsOn('component_entries', ['read', 'mutate.new', 'mutate.existing', 'delete']),
+		grantsOn('loans', ['read', 'mutate.new', 'mutate.existing', 'delete']),
+		grantsOn('loan_repayments', ['read', 'mutate.new', 'mutate.existing', 'delete']),
 
 		// Both sides of the person-day: publish the schedule, and record what happened against it.
 		// The approval resolver decides per write — a roster edit is not reviewed, and an attendance
@@ -111,11 +116,11 @@ export default {
 		// leaves the bad row sitting in the run.
 		workDayWriteGrants(),
 
-		grantsOn('leave_requests', ['read', 'update', 'delete']),
-		grantOn('leave_requests', 'create', { approval: leaveApproval }),
+		grantsOn('leave_requests', ['read', 'mutate.existing', 'delete']),
+		grantOn('leave_requests', 'mutate.new', { approval: leaveApproval }),
 
 		payrollGrants('read'),
-		grantOn('payroll_runs', 'create', { approval: payrollRunApprovalFromController })
+		grantOn('payroll_runs', 'mutate.new', { approval: payrollRunApprovalFromController })
 	),
 	/**
 	 * What a holder of this policy may spend.

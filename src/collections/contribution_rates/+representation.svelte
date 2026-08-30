@@ -44,9 +44,6 @@
 			</Column>
 			<Column span="all"><Field name="selector" label={t('component.applies_to')} /></Column>
 			<Column span="all"><Field name="award" label={t('component.award')} /></Column>
-			<Column span="all"
-				><Field name="effective_range" label={t('component.effective_period')} /></Column
-			>
 		</Grid>
 	{/snippet}
 </CollectionForm>

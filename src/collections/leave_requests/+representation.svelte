@@ -47,8 +47,8 @@
 	 */
 	const settlementQuery = $derived(
 		record
-			? client.db.payslip_adjustments.findFirst({
-					where: { source: { eq: { kind: 'LEAVE_REQUEST', id: record.id } } },
+			? client.db.payslip_leave_request_inputs.findFirst({
+					where: { leave_request_id: { eq: record.id } },
 					columns: { period: true }
 				})
 			: null

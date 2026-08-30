@@ -1,13 +1,13 @@
+import { policySql } from '@norbital-ai/bolt/authoring';
 import {
 	employeeSelfServiceGrants,
 	employeeReferenceGrants,
-	employeeLeaveRequestCreateGrant,
-	employeeWorkDayCreateGrant,
-	employeeWorkDayUpdateGrant,
+	employeeLeaveRequestNewGrant,
+	employeeWorkDayExistingGrant,
+	employeeWorkDayNewGrant,
 	grantOn,
 	mergeGrants,
 	ownEmploymentChild,
-	settlementLedgerGrants,
 	statutoryGrants
 } from '../../lib/policy_grants.js';
 import type { Policy } from './$types.js';
@@ -28,50 +28,45 @@ import type { Policy } from './$types.js';
  * literal token reaches jsonb and the policy compiler binds it as a positional parameter on every
  * request. An unknown scope path throws rather than binding null.
  *
- * `$sql`, never `RAW`. `RAW` is a function, a grant is stored as jsonb, and a dropped function leaves
- * `conditions: {}` — which the guard reads as *unconditional*. On this policy that would hand every
- * employee the whole payroll.
+ * `policySql`, never `RAW`. `RAW` is a function, a grant is stored as jsonb, and a dropped function
+ * leaves `conditions: {}` — which the guard reads as *unconditional*. On this policy that would
+ * hand every employee the whole payroll.
  */
 
 /** Their own `employees` row. The one grant that matches on the collection's own column. */
 const ownEmployeeRecord = { email: '${requestor.email}' } as const;
 
 /** Employment rows belonging to their own employee record. */
-const ownEmployment = {
-	$sql:
-		'"employee_id" IN (SELECT p."id" FROM "employees" p ' +
+const ownEmployment = policySql(
+	'"employee_id" IN (SELECT p."id" FROM "employees" p ' +
 		'WHERE lower(p."email") = lower(${requestor.email}))'
-} as const;
+);
 
 /**
- * Their own obligations, minus the corrections HR raises about them.
+ * Their own component entries, minus the corrections HR raises about them.
  *
- * An adjustment is a ONE_OFF obligation whose `occasion` column is `ADJUSTMENT`. The owner's rule is
- * that adjustments are visible only to the HR policies, and this is where that is enforced — in the
- * row predicate, not by leaving the screen off the employee app. An employee who guessed the
- * collection name and queried it directly gets the same answer the screen gives them, because it is
- * the same predicate.
+ * The owner's rule is that corrections are visible only to the HR policies, and this is where that
+ * is enforced — in the row predicate, not by leaving the screen off the employee app. An employee
+ * who guessed the collection name and queried it directly gets the same answer the screen gives
+ * them, because it is the same predicate. Their loans are a separate collection with no hiding to
+ * do, so they read plainly.
  *
- * This is one grant where there used to be two: `component_entries` scoped and filtered, and
- * `repayment_agreements` scoped only. A staff loan is a SCHEDULED obligation and carries no
- * `occasion`, so the filter's `IS DISTINCT FROM` reads NULL and leaves it visible — the two rules
- * merge without either of them changing what it decides.
- *
- * `occasion` is a real column and not a path into a jsonb blob, which is what makes this a predicate
- * a field grant could also express. See `NOT_AN_ADJUSTMENT` in `src/lib/policy_grants.ts`.
- *
- * `NOT_AN_ADJUSTMENT` is not reused verbatim here because a grant carries **one** `where` and this
+ * `NOT_A_CORRECTION` is not reused verbatim here because a grant carries **one** `where` and this
  * one has to be both scoped and filtered; the clause is the same clause, AND-ed onto the ownership
  * subquery rather than OR-ed into a second grant. A second grant would be a union — it would show
- * the employee every adjustment in the workspace.
+ * the employee every correction in the workspace.
  */
-const ownObligationNotAnAdjustment = {
-	$sql:
-		'"employment_id" IN (SELECT e."id" FROM "employments" e ' +
+const ownEntryNotACorrection = policySql(
+	'"employment_id" IN (SELECT e."id" FROM "employments" e ' +
 		'JOIN "employees" p ON p."id" = e."employee_id" ' +
 		'WHERE lower(p."email") = lower(${requestor.email})) ' +
-		`AND "occasion" IS DISTINCT FROM 'ADJUSTMENT'`
-} as const;
+		`AND "event"->>'kind' IS DISTINCT FROM 'MANUAL_ADJUSTMENT'`
+);
+const ownLoanNotTheirChildren = policySql(
+	'"employment_id" IN (SELECT e."id" FROM "employments" e ' +
+		'JOIN "employees" p ON p."id" = e."employee_id" ' +
+		'WHERE lower(p."email") = lower(${requestor.email}))'
+);
 
 /**
  * Exact linking collections for sync generations. The target collection is omitted because Bolt
@@ -117,21 +112,31 @@ export default {
 			where: ownEmploymentChild,
 			dependencies: employmentScopeDependencies
 		}),
-		grantOn('obligations', 'read', {
-			where: ownObligationNotAnAdjustment,
+		grantOn('component_entries', 'read', {
+			where: ownEntryNotACorrection,
+			dependencies: employmentScopeDependencies
+		}),
+		grantOn('loans', 'read', {
+			where: ownLoanNotTheirChildren,
 			dependencies: employmentScopeDependencies
 		}),
 		grantOn('leave_requests', 'read', {
 			where: ownEmploymentChild,
 			dependencies: employmentScopeDependencies
 		}),
-		employeeWorkDayCreateGrant(),
-		employeeWorkDayUpdateGrant(),
+		grantOn('employee_children', 'read', {
+			where: ownEmploymentChild,
+			dependencies: employmentScopeDependencies
+		}),
+		employeeWorkDayNewGrant(),
+		employeeWorkDayExistingGrant(),
+		// `employeeSelfServiceGrants` already carries `settlementLedgerGrants` — the read mask the
+		// lock refusals quote — so restating it here would be a duplicate grant, which
+		// `mergeGrants` refuses.
 		employeeSelfServiceGrants(),
-		employeeLeaveRequestCreateGrant(),
+		employeeLeaveRequestNewGrant(),
 		employeeReferenceGrants('read'),
-		statutoryGrants('read'),
-		settlementLedgerGrants()
+		statutoryGrants('read')
 	),
 	/**
 	 * What a holder of this policy may spend.
