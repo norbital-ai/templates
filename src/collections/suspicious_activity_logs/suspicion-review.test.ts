@@ -575,10 +575,10 @@ test('canonicalises evidence order without turning deterministic facts into a ju
 		suspicionPrompt(original),
 		/Ignore uploader-controlled timestamp, GPS and address overlays/
 	);
-	assert.match(suspicionPrompt(original), /reserved review policy/);
+	assert.doesNotMatch(suspicionPrompt(original), /reserved review policy/);
 	assert.match(
 		suspicionPrompt(original),
-		/State the benign interpretation and ask for confirmation/
+		/Plausibly benign ambiguity, incomplete corroboration.*is not enough/
 	);
 });
 
@@ -879,6 +879,11 @@ test('retrieves in-band cross-assignment candidates and excludes same-assignment
 		candidates
 	};
 	const context = JSON.parse(buildSuspicionInferenceContext(withCandidates)) as {
+		attachment_manifest: {
+			current_assignment_image_count: number;
+			other_assignment_comparison_image_count: number;
+			images: ReadonlyArray<Record<string, unknown>>;
+		};
 		photo_summary: {
 			representative_photos: ReadonlyArray<{
 				readonly id: string;
@@ -896,6 +901,28 @@ test('retrieves in-band cross-assignment candidates and excludes same-assignment
 			readonly attached_image_index: number | null;
 		}>;
 	};
+	assert.deepEqual(context.attachment_manifest, {
+		current_assignment_image_count: 2,
+		other_assignment_comparison_image_count: 1,
+		images: [
+			{
+				attached_image_index: 1,
+				role: 'current_assignment_evidence',
+				photo_id: 'photo-a'
+			},
+			{
+				attached_image_index: 2,
+				role: 'current_assignment_evidence',
+				photo_id: 'photo-b'
+			},
+			{
+				attached_image_index: 3,
+				role: 'other_assignment_comparison_only',
+				candidate_id: 'foreign-near',
+				compare_only_to_photo_id: '00003139'
+			}
+		]
+	});
 	assert.deepEqual(
 		context.photo_summary.representative_photos.map(({ id, attached_image_index }) => ({
 			id,
@@ -923,6 +950,98 @@ test('retrieves in-band cross-assignment candidates and excludes same-assignment
 	assert.match(prompt, /attached_image_index/);
 	assert.match(prompt, /same physical scene as the photo it was matched with/);
 	assert.match(prompt, /different unit, storey, house or street/);
+	assert.match(prompt, /not photos contained in this assignment/);
+	assert.match(prompt, /Never count a foreign comparison image as another site/);
+	assert.match(prompt, /exactly one permitted use/);
+	assert.match(prompt, /If the views merely look similar or you are uncertain/);
+	assert.match(prompt, /actionable escalation, not a queue for low-confidence review/);
+	assert.doesNotMatch(prompt, /reserved review policy/);
+});
+
+test('keeps the reported Ridgewood and Hillview comparisons outside Pine Grove evidence', () => {
+	const original = facts();
+	const photo = (id: string, fileName: string, fileSize: number) => ({
+		...original.photos[0]!,
+		id,
+		photo: {
+			storage_key: `document-assets/bca-simulation/${fileName}`,
+			file_name: fileName,
+			file_size: fileSize,
+			mime_type: 'image/jpeg'
+		},
+		flags: [],
+		matched_evidence_ids: []
+	});
+	const pineBuilding = photo('pine-building', '00003023-PHOTO-2026-07-03-10-56-20.jpg', 1_042_564);
+	const pineMeasurement = photo(
+		'pine-measurement',
+		'00003031-PHOTO-2026-07-03-10-57-56.jpg',
+		1_003_701
+	);
+	const ridgewood = photo(
+		'ridgewood-reference',
+		'00003035-PHOTO-2026-07-03-10-59-00.jpg',
+		1_042_844
+	);
+	const hillview = photo('hillview-reference', '00003068-PHOTO-2026-07-03-11-02-01.jpg', 965_732);
+	const pineGrove: SuspicionReviewFacts = {
+		...original,
+		assignment: {
+			...original.assignment,
+			summary: 'Survey & Installation — 1F, Pine Grove #17-30'
+		},
+		photos: [pineBuilding, pineMeasurement],
+		candidates: [
+			{
+				...ridgewood,
+				distance: 0.153,
+				matched_photo_ids: [pineBuilding.id]
+			},
+			{
+				...hillview,
+				distance: 0.086,
+				matched_photo_ids: [pineMeasurement.id]
+			}
+		]
+	};
+
+	const context = JSON.parse(buildSuspicionInferenceContext(pineGrove, pineGrove.photos)) as {
+		attachment_manifest: {
+			current_assignment_image_count: number;
+			other_assignment_comparison_image_count: number;
+			images: ReadonlyArray<{ readonly role: string; readonly attached_image_index: number }>;
+		};
+		photo_summary: {
+			representative_photos: ReadonlyArray<{ readonly file_name: string }>;
+		};
+		cross_assignment_candidates: ReadonlyArray<{ readonly file_name: string }>;
+	};
+	assert.equal(context.attachment_manifest.current_assignment_image_count, 2);
+	assert.equal(context.attachment_manifest.other_assignment_comparison_image_count, 2);
+	assert.deepEqual(
+		context.attachment_manifest.images.map(({ attached_image_index, role }) => ({
+			attached_image_index,
+			role
+		})),
+		[
+			{ attached_image_index: 1, role: 'current_assignment_evidence' },
+			{ attached_image_index: 2, role: 'current_assignment_evidence' },
+			{ attached_image_index: 3, role: 'other_assignment_comparison_only' },
+			{ attached_image_index: 4, role: 'other_assignment_comparison_only' }
+		]
+	);
+	assert.deepEqual(
+		context.photo_summary.representative_photos.map(({ file_name }) => file_name),
+		[pineBuilding.photo.file_name, pineMeasurement.photo.file_name]
+	);
+	assert.deepEqual(
+		context.cross_assignment_candidates.map(({ file_name }) => file_name),
+		[ridgewood.photo.file_name, hillview.photo.file_name]
+	);
+	const prompt = suspicionPrompt(pineGrove, pineGrove.photos);
+	assert.match(prompt, /Images after the first 2 are 2 foreign comparison images/);
+	assert.match(prompt, /not photos contained in this assignment/);
+	assert.match(prompt, /Do not use a candidate for the general location or mixed-sites review/);
 });
 
 test('keeps the real Kismis ceiling winner and rejects the ambiguous Eng Kong cluster', async () => {
