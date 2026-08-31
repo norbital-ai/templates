@@ -28,9 +28,20 @@
 		certificatePolicyIssues,
 		certificatePolicyMismatchMessage
 	} from './certificate-policy.js';
+	import { getContext } from 'svelte';
+	import {
+		LEAVE_REQUEST_CREATE_SCOPE,
+		type LeaveRequestCreateScope
+	} from '../../lib/ui/leave-request-create-scope.js';
 
 	let { record, close }: RepresentationProps = $props();
 	const { t } = useI18n<TenantI18nKeys>();
+	const createScope = getContext<LeaveRequestCreateScope | undefined>(LEAVE_REQUEST_CREATE_SCOPE);
+	const scopedEmploymentId = $derived(createScope?.employmentId());
+	const scopedCompanyId = $derived(createScope?.companyId());
+	const formValues = $derived(
+		record ?? (scopedEmploymentId ? { employment_id: scopedEmploymentId } : undefined)
+	);
 
 	/**
 	 * The settlement lock, read per record.
@@ -99,7 +110,7 @@
 <CollectionForm
 	{client}
 	collection="leave_requests"
-	defaultValues={record ?? undefined}
+	defaultValues={formValues}
 	{recordMetadata}
 	{validation}
 	submitLabel={record ? t('component.save_leave') : t('component.submit_leave')}
@@ -107,18 +118,22 @@
 >
 	{#snippet children({ Field })}
 		<Grid gap="md" minimum="panel">
-			<Field
-				name="employment_id"
-				label={t('component.person')}
-				relationOptions={{
-					label: (employment) =>
-						employment.employee_number != null && employment.employee_number !== ''
-							? String(employment.employee_number)
-							: '—',
-					orderBy: { employee_number: 'asc' },
-					limit: 1000
-				}}
-			/>
+			{#if createScope == null}
+				<Field
+					name="employment_id"
+					label={t('component.person')}
+					relationOptions={{
+						label: (employment) =>
+							employment.employee_number != null && employment.employee_number !== ''
+								? String(employment.employee_number)
+								: '—',
+						orderBy: { employee_number: 'asc' },
+						limit: 1000
+					}}
+				/>
+			{:else}
+				<Field name="employment_id" hidden />
+			{/if}
 			<Field
 				name="leave_type_id"
 				label={t('component.leave_type')}
@@ -127,6 +142,7 @@
 						[leaveType.code, leaveType.name]
 							.filter((part) => part != null && part !== '')
 							.join(' · ') || '—',
+					where: scopedCompanyId ? { company_id: { eq: scopedCompanyId } } : undefined,
 					orderBy: { code: 'asc' },
 					limit: 500
 				}}

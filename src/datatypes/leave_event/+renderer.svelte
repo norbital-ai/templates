@@ -422,6 +422,7 @@
 					value={current.range}
 					availability={leaveDayAvailability}
 					maximumHalfDays={availableLeaveDays == null ? null : Math.floor(availableLeaveDays * 2)}
+					persistedChargeableDays={current.chargeable_days}
 					disabled={pickerDisabled}
 					disabledReason={pickerDisabledReason}
 					onValueChange={setTimeOffRange}
