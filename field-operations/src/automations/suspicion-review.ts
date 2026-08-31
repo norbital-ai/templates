@@ -609,7 +609,32 @@ export function buildSuspicionInferenceContext(
 			.filter((candidate) => candidate.photo.file_size <= MAX_CANDIDATE_IMAGE_BYTES)
 			.map((candidate, index) => [candidate.id, representatives.length + index + 1])
 	);
+	const attachmentManifest = [
+		...representatives.map((photo) => ({
+			attached_image_index: photo.attached_image_index,
+			role: 'current_assignment_evidence' as const,
+			photo_id: photo.id
+		})),
+		...facts.candidates.flatMap((candidate) => {
+			const attachedImageIndex = attachedCandidateIndex.get(candidate.id);
+			return attachedImageIndex === undefined
+				? []
+				: [
+						{
+							attached_image_index: attachedImageIndex,
+							role: 'other_assignment_comparison_only' as const,
+							candidate_id: candidate.id,
+							compare_only_to_photo_id: candidate.matched_photo_ids[0] ?? null
+						}
+					];
+		})
+	];
 	const base = {
+		attachment_manifest: {
+			current_assignment_image_count: representatives.length,
+			other_assignment_comparison_image_count: attachmentManifest.length - representatives.length,
+			images: attachmentManifest
+		},
 		assignment: {
 			...facts.assignment,
 			summary: facts.assignment.summary == null ? null : clipText(facts.assignment.summary, 1_600),
@@ -680,26 +705,40 @@ export function suspicionPrompt(
 	facts: SuspicionReviewFacts,
 	representativePhotos = selectSuspicionInferencePhotos(facts.photos)
 ): string {
+	const attachedCandidateCount = facts.candidates.filter(
+		(candidate) => candidate.photo.file_size <= MAX_CANDIDATE_IMAGE_BYTES
+	).length;
+	const candidateRoleInstruction =
+		attachedCandidateCount === 0
+			? 'No foreign comparison image is attached.'
+			: 'Images after the first ' +
+				representativePhotos.length +
+				' are ' +
+				attachedCandidateCount +
+				' foreign comparison image' +
+				(attachedCandidateCount === 1 ? '' : 's') +
+				' from OTHER assignments, not photos contained in this assignment. The attachment_manifest is authoritative about each image role. Never count a foreign comparison image as another site mixed into this assignment.';
 	return [
 		'Review this field-work assignment and decide whether an unresolved suspicion should be raised.',
 		representativePhotos.length === 0
 			? 'No photo fit the bounded attachment budget. Judge from the assigned job and site, aggregate deterministic photo facts, and bounded recent contractor communications; do not pretend a scene was visible.'
 			: `Use the ${representativePhotos.length} attached representative photographed scene${representativePhotos.length === 1 ? '' : 's'}, assigned job and site, aggregate deterministic photo facts, and bounded recent contractor communications together.`,
+		candidateRoleInstruction,
 		'The durable audit basis covers every photo and communication; this inference context is deliberately bounded and states what was omitted.',
 		'Missing photo geolocation is a neutral fact because messaging services commonly strip metadata.',
 		'Visual similarity inside one assignment is a neutral fact because legitimate repeated views are possible.',
-		'Use only physical scene markers such as door plates, house numbers, street or building signs, mailboxes, lobby signs and lift permits when assessing location. Ignore uploader-controlled timestamp, GPS and address overlays, work labels, tape measures, tag numbers, bin or lamppost ids and telephone numbers.',
+		'Use only physical scene markers such as door plates, house numbers, street or building signs, mailboxes, lobby signs and lift permits when assessing location. Ignore uploader-controlled timestamp, GPS and address overlays, work labels, tape measures, tag numbers, bin or lamppost ids and telephone numbers. In particular, text or an address overlay visible on a foreign comparison image says nothing about which photos were submitted to this assignment.',
 		'Duplicate reuse only matters between distinct assignments: an identical file submitted under the same assignment is a neutral repeat, never evidence.',
-		'The context may list cross_assignment_candidates: photographs retrieved from OTHER assignments whose learned image embedding selected one distinctive nearest neighbour. Every attached photo is identified by attached_image_index; compare each candidate only with its best_match_photo_id and best_match_attached_image_index rather than guessing attachment order.',
+		'The context may list cross_assignment_candidates: reference photographs retrieved from OTHER assignments whose learned image embedding selected one distinctive nearest neighbour. They have exactly one permitted use: compare each candidate with its best_match_photo_id and best_match_attached_image_index for possible reuse. Do not use a candidate for the general location or mixed-sites review.',
 		'Embedding distance is retrieval ranking, not evidence. Similar colours, doors, handrails, grab bars, stairwells, bathrooms or other common trade fixtures are expected across unrelated installations and must be cleared even at a low distance.',
-		'Reuse requires distinctive shared scene geometry: the same spatial arrangement of permanent edges, openings, vents, holes, stains, fixtures and background structure. A lower distance never overrides visible geometric differences.',
+		'Reuse requires high confidence from distinctive shared scene geometry: the same spatial arrangement of permanent edges, openings, vents, holes, stains, fixtures and background structure. A lower distance never overrides visible geometric differences. If the views merely look similar or you are uncertain whether they are the same physical scene, clear the pair.',
 		'If a candidate photo shows the same physical scene as the photo it was matched with \u2014 the same view cropped, zoomed, recompressed, re-photographed or re-sent \u2014 the same evidence is serving two assignments. Raise an unresolved suspicion, name both photos in the reason, and cite this assignment\u2019s photo id.',
 		'A candidate showing a different unit, storey, house or street, or a plausibly distinct scene of the same trade, is not reuse; treat the pair as cleared.',
-		'Raise an unresolved suspicion when physical scenes show multiple unexplained sites mixed into one assignment, while acknowledging any valid assigned-site evidence in the same batch.',
-		'The reserved review policy also treats a concrete but plausibly benign ambiguity as suspicious when a controller is needed to resolve it: an unexplained lobby or unit range, a physical marker that corroborates only part of the assigned address, or one isolated visually different work scene among otherwise matched evidence. State the benign interpretation and ask for confirmation; do not call it fraud or a proven mismatch.',
-		'For every other fact, return suspicious only when your contextual judgement finds concrete reason to question this assignment.',
+		'Raise an unresolved mixed-sites suspicion only when evidence submitted to THIS assignment contains a concrete physical marker for a conflicting site. Different-looking rooms, fixtures, or exterior views alone do not establish multiple sites.',
+		'A suspicion log is an actionable escalation, not a queue for low-confidence review. Plausibly benign ambiguity, incomplete corroboration, or the fact that a controller could confirm something is not enough. When the available evidence has a reasonable ordinary explanation and no concrete contradiction, return suspicious false.',
+		'For every other fact, return suspicious only when your contextual judgement finds a concrete, articulable reason to question this assignment.',
 		'Likewise, an assignment location mismatch is evidence for judgement, never an automatic verdict.',
-		`If suspicious is true, give a concise reason of at most ${MAX_INFERENCE_REASON_CHARS} characters that a controller can investigate and cite one representative photo id when an attached photo is decisive.`,
+		`If suspicious is true, give a concise reason of at most ${MAX_INFERENCE_REASON_CHARS} characters that a controller can investigate and cite actual photo ids, not attachment numbers. Cite one current-assignment representative photo id when an attached photo is decisive.`,
 		`If suspicious is false, explain in at most ${MAX_INFERENCE_REASON_CHARS} characters why the evidence does not justify a log.`,
 		`Bounded inference facts: ${buildSuspicionInferenceContext(facts, representativePhotos)}`
 	].join(' ');
@@ -830,6 +869,7 @@ export function reviewAssignmentSuspicion(
 		const facts: SuspicionReviewFacts = { ...loadedFacts, candidates };
 		const basis = buildSuspicionReviewBasis(facts);
 		const basisHash = suspicionReviewHash(basis);
+		const matchedPhotoIds = new Set(candidates.flatMap((candidate) => candidate.matched_photo_ids));
 		lifecycle.inferenceStarted?.(assignment.id);
 		const decision = yield* api.infer({
 			model: SUSPICION_REVIEW_MODEL,
@@ -837,7 +877,9 @@ export function reviewAssignmentSuspicion(
 			images: [
 				...representativePhotos.map((photo) => ({
 					file: photo.photo,
-					detail: 'low' as const
+					// Reuse review depends on small permanent geometric differences. Preserve those for
+					// the own side of a nominated pair; ordinary assignment context stays economical.
+					detail: matchedPhotoIds.has(photo.id) ? ('high' as const) : ('low' as const)
 				})),
 				// Candidates follow the assignment's own photos so reuse pairs are visible in one turn;
 				// oversized files stay context-only facts rather than consuming the attachment budget.
@@ -845,7 +887,7 @@ export function reviewAssignmentSuspicion(
 					.filter((candidate) => candidate.photo.file_size <= MAX_CANDIDATE_IMAGE_BYTES)
 					.map((candidate) => ({
 						file: candidate.photo,
-						detail: 'low' as const
+						detail: 'high' as const
 					}))
 			],
 			prompt: suspicionPrompt(facts, representativePhotos)
