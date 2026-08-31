@@ -73,6 +73,11 @@
 		type DayLock,
 		type SourceLock
 	} from '../lib/scheduling/lock.js';
+	import { setContext } from 'svelte';
+	import {
+		LEAVE_REQUEST_CREATE_SCOPE,
+		type LeaveRequestCreateScope
+	} from '../lib/ui/leave-request-create-scope.js';
 
 	const user = getPlatformStateContext()().user;
 	const today = todayKey();
@@ -162,6 +167,10 @@
 	const activeEmployment = $derived(
 		activeEmployments.find((employment) => employment.id === employmentId)
 	);
+	setContext<LeaveRequestCreateScope>(LEAVE_REQUEST_CREATE_SCOPE, {
+		employmentId: () => employmentId,
+		companyId: () => activeEmployment?.company_id
+	});
 	const needsEmploymentChoice = $derived(activeEmployments.length > 1 && !employmentId);
 	/**
 	 * Every surface on this page is scoped by `employmentId` — the four tables, and now the schedule
@@ -593,7 +602,11 @@
 					leave_type_id: row.leave_type_id,
 					entry_date: formatDateISO(row.from_date),
 					kind: row.kind ?? 'TAKEN',
-					days: Number(row.days),
+					// The generated `days` column stores the magnitude of a time-off request. The
+					// balance ledger stores movements, where leave taken is a debit. The request hook
+					// and payroll engine already make this conversion; the employee panel must read the
+					// same sign or a newly submitted day increases the displayed balance instead.
+					days: row.kind === 'TIME_OFF' ? -Math.abs(Number(row.days)) : Number(row.days),
 					source_id: null,
 					approval_id: null
 				}
@@ -654,15 +667,15 @@
 						)
 						.reduce((total, row) => total + Number(row.days), 0)
 				),
-				encashed: -leaveLedgerRows
+				encashed: leaveLedgerRows
 					.filter(
 						(row) =>
 							row.leave_type_id === type.id &&
-							Number(row.days) > 0 &&
+							row.kind === 'ENCASHMENT' &&
 							row.entry_date >= leaveYearStart(today, yearStart) &&
 							row.entry_date <= today
 					)
-					.reduce((total, row) => total + Number(row.days), 0),
+					.reduce((total, row) => total + Math.abs(Number(row.days)), 0),
 				remaining: leaveBalance(input, today)
 			};
 		});
@@ -1234,6 +1247,88 @@
 
 {#snippet leave()}
 	<Cover gap="md" top={contextGate}>
+		{#if employmentId != null}
+			<section
+				class="overflow-hidden rounded-xl border bg-card shadow-sm"
+				aria-labelledby="my-leave-balances-heading"
+			>
+				<Stack class="px-4 py-3" gap="xs">
+					<h3 id="my-leave-balances-heading" class="text-sm font-semibold">
+						{t('app.hr_employee.leave_balances')}
+					</h3>
+					<p class="max-w-prose text-sm text-muted-foreground">
+						{t('app.hr_employee.leave_balances_description', {
+							date: formatCalendarDate(today)
+						})}
+					</p>
+				</Stack>
+				{#if leaveBalanceRows.length === 0}
+					<p class="border-t px-4 py-3 text-sm text-muted-foreground">
+						{t('app.hr_employee.leave_balances_empty')}
+					</p>
+				{:else}
+					{#each leaveBalanceRows as balance (balance.type.id)}
+						<div
+							class="grid min-w-0 grid-cols-1 gap-3 border-t px-4 py-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-start"
+						>
+							<Stack class="min-w-0" gap="xs">
+								<p class="truncate text-sm font-medium" title={balance.type.name}>
+									{balance.type.name}
+									<span class="text-muted-foreground"> · {balance.type.code}</span>
+								</p>
+								<dl class="flex min-w-0 flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
+									<div class="flex gap-1">
+										<dt>{t('app.hr_employee.leave_entitlement')}</dt>
+										<dd class="font-medium tabular-nums text-foreground">
+											{formatNumeric(balance.entitlement)}
+										</dd>
+									</div>
+									<div class="flex gap-1">
+										<dt>{t('app.hr_employee.leave_accrued')}</dt>
+										<dd class="font-medium tabular-nums text-foreground">
+											{formatNumeric(balance.accrued)}
+										</dd>
+									</div>
+									<div class="flex gap-1">
+										<dt>{t('app.hr_employee.leave_carried')}</dt>
+										<dd class="font-medium tabular-nums text-foreground">
+											{formatNumeric(balance.carried)}
+										</dd>
+									</div>
+									<div class="flex gap-1">
+										<dt>{t('app.hr_employee.leave_taken')}</dt>
+										<dd class="font-medium tabular-nums text-foreground">
+											{formatNumeric(balance.taken)}
+										</dd>
+									</div>
+									{#if balance.encashed > 0}
+										<div class="flex gap-1">
+											<dt>{t('app.hr_employee.leave_encashed')}</dt>
+											<dd class="font-medium tabular-nums text-foreground">
+												{formatNumeric(balance.encashed)}
+											</dd>
+										</div>
+									{/if}
+									{#if balance.expired > 0}
+										<div class="flex gap-1">
+											<dt>{t('app.hr_employee.leave_expired')}</dt>
+											<dd class="font-medium tabular-nums text-foreground">
+												{formatNumeric(balance.expired)}
+											</dd>
+										</div>
+									{/if}
+								</dl>
+							</Stack>
+							<p class="text-sm font-semibold tabular-nums sm:text-right">
+								{t('component.leave_days_remaining', {
+									days: formatNumeric(balance.remaining)
+								})}
+							</p>
+						</div>
+					{/each}
+				{/if}
+			</section>
+		{/if}
 		<CollectionTable
 			{client}
 			collection="leave_requests"
@@ -1247,10 +1342,11 @@
 			}}
 		>
 			{#snippet columns({ Column })}
-				<Column name="leave_type_id" label={t('component.leave_type')} card="title" />
+				<Column name="leave_type_id" label={t('component.leave_type')} />
 				<Column
 					name="event"
 					label={t('component.leave_range')}
+					card="title"
 					renderer={FormattedValueRenderer}
 					rendererProps={{ format: ({ row }) => formatLeaveRange(row.event, t) }}
 				/>

@@ -430,6 +430,8 @@
 			<Field name="lifecycle" hidden />
 			<Field name="configuration_hash" hidden />
 			<Field name="configuration_snapshot" hidden />
+			<Field name="statutory_snapshot_id" hidden />
+			<Field name="calculation_version" hidden />
 			<Field name="pay_date" hidden />
 			<Field name="attendance_from" hidden />
 			<Field name="attendance_to" hidden />

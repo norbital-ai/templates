@@ -11,14 +11,16 @@ import suspicionReviewAutomation, {
 import {
 	ASSIGNMENT_PAGE_SIZE,
 	CROSS_ASSIGNMENT_MAX_HAMMING,
+	MAX_INFERENCE_ASSET_NAME_CHARS,
 	MAX_INFERENCE_CONTEXT_CHARS,
-	MAX_INFERENCE_EVIDENCE_ID_CHARS,
 	MAX_INFERENCE_IMAGE_BYTES,
 	MAX_INFERENCE_IMAGES,
 	MAX_INFERENCE_REASON_CHARS,
 	RECORD_EMBEDDING_MIN_DISTINCTIVENESS,
 	buildSuspicionInferenceContext,
 	buildSuspicionReviewBasis,
+	gpsMetadataStatus,
+	inferSuspicionReviewDecision,
 	loadCrossAssignmentCandidates,
 	loadUncheckedAssignments,
 	reviewSourceKey,
@@ -121,7 +123,13 @@ function automationHarness(options: {
 					suspicious: false,
 					reason: 'The evidence does not justify a suspicion.'
 				};
-				return { ...decision, evidence_id: null };
+				return {
+					job_site_review: {
+						...decision,
+						evidence_asset_name: decision.suspicious ? 'evidence.jpg' : null
+					},
+					similar_photo_reviews: []
+				};
 			}).pipe(Effect.ensuring(Effect.sync(() => (activeInferences -= 1)))),
 		/**
 		 * The database double, in the shape the authored api now has.
@@ -186,7 +194,24 @@ function automationHarness(options: {
 			},
 			variation_requests: { findMany: () => Effect.succeed([]) },
 			photo_evidence: {
-				findMany: () => Effect.succeed([]),
+				findMany: () =>
+					Effect.succeed([
+						{
+							id: 'photo-evidence',
+							photo: {
+								storage_key: 'photos/evidence.jpg',
+								file_name: 'evidence.jpg',
+								file_size: 1,
+								mime_type: 'image/jpeg'
+							},
+							sha256: 'evidence-sha',
+							flags: [],
+							matched_evidence_ids: [],
+							created_at: null,
+							perceptual_embedding: [],
+							record_embedding: null
+						}
+					]),
 				findNearest: () => Effect.succeed([])
 			},
 			communication_logs: { findMany: () => Effect.succeed([]) },
@@ -459,6 +484,24 @@ test('counts failed inference invocations, leaves those assignments unchecked, a
 	assert.deepEqual(harness.updates, [succeeded.id]);
 });
 
+test('keeps the first bounded provider cause in an incomplete-run error', () => {
+	const outcome: RunResult = {
+		reviewed_at: '2026-08-31T00:00:00.000Z',
+		assignment_count: 34,
+		inference_count: 34,
+		failure_count: 1,
+		failure_details: [{ assignment_id: 'assignment-cashew', stage: 'inference' }],
+		failure_details_truncated: false,
+		counts: { checked: 33, failed: 1 }
+	};
+	const error = new SuspicionReviewIncompleteError(
+		outcome,
+		'ProviderRequestFailure: AI provider rejected turn (503): gateway unavailable'
+	);
+	assert.match(error.message, /assignment-cashew at inference/);
+	assert.match(error.message, /rejected turn \(503\): gateway unavailable/);
+});
+
 test('does not stamp after inference when no review can be durably persisted', async () => {
 	const selected = assignment('assignment-review-failed');
 	const harness = automationHarness({
@@ -512,44 +555,61 @@ test('bounds failure details while retaining the complete failure count', async 
 });
 
 test('bounds every free-form decision field in the provider and runtime schemas', () => {
-	const jsonSchema = Schema.toJsonSchemaDocument(suspicionInferenceSchema).schema as {
-		properties?: {
-			reason?: { maxLength?: number };
-			evidence_id?: {
-				anyOf?: ReadonlyArray<{ maxLength?: number }>;
-			};
-		};
-	};
+	const jsonSchema = JSON.stringify(Schema.toJsonSchemaDocument(suspicionInferenceSchema).schema);
 	const decode = Schema.decodeUnknownSync(suspicionInferenceSchema);
 
-	assert.equal(jsonSchema.properties?.reason?.maxLength, MAX_INFERENCE_REASON_CHARS);
-	assert.equal(
-		jsonSchema.properties?.evidence_id?.anyOf?.find((branch) => branch.maxLength != null)
-			?.maxLength,
-		MAX_INFERENCE_EVIDENCE_ID_CHARS
-	);
+	assert.match(jsonSchema, new RegExp(`"maxLength":${MAX_INFERENCE_REASON_CHARS}`));
+	assert.match(jsonSchema, new RegExp(`"maxLength":${MAX_INFERENCE_ASSET_NAME_CHARS}`));
 	assert.doesNotThrow(() =>
 		decode({
-			suspicious: true,
-			reason: 'x'.repeat(MAX_INFERENCE_REASON_CHARS),
-			evidence_id: 'p'.repeat(MAX_INFERENCE_EVIDENCE_ID_CHARS)
+			job_site_review: {
+				suspicious: true,
+				reason: 'x'.repeat(MAX_INFERENCE_REASON_CHARS),
+				evidence_asset_name: 'p'.repeat(MAX_INFERENCE_ASSET_NAME_CHARS)
+			},
+			similar_photo_reviews: [
+				{
+					job_site_asset_name: 'current.jpg',
+					similar_asset_name: 'candidate.jpg',
+					same_scene: true,
+					reason: 'x'.repeat(MAX_INFERENCE_REASON_CHARS)
+				}
+			]
 		})
 	);
 	assert.throws(() =>
 		decode({
-			suspicious: true,
-			reason: 'x'.repeat(MAX_INFERENCE_REASON_CHARS + 1),
-			evidence_id: null
+			job_site_review: {
+				suspicious: true,
+				reason: 'x'.repeat(MAX_INFERENCE_REASON_CHARS + 1),
+				evidence_asset_name: null
+			},
+			similar_photo_reviews: []
 		})
 	);
 	assert.throws(() =>
 		decode({
-			suspicious: true,
-			reason: 'Needs review',
-			evidence_id: 'p'.repeat(MAX_INFERENCE_EVIDENCE_ID_CHARS + 1)
+			job_site_review: {
+				suspicious: true,
+				reason: 'Needs review',
+				evidence_asset_name: null
+			},
+			similar_photo_reviews: [
+				{
+					job_site_asset_name: 'p'.repeat(MAX_INFERENCE_ASSET_NAME_CHARS + 1),
+					similar_asset_name: 'candidate.jpg',
+					same_scene: true,
+					reason: 'Needs review'
+				}
+			]
 		})
 	);
-	assert.throws(() => decode({ suspicious: false, reason: '   ', evidence_id: null }));
+	assert.throws(() =>
+		decode({
+			job_site_review: { suspicious: false, reason: '   ', evidence_asset_name: null },
+			similar_photo_reviews: []
+		})
+	);
 });
 
 test('canonicalises evidence order without turning deterministic facts into a judgement', () => {
@@ -579,6 +639,16 @@ test('canonicalises evidence order without turning deterministic facts into a ju
 	assert.match(
 		suspicionPrompt(original),
 		/Plausibly benign ambiguity, incomplete corroboration.*is not enough/
+	);
+});
+
+test('reports only the GPS metadata state retained for each named asset', () => {
+	const [missing, present] = facts().photos;
+	assert.equal(gpsMetadataStatus(missing!), 'missing_from_asset');
+	assert.equal(gpsMetadataStatus(present!), 'present_without_location_mismatch');
+	assert.equal(
+		gpsMetadataStatus({ ...present!, flags: ['location_mismatch'] }),
+		'present_and_outside_assigned_site_tolerance'
 	);
 });
 
@@ -741,7 +811,10 @@ test('treats identical files within one assignment as a neutral repeat, not dupl
 	const context = JSON.parse(buildSuspicionInferenceContext(hillview, selected)) as {
 		photo_summary: {
 			similarity_relationships: number;
-			representative_photos: ReadonlyArray<{ readonly sha256: string }>;
+			job_site_photo_dataset: ReadonlyArray<{
+				readonly asset_name: string;
+				readonly gps_metadata: string;
+			}>;
 		};
 	};
 	assert.equal(context.photo_summary.similarity_relationships, 0);
@@ -753,14 +826,32 @@ test('treats identical files within one assignment as a neutral repeat, not dupl
 		Object.hasOwn(context.photo_summary, 'within_assignment_exact_sha_photo_count'),
 		false
 	);
-	assert.deepEqual(
-		context.photo_summary.representative_photos.map((photo) => photo.sha256),
-		[
-			'f7469fd88deda042989a8a87ff51f69fe796a88dcf6db0b6b8d9c9f401a60844',
-			'e1719c9ce6a505b20ac7c8ab5e4e3e67d8878c9db8b312ec0aaf427f942a714d',
-			'e1719c9ce6a505b20ac7c8ab5e4e3e67d8878c9db8b312ec0aaf427f942a714d'
-		]
-	);
+	assert.deepEqual(context.photo_summary.job_site_photo_dataset, [
+		{
+			asset_name: '00003039-PHOTO-2026-07-03-10-59-50.jpg',
+			gps_metadata: 'missing_from_asset',
+			visually_attached: true,
+			file_size: 1_042_864,
+			mime_type: 'image/jpeg',
+			integrity_flags: ['missing_geolocation']
+		},
+		{
+			asset_name: '00003060-PHOTO-2026-07-03-11-01-56.jpg',
+			gps_metadata: 'missing_from_asset',
+			visually_attached: true,
+			file_size: 953_878,
+			mime_type: 'image/jpeg',
+			integrity_flags: ['missing_geolocation']
+		},
+		{
+			asset_name: '00003097-PHOTO-2026-07-03-11-02-16.jpg',
+			gps_metadata: 'missing_from_asset',
+			visually_attached: true,
+			file_size: 953_878,
+			mime_type: 'image/jpeg',
+			integrity_flags: ['missing_geolocation']
+		}
+	]);
 	const prompt = suspicionPrompt(hillview, selected);
 	assert.match(prompt, /Visual similarity inside one assignment is a neutral fact/);
 	assert.match(prompt, /an identical file submitted under the same assignment is a neutral repeat/);
@@ -850,8 +941,8 @@ test('retrieves in-band cross-assignment candidates and excludes same-assignment
 		ceiling('unrelated-own-1', orthogonal, 'assignment-kismis'),
 		ceiling('unrelated-own-2', orthogonal, 'assignment-kismis'),
 		ceiling('unrelated-own-3', orthogonal, 'assignment-kismis'),
-		{ ...ceiling('00003140', base, 'assignment-kismis'), photo: corpus[1]!.photo },
-		{ ...ceiling('00003139', base, 'assignment-kismis'), photo: corpus[0]!.photo }
+		ceiling('00003140', base, 'assignment-kismis'),
+		ceiling('00003139', base, 'assignment-kismis')
 	];
 	const api = {
 		db: {
@@ -876,89 +967,77 @@ test('retrieves in-band cross-assignment candidates and excludes same-assignment
 	const withCandidates: SuspicionReviewFacts = {
 		...facts(),
 		assignment: { ...facts().assignment, id: 'assignment-kismis' },
+		photos: probes,
 		candidates
 	};
 	const context = JSON.parse(buildSuspicionInferenceContext(withCandidates)) as {
 		attachment_manifest: {
-			current_assignment_image_count: number;
-			other_assignment_comparison_image_count: number;
-			images: ReadonlyArray<Record<string, unknown>>;
-		};
-		photo_summary: {
-			representative_photos: ReadonlyArray<{
-				readonly id: string;
-				readonly attached_image_index: number;
+			instruction: string;
+			images: ReadonlyArray<{
+				readonly asset_name: string;
+				readonly gps_metadata: string;
+				readonly role: string;
 			}>;
 		};
-		cross_assignment_candidates: ReadonlyArray<{
-			readonly id: string;
-			readonly file_name: string;
-			readonly sha256: string;
-			readonly distance: number;
-			readonly matched_photo_ids: ReadonlyArray<string>;
-			readonly best_match_photo_id: string | null;
-			readonly best_match_attached_image_index: number | null;
-			readonly attached_image_index: number | null;
+		photo_summary: {
+			job_site_photo_dataset: ReadonlyArray<{
+				readonly asset_name: string;
+				readonly gps_metadata: string;
+				readonly visually_attached: boolean;
+			}>;
+		};
+		similar_photos_flagged: ReadonlyArray<{
+			readonly job_site_asset_name: string;
+			readonly similar_asset_name: string;
+			readonly similar_asset_gps_metadata: string;
+			readonly visually_attached: boolean;
 		}>;
 	};
-	assert.deepEqual(context.attachment_manifest, {
-		current_assignment_image_count: 2,
-		other_assignment_comparison_image_count: 1,
-		images: [
-			{
-				attached_image_index: 1,
-				role: 'current_assignment_evidence',
-				photo_id: 'photo-a'
-			},
-			{
-				attached_image_index: 2,
-				role: 'current_assignment_evidence',
-				photo_id: 'photo-b'
-			},
-			{
-				attached_image_index: 3,
-				role: 'other_assignment_comparison_only',
-				candidate_id: 'foreign-near',
-				compare_only_to_photo_id: '00003139'
-			}
-		]
+	assert.match(context.attachment_manifest.instruction, /role and asset_name are authoritative/);
+	assert.deepEqual(context.attachment_manifest.images.at(-1), {
+		asset_name: 'foreign-near.jpg',
+		gps_metadata: 'missing_from_asset',
+		role: 'similar_photo_from_other_assignment',
+		compare_only_with_asset_name: '00003139.jpg'
 	});
 	assert.deepEqual(
-		context.photo_summary.representative_photos.map(({ id, attached_image_index }) => ({
-			id,
-			attached_image_index
+		context.photo_summary.job_site_photo_dataset.map(({ asset_name, gps_metadata }) => ({
+			asset_name,
+			gps_metadata
 		})),
-		[
-			{ id: 'photo-a', attached_image_index: 1 },
-			{ id: 'photo-b', attached_image_index: 2 }
-		]
+		[...probes]
+			.sort((left, right) => left.id.localeCompare(right.id))
+			.map((photo) => ({
+				asset_name: photo.photo.file_name,
+				gps_metadata: 'missing_from_asset'
+			}))
 	);
-	assert.deepEqual(context.cross_assignment_candidates, [
+	assert.deepEqual(context.similar_photos_flagged, [
 		{
-			id: 'foreign-near',
-			file_name: 'foreign-near.jpg',
-			sha256: 'foreign-near-sha',
-			distance: 0.3,
-			matched_photo_ids: ['00003139'],
-			best_match_photo_id: '00003139',
-			best_match_attached_image_index: null,
-			attached_image_index: 3
+			job_site_asset_name: '00003139.jpg',
+			similar_asset_name: 'foreign-near.jpg',
+			similar_asset_gps_metadata: 'missing_from_asset',
+			retrieval_distance: 0.3,
+			visually_attached: true
 		}
 	]);
 	const prompt = suspicionPrompt(withCandidates);
-	assert.match(prompt, /cross_assignment_candidates/);
-	assert.match(prompt, /attached_image_index/);
-	assert.match(prompt, /same physical scene as the photo it was matched with/);
-	assert.match(prompt, /different unit, storey, house or street/);
-	assert.match(prompt, /not photos contained in this assignment/);
-	assert.match(prompt, /Never count a foreign comparison image as another site/);
-	assert.match(prompt, /exactly one permitted use/);
-	assert.match(prompt, /If the views merely look similar or you are uncertain/);
+	assert.match(prompt, /exactly one structured turn/);
+	assert.match(prompt, /complete set submitted to this assignment/);
+	assert.match(
+		prompt,
+		/Do not invent a photo number, record id, attachment label, address, GPS coordinate/
+	);
+	assert.match(prompt, /foreign-near\.jpg/);
+	assert.match(prompt, /similar_photo_from_other_assignment/);
+	assert.match(prompt, /never borrow a number, address, sign, marker or scene observation/);
+	assert.match(prompt, /crop, zoom, recompression/);
 	assert.match(prompt, /actionable escalation, not a queue for low-confidence review/);
 	assert.doesNotMatch(prompt, /reserved review policy/);
+	assert.doesNotMatch(prompt, /foreign-near-sha/);
 });
 
-test('keeps the reported Ridgewood and Hillview comparisons outside Pine Grove evidence', () => {
+test('names Ridgewood and Hillview in one Pine Grove turn without treating them as job-site evidence', () => {
 	const original = facts();
 	const photo = (id: string, fileName: string, fileSize: number) => ({
 		...original.photos[0]!,
@@ -1007,41 +1086,276 @@ test('keeps the reported Ridgewood and Hillview comparisons outside Pine Grove e
 
 	const context = JSON.parse(buildSuspicionInferenceContext(pineGrove, pineGrove.photos)) as {
 		attachment_manifest: {
-			current_assignment_image_count: number;
-			other_assignment_comparison_image_count: number;
-			images: ReadonlyArray<{ readonly role: string; readonly attached_image_index: number }>;
+			images: ReadonlyArray<{
+				readonly asset_name: string;
+				readonly role: string;
+				readonly compare_only_with_asset_name?: string;
+			}>;
 		};
 		photo_summary: {
-			representative_photos: ReadonlyArray<{ readonly file_name: string }>;
+			job_site_photo_dataset: ReadonlyArray<{ readonly asset_name: string }>;
 		};
-		cross_assignment_candidates: ReadonlyArray<{ readonly file_name: string }>;
+		similar_photos_flagged: ReadonlyArray<{
+			readonly job_site_asset_name: string;
+			readonly similar_asset_name: string;
+		}>;
 	};
-	assert.equal(context.attachment_manifest.current_assignment_image_count, 2);
-	assert.equal(context.attachment_manifest.other_assignment_comparison_image_count, 2);
 	assert.deepEqual(
-		context.attachment_manifest.images.map(({ attached_image_index, role }) => ({
-			attached_image_index,
+		context.attachment_manifest.images.map(({ asset_name, role }) => ({
+			asset_name,
 			role
 		})),
 		[
-			{ attached_image_index: 1, role: 'current_assignment_evidence' },
-			{ attached_image_index: 2, role: 'current_assignment_evidence' },
-			{ attached_image_index: 3, role: 'other_assignment_comparison_only' },
-			{ attached_image_index: 4, role: 'other_assignment_comparison_only' }
+			{ asset_name: pineBuilding.photo.file_name, role: 'job_site_photo' },
+			{ asset_name: pineMeasurement.photo.file_name, role: 'job_site_photo' },
+			{ asset_name: ridgewood.photo.file_name, role: 'similar_photo_from_other_assignment' },
+			{ asset_name: hillview.photo.file_name, role: 'similar_photo_from_other_assignment' }
 		]
 	);
 	assert.deepEqual(
-		context.photo_summary.representative_photos.map(({ file_name }) => file_name),
+		context.photo_summary.job_site_photo_dataset.map(({ asset_name }) => asset_name),
 		[pineBuilding.photo.file_name, pineMeasurement.photo.file_name]
 	);
 	assert.deepEqual(
-		context.cross_assignment_candidates.map(({ file_name }) => file_name),
-		[ridgewood.photo.file_name, hillview.photo.file_name]
+		context.similar_photos_flagged.map(({ job_site_asset_name, similar_asset_name }) => ({
+			job_site_asset_name,
+			similar_asset_name
+		})),
+		[
+			{
+				job_site_asset_name: pineBuilding.photo.file_name,
+				similar_asset_name: ridgewood.photo.file_name
+			},
+			{
+				job_site_asset_name: pineMeasurement.photo.file_name,
+				similar_asset_name: hillview.photo.file_name
+			}
+		]
 	);
 	const prompt = suspicionPrompt(pineGrove, pineGrove.photos);
-	assert.match(prompt, /Images after the first 2 are 2 foreign comparison images/);
-	assert.match(prompt, /not photos contained in this assignment/);
-	assert.match(prompt, /Do not use a candidate for the general location or mixed-sites review/);
+	assert.match(prompt, new RegExp(ridgewood.photo.file_name));
+	assert.match(prompt, new RegExp(hillview.photo.file_name));
+	assert.match(prompt, /Never treat a similar_photo_from_other_assignment as evidence/);
+	assert.match(
+		prompt,
+		/Compare each visually_attached pair only with its named job_site_asset_name/
+	);
+});
+
+test('keeps Wajek and Phoenix roles explicit in one turn without exposing internal photo ids', () => {
+	const original = facts();
+	const photo = (id: string, fileName: string) => ({
+		...original.photos[0]!,
+		id,
+		photo: {
+			storage_key: `document-assets/bca-simulation/${fileName}`,
+			file_name: fileName,
+			file_size: 700_000,
+			mime_type: 'image/jpeg'
+		},
+		flags: ['missing_geolocation'],
+		matched_evidence_ids: []
+	});
+	const mailbox22 = photo(
+		'019f6f10-5000-7000-8000-000000000254',
+		'00003364-PHOTO-2026-07-03-11-43-27.jpg'
+	);
+	const wajekSign = photo(
+		'019f6f10-5000-7000-8000-000000000255',
+		'00003365-PHOTO-2026-07-03-11-43-27.jpg'
+	);
+	const wajekExterior = photo(
+		'019f6f10-5000-7000-8000-000000000256',
+		'00003366-PHOTO-2026-07-03-11-43-27.jpg'
+	);
+	const phoenixMailbox = photo('foreign-phoenix-mailbox', '00003359-PHOTO-2026-07-03-11-42-54.jpg');
+	const phoenixExterior = photo(
+		'foreign-phoenix-exterior',
+		'00003360-PHOTO-2026-07-03-11-42-54.jpg'
+	);
+	const wajek: SuspicionReviewFacts = {
+		...original,
+		assignment: {
+			...original.assignment,
+			id: 'assignment-wajek',
+			summary: 'Photo evidence — 22 Jalan Wajek, Singapore'
+		},
+		job: original.job == null ? null : { ...original.job, title: '22 Jalan Wajek, Singapore' },
+		site: original.site == null ? null : { ...original.site, name: '22 Jalan Wajek, Singapore' },
+		photos: [mailbox22, wajekSign, wajekExterior],
+		candidates: [
+			{
+				...phoenixMailbox,
+				distance: 0.165,
+				matched_photo_ids: [mailbox22.id]
+			},
+			{
+				...phoenixExterior,
+				distance: 0.168,
+				matched_photo_ids: [wajekExterior.id]
+			}
+		]
+	};
+
+	const mainPrompt = suspicionPrompt(wajek, wajek.photos);
+	for (const ownPhoto of wajek.photos) {
+		assert.match(mainPrompt, new RegExp(ownPhoto.photo.file_name));
+		assert.doesNotMatch(mainPrompt, new RegExp(ownPhoto.id));
+	}
+	assert.match(mainPrompt, new RegExp(phoenixMailbox.photo.file_name));
+	assert.match(mainPrompt, new RegExp(phoenixExterior.photo.file_name));
+	assert.doesNotMatch(mainPrompt, new RegExp(phoenixMailbox.id));
+	assert.doesNotMatch(mainPrompt, new RegExp(phoenixExterior.id));
+	assert.match(mainPrompt, /similar_photo_from_other_assignment/);
+	assert.match(mainPrompt, /do not use it in TASK 1/);
+	assert.doesNotMatch(mainPrompt, /house numbered 15/);
+	assert.equal(
+		validDecisionEvidenceId(
+			{
+				suspicious: true,
+				reason: 'The attached job-site photos conflict.',
+				evidence_asset_name: wajekExterior.photo.file_name
+			},
+			wajek.photos
+		),
+		wajekExterior.id
+	);
+});
+
+test('runs the job-site and similar-photo reviews in one named inference turn', async () => {
+	const original = facts();
+	const current = {
+		...original.photos[0]!,
+		id: 'current-record-id',
+		photo: {
+			...original.photos[0]!.photo,
+			file_name: '00003140-PHOTO-2026-07-03-11-09-33.jpg',
+			file_size: 800_000
+		},
+		flags: ['missing_geolocation'],
+		matched_evidence_ids: []
+	};
+	const otherCurrent = {
+		...original.photos[1]!,
+		id: 'other-current-record-id',
+		photo: {
+			...original.photos[1]!.photo,
+			file_name: '00003145-PHOTO-2026-07-03-11-09-37.jpg',
+			file_size: 750_000
+		},
+		flags: ['missing_geolocation'],
+		matched_evidence_ids: []
+	};
+	const foreign = {
+		...current,
+		id: 'foreign-record-id',
+		photo: {
+			...current.photo,
+			file_name: '00003592-PHOTO-2026-07-03-12-10-12.jpg'
+		},
+		distance: 0.122,
+		matched_photo_ids: [current.id]
+	};
+	const reviewFacts: SuspicionReviewFacts = {
+		...original,
+		photos: [current, otherCurrent],
+		candidates: [foreign]
+	};
+	const calls: Array<{
+		readonly model: string;
+		readonly prompt: string;
+		readonly assetNames: ReadonlyArray<string>;
+	}> = [];
+	const api = {
+		infer: (input: {
+			readonly model: string;
+			readonly prompt: string;
+			readonly images: ReadonlyArray<{ readonly file: { readonly file_name: string } }>;
+		}) => {
+			calls.push({
+				model: input.model,
+				prompt: input.prompt,
+				assetNames: input.images.map(({ file }) => file.file_name)
+			});
+			return Effect.succeed({
+				job_site_review: {
+					suspicious: false,
+					reason: 'The job-site evidence is internally consistent.',
+					evidence_asset_name: null
+				},
+				similar_photo_reviews: [
+					{
+						job_site_asset_name: current.photo.file_name,
+						similar_asset_name: foreign.photo.file_name,
+						same_scene: true,
+						reason: 'Invented record asset-999 allegedly confirms the match.'
+					}
+				]
+			});
+		}
+	} as never;
+
+	const decision = await Effect.runPromise(
+		inferSuspicionReviewDecision(api, reviewFacts, reviewFacts.photos)
+	);
+	assert.equal(calls.length, 1);
+	assert.deepEqual(calls[0]?.assetNames, [
+		current.photo.file_name,
+		otherCurrent.photo.file_name,
+		foreign.photo.file_name
+	]);
+	assert.match(calls[0]!.prompt, new RegExp(current.photo.file_name));
+	assert.match(calls[0]!.prompt, new RegExp(otherCurrent.photo.file_name));
+	assert.match(calls[0]!.prompt, new RegExp(foreign.photo.file_name));
+	assert.match(calls[0]!.prompt, /Return exactly 1 similar_photo_reviews entry/);
+	assert.ok(calls.every(({ model }) => model === 'openai/gpt-5.2'));
+	assert.deepEqual(decision, {
+		suspicious: true,
+		reason: `Cross-assignment photo reuse: ${current.photo.file_name} and ${foreign.photo.file_name} were judged to show the same physical scene.`,
+		evidence_id: current.id
+	});
+	assert.doesNotMatch(decision.reason, /asset-999/);
+
+	const incompleteApi = {
+		infer: () =>
+			Effect.succeed({
+				job_site_review: {
+					suspicious: false,
+					reason: 'The job-site evidence is internally consistent.',
+					evidence_asset_name: null
+				},
+				similar_photo_reviews: []
+			})
+	} as never;
+	await assert.rejects(
+		Effect.runPromise(inferSuspicionReviewDecision(incompleteApi, reviewFacts, reviewFacts.photos)),
+		/returned 0 of 1 required similar-photo pair decisions/
+	);
+});
+
+test('does not persist a job-site suspicion that cites an invented asset name', async () => {
+	const reviewFacts = facts();
+	const api = {
+		infer: () =>
+			Effect.succeed({
+				job_site_review: {
+					suspicious: true,
+					reason: 'Invented photo 999 allegedly shows house number 15.',
+					evidence_asset_name: 'invented-photo-999.jpg'
+				},
+				similar_photo_reviews: []
+			})
+	} as never;
+
+	const decision = await Effect.runPromise(
+		inferSuspicionReviewDecision(api, reviewFacts, reviewFacts.photos)
+	);
+	assert.deepEqual(decision, {
+		suspicious: false,
+		reason:
+			'No suspicion log was created because the review did not identify an attached job-site asset by its supplied name.',
+		evidence_id: null
+	});
 });
 
 test('keeps the real Kismis ceiling winner and rejects the ambiguous Eng Kong cluster', async () => {
@@ -1133,6 +1447,7 @@ test('keeps the real Kismis ceiling winner and rejects the ambiguous Eng Kong cl
 			id: '019f6f10-5000-7000-8000-000000000426',
 			photo: corpus[2]!.photo,
 			sha256: '019f6f10-5000-7000-8000-000000000426-sha',
+			flags: [],
 			distance: 0.122,
 			matched_photo_ids: ['019f6f10-5000-7000-8000-000000000088']
 		}
@@ -1198,18 +1513,18 @@ test('derives stable idempotency keys from the complete evidence basis', () => {
 });
 
 test('accepts an inference evidence citation only when it names a supplied photo', () => {
-	const ids = new Set(['photo-a']);
+	const photos = facts().photos;
 	assert.equal(
 		validDecisionEvidenceId(
-			{ suspicious: true, reason: 'Visible contradiction', evidence_id: 'photo-a' },
-			ids
+			{ suspicious: true, reason: 'Visible contradiction', evidence_asset_name: 'a.jpg' },
+			photos
 		),
 		'photo-a'
 	);
 	assert.equal(
 		validDecisionEvidenceId(
-			{ suspicious: true, reason: 'Invented citation', evidence_id: 'photo-x' },
-			ids
+			{ suspicious: true, reason: 'Invented citation', evidence_asset_name: 'invented.jpg' },
+			photos
 		),
 		null
 	);

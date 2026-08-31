@@ -33,6 +33,7 @@
 		availability?:
 			Readonly<Record<string, LeaveDayAvailability>> | ((date: string) => LeaveDayAvailability);
 		maximumHalfDays?: number | null;
+		persistedChargeableDays?: number | null;
 		disabled?: boolean;
 		disabledReason?: string | null;
 		onValueChange: (value: HalfDayRange) => void;
@@ -42,6 +43,7 @@
 		value,
 		availability = {},
 		maximumHalfDays = null,
+		persistedChargeableDays = null,
 		disabled = false,
 		disabledReason = null,
 		onValueChange
@@ -219,7 +221,13 @@
 		)
 	);
 	const chargeableHalves = $derived(chargeableHalfDays(value));
-	const chargeableDays = $derived(chargeableHalves / 2);
+	/**
+	 * An existing request carries the server-normalized charge as its immutable snapshot. Use that
+	 * while the saved range is untouched: the schedule queries that support editing arrive
+	 * asynchronously and must not make a one-day request flash as zero days. The event editor clears
+	 * this value as soon as the range changes, returning the picker to live schedule computation.
+	 */
+	const chargeableDays = $derived(persistedChargeableDays ?? chargeableHalves / 2);
 	const remainingDays = $derived(maximumHalfDays == null ? null : maximumHalfDays / 2);
 	const overLimit = $derived(maximumHalfDays != null && chargeableHalves > maximumHalfDays);
 	const excludedInside = $derived.by(() => {
