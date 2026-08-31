@@ -3,16 +3,17 @@ import { Effect, Schema } from 'effect';
 import type { Api } from './$types.js';
 import { currentDate } from '../lib/clock.js';
 
-// The judgement consumes photographs and a strict JSON Schema in the same turn. Keep it on a
-// provider model with native support for both instead of relying on best-effort JSON wrapping.
-const SUSPICION_REVIEW_MODEL = 'openai/gpt-4.1-mini';
+// These judgements consume photographs and a strict JSON Schema in the same turn. Keep them on a
+// provider model with native vision + structured-output support. The review is a controller-facing
+// integrity decision, so accuracy is worth the bounded premium over the old mini model.
+const SUSPICION_REVIEW_MODEL = 'openai/gpt-5.2';
 export const ASSIGNMENT_PAGE_SIZE = 500;
 const MAX_RELATED_ROWS = 5_000;
 export const MAX_INFERENCE_IMAGES = 3;
 export const MAX_INFERENCE_IMAGE_BYTES = 4 * 1024 * 1024;
 export const MAX_INFERENCE_CONTEXT_CHARS = 48 * 1024;
 export const MAX_INFERENCE_REASON_CHARS = 600;
-export const MAX_INFERENCE_EVIDENCE_ID_CHARS = 128;
+export const MAX_INFERENCE_ASSET_NAME_CHARS = 256;
 const MAX_INFERENCE_COMMUNICATIONS = 24;
 const MAX_INFERENCE_MESSAGE_CHARS = 800;
 const MAX_SIGNAL_IMAGES = 2;
@@ -55,20 +56,40 @@ const REVIEW_SIGNAL_WEIGHT: Readonly<Record<(typeof PHOTO_FLAGS)[number], number
 	missing_geolocation: 0
 };
 
-const inferenceDecisionSchema = Schema.Struct({
+const jobSiteDecisionSchema = Schema.Struct({
 	suspicious: Schema.Boolean,
 	reason: Schema.String.pipe(
 		Schema.check(Schema.isPattern(/^\s*\S[\s\S]*$/)),
 		Schema.check(Schema.isMaxLength(MAX_INFERENCE_REASON_CHARS))
 	),
-	evidence_id: Schema.NullOr(
-		Schema.String.pipe(Schema.check(Schema.isMaxLength(MAX_INFERENCE_EVIDENCE_ID_CHARS)))
+	evidence_asset_name: Schema.NullOr(
+		Schema.String.pipe(Schema.check(Schema.isMaxLength(MAX_INFERENCE_ASSET_NAME_CHARS)))
 	)
+});
+
+const similarPhotoDecisionSchema = Schema.Struct({
+	job_site_asset_name: Schema.String.pipe(
+		Schema.check(Schema.isMaxLength(MAX_INFERENCE_ASSET_NAME_CHARS))
+	),
+	similar_asset_name: Schema.String.pipe(
+		Schema.check(Schema.isMaxLength(MAX_INFERENCE_ASSET_NAME_CHARS))
+	),
+	same_scene: Schema.Boolean,
+	reason: Schema.String.pipe(
+		Schema.check(Schema.isPattern(/^\s*\S[\s\S]*$/)),
+		Schema.check(Schema.isMaxLength(MAX_INFERENCE_REASON_CHARS))
+	)
+});
+
+const inferenceDecisionSchema = Schema.Struct({
+	job_site_review: jobSiteDecisionSchema,
+	similar_photo_reviews: Schema.Array(similarPhotoDecisionSchema)
 });
 
 export const suspicionInferenceSchema = inferenceDecisionSchema;
 
 type SuspicionInferenceDecision = Schema.Schema.Type<typeof inferenceDecisionSchema>;
+type JobSiteDecision = Schema.Schema.Type<typeof jobSiteDecisionSchema>;
 
 export type SuspicionReviewFacts = {
 	readonly assignment: {
@@ -130,6 +151,7 @@ export type SuspicionReviewFacts = {
 			readonly mime_type: string;
 		};
 		readonly sha256: string;
+		readonly flags: ReadonlyArray<string>;
 		readonly distance: number;
 		readonly matched_photo_ids: ReadonlyArray<string>;
 	}>;
@@ -229,6 +251,7 @@ export function buildSuspicionReviewBasis(facts: SuspicionReviewFacts): string {
 				id: candidate.id,
 				storage_key: candidate.photo.storage_key,
 				sha256: candidate.sha256,
+				flags: [...candidate.flags].sort(),
 				distance: candidate.distance,
 				matched_photo_ids: [...candidate.matched_photo_ids].sort()
 			})),
@@ -253,27 +276,70 @@ export function reviewSourceKey(assignmentId: string, basisHash: string): string
 	return `suspicion-review:${assignmentId}:${basisHash}`;
 }
 
-export function validDecisionEvidenceId(
-	decision: SuspicionInferenceDecision,
-	photoIds: ReadonlySet<string>
-): string | null {
-	return decision.evidence_id != null && photoIds.has(decision.evidence_id)
-		? decision.evidence_id
-		: null;
-}
-
-export function shouldCreateSuspicionLog(decision: SuspicionInferenceDecision): boolean {
+export function shouldCreateSuspicionLog<Decision extends { readonly suspicious: boolean }>(
+	decision: Decision
+): boolean {
 	return decision.suspicious;
 }
 
 const clipText = (value: string, maximum: number): string =>
 	value.length <= maximum ? value : `${value.slice(0, maximum - 12)}…[clipped]`;
 
+const inferenceAssetName = (fileName: string): string =>
+	clipText(fileName, MAX_INFERENCE_ASSET_NAME_CHARS);
+
+export function validDecisionEvidenceId(
+	decision: JobSiteDecision,
+	photos: SuspicionReviewFacts['photos']
+): string | null {
+	if (decision.evidence_asset_name == null) return null;
+	return (
+		photos.find(
+			(photo) => inferenceAssetName(photo.photo.file_name) === decision.evidence_asset_name
+		)?.id ?? null
+	);
+}
+
 const boundedJsonValue = (value: unknown, maximum: number): unknown => {
 	const encoded = JSON.stringify(value);
 	if (encoded === undefined) return null;
 	return encoded.length <= maximum ? value : clipText(encoded, maximum);
 };
+
+type GpsMetadataStatus =
+	| 'missing_from_asset'
+	| 'present_and_outside_assigned_site_tolerance'
+	| 'present_without_location_mismatch';
+
+/**
+ * State only what the ingestion pipeline durably retained about GPS metadata.
+ *
+ * Raw capture coordinates are deliberately not invented here: the photo row retains the exact
+ * integrity outcome (`missing_geolocation` / `location_mismatch`), not the EXIF coordinate tuple.
+ */
+const gpsMetadataStatusFromFlags = (flags: ReadonlyArray<string>): GpsMetadataStatus => {
+	if (flags.includes('missing_geolocation')) return 'missing_from_asset';
+	if (flags.includes('location_mismatch')) {
+		return 'present_and_outside_assigned_site_tolerance';
+	}
+	return 'present_without_location_mismatch';
+};
+
+export const gpsMetadataStatus = (
+	photo: SuspicionReviewFacts['photos'][number]
+): GpsMetadataStatus => gpsMetadataStatusFromFlags(photo.flags);
+
+const namedPhotoFact = (
+	photo: SuspicionReviewFacts['photos'][number],
+	visuallyAttached: boolean
+) => ({
+	asset_name: inferenceAssetName(photo.photo.file_name),
+	gps_metadata: gpsMetadataStatus(photo),
+	visually_attached: visuallyAttached,
+	file_size: photo.photo.file_size,
+	mime_type: photo.photo.mime_type,
+	integrity_flags: [...photo.flags].sort()
+});
 
 const photoOrder = (photo: SuspicionReviewFacts['photos'][number]): string =>
 	`${photo.created_at ?? ''}\u0000${photo.id}`;
@@ -369,6 +435,7 @@ interface CandidateHit {
 	readonly id: string;
 	readonly photo: SuspicionReviewFacts['photos'][number]['photo'];
 	readonly sha256: string;
+	readonly flags: ReadonlyArray<string>;
 	readonly job_assignment_id: string | null;
 	readonly variation_request_id: string | null;
 	readonly distance: number;
@@ -452,6 +519,7 @@ export function loadCrossAssignmentCandidates(
 					id: true,
 					photo: true,
 					sha256: true,
+					flags: true,
 					job_assignment_id: true,
 					variation_request_id: true,
 					record_embedding: true
@@ -501,6 +569,7 @@ export function loadCrossAssignmentCandidates(
 					id,
 					photo: row.photo,
 					sha256: row.sha256,
+					flags: row.flags,
 					distance: rankedMatches[0]?.[1] ?? Number.POSITIVE_INFINITY,
 					matches: new Map(rankedMatches),
 					assignmentId
@@ -557,6 +626,7 @@ export function loadCrossAssignmentCandidates(
 			id: candidate.id,
 			photo: candidate.photo,
 			sha256: candidate.sha256,
+			flags: candidate.flags,
 			distance: Math.round(candidate.distance * 1000) / 1000,
 			matched_photo_ids: [candidate.probeId]
 		}));
@@ -566,6 +636,41 @@ export function loadCrossAssignmentCandidates(
 const communicationInstant = (
 	communication: SuspicionReviewFacts['communications'][number]
 ): string => communication.sent_at;
+
+type SimilarPhotoPair = {
+	readonly currentPhoto: SuspicionReviewFacts['photos'][number];
+	readonly candidate: SuspicionReviewFacts['candidates'][number];
+	readonly visuallyAttached: boolean;
+};
+
+/**
+ * Resolve every nominated foreign photo to the exact job-site asset it was retrieved against.
+ * Only pairs whose two images fit this single turn's attachment budget are visually adjudicated;
+ * every nomination is still named in the context so the model is never given an unexplained image.
+ */
+const similarPhotoPairs = (
+	facts: SuspicionReviewFacts,
+	representativePhotos: SuspicionReviewFacts['photos']
+): ReadonlyArray<SimilarPhotoPair> => {
+	const ownPhotoById = new Map(facts.photos.map((photo) => [photo.id, photo]));
+	const attachedPhotoIds = new Set(representativePhotos.map((photo) => photo.id));
+	return facts.candidates.flatMap((candidate) => {
+		const currentPhoto = candidate.matched_photo_ids
+			.map((photoId) => ownPhotoById.get(photoId))
+			.find((photo) => photo !== undefined);
+		if (currentPhoto === undefined) return [];
+		return [
+			{
+				currentPhoto,
+				candidate,
+				visuallyAttached:
+					attachedPhotoIds.has(currentPhoto.id) &&
+					candidate.photo.file_size >= 0 &&
+					candidate.photo.file_size <= MAX_CANDIDATE_IMAGE_BYTES
+			}
+		];
+	});
+};
 
 /** Provider-bounded facts derived from the complete durable basis used for idempotency and audit. */
 export function buildSuspicionInferenceContext(
@@ -578,18 +683,12 @@ export function buildSuspicionInferenceContext(
 			facts.photos.reduce((count, photo) => count + Number(photo.flags.includes(flag)), 0)
 		]).filter(([, count]) => count !== 0)
 	);
-	const representatives = representativePhotos.map((photo, index) => ({
-		attached_image_index: index + 1,
-		id: photo.id,
-		file_name: clipText(photo.photo.file_name, 256),
-		file_size: photo.photo.file_size,
-		mime_type: photo.photo.mime_type,
-		sha256: photo.sha256,
-		flags: [...photo.flags].sort(),
-		matched_evidence_count: photo.matched_evidence_ids.length,
-		matched_evidence_ids: [...photo.matched_evidence_ids].sort().slice(0, 12),
-		created_at: photo.created_at
-	}));
+	const attachedPhotoIds = new Set(representativePhotos.map((photo) => photo.id));
+	const nominatedPairs = similarPhotoPairs(facts, representativePhotos);
+	const attachedPairs = nominatedPairs.filter(({ visuallyAttached }) => visuallyAttached);
+	const namedDataset = [...facts.photos]
+		.sort((left, right) => photoOrder(left).localeCompare(photoOrder(right)))
+		.map((photo) => namedPhotoFact(photo, attachedPhotoIds.has(photo.id)));
 	const chronologicalCommunications = [...facts.communications];
 	chronologicalCommunications.sort(
 		(left, right) =>
@@ -604,36 +703,28 @@ export function buildSuspicionInferenceContext(
 			sent_at: communicationInstant(communication),
 			message: clipText(communication.message, MAX_INFERENCE_MESSAGE_CHARS)
 		}));
-	const attachedCandidateIndex = new Map(
-		facts.candidates
-			.filter((candidate) => candidate.photo.file_size <= MAX_CANDIDATE_IMAGE_BYTES)
-			.map((candidate, index) => [candidate.id, representatives.length + index + 1])
-	);
-	const attachmentManifest = [
-		...representatives.map((photo) => ({
-			attached_image_index: photo.attached_image_index,
-			role: 'current_assignment_evidence' as const,
-			photo_id: photo.id
-		})),
-		...facts.candidates.flatMap((candidate) => {
-			const attachedImageIndex = attachedCandidateIndex.get(candidate.id);
-			return attachedImageIndex === undefined
-				? []
-				: [
-						{
-							attached_image_index: attachedImageIndex,
-							role: 'other_assignment_comparison_only' as const,
-							candidate_id: candidate.id,
-							compare_only_to_photo_id: candidate.matched_photo_ids[0] ?? null
-						}
-					];
-		})
-	];
 	const base = {
+		review_scope: {
+			kind: 'single_assignment_review',
+			instruction:
+				'Complete both named tasks in this one turn. job_site_review uses only job_site_photo assets. similar_photo_reviews compares only each explicitly named pair.'
+		},
 		attachment_manifest: {
-			current_assignment_image_count: representatives.length,
-			other_assignment_comparison_image_count: attachmentManifest.length - representatives.length,
-			images: attachmentManifest
+			instruction:
+				'The attached images appear in exactly this order. The role and asset_name are authoritative; use no other image identifier.',
+			images: [
+				...representativePhotos.map((photo) => ({
+					asset_name: inferenceAssetName(photo.photo.file_name),
+					gps_metadata: gpsMetadataStatus(photo),
+					role: 'job_site_photo' as const
+				})),
+				...attachedPairs.map(({ currentPhoto, candidate }) => ({
+					asset_name: inferenceAssetName(candidate.photo.file_name),
+					gps_metadata: gpsMetadataStatusFromFlags(candidate.flags),
+					role: 'similar_photo_from_other_assignment' as const,
+					compare_only_with_asset_name: inferenceAssetName(currentPhoto.photo.file_name)
+				}))
+			]
 		},
 		assignment: {
 			...facts.assignment,
@@ -660,26 +751,21 @@ export function buildSuspicionInferenceContext(
 					},
 		photo_summary: {
 			total: facts.photos.length,
-			attached_representatives: representatives.length,
-			omitted_from_visual_turn: facts.photos.length - representatives.length,
+			attached_representatives: representativePhotos.length,
+			omitted_from_visual_turn: facts.photos.length - representativePhotos.length,
 			flag_counts: flagCounts,
 			similarity_relationships: facts.photos.reduce(
 				(count, photo) => count + photo.matched_evidence_ids.length,
 				0
 			),
-			representative_photos: representatives
+			job_site_photo_dataset: namedDataset
 		},
-		cross_assignment_candidates: facts.candidates.map((candidate) => ({
-			id: candidate.id,
-			file_name: candidate.photo.file_name,
-			sha256: candidate.sha256,
-			distance: candidate.distance,
-			matched_photo_ids: [...candidate.matched_photo_ids],
-			best_match_photo_id: candidate.matched_photo_ids[0] ?? null,
-			best_match_attached_image_index:
-				representatives.findIndex((photo) => photo.id === candidate.matched_photo_ids[0]) + 1 ||
-				null,
-			attached_image_index: attachedCandidateIndex.get(candidate.id) ?? null
+		similar_photos_flagged: nominatedPairs.map(({ currentPhoto, candidate, visuallyAttached }) => ({
+			job_site_asset_name: inferenceAssetName(currentPhoto.photo.file_name),
+			similar_asset_name: inferenceAssetName(candidate.photo.file_name),
+			similar_asset_gps_metadata: gpsMetadataStatusFromFlags(candidate.flags),
+			retrieval_distance: candidate.distance,
+			visually_attached: visuallyAttached
 		}))
 	};
 	let communications = recentCommunications;
@@ -705,43 +791,127 @@ export function suspicionPrompt(
 	facts: SuspicionReviewFacts,
 	representativePhotos = selectSuspicionInferencePhotos(facts.photos)
 ): string {
-	const attachedCandidateCount = facts.candidates.filter(
-		(candidate) => candidate.photo.file_size <= MAX_CANDIDATE_IMAGE_BYTES
+	const attachedPairCount = similarPhotoPairs(facts, representativePhotos).filter(
+		({ visuallyAttached }) => visuallyAttached
 	).length;
-	const candidateRoleInstruction =
-		attachedCandidateCount === 0
-			? 'No foreign comparison image is attached.'
-			: 'Images after the first ' +
-				representativePhotos.length +
-				' are ' +
-				attachedCandidateCount +
-				' foreign comparison image' +
-				(attachedCandidateCount === 1 ? '' : 's') +
-				' from OTHER assignments, not photos contained in this assignment. The attachment_manifest is authoritative about each image role. Never count a foreign comparison image as another site mixed into this assignment.';
 	return [
-		'Review this field-work assignment and decide whether an unresolved suspicion should be raised.',
+		'Review this field-work assignment in exactly one structured turn. Return one job_site_review and one similar_photo_reviews entry for every visually attached named pair.',
+		'The attachment_manifest is authoritative: it names every attached image in order and identifies whether it is a job_site_photo or a similar_photo_from_other_assignment. Refer to an image only by its exact asset_name. Do not invent a photo number, record id, attachment label, address, GPS coordinate, or any other identification method.',
+		'TASK 1 — job_site_review. Judge only the assets whose role is job_site_photo. Never treat a similar_photo_from_other_assignment as evidence that a second site was submitted to this assignment, and never borrow a number, address, sign, marker or scene observation from it.',
+		'The job_site_photo_dataset is the complete set submitted to this assignment. Each row gives the actual asset_name and the GPS metadata state durably retained by ingestion.',
 		representativePhotos.length === 0
 			? 'No photo fit the bounded attachment budget. Judge from the assigned job and site, aggregate deterministic photo facts, and bounded recent contractor communications; do not pretend a scene was visible.'
-			: `Use the ${representativePhotos.length} attached representative photographed scene${representativePhotos.length === 1 ? '' : 's'}, assigned job and site, aggregate deterministic photo facts, and bounded recent contractor communications together.`,
-		candidateRoleInstruction,
+			: `The attachment_manifest names the ${representativePhotos.length} job-site photo${representativePhotos.length === 1 ? '' : 's'} actually attached for visual review. Photos marked visually_attached false are listed for completeness but were not visible; never claim to have read a marker from one of them.`,
 		'The durable audit basis covers every photo and communication; this inference context is deliberately bounded and states what was omitted.',
 		'Missing photo geolocation is a neutral fact because messaging services commonly strip metadata.',
 		'Visual similarity inside one assignment is a neutral fact because legitimate repeated views are possible.',
-		'Use only physical scene markers such as door plates, house numbers, street or building signs, mailboxes, lobby signs and lift permits when assessing location. Ignore uploader-controlled timestamp, GPS and address overlays, work labels, tape measures, tag numbers, bin or lamppost ids and telephone numbers. In particular, text or an address overlay visible on a foreign comparison image says nothing about which photos were submitted to this assignment.',
+		'Use only physical scene markers visibly present in an attached job-site photo, such as door plates, house numbers, street or building signs, mailboxes, lobby signs and lift permits, when assessing location. Ignore uploader-controlled timestamp, GPS and address overlays, work labels, tape measures, tag numbers, bin or lamppost ids and telephone numbers.',
 		'Duplicate reuse only matters between distinct assignments: an identical file submitted under the same assignment is a neutral repeat, never evidence.',
-		'The context may list cross_assignment_candidates: reference photographs retrieved from OTHER assignments whose learned image embedding selected one distinctive nearest neighbour. They have exactly one permitted use: compare each candidate with its best_match_photo_id and best_match_attached_image_index for possible reuse. Do not use a candidate for the general location or mixed-sites review.',
-		'Embedding distance is retrieval ranking, not evidence. Similar colours, doors, handrails, grab bars, stairwells, bathrooms or other common trade fixtures are expected across unrelated installations and must be cleared even at a low distance.',
-		'Reuse requires high confidence from distinctive shared scene geometry: the same spatial arrangement of permanent edges, openings, vents, holes, stains, fixtures and background structure. A lower distance never overrides visible geometric differences. If the views merely look similar or you are uncertain whether they are the same physical scene, clear the pair.',
-		'If a candidate photo shows the same physical scene as the photo it was matched with \u2014 the same view cropped, zoomed, recompressed, re-photographed or re-sent \u2014 the same evidence is serving two assignments. Raise an unresolved suspicion, name both photos in the reason, and cite this assignment\u2019s photo id.',
-		'A candidate showing a different unit, storey, house or street, or a plausibly distinct scene of the same trade, is not reuse; treat the pair as cleared.',
-		'Raise an unresolved mixed-sites suspicion only when evidence submitted to THIS assignment contains a concrete physical marker for a conflicting site. Different-looking rooms, fixtures, or exterior views alone do not establish multiple sites.',
+		'Raise an unresolved mixed-sites suspicion only when two or more attached job-site photos contain concrete physical markers for conflicting sites. Different-looking rooms, fixtures, exterior views, or common trade features alone do not establish multiple sites.',
 		'A suspicion log is an actionable escalation, not a queue for low-confidence review. Plausibly benign ambiguity, incomplete corroboration, or the fact that a controller could confirm something is not enough. When the available evidence has a reasonable ordinary explanation and no concrete contradiction, return suspicious false.',
 		'For every other fact, return suspicious only when your contextual judgement finds a concrete, articulable reason to question this assignment.',
 		'Likewise, an assignment location mismatch is evidence for judgement, never an automatic verdict.',
-		`If suspicious is true, give a concise reason of at most ${MAX_INFERENCE_REASON_CHARS} characters that a controller can investigate and cite actual photo ids, not attachment numbers. Cite one current-assignment representative photo id when an attached photo is decisive.`,
-		`If suspicious is false, explain in at most ${MAX_INFERENCE_REASON_CHARS} characters why the evidence does not justify a log.`,
+		`If job_site_review.suspicious is true, give a concise reason of at most ${MAX_INFERENCE_REASON_CHARS} characters that a controller can investigate. Set evidence_asset_name to the exact asset_name of one decisive attached job-site photo and reference only exact asset names from the supplied dataset in the reason.`,
+		`If job_site_review.suspicious is false, set evidence_asset_name to null and explain in at most ${MAX_INFERENCE_REASON_CHARS} characters why the evidence does not justify a log.`,
+		'TASK 2 — similar_photo_reviews. The similar_photos_flagged list contains retrieval nominations from other assignments. Retrieval distance is not evidence. Compare each visually_attached pair only with its named job_site_asset_name; do not compare it to another job-site photo and do not use it in TASK 1.',
+		'Return same_scene true only when multiple permanent visual landmarks share the same geometry: for example the same openings, vents, holes, stains, wall or ceiling edges, fixed fixtures and background structure in the same relative positions.',
+		'A crop, zoom, recompression, new overlay, different timestamp, different camera, or re-photograph of the same underlying scene is still same_scene true. Overlay text must neither establish nor rebut the match.',
+		'Similar colours, doors, handrails, grab bars, stairs, bathrooms, ceilings or trade fixtures without distinctive shared geometry are expected across unrelated sites and must return same_scene false. If uncertain, return same_scene false.',
+		`Return exactly ${attachedPairCount} similar_photo_reviews entr${attachedPairCount === 1 ? 'y' : 'ies'}: one for each pair marked visually_attached true, using its exact job_site_asset_name and similar_asset_name. Return no entry for a pair marked visually_attached false and never introduce another asset name.`,
 		`Bounded inference facts: ${buildSuspicionInferenceContext(facts, representativePhotos)}`
 	].join(' ');
+}
+
+/**
+ * Complete the assignment consistency review and all visually attached similar-photo comparisons
+ * in one provider turn. Runtime validation accepts pair decisions only when both returned asset
+ * names match the authoritative manifest exactly; model pair prose never enters the durable log.
+ */
+export function inferSuspicionReviewDecision(
+	api: Api,
+	facts: SuspicionReviewFacts,
+	representativePhotos = selectSuspicionInferencePhotos(facts.photos)
+) {
+	return Effect.gen(function* () {
+		const attachedPairs = similarPhotoPairs(facts, representativePhotos).filter(
+			({ visuallyAttached }) => visuallyAttached
+		);
+		const decision = yield* api.infer({
+			model: SUSPICION_REVIEW_MODEL,
+			schema: suspicionInferenceSchema,
+			images: [
+				...representativePhotos.map((photo) => ({
+					file: photo.photo,
+					detail: 'high' as const
+				})),
+				...attachedPairs.map(({ candidate }) => ({
+					file: candidate.photo,
+					detail: 'high' as const
+				}))
+			],
+			prompt: suspicionPrompt(facts, representativePhotos)
+		});
+
+		const expectedPairs = new Map(
+			attachedPairs.map((pair) => [
+				JSON.stringify([
+					inferenceAssetName(pair.currentPhoto.photo.file_name),
+					inferenceAssetName(pair.candidate.photo.file_name)
+				]),
+				pair
+			])
+		);
+		const reviewedPairs = new Map<string, (typeof attachedPairs)[number]>();
+		const confirmedReuse: Array<(typeof attachedPairs)[number]> = [];
+		for (const review of decision.similar_photo_reviews) {
+			const key = JSON.stringify([review.job_site_asset_name, review.similar_asset_name]);
+			const pair = expectedPairs.get(key);
+			if (pair === undefined || reviewedPairs.has(key)) {
+				return yield* Effect.fail(
+					new Error(
+						'Suspicion review returned an unnamed, unexpected, or duplicate similar-photo pair.'
+					)
+				);
+			}
+			reviewedPairs.set(key, pair);
+			if (review.same_scene) confirmedReuse.push(pair);
+		}
+		if (reviewedPairs.size !== expectedPairs.size) {
+			return yield* Effect.fail(
+				new Error(
+					`Suspicion review returned ${reviewedPairs.size} of ${expectedPairs.size} required similar-photo pair decisions.`
+				)
+			);
+		}
+		const reuseReasons = confirmedReuse.map(
+			({ currentPhoto, candidate }) =>
+				`Cross-assignment photo reuse: ${inferenceAssetName(currentPhoto.photo.file_name)} and ${inferenceAssetName(candidate.photo.file_name)} were judged to show the same physical scene.`
+		);
+		const assignmentDecision = decision.job_site_review;
+		const assignmentEvidenceId = validDecisionEvidenceId(assignmentDecision, representativePhotos);
+		const supportedAssignmentSuspicion =
+			assignmentDecision.suspicious && assignmentEvidenceId !== null;
+		const unsupportedAssignmentSuspicion =
+			assignmentDecision.suspicious && assignmentEvidenceId === null;
+		const suspicious = supportedAssignmentSuspicion || confirmedReuse.length > 0;
+		const reason = clipText(
+			[
+				...(supportedAssignmentSuspicion ? [assignmentDecision.reason] : []),
+				...reuseReasons,
+				...(!suspicious && unsupportedAssignmentSuspicion
+					? [
+							'No suspicion log was created because the review did not identify an attached job-site asset by its supplied name.'
+						]
+					: []),
+				...(!suspicious && !unsupportedAssignmentSuspicion ? [assignmentDecision.reason] : [])
+			].join(' '),
+			MAX_INFERENCE_REASON_CHARS
+		);
+		const evidenceId = supportedAssignmentSuspicion
+			? assignmentEvidenceId
+			: (confirmedReuse[0]?.currentPhoto.id ?? null);
+		return { suspicious, reason, evidence_id: evidenceId };
+	});
 }
 
 function loadFacts(api: Api, assignment: SuspicionReviewFacts['assignment']) {
@@ -856,45 +1026,16 @@ export function reviewAssignmentSuspicion(
 
 		const loadedFacts = yield* loadFacts(api, assignment);
 		const candidates = yield* loadCrossAssignmentCandidates(api, assignment.id, loadedFacts.photos);
-		// Guarantee one visible own-side photo for each winning cross-assignment pair before filling
-		// the remaining attachment slots with ordinary signal/temporal representatives.
-		const matchedPhotoPriority = [
-			...candidates.flatMap((candidate) => candidate.matched_photo_ids.slice(0, 1)),
-			...candidates.flatMap((candidate) => candidate.matched_photo_ids)
-		];
 		const representativePhotos = selectSuspicionInferencePhotos(
 			loadedFacts.photos,
-			matchedPhotoPriority
+			candidates.flatMap((candidate) => candidate.matched_photo_ids)
 		);
 		const facts: SuspicionReviewFacts = { ...loadedFacts, candidates };
 		const basis = buildSuspicionReviewBasis(facts);
 		const basisHash = suspicionReviewHash(basis);
-		const matchedPhotoIds = new Set(candidates.flatMap((candidate) => candidate.matched_photo_ids));
 		lifecycle.inferenceStarted?.(assignment.id);
-		const decision = yield* api.infer({
-			model: SUSPICION_REVIEW_MODEL,
-			schema: suspicionInferenceSchema,
-			images: [
-				...representativePhotos.map((photo) => ({
-					file: photo.photo,
-					// Reuse review depends on small permanent geometric differences. Preserve those for
-					// the own side of a nominated pair; ordinary assignment context stays economical.
-					detail: matchedPhotoIds.has(photo.id) ? ('high' as const) : ('low' as const)
-				})),
-				// Candidates follow the assignment's own photos so reuse pairs are visible in one turn;
-				// oversized files stay context-only facts rather than consuming the attachment budget.
-				...candidates
-					.filter((candidate) => candidate.photo.file_size <= MAX_CANDIDATE_IMAGE_BYTES)
-					.map((candidate) => ({
-						file: candidate.photo,
-						detail: 'high' as const
-					}))
-			],
-			prompt: suspicionPrompt(facts, representativePhotos)
-		});
+		const decision = yield* inferSuspicionReviewDecision(api, facts, representativePhotos);
 		lifecycle.inferenceSucceeded?.(assignment.id);
-		const photoIds = new Set(representativePhotos.map((photo) => photo.id));
-		const evidenceId = validDecisionEvidenceId(decision, photoIds);
 		const reviewedAt = (yield* currentDate).toISOString();
 		/**
 		 * Write, then read the judgement back by the key that makes it unique.
@@ -926,7 +1067,7 @@ export function reviewAssignmentSuspicion(
 				basis,
 				suspicious: decision.suspicious,
 				reason: decision.reason,
-				evidence_id: evidenceId,
+				evidence_id: decision.evidence_id,
 				model: SUSPICION_REVIEW_MODEL,
 				reviewed_at: reviewedAt,
 				source_key: reviewSourceKey(assignment.id, basisHash)
@@ -951,7 +1092,12 @@ export function reviewAssignmentSuspicion(
 		}
 		lifecycle.reviewPersisted?.(assignment.id);
 		const persistedDecision = created
-			? { basis, suspicious: decision.suspicious, reason: decision.reason, evidence_id: evidenceId }
+			? {
+					basis,
+					suspicious: decision.suspicious,
+					reason: decision.reason,
+					evidence_id: decision.evidence_id
+				}
 			: review;
 		if (!persistedDecision.suspicious) {
 			return {

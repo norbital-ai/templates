@@ -21,8 +21,17 @@ const OutputSchema = Schema.Struct({
 });
 
 const MAX_FAILURE_DETAILS = 100;
+const MAX_FAILURE_SUMMARY_CHARS = 500;
 /** Four provider turns finish the full 34-assignment seed well inside the five-minute host lease. */
 export const SUSPICION_REVIEW_CONCURRENCY = 4;
+
+const failureSummary = (error: unknown): string => {
+	const message = error instanceof Error ? `${error.name}: ${error.message}` : String(error);
+	const oneLine = message.replace(/\s+/g, ' ').trim();
+	return oneLine.length <= MAX_FAILURE_SUMMARY_CHARS
+		? oneLine
+		: `${oneLine.slice(0, MAX_FAILURE_SUMMARY_CHARS - 12)}…[clipped]`;
+};
 
 export type SuspicionReviewAutomationResult = Readonly<{
 	reviewed_at: string;
@@ -38,10 +47,10 @@ export type SuspicionReviewAutomationResult = Readonly<{
 export class SuspicionReviewIncompleteError extends Error {
 	readonly outcome: SuspicionReviewAutomationResult;
 
-	constructor(outcome: SuspicionReviewAutomationResult) {
+	constructor(outcome: SuspicionReviewAutomationResult, firstFailureSummary?: string) {
 		const first = outcome.failure_details[0];
 		super(
-			`Suspicion review did not complete: ${outcome.failure_count} of ${outcome.assignment_count} assignments failed${first === undefined ? '.' : `; first failure ${first.assignment_id} at ${first.stage}.`}`
+			`Suspicion review did not complete: ${outcome.failure_count} of ${outcome.assignment_count} assignments failed${first === undefined ? '.' : `; first failure ${first.assignment_id} at ${first.stage}.`}${firstFailureSummary === undefined || firstFailureSummary === '' ? '' : ` Cause: ${firstFailureSummary}`}`
 		);
 		this.name = 'SuspicionReviewIncompleteError';
 		this.outcome = outcome;
@@ -66,6 +75,7 @@ export default defineAutomation(
 				let failureCount = 0;
 				let completedCount = 0;
 				let firstFailureLogged = false;
+				let firstFailureSummary: string | undefined;
 				const failureDetails: Array<{ assignment_id: string; stage: string }> = [];
 				const recordFailure = (assignmentId: string, stage: string) => {
 					failureCount += 1;
@@ -109,6 +119,7 @@ export default defineAutomation(
 								Effect.catch((error: unknown) => {
 									if (firstFailureLogged) return Effect.succeed({ success: false as const });
 									firstFailureLogged = true;
+									firstFailureSummary = failureSummary(error);
 									return Effect.logError(
 										`[field-ops-suspicion-review] first assignment failure (${assignment.id})`,
 										error
@@ -163,7 +174,9 @@ export default defineAutomation(
 					counts
 				} satisfies SuspicionReviewAutomationResult;
 				if (failureCount > 0)
-					return yield* Effect.fail(new SuspicionReviewIncompleteError(outcome));
+					return yield* Effect.fail(
+						new SuspicionReviewIncompleteError(outcome, firstFailureSummary)
+					);
 				return outcome;
 			})
 	}
