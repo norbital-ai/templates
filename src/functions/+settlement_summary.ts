@@ -1,4 +1,5 @@
 import { defineQueryHandler } from '@norbital-ai/bolt/authoring';
+import { decodeNumber } from '@norbital-ai/std/json';
 import { Effect, Schema } from 'effect';
 
 /**
@@ -28,7 +29,7 @@ export default defineQueryHandler({
 						currency: row.currency ?? ''
 					};
 					summaries.set(row.regarding_id, {
-						paid: current.paid + Number(row.amount ?? 0),
+						paid: current.paid + decodeNumber(row.amount ?? 0),
 						currency: current.currency
 					});
 				}

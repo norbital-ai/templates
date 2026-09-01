@@ -4,6 +4,7 @@ import {
 	type MutateBeforeContext,
 	type MutateEditContext
 } from '@norbital-ai/bolt/authoring';
+import { decodeNumber } from '@norbital-ai/std/json';
 import { Effect } from 'effect';
 import { rollupDocument, sumQuantity } from '../../lib/document-lines.js';
 import { documentLineAmounts, type LineAmounts } from '../../lib/pricing.js';
@@ -33,16 +34,16 @@ type ResolvedLineInput = Partial<
 >;
 
 function validateLineFields(input: ResolvedLineInput): void {
-	const quantity = Number(input.quantity);
+	const quantity = decodeNumber(input.quantity);
 	if (Number.isNaN(quantity) || quantity <= 0) {
 		refuse('Quantity must be greater than zero.');
 	}
-	const unitCost = Number(input.unit_cost);
+	const unitCost = decodeNumber(input.unit_cost);
 	if (input.unit_cost == null || Number.isNaN(unitCost)) {
 		refuse('Unit cost is required.');
 	}
 	if (unitCost < 0) refuse('Unit cost cannot be negative.');
-	const taxRate = Number(input.tax_rate ?? 0);
+	const taxRate = decodeNumber(input.tax_rate ?? 0);
 	if (taxRate < 0 || taxRate > 100) {
 		refuse('Tax rate must be between 0 and 100.');
 	}
@@ -141,8 +142,8 @@ const beforeCreate = ({ input, prepared }: BeforeContext) => {
 	validateLineFields(resolved);
 
 	const alreadyInvoiced = prepared.invoicedByOrderLine.get(orderLine.id) ?? 0;
-	const ordered = Number(orderLine.quantity ?? 0);
-	if (alreadyInvoiced + Number(resolved.quantity) > ordered) {
+	const ordered = decodeNumber(orderLine.quantity ?? 0);
+	if (alreadyInvoiced + decodeNumber(resolved.quantity) > ordered) {
 		refuse(
 			`Over-invoice: ${alreadyInvoiced} of ${ordered} invoiced so far; this line would exceed the ordered quantity.`
 		);
@@ -183,9 +184,9 @@ const beforeUpdate = ({ input, existing, api }: EditContext) =>
 		});
 		if (orderLine) {
 			const invoiced = yield* liveInvoicedQuantity(api, orderLine.id);
-			const ordered = Number(orderLine.quantity ?? 0);
-			const own = Number(existing.quantity ?? 0);
-			if (invoiced - own + Number(resolved.quantity) > ordered) {
+			const ordered = decodeNumber(orderLine.quantity ?? 0);
+			const own = decodeNumber(existing.quantity ?? 0);
+			if (invoiced - own + decodeNumber(resolved.quantity) > ordered) {
 				refuse(`Over-invoice: this line would push invoiced quantity past the ordered ${ordered}.`);
 			}
 		}
@@ -239,7 +240,7 @@ export default {
 				for (const line of invoiced) {
 					invoicedByOrderLine.set(
 						line.purchase_order_line_id,
-						(invoicedByOrderLine.get(line.purchase_order_line_id) ?? 0) + Number(line.quantity ?? 0)
+						(invoicedByOrderLine.get(line.purchase_order_line_id) ?? 0) + decodeNumber(line.quantity ?? 0)
 					);
 				}
 				return {

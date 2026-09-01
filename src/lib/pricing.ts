@@ -1,4 +1,5 @@
 import { currencyFractionDigits, fromMinorUnits, toMinorUnits } from '@norbital-ai/std/finance';
+import { decodeNumber } from '@norbital-ai/std/json';
 import { Schema } from 'effect';
 
 /** The derived-money inputs one document line contributes, owned once for every document kind. */
@@ -30,7 +31,7 @@ export function requireCurrency(currency: string | null): string {
 function shiftExponent(value: number, places: number): number {
 	if (value === 0) return 0;
 	const [mantissa, exponent] = value.toExponential().split('e');
-	return Number(`${mantissa}e${Number(exponent) + places}`);
+	return decodeNumber(`${mantissa}e${decodeNumber(exponent) + places}`);
 }
 
 function roundHalfUp(value: number, digits: number): number {
@@ -84,10 +85,10 @@ export function documentLineAmounts(
 	line: DocumentLineCells
 ): LineAmounts {
 	return lineAmounts({
-		quantity: Number(line.quantity ?? 0),
-		unit_price: Number(line.unit_price ?? 0),
-		discount_pct: Number(line.discount_pct ?? 0),
-		tax_rate: Number(line.tax_rate ?? 0),
+		quantity: decodeNumber(line.quantity ?? 0),
+		unit_price: decodeNumber(line.unit_price ?? 0),
+		discount_pct: decodeNumber(line.discount_pct ?? 0),
+		tax_rate: decodeNumber(line.tax_rate ?? 0),
 		tax_inclusive: document.tax_inclusive,
 		currency: requireCurrency(document.currency)
 	});

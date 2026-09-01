@@ -4,6 +4,7 @@ import {
 	type MutateBeforeContext,
 	type MutateEditContext
 } from '@norbital-ai/bolt/authoring';
+import { decodeNumber } from '@norbital-ai/std/json';
 import { Effect } from 'effect';
 import { rollupDocument, sumQuantity } from '../../lib/document-lines.js';
 import { documentLineAmounts, type LineAmounts } from '../../lib/pricing.js';
@@ -34,15 +35,15 @@ type ResolvedLineInput = Partial<
 >;
 
 function validateLineFields(input: ResolvedLineInput): void {
-	const quantity = Number(input.quantity);
+	const quantity = decodeNumber(input.quantity);
 	if (Number.isNaN(quantity) || quantity <= 0) {
 		refuse('Quantity must be greater than zero.');
 	}
-	const unitPrice = Number(input.unit_price);
+	const unitPrice = decodeNumber(input.unit_price);
 	if (Number.isNaN(unitPrice) || unitPrice < 0) {
 		refuse('Unit price cannot be negative.');
 	}
-	const taxRate = Number(input.tax_rate ?? 0);
+	const taxRate = decodeNumber(input.tax_rate ?? 0);
 	if (taxRate < 0 || taxRate > 100) {
 		refuse('Tax rate must be between 0 and 100.');
 	}
@@ -142,8 +143,8 @@ const beforeCreate = ({ input, prepared }: BeforeContext) => {
 	validateLineFields(resolved);
 
 	const allocated = prepared.allocatedByQuoteLine.get(quoteLine.id) ?? 0;
-	const quoted = Number(quoteLine.quantity ?? 0);
-	if (allocated + Number(resolved.quantity) > quoted) {
+	const quoted = decodeNumber(quoteLine.quantity ?? 0);
+	if (allocated + decodeNumber(resolved.quantity) > quoted) {
 		refuse(
 			`Over-allocation: ${allocated} of ${quoted} billed so far; this line would exceed the quoted quantity.`
 		);
@@ -176,9 +177,9 @@ const beforeUpdate = ({ input, existing, api }: EditContext) =>
 		});
 		if (quoteLine) {
 			const allocated = yield* liveAllocatedQuantity(api, quoteLine.id);
-			const quoted = Number(quoteLine.quantity ?? 0);
-			const own = Number(existing.quantity ?? 0);
-			if (allocated - own + Number(resolved.quantity) > quoted) {
+			const quoted = decodeNumber(quoteLine.quantity ?? 0);
+			const own = decodeNumber(existing.quantity ?? 0);
+			if (allocated - own + decodeNumber(resolved.quantity) > quoted) {
 				refuse(`Over-allocation: this line would push billed quantity past the quoted ${quoted}.`);
 			}
 		}
@@ -227,7 +228,7 @@ export default {
 				for (const line of allocations) {
 					allocatedByQuoteLine.set(
 						line.quote_line_id,
-						(allocatedByQuoteLine.get(line.quote_line_id) ?? 0) + Number(line.quantity ?? 0)
+						(allocatedByQuoteLine.get(line.quote_line_id) ?? 0) + decodeNumber(line.quantity ?? 0)
 					);
 				}
 				return {

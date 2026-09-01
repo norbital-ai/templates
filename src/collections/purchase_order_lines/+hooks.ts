@@ -5,6 +5,7 @@ import {
 	type MutateEditContext,
 	type MutatePrepareContext
 } from '@norbital-ai/bolt/authoring';
+import { decodeNumber } from '@norbital-ai/std/json';
 import { Effect } from 'effect';
 import { rowsById } from '../../lib/batch-reads.js';
 import { rollupDocument } from '../../lib/document-lines.js';
@@ -42,12 +43,12 @@ type ResolvedLineInput = Partial<
 >;
 
 function validateLineFields(input: ResolvedLineInput): void {
-	const quantity = Number(input.quantity);
+	const quantity = decodeNumber(input.quantity);
 	if (Number.isNaN(quantity) || quantity <= 0) {
 		refuse('Quantity must be greater than zero.');
 	}
 
-	const unitCost = Number(input.unit_cost);
+	const unitCost = decodeNumber(input.unit_cost);
 	if (input.unit_cost == null || Number.isNaN(unitCost)) {
 		refuse('Unit cost is required.');
 	}
@@ -55,7 +56,7 @@ function validateLineFields(input: ResolvedLineInput): void {
 		refuse('Unit cost cannot be negative.');
 	}
 
-	const taxRate = Number(input.tax_rate ?? 0);
+	const taxRate = decodeNumber(input.tax_rate ?? 0);
 	if (taxRate < 0 || taxRate > 100) {
 		refuse('Tax rate must be between 0 and 100.');
 	}

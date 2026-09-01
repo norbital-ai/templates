@@ -1,3 +1,4 @@
+import { decodeNumber } from '@norbital-ai/std/json';
 import { Effect } from 'effect';
 import { documentTotals, requireCurrency, type LineAmounts } from './pricing.js';
 
@@ -29,9 +30,9 @@ export function rollupDocument(source: RollupDocumentSource): Effect.Effect<void
 		const lines = yield* source.lines;
 		const totals = documentTotals(
 			lines.map((line) => ({
-				net: Number(line.net ?? 0),
-				tax: Number(line.tax ?? 0),
-				gross: Number(line.line_total ?? 0)
+				net: decodeNumber(line.net ?? 0),
+				tax: decodeNumber(line.tax ?? 0),
+				gross: decodeNumber(line.line_total ?? 0)
 			})),
 			requireCurrency(document.currency)
 		);
@@ -44,5 +45,5 @@ export function rollupDocument(source: RollupDocumentSource): Effect.Effect<void
 export function sumQuantity(
 	lines: Effect.Effect<readonly { readonly quantity?: number | null }[]>
 ): Effect.Effect<number> {
-	return Effect.map(lines, (rows) => rows.reduce((sum, row) => sum + Number(row.quantity ?? 0), 0));
+	return Effect.map(lines, (rows) => rows.reduce((sum, row) => sum + decodeNumber(row.quantity ?? 0), 0));
 }

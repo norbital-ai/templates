@@ -5,6 +5,7 @@ import {
 	type MutateEditContext,
 	type MutatePrepareContext
 } from '@norbital-ai/bolt/authoring';
+import { decodeNumber } from '@norbital-ai/std/json';
 import { Effect } from 'effect';
 import { rowsById } from '../../lib/batch-reads.js';
 import { rollupDocument } from '../../lib/document-lines.js';
@@ -50,19 +51,19 @@ type LineFieldValues = Partial<
 type LinePricingCells = Pick<LinePricing, 'quantity' | 'unit_price' | 'discount_pct' | 'tax_rate'>;
 
 function validateLineFields(input: LineFieldValues): LinePricingCells {
-	const quantity = Number(input.quantity);
+	const quantity = decodeNumber(input.quantity);
 	if (Number.isNaN(quantity) || quantity <= 0) {
 		refuse('Quantity must be greater than zero.');
 	}
-	const unitPrice = Number(input.unit_price);
+	const unitPrice = decodeNumber(input.unit_price);
 	if (Number.isNaN(unitPrice) || unitPrice < 0) {
 		refuse('Unit price cannot be negative.');
 	}
-	const discountPct = Number(input.discount_pct ?? 0);
+	const discountPct = decodeNumber(input.discount_pct ?? 0);
 	if (discountPct < 0 || discountPct > 100) {
 		refuse('Discount percentage must be between 0 and 100.');
 	}
-	const taxRate = Number(input.tax_rate ?? 0);
+	const taxRate = decodeNumber(input.tax_rate ?? 0);
 	if (taxRate < 0 || taxRate > 100) {
 		refuse('Tax rate must be between 0 and 100.');
 	}

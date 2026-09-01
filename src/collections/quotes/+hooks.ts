@@ -3,6 +3,7 @@ import {
 	type MutateBeforeContext,
 	type MutateEditContext
 } from '@norbital-ai/bolt/authoring';
+import { decodeNumber } from '@norbital-ai/std/json';
 import { Effect, Schema } from 'effect';
 import { currentInstant } from '../../lib/clock.js';
 import { docNoSeriesPattern, nextDocNo } from '../../lib/document-numbers.js';
@@ -126,7 +127,7 @@ const beforeUpdate = ({ input, existing, api }: EditContext) =>
 				account.credit_hold === true ||
 				(account.credit_limit != null &&
 					account.credit_used != null &&
-					Number(account.credit_used) + Number(existing.gross ?? 0) > Number(account.credit_limit));
+					decodeNumber(account.credit_used) + decodeNumber(existing.gross ?? 0) > decodeNumber(account.credit_limit));
 			const acknowledged =
 				input.credit_acknowledged === true || existing.credit_acknowledged === true;
 			if (creditAdverse && !acknowledged) {
@@ -163,7 +164,7 @@ const beforeUpdate = ({ input, existing, api }: EditContext) =>
 		}
 
 		if (newStatus === 'draft' && oldStatus === 'sent') {
-			const currentRev = Number(existing.revision_number ?? 1);
+			const currentRev = decodeNumber(existing.revision_number ?? 1);
 			const originalId = existing.revision_of ?? existing.id;
 			updates.revision_number = currentRev + 1;
 			updates.revision_of = originalId;

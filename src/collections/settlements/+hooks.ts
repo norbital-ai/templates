@@ -1,4 +1,5 @@
 import { refuse } from '@norbital-ai/bolt/authoring';
+import { decodeNumber } from '@norbital-ai/std/json';
 import { Effect } from 'effect';
 import type { Hooks } from './$types.js';
 
@@ -24,7 +25,7 @@ export default {
 							refuse('A settlement must reference a document.');
 						}
 
-						const amount = Number(input.amount);
+						const amount = decodeNumber(input.amount);
 						if (Number.isNaN(amount) || amount <= 0) {
 							refuse('Settlement amount must be greater than zero.');
 						}
