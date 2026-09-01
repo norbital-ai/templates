@@ -51,7 +51,7 @@ function validateLineFields(input: ResolvedLineInput): void {
 /** Lines on an invoice that still counts: a cancelled invoice bills nothing against a quote. */
 const liveLinesOfQuoteLine = (quoteLineId: string) => ({
 	quote_line_id: { eq: quoteLineId },
-	sales_invoice_line_invoice: { status: { ne: 'cancelled' } }
+	sales_invoice_line_invoice: { some: { status: { ne: 'cancelled' } } }
 });
 
 /** Allocated quantity on live (non-cancelled) invoices for one quote line. */
@@ -217,7 +217,7 @@ export default {
 					? yield* api.db.sales_invoice_lines.findMany({
 							where: {
 								quote_line_id: { in: quoteLineIds },
-								sales_invoice_line_invoice: { status: { ne: 'cancelled' } }
+								sales_invoice_line_invoice: { some: { status: { ne: 'cancelled' } } }
 							},
 							columns: { quote_line_id: true, quantity: true },
 							limit: LINE_LIMIT

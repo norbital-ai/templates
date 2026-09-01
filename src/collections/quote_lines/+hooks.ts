@@ -139,32 +139,33 @@ const beforeCreate = ({ input, prepared }: BeforeContext) => {
 };
 
 /** An edit lands on a stored row; `existing` is what tells the two apart. */
-const beforeUpdate = ({ input, existing, api }: EditContext) =>
-	Effect.gen(function* () {
-		if (input.quote_id != null && input.quote_id !== existing.quote_id) {
-			refuse('A line item cannot be moved to a different quote.');
+const beforeUpdate = ({ input, existing, api }: EditContext) => {
+	if (input.quote_id != null && input.quote_id !== existing.quote_id) {
+		refuse('A line item cannot be moved to a different quote.');
+	}
+
+	return Effect.map(
+		api.db.quotes.findFirst({ where: { id: { eq: existing.quote_id } } }),
+		(quote) => {
+			if (!quote) refuse('Referenced quote does not exist.');
+			if (quote.status !== 'draft') {
+				refuse('Line items can only be modified on draft quotes.');
+			}
+
+			const resolved = { ...existing, ...input };
+			const lineCells = validateLineFields(resolved);
+
+			const amounts = documentLineAmounts(quote, lineCells);
+
+			return {
+				...input,
+				net: amounts.net,
+				tax: amounts.tax,
+				line_total: amounts.gross
+			} satisfies UpdateInput;
 		}
-
-		const quote = yield* api.db.quotes.findFirst({
-			where: { id: { eq: existing.quote_id } }
-		});
-		if (!quote) refuse('Referenced quote does not exist.');
-		if (quote.status !== 'draft') {
-			refuse('Line items can only be modified on draft quotes.');
-		}
-
-		const resolved = { ...existing, ...input };
-		const lineCells = validateLineFields(resolved);
-
-		const amounts = documentLineAmounts(quote, lineCells);
-
-		return {
-			...input,
-			net: amounts.net,
-			tax: amounts.tax,
-			line_total: amounts.gross
-		} satisfies UpdateInput;
-	});
+	);
+};
 
 export default {
 	mutate: {

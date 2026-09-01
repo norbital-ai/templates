@@ -35,7 +35,7 @@ export default defineQueryHandler({
 					api.db.purchase_invoice_lines.findMany({
 						where: {
 							purchase_order_line_id: { in: lineIds },
-							purchase_invoice_line_invoice: { status: { ne: 'cancelled' } }
+							purchase_invoice_line_invoice: { some: { status: { ne: 'cancelled' } } }
 						},
 						columns: {
 							purchase_order_line_id: true,

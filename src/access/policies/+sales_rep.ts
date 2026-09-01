@@ -1,4 +1,5 @@
 import type { Policy } from './$types.js';
+import { subject } from '@norbital-ai/bolt/authoring';
 
 /**
  * A sales representative's sales surface and pipeline authority.
@@ -6,7 +7,7 @@ import type { Policy } from './$types.js';
  * Declared here rather than seeded so the permission set ships with the workspace — a fresh database
  * has it, and changing it shows up in a diff.
  *
- * Quote reads and edits are scoped to the requestor. `${requestor.id}` is bound at
+ * Quote reads and edits are scoped to the requestor. `subject.id` is bound at
  * evaluation time against the request scope, so a rep reads *their* quotes rather than every quote
  * that has an owner. The column is typed against the collection's row, so renaming `owner_id` breaks
  * this file rather than silently matching nothing.
@@ -21,7 +22,7 @@ export default {
 		},
 		quotes: {
 			read: {
-				where: { owner_id: { eq: '${requestor.id}' } }
+				where: { owner_id: { eq: subject.id } }
 			},
 			mutate: {
 				new: {},
@@ -44,7 +45,7 @@ export default {
 		},
 		sales_invoices: {
 			read: {
-				where: { owner_id: { eq: '${requestor.id}' } }
+				where: { owner_id: { eq: subject.id } }
 			},
 			mutate: {
 				new: {},
@@ -63,7 +64,7 @@ export default {
 		},
 		contract_signings: {
 			read: {
-				where: { owner_id: { eq: '${requestor.id}' } }
+				where: { owner_id: { eq: subject.id } }
 			},
 			mutate: {
 				new: {},

@@ -1,8 +1,8 @@
 {
   "dialect": "postgres",
-  "id": "9456574c-abab-47a1-a652-0dc99fe8133d",
+  "id": "cd08711e-fe7c-4573-bd8d-8e8d48979035",
   "prevIds": [
-    "6e3e6f94-9f29-430b-a109-2e23bb93baaf"
+    "b953df6f-9ac8-4c75-b3d2-80a19617b996"
   ],
   "version": "8",
   "ddl": [
@@ -4278,28 +4278,7 @@
       "table": "activities"
     },
     {
-      "nameExplicit": false,
-      "columns": [
-        {
-          "value": "owner_id",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": null
-        }
-      ],
-      "isUnique": false,
-      "where": null,
-      "with": "",
-      "method": "btree",
-      "concurrently": false,
-      "name": "activities_owner_id_index",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "activities"
-    },
-    {
-      "nameExplicit": false,
+      "nameExplicit": true,
       "columns": [
         {
           "value": "due_date",
@@ -4314,7 +4293,28 @@
       "with": "",
       "method": "btree",
       "concurrently": false,
-      "name": "activities_due_date_index",
+      "name": "activities_due_date_idx",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "activities"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        {
+          "value": "owner_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "with": "",
+      "method": "btree",
+      "concurrently": false,
+      "name": "activities_owner_id_idx",
       "entityType": "indexes",
       "schema": "public",
       "table": "activities"
@@ -4362,7 +4362,7 @@
       "table": "activities"
     },
     {
-      "nameExplicit": false,
+      "nameExplicit": true,
       "columns": [
         {
           "value": "account_id",
@@ -4377,7 +4377,7 @@
       "with": "",
       "method": "btree",
       "concurrently": false,
-      "name": "contacts_account_id_index",
+      "name": "contacts_account_id_idx",
       "entityType": "indexes",
       "schema": "public",
       "table": "contacts"
@@ -4425,7 +4425,7 @@
       "table": "contacts"
     },
     {
-      "nameExplicit": false,
+      "nameExplicit": true,
       "columns": [
         {
           "value": "quote_id",
@@ -4440,13 +4440,13 @@
       "with": "",
       "method": "btree",
       "concurrently": false,
-      "name": "contract_signings_quote_id_index",
+      "name": "contract_signings_quote_id_idx",
       "entityType": "indexes",
       "schema": "public",
       "table": "contract_signings"
     },
     {
-      "nameExplicit": false,
+      "nameExplicit": true,
       "columns": [
         {
           "value": "status",
@@ -4461,7 +4461,7 @@
       "with": "",
       "method": "btree",
       "concurrently": false,
-      "name": "contract_signings_status_index",
+      "name": "contract_signings_status_idx",
       "entityType": "indexes",
       "schema": "public",
       "table": "contract_signings"
@@ -4509,7 +4509,7 @@
       "table": "contract_signings"
     },
     {
-      "nameExplicit": false,
+      "nameExplicit": true,
       "columns": [
         {
           "value": "goods_receipt_id",
@@ -4524,13 +4524,13 @@
       "with": "",
       "method": "btree",
       "concurrently": false,
-      "name": "goods_receipt_lines_goods_receipt_id_index",
+      "name": "goods_receipt_lines_goods_receipt_id_idx",
       "entityType": "indexes",
       "schema": "public",
       "table": "goods_receipt_lines"
     },
     {
-      "nameExplicit": false,
+      "nameExplicit": true,
       "columns": [
         {
           "value": "purchase_order_line_id",
@@ -4545,7 +4545,7 @@
       "with": "",
       "method": "btree",
       "concurrently": false,
-      "name": "goods_receipt_lines_purchase_order_line_id_index",
+      "name": "goods_receipt_lines_purchase_order_line_id_idx",
       "entityType": "indexes",
       "schema": "public",
       "table": "goods_receipt_lines"
@@ -4572,28 +4572,7 @@
       "table": "goods_receipts"
     },
     {
-      "nameExplicit": false,
-      "columns": [
-        {
-          "value": "purchase_order_id",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": null
-        }
-      ],
-      "isUnique": false,
-      "where": null,
-      "with": "",
-      "method": "btree",
-      "concurrently": false,
-      "name": "goods_receipts_purchase_order_id_index",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "goods_receipts"
-    },
-    {
-      "nameExplicit": false,
+      "nameExplicit": true,
       "columns": [
         {
           "value": "owner_id",
@@ -4608,7 +4587,28 @@
       "with": "",
       "method": "btree",
       "concurrently": false,
-      "name": "goods_receipts_owner_id_index",
+      "name": "goods_receipts_owner_id_idx",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "goods_receipts"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        {
+          "value": "purchase_order_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "with": "",
+      "method": "btree",
+      "concurrently": false,
+      "name": "goods_receipts_purchase_order_id_idx",
       "entityType": "indexes",
       "schema": "public",
       "table": "goods_receipts"
@@ -4740,7 +4740,7 @@
       "table": "products"
     },
     {
-      "nameExplicit": false,
+      "nameExplicit": true,
       "columns": [
         {
           "value": "purchase_invoice_id",
@@ -4755,13 +4755,13 @@
       "with": "",
       "method": "btree",
       "concurrently": false,
-      "name": "purchase_invoice_lines_purchase_invoice_id_index",
+      "name": "purchase_invoice_lines_purchase_invoice_id_idx",
       "entityType": "indexes",
       "schema": "public",
       "table": "purchase_invoice_lines"
     },
     {
-      "nameExplicit": false,
+      "nameExplicit": true,
       "columns": [
         {
           "value": "purchase_order_line_id",
@@ -4776,7 +4776,7 @@
       "with": "",
       "method": "btree",
       "concurrently": false,
-      "name": "purchase_invoice_lines_purchase_order_line_id_index",
+      "name": "purchase_invoice_lines_purchase_order_line_id_idx",
       "entityType": "indexes",
       "schema": "public",
       "table": "purchase_invoice_lines"
@@ -4845,7 +4845,7 @@
       "table": "purchase_invoices"
     },
     {
-      "nameExplicit": false,
+      "nameExplicit": true,
       "columns": [
         {
           "value": "purchase_order_id",
@@ -4860,34 +4860,13 @@
       "with": "",
       "method": "btree",
       "concurrently": false,
-      "name": "purchase_invoices_purchase_order_id_index",
+      "name": "purchase_invoices_purchase_order_id_idx",
       "entityType": "indexes",
       "schema": "public",
       "table": "purchase_invoices"
     },
     {
-      "nameExplicit": false,
-      "columns": [
-        {
-          "value": "supplier_id",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": null
-        }
-      ],
-      "isUnique": false,
-      "where": null,
-      "with": "",
-      "method": "btree",
-      "concurrently": false,
-      "name": "purchase_invoices_supplier_id_index",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "purchase_invoices"
-    },
-    {
-      "nameExplicit": false,
+      "nameExplicit": true,
       "columns": [
         {
           "value": "status",
@@ -4902,7 +4881,28 @@
       "with": "",
       "method": "btree",
       "concurrently": false,
-      "name": "purchase_invoices_status_index",
+      "name": "purchase_invoices_status_idx",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "purchase_invoices"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        {
+          "value": "supplier_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "with": "",
+      "method": "btree",
+      "concurrently": false,
+      "name": "purchase_invoices_supplier_id_idx",
       "entityType": "indexes",
       "schema": "public",
       "table": "purchase_invoices"
@@ -4950,28 +4950,7 @@
       "table": "purchase_invoices"
     },
     {
-      "nameExplicit": false,
-      "columns": [
-        {
-          "value": "purchase_order_id",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": null
-        }
-      ],
-      "isUnique": false,
-      "where": null,
-      "with": "",
-      "method": "btree",
-      "concurrently": false,
-      "name": "purchase_order_lines_purchase_order_id_index",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "purchase_order_lines"
-    },
-    {
-      "nameExplicit": false,
+      "nameExplicit": true,
       "columns": [
         {
           "value": "product_id",
@@ -4986,7 +4965,28 @@
       "with": "",
       "method": "btree",
       "concurrently": false,
-      "name": "purchase_order_lines_product_id_index",
+      "name": "purchase_order_lines_product_id_idx",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "purchase_order_lines"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        {
+          "value": "purchase_order_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "with": "",
+      "method": "btree",
+      "concurrently": false,
+      "name": "purchase_order_lines_purchase_order_id_idx",
       "entityType": "indexes",
       "schema": "public",
       "table": "purchase_order_lines"
@@ -5055,70 +5055,7 @@
       "table": "purchase_orders"
     },
     {
-      "nameExplicit": false,
-      "columns": [
-        {
-          "value": "supplier_id",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": null
-        }
-      ],
-      "isUnique": false,
-      "where": null,
-      "with": "",
-      "method": "btree",
-      "concurrently": false,
-      "name": "purchase_orders_supplier_id_index",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "purchase_orders"
-    },
-    {
-      "nameExplicit": false,
-      "columns": [
-        {
-          "value": "status",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": null
-        }
-      ],
-      "isUnique": false,
-      "where": null,
-      "with": "",
-      "method": "btree",
-      "concurrently": false,
-      "name": "purchase_orders_status_index",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "purchase_orders"
-    },
-    {
-      "nameExplicit": false,
-      "columns": [
-        {
-          "value": "owner_id",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": null
-        }
-      ],
-      "isUnique": false,
-      "where": null,
-      "with": "",
-      "method": "btree",
-      "concurrently": false,
-      "name": "purchase_orders_owner_id_index",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "purchase_orders"
-    },
-    {
-      "nameExplicit": false,
+      "nameExplicit": true,
       "columns": [
         {
           "value": "expected_date",
@@ -5133,7 +5070,70 @@
       "with": "",
       "method": "btree",
       "concurrently": false,
-      "name": "purchase_orders_expected_date_index",
+      "name": "purchase_orders_expected_date_idx",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "purchase_orders"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        {
+          "value": "owner_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "with": "",
+      "method": "btree",
+      "concurrently": false,
+      "name": "purchase_orders_owner_id_idx",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "purchase_orders"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        {
+          "value": "status",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "with": "",
+      "method": "btree",
+      "concurrently": false,
+      "name": "purchase_orders_status_idx",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "purchase_orders"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        {
+          "value": "supplier_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "with": "",
+      "method": "btree",
+      "concurrently": false,
+      "name": "purchase_orders_supplier_id_idx",
       "entityType": "indexes",
       "schema": "public",
       "table": "purchase_orders"
@@ -5181,28 +5181,7 @@
       "table": "purchase_orders"
     },
     {
-      "nameExplicit": false,
-      "columns": [
-        {
-          "value": "quote_id",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": null
-        }
-      ],
-      "isUnique": false,
-      "where": null,
-      "with": "",
-      "method": "btree",
-      "concurrently": false,
-      "name": "quote_lines_quote_id_index",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "quote_lines"
-    },
-    {
-      "nameExplicit": false,
+      "nameExplicit": true,
       "columns": [
         {
           "value": "product_id",
@@ -5217,7 +5196,28 @@
       "with": "",
       "method": "btree",
       "concurrently": false,
-      "name": "quote_lines_product_id_index",
+      "name": "quote_lines_product_id_idx",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "quote_lines"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        {
+          "value": "quote_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "with": "",
+      "method": "btree",
+      "concurrently": false,
+      "name": "quote_lines_quote_id_idx",
       "entityType": "indexes",
       "schema": "public",
       "table": "quote_lines"
@@ -5286,7 +5286,7 @@
       "table": "quotes"
     },
     {
-      "nameExplicit": false,
+      "nameExplicit": true,
       "columns": [
         {
           "value": "account_id",
@@ -5301,13 +5301,13 @@
       "with": "",
       "method": "btree",
       "concurrently": false,
-      "name": "quotes_account_id_index",
+      "name": "quotes_account_id_idx",
       "entityType": "indexes",
       "schema": "public",
       "table": "quotes"
     },
     {
-      "nameExplicit": false,
+      "nameExplicit": true,
       "columns": [
         {
           "value": "owner_id",
@@ -5322,34 +5322,13 @@
       "with": "",
       "method": "btree",
       "concurrently": false,
-      "name": "quotes_owner_id_index",
+      "name": "quotes_owner_id_idx",
       "entityType": "indexes",
       "schema": "public",
       "table": "quotes"
     },
     {
-      "nameExplicit": false,
-      "columns": [
-        {
-          "value": "status",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": null
-        }
-      ],
-      "isUnique": false,
-      "where": null,
-      "with": "",
-      "method": "btree",
-      "concurrently": false,
-      "name": "quotes_status_index",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "quotes"
-    },
-    {
-      "nameExplicit": false,
+      "nameExplicit": true,
       "columns": [
         {
           "value": "revision_of",
@@ -5364,7 +5343,28 @@
       "with": "",
       "method": "btree",
       "concurrently": false,
-      "name": "quotes_revision_of_index",
+      "name": "quotes_revision_of_idx",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "quotes"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        {
+          "value": "status",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "with": "",
+      "method": "btree",
+      "concurrently": false,
+      "name": "quotes_status_idx",
       "entityType": "indexes",
       "schema": "public",
       "table": "quotes"
@@ -5412,28 +5412,7 @@
       "table": "quotes"
     },
     {
-      "nameExplicit": false,
-      "columns": [
-        {
-          "value": "sales_invoice_id",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": null
-        }
-      ],
-      "isUnique": false,
-      "where": null,
-      "with": "",
-      "method": "btree",
-      "concurrently": false,
-      "name": "sales_invoice_lines_sales_invoice_id_index",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "sales_invoice_lines"
-    },
-    {
-      "nameExplicit": false,
+      "nameExplicit": true,
       "columns": [
         {
           "value": "quote_line_id",
@@ -5448,7 +5427,28 @@
       "with": "",
       "method": "btree",
       "concurrently": false,
-      "name": "sales_invoice_lines_quote_line_id_index",
+      "name": "sales_invoice_lines_quote_line_id_idx",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "sales_invoice_lines"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        {
+          "value": "sales_invoice_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "with": "",
+      "method": "btree",
+      "concurrently": false,
+      "name": "sales_invoice_lines_sales_invoice_id_idx",
       "entityType": "indexes",
       "schema": "public",
       "table": "sales_invoice_lines"
@@ -5517,28 +5517,7 @@
       "table": "sales_invoices"
     },
     {
-      "nameExplicit": false,
-      "columns": [
-        {
-          "value": "quote_id",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": null
-        }
-      ],
-      "isUnique": false,
-      "where": null,
-      "with": "",
-      "method": "btree",
-      "concurrently": false,
-      "name": "sales_invoices_quote_id_index",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "sales_invoices"
-    },
-    {
-      "nameExplicit": false,
+      "nameExplicit": true,
       "columns": [
         {
           "value": "account_id",
@@ -5553,13 +5532,34 @@
       "with": "",
       "method": "btree",
       "concurrently": false,
-      "name": "sales_invoices_account_id_index",
+      "name": "sales_invoices_account_id_idx",
       "entityType": "indexes",
       "schema": "public",
       "table": "sales_invoices"
     },
     {
-      "nameExplicit": false,
+      "nameExplicit": true,
+      "columns": [
+        {
+          "value": "quote_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "with": "",
+      "method": "btree",
+      "concurrently": false,
+      "name": "sales_invoices_quote_id_idx",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "sales_invoices"
+    },
+    {
+      "nameExplicit": true,
       "columns": [
         {
           "value": "status",
@@ -5574,7 +5574,7 @@
       "with": "",
       "method": "btree",
       "concurrently": false,
-      "name": "sales_invoices_status_index",
+      "name": "sales_invoices_status_idx",
       "entityType": "indexes",
       "schema": "public",
       "table": "sales_invoices"
@@ -5622,7 +5622,7 @@
       "table": "sales_invoices"
     },
     {
-      "nameExplicit": false,
+      "nameExplicit": true,
       "columns": [
         {
           "value": "regarding_id",
@@ -5637,13 +5637,13 @@
       "with": "",
       "method": "btree",
       "concurrently": false,
-      "name": "settlements_regarding_id_index",
+      "name": "settlements_regarding_id_idx",
       "entityType": "indexes",
       "schema": "public",
       "table": "settlements"
     },
     {
-      "nameExplicit": false,
+      "nameExplicit": true,
       "columns": [
         {
           "value": "regarding_type",
@@ -5658,7 +5658,7 @@
       "with": "",
       "method": "btree",
       "concurrently": false,
-      "name": "settlements_regarding_type_index",
+      "name": "settlements_regarding_type_idx",
       "entityType": "indexes",
       "schema": "public",
       "table": "settlements"
@@ -5748,28 +5748,7 @@
       "table": "suppliers"
     },
     {
-      "nameExplicit": false,
-      "columns": [
-        {
-          "value": "name",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": null
-        }
-      ],
-      "isUnique": false,
-      "where": null,
-      "with": "",
-      "method": "btree",
-      "concurrently": false,
-      "name": "suppliers_name_index",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "suppliers"
-    },
-    {
-      "nameExplicit": false,
+      "nameExplicit": true,
       "columns": [
         {
           "value": "active",
@@ -5784,7 +5763,28 @@
       "with": "",
       "method": "btree",
       "concurrently": false,
-      "name": "suppliers_active_index",
+      "name": "suppliers_active_idx",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "suppliers"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        {
+          "value": "name",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "with": "",
+      "method": "btree",
+      "concurrently": false,
+      "name": "suppliers_name_idx",
       "entityType": "indexes",
       "schema": "public",
       "table": "suppliers"
