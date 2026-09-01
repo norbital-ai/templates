@@ -18,6 +18,7 @@
  * one, and every message names the employee, the day and the rule wherever a run has them to name.
  */
 
+import { getErrorMessage } from '@norbital-ai/std';
 import { Effect, Result, Schema } from 'effect';
 import type { Configuration } from './configuration.js';
 import { requiredDateKey } from './dates.js';
@@ -105,9 +106,7 @@ export function validateConfiguration(configuration: Configuration): RunIssue[] 
 		if (Result.isFailure(parseOutcome))
 			blocker(
 				'SPECIAL_RULE_INVALID',
-				parseOutcome.failure instanceof Error
-					? parseOutcome.failure.message
-					: String(parseOutcome.failure),
+				getErrorMessage(parseOutcome.failure),
 				'statutory_contributions',
 				contribution.row.id
 			);
@@ -285,7 +284,7 @@ export function validateDailyWorkLimit(options: {
  * clock on the 29th of a month whose window closed on the 20th is still read by this run, and still
  * stops it.
  */
-export function validateOpenWorkDays(options: {
+type ValidateOpenWorkDaysOptions = {
 	readonly bundles: readonly {
 		readonly employment: { readonly employee_number: string };
 		readonly workDays: readonly {
@@ -299,7 +298,9 @@ export function validateOpenWorkDays(options: {
 				| null;
 		}[];
 	}[];
-}): RunIssue[] {
+};
+
+export function validateOpenWorkDays(options: ValidateOpenWorkDaysOptions): RunIssue[] {
 	const issues: RunIssue[] = [];
 	for (const bundle of options.bundles) {
 		for (const entry of bundle.workDays) {
@@ -341,13 +342,15 @@ export function validateOpenWorkDays(options: {
  * never promised is a wrong answer that looks exactly like a right one on the payslip. The fix is a
  * row on the company, and the message names the people whose pay is waiting for it.
  */
-export function validatePayCalendar(options: {
+type ValidatePayCalendarOptions = {
 	readonly configuration: Configuration;
 	readonly bundles: readonly {
 		readonly employment: { readonly employee_number: string; readonly id: string };
 		readonly terms: readonly { readonly pay_frequency: string | null }[];
 	}[];
-}): RunIssue[] {
+};
+
+export function validatePayCalendar(options: ValidatePayCalendarOptions): RunIssue[] {
 	const company = options.configuration.company;
 	const stated = new Set((company.pay_calendar ?? []).map((entry) => String(entry.pay_frequency)));
 	// MONTHLY is never in `pay_calendar` and never needs to be: the two company columns are its

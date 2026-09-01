@@ -122,13 +122,15 @@
 			: client.db.loans.findMany({
 					where: {
 						loan_employment: {
-							approval_id: { isNull: true },
-							company_id: { eq: selectedCompanyId }
+							some: {
+								approval_id: { isNull: true },
+								company_id: { eq: selectedCompanyId }
+							}
 						}
 					},
 					columns: { id: true },
 					orderBy: { effective_range: 'desc' },
-					limit: 2000
+					limit: 1000
 				})
 	);
 	const repaymentsQuery = $derived.by(() => {
@@ -137,7 +139,7 @@
 		return client.db.loan_repayments.findMany({
 			where: { loan_id: { in: ids } },
 			columns: { id: true, loan_id: true, amount_due: true, sequence: true },
-			limit: 20_000
+			limit: 1000
 		});
 	});
 	const repaymentsByLoanId = $derived.by(() => {
@@ -163,7 +165,7 @@
 					with: { payslip_payroll_run: { columns: { lifecycle: true } } }
 				}
 			},
-			limit: 20_000
+			limit: 1000
 		});
 	});
 
@@ -293,8 +295,10 @@
 					query={{
 						where: {
 							loan_employment: {
-								approval_id: { isNull: true },
-								company_id: { eq: selectedCompanyId }
+								some: {
+									approval_id: { isNull: true },
+									company_id: { eq: selectedCompanyId }
+								}
 							}
 						},
 						orderBy: { effective_range: 'desc' },

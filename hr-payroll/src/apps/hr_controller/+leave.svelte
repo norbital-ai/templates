@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { FormattedValueRenderer } from '@norbital-ai/ui/data-renderer';
 	import { client } from '../../lib/workspace-client.js';
+	import { relatedPayslipInputs } from '../../lib/payslip-source-query.js';
 	import { useI18n } from '@norbital-ai/ui/i18n';
 	import AppHeaderActions from '@norbital-ai/bolt/client/app-header-actions';
 	import type { TenantI18nKeys } from '$bolt/i18n-keys';
@@ -58,20 +59,18 @@
 		selectedCompanyId == null
 			? null
 			: client.db.leave_requests.findMany({
-					where: { leave_request_employment: { company_id: { eq: selectedCompanyId } } },
+					where: {
+						leave_request_employment: { some: { company_id: { eq: selectedCompanyId } } }
+					},
 					columns: { id: true },
-					limit: 5000
+					limit: 1000
 				})
 	);
-	const leaveSettlementsQuery = $derived.by(() => {
-		const ids = (leaveRequestsQuery?.current ?? []).map((row) => row.id);
-		if (ids.length === 0) return null;
-		return client.db.payslip_leave_request_inputs.findMany({
-			where: { leave_request_id: { in: ids } },
-			columns: { leave_request_id: true, period: true },
-			limit: 5000
-		});
-	});
+	const leaveSettlementsQuery = $derived(
+		relatedPayslipInputs(leaveRequestsQuery, 'leave_request_id', (query) =>
+			client.db.payslip_leave_request_inputs.findMany(query)
+		)
+	);
 	const settlementByRequestId = $derived(
 		new Map(
 			(leaveSettlementsQuery?.current ?? []).map((capture) => [
@@ -195,8 +194,10 @@
 				query={{
 					where: {
 						leave_request_employment: {
-							approval_id: { isNull: true },
-							company_id: { eq: selectedCompanyId }
+							some: {
+								approval_id: { isNull: true },
+								company_id: { eq: selectedCompanyId }
+							}
 						}
 					},
 					orderBy: { from_date: 'desc' },

@@ -37,11 +37,11 @@ test('date-dependent reads and the board query are derived from the selected day
 	assert.match(controllerSource, /columns: \{ id: true, name: true, location: true \}/);
 	assert.match(
 		controllerSource,
-		/const assignmentsQuery = \$derived\(\s*client\.db\.job_assignments\.findMany\(\{[\s\S]*?job_assignment_job: \{ scheduled_for: \{ eq: dispatchDay \} \}/
+		/const assignmentsQuery = \$derived\(\s*client\.db\.job_assignments\.findMany\(\{[\s\S]*?job_assignment_job: \{ some: \{ scheduled_for: \{ eq: dispatchQueryInstant \} \} \}/
 	);
 	assert.match(
 		controllerSource,
-		/const boardQuery = \$derived\(\{\s*where: \{\s*job_assignment_job: \{ scheduled_for: \{ eq: dispatchDay \} \}/
+		/const boardQuery = \$derived\(\{\s*where: \{\s*job_assignment_job: \{ some: \{ scheduled_for: \{ eq: dispatchQueryInstant \} \} \}/
 	);
 
 	// The app owns no polling or duplicate client cache; generated findMany resources and the generic

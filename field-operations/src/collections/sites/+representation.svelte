@@ -108,8 +108,10 @@
 			query={{
 				where: {
 					job_assignment_job: {
-						site_id: { eq: siteId },
-						status: { in: ['assigned', 'completed'] }
+						some: {
+							site_id: { eq: siteId },
+							status: { in: ['assigned', 'completed'] }
+						}
 					}
 				},
 				orderBy: { dispatched_at: 'desc' }

@@ -451,7 +451,9 @@
 			title={t('app.crm.billing_lines_title')}
 			description={t('app.crm.billing_lines_description')}
 			query={{
-				where: { sales_invoice_line_invoice: { account_id: { eq: selectedAccountId } } },
+				where: {
+					sales_invoice_line_invoice: { some: { account_id: { eq: selectedAccountId } } }
+				},
 				orderBy: { sales_invoice_id: 'desc' }
 			}}
 		>

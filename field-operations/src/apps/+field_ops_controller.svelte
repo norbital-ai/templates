@@ -52,7 +52,7 @@
 	const assignmentsQuery = $derived(
 		client.db.job_assignments.findMany({
 			where: {
-				job_assignment_job: { scheduled_for: { eq: dispatchDay } }
+				job_assignment_job: { some: { scheduled_for: { eq: dispatchQueryInstant } } }
 			},
 			columns: {
 				id: true,
@@ -78,7 +78,7 @@
 	 */
 	const boardQuery = $derived({
 		where: {
-			job_assignment_job: { scheduled_for: { eq: dispatchDay } }
+			job_assignment_job: { some: { scheduled_for: { eq: dispatchQueryInstant } } }
 		},
 		orderBy: { dispatched_at: 'asc' as const }
 	});

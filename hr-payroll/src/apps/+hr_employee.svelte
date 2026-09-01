@@ -49,6 +49,7 @@
 		todayKey
 	} from '../lib/ui/calendar.js';
 	import { inForceOnDay } from '../lib/effective_range.js';
+	import { getErrorMessage } from '@norbital-ai/std';
 	import { formatDateISO } from '@norbital-ai/std/date';
 	import {
 		ATTENDANCE_DRAFT_PROBLEM_KEY,
@@ -947,7 +948,7 @@
 				),
 				Effect.catch((cause) =>
 					Effect.sync(() => {
-						const serverMessage = cause instanceof Error ? cause.message : String(cause);
+						const serverMessage = getErrorMessage(cause);
 						daySheetError = t('roster.day_sheet_error_context', {
 							person: daySheetPerson?.name ?? targetEmploymentId,
 							date: change.date,
@@ -1070,7 +1071,7 @@
 						report.error = t('roster.day_sheet_error_context', {
 							person: daySheetPerson?.name ?? targetEmploymentId,
 							date: draft.date,
-							message: cause instanceof Error ? cause.message : String(cause)
+							message: getErrorMessage(cause)
 						});
 					})
 				),

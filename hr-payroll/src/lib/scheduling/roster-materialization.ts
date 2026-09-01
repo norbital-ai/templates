@@ -1,3 +1,4 @@
+import { getErrorMessage } from '@norbital-ai/std';
 import type { RosterCodeVariant } from '../../datatypes/roster_code_variant/+definition.js';
 import type { WorkPattern } from '../../datatypes/work_pattern/+definition.js';
 import { coversDate, readRange } from '../../collections/payroll_runs/lib/effective.js';
@@ -314,7 +315,7 @@ export function buildRosterMaterialization(
 					employment_id: employment.id,
 					employee_number: employment.employee_number,
 					work_date: date,
-					message: `${dayLabel} cannot project its work pattern: ${cause instanceof Error ? cause.message : String(cause)}`
+					message: `${dayLabel} cannot project its work pattern: ${getErrorMessage(cause)}`
 				});
 				continue;
 			}
@@ -368,7 +369,7 @@ export function buildRosterMaterialization(
 					employment_id: employment.id,
 					employee_number: employment.employee_number,
 					work_date: date,
-					message: `${dayLabel} names invalid roster code ${rosterCode.code}: ${cause instanceof Error ? cause.message : String(cause)}`
+					message: `${dayLabel} names invalid roster code ${rosterCode.code}: ${getErrorMessage(cause)}`
 				});
 				continue;
 			}

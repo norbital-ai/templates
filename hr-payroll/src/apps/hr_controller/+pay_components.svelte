@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { FormattedValueRenderer } from '@norbital-ai/ui/data-renderer';
 	import { client } from '../../lib/workspace-client.js';
+	import { relatedPayslipInputs } from '../../lib/payslip-source-query.js';
 	import { useI18n } from '@norbital-ai/ui/i18n';
 	import AppHeaderActions from '@norbital-ai/bolt/client/app-header-actions';
 	import type { TenantI18nKeys } from '$bolt/i18n-keys';
@@ -74,23 +75,21 @@
 			: client.db.component_entries.findMany({
 					where: {
 						component_entry_employment: {
-							approval_id: { isNull: true },
-							company_id: { eq: selectedCompanyId }
+							some: {
+								approval_id: { isNull: true },
+								company_id: { eq: selectedCompanyId }
+							}
 						}
 					},
 					columns: { id: true },
-					limit: 5000
+					limit: 1000
 				})
 	);
-	const capturesQuery = $derived.by(() => {
-		const ids = (entryIdsQuery?.current ?? []).map((row) => row.id);
-		if (ids.length === 0) return null;
-		return client.db.payslip_component_entry_inputs.findMany({
-			where: { component_entry_id: { in: ids } },
-			columns: { component_entry_id: true, period: true },
-			limit: 20_000
-		});
-	});
+	const capturesQuery = $derived(
+		relatedPayslipInputs(entryIdsQuery, 'component_entry_id', (query) =>
+			client.db.payslip_component_entry_inputs.findMany(query)
+		)
+	);
 	const captureByEntryId = $derived(
 		new Map(
 			(capturesQuery?.current ?? []).map((capture) => [

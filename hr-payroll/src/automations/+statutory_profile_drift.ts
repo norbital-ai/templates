@@ -1,4 +1,5 @@
 import { defineAutomation, type AutomationApi } from '@norbital-ai/bolt/authoring';
+import { getErrorMessage, toError } from '@norbital-ai/std';
 import { Clock, Effect, Option, Schema } from 'effect';
 import { todayInstant, todayKey } from '../lib/ui/calendar.js';
 import { instantAt } from '../lib/iso-day.js';
@@ -398,9 +399,6 @@ const officialSourceGuidance = [
 	'Invented, unofficial, or aggregator URLs are invalid.'
 ].join(' ');
 
-const errorMessage = (error: unknown): string =>
-	error instanceof Error ? error.message : String(error);
-
 const officialUrl = (value: string): URL | null => {
 	if (!URL.canParse(value)) return null;
 	const parsed = new URL(value);
@@ -786,7 +784,7 @@ export const runStatutoryProfileDrift = (api: AutomationApi) =>
 				});
 				report = yield* Effect.try({
 					try: () => validateResearchReceipt(inferredReport, []),
-					catch: (error) => (error instanceof Error ? error : new Error(String(error)))
+					catch: toError
 				});
 			} else {
 				const receipts: Array<Readonly<{ code: string; report: StatutoryResearchReport }>> = [];
@@ -865,7 +863,7 @@ export const runStatutoryProfileDrift = (api: AutomationApi) =>
 					const validated = yield* Effect.try({
 						try: () =>
 							validateResearchReceipt(completeJurisdictionProvenance(firstReport, code), [code]),
-						catch: (error) => (error instanceof Error ? error : new Error(String(error)))
+						catch: toError
 					}).pipe(
 						Effect.catch((validationError) =>
 							Effect.gen(function* () {
@@ -873,13 +871,13 @@ export const runStatutoryProfileDrift = (api: AutomationApi) =>
 									progress: progress + 0.01,
 									text: `Retrying official-source coverage for ${code}`
 								});
-								const repairedReport = yield* inferJurisdiction(errorMessage(validationError));
+								const repairedReport = yield* inferJurisdiction(getErrorMessage(validationError));
 								return yield* Effect.try({
 									try: () =>
 										validateResearchReceipt(completeJurisdictionProvenance(repairedReport, code), [
 											code
 										]),
-									catch: (error) => (error instanceof Error ? error : new Error(String(error)))
+									catch: toError
 								});
 							})
 						)
@@ -921,7 +919,7 @@ export const runStatutoryProfileDrift = (api: AutomationApi) =>
 
 		return yield* Effect.catch(execution, (error) =>
 			Effect.gen(function* () {
-				const message = errorMessage(error);
+				const message = getErrorMessage(error);
 				yield* api.db.statutory_profile_drift_logs
 					.mutate({
 						id: runLog.id,

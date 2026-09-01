@@ -20,13 +20,13 @@ const normalInput = {
 	unresolvedClockOutsOnly: false
 } as const;
 
-test('the normal month board has a fixed twelve-query and 48,950-row ceiling', () => {
+test('the normal month board has a fixed twelve-query and 7,950-row ceiling', () => {
 	const receipt = monthBoardQueryReceipt(normalInput);
 
 	assert.equal(MONTH_BOARD_NORMAL_QUERY_CEILING, 12);
-	assert.equal(MONTH_BOARD_NORMAL_ROW_BOUND, 48_950);
+	assert.equal(MONTH_BOARD_NORMAL_ROW_BOUND, 7_950);
 	assert.equal(receipt.queryCount, 12);
-	assert.equal(receipt.rowBound, 48_950);
+	assert.equal(receipt.rowBound, 7_950);
 	assert.equal(receipt.perEmployeeQueryCount, 0);
 	assert.equal(receipt.perDayQueryCount, 0);
 	assert.equal(receipt.matrixCellCount, 1_302);
@@ -87,9 +87,9 @@ test('one optional declarative schema-filter probe has its own fixed ceiling', (
 	const receipt = monthBoardQueryReceipt({ ...normalInput, schemaFilterActive: true });
 
 	assert.equal(MONTH_BOARD_INTERACTIVE_QUERY_CEILING, 13);
-	assert.equal(MONTH_BOARD_INTERACTIVE_ROW_BOUND, 68_950);
+	assert.equal(MONTH_BOARD_INTERACTIVE_ROW_BOUND, 8_950);
 	assert.equal(receipt.queryCount, 13);
-	assert.equal(receipt.rowBound, 68_950);
+	assert.equal(receipt.rowBound, 8_950);
 	assert.deepEqual(receipt.sources.at(-1), {
 		source: 'filteredWorkDays',
 		rowBound: MONTH_BOARD_QUERY_LIMITS.filteredWorkDays,
@@ -114,9 +114,9 @@ test('query activation follows declarative parent inputs instead of people or ca
 			loadedRowCount: 0,
 			matrixCellCount: 0,
 			normalQueryCeiling: 12,
-			normalRowBound: 48_950,
+			normalRowBound: 7_950,
 			interactiveQueryCeiling: 13,
-			interactiveRowBound: 68_950,
+			interactiveRowBound: 8_950,
 			unresolvedClockOutFilterApplied: false,
 			eyeFilterAdditionalQueries: 0,
 			perEmployeeQueryCount: 0,
@@ -138,7 +138,7 @@ test('query activation follows declarative parent inputs instead of people or ca
 		workDayCount: 0
 	});
 	assert.equal(activePeopleWithoutRows.queryCount, 11);
-	assert.equal(activePeopleWithoutRows.rowBound, 28_950);
+	assert.equal(activePeopleWithoutRows.rowBound, 6_950);
 });
 
 test('the receipt totals observed rows and exposes sources that reach their configured bound', () => {
@@ -153,7 +153,7 @@ test('the receipt totals observed rows and exposes sources that reach their conf
 		}
 	});
 
-	assert.equal(receipt.loadedRowCount, 20_094);
+	assert.equal(receipt.loadedRowCount, 1_094);
 	assert.equal(receipt.sources.find(({ source }) => source === 'workDays')?.atBound, true);
 	assert.equal(receipt.sources.find(({ source }) => source === 'employees')?.atBound, false);
 });

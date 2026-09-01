@@ -50,16 +50,13 @@ const present = (value: unknown): boolean => {
 	return true;
 };
 
-const decodeEvent = (event: unknown) =>
-	Schema.decodeUnknownResult(componentEntryEventSchema)(event);
-
 /**
  * Every way this candidate disagrees with the event it declares, as sentences. Empty means the
  * candidate is consistent.
  */
 export const componentEntryEventIssues = (candidate: ComponentEntryCandidate): string[] => {
 	const issues: string[] = [];
-	const parsed = decodeEvent(candidate.event);
+	const parsed = Schema.decodeUnknownResult(componentEntryEventSchema)(candidate.event);
 	if (Result.isFailure(parsed)) {
 		return ['The event is not one of CLAIM, ALLOWANCE, BONUS, ARREARS or MANUAL_ADJUSTMENT.'];
 	}

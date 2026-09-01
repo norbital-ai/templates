@@ -1,5 +1,5 @@
 import { client, type WorkspaceCollections } from '$bolt/client';
-import type { CollectionClient } from '@norbital-ai/std/collection';
+import { resolveCollectionClient } from '@norbital-ai/ui/collection-runtime';
 
 /**
  * The workspace's typed collection client.
@@ -13,20 +13,9 @@ import type { CollectionClient } from '@norbital-ai/std/collection';
  * `resolveCollectionClient` verifies it, then typed against the generated `WorkspaceCollections`
  * registry so surfaces get fully typed rows and field names.
  */
-function isWorkspaceClient(candidate: object): candidate is CollectionClient<WorkspaceCollections> {
-	const db = Reflect.get(candidate, 'db');
-	const collections = Reflect.get(candidate, 'collections');
-	const records = Reflect.get(candidate, 'records');
-	return (
-		db !== null &&
-		typeof db === 'object' &&
-		collections !== null &&
-		typeof collections === 'object' &&
-		records !== null &&
-		typeof records === 'object' &&
-		typeof Reflect.get(records, 'findMany') === 'function'
-	);
-}
-
-if (!isWorkspaceClient(client)) throw new Error('Workspace collection client is unavailable.');
-export const collectionClient = client;
+const resolved = resolveCollectionClient<WorkspaceCollections>(client);
+if (!resolved) throw new Error('Workspace collection client is unavailable.');
+// Exported from the narrowed binding, not re-exported from the nullable one: `export { x }` carries
+// a binding's *declared* type, so the guard above proved something the consumers never saw and every
+// surface received `CollectionClient | undefined`.
+export const collectionClient = resolved;

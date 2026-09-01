@@ -16,6 +16,7 @@
  * ────────────────────────────────────────────────────────────────────────────────────────────────
  */
 
+import { getErrorMessage, toError } from '@norbital-ai/std';
 import { Effect } from 'effect';
 import ExcelJSBrowser from 'exceljs/dist/exceljs.bare.min.js';
 import { newLocalId } from '../ids.js';
@@ -69,7 +70,7 @@ function pickWorkbookFile(t: Translator): Effect.Effect<File | null, Error> {
  */
 function readWorkbookGrids(file: File, t: Translator): Effect.Effect<WorkbookGrids, unknown> {
 	if (file.name.toLowerCase().endsWith('.csv')) {
-		return Effect.promise(() => file.text()).pipe(
+		return Effect.tryPromise({ try: () => file.text(), catch: toError }).pipe(
 			Effect.map((text) => new Map([[file.name, csvGrid(text)]]))
 		);
 	}
@@ -78,7 +79,7 @@ function readWorkbookGrids(file: File, t: Translator): Effect.Effect<WorkbookGri
 		const refusal = (cause: unknown): WorkbookImportError =>
 			new WorkbookImportError(t('component.workbook_not_spreadsheet', { file: file.name }), [
 				t('component.workbook_save_as'),
-				cause instanceof Error ? cause.message : String(cause)
+				getErrorMessage(cause)
 			]);
 		const buffer = yield* Effect.tryPromise({
 			try: () => file.arrayBuffer(),
@@ -101,7 +102,7 @@ function readWorkbookGrids(file: File, t: Translator): Effect.Effect<WorkbookGri
  * than one unreadable run of text.
  */
 function reportImportFailure(fallbackHeadline: string, error: unknown, t: Translator): void {
-	const message = error instanceof Error ? error.message : String(error);
+	const message = getErrorMessage(error);
 	const [headline = '', ...detail] = message.split('\n');
 	toast.error(headline.trim() === '' ? fallbackHeadline : headline.trim(), {
 		description: detail.join('\n').trim() || undefined,
@@ -157,17 +158,19 @@ export function runWorkbookImport(
 				 * pipeline-backed collection gets the ids of its writes from the rows the pipeline
 				 * returns, and this one is never stored.
 				 */
-				const imported = yield* Effect.promise(() =>
-					importCollectionRecords({
-						records: [
-							{
-								collection: options.collectionName,
-								id: newLocalId(),
-								values: payload
-							}
-						]
-					})
-				);
+				const imported = yield* Effect.tryPromise({
+					try: () =>
+						importCollectionRecords({
+							records: [
+								{
+									collection: options.collectionName,
+									id: newLocalId(),
+									values: payload
+								}
+							]
+						}),
+					catch: toError
+				});
 				toast.success(
 					t('component.workbook_imported', {
 						count: imported,

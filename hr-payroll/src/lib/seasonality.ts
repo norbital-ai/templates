@@ -70,11 +70,13 @@ export function componentEntrySeasonalityCategory(row: {
 	return typeof kind === 'string' ? kind : 'UNKNOWN';
 }
 
-/** Claims use their economic date; every other entry uses its event date. */
-export function componentEntrySeasonalityDate(row: {
+type ComponentEntrySeasonalityDateRow = {
 	readonly event?: { readonly kind?: string; readonly incurred_on?: string | null } | null;
 	readonly event_date: string | Date;
-}): string {
+};
+
+/** Claims use their economic date; every other entry uses its event date. */
+export function componentEntrySeasonalityDate(row: ComponentEntrySeasonalityDateRow): string {
 	return row.event?.kind === 'CLAIM' && row.event.incurred_on != null
 		? formatDateISO(row.event.incurred_on)
 		: formatDateISO(row.event_date);

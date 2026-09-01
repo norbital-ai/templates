@@ -35,6 +35,7 @@
 		todayKey,
 		todayInstant
 	} from '../../lib/ui/calendar.js';
+	import { getErrorMessage } from '@norbital-ai/std';
 	import { formatDateISO } from '@norbital-ai/std/date';
 	import RosterMonthBoard, { type BoardCell } from '../../lib/ui/roster/roster-month-board.svelte';
 	import DaySheet, { type DaySheetChange } from '../../lib/ui/roster/day-sheet.svelte';
@@ -140,6 +141,7 @@
 		})
 	);
 	const companies = $derived(companiesQuery.current ?? []);
+	const companiesUnknown = $derived(companiesQuery.loading && companiesQuery.current === undefined);
 	const companyOptions = $derived(
 		companies.map((c) => ({
 			value: c.id,
@@ -698,7 +700,7 @@
 				),
 				Effect.catch((cause) =>
 					Effect.sync(() => {
-						const message = cause instanceof Error ? cause.message : String(cause);
+						const message = getErrorMessage(cause);
 						createDraftError = message;
 						toast.error(t('app.scheduling.toast_draft_failed'), { description: message });
 					})
@@ -1058,7 +1060,7 @@
 				),
 				Effect.catch((cause) =>
 					Effect.sync(() => {
-						const serverMessage = cause instanceof Error ? cause.message : String(cause);
+						const serverMessage = getErrorMessage(cause);
 						const message = t('roster.day_sheet_error_context', {
 							person: daySheetPerson?.name ?? change.employmentId,
 							date: change.date,
@@ -1143,7 +1145,7 @@
 				),
 				Effect.catch((cause) =>
 					Effect.sync(() => {
-						const serverMessage = cause instanceof Error ? cause.message : String(cause);
+						const serverMessage = getErrorMessage(cause);
 						const message = t('roster.day_sheet_error_context', {
 							person: daySheetPerson?.name ?? daySheet.employmentId ?? '—',
 							date: daySheet.date ?? '—',
@@ -1293,7 +1295,7 @@
 				Effect.catch((cause) =>
 					Effect.sync(() =>
 						toast.error(t('roster.swap_failed_pair', { from: from.date, to: to.date }), {
-							description: cause instanceof Error ? cause.message : String(cause)
+							description: getErrorMessage(cause)
 						})
 					)
 				)
@@ -1324,7 +1326,7 @@
 				),
 				Effect.catch((cause) =>
 					Effect.sync(() => {
-						const message = cause instanceof Error ? cause.message : String(cause);
+						const message = getErrorMessage(cause);
 						rosterActionError = message;
 						toast.error(
 							publishing
@@ -1618,7 +1620,7 @@
 	date axis; every matching person remains in the one bounded board scrollport.
 -->
 {#snippet board()}
-	{#if companiesQuery.loading}
+	{#if companiesUnknown}
 		<p class="text-sm text-muted-foreground">{t('app.scheduling.loading_companies')}</p>
 	{:else if selectedCompanyId == null}
 		<p class="text-sm text-muted-foreground">{t('app.scheduling.empty_board')}</p>
@@ -1676,7 +1678,7 @@
 {/snippet}
 
 {#snippet shifts()}
-	{#if companiesQuery.loading}
+	{#if companiesUnknown}
 		<p class="text-sm text-muted-foreground">{t('app.scheduling.loading_companies')}</p>
 	{:else if selectedCompanyId == null}
 		<p class="text-sm text-muted-foreground">{t('app.scheduling.empty_shifts')}</p>
@@ -1709,7 +1711,7 @@
 {/snippet}
 
 {#snippet holidays()}
-	{#if companiesQuery.loading}
+	{#if companiesUnknown}
 		<p class="text-sm text-muted-foreground">{t('app.scheduling.loading_companies')}</p>
 	{:else if selectedCompanyId == null}
 		<p class="text-sm text-muted-foreground">{t('app.scheduling.empty_holidays')}</p>

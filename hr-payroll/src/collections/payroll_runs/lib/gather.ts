@@ -395,11 +395,15 @@ export function gatherRun(options: GatherRunOptions): Effect.Effect<GatheredRun,
  * A standing allowance is exempt because it states an amount per period and is meant to feed every
  * period its range covers.
  */
-function refuseAlreadyCapturedEntries(options: {
+type RefuseAlreadyCapturedEntriesOptions = {
 	readonly api: PayrollReadApi & { readonly reads: ReadLog };
 	readonly entries: readonly ComponentEntry[];
 	readonly period: string;
-}): Effect.Effect<void, never, never> {
+};
+
+function refuseAlreadyCapturedEntries(
+	options: RefuseAlreadyCapturedEntriesOptions
+): Effect.Effect<void, never, never> {
 	const oneOffIds = options.entries
 		.filter((entry) => depletes(entry) && entryEvent(entry) != null)
 		.map((entry) => entry.id);

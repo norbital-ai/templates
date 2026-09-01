@@ -22,7 +22,7 @@
 	import { CollectionForm } from '@norbital-ai/ui/collection-form';
 	import type { CollectionFormValidation } from '@norbital-ai/ui/collection-form';
 	import { Column, Grid } from '@norbital-ai/ui/layout';
-	import { Effect } from 'effect';
+	import { Effect, Option, Schema } from 'effect';
 	import { sourceLock, sourceLockRecordMetadata } from '../../lib/scheduling/lock.js';
 	import {
 		certificatePolicyIssues,
@@ -79,17 +79,16 @@
 			: { kind: 'NONE' as const }
 	);
 	const recordMetadata = $derived(sourceLockRecordMetadata(lock, t));
+	const LeaveEventKindSchema = Schema.Struct({ kind: Schema.String });
+	const decodeLeaveEventKind = Schema.decodeUnknownOption(LeaveEventKindSchema);
 
 	/** The browser and the write hook enforce the same arm rule for the ordinary file column. */
 	const validation = {
 		semantic: (values) => {
-			const event =
-				typeof values.event === 'object' && values.event !== null
-					? (values.event as { readonly kind?: unknown })
-					: null;
+			const event = Option.getOrNull(decodeLeaveEventKind(values.event));
 			return Effect.succeed(
 				certificatePolicyIssues({
-					eventKind: typeof event?.kind === 'string' ? event.kind : null,
+					eventKind: event?.kind ?? null,
 					certificateFile: values.certificate_file
 				}).map((message) => ({
 					message: certificatePolicyMismatchMessage([message]),

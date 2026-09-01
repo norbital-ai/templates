@@ -27,6 +27,7 @@
 import assert from 'node:assert/strict';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { toError } from '@norbital-ai/std';
 import ExcelJS from 'exceljs';
 import { Cause, Effect } from 'effect';
 import { createServer } from 'vite';
@@ -34,17 +35,13 @@ import { stubApi as tableStub } from './lib/stub-api.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
-function asError(cause) {
-	return cause instanceof Error ? cause : new Error(String(cause));
-}
-
 function tryPromise(evaluate) {
-	return Effect.tryPromise({ try: evaluate, catch: asError });
+	return Effect.tryPromise({ try: evaluate, catch: toError });
 }
 
 function tryMap(effect, transform) {
 	return effect.pipe(
-		Effect.flatMap((value) => Effect.try({ try: () => transform(value), catch: asError }))
+		Effect.flatMap((value) => Effect.try({ try: () => transform(value), catch: toError }))
 	);
 }
 
@@ -122,7 +119,7 @@ function runHandler(result) {
 }
 
 function runHandlerCall(run) {
-	return Effect.try({ try: run, catch: asError }).pipe(Effect.flatMap(runHandler));
+	return Effect.try({ try: run, catch: toError }).pipe(Effect.flatMap(runHandler));
 }
 
 function companies() {
@@ -214,7 +211,7 @@ function attendanceApi(overrides = {}) {
 function refusal(run) {
 	return runHandlerCall(run).pipe(
 		Effect.matchCauseEffect({
-			onFailure: (cause) => Effect.succeed(asError(Cause.squash(cause)).message),
+			onFailure: (cause) => Effect.succeed(toError(Cause.squash(cause)).message),
 			onSuccess: () =>
 				Effect.fail(
 					new assert.AssertionError({
@@ -326,7 +323,9 @@ const program = Effect.gen(function* () {
 			'a workbook row is IMPORT provenance, not the MANUAL the board writes'
 		);
 		assert.ok(
-			written.every((row) => !('worked_intervals' in row) && !('break_minutes' in row)),
+			written.every(
+				(row) => !Object.hasOwn(row, 'worked_intervals') && !Object.hasOwn(row, 'break_minutes')
+			),
 			'the roster arm writes the plan and never touches the clock'
 		);
 
