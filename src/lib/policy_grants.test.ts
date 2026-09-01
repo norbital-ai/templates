@@ -61,16 +61,6 @@ const grantsFor = (policy, collection, coordinate) => {
 const may = (policy, collection, coordinate) =>
 	grantsFor(policy, collection, coordinate).length > 0;
 
-const sqlReadDependencies = (policy) =>
-	Object.fromEntries(
-		Object.entries(policy.grants).flatMap(([collection, actions]) => {
-			const read = actions.read;
-			return read?.where?.kind !== 'policy-sql'
-				? []
-				: [[collection, read.dependencies ?? ['<missing>']]];
-		})
-	);
-
 /** Every `(collection, grant coordinate)` pair a policy grants at all. */
 const surfaceOf = (policy) =>
 	new Set(
@@ -129,31 +119,32 @@ test('write grants use only mutate.new and mutate.existing authoring coordinates
 	]);
 });
 
-test('SQL-scoped reads declare only their exact linking collections', () => {
-	assert.deepEqual(sqlReadDependencies(employee), {
-		employments: ['employees'],
-		employment_terms: ['employments', 'employees'],
-		employment_statutory_facts: ['employments', 'employees'],
-		// One collection where there used to be four. `roster_entries` and `time_entries` are
-		// `work_days`; the money rows are `component_entries` and the loans pair.
-		work_days: ['employments', 'employees'],
-		component_entries: ['employments', 'employees'],
-		loans: ['employments', 'employees'],
-		employee_children: ['employments', 'employees'],
-		leave_requests: ['employments', 'employees'],
-		payslips: ['employments', 'employees']
-	});
-	assert.deepEqual(sqlReadDependencies(supervisor), {
-		payslips: ['employments', 'employees'],
-		component_entries: []
-	});
-	assert.deepEqual(sqlReadDependencies(manager), {
-		payslips: ['employments', 'employees'],
-		component_entries: []
-	});
-	for (const policy of [seniorManagement, hrController, hrManager]) {
-		assert.deepEqual(sqlReadDependencies(policy), {}, nameOf(policy));
+test('read scopes are structured trees with compiler-owned dependencies', () => {
+	for (const policy of policies) {
+		for (const actions of Object.values(policy.grants)) {
+			const read = actions.read;
+			if (read === undefined) continue;
+			assert.equal(Object.hasOwn(read, 'dependencies'), false, nameOf(policy));
+			assert.notEqual(read.where?.kind, 'policy-sql', nameOf(policy));
+		}
 	}
+	assert.deepEqual(employee.grants.employees.read.where, {
+		email: { caseFoldEq: { $subject: 'email' } }
+	});
+	assert.deepEqual(employee.grants.employments.read.where, {
+		employment_employee: {
+			some: { email: { caseFoldEq: { $subject: 'email' } } }
+		}
+	});
+	assert.deepEqual(employee.grants.payslips.read.where, {
+		payslip_employment: {
+			some: {
+				employment_employee: {
+					some: { email: { caseFoldEq: { $subject: 'email' } } }
+				}
+			}
+		}
+	});
 });
 
 test('every name `+teams.ts` declares is a policy this workspace ships', () => {
@@ -204,7 +195,11 @@ test('an employee cannot mutate a new payroll run, and neither can a supervisor 
 	for (const policy of [employee, supervisor, manager]) {
 		const [ownPayslip, ...extra] = grantsFor(policy, 'payslips', 'read');
 		assert.deepEqual(extra, [], `${nameOf(policy)} has more than one payslip read`);
-		assert.match(ownPayslip.where.statement, /requestor\.email/, nameOf(policy));
+		assert.deepEqual(
+			ownPayslip.where.payslip_employment.some.employment_employee.some.email,
+			{ caseFoldEq: { $subject: 'email' } },
+			nameOf(policy)
+		);
 	}
 });
 
@@ -263,10 +258,17 @@ test('an employee cannot read a correction, and no ordinary policy erases the pr
 	// A correction is a `MANUAL_ADJUSTMENT` event on a component entry, and the event's own
 	// discriminator is what the predicate reads — one level into jsonb, which is the level a
 	// field grant could also mask and therefore the only level a union may hold.
-	assert.match(read.where.statement, /"event"->>'kind' IS DISTINCT FROM 'MANUAL_ADJUSTMENT'/);
+	assert.deepEqual(read.where.AND[1], {
+		event: {
+			jsonPath: { path: ['kind'], type: 'string', ne: 'MANUAL_ADJUSTMENT' }
+		}
+	});
 	// The ownership half has to survive beside the correction half, or the predicate would exclude
 	// corrections and admit every colleague's entries in the same breath.
-	assert.match(read.where.statement, /requestor\.email/);
+	assert.deepEqual(
+		read.where.AND[0].component_entry_employment.some.employment_employee.some.email,
+		{ caseFoldEq: { $subject: 'email' } }
+	);
 
 	// `rowPredicate` unions the matching grants and short-circuits to `true` the moment one of them
 	// is unconditional. So the narrowing cannot be applied at the top by subtraction: it has to be
@@ -274,9 +276,13 @@ test('an employee cannot read a correction, and no ordinary policy erases the pr
 	for (const policy of [supervisor, manager]) {
 		for (const grant of grantsFor(policy, 'component_entries', 'read')) {
 			assert.notEqual(grant.where, undefined, `${nameOf(policy)} has an unconditional entry read`);
-			assert.match(
-				grant.where.statement,
-				/"event"->>'kind' IS DISTINCT FROM 'MANUAL_ADJUSTMENT'/,
+			assert.deepEqual(
+				grant.where,
+				{
+					event: {
+						jsonPath: { path: ['kind'], type: 'string', ne: 'MANUAL_ADJUSTMENT' }
+					}
+				},
 				nameOf(policy)
 			);
 		}

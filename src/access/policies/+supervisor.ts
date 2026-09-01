@@ -48,7 +48,7 @@ export default {
 	 * to inherit through: `visibleApps` reads the `apps` array of the policies a subject's team
 	 * confers, and a policy that does not name the app does not offer it.
 	 *
-	 * The row scope is unchanged and does the actual work: the app's queries are `${requestor.email}`
+	 * The row scope is unchanged and does the actual work: the app's queries use `subject.email`
 	 * -scoped, so naming it here shows a person their own record and nobody else's.
 	 */
 	/**
@@ -76,8 +76,7 @@ export default {
 		// The narrowing has to be stated here, not subtracted higher up: one unconditional
 		// `component_entries` read in any policy this subject matches would erase it.
 		grantOn('component_entries', 'read', {
-			where: NOT_A_CORRECTION,
-			dependencies: []
+			where: NOT_A_CORRECTION
 		}),
 		// `employeeSelfServiceGrants` already carries `settlementLedgerGrants`; restating it is a
 		// duplicate grant, which `mergeGrants` refuses.

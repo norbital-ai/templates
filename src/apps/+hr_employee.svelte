@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { FormattedValueRenderer } from '@norbital-ai/ui/data-renderer';
+	import { submitCollectionMutation } from '@norbital-ai/ui/collection-form';
 	import { client } from '../lib/workspace-client.js';
 	import { Effect, Number as EffectNumber } from 'effect';
 	import { getPlatformStateContext } from '@norbital-ai/bolt/client';
@@ -848,6 +849,9 @@
 
 	let daySheetOpen = $state(false);
 	let daySheetDate = $state<string | null>(null);
+	let daySheetSettling = $state(false);
+	let daySheetPendingApproval = $state(false);
+	let daySheetError = $state<string | null>(null);
 	const daySheetDay = $derived(
 		daySheetDate == null ? undefined : (scheduleDay(daySheetDate) ?? undefined)
 	);
@@ -892,6 +896,8 @@
 
 	function openDaySheet(_employmentId: string, date: string): void {
 		daySheetDate = date;
+		daySheetPendingApproval = false;
+		daySheetError = null;
 		daySheetOpen = true;
 	}
 
@@ -908,28 +914,48 @@
 		const attendance = change.attendance;
 		if (attendance == null || employmentId == null) return;
 		const targetEmploymentId = employmentId;
+		daySheetSettling = true;
+		daySheetPendingApproval = false;
+		daySheetError = null;
 		Effect.runFork(
-			Effect.tryPromise({
-				try: () =>
-					client.db.work_days.mutate({
-						...(attendance.workDayId == null
-							? { employment_id: targetEmploymentId, work_date: change.date }
-							: { id: attendance.workDayId }),
-						worked_intervals: attendance.intervals.map((interval) => ({
-							start: interval.start,
-							end: interval.end
-						})),
-						break_minutes: attendance.breakMinutes
-					}),
-				catch: (cause) => cause
-			}).pipe(
-				Effect.tap(() =>
+			submitCollectionMutation(() =>
+				client.db.work_days.mutate({
+					...(attendance.workDayId == null
+						? { employment_id: targetEmploymentId, work_date: change.date }
+						: { id: attendance.workDayId }),
+					worked_intervals:
+						attendance.intervals == null
+							? null
+							: attendance.intervals.map((interval) => ({
+									start: interval.start,
+									end: interval.end
+								})),
+					break_minutes:
+						attendance.intervals == null || attendance.intervals.length === 0
+							? 0
+							: attendance.breakMinutes
+				})
+			).pipe(
+				Effect.tap((submission) =>
 					Effect.sync(() => {
-						// Close only after the write is durable and reflected by the local overlay.
+						if (submission.kind === 'pendingApproval') {
+							daySheetPendingApproval = true;
+							return;
+						}
 						daySheetOpen = false;
 					})
 				),
-				Effect.asVoid
+				Effect.catch((cause) =>
+					Effect.sync(() => {
+						const serverMessage = cause instanceof Error ? cause.message : String(cause);
+						daySheetError = t('roster.day_sheet_error_context', {
+							person: daySheetPerson?.name ?? targetEmploymentId,
+							date: change.date,
+							message: serverMessage
+						});
+					})
+				),
+				Effect.ensuring(Effect.sync(() => (daySheetSettling = false)))
 			)
 		);
 	}
@@ -939,7 +965,18 @@
 		date: string | null;
 		startClock: string;
 		endClock: string;
-	}>({ open: false, date: null, startClock: '', endClock: '' });
+		settling: boolean;
+		pendingApproval: boolean;
+		error: string | null;
+	}>({
+		open: false,
+		date: null,
+		startClock: '',
+		endClock: '',
+		settling: false,
+		pendingApproval: false,
+		error: null
+	});
 
 	function openReport(_employmentId: string, date: string): void {
 		const day = scheduleDay(date);
@@ -949,6 +986,8 @@
 		// with no planned window seeds empty rather than guessing one.
 		report.startClock = day?.shiftStart?.slice(0, 5) ?? '';
 		report.endClock = day?.shiftEnd?.slice(0, 5) ?? '';
+		report.pendingApproval = false;
+		report.error = null;
 		report.open = true;
 	}
 
@@ -1000,28 +1039,42 @@
 		if (draft == null || employmentId == null || draft.assessment.problem != null) return;
 		const targetEmploymentId = employmentId;
 		const workDayId = scheduleDay(draft.date)?.workDayId ?? null;
+		report.settling = true;
+		report.pendingApproval = false;
+		report.error = null;
 		Effect.runFork(
-			Effect.tryPromise({
-				try: () =>
-					client.db.work_days.mutate({
-						...(workDayId == null
-							? { employment_id: targetEmploymentId, work_date: draft.date }
-							: { id: workDayId }),
-						worked_intervals: draft.intervals.map((interval) => ({
-							start: interval.start,
-							end: interval.end
-						})),
-						break_minutes: draft.assessment.breakMinutes
-					}),
-				catch: (cause) => cause
-			}).pipe(
-				Effect.tap(() =>
+			submitCollectionMutation(() =>
+				client.db.work_days.mutate({
+					...(workDayId == null
+						? { employment_id: targetEmploymentId, work_date: draft.date }
+						: { id: workDayId }),
+					worked_intervals: draft.intervals.map((interval) => ({
+						start: interval.start,
+						end: interval.end
+					})),
+					break_minutes: draft.assessment.breakMinutes
+				})
+			).pipe(
+				Effect.tap((submission) =>
 					Effect.sync(() => {
+						if (submission.kind === 'pendingApproval') {
+							report.pendingApproval = true;
+							return;
+						}
 						report.open = false;
 						daySheetOpen = false;
 					})
 				),
-				Effect.asVoid
+				Effect.catch((cause) =>
+					Effect.sync(() => {
+						report.error = t('roster.day_sheet_error_context', {
+							person: daySheetPerson?.name ?? targetEmploymentId,
+							date: draft.date,
+							message: cause instanceof Error ? cause.message : String(cause)
+						});
+					})
+				),
+				Effect.ensuring(Effect.sync(() => (report.settling = false)))
 			)
 		);
 	}
@@ -1268,63 +1321,61 @@
 					</p>
 				{:else}
 					{#each leaveBalanceRows as balance (balance.type.id)}
-						<div
-							class="grid min-w-0 grid-cols-1 gap-3 border-t px-4 py-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-start"
-						>
+						<Grid gap="sm" class="items-start border-t px-4 py-3">
 							<Stack class="min-w-0" gap="xs">
 								<p class="truncate text-sm font-medium" title={balance.type.name}>
 									{balance.type.name}
 									<span class="text-muted-foreground"> · {balance.type.code}</span>
 								</p>
-								<dl class="flex min-w-0 flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
-									<div class="flex gap-1">
+								<Cluster as="dl" gap="sm" class="text-xs text-muted-foreground">
+									<Inline as="div" gap="xs">
 										<dt>{t('app.hr_employee.leave_entitlement')}</dt>
 										<dd class="font-medium tabular-nums text-foreground">
 											{formatNumeric(balance.entitlement)}
 										</dd>
-									</div>
-									<div class="flex gap-1">
+									</Inline>
+									<Inline as="div" gap="xs">
 										<dt>{t('app.hr_employee.leave_accrued')}</dt>
 										<dd class="font-medium tabular-nums text-foreground">
 											{formatNumeric(balance.accrued)}
 										</dd>
-									</div>
-									<div class="flex gap-1">
+									</Inline>
+									<Inline as="div" gap="xs">
 										<dt>{t('app.hr_employee.leave_carried')}</dt>
 										<dd class="font-medium tabular-nums text-foreground">
 											{formatNumeric(balance.carried)}
 										</dd>
-									</div>
-									<div class="flex gap-1">
+									</Inline>
+									<Inline as="div" gap="xs">
 										<dt>{t('app.hr_employee.leave_taken')}</dt>
 										<dd class="font-medium tabular-nums text-foreground">
 											{formatNumeric(balance.taken)}
 										</dd>
-									</div>
+									</Inline>
 									{#if balance.encashed > 0}
-										<div class="flex gap-1">
+										<Inline as="div" gap="xs">
 											<dt>{t('app.hr_employee.leave_encashed')}</dt>
 											<dd class="font-medium tabular-nums text-foreground">
 												{formatNumeric(balance.encashed)}
 											</dd>
-										</div>
+										</Inline>
 									{/if}
 									{#if balance.expired > 0}
-										<div class="flex gap-1">
+										<Inline as="div" gap="xs">
 											<dt>{t('app.hr_employee.leave_expired')}</dt>
 											<dd class="font-medium tabular-nums text-foreground">
 												{formatNumeric(balance.expired)}
 											</dd>
-										</div>
+										</Inline>
 									{/if}
-								</dl>
+								</Cluster>
 							</Stack>
 							<p class="text-sm font-semibold tabular-nums sm:text-right">
 								{t('component.leave_days_remaining', {
 									days: formatNumeric(balance.remaining)
 								})}
 							</p>
-						</div>
+						</Grid>
 					{/each}
 				{/if}
 			</section>
@@ -1514,7 +1565,9 @@
 	intervals={daySheetIntervals}
 	lockRung={daySheetRung}
 	lockReason={daySheetLockReason}
-	saving={client.db.work_days.pending > 0}
+	saving={daySheetSettling}
+	pendingApproval={daySheetPendingApproval}
+	error={daySheetError}
 	onSave={(change) => saveDaySheet(change)}
 />
 
@@ -1596,12 +1649,24 @@
 			{#if reportProblem != null}
 				<p class="text-sm text-destructive">{reportProblem}</p>
 			{/if}
+			{#if report.pendingApproval}
+				<Alert aria-live="polite">
+					<AlertTitle>{t('roster.day_sheet_pending_approval')}</AlertTitle>
+					<AlertDescription>{t('roster.day_sheet_pending_approval_description')}</AlertDescription>
+				</Alert>
+			{/if}
+			{#if report.error != null}
+				<Alert variant="destructive" aria-live="assertive">
+					<AlertTitle>{t('roster.day_sheet_save_failed')}</AlertTitle>
+					<AlertDescription>{report.error}</AlertDescription>
+				</Alert>
+			{/if}
 			<p class="text-meta">{t('app.hr_employee.report_punch_approval_note')}</p>
 		</Stack>
 		<Dialog.Footer>
-			<Dialog.Close disabled={client.db.work_days.pending > 0}>{t('roster.cancel')}</Dialog.Close>
+			<Dialog.Close disabled={report.settling}>{t('roster.cancel')}</Dialog.Close>
 			<Button
-				disabled={client.db.work_days.pending > 0 || reportProblem != null}
+				disabled={report.settling || report.pendingApproval || reportProblem != null}
 				onclick={submitReport}
 			>
 				{t('app.hr_employee.report_punch_submit')}

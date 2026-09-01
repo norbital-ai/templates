@@ -18,6 +18,7 @@
 			["team", "jurisdictions"],
 			["user"],
 			["companies", "statutory_contributions"],
+			["rosters"],
 			[
 				"company_holidays",
 				"contribution_rates",

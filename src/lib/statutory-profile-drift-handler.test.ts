@@ -281,15 +281,18 @@ describe('statutory profile drift authored handler', () => {
 		const harness = fakeApi(() => Effect.succeed(officialReport));
 		const output = await Effect.runPromise(runStatutoryProfileDrift(harness.api));
 
-		assert.equal(harness.inferenceRequests.length, 1, 'clean runs must still research the web');
+		assert.equal(
+			harness.inferenceRequests.length,
+			1,
+			'clean runs must still request official sources'
+		);
 		const [request] = harness.inferenceRequests;
 		assert.equal(request.model, STATUTORY_RESEARCH_MODEL);
-		assert.equal(request.webSearch.maxResults, 4);
-		assert.ok(request.webSearch.allowedDomains.includes('cpf.gov.sg'));
-		assert.ok(request.webSearch.allowedDomains.includes('myskillsfuture.gov.sg'));
-		assert.ok(request.webSearch.allowedDomains.includes('bli.gov.tw'));
-		assert.ok(request.webSearch.allowedDomains.includes('baohiemxahoi.gov.vn'));
-		assert.match(request.prompt, /Web research is still required/);
+		assert.equal('webSearch' in request, false);
+		assert.match(request.prompt, /cpf\.gov\.sg/);
+		assert.match(request.prompt, /myskillsfuture\.gov\.sg/);
+		assert.match(request.prompt, /bli\.gov\.tw/);
+		assert.match(request.prompt, /baohiemxahoi\.gov\.vn/);
 
 		assert.equal(harness.logCreates.length, 1);
 		assert.equal(harness.logCreates[0].status, 'RUNNING');

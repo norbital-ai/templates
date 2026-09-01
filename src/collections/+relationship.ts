@@ -35,13 +35,24 @@ import { cascade } from '@norbital-ai/bolt/authoring';
 export default ((r) => ({
 	jurisdictions: {
 		company_jurisdiction: r.many.companies(),
-		contribution_jurisdiction: r.many.statutory_contributions(),
+		/**
+		 * Two edges reach statutory_contributions from here — provenance (`jurisdiction_id`) and
+		 * profile scoping (`statutory_profile_id`) — so neither `many` can leave its endpoints to
+		 * inverse resolution: with two candidate `one` edges the pair is ambiguous by construction.
+		 */
+		contribution_jurisdiction: r.many.statutory_contributions({
+			from: r.jurisdictions.id,
+			to: r.statutory_contributions.jurisdiction_id
+		}),
 		/** The effective-dated snapshot rows runs name as the law they were calculated under. */
 		statutory_snapshot_payroll_run: r.many.payroll_runs(),
 		/** The catalogue rows scoped to this profile version and sealed with it. */
 		statutory_profile_leave_type: r.many.leave_types(),
 		statutory_profile_pay_component: r.many.pay_components(),
-		statutory_profile_statutory_contribution: r.many.statutory_contributions()
+		statutory_profile_statutory_contribution: r.many.statutory_contributions({
+			from: r.jurisdictions.id,
+			to: r.statutory_contributions.statutory_profile_id
+		})
 	},
 
 	statutory_contributions: {
@@ -99,6 +110,11 @@ export default ((r) => ({
 		leave_type_company: r.one.companies({
 			from: r.leave_types.company_id,
 			to: r.companies.id
+		}),
+		/** Version scoping: the profile revision this catalogue row is sealed with. */
+		statutory_profile_leave_type: r.one.jurisdictions({
+			from: r.leave_types.statutory_profile_id,
+			to: r.jurisdictions.id
 		}),
 		leave_request_type: r.many.leave_requests()
 	},

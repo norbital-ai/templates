@@ -1,8 +1,8 @@
 {
   "dialect": "postgres",
-  "id": "cef8ca51-d7f7-4236-ba24-5048f0287c8a",
+  "id": "6f61bc15-3b26-42df-8cc6-b1ea18538f0d",
   "prevIds": [
-    "91efedf0-aef1-4319-9df6-9ec8c399a3ec"
+    "b2c95d62-4a3d-4891-82aa-4c5e25a62c0c"
   ],
   "version": "8",
   "ddl": [
@@ -5512,27 +5512,6 @@
       "nameExplicit": false,
       "columns": [
         {
-          "value": "pay_component_id",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": null
-        }
-      ],
-      "isUnique": false,
-      "where": null,
-      "with": "",
-      "method": "btree",
-      "concurrently": false,
-      "name": "component_entries_pay_component_id_index",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "component_entries"
-    },
-    {
-      "nameExplicit": false,
-      "columns": [
-        {
           "value": "employment_id",
           "isExpression": false,
           "asc": true,
@@ -5574,6 +5553,27 @@
       "method": "btree",
       "concurrently": false,
       "name": "component_entries_corrects_adjustment_id_index",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "component_entries"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        {
+          "value": "pay_component_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "with": "",
+      "method": "btree",
+      "concurrently": false,
+      "name": "component_entries_pay_component_id_idx",
       "entityType": "indexes",
       "schema": "public",
       "table": "component_entries"
@@ -5624,27 +5624,6 @@
       "nameExplicit": false,
       "columns": [
         {
-          "value": "employment_id",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": null
-        }
-      ],
-      "isUnique": false,
-      "where": null,
-      "with": "",
-      "method": "btree",
-      "concurrently": false,
-      "name": "employee_children_employment_id_index",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "employee_children"
-    },
-    {
-      "nameExplicit": false,
-      "columns": [
-        {
           "value": "supersedes_id",
           "isExpression": false,
           "asc": true,
@@ -5658,6 +5637,27 @@
       "method": "btree",
       "concurrently": false,
       "name": "employee_children_supersedes_id_index",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "employee_children"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        {
+          "value": "employment_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "with": "",
+      "method": "btree",
+      "concurrently": false,
+      "name": "employee_children_employment_id_idx",
       "entityType": "indexes",
       "schema": "public",
       "table": "employee_children"
@@ -5859,7 +5859,7 @@
       "table": "employments"
     },
     {
-      "nameExplicit": false,
+      "nameExplicit": true,
       "columns": [
         {
           "value": "code",
@@ -5874,13 +5874,13 @@
       "with": "",
       "method": "btree",
       "concurrently": false,
-      "name": "jurisdictions_code_index",
+      "name": "jurisdictions_code_idx",
       "entityType": "indexes",
       "schema": "public",
       "table": "jurisdictions"
     },
     {
-      "nameExplicit": false,
+      "nameExplicit": true,
       "columns": [
         {
           "value": "lifecycle",
@@ -5895,7 +5895,7 @@
       "with": "",
       "method": "btree",
       "concurrently": false,
-      "name": "jurisdictions_lifecycle_index",
+      "name": "jurisdictions_lifecycle_idx",
       "entityType": "indexes",
       "schema": "public",
       "table": "jurisdictions"
@@ -6048,7 +6048,7 @@
       "table": "leave_types"
     },
     {
-      "nameExplicit": false,
+      "nameExplicit": true,
       "columns": [
         {
           "value": "statutory_profile_id",
@@ -6063,7 +6063,7 @@
       "with": "",
       "method": "btree",
       "concurrently": false,
-      "name": "leave_types_statutory_profile_id_index",
+      "name": "leave_types_statutory_profile_id_idx",
       "entityType": "indexes",
       "schema": "public",
       "table": "leave_types"
@@ -6139,7 +6139,7 @@
       "table": "loan_repayments"
     },
     {
-      "nameExplicit": false,
+      "nameExplicit": true,
       "columns": [
         {
           "value": "employment_id",
@@ -6154,13 +6154,13 @@
       "with": "",
       "method": "btree",
       "concurrently": false,
-      "name": "loans_employment_id_index",
+      "name": "loans_employment_id_idx",
       "entityType": "indexes",
       "schema": "public",
       "table": "loans"
     },
     {
-      "nameExplicit": false,
+      "nameExplicit": true,
       "columns": [
         {
           "value": "pay_component_id",
@@ -6175,7 +6175,7 @@
       "with": "",
       "method": "btree",
       "concurrently": false,
-      "name": "loans_pay_component_id_index",
+      "name": "loans_pay_component_id_idx",
       "entityType": "indexes",
       "schema": "public",
       "table": "loans"
@@ -6251,7 +6251,7 @@
       "table": "pay_components"
     },
     {
-      "nameExplicit": false,
+      "nameExplicit": true,
       "columns": [
         {
           "value": "statutory_profile_id",
@@ -6266,7 +6266,7 @@
       "with": "",
       "method": "btree",
       "concurrently": false,
-      "name": "pay_components_statutory_profile_id_index",
+      "name": "pay_components_statutory_profile_id_idx",
       "entityType": "indexes",
       "schema": "public",
       "table": "pay_components"
@@ -6342,7 +6342,7 @@
       "table": "payroll_runs"
     },
     {
-      "nameExplicit": false,
+      "nameExplicit": true,
       "columns": [
         {
           "value": "statutory_snapshot_id",
@@ -6357,7 +6357,7 @@
       "with": "",
       "method": "btree",
       "concurrently": false,
-      "name": "payroll_runs_statutory_snapshot_id_index",
+      "name": "payroll_runs_statutory_snapshot_id_idx",
       "entityType": "indexes",
       "schema": "public",
       "table": "payroll_runs"
@@ -6408,27 +6408,6 @@
       "nameExplicit": false,
       "columns": [
         {
-          "value": "payslip_id",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": null
-        }
-      ],
-      "isUnique": false,
-      "where": null,
-      "with": "",
-      "method": "btree",
-      "concurrently": false,
-      "name": "payslip_adjustments_payslip_id_index",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "payslip_adjustments"
-    },
-    {
-      "nameExplicit": false,
-      "columns": [
-        {
           "value": "statutory_rule_key",
           "isExpression": false,
           "asc": true,
@@ -6442,6 +6421,27 @@
       "method": "btree",
       "concurrently": false,
       "name": "payslip_adjustments_statutory_rule_key_index",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "payslip_adjustments"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        {
+          "value": "payslip_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "with": "",
+      "method": "btree",
+      "concurrently": false,
+      "name": "payslip_adjustments_payslip_id_idx",
       "entityType": "indexes",
       "schema": "public",
       "table": "payslip_adjustments"
@@ -6601,7 +6601,7 @@
       "table": "payslip_component_entry_inputs"
     },
     {
-      "nameExplicit": false,
+      "nameExplicit": true,
       "columns": [
         {
           "value": "component_entry_id",
@@ -6616,7 +6616,7 @@
       "with": "",
       "method": "btree",
       "concurrently": false,
-      "name": "payslip_component_entry_inputs_component_entry_id_index",
+      "name": "payslip_component_entry_inputs_component_entry_id_idx",
       "entityType": "indexes",
       "schema": "public",
       "table": "payslip_component_entry_inputs"
@@ -6650,7 +6650,7 @@
       "table": "payslip_leave_request_inputs"
     },
     {
-      "nameExplicit": false,
+      "nameExplicit": true,
       "columns": [
         {
           "value": "leave_request_id",
@@ -6665,7 +6665,7 @@
       "with": "",
       "method": "btree",
       "concurrently": false,
-      "name": "payslip_leave_request_inputs_leave_request_id_index",
+      "name": "payslip_leave_request_inputs_leave_request_id_idx",
       "entityType": "indexes",
       "schema": "public",
       "table": "payslip_leave_request_inputs"
@@ -6699,7 +6699,7 @@
       "table": "payslip_loan_repayment_inputs"
     },
     {
-      "nameExplicit": false,
+      "nameExplicit": true,
       "columns": [
         {
           "value": "loan_repayment_id",
@@ -6714,7 +6714,7 @@
       "with": "",
       "method": "btree",
       "concurrently": false,
-      "name": "payslip_loan_repayment_inputs_loan_repayment_id_index",
+      "name": "payslip_loan_repayment_inputs_loan_repayment_id_idx",
       "entityType": "indexes",
       "schema": "public",
       "table": "payslip_loan_repayment_inputs"
@@ -6748,7 +6748,7 @@
       "table": "payslip_work_day_inputs"
     },
     {
-      "nameExplicit": false,
+      "nameExplicit": true,
       "columns": [
         {
           "value": "work_day_id",
@@ -6763,7 +6763,7 @@
       "with": "",
       "method": "btree",
       "concurrently": false,
-      "name": "payslip_work_day_inputs_work_day_id_index",
+      "name": "payslip_work_day_inputs_work_day_id_idx",
       "entityType": "indexes",
       "schema": "public",
       "table": "payslip_work_day_inputs"
@@ -7007,7 +7007,7 @@
       "table": "statutory_contributions"
     },
     {
-      "nameExplicit": false,
+      "nameExplicit": true,
       "columns": [
         {
           "value": "jurisdiction_id",
@@ -7022,7 +7022,7 @@
       "with": "",
       "method": "btree",
       "concurrently": false,
-      "name": "statutory_contributions_jurisdiction_id_index",
+      "name": "statutory_contributions_jurisdiction_id_idx",
       "entityType": "indexes",
       "schema": "public",
       "table": "statutory_contributions"
@@ -7070,7 +7070,7 @@
       "table": "statutory_contributions"
     },
     {
-      "nameExplicit": false,
+      "nameExplicit": true,
       "columns": [
         {
           "value": "checked_at",
@@ -7085,13 +7085,13 @@
       "with": "",
       "method": "btree",
       "concurrently": false,
-      "name": "statutory_profile_drift_logs_checked_at_index",
+      "name": "statutory_profile_drift_logs_checked_at_idx",
       "entityType": "indexes",
       "schema": "public",
       "table": "statutory_profile_drift_logs"
     },
     {
-      "nameExplicit": false,
+      "nameExplicit": true,
       "columns": [
         {
           "value": "status",
@@ -7106,7 +7106,7 @@
       "with": "",
       "method": "btree",
       "concurrently": false,
-      "name": "statutory_profile_drift_logs_status_index",
+      "name": "statutory_profile_drift_logs_status_idx",
       "entityType": "indexes",
       "schema": "public",
       "table": "statutory_profile_drift_logs"
@@ -7203,7 +7203,7 @@
       "table": "work_days"
     },
     {
-      "nameExplicit": false,
+      "nameExplicit": true,
       "columns": [
         {
           "value": "work_date",
@@ -7218,7 +7218,7 @@
       "with": "",
       "method": "btree",
       "concurrently": false,
-      "name": "work_days_work_date_index",
+      "name": "work_days_work_date_idx",
       "entityType": "indexes",
       "schema": "public",
       "table": "work_days"
@@ -7491,6 +7491,23 @@
       "onUpdate": "NO ACTION",
       "onDelete": "NO ACTION",
       "name": "leave_types_company_id_companies_fk",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "leave_types"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        "statutory_profile_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "jurisdictions",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "name": "leave_types_statutory_profile_id_jurisdictions_fk",
       "entityType": "fks",
       "schema": "public",
       "table": "leave_types"

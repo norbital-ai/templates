@@ -35,7 +35,8 @@ const DRIFT_KINDS: ReadonlyArray<DriftKind> = [
 ];
 const MAX_RESEARCH_SAMPLES_PER_KIND = 4;
 const MAX_RESEARCH_FINDING_LABEL_CHARS = 600;
-export const STATUTORY_RESEARCH_MODEL = 'openai/gpt-4.1-mini';
+// Adapter-qualified per the host model registry contract: `<adapter>/<provider-model>`.
+export const STATUTORY_RESEARCH_MODEL = 'openrouter/z-ai/glm-5.3-flash';
 
 /**
  * Keep tenant-local structural findings useful to research without asking the model to restate
@@ -155,7 +156,8 @@ export function asFactStatus(value: StatutoryFactStatus | null): StatutoryFactSt
 	return value == null ? null : Option.getOrNull(decodeFactStatus(value));
 }
 
-export function detectStatutoryDrift(input: {
+/** The complete read a drift pass measures: the governing profile versions, and what they govern. */
+interface StatutoryDriftInput {
 	readonly governingProfiles: ReadonlyArray<JurisdictionRow>;
 	readonly profileSchemes: ReadonlyArray<SchemeRow>;
 	readonly profileRates: ReadonlyArray<RateRow>;
@@ -170,7 +172,9 @@ export function detectStatutoryDrift(input: {
 		Readonly<{ id: string; employee_number: string; company_id: string }>
 	>;
 	readonly facts: ReadonlyArray<FactRow>;
-}): {
+}
+
+export function detectStatutoryDrift(input: StatutoryDriftInput): {
 	readonly items: DriftItem[];
 	readonly copies: SuccessorCopy[];
 } {
@@ -387,6 +391,12 @@ const OFFICIAL_STATUTORY_DOMAINS = [
 	'dichvucong.gov.vn',
 	'mof.gov.vn'
 ] as const;
+
+const officialSourceGuidance = [
+	'Cite only HTTPS URLs whose host is one of these official domains:',
+	OFFICIAL_STATUTORY_DOMAINS.join(', '),
+	'Invented, unofficial, or aggregator URLs are invalid.'
+].join(' ');
 
 const errorMessage = (error: unknown): string =>
 	error instanceof Error ? error.message : String(error);
@@ -768,10 +778,9 @@ export const runStatutoryProfileDrift = (api: AutomationApi) =>
 				const inferredReport = yield* api.infer({
 					model: STATUTORY_RESEARCH_MODEL,
 					schema: StatutoryResearchReportSchema,
-					webSearch: { maxResults: 4, allowedDomains: OFFICIAL_STATUTORY_DOMAINS },
 					prompt: [
 						`Today is ${today}. No sealed statutory profile is configured.`,
-						'Web research is still required: verify whether the workspace has enough statutory scope to assess, using only official sources.',
+						officialSourceGuidance,
 						'Do not invent a jurisdiction or a change. An empty official_sources list is valid when there is genuinely nothing configured to research.'
 					].join('\n')
 				});
@@ -833,7 +842,8 @@ export const runStatutoryProfileDrift = (api: AutomationApi) =>
 					};
 					const prompt = [
 						`Today is ${today}. Research ONLY the latest statutory payroll position for ${code} — ${jurisdiction.name}.`,
-						'Actually use web search. Compare the complete local snapshot below with current official government, regulator, or statutory-body material.',
+						officialSourceGuidance,
+						'Compare the complete local snapshot below with current official government, regulator, or statutory-body material.',
 						`Every official_sources entry and every changes_to_review entry must use jurisdiction_code exactly "${code}".`,
 						'Return at least one official source. Use only HTTPS URLs from the allowed official domains. Every review item must cite the exact official page it relies on in source_url.',
 						'Do not use aggregators, law firms, search-result URLs, invented URLs, or sources for another jurisdiction.',
@@ -847,7 +857,6 @@ export const runStatutoryProfileDrift = (api: AutomationApi) =>
 						api.infer({
 							model: STATUTORY_RESEARCH_MODEL,
 							schema: JurisdictionResearchReportSchema,
-							webSearch: { maxResults: 8, allowedDomains: OFFICIAL_STATUTORY_DOMAINS },
 							prompt: repair
 								? `${prompt}\nThe previous receipt failed validation: ${repair}\nResearch again and return a complete corrected receipt.`
 								: prompt

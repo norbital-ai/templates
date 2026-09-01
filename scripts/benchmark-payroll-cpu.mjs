@@ -12,14 +12,25 @@ import { fileURLToPath } from 'node:url';
 import os from 'node:os';
 import path from 'node:path';
 import process from 'node:process';
+import { parseArgs } from 'node:util';
 
 const scriptPath = fileURLToPath(import.meta.url);
 const root = path.dirname(path.dirname(scriptPath));
 const sourceResolverPath = path.join(root, 'scripts', 'ts-source-resolve.mjs');
 
+/** Node owns flag spelling, `--name=value`, repeats and unknown-option rejection. */
+const { values: flags } = parseArgs({
+	options: {
+		worker: { type: 'boolean' },
+		samples: { type: 'string' },
+		warmups: { type: 'string' },
+		cold: { type: 'string' },
+		warm: { type: 'string' }
+	}
+});
+
 function integerArgument(name, fallback, { allowZero = false } = {}) {
-	const prefix = `--${name}=`;
-	const raw = process.argv.find((argument) => argument.startsWith(prefix))?.slice(prefix.length);
+	const raw = flags[name];
 	if (raw == null) return fallback;
 	const value = Number(raw);
 	const minimum = allowZero ? 0 : 1;
@@ -69,6 +80,24 @@ async function worker() {
 	);
 }
 
+/**
+ * The worker's stdout contract: the fixture identity, the engine version, and the measured samples.
+ *
+ * A worker that printed anything else fails here, where the process it came from is still named,
+ * rather than reappearing as `undefined` inside a percentile several summaries later.
+ */
+function validateWorkerReport(value) {
+	if (typeof value?.fixture?.id !== 'string' || typeof value.calculationVersion !== 'string')
+		throw new Error('Benchmark worker printed no fixture identity or calculation version.');
+	if (
+		!Array.isArray(value.measured) ||
+		value.measured.length === 0 ||
+		value.measured.some((sample) => typeof sample?.cpuMillis !== 'number')
+	)
+		throw new Error('Benchmark worker printed no numeric CPU samples.');
+	return value;
+}
+
 function runWorker(samples, warmups) {
 	const result = spawnSync(
 		process.execPath,
@@ -87,7 +116,7 @@ function runWorker(samples, warmups) {
 		throw new Error(
 			`Benchmark worker exited ${result.status ?? 'without a status'}:\n${result.stderr || result.stdout}`
 		);
-	return JSON.parse(result.stdout);
+	return validateWorkerReport(JSON.parse(result.stdout));
 }
 
 function percentile(sorted, fraction) {
@@ -146,5 +175,5 @@ function coordinator() {
 
 // repository-health:allow EFF3 -- The worker awaits source-module loading before any timed sample;
 // the measured payroll engine call itself is synchronous and isolated inside cpuSample.
-if (process.argv.includes('--worker')) await worker();
+if (flags.worker === true) await worker();
 else coordinator();

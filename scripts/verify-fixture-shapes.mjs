@@ -4,7 +4,7 @@
  * Fixture-shape verification for the payroll engine.
  *
  * ```
- * cd template_workspaces/hr-payroll
+ * cd templates/hr-payroll
  * node scripts/verify-fixture-shapes.mjs
  * ```
  *

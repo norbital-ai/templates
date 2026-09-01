@@ -203,6 +203,16 @@ const CONTRIBUTIONS = [
 	}
 ] as const;
 
+/*
+ * The fixture states the columns the engine reads and no others.
+ *
+ * `Company`, `Jurisdiction`, `StatutoryContribution` and `PayComponent` are stored-row types, so
+ * they also carry the columns storage owns — `created_at`, `updated_at`, `sys_period`,
+ * `row_version`, `approval_id` — and a benchmark that invented values for them would be stating
+ * facts no run ever reads while moving the fixture identity every time storage changes shape.
+ *
+ * repository-health:allow R3b -- PICK output assembled from engine-read columns; the stored row types add storage-owned columns a CPU benchmark must not invent.
+ */
 const CONFIGURATION = {
 	company: COMPANY,
 	jurisdiction: JURISDICTION,
@@ -244,6 +254,10 @@ function bundle(index: number, window: ReturnType<typeof resolveWindow>): Employ
 	const serial = index + 1;
 	const employmentId = fixtureUuid(10, serial);
 	const employeeId = fixtureUuid(11, serial);
+	// Same boundary as `CONFIGURATION`: GATHER output built from the columns the engine reads, while
+	// `Employment`, `Employee` and `EmploymentTerms` are stored-row types carrying storage-owned and
+	// unread nullable columns besides.
+	// repository-health:allow R3b -- GATHER output assembled from engine-read columns; the stored row types add storage-owned columns a CPU benchmark must not invent.
 	return {
 		employment: {
 			id: employmentId,

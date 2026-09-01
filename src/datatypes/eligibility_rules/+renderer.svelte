@@ -17,11 +17,10 @@
 
 	const { t } = useI18n<TenantI18nKeys>();
 
-	type Rule = EligibilityRule;
-	type RuleField = Rule['field'];
-	type EmploymentType = Extract<Rule, { field: 'EMPLOYMENT_TYPE' }>['in'][number];
-	type Classification = Extract<Rule, { field: 'WORK_CLASSIFICATION' }>['in'][number];
-	type Gender = Extract<Rule, { field: 'GENDER' }>['in'][number];
+	type RuleField = EligibilityRule['field'];
+	type EmploymentType = Extract<EligibilityRule, { field: 'EMPLOYMENT_TYPE' }>['in'][number];
+	type Classification = Extract<EligibilityRule, { field: 'WORK_CLASSIFICATION' }>['in'][number];
+	type Gender = Extract<EligibilityRule, { field: 'GENDER' }>['in'][number];
 
 	const FIELD_OPTIONS: { value: RuleField; label: string }[] = [
 		{ value: 'EMPLOYMENT_TYPE', label: 'Employment type' },
@@ -72,7 +71,7 @@
 		if (props.mode === 'edit') props.onValueChange(next);
 	}
 
-	function defaultRule(field: RuleField): Rule {
+	function defaultRule(field: RuleField): EligibilityRule {
 		switch (field) {
 			case 'EMPLOYMENT_TYPE':
 				return { field: 'EMPLOYMENT_TYPE', in: ['PERMANENT'] };
@@ -94,7 +93,7 @@
 		emit([...rules, defaultRule(field)]);
 	}
 
-	function replaceAt(index: number, rule: Rule): void {
+	function replaceAt(index: number, rule: EligibilityRule): void {
 		emit(rules.map((entry, position) => (position === index ? rule : entry)));
 	}
 

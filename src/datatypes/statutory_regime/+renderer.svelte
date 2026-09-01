@@ -16,7 +16,6 @@
 
 	type Rule = Value['overtime_rules'][number];
 	type Limit = Value['overtime_limits'][number];
-	type BreakRule = StatutoryRestBreakRule;
 	type Coverage = NonNullable<Value['overtime_coverage']>;
 	type CategoryBasis = Coverage['category_basis'];
 	type WageBasis = NonNullable<Coverage['wage_basis']>;
@@ -34,11 +33,11 @@
 	type LimitRow = Limit & { readonly id: string };
 	type BreakRow = {
 		readonly id: string;
-		readonly applies_when: BreakRule['applies_when'];
+		readonly applies_when: StatutoryRestBreakRule['applies_when'];
 		readonly after_consecutive_hours: number | null;
 		readonly minimum_minutes: number | null;
 		readonly paid_status: 'UNSTATED' | 'WORKING_TIME' | 'NOT_WORKING_TIME';
-		readonly on_exceed: BreakRule['on_exceed'];
+		readonly on_exceed: StatutoryRestBreakRule['on_exceed'];
 		readonly authority: string;
 	};
 
@@ -167,7 +166,7 @@
 			? parsed.success
 			: { overtime_coverage: null, overtime_rules: [], overtime_limits: [] }
 	);
-	const breakRules = $derived<readonly BreakRule[]>(current.rest_break_rules ?? []);
+	const breakRules = $derived<readonly StatutoryRestBreakRule[]>(current.rest_break_rules ?? []);
 	const summary = $derived(
 		[
 			`${current.overtime_rules.length} pricing bands`,
@@ -243,7 +242,7 @@
 		}));
 	}
 
-	function statutoryBreakRules(rows: BreakRow[]): BreakRule[] {
+	function statutoryBreakRules(rows: BreakRow[]): StatutoryRestBreakRule[] {
 		return rows.map((row) => ({
 			applies_when: row.applies_when,
 			after_consecutive_hours: row.after_consecutive_hours,

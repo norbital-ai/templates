@@ -90,6 +90,23 @@ test('a rostered day nobody has punched has a row id and still no attendance', (
 	assert.equal(day.clockedIn, false);
 });
 
+test('a materialized pattern day retains GENERATED provenance', () => {
+	const day = month({
+		workDays: [
+			{
+				id: 'generated-day',
+				employment_id: EMPLOYMENT,
+				work_date: '2026-08-05',
+				shift_definition_id: 'code-a',
+				planned_origin: 'GENERATED',
+				worked_intervals: null
+			}
+		]
+	}).get(`${EMPLOYMENT}:2026-08-05`);
+	assert.equal(day.plannedOrigin, 'GENERATED');
+	assert.equal(day.designation, 'WORK');
+});
+
 test('an empty interval array is a day that was read, not a day nobody answered for', () => {
 	const day = month({
 		workDays: [

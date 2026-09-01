@@ -44,6 +44,7 @@
 	  mode                 'controller' | 'employee'  (default 'controller')
 	  person               DaySheetPerson | null      employment id, employee number, display name
 	  date                 string | null              YYYY-MM-DD, the work date
+	  editorRevision       number                     caller-controlled reseed for the same day
 	  day                  DayFacts | undefined       the person-day, from `buildRosterMonth`
 	  intervals            readonly IntervalDraft[]   the day's stored punches (see note below)
 	  timeZone             string                     (default PAYROLL_TIME_ZONE) clocks are read in
@@ -59,6 +60,7 @@
 	  overlapWarning       string | null              a composed sentence, or null
 	  canSwap              boolean                    show the swap affordance (draft months only)
 	  saving               boolean                    disables the footer and shows progress
+	  pendingApproval      boolean                    submitted actual is awaiting configured review
 	  error                string | null              the write path's own refusal, verbatim
 	  restBreakNotice      Snippet | undefined        INTEGRATION POINT — see below
 	  onPlanDraftChange    (rosterCodeId: string | null) => void   controller only; keeps the
@@ -76,6 +78,7 @@
 <script lang="ts" module>
 	import type { Snippet } from 'svelte';
 	import type { DayFacts, IntervalDraft, LockRung } from './roster-month.js';
+	import type { AttendanceValue } from './controller-attendance-state.js';
 
 	type DaySheetMode = 'controller' | 'employee';
 
@@ -105,7 +108,8 @@
 		 * an update: `unique(employment_id, work_date)` is what says a person-day is one row.
 		 */
 		readonly workDayId: string | null;
-		readonly intervals: readonly IntervalDraft[];
+		/** `null` clears attendance; `[]` records a deliberate reviewed-no-work fact. */
+		readonly intervals: readonly IntervalDraft[] | null;
 		/** Already clamped by `assessAttendanceDraft`, so the write path cannot refuse it for length. */
 		readonly breakMinutes: number;
 	};
@@ -122,6 +126,7 @@
 		mode?: DaySheetMode;
 		person: DaySheetPerson | null;
 		date: string | null;
+		editorRevision?: number;
 		day: DayFacts | undefined;
 		/**
 		 * The day's stored punches.
@@ -144,6 +149,7 @@
 		overlapWarning?: string | null;
 		canSwap?: boolean;
 		saving?: boolean;
+		pendingApproval?: boolean;
 		error?: string | null;
 		/**
 		 * INTEGRATION POINT — the rest-break badge (§4 of the proposal).
@@ -188,6 +194,11 @@
 	import { Label } from '@norbital-ai/ui/label';
 	import { Cluster, Inline, Scroll, Stack } from '@norbital-ai/ui/layout';
 	import { cn } from '@norbital-ai/ui/utils';
+	import {
+		attendanceChanged,
+		daySheetSaveIntent,
+		type DaySheetSaveIntent
+	} from './controller-attendance-state.js';
 	import { PAYROLL_TIME_ZONE } from '../calendar.js';
 	import { formatCalendarDate, formatDurationHours } from '../display-formatters.js';
 	import {
@@ -214,6 +225,7 @@
 		mode = 'controller',
 		person,
 		date,
+		editorRevision = 0,
 		day,
 		intervals = [],
 		timeZone = PAYROLL_TIME_ZONE,
@@ -228,6 +240,7 @@
 		overlapWarning = null,
 		canSwap = false,
 		saving = false,
+		pendingApproval = false,
 		error = null,
 		restBreakNotice,
 		onPlanDraftChange,
@@ -246,34 +259,47 @@
 	 * has to keep consistent with the first, and the round trip through
 	 * `minutesFromDayStart` / `instantFromDayStart` is exact arithmetic with no timezone in it.
 	 */
-	type EditableInterval = { startMinutes: number; endMinutes: number | null };
+	type EditableInterval = { startMinutes: number | null; endMinutes: number | null };
 
 	let draftCodeId = $state<string | null>(null);
 	let draftNote = $state('');
+	let baselineCodeId = $state<string | null>(null);
+	let baselineNote = $state('');
 	let draftIntervals = $state<EditableInterval[]>([]);
 	let draftBreak = $state(0);
+	let draftAttendanceRecorded = $state(false);
+	let baselineAttendance = $state<AttendanceValue>({ intervals: null, breakMinutes: 0 });
 	/** Employee mode only: the operator has asked to report a punch on a day that has none. */
 	let reporting = $state(false);
 
 	/** Identity of the person-day the drawer is currently loaded with, so a new one re-seeds it. */
-	const sheetKey = $derived(`${person?.id ?? ''}:${date ?? ''}`);
+	const sheetKey = $derived(`${person?.id ?? ''}:${date ?? ''}:${editorRevision}`);
 
 	/**
 	 * Seed the editors from the record whenever the drawer lands on a different person-day.
 	 *
-	 * Keyed on the identity rather than on `open`, so re-opening the same cell does not discard an
-	 * edit the operator has not saved, while stepping to the next cell always shows that cell's own
-	 * numbers. Reading `sheetKey` is the whole dependency — everything else is read untracked
-	 * through the assignment, which is what stops the seed from fighting the operator's typing.
+	 * Keyed on identity plus an explicit caller revision rather than on every live prop, so remote
+	 * updates do not fight the operator's typing. A controller open increments the revision and gets
+	 * a clean current baseline even when they return to the same employee-day after a prior save.
 	 */
 	$effect(() => {
 		void sheetKey;
 		untrack(() => {
 			reporting = false;
 			draftCodeId = rosterCodeId;
+			baselineCodeId = rosterCodeId;
 			onPlanDraftChange?.(rosterCodeId ?? null);
 			draftNote = note ?? '';
-			draftBreak = day?.breakMinutes ?? day?.shiftBreakMinutes ?? 0;
+			baselineNote = (note ?? '').trim();
+			draftBreak = day?.breakMinutes ?? 0;
+			draftAttendanceRecorded = day?.attendanceState != null;
+			baselineAttendance = {
+				intervals:
+					day?.attendanceState == null
+						? null
+						: intervals.map((interval) => ({ start: interval.start, end: interval.end })),
+				breakMinutes: day?.breakMinutes ?? 0
+			};
 			/**
 			 * A fresh array every time, including when the day has no entry.
 			 *
@@ -293,26 +319,39 @@
 		});
 	});
 
-	const assessment = $derived(
-		assessAttendanceDraft(
-			date == null
-				? []
-				: draftIntervals.map((interval) => ({
-						start: instantFromDayStart(date, interval.startMinutes, timeZone),
-						end:
-							interval.endMinutes == null
-								? null
-								: instantFromDayStart(date, interval.endMinutes, timeZone)
-					})),
-			draftBreak
-		)
+	const draftIntervalValues = $derived(
+		date == null
+			? []
+			: draftIntervals.map((interval) => ({
+					start:
+						interval.startMinutes == null
+							? ''
+							: instantFromDayStart(date, interval.startMinutes, timeZone),
+					end:
+						interval.endMinutes == null
+							? null
+							: instantFromDayStart(date, interval.endMinutes, timeZone)
+				}))
 	);
+	const assessment = $derived(assessAttendanceDraft(draftIntervalValues, draftBreak));
+	const missingIntervalStart = $derived(
+		draftAttendanceRecorded && draftIntervals.some((interval) => interval.startMinutes == null)
+	);
+	const draftAttendance = $derived<AttendanceValue>({
+		intervals: draftAttendanceRecorded ? draftIntervalValues : null,
+		breakMinutes:
+			draftAttendanceRecorded && draftIntervalValues.length > 0
+				? Math.max(0, Math.trunc(draftBreak))
+				: 0
+	});
 
 	const frozen = $derived(lockRungFreezes(lockRung));
-	const attendanceEditable = $derived(
+	const interactionLocked = $derived(saving || pendingApproval);
+	const attendanceWritable = $derived(
 		!frozen && (mode === 'controller' || reporting) && date != null && person != null
 	);
-	const planEditable = $derived(mode === 'controller' && !frozen && !planLocked);
+	const planWritable = $derived(mode === 'controller' && !frozen && !planLocked);
+	const planEditable = $derived(planWritable && !interactionLocked);
 
 	/** Employee mode's one affordance: a day with nothing recorded, on a day that is not locked. */
 	const canReportMissingPunch = $derived(
@@ -343,31 +382,32 @@
 	 * anything wrong, and `NO_INTERVALS` shouted at them in destructive red would say they had.
 	 */
 	const problemMessage = $derived(
-		assessment.problem == null || draftIntervals.length === 0
-			? null
-			: t(ATTENDANCE_DRAFT_PROBLEM_KEY[assessment.problem])
+		missingIntervalStart
+			? t('roster.day_sheet_problem_missing_start')
+			: assessment.problem == null || draftIntervals.length === 0
+				? null
+				: t(ATTENDANCE_DRAFT_PROBLEM_KEY[assessment.problem])
 	);
 
 	/**
 	 * Silent for the same reason `problemMessage` is: an empty editor has nothing to clamp against.
 	 *
-	 * `draftBreak` is seeded from the roster code's scheduled break, so a day nobody has punched opens
-	 * with sixty minutes of break against zero minutes of work — which `assessAttendanceDraft` quite
-	 * correctly clamps to zero, and which the drawer then announced in an alert saying the break had
-	 * been adjusted. Nothing had been adjusted; nothing had been entered. The notice belongs to a
-	 * clamp the operator's own numbers caused, which is the only case where it tells them anything.
+	 * An unrecorded day starts with an actual break of zero. Adding the first interval suggests the
+	 * scheduled break beside the scheduled window, and only then can a clamp be the result of numbers
+	 * the operator is actually considering.
 	 */
 	const breakClampNotice = $derived(assessment.breakClamped && draftIntervals.length > 0);
 
 	/**
 	 * Whether a save can be offered at all.
 	 *
-	 * The attendance half is gated on the same assessment the hook will make, so the button is never
-	 * live on a draft the write path would refuse. That is the whole point of assessing early: a form
-	 * that offers a save and then reports the server's refusal has taught the operator nothing about
-	 * which of four things they did wrong, and it does it after a round trip.
+	 * Interval attendance is gated on the same assessment the hook will make. The two interval-free
+	 * states are intentional exceptions: `[]` is reviewed-no-work and `null` is explicit clearing,
+	 * neither of which should be rejected as a missing interval.
 	 */
-	const attendanceTouched = $derived(attendanceEditable && draftIntervals.length > 0);
+	const attendanceTouched = $derived(
+		attendanceWritable && attendanceChanged(baselineAttendance, draftAttendance)
+	);
 	/**
 	 * The plan half saves only when it CHANGED.
 	 *
@@ -375,18 +415,25 @@
 	 * punch on a pattern-projected day quietly materialised an explicit assignment for it. An
 	 * explicit row is not a neutral record of the same fact: it is what stops the pattern from
 	 * re-projecting that day, so a month of attendance corrections used to pin a month of the
-	 * schedule as a side effect. `rosterCodeId` is seeded with whatever the day already resolves to —
-	 * explicit or projected — so "differs from that" is exactly the right test.
+	 * schedule as a side effect. The baseline is captured when the sheet changes identity because the
+	 * selected code is also mirrored to the caller for live overlap validation; comparing against the
+	 * live prop would otherwise erase plan dirty state as soon as the caller received that mirror.
 	 */
 	const planTouched = $derived(
-		planEditable &&
+		planWritable &&
 			draftCodeId != null &&
-			(draftCodeId !== rosterCodeId || draftNote.trim() !== (note ?? '').trim())
+			(draftCodeId !== baselineCodeId || draftNote.trim() !== baselineNote)
+	);
+	const saveIntent = $derived<DaySheetSaveIntent>(
+		daySheetSaveIntent(planTouched, attendanceTouched)
 	);
 	const savable = $derived(
-		!saving &&
+		!interactionLocked &&
 			(planTouched || attendanceTouched) &&
-			(!attendanceTouched || assessment.problem == null) &&
+			(!attendanceTouched ||
+				draftAttendance.intervals == null ||
+				draftAttendance.intervals.length === 0 ||
+				(!missingIntervalStart && assessment.problem == null)) &&
 			overlapWarning == null
 	);
 
@@ -397,7 +444,13 @@
 	function setStart(index: number, clock: string): void {
 		const interval = draftIntervals[index];
 		if (interval == null) return;
-		const minutes = clockToDayMinutes(clock, dayMinutesOffsetDays(interval.startMinutes));
+		if (clock === '') {
+			draftIntervals = draftIntervals.map((entry, position) =>
+				position === index ? { ...entry, startMinutes: null } : entry
+			);
+			return;
+		}
+		const minutes = clockToDayMinutes(clock, dayMinutesOffsetDays(interval.startMinutes ?? 0));
 		if (minutes == null) return;
 		// A fresh array: `$state` ignores a mutation-in-place that leaves the reference identical.
 		draftIntervals = draftIntervals.map((entry, position) =>
@@ -414,7 +467,7 @@
 			);
 			return;
 		}
-		const offset = dayMinutesOffsetDays(interval.endMinutes ?? interval.startMinutes);
+		const offset = dayMinutesOffsetDays(interval.endMinutes ?? interval.startMinutes ?? 0);
 		const minutes = clockToDayMinutes(clock, offset);
 		if (minutes == null) return;
 		draftIntervals = draftIntervals.map((entry, position) =>
@@ -439,16 +492,44 @@
 
 	function addInterval(): void {
 		const previous = draftIntervals.at(-1);
-		// A new row starts where the last one ended, which is what an operator adding a second half
-		// of a split shift is about to type anyway; failing that, at the rostered start.
-		const start =
-			previous?.endMinutes ??
-			(day?.shiftStart == null ? 9 * 60 : (clockToDayMinutes(day.shiftStart, 0) ?? 9 * 60));
-		draftIntervals = [...draftIntervals, { startMinutes: start, endMinutes: start + 60 }];
+		const scheduledStart =
+			day?.shiftStart == null ? 9 * 60 : (clockToDayMinutes(day.shiftStart, 0) ?? 9 * 60);
+		const scheduledEnd =
+			day?.shiftEnd == null
+				? scheduledStart + 8 * 60
+				: (clockToDayMinutes(day.shiftEnd, 0) ?? scheduledStart + 8 * 60);
+		// The first interval is a suggestion of the planned window, not a persisted fact. Subsequent
+		// intervals begin where the preceding split ended and stay intentionally short for editing.
+		const start = previous?.endMinutes ?? scheduledStart;
+		const end =
+			previous == null
+				? scheduledEnd <= start
+					? scheduledEnd + DAY_MINUTES
+					: scheduledEnd
+				: start + 60;
+		if (!draftAttendanceRecorded) draftBreak = day?.shiftBreakMinutes ?? 0;
+		draftAttendanceRecorded = true;
+		draftIntervals = [...draftIntervals, { startMinutes: start, endMinutes: end }];
 	}
 
 	function removeInterval(index: number): void {
+		draftAttendanceRecorded = true;
 		draftIntervals = draftIntervals.filter((_entry, position) => position !== index);
+		if (draftIntervals.length === 0) draftBreak = 0;
+	}
+
+	/** Record a deliberate reviewed-no-work fact without manufacturing an interval. */
+	function markReviewedNoWork(): void {
+		draftAttendanceRecorded = true;
+		draftIntervals = [];
+		draftBreak = 0;
+	}
+
+	/** Return actual attendance to the distinct unrecorded `null` state. */
+	function clearAttendance(): void {
+		draftAttendanceRecorded = false;
+		draftIntervals = [];
+		draftBreak = 0;
 	}
 
 	/**
@@ -470,6 +551,7 @@
 		const end =
 			day?.shiftEnd == null ? start + 480 : (clockToDayMinutes(day.shiftEnd, 0) ?? start + 480);
 		draftIntervals = [{ startMinutes: start, endMinutes: end <= start ? end + DAY_MINUTES : end }];
+		draftAttendanceRecorded = true;
 		draftBreak = day?.shiftBreakMinutes ?? 0;
 	}
 
@@ -485,16 +567,13 @@
 			attendance: attendanceTouched
 				? {
 						workDayId: day?.workDayId ?? null,
-						intervals: draftIntervals.map((interval) => ({
-							start: instantFromDayStart(date, interval.startMinutes, timeZone),
-							end:
-								interval.endMinutes == null
-									? null
-									: instantFromDayStart(date, interval.endMinutes, timeZone)
-						})),
+						intervals: draftAttendance.intervals,
 						// The clamped value, never the typed one. `assessAttendanceDraft` has already
 						// reduced it to something the hook accepts, and the notice below says it did.
-						breakMinutes: assessment.breakMinutes
+						breakMinutes:
+							draftAttendance.intervals != null && draftAttendance.intervals.length > 0
+								? assessment.breakMinutes
+								: 0
 					}
 				: null
 		});
@@ -658,16 +737,18 @@
 				<Stack gap="sm">
 					<h3 class="text-overline text-muted-foreground">{t('roster.day_sheet_actual')}</h3>
 
-					{#if attendanceEditable}
+					{#if attendanceWritable}
 						{#each draftIntervals as interval, index (index)}
-							<Inline gap="xs" align="center" class="text-xs">
+							<Inline gap="xs" align="center" class="flex-wrap text-xs">
 								<span class="min-w-16 shrink-0 text-muted-foreground">
-									{t('roster.day_sheet_interval', { index: index + 1 })}
+									{t('roster.day_sheet_interval', { number: index + 1 })}
 								</span>
 								<Input
 									type="time"
+									required
 									class="w-28"
-									aria-label={t('roster.day_sheet_interval_start', { index: index + 1 })}
+									disabled={interactionLocked}
+									aria-label={t('roster.day_sheet_interval_start', { number: index + 1 })}
 									value={clockValue(interval.startMinutes)}
 									oninput={(event) => setStart(index, event.currentTarget.value)}
 								/>
@@ -675,7 +756,8 @@
 								<Input
 									type="time"
 									class="w-28"
-									aria-label={t('roster.day_sheet_interval_end', { index: index + 1 })}
+									disabled={interactionLocked}
+									aria-label={t('roster.day_sheet_interval_end', { number: index + 1 })}
 									value={clockValue(interval.endMinutes)}
 									oninput={(event) => setEnd(index, event.currentTarget.value)}
 								/>
@@ -684,6 +766,7 @@
 									<Button
 										variant={dayMinutesOffsetDays(interval.endMinutes) > 0 ? 'default' : 'ghost'}
 										size="sm"
+										disabled={interactionLocked}
 										aria-pressed={dayMinutesOffsetDays(interval.endMinutes) > 0}
 										title={t('roster.day_sheet_next_day')}
 										onclick={() =>
@@ -698,35 +781,79 @@
 								<Button
 									variant="ghost"
 									size="icon"
-									aria-label={t('roster.day_sheet_remove_interval', { index: index + 1 })}
+									disabled={interactionLocked}
+									aria-label={t('roster.day_sheet_remove_interval', { number: index + 1 })}
 									onclick={() => removeInterval(index)}
 								>
 									<IconWrapper name="lucide:x" class="size-3.5" />
 								</Button>
 							</Inline>
 						{/each}
-						<Inline>
-							<Button variant="outline" size="sm" onclick={() => addInterval()}>
+						{#if draftAttendanceRecorded && draftIntervals.length === 0}
+							<Alert>
+								<AlertTitle>{t('roster.day_sheet_reviewed_no_work')}</AlertTitle>
+								<AlertDescription>
+									{t('roster.day_sheet_reviewed_no_work_description')}
+								</AlertDescription>
+							</Alert>
+						{:else if !draftAttendanceRecorded}
+							<p class="text-xs text-muted-foreground">
+								{t('roster.day_sheet_unrecorded_attendance')}
+							</p>
+						{/if}
+
+						<Cluster gap="xs">
+							<Button
+								variant="outline"
+								size="sm"
+								disabled={interactionLocked}
+								onclick={() => addInterval()}
+							>
 								<IconWrapper name="lucide:plus" class="size-3.5" />
 								{t('roster.day_sheet_add_interval')}
 							</Button>
-						</Inline>
+							{#if !draftAttendanceRecorded}
+								<Button
+									variant="outline"
+									size="sm"
+									disabled={interactionLocked}
+									onclick={() => markReviewedNoWork()}
+								>
+									<IconWrapper name="lucide:circle-check" class="size-3.5" />
+									{t('roster.day_sheet_mark_reviewed_no_work')}
+								</Button>
+							{/if}
+							{#if draftAttendanceRecorded}
+								<Button
+									variant="ghost"
+									size="sm"
+									disabled={interactionLocked}
+									onclick={() => clearAttendance()}
+								>
+									<IconWrapper name="lucide:eraser" class="size-3.5" />
+									{t('roster.day_sheet_clear_attendance')}
+								</Button>
+							{/if}
+						</Cluster>
 
-						<Inline gap="sm" align="center">
-							<Label for="day-sheet-break" class="min-w-28 shrink-0 text-xs">
-								{t('roster.day_sheet_unpaid_break')}
-							</Label>
-							<Input
-								id="day-sheet-break"
-								type="number"
-								min="0"
-								step="1"
-								class="w-24"
-								value={String(draftBreak)}
-								oninput={(event) => (draftBreak = Number(event.currentTarget.value) || 0)}
-							/>
-							<span class="text-xs text-muted-foreground">{t('roster.day_sheet_minutes')}</span>
-						</Inline>
+						{#if draftAttendanceRecorded && draftIntervals.length > 0}
+							<Inline gap="sm" align="center">
+								<Label for="day-sheet-break" class="min-w-28 shrink-0 text-xs">
+									{t('roster.day_sheet_unpaid_break')}
+								</Label>
+								<Input
+									id="day-sheet-break"
+									type="number"
+									min="0"
+									step="1"
+									class="w-24"
+									disabled={interactionLocked}
+									value={String(draftBreak)}
+									oninput={(event) => (draftBreak = Number(event.currentTarget.value) || 0)}
+								/>
+								<span class="text-xs text-muted-foreground">{t('roster.day_sheet_minutes')}</span>
+							</Inline>
+						{/if}
 
 						{#if breakClampNotice}
 							<!--
@@ -842,9 +969,18 @@
 					-->
 				</Stack>
 
+				{#if pendingApproval}
+					<Alert aria-live="polite">
+						<AlertTitle>{t('roster.day_sheet_pending_approval')}</AlertTitle>
+						<AlertDescription>
+							{t('roster.day_sheet_pending_approval_description')}
+						</AlertDescription>
+					</Alert>
+				{/if}
+
 				{#if error != null}
-					<Alert variant="destructive">
-						<AlertTitle>{t('roster.assignment_failed')}</AlertTitle>
+					<Alert variant="destructive" aria-live="assertive">
+						<AlertTitle>{t('roster.day_sheet_save_failed')}</AlertTitle>
 						<AlertDescription>{error}</AlertDescription>
 					</Alert>
 				{/if}
@@ -852,8 +988,8 @@
 		{/if}
 
 		<Sheet.Footer>
-			{#if mode === 'controller' && hasExplicitEntry && planEditable}
-				<Button variant="outline" disabled={saving} onclick={() => void onClearPlan?.()}>
+			{#if mode === 'controller' && hasExplicitEntry && planWritable}
+				<Button variant="outline" disabled={interactionLocked} onclick={() => void onClearPlan?.()}>
 					{t('roster.clear_assignment')}
 				</Button>
 			{/if}
@@ -865,7 +1001,15 @@
 				the half they are looking at is a punch.
 			-->
 			<Button disabled={!savable} onclick={() => void save()}>
-				{mode === 'controller' ? t('roster.save_assignment') : t('roster.save_punch')}
+				{saving
+					? t('roster.day_sheet_saving')
+					: mode !== 'controller'
+						? t('roster.save_punch')
+						: saveIntent === 'changes'
+							? t('roster.save_changes')
+							: saveIntent === 'attendance'
+								? t('roster.save_attendance')
+								: t('roster.save_assignment')}
 			</Button>
 		</Sheet.Footer>
 	</Sheet.Content>

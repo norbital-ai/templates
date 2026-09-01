@@ -7,7 +7,7 @@
  * assertions that would be a `.test.ts` live here instead, as a script that can be run directly:
  *
  * ```
- * cd template_workspaces/hr-payroll
+ * cd templates/hr-payroll
  * node scripts/verify-payroll-arithmetic.mjs
  * ```
  *
