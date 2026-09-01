@@ -8,6 +8,12 @@ interface RollupLineCells {
 	readonly line_total?: number | null;
 }
 
+interface RollupDocumentSource {
+	readonly document: Effect.Effect<{ readonly currency: string | null } | undefined>;
+	readonly lines: Effect.Effect<readonly RollupLineCells[]>;
+	readonly write: (totals: LineAmounts) => Effect.Effect<unknown>;
+}
+
 /**
  * Re-total one document from its own lines.
  *
@@ -15,11 +21,7 @@ interface RollupLineCells {
  * header, read its lines, write the summed net, tax and gross back — so the shape is owned here and
  * each line collection supplies only the two reads and the write that name its own tables.
  */
-export function rollupDocument(source: {
-	readonly document: Effect.Effect<{ readonly currency: string | null } | undefined>;
-	readonly lines: Effect.Effect<readonly RollupLineCells[]>;
-	readonly write: (totals: LineAmounts) => Effect.Effect<unknown>;
-}): Effect.Effect<void> {
+export function rollupDocument(source: RollupDocumentSource): Effect.Effect<void> {
 	return Effect.gen(function* () {
 		const document = yield* source.document;
 		if (!document) return;
