@@ -1,8 +1,8 @@
 {
   "dialect": "postgres",
-  "id": "b80b737f-36af-4b2a-b0f8-f91f62954616",
+  "id": "02ff0a8c-276c-4dfd-8d1c-a6101f02b91f",
   "prevIds": [
-    "409b4717-09d1-4dc7-bfb4-e8a77a3b8cea"
+    "a1e05a2b-0dac-47bb-b6c9-d6b1a5473240"
   ],
   "version": "8",
   "ddl": [
@@ -4306,6 +4306,74 @@
     {
       "nameExplicit": true,
       "columns": [
+        "job_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "jobs",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "name": "jobs_certification_types_job_id_jobs_fk",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "jobs_certification_types"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        "certification_type_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "certification_types",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "name": "jobs_certification_types_certification_type_id_certification_types_fk",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "jobs_certification_types"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        "job_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "jobs",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "name": "jobs_site_locations_job_id_jobs_fk",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "jobs_site_locations"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        "site_location_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "site_locations",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "name": "jobs_site_locations_site_location_id_site_locations_fk",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "jobs_site_locations"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
         "project_id"
       ],
       "schemaTo": "public",
@@ -4336,6 +4404,74 @@
       "entityType": "fks",
       "schema": "public",
       "table": "permits_to_work"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        "permits_to_work_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "permits_to_work",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "name": "permits_to_work_certification_types_permits_to_work_id_permits_to_work_fk",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "permits_to_work_certification_types"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        "certification_type_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "certification_types",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "name": "permits_to_work_certification_types_certification_type_id_certification_types_fk",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "permits_to_work_certification_types"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        "permits_to_work_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "permits_to_work",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "name": "permits_to_work_workers_permits_to_work_id_permits_to_work_fk",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "permits_to_work_workers"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        "worker_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "workers",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "name": "permits_to_work_workers_worker_id_workers_fk",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "permits_to_work_workers"
     },
     {
       "nameExplicit": true,

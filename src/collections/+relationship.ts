@@ -39,23 +39,36 @@ export default ((r) => ({
 			from: r.permits_to_work.project_id,
 			to: r.projects.id
 		}),
-		permits_to_work_certification_types: r.many.certification_types({
-			from: r.permits_to_work.id.through(r.permits_to_work_certification_types.permits_to_work_id),
-			to: r.certification_types.id.through(
-				r.permits_to_work_certification_types.certification_type_id
-			)
+		permits_to_work_certification_types: r.many.permits_to_work_certification_types(),
+		permits_to_work_workers: r.many.permits_to_work_workers()
+	},
+	/** Join rows are first-class collections; each side of the pair is an ordinary `one` edge. */
+	permits_to_work_certification_types: {
+		permit_link: r.one.permits_to_work({
+			from: r.permits_to_work_certification_types.permits_to_work_id,
+			to: r.permits_to_work.id
 		}),
-		permits_to_work_workers: r.many.workers({
-			from: r.permits_to_work.id.through(r.permits_to_work_workers.permits_to_work_id),
-			to: r.workers.id.through(r.permits_to_work_workers.worker_id)
+		certification_type_link: r.one.certification_types({
+			from: r.permits_to_work_certification_types.certification_type_id,
+			to: r.certification_types.id
+		})
+	},
+	permits_to_work_workers: {
+		permit_link: r.one.permits_to_work({
+			from: r.permits_to_work_workers.permits_to_work_id,
+			to: r.permits_to_work.id
+		}),
+		worker_link: r.one.workers({
+			from: r.permits_to_work_workers.worker_id,
+			to: r.workers.id
 		})
 	},
 	certification_types: {
-		permits_to_work_certification_types: r.many.permits_to_work(),
-		jobs_certification_types: r.many.jobs()
+		permits_to_work_certification_types: r.many.permits_to_work_certification_types(),
+		jobs_certification_types: r.many.jobs_certification_types()
 	},
 	workers: {
-		permits_to_work_workers: r.many.permits_to_work(),
+		permits_to_work_workers: r.many.permits_to_work_workers(),
 		job_assignment_worker: r.many.job_assignments()
 	},
 	jobs: {
@@ -63,22 +76,36 @@ export default ((r) => ({
 			from: r.jobs.project_id,
 			to: r.projects.id
 		}),
-		jobs_certification_types: r.many.certification_types({
-			from: r.jobs.id.through(r.jobs_certification_types.job_id),
-			to: r.certification_types.id.through(r.jobs_certification_types.certification_type_id)
-		}),
-		jobs_site_locations: r.many.site_locations({
-			from: r.jobs.id.through(r.jobs_site_locations.job_id),
-			to: r.site_locations.id.through(r.jobs_site_locations.site_location_id)
-		}),
+		jobs_certification_types: r.many.jobs_certification_types(),
+		jobs_site_locations: r.many.jobs_site_locations(),
 		job_assignment_job: r.many.job_assignments()
+	},
+	jobs_certification_types: {
+		job_link: r.one.jobs({
+			from: r.jobs_certification_types.job_id,
+			to: r.jobs.id
+		}),
+		certification_type_link: r.one.certification_types({
+			from: r.jobs_certification_types.certification_type_id,
+			to: r.certification_types.id
+		})
+	},
+	jobs_site_locations: {
+		job_link: r.one.jobs({
+			from: r.jobs_site_locations.job_id,
+			to: r.jobs.id
+		}),
+		site_location_link: r.one.site_locations({
+			from: r.jobs_site_locations.site_location_id,
+			to: r.site_locations.id
+		})
 	},
 	site_locations: {
 		site_locations_projects: r.one.projects({
 			from: r.site_locations.project_id,
 			to: r.projects.id
 		}),
-		jobs_site_locations: r.many.jobs(),
+		jobs_site_locations: r.many.jobs_site_locations(),
 		job_assignment_site_location: r.many.job_assignments()
 	},
 	job_assignments: {
