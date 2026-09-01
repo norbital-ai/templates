@@ -13,6 +13,7 @@ import os from 'node:os';
 import path from 'node:path';
 import process from 'node:process';
 import { parseArgs } from 'node:util';
+import { safeParse } from '@norbital-ai/std';
 
 const scriptPath = fileURLToPath(import.meta.url);
 const root = path.dirname(path.dirname(scriptPath));
@@ -116,7 +117,7 @@ function runWorker(samples, warmups) {
 		throw new Error(
 			`Benchmark worker exited ${result.status ?? 'without a status'}:\n${result.stderr || result.stdout}`
 		);
-	return validateWorkerReport(JSON.parse(result.stdout));
+	return validateWorkerReport(safeParse(result.stdout));
 }
 
 function percentile(sorted, fraction) {

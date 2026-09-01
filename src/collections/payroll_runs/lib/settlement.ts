@@ -337,7 +337,7 @@ export function resolveEmploymentSettlement(options: {
  * the scheme means, only that HR maintains an effective-dated answer per employment — which is the
  * whole point: the engine cannot hold a nationality, and a company must not have to encode one.
  */
-export function inExtendedLeavePopulation(options: {
+type ExtendedLeavePopulationOptions = {
 	readonly policy: SettlementPolicy;
 	readonly statutoryFacts: readonly {
 		readonly statutory_contribution_id: string;
@@ -345,7 +345,9 @@ export function inExtendedLeavePopulation(options: {
 		readonly effective_range: unknown;
 	}[];
 	readonly asOf: IsoDate;
-}): boolean {
+};
+
+export function inExtendedLeavePopulation(options: ExtendedLeavePopulationOptions): boolean {
 	const rule = options.policy.extendedUnpaidLeave;
 	if (rule == null) return false;
 	if (rule.populationContributionId == null) return true;

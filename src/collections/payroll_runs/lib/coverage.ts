@@ -81,13 +81,15 @@ export function classifyWageComparand(component: WageComparandComponent): WageCo
  * keeps an employee inside the ladder rather than outside it, which is the direction the statute
  * reads when doubtful. No seeded company carries a formula earning that a coverage ceiling tests.
  */
-export function deriveStatutoryWages(options: {
+type DeriveStatutoryWagesOptions = {
 	readonly baseSalary: MoneyValue;
 	readonly payments: readonly {
 		readonly category: WageComparandCategory;
 		readonly amount: number;
 	}[];
-}): MoneyValue {
+};
+
+export function deriveStatutoryWages(options: DeriveStatutoryWagesOptions): MoneyValue {
 	const cashForWork = options.payments
 		.filter((payment) => payment.category === 'CASH_FOR_WORK')
 		.reduce((total, payment) => total + payment.amount, 0);

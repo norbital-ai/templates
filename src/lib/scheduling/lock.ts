@@ -360,11 +360,15 @@ export function sourceLockRecordMetadata(
  * 409, not ours); a capture names the period that has to release the record. The four junctions
  * carry the denormalized `period` exactly so this refusal never needs a `payroll_runs` read grant.
  */
-export function refuseIfCaptured(options: {
+type RefuseIfCapturedOptions = {
 	readonly capture: Effect.Effect<{ readonly period: string } | undefined, never, never>;
 	readonly approvalId: string | null | undefined;
 	readonly action: string;
-}): Effect.Effect<void, never, never> {
+};
+
+export function refuseIfCaptured(
+	options: RefuseIfCapturedOptions
+): Effect.Effect<void, never, never> {
 	return Effect.map(options.capture, (row) => {
 		const lock = sourceLock({
 			existing: true,

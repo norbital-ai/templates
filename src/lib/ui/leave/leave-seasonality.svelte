@@ -19,13 +19,13 @@
 	const historyYears = seasonalityYears(currentYear);
 	const { start: windowStart, endExclusive: windowEnd } = seasonalityDateWindow(currentYear);
 	const companyScope = $derived({
-		leave_request_employment: { company_id: { eq: companyId } }
+		leave_request_employment: { some: { company_id: { eq: companyId } } }
 	} as const);
 	const analyticsQuery = $derived(
 		client.db.leave_requests.findMany({
 			where: { ...companyScope, kind: { eq: 'TIME_OFF' } },
 			columns: { from_date: true },
-			limit: 5000
+			limit: 1000
 		})
 	);
 	const analytics = $derived.by(() => {

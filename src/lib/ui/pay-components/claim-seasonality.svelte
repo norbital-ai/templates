@@ -23,9 +23,9 @@
 	const { start: windowStart, endExclusive: windowEnd } = seasonalityDateWindow(currentYear);
 	const analyticsQuery = $derived(
 		client.db.component_entries.findMany({
-			where: { component_entry_employment: { company_id: { eq: companyId } } },
+			where: { component_entry_employment: { some: { company_id: { eq: companyId } } } },
 			columns: { event: true, event_date: true },
-			limit: 5000
+			limit: 1000
 		})
 	);
 	const analytics = $derived.by(() => {

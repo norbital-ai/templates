@@ -202,7 +202,12 @@ function assertWorkedIntervals(
 		refuse('Unpaid break must be a non-negative whole number of minutes.');
 	}
 	const hasOpenInterval = value.some((interval) => interval.end == null);
-	if (!hasOpenInterval && unpaidBreak >= closedMinutes) {
+	// `unpaidBreak > 0` is load-bearing, not a shortcut past the zero case. A reviewed-empty day is
+	// `[]` with no break: no interval, so `closedMinutes` is 0, and `0 >= 0` refused the one write
+	// the day sheet's "reviewed, nothing worked" action exists to make — the day could be cleared to
+	// NULL or filled with punches, but never stated as read-and-empty. Deducting a *positive* break
+	// from nothing is still the contradiction this rule is for, and is still refused.
+	if (!hasOpenInterval && unpaidBreak > 0 && unpaidBreak >= closedMinutes) {
 		refuse('Unpaid break must be shorter than the recorded worked time.');
 	}
 }

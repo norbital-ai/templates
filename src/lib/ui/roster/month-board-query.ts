@@ -1,17 +1,22 @@
+/**
+ * Every month-board `findMany` is a live prefix. The sync engine admits at most
+ * `MAX_SYNC_LOADED_KEYS` (1 000) rows per query; a larger `limit` fails registration and
+ * leaves the board on eternal loading. These bounds are that ceiling, not a second budget.
+ */
 export const MONTH_BOARD_QUERY_LIMITS = {
 	companies: 500,
 	employments: 1_000,
 	employees: 1_000,
 	rosterCodes: 500,
-	employmentTerms: 3_000,
+	employmentTerms: 1_000,
 	leaveTypes: 200,
 	rosters: 50,
-	workDays: 20_000,
-	leaveRequests: 2_000,
+	workDays: 1_000,
+	leaveRequests: 1_000,
 	payrollRuns: 500,
-	settlementClaims: 20_000,
+	settlementClaims: 1_000,
 	holidays: 200,
-	filteredWorkDays: 20_000
+	filteredWorkDays: 1_000
 } as const;
 
 type MonthBoardQuerySource = keyof typeof MONTH_BOARD_QUERY_LIMITS;
