@@ -18,14 +18,16 @@ const PDQ_EXPORT = {
 	free: 'l'
 } as const;
 
+type ArtifactReadCopyOptions = {
+	readonly arguments: { readonly copy: true };
+	readonly result: { readonly copy: true };
+};
+
 type ArtifactReadBytes = {
 	applySync(
-		receiver: undefined,
+		receiver: unknown | undefined,
 		args: readonly [string],
-		options: {
-			readonly arguments: { readonly copy: true };
-			readonly result: { readonly copy: true };
-		}
+		options: ArtifactReadCopyOptions
 	): Uint8Array | ArrayBuffer | null;
 };
 
