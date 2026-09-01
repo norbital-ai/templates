@@ -2,6 +2,7 @@
 	import Icon from '@iconify/svelte';
 	import { Effect } from 'effect';
 	import { getErrorMessage } from '@norbital-ai/std';
+	import { httpRequest } from '@norbital-ai/std/http';
 	import { Button } from '@norbital-ai/ui/button';
 	import { useI18n } from '@norbital-ai/ui/i18n';
 	import type { TenantI18nKeys } from '$bolt/i18n-keys';
@@ -134,9 +135,12 @@
 	let viewer = $state.raw<IFCViewerRuntime | null>(null);
 	let markerSyncFrame = $state.raw(0);
 
-	function fetchIfcModelResponse(url: string): Effect.Effect<Response, unknown> {
-		return Effect.tryPromise(() =>
-			fetch(url, { signal: AbortSignal.timeout(IFC_FETCH_TIMEOUT_MS) })
+	function fetchIfcModelResponse(url: string) {
+		return httpRequest(url, { operation: 'load-ifc-model' }).pipe(
+			Effect.timeoutOrElse({
+				duration: IFC_FETCH_TIMEOUT_MS,
+				orElse: () => Effect.fail(new Error(t('component.ifc_download_timed_out')))
+			})
 		);
 	}
 
@@ -284,13 +288,13 @@
 		};
 	}
 
-	function clearMarkerVisualization(runtime: IFCViewerRuntime): Effect.Effect<void, unknown> {
+	function clearMarkerVisualization(runtime: IFCViewerRuntime) {
 		// `suspend` keeps the read of `runtime.highlighter` where it was: on every run of the effect,
 		// not once when it is described.
 		return Effect.suspend(() => {
 			const highlighter = runtime.highlighter;
 			// Highlighter state must be cleared before the matching style is deleted.
-			const cleared: Effect.Effect<unknown, unknown> =
+			const cleared =
 				highlighter === null
 					? Effect.void
 					: Effect.forEach(runtime.markerStyleIds, (styleId) =>
@@ -307,7 +311,7 @@
 		});
 	}
 
-	function clearModel(runtime: IFCViewerRuntime): Effect.Effect<void, unknown> {
+	function clearModel(runtime: IFCViewerRuntime) {
 		return Effect.gen(function* () {
 			yield* clearMarkerVisualization(runtime);
 			const highlighter = runtime.highlighter;
@@ -327,9 +331,7 @@
 		});
 	}
 
-	function createViewerRuntime(
-		container: HTMLDivElement
-	): Effect.Effect<IFCViewerRuntime, unknown> {
+	function createViewerRuntime(container: HTMLDivElement) {
 		return Effect.gen(function* () {
 			const cachedLibraries = yield* viewerLibraries;
 			const [OBC, OBF, FRAGS, THREE] = yield* cachedLibraries;
@@ -388,17 +390,14 @@
 		return highlighter;
 	}
 
-	function disposeRuntime(runtime: IFCViewerRuntime): Effect.Effect<void, unknown> {
+	function disposeRuntime(runtime: IFCViewerRuntime) {
 		return Effect.gen(function* () {
 			yield* clearModel(runtime);
 			yield* Effect.sync(() => runtime.components.dispose());
 		});
 	}
 
-	function loadIfcModelIntoRuntime(
-		runtime: IFCViewerRuntime,
-		url: string
-	): Effect.Effect<void, unknown> {
+	function loadIfcModelIntoRuntime(runtime: IFCViewerRuntime, url: string) {
 		return Effect.gen(function* () {
 			const fetchUrl = yield* normalizeFileUrlForSameOrigin(url, window.location.origin);
 
@@ -528,7 +527,7 @@
 
 	const viewerAttach = $derived(viewerAttachment(trimmedSrc));
 
-	function syncMarkerVisualization(): Effect.Effect<void, unknown> {
+	function syncMarkerVisualization() {
 		return Effect.gen(function* () {
 			const runtime = viewer;
 			const group = runtime?.currentGroup;
@@ -591,7 +590,7 @@
 		});
 	}
 
-	function handlePick(): Effect.Effect<void, unknown> {
+	function handlePick() {
 		return Effect.gen(function* () {
 			const runtime = viewer;
 			const group = runtime?.currentGroup;

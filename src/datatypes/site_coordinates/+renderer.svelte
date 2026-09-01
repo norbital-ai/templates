@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { decodeNumber } from '@norbital-ai/std/json';
 	import { Input } from '@norbital-ai/ui/input';
 	import { Grid, Stack } from '@norbital-ai/ui/layout';
 	import { Option, Schema } from 'effect';
@@ -15,7 +16,7 @@
 	);
 
 	function numberOrNull(value: string): number | null {
-		return value === '' ? null : Number(value);
+		return value === '' ? null : decodeNumber(value);
 	}
 
 	function update(patch: Partial<Value>): void {

@@ -1,5 +1,6 @@
 import { Effect, Schema } from 'effect';
 import { toError } from '@norbital-ai/std';
+import { httpRequest } from '@norbital-ai/std/http';
 import converterWorkerUrl from './ifc_viewer.converter.worker.ts?worker&url';
 import type { I18nApi } from '@norbital-ai/ui/i18n';
 import type { TenantI18nKeys } from '$bolt/i18n-keys';
@@ -38,7 +39,7 @@ const createConverterWorker = Effect.gen(function* () {
 	const workerUrl = new URL(converterWorkerUrl, import.meta.url);
 	// Sandboxed iframes block direct worker URLs in Chrome.
 	// Fetch the script and create a blob URL to bypass the restriction.
-	const response = yield* Effect.tryPromise(() => fetch(workerUrl.href));
+	const response = yield* httpRequest(workerUrl.href, { operation: 'load-ifc-converter-worker' });
 	const scriptText = yield* Effect.tryPromise(() => response.text());
 	const blob = new Blob([scriptText], { type: 'application/javascript' });
 	const blobUrl = URL.createObjectURL(blob);
