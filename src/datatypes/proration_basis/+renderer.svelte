@@ -7,6 +7,8 @@
 	import { Grid, Stack } from '@norbital-ai/ui/layout';
 	import { prorationBasisSchema } from './+definition.js';
 	import type { RendererProps, Value } from './$types.js';
+	import { decodeNumber } from '@norbital-ai/std/json';
+
 	const { t } = useI18n<TenantI18nKeys>();
 
 	type Basis = Value['by'];
@@ -52,7 +54,7 @@
 	}
 
 	function numberFrom(raw: string, fallback: number): number {
-		const next = Number(raw);
+		const next = decodeNumber(raw);
 		return Number.isFinite(next) ? next : fallback;
 	}
 </script>

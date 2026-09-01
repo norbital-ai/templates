@@ -9,6 +9,8 @@
 
 import { Number as EffectNumber, Result } from 'effect';
 import { formatDateISO, isCalendarDate } from '@norbital-ai/std/date';
+import { decodeNumber } from '@norbital-ai/std/json';
+
 import type { CollectionInitialFilter } from '@norbital-ai/ui/collection-surface';
 
 /** The business timezone every calendar-day default and `contains_date` filter resolves in. */
@@ -93,7 +95,7 @@ function timeZoneOffsetMs(at: Date, timeZone: string): number {
 		second: '2-digit'
 	}).formatToParts(at);
 	const field = (type: Intl.DateTimeFormatPartTypes) =>
-		Number(parts.find((part) => part.type === type)?.value ?? '0');
+		decodeNumber(parts.find((part) => part.type === type)?.value ?? '0');
 	const wallClockAsUtc = Date.UTC(
 		field('year'),
 		field('month') - 1,
@@ -211,16 +213,16 @@ export function monthKey(date: string | Date): string {
 
 /** `YYYY-MM` offset by whole months. */
 export function shiftMonthKey(period: string, months: number): string {
-	const year = Number(period.slice(0, 4));
-	const month = Number(period.slice(5, 7));
+	const year = decodeNumber(period.slice(0, 4));
+	const month = decodeNumber(period.slice(5, 7));
 	const shifted = new Date(Date.UTC(year, month - 1 + months, 1));
 	return shifted.toISOString().slice(0, 7);
 }
 
 /** Number of days in the `YYYY-MM` month. */
 export function daysInMonth(period: string): number {
-	const year = Number(period.slice(0, 4));
-	const month = Number(period.slice(5, 7));
+	const year = decodeNumber(period.slice(0, 4));
+	const month = decodeNumber(period.slice(5, 7));
 	return new Date(Date.UTC(year, month, 0)).getUTCDate();
 }
 

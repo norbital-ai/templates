@@ -20,6 +20,7 @@ import { dateKey } from '../../lib/iso-day.js';
 import { leaveBalance, resolveEntitlement, type LedgerRow } from '../payroll_runs/lib/leave.js';
 import { sealedProfileCovering } from '../../lib/statutory_profile.js';
 import type { Hooks } from './$types.js';
+import { decodeNumber } from '@norbital-ai/std/json';
 
 const LIMIT = 20_000;
 
@@ -85,7 +86,10 @@ export default {
 								leave_type_id: row.leave_type_id,
 								entry_date: dateKey(row.from_date),
 								kind: row.kind ?? 'TAKEN',
-								days: row.kind === 'TIME_OFF' ? -Math.abs(Number(row.days)) : Number(row.days),
+								days:
+									row.kind === 'TIME_OFF'
+										? -Math.abs(decodeNumber(row.days))
+										: decodeNumber(row.days),
 								source_id: null,
 								approval_id: null
 							}));
@@ -120,7 +124,7 @@ export default {
 										}),
 									hireDate: dateKey(employment.hire_date),
 									exitDate,
-									leaveYearStartMonth: Number(company.leave_year_start_month),
+									leaveYearStartMonth: decodeNumber(company.leave_year_start_month),
 									ledger,
 									basis: 'SETTLED'
 								},

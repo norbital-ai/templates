@@ -14,6 +14,8 @@
 
 import { isCalendarDate, isClockTime } from '@norbital-ai/std/date';
 import { getErrorMessage } from '@norbital-ai/std/error';
+import { decodeNumber } from '@norbital-ai/std/json';
+
 import { Result, Schema } from 'effect';
 import { calendarDaysInMonth, monthBounds } from '../../lib/period.js';
 import { WorkbookImportError, type SheetCell, type SheetTable } from '../../lib/workbook-rows.js';
@@ -54,7 +56,7 @@ function monthGridDateForHeader(header: string, month: string): string | undefin
 		return header;
 	}
 	if (!DAY_NUMBER.test(header)) return undefined;
-	const day = `${month}-${pad(Number(header))}`;
+	const day = `${month}-${pad(decodeNumber(header))}`;
 	if (!isCalendarDate(day)) {
 		throw new WorkbookImportError(
 			`Column "${header}" is not a day of ${month}. Use 1–${calendarDaysInMonth(month).length}, or full YYYY-MM-DD dates.`

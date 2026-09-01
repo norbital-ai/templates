@@ -15,13 +15,14 @@
 	 */
 	import { Input } from '@norbital-ai/ui/input';
 	import type { CollectionFormRendererProps } from '@norbital-ai/ui/collection-form';
+	import { decodeNumber } from '@norbital-ai/std/json';
 
 	/** One step of the input, in stored minutes. */
 	const STEP_MINUTES = 30;
 
 	let props: CollectionFormRendererProps = $props();
 
-	const minutes = $derived(Number(props.value));
+	const minutes = $derived(decodeNumber(props.value));
 	const hours = $derived(Number.isFinite(minutes) ? String(minutes / 60) : '');
 
 	function emitHours(raw: string, snap: boolean): void {
@@ -29,7 +30,7 @@
 			props.onValueChange(0);
 			return;
 		}
-		const typed = Number(raw);
+		const typed = decodeNumber(raw);
 		if (!Number.isFinite(typed) || typed < 0) return;
 		const asMinutes = typed * 60;
 		props.onValueChange(

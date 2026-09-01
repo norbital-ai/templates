@@ -19,6 +19,7 @@
 	import type { RepresentationProps } from './$types.js';
 	import { componentEntryEventIssues } from '../../lib/component_entry_refusals.js';
 	import { sourceLock, sourceLockRecordMetadata } from '../../lib/scheduling/lock.js';
+	import { decodeNumber } from '@norbital-ai/std/json';
 
 	let { record, close }: RepresentationProps = $props();
 	const { t } = useI18n<TenantI18nKeys>();
@@ -90,7 +91,7 @@
 					event: values.event,
 					effective_range: values.effective_range,
 					corrects_adjustment_id: optionalText(values.corrects_adjustment_id),
-					amount: values.amount == null ? null : Number(values.amount),
+					amount: values.amount == null ? null : decodeNumber(values.amount),
 					pay_period: optionalText(values.pay_period)
 				}).map((message) => ({ message, path: ['event'] }))
 			)

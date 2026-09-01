@@ -15,6 +15,8 @@
 import { refuse } from '@norbital-ai/bolt/authoring';
 import { Effect } from 'effect';
 import { sha256Json } from '@norbital-ai/std/reckon';
+import { decodeNumber } from '@norbital-ai/std/json';
+
 import type { WorkspaceRow } from '../$types.js';
 import { PAGE_LIMIT, type PayrollReadApi, type ReadLog } from './api.js';
 import { bandAgeFloor, bandCeiling } from './bands.js';
@@ -251,7 +253,7 @@ export function pickConfiguration(
 
 		// Profile scoping replaces per-row effective dating: the version governs its period whole.
 		const contributions = live(contributionRows).toSorted(
-			(left, right) => Number(left.sequence) - Number(right.sequence)
+			(left, right) => decodeNumber(left.sequence) - decodeNumber(right.sequence)
 		);
 
 		const contributionIds = contributions.map((row) => row.id);
@@ -271,7 +273,7 @@ export function pickConfiguration(
 		}
 
 		const payComponents = live(payComponentRows).toSorted(
-			(left, right) => Number(left.sequence) - Number(right.sequence)
+			(left, right) => decodeNumber(left.sequence) - decodeNumber(right.sequence)
 		);
 		const treatments = new Map<string, Treatment>();
 		for (const component of payComponents) {

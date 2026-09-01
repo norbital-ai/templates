@@ -19,6 +19,8 @@
  */
 
 import { getErrorMessage } from '@norbital-ai/std';
+import { decodeNumber } from '@norbital-ai/std/json';
+
 import { Effect, Result, Schema } from 'effect';
 import type { Configuration } from './configuration.js';
 import { requiredDateKey } from './dates.js';
@@ -96,7 +98,7 @@ export function validateConfiguration(configuration: Configuration): RunIssue[] 
 
 	// ── the schemes ─────────────────────────────────────────────────────────────────────────────
 	const sequenceById = new Map(
-		configuration.contributions.map((entry) => [entry.row.id, Number(entry.row.sequence)])
+		configuration.contributions.map((entry) => [entry.row.id, decodeNumber(entry.row.sequence)])
 	);
 	for (const contribution of configuration.contributions) {
 		const code = contribution.row.code;
@@ -143,7 +145,7 @@ export function validateConfiguration(configuration: Configuration): RunIssue[] 
 				);
 				continue;
 			}
-			if (relievedSequence <= Number(contribution.row.sequence))
+			if (relievedSequence <= decodeNumber(contribution.row.sequence))
 				blocker(
 					'RELIEF_ORDER',
 					`${code} is a relief inside a contribution that runs before it. A relief must be ` +
@@ -217,7 +219,7 @@ export function validateOvertimeLimits(options: ValidateOvertimeLimitsOptions): 
 				(limit) =>
 					limit.period === 'MONTH' &&
 					limit.measures === 'OVERTIME_HOURS' &&
-					options.monthHours > Number(limit.max_hours)
+					options.monthHours > decodeNumber(limit.max_hours)
 			)
 			.map((limit) => {
 				const severity: IssueSeverity = limit.on_exceed === 'BLOCK' ? 'BLOCKER' : 'WARNING';

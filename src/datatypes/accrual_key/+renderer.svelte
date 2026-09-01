@@ -8,6 +8,8 @@
 	import { accrualKeySchema } from './+definition.js';
 	import type { CollectionField } from '@norbital-ai/ui/data-renderer';
 	import type { RendererProps, Value } from './$types.js';
+	import { decodeNumber } from '@norbital-ai/std/json';
+
 	const { t } = useI18n<TenantI18nKeys>();
 
 	type KeyBy = Value['by'];
@@ -64,7 +66,7 @@
 	}
 
 	function numberFrom(raw: string, fallback: number): number {
-		const next = Number(raw);
+		const next = decodeNumber(raw);
 		return Number.isFinite(next) ? next : fallback;
 	}
 </script>

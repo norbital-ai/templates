@@ -11,6 +11,7 @@ import {
 } from '../../lib/scheduling/lock.js';
 import type { Api, Hooks } from './$types.js';
 import { assertNoOverlap, readOverlapData, type OverlapData } from './lib/assignment-overlap.js';
+import { decodeNumber } from '@norbital-ai/std/json';
 
 const QUERY_LIMIT = 20_000;
 
@@ -197,7 +198,7 @@ function assertWorkedIntervals(
 		previousEnd = endedAt;
 	}
 
-	const unpaidBreak = Number(breakMinutes ?? 0);
+	const unpaidBreak = decodeNumber(breakMinutes ?? 0);
 	if (!Number.isInteger(unpaidBreak) || unpaidBreak < 0) {
 		refuse('Unpaid break must be a non-negative whole number of minutes.');
 	}

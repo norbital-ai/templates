@@ -29,6 +29,8 @@
 
 import { refuse } from '@norbital-ai/bolt/authoring';
 import { isCalendarDate, isClockTime, isUtcIsoInstant } from '@norbital-ai/std/date';
+import { decodeNumber } from '@norbital-ai/std/json';
+
 import { Array, Effect, Result, Schema } from 'effect';
 import { dateKey } from '../../lib/iso-day.js';
 import { formatNamedList, monthBounds } from '../../lib/period.js';
@@ -389,15 +391,15 @@ function localWallTimeToUtcIso(calendarDate: string, clockTime: string, timeZone
 		const parts = formatter.formatToParts(instant);
 		const part = (type: Intl.DateTimeFormatPartTypes) =>
 			parts.find((candidate) => candidate.type === type)?.value ?? '';
-		let shownHour = Number(part('hour'));
+		let shownHour = decodeNumber(part('hour'));
 		if (shownHour === 24) shownHour = 0;
 		return Date.UTC(
-			Number(part('year')),
-			Number(part('month')) - 1,
-			Number(part('day')),
+			decodeNumber(part('year')),
+			decodeNumber(part('month')) - 1,
+			decodeNumber(part('day')),
 			shownHour,
-			Number(part('minute')),
-			Number(part('second'))
+			decodeNumber(part('minute')),
+			decodeNumber(part('second'))
 		);
 	};
 

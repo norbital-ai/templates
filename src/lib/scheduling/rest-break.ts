@@ -1,6 +1,7 @@
 import { Schema } from 'effect';
 import { statutoryRestBreakRuleValueSchema } from '../../datatypes/statutory_regime/+definition.js';
 import type { StatutoryRestBreakRule } from '../../datatypes/statutory_regime/+definition.js';
+import { decodeNumber } from '@norbital-ai/std/json';
 
 /**
  * Whether a working day satisfied the rest break its jurisdiction owes, derived from the punches.
@@ -222,7 +223,7 @@ export function restBreakAssessment(input: RestBreakInput): RestBreakAssessment 
 		longestRunMinutes = Math.max(longestRunMinutes, (runEnd - runStart) / MINUTE_MS);
 	}
 
-	const recorded = Number(input.breakMinutes ?? 0);
+	const recorded = decodeNumber(input.breakMinutes ?? 0);
 	const takenMinutes = Math.round(
 		Math.max(observedBreakMinutes, Number.isFinite(recorded) ? Math.max(0, recorded) : 0)
 	);
@@ -268,7 +269,7 @@ export function restBreakBlocksWrite(assessment: RestBreakAssessment): boolean {
 }
 
 function hoursText(hours: number): string {
-	return String(Number(hours.toFixed(2)));
+	return String(decodeNumber(hours.toFixed(2)));
 }
 
 /**

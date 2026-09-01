@@ -26,6 +26,8 @@
 import { Schema } from 'effect';
 import { daysInMonth, startOfDayInstant } from '../calendar.js';
 import { formatDateISO } from '@norbital-ai/std/date';
+import { decodeNumber } from '@norbital-ai/std/json';
+
 import { workedMinutes } from '../../attendance.js';
 import type { InstantRangeValue as WorkedInterval } from '@norbital-ai/bolt/authoring';
 import { workPatternValueSchema } from '../../../datatypes/work_pattern/+definition.js';
@@ -1174,7 +1176,7 @@ export const CONFLICT_PRESENTATION: Record<
 
 function shortClock(value: string): string {
 	const [hourText, minuteText] = value.split(':');
-	const hour = Number(hourText);
+	const hour = decodeNumber(hourText);
 	const suffix = hour >= 12 ? 'p' : 'a';
 	const displayHour = hour % 12 || 12;
 	return minuteText === '00' ? `${displayHour}${suffix}` : `${displayHour}:${minuteText}${suffix}`;

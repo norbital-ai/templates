@@ -31,6 +31,7 @@
 
 import { Option, Schema } from 'effect';
 import { RoundingMethodSchema, type RoundingMethod } from './rounding.js';
+import { decodeNumber } from '@norbital-ai/std/json';
 
 export const ADDITIONAL_REMUNERATION = 'ADDITIONAL_REMUNERATION';
 
@@ -80,7 +81,7 @@ const EMPTY: SpecialRules = {
 const decodeRoundingMethod = Schema.decodeUnknownOption(RoundingMethodSchema);
 
 function amount(token: string, argument: string | undefined): number {
-	const parsed = Number(argument);
+	const parsed = decodeNumber(argument);
 	if (!Number.isFinite(parsed)) throw new Error(`Special rule "${token}" needs a numeric amount.`);
 	return parsed;
 }

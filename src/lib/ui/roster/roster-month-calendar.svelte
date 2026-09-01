@@ -85,6 +85,7 @@
 		type DayFacts
 	} from './roster-month.js';
 	import { scrollBodyByWheel, syncHeaderTrack } from './header-scroll.js';
+	import { decodeNumber } from '@norbital-ai/std/json';
 
 	const { t } = useI18n<TenantI18nKeys>();
 
@@ -511,7 +512,7 @@
 									>
 										<Inline align="baseline" justify="between" gap="xs">
 											<span class="text-sm font-semibold tabular-nums">
-												{Number(date.slice(8, 10))}
+												{decodeNumber(date.slice(8, 10))}
 											</span>
 											<Inline as="span" gap="xs" class="text-micro">
 												{#if holiday != null}

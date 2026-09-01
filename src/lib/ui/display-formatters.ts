@@ -16,6 +16,7 @@ import { leavePayrollEffectSchema } from '../../datatypes/leave_payroll_effect/+
 import { rateAwardSchema } from '../../datatypes/rate_award/+definition.js';
 import { rateSelectorSchema } from '../../datatypes/rate_selector/+definition.js';
 import { statutoryFactStatusSchema } from '../../datatypes/statutory_fact_status/+definition.js';
+import { decodeNumber } from '@norbital-ai/std/json';
 
 const DECIMAL = new Intl.NumberFormat(undefined, {
 	minimumFractionDigits: 2,
@@ -25,7 +26,7 @@ const DECIMAL = new Intl.NumberFormat(undefined, {
 /** A `numeric()` column arrives as a string; render it without inventing precision. */
 export function formatNumeric(value: unknown): string {
 	if (value == null || value === '') return '—';
-	const parsed = Number(value);
+	const parsed = decodeNumber(value);
 	return Number.isFinite(parsed) ? DECIMAL.format(parsed) : String(value);
 }
 
@@ -48,7 +49,7 @@ const HOURS = new Intl.NumberFormat(undefined, {
  */
 export function formatDurationHours(value: unknown, t: Translator): string {
 	if (value == null || value === '') return '—';
-	const minutes = Number(value);
+	const minutes = decodeNumber(value);
 	if (!Number.isFinite(minutes)) return '—';
 	return t('component.hours_short', { hours: HOURS.format(minutes / 60) });
 }
@@ -94,7 +95,7 @@ function calendarDayFrom(value: unknown): string | null {
 export function formatCalendarDate(value: unknown): string {
 	const day = calendarDayFrom(value);
 	if (day === null) return '—';
-	const month = MONTH_NAMES[Number(day.slice(5, 7)) - 1];
+	const month = MONTH_NAMES[decodeNumber(day.slice(5, 7)) - 1];
 	if (month === undefined) return '—';
 	return `${day.slice(8, 10)} ${month} ${day.slice(0, 4)}`;
 }

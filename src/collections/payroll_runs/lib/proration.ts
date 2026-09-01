@@ -19,6 +19,7 @@
 import { Schema } from 'effect';
 import type { Jurisdiction } from './configuration.js';
 import { inclusiveDays, intersectDays, monthDays, type IsoDate } from './dates.js';
+import { decodeNumber } from '@norbital-ai/std/json';
 
 const DayWindowSchema = Schema.Struct({ start: Schema.String, end: Schema.String });
 type DayWindow = Schema.Schema.Type<typeof DayWindowSchema>;
@@ -81,7 +82,7 @@ export function prorationSegment(options: ProrationFractionOptions): {
 					denominator: options.workingDaysIn(options.period)
 				};
 			case 'FIXED_DAYS': {
-				const divisor = Number(basis.days);
+				const divisor = decodeNumber(basis.days);
 				if (!(divisor > 0))
 					throw new Error('A FIXED_DAYS proration basis needs a positive divisor.');
 				return { days: inclusiveDays(covered.start, covered.end), denominator: divisor };

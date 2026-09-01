@@ -37,6 +37,7 @@
 	} from '../../lib/ui/calendar.js';
 	import { getErrorMessage } from '@norbital-ai/std';
 	import { formatDateISO } from '@norbital-ai/std/date';
+	import { decodeNumber } from '@norbital-ai/std/json';
 	import RosterMonthBoard, { type BoardCell } from '../../lib/ui/roster/roster-month-board.svelte';
 	import DaySheet, { type DaySheetChange } from '../../lib/ui/roster/day-sheet.svelte';
 	import {
@@ -196,10 +197,9 @@
 		}
 		const cutoffDay = selectedCompany?.pay_cutoff_day;
 		if (cutoffDay == null) return null;
-		const day = String(EffectNumber.clamp({ minimum: 1, maximum: 28 })(Number(cutoffDay))).padStart(
-			2,
-			'0'
-		);
+		const day = String(
+			EffectNumber.clamp({ minimum: 1, maximum: 28 })(decodeNumber(cutoffDay))
+		).padStart(2, '0');
 		return {
 			start: `${shiftMonthKey(month, -1)}-${day}`,
 			end: formatDateISO(new Date(Date.parse(`${month}-${day}T00:00:00.000Z`) - 86_400_000))
@@ -655,7 +655,7 @@
 				: t('app.scheduling.blocker_published', { month })
 	);
 
-	function importRoster(): Effect.Effect<void, unknown> {
+	function importRoster() {
 		const rosterId = draftRoster?.id;
 		if (rosterId == null) return Effect.void;
 		// `runWorkbookImport` reports its own refusals: the pipeline answers with the rows the
@@ -1089,7 +1089,7 @@
 		employmentId: string,
 		date: string,
 		plan: { readonly rosterCodeId: string; readonly note: string | null }
-	): Effect.Effect<CollectionMutationSubmission, unknown> {
+	) {
 		if (draftRoster == null) {
 			return Effect.fail(new Error(t('app.scheduling.blocker_no_draft', { month })));
 		}
@@ -1360,7 +1360,7 @@
 	 * pipeline dispatches on the payload's own `sheet` tag, and a punch landing on a day the roster
 	 * import already wrote is an update of that day rather than a refusal.
 	 */
-	function importAttendance(): Effect.Effect<void, unknown> {
+	function importAttendance() {
 		return runWorkbookImport(
 			{
 				collectionName: 'work_days',

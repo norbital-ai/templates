@@ -3,6 +3,7 @@ import { refuse } from '@norbital-ai/bolt/authoring';
 import { dateKey } from '../../lib/iso-day.js';
 import { refuseIfCaptured } from '../../lib/scheduling/lock.js';
 import type { Hooks } from './$types.js';
+import { decodeNumber } from '@norbital-ai/std/json';
 
 /**
  * One amount due under a loan, and the honesty the schedule's shape asks of it.
@@ -26,12 +27,12 @@ export default {
 					'Refuses a repayment whose amount is not a positive magnitude, whose sequence is not a whole number of one or more, whose due date is missing, and any change to a repayment a payroll run has already captured.',
 				handler: ({ input, existing, api }) => {
 					const candidate = existing === undefined ? { ...input } : { ...existing, ...input };
-					const amountDue = Number(candidate.amount_due);
+					const amountDue = decodeNumber(candidate.amount_due);
 					if (!(amountDue > 0))
 						refuse(
 							"A repayment amount due is a positive magnitude; part-recovery is the engine's business, never a smaller row."
 						);
-					const sequence = Number(candidate.sequence);
+					const sequence = decodeNumber(candidate.sequence);
 					if (!Number.isInteger(sequence) || sequence < 1)
 						refuse('A repayment sequence is a positive whole number.');
 					const due = dateKey(candidate.due_date);

@@ -51,6 +51,7 @@
 	import { inForceOnDay } from '../lib/effective_range.js';
 	import { getErrorMessage } from '@norbital-ai/std';
 	import { formatDateISO } from '@norbital-ai/std/date';
+	import { decodeNumber } from '@norbital-ai/std/json';
 	import {
 		ATTENDANCE_DRAFT_PROBLEM_KEY,
 		DAY_MINUTES,
@@ -608,7 +609,8 @@
 					// balance ledger stores movements, where leave taken is a debit. The request hook
 					// and payroll engine already make this conversion; the employee panel must read the
 					// same sign or a newly submitted day increases the displayed balance instead.
-					days: row.kind === 'TIME_OFF' ? -Math.abs(Number(row.days)) : Number(row.days),
+					days:
+						row.kind === 'TIME_OFF' ? -Math.abs(decodeNumber(row.days)) : decodeNumber(row.days),
 					source_id: null,
 					approval_id: null
 				}
@@ -623,7 +625,7 @@
 		const hire = formatDateISO(employment.hire_date) || today;
 		const exit =
 			employment.exit_date == null ? null : (formatDateISO(employment.exit_date) ?? null);
-		const yearStart = Number(company?.leave_year_start_month ?? 1);
+		const yearStart = decodeNumber(company?.leave_year_start_month ?? 1);
 		return profileLeaveTypes.map((type) => {
 			const entitlementAt = (serviceMonths: number, asOf: string) =>
 				resolveEntitlement({
@@ -663,11 +665,11 @@
 						.filter(
 							(row) =>
 								row.leave_type_id === type.id &&
-								Number(row.days) < 0 &&
+								decodeNumber(row.days) < 0 &&
 								row.entry_date >= leaveYearStart(today, yearStart) &&
 								row.entry_date <= today
 						)
-						.reduce((total, row) => total + Number(row.days), 0)
+						.reduce((total, row) => total + decodeNumber(row.days), 0)
 				),
 				encashed: leaveLedgerRows
 					.filter(
@@ -677,7 +679,7 @@
 							row.entry_date >= leaveYearStart(today, yearStart) &&
 							row.entry_date <= today
 					)
-					.reduce((total, row) => total + Math.abs(Number(row.days)), 0),
+					.reduce((total, row) => total + Math.abs(decodeNumber(row.days)), 0),
 				remaining: leaveBalance(input, today)
 			};
 		});
@@ -706,10 +708,9 @@
 	const scheduleCutoff = $derived.by(() => {
 		const cutoffDay = company?.pay_cutoff_day;
 		if (cutoffDay == null) return null;
-		const day = String(EffectNumber.clamp({ minimum: 1, maximum: 28 })(Number(cutoffDay))).padStart(
-			2,
-			'0'
-		);
+		const day = String(
+			EffectNumber.clamp({ minimum: 1, maximum: 28 })(decodeNumber(cutoffDay))
+		).padStart(2, '0');
 		return {
 			start: `${shiftMonthKey(scheduleMonth, -1)}-${day}`,
 			end: formatDateISO(new Date(Date.parse(`${scheduleMonth}-${day}T00:00:00.000Z`) - 86_400_000))

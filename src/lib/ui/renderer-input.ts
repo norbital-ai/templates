@@ -14,16 +14,18 @@
  * "thinner than a real component, keep it inlined".
  */
 
+import { decodeNumber } from '@norbital-ai/std/json';
+
 /** A finite number from a raw field, or `fallback` when the field does not hold one. */
 export function numberFrom(raw: string, fallback: number): number {
-	const next = Number(raw);
+	const next = decodeNumber(raw);
 	return Number.isFinite(next) ? next : fallback;
 }
 
 /** As `numberFrom`, where an empty field means "no bound" rather than a value. */
 export function nullableNumberFrom(raw: string): number | null {
 	if (raw.trim().length === 0) return null;
-	const next = Number(raw);
+	const next = decodeNumber(raw);
 	return Number.isFinite(next) ? next : null;
 }
 

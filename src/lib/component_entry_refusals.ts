@@ -1,5 +1,6 @@
 import { Result, Schema } from 'effect';
 import { componentEntryEventSchema } from '../datatypes/component_entry_event/+definition.js';
+import { decodeNumber } from '@norbital-ai/std/json';
 
 /**
  * ============================================================================
@@ -118,7 +119,7 @@ export const componentEntryEventIssues = (candidate: ComponentEntryCandidate): s
 			issues.push('The pay period override must be a month written YYYY-MM.');
 	}
 
-	const amount = Number(candidate.amount);
+	const amount = decodeNumber(candidate.amount);
 	if (!Number.isFinite(amount) || amount <= 0)
 		issues.push('An entry amount is a positive magnitude; direction comes from the pay component.');
 

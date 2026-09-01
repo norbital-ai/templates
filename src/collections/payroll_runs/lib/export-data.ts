@@ -22,6 +22,7 @@ import { patternRosterCodeId } from '../../../lib/scheduling/work-pattern.js';
 import type { WorkPattern } from '../../../datatypes/work_pattern/+definition.js';
 import { normalizedWorkedIntervals, type WorkDayLike } from './overtime.js';
 import type { WorkspaceRow } from '../$types.js';
+import { decodeNumber } from '@norbital-ai/std/json';
 
 type RunExport = {
 	readonly runId: string;
@@ -58,7 +59,7 @@ function timestampHours(row: WorkDayLike): number {
 		(total, interval) => total + (interval.end - interval.start) / 3_600_000,
 		0
 	);
-	return Math.max(0, elapsed - Math.max(0, Number(row.break_minutes)) / 60);
+	return Math.max(0, elapsed - Math.max(0, decodeNumber(row.break_minutes)) / 60);
 }
 
 /**
@@ -280,7 +281,7 @@ export function loadRunExports(
 						employmentId: payslip.employment_id,
 						employeeNumber,
 						currency: payslip.currency,
-						net: Number(payslip.net),
+						net: decodeNumber(payslip.net),
 						bank: {
 							account_name: account.bank_account_name,
 							bank_code: account.bank_code,
@@ -297,7 +298,7 @@ export function loadRunExports(
 				 * wage twice.
 				 */
 				const payslipAdjustments = (adjustmentsByPayslip.get(payslip.id) ?? []).toSorted(
-					(left, right) => Number(left.sequence) - Number(right.sequence)
+					(left, right) => decodeNumber(left.sequence) - decodeNumber(right.sequence)
 				);
 				const reportLine = (
 					componentCode: string,
@@ -325,7 +326,7 @@ export function loadRunExports(
 				};
 				const reportLines: ReportLine[] = [
 					...payslip.base.flatMap((entry) =>
-						reportLine(entry.component_code, Number(entry.amount), null)
+						reportLine(entry.component_code, decodeNumber(entry.amount), null)
 					),
 					...payslipAdjustments.flatMap((row): ReportLine[] => {
 						const ruleKey = row.statutory_rule_key;
@@ -343,8 +344,8 @@ export function loadRunExports(
 									calculationSource: overtimeRuleKeyIsExcess(ruleKey)
 										? 'OVERTIME_EXCESS'
 										: 'OVERTIME',
-									amount: Number(row.amount),
-									quantity: row.quantity == null ? null : Number(row.quantity),
+									amount: decodeNumber(row.amount),
+									quantity: row.quantity == null ? null : decodeNumber(row.quantity),
 									isCompanyDirect: false,
 									isClaim: false,
 									isLoanInstalment: false,
@@ -355,8 +356,8 @@ export function loadRunExports(
 						}
 						return reportLine(
 							row.label,
-							Number(row.amount),
-							row.quantity == null ? null : Number(row.quantity)
+							decodeNumber(row.amount),
+							row.quantity == null ? null : decodeNumber(row.quantity)
 						).map((line) => ({
 							...line,
 							// Recovery of a loan repayment is the one adjustment a workbook reports
@@ -373,9 +374,9 @@ export function loadRunExports(
 					// One entry per scheme, both shares on it, named by its code — so there is no second
 					// row to pair with and no base to guard against double-counting.
 					contributionTotals.set(charge.scheme_code, {
-						base: Number(charge.base_amount),
-						employee: Number(charge.employee_amount),
-						employer: Number(charge.employer_amount)
+						base: decodeNumber(charge.base_amount),
+						employee: decodeNumber(charge.employee_amount),
+						employer: decodeNumber(charge.employer_amount)
 					});
 				}
 				return {
@@ -406,10 +407,10 @@ export function loadRunExports(
 						actualHours: runTimes.reduce((total, row) => total + timestampHours(row), 0),
 						shiftCodes: [...new Set(scheduled.map((day) => day.code))].toSorted()
 					},
-					gross: Number(payslip.gross),
-					totalDeductions: Number(payslip.total_deductions),
-					net: Number(payslip.net),
-					employerCost: Number(payslip.employer_cost),
+					gross: decodeNumber(payslip.gross),
+					totalDeductions: decodeNumber(payslip.total_deductions),
+					net: decodeNumber(payslip.net),
+					employerCost: decodeNumber(payslip.employer_cost),
 					lines: reportLines,
 					contributions: contributionTotals
 				};

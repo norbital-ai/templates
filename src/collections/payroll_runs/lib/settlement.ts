@@ -51,6 +51,8 @@ import {
 import { coversDate } from './effective.js';
 import { attendanceWindow, type PayrollWindow } from './period.js';
 import type { WorkspaceRow } from '../$types.js';
+import { decodeNumber } from '@norbital-ai/std/json';
+
 /** The company-stored settlement policy value, owned by its datatype definition. */
 import { settlementPolicyValueSchema } from '../../../datatypes/settlement_policy/+definition.js';
 
@@ -113,8 +115,8 @@ export function readSettlementPolicy(company: {
 			extended == null
 				? null
 				: {
-						minimumCalendarDays: Number(extended.minimum_calendar_days),
-						bridgedGapDays: Number(extended.bridged_gap_days),
+						minimumCalendarDays: decodeNumber(extended.minimum_calendar_days),
+						bridgedGapDays: decodeNumber(extended.bridged_gap_days),
 						populationContributionId: extended.population_contribution_id
 					},
 		absenceProration: (stored.absence_proration ?? []).map((rule) => ({
@@ -123,8 +125,8 @@ export function readSettlementPolicy(company: {
 		})),
 		overtimeWindows: (stored.overtime_windows ?? []).map((window) => ({
 			payFrequency: window.pay_frequency,
-			startDay: Number(window.start_day),
-			endDay: Number(window.end_day)
+			startDay: decodeNumber(window.start_day),
+			endDay: decodeNumber(window.end_day)
 		}))
 	};
 }
@@ -155,8 +157,8 @@ export function overtimeAttendanceWindow(
 			`Overtime window ${override.payFrequency} starts on day ${override.startDay} after ` +
 				`its end day ${override.endDay}.`
 		);
-	const year = Number(options.salary.start.slice(0, 4));
-	const monthIndex = Number(options.salary.start.slice(5, 7)) - 1;
+	const year = decodeNumber(options.salary.start.slice(0, 4));
+	const monthIndex = decodeNumber(options.salary.start.slice(5, 7)) - 1;
 	return {
 		start: monthDay(year, monthIndex, override.startDay),
 		end: monthDay(year, monthIndex, override.endDay)

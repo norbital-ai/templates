@@ -20,6 +20,7 @@ import { dateKey, requiredDateKey, type IsoDate } from './dates.js';
 import { coversDate } from './effective.js';
 import { workPatternValueSchema } from '../../../datatypes/work_pattern/+definition.js';
 import type { PayrollWindow } from './period.js';
+import { decodeNumber } from '@norbital-ai/std/json';
 
 const DayTypeSchema = Schema.Literals(['ORDINARY', 'REST_DAY', 'PUBLIC_HOLIDAY', 'OFF_DAY']);
 export type DayType = Schema.Schema.Type<typeof DayTypeSchema>;
@@ -56,9 +57,9 @@ type WeeklyHoursTerms = Schema.Schema.Type<typeof WeeklyHoursTermsSchema>;
 
 /** Kept as a derived payroll-rate shape; these are no longer independent employment fields. */
 export function normalDailyHours(terms: WeeklyHoursTerms): number {
-	const days = Number(terms.working_days_per_week);
+	const days = decodeNumber(terms.working_days_per_week);
 	if (!(days > 0)) throw new Error('Derived working days per week must be greater than zero.');
-	return Number(terms.ordinary_hours_per_week) / days;
+	return decodeNumber(terms.ordinary_hours_per_week) / days;
 }
 
 const ScheduleTermsSchema = Schema.Struct({

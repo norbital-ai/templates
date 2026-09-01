@@ -66,6 +66,7 @@
 	} from './roster-month.js';
 	import { scrollBodyByWheel, syncHeaderTrack } from './header-scroll.js';
 	import { sourceLockReason, type SettlementClaim } from '../../scheduling/lock.js';
+	import { decodeNumber } from '@norbital-ai/std/json';
 
 	type Person = { readonly id: string; readonly number: string; readonly name: string };
 
@@ -543,7 +544,7 @@
 									? WEEKDAY_LETTERS[new Date(`${date}T00:00:00.000Z`).getUTCDay()]!
 									: HOLIDAY_PRESENTATION.mark}
 						</span>
-						<span class="block tabular-nums">{Number(date.slice(8, 10))}</span>
+						<span class="block tabular-nums">{decodeNumber(date.slice(8, 10))}</span>
 					</div>
 				{/each}
 			</div>

@@ -75,6 +75,7 @@ import {
 	type RuleDayType,
 	type ScheduledDay
 } from './schedule.js';
+import { decodeNumber } from '@norbital-ai/std/json';
 
 /**
  * The wall-clock frame attendance is recorded in, in minutes east of UTC.
@@ -196,7 +197,7 @@ function clockedWorkHours(entry: WorkDayLike): number {
 		(total, interval) => total + (interval.end - interval.start) / HOUR_MS,
 		0
 	);
-	return Math.max(0, elapsed - Math.max(0, Number(entry.break_minutes)) / 60);
+	return Math.max(0, elapsed - Math.max(0, decodeNumber(entry.break_minutes)) / 60);
 }
 
 /**

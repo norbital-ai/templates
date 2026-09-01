@@ -27,6 +27,7 @@
 	import { cn } from '@norbital-ai/ui/utils';
 	import { pointAt, pointNumber, type DayHalf, type HalfDayPoint } from '../../../lib/half-day.js';
 	import { todayKey } from '../calendar.js';
+	import { decodeNumber } from '@norbital-ai/std/json';
 
 	type Props = {
 		value: HalfDayRange | null;
@@ -369,7 +370,7 @@
 								<span
 									class="pointer-events-none absolute top-0.5 left-0.5 z-10 rounded-sm bg-background/80 px-0.5 text-[0.625rem] font-semibold tabular-nums"
 								>
-									{Number(date.slice(8))}
+									{decodeNumber(date.slice(8))}
 								</span>
 								{#if inMonth && dayAvailability.eligible === false && dayAvailability.reasonMark != null}
 									<span

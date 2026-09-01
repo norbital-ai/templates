@@ -18,6 +18,7 @@ import type { WorkspaceRow } from '../$types.js';
 import type { ComponentEntryEvent } from '../../../datatypes/component_entry_event/+definition.js';
 import { dateKey, type IsoDate } from './dates.js';
 import { defaultPayPeriod } from './period.js';
+import { decodeNumber } from '@norbital-ai/std/json';
 
 export type ComponentEntry = WorkspaceRow<'component_entries'>;
 export type Loan = WorkspaceRow<'loans'>;
@@ -104,7 +105,7 @@ export function depletes(entry: ComponentEntry): boolean {
  * this same subtraction.
  */
 export function repaymentOutstanding(repayment: LoanRepayment, consumed: number): number {
-	const due = Number(repayment.amount_due);
+	const due = decodeNumber(repayment.amount_due);
 	const taken = Math.min(Math.max(consumed, 0), due);
 	return Math.max(0, due - taken);
 }
