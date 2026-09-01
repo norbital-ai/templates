@@ -1,4 +1,5 @@
 import { Effect, Schema } from 'effect';
+import { toError } from '@norbital-ai/std';
 import converterWorkerUrl from './ifc_viewer.converter.worker.ts?worker&url';
 import type { I18nApi } from '@norbital-ai/ui/i18n';
 import type { TenantI18nKeys } from '$bolt/i18n-keys';
@@ -31,10 +32,6 @@ class WorkerConnectionError extends Error {
 		this.name = 'WorkerConnectionError';
 		this.context = context;
 	}
-}
-
-function toError(error: unknown): Error {
-	return error instanceof Error ? error : new Error(String(error));
 }
 
 const createConverterWorker = Effect.gen(function* () {
