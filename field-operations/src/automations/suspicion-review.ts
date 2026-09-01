@@ -4,9 +4,9 @@ import type { Api } from './$types.js';
 import { currentDate } from '../lib/clock.js';
 
 // These judgements consume photographs and a strict JSON Schema in the same turn. Keep them on a
-// provider model with native vision + structured-output support. The review is a controller-facing
-// integrity decision, so accuracy is worth the bounded premium over the old mini model.
-const SUSPICION_REVIEW_MODEL = 'openai/gpt-5.2';
+// provider model with native vision + structured-output support.
+// Adapter-qualified per the host model registry contract: `<adapter>/<provider-model>`.
+const SUSPICION_REVIEW_MODEL = 'openrouter/deepseek/deepseek-v4-flash-vision-exp';
 export const ASSIGNMENT_PAGE_SIZE = 500;
 const MAX_RELATED_ROWS = 5_000;
 export const MAX_INFERENCE_IMAGES = 3;

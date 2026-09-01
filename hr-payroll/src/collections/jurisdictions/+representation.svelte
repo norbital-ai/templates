@@ -31,6 +31,8 @@
 		onAfterSubmit={record ? undefined : close}
 	>
 		{#snippet children({ Field })}
+			<Field name="successor_profile_id" hidden />
+			<Field name="void_reason" hidden />
 			<Stack gap="lg">
 				<Stack as="section" gap="sm">
 					<Stack gap="xs">

@@ -30,7 +30,7 @@ test('the immutable review ledger accepts its initial automated create', async (
 		suspicious: false,
 		reason: 'No suspicion found.',
 		evidence_id: null,
-		model: 'openai/gpt-4.1-mini',
+		model: 'openrouter/deepseek/deepseek-v4-flash-vision-exp',
 		reviewed_at: '2026-08-28T00:00:00.000Z',
 		source_key: 'suspicion-review:assignment:basis-hash'
 	};

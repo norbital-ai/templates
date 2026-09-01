@@ -51,7 +51,7 @@ function validateLineFields(input: ResolvedLineInput): void {
 /** Lines on an invoice that still counts: a cancelled invoice claims nothing against an order. */
 const liveLinesOfOrderLine = (orderLineId: string) => ({
 	purchase_order_line_id: { eq: orderLineId },
-	purchase_invoice_line_invoice: { status: { ne: 'cancelled' } }
+	purchase_invoice_line_invoice: { some: { status: { ne: 'cancelled' } } }
 });
 
 /** Invoiced quantity on live (non-cancelled) invoices for one order line. */
@@ -229,7 +229,7 @@ export default {
 					? yield* api.db.purchase_invoice_lines.findMany({
 							where: {
 								purchase_order_line_id: { in: orderLineIds },
-								purchase_invoice_line_invoice: { status: { ne: 'cancelled' } }
+								purchase_invoice_line_invoice: { some: { status: { ne: 'cancelled' } } }
 							},
 							columns: { purchase_order_line_id: true, quantity: true },
 							limit: LINE_LIMIT

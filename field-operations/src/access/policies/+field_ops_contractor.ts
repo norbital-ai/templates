@@ -1,4 +1,4 @@
-import { approveBy, policySql } from '@norbital-ai/bolt/authoring';
+import { approveBy } from '@norbital-ai/bolt/authoring';
 import { Effect } from 'effect';
 import type { Policy } from './$types.js';
 
@@ -8,8 +8,9 @@ import type { Policy } from './$types.js';
  * A contractor is a **user**, not a record. `job_assignments.assignee_user_id` is
  * `user.id`, so the assignment collection carries the requestor directly and the
  * self-scope is a column comparison — `ownAssignment` below is an ordinary `where`, not a subquery.
- * Everything else is one hop from an assignment, so each remaining `policySql` reaches the requestor
- * through `job_assignments` alone.
+ * Everything else reaches that same field through declared one-, two-, or three-table relation
+ * paths. The policy compiler derives the SQL, dependency collections, reverse paths, and indexes
+ * from those trees together.
  *
  * There is deliberately no grant on any collection describing the contractor themselves. The person
  * is `user`, which the runtime's own `bolt.system-collections` policy already grants to any
@@ -17,14 +18,8 @@ import type { Policy } from './$types.js';
  * thing this policy used to have to subquery through, and the reason the contractor app could report
  * a lookup failure as "Could not load your contractor profile" — there is now no profile to load.
  *
- * `${requestor.id}` is **not** interpolated here: these are single-quoted strings, so the
- * literal token reaches the database, and the policy compiler replaces it with a bound parameter on
- * every request. An unknown path throws rather than binding null, so a renamed scope root fails loudly.
- *
- * Use `policySql`, never `RAW`. `RAW` is a function; a grant is stored as jsonb and round-tripped through
- * the manifest, so the function disappears and the grant lands with empty conditions — which the guard
- * reads as unconditional access to the whole collection. A narrowing that silently inverts into a
- * widening is the worst thing a permission rule can do, so `definePolicy` refuses it outright.
+ * The subject operand is a closed node rather than a string token. A misspelled relation or field is
+ * rejected at plan compilation instead of falling through to an opaque SQL branch.
  */
 
 /**
@@ -32,51 +27,33 @@ import type { Policy } from './$types.js';
  *
  * This is the whole of the self-scope. Every other condition below is written in terms of it.
  */
-const ownAssignment = { assignee_user_id: { eq: '${requestor.id}' } } as const;
+const SUBJECT_ID = { $subject: 'id' } as const;
+const ownAssignment = { assignee_user_id: { eq: SUBJECT_ID } } as const;
 
 /** Sites reachable through an assignment. */
-const assignedSite = policySql(
-	'"id" IN (SELECT j.site_id FROM jobs j ' +
-		'JOIN job_assignments a ON a.job_id = j.id ' +
-		'WHERE a.assignee_user_id = ${requestor.id})'
-);
+const assignedSite = {
+	site_jobs: { some: { job_assignment_job: { some: ownAssignment } } }
+} as const;
 
 /** Jobs they were assigned. */
-const assignedJob = policySql(
-	'"id" IN (SELECT a.job_id FROM job_assignments a ' + 'WHERE a.assignee_user_id = ${requestor.id})'
-);
+const assignedJob = { job_assignment_job: { some: ownAssignment } } as const;
 
 /** Variations raised against one of their own assignments. */
-const ownVariation = policySql(
-	'"job_assignment_id" IN (SELECT a.id FROM job_assignments a ' +
-		'WHERE a.assignee_user_id = ${requestor.id})'
-);
+const ownVariation = { job_assignment_variations: { some: ownAssignment } } as const;
 
 /**
  * Photos hang off exactly one of an assignment or a variation, so both legs are needed; a condition on
  * `job_assignment_id` alone would hide every photo attached to their own variation request.
  */
-const ownEvidence = policySql(
-	'("job_assignment_id" IN (SELECT a.id FROM job_assignments a ' +
-		'WHERE a.assignee_user_id = ${requestor.id}) ' +
-		'OR "variation_request_id" IN (SELECT variation.id FROM variation_requests variation ' +
-		'WHERE variation.job_assignment_id IN (SELECT a.id FROM job_assignments a ' +
-		'WHERE a.assignee_user_id = ${requestor.id})))'
-);
+const ownEvidence = {
+	OR: [
+		{ job_assignment_photo_evidence: { some: ownAssignment } },
+		{ variation_request_photo_evidence: { some: ownVariation } }
+	]
+} as const;
 
 /** Messages retained against one of their own assignments. */
-const ownCommunication = policySql(
-	'"job_assignment_id" IN (SELECT a.id FROM job_assignments a ' +
-		'WHERE a.assignee_user_id = ${requestor.id})'
-);
-
-/**
- * Exact linking collections for sync generations. The grant's own collection is deliberately absent:
- * Bolt always advances that generation for direct writes to the target collection.
- */
-const assignmentScopeDependencies = ['job_assignments'] as const;
-const siteScopeDependencies = ['jobs', 'job_assignments'] as const;
-const evidenceScopeDependencies = ['job_assignments', 'variation_requests'] as const;
+const ownCommunication = { job_assignment_communications: { some: ownAssignment } } as const;
 
 /**
  * Read masks are part of the security boundary, not presentation preferences.
@@ -179,14 +156,12 @@ export default {
 		sites: {
 			read: {
 				where: assignedSite,
-				dependencies: siteScopeDependencies,
 				fields: siteReadFields
 			}
 		},
 		jobs: {
 			read: {
 				where: assignedJob,
-				dependencies: assignmentScopeDependencies,
 				fields: jobReadFields
 			}
 		},
@@ -205,7 +180,6 @@ export default {
 		variation_requests: {
 			read: {
 				where: ownVariation,
-				dependencies: assignmentScopeDependencies,
 				fields: variationReadFields
 			},
 			mutate: {
@@ -230,7 +204,6 @@ export default {
 		photo_evidence: {
 			read: {
 				where: ownEvidence,
-				dependencies: evidenceScopeDependencies,
 				fields: evidenceReadFields
 			},
 			mutate: {
@@ -258,7 +231,6 @@ export default {
 		communication_logs: {
 			read: {
 				where: ownCommunication,
-				dependencies: assignmentScopeDependencies,
 				fields: communicationReadFields
 			}
 		}

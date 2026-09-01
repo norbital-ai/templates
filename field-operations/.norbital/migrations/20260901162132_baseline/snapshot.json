@@ -1,8 +1,8 @@
 {
   "dialect": "postgres",
-  "id": "39b461b3-1b59-4ae5-a7af-1e694338c559",
+  "id": "b0fc104b-4ce7-46dc-9e89-c427f9d4a6eb",
   "prevIds": [
-    "dcc0fef1-1b45-4287-bcd8-e1d7da6eca3b"
+    "0fabcb4d-6d6c-4a98-b6a8-61a43f5cf37e"
   ],
   "version": "8",
   "ddl": [
@@ -1705,7 +1705,7 @@
       "table": "communication_logs"
     },
     {
-      "nameExplicit": false,
+      "nameExplicit": true,
       "columns": [
         {
           "value": "job_assignment_id",
@@ -1720,13 +1720,13 @@
       "with": "",
       "method": "btree",
       "concurrently": false,
-      "name": "communication_logs_job_assignment_id_index",
+      "name": "communication_logs_job_assignment_id_idx",
       "entityType": "indexes",
       "schema": "public",
       "table": "communication_logs"
     },
     {
-      "nameExplicit": false,
+      "nameExplicit": true,
       "columns": [
         {
           "value": "sent_at",
@@ -1741,7 +1741,7 @@
       "with": "",
       "method": "btree",
       "concurrently": false,
-      "name": "communication_logs_sent_at_index",
+      "name": "communication_logs_sent_at_idx",
       "entityType": "indexes",
       "schema": "public",
       "table": "communication_logs"
@@ -1831,7 +1831,7 @@
       "table": "job_assignments"
     },
     {
-      "nameExplicit": false,
+      "nameExplicit": true,
       "columns": [
         {
           "value": "assignee_user_id",
@@ -1846,7 +1846,7 @@
       "with": "",
       "method": "btree",
       "concurrently": false,
-      "name": "job_assignments_assignee_user_id_index",
+      "name": "job_assignments_assignee_user_id_idx",
       "entityType": "indexes",
       "schema": "public",
       "table": "job_assignments"
@@ -2180,7 +2180,7 @@
       "table": "suspicion_reviews"
     },
     {
-      "nameExplicit": false,
+      "nameExplicit": true,
       "columns": [
         {
           "value": "reviewed_at",
@@ -2195,7 +2195,7 @@
       "with": "",
       "method": "btree",
       "concurrently": false,
-      "name": "suspicion_reviews_reviewed_at_index",
+      "name": "suspicion_reviews_reviewed_at_idx",
       "entityType": "indexes",
       "schema": "public",
       "table": "suspicion_reviews"
@@ -2264,7 +2264,7 @@
       "table": "suspicious_activity_logs"
     },
     {
-      "nameExplicit": false,
+      "nameExplicit": true,
       "columns": [
         {
           "value": "job_assignment_id",
@@ -2279,13 +2279,13 @@
       "with": "",
       "method": "btree",
       "concurrently": false,
-      "name": "suspicious_activity_logs_job_assignment_id_index",
+      "name": "suspicious_activity_logs_job_assignment_id_idx",
       "entityType": "indexes",
       "schema": "public",
       "table": "suspicious_activity_logs"
     },
     {
-      "nameExplicit": false,
+      "nameExplicit": true,
       "columns": [
         {
           "value": "resolved_at",
@@ -2300,13 +2300,13 @@
       "with": "",
       "method": "btree",
       "concurrently": false,
-      "name": "suspicious_activity_logs_resolved_at_index",
+      "name": "suspicious_activity_logs_resolved_at_idx",
       "entityType": "indexes",
       "schema": "public",
       "table": "suspicious_activity_logs"
     },
     {
-      "nameExplicit": false,
+      "nameExplicit": true,
       "columns": [
         {
           "value": "review_id",
@@ -2321,7 +2321,7 @@
       "with": "",
       "method": "btree",
       "concurrently": false,
-      "name": "suspicious_activity_logs_review_id_index",
+      "name": "suspicious_activity_logs_review_id_idx",
       "entityType": "indexes",
       "schema": "public",
       "table": "suspicious_activity_logs"

@@ -7,7 +7,7 @@
  * a company's `pay_day` on a calendar so an operator can see which cycles are still open.
  */
 
-import { Effect, Number as EffectNumber, Result } from 'effect';
+import { Number as EffectNumber, Result } from 'effect';
 import { formatDateISO, isCalendarDate } from '@norbital-ai/std/date';
 import type { CollectionInitialFilter } from '@norbital-ai/ui/collection-surface';
 
@@ -238,24 +238,6 @@ export function daysBetweenKeys(from: string, to: string): number {
 	return Math.ceil(
 		(Date.parse(`${to}T00:00:00.000Z`) - Date.parse(`${from}T00:00:00.000Z`)) / 86_400_000
 	);
-}
-
-/** The Monday of the ISO week containing `date`, as `YYYY-MM-DD`. */
-export function startOfIsoWeekDate(date: unknown): string | null {
-	if (typeof date !== 'string' && !(date instanceof Date)) return null;
-	const day = Effect.runSync(
-		Effect.orElseSucceed(
-			Effect.try(() => formatDateISO(date)),
-			() => null
-		)
-	);
-	if (day == null) return null;
-	if (day.length < 10) return null;
-	const parsed = new Date(`${day.slice(0, 10)}T00:00:00.000Z`);
-	if (Number.isNaN(parsed.getTime())) return null;
-	const weekday = (parsed.getUTCDay() + 6) % 7;
-	parsed.setUTCDate(parsed.getUTCDate() - weekday);
-	return parsed.toISOString().slice(0, 10);
 }
 
 /** The `YYYY-MM` periods spanning `count` months, ending `ahead` months after the current month. */

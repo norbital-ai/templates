@@ -18,10 +18,10 @@ import { anonymousLimits } from '@norbital-ai/bolt/authoring';
  * The two differ because their economics do. `identity.sendCode` is anonymous and costs an email
  * every time — five an hour to one address is already generous, nobody legitimately needs a sixth,
  * and the key is the address because what is being protected is the cost of sending to it.
- * `identity.signIn` is semi-anonymous: the caller has an address and is guessing a code, so it is
+ * `identity.verifyCode` is semi-anonymous: the caller has an address and is guessing a code, so it is
  * looser, because somebody who mistypes twice and requests a new code should not be locked out.
  */
 export default anonymousLimits({
 	'identity.sendCode': { window: '1 hour', limit: 5, key: 'address' },
-	'identity.signIn': { window: '1 hour', limit: 20, key: 'address' }
+	'identity.verifyCode': { window: '1 hour', limit: 20, key: 'address' }
 });

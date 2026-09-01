@@ -11,7 +11,6 @@
 	const { t } = useI18n<TenantI18nKeys>();
 
 	type AccrualKind = Value['kind'];
-	type Carry = LeaveCarry;
 
 	const KIND_OPTIONS: { value: AccrualKind; label: string; description: string }[] = [
 		{ value: 'MONTHLY', label: 'Monthly', description: 'Pro-rata each completed month' },
@@ -19,7 +18,7 @@
 		{ value: 'PER_EVENT', label: 'Per event', description: 'No balance — granted per request' }
 	];
 
-	const DEFAULT_CARRY: Carry = { limit_days: 0, expiry_months: 0 };
+	const DEFAULT_CARRY: LeaveCarry = { limit_days: 0, expiry_months: 0 };
 
 	let props: RendererProps = $props();
 	const disabled = $derived(props.mode === 'edit' ? props.disabled : true);

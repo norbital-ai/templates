@@ -288,7 +288,7 @@ type PhotoEvidenceProvenance = Schema.Schema.Type<typeof photoEvidenceProvenance
  * re-parenting attempt. The storage key is what identifies the file, so that is what is compared.
  */
 const photoKey = (photo: PhotoEvidenceProvenance['photo']): string | null => {
-	if (photo === null || photo === undefined) return null;
+	if (photo == null) return null;
 	return typeof photo.storage_key === 'string' ? photo.storage_key : null;
 };
 

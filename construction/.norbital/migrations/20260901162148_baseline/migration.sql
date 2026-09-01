@@ -400,9 +400,25 @@ ALTER TABLE "job_assignments" ADD CONSTRAINT "job_assignments_site_location_id_s
 --> statement-breakpoint
 ALTER TABLE "jobs" ADD CONSTRAINT "jobs_project_id_projects_fk" FOREIGN KEY ("project_id") REFERENCES "projects"("id");
 --> statement-breakpoint
+ALTER TABLE "jobs_certification_types" ADD CONSTRAINT "jobs_certification_types_job_id_jobs_fk" FOREIGN KEY ("job_id") REFERENCES "jobs"("id");
+--> statement-breakpoint
+ALTER TABLE "jobs_certification_types" ADD CONSTRAINT "jobs_certification_types_certification_type_id_certification_types_fk" FOREIGN KEY ("certification_type_id") REFERENCES "certification_types"("id");
+--> statement-breakpoint
+ALTER TABLE "jobs_site_locations" ADD CONSTRAINT "jobs_site_locations_job_id_jobs_fk" FOREIGN KEY ("job_id") REFERENCES "jobs"("id");
+--> statement-breakpoint
+ALTER TABLE "jobs_site_locations" ADD CONSTRAINT "jobs_site_locations_site_location_id_site_locations_fk" FOREIGN KEY ("site_location_id") REFERENCES "site_locations"("id");
+--> statement-breakpoint
 ALTER TABLE "payment_claims" ADD CONSTRAINT "payment_claims_project_id_projects_fk" FOREIGN KEY ("project_id") REFERENCES "projects"("id");
 --> statement-breakpoint
 ALTER TABLE "permits_to_work" ADD CONSTRAINT "permits_to_work_project_id_projects_fk" FOREIGN KEY ("project_id") REFERENCES "projects"("id");
+--> statement-breakpoint
+ALTER TABLE "permits_to_work_certification_types" ADD CONSTRAINT "permits_to_work_certification_types_permits_to_work_id_permits_to_work_fk" FOREIGN KEY ("permits_to_work_id") REFERENCES "permits_to_work"("id");
+--> statement-breakpoint
+ALTER TABLE "permits_to_work_certification_types" ADD CONSTRAINT "permits_to_work_certification_types_certification_type_id_certification_types_fk" FOREIGN KEY ("certification_type_id") REFERENCES "certification_types"("id");
+--> statement-breakpoint
+ALTER TABLE "permits_to_work_workers" ADD CONSTRAINT "permits_to_work_workers_permits_to_work_id_permits_to_work_fk" FOREIGN KEY ("permits_to_work_id") REFERENCES "permits_to_work"("id");
+--> statement-breakpoint
+ALTER TABLE "permits_to_work_workers" ADD CONSTRAINT "permits_to_work_workers_worker_id_workers_fk" FOREIGN KEY ("worker_id") REFERENCES "workers"("id");
 --> statement-breakpoint
 ALTER TABLE "rfis" ADD CONSTRAINT "rfis_project_id_projects_fk" FOREIGN KEY ("project_id") REFERENCES "projects"("id");
 --> statement-breakpoint

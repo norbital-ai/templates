@@ -1,4 +1,4 @@
-import { approveBy, noApproval, policySql } from '@norbital-ai/bolt/authoring';
+import { approveBy, noApproval } from '@norbital-ai/bolt/authoring';
 import { Effect } from 'effect';
 import type { Policy } from '../access/policies/$types.js';
 
@@ -23,37 +23,42 @@ type Grant<C extends Collection, A extends Action<C>> = A extends keyof Collecti
 		: never;
 
 /**
+ * A collection's grants as the merge handles them: named actions, and one nested `mutate` map.
+ *
+ * `mutate` is spelled out rather than left to the index signature so the nested map arrives typed.
+ * Reading it off `Record<string, unknown>` produced an `unknown` that every write had to cast back.
+ */
+type ActionGrants = Record<string, unknown> & { mutate?: Record<string, unknown> };
+
+/**
  * Combines disjoint grant coordinates. A duplicate is an authoring error, never a merge.
  * `mutate.new` and `mutate.existing` are distinct coordinates nested beneath one `mutate` key.
  */
 const addCollectionGrants = (
-	merged: Record<string, Record<string, unknown>>,
+	merged: Record<string, ActionGrants>,
 	collection: string,
-	actions: Record<string, unknown> | undefined
+	actions: ActionGrants | undefined
 ): void => {
 	const target = (merged[collection] ??= {});
-	for (const [action, grant] of Object.entries(actions ?? {})) {
-		if (action === 'mutate') {
-			const targetMutate = (target.mutate ??= {}) as Record<string, unknown>;
-			for (const [phase, phaseGrant] of Object.entries(
-				(grant as Record<string, unknown> | undefined) ?? {}
-			)) {
-				if (Object.hasOwn(targetMutate, phase)) {
-					throw new TypeError('Duplicate policy grant ' + collection + '.mutate.' + phase + '.');
-				}
-				targetMutate[phase] = phaseGrant;
-			}
-			continue;
-		}
+	const { mutate, ...directActions } = actions ?? {};
+	for (const [action, grant] of Object.entries(directActions)) {
 		if (Object.hasOwn(target, action)) {
 			throw new TypeError('Duplicate policy grant ' + collection + '.' + action + '.');
 		}
 		target[action] = grant;
 	}
+	if (mutate === undefined) return;
+	const targetMutate = (target.mutate ??= {});
+	for (const [phase, phaseGrant] of Object.entries(mutate)) {
+		if (Object.hasOwn(targetMutate, phase)) {
+			throw new TypeError('Duplicate policy grant ' + collection + '.mutate.' + phase + '.');
+		}
+		targetMutate[phase] = phaseGrant;
+	}
 };
 
 export const mergeGrants = (...parts: ReadonlyArray<Grants>): Grants => {
-	const merged: Record<string, Record<string, unknown>> = {};
+	const merged: Record<string, ActionGrants> = {};
 	for (const part of parts) {
 		for (const [collection, actions] of Object.entries(part)) {
 			addCollectionGrants(merged, collection, actions);
@@ -81,10 +86,10 @@ export const grantsOn = <const C extends Collection>(
 	actions: ReadonlyArray<Action<C>>
 ): Grants =>
 	({
-		[collection]: actions.reduce<Record<string, unknown>>((grants, action) => {
+		[collection]: actions.reduce<ActionGrants>((grants, action) => {
 			const [operation, phase] = action.split('.');
 			if (operation === 'mutate' && phase !== undefined) {
-				const mutate = (grants.mutate ??= {}) as Record<string, unknown>;
+				const mutate = (grants.mutate ??= {});
 				mutate[phase] = {};
 			} else {
 				grants[operation] = {};
@@ -101,15 +106,29 @@ export const grantsOn = <const C extends Collection>(
  * what the removed `obligations` model could not say with its nested `terms -> occasion` path. The predicate stays null-safe the same way `IS DISTINCT FROM` always was: every arm that
  * is not a correction holds a different kind, and reads as visible.
  */
-export const NOT_A_CORRECTION = policySql(
-	"\"event\"->>'kind' IS DISTINCT FROM 'MANUAL_ADJUSTMENT'"
-);
+export const NOT_A_CORRECTION = {
+	event: {
+		jsonPath: {
+			path: ['kind'],
+			type: 'string',
+			ne: 'MANUAL_ADJUSTMENT'
+		}
+	}
+} as const;
 
-export const ownEmploymentChild = policySql(
-	'"employment_id" IN (SELECT e."id" FROM "employments" e ' +
-		'JOIN "employees" p ON p."id" = e."employee_id" ' +
-		'WHERE lower(p."email") = lower(${requestor.email}))'
-);
+const SUBJECT_EMAIL = { $subject: 'email' } as const;
+
+/** The employee row owning an employment, matched with the registered case-fold transform. */
+export const OWN_EMPLOYMENT = {
+	employment_employee: {
+		some: { email: { caseFoldEq: SUBJECT_EMAIL } }
+	}
+} as const;
+
+/** Payslip ownership uses the exact compiled relation identity, never an inferred foreign key. */
+const OWN_PAYSLIP = {
+	payslip_employment: { some: OWN_EMPLOYMENT }
+} as const;
 
 export const referenceGrants = (
 	...actions: ReadonlyArray<'read' | 'mutate.new' | 'mutate.existing' | 'delete'>
@@ -547,8 +566,7 @@ export const employeeLeaveRequestNewGrant = (): Grants =>
 export const employeeSelfServiceGrants = (): Grants =>
 	mergeGrants(
 		grantOn('payslips', 'read', {
-			where: ownEmploymentChild,
-			dependencies: ['employments', 'employees']
+			where: OWN_PAYSLIP
 		}),
 		grantOn('component_entries', 'mutate.new', {
 			// The one entry an ordinary rank may raise: a claim, about themselves, on a component

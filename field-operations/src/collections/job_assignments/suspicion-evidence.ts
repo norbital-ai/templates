@@ -8,7 +8,7 @@ const ReviewCandidate = Schema.Struct({
 });
 
 const ReviewBasis = Schema.Struct({ candidates: Schema.Array(ReviewCandidate) });
-const decodeReviewBasis = Schema.decodeUnknownOption(ReviewBasis);
+const decodeReviewBasis = Schema.decodeOption(Schema.fromJsonString(ReviewBasis));
 
 type ReviewCandidateEvidence = Readonly<{
 	readonly id: string;
@@ -28,13 +28,7 @@ export const reviewCandidatesFrom = (
 ): ReadonlyArray<ReviewCandidateEvidence> => {
 	const candidates = new Map<string, ReviewCandidateEvidence>();
 	for (const basis of bases) {
-		let parsed: unknown;
-		try {
-			parsed = JSON.parse(basis);
-		} catch {
-			continue;
-		}
-		const decoded = decodeReviewBasis(parsed);
+		const decoded = decodeReviewBasis(basis);
 		if (Option.isNone(decoded)) continue;
 		for (const candidate of decoded.value.candidates) {
 			if (candidates.has(candidate.id)) continue;

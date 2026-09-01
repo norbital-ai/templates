@@ -7,17 +7,7 @@
 	import type { TenantI18nKeys } from '$bolt/i18n-keys';
 	import type { RepresentationProps } from './$types.js';
 	import { CollectionForm } from '@norbital-ai/ui/collection-form';
-	import { CollectionTable } from '@norbital-ai/ui/collection-table';
-	import {
-		Cluster,
-		Column,
-		Cover,
-		Frame,
-		Grid,
-		Inline,
-		Scroll,
-		Stack
-	} from '@norbital-ai/ui/layout';
+	import { Cluster, Column, Cover, Grid, Inline, Scroll, Stack } from '@norbital-ai/ui/layout';
 	import { Tabs, type TabConfig } from '@norbital-ai/ui/tabs';
 	import { cn } from '@norbital-ai/ui/utils';
 	import { Button } from '@norbital-ai/ui/button';
@@ -91,6 +81,16 @@
 				})
 			: null
 	);
+	const communicationQuery = $derived(
+		record != null && mayReadCommunication
+			? client.db.communication_logs.findMany({
+					where: { job_assignment_id: { eq: record.id } },
+					orderBy: { sent_at: 'asc' },
+					limit: 250
+				})
+			: null
+	);
+	const communicationRows = $derived(communicationQuery?.current ?? []);
 
 	/**
 	 * Only asked for by somebody who may read it.
@@ -218,6 +218,36 @@
 			(evidence) => record != null && evidence.job_assignment_id === record.id
 		)
 	);
+
+	type ChannelPhotoSource = {
+		readonly provider: string;
+		readonly messageId: string;
+		readonly senderId: string;
+		readonly sentAt: string | null;
+	};
+
+	function channelPhotoSource(source: unknown): ChannelPhotoSource | null {
+		if (source == null || typeof source !== 'object' || Reflect.get(source, 'kind') !== 'channel') {
+			return null;
+		}
+		const provider = Reflect.get(source, 'provider');
+		const messageId = Reflect.get(source, 'message_id');
+		const senderId = Reflect.get(source, 'sender_id');
+		const sentAt = Reflect.get(source, 'sent_at');
+		if (
+			typeof provider !== 'string' ||
+			typeof messageId !== 'string' ||
+			typeof senderId !== 'string'
+		) {
+			return null;
+		}
+		return {
+			provider,
+			messageId,
+			senderId,
+			sentAt: typeof sentAt === 'string' ? sentAt : null
+		};
+	}
 	/**
 	 * The photos, composed from the evidence rows and nothing else.
 	 *
@@ -231,6 +261,9 @@
 			const parsed = decodePhotoFile(evidence.photo);
 			if (Option.isNone(parsed)) return [];
 			const file = parsed.value;
+			const channelSource = channelPhotoSource(evidence.source);
+			const source = evidenceSource(evidence.source);
+			const sentAt = channelSource?.sentAt ?? evidence.created_at;
 			return [
 				{
 					id: evidence.id,
@@ -238,13 +271,70 @@
 					fileSize: file.file_size,
 					url: dataRendererRuntime.fileUrl(file.storage_key),
 					flags: (evidence.flags ?? []).filter((flag) => flag != null),
-					source: evidence.source == null ? null : evidenceSource(evidence.source),
-					capturedAt: formatSingaporeInstant(evidence.created_at, t('component.not_recorded'))
+					sender: channelSource?.senderId ?? source,
+					messageId: channelSource?.messageId ?? null,
+					sentAt,
+					system: channelSource == null
 				}
 			];
 		})
 	);
 	const evidenceLoading = $derived(directEvidenceQuery?.loading === true);
+	const communicationTimeline = $derived.by(() => {
+		const photosByMessage = new Map<string, typeof photoCards>();
+		for (const photo of photoCards) {
+			if (photo.messageId == null) continue;
+			photosByMessage.set(photo.messageId, [
+				...(photosByMessage.get(photo.messageId) ?? []),
+				photo
+			]);
+		}
+		const attachedPhotoIds = new Set<string>();
+		const messages = communicationRows.map((message) => {
+			const photos = photosByMessage.get(message.source_message_id) ?? [];
+			for (const photo of photos) attachedPhotoIds.add(photo.id);
+			return {
+				id: `message:${message.source_message_id}`,
+				sender: message.sender,
+				text: message.message,
+				sentAt: message.sent_at,
+				photos,
+				system: false
+			};
+		});
+		const standalonePhotos = photoCards
+			.filter((photo) => !attachedPhotoIds.has(photo.id))
+			.map((photo) => ({
+				id: `photo:${photo.id}`,
+				sender: photo.sender,
+				text: null,
+				sentAt: photo.sentAt,
+				photos: [photo],
+				system: photo.system
+			}));
+		const ordered = [...messages, ...standalonePhotos].sort(
+			(left, right) => timelineTimestamp(left.sentAt) - timelineTimestamp(right.sentAt)
+		);
+		const grouped: typeof ordered = [];
+		for (const item of ordered) {
+			const previous = grouped.at(-1);
+			const photoBurst =
+				previous !== undefined &&
+				item.text == null &&
+				!item.system &&
+				previous.text == null &&
+				previous.system === false &&
+				previous.sender === item.sender &&
+				timelineDayKey(previous.sentAt) === timelineDayKey(item.sentAt) &&
+				Math.abs(timelineTimestamp(item.sentAt) - timelineTimestamp(previous.sentAt)) <= 120_000;
+			if (photoBurst && previous) {
+				previous.photos.push(...item.photos);
+				continue;
+			}
+			grouped.push({ ...item, photos: [...item.photos] });
+		}
+		return grouped;
+	});
 	const evidenceFactCards = $derived(
 		photoCards.flatMap((photo) => {
 			const facts = [...new Set(photo.flags.map(integrityFlagLabel))];
@@ -317,13 +407,49 @@
 	}
 
 	function evidenceSource(source: unknown): string {
-		if (source == null || typeof source !== 'object') return t('component.workspace_upload');
-		const kind = Reflect.get(source, 'kind');
-		if (kind !== 'channel') return t('component.workspace_upload');
-		const provider = Reflect.get(source, 'provider');
-		return typeof provider === 'string'
-			? t('component.provider_agent', { provider })
-			: t('component.channel_agent');
+		const channelSource = channelPhotoSource(source);
+		return channelSource == null
+			? t('component.workspace_upload')
+			: t('component.provider_agent', { provider: channelSource.provider });
+	}
+
+	function timelineTimestamp(value: string | null | undefined): number {
+		if (value == null) return 0;
+		const timestamp = new Date(value).getTime();
+		return Number.isNaN(timestamp) ? 0 : timestamp;
+	}
+
+	function timelineDayKey(value: string | null | undefined): string {
+		const timestamp = timelineTimestamp(value);
+		if (timestamp === 0) return 'unknown';
+		return new Intl.DateTimeFormat('en-CA', {
+			year: 'numeric',
+			month: '2-digit',
+			day: '2-digit',
+			timeZone: 'Asia/Singapore'
+		}).format(new Date(timestamp));
+	}
+
+	function formatTimelineDay(value: string | null | undefined): string {
+		const timestamp = timelineTimestamp(value);
+		if (timestamp === 0) return t('component.not_recorded');
+		return new Intl.DateTimeFormat('en-SG', {
+			weekday: 'short',
+			day: 'numeric',
+			month: 'short',
+			year: 'numeric',
+			timeZone: 'Asia/Singapore'
+		}).format(new Date(timestamp));
+	}
+
+	function formatTimelineTime(value: string | null | undefined): string {
+		const timestamp = timelineTimestamp(value);
+		if (timestamp === 0) return t('component.not_recorded');
+		return new Intl.DateTimeFormat('en-SG', {
+			hour: 'numeric',
+			minute: '2-digit',
+			timeZone: 'Asia/Singapore'
+		}).format(new Date(timestamp));
 	}
 
 	function formatMoney(value: unknown): string {
@@ -474,165 +600,196 @@
 					</p>
 				</Stack>
 
-				<section aria-labelledby="assignment-evidence-facts-heading">
-					<Stack gap="sm">
-						<h4 id="assignment-evidence-facts-heading" class="text-sm font-semibold">
-							{t('component.evidence_facts')}
-						</h4>
-						<p class="text-tiny text-muted-foreground">
-							{t('component.evidence_facts_description')}
-						</p>
-						{#if evidenceLoading}
-							<p class="text-tiny text-muted-foreground">{t('component.loading_evidence')}</p>
-						{:else if directEvidenceQuery?.error}
-							<p class="text-tiny text-destructive" role="alert">
-								{t('component.evidence_load_failed')}
-							</p>
-						{:else if evidenceFactCards.length === 0}
-							<p class="text-tiny text-muted-foreground">
-								{t('component.evidence_facts_empty')}
-							</p>
-						{:else}
-							<Grid minimum="card" gap="sm">
-								{#each evidenceFactCards as photo (photo.id)}
-									<article class="flex min-w-0 gap-3 rounded-md border border-border bg-card p-2.5">
-										<button
-											type="button"
-											class="size-20 shrink-0 overflow-hidden rounded-md bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-											aria-label={t('component.open_photo', { name: photo.name })}
-											onclick={() => (openedPhoto = photo)}
-										>
-											<img
-												src={photo.url}
-												alt={photo.name}
-												class="size-full object-cover"
-												loading="lazy"
-												decoding="async"
-											/>
-										</button>
-										<Stack gap="xs" class="min-w-0 py-0.5">
-											<p class="truncate text-tiny font-medium">{photo.name}</p>
-											<Cluster gap="xs">
-												{#each photo.facts as fact}
-													<span
-														class="rounded-full bg-muted px-2 py-0.5 text-micro text-muted-foreground"
-														>{fact}</span
-													>
-												{/each}
-											</Cluster>
-										</Stack>
-									</article>
-								{/each}
-							</Grid>
-						{/if}
-					</Stack>
-				</section>
-
-				<section aria-labelledby="assignment-similar-photos-heading">
-					<Stack gap="sm">
-						<Stack gap="xs">
-							<Inline align="center" gap="xs">
-								<Icon
-									icon="lucide:images"
-									class="size-4 text-muted-foreground"
-									aria-hidden="true"
-								/>
-								<h4 id="assignment-similar-photos-heading" class="text-sm font-semibold">
-									{t('component.similar_photos_other_assignments')}
-								</h4>
-							</Inline>
-							<p class="text-tiny text-muted-foreground">
-								{t('component.similar_photos_other_assignments_description')}
-							</p>
-						</Stack>
-						{#if suspicionReviewQuery?.loading || candidateEvidenceQuery?.loading || candidateAssignmentQuery?.loading}
-							<p class="text-tiny text-muted-foreground">{t('component.loading_evidence')}</p>
-						{:else if suspicionReviewQuery?.error || candidateEvidenceQuery?.error || candidateAssignmentQuery?.error}
-							<p class="text-tiny text-destructive" role="alert">
-								{t('component.evidence_load_failed')}
-							</p>
-						{:else if similarPhotoPairs.length === 0}
-							<p
-								class="rounded-md border border-dashed border-border p-3 text-tiny text-muted-foreground"
-							>
-								{t('component.similar_photos_other_assignments_empty')}
-							</p>
-						{:else}
-							<Stack gap="sm">
-								{#each similarPhotoPairs as pair (pair.id)}
-									<article class="rounded-md border border-border bg-card p-3">
-										<Stack gap="sm">
-											<Inline justify="between" align="center" gap="sm">
-												<span
-													class="text-micro font-semibold uppercase tracking-wide text-muted-foreground"
-												>
-													{t('component.shown_to_review_agent')}
-												</span>
-												<span class="shrink-0 text-micro tabular-nums text-muted-foreground">
-													{t('component.similar_photo_distance', {
-														distance: pair.distance.toFixed(3)
-													})}
-												</span>
-											</Inline>
-											<div
-												class="grid min-w-0 items-center gap-2 sm:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)]"
+				<Grid minimum="compact" gap="md">
+					<section
+						aria-labelledby="assignment-evidence-facts-heading"
+						class="min-w-0 rounded-md border border-border bg-card p-3"
+					>
+						<Stack gap="sm">
+							<Stack gap="xs">
+								<Inline justify="between" align="center" gap="sm">
+									<h4 id="assignment-evidence-facts-heading" class="text-sm font-semibold">
+										{t('component.evidence_facts')}
+									</h4>
+									<span class="shrink-0 text-micro tabular-nums text-muted-foreground">
+										{t('component.recorded_count', { count: evidenceFactCards.length })}
+									</span>
+								</Inline>
+								<p class="text-tiny text-muted-foreground">
+									{t('component.evidence_facts_description')}
+								</p>
+							</Stack>
+							<div class="h-52 min-h-0">
+								<Scroll name={t('component.evidence_facts')} layout="stack" gap="xs">
+									{#if evidenceLoading}
+										<p class="text-tiny text-muted-foreground">
+											{t('component.loading_evidence')}
+										</p>
+									{:else if directEvidenceQuery?.error}
+										<p class="text-tiny text-destructive" role="alert">
+											{t('component.evidence_load_failed')}
+										</p>
+									{:else if evidenceFactCards.length === 0}
+										<p class="text-tiny text-muted-foreground">
+											{t('component.evidence_facts_empty')}
+										</p>
+									{:else}
+										{#each evidenceFactCards as photo (photo.id)}
+											<Inline
+												as="article"
+												align="stretch"
+												class="rounded-md border border-border bg-background p-2"
 											>
 												<button
 													type="button"
-													class="flex min-w-0 items-center gap-2 rounded-md bg-muted/45 p-2 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-													onclick={() => (openedPhoto = pair.submitted)}
+													class="size-14 shrink-0 overflow-hidden rounded-md bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+													aria-label={t('component.open_photo', { name: photo.name })}
+													onclick={() => (openedPhoto = photo)}
 												>
 													<img
-														src={pair.submitted.url}
-														alt={pair.submitted.name}
-														class="size-16 shrink-0 rounded object-cover"
+														src={photo.url}
+														alt={photo.name}
+														class="size-full object-cover"
 														loading="lazy"
 														decoding="async"
 													/>
-													<Stack gap="none" class="min-w-0">
-														<span class="text-micro text-muted-foreground">
-															{t('component.this_assignment')}
-														</span>
-														<span class="truncate text-tiny font-medium">{pair.submitted.name}</span
-														>
-													</Stack>
 												</button>
-												<Icon
-													icon="lucide:arrow-left-right"
-													class="mx-auto size-4 rotate-90 text-muted-foreground sm:rotate-0"
-													aria-hidden="true"
-												/>
-												<button
-													type="button"
-													class="flex min-w-0 items-center gap-2 rounded-md bg-warning/5 p-2 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-													onclick={() => (openedPhoto = pair.candidate)}
-												>
-													<img
-														src={pair.candidate.url}
-														alt={pair.candidate.name}
-														class="size-16 shrink-0 rounded object-cover"
-														loading="lazy"
-														decoding="async"
-													/>
-													<Stack gap="none" class="min-w-0">
-														<span class="text-micro text-warning"
-															>{t('component.other_assignment')}</span
-														>
-														<span class="truncate text-tiny font-medium">{pair.candidate.name}</span
-														>
-														<span class="line-clamp-2 text-micro text-muted-foreground">
-															{pair.assignment}
-														</span>
-													</Stack>
-												</button>
-											</div>
-										</Stack>
-									</article>
-								{/each}
+												<Stack gap="xs" class="min-w-0 py-0.5">
+													<p class="truncate text-tiny font-medium">{photo.name}</p>
+													<Cluster gap="xs">
+														{#each photo.facts as fact}
+															<span
+																class="rounded-full bg-muted px-2 py-0.5 text-micro text-muted-foreground"
+																>{fact}</span
+															>
+														{/each}
+													</Cluster>
+												</Stack>
+											</Inline>
+										{/each}
+									{/if}
+								</Scroll>
+							</div>
+						</Stack>
+					</section>
+
+					<section
+						aria-labelledby="assignment-similar-photos-heading"
+						class="min-w-0 rounded-md border border-border bg-card p-3"
+					>
+						<Stack gap="sm">
+							<Stack gap="xs">
+								<Inline justify="between" align="center" gap="sm">
+									<Inline align="center" gap="xs" class="min-w-0">
+										<Icon
+											icon="lucide:images"
+											class="size-4 shrink-0 text-muted-foreground"
+											aria-hidden="true"
+										/>
+										<h4
+											id="assignment-similar-photos-heading"
+											class="min-w-0 text-sm font-semibold"
+										>
+											{t('component.similar_photos_other_assignments')}
+										</h4>
+									</Inline>
+									<span class="shrink-0 text-micro tabular-nums text-muted-foreground">
+										{t('component.recorded_count', { count: similarPhotoPairs.length })}
+									</span>
+								</Inline>
+								<p class="text-tiny text-muted-foreground">
+									{t('component.similar_photos_other_assignments_description')}
+								</p>
 							</Stack>
-						{/if}
-					</Stack>
-				</section>
+							<div class="h-52 min-h-0">
+								<Scroll
+									name={t('component.similar_photos_other_assignments')}
+									layout="stack"
+									gap="xs"
+								>
+									{#if suspicionReviewQuery?.loading || candidateEvidenceQuery?.loading || candidateAssignmentQuery?.loading}
+										<p class="text-tiny text-muted-foreground">
+											{t('component.loading_evidence')}
+										</p>
+									{:else if suspicionReviewQuery?.error || candidateEvidenceQuery?.error || candidateAssignmentQuery?.error}
+										<p class="text-tiny text-destructive" role="alert">
+											{t('component.evidence_load_failed')}
+										</p>
+									{:else if similarPhotoPairs.length === 0}
+										<p class="text-tiny text-muted-foreground">
+											{t('component.similar_photos_other_assignments_empty')}
+										</p>
+									{:else}
+										{#each similarPhotoPairs as pair (pair.id)}
+											<article class="rounded-md border border-border bg-background p-2">
+												<Stack gap="xs">
+													<Inline justify="between" align="center" gap="sm">
+														<span
+															class="truncate text-micro font-semibold uppercase tracking-wide text-muted-foreground"
+														>
+															{t('component.shown_to_review_agent')}
+														</span>
+														<span class="shrink-0 text-micro tabular-nums text-muted-foreground">
+															{t('component.similar_photo_distance', {
+																distance: pair.distance.toFixed(3)
+															})}
+														</span>
+													</Inline>
+													<Grid
+														tracks="minmax(0, 1fr) auto minmax(0, 1fr)"
+														gap="xs"
+														class="items-center"
+													>
+														<button
+															type="button"
+															class="min-w-0 rounded-md bg-muted/45 p-1.5 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+															onclick={() => (openedPhoto = pair.submitted)}
+														>
+															<img
+																src={pair.submitted.url}
+																alt={pair.submitted.name}
+																class="h-14 w-full rounded object-cover"
+																loading="lazy"
+																decoding="async"
+															/>
+															<span class="mt-1 block truncate text-micro font-medium">
+																{pair.submitted.name}
+															</span>
+														</button>
+														<Icon
+															icon="lucide:arrow-left-right"
+															class="size-3.5 text-muted-foreground"
+															aria-hidden="true"
+														/>
+														<button
+															type="button"
+															class="min-w-0 rounded-md bg-warning/5 p-1.5 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+															onclick={() => (openedPhoto = pair.candidate)}
+														>
+															<img
+																src={pair.candidate.url}
+																alt={pair.candidate.name}
+																class="h-14 w-full rounded object-cover"
+																loading="lazy"
+																decoding="async"
+															/>
+															<span class="mt-1 block truncate text-micro font-medium">
+																{pair.candidate.name}
+															</span>
+															<span class="block truncate text-micro text-muted-foreground">
+																{pair.assignment}
+															</span>
+														</button>
+													</Grid>
+												</Stack>
+											</article>
+										{/each}
+									{/if}
+								</Scroll>
+							</div>
+						</Stack>
+					</section>
+				</Grid>
 
 				<section aria-labelledby="assignment-judgements-heading">
 					<Stack gap="sm">
@@ -724,139 +881,166 @@
 		</Scroll>
 	{/snippet}
 
-	{#snippet communicationHistory()}
-		<Scroll name={t('component.communication_logs')}>
-			<CollectionTable
-				client={collectionClient}
-				collection="communication_logs"
-				view="field_ops_assignment:communications"
-				title={t('component.communication_logs')}
-				description={t('component.communication_logs_description')}
-				features={{ create: false }}
-				query={{
-					where: { job_assignment_id: { eq: record.id } },
-					orderBy: { sent_at: 'asc' }
-				}}
-			>
-				{#snippet columns({ Column: TableColumn })}
-					<TableColumn
-						name="sender"
-						label={t('component.communication_sender')}
-						card="title"
-						minWidth={180}
-					/>
-					<TableColumn
-						name="sent_at"
-						label={t('component.communication_sent_at')}
-						card="badge"
-						minWidth={180}
-					/>
-					<TableColumn
-						name="message"
-						label={t('component.communication_message')}
-						card="subtitle"
-						minWidth={360}
-					/>
-				{/snippet}
-			</CollectionTable>
-		</Scroll>
-	{/snippet}
-
-	{#snippet photoGallery()}
-		<Scroll name={t('component.assignment_evidence')}>
-			<Stack as="section" aria-labelledby="evidence-heading" gap="md">
-				<Inline justify="between" gap="sm">
+	{#snippet assignmentConversation()}
+		<Scroll name={t('component.conversation')}>
+			<Stack as="section" aria-labelledby="assignment-conversation-heading" gap="md">
+				<Inline justify="between" align="start" gap="sm">
 					<div>
-						<h4 id="evidence-heading" class="text-sm font-semibold">{t('component.evidence')}</h4>
-						<p class="text-meta">{t('component.evidence_description')}</p>
+						<h4 id="assignment-conversation-heading" class="text-sm font-semibold">
+							{t('component.conversation')}
+						</h4>
+						<p class="text-meta">{t('component.conversation_description')}</p>
 					</div>
-					<span class="text-meta tabular-nums">
-						{evidenceLoading
-							? t('component.loading_evidence')
-							: t('component.captured_for_assignment', { count: photoCards.length })}
-					</span>
+					<Inline
+						align="center"
+						gap="xs"
+						class="shrink-0 rounded-full bg-muted px-2.5 py-1 text-micro text-muted-foreground"
+					>
+						<Icon icon="lucide:lock-keyhole" class="size-3" aria-hidden="true" />
+						<span>{t('component.conversation_read_only')}</span>
+					</Inline>
 				</Inline>
+
+				{#if communicationQuery?.error}
+					<p class="text-sm text-destructive" role="alert">
+						{t('component.communication_logs_failed')}
+					</p>
+				{/if}
 				{#if directEvidenceQuery?.error}
 					<p class="text-sm text-destructive" role="alert">
 						{t('component.evidence_load_failed')}
 					</p>
-				{:else if evidenceLoading && photoCards.length === 0}
-					<Grid minimum="card" gap="md" aria-label={t('component.loading_photo_evidence')}>
-						{#each Array(3) as _}
-							<div class="h-48 rounded-md bg-muted/50 motion-safe:animate-pulse"></div>
-						{/each}
-					</Grid>
-				{:else}
-					<Grid minimum="card" gap="md">
-						{#each photoCards as photo (photo.id)}
-							<figure class="min-w-0 rounded-md border border-border bg-card">
-								<button
-									type="button"
-									onclick={() => (openedPhoto = photo)}
-									class="group block w-full bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
-									aria-label={t('component.open_photo', { name: photo.name })}
-								>
-									<Frame ratio="landscape">
-										<img
-											src={photo.url}
-											alt={photo.name}
-											class="transition-opacity duration-150 group-hover:opacity-90"
-											loading="lazy"
-											decoding="async"
-										/>
-									</Frame>
-								</button>
-								<Stack as="section" gap="sm" class="p-3">
-									<Inline align="start" gap="xs">
-										<Icon
-											icon={mayReadSuspicion && photo.flags.length > 0
-												? 'lucide:scan-search'
-												: 'lucide:image'}
-											class="mt-0.5 size-4 shrink-0 text-muted-foreground"
-											aria-hidden="true"
-										/>
-										<Stack gap="none" class="min-w-0">
-											<p class="truncate text-sm font-medium">{photo.name}</p>
-											<p class="text-meta">
-												{photo.source == null
-													? photo.capturedAt
-													: `${photo.source} · ${photo.capturedAt}`}
-											</p>
-										</Stack>
-									</Inline>
-									{#if mayReadSuspicion}
-										<Cluster justify="between" gap="xs" class="text-xs">
-											<span class="text-muted-foreground">
-												{photo.flags.length > 0
-													? photo.flags.map(integrityFlagLabel).join(' · ')
-													: t('component.evidence_no_recorded_facts')}
-											</span>
-											{#if photo.fileSize != null}
-												<span class="shrink-0 tabular-nums text-muted-foreground">
-													{formatFileSize(photo.fileSize)}
-												</span>
-											{/if}
-										</Cluster>
-									{:else}
-										{#if photo.fileSize != null}
-											<p class="text-meta tabular-nums">
-												{formatFileSize(photo.fileSize)}
-											</p>
-										{/if}
-									{/if}
-								</Stack>
-							</figure>
-						{:else}
-							<Column span="all">
-								<div
-									class="rounded-md border border-dashed border-border p-4 text-sm text-muted-foreground"
-								>
-									{t('component.no_evidence')}
-								</div>
-							</Column>
-						{/each}
-					</Grid>
 				{/if}
+
+				<div class="min-h-80 rounded-lg border border-border bg-muted/25 p-3">
+					{#if communicationTimeline.length === 0 && (communicationQuery?.loading || evidenceLoading)}
+						<Stack gap="sm" aria-label={t('component.loading')}>
+							<div
+								class="h-16 w-3/4 rounded-e-xl rounded-bl-xl bg-muted motion-safe:animate-pulse"
+							></div>
+							<div
+								class="h-24 w-2/3 rounded-e-xl rounded-bl-xl bg-muted motion-safe:animate-pulse"
+							></div>
+							<div
+								class="h-14 w-4/5 rounded-e-xl rounded-bl-xl bg-muted motion-safe:animate-pulse"
+							></div>
+						</Stack>
+					{:else if communicationTimeline.length === 0}
+						<div
+							class="rounded-md border border-dashed border-border bg-background/70 p-4 text-sm text-muted-foreground"
+						>
+							{t('component.conversation_empty')}
+						</div>
+					{:else}
+						<Stack as="ol" gap="sm">
+							{#each communicationTimeline as item, index (item.id)}
+								{@const dayKey = timelineDayKey(item.sentAt)}
+								{#if index === 0 || dayKey !== timelineDayKey(communicationTimeline[index - 1]?.sentAt)}
+									<li class="flex justify-center py-1">
+										<span
+											class="rounded-full bg-background px-2.5 py-1 text-micro font-medium text-muted-foreground"
+										>
+											{formatTimelineDay(item.sentAt)}
+										</span>
+									</li>
+								{/if}
+								{@const recordedFlags = [
+									...new Set(item.photos.flatMap((photo) => photo.flags.map(integrityFlagLabel)))
+								]}
+								<li class={item.system ? 'flex justify-center' : 'flex justify-start'}>
+									<article
+										class={cn(
+											'min-w-0 px-2.5 py-2',
+											item.system
+												? 'w-full max-w-sm rounded-lg bg-muted'
+												: 'w-fit max-w-[min(100%,32rem)] rounded-e-xl rounded-bl-xl rounded-tl-sm border border-border bg-card'
+										)}
+									>
+										<Stack gap="xs">
+											<Inline align="center" gap="xs" class="min-w-0">
+												<Icon
+													icon={item.system ? 'lucide:upload' : 'lucide:user-round'}
+													class="size-3.5 shrink-0 text-muted-foreground"
+													aria-hidden="true"
+												/>
+												<span class="min-w-0 truncate text-tiny font-semibold">{item.sender}</span>
+											</Inline>
+											{#if item.text}
+												<p class="whitespace-pre-wrap break-words text-sm [overflow-wrap:anywhere]">
+													{item.text}
+												</p>
+											{/if}
+											{#if item.photos.length > 0}
+												{#if item.photos.length > 1}
+													<p class="text-micro font-medium text-muted-foreground">
+														{t('component.photo_count', { count: item.photos.length })}
+													</p>
+												{/if}
+												<div
+													class={cn(
+														'grid min-w-0 gap-1.5 overflow-hidden rounded-md',
+														item.photos.length > 1 && 'grid-cols-2',
+														item.photos.length > 4 && 'grid-cols-3'
+													)}
+												>
+													{#each item.photos as photo (photo.id)}
+														<button
+															type="button"
+															onclick={() => (openedPhoto = photo)}
+															class="group min-w-0 overflow-hidden rounded-md bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+															aria-label={t('component.open_photo', { name: photo.name })}
+															title={photo.name}
+														>
+															<img
+																src={photo.url}
+																alt={photo.name}
+																class={cn(
+																	'w-full object-cover transition-opacity duration-150 group-hover:opacity-90',
+																	item.photos.length === 1
+																		? 'h-28'
+																		: item.photos.length > 6
+																			? 'h-16'
+																			: 'h-20'
+																)}
+																loading="lazy"
+																decoding="async"
+															/>
+														</button>
+													{/each}
+												</div>
+											{/if}
+											{#if mayReadSuspicion && recordedFlags.length > 0}
+												<Inline align="start" gap="xs" class="text-micro text-muted-foreground">
+													<Icon
+														icon="lucide:scan-search"
+														class="mt-0.5 size-3 shrink-0"
+														aria-hidden="true"
+													/>
+													<span class="break-words [overflow-wrap:anywhere]">
+														{recordedFlags.join(' · ')}
+													</span>
+												</Inline>
+											{/if}
+											<Inline
+												justify="end"
+												gap="xs"
+												class="text-micro tabular-nums text-muted-foreground"
+											>
+												{#if item.photos.length === 1 && item.photos[0]?.fileSize != null}
+													<span>{formatFileSize(item.photos[0].fileSize)}</span>
+													<span aria-hidden="true">·</span>
+												{/if}
+												<time datetime={item.sentAt ?? undefined}
+													>{formatTimelineTime(item.sentAt)}</time
+												>
+											</Inline>
+										</Stack>
+									</article>
+								</li>
+							{/each}
+						</Stack>
+					{/if}
+				</div>
 			</Stack>
 		</Scroll>
 	{/snippet}
@@ -886,21 +1070,11 @@
 					content: variationHistory
 				},
 				{
-					name: 'photos',
-					label: t('component.photos'),
-					icon: 'lucide:images',
-					content: photoGallery
+					name: 'conversation',
+					label: t('component.conversation'),
+					icon: 'lucide:messages-square',
+					content: assignmentConversation
 				},
-				...(mayReadCommunication
-					? [
-							{
-								name: 'communications',
-								label: t('component.communication_logs'),
-								icon: 'lucide:messages-square',
-								content: communicationHistory
-							}
-						]
-					: []),
 				...(mayReadSuspicion
 					? [
 							{

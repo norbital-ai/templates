@@ -8,8 +8,6 @@ const COMMITTED_TARGETS = {
 	purchase_invoices: 'confirmed'
 } as const;
 
-type TargetType = keyof typeof COMMITTED_TARGETS;
-
 export default {
 	mutate: {
 		perRecord: {
@@ -18,8 +16,8 @@ export default {
 					'Records a payment only against a confirmed quote, purchase order or purchase invoice, for a positive amount in the currency of that document.',
 				handler: ({ input, api }) =>
 					Effect.gen(function* () {
-						const regardingType = input.regarding_type;
-						if (!regardingType || !(regardingType in COMMITTED_TARGETS)) {
+						const regardingType = input.regarding_type ?? '';
+						if (!(regardingType in COMMITTED_TARGETS)) {
 							refuse('A settlement must reference a quote, purchase order, or purchase invoice.');
 						}
 						if (!input.regarding_id) {

@@ -1,13 +1,15 @@
 # Dependencies
 node_modules/
 
-# Build output. Migrations and doctor configuration are authored and stay tracked.
+# Build output. Migrations, shared capabilities, and doctor configuration are authored and stay tracked.
 **/build/
 **/.svelte-kit/
 **/.generated/
 **/.norbital/*
 !**/.norbital/migrations/
 !**/.norbital/migrations/**
+!**/.norbital/shared/
+!**/.norbital/shared/**
 !**/.norbital/config/
 !**/.norbital/config/**
 *.tsbuildinfo

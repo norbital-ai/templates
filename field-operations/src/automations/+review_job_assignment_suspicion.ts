@@ -85,9 +85,9 @@ export default defineAutomation(
 				};
 				const publishCompletion = () =>
 					progressLock.withPermit(
-						Effect.gen(function* () {
+						Effect.suspend(() => {
 							completedCount += 1;
-							yield* api.progress({
+							return api.progress({
 								progress:
 									assignments.length === 0
 										? 0.95

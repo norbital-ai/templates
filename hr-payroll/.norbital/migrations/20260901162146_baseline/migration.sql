@@ -550,19 +550,19 @@ CREATE INDEX "company_holidays_search_text_trgm_idx" ON "company_holidays" USING
 --> statement-breakpoint
 CREATE INDEX "component_entries_employment_id_pay_period_index" ON "component_entries" ("employment_id","pay_period");
 --> statement-breakpoint
-CREATE INDEX "component_entries_pay_component_id_index" ON "component_entries" ("pay_component_id");
---> statement-breakpoint
 CREATE INDEX "component_entries_employment_id_event_date_index" ON "component_entries" ("employment_id","event_date");
 --> statement-breakpoint
 CREATE INDEX "component_entries_corrects_adjustment_id_index" ON "component_entries" ("corrects_adjustment_id") WHERE "corrects_adjustment_id" IS NOT NULL;
+--> statement-breakpoint
+CREATE INDEX "component_entries_pay_component_id_idx" ON "component_entries" ("pay_component_id");
 --> statement-breakpoint
 CREATE INDEX "contribution_rates_search_document_gin_idx" ON "contribution_rates" USING gin ("search_document");
 --> statement-breakpoint
 CREATE INDEX "contribution_rates_search_text_trgm_idx" ON "contribution_rates" USING gin ((coalesce("summary", '')) gin_trgm_ops);
 --> statement-breakpoint
-CREATE INDEX "employee_children_employment_id_index" ON "employee_children" ("employment_id");
---> statement-breakpoint
 CREATE INDEX "employee_children_supersedes_id_index" ON "employee_children" ("supersedes_id") WHERE "supersedes_id" IS NOT NULL;
+--> statement-breakpoint
+CREATE INDEX "employee_children_employment_id_idx" ON "employee_children" ("employment_id");
 --> statement-breakpoint
 CREATE INDEX "employees_search_document_gin_idx" ON "employees" USING gin ("search_document");
 --> statement-breakpoint
@@ -582,9 +582,9 @@ CREATE INDEX "employments_search_document_gin_idx" ON "employments" USING gin ("
 --> statement-breakpoint
 CREATE INDEX "employments_search_text_trgm_idx" ON "employments" USING gin ((coalesce("employee_number", '')) gin_trgm_ops);
 --> statement-breakpoint
-CREATE INDEX "jurisdictions_code_index" ON "jurisdictions" ("code");
+CREATE INDEX "jurisdictions_code_idx" ON "jurisdictions" ("code");
 --> statement-breakpoint
-CREATE INDEX "jurisdictions_lifecycle_index" ON "jurisdictions" ("lifecycle");
+CREATE INDEX "jurisdictions_lifecycle_idx" ON "jurisdictions" ("lifecycle");
 --> statement-breakpoint
 CREATE INDEX "jurisdictions_search_document_gin_idx" ON "jurisdictions" USING gin ("search_document");
 --> statement-breakpoint
@@ -598,7 +598,7 @@ CREATE INDEX "leave_requests_search_text_trgm_idx" ON "leave_requests" USING gin
 --> statement-breakpoint
 CREATE UNIQUE INDEX "leave_types_company_id_code_index" ON "leave_types" ("company_id","code");
 --> statement-breakpoint
-CREATE INDEX "leave_types_statutory_profile_id_index" ON "leave_types" ("statutory_profile_id");
+CREATE INDEX "leave_types_statutory_profile_id_idx" ON "leave_types" ("statutory_profile_id");
 --> statement-breakpoint
 CREATE INDEX "leave_types_search_document_gin_idx" ON "leave_types" USING gin ("search_document");
 --> statement-breakpoint
@@ -606,9 +606,9 @@ CREATE INDEX "leave_types_search_text_trgm_idx" ON "leave_types" USING gin ((coa
 --> statement-breakpoint
 CREATE UNIQUE INDEX "loan_repayments_loan_id_sequence_index" ON "loan_repayments" ("loan_id","sequence");
 --> statement-breakpoint
-CREATE INDEX "loans_employment_id_index" ON "loans" ("employment_id");
+CREATE INDEX "loans_employment_id_idx" ON "loans" ("employment_id");
 --> statement-breakpoint
-CREATE INDEX "loans_pay_component_id_index" ON "loans" ("pay_component_id");
+CREATE INDEX "loans_pay_component_id_idx" ON "loans" ("pay_component_id");
 --> statement-breakpoint
 CREATE INDEX "loans_search_document_gin_idx" ON "loans" USING gin ("search_document");
 --> statement-breakpoint
@@ -616,7 +616,7 @@ CREATE INDEX "loans_search_text_trgm_idx" ON "loans" USING gin ((coalesce("refer
 --> statement-breakpoint
 CREATE UNIQUE INDEX "pay_components_company_id_code_index" ON "pay_components" ("company_id","code");
 --> statement-breakpoint
-CREATE INDEX "pay_components_statutory_profile_id_index" ON "pay_components" ("statutory_profile_id");
+CREATE INDEX "pay_components_statutory_profile_id_idx" ON "pay_components" ("statutory_profile_id");
 --> statement-breakpoint
 CREATE INDEX "pay_components_search_document_gin_idx" ON "pay_components" USING gin ("search_document");
 --> statement-breakpoint
@@ -624,15 +624,15 @@ CREATE INDEX "pay_components_search_text_trgm_idx" ON "pay_components" USING gin
 --> statement-breakpoint
 CREATE UNIQUE INDEX "payroll_runs_company_id_period_index" ON "payroll_runs" ("company_id","period");
 --> statement-breakpoint
-CREATE INDEX "payroll_runs_statutory_snapshot_id_index" ON "payroll_runs" ("statutory_snapshot_id");
+CREATE INDEX "payroll_runs_statutory_snapshot_id_idx" ON "payroll_runs" ("statutory_snapshot_id");
 --> statement-breakpoint
 CREATE INDEX "payroll_runs_search_document_gin_idx" ON "payroll_runs" USING gin ("search_document");
 --> statement-breakpoint
 CREATE INDEX "payroll_runs_search_text_trgm_idx" ON "payroll_runs" USING gin ((coalesce("period", '')) gin_trgm_ops);
 --> statement-breakpoint
-CREATE INDEX "payslip_adjustments_payslip_id_index" ON "payslip_adjustments" ("payslip_id");
---> statement-breakpoint
 CREATE INDEX "payslip_adjustments_statutory_rule_key_index" ON "payslip_adjustments" ("statutory_rule_key") WHERE "statutory_rule_key" IS NOT NULL;
+--> statement-breakpoint
+CREATE INDEX "payslip_adjustments_payslip_id_idx" ON "payslip_adjustments" ("payslip_id");
 --> statement-breakpoint
 CREATE INDEX "payslip_adjustments_search_document_gin_idx" ON "payslip_adjustments" USING gin ("search_document");
 --> statement-breakpoint
@@ -648,19 +648,19 @@ CREATE INDEX "payslip_adjustments_input_loan_repayment_input_ref_idx" ON "paysli
 --> statement-breakpoint
 CREATE UNIQUE INDEX "payslip_component_entry_inputs_payslip_id_component_entry_id_index" ON "payslip_component_entry_inputs" ("payslip_id","component_entry_id");
 --> statement-breakpoint
-CREATE INDEX "payslip_component_entry_inputs_component_entry_id_index" ON "payslip_component_entry_inputs" ("component_entry_id");
+CREATE INDEX "payslip_component_entry_inputs_component_entry_id_idx" ON "payslip_component_entry_inputs" ("component_entry_id");
 --> statement-breakpoint
 CREATE UNIQUE INDEX "payslip_leave_request_inputs_payslip_id_leave_request_id_index" ON "payslip_leave_request_inputs" ("payslip_id","leave_request_id");
 --> statement-breakpoint
-CREATE INDEX "payslip_leave_request_inputs_leave_request_id_index" ON "payslip_leave_request_inputs" ("leave_request_id");
+CREATE INDEX "payslip_leave_request_inputs_leave_request_id_idx" ON "payslip_leave_request_inputs" ("leave_request_id");
 --> statement-breakpoint
 CREATE UNIQUE INDEX "payslip_loan_repayment_inputs_payslip_id_loan_repayment_id_index" ON "payslip_loan_repayment_inputs" ("payslip_id","loan_repayment_id");
 --> statement-breakpoint
-CREATE INDEX "payslip_loan_repayment_inputs_loan_repayment_id_index" ON "payslip_loan_repayment_inputs" ("loan_repayment_id");
+CREATE INDEX "payslip_loan_repayment_inputs_loan_repayment_id_idx" ON "payslip_loan_repayment_inputs" ("loan_repayment_id");
 --> statement-breakpoint
 CREATE UNIQUE INDEX "payslip_work_day_inputs_payslip_id_work_day_id_index" ON "payslip_work_day_inputs" ("payslip_id","work_day_id");
 --> statement-breakpoint
-CREATE INDEX "payslip_work_day_inputs_work_day_id_index" ON "payslip_work_day_inputs" ("work_day_id");
+CREATE INDEX "payslip_work_day_inputs_work_day_id_idx" ON "payslip_work_day_inputs" ("work_day_id");
 --> statement-breakpoint
 CREATE UNIQUE INDEX "payslips_payroll_run_id_employment_id_index" ON "payslips" ("payroll_run_id","employment_id");
 --> statement-breakpoint
@@ -682,15 +682,15 @@ CREATE INDEX "shift_definitions_search_text_trgm_idx" ON "shift_definitions" USI
 --> statement-breakpoint
 CREATE UNIQUE INDEX "statutory_contributions_statutory_profile_id_code_index" ON "statutory_contributions" ("statutory_profile_id","code");
 --> statement-breakpoint
-CREATE INDEX "statutory_contributions_jurisdiction_id_index" ON "statutory_contributions" ("jurisdiction_id");
+CREATE INDEX "statutory_contributions_jurisdiction_id_idx" ON "statutory_contributions" ("jurisdiction_id");
 --> statement-breakpoint
 CREATE INDEX "statutory_contributions_search_document_gin_idx" ON "statutory_contributions" USING gin ("search_document");
 --> statement-breakpoint
 CREATE INDEX "statutory_contributions_search_text_trgm_idx" ON "statutory_contributions" USING gin ((coalesce("code", '') || ' ' || coalesce("name", '')) gin_trgm_ops);
 --> statement-breakpoint
-CREATE INDEX "statutory_profile_drift_logs_checked_at_index" ON "statutory_profile_drift_logs" ("checked_at");
+CREATE INDEX "statutory_profile_drift_logs_checked_at_idx" ON "statutory_profile_drift_logs" ("checked_at");
 --> statement-breakpoint
-CREATE INDEX "statutory_profile_drift_logs_status_index" ON "statutory_profile_drift_logs" ("status");
+CREATE INDEX "statutory_profile_drift_logs_status_idx" ON "statutory_profile_drift_logs" ("status");
 --> statement-breakpoint
 CREATE INDEX "statutory_profile_drift_logs_search_document_gin_idx" ON "statutory_profile_drift_logs" USING gin ("search_document");
 --> statement-breakpoint
@@ -700,7 +700,7 @@ CREATE UNIQUE INDEX "work_days_employment_id_work_date_index" ON "work_days" ("e
 --> statement-breakpoint
 CREATE INDEX "work_days_roster_id_index" ON "work_days" ("roster_id") WHERE "roster_id" IS NOT NULL;
 --> statement-breakpoint
-CREATE INDEX "work_days_work_date_index" ON "work_days" ("work_date");
+CREATE INDEX "work_days_work_date_idx" ON "work_days" ("work_date");
 --> statement-breakpoint
 ALTER TABLE "companies" ADD CONSTRAINT "companies_jurisdiction_id_jurisdictions_fk" FOREIGN KEY ("jurisdiction_id") REFERENCES "jurisdictions"("id");
 --> statement-breakpoint
@@ -733,6 +733,8 @@ ALTER TABLE "leave_requests" ADD CONSTRAINT "leave_requests_employment_id_employ
 ALTER TABLE "leave_requests" ADD CONSTRAINT "leave_requests_leave_type_id_leave_types_fk" FOREIGN KEY ("leave_type_id") REFERENCES "leave_types"("id");
 --> statement-breakpoint
 ALTER TABLE "leave_types" ADD CONSTRAINT "leave_types_company_id_companies_fk" FOREIGN KEY ("company_id") REFERENCES "companies"("id");
+--> statement-breakpoint
+ALTER TABLE "leave_types" ADD CONSTRAINT "leave_types_statutory_profile_id_jurisdictions_fk" FOREIGN KEY ("statutory_profile_id") REFERENCES "jurisdictions"("id");
 --> statement-breakpoint
 ALTER TABLE "loan_repayments" ADD CONSTRAINT "loan_repayments_loan_id_loans_fk" FOREIGN KEY ("loan_id") REFERENCES "loans"("id") ON DELETE CASCADE;
 --> statement-breakpoint

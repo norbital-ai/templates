@@ -9,14 +9,18 @@
 	import { CollectionTable } from '@norbital-ai/ui/collection-table';
 	import { CollectionQueryState } from '@norbital-ai/ui/collection-query';
 	import { CollectionActionToolbar } from '@norbital-ai/ui/collection-toolbar';
+	import {
+		submitCollectionMutation,
+		type CollectionMutationSubmission
+	} from '@norbital-ai/ui/collection-form';
 	import { Combobox } from '@norbital-ai/ui/combobox';
 	import { Button } from '@norbital-ai/ui/button';
+	import { Input } from '@norbital-ai/ui/input';
 	import { Alert, AlertDescription, AlertTitle } from '@norbital-ai/ui/alert';
 	import { Badge } from '@norbital-ai/ui/badge';
 	import { IconWrapper } from '@norbital-ai/ui/icon-wrapper';
 	import { Tooltip } from '@norbital-ai/ui/tooltip';
-	import { Display, type ChartDisplaySpec } from '@norbital-ai/ui/chart';
-	import { Bound, Cluster, Cover, Grid, Inline, Scroll, Stack } from '@norbital-ai/ui/layout';
+	import { Cluster, Cover, Inline, Stack } from '@norbital-ai/ui/layout';
 	import { toast } from 'svelte-sonner';
 	import { formatHolidayScope } from '../../lib/ui/display-formatters.js';
 	import { runWorkbookImport } from '../../lib/ui/workbook-import.js';
@@ -28,7 +32,6 @@
 		monthKey,
 		shiftDayKey,
 		shiftMonthKey,
-		startOfIsoWeekDate,
 		todayKey,
 		todayInstant
 	} from '../../lib/ui/calendar.js';
@@ -55,7 +58,12 @@
 	} from '../../lib/ui/roster/roster-month.js';
 	import { patternRosterCodeId } from '../../lib/scheduling/work-pattern.js';
 	import { rosterCodeKind, workWindow } from '../../lib/scheduling/roster-code.js';
-	import { attendanceState } from '../../lib/attendance.js';
+	import { buildPersonDayMutation } from '../../lib/ui/roster/controller-attendance-state.js';
+	import { unresolvedClockOutEmploymentIds as openClockOutEmploymentIds } from '../../lib/ui/roster/roster-month-board-filter.js';
+	import {
+		MONTH_BOARD_QUERY_LIMITS,
+		monthBoardQueryReceipt
+	} from '../../lib/ui/roster/month-board-query.js';
 	import {
 		payrollWindows,
 		lockMap,
@@ -71,10 +79,6 @@
 	import type { WorkPattern } from '../../datatypes/work_pattern/+definition.js';
 
 	const { t } = useI18n<TenantI18nKeys>();
-	const locallyDurable = <Result,>(
-		operation: () => PromiseLike<Result> // repository-health:allow EFF2 -- generated browser mutations expose one PromiseLike seam, immediately adapted into Effect.
-	): Effect.Effect<void, unknown> =>
-		Effect.tryPromise({ try: operation, catch: (cause) => cause }).pipe(Effect.asVoid);
 
 	let companyId = $state<string | null>(null);
 	let month = $state<string>(monthKey(todayKey()));
@@ -91,6 +95,7 @@
 		open: false,
 		employmentId: null as string | null,
 		date: null as string | null,
+		editorRevision: 0,
 		/** The code currently chosen inside the drawer, mirrored back so the overlap check stays live. */
 		draftCodeId: null as string | null
 	});
@@ -102,9 +107,17 @@
 	 */
 	const swap = $state({ source: null as BoardCell | null });
 	let rosterSettlementId = $state<string | null>(null);
-	/** Which exception counter the operator drilled into, or null for the whole month. */
-	let exceptionFilter = $state<DayStatus | null>(null);
-	let activeTab = $state('board');
+	/** Local-only eye filter: it narrows the already-loaded month facts and never issues a query. */
+	let unresolvedClockOutsOnly = $state(false);
+	let createDraftPending = $state(false);
+	let createDraftPendingApproval = $state(false);
+	let createDraftError = $state<string | null>(null);
+	let rosterActionError = $state<string | null>(null);
+	const daySheetSubmission = $state({
+		settling: false,
+		pendingApproval: false,
+		error: null as string | null
+	});
 	/**
 	 * Search and filter state in the same model every collection surface uses.
 	 *
@@ -123,7 +136,7 @@
 		client.db.companies.findMany({
 			where: { ...approved, ...activeRange },
 			orderBy: { name: 'asc' },
-			limit: 500
+			limit: MONTH_BOARD_QUERY_LIMITS.companies
 		})
 	);
 	const companies = $derived(companiesQuery.current ?? []);
@@ -148,6 +161,24 @@
 	const monthEnd = $derived(
 		formatDateISO(new Date(Date.parse(`${shiftMonthKey(month, 1)}-01T00:00:00.000Z`) - 86_400_000))
 	);
+	const monthDateKeys = $derived(monthDays(month));
+
+	/**
+	 * Every payroll run the company has, not just this month's: the board's lock stripes come from
+	 * whichever run's window covers each day, and a paid window is drawn and enforced everywhere.
+	 * The current-period cutoff is projected from this same bounded read rather than issuing a
+	 * duplicate `findFirst` for the selected month.
+	 */
+	const payrollRunsQuery = $derived.by(() => {
+		if (selectedCompanyId == null) return null;
+		return client.db.payroll_runs.findMany({
+			where: { ...approved, company_id: { eq: selectedCompanyId } },
+			columns: { period: true, lifecycle: true, attendance_from: true, attendance_to: true },
+			limit: MONTH_BOARD_QUERY_LIMITS.payrollRuns
+		});
+	});
+	const payrollRunWindows = $derived(payrollWindows(payrollRunsQuery?.current ?? []));
+	const monthLocks = $derived(lockMap(payrollRunWindows, monthDateKeys));
 
 	/**
 	 * The attendance window the next run will settle.
@@ -156,15 +187,8 @@
 	 * Only when no run has been opened yet is it derived from the company's cut-off day, which is the
 	 * same rule stated in `docs/architecture.md`.
 	 */
-	const runQuery = $derived(
-		selectedCompanyId == null
-			? null
-			: client.db.payroll_runs.findFirst({
-					where: { ...approved, company_id: { eq: selectedCompanyId }, period: { eq: month } }
-				})
-	);
 	const cutoff = $derived.by(() => {
-		const run = runQuery?.current;
+		const run = (payrollRunsQuery?.current ?? []).find((candidate) => candidate.period === month);
 		if (run?.attendance_from != null && run.attendance_to != null) {
 			return { start: formatDateISO(run.attendance_from), end: formatDateISO(run.attendance_to) };
 		}
@@ -185,7 +209,7 @@
 		return client.db.employments.findMany({
 			where: { ...approved, company_id: { eq: selectedCompanyId } },
 			orderBy: { employee_number: 'asc' },
-			limit: 1000
+			limit: MONTH_BOARD_QUERY_LIMITS.employments
 		});
 	});
 	/**
@@ -199,15 +223,14 @@
 	const monthEmployments = $derived(
 		employments.filter((employment) => employmentOverlapsMonth(employment, month))
 	);
+	const monthEmploymentIds = $derived(monthEmployments.map((employment) => employment.id));
+	const monthEmployeeIds = $derived(monthEmployments.map((employment) => employment.employee_id));
 	const employeesQuery = $derived(
-		monthEmployments.length === 0
+		monthEmployeeIds.length === 0
 			? null
 			: client.db.employees.findMany({
-					where: {
-						...approved,
-						id: { in: monthEmployments.map((employment) => employment.employee_id) }
-					},
-					limit: 1000
+					where: { ...approved, id: { in: monthEmployeeIds } },
+					limit: MONTH_BOARD_QUERY_LIMITS.employees
 				})
 	);
 	const employeeNamesById = $derived(
@@ -227,21 +250,29 @@
 			? null
 			: client.db.shift_definitions.findMany({
 					where: { ...approved, company_id: { eq: selectedCompanyId } },
-					limit: 500
+					limit: MONTH_BOARD_QUERY_LIMITS.rosterCodes
 				})
 	);
 	const rosterCodesById = $derived(
 		new Map((shiftsQuery?.current ?? []).map((code) => [code.id, code]))
 	);
 	const employmentTermsQuery = $derived.by(() => {
-		if (selectedCompanyId == null) return null;
+		if (!employmentsReady || monthEmploymentIds.length === 0) return null;
 		return client.db.employment_terms.findMany({
-			where: {
-				...approved,
-				term_employment: { ...approved, company_id: { eq: selectedCompanyId } }
-			},
-			limit: 3000
+			where: { ...approved, employment_id: { in: monthEmploymentIds } },
+			columns: { employment_id: true, work_pattern: true, effective_range: true },
+			limit: MONTH_BOARD_QUERY_LIMITS.employmentTerms
 		});
+	});
+	const employmentTerms = $derived(employmentTermsQuery?.current ?? []);
+	const employmentTermsByEmploymentId = $derived.by(() => {
+		const grouped = new Map<string, Array<(typeof employmentTerms)[number]>>();
+		for (const term of employmentTerms) {
+			const existing = grouped.get(term.employment_id);
+			if (existing == null) grouped.set(term.employment_id, [term]);
+			else existing.push(term);
+		}
+		return grouped;
 	});
 
 	const leaveTypesQuery = $derived(
@@ -249,7 +280,7 @@
 			? null
 			: client.db.leave_types.findMany({
 					where: { ...approved, company_id: { eq: selectedCompanyId } },
-					limit: 200
+					limit: MONTH_BOARD_QUERY_LIMITS.leaveTypes
 				})
 	);
 	const leaveCodeById = $derived(
@@ -261,11 +292,10 @@
 			? null
 			: client.db.rosters.findMany({
 					where: { ...approved, company_id: { eq: selectedCompanyId }, month: { eq: month } },
-					limit: 50
+					limit: MONTH_BOARD_QUERY_LIMITS.rosters
 				})
 	);
 	const rosters = $derived(rostersQuery?.current ?? []);
-	const activeRoster = $derived(rosters[0] ?? null);
 	/**
 	 * The month's draft roster, which an import and every editable matrix cell land in.
 	 *
@@ -291,16 +321,12 @@
 	 * round-trip would erase a month of punches. Every plan write below is a write to its own row.
 	 */
 	const workDaysQuery = $derived.by(() => {
-		if (selectedCompanyId == null || !employmentsReady) return null;
+		if (!employmentsReady || monthEmploymentIds.length === 0) return null;
 		return client.db.work_days.findMany({
 			where: {
 				...approved,
 				work_date: { gte: monthStart, lte: monthEnd },
-				...(monthEmployments.length > 0
-					? { employment_id: { in: monthEmployments.map((e) => e.id) } }
-					: {
-							work_day_employment: { ...approved, company_id: { eq: selectedCompanyId } }
-						})
+				employment_id: { in: monthEmploymentIds }
 			},
 			// `id` and `break_minutes` are needed by the same surface: the day sheet updates *this*
 			// row rather than creating a second one for the day, and it cannot assess the unpaid
@@ -317,10 +343,21 @@
 				worked_intervals: true,
 				break_minutes: true
 			},
-			limit: 20_000
+			limit: MONTH_BOARD_QUERY_LIMITS.workDays
 		});
 	});
 	const workDays = $derived(workDaysQuery?.current ?? []);
+	const workDayIndexes = $derived.by(() => {
+		const ids: string[] = [];
+		const byPersonDay = new Map<string, (typeof workDays)[number]>();
+		for (const day of workDays) {
+			ids.push(day.id);
+			byPersonDay.set(personDayKey(day.employment_id, formatDateISO(day.work_date)), day);
+		}
+		return { ids, byPersonDay };
+	});
+	const workDayIds = $derived(workDayIndexes.ids);
+	const workDayByKey = $derived(workDayIndexes.byPersonDay);
 	const workDaysError = $derived(workDaysQuery?.error ?? null);
 	const matrixMutationReady = $derived(
 		draftRoster != null && workDaysQuery?.current !== undefined && workDaysError == null
@@ -332,10 +369,13 @@
 	 * days from their month.
 	 */
 	const filteredWorkDaysQuery = $derived.by(() => {
-		if (activeRoster == null || boardQuery.filters.length === 0) return null;
+		if (monthEmploymentIds.length === 0 || boardQuery.filters.length === 0) return null;
 		return client.db.work_days.findMany(
 			{
-				where: { roster_id: { eq: activeRoster.id } },
+				where: {
+					work_date: { gte: monthStart, lte: monthEnd },
+					employment_id: { in: monthEmploymentIds }
+				},
 				columns: {
 					id: true,
 					employment_id: true,
@@ -343,7 +383,7 @@
 					shift_definition_id: true,
 					assignment_code: true
 				},
-				limit: 5000
+				limit: MONTH_BOARD_QUERY_LIMITS.filteredWorkDays
 			},
 			boardQuery.queryOptions
 		);
@@ -358,11 +398,10 @@
 	 * widened to catch one spanning into the month.
 	 */
 	const leaveQuery = $derived.by(() => {
-		if (selectedCompanyId == null || !employmentsReady || monthEmployments.length === 0)
-			return null;
+		if (!employmentsReady || monthEmploymentIds.length === 0) return null;
 		return client.db.leave_requests.findMany({
 			where: {
-				employment_id: { in: monthEmployments.map((employment) => employment.id) },
+				employment_id: { in: monthEmploymentIds },
 				kind: { eq: 'TIME_OFF' },
 				from_date: { lte: monthEnd },
 				to_date: { gte: monthStart }
@@ -377,7 +416,7 @@
 				half_day_start: true,
 				half_day_end: true
 			},
-			limit: 2000
+			limit: MONTH_BOARD_QUERY_LIMITS.leaveRequests
 		});
 	});
 	/**
@@ -385,24 +424,18 @@
 	 * but it warns an operator who plans work into it. The roster hook allows the assignment; the
 	 * conflict flag makes the approval a decision rather than a silent double-book.
 	 */
-	const approvedLeaveRequests = $derived(
-		(leaveQuery?.current ?? []).filter((request) => request.approval_id == null)
-	);
-	const pendingLeaveRequests = $derived(
-		(leaveQuery?.current ?? []).filter((request) => request.approval_id != null)
-	);
-	/**
-	 * Every payroll run the company has, not just this month's: the board's lock stripes come from
-	 * whichever run's window covers each day, and a paid window is drawn and enforced everywhere.
-	 */
-	const payrollRunsQuery = $derived.by(() => {
-		if (selectedCompanyId == null) return null;
-		return client.db.payroll_runs.findMany({
-			where: { ...approved, company_id: { eq: selectedCompanyId } },
-			columns: { period: true, lifecycle: true, attendance_from: true, attendance_to: true },
-			limit: 500
-		});
+	const leaveRequests = $derived(leaveQuery?.current ?? []);
+	const leavePartitions = $derived.by(() => {
+		const approvedRequests: (typeof leaveRequests)[number][] = [];
+		const pendingRequests: (typeof leaveRequests)[number][] = [];
+		for (const request of leaveRequests) {
+			if (request.approval_id == null) approvedRequests.push(request);
+			else pendingRequests.push(request);
+		}
+		return { approvedRequests, pendingRequests };
 	});
+	const approvedLeaveRequests = $derived(leavePartitions.approvedRequests);
+	const pendingLeaveRequests = $derived(leavePartitions.pendingRequests);
 	/**
 	 * The settlement claims held over this month's attendance, which is the third rung of the ladder.
 	 *
@@ -417,12 +450,11 @@
 	 * person-day and never a scan of every claim the company has ever taken.
 	 */
 	const settlementsQuery = $derived.by(() => {
-		const dayIds = workDays.map((day) => day.id);
-		if (selectedCompanyId == null || dayIds.length === 0) return null;
+		if (selectedCompanyId == null || workDayIds.length === 0) return null;
 		return client.db.payslip_work_day_inputs.findMany({
-			where: { ...approved, work_day_id: { in: dayIds } },
+			where: { ...approved, work_day_id: { in: workDayIds } },
 			columns: { work_day_id: true, period: true },
-			limit: 20_000
+			limit: MONTH_BOARD_QUERY_LIMITS.settlementClaims
 		});
 	});
 	const settlementClaims = $derived(
@@ -443,12 +475,12 @@
 				date: { gte: monthStart, lte: monthEnd }
 			},
 			columns: { date: true, name: true },
-			limit: 200
+			limit: MONTH_BOARD_QUERY_LIMITS.holidays
 		});
 	});
 
 	/**
-	 * The five queries the board is assembled from, named so a failure can say which one failed.
+	 * The bounded query graph the board is assembled from, named so a failure can say which one failed.
 	 *
 	 * They are listed rather than OR-ed inline because "still loading" is not the only answer this
 	 * board needs to be able to give. A gate that only knows `loading` has no terminal state: a query
@@ -463,8 +495,10 @@
 		{ label: 'leave', query: leaveQuery },
 		{ label: 'holidays', query: holidaysQuery },
 		{ label: 'employments', query: employmentsQuery },
+		{ label: 'employees', query: employeesQuery },
 		{ label: 'employment schedules', query: employmentTermsQuery },
 		{ label: 'roster codes', query: shiftsQuery },
+		{ label: 'leave types', query: leaveTypesQuery },
 		{ label: 'payroll runs', query: payrollRunsQuery },
 		{ label: 'settlement claims', query: settlementsQuery }
 	]);
@@ -474,25 +508,15 @@
 		)
 	);
 	/**
-	 * Only the month-scoped reads the grid cannot draw without. Names, pattern projection and
-	 * the filter probe can arrive later — gating on those is what left Published badges on
-	 * screen while the body sat on `Loading …`.
+	 * The board is loading until every active read has settled. Optional sources remain `null` until
+	 * their input set exists, but once issued, names, schedules, leave labels, locks and schema-filter
+	 * membership all settle before the board claims the selected month is ready.
 	 */
-	const boardReadySources = $derived([
-		{ label: 'rosters', query: rostersQuery },
-		{ label: 'person-days', query: workDaysQuery },
-		{ label: 'leave', query: leaveQuery },
-		{ label: 'holidays', query: holidaysQuery },
-		{ label: 'employments', query: employmentsQuery },
-		{ label: 'roster codes', query: shiftsQuery }
-	]);
 	const loading = $derived(
 		boardErrors.length === 0 &&
 			(selectedCompanyId == null ||
 				!employmentsReady ||
-				boardReadySources.some(
-					(source) => source.query != null && source.query.current === undefined
-				))
+				boardSources.some((source) => source.query != null && source.query.current === undefined))
 	);
 
 	/** Overlaid onto the board from the company calendar; never a mark stored on a roster entry. */
@@ -503,7 +527,7 @@
 		buildRosterMonth({
 			month,
 			employments: monthEmployments,
-			employmentTerms: employmentTermsQuery?.current ?? [],
+			employmentTerms,
 			workDays,
 			leaveRequests: approvedLeaveRequests,
 			pendingLeaveRequests,
@@ -511,28 +535,42 @@
 			rosterCodesById,
 			leaveCodeById,
 			cutoff,
-			locks: lockMap(payrollWindows(payrollRunsQuery?.current ?? []), monthDays(month)),
+			locks: monthLocks,
 			today
 		})
 	);
-	/**
-	 * The month's stored person-days by key. One index where there were two.
-	 *
-	 * A row here may hold a plan, attendance, or both — `shift_definition_id` non-NULL is the
-	 * presence test for a plan, and that is the test every "explicit assignment" question below
-	 * asks. The row existing is no longer the same question as the day being assigned.
-	 */
-	const workDayByKey = $derived(
-		new Map(
-			workDays.map((day) => [personDayKey(day.employment_id, formatDateISO(day.work_date)), day])
-		)
+	const boardLoadReceipt = $derived(
+		monthBoardQueryReceipt({
+			companySelected: selectedCompanyId != null,
+			employmentsLoaded: employmentsReady,
+			activeEmploymentCount: monthEmploymentIds.length,
+			workDayCount: workDays.length,
+			daysInMonth: monthDateKeys.length,
+			schemaFilterActive: boardQuery.filters.length > 0,
+			unresolvedClockOutsOnly,
+			loadedRows: {
+				companies: companies.length,
+				employments: employments.length,
+				employees: employeesQuery?.current?.length ?? 0,
+				rosterCodes: shiftsQuery?.current?.length ?? 0,
+				employmentTerms: employmentTerms.length,
+				leaveTypes: leaveTypesQuery?.current?.length ?? 0,
+				rosters: rosters.length,
+				workDays: workDays.length,
+				leaveRequests: leaveRequests.length,
+				payrollRuns: payrollRunsQuery?.current?.length ?? 0,
+				settlementClaims: settlementsQuery?.current?.length ?? 0,
+				holidays: companyHolidays.length,
+				filteredWorkDays: filteredWorkDaysQuery?.current?.length ?? 0
+			}
+		})
 	);
 
 	const filteredEmploymentIds = $derived(
 		new Set((filteredWorkDaysQuery?.current ?? []).map((day) => day.employment_id))
 	);
 	/**
-	 * The people an exception drill-through leaves on the board.
+	 * The people the unresolved-clock-out eye filter leaves on the board.
 	 *
 	 * This is the argument for deleting the raw attendance table rather than moving it. A list of
 	 * exceptions beside a board of person-days is two places to read the same month, and the table
@@ -540,15 +578,12 @@
 	 * are wrong stay on screen with the plan and the lock still drawn beside them, which is what an
 	 * operator needs in order to fix one.
 	 *
-	 * The month and the search survive it, because they describe a different question.
+	 * The month and the search survive it, because they describe a different question. No query is
+	 * created for this filter; it is derived from the same `facts` map the cells render.
 	 */
-	const exceptionEmploymentIds = $derived.by(() => {
-		if (exceptionFilter == null) return null;
-		const affected = new Set<string>();
-		for (const day of facts.values()) {
-			if (day.status === exceptionFilter) affected.add(day.employmentId);
-		}
-		return affected;
+	const unresolvedClockOutEmploymentIds = $derived.by(() => {
+		if (!unresolvedClockOutsOnly) return null;
+		return openClockOutEmploymentIds(facts.values());
 	});
 	const boardPeople = $derived(
 		people.filter((person) => {
@@ -556,7 +591,11 @@
 			if (term !== '' && !`${person.number} ${person.name}`.toLowerCase().includes(term)) {
 				return false;
 			}
-			if (exceptionEmploymentIds != null && !exceptionEmploymentIds.has(person.id)) return false;
+			if (
+				unresolvedClockOutEmploymentIds != null &&
+				!unresolvedClockOutEmploymentIds.has(person.id)
+			)
+				return false;
 			return (
 				boardQuery.filters.length === 0 ||
 				filteredWorkDaysQuery?.current === undefined ||
@@ -629,21 +668,42 @@
 		);
 	}
 
-	function stepMonth(delta: number): void {
-		month = shiftMonthKey(month, delta);
+	function selectMonth(nextMonth: string): void {
+		if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(nextMonth)) return;
+		month = nextMonth;
+		createDraftPendingApproval = false;
+		createDraftError = null;
+		rosterActionError = null;
 		boardQuery.setPageIndex(0);
 	}
 
 	function createDraftMonth(): void {
 		if (selectedCompanyId == null) return;
 		const companyId = selectedCompanyId;
+		const targetMonth = month;
+		createDraftPending = true;
+		createDraftPendingApproval = false;
+		createDraftError = null;
 		Effect.runFork(
-			locallyDurable(() =>
-				client.db.rosters.mutate({
-					company_id: companyId,
-					month,
-					published_at: null
-				})
+			// A remote command has no optimistic browser-memory success state: settling it means the
+			// complete server-owned roster graph either committed or returned its authoritative refusal.
+			Effect.tryPromise({
+				try: () => client.invoke.open_roster_month({ company_id: companyId, month: targetMonth }),
+				catch: (cause) => cause
+			}).pipe(
+				Effect.tap(() =>
+					Effect.sync(() => {
+						toast.success(t('app.scheduling.toast_draft_created', { month: targetMonth }));
+					})
+				),
+				Effect.catch((cause) =>
+					Effect.sync(() => {
+						const message = cause instanceof Error ? cause.message : String(cause);
+						createDraftError = message;
+						toast.error(t('app.scheduling.toast_draft_failed'), { description: message });
+					})
+				),
+				Effect.ensuring(Effect.sync(() => (createDraftPending = false)))
 			)
 		);
 	}
@@ -673,8 +733,8 @@
 
 	function activeTermFor(employmentId: string, date: string) {
 		return (
-			(employmentTermsQuery?.current ?? []).find(
-				(term) => term.employment_id === employmentId && termCovers(term, date)
+			(employmentTermsByEmploymentId.get(employmentId) ?? []).find((term) =>
+				termCovers(term, date)
 			) ?? null
 		);
 	}
@@ -802,10 +862,8 @@
 
 	function expectationsFor(employmentId: string): WorkloadExpectation[] {
 		const expectations: WorkloadExpectation[] = [];
-		const days = monthDays(month);
-		for (const term of employmentTermsQuery?.current ?? []) {
-			if (term.employment_id !== employmentId) continue;
-			const activeDates = days.filter((date) => termCovers(term, date));
+		for (const term of employmentTermsByEmploymentId.get(employmentId) ?? []) {
+			const activeDates = monthDateKeys.filter((date) => termCovers(term, date));
 			if (activeDates.length === 0) continue;
 			const start = activeDates[0]!;
 			const end = activeDates[activeDates.length - 1]!;
@@ -820,7 +878,7 @@
 				start,
 				end,
 				activeDates.length,
-				pattern.expectation.period === 'WEEK' ? 7 : days.length
+				pattern.expectation.period === 'WEEK' ? 7 : monthDateKeys.length
 			);
 			if (expectation != null) expectations.push(expectation);
 		}
@@ -834,7 +892,11 @@
 	function openDaySheet(employmentId: string, date: string): void {
 		daySheet.employmentId = employmentId;
 		daySheet.date = date;
+		daySheet.editorRevision += 1;
 		daySheet.draftCodeId = effectiveCodeId(employmentId, date);
+		daySheetSubmission.settling = false;
+		daySheetSubmission.pendingApproval = false;
+		daySheetSubmission.error = null;
 		daySheet.open = true;
 	}
 
@@ -953,18 +1015,60 @@
 	);
 
 	function saveDaySheet(change: DaySheetChange): void {
-		const writes: Effect.Effect<void, unknown>[] = [];
-		if (change.plan != null) writes.push(writePlan(change.employmentId, change.date, change.plan));
-		if (change.attendance != null) writes.push(writeAttendance(change));
+		if (change.plan == null && change.attendance == null) return;
+		if (change.plan != null && draftRoster == null) {
+			daySheetSubmission.error = t('app.scheduling.blocker_no_draft', { month });
+			return;
+		}
+		const existing = workDayByKey.get(personDayKey(change.employmentId, change.date));
+		const mutation = buildPersonDayMutation({
+			id: existing?.id ?? change.attendance?.workDayId ?? null,
+			employmentId: change.employmentId,
+			date: change.date,
+			plan:
+				change.plan == null || draftRoster == null
+					? null
+					: {
+							rosterCodeId: change.plan.rosterCodeId,
+							rosterId: draftRoster.id,
+							note: change.plan.note
+						},
+			attendance:
+				change.attendance == null
+					? null
+					: {
+							intervals: change.attendance.intervals,
+							breakMinutes: change.attendance.breakMinutes
+						}
+		});
+		daySheetSubmission.settling = true;
+		daySheetSubmission.pendingApproval = false;
+		daySheetSubmission.error = null;
 		Effect.runFork(
-			Effect.all(writes, { concurrency: 'unbounded', discard: true }).pipe(
-				Effect.tap(() =>
+			submitCollectionMutation(() => client.db.work_days.mutate(mutation)).pipe(
+				Effect.tap((submission: CollectionMutationSubmission) =>
 					Effect.sync(() => {
-						// Both records are durable in their local overlays. Settlement and any refusal
-						// continue through the platform sync surface.
+						if (submission.kind === 'pendingApproval') {
+							daySheetSubmission.pendingApproval = true;
+							toast.success(t('roster.day_sheet_pending_approval'));
+							return;
+						}
 						daySheet.open = false;
 					})
-				)
+				),
+				Effect.catch((cause) =>
+					Effect.sync(() => {
+						const serverMessage = cause instanceof Error ? cause.message : String(cause);
+						const message = t('roster.day_sheet_error_context', {
+							person: daySheetPerson?.name ?? change.employmentId,
+							date: change.date,
+							message: serverMessage
+						});
+						daySheetSubmission.error = message;
+						toast.error(t('roster.day_sheet_save_failed'), { description: message });
+					})
+				),
+				Effect.ensuring(Effect.sync(() => (daySheetSubmission.settling = false)))
 			)
 		);
 	}
@@ -972,12 +1076,9 @@
 	/**
 	 * The plan half, written to the person-day itself.
 	 *
-	 * It used to be submitted as the roster's COMPLETE `roster_entry_roster` relationship, so that
-	 * one changed cell went out with every other cell of the month beside it. That was the correct
-	 * shape while a roster owned its children outright; it is the wrong one now, twice over. The
-	 * rows carry attendance the roster does not own, and a nested `many` removes every child left
-	 * out of the array — so a round-trip that forgot `worked_intervals` would delete a month of
-	 * punches, and `work_day_roster` is deliberately not a cascade for exactly that reason.
+	 * Each person-day is written directly because its canonical row owns both plan and attendance.
+	 * `work_day_roster` is deliberately not a cascade, so changing one plan cannot remove another
+	 * day's assignment or attendance.
 	 *
 	 * `planned_origin` is `MANUAL` because that is what a board write is; the workbook import writes
 	 * `IMPORT`, and the two must stay distinguishable.
@@ -986,10 +1087,12 @@
 		employmentId: string,
 		date: string,
 		plan: { readonly rosterCodeId: string; readonly note: string | null }
-	): Effect.Effect<void, unknown> {
-		if (draftRoster == null) return Effect.void;
+	): Effect.Effect<CollectionMutationSubmission, unknown> {
+		if (draftRoster == null) {
+			return Effect.fail(new Error(t('app.scheduling.blocker_no_draft', { month })));
+		}
 		const existing = workDayByKey.get(personDayKey(employmentId, date));
-		return locallyDurable(() =>
+		return submitCollectionMutation(() =>
 			client.db.work_days.mutate({
 				...(existing == null
 					? { employment_id: employmentId, work_date: date }
@@ -998,32 +1101,6 @@
 				roster_id: draftRoster.id,
 				planned_origin: 'MANUAL',
 				planned_note: plan.note
-			})
-		);
-	}
-
-	/**
-	 * The attendance half, written through `client.db.work_days` so every hook still runs.
-	 *
-	 * `workDayId` is the id of the row the day already has — which now includes a day that carries
-	 * only a plan, because the plan and the clock are one row. A punch on a rostered day is
-	 * therefore an update of that row and never a second one; `unique(employment_id, work_date)`
-	 * would refuse the second anyway.
-	 *
-	 * The break the drawer sends has already been clamped by `assessAttendanceDraft`, which is the
-	 * same arithmetic `assertWorkedIntervals` uses — so this write cannot be refused for a break
-	 * longer than the day, and the operator was told about the clamp before pressing save.
-	 */
-	function writeAttendance(change: DaySheetChange): Effect.Effect<void, unknown> {
-		const attendance = change.attendance;
-		if (attendance == null) return Effect.void;
-		return locallyDurable(() =>
-			client.db.work_days.mutate({
-				...(attendance.workDayId == null
-					? { employment_id: change.employmentId, work_date: change.date }
-					: { id: attendance.workDayId }),
-				worked_intervals: [...attendance.intervals],
-				break_minutes: attendance.breakMinutes
 			})
 		);
 	}
@@ -1040,8 +1117,11 @@
 		if (draftRoster == null || daySheetKey == null) return;
 		const existing = workDayByKey.get(daySheetKey);
 		if (existing?.shift_definition_id == null) return;
+		daySheetSubmission.settling = true;
+		daySheetSubmission.pendingApproval = false;
+		daySheetSubmission.error = null;
 		Effect.runFork(
-			locallyDurable(() =>
+			submitCollectionMutation(() =>
 				client.db.work_days.mutate({
 					id: existing.id,
 					shift_definition_id: null,
@@ -1050,7 +1130,31 @@
 					planned_note: null,
 					planned_origin: null
 				})
-			).pipe(Effect.tap(() => Effect.sync(() => (daySheet.open = false))))
+			).pipe(
+				Effect.tap((submission) =>
+					Effect.sync(() => {
+						if (submission.kind === 'pendingApproval') {
+							daySheetSubmission.pendingApproval = true;
+							toast.success(t('roster.day_sheet_pending_approval'));
+							return;
+						}
+						daySheet.open = false;
+					})
+				),
+				Effect.catch((cause) =>
+					Effect.sync(() => {
+						const serverMessage = cause instanceof Error ? cause.message : String(cause);
+						const message = t('roster.day_sheet_error_context', {
+							person: daySheetPerson?.name ?? daySheet.employmentId ?? '—',
+							date: daySheet.date ?? '—',
+							message: serverMessage
+						});
+						daySheetSubmission.error = message;
+						toast.error(t('roster.day_sheet_save_failed'), { description: message });
+					})
+				),
+				Effect.ensuring(Effect.sync(() => (daySheetSubmission.settling = false)))
+			)
 		);
 	}
 
@@ -1134,7 +1238,7 @@
 		const employmentIds = [...new Set([from.employmentId, to.employmentId])];
 		const days: ValidationDay[] = [];
 		for (const employmentId of employmentIds) {
-			for (const date of monthDays(month)) {
+			for (const date of monthDateKeys) {
 				const day = facts.get(personDayKey(employmentId, date));
 				if (day == null || day.employmentState !== 'ACTIVE') continue;
 				const codeId =
@@ -1174,48 +1278,63 @@
 					writePlan(from.employmentId, from.date, { rosterCodeId: toCodeId, note }),
 					writePlan(to.employmentId, to.date, { rosterCodeId: fromCodeId, note })
 				],
-				{ concurrency: 'unbounded', discard: true }
-			).pipe(Effect.tap(() => Effect.sync(() => (swap.source = null))))
+				{ concurrency: 'unbounded' }
+			).pipe(
+				Effect.tap((submissions) =>
+					Effect.sync(() => {
+						swap.source = null;
+						if (submissions.some((submission) => submission.kind === 'pendingApproval')) {
+							toast.success(t('roster.day_sheet_pending_approval'));
+							return;
+						}
+						toast.success(t('roster.swap_done'));
+					})
+				),
+				Effect.catch((cause) =>
+					Effect.sync(() =>
+						toast.error(t('roster.swap_failed_pair', { from: from.date, to: to.date }), {
+							description: cause instanceof Error ? cause.message : String(cause)
+						})
+					)
+				)
+			)
 		);
 	}
 
 	function setRosterPublication(rosterId: string, publishedAt: string | null): void {
 		const publishing = publishedAt !== null;
-		if (publishing) rosterSettlementId = rosterId;
+		rosterSettlementId = rosterId;
+		rosterActionError = null;
 		Effect.runFork(
-			Effect.gen(function* () {
-				const local = yield* Effect.tryPromise({
-					try: () => client.db.rosters.mutate({ id: rosterId, published_at: publishedAt }),
-					catch: (cause) => cause
-				});
-				if (!publishing) return;
-				// Publishing freezes the month's allocations. The local overlay may render the published
-				// roster immediately, but this action stays pending until server validation settles.
-				const settlement = yield* Effect.tryPromise({
-					try: () => local.settlement.wait(),
-					catch: (cause) => cause
-				});
-				if (settlement.kind !== 'accepted' && settlement.kind !== 'rebased') {
-					return yield* Effect.fail(
-						new Error(
-							settlement.kind === 'rejected' ? settlement.message : settlement.quarantine.message
-						)
-					);
-				}
-				toast.success(t('app.scheduling.toast_published', { month }));
-			}).pipe(
-				Effect.catch((cause) =>
-					Effect.sync(() =>
-						toast.error(t('app.scheduling.toast_publish_failed'), {
-							description: cause instanceof Error ? cause.message : undefined
-						})
-					)
-				),
-				Effect.ensuring(
+			submitCollectionMutation(() =>
+				client.db.rosters.mutate({ id: rosterId, published_at: publishedAt })
+			).pipe(
+				Effect.tap((submission) =>
 					Effect.sync(() => {
-						if (publishing) rosterSettlementId = null;
+						if (submission.kind === 'pendingApproval') {
+							toast.success(t('roster.day_sheet_pending_approval'));
+							return;
+						}
+						toast.success(
+							publishing
+								? t('app.scheduling.toast_published', { month })
+								: t('app.scheduling.toast_reopened', { month })
+						);
 					})
-				)
+				),
+				Effect.catch((cause) =>
+					Effect.sync(() => {
+						const message = cause instanceof Error ? cause.message : String(cause);
+						rosterActionError = message;
+						toast.error(
+							publishing
+								? t('app.scheduling.toast_publish_failed')
+								: t('app.scheduling.toast_reopen_failed'),
+							{ description: message }
+						);
+					})
+				),
+				Effect.ensuring(Effect.sync(() => (rosterSettlementId = null)))
 			)
 		);
 	}
@@ -1249,78 +1368,6 @@
 			t
 		);
 	}
-
-	/* ────────────────────────────────────────────────────────────────────────────────────────────
-	 * EXCEPTIONS — §8.3. The chart that was the whole of the retired Time & Attendance app.
-	 * ──────────────────────────────────────────────────────────────────────────────────────────── */
-
-	const currentWeek = startOfIsoWeekDate(today) ?? today;
-	const trendStart = shiftDayKey(currentWeek, -49);
-	const attendanceSummaryQuery = $derived(
-		selectedCompanyId == null
-			? null
-			: client.db.work_days.findMany({
-					where: {
-						...approved,
-						work_day_employment: {
-							...approved,
-							company_id: { eq: selectedCompanyId }
-						},
-						work_date: { gte: trendStart, lte: today }
-					},
-					columns: { work_date: true, worked_intervals: true },
-					limit: 20_000
-				})
-	);
-	const attendanceTrend = $derived.by(() => {
-		const entries = attendanceSummaryQuery?.current;
-		if (!employmentsReady || employments.length === 0 || entries === undefined) return [];
-		const weeks: Array<{ week: string; end: string }> = [];
-		for (let week = trendStart; week <= today; week = shiftDayKey(week, 7)) {
-			weeks.push({ week, end: [shiftDayKey(week, 6), today].sort()[0]! });
-		}
-		return weeks.map(({ week, end }) => {
-			const inWeek = entries.filter((entry) => {
-				const date = formatDateISO(entry.work_date);
-				return date >= week && date <= end;
-			});
-			const incomplete = inWeek.filter(
-				(entry) => attendanceState(entry.worked_intervals) !== 'COMPLETE'
-			).length;
-			return { week, exceptionRate: inWeek.length === 0 ? 0 : incomplete / inWeek.length };
-		});
-	});
-	const attendanceChart = $derived({
-		kind: 'line',
-		loading: attendanceSummaryQuery?.loading ?? false,
-		title: t('app.scheduling.exception_chart_title'),
-		description: t('app.scheduling.exception_chart_description'),
-		data: attendanceTrend,
-		xKey: 'week',
-		series: ['exceptionRate'],
-		config: {
-			exceptionRate: {
-				label: t('app.scheduling.exception_chart_rate'),
-				color: 'var(--color-destructive)'
-			}
-		},
-		valueFormat: { style: 'percent', maximumFractionDigits: 1 },
-		curve: 'linear'
-	} satisfies ChartDisplaySpec);
-
-	/**
-	 * Drill through from a counter to the person-days behind it.
-	 *
-	 * The counter and the board are computed from the same `facts`, so this narrows rather than
-	 * queries: no second read, no chance of the list and the grid disagreeing about the month. The
-	 * month and the search survive, because they answer a different question than "which days are
-	 * wrong".
-	 */
-	function drillInto(status: DayStatus): void {
-		exceptionFilter = exceptionFilter === status ? null : status;
-		boardQuery.setPageIndex(0);
-		activeTab = 'board';
-	}
 </script>
 
 <svelte:head>
@@ -1345,8 +1392,12 @@
 		ariaLabel={t('component.legal_entity')}
 		options={companyOptions}
 		value={selectedCompanyId}
+		disabled={createDraftPending || rosterSettlementId !== null || daySheetSubmission.settling}
 		onValueChange={(value) => {
 			companyId = typeof value === 'string' ? value : (companies[0]?.id ?? null);
+			createDraftPendingApproval = false;
+			createDraftError = null;
+			rosterActionError = null;
 			boardQuery.setPageIndex(0);
 		}}
 		emptyPlaceholder={t('component.select_legal_entity')}
@@ -1360,19 +1411,16 @@
 {/snippet}
 
 {#snippet monthNavigation()}
-	<Button
-		variant="outline"
-		size="icon"
-		aria-label={t('app.scheduling.previous_month')}
-		onclick={() => stepMonth(-1)}>‹</Button
-	>
-	<span class="min-w-[6rem] text-center text-sm font-medium tabular-nums">{month}</span>
-	<Button
-		variant="outline"
-		size="icon"
-		aria-label={t('app.scheduling.next_month')}
-		onclick={() => stepMonth(1)}>›</Button
-	>
+	<!-- The platform Input is the existing timestamp control at native month precision. One picker
+	     owns month selection; the board exposes no parallel previous/next pagination. -->
+	<Input
+		type="month"
+		class="w-auto min-w-[10rem] tabular-nums"
+		disabled={createDraftPending || rosterSettlementId !== null || daySheetSubmission.settling}
+		aria-label={t('app.scheduling.month_picker')}
+		value={month}
+		oninput={(event) => selectMonth(event.currentTarget.value)}
+	/>
 {/snippet}
 
 <!--
@@ -1425,9 +1473,22 @@
 					})}
 				</Badge>
 			{/if}
-			<Button size="sm" disabled={client.db.rosters.pending > 0} onclick={() => createDraftMonth()}>
-				{t('app.scheduling.start_planning', { month })}
-			</Button>
+			<Stack gap="xs" class="max-w-lg">
+				<Button
+					size="sm"
+					disabled={createDraftPending ||
+						createDraftPendingApproval ||
+						client.db.rosters.pending > 0}
+					onclick={createDraftMonth}
+				>
+					{createDraftPending
+						? t('app.scheduling.opening_month', { month })
+						: t('app.scheduling.start_planning', { month })}
+				</Button>
+				<p class="text-xs leading-5 text-muted-foreground">
+					{t('app.scheduling.start_planning_description')}
+				</p>
+			</Stack>
 		{:else}
 			{#each rosters as roster (roster.id)}
 				<Inline gap="xs">
@@ -1476,30 +1537,29 @@
 		{/if}
 		{#if !loading}
 			<!--
-				The counters are the exception list. Clicking one narrows the board to the people it
-				counts, which is the whole argument for deleting the raw time-entries table: the list of
-				exceptions IS the board, with the plan and the lock still drawn beside every day.
+				The counters explain the marks already drawn in the board. The eye control is deliberately
+				narrower: it filters only unresolved clock-outs from these loaded facts, without a query.
 			-->
 			{#each progress.exceptions as exception (exception.status)}
-				<Button
-					variant={exceptionFilter === exception.status ? 'default' : 'destructive'}
-					size="sm"
-					aria-pressed={exceptionFilter === exception.status}
-					onclick={() => drillInto(exception.status)}
-				>
+				<Badge variant="outline">
 					{exceptionCopy(exception.status, exception.count.toLocaleString())}
-					<IconWrapper name="lucide:arrow-right" class="size-3" />
-				</Button>
+				</Badge>
 			{/each}
 		{/if}
-		{#if exceptionFilter != null}
-			<Button size="sm" variant="ghost" onclick={() => (exceptionFilter = null)}>
-				<IconWrapper name="lucide:x" class="size-3" />
-				{t('app.scheduling.exception_filter_clear', {
-					status: t(STATUS_PRESENTATION[exceptionFilter].labelKey)
-				})}
-			</Button>
-		{/if}
+		<Button
+			size="sm"
+			variant={unresolvedClockOutsOnly ? 'default' : 'outline'}
+			aria-pressed={unresolvedClockOutsOnly}
+			onclick={() => (unresolvedClockOutsOnly = !unresolvedClockOutsOnly)}
+		>
+			<IconWrapper
+				name={unresolvedClockOutsOnly ? 'lucide:eye-off' : 'lucide:eye'}
+				class="size-3.5"
+			/>
+			{unresolvedClockOutsOnly
+				? t('app.scheduling.show_all_people')
+				: t('app.scheduling.show_unresolved_clock_outs')}
+		</Button>
 		<Tooltip side="bottom" align="start" contentClass="max-w-80">
 			{#snippet trigger({ props })}
 				<Button {...props} variant="ghost" size="icon" aria-label={t('app.scheduling.board_help')}>
@@ -1511,10 +1571,40 @@
 			{/snippet}
 		</Tooltip>
 	</Cluster>
+	{#if createDraftPendingApproval}
+		<Alert aria-live="polite">
+			<AlertTitle>{t('roster.day_sheet_pending_approval')}</AlertTitle>
+			<AlertDescription>{t('app.scheduling.open_month_pending_approval')}</AlertDescription>
+		</Alert>
+	{/if}
+	{#if createDraftError != null || rosterActionError != null}
+		<Alert variant="destructive" aria-live="assertive">
+			<AlertTitle>
+				{t('app.scheduling.roster_action_failed', {
+					company: selectedCompany?.name ?? '—',
+					month
+				})}
+			</AlertTitle>
+			<AlertDescription>{createDraftError ?? rosterActionError}</AlertDescription>
+		</Alert>
+	{/if}
 {/snippet}
 
 {#snippet boardChrome()}
 	<Stack gap="md">
+		<span
+			hidden
+			aria-hidden="true"
+			data-month-board-query-count={boardLoadReceipt.queryCount}
+			data-month-board-row-bound={boardLoadReceipt.rowBound}
+			data-month-board-query-ceiling={boardLoadReceipt.normalQueryCeiling}
+			data-month-board-row-ceiling={boardLoadReceipt.normalRowBound}
+			data-month-board-interactive-query-ceiling={boardLoadReceipt.interactiveQueryCeiling}
+			data-month-board-interactive-row-ceiling={boardLoadReceipt.interactiveRowBound}
+			data-month-board-loaded-rows={boardLoadReceipt.loadedRowCount}
+			data-month-board-matrix-cells={boardLoadReceipt.matrixCellCount}
+			data-month-board-eye-filter-queries={boardLoadReceipt.eyeFilterAdditionalQueries}
+		></span>
 		{@render boardToolbar()}
 		{@render monthStatus()}
 	</Stack>
@@ -1548,7 +1638,11 @@
 					</AlertDescription>
 				</Alert>
 			{:else if !loading && people.length > 0 && boardPeople.length === 0}
-				<p class="text-sm text-muted-foreground">{t('app.scheduling.no_matches')}</p>
+				<p class="text-sm text-muted-foreground">
+					{unresolvedClockOutsOnly
+						? t('app.scheduling.no_unresolved_clock_outs', { month })
+						: t('app.scheduling.no_matches')}
+				</p>
 			{:else if !loading && people.length === 0}
 				<p class="text-sm text-muted-foreground">
 					{emptyEmploymentReason === 'NONE'
@@ -1567,7 +1661,7 @@
 					{facts}
 					{today}
 					{holidayNames}
-					locks={lockMap(payrollWindows(payrollRunsQuery?.current ?? []), monthDays(month))}
+					locks={monthLocks}
 					{settlementClaims}
 					{cutoff}
 					editable={matrixMutationReady}
@@ -1579,66 +1673,6 @@
 			{/if}
 		</Cover>
 	{/if}
-{/snippet}
-
-<!--
-	EXCEPTIONS — the whole of what `+time_attendance.svelte` was, minus the table.
-
-	That app held two things: this chart, and an editable attendance table. The table is deleted
-	rather than moved, because a table of punches beside a board of person-days is two places to read
-	the same month and only one of them knows what a rest day is. What remains is a trend and a set
-	of counters, and neither of those is an app — they are a second view of the month the board is
-	already showing, which is why they live here and why the counters below narrow the board rather
-	than opening a list of their own.
--->
-{#snippet exceptions()}
-	<Bound size="full">
-		<Scroll name={t('app.scheduling.tab_exceptions')}>
-			{#if companiesQuery.loading}
-				<p class="text-sm text-muted-foreground">{t('app.scheduling.loading_companies')}</p>
-			{:else if selectedCompanyId == null}
-				<p class="text-sm text-muted-foreground">{t('app.scheduling.empty_exceptions')}</p>
-			{:else}
-				<Grid gap="xl" minimum="panel">
-					<Stack gap="md">
-						<div>
-							<h2 class="text-heading">{t('app.scheduling.exceptions_title')}</h2>
-							<p class="text-sm text-muted-foreground">
-								{t('app.scheduling.exceptions_description')}
-							</p>
-						</div>
-						<Cluster gap="sm">
-							{#if loading}
-								<p class="text-sm text-muted-foreground">
-									{t('app.scheduling.loading_month', { month })}
-								</p>
-							{:else if progress.exceptions.length === 0}
-								<p class="text-sm text-muted-foreground">
-									{t('app.scheduling.exceptions_none', { month })}
-								</p>
-							{:else}
-								{#each progress.exceptions as exception (exception.status)}
-									<Button
-										variant={exceptionFilter === exception.status ? 'default' : 'outline'}
-										size="sm"
-										aria-pressed={exceptionFilter === exception.status}
-										onclick={() => drillInto(exception.status)}
-									>
-										{exceptionCopy(exception.status, exception.count.toLocaleString())}
-										<IconWrapper name="lucide:arrow-right" class="size-3" />
-									</Button>
-								{/each}
-							{/if}
-						</Cluster>
-					</Stack>
-					<Display
-						spec={attendanceChart}
-						class="min-h-[18rem] rounded-lg border bg-card p-4 shadow-card"
-					/>
-				</Grid>
-			{/if}
-		</Scroll>
-	</Bound>
 {/snippet}
 
 {#snippet shifts()}
@@ -1721,6 +1755,7 @@
 	mode="controller"
 	person={daySheetPerson}
 	date={daySheet.date}
+	editorRevision={daySheet.editorRevision}
 	day={daySheetDay}
 	intervals={daySheetIntervals}
 	rosterCodeOptions={daySheetCodeOptions}
@@ -1733,7 +1768,9 @@
 	lockReason={daySheetLockReason}
 	overlapWarning={daySheetOverlapWarning}
 	canSwap={swapEnabled}
-	saving={client.db.work_days.pending > 0}
+	saving={daySheetSubmission.settling}
+	pendingApproval={daySheetSubmission.pendingApproval}
+	error={daySheetSubmission.error}
 	onPlanDraftChange={(codeId) => (daySheet.draftCodeId = codeId)}
 	onSave={(change) => saveDaySheet(change)}
 	onClearPlan={() => clearDaySheetPlan()}
@@ -1749,19 +1786,12 @@
 <Cover>
 	<Tabs
 		animate={false}
-		bind:value={activeTab}
 		config={[
 			{
 				name: 'board',
 				label: t('app.scheduling.tab_board'),
 				icon: 'lucide:calendar-range',
 				content: board
-			},
-			{
-				name: 'exceptions',
-				label: t('app.scheduling.tab_exceptions'),
-				icon: 'lucide:chart-no-axes-combined',
-				content: exceptions
 			},
 			{
 				name: 'shifts',

@@ -384,37 +384,37 @@ CREATE INDEX "accounts_search_text_trgm_idx" ON "accounts" USING gin ((coalesce(
 --> statement-breakpoint
 CREATE INDEX "activities_regarding_type_regarding_id_index" ON "activities" ("regarding_type","regarding_id");
 --> statement-breakpoint
-CREATE INDEX "activities_owner_id_index" ON "activities" ("owner_id");
+CREATE INDEX "activities_due_date_idx" ON "activities" ("due_date");
 --> statement-breakpoint
-CREATE INDEX "activities_due_date_index" ON "activities" ("due_date");
+CREATE INDEX "activities_owner_id_idx" ON "activities" ("owner_id");
 --> statement-breakpoint
 CREATE INDEX "activities_search_document_gin_idx" ON "activities" USING gin ("search_document");
 --> statement-breakpoint
 CREATE INDEX "activities_search_text_trgm_idx" ON "activities" USING gin ((coalesce("subject", '')) gin_trgm_ops);
 --> statement-breakpoint
-CREATE INDEX "contacts_account_id_index" ON "contacts" ("account_id");
+CREATE INDEX "contacts_account_id_idx" ON "contacts" ("account_id");
 --> statement-breakpoint
 CREATE INDEX "contacts_search_document_gin_idx" ON "contacts" USING gin ("search_document");
 --> statement-breakpoint
 CREATE INDEX "contacts_search_text_trgm_idx" ON "contacts" USING gin ((coalesce("first_name", '') || ' ' || coalesce("last_name", '')) gin_trgm_ops);
 --> statement-breakpoint
-CREATE INDEX "contract_signings_quote_id_index" ON "contract_signings" ("quote_id");
+CREATE INDEX "contract_signings_quote_id_idx" ON "contract_signings" ("quote_id");
 --> statement-breakpoint
-CREATE INDEX "contract_signings_status_index" ON "contract_signings" ("status");
+CREATE INDEX "contract_signings_status_idx" ON "contract_signings" ("status");
 --> statement-breakpoint
 CREATE INDEX "contract_signings_search_document_gin_idx" ON "contract_signings" USING gin ("search_document");
 --> statement-breakpoint
 CREATE INDEX "contract_signings_search_text_trgm_idx" ON "contract_signings" USING gin ((coalesce("binding_hash", '')) gin_trgm_ops);
 --> statement-breakpoint
-CREATE INDEX "goods_receipt_lines_goods_receipt_id_index" ON "goods_receipt_lines" ("goods_receipt_id");
+CREATE INDEX "goods_receipt_lines_goods_receipt_id_idx" ON "goods_receipt_lines" ("goods_receipt_id");
 --> statement-breakpoint
-CREATE INDEX "goods_receipt_lines_purchase_order_line_id_index" ON "goods_receipt_lines" ("purchase_order_line_id");
+CREATE INDEX "goods_receipt_lines_purchase_order_line_id_idx" ON "goods_receipt_lines" ("purchase_order_line_id");
 --> statement-breakpoint
 CREATE UNIQUE INDEX "goods_receipts_doc_no_index" ON "goods_receipts" ("doc_no");
 --> statement-breakpoint
-CREATE INDEX "goods_receipts_purchase_order_id_index" ON "goods_receipts" ("purchase_order_id");
+CREATE INDEX "goods_receipts_owner_id_idx" ON "goods_receipts" ("owner_id");
 --> statement-breakpoint
-CREATE INDEX "goods_receipts_owner_id_index" ON "goods_receipts" ("owner_id");
+CREATE INDEX "goods_receipts_purchase_order_id_idx" ON "goods_receipts" ("purchase_order_id");
 --> statement-breakpoint
 CREATE INDEX "goods_receipts_search_document_gin_idx" ON "goods_receipts" USING gin ("search_document");
 --> statement-breakpoint
@@ -428,9 +428,9 @@ CREATE INDEX "products_search_document_gin_idx" ON "products" USING gin ("search
 --> statement-breakpoint
 CREATE INDEX "products_search_text_trgm_idx" ON "products" USING gin ((coalesce("name", '')) gin_trgm_ops);
 --> statement-breakpoint
-CREATE INDEX "purchase_invoice_lines_purchase_invoice_id_index" ON "purchase_invoice_lines" ("purchase_invoice_id");
+CREATE INDEX "purchase_invoice_lines_purchase_invoice_id_idx" ON "purchase_invoice_lines" ("purchase_invoice_id");
 --> statement-breakpoint
-CREATE INDEX "purchase_invoice_lines_purchase_order_line_id_index" ON "purchase_invoice_lines" ("purchase_order_line_id");
+CREATE INDEX "purchase_invoice_lines_purchase_order_line_id_idx" ON "purchase_invoice_lines" ("purchase_order_line_id");
 --> statement-breakpoint
 CREATE INDEX "purchase_invoice_lines_search_document_gin_idx" ON "purchase_invoice_lines" USING gin ("search_document");
 --> statement-breakpoint
@@ -438,19 +438,19 @@ CREATE INDEX "purchase_invoice_lines_search_text_trgm_idx" ON "purchase_invoice_
 --> statement-breakpoint
 CREATE UNIQUE INDEX "purchase_invoices_doc_no_index" ON "purchase_invoices" ("doc_no");
 --> statement-breakpoint
-CREATE INDEX "purchase_invoices_purchase_order_id_index" ON "purchase_invoices" ("purchase_order_id");
+CREATE INDEX "purchase_invoices_purchase_order_id_idx" ON "purchase_invoices" ("purchase_order_id");
 --> statement-breakpoint
-CREATE INDEX "purchase_invoices_supplier_id_index" ON "purchase_invoices" ("supplier_id");
+CREATE INDEX "purchase_invoices_status_idx" ON "purchase_invoices" ("status");
 --> statement-breakpoint
-CREATE INDEX "purchase_invoices_status_index" ON "purchase_invoices" ("status");
+CREATE INDEX "purchase_invoices_supplier_id_idx" ON "purchase_invoices" ("supplier_id");
 --> statement-breakpoint
 CREATE INDEX "purchase_invoices_search_document_gin_idx" ON "purchase_invoices" USING gin ("search_document");
 --> statement-breakpoint
 CREATE INDEX "purchase_invoices_search_text_trgm_idx" ON "purchase_invoices" USING gin ((coalesce("doc_no", '')) gin_trgm_ops);
 --> statement-breakpoint
-CREATE INDEX "purchase_order_lines_purchase_order_id_index" ON "purchase_order_lines" ("purchase_order_id");
+CREATE INDEX "purchase_order_lines_product_id_idx" ON "purchase_order_lines" ("product_id");
 --> statement-breakpoint
-CREATE INDEX "purchase_order_lines_product_id_index" ON "purchase_order_lines" ("product_id");
+CREATE INDEX "purchase_order_lines_purchase_order_id_idx" ON "purchase_order_lines" ("purchase_order_id");
 --> statement-breakpoint
 CREATE INDEX "purchase_order_lines_search_document_gin_idx" ON "purchase_order_lines" USING gin ("search_document");
 --> statement-breakpoint
@@ -458,21 +458,21 @@ CREATE INDEX "purchase_order_lines_search_text_trgm_idx" ON "purchase_order_line
 --> statement-breakpoint
 CREATE UNIQUE INDEX "purchase_orders_doc_no_index" ON "purchase_orders" ("doc_no");
 --> statement-breakpoint
-CREATE INDEX "purchase_orders_supplier_id_index" ON "purchase_orders" ("supplier_id");
+CREATE INDEX "purchase_orders_expected_date_idx" ON "purchase_orders" ("expected_date");
 --> statement-breakpoint
-CREATE INDEX "purchase_orders_status_index" ON "purchase_orders" ("status");
+CREATE INDEX "purchase_orders_owner_id_idx" ON "purchase_orders" ("owner_id");
 --> statement-breakpoint
-CREATE INDEX "purchase_orders_owner_id_index" ON "purchase_orders" ("owner_id");
+CREATE INDEX "purchase_orders_status_idx" ON "purchase_orders" ("status");
 --> statement-breakpoint
-CREATE INDEX "purchase_orders_expected_date_index" ON "purchase_orders" ("expected_date");
+CREATE INDEX "purchase_orders_supplier_id_idx" ON "purchase_orders" ("supplier_id");
 --> statement-breakpoint
 CREATE INDEX "purchase_orders_search_document_gin_idx" ON "purchase_orders" USING gin ("search_document");
 --> statement-breakpoint
 CREATE INDEX "purchase_orders_search_text_trgm_idx" ON "purchase_orders" USING gin ((coalesce("doc_no", '')) gin_trgm_ops);
 --> statement-breakpoint
-CREATE INDEX "quote_lines_quote_id_index" ON "quote_lines" ("quote_id");
+CREATE INDEX "quote_lines_product_id_idx" ON "quote_lines" ("product_id");
 --> statement-breakpoint
-CREATE INDEX "quote_lines_product_id_index" ON "quote_lines" ("product_id");
+CREATE INDEX "quote_lines_quote_id_idx" ON "quote_lines" ("quote_id");
 --> statement-breakpoint
 CREATE INDEX "quote_lines_search_document_gin_idx" ON "quote_lines" USING gin ("search_document");
 --> statement-breakpoint
@@ -480,21 +480,21 @@ CREATE INDEX "quote_lines_search_text_trgm_idx" ON "quote_lines" USING gin ((coa
 --> statement-breakpoint
 CREATE UNIQUE INDEX "quotes_doc_no_index" ON "quotes" ("doc_no");
 --> statement-breakpoint
-CREATE INDEX "quotes_account_id_index" ON "quotes" ("account_id");
+CREATE INDEX "quotes_account_id_idx" ON "quotes" ("account_id");
 --> statement-breakpoint
-CREATE INDEX "quotes_owner_id_index" ON "quotes" ("owner_id");
+CREATE INDEX "quotes_owner_id_idx" ON "quotes" ("owner_id");
 --> statement-breakpoint
-CREATE INDEX "quotes_status_index" ON "quotes" ("status");
+CREATE INDEX "quotes_revision_of_idx" ON "quotes" ("revision_of");
 --> statement-breakpoint
-CREATE INDEX "quotes_revision_of_index" ON "quotes" ("revision_of");
+CREATE INDEX "quotes_status_idx" ON "quotes" ("status");
 --> statement-breakpoint
 CREATE INDEX "quotes_search_document_gin_idx" ON "quotes" USING gin ("search_document");
 --> statement-breakpoint
 CREATE INDEX "quotes_search_text_trgm_idx" ON "quotes" USING gin ((coalesce("doc_no", '')) gin_trgm_ops);
 --> statement-breakpoint
-CREATE INDEX "sales_invoice_lines_sales_invoice_id_index" ON "sales_invoice_lines" ("sales_invoice_id");
+CREATE INDEX "sales_invoice_lines_quote_line_id_idx" ON "sales_invoice_lines" ("quote_line_id");
 --> statement-breakpoint
-CREATE INDEX "sales_invoice_lines_quote_line_id_index" ON "sales_invoice_lines" ("quote_line_id");
+CREATE INDEX "sales_invoice_lines_sales_invoice_id_idx" ON "sales_invoice_lines" ("sales_invoice_id");
 --> statement-breakpoint
 CREATE INDEX "sales_invoice_lines_search_document_gin_idx" ON "sales_invoice_lines" USING gin ("search_document");
 --> statement-breakpoint
@@ -502,19 +502,19 @@ CREATE INDEX "sales_invoice_lines_search_text_trgm_idx" ON "sales_invoice_lines"
 --> statement-breakpoint
 CREATE UNIQUE INDEX "sales_invoices_doc_no_index" ON "sales_invoices" ("doc_no");
 --> statement-breakpoint
-CREATE INDEX "sales_invoices_quote_id_index" ON "sales_invoices" ("quote_id");
+CREATE INDEX "sales_invoices_account_id_idx" ON "sales_invoices" ("account_id");
 --> statement-breakpoint
-CREATE INDEX "sales_invoices_account_id_index" ON "sales_invoices" ("account_id");
+CREATE INDEX "sales_invoices_quote_id_idx" ON "sales_invoices" ("quote_id");
 --> statement-breakpoint
-CREATE INDEX "sales_invoices_status_index" ON "sales_invoices" ("status");
+CREATE INDEX "sales_invoices_status_idx" ON "sales_invoices" ("status");
 --> statement-breakpoint
 CREATE INDEX "sales_invoices_search_document_gin_idx" ON "sales_invoices" USING gin ("search_document");
 --> statement-breakpoint
 CREATE INDEX "sales_invoices_search_text_trgm_idx" ON "sales_invoices" USING gin ((coalesce("doc_no", '')) gin_trgm_ops);
 --> statement-breakpoint
-CREATE INDEX "settlements_regarding_id_index" ON "settlements" ("regarding_id");
+CREATE INDEX "settlements_regarding_id_idx" ON "settlements" ("regarding_id");
 --> statement-breakpoint
-CREATE INDEX "settlements_regarding_type_index" ON "settlements" ("regarding_type");
+CREATE INDEX "settlements_regarding_type_idx" ON "settlements" ("regarding_type");
 --> statement-breakpoint
 CREATE INDEX "settlements_search_document_gin_idx" ON "settlements" USING gin ("search_document");
 --> statement-breakpoint
@@ -524,9 +524,9 @@ CREATE UNIQUE INDEX "suppliers_external_code_index" ON "suppliers" ("external_co
 --> statement-breakpoint
 CREATE UNIQUE INDEX "suppliers_code_index" ON "suppliers" ("code");
 --> statement-breakpoint
-CREATE INDEX "suppliers_name_index" ON "suppliers" ("name");
+CREATE INDEX "suppliers_active_idx" ON "suppliers" ("active");
 --> statement-breakpoint
-CREATE INDEX "suppliers_active_index" ON "suppliers" ("active");
+CREATE INDEX "suppliers_name_idx" ON "suppliers" ("name");
 --> statement-breakpoint
 CREATE INDEX "suppliers_search_document_gin_idx" ON "suppliers" USING gin ("search_document");
 --> statement-breakpoint

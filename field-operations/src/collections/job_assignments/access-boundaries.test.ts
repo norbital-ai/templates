@@ -7,7 +7,6 @@ import whatsappPolicy from '../../access/policies/+field_ops_whatsapp.js';
 import whatsappEnvoy from '../../envoys/+field_ops_whatsapp.js';
 
 type Grant = {
-	readonly dependencies?: readonly string[];
 	readonly fields?: readonly string[];
 	readonly where?: Readonly<Record<string, unknown>>;
 };
@@ -38,33 +37,32 @@ const grant = (
 	return collectionGrants?.mutate?.[action === 'mutate.new' ? 'new' : 'existing'];
 };
 
-const sqlReadDependencies = (policy: PolicyShape): Readonly<Record<string, readonly string[]>> =>
-	Object.fromEntries(
-		Object.entries(policy.grants).flatMap(([collection, actions]) => {
+test('read scopes are structured relation trees with no opaque SQL or manual dependencies', () => {
+	for (const policy of [contractor, whatsapp, suspicionAutomation]) {
+		for (const actions of Object.values(policy.grants)) {
 			const read = actions.read;
-			return read?.where?.kind === 'policy-sql'
-				? [[collection, read.dependencies ?? ['<missing>']]]
-				: [];
-		})
-	);
-
-test('SQL-scoped reads declare only their exact linking collections', () => {
-	assert.deepEqual(sqlReadDependencies(contractor), {
-		sites: ['jobs', 'job_assignments'],
-		jobs: ['job_assignments'],
-		variation_requests: ['job_assignments'],
-		photo_evidence: ['job_assignments', 'variation_requests'],
-		communication_logs: ['job_assignments']
+			if (read === undefined) continue;
+			assert.equal(Object.hasOwn(read, 'dependencies'), false);
+			assert.notEqual(read.where?.kind, 'policy-sql');
+		}
+	}
+	const subject = { $subject: 'id' };
+	const ownAssignment = { assignee_user_id: { eq: subject } };
+	assert.deepEqual(grant(contractor, 'sites', 'read')?.where, {
+		site_jobs: { some: { job_assignment_job: { some: ownAssignment } } }
 	});
-	assert.deepEqual(sqlReadDependencies(whatsapp), {});
-	assert.deepEqual(sqlReadDependencies(suspicionAutomation), {
-		jobs: ['job_assignments'],
-		sites: ['jobs', 'job_assignments'],
-		variation_requests: ['job_assignments'],
-		photo_evidence: ['job_assignments', 'variation_requests'],
-		communication_logs: ['job_assignments'],
-		suspicious_activity_logs: ['job_assignments'],
-		suspicion_reviews: ['job_assignments']
+	assert.deepEqual(grant(contractor, 'photo_evidence', 'read')?.where, {
+		OR: [
+			{ job_assignment_photo_evidence: { some: ownAssignment } },
+			{
+				variation_request_photo_evidence: {
+					some: { job_assignment_variations: { some: ownAssignment } }
+				}
+			}
+		]
+	});
+	assert.deepEqual(grant(suspicionAutomation, 'suspicious_activity_logs', 'read')?.where, {
+		job_assignment_suspicions: { some: { suspicion_checked_at: { isNull: true } } }
 	});
 });
 

@@ -106,8 +106,8 @@ const dayFactsSchema = Schema.Struct({
 	shiftBreakMinutes: Schema.NullOr(Schema.Number),
 	/** The source roster token, e.g. `AMRES` or `OFF/S`, when the roster carried one. */
 	assignmentCode: Schema.NullOr(Schema.String),
-	/** Where the plan came from: `IMPORT`, `MANUAL`, or null when the day carries no plan. */
-	plannedOrigin: Schema.NullOr(Schema.String),
+	/** Where the plan came from, or null when the day carries no explicit plan. */
+	plannedOrigin: Schema.NullOr(Schema.Literals(['GENERATED', 'IMPORT', 'MANUAL'])),
 	/** Overlaid from `company_holidays`, never stored on the entry. */
 	holidayName: Schema.NullOr(Schema.String),
 	leaveCode: Schema.NullOr(Schema.String),
@@ -209,6 +209,13 @@ const workDayLikeSchema = Schema.Struct({
 	break_minutes: Schema.optional(Schema.NullOr(Schema.Number))
 });
 type WorkDayLike = Schema.Schema.Type<typeof workDayLikeSchema>;
+
+const PLANNED_ORIGINS = ['GENERATED', 'IMPORT', 'MANUAL'] as const;
+type PlannedOrigin = (typeof PLANNED_ORIGINS)[number];
+
+function plannedOriginOf(value: string | null | undefined): PlannedOrigin | null {
+	return PLANNED_ORIGINS.find((origin) => origin === value) ?? null;
+}
 
 /**
  * The stored intervals as the attendance helpers take them, or `null` when none were recorded.
@@ -505,7 +512,7 @@ function factsForDate(
 		shiftEnd: employmentState === 'ACTIVE' ? (window?.end_time ?? null) : null,
 		shiftBreakMinutes: employmentState === 'ACTIVE' ? (window?.break_minutes ?? null) : null,
 		assignmentCode: workDay?.assignment_code ?? null,
-		plannedOrigin: workDay?.planned_origin ?? null,
+		plannedOrigin: plannedOriginOf(workDay?.planned_origin),
 		holidayName,
 		leaveCode: leave?.code ?? null,
 		halfDayLeave: leave?.halfDay ?? false,

@@ -1,10 +1,12 @@
 node_modules/
 
-# Generated workspace state. Migrations and doctor configuration are authored and stay tracked;
+# Generated workspace state. Migrations, shared capabilities, and doctor configuration are authored and stay tracked;
 # everything else under .norbital is regenerable output and must never be committed.
 .norbital/*
 !.norbital/migrations/
 !.norbital/migrations/**
+!.norbital/shared/
+!.norbital/shared/**
 !.norbital/config/
 !.norbital/config/**
 

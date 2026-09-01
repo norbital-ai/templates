@@ -52,11 +52,12 @@ export default defineModel(
 		 */
 		assignment_code: text(),
 		/**
-		 * Where the plan came from. `IMPORT` lands from a workbook; `MANUAL` is written on the board
-		 * (an ad hoc assignment, planned overtime or a swap). A plan's meaning never depends on this
-		 * - it is provenance and a board filter, nothing more.
+		 * Where the plan came from. `GENERATED` is the explicit monthly pattern baseline, `IMPORT`
+		 * lands from a workbook, and `MANUAL` is written on the board (an ad hoc assignment, planned
+		 * overtime or a swap). A plan's meaning never depends on this — it is provenance and a board
+		 * filter, nothing more.
 		 */
-		planned_origin: enums(['IMPORT', 'MANUAL']),
+		planned_origin: enums(['GENERATED', 'IMPORT', 'MANUAL']),
 		/**
 		 * A free-text reason for an ad hoc change, for example "swap with 03 Aug" or
 		 * "call-back for stocktake". Purely explanatory; the schedule always comes from the code.

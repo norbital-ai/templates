@@ -144,31 +144,32 @@ const beforeCreate = ({ input, prepared }: BeforeContext) => {
 };
 
 /** An edit lands on a stored row; `existing` is what tells the two apart. */
-const beforeUpdate = ({ input, existing, api }: EditContext) =>
-	Effect.gen(function* () {
-		if (input.purchase_order_id != null && input.purchase_order_id !== existing.purchase_order_id) {
-			refuse('A line item cannot be moved to a different purchase order.');
+const beforeUpdate = ({ input, existing, api }: EditContext) => {
+	if (input.purchase_order_id != null && input.purchase_order_id !== existing.purchase_order_id) {
+		refuse('A line item cannot be moved to a different purchase order.');
+	}
+
+	return Effect.map(
+		api.db.purchase_orders.findFirst({ where: { id: { eq: existing.purchase_order_id } } }),
+		(order) => {
+			if (!order) refuse('Referenced purchase order does not exist.');
+			if (order.status !== 'draft') {
+				refuse('Line items can only be modified on draft purchase orders.');
+			}
+
+			const resolved = { ...existing, ...input };
+			validateLineFields(resolved);
+
+			const amounts = computeLineAmounts(order, resolved);
+			return {
+				...input,
+				net: amounts.net,
+				tax: amounts.tax,
+				line_total: amounts.gross
+			};
 		}
-
-		const order = yield* api.db.purchase_orders.findFirst({
-			where: { id: { eq: existing.purchase_order_id } }
-		});
-		if (!order) refuse('Referenced purchase order does not exist.');
-		if (order.status !== 'draft') {
-			refuse('Line items can only be modified on draft purchase orders.');
-		}
-
-		const resolved = { ...existing, ...input };
-		validateLineFields(resolved);
-
-		const amounts = computeLineAmounts(order, resolved);
-		return {
-			...input,
-			net: amounts.net,
-			tax: amounts.tax,
-			line_total: amounts.gross
-		};
-	});
+	);
+};
 
 export default {
 	mutate: {
