@@ -37,6 +37,7 @@ import {
 import { roundHalfDay } from './rounding.js';
 import { coversDate } from './effective.js';
 import type { PayrollWindow } from './period.js';
+import { decodeNumber } from '@norbital-ai/std/json';
 
 /** One child fact as the leave floor reads it: the employment's non-superseded rows. */
 export type ChildFact = WorkspaceRow<'employee_children'>;
@@ -67,14 +68,14 @@ type BalanceBasis = Schema.Schema.Type<typeof BalanceBasisSchema>;
 /** The first day of the leave year a date falls in. */
 export function leaveYearStart(date: IsoDate, startMonth: number): IsoDate {
 	const month = EffectNumber.clamp({ minimum: 1, maximum: 12 })(Math.trunc(startMonth));
-	const year = Number(date.slice(0, 4));
-	const inThisYear = Number(date.slice(5, 7)) >= month;
+	const year = decodeNumber(date.slice(0, 4));
+	const inThisYear = decodeNumber(date.slice(5, 7)) >= month;
 	return `${inThisYear ? year : year - 1}-${String(month).padStart(2, '0')}-01`;
 }
 
 /** The label of the leave year a date falls in — its starting year. */
 export function leaveYearOf(date: IsoDate, startMonth: number): number {
-	return Number(leaveYearStart(date, startMonth).slice(0, 4));
+	return decodeNumber(leaveYearStart(date, startMonth).slice(0, 4));
 }
 
 /** One band of the company entitlement layers on a leave code — organisation or employee. */
@@ -151,7 +152,7 @@ export function resolveEntitlement(options: ResolveEntitlementOptions): number {
 			if (!coversDate(layer.effective_range, options.asOf)) continue;
 			if (layer.key.band_from > options.serviceMonths) continue;
 			if (best == null || layer.key.band_from > best.floor)
-				best = { floor: layer.key.band_from, days: Number(layer.days) };
+				best = { floor: layer.key.band_from, days: decodeNumber(layer.days) };
 		}
 		return best?.days ?? null;
 	};
@@ -215,7 +216,7 @@ export function accruedDays(options: AccruedDaysOptions): number {
 		const lastDay = `${month}-${String(monthLength).padStart(2, '0')}`;
 		const to = lastDay < end ? lastDay : end;
 		if (to < from) continue;
-		const coveredDays = Number(to.slice(8, 10)) - Number(from.slice(8, 10)) + 1;
+		const coveredDays = decodeNumber(to.slice(8, 10)) - decodeNumber(from.slice(8, 10)) + 1;
 		const entitlement = options.entitlementAt(completedMonths(options.hireDate, to), to);
 		total += (entitlement / 12) * (coveredDays / monthLength);
 	}
@@ -235,7 +236,7 @@ function ledgerDays(
 		if (basis !== 'PROJECTED' && row.approval_id != null) return total;
 		const date = dateKey(row.entry_date);
 		if (date == null || date < window.start || date > window.end) return total;
-		return total + Number(row.days);
+		return total + decodeNumber(row.days);
 	}, 0);
 }
 
@@ -432,7 +433,7 @@ export function unpaidLeaveInWindow(options: UnpaidLeaveInWindowOptions): Unpaid
 			requests: new Map<string, number>()
 		};
 		// A TAKEN row is negative; the deduction it causes is a magnitude.
-		const days = Math.abs(Number(row.days));
+		const days = Math.abs(decodeNumber(row.days));
 		bucket.days += days;
 		if (row.source_id != null)
 			bucket.requests.set(row.source_id, (bucket.requests.get(row.source_id) ?? 0) + days);

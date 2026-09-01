@@ -40,6 +40,8 @@
  */
 
 import type { MoneyValue } from '@norbital-ai/std/finance';
+import { decodeNumber } from '@norbital-ai/std/json';
+
 import type { Configuration, OvertimeCoverageRule, PayComponent } from './configuration.js';
 import type { ComponentDefinition } from '../../../datatypes/component_definition/+definition.js';
 import {
@@ -254,7 +256,7 @@ export function dailyTotalWorkLimit(configuration: Configuration): number | null
 	);
 	if (limits.length > 1)
 		throw new Error('More than one daily work limit is effective for this jurisdiction.');
-	return limits[0] == null ? null : Number(limits[0].max_hours);
+	return limits[0] == null ? null : decodeNumber(limits[0].max_hours);
 }
 
 function monthlyOvertimeLimit(configuration: Configuration): number | null {
@@ -263,7 +265,7 @@ function monthlyOvertimeLimit(configuration: Configuration): number | null {
 	);
 	if (limits.length > 1)
 		throw new Error('More than one monthly overtime limit is effective for this jurisdiction.');
-	return limits[0] == null ? null : Number(limits[0].max_hours);
+	return limits[0] == null ? null : decodeNumber(limits[0].max_hours);
 }
 
 /** Everything `isStatutoryOvertimePayCovered` tests: the jurisdiction's rule and one employment's facts. */
@@ -395,7 +397,7 @@ function asRateTerms(
 	const salary = baseSalaryOf(terms);
 	const workingDaysPerWeek = (workload.work_days * 7) / workload.reference_days;
 	return {
-		base_salary: { value: Number(salary.value), currency: salary.currency },
+		base_salary: { value: decodeNumber(salary.value), currency: salary.currency },
 		pay_frequency: payFrequency(terms.pay_frequency),
 		ordinary_hours_per_week: workload.average_weekly_paid_minutes / 60,
 		working_days_per_week: workingDaysPerWeek
@@ -422,7 +424,7 @@ function termsSnapshotKey(terms: EmploymentBundle['terms'][number]): string {
 	const start = String(terms.effective_range?.start ?? '').slice(0, 10);
 	const title =
 		terms.job_title == null || terms.job_title === '' ? terms.employment_type : terms.job_title;
-	return `${title} @ ${start} · ${Number(terms.base_salary?.value ?? 0).toFixed(2)}`;
+	return `${title} @ ${start} · ${decodeNumber(terms.base_salary?.value ?? 0).toFixed(2)}`;
 }
 
 /** The window-shaped arguments `measureEmployment` hands its helpers. */
@@ -574,7 +576,7 @@ export function measureEmployment(options: MeasureEmploymentOptions): MeasuredEm
 	// Loan repayments are not in here. They are recovered against their own due dates below, against
 	// what earlier paid runs already recovered — the junction rows the prior runs captured are read
 	// back in `gather.ts`, and nothing is carried forward between builds.
-	const cutoffDay = Number(configuration.company.pay_cutoff_day);
+	const cutoffDay = decodeNumber(configuration.company.pay_cutoff_day);
 	const ownedArrears = (entry: ComponentEntry): boolean => {
 		const event = entryEvent(entry);
 		return (
@@ -605,7 +607,7 @@ export function measureEmployment(options: MeasureEmploymentOptions): MeasuredEm
 		entryTotalByComponentId.set(
 			component.id,
 			(entriesByComponent.get(component.id) ?? []).reduce(
-				(total, entry) => total + entrySign(entry) * Number(entry.amount),
+				(total, entry) => total + entrySign(entry) * decodeNumber(entry.amount),
 				0
 			)
 		);
@@ -777,7 +779,7 @@ export function measureEmployment(options: MeasureEmploymentOptions): MeasuredEm
 			// would disagree — and the quantity would be the one nobody checks.
 			.reduce((total, row) => {
 				const date = String(row.entry_date).slice(0, 10);
-				return settlesHere(date) ? total + Math.abs(Number(row.days)) : total;
+				return settlesHere(date) ? total + Math.abs(decodeNumber(row.days)) : total;
 			}, 0);
 		// The settled balance, derived in full — carried in, accrued, expired, plus the ledger.
 		// Payroll never acts on it, but a formula may read it (an encashment on exit does), and it
@@ -796,7 +798,7 @@ export function measureEmployment(options: MeasureEmploymentOptions): MeasuredEm
 					}),
 				hireDate,
 				exitDate,
-				leaveYearStartMonth: Number(configuration.company.leave_year_start_month),
+				leaveYearStartMonth: decodeNumber(configuration.company.leave_year_start_month),
 				ledger: bundle.ledger,
 				basis: 'SETTLED'
 			},
@@ -858,7 +860,7 @@ export function measureEmployment(options: MeasureEmploymentOptions): MeasuredEm
 			code: configuration.jurisdiction.code,
 			currency: configuration.jurisdiction.currency,
 			ordinary_rate_basis: configuration.jurisdiction.ordinary_rate_basis ?? '',
-			ordinary_rate_divisor: Number(configuration.jurisdiction.ordinary_rate_divisor)
+			ordinary_rate_divisor: decodeNumber(configuration.jurisdiction.ordinary_rate_divisor)
 		}
 	});
 
@@ -881,7 +883,8 @@ export function measureEmployment(options: MeasureEmploymentOptions): MeasuredEm
 		calculatedArrears == null
 			? undefined
 			: (entriesByComponent.get(calculatedArrears.payComponentId) ?? []).find(
-					(entry) => cents(entrySign(entry) * Number(entry.amount)) === calculatedArrears.amount
+					(entry) =>
+						cents(entrySign(entry) * decodeNumber(entry.amount)) === calculatedArrears.amount
 				);
 	const arrears = explicitArrears == null ? calculatedArrears : null;
 
@@ -1196,7 +1199,7 @@ function assertWithinRepayment(options: RepaymentCeiling): void {
 	const consumption = {
 		loan_repayment_id: options.repayment.id,
 		due_date: options.dueDate,
-		amount_due: Number(options.repayment.amount_due),
+		amount_due: decodeNumber(options.repayment.amount_due),
 		consumed: options.consumed,
 		proposed: options.proposed,
 		period: options.period
@@ -1219,7 +1222,7 @@ function assertWithinEntry(options: EntryCeiling): void {
 	const consumption = {
 		component_entry_id: options.entry.id,
 		component_code: options.componentCode,
-		entitlement: Number(options.entry.amount),
+		entitlement: decodeNumber(options.entry.amount),
 		consumed: options.consumed,
 		proposed: options.proposed,
 		period: options.period
@@ -1313,7 +1316,7 @@ function resolveEntryCap(
 			(candidateDate === eventDate && candidate.id > options.entry.id)
 		)
 			return total;
-		return total + (entrySign(candidate) * Number(candidate.amount) * percentage) / 100;
+		return total + (entrySign(candidate) * decodeNumber(candidate.amount) * percentage) / 100;
 	}, 0);
 	return { amount, percentage, exceededBy: Math.max(0, previouslyUsed) };
 }
@@ -1370,7 +1373,7 @@ function measureComponent(options: MeasureComponentOptions): Measurement | null 
 				workingDaysIn: options.workingDaysIn
 			});
 			if (segment == null || segment.denominator <= 0 || segment.days <= 0) return;
-			const contract = Number(baseSalaryOf(terms).value);
+			const contract = decodeNumber(baseSalaryOf(terms).value);
 			measured.push({
 				segment,
 				termKey: termsSnapshotKey(terms),
@@ -1454,7 +1457,7 @@ function measureComponent(options: MeasureComponentOptions): Measurement | null 
 						bundle: options.bundle,
 						subject: options.subject,
 						context: options.context(),
-						leaveYearStartMonth: Number(options.configuration.company.leave_year_start_month)
+						leaveYearStartMonth: decodeNumber(options.configuration.company.leave_year_start_month)
 					});
 		const percentage = cap?.percentage ?? 100;
 		const sign = entrySign(entry);
@@ -1475,7 +1478,7 @@ function measureComponent(options: MeasureComponentOptions): Measurement | null 
 			: 1;
 		if (fraction <= 0) return null;
 		// The reimbursable share is an economic fact per claim, so it is rounded per entry.
-		const reimbursable = cents((Number(entry.amount) * fraction * percentage) / 100);
+		const reimbursable = cents((decodeNumber(entry.amount) * fraction * percentage) / 100);
 		if (
 			cap != null &&
 			cap.exceededBy + reimbursable > cap.amount &&
@@ -1486,7 +1489,7 @@ function measureComponent(options: MeasureComponentOptions): Measurement | null 
 					`${cents(cap.exceededBy + reimbursable).toFixed(2)} requested against ${cents(cap.amount).toFixed(2)} allowed.`
 			);
 		const amount = cents(sign * reimbursable);
-		const quantity = sign * Number(entry.quantity ?? 0);
+		const quantity = sign * decodeNumber(entry.quantity ?? 0);
 		assertWithinEntry({
 			entry,
 			componentCode: options.component.code,

@@ -1,4 +1,5 @@
 import { formatDateISO } from '@norbital-ai/std/date';
+import { decodeNumber } from '@norbital-ai/std/json';
 
 interface SeasonalHeatmapRow {
 	readonly year: string;
@@ -50,8 +51,8 @@ export function bucketSeasonalHeatmap(
 	for (const fromDate of fromDates) {
 		if (fromDate == null) continue;
 		const key = formatDateISO(fromDate);
-		const year = Number(key.slice(0, 4));
-		const month = Number(key.slice(5, 7));
+		const year = decodeNumber(key.slice(0, 4));
+		const month = decodeNumber(key.slice(5, 7));
 		const index = yearIndex.get(year);
 		if (index == null || month < 1 || month > 12) continue;
 		const row = heatmap[index];

@@ -4,6 +4,7 @@ import { DatabaseSync } from 'node:sqlite';
 import { performance } from 'node:perf_hooks';
 import test from 'node:test';
 import { buildRosterMonth, monthDays } from './roster-month.ts';
+import { decodeNumber } from '@norbital-ai/std/json';
 
 const EMPLOYEE_COUNT = 290;
 const MONTH = '2026-06';
@@ -131,8 +132,8 @@ test('realistic month board benchmarks database, payload, and client matrix as b
 		personDays: EXPECTED_PERSON_DAYS,
 		queriesPerBoard: 1,
 		payloadBytes,
-		databaseP95Ms: Number(percentile95(databaseTimes).toFixed(2)),
-		matrixP95Ms: Number(percentile95(matrixTimes).toFixed(2))
+		databaseP95Ms: decodeNumber(percentile95(databaseTimes).toFixed(2)),
+		matrixP95Ms: decodeNumber(percentile95(matrixTimes).toFixed(2))
 	};
 	t.diagnostic(JSON.stringify(receipt));
 	assert.equal(matrixSize, EXPECTED_PERSON_DAYS);

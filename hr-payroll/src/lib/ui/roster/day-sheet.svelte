@@ -217,6 +217,7 @@
 		minutesFromDayStart,
 		scheduledMinutes
 	} from './roster-month.js';
+	import { decodeNumber } from '@norbital-ai/std/json';
 
 	const { t } = useI18n<TenantI18nKeys>();
 
@@ -849,7 +850,7 @@
 									class="w-24"
 									disabled={interactionLocked}
 									value={String(draftBreak)}
-									oninput={(event) => (draftBreak = Number(event.currentTarget.value) || 0)}
+									oninput={(event) => (draftBreak = decodeNumber(event.currentTarget.value) || 0)}
 								/>
 								<span class="text-xs text-muted-foreground">{t('roster.day_sheet_minutes')}</span>
 							</Inline>

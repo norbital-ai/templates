@@ -1,5 +1,6 @@
 import { Schema } from 'effect';
 import type { InstantRangeValue as WorkedInterval } from '@norbital-ai/bolt/authoring';
+import { decodeNumber } from '@norbital-ai/std/json';
 
 /** The one vocabulary these helpers read and the summaries they feed, all schema-owned. */
 const attendanceStateSchema = Schema.Literals(['OPEN', 'COMPLETE', 'INVALID']);
@@ -42,5 +43,5 @@ export function workedMinutes(
 		if (interval.end == null) return null;
 		gross += (Date.parse(interval.end) - Date.parse(interval.start)) / 60_000;
 	}
-	return Math.max(0, gross - Number(breakMinutes ?? 0));
+	return Math.max(0, gross - decodeNumber(breakMinutes ?? 0));
 }

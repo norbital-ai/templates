@@ -40,6 +40,7 @@
 
 import { Number as EffectNumber, Schema } from 'effect';
 import { addDays, dayOfMonth, monthBounds, monthDay, shiftPeriod, type IsoDate } from './dates.js';
+import { decodeNumber } from '@norbital-ai/std/json';
 
 export const PAY_FREQUENCIES = ['MONTHLY', 'SEMI_MONTHLY', 'WEEKLY', 'DAILY', 'HOURLY'] as const;
 export type PayFrequency = (typeof PAY_FREQUENCIES)[number];
@@ -106,7 +107,10 @@ type PayCalendarCompany = Schema.Schema.Type<typeof PayCalendarCompanySchema>;
 function periodParts(period: string): { year: number; monthIndex: number } {
 	if (!/^\d{4}-\d{2}$/.test(period))
 		throw new Error(`Payroll period must be YYYY-MM, received "${period}".`);
-	return { year: Number(period.slice(0, 4)), monthIndex: Number(period.slice(5, 7)) - 1 };
+	return {
+		year: decodeNumber(period.slice(0, 4)),
+		monthIndex: decodeNumber(period.slice(5, 7)) - 1
+	};
 }
 
 /** The attendance window of a monthly period, given the company's cutoff day. */
@@ -119,7 +123,7 @@ export function attendanceWindow(period: string, cutoffDay: number): DayRange {
 }
 
 function assertDayOfMonth(value: unknown, what: string): number {
-	const day = Number(value);
+	const day = decodeNumber(value);
 	if (!Number.isInteger(day) || day < 1 || day > 31)
 		throw new Error(`${what} ${String(value)} is not a day of the month.`);
 	return day;
@@ -266,7 +270,7 @@ export function defaultPayPeriod(eventDate: IsoDate, cutoffDay: number): string 
  * that is the figure to reach for when the question really is "how many more times are they paid".
  */
 export function payPeriodsRemaining(period: string, taxYearStartMonth: number): number {
-	const month = Number(period.slice(5, 7));
+	const month = decodeNumber(period.slice(5, 7));
 	const start = EffectNumber.clamp({ minimum: 1, maximum: 12 })(Math.trunc(taxYearStartMonth));
 	const elapsed = (month - start + 12) % 12;
 	return 12 - elapsed;
@@ -274,8 +278,8 @@ export function payPeriodsRemaining(period: string, taxYearStartMonth: number): 
 
 /** The tax year label a period falls in, for year-to-date accumulation. */
 export function taxYearOf(period: string, taxYearStartMonth: number): string {
-	const year = Number(period.slice(0, 4));
-	const month = Number(period.slice(5, 7));
+	const year = decodeNumber(period.slice(0, 4));
+	const month = decodeNumber(period.slice(5, 7));
 	const start = EffectNumber.clamp({ minimum: 1, maximum: 12 })(Math.trunc(taxYearStartMonth));
 	return String(month >= start ? year : year - 1);
 }

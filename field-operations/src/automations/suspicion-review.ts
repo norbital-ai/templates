@@ -1,3 +1,4 @@
+import { toError } from '@norbital-ai/std';
 import { sha256Text } from '@norbital-ai/std/reckon/hash';
 import { Effect, Schema } from 'effect';
 import type { Api } from './$types.js';
@@ -494,7 +495,7 @@ export function loadCrossAssignmentCandidates(
 	api: Api,
 	ownAssignmentId: string,
 	probes: SuspicionReviewFacts['photos']
-): Effect.Effect<SuspicionReviewFacts['candidates'], unknown, never> {
+): Effect.Effect<SuspicionReviewFacts['candidates'], never, never> {
 	return Effect.gen(function* () {
 		const probeRows = selectCrossAssignmentProbePhotos(probes);
 		const hits = new Map<string, { row: CandidateHit; matched: Map<string, number> }>();
@@ -1019,7 +1020,7 @@ export function reviewAssignmentSuspicion(
 	api: Api,
 	assignment: SuspicionReviewFacts['assignment'],
 	lifecycle: SuspicionReviewLifecycle = {}
-): Effect.Effect<SuspicionReviewResult, unknown, never> {
+): Effect.Effect<SuspicionReviewResult, Error, never> {
 	return Effect.gen(function* () {
 		if (!shouldReviewAssignment(assignment.status, assignment.suspicion_checked_at ?? null))
 			return { status: 'skipped_checked' as const };
@@ -1084,10 +1085,12 @@ export function reviewAssignmentSuspicion(
 		const review = yield* api.db.suspicion_reviews.findFirst(reviewIdentity);
 		if (review == null) {
 			return yield* Effect.fail(
-				persistenceError ??
-					new Error(
-						'The suspicion review was written but could not be read back by its basis hash.'
-					)
+				toError(
+					persistenceError ??
+						new Error(
+							'The suspicion review was written but could not be read back by its basis hash.'
+						)
+				)
 			);
 		}
 		lifecycle.reviewPersisted?.(assignment.id);

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { decodeNumber } from '@norbital-ai/std/json';
 	import { FormattedValueRenderer } from '@norbital-ai/ui/data-renderer';
 	import { client } from '$bolt/client';
 	import { getCollectionClientForSurface } from '@norbital-ai/ui/collection-runtime';
@@ -53,7 +54,7 @@
 			}
 			if (status !== 'submitted' && status !== 'confirmed') continue;
 
-			const gross = order.gross == null ? 0 : Number(order.gross);
+			const gross = order.gross == null ? 0 : decodeNumber(order.gross);
 			if (order.currency != null) {
 				committedByCurrency.set(
 					order.currency,

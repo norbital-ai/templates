@@ -53,6 +53,7 @@ import {
 	type EmploymentSettlement,
 	type SettlementPolicy
 } from './settlement.js';
+import { decodeNumber } from '@norbital-ai/std/json';
 
 type Employment = WorkspaceRow<'employments'>;
 type Employee = WorkspaceRow<'employees'>;
@@ -297,7 +298,7 @@ export function gatherRun(options: GatherRunOptions): Effect.Effect<GatheredRun,
 					leave_type_id: request.leave_type_id,
 					entry_date: event.range.start.date,
 					kind: 'TAKEN',
-					days: -Math.abs(Number(event.chargeable_days ?? 0)),
+					days: -Math.abs(decodeNumber(event.chargeable_days ?? 0)),
 					source_id: request.id,
 					approval_id: null
 				};
@@ -312,7 +313,7 @@ export function gatherRun(options: GatherRunOptions): Effect.Effect<GatheredRun,
 						: event.kind === 'ENCASHMENT'
 							? 'ENCASHMENT'
 							: 'TAKEN',
-				days: Number(event.movement_days),
+				days: decodeNumber(event.movement_days),
 				source_id: event.source_id,
 				approval_id: null
 			};
@@ -482,7 +483,7 @@ function gatherPriorSettlement(
 ): Effect.Effect<PriorSettlement, never, never> {
 	return Effect.gen(function* () {
 		const db = options.api.db;
-		const startMonth = Number(options.configuration.jurisdiction.tax_year_start_month);
+		const startMonth = decodeNumber(options.configuration.jurisdiction.tax_year_start_month);
 		const firstPeriod = taxYearFirstPeriod(options.period, startMonth);
 		/**
 		 * Every earlier settled run, not only this tax year's.
@@ -561,9 +562,9 @@ function gatherPriorSettlement(
 				const key = `${employeeId}:${charge.scheme_code}`;
 				const running = totals.get(key) ?? { employee: 0, employer: 0, base: 0 };
 				totals.set(key, {
-					employee: running.employee + Number(charge.employee_amount),
-					employer: running.employer + Number(charge.employer_amount),
-					base: running.base + Number(charge.base_amount)
+					employee: running.employee + decodeNumber(charge.employee_amount),
+					employer: running.employer + decodeNumber(charge.employer_amount),
+					base: running.base + decodeNumber(charge.base_amount)
 				});
 			}
 		}
@@ -609,7 +610,10 @@ function gatherPriorSettlement(
 			if (row.input.kind !== 'COMPONENT_ENTRY_INPUT') continue;
 			const sourceId = entryIdByLink.get(row.input.id);
 			if (sourceId == null) continue;
-			consumedEntries.set(sourceId, (consumedEntries.get(sourceId) ?? 0) + Number(row.amount ?? 0));
+			consumedEntries.set(
+				sourceId,
+				(consumedEntries.get(sourceId) ?? 0) + decodeNumber(row.amount ?? 0)
+			);
 		}
 
 		const repaymentClaims = yield* db.payslip_adjustments.findMany({
@@ -627,7 +631,7 @@ function gatherPriorSettlement(
 			if (sourceId == null) continue;
 			consumedRepayments.set(
 				sourceId,
-				(consumedRepayments.get(sourceId) ?? 0) + Number(row.amount ?? 0)
+				(consumedRepayments.get(sourceId) ?? 0) + decodeNumber(row.amount ?? 0)
 			);
 		}
 

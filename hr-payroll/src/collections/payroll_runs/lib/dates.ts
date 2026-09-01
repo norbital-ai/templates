@@ -9,6 +9,7 @@
 
 import { Number as EffectNumber, Schema } from 'effect';
 import { calendarDay, dateKey as calendarDateKey } from '../../../lib/iso-day.js';
+import { decodeNumber } from '@norbital-ai/std/json';
 
 /** A calendar day, `YYYY-MM-DD`. */
 export type IsoDate = Schema.Schema.Type<typeof calendarDay>;
@@ -52,7 +53,7 @@ export function monthKey(date: IsoDate): string {
 
 /** Day of month, 1-31. */
 export function dayOfMonth(date: IsoDate): number {
-	return Number(date.slice(8, 10));
+	return decodeNumber(date.slice(8, 10));
 }
 
 /**
@@ -71,8 +72,8 @@ export function addDays(date: IsoDate, days: number): IsoDate {
 
 /** Number of calendar days in the month a date falls in. */
 export function monthDays(date: IsoDate): number {
-	const year = Number(date.slice(0, 4));
-	const monthIndex = Number(date.slice(5, 7)) - 1;
+	const year = decodeNumber(date.slice(0, 4));
+	const monthIndex = decodeNumber(date.slice(5, 7)) - 1;
 	return utc(year, monthIndex + 1, 0).getUTCDate();
 }
 
@@ -95,10 +96,10 @@ export function daysBetween(start: IsoDate, end: IsoDate): IsoDate[] {
  * 24 completed months on 14 July 2026 and 23 on the 13th (decision L4).
  */
 export function completedMonths(start: IsoDate, end: IsoDate): number {
-	const startYear = Number(start.slice(0, 4));
-	const startMonth = Number(start.slice(5, 7));
-	const endYear = Number(end.slice(0, 4));
-	const endMonth = Number(end.slice(5, 7));
+	const startYear = decodeNumber(start.slice(0, 4));
+	const startMonth = decodeNumber(start.slice(5, 7));
+	const endYear = decodeNumber(end.slice(0, 4));
+	const endMonth = decodeNumber(end.slice(5, 7));
 	let months = (endYear - startYear) * 12 + (endMonth - startMonth);
 	if (dayOfMonth(end) < dayOfMonth(start)) months -= 1;
 	return Math.max(0, months);
@@ -123,14 +124,14 @@ export function intersectDays(
 export function monthBounds(period: string): { start: IsoDate; end: IsoDate } {
 	if (!/^\d{4}-\d{2}$/.test(period))
 		throw new Error(`Period must be YYYY-MM, received "${period}".`);
-	const year = Number(period.slice(0, 4));
-	const monthIndex = Number(period.slice(5, 7)) - 1;
+	const year = decodeNumber(period.slice(0, 4));
+	const monthIndex = decodeNumber(period.slice(5, 7)) - 1;
 	return { start: iso(utc(year, monthIndex, 1)), end: iso(utc(year, monthIndex + 1, 0)) };
 }
 
 /** The `YYYY-MM` `offset` months after `period`. */
 export function shiftPeriod(period: string, offset: number): string {
-	const year = Number(period.slice(0, 4));
-	const monthIndex = Number(period.slice(5, 7)) - 1 + offset;
+	const year = decodeNumber(period.slice(0, 4));
+	const monthIndex = decodeNumber(period.slice(5, 7)) - 1 + offset;
 	return iso(utc(year, monthIndex, 1)).slice(0, 7);
 }

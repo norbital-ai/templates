@@ -32,6 +32,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { measureEmployment } from './lib/measure.ts';
 import { PLAIN_CALENDAR } from './lib/settlement.ts';
+import { decodeNumber } from '@norbital-ai/std/json';
 
 const WORK_CODE = '00000000-0000-4000-8000-00000000c001';
 const REST_CODE = '00000000-0000-4000-8000-00000000c002';
@@ -366,7 +367,7 @@ test('the same clock one day earlier is inside the cut-off and is paid', () => {
 		]
 	);
 	assert.equal(
-		overtime.reduce((total, row) => total + Number(row.quantity), 0),
+		overtime.reduce((total, row) => total + decodeNumber(row.quantity), 0),
 		6,
 		'the two source-specific rows still pay all six hours'
 	);

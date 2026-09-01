@@ -19,6 +19,7 @@
 
 import { Schema } from 'effect';
 import { isCalendarDate, isClockTime } from '@norbital-ai/std/date';
+import { decodeNumber } from '@norbital-ai/std/json';
 
 /** A cell after the file format's own wrappers are stripped off. */
 const sheetCellSchema = Schema.NullOr(
@@ -408,7 +409,7 @@ export class RowReader {
 	wholeNumber(column: string): number | undefined {
 		const cell = this.raw(column);
 		if (isBlank(cell)) return undefined;
-		const value = typeof cell === 'number' ? cell : Number(String(cell).trim());
+		const value = typeof cell === 'number' ? cell : decodeNumber(String(cell).trim());
 		if (!Number.isInteger(value) || value < 0) {
 			return this.reject(column, 'a whole number of minutes, zero or more');
 		}

@@ -1,4 +1,5 @@
 import { defineQueryHandler } from '@norbital-ai/bolt/authoring';
+import { decodeNumber } from '@norbital-ai/std/json';
 import { Effect, Schema } from 'effect';
 
 /**
@@ -51,17 +52,17 @@ export default defineQueryHandler({
 			const received = new Map<string, number>();
 			for (const line of receiptLines) {
 				const id = line.purchase_order_line_id;
-				received.set(id, (received.get(id) ?? 0) + Number(line.quantity_received ?? 0));
+				received.set(id, (received.get(id) ?? 0) + decodeNumber(line.quantity_received ?? 0));
 			}
 			const invoiced = new Map<string, number>();
 			for (const line of invoiceLines) {
 				const id = line.purchase_order_line_id;
-				invoiced.set(id, (invoiced.get(id) ?? 0) + Number(line.quantity ?? 0));
+				invoiced.set(id, (invoiced.get(id) ?? 0) + decodeNumber(line.quantity ?? 0));
 			}
 
 			return {
 				lines: orderLines.map((line) => {
-					const ordered = Number(line.quantity ?? 0);
+					const ordered = decodeNumber(line.quantity ?? 0);
 					const receivedQty = received.get(line.id) ?? 0;
 					const invoicedQty = invoiced.get(line.id) ?? 0;
 					return {

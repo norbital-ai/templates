@@ -1,6 +1,7 @@
 import { Effect } from 'effect';
 import { refuse } from '@norbital-ai/bolt/authoring';
 import type { Hooks } from './$types.js';
+import { decodeNumber } from '@norbital-ai/std/json';
 
 /**
  * The loan is the agreement, and the agreement's honesty is checked here.
@@ -22,7 +23,7 @@ export default {
 				description:
 					'Refuses a loan whose principal is not a positive magnitude, or whose recovery component is not a payroll-settled deduction entry.',
 				handler: ({ input, existing, api }) => {
-					const principal = Number(
+					const principal = decodeNumber(
 						input.principal != null ? input.principal : (existing?.principal ?? 0)
 					);
 					if (!(principal > 0)) refuse('A loan principal is a positive magnitude.');

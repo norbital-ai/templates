@@ -1,6 +1,7 @@
 /** Pure publication checks for normalized monthly schedules. */
 
 import { Schema } from 'effect';
+import { decodeNumber } from '@norbital-ai/std/json';
 
 const designationSchema = Schema.Literals(['WORK', 'REST', 'OFF']);
 type Designation = Schema.Schema.Type<typeof designationSchema>;
@@ -51,7 +52,7 @@ type ScheduleViolation = Schema.Schema.Type<typeof scheduleViolationSchema>;
 function clockMinutes(value: string): number {
 	const match = /^([01]\d|2[0-3]):([0-5]\d)$/.exec(value);
 	if (match == null) throw new Error(`Not an HH:mm clock time: "${value}".`);
-	return Number(match[1]) * 60 + Number(match[2]);
+	return decodeNumber(match[1]) * 60 + decodeNumber(match[2]);
 }
 
 function paidMinutes(shift: ValidationShift): number {

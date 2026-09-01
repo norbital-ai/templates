@@ -29,6 +29,7 @@
 	import { Bound, Cover, Inline, Stack } from '@norbital-ai/ui/layout';
 	import { formatEffectiveRange, formatNumeric } from '../../lib/ui/display-formatters.js';
 	import { inForceTodayFilter, todayInstant } from '../../lib/ui/calendar.js';
+	import { decodeNumber } from '@norbital-ai/std/json';
 
 	const { t } = useI18n<TenantI18nKeys>();
 
@@ -59,13 +60,13 @@
 		repayments: readonly { readonly amount_due: unknown }[],
 		recoveredAmount: number
 	): RepaymentProgress | null {
-		const principal = repayments.reduce((total, row) => total + Number(row.amount_due), 0);
+		const principal = repayments.reduce((total, row) => total + decodeNumber(row.amount_due), 0);
 		if (!Number.isFinite(principal) || principal < 0) return null;
 		const outstandingAmount = Math.max(0, principal - recoveredAmount);
 		let covered = 0;
 		let paidRepayments = 0;
 		for (const repayment of repayments) {
-			covered += Number(repayment.amount_due);
+			covered += decodeNumber(repayment.amount_due);
 			if (covered - recoveredAmount > 0.01) break;
 			paidRepayments += 1;
 		}
@@ -194,7 +195,7 @@
 			const claim = parsed.success;
 			if (claim.input.kind !== 'LOAN_REPAYMENT_INPUT') continue;
 			if (claim.payslip_adjustment_payslip?.payslip_payroll_run?.lifecycle !== 'PAID') continue;
-			const amount = Number(claim.amount);
+			const amount = decodeNumber(claim.amount);
 			if (!Number.isFinite(amount)) continue;
 			recovered.set(claim.input.id, (recovered.get(claim.input.id) ?? 0) + amount);
 		}

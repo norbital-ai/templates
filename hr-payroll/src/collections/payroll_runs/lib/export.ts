@@ -394,9 +394,7 @@ function addMatrixSheet(workbook: ExcelJS.Workbook, sheet: WorkbookSheet): void 
  * The workbook is built by the imperative library — exceljs — and Effect wraps the two things that
  * actually fail: the build and the serialization. The only promise in the module is this adapter's.
  */
-export function payrollReportXlsx(
-	sheets: readonly WorkbookSheet[]
-): Effect.Effect<readonly number[], unknown, never> {
+export function payrollReportXlsx(sheets: readonly WorkbookSheet[]) {
 	return Effect.try({
 		try: () => buildPayrollWorkbook(sheets),
 		catch: (error) => error

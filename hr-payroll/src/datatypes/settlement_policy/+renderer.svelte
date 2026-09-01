@@ -10,6 +10,7 @@
 	import { Grid, Stack } from '@norbital-ai/ui/layout';
 	import { settlementPolicySchema } from './+definition.js';
 	import type { RendererProps, Value } from './$types.js';
+	import { decodeNumber } from '@norbital-ai/std/json';
 
 	type FinalPeriod = Value['final_period'];
 	type FinalPeriodWages = Value['final_period_wages'];
@@ -196,7 +197,7 @@
 		emit({ ...(current ?? EMPTY), ...change });
 	}
 	function integerFrom(raw: string, fallback: number): number {
-		const next = Math.trunc(Number(raw));
+		const next = Math.trunc(decodeNumber(raw));
 		return Number.isFinite(next) ? next : fallback;
 	}
 	function absenceProration(rows: AbsenceRow[]): NonNullable<Value['absence_proration']> {

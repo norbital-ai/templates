@@ -1,4 +1,5 @@
 import { refuse } from '@norbital-ai/bolt/authoring';
+import { decodeNumber } from '@norbital-ai/std/json';
 import { Effect } from 'effect';
 import type { Hooks, WorkspaceRow } from './$types.js';
 
@@ -59,7 +60,7 @@ export default {
 					receivedByOrderLine.set(
 						line.purchase_order_line_id,
 						(receivedByOrderLine.get(line.purchase_order_line_id) ?? 0) +
-							Number(line.quantity_received ?? 0)
+							decodeNumber(line.quantity_received ?? 0)
 					);
 				}
 				return {
@@ -88,13 +89,13 @@ export default {
 						refuse('The received line belongs to a different purchase order.');
 					}
 
-					const quantity = Number(input.quantity_received);
+					const quantity = decodeNumber(input.quantity_received);
 					if (Number.isNaN(quantity) || quantity <= 0) {
 						refuse('Received quantity must be greater than zero.');
 					}
 
 					const receivedSoFar = prepared.receivedByOrderLine.get(orderLine.id) ?? 0;
-					const ordered = Number(orderLine.quantity ?? 0);
+					const ordered = decodeNumber(orderLine.quantity ?? 0);
 					if (receivedSoFar + quantity > ordered) {
 						refuse(
 							`Over-delivery: ${receivedSoFar} of ${ordered} received so far; this receipt would exceed the ordered quantity.`

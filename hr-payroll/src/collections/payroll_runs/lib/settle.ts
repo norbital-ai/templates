@@ -51,6 +51,7 @@
 import type { ContributionCharge } from './contribute.js';
 import type { MeasuredAdjustment, MeasuredBase, PricedItem } from './measure.js';
 import { cents } from './rounding.js';
+import { decodeNumber } from '@norbital-ai/std/json';
 
 /** Types that a shortfall may never touch, in the order the guard would otherwise reach them. */
 const PROTECTED_DEDUCTION_TYPES = new Set(['STATUTORY_ORDER']);
@@ -139,7 +140,8 @@ export function settle(options: {
 					: [];
 			});
 		const reducible = [...collect(base, 'BASE'), ...collect(adjustments, 'ADJUSTMENT')].toSorted(
-			(left, right) => Number(right.component.sequence) - Number(left.component.sequence)
+			(left, right) =>
+				decodeNumber(right.component.sequence) - decodeNumber(left.component.sequence)
 		);
 		const reducedBase = [...base];
 		const reducedAdjustments = [...adjustments];

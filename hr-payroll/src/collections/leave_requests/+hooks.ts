@@ -17,6 +17,7 @@ import { payrollWindows, assertNotSettled, refuseIfCaptured } from '../../lib/sc
 import type { LeaveEvent } from '../../datatypes/leave_event/+definition.js';
 import type { Hooks, WorkspaceRow } from './$types.js';
 import { certificatePolicyIssues, certificatePolicyMismatchMessage } from './certificate-policy.js';
+import { decodeNumber } from '@norbital-ai/std/json';
 
 const halfSchema = Schema.Union([Schema.Literal('FIRST'), Schema.Literal('SECOND')]);
 type Half = Schema.Schema.Type<typeof halfSchema>;
@@ -362,7 +363,8 @@ function normalizedTimeOff(
 					{
 						...row,
 						entry_date: row.from_date,
-						days: row.kind === 'TIME_OFF' ? -Math.abs(Number(row.days)) : Number(row.days),
+						days:
+							row.kind === 'TIME_OFF' ? -Math.abs(decodeNumber(row.days)) : decodeNumber(row.days),
 						source_id: null
 					}
 				];
@@ -382,7 +384,7 @@ function normalizedTimeOff(
 					entitlementAt,
 					hireDate: dateKey(employment.hire_date),
 					exitDate: employment.exit_date == null ? null : dateKey(employment.exit_date),
-					leaveYearStartMonth: Number(company.leave_year_start_month),
+					leaveYearStartMonth: decodeNumber(company.leave_year_start_month),
 					ledger: projectedLedger,
 					basis: 'PROJECTED'
 				},

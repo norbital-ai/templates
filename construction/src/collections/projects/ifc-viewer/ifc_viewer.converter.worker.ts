@@ -49,7 +49,7 @@ function shouldSuppressGeometryLog(args: unknown[]): boolean {
  * Bracket the importer run in a patched console: web-ifc logs "Zero length geometry" as a warning
  * for every empty face group, which would drown the conversion logs the operator sees.
  */
-function withSuppressedGeometryLogs<T>(task: Effect.Effect<T, unknown>): Effect.Effect<T, unknown> {
+function withSuppressedGeometryLogs<T, E>(task: Effect.Effect<T, E>): Effect.Effect<T, E> {
 	return Effect.acquireUseRelease(
 		Effect.sync(() => {
 			const originalLog = console.log;

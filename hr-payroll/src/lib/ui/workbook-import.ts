@@ -68,7 +68,7 @@ function pickWorkbookFile(t: Translator): Effect.Effect<File | null, Error> {
  * reading costs no new dependency. A CSV has one sheet and no name of its own, so it takes the
  * file's — `requireSheet` accepts a single-sheet file under any name.
  */
-function readWorkbookGrids(file: File, t: Translator): Effect.Effect<WorkbookGrids, unknown> {
+function readWorkbookGrids(file: File, t: Translator) {
 	if (file.name.toLowerCase().endsWith('.csv')) {
 		return Effect.tryPromise({ try: () => file.text(), catch: toError }).pipe(
 			Effect.map((text) => new Map([[file.name, csvGrid(text)]]))
@@ -133,10 +133,7 @@ interface WorkbookImportOptions {
  * and toasts `error.message`, which for these refusals is a headline and a bulleted list of rows
  * collapsed into a single line — so this handles its own and hands the caller a quiet return.
  */
-export function runWorkbookImport(
-	options: WorkbookImportOptions,
-	t: Translator
-): Effect.Effect<void, unknown> {
+export function runWorkbookImport(options: WorkbookImportOptions, t: Translator) {
 	return Effect.gen(function* () {
 		const file = yield* pickWorkbookFile(t);
 		if (file == null) return;

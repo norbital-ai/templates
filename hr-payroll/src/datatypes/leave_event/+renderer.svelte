@@ -3,6 +3,7 @@
 	import { client } from '../../lib/workspace-client.js';
 	import { useI18n } from '@norbital-ai/ui/i18n';
 	import type { TenantI18nKeys } from '$bolt/i18n-keys';
+
 	/**
 	 * The leave event is the core of the leave request, so this is its event editor.
 	 *
@@ -35,6 +36,7 @@
 	import { rosterCodeKind, workWindowHalves } from '../../lib/scheduling/roster-code.js';
 	import { shiftDayKey, todayKey } from '../../lib/ui/calendar.js';
 	import { formatDateISO } from '@norbital-ai/std/date';
+	import { decodeNumber } from '@norbital-ai/std/json';
 	import { leaveEventSchema } from './+definition.js';
 	import type { RendererProps, Value } from './$types.js';
 	type LeaveEventRendererProps = RendererProps & { readonly row?: Record<string, unknown> };
@@ -218,7 +220,7 @@
 				leave_type_id: row.leave_type_id,
 				entry_date: row.from_date!,
 				kind: row.kind,
-				days: row.kind === 'TIME_OFF' ? -Math.abs(Number(row.days)) : Number(row.days),
+				days: row.kind === 'TIME_OFF' ? -Math.abs(decodeNumber(row.days)) : decodeNumber(row.days),
 				source_id: null,
 				approval_id: row.approval_id
 			}));
@@ -244,7 +246,7 @@
 					entitlementAt,
 					hireDate,
 					exitDate: employment.exit_date == null ? null : formatDateISO(employment.exit_date),
-					leaveYearStartMonth: Number(company.leave_year_start_month),
+					leaveYearStartMonth: decodeNumber(company.leave_year_start_month),
 					ledger,
 					basis: 'PROJECTED'
 				},

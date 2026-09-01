@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { decodeNumber } from '@norbital-ai/std/json';
 	import { DataRenderer, FormattedValueRenderer } from '@norbital-ai/ui/data-renderer';
 	import { client } from '$bolt/client';
 	import { getCollectionClientForSurface } from '@norbital-ai/ui/collection-runtime';
@@ -213,7 +214,7 @@
 					{#if quote.gross != null}
 						<p class="text-xs font-medium">
 							{quote.currency}
-							{Number(quote.gross).toLocaleString()}
+							{decodeNumber(quote.gross).toLocaleString()}
 						</p>
 					{/if}
 				</Stack>
@@ -302,7 +303,9 @@
 					format: ({ row }) => {
 						if (row.credit_hold === true) return t('component.hold');
 						if (row.credit_limit == null) return '—';
-						return (Number(row.credit_limit) - Number(row.credit_used ?? 0)).toLocaleString();
+						return (
+							decodeNumber(row.credit_limit) - decodeNumber(row.credit_used ?? 0)
+						).toLocaleString();
 					}
 				}}
 			/>

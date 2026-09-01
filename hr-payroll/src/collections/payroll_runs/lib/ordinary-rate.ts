@@ -19,6 +19,8 @@
 import { Schema } from 'effect';
 import type { Jurisdiction } from './configuration.js';
 import { MoneyValueSchema } from '@norbital-ai/std/finance';
+import { decodeNumber } from '@norbital-ai/std/json';
+
 import { monthDays } from './dates.js';
 import { cents } from './rounding.js';
 import { normalDailyHours } from './schedule.js';
@@ -59,11 +61,11 @@ export function readOvertimeCalculationMethod(value: string | null): OvertimeCal
 function ordinaryRateDivisor(terms: RateTerms, jurisdiction: Jurisdiction): number {
 	if (
 		jurisdiction.code === 'PH' &&
-		Number(terms.ordinary_hours_per_week) > 40 &&
+		decodeNumber(terms.ordinary_hours_per_week) > 40 &&
 		jurisdiction.ordinary_rate_basis === 'DAYS_PER_MONTH'
 	)
 		return 313 / 12;
-	return Number(jurisdiction.ordinary_rate_divisor);
+	return decodeNumber(jurisdiction.ordinary_rate_divisor);
 }
 
 /**
@@ -77,8 +79,9 @@ function ordinaryRateDivisor(terms: RateTerms, jurisdiction: Jurisdiction): numb
  * bases. They still need their own proration story before those populations are trusted.
  */
 function monthlyBaseSalary(terms: RateTerms): number {
-	const value = Number(terms.base_salary.value);
-	const hoursPerDay = Number(terms.ordinary_hours_per_week) / Number(terms.working_days_per_week);
+	const value = decodeNumber(terms.base_salary.value);
+	const hoursPerDay =
+		decodeNumber(terms.ordinary_hours_per_week) / decodeNumber(terms.working_days_per_week);
 	switch (terms.pay_frequency) {
 		case 'MONTHLY':
 			return value;
@@ -87,9 +90,9 @@ function monthlyBaseSalary(terms: RateTerms): number {
 		case 'WEEKLY':
 			return (value * 52) / 12;
 		case 'DAILY':
-			return (value * Number(terms.working_days_per_week) * 52) / 12;
+			return (value * decodeNumber(terms.working_days_per_week) * 52) / 12;
 		case 'HOURLY':
-			return (value * hoursPerDay * Number(terms.working_days_per_week) * 52) / 12;
+			return (value * hoursPerDay * decodeNumber(terms.working_days_per_week) * 52) / 12;
 	}
 }
 
@@ -108,7 +111,7 @@ export function ordinaryHourlyRate(terms: RateTerms, jurisdiction: Jurisdiction)
  * master expresses annual hours as weekly hours × 52, so no company-wide day divisor is involved.
  */
 export function annualisedContractHourlyRate(terms: RateTerms): number {
-	const annualHours = Number(terms.ordinary_hours_per_week) * 52;
+	const annualHours = decodeNumber(terms.ordinary_hours_per_week) * 52;
 	if (!(annualHours > 0)) throw new Error('Contracted annual hours must be positive.');
 	return cents((monthlyBaseSalary(terms) * 12) / annualHours);
 }

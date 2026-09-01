@@ -69,6 +69,7 @@ import {
 	validatePayCalendar,
 	type RunIssue
 } from './validate.js';
+import { decodeNumber } from '@norbital-ai/std/json';
 
 /**
  * The engine/build identity stamped on every run this code produces.
@@ -190,7 +191,7 @@ export function gatherPayrollRun(options: {
 			 */
 			periodsRemaining: payPeriodsRemaining(
 				options.period,
-				Number(configuration.jurisdiction.tax_year_start_month)
+				decodeNumber(configuration.jurisdiction.tax_year_start_month)
 			),
 			readLog: api.reads
 		};
@@ -320,7 +321,7 @@ export function buildPayrollRun(prepared: PreparedRun): PayrollRunGraph {
 			// The relief and the married scale turn on whether the spouse has income, not on
 			// `marital_status` — see employees.spouse_status.
 			spouseIsDependent: bundle.employee.spouse_status === 'WITHOUT_INCOME',
-			dependents: Number(bundle.employee.dependents_count ?? 0)
+			dependents: decodeNumber(bundle.employee.dependents_count ?? 0)
 		});
 
 		// 7 — SETTLE
