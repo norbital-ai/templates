@@ -1308,7 +1308,9 @@ test('runs the job-site and similar-photo reviews in one named inference turn', 
 	assert.match(calls[0]!.prompt, new RegExp(otherCurrent.photo.file_name));
 	assert.match(calls[0]!.prompt, new RegExp(foreign.photo.file_name));
 	assert.match(calls[0]!.prompt, /Return exactly 1 similar_photo_reviews entry/);
-	assert.ok(calls.every(({ model }) => model === 'openai/gpt-5.2'));
+	assert.ok(
+		calls.every(({ model }) => model === 'openrouter/deepseek/deepseek-v4-flash-vision-exp')
+	);
 	assert.deepEqual(decision, {
 		suspicious: true,
 		reason: `Cross-assignment photo reuse: ${current.photo.file_name} and ${foreign.photo.file_name} were judged to show the same physical scene.`,

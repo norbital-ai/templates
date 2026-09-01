@@ -1,29 +1,31 @@
-import { policySql, type PolicyDecisionApi } from '@norbital-ai/bolt/authoring';
+import type { PolicyDecisionApi } from '@norbital-ai/bolt/authoring';
 import type { WorkspaceSchema } from '$bolt/types.js';
 import { Effect } from 'effect';
 import type { Policy } from './$types.js';
 
 const uncheckedAssignment = { suspicion_checked_at: { isNull: true } } as const;
-const uncheckedJob = policySql(
-	'"id" IN (SELECT assignment.job_id FROM job_assignments assignment WHERE assignment.suspicion_checked_at IS NULL)'
-);
-const uncheckedSite = policySql(
-	'"id" IN (SELECT job.site_id FROM jobs job JOIN job_assignments assignment ON assignment.job_id = job.id WHERE assignment.suspicion_checked_at IS NULL)'
-);
-const uncheckedVariation = policySql(
-	'"job_assignment_id" IN (SELECT assignment.id FROM job_assignments assignment WHERE assignment.suspicion_checked_at IS NULL)'
-);
-const uncheckedEvidence = policySql(
-	'("job_assignment_id" IN (SELECT assignment.id FROM job_assignments assignment WHERE assignment.suspicion_checked_at IS NULL) OR "variation_request_id" IN (SELECT variation.id FROM variation_requests variation JOIN job_assignments assignment ON assignment.id = variation.job_assignment_id WHERE assignment.suspicion_checked_at IS NULL))'
-);
-const uncheckedAssignmentChild = policySql(
-	'"job_assignment_id" IN (SELECT assignment.id FROM job_assignments assignment WHERE assignment.suspicion_checked_at IS NULL)'
-);
-
-/** Linking collections only; every target collection already has its own generation edge. */
-const assignmentScopeDependencies = ['job_assignments'] as const;
-const siteScopeDependencies = ['jobs', 'job_assignments'] as const;
-const evidenceScopeDependencies = ['job_assignments', 'variation_requests'] as const;
+const uncheckedJob = { job_assignment_job: { some: uncheckedAssignment } } as const;
+const uncheckedSite = {
+	site_jobs: { some: { job_assignment_job: { some: uncheckedAssignment } } }
+} as const;
+const uncheckedVariation = {
+	job_assignment_variations: { some: uncheckedAssignment }
+} as const;
+const uncheckedEvidence = {
+	OR: [
+		{ job_assignment_photo_evidence: { some: uncheckedAssignment } },
+		{ variation_request_photo_evidence: { some: uncheckedVariation } }
+	]
+} as const;
+const uncheckedCommunication = {
+	job_assignment_communications: { some: uncheckedAssignment }
+} as const;
+const uncheckedSuspicionLog = {
+	job_assignment_suspicions: { some: uncheckedAssignment }
+} as const;
+const uncheckedSuspicionReview = {
+	job_assignment_suspicion_reviews: { some: uncheckedAssignment }
+} as const;
 
 const referencesUncheckedAssignment = (
 	record: Readonly<{ job_assignment_id: string }>,
@@ -51,20 +53,20 @@ export default {
 			}
 		},
 		jobs: {
-			read: { where: uncheckedJob, dependencies: assignmentScopeDependencies }
+			read: { where: uncheckedJob }
 		},
-		sites: { read: { where: uncheckedSite, dependencies: siteScopeDependencies } },
+		sites: { read: { where: uncheckedSite } },
 		variation_requests: {
-			read: { where: uncheckedVariation, dependencies: assignmentScopeDependencies }
+			read: { where: uncheckedVariation }
 		},
 		photo_evidence: {
-			read: { where: uncheckedEvidence, dependencies: evidenceScopeDependencies }
+			read: { where: uncheckedEvidence }
 		},
 		communication_logs: {
-			read: { where: uncheckedAssignmentChild, dependencies: assignmentScopeDependencies }
+			read: { where: uncheckedCommunication }
 		},
 		suspicious_activity_logs: {
-			read: { where: uncheckedAssignmentChild, dependencies: assignmentScopeDependencies },
+			read: { where: uncheckedSuspicionLog },
 			mutate: {
 				new: {
 					fields: ['job_assignment_id', 'origin', 'basis', 'review_id', 'evidence_id', 'reason'],
@@ -74,7 +76,7 @@ export default {
 			}
 		},
 		suspicion_reviews: {
-			read: { where: uncheckedAssignmentChild, dependencies: assignmentScopeDependencies },
+			read: { where: uncheckedSuspicionReview },
 			mutate: {
 				new: {
 					fields: [

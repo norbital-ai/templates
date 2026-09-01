@@ -57,29 +57,26 @@ export default {
 			before: {
 				description:
 					'Ties a scope change to an existing job assignment, rejects a second variation raised from the same source message, and stamps when it was requested.',
-				handler: ({ input, prepared }) =>
-					Effect.gen(function* () {
-						if (input.job_assignment_id == null || input.job_assignment_id === '') {
-							refuse('Variation request must reference a job assignment.');
-						}
-						if (!prepared.assignmentIds.has(input.job_assignment_id)) {
-							refuse('Referenced job assignment does not exist.');
-						}
+				handler: ({ input, prepared }) => {
+					if (input.job_assignment_id == null || input.job_assignment_id === '') {
+						refuse('Variation request must reference a job assignment.');
+					}
+					if (!prepared.assignmentIds.has(input.job_assignment_id)) {
+						refuse('Referenced job assignment does not exist.');
+					}
 
-						if (
-							input.source_message_id != null &&
-							input.source_message_id !== '' &&
-							prepared.takenSourceMessageIds.has(input.source_message_id)
-						) {
-							refuse('A variation request with this source_message_id already exists.');
-						}
+					if (
+						input.source_message_id != null &&
+						input.source_message_id !== '' &&
+						prepared.takenSourceMessageIds.has(input.source_message_id)
+					) {
+						refuse('A variation request with this source_message_id already exists.');
+					}
 
-						const requestedAt = input.requested_at ?? (yield* currentDate).toISOString();
-						return {
-							...input,
-							requested_at: requestedAt
-						};
-					})
+					return input.requested_at == null
+						? Effect.map(currentDate, (now) => ({ ...input, requested_at: now.toISOString() }))
+						: Effect.succeed({ ...input, requested_at: input.requested_at });
+				}
 			}
 		}
 	}

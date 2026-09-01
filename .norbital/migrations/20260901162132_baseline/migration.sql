@@ -163,9 +163,9 @@ CREATE TABLE "variation_requests" (
 --> statement-breakpoint
 CREATE UNIQUE INDEX "communication_logs_source_message_id_index" ON "communication_logs" ("source_message_id");
 --> statement-breakpoint
-CREATE INDEX "communication_logs_job_assignment_id_index" ON "communication_logs" ("job_assignment_id");
+CREATE INDEX "communication_logs_job_assignment_id_idx" ON "communication_logs" ("job_assignment_id");
 --> statement-breakpoint
-CREATE INDEX "communication_logs_sent_at_index" ON "communication_logs" ("sent_at");
+CREATE INDEX "communication_logs_sent_at_idx" ON "communication_logs" ("sent_at");
 --> statement-breakpoint
 CREATE INDEX "communication_logs_search_document_gin_idx" ON "communication_logs" USING gin ("search_document");
 --> statement-breakpoint
@@ -175,7 +175,7 @@ CREATE UNIQUE INDEX "job_assignments_source_message_id_index" ON "job_assignment
 --> statement-breakpoint
 CREATE UNIQUE INDEX "job_assignments_job_id_index" ON "job_assignments" ("job_id");
 --> statement-breakpoint
-CREATE INDEX "job_assignments_assignee_user_id_index" ON "job_assignments" ("assignee_user_id");
+CREATE INDEX "job_assignments_assignee_user_id_idx" ON "job_assignments" ("assignee_user_id");
 --> statement-breakpoint
 CREATE INDEX "job_assignments_search_document_gin_idx" ON "job_assignments" USING gin ("search_document");
 --> statement-breakpoint
@@ -207,7 +207,7 @@ CREATE UNIQUE INDEX "suspicion_reviews_source_key_index" ON "suspicion_reviews" 
 --> statement-breakpoint
 CREATE UNIQUE INDEX "suspicion_reviews_job_assignment_id_basis_hash_index" ON "suspicion_reviews" ("job_assignment_id","basis_hash");
 --> statement-breakpoint
-CREATE INDEX "suspicion_reviews_reviewed_at_index" ON "suspicion_reviews" ("reviewed_at");
+CREATE INDEX "suspicion_reviews_reviewed_at_idx" ON "suspicion_reviews" ("reviewed_at");
 --> statement-breakpoint
 CREATE INDEX "suspicion_reviews_search_document_gin_idx" ON "suspicion_reviews" USING gin ("search_document");
 --> statement-breakpoint
@@ -215,11 +215,11 @@ CREATE INDEX "suspicion_reviews_search_text_trgm_idx" ON "suspicion_reviews" USI
 --> statement-breakpoint
 CREATE UNIQUE INDEX "suspicious_activity_logs_source_key_index" ON "suspicious_activity_logs" ("source_key");
 --> statement-breakpoint
-CREATE INDEX "suspicious_activity_logs_job_assignment_id_index" ON "suspicious_activity_logs" ("job_assignment_id");
+CREATE INDEX "suspicious_activity_logs_job_assignment_id_idx" ON "suspicious_activity_logs" ("job_assignment_id");
 --> statement-breakpoint
-CREATE INDEX "suspicious_activity_logs_resolved_at_index" ON "suspicious_activity_logs" ("resolved_at");
+CREATE INDEX "suspicious_activity_logs_resolved_at_idx" ON "suspicious_activity_logs" ("resolved_at");
 --> statement-breakpoint
-CREATE INDEX "suspicious_activity_logs_review_id_index" ON "suspicious_activity_logs" ("review_id");
+CREATE INDEX "suspicious_activity_logs_review_id_idx" ON "suspicious_activity_logs" ("review_id");
 --> statement-breakpoint
 CREATE INDEX "suspicious_activity_logs_search_document_gin_idx" ON "suspicious_activity_logs" USING gin ("search_document");
 --> statement-breakpoint

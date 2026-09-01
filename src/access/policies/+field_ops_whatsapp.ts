@@ -8,7 +8,7 @@ import type { Policy } from './$types.js';
  * existing assignment reference in trusted conversation context; without one, the envoy has no
  * authority to search for a target and must direct the contractor to the app or a controller.
  *
- * The linked account supplies only `${requestor.id}`. Runtime drops its team policies and
+ * The linked account supplies only `subject.id`. Runtime drops its team policies and
  * administrator status, so this existing-record mutation remains the ceiling even when the linked
  * person has broader authority in the web app.
  */
