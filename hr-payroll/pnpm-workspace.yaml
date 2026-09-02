@@ -15,12 +15,12 @@ allowBuilds:
 # ERR_PNPM_MINIMUM_RELEASE_AGE_VIOLATION inside a tenant sandbox build.
 minimumReleaseAgeExclude:
   - svelte@5.56.10
-  - '@norbital-ai/bolt@0.0.13 || 0.0.15 || 0.0.16 || 0.0.17 || 0.0.19'
-  - '@norbital-ai/bolt-protocol@0.0.13 || 0.0.15 || 0.0.16 || 0.0.17 || 0.0.19'
-  - '@norbital-ai/config@0.0.13 || 0.0.17 || 0.0.19'
-  - '@norbital-ai/doctor@0.0.13 || 0.0.15 || 0.0.16 || 0.0.17 || 0.0.19'
-  - '@norbital-ai/std@0.0.13 || 0.0.15 || 0.0.16 || 0.0.17 || 0.0.19'
-  - '@norbital-ai/ui@0.0.13 || 0.0.15 || 0.0.16 || 0.0.17 || 0.0.19'
+  - '@norbital-ai/bolt@0.0.13 || 0.0.15 || 0.0.16 || 0.0.17 || 0.0.19 || 0.0.20'
+  - '@norbital-ai/bolt-protocol@0.0.13 || 0.0.15 || 0.0.16 || 0.0.17 || 0.0.19 || 0.0.20'
+  - '@norbital-ai/config@0.0.13 || 0.0.17 || 0.0.19 || 0.0.20'
+  - '@norbital-ai/doctor@0.0.13 || 0.0.15 || 0.0.16 || 0.0.17 || 0.0.19 || 0.0.20'
+  - '@norbital-ai/std@0.0.13 || 0.0.15 || 0.0.16 || 0.0.17 || 0.0.19 || 0.0.20'
+  - '@norbital-ai/ui@0.0.13 || 0.0.15 || 0.0.16 || 0.0.17 || 0.0.19 || 0.0.20'
 # Host tools execute from this depset, while tenant builds execute in a Linux/musl microVM.
 # Include both host-native and guest-native optional packages on macOS, Windows, and Linux hosts.
 supportedArchitectures:
