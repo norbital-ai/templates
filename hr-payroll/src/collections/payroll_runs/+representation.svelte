@@ -30,7 +30,7 @@
 	import { toast } from 'svelte-sonner';
 	import { resolveWindow } from './lib/period.js';
 	import { formatCalendarDate } from '../../lib/ui/display-formatters.js';
-	import { saveCollectionExport } from '../../lib/ui/export-download.js';
+	import { payrollRunsExportQuery, saveCollectionExport } from '../../lib/ui/export-download.js';
 	import {
 		payrollRunPayslipsQuery,
 		payslipAmount,
@@ -75,7 +75,7 @@
 	const runsQuery = $derived(
 		client.db.payroll_runs.findMany({
 			orderBy: { period: 'desc' },
-			limit: 1000
+			limit: 10_000
 		})
 	);
 
@@ -235,10 +235,9 @@
 			Effect.map(
 				Effect.result(
 					Effect.tryPromise(() =>
-						downloadCollectionExport(
-							{ collection_name: 'payroll_runs', record_ids: [record.id] },
-							{ includeAction: (action) => action.metadata?.kind === 'payroll-report-xlsx' }
-						)
+						downloadCollectionExport(payrollRunsExportQuery([record.id]), {
+							includeAction: (action) => action.metadata?.kind === 'payroll-report-xlsx'
+						})
 					)
 				),
 				(attempt) => {

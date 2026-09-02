@@ -10,7 +10,7 @@
 	import { Tabs, type TabConfig } from '@norbital-ai/ui/tabs';
 	import { CollectionTable } from '@norbital-ai/ui/collection-table';
 	import { formatCalendarDate } from '../../lib/ui/display-formatters.js';
-	import { saveCollectionExport } from '../../lib/ui/export-download.js';
+	import { payrollRunsExportQuery, saveCollectionExport } from '../../lib/ui/export-download.js';
 	import {
 		daysBetweenKeys,
 		payDateFor,
@@ -260,10 +260,7 @@
 								const manifest = yield* Effect.tryPromise({
 									try: () =>
 										downloadCollectionExport(
-											{
-												collection_name: 'payroll_runs',
-												record_ids: selectedRows.map((record) => record.id)
-											},
+											payrollRunsExportQuery(selectedRows.map((record) => record.id)),
 											{ includeAction: (action) => action.metadata?.kind === 'bank-files' }
 										),
 									catch: (error) => (error instanceof Error ? error : new Error(String(error)))
@@ -283,10 +280,7 @@
 								const manifest = yield* Effect.tryPromise({
 									try: () =>
 										downloadCollectionExport(
-											{
-												collection_name: 'payroll_runs',
-												record_ids: selectedRows.map((record) => record.id)
-											},
+											payrollRunsExportQuery(selectedRows.map((record) => record.id)),
 											{ includeAction: (action) => action.metadata?.kind === 'payslip-pdfs' }
 										),
 									catch: (error) => (error instanceof Error ? error : new Error(String(error)))
@@ -306,10 +300,7 @@
 								const manifest = yield* Effect.tryPromise({
 									try: () =>
 										downloadCollectionExport(
-											{
-												collection_name: 'payroll_runs',
-												record_ids: selectedRows.map((record) => record.id)
-											},
+											payrollRunsExportQuery(selectedRows.map((record) => record.id)),
 											{
 												includeAction: (action) => action.metadata?.kind === 'payroll-report-xlsx'
 											}

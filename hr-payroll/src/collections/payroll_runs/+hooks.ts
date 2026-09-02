@@ -232,7 +232,7 @@ export default {
 						// figure can never be assembled from a period that is still moving.
 						const previous = yield* api.db.payroll_runs.findMany({
 							where: { company_id: { eq: input.company_id }, period: { lt: input.period } },
-							limit: 1000
+							limit: 10_000
 						});
 						const unsettled = previous
 							.toSorted((left, right) => right.period.localeCompare(left.period))

@@ -384,6 +384,33 @@
 	 * both and closes on Escape or a click outside.
 	 */
 	let openedPhoto = $state<{ readonly name: string; readonly url: string } | undefined>(undefined);
+	let conversationPort = $state<HTMLElement | null>(null);
+	let conversationPinnedToLatest = $state(true);
+	let conversationAwayFromLatest = $state(false);
+
+	function syncConversationScroll(): void {
+		if (conversationPort == null) return;
+		const distanceFromLatest =
+			conversationPort.scrollHeight - conversationPort.scrollTop - conversationPort.clientHeight;
+		conversationPinnedToLatest = distanceFromLatest <= 24;
+		conversationAwayFromLatest = conversationPort.scrollTop > 24 || !conversationPinnedToLatest;
+	}
+
+	function scrollConversationToLatest(): void {
+		if (conversationPort == null) return;
+		conversationPort.scrollTo({ top: conversationPort.scrollHeight });
+		conversationPinnedToLatest = true;
+		conversationAwayFromLatest = false;
+	}
+
+	$effect(() => {
+		communicationTimeline;
+		const port = conversationPort;
+		if (port == null || !conversationPinnedToLatest) return;
+		queueMicrotask(() => {
+			port.scrollTo({ top: port.scrollHeight });
+		});
+	});
 
 	function integrityFlagLabel(flag: string): string {
 		switch (flag) {
@@ -657,7 +684,7 @@
 												<Stack gap="xs" class="min-w-0 py-0.5">
 													<p class="truncate text-tiny font-medium">{photo.name}</p>
 													<Cluster gap="xs">
-														{#each photo.facts as fact}
+														{#each photo.facts as fact (fact)}
 															<span
 																class="rounded-full bg-muted px-2 py-0.5 text-micro text-muted-foreground"
 																>{fact}</span
@@ -912,133 +939,156 @@
 					</p>
 				{/if}
 
-				<div class="min-h-80 rounded-lg border border-border bg-muted/25 p-3">
-					{#if communicationTimeline.length === 0 && (communicationQuery?.loading || evidenceLoading)}
-						<Stack gap="sm" aria-label={t('component.loading')}>
+				<div class="relative min-h-80">
+					<Scroll
+						bind:ref={conversationPort}
+						name={t('component.conversation')}
+						class="min-h-80 max-h-[28rem] rounded-lg border border-border bg-muted/25 p-3"
+						onscroll={syncConversationScroll}
+					>
+						{#if communicationTimeline.length === 0 && (communicationQuery?.loading || evidenceLoading)}
+							<Stack gap="sm" aria-label={t('component.loading')}>
+								<div
+									class="h-16 w-3/4 rounded-e-xl rounded-bl-xl bg-muted motion-safe:animate-pulse"
+								></div>
+								<div
+									class="h-24 w-2/3 rounded-e-xl rounded-bl-xl bg-muted motion-safe:animate-pulse"
+								></div>
+								<div
+									class="h-14 w-4/5 rounded-e-xl rounded-bl-xl bg-muted motion-safe:animate-pulse"
+								></div>
+							</Stack>
+						{:else if communicationTimeline.length === 0}
 							<div
-								class="h-16 w-3/4 rounded-e-xl rounded-bl-xl bg-muted motion-safe:animate-pulse"
-							></div>
-							<div
-								class="h-24 w-2/3 rounded-e-xl rounded-bl-xl bg-muted motion-safe:animate-pulse"
-							></div>
-							<div
-								class="h-14 w-4/5 rounded-e-xl rounded-bl-xl bg-muted motion-safe:animate-pulse"
-							></div>
-						</Stack>
-					{:else if communicationTimeline.length === 0}
-						<div
-							class="rounded-md border border-dashed border-border bg-background/70 p-4 text-sm text-muted-foreground"
-						>
-							{t('component.conversation_empty')}
-						</div>
-					{:else}
-						<Stack as="ol" gap="sm">
-							{#each communicationTimeline as item, index (item.id)}
-								{@const dayKey = timelineDayKey(item.sentAt)}
-								{#if index === 0 || dayKey !== timelineDayKey(communicationTimeline[index - 1]?.sentAt)}
-									<li class="flex justify-center py-1">
-										<span
-											class="rounded-full bg-background px-2.5 py-1 text-micro font-medium text-muted-foreground"
+								class="rounded-md border border-dashed border-border bg-background/70 p-4 text-sm text-muted-foreground"
+							>
+								{t('component.conversation_empty')}
+							</div>
+						{:else}
+							<Stack as="ol" gap="sm">
+								{#each communicationTimeline as item, index (item.id)}
+									{@const dayKey = timelineDayKey(item.sentAt)}
+									{#if index === 0 || dayKey !== timelineDayKey(communicationTimeline[index - 1]?.sentAt)}
+										<li class="flex justify-center py-1">
+											<span
+												class="rounded-full bg-background px-2.5 py-1 text-micro font-medium text-muted-foreground"
+											>
+												{formatTimelineDay(item.sentAt)}
+											</span>
+										</li>
+									{/if}
+									{@const recordedFlags = [
+										...new Set(item.photos.flatMap((photo) => photo.flags.map(integrityFlagLabel)))
+									]}
+									<li class={item.system ? 'flex justify-center' : 'flex justify-start'}>
+										<article
+											class={cn(
+												'min-w-0 px-2.5 py-2',
+												item.system
+													? 'w-full max-w-sm rounded-lg bg-muted'
+													: 'w-fit max-w-[min(100%,32rem)] rounded-e-xl rounded-bl-xl rounded-tl-sm border border-border bg-card'
+											)}
 										>
-											{formatTimelineDay(item.sentAt)}
-										</span>
-									</li>
-								{/if}
-								{@const recordedFlags = [
-									...new Set(item.photos.flatMap((photo) => photo.flags.map(integrityFlagLabel)))
-								]}
-								<li class={item.system ? 'flex justify-center' : 'flex justify-start'}>
-									<article
-										class={cn(
-											'min-w-0 px-2.5 py-2',
-											item.system
-												? 'w-full max-w-sm rounded-lg bg-muted'
-												: 'w-fit max-w-[min(100%,32rem)] rounded-e-xl rounded-bl-xl rounded-tl-sm border border-border bg-card'
-										)}
-									>
-										<Stack gap="xs">
-											<Inline align="center" gap="xs" class="min-w-0">
-												<Icon
-													icon={item.system ? 'lucide:upload' : 'lucide:user-round'}
-													class="size-3.5 shrink-0 text-muted-foreground"
-													aria-hidden="true"
-												/>
-												<span class="min-w-0 truncate text-tiny font-semibold">{item.sender}</span>
-											</Inline>
-											{#if item.text}
-												<p class="whitespace-pre-wrap break-words text-sm [overflow-wrap:anywhere]">
-													{item.text}
-												</p>
-											{/if}
-											{#if item.photos.length > 0}
-												{#if item.photos.length > 1}
-													<p class="text-micro font-medium text-muted-foreground">
-														{t('component.photo_count', { count: item.photos.length })}
-													</p>
-												{/if}
-												<div
-													class={cn(
-														'grid min-w-0 gap-1.5 overflow-hidden rounded-md',
-														item.photos.length > 1 && 'grid-cols-2',
-														item.photos.length > 4 && 'grid-cols-3'
-													)}
-												>
-													{#each item.photos as photo (photo.id)}
-														<button
-															type="button"
-															onclick={() => (openedPhoto = photo)}
-															class="group min-w-0 overflow-hidden rounded-md bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-															aria-label={t('component.open_photo', { name: photo.name })}
-															title={photo.name}
-														>
-															<img
-																src={photo.url}
-																alt={photo.name}
-																class={cn(
-																	'w-full object-cover transition-opacity duration-150 group-hover:opacity-90',
-																	item.photos.length === 1
-																		? 'h-28'
-																		: item.photos.length > 6
-																			? 'h-16'
-																			: 'h-20'
-																)}
-																loading="lazy"
-																decoding="async"
-															/>
-														</button>
-													{/each}
-												</div>
-											{/if}
-											{#if mayReadSuspicion && recordedFlags.length > 0}
-												<Inline align="start" gap="xs" class="text-micro text-muted-foreground">
+											<Stack gap="xs">
+												<Inline align="center" gap="xs" class="min-w-0">
 													<Icon
-														icon="lucide:scan-search"
-														class="mt-0.5 size-3 shrink-0"
+														icon={item.system ? 'lucide:upload' : 'lucide:user-round'}
+														class="size-3.5 shrink-0 text-muted-foreground"
 														aria-hidden="true"
 													/>
-													<span class="break-words [overflow-wrap:anywhere]">
-														{recordedFlags.join(' · ')}
-													</span>
+													<span class="min-w-0 truncate text-tiny font-semibold">{item.sender}</span
+													>
 												</Inline>
-											{/if}
-											<Inline
-												justify="end"
-												gap="xs"
-												class="text-micro tabular-nums text-muted-foreground"
-											>
-												{#if item.photos.length === 1 && item.photos[0]?.fileSize != null}
-													<span>{formatFileSize(item.photos[0].fileSize)}</span>
-													<span aria-hidden="true">·</span>
+												{#if item.text}
+													<p
+														class="whitespace-pre-wrap break-words text-sm [overflow-wrap:anywhere]"
+													>
+														{item.text}
+													</p>
 												{/if}
-												<time datetime={item.sentAt ?? undefined}
-													>{formatTimelineTime(item.sentAt)}</time
+												{#if item.photos.length > 0}
+													{#if item.photos.length > 1}
+														<p class="text-micro font-medium text-muted-foreground">
+															{t('component.photo_count', { count: item.photos.length })}
+														</p>
+													{/if}
+													<div
+														class={cn(
+															'grid min-w-0 gap-1.5 overflow-hidden rounded-md',
+															item.photos.length > 1 && 'grid-cols-2',
+															item.photos.length > 4 && 'grid-cols-3'
+														)}
+													>
+														{#each item.photos as photo (photo.id)}
+															<button
+																type="button"
+																onclick={() => (openedPhoto = photo)}
+																class="group min-w-0 overflow-hidden rounded-md bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+																aria-label={t('component.open_photo', { name: photo.name })}
+																title={photo.name}
+															>
+																<img
+																	src={photo.url}
+																	alt={photo.name}
+																	class={cn(
+																		'w-full object-cover transition-opacity duration-150 group-hover:opacity-90',
+																		item.photos.length === 1
+																			? 'h-28'
+																			: item.photos.length > 6
+																				? 'h-16'
+																				: 'h-20'
+																	)}
+																	loading="lazy"
+																	decoding="async"
+																/>
+															</button>
+														{/each}
+													</div>
+												{/if}
+												{#if mayReadSuspicion && recordedFlags.length > 0}
+													<Inline align="start" gap="xs" class="text-micro text-muted-foreground">
+														<Icon
+															icon="lucide:scan-search"
+															class="mt-0.5 size-3 shrink-0"
+															aria-hidden="true"
+														/>
+														<span class="break-words [overflow-wrap:anywhere]">
+															{recordedFlags.join(' · ')}
+														</span>
+													</Inline>
+												{/if}
+												<Inline
+													justify="end"
+													gap="xs"
+													class="text-micro tabular-nums text-muted-foreground"
 												>
-											</Inline>
-										</Stack>
-									</article>
-								</li>
-							{/each}
-						</Stack>
+													{#if item.photos.length === 1 && item.photos[0]?.fileSize != null}
+														<span>{formatFileSize(item.photos[0].fileSize)}</span>
+														<span aria-hidden="true">·</span>
+													{/if}
+													<time datetime={item.sentAt ?? undefined}
+														>{formatTimelineTime(item.sentAt)}</time
+													>
+												</Inline>
+											</Stack>
+										</article>
+									</li>
+								{/each}
+							</Stack>
+						{/if}
+					</Scroll>
+					{#if conversationAwayFromLatest && communicationTimeline.length > 0}
+						<div class="pointer-events-none absolute inset-x-0 bottom-3 flex justify-center">
+							<Button
+								size="sm"
+								variant="secondary"
+								class="pointer-events-auto shadow-sm"
+								onclick={scrollConversationToLatest}
+							>
+								<Icon icon="lucide:arrow-down" class="size-3.5 shrink-0" />
+								{t('component.conversation_to_latest')}
+							</Button>
+						</div>
 					{/if}
 				</div>
 			</Stack>

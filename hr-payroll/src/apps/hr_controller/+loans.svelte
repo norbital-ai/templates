@@ -130,8 +130,8 @@
 						}
 					},
 					columns: { id: true },
-					orderBy: { effective_range: 'desc' },
-					limit: 1000
+					orderBy: { effective_from: 'desc' },
+					limit: 10_000
 				})
 	);
 	const repaymentsQuery = $derived.by(() => {
@@ -140,7 +140,7 @@
 		return client.db.loan_repayments.findMany({
 			where: { loan_id: { in: ids } },
 			columns: { id: true, loan_id: true, amount_due: true, sequence: true },
-			limit: 1000
+			limit: 10_000
 		});
 	});
 	const repaymentsByLoanId = $derived.by(() => {
@@ -166,7 +166,7 @@
 					with: { payslip_payroll_run: { columns: { lifecycle: true } } }
 				}
 			},
-			limit: 1000
+			limit: 10_000
 		});
 	});
 

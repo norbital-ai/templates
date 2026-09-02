@@ -8,6 +8,9 @@
 	"app.field_ops_contractor.scope_own": "Assignments dispatched to you.",
 	"app.field_ops_contractor.dispatched_jobs": "Dispatched jobs",
 	"app.field_ops_contractor.dispatched_jobs_description": "Jobs visible under your access policy. Review the site and scope, update progress, and inspect information captured by agents.",
+	"app.field_ops_contractor.filter_status": "Status",
+	"app.field_ops_contractor.filter_status_all": "All statuses",
+	"app.field_ops_contractor.filter_clear": "Clear",
 	"app.field_ops_controller.title": "Field Operations Controller",
 	"app.field_ops_controller.description": "Schedule site jobs and dispatch contractors",
 	"app.field_ops_controller.eyebrow": "Field Operations",
@@ -183,5 +186,9 @@
 	"component.suspicion_reviewed_at": "Reviewed at",
 	"component.suspicion_review_model": "Inference model",
 	"component.suspicion_review_read_only": "Suspicion reviews are created by the review automation and cannot be authored here.",
-	"app.field_ops_controller.review_status_failed": "Suspicion review status could not be loaded. Assignment progress remains available."
+	"app.field_ops_controller.review_status_failed": "Suspicion review status could not be loaded. Assignment progress remains available.",
+	"app.field_ops_controller.run_suspicion_review": "Run now",
+	"app.field_ops_controller.suspicion_review_running": "Review running",
+	"app.field_ops_controller.suspicion_review_progress": "{percent}% {text}",
+	"component.conversation_to_latest": "Latest"
 }

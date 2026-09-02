@@ -25,6 +25,7 @@
  */
 
 import assert from 'node:assert/strict';
+import { mkdirSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { toError } from '@norbital-ai/std';
@@ -34,6 +35,9 @@ import { createServer } from 'vite';
 import { stubApi as tableStub } from './lib/stub-api.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+const FIXTURES_DIR = path.join(root, 'tests/fixtures');
+const VALID_ROSTER_FIXTURE = path.join(FIXTURES_DIR, 'roster-import-valid.xlsx');
+const INVALID_ROSTER_FIXTURE = path.join(FIXTURES_DIR, 'roster-import-invalid.xlsx');
 
 function tryPromise(evaluate) {
 	return Effect.tryPromise({ try: evaluate, catch: toError });
@@ -45,18 +49,40 @@ function tryMap(effect, transform) {
 	);
 }
 
+function fillWorkbook(sheets) {
+	const workbook = new ExcelJS.Workbook();
+	for (const [name, rows] of sheets) {
+		const worksheet = workbook.addWorksheet(name);
+		for (const row of rows) worksheet.addRow(row);
+	}
+	return workbook;
+}
+
 /** The workbook as the operator's browser sees it: written to bytes, then loaded back. */
 function gridsOf(sheets) {
 	return Effect.gen(function* () {
-		const workbook = new ExcelJS.Workbook();
-		for (const [name, rows] of sheets) {
-			const worksheet = workbook.addWorksheet(name);
-			for (const row of rows) worksheet.addRow(row);
-		}
+		const workbook = fillWorkbook(sheets);
 		const reloaded = new ExcelJS.Workbook();
 		const buffer = yield* tryPromise(() => workbook.xlsx.writeBuffer());
 		yield* tryPromise(() => reloaded.xlsx.load(buffer));
 		return reloaded;
+	});
+}
+
+function writeWorkbookFile(filePath, sheets) {
+	return Effect.gen(function* () {
+		mkdirSync(path.dirname(filePath), { recursive: true });
+		const workbook = fillWorkbook(sheets);
+		yield* tryPromise(() => workbook.xlsx.writeFile(filePath));
+		return filePath;
+	});
+}
+
+function workbookFromFile(filePath) {
+	return Effect.gen(function* () {
+		const workbook = new ExcelJS.Workbook();
+		yield* tryPromise(() => workbook.xlsx.readFile(filePath));
+		return workbook;
 	});
 }
 
@@ -73,8 +99,7 @@ const ROSTER_ROWS = [
 	['NHPMY0023', '2026-05-04', 'AM0830'],
 	['NHPMY0023', '2026-05-05', 'PM2030'],
 	['NHPMY0023', '2026-05-06', 'OFF'],
-	['NHPMY0023', '2026-05-07', ''],
-	['NHPMY0023', '2026-05-08', 'PH']
+	['NHPMY0023', '2026-05-07', '']
 ];
 
 const TIME_ENTRY_HEADERS = ['employee_number', 'work_date', 'clock_in', 'clock_out'];
@@ -149,6 +174,10 @@ function rosterApi(overrides = {}) {
 			}
 		],
 		companies: companies(),
+		payroll_runs: overrides.payrollRuns ?? [],
+		company_holidays: overrides.holidays ?? [
+			{ id: 'holiday:1', company_id: COMPANY_ID, date: '2026-05-08' }
+		],
 		employments: [
 			{ id: 'employment:2', employee_number: 'NHPMY0002', company_id: COMPANY_ID },
 			{ id: 'employment:23', employee_number: 'NHPMY0023', company_id: COMPANY_ID }
@@ -190,7 +219,6 @@ function rosterApi(overrides = {}) {
 				effective_range: { start: '2020-01-01', end: null }
 			}
 		],
-		company_holidays: [{ id: 'holiday:1', company_id: COMPANY_ID, date: '2026-05-08' }],
 		work_days: overrides.existingDays ?? []
 	});
 }
@@ -263,7 +291,7 @@ const program = Effect.gen(function* () {
 			'the arm is tagged, not inferred from which fields are set'
 		);
 		assert.equal(rosterPayload.roster_id, ROSTER_ID);
-		assert.equal(rosterPayload.rows.length, 9, 'blank assignment rows are omitted');
+		assert.equal(rosterPayload.rows.length, 8, 'blank assignment rows are omitted');
 		assert.deepEqual(
 			rosterPayload.rows[0],
 			{
@@ -290,7 +318,7 @@ const program = Effect.gen(function* () {
 		const written = yield* runHandler(
 			workDayPipeline.import.handler({ input: rosterPayload }, rosterApi())
 		);
-		assert.equal(written.length, 8, 'the validated PH token is not stored per person');
+		assert.equal(written.length, 8, 'every filled roster cell becomes one person-day');
 		assert.deepEqual(
 			written.map((row) => row.shift_definition_id),
 			[
@@ -328,6 +356,40 @@ const program = Effect.gen(function* () {
 			),
 			'the roster arm writes the plan and never touches the clock'
 		);
+
+		const unobservedPh = yield* refusal(() =>
+			Effect.gen(function* () {
+				const grids = yield* rosterGrids([
+					['NHPMY0002', '2026-05-01', '7.5AM'],
+					['NHPMY0023', '2026-05-08', 'PH']
+				]);
+				return yield* runHandlerCall(() =>
+					workDayPipeline.import.handler(
+						{ input: rosterImportPayload(grids, ROSTER_ID) },
+						rosterApi({ holidays: [] })
+					)
+				);
+			})
+		);
+		assert.match(unobservedPh, /These PH rows are not observed holidays for the legal entity/);
+		assert.match(unobservedPh, /NHPMY0023 on 2026-05-08/);
+
+		const observedPh = yield* runHandler(
+			workDayPipeline.import.handler(
+				{
+					input: rosterImportPayload(
+						yield* rosterGrids([
+							['NHPMY0002', '2026-05-01', '7.5AM'],
+							['NHPMY0023', '2026-05-08', 'PH']
+						]),
+						ROSTER_ID
+					)
+				},
+				rosterApi()
+			)
+		);
+		assert.equal(observedPh.length, 1, 'an observed PH token is not stored per person');
+		assert.equal(observedPh[0].work_date, '2026-05-01');
 
 		// ── Every column the long-form sheet declares reaches the row that is written ──────────────────
 		const annotatedWorkbook = yield* gridsOf([
@@ -405,6 +467,70 @@ const program = Effect.gen(function* () {
 			})
 		);
 		assert.match(publishedMonth, /is published/);
+
+		const paidLock = yield* refusal(() =>
+			runHandlerCall(() =>
+				workDayPipeline.import.handler(
+					{ input: rosterPayload },
+					rosterApi({
+						payrollRuns: [
+							{
+								company_id: COMPANY_ID,
+								period: '2026-05',
+								lifecycle: 'PAID',
+								attendance_from: '2026-04-21',
+								attendance_to: '2026-05-20'
+							}
+						]
+					})
+				)
+			)
+		);
+		assert.match(paidLock, /inside paid payroll 2026-05/);
+		assert.match(paidLock, /Importing roster/);
+
+		const draftRunStillImports = yield* runHandler(
+			workDayPipeline.import.handler(
+				{
+					input: rosterPayload
+				},
+				rosterApi({
+					payrollRuns: [
+						{
+							company_id: COMPANY_ID,
+							period: '2026-05',
+							lifecycle: 'DRAFT',
+							attendance_from: '2026-04-21',
+							attendance_to: '2026-05-20'
+						}
+					]
+				})
+			)
+		);
+		assert.equal(draftRunStillImports.length, 8, 'a draft payroll window does not lock the roster');
+
+		yield* writeWorkbookFile(VALID_ROSTER_FIXTURE, [
+			['Read me first', README],
+			['Roster', [ROSTER_HEADERS, ...ROSTER_ROWS]]
+		]);
+		yield* writeWorkbookFile(INVALID_ROSTER_FIXTURE, [
+			['Read me first', README],
+			['Roster', [ROSTER_HEADERS, ['NHPMY0002', '04/05/2026', '7.5AM']]]
+		]);
+		const fixturePayload = rosterImportPayload(
+			workbookGrids(yield* workbookFromFile(VALID_ROSTER_FIXTURE)),
+			ROSTER_ID
+		);
+		const fixtureWritten = yield* runHandler(
+			workDayPipeline.import.handler({ input: fixturePayload }, rosterApi())
+		);
+		assert.equal(fixtureWritten.length, 8, 'the committed .xlsx fixture is a valid roster upload');
+		const invalidFixture = yield* refusal(() =>
+			tryMap(workbookFromFile(INVALID_ROSTER_FIXTURE), (workbook) =>
+				rosterImportPayload(workbookGrids(workbook), ROSTER_ID)
+			)
+		);
+		assert.match(invalidFixture, /work_date is "04\/05\/2026"/);
 
 		const alreadyPresent = yield* refusal(() =>
 			Effect.gen(function* () {

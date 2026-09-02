@@ -1,7 +1,8 @@
 /**
- * Every month-board `findMany` is a live prefix. The sync engine admits at most
- * `MAX_SYNC_LOADED_KEYS` (1 000) rows per query; a larger `limit` fails registration and
- * leaves the board on eternal loading. These bounds are that ceiling, not a second budget.
+ * Every month-board `findMany` is a live prefix. One cap: the protocol's
+ * `MAX_SYNC_LOADED_KEYS` (10 000). A second, tighter prefix used to refuse a seeded month
+ * (75 people × ~31 days) mid-hop and close the stream. Collections that cannot reach that
+ * cardinality keep a smaller authored bound.
  */
 export const MONTH_BOARD_QUERY_LIMITS = {
 	companies: 500,
@@ -11,12 +12,12 @@ export const MONTH_BOARD_QUERY_LIMITS = {
 	employmentTerms: 1_000,
 	leaveTypes: 200,
 	rosters: 50,
-	workDays: 1_000,
-	leaveRequests: 1_000,
+	workDays: 10_000,
+	leaveRequests: 10_000,
 	payrollRuns: 500,
-	settlementClaims: 1_000,
+	settlementClaims: 10_000,
 	holidays: 200,
-	filteredWorkDays: 1_000
+	filteredWorkDays: 10_000
 } as const;
 
 type MonthBoardQuerySource = keyof typeof MONTH_BOARD_QUERY_LIMITS;
@@ -87,6 +88,55 @@ export const MONTH_BOARD_NORMAL_ROW_BOUND = sourceBound(NORMAL_SOURCES);
 export const MONTH_BOARD_INTERACTIVE_QUERY_CEILING = MONTH_BOARD_NORMAL_QUERY_CEILING + 1;
 export const MONTH_BOARD_INTERACTIVE_ROW_BOUND =
 	MONTH_BOARD_NORMAL_ROW_BOUND + MONTH_BOARD_QUERY_LIMITS.filteredWorkDays;
+
+/**
+ * Identity a live `work_days` prefix must project so an update can carry a whole-row
+ * base version. `id` alone is enough to *address* the person-day; `row_version` is what
+ * `collectionMutationBaseVersions` reads from authoritative client state. An explicit
+ * columns mask that omits it ships a graph the engine quarantines.
+ */
+const MONTH_BOARD_WORK_DAY_BASE_VERSION_COLUMNS = {
+	id: true,
+	row_version: true
+} as const;
+
+type MonthBoardWorkDayLiveColumns<T extends Record<string, true>> = T &
+	typeof MONTH_BOARD_WORK_DAY_BASE_VERSION_COLUMNS;
+
+/**
+ * Stamp `id` + `row_version` onto a month-board `work_days` mask so the board query and
+ * the schema-filter query cannot drift on the mutation identity fields.
+ */
+export function monthBoardWorkDayLiveColumns<T extends Record<string, true>>(
+	columns: T
+): MonthBoardWorkDayLiveColumns<T> {
+	return { ...columns, ...MONTH_BOARD_WORK_DAY_BASE_VERSION_COLUMNS };
+}
+
+/** Live columns for the month-board person-day prefix (plan + attendance + write identity). */
+export const MONTH_BOARD_WORK_DAY_COLUMNS = monthBoardWorkDayLiveColumns({
+	employment_id: true,
+	work_date: true,
+	shift_definition_id: true,
+	roster_id: true,
+	assignment_code: true,
+	planned_origin: true,
+	planned_note: true,
+	worked_intervals: true,
+	break_minutes: true
+});
+
+/**
+ * Live columns for the optional schema-filter prefix. Narrower than the board mask —
+ * visibility only — but the same identity fields so a filtered row still carries a
+ * base version if it is the copy the client holds.
+ */
+export const MONTH_BOARD_FILTERED_WORK_DAY_COLUMNS = monthBoardWorkDayLiveColumns({
+	employment_id: true,
+	work_date: true,
+	shift_definition_id: true,
+	assignment_code: true
+});
 
 /**
  * A deterministic receipt for the declarative reads that can back one rendered month board.

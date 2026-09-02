@@ -70,6 +70,54 @@ export function daySheetSaveIntent(
 	return 'none';
 }
 
+type DaySheetSaveLabelKey =
+	'roster.save_punch' | 'roster.save_changes' | 'roster.save_attendance' | 'roster.save_assignment';
+
+/** Footer copy for the pending write. An employee never sees the assignment picker. */
+export function daySheetSaveLabelKey(
+	mode: 'controller' | 'employee',
+	intent: DaySheetSaveIntent
+): DaySheetSaveLabelKey {
+	if (mode !== 'controller') return 'roster.save_punch';
+	switch (intent) {
+		case 'changes':
+			return 'roster.save_changes';
+		case 'attendance':
+			return 'roster.save_attendance';
+		case 'assignment':
+		case 'none':
+			return 'roster.save_assignment';
+		default: {
+			const unhandled: never = intent;
+			throw new Error(`Unhandled day-sheet save intent: ${String(unhandled)}`);
+		}
+	}
+}
+
+/**
+ * Interval attendance is gated on the same assessment the hook will make. The two interval-free
+ * states are intentional exceptions: `[]` is reviewed-no-work and `null` is explicit clearing.
+ */
+export function daySheetAttendanceSaveAllowed(
+	draft: AttendanceValue,
+	missingIntervalStart: boolean,
+	problem: string | null
+): boolean {
+	if (draft.intervals == null || draft.intervals.length === 0) return true;
+	return !missingIntervalStart && problem == null;
+}
+
+/**
+ * Identity for a person-day write. The sheet's known id (from facts) wins; the loaded-row id is
+ * the fallback when attendance was not in the change. Either id is an UPDATE. Null is a create.
+ */
+export function resolvePersonDayWriteId(
+	storedId: string | null | undefined,
+	knownWorkDayId: string | null | undefined
+): string | null {
+	return knownWorkDayId ?? storedId ?? null;
+}
+
 /**
  * Build one partial person-day mutation. Omitted halves are deliberately absent, so updating
  * attendance on a planned row cannot rewrite its roster fields and creating attendance on an empty

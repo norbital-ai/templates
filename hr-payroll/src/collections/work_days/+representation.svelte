@@ -83,7 +83,7 @@
 								? String(employment.employee_number)
 								: '—',
 						orderBy: { employee_number: 'asc' },
-						limit: 1000
+						limit: 10_000
 					}}
 				/>
 				<Field name="work_date" label={t('component.day')} />

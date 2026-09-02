@@ -28,7 +28,7 @@
 							? String(employment.employee_number)
 							: '—',
 					orderBy: { employee_number: 'asc' },
-					limit: 1000
+					limit: 10_000
 				}}
 			/>
 			<Field name="base_salary" label={t('component.base_salary')} />

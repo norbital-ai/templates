@@ -231,10 +231,7 @@ export default {
 						if (writableInput.status === undefined) return writableInput;
 						return {
 							...writableInput,
-							status: assignmentStatus(writableInput.status),
-							...(writableInput.status === 'completed' && writableInput.completed_at == null
-								? { completed_at: now.toISOString() }
-								: {})
+							...assignmentLanePersistValues(writableInput, now.toISOString())
 						};
 					});
 				}
@@ -274,6 +271,18 @@ export default {
  * was only ever set because an assignment could be spelled `in_progress`, which meant the same as
  * `dispatched` and was chosen by whichever importer wrote the row.
  */
+/** Kanban and form writes share this persist shape so a completed drop survives reload. */
+export function assignmentLanePersistValues(
+	input: { readonly status?: string | null; readonly completed_at?: string | null },
+	now: string
+): { readonly status: AssignmentStatus; readonly completed_at?: string } {
+	const status = assignmentStatus(input.status);
+	return {
+		status,
+		...(status === 'completed' && input.completed_at == null ? { completed_at: now } : {})
+	};
+}
+
 export function mapAssignmentStatusToJobStatus(
 	status: AssignmentStatus
 ): 'assigned' | 'in_progress' | 'completed' {

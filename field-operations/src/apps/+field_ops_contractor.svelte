@@ -5,8 +5,10 @@
 	import { getPlatformStateContext } from '@norbital-ai/bolt/client';
 	import { useI18n } from '@norbital-ai/ui/i18n';
 	import type { TenantI18nKeys } from '$bolt/i18n-keys';
+	import { Button } from '@norbital-ai/ui/button';
+	import { Combobox } from '@norbital-ai/ui/combobox';
 	import { CollectionTable } from '@norbital-ai/ui/collection-table';
-	import { Bound, Cover } from '@norbital-ai/ui/layout';
+	import { Bound, Cover, Inline } from '@norbital-ai/ui/layout';
 
 	const { t } = useI18n<TenantI18nKeys>();
 
@@ -62,6 +64,21 @@
 		new Map((sitesQuery.current ?? []).map((site) => [site.id, site.name]))
 	);
 	const jobById = $derived(new Map((jobsQuery.current ?? []).map((job) => [job.id, job])));
+
+	/**
+	 * Status filter apply/clear, owned here rather than left to the nested field-picker popover.
+	 * The last B3 probe opened that picker without publishing a clause, so Assigned rows stayed.
+	 */
+	let appliedStatusFilter = $state<'unassigned' | 'assigned' | 'completed' | null>(null);
+	const statusFilterOptions = $derived([
+		{ value: 'unassigned', label: t('component.status_unassigned') },
+		{ value: 'assigned', label: t('component.status_assigned') },
+		{ value: 'completed', label: t('component.status_completed') }
+	]);
+	const assignmentQuery = $derived({
+		orderBy: { dispatched_at: 'desc' as const },
+		...(appliedStatusFilter == null ? {} : { where: { status: { eq: appliedStatusFilter } } })
+	});
 </script>
 
 <svelte:head>
@@ -103,8 +120,34 @@
 	{/if}
 {/snippet}
 
+{#snippet contractorFilters()}
+	<Inline justify="between" align="center" gap="sm">
+		{@render scopeNotice()}
+		<Inline align="center" gap="sm" class="shrink-0">
+			<div class="w-44">
+				<Combobox
+					options={statusFilterOptions}
+					value={appliedStatusFilter}
+					emptyPlaceholder={t('app.field_ops_contractor.filter_status_all')}
+					searchPlaceholder={t('app.field_ops_contractor.filter_status')}
+					ariaLabel={t('app.field_ops_contractor.filter_status')}
+					onValueChange={(next) => {
+						appliedStatusFilter =
+							next === 'unassigned' || next === 'assigned' || next === 'completed' ? next : null;
+					}}
+				/>
+			</div>
+			{#if appliedStatusFilter != null}
+				<Button variant="ghost" size="sm" onclick={() => (appliedStatusFilter = null)}>
+					{t('app.field_ops_contractor.filter_clear')}
+				</Button>
+			{/if}
+		</Inline>
+	</Inline>
+{/snippet}
+
 <!-- App identity (title/description/icon) is rendered by the shell AppMediaHeader. -->
-<Cover as="main" gap="md" top={scopeNotice}>
+<Cover as="main" gap="md" top={contractorFilters}>
 	<Bound size="full" inset>
 		<CollectionTable
 			client={collectionClient}
@@ -112,7 +155,7 @@
 			title={t('app.field_ops_contractor.dispatched_jobs')}
 			description={t('app.field_ops_contractor.dispatched_jobs_description')}
 			features={{ create: dispatchAuthority }}
-			query={{ orderBy: { dispatched_at: 'desc' } }}
+			query={assignmentQuery}
 		>
 			{#snippet columns({ Column })}
 				<Column

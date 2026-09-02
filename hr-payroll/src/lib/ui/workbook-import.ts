@@ -29,6 +29,7 @@ import {
 	WorkbookImportError,
 	type WorkbookGrids
 } from '../workbook-rows.js';
+import { importPayloadFromGrids } from './workbook-import-payload.js';
 
 const ACCEPTED_FILE_TYPES = '.xlsx,.csv';
 const FAILURE_TOAST_MS = 20_000;
@@ -140,7 +141,7 @@ export function runWorkbookImport(options: WorkbookImportOptions, t: Translator)
 		yield* Effect.catch(
 			Effect.gen(function* () {
 				const grids = yield* readWorkbookGrids(file, t);
-				const payload = { ...options.buildPayload(grids) };
+				const payload = yield* importPayloadFromGrids(options.buildPayload, grids);
 				/**
 				 * The whole file is one record, not one record per row.
 				 *

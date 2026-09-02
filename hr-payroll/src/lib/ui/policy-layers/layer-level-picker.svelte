@@ -80,7 +80,7 @@
 					where: { company_id: { eq: props.companyId } },
 					with: { employment_employee: { columns: { name: true } } },
 					orderBy: { employee_number: 'asc' },
-					limit: 1000
+					limit: 10_000
 				})
 	);
 	const employments = $derived((employmentsQuery?.current ?? []) as readonly EmploymentWithName[]);

@@ -82,7 +82,7 @@
 						}
 					},
 					columns: { id: true },
-					limit: 1000
+					limit: 10_000
 				})
 	);
 	const capturesQuery = $derived(

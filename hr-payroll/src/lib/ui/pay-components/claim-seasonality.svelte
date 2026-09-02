@@ -25,7 +25,7 @@
 		client.db.component_entries.findMany({
 			where: { component_entry_employment: { some: { company_id: { eq: companyId } } } },
 			columns: { event: true, event_date: true },
-			limit: 1000
+			limit: 10_000
 		})
 	);
 	const analytics = $derived.by(() => {

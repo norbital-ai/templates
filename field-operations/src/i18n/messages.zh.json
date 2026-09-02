@@ -8,6 +8,9 @@
 	"app.field_ops_contractor.scope_own": "派单给您的任务。",
 	"app.field_ops_contractor.dispatched_jobs": "派单任务",
 	"app.field_ops_contractor.dispatched_jobs_description": "您的访问策略下可见的任务。查看工地与范围，更新进度，并核对代理采集的信息。",
+	"app.field_ops_contractor.filter_status": "状态",
+	"app.field_ops_contractor.filter_status_all": "全部状态",
+	"app.field_ops_contractor.filter_clear": "清除",
 	"app.field_ops_controller.title": "现场作业调度台",
 	"app.field_ops_controller.description": "安排工地任务并派单给承包商",
 	"app.field_ops_controller.eyebrow": "现场作业",
@@ -175,5 +178,9 @@
 	"component.suspicion_reviewed_at": "审查时间",
 	"component.suspicion_review_model": "推理模型",
 	"component.suspicion_review_read_only": "疑点审查由审查自动化生成，无法在此手工创建。",
-	"app.field_ops_controller.review_status_failed": "无法加载疑点审查状态。任务进度仍可正常查看。"
+	"app.field_ops_controller.review_status_failed": "无法加载疑点审查状态。任务进度仍可正常查看。",
+	"app.field_ops_controller.run_suspicion_review": "立即运行",
+	"app.field_ops_controller.suspicion_review_running": "审查进行中",
+	"app.field_ops_controller.suspicion_review_progress": "{percent}% {text}",
+	"component.conversation_to_latest": "最新"
 }

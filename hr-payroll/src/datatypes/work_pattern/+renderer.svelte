@@ -37,7 +37,7 @@
 						approval_id: { isNull: true }
 					},
 					orderBy: { code: 'asc' },
-					limit: 1000
+					limit: 10_000
 				})
 	);
 	const codes = $derived(codesQuery?.current ?? []);

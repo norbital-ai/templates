@@ -33,7 +33,7 @@
 					label: (person) =>
 						person.name != null && person.name !== '' ? String(person.name) : '—',
 					orderBy: { name: 'asc' },
-					limit: 1000
+					limit: 10_000
 				}}
 			/>
 			<Field

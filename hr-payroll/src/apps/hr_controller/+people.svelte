@@ -53,7 +53,7 @@
 						approval_id: { isNull: true },
 						company_id: { eq: selectedCompanyId }
 					},
-					limit: 1000
+					limit: 10_000
 				})
 	);
 

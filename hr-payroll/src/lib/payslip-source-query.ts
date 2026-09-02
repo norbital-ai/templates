@@ -8,13 +8,13 @@ type IdSource =
 type ComponentEntryCaptureQuery = {
 	readonly where: { readonly component_entry_id: { readonly in: readonly string[] } };
 	readonly columns: { readonly component_entry_id: true; readonly period: true };
-	readonly limit: 1000;
+	readonly limit: 10_000;
 };
 
 type LeaveRequestSettlementQuery = {
 	readonly where: { readonly leave_request_id: { readonly in: readonly string[] } };
 	readonly columns: { readonly leave_request_id: true; readonly period: true };
-	readonly limit: 1000;
+	readonly limit: 10_000;
 };
 
 type QueryByKey = {
@@ -30,13 +30,13 @@ const queryFor = <K extends keyof QueryByKey>(
 		return {
 			where: { component_entry_id: { in: ids } },
 			columns: { component_entry_id: true, period: true },
-			limit: 1000
+			limit: 10_000
 		} as QueryByKey[K];
 	}
 	return {
 		where: { leave_request_id: { in: ids } },
 		columns: { leave_request_id: true, period: true },
-		limit: 1000
+		limit: 10_000
 	} as QueryByKey[K];
 };
 

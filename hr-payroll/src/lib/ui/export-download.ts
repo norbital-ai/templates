@@ -21,6 +21,21 @@
 import type { downloadCollectionExport } from '@norbital-ai/bolt/client';
 
 /**
+ * The `collections.export` body for one or more payroll runs.
+ *
+ * The command's contract is `CollectionQueryRequest` (`collection` + `where`). A body that names
+ * `collection_name` / `record_ids` is refused as `invalid_input` before the authored pipeline runs —
+ * that is the 400 the salary-listing button was posting.
+ */
+export function payrollRunsExportQuery(recordIds: readonly string[]) {
+	return {
+		collection: 'payroll_runs',
+		where: { id: { in: [...recordIds] } },
+		limit: Math.max(recordIds.length, 1)
+	} as const;
+}
+
+/**
  * The manifest as the client hands it over.
  *
  * Taken from the function's own return type rather than restated: `@norbital-ai/bolt/client`

@@ -29,13 +29,14 @@ export function payrollRunPayslipsQuery(payrollRunId: string) {
 			gross: true,
 			total_deductions: true,
 			net: true,
-			employer_cost: true
+			employer_cost: true,
+			created_at: true
 		},
 		orderBy: { created_at: 'asc' },
 		with: {
-			payslip_employment: { columns: { employee_number: true } }
+			payslip_employment: { columns: { id: true, employee_number: true } }
 		},
-		limit: 100
+		limit: 500
 	} as const;
 }
 

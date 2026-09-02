@@ -127,7 +127,7 @@
 								? String(employment.employee_number)
 								: '—',
 						orderBy: { employee_number: 'asc' },
-						limit: 1000
+						limit: 10_000
 					}}
 				/>
 			{:else}
