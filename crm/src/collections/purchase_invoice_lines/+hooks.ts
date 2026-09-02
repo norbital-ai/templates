@@ -240,7 +240,8 @@ export default {
 				for (const line of invoiced) {
 					invoicedByOrderLine.set(
 						line.purchase_order_line_id,
-						(invoicedByOrderLine.get(line.purchase_order_line_id) ?? 0) + decodeNumber(line.quantity ?? 0)
+						(invoicedByOrderLine.get(line.purchase_order_line_id) ?? 0) +
+							decodeNumber(line.quantity ?? 0)
 					);
 				}
 				return {

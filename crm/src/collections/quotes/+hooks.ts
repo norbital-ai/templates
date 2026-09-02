@@ -127,7 +127,8 @@ const beforeUpdate = ({ input, existing, api }: EditContext) =>
 				account.credit_hold === true ||
 				(account.credit_limit != null &&
 					account.credit_used != null &&
-					decodeNumber(account.credit_used) + decodeNumber(existing.gross ?? 0) > decodeNumber(account.credit_limit));
+					decodeNumber(account.credit_used) + decodeNumber(existing.gross ?? 0) >
+						decodeNumber(account.credit_limit));
 			const acknowledged =
 				input.credit_acknowledged === true || existing.credit_acknowledged === true;
 			if (creditAdverse && !acknowledged) {
