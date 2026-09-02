@@ -44,9 +44,11 @@
 		daysBetweenKeys,
 		inForceTodayFilter,
 		monthKey,
+		monthWorkDateInstantBounds,
 		payDateFor,
 		shiftMonthKey,
-		todayKey
+		todayKey,
+		workDateCalendarKey
 	} from '../lib/ui/calendar.js';
 	import { inForceOnDay } from '../lib/effective_range.js';
 	import { getErrorMessage } from '@norbital-ai/std';
@@ -324,6 +326,7 @@
 			new Date(Date.parse(`${shiftMonthKey(scheduleMonth, 1)}-01T00:00:00.000Z`) - 86_400_000)
 		)
 	);
+	const scheduleWorkDateBounds = $derived(monthWorkDateInstantBounds(scheduleMonth));
 
 	function stepScheduleMonth(delta: number): void {
 		scheduleMonth = shiftMonthKey(scheduleMonth, delta);
@@ -354,7 +357,7 @@
 			: client.db.work_days.findMany({
 					where: {
 						employment_id: { eq: employmentId },
-						work_date: { gte: scheduleMonthStart, lte: scheduleMonthEnd }
+						work_date: { gte: scheduleWorkDateBounds.start, lte: scheduleWorkDateBounds.end }
 					},
 					limit: 200
 				})
@@ -461,7 +464,7 @@
 		new Set(
 			scheduleWorkDays
 				.filter((row) => row.approval_id != null)
-				.map((row) => formatDateISO(row.work_date))
+				.map((row) => workDateCalendarKey(row.work_date))
 		)
 	);
 
@@ -742,7 +745,9 @@
 	/** The record axis of the lock rail: one `SourceLock` per date that carries an entry at all. */
 	const scheduleEntryLocks = $derived(
 		new Map(
-			scheduleWorkDays.map((row) => [formatDateISO(row.work_date), attendanceRowLock(row)] as const)
+			scheduleWorkDays.map(
+				(row) => [workDateCalendarKey(row.work_date), attendanceRowLock(row)] as const
+			)
 		)
 	);
 
@@ -757,7 +762,7 @@
 	const schedulePunchWindows = $derived.by(() => {
 		const windows = new Map<string, { first: string | null; last: string | null }>();
 		for (const row of scheduleWorkDays) {
-			const date = formatDateISO(row.work_date);
+			const date = workDateCalendarKey(row.work_date);
 			const intervals = row.worked_intervals ?? [];
 			const first = attendanceBoundary(intervals, 'FIRST');
 			const last = attendanceBoundary(intervals, 'LAST');
@@ -881,7 +886,8 @@
 	const daySheetEntry = $derived(
 		daySheetDate == null
 			? null
-			: (scheduleFactWorkDays.find((row) => formatDateISO(row.work_date) === daySheetDate) ?? null)
+			: (scheduleFactWorkDays.find((row) => workDateCalendarKey(row.work_date) === daySheetDate) ??
+					null)
 	);
 	const daySheetIntervals = $derived<readonly IntervalDraft[]>(
 		intervalDrafts(daySheetEntry?.worked_intervals)

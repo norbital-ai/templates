@@ -30,6 +30,7 @@
 	} from '../../collections/work_days/lib/import-workbook.js';
 	import {
 		monthKey,
+		monthWorkDateInstantBounds,
 		shiftDayKey,
 		shiftMonthKey,
 		todayKey,
@@ -46,6 +47,7 @@
 		employmentMonthEmptyReason,
 		employmentOverlapsMonth,
 		holidayNamesByDate,
+		indexWorkDaysByPersonDay,
 		lockRung,
 		lockRungFreezes,
 		intervalDrafts,
@@ -60,10 +62,15 @@
 	} from '../../lib/ui/roster/roster-month.js';
 	import { patternRosterCodeId } from '../../lib/scheduling/work-pattern.js';
 	import { rosterCodeKind, workWindow } from '../../lib/scheduling/roster-code.js';
-	import { buildPersonDayMutation } from '../../lib/ui/roster/controller-attendance-state.js';
+	import {
+		buildPersonDayMutation,
+		resolvePersonDayWriteId
+	} from '../../lib/ui/roster/controller-attendance-state.js';
 	import { unresolvedClockOutEmploymentIds as openClockOutEmploymentIds } from '../../lib/ui/roster/roster-month-board-filter.js';
 	import {
+		MONTH_BOARD_FILTERED_WORK_DAY_COLUMNS,
 		MONTH_BOARD_QUERY_LIMITS,
+		MONTH_BOARD_WORK_DAY_COLUMNS,
 		monthBoardQueryReceipt
 	} from '../../lib/ui/roster/month-board-query.js';
 	import {
@@ -164,6 +171,8 @@
 	const monthEnd = $derived(
 		formatDateISO(new Date(Date.parse(`${shiftMonthKey(month, 1)}-01T00:00:00.000Z`) - 86_400_000))
 	);
+	/** Day-precision instants: a calendar `gte` on UTC midnight misses the first local work date. */
+	const monthWorkDateBounds = $derived(monthWorkDateInstantBounds(month));
 	const monthDateKeys = $derived(monthDays(month));
 
 	/**
@@ -176,7 +185,13 @@
 		if (selectedCompanyId == null) return null;
 		return client.db.payroll_runs.findMany({
 			where: { ...approved, company_id: { eq: selectedCompanyId } },
-			columns: { period: true, lifecycle: true, attendance_from: true, attendance_to: true },
+			columns: {
+				id: true,
+				period: true,
+				lifecycle: true,
+				attendance_from: true,
+				attendance_to: true
+			},
 			limit: MONTH_BOARD_QUERY_LIMITS.payrollRuns
 		});
 	});
@@ -232,6 +247,7 @@
 			? null
 			: client.db.employees.findMany({
 					where: { ...approved, id: { in: monthEmployeeIds } },
+					columns: { id: true, name: true },
 					limit: MONTH_BOARD_QUERY_LIMITS.employees
 				})
 	);
@@ -262,7 +278,7 @@
 		if (!employmentsReady || monthEmploymentIds.length === 0) return null;
 		return client.db.employment_terms.findMany({
 			where: { ...approved, employment_id: { in: monthEmploymentIds } },
-			columns: { employment_id: true, work_pattern: true, effective_range: true },
+			columns: { id: true, employment_id: true, work_pattern: true, effective_range: true },
 			limit: MONTH_BOARD_QUERY_LIMITS.employmentTerms
 		});
 	});
@@ -327,36 +343,21 @@
 		return client.db.work_days.findMany({
 			where: {
 				...approved,
-				work_date: { gte: monthStart, lte: monthEnd },
+				work_date: { gte: monthWorkDateBounds.start, lte: monthWorkDateBounds.end },
 				employment_id: { in: monthEmploymentIds }
 			},
-			// `id` and `break_minutes` are needed by the same surface: the day sheet updates *this*
-			// row rather than creating a second one for the day, and it cannot assess the unpaid
-			// break without knowing what it is.
-			columns: {
-				id: true,
-				employment_id: true,
-				work_date: true,
-				shift_definition_id: true,
-				roster_id: true,
-				assignment_code: true,
-				planned_origin: true,
-				planned_note: true,
-				worked_intervals: true,
-				break_minutes: true
-			},
+			// `id`, `row_version`, and `break_minutes` are needed by the same surface: the day
+			// sheet updates *this* row (mutate needs the whole-row base version in client
+			// state), and it cannot assess the unpaid break without knowing what it is.
+			columns: MONTH_BOARD_WORK_DAY_COLUMNS,
 			limit: MONTH_BOARD_QUERY_LIMITS.workDays
 		});
 	});
 	const workDays = $derived(workDaysQuery?.current ?? []);
 	const workDayIndexes = $derived.by(() => {
 		const ids: string[] = [];
-		const byPersonDay = new Map<string, (typeof workDays)[number]>();
-		for (const day of workDays) {
-			ids.push(day.id);
-			byPersonDay.set(personDayKey(day.employment_id, formatDateISO(day.work_date)), day);
-		}
-		return { ids, byPersonDay };
+		for (const day of workDays) ids.push(day.id);
+		return { ids, byPersonDay: indexWorkDaysByPersonDay(workDays) };
 	});
 	const workDayIds = $derived(workDayIndexes.ids);
 	const workDayByKey = $derived(workDayIndexes.byPersonDay);
@@ -375,16 +376,10 @@
 		return client.db.work_days.findMany(
 			{
 				where: {
-					work_date: { gte: monthStart, lte: monthEnd },
+					work_date: { gte: monthWorkDateBounds.start, lte: monthWorkDateBounds.end },
 					employment_id: { in: monthEmploymentIds }
 				},
-				columns: {
-					id: true,
-					employment_id: true,
-					work_date: true,
-					shift_definition_id: true,
-					assignment_code: true
-				},
+				columns: MONTH_BOARD_FILTERED_WORK_DAY_COLUMNS,
 				limit: MONTH_BOARD_QUERY_LIMITS.filteredWorkDays
 			},
 			boardQuery.queryOptions
@@ -409,6 +404,7 @@
 				to_date: { gte: monthStart }
 			},
 			columns: {
+				id: true,
 				approval_id: true,
 				employment_id: true,
 				leave_type_id: true,
@@ -455,7 +451,7 @@
 		if (selectedCompanyId == null || workDayIds.length === 0) return null;
 		return client.db.payslip_work_day_inputs.findMany({
 			where: { ...approved, work_day_id: { in: workDayIds } },
-			columns: { work_day_id: true, period: true },
+			columns: { id: true, work_day_id: true, period: true },
 			limit: MONTH_BOARD_QUERY_LIMITS.settlementClaims
 		});
 	});
@@ -476,7 +472,7 @@
 				company_id: { eq: selectedCompanyId },
 				date: { gte: monthStart, lte: monthEnd }
 			},
-			columns: { date: true, name: true },
+			columns: { id: true, date: true, name: true },
 			limit: MONTH_BOARD_QUERY_LIMITS.holidays
 		});
 	});
@@ -510,16 +506,16 @@
 		)
 	);
 	/**
-	 * The board is loading until every active read has settled. Optional sources remain `null` until
-	 * their input set exists, but once issued, names, schedules, leave labels, locks and schema-filter
-	 * membership all settle before the board claims the selected month is ready.
+	 * The matrix paints when its identity is known: employments and the month's person-days.
+	 * Overlay reads (names, leave, holidays, locks) fill in without holding every cell as a
+	 * skeleton — a flapping name query used to hide 2,000 openable days behind 16 grey rows.
 	 */
-	const loading = $derived(
-		boardErrors.length === 0 &&
-			(selectedCompanyId == null ||
-				!employmentsReady ||
-				boardSources.some((source) => source.query != null && source.query.current === undefined))
+	const matrixReady = $derived(
+		employmentsReady &&
+			(monthEmploymentIds.length === 0 ||
+				(workDaysQuery != null && workDaysQuery.current !== undefined))
 	);
+	const loading = $derived(boardErrors.length === 0 && (selectedCompanyId == null || !matrixReady));
 
 	/** Overlaid onto the board from the company calendar; never a mark stored on a roster entry. */
 	const companyHolidays = $derived(holidaysQuery?.current ?? []);
@@ -1024,7 +1020,7 @@
 		}
 		const existing = workDayByKey.get(personDayKey(change.employmentId, change.date));
 		const mutation = buildPersonDayMutation({
-			id: existing?.id ?? change.attendance?.workDayId ?? null,
+			id: resolvePersonDayWriteId(existing?.id, change.attendance?.workDayId),
 			employmentId: change.employmentId,
 			date: change.date,
 			plan:

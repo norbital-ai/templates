@@ -62,8 +62,8 @@
 					columns: { id: true },
 					with: {
 						payslip_employment: {
-							columns: { employee_number: true },
-							with: { employment_employee: { columns: { name: true } } }
+							columns: { id: true, employee_number: true },
+							with: { employment_employee: { columns: { id: true, name: true } } }
 						}
 					}
 				})
@@ -83,6 +83,11 @@
 	 * screen prints what the row already says and resolves nothing. The catalogue link a screen
 	 * needs is not there by design — a settled payslip does not become wrong when a component is
 	 * archived.
+	 *
+	 * Each list is keyed by that name plus its index. The engine can write two base lines under one
+	 * catalogue code (derived arrears plus a keyed entry) and two proration segments that share
+	 * `term_key` and `from`. Keying on the name alone throws `each_key_duplicate` and leaves the
+	 * detail pane on "Loading record…".
 	 */
 	const base = $derived(record?.base ?? []);
 	const proration = $derived(record?.proration ?? []);
@@ -152,7 +157,7 @@
 				<p class="text-sm text-muted-foreground">{t('component.payslip_base_none')}</p>
 			{:else}
 				<Stack as="ul" gap="none" class="text-sm tabular-nums">
-					{#each base as entry (entry.component_code)}
+					{#each base as entry, index (`${entry.component_code}:${index}`)}
 						<Inline as="li" justify="between" gap="sm" class="border-t border-border py-1">
 							<span class="truncate">{entry.component_code}</span>
 							<span class="font-medium">{formatNumeric(entry.amount)}</span>
@@ -190,7 +195,7 @@
 							</tr>
 						</thead>
 						<tbody>
-							{#each proration as segment (`${segment.term_key}:${segment.from}`)}
+							{#each proration as segment, index (`${segment.term_key}:${segment.from}:${index}`)}
 								<tr class="border-t border-border">
 									<td class="py-1 pr-3 whitespace-nowrap"
 										>{formatCalendarDate(segment.from)} → {formatCalendarDate(segment.to)}</td
@@ -237,7 +242,7 @@
 							</tr>
 						</thead>
 						<tbody>
-							{#each statutory as charge (charge.scheme_code)}
+							{#each statutory as charge, index (`${charge.scheme_code}:${index}`)}
 								<tr class="border-t border-border">
 									<td class="py-1 pr-3">
 										{charge.scheme_code}{charge.authority ? ` · ${charge.authority}` : ''}
@@ -277,6 +282,7 @@
 						where: { payslip_id: { eq: record.id } },
 						orderBy: { sequence: 'asc' },
 						columns: {
+							id: true,
 							sequence: true,
 							label: true,
 							bucket: true,

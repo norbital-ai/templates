@@ -63,7 +63,7 @@
 						leave_request_employment: { some: { company_id: { eq: selectedCompanyId } } }
 					},
 					columns: { id: true },
-					limit: 1000
+					limit: 10_000
 				})
 	);
 	const leaveSettlementsQuery = $derived(
@@ -81,8 +81,11 @@
 	);
 
 	type LeaveRequestRow = WorkspaceRow<'leave_requests'> & {
-		readonly leave_request_type?: Pick<WorkspaceRow<'leave_types'>, 'code' | 'name'> | null;
-		readonly leave_request_employment?: Pick<WorkspaceRow<'employments'>, 'employee_number'> | null;
+		readonly leave_request_type?: Pick<WorkspaceRow<'leave_types'>, 'id' | 'code' | 'name'> | null;
+		readonly leave_request_employment?: Pick<
+			WorkspaceRow<'employments'>,
+			'id' | 'employee_number'
+		> | null;
 	};
 
 	/**
@@ -202,8 +205,8 @@
 					},
 					orderBy: { from_date: 'desc' },
 					with: {
-						leave_request_type: { columns: { code: true, name: true } },
-						leave_request_employment: { columns: { employee_number: true } }
+						leave_request_type: { columns: { id: true, code: true, name: true } },
+						leave_request_employment: { columns: { id: true, employee_number: true } }
 					}
 				}}
 			>

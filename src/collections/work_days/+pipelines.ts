@@ -316,6 +316,14 @@ function importRosterMonth(payload: RosterImport, api: Api) {
 			);
 		}
 
+		const runs = yield* api.db.payroll_runs.findMany({
+			where: { company_id: { eq: roster.company_id } },
+			columns: { period: true, lifecycle: true, attendance_from: true, attendance_to: true },
+			limit: QUERY_LIMIT
+		});
+		const windows = payrollWindows(runs);
+		for (const row of assignments) assertNotSettled(windows, row.work_date, 'Importing roster');
+
 		// Every column the sheet is read for is written. `planned_origin` is `IMPORT` because that is
 		// what these rows are — the board writes `MANUAL`, and leaving provenance unset would have
 		// made a whole imported month indistinguishable from an operator's ad hoc edits. The note is

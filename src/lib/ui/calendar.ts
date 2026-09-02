@@ -260,3 +260,33 @@ export function periodWindow(count: number, ahead: number): string[] {
 export function todayInstant(): string {
 	return startOfDayInstant(todayKey(), PAYROLL_TIME_ZONE);
 }
+
+/**
+ * Calendar `YYYY-MM-DD` for a stored person-day `work_date`.
+ *
+ * The column is `instant({ precision: 'day' })`. Live rows arrive as the instant that day begins in
+ * the payroll zone (`2026-02-01` → `2026-01-31T16:00:00.000Z` in Asia/Kuala_Lumpur), not as a
+ * calendar string. `formatDateISO` takes the UTC day of that instant, which is the previous
+ * calendar day for the whole morning in MY/SG — so a board cell on 1 Feb cannot find the row and
+ * Save inserts a second person-day against `unique(employment_id, work_date)`.
+ */
+export function workDateCalendarKey(value: string | Date): string {
+	if (typeof value === 'string' && isCalendarDate(value)) return value;
+	const instant = typeof value === 'string' ? new Date(value) : value;
+	if (Number.isNaN(instant.getTime())) {
+		throw new Error(`"${String(value)}" is not a work date.`);
+	}
+	return calendarDateInTimeZone(instant, PAYROLL_TIME_ZONE);
+}
+
+/** Inclusive start-of-day instants for a `YYYY-MM` work-date query in the payroll zone. */
+export function monthWorkDateInstantBounds(month: string): {
+	readonly start: string;
+	readonly end: string;
+} {
+	const lastDay = String(daysInMonth(month)).padStart(2, '0');
+	return {
+		start: startOfDayInstant(`${month}-01`, PAYROLL_TIME_ZONE),
+		end: startOfDayInstant(`${month}-${lastDay}`, PAYROLL_TIME_ZONE)
+	};
+}

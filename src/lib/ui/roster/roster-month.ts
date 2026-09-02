@@ -24,7 +24,7 @@
  */
 
 import { Schema } from 'effect';
-import { daysInMonth, startOfDayInstant } from '../calendar.js';
+import { daysInMonth, startOfDayInstant, workDateCalendarKey } from '../calendar.js';
 import { formatDateISO } from '@norbital-ai/std/date';
 import { decodeNumber } from '@norbital-ai/std/json';
 
@@ -55,6 +55,22 @@ export type Translator = I18nApi<TenantI18nKeys>['t'];
  */
 export function personDayKey(employmentId: string, date: string): string {
 	return `${employmentId}:${date}`;
+}
+
+/**
+ * Index stored person-days by employment + payroll calendar day.
+ *
+ * `work_date` is a day-precision instant. Keying it with `formatDateISO` (UTC day) misses the
+ * board cell and makes Mark reviewed + Save insert a second row.
+ */
+export function indexWorkDaysByPersonDay<
+	T extends { readonly employment_id: string; readonly work_date: string | Date }
+>(days: readonly T[]): Map<string, T> {
+	const byPersonDay = new Map<string, T>();
+	for (const day of days) {
+		byPersonDay.set(personDayKey(day.employment_id, workDateCalendarKey(day.work_date)), day);
+	}
+	return byPersonDay;
 }
 
 const designationSchema = Schema.Literals(['WORK', 'REST', 'OFF']);
@@ -413,10 +429,7 @@ function buildDayIndexes(
 ): DayIndexes {
 	const holidayByDate = holidayNamesByDate(options.holidays);
 
-	const workDay = new Map<string, WorkDayLike>();
-	for (const day of options.workDays) {
-		workDay.set(personDayKey(day.employment_id, formatDateISO(day.work_date)), day);
-	}
+	const workDay = indexWorkDaysByPersonDay(options.workDays);
 
 	const leave = new Map<string, { code: string; halfDay: boolean }>();
 	for (const request of options.leaveRequests) {

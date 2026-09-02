@@ -24,8 +24,8 @@
 	const analyticsQuery = $derived(
 		client.db.leave_requests.findMany({
 			where: { ...companyScope, kind: { eq: 'TIME_OFF' } },
-			columns: { from_date: true },
-			limit: 1000
+			columns: { id: true, from_date: true },
+			limit: 10_000
 		})
 	);
 	const analytics = $derived.by(() => {

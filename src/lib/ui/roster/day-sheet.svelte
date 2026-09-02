@@ -196,7 +196,9 @@
 	import { cn } from '@norbital-ai/ui/utils';
 	import {
 		attendanceChanged,
+		daySheetAttendanceSaveAllowed,
 		daySheetSaveIntent,
+		daySheetSaveLabelKey,
 		type DaySheetSaveIntent
 	} from './controller-attendance-state.js';
 	import { PAYROLL_TIME_ZONE } from '../calendar.js';
@@ -432,9 +434,7 @@
 		!interactionLocked &&
 			(planTouched || attendanceTouched) &&
 			(!attendanceTouched ||
-				draftAttendance.intervals == null ||
-				draftAttendance.intervals.length === 0 ||
-				(!missingIntervalStart && assessment.problem == null)) &&
+				daySheetAttendanceSaveAllowed(draftAttendance, missingIntervalStart, assessment.problem)) &&
 			overlapWarning == null
 	);
 
@@ -1002,15 +1002,7 @@
 				the half they are looking at is a punch.
 			-->
 			<Button disabled={!savable} onclick={() => void save()}>
-				{saving
-					? t('roster.day_sheet_saving')
-					: mode !== 'controller'
-						? t('roster.save_punch')
-						: saveIntent === 'changes'
-							? t('roster.save_changes')
-							: saveIntent === 'attendance'
-								? t('roster.save_attendance')
-								: t('roster.save_assignment')}
+				{saving ? t('roster.day_sheet_saving') : t(daySheetSaveLabelKey(mode, saveIntent))}
 			</Button>
 		</Sheet.Footer>
 	</Sheet.Content>

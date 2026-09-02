@@ -76,7 +76,7 @@
 					</tr>
 				</thead>
 				<tbody>
-					{#each charges as charge (charge.scheme_code)}
+					{#each charges as charge, index (`${charge.scheme_code}:${index}`)}
 						<tr class="border-t border-border">
 							<td class="py-1 pr-3">{charge.band_key ?? '—'}</td>
 							<td class="py-1 pr-3 text-right">{formatNumeric(charge.base_amount)}</td>

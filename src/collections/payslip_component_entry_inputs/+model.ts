@@ -25,11 +25,9 @@ export default defineModel(
 			'Engine-owned capture of one component entry a payslip consumed. No user policy grants writes on this collection; the payroll engine writes it as part of the run that consumed the entry.',
 		icon: 'lucide:link',
 		indexes: [
-			{ columns: ['payslip_id', 'component_entry_id'], unique: true },
-			// A source is consumed by at most one payslip, ever. The composite above only stops the
-			// same source appearing twice on the SAME payslip; nothing stopped a second payslip
-			// claiming it, so "paid once" rested on engine behaviour rather than on the database.
-			{ columns: ['component_entry_id'], unique: true }
+			// Composite only. A standing allowance is captured once per period it covers; a one-off
+			// is single-use by the gather step's named refusal, not by a global unique on the source.
+			{ columns: ['payslip_id', 'component_entry_id'], unique: true }
 		]
 	}
 );

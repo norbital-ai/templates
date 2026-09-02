@@ -1,0 +1,1 @@
+DROP INDEX "payslip_component_entry_inputs_component_entry_id_index";
