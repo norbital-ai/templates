@@ -63,8 +63,16 @@ const jobSiteDecisionSchema = Schema.Struct({
 		Schema.check(Schema.isPattern(/^\s*\S[\s\S]*$/)),
 		Schema.check(Schema.isMaxLength(MAX_INFERENCE_REASON_CHARS))
 	),
-	evidence_asset_name: Schema.NullOr(
-		Schema.String.pipe(Schema.check(Schema.isMaxLength(MAX_INFERENCE_ASSET_NAME_CHARS)))
+	/**
+	 * The empty string means "no decisive photo", where `Schema.NullOr` would read better.
+	 *
+	 * Structured output has no way to say nullable without a union: `NullOr` compiles to
+	 * `anyOf: [string, null]`, and the provider refuses the whole request with `Root JSON Schema
+	 * must have type "object" and must not use "anyOf"`. That refusal is not partial — it failed
+	 * every inference this automation ever attempted, so no suspicion review has run.
+	 */
+	evidence_asset_name: Schema.String.pipe(
+		Schema.check(Schema.isMaxLength(MAX_INFERENCE_ASSET_NAME_CHARS))
 	)
 });
 
@@ -293,7 +301,8 @@ export function validDecisionEvidenceId(
 	decision: JobSiteDecision,
 	photos: SuspicionReviewFacts['photos']
 ): string | null {
-	if (decision.evidence_asset_name == null) return null;
+	// Empty means the model named no decisive photo; see `evidence_asset_name` on the schema.
+	if (decision.evidence_asset_name.length === 0) return null;
 	return (
 		photos.find(
 			(photo) => inferenceAssetName(photo.photo.file_name) === decision.evidence_asset_name
@@ -813,7 +822,7 @@ export function suspicionPrompt(
 		'For every other fact, return suspicious only when your contextual judgement finds a concrete, articulable reason to question this assignment.',
 		'Likewise, an assignment location mismatch is evidence for judgement, never an automatic verdict.',
 		`If job_site_review.suspicious is true, give a concise reason of at most ${MAX_INFERENCE_REASON_CHARS} characters that a controller can investigate. Set evidence_asset_name to the exact asset_name of one decisive attached job-site photo and reference only exact asset names from the supplied dataset in the reason.`,
-		`If job_site_review.suspicious is false, set evidence_asset_name to null and explain in at most ${MAX_INFERENCE_REASON_CHARS} characters why the evidence does not justify a log.`,
+		`If job_site_review.suspicious is false, set evidence_asset_name to an empty string and explain in at most ${MAX_INFERENCE_REASON_CHARS} characters why the evidence does not justify a log.`,
 		'TASK 2 — similar_photo_reviews. The similar_photos_flagged list contains retrieval nominations from other assignments. Retrieval distance is not evidence. Compare each visually_attached pair only with its named job_site_asset_name; do not compare it to another job-site photo and do not use it in TASK 1.',
 		'Return same_scene true only when multiple permanent visual landmarks share the same geometry: for example the same openings, vents, holes, stains, wall or ceiling edges, fixed fixtures and background structure in the same relative positions.',
 		'A crop, zoom, recompression, new overlay, different timestamp, different camera, or re-photograph of the same underlying scene is still same_scene true. Overlay text must neither establish nor rebut the match.',

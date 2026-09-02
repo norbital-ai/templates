@@ -126,7 +126,7 @@ function automationHarness(options: {
 				return {
 					job_site_review: {
 						...decision,
-						evidence_asset_name: decision.suspicious ? 'evidence.jpg' : null
+						evidence_asset_name: decision.suspicious ? 'evidence.jpg' : ''
 					},
 					similar_photo_reviews: []
 				};
@@ -582,7 +582,7 @@ test('bounds every free-form decision field in the provider and runtime schemas'
 			job_site_review: {
 				suspicious: true,
 				reason: 'x'.repeat(MAX_INFERENCE_REASON_CHARS + 1),
-				evidence_asset_name: null
+				evidence_asset_name: ''
 			},
 			similar_photo_reviews: []
 		})
@@ -592,7 +592,7 @@ test('bounds every free-form decision field in the provider and runtime schemas'
 			job_site_review: {
 				suspicious: true,
 				reason: 'Needs review',
-				evidence_asset_name: null
+				evidence_asset_name: ''
 			},
 			similar_photo_reviews: [
 				{
@@ -606,7 +606,7 @@ test('bounds every free-form decision field in the provider and runtime schemas'
 	);
 	assert.throws(() =>
 		decode({
-			job_site_review: { suspicious: false, reason: '   ', evidence_asset_name: null },
+			job_site_review: { suspicious: false, reason: '   ', evidence_asset_name: '' },
 			similar_photo_reviews: []
 		})
 	);
@@ -1281,7 +1281,7 @@ test('runs the job-site and similar-photo reviews in one named inference turn', 
 				job_site_review: {
 					suspicious: false,
 					reason: 'The job-site evidence is internally consistent.',
-					evidence_asset_name: null
+					evidence_asset_name: ''
 				},
 				similar_photo_reviews: [
 					{
@@ -1324,7 +1324,7 @@ test('runs the job-site and similar-photo reviews in one named inference turn', 
 				job_site_review: {
 					suspicious: false,
 					reason: 'The job-site evidence is internally consistent.',
-					evidence_asset_name: null
+					evidence_asset_name: ''
 				},
 				similar_photo_reviews: []
 			})
@@ -1671,5 +1671,23 @@ test('keeps captured contractor communications immutable', () => {
 	assert.throws(
 		() => assertCommunicationUnchanged({ message: 'Edited transcript' }, existing),
 		/immutable/
+	);
+});
+
+test('the inference schema is one the structured-output provider will accept', () => {
+	// The provider refuses a request whose schema uses `anyOf` anywhere, or whose root is not an
+	// object: `OpenAiStructuredOutput: Root JSON Schema must have type "object" and must not use
+	// "anyOf"`. That refusal is total rather than partial — it failed every inference this
+	// automation ever attempted, and a suspicion review that never ran looks from the outside like
+	// a review that found nothing.
+	//
+	// A single `Schema.NullOr` is enough to reintroduce it, which is why this asserts the compiled
+	// document rather than the shape of any one field.
+	const document = JSON.stringify(Schema.toJsonSchemaDocument(suspicionInferenceSchema));
+	assert.equal(document.includes('anyOf'), false, 'inference schema must not compile to anyOf');
+	assert.equal(
+		Schema.toJsonSchemaDocument(suspicionInferenceSchema).schema.type,
+		'object',
+		'inference schema root must be an object'
 	);
 });
