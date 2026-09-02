@@ -1451,7 +1451,7 @@
 				where: {
 					employment_id: employmentId ? { eq: employmentId } : undefined
 				},
-				orderBy: { effective_range: 'desc' }
+				orderBy: { effective_from: 'desc' }
 			}}
 		>
 			{#snippet columns({ Column })}

@@ -302,7 +302,7 @@
 								}
 							}
 						},
-						orderBy: { effective_range: 'desc' },
+						orderBy: { effective_from: 'desc' },
 						with: {
 							loan_employment: { columns: { employee_number: true } },
 							loan_pay_component: { columns: { code: true } }

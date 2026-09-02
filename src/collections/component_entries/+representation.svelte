@@ -173,9 +173,7 @@
 						{t('component.event_kind')}
 					</h3>
 					<p class="text-meta">{t('component.event_description')}</p>
-					<Column span="all">
-						<Field name="event" />
-					</Column>
+					<Field name="event" />
 				</Stack>
 			</Stack>
 		{/snippet}
