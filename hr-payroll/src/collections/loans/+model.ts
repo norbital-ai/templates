@@ -1,4 +1,12 @@
-import { custom, defineModel, numeric, text, uuid } from '@norbital-ai/bolt/authoring';
+import {
+	custom,
+	defineModel,
+	instant,
+	numeric,
+	sql,
+	text,
+	uuid
+} from '@norbital-ai/bolt/authoring';
 
 /**
  * The agreement. A staff loan, a salary advance, an overpayment to be recovered.
@@ -22,6 +30,18 @@ export default defineModel(
 		principal: numeric().notNull(),
 		/** The window the agreement is live across; its last repayment must fall inside it. */
 		effective_range: custom('instant_range', { precision: 'day' }).notNull(),
+		/**
+		 * The agreement's start as a scalar instant, generated from the range.
+		 *
+		 * A live query is keyed by its ordering values, and a range is not a scalar: ordering the loan
+		 * tables by `effective_range` passed planning and then failed every row, and the page sat on
+		 * "Reconnecting to live updates". The tables order by this column instead; `bolt_instant`
+		 * anchors the canonical day at UTC midnight through the immutable function the platform installs
+		 * before migrations run, as `leave_requests.from_date` already does.
+		 */
+		effective_from: instant({ precision: 'day' }).generatedAlwaysAs(
+			sql`bolt_instant(effective_range ->> 'start')`
+		),
 		/** The customer's own name for the loan — a reference, a batch number. */
 		reference: text({ search: true }),
 		/** Why the loan exists. */
