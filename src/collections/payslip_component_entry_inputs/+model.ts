@@ -26,7 +26,10 @@ export default defineModel(
 		icon: 'lucide:link',
 		indexes: [
 			{ columns: ['payslip_id', 'component_entry_id'], unique: true },
-			{ columns: ['component_entry_id'] }
+			// A source is consumed by at most one payslip, ever. The composite above only stops the
+			// same source appearing twice on the SAME payslip; nothing stopped a second payslip
+			// claiming it, so "paid once" rested on engine behaviour rather than on the database.
+			{ columns: ['component_entry_id'], unique: true }
 		]
 	}
 );
