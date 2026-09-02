@@ -45,5 +45,7 @@ export function rollupDocument(source: RollupDocumentSource): Effect.Effect<void
 export function sumQuantity(
 	lines: Effect.Effect<readonly { readonly quantity?: number | null }[]>
 ): Effect.Effect<number> {
-	return Effect.map(lines, (rows) => rows.reduce((sum, row) => sum + decodeNumber(row.quantity ?? 0), 0));
+	return Effect.map(lines, (rows) =>
+		rows.reduce((sum, row) => sum + decodeNumber(row.quantity ?? 0), 0)
+	);
 }
