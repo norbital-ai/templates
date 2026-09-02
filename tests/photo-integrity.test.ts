@@ -8,8 +8,8 @@ import {
 	decodePhotoInspection,
 	evaluateCaptureGeolocation,
 	inspectPhoto
-} from './photo-integrity.js';
-import { parse as parseExif } from '../../lib/exif-parser.mjs';
+} from '../src/collections/photo_evidence/photo-integrity.js';
+import { parse as parseExif } from '../src/lib/exif-parser.mjs';
 
 /** A `file()` value, which is what `photo` holds — the whole file, not a pointer to one. */
 const photoFile = (name: string) => ({

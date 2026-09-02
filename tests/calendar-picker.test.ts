@@ -4,7 +4,7 @@ import { describe, it } from 'node:test';
 import {
 	calendarDayAsPickerInstant,
 	calendarDayFromPickerInstant
-} from '../../lib/calendar-date.js';
+} from '../src/lib/calendar-date.js';
 
 describe('dispatch calendar-day picker adapter', () => {
 	it('preserves the selected day across negative and positive UTC offsets', () => {

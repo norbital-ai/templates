@@ -5,7 +5,7 @@ import {
 	repeatedWithinBatch,
 	type AssignmentCreateBatchLookup,
 	type AssignmentCreateInput
-} from './+hooks.js';
+} from '../../src/collections/job_assignments/+hooks.js';
 
 const jobId = '10000000-0000-4000-8000-000000000001';
 const secondJobId = '10000000-0000-4000-8000-000000000002';

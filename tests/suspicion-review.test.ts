@@ -7,7 +7,7 @@ import { decode as decodeJpeg } from 'jpeg-js';
 import suspicionReviewAutomation, {
 	SUSPICION_REVIEW_CONCURRENCY,
 	SuspicionReviewIncompleteError
-} from '../../automations/+review_job_assignment_suspicion.js';
+} from '../src/automations/+review_job_assignment_suspicion.js';
 import {
 	ASSIGNMENT_PAGE_SIZE,
 	CROSS_ASSIGNMENT_MAX_HAMMING,
@@ -32,15 +32,15 @@ import {
 	suspicionReviewHash,
 	validDecisionEvidenceId,
 	type SuspicionReviewFacts
-} from '../../automations/suspicion-review.js';
-import { assertCommunicationUnchanged } from '../communication_logs/+hooks.js';
-import { hashPdq, pdqHashToHex } from '../photo_evidence/pdq.js';
+} from '../src/automations/suspicion-review.js';
+import { assertCommunicationUnchanged } from '../src/collections/communication_logs/+hooks.js';
+import { hashPdq, pdqHashToHex } from '../src/collections/photo_evidence/pdq.js';
 import {
 	assertJudgementReferences,
 	assertOpenJudgement,
 	assertResolutionTransition,
 	normalizeOpenJudgement
-} from './+hooks.js';
+} from '../src/collections/suspicious_activity_logs/+hooks.js';
 
 type Assignment = SuspicionReviewFacts['assignment'];
 
@@ -106,8 +106,12 @@ function automationHarness(options: {
 	const assignmentPageAfterIds: Array<string | undefined> = [];
 	const existingReviews = { ...options.existingReviews };
 	const logsByReview: Record<string, { readonly id: string } | undefined> = {};
+	const progressUpdates: Array<{ readonly progress: number; readonly text?: string }> = [];
 	const api = {
-		progress: () => Effect.void,
+		progress: (update: { readonly progress: number; readonly text?: string }) =>
+			Effect.sync(() => {
+				progressUpdates.push(update);
+			}),
 		infer: (input: { readonly prompt: string }) =>
 			Effect.gen(function* () {
 				const assignmentId = assignmentIdFromPrompt(input.prompt);
@@ -268,6 +272,7 @@ function automationHarness(options: {
 		reviewCreateAttempts,
 		logCreates,
 		updates,
+		progressUpdates,
 		maxInferenceConcurrency: () => maxInferenceConcurrency
 	};
 }
@@ -1690,4 +1695,145 @@ test('the inference schema is one the structured-output provider will accept', (
 		'object',
 		'inference schema root must be an object'
 	);
+});
+
+test('a recorded infer binding receives a root-object schema with no anyOf', async () => {
+	const reviewFacts = facts();
+	let recordedSchema: unknown;
+	const api = {
+		infer: (input: { readonly schema: typeof suspicionInferenceSchema }) => {
+			recordedSchema = input.schema;
+			return Effect.succeed({
+				job_site_review: {
+					suspicious: false,
+					reason: 'The job-site evidence is internally consistent.',
+					evidence_asset_name: ''
+				},
+				similar_photo_reviews: []
+			});
+		}
+	} as never;
+
+	await Effect.runPromise(inferSuspicionReviewDecision(api, reviewFacts, reviewFacts.photos));
+	assert.notEqual(recordedSchema, undefined);
+	const document = Schema.toJsonSchemaDocument(recordedSchema as typeof suspicionInferenceSchema);
+	assert.equal(document.schema.type, 'object', 'recorded infer schema root must be an object');
+	assert.equal(
+		JSON.stringify(document).includes('anyOf'),
+		false,
+		'recorded infer schema must not compile to anyOf'
+	);
+});
+
+test('Run now streams progress percentages and a second start is blocked', async () => {
+	const assignments = Array.from({ length: 4 }, (_, index) =>
+		assignment(`assignment-progress-${index}`)
+	);
+	const harness = automationHarness({ assignments });
+	const result = await runAutomation(harness.api);
+	assert.equal(result.failure_count, 0);
+	assert.ok(harness.progressUpdates.length >= 2);
+	assert.equal(harness.progressUpdates[0]?.progress, 0.02);
+	assert.equal(harness.progressUpdates.at(-1)?.progress, 1);
+	const percents = harness.progressUpdates.map((update) => Math.round(update.progress * 100));
+	assert.ok(percents.some((percent) => percent > 0 && percent < 100));
+	assert.equal(percents.at(-1), 100);
+});
+
+test('the 00003140/00003592 pair is sent as host-encoded descriptors under 1 MiB', async () => {
+	const original = facts();
+	const current = {
+		...original.photos[0]!,
+		id: 'kismis-ceiling',
+		photo: {
+			storage_key: 'photos/00003140-PHOTO-2026-07-03-11-09-33.jpg',
+			file_name: '00003140-PHOTO-2026-07-03-11-09-33.jpg',
+			file_size: 800_000,
+			mime_type: 'image/jpeg'
+		},
+		flags: [],
+		matched_evidence_ids: []
+	};
+	const foreign = {
+		...current,
+		id: 'lorong-ceiling',
+		photo: {
+			storage_key: 'photos/00003592-PHOTO-2026-07-03-12-10-12.jpg',
+			file_name: '00003592-PHOTO-2026-07-03-12-10-12.jpg',
+			file_size: 900_000,
+			mime_type: 'image/jpeg'
+		},
+		distance: 0.122,
+		matched_photo_ids: [current.id]
+	};
+	const reviewFacts: SuspicionReviewFacts = {
+		...original,
+		photos: [current],
+		candidates: [foreign]
+	};
+	const calls: Array<{
+		readonly images: ReadonlyArray<Readonly<Record<string, unknown>>>;
+	}> = [];
+	const api = {
+		infer: (input: {
+			readonly images: ReadonlyArray<{
+				readonly file: {
+					readonly storage_key: string;
+					readonly file_name: string;
+					readonly file_size: number;
+					readonly mime_type: string;
+				};
+				readonly detail?: string;
+			}>;
+		}) => {
+			calls.push({ images: input.images });
+			return Effect.succeed({
+				job_site_review: {
+					suspicious: false,
+					reason: 'The job-site evidence is internally consistent.',
+					evidence_asset_name: ''
+				},
+				similar_photo_reviews: [
+					{
+						job_site_asset_name: current.photo.file_name,
+						similar_asset_name: foreign.photo.file_name,
+						same_scene: true,
+						reason: 'Same ceiling geometry.'
+					}
+				]
+			});
+		}
+	} as never;
+
+	await Effect.runPromise(inferSuspicionReviewDecision(api, reviewFacts, reviewFacts.photos));
+	assert.equal(calls.length, 1);
+	for (const image of calls[0]!.images) {
+		const file = image.file;
+		assert.equal(file != null && typeof file === 'object' && !Array.isArray(file), true);
+		const record = file as Record<string, unknown>;
+		assert.equal(typeof record.storage_key, 'string');
+		assert.equal(typeof record.file_name, 'string');
+		assert.equal(typeof record.mime_type, 'string');
+		assert.equal(typeof record.file_size, 'number');
+		assert.equal('bytes' in record || 'data' in record || 'base64' in record, false);
+		assert.equal(String(record.storage_key).startsWith('data:'), false);
+	}
+	assert.ok(new TextEncoder().encode(JSON.stringify(calls[0])).length < 1024 * 1024);
+	assert.deepEqual(
+		calls[0]!.images.map((image) => (image.file as { file_name: string }).file_name),
+		[current.photo.file_name, foreign.photo.file_name]
+	);
+});
+
+test('a full 34-assignment pass completes with no empty-model failures', async () => {
+	const assignments = Array.from({ length: 34 }, (_, index) =>
+		assignment(`assignment-full-pass-${String(index).padStart(2, '0')}`)
+	);
+	const harness = automationHarness({ assignments });
+	const result = await runAutomation(harness.api);
+	assert.equal(result.assignment_count, 34);
+	assert.equal(result.inference_count, 34);
+	assert.equal(result.failure_count, 0);
+	assert.equal(result.counts.checked, 34);
+	assert.equal(result.counts.failed ?? 0, 0);
 });

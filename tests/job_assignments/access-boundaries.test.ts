@@ -1,10 +1,10 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import contractorPolicy from '../../access/policies/+field_ops_contractor.js';
-import controllerPolicy from '../../access/policies/+field_ops_controller.js';
-import suspicionAutomationPolicy from '../../access/policies/+suspicion_review_automation.js';
-import whatsappPolicy from '../../access/policies/+field_ops_whatsapp.js';
-import whatsappEnvoy from '../../envoys/+field_ops_whatsapp.js';
+import contractorPolicy from '../../src/access/policies/+field_ops_contractor.js';
+import controllerPolicy from '../../src/access/policies/+field_ops_controller.js';
+import suspicionAutomationPolicy from '../../src/access/policies/+suspicion_review_automation.js';
+import whatsappPolicy from '../../src/access/policies/+field_ops_whatsapp.js';
+import whatsappEnvoy from '../../src/envoys/+field_ops_whatsapp.js';
 
 type Grant = {
 	readonly fields?: readonly string[];

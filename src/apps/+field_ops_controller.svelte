@@ -13,6 +13,7 @@
 	import { StaticMap, type StaticMapMarker } from '@norbital-ai/ui/static-map';
 	import { Tabs, type TabConfig } from '@norbital-ai/ui/tabs';
 	import Icon from '@iconify/svelte';
+	import { toError } from '@norbital-ai/std';
 	import { Effect } from 'effect';
 	import {
 		calendarDateInTimeZone,
@@ -60,7 +61,9 @@
 				assignee_user_id: true,
 				status: true,
 				summary: true,
-				search_text: true
+				search_text: true,
+				// Live prefixes key by orderBy; omitting this is refused (learning 57).
+				dispatched_at: true
 			},
 			orderBy: { dispatched_at: 'asc' },
 			limit: 1000
@@ -79,6 +82,13 @@
 	const boardQuery = $derived({
 		where: {
 			job_assignment_job: { some: { scheduled_for: { eq: dispatchQueryInstant } } }
+		},
+		columns: {
+			id: true,
+			job_id: true,
+			assignee_user_id: true,
+			status: true,
+			dispatched_at: true
 		},
 		orderBy: { dispatched_at: 'asc' as const }
 	});
@@ -169,7 +179,33 @@
 		if (selectedDay !== null) setDispatchDay(selectedDay);
 	}
 
+	const suspicionReview = $derived(client.automations.review_job_assignment_suspicion);
+	const suspicionReviewPending = $derived(suspicionReview.pending);
+	const suspicionReviewSnapshot = $derived(suspicionReview.latest?.current);
+	const suspicionReviewActive = $derived(
+		suspicionReviewSnapshot?.status === 'pending' || suspicionReviewSnapshot?.status === 'running'
+	);
+	const suspicionReviewRunning = $derived(
+		suspicionReviewPending !== 0 ||
+			(suspicionReviewActive &&
+				suspicionReview.latest?.id != null &&
+				suspicionReview.latest.id !== '')
+	);
+	const suspicionReviewPercent = $derived(
+		suspicionReviewSnapshot?.progress == null
+			? null
+			: Math.round(suspicionReviewSnapshot.progress.progress * 100)
+	);
+
+	function runSuspicionReviewNow(): void {
+		if (suspicionReviewRunning) return;
+		void suspicionReview.run({});
+	}
+
 	function assignmentStatusLabel(status: string): string {
+		if (status !== 'unassigned' && status !== 'assigned' && status !== 'completed') {
+			return status.replaceAll('_', ' ');
+		}
 		switch (status) {
 			case 'unassigned':
 				return t('component.status_unassigned');
@@ -177,8 +213,10 @@
 				return t('component.status_assigned');
 			case 'completed':
 				return t('component.status_completed');
-			default:
-				return status.replaceAll('_', ' ');
+			default: {
+				const _exhaustive: never = status;
+				return _exhaustive;
+			}
 		}
 	}
 
@@ -197,13 +235,13 @@
 							assignee_user_id: assigneeUserId,
 							status: 'assigned'
 						}),
-					catch: (cause) => cause
+					catch: (cause) => toError(cause)
 				});
 				// A dispatch is a scarce-resource allocation. Local durability is deliberately not enough to
 				// dismiss its sheet: keep it visibly pending until policy and invariants settle on the server.
 				const settlement = yield* Effect.tryPromise({
 					try: () => local.settlement.wait(),
-					catch: (cause) => cause
+					catch: (cause) => toError(cause)
 				});
 				if (settlement.kind !== 'accepted' && settlement.kind !== 'rebased') {
 					assignmentSettlementError =
@@ -358,10 +396,31 @@
 				{t('app.field_ops_controller.today')}
 			</Button>
 		</Inline>
-		<Button variant="secondary" size="sm" onclick={() => (assignContractorOpen = true)}>
-			<Icon icon="lucide:user-round-check" class="size-4 shrink-0" />
-			{t('app.field_ops_controller.assign_contractor')}
-		</Button>
+		<Inline align="center" gap="sm" class="shrink-0">
+			{#if suspicionReviewRunning && suspicionReviewPercent != null}
+				<span class="text-xs tabular-nums text-muted-foreground" role="status">
+					{t('app.field_ops_controller.suspicion_review_progress', {
+						percent: suspicionReviewPercent,
+						text: suspicionReviewSnapshot?.progress?.text ?? ''
+					})}
+				</span>
+			{/if}
+			<Button
+				variant="outline"
+				size="sm"
+				disabled={suspicionReviewRunning}
+				onclick={runSuspicionReviewNow}
+			>
+				<Icon icon="lucide:play" class="size-4 shrink-0" />
+				{suspicionReviewRunning
+					? t('app.field_ops_controller.suspicion_review_running')
+					: t('app.field_ops_controller.run_suspicion_review')}
+			</Button>
+			<Button variant="secondary" size="sm" onclick={() => (assignContractorOpen = true)}>
+				<Icon icon="lucide:user-round-check" class="size-4 shrink-0" />
+				{t('app.field_ops_controller.assign_contractor')}
+			</Button>
+		</Inline>
 	</Inline>
 {/snippet}
 
