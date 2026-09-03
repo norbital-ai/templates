@@ -8,7 +8,7 @@ import { client } from '../../lib/workspace-client.js';
 import type { WorkspaceRow } from '$bolt/types.js';
 import { todayInstant } from '../../lib/ui/calendar.js';
 
-export type CompanyScopeRow = WorkspaceRow<'companies'>;
+type CompanyScopeRow = WorkspaceRow<'companies'>;
 
 const companiesQuery = client.db.companies.findMany({
 	where: {

@@ -93,7 +93,7 @@ const dayStatusSchema = Schema.Literals([
 	'REST',
 	'OFF'
 ]);
-export type DayStatus = Schema.Schema.Type<typeof dayStatusSchema>;
+type DayStatus = Schema.Schema.Type<typeof dayStatusSchema>;
 
 /** A derived conflict between two writers of one day. */
 const conflictKindSchema = Schema.Literals(['PENDING_LEAVE_OVERLAP', 'LEAVE_AND_WORK']);

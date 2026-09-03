@@ -20,11 +20,6 @@ export const JURISDICTION_OPERATOR_VISIBLE_FIELDS = [
 	'statutory_leave'
 ] as const;
 
-export type JurisdictionOperatorHiddenField = (typeof JURISDICTION_OPERATOR_HIDDEN_FIELDS)[number];
-
-export type JurisdictionOperatorVisibleField =
-	(typeof JURISDICTION_OPERATOR_VISIBLE_FIELDS)[number];
-
 /** Hidden ∪ visible — the exact set the representation must register. */
 export const jurisdictionOperatorFieldNames = (): readonly string[] => [
 	...JURISDICTION_OPERATOR_HIDDEN_FIELDS,
