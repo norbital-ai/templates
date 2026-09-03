@@ -1,0 +1,10 @@
+[
+	{
+		"id": "PUB-PRD-0001",
+		"external_code": "PUB-PRD-0001",
+		"code": "PUB-WIDGET",
+		"name": "Public Fixture Widget",
+		"unit": "ea",
+		"active": true
+	}
+]
