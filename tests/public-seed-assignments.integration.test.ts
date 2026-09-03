@@ -92,7 +92,8 @@ test(
 			assert.equal(sites.length, 1, JSON.stringify(sites));
 			assert.equal(sites[0]?.site_code, DISTINCTIVE_SITE_TOKEN);
 			assert.equal(
-				typeof sites[0]?.name === 'string' && String(sites[0]?.name).includes(DISTINCTIVE_SITE_TOKEN),
+				typeof sites[0]?.name === 'string' &&
+					String(sites[0]?.name).includes(DISTINCTIVE_SITE_TOKEN),
 				true
 			);
 		} finally {

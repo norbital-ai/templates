@@ -241,6 +241,6 @@ pnpm lint    # prettier --check + svelte-check
 - Publishing and tenant lifecycle: publish through the templates release workflow. A remote Colony
   host provisions new tenants from the exact commit advertised by
   `refs/heads/templates/field-operations`; advancing that ref does not rewrite existing tenants.
-  From the Norbital checkout, `pnpm run env -- link` only tests local OSS packages inside the
+  From the realm root, `pnpm env -- link` only tests local OSS packages inside the
   template and does not link template source into Colony. The template detail page on the website
   is generated from this README and `norbital.template.json` — no separate copy.

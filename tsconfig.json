@@ -1,4 +1,7 @@
 {
 	"extends": "./.norbital/tsconfig.json",
-	"exclude": ["src/**/*.test.ts", "src/**/*.spec.ts", "node_modules", ".norbital/dist"]
+	"compilerOptions": {
+		"types": ["vite/client", "node"]
+	},
+	"exclude": ["src/**/*.test.ts", "src/**/*.spec.ts", "tests", "node_modules", ".norbital/dist"]
 }

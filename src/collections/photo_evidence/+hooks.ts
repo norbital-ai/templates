@@ -218,8 +218,8 @@ function preparePhoto(
 		);
 		const source = parsed.source ?? { kind: 'workspace_upload' as const };
 		return {
-			job_assignment_id: parsed.job_assignment_id,
-			variation_request_id: parsed.variation_request_id,
+			job_assignment_id: parsed.job_assignment_id ?? null,
+			variation_request_id: parsed.variation_request_id ?? null,
 			photo: parsed.photo,
 			source,
 			source_key: sourceKey(source, asset.id),

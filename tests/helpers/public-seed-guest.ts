@@ -16,7 +16,11 @@ const templateManifestPath = fileURLToPath(
 
 /** Variant nibble 8 so `collections.mutate` accepts the row as a client-minted UUIDv7. */
 export const PUBLIC_ASSIGNMENT_ID = '01990000-0000-7000-8005-000000000001';
+export const DISTINCTIVE_SITE_ID = '01990000-0000-7000-8003-000000000001';
 export const DISTINCTIVE_SITE_TOKEN = 'PUB-SITE-AMBER-QUAY';
+export const DISTINCTIVE_SITE_NAME = 'Amber Quay Public Yard (PUB-SITE-AMBER-QUAY)';
+/** Controller pick target. Mount day is wall-clock; this day is the S5/S2 contract. */
+export const S5_PICK_DAY = '2026-09-01';
 export const CONTRACTOR_TABLE_PAGE_SIZE = 25;
 
 export const bootPublicSeedGuest = async (options: {
@@ -27,7 +31,9 @@ export const bootPublicSeedGuest = async (options: {
 	readonly founderClaimId: string;
 	readonly secretsKey: string;
 	readonly invocationTimeoutMillis?: number;
+	readonly host?: string;
 	readonly ai?: WithSelfHostInput['ai'];
+	readonly files?: boolean;
 }) => {
 	const { bundlePath, schemaFingerprint } = requireReleaseBundle(artifactDirectory);
 	const session = await startSelfHostSession({
@@ -43,7 +49,9 @@ export const bootPublicSeedGuest = async (options: {
 		...(options.invocationTimeoutMillis !== undefined
 			? { invocationTimeoutMillis: options.invocationTimeoutMillis }
 			: {}),
+		...(options.host !== undefined ? { host: options.host } : {}),
 		...(options.ai !== undefined ? { ai: options.ai } : {}),
+		...(options.files === true ? { files: true } : {}),
 		seed: {
 			stages: manifestSeedStages(templateManifestPath),
 			rows: seedDirectory
@@ -54,8 +62,10 @@ export const bootPublicSeedGuest = async (options: {
 	}
 	return {
 		baseUrl: session.baseUrl,
+		address: session.address,
 		credential: session.credential,
 		schemaFingerprint,
+		files: session.files,
 		stop: session.stop
 	};
 };

@@ -94,7 +94,10 @@ test(
 				}),
 				'job_assignments lexical search'
 			);
-			assert.ok(searched.rows.length >= 1, `lexical search for ${DISTINCTIVE_SITE_TOKEN} returned 0 rows`);
+			assert.ok(
+				searched.rows.length >= 1,
+				`lexical search for ${DISTINCTIVE_SITE_TOKEN} returned 0 rows`
+			);
 			assert.ok(
 				searched.rows.some((row) => {
 					const searchText = typeof row.search_text === 'string' ? row.search_text : '';

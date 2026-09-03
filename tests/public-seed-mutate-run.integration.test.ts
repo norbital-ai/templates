@@ -108,14 +108,20 @@ test(
 			secretsKey: 'field-ops-public-seed-mutate-secrets-key',
 			invocationTimeoutMillis: 90_000,
 			ai: recordedAi(
-				Array.from({ length: PUBLIC_SEED_GENERATE_TRANSCRIPT_LENGTH }, () => recordedEmptyPhotoClear)
+				Array.from(
+					{ length: PUBLIC_SEED_GENERATE_TRANSCRIPT_LENGTH },
+					() => recordedEmptyPhotoClear
+				)
 			)
 		});
 		try {
 			const before = await loadPublicAssignment(guest.baseUrl, guest.credential);
 			assert.equal(before.status, 'assigned');
 			const rowVersion = Number(before.row_version);
-			assert.ok(Number.isFinite(rowVersion) && rowVersion > 0, `row_version: ${String(before.row_version)}`);
+			assert.ok(
+				Number.isFinite(rowVersion) && rowVersion > 0,
+				`row_version: ${String(before.row_version)}`
+			);
 
 			const mutated = await postGuestCommand(
 				guest.baseUrl,
@@ -157,7 +163,10 @@ test(
 			const after = await loadPublicAssignment(guest.baseUrl, guest.credential);
 			assert.equal(after.status, 'completed');
 			assert.equal(typeof after.completed_at, 'string');
-			assert.ok(String(after.completed_at).length > 0, 'completed_at must be stamped by the mutate hook');
+			assert.ok(
+				String(after.completed_at).length > 0,
+				'completed_at must be stamped by the mutate hook'
+			);
 
 			const started = await postGuestCommand(
 				guest.baseUrl,
