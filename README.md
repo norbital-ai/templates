@@ -209,7 +209,20 @@ the linked contractor supplies only `userId` for requestor predicates, never tea
 The transport retains its own conversation transcript, but the envoy has no authority to write a
 domain `communication_logs` row. The reply goes back over the same transport.
 
-## 5. Changing the template
+## 5. Verification
+
+Product B-row acceptance is the isolated public-seed suite: `tests/fixtures/seed/` loaded through
+`@norbital-ai/test-utilities`. No Colony, no `seed_bank`, no `:5173`. See
+[`RFC/testing.md`](../../RFC/testing.md) I4–I5.
+
+```bash
+node --experimental-strip-types --import ./scripts/ts-source-resolve.mjs --test \
+  tests/public-seed-assignments.integration.test.ts \
+  tests/public-seed-board.integration.test.ts \
+  tests/public-seed-mutate-run.integration.test.ts
+```
+
+## 6. Changing the template
 
 ```bash
 pnpm sync    # compile types/migrations and emit .norbital/artifact/bundle.mjs
@@ -220,7 +233,8 @@ pnpm lint    # prettier --check + svelte-check
 - Never hand-edit `.norbital/` generated output. `sync` may update `.norbital/migrations/`; commit
   that history alongside the authored change. Model edits are the only thing that should produce a
   migration.
-- Seed data stays host-owned in the repository seed bank; there is no `src/+seed.ts` compiler role (fixtures never live in a template).
+- Tests own `tests/fixtures/seed/` (invented public ids). Host demo still uses the private
+  repository seed bank; there is no `src/+seed.ts` compiler role. The bank is not a test input.
 - The seed bank treats transcript job reports and their textual photo references as authoritative.
   It never reparents a simulated wrong-site photo from an overlay, OCR, image content, upload burst,
   or filename timestamp; those contradictions are precisely what this template must detect.

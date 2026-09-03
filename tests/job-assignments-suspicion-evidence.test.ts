@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { reviewCandidatesFrom } from '../../src/collections/job_assignments/suspicion-evidence.js';
+import { reviewCandidatesFrom } from '../src/collections/job_assignments/suspicion-evidence.js';
 
 test('reads and deduplicates the exact cross-assignment candidates stored in review bases', () => {
 	const candidate = {

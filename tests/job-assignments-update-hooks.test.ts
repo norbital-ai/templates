@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { Effect } from 'effect';
-import hooks from '../../src/collections/job_assignments/+hooks.js';
+import hooks from '../src/collections/job_assignments/+hooks.js';
 
 type Hook = (context: unknown) => unknown;
 const mutateHook = (phase: 'before' | 'after'): Hook => {

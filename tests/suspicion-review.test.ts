@@ -1,9 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { existsSync, readFileSync } from 'node:fs';
 import { Effect, Schema } from 'effect';
 import { hexToBinaryEmbedding } from '@norbital-ai/bolt/authoring';
-import { decode as decodeJpeg } from 'jpeg-js';
 import suspicionReviewAutomation, {
 	SUSPICION_REVIEW_CONCURRENCY,
 	SuspicionReviewIncompleteError
@@ -34,7 +32,6 @@ import {
 	type SuspicionReviewFacts
 } from '../src/automations/suspicion-review.js';
 import { assertCommunicationUnchanged } from '../src/collections/communication_logs/+hooks.js';
-import { hashPdq, pdqHashToHex } from '../src/collections/photo_evidence/pdq.js';
 import {
 	assertJudgementReferences,
 	assertOpenJudgement,
@@ -1400,7 +1397,8 @@ test('keeps the real Kismis ceiling winner and rejects the ambiguous Eng Kong cl
 	});
 
 	/**
-	 * Distances captured from the 426-photo local BCA seed on 2026-08-31:
+	 * Distances pinned as hex/vector constants from a historical private-demo pair
+	 * (this suite does not load private assets):
 	 *
 	 * - the wrong door/handrail probe `00003149` has two effectively tied neighbours, 0.102007 and
 	 *   0.103903, so neither is distinctive;
@@ -1466,7 +1464,7 @@ test('pins the real Kismis-Lorong crop pair past every perceptual band', () => {
 	const kismisSecond = '3f86d0593f96c0a92f97d0683ea7c1583fafc1503caf82607d5f1228aad7156c';
 	const lorongCrop = 'd24a124bf2dd1243d7583cda8a1fb9604d16edf40927edb40d27e9240da7e5bc';
 
-	// Bit-exact PDQ distances of the real files (rank 39/62/327 in each other's cross-assignment
+	// Bit-exact PDQ distances of the pinned hex pair (rank 39/62/327 in each other's
 	// neighbour lists — behind hundreds of unrelated pairs, whose corpus floor is 88 bits).
 	assert.equal(hammingHex(kismisFirst, lorongCrop), 116);
 	assert.equal(hammingHex(kismisSecond, lorongCrop), 130);
@@ -1475,38 +1473,6 @@ test('pins the real Kismis-Lorong crop pair past every perceptual band', () => {
 	// Same-scene, same-assignment shots are equally far apart — repeats stay neutral regardless.
 	assert.equal(hammingHex(kismisFirst, kismisSecond), 84);
 });
-
-test(
-	'hashes the actual seed crop bytes into the pinned cross-assignment pair',
-	{ skip: !existsSync('../../seed_bank/field-operations/assets') },
-	async () => {
-		const hashAsset = async (fileName: string) => {
-			const bytes = readFileSync(`../../seed_bank/field-operations/assets/${fileName}`);
-			const image = decodeJpeg(bytes, {
-				useTArray: true,
-				formatAsRGBA: false,
-				maxResolutionInMP: 40,
-				maxMemoryUsageInMB: 256
-			});
-			const { hash } = await Effect.runPromise(
-				hashPdq({ data: image.data, width: image.width, height: image.height, channels: 3 })
-			);
-			return { width: image.width, hex: pdqHashToHex(hash) };
-		};
-		const kismis = await hashAsset('00003139-PHOTO-2026-07-03-11-09-32.jpg');
-		const crop = await hashAsset('00003592-PHOTO-2026-07-03-12-10-12.jpg');
-		assert.equal(kismis.width, 1440);
-		assert.equal(crop.width, 1233);
-		assert.equal(kismis.hex, 'ff460171fe8e0179fe870558feaf00d07d4f02b07d5ea6a15a5ea5285a97254c');
-		assert.equal(crop.hex, 'd24a124bf2dd1243d7583cda8a1fb9604d16edf40927edb40d27e9240da7e5bc');
-		const distance = hammingHex(kismis.hex, crop.hex);
-		assert.ok(distance > 31, 'the crop must sit past the strict near-duplicate bar');
-		assert.ok(
-			distance > CROSS_ASSIGNMENT_MAX_HAMMING,
-			'the real fixture is a re-photographed featureless scene that no perceptual band can nominate'
-		);
-	}
-);
 
 test('derives stable idempotency keys from the complete evidence basis', () => {
 	const basis = buildSuspicionReviewBasis(facts());

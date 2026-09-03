@@ -1,0 +1,210 @@
+[
+	{
+		"id": "01990000-0000-7000-8005-000000000001",
+		"job_id": "01990000-0000-7000-8004-000000000001",
+		"assignee_user_id": "01990000-0000-7000-8002-000000000002",
+		"dispatched_at": "2026-09-01T08:00:00.000Z",
+		"status": "assigned",
+		"search_text": "Fixture inspect — Amber Quay Public Yard #01, Amber Quay Public Yard (PUB-SITE-AMBER-QUAY), PUB-SITE-AMBER-QUAY"
+	},
+	{
+		"id": "01990000-0000-7000-8005-000000000002",
+		"job_id": "01990000-0000-7000-8004-000000000002",
+		"assignee_user_id": "01990000-0000-7000-8002-000000000001",
+		"dispatched_at": "2026-09-02T08:00:00.000Z",
+		"status": "assigned",
+		"search_text": "Fixture inspect — Cedar Wharf Public Slip #02, Cedar Wharf Public Slip, PUB-SITE-CEDAR-WHARF"
+	},
+	{
+		"id": "01990000-0000-7000-8005-000000000003",
+		"job_id": "01990000-0000-7000-8004-000000000003",
+		"assignee_user_id": "01990000-0000-7000-8002-000000000002",
+		"dispatched_at": "2026-09-03T08:00:00.000Z",
+		"status": "assigned",
+		"search_text": "Fixture inspect — Flint Basin Public Works #03, Flint Basin Public Works, PUB-SITE-FLINT-BASIN"
+	},
+	{
+		"id": "01990000-0000-7000-8005-000000000004",
+		"job_id": "01990000-0000-7000-8004-000000000004",
+		"assignee_user_id": "01990000-0000-7000-8002-000000000001",
+		"dispatched_at": "2026-09-04T08:00:00.000Z",
+		"status": "assigned",
+		"search_text": "Fixture inspect — Ivory Reach Public Court #04, Ivory Reach Public Court, PUB-SITE-IVORY-REACH"
+	},
+	{
+		"id": "01990000-0000-7000-8005-000000000005",
+		"job_id": "01990000-0000-7000-8004-000000000005",
+		"assignee_user_id": "01990000-0000-7000-8002-000000000002",
+		"dispatched_at": "2026-09-05T08:00:00.000Z",
+		"status": "assigned",
+		"search_text": "Fixture inspect — Maple Hollow Public Terrace #05, Maple Hollow Public Terrace, PUB-SITE-MAPLE-HOLLOW"
+	},
+	{
+		"id": "01990000-0000-7000-8005-000000000006",
+		"job_id": "01990000-0000-7000-8004-000000000006",
+		"assignee_user_id": "01990000-0000-7000-8002-000000000001",
+		"dispatched_at": "2026-09-06T08:00:00.000Z",
+		"status": "assigned",
+		"search_text": "Fixture inspect — Quartz Pier Public Depot #06, Quartz Pier Public Depot, PUB-SITE-QUARTZ-PIER"
+	},
+	{
+		"id": "01990000-0000-7000-8005-000000000007",
+		"job_id": "01990000-0000-7000-8004-000000000007",
+		"assignee_user_id": "01990000-0000-7000-8002-000000000002",
+		"dispatched_at": "2026-09-07T08:00:00.000Z",
+		"status": "assigned",
+		"search_text": "Fixture inspect — Amber Quay Public Yard #07, Amber Quay Public Yard (PUB-SITE-AMBER-QUAY), PUB-SITE-AMBER-QUAY"
+	},
+	{
+		"id": "01990000-0000-7000-8005-000000000008",
+		"job_id": "01990000-0000-7000-8004-000000000008",
+		"assignee_user_id": "01990000-0000-7000-8002-000000000001",
+		"dispatched_at": "2026-09-08T08:00:00.000Z",
+		"status": "assigned",
+		"search_text": "Fixture inspect — Cedar Wharf Public Slip #08, Cedar Wharf Public Slip, PUB-SITE-CEDAR-WHARF"
+	},
+	{
+		"id": "01990000-0000-7000-8005-000000000009",
+		"job_id": "01990000-0000-7000-8004-000000000009",
+		"assignee_user_id": "01990000-0000-7000-8002-000000000002",
+		"dispatched_at": "2026-09-09T08:00:00.000Z",
+		"status": "assigned",
+		"search_text": "Fixture inspect — Flint Basin Public Works #09, Flint Basin Public Works, PUB-SITE-FLINT-BASIN"
+	},
+	{
+		"id": "01990000-0000-7000-8005-00000000000a",
+		"job_id": "01990000-0000-7000-8004-00000000000a",
+		"assignee_user_id": "01990000-0000-7000-8002-000000000001",
+		"dispatched_at": "2026-09-10T08:00:00.000Z",
+		"status": "assigned",
+		"search_text": "Fixture inspect — Ivory Reach Public Court #10, Ivory Reach Public Court, PUB-SITE-IVORY-REACH"
+	},
+	{
+		"id": "01990000-0000-7000-8005-00000000000b",
+		"job_id": "01990000-0000-7000-8004-00000000000b",
+		"assignee_user_id": "01990000-0000-7000-8002-000000000002",
+		"dispatched_at": "2026-09-11T08:00:00.000Z",
+		"status": "assigned",
+		"search_text": "Fixture inspect — Maple Hollow Public Terrace #11, Maple Hollow Public Terrace, PUB-SITE-MAPLE-HOLLOW"
+	},
+	{
+		"id": "01990000-0000-7000-8005-00000000000c",
+		"job_id": "01990000-0000-7000-8004-00000000000c",
+		"assignee_user_id": "01990000-0000-7000-8002-000000000001",
+		"dispatched_at": "2026-09-12T08:00:00.000Z",
+		"status": "assigned",
+		"search_text": "Fixture inspect — Quartz Pier Public Depot #12, Quartz Pier Public Depot, PUB-SITE-QUARTZ-PIER"
+	},
+	{
+		"id": "01990000-0000-7000-8005-00000000000d",
+		"job_id": "01990000-0000-7000-8004-00000000000d",
+		"assignee_user_id": "01990000-0000-7000-8002-000000000002",
+		"dispatched_at": "2026-09-13T08:00:00.000Z",
+		"status": "assigned",
+		"search_text": "Fixture inspect — Amber Quay Public Yard #13, Amber Quay Public Yard (PUB-SITE-AMBER-QUAY), PUB-SITE-AMBER-QUAY"
+	},
+	{
+		"id": "01990000-0000-7000-8005-00000000000e",
+		"job_id": "01990000-0000-7000-8004-00000000000e",
+		"assignee_user_id": "01990000-0000-7000-8002-000000000001",
+		"dispatched_at": "2026-09-14T08:00:00.000Z",
+		"status": "assigned",
+		"search_text": "Fixture inspect — Cedar Wharf Public Slip #14, Cedar Wharf Public Slip, PUB-SITE-CEDAR-WHARF"
+	},
+	{
+		"id": "01990000-0000-7000-8005-00000000000f",
+		"job_id": "01990000-0000-7000-8004-00000000000f",
+		"assignee_user_id": "01990000-0000-7000-8002-000000000002",
+		"dispatched_at": "2026-09-15T08:00:00.000Z",
+		"status": "assigned",
+		"search_text": "Fixture inspect — Flint Basin Public Works #15, Flint Basin Public Works, PUB-SITE-FLINT-BASIN"
+	},
+	{
+		"id": "01990000-0000-7000-8005-000000000010",
+		"job_id": "01990000-0000-7000-8004-000000000010",
+		"assignee_user_id": "01990000-0000-7000-8002-000000000001",
+		"dispatched_at": "2026-09-16T08:00:00.000Z",
+		"status": "assigned",
+		"search_text": "Fixture inspect — Ivory Reach Public Court #16, Ivory Reach Public Court, PUB-SITE-IVORY-REACH"
+	},
+	{
+		"id": "01990000-0000-7000-8005-000000000011",
+		"job_id": "01990000-0000-7000-8004-000000000011",
+		"assignee_user_id": "01990000-0000-7000-8002-000000000002",
+		"dispatched_at": "2026-09-17T08:00:00.000Z",
+		"status": "assigned",
+		"search_text": "Fixture inspect — Maple Hollow Public Terrace #17, Maple Hollow Public Terrace, PUB-SITE-MAPLE-HOLLOW"
+	},
+	{
+		"id": "01990000-0000-7000-8005-000000000012",
+		"job_id": "01990000-0000-7000-8004-000000000012",
+		"assignee_user_id": "01990000-0000-7000-8002-000000000001",
+		"dispatched_at": "2026-09-18T08:00:00.000Z",
+		"status": "assigned",
+		"search_text": "Fixture inspect — Quartz Pier Public Depot #18, Quartz Pier Public Depot, PUB-SITE-QUARTZ-PIER"
+	},
+	{
+		"id": "01990000-0000-7000-8005-000000000013",
+		"job_id": "01990000-0000-7000-8004-000000000013",
+		"assignee_user_id": "01990000-0000-7000-8002-000000000002",
+		"dispatched_at": "2026-09-19T08:00:00.000Z",
+		"status": "assigned",
+		"search_text": "Fixture inspect — Amber Quay Public Yard #19, Amber Quay Public Yard (PUB-SITE-AMBER-QUAY), PUB-SITE-AMBER-QUAY"
+	},
+	{
+		"id": "01990000-0000-7000-8005-000000000014",
+		"job_id": "01990000-0000-7000-8004-000000000014",
+		"assignee_user_id": "01990000-0000-7000-8002-000000000001",
+		"dispatched_at": "2026-09-20T08:00:00.000Z",
+		"status": "assigned",
+		"search_text": "Fixture inspect — Cedar Wharf Public Slip #20, Cedar Wharf Public Slip, PUB-SITE-CEDAR-WHARF"
+	},
+	{
+		"id": "01990000-0000-7000-8005-000000000015",
+		"job_id": "01990000-0000-7000-8004-000000000015",
+		"assignee_user_id": "01990000-0000-7000-8002-000000000002",
+		"dispatched_at": "2026-09-21T08:00:00.000Z",
+		"status": "assigned",
+		"search_text": "Fixture inspect — Flint Basin Public Works #21, Flint Basin Public Works, PUB-SITE-FLINT-BASIN"
+	},
+	{
+		"id": "01990000-0000-7000-8005-000000000016",
+		"job_id": "01990000-0000-7000-8004-000000000016",
+		"assignee_user_id": "01990000-0000-7000-8002-000000000001",
+		"dispatched_at": "2026-09-22T08:00:00.000Z",
+		"status": "assigned",
+		"search_text": "Fixture inspect — Ivory Reach Public Court #22, Ivory Reach Public Court, PUB-SITE-IVORY-REACH"
+	},
+	{
+		"id": "01990000-0000-7000-8005-000000000017",
+		"job_id": "01990000-0000-7000-8004-000000000017",
+		"assignee_user_id": "01990000-0000-7000-8002-000000000002",
+		"dispatched_at": "2026-09-23T08:00:00.000Z",
+		"status": "assigned",
+		"search_text": "Fixture inspect — Maple Hollow Public Terrace #23, Maple Hollow Public Terrace, PUB-SITE-MAPLE-HOLLOW"
+	},
+	{
+		"id": "01990000-0000-7000-8005-000000000018",
+		"job_id": "01990000-0000-7000-8004-000000000018",
+		"assignee_user_id": "01990000-0000-7000-8002-000000000001",
+		"dispatched_at": "2026-09-24T08:00:00.000Z",
+		"status": "assigned",
+		"search_text": "Fixture inspect — Quartz Pier Public Depot #24, Quartz Pier Public Depot, PUB-SITE-QUARTZ-PIER"
+	},
+	{
+		"id": "01990000-0000-7000-8005-000000000019",
+		"job_id": "01990000-0000-7000-8004-000000000019",
+		"assignee_user_id": "01990000-0000-7000-8002-000000000002",
+		"dispatched_at": "2026-09-25T08:00:00.000Z",
+		"status": "assigned",
+		"search_text": "Fixture inspect — Amber Quay Public Yard #25, Amber Quay Public Yard (PUB-SITE-AMBER-QUAY), PUB-SITE-AMBER-QUAY"
+	},
+	{
+		"id": "01990000-0000-7000-8005-00000000001a",
+		"job_id": "01990000-0000-7000-8004-00000000001a",
+		"assignee_user_id": "01990000-0000-7000-8002-000000000001",
+		"dispatched_at": "2026-09-26T08:00:00.000Z",
+		"status": "assigned",
+		"search_text": "Fixture inspect — Cedar Wharf Public Slip #26, Cedar Wharf Public Slip, PUB-SITE-CEDAR-WHARF"
+	}
+]

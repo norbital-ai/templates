@@ -57,6 +57,9 @@ importers:
       '@norbital-ai/doctor':
         specifier: 0.0.22
         version: 0.0.22
+      '@norbital-ai/test-utilities':
+        specifier: file:../../oss/packages/test-utilities
+        version: file:../../oss/packages/test-utilities(@norbital-ai/bolt-protocol@0.0.22(effect@4.0.0-rc.111))(@norbital-ai/bolt-server@0.0.22(effect@4.0.0-rc.111))(effect@4.0.0-rc.111)
       '@types/node':
         specifier: ^26.2.0
         version: 26.4.0
@@ -540,6 +543,13 @@ packages:
     resolution: {integrity: sha512-CZcAjYjHxZAPN8hakivuSTiJpShrd4WZN2V9GSlRkpTkbwaRTldgsuNOCJwWNmgCy+sP8Tyla2nRPYTxuyrW1w==, tarball: https://npm.pkg.github.com/download/@norbital-ai/std/0.0.22/ec166d833d33adc1308df4d1db719264aceac477}
     peerDependencies:
       effect: 4.0.0-rc.112
+
+  '@norbital-ai/test-utilities@file:../../oss/packages/test-utilities':
+    resolution: {directory: ../../oss/packages/test-utilities, type: directory}
+    peerDependencies:
+      '@norbital-ai/bolt-protocol': 0.0.22
+      '@norbital-ai/bolt-server': 0.0.22
+      effect: 4.0.0-rc.111 || 4.0.0-rc.112
 
   '@norbital-ai/ui@0.0.22':
     resolution: {integrity: sha512-ByhRRKfaMnWcRS/oBDlHcuTZ37MzQl0FB08knB90IeTYp/+UcwRBvBxdrAr4ljatqpCbcRF/Y5uBMOBs44Tz+A==, tarball: https://npm.pkg.github.com/download/@norbital-ai/ui/0.0.22/23a6cf6a3e686538ac0ea497f526a1bcc447dce8}
@@ -2996,6 +3006,12 @@ snapshots:
     dependencies:
       '@marcbachmann/cel-js': 8.0.0
       effect: 4.0.0-rc.112
+
+  '@norbital-ai/test-utilities@file:../../oss/packages/test-utilities(@norbital-ai/bolt-protocol@0.0.22(effect@4.0.0-rc.111))(@norbital-ai/bolt-server@0.0.22(effect@4.0.0-rc.111))(effect@4.0.0-rc.111)':
+    dependencies:
+      '@norbital-ai/bolt-protocol': 0.0.22(effect@4.0.0-rc.111)
+      '@norbital-ai/bolt-server': 0.0.22(effect@4.0.0-rc.111)
+      effect: 4.0.0-rc.111
 
   '@norbital-ai/ui@0.0.22(@norbital-ai/std@0.0.22(effect@4.0.0-rc.111))(effect@4.0.0-rc.111)(svelte@5.57.0)(tailwindcss@4.3.3)(zod@4.5.4)':
     dependencies:

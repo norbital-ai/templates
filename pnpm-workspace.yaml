@@ -22,6 +22,7 @@ minimumReleaseAgeExclude:
   - '@norbital-ai/doctor@0.0.14 || 0.0.15 || 0.0.16 || 0.0.17 || 0.0.19 || 0.0.20 || 0.0.21 || 0.0.22'
   - '@norbital-ai/std@0.0.14 || 0.0.15 || 0.0.16 || 0.0.17 || 0.0.19 || 0.0.20 || 0.0.21 || 0.0.22'
   - '@norbital-ai/ui@0.0.14 || 0.0.15 || 0.0.16 || 0.0.17 || 0.0.19 || 0.0.20 || 0.0.21 || 0.0.22'
+  - '@norbital-ai/test-utilities@0.0.22'
 # Host tools execute from this depset, while tenant builds execute in a Linux/musl microVM.
 # Include both host-native and guest-native optional packages on macOS, Windows, and Linux hosts.
 supportedArchitectures:
