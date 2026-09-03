@@ -228,8 +228,8 @@ pnpm lint    # prettier --check + svelte-check
 
 `sync` also emits the deployable portable artifact at `.norbital/artifact/bundle.mjs`; there is no
 separate per-template build command. The templates repository provides the same loops across every
-template (`pnpm templates:sync`, `templates:lint`, and `templates:verify`, which proves each
-template installs, syncs, lints, and exposes its compiled contracts from tracked files alone).
+template (`pnpm --dir crm sync`, `pnpm --dir crm lint`, and repo-root `pnpm templates:verify`,
+which proves each template installs, syncs, and lints from tracked files alone).
 
 - `bolt sync` may create or update `.norbital/migrations/`. That directory is generated but
   **committed** — commit it with the authored change. `migrationFingerprint` hashes its raw bytes,
@@ -240,6 +240,6 @@ template installs, syncs, lints, and exposes its compiled contracts from tracked
 - Publishing: pushing to `main` of the templates repository republishes
   `refs/heads/templates/crm` — a fast-forward-only subtree split of this directory. A tenant is
   forked from the exact advertised commit when Colony provisions it, so it shares ancestry but never
-  moves merely because the ref advances. From the Norbital checkout, `pnpm run env -- link` tests
+  moves merely because the ref advances. From the realm root, `pnpm env -- link` tests
   local OSS packages inside this template; it does not link a template release into Colony or
   update a tenant. The templates repository README documents the full release and tenant lifecycle.
