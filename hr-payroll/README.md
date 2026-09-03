@@ -74,7 +74,7 @@ Two invariants shape everything:
 
 ## What ships in the workspace
 
-### Apps (8)
+### Apps (9)
 
 **`hr_employee`** — employee self-service. A person sees their profile, company and next payday,
 and can record time entries, raise leave requests and claims (each routed for approval), and read
