@@ -25,6 +25,7 @@ import { Effect, Result, Schema } from 'effect';
 import type { Configuration } from './configuration.js';
 import { requiredDateKey } from './dates.js';
 import type { DailyOvertime } from './overtime.js';
+import { ruleDayType } from './schedule.js';
 import { parseSpecialRules } from './special-rules.js';
 
 const IssueSeveritySchema = Schema.Literals(['BLOCKER', 'WARNING']);
@@ -262,6 +263,35 @@ export function validateDailyWorkLimit(options: {
 				`${options.employeeNumber} worked ${day.totalWorkHours.toFixed(2)} hours on ${day.date}, ` +
 				`above the ${options.maxWorkHours}-hour daily limit. The run will still be built; ` +
 				'correct the attendance for that day, or record why the hours stand.',
+			collection: 'work_days',
+			recordId: day.workDayId
+		}));
+}
+
+/**
+ * An ordinary day past the jurisdiction's daily overtime-hours ceiling.
+ *
+ * Vietnam and Indonesia state this as four overtime hours, not twelve total-work hours. The
+ * surplus is still routed to incentive OT. Rest-day and public-holiday work is not compared
+ * here — those day types are outside this counter.
+ */
+export function validateDailyOvertimeHoursLimit(options: {
+	readonly employeeNumber: string;
+	readonly days: readonly DailyOvertime[];
+	readonly maxOvertimeHours: number;
+}): RunIssue[] {
+	return options.days
+		.filter(
+			(day) =>
+				ruleDayType(day.dayType) === 'ORDINARY' && day.hours > options.maxOvertimeHours
+		)
+		.map((day) => ({
+			code: 'DAILY_OVERTIME_LIMIT_EXCEEDED',
+			severity: 'WARNING' as const,
+			message:
+				`${options.employeeNumber} worked ${day.hours.toFixed(2)} overtime hours on ${day.date}, ` +
+				`above the ${options.maxOvertimeHours}-hour daily overtime limit. The run will still be built; ` +
+				'hours past the ceiling are paid as incentive overtime at the same statutory rate.',
 			collection: 'work_days',
 			recordId: day.workDayId
 		}));

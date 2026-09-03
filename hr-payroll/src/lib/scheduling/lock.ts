@@ -103,7 +103,7 @@ export function assertNotSettled(
 ): void {
 	const lock = lockStateForDate(windows, date);
 	if (lock.kind === 'SETTLED') {
-		throw new Error(settledDayMessage(lock.period, date, action));
+		refuse(settledDayMessage(lock.period, date, action));
 	}
 }
 

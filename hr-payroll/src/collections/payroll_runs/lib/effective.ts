@@ -103,20 +103,6 @@ export function effectiveWithin<T extends Dated>(
 		);
 }
 
-/** The `[start, end]` days of an effective range clipped into a window. */
-export function clipRange(
-	range: unknown,
-	window: { start: IsoDate; end: IsoDate }
-): { start: IsoDate; end: IsoDate } | null {
-	const parsed = readRange(range);
-	if (!parsed) return null;
-	const rangeStart = rangeBoundDay(parsed.start);
-	const start = rangeStart > window.start ? rangeStart : window.start;
-	const rawEnd = parsed.end == null ? window.end : rangeBoundDay(parsed.end);
-	const end = rawEnd < window.end ? rawEnd : window.end;
-	return start > end ? null : { start, end };
-}
-
 /** Only rows the platform has approved. A null approval stamp means approved on this platform. */
 const ApprovableSchema = Schema.Struct({
 	approval_id: Schema.optionalKey(Schema.NullOr(Schema.String))

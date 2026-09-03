@@ -60,35 +60,24 @@ describe('template discovery', () => {
 	it('pins its own Bolt version, exactly', () => {
 		// A template's Bolt version lives in its own manifest and its own lockfile. Nothing
 		// outside the tree declares which Bolt versions it works with, and nothing propagates
-		// a bump into it.
+		// a bump into it. Sibling checkouts and machine-local overlays are not pins.
 		for (const template of discoverTemplates()) {
 			const manifest = JSON.parse(
 				readFileSync(path.join(template.directory, 'package.json'), 'utf8')
 			);
-			// Read through the yalc overlay, the way `project-templates.mjs` does.
-			//
-			// A working tree that is linked against a local Bolt carries `file:.yalc/@norbital-ai/bolt`
-			// in the manifest, and yalc records the version it replaced in `yalc.lock`. Asserting the
-			// manifest alone therefore failed on every developer machine with a link installed —
-			// which is every machine running the local loop — so the check that exists to catch an
-			// unpinned template was instead permanently red and told nobody anything.
 			const pinned = manifest.dependencies['@norbital-ai/bolt'];
-			if (pinned.startsWith('file:.yalc/')) {
-				// The linked build's own version. `yalc.lock`'s `replaced` is empty for a template that
-				// was linked before it ever installed Bolt from the registry, which is every private
-				// template — so the build itself is the only thing that knows what is installed.
-				const linked = path.join(
-					template.directory,
-					'.yalc',
-					'@norbital-ai',
-					'bolt',
-					'package.json'
-				);
-				assert.ok(existsSync(linked), `${template.slug} is yalc-linked but has no linked build`);
-				assert.match(JSON.parse(readFileSync(linked, 'utf8')).version, /^\d+\.\d+\.\d+/);
-				continue;
-			}
-			assert.match(pinned, /^\d+\.\d+\.\d+/);
+			assert.equal(typeof pinned, 'string', `${template.slug} must declare @norbital-ai/bolt`);
+			assert.doesNotMatch(
+				pinned,
+				/file:\.yalc/,
+				`${template.slug} must not pin @norbital-ai/bolt via file:.yalc`
+			);
+			assert.doesNotMatch(
+				pinned,
+				/file:\.\.\/\.\.\/oss/,
+				`${template.slug} must not pin @norbital-ai/bolt via file:../../oss`
+			);
+			assert.match(pinned, /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/);
 		}
 	});
 
@@ -129,32 +118,24 @@ describe('template discovery', () => {
 			assert.ok(firstParty.length > 0, `${template.slug} declares no first-party dependencies`);
 
 			const policy = readFileSync(path.join(template.directory, 'pnpm-workspace.yaml'), 'utf8');
-			/**
-			 * A yalc-linked dependency is exempted at the version it replaced, not at its link.
-			 *
-			 * The exemption exists so a reviewed first-party release bypasses the minimum-release-age
-			 * gate, and that gate is about *released* versions — `file:.yalc/@norbital-ai/bolt` is a
-			 * path on one developer's disk and names no release at all. Asserting the manifest's literal
-			 * specifier therefore failed on every machine with a local link installed, which is every
-			 * machine running the local loop.
-			 */
-			const yalcLockPath = path.join(template.directory, 'yalc.lock');
-			const overlay = existsSync(yalcLockPath)
-				? JSON.parse(readFileSync(yalcLockPath, 'utf8'))
-				: undefined;
 			const released = (name, specifier) => {
-				if (!String(specifier).startsWith('file:.yalc/')) return specifier;
-				// The linked build's own version, in preference to yalc's `replaced`.
-				//
-				// `replaced` records what the link displaced, which is the version this checkout used to
-				// install — `std` still says 0.0.45 here. That is the right answer for the committed pin
-				// and the wrong one for this check, which asks what the template depends on *now*. A
-				// package linked before it was ever installed from the registry, as `bolt-protocol` was,
-				// records no `replaced` at all.
-				const linked = path.join(template.directory, '.yalc', ...name.split('/'), 'package.json');
-				if (existsSync(linked)) return JSON.parse(readFileSync(linked, 'utf8')).version;
-				const replaced = overlay?.packages?.[name]?.replaced;
-				return typeof replaced === 'string' ? replaced : specifier;
+				const text = String(specifier);
+				assert.doesNotMatch(
+					text,
+					/file:\.yalc/,
+					`${template.slug} ${name} must not use file:.yalc`
+				);
+				assert.doesNotMatch(
+					text,
+					/file:\.\.\/\.\.\/oss/,
+					`${template.slug} ${name} must not use file:../../oss`
+				);
+				assert.match(
+					text,
+					/^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/,
+					`${template.slug} ${name} must be an exact version pin, not ${text}`
+				);
+				return specifier;
 			};
 			// An entry is `'<name>@<v> || <v> || …'` — one line per package listing every reviewed
 			// release, which is the pnpm range syntax these files have always used. Matching
@@ -169,9 +150,10 @@ describe('template discovery', () => {
 				])
 			);
 			for (const [name, declared] of firstParty) {
-				const version = String(released(name, declared));
+				const version = released(name, declared);
+				if (version === null) continue;
 				assert.ok(
-					exempted.get(name)?.includes(version),
+					exempted.get(name)?.includes(String(version)),
 					`${template.slug} depends on ${name}@${version} but does not exempt it` +
 						` (exempted: ${exempted.get(name)?.join(', ') ?? 'nothing'})`
 				);

@@ -1,0 +1,13 @@
+[
+	{
+		"id": "11111111-1111-4111-8111-111111111111",
+		"jurisdiction_id": "22222222-2222-4222-8222-222222222222",
+		"name": "Public Fixture Co",
+		"registration_number": "PUB-CO-0001",
+		"pay_cutoff_day": 21,
+		"pay_day": 28,
+		"leave_year_start_month": 1,
+		"overtime_calculation_method": "STATUTORY_AGGREGATE",
+		"effective_range": { "start": "2020-01-01", "end": null }
+	}
+]

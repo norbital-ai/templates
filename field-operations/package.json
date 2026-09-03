@@ -4,12 +4,12 @@
 	"private": true,
 	"type": "module",
 	"scripts": {
-		"dr": "node ../../oss/packages/doctor/build/cli.js audit --root .",
+		"dr": "pnpm exec norbital-doctor audit --root .",
 		"format": "prettier --write .",
 		"lint": "prettier --check . && svelte-check --tsgo-experimental-api --tsconfig ./tsconfig.json",
 		"sync": "bolt sync",
 		"sync:watch": "bolt sync --watch",
-		"test": "node --experimental-strip-types --import ./scripts/ts-source-resolve.mjs --import ./scripts/test-artifact-reader.mjs --test 'tests/**/*.test.ts'"
+		"test": "node --experimental-strip-types --import ./scripts/ts-source-resolve.mjs --import ./scripts/test-artifact-reader.mjs --test 'tests/*.test.ts'"
 	},
 	"dependencies": {
 		"@iconify/svelte": "^5.2.2",
@@ -29,6 +29,7 @@
 	},
 	"devDependencies": {
 		"@norbital-ai/bolt-server": "0.0.22",
+		"@norbital-ai/test-utilities": "0.0.22",
 		"@norbital-ai/doctor": "0.0.22",
 		"@types/node": "^26.2.0",
 		"@typescript/native": "npm:typescript@7.0.2",

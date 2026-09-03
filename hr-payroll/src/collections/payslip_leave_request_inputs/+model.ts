@@ -23,11 +23,9 @@ export default defineModel(
 			'Engine-owned capture of one leave request a payslip read. No user policy grants writes on this collection; the payroll engine writes it as part of the run that consumed the request.',
 		icon: 'lucide:link',
 		indexes: [
-			{ columns: ['payslip_id', 'leave_request_id'], unique: true },
-			// A source is consumed by at most one payslip, ever. The composite above only stops the
-			// same source appearing twice on the SAME payslip; nothing stopped a second payslip
-			// claiming it, so "paid once" rested on engine behaviour rather than on the database.
-			{ columns: ['leave_request_id'], unique: true }
+			// Composite only. A request that spans two payroll windows is captured once per period
+			// for the days in that window; the same request twice on one payslip is what this stops.
+			{ columns: ['payslip_id', 'leave_request_id'], unique: true }
 		]
 	}
 );

@@ -46,6 +46,12 @@ const LedgerRowSchema = Schema.Struct({
 	id: Schema.String,
 	leave_type_id: Schema.String,
 	entry_date: Schema.String,
+	/**
+	 * Last calendar day the movement covers. TIME_OFF spans a range; a point movement repeats
+	 * `entry_date`. Capture uses the span so a request that crosses a payroll window is read by
+	 * both periods for the days each window holds.
+	 */
+	through_date: Schema.optionalKey(Schema.NullOr(Schema.String)),
 	kind: Schema.NullOr(Schema.String),
 	days: Schema.Number,
 	source_id: Schema.NullOr(Schema.String),

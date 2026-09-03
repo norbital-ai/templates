@@ -38,6 +38,20 @@ export const leaveEventValueSchema = Schema.Union([
 ]);
 
 export type LeaveEvent = Schema.Schema.Type<typeof leaveEventValueSchema>;
+export type TimeOffEvent = Extract<LeaveEvent, { kind: 'TIME_OFF' }>;
+
+/** A new time-off request opening on `on`, before the schedule derives chargeable days. */
+export function defaultTimeOffEvent(on: string): TimeOffEvent {
+	return {
+		kind: 'TIME_OFF',
+		range: {
+			start: { date: on, half: 'FIRST' },
+			end: { date: on, half: 'SECOND' }
+		},
+		chargeable_days: null,
+		reason: null
+	};
+}
 
 /** Strict standard view: a key no arm declares is refused rather than stripped. */
 export const leaveEventSchema = Schema.toStandardSchemaV1(leaveEventValueSchema, {

@@ -71,7 +71,6 @@ import {
 	repaymentOverRecoveredMessage
 } from '../../../lib/settlement_refusals.js';
 import {
-	addDays,
 	dateKey,
 	daysBetween,
 	inclusiveDays,
@@ -82,7 +81,7 @@ import {
 	requiredDateKey,
 	type IsoDate
 } from './dates.js';
-import { clipRange, coversDate } from './effective.js';
+import { coversDate } from './effective.js';
 import { isEligible, type EligibilitySubject } from './eligibility.js';
 import { defaultPayPeriod, type PayrollWindow } from './period.js';
 import { evaluateFormula, type FormulaContext } from './formula.js';
@@ -93,6 +92,7 @@ import {
 	resolveEntitlement,
 	unpaidLeaveDates,
 	unpaidLeaveInWindow,
+	type LedgerRow,
 	type UnpaidLeave
 } from './leave.js';
 import {
@@ -259,6 +259,21 @@ export function dailyTotalWorkLimit(configuration: Configuration): number | null
 	return limits[0] == null ? null : decodeNumber(limits[0].max_hours);
 }
 
+/**
+ * The ordinary-day overtime-hours ceiling (Vietnam / Indonesia's four hours).
+ *
+ * Distinct from `dailyTotalWorkLimit`: that one measures every clocked hour, this one measures
+ * derived overtime hours. A jurisdiction that states neither has no daily reclassification.
+ */
+export function dailyOvertimeHoursLimit(configuration: Configuration): number | null {
+	const limits = configuration.overtimeLimits.filter(
+		(limit) => limit.period === 'DAY' && limit.measures === 'OVERTIME_HOURS'
+	);
+	if (limits.length > 1)
+		throw new Error('More than one daily overtime-hours limit is effective for this jurisdiction.');
+	return limits[0] == null ? null : decodeNumber(limits[0].max_hours);
+}
+
 function monthlyOvertimeLimit(configuration: Configuration): number | null {
 	const limits = configuration.overtimeLimits.filter(
 		(limit) => limit.period === 'MONTH' && limit.measures === 'OVERTIME_HOURS'
@@ -311,6 +326,23 @@ export function isStatutoryOvertimePayCovered(options: StatutoryOvertimeCoverage
 			'the effective coverage rule. ' +
 			`Authority: ${authority}.`
 	);
+}
+
+/** Whether a leave movement covers any day of `[start, end]`. */
+function leaveMovementTouchesSpan(
+	movement: LedgerRow,
+	span: { readonly start: IsoDate; readonly end: IsoDate }
+): boolean {
+	const start = dateKey(movement.entry_date);
+	if (start == null) return false;
+	const end = dateKey(movement.through_date) ?? start;
+	const from = start <= end ? start : end;
+	const to = start <= end ? end : start;
+	return to >= span.start && from <= span.end;
+}
+
+function termsIdentity(terms: EmploymentBundle['terms'][number]): string {
+	return typeof terms.id === 'string' && terms.id !== '' ? terms.id : termsSnapshotKey(terms);
 }
 
 function termsAt(bundle: EmploymentBundle, date: IsoDate): EmploymentBundle['terms'][number] {
@@ -622,7 +654,7 @@ export function measureEmployment(options: MeasureEmploymentOptions): MeasuredEm
 		payroll_group: closingTerms.payroll_group
 	};
 
-	// ── overtime, derived from clocks and split only beyond the total-work-hours boundary ───────
+	// ── overtime, derived from clocks and split beyond the jurisdiction's own daily ceilings ───
 	//
 	// `worked_intervals` is the presence test for the actual half of a work day: NULL means no
 	// attendance was recorded at all, while an empty array means the day was read and nothing was
@@ -630,6 +662,7 @@ export function measureEmployment(options: MeasureEmploymentOptions): MeasuredEm
 	// carrying nothing but a plan has no clock to derive an hour from and no punch to freeze.
 	const attendedDays = bundle.workDays.filter((day) => day.worked_intervals != null);
 	const dailyWorkLimit = dailyTotalWorkLimit(configuration);
+	const dailyOvertimeLimit = dailyOvertimeHoursLimit(configuration);
 	const overtimeAttendance = overtimeAttendanceWindow({
 		policy: options.policy,
 		payFrequency: rateTerms.pay_frequency,
@@ -677,6 +710,7 @@ export function measureEmployment(options: MeasureEmploymentOptions): MeasuredEm
 	const classifiedOvertime = classifyOvertimeByCalendarMonth({
 		days: overtimeDays,
 		dailyWorkLimit,
+		dailyOvertimeHoursLimit: dailyOvertimeLimit,
 		monthlyOrdinaryOvertimeLimit: monthlyOvertimeLimit(configuration)
 	});
 	if (paymentEligible) {
@@ -886,7 +920,15 @@ export function measureEmployment(options: MeasureEmploymentOptions): MeasuredEm
 					(entry) =>
 						cents(entrySign(entry) * decodeNumber(entry.amount)) === calculatedArrears.amount
 				);
-	const arrears = explicitArrears == null ? calculatedArrears : null;
+	// A distinct arrears period is a different month (or a different amount story keyed as an
+	// entry). Measuring this same period again as "arrears" is double-pay: two BASIC lines and
+	// statutory charged on both.
+	const arrears =
+		explicitArrears == null &&
+		calculatedArrears != null &&
+		calculatedArrears.period !== options.period
+			? calculatedArrears
+			: null;
 
 	// ── walk the catalogue in component sequence ───────────────────────────────────────────────
 	const base: MeasuredBase[] = [];
@@ -1005,11 +1047,10 @@ export function measureEmployment(options: MeasureEmploymentOptions): MeasuredEm
 	const capturedLeaveRequestIds = new Set<string>(
 		adjustments.filter((row) => row.input.family === 'LEAVE_REQUEST').map((row) => row.input.id)
 	);
-	// One pass over the ledger: the span filter and the id projection are one loop, and the
-	// same-set deduplication is the set itself.
+	// One pass over the ledger: a TIME_OFF request is captured when any of its days fall inside
+	// this payslip's lock span, so Dec 28–Jan 5 is an input to both December and January.
 	for (const movement of bundle.ledger) {
-		const date = dateKey(movement.entry_date);
-		if (date == null || date < lockSpan.start || date > lockSpan.end) continue;
+		if (!leaveMovementTouchesSpan(movement, lockSpan)) continue;
 		capturedLeaveRequestIds.add(movement.id);
 	}
 
@@ -1364,7 +1405,7 @@ function measureComponent(options: MeasureComponentOptions): Measurement | null 
 		}[] = [];
 		const record = (
 			terms: EmploymentBundle['terms'][number],
-			covered: ReturnType<typeof clipRange>
+			covered: { readonly start: IsoDate; readonly end: IsoDate } | null
 		): void => {
 			const segment = prorationSegment({
 				jurisdiction: options.configuration.jurisdiction,
@@ -1381,15 +1422,29 @@ function measureComponent(options: MeasureComponentOptions): Measurement | null 
 				exact: contract * (segment.days / segment.denominator)
 			});
 		};
-		for (const terms of options.bundle.terms)
-			record(terms, clipRange(terms.effective_range, options.contracted));
-		// A full-final-period policy extends the last effective wage through month end. The
-		// contract row still ends on the real exit date; only this run's settlement span extends.
-		if (options.employed.end > options.contracted.end)
-			record(termsAt(options.bundle, options.contracted.end), {
-				start: addDays(options.contracted.end, 1),
-				end: options.employed.end
-			});
+		/**
+		 * One terms row per calendar day, then collapse consecutive days. Independently clipping
+		 * every overlapping terms row to the month produced two identical full-month segments and
+		 * double BASIC whenever two history rows both covered the window.
+		 */
+		const termsOn = (date: IsoDate): EmploymentBundle['terms'][number] =>
+			date > options.contracted.end
+				? termsAt(options.bundle, options.contracted.end)
+				: termsAt(options.bundle, date);
+		const wageDates = daysBetween(options.employed.start, options.employed.end);
+		if (wageDates.length > 0) {
+			let runStart = wageDates[0]!;
+			let runTerms = termsOn(runStart);
+			for (let index = 1; index <= wageDates.length; index += 1) {
+				const date = wageDates[index];
+				const nextTerms = date == null ? null : termsOn(date);
+				if (nextTerms != null && termsIdentity(nextTerms) === termsIdentity(runTerms)) continue;
+				record(runTerms, { start: runStart, end: wageDates[index - 1]! });
+				if (date == null || nextTerms == null) break;
+				runStart = date;
+				runTerms = nextTerms;
+			}
+		}
 		/**
 		 * The month is rounded once, and the segments are made to add up to it.
 		 *
@@ -1581,8 +1636,11 @@ function measureComponent(options: MeasureComponentOptions): Measurement | null 
 			return options.entry == null ? null : measureEntry(definition, options.entry);
 		case 'FORMULA':
 			return measureFormula(definition);
+		default: {
+			const _exhaustive: never = definition;
+			throw new Error(`Unsupported component source: ${JSON.stringify(_exhaustive)}`);
+		}
 	}
-	throw new Error(`Unsupported component source: ${Reflect.get(definition, 'source')}`);
 }
 
 /**

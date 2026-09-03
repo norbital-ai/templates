@@ -1,6 +1,5 @@
 <script lang="ts">
-	import { Effect, Result, Schema } from 'effect';
-	import { client } from '../../lib/workspace-client.js';
+	import { Result, Schema } from 'effect';
 	import { useI18n } from '@norbital-ai/ui/i18n';
 	import type { TenantI18nKeys } from '$bolt/i18n-keys';
 
@@ -17,6 +16,10 @@
 	 * `source_id` is provenance the migration wrote and is carried through an edit untouched. A
 	 * certificate is an ordinary `leave_requests.certificate_file` column rendered by the collection
 	 * form beside this event editor, so it is no longer hidden inside this JSON value.
+	 *
+	 * Time-off remaining days, chargeable days and per-day eligibility come from `preview_leave`.
+	 * The write hook runs the same function, so the numbers the picker shows are the numbers apply
+	 * will accept or refuse.
 	 */
 	import { Combobox } from '@norbital-ai/ui/combobox';
 	import { Input } from '@norbital-ai/ui/input';
@@ -27,23 +30,21 @@
 		type HalfDayRange,
 		type LeaveDayAvailability
 	} from '../../lib/ui/leave/half-day-range-picker.svelte';
-	import { coversDate } from '../../collections/payroll_runs/lib/effective.js';
-	import { leaveBalance, resolveEntitlement } from '../../collections/payroll_runs/lib/leave.js';
-	import { sealedProfileCovering } from '../../lib/statutory_profile.js';
-	import { completedMonths } from '../../collections/payroll_runs/lib/dates.js';
-	import { payrollWindows, windowForDate } from '../../lib/scheduling/lock.js';
-	import { patternRosterCodeId } from '../../lib/scheduling/work-pattern.js';
-	import { rosterCodeKind, workWindowHalves } from '../../lib/scheduling/roster-code.js';
 	import { shiftDayKey, todayKey } from '../../lib/ui/calendar.js';
-	import { formatDateISO } from '@norbital-ai/std/date';
-	import { decodeNumber } from '@norbital-ai/std/json';
-	import { leaveEventSchema } from './+definition.js';
+	import { defaultTimeOffEvent, leaveEventSchema, type LeaveEvent } from './+definition.js';
+	import { getContext } from 'svelte';
+	import {
+		LEAVE_REQUEST_CREATE_SCOPE,
+		type LeaveRequestCreateScope
+	} from '../../lib/ui/leave-request-create-scope.js';
+	import { previewLeaveQuery } from '../../lib/ui/leave/preview-leave-client.js';
+	import type { LeaveDayPreview, PreviewLeaveInput } from '../../lib/leave/preview.js';
 	import type { RendererProps, Value } from './$types.js';
 	type LeaveEventRendererProps = RendererProps & { readonly row?: Record<string, unknown> };
 
 	const { t } = useI18n<TenantI18nKeys>();
 
-	type EventKind = Value['kind'];
+	type EventKind = LeaveEvent['kind'];
 
 	const KIND_OPTIONS = $derived<{ value: EventKind; label: string; description: string }[]>([
 		{
@@ -64,6 +65,8 @@
 	]);
 
 	let props: LeaveEventRendererProps = $props();
+	const createScope = getContext<LeaveRequestCreateScope | undefined>(LEAVE_REQUEST_CREATE_SCOPE);
+	const timeOffOnly = createScope != null;
 	const disabled = $derived(props.mode === 'edit' ? props.disabled : true);
 	const parsed = $derived(Schema.decodeUnknownResult(leaveEventSchema)(props.value));
 	const current = $derived(Result.isSuccess(parsed) ? parsed.success : null);
@@ -74,248 +77,79 @@
 		typeof props.row?.leave_type_id === 'string' ? props.row.leave_type_id : null
 	);
 	const requestId = $derived(typeof props.row?.id === 'string' ? props.row.id : null);
-	const employmentQuery = $derived(
-		employmentId == null
-			? null
-			: client.db.employments.findFirst({ where: { id: { eq: employmentId } } })
-	);
-	const employment = $derived(employmentQuery?.current ?? null);
-	const termsQuery = $derived(
-		employmentId == null
-			? null
-			: client.db.employment_terms.findMany({
-					where: { employment_id: { eq: employmentId } },
-					limit: 100
-				})
-	);
-	const rosterQuery = $derived(
-		employmentId == null
-			? null
-			: client.db.work_days.findMany({
-					where: { employment_id: { eq: employmentId } },
-					limit: 20_000
-				})
-	);
-	const holidaysQuery = $derived(
-		employment == null
-			? null
-			: client.db.company_holidays.findMany({
-					where: { company_id: { eq: employment.company_id } },
-					limit: 2_000
-				})
-	);
-	/**
-	 * Paid payroll windows: a day a PAID run settled is not a day leave can be moved across.
-	 * The picker draws it struck; the leave hook refuses it at submit.
-	 */
-	const settledRunsQuery = $derived(
-		employment == null
-			? null
-			: client.db.payroll_runs.findMany({
-					where: { company_id: { eq: employment.company_id }, lifecycle: { eq: 'PAID' } },
-					columns: { period: true, attendance_from: true, attendance_to: true },
-					limit: 500
-				})
-	);
-	const settledWindows = $derived(payrollWindows(settledRunsQuery?.current ?? []));
-	const rosterCodesQuery = $derived(
-		employment == null
-			? null
-			: client.db.shift_definitions.findMany({
-					where: { company_id: { eq: employment.company_id } },
-					limit: 2_000
-				})
-	);
-	const companyQuery = $derived(
-		employment == null
-			? null
-			: client.db.companies.findFirst({ where: { id: { eq: employment.company_id } } })
-	);
-	/** The governing profile: the SEALED version of the company's law family covering today. */
-	const profileAnchorQuery = $derived(
-		companyQuery?.current?.jurisdiction_id == null
-			? null
-			: client.db.jurisdictions.findFirst({
-					where: { id: { eq: companyQuery.current.jurisdiction_id } },
-					columns: { code: true }
-				})
-	);
-	const profileQuery = $derived.by(() => {
-		const anchor = profileAnchorQuery?.current;
-		if (anchor == null) return null;
-		return client.db.jurisdictions.findMany({
-			where: { code: { eq: anchor.code }, lifecycle: { eq: 'SEALED' } },
-			limit: 100
-		});
+	let calendarMonth = $state(todayKey().slice(0, 7));
+
+	const previewInput = $derived.by((): PreviewLeaveInput | null => {
+		if (employmentId == null || leaveTypeId == null) return null;
+		const range = current?.kind === 'TIME_OFF' ? current.range : undefined;
+		return {
+			employment_id: employmentId,
+			leave_type_id: leaveTypeId,
+			calendar_month: calendarMonth,
+			...(range == null ? {} : { range }),
+			...(requestId == null ? {} : { exclude_request_id: requestId })
+		};
 	});
-	const governingProfile = $derived.by(() => {
-		const rows = profileQuery?.current;
-		if (rows == null || rows.length === 0) return null;
-		const today = formatDateISO(new Date());
-		return sealedProfileCovering(rows, rows[0]?.code ?? '', today);
-	});
-	const childFactsQuery = $derived(
-		employmentId == null
-			? null
-			: client.db.employee_children.findMany({
-					where: { employment_id: { eq: employmentId } },
-					limit: 200
-				})
-	);
-	const leaveTypeQuery = $derived(
-		leaveTypeId == null
-			? null
-			: client.db.leave_types.findFirst({ where: { id: { eq: leaveTypeId } } })
-	);
-	const leaveLedgerQuery = $derived(
-		employmentId == null || leaveTypeId == null
-			? null
-			: client.db.leave_requests.findMany({
-					where: { employment_id: { eq: employmentId }, leave_type_id: { eq: leaveTypeId } },
-					limit: 20_000
-				})
-	);
-	const rosterByDate = $derived(
-		new Map((rosterQuery?.current ?? []).map((entry) => [formatDateISO(entry.work_date), entry]))
-	);
-	const holidayDates = $derived(
-		new Set((holidaysQuery?.current ?? []).map((holiday) => formatDateISO(holiday.date)))
-	);
-	const rosterCodeById = $derived(
-		new Map((rosterCodesQuery?.current ?? []).map((code) => [code.id, code]))
-	);
-	const scheduleUnknown = $derived(
-		employmentId != null &&
-			(termsQuery?.current === undefined ||
-				rosterQuery?.current === undefined ||
-				(employment != null &&
-					(holidaysQuery?.current === undefined || rosterCodesQuery?.current === undefined)))
-	);
+	const previewQuery = $derived(previewInput == null ? null : previewLeaveQuery(previewInput));
+	const preview = $derived(previewQuery?.current);
+	const previewLoading = $derived(previewQuery != null && previewQuery.loading && preview == null);
 	const pickerDisabledReason = $derived.by(() => {
 		if (disabled) return null;
 		if (employmentId == null) return t('component.leave_picker_disabled_no_employment');
 		if (leaveTypeId == null) return t('component.leave_picker_disabled_no_leave_type');
-		if (scheduleUnknown) return t('component.leave_picker_loading_schedule');
+		if (previewQuery?.error != null) return t('component.leave_preview_failed');
+		if (previewLoading) return t('component.leave_picker_loading_schedule');
+		if (preview?.encashed) return t('component.leave_encashed_closed');
 		return null;
 	});
 	const pickerDisabled = $derived(disabled || pickerDisabledReason != null);
-	const availableLeaveDays = $derived.by(() => {
-		if (
-			current?.kind !== 'TIME_OFF' ||
-			employment == null ||
-			employmentId == null ||
-			leaveTypeId == null
-		)
-			return null;
-		const company = companyQuery?.current;
-		const leaveType = leaveTypeQuery?.current;
-		if (company == null || leaveType == null || leaveType.accrual?.kind === 'PER_EVENT')
-			return null;
-		const asOf = current.range.end.date;
-		const hireDate = formatDateISO(employment.hire_date);
-		const ledger = (leaveLedgerQuery?.current ?? [])
-			.filter((row) => row.id !== requestId && row.from_date != null)
-			.map((row) => ({
-				id: row.id,
-				leave_type_id: row.leave_type_id,
-				entry_date: row.from_date!,
-				kind: row.kind,
-				days: row.kind === 'TIME_OFF' ? -Math.abs(decodeNumber(row.days)) : decodeNumber(row.days),
-				source_id: null,
-				approval_id: row.approval_id
-			}));
-		const profile = governingProfile;
-		if (profile == null) return null;
-		const childFacts = childFactsQuery?.current ?? [];
-		const entitlementAt = (serviceMonths: number, asOfDate: string) =>
-			resolveEntitlement({
-				leaveType,
-				profile,
-				children: childFacts,
-				serviceMonths,
-				employmentId,
-				asOf: asOfDate
-			});
-		// Resolve once so a malformed entitlement layer is shown before submit, not after the drag.
-		entitlementAt(completedMonths(hireDate, asOf), asOf);
-		return Math.max(
-			0,
-			leaveBalance(
-				{
-					leaveType,
-					entitlementAt,
-					hireDate,
-					exitDate: employment.exit_date == null ? null : formatDateISO(employment.exit_date),
-					leaveYearStartMonth: decodeNumber(company.leave_year_start_month),
-					ledger,
-					basis: 'PROJECTED'
-				},
-				asOf
-			)
-		);
-	});
+	const availableLeaveDays = $derived(
+		preview == null || preview.remaining_days == null ? null : Math.max(0, preview.remaining_days)
+	);
+	const previewIssue = $derived(preview?.issues[0]?.message ?? null);
+
+	function availabilityCopy(day: LeaveDayPreview): string | undefined {
+		const code = day.reason_code;
+		if (code == null) return undefined;
+		switch (code) {
+			case 'HOLIDAY':
+				return t('component.excluded_public_holiday');
+			case 'REST_OR_OFF':
+				return t('component.excluded_rest_or_off');
+			case 'OTHER_LEAVE':
+				return t('component.excluded_other_leave');
+			case 'PAID_PAYROLL':
+				return t('component.excluded_paid_payroll', { period: day.settled_period ?? '' });
+			case 'NO_SCHEDULE':
+				return t('component.excluded_no_schedule');
+			case 'BEFORE_HIRE':
+				return t('component.excluded_before_hire');
+			case 'AFTER_EXIT':
+				return t('component.excluded_after_exit');
+			case 'MISSING_ROSTER_CODE':
+				return t('component.excluded_no_schedule');
+			default: {
+				const _exhaustive: never = code;
+				return _exhaustive;
+			}
+		}
+	}
 
 	function leaveDayAvailability(date: string): LeaveDayAvailability {
-		if (employmentId == null || leaveTypeId == null || scheduleUnknown) {
+		if (employmentId == null || leaveTypeId == null || preview == null) {
 			return { eligible: false, reason: pickerDisabledReason ?? undefined };
 		}
-		const settled = windowForDate(settledWindows, date);
-		if (settled != null) {
-			return {
-				eligible: false,
-				reasonMark: '🔒',
-				reason: t('component.excluded_paid_payroll', { period: settled.period })
-			};
+		const day = preview.availability[date];
+		if (day == null) {
+			return { eligible: false, reason: t('component.leave_picker_loading_schedule') };
 		}
-		if (holidayDates.has(date)) {
-			return { eligible: false, reasonMark: 'H', reason: t('component.excluded_public_holiday') };
-		}
-		const coveredByOtherRequest = (leaveLedgerQuery?.current ?? []).some(
-			(row) =>
-				row.id !== requestId &&
-				row.kind === 'TIME_OFF' &&
-				row.from_date != null &&
-				row.to_date != null &&
-				date >= String(row.from_date).slice(0, 10) &&
-				date <= String(row.to_date).slice(0, 10)
-		);
-		if (coveredByOtherRequest) {
-			return {
-				eligible: false,
-				reasonMark: 'L',
-				reason: t('component.excluded_other_leave')
-			};
-		}
-		const term = (termsQuery?.current ?? []).find((candidate) =>
-			coversDate(candidate.effective_range, date)
-		);
-		if (term == null) return { eligible: false, reason: t('component.excluded_no_schedule') };
-		let codeId = rosterByDate.get(date)?.shift_definition_id ?? null;
-		if (codeId == null) {
-			const projected = Effect.runSync(
-				Effect.orElseSucceed(
-					Effect.try(() => patternRosterCodeId(term.work_pattern, date)),
-					() => null
-				)
-			);
-			if (projected == null)
-				return { eligible: false, reason: t('component.excluded_no_schedule') };
-			codeId = projected;
-		}
-		if (codeId == null) {
-			if (term.work_pattern?.type === 'ROSTERED') return { eligible: true };
-			return { eligible: false, reasonMark: 'O', reason: t('component.excluded_rest_or_off') };
-		}
-		const code = rosterCodeById.get(codeId);
-		if (code != null && rosterCodeKind(code.variant) !== 'WORK') {
-			return { eligible: false, reasonMark: 'R', reason: t('component.excluded_rest_or_off') };
-		}
-		const halves = code == null ? null : workWindowHalves(code.variant);
 		return {
-			eligible: true,
-			shiftLabel: halves?.span,
-			firstHalfLabel: halves?.first,
-			secondHalfLabel: halves?.second
+			eligible: day.eligible,
+			reason: availabilityCopy(day),
+			reasonMark: day.reason_mark,
+			shiftLabel: day.shift_label,
+			firstHalfLabel: day.first_half_label,
+			secondHalfLabel: day.second_half_label
 		};
 	}
 
@@ -347,26 +181,30 @@
 	}
 
 	function defaultFor(kind: EventKind): Value {
-		if (kind === 'TIME_OFF') {
-			const on = defaultTimeOffDate();
-			return {
-				kind: 'TIME_OFF',
-				range: {
-					start: { date: on, half: 'FIRST' },
-					end: { date: on, half: 'SECOND' }
-				},
-				chargeable_days: null,
-				reason: null
-			};
+		switch (kind) {
+			case 'TIME_OFF':
+				return defaultTimeOffEvent(defaultTimeOffDate());
+			case 'ENCASHMENT':
+				return {
+					kind: 'ENCASHMENT',
+					effective_on: today(),
+					movement_days: 0,
+					note: null,
+					source_id: null
+				};
+			case 'BALANCE_ADJUSTMENT':
+				return {
+					kind: 'BALANCE_ADJUSTMENT',
+					effective_on: today(),
+					movement_days: 0,
+					note: null,
+					source_id: null
+				};
+			default: {
+				const _exhaustive: never = kind;
+				return _exhaustive;
+			}
 		}
-		const on = today();
-		return {
-			kind: kind === 'ENCASHMENT' ? 'ENCASHMENT' : 'BALANCE_ADJUSTMENT',
-			effective_on: on,
-			movement_days: 0,
-			note: null,
-			source_id: null
-		};
 	}
 
 	/*
@@ -403,20 +241,22 @@
 	<span class="block truncate" title={summary}>{summary}</span>
 {:else}
 	<Grid class="rounded-md border border-border bg-muted/20 p-3" gap="sm" minimum="compact">
-		<label class="text-sm font-medium">
-			<Stack gap="xs">
-				{t('renderer.leave_event.event')}
-				<Combobox
-					ariaLabel={t('renderer.leave_event.event')}
-					options={KIND_OPTIONS}
-					value={current?.kind ?? null}
-					{disabled}
-					searchable={false}
-					emptyPlaceholder={t('renderer.leave_event.select_kind')}
-					onValueChange={(value) => selectKind(value)}
-				/>
-			</Stack>
-		</label>
+		{#if !timeOffOnly}
+			<label class="text-sm font-medium">
+				<Stack gap="xs">
+					{t('renderer.leave_event.event')}
+					<Combobox
+						ariaLabel={t('renderer.leave_event.event')}
+						options={KIND_OPTIONS}
+						value={current?.kind ?? null}
+						{disabled}
+						searchable={false}
+						emptyPlaceholder={t('renderer.leave_event.select_kind')}
+						onValueChange={(value) => selectKind(value)}
+					/>
+				</Stack>
+			</label>
+		{/if}
 
 		{#if current?.kind === 'TIME_OFF'}
 			<div class="col-span-full min-w-0">
@@ -424,11 +264,15 @@
 					value={current.range}
 					availability={leaveDayAvailability}
 					maximumHalfDays={availableLeaveDays == null ? null : Math.floor(availableLeaveDays * 2)}
-					persistedChargeableDays={current.chargeable_days}
+					persistedChargeableDays={preview?.chargeable_days ?? current.chargeable_days}
 					disabled={pickerDisabled}
 					disabledReason={pickerDisabledReason}
+					bind:visibleMonth={calendarMonth}
 					onValueChange={setTimeOffRange}
 				/>
+				{#if !pickerDisabled && previewIssue != null}
+					<p class="text-xs text-destructive" role="alert">{previewIssue}</p>
+				{/if}
 			</div>
 			<label class="text-sm font-medium">
 				<Stack gap="xs">

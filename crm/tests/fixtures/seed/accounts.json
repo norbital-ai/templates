@@ -1,0 +1,10 @@
+[
+	{
+		"id": "PUB-ACC-0001",
+		"external_code": "PUB-ACC-0001",
+		"name": "Public Fixture Account One",
+		"industry": "wholesale",
+		"currency": "SGD",
+		"active": true
+	}
+]

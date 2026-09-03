@@ -25,11 +25,9 @@ export default defineModel(
 			'Engine-owned capture of one loan repayment a payslip consumed. No user policy grants writes on this collection; the payroll engine writes it as part of the run that recovered the repayment.',
 		icon: 'lucide:link',
 		indexes: [
-			{ columns: ['payslip_id', 'loan_repayment_id'], unique: true },
-			// A source is consumed by at most one payslip, ever. The composite above only stops the
-			// same source appearing twice on the SAME payslip; nothing stopped a second payslip
-			// claiming it, so "paid once" rested on engine behaviour rather than on the database.
-			{ columns: ['loan_repayment_id'], unique: true }
+			// Composite only. Net-pay protection can part-recover a repayment, and the next period
+			// recaptures the same row for the remainder. Same-payslip duplicates stop here.
+			{ columns: ['payslip_id', 'loan_repayment_id'], unique: true }
 		]
 	}
 );

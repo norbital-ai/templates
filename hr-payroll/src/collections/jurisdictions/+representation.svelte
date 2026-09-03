@@ -12,6 +12,9 @@
 	import { useI18n } from '@norbital-ai/ui/i18n';
 	import type { TenantI18nKeys } from '$bolt/i18n-keys';
 	import type { RepresentationProps } from './$types.js';
+	import {
+		JURISDICTION_OPERATOR_HIDDEN_FIELDS
+	} from './operator-form.js';
 	import { CollectionForm } from '@norbital-ai/ui/collection-form';
 	import { CollectionTable } from '@norbital-ai/ui/collection-table';
 	import { Column, Cover, Grid, Inline, Stack } from '@norbital-ai/ui/layout';
@@ -31,8 +34,9 @@
 		onAfterSubmit={record ? undefined : close}
 	>
 		{#snippet children({ Field })}
-			<Field name="successor_profile_id" hidden />
-			<Field name="void_reason" hidden />
+			{#each JURISDICTION_OPERATOR_HIDDEN_FIELDS as name (name)}
+				<Field {name} hidden />
+			{/each}
 			<Stack gap="lg">
 				<Stack as="section" gap="sm">
 					<Stack gap="xs">

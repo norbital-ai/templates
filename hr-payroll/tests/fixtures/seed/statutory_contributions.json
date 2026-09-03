@@ -1,0 +1,58 @@
+[
+	{
+		"id": "aaaaaaaa-dddd-4eee-8fff-aaaaaaaaaaa1",
+		"jurisdiction_id": "22222222-2222-4222-8222-222222222222",
+		"statutory_profile_id": "22222222-2222-4222-8222-222222222222",
+		"code": "PUB-EPF",
+		"name": "Public fixture retirement fund",
+		"authority": "Public fixture — not a sealed statutory table.",
+		"payer": "BOTH",
+		"keyed_by": "WAGE",
+		"rounding": "NEAREST_CENT",
+		"relief_for": [],
+		"sequence": 1,
+		"special_rules": [],
+		"overtime_treatments": [
+			{
+				"authority": "Public fixture — overtime excluded",
+				"treatment": { "kind": "EXCLUDE" },
+				"effective_range": { "start": "2020-01-01T00:00:00.000Z", "end": null }
+			}
+		],
+		"overtime_excess_treatments": [
+			{
+				"authority": "Public fixture — overtime excluded",
+				"treatment": { "kind": "EXCLUDE" },
+				"effective_range": { "start": "2020-01-01T00:00:00.000Z", "end": null }
+			}
+		]
+	},
+	{
+		"id": "aaaaaaaa-dddd-4eee-8fff-aaaaaaaaaaa3",
+		"jurisdiction_id": "22222222-2222-4222-8222-222222222222",
+		"statutory_profile_id": "22222222-2222-4222-8222-222222222222",
+		"code": "PUB-EPF-NC",
+		"name": "Public fixture non-citizen retirement fund",
+		"authority": "Public fixture — invented non-citizen scheme, not a sealed statutory table.",
+		"payer": "BOTH",
+		"keyed_by": "WAGE",
+		"rounding": "NEAREST_CENT",
+		"relief_for": [],
+		"sequence": 2,
+		"special_rules": [],
+		"overtime_treatments": [
+			{
+				"authority": "Public fixture — overtime excluded",
+				"treatment": { "kind": "EXCLUDE" },
+				"effective_range": { "start": "2020-01-01T00:00:00.000Z", "end": null }
+			}
+		],
+		"overtime_excess_treatments": [
+			{
+				"authority": "Public fixture — overtime excluded",
+				"treatment": { "kind": "EXCLUDE" },
+				"effective_range": { "start": "2020-01-01T00:00:00.000Z", "end": null }
+			}
+		]
+	}
+]

@@ -197,7 +197,19 @@ src/
 
 ## Verification
 
-The template includes focused arithmetic and export checks. `pnpm test` runs that suite, while
+Product H-row acceptance is the isolated public-seed suite: `tests/fixtures/seed/` loaded through
+`@norbital-ai/test-utilities` (`withSelfHost` / `startSelfHostSession`). No Colony, no
+`seed_bank`, no `:5173`. See [`RFC/testing.md`](../../RFC/testing.md) I1–I3.
+
+```bash
+node --experimental-strip-types --import ./scripts/ts-source-resolve.mjs --test \
+  tests/public-seed-payroll.integration.test.ts \
+  tests/public-seed-open-month.integration.test.ts \
+  tests/public-seed-attendance.integration.test.ts \
+  tests/public-seed-roster-import.integration.test.ts
+```
+
+The template also includes focused arithmetic and export checks. `pnpm test` runs that suite, while
 `pnpm sync` compiles the workspace and emits its portable deployment artifact:
 
 ```bash
@@ -245,12 +257,12 @@ artifact a host deploys.
 - **Models** — do not change model schemas casually: each schema change produces a committed
   migration under `.norbital/migrations/`. Edit `+model.ts`, run `pnpm sync`, then review the
   migration the compiler emits.
-- **Seed** — fixture data is host-owned and lives in the repository seed bank; there is no
-  `src/+seed.ts` role, and seeding does not evolve deployed data. For an existing tenant, write the
-  next lineage entry with `pnpm exec bolt migrate --name <name>`, edit its SQL, and deploy it
-  through Colony.
-  Sensitive statutory seed (the statutory profile rows and contribution rows) stays outside
-  this template, in the repository seed bank at `seed_bank/norbital_hr/statutory/`.
+- **Seed** — tests own `tests/fixtures/seed/` (invented public ids). Host demo / reconciliation
+  still uses the private `seed_bank/norbital_hr/` tree; there is no `src/+seed.ts` role, and
+  seeding does not evolve deployed data. For an existing tenant, write the next lineage entry
+  with `pnpm exec bolt migrate --name <name>`, edit its SQL, and deploy it through Colony.
+  Sensitive statutory seed for demo tenants stays in the repository seed bank. It is not a test
+  input.
 - **Publishing** — the template pins `@norbital-ai/bolt` in its own `package.json` and lockfile.
   After a deliberate dependency move, refresh the template lock through the repository
   template-lock workflow. The templates release workflow advances

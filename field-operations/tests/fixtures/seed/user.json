@@ -1,0 +1,20 @@
+[
+	{
+		"id": "01990000-0000-7000-8002-000000000001",
+		"name": "Ada Quill",
+		"email": "ada.quill@example.test",
+		"emailVerified": true,
+		"status": "normal",
+		"tenantId": "field-ops-public-seed",
+		"team_id": "01990000-0000-7000-8001-000000000001"
+	},
+	{
+		"id": "01990000-0000-7000-8002-000000000002",
+		"name": "Ben Voss",
+		"email": "ben.voss@example.test",
+		"emailVerified": true,
+		"status": "normal",
+		"tenantId": "field-ops-public-seed",
+		"team_id": "01990000-0000-7000-8001-000000000002"
+	}
+]

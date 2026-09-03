@@ -1,0 +1,10 @@
+[
+	{
+		"id": "PUB-CON-0001",
+		"account_id": "PUB-ACC-0001",
+		"first_name": "Ada",
+		"last_name": "Fixture",
+		"email": "ada.fixture@example.test",
+		"active": true
+	}
+]

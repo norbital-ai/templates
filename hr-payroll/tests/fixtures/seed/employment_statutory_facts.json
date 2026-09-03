@@ -1,0 +1,9 @@
+[
+	{
+		"id": "aaaaaaaa-dddd-4eee-8fff-aaaaaaaaaaa5",
+		"employment_id": "cccccccc-cccc-4ccc-8ccc-ccccccccccc4",
+		"statutory_contribution_id": "aaaaaaaa-dddd-4eee-8fff-aaaaaaaaaaa3",
+		"status": { "kind": "REGISTERED", "reference_number": "PUB-NC-0004" },
+		"effective_range": { "start": "2025-06-01", "end": null }
+	}
+]

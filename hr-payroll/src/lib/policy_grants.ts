@@ -556,9 +556,22 @@ export const employeeWorkDayExistingGrant = (): Grants =>
 		approval: workDayExistingApproval
 	});
 
+/** Whether the write's candidate event is the one request an ordinary rank may raise. */
+function isLeaveTimeOffEvent(record: { readonly event?: unknown }): boolean {
+	const event = record.event;
+	if (event == null || typeof event !== 'object') return false;
+	return Reflect.get(event, 'kind') === 'TIME_OFF';
+}
+
 export const employeeLeaveRequestNewGrant = (): Grants =>
 	grantOn('leave_requests', 'mutate.new', {
-		authorize: ({ record }, api) => employmentBelongsToRequestor(record.employment_id, api),
+		// The one request an ordinary rank may raise: time off, about themselves.
+		// Encashment and a balance adjustment are controller / payroll writes —
+		// the same split `isOwnClaimEvent` draws for component entries.
+		authorize: ({ record }, api) =>
+			isLeaveTimeOffEvent(record)
+				? employmentBelongsToRequestor(record.employment_id, api)
+				: Effect.succeed(false),
 		approval: leaveApproval
 	});
 

@@ -4,11 +4,12 @@
 	"private": true,
 	"type": "module",
 	"scripts": {
-		"dr": "node ../../oss/packages/doctor/build/cli.js audit --root .",
+		"dr": "pnpm exec norbital-doctor audit --root .",
 		"format": "prettier --write .",
 		"lint": "prettier --check . && svelte-check --tsgo-experimental-api --tsconfig ./tsconfig.json",
 		"sync": "bolt sync",
-		"sync:watch": "bolt sync --watch"
+		"sync:watch": "bolt sync --watch",
+		"test": "node --experimental-strip-types --test 'tests/*.test.ts'"
 	},
 	"dependencies": {
 		"@iconify/svelte": "^5.2.2",
@@ -24,6 +25,7 @@
 	},
 	"devDependencies": {
 		"@norbital-ai/doctor": "0.0.22",
+		"@norbital-ai/test-utilities": "0.0.22",
 		"@typescript/native": "npm:typescript@7.0.2",
 		"prettier": "^3.9.6",
 		"prettier-plugin-svelte": "^4.1.1",
