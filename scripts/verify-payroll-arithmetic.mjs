@@ -1474,6 +1474,14 @@ check(
 	})[0]?.excessHours,
 	0
 );
+const vietnamDailyOt = classifyOvertimeByCalendarMonth({
+	days: [{ ...sixHourDay, hours: 6, totalWorkHours: 14 }],
+	dailyWorkLimit: null,
+	dailyOvertimeHoursLimit: 4,
+	monthlyOrdinaryOvertimeLimit: 40
+})[0];
+check('Vietnam four-hour daily overtime ceiling retains four hours', vietnamDailyOt?.retainedHours, 4);
+check('Vietnam four-hour daily overtime ceiling routes two hours to incentive', vietnamDailyOt?.excessHours, 2);
 
 // ── statutory overtime coverage, read from the jurisdiction's cited rule ────────────────────────
 // The Malaysian row as seeded from the seed bank: Employment Act 1955 First Schedule paras 1A, 2 and 3.
@@ -1844,6 +1852,37 @@ check(
 		incentiveHourlyHours: 1,
 		incentiveHourlyUnits: 3
 	}
+);
+
+const indonesiaRestOverflow = priceDay({
+	day: { ...restDay(13), dayType: 'REST_DAY' },
+	rules: [
+		{
+			...restDayRule('FROM_START_OF_DAY', 0, null, 'HOURLY_MULTIPLE', 2),
+			day_type: 'REST_DAY',
+			authority: 'PP 35/2021 Pasal 31 rest-day verification rule'
+		},
+		{
+			...restDayRule('BEYOND_NORMAL', 0, 1, 'HOURLY_MULTIPLE', 3),
+			day_type: 'REST_DAY',
+			authority: 'PP 35/2021 Pasal 31 rest-day verification rule'
+		},
+		{
+			...restDayRule('BEYOND_NORMAL', 1, 4, 'HOURLY_MULTIPLE', 4),
+			day_type: 'REST_DAY',
+			authority: 'PP 35/2021 Pasal 31 rest-day verification rule'
+		}
+	],
+	retainedHours: 13
+});
+check(
+	'Indonesia rest-day hours past the last closed band become incentive at the last multiple',
+	{
+		pricedHours: indonesiaRestOverflow.segments.reduce((total, segment) => total + segment.hours, 0),
+		incentiveHours: indonesiaRestOverflow.excess.reduce((total, row) => total + row.hours, 0),
+		incentiveUnits: indonesiaRestOverflow.excess.reduce((total, row) => total + row.units, 0)
+	},
+	{ pricedHours: 12, incentiveHours: 1, incentiveUnits: 4 }
 );
 
 // A jurisdiction that states no FROM_START_OF_DAY band pays no day's wages — Singapore's single

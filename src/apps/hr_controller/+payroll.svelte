@@ -2,7 +2,8 @@
 	import { client } from '../../lib/workspace-client.js';
 	import { Effect, Schema } from 'effect';
 	import { downloadCollectionExport } from '@norbital-ai/bolt/client';
-	import { useI18n } from '@norbital-ai/ui/i18n';
+	import { useI18n, type UiKeys } from '@norbital-ai/ui/i18n';
+	import { toast } from 'svelte-sonner';
 	import AppHeaderActions from '@norbital-ai/bolt/client/app-header-actions';
 	import type { TenantI18nKeys } from '$bolt/i18n-keys';
 	import { Combobox } from '@norbital-ai/ui/combobox';
@@ -19,7 +20,7 @@
 		todayInstant
 	} from '../../lib/ui/calendar.js';
 
-	const { t } = useI18n<TenantI18nKeys>();
+	const { t } = useI18n<TenantI18nKeys | UiKeys>();
 
 	let companyId = $state<string | null>(null);
 	const today = todayKey();
@@ -313,6 +314,19 @@
 							})
 					}
 				]}
+				deletion={{
+					label: t('component.delete_draft'),
+					description: t('component.delete_draft_description'),
+					getDisabledReason: (selectedRows) => {
+						if (selectedRows.length === 0) {
+							return t('table.pipelineSelectRows', { label: t('component.delete_draft') });
+						}
+						if (selectedRows.some((row) => row.lifecycle !== 'DRAFT')) {
+							return t('component.cannot_delete_paid');
+						}
+						return null;
+					},
+				}}
 			>
 				{#snippet columns({ Column })}
 					<Column name="period" label={t('app.payroll.period')} card="title" />

@@ -291,32 +291,48 @@ export function gatherRun(options: GatherRunOptions): Effect.Effect<GatheredRun,
 		).map((request) => {
 			const event = request.event;
 			if (event == null) refuse(`Leave request ${request.id} has no event payload.`);
-			if (event.kind === 'TIME_OFF')
-				return {
-					id: request.id,
-					employment_id: request.employment_id,
-					leave_type_id: request.leave_type_id,
-					entry_date: event.range.start.date,
-					kind: 'TAKEN',
-					days: -Math.abs(decodeNumber(event.chargeable_days ?? 0)),
-					source_id: request.id,
-					approval_id: null
-				};
-			return {
+			const base = {
 				id: request.id,
 				employment_id: request.employment_id,
 				leave_type_id: request.leave_type_id,
-				entry_date: event.effective_on,
-				kind:
-					event.kind === 'BALANCE_ADJUSTMENT'
-						? 'ADJUSTMENT'
-						: event.kind === 'ENCASHMENT'
-							? 'ENCASHMENT'
-							: 'TAKEN',
-				days: decodeNumber(event.movement_days),
-				source_id: event.source_id,
+				source_id: request.id,
 				approval_id: null
 			};
+			switch (event.kind) {
+				case 'TIME_OFF':
+					return {
+						...base,
+						entry_date: event.range.start.date,
+						through_date: event.range.end.date,
+						kind: 'TAKEN',
+						days: -Math.abs(decodeNumber(event.chargeable_days ?? 0)),
+						source_id: request.id
+					};
+				case 'BALANCE_ADJUSTMENT':
+					return {
+						...base,
+						entry_date: event.effective_on,
+						through_date: event.effective_on,
+						kind: 'ADJUSTMENT',
+						days: decodeNumber(event.movement_days),
+						source_id: event.source_id
+					};
+				case 'ENCASHMENT':
+					return {
+						...base,
+						entry_date: event.effective_on,
+						through_date: event.effective_on,
+						kind: 'ENCASHMENT',
+						days: decodeNumber(event.movement_days),
+						source_id: event.source_id
+					};
+				default: {
+					const _exhaustive: never = event;
+					refuse(
+						`Leave request ${request.id} has unrecognised event kind ${JSON.stringify(_exhaustive)}.`
+					);
+				}
+			}
 		});
 		const ledgerByEmployment = groupBy(leaveMovements, (row) => row.employment_id);
 		const workDaysByEmployment = groupBy(live(workDayRows), (row) => row.employment_id);

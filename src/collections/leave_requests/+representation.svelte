@@ -29,6 +29,8 @@
 		certificatePolicyMismatchMessage
 	} from './certificate-policy.js';
 	import { getContext } from 'svelte';
+	import { defaultTimeOffEvent } from '../../datatypes/leave_event/+definition.js';
+	import { todayKey } from '../../lib/ui/calendar.js';
 	import {
 		LEAVE_REQUEST_CREATE_SCOPE,
 		type LeaveRequestCreateScope
@@ -40,7 +42,10 @@
 	const scopedEmploymentId = $derived(createScope?.employmentId());
 	const scopedCompanyId = $derived(createScope?.companyId());
 	const formValues = $derived(
-		record ?? (scopedEmploymentId ? { employment_id: scopedEmploymentId } : undefined)
+		record ??
+			(scopedEmploymentId
+				? { employment_id: scopedEmploymentId, event: defaultTimeOffEvent(todayKey()) }
+				: undefined)
 	);
 
 	/**

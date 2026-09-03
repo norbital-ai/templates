@@ -58,6 +58,15 @@ Effect.runPromise(
 			assert.equal(flooredDailySurplus.retainedHours, 3.5);
 			assert.equal(flooredDailySurplus.excessHours, 0.5);
 
+			const vietnamDailyOt = classifyOvertimeByCalendarMonth({
+				days: [day('2026-01-06', 6, 14)],
+				dailyWorkLimit: null,
+				dailyOvertimeHoursLimit: 4,
+				monthlyOrdinaryOvertimeLimit: 40
+			})[0];
+			assert.equal(vietnamDailyOt.retainedHours, 4);
+			assert.equal(vietnamDailyOt.excessHours, 2);
+
 			const monthly = classifyOvertimeByCalendarMonth({
 				days: [
 					day('2026-01-01', 100, 108.5),
@@ -107,7 +116,7 @@ Effect.runPromise(
 				[{ hours: 1, units: 1.5, valuedAt: 'ORDINARY_HOURLY' }]
 			);
 
-			console.log('Overtime controls verified: 5 checks passed.');
+			console.log('Overtime controls verified: 6 checks passed.');
 		})
 	)
 );

@@ -1,0 +1,14 @@
+[
+	{
+		"id": "aaaaaaaa-dddd-4eee-8fff-aaaaaaaaaaa2",
+		"statutory_contribution_id": "aaaaaaaa-dddd-4eee-8fff-aaaaaaaaaaa1",
+		"selector": { "by": "WAGE", "from": 0, "to": null },
+		"award": { "kind": "PERCENT", "employee": 11, "employer": 13 }
+	},
+	{
+		"id": "aaaaaaaa-dddd-4eee-8fff-aaaaaaaaaaa4",
+		"statutory_contribution_id": "aaaaaaaa-dddd-4eee-8fff-aaaaaaaaaaa3",
+		"selector": { "by": "WAGE", "from": 0, "to": null },
+		"award": { "kind": "PERCENT", "employee": 5, "employer": 5 }
+	}
+]

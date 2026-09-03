@@ -1,0 +1,118 @@
+[
+	{
+		"id": "55555555-5555-4555-8555-555555555555",
+		"employment_id": "44444444-4444-4444-8444-444444444444",
+		"base_salary": { "value": 3451, "currency": "MYR" },
+		"pay_frequency": "MONTHLY",
+		"work_classification": "EA_COVERED",
+		"statutory_work_category": "NON_MANUAL",
+		"employment_type": "PERMANENT",
+		"job_title": "Clerk",
+		"work_pattern": {
+			"type": "PATTERNED",
+			"anchor_date": "2021-05-31",
+			"phases": [
+				{
+					"duration": { "kind": "CONTINUOUS" },
+					"day_cycle": [
+						{ "roster_code_id": "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1" },
+						{ "roster_code_id": "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1" },
+						{ "roster_code_id": "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1" },
+						{ "roster_code_id": "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1" },
+						{ "roster_code_id": "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1" },
+						{ "roster_code_id": "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1" },
+						{ "roster_code_id": "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa2" }
+					]
+				}
+			]
+		},
+		"effective_range": { "start": "2021-06-01", "end": null }
+	},
+	{
+		"id": "dddddddd-dddd-4ddd-8ddd-ddddddddddd2",
+		"employment_id": "cccccccc-cccc-4ccc-8ccc-ccccccccccc2",
+		"base_salary": { "value": 2800, "currency": "MYR" },
+		"pay_frequency": "MONTHLY",
+		"work_classification": "EA_COVERED",
+		"statutory_work_category": "NON_MANUAL",
+		"employment_type": "PERMANENT",
+		"job_title": "Clerk",
+		"work_pattern": {
+			"type": "PATTERNED",
+			"anchor_date": "2021-05-31",
+			"phases": [
+				{
+					"duration": { "kind": "CONTINUOUS" },
+					"day_cycle": [
+						{ "roster_code_id": "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1" },
+						{ "roster_code_id": "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1" },
+						{ "roster_code_id": "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1" },
+						{ "roster_code_id": "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1" },
+						{ "roster_code_id": "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1" },
+						{ "roster_code_id": "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1" },
+						{ "roster_code_id": "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa2" }
+					]
+				}
+			]
+		},
+		"effective_range": { "start": "2026-01-01", "end": null }
+	},
+	{
+		"id": "dddddddd-dddd-4ddd-8ddd-ddddddddddd3",
+		"employment_id": "cccccccc-cccc-4ccc-8ccc-ccccccccccc3",
+		"base_salary": { "value": 4100, "currency": "MYR" },
+		"pay_frequency": "MONTHLY",
+		"work_classification": "EA_COVERED",
+		"statutory_work_category": "NON_MANUAL",
+		"employment_type": "PERMANENT",
+		"job_title": "Senior clerk",
+		"work_pattern": {
+			"type": "PATTERNED",
+			"anchor_date": "2021-05-31",
+			"phases": [
+				{
+					"duration": { "kind": "CONTINUOUS" },
+					"day_cycle": [
+						{ "roster_code_id": "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1" },
+						{ "roster_code_id": "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1" },
+						{ "roster_code_id": "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1" },
+						{ "roster_code_id": "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1" },
+						{ "roster_code_id": "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1" },
+						{ "roster_code_id": "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1" },
+						{ "roster_code_id": "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa2" }
+					]
+				}
+			]
+		},
+		"effective_range": { "start": "2018-01-01", "end": null }
+	},
+	{
+		"id": "dddddddd-dddd-4ddd-8ddd-ddddddddddd4",
+		"employment_id": "cccccccc-cccc-4ccc-8ccc-ccccccccccc4",
+		"base_salary": { "value": 3200, "currency": "MYR" },
+		"pay_frequency": "MONTHLY",
+		"work_classification": "EA_COVERED",
+		"statutory_work_category": "NON_MANUAL",
+		"employment_type": "PERMANENT",
+		"job_title": "Clerk",
+		"work_pattern": {
+			"type": "PATTERNED",
+			"anchor_date": "2021-05-31",
+			"phases": [
+				{
+					"duration": { "kind": "CONTINUOUS" },
+					"day_cycle": [
+						{ "roster_code_id": "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1" },
+						{ "roster_code_id": "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1" },
+						{ "roster_code_id": "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1" },
+						{ "roster_code_id": "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1" },
+						{ "roster_code_id": "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1" },
+						{ "roster_code_id": "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1" },
+						{ "roster_code_id": "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa2" }
+					]
+				}
+			]
+		},
+		"effective_range": { "start": "2025-06-01", "end": null }
+	}
+]

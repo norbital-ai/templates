@@ -152,8 +152,10 @@
 		record == null ? undefined : payrollRunPayslipsQuery(record.id)
 	);
 	let lockArmed = $state(false);
+	let deleteArmed = $state(false);
 	let payrollRecalculationPending = $state(false);
 	let payrollFinalizationPending = $state(false);
+	let payrollDeletionPending = $state(false);
 	// Only while a count has actually come back. `?? 0` on a query still in flight would flash the
 	// refusal notice on every run, including the ones that built perfectly.
 	const payslipCount = $derived(payslipCountQuery?.current ?? null);
@@ -229,6 +231,46 @@
 		);
 	}
 
+	function deleteDraft(): void {
+		if (record == null) return;
+		const payrollRunId = record.id;
+		const period = record.period;
+		payrollDeletionPending = true;
+		Effect.runFork(
+			Effect.gen(function* () {
+				const local = yield* Effect.tryPromise({
+					try: () => client.db.payroll_runs.delete([payrollRunId]),
+					catch: (cause) => cause
+				});
+				const settlement = yield* Effect.tryPromise({
+					try: () => local.settlement.wait(),
+					catch: (cause) => cause
+				});
+				if (settlement.kind !== 'accepted' && settlement.kind !== 'rebased') {
+					return yield* Effect.fail(
+						new Error(
+							settlement.kind === 'rejected' ? settlement.message : settlement.quarantine.message
+						)
+					);
+				}
+				toast.success(t('component.draft_deleted', { period }));
+				close?.();
+			}).pipe(
+				Effect.catch((cause) =>
+					Effect.sync(() =>
+						toast.error(cause instanceof Error ? cause.message : t('component.delete_failed'))
+					)
+				),
+				Effect.ensuring(
+					Effect.sync(() => {
+						payrollDeletionPending = false;
+						deleteArmed = false;
+					})
+				)
+			)
+		);
+	}
+
 	function downloadReport(): void {
 		if (record == null) return;
 		Effect.runPromise(
@@ -289,7 +331,8 @@
 							size="sm"
 							disabled={client.db.payroll_runs.pending > 0 ||
 								payrollRecalculationPending ||
-								payrollFinalizationPending}
+								payrollFinalizationPending ||
+								payrollDeletionPending}
 							onclick={() => updateDraft('recalculate')}
 						>
 							{payrollRecalculationPending
@@ -297,10 +340,28 @@
 								: t('component.recalculate_draft')}
 						</Button>
 						<Button
+							variant={deleteArmed ? 'destructive' : 'outline'}
 							size="sm"
 							disabled={client.db.payroll_runs.pending > 0 ||
 								payrollRecalculationPending ||
-								payrollFinalizationPending}
+								payrollFinalizationPending ||
+								payrollDeletionPending}
+							onclick={() => {
+								if (!deleteArmed) {
+									deleteArmed = true;
+									return;
+								}
+								deleteDraft();
+							}}
+						>
+							{payrollDeletionPending ? t('component.deleting') : t('component.delete_draft')}
+						</Button>
+						<Button
+							size="sm"
+							disabled={client.db.payroll_runs.pending > 0 ||
+								payrollRecalculationPending ||
+								payrollFinalizationPending ||
+								payrollDeletionPending}
 							onclick={() => {
 								if (!lockArmed) {
 									lockArmed = true;

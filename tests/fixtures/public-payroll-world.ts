@@ -206,6 +206,7 @@ export function createPublicPayrollWorld(options: PublicPayrollWorldOptions = {}
 		payslips: [],
 		payslip_component_entry_inputs: [],
 		payslip_adjustments: [],
+		payslip_leave_request_inputs: [],
 		payslip_loan_repayment_inputs: []
 	};
 }

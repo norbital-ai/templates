@@ -48,7 +48,7 @@ import { pickConfiguration, type Configuration } from './configuration.js';
 import { contribute, type StatutoryFactStatus } from './contribute.js';
 import { coversDate } from './effective.js';
 import { gatherRun, type GatheredRun } from './gather.js';
-import { dailyTotalWorkLimit, measureEmployment } from './measure.js';
+import { dailyOvertimeHoursLimit, dailyTotalWorkLimit, measureEmployment } from './measure.js';
 import {
 	PAY_FREQUENCIES,
 	payPeriodsRemaining,
@@ -63,6 +63,7 @@ import {
 	blockers,
 	describeIssues,
 	validateConfiguration,
+	validateDailyOvertimeHoursLimit,
 	validateDailyWorkLimit,
 	validateOpenWorkDays,
 	validateOvertimeLimits,
@@ -79,7 +80,7 @@ import { decodeNumber } from '@norbital-ai/std/json';
  * change and leave nothing on the run to explain the difference. Bump this when the payroll
  * algorithm changes in a way a settled payslip's reader would need to know.
  */
-export const CALCULATION_VERSION = '2026-08-payslip-input-output-separation' as const;
+export const CALCULATION_VERSION = '2026-09-daily-overtime-hours-reclassification' as const;
 
 /** What one build produced, and what the run's `before` hook returns alongside its own columns. */
 type PayrollRunGraph = {
@@ -275,6 +276,15 @@ export function buildPayrollRun(prepared: PreparedRun): PayrollRunGraph {
 					employeeNumber: bundle.employment.employee_number,
 					days: measured.overtimeDays,
 					maxWorkHours: dailyWorkLimit
+				})
+			);
+		const dailyOvertimeLimit = dailyOvertimeHoursLimit(configuration);
+		if (dailyOvertimeLimit != null)
+			issues.push(
+				...validateDailyOvertimeHoursLimit({
+					employeeNumber: bundle.employment.employee_number,
+					days: measured.overtimeDays,
+					maxOvertimeHours: dailyOvertimeLimit
 				})
 			);
 

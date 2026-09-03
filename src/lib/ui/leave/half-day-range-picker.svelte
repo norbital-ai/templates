@@ -26,6 +26,7 @@
 	import type { TenantI18nKeys } from '$bolt/i18n-keys';
 	import { cn } from '@norbital-ai/ui/utils';
 	import { pointAt, pointNumber, type DayHalf, type HalfDayPoint } from '../../../lib/half-day.js';
+	import { leaveCalendarGrid } from '../../leave/calendar-grid.js';
 	import { todayKey } from '../calendar.js';
 	import { decodeNumber } from '@norbital-ai/std/json';
 
@@ -37,9 +38,11 @@
 		persistedChargeableDays?: number | null;
 		disabled?: boolean;
 		disabledReason?: string | null;
+		visibleMonth?: string;
 		onValueChange: (value: HalfDayRange) => void;
 	};
 
+	const today = todayKey();
 	let {
 		value,
 		availability = {},
@@ -47,13 +50,12 @@
 		persistedChargeableDays = null,
 		disabled = false,
 		disabledReason = null,
+		visibleMonth = $bindable(today.slice(0, 7)),
 		onValueChange
 	}: Props = $props();
 	const { t } = useI18n<TenantI18nKeys>();
 
 	const DAY_MS = 86_400_000;
-	const today = todayKey();
-	let visibleMonth = $state(today.slice(0, 7));
 	let open = $state(false);
 	let anchor = $state<HalfDayPoint | null>(null);
 	let dragging = $state(false);
@@ -197,25 +199,13 @@
 		anchor = null;
 	}
 
-	function addDays(date: string, amount: number): string {
-		return new Date((dayNumber(date) + amount) * DAY_MS).toISOString().slice(0, 10);
-	}
-
-	function monthDays(month: string): string[] {
-		const first = `${month}-01`;
-		const weekday = new Date(`${first}T00:00:00.000Z`).getUTCDay();
-		const mondayOffset = weekday === 0 ? -6 : 1 - weekday;
-		const gridStart = addDays(first, mondayOffset);
-		return Array.from({ length: 42 }, (_unused, index) => addDays(gridStart, index));
-	}
-
 	function shiftMonth(amount: number): void {
 		const date = new Date(`${visibleMonth}-01T00:00:00.000Z`);
 		date.setUTCMonth(date.getUTCMonth() + amount);
 		visibleMonth = date.toISOString().slice(0, 7);
 	}
 
-	const days = $derived(monthDays(visibleMonth));
+	const days = $derived(leaveCalendarGrid(visibleMonth));
 	const monthLabel = $derived(
 		new Intl.DateTimeFormat(undefined, { month: 'long', year: 'numeric' }).format(
 			new Date(`${visibleMonth}-01T00:00:00.000Z`)

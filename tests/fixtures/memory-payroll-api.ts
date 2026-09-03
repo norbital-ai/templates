@@ -31,6 +31,7 @@ export type PayrollWorld = {
 	readonly payslips: PayrollRow[];
 	readonly payslip_component_entry_inputs: PayrollRow[];
 	readonly payslip_adjustments: PayrollRow[];
+	readonly payslip_leave_request_inputs: PayrollRow[];
 	readonly payslip_loan_repayment_inputs: PayrollRow[];
 };
 
@@ -151,6 +152,7 @@ export function memoryPayrollApi(world: PayrollWorld) {
 			payslips: collection('payslips'),
 			payslip_component_entry_inputs: collection('payslip_component_entry_inputs'),
 			payslip_adjustments: collection('payslip_adjustments'),
+			payslip_leave_request_inputs: collection('payslip_leave_request_inputs'),
 			payslip_loan_repayment_inputs: collection('payslip_loan_repayment_inputs')
 		}
 	};

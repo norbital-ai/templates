@@ -25,7 +25,8 @@
  */
 
 import assert from 'node:assert/strict';
-import { mkdirSync } from 'node:fs';
+import { mkdirSync, mkdtempSync } from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { toError } from '@norbital-ai/std';
@@ -35,7 +36,7 @@ import { createServer } from 'vite';
 import { stubApi as tableStub } from './lib/stub-api.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const FIXTURES_DIR = path.join(root, 'tests/fixtures');
+const FIXTURES_DIR = mkdtempSync(path.join(os.tmpdir(), 'hr-payroll-workbook-import-'));
 const VALID_ROSTER_FIXTURE = path.join(FIXTURES_DIR, 'roster-import-valid.xlsx');
 const INVALID_ROSTER_FIXTURE = path.join(FIXTURES_DIR, 'roster-import-invalid.xlsx');
 

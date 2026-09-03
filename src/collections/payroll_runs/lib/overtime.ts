@@ -369,7 +369,7 @@ export type OvertimeBandIdentity = Schema.Schema.Type<typeof OvertimeBandIdentit
  * column, an export row and a payslip breakdown all need one, and it has to be the same string
  * every time or a reconciliation stops matching between two runs. The band is that identity, so
  * the code is built from it: `OT_ORDINARY_BEYOND_NORMAL_0`, `OT_REST_DAY_FROM_START_OF_DAY_0_5`,
- * and `OT_EXCESS_…` for the hours the daily total-work boundary reclassified.
+ * and `OT_EXCESS_…` for the hours a daily or monthly statutory control reclassified.
  */
 export function overtimeBandCode(
 	options: OvertimeBandIdentity & { readonly excess: boolean }
@@ -409,38 +409,61 @@ type ClassifiedDailyOvertime = {
 };
 
 /**
- * Apply Malaysian-style statutory controls in chronological calendar-month order.
+ * Apply statutory OT controls in chronological calendar-month order.
+ *
+ * Two independent daily ceilings may both be stated; the tighter retained quantity wins:
+ *
+ * - `dailyWorkLimit` is total clocked hours (Malaysia / Singapore / Taiwan's 12-hour day).
+ * - `dailyOvertimeHoursLimit` is overtime hours on an ordinary or off day (Vietnam / Indonesia's
+ *   4-hour overtime day). Rest-day and public-holiday work is excluded from that counter — the
+ *   same ordinary-only rule as the monthly cap, and the rule Indonesia states in PP 35/2021
+ *   Pasal 26(2).
  *
  * The monthly counter includes only ordinary-day overtime (OFF_DAY uses the ordinary rule). Work
  * on a rest day or public holiday is expressly excluded by the 1980 Regulations. The counter still
- * advances by the whole qualifying day, even if part of that day already exceeded the daily
- * total-work boundary, so reclassification cannot make statutory hours disappear.
+ * advances by the whole qualifying day, even if part of that day already exceeded a daily
+ * boundary, so reclassification cannot make statutory hours disappear.
  */
 export function classifyOvertimeByCalendarMonth(options: {
 	readonly days: readonly DailyOvertime[];
 	readonly dailyWorkLimit: number | null;
+	readonly dailyOvertimeHoursLimit?: number | null;
 	readonly monthlyOrdinaryOvertimeLimit: number | null;
 }): ClassifiedDailyOvertime[] {
 	const ordinaryHoursByMonth = new Map<string, number>();
+	const dailyOvertimeHoursLimit = options.dailyOvertimeHoursLimit ?? null;
 	return options.days
 		.toSorted((left, right) => left.date.localeCompare(right.date))
 		.map((day) => {
-			const dailyRetained =
+			const dailyWorkRetained =
 				options.dailyWorkLimit == null
 					? day.hours
 					: Math.max(
 							0,
 							day.hours - floorHalfHour(Math.max(0, day.totalWorkHours - options.dailyWorkLimit))
 						);
+			const ordinaryDay = ruleDayType(day.dayType) === 'ORDINARY';
+			const dailyOvertimeRetained =
+				dailyOvertimeHoursLimit == null || !ordinaryDay
+					? day.hours
+					: Math.max(
+							0,
+							day.hours - floorHalfHour(Math.max(0, day.hours - dailyOvertimeHoursLimit))
+						);
 			let monthlyRetained = day.hours;
-			if (options.monthlyOrdinaryOvertimeLimit != null && ruleDayType(day.dayType) === 'ORDINARY') {
+			if (options.monthlyOrdinaryOvertimeLimit != null && ordinaryDay) {
 				const month = monthKey(day.date);
 				const before = ordinaryHoursByMonth.get(month) ?? 0;
 				const clampToDay = EffectNumber.clamp({ minimum: 0, maximum: day.hours });
 				monthlyRetained = clampToDay(options.monthlyOrdinaryOvertimeLimit - before);
 				ordinaryHoursByMonth.set(month, before + day.hours);
 			}
-			const retainedHours = Math.min(day.hours, dailyRetained, monthlyRetained);
+			const retainedHours = Math.min(
+				day.hours,
+				dailyWorkRetained,
+				dailyOvertimeRetained,
+				monthlyRetained
+			);
 			return {
 				day,
 				retainedHours,
@@ -516,7 +539,7 @@ function spreadAcrossBands(
 	hours: number,
 	rules: readonly ResolvedRule[],
 	offset: number
-): { rule: ResolvedRule; hours: number }[] {
+): { spread: { rule: ResolvedRule; hours: number }[]; overflowHours: number } {
 	const spread: { rule: ResolvedRule; hours: number }[] = [];
 	let remaining = hours;
 	let cursor = offset;
@@ -530,12 +553,7 @@ function spreadAcrossBands(
 		remaining -= inBand;
 		cursor += inBand;
 	}
-	if (remaining > 0.0001)
-		throw new Error(
-			`${remaining.toFixed(2)} overtime hours fall outside every band. The last band of a day ` +
-				'type must be open-ended, or hours the employee worked go unpaid.'
-		);
-	return spread;
+	return { spread, overflowHours: remaining > 0.0001 ? remaining : 0 };
 }
 
 /**
@@ -544,6 +562,10 @@ function spreadAcrossBands(
  * Daily and calendar-month controls may split the statutory award between overtime and an
  * incentive component. The legal rate ladder prices the full day first; only the value difference
  * beyond the retained hours is reclassified, never discarded.
+ *
+ * Hours that fall past the last closed band — Indonesia's rest-day / public-holiday ladder stops
+ * four hours beyond the normal day — are the same kind of surplus: valued at the last stated
+ * multiple and routed to incentive OT, not dropped and not left unpaid.
  */
 export function priceDay(options: {
 	readonly day: DailyOvertime;
@@ -565,7 +587,30 @@ export function priceDay(options: {
 	const dayWageRules = rulesFor(options.rules, dayType, 'FROM_START_OF_DAY');
 	const usesDayWage = dayWageRules.length > 0;
 
-	const statutorySegments = (hours: number): PricedSegment[] => {
+	const overflowOf = (overflowHours: number): ExcessHours | null => {
+		if (overflowHours <= 0) return null;
+		const last = beyondNormal[beyondNormal.length - 1];
+		if (last == null)
+			throw new Error(
+				`${overflowHours.toFixed(2)} overtime hours fall outside every band. The last band of a day ` +
+					'type must be open-ended, or hours the employee worked go unpaid.'
+			);
+		return {
+			date: options.day.date,
+			workDayId: options.day.workDayId,
+			dayType,
+			measure: last.measure,
+			bandFrom: last.from,
+			hours: overflowHours,
+			units:
+				last.award === 'DAY_WAGE_MULTIPLE' ? last.multiple : overflowHours * last.multiple,
+			valuedAt: last.award === 'DAY_WAGE_MULTIPLE' ? 'ORDINARY_DAY_WAGE' : 'ORDINARY_HOURLY'
+		};
+	};
+
+	const statutorySegments = (
+		hours: number
+	): { segments: PricedSegment[]; overflow: ExcessHours | null } => {
 		const withinNormalDay = usesDayWage ? Math.min(hours, options.day.normalHours) : 0;
 		const hourlyHours = hours - withinNormalDay;
 		const segments: PricedSegment[] = [];
@@ -594,7 +639,8 @@ export function priceDay(options: {
 
 		// The `BEYOND_NORMAL` ladder is measured in hours beyond the normal day, so it always starts
 		// at zero: the normal day has already been valued by the day-wage ladder where one exists.
-		for (const slice of spreadAcrossBands(hourlyHours, beyondNormal, 0)) {
+		const { spread, overflowHours } = spreadAcrossBands(hourlyHours, beyondNormal, 0);
+		for (const slice of spread) {
 			segments.push({
 				rule: slice.rule.row,
 				dayType,
@@ -607,22 +653,23 @@ export function priceDay(options: {
 				workDayId: options.day.workDayId
 			});
 		}
-		return segments;
+		return { segments, overflow: overflowOf(overflowHours) };
 	};
 
 	const full = statutorySegments(options.day.hours);
 	const clampHours = EffectNumber.clamp({ minimum: 0, maximum: options.day.hours });
-	const keptHours = clampHours(options.retainedHours);
-	if (keptHours === options.day.hours) return { segments: full, excess: [] };
+	const retainedHours = clampHours(options.retainedHours);
+	if (retainedHours === options.day.hours && full.overflow == null)
+		return { segments: full.segments, excess: [] };
 
 	// Classification happens after statutory pricing, through the same legal ladder.
-	const kept = statutorySegments(keptHours);
+	const kept = retainedHours === options.day.hours ? full : statutorySegments(retainedHours);
 	const excess: ExcessHours[] = [];
 
-	const fullDayWage = full.find((segment) => segment.award === 'DAY_WAGE_MULTIPLE');
+	const fullDayWage = full.segments.find((segment) => segment.award === 'DAY_WAGE_MULTIPLE');
 	if (fullDayWage) {
 		const keptDayWage =
-			kept.find((segment) => segment.award === 'DAY_WAGE_MULTIPLE')?.multiple ?? 0;
+			kept.segments.find((segment) => segment.award === 'DAY_WAGE_MULTIPLE')?.multiple ?? 0;
 		const additionalMultiple = fullDayWage.multiple - keptDayWage;
 		if (additionalMultiple > 0) {
 			excess.push({
@@ -633,7 +680,7 @@ export function priceDay(options: {
 				bandFrom: fullDayWage.bandFrom,
 				hours:
 					Math.min(options.day.hours, options.day.normalHours) -
-					Math.min(keptHours, options.day.normalHours),
+					Math.min(retainedHours, options.day.normalHours),
 				units: additionalMultiple,
 				valuedAt: 'ORDINARY_DAY_WAGE'
 			});
@@ -641,10 +688,10 @@ export function priceDay(options: {
 	}
 
 	// Two rules are the same when every member that prices an hour matches — one rule, one rate.
-	for (const fullHourly of full.filter((segment) => segment.award === 'HOURLY_MULTIPLE')) {
-		const keptHours =
-			kept.find((segment) => ruleEquivalence(segment.rule, fullHourly.rule))?.hours ?? 0;
-		const movedHours = fullHourly.hours - keptHours;
+	for (const fullHourly of full.segments.filter((segment) => segment.award === 'HOURLY_MULTIPLE')) {
+		const keptInBand =
+			kept.segments.find((segment) => ruleEquivalence(segment.rule, fullHourly.rule))?.hours ?? 0;
+		const movedHours = fullHourly.hours - keptInBand;
 		if (movedHours <= 0) continue;
 		excess.push({
 			date: options.day.date,
@@ -657,5 +704,6 @@ export function priceDay(options: {
 			valuedAt: 'ORDINARY_HOURLY'
 		});
 	}
-	return { segments: kept, excess };
+	if (full.overflow) excess.push(full.overflow);
+	return { segments: kept.segments, excess };
 }

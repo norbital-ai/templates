@@ -1,0 +1,29 @@
+[
+	{
+		"id": "88888888-8888-4888-8888-888888888888",
+		"employment_id": "44444444-4444-4444-8444-444444444444",
+		"pay_component_id": "77777777-7777-4777-8777-777777777777",
+		"amount": 310,
+		"event_date": "2026-01-01",
+		"effective_range": { "start": "2026-01-01", "end": "2026-03-31" },
+		"event": { "kind": "ALLOWANCE" }
+	},
+	{
+		"id": "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeee2",
+		"employment_id": "cccccccc-cccc-4ccc-8ccc-ccccccccccc2",
+		"pay_component_id": "77777777-7777-4777-8777-777777777777",
+		"amount": 200,
+		"event_date": "2026-01-20",
+		"effective_range": { "start": "2026-01-20", "end": "2026-03-31" },
+		"event": { "kind": "ALLOWANCE" }
+	},
+	{
+		"id": "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeee3",
+		"employment_id": "cccccccc-cccc-4ccc-8ccc-ccccccccccc3",
+		"pay_component_id": "77777777-7777-4777-8777-777777777777",
+		"amount": 250,
+		"event_date": "2026-01-01",
+		"effective_range": { "start": "2026-01-01", "end": "2026-03-31" },
+		"event": { "kind": "ALLOWANCE" }
+	}
+]

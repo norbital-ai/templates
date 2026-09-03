@@ -1,0 +1,16 @@
+[
+	{
+		"id": "ffffffff-ffff-4fff-8fff-fffffffffff2",
+		"employment_id": "44444444-4444-4444-8444-444444444444",
+		"leave_type_id": "ffffffff-ffff-4fff-8fff-fffffffffff1",
+		"event": {
+			"kind": "TIME_OFF",
+			"range": {
+				"start": { "date": "2026-04-16", "half": "FIRST" },
+				"end": { "date": "2026-04-16", "half": "SECOND" }
+			},
+			"chargeable_days": 1,
+			"reason": "Public fixture annual day"
+		}
+	}
+]

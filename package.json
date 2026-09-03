@@ -5,13 +5,13 @@
 	"private": true,
 	"type": "module",
 	"scripts": {
-		"dr": "node ../../oss/packages/doctor/build/cli.js audit --root .",
+		"dr": "pnpm exec norbital-doctor audit --root .",
 		"format": "prettier --write .",
 		"generate:import-templates": "node scripts/generate-import-templates.mjs",
 		"lint": "prettier --check . && svelte-check --tsgo-experimental-api --tsconfig ./tsconfig.json",
 		"sync": "bolt sync",
 		"sync:watch": "bolt sync --watch",
-		"test": "node scripts/verify-overtime-controls.mjs && node scripts/verify-payroll-xlsx.mjs && node scripts/verify-payroll-export-data.mjs && node scripts/verify-workbook-import.mjs && node scripts/verify-payroll-arithmetic.mjs && node scripts/verify-fixture-shapes.mjs && node --experimental-strip-types --import ./scripts/ts-source-resolve.mjs --test 'tests/**/*.test.ts'"
+		"test": "node scripts/verify-overtime-controls.mjs && node scripts/verify-payroll-xlsx.mjs && node scripts/verify-payroll-export-data.mjs && node scripts/verify-workbook-import.mjs && node scripts/verify-payroll-arithmetic.mjs && node scripts/verify-fixture-shapes.mjs && node --experimental-strip-types --import ./scripts/ts-source-resolve.mjs --test 'tests/*.test.ts'"
 	},
 	"dependencies": {
 		"@iconify/svelte": "^5.2.2",
@@ -30,7 +30,9 @@
 	},
 	"devDependencies": {
 		"@norbital-ai/bolt-server": "0.0.22",
+		"@norbital-ai/test-utilities": "0.0.22",
 		"@norbital-ai/doctor": "0.0.22",
+		"playwright-core": "1.55.1",
 		"@types/node": "^26.4.0",
 		"@typescript/native": "npm:typescript@7.0.2",
 		"prettier": "^3.9.6",

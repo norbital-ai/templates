@@ -1,0 +1,28 @@
+[
+	{
+		"id": "22222222-2222-4222-8222-222222222222",
+		"code": "PUB",
+		"name": "Public fixture profile",
+		"lifecycle": "SEALED",
+		"currency": "MYR",
+		"tax_year_start_month": 1,
+		"proration": { "by": "CALENDAR_DAYS" },
+		"ordinary_rate_basis": "DAYS_PER_MONTH",
+		"ordinary_rate_divisor": 26,
+		"regime": {
+			"overtime_coverage": null,
+			"overtime_rules": [],
+			"overtime_limits": []
+		},
+		"statutory_leave": [
+			{
+				"kind": "ANNUAL",
+				"ladder": [{ "band_from": 0, "days": 8 }],
+				"per_child": null,
+				"max_days": null,
+				"authority": "Public fixture — not a sealed statutory table."
+			}
+		],
+		"effective_range": { "start": "2020-01-01", "end": null }
+	}
+]

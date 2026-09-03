@@ -1,0 +1,38 @@
+[
+	{
+		"id": "33333333-3333-4333-8333-333333333333",
+		"name": "Public Fixture Employee",
+		"date_of_birth": "1992-01-04",
+		"gender": "FEMALE",
+		"marital_status": "SINGLE",
+		"spouse_status": "NONE",
+		"dependents_count": 0
+	},
+	{
+		"id": "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbb2",
+		"name": "Public Late Joiner",
+		"date_of_birth": "1988-03-12",
+		"gender": "MALE",
+		"marital_status": "SINGLE",
+		"spouse_status": "NONE",
+		"dependents_count": 0
+	},
+	{
+		"id": "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbb3",
+		"name": "Public Senior Employee",
+		"date_of_birth": "1964-06-15",
+		"gender": "FEMALE",
+		"marital_status": "MARRIED",
+		"spouse_status": "WITHOUT_INCOME",
+		"dependents_count": 0
+	},
+	{
+		"id": "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbb4",
+		"name": "Public Non-Citizen Employee",
+		"date_of_birth": "1990-09-09",
+		"gender": "MALE",
+		"marital_status": "SINGLE",
+		"spouse_status": "NONE",
+		"dependents_count": 0
+	}
+]
