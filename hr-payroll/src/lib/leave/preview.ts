@@ -27,10 +27,10 @@ import { calendarDaysThrough, leaveCalendarGridBounds } from './calendar-grid.js
  * function on write. Both gather person-scoped rows and derive; nothing stores a remaining balance.
  */
 
-export const LEAVE_PREVIEW_QUERY_LIMIT = 20_000;
+const LEAVE_PREVIEW_QUERY_LIMIT = 20_000;
 
 const dayHalfSchema = Schema.Literals(['FIRST', 'SECOND']);
-export const leavePreviewRangeSchema = Schema.Struct({
+const leavePreviewRangeSchema = Schema.Struct({
 	start: Schema.Struct({ date: calendarDay, half: dayHalfSchema }),
 	end: Schema.Struct({ date: calendarDay, half: dayHalfSchema })
 });
@@ -46,7 +46,7 @@ export const previewLeaveInputSchema = Schema.Struct({
 });
 export type PreviewLeaveInput = Schema.Schema.Type<typeof previewLeaveInputSchema>;
 
-export const leavePreviewIssueCodes = [
+const leavePreviewIssueCodes = [
 	'RANGE_INVERTED',
 	'BEFORE_HIRE',
 	'AFTER_EXIT',
@@ -62,14 +62,14 @@ export const leavePreviewIssueCodes = [
 	'WINDOW_REQUIRED',
 	'PAGE_TRUNCATED'
 ] as const;
-export type LeavePreviewIssueCode = (typeof leavePreviewIssueCodes)[number];
+type LeavePreviewIssueCode = (typeof leavePreviewIssueCodes)[number];
 
-export type LeavePreviewIssue = {
+type LeavePreviewIssue = {
 	readonly code: LeavePreviewIssueCode;
 	readonly message: string;
 };
 
-export const leaveDayReasonCodes = [
+const leaveDayReasonCodes = [
 	'HOLIDAY',
 	'REST_OR_OFF',
 	'OTHER_LEAVE',
@@ -79,7 +79,7 @@ export const leaveDayReasonCodes = [
 	'AFTER_EXIT',
 	'MISSING_ROSTER_CODE'
 ] as const;
-export type LeaveDayReasonCode = (typeof leaveDayReasonCodes)[number];
+type LeaveDayReasonCode = (typeof leaveDayReasonCodes)[number];
 
 export type LeaveDayPreview = {
 	readonly eligible: boolean;
@@ -160,7 +160,7 @@ export type LeavePreviewApi = {
 	};
 };
 
-export type LeavePreviewFacts = {
+type LeavePreviewFacts = {
 	readonly employment: {
 		readonly id: string;
 		readonly company_id: string;
@@ -596,7 +596,7 @@ export function evaluateLeavePreview(
 	};
 }
 
-export function loadLeavePreviewFacts(
+function loadLeavePreviewFacts(
 	api: LeavePreviewApi,
 	input: PreviewLeaveInput
 ): Effect.Effect<LeavePreviewFacts> {

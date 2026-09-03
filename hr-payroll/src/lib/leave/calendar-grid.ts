@@ -8,7 +8,7 @@
 const DAY_MS = 86_400_000;
 const GRID_DAYS = 42;
 
-export function addCalendarDays(date: string, amount: number): string {
+function addCalendarDays(date: string, amount: number): string {
 	return new Date(Date.parse(`${date}T00:00:00.000Z`) + amount * DAY_MS).toISOString().slice(0, 10);
 }
 

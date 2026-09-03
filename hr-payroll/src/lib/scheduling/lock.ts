@@ -69,10 +69,7 @@ export function payrollWindows(runs: readonly PayrollRunLike[]): PayrollWindow[]
 }
 
 /** Which window, if any, covers a date. The first match wins; runs never overlap by construction. */
-export function windowForDate(
-	windows: readonly PayrollWindow[],
-	date: string
-): PayrollWindow | null {
+function windowForDate(windows: readonly PayrollWindow[], date: string): PayrollWindow | null {
 	return windows.find((window) => date >= window.start && date <= window.end) ?? null;
 }
 
