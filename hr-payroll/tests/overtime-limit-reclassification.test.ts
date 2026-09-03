@@ -336,7 +336,12 @@ test('Indonesia rest-day hours past the last closed band become incentive, not a
 		retainedHours: 13
 	});
 	assert.deepEqual(
-		priced.segments.map((segment) => [segment.measure, segment.bandFrom, segment.hours, segment.multiple]),
+		priced.segments.map((segment) => [
+			segment.measure,
+			segment.bandFrom,
+			segment.hours,
+			segment.multiple
+		]),
 		[
 			['FROM_START_OF_DAY', 0, 8, 2],
 			['BEYOND_NORMAL', 0, 1, 3],

@@ -3,7 +3,8 @@ import {
 	authoredSeedStages as stagesFromManifest,
 	jsonSqlParameter,
 	requireReleaseBundle,
-	startSelfHostSession
+	startSelfHostSession,
+	type WithSelfHostInput
 } from '@norbital-ai/test-utilities';
 
 /** Kept in lockstep with `tests/fixtures/seed/` invented ids. */
@@ -32,7 +33,11 @@ export const publicSeedDirectory = fileURLToPath(new URL('../fixtures/seed/', im
 
 export const startPublicSeedHost = async (
 	label: string,
-	options?: { readonly host?: string }
+	options?: {
+		readonly host?: string;
+		readonly ai?: WithSelfHostInput['ai'];
+		readonly files?: boolean;
+	}
 ) => {
 	const { bundlePath, schemaFingerprint } = requireReleaseBundle(artifactDirectory, [
 		'ai',
@@ -46,6 +51,8 @@ export const startPublicSeedHost = async (
 		tenantId: slug,
 		secretsKey: `${slug}-secrets-key`,
 		...(options?.host !== undefined ? { host: options.host } : {}),
+		...(options?.ai !== undefined ? { ai: options.ai } : {}),
+		...(options?.files === true ? { files: true } : {}),
 		seed: {
 			stages,
 			rows: publicSeedDirectory,
@@ -61,6 +68,7 @@ export const startPublicSeedHost = async (
 		schemaFingerprint,
 		stages,
 		query: session.query,
+		files: session.files,
 		stop: session.stop
 	};
 };

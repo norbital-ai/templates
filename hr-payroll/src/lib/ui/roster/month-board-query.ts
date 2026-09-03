@@ -5,7 +5,6 @@
  * cardinality keep a smaller authored bound.
  */
 export const MONTH_BOARD_QUERY_LIMITS = {
-	companies: 500,
 	employments: 1_000,
 	employees: 1_000,
 	rosterCodes: 500,
@@ -73,7 +72,6 @@ const ACTIVE_EMPLOYMENT_SOURCES = [
 ] as const satisfies readonly MonthBoardQuerySource[];
 
 const NORMAL_SOURCES = [
-	'companies',
 	...COMPANY_SOURCES,
 	...ACTIVE_EMPLOYMENT_SOURCES,
 	'settlementClaims'
@@ -146,7 +144,7 @@ export const MONTH_BOARD_FILTERED_WORK_DAY_COLUMNS = monthBoardWorkDayLiveColumn
  * eye is intentionally absent from the source graph: it filters the already-built person-day map.
  */
 export function monthBoardQueryReceipt(input: MonthBoardQueryReceiptInput): MonthBoardQueryReceipt {
-	const activeSources: MonthBoardQuerySource[] = ['companies'];
+	const activeSources: MonthBoardQuerySource[] = [];
 	if (input.companySelected) activeSources.push(...COMPANY_SOURCES);
 	if (input.companySelected && input.employmentsLoaded && input.activeEmploymentCount > 0) {
 		activeSources.push(...ACTIVE_EMPLOYMENT_SOURCES);

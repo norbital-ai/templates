@@ -52,17 +52,17 @@ jobs:
 
       - name: Resolve projected revisions
         run: |
-          node scripts/project-templates.mjs \
+          node --experimental-strip-types scripts/ci.ts publish \
             --source-revision "$GITHUB_SHA" \
             --repository "$SOURCE_REPOSITORY_URL" \
-            --output dist/template-revisions.json
+            --output "$RUNNER_TEMP/template-revisions.json"
         env:
           SOURCE_REPOSITORY_URL: ${{ github.server_url }}/${{ github.repository }}.git
 
       # Sync the exact standalone projections before any public ref moves. A failed compile leaves
       # every existing template ref usable.
       - name: Validate standalone projections
-        run: node scripts/validate-template-projections.mjs
+        run: node --experimental-strip-types scripts/ci.ts verify
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_REGISTRY_TOKEN || secrets.GITHUB_TOKEN }}
 
@@ -70,7 +70,7 @@ jobs:
       # standalone compile and lint gates. Preview builds the exact selected commit on demand.
       - name: Publish root template refs
         run: |
-          node scripts/project-templates.mjs \
+          node --experimental-strip-types scripts/ci.ts publish \
             --source-revision "$GITHUB_SHA" \
             --push origin
 
@@ -78,6 +78,6 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: template-revisions-${{ github.sha }}
-          path: dist/template-revisions.json
+          path: ${{ runner.temp }}/template-revisions.json
           if-no-files-found: error
           retention-days: 30

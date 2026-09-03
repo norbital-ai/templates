@@ -9,24 +9,16 @@
 	},
 	"scripts": {
 		"check": "pnpm templates:check && pnpm test && pnpm format:check && pnpm templates:lock:check && pnpm templates:verify",
-		"dr": "node scripts/for-each-template.mjs dr",
 		"format": "prettier --write .",
 		"format:check": "prettier --check .",
-		"runtime:smoke": "node scripts/smoke-runtime-bundle.mjs",
-		"templates:build": "node scripts/sync-templates.mjs",
-		"templates:check": "node scripts/project-templates.mjs --check",
-		"templates:install": "node scripts/for-each-template.mjs install",
-		"templates:lint": "node scripts/for-each-template.mjs lint",
-		"templates:lock": "node scripts/lock-templates.mjs",
-		"templates:lock:check": "node scripts/lock-templates.mjs --check",
-		"templates:lock:verify": "node scripts/lock-templates.mjs --check --verify-install",
-		"templates:project": "node scripts/project-templates.mjs --update-local --output .tmp/template-revisions.json",
-		"templates:sync": "node scripts/sync-templates.mjs",
-		"templates:verify": "node scripts/validate-template-projections.mjs",
-		"test": "node --test scripts/tests/*.test.mjs"
+		"templates:check": "node --experimental-strip-types scripts/ci.ts check",
+		"templates:lock": "node --experimental-strip-types scripts/ci.ts lock",
+		"templates:lock:check": "node --experimental-strip-types scripts/ci.ts lock --check",
+		"templates:lock:verify": "node --experimental-strip-types scripts/ci.ts lock --check --verify-install",
+		"templates:verify": "node --experimental-strip-types scripts/ci.ts verify",
+		"test": "node --experimental-strip-types --test scripts/ci.test.ts"
 	},
 	"devDependencies": {
-		"effect": "4.0.0-rc.111",
 		"prettier": "^3.9.6",
 		"prettier-plugin-svelte": "^4.1.1",
 		"svelte": "^5.56.10"

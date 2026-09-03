@@ -192,7 +192,11 @@ export const peopleGrants = (
 		grantsOn('employees', actions),
 		grantsOn('employments', actions),
 		grantsOn('employment_terms', actions),
-		employmentStatutoryFactGrants(...actions)
+		employmentStatutoryFactGrants(...actions),
+		// Child facts are what statutory leave floors scale on. `preview_leave` and the leave-request
+		// write hook both read them; a policy that can create leave without this read turns that
+		// preview into AccessDenied instead of a picker.
+		...(actions.includes('read') ? [grantsOn('employee_children', ['read'])] : [])
 	);
 
 export const payrollGrants = (...actions: ReadonlyArray<'read'>): Grants =>

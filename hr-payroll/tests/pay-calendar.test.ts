@@ -12,10 +12,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { daysBetween, monthBounds } from '../src/collections/payroll_runs/lib/dates.ts';
-import {
-	payPeriodsRemaining,
-	resolveWindow
-} from '../src/collections/payroll_runs/lib/period.ts';
+import { payPeriodsRemaining, resolveWindow } from '../src/collections/payroll_runs/lib/period.ts';
 
 /** Omni Plus System Philippines: monthly 21st→20th paid on the 30th, semi-monthly 1–15 and 16–end. */
 const OPSPH = {

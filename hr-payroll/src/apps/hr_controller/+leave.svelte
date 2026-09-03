@@ -8,7 +8,12 @@
 	import type { WorkspaceRow } from '$bolt/types.js';
 	import { Tabs, type TabConfig } from '@norbital-ai/ui/tabs';
 	import { CollectionTable } from '@norbital-ai/ui/collection-table';
-	import { Combobox } from '@norbital-ai/ui/combobox';
+	import CompanyScopeBanner from './CompanyScopeBanner.svelte';
+	import {
+		activeCompanyId as activeCompanyIdOf,
+		companiesError as companiesErrorOf,
+		companiesUnknown as companiesUnknownOf
+	} from './company-scope.svelte.js';
 	import { Bound, Cover, Inline, Scroll } from '@norbital-ai/ui/layout';
 	import { Spinner } from '@norbital-ai/ui/spinner';
 	import {
@@ -22,34 +27,9 @@
 
 	const { t } = useI18n<TenantI18nKeys>();
 
-	let requestedCompanyId = $state<string | null>(null);
-
-	/**
-	 * The leave-type catalogue opens on the entitlements of the selected legal entity. The
-	 * legal-entity selector is the page's scope picker, not a listing, and it has to default to an
-	 * entity that still exists.
-	 */
-	const companiesQuery = $derived(
-		client.db.companies.findMany({
-			where: { approval_id: { isNull: true } },
-			orderBy: { name: 'asc' },
-			limit: 500
-		})
-	);
-	const companies = $derived(companiesQuery.current ?? []);
-	const companiesUnknown = $derived(companiesQuery.loading && companiesQuery.current === undefined);
-	const companyOptions = $derived(
-		companies.map((c) => ({
-			value: c.id,
-			label: c.name,
-			search_term: `${c.name} ${c.registration_number ?? ''}`
-		}))
-	);
-	const selectedCompanyId = $derived(
-		companies.some((company) => company.id === requestedCompanyId)
-			? requestedCompanyId
-			: (companies[0]?.id ?? null)
-	);
+	const companiesUnknown = $derived(companiesUnknownOf());
+	const companiesError = $derived(companiesErrorOf());
+	const selectedCompanyId = $derived(activeCompanyIdOf());
 	/**
 	 * The leave requests the requests table renders, read once for their ids so the settlement
 	 * claims over them can be scoped (the table owns its own query, so this read is the lock's half
@@ -130,32 +110,14 @@
 </svelte:head>
 
 {#snippet companyScopeActions()}
-	<Combobox
-		ariaLabel={t('component.legal_entity')}
-		options={companyOptions}
-		value={selectedCompanyId}
-		onValueChange={(value) => {
-			if (typeof value === 'string') {
-				requestedCompanyId = value;
-				return;
-			}
-			requestedCompanyId = companies[0]?.id ?? null;
-		}}
-		emptyPlaceholder={t('component.select_legal_entity')}
-		searchPlaceholder={t('component.search_companies')}
-		clientConfig={{
-			isLoading: companiesQuery.loading,
-			error: companiesQuery.error?.message ?? null
-		}}
-		class="min-w-[16rem]"
-	/>
+	<CompanyScopeBanner />
 {/snippet}
 
 {#snippet overview()}
 	<Bound size="full">
 		<Scroll name="Leave overview">
-			{#if companiesQuery.error && companiesQuery.current === undefined}
-				<p class="py-8 text-center text-sm text-destructive">{companiesQuery.error.message}</p>
+			{#if companiesError}
+				<p class="py-8 text-center text-sm text-destructive">{companiesError.message}</p>
 			{:else if companiesUnknown}
 				<Inline
 					justify="center"
@@ -164,7 +126,7 @@
 					class="min-h-48 text-sm text-muted-foreground"
 				>
 					<Spinner class="size-4" />
-					<span>{t('app.leave.loading_company_scope')}</span>
+					<span>{t('app.hr_controller.loading_scope')}</span>
 				</Inline>
 			{:else if selectedCompanyId == null}
 				<p class="text-sm text-muted-foreground">{t('app.leave.empty_overview')}</p>
@@ -178,12 +140,12 @@
 {/snippet}
 
 {#snippet requests()}
-	{#if companiesQuery.error && companiesQuery.current === undefined}
-		<p class="py-8 text-center text-sm text-destructive">{companiesQuery.error.message}</p>
+	{#if companiesError}
+		<p class="py-8 text-center text-sm text-destructive">{companiesError.message}</p>
 	{:else if companiesUnknown}
 		<Inline justify="center" align="center" gap="sm" class="min-h-48 text-sm text-muted-foreground">
 			<Spinner class="size-4" />
-			<span>{t('app.leave.loading_company_scope')}</span>
+			<span>{t('app.hr_controller.loading_scope')}</span>
 		</Inline>
 	{:else if selectedCompanyId == null}
 		<p class="text-sm text-muted-foreground">{t('app.leave.empty_requests')}</p>
@@ -251,12 +213,12 @@
 {/snippet}
 
 {#snippet types()}
-	{#if companiesQuery.error && companiesQuery.current === undefined}
-		<p class="py-8 text-center text-sm text-destructive">{companiesQuery.error.message}</p>
+	{#if companiesError}
+		<p class="py-8 text-center text-sm text-destructive">{companiesError.message}</p>
 	{:else if companiesUnknown}
 		<Inline justify="center" align="center" gap="sm" class="min-h-48 text-sm text-muted-foreground">
 			<Spinner class="size-4" />
-			<span>{t('app.leave.loading_company_scope')}</span>
+			<span>{t('app.hr_controller.loading_scope')}</span>
 		</Inline>
 	{:else if selectedCompanyId == null}
 		<p class="text-sm text-muted-foreground">{t('app.leave.empty_types')}</p>

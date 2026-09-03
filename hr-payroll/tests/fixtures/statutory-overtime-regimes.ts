@@ -102,7 +102,8 @@ export const VN_OVERTIME_LIMITS = [
 		measures: 'OVERTIME_HOURS',
 		max_hours: 4,
 		on_exceed: 'WARN',
-		authority: 'Labour Code 2019 art.107(2)(b) — overtime shall not exceed 50% of the normal working hours in one day'
+		authority:
+			'Labour Code 2019 art.107(2)(b) — overtime shall not exceed 50% of the normal working hours in one day'
 	},
 	{
 		period: 'MONTH',

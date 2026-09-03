@@ -602,8 +602,7 @@ export function priceDay(options: {
 			measure: last.measure,
 			bandFrom: last.from,
 			hours: overflowHours,
-			units:
-				last.award === 'DAY_WAGE_MULTIPLE' ? last.multiple : overflowHours * last.multiple,
+			units: last.award === 'DAY_WAGE_MULTIPLE' ? last.multiple : overflowHours * last.multiple,
 			valuedAt: last.award === 'DAY_WAGE_MULTIPLE' ? 'ORDINARY_DAY_WAGE' : 'ORDINARY_HOURLY'
 		};
 	};

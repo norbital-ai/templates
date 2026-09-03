@@ -8,42 +8,19 @@
 	import type { WorkspaceRow } from '$bolt/types.js';
 	import { Tabs, type TabConfig } from '@norbital-ai/ui/tabs';
 	import { CollectionTable } from '@norbital-ai/ui/collection-table';
-	import { Combobox } from '@norbital-ai/ui/combobox';
+	import CompanyScopeBanner from './CompanyScopeBanner.svelte';
+	import {
+		activeCompanyId as activeCompanyIdOf,
+		companiesUnknown as companiesUnknownOf
+	} from './company-scope.svelte.js';
 	import { Bound, Cover, Scroll } from '@norbital-ai/ui/layout';
 	import ClaimSeasonality from '../../lib/ui/pay-components/claim-seasonality.svelte';
-	import { inForceTodayFilter, todayInstant } from '../../lib/ui/calendar.js';
+	import { inForceTodayFilter } from '../../lib/ui/calendar.js';
 	import { sourceLock, sourceLockRecordMetadata } from '../../lib/scheduling/lock.js';
 
 	const { t } = useI18n<TenantI18nKeys>();
-
-	let companyId = $state<string | null>(null);
-	const activeRange = { effective_range: { contains_date: todayInstant() } } as const;
-
-	/**
-	 * The catalogue opens on the components in force today, as a filter chip the operator can drop to
-	 * reach superseded versions. The legal-entity selector keeps `activeRange` in its own query: it is
-	 * the page's scope picker, not a listing, and it has to default to an entity that still exists.
-	 */
-	const companiesQuery = $derived(
-		client.db.companies.findMany({
-			where: { approval_id: { isNull: true }, ...activeRange },
-			orderBy: { name: 'asc' },
-			limit: 500
-		})
-	);
-	const companies = $derived(companiesQuery.current ?? []);
-	const companyOptions = $derived(
-		companies.map((c) => ({
-			value: c.id,
-			label: c.name,
-			search_term: `${c.name} ${c.registration_number ?? ''}`
-		}))
-	);
-	const selectedCompanyId = $derived(
-		companyId != null && companies.some((c) => c.id === companyId)
-			? companyId
-			: (companies[0]?.id ?? null)
-	);
+	const selectedCompanyId = $derived(activeCompanyIdOf());
+	const companiesUnknown = $derived(companiesUnknownOf());
 
 	type EntryRow = WorkspaceRow<'component_entries'> & {
 		readonly component_entry_employment?: Pick<
@@ -141,31 +118,15 @@
 </svelte:head>
 
 {#snippet companyScopeActions()}
-	<Combobox
-		ariaLabel={t('component.legal_entity')}
-		options={companyOptions}
-		value={selectedCompanyId}
-		onValueChange={(value) => {
-			if (typeof value === 'string') {
-				companyId = value;
-				return;
-			}
-			companyId = companies[0]?.id ?? null;
-		}}
-		emptyPlaceholder={t('component.select_legal_entity')}
-		searchPlaceholder={t('component.search_companies')}
-		clientConfig={{
-			isLoading: companiesQuery.loading,
-			error: companiesQuery.error?.message ?? null
-		}}
-		class="min-w-[16rem]"
-	/>
+	<CompanyScopeBanner />
 {/snippet}
 
 {#snippet overview()}
 	<Bound size="full">
 		<Scroll name="Pay components overview">
-			{#if selectedCompanyId == null}
+			{#if companiesUnknown}
+				<p class="text-sm text-muted-foreground">{t('app.hr_controller.loading_scope')}</p>
+			{:else if selectedCompanyId == null}
 				<p class="text-sm text-muted-foreground">{t('app.pay_components.empty_overview')}</p>
 			{:else}
 				{#key selectedCompanyId}
@@ -177,7 +138,9 @@
 {/snippet}
 
 {#snippet entries()}
-	{#if selectedCompanyId == null}
+	{#if companiesUnknown}
+		<p class="text-sm text-muted-foreground">{t('app.hr_controller.loading_scope')}</p>
+	{:else if selectedCompanyId == null}
 		<p class="text-sm text-muted-foreground">
 			{t('app.pay_components.empty_entries')}
 		</p>
@@ -239,7 +202,9 @@
 {/snippet}
 
 {#snippet catalogue()}
-	{#if selectedCompanyId == null}
+	{#if companiesUnknown}
+		<p class="text-sm text-muted-foreground">{t('app.hr_controller.loading_scope')}</p>
+	{:else if selectedCompanyId == null}
 		<p class="text-sm text-muted-foreground">
 			{t('app.pay_components.empty_catalogue')}
 		</p>

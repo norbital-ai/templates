@@ -1,10 +1,7 @@
 // @ts-nocheck -- executed directly by Node with --experimental-strip-types.
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import {
-	evaluateLeavePreview,
-	previewWindowOf
-} from '../src/lib/leave/preview.ts';
+import { evaluateLeavePreview, previewWindowOf } from '../src/lib/leave/preview.ts';
 
 const WORK = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1';
 const REST = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa2';
@@ -102,10 +99,13 @@ const wednesday = {
 };
 
 test('preview window is the month grid, expanded by a range that spills past it', () => {
-	assert.deepEqual(previewWindowOf({ employment_id: 'emp-1', leave_type_id: 'lt-1', calendar_month: '2026-04' }), {
-		start: '2026-03-30',
-		end: '2026-05-10'
-	});
+	assert.deepEqual(
+		previewWindowOf({ employment_id: 'emp-1', leave_type_id: 'lt-1', calendar_month: '2026-04' }),
+		{
+			start: '2026-03-30',
+			end: '2026-05-10'
+		}
+	);
 	assert.deepEqual(
 		previewWindowOf({
 			employment_id: 'emp-1',

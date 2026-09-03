@@ -53,10 +53,7 @@ import manager from '../src/access/policies/+manager.ts';
 import seniorManagement from '../src/access/policies/+senior_management.ts';
 import hrController from '../src/access/policies/+hr_controller.ts';
 import hrManager from '../src/access/policies/+hr_manager.ts';
-import {
-	WORK_DAY_ATTENDANCE_FIELDS,
-	WORK_DAY_PLANNED_FIELDS
-} from '../src/lib/policy_grants.ts';
+import { WORK_DAY_ATTENDANCE_FIELDS, WORK_DAY_PLANNED_FIELDS } from '../src/lib/policy_grants.ts';
 
 /** Keyed by the filename each one was imported from: the filename is the policy's only name. */
 const policiesByFileKey = {

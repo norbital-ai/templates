@@ -63,14 +63,6 @@ pnpm --dir crm lint
 `.norbital/artifact/bundle.mjs`; there is no separate per-template build command. Commit authored
 source and `.norbital/migrations/`, but do not edit or commit other generated `.norbital` output.
 
-Repository-wide equivalents loop over every template:
-
-```bash
-pnpm templates:install
-pnpm templates:sync
-pnpm templates:lint
-```
-
 Because `@norbital-ai/*` come from GitHub Packages, an install needs a `NODE_AUTH_TOKEN` with
 `read:packages`, or the equivalent entry in your `~/.npmrc`.
 
@@ -112,10 +104,10 @@ projected template commit, but it does not track the moving ref and is not chang
 template release appears. Local-directory origins are intentionally different: they read the live
 checkout and make no projected-ref claim.
 
-The local framework-development overlay is managed from the Norbital checkout with
-`pnpm run env -- link`. It replaces the templates' `@norbital-ai/*` dependencies with locally built
+The local framework-development overlay is managed from the **realm root** with
+`pnpm env -- link`. It replaces the templates' `@norbital-ai/*` dependencies with locally built
 OSS packages; it does not publish a template, link template source into Colony, or update an
-existing tenant. Run `pnpm run env -- retreat` there before release so every projected template
+existing tenant. Run `pnpm env -- retreat` there before release so every projected template
 carries exact registry pins and a clean lockfile.
 
 Each template pins its own `@norbital-ai/bolt` version. Nothing propagates a bump into a template: a

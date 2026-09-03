@@ -1,10 +1,7 @@
 // @ts-nocheck -- executed directly by Node with --experimental-strip-types.
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
-import {
-	defaultTimeOffEvent,
-	leaveEventSchema
-} from '../src/datatypes/leave_event/+definition.js';
+import { defaultTimeOffEvent, leaveEventSchema } from '../src/datatypes/leave_event/+definition.js';
 
 const TIME_OFF = {
 	kind: 'TIME_OFF',

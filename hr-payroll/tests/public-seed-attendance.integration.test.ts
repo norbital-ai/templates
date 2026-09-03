@@ -74,8 +74,7 @@ test(
 
 			const unread = days.filter((day) => day.worked_intervals == null);
 			assert.ok(unread.length >= 2, 'need two unread days so one can stay null');
-			const restDay =
-				unread.find((day) => day.shift_definition_id === SHIFT_REST_ID) ?? unread[0];
+			const restDay = unread.find((day) => day.shift_definition_id === SHIFT_REST_ID) ?? unread[0];
 			const untouched = unread.find((day) => day.id !== restDay?.id);
 			assert.ok(restDay && typeof restDay.id === 'string');
 			assert.ok(untouched && typeof untouched.id === 'string');

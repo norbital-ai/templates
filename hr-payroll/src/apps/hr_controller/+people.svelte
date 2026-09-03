@@ -6,44 +6,20 @@
 	import { Display, type ChartDisplaySpec } from '@norbital-ai/ui/chart';
 	import { CollectionTable } from '@norbital-ai/ui/collection-table';
 	import { formatDataValue } from '@norbital-ai/ui/data-renderer';
-	import { Combobox } from '@norbital-ai/ui/combobox';
-	import { Bound, Columns, Cover, Inline, Scroll, Split, Stack } from '@norbital-ai/ui/layout';
+	import CompanyScopeBanner from './CompanyScopeBanner.svelte';
+	import {
+		activeCompanyId as activeCompanyIdOf,
+		companiesUnknown as companiesUnknownOf
+	} from './company-scope.svelte.js';
+	import { Bound, Columns, Cover, Scroll, Split, Stack } from '@norbital-ai/ui/layout';
 	import { Tabs, type TabConfig } from '@norbital-ai/ui/tabs';
-	import { employedTodayFilter, todayKey, todayInstant } from '../../lib/ui/calendar.js';
+	import { employedTodayFilter, todayKey } from '../../lib/ui/calendar.js';
 	import { inForceOnDay } from '../../lib/effective_range.js';
 
 	const { t } = useI18n<TenantI18nKeys>();
-
-	let companyId = $state<string | null>(null);
 	const today = todayKey();
-	const activeRange = { effective_range: { contains_date: todayInstant() } } as const;
-
-	/**
-	 * The profile list is membership in an effective-dated employment, so it opens on the people
-	 * employed today as a filter chip the operator can drop to reach past staff. The legal-entity
-	 * selector keeps `activeRange` in its own query: it is the page's scope picker, not a listing,
-	 * and it has to default to an entity that still exists.
-	 */
-	const companiesQuery = $derived(
-		client.db.companies.findMany({
-			where: { approval_id: { isNull: true }, ...activeRange },
-			orderBy: { name: 'asc' },
-			limit: 500
-		})
-	);
-	const companies = $derived(companiesQuery.current ?? []);
-	const companyOptions = $derived(
-		companies.map((c) => ({
-			value: c.id,
-			label: c.name,
-			search_term: `${c.name} ${c.registration_number ?? ''}`
-		}))
-	);
-	const selectedCompanyId = $derived(
-		companyId != null && companies.some((c) => c.id === companyId)
-			? companyId
-			: (companies[0]?.id ?? null)
-	);
+	const selectedCompanyId = $derived(activeCompanyIdOf());
+	const companiesUnknown = $derived(companiesUnknownOf());
 
 	const employmentsQuery = $derived(
 		selectedCompanyId == null
@@ -135,25 +111,7 @@
 </script>
 
 {#snippet companyScopeActions()}
-	<Combobox
-		ariaLabel={t('component.legal_entity')}
-		options={companyOptions}
-		value={selectedCompanyId}
-		onValueChange={(value) => {
-			if (typeof value === 'string') {
-				companyId = value;
-				return;
-			}
-			companyId = companies[0]?.id ?? null;
-		}}
-		emptyPlaceholder={t('component.select_legal_entity')}
-		searchPlaceholder={t('component.search_companies')}
-		clientConfig={{
-			isLoading: companiesQuery.loading,
-			error: companiesQuery.error?.message ?? null
-		}}
-		class="min-w-[16rem]"
-	/>
+	<CompanyScopeBanner />
 {/snippet}
 
 {#snippet workforceSummary()}
@@ -166,7 +124,9 @@
 				{t('app.people.workforce_description')}
 			</p>
 		</div>
-		{#if selectedCompanyId == null}
+		{#if companiesUnknown}
+			<p class="text-sm text-muted-foreground">{t('app.hr_controller.loading_scope')}</p>
+		{:else if selectedCompanyId == null}
 			<p class="text-sm text-muted-foreground">{t('app.people.empty_overview')}</p>
 		{:else}
 			<!-- repository-health:allow UI10 -- 1px hairline gutters via bg-border are not on the gap scale -->
@@ -190,7 +150,9 @@
 {/snippet}
 
 {#snippet workforceTrendPanel()}
-	{#if selectedCompanyId == null}
+	{#if companiesUnknown}
+		<p class="text-sm text-muted-foreground">{t('app.hr_controller.loading_scope')}</p>
+	{:else if selectedCompanyId == null}
 		<p class="text-sm text-muted-foreground">{t('app.people.empty_trend')}</p>
 	{:else}
 		<div class="min-w-0 rounded-lg border bg-card p-4 shadow-card">
@@ -215,7 +177,9 @@
 {/snippet}
 
 {#snippet profiles()}
-	{#if selectedCompanyId == null}
+	{#if companiesUnknown}
+		<p class="text-sm text-muted-foreground">{t('app.hr_controller.loading_scope')}</p>
+	{:else if selectedCompanyId == null}
 		<p class="text-sm text-muted-foreground">{t('app.people.empty_profiles')}</p>
 	{:else}
 		{#key selectedCompanyId}

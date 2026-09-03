@@ -24,6 +24,7 @@
 	import { Button } from '@norbital-ai/ui/button';
 	import { CollectionForm } from '@norbital-ai/ui/collection-form';
 	import { CollectionTable } from '@norbital-ai/ui/collection-table';
+	import { collectionDeleteBatch } from '@norbital-ai/ui/collection-toolbar';
 	import { Combobox } from '@norbital-ai/ui/combobox';
 	import { FormattedValueRenderer } from '@norbital-ai/ui/data-renderer';
 	import { Cluster, Grid, Inline, Stack } from '@norbital-ai/ui/layout';
@@ -237,25 +238,13 @@
 		const period = record.period;
 		payrollDeletionPending = true;
 		Effect.runFork(
-			Effect.gen(function* () {
-				const local = yield* Effect.tryPromise({
-					try: () => client.db.payroll_runs.delete([payrollRunId]),
-					catch: (cause) => cause
-				});
-				const settlement = yield* Effect.tryPromise({
-					try: () => local.settlement.wait(),
-					catch: (cause) => cause
-				});
-				if (settlement.kind !== 'accepted' && settlement.kind !== 'rebased') {
-					return yield* Effect.fail(
-						new Error(
-							settlement.kind === 'rejected' ? settlement.message : settlement.quarantine.message
-						)
-					);
-				}
-				toast.success(t('component.draft_deleted', { period }));
-				close?.();
-			}).pipe(
+			collectionDeleteBatch(client.db.payroll_runs, [payrollRunId]).pipe(
+				Effect.tap(() =>
+					Effect.sync(() => {
+						toast.success(t('component.draft_deleted', { period }));
+						close?.();
+					})
+				),
 				Effect.catch((cause) =>
 					Effect.sync(() =>
 						toast.error(cause instanceof Error ? cause.message : t('component.delete_failed'))

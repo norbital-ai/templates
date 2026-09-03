@@ -13,7 +13,10 @@ export function addCalendarDays(date: string, amount: number): string {
 }
 
 /** First and last calendar day of the 42-cell grid that paints `YYYY-MM`. */
-export function leaveCalendarGridBounds(month: string): { readonly start: string; readonly end: string } {
+export function leaveCalendarGridBounds(month: string): {
+	readonly start: string;
+	readonly end: string;
+} {
 	const first = `${month}-01`;
 	const weekday = new Date(`${first}T00:00:00.000Z`).getUTCDay();
 	const mondayOffset = weekday === 0 ? -6 : 1 - weekday;

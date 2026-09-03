@@ -97,7 +97,7 @@
 		if (disabled) return null;
 		if (employmentId == null) return t('component.leave_picker_disabled_no_employment');
 		if (leaveTypeId == null) return t('component.leave_picker_disabled_no_leave_type');
-		if (previewQuery?.error != null) return t('component.leave_preview_failed');
+		if (previewQuery?.error != null) return previewQuery.error.message;
 		if (previewLoading) return t('component.leave_picker_loading_schedule');
 		if (preview?.encashed) return t('component.leave_encashed_closed');
 		return null;

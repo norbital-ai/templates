@@ -96,6 +96,41 @@ test(
 				asIssues(sundayOnly.issues).some((row) => row.code === 'NO_CHARGEABLE_DAYS'),
 				`expected NO_CHARGEABLE_DAYS, got ${JSON.stringify(sundayOnly.issues)}`
 			);
+
+			const hqHeaders = {
+				...bearerHeaders(session.credential),
+				'x-colony-impersonated-team': 'HQ Payroll HR'
+			};
+			const previewed = await postGuestCommand(
+				session.host.baseUrl,
+				'access.impersonation',
+				{},
+				hqHeaders
+			);
+			assert.ok(
+				previewed.status >= 200 && previewed.status < 300,
+				`access.impersonation ${previewed.status}: ${JSON.stringify(previewed.value)}`
+			);
+			const hqSeptember = await postGuestCommand(
+				session.host.baseUrl,
+				'invoke.preview_leave',
+				{
+					input: {
+						employment_id: EMPLOYMENT_ID,
+						leave_type_id: ANNUAL_LEAVE_TYPE_ID,
+						calendar_month: '2026-09',
+						range: {
+							start: { date: '2026-09-04', half: 'FIRST' },
+							end: { date: '2026-09-04', half: 'SECOND' }
+						}
+					}
+				},
+				hqHeaders
+			);
+			assert.ok(
+				hqSeptember.status >= 200 && hqSeptember.status < 300,
+				`HQ preview_leave September ${hqSeptember.status}: ${JSON.stringify(hqSeptember.value)}`
+			);
 		} finally {
 			await session.stop();
 		}

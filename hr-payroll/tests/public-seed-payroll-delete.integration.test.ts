@@ -1,10 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {
-	mutationPush,
-	postGuestCommand,
-	requireAccepted
-} from '@norbital-ai/test-utilities';
+import { mutationPush, postGuestCommand, requireAccepted } from '@norbital-ai/test-utilities';
 import {
 	COMPANY_ID,
 	FEBRUARY_2026,
@@ -81,10 +77,10 @@ test(
 			);
 			requireAccepted(deleted.value, `${MUTATE_COMMAND} delete`);
 
-			const remaining = (await session.query(
-				`select id from payroll_runs where id in ($1, $2)`,
-				[februaryId, marchId]
-			)) as ReadonlyArray<{ readonly id: string }>;
+			const remaining = (await session.query(`select id from payroll_runs where id in ($1, $2)`, [
+				februaryId,
+				marchId
+			])) as ReadonlyArray<{ readonly id: string }>;
 			assert.deepEqual(remaining, []);
 
 			const orphanPayslips = (await session.query(

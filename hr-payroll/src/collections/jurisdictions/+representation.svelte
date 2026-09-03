@@ -12,9 +12,7 @@
 	import { useI18n } from '@norbital-ai/ui/i18n';
 	import type { TenantI18nKeys } from '$bolt/i18n-keys';
 	import type { RepresentationProps } from './$types.js';
-	import {
-		JURISDICTION_OPERATOR_HIDDEN_FIELDS
-	} from './operator-form.js';
+	import { JURISDICTION_OPERATOR_HIDDEN_FIELDS } from './operator-form.js';
 	import { CollectionForm } from '@norbital-ai/ui/collection-form';
 	import { CollectionTable } from '@norbital-ai/ui/collection-table';
 	import { Column, Cover, Grid, Inline, Stack } from '@norbital-ai/ui/layout';
