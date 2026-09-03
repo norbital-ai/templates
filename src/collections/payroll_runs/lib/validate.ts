@@ -282,8 +282,7 @@ export function validateDailyOvertimeHoursLimit(options: {
 }): RunIssue[] {
 	return options.days
 		.filter(
-			(day) =>
-				ruleDayType(day.dayType) === 'ORDINARY' && day.hours > options.maxOvertimeHours
+			(day) => ruleDayType(day.dayType) === 'ORDINARY' && day.hours > options.maxOvertimeHours
 		)
 		.map((day) => ({
 			code: 'DAILY_OVERTIME_LIMIT_EXCEEDED',

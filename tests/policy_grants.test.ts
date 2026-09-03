@@ -372,6 +372,13 @@ test('no human policy may author the system-only statutory predecessor instructi
 	}
 });
 
+test('every policy that may create leave can read employee_children, or preview becomes an access denial', () => {
+	for (const policy of policies) {
+		if (!may(policy, 'leave_requests', 'mutate.new')) continue;
+		assert.equal(may(policy, 'employee_children', 'read'), true, nameOf(policy));
+	}
+});
+
 test('every policy can read the settlement ledger, or its refusal becomes an access denial', () => {
 	// The hook that refuses a settled record reads `payslip_adjustments` under the editing person's
 	// own subject. A policy without this grant turns "payroll 2026-03 has already taken this record

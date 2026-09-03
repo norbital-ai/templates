@@ -133,6 +133,7 @@ export type FactRow = Schema.Schema.Type<typeof FactRowSchema>;
 
 const decodeJurisdiction = Schema.decodeUnknownOption(jurisdictionValueSchema);
 const decodeScheme = Schema.decodeUnknownOption(schemeValueSchema);
+const decodeRate = Schema.decodeUnknownOption(RateRowSchema);
 const decodeFactStatus = Schema.decodeUnknownOption(statutoryFactStatusValueSchema);
 
 /**
@@ -714,21 +715,31 @@ export const runStatutoryProfileDrift = (api: AutomationApi) =>
 
 			yield* api.progress({ progress: 0.3, text: 'Comparing local effective-dated facts' });
 			const detected = detectStatutoryDrift({
-				governingProfiles,
-				profileSchemes,
-				profileRates,
+				governingProfiles: governingProfiles
+					.map((row) => Option.getOrNull(decodeJurisdiction(row)))
+					.filter((row): row is JurisdictionRow => row !== null),
+				profileSchemes: profileSchemes
+					.map((row) => Option.getOrNull(decodeScheme(row)))
+					.filter((row): row is SchemeRow => row !== null),
+				profileRates: profileRates
+					.map((row) => Option.getOrNull(decodeRate(row)))
+					.filter((row): row is RateRow => row !== null),
 				companies: companies.map((company) => ({
-					id: company.id,
-					name: company.name,
+					id: String(company.id),
+					name: String(company.name),
 					jurisdiction: asJurisdiction(company.company_jurisdiction)
 				})),
-				employments,
+				employments: employments.map((row) => ({
+					id: String(row.id),
+					employee_number: String(row.employee_number),
+					company_id: String(row.company_id)
+				})),
 				facts: facts.map((fact) => ({
-					id: fact.id,
-					employment_id: fact.employment_id,
-					statutory_contribution_id: fact.statutory_contribution_id,
-					status: fact.status,
-					summary: fact.summary,
+					id: String(fact.id),
+					employment_id: String(fact.employment_id),
+					statutory_contribution_id: String(fact.statutory_contribution_id),
+					status: asFactStatus(Option.getOrNull(decodeFactStatus(fact.status))),
+					summary: typeof fact.summary === 'string' ? fact.summary : null,
 					effective_range: fact.effective_range,
 					scheme: asScheme(fact.statutory_fact_contribution)
 				}))
@@ -749,9 +760,9 @@ export const runStatutoryProfileDrift = (api: AutomationApi) =>
 			const existingSchemeIdsByEmployment = new Map<string, Set<string>>();
 			for (const fact of facts) {
 				const schemeIds =
-					existingSchemeIdsByEmployment.get(fact.employment_id) ?? new Set<string>();
-				schemeIds.add(fact.statutory_contribution_id);
-				existingSchemeIdsByEmployment.set(fact.employment_id, schemeIds);
+					existingSchemeIdsByEmployment.get(String(fact.employment_id)) ?? new Set<string>();
+				schemeIds.add(String(fact.statutory_contribution_id));
+				existingSchemeIdsByEmployment.set(String(fact.employment_id), schemeIds);
 			}
 			for (const copy of detected.copies) {
 				if (existingSchemeIdsByEmployment.get(copy.employmentId)?.has(copy.successorSchemeId)) {
@@ -789,7 +800,7 @@ export const runStatutoryProfileDrift = (api: AutomationApi) =>
 			} else {
 				const receipts: Array<Readonly<{ code: string; report: StatutoryResearchReport }>> = [];
 				for (const [index, jurisdiction] of governingProfiles.entries()) {
-					const code = jurisdiction.code.toLocaleUpperCase();
+					const code = String(jurisdiction.code ?? '').toLocaleUpperCase();
 					const progress = 0.62 + (index / governingProfiles.length) * 0.24;
 					yield* api.progress({
 						progress,
@@ -906,7 +917,7 @@ export const runStatutoryProfileDrift = (api: AutomationApi) =>
 
 			return {
 				status: 'ok' as const,
-				run_log_id: runLog.id,
+				run_log_id: String(runLog.id),
 				checked_on: today,
 				items: detected.items.length,
 				proposals: submittedProposals.length,

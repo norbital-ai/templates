@@ -200,8 +200,7 @@ function requireCompletePage(rows: readonly unknown[], label: string): LeavePrev
 function previewWindow(
 	input: PreviewLeaveInput
 ): { readonly start: string; readonly end: string } | null {
-	const grid =
-		input.calendar_month == null ? null : leaveCalendarGridBounds(input.calendar_month);
+	const grid = input.calendar_month == null ? null : leaveCalendarGridBounds(input.calendar_month);
 	const range = input.range;
 	if (grid == null && range == null) return null;
 	if (grid == null && range != null) {
@@ -222,7 +221,11 @@ function asOfDate(input: PreviewLeaveInput, window: { start: string; end: string
 function timeOffRangeOf(event: RequestRow['event']): HalfDayRange | null {
 	if (event == null || event.kind !== 'TIME_OFF') return null;
 	const range = event.range;
-	if (range == null || typeof range.start?.date !== 'string' || typeof range.end?.date !== 'string') {
+	if (
+		range == null ||
+		typeof range.start?.date !== 'string' ||
+		typeof range.end?.date !== 'string'
+	) {
 		return null;
 	}
 	return range;
@@ -234,7 +237,11 @@ function workEligible(
 	rosterCodeById: ReadonlyMap<string, RosterCodeRow>,
 	plannedByDate: ReadonlyMap<string, WorkDayRow>,
 	holidayDates: ReadonlySet<string>
-): { readonly work: boolean; readonly issue: LeavePreviewIssue | null; readonly codeId: string | null } {
+): {
+	readonly work: boolean;
+	readonly issue: LeavePreviewIssue | null;
+	readonly codeId: string | null;
+} {
 	if (holidayDates.has(date)) {
 		return { work: false, issue: null, codeId: null };
 	}
@@ -383,7 +390,10 @@ function projectedLedger(facts: LeavePreviewFacts, excludeId: string | undefined
  * Pure evaluation over already-loaded person-scoped rows. The hook and the remote share this so a
  * preview the operator reads cannot disagree with the write that later refuses or accepts.
  */
-export function evaluateLeavePreview(facts: LeavePreviewFacts, input: PreviewLeaveInput): LeavePreview {
+export function evaluateLeavePreview(
+	facts: LeavePreviewFacts,
+	input: PreviewLeaveInput
+): LeavePreview {
 	const issues: LeavePreviewIssue[] = [];
 	const window = previewWindow(input);
 	if (window == null) {
@@ -406,7 +416,10 @@ export function evaluateLeavePreview(facts: LeavePreviewFacts, input: PreviewLea
 	const range = input.range;
 	if (range != null && pointNumber(range.end) < pointNumber(range.start)) {
 		issues.push(
-			issue('RANGE_INVERTED', 'Leave must end after it starts. Select one continuous range on the calendar.')
+			issue(
+				'RANGE_INVERTED',
+				'Leave must end after it starts. Select one continuous range on the calendar.'
+			)
 		);
 	}
 	if (range != null && range.start.date < hireDate) {
@@ -553,11 +566,7 @@ export function evaluateLeavePreview(facts: LeavePreviewFacts, input: PreviewLea
 					},
 					asOf
 				);
-				if (
-					chargeable_days != null &&
-					chargeable_days > remaining_days + 1e-9 &&
-					!facts.encashed
-				) {
+				if (chargeable_days != null && chargeable_days > remaining_days + 1e-9 && !facts.encashed) {
 					issues.push(
 						issue(
 							'OVERDRAW',
@@ -674,11 +683,15 @@ export function loadLeavePreviewFacts(
 
 		const shiftIds = [
 			...new Set([
-				...workDays.flatMap((day) => (day.shift_definition_id == null ? [] : [day.shift_definition_id])),
+				...workDays.flatMap((day) =>
+					day.shift_definition_id == null ? [] : [day.shift_definition_id]
+				),
 				...terms.flatMap((term) => {
 					const pattern = term.work_pattern;
 					if (pattern?.type !== 'PATTERNED') return [];
-					return pattern.phases.flatMap((phase) => phase.day_cycle.map((day) => day.roster_code_id));
+					return pattern.phases.flatMap((phase) =>
+						phase.day_cycle.map((day) => day.roster_code_id)
+					);
 				})
 			])
 		];
@@ -710,7 +723,10 @@ export function loadLeavePreviewFacts(
 			limit: LEAVE_PREVIEW_QUERY_LIMIT
 		});
 		const allLedger = yield* api.db.leave_requests.findMany({
-			where: { employment_id: { eq: input.employment_id }, leave_type_id: { eq: input.leave_type_id } },
+			where: {
+				employment_id: { eq: input.employment_id },
+				leave_type_id: { eq: input.leave_type_id }
+			},
 			limit: LEAVE_PREVIEW_QUERY_LIMIT
 		});
 		const ledgerTruncated = requireCompletePage(allLedger, 'leave ledger');

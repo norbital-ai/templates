@@ -81,12 +81,14 @@ and can record time entries, raise leave requests and claims (each routed for ap
 their own loan agreements and payslips. A person with no active employment is told so; a person
 with several chooses which one the page scopes to.
 
-**`hr_controller`** (group) — the HR operating surface, seven pages:
+**`hr_controller`** (group) — the HR operating surface. Legal-entity choice lives on **Entities**
+and is inherited by every sibling; boards state the active entity, they do not pick it again.
 
 | App                   | What a user does in it                                                                                                                                                                                                                                                                                               |
 | --------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Entities**          | Chooses the legal entity every other HR Controller app is scoped to                                                                                                                                                                                                                                                  |
 | **People**            | The workforce: employee profiles, employments, effective-dated terms, statutory facts, and a workforce-shape chart                                                                                                                                                                                                   |
-| **Scheduling**        | Plans the month on a roster board — one row per person, one glyph per day — publishes it against statutory rules, and manages shifts, work patterns and holidays. The attendance insight chart now lives on its Exceptions tab, and its import sits on the board's action menu beside the roster import.             |
+| **Scheduling**        | Plans the month on a roster board — one row per person, one glyph per day — publishes it against statutory rules, and manages shifts, work patterns and holidays. Attendance import sits on the board's action menu beside the roster import.                                                                        |
 | **Leave**             | Review leave requests and the leave types that entitle them, against year-to-date approval counters                                                                                                                                                                                                                  |
 | **Loans**             | Review loan agreements and their derived outstanding balance, with recovery tracked per repayment                                                                                                                                                                                                                    |
 | **Pay components**    | The pay catalogue and the entry stream: claims, allowances, bonuses, arrears and corrections, with their contribution treatment                                                                                                                                                                                      |
@@ -267,6 +269,6 @@ artifact a host deploys.
   After a deliberate dependency move, refresh the template lock through the repository
   template-lock workflow. The templates release workflow advances
   `refs/heads/templates/hr-payroll`; a remote Colony host uses that exact commit when it provisions
-  a new tenant, while an existing tenant remains on the revision it adopted. From the Norbital
-  checkout, `pnpm run env -- link` only tests locally built OSS dependencies inside this template
+  a new tenant, while an existing tenant remains on the revision it adopted. From the realm
+  root, `pnpm env -- link` only tests locally built OSS dependencies inside this template
   and neither publishes template source nor updates Colony.

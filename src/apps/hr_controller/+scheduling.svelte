@@ -13,7 +13,12 @@
 		submitCollectionMutation,
 		type CollectionMutationSubmission
 	} from '@norbital-ai/ui/collection-form';
-	import { Combobox } from '@norbital-ai/ui/combobox';
+	import CompanyScopeBanner from './CompanyScopeBanner.svelte';
+	import {
+		activeCompany as activeCompanyOf,
+		activeCompanyId as activeCompanyIdOf,
+		companiesUnknown as companiesUnknownOf
+	} from './company-scope.svelte.js';
 	import { Button } from '@norbital-ai/ui/button';
 	import { Input } from '@norbital-ai/ui/input';
 	import { Alert, AlertDescription, AlertTitle } from '@norbital-ai/ui/alert';
@@ -56,7 +61,6 @@
 		monthProgress,
 		personDayKey,
 		type DayFacts,
-		type DayStatus,
 		type IntervalDraft,
 		type MonthDrafting
 	} from '../../lib/ui/roster/roster-month.js';
@@ -88,8 +92,6 @@
 	import type { WorkPattern } from '../../datatypes/work_pattern/+definition.js';
 
 	const { t } = useI18n<TenantI18nKeys>();
-
-	let companyId = $state<string | null>(null);
 	let month = $state<string>(monthKey(todayKey()));
 	/**
 	 * The day sheet's subject and its transient write state.
@@ -140,31 +142,9 @@
 	const today = todayKey();
 	const activeRange = { effective_range: { contains_date: todayInstant() } } as const;
 	const approved = { approval_id: { isNull: true } } as const;
-
-	const companiesQuery = $derived(
-		client.db.companies.findMany({
-			where: { ...approved, ...activeRange },
-			orderBy: { name: 'asc' },
-			limit: MONTH_BOARD_QUERY_LIMITS.companies
-		})
-	);
-	const companies = $derived(companiesQuery.current ?? []);
-	const companiesUnknown = $derived(companiesQuery.loading && companiesQuery.current === undefined);
-	const companyOptions = $derived(
-		companies.map((c) => ({
-			value: c.id,
-			label: c.name,
-			search_term: `${c.name} ${c.registration_number ?? ''}`
-		}))
-	);
-	const selectedCompanyId = $derived(
-		companyId != null && companies.some((c) => c.id === companyId)
-			? companyId
-			: (companies[0]?.id ?? null)
-	);
-	const selectedCompany = $derived(
-		companies.find((company) => company.id === selectedCompanyId) ?? null
-	);
+	const companiesUnknown = $derived(companiesUnknownOf());
+	const selectedCompanyId = $derived(activeCompanyIdOf());
+	const selectedCompany = $derived(activeCompanyOf());
 
 	/** The month's calendar bounds, which every dated query below is narrowed to. */
 	const monthStart = $derived(`${month}-01`);
@@ -284,13 +264,11 @@
 	});
 	const employmentTerms = $derived(employmentTermsQuery?.current ?? []);
 	const employmentTermsByEmploymentId = $derived.by(() => {
-		const grouped = new Map<string, Array<(typeof employmentTerms)[number]>>();
+		const grouped: Record<string, Array<(typeof employmentTerms)[number]>> = {};
 		for (const term of employmentTerms) {
-			const existing = grouped.get(term.employment_id);
-			if (existing == null) grouped.set(term.employment_id, [term]);
-			else existing.push(term);
+			(grouped[term.employment_id] ??= []).push(term);
 		}
-		return grouped;
+		return new Map(Object.entries(grouped));
 	});
 
 	const leaveTypesQuery = $derived(
@@ -547,7 +525,6 @@
 			schemaFilterActive: boardQuery.filters.length > 0,
 			unresolvedClockOutsOnly,
 			loadedRows: {
-				companies: companies.length,
 				employments: employments.length,
 				employees: employeesQuery?.current?.length ?? 0,
 				rosterCodes: shiftsQuery?.current?.length ?? 0,
@@ -1386,26 +1363,7 @@
 </svelte:head>
 
 {#snippet companyScopeActions()}
-	<Combobox
-		ariaLabel={t('component.legal_entity')}
-		options={companyOptions}
-		value={selectedCompanyId}
-		disabled={createDraftPending || rosterSettlementId !== null || daySheetSubmission.settling}
-		onValueChange={(value) => {
-			companyId = typeof value === 'string' ? value : (companies[0]?.id ?? null);
-			createDraftPendingApproval = false;
-			createDraftError = null;
-			rosterActionError = null;
-			boardQuery.setPageIndex(0);
-		}}
-		emptyPlaceholder={t('component.select_legal_entity')}
-		searchPlaceholder={t('component.search_companies')}
-		clientConfig={{
-			isLoading: companiesQuery.loading,
-			error: companiesQuery.error?.message ?? null
-		}}
-		class="min-w-[16rem]"
-	/>
+	<CompanyScopeBanner />
 {/snippet}
 
 {#snippet monthNavigation()}
@@ -1617,7 +1575,7 @@
 -->
 {#snippet board()}
 	{#if companiesUnknown}
-		<p class="text-sm text-muted-foreground">{t('app.scheduling.loading_companies')}</p>
+		<p class="text-sm text-muted-foreground">{t('app.hr_controller.loading_scope')}</p>
 	{:else if selectedCompanyId == null}
 		<p class="text-sm text-muted-foreground">{t('app.scheduling.empty_board')}</p>
 	{:else}
@@ -1675,7 +1633,7 @@
 
 {#snippet shifts()}
 	{#if companiesUnknown}
-		<p class="text-sm text-muted-foreground">{t('app.scheduling.loading_companies')}</p>
+		<p class="text-sm text-muted-foreground">{t('app.hr_controller.loading_scope')}</p>
 	{:else if selectedCompanyId == null}
 		<p class="text-sm text-muted-foreground">{t('app.scheduling.empty_shifts')}</p>
 	{:else}
@@ -1708,7 +1666,7 @@
 
 {#snippet holidays()}
 	{#if companiesUnknown}
-		<p class="text-sm text-muted-foreground">{t('app.scheduling.loading_companies')}</p>
+		<p class="text-sm text-muted-foreground">{t('app.hr_controller.loading_scope')}</p>
 	{:else if selectedCompanyId == null}
 		<p class="text-sm text-muted-foreground">{t('app.scheduling.empty_holidays')}</p>
 	{:else}

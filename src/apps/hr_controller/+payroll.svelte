@@ -3,52 +3,27 @@
 	import { Effect, Schema } from 'effect';
 	import { downloadCollectionExport } from '@norbital-ai/bolt/client';
 	import { useI18n, type UiKeys } from '@norbital-ai/ui/i18n';
-	import { toast } from 'svelte-sonner';
 	import AppHeaderActions from '@norbital-ai/bolt/client/app-header-actions';
 	import type { TenantI18nKeys } from '$bolt/i18n-keys';
-	import { Combobox } from '@norbital-ai/ui/combobox';
+	import CompanyScopeBanner from './CompanyScopeBanner.svelte';
+	import {
+		activeCompany as activeCompanyOf,
+		activeCompanyId as activeCompanyIdOf,
+		companiesUnknown as companiesUnknownOf
+	} from './company-scope.svelte.js';
 	import { Bound, Cover, Inline, Scroll, Stack } from '@norbital-ai/ui/layout';
 	import { Tabs, type TabConfig } from '@norbital-ai/ui/tabs';
 	import { CollectionTable } from '@norbital-ai/ui/collection-table';
 	import { formatCalendarDate } from '../../lib/ui/display-formatters.js';
 	import { payrollRunsExportQuery, saveCollectionExport } from '../../lib/ui/export-download.js';
-	import {
-		daysBetweenKeys,
-		payDateFor,
-		periodWindow,
-		todayKey,
-		todayInstant
-	} from '../../lib/ui/calendar.js';
+	import { daysBetweenKeys, payDateFor, periodWindow, todayKey } from '../../lib/ui/calendar.js';
 
 	const { t } = useI18n<TenantI18nKeys | UiKeys>();
 
-	let companyId = $state<string | null>(null);
 	const today = todayKey();
-	const activeRange = { effective_range: { contains_date: todayInstant() } } as const;
-
-	const companiesQuery = $derived(
-		client.db.companies.findMany({
-			where: { approval_id: { isNull: true }, ...activeRange },
-			orderBy: { name: 'asc' },
-			limit: 500
-		})
-	);
-	const companies = $derived(companiesQuery.current ?? []);
-	const companyOptions = $derived(
-		companies.map((c) => ({
-			value: c.id,
-			label: c.name,
-			search_term: `${c.name} ${c.registration_number ?? ''}`
-		}))
-	);
-	const selectedCompanyId = $derived(
-		companyId != null && companies.some((c) => c.id === companyId)
-			? companyId
-			: (companies[0]?.id ?? null)
-	);
-	const selectedCompany = $derived(
-		companies.find((company) => company.id === selectedCompanyId) ?? null
-	);
+	const selectedCompanyId = $derived(activeCompanyIdOf());
+	const selectedCompany = $derived(activeCompanyOf());
+	const companiesUnknown = $derived(companiesUnknownOf());
 
 	const payrollRunsQuery = $derived(
 		selectedCompanyId == null
@@ -129,31 +104,15 @@
 </script>
 
 {#snippet companyScopeActions()}
-	<Combobox
-		ariaLabel={t('component.legal_entity')}
-		options={companyOptions}
-		value={selectedCompanyId}
-		onValueChange={(value) => {
-			if (typeof value === 'string') {
-				companyId = value;
-				return;
-			}
-			companyId = companies[0]?.id ?? null;
-		}}
-		emptyPlaceholder={t('component.select_legal_entity')}
-		searchPlaceholder={t('component.search_companies')}
-		clientConfig={{
-			isLoading: companiesQuery.loading,
-			error: companiesQuery.error?.message ?? null
-		}}
-		class="min-w-[16rem]"
-	/>
+	<CompanyScopeBanner />
 {/snippet}
 
 {#snippet overview()}
 	<Bound size="full">
 		<Scroll name={t('component.tab_overview')}>
-			{#if selectedCompanyId == null}
+			{#if companiesUnknown}
+				<p class="text-sm text-muted-foreground">{t('app.hr_controller.loading_scope')}</p>
+			{:else if selectedCompanyId == null}
 				<p class="text-sm text-muted-foreground">{t('app.payroll.empty_overview')}</p>
 			{:else}
 				<Stack as="section" gap="md" aria-labelledby="payroll-cycles-heading">
@@ -179,7 +138,7 @@
 						</p>
 					</Inline>
 					<div class="rounded-lg border">
-						{#if companiesQuery.loading || payrollRunsQuery?.loading}
+						{#if payrollRunsQuery?.loading}
 							<div class="p-5 text-sm text-muted-foreground">{t('app.payroll.loading_cycles')}</div>
 						{:else if cycleBoard.length === 0}
 							<div class="p-5 text-sm text-muted-foreground">{t('app.payroll.no_open_cycles')}</div>
@@ -236,7 +195,9 @@
 {/snippet}
 
 {#snippet runs()}
-	{#if selectedCompanyId == null}
+	{#if companiesUnknown}
+		<p class="text-sm text-muted-foreground">{t('app.hr_controller.loading_scope')}</p>
+	{:else if selectedCompanyId == null}
 		<p class="text-sm text-muted-foreground">{t('app.payroll.empty_runs')}</p>
 	{:else}
 		{#key selectedCompanyId}
@@ -325,7 +286,7 @@
 							return t('component.cannot_delete_paid');
 						}
 						return null;
-					},
+					}
 				}}
 			>
 				{#snippet columns({ Column })}

@@ -119,6 +119,10 @@ const probeUrl = new URL('./fixture-shape-probe.mjs', import.meta.url);
  */
 const KNOWN_ABSENT = new Map([
 	[
+		'overtime.classifyOvertimeByCalendarMonth(arg0).dailyOvertimeHoursLimit',
+		'Declared `dailyOvertimeHoursLimit?:` (overtime.ts:430) and defaulted with `?? null` (overtime.ts:434) — absence means "no daily overtime cap".'
+	],
+	[
 		'leave.unpaidLeaveInWindow(arg0).month',
 		'Declared `month?:` (leave.ts:325) and null-checked before use — absence means "no extended-absence month".'
 	],
@@ -134,6 +138,18 @@ const KNOWN_ABSENT = new Map([
 
 /** Detector B keys that are not engine fields at all, with the reason each is exempt. */
 const NOT_ENGINE_FIELDS = new Map([
+	[
+		'pricedHours',
+		'Summary label of one `check()` in verify-payroll-arithmetic.mjs (~1881): a local reduction over `segments`, never read by the engine.'
+	],
+	[
+		'incentiveHours',
+		'Summary label of the same `check()`: a local reduction over `excess`, never read by the engine.'
+	],
+	[
+		'incentiveUnits',
+		'Summary label of the same `check()`: a local reduction over `excess`, never read by the engine.'
+	],
 	['configFile', 'Vite `createServer` option, not a payroll field.'],
 	['logLevel', 'Vite `createServer` option, not a payroll field.'],
 	// The rest-day/public-holiday overtime split checks build a summary object to compare against a

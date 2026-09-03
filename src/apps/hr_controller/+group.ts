@@ -1,17 +1,8 @@
 import { group } from '@norbital-ai/bolt/authoring';
 
 /**
- * Seven apps, not eight.
- *
- * `+time_attendance.svelte` was retired: it held one chart and one editable attendance table,
- * and an app that is one chart is not an app. The chart is now Scheduling's "Exceptions" tab, its
- * import is on the board's action menu beside the roster import, and the table is deleted rather
- * than moved — a table of punches beside a board of person-days is two places to read the same
- * month, and only one of them knows what a rest day is. `docs/attendance-on-the-board-proposal.md`
- * §8.3 records the whole argument.
- *
- * There is no explicit child list here. Apps are discovered from the files in this directory, so
- * deleting the file is the whole retirement; `defaultChild` never pointed at it.
+ * Apps are discovered from the files in this directory. Legal-entity choice lives on Entities
+ * and is inherited by every sibling through `company-scope.svelte.ts`.
  */
 export default group({
 	label: 'HR Controller',

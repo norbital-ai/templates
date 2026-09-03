@@ -81,7 +81,11 @@ const createEmptyRoster = async (
 		[COMPANY_ID, month]
 	)) as ReadonlyArray<{ readonly id: string }>;
 	const rosterId = rosterRows[0]?.id;
-	assert.equal(typeof rosterId, 'string', `expected a ${month} roster, got ${JSON.stringify(rosterRows)}`);
+	assert.equal(
+		typeof rosterId,
+		'string',
+		`expected a ${month} roster, got ${JSON.stringify(rosterRows)}`
+	);
 	return String(rosterId);
 };
 

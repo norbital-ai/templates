@@ -1,11 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {
-	asRecord,
-	bearerHeaders,
-	postGuestCommand,
-	rowsOf
-} from '@norbital-ai/test-utilities';
+import { asRecord, bearerHeaders, postGuestCommand, rowsOf } from '@norbital-ai/test-utilities';
 import { calendarDateInTimeZone, PAYROLL_TIME_ZONE } from '../src/lib/ui/calendar.ts';
 import {
 	COMPANY_ID,
@@ -58,7 +53,11 @@ test(
 				`select id, month from rosters where company_id = $1 and month = $2`,
 				[COMPANY_ID, FEBRUARY_2026]
 			)) as ReadonlyArray<{ readonly id: string; readonly month: string }>;
-			assert.equal(rosters.length, 1, `expected one February roster, got ${JSON.stringify(rosters)}`);
+			assert.equal(
+				rosters.length,
+				1,
+				`expected one February roster, got ${JSON.stringify(rosters)}`
+			);
 			assert.equal(rosters[0]?.id, rosterId);
 
 			const workDays = (await session.query(

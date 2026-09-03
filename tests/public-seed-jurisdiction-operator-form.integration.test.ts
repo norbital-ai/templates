@@ -46,10 +46,9 @@ test(
 	async () => {
 		const session = await startPublicSeedHost('hr-payroll-h7-operator-form');
 		try {
-			const seeded = await session.query(
-				'select id, code from jurisdictions where id = $1',
-				[JURISDICTION_ID]
-			);
+			const seeded = await session.query('select id, code from jurisdictions where id = $1', [
+				JURISDICTION_ID
+			]);
 			assert.deepEqual(seeded, [{ id: JURISDICTION_ID, code: 'PUB' }]);
 
 			const manifest = requireOk(

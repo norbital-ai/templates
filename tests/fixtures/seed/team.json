@@ -1,0 +1,37 @@
+[
+	{
+		"id": "cccccccc-cccc-4ccc-8ccc-cccccccccc01",
+		"name": "Employee",
+		"description": "Self-service: a person's own record, time, requests and payslips."
+	},
+	{
+		"id": "cccccccc-cccc-4ccc-8ccc-cccccccccc02",
+		"name": "Supervisor",
+		"description": "Own record, plus reports' attendance and leave."
+	},
+	{
+		"id": "cccccccc-cccc-4ccc-8ccc-cccccccccc03",
+		"name": "L1 Manager",
+		"description": "Direct manager an attendance or leave approval routes to."
+	},
+	{
+		"id": "cccccccc-cccc-4ccc-8ccc-cccccccccc04",
+		"name": "Senior Management",
+		"description": "Reads payroll; does not administer HR."
+	},
+	{
+		"id": "cccccccc-cccc-4ccc-8ccc-cccccccccc05",
+		"name": "HQ Payroll HR",
+		"description": "Prepares payroll and reviews claims; may not commit a run."
+	},
+	{
+		"id": "cccccccc-cccc-4ccc-8ccc-cccccccccc06",
+		"name": "HR Manager",
+		"description": "Creates, re-runs and commits payroll."
+	},
+	{
+		"id": "cccccccc-cccc-4ccc-8ccc-cccccccccc07",
+		"name": "Manager (HR Controller)",
+		"description": "Line manager who also prepares payroll."
+	}
+]

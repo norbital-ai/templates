@@ -25,10 +25,14 @@
 	import type { TenantI18nKeys } from '$bolt/i18n-keys';
 	import type { WorkspaceRow } from '$bolt/types.js';
 	import { CollectionTable } from '@norbital-ai/ui/collection-table';
-	import { Combobox } from '@norbital-ai/ui/combobox';
+	import CompanyScopeBanner from './CompanyScopeBanner.svelte';
+	import {
+		activeCompanyId as activeCompanyIdOf,
+		companiesUnknown as companiesUnknownOf
+	} from './company-scope.svelte.js';
 	import { Bound, Cover, Inline, Stack } from '@norbital-ai/ui/layout';
 	import { formatEffectiveRange, formatNumeric } from '../../lib/ui/display-formatters.js';
-	import { inForceTodayFilter, todayInstant } from '../../lib/ui/calendar.js';
+	import { inForceTodayFilter } from '../../lib/ui/calendar.js';
 	import { decodeNumber } from '@norbital-ai/std/json';
 
 	const { t } = useI18n<TenantI18nKeys>();
@@ -42,13 +46,6 @@
 	});
 	type RepaymentProgress = Schema.Schema.Type<typeof RepaymentProgressSchema>;
 
-	/**
-	 * How far a schedule has been recovered, from the principal and what paid runs took.
-	 *
-	 * The tolerance mirrors `overRecoversRepayment` in `src/lib/settlement_refusals.ts`: amounts are
-	 * rounded to the currency's minor unit on the way into a payslip, so a schedule that sums to its
-	 * principal exactly can land a hundredth either side of it across a dozen runs.
-	 */
 	/**
 	 * How far a schedule has been recovered, from the plan and what paid runs took.
 	 *
@@ -78,36 +75,8 @@
 			settled: outstandingAmount <= 0.01
 		};
 	}
-
-	let companyId = $state<string | null>(null);
-	const activeRange = { effective_range: { contains_date: todayInstant() } } as const;
-
-	/**
-	 * The ledger opens on the loans still running today, as a filter chip the operator can drop
-	 * to see settled and future ones. The legal-entity selector keeps `activeRange` in its own query
-	 * regardless: that is the page's scope picker, not a listing, and it has to default to an entity
-	 * that still exists.
-	 */
-	const companiesQuery = $derived(
-		client.db.companies.findMany({
-			where: { approval_id: { isNull: true }, ...activeRange },
-			orderBy: { name: 'asc' },
-			limit: 500
-		})
-	);
-	const companies = $derived(companiesQuery.current ?? []);
-	const companyOptions = $derived(
-		companies.map((c) => ({
-			value: c.id,
-			label: c.name,
-			search_term: `${c.name} ${c.registration_number ?? ''}`
-		}))
-	);
-	const selectedCompanyId = $derived(
-		companyId != null && companies.some((c) => c.id === companyId)
-			? companyId
-			: (companies[0]?.id ?? null)
-	);
+	const selectedCompanyId = $derived(activeCompanyIdOf());
+	const companiesUnknown = $derived(companiesUnknownOf());
 
 	/**
 	 * The recovery ledger, in three reads rather than a nested one.
@@ -144,13 +113,11 @@
 		});
 	});
 	const repaymentsByLoanId = $derived.by(() => {
-		const byLoan = new Map<string, { readonly id: string; readonly amount_due: unknown }[]>();
+		const grouped: Record<string, { readonly id: string; readonly amount_due: unknown }[]> = {};
 		for (const row of repaymentsQuery?.current ?? []) {
-			const bucket = byLoan.get(row.loan_id) ?? [];
-			bucket.push(row);
-			byLoan.set(row.loan_id, bucket);
+			(grouped[row.loan_id] ??= []).push(row);
 		}
-		return byLoan;
+		return new Map(Object.entries(grouped));
 	});
 	const recoveriesQuery = $derived.by(() => {
 		const ids = (repaymentsQuery?.current ?? []).map((row) => row.id);
@@ -188,7 +155,7 @@
 	const decodeRecoveryRow = Schema.decodeUnknownResult(recoveryRowSchema);
 
 	const recoveredByRepaymentId = $derived.by(() => {
-		const recovered = new Map<string, number>();
+		const totals: Record<string, number> = {};
 		for (const row of recoveriesQuery?.current ?? []) {
 			const parsed = decodeRecoveryRow(row);
 			if (!Result.isSuccess(parsed)) continue;
@@ -197,9 +164,9 @@
 			if (claim.payslip_adjustment_payslip?.payslip_payroll_run?.lifecycle !== 'PAID') continue;
 			const amount = decodeNumber(claim.amount);
 			if (!Number.isFinite(amount)) continue;
-			recovered.set(claim.input.id, (recovered.get(claim.input.id) ?? 0) + amount);
+			totals[claim.input.id] = (totals[claim.input.id] ?? 0) + amount;
 		}
-		return recovered;
+		return new Map(Object.entries(totals));
 	});
 
 	type NestedLoan = WorkspaceRow<'loans'> & {
@@ -253,25 +220,7 @@
 </svelte:head>
 
 {#snippet companyScopeActions()}
-	<Combobox
-		ariaLabel={t('component.legal_entity')}
-		options={companyOptions}
-		value={selectedCompanyId}
-		onValueChange={(value) => {
-			if (typeof value === 'string') {
-				companyId = value;
-				return;
-			}
-			companyId = companies[0]?.id ?? null;
-		}}
-		emptyPlaceholder={t('component.select_legal_entity')}
-		searchPlaceholder={t('component.search_companies')}
-		clientConfig={{
-			isLoading: companiesQuery.loading,
-			error: companiesQuery.error?.message ?? null
-		}}
-		class="min-w-[16rem]"
-	/>
+	<CompanyScopeBanner />
 {/snippet}
 
 <AppHeaderActions>
@@ -280,7 +229,9 @@
 
 <Cover>
 	<Bound size="full" inset>
-		{#if selectedCompanyId == null}
+		{#if companiesUnknown}
+			<p class="text-sm text-muted-foreground">{t('app.hr_controller.loading_scope')}</p>
+		{:else if selectedCompanyId == null}
 			<p class="text-sm text-muted-foreground">
 				{t('app.loans.empty')}
 			</p>
