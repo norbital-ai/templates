@@ -61,14 +61,59 @@ test(
 				[FEBRUARY_2026, MARCH_2026]
 			);
 
+			const captured = (await session.query(
+				`select 'work_day' as kind, work_day_id as source_id
+				 from payslip_work_day_inputs i
+				 join payslips p on p.id = i.payslip_id
+				 where p.payroll_run_id in ($1, $2)
+				 union all
+				 select 'component_entry', component_entry_id
+				 from payslip_component_entry_inputs i
+				 join payslips p on p.id = i.payslip_id
+				 where p.payroll_run_id in ($1, $2)
+				 union all
+				 select 'leave_request', leave_request_id
+				 from payslip_leave_request_inputs i
+				 join payslips p on p.id = i.payslip_id
+				 where p.payroll_run_id in ($1, $2)
+				 union all
+				 select 'loan_repayment', loan_repayment_id
+				 from payslip_loan_repayment_inputs i
+				 join payslips p on p.id = i.payslip_id
+				 where p.payroll_run_id in ($1, $2)`,
+				[februaryId, marchId]
+			)) as ReadonlyArray<{ readonly kind: string; readonly source_id: string }>;
+
+			const payslipsBefore = (await session.query(
+				`select id from payslips where payroll_run_id in ($1, $2)`,
+				[februaryId, marchId]
+			)) as ReadonlyArray<{ readonly id: string }>;
+			assert.ok(
+				payslipsBefore.length > 0,
+				`delete cascade is unproven if the drafts have no payslips: ${JSON.stringify(payslipsBefore)}`
+			);
+
+			const versions = (await session.query(
+				`select id, row_version from payroll_runs where id in ($1, $2)`,
+				[februaryId, marchId]
+			)) as ReadonlyArray<{ readonly id: string; readonly row_version: number }>;
+			assert.equal(versions.length, 2, `expected two draft versions, got ${JSON.stringify(versions)}`);
+
 			const deleted = await postGuestCommand(
 				session.host.baseUrl,
 				MUTATE_COMMAND,
-				mutationPush(session.schemaFingerprint, {
-					action: 'delete',
-					collection: 'payroll_runs',
-					ids: [februaryId, marchId]
-				}),
+				mutationPush(
+					session.schemaFingerprint,
+					{
+						action: 'delete',
+						collection: 'payroll_runs',
+						ids: [februaryId, marchId]
+					},
+					versions.map((row) => ({
+						row: { collection: 'payroll_runs', recordId: row.id },
+						rowVersion: row.row_version
+					}))
+				),
 				{ authorization: `Bearer ${session.credential}` }
 			);
 			assert.ok(
@@ -92,6 +137,49 @@ test(
 				0,
 				`expected cascade to drop payslips for the deleted runs, got ${JSON.stringify(orphanPayslips)}`
 			);
+
+			const leftoverCaptures = (await session.query(
+				`select 'work_day' as kind, work_day_id as source_id
+				 from payslip_work_day_inputs
+				 where payslip_id in (select id from payslips where payroll_run_id in ($1, $2))
+				 union all
+				 select 'component_entry', component_entry_id
+				 from payslip_component_entry_inputs
+				 where payslip_id in (select id from payslips where payroll_run_id in ($1, $2))
+				 union all
+				 select 'leave_request', leave_request_id
+				 from payslip_leave_request_inputs
+				 where payslip_id in (select id from payslips where payroll_run_id in ($1, $2))
+				 union all
+				 select 'loan_repayment', loan_repayment_id
+				 from payslip_loan_repayment_inputs
+				 where payslip_id in (select id from payslips where payroll_run_id in ($1, $2))`,
+				[februaryId, marchId]
+			)) as ReadonlyArray<{ readonly kind: string; readonly source_id: string }>;
+			assert.deepEqual(
+				leftoverCaptures,
+				[],
+				`expected cascade to drop capture junctions, got ${JSON.stringify(leftoverCaptures)}`
+			);
+
+			const sourceTable = {
+				work_day: 'work_days',
+				component_entry: 'component_entries',
+				leave_request: 'leave_requests',
+				loan_repayment: 'loan_repayments'
+			} as const;
+			for (const row of captured) {
+				const table = sourceTable[row.kind];
+				assert.ok(table, `unexpected capture kind ${row.kind}`);
+				const surviving = (await session.query(`select id from ${table} where id = $1`, [
+					row.source_id
+				])) as ReadonlyArray<{ readonly id: string }>;
+				assert.equal(
+					surviving.length,
+					1,
+					`deleting a draft run must unlink ${row.kind} ${row.source_id}, not delete it`
+				);
+			}
 		} finally {
 			await session.stop();
 		}

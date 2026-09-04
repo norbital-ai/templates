@@ -1,8 +1,8 @@
 import { group } from '@norbital-ai/bolt/authoring';
 
 /**
- * Apps are discovered from the files in this directory. Legal-entity choice lives on Entities
- * and is inherited by every sibling through `company-scope.svelte.ts`.
+ * Apps are discovered from the files in this directory. Entities is the companies catalogue.
+ * Each sibling scopes itself with a Combobox backed by `company-scope.svelte.ts`.
  */
 export default group({
 	label: 'HR Controller',

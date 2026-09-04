@@ -54,7 +54,7 @@ test('reviewed-empty attendance has no boundary and no worked minutes, which is 
 // ── the run validator ───────────────────────────────────────────────────────────────────────────
 
 const bundleOf = (workDays) => ({
-	bundles: [{ employment: { employee_number: 'NHPMY0023' }, workDays }]
+	bundles: [{ employment: { employee_number: 'PUBEM0023' }, workDays }]
 });
 
 const day = (id, worked_intervals) => ({ id, work_date: '2026-03-02', worked_intervals });

@@ -233,6 +233,20 @@ test('a controller may view payroll, and mutate.new is held for hr_manager or se
 	// approved run is theirs to look at and nobody else's to be surprised by.
 	assert.equal(may(hrController, 'payroll_runs', 'mutate.existing'), false);
 	assert.equal(may(hrController, 'payroll_runs', 'delete'), false);
+
+	// create.before writes payslips and adjustments as the requesting subject, not elevated.
+	assert.equal(may(hrController, 'payslips', 'mutate.new'), true);
+	for (const collection of ['payslips', 'payslip_adjustments'])
+		assert.equal(may(hrController, collection, 'delete'), true, `hr_controller ${collection}`);
+	for (const collection of [
+		'payslip_work_day_inputs',
+		'payslip_component_entry_inputs',
+		'payslip_leave_request_inputs',
+		'payslip_loan_repayment_inputs'
+	]) {
+		assert.equal(may(hrController, collection, 'mutate.new'), true, `hr_controller ${collection}`);
+		assert.equal(may(hrController, collection, 'delete'), true, `hr_controller ${collection}`);
+	}
 });
 
 test('hr_manager and senior management mutate new and existing payroll runs without a gate', () => {

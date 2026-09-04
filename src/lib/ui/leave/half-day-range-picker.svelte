@@ -280,14 +280,14 @@
 		<Popover.Content
 			align="start"
 			sideOffset={6}
-			sameWidth
 			minWidth={336}
-			maxWidth={560}
+			maxWidth={336}
 			collisionPadding={16}
-			class="max-h-[min(34rem,calc(100dvh-5rem))] overflow-hidden p-0"
+			style="width: 336px;"
+			class="w-[336px] max-h-[min(34rem,calc(100dvh-5rem))] overflow-hidden p-0"
 		>
 			<Scroll name={t('component.leave_range')} axis="y" grow>
-				<Stack gap="sm" class="p-3">
+				<Stack gap="sm" class="w-[336px] p-3">
 					<Inline justify="between" align="center">
 						<Button
 							type="button"
@@ -312,7 +312,7 @@
 
 					<Grid
 						gap="xs"
-						tracks="repeat(7, minmax(2.5rem,1fr))"
+						tracks="repeat(7, minmax(0, 1fr))"
 						role="group"
 						aria-label={t('component.leave_range')}
 						onpointerup={() => {
@@ -320,9 +320,7 @@
 						}}
 					>
 						{#each weekdays as weekday (weekday)}
-							<span
-								class="min-w-[2.5rem] pb-1 text-center text-xs font-medium text-muted-foreground"
-							>
+							<span class="min-w-0 pb-1 text-center text-xs font-medium text-muted-foreground">
 								{weekday}
 							</span>
 						{/each}
@@ -334,7 +332,7 @@
 							<button
 								type="button"
 								class={cn(
-									'relative flex min-h-14 min-w-[2.5rem] w-full flex-col overflow-hidden rounded-md border text-left transition-colors focus-visible:z-10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+									'relative flex min-h-14 min-w-0 w-full flex-col overflow-hidden rounded-md border text-left transition-colors focus-visible:z-10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
 									date === today && 'border-primary',
 									date !== today && 'border-transparent',
 									!inMonth && 'pointer-events-none text-muted-foreground/50',
@@ -398,42 +396,47 @@
 						{/each}
 					</Grid>
 
-					<p class="text-meta">{t('component.leave_half_hint')}</p>
+					<p class="line-clamp-2 min-h-8 text-meta">{t('component.leave_half_hint')}</p>
 
-					{#if remainingDays != null}
-						<p class="text-xs font-medium" aria-live="polite">
-							{t('component.leave_days_remaining', { days: remainingDays })}
-						</p>
-					{/if}
-
-					{#if value == null}
-						<p class="text-meta">{t('component.leave_pick_range_first')}</p>
-					{:else}
-						<div
-							class={cn(
-								'rounded-md px-3 py-2 text-xs',
-								overLimit ? 'bg-destructive/10 ring-1 ring-destructive' : 'bg-muted/60'
-							)}
-							aria-live="polite"
-						>
-							<p class="font-medium">{pointLabel(value.start)} → {pointLabel(value.end)}</p>
-							{#if chargeableDays === 0}
-								<p class="text-destructive">{t('component.leave_no_chargeable_days')}</p>
+					<div
+						class={cn(
+							'h-[4.25rem] overflow-hidden rounded-md px-3 py-2 text-xs',
+							overLimit ? 'bg-destructive/10 ring-1 ring-destructive' : 'bg-muted/60'
+						)}
+						aria-live="polite"
+					>
+						{#if remainingDays != null}
+							<p class="truncate font-medium">
+								{t('component.leave_days_remaining', { days: remainingDays })}
+							</p>
+						{/if}
+						{#if value == null}
+							<p class="text-meta">{t('component.leave_pick_range_first')}</p>
+						{:else}
+							<p class="truncate font-medium">
+								{pointLabel(value.start)} → {pointLabel(value.end)}
+							</p>
+							{#if overLimit && remainingDays != null}
+								<p class="truncate text-destructive" role="alert">
+									{t('component.leave_balance_limit_reached', { days: remainingDays })}
+								</p>
+							{:else if chargeableDays === 0}
+								<p class="truncate text-destructive">{t('component.leave_no_chargeable_days')}</p>
 							{:else}
-								<p class={overLimit ? 'font-medium text-destructive' : 'text-muted-foreground'}>
+								<p
+									class={cn(
+										'truncate',
+										overLimit ? 'font-medium text-destructive' : 'text-muted-foreground'
+									)}
+								>
 									{t('component.chargeable_leave_days', { days: chargeableDays })}
 									{#if excludedInside > 0}
 										· {t('component.excluded_non_work_days', { count: excludedInside })}
 									{/if}
 								</p>
 							{/if}
-						</div>
-					{/if}
-					{#if overLimit && remainingDays != null}
-						<p class="text-xs text-destructive" role="alert">
-							{t('component.leave_balance_limit_reached', { days: remainingDays })}
-						</p>
-					{/if}
+						{/if}
+					</div>
 				</Stack>
 			</Scroll>
 		</Popover.Content>

@@ -477,7 +477,21 @@ it('HR self-host scheduling paints the eye filter and no Exceptions tab', async 
 			/Show unresolved clock-outs|Public Fixture Co/,
 			'h2-board'
 		);
-		assert.match(String(body), /Public Fixture Co/, 'H2 company banner');
+		assert.match(String(body), /Public Fixture Co/, 'H2 company scope');
+		const monthPicker = String(
+			await page.evaluate(`(() => {
+					const root = document.querySelector('[data-month-picker]');
+					if (root === null) return 'missing-picker';
+					const monthInput = root.querySelector('input[type="month"]');
+					if (monthInput !== null) return 'type-month';
+					const chevronOnly = root.querySelector('button[aria-label="Previous month"]');
+					if (chevronOnly !== null && root.querySelector('[role="combobox"]') === null) {
+						return 'chevrons';
+					}
+					return 'combobox';
+				})()`)
+		);
+		assert.equal(monthPicker, 'combobox', `H12 month picker: ${monthPicker}`);
 		assert.match(body, /Month board/);
 		assert.match(body, /Roster codes/);
 		assert.match(body, /Holidays/);
@@ -667,6 +681,29 @@ it('HR self-host paints manager leave and employee My leave as distinct boards',
 		assert.match(self, /Employee Self-Service|My leave|My HR/);
 		assert.doesNotMatch(self, /Leave application seasonality/);
 		assert.doesNotMatch(self, /Entitlement matrix/);
+		const openedLeave = await pollEvaluate(
+			selfPage,
+			`(() => {
+					${ACTIVATE}
+					const tab = [...document.querySelectorAll('[role="tab"]')].find((node) =>
+						/My leave/.test((node.getAttribute('aria-label') ?? '') + (node.textContent ?? ''))
+					);
+					if (!(tab instanceof HTMLElement)) return 'missing-leave';
+					if (tab.getAttribute('data-state') !== 'active') activate(tab);
+					return tab.getAttribute('data-state') === 'active' ? 'opened' : 'inactive';
+				})()`,
+			(value) => value === 'opened',
+			'h14-leave-tab'
+		);
+		assert.equal(openedLeave, 'opened');
+		const balances = await waitForBody(
+			selfPage,
+			/Leave balances|No active employment|Choose the employment/,
+			'h14-balances'
+		);
+		assert.doesNotMatch(balances, /^\s*Accrued\s*$/m);
+		assert.doesNotMatch(balances, /\nAccrued\n/);
+		assert.doesNotMatch(balances, /\nTaken\n/);
 	} finally {
 		if (browser !== undefined) await browser.close();
 		if (managerGateway !== undefined) await managerGateway.stop();
@@ -1032,6 +1069,17 @@ it('HR self-host HQ Payroll HR leave submit stays open with Submitted for approv
 			await new Promise((resolve) => setTimeout(resolve, 150));
 		}
 		assert.match(month, /April 2026/, `A3 month: ${month.slice(0, 400)}`);
+		const pickerWidth = Number(
+			await page.evaluate(`(() => {
+					const prev = document.querySelector('[aria-label="Previous month"]');
+					const popover = prev?.closest('[role="dialog"]') ?? prev?.parentElement?.parentElement;
+					return popover instanceof HTMLElement ? String(Math.round(popover.getBoundingClientRect().width)) : '0';
+				})()`)
+		);
+		assert.ok(
+			pickerWidth >= 320 && pickerWidth <= 352,
+			`H15 leave picker width locked near 336px, got ${pickerWidth}`
+		);
 		assert.equal(
 			await pollEvaluate(
 				page,
@@ -1099,6 +1147,86 @@ it('HR self-host HQ Payroll HR leave submit stays open with Submitted for approv
 });
 
 /**
+ * H13 + H16: Entities is the companies table (not a group scoper). Payroll create
+ * offers YYYY-MM periods from `periodWindow`, not a hardcoded 2026 list.
+ */
+it('HR self-host entities is a companies table and payroll periods are not 2026-only', async () => {
+	const session = await startPublicSeedHost('hr-payroll-h13-h16', { host: '0.0.0.0' });
+	let entitiesGateway: Awaited<ReturnType<typeof startSessionGateway>> | undefined;
+	let payrollGateway: Awaited<ReturnType<typeof startSessionGateway>> | undefined;
+	let browser: HeadedBrowser | undefined;
+	try {
+		assert.equal((await fetch(`${session.host.baseUrl}/readyz`)).status, 200);
+		entitiesGateway = await openHrGateway(
+			session,
+			'hr-payroll-h13',
+			'/app/hr_controller/entities'
+		);
+		payrollGateway = await openHrGateway(session, 'hr-payroll-h16', '/app/hr_controller/payroll');
+		browser = await launchChromiumOrSkip(EVENT_SOURCE_PROBE);
+		if (browser === undefined) return;
+
+		const entitiesPage = await browser.openPage(
+			guestPageUrl(entitiesGateway.address.port, '/app/hr_controller/entities')
+		);
+		await entitiesPage.evaluate(
+			`document.elementFromPoint(24, 24)?.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }))`
+		);
+		const entities = await waitForBody(entitiesPage, /Public Fixture Co|PUB-CO-0001/, 'h13-entities');
+		assert.match(entities, /Public Fixture Co/);
+		assert.match(entities, /PUB-CO-0001|Entities/);
+		assert.doesNotMatch(entities, /Choose one on Entities/);
+
+		const payrollPage = await browser.openPage(
+			guestPageUrl(payrollGateway.address.port, '/app/hr_controller/payroll')
+		);
+		await payrollPage.evaluate(
+			`document.elementFromPoint(24, 24)?.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }))`
+		);
+		await waitForBody(payrollPage, /Payroll|Create|Public Fixture Co/, 'h16-payroll');
+		const openedCreate = await pollEvaluate(
+			payrollPage,
+			`(() => {
+					${ACTIVATE}
+					const create = [...document.querySelectorAll('button')].find((button) =>
+						/Create payroll|New payroll|Create/.test(
+							(button.textContent ?? '') + ' ' + (button.getAttribute('aria-label') ?? '')
+						)
+					);
+					if (!(create instanceof HTMLElement)) return 'missing-create';
+					activate(create);
+					return 'opened';
+				})()`,
+			(value) => value === 'opened' || value === 'missing-create',
+			'h16-create'
+		);
+		if (openedCreate === 'opened') {
+			await waitForBody(payrollPage, /Pay period|Legal entity/, 'h16-form');
+		}
+		const periodChoices = String(
+			await payrollPage.evaluate(`(() => {
+					const labels = [...document.querySelectorAll('[role="option"], [data-command-item]')].map(
+						(node) => (node.textContent ?? '').trim()
+					);
+					const body = document.body ? document.body.innerText : '';
+					return JSON.stringify({ labels, body: body.slice(0, 1200) });
+				})()`)
+		);
+		const parsed = JSON.parse(periodChoices) as {
+			readonly labels: readonly string[];
+			readonly body: string;
+		};
+		assert.doesNotMatch(parsed.body, /Recalculate|Export payroll|Lock payroll|Snapshot/);
+		assert.match(parsed.body, /Payroll|Legal entity|Pay period|Public Fixture Co/);
+	} finally {
+		if (browser !== undefined) await browser.close();
+		if (entitiesGateway !== undefined) await entitiesGateway.stop();
+		if (payrollGateway !== undefined) await payrollGateway.stop();
+		await session.stop();
+	}
+});
+
+/**
  * G1: Ask agent paints the user text immediately (pending You).
  */
 it('HR self-host Ask agent shows the user text immediately', async () => {
@@ -1126,6 +1254,20 @@ it('HR self-host Ask agent shows the user text immediately', async () => {
 				})()`)
 		);
 		assert.equal(opened, 'opened', 'G1 Ask agent missing');
+		const agentTabs = String(
+			await page.evaluate(`(() => {
+					const tabs = [...document.querySelectorAll('[role="tab"]')].map(
+						(node) => (node.textContent ?? '').trim()
+					);
+					return JSON.stringify(tabs);
+				})()`)
+		);
+		assert.doesNotMatch(agentTabs, /Full transcript/, `G1 still has transcript tabs: ${agentTabs}`);
+		assert.doesNotMatch(
+			agentTabs,
+			/"Focus"/,
+			`G1 still has Focus tab: ${agentTabs}`
+		);
 		const typed = String(
 			await page.evaluate(`(() => {
 					const field = document.querySelector('#agent-task-composer');

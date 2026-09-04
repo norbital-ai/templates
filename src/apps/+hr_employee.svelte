@@ -14,6 +14,7 @@
 	import { Alert, AlertDescription, AlertTitle } from '@norbital-ai/ui/alert';
 	import * as Dialog from '@norbital-ai/ui/dialog';
 	import { Bound, Cluster, Cover, Grid, Inline, Scroll, Stack } from '@norbital-ai/ui/layout';
+	import { Root as Progress } from '@norbital-ai/ui/progress';
 	import { Tabs, type TabConfig } from '@norbital-ai/ui/tabs';
 	import RosterMonthCalendar from '../lib/ui/roster/roster-month-calendar.svelte';
 	import { employeeMissingPunchReportable } from '../lib/ui/roster/employee-reportability.js';
@@ -31,10 +32,9 @@
 		leaveBalance,
 		resolveEntitlement,
 		carriedInDays,
-		accruedDays,
 		expiredDays,
-		leaveYearStart,
 		leaveYearOf,
+		leaveYearStart,
 		type BalanceInput
 	} from '../collections/payroll_runs/lib/leave.js';
 	import { sealedProfileCovering } from '../lib/statutory_profile.js';
@@ -301,6 +301,11 @@
 		return row.payslip_payroll_run?.period ?? '—';
 	}
 
+	/** Fill width for a leave meter — empty when the track has no length. */
+	function leaveMeterWidth(value: number, total: number): string {
+		return `${EffectNumber.clamp({ minimum: 0, maximum: 100 })(total <= 0 ? 0 : (value / total) * 100)}%`;
+	}
+
 	/* ──────────────────────────────────────────────────────────────────────────────────────────────
 	 * MY SCHEDULE
 	 *
@@ -328,8 +333,9 @@
 	);
 	const scheduleWorkDateBounds = $derived(monthWorkDateInstantBounds(scheduleMonth));
 
-	function stepScheduleMonth(delta: number): void {
-		scheduleMonth = shiftMonthKey(scheduleMonth, delta);
+	function selectScheduleMonth(nextMonth: string): void {
+		if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(nextMonth)) return;
+		scheduleMonth = nextMonth;
 	}
 
 	/**
@@ -587,10 +593,8 @@
 	);
 
 	/**
-	 * The leave balance panel: per live leave type of the active employment, the full derivation —
-	 * entitlement, carried-in, accrued, taken, encashed, expired, remaining. The same pure
-	 * functions the request guard and the engine run, over the employee's own readable rows; no new
-	 * storage, no new grant beyond the child facts read.
+	 * The leave balance panel: per live leave type, entitlement leftover and carried-in. The same
+	 * pure functions the request guard and the engine run, over the employee's own readable rows.
 	 */
 	const profileLeaveTypes = $derived(
 		governingProfile == null
@@ -649,41 +653,47 @@
 				basis: 'SETTLED'
 			};
 			const year = leaveYearOf(today, yearStart);
+			const yearStartDate = leaveYearStart(today, yearStart);
 			const entitlement = entitlementAt(completedMonths(hire, today), today);
+			const carried = carriedInDays(input, year);
+			const remaining = leaveBalance(input, today);
+			const expired = expiredDays(input, year, today);
+			const accrual = type.accrual;
+			const banked = accrual != null && accrual.kind !== 'PER_EVENT';
+			const carry = accrual != null && accrual.kind !== 'PER_EVENT' ? accrual.carry : null;
+			const carryLimit = carry != null ? decodeNumber(carry.limit_days) : null;
+			const carryExpiry =
+				carry != null && carry.expiry_months > 0
+					? `${shiftMonthKey(monthKey(yearStartDate), carry.expiry_months)}-01`
+					: null;
+			const takenThisYear = -Math.min(
+				0,
+				leaveLedgerRows.reduce((total, row) => {
+					if (row.leave_type_id !== type.id) return total;
+					if (row.entry_date < yearStartDate || row.entry_date > today) return total;
+					return total + row.days;
+				}, 0)
+			);
+			const carryLeft =
+				carryExpiry != null && today >= carryExpiry
+					? 0
+					: EffectNumber.clamp({ minimum: 0, maximum: Math.max(carried, 0) })(
+							carried - takenThisYear
+						);
 			return {
 				type,
+				banked,
 				entitlement,
-				carried: carriedInDays(input, year),
-				accrued: accruedDays({
-					leaveType: type,
-					entitlementAt,
-					hireDate: hire,
-					exitDate: exit,
-					leaveYearStart: leaveYearStart(today, yearStart),
-					asOf: today
-				}),
-				expired: expiredDays(input, year, today),
-				taken: Math.abs(
-					leaveLedgerRows
-						.filter(
-							(row) =>
-								row.leave_type_id === type.id &&
-								decodeNumber(row.days) < 0 &&
-								row.entry_date >= leaveYearStart(today, yearStart) &&
-								row.entry_date <= today
-						)
-						.reduce((total, row) => total + decodeNumber(row.days), 0)
-				),
-				encashed: leaveLedgerRows
-					.filter(
-						(row) =>
-							row.leave_type_id === type.id &&
-							row.kind === 'ENCASHMENT' &&
-							row.entry_date >= leaveYearStart(today, yearStart) &&
-							row.entry_date <= today
-					)
-					.reduce((total, row) => total + Math.abs(decodeNumber(row.days)), 0),
-				remaining: leaveBalance(input, today)
+				entitlementLeft: EffectNumber.clamp({
+					minimum: 0,
+					maximum: Math.max(entitlement, 0)
+				})(remaining - carryLeft),
+				carried,
+				carryLeft,
+				carryLimit,
+				carryExpiry,
+				expired,
+				remaining
 			};
 		});
 	});
@@ -1300,7 +1310,7 @@
 				reportableDates={scheduleReportableDates}
 				onSelectDay={openDaySheet}
 				onReportDay={openReport}
-				onStepMonth={stepScheduleMonth}
+				onMonthChange={selectScheduleMonth}
 			/>
 		{/if}
 	</Cover>
@@ -1329,61 +1339,92 @@
 					</p>
 				{:else}
 					{#each leaveBalanceRows as balance (balance.type.id)}
-						<Grid gap="sm" class="items-start border-t px-4 py-3">
-							<Stack class="min-w-0" gap="xs">
-								<p class="truncate text-sm font-medium" title={balance.type.name}>
-									{balance.type.name}
-									<span class="text-muted-foreground"> · {balance.type.code}</span>
-								</p>
-								<Cluster as="dl" gap="sm" class="text-xs text-muted-foreground">
-									<Inline as="div" gap="xs">
-										<dt>{t('app.hr_employee.leave_entitlement')}</dt>
-										<dd class="font-medium tabular-nums text-foreground">
-											{formatNumeric(balance.entitlement)}
-										</dd>
-									</Inline>
-									<Inline as="div" gap="xs">
-										<dt>{t('app.hr_employee.leave_accrued')}</dt>
-										<dd class="font-medium tabular-nums text-foreground">
-											{formatNumeric(balance.accrued)}
-										</dd>
-									</Inline>
-									<Inline as="div" gap="xs">
-										<dt>{t('app.hr_employee.leave_carried')}</dt>
-										<dd class="font-medium tabular-nums text-foreground">
-											{formatNumeric(balance.carried)}
-										</dd>
-									</Inline>
-									<Inline as="div" gap="xs">
-										<dt>{t('app.hr_employee.leave_taken')}</dt>
-										<dd class="font-medium tabular-nums text-foreground">
-											{formatNumeric(balance.taken)}
-										</dd>
-									</Inline>
-									{#if balance.encashed > 0}
-										<Inline as="div" gap="xs">
-											<dt>{t('app.hr_employee.leave_encashed')}</dt>
-											<dd class="font-medium tabular-nums text-foreground">
-												{formatNumeric(balance.encashed)}
-											</dd>
-										</Inline>
-									{/if}
-									{#if balance.expired > 0}
-										<Inline as="div" gap="xs">
-											<dt>{t('app.hr_employee.leave_expired')}</dt>
-											<dd class="font-medium tabular-nums text-foreground">
-												{formatNumeric(balance.expired)}
-											</dd>
-										</Inline>
-									{/if}
-								</Cluster>
-							</Stack>
-							<p class="text-sm font-semibold tabular-nums sm:text-right">
-								{t('component.leave_days_remaining', {
-									days: formatNumeric(balance.remaining)
-								})}
+						<Stack class="border-t px-4 py-3" gap="sm">
+							<p class="truncate text-sm font-medium" title={balance.type.name}>
+								{balance.type.name}
 							</p>
-						</Grid>
+							{#if !balance.banked}
+								<p class="text-meta">{t('app.hr_employee.leave_per_event')}</p>
+							{:else}
+								<Stack gap="xs">
+									<Inline justify="between" align="baseline" gap="sm">
+										<span class="text-meta">{t('app.hr_employee.leave_entitlement')}</span>
+										<span class="text-xs tabular-nums">
+											{t('app.hr_employee.leave_of_days', {
+												left: formatNumeric(balance.entitlementLeft),
+												total: formatNumeric(balance.entitlement)
+											})}
+										</span>
+									</Inline>
+									<Progress
+										value={balance.entitlementLeft}
+										max={Math.max(balance.entitlement, 1)}
+										aria-label={t('app.hr_employee.leave_entitlement')}
+										class="h-2.5"
+									/>
+								</Stack>
+								{#if balance.carryLimit != null || balance.carried > 0 || balance.expired > 0}
+									{@const carryTrack = Math.max(balance.carryLimit ?? balance.carried, 1)}
+									<Stack
+										gap="xs"
+										class="rounded-md border border-dashed border-warning/40 bg-warning/5 px-2 py-2"
+									>
+										<Inline justify="between" align="baseline" gap="sm">
+											<span class="text-meta text-warning-foreground">
+												{t('app.hr_employee.leave_carried')}
+											</span>
+											<span class="text-xs tabular-nums text-warning-foreground">
+												{t('app.hr_employee.leave_of_days', {
+													left: formatNumeric(balance.carryLeft),
+													total: formatNumeric(balance.carryLimit ?? balance.carried)
+												})}
+											</span>
+										</Inline>
+										<div
+											class="relative h-2.5 overflow-hidden rounded-sm bg-warning/15"
+											role="meter"
+											aria-valuemin={0}
+											aria-valuemax={carryTrack}
+											aria-valuenow={balance.carryLeft}
+											aria-label={t('app.hr_employee.leave_carried')}
+										>
+											{#if balance.expired > 0}
+												<div
+													class="absolute inset-y-0 left-0 bg-warning/30"
+													style:width={leaveMeterWidth(balance.expired, carryTrack)}
+												></div>
+											{/if}
+											{#if balance.carryLeft > 0}
+												<div
+													class="absolute inset-y-0 left-0 bg-warning"
+													style:width={leaveMeterWidth(balance.carryLeft, carryTrack)}
+												></div>
+											{/if}
+										</div>
+										{#if balance.carryExpiry != null}
+											<p
+												class="text-meta {balance.expired > 0 || today >= balance.carryExpiry
+													? 'text-destructive'
+													: 'text-warning-foreground'}"
+											>
+												{balance.expired > 0 || today >= balance.carryExpiry
+													? t('app.hr_employee.leave_carry_expired_on', {
+															date: formatCalendarDate(balance.carryExpiry)
+														})
+													: t('app.hr_employee.leave_carry_use_by', {
+															date: formatCalendarDate(balance.carryExpiry)
+														})}
+												{#if balance.expired > 0}
+													· {t('app.hr_employee.leave_carry_lapsed', {
+														days: formatNumeric(balance.expired)
+													})}
+												{/if}
+											</p>
+										{/if}
+									</Stack>
+								{/if}
+							{/if}
+						</Stack>
 					{/each}
 				{/if}
 			</section>

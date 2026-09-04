@@ -7,9 +7,8 @@ import { Schema } from 'effect';
  * `companies.pay_cutoff_day` and `companies.pay_day` are one integer each, and one integer each can
  * only describe a **monthly** calendar: one window, one pay date, one settlement a month. Every
  * company has that calendar and it stays where it is. What it cannot say is that some of the same
- * company's people are paid twice in the month — 1st–15th and 16th–end at Omni Plus System
- * Philippines, where Philippine law requires payment at least twice a month — and that is what this
- * type says.
+ * company's people are paid twice in the month — 1st–15th and 16th–end, which Philippine law
+ * requires at least twice a month — and that is what this type says.
  *
  * **Why this is not part of `settlement_policy`.** That type states a company's *deviations* from
  * its plain pay calendar: what happens at the two ends of an employment, which divisor values an

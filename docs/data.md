@@ -97,7 +97,7 @@ tracker when it matches the paid listing. When HR confirms a different paid amou
 evidence, seed the **paid** amount and document the reason — do not invent a tracker receipt date
 and do not leave the payslip amount as an unexplained gap.
 
-Example: employee `NHPMY0053` has January medical RM93.50 on the salary listing (`JAN 2026!X5`).
+Example: employee `PUBEM0053` has January medical RM93.50 on the salary listing (`JAN 2026!X5`).
 The medical tracker also lists RM158 for January 2026 and RM215 for December 2025. The supporting
 medical claim form shows the original claim RM158 struck through and replaced with RM93.50 because
 the **2025 annual medical balance** remaining was RM93.50. Seed RM93.50 with that provenance; do

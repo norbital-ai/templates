@@ -16,8 +16,8 @@ const JURISDICTION = {
 };
 
 const COMPANY = {
-	id: 'co-nihon-my',
-	name: 'Nihon (MY)',
+	id: 'co-pub-my',
+	name: 'Public Fixture Co',
 	jurisdiction_id: 'jur-my',
 	pay_cutoff_day: 21,
 	pay_day: 25,
@@ -30,7 +30,7 @@ const COMPANY = {
 
 const BASIC = {
 	id: 'pc-basic',
-	company_id: 'co-nihon-my',
+	company_id: 'co-pub-my',
 	code: 'BASIC',
 	name: 'Basic salary',
 	nature: 'EARNING',
@@ -42,7 +42,7 @@ const BASIC = {
 
 const NPL = {
 	id: '00000000-0000-4000-8000-0000000000n1',
-	company_id: 'co-nihon-my',
+	company_id: 'co-pub-my',
 	code: 'NPL',
 	name: 'Unpaid leave',
 	nature: 'ABSENCE',
@@ -54,7 +54,7 @@ const NPL = {
 
 const NPL_TYPE = {
 	id: '00000000-0000-4000-8000-0000000000t1',
-	company_id: 'co-nihon-my',
+	company_id: 'co-pub-my',
 	code: 'NPL',
 	name: 'Unpaid leave',
 	eligibility: [],
@@ -98,8 +98,8 @@ function bundle(ledger = []) {
 		employment: {
 			id: 'emp-nhpmy0290',
 			employee_id: 'ee-1',
-			employee_number: 'NHPMY0290',
-			company_id: 'co-nihon-my',
+			employee_number: 'PUBEM0290',
+			company_id: 'co-pub-my',
 			hire_date: '2021-06-01',
 			exit_date: null,
 			department: null,

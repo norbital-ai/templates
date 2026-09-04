@@ -8,11 +8,11 @@
 	import type { WorkspaceRow } from '$bolt/types.js';
 	import { Tabs, type TabConfig } from '@norbital-ai/ui/tabs';
 	import { CollectionTable } from '@norbital-ai/ui/collection-table';
-	import CompanyScopeBanner from './CompanyScopeBanner.svelte';
+	import CompanyScopeCombobox from './CompanyScopeCombobox.svelte';
 	import {
-		activeCompanyId as activeCompanyIdOf,
 		companiesError as companiesErrorOf,
-		companiesUnknown as companiesUnknownOf
+		companiesUnknown as companiesUnknownOf,
+		resolveCompanyId
 	} from './company-scope.svelte.js';
 	import { Bound, Cover, Inline, Scroll } from '@norbital-ai/ui/layout';
 	import { Spinner } from '@norbital-ai/ui/spinner';
@@ -27,9 +27,10 @@
 
 	const { t } = useI18n<TenantI18nKeys>();
 
+	let chosenCompanyId = $state<string | null>(null);
+	const selectedCompanyId = $derived(resolveCompanyId(chosenCompanyId));
 	const companiesUnknown = $derived(companiesUnknownOf());
 	const companiesError = $derived(companiesErrorOf());
-	const selectedCompanyId = $derived(activeCompanyIdOf());
 	/**
 	 * The leave requests the requests table renders, read once for their ids so the settlement
 	 * claims over them can be scoped (the table owns its own query, so this read is the lock's half
@@ -110,7 +111,12 @@
 </svelte:head>
 
 {#snippet companyScopeActions()}
-	<CompanyScopeBanner />
+	<CompanyScopeCombobox
+		value={selectedCompanyId}
+		onValueChange={(id) => {
+			chosenCompanyId = id;
+		}}
+	/>
 {/snippet}
 
 {#snippet overview()}

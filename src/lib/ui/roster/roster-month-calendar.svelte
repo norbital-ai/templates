@@ -71,6 +71,7 @@
 	import { Cluster, Cover, Grid, Inline, Scroll, Stack } from '@norbital-ai/ui/layout';
 	import { Skeleton } from '@norbital-ai/ui/skeleton';
 	import { cn } from '@norbital-ai/ui/utils';
+	import MonthPeriodPicker from '../month-period-picker.svelte';
 	import { formatDurationHours } from '../display-formatters.js';
 	import { sourceLockReason, type SourceLock } from '../../scheduling/lock.js';
 	import {
@@ -112,7 +113,7 @@
 		reportableDates = new Set(),
 		onSelectDay,
 		onReportDay,
-		onStepMonth
+		onMonthChange
 	}: {
 		month: string;
 		employmentId: string;
@@ -143,7 +144,7 @@
 		reportableDates?: ReadonlySet<string>;
 		onSelectDay?: (employmentId: string, date: string) => void;
 		onReportDay?: (employmentId: string, date: string) => void;
-		onStepMonth?: (delta: number) => void;
+		onMonthChange: (month: string) => void;
 	} = $props();
 
 	const days = $derived(monthDays(month));
@@ -328,27 +329,7 @@
 
 {#snippet chrome()}
 	<Cluster gap="md" align="center" justify="between">
-		<Inline gap="xs">
-			<Button
-				variant="outline"
-				size="icon"
-				aria-label={t('roster.calendar_previous_month')}
-				disabled={loading || onStepMonth == null}
-				onclick={() => onStepMonth?.(-1)}
-			>
-				<IconWrapper name="lucide:chevron-left" class="size-4" />
-			</Button>
-			<span class="text-heading tabular-nums">{month}</span>
-			<Button
-				variant="outline"
-				size="icon"
-				aria-label={t('roster.calendar_next_month')}
-				disabled={loading || onStepMonth == null}
-				onclick={() => onStepMonth?.(1)}
-			>
-				<IconWrapper name="lucide:chevron-right" class="size-4" />
-			</Button>
-		</Inline>
+		<MonthPeriodPicker {month} {onMonthChange} disabled={loading} />
 		{#if loading}
 			<Inline gap="md" aria-hidden="true">
 				<Skeleton class="h-4 w-24" />

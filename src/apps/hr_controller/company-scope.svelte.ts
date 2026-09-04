@@ -1,14 +1,13 @@
 /**
- * Single active legal entity for the HR Controller group.
+ * Live companies prefix for the HR Controller group.
  *
- * The live companies prefix lives here. Apps read it; Entities writes the choice.
- * Default is the first in-force row — computed, never copied into state.
+ * Apps read it for options and defaults; each app owns its chosen id locally.
  */
 import { client } from '../../lib/workspace-client.js';
 import type { WorkspaceRow } from '$bolt/types.js';
 import { todayInstant } from '../../lib/ui/calendar.js';
 
-type CompanyScopeRow = WorkspaceRow<'companies'>;
+export type CompanyScopeRow = WorkspaceRow<'companies'>;
 
 const companiesQuery = client.db.companies.findMany({
 	where: {
@@ -19,8 +18,6 @@ const companiesQuery = client.db.companies.findMany({
 	limit: 500
 });
 
-let selectedId = $state<string | null>(null);
-
 export const companies = (): ReadonlyArray<CompanyScopeRow> => companiesQuery.current ?? [];
 
 export const companiesUnknown = (): boolean =>
@@ -29,22 +26,28 @@ export const companiesUnknown = (): boolean =>
 export const companiesError = (): Error | undefined =>
 	companiesQuery.current === undefined ? companiesQuery.error : undefined;
 
-export const activeCompanyId = (): string | null => {
+export const companiesKnown = (): boolean => companies().length > 0;
+
+export function resolveCompanyId(selectedId: string | null): string | null {
 	const rows = companies();
 	if (selectedId != null && rows.some((company) => String(company.id) === selectedId)) {
 		return selectedId;
 	}
 	const first = rows[0];
 	return first === undefined ? null : String(first.id);
-};
+}
 
-export const activeCompany = (): CompanyScopeRow | null => {
-	const id = activeCompanyId();
+export function companyById(id: string | null): CompanyScopeRow | null {
+	if (id == null) return null;
 	return companies().find((company) => String(company.id) === id) ?? null;
-};
+}
 
-export const companiesKnown = (): boolean => companies().length > 0;
-
-export const selectCompany = (id: string): void => {
-	selectedId = id;
-};
+export function companyOptions(): { value: string; label: string; description?: string }[] {
+	return companies().map((company) => ({
+		value: String(company.id),
+		label: company.name ?? String(company.id),
+		...(company.registration_number != null && company.registration_number !== ''
+			? { description: String(company.registration_number) }
+			: {})
+	}));
+}

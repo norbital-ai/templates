@@ -92,24 +92,24 @@ const README = [['Roster import — planned assignment'], [], ['One row per pers
 
 const ROSTER_HEADERS = ['employee_number', 'work_date', 'shift_code'];
 const ROSTER_ROWS = [
-	['NHPMY0002', '2026-05-01', '7.5AM'],
-	['NHPMY0002', '2026-05-02', '7.5AM'],
-	['NHPMY0002', '2026-05-03', 'REST'],
-	['NHPMY0002', '2026-05-04', '7.5AM'],
-	['NHPMY0002', '2026-05-05', '7.5AM'],
-	['NHPMY0023', '2026-05-04', 'AM0830'],
-	['NHPMY0023', '2026-05-05', 'PM2030'],
-	['NHPMY0023', '2026-05-06', 'OFF'],
-	['NHPMY0023', '2026-05-07', '']
+	['PUBEM0002', '2026-05-01', '7.5AM'],
+	['PUBEM0002', '2026-05-02', '7.5AM'],
+	['PUBEM0002', '2026-05-03', 'REST'],
+	['PUBEM0002', '2026-05-04', '7.5AM'],
+	['PUBEM0002', '2026-05-05', '7.5AM'],
+	['PUBEM0023', '2026-05-04', 'AM0830'],
+	['PUBEM0023', '2026-05-05', 'PM2030'],
+	['PUBEM0023', '2026-05-06', 'OFF'],
+	['PUBEM0023', '2026-05-07', '']
 ];
 
 const TIME_ENTRY_HEADERS = ['employee_number', 'work_date', 'clock_in', 'clock_out'];
 const TIME_ENTRY_ROWS = [
-	['NHPMY0002', '2026-05-04', '08:16', '17:10'],
-	['NHPMY0002', '2026-05-05', '08:02', '17:05'],
-	['NHPMY0023', '2026-05-04', '20:30', '05:15'],
-	['NHPMY0023', '2026-05-05', '20:28', '05:02'],
-	['NHPMY0023', '2026-05-06', '20:31', '']
+	['PUBEM0002', '2026-05-04', '08:16', '17:10'],
+	['PUBEM0002', '2026-05-05', '08:02', '17:05'],
+	['PUBEM0023', '2026-05-04', '20:30', '05:15'],
+	['PUBEM0023', '2026-05-05', '20:28', '05:02'],
+	['PUBEM0023', '2026-05-06', '20:31', '']
 ];
 const SETTINGS_ROWS = [
 	['Setting', 'Value'],
@@ -152,12 +152,12 @@ function companies() {
 	return [
 		{
 			id: COMPANY_ID,
-			name: 'Nihon Pigment Sdn. Bhd.',
+			name: 'Public Fixture Co',
 			registration_number: '1234567-A'
 		},
 		{
 			id: 'company:ph',
-			name: 'Omni Plus System Philippines, Inc.',
+			name: 'Public Fixture PH',
 			registration_number: 'SOURCE_NOT_PROVIDED'
 		}
 	];
@@ -180,8 +180,8 @@ function rosterApi(overrides = {}) {
 			{ id: 'holiday:1', company_id: COMPANY_ID, date: '2026-05-08' }
 		],
 		employments: [
-			{ id: 'employment:2', employee_number: 'NHPMY0002', company_id: COMPANY_ID },
-			{ id: 'employment:23', employee_number: 'NHPMY0023', company_id: COMPANY_ID }
+			{ id: 'employment:2', employee_number: 'PUBEM0002', company_id: COMPANY_ID },
+			{ id: 'employment:23', employee_number: 'PUBEM0023', company_id: COMPANY_ID }
 		],
 		shift_definitions: [
 			{
@@ -228,8 +228,8 @@ function attendanceApi(overrides = {}) {
 	return stubApi({
 		companies: companies(),
 		employments: [
-			{ id: 'employment:2', employee_number: 'NHPMY0002', company_id: COMPANY_ID },
-			{ id: 'employment:23', employee_number: 'NHPMY0023', company_id: COMPANY_ID }
+			{ id: 'employment:2', employee_number: 'PUBEM0002', company_id: COMPANY_ID },
+			{ id: 'employment:23', employee_number: 'PUBEM0023', company_id: COMPANY_ID }
 		],
 		work_days: overrides.existingDays ?? [],
 		payroll_runs: overrides.payrollRuns ?? [],
@@ -296,7 +296,7 @@ const program = Effect.gen(function* () {
 		assert.deepEqual(
 			rosterPayload.rows[0],
 			{
-				employee_number: 'NHPMY0002',
+				employee_number: 'PUBEM0002',
 				work_date: '2026-05-01',
 				shift_code: '7.5AM',
 				assignment_code: undefined,
@@ -307,7 +307,7 @@ const program = Effect.gen(function* () {
 		assert.deepEqual(
 			rosterPayload.rows[2],
 			{
-				employee_number: 'NHPMY0002',
+				employee_number: 'PUBEM0002',
 				work_date: '2026-05-03',
 				shift_code: 'REST',
 				assignment_code: undefined,
@@ -361,8 +361,8 @@ const program = Effect.gen(function* () {
 		const unobservedPh = yield* refusal(() =>
 			Effect.gen(function* () {
 				const grids = yield* rosterGrids([
-					['NHPMY0002', '2026-05-01', '7.5AM'],
-					['NHPMY0023', '2026-05-08', 'PH']
+					['PUBEM0002', '2026-05-01', '7.5AM'],
+					['PUBEM0023', '2026-05-08', 'PH']
 				]);
 				return yield* runHandlerCall(() =>
 					workDayPipeline.import.handler(
@@ -373,15 +373,15 @@ const program = Effect.gen(function* () {
 			})
 		);
 		assert.match(unobservedPh, /These PH rows are not observed holidays for the legal entity/);
-		assert.match(unobservedPh, /NHPMY0023 on 2026-05-08/);
+		assert.match(unobservedPh, /PUBEM0023 on 2026-05-08/);
 
 		const observedPh = yield* runHandler(
 			workDayPipeline.import.handler(
 				{
 					input: rosterImportPayload(
 						yield* rosterGrids([
-							['NHPMY0002', '2026-05-01', '7.5AM'],
-							['NHPMY0023', '2026-05-08', 'PH']
+							['PUBEM0002', '2026-05-01', '7.5AM'],
+							['PUBEM0023', '2026-05-08', 'PH']
 						]),
 						ROSTER_ID
 					)
@@ -398,7 +398,7 @@ const program = Effect.gen(function* () {
 				'Roster',
 				[
 					[...ROSTER_HEADERS, 'assignment_code', 'note'],
-					['NHPMY0002', '2026-05-04', '7.5AM', 'AMRES', 'swap with 03 May']
+					['PUBEM0002', '2026-05-04', '7.5AM', 'AMRES', 'swap with 03 May']
 				]
 			]
 		]);
@@ -425,7 +425,7 @@ const program = Effect.gen(function* () {
 		// ── One bad row refuses the whole file, and says which row ─────────────────────────────────────
 		const unknownEmployee = yield* refusal(() =>
 			Effect.gen(function* () {
-				const grids = yield* rosterGrids([...ROSTER_ROWS, ['NHPMY9999', '2026-05-06', '7.5AM']]);
+				const grids = yield* rosterGrids([...ROSTER_ROWS, ['PUBEM9999', '2026-05-06', '7.5AM']]);
 				return yield* runHandlerCall(() =>
 					workDayPipeline.import.handler(
 						{ input: rosterImportPayload(grids, ROSTER_ID) },
@@ -435,16 +435,16 @@ const program = Effect.gen(function* () {
 			})
 		);
 		assert.match(unknownEmployee, /not employed by this legal entity/);
-		assert.match(unknownEmployee, /NHPMY9999/);
+		assert.match(unknownEmployee, /PUBEM9999/);
 		assert.doesNotMatch(
 			unknownEmployee,
-			/NHPMY0002/,
+			/PUBEM0002/,
 			'only the offending number is named — the other rows are not at fault'
 		);
 
 		const outsideMonth = yield* refusal(() =>
 			Effect.gen(function* () {
-				const grids = yield* rosterGrids([...ROSTER_ROWS, ['NHPMY0002', '2026-06-01', '7.5AM']]);
+				const grids = yield* rosterGrids([...ROSTER_ROWS, ['PUBEM0002', '2026-06-01', '7.5AM']]);
 				return yield* runHandlerCall(() =>
 					workDayPipeline.import.handler(
 						{ input: rosterImportPayload(grids, ROSTER_ID) },
@@ -454,7 +454,7 @@ const program = Effect.gen(function* () {
 			})
 		);
 		assert.match(outsideMonth, /These rows do not belong to roster 2026-05/);
-		assert.match(outsideMonth, /• NHPMY0002 on 2026-06-01/);
+		assert.match(outsideMonth, /• PUBEM0002 on 2026-06-01/);
 
 		const publishedMonth = yield* refusal(() =>
 			Effect.gen(function* () {
@@ -516,7 +516,7 @@ const program = Effect.gen(function* () {
 		]);
 		yield* writeWorkbookFile(INVALID_ROSTER_FIXTURE, [
 			['Read me first', README],
-			['Roster', [ROSTER_HEADERS, ['NHPMY0002', '04/05/2026', '7.5AM']]]
+			['Roster', [ROSTER_HEADERS, ['PUBEM0002', '04/05/2026', '7.5AM']]]
 		]);
 		const fixturePayload = rosterImportPayload(
 			workbookGrids(yield* workbookFromFile(VALID_ROSTER_FIXTURE)),
@@ -555,22 +555,22 @@ const program = Effect.gen(function* () {
 			})
 		);
 		assert.match(alreadyPresent, /already have an explicit assignment/);
-		assert.match(alreadyPresent, /• NHPMY0002 on 2026-05-04/);
+		assert.match(alreadyPresent, /• PUBEM0002 on 2026-05-04/);
 
 		// ── Cells the browser refuses before anything is sent ──────────────────────────────────────────
 		const badCells = yield* refusal(() =>
 			tryMap(
 				rosterGrids([
-					['NHPMY0002', '04/05/2026', '7.5AM'],
-					['NHPMY0023', '', 'PM2030'],
+					['PUBEM0002', '04/05/2026', '7.5AM'],
+					['PUBEM0023', '', 'PM2030'],
 					['', '2026-05-06', '']
 				]),
 				(grids) => rosterImportPayload(grids, ROSTER_ID)
 			)
 		);
 		assert.match(badCells, /Nothing was written/);
-		assert.match(badCells, /Row 2 \(NHPMY0002 on 04\/05\/2026\): work_date is "04\/05\/2026"/);
-		assert.match(badCells, /Row 3 \(NHPMY0023\): work_date is empty/);
+		assert.match(badCells, /Row 2 \(PUBEM0002 on 04\/05\/2026\): work_date is "04\/05\/2026"/);
+		assert.match(badCells, /Row 3 \(PUBEM0023\): work_date is empty/);
 		assert.match(badCells, /Row 4 \(2026-05-06\): employee_number is empty/);
 		assert.doesNotMatch(
 			badCells,
@@ -584,7 +584,7 @@ const program = Effect.gen(function* () {
 					'Roster',
 					[
 						['employee_number', 'work_date'],
-						['NHPMY0002', '2026-05-04']
+						['PUBEM0002', '2026-05-04']
 					]
 				]
 			])
@@ -612,8 +612,8 @@ const program = Effect.gen(function* () {
 					'roster.csv',
 					csvGrid(
 						`${ROSTER_HEADERS.join(',')}\n` +
-							'NHPMY0002,2026-05-04,7.5AM\n' +
-							'NHPMY0002,2026-05-05,\n'
+							'PUBEM0002,2026-05-04,7.5AM\n' +
+							'PUBEM0002,2026-05-05,\n'
 					)
 				]
 			]),
@@ -621,7 +621,7 @@ const program = Effect.gen(function* () {
 		);
 		assert.deepEqual(csvPayload.rows, [
 			{
-				employee_number: 'NHPMY0002',
+				employee_number: 'PUBEM0002',
 				work_date: '2026-05-04',
 				shift_code: '7.5AM',
 				assignment_code: undefined,
@@ -641,7 +641,7 @@ const program = Effect.gen(function* () {
 		assert.deepEqual(
 			timePayload.rows[1],
 			{
-				employee_number: 'NHPMY0002',
+				employee_number: 'PUBEM0002',
 				work_date: '2026-05-05',
 				clock_in: '08:02',
 				clock_out: '17:05',
@@ -751,7 +751,7 @@ const program = Effect.gen(function* () {
 		// An empty array is attendance: the day was read and nothing was worked. NULL is the absence
 		// this import is allowed to fill in, and the two are deliberately different claims.
 		assert.match(alreadyAttended, /already have attendance/);
-		assert.match(alreadyAttended, /• NHPMY0002 on 2026-05-04/);
+		assert.match(alreadyAttended, /• PUBEM0002 on 2026-05-04/);
 
 		const rosterOntoAttendance = yield* runHandler(
 			workDayPipeline.import.handler(
@@ -783,7 +783,7 @@ const program = Effect.gen(function* () {
 			Effect.gen(function* () {
 				const grids = yield* timeEntryGrids([
 					...TIME_ENTRY_ROWS,
-					['NHPMY9999', '2026-05-04', '08:00', '17:00']
+					['PUBEM9999', '2026-05-04', '08:00', '17:00']
 				]);
 				return yield* runHandlerCall(() =>
 					workDayPipeline.import.handler({ input: attendanceImportPayload(grids) }, attendanceApi())
@@ -791,7 +791,7 @@ const program = Effect.gen(function* () {
 			})
 		);
 		assert.match(unknownPuncher, /not on file/);
-		assert.match(unknownPuncher, /• NHPMY9999/);
+		assert.match(unknownPuncher, /• PUBEM9999/);
 
 		const noTimezone = yield* refusal(() =>
 			tryMap(gridsOf([['Time entries', [TIME_ENTRY_HEADERS, ...TIME_ENTRY_ROWS]]]), (workbook) =>
@@ -803,8 +803,8 @@ const program = Effect.gen(function* () {
 		const badClock = yield* refusal(() =>
 			tryMap(
 				timeEntryGrids([
-					['NHPMY0002', '2026-05-04', '8.30am', '17:00'],
-					['NHPMY0023', '05/05/2026', '20:30', '05:15']
+					['PUBEM0002', '2026-05-04', '8.30am', '17:00'],
+					['PUBEM0023', '05/05/2026', '20:30', '05:15']
 				]),
 				attendanceImportPayload
 			)
@@ -821,12 +821,12 @@ const program = Effect.gen(function* () {
 		};
 		const ROSTER_GRID_SETTINGS = [
 			['Setting', 'Value'],
-			['legal_entity', 'Nihon Pigment Sdn. Bhd.'],
+			['legal_entity', 'Public Fixture Co'],
 			['month', '2026-05']
 		];
 		const TIME_GRID_SETTINGS = [
 			['Setting', 'Value'],
-			['legal_entity', 'Nihon Pigment Sdn. Bhd.'],
+			['legal_entity', 'Public Fixture Co'],
 			['month', '2026-05'],
 			['timezone', 'Asia/Kuala_Lumpur']
 		];
@@ -840,15 +840,15 @@ const program = Effect.gen(function* () {
 						'Roster',
 						[
 							['employee_number', ...MAY_DAYS],
-							gridRow('NHPMY0002', { 1: '7.5AM', 2: '7.5AM', 3: 'REST', 4: '7.5AM', 5: '7.5AM' }),
-							gridRow('NHPMY0023', { 4: 'AM0830', 5: 'PM2030', 6: 'OFF' })
+							gridRow('PUBEM0002', { 1: '7.5AM', 2: '7.5AM', 3: 'REST', 4: '7.5AM', 5: '7.5AM' }),
+							gridRow('PUBEM0023', { 4: 'AM0830', 5: 'PM2030', 6: 'OFF' })
 						]
 					]
 				])
 			),
 			ROSTER_ID
 		);
-		assert.equal(rosterGridPayload.legal_entity, 'Nihon Pigment Sdn. Bhd.');
+		assert.equal(rosterGridPayload.legal_entity, 'Public Fixture Co');
 		assert.equal(rosterGridPayload.month, '2026-05');
 		assert.equal(rosterGridPayload.rows.length, 8);
 		assert.deepEqual(
@@ -856,14 +856,14 @@ const program = Effect.gen(function* () {
 				(row) => `${row.employee_number} ${row.work_date} ${row.shift_code}`
 			),
 			[
-				'NHPMY0002 2026-05-01 7.5AM',
-				'NHPMY0002 2026-05-02 7.5AM',
-				'NHPMY0002 2026-05-03 REST',
-				'NHPMY0002 2026-05-04 7.5AM',
-				'NHPMY0002 2026-05-05 7.5AM',
-				'NHPMY0023 2026-05-04 AM0830',
-				'NHPMY0023 2026-05-05 PM2030',
-				'NHPMY0023 2026-05-06 OFF'
+				'PUBEM0002 2026-05-01 7.5AM',
+				'PUBEM0002 2026-05-02 7.5AM',
+				'PUBEM0002 2026-05-03 REST',
+				'PUBEM0002 2026-05-04 7.5AM',
+				'PUBEM0002 2026-05-05 7.5AM',
+				'PUBEM0023 2026-05-04 AM0830',
+				'PUBEM0023 2026-05-05 PM2030',
+				'PUBEM0023 2026-05-06 OFF'
 			]
 		);
 		const rosterGridWritten = yield* runHandler(
@@ -880,18 +880,18 @@ const program = Effect.gen(function* () {
 						'Time entries',
 						[
 							['employee_number', ...MAY_DAYS],
-							gridRow('NHPMY0002', { 4: '08:16-17:10', 5: '08:02-17:05' }),
-							gridRow('NHPMY0023', { 4: '20:30-05:15', 5: '20:28-05:02', 6: '20:31' })
+							gridRow('PUBEM0002', { 4: '08:16-17:10', 5: '08:02-17:05' }),
+							gridRow('PUBEM0023', { 4: '20:30-05:15', 5: '20:28-05:02', 6: '20:31' })
 						]
 					]
 				])
 			)
 		);
-		assert.equal(timeGridPayload.legal_entity, 'Nihon Pigment Sdn. Bhd.');
+		assert.equal(timeGridPayload.legal_entity, 'Public Fixture Co');
 		assert.equal(timeGridPayload.month, '2026-05');
 		assert.equal(timeGridPayload.rows.length, 5);
 		assert.deepEqual(timeGridPayload.rows[4], {
-			employee_number: 'NHPMY0023',
+			employee_number: 'PUBEM0023',
 			work_date: '2026-05-06',
 			clock_in: '20:31'
 		});
@@ -907,7 +907,7 @@ const program = Effect.gen(function* () {
 					{
 						input: {
 							...rosterGridPayload,
-							legal_entity: 'Omni Plus System Philippines, Inc.'
+							legal_entity: 'Public Fixture PH'
 						}
 					},
 					rosterApi()

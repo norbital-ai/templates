@@ -217,6 +217,37 @@ test('a paid payroll window locks the day the write hook would also refuse', () 
 	assert.ok(preview.issues.some((row) => row.code === 'SETTLED_WINDOW'));
 });
 
+test('a hire before the first sealed snapshot still resolves remaining days', () => {
+	const preview = evaluateLeavePreview(
+		{
+			...facts,
+			employment: { ...facts.employment, hire_date: '2019-01-01' },
+			terms: [
+				{
+					...facts.terms[0],
+					effective_range: { start: '2019-01-01', end: null }
+				}
+			],
+			leaveType: {
+				...leaveType,
+				accrual: { kind: 'MONTHLY', carry: { limit_days: 14, expiry_months: 12 } }
+			},
+			sealedProfiles: [{ ...profile, effective_range: { start: '2026-01-01', end: null } }]
+		},
+		{
+			employment_id: 'emp-1',
+			leave_type_id: 'lt-annual',
+			calendar_month: '2026-04',
+			range: wednesday
+		}
+	);
+	assert.equal(
+		preview.issues.some((row) => row.code === 'MISSING_PROFILE'),
+		false
+	);
+	assert.ok(preview.remaining_days != null && preview.remaining_days > 0);
+});
+
 test('an inverted range is reported instead of charging days', () => {
 	const preview = evaluateLeavePreview(facts, {
 		employment_id: 'emp-1',

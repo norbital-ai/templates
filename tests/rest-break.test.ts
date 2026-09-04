@@ -14,13 +14,11 @@ import {
 } from '../src/lib/scheduling/rest-break.ts';
 
 /**
- * The four transcribed jurisdictions, from `seed_bank/norbital_hr/statutory/rest_break_rules.json`.
- *
- * They are copied here rather than paraphrased into convenient round numbers, because the whole
- * claim this module makes is that four differently shaped statutes fit one set of fields with no
- * branch per country. A test that invented its own tidy rule would prove that a tidy rule works.
- * Only `on_exceed` is added — it is the one field of the member that is a policy choice rather than
- * a transcription, so the seed bank has nothing to say about it.
+ * The four transcribed jurisdictions. They are copied here rather than paraphrased into convenient
+ * round numbers, because the whole claim this module makes is that four differently shaped statutes
+ * fit one set of fields with no branch per country. A test that invented its own tidy rule would
+ * prove that a tidy rule works. Only `on_exceed` is added — it is the one field of the member that
+ * is a policy choice rather than a transcription.
  */
 const MY_GENERAL = {
 	// EA 1955 s.60A(1)(a): not more than five consecutive hours without ≥ 30 minutes of leisure.

@@ -4,7 +4,6 @@ import type { WorkspaceSchema } from '$bolt/types.js';
 import type { WorkspaceRow } from '../../collections/leave_requests/$types.js';
 import { calendarDay, dateKey } from '../iso-day.js';
 import { pointAt, pointNumber, type HalfDayRange } from '../half-day.js';
-import { completedMonths } from '../../collections/payroll_runs/lib/dates.js';
 import {
 	leaveBalance,
 	resolveEntitlement,
@@ -532,19 +531,18 @@ export function evaluateLeavePreview(
 			);
 		} else {
 			try {
-				const entitlementAt = (serviceMonths: number, entitlementAsOf: string) => {
-					const profile = sealedProfileCovering(
-						facts.sealedProfiles,
-						facts.jurisdictionCode,
-						entitlementAsOf
+				// Same pick as the employee panel: the profile covering the as-of date, not each
+				// historical month. Carry-forward walks back to hire; a 2026-only seal must still
+				// resolve a 2019 start.
+				const profile = sealedProfileCovering(facts.sealedProfiles, facts.jurisdictionCode, asOf);
+				if (profile == null) {
+					throw new Error(
+						`No sealed statutory profile covers ${asOf}, so the statutory leave floor ` +
+							'cannot resolve. Seal a version of the law family first.'
 					);
-					if (profile == null) {
-						throw new Error(
-							`No sealed statutory profile covers ${entitlementAsOf}, so the statutory leave floor ` +
-								'cannot resolve. Seal a version of the law family first.'
-						);
-					}
-					return resolveEntitlement({
+				}
+				const entitlementAt = (serviceMonths: number, entitlementAsOf: string) =>
+					resolveEntitlement({
 						leaveType: facts.leaveType,
 						profile,
 						children: facts.children,
@@ -552,8 +550,6 @@ export function evaluateLeavePreview(
 						employmentId: facts.employment.id,
 						asOf: entitlementAsOf
 					});
-				};
-				entitlementAt(completedMonths(hireDate, asOf), asOf);
 				remaining_days = leaveBalance(
 					{
 						leaveType: facts.leaveType,

@@ -73,8 +73,8 @@ import { describeIssues } from './lib/validate.js';
 const createPayrollRunInput = Schema.Struct({
 	company_id: Schema.String.check(Schema.isUUID()),
 	period: Schema.String.check(
-		Schema.isPattern(/^2026-(0[1-9]|1[0-2])$/, {
-			message: 'Payroll period must be January–December 2026.'
+		Schema.isPattern(/^\d{4}-(0[1-9]|1[0-2])$/, {
+			message: 'Payroll period must be YYYY-MM.'
 		})
 	)
 });

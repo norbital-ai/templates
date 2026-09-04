@@ -6,10 +6,10 @@
 	import { Display, type ChartDisplaySpec } from '@norbital-ai/ui/chart';
 	import { CollectionTable } from '@norbital-ai/ui/collection-table';
 	import { formatDataValue } from '@norbital-ai/ui/data-renderer';
-	import CompanyScopeBanner from './CompanyScopeBanner.svelte';
+	import CompanyScopeCombobox from './CompanyScopeCombobox.svelte';
 	import {
-		activeCompanyId as activeCompanyIdOf,
-		companiesUnknown as companiesUnknownOf
+		companiesUnknown as companiesUnknownOf,
+		resolveCompanyId
 	} from './company-scope.svelte.js';
 	import { Bound, Columns, Cover, Scroll, Split, Stack } from '@norbital-ai/ui/layout';
 	import { Tabs, type TabConfig } from '@norbital-ai/ui/tabs';
@@ -17,9 +17,10 @@
 	import { inForceOnDay } from '../../lib/effective_range.js';
 
 	const { t } = useI18n<TenantI18nKeys>();
-	const today = todayKey();
-	const selectedCompanyId = $derived(activeCompanyIdOf());
+	let chosenCompanyId = $state<string | null>(null);
+	const selectedCompanyId = $derived(resolveCompanyId(chosenCompanyId));
 	const companiesUnknown = $derived(companiesUnknownOf());
+	const today = todayKey();
 
 	const employmentsQuery = $derived(
 		selectedCompanyId == null
@@ -111,7 +112,12 @@
 </script>
 
 {#snippet companyScopeActions()}
-	<CompanyScopeBanner />
+	<CompanyScopeCombobox
+		value={selectedCompanyId}
+		onValueChange={(id) => {
+			chosenCompanyId = id;
+		}}
+	/>
 {/snippet}
 
 {#snippet workforceSummary()}

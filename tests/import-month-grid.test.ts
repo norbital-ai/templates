@@ -33,7 +33,7 @@ test('a roster month grid expands filled cells and omits blanks', () => {
 				{
 					rowNumber: 2,
 					cells: new Map([
-						['employee_number', 'NHPMY0002'],
+						['employee_number', 'PUBEM0002'],
 						['1', '7.5AM'],
 						['2', ''],
 						['3', 'REST']
@@ -44,8 +44,8 @@ test('a roster month grid expands filled cells and omits blanks', () => {
 		'2026-05'
 	);
 	assert.deepEqual(rows, [
-		{ employee_number: 'NHPMY0002', work_date: '2026-05-01', shift_code: '7.5AM' },
-		{ employee_number: 'NHPMY0002', work_date: '2026-05-03', shift_code: 'REST' }
+		{ employee_number: 'PUBEM0002', work_date: '2026-05-01', shift_code: '7.5AM' },
+		{ employee_number: 'PUBEM0002', work_date: '2026-05-03', shift_code: 'REST' }
 	]);
 });
 
@@ -58,7 +58,7 @@ test('a time-entry month grid reads closed ranges and open punches', () => {
 				{
 					rowNumber: 2,
 					cells: new Map([
-						['employee_number', 'NHPMY0023'],
+						['employee_number', 'PUBEM0023'],
 						['4', '20:30-05:15'],
 						['5', ''],
 						['6', '20:31']
@@ -70,11 +70,11 @@ test('a time-entry month grid reads closed ranges and open punches', () => {
 	);
 	assert.deepEqual(rows, [
 		{
-			employee_number: 'NHPMY0023',
+			employee_number: 'PUBEM0023',
 			work_date: '2026-05-04',
 			clock_in: '20:30',
 			clock_out: '05:15'
 		},
-		{ employee_number: 'NHPMY0023', work_date: '2026-05-06', clock_in: '20:31' }
+		{ employee_number: 'PUBEM0023', work_date: '2026-05-06', clock_in: '20:31' }
 	]);
 });
