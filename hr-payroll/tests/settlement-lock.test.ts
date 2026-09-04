@@ -558,8 +558,7 @@ test('deleting a payroll run releases its captures — the declarations that cas
 	 *
 	 * The junction's source edge is `restrict`: a captured work day, component entry, loan repayment
 	 * or leave request cannot be deleted out from under the run that read it. That restrict is the
-	 * settlement lock's second half. And `rosters → work_days` is not a cascade either: the same row
-	 * carries attendance, and a drafted month must not be able to delete a punch.
+	 * settlement lock's second half.
 	 */
 	for (const [edge, name] of [
 		[graph.payslip_work_day_inputs.payslip_work_day_input_work_day, 'work days'],
@@ -568,8 +567,7 @@ test('deleting a payroll run releases its captures — the declarations that cas
 			'component entries'
 		],
 		[graph.payslip_leave_request_inputs.leave_request_input_leave_request, 'leave requests'],
-		[graph.payslip_loan_repayment_inputs.loan_repayment_input_loan_repayment, 'loan repayments'],
-		[graph.work_days.work_day_roster, 'rostered work days']
+		[graph.payslip_loan_repayment_inputs.loan_repayment_input_loan_repayment, 'loan repayments']
 	]) {
 		assert.equal(
 			markersOf(edge).includes('cascade'),

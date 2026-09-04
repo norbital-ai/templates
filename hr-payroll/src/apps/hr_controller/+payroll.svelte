@@ -66,7 +66,6 @@
 						: null
 				};
 			})
-			.filter((row) => row.runState !== 'PAID')
 			.toSorted((left, right) => left.payDate.localeCompare(right.payDate));
 		const currentIndex = open.findIndex((row) => row.payDate >= today);
 		return open.map((row, index) => ({

@@ -285,10 +285,12 @@ export function gatherRun(options: GatherRunOptions): Effect.Effect<GatheredRun,
 		const repaymentsByLoan = groupBy(live(repaymentRows), (row) => row.loan_id);
 		const loansByEmployment = groupBy(live(loanRows), (row) => row.employment_id);
 		/** Every approved leave row is already an event; normal requests become TAKEN movements while
-		 * the adjustment/encashment arms carry their exact signed movement. */
+		 * the adjustment/encashment arms carry their exact signed movement. A posted `CARRY_FORWARD`
+		 * is not a movement at all — payroll reads only unpaid leave in the window (decision L9) —
+		 * so it is left out of the ledger. */
 		const leaveMovements: (LedgerRow & { readonly employment_id: string })[] = live(
 			requestRows
-		).map((request) => {
+		).flatMap((request) => {
 			const event = request.event;
 			if (event == null) refuse(`Leave request ${request.id} has no event payload.`);
 			const base = {
@@ -300,32 +302,40 @@ export function gatherRun(options: GatherRunOptions): Effect.Effect<GatheredRun,
 			};
 			switch (event.kind) {
 				case 'TIME_OFF':
-					return {
-						...base,
-						entry_date: event.range.start.date,
-						through_date: event.range.end.date,
-						kind: 'TAKEN',
-						days: -Math.abs(decodeNumber(event.chargeable_days ?? 0)),
-						source_id: request.id
-					};
+					return [
+						{
+							...base,
+							entry_date: event.range.start.date,
+							through_date: event.range.end.date,
+							kind: 'TAKEN',
+							days: -Math.abs(decodeNumber(event.chargeable_days ?? 0)),
+							source_id: request.id
+						}
+					];
 				case 'BALANCE_ADJUSTMENT':
-					return {
-						...base,
-						entry_date: event.effective_on,
-						through_date: event.effective_on,
-						kind: 'ADJUSTMENT',
-						days: decodeNumber(event.movement_days),
-						source_id: event.source_id
-					};
+					return [
+						{
+							...base,
+							entry_date: event.effective_on,
+							through_date: event.effective_on,
+							kind: 'ADJUSTMENT',
+							days: decodeNumber(event.movement_days),
+							source_id: event.source_id
+						}
+					];
 				case 'ENCASHMENT':
-					return {
-						...base,
-						entry_date: event.effective_on,
-						through_date: event.effective_on,
-						kind: 'ENCASHMENT',
-						days: decodeNumber(event.movement_days),
-						source_id: event.source_id
-					};
+					return [
+						{
+							...base,
+							entry_date: event.effective_on,
+							through_date: event.effective_on,
+							kind: 'ENCASHMENT',
+							days: decodeNumber(event.movement_days),
+							source_id: event.source_id
+						}
+					];
+				case 'CARRY_FORWARD':
+					return [];
 				default: {
 					const _exhaustive: never = event;
 					refuse(

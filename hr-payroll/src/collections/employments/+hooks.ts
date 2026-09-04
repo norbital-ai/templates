@@ -91,7 +91,17 @@ export default {
 										? -Math.abs(decodeNumber(row.days))
 										: decodeNumber(row.days),
 								source_id: null,
-								approval_id: null
+								approval_id: null,
+								// A posted carry names the year it opens and the day it lapses on its
+								// event; the encashment balance reads the posted row through these.
+								...(row.event?.kind === 'CARRY_FORWARD'
+									? {
+											leave_year:
+												typeof row.event.leave_year === 'number' ? row.event.leave_year : null,
+											expires_on:
+												typeof row.event.expires_on === 'string' ? row.event.expires_on : null
+										}
+									: {})
 							}));
 
 						const mutations: Array<{

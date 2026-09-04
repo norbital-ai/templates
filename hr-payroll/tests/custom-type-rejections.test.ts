@@ -2,7 +2,6 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import { instantRangeSchema } from '@norbital-ai/bolt/authoring';
-import { accrualKeySchema } from '../src/datatypes/accrual_key/+definition.js';
 import { componentDefinitionSchema } from '../src/datatypes/component_definition/+definition.js';
 import { contributionTreatmentSchema } from '../src/datatypes/contribution_treatment/+definition.js';
 import { eligibilityRulesSchema } from '../src/datatypes/eligibility_rules/+definition.js';
@@ -75,28 +74,6 @@ describe('instant_range', () => {
 
 	it('refuses a key it does not declare rather than dropping it', () => {
 		assert.ok(refuses(instantRangeSchema, { ...RANGE, strat: RANGE.start }));
-	});
-});
-
-describe('accrual_key', () => {
-	it('accepts the one arm — a flat entitlement is band_from 0', () => {
-		assert.ok(accepts(accrualKeySchema, { by: 'SERVICE_MONTHS', band_from: 0 }));
-	});
-
-	// `Schema.Number` would accept every one of these; the `z.int().check(z.minimum(0))` it replaced
-	// accepted none.
-	it('refuses a band that is not a whole non-negative count', () => {
-		assert.ok(refuses(accrualKeySchema, { by: 'SERVICE_MONTHS', band_from: -1 }));
-		assert.ok(refuses(accrualKeySchema, { by: 'SERVICE_MONTHS', band_from: 1.5 }));
-		assert.ok(refuses(accrualKeySchema, { by: 'SERVICE_MONTHS', band_from: Number.NaN }));
-		assert.ok(
-			refuses(accrualKeySchema, { by: 'SERVICE_MONTHS', band_from: Number.POSITIVE_INFINITY })
-		);
-	});
-
-	it('refuses the dropped FLAT arm and an unknown arm', () => {
-		assert.ok(refuses(accrualKeySchema, { by: 'FLAT' }));
-		assert.ok(refuses(accrualKeySchema, { by: 'SENIORITY' }));
 	});
 });
 
@@ -187,17 +164,17 @@ describe('component_entry_event', () => {
 
 describe('leave_entitlement', () => {
 	// The STATUTORY arm this union once carried moved into the statutory profile's
-	// `statutory_leave` member; what remains are the company's own layers.
+	// `statutory_leave` member; what remains are the company's own layers. The `accrual_key`
+	// datatype, the `MAX_WITH_COMPANY_LAYERS` merge marker and the layer `authority` /
+	// `effective_range` went with the posted carry-forward: the band sits on the layer itself.
 	const layer = {
 		level: 'ORGANISATION',
-		key: { by: 'SERVICE_MONTHS', band_from: 0 },
-		days: 8,
-		authority: 'Company policy 2026',
-		effective_range: RANGE
+		band_from: 0,
+		days: 8
 	};
-	const entitlement = { merge: 'MAX_WITH_COMPANY_LAYERS', layers: [layer] };
+	const entitlement = { layers: [layer] };
 
-	it('accepts a company layer', () => {
+	it('accepts a company layer — a flat entitlement is band_from 0', () => {
 		assert.ok(accepts(leaveEntitlementSchema, entitlement));
 	});
 
@@ -208,6 +185,17 @@ describe('leave_entitlement', () => {
 				layers: [{ ...layer, level: 'STATUTORY' }]
 			})
 		);
+	});
+
+	// `Schema.Number` would accept every one of these; the `z.int().check(z.minimum(0))` it replaced
+	// accepted none.
+	it('refuses a band that is not a whole non-negative count', () => {
+		for (const band_from of [-1, 1.5, Number.NaN, Number.POSITIVE_INFINITY]) {
+			assert.ok(
+				refuses(leaveEntitlementSchema, { ...entitlement, layers: [{ ...layer, band_from }] }),
+				`band_from=${String(band_from)}`
+			);
+		}
 	});
 
 	// `Schema.Number` admits both; `z.number()` admitted neither. A `NaN` entitlement survives every
@@ -221,14 +209,32 @@ describe('leave_entitlement', () => {
 		}
 	});
 
-	it('refuses a layer citing no authority, and an employee layer without a UUID', () => {
-		assert.ok(
-			refuses(leaveEntitlementSchema, { ...entitlement, layers: [{ ...layer, authority: '' }] })
-		);
+	it('refuses an employee layer without a UUID, and the retired merge, key and authority members', () => {
 		assert.ok(
 			refuses(leaveEntitlementSchema, {
 				...entitlement,
 				layers: [{ ...layer, level: 'EMPLOYEE', employment_id: 'employment-1' }]
+			})
+		);
+		assert.ok(
+			refuses(leaveEntitlementSchema, { ...entitlement, merge: 'MAX_WITH_COMPANY_LAYERS' })
+		);
+		assert.ok(
+			refuses(leaveEntitlementSchema, {
+				...entitlement,
+				layers: [{ ...layer, key: { by: 'SERVICE_MONTHS', band_from: 0 } }]
+			})
+		);
+		assert.ok(
+			refuses(leaveEntitlementSchema, {
+				...entitlement,
+				layers: [{ ...layer, authority: 'Company policy 2026' }]
+			})
+		);
+		assert.ok(
+			refuses(leaveEntitlementSchema, {
+				...entitlement,
+				layers: [{ ...layer, effective_range: RANGE }]
 			})
 		);
 	});

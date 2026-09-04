@@ -56,13 +56,15 @@ export default defineModel(
 					THEN 'Balance adjustment · ' || (event ->> 'effective_on') || ' · ' || (event ->> 'movement_days') || 'd'
 				WHEN event ->> 'kind' = 'ENCASHMENT'
 					THEN 'Encashment · ' || (event ->> 'effective_on') || ' · ' || (event ->> 'movement_days') || 'd'
+				WHEN event ->> 'kind' = 'CARRY_FORWARD'
+					THEN 'Carry-forward · ' || (event ->> 'leave_year') || ' · ' || (event ->> 'movement_days') || 'd'
 				ELSE 'Leave movement · ' || (event ->> 'effective_on') || ' · ' || (event ->> 'movement_days') || 'd'
 			END`
 		)
 	},
 	{
 		description:
-			'The complete leave event stream. Approved TIME_OFF rows are requests and their own TAKEN movement; balance adjustments and encashments use distinct union arms in the same collection.',
+			'The complete leave event stream. Approved TIME_OFF rows are requests and their own TAKEN movement; balance adjustments, encashments and the posted yearly carry-forward use distinct union arms in the same collection.',
 		recordLabel: 'summary',
 		icon: 'lucide:calendar-off',
 		indexes: [{ columns: ['employment_id', 'leave_type_id', 'from_date'] }]

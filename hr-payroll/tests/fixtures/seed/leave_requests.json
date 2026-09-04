@@ -6,11 +6,89 @@
 		"event": {
 			"kind": "TIME_OFF",
 			"range": {
-				"start": { "date": "2026-04-16", "half": "FIRST" },
-				"end": { "date": "2026-04-16", "half": "SECOND" }
+				"start": {
+					"date": "2026-04-16",
+					"half": "FIRST"
+				},
+				"end": {
+					"date": "2026-04-16",
+					"half": "SECOND"
+				}
 			},
 			"chargeable_days": 1,
 			"reason": "Public fixture annual day"
+		}
+	},
+	{
+		"id": "ffffffff-ffff-4fff-8fff-fffffffffff5",
+		"employment_id": "44444444-4444-4444-8444-444444444444",
+		"leave_type_id": "ffffffff-ffff-4fff-8fff-fffffffffff1",
+		"event": {
+			"kind": "CARRY_FORWARD",
+			"leave_year": 2026,
+			"effective_on": "2026-01-01",
+			"movement_days": 5,
+			"expires_on": "2026-04-01",
+			"forfeited_days": 3,
+			"closing": {
+				"entitlement": 8,
+				"carried_in": 0,
+				"accrued": 8,
+				"adjusted": 0,
+				"taken": 0,
+				"encashed": 0,
+				"expired": 0,
+				"closing": 8
+			},
+			"statutory_profile_id": "22222222-2222-4222-8222-222222222222"
+		}
+	},
+	{
+		"id": "ffffffff-ffff-4fff-8fff-fffffffffff6",
+		"employment_id": "cccccccc-cccc-4ccc-8ccc-ccccccccccc3",
+		"leave_type_id": "ffffffff-ffff-4fff-8fff-fffffffffff1",
+		"event": {
+			"kind": "CARRY_FORWARD",
+			"leave_year": 2026,
+			"effective_on": "2026-01-01",
+			"movement_days": 5,
+			"expires_on": "2026-04-01",
+			"forfeited_days": 3,
+			"closing": {
+				"entitlement": 8,
+				"carried_in": 0,
+				"accrued": 8,
+				"adjusted": 0,
+				"taken": 0,
+				"encashed": 0,
+				"expired": 0,
+				"closing": 8
+			},
+			"statutory_profile_id": "22222222-2222-4222-8222-222222222222"
+		}
+	},
+	{
+		"id": "ffffffff-ffff-4fff-8fff-fffffffffff7",
+		"employment_id": "cccccccc-cccc-4ccc-8ccc-ccccccccccc4",
+		"leave_type_id": "ffffffff-ffff-4fff-8fff-fffffffffff1",
+		"event": {
+			"kind": "CARRY_FORWARD",
+			"leave_year": 2026,
+			"effective_on": "2026-01-01",
+			"movement_days": 4.5,
+			"expires_on": "2026-04-01",
+			"forfeited_days": 0,
+			"closing": {
+				"entitlement": 8,
+				"carried_in": 0,
+				"accrued": 4.5,
+				"adjusted": 0,
+				"taken": 0,
+				"encashed": 0,
+				"expired": 0,
+				"closing": 4.5
+			},
+			"statutory_profile_id": "22222222-2222-4222-8222-222222222222"
 		}
 	}
 ]

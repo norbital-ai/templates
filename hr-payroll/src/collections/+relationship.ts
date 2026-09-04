@@ -12,8 +12,8 @@ import { cascade } from '@norbital-ai/bolt/authoring';
  * point at it — and that is a deliberate answer, not an omission. Two cases are worth reading
  * twice:
  *
- * - `work_days` is NOT owned by its junction's inverse edge and NOT by a roster: a `rosters` row
- *   owns a *plan*, but the same day also carries attendance nobody's roster owns. The capture
+ * - `work_days` is NOT owned by its junction's inverse edge: the same day carries a plan and
+ *   attendance together, and nobody's roster owns either half. The capture
  *   junction's `work_day_id` is `restrict`, which is what makes a consumed day un-deletable.
  * - the four input junctions cascade FROM their payslip — the capture has no meaning after the
  *   payslip that captured it is gone — and restrict into their business sources, which is what
@@ -89,7 +89,6 @@ export default ((r) => ({
 		leave_type_company: r.many.leave_types(),
 		shift_definition_company: r.many.shift_definitions(),
 		company_holiday_company: r.many.company_holidays(),
-		roster_company: r.many.rosters(),
 		payroll_run_company: r.many.payroll_runs()
 	},
 
@@ -125,14 +124,6 @@ export default ((r) => ({
 			to: r.companies.id
 		}),
 		work_day_shift: r.many.work_days()
-	},
-
-	rosters: {
-		roster_company: r.one.companies({
-			from: r.rosters.company_id,
-			to: r.companies.id
-		}),
-		work_day_roster: r.many.work_days()
 	},
 
 	company_holidays: {
@@ -264,10 +255,6 @@ export default ((r) => ({
 		work_day_shift: r.one.shift_definitions({
 			from: r.work_days.shift_definition_id,
 			to: r.shift_definitions.id
-		}),
-		work_day_roster: r.one.rosters({
-			from: r.work_days.roster_id,
-			to: r.rosters.id
 		}),
 		payslip_work_day_input_work_day: r.many.payslip_work_day_inputs()
 	},

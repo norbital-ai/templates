@@ -7,8 +7,8 @@
  * records name, and `CollectionPipelines` declares `import` as a single optional member. So the two
  * workbooks that used to be two collections' imports are two ARMS of one input union here, tagged
  * by `sheet`, each handled by its own function below. They are genuinely different inputs: the
- * roster sheet needs the drafted month it attaches to, the attendance sheet needs the zone its
- * clock cells are in, and neither fact means anything to the other sheet.
+ * roster sheet states the legal entity and month its assignments belong to, the attendance sheet
+ * needs the zone its clock cells are in, and neither fact means anything to the other sheet.
  *
  * ## Why a row is upserted and not inserted
  *
@@ -33,7 +33,7 @@ import { decodeNumber } from '@norbital-ai/std/json';
 
 import { Array, Effect, Result, Schema } from 'effect';
 import { dateKey } from '../../lib/iso-day.js';
-import { formatNamedList, monthBounds } from '../../lib/period.js';
+import { formatNamedList, isYearMonth, monthBounds } from '../../lib/period.js';
 import { leaveCoverage } from '../../lib/scheduling/leave-coverage.js';
 import { payrollWindows, assertNotSettled } from '../../lib/scheduling/lock.js';
 import { rosterCodeVariantSchema } from '../../datatypes/roster_code_variant/+definition.js';
@@ -98,7 +98,6 @@ type AttendanceRow = Schema.Schema.Type<typeof attendanceRowSchema>;
 
 const rosterImportSchema = Schema.Struct({
 	sheet: Schema.Literal('ROSTER'),
-	roster_id: trimmedNonEmpty,
 	legal_entity: Schema.optional(trimmedNonEmpty),
 	month: Schema.optional(trimmedNonEmpty),
 	rows: Schema.Array(rosterRowSchema)
@@ -181,32 +180,24 @@ function formatRosterRows(rows: readonly RosterRow[]): string[] {
 
 function importRosterMonth(payload: RosterImport, api: Api) {
 	return Effect.gen(function* () {
-		const { roster_id: rosterId, legal_entity: legalEntity, month: fileMonth, rows } = payload;
-		const roster = yield* api.db.rosters.findFirst({
-			where: { id: { eq: rosterId } },
-			columns: { month: true, published_at: true, company_id: true }
-		});
-		if (roster == null) refuse('Create the draft monthly roster before importing it.');
-		if (roster.published_at != null) {
-			refuse(`Roster ${roster.month} is published. Re-open it before importing changes.`);
+		const { legal_entity: legalEntity, month: fileMonth, rows } = payload;
+		// A roster import states its own legal entity and month on the Settings sheet: there is no
+		// draft roster to attach it to, and an assignment belongs to the company and the day.
+		if (legalEntity == null) {
+			refuse('Set legal_entity on the Settings sheet to the employing entity this file is for.');
 		}
-		if (fileMonth != null && fileMonth !== roster.month) {
+		if (fileMonth == null || !isYearMonth(fileMonth)) {
 			refuse(
-				`This workbook is for ${fileMonth}, but the open draft is ${roster.month}. Import it into that month's roster.`
+				`Set month on the Settings sheet to the YYYY-MM month this file is for, not "${fileMonth ?? ''}".`
 			);
 		}
-		if (legalEntity != null) {
-			const companies = yield* api.db.companies.findMany({
-				columns: { id: true, name: true, registration_number: true },
-				limit: QUERY_LIMIT
-			});
-			const company = resolveLegalEntity(companies, legalEntity);
-			if (company.id !== roster.company_id) {
-				refuse(
-					`This workbook is for ${company.name}, which is not the legal entity of roster ${roster.month}.`
-				);
-			}
-		}
+		const month: string = fileMonth;
+		const companies = yield* api.db.companies.findMany({
+			columns: { id: true, name: true, registration_number: true },
+			limit: QUERY_LIMIT
+		});
+		const company = resolveLegalEntity(companies, legalEntity);
+		const companyId = company.id;
 
 		const invalidDates = rows.filter((row) => !isCalendarDate(row.work_date));
 		if (invalidDates.length > 0) {
@@ -214,10 +205,10 @@ function importRosterMonth(payload: RosterImport, api: Api) {
 				`These rows do not use valid YYYY-MM-DD dates:\n${formatNamedList(formatRosterRows(invalidDates))}`
 			);
 		}
-		const outsideMonth = rows.filter((row) => !dateInMonth(row.work_date, roster.month));
+		const outsideMonth = rows.filter((row) => !dateInMonth(row.work_date, month));
 		if (outsideMonth.length > 0) {
 			refuse(
-				`These rows do not belong to roster ${roster.month}:\n${formatNamedList(formatRosterRows(outsideMonth))}`
+				`These rows do not belong to ${month}:\n${formatNamedList(formatRosterRows(outsideMonth))}`
 			);
 		}
 		const seen = new Set<string>();
@@ -234,7 +225,7 @@ function importRosterMonth(payload: RosterImport, api: Api) {
 		const employeeNumbers = [...new Set(rows.map((row) => row.employee_number))];
 		const employments = yield* api.db.employments.findMany({
 			where: {
-				company_id: { eq: roster.company_id },
+				company_id: { eq: companyId },
 				employee_number: { in: employeeNumbers }
 			},
 			columns: { id: true, employee_number: true },
@@ -256,7 +247,7 @@ function importRosterMonth(payload: RosterImport, api: Api) {
 		if (holidayRows.length > 0) {
 			const dates = [...new Set(holidayRows.map((row) => row.work_date))];
 			const holidays = yield* api.db.company_holidays.findMany({
-				where: { company_id: { eq: roster.company_id }, date: { in: dates } },
+				where: { company_id: { eq: companyId }, date: { in: dates } },
 				columns: { date: true },
 				limit: QUERY_LIMIT
 			});
@@ -271,7 +262,7 @@ function importRosterMonth(payload: RosterImport, api: Api) {
 
 		const codes = [...new Set(assignments.map((row) => row.shift_code))];
 		const rosterCodes = yield* api.db.shift_definitions.findMany({
-			where: { company_id: { eq: roster.company_id }, code: { in: codes } },
+			where: { company_id: { eq: companyId }, code: { in: codes } },
 			columns: { id: true, code: true, variant: true, effective_range: true },
 			limit: QUERY_LIMIT
 		});
@@ -317,7 +308,7 @@ function importRosterMonth(payload: RosterImport, api: Api) {
 		}
 
 		const runs = yield* api.db.payroll_runs.findMany({
-			where: { company_id: { eq: roster.company_id } },
+			where: { company_id: { eq: companyId } },
 			columns: { period: true, lifecycle: true, attendance_from: true, attendance_to: true },
 			limit: QUERY_LIMIT
 		});
@@ -339,7 +330,6 @@ function importRosterMonth(payload: RosterImport, api: Api) {
 					work_date: row.work_date,
 					values: {
 						shift_definition_id: code.id,
-						roster_id: rosterId,
 						assignment_code: row.assignment_code ?? null,
 						planned_origin: 'IMPORT' as const,
 						planned_note: row.planned_note ?? null

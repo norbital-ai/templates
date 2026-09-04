@@ -122,7 +122,7 @@ const ROSTER_README = [
 	'What is refused',
 	'',
 	'The whole file is refused, not individual rows, and the offending cells are named: unknown',
-	'employee or roster code, a day outside the Settings month, an already-published roster,',
+	'employee or roster code, a day outside the Settings month,',
 	'duplicates inside the file, and days already on file.',
 	'',
 	'Accepted values',

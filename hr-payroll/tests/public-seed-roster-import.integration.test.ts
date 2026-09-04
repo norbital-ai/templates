@@ -23,9 +23,14 @@ import {
 
 const ROSTER_SHEET_NAME = 'Roster';
 const ROSTER_HEADERS = ['employee_number', 'work_date', 'shift_code'] as const;
+const SETTINGS_SHEET_NAME = 'Settings';
 
+// A roster import states its own legal entity and month: there is no draft roster to attach it
+// to. The one valid patterned change below is REST-into-OFF on a Sunday — a single WORK-into-OFF
+// cell would break the month's WORK-day count against the pattern and the write-time
+// conformance check would refuse it before anything else is asked.
 const rosterImportBody = (
-	rosterId: string,
+	month: string,
 	rows: ReadonlyArray<Readonly<Record<string, string>>>
 ) => ({
 	records: [
@@ -34,7 +39,8 @@ const rosterImportBody = (
 			id: crypto.randomUUID(),
 			values: {
 				sheet: 'ROSTER',
-				roster_id: rosterId,
+				legal_entity: 'Public Fixture Co',
+				month,
 				rows
 			}
 		}
@@ -51,55 +57,17 @@ const importRecordsBody = (values: Readonly<Record<string, unknown>>) => ({
 	]
 });
 
-const createEmptyRoster = async (
-	session: Awaited<ReturnType<typeof startPublicSeedHost>>,
-	month: string
-): Promise<string> => {
-	const headers = bearerHeaders(session.credential);
-	const created = await postGuestCommand(
-		session.host.baseUrl,
-		'collections.mutate',
-		mutationPush(session.schemaFingerprint, {
-			action: 'mutate',
-			collection: 'rosters',
-			rows: [
-				{
-					action: 'create',
-					values: {
-						id: crypto.randomUUID(),
-						company_id: COMPANY_ID,
-						month,
-						published_at: null
-					}
-				}
-			]
-		}),
-		headers
-	);
-	assert.ok(
-		created.status >= 200 && created.status < 300,
-		`create ${month} roster ${created.status}: ${JSON.stringify(created.value)}`
-	);
-	requireAccepted(created.value, `create ${month} roster`);
-	const rosterRows = (await session.query(
-		`select id from rosters where company_id = $1 and month = $2`,
-		[COMPANY_ID, month]
-	)) as ReadonlyArray<{ readonly id: string }>;
-	const rosterId = rosterRows[0]?.id;
-	assert.equal(
-		typeof rosterId,
-		'string',
-		`expected a ${month} roster, got ${JSON.stringify(rosterRows)}`
-	);
-	return String(rosterId);
-};
-
 const writeRosterXlsx = async (
+	month: string,
 	rows: ReadonlyArray<readonly [string, string, string]>
 ): Promise<Uint8Array> => {
 	const dir = await mkdtemp(join(tmpdir(), 'hr-payroll-t18-'));
 	const filePath = join(dir, 'roster.xlsx');
 	const workbook = new ExcelJS.Workbook();
+	const settings = workbook.addWorksheet(SETTINGS_SHEET_NAME);
+	settings.addRow(['Setting', 'Value']);
+	settings.addRow(['legal_entity', 'Public Fixture Co']);
+	settings.addRow(['month', month]);
 	const sheet = workbook.addWorksheet(ROSTER_SHEET_NAME);
 	sheet.addRow([...ROSTER_HEADERS]);
 	for (const row of rows) sheet.addRow([...row]);
@@ -109,13 +77,13 @@ const writeRosterXlsx = async (
 };
 
 const rosterPayloadFromXlsx = async (
-	rosterId: string,
+	month: string,
 	rows: ReadonlyArray<readonly [string, string, string]>
 ) => {
-	const bytes = await writeRosterXlsx(rows);
+	const bytes = await writeRosterXlsx(month, rows);
 	const loaded = new ExcelJS.Workbook();
 	await loaded.xlsx.load(bytes as never);
-	return rosterImportPayload(workbookGrids(loaded), rosterId);
+	return rosterImportPayload(workbookGrids(loaded));
 };
 
 /**
@@ -128,18 +96,15 @@ test(
 	async () => {
 		const session = await startPublicSeedHost('hr-payroll-i3-import');
 		try {
-			// Open-month materializes GENERATED plans; import refuses those as already assigned.
-			// I3 commits against an empty draft roster — the same gate as “create the draft first”.
 			const headers = bearerHeaders(session.credential);
-			const rosterId = await createEmptyRoster(session, '2026-03');
 
 			const valid = await postGuestCommand(
 				session.host.baseUrl,
 				'collections.import',
-				rosterImportBody(rosterId, [
+				rosterImportBody('2026-03', [
 					{
 						employee_number: 'PUB-EMP-0001',
-						work_date: '2026-03-03',
+						work_date: '2026-03-01',
 						shift_code: 'OFF'
 					}
 				]),
@@ -158,7 +123,7 @@ test(
 			const invalid = await postGuestCommand(
 				session.host.baseUrl,
 				'collections.import',
-				rosterImportBody(rosterId, [
+				rosterImportBody('2026-03', [
 					{
 						employee_number: 'PUB-EMP-9999',
 						work_date: '2026-03-04',
@@ -190,10 +155,9 @@ test(
 		const session = await startPublicSeedHost('hr-payroll-t18-xlsx');
 		try {
 			const headers = bearerHeaders(session.credential);
-			const rosterId = await createEmptyRoster(session, '2026-03');
 
-			const validPayload = await rosterPayloadFromXlsx(rosterId, [
-				['PUB-EMP-0001', '2026-03-03', 'OFF']
+			const validPayload = await rosterPayloadFromXlsx('2026-03', [
+				['PUB-EMP-0001', '2026-03-01', 'OFF']
 			]);
 			const valid = await postGuestCommand(
 				session.host.baseUrl,
@@ -211,7 +175,7 @@ test(
 				`expected imported ≥ 1 from xlsx, got ${JSON.stringify(valid.value)}`
 			);
 
-			const invalidPayload = await rosterPayloadFromXlsx(rosterId, [
+			const invalidPayload = await rosterPayloadFromXlsx('2026-03', [
 				['PUB-EMP-9999', '2026-03-04', 'OFF']
 			]);
 			const invalid = await postGuestCommand(
@@ -273,9 +237,8 @@ test(
 				[COMPANY_ID, JANUARY_2026]
 			);
 
-			const rosterId = await createEmptyRoster(session, JANUARY_2026);
-			const payload = await rosterPayloadFromXlsx(rosterId, [
-				['PUB-EMP-0001', '2026-01-15', 'OFF']
+			const payload = await rosterPayloadFromXlsx(JANUARY_2026, [
+				['PUB-EMP-0001', '2026-01-18', 'OFF']
 			]);
 			const locked = await postGuestCommand(
 				session.host.baseUrl,
@@ -310,8 +273,7 @@ test('rosterImportPayload refuses a slashed work_date without opening an xlsx', 
 							['PUB-EMP-0001', '04/05/2026', 'OFF']
 						]
 					]
-				]),
-				'00000000-0000-4000-8000-000000000099'
+				])
 			),
 		(error: unknown) => {
 			assert.ok(error instanceof WorkbookImportError, String(error));

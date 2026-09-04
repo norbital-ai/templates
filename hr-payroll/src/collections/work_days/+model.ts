@@ -41,23 +41,16 @@ export default defineModel(
 		/** The assigned roster code (WORK, REST or OFF). NULL means the day carries no plan. */
 		shift_definition_id: uuid(),
 		/**
-		 * The drafted month this assignment belongs to. Days belonging to a published roster are
-		 * frozen, which is what makes publication mean anything. Optional: days imported or seeded
-		 * directly, and days that only ever carried attendance, belong to no drafted month.
-		 */
-		roster_id: uuid(),
-		/**
 		 * The roster token shown to the operator in the source schedule, for example `AMRES` or
 		 * `OFF/S`. Provenance only; schedule meaning always comes from the referenced roster code.
 		 */
 		assignment_code: text(),
 		/**
-		 * Where the plan came from. `GENERATED` is the explicit monthly pattern baseline, `IMPORT`
-		 * lands from a workbook, and `MANUAL` is written on the board (an ad hoc assignment, planned
-		 * overtime or a swap). A plan's meaning never depends on this — it is provenance and a board
-		 * filter, nothing more.
+		 * Where the plan came from. `IMPORT` lands from a workbook, and `MANUAL` is written on the
+		 * board (an ad hoc assignment, planned overtime or a swap). A plan's meaning never depends
+		 * on this — it is provenance and a board filter, nothing more.
 		 */
-		planned_origin: enums(['GENERATED', 'IMPORT', 'MANUAL']),
+		planned_origin: enums(['IMPORT', 'MANUAL']),
 		/**
 		 * A free-text reason for an ad hoc change, for example "swap with 03 Aug" or
 		 * "call-back for stocktake". Purely explanatory; the schedule always comes from the code.
@@ -94,7 +87,6 @@ export default defineModel(
 			 * needed and a day holding two of them had no defined plan to measure against.
 			 */
 			{ columns: ['employment_id', 'work_date'], unique: true },
-			{ columns: ['roster_id'], where: '"roster_id" IS NOT NULL' },
 			{ columns: ['work_date'] }
 		]
 	}

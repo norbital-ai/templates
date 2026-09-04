@@ -18,8 +18,15 @@
 	import { Button } from '@norbital-ai/ui/button';
 	import { IconWrapper } from '@norbital-ai/ui/icon-wrapper';
 	import { Grid, Inline, Scroll, Stack } from '@norbital-ai/ui/layout';
+	import {
+		Accordion,
+		AccordionContent,
+		AccordionItem,
+		AccordionTrigger
+	} from '@norbital-ai/ui/accordion';
 	import { Tooltip } from '@norbital-ai/ui/tooltip';
 	import { Result, Schema } from 'effect';
+	import { decodeNumber } from '@norbital-ai/std/json';
 	import { formatCalendarDate, formatNumeric } from '../../lib/ui/display-formatters.js';
 
 	let { record }: RepresentationProps = $props();
@@ -108,6 +115,55 @@
 				})
 	);
 	const adjustments = $derived(adjustmentsQuery?.current ?? []);
+
+	type Adjustment = (typeof adjustments)[number];
+	type AdjustmentGroup = {
+		readonly key: string;
+		readonly label: string;
+		readonly inputKind: string;
+		readonly bucket: string | null;
+		readonly rate: unknown;
+		readonly quantity: number;
+		readonly amount: number;
+		readonly entries: readonly Adjustment[];
+	};
+
+	/**
+	 * One accordion row per component: the same label, input kind, bucket and rate collapse into a
+	 * summed line, and the individual entries — one per captured input — sit behind it. A component
+	 * that occurred once is a plain row; there is nothing to unfold.
+	 */
+	const adjustmentGroups = $derived.by((): AdjustmentGroup[] => {
+		const groups = new Map<string, AdjustmentGroup>();
+		for (const adjustment of adjustments) {
+			const kind = inputKind(adjustment.input);
+			const rate = adjustment.rate == null ? '' : String(adjustment.rate);
+			const key = [adjustment.label, kind, adjustment.bucket ?? '', rate].join('\u0000');
+			const current = groups.get(key);
+			const quantity = decodeNumber(adjustment.quantity);
+			const amount = decodeNumber(adjustment.amount);
+			if (current === undefined) {
+				groups.set(key, {
+					key,
+					label: adjustment.label,
+					inputKind: kind,
+					bucket: adjustment.bucket ?? null,
+					rate: adjustment.rate,
+					quantity: Number.isFinite(quantity) ? quantity : 0,
+					amount: Number.isFinite(amount) ? amount : 0,
+					entries: [adjustment]
+				});
+				continue;
+			}
+			groups.set(key, {
+				...current,
+				quantity: current.quantity + (Number.isFinite(quantity) ? quantity : 0),
+				amount: current.amount + (Number.isFinite(amount) ? amount : 0),
+				entries: [...current.entries, adjustment]
+			});
+		}
+		return [...groups.values()];
+	});
 
 	function inputKind(input: unknown): string {
 		const parsed = decodeAdjustmentInput(input);
@@ -338,32 +394,79 @@
 				<p class="text-sm text-muted-foreground">{t('component.payslip_adjustments_none')}</p>
 			{:else}
 				<Scroll axis="x" name={t('component.payslip_adjustments')}>
-					<table class="w-full text-sm tabular-nums">
-						<thead>
-							<tr class="text-meta text-left">
-								<th class="py-1 pr-3 font-normal">{t('component.sequence_hash')}</th>
-								<th class="py-1 pr-3 font-normal">{t('component.component')}</th>
-								<th class="py-1 pr-3 font-normal">{t('component.input_type')}</th>
-								<th class="py-1 pr-3 font-normal">{t('component.bucket')}</th>
-								<th class="py-1 pr-3 text-right font-normal">{t('component.quantity')}</th>
-								<th class="py-1 pr-3 text-right font-normal">{t('component.rate')}</th>
-								<th class="py-1 text-right font-normal">{t('component.amount')}</th>
-							</tr>
-						</thead>
-						<tbody>
-							{#each adjustments as adjustment (adjustment.id)}
-								<tr class="border-t border-border">
-									<td class="py-1 pr-3">{adjustment.sequence}</td>
-									<td class="py-1 pr-3">{adjustment.label}</td>
-									<td class="py-1 pr-3">{inputKind(adjustment.input)}</td>
-									<td class="py-1 pr-3">{adjustment.bucket}</td>
-									<td class="py-1 pr-3 text-right">{formatNumeric(adjustment.quantity)}</td>
-									<td class="py-1 pr-3 text-right">{formatNumeric(adjustment.rate)}</td>
-									<td class="py-1 text-right font-medium">{formatNumeric(adjustment.amount)}</td>
-								</tr>
+					<div class="min-w-[40rem] text-sm tabular-nums" data-payslip-adjustments>
+						<div
+							class="grid grid-cols-[minmax(14rem,2fr)_minmax(6rem,1fr)_minmax(6rem,1fr)_5rem_5rem_6rem] gap-x-3 px-1 py-1 text-meta"
+						>
+							<span>{t('component.component')}</span>
+							<span>{t('component.input_type')}</span>
+							<span>{t('component.bucket')}</span>
+							<span class="text-right">{t('component.quantity')}</span>
+							<span class="text-right">{t('component.rate')}</span>
+							<span class="text-right">{t('component.amount')}</span>
+						</div>
+						<Accordion type="multiple" class="border-t border-border">
+							{#each adjustmentGroups as group (group.key)}
+								{#if group.entries.length === 1}
+									<div
+										class="grid grid-cols-[minmax(14rem,2fr)_minmax(6rem,1fr)_minmax(6rem,1fr)_5rem_5rem_6rem] items-center gap-x-3 border-b border-border px-1 py-2"
+										data-adjustment-group={group.key}
+									>
+										<span class="truncate">{group.label}</span>
+										<span>{group.inputKind}</span>
+										<span>{group.bucket ?? '—'}</span>
+										<span class="text-right">{formatNumeric(group.quantity)}</span>
+										<span class="text-right">{formatNumeric(group.rate)}</span>
+										<span class="text-right font-medium">{formatNumeric(group.amount)}</span>
+									</div>
+								{:else}
+									<AccordionItem
+										value={group.key}
+										class="border-b border-border"
+										data-adjustment-group={group.key}
+									>
+										<AccordionTrigger class="py-2 hover:no-underline">
+											<div
+												class="grid flex-1 grid-cols-[minmax(14rem,2fr)_minmax(6rem,1fr)_minmax(6rem,1fr)_5rem_5rem_6rem] items-center gap-x-3 px-1 font-normal"
+											>
+												<span class="flex min-w-0 items-center gap-2">
+													<span class="truncate">{group.label}</span>
+													<span
+														class="shrink-0 rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground"
+													>
+														{t('component.payslip_adjustment_entries', {
+															count: group.entries.length
+														})}
+													</span>
+												</span>
+												<span>{group.inputKind}</span>
+												<span>{group.bucket ?? '—'}</span>
+												<span class="text-right">{formatNumeric(group.quantity)}</span>
+												<span class="text-right">{formatNumeric(group.rate)}</span>
+												<span class="text-right font-medium">{formatNumeric(group.amount)}</span>
+											</div>
+										</AccordionTrigger>
+										<AccordionContent class="pb-2">
+											<div class="rounded-md bg-muted/40">
+												{#each group.entries as entry (entry.id)}
+													<div
+														class="grid grid-cols-[minmax(14rem,2fr)_minmax(6rem,1fr)_minmax(6rem,1fr)_5rem_5rem_6rem] items-center gap-x-3 px-1 py-1 text-muted-foreground"
+													>
+														<span class="pl-4">#{entry.sequence}</span>
+														<span></span>
+														<span></span>
+														<span class="text-right">{formatNumeric(entry.quantity)}</span>
+														<span class="text-right">{formatNumeric(entry.rate)}</span>
+														<span class="text-right">{formatNumeric(entry.amount)}</span>
+													</div>
+												{/each}
+											</div>
+										</AccordionContent>
+									</AccordionItem>
+								{/if}
 							{/each}
-						</tbody>
-					</table>
+						</Accordion>
+					</div>
 				</Scroll>
 			{/if}
 		</Stack>

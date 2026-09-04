@@ -5,37 +5,25 @@
 	/**
 	 * The company's own entitlement layers. The statutory floor is the profile's — versioned and
 	 * sealed with the law revision that states it — so this editor mounts the company arms only
-	 * (ORGANISATION, EMPLOYEE) on the frame `pay_component_policy` and `component_definition` also
-	 * mount; what belongs only to this shape is the accrual band and the number of days.
+	 * (ORGANISATION, EMPLOYEE); what belongs only to this shape is the service band and the number
+	 * of days. There is no authority and no effective range: the profile seal is the version.
 	 */
-	import EffectiveLayerList from '../../lib/ui/policy-layers/effective-layer-list.svelte';
 	import LayerLevelPicker, {
 		type PolicyLayerLevel
 	} from '../../lib/ui/policy-layers/layer-level-picker.svelte';
-	import AccrualKeyRenderer from '../accrual_key/+renderer.svelte';
-	import { PAYROLL_TIME_ZONE, startOfDayInstant, todayKey } from '../../lib/ui/calendar.js';
 	import { numberFrom } from '../../lib/ui/renderer-input.js';
+	import { Button } from '@norbital-ai/ui/button';
 	import { Input } from '@norbital-ai/ui/input';
-	import { Grid, Stack } from '@norbital-ai/ui/layout';
-	import type { CollectionField } from '@norbital-ai/ui/data-renderer';
+	import { Cluster, Grid, Stack } from '@norbital-ai/ui/layout';
+	import { IconWrapper } from '@norbital-ai/ui/icon-wrapper';
 	import { leaveEntitlementSchema } from './+definition.js';
 	import type { RendererProps, Value } from './$types.js';
 
 	const { t } = useI18n<TenantI18nKeys>();
 
 	type Layer = Value['layers'][number];
-	type AccrualBand = Layer['key'];
 
 	const LAYER_LEVELS = ['ORGANISATION', 'EMPLOYEE'] as const;
-
-	/** A layer the leave year has not yet reached; the successor row end-dates it. */
-	const OPEN_ENDED = '9999-12-31T00:00:00.000Z';
-
-	const BAND_FIELD = {
-		name: 'key',
-		kind: 'accrual_key',
-		nullable: false
-	} satisfies CollectionField;
 
 	type LeaveEntitlementRendererProps = RendererProps & {
 		/** The leave type being edited, which is what scopes the people an EMPLOYEE layer may name. */
@@ -63,25 +51,15 @@
 	);
 
 	function emit(next: Layer[]): void {
-		if (props.mode === 'edit')
-			props.onValueChange({ merge: 'MAX_WITH_COMPANY_LAYERS', layers: next });
+		if (props.mode === 'edit') props.onValueChange({ layers: next });
 	}
 
 	function newLayer(level: PolicyLayerLevel): Layer {
-		const band = {
-			key: { by: 'SERVICE_MONTHS', band_from: 0 },
-			days: 0,
-			authority: '',
-			effective_range: {
-				start: startOfDayInstant(todayKey(), PAYROLL_TIME_ZONE),
-				end: OPEN_ENDED
-			}
-		};
 		switch (level) {
 			case 'ORGANISATION':
-				return { level: 'ORGANISATION', ...band };
+				return { level: 'ORGANISATION', band_from: 0, days: 0 };
 			case 'EMPLOYEE':
-				return { level: 'EMPLOYEE', employment_id: '', ...band };
+				return { level: 'EMPLOYEE', employment_id: '', band_from: 0, days: 0 };
 		}
 	}
 
@@ -93,18 +71,16 @@
 	 * `strictObject` rejects only at save time, long after the operator has moved on.
 	 */
 	function atLevel(layer: Layer, level: PolicyLayerLevel): Layer {
-		const { key, days, authority, effective_range } = layer;
+		const { band_from, days } = layer;
 		switch (level) {
 			case 'ORGANISATION':
-				return { level: 'ORGANISATION', key, days, authority, effective_range };
+				return { level: 'ORGANISATION', band_from, days };
 			case 'EMPLOYEE':
 				return {
 					level: 'EMPLOYEE',
 					employment_id: layer.level === 'EMPLOYEE' ? layer.employment_id : '',
-					key,
-					days,
-					authority,
-					effective_range
+					band_from,
+					days
 				};
 		}
 	}
@@ -114,50 +90,61 @@
 	<span class="block truncate" title={summary}>{summary}</span>
 {:else}
 	<Stack gap="sm" class="rounded-md border border-border bg-muted/20 p-3">
-		<EffectiveLayerList
-			{layers}
-			{disabled}
-			emptyMessage={t('renderer.leave_entitlement.empty')}
-			addPlaceholder={t('renderer.leave_entitlement.add_placeholder')}
-			additions={[
-				{
-					value: 'ORGANISATION',
-					label: 'Organisation layer',
-					create: () => newLayer('ORGANISATION')
-				},
-				{ value: 'EMPLOYEE', label: 'Employee layer', create: () => newLayer('EMPLOYEE') }
-			]}
-			onChange={emit}
-		>
-			{#snippet identity(row)}
-				<LayerLevelPicker
-					levels={LAYER_LEVELS}
-					level={row.layer.level}
-					employmentId={row.layer.level === 'EMPLOYEE' ? row.layer.employment_id : null}
-					{companyId}
-					disabled={row.disabled}
-					onLevelChange={(level) => row.replace(atLevel(row.layer, level))}
-					onEmploymentChange={(employment) => {
-						if (row.layer.level === 'EMPLOYEE')
-							row.replace({ ...row.layer, employment_id: employment });
-					}}
-				/>
-			{/snippet}
-
-			{#snippet body(row)}
+		{#if layers.length === 0}
+			<p class="text-sm text-muted-foreground">{t('renderer.leave_entitlement.empty')}</p>
+		{/if}
+		{#each layers as layer, index (index)}
+			<Stack gap="xs" class="rounded-md border border-border bg-card p-3">
+				<Cluster justify="between" align="center" gap="sm">
+					<LayerLevelPicker
+						levels={LAYER_LEVELS}
+						level={layer.level}
+						employmentId={layer.level === 'EMPLOYEE' ? layer.employment_id : null}
+						{companyId}
+						{disabled}
+						onLevelChange={(level) => {
+							const next = [...layers];
+							next[index] = atLevel(layer, level);
+							emit(next);
+						}}
+						onEmploymentChange={(employment) => {
+							if (layer.level !== 'EMPLOYEE') return;
+							const next = [...layers];
+							next[index] = { ...layer, employment_id: employment };
+							emit(next);
+						}}
+					/>
+					<Button
+						variant="ghost"
+						size="icon"
+						{disabled}
+						aria-label={t('renderer.leave_entitlement.remove_layer')}
+						onclick={() => emit(layers.filter((_, candidate) => candidate !== index))}
+					>
+						<IconWrapper name="lucide:x" class="size-3.5" />
+					</Button>
+				</Cluster>
 				<Grid gap="sm" minimum="compact">
-					<Stack gap="xs" class="text-sm font-medium">
-						<span>{t('component.band')}</span>
-						<AccrualKeyRenderer
-							field={BAND_FIELD}
-							value={row.layer.key}
-							mode="edit"
-							disabled={row.disabled}
-							onValueChange={(next: AccrualBand | null) => {
-								if (next !== null) row.replace({ ...row.layer, key: next });
-							}}
-						/>
-					</Stack>
+					<label class="text-sm font-medium">
+						<Stack gap="xs">
+							{t('renderer.leave_entitlement.band_from')}
+							<Input
+								type="number"
+								min="0"
+								step="1"
+								value={layer.band_from}
+								{disabled}
+								oninput={(event) => {
+									const next = [...layers];
+									next[index] = {
+										...layer,
+										band_from: Math.max(0, Math.trunc(numberFrom(event.currentTarget.value, 0)))
+									};
+									emit(next);
+								}}
+							/>
+						</Stack>
+					</label>
 					<label class="text-sm font-medium">
 						<Stack gap="xs">
 							Days granted
@@ -165,15 +152,36 @@
 								type="number"
 								min="0"
 								step="0.5"
-								value={row.layer.days}
-								disabled={row.disabled}
-								oninput={(event) =>
-									row.replace({ ...row.layer, days: numberFrom(event.currentTarget.value, 0) })}
+								value={layer.days}
+								{disabled}
+								oninput={(event) => {
+									const next = [...layers];
+									next[index] = { ...layer, days: numberFrom(event.currentTarget.value, 0) };
+									emit(next);
+								}}
 							/>
 						</Stack>
 					</label>
 				</Grid>
-			{/snippet}
-		</EffectiveLayerList>
+			</Stack>
+		{/each}
+		<Cluster gap="xs">
+			<Button
+				variant="outline"
+				size="sm"
+				{disabled}
+				onclick={() => emit([...layers, newLayer('ORGANISATION')])}
+			>
+				{t('renderer.leave_entitlement.add_organisation')}
+			</Button>
+			<Button
+				variant="outline"
+				size="sm"
+				{disabled}
+				onclick={() => emit([...layers, newLayer('EMPLOYEE')])}
+			>
+				{t('renderer.leave_entitlement.add_employee')}
+			</Button>
+		</Cluster>
 	</Stack>
 {/if}

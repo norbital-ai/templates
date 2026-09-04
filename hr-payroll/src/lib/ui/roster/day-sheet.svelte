@@ -519,8 +519,8 @@
 		if (draftIntervals.length === 0) draftBreak = 0;
 	}
 
-	/** Record a deliberate reviewed-no-work fact without manufacturing an interval. */
-	function markReviewedNoWork(): void {
+	/** Mark the day absent: a deliberate reviewed-no-work fact without an interval. */
+	function markAbsent(): void {
 		draftAttendanceRecorded = true;
 		draftIntervals = [];
 		draftBreak = 0;
@@ -792,9 +792,9 @@
 						{/each}
 						{#if draftAttendanceRecorded && draftIntervals.length === 0}
 							<Alert>
-								<AlertTitle>{t('roster.day_sheet_reviewed_no_work')}</AlertTitle>
+								<AlertTitle>{t('roster.day_sheet_absent')}</AlertTitle>
 								<AlertDescription>
-									{t('roster.day_sheet_reviewed_no_work_description')}
+									{t('roster.day_sheet_absent_description')}
 								</AlertDescription>
 							</Alert>
 						{:else if !draftAttendanceRecorded}
@@ -818,10 +818,10 @@
 									variant="outline"
 									size="sm"
 									disabled={interactionLocked}
-									onclick={() => markReviewedNoWork()}
+									onclick={() => markAbsent()}
 								>
 									<IconWrapper name="lucide:circle-check" class="size-3.5" />
-									{t('roster.day_sheet_mark_reviewed_no_work')}
+									{t('roster.day_sheet_mark_absent')}
 								</Button>
 							{/if}
 							{#if draftAttendanceRecorded}

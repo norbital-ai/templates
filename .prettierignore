@@ -38,3 +38,6 @@ vite.config.js*
 # Vendored dependency builds injected by `pnpm yalc:link`. Not ours to format, and
 # `prettier --check .` reports ~1100 style warnings on them, which drowns the real ones.
 .yalc/
+
+# Vendored face-model JSONs for kiosk matching. Not ours to format.
+**/assets/models/

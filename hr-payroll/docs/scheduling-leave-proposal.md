@@ -242,3 +242,43 @@ Interaction contract:
 | Worked intervals and break observation         | Open/closed state, lateness, overtime duration/type/value |
 | Leave half-day range and workflow decision     | Chargeable days, exclusions and remaining balance         |
 | Effective-dated statutory/contractual policy   | Overtime coverage and rates                               |
+
+## Attendance kiosk
+
+A face-recognition time clock for a shop-floor tablet, built into this workspace as the
+`hr_controller/kiosk` app. It writes the same `work_days.worked_intervals` the board writes, so
+everything downstream (day classification, overtime, payroll) treats kiosk punches exactly like
+board punches.
+
+**Setup.** Create one user row per device and put it on the `Attendance Kiosk` team. That team
+holds only the `kiosk` policy: the kiosk app and nothing else, interval-only day writes, masked
+person reads, face-field-only person writes, and restricted creation. The app declares
+`<meta name="bolt:kiosk">`, so the shell renders it chromeless — no sidebar, finder, agent or
+banner. Sign in once on the tablet; the session persists. The page needs HTTPS (camera) and
+network (matching and punches are server calls; there is no offline queue).
+
+**Punch.** A punch toggles the day's last interval: the first face of the day opens it, the next
+closes it. Manual entry takes an explicit in/out. Guards, all server-side in `kiosk_punch`: a
+10 s per-person cooldown, duplicate-orientation refusal for manual entry, and the standard day
+guards (leave-owned days, paid windows, captured rows) running as the device account — the kiosk
+policy carries the masked reads those hooks need (`leave_requests`, `payroll_runs`,
+`payslip_work_day_inputs`), and nothing they do not need. Kiosk writes carry no approval flow;
+HR-side attendance edits keep their reviewed grants.
+
+**Enrollment.** Face data inlines on `employees`: a 1024-d cosine descriptor (`face_embedding`,
+HNSW-indexed), a snapshot (`face_photo`), and `face_enrollment_status`. Enrolling a known person
+approves at once (`NONE` → `APPROVED`); enrolling a new person creates the person and their
+employment as `PENDING`, and HR approves in People (the face-status column), which alone may set
+`APPROVED` or `SUSPENDED`. Platform-side hires appear on the kiosk with no face yet and enroll
+from the same screen.
+
+**Matching and spoofing.** `kiosk_match` runs `findNearest` on the embedding column (cosine,
+default max distance 0.4) over `APPROVED` rows and returns the current in-force employment.
+Recognition runs in the tablet browser (`@vladmandic/human`: blazeface detector, faceres
+descriptor; WebGL with WASM fallback; ~60–100 ms warm, one ~7 s cold load per device). Model
+weights ship in `assets/models/human/` and are served from the workspace asset route — no CDN,
+nothing in a package cache. A punch additionally requires the antispoof `real` floor and a
+blink-to-confirm inside a 6 s window; a still photo cannot blink. A video replay on a second
+phone can — randomized look/blink challenges and cooldowns mitigate it; only depth hardware
+closes it. Thresholds live in `src/lib/kiosk/config.ts` and were bench-measured (see
+`kiosk-probe`); recalibrate `KIOSK_REAL_MIN` against live captures on the device.

@@ -1,12 +1,14 @@
 import {
 	defineModel,
 	enums,
+	file,
 	geolocation,
 	instant,
 	integer,
 	phone,
 	text,
-	uuid
+	uuid,
+	vector
 } from '@norbital-ai/bolt/authoring';
 
 export default defineModel(
@@ -31,12 +33,39 @@ export default defineModel(
 		email: text(),
 		phone: phone(),
 		address: geolocation(),
-		user_id: uuid()
+		user_id: uuid(),
+		/**
+		 * Kiosk face-recognition descriptor (1024-d, cosine). Written by enrollment, read by
+		 * `kiosk_match` through `findNearest`. Null means never enrolled.
+		 */
+		face_embedding: vector({ dimensions: 1024 }),
+		/** Enrollment snapshot, for HR review of PENDING rows. */
+		face_photo: file({ mimeTypes: ['image/jpeg', 'image/png'] }),
+		/**
+		 * Kiosk-side lifecycle only: NONE (never enrolled), PENDING (kiosk-created person awaiting
+		 * HR review), APPROVED (matchable), SUSPENDED (explicitly barred from matching). The kiosk
+		 * may only ever write PENDING; APPROVED and SUSPENDED are HR decisions.
+		 */
+		face_enrollment_status: enums(['NONE', 'PENDING', 'APPROVED', 'SUSPENDED'])
+			.notNull()
+			.default('NONE'),
+		face_consent_at: instant(),
+		face_enrolled_at: instant(),
+		face_last_match_at: instant(),
+		face_match_count: integer().notNull().default(0)
 	},
 	{
 		description:
 			'A natural person. Holds only facts true of the human being — never of a job; everything employment-shaped lives on employments.',
 		recordLabel: 'name',
-		icon: 'lucide:user'
+		icon: 'lucide:user',
+		indexes: [
+			{
+				name: 'employees_face_embedding_hnsw',
+				method: 'hnsw',
+				columns: ['face_embedding'],
+				opclass: { face_embedding: 'vector_cosine_ops' }
+			}
+		]
 	}
 );

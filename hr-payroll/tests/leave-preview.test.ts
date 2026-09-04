@@ -18,7 +18,7 @@ const leaveType = {
 	encash_on_exit: true,
 	requires_certificate_after_days: null,
 	accrual: { kind: 'MONTHLY', carry: null },
-	entitlement: { merge: 'MAX_WITH_COMPANY_LAYERS', layers: [] },
+	entitlement: { layers: [] },
 	payroll_effect: { kind: 'PAID' }
 };
 

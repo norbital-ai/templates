@@ -148,8 +148,8 @@ export function runWorkbookImport(options: WorkbookImportOptions, t: Translator)
 				 * `collections.import` declares `{ records: [{ collection, id, values }] }`, and
 				 * `values` is the document the collection's import pipeline declares as its `input`
 				 * — header fields and rows together. Splitting the file across `records` would leave
-				 * the header fields the pipeline validates against (`roster_id`, `month`,
-				 * `legal_entity`, `timezone`) with nowhere to go, and each fragment would be checked
+				 * the header fields the pipeline validates against (`legal_entity`, `month`,
+				 * `timezone`) with nowhere to go, and each fragment would be checked
 				 * against the company's records on its own.
 				 *
 				 * The id is minted here because the command requires one, not because it is used: a

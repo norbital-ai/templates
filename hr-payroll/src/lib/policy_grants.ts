@@ -137,7 +137,6 @@ export const referenceGrants = (
 		grantsOn('companies', actions),
 		grantsOn('company_holidays', actions),
 		grantsOn('shift_definitions', actions),
-		grantsOn('rosters', actions),
 		grantsOn('pay_components', actions),
 		grantsOn('leave_types', actions)
 	);
@@ -305,7 +304,6 @@ export const employeeReferenceGrants = (...actions: ReadonlyArray<'read'>): Gran
 		grantsOn('companies', actions),
 		grantsOn('company_holidays', actions),
 		grantsOn('shift_definitions', actions),
-		grantsOn('rosters', actions),
 		grantsOn('pay_components', actions),
 		grantsOn('leave_types', actions)
 	);
@@ -381,10 +379,9 @@ export const statutoryProfileGrants = (): Grants =>
 /** Which person, which day. In every write mask, or nothing could be created at all. */
 const WORK_DAY_IDENTITY_FIELDS = ['employment_id', 'work_date'] as const;
 
-/** The plan: the roster code, the month that published it, and its provenance. */
+/** The plan: the roster code, its provenance and its note. */
 export const WORK_DAY_PLANNED_FIELDS = [
 	'shift_definition_id',
-	'roster_id',
 	'assignment_code',
 	'planned_origin',
 	'planned_note'

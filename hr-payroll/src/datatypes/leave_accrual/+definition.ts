@@ -1,7 +1,7 @@
 import { defineCustomType } from '@norbital-ai/bolt/authoring';
 import { Schema } from 'effect';
 
-/** Carry-forward policy. Carry-forward and expiry are DERIVED at read time — never a job. */
+/** Carry-forward policy. The carry a year opens with is POSTED once by `process_leave_year` — never derived at read time, never a job. */
 export const leaveCarryValueSchema = Schema.Struct({
 	limit_days: Schema.Finite.check(Schema.isGreaterThanOrEqualTo(0)),
 	expiry_months: Schema.Int.check(Schema.isGreaterThanOrEqualTo(0))

@@ -5,7 +5,9 @@ import type { WorkspaceRow } from '../../collections/leave_requests/$types.js';
 import { calendarDay, dateKey } from '../iso-day.js';
 import { pointAt, pointNumber, type HalfDayRange } from '../half-day.js';
 import {
+	carryInto,
 	leaveBalance,
+	leaveYearOf,
 	resolveEntitlement,
 	type ChildFact,
 	type LedgerRow
@@ -20,13 +22,37 @@ import { decodeNumber } from '@norbital-ai/std/json';
 import { calendarDaysThrough, leaveCalendarGridBounds } from './calendar-grid.js';
 
 /**
+ * Calendar day of a stored work_date in the payroll timezone.
+ *
+ * Work days reach preview as KL-midnight instants (`2026-03-08T16:00:00.000Z` for March 9),
+ * while in-memory worlds carry plain `YYYY-MM-DD` text. Slicing the instant gives the UTC
+ * day (March 8) and misses the override, falling back to the pattern; converting via KL
+ * keeps both shapes on the same day the board wrote.
+ */
+const payrollDayFormatter = new Intl.DateTimeFormat('en', {
+	timeZone: 'Asia/Kuala_Lumpur',
+	year: 'numeric',
+	month: '2-digit',
+	day: '2-digit'
+});
+
+function payrollDayKey(value: string): string {
+	if (/^\d{4}-\d{2}-\d{2}$/.test(value)) return value;
+	const at = new Date(value);
+	if (Number.isNaN(at.getTime())) return value.slice(0, 10);
+	const parts = payrollDayFormatter.formatToParts(at);
+	const part = (type: string) => parts.find((candidate) => candidate.type === type)?.value ?? '';
+	return `${part('year')}-${part('month')}-${part('day')}`;
+}
+
+/**
  * Server-side leave preview: remaining bank, chargeable days, and per-day eligibility.
  *
  * The picker invokes this as `preview_leave` before apply. The `leave_requests` hook runs the same
  * function on write. Both gather person-scoped rows and derive; nothing stores a remaining balance.
  */
 
-const LEAVE_PREVIEW_QUERY_LIMIT = 20_000;
+const LEAVE_PREVIEW_QUERY_LIMIT = 2_000;
 
 const dayHalfSchema = Schema.Literals(['FIRST', 'SECOND']);
 const leavePreviewRangeSchema = Schema.Struct({
@@ -94,6 +120,8 @@ export type LeavePreview = {
 	readonly remaining_days: number | null;
 	readonly chargeable_days: number | null;
 	readonly encashed: boolean;
+	/** Set when the as-of year's carry is provisional: "{prior} carry-forward not yet processed". */
+	readonly carry_note: string | null;
 	readonly availability: Readonly<Record<string, LeaveDayPreview>>;
 	readonly issues: readonly LeavePreviewIssue[];
 };
@@ -321,8 +349,8 @@ function dayPreview(
 	const coveredByOtherRequest = facts.overlappingTimeOff.some((row) => {
 		if (row.id === input.exclude_request_id) return false;
 		if (row.kind !== 'TIME_OFF' || row.from_date == null || row.to_date == null) return false;
-		const from = dateKey(row.from_date);
-		const to = dateKey(row.to_date);
+		const from = payrollDayKey(row.from_date);
+		const to = payrollDayKey(row.to_date);
 		return date >= from && date <= to;
 	});
 	if (coveredByOtherRequest) {
@@ -375,11 +403,20 @@ function projectedLedger(facts: LeavePreviewFacts, excludeId: string | undefined
 			{
 				id: row.id,
 				leave_type_id: row.leave_type_id,
-				entry_date: dateKey(row.from_date),
+				entry_date: payrollDayKey(row.from_date),
 				kind: row.kind,
 				days: row.kind === 'TIME_OFF' ? -Math.abs(decodeNumber(row.days)) : decodeNumber(row.days),
 				source_id: null,
-				approval_id: row.approval_id
+				approval_id: row.approval_id,
+				// A posted carry names the year it opens and the day it lapses on its event; without
+				// both, the read falls back to the entry year and no expiry, which understates lapsed
+				// days. Point movements carry neither and read nothing here.
+				...(row.event?.kind === 'CARRY_FORWARD'
+					? {
+							leave_year: typeof row.event.leave_year === 'number' ? row.event.leave_year : null,
+							expires_on: typeof row.event.expires_on === 'string' ? row.event.expires_on : null
+						}
+					: {})
 			}
 		];
 	});
@@ -400,6 +437,7 @@ export function evaluateLeavePreview(
 			remaining_days: null,
 			chargeable_days: null,
 			encashed: facts.encashed,
+			carry_note: null,
 			availability: {},
 			issues: [
 				issue(
@@ -459,9 +497,9 @@ export function evaluateLeavePreview(
 
 	const rosterCodeById = new Map(facts.rosterCodes.map((code) => [code.id, code]));
 	const plannedByDate = new Map(
-		facts.workDays.map((day) => [dateKey(day.work_date), day] as const)
+		facts.workDays.map((day) => [payrollDayKey(day.work_date), day] as const)
 	);
-	const holidayDates = new Set(facts.holidays.map((holiday) => dateKey(holiday.date)));
+	const holidayDates = new Set(facts.holidays.map((holiday) => payrollDayKey(holiday.date)));
 	const settledWindows = payrollWindows(facts.settledRuns);
 
 	if (range != null && pointNumber(range.end) >= pointNumber(range.start)) {
@@ -520,6 +558,7 @@ export function evaluateLeavePreview(
 	}
 
 	let remaining_days: number | null = null;
+	let carry_note: string | null = null;
 	if (facts.leaveType.accrual?.kind !== 'PER_EVENT') {
 		const asOf = asOfDate(input, window);
 		if (facts.jurisdictionCode.length === 0) {
@@ -550,18 +589,23 @@ export function evaluateLeavePreview(
 						employmentId: facts.employment.id,
 						asOf: entitlementAsOf
 					});
-				remaining_days = leaveBalance(
-					{
-						leaveType: facts.leaveType,
-						entitlementAt,
-						hireDate,
-						exitDate,
-						leaveYearStartMonth: facts.company.leave_year_start_month,
-						ledger: projectedLedger(facts, input.exclude_request_id),
-						basis: 'PROJECTED'
-					},
-					asOf
+				const balanceInput = {
+					leaveType: facts.leaveType,
+					entitlementAt,
+					hireDate,
+					exitDate,
+					leaveYearStartMonth: facts.company.leave_year_start_month,
+					ledger: projectedLedger(facts, input.exclude_request_id),
+					basis: 'PROJECTED' as const
+				};
+				remaining_days = leaveBalance(balanceInput, asOf);
+				const carry = carryInto(
+					balanceInput,
+					leaveYearOf(asOf, facts.company.leave_year_start_month)
 				);
+				if (carry.state === 'PROVISIONAL' && carry.days > 0) {
+					carry_note = `${leaveYearOf(asOf, facts.company.leave_year_start_month) - 1} carry-forward not yet processed`;
+				}
 				if (chargeable_days != null && chargeable_days > remaining_days + 1e-9 && !facts.encashed) {
 					issues.push(
 						issue(
@@ -587,6 +631,7 @@ export function evaluateLeavePreview(
 		remaining_days,
 		chargeable_days,
 		encashed: facts.encashed,
+		carry_note,
 		availability,
 		issues
 	};
@@ -638,9 +683,7 @@ function loadLeavePreviewFacts(
 				api.db.leave_requests.findMany({
 					where: {
 						employment_id: { eq: input.employment_id },
-						kind: { eq: 'TIME_OFF' },
-						from_date: { lte: window.end },
-						to_date: { gte: window.start }
+						kind: { eq: 'TIME_OFF' }
 					},
 					limit: LEAVE_PREVIEW_QUERY_LIMIT
 				})

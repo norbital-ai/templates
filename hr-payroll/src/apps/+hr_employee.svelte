@@ -29,16 +29,11 @@
 		formatNumeric
 	} from '../lib/ui/display-formatters.js';
 	import {
-		leaveBalance,
+		leaveYearSummary,
 		resolveEntitlement,
-		carriedInDays,
-		expiredDays,
-		leaveYearOf,
-		leaveYearStart,
 		type BalanceInput
 	} from '../collections/payroll_runs/lib/leave.js';
 	import { sealedProfileCovering } from '../lib/statutory_profile.js';
-	import { completedMonths } from '../collections/payroll_runs/lib/dates.js';
 	import {
 		PAYROLL_TIME_ZONE,
 		daysBetweenKeys,
@@ -314,7 +309,7 @@
 	 * why they are roughly 1/300th of its size and why none of them needed a policy change: the
 	 * `employee` policy already scopes `work_days`, `leave_requests` and
 	 * `employment_terms` to the reader's own employments, and `employeeReferenceGrants` already hands
-	 * them the company-wide calendars — holidays, shift definitions, rosters — that a personal
+	 * them the company-wide calendars — holidays and shift definitions — that a personal
 	 * schedule is meaningless without.
 	 *
 	 * ONE THING IS DELIBERATELY ABSENT, and it is a ruling rather than a gap: `payroll_runs` is not
@@ -423,24 +418,6 @@
 			: client.db.employment_terms.findMany({
 					where: { ...approved, employment_id: { eq: employmentId } },
 					limit: 100
-				})
-	);
-	/**
-	 * The month's roster record, read for one thing only: whether the plan is published.
-	 *
-	 * A draft month can still change under the reader, and a calendar that does not say so invites
-	 * somebody to arrange their week around a shift nobody has committed to yet.
-	 */
-	const scheduleRostersQuery = $derived(
-		activeEmployment == null
-			? null
-			: client.db.rosters.findMany({
-					where: {
-						...approved,
-						company_id: { eq: activeEmployment.company_id },
-						month: { eq: scheduleMonth }
-					},
-					limit: 50
 				})
 	);
 
@@ -556,7 +533,14 @@
 			? null
 			: client.db.leave_requests.findMany({
 					where: { employment_id: { eq: employmentId }, approval_id: { isNull: true } },
-					columns: { id: true, leave_type_id: true, from_date: true, kind: true, days: true },
+					columns: {
+						id: true,
+						leave_type_id: true,
+						from_date: true,
+						kind: true,
+						days: true,
+						event: true
+					},
 					limit: 500
 				})
 	);
@@ -619,12 +603,30 @@
 					days:
 						row.kind === 'TIME_OFF' ? -Math.abs(decodeNumber(row.days)) : decodeNumber(row.days),
 					source_id: null,
-					approval_id: null
+					approval_id: null,
+					// A posted carry names the year it opens and the day it lapses on its event.
+					...(row.event?.kind === 'CARRY_FORWARD'
+						? {
+								leave_year: typeof row.event.leave_year === 'number' ? row.event.leave_year : null,
+								expires_on: typeof row.event.expires_on === 'string' ? row.event.expires_on : null
+							}
+						: {})
 				}
 			];
 		})
 	);
 	const childFactRows = $derived(childFactsQuery?.current ?? []);
+	/**
+	 * The leave balance panel: one row per leave type of the governing profile, in catalogue order.
+	 *
+	 * The standard HRMS breakdown — entitlement, earned to date, carried with expiry, adjustments,
+	 * taken, pending, balance — from the same `leaveYearSummary` the request guard refuses against,
+	 * so the number on screen and the number that refuses agree. Per-event types have no bank:
+	 * they read how many days were taken this year.
+	 *
+	 * TODO(RFC hr-payroll-leave-and-attendance): acceptance row H14 still pins "no Accrued/Taken"
+	 * on this panel and needs the owner's amendment; this row shows Taken deliberately.
+	 */
 	const leaveBalanceRows = $derived.by(() => {
 		const profile = governingProfile;
 		const employment = activeEmployment;
@@ -652,48 +654,28 @@
 				ledger: leaveLedgerRows,
 				basis: 'SETTLED'
 			};
-			const year = leaveYearOf(today, yearStart);
-			const yearStartDate = leaveYearStart(today, yearStart);
-			const entitlement = entitlementAt(completedMonths(hire, today), today);
-			const carried = carriedInDays(input, year);
-			const remaining = leaveBalance(input, today);
-			const expired = expiredDays(input, year, today);
+			const summary = leaveYearSummary(input, today);
 			const accrual = type.accrual;
 			const banked = accrual != null && accrual.kind !== 'PER_EVENT';
-			const carry = accrual != null && accrual.kind !== 'PER_EVENT' ? accrual.carry : null;
-			const carryLimit = carry != null ? decodeNumber(carry.limit_days) : null;
-			const carryExpiry =
-				carry != null && carry.expiry_months > 0
-					? `${shiftMonthKey(monthKey(yearStartDate), carry.expiry_months)}-01`
-					: null;
-			const takenThisYear = -Math.min(
-				0,
-				leaveLedgerRows.reduce((total, row) => {
-					if (row.leave_type_id !== type.id) return total;
-					if (row.entry_date < yearStartDate || row.entry_date > today) return total;
-					return total + row.days;
-				}, 0)
-			);
+			const carryLimit =
+				banked && accrual.carry != null ? decodeNumber(accrual.carry.limit_days) : null;
 			const carryLeft =
-				carryExpiry != null && today >= carryExpiry
+				summary.carry.expires_on != null && today >= summary.carry.expires_on
 					? 0
-					: EffectNumber.clamp({ minimum: 0, maximum: Math.max(carried, 0) })(
-							carried - takenThisYear
+					: EffectNumber.clamp({ minimum: 0, maximum: Math.max(summary.carry.days, 0) })(
+							summary.carry.days - summary.taken
 						);
 			return {
 				type,
 				banked,
-				entitlement,
+				monthly: accrual?.kind === 'MONTHLY',
+				summary,
+				carryLimit,
+				carryLeft,
 				entitlementLeft: EffectNumber.clamp({
 					minimum: 0,
-					maximum: Math.max(entitlement, 0)
-				})(remaining - carryLeft),
-				carried,
-				carryLeft,
-				carryLimit,
-				carryExpiry,
-				expired,
-				remaining
+					maximum: Math.max(summary.entitlement, 0)
+				})(summary.balance - carryLeft)
 			};
 		});
 	});
@@ -856,10 +838,6 @@
 	const scheduleLoading = $derived(
 		scheduleErrors.length === 0 &&
 			scheduleSources.some((source) => source.query != null && source.query.current === undefined)
-	);
-	const scheduleRosters = $derived(scheduleRostersQuery?.current);
-	const scheduleUnpublished = $derived(
-		scheduleRosters != null && !scheduleRosters.some((roster) => roster.published_at != null)
 	);
 
 	/* ── The day detail, and the one write this app offers ─────────────────────────────────────── */
@@ -1261,16 +1239,6 @@
 			<h2 class="text-heading">{t('app.hr_employee.my_schedule_title')}</h2>
 			<p class="text-sm text-muted-foreground">{t('app.hr_employee.my_schedule_description')}</p>
 		</Stack>
-		{#if employmentId != null && !scheduleLoading && scheduleErrors.length === 0 && scheduleUnpublished}
-			<!--
-				`{ month: scheduleMonth }` is not decoration: the catalog entry is
-				"Your schedule for {month} has not been published yet." and this call used to pass no
-				parameters at all, so the sentence reached the reader with a literal `{month}` in it.
-			-->
-			<p class="text-sm text-muted-foreground">
-				{t('app.hr_employee.schedule_not_published', { month: scheduleMonth })}
-			</p>
-		{/if}
 	</Stack>
 {/snippet}
 
@@ -1343,32 +1311,63 @@
 					</p>
 				{:else}
 					{#each leaveBalanceRows as balance (balance.type.id)}
+						{@const summary = balance.summary}
 						<Stack class="border-t px-4 py-3" gap="sm">
-							<p class="truncate text-sm font-medium" title={balance.type.name}>
-								{balance.type.name}
-							</p>
+							<Inline justify="between" align="baseline" gap="sm">
+								<p class="truncate text-sm font-medium" title={balance.type.name}>
+									{balance.type.name}
+								</p>
+								{#if balance.banked && summary.carry.expires_on != null}
+									<span class="shrink-0 text-meta text-warning-foreground">
+										{t('app.hr_employee.leave_carry_use_by', {
+											date: formatCalendarDate(summary.carry.expires_on)
+										})}
+									</span>
+								{/if}
+							</Inline>
 							{#if !balance.banked}
-								<p class="text-meta">{t('app.hr_employee.leave_per_event')}</p>
+								<p class="text-meta">
+									{t('app.hr_employee.leave_per_event_taken', {
+										days: formatNumeric(summary.taken)
+									})}
+								</p>
 							{:else}
+								<p class="text-xs tabular-nums text-muted-foreground">
+									{t('app.hr_employee.leave_entitlement')}
+									{formatNumeric(summary.entitlement)}
+									{#if balance.monthly}
+										· {t('app.hr_employee.leave_earned')} {formatNumeric(summary.earned)}
+									{/if}
+									· {t('app.hr_employee.leave_carried')}
+									{formatNumeric(summary.carry.days)}
+									· {t('app.hr_employee.leave_adjustments')}
+									{formatNumeric(summary.adjusted)}
+									· {t('app.hr_employee.leave_taken')}
+									{formatNumeric(summary.taken)}
+									· {t('app.hr_employee.leave_pending')}
+									{formatNumeric(summary.pending)}
+									· {t('app.hr_employee.leave_balance')}
+									{formatNumeric(summary.balance)}
+								</p>
 								<Stack gap="xs">
 									<Inline justify="between" align="baseline" gap="sm">
 										<span class="text-meta">{t('app.hr_employee.leave_entitlement')}</span>
 										<span class="text-xs tabular-nums">
 											{t('app.hr_employee.leave_of_days', {
 												left: formatNumeric(balance.entitlementLeft),
-												total: formatNumeric(balance.entitlement)
+												total: formatNumeric(summary.entitlement)
 											})}
 										</span>
 									</Inline>
 									<Progress
 										value={balance.entitlementLeft}
-										max={Math.max(balance.entitlement, 1)}
+										max={Math.max(summary.entitlement, 1)}
 										aria-label={t('app.hr_employee.leave_entitlement')}
 										class="h-2.5"
 									/>
 								</Stack>
-								{#if balance.carryLimit != null || balance.carried > 0 || balance.expired > 0}
-									{@const carryTrack = Math.max(balance.carryLimit ?? balance.carried, 1)}
+								{#if balance.carryLimit != null || summary.carry.days > 0 || summary.expired > 0}
+									{@const carryTrack = Math.max(balance.carryLimit ?? summary.carry.days, 1)}
 									<Stack
 										gap="xs"
 										class="rounded-md border border-dashed border-warning/40 bg-warning/5 px-2 py-2"
@@ -1380,7 +1379,7 @@
 											<span class="text-xs tabular-nums text-warning-foreground">
 												{t('app.hr_employee.leave_of_days', {
 													left: formatNumeric(balance.carryLeft),
-													total: formatNumeric(balance.carryLimit ?? balance.carried)
+													total: formatNumeric(balance.carryLimit ?? summary.carry.days)
 												})}
 											</span>
 										</Inline>
@@ -1392,10 +1391,10 @@
 											aria-valuenow={balance.carryLeft}
 											aria-label={t('app.hr_employee.leave_carried')}
 										>
-											{#if balance.expired > 0}
+											{#if summary.expired > 0}
 												<div
 													class="absolute inset-y-0 left-0 bg-warning/30"
-													style:width={leaveMeterWidth(balance.expired, carryTrack)}
+													style:width={leaveMeterWidth(summary.expired, carryTrack)}
 												></div>
 											{/if}
 											{#if balance.carryLeft > 0}
@@ -1405,24 +1404,29 @@
 												></div>
 											{/if}
 										</div>
-										{#if balance.carryExpiry != null}
+										{#if summary.carry.expires_on != null}
 											<p
-												class="text-meta {balance.expired > 0 || today >= balance.carryExpiry
+												class="text-meta {summary.expired > 0 || today >= summary.carry.expires_on
 													? 'text-destructive'
 													: 'text-warning-foreground'}"
 											>
-												{balance.expired > 0 || today >= balance.carryExpiry
+												{summary.expired > 0 || today >= summary.carry.expires_on
 													? t('app.hr_employee.leave_carry_expired_on', {
-															date: formatCalendarDate(balance.carryExpiry)
+															date: formatCalendarDate(summary.carry.expires_on)
 														})
 													: t('app.hr_employee.leave_carry_use_by', {
-															date: formatCalendarDate(balance.carryExpiry)
+															date: formatCalendarDate(summary.carry.expires_on)
 														})}
-												{#if balance.expired > 0}
+												{#if summary.expired > 0}
 													· {t('app.hr_employee.leave_carry_lapsed', {
-														days: formatNumeric(balance.expired)
+														days: formatNumeric(summary.expired)
 													})}
 												{/if}
+											</p>
+										{/if}
+										{#if summary.carry.state === 'PROVISIONAL' && summary.carry.days > 0}
+											<p class="text-meta text-warning-foreground">
+												{t('app.hr_employee.leave_carry_pending', { year: summary.year - 1 })}
 											</p>
 										{/if}
 									</Stack>

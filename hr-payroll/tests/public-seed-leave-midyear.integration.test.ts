@@ -129,7 +129,7 @@ test(
 					[],
 					false,
 					{ kind: 'UPFRONT', carry: null },
-					{ merge: 'MAX_WITH_COMPANY_LAYERS', layers: [] },
+					{ layers: [] },
 					{ kind: 'PAID' }
 				]
 			);

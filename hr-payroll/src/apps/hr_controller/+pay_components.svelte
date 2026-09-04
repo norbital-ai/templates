@@ -52,11 +52,9 @@
 			? null
 			: client.db.component_entries.findMany({
 					where: {
+						approval_id: { isNull: true },
 						component_entry_employment: {
-							some: {
-								approval_id: { isNull: true },
-								company_id: { eq: selectedCompanyId }
-							}
+							some: { company_id: { eq: selectedCompanyId } }
 						}
 					},
 					columns: { id: true },
@@ -161,9 +159,9 @@
 					where: {
 						// Loan recoveries are repayments and have their own screen, which can show a
 						// recovery position this one has no room for. An entry never names a loan.
+						approval_id: { isNull: true },
 						component_entry_employment: {
-							approval_id: { isNull: true },
-							company_id: { eq: selectedCompanyId }
+							some: { company_id: { eq: selectedCompanyId } }
 						}
 					},
 					orderBy: { event_date: 'desc' },

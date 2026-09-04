@@ -125,7 +125,7 @@ const dayFactsSchema = Schema.Struct({
 	/** The source roster token, e.g. `AMRES` or `OFF/S`, when the roster carried one. */
 	assignmentCode: Schema.NullOr(Schema.String),
 	/** Where the plan came from, or null when the day carries no explicit plan. */
-	plannedOrigin: Schema.NullOr(Schema.Literals(['GENERATED', 'IMPORT', 'MANUAL'])),
+	plannedOrigin: Schema.NullOr(Schema.Literals(['IMPORT', 'MANUAL'])),
 	/** Overlaid from `company_holidays`, never stored on the entry. */
 	holidayName: Schema.NullOr(Schema.String),
 	leaveCode: Schema.NullOr(Schema.String),
@@ -228,7 +228,7 @@ const workDayLikeSchema = Schema.Struct({
 });
 type WorkDayLike = Schema.Schema.Type<typeof workDayLikeSchema>;
 
-const PLANNED_ORIGINS = ['GENERATED', 'IMPORT', 'MANUAL'] as const;
+const PLANNED_ORIGINS = ['IMPORT', 'MANUAL'] as const;
 type PlannedOrigin = (typeof PLANNED_ORIGINS)[number];
 
 function plannedOriginOf(value: string | null | undefined): PlannedOrigin | null {

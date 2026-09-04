@@ -118,10 +118,12 @@ const SETTINGS_ROWS = [
 	['', 'An IANA timezone name.']
 ];
 
-const ROSTER_ID = 'roster:2026-05';
+const ROSTER_SETTINGS_ROWS = [
+	['Setting', 'Value'],
+	['legal_entity', 'Public Fixture Co'],
+	['month', '2026-05']
+];
 
-/** The instant the published-roster refusal is checked against; a fixture value, not a clock. */
-const PUBLISHED_AT = new Date('2026-04-20T00:00:00.000Z');
 const COMPANY_ID = 'company:1';
 
 function matches(row, where = {}) {
@@ -165,15 +167,6 @@ function companies() {
 
 function rosterApi(overrides = {}) {
 	return stubApi({
-		rosters: [
-			{
-				id: ROSTER_ID,
-				month: '2026-05',
-				published_at: null,
-				company_id: COMPANY_ID,
-				...overrides.roster
-			}
-		],
 		companies: companies(),
 		payroll_runs: overrides.payrollRuns ?? [],
 		company_holidays: overrides.holidays ?? [
@@ -275,6 +268,7 @@ const program = Effect.gen(function* () {
 		const rosterGrids = (rows) =>
 			gridsOf([
 				['Read me first', README],
+				['Settings', ROSTER_SETTINGS_ROWS],
 				['Roster', [ROSTER_HEADERS, ...rows]]
 			]).pipe(Effect.map(workbookGrids));
 		const timeEntryGrids = (rows, headers = TIME_ENTRY_HEADERS) =>
@@ -285,13 +279,14 @@ const program = Effect.gen(function* () {
 			]).pipe(Effect.map(workbookGrids));
 
 		// ── The roster workbook, from bytes to written rows ────────────────────────────────────────────
-		const rosterPayload = rosterImportPayload(yield* rosterGrids(ROSTER_ROWS), ROSTER_ID);
+		const rosterPayload = rosterImportPayload(yield* rosterGrids(ROSTER_ROWS));
 		assert.equal(
 			rosterPayload.sheet,
 			'ROSTER',
 			'the arm is tagged, not inferred from which fields are set'
 		);
-		assert.equal(rosterPayload.roster_id, ROSTER_ID);
+		assert.equal(rosterPayload.legal_entity, 'Public Fixture Co');
+		assert.equal(rosterPayload.month, '2026-05');
 		assert.equal(rosterPayload.rows.length, 8, 'blank assignment rows are omitted');
 		assert.deepEqual(
 			rosterPayload.rows[0],
@@ -340,7 +335,6 @@ const program = Effect.gen(function* () {
 				employment_id: 'employment:23',
 				work_date: '2026-05-06',
 				shift_definition_id: 'shift:off',
-				roster_id: ROSTER_ID,
 				assignment_code: null,
 				planned_origin: 'IMPORT',
 				planned_note: null
@@ -366,7 +360,7 @@ const program = Effect.gen(function* () {
 				]);
 				return yield* runHandlerCall(() =>
 					workDayPipeline.import.handler(
-						{ input: rosterImportPayload(grids, ROSTER_ID) },
+						{ input: rosterImportPayload(grids) },
 						rosterApi({ holidays: [] })
 					)
 				);
@@ -382,8 +376,7 @@ const program = Effect.gen(function* () {
 						yield* rosterGrids([
 							['PUBEM0002', '2026-05-01', '7.5AM'],
 							['PUBEM0023', '2026-05-08', 'PH']
-						]),
-						ROSTER_ID
+						])
 					)
 				},
 				rosterApi()
@@ -394,6 +387,8 @@ const program = Effect.gen(function* () {
 
 		// ── Every column the long-form sheet declares reaches the row that is written ──────────────────
 		const annotatedWorkbook = yield* gridsOf([
+			['Read me first', README],
+			['Settings', ROSTER_SETTINGS_ROWS],
 			[
 				'Roster',
 				[
@@ -405,7 +400,7 @@ const program = Effect.gen(function* () {
 		const annotated = yield* runHandler(
 			workDayPipeline.import.handler(
 				{
-					input: rosterImportPayload(workbookGrids(annotatedWorkbook), ROSTER_ID)
+					input: rosterImportPayload(workbookGrids(annotatedWorkbook))
 				},
 				rosterApi()
 			)
@@ -415,7 +410,6 @@ const program = Effect.gen(function* () {
 				employment_id: 'employment:2',
 				work_date: '2026-05-04',
 				shift_definition_id: 'shift:75',
-				roster_id: ROSTER_ID,
 				assignment_code: 'AMRES',
 				planned_origin: 'IMPORT',
 				planned_note: 'swap with 03 May'
@@ -427,10 +421,7 @@ const program = Effect.gen(function* () {
 			Effect.gen(function* () {
 				const grids = yield* rosterGrids([...ROSTER_ROWS, ['PUBEM9999', '2026-05-06', '7.5AM']]);
 				return yield* runHandlerCall(() =>
-					workDayPipeline.import.handler(
-						{ input: rosterImportPayload(grids, ROSTER_ID) },
-						rosterApi()
-					)
+					workDayPipeline.import.handler({ input: rosterImportPayload(grids) }, rosterApi())
 				);
 			})
 		);
@@ -446,28 +437,12 @@ const program = Effect.gen(function* () {
 			Effect.gen(function* () {
 				const grids = yield* rosterGrids([...ROSTER_ROWS, ['PUBEM0002', '2026-06-01', '7.5AM']]);
 				return yield* runHandlerCall(() =>
-					workDayPipeline.import.handler(
-						{ input: rosterImportPayload(grids, ROSTER_ID) },
-						rosterApi()
-					)
+					workDayPipeline.import.handler({ input: rosterImportPayload(grids) }, rosterApi())
 				);
 			})
 		);
-		assert.match(outsideMonth, /These rows do not belong to roster 2026-05/);
+		assert.match(outsideMonth, /These rows do not belong to 2026-05/);
 		assert.match(outsideMonth, /• PUBEM0002 on 2026-06-01/);
-
-		const publishedMonth = yield* refusal(() =>
-			Effect.gen(function* () {
-				const grids = yield* rosterGrids(ROSTER_ROWS);
-				return yield* runHandlerCall(() =>
-					workDayPipeline.import.handler(
-						{ input: rosterImportPayload(grids, ROSTER_ID) },
-						rosterApi({ roster: { published_at: PUBLISHED_AT } })
-					)
-				);
-			})
-		);
-		assert.match(publishedMonth, /is published/);
 
 		const paidLock = yield* refusal(() =>
 			runHandlerCall(() =>
@@ -512,15 +487,16 @@ const program = Effect.gen(function* () {
 
 		yield* writeWorkbookFile(VALID_ROSTER_FIXTURE, [
 			['Read me first', README],
+			['Settings', ROSTER_SETTINGS_ROWS],
 			['Roster', [ROSTER_HEADERS, ...ROSTER_ROWS]]
 		]);
 		yield* writeWorkbookFile(INVALID_ROSTER_FIXTURE, [
 			['Read me first', README],
+			['Settings', ROSTER_SETTINGS_ROWS],
 			['Roster', [ROSTER_HEADERS, ['PUBEM0002', '04/05/2026', '7.5AM']]]
 		]);
 		const fixturePayload = rosterImportPayload(
-			workbookGrids(yield* workbookFromFile(VALID_ROSTER_FIXTURE)),
-			ROSTER_ID
+			workbookGrids(yield* workbookFromFile(VALID_ROSTER_FIXTURE))
 		);
 		const fixtureWritten = yield* runHandler(
 			workDayPipeline.import.handler({ input: fixturePayload }, rosterApi())
@@ -528,7 +504,7 @@ const program = Effect.gen(function* () {
 		assert.equal(fixtureWritten.length, 8, 'the committed .xlsx fixture is a valid roster upload');
 		const invalidFixture = yield* refusal(() =>
 			tryMap(workbookFromFile(INVALID_ROSTER_FIXTURE), (workbook) =>
-				rosterImportPayload(workbookGrids(workbook), ROSTER_ID)
+				rosterImportPayload(workbookGrids(workbook))
 			)
 		);
 		assert.match(invalidFixture, /work_date is "04\/05\/2026"/);
@@ -538,7 +514,7 @@ const program = Effect.gen(function* () {
 				const grids = yield* rosterGrids(ROSTER_ROWS);
 				return yield* runHandlerCall(() =>
 					workDayPipeline.import.handler(
-						{ input: rosterImportPayload(grids, ROSTER_ID) },
+						{ input: rosterImportPayload(grids) },
 						rosterApi({
 							existingDays: [
 								{
@@ -565,7 +541,7 @@ const program = Effect.gen(function* () {
 					['PUBEM0023', '', 'PM2030'],
 					['', '2026-05-06', '']
 				]),
-				(grids) => rosterImportPayload(grids, ROSTER_ID)
+				(grids) => rosterImportPayload(grids)
 			)
 		);
 		assert.match(badCells, /Nothing was written/);
@@ -589,7 +565,7 @@ const program = Effect.gen(function* () {
 				]
 			])
 		);
-		const missingColumn = yield* refusal(() => rosterImportPayload(renamedColumns, ROSTER_ID));
+		const missingColumn = yield* refusal(() => rosterImportPayload(renamedColumns));
 		assert.match(missingColumn, /missing column the import needs/);
 		assert.match(missingColumn, /No "shift_code" column/);
 
@@ -599,7 +575,7 @@ const program = Effect.gen(function* () {
 					['Read me first', README],
 					['Sheet1', [ROSTER_HEADERS, ...ROSTER_ROWS]]
 				]),
-				(workbook) => rosterImportPayload(workbookGrids(workbook), ROSTER_ID)
+				(workbook) => rosterImportPayload(workbookGrids(workbook))
 			)
 		);
 		assert.match(wrongSheet, /has no "Roster" sheet/);
@@ -616,8 +592,7 @@ const program = Effect.gen(function* () {
 							'PUBEM0002,2026-05-05,\n'
 					)
 				]
-			]),
-			ROSTER_ID
+			])
 		);
 		assert.deepEqual(csvPayload.rows, [
 			{
@@ -845,8 +820,7 @@ const program = Effect.gen(function* () {
 						]
 					]
 				])
-			),
-			ROSTER_ID
+			)
 		);
 		assert.equal(rosterGridPayload.legal_entity, 'Public Fixture Co');
 		assert.equal(rosterGridPayload.month, '2026-05');
@@ -914,7 +888,7 @@ const program = Effect.gen(function* () {
 				)
 			)
 		);
-		assert.match(wrongEntity, /not the legal entity/);
+		assert.match(wrongEntity, /not employed by this legal entity/);
 
 		console.log('workbook import: roster and time-entry templates round trip, and refuse by row.');
 	});

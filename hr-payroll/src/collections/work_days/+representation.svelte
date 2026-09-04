@@ -107,16 +107,6 @@
 							limit: 500
 						}}
 					/>
-					<Field
-						name="roster_id"
-						label={t('component.drafted_month')}
-						relationOptions={{
-							label: (roster) =>
-								roster.month != null && roster.month !== '' ? String(roster.month) : '—',
-							orderBy: { month: 'desc' },
-							limit: 500
-						}}
-					/>
 					<Field name="assignment_code" label={t('component.source_roster_token')} />
 					<Column span="all"
 						><Field name="planned_note" label={t('component.planned_note')} /></Column

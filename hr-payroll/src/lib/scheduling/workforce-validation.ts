@@ -1,4 +1,4 @@
-/** Pure publication checks for normalized monthly schedules. */
+/** Pure schedule checks for explicit assignments: overlaps and workload against terms. */
 
 import { Schema } from 'effect';
 import { decodeNumber } from '@norbital-ai/std/json';

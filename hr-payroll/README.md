@@ -74,7 +74,7 @@ Two invariants shape everything:
 
 ## What ships in the workspace
 
-### Apps (9)
+### Apps (10)
 
 **`hr_employee`** — employee self-service. A person sees their profile, company and next payday,
 and can record time entries, raise leave requests and claims (each routed for approval), and read
@@ -94,8 +94,9 @@ and is inherited by every sibling; boards state the active entity, they do not p
 | **Pay components**    | The pay catalogue and the entry stream: claims, allowances, bonuses, arrears and corrections, with their contribution treatment                                                                                                                                                                                      |
 | **Payroll**           | Runs the payroll cycle: a pay-date board (late/current/upcoming), creating and recalculating runs, locking them paid, and exporting bank files, payslip PDFs and the report workbook                                                                                                                                 |
 | **Statutory profile** | The regime every payroll is calculated against — versioned jurisdiction profiles (DRAFT → SEALED → VOIDED) with atomic overtime, break policy and statutory leave floors, their scoped contribution schemes and rates, and the companies bound to each (file `+settings.svelte`: a file name owns an app's identity) |
+| **Kiosk**             | Face-recognition time clock for a shop-floor tablet: clock in/out by face (match, anti-spoof filter, blink-to-confirm), manual entry, and face enrollment. Renders chromeless (`bolt:kiosk`); the device account sees this page and nothing else                                                                     |
 
-### Policies (7)
+### Policies (8)
 
 - **`employee`** — self-service: their own profile, employments and the child collections, plus
   create-with-approval for time entries, claims and leave.
@@ -110,6 +111,9 @@ and is inherited by every sibling; boards state the active entity, they do not p
 - **`statutory_drift_automation`** — the automation's authority: reads sealed statutory profiles
   and employment facts, appends deterministic successor facts, and records durable drift research
   evidence.
+- **`kiosk`** — the attendance-kiosk device account: the kiosk app only, interval-only time
+  entries, face-field-only writes on people, and enrollments that always land `PENDING` for HR
+  review. Held by the `Attendance Kiosk` team (one user row per device).
 
 Policies name the `hr_controller` app _group_ rather than each page, so adding a controller page
 does not mean revisiting every role declaration.

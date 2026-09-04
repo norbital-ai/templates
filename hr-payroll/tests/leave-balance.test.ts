@@ -2,11 +2,10 @@
 /**
  * Leave entitlement and the derived balance.
  *
- * `lib/leave.ts` is the whole of H5: entitlement merge, accrual, carry-forward and expiry, none of
- * it stored and all of it recomputed on every read. Nothing exercised it. That matters more than
- * for most pure code, because the module's own contract is a set of *decisions* — the statutory
- * floor is a floor, upfront means upfront, a carry-forward is settled days only, consumption is
- * oldest-first — and each of those is one comparison away from its opposite.
+ * Carry-forward is the one figure that IS written: `process_leave_year` posts it once as a
+ * `CARRY_FORWARD` event, and every read below takes it from that posted row — or, for a year HR
+ * has not processed yet, provisionally from last year's closing off last year's posted row (or
+ * zero, never a second provisional level). Nothing walks to the hire year.
  *
  * Every expected number below is derived from the documented rule, not copied from a run:
  *
@@ -21,7 +20,8 @@ import test from 'node:test';
 
 import {
 	accruedDays,
-	carriedInDays,
+	carryInto,
+	closingBalance,
 	expiredDays,
 	leaveBalance,
 	leaveYearOf,
@@ -70,17 +70,15 @@ const annualLeaveType = (overrides = {}) => ({
 	encash_on_exit: true,
 	requires_certificate_after_days: null,
 	accrual: { kind: 'MONTHLY', carry: null },
-	entitlement: { merge: 'MAX_WITH_COMPANY_LAYERS', layers: [] },
+	entitlement: { layers: [] },
 	payroll_effect: { kind: 'PAID' },
 	...overrides
 });
 
 const layer = (level, days, extra = {}) => ({
 	level,
-	key: { by: 'SERVICE_MONTHS', band_from: 0 },
+	band_from: 0,
 	days,
-	authority: 'Employee handbook',
-	effective_range: ALWAYS,
 	...extra
 });
 
@@ -106,7 +104,7 @@ test('the statutory ladder supplies the entitlement when the company states no l
 
 test('a company layer below the statutory floor does not reduce the entitlement', () => {
 	const stingy = annualLeaveType({
-		entitlement: { merge: 'MAX_WITH_COMPANY_LAYERS', layers: [layer('ORGANISATION', 5)] }
+		entitlement: { layers: [layer('ORGANISATION', 5)] }
 	});
 	// Mis-typing the handbook cannot make the company non-compliant.
 	assert.equal(entitled(stingy, { serviceMonths: 0 }), 8);
@@ -115,7 +113,6 @@ test('a company layer below the statutory floor does not reduce the entitlement'
 test('a more generous organisation layer wins, and an employee layer wins over it', () => {
 	const generous = annualLeaveType({
 		entitlement: {
-			merge: 'MAX_WITH_COMPANY_LAYERS',
 			layers: [layer('ORGANISATION', 14), layer('EMPLOYEE', 20, { employment_id: 'emp-1' })]
 		}
 	});
@@ -124,21 +121,10 @@ test('a more generous organisation layer wins, and an employee layer wins over i
 	assert.equal(entitled(generous, { employmentId: 'emp-2' }), 14);
 });
 
-test('a layer outside its effective range or above the service band is not read', () => {
-	const lapsed = annualLeaveType({
-		entitlement: {
-			merge: 'MAX_WITH_COMPANY_LAYERS',
-			layers: [
-				layer('ORGANISATION', 30, { effective_range: { start: '2020-01-01', end: '2021-12-31' } })
-			]
-		}
-	});
-	assert.equal(entitled(lapsed, { asOf: '2026-06-01' }), 8);
-
+test('a layer above the service band is not read', () => {
 	const senior = annualLeaveType({
 		entitlement: {
-			merge: 'MAX_WITH_COMPANY_LAYERS',
-			layers: [layer('ORGANISATION', 30, { key: { by: 'SERVICE_MONTHS', band_from: 24 } })]
+			layers: [layer('ORGANISATION', 30, { band_from: 24 })]
 		}
 	});
 	assert.equal(entitled(senior, { serviceMonths: 12 }), 8);
@@ -250,6 +236,19 @@ const taken = (id, date, days, extra = {}) => ({
 	...extra
 });
 
+/** A posted `CARRY_FORWARD` row as the ledger reads it: the year it opens, its days, its lapse day. */
+const carryRow = (id, year, days, expires) => ({
+	id,
+	leave_type_id: 'lt-annual',
+	entry_date: `${year}-01-01`,
+	kind: 'CARRY_FORWARD',
+	days,
+	source_id: null,
+	approval_id: null,
+	leave_year: year,
+	expires_on: expires
+});
+
 const balanceInput = (overrides = {}) => ({
 	leaveType: annualLeaveType({
 		accrual: { kind: 'MONTHLY', carry: { limit_days: 5, expiry_months: 3 } }
@@ -269,61 +268,78 @@ test('the leave year is named by the year it starts in', () => {
 	assert.equal(leaveYearOf('2026-03-15', 4), 2025);
 });
 
-test('nothing is carried into the hire year, and the closing balance is clamped to the limit', () => {
+test('nothing is carried into the hire year, and the provisional carry is clamped to the limit', () => {
 	const input = balanceInput();
-	assert.equal(carriedInDays(input, 2024), 0);
-	// 21 days accrued and none taken, clamped by a five-day carry limit.
-	assert.equal(carriedInDays(input, 2025), 5);
+	assert.deepEqual(carryInto(input, 2024), { days: 0, expires_on: null, state: 'NONE' });
+	// 21 days accrued and none taken: last year's closing from last year's posted row (or zero),
+	// capped by the five-day carry limit and marked provisional until HR processes the year.
+	assert.deepEqual(carryInto(input, 2025), {
+		days: 5,
+		expires_on: '2025-04-01',
+		state: 'PROVISIONAL'
+	});
 });
 
-test('leave taken reduces the carry-forward, and a still-unapproved request does not', () => {
-	assert.equal(carriedInDays(balanceInput({ ledger: [taken('l1', '2024-08-01', -18)] }), 2025), 3);
+test('leave taken reduces the provisional carry-forward, and a still-unapproved request does not', () => {
+	assert.equal(carryInto(balanceInput({ ledger: [taken('l1', '2024-08-01', -18)] }), 2025).days, 3);
 	// Decision L7: an unapproved request must not be able to consume next year's balance permanently.
 	assert.equal(
-		carriedInDays(
+		carryInto(
 			balanceInput({ ledger: [taken('l1', '2024-08-01', -18, { approval_id: 'ap-1' })] }),
 			2025
-		),
+		).days,
 		5
 	);
+});
+
+test('a posted carry is the fact: processing posts the provisional figure unchanged', () => {
+	const provisional = balanceInput({ ledger: [taken('l1', '2024-08-01', -18)] });
+	const before = leaveBalance(provisional, '2025-06-30');
+	const posted = balanceInput({
+		ledger: [taken('l1', '2024-08-01', -18), carryRow('c1', 2025, 3, '2025-04-01')]
+	});
+	assert.equal(carryInto(posted, 2025).state, 'POSTED');
+	assert.equal(leaveBalance(posted, '2025-06-30'), before);
+});
+
+test('a negative closing carries zero and keeps the negative in the closing', () => {
+	const input = balanceInput({ ledger: [taken('l1', '2024-03-01', -30)] });
+	assert.equal(closingBalance(input, 2024).closing, 21 - 30);
+	assert.equal(carryInto(input, 2025).days, 0);
 });
 
 test('a leave type with no carry policy carries nothing forward and expires nothing', () => {
 	const input = balanceInput({
 		leaveType: annualLeaveType({ accrual: { kind: 'MONTHLY', carry: null } })
 	});
-	assert.equal(carriedInDays(input, 2025), 0);
+	assert.deepEqual(carryInto(input, 2025), { days: 0, expires_on: null, state: 'NONE' });
 	assert.equal(expiredDays(input, 2025), 0);
 });
 
 test('carried-in days lapse only after the expiry date, and only what is still unspent', () => {
-	const input = balanceInput();
+	const posted = (ledger = []) =>
+		balanceInput({ ledger: [carryRow('c1', 2025, 5, '2025-04-01'), ...ledger] });
 	// Three months into the leave year is the deadline; before it, nothing has lapsed.
-	assert.equal(expiredDays(input, 2025, '2025-03-31'), 0);
-	assert.equal(expiredDays(input, 2025, '2025-12-31'), 5);
+	assert.equal(expiredDays(posted(), 2025, '2025-03-31'), 0);
+	assert.equal(expiredDays(posted(), 2025, '2025-12-31'), 5);
 	// Oldest-first: three days taken before the deadline were charged against the carry-in, so only
 	// two remain to lapse. Charging this year's accrual first would lose all five.
-	assert.equal(
-		expiredDays(balanceInput({ ledger: [taken('l1', '2025-02-10', -3)] }), 2025, '2025-12-31'),
-		2
-	);
+	assert.equal(expiredDays(posted([taken('l1', '2025-02-10', -3)]), 2025, '2025-12-31'), 2);
 	// Spending more than the carry-in cannot make the expiry negative.
-	assert.equal(
-		expiredDays(balanceInput({ ledger: [taken('l1', '2025-02-10', -6)] }), 2025, '2025-12-31'),
-		0
-	);
+	assert.equal(expiredDays(posted([taken('l1', '2025-02-10', -6)]), 2025, '2025-12-31'), 0);
 });
 
 // ── the composed balance ────────────────────────────────────────────────────────────────────────
 
 test('the balance is carry-in plus accrual minus expiry plus the ledger', () => {
-	const ledger = [taken('l1', '2025-02-10', -3)];
-	// 5 carried in + 10.5 accrued to 30 June − 2 lapsed at the 1 April deadline − 3 taken.
+	const ledger = [carryRow('c1', 2025, 5, '2025-04-01'), taken('l1', '2025-02-10', -3)];
+	// 5 carried in (posted) + 10.5 accrued to 30 June − 2 lapsed at the 1 April deadline − 3 taken.
 	assert.equal(leaveBalance(balanceInput({ ledger }), '2025-06-30'), 10.5);
 });
 
 test('a projected balance counts a request still awaiting approval and a settled one does not', () => {
 	const ledger = [
+		carryRow('c1', 2025, 5, '2025-04-01'),
 		taken('l1', '2025-02-10', -3),
 		taken('l2', '2025-05-01', -2, { approval_id: 'ap-1' })
 	];
@@ -333,6 +349,6 @@ test('a projected balance counts a request still awaiting approval and a settled
 
 test('a movement outside the leave year under measurement is not counted in it', () => {
 	const ledger = [taken('l1', '2024-08-01', -18)];
-	// 2024's spending shows up as a smaller carry-in for 2025, never as a 2025 movement.
+	// 2024's spending shows up as a smaller provisional carry-in for 2025, never as a 2025 movement.
 	assert.equal(leaveBalance(balanceInput({ ledger }), '2025-06-30'), 3 + 10.5 - 3);
 });

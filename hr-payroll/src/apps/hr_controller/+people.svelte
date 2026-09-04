@@ -213,6 +213,7 @@
 					<Column name="nationality" />
 					<Column name="date_of_birth" label={t('app.people.date_of_birth')} />
 					<Column name="dependents_count" label={t('app.people.dependents')} />
+					<Column name="face_enrollment_status" />
 				{/snippet}
 				{#snippet ListCard(person)}
 					<Stack gap="xs">

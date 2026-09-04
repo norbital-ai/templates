@@ -37,6 +37,32 @@ describe('leave_event', () => {
 		assert.equal(refuses(defaultTimeOffEvent('2026-09-03')), false);
 	});
 
+	it('accepts a posted carry-forward with its closing, and refuses a negative movement', () => {
+		const carry = {
+			kind: 'CARRY_FORWARD',
+			leave_year: 2026,
+			effective_on: '2026-01-01',
+			movement_days: 5,
+			expires_on: '2026-04-01',
+			forfeited_days: 3,
+			closing: {
+				entitlement: 8,
+				carried_in: 0,
+				accrued: 8,
+				adjusted: 0,
+				taken: 0,
+				encashed: 0,
+				expired: 0,
+				closing: 8
+			},
+			statutory_profile_id: '22222222-2222-4222-8222-222222222222'
+		};
+		assert.equal(refuses(carry), false);
+		assert.equal(refuses({ ...carry, movement_days: -1 }), true);
+		assert.equal(refuses({ ...carry, forfeited_days: -1 }), true);
+		assert.equal(refuses({ ...carry, leave_year: undefined }), true);
+	});
+
 	it('refuses the legacy nested certificate member instead of dropping it', () => {
 		assert.equal(refuses({ ...TIME_OFF, certificate_file: null }), true);
 		assert.equal(

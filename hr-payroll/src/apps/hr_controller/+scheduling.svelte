@@ -24,7 +24,7 @@
 	import { Badge } from '@norbital-ai/ui/badge';
 	import { IconWrapper } from '@norbital-ai/ui/icon-wrapper';
 	import { Tooltip } from '@norbital-ai/ui/tooltip';
-	import { Cluster, Cover, Inline, Stack } from '@norbital-ai/ui/layout';
+	import { Cluster, Cover, Stack } from '@norbital-ai/ui/layout';
 	import { toast } from 'svelte-sonner';
 	import { formatHolidayScope } from '../../lib/ui/display-formatters.js';
 	import { runWorkbookImport } from '../../lib/ui/workbook-import.js';
@@ -88,7 +88,7 @@
 		validateRosterSchedule,
 		type ValidationDay,
 		type WorkloadExpectation
-	} from '../../collections/rosters/lib/workforce-validation.js';
+	} from '../../lib/scheduling/workforce-validation.js';
 	import type { WorkPattern } from '../../datatypes/work_pattern/+definition.js';
 
 	const { t } = useI18n<TenantI18nKeys>();
@@ -120,13 +120,8 @@
 	 * guards the two writes of the pair.
 	 */
 	const swap = $state({ source: null as BoardCell | null });
-	let rosterSettlementId = $state<string | null>(null);
 	/** Local-only eye filter: it narrows the already-loaded month facts and never issues a query. */
 	let unresolvedClockOutsOnly = $state(false);
-	let createDraftPending = $state(false);
-	let createDraftPendingApproval = $state(false);
-	let createDraftError = $state<string | null>(null);
-	let rosterActionError = $state<string | null>(null);
 	const daySheetSubmission = $state({
 		settling: false,
 		pendingApproval: false,
@@ -284,24 +279,6 @@
 		new Map((leaveTypesQuery?.current ?? []).map((type) => [type.id, type.code]))
 	);
 
-	const rostersQuery = $derived(
-		selectedCompanyId == null
-			? null
-			: client.db.rosters.findMany({
-					where: { ...approved, company_id: { eq: selectedCompanyId }, month: { eq: month } },
-					limit: MONTH_BOARD_QUERY_LIMITS.rosters
-				})
-	);
-	const rosters = $derived(rostersQuery?.current ?? []);
-	/**
-	 * The month's draft roster, which an import and every editable matrix cell land in.
-	 *
-	 * A published month is frozen and the pipeline refuses one outright, so the import is offered
-	 * only against a draft. The operator is told which state the month is in before they choose a
-	 * file, rather than after the file has been read and sent.
-	 */
-	const draftRoster = $derived(rosters.find((roster) => roster.published_at == null) ?? null);
-
 	/**
 	 * The month's person-days: ONE query where there were two.
 	 *
@@ -311,11 +288,8 @@
 	 * and the plan and the clock arrive together or not at all.
 	 *
 	 * The roster-relationship machinery that stood here is gone with it: a count query, a page-size
-	 * derived from that count, a completeness gate and a whole-row round-trip, all of
-	 * which existed to make `rosters.mutate({ roster_entry_roster: [...] })` safe. That write is
-	 * gone too — see `writePlan`. A nested `many` states the child relationship's COMPLETE desired
-	 * state, and the children now carry attendance nobody's roster owns; one forgotten column in the
-	 * round-trip would erase a month of punches. Every plan write below is a write to its own row.
+	 * derived from that count, a completeness gate and a whole-row round-trip. Every plan write
+	 * below is a write to its own row.
 	 */
 	const workDaysQuery = $derived.by(() => {
 		if (!employmentsReady || monthEmploymentIds.length === 0) return null;
@@ -342,7 +316,7 @@
 	const workDayByKey = $derived(workDayIndexes.byPersonDay);
 	const workDaysError = $derived(workDaysQuery?.error ?? null);
 	const matrixMutationReady = $derived(
-		draftRoster != null && workDaysQuery?.current !== undefined && workDaysError == null
+		workDaysQuery?.current !== undefined && workDaysError == null
 	);
 
 	/**
@@ -466,7 +440,6 @@
 	 * from a slow month, so nobody reloads, and the surface looks hung rather than broken.
 	 */
 	const boardSources = $derived([
-		{ label: 'rosters', query: rostersQuery },
 		{ label: 'person-days', query: workDaysQuery },
 		{ label: 'filtered person-days', query: filteredWorkDaysQuery },
 		{ label: 'leave', query: leaveQuery },
@@ -531,7 +504,6 @@
 				rosterCodes: shiftsQuery?.current?.length ?? 0,
 				employmentTerms: employmentTerms.length,
 				leaveTypes: leaveTypesQuery?.current?.length ?? 0,
-				rosters: rosters.length,
 				workDays: workDays.length,
 				leaveRequests: leaveRequests.length,
 				payrollRuns: payrollRunsQuery?.current?.length ?? 0,
@@ -580,24 +552,17 @@
 		})
 	);
 	/**
-	 * How far the month has got, which is the difference between an empty board and a broken one.
+	 * How far the month has got. There is no draft state and no publication: a roster row is an
+	 * override of the work pattern, the board projects patterned days straight from the pattern,
+	 * and an unrostered day counts as work still to assign. Consumed and paid days stay read-only
+	 * through the payroll lock, which is the real freeze.
 	 *
-	 * A month nobody has drafted has every person-day unrostered — three hundred people times
-	 * thirty-one days — and that tally is what the month is *supposed* to look like before anyone has
-	 * touched it. `monthProgress` therefore counts an unrostered day as an exception only once the
-	 * month is published and claims to be complete.
+	 * TODO(RFC hr-payroll-leave-and-attendance): acceptance row H1 names "Open {month} for
+	 * planning" and the draft/published ceremony retired here; it needs the owner's amendment.
 	 */
-	const drafting = $derived<MonthDrafting>(
-		rosters.length === 0 ? 'NOT_DRAFTED' : draftRoster != null ? 'DRAFT' : 'PUBLISHED'
-	);
+	const drafting = $derived<MonthDrafting>('PUBLISHED');
 	const progress = $derived(monthProgress(facts, drafting));
-	const boardHelp = $derived(
-		progress.drafting === 'NOT_DRAFTED'
-			? t('app.scheduling.help_not_drafted')
-			: progress.drafting === 'DRAFT'
-				? t('app.scheduling.help_draft')
-				: t('app.scheduling.help_published')
-	);
+	const boardHelp = $derived(t('app.scheduling.help_published'));
 
 	function exceptionCopy(status: (typeof progress.exceptions)[number]['status'], count: string) {
 		switch (status) {
@@ -621,24 +586,14 @@
 			}
 		}
 	}
-	const rosterImportBlocker = $derived(
-		draftRoster != null
-			? null
-			: rosters.length === 0
-				? t('app.scheduling.blocker_no_draft', { month })
-				: t('app.scheduling.blocker_published', { month })
-	);
-
 	function importRoster() {
-		const rosterId = draftRoster?.id;
-		if (rosterId == null) return Effect.void;
-		// `runWorkbookImport` reports its own refusals: the pipeline answers with the rows the
-		// company's records contradict, and that list is the whole message worth showing.
+		// No draft roster to land in: an assignment belongs to the company and the day, and the
+		// file states both on its Settings sheet. The pipeline refuses a file that does not.
 		return runWorkbookImport(
 			{
 				collectionName: 'work_days',
 				recordLabel: t('component.roster_rows'),
-				buildPayload: (grids) => rosterImportPayload(grids, rosterId)
+				buildPayload: (grids) => rosterImportPayload(grids)
 			},
 			t
 		);
@@ -647,41 +602,7 @@
 	function selectMonth(nextMonth: string): void {
 		if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(nextMonth)) return;
 		month = nextMonth;
-		createDraftPendingApproval = false;
-		createDraftError = null;
-		rosterActionError = null;
 		boardQuery.setPageIndex(0);
-	}
-
-	function createDraftMonth(): void {
-		if (selectedCompanyId == null) return;
-		const companyId = selectedCompanyId;
-		const targetMonth = month;
-		createDraftPending = true;
-		createDraftPendingApproval = false;
-		createDraftError = null;
-		Effect.runFork(
-			// A remote command has no optimistic browser-memory success state: settling it means the
-			// complete server-owned roster graph either committed or returned its authoritative refusal.
-			Effect.tryPromise({
-				try: () => client.invoke.open_roster_month({ company_id: companyId, month: targetMonth }),
-				catch: (cause) => cause
-			}).pipe(
-				Effect.tap(() =>
-					Effect.sync(() => {
-						toast.success(t('app.scheduling.toast_draft_created', { month: targetMonth }));
-					})
-				),
-				Effect.catch((cause) =>
-					Effect.sync(() => {
-						const message = getErrorMessage(cause);
-						createDraftError = message;
-						toast.error(t('app.scheduling.toast_draft_failed'), { description: message });
-					})
-				),
-				Effect.ensuring(Effect.sync(() => (createDraftPending = false)))
-			)
-		);
 	}
 
 	/* ────────────────────────────────────────────────────────────────────────────────────────────
@@ -773,13 +694,11 @@
 	}
 
 	/**
-	 * The contractual amount one employment is owed or capped at this month.
-	 *
-	 * The same three arms `rosters/+hooks.ts` builds at publication, restricted to two people and
-	 * one month. It is repeated rather than imported because the hook builds it inside an Effect
-	 * over the server's own api and reads columns this browser has not fetched; what is shared is
-	 * the thing that matters — `validateRosterSchedule` is the one judge, so a swap the board allows
-	 * is a swap the publish check will also allow.
+	 * The contractual amount one employment is owed or capped at this month, restricted to two
+	 * people and one month. It is repeated rather than imported because the precheck builds it
+	 * inside an Effect over the server's own api and reads columns this browser has not fetched;
+	 * what is shared is the thing that matters — `validateRosterSchedule` is the one judge, so a
+	 * swap the board allows is a swap the write-time conformance check will also allow.
 	 */
 	function patternedExpectation(
 		employmentId: string,
@@ -899,15 +818,15 @@
 		intervalDrafts(daySheetEntry?.worked_intervals)
 	);
 	/**
-	 * Whether this day carries a plan of the draft month's own.
+	 * Whether this day carries an explicit plan.
 	 *
-	 * Two conditions, not one: the row may exist purely because somebody punched on it, and a row
-	 * with no `shift_definition_id` is a day with no assignment to clear.
+	 * A row may exist purely because somebody punched on it, and a row with no
+	 * `shift_definition_id` is a day with no assignment to clear.
 	 */
 	const daySheetHasExplicitEntry = $derived.by(() => {
 		if (daySheetKey == null) return false;
 		const stored = workDayByKey.get(daySheetKey);
-		return stored?.shift_definition_id != null && stored.roster_id === draftRoster?.id;
+		return stored?.shift_definition_id != null;
 	});
 	const daySheetNote = $derived(
 		daySheetKey == null ? null : (workDayByKey.get(daySheetKey)?.planned_note ?? null)
@@ -921,22 +840,14 @@
 		return lock == null ? null : sourceLockReason(lock, t);
 	});
 	/**
-	 * The plan half is frozen by publication, which is a third axis and not part of the lock ladder.
-	 *
-	 * `work_days/+hooks.ts` refuses every plan write in a published month, and that freeze stays
-	 * exactly as it is. §2.4 of the proposal argues for a narrow `AMENDMENT` provenance arm that would
-	 * open single-cell writes in a published month; it is an unresolved decision that needs an enum
-	 * change and a migration, so it is deliberately NOT built. This is the integration point: when
-	 * the arm exists, this is the derivation that stops saying "no" and starts offering it.
+	 * The plan half is editable on any day the payroll lock does not hold. There is no draft month
+	 * and no publication freeze: a plan write must leave the month's WORK-day count and paid
+	 * minutes equal to what the work pattern projects, and `work_days/+hooks.ts` refuses one that
+	 * does not. Consumed and paid days stay read-only through the payroll lock.
 	 */
 	const daySheetPlanLocked = $derived(!matrixMutationReady);
 	const daySheetPlanLockedReason = $derived(
-		draftRoster != null
-			? (workDaysError?.message ??
-					(workDaysQuery?.current === undefined ? t('component.loading') : null))
-			: rosters.length === 0
-				? t('app.scheduling.blocker_no_draft', { month })
-				: t('app.scheduling.blocker_published', { month })
+		workDaysError?.message ?? (workDaysQuery?.current === undefined ? t('component.loading') : null)
 	);
 
 	/** Roster codes effective on the day the drawer is open on. */
@@ -992,21 +903,16 @@
 
 	function saveDaySheet(change: DaySheetChange): void {
 		if (change.plan == null && change.attendance == null) return;
-		if (change.plan != null && draftRoster == null) {
-			daySheetSubmission.error = t('app.scheduling.blocker_no_draft', { month });
-			return;
-		}
 		const existing = workDayByKey.get(personDayKey(change.employmentId, change.date));
 		const mutation = buildPersonDayMutation({
 			id: resolvePersonDayWriteId(existing?.id, change.attendance?.workDayId),
 			employmentId: change.employmentId,
 			date: change.date,
 			plan:
-				change.plan == null || draftRoster == null
+				change.plan == null
 					? null
 					: {
 							rosterCodeId: change.plan.rosterCodeId,
-							rosterId: draftRoster.id,
 							note: change.plan.note
 						},
 			attendance:
@@ -1050,49 +956,15 @@
 	}
 
 	/**
-	 * The plan half, written to the person-day itself.
-	 *
-	 * Each person-day is written directly because its canonical row owns both plan and attendance.
-	 * `work_day_roster` is deliberately not a cascade, so changing one plan cannot remove another
-	 * day's assignment or attendance.
-	 *
-	 * `planned_origin` is `MANUAL` because that is what a board write is; the workbook import writes
-	 * `IMPORT`, and the two must stay distinguishable.
-	 */
-	function writePlan(
-		employmentId: string,
-		date: string,
-		plan: { readonly rosterCodeId: string; readonly note: string | null }
-	) {
-		if (draftRoster == null) {
-			return Effect.fail(new Error(t('app.scheduling.blocker_no_draft', { month })));
-		}
-		const existing = workDayByKey.get(personDayKey(employmentId, date));
-		return submitCollectionMutation(() =>
-			client.db.work_days.mutate([
-				{
-					...(existing == null
-						? { employment_id: employmentId, work_date: date }
-						: { id: existing.id }),
-					shift_definition_id: plan.rosterCodeId,
-					roster_id: draftRoster.id,
-					planned_origin: 'MANUAL',
-					planned_note: plan.note
-				}
-			])
-		);
-	}
-
-	/**
 	 * Clearing the plan clears the PLAN, and never the row.
 	 *
 	 * Removing the assignment used to mean removing the roster entry, because the roster entry was
-	 * the whole of the record. The same row may now hold attendance that nobody's roster owns, so
-	 * the write nulls the four plan columns and leaves the clock exactly where it was. The pattern
+	 * the whole of the record. The same row may now hold attendance that belongs to no roster, so
+	 * the write nulls the plan columns and leaves the clock exactly where it was. The pattern
 	 * baseline resumes for that day, which is what clearing an override has always meant.
 	 */
 	function clearDaySheetPlan(): void {
-		if (draftRoster == null || daySheetKey == null) return;
+		if (daySheetKey == null) return;
 		const existing = workDayByKey.get(daySheetKey);
 		if (existing?.shift_definition_id == null) return;
 		daySheetSubmission.settling = true;
@@ -1104,7 +976,6 @@
 					{
 						id: existing.id,
 						shift_definition_id: null,
-						roster_id: null,
 						assignment_code: null,
 						planned_note: null,
 						planned_origin: null
@@ -1139,29 +1010,29 @@
 	}
 
 	/* ────────────────────────────────────────────────────────────────────────────────────────────
-	 * THE SWAP — two cells, DRAFT MONTHS ONLY
+	 * THE SWAP — two cells, one mutation, unlocked days only
 	 *
 	 * Every check below already existed; none of them is new. The overlap check is the one the day
 	 * sheet runs for a single cell, over both people's ±1-day windows. The leave check is the client
-	 * half of `assertDayNotOwnedByLeave`. `validateRosterSchedule` is the publish gate itself, run
-	 * early over the post-swap month — a swap can break a contractual guarantee or a cap even when
-	 * neither day looks wrong on its own, and finding that out at publication is finding it out a
-	 * month late.
+	 * half of `assertDayNotOwnedByLeave`. `validateRosterSchedule` is the write-time conformance
+	 * check itself, run early over the post-swap month — a swap can break a contractual guarantee
+	 * or a cap even when neither day looks wrong on its own, and finding that out at write time is
+	 * finding it out a month late.
 	 *
-	 * The two changed cells are two writes to two person-days, issued together. They were one write
-	 * of the roster's complete `roster_entry_roster` relationship, which committed the pair
-	 * atomically; that shape is gone because the children now carry attendance the roster does not
-	 * own and a nested `many` deletes every child left out of the array. The atomicity it bought is
-	 * genuinely lost, and it is bought back where it matters: `swapRefusal` decides the PAIR before
-	 * either write is issued, so a swap that cannot land does not land halfway.
+	 * The two changed cells are two writes to two person-days, issued together in ONE mutation.
+	 * They were one write of the roster's complete `roster_entry_roster` relationship, which
+	 * committed the pair atomically; that shape is gone because the children now carry attendance
+	 * the roster does not own and a nested `many` deletes every child left out of the array. The
+	 * atomicity it bought is bought back where it matters: `swapRefusal` decides the PAIR before
+	 * either write is issued, and the single mutation below is what lets the server's conformance
+	 * see the pair whole — two separate writes would each break the pattern on their own. A swap
+	 * that cannot land does not land halfway.
 	 *
-	 * SCOPED OUT: published months. `work_days/+hooks.ts` refuses every plan write in one and that
-	 * freeze is untouched. §2.4's `AMENDMENT` provenance arm would open a narrow path through it; it
-	 * needs an enum change and a migration and the decision has not been taken, so the gesture is
-	 * simply not offered outside a draft month.
+	 * SCOPED OUT: consumed days. A day a payroll run has taken into account is frozen by the
+	 * settlement lock, and the gesture is simply not offered there.
 	 * ──────────────────────────────────────────────────────────────────────────────────────────── */
 
-	const swapEnabled = $derived(matrixMutationReady && client.db.rosters.pending === 0);
+	const swapEnabled = $derived(matrixMutationReady);
 
 	/** The sentence a refused swap gets. One per pair — never one per row. */
 	function swapRefusal(from: BoardCell, to: BoardCell): string | null {
@@ -1210,7 +1081,9 @@
 			}
 		}
 
-		// 4. The publish gate, run early over the post-swap month for both employments.
+		// 4. The write-time conformance check, run early over the post-swap month for both
+		// employments. The server refuses a month that no longer adds up to the pattern; this is
+		// the same judge, consulted before the write so a refused swap explains itself at once.
 		const overrides = new Map<string, string | null>([
 			[personDayKey(from.employmentId, from.date), toCodeId],
 			[personDayKey(to.employmentId, to.date), fromCodeId]
@@ -1250,20 +1123,33 @@
 		if (fromCodeId == null || toCodeId == null) return;
 
 		const note = t('roster.swap_note', { from: from.date, to: to.date });
-		const roster = draftRoster;
-		if (roster == null) return;
+		const fromExisting = workDayByKey.get(personDayKey(from.employmentId, from.date));
+		const toExisting = workDayByKey.get(personDayKey(to.employmentId, to.date));
 		Effect.runFork(
-			Effect.all(
-				[
-					writePlan(from.employmentId, from.date, { rosterCodeId: toCodeId, note }),
-					writePlan(to.employmentId, to.date, { rosterCodeId: fromCodeId, note })
-				],
-				{ concurrency: 'unbounded' }
+			submitCollectionMutation(() =>
+				client.db.work_days.mutate([
+					{
+						...(fromExisting == null
+							? { employment_id: from.employmentId, work_date: from.date }
+							: { id: fromExisting.id }),
+						shift_definition_id: toCodeId,
+						planned_origin: 'MANUAL',
+						planned_note: note
+					},
+					{
+						...(toExisting == null
+							? { employment_id: to.employmentId, work_date: to.date }
+							: { id: toExisting.id }),
+						shift_definition_id: fromCodeId,
+						planned_origin: 'MANUAL',
+						planned_note: note
+					}
+				])
 			).pipe(
-				Effect.tap((submissions) =>
+				Effect.tap((submission) =>
 					Effect.sync(() => {
 						swap.source = null;
-						if (submissions.some((submission) => submission.kind === 'pendingApproval')) {
+						if (submission.kind === 'pendingApproval') {
 							toast.success(t('roster.day_sheet_pending_approval'));
 							return;
 						}
@@ -1277,44 +1163,6 @@
 						})
 					)
 				)
-			)
-		);
-	}
-
-	function setRosterPublication(rosterId: string, publishedAt: string | null): void {
-		const publishing = publishedAt !== null;
-		rosterSettlementId = rosterId;
-		rosterActionError = null;
-		Effect.runFork(
-			submitCollectionMutation(() =>
-				client.db.rosters.mutate([{ id: rosterId, published_at: publishedAt }])
-			).pipe(
-				Effect.tap((submission) =>
-					Effect.sync(() => {
-						if (submission.kind === 'pendingApproval') {
-							toast.success(t('roster.day_sheet_pending_approval'));
-							return;
-						}
-						toast.success(
-							publishing
-								? t('app.scheduling.toast_published', { month })
-								: t('app.scheduling.toast_reopened', { month })
-						);
-					})
-				),
-				Effect.catch((cause) =>
-					Effect.sync(() => {
-						const message = getErrorMessage(cause);
-						rosterActionError = message;
-						toast.error(
-							publishing
-								? t('app.scheduling.toast_publish_failed')
-								: t('app.scheduling.toast_reopen_failed'),
-							{ description: message }
-						);
-					})
-				),
-				Effect.ensuring(Effect.sync(() => (rosterSettlementId = null)))
 			)
 		);
 	}
@@ -1377,11 +1225,7 @@
 {/snippet}
 
 {#snippet monthNavigation()}
-	<MonthPeriodPicker
-		{month}
-		onMonthChange={selectMonth}
-		disabled={createDraftPending || rosterSettlementId !== null || daySheetSubmission.settling}
-	/>
+	<MonthPeriodPicker {month} onMonthChange={selectMonth} disabled={daySheetSubmission.settling} />
 {/snippet}
 
 <!--
@@ -1389,9 +1233,9 @@
 	matching person-day keeps its person on screen and the board still shows that person's complete
 	month, so a filter narrows the roster without stripping away the calendar context.
 
-	Import is an ordinary import pipeline, which is what lets it state its own refusal. A published
-	month cannot take one, and saying so belongs next to the action rather than in a `title` nobody
-	reads with a keyboard.
+	Import is an ordinary import pipeline, which is what lets it state its own refusal. A roster
+	file states its legal entity and month on its Settings sheet; an attendance file states its
+	timezone the same way.
 -->
 {#snippet boardToolbar()}
 	<CollectionActionToolbar
@@ -1406,7 +1250,6 @@
 					label: t('app.scheduling.import'),
 					description: t('app.scheduling.import_title', { month }),
 					icon: 'lucide:upload',
-					getDisabledReason: () => rosterImportBlocker,
 					run: importRoster
 				},
 				{
@@ -1425,76 +1268,18 @@
 
 {#snippet monthStatus()}
 	<Cluster gap="sm">
-		{#if progress.drafting === 'NOT_DRAFTED'}
-			<Badge variant="outline">{t('app.scheduling.not_drafted_for', { month })}</Badge>
-			{#if progress.peopleNeedingAssignment > 0}
-				<Badge variant="outline">
-					{t('app.scheduling.people_need_shifts', {
-						count: progress.peopleNeedingAssignment.toLocaleString()
-					})}
-				</Badge>
-			{/if}
-			<Stack gap="xs" class="max-w-lg">
-				<Button
-					size="sm"
-					disabled={createDraftPending ||
-						createDraftPendingApproval ||
-						client.db.rosters.pending > 0}
-					onclick={createDraftMonth}
-				>
-					{createDraftPending
-						? t('app.scheduling.opening_month', { month })
-						: t('app.scheduling.start_planning', { month })}
-				</Button>
-				<p class="text-xs leading-5 text-muted-foreground">
-					{t('app.scheduling.start_planning_description')}
-				</p>
-			</Stack>
-		{:else}
-			{#each rosters as roster (roster.id)}
-				<Inline gap="xs">
-					<Badge variant={roster.published_at == null ? 'outline' : 'default'}>
-						{rosterSettlementId === roster.id
-							? t('app.scheduling.publish_pending')
-							: roster.published_at == null
-								? t('app.scheduling.draft')
-								: t('app.scheduling.published')}
-					</Badge>
-					{#if roster.published_at == null}
-						<Button
-							size="sm"
-							disabled={client.db.rosters.pending > 0 || rosterSettlementId !== null}
-							onclick={() => void setRosterPublication(roster.id, new Date().toISOString())}
-						>
-							{t('app.scheduling.publish_month', { month })}
-						</Button>
-					{:else}
-						<Button
-							size="sm"
-							variant="outline"
-							disabled={client.db.rosters.pending > 0 || rosterSettlementId !== null}
-							onclick={() => void setRosterPublication(roster.id, null)}
-						>
-							{t('app.scheduling.re_open')}
-						</Button>
-					{/if}
-				</Inline>
-			{/each}
-			{#if progress.drafting === 'DRAFT'}
-				<Badge variant="outline">
-					{t('app.scheduling.days_assigned', {
-						rostered: progress.rostered.toLocaleString(),
-						total: progress.personDays.toLocaleString()
-					})}
-				</Badge>
-				{#if progress.peopleNeedingAssignment > 0}
-					<Badge variant="outline">
-						{t('app.scheduling.people_need_shifts', {
-							count: progress.peopleNeedingAssignment.toLocaleString()
-						})}
-					</Badge>
-				{/if}
-			{/if}
+		<Badge variant="outline">
+			{t('app.scheduling.days_assigned', {
+				rostered: progress.rostered.toLocaleString(),
+				total: progress.personDays.toLocaleString()
+			})}
+		</Badge>
+		{#if progress.peopleNeedingAssignment > 0}
+			<Badge variant="outline">
+				{t('app.scheduling.people_need_shifts', {
+					count: progress.peopleNeedingAssignment.toLocaleString()
+				})}
+			</Badge>
 		{/if}
 		{#if !loading}
 			<!--
@@ -1532,23 +1317,6 @@
 			{/snippet}
 		</Tooltip>
 	</Cluster>
-	{#if createDraftPendingApproval}
-		<Alert aria-live="polite">
-			<AlertTitle>{t('roster.day_sheet_pending_approval')}</AlertTitle>
-			<AlertDescription>{t('app.scheduling.open_month_pending_approval')}</AlertDescription>
-		</Alert>
-	{/if}
-	{#if createDraftError != null || rosterActionError != null}
-		<Alert variant="destructive" aria-live="assertive">
-			<AlertTitle>
-				{t('app.scheduling.roster_action_failed', {
-					company: selectedCompany?.name ?? '—',
-					month
-				})}
-			</AlertTitle>
-			<AlertDescription>{createDraftError ?? rosterActionError}</AlertDescription>
-		</Alert>
-	{/if}
 {/snippet}
 
 {#snippet boardChrome()}
