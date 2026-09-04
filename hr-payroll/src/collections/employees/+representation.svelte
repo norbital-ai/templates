@@ -15,6 +15,7 @@
 	import type { RepresentationProps, WorkspaceRow } from './$types.js';
 	import { CollectionForm } from '@norbital-ai/ui/collection-form';
 	import { CollectionTable } from '@norbital-ai/ui/collection-table';
+	import { getDataRendererRuntimeContext } from '@norbital-ai/ui/data-renderer';
 	import { Column, Cover, Grid, Inline, Stack } from '@norbital-ai/ui/layout';
 	import { Tabs, type TabConfig } from '@norbital-ai/ui/tabs';
 	import { workPatternSchema, type WorkPattern } from '../../datatypes/work_pattern/+definition.js';
@@ -24,6 +25,7 @@
 		formatStatutoryFactStatus
 	} from '../../lib/ui/display-formatters.js';
 	import { todayKey } from '../../lib/ui/calendar.js';
+	import FaceCaptureDialog from './face-capture-dialog.svelte';
 
 	type EmploymentTerm = Pick<
 		WorkspaceRow<'employment_terms'>,
@@ -102,6 +104,9 @@
 	const { t } = useI18n<TenantI18nKeys>();
 	let activeProfileTab = $state('person');
 	const today = todayKey();
+	const fileRuntime = getDataRendererRuntimeContext();
+	let captureOpen = $state(false);
+	let justSavedUrl = $state<string | null>(null);
 
 	const approved = { approval_id: { isNull: true } } as const;
 
@@ -154,6 +159,22 @@
 		}
 		return terms;
 	});
+
+	const storedPhotoKey = $derived.by(() => {
+		if (record === null || typeof record.face_photo !== 'object' || record.face_photo === null)
+			return null;
+		const key = (record.face_photo as { readonly storage_key?: unknown }).storage_key;
+		return typeof key === 'string' ? key : null;
+	});
+	const photoHref = $derived(
+		justSavedUrl ??
+			(storedPhotoKey === null ? null : (fileRuntime?.fileUrl(storedPhotoKey) ?? null))
+	);
+	const displayFaceStatus = $derived(
+		justSavedUrl !== null && record?.face_enrollment_status === 'NONE'
+			? 'APPROVED'
+			: (record?.face_enrollment_status ?? 'NONE')
+	);
 </script>
 
 {#snippet person()}
@@ -249,6 +270,33 @@
 	</CollectionTable>
 {/snippet}
 
+{#snippet faceIdentity()}
+	{#if record}
+		<Stack gap="sm">
+			{#if photoHref !== null}
+				<img class="w-40 rounded-lg" src={photoHref} alt="Enrolled face" />
+			{:else}
+				<p class="text-sm text-muted-foreground">No photo yet.</p>
+			{/if}
+			<p class="text-sm">
+				{displayFaceStatus.toLowerCase()}
+				{#if record.face_match_count > 0}
+					· {record.face_match_count} match{record.face_match_count === 1 ? '' : 'es'}
+				{/if}
+			</p>
+			<div>
+				<button
+					onclick={() => {
+						captureOpen = true;
+					}}
+				>
+					{photoHref === null ? 'Capture photo' : 'Re-capture photo'}
+				</button>
+			</div>
+		</Stack>
+	{/if}
+{/snippet}
+
 {#if record}
 	{#snippet personSummary()}
 		<Stack gap="xs">
@@ -289,10 +337,25 @@
 					label: t('component.statutory_facts'),
 					icon: 'lucide:id-card',
 					content: statutoryFacts
+				},
+				{
+					name: 'face',
+					label: 'Face ID',
+					icon: 'lucide:scan-face',
+					content: faceIdentity
 				}
 			] satisfies TabConfig[]}
 		/>
 	</Cover>
+	<FaceCaptureDialog
+		bind:open={captureOpen}
+		employeeId={record.id}
+		employeeName={record.name}
+		currentStatus={record.face_enrollment_status}
+		onsaved={(previewUrl) => {
+			justSavedUrl = previewUrl;
+		}}
+	/>
 {:else}
 	{@render person()}
 {/if}

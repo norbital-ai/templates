@@ -609,28 +609,93 @@ export function validateRosteredExpectations(options: {
 /** How many issues a failure message spells out before it starts counting. */
 const DETAILED_ISSUE_LIMIT = 25;
 
+/** How many people one grouped bullet names before it starts counting. */
+const PERSONS_PER_BULLET = 10;
+
+/**
+ * An employee-number-shaped token: capitals-led with a digit inside, so `MY` in
+ * "Jurisdiction MY states no basis" never masks but `NHPMY0354` always does.
+ */
+const PERSON_TOKEN = /[A-Z]{2,}[A-Z0-9_-]*\d[A-Z0-9_-]*/;
+
+/**
+ * Splits one refusal sentence into the person it names and the shape around them.
+ *
+ * Two shapes cover every person-naming sentence this file emits: `… for PERSON, …`
+ * (the workload sentences) and a leading `PERSON …` (rostered schedules, daily limits).
+ * Anything else is not a person naming — it renders whole, exactly as before.
+ */
+const splitPerson = (message: string): { readonly template: string; readonly person: string } | null => {
+	const match = PERSON_TOKEN.exec(message);
+	if (match === null) return null;
+	const person = match[0];
+	const forPhrase = ` for ${person},`;
+	if (message.includes(forPhrase)) {
+		return { template: message.replace(forPhrase, ''), person };
+	}
+	if (match.index === 0) {
+		const rest = message.slice(person.length).trimStart();
+		return { template: rest.charAt(0).toUpperCase() + rest.slice(1), person };
+	}
+	return null;
+};
+
+type IssueCluster = {
+	readonly code: string;
+	readonly template: string;
+	readonly persons: string[];
+	readonly sample: string;
+};
+
 /**
  * Why the payroll refused, in the operator's words rather than the engine's.
  *
- * Every issue is spelled out, one per line, because each one names a different person, day or rule
- * and "and 40 others" is not something anyone can act on. A very large failure is capped so the
- * message stays readable, and says plainly how many it did not print.
+ * Repeated shortfalls share one bullet — fourteen rostered employments with no schedule
+ * read as one named group with the shape stated once, not fourteen paragraphs. Every
+ * person is still named (capped per bullet with an honest count past the cap), and a
+ * shape that names nobody renders whole exactly as before. A very large failure is
+ * capped so the message stays readable, and says plainly how many it did not print.
  */
 export function describeIssues(
 	issues: readonly RunIssue[],
 	kind: 'block' | 'warn' = 'block'
 ): string {
-	const messages = [...new Set(issues.map((issue) => `${issue.code}: ${issue.message}`))];
-	const shown = messages.slice(0, DETAILED_ISSUE_LIMIT);
-	const remaining = messages.length - shown.length;
+	const clusters: IssueCluster[] = [];
+	for (const issue of issues) {
+		const split = splitPerson(issue.message);
+		const template = split?.template ?? issue.message;
+		const found = clusters.find(
+			(cluster) => cluster.code === issue.code && cluster.template === template
+		);
+		if (found === undefined) {
+			clusters.push({
+				code: issue.code,
+				template,
+				persons: split === null ? [] : [split.person],
+				sample: issue.message
+			});
+		} else if (split !== null && !found.persons.includes(split.person)) {
+			found.persons.push(split.person);
+		}
+	}
+	const renderCluster = (cluster: IssueCluster): string => {
+		if (cluster.persons.length <= 1) return `• ${cluster.code}: ${cluster.sample}`;
+		const shown = cluster.persons.slice(0, PERSONS_PER_BULLET);
+		const remaining = cluster.persons.length - shown.length;
+		const names =
+			shown.join(', ') + (remaining > 0 ? `, and ${remaining} other${remaining === 1 ? '' : 's'}` : '');
+		return `• ${cluster.code} (${cluster.persons.length}) — ${names}: ${cluster.template}`;
+	};
+	const shown = clusters.slice(0, DETAILED_ISSUE_LIMIT);
+	const remaining = clusters.length - shown.length;
 	const headline =
 		kind === 'warn'
-			? messages.length === 1
+			? issues.length === 1
 				? 'Payroll built with one warning:'
-				: `Payroll built with ${messages.length} warnings:`
-			: messages.length === 1
+				: `Payroll built with ${issues.length} warnings:`
+			: issues.length === 1
 				? 'Payroll was not built. One thing must be fixed first:'
-				: `Payroll was not built. ${messages.length} things must be fixed first:`;
+				: `Payroll was not built. ${issues.length} things must be fixed first:`;
 	const tail = remaining > 0 ? `\n… and ${remaining} more of the same kinds, listed above.` : '';
-	return `${headline}\n${shown.map((message) => `• ${message}`).join('\n')}${tail}`;
+	return `${headline}\n${shown.map(renderCluster).join('\n')}${tail}`;
 }

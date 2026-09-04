@@ -381,7 +381,7 @@ test('the refusal spells out every issue rather than counting them', () => {
 	assert.match(described, /DAILY_WORK_LIMIT_EXCEEDED/);
 });
 
-test('one issue reads as one issue, and a flood is capped with an honest count', () => {
+test('one issue reads as one issue, and a flood is grouped with an honest count', () => {
 	assert.match(
 		describeIssues([{ code: 'PRORATION_MISSING', message: 'Jurisdiction MY states no basis.' }]),
 		/One thing must be fixed first/
@@ -392,8 +392,30 @@ test('one issue reads as one issue, and a flood is capped with an honest count',
 	}));
 	const described = describeIssues(many);
 	assert.match(described, /40 things must be fixed first/);
-	assert.match(described, /and 15 more of the same kinds/);
-	assert.equal(described.split('\n').filter((line) => line.startsWith('•')).length, 25);
+	assert.match(described, /DAILY_WORK_LIMIT_EXCEEDED \(40\)/);
+	assert.match(described, /PUBEM0000/);
+	assert.match(described, /and 30 others/);
+	assert.match(described, /Worked 13 hours on 2026-03-10/);
+	assert.equal(described.split('\n').filter((line) => line.startsWith('•')).length, 1);
+});
+
+test('repeated shortfalls share one bullet that names everyone and states the shape once', () => {
+	const described = describeIssues(
+		['NHPMY0354', 'NHPMY0347', 'NHPMY0325'].map((number) => ({
+			code: 'WORKLOAD_BELOW_TERMS',
+			message:
+				`The pay window assigns 0 work day(s) and 0 paid minute(s) for ${number}, ` +
+				'below the employment terms of 27 day(s) and 11958 minute(s).'
+		}))
+	);
+	assert.match(described, /3 things must be fixed first/);
+	assert.match(described, /WORKLOAD_BELOW_TERMS \(3\)/);
+	assert.match(described, /NHPMY0354, NHPMY0347, NHPMY0325/);
+	assert.match(
+		described,
+		/below the employment terms of 27 day\(s\) and 11958 minute\(s\)/
+	);
+	assert.equal(described.split('\n').filter((line) => line.startsWith('•')).length, 1);
 });
 
 /*

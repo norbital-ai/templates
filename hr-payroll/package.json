@@ -9,6 +9,7 @@
 		"format": "prettier --write .",
 		"generate:import-templates": "node scripts/generate-import-templates.mjs",
 		"lint": "prettier --check . && svelte-check --tsgo-experimental-api --tsconfig ./tsconfig.json",
+		"postinstall": "node scripts/sync-human-models.mjs",
 		"sync": "bolt sync",
 		"sync:watch": "bolt sync --watch",
 		"test": "node scripts/verify-overtime-controls.mjs && node scripts/verify-payroll-xlsx.mjs && node scripts/verify-payroll-export-data.mjs && node scripts/verify-workbook-import.mjs && node scripts/verify-payroll-arithmetic.mjs && node scripts/verify-fixture-shapes.mjs && node --experimental-strip-types --import ./scripts/ts-source-resolve.mjs --test 'tests/*.test.ts'",

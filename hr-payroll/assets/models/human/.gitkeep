@@ -1,0 +1,2 @@
+This directory is populated by `pnpm install` (scripts/sync-human-models.mjs) from the
+`@vladmandic/human` package. Do not commit model binaries here.

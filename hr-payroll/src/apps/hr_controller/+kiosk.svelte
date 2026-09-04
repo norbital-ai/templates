@@ -1,21 +1,26 @@
 <script lang="ts">
-	import Human from '@vladmandic/human';
+	import { onMount } from 'svelte';
+	import type Human from '@vladmandic/human';
 	import { client } from '../../lib/workspace-client.js';
 	import { Cover, Stack } from '@norbital-ai/ui/layout';
+	import { Spinner } from '@norbital-ai/ui/spinner';
 	import ManualTab from './kiosk-manual.svelte';
 	import EnrollTab from './kiosk-enroll.svelte';
 	import type { KioskSample } from '../../lib/kiosk/sample.js';
 	import {
-		KIOSK_ANALYSE_HEIGHT,
-		KIOSK_ANALYSE_WIDTH,
+		createAnalyseCanvas,
+		drawVideoFrame,
+		extractFaceSample,
+		largestFace,
+		showStream,
+		warmFaceEngine
+	} from '../../lib/kiosk/face.js';
+	import {
 		KIOSK_BLINK_WINDOW_S,
 		KIOSK_CAPTURE_HEIGHT,
 		KIOSK_CAPTURE_WIDTH,
-		KIOSK_ENROLL_SAMPLES,
 		KIOSK_LOOP_MS,
 		KIOSK_MATCH_THRESHOLD,
-		KIOSK_MIN_FACE_PX,
-		KIOSK_MODEL_BASE,
 		KIOSK_REAL_MIN
 	} from '../../lib/kiosk/config.js';
 
@@ -41,99 +46,33 @@
 
 	let tab = $state<Tab>('scan');
 	let phase = $state<Phase>('boot');
-	let booting = $state('Starting camera…');
 	let fatal = $state<string | null>(null);
 	let candidate = $state<Candidate | null>(null);
 	let punch = $state<PunchResult | null>(null);
 	let notice = $state<string | null>(null);
 	let challengeLeft = $state(0);
 
-	let videoEl: HTMLVideoElement | null = $state(null);
-	let stream: MediaStream | null = $state(null);
+	let videoNode: HTMLVideoElement | null = null;
+	let stream: MediaStream | null = null;
 	let human: Human | null = null;
+	let analyseCanvas: HTMLCanvasElement | null = null;
 	let loopTimer: ReturnType<typeof setInterval> | null = null;
 	let inFlight = false;
 	let challengeDeadline = 0;
 	let doneTimer: ReturnType<typeof setTimeout> | null = null;
 
-	const analyseCanvas = document.createElement('canvas');
-	analyseCanvas.width = KIOSK_ANALYSE_WIDTH;
-	analyseCanvas.height = KIOSK_ANALYSE_HEIGHT;
-
-	const humanConfig = (backend: 'webgl' | 'wasm') => ({
-		backend,
-		modelBasePath: KIOSK_MODEL_BASE,
-		debug: false,
-		warmup: 'none' as const,
-		cacheModels: true,
-		async: false,
-		face: {
-			enabled: true,
-			detector: {
-				modelPath: 'blazeface.json',
-				rotation: false,
-				maxDetected: 3,
-				minConfidence: 0.2,
-				minSize: KIOSK_MIN_FACE_PX,
-				scale: 1.4,
-				skipFrames: 0,
-				skipTime: 0
-			},
-			description: {
-				enabled: true,
-				modelPath: 'faceres.json',
-				minConfidence: 0.2,
-				skipFrames: 0,
-				skipTime: 0
-			},
-			antispoof: { enabled: true, modelPath: 'antispoof.json', skipFrames: 0, skipTime: 0 },
-			iris: { enabled: true, modelPath: 'iris.json' },
-			mesh: { enabled: true, modelPath: 'facemesh.json' },
-			emotion: { enabled: false },
-			attention: { enabled: false },
-			liveness: { enabled: false },
-			gear: { enabled: false }
-		},
-		hand: { enabled: false },
-		body: { enabled: false },
-		object: { enabled: false },
-		gesture: { enabled: true }
-	});
-
-	const drawFrame = (): boolean => {
-		const video = videoEl;
-		if (video === null || video.readyState < 2) return false;
-		const ctx = analyseCanvas.getContext('2d', { willReadFrequently: true });
-		if (ctx === null) return false;
-		const shrink = Math.min(
-			KIOSK_ANALYSE_WIDTH / video.videoWidth,
-			KIOSK_ANALYSE_HEIGHT / video.videoHeight,
-			1
-		);
-		const dw = video.videoWidth * shrink;
-		const dh = video.videoHeight * shrink;
-		ctx.drawImage(video, (KIOSK_ANALYSE_WIDTH - dw) / 2, (KIOSK_ANALYSE_HEIGHT - dh) / 2, dw, dh);
-		return true;
-	};
-
-	const largestFace = (
-		faces: ReadonlyArray<{
-			readonly box?: readonly [number, number, number, number];
-			readonly embedding?: number[];
-			readonly score: number;
-			readonly real?: number;
-		}>
-	) => {
-		let best: (typeof faces)[number] | undefined;
-		let bestSize = 0;
-		for (const face of faces) {
-			const size = (face.box?.[2] ?? 0) * (face.box?.[3] ?? 0);
-			if (size > bestSize) {
-				bestSize = size;
-				best = face;
-			}
-		}
-		return best;
+	/**
+	 * Video instantiation, both directions. The node remembers itself on mount and forgets
+	 * on unmount; boot attaches to the remembered node, and a node mounting late (first
+	 * paint, tab switch) picks up the stream boot already holds. Plain assignments — the
+	 * tick loop reads the node imperatively, so nothing here is reactive state.
+	 */
+	const attachVideo = (node: HTMLVideoElement) => {
+		videoNode = node;
+		if (stream !== null) showStream(node, stream);
+		return () => {
+			if (videoNode === node) videoNode = null;
+		};
 	};
 
 	const startCamera = async () => {
@@ -146,10 +85,7 @@
 			},
 			audio: false
 		});
-		if (videoEl !== null) {
-			videoEl.srcObject = stream;
-			await videoEl.play();
-		}
+		if (videoNode !== null) showStream(videoNode, stream);
 	};
 
 	const stopCamera = () => {
@@ -184,16 +120,9 @@
 	const boot = async () => {
 		phase = 'boot';
 		try {
-			booting = 'Starting camera…';
 			await startCamera();
-			booting = 'Loading recognition models…';
-			try {
-				human = new Human(humanConfig('webgl'));
-				await human.warmup({ face: { enabled: true } });
-			} catch {
-				human = new Human(humanConfig('wasm'));
-				await human.warmup({ face: { enabled: true } });
-			}
+			human = await warmFaceEngine();
+			analyseCanvas = createAnalyseCanvas();
 			phase = 'scan';
 			loopTimer = setInterval(() => void tick(), KIOSK_LOOP_MS);
 		} catch (error) {
@@ -203,9 +132,9 @@
 	};
 
 	const tick = async () => {
-		if (tab !== 'scan' || human === null || inFlight) return;
+		if (tab !== 'scan' || human === null || analyseCanvas === null || inFlight) return;
 		if (phase !== 'scan' && phase !== 'challenge') return;
-		if (!drawFrame()) return;
+		if (videoNode === null || !drawVideoFrame(videoNode, analyseCanvas)) return;
 		let result: Awaited<ReturnType<Human['detect']>>;
 		try {
 			result = await human.detect(analyseCanvas);
@@ -314,26 +243,12 @@
 
 	/** One analysed frame for enrollment: largest face wins, same pipeline as the loop. */
 	const analyzeSample = async (): Promise<KioskSample | null> => {
-		if (human === null || !drawFrame()) return null;
-		const start = performance.now();
-		const result = await human.detect(analyseCanvas);
-		const face = largestFace(result.face ?? []);
-		if (face === undefined || face.embedding === undefined) return null;
-		const snapshot = document.createElement('canvas');
-		snapshot.width = analyseCanvas.width;
-		snapshot.height = analyseCanvas.height;
-		snapshot.getContext('2d')?.drawImage(analyseCanvas, 0, 0);
-		return {
-			canvas: snapshot,
-			dataUrl: snapshot.toDataURL('image/jpeg', 0.7),
-			vector: [...face.embedding],
-			score: Math.round(face.score * 100) / 100,
-			box: `${Math.round(face.box?.[2] ?? 0)}x${Math.round(face.box?.[3] ?? 0)}`,
-			ms: Math.round((performance.now() - start) * 10) / 10
-		};
+		if (human === null || analyseCanvas === null || videoNode === null) return null;
+		return extractFaceSample(human, videoNode, analyseCanvas);
 	};
 
-	$effect(() => {
+	/** One-shot boot on mount. Retry re-runs it; the button is gone while booting. */
+	onMount(() => {
 		void boot();
 		return () => {
 			stopLoop();
@@ -353,8 +268,9 @@
 
 <Cover as="main">
 	{#if phase === 'boot'}
-		<Stack align="center" justify="center" fill gap="sm">
-			<p role="status">{booting}</p>
+		<Stack align="center" justify="center" fill gap="md">
+			<Spinner class="size-8" label="Preparing kiosk" />
+			<p role="status" class="text-sm text-muted-foreground">Getting ready…</p>
 		</Stack>
 	{:else if phase === 'error'}
 		<Stack align="center" justify="center" fill gap="sm">
@@ -379,7 +295,12 @@
 		</div>
 		{#if tab === 'scan'}
 			<div class="flex min-h-0 flex-col items-center gap-3 p-3">
-				<video bind:this={videoEl} playsinline autoplay muted class="w-[min(480px,90vw)] rounded-lg"
+				<video
+					{@attach attachVideo}
+					playsinline
+					autoplay
+					muted
+					class="w-[min(480px,90vw)] rounded-lg"
 				></video>
 				{#if phase === 'scan' && notice !== null}
 					<p role="status" class="text-sm text-destructive">{notice}</p>
@@ -427,7 +348,7 @@
 		{:else if tab === 'manual'}
 			<ManualTab ondone={toScan} />
 		{:else}
-			<EnrollTab ondone={toScan} ensureCamera={startCamera} {analyzeSample} />
+			<EnrollTab ondone={toScan} ensureCamera={startCamera} {analyzeSample} {attachVideo} />
 		{/if}
 	{/if}
 </Cover>
