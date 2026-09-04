@@ -9,11 +9,13 @@
 	let {
 		ondone,
 		ensureCamera,
-		analyzeSample
+		analyzeSample,
+		attachVideo
 	}: {
 		ondone: () => void;
 		ensureCamera: () => Promise<void>;
 		analyzeSample: () => Promise<KioskSample | null>;
+		attachVideo: (node: HTMLVideoElement) => () => void;
 	} = $props();
 
 	type Step = 'capture' | 'identity' | 'review' | 'result';
@@ -24,20 +26,32 @@
 
 	let mode = $state<'existing' | 'neu'>('existing');
 	let term = $state('');
-	let people = $state<
-		ReadonlyArray<{
-			readonly id: string;
-			readonly name: string;
-			readonly face_enrollment_status: string;
-		}>
-	>([]);
 	let chosenId = $state<string | null>(null);
 	let personName = $state('');
 	let personEmail = $state('');
 	let personPhone = $state('');
 	let personNumber = $state('');
 	let companyId = $state<string | null>(null);
-	let companies = $state<ReadonlyArray<{ readonly id: string; readonly name: string }>>([]);
+
+	/** Live person matches from two letters; a stale pick drops out as the list narrows. */
+	const peopleQuery = $derived(
+		mode !== 'existing' || term.trim().length < 2
+			? null
+			: client.db.employees.findMany({
+					search: { mode: 'lexical', term: term.trim() },
+					columns: { id: true, name: true, face_enrollment_status: true },
+					limit: 20
+				})
+	);
+	const people = $derived(peopleQuery?.current ?? []);
+	const chosen = $derived(people.find((person) => person.id === chosenId) ?? null);
+
+	const companiesQuery = $derived(
+		mode !== 'neu'
+			? null
+			: client.db.companies.findMany({ columns: { id: true, name: true }, limit: 100 })
+	);
+	const companies = $derived(companiesQuery?.current ?? []);
 
 	let consent = $state(false);
 	let submitting = $state(false);
@@ -64,40 +78,9 @@
 		}
 	};
 
-	const search = async () => {
-		if (term.trim().length < 2) return;
-		error = null;
-		try {
-			people = await client.db.employees.findMany({
-				search: { mode: 'lexical', term: term.trim() },
-				columns: { id: true, name: true, face_enrollment_status: true },
-				limit: 20
-			});
-			chosenId = null;
-		} catch (failure) {
-			error = failure instanceof Error ? failure.message : String(failure);
-		}
-	};
-
-	const loadCompanies = async () => {
-		if (companies.length > 0) return;
-		try {
-			companies = await client.db.companies.findMany({
-				columns: { id: true, name: true },
-				limit: 100
-			});
-		} catch (failure) {
-			error = failure instanceof Error ? failure.message : String(failure);
-		}
-	};
-
-	$effect(() => {
-		if (mode === 'neu') void loadCompanies();
-	});
-
 	const canReview = $derived(
 		samples.length >= 1 &&
-			(mode === 'existing' ? chosenId !== null : personName.trim().length > 0 && companyId !== null)
+			(mode === 'existing' ? chosen !== null : personName.trim().length > 0 && companyId !== null)
 	);
 
 	const canvasToFile = (canvas: HTMLCanvasElement): Promise<File> =>
@@ -168,7 +151,6 @@
 	const restart = () => {
 		samples = [];
 		chosenId = null;
-		people = [];
 		consent = false;
 		outcome = null;
 		error = null;
@@ -180,6 +162,8 @@
 	<h2 class="text-lg font-bold">Enroll face</h2>
 	{#if step === 'capture'}
 		<p>Capture {KIOSK_ENROLL_SAMPLES} angles of one face (two is enough to continue).</p>
+		<video {@attach attachVideo} playsinline autoplay muted class="w-[min(480px,90vw)] rounded-lg"
+		></video>
 		<div class="flex flex-wrap items-center gap-2">
 			<button
 				onclick={() => void capture()}
@@ -210,17 +194,10 @@
 			<button aria-pressed={mode === 'neu'} onclick={() => (mode = 'neu')}>New person</button>
 		</div>
 		{#if mode === 'existing'}
-			<div class="flex flex-wrap items-center gap-2">
-				<input
-					type="search"
-					placeholder="Name (min 2 letters)"
-					bind:value={term}
-					onkeydown={(event) => {
-						if (event.key === 'Enter') void search();
-					}}
-				/>
-				<button onclick={() => void search()}>Search</button>
-			</div>
+			<input type="search" placeholder="Name (min 2 letters)" bind:value={term} />
+			{#if peopleQuery?.error}<p role="alert" class="text-sm text-destructive">
+					{peopleQuery.error.message}
+				</p>{/if}
 			<ul>
 				{#each people as person (person.id)}
 					<li>
@@ -257,7 +234,6 @@
 				</select>
 			</label>
 		{/if}
-		{#if error !== null}<p role="alert" class="text-sm text-destructive">{error}</p>{/if}
 		<div class="flex flex-wrap items-center gap-2">
 			<button onclick={() => (step = 'capture')}>Back</button>
 			<button onclick={() => (step = 'review')} disabled={!canReview}>Review</button>

@@ -6,7 +6,7 @@
 /** Workspace key, for the content-addressed model route the compiler serves. */
 const KIOSK_WORKSPACE_KEY = 'norbital_hr';
 
-/** Base URL human loads every model json/bin from. Same-origin: no CDN, no pnpm weight bytes. */
+/** Base URL human loads every model json/bin from. Same-origin: no CDN. */
 export const KIOSK_MODEL_BASE = `/__bolt/request/api/template-seed-assets/${KIOSK_WORKSPACE_KEY}/models/human`;
 
 /** Cosine distance at or below which a probe counts as the enrolled person. */
