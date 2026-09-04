@@ -22,12 +22,10 @@
 	);
 	const monthOptions = $derived.by(() => {
 		const periods = periodWindow(37, 12);
-		return (periods.includes(month) ? periods : [...periods, month])
-			.toSorted()
-			.map((period) => ({
-				value: period,
-				label: monthFormatter.format(new Date(`${period}-01T00:00:00.000Z`))
-			}));
+		return (periods.includes(month) ? periods : [...periods, month]).toSorted().map((period) => ({
+			value: period,
+			label: monthFormatter.format(new Date(`${period}-01T00:00:00.000Z`))
+		}));
 	});
 </script>
 

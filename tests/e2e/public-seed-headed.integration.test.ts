@@ -1157,11 +1157,7 @@ it('HR self-host entities is a companies table and payroll periods are not 2026-
 	let browser: HeadedBrowser | undefined;
 	try {
 		assert.equal((await fetch(`${session.host.baseUrl}/readyz`)).status, 200);
-		entitiesGateway = await openHrGateway(
-			session,
-			'hr-payroll-h13',
-			'/app/hr_controller/entities'
-		);
+		entitiesGateway = await openHrGateway(session, 'hr-payroll-h13', '/app/hr_controller/entities');
 		payrollGateway = await openHrGateway(session, 'hr-payroll-h16', '/app/hr_controller/payroll');
 		browser = await launchChromiumOrSkip(EVENT_SOURCE_PROBE);
 		if (browser === undefined) return;
@@ -1172,7 +1168,11 @@ it('HR self-host entities is a companies table and payroll periods are not 2026-
 		await entitiesPage.evaluate(
 			`document.elementFromPoint(24, 24)?.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }))`
 		);
-		const entities = await waitForBody(entitiesPage, /Public Fixture Co|PUB-CO-0001/, 'h13-entities');
+		const entities = await waitForBody(
+			entitiesPage,
+			/Public Fixture Co|PUB-CO-0001/,
+			'h13-entities'
+		);
 		assert.match(entities, /Public Fixture Co/);
 		assert.match(entities, /PUB-CO-0001|Entities/);
 		assert.doesNotMatch(entities, /Choose one on Entities/);
@@ -1263,11 +1263,7 @@ it('HR self-host Ask agent shows the user text immediately', async () => {
 				})()`)
 		);
 		assert.doesNotMatch(agentTabs, /Full transcript/, `G1 still has transcript tabs: ${agentTabs}`);
-		assert.doesNotMatch(
-			agentTabs,
-			/"Focus"/,
-			`G1 still has Focus tab: ${agentTabs}`
-		);
+		assert.doesNotMatch(agentTabs, /"Focus"/, `G1 still has Focus tab: ${agentTabs}`);
 		const typed = String(
 			await page.evaluate(`(() => {
 					const field = document.querySelector('#agent-task-composer');

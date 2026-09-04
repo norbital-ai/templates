@@ -97,7 +97,11 @@ test(
 				`select id, row_version from payroll_runs where id in ($1, $2)`,
 				[februaryId, marchId]
 			)) as ReadonlyArray<{ readonly id: string; readonly row_version: number }>;
-			assert.equal(versions.length, 2, `expected two draft versions, got ${JSON.stringify(versions)}`);
+			assert.equal(
+				versions.length,
+				2,
+				`expected two draft versions, got ${JSON.stringify(versions)}`
+			);
 
 			const deleted = await postGuestCommand(
 				session.host.baseUrl,
