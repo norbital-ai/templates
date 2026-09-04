@@ -28,6 +28,7 @@
 			],
 			["employments"],
 			["employee_children", "employment_statutory_facts", "employment_terms", "leave_requests"],
+			["work_days"],
 			["component_entries", "loans"],
 			["loan_repayments"]
 		]
