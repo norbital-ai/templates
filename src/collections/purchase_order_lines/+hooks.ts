@@ -89,7 +89,7 @@ function rollupPurchaseOrder(api: AfterApi, purchaseOrderId: string): Effect.Eff
 	return rollupDocument({
 		document: orderById(api, purchaseOrderId),
 		lines: orderLineTotals(api, purchaseOrderId),
-		write: (totals) => api.db.purchase_orders.mutate({ id: purchaseOrderId, ...totals })
+		write: (totals) => api.db.purchase_orders.mutate([{ id: purchaseOrderId, ...totals }])
 	});
 }
 

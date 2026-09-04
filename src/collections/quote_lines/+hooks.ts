@@ -86,7 +86,7 @@ function rollupQuote(api: AfterApi, quoteId: string): Effect.Effect<void> {
 	return rollupDocument({
 		document: quoteById(api, quoteId),
 		lines: quoteLineTotals(api, quoteId),
-		write: (totals) => api.db.quotes.mutate({ id: quoteId, ...totals })
+		write: (totals) => api.db.quotes.mutate([{ id: quoteId, ...totals }])
 	});
 }
 
