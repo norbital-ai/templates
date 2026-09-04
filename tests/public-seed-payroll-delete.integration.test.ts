@@ -20,13 +20,18 @@ const createDraft = async (
 		session.host.baseUrl,
 		MUTATE_COMMAND,
 		mutationPush(session.schemaFingerprint, {
-			action: 'create',
+			action: 'mutate',
 			collection: 'payroll_runs',
-			values: {
-				id: payrollRunId,
-				company_id: COMPANY_ID,
-				period
-			}
+			rows: [
+				{
+					action: 'create',
+					values: {
+						id: payrollRunId,
+						company_id: COMPANY_ID,
+						period
+					}
+				}
+			]
 		}),
 		{ authorization: `Bearer ${session.credential}` }
 	);

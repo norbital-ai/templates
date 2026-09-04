@@ -1021,7 +1021,7 @@
 		daySheetSubmission.pendingApproval = false;
 		daySheetSubmission.error = null;
 		Effect.runFork(
-			submitCollectionMutation(() => client.db.work_days.mutate(mutation)).pipe(
+			submitCollectionMutation(() => client.db.work_days.mutate([mutation])).pipe(
 				Effect.tap((submission: CollectionMutationSubmission) =>
 					Effect.sync(() => {
 						if (submission.kind === 'pendingApproval') {
@@ -1069,15 +1069,17 @@
 		}
 		const existing = workDayByKey.get(personDayKey(employmentId, date));
 		return submitCollectionMutation(() =>
-			client.db.work_days.mutate({
-				...(existing == null
-					? { employment_id: employmentId, work_date: date }
-					: { id: existing.id }),
-				shift_definition_id: plan.rosterCodeId,
-				roster_id: draftRoster.id,
-				planned_origin: 'MANUAL',
-				planned_note: plan.note
-			})
+			client.db.work_days.mutate([
+				{
+					...(existing == null
+						? { employment_id: employmentId, work_date: date }
+						: { id: existing.id }),
+					shift_definition_id: plan.rosterCodeId,
+					roster_id: draftRoster.id,
+					planned_origin: 'MANUAL',
+					planned_note: plan.note
+				}
+			])
 		);
 	}
 
@@ -1098,14 +1100,16 @@
 		daySheetSubmission.error = null;
 		Effect.runFork(
 			submitCollectionMutation(() =>
-				client.db.work_days.mutate({
-					id: existing.id,
-					shift_definition_id: null,
-					roster_id: null,
-					assignment_code: null,
-					planned_note: null,
-					planned_origin: null
-				})
+				client.db.work_days.mutate([
+					{
+						id: existing.id,
+						shift_definition_id: null,
+						roster_id: null,
+						assignment_code: null,
+						planned_note: null,
+						planned_origin: null
+					}
+				])
 			).pipe(
 				Effect.tap((submission) =>
 					Effect.sync(() => {
@@ -1283,7 +1287,7 @@
 		rosterActionError = null;
 		Effect.runFork(
 			submitCollectionMutation(() =>
-				client.db.rosters.mutate({ id: rosterId, published_at: publishedAt })
+				client.db.rosters.mutate([{ id: rosterId, published_at: publishedAt }])
 			).pipe(
 				Effect.tap((submission) =>
 					Effect.sync(() => {

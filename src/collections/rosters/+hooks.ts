@@ -340,11 +340,7 @@ export default {
 									'Clear the month in parts, then delete it.'
 							);
 						}
-						yield* Effect.forEach(
-							days,
-							(day) => api.db.work_days.mutate({ id: day.id, roster_id: null }),
-							{ concurrency: 'unbounded', discard: true }
-						);
+						yield* api.db.work_days.mutate(days.map((day) => ({ id: day.id, roster_id: null })));
 					})
 			}
 		}

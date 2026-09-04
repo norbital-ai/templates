@@ -8,10 +8,10 @@
  *
  * Three consequences worth stating, because each replaces something that used to be code:
  *
- *  - **A rebuild cannot leave half an answer.** An included `many` relationship is the parent's
- *    complete desired state, so stating the payslips deletes the previous build's, and the cascade
- *    takes their junctions and adjustments with them. There is no clear-then-write pair and
- *    therefore no window between the two halves.
+ *  - **A rebuild cannot leave half an answer.** The nested graph is the run's complete desired
+ *    set of payslips, so every previous payslip is omitted and deleted (each through cascade,
+ *    junctions and adjustments included) in the same statement that writes the new ones. There
+ *    is no clear-then-write pair and therefore no window between the two halves.
  *  - **A child carries no `payslip_id`.** Nested under the payslip that owns it, there is no id to
  *    carry: the runtime fills the foreign key from the parent it assigned.
  *  - **A capture lands in the same statement as the figures it protects.** Source claims used to be

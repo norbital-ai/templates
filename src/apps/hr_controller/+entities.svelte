@@ -9,7 +9,7 @@
 </script>
 
 <svelte:head>
-	<title>{t('app.hr_controller.entities_title')}</title>
+	<title>Entities</title>
 	<meta name="description" content={t('app.hr_controller.entities_description')} />
 	<meta name="bolt:icon" content="lucide:building-2" />
 </svelte:head>

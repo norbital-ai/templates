@@ -86,13 +86,18 @@ test(
 				mutationPush(
 					session.schemaFingerprint,
 					{
-						action: 'update',
+						action: 'mutate',
 						collection: 'work_days',
-						values: {
-							id: restDay.id,
-							worked_intervals: [],
-							break_minutes: 0
-						}
+						rows: [
+							{
+								action: 'update',
+								values: {
+									id: restDay.id,
+									worked_intervals: [],
+									break_minutes: 0
+								}
+							}
+						]
 					},
 					[
 						{

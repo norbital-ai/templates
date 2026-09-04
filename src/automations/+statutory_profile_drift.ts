@@ -579,14 +579,16 @@ export const runStatutoryProfileDrift = (api: AutomationApi) =>
 		let proposals: readonly string[] = [];
 
 		yield* api.progress({ progress: 0.02, text: 'Opening statutory profile review' });
-		yield* api.db.statutory_profile_drift_logs.mutate({
-			status: 'RUNNING',
-			checked_at: checkedAt,
-			local_findings_count: 0,
-			local_findings: [],
-			successor_proposals_count: 0,
-			successor_proposals: []
-		});
+		yield* api.db.statutory_profile_drift_logs.mutate([
+			{
+				status: 'RUNNING',
+				checked_at: checkedAt,
+				local_findings_count: 0,
+				local_findings: [],
+				successor_proposals_count: 0,
+				successor_proposals: []
+			}
+		]);
 		/**
 		 * The run log's id, read back rather than returned.
 		 *
@@ -745,11 +747,13 @@ export const runStatutoryProfileDrift = (api: AutomationApi) =>
 				}))
 			});
 			detectedItems = detected.items;
-			yield* api.db.statutory_profile_drift_logs.mutate({
-				id: runLog.id,
-				local_findings_count: detected.items.length,
-				local_findings: detected.items
-			});
+			yield* api.db.statutory_profile_drift_logs.mutate([
+				{
+					id: runLog.id,
+					local_findings_count: detected.items.length,
+					local_findings: detected.items
+				}
+			]);
 
 			yield* api.progress({
 				progress: 0.45,
@@ -770,13 +774,15 @@ export const runStatutoryProfileDrift = (api: AutomationApi) =>
 				}
 				const status = asFactStatus(copy.status);
 				if (!status) continue;
-				yield* api.db.employment_statutory_facts.mutate({
-					employment_id: copy.employmentId,
-					statutory_contribution_id: copy.successorSchemeId,
-					supersedes_fact_id: copy.factId,
-					status,
-					effective_range: { start: asOf, end: null }
-				});
+				yield* api.db.employment_statutory_facts.mutate([
+					{
+						employment_id: copy.employmentId,
+						statutory_contribution_id: copy.successorSchemeId,
+						supersedes_fact_id: copy.factId,
+						status,
+						effective_range: { start: asOf, end: null }
+					}
+				]);
 				submittedProposals.push(`${copy.label} · awaiting HR Manager approval`);
 				existingSchemeIdsByEmployment.get(copy.employmentId)?.add(copy.successorSchemeId);
 			}
@@ -899,20 +905,22 @@ export const runStatutoryProfileDrift = (api: AutomationApi) =>
 			}
 
 			yield* api.progress({ progress: 0.9, text: 'Saving the statutory research receipt' });
-			yield* api.db.statutory_profile_drift_logs.mutate({
-				id: runLog.id,
-				status: 'SUCCEEDED',
-				completed_at: instantAt(yield* Clock.currentTimeMillis).toISOString(),
-				local_findings_count: detected.items.length,
-				local_findings: detected.items,
-				successor_proposals_count: submittedProposals.length,
-				successor_proposals: submittedProposals,
-				web_summary: report.summary,
-				web_highlights: report.highlights,
-				official_sources: report.official_sources,
-				changes_to_review: report.changes_to_review,
-				error: null
-			});
+			yield* api.db.statutory_profile_drift_logs.mutate([
+				{
+					id: runLog.id,
+					status: 'SUCCEEDED',
+					completed_at: instantAt(yield* Clock.currentTimeMillis).toISOString(),
+					local_findings_count: detected.items.length,
+					local_findings: detected.items,
+					successor_proposals_count: submittedProposals.length,
+					successor_proposals: submittedProposals,
+					web_summary: report.summary,
+					web_highlights: report.highlights,
+					official_sources: report.official_sources,
+					changes_to_review: report.changes_to_review,
+					error: null
+				}
+			]);
 			yield* api.progress({ progress: 1, text: 'Statutory profile review complete' });
 
 			return {
@@ -932,16 +940,18 @@ export const runStatutoryProfileDrift = (api: AutomationApi) =>
 			Effect.gen(function* () {
 				const message = getErrorMessage(error);
 				yield* api.db.statutory_profile_drift_logs
-					.mutate({
-						id: runLog.id,
-						status: 'FAILED',
-						completed_at: instantAt(yield* Clock.currentTimeMillis).toISOString(),
-						local_findings_count: detectedItems.length,
-						local_findings: detectedItems,
-						successor_proposals_count: proposals.length,
-						successor_proposals: proposals,
-						error: message
-					})
+					.mutate([
+						{
+							id: runLog.id,
+							status: 'FAILED',
+							completed_at: instantAt(yield* Clock.currentTimeMillis).toISOString(),
+							local_findings_count: detectedItems.length,
+							local_findings: detectedItems,
+							successor_proposals_count: proposals.length,
+							successor_proposals: proposals,
+							error: message
+						}
+					])
 					.pipe(Effect.catch(() => Effect.void));
 				yield* api
 					.progress({ progress: 0.95, text: `Statutory profile review failed: ${message}` })

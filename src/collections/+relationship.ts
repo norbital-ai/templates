@@ -7,7 +7,7 @@ import { cascade } from '@norbital-ai/bolt/authoring';
  * ## Ownership is declared once, by `cascade(...)`
  *
  * A `cascade(...)` on the `one` side says the child cannot meaningfully exist without that parent:
- * deleting the parent deletes it, and a nested `many` in a `mutate` may hard-delete the children it
+ * deleting the parent deletes it, and a nested `many` in a `mutate` hard-deletes the children it
  * leaves out. Everything not wrapped is `restrict` — the parent cannot be deleted while children
  * point at it — and that is a deliberate answer, not an omission. Two cases are worth reading
  * twice:

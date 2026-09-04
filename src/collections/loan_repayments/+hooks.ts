@@ -15,9 +15,8 @@ import { decodeNumber } from '@norbital-ai/std/json';
  * consumed would rewrite money already taken, so a capture refuses edits exactly as it does for the
  * other three families.
  *
- * The schedule's cross-row shape — dates strictly increasing, the final due date inside the
- * agreement's range, the amounts summing to the principal — is guaranteed by the provisioning
- * schedule the loans screen builds; these hooks hold what a single row can state about itself.
+ * Cross-row shape (sum to principal) is highlighted on the loan form and does not rewrite
+ * amounts. These hooks hold what a single row can state about itself.
  */
 export default {
 	mutate: {
