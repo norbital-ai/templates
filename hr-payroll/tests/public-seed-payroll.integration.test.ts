@@ -229,6 +229,132 @@ test(
 );
 
 /**
+ * Kavriel (HQ Payroll HR) raises a run; Dernesse (HR Manager) is the named approver.
+ * Approve + resume must land the run and its payslips — the hold alone is not the product.
+ */
+test(
+	'public seed HR Manager approve lands the HQ Payroll HR payroll create',
+	{ timeout: LOCAL_DATABASE_TEST_TIMEOUT_MILLIS },
+	async () => {
+		const session = await startPublicSeedHost('hr-payroll-h11-manager-approve');
+		try {
+			const controllerHeaders = {
+				...bearerHeaders(session.credential),
+				'x-colony-impersonated-team': 'HQ Payroll HR'
+			};
+			const managerHeaders = {
+				...bearerHeaders(session.credential),
+				'x-colony-impersonated-team': 'HR Manager'
+			};
+			const payrollRunId = crypto.randomUUID();
+			const created = await postGuestCommand(
+				session.host.baseUrl,
+				CREATE_PAYROLL_COMMAND,
+				mutationPush(session.schemaFingerprint, {
+					action: 'create',
+					collection: 'payroll_runs',
+					values: {
+						id: payrollRunId,
+						company_id: COMPANY_ID,
+						period: FEBRUARY_2026
+					}
+				}),
+				controllerHeaders
+			);
+			const payload = asRecord(created.value, 'H11 approve create');
+			assert.equal(
+				payload.resolution,
+				'accepted',
+				`HQ create ${created.status}: ${JSON.stringify(created.value)}`
+			);
+			const approval = asRecord(payload.pendingApproval, 'H11 approve pending');
+			assert.equal(typeof approval.requestId, 'string');
+			const requestId = String(approval.requestId);
+
+			const controllerDecide = await postGuestCommand(
+				session.host.baseUrl,
+				'approvals.status',
+				{ requestId },
+				controllerHeaders
+			);
+			const controllerState = asRecord(controllerDecide.value, 'H11 controller status');
+			const controllerDenied = await postGuestCommand(
+				session.host.baseUrl,
+				'approvals.decide',
+				{ state: controllerState, decision: 'approve' },
+				controllerHeaders
+			);
+			assert.ok(
+				controllerDenied.status >= 400,
+				`HQ Payroll HR must not approve its own payroll: ${JSON.stringify(controllerDenied)}`
+			);
+
+			const status = await postGuestCommand(
+				session.host.baseUrl,
+				'approvals.status',
+				{ requestId },
+				managerHeaders
+			);
+			assert.ok(
+				status.status >= 200 && status.status < 300,
+				`HR Manager status ${status.status}: ${JSON.stringify(status.value)}`
+			);
+			const state = asRecord(status.value, 'H11 manager status');
+			assert.equal(state._tag, 'Pending', `expected Pending, got ${JSON.stringify(status.value)}`);
+			const decided = await postGuestCommand(
+				session.host.baseUrl,
+				'approvals.decide',
+				{ state, decision: 'approve' },
+				managerHeaders
+			);
+			assert.ok(
+				decided.status >= 200 && decided.status < 300,
+				`HR Manager decide ${decided.status}: ${JSON.stringify(decided.value)}`
+			);
+			const decidedPayload = asRecord(decided.value, 'H11 decide');
+			assert.equal(
+				decidedPayload._tag,
+				'Approved',
+				`expected Approved, got ${JSON.stringify(decided.value)}`
+			);
+
+			const loadRun = () =>
+				session.query(`select id, lifecycle from payroll_runs where id = $1`, [payrollRunId]) as Promise<
+					ReadonlyArray<{ readonly id: string; readonly lifecycle: string }>
+				>;
+			let inserted = await loadRun();
+			if (inserted.length === 0) {
+				const resumed = await postGuestCommand(
+					session.host.baseUrl,
+					'collections.resume',
+					{ requestId },
+					managerHeaders
+				);
+				const alreadyLanded =
+					resumed.status === 422 &&
+					JSON.stringify(resumed.value).includes('identity is already in use');
+				assert.ok(
+					(resumed.status >= 200 && resumed.status < 300) || alreadyLanded,
+					`collections.resume ${resumed.status}: ${JSON.stringify(resumed.value)}`
+				);
+				inserted = await loadRun();
+			}
+			assert.equal(inserted.length, 1, `approved run missing: ${JSON.stringify(inserted)}`);
+			const payslips = (await session.query(
+				`select count(*)::int as n from payslips where payroll_run_id = $1`,
+				[payrollRunId]
+			)) as ReadonlyArray<{ readonly n: number }>;
+			assert.ok(
+				(payslips[0]?.n ?? 0) > 0,
+				`approved run must build payslips: ${JSON.stringify(payslips)}`
+			);
+		} finally {
+			await session.stop();
+		}
+	}
+);
+
+/**
  * A3 command half. HQ Payroll HR `leave_requests.mutate.new` is approval-gated and does not expand.
  * Founder admin auto-commits (T4). Form toast remains headed.
  */
