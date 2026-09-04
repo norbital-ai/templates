@@ -382,7 +382,7 @@ Only the portion above 104 hours is moved to an `OVERTIME_EXCESS` line.
 
 ### Unpaid leave and the settlement window
 
-NPL uses the same attendance settlement window as OT (21st–20th for Nihon). Calendar-month UL in
+NPL uses the same attendance settlement window as OT (21st–20th cutoff). Calendar-month UL in
 the source salary listing can therefore differ from the engine without either side being "broken":
 
 - Norbital: UL dates inside the run's settlement window.
@@ -448,7 +448,7 @@ consecutive-hours window, the minimum length, whether the statute counts the bre
 was blocked, no screen quoted a figure. It was removed rather than left as data entry that pays
 for itself with an audit token. Whether a break was taken is measured from punches, which is
 `work_days` and `shift_definitions` work; the cited statutory transcriptions are retained in
-the repository seed bank (`seed_bank/norbital_hr/statutory/rest_break_rules.json`) so the
+the host seed bank so the
 requirement can be modelled again from the primary text rather than from memory.
 
 ## Calculation and statutory treatment
@@ -800,7 +800,7 @@ under [Still not encoded](#still-not-encoded), not quietly defaulted.
 
 #### Overtime multipliers — six members of the Malaysian regime
 
-Seeded from the repository seed bank, `seed_bank/norbital_hr/statutory/` (§4.4). The source fixture
+Seeded from the host seed bank (§4.4). The source fixture
 keeps named builder arrays for review (`overtime_rules.json`), then embeds them without IDs or
 effective ranges in the one `jurisdictions.regime` value that is actually seeded
 (`jurisdictions.json`).

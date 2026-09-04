@@ -4,6 +4,7 @@ import {
 	leaveApproval,
 	mergeGrants,
 	payrollGrants,
+	payrollRebuildGrants,
 	payrollRunApprovalFromController,
 	peopleGrants,
 	referenceGrants,
@@ -28,12 +29,10 @@ import type { Policy } from './$types.js';
  *     has not been agreed to.
  *   - no `payroll_runs.mutate.existing`, no `payroll_runs.delete` — a controller does not re-run a
  *     payroll and does not erase one.
- *
- * There is deliberately no `payslips`/`payslip_adjustments` delete grant either.
- * `clearRunResults` needs those to rebuild a draft, and a controller never rebuilds one: their only
- * write is the initial `mutate.new`, and a run with no payslips yet has nothing to clear. See
- * `payrollRebuildGrants` in `src/lib/policy_grants.ts`, which is the grant `hr_manager` and
- * `senior_management` hold instead.
+ *   - `payrollRebuildGrants()` — the engine's `create.before` hook writes payslips, adjustments and
+ *     junctions as the **requesting subject**, not elevated. Without these grants a held create
+ *     refuses on its own output. This is not re-run authority: it does not add `mutate.existing` or
+ *     `delete` on `payroll_runs`, and a controller never calls `clearRunResults`.
  *
  * Kept generated, because the groups are what the policy actually says. `referenceGrants` with four
  * actions beside `statutoryGrants` with one is a rule you can read — a company owns its configuration
@@ -120,6 +119,7 @@ export default {
 		grantOn('leave_requests', 'mutate.new', { approval: leaveApproval }),
 
 		payrollGrants('read'),
+		payrollRebuildGrants(),
 		grantOn('payroll_runs', 'mutate.new', { approval: payrollRunApprovalFromController })
 	),
 	/**

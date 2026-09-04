@@ -121,12 +121,12 @@ const EMPLOYMENTS = [
 	{
 		id: 'employment:pattern',
 		employee_id: 'employee:pattern',
-		employee_number: 'NHPMY0002',
+		employee_number: 'PUBEM0002',
 		company_id: 'company:1',
 		hire_date: '2021-06-01',
 		exit_date: null,
 		bank: {
-			bank_account_name: 'Aisyah binti Rahman',
+			bank_account_name: 'Public Fixture Employee',
 			bank_code: 'MBBEMYKL',
 			bank_name: 'Maybank',
 			bank_account_number: '512345678901'
@@ -135,7 +135,7 @@ const EMPLOYMENTS = [
 	{
 		id: 'employment:leaver',
 		employee_id: 'employee:leaver',
-		employee_number: 'NHPMY0400',
+		employee_number: 'PUBEM0400',
 		company_id: 'company:1',
 		hire_date: '2024-07-10',
 		exit_date: '2026-03-05',
@@ -290,10 +290,10 @@ Effect.runPromise(
 				employees: [
 					{
 						id: 'employee:pattern',
-						name: 'Aisyah binti Rahman',
-						identity_number: '920104-10-5522'
+						name: 'Public Fixture Employee',
+						identity_number: '900101-01-0001'
 					},
-					{ id: 'employee:leaver', name: 'Tan Wei Ming', identity_number: '001122-14-3311' }
+					{ id: 'employee:leaver', name: 'Public Late Joiner', identity_number: '880312-10-0002' }
 				],
 				shift_definitions: [DAY_SHIFT, REST_CODE, NIGHT_SHIFT],
 				statutory_contributions: []
@@ -355,7 +355,7 @@ Effect.runPromise(
 			assert.equal(row.att_shift_codes, 'D, N, REST');
 
 			// ── a leaver keeps their identity, and is scheduled only up to their last day ──────────────────
-			assert.equal(leaver.employeeNumber, 'NHPMY0400');
+			assert.equal(leaver.employeeNumber, 'PUBEM0400');
 			assert.equal(leaver.lastDay, '2026-03-05');
 			assert.equal(
 				leaver.designation,
@@ -373,7 +373,7 @@ Effect.runPromise(
 			// ── the bank file skips the payslip with no destination, and says whose ───────────────────────
 			assert.deepEqual(
 				run.bank.map((payment) => payment.employeeNumber),
-				['NHPMY0002']
+				['PUBEM0002']
 			);
 			assert.equal(run.bank[0].net, 3454.03);
 			assert.deepEqual(run.skippedEmploymentIds, ['employment:leaver']);

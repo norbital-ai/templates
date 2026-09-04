@@ -49,7 +49,7 @@ const TIME_TEMPLATE_PATH = path.join(
 );
 
 const SAMPLE_MONTH = '2026-05';
-const SAMPLE_LEGAL_ENTITY = 'Nihon Pigment Sdn. Bhd.';
+const SAMPLE_LEGAL_ENTITY = 'Public Fixture Co';
 const SAMPLE_TIMEZONE = 'Asia/Kuala_Lumpur';
 
 function daysInMonth(month) {
@@ -71,13 +71,13 @@ const DAY_HEADERS = dayHeaders(SAMPLE_MONTH);
 const GRID_HEADERS = ['employee_number', ...DAY_HEADERS];
 
 const ROSTER_SAMPLE_ROWS = [
-	gridRow('NHPMY0002', { 1: '7.5AM', 2: '7.5AM', 3: 'REST', 4: '7.5AM', 5: '7.5AM' }, SAMPLE_MONTH),
-	gridRow('NHPMY0023', { 4: 'AM0830', 5: 'PM2030', 6: 'OFF' }, SAMPLE_MONTH)
+	gridRow('PUBEM0002', { 1: '7.5AM', 2: '7.5AM', 3: 'REST', 4: '7.5AM', 5: '7.5AM' }, SAMPLE_MONTH),
+	gridRow('PUBEM0023', { 4: 'AM0830', 5: 'PM2030', 6: 'OFF' }, SAMPLE_MONTH)
 ];
 
 const TIME_ENTRY_SAMPLE_ROWS = [
-	gridRow('NHPMY0002', { 4: '08:16-17:10', 5: '08:02-17:05' }, SAMPLE_MONTH),
-	gridRow('NHPMY0023', { 4: '20:30-05:15', 5: '20:28-05:02', 6: '20:31' }, SAMPLE_MONTH)
+	gridRow('PUBEM0002', { 4: '08:16-17:10', 5: '08:02-17:05' }, SAMPLE_MONTH),
+	gridRow('PUBEM0023', { 4: '20:30-05:15', 5: '20:28-05:02', 6: '20:31' }, SAMPLE_MONTH)
 ];
 
 const ROSTER_SETTINGS_ROWS = [
@@ -127,7 +127,7 @@ const ROSTER_README = [
 	'',
 	'Accepted values',
 	'',
-	'employee_number   as seeded on the employment, e.g. NHPMY0002',
+	'employee_number   as seeded on the employment, e.g. PUBEM0002',
 	'day columns       1–31 (or YYYY-MM-DD) for the Settings month',
 	'cell              an existing roster code, e.g. 7.5AM · 8.0AM · 8.5AM · AM0830 · AM1030 ·',
 	'                  PM2030 · PM2230 · REST · OFF — or PH on an observed holiday',
@@ -165,7 +165,7 @@ const TIME_README = [
 	'',
 	'Accepted values',
 	'',
-	'employee_number   as seeded on the employment, e.g. NHPMY0002',
+	'employee_number   as seeded on the employment, e.g. PUBEM0002',
 	'day columns       1–31 (or YYYY-MM-DD) for the Settings month',
 	'cell              HH:mm-HH:mm, 24-hour, local to the timezone on the Settings sheet — or HH:mm',
 	'                  when the close has not landed yet',

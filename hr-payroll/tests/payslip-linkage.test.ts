@@ -92,7 +92,7 @@ const JURISDICTION = {
 
 const COMPANY = {
 	id: 'co-my',
-	name: 'Nihon (MY)',
+	name: 'Public Fixture Co',
 	jurisdiction_id: 'jur-my',
 	pay_cutoff_day: 21,
 	pay_day: 28,
@@ -252,7 +252,7 @@ function bundle(overrides = {}) {
 		employment: {
 			id: 'emp-1',
 			employee_id: 'ee-1',
-			employee_number: 'NHPMY0023',
+			employee_number: 'PUBEM0023',
 			company_id: 'co-my',
 			hire_date: '2021-06-01',
 			exit_date: null,

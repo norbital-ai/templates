@@ -35,7 +35,7 @@ const configuration = (overrides = {}) => ({
 	},
 	company: {
 		id: 'co-my',
-		name: 'Nihon (MY)',
+		name: 'Public Fixture Co',
 		pay_cutoff_day: 21,
 		pay_day: 28,
 		pay_calendar: null
@@ -124,20 +124,20 @@ test('an exceeded overtime ceiling honors on_exceed: WARN is advisory, BLOCK ref
 	});
 	const warned = validateOvertimeLimits({
 		configuration: configuration({ overtimeLimits: [limit('WARN')] }),
-		employeeNumber: 'NHPMY0023',
+		employeeNumber: 'PUBEM0023',
 		calendarMonth: '2026-03',
 		monthHours: 112
 	});
 	assert.equal(warned.length, 1);
 	assert.equal(warned[0].severity, 'WARNING');
 	assert.equal(blockers(warned).length, 0);
-	assert.match(warned[0].message, /NHPMY0023/);
+	assert.match(warned[0].message, /PUBEM0023/);
 	assert.match(warned[0].message, /2026-03/);
 	assert.match(warned[0].message, /1980/);
 
 	const blocked = validateOvertimeLimits({
 		configuration: configuration({ overtimeLimits: [limit('BLOCK')] }),
-		employeeNumber: 'NHPMY0023',
+		employeeNumber: 'PUBEM0023',
 		calendarMonth: '2026-03',
 		monthHours: 112
 	});
@@ -163,7 +163,7 @@ test('a total-hours ceiling is not compared against overtime hours', () => {
 					}
 				]
 			}),
-			employeeNumber: 'NHPMY0023',
+			employeeNumber: 'PUBEM0023',
 			calendarMonth: '2026-03',
 			monthHours: 200
 		}),
@@ -186,7 +186,7 @@ test('a ceiling that was not reached raises nothing', () => {
 					}
 				]
 			}),
-			employeeNumber: 'NHPMY0023',
+			employeeNumber: 'PUBEM0023',
 			calendarMonth: '2026-03',
 			monthHours: 104
 		}),
@@ -196,7 +196,7 @@ test('a ceiling that was not reached raises nothing', () => {
 
 test('a day past the hours-of-work limit is a warning that names whose day it was', () => {
 	const issues = validateDailyWorkLimit({
-		employeeNumber: 'NHPMY0002',
+		employeeNumber: 'PUBEM0002',
 		days: [
 			{
 				date: '2026-03-10',
@@ -220,7 +220,7 @@ test('a day past the hours-of-work limit is a warning that names whose day it wa
 	assert.equal(issues.length, 1, 'only the day over the limit is raised');
 	assert.equal(issues[0].severity, 'WARNING');
 	assert.equal(blockers(issues).length, 0);
-	assert.match(issues[0].message, /NHPMY0002 worked 13\.25 hours on 2026-03-10/);
+	assert.match(issues[0].message, /PUBEM0002 worked 13\.25 hours on 2026-03-10/);
 	assert.equal(issues[0].collection, 'work_days');
 	assert.equal(issues[0].recordId, 'work-day-1', 'the issue links to the attendance row to fix');
 });
@@ -261,19 +261,19 @@ test('a cadence the company has written no calendar for stops the run and names 
 		configuration: configuration(),
 		bundles: [
 			{
-				employment: { id: 'emp-1', employee_number: 'NHPMY0009' },
+				employment: { id: 'emp-1', employee_number: 'PUBEM0009' },
 				terms: [{ pay_frequency: 'SEMI_MONTHLY' }]
 			},
 			{
-				employment: { id: 'emp-2', employee_number: 'NHPMY0002' },
+				employment: { id: 'emp-2', employee_number: 'PUBEM0002' },
 				terms: [{ pay_frequency: 'MONTHLY' }]
 			}
 		]
 	});
 	assert.equal(issues.length, 1);
 	assert.equal(issues[0].code, 'PAY_CALENDAR_CADENCE_UNSTATED');
-	assert.match(issues[0].message, /NHPMY0009/);
-	assert.doesNotMatch(issues[0].message, /NHPMY0002/, 'a monthly employment is not implicated');
+	assert.match(issues[0].message, /PUBEM0009/);
+	assert.doesNotMatch(issues[0].message, /PUBEM0002/, 'a monthly employment is not implicated');
 	assert.match(issues[0].message, /SEMI_MONTHLY/);
 });
 
@@ -289,7 +289,7 @@ test('a semi-monthly employment is no fault once the company states that calenda
 			configuration: configuration({
 				company: {
 					id: 'co-ph',
-					name: 'Omni Plus System Philippines, Inc.',
+					name: 'Public Fixture PH',
 					pay_cutoff_day: 21,
 					pay_day: 30,
 					pay_calendar: [
@@ -305,11 +305,11 @@ test('a semi-monthly employment is no fault once the company states that calenda
 			}),
 			bundles: [
 				{
-					employment: { id: 'emp-1', employee_number: 'OPSPH0009' },
+					employment: { id: 'emp-1', employee_number: 'PUBPH0009' },
 					terms: [{ pay_frequency: 'SEMI_MONTHLY' }]
 				},
 				{
-					employment: { id: 'emp-2', employee_number: 'OPSPH0002' },
+					employment: { id: 'emp-2', employee_number: 'PUBPH0002' },
 					terms: [{ pay_frequency: 'MONTHLY' }]
 				}
 			]
@@ -328,7 +328,7 @@ test('a cadence no calendar of instalments could describe is still refused', () 
 		configuration: configuration({
 			company: {
 				id: 'co-ph',
-				name: 'Omni Plus System Philippines, Inc.',
+				name: 'Public Fixture PH',
 				pay_cutoff_day: 21,
 				pay_day: 30,
 				pay_calendar: [
@@ -344,13 +344,13 @@ test('a cadence no calendar of instalments could describe is still refused', () 
 		}),
 		bundles: [
 			{
-				employment: { id: 'emp-3', employee_number: 'OPSPH0031' },
+				employment: { id: 'emp-3', employee_number: 'PUBPH0031' },
 				terms: [{ pay_frequency: 'WEEKLY' }]
 			}
 		]
 	});
 	assert.equal(issues.length, 1);
-	assert.match(issues[0].message, /OPSPH0031/);
+	assert.match(issues[0].message, /PUBPH0031/);
 	assert.match(issues[0].message, /WEEKLY/);
 });
 
@@ -360,7 +360,7 @@ test('an all-monthly company raises nothing', () => {
 			configuration: configuration(),
 			bundles: [
 				{
-					employment: { id: 'emp-2', employee_number: 'NHPMY0002' },
+					employment: { id: 'emp-2', employee_number: 'PUBEM0002' },
 					terms: [{ pay_frequency: 'MONTHLY' }, { pay_frequency: null }]
 				}
 			]
@@ -371,13 +371,13 @@ test('an all-monthly company raises nothing', () => {
 
 test('the refusal spells out every issue rather than counting them', () => {
 	const issues = [
-		{ code: 'DAILY_WORK_LIMIT_EXCEEDED', message: 'NHPMY0002 worked 13.25 hours on 2026-03-10.' },
-		{ code: 'OVERTIME_LIMIT_EXCEEDED', message: 'NHPMY0023 worked 112 hours in 2026-03.' }
+		{ code: 'DAILY_WORK_LIMIT_EXCEEDED', message: 'PUBEM0002 worked 13.25 hours on 2026-03-10.' },
+		{ code: 'OVERTIME_LIMIT_EXCEEDED', message: 'PUBEM0023 worked 112 hours in 2026-03.' }
 	];
 	const described = describeIssues(issues);
 	assert.match(described, /2 things must be fixed first/);
-	assert.match(described, /NHPMY0002 worked 13\.25 hours on 2026-03-10/);
-	assert.match(described, /NHPMY0023 worked 112 hours in 2026-03/);
+	assert.match(described, /PUBEM0002 worked 13\.25 hours on 2026-03-10/);
+	assert.match(described, /PUBEM0023 worked 112 hours in 2026-03/);
 	assert.match(described, /DAILY_WORK_LIMIT_EXCEEDED/);
 });
 
@@ -388,7 +388,7 @@ test('one issue reads as one issue, and a flood is capped with an honest count',
 	);
 	const many = Array.from({ length: 40 }, (_value, index) => ({
 		code: 'DAILY_WORK_LIMIT_EXCEEDED',
-		message: `NHPMY${String(index).padStart(4, '0')} worked 13 hours on 2026-03-10.`
+		message: `PUBEM${String(index).padStart(4, '0')} worked 13 hours on 2026-03-10.`
 	}));
 	const described = describeIssues(many);
 	assert.match(described, /40 things must be fixed first/);
@@ -401,7 +401,7 @@ test('one issue reads as one issue, and a flood is capped with an honest count',
  *
  * The engine used to `find` the first unclosed entry and throw on it, which meant a month with
  * thirty-six of them — an ordinary month, people forget to clock out — took thirty-six builds to
- * enumerate. Nihon's own January 2026 attendance is exactly that shape.
+ * enumerate. A typical month of forgotten clock-outs is exactly that shape.
  */
 const openBundle = (employeeNumber, days) => ({
 	employment: { employee_number: employeeNumber },
@@ -411,7 +411,7 @@ const openBundle = (employeeNumber, days) => ({
 test('every unclosed clock is reported, not just the first', () => {
 	const issues = validateOpenWorkDays({
 		bundles: [
-			openBundle('NHPMY0193', [
+			openBundle('PUBEM0193', [
 				{
 					id: 'wd-1',
 					work_date: '2026-01-15',
@@ -423,7 +423,7 @@ test('every unclosed clock is reported, not just the first', () => {
 					worked_intervals: [{ start: '2026-01-16T01:00:00.000Z', end: '2026-01-16T09:00:00.000Z' }]
 				}
 			]),
-			openBundle('NHPMY0271', [
+			openBundle('PUBEM0271', [
 				{
 					id: 'wd-3',
 					work_date: '2025-12-27',
@@ -444,9 +444,9 @@ test('every unclosed clock is reported, not just the first', () => {
 		assert.equal(issue.collection, 'work_days');
 	}
 	// The employee, not only the date — dozens of people clock on any given day.
-	assert.match(issues[0].message, /NHPMY0193 has an unclosed clock on 2026-01-15/);
+	assert.match(issues[0].message, /PUBEM0193 has an unclosed clock on 2026-01-15/);
 	// A clock-out with no clock-in is just as unpriceable as a clock that never stopped.
-	assert.match(issues[1].message, /NHPMY0271 has an unclosed clock on 2025-12-27/);
+	assert.match(issues[1].message, /PUBEM0271 has an unclosed clock on 2025-12-27/);
 });
 
 test('closed attendance raises nothing, and a null interval list is not an open clock', () => {
@@ -455,7 +455,7 @@ test('closed attendance raises nothing, and a null interval list is not an open 
 	// Claiming it here would report the wrong thing to fix.
 	const issues = validateOpenWorkDays({
 		bundles: [
-			openBundle('NHPMY0001', [
+			openBundle('PUBEM0001', [
 				{
 					id: 'wd-4',
 					work_date: '2026-01-05',

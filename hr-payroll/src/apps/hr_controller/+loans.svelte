@@ -25,10 +25,10 @@
 	import type { TenantI18nKeys } from '$bolt/i18n-keys';
 	import type { WorkspaceRow } from '$bolt/types.js';
 	import { CollectionTable } from '@norbital-ai/ui/collection-table';
-	import CompanyScopeBanner from './CompanyScopeBanner.svelte';
+	import CompanyScopeCombobox from './CompanyScopeCombobox.svelte';
 	import {
-		activeCompanyId as activeCompanyIdOf,
-		companiesUnknown as companiesUnknownOf
+		companiesUnknown as companiesUnknownOf,
+		resolveCompanyId
 	} from './company-scope.svelte.js';
 	import { Bound, Cover, Inline, Stack } from '@norbital-ai/ui/layout';
 	import { formatEffectiveRange, formatNumeric } from '../../lib/ui/display-formatters.js';
@@ -36,6 +36,10 @@
 	import { decodeNumber } from '@norbital-ai/std/json';
 
 	const { t } = useI18n<TenantI18nKeys>();
+
+	let chosenCompanyId = $state<string | null>(null);
+	const selectedCompanyId = $derived(resolveCompanyId(chosenCompanyId));
+	const companiesUnknown = $derived(companiesUnknownOf());
 
 	const RepaymentProgressSchema = Schema.Struct({
 		recoveredAmount: Schema.Number,
@@ -75,8 +79,6 @@
 			settled: outstandingAmount <= 0.01
 		};
 	}
-	const selectedCompanyId = $derived(activeCompanyIdOf());
-	const companiesUnknown = $derived(companiesUnknownOf());
 
 	/**
 	 * The recovery ledger, in three reads rather than a nested one.
@@ -220,7 +222,12 @@
 </svelte:head>
 
 {#snippet companyScopeActions()}
-	<CompanyScopeBanner />
+	<CompanyScopeCombobox
+		value={selectedCompanyId}
+		onValueChange={(id) => {
+			chosenCompanyId = id;
+		}}
+	/>
 {/snippet}
 
 <AppHeaderActions>

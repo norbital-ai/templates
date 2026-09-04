@@ -12,6 +12,7 @@ import {
 	ANNUAL_LEAVE_TYPE_ID,
 	COMPANY_ID,
 	EMPLOYMENT_ID,
+	FEBRUARY_2026,
 	JANUARY_2026,
 	LOCAL_DATABASE_TEST_TIMEOUT_MILLIS,
 	publicSeedDirectory,
@@ -154,9 +155,81 @@ test(
 );
 
 /**
- * A3 command half. HQ Payroll HR `payroll_runs.mutate.new` is approval-gated, but create.before
- * always nests payslips and the controller has no payrollRebuildGrants — mutate is forbidden.
- * `leave_requests.mutate.new` is the existing approval-gated write that does not expand.
+ * H11: HQ Payroll HR may raise `payroll_runs.mutate.new`. create.before nests payslips as the
+ * requesting subject, so `payrollRebuildGrants()` on `hr_controller` is what stops
+ * "no matching allow policy" before the approval gate. The run itself stays held.
+ */
+test(
+	'public seed HQ Payroll HR payroll create is held, not refused on payslip writes',
+	{ timeout: LOCAL_DATABASE_TEST_TIMEOUT_MILLIS },
+	async () => {
+		const session = await startPublicSeedHost('hr-payroll-h11-controller-create');
+		try {
+			const previewHeaders = {
+				...bearerHeaders(session.credential),
+				'x-colony-impersonated-team': 'HQ Payroll HR'
+			};
+			const preview = await postGuestCommand(
+				session.host.baseUrl,
+				'access.impersonation',
+				{},
+				previewHeaders
+			);
+			assert.ok(
+				preview.status >= 200 && preview.status < 300,
+				`access.impersonation ${preview.status}: ${JSON.stringify(preview.value)}`
+			);
+			assert.equal(
+				asRecord(preview.value, 'access.impersonation').isActive,
+				true,
+				`H11 preview: ${JSON.stringify(preview.value)}`
+			);
+			const payrollRunId = crypto.randomUUID();
+			const created = await postGuestCommand(
+				session.host.baseUrl,
+				CREATE_PAYROLL_COMMAND,
+				mutationPush(session.schemaFingerprint, {
+					action: 'create',
+					collection: 'payroll_runs',
+					values: {
+						id: payrollRunId,
+						company_id: COMPANY_ID,
+						period: FEBRUARY_2026
+					}
+				}),
+				previewHeaders
+			);
+			assert.ok(
+				created.status >= 200 && created.status < 300,
+				`H11 create ${created.status}: ${JSON.stringify(created.value)}`
+			);
+			const payload = asRecord(created.value, 'H11 payroll create');
+			assert.doesNotMatch(
+				JSON.stringify(created.value),
+				/no matching allow policy/i,
+				`H11 payslip writes refused: ${JSON.stringify(created.value)}`
+			);
+			assert.equal(payload.resolution, 'accepted', `H11 resolution: ${JSON.stringify(created.value)}`);
+			const pending = payload.pendingApproval;
+			assert.ok(
+				pending !== null && typeof pending === 'object' && !Array.isArray(pending),
+				`H11 expected pendingApproval, got ${JSON.stringify(created.value)}`
+			);
+			const approval = asRecord(pending, 'H11 pendingApproval');
+			assert.equal(approval.collection, 'payroll_runs');
+			assert.equal(approval.action, 'create');
+			const inserted = (await session.query(`select id from payroll_runs where id = $1`, [
+				payrollRunId
+			])) as ReadonlyArray<{ readonly id: string }>;
+			assert.deepEqual(inserted, [], 'approval-gated payroll create must not insert the run');
+		} finally {
+			await session.stop();
+		}
+	}
+);
+
+/**
+ * A3 command half. HQ Payroll HR `leave_requests.mutate.new` is approval-gated and does not expand.
  * Founder admin auto-commits (T4). Form toast remains headed.
  */
 test(

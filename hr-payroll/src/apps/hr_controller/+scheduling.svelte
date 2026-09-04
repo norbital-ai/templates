@@ -13,14 +13,13 @@
 		submitCollectionMutation,
 		type CollectionMutationSubmission
 	} from '@norbital-ai/ui/collection-form';
-	import CompanyScopeBanner from './CompanyScopeBanner.svelte';
+	import CompanyScopeCombobox from './CompanyScopeCombobox.svelte';
 	import {
-		activeCompany as activeCompanyOf,
-		activeCompanyId as activeCompanyIdOf,
-		companiesUnknown as companiesUnknownOf
+		companyById,
+		companiesUnknown as companiesUnknownOf,
+		resolveCompanyId
 	} from './company-scope.svelte.js';
 	import { Button } from '@norbital-ai/ui/button';
-	import { Input } from '@norbital-ai/ui/input';
 	import { Alert, AlertDescription, AlertTitle } from '@norbital-ai/ui/alert';
 	import { Badge } from '@norbital-ai/ui/badge';
 	import { IconWrapper } from '@norbital-ai/ui/icon-wrapper';
@@ -44,6 +43,7 @@
 	import { getErrorMessage } from '@norbital-ai/std';
 	import { formatDateISO } from '@norbital-ai/std/date';
 	import { decodeNumber } from '@norbital-ai/std/json';
+	import MonthPeriodPicker from '../../lib/ui/month-period-picker.svelte';
 	import RosterMonthBoard, { type BoardCell } from '../../lib/ui/roster/roster-month-board.svelte';
 	import DaySheet, { type DaySheetChange } from '../../lib/ui/roster/day-sheet.svelte';
 	import {
@@ -92,6 +92,9 @@
 	import type { WorkPattern } from '../../datatypes/work_pattern/+definition.js';
 
 	const { t } = useI18n<TenantI18nKeys>();
+	let chosenCompanyId = $state<string | null>(null);
+	const selectedCompanyId = $derived(resolveCompanyId(chosenCompanyId));
+	const selectedCompany = $derived(companyById(selectedCompanyId));
 	let month = $state<string>(monthKey(todayKey()));
 	/**
 	 * The day sheet's subject and its transient write state.
@@ -143,8 +146,6 @@
 	const activeRange = { effective_range: { contains_date: todayInstant() } } as const;
 	const approved = { approval_id: { isNull: true } } as const;
 	const companiesUnknown = $derived(companiesUnknownOf());
-	const selectedCompanyId = $derived(activeCompanyIdOf());
-	const selectedCompany = $derived(activeCompanyOf());
 
 	/** The month's calendar bounds, which every dated query below is narrowed to. */
 	const monthStart = $derived(`${month}-01`);
@@ -1363,19 +1364,19 @@
 </svelte:head>
 
 {#snippet companyScopeActions()}
-	<CompanyScopeBanner />
+	<CompanyScopeCombobox
+		value={selectedCompanyId}
+		onValueChange={(id) => {
+			chosenCompanyId = id;
+		}}
+	/>
 {/snippet}
 
 {#snippet monthNavigation()}
-	<!-- The platform Input is the existing timestamp control at native month precision. One picker
-	     owns month selection; the board exposes no parallel previous/next pagination. -->
-	<Input
-		type="month"
-		class="w-auto min-w-[10rem] tabular-nums"
+	<MonthPeriodPicker
+		{month}
+		onMonthChange={selectMonth}
 		disabled={createDraftPending || rosterSettlementId !== null || daySheetSubmission.settling}
-		aria-label={t('app.scheduling.month_picker')}
-		value={month}
-		oninput={(event) => selectMonth(event.currentTarget.value)}
 	/>
 {/snippet}
 

@@ -1,6 +1,6 @@
 // @ts-nocheck -- executed directly by Node with --experimental-strip-types.
 /**
- * Public one-person payroll world. Not the private Nihon bank (89 people / 595,184.51).
+ * Public one-person payroll world.
  * Gather, the create hook and the unique-index persist test all share this fixture.
  */
 import type { PayrollWorld } from './memory-payroll-api.ts';

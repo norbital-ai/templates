@@ -8,10 +8,10 @@
 	import type { WorkspaceRow } from '$bolt/types.js';
 	import { Tabs, type TabConfig } from '@norbital-ai/ui/tabs';
 	import { CollectionTable } from '@norbital-ai/ui/collection-table';
-	import CompanyScopeBanner from './CompanyScopeBanner.svelte';
+	import CompanyScopeCombobox from './CompanyScopeCombobox.svelte';
 	import {
-		activeCompanyId as activeCompanyIdOf,
-		companiesUnknown as companiesUnknownOf
+		companiesUnknown as companiesUnknownOf,
+		resolveCompanyId
 	} from './company-scope.svelte.js';
 	import { Bound, Cover, Scroll } from '@norbital-ai/ui/layout';
 	import ClaimSeasonality from '../../lib/ui/pay-components/claim-seasonality.svelte';
@@ -19,7 +19,8 @@
 	import { sourceLock, sourceLockRecordMetadata } from '../../lib/scheduling/lock.js';
 
 	const { t } = useI18n<TenantI18nKeys>();
-	const selectedCompanyId = $derived(activeCompanyIdOf());
+	let chosenCompanyId = $state<string | null>(null);
+	const selectedCompanyId = $derived(resolveCompanyId(chosenCompanyId));
 	const companiesUnknown = $derived(companiesUnknownOf());
 
 	type EntryRow = WorkspaceRow<'component_entries'> & {
@@ -118,7 +119,12 @@
 </svelte:head>
 
 {#snippet companyScopeActions()}
-	<CompanyScopeBanner />
+	<CompanyScopeCombobox
+		value={selectedCompanyId}
+		onValueChange={(id) => {
+			chosenCompanyId = id;
+		}}
+	/>
 {/snippet}
 
 {#snippet overview()}

@@ -196,7 +196,7 @@ holidays, existing requests and entitlement balance.
 ```text
 New leave request
 ┌──────────────────────────────────────────────────────────────────────────┐
-│ Person      [ NHPMY0359 · Aisha ▾ ]                                     │
+│ Person      [ PUBEM0359 · Aisha ▾ ]                                     │
 │ Leave type  [ Annual leave ▾ ]             Balance  4.5 days            │
 │                                                                          │
 │ Range       [ 4 Jun 2026, AM → 11 Jun 2026, AM  ▾ ]                     │

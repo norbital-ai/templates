@@ -339,7 +339,7 @@ export class RowReader {
 		this.#identify = identify;
 	}
 
-	/** `Row 7 (NHPMY0002 on 2026-05-04)` — whatever the caller decided names a row of this sheet. */
+	/** `Row 7 (PUBEM0002 on 2026-05-04)` — whatever the caller decided names a row of this sheet. */
 	get identity(): string {
 		return this.#identify(this);
 	}

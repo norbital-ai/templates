@@ -9,6 +9,7 @@ import {
 	instantRangeAsDayPickerValue,
 	instantRangeFromDayPickerValue,
 	monthWorkDateInstantBounds,
+	periodWindow,
 	startOfDayInstant,
 	workDateCalendarKey
 } from '../src/lib/ui/calendar.js';
@@ -82,6 +83,17 @@ describe('calendar-day picker adapters', () => {
 		assert.equal(bounds.start, '2026-01-31T16:00:00.000Z');
 		assert.equal(bounds.end, '2026-02-27T16:00:00.000Z');
 		assert.notEqual(bounds.start, '2026-02-01T00:00:00.000Z');
+	});
+
+	it('roster month options are YYYY-MM across years, not a 2026 list', () => {
+		const periods = periodWindow(37, 12);
+		assert.equal(periods.length, 37);
+		assert.ok(periods.every((period) => /^\d{4}-(0[1-9]|1[0-2])$/.test(period)));
+		assert.ok(
+			periods.some((period) => period.startsWith('2025-')) &&
+				periods.some((period) => period.startsWith('2027-')),
+			`MonthPeriodPicker window must span years, got ${JSON.stringify(periods)}`
+		);
 	});
 
 	it('refuses invalid day and instant spellings instead of rolling them forward', () => {

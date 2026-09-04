@@ -5,11 +5,11 @@
 	import { useI18n, type UiKeys } from '@norbital-ai/ui/i18n';
 	import AppHeaderActions from '@norbital-ai/bolt/client/app-header-actions';
 	import type { TenantI18nKeys } from '$bolt/i18n-keys';
-	import CompanyScopeBanner from './CompanyScopeBanner.svelte';
+	import CompanyScopeCombobox from './CompanyScopeCombobox.svelte';
 	import {
-		activeCompany as activeCompanyOf,
-		activeCompanyId as activeCompanyIdOf,
-		companiesUnknown as companiesUnknownOf
+		companyById,
+		companiesUnknown as companiesUnknownOf,
+		resolveCompanyId
 	} from './company-scope.svelte.js';
 	import { Bound, Cover, Inline, Scroll, Stack } from '@norbital-ai/ui/layout';
 	import { Tabs, type TabConfig } from '@norbital-ai/ui/tabs';
@@ -20,10 +20,12 @@
 
 	const { t } = useI18n<TenantI18nKeys | UiKeys>();
 
-	const today = todayKey();
-	const selectedCompanyId = $derived(activeCompanyIdOf());
-	const selectedCompany = $derived(activeCompanyOf());
+	let chosenCompanyId = $state<string | null>(null);
+	const selectedCompanyId = $derived(resolveCompanyId(chosenCompanyId));
+	const selectedCompany = $derived(companyById(selectedCompanyId));
 	const companiesUnknown = $derived(companiesUnknownOf());
+
+	const today = todayKey();
 
 	const payrollRunsQuery = $derived(
 		selectedCompanyId == null
@@ -104,7 +106,12 @@
 </script>
 
 {#snippet companyScopeActions()}
-	<CompanyScopeBanner />
+	<CompanyScopeCombobox
+		value={selectedCompanyId}
+		onValueChange={(id) => {
+			chosenCompanyId = id;
+		}}
+	/>
 {/snippet}
 
 {#snippet overview()}

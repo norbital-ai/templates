@@ -11,27 +11,24 @@
 	 * A record opens on the run itself: the window it was built against and the payslips it
 	 * produced. The window, the configuration hash and the period are the engine's — they are shown,
 	 * never edited, because a run that could be re-pointed after it was calculated would be
-	 * untraceable. Draft recalculation and the final paid transition are explicit actions.
+	 * untraceable. A refused draft is deleted and created again — CollectionTable deletion and
+	 * CollectionForm create already own pending and error.
 	 * Permission checks, approval locks, request-change reasons, and audit history belong to the
 	 * platform.
 	 */
 	import { client } from '../../lib/workspace-client.js';
-	import { downloadCollectionExport } from '@norbital-ai/bolt/client';
 	import { useI18n } from '@norbital-ai/ui/i18n';
 	import { Effect, Result } from 'effect';
 	import type { TenantI18nKeys } from '$bolt/i18n-keys';
 	import type { RepresentationProps } from './$types.js';
-	import { Button } from '@norbital-ai/ui/button';
 	import { CollectionForm } from '@norbital-ai/ui/collection-form';
 	import { CollectionTable } from '@norbital-ai/ui/collection-table';
-	import { collectionDeleteBatch } from '@norbital-ai/ui/collection-toolbar';
 	import { Combobox } from '@norbital-ai/ui/combobox';
 	import { FormattedValueRenderer } from '@norbital-ai/ui/data-renderer';
-	import { Cluster, Grid, Inline, Stack } from '@norbital-ai/ui/layout';
-	import { toast } from 'svelte-sonner';
+	import { Cluster, Grid, Stack } from '@norbital-ai/ui/layout';
 	import { resolveWindow } from './lib/period.js';
 	import { formatCalendarDate } from '../../lib/ui/display-formatters.js';
-	import { payrollRunsExportQuery, saveCollectionExport } from '../../lib/ui/export-download.js';
+	import { periodWindow } from '../../lib/ui/calendar.js';
 	import {
 		payrollRunPayslipsQuery,
 		payslipAmount,
@@ -41,11 +38,6 @@
 
 	let { record, close }: RepresentationProps = $props();
 	const { t } = useI18n<TenantI18nKeys>();
-
-	const OFFERED_PERIODS = Array.from(
-		{ length: 12 },
-		(_value, index) => `2026-${String(index + 1).padStart(2, '0')}`
-	);
 
 	// Company calendar data can fail `resolveWindow` (a cutoff out of range, a calendar with no
 	// instalments). The failure is a condition of membership, not an error to show — an unusable
@@ -116,19 +108,21 @@
 				.filter((run) => run.company_id === company.id)
 				.map((run) => run.period)
 		);
-		return OFFERED_PERIODS.filter((candidate) => !settled.has(candidate)).flatMap((candidate) => {
-			// A company whose pay calendar is unusable has no offerable period; it must be fixed
-			// on the company, not guessed at here.
-			const window = windowFor(candidate, company);
-			if (window == null) return [];
-			return [
-				{
-					value: candidate,
-					label: `${candidate} · Pay ${formatCalendarDate(window.payDate)}`,
-					search_term: `${candidate} ${window.attendance.start} ${window.attendance.end}`
-				}
-			];
-		});
+		return periodWindow(12, 3)
+			.filter((candidate) => !settled.has(candidate))
+			.flatMap((candidate) => {
+				// A company whose pay calendar is unusable has no offerable period; it must be fixed
+				// on the company, not guessed at here.
+				const window = windowFor(candidate, company);
+				if (window == null) return [];
+				return [
+					{
+						value: candidate,
+						label: `${candidate} · Pay ${formatCalendarDate(window.payDate)}`,
+						search_term: `${candidate} ${window.attendance.start} ${window.attendance.end}`
+					}
+				];
+			});
 	});
 
 	const selectedWindow = $derived.by(() => {
@@ -152,144 +146,10 @@
 	const payslipsTableQuery = $derived(
 		record == null ? undefined : payrollRunPayslipsQuery(record.id)
 	);
-	let lockArmed = $state(false);
-	let deleteArmed = $state(false);
-	let payrollRecalculationPending = $state(false);
-	let payrollFinalizationPending = $state(false);
-	let payrollDeletionPending = $state(false);
 	// Only while a count has actually come back. `?? 0` on a query still in flight would flash the
 	// refusal notice on every run, including the ones that built perfectly.
 	const payslipCount = $derived(payslipCountQuery?.current ?? null);
 	const emptyDraft = $derived(record != null && record.lifecycle === 'DRAFT' && payslipCount === 0);
-
-	// Auth policy remains server-private. The mutation and its authoritative settlement decide whether
-	// this viewer may update the run; a refusal follows the same error path as every other failed write.
-	function updateDraft(action: 'recalculate' | 'pay'): void {
-		if (record == null) return;
-		const payrollRunId = record.id;
-		if (action === 'recalculate') {
-			payrollRecalculationPending = true;
-			Effect.runFork(
-				Effect.gen(function* () {
-					const local = yield* Effect.tryPromise({
-						try: () => client.db.payroll_runs.mutate({ id: payrollRunId, lifecycle: 'DRAFT' }),
-						catch: (cause) => cause
-					});
-					// Recalculation's useful values are produced by server hooks, not by the local row.
-					// Keep progress visible until settlement; the payslip queries read the result reactively.
-					const settlement = yield* Effect.tryPromise({
-						try: () => local.settlement.wait(),
-						catch: (cause) => cause
-					});
-					if (settlement.kind !== 'accepted' && settlement.kind !== 'rebased') {
-						return yield* Effect.fail(
-							new Error(
-								settlement.kind === 'rejected' ? settlement.message : settlement.quarantine.message
-							)
-						);
-					}
-				}).pipe(
-					Effect.catch((cause) =>
-						Effect.sync(() =>
-							toast.error(cause instanceof Error ? cause.message : t('component.update_failed'))
-						)
-					),
-					Effect.ensuring(Effect.sync(() => (payrollRecalculationPending = false)))
-				)
-			);
-			return;
-		}
-
-		payrollFinalizationPending = true;
-		Effect.runFork(
-			Effect.gen(function* () {
-				const local = yield* Effect.tryPromise({
-					try: () => client.db.payroll_runs.mutate({ id: payrollRunId, lifecycle: 'PAID' }),
-					catch: (cause) => cause
-				});
-				// Paying is irreversible and globally constrained. The overlay may show PAID immediately,
-				// but the operator-facing action remains pending until authoritative settlement is known.
-				const settlement = yield* Effect.tryPromise({
-					try: () => local.settlement.wait(),
-					catch: (cause) => cause
-				});
-				if (settlement.kind !== 'accepted' && settlement.kind !== 'rebased') {
-					return yield* Effect.fail(
-						new Error(
-							settlement.kind === 'rejected' ? settlement.message : settlement.quarantine.message
-						)
-					);
-				}
-				lockArmed = false;
-			}).pipe(
-				Effect.catch((cause) =>
-					Effect.sync(() =>
-						toast.error(cause instanceof Error ? cause.message : t('component.update_failed'))
-					)
-				),
-				Effect.ensuring(Effect.sync(() => (payrollFinalizationPending = false)))
-			)
-		);
-	}
-
-	function deleteDraft(): void {
-		if (record == null) return;
-		const payrollRunId = record.id;
-		const period = record.period;
-		payrollDeletionPending = true;
-		Effect.runFork(
-			collectionDeleteBatch(client.db.payroll_runs, [payrollRunId]).pipe(
-				Effect.tap(() =>
-					Effect.sync(() => {
-						toast.success(t('component.draft_deleted', { period }));
-						close?.();
-					})
-				),
-				Effect.catch((cause) =>
-					Effect.sync(() =>
-						toast.error(cause instanceof Error ? cause.message : t('component.delete_failed'))
-					)
-				),
-				Effect.ensuring(
-					Effect.sync(() => {
-						payrollDeletionPending = false;
-						deleteArmed = false;
-					})
-				)
-			)
-		);
-	}
-
-	function downloadReport(): void {
-		if (record == null) return;
-		Effect.runPromise(
-			Effect.map(
-				Effect.result(
-					Effect.tryPromise(() =>
-						downloadCollectionExport(payrollRunsExportQuery([record.id]), {
-							includeAction: (action) => action.metadata?.kind === 'payroll-report-xlsx'
-						})
-					)
-				),
-				(attempt) => {
-					if (Result.isFailure(attempt)) {
-						toast.error(
-							attempt.failure instanceof Error
-								? attempt.failure.message
-								: t('component.export_failed')
-						);
-						return;
-					}
-					const manifest = attempt.success;
-					if (manifest.length === 0) {
-						toast.error(t('component.build_before_export'));
-						return;
-					}
-					saveCollectionExport(manifest);
-				}
-			)
-		);
-	}
 </script>
 
 {#if record}
@@ -307,66 +167,9 @@
 						})}
 					</p>
 				</Stack>
-				<Inline gap="xs" justify="end" shrink={false}>
-					<span class="rounded-full bg-muted px-2.5 py-1 text-xs font-semibold">
-						{payrollFinalizationPending ? t('component.locking') : record.lifecycle}
-					</span>
-					{#if record.lifecycle === 'DRAFT'}
-						<Button variant="outline" size="sm" onclick={downloadReport}>
-							{t('component.export_salary_listing')}
-						</Button>
-						<Button
-							variant="outline"
-							size="sm"
-							disabled={client.db.payroll_runs.pending > 0 ||
-								payrollRecalculationPending ||
-								payrollFinalizationPending ||
-								payrollDeletionPending}
-							onclick={() => updateDraft('recalculate')}
-						>
-							{payrollRecalculationPending
-								? t('component.recalculating')
-								: t('component.recalculate_draft')}
-						</Button>
-						<Button
-							variant={deleteArmed ? 'destructive' : 'outline'}
-							size="sm"
-							disabled={client.db.payroll_runs.pending > 0 ||
-								payrollRecalculationPending ||
-								payrollFinalizationPending ||
-								payrollDeletionPending}
-							onclick={() => {
-								if (!deleteArmed) {
-									deleteArmed = true;
-									return;
-								}
-								deleteDraft();
-							}}
-						>
-							{payrollDeletionPending ? t('component.deleting') : t('component.delete_draft')}
-						</Button>
-						<Button
-							size="sm"
-							disabled={client.db.payroll_runs.pending > 0 ||
-								payrollRecalculationPending ||
-								payrollFinalizationPending ||
-								payrollDeletionPending}
-							onclick={() => {
-								if (!lockArmed) {
-									lockArmed = true;
-									return;
-								}
-								updateDraft('pay');
-							}}
-						>
-							{payrollFinalizationPending
-								? t('component.locking')
-								: lockArmed
-									? t('component.confirm_lock_pay')
-									: t('component.lock_payroll')}
-						</Button>
-					{/if}
-				</Inline>
+				<span class="rounded-full bg-muted px-2.5 py-1 text-xs font-semibold">
+					{record.lifecycle}
+				</span>
 			</Cluster>
 			<Grid as="dl" gap="sm" minimum="compact">
 				<Stack gap="xs">
@@ -381,25 +184,8 @@
 					<dt class="text-meta">{t('app.payroll.pay_date')}</dt>
 					<dd class="font-medium tabular-nums">{formatCalendarDate(record.pay_date)}</dd>
 				</Stack>
-				<Stack gap="xs">
-					<dt class="text-meta">{t('component.run_snapshot')}</dt>
-					<dd class="text-sm font-medium">
-						{t('component.captured_at_run_time')}
-					</dd>
-				</Stack>
 			</Grid>
 		</Stack>
-
-		{#if lockArmed && record.lifecycle === 'DRAFT'}
-			<p class="rounded-md border border-amber-500/40 bg-amber-500/10 p-3 text-sm">
-				{t('component.lock_warning')}
-			</p>
-		{/if}
-		{#if payrollFinalizationPending}
-			<p class="rounded-md border border-amber-500/40 bg-amber-500/10 p-3 text-sm" role="status">
-				{t('component.locking')}
-			</p>
-		{/if}
 
 		{#if emptyDraft}
 			<p class="rounded-md border border-amber-500/40 bg-amber-500/10 p-3 text-sm">
@@ -407,8 +193,7 @@
 			</p>
 		{/if}
 
-		<Stack as="section" gap="sm" aria-labelledby="run-payslips-heading">
-			<h3 id="run-payslips-heading" class="text-sm font-semibold">{t('component.payslips')}</h3>
+		<Stack as="section" gap="sm" aria-label={t('component.payslips')}>
 			<CollectionTable
 				{client}
 				collection="payslips"

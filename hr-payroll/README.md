@@ -260,10 +260,10 @@ artifact a host deploys.
   migration under `.norbital/migrations/`. Edit `+model.ts`, run `pnpm sync`, then review the
   migration the compiler emits.
 - **Seed** — tests own `tests/fixtures/seed/` (invented public ids). Host demo / reconciliation
-  still uses the private `seed_bank/norbital_hr/` tree; there is no `src/+seed.ts` role, and
+  uses the private seed bank remote, not this tree; there is no `src/+seed.ts` role, and
   seeding does not evolve deployed data. For an existing tenant, write the next lineage entry
   with `pnpm exec bolt migrate --name <name>`, edit its SQL, and deploy it through Colony.
-  Sensitive statutory seed for demo tenants stays in the repository seed bank. It is not a test
+  Sensitive statutory seed for demo tenants stays in the host seed bank. It is not a test
   input.
 - **Publishing** — the template pins `@norbital-ai/bolt` in its own `package.json` and lockfile.
   After a deliberate dependency move, refresh the template lock through the repository

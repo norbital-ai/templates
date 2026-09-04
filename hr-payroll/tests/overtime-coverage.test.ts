@@ -271,7 +271,7 @@ const runCoverage = (overrides = {}) =>
 		},
 		statutoryWorkCategory: 'NON_MANUAL',
 		workClassification: 'EA_COVERED',
-		employeeNumber: 'NHPMY0002',
+		employeeNumber: 'PUBEM0002',
 		...overrides
 	});
 
@@ -321,7 +321,7 @@ test('a ceiling the run cannot compare fails the run and names the employee and 
 				rule: { ...MY_RULE, wage_ceiling: { value: 4000, currency: 'SGD' } }
 			}),
 		(error) => {
-			assert.match(error.message, /NHPMY0002/);
+			assert.match(error.message, /PUBEM0002/);
 			assert.match(error.message, /different currency/);
 			assert.match(error.message, /First Schedule para 1A/);
 			return true;
@@ -333,7 +333,7 @@ test('a rule whose wage figure the caller cannot supply fails the run naming the
 	assert.throws(
 		() => runCoverage({ wages: {} }),
 		(error) => {
-			assert.match(error.message, /NHPMY0002/);
+			assert.match(error.message, /PUBEM0002/);
 			assert.match(error.message, /statutory wages/);
 			assert.match(error.message, /effective coverage rule/);
 			return true;

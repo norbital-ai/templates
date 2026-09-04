@@ -21,11 +21,8 @@
  * a populated payroll: two Malaysian payslips, which is what selects the vendor layout, and one
  * Singaporean one, which is what selects the generic layout beside it.
  *
- * The Malaysian figures are not invented. `NHPMY0023` is the employee the arithmetic gate verifies
- * end to end — basic 3,451, unpaid leave 55.66, overtime 365.44, gross 3,760.78, and the EPF /
- * SOCSO / EIS charges that `verify-payroll-arithmetic.mjs` derives from the seeded statutory
- * tables. `NHPMY0400`'s 690 basic is the source workbook's own late-joiner figure, 2,300 × 9/30.
- * Using those numbers means a cell that moves here is a cell that disagrees with a payslip.
+ * Two Malaysian payslips exercise the vendor layout; one Singaporean payslip exercises the generic
+ * layout. Figures here must stay internally consistent with `verify-payroll-arithmetic.mjs`.
  * ────────────────────────────────────────────────────────────────────────────────────────────────
  */
 import assert from 'node:assert/strict';
@@ -67,13 +64,13 @@ const line = (overrides) => ({
 /** The employee `verify-payroll-arithmetic.mjs` verifies: basic 3,451, NPL 55.66, overtime 365.44. */
 const VERIFIED = {
 	employmentId: 'emp-0023',
-	employeeNumber: 'NHPMY0023',
+	employeeNumber: 'PUBEM0023',
 	currency: 'MYR',
 	designation: 'Machine Operator',
 	section: 'Assembly',
 	group: 'MY-MONTHLY',
-	employeeName: 'Aisyah binti Rahman',
-	identityNumber: '920104-10-5522',
+	employeeName: 'Public Fixture Employee',
+	identityNumber: '900101-01-0001',
 	hireDate: '2021-06-01',
 	lastDay: null,
 	attendance: { normalHours: 208, actualHours: 230, shiftCodes: ['D'] },
@@ -123,13 +120,13 @@ const VERIFIED = {
 /** A late joiner, so the sheet also carries rest-day work, incentive overtime and a loan recovery. */
 const JOINER = {
 	employmentId: 'emp-0400',
-	employeeNumber: 'NHPMY0400',
+	employeeNumber: 'PUBEM0400',
 	currency: 'MYR',
 	designation: 'Packer',
 	section: 'Warehouse',
 	group: 'MY-MONTHLY',
-	employeeName: 'Tan Wei Ming',
-	identityNumber: '001122-14-3311',
+	employeeName: 'Public Late Joiner',
+	identityNumber: '880312-10-0002',
 	hireDate: '2026-04-22',
 	lastDay: null,
 	attendance: { normalHours: 72, actualHours: 81, shiftCodes: ['D', 'N'] },
@@ -185,13 +182,13 @@ const JOINER = {
 /** Not MYR, so this sheet takes the generic layout and grows its columns from what CPF charged. */
 const SINGAPORE = {
 	employmentId: 'emp-sg-1',
-	employeeNumber: 'NHPSG0001',
+	employeeNumber: 'PUBSG0001',
 	currency: 'SGD',
 	designation: 'Engineer',
 	section: 'Operations',
 	group: 'SG-MONTHLY',
-	employeeName: 'Lim Jia Hui',
-	identityNumber: 'S9012345A',
+	employeeName: 'Public Non-Citizen Employee',
+	identityNumber: 'S9000001A',
 	hireDate: '2022-02-01',
 	lastDay: null,
 	attendance: { normalHours: 176, actualHours: 186, shiftCodes: ['G'] },
@@ -410,12 +407,12 @@ Effect.runPromise(
 			// ── row 5: the column headers, in the vendor vocabulary's own order ───────────────────────────
 			assert.deepEqual(rowValues(listing, 5), VENDOR_HEADERS);
 
-			// ── row 6: what NHPMY0023 was actually paid, cell by cell ─────────────────────────────────────
+			// ── row 6: what PUBEM0023 was actually paid, cell by cell ─────────────────────────────────────
 			const at = (rowNumber, outputId) =>
 				listing.getRow(rowNumber).getCell(VENDOR_WORKBOOK_COLUMNS.indexOf(outputId) + 1).value;
-			assert.equal(at(6, 'eid'), 'NHPMY0023');
-			assert.equal(at(6, 'name'), 'Aisyah binti Rahman');
-			assert.equal(at(6, 'ic_no'), '920104-10-5522');
+			assert.equal(at(6, 'eid'), 'PUBEM0023');
+			assert.equal(at(6, 'name'), 'Public Fixture Employee');
+			assert.equal(at(6, 'ic_no'), '900101-01-0001');
 			assert.equal(at(6, 'designation'), 'Machine Operator');
 			assert.equal(at(6, 'basic_salary'), 3451);
 			// The overtime column carries priced overtime only; the claim is not an allowance and the
@@ -452,7 +449,7 @@ Effect.runPromise(
 			assert.equal(at(6, 'att_shift_codes'), 'D');
 
 			// ── row 7: the joiner, whose money reaches different columns from the same shapes ─────────────
-			assert.equal(at(7, 'eid'), 'NHPMY0400');
+			assert.equal(at(7, 'eid'), 'PUBEM0400');
 			assert.equal(at(7, 'basic_salary'), 690, '2,300 × 9/30, the source workbook’s own figure');
 			assert.equal(at(7, 'allowance'), 150, 'a standing allowance is not overtime and not basic');
 			assert.equal(
@@ -552,7 +549,7 @@ Effect.runPromise(
 			assert.equal(generic.getRow(2).getCell(9).value, 'Gross');
 			assert.equal(generic.getRow(2).getCell(15).value, 'Statutory');
 			assert.deepEqual(rowValues(generic, 3), [
-				'NHPSG0001',
+				'PUBSG0001',
 				'emp-sg-1',
 				'SGD',
 				5000,
