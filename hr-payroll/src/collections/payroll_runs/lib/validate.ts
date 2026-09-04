@@ -461,7 +461,7 @@ export function rosteredWorkCodeMaps(
  * monthly salary with no schedule cannot derive ordinary hours. `GUARANTEED_SCHEDULE` supplies
  * them when stated.
  */
-export type RosteredValidationTerms = {
+type RosteredValidationTerms = {
 	readonly id: string;
 	readonly pay_frequency: string | null;
 	readonly work_pattern:
@@ -484,7 +484,7 @@ export type RosteredValidationTerms = {
 	readonly effective_range: unknown;
 };
 
-export type RosteredValidationDay = {
+type RosteredValidationDay = {
 	readonly work_date: string;
 	readonly shift_definition_id: string | null;
 };

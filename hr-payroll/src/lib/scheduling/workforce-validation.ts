@@ -12,7 +12,7 @@ const validationShiftSchema = Schema.Struct({
 	end_time: Schema.String,
 	break_minutes: Schema.Number
 });
-export type ValidationShift = Schema.Schema.Type<typeof validationShiftSchema>;
+type ValidationShift = Schema.Schema.Type<typeof validationShiftSchema>;
 
 const validationDaySchema = Schema.Struct({
 	employment_id: Schema.String,

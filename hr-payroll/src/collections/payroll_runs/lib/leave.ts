@@ -292,7 +292,7 @@ export function yearWindow(year: number, startMonth: number): { start: IsoDate; 
  *                   row (or zero), capped by policy, with the policy's expiry. Spendable, labelled.
  * - `NONE`        — nothing can carry: the hire year, no carry policy, or a per-event type.
  */
-export type CarryIn = {
+type CarryIn = {
 	readonly days: number;
 	readonly expires_on: IsoDate | null;
 	readonly state: 'POSTED' | 'PROVISIONAL' | 'NONE';
@@ -362,7 +362,7 @@ function expiredCarry(
 }
 
 /** What one leave year closed with, as of its last day, from that year's posted carry or zero. */
-export type Closing = {
+type Closing = {
 	readonly entitlement: number;
 	readonly carried_in: number;
 	readonly accrued: number;
@@ -452,7 +452,7 @@ export function leaveBalance(input: BalanceInput, asOf: IsoDate): number {
 }
 
 /** The balance row an employee reads for one leave type: the standard HRMS breakdown. */
-export type LeaveYearSummary = {
+type LeaveYearSummary = {
 	readonly year: number;
 	readonly window: { readonly start: IsoDate; readonly end: IsoDate };
 	/** The full-year band as of the date — the base. */
@@ -511,7 +511,7 @@ export function leaveYearSummary(input: BalanceInput, asOf: IsoDate): LeaveYearS
  * stores movements. Adjustments, encashments and carries carry their own signed movement; the carry
  * additionally names the year it opens and the day it lapses, which only its event knows.
  */
-export function ledgerRowOf(row: {
+function ledgerRowOf(row: {
 	readonly id: string;
 	readonly leave_type_id: string;
 	readonly kind: string | null;
