@@ -163,8 +163,8 @@ function automationHarness(options: {
 						.sort((left, right) => left.id.localeCompare(right.id));
 					return Effect.succeed(eligible.slice(0, input.limit ?? ASSIGNMENT_PAGE_SIZE));
 				},
-				mutate: (values: { readonly id: string }) => {
-					updates.push(values.id);
+				mutate: (rows: ReadonlyArray<{ readonly id: string }>) => {
+					for (const values of rows) updates.push(values.id);
 					return Effect.void;
 				}
 			},
@@ -220,13 +220,14 @@ function automationHarness(options: {
 				findFirst: (input: {
 					readonly where: { readonly job_assignment_id: { readonly eq: string } };
 				}) => Effect.succeed(existingReviews[input.where.job_assignment_id.eq]),
-				mutate: (values: {
+				mutate: ([values]: ReadonlyArray<{
 					readonly job_assignment_id: string;
 					readonly basis: string;
 					readonly suspicious: boolean;
 					readonly reason: string;
 					readonly evidence_id: string | null;
-				}) => {
+				}>) => {
+					if (values === undefined) return Effect.fail(new Error('mutate takes one review'));
 					reviewCreateAttempts.push(values.job_assignment_id);
 					if (options.reviewPersistenceFailures?.has(values.job_assignment_id) === true) {
 						return Effect.fail(new Error('review persistence failed'));
@@ -254,9 +255,13 @@ function automationHarness(options: {
 					const id = assignmentId == null ? undefined : options.openSuspicionIds?.[assignmentId];
 					return Effect.succeed(id == null ? undefined : { id });
 				},
-				mutate: (values: { readonly job_assignment_id: string; readonly review_id: string }) => {
-					logCreates.push(values.job_assignment_id);
-					logsByReview[values.review_id] = { id: `log-${values.job_assignment_id}` };
+				mutate: (
+					rows: ReadonlyArray<{ readonly job_assignment_id: string; readonly review_id: string }>
+				) => {
+					for (const values of rows) {
+						logCreates.push(values.job_assignment_id);
+						logsByReview[values.review_id] = { id: `log-${values.job_assignment_id}` };
+					}
 					return Effect.void;
 				}
 			}

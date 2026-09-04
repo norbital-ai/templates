@@ -256,13 +256,18 @@ test(
 					session.host.baseUrl,
 					CREATE_PAYROLL_COMMAND,
 					mutationPush(session.schemaFingerprint, {
-						action: 'create',
+						action: 'mutate',
 						collection: 'payroll_runs',
-						values: {
-							id: crypto.randomUUID(),
-							company_id: COMPANY_ID,
-							period
-						}
+						rows: [
+							{
+								action: 'create',
+								values: {
+									id: crypto.randomUUID(),
+									company_id: COMPANY_ID,
+									period
+								}
+							}
+						]
 					}),
 					{ authorization: `Bearer ${session.credential}` }
 				);

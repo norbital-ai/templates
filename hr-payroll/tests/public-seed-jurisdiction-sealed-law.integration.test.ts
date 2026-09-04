@@ -61,12 +61,17 @@ test(
 				mutationPush(
 					session.schemaFingerprint,
 					{
-						action: 'update',
+						action: 'mutate',
 						collection: 'jurisdictions',
-						values: {
-							id: JURISDICTION_ID,
-							tax_year_start_month: 7
-						}
+						rows: [
+							{
+								action: 'update',
+								values: {
+									id: JURISDICTION_ID,
+									tax_year_start_month: 7
+								}
+							}
+						]
 					},
 					[
 						{

@@ -1071,17 +1071,19 @@ export function reviewAssignmentSuspicion(
 		} as const;
 		let persistenceError: unknown;
 		const created = yield* api.db.suspicion_reviews
-			.mutate({
-				job_assignment_id: assignment.id,
-				basis_hash: basisHash,
-				basis,
-				suspicious: decision.suspicious,
-				reason: decision.reason,
-				evidence_id: decision.evidence_id,
-				model: SUSPICION_REVIEW_MODEL,
-				reviewed_at: reviewedAt,
-				source_key: reviewSourceKey(assignment.id, basisHash)
-			})
+			.mutate([
+				{
+					job_assignment_id: assignment.id,
+					basis_hash: basisHash,
+					basis,
+					suspicious: decision.suspicious,
+					reason: decision.reason,
+					evidence_id: decision.evidence_id,
+					model: SUSPICION_REVIEW_MODEL,
+					reviewed_at: reviewedAt,
+					source_key: reviewSourceKey(assignment.id, basisHash)
+				}
+			])
 			.pipe(
 				Effect.as(true as const),
 				Effect.catch((error: unknown) =>
@@ -1151,14 +1153,16 @@ export function reviewAssignmentSuspicion(
 			};
 		}
 
-		yield* api.db.suspicious_activity_logs.mutate({
-			job_assignment_id: assignment.id,
-			origin: 'automation',
-			basis: persistedDecision.basis,
-			review_id: review.id,
-			evidence_id: persistedDecision.evidence_id,
-			reason: persistedDecision.reason
-		});
+		yield* api.db.suspicious_activity_logs.mutate([
+			{
+				job_assignment_id: assignment.id,
+				origin: 'automation',
+				basis: persistedDecision.basis,
+				review_id: review.id,
+				evidence_id: persistedDecision.evidence_id,
+				reason: persistedDecision.reason
+			}
+		]);
 		// One log per review, which is the query two branches above already rely on to decide that a
 		// log exists — so it is also how the log just written is identified.
 		const log = yield* api.db.suspicious_activity_logs.findFirst({

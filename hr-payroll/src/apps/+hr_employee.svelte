@@ -937,22 +937,24 @@
 		daySheetError = null;
 		Effect.runFork(
 			submitCollectionMutation(() =>
-				client.db.work_days.mutate({
-					...(attendance.workDayId == null
-						? { employment_id: targetEmploymentId, work_date: change.date }
-						: { id: attendance.workDayId }),
-					worked_intervals:
-						attendance.intervals == null
-							? null
-							: attendance.intervals.map((interval) => ({
-									start: interval.start,
-									end: interval.end
-								})),
-					break_minutes:
-						attendance.intervals == null || attendance.intervals.length === 0
-							? 0
-							: attendance.breakMinutes
-				})
+				client.db.work_days.mutate([
+					{
+						...(attendance.workDayId == null
+							? { employment_id: targetEmploymentId, work_date: change.date }
+							: { id: attendance.workDayId }),
+						worked_intervals:
+							attendance.intervals == null
+								? null
+								: attendance.intervals.map((interval) => ({
+										start: interval.start,
+										end: interval.end
+									})),
+						break_minutes:
+							attendance.intervals == null || attendance.intervals.length === 0
+								? 0
+								: attendance.breakMinutes
+					}
+				])
 			).pipe(
 				Effect.tap((submission) =>
 					Effect.sync(() => {
@@ -1062,16 +1064,18 @@
 		report.error = null;
 		Effect.runFork(
 			submitCollectionMutation(() =>
-				client.db.work_days.mutate({
-					...(workDayId == null
-						? { employment_id: targetEmploymentId, work_date: draft.date }
-						: { id: workDayId }),
-					worked_intervals: draft.intervals.map((interval) => ({
-						start: interval.start,
-						end: interval.end
-					})),
-					break_minutes: draft.assessment.breakMinutes
-				})
+				client.db.work_days.mutate([
+					{
+						...(workDayId == null
+							? { employment_id: targetEmploymentId, work_date: draft.date }
+							: { id: workDayId }),
+						worked_intervals: draft.intervals.map((interval) => ({
+							start: interval.start,
+							end: interval.end
+						})),
+						break_minutes: draft.assessment.breakMinutes
+					}
+				])
 			).pipe(
 				Effect.tap((submission) =>
 					Effect.sync(() => {

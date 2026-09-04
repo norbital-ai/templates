@@ -129,9 +129,9 @@ test(
 				mutationPush(
 					guest.schemaFingerprint,
 					{
-						action: 'update',
+						action: 'mutate',
 						collection: 'job_assignments',
-						values: { id: PUBLIC_ASSIGNMENT_ID, status: 'completed' }
+						rows: [{ action: 'update', values: { id: PUBLIC_ASSIGNMENT_ID, status: 'completed' } }]
 					},
 					[
 						{

@@ -148,9 +148,7 @@ export default {
 						// One declarative write per encashment. Nesting them under the employment would
 						// state that employment's *complete* set of leave requests, which would remove
 						// every request this exit is not about; these are additions, not a replacement.
-						yield* Effect.forEach(mutations, (values) => api.db.leave_requests.mutate(values), {
-							discard: true
-						});
+						yield* api.db.leave_requests.mutate(mutations);
 					})
 			}
 		}

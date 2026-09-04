@@ -6,15 +6,14 @@ import { decodeNumber } from '@norbital-ai/std/json';
 /**
  * The loan is the agreement, and the agreement's honesty is checked here.
  *
- * A loan's repayments are provisioned by the schedule the loans screen builds — equal instalments,
- * the indivisible remainder on the last — so the sum-to-principal invariant holds by construction
- * on the provisioning path. What this hook holds is the agreement's own edges: the principal is a
- * positive magnitude, and the component it recovers through actually takes entries and settles as a
- * payroll deduction, because a recovery is a deduction by definition.
+ * The loan form nests the schedule in a matrix. Sum-to-principal is a client integrity highlight
+ * that blocks submit without rewriting amounts. What this hook holds is the agreement's own
+ * edges: the principal is a positive magnitude, and the component it recovers through actually
+ * takes entries and settles as a payroll deduction, because a recovery is a deduction by
+ * definition.
  *
- * The schedule's shape — dates strictly increasing, the final due date inside the agreement's
- * range, the amounts summing to the principal — is stated on the repayment hooks, where the rows it
- * governs are visible one write at a time.
+ * Each repayment row is visible to `loan_repayments` `before` one write at a time. Cross-row
+ * shape is not restated here.
  */
 export default {
 	mutate: {

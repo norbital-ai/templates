@@ -98,13 +98,18 @@ test(
 				session.host.baseUrl,
 				CREATE_PAYROLL_COMMAND,
 				mutationPush(session.schemaFingerprint, {
-					action: 'create',
+					action: 'mutate',
 					collection: 'payroll_runs',
-					values: {
-						id: payrollRunId,
-						company_id: COMPANY_ID,
-						period: JANUARY_2026
-					}
+					rows: [
+						{
+							action: 'create',
+							values: {
+								id: payrollRunId,
+								company_id: COMPANY_ID,
+								period: JANUARY_2026
+							}
+						}
+					]
 				}),
 				{ authorization: `Bearer ${session.credential}` }
 			);
@@ -189,13 +194,18 @@ test(
 				session.host.baseUrl,
 				CREATE_PAYROLL_COMMAND,
 				mutationPush(session.schemaFingerprint, {
-					action: 'create',
+					action: 'mutate',
 					collection: 'payroll_runs',
-					values: {
-						id: payrollRunId,
-						company_id: COMPANY_ID,
-						period: FEBRUARY_2026
-					}
+					rows: [
+						{
+							action: 'create',
+							values: {
+								id: payrollRunId,
+								company_id: COMPANY_ID,
+								period: FEBRUARY_2026
+							}
+						}
+					]
 				}),
 				previewHeaders
 			);
@@ -255,13 +265,18 @@ test(
 				session.host.baseUrl,
 				CREATE_PAYROLL_COMMAND,
 				mutationPush(session.schemaFingerprint, {
-					action: 'create',
+					action: 'mutate',
 					collection: 'payroll_runs',
-					values: {
-						id: payrollRunId,
-						company_id: COMPANY_ID,
-						period: FEBRUARY_2026
-					}
+					rows: [
+						{
+							action: 'create',
+							values: {
+								id: payrollRunId,
+								company_id: COMPANY_ID,
+								period: FEBRUARY_2026
+							}
+						}
+					]
 				}),
 				controllerHeaders
 			);
@@ -407,22 +422,27 @@ test(
 				session.host.baseUrl,
 				CREATE_PAYROLL_COMMAND,
 				mutationPush(session.schemaFingerprint, {
-					action: 'create',
+					action: 'mutate',
 					collection: 'leave_requests',
-					values: {
-						id: crypto.randomUUID(),
-						employment_id: EMPLOYMENT_ID,
-						leave_type_id: ANNUAL_LEAVE_TYPE_ID,
-						event: {
-							kind: 'TIME_OFF',
-							range: {
-								start: { date: '2026-04-15', half: 'FIRST' },
-								end: { date: '2026-04-15', half: 'SECOND' }
-							},
-							chargeable_days: null,
-							reason: null
+					rows: [
+						{
+							action: 'create',
+							values: {
+								id: crypto.randomUUID(),
+								employment_id: EMPLOYMENT_ID,
+								leave_type_id: ANNUAL_LEAVE_TYPE_ID,
+								event: {
+									kind: 'TIME_OFF',
+									range: {
+										start: { date: '2026-04-15', half: 'FIRST' },
+										end: { date: '2026-04-15', half: 'SECOND' }
+									},
+									chargeable_days: null,
+									reason: null
+								}
+							}
 						}
-					}
+					]
 				}),
 				previewHeaders
 			);

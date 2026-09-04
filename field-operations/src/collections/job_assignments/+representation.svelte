@@ -187,12 +187,14 @@
 			Effect.flatMap(currentDate, (now) =>
 				Effect.tryPromise({
 					try: () =>
-						client.db.suspicious_activity_logs.mutate({
-							id: logId,
-							resolution,
-							resolved_at: now.toISOString(),
-							resolved_by: platform().user.id
-						}),
+						client.db.suspicious_activity_logs.mutate([
+							{
+								id: logId,
+								resolution,
+								resolved_at: now.toISOString(),
+								resolved_by: platform().user.id
+							}
+						]),
 					catch: (cause) => cause
 				})
 			).pipe(

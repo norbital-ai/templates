@@ -144,12 +144,14 @@ const openRosterMonth = Effect.fn('OpenRosterMonth.open')(function* (
 
 	// One authored graph mutation is the commit boundary. Existing children are named by id so the
 	// generic relationship engine can claim a null roster owner without rewriting actual attendance.
-	yield* api.db.rosters.mutate({
-		company_id: company.id,
-		month: input.month,
-		published_at: null,
-		work_day_roster: plan.work_day_roster
-	});
+	yield* api.db.rosters.mutate([
+		{
+			company_id: company.id,
+			month: input.month,
+			published_at: null,
+			work_day_roster: plan.work_day_roster
+		}
+	]);
 
 	const created = yield* api.db.rosters.findFirst({
 		where: { company_id: { eq: company.id }, month: { eq: input.month } },

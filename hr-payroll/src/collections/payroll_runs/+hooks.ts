@@ -197,10 +197,10 @@ export default {
 							 *
 							 * The engine writes nothing, so this hook cannot be triggered by the engine — the
 							 * only thing that reaches here is somebody asking for a recalculation of a draft.
-							 * What comes back replaces the previous build wholesale: `payslip_payroll_run` is an
-							 * included relationship, which states the run's complete set of payslips, and the
-							 * payslips left out are removed with their junctions and adjustments by the same
-							 * statement.
+							 * The returned graph is the run's complete desired set of payslips: every previous
+							 * payslip is omitted from it and is deleted through the same `cascade(...)` walk a
+							 * run delete uses, through its junctions and adjustments, in the same statement
+							 * that creates the new build.
 							 */
 							const rebuilt = yield* gatherPayrollRun({
 								api,

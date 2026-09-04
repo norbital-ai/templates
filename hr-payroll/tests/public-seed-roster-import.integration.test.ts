@@ -60,14 +60,19 @@ const createEmptyRoster = async (
 		session.host.baseUrl,
 		'collections.mutate',
 		mutationPush(session.schemaFingerprint, {
-			action: 'create',
+			action: 'mutate',
 			collection: 'rosters',
-			values: {
-				id: crypto.randomUUID(),
-				company_id: COMPANY_ID,
-				month,
-				published_at: null
-			}
+			rows: [
+				{
+					action: 'create',
+					values: {
+						id: crypto.randomUUID(),
+						company_id: COMPANY_ID,
+						month,
+						published_at: null
+					}
+				}
+			]
 		}),
 		headers
 	);
@@ -242,13 +247,18 @@ test(
 				session.host.baseUrl,
 				'collections.mutate',
 				mutationPush(session.schemaFingerprint, {
-					action: 'create',
+					action: 'mutate',
 					collection: 'payroll_runs',
-					values: {
-						id: crypto.randomUUID(),
-						company_id: COMPANY_ID,
-						period: JANUARY_2026
-					}
+					rows: [
+						{
+							action: 'create',
+							values: {
+								id: crypto.randomUUID(),
+								company_id: COMPANY_ID,
+								period: JANUARY_2026
+							}
+						}
+					]
 				}),
 				headers
 			);

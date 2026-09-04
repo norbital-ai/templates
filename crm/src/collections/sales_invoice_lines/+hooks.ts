@@ -93,7 +93,7 @@ function rollupInvoice(api: AfterApi, invoiceId: string): Effect.Effect<void> {
 	return rollupDocument({
 		document: invoiceById(api, invoiceId),
 		lines: invoiceLineTotals(api, invoiceId),
-		write: (totals) => api.db.sales_invoices.mutate({ id: invoiceId, ...totals })
+		write: (totals) => api.db.sales_invoices.mutate([{ id: invoiceId, ...totals }])
 	});
 }
 

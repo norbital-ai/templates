@@ -190,11 +190,13 @@ function runAfterPhoto(record: PhotoRecord, api: PhotoAfterApi): Effect.Effect<v
 			matchedIds.add(candidate.id);
 		}
 		const mergedFlags = [...flags];
-		yield* api.db.photo_evidence.mutate({
-			id: record.id,
-			flags: mergedFlags,
-			matched_evidence_ids: [...matchedIds]
-		});
+		yield* api.db.photo_evidence.mutate([
+			{
+				id: record.id,
+				flags: mergedFlags,
+				matched_evidence_ids: [...matchedIds]
+			}
+		]);
 	});
 }
 

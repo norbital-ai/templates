@@ -62,13 +62,15 @@ export default {
 							refuse('The predecessor already ended before this statutory successor begins.');
 						}
 
-						yield* api.db.employment_statutory_facts.mutate({
-							id: predecessor.id,
-							effective_range: {
-								start: previousRange.start,
-								end: successorRange.start
+						yield* api.db.employment_statutory_facts.mutate([
+							{
+								id: predecessor.id,
+								effective_range: {
+									start: previousRange.start,
+									end: successorRange.start
+								}
 							}
-						});
+						]);
 						return input;
 					})
 			}

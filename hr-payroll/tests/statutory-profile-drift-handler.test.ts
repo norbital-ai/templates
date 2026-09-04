@@ -81,27 +81,31 @@ const fakeApi = (infer, queryRows = {}) => {
 			employments: query('employments'),
 			statutory_profile_drift_logs: {
 				findFirst: () => Effect.succeed(openedRunLog),
-				mutate: (values) =>
+				mutate: (rows) =>
 					Effect.sync(() => {
-						if (values.id == null) {
-							logCreates.push(values);
-							openedRunLog = { id: 'run-log-1', ...values };
-							return;
+						for (const values of rows) {
+							if (values.id == null) {
+								logCreates.push(values);
+								openedRunLog = { id: 'run-log-1', ...values };
+								continue;
+							}
+							const { id, ...rest } = values;
+							logUpdates.push({ id, values: rest });
 						}
-						const { id, ...rest } = values;
-						logUpdates.push({ id, values: rest });
 					})
 			},
 			employment_statutory_facts: {
 				findMany: () => Effect.succeed(queryRows['employment_statutory_facts'] ?? []),
-				mutate: (values) =>
+				mutate: (rows) =>
 					Effect.sync(() => {
-						if (values.id == null) {
-							factCreates.push(values);
-							return;
+						for (const values of rows) {
+							if (values.id == null) {
+								factCreates.push(values);
+								continue;
+							}
+							const { id, ...rest } = values;
+							factUpdates.push({ id, values: rest });
 						}
-						const { id, ...rest } = values;
-						factUpdates.push({ id, values: rest });
 					})
 			}
 		}
