@@ -98,6 +98,11 @@ function monthlyBaseSalary(terms: RateTerms): number {
 
 /** Pay for one ordinary hour, rounded to cents before any multiplication. */
 export function ordinaryHourlyRate(terms: RateTerms, jurisdiction: Jurisdiction): number {
+	// DAILY and HOURLY staff are paid from the stated rate, never annualised: the rate is what the
+	// contract says an hour costs. Monthly staff are untouched by this branch.
+	if (terms.pay_frequency === 'HOURLY') return cents(decodeNumber(terms.base_salary.value));
+	if (terms.pay_frequency === 'DAILY')
+		return cents(decodeNumber(terms.base_salary.value) / normalDailyHours(terms));
 	const divisor = ordinaryRateDivisor(terms, jurisdiction);
 	if (!(divisor > 0)) throw new Error('jurisdictions.ordinary_rate_divisor must be positive.');
 	const monthly = monthlyBaseSalary(terms);
@@ -111,6 +116,10 @@ export function ordinaryHourlyRate(terms: RateTerms, jurisdiction: Jurisdiction)
  * master expresses annual hours as weekly hours × 52, so no company-wide day divisor is involved.
  */
 export function annualisedContractHourlyRate(terms: RateTerms): number {
+	// The stated rate, where the contract states one. See `ordinaryHourlyRate`.
+	if (terms.pay_frequency === 'HOURLY') return cents(decodeNumber(terms.base_salary.value));
+	if (terms.pay_frequency === 'DAILY')
+		return cents(decodeNumber(terms.base_salary.value) / normalDailyHours(terms));
 	const annualHours = decodeNumber(terms.ordinary_hours_per_week) * 52;
 	if (!(annualHours > 0)) throw new Error('Contracted annual hours must be positive.');
 	return cents((monthlyBaseSalary(terms) * 12) / annualHours);
@@ -141,6 +150,11 @@ export function overtimeHourlyRate(
  * (decision E28).
  */
 export function ordinaryDayWage(terms: RateTerms, jurisdiction: Jurisdiction): number {
+	// A DAILY contract states its day wage; an HOURLY one states it per hour, so a day is the
+	// contracted daily hours priced at that rate. Monthly staff read the divisor as before.
+	if (terms.pay_frequency === 'DAILY') return cents(decodeNumber(terms.base_salary.value));
+	if (terms.pay_frequency === 'HOURLY')
+		return cents(decodeNumber(terms.base_salary.value) * normalDailyHours(terms));
 	const divisor = ordinaryRateDivisor(terms, jurisdiction);
 	const monthly = monthlyBaseSalary(terms);
 	return jurisdiction.ordinary_rate_basis === 'HOURS_PER_MONTH'

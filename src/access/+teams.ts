@@ -92,5 +92,12 @@ export default {
 	 * widening. Nobody is in this team today; it remains named because the operational identity and
 	 * approval route are real even though its authority comes from one policy.
 	 */
-	'Manager (HR Controller)': ['hr_controller']
+	'Manager (HR Controller)': ['hr_controller'],
+
+	/**
+	 * The attendance-kiosk device account. Holds only `kiosk`: one app, time entries for
+	 * people, kiosk enrollments that always land PENDING. Membership is one user row per
+	 * device, created by an operator; authority is this file.
+	 */
+	'Attendance Kiosk': ['kiosk']
 } satisfies Teams;

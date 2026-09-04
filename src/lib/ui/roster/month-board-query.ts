@@ -10,7 +10,6 @@ export const MONTH_BOARD_QUERY_LIMITS = {
 	rosterCodes: 500,
 	employmentTerms: 1_000,
 	leaveTypes: 200,
-	rosters: 50,
 	workDays: 10_000,
 	leaveRequests: 10_000,
 	payrollRuns: 500,
@@ -59,7 +58,6 @@ const COMPANY_SOURCES = [
 	'employments',
 	'rosterCodes',
 	'leaveTypes',
-	'rosters',
 	'payrollRuns',
 	'holidays'
 ] as const satisfies readonly MonthBoardQuerySource[];
@@ -116,7 +114,6 @@ export const MONTH_BOARD_WORK_DAY_COLUMNS = monthBoardWorkDayLiveColumns({
 	employment_id: true,
 	work_date: true,
 	shift_definition_id: true,
-	roster_id: true,
 	assignment_code: true,
 	planned_origin: true,
 	planned_note: true,

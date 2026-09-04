@@ -1,17 +1,23 @@
 /**
- * Leave balances, derived.
+ * Leave balances, derived over one leave year.
  *
  * A balance is a bank statement for days: every movement is stored, and everything else is
- * arithmetic over the date. Accrual, carry-forward and expiry are pure functions and are therefore
- * **never** written — not by a job, not on read, not as a boundary row on 1 January. A balance that
- * is only correct after a process has run is a cache, and caches go stale.
+ * arithmetic over the date. Accrual and expiry are pure functions and are never written. The one
+ * figure that IS written is the carry-forward a leave year opens with: `process_leave_year` posts
+ * it once as a `CARRY_FORWARD` event, with its cap and expiry applied, and nothing recomputes it.
+ * A hire-date correction or a new sealed profile therefore moves this year's live entitlement and
+ * leaves every posted carry exactly where HR left it.
  *
  * ```
- * balance(D) = carriedIn(leaveYear(D))          derived, recursive to the hire year
- *            + accrued(leaveYearStart → D)      derived, month by month
- *            − expired(D)                       derived, oldest-first consumption
- *            + Σ ledger.days in the leave year  the only stored part
+ * balance(D) = carryInto(leaveYear(D))            the posted row; provisional one level back
+ *            + accrued(leaveYearStart → D)         derived, month by month, this year only
+ *            − expired(D)                          the carry still unspent on its expiry date
+ *            + Σ ledger.days in the leave year     the stored movements
  * ```
+ *
+ * A year HR has not processed yet reads a *provisional* carry: last year's closing from last
+ * year's posted row (or zero — never a second provisional level), capped by policy. The read is
+ * bounded at two leave years and two posted rows for any tenure; nothing walks to the hire year.
  *
  * **The running total is rounded, never the monthly increment.** Rounding each month's 1.75 up to
  * 2.0 and summing twelve of them overstates a 21-day entitlement by three days; rounding the
@@ -55,7 +61,10 @@ const LedgerRowSchema = Schema.Struct({
 	kind: Schema.NullOr(Schema.String),
 	days: Schema.Number,
 	source_id: Schema.NullOr(Schema.String),
-	approval_id: Schema.optionalKey(Schema.NullOr(Schema.String))
+	approval_id: Schema.optionalKey(Schema.NullOr(Schema.String)),
+	/** `CARRY_FORWARD` rows only: the leave year the carry opens and the day it lapses. */
+	leave_year: Schema.optionalKey(Schema.NullOr(Schema.Number)),
+	expires_on: Schema.optionalKey(Schema.NullOr(Schema.String))
 });
 
 /**
@@ -155,10 +164,9 @@ export function resolveEntitlement(options: ResolveEntitlementOptions): number {
 		for (const layer of entitlement.layers) {
 			if (layer.level !== level) continue;
 			if (layer.level === 'EMPLOYEE' && layer.employment_id !== options.employmentId) continue;
-			if (!coversDate(layer.effective_range, options.asOf)) continue;
-			if (layer.key.band_from > options.serviceMonths) continue;
-			if (best == null || layer.key.band_from > best.floor)
-				best = { floor: layer.key.band_from, days: decodeNumber(layer.days) };
+			if (layer.band_from > options.serviceMonths) continue;
+			if (best == null || layer.band_from > best.floor)
+				best = { floor: layer.band_from, days: decodeNumber(layer.days) };
 		}
 		return best?.days ?? null;
 	};
@@ -229,15 +237,21 @@ export function accruedDays(options: AccruedDaysOptions): number {
 	return roundHalfDay(total);
 }
 
+/** The posted carry-forward is read by `carryInto`; it is never summed as a movement. */
+const CARRY_KIND = 'CARRY_FORWARD';
+
 /** Days moved by the ledger inside a window. */
 function ledgerDays(
 	rows: readonly LedgerRow[],
 	leaveTypeId: string,
 	window: { readonly start: IsoDate; readonly end: IsoDate },
-	basis: BalanceBasis
+	basis: BalanceBasis,
+	kinds?: ReadonlySet<string>
 ): number {
 	return rows.reduce((total, row) => {
 		if (row.leave_type_id !== leaveTypeId) return total;
+		if (row.kind === CARRY_KIND) return total;
+		if (kinds != null && (row.kind == null || !kinds.has(row.kind))) return total;
 		// A projection of the balance reads every row; payroll only acts on a settled one.
 		if (basis !== 'PROJECTED' && row.approval_id != null) return total;
 		const date = dateKey(row.entry_date);
@@ -257,7 +271,8 @@ export type BalanceInput = {
 	readonly basis: BalanceBasis;
 };
 
-function yearWindow(year: number, startMonth: number): { start: IsoDate; end: IsoDate } {
+/** The first and last day of a leave year. */
+export function yearWindow(year: number, startMonth: number): { start: IsoDate; end: IsoDate } {
 	const month = String(
 		EffectNumber.clamp({ minimum: 1, maximum: 12 })(Math.trunc(startMonth))
 	).padStart(2, '0');
@@ -270,73 +285,159 @@ function yearWindow(year: number, startMonth: number): { start: IsoDate; end: Is
 }
 
 /**
- * Days carried into a leave year: last year's closing balance, capped by the carry limit.
+ * The carry-forward a leave year opens with.
  *
- * Recursion terminates at the hire year, where nothing is carried in. A ten-year employee is ten
- * levels of the same arithmetic — about 120 band lookups and one ledger scan — which is cheap
- * enough to run on every page load, which is why nothing needs caching.
+ * - `POSTED`      — a `CARRY_FORWARD` row exists for the year; its days and expiry are the fact.
+ * - `PROVISIONAL` — the year is not processed yet: last year's closing from last year's posted
+ *                   row (or zero), capped by policy, with the policy's expiry. Spendable, labelled.
+ * - `NONE`        — nothing can carry: the hire year, no carry policy, or a per-event type.
  */
-export function carriedInDays(input: BalanceInput, year: number): number {
-	const hireYear = leaveYearOf(input.hireDate, input.leaveYearStartMonth);
-	if (year <= hireYear) return 0;
+export type CarryIn = {
+	readonly days: number;
+	readonly expires_on: IsoDate | null;
+	readonly state: 'POSTED' | 'PROVISIONAL' | 'NONE';
+};
+
+const NO_CARRY: CarryIn = { days: 0, expires_on: null, state: 'NONE' };
+
+function carryPolicy(input: BalanceInput) {
 	const accrual = input.leaveType.accrual;
-	if (accrual == null || accrual.kind === 'PER_EVENT') return 0;
-	const carry = accrual.carry;
-	if (carry == null) return 0;
-	const previous = yearWindow(year - 1, input.leaveYearStartMonth);
-	// A carry-forward is settled days only: an unapproved request must not be able to consume next
-	// year's balance permanently (decision L7).
-	const closing =
-		carriedInDays(input, year - 1) +
-		accruedDays({
-			leaveType: input.leaveType,
-			entitlementAt: input.entitlementAt,
-			hireDate: input.hireDate,
-			exitDate: input.exitDate,
-			leaveYearStart: previous.start,
-			asOf: previous.end
-		}) -
-		expiredDays(input, year - 1) +
-		ledgerDays(input.ledger, input.leaveType.id, previous, 'SETTLED');
-	return EffectNumber.clamp({ minimum: 0, maximum: carry.limit_days })(closing);
+	if (accrual == null || accrual.kind === 'PER_EVENT') return null;
+	return accrual.carry;
+}
+
+/** The day this year's carry lapses under the company's policy, or null when it never does. */
+export function policyCarryExpiry(input: BalanceInput, year: number): IsoDate | null {
+	const carry = carryPolicy(input);
+	if (carry == null || carry.expiry_months <= 0) return null;
+	const window = yearWindow(year, input.leaveYearStartMonth);
+	return `${shiftPeriod(monthKey(window.start), carry.expiry_months)}-01`;
+}
+
+function postedCarry(input: BalanceInput, year: number): LedgerRow | undefined {
+	return input.ledger.find(
+		(row) =>
+			row.kind === CARRY_KIND &&
+			row.leave_type_id === input.leaveType.id &&
+			(row.leave_year ??
+				leaveYearOf(dateKey(row.entry_date) ?? '0000-01-01', input.leaveYearStartMonth)) === year
+	);
+}
+
+function postedCarryIn(input: BalanceInput, year: number): CarryIn | null {
+	const posted = postedCarry(input, year);
+	if (posted == null) return null;
+	return {
+		days: Math.max(0, decodeNumber(posted.days)),
+		expires_on: posted.expires_on ?? null,
+		state: 'POSTED'
+	};
 }
 
 /**
- * Carried-in days that lapsed unused.
+ * Carried-in days that lapsed unused, measured on a date.
  *
  * Consumption is oldest-first — leave taken is charged against carried-in days before this year's
- * accrual — so only what the carry-in still holds on the expiry date is lost. Without oldest-first
+ * accrual — so only what the carry still holds on the expiry date is lost. Without oldest-first
  * this would remove days already spent, and the balance would be wrong by exactly what was taken
  * before the deadline.
  */
-export function expiredDays(input: BalanceInput, year: number, asOf?: IsoDate): number {
-	const accrual = input.leaveType.accrual;
-	if (accrual == null || accrual.kind === 'PER_EVENT') return 0;
-	const carry = accrual.carry;
-	if (carry == null || carry.expiry_months <= 0) return 0;
-	const window = yearWindow(year, input.leaveYearStartMonth);
-	const expiryDate = `${shiftPeriod(monthKey(window.start), carry.expiry_months)}-01`;
-	const measuredAt = asOf ?? window.end;
-	if (measuredAt < expiryDate) return 0;
-	const carriedIn = carriedInDays(input, year);
+function expiredCarry(
+	input: BalanceInput,
+	carry: CarryIn,
+	window: { readonly start: IsoDate; readonly end: IsoDate },
+	asOf: IsoDate
+): number {
+	if (carry.days <= 0 || carry.expires_on == null || asOf < carry.expires_on) return 0;
 	const takenBefore = -Math.min(
 		0,
 		ledgerDays(
 			input.ledger,
 			input.leaveType.id,
-			{ start: window.start, end: expiryDate },
+			{ start: window.start, end: carry.expires_on },
 			'SETTLED'
 		)
 	);
-	return Math.max(0, carriedIn - takenBefore);
+	return Math.max(0, carry.days - takenBefore);
 }
 
-/** The full five-step balance on a date. */
+/** What one leave year closed with, as of its last day, from that year's posted carry or zero. */
+export type Closing = {
+	readonly entitlement: number;
+	readonly carried_in: number;
+	readonly accrued: number;
+	readonly adjusted: number;
+	readonly taken: number;
+	readonly encashed: number;
+	readonly expired: number;
+	readonly closing: number;
+};
+
+const TAKEN = new Set(['TAKEN']);
+const ADJUSTED = new Set(['ADJUSTMENT']);
+const ENCASHED = new Set(['ENCASHMENT']);
+
+/**
+ * The live formula as of the last day of `year`. This is what `process_leave_year` posts from, and
+ * what a provisional carry reads. It reads the year's own posted row or zero — never a provisional
+ * one — which is what keeps every balance read bounded at two leave years.
+ */
+export function closingBalance(input: BalanceInput, year: number): Closing {
+	const window = yearWindow(year, input.leaveYearStartMonth);
+	const carry = postedCarryIn(input, year) ?? NO_CARRY;
+	const accrued = accruedDays({
+		leaveType: input.leaveType,
+		entitlementAt: input.entitlementAt,
+		hireDate: input.hireDate,
+		exitDate: input.exitDate,
+		leaveYearStart: window.start,
+		asOf: window.end
+	});
+	const expired = expiredCarry(input, carry, window, window.end);
+	const type = input.leaveType.id;
+	const taken = -Math.min(0, ledgerDays(input.ledger, type, window, 'SETTLED', TAKEN));
+	const adjusted = ledgerDays(input.ledger, type, window, 'SETTLED', ADJUSTED);
+	const encashed = -Math.min(0, ledgerDays(input.ledger, type, window, 'SETTLED', ENCASHED));
+	const asOf = input.exitDate != null && input.exitDate < window.end ? input.exitDate : window.end;
+	return {
+		entitlement: input.entitlementAt(completedMonths(input.hireDate, asOf), asOf),
+		carried_in: carry.days,
+		accrued,
+		adjusted,
+		taken,
+		encashed,
+		expired,
+		closing: carry.days + accrued - expired + adjusted - taken - encashed
+	};
+}
+
+/** The carry-forward `year` opens with: posted, provisional, or none. */
+export function carryInto(input: BalanceInput, year: number): CarryIn {
+	const posted = postedCarryIn(input, year);
+	if (posted != null) return posted;
+	const carry = carryPolicy(input);
+	if (carry == null) return NO_CARRY;
+	if (year <= leaveYearOf(input.hireDate, input.leaveYearStartMonth)) return NO_CARRY;
+	const closing = closingBalance(input, year - 1).closing;
+	return {
+		days: EffectNumber.clamp({ minimum: 0, maximum: carry.limit_days })(closing),
+		expires_on: policyCarryExpiry(input, year),
+		state: 'PROVISIONAL'
+	};
+}
+
+/** Carried-in days that have lapsed by a date (the year's last day when none is given). */
+export function expiredDays(input: BalanceInput, year: number, asOf?: IsoDate): number {
+	const window = yearWindow(year, input.leaveYearStartMonth);
+	return expiredCarry(input, carryInto(input, year), window, asOf ?? window.end);
+}
+
+/** The balance on a date: carry-in, accrual to date, expiry to date, and the year's movements. */
 export function leaveBalance(input: BalanceInput, asOf: IsoDate): number {
 	const year = leaveYearOf(asOf, input.leaveYearStartMonth);
 	const window = yearWindow(year, input.leaveYearStartMonth);
 	return (
-		carriedInDays(input, year) +
+		carryInto(input, year).days +
 		accruedDays({
 			leaveType: input.leaveType,
 			entitlementAt: input.entitlementAt,
@@ -348,6 +449,103 @@ export function leaveBalance(input: BalanceInput, asOf: IsoDate): number {
 		expiredDays(input, year, asOf) +
 		ledgerDays(input.ledger, input.leaveType.id, { start: window.start, end: asOf }, input.basis)
 	);
+}
+
+/** The balance row an employee reads for one leave type: the standard HRMS breakdown. */
+export type LeaveYearSummary = {
+	readonly year: number;
+	readonly window: { readonly start: IsoDate; readonly end: IsoDate };
+	/** The full-year band as of the date — the base. */
+	readonly entitlement: number;
+	/** Accrued between the year start and the date; equals the band for UPFRONT accrual. */
+	readonly earned: number;
+	readonly carry: CarryIn;
+	readonly adjusted: number;
+	/** Settled time off anywhere in the leave year, including days booked after the date. */
+	readonly taken: number;
+	/** Time off still awaiting approval, anywhere in the leave year. */
+	readonly pending: number;
+	readonly encashed: number;
+	readonly expired: number;
+	/** What can still be booked this year: carry + earned − expired + adjusted − taken − encashed. */
+	readonly balance: number;
+};
+
+export function leaveYearSummary(input: BalanceInput, asOf: IsoDate): LeaveYearSummary {
+	const year = leaveYearOf(asOf, input.leaveYearStartMonth);
+	const window = yearWindow(year, input.leaveYearStartMonth);
+	const type = input.leaveType.id;
+	const carry = carryInto(input, year);
+	const earned = accruedDays({
+		leaveType: input.leaveType,
+		entitlementAt: input.entitlementAt,
+		hireDate: input.hireDate,
+		exitDate: input.exitDate,
+		leaveYearStart: window.start,
+		asOf
+	});
+	const expired = expiredCarry(input, carry, window, asOf);
+	const taken = -Math.min(0, ledgerDays(input.ledger, type, window, 'SETTLED', TAKEN));
+	const projected = -Math.min(0, ledgerDays(input.ledger, type, window, 'PROJECTED', TAKEN));
+	const adjusted = ledgerDays(input.ledger, type, window, 'SETTLED', ADJUSTED);
+	const encashed = -Math.min(0, ledgerDays(input.ledger, type, window, 'SETTLED', ENCASHED));
+	return {
+		year,
+		window,
+		entitlement: input.entitlementAt(completedMonths(input.hireDate, asOf), asOf),
+		earned,
+		carry,
+		adjusted,
+		taken,
+		pending: projected - taken,
+		encashed,
+		expired,
+		balance: carry.days + earned - expired + adjusted - taken - encashed
+	};
+}
+
+/**
+ * One `leave_requests` row as the ledger reads it, from the columns every reader already selects.
+ *
+ * Time off is a debit: the generated `days` column stores the magnitude of a request, and the book
+ * stores movements. Adjustments, encashments and carries carry their own signed movement; the carry
+ * additionally names the year it opens and the day it lapses, which only its event knows.
+ */
+export function ledgerRowOf(row: {
+	readonly id: string;
+	readonly leave_type_id: string;
+	readonly kind: string | null;
+	readonly from_date: string | Date | null;
+	readonly days: unknown;
+	readonly approval_id?: string | null;
+	readonly event?: {
+		readonly kind: string;
+		readonly expires_on?: string | null;
+		readonly leave_year?: number;
+	} | null;
+}): LedgerRow | null {
+	const entryDate =
+		row.from_date == null
+			? null
+			: dateKey(
+					String(row.from_date instanceof Date ? row.from_date.toISOString() : row.from_date)
+				);
+	if (entryDate == null) return null;
+	const magnitude = decodeNumber(row.days);
+	const kind =
+		row.kind === 'TIME_OFF' ? 'TAKEN' : row.kind === 'BALANCE_ADJUSTMENT' ? 'ADJUSTMENT' : row.kind;
+	return {
+		id: row.id,
+		leave_type_id: row.leave_type_id,
+		entry_date: entryDate,
+		kind,
+		days: kind === 'TAKEN' ? -Math.abs(magnitude) : magnitude,
+		source_id: null,
+		approval_id: row.approval_id ?? null,
+		...(row.event?.kind === 'CARRY_FORWARD'
+			? { leave_year: row.event.leave_year ?? null, expires_on: row.event.expires_on ?? null }
+			: {})
+	};
 }
 
 /** Unpaid leave taken inside the attendance window, grouped by the component that carries it. */

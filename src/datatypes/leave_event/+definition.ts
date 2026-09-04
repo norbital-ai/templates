@@ -34,11 +34,38 @@ export const leaveEventValueSchema = Schema.Union([
 		movement_days: Schema.Finite,
 		note: Schema.NullOr(Schema.String),
 		source_id: Schema.NullOr(Schema.String.check(Schema.isUUID()))
+	}),
+	/**
+	 * The carry-forward one leave year opens with, posted once by `process_leave_year` and never
+	 * recomputed. `movement_days` is the carried figure after the company's cap; `forfeited_days`
+	 * is what the cap did not keep; `closing` is the arithmetic the figure came from, as of the last
+	 * day of the previous leave year, under `statutory_profile_id`. A later hire-date correction or
+	 * seal changes this year's live entitlement and leaves this row untouched.
+	 */
+	Schema.Struct({
+		kind: Schema.Literal('CARRY_FORWARD'),
+		leave_year: Schema.Int,
+		effective_on: calendarDay,
+		movement_days: Schema.Finite.check(Schema.isGreaterThanOrEqualTo(0)),
+		expires_on: Schema.NullOr(calendarDay),
+		forfeited_days: Schema.Finite.check(Schema.isGreaterThanOrEqualTo(0)),
+		closing: Schema.Struct({
+			entitlement: Schema.Finite,
+			carried_in: Schema.Finite,
+			accrued: Schema.Finite,
+			adjusted: Schema.Finite,
+			taken: Schema.Finite,
+			encashed: Schema.Finite,
+			expired: Schema.Finite,
+			closing: Schema.Finite
+		}),
+		statutory_profile_id: Schema.String.check(Schema.isUUID())
 	})
 ]);
 
 export type LeaveEvent = Schema.Schema.Type<typeof leaveEventValueSchema>;
 export type TimeOffEvent = Extract<LeaveEvent, { kind: 'TIME_OFF' }>;
+export type CarryForwardEvent = Extract<LeaveEvent, { kind: 'CARRY_FORWARD' }>;
 
 /** A new time-off request opening on `on`, before the schedule derives chargeable days. */
 export function defaultTimeOffEvent(on: string): TimeOffEvent {
@@ -61,6 +88,6 @@ export const leaveEventSchema = Schema.toStandardSchemaV1(leaveEventValueSchema,
 export default defineCustomType({
 	name: 'leave_event',
 	description:
-		'What a leave request row records: one contiguous half-day-stepped range whose charged days are server-derived, a balance adjustment, or an encashment.',
+		'What a leave request row records: one contiguous half-day-stepped range whose charged days are server-derived, a balance adjustment, an encashment, or the posted carry-forward a leave year opens with.',
 	schema: leaveEventSchema
 });

@@ -123,7 +123,11 @@ import { prorationFraction, prorationSegment } from './proration.js';
 import { cents } from './rounding.js';
 import { normalDailyHours, resolveSchedule, type ScheduledDay } from './schedule.js';
 import { settle } from './settle.js';
-import { patternWorkload, type PatternWorkload } from '../../../lib/scheduling/work-pattern.js';
+import {
+	patternRosterCodeId,
+	patternWorkload,
+	type PatternWorkload
+} from '../../../lib/scheduling/work-pattern.js';
 import { rosterCodeKind, workWindow } from '../../../lib/scheduling/roster-code.js';
 
 /** The economic direction a line settles in — `pay_components.policy.kind` where there is one. */
@@ -389,11 +393,16 @@ function rosteredWorkload(options: {
 		paidMinutes += workWindow(code.variant)!.paid_minutes;
 	}
 	const referenceDays = inclusiveDays(options.window.start, options.window.end);
+	// Zero expected WORK days is a valid month for ad-hoc workers: a DAILY- or HOURLY-paid
+	// rostered employment with no rows earns zero, and the run does not throw. What the zero
+	// cannot supply is a weekly pattern, so the rate fallback in `asRateTerms` resolves those.
 	if (workDays === 0 || paidMinutes === 0)
-		throw new Error(
-			'An AS_ASSIGNED employment has no assigned WORK days in the payroll reference window, so ' +
-				'ordinary weekly and daily hours cannot be derived.'
-		);
+		return {
+			work_days: 0,
+			paid_minutes: 0,
+			reference_days: referenceDays,
+			average_weekly_paid_minutes: 0
+		};
 	return {
 		work_days: workDays,
 		paid_minutes: paidMinutes,
@@ -427,11 +436,18 @@ function asRateTerms(
 	workload: PatternWorkload
 ): RateTerms {
 	const salary = baseSalaryOf(terms);
-	const workingDaysPerWeek = (workload.work_days * 7) / workload.reference_days;
+	const frequency = payFrequency(terms.pay_frequency);
+	// Ad-hoc DAILY/HOURLY with no scheduled days has no weekly pattern to annualise from. Base
+	// pay is earned units and never touches this, so the fallback only resolves the overtime and
+	// day-wage rates against a neutral five-day, forty-hour week. Monthly staff never land here:
+	// a MONTHLY rostered zero is refused at precheck, and a patterned zero keeps the historical
+	// throw in `normalDailyHours`.
+	const adHocZero = workload.work_days <= 0 && (frequency === 'DAILY' || frequency === 'HOURLY');
+	const workingDaysPerWeek = adHocZero ? 5 : (workload.work_days * 7) / workload.reference_days;
 	return {
 		base_salary: { value: decodeNumber(salary.value), currency: salary.currency },
-		pay_frequency: payFrequency(terms.pay_frequency),
-		ordinary_hours_per_week: workload.average_weekly_paid_minutes / 60,
+		pay_frequency: frequency,
+		ordinary_hours_per_week: adHocZero ? 40 : workload.average_weekly_paid_minutes / 60,
 		working_days_per_week: workingDaysPerWeek
 	};
 }
@@ -529,7 +545,10 @@ export function measureEmployment(options: MeasureEmploymentOptions): MeasuredEm
 		});
 		return {
 			work_pattern: row.work_pattern,
-			normal_daily_hours: workload.paid_minutes / workload.work_days / 60
+			// A rostered zero carries no weekly pattern; the day length falls back to the same
+			// neutral eight hours the rate terms resolve against.
+			normal_daily_hours:
+				workload.work_days > 0 ? workload.paid_minutes / workload.work_days / 60 : 8
 		};
 	};
 	const schedule = resolveSchedule({
@@ -769,6 +788,37 @@ export function measureEmployment(options: MeasureEmploymentOptions): MeasuredEm
 		unpaid.map((row) => [row.componentId, row])
 	);
 
+	// ── absent days: reviewed-empty on a scheduled WORK day ────────────────────────────────
+	//
+	// A row with `worked_intervals: []` on a day whose expected code is WORK, with no approved
+	// leave and no observed holiday covering it, is an absent day, priced as one unpaid day
+	// through the same predicate that prices unpaid leave. An `[]` on a REST or OFF day, on a
+	// holiday, or under approved leave is a no-op. DAILY and HOURLY employments are not deducted
+	// here: their base pay is earned units, so an absent day simply earns nothing (see below).
+	const absentDays = bundle.workDays.flatMap((day) => {
+		if (day.worked_intervals == null || day.worked_intervals.length > 0) return [];
+		const date = requiredDateKey(day.work_date, 'work_days.work_date');
+		if (date < attendance.start || date > attendance.end) return [];
+		if (takenLeaveDates.has(date)) return [];
+		const scheduled = schedule.get(date);
+		if (scheduled?.shift == null || scheduled.dayType === 'PUBLIC_HOLIDAY') return [];
+		return [{ id: day.id, date }];
+	});
+	const absentAdjustments: MeasuredAdjustment[] =
+		absentDays.length === 0 ||
+		rateTerms.pay_frequency === 'DAILY' ||
+		rateTerms.pay_frequency === 'HOURLY'
+			? []
+			: measureAbsence({
+					employeeNumber: bundle.employment.employee_number,
+					companyName: configuration.company.name,
+					absenceComponentId: configuration.company.absence_component_id ?? null,
+					payComponents: configuration.payComponents,
+					subject,
+					dayWage: absenceDayWage,
+					days: absentDays
+				});
+
 	// ── the formula context, emitted complete: CEL throws on a missing key ─────────────────────
 	const componentAmounts = new Map<string, number>();
 	const componentsByCode: Record<string, number> = {};
@@ -1001,6 +1051,9 @@ export function measureEmployment(options: MeasureEmploymentOptions): MeasuredEm
 			overtimeCalculationMethod
 		})
 	);
+	// Absent days price through the absence component the company names, one row per day naming
+	// the work day that fact came from — the same capture the payroll lock already holds.
+	adjustments.push(...absentAdjustments);
 
 	const repaymentRecoveries = measureLoanRecoveries({
 		bundle,
@@ -1386,6 +1439,22 @@ function measureComponent(options: MeasureComponentOptions): Measurement | null 
 	const nature = options.component.policy?.kind ?? null;
 
 	/**
+	 * The terms covering one calendar day, clamped to the contracted span: days past the contract
+	 * end read the closing row rather than throwing in `termsAt`. Shared by the proration walk and
+	 * the earned-units measurement, which read the same day through the same row.
+	 */
+	const termsOn = (date: IsoDate): EmploymentBundle['terms'][number] =>
+		date > options.contracted.end
+			? termsAt(options.bundle, options.contracted.end)
+			: termsAt(options.bundle, date);
+	// Earned pay for DAILY and HOURLY: expected units × the stated rate — days for DAILY,
+	// paid minutes for HOURLY, summed over `expected(E, d)`. A part-time teacher with no
+	// roster rows and no punches earns zero; with three rostered days and no punches, three
+	// days. MONTHLY, SEMI_MONTHLY and WEEKLY never land here: salary prorated over the
+	// employment span, less unpaid days, exactly as before.
+	const closingFrequency = payFrequency(termsOn(options.employed.end).pay_frequency);
+
+	/**
 	 * A `SCHEDULE` component is the contracted wage, and the calendar is recorded rather than folded
 	 * away.
 	 *
@@ -1427,10 +1496,7 @@ function measureComponent(options: MeasureComponentOptions): Measurement | null 
 		 * every overlapping terms row to the month produced two identical full-month segments and
 		 * double BASIC whenever two history rows both covered the window.
 		 */
-		const termsOn = (date: IsoDate): EmploymentBundle['terms'][number] =>
-			date > options.contracted.end
-				? termsAt(options.bundle, options.contracted.end)
-				: termsAt(options.bundle, date);
+		if (closingFrequency === 'DAILY' || closingFrequency === 'HOURLY') return measureEarned();
 		const wageDates = daysBetween(options.employed.start, options.employed.end);
 		if (wageDates.length > 0) {
 			let runStart = wageDates[0]!;
@@ -1487,6 +1553,66 @@ function measureComponent(options: MeasureComponentOptions): Measurement | null 
 			// "31 of 31 days at the contract" is a statement, and a payslip that only carries it
 			// sometimes is a payslip whose reader has to know when.
 			proration: segments,
+			adjustments: []
+		};
+	};
+
+	/**
+	 * Earned base pay for one DAILY- or HOURLY-paid month.
+	 *
+	 * `expected(E, d)` is the roster override, else the work-pattern projection — the same
+	 * precedence the schedule resolves, read here for the shift half only. A day with no row
+	 * earns its expected day; an absent mark (`[]`) on an expected WORK day earns nothing, and
+	 * no separate absence deduction is raised for these frequencies. A day whose terms state
+	 * another frequency refuses loudly: silently mixing a monthly proration into earned units
+	 * would underpay it.
+	 */
+	const measureEarned = (): Measurement => {
+		const dates = daysBetween(options.employed.start, options.employed.end);
+		const planByDate = new Map<IsoDate, string>();
+		const actualByDate = new Map<IsoDate, readonly unknown[] | null>();
+		for (const day of options.bundle.workDays) {
+			const date = requiredDateKey(day.work_date, 'work_days.work_date');
+			if (day.shift_definition_id != null) planByDate.set(date, day.shift_definition_id);
+			actualByDate.set(date, day.worked_intervals);
+		}
+		let exact = 0;
+		for (const date of dates) {
+			const dayTerms = termsOn(date);
+			const frequency = payFrequency(dayTerms.pay_frequency);
+			if (frequency !== 'DAILY' && frequency !== 'HOURLY') {
+				throw new Error(
+					`${options.bundle.employment.employee_number} changes pay frequency within ` +
+						`${options.period}: ${date} is on ${frequency} terms inside a ${closingFrequency} ` +
+						`month. Split the change across two runs.`
+				);
+			}
+			const intervals = actualByDate.get(date);
+			if (intervals != null && intervals.length === 0) continue;
+			const codeId = planByDate.get(date) ?? patternRosterCodeId(dayTerms.work_pattern, date);
+			if (codeId == null) continue;
+			const code = options.configuration.shiftById.get(codeId);
+			if (code == null)
+				throw new Error(`Schedule on ${date} names roster code ${codeId}, which does not exist.`);
+			if (!coversDate(code.effective_range, date))
+				throw new Error(`Roster code ${code.code} is not effective on ${date}.`);
+			if (rosterCodeKind(code.variant) !== 'WORK') continue;
+			const rate = decodeNumber(baseSalaryOf(dayTerms).value);
+			exact += frequency === 'DAILY' ? rate : (workWindow(code.variant)!.paid_minutes * rate) / 60;
+		}
+		const amount = cents(exact);
+		return {
+			amount,
+			base: [
+				{
+					payComponent: options.component,
+					nature,
+					label: options.component.code,
+					amount,
+					entry: { component_code: options.component.code, amount }
+				}
+			],
+			proration: [],
 			adjustments: []
 		};
 	};
@@ -1641,6 +1767,59 @@ function measureComponent(options: MeasureComponentOptions): Measurement | null 
 			throw new Error(`Unsupported component source: ${JSON.stringify(_exhaustive)}`);
 		}
 	}
+}
+
+/**
+ * One unpaid day per absent day, carried by the company's absence component.
+ *
+ * An amount is a magnitude — direction is the component's own nature — and each row names the
+ * work day it came from, so the payslip line and the settlement lock agree on what was priced.
+ */
+function measureAbsence(options: {
+	readonly employeeNumber: string;
+	readonly companyName: string;
+	readonly absenceComponentId: string | null;
+	readonly payComponents: readonly PayComponent[];
+	readonly subject: EligibilitySubject;
+	readonly dayWage: number;
+	readonly days: readonly { readonly id: string; readonly date: string }[];
+}): MeasuredAdjustment[] {
+	if (options.days.length === 0) return [];
+	const componentId = options.absenceComponentId;
+	if (componentId == null) {
+		const dates = options.days
+			.map((day) => day.date)
+			.toSorted()
+			.join(', ');
+		throw new Error(
+			`${options.employeeNumber} was marked absent on ${dates}, but ${options.companyName} ` +
+				`names no absence component to carry the deduction. Set the absence component on the ` +
+				`company first.`
+		);
+	}
+	const component = options.payComponents.find((candidate) => candidate.id === componentId);
+	if (component == null) {
+		throw new Error(
+			`${options.companyName} names an absence component that is not in its pay catalogue. ` +
+				`Point the company at a component that exists.`
+		);
+	}
+	if (!isEligible(component.eligibility, options.subject)) {
+		throw new Error(
+			`${options.employeeNumber} was marked absent, but the absence component ${component.code} ` +
+				`does not cover this employment. Broaden its eligibility or point the company at one that does.`
+		);
+	}
+	return options.days.map((day) => ({
+		input: { family: 'WORK_DAY' as const, id: day.id },
+		payComponent: component,
+		nature: component.policy?.kind ?? null,
+		label: component.code,
+		amount: cents(options.dayWage),
+		quantity: 1,
+		rate: cents(options.dayWage),
+		statutoryRuleKey: null
+	}));
 }
 
 /**

@@ -121,11 +121,11 @@ corrected entitlement allows. The derived balance goes **negative immediately** 
 surgery; the days were genuinely taken, only the entitlement moved. Recovery is chosen by the
 employer:
 
-| Path                          | Mechanic                                                                                         |
-| ----------------------------- | ------------------------------------------------------------------------------------------------ |
-| Offset against future accrual | Do nothing — the negative balance plus the request guard ration the leave. Default.              |
-| Deduct next cycle             | Arrears/deduction entry valued at the excess days; the negative-net guard bounds and spreads it. |
-| Forgive at year rollover      | A negative closing balance does not carry (`carriedInDays` clamps at 0).                         |
+| Path                          | Mechanic                                                                                                                                  |
+| ----------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| Offset against future accrual | Do nothing — the negative balance plus the request guard ration the leave. Default.                                                       |
+| Deduct next cycle             | Arrears/deduction entry valued at the excess days; the negative-net guard bounds and spreads it.                                          |
+| Forgive at year rollover      | A negative closing posts a carry of zero with the negative kept in `closing` (`process_leave_year` clamps the movement, never the books). |
 
 **Leaver edge**: the exit encashment hook encashes positive balances only. A negative balance is
 recovered — if at all — by a deduction entry captured in the final run itself, or written off.

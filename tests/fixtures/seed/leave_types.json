@@ -8,8 +8,8 @@
 		"statutory_kind": "ANNUAL",
 		"eligibility": [],
 		"encash_on_exit": false,
-		"accrual": { "kind": "MONTHLY", "carry": null },
-		"entitlement": { "merge": "MAX_WITH_COMPANY_LAYERS", "layers": [] },
+		"accrual": { "kind": "MONTHLY", "carry": { "limit_days": 5, "expiry_months": 3 } },
+		"entitlement": { "layers": [] },
 		"payroll_effect": { "kind": "PAID" }
 	}
 ]

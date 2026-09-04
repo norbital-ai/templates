@@ -2,7 +2,11 @@ import { Effect } from 'effect';
 import { refuse } from '@norbital-ai/bolt/authoring';
 import type { InstantRangeValue as WorkedInterval } from '@norbital-ai/bolt/authoring';
 import { dateKey } from '../../lib/iso-day.js';
+import { monthBounds } from '../../lib/period.js';
 import { leaveCoverage, type LeaveRequestLike } from '../../lib/scheduling/leave-coverage.js';
+import { patternRosterCodeId } from '../../lib/scheduling/work-pattern.js';
+import { rosterCodeKind, workWindow } from '../../lib/scheduling/roster-code.js';
+import { coversDate } from '../payroll_runs/lib/effective.js';
 import {
 	payrollWindows,
 	assertNotSettled,
@@ -53,6 +57,239 @@ const QUERY_LIMIT = 20_000;
  * as an access denial naming a collection the person has never heard of, instead of the sentence
  * that tells them what to do.
  */
+/**
+ * A roster row is an override of the work pattern, and the month must still add up to it.
+ *
+ * A plan write must leave the month's expected WORK-day count and paid minutes equal to what
+ * the pattern projects for that month. A two-cell swap is one mutation and passes, because the
+ * whole batch overlays the stored month before anything is compared. A single cell that turns
+ * REST into WORK, or WORK into OFF, is refused with a sentence naming the pattern's count.
+ * Extra work is not rostered: the person punches in, and overtime is derived. A contract change
+ * is a new `employment_terms` row.
+ *
+ * Patterned employments only: a rostered employment has no pattern day, and its guaranteed or
+ * capped load is validated at payroll precheck over the pay window, where the money is.
+ */
+type PlanChange = {
+	readonly employment_id: string;
+	readonly work_date: string;
+	readonly shift_definition_id: string | null;
+};
+
+function assertMonthConformsToPattern(options: {
+	readonly employeeNumber: string;
+	readonly month: string;
+	readonly plannedByDate: ReadonlyMap<string, string | null>;
+	readonly terms: readonly {
+		readonly work_pattern: {
+			readonly type: string;
+			readonly phases?: readonly {
+				readonly day_cycle: readonly { readonly roster_code_id: string }[];
+			}[];
+			readonly anchor_date?: string;
+		};
+		readonly effective_range: unknown;
+	}[];
+	readonly codeKindById: ReadonlyMap<string, 'WORK' | 'REST' | 'OFF'>;
+	readonly paidMinutesById: ReadonlyMap<string, number>;
+}): void {
+	const { employeeNumber, month, plannedByDate, terms, codeKindById, paidMinutesById } = options;
+	let expectedDays = 0;
+	let expectedMinutes = 0;
+	let actualDays = 0;
+	let actualMinutes = 0;
+	let patterned = false;
+	const bounds = monthBounds(month);
+	let date = bounds.start;
+	while (date <= bounds.end) {
+		const term = terms.find((candidate) => coversDate(candidate.effective_range, date));
+		const pattern = term?.work_pattern;
+		if (pattern != null && pattern.type === 'PATTERNED') {
+			patterned = true;
+			let projectedId: string | null = null;
+			try {
+				projectedId = patternRosterCodeId(
+					pattern as Parameters<typeof patternRosterCodeId>[0],
+					date
+				);
+			} catch {
+				projectedId = null;
+			}
+			const projectedKind = projectedId == null ? null : codeKindById.get(projectedId);
+			if (projectedKind === 'WORK') {
+				expectedDays += 1;
+				expectedMinutes += paidMinutesById.get(projectedId!) ?? 0;
+			}
+			const explicitId = plannedByDate.get(date);
+			// No row and a row with no plan both fall back to the pattern: only an explicit
+			// assignment (including a batched one) overrides it. A cleared cell is `null`, and
+			// `??` resumes the pattern for exactly that reason.
+			const actualId = explicitId ?? projectedId;
+			const actualKind = actualId == null ? null : codeKindById.get(actualId);
+			if (actualKind === 'WORK') {
+				actualDays += 1;
+				actualMinutes += paidMinutesById.get(actualId!) ?? 0;
+			}
+		}
+		date = new Date(Date.parse(`${date}T00:00:00.000Z`) + 86_400_000).toISOString().slice(0, 10);
+	}
+	if (!patterned) return;
+	if (actualDays === expectedDays && actualMinutes === expectedMinutes) return;
+	refuse(
+		`Roster change for ${employeeNumber} in ${month} is refused: the month would assign ` +
+			`${actualDays} WORK day(s) and ${actualMinutes} paid minute(s), but the work pattern ` +
+			`projects ${expectedDays} WORK day(s) and ${expectedMinutes} paid minute(s). Extra work ` +
+			`is not rostered — record a punch and overtime is derived; a contract change is a new ` +
+			`employment-terms row.`
+	);
+}
+/**
+ * The batched conformance read: one month-span query for the whole write, then one pure
+ * comparison per touched employment-month. Deletes never reach here — removing an override can
+ * only resume the pattern — and attendance-only writes carry no plan change to check.
+ */
+function assertBatchConformsToPattern(
+	api: Api,
+	inputs: readonly {
+		readonly id?: string;
+		readonly employment_id?: string | null;
+		readonly work_date?: unknown;
+		readonly shift_definition_id?: string | null;
+	}[],
+	existingById: ReadonlyMap<
+		string,
+		{
+			readonly employment_id: string;
+			readonly work_date: unknown;
+			readonly shift_definition_id: string | null;
+		}
+	>,
+	employments: readonly {
+		readonly id: string;
+		readonly company_id: string | null;
+		readonly employee_number: string;
+	}[]
+): Effect.Effect<void, never, never> {
+	return Effect.gen(function* () {
+		const changes: PlanChange[] = [];
+		for (const input of inputs) {
+			if (input.shift_definition_id === undefined) continue;
+			const stored = input.id === undefined ? undefined : existingById.get(input.id);
+			const employmentId = input.employment_id ?? stored?.employment_id;
+			const rawWorkDate = input.work_date ?? stored?.work_date;
+			if (employmentId == null || rawWorkDate == null) continue;
+			if (typeof rawWorkDate !== 'string') continue;
+			const workDate = dateKey(rawWorkDate);
+			if (workDate == null || workDate === '') continue;
+			changes.push({
+				employment_id: employmentId,
+				work_date: workDate,
+				shift_definition_id: input.shift_definition_id
+			});
+		}
+		if (changes.length === 0) return;
+		const employmentIds = [...new Set(changes.map((change) => change.employment_id))];
+		const months = [...new Set(changes.map((change) => change.work_date.slice(0, 7)))].toSorted();
+		const spanStart = `${months[0]}-01`;
+		const spanEnd = monthBounds(months[months.length - 1]!).end;
+		const employmentById = new Map(employments.map((employment) => [employment.id, employment]));
+		const companyIds = [
+			...new Set(
+				employmentIds.flatMap((id) => {
+					const companyId = employmentById.get(id)?.company_id;
+					return companyId == null ? [] : [companyId];
+				})
+			)
+		];
+		const [monthRows, terms] = yield* Effect.all(
+			[
+				api.db.work_days.findMany({
+					where: {
+						employment_id: { in: employmentIds },
+						work_date: { gte: spanStart, lte: spanEnd }
+					},
+					columns: { employment_id: true, work_date: true, shift_definition_id: true },
+					limit: QUERY_LIMIT
+				}),
+				api.db.employment_terms.findMany({
+					where: { employment_id: { in: employmentIds } },
+					columns: { employment_id: true, work_pattern: true, effective_range: true },
+					limit: QUERY_LIMIT
+				})
+			],
+			{ concurrency: 'unbounded' }
+		);
+		const codes =
+			companyIds.length === 0
+				? []
+				: yield* api.db.shift_definitions.findMany({
+						where: { company_id: { in: companyIds } },
+						columns: { id: true, variant: true },
+						limit: QUERY_LIMIT
+					});
+		if (monthRows.length === QUERY_LIMIT || terms.length === QUERY_LIMIT) {
+			refuse('This schedule is too large to validate safely in one write.');
+		}
+		if (codes.length === QUERY_LIMIT) {
+			refuse('This legal entity has too many roster codes to validate safely.');
+		}
+		const codeKindById = new Map<string, 'WORK' | 'REST' | 'OFF'>();
+		const paidMinutesById = new Map<string, number>();
+		for (const code of codes) {
+			try {
+				const kind = rosterCodeKind(code.variant);
+				codeKindById.set(code.id, kind);
+				if (kind === 'WORK') {
+					const window = workWindow(code.variant);
+					if (window != null) paidMinutesById.set(code.id, window.paid_minutes);
+				}
+			} catch {
+				continue;
+			}
+		}
+		const storedByKey = new Map<string, string | null>();
+		for (const row of monthRows) {
+			const storedDate = dateKey(row.work_date);
+			if (storedDate == null) continue;
+			storedByKey.set(`${row.employment_id}:${storedDate}`, row.shift_definition_id);
+		}
+		const termsByEmployment = new Map<string, typeof terms>();
+		for (const term of terms) {
+			const bucket = termsByEmployment.get(term.employment_id) ?? [];
+			bucket.push(term);
+			termsByEmployment.set(term.employment_id, bucket);
+		}
+		const changesByGroup = new Map<string, PlanChange[]>();
+		for (const change of changes) {
+			const key = `${change.employment_id}:${change.work_date.slice(0, 7)}`;
+			const bucket = changesByGroup.get(key) ?? [];
+			bucket.push(change);
+			changesByGroup.set(key, bucket);
+		}
+		for (const [key, group] of changesByGroup) {
+			const separator = key.lastIndexOf(':');
+			const employmentId = key.slice(0, separator);
+			const month = key.slice(separator + 1);
+			const plannedByDate = new Map<string, string | null>();
+			for (const [storedKey, shiftId] of storedByKey) {
+				if (storedKey.startsWith(`${employmentId}:`)) {
+					const date = storedKey.slice(employmentId.length + 1);
+					if (date.startsWith(month)) plannedByDate.set(date, shiftId);
+				}
+			}
+			for (const change of group) plannedByDate.set(change.work_date, change.shift_definition_id);
+			assertMonthConformsToPattern({
+				employeeNumber: employmentById.get(employmentId)?.employee_number ?? employmentId,
+				month,
+				plannedByDate,
+				terms: termsByEmployment.get(employmentId) ?? [],
+				codeKindById,
+				paidMinutesById
+			});
+		}
+	});
+}
+
 /**
  * One writer wins the day: attendance must not record work on a day approved leave already owns.
  * Half-day leave still allows the other half, which is why only fully covered dates refuse.
@@ -217,7 +454,7 @@ function assertWorkedIntervals(
  * One person-day, and the two halves that land on it.
  *
  * `time_entries` and `roster_entries` were the same row read twice, so their hooks were the same
- * refusals written twice. This is both, once. The plan half is `shift_definition_id`, `roster_id`,
+ * refusals written twice. This is both, once. The plan half is `shift_definition_id`,
  * `assignment_code`, `planned_origin` and `planned_note`; the actual half is `worked_intervals` and
  * `break_minutes`. Either may be absent — `shift_definition_id` non-NULL is the presence test for a
  * plan, and `worked_intervals` NULL means no attendance was recorded, which is a different fact from
@@ -282,7 +519,7 @@ export default {
 				const employments = employmentIds.length
 					? yield* api.db.employments.findMany({
 							where: { id: { in: employmentIds } },
-							columns: { id: true, company_id: true },
+							columns: { id: true, company_id: true, employee_number: true },
 							limit: QUERY_LIMIT
 						})
 					: [];
@@ -350,6 +587,11 @@ export default {
 								explicitByKey: new Map(),
 								codeById: new Map()
 							};
+				// Write-time roster conformance, over the whole batch: the month must still add up to
+				// the pattern once every plan change in this write has landed. Checking the batch
+				// rather than the row is what lets a two-cell swap pass while a single-cell
+				// REST-into-WORK write is refused.
+				yield* assertBatchConformsToPattern(api, inputs, existingById, employments);
 				return {
 					companyByEmployment: new Map(
 						employments.map((employment) => [employment.id, employment.company_id])
@@ -364,7 +606,7 @@ export default {
 		perRecord: {
 			before: {
 				description:
-					'Requires ordered, non-overlapping worked intervals with only the final one open, refuses attendance on a day approved leave owns or inside a paid run’s window whose silence that run already priced as absence, refuses any change to a row a payroll run has taken into account, and refuses a planned shift that would overlap the person’s adjacent-day assignments.',
+					'Requires ordered, non-overlapping worked intervals with only the final one open, refuses attendance on a day approved leave owns or inside a paid run’s window whose silence that run already priced as absence, refuses any change to a row a payroll run has taken into account, refuses a planned shift that would overlap the person’s adjacent-day assignments, and refuses a plan write that would leave the month’s WORK-day count or paid minutes different from what the work pattern projects.',
 				handler: ({ input, existing, prepared, api }) =>
 					Effect.gen(function* () {
 						const employmentId = input.employment_id ?? existing?.employment_id;

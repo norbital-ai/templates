@@ -23,9 +23,12 @@ import { decodeNumber } from '@norbital-ai/std/json';
 
 import { Effect, Result, Schema } from 'effect';
 import type { Configuration } from './configuration.js';
-import { requiredDateKey } from './dates.js';
+import { dateKey, requiredDateKey } from './dates.js';
 import type { DailyOvertime } from './overtime.js';
 import { ruleDayType } from './schedule.js';
+import { coversDate } from './effective.js';
+import { rosterCodeKind, workWindow } from '../../../lib/scheduling/roster-code.js';
+import type { RosterCodeVariant } from '../../../datatypes/roster_code_variant/+definition.js';
 import { parseSpecialRules } from './special-rules.js';
 
 const IssueSeveritySchema = Schema.Literals(['BLOCKER', 'WARNING']);
@@ -416,6 +419,191 @@ export function validatePayCalendar(options: ValidatePayCalendarOptions): RunIss
 			recordId: company.id
 		}
 	];
+}
+
+/**
+ * The WORK roster codes of one company, as the rostered-expectation check reads them: which codes
+ * count as a scheduled WORK day, and the paid minutes each one carries.
+ */
+export function rosteredWorkCodeMaps(
+	codes: readonly { readonly id: string; readonly variant: RosterCodeVariant }[]
+): {
+	readonly workCodeIds: ReadonlySet<string>;
+	readonly paidMinutesByCode: ReadonlyMap<string, number>;
+} {
+	const workCodeIds = new Set<string>();
+	const paidMinutesByCode = new Map<string, number>();
+	for (const code of codes) {
+		let kind: 'WORK' | 'REST' | 'OFF';
+		try {
+			kind = rosterCodeKind(code.variant);
+		} catch {
+			continue;
+		}
+		if (kind !== 'WORK') continue;
+		workCodeIds.add(code.id);
+		const window = workWindow(code.variant);
+		if (window != null) paidMinutesByCode.set(code.id, window.paid_minutes);
+	}
+	return { workCodeIds, paidMinutesByCode };
+}
+
+/**
+ * The guaranteed or capped load of rostered employments, validated at precheck over the pay window.
+ *
+ * This is the arithmetic `validateRosterSchedule` used to run at roster publication, moved to where
+ * the money is: a rostered employment has no pattern day, so every WORK day is an explicit row and
+ * a date with no row is nothing. `GUARANTEED_SCHEDULE` and `AS_ASSIGNED` expectations are checked
+ * here with the same `WORKLOAD_BELOW_TERMS` and `WORKLOAD_ABOVE_TERMS` sentences. Patterned
+ * employments are not read: their month must equal the pattern, and that is refused at write time.
+ *
+ * A MONTHLY rostered employment with zero expected days in the window is refused outright: a
+ * monthly salary with no schedule cannot derive ordinary hours. `GUARANTEED_SCHEDULE` supplies
+ * them when stated.
+ */
+export type RosteredValidationTerms = {
+	readonly id: string;
+	readonly pay_frequency: string | null;
+	readonly work_pattern:
+		| { readonly type: 'PATTERNED' }
+		| {
+				readonly type: 'ROSTERED';
+				readonly expectation:
+					| {
+							readonly kind: 'GUARANTEED_SCHEDULE';
+							readonly period: 'WEEK' | 'MONTH';
+							readonly required_work_days: number;
+							readonly required_paid_minutes: number;
+					  }
+					| {
+							readonly kind: 'AS_ASSIGNED';
+							readonly period: 'WEEK' | 'MONTH';
+							readonly maximum_paid_minutes: number | null;
+					  };
+		  };
+	readonly effective_range: unknown;
+};
+
+export type RosteredValidationDay = {
+	readonly work_date: string;
+	readonly shift_definition_id: string | null;
+};
+
+export function validateRosteredExpectations(options: {
+	readonly period: string;
+	readonly window: { readonly start: string; readonly end: string };
+	readonly employments: readonly {
+		readonly id: string;
+		readonly employee_number: string;
+		readonly terms: readonly RosteredValidationTerms[];
+		readonly workDays: readonly RosteredValidationDay[];
+	}[];
+	readonly workCodeIds: ReadonlySet<string>;
+	readonly paidMinutesByCode: ReadonlyMap<string, number>;
+}): RunIssue[] {
+	const issues: RunIssue[] = [];
+	const windowDates: string[] = [];
+	for (
+		let date = options.window.start;
+		date <= options.window.end;
+		date = new Date(Date.parse(`${date}T00:00:00.000Z`) + 86_400_000).toISOString().slice(0, 10)
+	) {
+		windowDates.push(date);
+	}
+	for (const employment of options.employments) {
+		const touching = employment.terms.filter((term) =>
+			windowDates.some((date) => coversDate(term.effective_range, date))
+		);
+		if (!touching.some((term) => term.work_pattern.type === 'ROSTERED')) continue;
+		const explicitByDate = new Map<string, string>();
+		for (const day of employment.workDays) {
+			const date = dateKey(day.work_date);
+			if (
+				date == null ||
+				date < options.window.start ||
+				date > options.window.end ||
+				day.shift_definition_id == null
+			)
+				continue;
+			explicitByDate.set(date, day.shift_definition_id);
+		}
+		const expectedInWindow = windowDates.filter((date) => {
+			const codeId = explicitByDate.get(date);
+			return codeId != null && options.workCodeIds.has(codeId);
+		});
+		// A monthly salary with no schedule cannot derive ordinary hours. A stated
+		// `GUARANTEED_SCHEDULE` supplies them instead, and its shortfall is the
+		// `WORKLOAD_BELOW_TERMS` issue below rather than this refusal.
+		const hasGuarantee = touching.some(
+			(term) =>
+				term.work_pattern.type === 'ROSTERED' &&
+				term.work_pattern.expectation.kind === 'GUARANTEED_SCHEDULE'
+		);
+		if (
+			expectedInWindow.length === 0 &&
+			!hasGuarantee &&
+			touching.every((term) => term.work_pattern.type === 'ROSTERED') &&
+			touching.some((term) => term.pay_frequency === 'MONTHLY')
+		) {
+			issues.push({
+				code: 'ROSTERED_ZERO_SCHEDULE',
+				message:
+					`${employment.employee_number} is on MONTHLY terms with no scheduled WORK days in ` +
+					`the ${options.period} pay window: a monthly salary with no schedule cannot derive ` +
+					`ordinary hours. State the guaranteed schedule in the employment terms, or assign ` +
+					`the month's days.`,
+				collection: 'employments',
+				recordId: employment.id
+			});
+			continue;
+		}
+		for (const term of touching) {
+			if (term.work_pattern.type !== 'ROSTERED') continue;
+			const expectation = term.work_pattern.expectation;
+			const activeDates = windowDates.filter((date) => coversDate(term.effective_range, date));
+			if (activeDates.length === 0) continue;
+			const referenceDays = expectation.period === 'WEEK' ? 7 : windowDates.length;
+			const fraction = activeDates.length / referenceDays;
+			const worked = activeDates.filter((date) => {
+				const codeId = explicitByDate.get(date);
+				return codeId != null && options.workCodeIds.has(codeId);
+			});
+			const actualDays = worked.length;
+			const actualMinutes = worked.reduce(
+				(total, date) => total + (options.paidMinutesByCode.get(explicitByDate.get(date)!) ?? 0),
+				0
+			);
+			if (expectation.kind === 'GUARANTEED_SCHEDULE') {
+				const expectedDays = Math.ceil(decodeNumber(expectation.required_work_days) * fraction);
+				const expectedMinutes = Math.ceil(
+					decodeNumber(expectation.required_paid_minutes) * fraction
+				);
+				if (actualMinutes < expectedMinutes || actualDays < expectedDays) {
+					issues.push({
+						code: 'WORKLOAD_BELOW_TERMS',
+						message:
+							`The pay window assigns ${actualDays} work day(s) and ${actualMinutes} paid minute(s) ` +
+							`for ${employment.employee_number}, below the employment terms of ${expectedDays} day(s) and ${expectedMinutes} minute(s).`,
+						collection: 'employments',
+						recordId: employment.id
+					});
+				}
+			} else if (
+				expectation.maximum_paid_minutes != null &&
+				actualMinutes > Math.floor(decodeNumber(expectation.maximum_paid_minutes) * fraction)
+			) {
+				issues.push({
+					code: 'WORKLOAD_ABOVE_TERMS',
+					message:
+						`The pay window assigns ${actualDays} work day(s) and ${actualMinutes} paid minute(s) ` +
+						`for ${employment.employee_number}, above the employment cap of ${decodeNumber(expectation.maximum_paid_minutes)} minute(s).`,
+					collection: 'employments',
+					recordId: employment.id
+				});
+			}
+		}
+	}
+	return issues;
 }
 
 /** How many issues a failure message spells out before it starts counting. */

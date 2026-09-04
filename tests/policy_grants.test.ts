@@ -28,6 +28,7 @@ import manager from '../src/access/policies/+manager.ts';
 import seniorManagement from '../src/access/policies/+senior_management.ts';
 import hrController from '../src/access/policies/+hr_controller.ts';
 import hrManager from '../src/access/policies/+hr_manager.ts';
+import kiosk from '../src/access/policies/+kiosk.ts';
 
 /** Keyed by the filename each one was imported from: the filename is the policy's only name. */
 const policiesByFileKey = {
@@ -36,7 +37,8 @@ const policiesByFileKey = {
 	manager,
 	senior_management: seniorManagement,
 	hr_controller: hrController,
-	hr_manager: hrManager
+	hr_manager: hrManager,
+	kiosk
 };
 
 const policies = Object.values(policiesByFileKey);
@@ -74,13 +76,14 @@ const surfaceOf = (policy) =>
 		)
 	);
 
-test('the six policies are the six names a team may declare', () => {
+test('the seven policies are the seven names a team may declare', () => {
 	assert.deepEqual(
 		policies.map(heldNameOf).toSorted(),
 		[
 			'employee',
 			'hr_controller',
 			'hr_manager',
+			'kiosk',
 			'manager',
 			'senior_management',
 			'supervisor'
@@ -175,7 +178,8 @@ test('every name `+teams.ts` declares is a policy this workspace ships', () => {
 		'Senior Management': ['senior_management'],
 		'HQ Payroll HR': ['hr_controller'],
 		'HR Manager': ['hr_manager'],
-		'Manager (HR Controller)': ['hr_controller']
+		'Manager (HR Controller)': ['hr_controller'],
+		'Attendance Kiosk': ['kiosk']
 	});
 });
 
@@ -246,6 +250,8 @@ test('a controller may view payroll, and mutate.new is held for hr_manager or se
 	]) {
 		assert.equal(may(hrController, collection, 'mutate.new'), true, `hr_controller ${collection}`);
 		assert.equal(may(hrController, collection, 'delete'), true, `hr_controller ${collection}`);
+		// The engine reads the capture junctions under the requesting subject while it gathers.
+		assert.equal(may(hrController, collection, 'read'), true, `hr_controller ${collection}`);
 	}
 });
 
@@ -264,6 +270,18 @@ test('hr_manager and senior management mutate new and existing payroll runs with
 		// is a column on the adjustment, and it is released with it.
 		for (const collection of ['payslips', 'payslip_adjustments'])
 			assert.equal(may(policy, collection, 'delete'), true, `${nameOf(policy)} ${collection}`);
+
+		// A completed run stays readable: the creator and HR Manager both see it after it lands.
+		assert.equal(may(policy, 'payroll_runs', 'read'), true, nameOf(policy));
+		assert.equal(may(policy, 'payslips', 'read'), true, nameOf(policy));
+		for (const collection of [
+			'payslip_work_day_inputs',
+			'payslip_component_entry_inputs',
+			'payslip_leave_request_inputs',
+			'payslip_loan_repayment_inputs'
+		]) {
+			assert.equal(may(policy, collection, 'read'), true, `${nameOf(policy)} ${collection}`);
+		}
 	}
 });
 
@@ -397,8 +415,14 @@ test('every policy can read the settlement ledger, or its refusal becomes an acc
 	// The hook that refuses a settled record reads `payslip_adjustments` under the editing person's
 	// own subject. A policy without this grant turns "payroll 2026-03 has already taken this record
 	// into account" into a bare denial naming a collection they have never heard of.
-	for (const policy of policies)
+	//
+	// The kiosk is the documented exception: its day writes only ever meet the junction capture
+	// (`payslip_work_day_inputs`, asserted in the kiosk test), never the merged ledger, so it reads
+	// the junction masked and not the ledger at all.
+	for (const policy of policies) {
+		if (policy === kiosk) continue;
 		assert.equal(may(policy, 'payslip_adjustments', 'read'), true, nameOf(policy));
+	}
 
 	// The captured-input junctions carry nothing but the claim, so reading them is safe.
 	// The merged collection carries `amount`, and the ranks with no payroll authority must reach the
@@ -438,4 +462,90 @@ test('each rank composes the rank beneath it, because nothing inherits at run ti
 		assert.equal(may(policy, 'payslips', 'read'), true, nameOf(policy));
 		assert.equal(may(policy, 'component_entries', 'mutate.new'), true, nameOf(policy));
 	}
+});
+
+test('the kiosk sees one app and may only key time entries and face enrollments', () => {
+	assert.deepEqual(kiosk.capabilities, { apps: ['hr_controller/kiosk'] });
+
+	// Masked person reads: identity display plus face state, no statutory or identity PII.
+	const [personRead] = grantsFor(kiosk, 'employees', 'read');
+	assert.notEqual(personRead, undefined);
+	for (const field of ['date_of_birth', 'identity_number', 'address', 'user_id']) {
+		assert.equal(personRead.fields.includes(field), false, `kiosk employees.read exposes ${field}`);
+	}
+
+	// Interval-only day writes, and no approval flow holds a punch.
+	for (const coordinate of ['mutate.new', 'mutate.existing']) {
+		const [grant] = grantsFor(kiosk, 'work_days', coordinate);
+		assert.notEqual(grant, undefined, `kiosk work_days.${coordinate}`);
+		assert.equal(grant.approval, undefined, `kiosk work_days.${coordinate} must not review`);
+	}
+	const [dayNew] = grantsFor(kiosk, 'work_days', 'mutate.new');
+	for (const field of ['shift_definition_id', 'assignment_code', 'planned_note']) {
+		assert.equal(dayNew.fields.includes(field), false, `kiosk may not plan ${field}`);
+	}
+	assert.equal(may(kiosk, 'work_days', 'delete'), false, 'kiosk may not delete days');
+
+	// Nothing outside people, employments, days, companies and the day-guard reads.
+	for (const collection of ['component_entries', 'loans', 'payslips']) {
+		assert.equal(may(kiosk, collection, 'read'), false, `kiosk reads ${collection}`);
+		assert.equal(may(kiosk, collection, 'mutate.new'), false, `kiosk writes ${collection}`);
+	}
+	assert.equal(may(kiosk, 'leave_requests', 'mutate.new'), false, 'kiosk writes leave');
+	assert.equal(may(kiosk, 'payroll_runs', 'mutate.new'), false, 'kiosk writes runs');
+
+	// The day-guard reads are masked to exactly the columns the work_days hooks project.
+	const [leaveRead] = grantsFor(kiosk, 'leave_requests', 'read');
+	assert.deepEqual(
+		[...leaveRead.fields].toSorted(),
+		[
+			'approval_id',
+			'employment_id',
+			'from_date',
+			'half_day_end',
+			'half_day_start',
+			'kind',
+			'to_date'
+		].toSorted()
+	);
+	const [runRead] = grantsFor(kiosk, 'payroll_runs', 'read');
+	assert.deepEqual(
+		[...runRead.fields].toSorted(),
+		['attendance_from', 'attendance_to', 'company_id', 'lifecycle', 'period'].toSorted()
+	);
+	const [captureRead] = grantsFor(kiosk, 'payslip_work_day_inputs', 'read');
+	assert.deepEqual([...captureRead.fields].toSorted(), ['period', 'work_day_id'].toSorted());
+});
+
+test('kiosk-created persons always land pending, and only HR approves', () => {
+	const [created] = grantsFor(kiosk, 'employees', 'mutate.new');
+	assert.notEqual(created, undefined);
+	assert.equal(
+		created.authorize({ record: { face_enrollment_status: 'PENDING' } }, undefined),
+		true
+	);
+	assert.equal(
+		created.authorize({ record: { face_enrollment_status: 'APPROVED' } }, undefined),
+		false,
+		'the kiosk may not approve its own enrollment'
+	);
+	assert.equal(created.authorize({ record: { face_enrollment_status: 'NONE' } }, undefined), false);
+
+	const [edited] = grantsFor(kiosk, 'employees', 'mutate.existing');
+	assert.notEqual(edited, undefined);
+	const decide = (previous, next) =>
+		edited.authorize(
+			{
+				previous: { face_enrollment_status: previous },
+				changes: { face_enrollment_status: next },
+				record: { face_enrollment_status: next }
+			},
+			undefined
+		);
+	assert.equal(decide('NONE', 'APPROVED'), true, 'known-person enrollment');
+	assert.equal(decide('APPROVED', 'APPROVED'), true, 'punch bookkeeping');
+	assert.equal(decide('NONE', 'PENDING'), false);
+	assert.equal(decide('PENDING', 'APPROVED'), false, 'approving a pending row is HR');
+	assert.equal(decide('APPROVED', 'SUSPENDED'), false, 'suspending is HR');
+	assert.equal(decide('SUSPENDED', 'APPROVED'), false, 'unsuspending is HR');
 });

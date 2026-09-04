@@ -21,7 +21,7 @@ import { coversDate } from '../../payroll_runs/lib/effective.js';
 import {
 	overlappingWorkShifts,
 	type ValidationDay
-} from '../../rosters/lib/workforce-validation.js';
+} from '../../../lib/scheduling/workforce-validation.js';
 import type { Api, WorkspaceRow } from '../$types.js';
 
 const QUERY_LIMIT = 20_000;

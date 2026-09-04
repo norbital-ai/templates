@@ -25,8 +25,10 @@ import type { Configuration } from './configuration.js';
 import type { PayrollWindow } from './period.js';
 import {
 	blockers,
+	rosteredWorkCodeMaps,
 	validateConfiguration,
 	validateOpenWorkDays,
+	validateRosteredExpectations,
 	type RunIssue
 } from './validate.js';
 
@@ -102,6 +104,59 @@ export function payrollRunPrecheck(options: {
 						employment: { employee_number: employment.employee_number },
 						workDays: byEmployment.get(employment.id) ?? []
 					}))
+				})
+			);
+			// Rostered employments have no pattern day, so their guaranteed or capped load is
+			// validated here, over the pay window where the money is — the arithmetic the roster
+			// publication gate used to run.
+			const [terms, codes] = yield* Effect.all(
+				[
+					db.employment_terms.findMany({
+						where: { employment_id: { in: employmentIds } },
+						columns: {
+							id: true,
+							employment_id: true,
+							pay_frequency: true,
+							work_pattern: true,
+							effective_range: true
+						},
+						limit: PAGE_LIMIT
+					}),
+					db.shift_definitions.findMany({
+						where: { company_id: { eq: options.configuration.company.id } },
+						columns: { id: true, variant: true },
+						limit: PAGE_LIMIT
+					})
+				],
+				{ concurrency: 'unbounded' }
+			);
+			api.reads.assertComplete(terms, 'precheck employment terms');
+			api.reads.assertComplete(codes, 'precheck roster codes');
+			const termsByEmployment = new Map<string, typeof terms>();
+			for (const term of terms) {
+				const bucket = termsByEmployment.get(term.employment_id) ?? [];
+				bucket.push(term);
+				termsByEmployment.set(term.employment_id, bucket);
+			}
+			issues.push(
+				...validateRosteredExpectations({
+					period: options.window.period,
+					window: options.window.attendance,
+					employments: employments.map((employment) => ({
+						id: employment.id,
+						employee_number: employment.employee_number,
+						terms: (termsByEmployment.get(employment.id) ?? []).map((term) => ({
+							id: term.id,
+							pay_frequency: term.pay_frequency,
+							work_pattern: term.work_pattern,
+							effective_range: term.effective_range
+						})),
+						workDays: (byEmployment.get(employment.id) ?? []).map((day) => ({
+							work_date: day.work_date,
+							shift_definition_id: day.shift_definition_id
+						}))
+					})),
+					...rosteredWorkCodeMaps(codes)
 				})
 			);
 		}

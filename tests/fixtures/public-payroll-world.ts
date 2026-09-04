@@ -26,6 +26,34 @@ const ROSTERED = {
 	}
 };
 
+const WORK_SHIFT_ID = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1';
+
+/**
+ * Plan-only roster rows covering both payroll attendance windows the tests build
+ * (2025-12-21→2026-01-20 and 2026-01-21→2026-02-20). A rostered employment has no
+ * pattern day, so its guaranteed load is validated at precheck over the pay window;
+ * with no rows the run is refused. `worked_intervals: null` carries no attendance,
+ * so these rows satisfy the roster check without capturing work days or moving money.
+ */
+function rosteredWorkDays(): PayrollWorld['work_days'] {
+	const rows: PayrollWorld['work_days'] = [];
+	let date = '2025-12-21';
+	const end = '2026-02-20';
+	while (date <= end) {
+		rows.push({
+			id: `work-day-${date}`,
+			employment_id: EMPLOYMENT_ID,
+			work_date: date,
+			shift_definition_id: WORK_SHIFT_ID,
+			worked_intervals: null,
+			break_minutes: null,
+			approval_id: null
+		});
+		date = new Date(Date.parse(`${date}T00:00:00.000Z`) + 86_400_000).toISOString().slice(0, 10);
+	}
+	return rows;
+}
+
 const REGIME = {
 	overtime_coverage: null,
 	overtime_rules: [],
@@ -149,7 +177,17 @@ export function createPublicPayrollWorld(options: PublicPayrollWorldOptions = {}
 				approval_id: null
 			}
 		],
-		shift_definitions: [],
+		shift_definitions: [
+			{
+				id: WORK_SHIFT_ID,
+				company_id: COMPANY_ID,
+				code: '7.5AM',
+				name: 'Day',
+				variant: { kind: 'WORK', start_time: '07:30', end_time: '16:30', break_minutes: 60 },
+				effective_range: RANGE,
+				approval_id: null
+			}
+		],
 		company_holidays: [],
 		leave_types: [],
 		employments: [
@@ -200,7 +238,7 @@ export function createPublicPayrollWorld(options: PublicPayrollWorldOptions = {}
 		loans: [],
 		loan_repayments: [],
 		leave_requests: [],
-		work_days: [],
+		work_days: rosteredWorkDays(),
 		employee_children: [],
 		payroll_runs: [],
 		payslips: [],

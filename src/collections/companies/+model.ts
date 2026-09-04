@@ -21,6 +21,14 @@ export default defineModel(
 		 */
 		pay_calendar: custom('pay_calendar'),
 		leave_year_start_month: integer().notNull(),
+		/**
+		 * The pay component that carries one unpaid day for an absent day.
+		 *
+		 * An absent day is `worked_intervals: []` on a scheduled WORK day with no covering leave
+		 * or holiday, priced through the same predicate that prices unpaid leave. Nullable: a run
+		 * that meets an absent day in a company that names none refuses and says so.
+		 */
+		absence_component_id: uuid(),
 		overtime_calculation_method: enums(['STATUTORY_AGGREGATE', 'ANNUALISED_CONTRACT_RATE'])
 			.notNull()
 			.default('STATUTORY_AGGREGATE'),

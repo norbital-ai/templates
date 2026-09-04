@@ -24,6 +24,7 @@
 	import { CollectionForm } from '@norbital-ai/ui/collection-form';
 	import { CollectionTable } from '@norbital-ai/ui/collection-table';
 	import { Combobox } from '@norbital-ai/ui/combobox';
+	import { MonthPicker } from '@norbital-ai/ui/month-picker';
 	import { FormattedValueRenderer } from '@norbital-ai/ui/data-renderer';
 	import { Cluster, Grid, Stack } from '@norbital-ai/ui/layout';
 	import { resolveWindow } from './lib/period.js';
@@ -100,30 +101,25 @@
 	);
 	const selectedCompany = $derived(companies.find((company) => company.id === companyId) ?? null);
 
-	const periodOptions = $derived.by(() => {
-		const company = selectedCompany;
-		if (!company) return [];
-		const settled = new Set(
+	const periodCandidates = $derived(periodWindow(37, 12));
+	const settledPeriods = $derived(
+		new Set(
 			(runsQuery.current ?? [])
-				.filter((run) => run.company_id === company.id)
+				.filter((run) => selectedCompany != null && run.company_id === selectedCompany.id)
 				.map((run) => run.period)
-		);
-		return periodWindow(37, 12)
-			.filter((candidate) => !settled.has(candidate))
-			.flatMap((candidate) => {
-				// A company whose pay calendar is unusable has no offerable period; it must be fixed
-				// on the company, not guessed at here.
-				const window = windowFor(candidate, company);
-				if (window == null) return [];
-				return [
-					{
-						value: candidate,
-						label: `${candidate} · Pay ${formatCalendarDate(window.payDate)}`,
-						search_term: `${candidate} ${window.attendance.start} ${window.attendance.end}`
-					}
-				];
-			});
-	});
+		)
+	);
+
+	/**
+	 * The months the grid picker leaves enabled: inside the 37+12 offer window, not already
+	 * settled, and on a pay calendar the engine can actually build. The pay-date detail the old
+	 * option label carried now reads off `selectedWindow` below instead.
+	 */
+	function isPeriodDisabled(candidate: string): boolean {
+		const company = selectedCompany;
+		if (company == null || settledPeriods.has(candidate)) return true;
+		return windowFor(candidate, company) == null;
+	}
 
 	const selectedWindow = $derived.by(() => {
 		const company = selectedCompany;
@@ -292,18 +288,19 @@
 					<label class="text-sm font-medium">
 						<Stack gap="xs">
 							{t('component.pay_period')}
-							<Combobox
-								ariaLabel={t('component.pay_period')}
-								options={periodOptions}
+							<MonthPicker
 								value={period}
-								onValueChange={(value) => {
-									period = value;
-									form.setValues({ company_id: companyId, period: value });
+								onValueChange={(next) => {
+									period = next;
+									form.setValues({ company_id: companyId, period: next });
 								}}
-								searchPlaceholder={t('component.search_payroll_periods')}
-								emptyPlaceholder={companyId
+								min={periodCandidates[0]}
+								max={periodCandidates[periodCandidates.length - 1]}
+								isMonthDisabled={isPeriodDisabled}
+								placeholder={companyId
 									? t('component.choose_payroll_period')
 									: t('component.choose_entity_first')}
+								ariaLabel={t('component.pay_period')}
 								disabled={!companyId || runsQuery.loading}
 							/>
 						</Stack>

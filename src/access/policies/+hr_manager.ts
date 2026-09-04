@@ -1,4 +1,5 @@
 import {
+	captureLedgerGrants,
 	grantsOn,
 	grantOn,
 	leaveApproval,
@@ -96,6 +97,10 @@ export default {
 
 		payrollGrants('read'),
 		payrollRebuildGrants(),
+		// The engine reads the capture junctions under the requesting subject while it gathers: which
+		// one-off entries an earlier run already took, and what a prior payslip captured. Without
+		// this read a company with either refuses the run with a bare policy denial.
+		captureLedgerGrants(),
 		grantsOn('payroll_runs', ['mutate.new', 'mutate.existing', 'delete'])
 	),
 	/**

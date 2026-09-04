@@ -157,6 +157,8 @@
 		if (current === null) return '—';
 		if (current.kind === 'TIME_OFF')
 			return `${formatCalendarDate(current.range.start.date)} → ${formatCalendarDate(current.range.end.date)}${current.chargeable_days == null ? '' : ` · ${current.chargeable_days}d`}`;
+		if (current.kind === 'CARRY_FORWARD')
+			return `${t('renderer.leave_event.kind_carry_forward')} · ${formatCalendarDate(current.effective_on)} · ${current.movement_days}d`;
 		return `${t(
 			`renderer.leave_event.kind_${current.kind === 'ENCASHMENT' ? 'encashment' : 'balance_adjustment'}`
 		)} · ${formatCalendarDate(current.effective_on)} · ${current.movement_days}d`;
@@ -200,9 +202,8 @@
 					note: null,
 					source_id: null
 				};
-			default: {
-				const _exhaustive: never = kind;
-				return _exhaustive;
+			case 'CARRY_FORWARD': {
+				throw new Error('Carry-forward rows are posted by process_leave_year, never entered here.');
 			}
 		}
 	}
@@ -283,6 +284,26 @@
 						placeholder={t('component.blank_none_stated')}
 						oninput={(event) => emit({ ...current, reason: textOrNull(event.currentTarget.value) })}
 					/>
+				</Stack>
+			</label>
+		{:else if current?.kind === 'CARRY_FORWARD'}
+			<!-- Posted once by process_leave_year: shown here, never entered or edited. -->
+			<label class="text-sm font-medium">
+				<Stack gap="xs">
+					{t('renderer.leave_event.movement_days')}
+					<Input type="number" step="0.5" value={current.movement_days} disabled={true} />
+				</Stack>
+			</label>
+			<label class="text-sm font-medium">
+				<Stack gap="xs">
+					{t('renderer.leave_event.expires_on')}
+					<Input type="date" value={current.expires_on ?? ''} disabled={true} />
+				</Stack>
+			</label>
+			<label class="text-sm font-medium">
+				<Stack gap="xs">
+					{t('renderer.leave_event.forfeited_days')}
+					<Input type="number" step="0.5" value={current.forfeited_days} disabled={true} />
 				</Stack>
 			</label>
 		{:else if current !== null}

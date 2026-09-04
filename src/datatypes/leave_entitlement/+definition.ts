@@ -1,18 +1,17 @@
 import { defineCustomType } from '@norbital-ai/bolt/authoring';
 import { Schema } from 'effect';
-import { accrualKeyValueSchema } from '../accrual_key/+definition.js';
-import { instantRangeValueSchema } from '@norbital-ai/bolt/authoring';
 
 /**
  * `Finite` rather than `Number` for `days`: `Number` admits `NaN` and `Infinity`, and the
  * `z.number()` this replaced admitted neither. A `NaN` entitlement propagates through every merge
  * and comparison as `NaN` without ever failing, so the leave balance silently becomes unprintable.
+ *
+ * `band_from` sits on the layer itself: the band applies from that many completed months of
+ * service upward, until a higher band takes over. A flat entitlement is `band_from: 0`.
  */
 const award = {
-	key: accrualKeyValueSchema,
-	days: Schema.Finite.check(Schema.isGreaterThanOrEqualTo(0)),
-	authority: Schema.NonEmptyString,
-	effective_range: instantRangeValueSchema
+	band_from: Schema.Int.check(Schema.isGreaterThanOrEqualTo(0)),
+	days: Schema.Finite.check(Schema.isGreaterThanOrEqualTo(0))
 } as const;
 
 /**
@@ -30,7 +29,6 @@ export const leaveEntitlementLayerSchema = Schema.Union([
 ]);
 
 export const leaveEntitlementValueSchema = Schema.Struct({
-	merge: Schema.Literal('MAX_WITH_COMPANY_LAYERS'),
 	layers: Schema.Array(leaveEntitlementLayerSchema)
 });
 
@@ -42,6 +40,6 @@ export const leaveEntitlementSchema = Schema.toStandardSchemaV1(leaveEntitlement
 export default defineCustomType({
 	name: 'leave_entitlement',
 	description:
-		'The organisation and per-employee leave layers for one leave type, each with its authority and effective range, merged by taking the most generous layer above the statutory floor the linked statutory profile states.',
+		'The organisation and per-employee leave layers for one leave type, each with its service band, merged by taking the most generous layer above the statutory floor the linked statutory profile states.',
 	schema: leaveEntitlementSchema
 });

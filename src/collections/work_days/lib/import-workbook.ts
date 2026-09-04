@@ -10,10 +10,11 @@
  *
  * The two payloads stay two payloads, because they genuinely carry different header facts:
  *
- *     Roster       the drafted month the plan attaches to (`roster_id`)
+ *     Roster       the legal entity and month the plan belongs to
  *     Attendance   the zone its clock cells are in (`timezone`)
  *
- * Neither is optional for its own sheet and neither means anything to the other, so they are two
+ * The Settings sheet states both halves of the roster header; there is no draft roster to attach
+ * the plan to. Neither fact means anything to the other sheet, so they are two
  * arms of the pipeline's input union rather than one shape with two holes in it. `sheet` tags them,
  * so the pipeline dispatches on a literal rather than on which fields happen to be present.
  *
@@ -64,7 +65,6 @@ type AttendanceImportRow = Schema.Schema.Type<typeof attendanceImportRowSchema>;
 
 const rosterImportPayloadSchema = Schema.Struct({
 	sheet: Schema.Literal('ROSTER'),
-	roster_id: Schema.String,
 	legal_entity: Schema.optional(Schema.String),
 	month: Schema.optional(Schema.String),
 	rows: Schema.Array(rosterImportRowSchema)
@@ -160,8 +160,8 @@ function longFormAttendanceRows(table: SheetTable): readonly AttendanceImportRow
 	}));
 }
 
-/** The planned half of the workbook, against the drafted month it is being imported into. */
-export function rosterImportPayload(grids: WorkbookGrids, rosterId: string): RosterImportPayload {
+/** The planned half of the workbook, against the legal entity and month it states. */
+export function rosterImportPayload(grids: WorkbookGrids): RosterImportPayload {
 	const settings = readWorkbookSettings(grids);
 	const rows = readSheet<RosterImportRow>(grids, ROSTER_SHEET_NAME, {
 		longFormColumns: ['employee_number', 'work_date', 'shift_code'],
@@ -173,7 +173,6 @@ export function rosterImportPayload(grids: WorkbookGrids, rosterId: string): Ros
 	}
 	return {
 		sheet: 'ROSTER',
-		roster_id: rosterId,
 		legal_entity: settings.legal_entity,
 		month: settings.month,
 		rows

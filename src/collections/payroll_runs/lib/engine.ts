@@ -68,6 +68,8 @@ import {
 	validateOpenWorkDays,
 	validateOvertimeLimits,
 	validatePayCalendar,
+	validateRosteredExpectations,
+	rosteredWorkCodeMaps,
 	type RunIssue
 } from './validate.js';
 import { decodeNumber } from '@norbital-ai/std/json';
@@ -223,6 +225,32 @@ export function buildPayrollRun(prepared: PreparedRun): PayrollRunGraph {
 	// as issues rather than thrown one at a time, so a month with thirty-six unclosed days yields
 	// one list instead of thirty-six consecutive builds.
 	issues.push(...validateOpenWorkDays({ bundles: gathered.bundles }));
+	// Rostered employments carry no pattern day: their guaranteed or capped load is measured here,
+	// over the pay window, with the same sentences precheck reports. A MONTHLY rostered employment
+	// with zero expected days stops here rather than deriving ordinary hours from nothing.
+	issues.push(
+		...validateRosteredExpectations({
+			period,
+			window: window.attendance,
+			employments: gathered.bundles.map((bundle) => ({
+				id: bundle.employment.id,
+				employee_number: bundle.employment.employee_number,
+				terms: bundle.terms.map((term) => ({
+					id: term.id,
+					pay_frequency: term.pay_frequency,
+					work_pattern: term.work_pattern,
+					effective_range: term.effective_range
+				})),
+				workDays: bundle.workDays.map((day) => ({
+					work_date: day.work_date,
+					shift_definition_id: day.shift_definition_id
+				}))
+			})),
+			...rosteredWorkCodeMaps(
+				[...configuration.shiftById].map(([id, code]) => ({ id, variant: code.variant }))
+			)
+		})
+	);
 	if (blockers(issues).length > 0) refuse(describeIssues(blockers(issues)));
 
 	const pending: PendingPayslip[] = [];

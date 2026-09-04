@@ -9,30 +9,10 @@ import {
 	rowsOf
 } from '@norbital-ai/test-utilities';
 import {
-	COMPANY_ID,
 	EMPLOYMENT_ID,
-	FEBRUARY_2026,
 	LOCAL_DATABASE_TEST_TIMEOUT_MILLIS,
-	SHIFT_REST_ID,
 	startPublicSeedHost
 } from './helpers/public-seed-host.ts';
-
-const openRosterMonth = async (
-	session: Awaited<ReturnType<typeof startPublicSeedHost>>,
-	month: string
-): Promise<void> => {
-	const opened = await postGuestCommand(
-		session.host.baseUrl,
-		'invoke.open_roster_month',
-		{ input: { company_id: COMPANY_ID, month } },
-		bearerHeaders(session.credential)
-	);
-	if (opened.status < 200 || opened.status >= 300) {
-		throw new Error(
-			`invoke.open_roster_month returned ${opened.status}: ${JSON.stringify(opened.value)}`
-		);
-	}
-};
 
 const WORK_DAY_LIVE_COLUMNS = {
 	id: true,
@@ -45,6 +25,10 @@ const WORK_DAY_LIVE_COLUMNS = {
 
 /**
  * I2 / H3 / A1 / A4: one person-day save keeps null ≠ []. Quarantined is the A1 defect.
+ *
+ * No month is opened first: a roster row is an override, and attendance needs no roster.
+ * The two February person-days are created bare, then one is marked absent (`[]`) while the
+ * other stays unrecorded (`null`).
  */
 test(
 	'public seed attendance save stores empty intervals without quarantining',
@@ -52,8 +36,44 @@ test(
 	async () => {
 		const session = await startPublicSeedHost('hr-payroll-i2-attendance');
 		try {
-			await openRosterMonth(session, FEBRUARY_2026);
 			const headers = bearerHeaders(session.credential);
+			const created = await postGuestCommand(
+				session.host.baseUrl,
+				'collections.mutate',
+				mutationPush(
+					session.schemaFingerprint,
+					{
+						action: 'mutate',
+						collection: 'work_days',
+						rows: [
+							{
+								action: 'create',
+								values: {
+									id: crypto.randomUUID(),
+									employment_id: EMPLOYMENT_ID,
+									work_date: '2026-02-03'
+								}
+							},
+							{
+								action: 'create',
+								values: {
+									id: crypto.randomUUID(),
+									employment_id: EMPLOYMENT_ID,
+									work_date: '2026-02-04'
+								}
+							}
+						]
+					},
+					[]
+				),
+				headers
+			);
+			assert.ok(
+				created.status >= 200 && created.status < 300,
+				`work_days create ${created.status}: ${JSON.stringify(created.value)}`
+			);
+			requireAccepted(created.value, 'work_days attendance create');
+
 			const listed = await postGuestCommand(
 				session.host.baseUrl,
 				'collections.findMany',
@@ -70,11 +90,11 @@ test(
 				`work_days findMany ${listed.status}: ${JSON.stringify(listed.value)}`
 			);
 			const days = rowsOf(listed.value, 'PUB-EMP-0001 work_days');
-			assert.ok(days.length > 0, 'expected PUB-EMP-0001 February work_days');
+			assert.ok(days.length >= 2, 'expected PUB-EMP-0001 February work_days');
 
 			const unread = days.filter((day) => day.worked_intervals == null);
 			assert.ok(unread.length >= 2, 'need two unread days so one can stay null');
-			const restDay = unread.find((day) => day.shift_definition_id === SHIFT_REST_ID) ?? unread[0];
+			const restDay = unread[0];
 			const untouched = unread.find((day) => day.id !== restDay?.id);
 			assert.ok(restDay && typeof restDay.id === 'string');
 			assert.ok(untouched && typeof untouched.id === 'string');

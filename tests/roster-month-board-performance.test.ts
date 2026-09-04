@@ -49,7 +49,7 @@ test('realistic month board benchmarks database, payload, and client matrix as b
 				employmentId,
 				date,
 				'code-day',
-				'GENERATED',
+				'IMPORT',
 				attended
 					? JSON.stringify([
 							{

@@ -23,13 +23,13 @@ const normalInput = {
 	unresolvedClockOutsOnly: false
 } as const;
 
-test('the normal month board has a fixed eleven-query and 34,450-row ceiling', () => {
+test('the normal month board has a fixed ten-query and 34,400-row ceiling', () => {
 	const receipt = monthBoardQueryReceipt(normalInput);
 
-	assert.equal(MONTH_BOARD_NORMAL_QUERY_CEILING, 11);
-	assert.equal(MONTH_BOARD_NORMAL_ROW_BOUND, 34_450);
-	assert.equal(receipt.queryCount, 11);
-	assert.equal(receipt.rowBound, 34_450);
+	assert.equal(MONTH_BOARD_NORMAL_QUERY_CEILING, 10);
+	assert.equal(MONTH_BOARD_NORMAL_ROW_BOUND, 34_400);
+	assert.equal(receipt.queryCount, 10);
+	assert.equal(receipt.rowBound, 34_400);
 	assert.equal(receipt.perEmployeeQueryCount, 0);
 	assert.equal(receipt.perDayQueryCount, 0);
 	assert.equal(receipt.matrixCellCount, 1_302);
@@ -39,7 +39,6 @@ test('the normal month board has a fixed eleven-query and 34,450-row ceiling', (
 			'employments',
 			'rosterCodes',
 			'leaveTypes',
-			'rosters',
 			'payrollRuns',
 			'holidays',
 			'employees',
@@ -88,10 +87,10 @@ test('employee and day cardinality change matrix work but never query cardinalit
 test('one optional declarative schema-filter probe has its own fixed ceiling', () => {
 	const receipt = monthBoardQueryReceipt({ ...normalInput, schemaFilterActive: true });
 
-	assert.equal(MONTH_BOARD_INTERACTIVE_QUERY_CEILING, 12);
-	assert.equal(MONTH_BOARD_INTERACTIVE_ROW_BOUND, 44_450);
-	assert.equal(receipt.queryCount, 12);
-	assert.equal(receipt.rowBound, 44_450);
+	assert.equal(MONTH_BOARD_INTERACTIVE_QUERY_CEILING, 11);
+	assert.equal(MONTH_BOARD_INTERACTIVE_ROW_BOUND, 44_400);
+	assert.equal(receipt.queryCount, 11);
+	assert.equal(receipt.rowBound, 44_400);
 	assert.deepEqual(receipt.sources.at(-1), {
 		source: 'filteredWorkDays',
 		rowBound: MONTH_BOARD_QUERY_LIMITS.filteredWorkDays,
@@ -115,10 +114,10 @@ test('query activation follows declarative parent inputs instead of people or ca
 			rowBound: 0,
 			loadedRowCount: 0,
 			matrixCellCount: 0,
-			normalQueryCeiling: 11,
-			normalRowBound: 34_450,
-			interactiveQueryCeiling: 12,
-			interactiveRowBound: 44_450,
+			normalQueryCeiling: 10,
+			normalRowBound: 34_400,
+			interactiveQueryCeiling: 11,
+			interactiveRowBound: 44_400,
 			unresolvedClockOutFilterApplied: false,
 			eyeFilterAdditionalQueries: 0,
 			perEmployeeQueryCount: 0,
@@ -132,15 +131,15 @@ test('query activation follows declarative parent inputs instead of people or ca
 		activeEmploymentCount: 0,
 		workDayCount: 0
 	});
-	assert.equal(companyWithoutActivePeople.queryCount, 6);
-	assert.equal(companyWithoutActivePeople.rowBound, 2_450);
+	assert.equal(companyWithoutActivePeople.queryCount, 5);
+	assert.equal(companyWithoutActivePeople.rowBound, 2_400);
 
 	const activePeopleWithoutRows = monthBoardQueryReceipt({
 		...normalInput,
 		workDayCount: 0
 	});
-	assert.equal(activePeopleWithoutRows.queryCount, 10);
-	assert.equal(activePeopleWithoutRows.rowBound, 24_450);
+	assert.equal(activePeopleWithoutRows.queryCount, 9);
+	assert.equal(activePeopleWithoutRows.rowBound, 24_400);
 });
 
 test('the receipt totals observed rows and exposes sources that reach their configured bound', () => {
@@ -177,7 +176,7 @@ test('both month-board work_days prefixes project the whole-row base version and
 	assert.equal(MONTH_BOARD_WORK_DAY_COLUMNS.employment_id, true);
 	assert.equal(MONTH_BOARD_WORK_DAY_COLUMNS.work_date, true);
 	assert.equal(MONTH_BOARD_WORK_DAY_COLUMNS.shift_definition_id, true);
-	assert.equal(MONTH_BOARD_WORK_DAY_COLUMNS.roster_id, true);
+	assert.equal('roster_id' in MONTH_BOARD_WORK_DAY_COLUMNS, false);
 	assert.equal(MONTH_BOARD_WORK_DAY_COLUMNS.assignment_code, true);
 	assert.equal(MONTH_BOARD_WORK_DAY_COLUMNS.planned_origin, true);
 	assert.equal(MONTH_BOARD_WORK_DAY_COLUMNS.planned_note, true);
