@@ -386,9 +386,9 @@ it(
 				mutationPush(
 					live.schemaFingerprint,
 					{
-						action: 'update',
+						action: 'mutate',
 						collection: 'sites',
-						values: { id: DISTINCTIVE_SITE_ID, name: MUTATED_NAME }
+						rows: [{ action: 'update', values: { id: DISTINCTIVE_SITE_ID, name: MUTATED_NAME } }]
 					},
 					[
 						{

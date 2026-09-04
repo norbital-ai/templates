@@ -309,9 +309,11 @@ test(
 				guest.credential,
 				guest.schemaFingerprint,
 				{
-					action: 'update',
+					action: 'mutate',
 					collection: 'sites',
-					values: { id: AMBER_QUAY_SITE_ID, location: amberQuayLocation }
+					rows: [
+						{ action: 'update', values: { id: AMBER_QUAY_SITE_ID, location: amberQuayLocation } }
+					]
 				},
 				[
 					{ row: { collection: 'sites', recordId: AMBER_QUAY_SITE_ID }, rowVersion: siteRowVersion }
@@ -345,13 +347,18 @@ test(
 				guest.credential,
 				guest.schemaFingerprint,
 				{
-					action: 'create',
+					action: 'mutate',
 					collection: 'photo_evidence',
-					values: {
-						id: REFERENCE_PHOTO_ID,
-						job_assignment_id: REFERENCE_ASSIGNMENT_ID,
-						photo: photoDescriptor(REFERENCE_STORAGE_KEY, 'ref.jpg', referenceJpeg.byteLength)
-					}
+					rows: [
+						{
+							action: 'create',
+							values: {
+								id: REFERENCE_PHOTO_ID,
+								job_assignment_id: REFERENCE_ASSIGNMENT_ID,
+								photo: photoDescriptor(REFERENCE_STORAGE_KEY, 'ref.jpg', referenceJpeg.byteLength)
+							}
+						}
+					]
 				},
 				[],
 				'create reference photo_evidence'
@@ -362,13 +369,18 @@ test(
 				guest.credential,
 				guest.schemaFingerprint,
 				{
-					action: 'create',
+					action: 'mutate',
 					collection: 'photo_evidence',
-					values: {
-						id: SUSPECT_PHOTO_ID,
-						job_assignment_id: PUBLIC_ASSIGNMENT_ID,
-						photo: photoDescriptor(SUSPECT_STORAGE_KEY, 'suspect.jpg', suspectJpeg.byteLength)
-					}
+					rows: [
+						{
+							action: 'create',
+							values: {
+								id: SUSPECT_PHOTO_ID,
+								job_assignment_id: PUBLIC_ASSIGNMENT_ID,
+								photo: photoDescriptor(SUSPECT_STORAGE_KEY, 'suspect.jpg', suspectJpeg.byteLength)
+							}
+						}
+					]
 				},
 				[],
 				'create suspect photo_evidence'

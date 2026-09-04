@@ -230,11 +230,13 @@
 			Effect.gen(function* () {
 				const local = yield* Effect.tryPromise({
 					try: () =>
-						client.db.job_assignments.mutate({
-							job_id: jobId,
-							assignee_user_id: assigneeUserId,
-							status: 'assigned'
-						}),
+						client.db.job_assignments.mutate([
+							{
+								job_id: jobId,
+								assignee_user_id: assigneeUserId,
+								status: 'assigned'
+							}
+						]),
 					catch: (cause) => toError(cause)
 				});
 				// A dispatch is a scarce-resource allocation. Local durability is deliberately not enough to

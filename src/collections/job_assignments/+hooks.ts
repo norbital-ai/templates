@@ -246,7 +246,7 @@ export default {
 						return Effect.gen(function* () {
 							const job = yield* api.db.jobs.findFirst({ where: { id: { eq: record.job_id } } });
 							if (job?.status === 'unassigned') {
-								yield* api.db.jobs.mutate({ id: record.job_id, status: 'assigned' });
+								yield* api.db.jobs.mutate([{ id: record.job_id, status: 'assigned' }]);
 							}
 						});
 					if (!Object.hasOwn(changes, 'status')) return Effect.void;
@@ -255,7 +255,7 @@ export default {
 					const jobStatus = mapAssignmentStatusToJobStatus(
 						status as 'unassigned' | 'assigned' | 'completed'
 					);
-					return api.db.jobs.mutate({ id: record.job_id, status: jobStatus });
+					return api.db.jobs.mutate([{ id: record.job_id, status: jobStatus }]);
 				}
 			}
 		}
