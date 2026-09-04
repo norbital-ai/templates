@@ -20,7 +20,7 @@
 	<Combobox
 		{options}
 		value={selected}
-		onValueChange={onValueChange}
+		{onValueChange}
 		allowClear={false}
 		ariaLabel={t('component.legal_entity')}
 		searchPlaceholder={t('component.search_companies')}

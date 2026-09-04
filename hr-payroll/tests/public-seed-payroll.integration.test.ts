@@ -209,7 +209,11 @@ test(
 				/no matching allow policy/i,
 				`H11 payslip writes refused: ${JSON.stringify(created.value)}`
 			);
-			assert.equal(payload.resolution, 'accepted', `H11 resolution: ${JSON.stringify(created.value)}`);
+			assert.equal(
+				payload.resolution,
+				'accepted',
+				`H11 resolution: ${JSON.stringify(created.value)}`
+			);
 			const pending = payload.pendingApproval;
 			assert.ok(
 				pending !== null && typeof pending === 'object' && !Array.isArray(pending),
@@ -319,9 +323,9 @@ test(
 			);
 
 			const loadRun = () =>
-				session.query(`select id, lifecycle from payroll_runs where id = $1`, [payrollRunId]) as Promise<
-					ReadonlyArray<{ readonly id: string; readonly lifecycle: string }>
-				>;
+				session.query(`select id, lifecycle from payroll_runs where id = $1`, [
+					payrollRunId
+				]) as Promise<ReadonlyArray<{ readonly id: string; readonly lifecycle: string }>>;
 			let inserted = await loadRun();
 			if (inserted.length === 0) {
 				const resumed = await postGuestCommand(
