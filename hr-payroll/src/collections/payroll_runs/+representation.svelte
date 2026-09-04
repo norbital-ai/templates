@@ -108,7 +108,7 @@
 				.filter((run) => run.company_id === company.id)
 				.map((run) => run.period)
 		);
-		return periodWindow(12, 3)
+		return periodWindow(37, 12)
 			.filter((candidate) => !settled.has(candidate))
 			.flatMap((candidate) => {
 				// A company whose pay calendar is unusable has no offerable period; it must be fixed
