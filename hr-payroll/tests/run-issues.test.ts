@@ -411,10 +411,7 @@ test('repeated shortfalls share one bullet that names everyone and states the sh
 	assert.match(described, /3 things must be fixed first/);
 	assert.match(described, /WORKLOAD_BELOW_TERMS \(3\)/);
 	assert.match(described, /NHPMY0354, NHPMY0347, NHPMY0325/);
-	assert.match(
-		described,
-		/below the employment terms of 27 day\(s\) and 11958 minute\(s\)/
-	);
+	assert.match(described, /below the employment terms of 27 day\(s\) and 11958 minute\(s\)/);
 	assert.equal(described.split('\n').filter((line) => line.startsWith('•')).length, 1);
 });
 

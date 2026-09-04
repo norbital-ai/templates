@@ -625,7 +625,9 @@ const PERSON_TOKEN = /[A-Z]{2,}[A-Z0-9_-]*\d[A-Z0-9_-]*/;
  * (the workload sentences) and a leading `PERSON …` (rostered schedules, daily limits).
  * Anything else is not a person naming — it renders whole, exactly as before.
  */
-const splitPerson = (message: string): { readonly template: string; readonly person: string } | null => {
+const splitPerson = (
+	message: string
+): { readonly template: string; readonly person: string } | null => {
 	const match = PERSON_TOKEN.exec(message);
 	if (match === null) return null;
 	const person = match[0];
@@ -683,7 +685,8 @@ export function describeIssues(
 		const shown = cluster.persons.slice(0, PERSONS_PER_BULLET);
 		const remaining = cluster.persons.length - shown.length;
 		const names =
-			shown.join(', ') + (remaining > 0 ? `, and ${remaining} other${remaining === 1 ? '' : 's'}` : '');
+			shown.join(', ') +
+			(remaining > 0 ? `, and ${remaining} other${remaining === 1 ? '' : 's'}` : '');
 		return `• ${cluster.code} (${cluster.persons.length}) — ${names}: ${cluster.template}`;
 	};
 	const shown = clusters.slice(0, DETAILED_ISSUE_LIMIT);
