@@ -18,7 +18,7 @@ const companiesQuery = client.db.companies.findMany({
 	limit: 500
 });
 
-export const companies = (): ReadonlyArray<CompanyScopeRow> => companiesQuery.current ?? [];
+const companies = (): ReadonlyArray<CompanyScopeRow> => companiesQuery.current ?? [];
 
 export const companiesUnknown = (): boolean =>
 	companiesQuery.loading && companiesQuery.current === undefined;
