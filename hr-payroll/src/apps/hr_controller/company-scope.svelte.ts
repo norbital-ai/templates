@@ -7,7 +7,7 @@ import { client } from '../../lib/workspace-client.js';
 import type { WorkspaceRow } from '$bolt/types.js';
 import { todayInstant } from '../../lib/ui/calendar.js';
 
-export type CompanyScopeRow = WorkspaceRow<'companies'>;
+type CompanyScopeRow = WorkspaceRow<'companies'>;
 
 const companiesQuery = client.db.companies.findMany({
 	where: {
@@ -25,8 +25,6 @@ export const companiesUnknown = (): boolean =>
 
 export const companiesError = (): Error | undefined =>
 	companiesQuery.current === undefined ? companiesQuery.error : undefined;
-
-export const companiesKnown = (): boolean => companies().length > 0;
 
 export function resolveCompanyId(selectedId: string | null): string | null {
 	const rows = companies();
