@@ -84,7 +84,7 @@ const driftAi = (failMy = () => false) =>
 			const url =
 				code === 'SG'
 					? 'https://www.cpf.gov.sg/employer/employer-obligations/how-much-cpf-contributions-to-pay'
-					: 'https://www.kwsp.gov.my/employer';
+					: 'https://www.perkeso.gov.my/en/';
 			return {
 				_tag: 'Generated',
 				result: {

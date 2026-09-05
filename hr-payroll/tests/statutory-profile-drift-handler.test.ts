@@ -335,7 +335,7 @@ describe('statutory profile drift authored handler', () => {
 		const aggregate = aggregateResearchReceipts(
 			[
 				{ code: 'SG', report: officialReport },
-				{ code: 'MY', report: reportFor('MY', 'https://www.kwsp.gov.my/employer') }
+				{ code: 'MY', report: reportFor('MY', 'https://www.perkeso.gov.my/en/') }
 			],
 			398
 		);
@@ -518,7 +518,7 @@ describe('statutory profile drift authored handler', () => {
 					return Effect.succeed(officialReport);
 				}
 				if (/ONLY the latest statutory payroll position for MY/.test(request.prompt)) {
-					return Effect.succeed(reportFor('MY', 'https://www.kwsp.gov.my/employer'));
+					return Effect.succeed(reportFor('MY', 'https://www.perkeso.gov.my/en/'));
 				}
 				return Effect.fail(new Error('unexpected jurisdiction prompt'));
 			},
