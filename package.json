@@ -14,10 +14,10 @@
 	},
 	"dependencies": {
 		"@iconify/svelte": "^5.2.2",
-		"@norbital-ai/bolt": "0.0.9",
-		"@norbital-ai/bolt-protocol": "0.0.9",
-		"@norbital-ai/std": "0.0.9",
-		"@norbital-ai/ui": "0.0.9",
+		"@norbital-ai/bolt": "0.0.10",
+		"@norbital-ai/bolt-protocol": "0.0.10",
+		"@norbital-ai/std": "0.0.10",
+		"@norbital-ai/ui": "0.0.10",
 		"effect": "4.0.0-rc.111",
 		"mode-watcher": "^1.1.0",
 		"runed": "^0.37.1",
@@ -25,8 +25,8 @@
 		"vite": "^8.2.2"
 	},
 	"devDependencies": {
-		"@norbital-ai/doctor": "0.0.9",
-		"@norbital-ai/test-utilities": "0.0.9",
+		"@norbital-ai/doctor": "0.0.10",
+		"@norbital-ai/test-utilities": "0.0.10",
 		"@typescript/native": "npm:typescript@7.0.2",
 		"prettier": "^3.9.6",
 		"prettier-plugin-svelte": "^4.1.1",
