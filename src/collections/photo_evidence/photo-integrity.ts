@@ -22,7 +22,7 @@ type Exif = Schema.Schema.Type<typeof exifSchema>;
 const decodeExif = Schema.decodeUnknownOption(exifSchema);
 
 /** Keep in sync with `photo_evidence` model `flags` enum. */
-export const photoIntegrityFlags = [
+const photoIntegrityFlags = [
 	'visual_duplicate',
 	'metadata_anomaly',
 	'edited_metadata',

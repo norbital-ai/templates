@@ -48,7 +48,7 @@ test(
 	'public seed lists assigned jobs and finds PUB-SITE-AMBER-QUAY on the listening guest',
 	{ timeout: LOCAL_DATABASE_TEST_TIMEOUT_MILLIS },
 	async () => {
-		requireReleaseBundle(artifactDirectory, ['ai', 'database', 'tasks']);
+		requireReleaseBundle(artifactDirectory, ['ai', 'connector', 'database', 'tasks']);
 
 		const guest = await bootPublicSeedGuest({
 			tenantId: 'field-ops-public-seed',

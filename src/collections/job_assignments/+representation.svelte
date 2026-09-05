@@ -1,7 +1,6 @@
 <script lang="ts">
 	import { client } from '../../lib/workspace-client.js';
 	import { collectionClient } from '../../lib/collection-client.js';
-	import { currentDate } from '../../lib/clock.js';
 	import { getPlatformStateContext } from '@norbital-ai/bolt/client';
 	import { useI18n } from '@norbital-ai/ui/i18n';
 	import type { TenantI18nKeys } from '$bolt/i18n-keys';
@@ -16,7 +15,7 @@
 	import { formatFileSize } from '@norbital-ai/ui/utils';
 	import { getDataRendererRuntimeContext } from '@norbital-ai/ui/data-renderer';
 	import Icon from '@iconify/svelte';
-	import { Effect, Option, Schema } from 'effect';
+	import { Option, Schema } from 'effect';
 	import JobsRepresentation from '../jobs/+representation.svelte';
 	import { formatSingaporeInstant } from '../../lib/format-singapore-instant.js';
 	import { reviewCandidatesFrom } from './suspicion-evidence.js';
@@ -152,7 +151,6 @@
 	 * write turns the live row into its resolved presentation, so the editor leaves the interface.
 	 */
 	let resolutionDraft = $state<Record<string, string>>({});
-	const resolvingSuspicion = $derived(client.db.suspicious_activity_logs.pending > 0);
 	/**
 	 * Read through helpers rather than by indexing on the record's key in a prop.
 	 *
@@ -163,53 +161,11 @@
 	const draftFor = (log: { readonly id: string }): string => resolutionDraft[log.id] ?? '';
 	const canResolve = (log: { readonly id: string }): boolean => draftFor(log).trim() !== '';
 
-	/**
-	 * Closing a log by saying what was concluded.
-	 *
-	 * `resolution` and `resolved_at` are written together and never apart: a timestamp without a
-	 * sentence is a log somebody dismissed, which is the state this collection exists to make
-	 * impossible. The empty draft is refused here rather than disabled-away in the markup alone, so
-	 * the rule holds whichever path reaches it.
-	 *
-	 * The command takes the log rather than a bare key, like the helpers above: `authored-system-columns`
-	 * refuses `log.id` inside a component prop, and the id is read where it is data, in the write below.
-	 * Mutation pending and failure behavior belongs to the generated collection client; the sync
-	 * engine updates the live suspicion query, and a refused write leaves the draft intact.
-	 */
-	const resolveSuspicion = (log: { readonly id: string }): void => {
-		if (!canResolve(log)) return;
-		const logId = log.id;
-		const resolution = (resolutionDraft[logId] ?? '').trim();
-		Effect.runFork(
-			// The stamp is read through `Clock`, not the ambient constructor: the same workflow has to
-			// mean the same thing under `TestClock`, and a resolution timestamp is part of what this
-			// write asserts.
-			Effect.flatMap(currentDate, (now) =>
-				Effect.tryPromise({
-					try: () =>
-						client.db.suspicious_activity_logs.mutate([
-							{
-								id: logId,
-								resolution,
-								resolved_at: now.toISOString(),
-								resolved_by: platform().user.id
-							}
-						]),
-					catch: (cause) => cause
-				})
-			).pipe(
-				Effect.tap(() =>
-					Effect.sync(() => {
-						// The live row now reads through the durable overlay. Retire the editor draft only
-						// after that local commit; a later refusal is surfaced by the sync engine.
-						const next = { ...resolutionDraft };
-						delete next[logId];
-						resolutionDraft = next;
-					})
-				),
-				Effect.asVoid
-			)
-		);
+	/** Retire the editor draft once the resolution is submitted; the live row renders resolved. */
+	const afterResolve = (log: { readonly id: string }): void => {
+		const next = { ...resolutionDraft };
+		delete next[log.id];
+		resolutionDraft = next;
 	};
 
 	/** Whether anything is still waiting on a controller — what the accents below turn on. */
@@ -406,9 +362,9 @@
 	}
 
 	$effect(() => {
-		communicationTimeline;
+		const timeline = communicationTimeline;
 		const port = conversationPort;
-		if (port == null || !conversationPinnedToLatest) return;
+		if (timeline.length === 0 || port == null || !conversationPinnedToLatest) return;
 		queueMicrotask(() => {
 			port.scrollTo({ top: port.scrollHeight });
 		});
@@ -871,30 +827,52 @@
 												</p>
 											{/if}
 										{:else if mayResolveSuspicion}
-											<Stack gap="xs">
-												<Textarea
-													rows={2}
-													placeholder={t('component.suspicion_resolution_placeholder')}
-													value={draftFor(log)}
-													oninput={(event) =>
-														(resolutionDraft = {
-															...resolutionDraft,
-															[log.id]: event.currentTarget.value
-														})}
-												/>
-												<Inline gap="sm" align="center">
-													<Button
-														size="sm"
-														disabled={!canResolve(log) || resolvingSuspicion}
-														aria-busy={resolvingSuspicion}
-														onclick={() => resolveSuspicion(log)}
-													>
-														{resolvingSuspicion
-															? t('component.suspicion_resolving')
-															: t('component.suspicion_resolve')}
-													</Button>
-												</Inline>
-											</Stack>
+											<!--
+												Closing a log by saying what was concluded.
+												`resolution`, `resolved_at`, and `resolved_by` are written together and
+												never apart: a timestamp without a sentence is a log somebody dismissed,
+												which is the state this collection exists to make impossible. The draft
+												is transient editor state; it computes into the `resolution` column via
+												`form.setValues`, while the stamp and the author ride along as hidden
+												defaults. The empty draft disables the form, and a refused write leaves
+												the draft intact.
+											-->
+											<CollectionForm
+												client={collectionClient}
+												collection="suspicious_activity_logs"
+												defaultValues={{
+													...log,
+													resolved_at: new Date().toISOString(),
+													resolved_by: platform().user.id
+												}}
+												disabled={!canResolve(log)}
+												success_message={t('component.suspicion_resolution_saved')}
+												failure_message={t('component.suspicion_resolve_failed')}
+												submitLabel={t('component.suspicion_resolve')}
+												onAfterSubmit={() => afterResolve(log)}
+											>
+												{#snippet children({ Field, form })}
+													<Field name="job_assignment_id" hidden />
+													<Field name="origin" hidden />
+													<Field name="basis" hidden />
+													<Field name="review_id" hidden />
+													<Field name="evidence_id" hidden />
+													<Field name="reason" hidden />
+													<Field name="resolution" hidden />
+													<Field name="resolved_at" hidden />
+													<Field name="resolved_by" hidden />
+													<Textarea
+														rows={2}
+														placeholder={t('component.suspicion_resolution_placeholder')}
+														value={draftFor(log)}
+														oninput={(event) => {
+															const value = event.currentTarget.value;
+															resolutionDraft = { ...resolutionDraft, [log.id]: value };
+															form.setValues({ resolution: value });
+														}}
+													/>
+												{/snippet}
+											</CollectionForm>
 										{:else}
 											<p class="text-tiny text-muted-foreground">
 												{t('component.suspicion_resolve_unavailable')}
