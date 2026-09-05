@@ -1,11 +1,11 @@
 import { defineConfig } from 'vite';
-import { bolt } from '@norbital-ai/bolt/vite';
+import { boltPlugin } from '@norbital-ai/bolt/vite';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
 export default defineConfig({
 	plugins: [
-		bolt(),
+		boltPlugin(),
 		{
 			name: 'kiosk-face-models',
 			apply: 'build',
