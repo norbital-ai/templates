@@ -82,7 +82,7 @@ import { decodeNumber } from '@norbital-ai/std/json';
  * change and leave nothing on the run to explain the difference. Bump this when the payroll
  * algorithm changes in a way a settled payslip's reader would need to know.
  */
-export const CALCULATION_VERSION = '2026-09-frozen-monthly-supplements' as const;
+export const CALCULATION_VERSION = '2026-09-frozen-monthly-supplements-carry' as const;
 
 /** What one build produced, and what the run's `before` hook returns alongside its own columns. */
 type PayrollRunGraph = {

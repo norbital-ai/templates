@@ -1105,7 +1105,11 @@ export function measureEmployment(options: MeasureEmploymentOptions): MeasuredEm
 	// One pass over the ledger: a TIME_OFF request is captured when any of its days fall inside
 	// this payslip's lock span, so Dec 28–Jan 5 is an input to both December and January.
 	for (const movement of bundle.ledger) {
-		if (!leaveMovementTouchesSpan(movement, lockSpan)) continue;
+		const opensCurrentYear =
+			movement.kind === 'CARRY_FORWARD' &&
+			movement.leave_year ===
+				leaveYearOf(options.salary.end, decodeNumber(configuration.company.leave_year_start_month));
+		if (!opensCurrentYear && !leaveMovementTouchesSpan(movement, lockSpan)) continue;
 		capturedLeaveRequestIds.add(movement.id);
 	}
 

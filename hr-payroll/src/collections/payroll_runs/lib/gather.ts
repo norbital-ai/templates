@@ -284,10 +284,8 @@ export function gatherRun(options: GatherRunOptions): Effect.Effect<GatheredRun,
 		const entriesByEmployment = groupBy(live(entryRows), (row) => row.employment_id);
 		const repaymentsByLoan = groupBy(live(repaymentRows), (row) => row.loan_id);
 		const loansByEmployment = groupBy(live(loanRows), (row) => row.employment_id);
-		/** Every approved leave row is already an event; normal requests become TAKEN movements while
-		 * the adjustment/encashment arms carry their exact signed movement. A posted `CARRY_FORWARD`
-		 * is not a movement at all — payroll reads only unpaid leave in the window (decision L9) —
-		 * so it is left out of the ledger. */
+		/** Every approved event belongs in the ledger, including opening carry used by balance
+		 * formulas. Only TAKEN movements can become unpaid absence deductions. */
 		const leaveMovements: (LedgerRow & { readonly employment_id: string })[] = live(
 			requestRows
 		).flatMap((request) => {
@@ -335,7 +333,17 @@ export function gatherRun(options: GatherRunOptions): Effect.Effect<GatheredRun,
 						}
 					];
 				case 'CARRY_FORWARD':
-					return [];
+					return [
+						{
+							...base,
+							entry_date: event.effective_on,
+							kind: 'CARRY_FORWARD',
+							through_date: event.effective_on,
+							days: decodeNumber(event.movement_days),
+							leave_year: event.leave_year,
+							expires_on: event.expires_on
+						}
+					];
 				default: {
 					const _exhaustive: never = event;
 					refuse(

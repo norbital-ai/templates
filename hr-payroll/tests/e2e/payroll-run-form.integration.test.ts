@@ -39,7 +39,8 @@ const waitFor = async (
 		if (ok(last)) return last;
 		await new Promise((resolve) => setTimeout(resolve, 250));
 	}
-	throw new Error(`${label} timeout: ${last.slice(0, 1200)}`);
+	const pageText = String(await page.evaluate('document.body.innerText'));
+	throw new Error(`${label} timeout: ${last.slice(0, 1200)}\n${pageText.slice(-4000)}`);
 };
 
 /** Select from the form; the page's entity scope has the same accessible name. */

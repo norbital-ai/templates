@@ -8,8 +8,64 @@ import {
 	corePayrollInputHash
 } from '../src/collections/payroll_runs/lib/supplemental.ts';
 import hooks from '../src/collections/payroll_runs/+hooks.ts';
-import { createPublicPayrollWorld, COMPANY_ID } from './fixtures/public-payroll-world.ts';
+import {
+	createPublicPayrollWorld,
+	COMPANY_ID,
+	EMPLOYMENT_ID,
+	JURISDICTION_ID
+} from './fixtures/public-payroll-world.ts';
 import { memoryPayrollApi } from './fixtures/memory-payroll-api.ts';
+
+test('payroll uses the posted opening carry when historical statutory profiles are absent', async () => {
+	const world = createPublicPayrollWorld();
+	world.jurisdictions[0].effective_range = { start: '2026-01-01', end: null };
+	const leaveTypeId = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa2';
+	world.leave_types.push({
+		id: leaveTypeId,
+		company_id: COMPANY_ID,
+		code: 'ANNUAL',
+		statutory_profile_id: JURISDICTION_ID,
+		statutory_kind: 'ANNUAL',
+		eligibility: [],
+		accrual: { kind: 'UPFRONT', carry: { limit_days: 8, expiry_months: 12 } },
+		entitlement: { merge: 'MAX_WITH_COMPANY_LAYERS', layers: [] },
+		payroll_effect: { kind: 'PAID' },
+		approval_id: null
+	});
+	world.leave_requests.push({
+		id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa3',
+		employment_id: EMPLOYMENT_ID,
+		leave_type_id: leaveTypeId,
+		event: {
+			kind: 'CARRY_FORWARD',
+			leave_year: 2026,
+			effective_on: '2026-01-01',
+			movement_days: 3,
+			expires_on: '2027-01-01'
+		},
+		approval_id: null
+	});
+	world.pay_components.push({
+		...world.pay_components[0],
+		id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa4',
+		code: 'LEAVE_VALUE',
+		sequence: 60,
+		definition: { source: 'FORMULA', unit: 'MONEY', expr: 'leaveBalance("ANNUAL") * 100.0' }
+	});
+	for (const period of ['2026-01', '2026-02']) {
+		const prepared = await Effect.runPromise(
+			gatherPayrollRun({ api: memoryPayrollApi(world), companyId: COMPANY_ID, period })
+		);
+		const payslip = buildPayrollRun(prepared).payslip_payroll_run[0];
+		assert.equal(payslip.gross, 4861, 'three carried days plus eight current days are valued once');
+		assert.ok(
+			payslip.payslip_leave_request_input_payslip.some(
+				(row) => row.leave_request_id === world.leave_requests[0].id
+			),
+			'the opening balance is locked even when it predates the attendance window'
+		);
+	}
+});
 
 test('companies sharing one statutory profile cannot contribute each other’s pay components', async () => {
 	const world = createPublicPayrollWorld();

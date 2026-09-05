@@ -63,14 +63,7 @@ const jobSiteDecisionSchema = Schema.Struct({
 		Schema.check(Schema.isPattern(/^\s*\S[\s\S]*$/)),
 		Schema.check(Schema.isMaxLength(MAX_INFERENCE_REASON_CHARS))
 	),
-	/**
-	 * The empty string means "no decisive photo", where `Schema.NullOr` would read better.
-	 *
-	 * Structured output has no way to say nullable without a union: `NullOr` compiles to
-	 * `anyOf: [string, null]`, and the provider refuses the whole request with `Root JSON Schema
-	 * must have type "object" and must not use "anyOf"`. That refusal is not partial — it failed
-	 * every inference this automation ever attempted, so no suspicion review has run.
-	 */
+	/** Empty means no decisive photo; otherwise the name must match an attached evidence asset. */
 	evidence_asset_name: Schema.String.pipe(
 		Schema.check(Schema.isMaxLength(MAX_INFERENCE_ASSET_NAME_CHARS))
 	)
