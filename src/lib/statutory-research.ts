@@ -15,7 +15,9 @@ const DEFAULT_SOURCES: Readonly<Record<string, readonly string[]>> = {
 		'https://www.mom.gov.sg/employment-practices/leave',
 		'https://www.mom.gov.sg/employment-practices/leave/shared-parental-leave'
 	],
-	MY: ['https://www.kwsp.gov.my/employer'],
+	// kwsp.gov.my answers 403 to every non-browser agent (a WAF, not our headers); PERKESO and LHDN
+	// publish the contribution and PCB material on pages that answer plainly and are allow-listed.
+	MY: ['https://www.perkeso.gov.my/en/', 'https://www.hasil.gov.my/en/'],
 	ID: ['https://www.pajak.go.id/id/peraturan'],
 	PH: ['https://www.pagibigfund.gov.ph/Membership_Contributions.html'],
 	TW: ['https://www.bli.gov.tw/en/'],
