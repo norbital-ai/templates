@@ -1,23 +1,7 @@
 import { defineCustomType } from '@norbital-ai/bolt/authoring';
 import { Schema } from 'effect';
 
-/**
- * The canonical statutory leave kinds the profile states minimums for.
- *
- * A closed literal set at schema level — the same status as overtime day types: the vocabulary is
- * the template's transcription of statutory leave categories, and extending it is a template
- * change, not tenant configuration. A company leave type links to one kind via
- * `leave_types.statutory_kind`; company-specific leave that no statute mandates has no kind.
- */
-export const STATUTORY_LEAVE_KINDS = [
-	'ANNUAL',
-	'SICK',
-	'HOSPITALIZATION',
-	'MATERNITY',
-	'PATERNITY',
-	'CHILDCARE'
-] as const;
-
+/** Leave kinds are stable tenant-defined codes, so new statutory categories need no code release. */
 const authority = Schema.NonEmptyString;
 
 /**
@@ -33,7 +17,7 @@ const authority = Schema.NonEmptyString;
  * - `max_days`     — the ceiling the law puts on the scaled total, where it states one.
  */
 const statutoryLeaveMemberValueSchema = Schema.Struct({
-	kind: Schema.Literals(STATUTORY_LEAVE_KINDS),
+	kind: Schema.String.check(Schema.isPattern(/^[A-Z][A-Z0-9_]{1,63}$/)),
 	ladder: Schema.Array(
 		Schema.Struct({
 			band_from: Schema.Int.check(Schema.isGreaterThanOrEqualTo(0)),
@@ -42,7 +26,7 @@ const statutoryLeaveMemberValueSchema = Schema.Struct({
 	).check(Schema.isMinLength(1)),
 	per_child: Schema.NullOr(
 		Schema.Struct({
-			days: Schema.Finite.check(Schema.isGreaterThan(0)),
+			days: Schema.Finite.check(Schema.isGreaterThanOrEqualTo(0)),
 			age_limit: Schema.Int.check(Schema.isGreaterThan(0)),
 			min_children: Schema.Int.check(Schema.isGreaterThanOrEqualTo(1))
 		})
@@ -51,7 +35,20 @@ const statutoryLeaveMemberValueSchema = Schema.Struct({
 	authority
 });
 
-const statutoryLeaveProfileValueSchema = Schema.Array(statutoryLeaveMemberValueSchema);
+export const statutoryLeaveProfileValueSchema = Schema.Array(statutoryLeaveMemberValueSchema).check(
+	Schema.makeFilter((members) => {
+		if (new Set(members.map((member) => member.kind)).size !== members.length)
+			return 'Each statutory leave kind must be unique.';
+		if (
+			members.some(
+				(member) =>
+					new Set(member.ladder.map((band) => band.band_from)).size !== member.ladder.length
+			)
+		)
+			return 'Each service band must be unique within a leave kind.';
+		return true;
+	})
+);
 
 /** Strict standard view: duplicate kinds are a sealed lie, so they are refused at the boundary. */
 export const statutoryLeaveProfileSchema = Schema.toStandardSchemaV1(

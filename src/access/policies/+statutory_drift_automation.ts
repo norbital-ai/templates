@@ -10,17 +10,16 @@ const statutoryChangeApproval = {
 /**
  * The weekly statutory research worker's discovery authority, held by no human team.
  *
- * Statutory configuration remains read-only. A deterministic successor transition is submitted
- * directly under this identity, through narrowly field-masked `mutate.new` and `mutate.existing`
- * grants whose one concrete path requires HR Manager approval. Web research output never writes
- * law tables.
+ * The worker can propose an evidence-backed statutory successor and deterministic employment
+ * corrections. Both remain pending HR Manager approval; existing law cannot be overwritten.
  */
 export default {
 	description:
 		'Reads statutory and employment snapshots, appends deterministic successor facts, and records durable statutory-drift research evidence.',
 	grants: {
 		jurisdictions: {
-			read: {}
+			read: {},
+			mutate: { new: { approval: statutoryChangeApproval } }
 		},
 		statutory_contributions: {
 			read: {}

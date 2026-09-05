@@ -170,13 +170,13 @@ test('a child-conditioned kind grants nothing when its gate is not met', () => {
 		entitled(childcareLeaveType(), { children: [child('c1', '2015-01-01')], asOf: '2026-06-01' }),
 		0
 	);
-	// A superseded fact is not a child.
+	// A replacement fact remains eligible.
 	assert.equal(
 		entitled(childcareLeaveType(), {
 			children: [child('c1', '2022-03-01', { supersedes_id: 'c0' })],
 			asOf: '2026-06-01'
 		}),
-		0
+		2
 	);
 });
 
@@ -351,4 +351,42 @@ test('a movement outside the leave year under measurement is not counted in it',
 	const ledger = [taken('l1', '2024-08-01', -18)];
 	// 2024's spending shows up as a smaller provisional carry-in for 2025, never as a 2025 movement.
 	assert.equal(leaveBalance(balanceInput({ ledger }), '2025-06-30'), 3 + 10.5 - 3);
+});
+
+// Corrections point backwards: keep the replacement, and exclude future births.
+test('child corrections replace predecessors; unborn children grant no leave', () => {
+	assert.equal(
+		entitled(childcareLeaveType(), {
+			children: [child('old', '2010-01-01'), child('new', '2022-01-01', { supersedes_id: 'old' })]
+		}),
+		2
+	);
+	assert.equal(entitled(childcareLeaveType(), { children: [child('future', '2027-01-01')] }), 0);
+});
+
+test('statutory caps apply to flat floors and service bands select the latest threshold', () => {
+	const profile = {
+		...PROFILE,
+		statutory_leave: [
+			{
+				kind: 'ANNUAL',
+				ladder: [
+					{ band_from: 0, days: 20 },
+					{ band_from: 12, days: 10 }
+				],
+				per_child: null,
+				max_days: 15,
+				authority: 'Test law'
+			}
+		]
+	};
+	const options = {
+		leaveType: annualLeaveType(),
+		profile,
+		children: [],
+		employmentId: 'emp-1',
+		asOf: '2026-06-01'
+	};
+	assert.equal(resolveEntitlement({ ...options, serviceMonths: 0 }), 15);
+	assert.equal(resolveEntitlement({ ...options, serviceMonths: 12 }), 10);
 });

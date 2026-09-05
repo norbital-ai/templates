@@ -13,7 +13,7 @@ export type LeaveCarry = Schema.Schema.Type<typeof leaveCarryValueSchema>;
  * How entitlement for a leave type comes into existence.
  * - `MONTHLY`   — pro-rata each completed month of the leave year.
  * - `UPFRONT`   — the whole band granted at the start of the leave year.
- * - `PER_EVENT` — no balance at all (maternity, compassionate); granted per request.
+ * - `PER_EVENT` — a finite approved allocation for each qualifying event, with its own expiry.
  */
 export const leaveAccrualValueSchema = Schema.Union([
 	Schema.Struct({ kind: Schema.Literal('MONTHLY'), carry: Schema.NullOr(leaveCarryValueSchema) }),
@@ -31,6 +31,6 @@ export const leaveAccrualSchema = Schema.toStandardSchemaV1(leaveAccrualValueSch
 export default defineCustomType({
 	name: 'leave_accrual',
 	description:
-		'How entitlement for a leave type comes into being — pro-rata each completed month, granted whole at the start of the leave year, or granted per event with no balance — plus any carry-forward limit and its expiry.',
+		'How entitlement for a leave type comes into being — pro-rata each completed month, granted whole at the start of the leave year, or consumed from an approved allocation per event — plus any annual carry-forward limit and expiry.',
 	schema: leaveAccrualSchema
 });

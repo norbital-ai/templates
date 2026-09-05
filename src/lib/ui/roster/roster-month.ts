@@ -379,9 +379,8 @@ function statusOf(facts: Omit<DayFacts, 'status'>): DayStatus {
 	if (facts.designation == null) return 'UNROSTERED';
 	if (facts.attendanceState === 'OPEN') return 'OPEN';
 	if (facts.clockedIn) return 'ATTENDED';
-	// A planned working day still in the future has simply not happened yet; one already inside the
-	// window the next run will settle, with nothing clocked, is an absence somebody must explain.
-	return facts.withinCutoff && facts.holidayName == null ? 'ABSENT' : 'PLANNED';
+	// Only a deliberately empty attendance record means AWOL. Silence assumes the schedule.
+	return facts.attendanceState === 'CLOSED' && facts.holidayName == null ? 'ABSENT' : 'PLANNED';
 }
 
 /** Everything `buildRosterMonth` needs, as one shape so its three call sites cannot disagree. */

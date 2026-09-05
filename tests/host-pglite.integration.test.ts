@@ -54,6 +54,7 @@ test(
 		assert.ok(existsSync(bundlePath), `compiled entrypoint is missing: ${bundlePath}`);
 		assert.deepEqual([...(release.requiredFacilities ?? [])].toSorted(), [
 			'ai',
+			'connector',
 			'database',
 			'tasks'
 		]);

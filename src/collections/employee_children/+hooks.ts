@@ -1,3 +1,4 @@
+import { Effect } from 'effect';
 import { refuse } from '@norbital-ai/bolt/authoring';
 import type { Hooks } from './$types.js';
 
@@ -18,14 +19,30 @@ export default {
 			before: {
 				description:
 					'Refuses updating or deleting a child fact — corrections append a superseding row, so the facts a derived leave balance was computed from stay immutable.',
-				handler: ({ input, existing }) => {
-					if (existing !== undefined)
-						refuse(
-							'A child fact is an append-only record and cannot be edited or deleted. ' +
-								'Append a fact whose supersedes_id names this one.'
-						);
-					return input;
-				}
+				handler: ({ input, existing, api }) =>
+					Effect.gen(function* () {
+						if (existing !== undefined)
+							refuse(
+								'A child fact is an append-only record and cannot be edited or deleted. ' +
+									'Append a fact whose supersedes_id names this one.'
+							);
+						if (input.supersedes_id != null) {
+							const previous = yield* api.db.employee_children.findFirst({
+								where: { id: { eq: input.supersedes_id } }
+							});
+							if (previous == null || previous.employment_id !== input.employment_id)
+								refuse('A child correction must replace a fact belonging to the same employment.');
+						}
+						return input;
+					})
+			}
+		}
+	},
+	delete: {
+		perRecord: {
+			before: {
+				description: 'Keeps child facts as history; corrections supersede them.',
+				handler: () => refuse('A child fact cannot be deleted. Append a correcting fact instead.')
 			}
 		}
 	}

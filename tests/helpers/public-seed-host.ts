@@ -36,11 +36,13 @@ export const startPublicSeedHost = async (
 	options?: {
 		readonly host?: string;
 		readonly ai?: WithSelfHostInput['ai'];
+		readonly connector?: WithSelfHostInput['connector'];
 		readonly files?: boolean;
 	}
 ) => {
 	const { bundlePath, schemaFingerprint } = requireReleaseBundle(artifactDirectory, [
 		'ai',
+		'connector',
 		'database',
 		'tasks'
 	]);
@@ -52,6 +54,7 @@ export const startPublicSeedHost = async (
 		secretsKey: `${slug}-secrets-key`,
 		...(options?.host !== undefined ? { host: options.host } : {}),
 		...(options?.ai !== undefined ? { ai: options.ai } : {}),
+		...(options?.connector !== undefined ? { connector: options.connector } : {}),
 		...(options?.files === true ? { files: true } : {}),
 		seed: {
 			stages,
@@ -68,6 +71,7 @@ export const startPublicSeedHost = async (
 		schemaFingerprint,
 		stages,
 		query: session.query,
+		guestCommand: session.guestCommand,
 		files: session.files,
 		stop: session.stop
 	};

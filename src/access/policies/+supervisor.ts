@@ -7,6 +7,7 @@ import {
 	leaveApproval,
 	mergeGrants,
 	peopleGrants,
+	leaveCalendarGrants,
 	referenceGrants,
 	statutoryGrants
 } from '../../lib/policy_grants.js';
@@ -69,6 +70,7 @@ export default {
 		referenceGrants('read'),
 		statutoryGrants('read'),
 		peopleGrants('read'),
+		leaveCalendarGrants(),
 		// The whole person-day, read. A supervisor sees the team's schedule and the team's clock;
 		// what they may *write* is the narrower half, below.
 		grantsOn('work_days', ['read']),

@@ -215,6 +215,26 @@ function overlapHours(intervals: readonly Interval[], start: number, end: number
 	);
 }
 
+/** Actual ordinary units stay inside the shift; its outside hours are priced as overtime. */
+export function ordinaryWorkedHours(
+	entry: WorkDayLike,
+	shift: NonNullable<ScheduledDay['shift']>
+): number {
+	const workDate = requiredDateKey(entry.work_date, 'work_days.work_date');
+	const start = clockMinutes(shift.start_time);
+	let end = clockMinutes(shift.end_time);
+	if (shift.crosses_midnight || end <= start) end += 1440;
+	const inside = overlapHours(
+		normalizedWorkedIntervals(entry),
+		midnight(workDate) + start * MINUTE_MS,
+		midnight(workDate) + end * MINUTE_MS
+	);
+	return Math.min(
+		shift.paid_minutes / 60,
+		Math.max(0, inside - Math.max(0, decodeNumber(entry.break_minutes)) / 60)
+	);
+}
+
 /**
  * Hours inside the Philippines' 22:00–06:00 statutory night-work window.
  *

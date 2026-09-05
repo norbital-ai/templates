@@ -31,7 +31,7 @@ export default defineModel(
 		icon: 'lucide:baby',
 		indexes: [
 			{ columns: ['employment_id'] },
-			{ columns: ['supersedes_id'], where: '"supersedes_id" IS NOT NULL' }
+			{ columns: ['supersedes_id'], unique: true, where: '"supersedes_id" IS NOT NULL' }
 		]
 	}
 );

@@ -1,5 +1,5 @@
 import { defineCommandHandler, refuse } from '@norbital-ai/bolt/authoring';
-import { Effect, Schema } from 'effect';
+import { Clock, Effect, Schema } from 'effect';
 import {
 	calendarDateInTimeZone,
 	PAYROLL_TIME_ZONE,
@@ -29,7 +29,7 @@ export default defineCommandHandler({
 				employee_number: Schema.optional(Schema.String)
 			})
 		),
-		face_embedding: Schema.Array(Schema.Number),
+		face_embedding: Schema.Array(Schema.Finite),
 		face_photo: Schema.optional(facePhotoSchema),
 		consent_at: Schema.String
 	}),
@@ -41,7 +41,9 @@ export default defineCommandHandler({
 				);
 			}
 			if (Number.isNaN(new Date(consent_at).getTime())) refuse('Consent instant is not valid.');
-			const now = new Date().toISOString();
+			const now = new Date(yield* Clock.currentTimeMillis).toISOString();
+			if (new Date(consent_at).getTime() > new Date(now).getTime())
+				refuse('Consent cannot be recorded in the future.');
 			if (employee_id !== undefined) {
 				if (new_person !== undefined) refuse('Pass an employee or a new person, not both.');
 				const existing = yield* api.db.employees.findFirst({
@@ -49,8 +51,13 @@ export default defineCommandHandler({
 					columns: { id: true, name: true, face_enrollment_status: true }
 				});
 				if (existing === undefined) refuse('Employee does not exist.');
-				if (existing.face_enrollment_status !== 'NONE') {
-					refuse('This person already has a face enrollment; HR owns changes to it.');
+				if (
+					existing.face_enrollment_status === 'PENDING' ||
+					existing.face_enrollment_status === 'SUSPENDED'
+				) {
+					refuse(
+						'HR must review this pending or suspended face enrollment before it can be replaced.'
+					);
 				}
 				yield* api.db.employees.mutate([
 					{
@@ -65,41 +72,42 @@ export default defineCommandHandler({
 				return { employee_id, status: 'APPROVED' } as const;
 			}
 			if (new_person === undefined) refuse('Pass an employee or a new person.');
-			const employeeNumber =
-				new_person.employee_number ?? `KIOSK-${Date.now().toString(36).toUpperCase()}`;
+			const employmentId = crypto.randomUUID();
+			const employeeNumber = new_person.employee_number?.trim() || `KIOSK-${employmentId}`;
+			if (new_person.name.trim().length === 0) refuse('A new person needs a name.');
 			const todayKey = calendarDateInTimeZone(new Date(now), PAYROLL_TIME_ZONE);
 			const hireDate = startOfDayInstant(todayKey, PAYROLL_TIME_ZONE);
-			// Server writes return no rows, and a submitted id would route to the update path,
-			// so the created person is re-read by the exact enrollment instant this call minted.
+			// The nested employment and person commit together. Its minted child identity gives
+			// readback an exact key; names and timestamps cannot safely identify a new person.
 			yield* api.db.employees.mutate([
 				{
-					name: new_person.name,
+					name: new_person.name.trim(),
 					...(new_person.email === undefined ? {} : { email: new_person.email }),
 					...(new_person.phone === undefined ? {} : { phone: new_person.phone }),
 					face_embedding: [...face_embedding],
 					...(face_photo === undefined ? {} : { face_photo }),
 					face_enrollment_status: 'PENDING',
 					face_consent_at: consent_at,
-					face_enrolled_at: now
+					face_enrolled_at: now,
+					employment_employee: [
+						{
+							id: employmentId,
+							company_id: new_person.company_id,
+							employee_number: employeeNumber,
+							hire_date: hireDate,
+							effective_range: { start: hireDate, end: null }
+						}
+					]
 				}
 			]);
-			const created = yield* api.db.employees.findFirst({
-				where: { name: { eq: new_person.name }, face_enrolled_at: { eq: now } },
-				columns: { id: true }
+			const created = yield* api.db.employments.findFirst({
+				where: { id: { eq: employmentId } },
+				columns: { employee_id: true }
 			});
 			if (created === undefined) refuse('Person creation did not persist.');
-			yield* api.db.employments.mutate([
-				{
-					employee_id: created.id,
-					company_id: new_person.company_id,
-					employee_number: employeeNumber,
-					hire_date: hireDate,
-					effective_range: { start: hireDate, end: null }
-				}
-			]);
 			return {
 				status: 'PENDING',
-				employee_id: created.id,
+				employee_id: created.employee_id,
 				company_id: new_person.company_id,
 				employee_number: employeeNumber
 			} as const;

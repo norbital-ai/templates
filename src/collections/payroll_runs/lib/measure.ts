@@ -89,7 +89,7 @@ import type { EmploymentBundle } from './gather.js';
 import {
 	leaveBalance,
 	leaveYearOf,
-	resolveEntitlement,
+	resolveEntitlementAt,
 	unpaidLeaveDates,
 	unpaidLeaveInWindow,
 	type LedgerRow,
@@ -103,6 +103,7 @@ import {
 import {
 	classifyOvertimeByCalendarMonth,
 	deriveDailyOvertime,
+	ordinaryWorkedHours,
 	philippineNightWorkHours,
 	overtimeBandCode,
 	priceDay,
@@ -469,7 +470,7 @@ function baseSalaryOf(terms: EmploymentBundle['terms'][number]) {
  * not a relationship.
  */
 function termsSnapshotKey(terms: EmploymentBundle['terms'][number]): string {
-	const start = String(terms.effective_range?.start ?? '').slice(0, 10);
+	const start = dateKey(terms.effective_range?.start) ?? '';
 	const title =
 		terms.job_title == null || terms.job_title === '' ? terms.employment_type : terms.job_title;
 	return `${title} @ ${start} · ${decodeNumber(terms.base_salary?.value ?? 0).toFixed(2)}`;
@@ -801,7 +802,7 @@ export function measureEmployment(options: MeasureEmploymentOptions): MeasuredEm
 		if (date < attendance.start || date > attendance.end) return [];
 		if (takenLeaveDates.has(date)) return [];
 		const scheduled = schedule.get(date);
-		if (scheduled?.shift == null || scheduled.dayType === 'PUBLIC_HOLIDAY') return [];
+		if (scheduled?.shift == null || scheduled.dayType !== 'ORDINARY') return [];
 		return [{ id: day.id, date }];
 	});
 	const absentAdjustments: MeasuredAdjustment[] =
@@ -862,7 +863,7 @@ export function measureEmployment(options: MeasureEmploymentOptions): MeasuredEm
 			// `unpaidLeaveInWindow` selected, the money and the day count on the same payslip line
 			// would disagree — and the quantity would be the one nobody checks.
 			.reduce((total, row) => {
-				const date = String(row.entry_date).slice(0, 10);
+				const date = requiredDateKey(row.entry_date, 'leave entry date');
 				return settlesHere(date) ? total + Math.abs(decodeNumber(row.days)) : total;
 			}, 0);
 		// The settled balance, derived in full — carried in, accrued, expired, plus the ledger.
@@ -872,9 +873,10 @@ export function measureEmployment(options: MeasureEmploymentOptions): MeasuredEm
 			{
 				leaveType: type,
 				entitlementAt: (serviceMonths, asOf) =>
-					resolveEntitlement({
+					resolveEntitlementAt({
 						leaveType: type,
-						profile: configuration.jurisdiction,
+						profiles: configuration.leaveProfiles,
+						jurisdictionCode: configuration.jurisdiction.code,
 						children: bundle.children,
 						serviceMonths,
 						employmentId: bundle.employment.id,
@@ -1570,11 +1572,11 @@ function measureComponent(options: MeasureComponentOptions): Measurement | null 
 	const measureEarned = (): Measurement => {
 		const dates = daysBetween(options.employed.start, options.employed.end);
 		const planByDate = new Map<IsoDate, string>();
-		const actualByDate = new Map<IsoDate, readonly unknown[] | null>();
+		const actualByDate = new Map<IsoDate, EmploymentBundle['workDays'][number]>();
 		for (const day of options.bundle.workDays) {
 			const date = requiredDateKey(day.work_date, 'work_days.work_date');
 			if (day.shift_definition_id != null) planByDate.set(date, day.shift_definition_id);
-			actualByDate.set(date, day.worked_intervals);
+			actualByDate.set(date, day);
 		}
 		let exact = 0;
 		for (const date of dates) {
@@ -1587,7 +1589,8 @@ function measureComponent(options: MeasureComponentOptions): Measurement | null 
 						`month. Split the change across two runs.`
 				);
 			}
-			const intervals = actualByDate.get(date);
+			const actual = actualByDate.get(date);
+			const intervals = actual?.worked_intervals;
 			if (intervals != null && intervals.length === 0) continue;
 			const codeId = planByDate.get(date) ?? patternRosterCodeId(dayTerms.work_pattern, date);
 			if (codeId == null) continue;
@@ -1597,8 +1600,12 @@ function measureComponent(options: MeasureComponentOptions): Measurement | null 
 			if (!coversDate(code.effective_range, date))
 				throw new Error(`Roster code ${code.code} is not effective on ${date}.`);
 			if (rosterCodeKind(code.variant) !== 'WORK') continue;
+			const shift = { ...workWindow(code.variant)!, id: code.id, code: code.code };
+			const scheduledHours = shift.paid_minutes / 60;
+			const hours =
+				actual != null && intervals != null ? ordinaryWorkedHours(actual, shift) : scheduledHours;
 			const rate = decodeNumber(baseSalaryOf(dayTerms).value);
-			exact += frequency === 'DAILY' ? rate : (workWindow(code.variant)!.paid_minutes * rate) / 60;
+			exact += frequency === 'DAILY' ? rate * (hours / scheduledHours) : hours * rate;
 		}
 		const amount = cents(exact);
 		return {

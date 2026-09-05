@@ -1,6 +1,7 @@
 import {
 	NOT_A_CORRECTION,
 	OWN_EMPLOYMENT,
+	leaveCalendarGrants,
 	employeeSelfServiceGrants,
 	employeeReferenceGrants,
 	employeeLeaveRequestNewGrant,
@@ -100,6 +101,9 @@ export default {
 		grantOn('leave_requests', 'read', {
 			where: ownLeaveRequest
 		}),
+		grantOn('leave_allocations', 'read', {
+			where: { allocation_employment: { some: OWN_EMPLOYMENT } }
+		}),
 		grantOn('employee_children', 'read', {
 			where: ownEmployeeChild
 		}),
@@ -111,6 +115,7 @@ export default {
 		employeeSelfServiceGrants(),
 		employeeLeaveRequestNewGrant(),
 		employeeReferenceGrants('read'),
+		leaveCalendarGrants(true),
 		statutoryGrants('read')
 	),
 	/**

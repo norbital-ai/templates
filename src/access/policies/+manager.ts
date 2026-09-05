@@ -7,6 +7,7 @@ import {
 	leaveApproval,
 	mergeGrants,
 	peopleGrants,
+	leaveCalendarGrants,
 	referenceGrants,
 	statutoryGrants
 } from '../../lib/policy_grants.js';
@@ -65,6 +66,7 @@ export default {
 		referenceGrants('read'),
 		statutoryGrants('read'),
 		peopleGrants('read'),
+		leaveCalendarGrants(),
 		grantsOn('work_days', ['read']),
 		grantsOn('leave_requests', ['read']),
 		// Restated, not inherited, and restated *with* the predicate. A manager who could see

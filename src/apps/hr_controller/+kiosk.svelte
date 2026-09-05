@@ -1,5 +1,8 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import { useI18n } from '@norbital-ai/ui/i18n';
+	import type { TenantI18nKeys } from '$bolt/i18n-keys';
+	const { t } = useI18n<TenantI18nKeys>();
 	import type Human from '@vladmandic/human';
 	import { client } from '../../lib/workspace-client.js';
 	import { Cover, Stack } from '@norbital-ai/ui/layout';
@@ -124,111 +127,9 @@
 			human = await warmFaceEngine();
 			analyseCanvas = createAnalyseCanvas();
 			phase = 'scan';
-			loopTimer = setInterval(() => void tick(), KIOSK_LOOP_MS);
 		} catch (error) {
 			phase = 'error';
 			fatal = error instanceof Error ? error.message : String(error);
-		}
-	};
-
-	const tick = async () => {
-		if (tab !== 'scan' || human === null || analyseCanvas === null || inFlight) return;
-		if (phase !== 'scan' && phase !== 'challenge') return;
-		if (videoNode === null || !drawVideoFrame(videoNode, analyseCanvas)) return;
-		let result: Awaited<ReturnType<Human['detect']>>;
-		try {
-			result = await human.detect(analyseCanvas);
-		} catch {
-			return;
-		}
-		const face = largestFace(result.face ?? []);
-		if (phase === 'challenge') {
-			challengeLeft = Math.max(0, Math.ceil((challengeDeadline - Date.now()) / 1000));
-			const blinked = (result.gesture ?? []).some(
-				(gesture) =>
-					'face' in gesture &&
-					gesture.face === 0 &&
-					(gesture.gesture === 'blink left eye' || gesture.gesture === 'blink right eye')
-			);
-			if (blinked && candidate !== null) {
-				await doPunch(candidate.employmentId, 'FACE');
-				return;
-			}
-			if (Date.now() > challengeDeadline) {
-				notice = 'No blink seen — punch cancelled.';
-				phase = 'scan';
-				candidate = null;
-			}
-			return;
-		}
-		if (face === undefined || face.embedding === undefined) return;
-		inFlight = true;
-		try {
-			const matched = await client.invoke.kiosk_match({
-				probe: face.embedding,
-				threshold: KIOSK_MATCH_THRESHOLD
-			});
-			if (matched.status === 'unenrolled') {
-				notice = `${matched.employee.name} is recognized but has no active employment.`;
-				phase = 'scan';
-				return;
-			}
-			if (matched.status !== 'match') {
-				phase = 'unknown';
-				return;
-			}
-			const real = face.real ?? 0;
-			candidate = {
-				employeeId: matched.employee.id,
-				employeeName: matched.employee.name,
-				employmentId: matched.employment.id,
-				employeeNumber: matched.employment.employee_number,
-				distance: matched.distance,
-				real
-			};
-			if (real < KIOSK_REAL_MIN) {
-				notice = 'This looks like a photo or screen — punch refused. Show a live face.';
-				phase = 'scan';
-				candidate = null;
-				return;
-			}
-			phase = 'challenge';
-			challengeDeadline = Date.now() + KIOSK_BLINK_WINDOW_S * 1000;
-			challengeLeft = KIOSK_BLINK_WINDOW_S;
-		} catch (error) {
-			notice = error instanceof Error ? error.message : String(error);
-		} finally {
-			inFlight = false;
-		}
-	};
-
-	const doPunch = async (
-		employmentId: string,
-		kind: 'FACE' | 'MANUAL',
-		direction?: 'in' | 'out'
-	) => {
-		phase = 'working';
-		try {
-			const result = await client.invoke.kiosk_punch({
-				employment_id: employmentId,
-				kind,
-				...(direction === undefined ? {} : { direction })
-			});
-			punch = {
-				status: result.status,
-				intervalIndex: 'intervalIndex' in result ? result.intervalIndex : undefined,
-				time: 'time' in result ? result.time : undefined,
-				reason: 'reason' in result ? String(result.reason) : undefined,
-				retryAfterMs: 'retryAfterMs' in result ? Number(result.retryAfterMs) : undefined
-			};
-			phase = result.status === 'blocked' ? 'blocked' : 'done';
-			if (phase !== 'blocked') {
-				doneTimer = setTimeout(resumeScan, 3500);
-			}
-		} catch (error) {
-			notice = error instanceof Error ? error.message : String(error);
-			phase = 'scan';
-			candidate = null;
 		}
 	};
 
@@ -250,6 +151,97 @@
 	/** One-shot boot on mount. Retry re-runs it; the button is gone while booting. */
 	onMount(() => {
 		void boot();
+		loopTimer = setInterval(async () => {
+			if (tab !== 'scan' || human === null || analyseCanvas === null || inFlight) return;
+			if (phase !== 'scan' && phase !== 'challenge') return;
+			if (videoNode === null || !drawVideoFrame(videoNode, analyseCanvas)) return;
+			let result: Awaited<ReturnType<Human['detect']>>;
+			try {
+				result = await human.detect(analyseCanvas);
+			} catch {
+				return;
+			}
+			const face = largestFace(result.face ?? []);
+			if (phase === 'challenge') {
+				challengeLeft = Math.max(0, Math.ceil((challengeDeadline - Date.now()) / 1000));
+				const blinked = (result.gesture ?? []).some(
+					(gesture) =>
+						'face' in gesture &&
+						gesture.face === 0 &&
+						(gesture.gesture === 'blink left eye' || gesture.gesture === 'blink right eye')
+				);
+				if (blinked && candidate !== null) {
+					phase = 'working';
+					try {
+						const punched = await client.invoke.kiosk_punch({
+							employment_id: candidate.employmentId,
+							kind: 'FACE'
+						});
+						punch = {
+							status: punched.status,
+							intervalIndex: 'intervalIndex' in punched ? punched.intervalIndex : undefined,
+							time: 'time' in punched ? punched.time : undefined,
+							reason: 'reason' in punched ? String(punched.reason) : undefined,
+							retryAfterMs: 'retryAfterMs' in punched ? Number(punched.retryAfterMs) : undefined
+						};
+						phase = punched.status === 'blocked' ? 'blocked' : 'done';
+						if (phase !== 'blocked') {
+							doneTimer = setTimeout(resumeScan, 3500);
+						}
+					} catch (error) {
+						notice = error instanceof Error ? error.message : String(error);
+						phase = 'scan';
+						candidate = null;
+					}
+					return;
+				}
+				if (Date.now() > challengeDeadline) {
+					notice = 'No blink seen — punch cancelled.';
+					phase = 'scan';
+					candidate = null;
+				}
+				return;
+			}
+			if (face === undefined || face.embedding === undefined) return;
+			inFlight = true;
+			try {
+				const matched = await client.invoke.kiosk_match({
+					probe: face.embedding,
+					threshold: KIOSK_MATCH_THRESHOLD
+				});
+				if (matched.status === 'unenrolled') {
+					notice = `${matched.employee.name} is recognized but has no active employment.`;
+					phase = 'scan';
+					return;
+				}
+				if (matched.status !== 'match') {
+					phase = 'unknown';
+					return;
+				}
+				const real = face.real ?? 0;
+				candidate = {
+					employeeId: matched.employee.id,
+					employeeName: matched.employee.name,
+					employmentId: matched.employment.id,
+					employeeNumber: matched.employment.employee_number,
+					distance: matched.distance,
+					real
+				};
+				if (real < KIOSK_REAL_MIN) {
+					notice = 'This looks like a photo or screen — punch refused. Show a live face.';
+					phase = 'scan';
+					candidate = null;
+					return;
+				}
+				phase = 'challenge';
+				challengeDeadline = Date.now() + KIOSK_BLINK_WINDOW_S * 1000;
+				challengeLeft = KIOSK_BLINK_WINDOW_S;
+			} catch (error) {
+				notice = error instanceof Error ? error.message : String(error);
+			} finally {
+				inFlight = false;
+			}
+		}, KIOSK_LOOP_MS);
 		return () => {
 			stopLoop();
 			stopCamera();
@@ -324,13 +316,43 @@
 				{/if}
 				{#if phase === 'blocked'}
 					<div class="flex flex-col items-center gap-1 text-lg">
-						<strong>Punch refused</strong>
+						<strong
+							>{punch?.reason === 'already-in'
+								? t('kiosk.already_in')
+								: t('kiosk.unchanged')}</strong
+						>
 						<span
 							>{punch?.reason === 'cooldown'
 								? `Too soon — wait ${Math.ceil((punch?.retryAfterMs ?? 0) / 1000)}s.`
-								: 'Duplicate punch.'}</span
+								: t('kiosk.departure_hint')}</span
 						>
-						<button onclick={resumeScan}>Back to clock</button>
+						{#if punch?.reason === 'already-in'}
+							<button
+								onclick={async () => {
+									if (candidate == null || phase !== 'blocked') return;
+									phase = 'working';
+									try {
+										const outcome = await client.invoke.kiosk_punch({
+											employment_id: candidate.employmentId,
+											kind: 'FACE',
+											direction: 'out'
+										});
+										punch = {
+											status: outcome.status,
+											...('time' in outcome
+												? { time: outcome.time, intervalIndex: outcome.intervalIndex }
+												: {}),
+											...('reason' in outcome ? { reason: outcome.reason } : {})
+										};
+										phase = outcome.status === 'blocked' ? 'blocked' : 'done';
+									} catch (error) {
+										notice = error instanceof Error ? error.message : String(error);
+										phase = 'blocked';
+									}
+								}}>{t('kiosk.confirm_departure')}</button
+							>
+						{/if}
+						<button onclick={resumeScan}>{t('kiosk.keep_attendance')}</button>
 					</div>
 				{/if}
 				{#if phase === 'unknown'}

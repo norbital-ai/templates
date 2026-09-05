@@ -45,7 +45,20 @@ export const rateSelectorValueSchema = Schema.Union([
 		by: Schema.Literal('RISK_CLASS'),
 		class: Schema.String.check(Schema.isMinLength(1))
 	})
-]);
+]).check(
+	Schema.makeFilter((selector) => {
+		if (selector.by === 'RISK_CLASS') return true;
+		if (selector.to != null && selector.to <= selector.from)
+			return 'A rate band must end above its lower bound.';
+		if (
+			selector.by === 'WAGE_AND_AGE' &&
+			selector.age_to != null &&
+			selector.age_to <= selector.age_from
+		)
+			return 'An age band must end above its lower bound.';
+		return true;
+	})
+);
 
 export type RateSelector = Schema.Schema.Type<typeof rateSelectorValueSchema>;
 

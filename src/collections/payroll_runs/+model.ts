@@ -1,10 +1,20 @@
-import { custom, defineModel, enums, instant, text, uuid } from '@norbital-ai/bolt/authoring';
+import {
+	custom,
+	defineModel,
+	enums,
+	instant,
+	integer,
+	text,
+	uuid
+} from '@norbital-ai/bolt/authoring';
 
 export default defineModel(
 	{
 		company_id: uuid().notNull(),
 		period: text({ search: true }).notNull(),
 		lifecycle: enums(['DRAFT', 'PAID']).notNull(),
+		run_kind: enums(['REGULAR', 'AD_HOC']).notNull().default('REGULAR'),
+		sequence: integer().notNull().default(0),
 		configuration_hash: text().notNull(),
 		configuration_snapshot: custom('payroll_configuration_snapshot').notNull(),
 		/**
@@ -28,11 +38,11 @@ export default defineModel(
 	},
 	{
 		description:
-			'One payroll for one company and one 2026 period. A DRAFT run can be recalculated; a PAID run is immutable and later corrections use component entries. The run names the statutory snapshot that governed it and the calculation version that produced its outputs.',
+			'A frozen payroll calculation for a company and month. Sequence zero is regular payroll; subsequent ad hoc runs pay the cumulative monthly difference. Only drafts can be deleted. The run names the statutory snapshot that governed it and the calculation version that produced its outputs.',
 		recordLabel: ['period', 'lifecycle'],
 		icon: 'lucide:play-circle',
 		indexes: [
-			{ columns: ['company_id', 'period'], unique: true },
+			{ columns: ['company_id', 'period', 'sequence'], unique: true },
 			{ columns: ['statutory_snapshot_id'] }
 		]
 	}

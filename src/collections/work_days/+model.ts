@@ -18,7 +18,7 @@ import {
  *
  * ## Both sides are optional, and their absence means something
  *
- *   planned present, actual absent   - rostered and not yet worked, or an absence
+ *   planned present, actual absent   - assume the scheduled hours without overtime
  *   actual present, planned absent   - an unrostered day somebody worked (call-back, ad hoc)
  *   both present                     - the ordinary case, and the one overtime is derived from
  *
@@ -26,7 +26,7 @@ import {
  * roster code, and that code is the polymorphic entity - WORK owns its clock window and break while
  * REST and OFF carry no meaningless time fields, so the day cannot drift into contradictory shapes.
  * The actual side is present when `worked_intervals` is non-NULL; an empty array is different, and
- * says the day was read and nothing was worked.
+ * explicitly records AWOL.
  *
  * There is no `PUBLIC_HOLIDAY` roster code. A holiday is a property of the calendar, not of one
  * person's day: `company_holidays` is overlaid at calculation time, so a newly gazetted day reaches
@@ -60,7 +60,7 @@ export default defineModel(
 		// ── actual ───────────────────────────────────────────────────────────────────────────────
 		/**
 		 * The worked intervals. NULL means no attendance was recorded for this day at all; an empty
-		 * array means it was recorded and nothing was worked, which is not the same claim.
+		 * array explicitly records AWOL. With NULL, payroll assumes the scheduled hours without overtime.
 		 */
 		worked_intervals: custom('instant_range', { multiple: true }),
 		/**

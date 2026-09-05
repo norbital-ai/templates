@@ -1,5 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { setTimeout as delay } from 'node:timers/promises';
+import { sealedProfileCovering } from '../src/lib/statutory_profile.ts';
+import { success } from '@norbital-ai/bolt-protocol';
 import { makeAiBinding } from '@norbital-ai/bolt-server';
 import { asRecord, bearerHeaders, postGuestCommand } from '@norbital-ai/test-utilities';
 import {
@@ -61,6 +64,9 @@ const reportFor = (code: string, url: string) => ({
 	changes_to_review: []
 });
 
+const fixtureQuote =
+	'The approved fixture increases annual leave to twenty days from 1 January 2027.';
+
 const driftAi = () =>
 	makeAiBinding({
 		call: async (_metadata, request) => {
@@ -73,10 +79,30 @@ const driftAi = () =>
 			const url =
 				code === 'SG'
 					? 'https://www.cpf.gov.sg/employer/employer-obligations/how-much-cpf-contributions-to-pay'
-					: 'https://www.kwsp.gov.my/en/employer/responsibility/contribution';
+					: 'https://www.kwsp.gov.my/employer';
 			return {
 				_tag: 'Generated',
-				result: { _tag: 'Object', value: reportFor(code, url) },
+				result: {
+					_tag: 'Object',
+					value: {
+						...reportFor(code, url),
+						...(code === 'SG'
+							? {
+									proposed_law: {
+										effective_from: '2027-01-01',
+										evidence: [
+											{ source_url: url, title: 'Fixture law amendment', quote: fixtureQuote }
+										],
+										changes: {
+											statutory_leave: [
+												{ ...PUB_STATUTORY_LEAVE[0], ladder: [{ band_from: 0, days: 20 }] }
+											]
+										}
+									}
+								}
+							: {})
+					}
+				},
 				observation: {
 					callId: 'drift-1',
 					provider: 'fixture',
@@ -177,7 +203,19 @@ test(
 	'public seed statutory_profile_drift records rate_gap for SEALED SG and MY schemes without rates',
 	{ timeout: LOCAL_DATABASE_TEST_TIMEOUT_MILLIS },
 	async () => {
-		const session = await startPublicSeedHost('hr-payroll-p1-drift', { ai: driftAi() });
+		const session = await startPublicSeedHost('hr-payroll-p1-drift', {
+			ai: driftAi(),
+			connector: {
+				call: async (_metadata, request) =>
+					success({
+						output: {
+							url: asRecord(request.input, 'web request').url,
+							contentType: 'text/html',
+							body: fixtureQuote
+						}
+					})
+			}
+		});
 		try {
 			await session.query(`update jurisdictions set effective_range = $1 where id = $2`, [
 				{ start: '2020-01-01', end: '2026-01-01' },
@@ -225,7 +263,7 @@ test(
 				`automations.start returned ${started.status}: ${JSON.stringify(started.value)}`
 			);
 			const body = asRecord(started.value, 'automations.start');
-			assert.equal(typeof body.taskId, 'string');
+			assert.equal(typeof body.taskId, 'string', JSON.stringify(body));
 
 			const logs = (await session.query(
 				`select status, local_findings from statutory_profile_drift_logs order by checked_at desc limit 1`
@@ -248,6 +286,75 @@ test(
 				labels.some((label) => label.includes('MY-EPF') || label.includes('(MY)')),
 				`expected MY-EPF rate_gap, got ${JSON.stringify(labels)}`
 			);
+			const pending = await session.query(
+				`select id, status, record_id, proposed_values from approval_request where collection_name = 'jurisdictions'`
+			);
+			assert.equal(pending.length, 1, JSON.stringify(pending));
+			const request = asRecord(pending[0], 'law approval');
+			assert.equal(request.status, 'ONGOING');
+			const unapproved = await session.query(
+				`select id from jurisdictions where supersedes_id = $1`,
+				[SG_PROFILE_ID]
+			);
+			assert.equal(unapproved.length, 0, 'pending law must not govern');
+			const repeated = await postGuestCommand(
+				session.host.baseUrl,
+				'automations.start',
+				{ name: 'statutory_profile_drift', input: {} },
+				bearerHeaders(session.credential)
+			);
+			assert.ok(repeated.status < 300, JSON.stringify(repeated.value));
+			assert.equal(
+				(
+					await session.query(
+						`select id from approval_request where collection_name = 'jurisdictions'`
+					)
+				).length,
+				1,
+				'repeat research must reuse the pending proposal'
+			);
+			const managerHeaders = {
+				...bearerHeaders(session.credential),
+				'x-colony-impersonated-team': 'HR Manager'
+			};
+			const status = await postGuestCommand(
+				session.host.baseUrl,
+				'approvals.status',
+				{ requestId: request.id },
+				managerHeaders
+			);
+			const state = asRecord(status.value, 'law approval state');
+			assert.equal(state._tag, 'Pending');
+			const decided = await postGuestCommand(
+				session.host.baseUrl,
+				'approvals.decide',
+				{ state, decision: 'approve' },
+				managerHeaders
+			);
+			assert.equal(
+				asRecord(decided.value, 'law decision')._tag,
+				'Approved',
+				JSON.stringify(decided.value)
+			);
+			const readProfiles = () =>
+				session.query(
+					`select id, code, lifecycle, effective_range, supersedes_id, approval_id, statutory_leave from jurisdictions where code = 'SG'`
+				);
+			let profiles = await readProfiles();
+			const deadline = Date.now() + 5_000;
+			while (profiles.length !== 2 && Date.now() < deadline) {
+				await delay(25);
+				profiles = await readProfiles();
+			}
+			assert.equal(profiles.length, 2, 'approval must enact the successor automatically');
+			const before = sealedProfileCovering(profiles, 'SG', '2026-12-31');
+			const after = sealedProfileCovering(profiles, 'SG', '2027-01-01');
+			assert.equal(before?.id, SG_PROFILE_ID);
+			assert.equal(after?.id, request.record_id);
+			assert.equal(after?.statutory_leave[0].ladder[0].days, 20);
+		} catch (error) {
+			console.error('Statutory workflow failed:', error);
+			throw error;
 		} finally {
 			await session.stop();
 		}

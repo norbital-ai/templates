@@ -130,8 +130,7 @@
 						isLoading: employmentsQuery?.loading ?? false,
 						error: employmentsQuery?.error?.message ?? null
 					}}
-					onValueChange={(value) =>
-						props.onEmploymentChange(typeof value === 'string' ? value : '')}
+					onValueChange={(value) => props.onEmploymentChange(value ?? '')}
 				/>
 			</Stack>
 		</label>

@@ -1,14 +1,9 @@
 <script lang="ts">
 	import { client } from '../../lib/workspace-client.js';
-	import type { WorkspaceMutation } from '$bolt/client';
 	import { useI18n } from '@norbital-ai/ui/i18n';
 	import type { TenantI18nKeys } from '$bolt/i18n-keys';
 	import type { RepresentationProps } from './$types.js';
-	import {
-		CollectionForm,
-		submitCollectionMutation,
-		type CollectionFormValidation
-	} from '@norbital-ai/ui/collection-form';
+	import { CollectionForm, type CollectionFormSemantic } from '@norbital-ai/ui/collection-form';
 	import type { CollectionField } from '@norbital-ai/ui/data-renderer';
 	import { MatrixRenderer, type MatrixColumn } from '@norbital-ai/ui/data-renderer/matrix';
 	import { Column, Grid, Stack } from '@norbital-ai/ui/layout';
@@ -85,42 +80,28 @@
 		}
 	] satisfies readonly MatrixColumn<LoanRepaymentDraft>[];
 
-	const validation = {
-		semantic: (values) =>
-			Effect.succeed(
-				loanScheduleImbalanced(values.principal, schedule)
-					? [
-							{
-								message: t('component.loan_schedule_imbalance', {
-									due: formatNumeric(loanScheduleTotal(schedule)),
-									principal: formatNumeric(values.principal)
-								})
-							}
-						]
-					: []
-			)
-	} satisfies CollectionFormValidation;
-
-	function submitLoan(values: Readonly<Record<string, unknown>>) {
-		// The form's values are the writable loan columns; the matrix is the complete repayment set.
-		const loan = {
-			...values,
-			repayment_loan: loanScheduleWriteRows(schedule)
-		} as WorkspaceMutation<'loans'>;
-		return submitCollectionMutation(() =>
-			client.db.loans.mutate([record ? { ...loan, id: record.id } : loan])
-		).pipe(Effect.asVoid);
-	}
+	const semantic = ((values) =>
+		Effect.succeed(
+			loanScheduleImbalanced(values.principal, schedule)
+				? [
+						{
+							message: t('component.loan_schedule_imbalance', {
+								due: formatNumeric(loanScheduleTotal(schedule)),
+								principal: formatNumeric(values.principal)
+							})
+						}
+					]
+				: []
+		)) satisfies CollectionFormSemantic;
 </script>
 
 <CollectionForm
 	{client}
 	collection="loans"
 	defaultValues={record ?? undefined}
-	{validation}
+	{semantic}
 	submitLabel={record ? t('component.save_loan') : t('component.create_loan')}
 	loading={record != null && !seeded}
-	onSubmit={submitLoan}
 	onAfterSubmit={record ? undefined : close}
 >
 	{#snippet children({ Field, form })}
@@ -183,6 +164,7 @@
 						bounded={false}
 						onChange={(rows) => {
 							schedule = rows;
+							form.setValues({ repayment_loan: loanScheduleWriteRows(rows) });
 						}}
 					/>
 				</Stack>

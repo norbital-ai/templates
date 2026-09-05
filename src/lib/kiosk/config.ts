@@ -3,11 +3,8 @@
  * faces) and the tablet run that follows it — retune here, in one place, when device numbers land.
  */
 
-/** Workspace key, for the content-addressed model route the compiler serves. */
-const KIOSK_WORKSPACE_KEY = 'norbital_hr';
-
-/** Base URL human loads every model json/bin from. Same-origin: no CDN. */
-export const KIOSK_MODEL_BASE = `/__bolt/request/api/template-seed-assets/${KIOSK_WORKSPACE_KEY}/models/human`;
+/** Packaged by Vite from the pinned Human dependency; no install script or CDN is needed. */
+export const KIOSK_MODEL_BASE = '/__bolt/static/models/human';
 
 /** Cosine distance at or below which a probe counts as the enrolled person. */
 export const KIOSK_MATCH_THRESHOLD = 0.4;

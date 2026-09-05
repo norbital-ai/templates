@@ -33,5 +33,10 @@
 		"id": "cccccccc-cccc-4ccc-8ccc-cccccccccc07",
 		"name": "Manager (HR Controller)",
 		"description": "Line manager who also prepares payroll."
+	},
+	{
+		"id": "cccccccc-cccc-4ccc-8ccc-cccccccccc08",
+		"name": "Attendance Kiosk",
+		"description": "Device access for face enrollment and attendance."
 	}
 ]

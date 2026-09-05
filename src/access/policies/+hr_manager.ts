@@ -94,6 +94,7 @@ export default {
 
 		grantsOn('leave_requests', ['read', 'mutate.existing', 'delete']),
 		grantOn('leave_requests', 'mutate.new', { approval: leaveApproval }),
+		grantsOn('leave_allocations', ['mutate.new', 'mutate.existing', 'delete']),
 
 		payrollGrants('read'),
 		payrollRebuildGrants(),

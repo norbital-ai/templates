@@ -9,10 +9,7 @@
 	import { CollectionTable } from '@norbital-ai/ui/collection-table';
 	import { CollectionQueryState } from '@norbital-ai/ui/collection-query';
 	import { CollectionActionToolbar } from '@norbital-ai/ui/collection-toolbar';
-	import {
-		submitCollectionMutation,
-		type CollectionMutationSubmission
-	} from '@norbital-ai/ui/collection-form';
+	import { submitCollectionMutation } from '@norbital-ai/ui/collection-form';
 	import CompanyScopeCombobox from './CompanyScopeCombobox.svelte';
 	import {
 		companyById,
@@ -45,7 +42,7 @@
 	import { decodeNumber } from '@norbital-ai/std/json';
 	import MonthPeriodPicker from '../../lib/ui/month-period-picker.svelte';
 	import RosterMonthBoard, { type BoardCell } from '../../lib/ui/roster/roster-month-board.svelte';
-	import DaySheet, { type DaySheetChange } from '../../lib/ui/roster/day-sheet.svelte';
+	import DaySheet from '../../lib/ui/roster/day-sheet.svelte';
 	import {
 		STATUS_PRESENTATION,
 		buildRosterMonth,
@@ -66,10 +63,6 @@
 	} from '../../lib/ui/roster/roster-month.js';
 	import { patternRosterCodeId } from '../../lib/scheduling/work-pattern.js';
 	import { rosterCodeKind, workWindow } from '../../lib/scheduling/roster-code.js';
-	import {
-		buildPersonDayMutation,
-		resolvePersonDayWriteId
-	} from '../../lib/ui/roster/controller-attendance-state.js';
 	import { unresolvedClockOutEmploymentIds as openClockOutEmploymentIds } from '../../lib/ui/roster/roster-month-board-filter.js';
 	import {
 		MONTH_BOARD_FILTERED_WORK_DAY_COLUMNS,
@@ -85,11 +78,8 @@
 	} from '../../lib/scheduling/lock.js';
 	import {
 		overlappingWorkShifts,
-		validateRosterSchedule,
-		type ValidationDay,
-		type WorkloadExpectation
+		type ValidationDay
 	} from '../../lib/scheduling/workforce-validation.js';
-	import type { WorkPattern } from '../../datatypes/work_pattern/+definition.js';
 
 	const { t } = useI18n<TenantI18nKeys>();
 	let chosenCompanyId = $state<string | null>(null);
@@ -97,21 +87,13 @@
 	const selectedCompany = $derived(companyById(selectedCompanyId));
 	let month = $state<string>(monthKey(todayKey()));
 	/**
-	 * The day sheet's subject and its transient write state.
-	 *
-	 * This used to be a `Dialog` with one combobox in it, because a cell owned one fact. A cell now
-	 * owns two records and a lock explanation, and a modal that covers the board takes the month away
-	 * while the operator decides about one day of it — see `day-sheet.svelte`'s own header for the
-	 * rest of that argument. The app keeps only what it has to write with; the drawer owns its
-	 * editors.
+	 * The day sheet's subject. Nothing else: the drawer owns its editors and its write, and the
+	 * app holds only which cell is open.
 	 */
 	const daySheet = $state({
 		open: false,
 		employmentId: null as string | null,
-		date: null as string | null,
-		editorRevision: 0,
-		/** The code currently chosen inside the drawer, mirrored back so the overlap check stays live. */
-		draftCodeId: null as string | null
+		date: null as string | null
 	});
 	/**
 	 * The armed end of a swap, and whether one is in flight.
@@ -122,11 +104,6 @@
 	const swap = $state({ source: null as BoardCell | null });
 	/** Local-only eye filter: it narrows the already-loaded month facts and never issues a query. */
 	let unresolvedClockOutsOnly = $state(false);
-	const daySheetSubmission = $state({
-		settling: false,
-		pendingApproval: false,
-		error: null as string | null
-	});
 	/**
 	 * Search and filter state in the same model every collection surface uses.
 	 *
@@ -693,93 +670,6 @@
 		});
 	}
 
-	/**
-	 * The contractual amount one employment is owed or capped at this month, restricted to two
-	 * people and one month. It is repeated rather than imported because the precheck builds it
-	 * inside an Effect over the server's own api and reads columns this browser has not fetched;
-	 * what is shared is the thing that matters — `validateRosterSchedule` is the one judge, so a
-	 * swap the board allows is a swap the write-time conformance check will also allow.
-	 */
-	function patternedExpectation(
-		employmentId: string,
-		pattern: Extract<WorkPattern, { type: 'PATTERNED' }>,
-		start: string,
-		end: string,
-		dates: readonly string[]
-	): WorkloadExpectation {
-		let workDays = 0;
-		let paidMinutes = 0;
-		for (const date of dates) {
-			const projected = patternRosterCodeId(pattern, date);
-			const code = projected == null ? null : rosterCodesById.get(projected);
-			if (code == null || rosterCodeKind(code.variant) !== 'WORK') continue;
-			workDays += 1;
-			paidMinutes += workWindow(code.variant)?.paid_minutes ?? 0;
-		}
-		return {
-			employment_id: employmentId,
-			start_date: start,
-			end_date: end,
-			kind: 'EXACT',
-			work_days: workDays,
-			paid_minutes: paidMinutes
-		};
-	}
-
-	function rosteredExpectation(
-		employmentId: string,
-		expectation: Extract<WorkPattern, { type: 'ROSTERED' }>['expectation'],
-		start: string,
-		end: string,
-		activeDays: number,
-		referenceDays: number
-	): WorkloadExpectation | null {
-		const fraction = activeDays / referenceDays;
-		if (expectation.kind === 'GUARANTEED_SCHEDULE')
-			return {
-				employment_id: employmentId,
-				start_date: start,
-				end_date: end,
-				kind: 'MINIMUM',
-				work_days: Math.ceil(expectation.required_work_days * fraction),
-				paid_minutes: Math.ceil(expectation.required_paid_minutes * fraction)
-			};
-		if (expectation.maximum_paid_minutes == null) return null;
-		return {
-			employment_id: employmentId,
-			start_date: start,
-			end_date: end,
-			kind: 'MAXIMUM',
-			work_days: null,
-			paid_minutes: Math.floor(expectation.maximum_paid_minutes * fraction)
-		};
-	}
-
-	function expectationsFor(employmentId: string): WorkloadExpectation[] {
-		const expectations: WorkloadExpectation[] = [];
-		for (const term of employmentTermsByEmploymentId.get(employmentId) ?? []) {
-			const activeDates = monthDateKeys.filter((date) => termCovers(term, date));
-			if (activeDates.length === 0) continue;
-			const start = activeDates[0]!;
-			const end = activeDates[activeDates.length - 1]!;
-			const pattern = term.work_pattern;
-			if (pattern.type === 'PATTERNED') {
-				expectations.push(patternedExpectation(employmentId, pattern, start, end, activeDates));
-				continue;
-			}
-			const expectation = rosteredExpectation(
-				employmentId,
-				pattern.expectation,
-				start,
-				end,
-				activeDates.length,
-				pattern.expectation.period === 'WEEK' ? 7 : monthDateKeys.length
-			);
-			if (expectation != null) expectations.push(expectation);
-		}
-		return expectations;
-	}
-
 	/* ────────────────────────────────────────────────────────────────────────────────────────────
 	 * THE DAY SHEET
 	 * ──────────────────────────────────────────────────────────────────────────────────────────── */
@@ -787,11 +677,6 @@
 	function openDaySheet(employmentId: string, date: string): void {
 		daySheet.employmentId = employmentId;
 		daySheet.date = date;
-		daySheet.editorRevision += 1;
-		daySheet.draftCodeId = effectiveCodeId(employmentId, date);
-		daySheetSubmission.settling = false;
-		daySheetSubmission.pendingApproval = false;
-		daySheetSubmission.error = null;
 		daySheet.open = true;
 	}
 
@@ -803,6 +688,12 @@
 	const daySheetDay = $derived(daySheetKey == null ? undefined : facts.get(daySheetKey));
 	const daySheetPerson = $derived(
 		people.find((person) => person.id === daySheet.employmentId) ?? null
+	);
+	/** The code the day carries when the drawer opens; the drawer seeds its picker from it. */
+	const daySheetRosterCodeId = $derived(
+		daySheet.employmentId == null || daySheet.date == null
+			? null
+			: effectiveCodeId(daySheet.employmentId, daySheet.date)
 	);
 	const daySheetEntry = $derived(
 		daySheetKey == null ? null : (workDayByKey.get(daySheetKey) ?? null)
@@ -875,173 +766,50 @@
 	});
 
 	/**
-	 * The overlap the drawer's current choice would create, checked live over the ±1-day window.
+	 * The overlap a chosen code would create, over the ±1-day window.
 	 *
-	 * Unchanged in substance from the dialog this replaces — `overlappingWorkShifts` over the day
-	 * before, the day itself and the day after — but driven by what the drawer currently has
-	 * selected rather than by app state, which is why the drawer mirrors its draft code back.
+	 * Handed to the drawer as `resolveOverlap`: the drawer owns its draft and asks this question
+	 * whenever its choice changes. The whole month lives here, so the judge lives here too —
+	 * `overlappingWorkShifts` over the day before, the day itself and the day after.
 	 */
-	const daySheetOverlap = $derived.by(() => {
-		if (daySheet.employmentId == null || daySheet.date == null || daySheet.draftCodeId == null)
-			return null;
-		const selected = validationDay(daySheet.employmentId, daySheet.date, daySheet.draftCodeId);
-		return (
-			overlappingWorkShifts([
-				...adjacentValidationDays(daySheet.employmentId, daySheet.date),
-				selected
-			])[0] ?? null
-		);
-	});
-	const daySheetOverlapWarning = $derived(
-		daySheetOverlap == null
+	function overlapSentenceFor(
+		employmentId: string,
+		date: string,
+		codeId: string | null
+	): string | null {
+		if (codeId == null) return null;
+		const selected = validationDay(employmentId, date, codeId);
+		const overlap = overlappingWorkShifts([
+			...adjacentValidationDays(employmentId, date),
+			selected
+		])[0];
+		return overlap == null
 			? null
 			: t('roster.overlapping_shift_description', {
-					first: daySheetOverlap.first.shift?.code ?? 'WORK',
-					second: daySheetOverlap.second.shift?.code ?? 'WORK'
-				})
-	);
-
-	function saveDaySheet(change: DaySheetChange): void {
-		if (change.plan == null && change.attendance == null) return;
-		const existing = workDayByKey.get(personDayKey(change.employmentId, change.date));
-		const mutation = buildPersonDayMutation({
-			id: resolvePersonDayWriteId(existing?.id, change.attendance?.workDayId),
-			employmentId: change.employmentId,
-			date: change.date,
-			plan:
-				change.plan == null
-					? null
-					: {
-							rosterCodeId: change.plan.rosterCodeId,
-							note: change.plan.note
-						},
-			attendance:
-				change.attendance == null
-					? null
-					: {
-							intervals: change.attendance.intervals,
-							breakMinutes: change.attendance.breakMinutes
-						}
-		});
-		daySheetSubmission.settling = true;
-		daySheetSubmission.pendingApproval = false;
-		daySheetSubmission.error = null;
-		Effect.runFork(
-			submitCollectionMutation(() => client.db.work_days.mutate([mutation])).pipe(
-				Effect.tap((submission: CollectionMutationSubmission) =>
-					Effect.sync(() => {
-						if (submission.kind === 'pendingApproval') {
-							daySheetSubmission.pendingApproval = true;
-							toast.success(t('roster.day_sheet_pending_approval'));
-							return;
-						}
-						daySheet.open = false;
-					})
-				),
-				Effect.catch((cause) =>
-					Effect.sync(() => {
-						const serverMessage = getErrorMessage(cause);
-						const message = t('roster.day_sheet_error_context', {
-							person: daySheetPerson?.name ?? change.employmentId,
-							date: change.date,
-							message: serverMessage
-						});
-						daySheetSubmission.error = message;
-						toast.error(t('roster.day_sheet_save_failed'), { description: message });
-					})
-				),
-				Effect.ensuring(Effect.sync(() => (daySheetSubmission.settling = false)))
-			)
-		);
-	}
-
-	/**
-	 * Clearing the plan clears the PLAN, and never the row.
-	 *
-	 * Removing the assignment used to mean removing the roster entry, because the roster entry was
-	 * the whole of the record. The same row may now hold attendance that belongs to no roster, so
-	 * the write nulls the plan columns and leaves the clock exactly where it was. The pattern
-	 * baseline resumes for that day, which is what clearing an override has always meant.
-	 */
-	function clearDaySheetPlan(): void {
-		if (daySheetKey == null) return;
-		const existing = workDayByKey.get(daySheetKey);
-		if (existing?.shift_definition_id == null) return;
-		daySheetSubmission.settling = true;
-		daySheetSubmission.pendingApproval = false;
-		daySheetSubmission.error = null;
-		Effect.runFork(
-			submitCollectionMutation(() =>
-				client.db.work_days.mutate([
-					{
-						id: existing.id,
-						shift_definition_id: null,
-						assignment_code: null,
-						planned_note: null,
-						planned_origin: null
-					}
-				])
-			).pipe(
-				Effect.tap((submission) =>
-					Effect.sync(() => {
-						if (submission.kind === 'pendingApproval') {
-							daySheetSubmission.pendingApproval = true;
-							toast.success(t('roster.day_sheet_pending_approval'));
-							return;
-						}
-						daySheet.open = false;
-					})
-				),
-				Effect.catch((cause) =>
-					Effect.sync(() => {
-						const serverMessage = getErrorMessage(cause);
-						const message = t('roster.day_sheet_error_context', {
-							person: daySheetPerson?.name ?? daySheet.employmentId ?? '—',
-							date: daySheet.date ?? '—',
-							message: serverMessage
-						});
-						daySheetSubmission.error = message;
-						toast.error(t('roster.day_sheet_save_failed'), { description: message });
-					})
-				),
-				Effect.ensuring(Effect.sync(() => (daySheetSubmission.settling = false)))
-			)
-		);
+					first: overlap.first.shift?.code ?? 'WORK',
+					second: overlap.second.shift?.code ?? 'WORK'
+				});
 	}
 
 	/* ────────────────────────────────────────────────────────────────────────────────────────────
-	 * THE SWAP — two cells, one mutation, unlocked days only
+	 * THE SWAP — two cells, one mutation, and the server is the judge
 	 *
-	 * Every check below already existed; none of them is new. The overlap check is the one the day
-	 * sheet runs for a single cell, over both people's ±1-day windows. The leave check is the client
-	 * half of `assertDayNotOwnedByLeave`. `validateRosterSchedule` is the write-time conformance
-	 * check itself, run early over the post-swap month — a swap can break a contractual guarantee
-	 * or a cap even when neither day looks wrong on its own, and finding that out at write time is
-	 * finding it out a month late.
-	 *
-	 * The two changed cells are two writes to two person-days, issued together in ONE mutation.
-	 * They were one write of the roster's complete `roster_entry_roster` relationship, which
-	 * committed the pair atomically; that shape is gone because the children now carry attendance
-	 * the roster does not own and a nested `many` deletes every child left out of the array. The
-	 * atomicity it bought is bought back where it matters: `swapRefusal` decides the PAIR before
-	 * either write is issued, and the single mutation below is what lets the server's conformance
-	 * see the pair whole — two separate writes would each break the pattern on their own. A swap
-	 * that cannot land does not land halfway.
+	 * The board checks exactly one thing before arming a swap: the payroll lock, because a frozen
+	 * day is a fact the board has already drawn and the gesture should not exist there. Everything
+	 * else — leave ownership, shift overlap, the month's pattern conformance — is the write hook's
+	 * to refuse. Running those checks here too was a second copy of the server's judgement that
+	 * could drift from it; the server's refusal names its cause in the failure toast, and the
+	 * single two-row mutation is what lets the server see the pair whole.
 	 *
 	 * SCOPED OUT: consumed days. A day a payroll run has taken into account is frozen by the
 	 * settlement lock, and the gesture is simply not offered there.
 	 * ──────────────────────────────────────────────────────────────────────────────────────────── */
 
-	const swapEnabled = $derived(matrixMutationReady);
-
-	/** The sentence a refused swap gets. One per pair — never one per row. */
+	/** The one sentence the board itself can say: which run holds the day. */
 	function swapRefusal(from: BoardCell, to: BoardCell): string | null {
-		const fromDay = facts.get(personDayKey(from.employmentId, from.date));
-		const toDay = facts.get(personDayKey(to.employmentId, to.date));
-		if (fromDay == null || toDay == null) return t('roster.swap_refused_unknown');
-
-		// 1. Both cells unlocked, by the ladder. One consumed day refuses the swap whole.
-		for (const day of [fromDay, toDay]) {
+		for (const cell of [from, to]) {
+			const day = facts.get(personDayKey(cell.employmentId, cell.date));
+			if (day == null) return t('roster.swap_refused_unknown');
 			if (!lockRungFreezes(lockRung(day, claimFor(day)))) continue;
 			const lock = lockRungSourceLock(day, claimFor(day));
 			return (
@@ -1049,123 +817,10 @@
 				t('roster.swap_refused_locked', { date: day.date })
 			);
 		}
-
-		const fromCodeId = effectiveCodeId(from.employmentId, from.date);
-		const toCodeId = effectiveCodeId(to.employmentId, to.date);
-		if (fromCodeId == null || toCodeId == null) return t('roster.swap_refused_no_code');
-
-		// 2. Approved leave owns a day: a swap must not drop work onto it. The client half of
-		//    `assertDayNotOwnedByLeave`, which refuses the write server-side regardless.
-		const landing: [ValidationDay, DayFacts][] = [
-			[validationDay(from.employmentId, from.date, toCodeId), fromDay],
-			[validationDay(to.employmentId, to.date, fromCodeId), toDay]
-		];
-		for (const [proposed, day] of landing) {
-			if (proposed.designation === 'WORK' && day.leaveCode != null) {
-				return t('roster.swap_refused_leave', { date: day.date, code: day.leaveCode });
-			}
-		}
-
-		// 3. Overlapping work shifts, over BOTH people's ±1-day windows — exactly the check the day
-		//    sheet runs for a single cell, run twice because a swap moves two.
-		for (const [proposed] of landing) {
-			const overlap = overlappingWorkShifts([
-				...adjacentValidationDays(proposed.employment_id, proposed.work_date),
-				proposed
-			])[0];
-			if (overlap != null) {
-				return t('roster.overlapping_shift_description', {
-					first: overlap.first.shift?.code ?? 'WORK',
-					second: overlap.second.shift?.code ?? 'WORK'
-				});
-			}
-		}
-
-		// 4. The write-time conformance check, run early over the post-swap month for both
-		// employments. The server refuses a month that no longer adds up to the pattern; this is
-		// the same judge, consulted before the write so a refused swap explains itself at once.
-		const overrides = new Map<string, string | null>([
-			[personDayKey(from.employmentId, from.date), toCodeId],
-			[personDayKey(to.employmentId, to.date), fromCodeId]
-		]);
-		const employmentIds = [...new Set([from.employmentId, to.employmentId])];
-		const days: ValidationDay[] = [];
-		for (const employmentId of employmentIds) {
-			for (const date of monthDateKeys) {
-				const day = facts.get(personDayKey(employmentId, date));
-				if (day == null || day.employmentState !== 'ACTIVE') continue;
-				const codeId =
-					overrides.get(personDayKey(employmentId, date)) ?? effectiveCodeId(employmentId, date);
-				// A ROSTERED month leaves unassigned days genuinely unassigned; the publish check
-				// treats those as absent rather than as a missing code, so they are skipped here too.
-				if (codeId == null) continue;
-				days.push(validationDay(employmentId, date, codeId));
-			}
-		}
-		const violations = validateRosterSchedule({
-			days,
-			expectations: employmentIds.flatMap((employmentId) => expectationsFor(employmentId))
-		});
-		return violations[0]?.message ?? null;
+		return null;
 	}
 
-	function performSwap(from: BoardCell, to: BoardCell): void {
-		if (!swapEnabled) return;
-		const refusal = swapRefusal(from, to);
-		if (refusal != null) {
-			toast.error(t('roster.swap_failed_pair', { from: from.date, to: to.date }), {
-				description: refusal
-			});
-			return;
-		}
-		const fromCodeId = effectiveCodeId(from.employmentId, from.date);
-		const toCodeId = effectiveCodeId(to.employmentId, to.date);
-		if (fromCodeId == null || toCodeId == null) return;
-
-		const note = t('roster.swap_note', { from: from.date, to: to.date });
-		const fromExisting = workDayByKey.get(personDayKey(from.employmentId, from.date));
-		const toExisting = workDayByKey.get(personDayKey(to.employmentId, to.date));
-		Effect.runFork(
-			submitCollectionMutation(() =>
-				client.db.work_days.mutate([
-					{
-						...(fromExisting == null
-							? { employment_id: from.employmentId, work_date: from.date }
-							: { id: fromExisting.id }),
-						shift_definition_id: toCodeId,
-						planned_origin: 'MANUAL',
-						planned_note: note
-					},
-					{
-						...(toExisting == null
-							? { employment_id: to.employmentId, work_date: to.date }
-							: { id: toExisting.id }),
-						shift_definition_id: fromCodeId,
-						planned_origin: 'MANUAL',
-						planned_note: note
-					}
-				])
-			).pipe(
-				Effect.tap((submission) =>
-					Effect.sync(() => {
-						swap.source = null;
-						if (submission.kind === 'pendingApproval') {
-							toast.success(t('roster.day_sheet_pending_approval'));
-							return;
-						}
-						toast.success(t('roster.swap_done'));
-					})
-				),
-				Effect.catch((cause) =>
-					Effect.sync(() =>
-						toast.error(t('roster.swap_failed_pair', { from: from.date, to: to.date }), {
-							description: getErrorMessage(cause)
-						})
-					)
-				)
-			)
-		);
-	}
+	const swapEnabled = $derived(matrixMutationReady);
 
 	/* ────────────────────────────────────────────────────────────────────────────────────────────
 	 * ATTENDANCE IMPORT — §5. Built already; it was only reachable from the wrong screen.
@@ -1225,7 +880,7 @@
 {/snippet}
 
 {#snippet monthNavigation()}
-	<MonthPeriodPicker {month} onMonthChange={selectMonth} disabled={daySheetSubmission.settling} />
+	<MonthPeriodPicker {month} onMonthChange={selectMonth} />
 {/snippet}
 
 <!--
@@ -1396,7 +1051,63 @@
 					editable={matrixMutationReady}
 					swappable={swapEnabled}
 					bind:swapSource={swap.source}
-					onSwapDays={(from, to) => void performSwap(from, to)}
+					onSwapDays={(from, to) => {
+						if (!swapEnabled) return;
+						const refusal = swapRefusal(from, to);
+						if (refusal != null) {
+							toast.error(t('roster.swap_failed_pair', { from: from.date, to: to.date }), {
+								description: refusal
+							});
+							return;
+						}
+						const fromCodeId = effectiveCodeId(from.employmentId, from.date);
+						const toCodeId = effectiveCodeId(to.employmentId, to.date);
+						if (fromCodeId == null || toCodeId == null) return;
+
+						const note = t('roster.swap_note', { from: from.date, to: to.date });
+						const fromExisting = workDayByKey.get(personDayKey(from.employmentId, from.date));
+						const toExisting = workDayByKey.get(personDayKey(to.employmentId, to.date));
+						Effect.runFork(
+							submitCollectionMutation(() =>
+								client.db.work_days.mutate([
+									{
+										...(fromExisting == null
+											? { employment_id: from.employmentId, work_date: from.date }
+											: { id: fromExisting.id }),
+										shift_definition_id: toCodeId,
+										planned_origin: 'MANUAL',
+										planned_note: note
+									},
+									{
+										...(toExisting == null
+											? { employment_id: to.employmentId, work_date: to.date }
+											: { id: toExisting.id }),
+										shift_definition_id: fromCodeId,
+										planned_origin: 'MANUAL',
+										planned_note: note
+									}
+								])
+							).pipe(
+								Effect.tap((submission) =>
+									Effect.sync(() => {
+										swap.source = null;
+										if (submission.kind === 'pendingApproval') {
+											toast.success(t('roster.day_sheet_pending_approval'));
+											return;
+										}
+										toast.success(t('roster.swap_done'));
+									})
+								),
+								Effect.catch((cause) =>
+									Effect.sync(() =>
+										toast.error(t('roster.swap_failed_pair', { from: from.date, to: to.date }), {
+											description: getErrorMessage(cause)
+										})
+									)
+								)
+							)
+						);
+					}}
 					onSelectDay={openDaySheet}
 				/>
 			{/if}
@@ -1473,36 +1184,33 @@
 </AppHeaderActions>
 
 <!--
-	The day sheet, which replaced the single-select assignment dialog.
+ 	The day sheet, which replaced the single-select assignment dialog.
 
-	The app owns the writes and the checks; the drawer owns the editors and the explanation. That
-	split is what lets Employee Self-Service render the very same component with `mode="employee"`
-	over its own single-person month without inheriting a controller's write path.
--->
+ 	The drawer owns its editors and its person-day write (an internal `CollectionForm`); the app
+ 	owns the checks around it — the live overlap sentence, the locks, the swap pair. That split is
+ 	what lets Employee Self-Service render the very same component with `mode="employee"` over its
+ 	own single-person month without inheriting a controller's checks.
+ -->
 <DaySheet
 	bind:open={daySheet.open}
 	mode="controller"
 	person={daySheetPerson}
 	date={daySheet.date}
-	editorRevision={daySheet.editorRevision}
 	day={daySheetDay}
 	intervals={daySheetIntervals}
 	rosterCodeOptions={daySheetCodeOptions}
-	rosterCodeId={daySheet.draftCodeId}
+	rosterCodeId={daySheetRosterCodeId}
 	note={daySheetNote}
 	hasExplicitEntry={daySheetHasExplicitEntry}
 	planLocked={daySheetPlanLocked}
 	planLockedReason={daySheetPlanLockedReason}
 	lockRung={daySheetRung}
 	lockReason={daySheetLockReason}
-	overlapWarning={daySheetOverlapWarning}
 	canSwap={swapEnabled}
-	saving={daySheetSubmission.settling}
-	pendingApproval={daySheetSubmission.pendingApproval}
-	error={daySheetSubmission.error}
-	onPlanDraftChange={(codeId) => (daySheet.draftCodeId = codeId)}
-	onSave={(change) => saveDaySheet(change)}
-	onClearPlan={() => clearDaySheetPlan()}
+	resolveOverlap={(codeId) =>
+		daySheet.employmentId == null || daySheet.date == null
+			? null
+			: overlapSentenceFor(daySheet.employmentId, daySheet.date, codeId)}
 	onStartSwap={() => {
 		// Arming, not swapping. The board is the surface that knows which second cell is legal, so
 		// the drawer hands the gesture back and steps out of the way.

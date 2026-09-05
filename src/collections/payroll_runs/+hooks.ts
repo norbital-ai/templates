@@ -1,48 +1,3 @@
-/**
- * The payroll run's lifecycle, and the hook that builds one.
- *
- * ```
- *  DRAFT ──mark paid──► PAID
- *    │
- *    └──── recalculate
- * ```
- *
- * ## The run and its result are one write
- *
- * A `before` hook's return is the record the runtime persists, and it may carry the records that
- * belong to it. So this hook returns the run's columns **and its payslips**, and the whole payroll —
- * the run, every payslip, its inlined base, proration and statutory entries, its four captured-input
- * junctions, and every adjustment naming one of those captures — lands in the create that asked for
- * it.
- *
- * There is no `after` on this collection, and that is the point rather than a tidy-up. The build
- * used to run there, where the row was already committed and the database facility has no
- * transaction to take it back:
- *
- *  - a refusal left a DRAFT run with no payslips — a record asserting a period had been calculated,
- *    blocking the next period, describing a calculation that never happened;
- *  - the engine's own writes landed on `payroll_runs` as a DRAFT update indistinguishable from a
- *    person pressing recalculate, so `update.after` re-entered the engine until the host refused
- *    with `nesting_limit_exceeded`, and a guard had to be invented to tell the engine apart from a
- *    human; and
- *  - the arrears it wrote were one facility call per employee, which is where a 290-person run spent
- *    eight minutes.
- *
- * All three are gone because the engine cannot write. `create.prepare` reads, `create.before`
- * calculates and returns, and the runtime does the only write there is. No side effects: the engine
- * cannot write, and the run's `before` hook is the one declarative payload there is.
- *
- * ## The settlement lock
- *
- * A run that persists captures every source record it consumed in one of the four input junctions —
- * including the ones it priced at nothing, whose claim is exactly as binding as a paid one. Deleting
- * the run cascades those junctions away with its payslips. Which is why the delete refusal below is
- * not merely tidiness about history: it is what makes a paid period's attendance, entries,
- * repayments and leave permanently immutable. See the four `payslip_*_inputs` collections,
- * `src/lib/settlement_refusals.ts` for the cross-run ceilings the junctions traded database
- * invariants for, and `src/lib/policy_grants.ts` for why this lock is not `approval_id`.
- */
-
 import { Effect } from 'effect';
 import { refuse } from '@norbital-ai/bolt/authoring';
 import { Schema } from 'effect';
@@ -53,6 +8,12 @@ import {
 	gatherPayrollRun,
 	type PreparedRun
 } from './lib/engine.js';
+import {
+	cumulativePayroll,
+	supplementalPayroll,
+	payrollInputFacts,
+	corePayrollInputHash
+} from './lib/supplemental.js';
 import { configurationSnapshot } from './lib/configuration.js';
 import { payrollRunPrecheck } from './lib/precheck.js';
 import { describeIssues } from './lib/validate.js';
@@ -72,6 +33,8 @@ import { describeIssues } from './lib/validate.js';
  */
 const createPayrollRunInput = Schema.Struct({
 	company_id: Schema.String.check(Schema.isUUID()),
+	run_kind: Schema.optional(Schema.Literals(['REGULAR', 'AD_HOC'])),
+	lifecycle: Schema.optional(Schema.Literal('PAID')),
 	period: Schema.String.check(
 		Schema.isPattern(/^\d{4}-(0[1-9]|1[0-2])$/, {
 			message: 'Payroll period must be YYYY-MM.'
@@ -81,6 +44,8 @@ const createPayrollRunInput = Schema.Struct({
 
 /** Columns the engine owns; a person may not edit them. */
 const DERIVED_COLUMNS = [
+	'run_kind',
+	'sequence',
 	'company_id',
 	'period',
 	'configuration_hash',
@@ -110,7 +75,11 @@ const derivedColumns = (prepared: PreparedRun) => ({
 	configuration_snapshot: {
 		kind: 'CAPTURED' as const,
 		configuration_hash: prepared.configuration.hash,
-		configuration: configurationSnapshot(prepared.configuration, prepared.period)
+		configuration: {
+			...configurationSnapshot(prepared.configuration, prepared.period),
+			input_facts: payrollInputFacts(prepared),
+			core_input_hash: corePayrollInputHash(prepared)
+		}
 	},
 	statutory_snapshot_id: prepared.configuration.jurisdiction.id,
 	calculation_version: CALCULATION_VERSION,
@@ -120,7 +89,7 @@ const derivedColumns = (prepared: PreparedRun) => ({
 });
 
 /** Calculate, and hand back the run's columns with every payslip it produced nested under them. */
-const buildGraph = (prepared: PreparedRun) =>
+const buildGraph = (prepared: PreparedRun, baseline?: unknown) =>
 	Effect.gen(function* () {
 		const built = buildPayrollRun(prepared);
 		if (built.warnings.length > 0)
@@ -132,50 +101,70 @@ const buildGraph = (prepared: PreparedRun) =>
 		);
 		return {
 			...derivedColumns(prepared),
-			payslip_payroll_run: built.payslip_payroll_run
+			configuration_snapshot: {
+				...derivedColumns(prepared).configuration_snapshot,
+				configuration: {
+					...derivedColumns(prepared).configuration_snapshot.configuration,
+					cumulative_payslips: cumulativePayroll(built.payslip_payroll_run)
+				}
+			},
+			payslip_payroll_run:
+				baseline === undefined
+					? built.payslip_payroll_run
+					: supplementalPayroll(built.payslip_payroll_run, baseline)
 		};
 	});
 
-export const input = createPayrollRunInput;
-
 export default {
+	input: createPayrollRunInput,
 	mutate: {
-		/**
-		 * Every read one payroll run performs, taken before anything decides anything.
-		 *
-		 * Batched by construction: `prepare` runs once for the whole write, so creating twelve periods
-		 * at once reads each one's facts once and `before` decides twelve times over them. Nothing here
-		 * refuses — a rule in `prepare` would be a rule that runs a different number of times from the
-		 * records it governs.
-		 */
+		/** Resolve one new run per company; later runs must observe its settlement. */
 		prepare: ({ inputs, api }) =>
-			Effect.map(
-				Effect.forEach(
-					// Only a create states a company and a period; a recalculation names the run by id
-					// and gathers its own facts, so there is nothing here to batch for it.
-					inputs.flatMap((one) =>
-						one.company_id != null && one.period != null
-							? [{ companyId: one.company_id, period: one.period }]
-							: []
-					),
-					({ companyId, period }) =>
-						Effect.map(
-							gatherPayrollRun({ api, companyId, period }),
-							(run) => [runKey(companyId, period), run] as const
-						)
-				),
-				(entries) => new Map(entries)
-			),
+			Effect.gen(function* () {
+				const ids = inputs.flatMap((one) => (one.id == null ? [] : [one.id]));
+				const existingIds = new Set(
+					ids.length === 0
+						? []
+						: (yield* api.db.payroll_runs.findMany({
+								where: { id: { in: ids } },
+								columns: { id: true },
+								limit: ids.length
+							})).map((row) => row.id)
+				);
+				const creates = inputs.filter(
+					(one) =>
+						(one.id == null || !existingIds.has(one.id)) &&
+						one.company_id != null &&
+						one.period != null
+				);
+				const companies = new Set<string>();
+				for (const one of creates) {
+					if (companies.has(one.company_id!))
+						refuse(
+							'Create one payroll per company at a time so every run observes its prior settlement.'
+						);
+					companies.add(one.company_id!);
+				}
+				const entries = yield* Effect.forEach(creates, (one) =>
+					Effect.map(
+						gatherPayrollRun({ api, companyId: one.company_id!, period: one.period! }),
+						(run) => [runKey(one.company_id!, one.period!), run] as const
+					)
+				);
+				return new Map(entries);
+			}),
 		perRecord: {
 			before: {
 				description:
-					'Refuses a second run for a company and period, refuses one while an earlier period is still a draft, then calculates the whole payroll and returns the run together with every payslip, every captured input junction and every adjustment it produced.',
-				handler: ({ input, existing, prepared, api }) =>
+					'Freezes inputs, enforces payment order and calculates regular payroll or a same-month supplemental difference and returns the run together with every payslip, every captured input junction and every adjustment it produced.',
+				handler: ({ input, existing, prepared, api, relationships }) =>
 					Effect.gen(function* () {
 						// `existing` is undefined on a create and is the only thing that tells the two apart —
 						// the same distinction the runtime already makes from the id. Every branch below returns,
 						// so the create path is unreachable once this one is taken.
 						if (existing !== undefined) {
+							if (relationships?.length)
+								refuse('Marking payroll paid cannot change its payslips or captured inputs.');
 							// A paid run is a closed record: no column edit, no lifecycle move, no no-op PATCH.
 							// The one transition out of DRAFT is mark-paid, below; everything else refuses.
 							if (existing.lifecycle !== 'DRAFT')
@@ -189,25 +178,32 @@ export default {
 										`Payroll run ${column} is derived from the period and the configuration, and cannot be edited.`
 									);
 							const next = input.lifecycle ?? existing.lifecycle;
-							if (next !== existing.lifecycle) {
-								return input;
-							}
-							/**
-							 * The rebuild, and the reason there is no `isBuildingRun` guard any more.
-							 *
-							 * The engine writes nothing, so this hook cannot be triggered by the engine — the
-							 * only thing that reaches here is somebody asking for a recalculation of a draft.
-							 * The returned graph is the run's complete desired set of payslips: every previous
-							 * payslip is omitted from it and is deleted through the same `cascade(...)` walk a
-							 * run delete uses, through its junctions and adjustments, in the same statement
-							 * that creates the new build.
-							 */
-							const rebuilt = yield* gatherPayrollRun({
-								api,
-								companyId: existing.company_id,
-								period: existing.period
+							if (next !== 'PAID')
+								refuse(
+									'Payroll inputs are frozen. Delete the draft and create it again to change its inputs.'
+								);
+							const previous = yield* api.db.payroll_runs.findMany({
+								where: { company_id: { eq: existing.company_id }, lifecycle: { eq: 'DRAFT' } },
+								limit: 20_000
 							});
-							return { ...input, ...(yield* buildGraph(rebuilt)) };
+							if (previous.length >= 20_000)
+								refuse('Too many outstanding payrolls to verify payment order.');
+							const blocked = previous.find(
+								(run) =>
+									run.id !== existing.id &&
+									(run.period < existing.period ||
+										(run.period === existing.period && run.sequence < existing.sequence))
+							);
+							if (blocked != null)
+								refuse(
+									`Payroll ${blocked.period} must be paid before this payroll can be marked paid.`
+								);
+							const payslip = yield* api.db.payslips.findFirst({
+								where: { payroll_run_id: { eq: existing.id } },
+								columns: { id: true }
+							});
+							if (payslip == null) refuse('A payroll with no payslips cannot be marked paid.');
+							return { lifecycle: 'PAID' as const };
 						}
 						// `refuse` returns `never`, so these two narrow for the rest of the create path. The
 						// hook's own `input` schema requires both; this states it where the types can see it.
@@ -217,30 +213,48 @@ export default {
 						const facts = prepared.get(runKey(companyId, period));
 						if (facts == null)
 							refuse(`Payroll ${period} was not prepared. This is a bug, not a data fault.`);
-						const duplicate = yield* api.db.payroll_runs.findFirst({
-							where: { company_id: { eq: companyId }, period: { eq: period } }
+						const runs = yield* api.db.payroll_runs.findMany({
+							where: { company_id: { eq: companyId } },
+							limit: 20_000
 						});
-						if (duplicate) {
-							const lifecycle = duplicate.lifecycle;
-							if (lifecycle == null) refuse(`Payroll ${input.period} already exists.`);
+						if (runs.length >= 20_000) refuse('Too many payrolls to verify settlement order.');
+						const later = runs.find((run) => run.period > period);
+						if (later != null)
 							refuse(
-								`Payroll ${input.period} already exists (${lifecycle.toLowerCase()}). ` +
-									'Open that run, or delete it first if it is still a draft.'
+								`Payroll ${later.period} already exists. Record this correction in the current payroll period.`
 							);
-						}
-						// The previous period must be settled before this one is calculated, so a year-to-date
-						// figure can never be assembled from a period that is still moving.
-						const previous = yield* api.db.payroll_runs.findMany({
-							where: { company_id: { eq: input.company_id }, period: { lt: input.period } },
-							limit: 10_000
-						});
-						const unsettled = previous
-							.toSorted((left, right) => right.period.localeCompare(left.period))
-							.find((run) => run.lifecycle === 'DRAFT');
-						if (unsettled)
+						const unsettled = runs.find((run) => run.lifecycle !== 'PAID');
+						if (unsettled != null)
 							refuse(
-								`Payroll ${unsettled.period} is still a draft. Settle it before calculating ${input.period}: ` +
-									'its figures are this period’s year-to-date.'
+								`Payroll ${unsettled.period} is still a draft. Settle or delete it before another run.`
+							);
+						const sameMonth = runs
+							.filter((run) => run.period === period)
+							.toSorted((a, b) => b.sequence - a.sequence);
+						const previous = sameMonth[0];
+						const runKind = input.run_kind ?? 'REGULAR';
+						if (runKind === 'REGULAR' && previous != null)
+							refuse(
+								`Payroll ${period} already exists. Use an ad hoc run for same-month adjustments.`
+							);
+						if (runKind === 'AD_HOC' && previous == null)
+							refuse('An ad hoc payroll needs a paid regular payroll in the same month.');
+						if (
+							previous != null &&
+							previous.configuration_snapshot.configuration.cumulative_payslips == null
+						)
+							refuse(
+								'This paid payroll predates cumulative snapshots. Record adjustments in a later regular payroll.'
+							);
+						if (
+							previous != null &&
+							(previous.configuration_hash !== facts.configuration.hash ||
+								previous.calculation_version !== CALCULATION_VERSION ||
+								previous.configuration_snapshot.configuration.core_input_hash !==
+									corePayrollInputHash(facts))
+						)
+							refuse(
+								'The paid payroll inputs or calculation version changed. An ad hoc run may only add monetary entries; record other corrections in a later regular payroll.'
 							);
 						const blocking = yield* payrollRunPrecheck({
 							api,
@@ -251,7 +265,12 @@ export default {
 						return {
 							...input,
 							lifecycle: 'DRAFT' as const,
-							...(yield* buildGraph(facts))
+							run_kind: runKind,
+							sequence: previous == null ? 0 : previous.sequence + 1,
+							...(yield* buildGraph(
+								facts,
+								previous?.configuration_snapshot.configuration.cumulative_payslips
+							))
 						};
 					})
 			}

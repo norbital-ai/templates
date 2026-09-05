@@ -13,7 +13,7 @@
 	import { useI18n } from '@norbital-ai/ui/i18n';
 	import type { TenantI18nKeys } from '$bolt/i18n-keys';
 	import { CollectionForm } from '@norbital-ai/ui/collection-form';
-	import type { CollectionFormValidation } from '@norbital-ai/ui/collection-form';
+	import type { CollectionFormSemantic } from '@norbital-ai/ui/collection-form';
 	import { Column, Grid, Stack } from '@norbital-ai/ui/layout';
 	import { Effect } from 'effect';
 	import type { RepresentationProps } from './$types.js';
@@ -84,18 +84,16 @@
 	 * `path` is the column the issue is about where the sentence names one, and `event` otherwise —
 	 * the arm is what a mismatched payload is always ultimately about.
 	 */
-	const validation = {
-		semantic: (values) =>
-			Effect.succeed(
-				componentEntryEventIssues({
-					event: values.event,
-					effective_range: values.effective_range,
-					corrects_adjustment_id: optionalText(values.corrects_adjustment_id),
-					amount: values.amount == null ? null : decodeNumber(values.amount),
-					pay_period: optionalText(values.pay_period)
-				}).map((message) => ({ message, path: ['event'] }))
-			)
-	} satisfies CollectionFormValidation;
+	const semantic = ((values) =>
+		Effect.succeed(
+			componentEntryEventIssues({
+				event: values.event,
+				effective_range: values.effective_range,
+				corrects_adjustment_id: optionalText(values.corrects_adjustment_id),
+				amount: values.amount == null ? null : decodeNumber(values.amount),
+				pay_period: optionalText(values.pay_period)
+			}).map((message) => ({ message, path: ['event'] }))
+		)) satisfies CollectionFormSemantic;
 </script>
 
 <Stack gap="md">
@@ -113,7 +111,7 @@
 		collection="component_entries"
 		defaultValues={record ?? undefined}
 		{recordMetadata}
-		{validation}
+		{semantic}
 		submitLabel={record ? t('component.save_entry') : t('component.create_entry')}
 		onAfterSubmit={record ? undefined : close}
 	>

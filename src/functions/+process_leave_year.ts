@@ -5,7 +5,7 @@ import {
 	closingBalance,
 	leaveYearOf,
 	policyCarryExpiry,
-	resolveEntitlement,
+	resolveEntitlementAt,
 	yearWindow,
 	type BalanceInput,
 	type ChildFact,
@@ -13,7 +13,7 @@ import {
 } from '../collections/payroll_runs/lib/leave.js';
 import { dateKey, type IsoDate } from '../collections/payroll_runs/lib/dates.js';
 import { coversDate } from '../collections/payroll_runs/lib/effective.js';
-import { sealedProfileCovering } from '../lib/statutory_profile.js';
+import { sealedProfileCovering, statutoryProfileLineage } from '../lib/statutory_profile.js';
 import { decodeNumber } from '@norbital-ai/std/json';
 
 /**
@@ -204,7 +204,11 @@ const processLeaveYear = Effect.fn('ProcessLeaveYear.process')(function* (
 			`Cannot process leave year ${input.leave_year}: ${company.name} states no jurisdiction anchor, so the statutory floor cannot resolve.`
 		);
 	const sealedProfiles = yield* api.db.jurisdictions.findMany({
-		where: { code: { eq: anchor.code }, lifecycle: { eq: 'SEALED' } },
+		where: {
+			code: { eq: anchor.code },
+			lifecycle: { eq: 'SEALED' },
+			approval_id: { isNull: true }
+		},
 		limit: PROCESS_LEAVE_YEAR_QUERY_LIMIT
 	});
 	requireCompletePage(sealedProfiles, 'sealed-profile', input.leave_year);
@@ -218,7 +222,9 @@ const processLeaveYear = Effect.fn('ProcessLeaveYear.process')(function* (
 	// types have no bank and types with no carry policy carry nothing, so neither gets a row.
 	const bankedTypes = leaveTypes.filter(
 		(type) =>
-			type.statutory_profile_id === profile.id &&
+			statutoryProfileLineage(sealedProfiles, profile).some(
+				(entry) => entry.id === type.statutory_profile_id
+			) &&
 			type.accrual != null &&
 			type.accrual.kind !== 'PER_EVENT' &&
 			type.accrual.carry != null
@@ -320,9 +326,10 @@ const processLeaveYear = Effect.fn('ProcessLeaveYear.process')(function* (
 			const balanceInput: BalanceInput = {
 				leaveType: type,
 				entitlementAt: (serviceMonths, asOf) =>
-					resolveEntitlement({
+					resolveEntitlementAt({
 						leaveType: type,
-						profile,
+						profiles: sealedProfiles,
+						jurisdictionCode: anchor.code,
 						children,
 						serviceMonths,
 						employmentId: employment.id,

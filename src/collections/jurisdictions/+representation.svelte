@@ -17,10 +17,44 @@
 	import { CollectionTable } from '@norbital-ai/ui/collection-table';
 	import { Column, Cover, Grid, Inline, Stack } from '@norbital-ai/ui/layout';
 	import { Tabs, type TabConfig } from '@norbital-ai/ui/tabs';
-	import { formatNumeric } from '../../lib/ui/display-formatters.js';
+	import * as Table from '@norbital-ai/ui/table';
+	import {
+		formatNumeric,
+		formatRateAward,
+		formatRateSelector
+	} from '../../lib/ui/display-formatters.js';
+	import { statutoryCatalogueProfile } from '../../lib/statutory_profile.js';
 
 	let { record, close }: RepresentationProps = $props();
 	const { t } = useI18n<TenantI18nKeys>();
+	const familyQuery = $derived(
+		record?.supersedes_id == null
+			? null
+			: client.db.jurisdictions.findMany({
+					where: { code: { eq: record.code } },
+					columns: { id: true, supersedes_id: true },
+					limit: 500
+				})
+	);
+	const catalogueId = $derived(
+		record == null
+			? null
+			: record.supersedes_id == null
+				? record.id
+				: familyQuery?.current == null
+					? null
+					: statutoryCatalogueProfile(familyQuery.current, record).id
+	);
+	const revisions = $derived(record?.revision?.contributions ?? []);
+	const revisedSchemes = $derived(
+		revisions.length === 0
+			? null
+			: client.db.statutory_contributions.findMany({
+					where: { id: { in: revisions.map((row) => row.statutory_contribution_id) } },
+					columns: { id: true, code: true, name: true },
+					limit: 500
+				})
+	);
 </script>
 
 {#snippet snapshot()}
@@ -87,6 +121,8 @@
 						</p>
 					</Stack>
 					<Field name="statutory_leave" />
+					<Field name="research_urls" />
+					<Field name="revision" readonly={record?.lifecycle !== 'DRAFT'} />
 				</Stack>
 			</Stack>
 		{/snippet}
@@ -94,15 +130,53 @@
 {/snippet}
 
 {#snippet contributions()}
-	{#if record}
+	{#if familyQuery?.error}
+		<p role="alert">{familyQuery.error.message}</p>
+	{:else if record && catalogueId == null}
+		<p>{t('component.loading')}</p>
+	{:else if record && catalogueId}
+		{#if revisions.length > 0}
+			<Stack gap="md">
+				<h3 class="text-sm font-semibold">{t('component.revision_rates')}</h3>
+				{#each revisions as revision (revision.statutory_contribution_id)}
+					{@const scheme = revisedSchemes?.current?.find(
+						(row) => row.id === revision.statutory_contribution_id
+					)}
+					<Stack gap="sm">
+						<h4 class="text-sm font-medium">
+							{scheme ? `${scheme.code} · ${scheme.name}` : t('component.loading')}
+						</h4>
+						<p class="text-meta">{revision.authority}</p>
+						<Table.Root>
+							<Table.Header
+								><Table.Row
+									><Table.Head>{t('component.applies_to')}</Table.Head><Table.Head
+										>{t('component.award')}</Table.Head
+									></Table.Row
+								></Table.Header
+							>
+							<Table.Body
+								>{#each revision.rates as rate}<Table.Row
+										><Table.Cell>{formatRateSelector(rate.selector, t)}</Table.Cell><Table.Cell
+											>{formatRateAward(rate.award, t)}</Table.Cell
+										></Table.Row
+									>{/each}</Table.Body
+							>
+						</Table.Root>
+					</Stack>
+				{/each}
+			</Stack>
+		{/if}
 		<CollectionTable
 			{client}
 			collection="statutory_contributions"
 			view="jurisdictions:contributions"
-			title={t('component.statutory_contributions')}
+			title={record.supersedes_id
+				? t('component.base_contribution_catalogue')
+				: t('component.statutory_contributions')}
 			description={t('component.statutory_contributions_description')}
 			query={{
-				where: { statutory_profile_id: { eq: record.id } },
+				where: { statutory_profile_id: { eq: catalogueId } },
 				orderBy: { sequence: 'asc' }
 			}}
 		>

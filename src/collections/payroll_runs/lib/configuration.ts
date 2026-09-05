@@ -20,9 +20,13 @@ import { decodeNumber } from '@norbital-ai/std/json';
 import type { WorkspaceRow } from '../$types.js';
 import { PAGE_LIMIT, type PayrollReadApi, type ReadLog } from './api.js';
 import { bandAgeFloor, bandCeiling } from './bands.js';
-import { monthBounds, monthKey, type IsoDate } from './dates.js';
+import { monthBounds, monthKey, requiredDateKey, dateKey, type IsoDate } from './dates.js';
 import { coversDate, effectiveOn, live, overlapsRange } from './effective.js';
-import { sealedProfileCovering } from '../../../lib/statutory_profile.js';
+import {
+	sealedProfileCovering,
+	statutoryCatalogueProfile,
+	statutoryProfileLineage
+} from '../../../lib/statutory_profile.js';
 import type { PayrollWindow } from './period.js';
 
 type Company = WorkspaceRow<'companies'>;
@@ -40,7 +44,10 @@ export type OvertimeCoverageRule = StatutoryRegime['overtime_coverage'];
 type RestBreakRule = NonNullable<StatutoryRegime['rest_break_rules']>[number];
 export type ShiftDefinition = WorkspaceRow<'shift_definitions'>;
 export type LeaveType = WorkspaceRow<'leave_types'>;
-export type ContributionRate = WorkspaceRow<'contribution_rates'>;
+export type ContributionRate = Pick<
+	WorkspaceRow<'contribution_rates'>,
+	'id' | 'statutory_contribution_id' | 'selector' | 'award' | 'summary' | 'approval_id'
+>;
 type Treatment = NonNullable<PayComponent['policy']>['statutory_treatments'][number];
 type StatutoryContribution = WorkspaceRow<'statutory_contributions'>;
 type OvertimeTreatment = NonNullable<StatutoryContribution['overtime_treatments']>[number];
@@ -63,6 +70,7 @@ export type ContributionConfig = {
 export type Configuration = {
 	readonly company: Company;
 	readonly jurisdiction: Jurisdiction;
+	readonly leaveProfiles: readonly Jurisdiction[];
 	/** In `sequence` order — a relief is produced before the scheme that consumes it. */
 	readonly contributions: readonly ContributionConfig[];
 	/** `${pay_component_id}:${statutory_contribution_id}` → the one effective cell. */
@@ -209,6 +217,8 @@ export function pickConfiguration(
 			where: { code: { eq: anchor.code }, ...approved },
 			limit: 100
 		});
+		if (profileRows.length >= 100)
+			refuse('Statutory profile history is truncated; payroll cannot choose safely.');
 		const jurisdiction = sealedProfileCovering(live(profileRows), anchor.code, asOf);
 		if (jurisdiction == null)
 			refuse(
@@ -216,15 +226,21 @@ export function pickConfiguration(
 					'version of its law family first.'
 			);
 
+		const catalogue = statutoryCatalogueProfile(live(profileRows), jurisdiction);
+
 		const [contributionRows, payComponentRows, shiftRows, holidayRows, leaveTypeRows] =
 			yield* Effect.all(
 				[
 					db.statutory_contributions.findMany({
-						where: { statutory_profile_id: { eq: jurisdiction.id }, ...approved },
+						where: { statutory_profile_id: { eq: catalogue.id }, ...approved },
 						limit: PAGE_LIMIT
 					}),
 					db.pay_components.findMany({
-						where: { statutory_profile_id: { eq: jurisdiction.id }, ...approved },
+						where: {
+							company_id: { eq: company.id },
+							statutory_profile_id: { eq: catalogue.id },
+							...approved
+						},
 						limit: PAGE_LIMIT
 					}),
 					db.shift_definitions.findMany({
@@ -252,9 +268,29 @@ export function pickConfiguration(
 		options.api.reads.assertComplete(leaveTypeRows, 'leave types');
 
 		// Profile scoping replaces per-row effective dating: the version governs its period whole.
-		const contributions = live(contributionRows).toSorted(
-			(left, right) => decodeNumber(left.sequence) - decodeNumber(right.sequence)
+		const revisionByScheme = new Map(
+			(jurisdiction.revision?.contributions ?? []).map((revision) => [
+				revision.statutory_contribution_id,
+				revision
+			])
 		);
+		for (const id of revisionByScheme.keys())
+			if (!contributionRows.some((row) => row.id === id))
+				refuse('A statutory revision names an unknown contribution.');
+		const contributions = live(contributionRows)
+			.map((row) => {
+				const revision = revisionByScheme.get(row.id);
+				return revision == null
+					? row
+					: {
+							...row,
+							authority: revision.authority,
+							special_rules: [...revision.special_rules],
+							overtime_treatments: revision.overtime_treatments,
+							overtime_excess_treatments: revision.overtime_excess_treatments
+						};
+			})
+			.toSorted((left, right) => decodeNumber(left.sequence) - decodeNumber(right.sequence));
 
 		const contributionIds = contributions.map((row) => row.id);
 		const rateRows = contributionIds.length
@@ -303,9 +339,20 @@ export function pickConfiguration(
 		const configuration = {
 			company,
 			jurisdiction,
+			leaveProfiles: live(profileRows).filter((profile) => profile.lifecycle === 'SEALED'),
 			contributions: contributions.map((row) => ({
 				row,
-				rates: (ratesByContribution.get(row.id) ?? []).toSorted(bandOrder),
+				rates: (
+					revisionByScheme.get(row.id)?.rates.map((rate, index) => ({
+						...rate,
+						id: `${jurisdiction.id}:${row.id}:${index}`,
+						statutory_contribution_id: row.id,
+						summary: null,
+						approval_id: null
+					})) ??
+					ratesByContribution.get(row.id) ??
+					[]
+				).toSorted(bandOrder),
 				overtimeTreatment: effectiveOvertimeTreatment({
 					row,
 					column: 'overtime_treatments',
@@ -325,9 +372,13 @@ export function pickConfiguration(
 			overtimeCoverageRule: regime.overtime_coverage,
 			shiftById: new Map(shifts.map((row) => [row.id, row])),
 			holidays: new Map(
-				live(holidayRows).map((row) => [String(row.date).slice(0, 10), row] as const)
+				live(holidayRows).map((row) => [requiredDateKey(row.date, 'holiday date'), row] as const)
 			),
-			leaveTypes: live(leaveTypeRows)
+			leaveTypes: live(leaveTypeRows).filter((row) =>
+				statutoryProfileLineage(live(profileRows), jurisdiction).some(
+					(profile) => profile.id === row.statutory_profile_id
+				)
+			)
 		} satisfies Omit<Configuration, 'hash'>;
 
 		return {
@@ -351,6 +402,15 @@ export function configurationSnapshot(
 		period,
 		company: configuration.company.id,
 		jurisdiction: configuration.jurisdiction.id,
+		leave_profiles: configuration.leaveProfiles
+			.toSorted((left, right) => left.id.localeCompare(right.id))
+			.map((row) => ({
+				id: row.id,
+				code: row.code,
+				supersedes_id: row.supersedes_id,
+				effective_range: row.effective_range,
+				statutory_leave: row.statutory_leave
+			})),
 		proration: configuration.jurisdiction.proration,
 		ordinary_rate: [
 			configuration.jurisdiction.ordinary_rate_basis,
@@ -401,7 +461,11 @@ export function configurationSnapshot(
 		},
 		statutory_leave: configuration.jurisdiction.statutory_leave,
 		holidays: [...configuration.holidays.values()]
-			.map((row) => [String(row.date).slice(0, 10), row.substitutes_date, row.scope])
+			.map((row) => [
+				requiredDateKey(row.date, 'holiday date'),
+				dateKey(row.substitutes_date),
+				row.scope
+			])
 			.toSorted((left, right) => String(left[0]).localeCompare(String(right[0]))),
 		leave_types: configuration.leaveTypes
 			.map((row) => [row.code, row.accrual, row.entitlement, row.payroll_effect])

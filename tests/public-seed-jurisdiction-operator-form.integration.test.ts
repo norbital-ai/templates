@@ -74,7 +74,7 @@ test(
 			const catalog = mutationFieldNames(jurisdictions.fields);
 			assert.deepEqual(
 				[...JURISDICTION_OPERATOR_HIDDEN_FIELDS],
-				['successor_profile_id', 'void_reason']
+				['successor_profile_id', 'void_reason', 'supersedes_id']
 			);
 			assert.equal(
 				new Set(jurisdictionOperatorFieldNames()).size,

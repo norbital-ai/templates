@@ -131,8 +131,7 @@
 							isLoading: componentsQuery?.loading ?? false,
 							error: componentsQuery?.error?.message ?? null
 						}}
-						onValueChange={(value) =>
-							emit({ kind: 'UNPAID', component_id: typeof value === 'string' ? value : '' })}
+						onValueChange={(value) => emit({ kind: 'UNPAID', component_id: value ?? '' })}
 					/>
 				</Stack>
 			</label>

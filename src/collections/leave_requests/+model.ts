@@ -14,6 +14,8 @@ export default defineModel(
 	{
 		employment_id: uuid().notNull(),
 		leave_type_id: uuid().notNull(),
+		/** Required for per-event time off; the FK retains the approved allowance. */
+		allocation_id: uuid(),
 		event: custom('leave_event').notNull(),
 		certificate_file: file(),
 		kind: text().generatedAlwaysAs(sql`event ->> 'kind'`),

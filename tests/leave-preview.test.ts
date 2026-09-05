@@ -98,6 +98,102 @@ const wednesday = {
 	end: { date: '2026-04-15', half: 'SECOND' }
 };
 
+const allocation = {
+	id: 'allocation-1',
+	employment_id: 'emp-1',
+	leave_type_id: 'lt-annual',
+	allocated_days: 5,
+	starts_on: '2026-01-01',
+	expires_on: '2026-12-31',
+	approval_id: null
+};
+const eventFacts = {
+	...facts,
+	leaveType: { ...leaveType, accrual: { kind: 'PER_EVENT' } },
+	allocations: [allocation]
+};
+const eventInput = {
+	employment_id: 'emp-1',
+	leave_type_id: 'lt-annual',
+	allocation_id: allocation.id,
+	range: wednesday
+};
+
+test('event leave requires an approved allocation belonging to the employment and leave type', () => {
+	for (const allocations of [
+		[],
+		[{ ...allocation, approval_id: 'review' }],
+		[{ ...allocation, employment_id: 'other' }],
+		[{ ...allocation, leave_type_id: 'other' }]
+	]) {
+		const preview = evaluateLeavePreview({ ...eventFacts, allocations }, eventInput);
+		assert.equal(preview.remaining_days, 0);
+		assert.ok(preview.issues.some((issue) => issue.code === 'ALLOCATION_REQUIRED'));
+	}
+	const valid = evaluateLeavePreview(eventFacts, eventInput);
+	assert.equal(valid.remaining_days, 5);
+	assert.equal(valid.chargeable_days, 1);
+	assert.deepEqual(valid.issues, []);
+});
+
+test('event allowance counts approved and pending requests across years, and excludes only the request being edited', () => {
+	const ledger = [
+		{
+			id: 'approved',
+			allocation_id: allocation.id,
+			approval_id: null,
+			event: { kind: 'TIME_OFF', chargeable_days: 3 }
+		},
+		{
+			id: 'pending',
+			allocation_id: allocation.id,
+			approval_id: 'review',
+			event: { kind: 'TIME_OFF', chargeable_days: 1.5 }
+		},
+		{
+			id: 'unrelated',
+			allocation_id: 'other-event',
+			event: { kind: 'TIME_OFF', chargeable_days: 90 }
+		}
+	];
+	const preview = evaluateLeavePreview({ ...eventFacts, ledger }, eventInput);
+	assert.equal(preview.remaining_days, 0.5);
+	assert.ok(preview.issues.some((issue) => issue.code === 'OVERDRAW'));
+	const edit = evaluateLeavePreview(
+		{ ...eventFacts, ledger },
+		{ ...eventInput, exclude_request_id: 'pending' }
+	);
+	assert.equal(edit.remaining_days, 2);
+	assert.deepEqual(edit.issues, []);
+	const nextYear = evaluateLeavePreview(
+		{ ...eventFacts, ledger, allocations: [{ ...allocation, expires_on: '2027-04-14' }] },
+		{
+			...eventInput,
+			range: {
+				start: { date: '2027-01-04', half: 'FIRST' },
+				end: { date: '2027-01-04', half: 'SECOND' }
+			}
+		}
+	);
+	assert.equal(nextYear.remaining_days, 0.5);
+	assert.ok(nextYear.issues.some((issue) => issue.code === 'OVERDRAW'));
+});
+
+test('event leave refuses requests outside the allocation window; annual leave cannot borrow that allocation', () => {
+	for (const dates of [{ starts_on: '2026-04-16' }, { expires_on: '2026-04-14' }]) {
+		const preview = evaluateLeavePreview(
+			{ ...eventFacts, allocations: [{ ...allocation, ...dates }] },
+			eventInput
+		);
+		assert.ok(preview.issues.some((issue) => issue.code === 'ALLOCATION_WINDOW'));
+	}
+	assert.ok(
+		evaluateLeavePreview(facts, eventInput).issues.some(
+			(issue) => issue.code === 'ALLOCATION_REQUIRED'
+		)
+	);
+});
+
 test('preview window is the month grid, expanded by a range that spills past it', () => {
 	assert.deepEqual(
 		previewWindowOf({ employment_id: 'emp-1', leave_type_id: 'lt-1', calendar_month: '2026-04' }),
@@ -217,7 +313,7 @@ test('a paid payroll window locks the day the write hook would also refuse', () 
 	assert.ok(preview.issues.some((row) => row.code === 'SETTLED_WINDOW'));
 });
 
-test('a hire before the first sealed snapshot still resolves remaining days', () => {
+test('missing historical law refuses inferred carry instead of backdating today’s entitlement', () => {
 	const preview = evaluateLeavePreview(
 		{
 			...facts,
@@ -243,9 +339,9 @@ test('a hire before the first sealed snapshot still resolves remaining days', ()
 	);
 	assert.equal(
 		preview.issues.some((row) => row.code === 'MISSING_PROFILE'),
-		false
+		true
 	);
-	assert.ok(preview.remaining_days != null && preview.remaining_days > 0);
+	assert.equal(preview.remaining_days, null);
 });
 
 test('an inverted range is reported instead of charging days', () => {

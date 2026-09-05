@@ -14,9 +14,16 @@ test('loan form nests repayments in a matrix and blocks an unbalanced schedule w
 	assert.match(representation, /data-loan-schedule/);
 	assert.match(representation, /data-invalid=\{imbalanced \? 'true' : undefined\}/);
 	assert.match(representation, /loanScheduleImbalanced/);
-	assert.match(representation, /semantic:/);
-	assert.match(representation, /repayment_loan: loanScheduleWriteRows\(schedule\)/);
-	assert.match(representation, /loans\.mutate\(\[/);
+	// The canonical write path: the form's default write carries the matrix, pushed into the
+	// form's state as the relationship key — no onSubmit override, no inline mutation.
+	assert.match(representation, /CollectionFormSemantic/);
+	assert.match(representation, /repayment_loan: loanScheduleWriteRows\(rows\)/);
+	assert.match(
+		representation,
+		/form\.setValues\(\{ repayment_loan: loanScheduleWriteRows\(rows\) \}\)/
+	);
+	assert.doesNotMatch(representation, /onSubmit/);
+	assert.doesNotMatch(representation, /loans\.mutate\(\[/);
 	assert.doesNotMatch(representation, /amount_due\s*=/);
 	assert.match(schedule, /Amounts are never rewritten here/);
 	assert.match(schedule, /return rows\.map\(\(row\) => \(\{/);

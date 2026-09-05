@@ -249,9 +249,8 @@
 		The pair is constrained to a row or a column because those are the two swaps that mean
 		something: same person on two dates is a date-for-date swap, and two people on one date is a
 		person-for-person swap. A diagonal pair is four changes described as one, and nobody asked
-		for it. The board only *proposes* the pair — every check (`overlappingWorkShifts`, leave
-		ownership, `validateRosterSchedule`) and both writes belong to the app, which is where the
-		transaction is.
+		for it. The board proposes the pair; the app checks payroll locks and submits both writes
+		in one transaction. The workday hooks enforce the authoritative schedule and leave checks.
 	*/
 
 	/** Same row or same column, and not the cell itself. */

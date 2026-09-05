@@ -15,7 +15,11 @@
 	const KIND_OPTIONS: { value: AccrualKind; label: string; description: string }[] = [
 		{ value: 'MONTHLY', label: 'Monthly', description: 'Pro-rata each completed month' },
 		{ value: 'UPFRONT', label: 'Upfront', description: 'Whole band at the leave-year start' },
-		{ value: 'PER_EVENT', label: 'Per event', description: 'No balance — granted per request' }
+		{
+			value: 'PER_EVENT',
+			label: 'Per event',
+			description: 'Approved allocation for each qualifying event'
+		}
 	];
 
 	const DEFAULT_CARRY: LeaveCarry = { limit_days: 0, expiry_months: 0 };

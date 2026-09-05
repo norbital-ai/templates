@@ -3,6 +3,7 @@ import {
 	grantsOn,
 	grantOn,
 	leaveApproval,
+	leaveAllocationApproval,
 	mergeGrants,
 	payrollGrants,
 	payrollRebuildGrants,
@@ -118,6 +119,8 @@ export default {
 
 		grantsOn('leave_requests', ['read', 'mutate.existing', 'delete']),
 		grantOn('leave_requests', 'mutate.new', { approval: leaveApproval }),
+		grantOn('leave_allocations', 'mutate.new', { approval: leaveAllocationApproval }),
+		grantOn('leave_allocations', 'mutate.existing', { approval: leaveAllocationApproval }),
 
 		payrollGrants('read'),
 		payrollRebuildGrants(),
