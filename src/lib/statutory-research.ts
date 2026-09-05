@@ -22,6 +22,14 @@ const DEFAULT_SOURCES: Readonly<Record<string, readonly string[]>> = {
 	VN: ['https://baohiemxahoi.gov.vn/']
 };
 
+export const StatutorySourceProposalSchema = Schema.Struct({
+	url: Schema.NonEmptyString,
+	title: Schema.NonEmptyString,
+	rationale: Schema.NonEmptyString,
+	source_url: Schema.NonEmptyString,
+	quote: Schema.NonEmptyString
+});
+
 export const StatutoryLawProposalSchema = Schema.Struct({
 	effective_from: Schema.String.check(Schema.isPattern(/^\d{4}-\d{2}-\d{2}$/)),
 	evidence: Schema.Array(
@@ -58,18 +66,20 @@ const statutoryPageText = (html: string): string =>
 export const fetchStatutoryPages = (
 	api: AutomationApi,
 	profile: { code: string; research_urls?: readonly string[] | null },
-	officialUrl: (url: string) => URL | null
+	officialUrl: (url: string) => URL | null,
+	additionalUrls: readonly string[] = []
 ) =>
 	Effect.gen(function* () {
 		const urls = [
-			...new Set(
-				profile.research_urls?.length
+			...new Set([
+				...(profile.research_urls?.length
 					? profile.research_urls
-					: (DEFAULT_SOURCES[profile.code] ?? [])
-			)
+					: (DEFAULT_SOURCES[profile.code] ?? [])),
+				...additionalUrls
+			])
 		];
-		if (urls.length === 0 || urls.length > 8)
-			refuse(`Configure between one and eight official research URLs for ${profile.code}.`);
+		if (urls.length === 0 || urls.length > 32)
+			refuse(`Configure between one and thirty-two official research URLs for ${profile.code}.`);
 		const retrievedAt = new Date(yield* Clock.currentTimeMillis).toISOString();
 		return yield* Effect.forEach(
 			urls,
@@ -83,11 +93,29 @@ export const fetchStatutoryPages = (
 					const text = statutoryPageText(page.body);
 					if (text.length < 40)
 						refuse(`Official page ${page.url} contains no readable statutory material.`);
+					if (text.length > 80_000)
+						refuse(
+							`Official page ${page.url} exceeds the research text limit; use a focused official document.`
+						);
+					const links = [
+						...new Set(
+							[...page.body.matchAll(/\bhref\s*=\s*["']([^"']+)["']/gi)].flatMap((match) => {
+								const href = match[1].replaceAll('&amp;', '&');
+								if (!URL.canParse(href, page.url)) return [];
+								const link = new URL(href, page.url);
+								if (link.protocol !== 'https:' || link.username || link.password || link.port)
+									return [];
+								link.hash = '';
+								return [link.href];
+							})
+						)
+					];
 					return {
 						url: page.url,
 						requested_url: url,
-						text: text.slice(0, 80_000),
-						sha256: sha256Text(page.body),
+						text,
+						links,
+						sha256: page.sha256 ?? sha256Text(page.body),
 						retrieved_at: retrievedAt
 					};
 				}),
@@ -183,4 +211,61 @@ export const proposeStatutoryLaw = (
 			])
 		);
 		return `Statutory ${previous.code} revision from ${proposal.effective_from} submitted for HR Manager approval.`;
+	});
+
+/** A discovered site is a separate approval proposal; its contents are never fetched before approval. */
+export const proposeStatutorySource = (
+	api: AutomationApi,
+	code: string,
+	proposal: typeof StatutorySourceProposalSchema.Type,
+	pages: Effect.Success<ReturnType<typeof fetchStatutoryPages>>
+) =>
+	Effect.gen(function* () {
+		const page = pages.find(
+			(row) => row.url === proposal.source_url || row.requested_url === proposal.source_url
+		);
+		const quote = statutoryPageText(proposal.quote);
+		if (
+			page == null ||
+			!page.links.includes(proposal.url) ||
+			quote.length < 20 ||
+			!page.text.includes(quote)
+		)
+			refuse('A new research source must be linked and quoted in a retrieved approved page.');
+		const existing = yield* api.db.statutory_research_sources.findFirst({
+			where: { jurisdiction_code: { eq: code }, url: { eq: proposal.url } },
+			columns: { id: true }
+		});
+		if (existing != null) return null;
+		const pending = yield* api.db.approval_request.findMany({
+			where: { collection_name: { eq: 'statutory_research_sources' }, status: { eq: 'ONGOING' } },
+			columns: { proposed_values: true },
+			limit: 1_000
+		});
+		if (pending.length >= 1_000) refuse('Too many pending source reviews to establish uniqueness.');
+		if (
+			pending.some(
+				(row) =>
+					isProposalRecord(row.proposed_values) &&
+					row.proposed_values.jurisdiction_code === code &&
+					row.proposed_values.url === proposal.url
+			)
+		)
+			return null;
+		yield* captureApproval(
+			api.db.statutory_research_sources.mutate([
+				{
+					jurisdiction_code: code,
+					title: proposal.title,
+					url: proposal.url,
+					rationale: proposal.rationale,
+					active: true,
+					discovered_from: page.url,
+					excerpt: quote,
+					source_sha256: page.sha256,
+					retrieved_at: page.retrieved_at
+				}
+			])
+		);
+		return `${code}: research site ${new URL(proposal.url).hostname} submitted for HR Manager approval.`;
 	});

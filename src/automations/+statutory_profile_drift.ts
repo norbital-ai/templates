@@ -1,6 +1,8 @@
 import {
 	fetchStatutoryPages,
 	proposeStatutoryLaw,
+	proposeStatutorySource,
+	StatutorySourceProposalSchema,
 	StatutoryLawProposalSchema
 } from '../lib/statutory-research.js';
 import { sealedProfileCovering, statutoryCatalogueProfile } from '../lib/statutory_profile.js';
@@ -372,6 +374,9 @@ export const StatutoryResearchReportSchema = Schema.Struct({
 export type StatutoryResearchReport = Schema.Schema.Type<typeof StatutoryResearchReportSchema>;
 
 const JurisdictionResearchReportSchema = Schema.Struct({
+	proposed_sources: Schema.optional(
+		Schema.Array(StatutorySourceProposalSchema).check(Schema.isMaxLength(4))
+	),
 	proposed_law: Schema.optional(Schema.NullOr(StatutoryLawProposalSchema)),
 	summary: conciseText(800),
 	highlights: Schema.Array(conciseText(400)).pipe(Schema.check(Schema.isMaxLength(3))),
@@ -434,12 +439,16 @@ const officialSourceGuidance = [
 	'Invented, unofficial, or aggregator URLs are invalid.'
 ].join(' ');
 
-const officialUrl = (value: string): URL | null => {
+const officialUrl = (value: string, approvedUrls: readonly string[] = []): URL | null => {
 	if (!URL.canParse(value)) return null;
 	const parsed = new URL(value);
-	if (parsed.protocol !== 'https:') return null;
+	if (parsed.protocol !== 'https:' || parsed.username || parsed.password || parsed.port)
+		return null;
 	const hostname = parsed.hostname.toLocaleLowerCase();
 	if (
+		!approvedUrls.some(
+			(approved) => URL.canParse(approved) && new URL(approved).origin === parsed.origin
+		) &&
 		!OFFICIAL_STATUTORY_DOMAINS.some(
 			(domain) => hostname === domain || hostname.endsWith(`.${domain}`)
 		)
@@ -466,7 +475,8 @@ const officialSourceIdentity = (url: URL): string => {
 /** Refuses a model answer that cannot serve as an auditable official-source receipt. */
 export function validateResearchReceipt(
 	report: StatutoryResearchReport,
-	jurisdictionCodes: readonly string[]
+	jurisdictionCodes: readonly string[],
+	approvedUrls: readonly string[] = []
 ): StatutoryResearchReport {
 	const expectedJurisdictions = new Set(
 		jurisdictionCodes.map((value) => value.toLocaleUpperCase())
@@ -475,7 +485,7 @@ export function validateResearchReceipt(
 	const sourceJurisdictionsByUrl = new Map<string, Set<string>>();
 	const sourcedJurisdictions = new Set<string>();
 	for (const source of report.official_sources) {
-		const parsed = officialUrl(source.url);
+		const parsed = officialUrl(source.url, approvedUrls);
 		if (!parsed) {
 			throw new Error(`Research source is not an allowed official HTTPS URL: ${source.url}`);
 		}
@@ -498,7 +508,7 @@ export function validateResearchReceipt(
 	}
 
 	for (const change of report.changes_to_review) {
-		const parsed = officialUrl(change.source_url);
+		const parsed = officialUrl(change.source_url, approvedUrls);
 		const identity = parsed ? officialSourceIdentity(parsed) : null;
 		const jurisdictionCode = change.jurisdiction_code.toLocaleUpperCase();
 		if (expectedJurisdictions.size > 0 && !expectedJurisdictions.has(jurisdictionCode)) {
@@ -529,7 +539,8 @@ export function validateResearchReceipt(
  */
 export function completeJurisdictionProvenance(
 	report: StatutoryResearchReport,
-	jurisdictionCode: string
+	jurisdictionCode: string,
+	approvedUrls: readonly string[] = []
 ): StatutoryResearchReport {
 	const code = jurisdictionCode.toLocaleUpperCase();
 	const officialSources = report.official_sources.map((source) => ({
@@ -542,12 +553,12 @@ export function completeJurisdictionProvenance(
 	}));
 	const indexedUrls = new Set(
 		officialSources.flatMap((source) => {
-			const parsed = officialUrl(source.url);
+			const parsed = officialUrl(source.url, approvedUrls);
 			return parsed ? [officialSourceIdentity(parsed)] : [];
 		})
 	);
 	for (const change of changesToReview) {
-		const parsed = officialUrl(change.source_url);
+		const parsed = officialUrl(change.source_url, approvedUrls);
 		if (!parsed) continue;
 		const identity = officialSourceIdentity(parsed);
 		if (indexedUrls.has(identity)) continue;
@@ -572,13 +583,14 @@ const clipped = (value: string, maximum: number): string =>
 /** Combines independently validated jurisdiction receipts without asking a model to merge them. */
 export function aggregateResearchReceipts(
 	receipts: ReadonlyArray<Readonly<{ code: string; report: StatutoryResearchReport }>>,
-	localFindingCount: number
+	localFindingCount: number,
+	approvedUrls: readonly string[] = []
 ): StatutoryResearchReport {
 	const codes = receipts.map(({ code }) => code.toLocaleUpperCase());
 	const sources = new Map<string, StatutoryResearchReport['official_sources'][number]>();
 	for (const { report } of receipts) {
 		for (const source of report.official_sources) {
-			const parsed = officialUrl(source.url);
+			const parsed = officialUrl(source.url, approvedUrls);
 			const identity = parsed ? officialSourceIdentity(parsed) : source.url;
 			sources.set(`${source.jurisdiction_code.toLocaleUpperCase()}:${identity}`, source);
 		}
@@ -597,14 +609,17 @@ export function aggregateResearchReceipts(
 		official_sources: [...sources.values()],
 		changes_to_review: changes
 	};
-	return validateResearchReceipt(report, codes);
+	return validateResearchReceipt(report, codes, approvedUrls);
 }
 
 /**
  * Executes one run. Exported so the behavioural test can exercise the authored handler with the
  * same capability boundary production receives rather than testing a second, simplified copy.
  */
-export const runStatutoryProfileDrift = (api: AutomationApi) =>
+export const runStatutoryProfileDrift = (
+	api: AutomationApi,
+	research?: { readonly profileId: string; readonly parentLogId: string }
+) =>
 	Effect.gen(function* () {
 		const checkedAt = instantAt(yield* Clock.currentTimeMillis).toISOString();
 		const today = todayKey();
@@ -612,10 +627,29 @@ export const runStatutoryProfileDrift = (api: AutomationApi) =>
 		let detectedItems: readonly DriftItem[] = [];
 		let proposals: readonly string[] = [];
 
+		const previousLog = yield* api.db.statutory_profile_drift_logs.findFirst({
+			where: { run_key: { eq: api.runId } }
+		});
+		if (previousLog?.status === 'SUCCEEDED')
+			return {
+				status: 'ok' as const,
+				run_log_id: previousLog.id,
+				checked_on: today,
+				items: previousLog.local_findings_count,
+				proposals: previousLog.successor_proposals_count,
+				summary: previousLog.web_summary ?? '',
+				highlights: [...(previousLog.web_highlights ?? [])],
+				official_sources: [...(previousLog.official_sources ?? [])],
+				changes_to_review: [...(previousLog.changes_to_review ?? [])]
+			};
 		yield* api.progress({ progress: 0.02, text: 'Opening statutory profile review' });
 		yield* api.db.statutory_profile_drift_logs.mutate([
 			{
+				...(previousLog == null ? {} : { id: previousLog.id }),
 				status: 'RUNNING',
+				run_key: api.runId,
+				parent_log_id: research?.parentLogId ?? null,
+				statutory_profile_id: research?.profileId ?? null,
 				checked_at: checkedAt,
 				local_findings_count: 0,
 				local_findings: [],
@@ -623,16 +657,8 @@ export const runStatutoryProfileDrift = (api: AutomationApi) =>
 				successor_proposals: []
 			}
 		]);
-		/**
-		 * The run log's id, read back rather than returned.
-		 *
-		 * `mutate` answers with nothing, so the row this run just opened is identified by the instant
-		 * it stamped on it. `checkedAt` is read once at the top of the run and written nowhere else,
-		 * so it names this run's log and no other — a weekly review does not open two in the same
-		 * millisecond.
-		 */
 		const runLog = yield* api.db.statutory_profile_drift_logs.findFirst({
-			where: { checked_at: { eq: checkedAt } },
+			where: { run_key: { eq: api.runId } },
 			columns: { id: true }
 		});
 		if (runLog == null) {
@@ -678,8 +704,26 @@ export const runStatutoryProfileDrift = (api: AutomationApi) =>
 				...new Set(profileVersions.map((profile) => profile.code))
 			].flatMap((code) => {
 				const profile = sealedProfileCovering(profileVersions, code, today);
-				return profile == null ? [] : [profile];
+				return profile == null || (research != null && profile.id !== research.profileId)
+					? []
+					: [profile];
 			});
+			if (research != null && governingProfiles.length !== 1)
+				refuse(
+					'The statutory profile selected for research no longer governs. Restart the parent review.'
+				);
+			const approvedSources = yield* api.db.statutory_research_sources.findMany({
+				where: {
+					jurisdiction_code: { in: governingProfiles.map((profile) => profile.code) },
+					active: { eq: true },
+					approval_id: { isNull: true }
+				},
+				columns: { url: true, jurisdiction_code: true },
+				limit: 1_000
+			});
+			if (approvedSources.length >= 1_000)
+				refuse('Too many approved research sources for one review.');
+			const approvedUrls = approvedSources.map((source) => source.url);
 			// Catalogue rows are scoped to a profile by statutory_profile_id and carry no per-row
 			// effective dating; the profile's period does that job. Rates are read whole per scheme.
 			const profileIds = governingProfiles.map(
@@ -729,99 +773,108 @@ export const runStatutoryProfileDrift = (api: AutomationApi) =>
 							orderBy: { id: 'asc' }
 						})
 					),
-					readStatutoryPages((after) =>
-						api.db.companies.findMany({
-							where: {
-								...(after == null ? {} : { id: { gt: after } }),
-								approval_id: { isNull: true },
-								effective_range: { contains_date: asOf }
-							},
-							columns: { id: true, name: true },
-							with: {
-								company_jurisdiction: {
-									columns: { id: true, code: true, name: true, effective_range: true }
-								}
-							},
-							limit: STATUTORY_PAGE_SIZE,
-							orderBy: { id: 'asc' }
-						})
-					),
-					readStatutoryPages((after) =>
-						api.db.employments.findMany({
-							where: {
-								...(after == null ? {} : { id: { gt: after } }),
-								approval_id: { isNull: true }
-							},
-							columns: { id: true, employee_number: true, company_id: true },
-							limit: STATUTORY_PAGE_SIZE,
-							orderBy: { id: 'asc' }
-						})
-					),
-					readStatutoryPages((after) =>
-						api.db.employment_statutory_facts.findMany({
-							where: {
-								...(after == null ? {} : { id: { gt: after } }),
-								approval_id: { isNull: true }
-							},
-							columns: {
-								id: true,
-								employment_id: true,
-								statutory_contribution_id: true,
-								status: true,
-								summary: true,
-								effective_range: true
-							},
-							with: {
-								statutory_fact_contribution: {
+					research != null
+						? Effect.succeed([])
+						: readStatutoryPages((after) =>
+								api.db.companies.findMany({
+									where: {
+										...(after == null ? {} : { id: { gt: after } }),
+										approval_id: { isNull: true },
+										effective_range: { contains_date: asOf }
+									},
+									columns: { id: true, name: true },
+									with: {
+										company_jurisdiction: {
+											columns: { id: true, code: true, name: true, effective_range: true }
+										}
+									},
+									limit: STATUTORY_PAGE_SIZE,
+									orderBy: { id: 'asc' }
+								})
+							),
+					research != null
+						? Effect.succeed([])
+						: readStatutoryPages((after) =>
+								api.db.employments.findMany({
+									where: {
+										...(after == null ? {} : { id: { gt: after } }),
+										approval_id: { isNull: true }
+									},
+									columns: { id: true, employee_number: true, company_id: true },
+									limit: STATUTORY_PAGE_SIZE,
+									orderBy: { id: 'asc' }
+								})
+							),
+					research != null
+						? Effect.succeed([])
+						: readStatutoryPages((after) =>
+								api.db.employment_statutory_facts.findMany({
+									where: {
+										...(after == null ? {} : { id: { gt: after } }),
+										approval_id: { isNull: true }
+									},
 									columns: {
 										id: true,
-										jurisdiction_id: true,
-										statutory_profile_id: true,
-										code: true,
-										name: true
-									}
-								}
-							},
-							limit: STATUTORY_PAGE_SIZE,
-							orderBy: { id: 'asc' }
-						})
-					)
+										employment_id: true,
+										statutory_contribution_id: true,
+										status: true,
+										summary: true,
+										effective_range: true
+									},
+									with: {
+										statutory_fact_contribution: {
+											columns: {
+												id: true,
+												jurisdiction_id: true,
+												statutory_profile_id: true,
+												code: true,
+												name: true
+											}
+										}
+									},
+									limit: STATUTORY_PAGE_SIZE,
+									orderBy: { id: 'asc' }
+								})
+							)
 				],
 				{ concurrency: 'unbounded' }
 			);
 
 			yield* api.progress({ progress: 0.3, text: 'Comparing local effective-dated facts' });
-			const detected = detectStatutoryDrift({
-				governingProfiles: governingProfiles
-					.map((row) => ({ ...row, id: statutoryCatalogueProfile(profileVersions, row).id }))
-					.map((row) => Option.getOrNull(decodeJurisdiction(row)))
-					.filter((row): row is JurisdictionRow => row !== null),
-				profileSchemes: profileSchemes
-					.map((row) => Option.getOrNull(decodeScheme(row)))
-					.filter((row): row is SchemeRow => row !== null),
-				profileRates: profileRates
-					.map((row) => Option.getOrNull(decodeRate(row)))
-					.filter((row): row is RateRow => row !== null),
-				companies: companies.map((company) => ({
-					id: String(company.id),
-					name: String(company.name),
-					jurisdiction: asJurisdiction(company.company_jurisdiction)
-				})),
-				employments: employments.map((row) => ({
-					id: String(row.id),
-					employee_number: String(row.employee_number),
-					company_id: String(row.company_id)
-				})),
-				facts: facts.map((fact) => ({
-					id: String(fact.id),
-					employment_id: String(fact.employment_id),
-					statutory_contribution_id: String(fact.statutory_contribution_id),
-					status: asFactStatus(Option.getOrNull(decodeFactStatus(fact.status))),
-					summary: typeof fact.summary === 'string' ? fact.summary : null,
-					effective_range: fact.effective_range,
-					scheme: asScheme(fact.statutory_fact_contribution)
-				}))
-			});
+			const detected =
+				research != null
+					? { items: [], copies: [] }
+					: detectStatutoryDrift({
+							governingProfiles: governingProfiles
+								.map((row) => ({ ...row, id: statutoryCatalogueProfile(profileVersions, row).id }))
+								.map((row) => Option.getOrNull(decodeJurisdiction(row)))
+								.filter((row): row is JurisdictionRow => row !== null),
+							profileSchemes: profileSchemes
+								.map((row) => Option.getOrNull(decodeScheme(row)))
+								.filter((row): row is SchemeRow => row !== null),
+							profileRates: profileRates
+								.map((row) => Option.getOrNull(decodeRate(row)))
+								.filter((row): row is RateRow => row !== null),
+							companies: companies.map((company) => ({
+								id: String(company.id),
+								name: String(company.name),
+								jurisdiction: asJurisdiction(company.company_jurisdiction)
+							})),
+							employments: employments.map((row) => ({
+								id: String(row.id),
+								employee_number: String(row.employee_number),
+								company_id: String(row.company_id)
+							})),
+							facts: facts.map((fact) => ({
+								id: String(fact.id),
+								employment_id: String(fact.employment_id),
+								statutory_contribution_id: String(fact.statutory_contribution_id),
+								status: asFactStatus(Option.getOrNull(decodeFactStatus(fact.status))),
+								summary: typeof fact.summary === 'string' ? fact.summary : null,
+								effective_range: fact.effective_range,
+								scheme: asScheme(fact.statutory_fact_contribution)
+							}))
+						});
 			detectedItems = detected.items;
 			yield* api.db.statutory_profile_drift_logs.mutate([
 				{
@@ -866,6 +919,7 @@ export const runStatutoryProfileDrift = (api: AutomationApi) =>
 			}
 
 			let report: StatutoryResearchReport;
+			const childErrors: string[] = [];
 			if (governingProfiles.length === 0) {
 				report = {
 					summary:
@@ -874,6 +928,50 @@ export const runStatutoryProfileDrift = (api: AutomationApi) =>
 					official_sources: [],
 					changes_to_review: []
 				};
+			} else if (research == null) {
+				const receipts: Array<Readonly<{ code: string; report: StatutoryResearchReport }>> = [];
+				for (const [index, profile] of governingProfiles.entries()) {
+					yield* api.progress({
+						progress: 0.6 + (index / governingProfiles.length) * 0.25,
+						text: `Researching ${profile.code} in its own run (${index + 1}/${governingProfiles.length})`
+					});
+					const outcome = yield* Effect.result(
+						api.automations.run('statutory_profile_research', {
+							profile_id: profile.id,
+							parent_log_id: runLog.id
+						})
+					);
+					const child = yield* api.db.statutory_profile_drift_logs.findFirst({
+						where: { parent_log_id: { eq: runLog.id }, statutory_profile_id: { eq: profile.id } },
+						orderBy: { checked_at: 'desc' }
+					});
+					if (outcome._tag === 'Failure' || child?.status !== 'SUCCEEDED') {
+						childErrors.push(
+							`${profile.code}: ${child?.error ?? (outcome._tag === 'Failure' ? getErrorMessage(outcome.failure) : 'Research did not produce a completed receipt.')}`
+						);
+						continue;
+					}
+					receipts.push({
+						code: profile.code,
+						report: {
+							summary: child.web_summary ?? '',
+							highlights: [...(child.web_highlights ?? [])],
+							official_sources: [...(child.official_sources ?? [])],
+							changes_to_review: [...(child.changes_to_review ?? [])]
+						}
+					});
+					submittedProposals.push(...child.successor_proposals);
+				}
+				report =
+					receipts.length === 0
+						? {
+								summary:
+									'No profile completed official-source research. See the individual failed runs.',
+								highlights: [],
+								official_sources: [],
+								changes_to_review: []
+							}
+						: aggregateResearchReceipts(receipts, detected.items.length, approvedUrls);
 			} else {
 				const receipts: Array<Readonly<{ code: string; report: StatutoryResearchReport }>> = [];
 				for (const [index, jurisdiction] of governingProfiles.entries()) {
@@ -932,10 +1030,21 @@ export const runStatutoryProfileDrift = (api: AutomationApi) =>
 							)
 						}))
 					};
-					const pages = yield* fetchStatutoryPages(api, jurisdiction, officialUrl);
+					const jurisdictionUrls = approvedSources
+						.filter((source) => source.jurisdiction_code === code)
+						.map((source) => source.url);
+					const pages = yield* fetchStatutoryPages(
+						api,
+						jurisdiction,
+						(url) => officialUrl(url, jurisdictionUrls),
+						jurisdictionUrls
+					);
 					const prompt = [
 						`Today is ${today}. Research ONLY the latest statutory payroll position for ${code} — ${jurisdiction.name}.`,
 						officialSourceGuidance,
+						`Additional HR-approved entry pages for this jurisdiction: ${JSON.stringify(jurisdictionUrls)}. Their exact HTTPS origins are allowed.`,
+						'If a retrieved page links a useful new research site, propose it in proposed_sources with the exact linked URL, source_url and evidence quote. Do not fetch or treat that site as evidence until HR Manager approves it. New source approval is separate from proposed_law.',
+
 						'Compare the complete local snapshot below with current official government, regulator, or statutory-body material.',
 						`Every official_sources entry and every changes_to_review entry must use jurisdiction_code exactly "${code}".`,
 						'Return at least one official source. Use only HTTPS URLs from the allowed official domains. Every review item must cite the exact official page it relies on in source_url.',
@@ -960,7 +1069,11 @@ export const runStatutoryProfileDrift = (api: AutomationApi) =>
 					let firstReport = yield* inferJurisdiction();
 					const validated = yield* Effect.try({
 						try: () =>
-							validateResearchReceipt(completeJurisdictionProvenance(firstReport, code), [code]),
+							validateResearchReceipt(
+								completeJurisdictionProvenance(firstReport, code, jurisdictionUrls),
+								[code],
+								jurisdictionUrls
+							),
 						catch: toError
 					}).pipe(
 						Effect.catch((validationError) =>
@@ -973,16 +1086,18 @@ export const runStatutoryProfileDrift = (api: AutomationApi) =>
 								firstReport = repairedReport;
 								return yield* Effect.try({
 									try: () =>
-										validateResearchReceipt(completeJurisdictionProvenance(repairedReport, code), [
-											code
-										]),
+										validateResearchReceipt(
+											completeJurisdictionProvenance(repairedReport, code, jurisdictionUrls),
+											[code],
+											jurisdictionUrls
+										),
 									catch: toError
 								});
 							})
 						)
 					);
 					for (const source of validated.official_sources) {
-						const cited = officialUrl(source.url);
+						const cited = officialUrl(source.url, approvedUrls);
 						if (
 							cited == null ||
 							!pages.some((page) =>
@@ -995,6 +1110,10 @@ export const runStatutoryProfileDrift = (api: AutomationApi) =>
 								'Research cited a page that was not retrieved. Configure the official research URL and retry.'
 							);
 					}
+					for (const source of firstReport.proposed_sources ?? []) {
+						const proposal = yield* proposeStatutorySource(api, code, source, pages);
+						if (proposal != null) submittedProposals.push(proposal);
+					}
 					if (firstReport.proposed_law != null) {
 						const proposal = yield* proposeStatutoryLaw(
 							api,
@@ -1006,14 +1125,14 @@ export const runStatutoryProfileDrift = (api: AutomationApi) =>
 					}
 					receipts.push({ code, report: validated });
 				}
-				report = aggregateResearchReceipts(receipts, detected.items.length);
+				report = aggregateResearchReceipts(receipts, detected.items.length, approvedUrls);
 			}
 
 			yield* api.progress({ progress: 0.9, text: 'Saving the statutory research receipt' });
 			yield* api.db.statutory_profile_drift_logs.mutate([
 				{
 					id: runLog.id,
-					status: 'SUCCEEDED',
+					status: childErrors.length > 0 ? 'FAILED' : 'SUCCEEDED',
 					completed_at: instantAt(yield* Clock.currentTimeMillis).toISOString(),
 					local_findings_count: detected.items.length,
 					local_findings: detected.items,
@@ -1026,6 +1145,7 @@ export const runStatutoryProfileDrift = (api: AutomationApi) =>
 					error: null
 				}
 			]);
+			if (childErrors.length > 0) return yield* Effect.fail(new Error(childErrors.join('\n')));
 			yield* api.progress({ progress: 1, text: 'Statutory profile review complete' });
 
 			return {
@@ -1082,6 +1202,6 @@ export default defineAutomation(
 		policies: ['statutory_drift_automation'],
 		description:
 			'Weekly official-source review of every configured statutory payroll profile, directly submitting deterministic successor proposals for HR Manager approval.',
-		handler: runStatutoryProfileDrift
+		handler: (api) => runStatutoryProfileDrift(api)
 	}
 );

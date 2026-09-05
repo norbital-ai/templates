@@ -921,7 +921,11 @@ it('HR self-host impersonate Employee remounts self-service and stop restores Ad
 		assert.equal(stopped, 'stopped', `A5 stop: ${stopped}`);
 		const restored = await waitForBody(page, /HR Controller/, 'a5-restored');
 		assert.match(restored, /HR Controller/);
-		assert.match(restored, /Admin/);
+		await page.evaluate(
+			`document.querySelector('button[aria-label="Open account menu"]')?.click()`
+		);
+		const account = await waitForBody(page, /Role: Admin/, 'a5-restored-account');
+		assert.match(account, /Role: Admin/);
 	} finally {
 		if (browser !== undefined) await browser.close();
 		if (gateway !== undefined) await gateway.stop();
@@ -1333,7 +1337,7 @@ it('HR self-host Ask agent shows the user text immediately', async () => {
 			page,
 			`(() => {
 					const send = [...document.querySelectorAll('button')].find((button) =>
-						/Submit Task message|Send revised/.test(button.getAttribute('aria-label') ?? '')
+						/Send message|Send revised/.test(button.getAttribute('aria-label') ?? '')
 					);
 					if (!(send instanceof HTMLButtonElement) || send.disabled) return 'blocked';
 					send.click();

@@ -66,10 +66,12 @@ const reportFor = (code: string, url: string) => ({
 	changes_to_review: []
 });
 
+const additionalSource = 'https://statutory.example.org/leave';
+
 const fixtureQuote =
 	'The approved fixture increases annual leave to twenty days from 1 January 2027.';
 
-const driftAi = () =>
+const driftAi = (failMy = () => false) =>
 	makeAiBinding({
 		call: async (_metadata, request) => {
 			if (request._tag !== 'Generate') return testAiCatalog;
@@ -78,6 +80,7 @@ const driftAi = () =>
 				/Research ONLY the latest statutory payroll position for (SG|MY)/.exec(prompt)?.[1] ??
 				/for (SG|MY)/.exec(prompt)?.[1] ??
 				'SG';
+			if (code === 'MY' && failMy()) throw new Error('Malaysia evidence unavailable');
 			const url =
 				code === 'SG'
 					? 'https://www.cpf.gov.sg/employer/employer-obligations/how-much-cpf-contributions-to-pay'
@@ -90,6 +93,15 @@ const driftAi = () =>
 						...reportFor(code, url),
 						...(code === 'SG'
 							? {
+									proposed_sources: [
+										{
+											url: additionalSource,
+											title: 'Linked statutory portal',
+											rationale: 'The approved authority links this portal.',
+											source_url: url,
+											quote: fixtureQuote
+										}
+									],
 									proposed_law: {
 										effective_from: '2027-01-01',
 										evidence: [
@@ -205,17 +217,22 @@ test(
 	'public seed statutory_profile_drift records rate_gap for SEALED SG and MY schemes without rates',
 	{ timeout: LOCAL_DATABASE_TEST_TIMEOUT_MILLIS },
 	async () => {
+		let failMy = false;
+		const retrievedUrls = new Set<string>();
 		const session = await startPublicSeedHost('hr-payroll-p1-drift', {
-			ai: driftAi(),
+			ai: driftAi(() => failMy),
 			connector: {
-				call: async (_metadata, request) =>
-					success({
+				call: async (_metadata, request) => {
+					const url = String(asRecord(request.input, 'web request').url);
+					retrievedUrls.add(url);
+					return success({
 						output: {
-							url: asRecord(request.input, 'web request').url,
+							url,
 							contentType: 'text/html',
-							body: fixtureQuote
+							body: `<p>${fixtureQuote}</p><a href="${additionalSource}">Official portal</a>`
 						}
-					})
+					});
+				}
 			}
 		});
 		try {
@@ -268,7 +285,7 @@ test(
 			assert.equal(typeof body.taskId, 'string', JSON.stringify(body));
 
 			const logs = (await session.query(
-				`select status, local_findings from statutory_profile_drift_logs order by checked_at desc limit 1`
+				`select status, local_findings from statutory_profile_drift_logs where parent_log_id is null order by checked_at desc limit 1`
 			)) as ReadonlyArray<{ readonly status: string; readonly local_findings: unknown }>;
 			const log = logs[0];
 			assert.ok(log, 'expected a statutory_profile_drift_logs row');
@@ -288,10 +305,26 @@ test(
 				labels.some((label) => label.includes('MY-EPF') || label.includes('(MY)')),
 				`expected MY-EPF rate_gap, got ${JSON.stringify(labels)}`
 			);
+			const childRuns = await session.query(`
+                select l.statutory_profile_id, l.parent_log_id, l.run_key, a.status
+                from statutory_profile_drift_logs l join automation_run a on a.task_id = l.run_key
+                where l.parent_log_id is not null order by l.statutory_profile_id
+            `);
+			assert.equal(childRuns.length, 2);
+			assert.equal(new Set(childRuns.map((row) => row.run_key)).size, 2);
+			assert.ok(childRuns.every((row) => row.status === 'done'));
+			assert.equal(new Set(childRuns.map((row) => row.parent_log_id)).size, 1);
 			const pending = await session.query(
 				`select id, status, record_id, proposed_values from approval_request where collection_name = 'jurisdictions'`
 			);
 			assert.equal(pending.length, 1, JSON.stringify(pending));
+			const sourceRequests = await session.query(
+				`select id, status from approval_request where collection_name = 'statutory_research_sources'`
+			);
+			assert.equal(sourceRequests.length, 1, 'new site must have its own approval');
+			assert.equal(sourceRequests[0].status, 'ONGOING');
+			assert.equal((await session.query('select id from statutory_research_sources')).length, 0);
+			assert.equal(retrievedUrls.has(additionalSource), false, 'pending site must not be fetched');
 			const request = asRecord(pending[0], 'law approval');
 			assert.equal(request.status, 'ONGOING');
 			const unapproved = await session.query(
@@ -315,6 +348,29 @@ test(
 				1,
 				'repeat research must reuse the pending proposal'
 			);
+			failMy = true;
+			const failed = await postGuestCommand(
+				session.host.baseUrl,
+				'automations.start',
+				{ name: 'statutory_profile_drift', input: {} },
+				bearerHeaders(session.credential)
+			);
+			assert.ok(failed.status >= 400, JSON.stringify(failed.value));
+			const failedParent = (
+				await session.query(`select id, status, official_sources from statutory_profile_drift_logs
+                where parent_log_id is null order by checked_at desc limit 1`)
+			)[0];
+			assert.equal(failedParent.status, 'FAILED');
+			const siblingRuns = await session.query(
+				`select statutory_profile_id, status from statutory_profile_drift_logs
+                where parent_log_id = $1 order by statutory_profile_id`,
+				[failedParent.id]
+			);
+			assert.deepEqual(siblingRuns, [
+				{ statutory_profile_id: SG_PROFILE_ID, status: 'SUCCEEDED' },
+				{ statutory_profile_id: MY_PROFILE_ID, status: 'FAILED' }
+			]);
+			failMy = false;
 			const managerHeaders = {
 				...bearerHeaders(session.credential),
 				'x-colony-impersonated-team': 'HR Manager'
@@ -354,6 +410,53 @@ test(
 			assert.equal(before?.id, SG_PROFILE_ID);
 			assert.equal(after?.id, request.record_id);
 			assert.equal(after?.statutory_leave[0].ladder[0].days, 20);
+			const sourceStatus = await postGuestCommand(
+				session.host.baseUrl,
+				'approvals.status',
+				{ requestId: sourceRequests[0].id },
+				managerHeaders
+			);
+			const sourceState = asRecord(sourceStatus.value, 'source approval');
+			assert.equal(sourceState._tag, 'Pending');
+			const sourceDecided = await postGuestCommand(
+				session.host.baseUrl,
+				'approvals.decide',
+				{ state: sourceState, decision: 'approve' },
+				managerHeaders
+			);
+			assert.equal(asRecord(sourceDecided.value, 'source decision')._tag, 'Approved');
+			const readSources = () =>
+				session.query('select url, source_sha256 from statutory_research_sources');
+			let approvedSources = await readSources();
+			const sourceDeadline = Date.now() + 5_000;
+			while (approvedSources.length !== 1 && Date.now() < sourceDeadline) {
+				await delay(25);
+				approvedSources = await readSources();
+			}
+			assert.equal(approvedSources.length, 1);
+			assert.equal(approvedSources[0].url, additionalSource);
+			assert.match(String(approvedSources[0].source_sha256), /^[a-f0-9]{64}$/);
+			const afterSourceApproval = await postGuestCommand(
+				session.host.baseUrl,
+				'automations.start',
+				{ name: 'statutory_profile_drift', input: {} },
+				bearerHeaders(session.credential)
+			);
+			assert.ok(afterSourceApproval.status < 300, JSON.stringify(afterSourceApproval.value));
+			assert.equal(
+				retrievedUrls.has(additionalSource),
+				true,
+				'approved site becomes research input'
+			);
+			assert.equal(
+				(
+					await session.query(
+						`select id from approval_request where collection_name = 'statutory_research_sources'`
+					)
+				).length,
+				1,
+				'research does not repropose an approved site'
+			);
 		} catch (error) {
 			console.error('Statutory workflow failed:', error);
 			throw error;
