@@ -50,6 +50,18 @@ const reportFor = (code, url) => ({
 	changes_to_review: []
 });
 
+const configuredSingapore = {
+	jurisdictions: [
+		{
+			id: 'j-sg',
+			code: 'SG',
+			name: 'Singapore',
+			lifecycle: 'SEALED',
+			effective_range: { start: '2020-01-01T00:00:00.000Z', end: null }
+		}
+	]
+};
+
 const fakeApi = (infer, queryRows = {}) => {
 	const progress = [];
 	const logCreates = [];
@@ -57,9 +69,23 @@ const fakeApi = (infer, queryRows = {}) => {
 	const factCreates = [];
 	const factUpdates = [];
 	const inferenceRequests = [];
-	const query = (name) => ({ findMany: () => Effect.succeed(queryRows[name] ?? []) });
+	const query = (name) => ({
+		findMany: (input) =>
+			Effect.succeed(
+				[...(queryRows[name] ?? [])]
+					.filter((row) => input?.where?.id?.gt == null || row.id > input.where.id.gt)
+					.sort((left, right) => left.id.localeCompare(right.id))
+					.slice(0, input?.limit)
+			)
+	});
 	let openedRunLog;
 	const api = {
+		readUrl: (url) =>
+			Effect.succeed({
+				url,
+				contentType: 'text/html',
+				body: '<p>Current official statutory contribution and leave guidance for automated review.</p>'
+			}),
 		progress: (snapshot) => Effect.sync(() => progress.push(snapshot)),
 		infer: (request) =>
 			Effect.sync(() => inferenceRequests.push(request)).pipe(Effect.flatMap(() => infer(request))),
@@ -95,7 +121,7 @@ const fakeApi = (infer, queryRows = {}) => {
 					})
 			},
 			employment_statutory_facts: {
-				findMany: () => Effect.succeed(queryRows['employment_statutory_facts'] ?? []),
+				findMany: query('employment_statutory_facts').findMany,
 				mutate: (rows) =>
 					Effect.sync(() => {
 						for (const values of rows) {
@@ -122,6 +148,13 @@ const fakeApi = (infer, queryRows = {}) => {
 };
 
 describe('statutory profile drift authored handler', () => {
+	it('does not invent jurisdictions when no approved profile is configured', async () => {
+		const harness = fakeApi(() => Effect.fail(new Error('inference must not run')));
+		const output = await Effect.runPromise(runStatutoryProfileDrift(harness.api));
+		assert.equal(harness.inferenceRequests.length, 0);
+		assert.deepEqual(output.official_sources, []);
+		assert.equal(harness.logUpdates.at(-1)?.values.status, 'SUCCEEDED');
+	});
 	it('bounds large local-finding sets as counts and deterministic research samples', () => {
 		const findings = Array.from({ length: 398 }, (_, index) => ({
 			kind: 'missing_fact',
@@ -282,7 +315,7 @@ describe('statutory profile drift authored handler', () => {
 	});
 
 	it('researches even a locally clean profile and stores official-source evidence', async () => {
-		const harness = fakeApi(() => Effect.succeed(officialReport));
+		const harness = fakeApi(() => Effect.succeed(officialReport), configuredSingapore);
 		const output = await Effect.runPromise(runStatutoryProfileDrift(harness.api));
 
 		assert.equal(
@@ -388,7 +421,10 @@ describe('statutory profile drift authored handler', () => {
 	});
 
 	it('persists a failed receipt and rethrows a provider failure', async () => {
-		const harness = fakeApi(() => Effect.fail(new Error('provider unavailable')));
+		const harness = fakeApi(
+			() => Effect.fail(new Error('provider unavailable')),
+			configuredSingapore
+		);
 		await assert.rejects(
 			Effect.runPromise(runStatutoryProfileDrift(harness.api)),
 			/provider unavailable/
@@ -468,10 +504,10 @@ describe('statutory profile drift authored handler', () => {
 		assert.equal(harness.inferenceRequests.length, 2);
 		assert.deepEqual(
 			output.official_sources.map(({ jurisdiction_code }) => jurisdiction_code),
-			['SG', 'MY']
+			['MY', 'SG']
 		);
-		assert.match(harness.inferenceRequests[0].prompt, /"code":"SG"/);
-		assert.match(harness.inferenceRequests[1].prompt, /"code":"MY"/);
+		assert.match(harness.inferenceRequests[0].prompt, /"code":"MY"/);
+		assert.match(harness.inferenceRequests[1].prompt, /"code":"SG"/);
 	});
 
 	it('retries only the jurisdiction whose first receipt lacks official coverage', async () => {

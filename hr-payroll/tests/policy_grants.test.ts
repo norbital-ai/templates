@@ -191,12 +191,16 @@ test('an employee cannot mutate a new payroll run, and neither can a supervisor 
 		assert.equal(may(policy, 'payroll_runs', 'mutate.new'), false, nameOf(policy));
 		assert.equal(may(policy, 'payroll_runs', 'mutate.existing'), false, nameOf(policy));
 		assert.equal(may(policy, 'payroll_runs', 'delete'), false, nameOf(policy));
-		// And they cannot look at one either, which is the half that is easy to leave behind.
-		assert.equal(may(policy, 'payroll_runs', 'read'), false, nameOf(policy));
+		const [calendar] = grantsFor(policy, 'payroll_runs', 'read');
+		assert.deepEqual(
+			calendar.fields,
+			['company_id', 'period', 'lifecycle', 'attendance_from', 'attendance_to'],
+			nameOf(policy)
+		);
 	}
 	// A payslip is the exception, and deliberately so: Employee Self-Service exists to show somebody
 	// their own pay. The grant is row-scoped to their own employment, so reading one is not reading
-	// payroll — the run that produced it stays out of reach above.
+	// payroll — only paid-period calendar metadata is exposed above.
 	for (const policy of [employee, supervisor, manager]) {
 		const [ownPayslip, ...extra] = grantsFor(policy, 'payslips', 'read');
 		assert.deepEqual(extra, [], `${nameOf(policy)} has more than one payslip read`);

@@ -10,15 +10,7 @@
 import { Option, Schema } from 'effect';
 import type { IsoDate } from './dates.js';
 
-/** Payroll calendar zone. Kept here so the engine never imports `lib/ui`. */
-const PAYROLL_TIME_ZONE = 'Asia/Kuala_Lumpur';
-
-const payrollDateFormat = new Intl.DateTimeFormat('en', {
-	timeZone: PAYROLL_TIME_ZONE,
-	year: 'numeric',
-	month: '2-digit',
-	day: '2-digit'
-});
+import { dateKey as rangeBoundDay } from '../../../lib/iso-day.js';
 
 /** A `custom('instant_range', { precision: 'day' })` column as the engine reads it; `end` of `null` is open-ended. */
 export const StoredRangeSchema = Schema.Struct({
@@ -32,37 +24,6 @@ export function readRange(value: unknown): StoredRange | null {
 	const parsed = Option.getOrNull(Schema.decodeUnknownOption(StoredRangeSchema)(value));
 	if (parsed == null || parsed.start === '') return null;
 	return { start: parsed.start, end: parsed.end === '' ? null : parsed.end };
-}
-
-/**
- * Calendar day of a `custom('instant_range', { precision: 'day' })` instant in the payroll timezone.
- *
- * UTC `.slice(0, 10)` is forbidden: a KL midnight bound is the previous UTC day, so the first
- * local day of a term would miss. Far-future seeds such as `9999-12-31T23:59:59.999Z` convert to
- * a 5-digit year in KL; those fall back to the UTC day so lexicographic `YYYY-MM-DD` comparison
- * still covers every real payroll date.
- */
-function calendarDateInTimeZone(value: Date, timeZone: string): string {
-	const formatter =
-		timeZone === PAYROLL_TIME_ZONE
-			? payrollDateFormat
-			: new Intl.DateTimeFormat('en', {
-					timeZone,
-					year: 'numeric',
-					month: '2-digit',
-					day: '2-digit'
-				});
-	const parts = formatter.formatToParts(value);
-	const valueFor = (type: Intl.DateTimeFormatPartTypes) =>
-		parts.find((part) => part.type === type)?.value ?? '';
-	return `${valueFor('year')}-${valueFor('month')}-${valueFor('day')}`;
-}
-
-function rangeBoundDay(instant: string): IsoDate {
-	const at = new Date(instant);
-	if (Number.isNaN(at.getTime())) return instant.slice(0, 10);
-	const converted = calendarDateInTimeZone(at, PAYROLL_TIME_ZONE);
-	return converted.length === 10 ? converted : instant.slice(0, 10);
 }
 
 /** Whether an `effective_range` covers a calendar day. Both ends inclusive. */

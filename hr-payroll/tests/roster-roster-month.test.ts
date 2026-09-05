@@ -67,6 +67,26 @@ test('a day with no attendance carries nulls, not zeroes', () => {
 	assert.equal(day.workedMinutes, null);
 });
 
+test('inside payroll cutoff only an explicitly empty workday is AWOL', () => {
+	const base = {
+		id: 'workday',
+		employment_id: EMPLOYMENT,
+		work_date: '2026-08-04',
+		shift_definition_id: 'code-a',
+		worked_intervals: null
+	};
+	const cutoff = { start: '2026-08-01', end: '2026-08-20' };
+	assert.equal(
+		month({ workDays: [base], cutoff }).get(`${EMPLOYMENT}:2026-08-04`)?.status,
+		'PLANNED'
+	);
+	assert.equal(
+		month({ workDays: [{ ...base, worked_intervals: [] }], cutoff }).get(`${EMPLOYMENT}:2026-08-04`)
+			?.status,
+		'ABSENT'
+	);
+});
+
 test('A1: a local-midnight work_date still attaches the stored row to the calendar cell', () => {
 	const stored = '2026-01-31T16:00:00.000Z';
 	const facts = buildRosterMonth({

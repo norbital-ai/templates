@@ -83,6 +83,10 @@ export default {
 			fields: ['employee_id', 'company_id', 'employee_number', 'hire_date', 'effective_range']
 		}),
 		grantOn('companies', 'read', { fields: ['id', 'name'] }),
+		grantOn('employment_terms', 'read', {
+			fields: ['employment_id', 'work_pattern', 'effective_range']
+		}),
+		grantOn('shift_definitions', 'read', { fields: ['id', 'company_id', 'code', 'variant'] }),
 		grantsOn('work_days', ['read']),
 		// Hook dependencies, masked to exactly what the guards read. Every attendance write runs
 		// the day guards as this subject: without these reads a punch on a leave day or inside a

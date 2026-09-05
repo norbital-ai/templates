@@ -57,6 +57,7 @@ test(
 		assert.ok((entrypoint ?? '').length > 0, 'release.json code.entrypoint must name the bundle');
 		assert.deepEqual([...(release.requiredFacilities ?? [])].toSorted(), [
 			'ai',
+			'connector',
 			'database',
 			'tasks'
 		]);

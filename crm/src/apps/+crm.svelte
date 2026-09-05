@@ -153,7 +153,7 @@
 		options={accountOptions}
 		value={selectedAccountId}
 		onValueChange={(value) => {
-			if (typeof value === 'string') {
+			if (value != null) {
 				accountId = value;
 				return;
 			}

@@ -10,16 +10,17 @@
 
 	A right-hand sheet leaves the board on screen, which is what makes an overlap warning legible.
 
-	── WHAT THIS COMPONENT IS NOT ───────────────────────────────────────────────────────────────────
-	It writes nothing. Every save is handed back through `onSave`, because the write must go through
-	`client.db.*` so every hook still runs. A component that reached for the client itself would be a
-	second write path, and the first thing it would skip is the lock ladder.
+ 	── WHAT THIS COMPONENT IS NOT ───────────────────────────────────────────────────────────────────
+	The plan picker, the interval editor and the note are custom composition: they write their
+	columns through the internal `CollectionForm` (`work_days`) via `form.setValues`, and the
+	framework footer owns the native submit, so every write still goes through `client.db.*`
+	and every hook still runs. The form's default write carries the whole person-day row, which
+	is value-identical on the halves the operator did not touch.
 
-	`DaySheetChange` still carries the plan and the actual as two independently-null halves even
-	though they are now two halves of ONE row. That is not legacy: the two are separately gated —
-	the plan needs a draft month and a controller, the clock needs neither — and each is written by
-	whoever is allowed to write it. One row, two authorities, which is exactly the split the field
-	grants on `work_days` draw.
+ 	`DaySheetChange` is gone with the `onSave` callback it travelled on. The plan and the
+ 	actual are still two independently-gated halves of ONE row — the plan needs a draft month
+ 	and a controller, the clock needs neither — and the semantic gate below refuses a submit
+ 	that changed neither.
 
 	── OVERTIME ─────────────────────────────────────────────────────────────────────────────────────
 	There is no overtime field here and none may be added. `overtime_authorized` and the five
@@ -40,12 +41,11 @@
 	PROP CONTRACT — STABLE. Employee Self-Service renders this same component with `mode="employee"`.
 	Adding an optional prop is fine; renaming or re-typing anything below breaks that surface.
 
-	  open                 boolean, bindable   whether the drawer is showing
-	  mode                 'controller' | 'employee'  (default 'controller')
-	  person               DaySheetPerson | null      employment id, employee number, display name
-	  date                 string | null              YYYY-MM-DD, the work date
-	  editorRevision       number                     caller-controlled reseed for the same day
-	  day                  DayFacts | undefined       the person-day, from `buildRosterMonth`
+ 	open                 boolean, bindable   whether the drawer is showing
+ 	  mode                 'controller' | 'employee'  (default 'controller')
+ 	  person               DaySheetPerson | null      employment id, employee number, display name
+ 	  date                 string | null              YYYY-MM-DD, the work date
+ 	  day                  DayFacts | undefined       the person-day, from `buildRosterMonth`
 	  intervals            readonly IntervalDraft[]   the day's stored punches (see note below)
 	  timeZone             string                     (default PAYROLL_TIME_ZONE) clocks are read in
 	  rosterCodeOptions    readonly DaySheetRosterCodeOption[]   controller only; ignored otherwise
@@ -57,23 +57,21 @@
 	  planLockedReason     string | null              why, in the operator's words
 	  lockRung             LockRung                   OPEN | IN_DRAFT_RUN | CONSUMED | PAID
 	  lockReason           string | null              from `sourceLockReason`; null when writable
-	  overlapWarning       string | null              a composed sentence, or null
-	  canSwap              boolean                    show the swap affordance (draft months only)
-	  saving               boolean                    disables the footer and shows progress
-	  pendingApproval      boolean                    submitted actual is awaiting configured review
-	  error                string | null              the write path's own refusal, verbatim
-	  restBreakNotice      Snippet | undefined        INTEGRATION POINT — see below
-	  onPlanDraftChange    (rosterCodeId: string | null) => void   controller only; keeps the
-	                       caller's live overlap check in step with the picker
-	  onSave               (change: DaySheetChange) => void
-	  onClearPlan          () => void                remove the explicit entry (controller only)
-	  onStartSwap          () => void                 hand the swap gesture back to the board
-	  onOpenChange         (open: boolean) => void    close requested
+ 	overlapWarning       string | null              a composed sentence, or null
+ 	canSwap              boolean                    show the swap affordance (draft months only)
+ 	restBreakNotice      Snippet | undefined        INTEGRATION POINT — see below
+ 	resolveOverlap       (codeId: string | null) => string | null   controller only; the caller
+ 	                       owns the month, so the drawer asks it what the currently chosen code
+ 	                       would overlap; the answer is shown until the choice changes
+ 	onStartSwap          () => void                 hand the swap gesture back to the board
+ 	onOpenChange         (open: boolean) => void    close requested
 
-	`DaySheetChange` carries `plan` and `attendance` independently, each null when that half is
-	unchanged, hidden or locked — they are the two halves of one person-day, written by two different
-	authorities, and one button starts both.
-	════════════════════════════════════════════════════════════════════════════════════════════════
+	The drawer owns one `CollectionForm` over `work_days`, keyed by person-day so a new day
+	remounts its baseline. Saving, approval-waiting and failure are framework-owned (the footer
+	submit, the pending toast, `failure_message`); there are no `saving` / `pendingApproval` /
+	`error` props. Clearing the plan is a zero-input gesture, not a form submit: an inline
+	command arrow nulls the four plan columns and toasts the outcome itself.
+ ════════════════════════════════════════════════════════════════════════════════════════════════
 -->
 <script lang="ts" module>
 	import type { Snippet } from 'svelte';
@@ -96,37 +94,11 @@
 		readonly search_term?: string;
 	};
 
-	type DaySheetPlanChange = {
-		readonly rosterCodeId: string;
-		readonly note: string | null;
-	};
-
-	type DaySheetAttendanceChange = {
-		/**
-		 * The stored person-day, or null when no row exists for this day at all — which makes the
-		 * write a create. A row that exists only as a PLAN still carries an id, and a punch on it is
-		 * an update: `unique(employment_id, work_date)` is what says a person-day is one row.
-		 */
-		readonly workDayId: string | null;
-		/** `null` clears attendance; `[]` records a deliberate reviewed-no-work fact. */
-		readonly intervals: readonly IntervalDraft[] | null;
-		/** Already clamped by `assessAttendanceDraft`, so the write path cannot refuse it for length. */
-		readonly breakMinutes: number;
-	};
-
-	export type DaySheetChange = {
-		readonly employmentId: string;
-		readonly date: string;
-		readonly plan: DaySheetPlanChange | null;
-		readonly attendance: DaySheetAttendanceChange | null;
-	};
-
 	type DaySheetProps = {
 		open: boolean;
 		mode?: DaySheetMode;
 		person: DaySheetPerson | null;
 		date: string | null;
-		editorRevision?: number;
 		day: DayFacts | undefined;
 		/**
 		 * The day's stored punches.
@@ -148,9 +120,6 @@
 		lockReason?: string | null;
 		overlapWarning?: string | null;
 		canSwap?: boolean;
-		saving?: boolean;
-		pendingApproval?: boolean;
-		error?: string | null;
 		/**
 		 * INTEGRATION POINT — the rest-break badge (§4 of the proposal).
 		 *
@@ -165,25 +134,34 @@
 		 */
 		restBreakNotice?: Snippet;
 		/**
-		 * The roster code currently chosen, mirrored out as it changes.
+		 * The overlap judge, mirrored in as a function instead of the draft being mirrored out.
 		 *
-		 * The drawer owns the draft — a form that had to round-trip every keystroke through its
-		 * caller would be a controlled input pretending to be a component. But the overlap check
-		 * needs the *whole month* to run, and only the caller has that. So the choice is mirrored and
-		 * the answer comes back as `overlapWarning`. Employee mode never calls it: there is no picker.
+		 * The drawer owns its draft — a controlled picker would round-trip every keystroke through
+		 * the caller — but the overlap check needs the whole month, and only the caller has that.
+		 * So the caller hands over the question, not the answer: the drawer asks whenever its choice
+		 * changes and shows the sentence until the next change. No state is mirrored in either
+		 * direction.
 		 */
-		onPlanDraftChange?: (rosterCodeId: string | null) => void;
-		onSave?: (change: DaySheetChange) => void;
-		onClearPlan?: () => void;
+		resolveOverlap?: (codeId: string | null) => string | null;
 		onStartSwap?: () => void;
 		onOpenChange?: (open: boolean) => void;
 	};
 </script>
 
 <script lang="ts">
-	import { untrack } from 'svelte';
+	import { Effect } from 'effect';
+	import { watch } from 'runed';
+	import { client } from '../../workspace-client.js';
 	import { useI18n } from '@norbital-ai/ui/i18n';
 	import type { TenantI18nKeys } from '$bolt/i18n-keys';
+	import {
+		CollectionForm,
+		submitCollectionMutation,
+		type CollectionFormController,
+		type CollectionFormSemantic
+	} from '@norbital-ai/ui/collection-form';
+	import { toast } from 'svelte-sonner';
+	import { getErrorMessage } from '@norbital-ai/std';
 	import * as Sheet from '@norbital-ai/ui/sheet';
 	import { Alert, AlertDescription, AlertTitle } from '@norbital-ai/ui/alert';
 	import { Badge } from '@norbital-ai/ui/badge';
@@ -192,11 +170,10 @@
 	import { IconWrapper } from '@norbital-ai/ui/icon-wrapper';
 	import { Input } from '@norbital-ai/ui/input';
 	import { Label } from '@norbital-ai/ui/label';
-	import { Cluster, Inline, Scroll, Stack } from '@norbital-ai/ui/layout';
+	import { Cluster, Inline, Stack } from '@norbital-ai/ui/layout';
 	import { cn } from '@norbital-ai/ui/utils';
 	import {
 		attendanceChanged,
-		daySheetAttendanceSaveAllowed,
 		daySheetSaveIntent,
 		daySheetSaveLabelKey,
 		type DaySheetSaveIntent
@@ -228,7 +205,6 @@
 		mode = 'controller',
 		person,
 		date,
-		editorRevision = 0,
 		day,
 		intervals = [],
 		timeZone = PAYROLL_TIME_ZONE,
@@ -240,15 +216,9 @@
 		planLockedReason = null,
 		lockRung = 'OPEN',
 		lockReason = null,
-		overlapWarning = null,
 		canSwap = false,
-		saving = false,
-		pendingApproval = false,
-		error = null,
 		restBreakNotice,
-		onPlanDraftChange,
-		onSave,
-		onClearPlan,
+		resolveOverlap,
 		onStartSwap,
 		onOpenChange
 	}: DaySheetProps = $props();
@@ -268,6 +238,8 @@
 	let draftNote = $state('');
 	let baselineCodeId = $state<string | null>(null);
 	let baselineNote = $state('');
+	/** The caller's verdict on the currently chosen code; recomputed on seed and on every change. */
+	let overlapWarning = $state<string | null>(null);
 	let draftIntervals = $state<EditableInterval[]>([]);
 	let draftBreak = $state(0);
 	let draftAttendanceRecorded = $state(false);
@@ -276,51 +248,61 @@
 	let reporting = $state(false);
 
 	/** Identity of the person-day the drawer is currently loaded with, so a new one re-seeds it. */
-	const sheetKey = $derived(`${person?.id ?? ''}:${date ?? ''}:${editorRevision}`);
+	const sheetKey = $derived(`${person?.id ?? ''}:${date ?? ''}`);
 
 	/**
-	 * Seed the editors from the record whenever the drawer lands on a different person-day.
+	 * Seed the editors from the record whenever the drawer lands on a person-day.
 	 *
-	 * Keyed on identity plus an explicit caller revision rather than on every live prop, so remote
-	 * updates do not fight the operator's typing. A controller open increments the revision and gets
-	 * a clean current baseline even when they return to the same employee-day after a prior save.
+	 * Runs in two cases and no others: the keyed wrapper mounts (a different person-day), and the
+	 * sheet opens — which covers reopening the same day after a save, where the key is unchanged
+	 * but the baseline must be fresh. While the sheet is open, nothing reseeds: remote updates
+	 * must not fight the operator's typing.
 	 */
-	$effect(() => {
-		void sheetKey;
-		untrack(() => {
-			reporting = false;
-			draftCodeId = rosterCodeId;
-			baselineCodeId = rosterCodeId;
-			onPlanDraftChange?.(rosterCodeId ?? null);
-			draftNote = note ?? '';
-			baselineNote = (note ?? '').trim();
-			draftBreak = day?.breakMinutes ?? 0;
-			draftAttendanceRecorded = day?.attendanceState != null;
-			baselineAttendance = {
-				intervals:
-					day?.attendanceState == null
-						? null
-						: intervals.map((interval) => ({ start: interval.start, end: interval.end })),
-				breakMinutes: day?.breakMinutes ?? 0
-			};
-			/**
-			 * A fresh array every time, including when the day has no entry.
-			 *
-			 * `$state` compares by reference, so re-using the previous array — or leaving it in place
-			 * on the empty branch — is an assignment Svelte discards, and the editor would keep
-			 * showing the punches of the cell before this one.
-			 */
-			const workDate = date;
-			draftIntervals =
-				workDate == null
-					? []
-					: intervals.map((interval) => ({
-							startMinutes: minutesFromDayStart(interval.start, workDate, timeZone),
-							endMinutes:
-								interval.end == null ? null : minutesFromDayStart(interval.end, workDate, timeZone)
-						}));
-		});
-	});
+	function seedSheet(): void {
+		reporting = false;
+		draftCodeId = rosterCodeId;
+		baselineCodeId = rosterCodeId;
+		overlapWarning = resolveOverlap?.(rosterCodeId ?? null) ?? null;
+		draftNote = note ?? '';
+		baselineNote = (note ?? '').trim();
+		draftBreak = day?.breakMinutes ?? 0;
+		draftAttendanceRecorded = day?.attendanceState != null;
+		baselineAttendance = {
+			intervals:
+				day?.attendanceState == null
+					? null
+					: intervals.map((interval) => ({ start: interval.start, end: interval.end })),
+			breakMinutes: day?.breakMinutes ?? 0
+		};
+		/**
+		 * A fresh array every time, including when the day has no entry.
+		 *
+		 * `$state` compares by reference, so re-using the previous array — or leaving it in place
+		 * on the empty branch — is an assignment Svelte discards, and the editor would keep
+		 * showing the punches of the cell before this one.
+		 */
+		const workDate = date;
+		draftIntervals =
+			workDate == null
+				? []
+				: intervals.map((interval) => ({
+						startMinutes: minutesFromDayStart(interval.start, workDate, timeZone),
+						endMinutes:
+							interval.end == null ? null : minutesFromDayStart(interval.end, workDate, timeZone)
+					}));
+	}
+
+	function seedAttach(): void {
+		seedSheet();
+	}
+
+	/** Reopening the same person-day keeps its key, so the mount attach does not run; seed here. */
+	watch(
+		() => open,
+		(isOpen) => {
+			if (isOpen) seedSheet();
+		}
+	);
 
 	const draftIntervalValues = $derived(
 		date == null
@@ -349,12 +331,10 @@
 	});
 
 	const frozen = $derived(lockRungFreezes(lockRung));
-	const interactionLocked = $derived(saving || pendingApproval);
 	const attendanceWritable = $derived(
 		!frozen && (mode === 'controller' || reporting) && date != null && person != null
 	);
 	const planWritable = $derived(mode === 'controller' && !frozen && !planLocked);
-	const planEditable = $derived(planWritable && !interactionLocked);
 
 	/** Employee mode's one affordance: a day with nothing recorded, on a day that is not locked. */
 	const canReportMissingPunch = $derived(
@@ -430,13 +410,67 @@
 	const saveIntent = $derived<DaySheetSaveIntent>(
 		daySheetSaveIntent(planTouched, attendanceTouched)
 	);
-	const savable = $derived(
-		!interactionLocked &&
-			(planTouched || attendanceTouched) &&
-			(!attendanceTouched ||
-				daySheetAttendanceSaveAllowed(draftAttendance, missingIntervalStart, assessment.problem)) &&
-			overlapWarning == null
+
+	/**
+	 * The form's baseline: update the stored row when one exists, create it when none does.
+	 *
+	 * Minimal on purpose — only the routing (`id`, or employment plus date) is seeded. Custom
+	 * editors push their columns via `setValues` as they are touched, and untouched columns ride
+	 * as `undefined`, which the client transport strips, so an attendance-only save cannot rewrite
+	 * the plan and a punch on a pattern-projected day cannot materialise an explicit assignment.
+	 */
+	const formDefaults = $derived(
+		day?.workDayId != null
+			? { id: day.workDayId }
+			: person != null && date != null
+				? { employment_id: person.id, work_date: date }
+				: undefined
 	);
+
+	/**
+	 * The guards the old Save button applied, as form validation.
+	 *
+	 * Interval attendance is gated on the same assessment the hook will make. The two interval-free
+	 * states are intentional exceptions: `[]` is reviewed-no-work and `null` is explicit clearing,
+	 * neither of which should be rejected as a missing interval. An untouched form is refused so a
+	 * create-mode submit cannot land an empty person-day row.
+	 */
+	const daySheetSemantic: CollectionFormSemantic = (values) =>
+		Effect.sync(() => {
+			if (overlapWarning != null) return [{ message: overlapWarning }];
+			if (!planTouched && !attendanceTouched)
+				return [{ message: t('roster.day_sheet_cannot_save') }];
+			if (!attendanceTouched) return;
+			if (missingIntervalStart) return [{ message: t('roster.day_sheet_problem_missing_start') }];
+			if (draftIntervals.length === 0) return;
+			const problem = assessment.problem;
+			if (problem != null) return [{ message: t(ATTENDANCE_DRAFT_PROBLEM_KEY[problem]) }];
+			return;
+		});
+
+	/** Mirror the plan half into the form; the picker and the note are custom composition. */
+	function pushPlan(form: CollectionFormController): void {
+		form.setValues({
+			shift_definition_id: draftCodeId,
+			planned_origin: 'MANUAL',
+			planned_note: draftNote.trim() === '' ? null : draftNote.trim()
+		});
+	}
+
+	/**
+	 * Mirror the actual half into the form, carrying the clamped break, never the typed one.
+	 *
+	 * `assessAttendanceDraft` has already reduced it to something the hook accepts, and the notice
+	 * below says it did. `null` intervals are explicit clearing; untouched editors never call this,
+	 * so their columns stay `undefined` and ride past the write.
+	 */
+	function pushAttendance(form: CollectionFormController): void {
+		form.setValues({
+			worked_intervals: draftAttendanceRecorded ? draftIntervalValues : null,
+			break_minutes:
+				draftAttendanceRecorded && draftIntervalValues.length > 0 ? assessment.breakMinutes : 0
+		});
+	}
 
 	function clockValue(minutes: number | null): string {
 		return minutes == null ? '' : dayMinutesToClock(minutes);
@@ -556,30 +590,6 @@
 		draftBreak = day?.shiftBreakMinutes ?? 0;
 	}
 
-	function save(): void {
-		if (person == null || date == null || !savable) return;
-		void onSave?.({
-			employmentId: person.id,
-			date,
-			plan:
-				planTouched && draftCodeId != null
-					? { rosterCodeId: draftCodeId, note: draftNote.trim() === '' ? null : draftNote.trim() }
-					: null,
-			attendance: attendanceTouched
-				? {
-						workDayId: day?.workDayId ?? null,
-						intervals: draftAttendance.intervals,
-						// The clamped value, never the typed one. `assessAttendanceDraft` has already
-						// reduced it to something the hook accepts, and the notice below says it did.
-						breakMinutes:
-							draftAttendance.intervals != null && draftAttendance.intervals.length > 0
-								? assessment.breakMinutes
-								: 0
-					}
-				: null
-		});
-	}
-
 	const heading = $derived(
 		date == null
 			? ''
@@ -616,13 +626,38 @@
 		</Sheet.Header>
 
 		{#if day != null && date != null}
-			<Scroll name={t('roster.day_sheet_plan')} layout="stack" gap="lg" grow class="pr-1">
-				<!-- ── PLAN ────────────────────────────────────────────────────────────────────── -->
-				<Stack gap="sm">
-					<Inline gap="sm" justify="between" align="center">
-						<h3 class="text-overline text-muted-foreground">{t('roster.day_sheet_plan')}</h3>
-						{#if mode === 'controller'}
-							<!--
+			{#key sheetKey}
+				<div style="display: contents;" {@attach seedAttach}>
+					<CollectionForm
+						{client}
+						collection="work_days"
+						defaultValues={formDefaults}
+						submitLabel={t(daySheetSaveLabelKey(mode, saveIntent))}
+						semantic={daySheetSemantic}
+						failure_message={t('roster.day_sheet_save_failed')}
+						class="flex-1"
+						onAfterSubmit={() => {
+							open = false;
+						}}
+					>
+						{#snippet children({ Field, form })}
+							<Field name="employment_id" hidden />
+							<Field name="work_date" hidden />
+							<Field name="shift_definition_id" hidden />
+							<Field name="assignment_code" hidden />
+							<Field name="planned_origin" hidden />
+							<Field name="planned_note" hidden />
+							<Field name="worked_intervals" hidden />
+							<Field name="break_minutes" hidden />
+							<Stack gap="lg" class="pr-1">
+								<!-- ── PLAN ────────────────────────────────────────────────────────────────────── -->
+								<Stack gap="sm">
+									<Inline gap="sm" justify="between" align="center">
+										<h3 class="text-overline text-muted-foreground">
+											{t('roster.day_sheet_plan')}
+										</h3>
+										{#if mode === 'controller'}
+											<!--
 								DISABLED WITH A REASON, never hidden.
 
 								This button used to be rendered only when `canSwap`, so in a published month — or a
@@ -634,273 +669,312 @@
 								names which of the two cases this is. A frozen day (payroll has taken it) disables it
 								too, and the LOCK panel further down says which run.
 							-->
-							<Button
-								variant="outline"
-								size="sm"
-								disabled={saving || frozen || !canSwap}
-								title={canSwap ? undefined : (planLockedReason ?? undefined)}
-								onclick={() => onStartSwap?.()}
-							>
-								<IconWrapper name="lucide:arrow-left-right" class="size-3.5" />
-								{t('roster.day_sheet_swap')}
-							</Button>
-						{/if}
-					</Inline>
+											<Button
+												variant="outline"
+												size="sm"
+												type="button"
+												disabled={frozen || !canSwap}
+												title={canSwap ? undefined : (planLockedReason ?? undefined)}
+												onclick={() => onStartSwap?.()}
+											>
+												<IconWrapper name="lucide:arrow-left-right" class="size-3.5" />
+												{t('roster.day_sheet_swap')}
+											</Button>
+										{/if}
+									</Inline>
 
-					{#if mode === 'controller'}
-						<Stack gap="xs">
-							<!--
+									{#if mode === 'controller'}
+										<Stack gap="xs">
+											<!--
 								A <span>, not a <Label>. `Combobox` is not a labellable control — it carries its
 								own `ariaLabel` — and a <label> with nothing to point at is an accessibility
 								warning that reads as a fix while making the picker no easier to reach.
 							-->
-							<span class="text-xs font-medium">{t('roster.choose_roster_code')}</span>
-							<Combobox
-								ariaLabel={t('roster.choose_roster_code')}
-								options={[...rosterCodeOptions]}
-								value={draftCodeId}
-								disabled={!planEditable}
-								onValueChange={(value) => {
-									draftCodeId = typeof value === 'string' ? value : null;
-									onPlanDraftChange?.(draftCodeId);
-								}}
-								emptyPlaceholder={t('roster.choose_roster_code')}
-								searchPlaceholder={t('roster.search_roster_codes')}
-							/>
-						</Stack>
-						<Stack gap="xs">
-							<Label for="day-sheet-note">{t('roster.day_sheet_note')}</Label>
-							<Input
-								id="day-sheet-note"
-								value={draftNote}
-								disabled={!planEditable}
-								placeholder={t('roster.day_sheet_note_placeholder')}
-								oninput={(event) => (draftNote = event.currentTarget.value)}
-							/>
-						</Stack>
-					{:else}
-						<!-- Employee mode reads the plan; it never sets it. A roster is HR's record. -->
-						{@render fieldRow(
-							t('roster.day_sheet_roster_code'),
-							day.shiftCode ?? t(STATUS_PRESENTATION[day.status].labelKey)
-						)}
-					{/if}
+											<span class="text-xs font-medium">{t('roster.choose_roster_code')}</span>
+											<Combobox
+												ariaLabel={t('roster.choose_roster_code')}
+												options={[...rosterCodeOptions]}
+												value={draftCodeId}
+												disabled={!planWritable}
+												onValueChange={(value) => {
+													draftCodeId = value;
+													overlapWarning = resolveOverlap?.(draftCodeId) ?? null;
+													pushPlan(form);
+												}}
+												emptyPlaceholder={t('roster.choose_roster_code')}
+												searchPlaceholder={t('roster.search_roster_codes')}
+											/>
+										</Stack>
+										<Stack gap="xs">
+											<Label for="day-sheet-note">{t('roster.day_sheet_note')}</Label>
+											<Input
+												id="day-sheet-note"
+												value={draftNote}
+												disabled={!planWritable}
+												placeholder={t('roster.day_sheet_note_placeholder')}
+												oninput={(event) => {
+													draftNote = event.currentTarget.value;
+													pushPlan(form);
+												}}
+											/>
+										</Stack>
+									{:else}
+										<!-- Employee mode reads the plan; it never sets it. A roster is HR's record. -->
+										{@render fieldRow(
+											t('roster.day_sheet_roster_code'),
+											day.shiftCode ?? t(STATUS_PRESENTATION[day.status].labelKey)
+										)}
+									{/if}
 
-					{@render fieldRow(
-						t('roster.day_sheet_source'),
-						hasExplicitEntry
-							? day.plannedOrigin === 'IMPORT'
-								? t('roster.origin_import')
-								: t('roster.origin_manual')
-							: t('roster.day_sheet_source_pattern')
-					)}
-					{#if day.shiftStart != null && day.shiftEnd != null}
-						{@render fieldRow(
-							t('roster.day_sheet_scheduled'),
-							t('roster.shift_window', {
-								start: day.shiftStart,
-								end: day.shiftEnd,
-								break: (day.shiftBreakMinutes ?? 0) / 60
-							})
-						)}
-					{/if}
+									{@render fieldRow(
+										t('roster.day_sheet_source'),
+										hasExplicitEntry
+											? day.plannedOrigin === 'IMPORT'
+												? t('roster.origin_import')
+												: t('roster.origin_manual')
+											: t('roster.day_sheet_source_pattern')
+									)}
+									{#if day.shiftStart != null && day.shiftEnd != null}
+										{@render fieldRow(
+											t('roster.day_sheet_scheduled'),
+											t('roster.shift_window', {
+												start: day.shiftStart,
+												end: day.shiftEnd,
+												break: (day.shiftBreakMinutes ?? 0) / 60
+											})
+										)}
+									{/if}
 
-					<Cluster gap="xs">
-						{#if day.holidayName != null}
-							<Badge variant="outline">
-								{t(HOLIDAY_PRESENTATION.labelKey)}: {day.holidayName}
-							</Badge>
-						{/if}
-						{#if day.leaveCode != null}
-							<Badge variant="outline">
-								{day.leaveCode}{day.halfDayLeave ? ` (${t('roster.half_day')})` : ''}
-							</Badge>
-						{/if}
-						{#if day.pendingLeave}
-							<Badge variant="outline">{t('roster.pending_leave')}</Badge>
-						{/if}
-						{#if day.plannedOT}
-							<Badge variant="outline">{t('roster.planned_ot')}</Badge>
-						{/if}
-					</Cluster>
+									<Cluster gap="xs">
+										{#if day.holidayName != null}
+											<Badge variant="outline">
+												{t(HOLIDAY_PRESENTATION.labelKey)}: {day.holidayName}
+											</Badge>
+										{/if}
+										{#if day.leaveCode != null}
+											<Badge variant="outline">
+												{day.leaveCode}{day.halfDayLeave ? ` (${t('roster.half_day')})` : ''}
+											</Badge>
+										{/if}
+										{#if day.pendingLeave}
+											<Badge variant="outline">{t('roster.pending_leave')}</Badge>
+										{/if}
+										{#if day.plannedOT}
+											<Badge variant="outline">{t('roster.planned_ot')}</Badge>
+										{/if}
+									</Cluster>
 
-					{#if overlapWarning != null}
-						<Alert variant="destructive">
-							<AlertTitle>{t('roster.overlapping_shift')}</AlertTitle>
-							<AlertDescription>{overlapWarning}</AlertDescription>
-						</Alert>
-					{:else if mode === 'controller' && planLocked && planLockedReason != null}
-						<p class="text-xs text-muted-foreground">{planLockedReason}</p>
-					{/if}
-				</Stack>
+									{#if overlapWarning != null}
+										<Alert variant="destructive">
+											<AlertTitle>{t('roster.overlapping_shift')}</AlertTitle>
+											<AlertDescription>{overlapWarning}</AlertDescription>
+										</Alert>
+									{:else if mode === 'controller' && planLocked && planLockedReason != null}
+										<p class="text-xs text-muted-foreground">{planLockedReason}</p>
+									{/if}
+								</Stack>
 
-				<!-- ── ACTUAL ──────────────────────────────────────────────────────────────────── -->
-				<Stack gap="sm">
-					<h3 class="text-overline text-muted-foreground">{t('roster.day_sheet_actual')}</h3>
+								<!-- ── ACTUAL ──────────────────────────────────────────────────────────────────── -->
+								<Stack gap="sm">
+									<h3 class="text-overline text-muted-foreground">
+										{t('roster.day_sheet_actual')}
+									</h3>
 
-					{#if attendanceWritable}
-						{#each draftIntervals as interval, index (index)}
-							<Inline gap="xs" align="center" class="flex-wrap text-xs">
-								<span class="min-w-16 shrink-0 text-muted-foreground">
-									{t('roster.day_sheet_interval', { number: index + 1 })}
-								</span>
-								<Input
-									type="time"
-									required
-									class="w-28"
-									disabled={interactionLocked}
-									aria-label={t('roster.day_sheet_interval_start', { number: index + 1 })}
-									value={clockValue(interval.startMinutes)}
-									oninput={(event) => setStart(index, event.currentTarget.value)}
-								/>
-								<span aria-hidden="true">→</span>
-								<Input
-									type="time"
-									class="w-28"
-									disabled={interactionLocked}
-									aria-label={t('roster.day_sheet_interval_end', { number: index + 1 })}
-									value={clockValue(interval.endMinutes)}
-									oninput={(event) => setEnd(index, event.currentTarget.value)}
-								/>
-								{#if interval.endMinutes != null}
-									<!-- The night-shift affordance: one toggle, not a date picker per field. -->
-									<Button
-										variant={dayMinutesOffsetDays(interval.endMinutes) > 0 ? 'default' : 'ghost'}
-										size="sm"
-										disabled={interactionLocked}
-										aria-pressed={dayMinutesOffsetDays(interval.endMinutes) > 0}
-										title={t('roster.day_sheet_next_day')}
-										onclick={() =>
-											shiftEndDay(
-												index,
-												dayMinutesOffsetDays(interval.endMinutes ?? 0) > 0 ? -1 : 1
-											)}
-									>
-										+1d
-									</Button>
-								{/if}
-								<Button
-									variant="ghost"
-									size="icon"
-									disabled={interactionLocked}
-									aria-label={t('roster.day_sheet_remove_interval', { number: index + 1 })}
-									onclick={() => removeInterval(index)}
-								>
-									<IconWrapper name="lucide:x" class="size-3.5" />
-								</Button>
-							</Inline>
-						{/each}
-						{#if draftAttendanceRecorded && draftIntervals.length === 0}
-							<Alert>
-								<AlertTitle>{t('roster.day_sheet_absent')}</AlertTitle>
-								<AlertDescription>
-									{t('roster.day_sheet_absent_description')}
-								</AlertDescription>
-							</Alert>
-						{:else if !draftAttendanceRecorded}
-							<p class="text-xs text-muted-foreground">
-								{t('roster.day_sheet_unrecorded_attendance')}
-							</p>
-						{/if}
+									{#if attendanceWritable}
+										{#each draftIntervals as interval, index (index)}
+											<Inline gap="xs" align="center" class="flex-wrap text-xs">
+												<span class="min-w-16 shrink-0 text-muted-foreground">
+													{t('roster.day_sheet_interval', { number: index + 1 })}
+												</span>
+												<Input
+													type="time"
+													required
+													class="w-28"
+													aria-label={t('roster.day_sheet_interval_start', { number: index + 1 })}
+													value={clockValue(interval.startMinutes)}
+													oninput={(event) => {
+														setStart(index, event.currentTarget.value);
+														pushAttendance(form);
+													}}
+												/>
+												<span aria-hidden="true">→</span>
+												<Input
+													type="time"
+													class="w-28"
+													aria-label={t('roster.day_sheet_interval_end', { number: index + 1 })}
+													value={clockValue(interval.endMinutes)}
+													oninput={(event) => {
+														setEnd(index, event.currentTarget.value);
+														pushAttendance(form);
+													}}
+												/>
+												{#if interval.endMinutes != null}
+													<!-- The night-shift affordance: one toggle, not a date picker per field. -->
+													<Button
+														variant={dayMinutesOffsetDays(interval.endMinutes) > 0
+															? 'default'
+															: 'ghost'}
+														size="sm"
+														type="button"
+														aria-pressed={dayMinutesOffsetDays(interval.endMinutes) > 0}
+														title={t('roster.day_sheet_next_day')}
+														onclick={() => {
+															shiftEndDay(
+																index,
+																dayMinutesOffsetDays(interval.endMinutes ?? 0) > 0 ? -1 : 1
+															);
+															pushAttendance(form);
+														}}
+													>
+														+1d
+													</Button>
+												{/if}
+												<Button
+													variant="ghost"
+													size="icon"
+													type="button"
+													aria-label={t('roster.day_sheet_remove_interval', { number: index + 1 })}
+													onclick={() => {
+														removeInterval(index);
+														pushAttendance(form);
+													}}
+												>
+													<IconWrapper name="lucide:x" class="size-3.5" />
+												</Button>
+											</Inline>
+										{/each}
+										{#if draftAttendanceRecorded && draftIntervals.length === 0}
+											<Alert>
+												<AlertTitle>{t('roster.day_sheet_absent')}</AlertTitle>
+												<AlertDescription>
+													{t('roster.day_sheet_absent_description')}
+												</AlertDescription>
+											</Alert>
+										{:else if !draftAttendanceRecorded}
+											<p class="text-xs text-muted-foreground">
+												{t('roster.day_sheet_unrecorded_attendance')}
+											</p>
+										{/if}
 
-						<Cluster gap="xs">
-							<Button
-								variant="outline"
-								size="sm"
-								disabled={interactionLocked}
-								onclick={() => addInterval()}
-							>
-								<IconWrapper name="lucide:plus" class="size-3.5" />
-								{t('roster.day_sheet_add_interval')}
-							</Button>
-							{#if !draftAttendanceRecorded}
-								<Button
-									variant="outline"
-									size="sm"
-									disabled={interactionLocked}
-									onclick={() => markAbsent()}
-								>
-									<IconWrapper name="lucide:circle-check" class="size-3.5" />
-									{t('roster.day_sheet_mark_absent')}
-								</Button>
-							{/if}
-							{#if draftAttendanceRecorded}
-								<Button
-									variant="ghost"
-									size="sm"
-									disabled={interactionLocked}
-									onclick={() => clearAttendance()}
-								>
-									<IconWrapper name="lucide:eraser" class="size-3.5" />
-									{t('roster.day_sheet_clear_attendance')}
-								</Button>
-							{/if}
-						</Cluster>
+										<Cluster gap="xs">
+											<Button
+												variant="outline"
+												size="sm"
+												type="button"
+												onclick={() => {
+													addInterval();
+													pushAttendance(form);
+												}}
+											>
+												<IconWrapper name="lucide:plus" class="size-3.5" />
+												{t('roster.day_sheet_add_interval')}
+											</Button>
+											{#if !draftAttendanceRecorded}
+												<Button
+													variant="outline"
+													size="sm"
+													type="button"
+													onclick={() => {
+														markAbsent();
+														pushAttendance(form);
+													}}
+												>
+													<IconWrapper name="lucide:circle-check" class="size-3.5" />
+													{t('roster.day_sheet_mark_absent')}
+												</Button>
+											{/if}
+											{#if draftAttendanceRecorded}
+												<Button
+													variant="ghost"
+													size="sm"
+													type="button"
+													onclick={() => {
+														clearAttendance();
+														pushAttendance(form);
+													}}
+												>
+													<IconWrapper name="lucide:eraser" class="size-3.5" />
+													{t('roster.day_sheet_clear_attendance')}
+												</Button>
+											{/if}
+										</Cluster>
 
-						{#if draftAttendanceRecorded && draftIntervals.length > 0}
-							<Inline gap="sm" align="center">
-								<Label for="day-sheet-break" class="min-w-28 shrink-0 text-xs">
-									{t('roster.day_sheet_unpaid_break')}
-								</Label>
-								<Input
-									id="day-sheet-break"
-									type="number"
-									min="0"
-									step="1"
-									class="w-24"
-									disabled={interactionLocked}
-									value={String(draftBreak)}
-									oninput={(event) => (draftBreak = decodeNumber(event.currentTarget.value) || 0)}
-								/>
-								<span class="text-xs text-muted-foreground">{t('roster.day_sheet_minutes')}</span>
-							</Inline>
-						{/if}
+										{#if draftAttendanceRecorded && draftIntervals.length > 0}
+											<Inline gap="sm" align="center">
+												<Label for="day-sheet-break" class="min-w-28 shrink-0 text-xs">
+													{t('roster.day_sheet_unpaid_break')}
+												</Label>
+												<Input
+													id="day-sheet-break"
+													type="number"
+													min="0"
+													step="1"
+													class="w-24"
+													value={String(draftBreak)}
+													oninput={(event) => {
+														draftBreak = decodeNumber(event.currentTarget.value) || 0;
+														pushAttendance(form);
+													}}
+												/>
+												<span class="text-xs text-muted-foreground"
+													>{t('roster.day_sheet_minutes')}</span
+												>
+											</Inline>
+										{/if}
 
-						{#if breakClampNotice}
-							<!--
+										{#if breakClampNotice}
+											<!--
 								Stated, never silent. The operator asked for one break and the day can only carry
 								another, and the reason is almost always that the punch is too short rather than
 								that the break is too long — which they can only see if the change is visible.
 							-->
-							<Alert>
-								<AlertTitle>{t('roster.day_sheet_break_clamped_title')}</AlertTitle>
-								<AlertDescription>
-									{t('roster.day_sheet_break_clamped', {
-										requested: assessment.requestedBreakMinutes,
-										applied: assessment.breakMinutes,
-										worked: Math.round(assessment.closedMinutes)
-									})}
-								</AlertDescription>
-							</Alert>
-						{/if}
-						{#if problemMessage != null}
-							<Alert variant="destructive">
-								<AlertTitle>{t('roster.day_sheet_cannot_save')}</AlertTitle>
-								<AlertDescription>{problemMessage}</AlertDescription>
-							</Alert>
-						{/if}
-					{:else}
-						<!-- Read-only actual: the same numbers, with nothing to press. -->
-						{@render fieldRow(
-							t('roster.day_sheet_recorded'),
-							day.workedIntervalCount === 0
-								? t('roster.no_attendance')
-								: t('roster.attendance_intervals', { count: day.workedIntervalCount })
-						)}
-						{#if canReportMissingPunch}
-							<Inline>
-								<Button variant="outline" size="sm" onclick={() => reportMissingPunch()}>
-									<IconWrapper name="lucide:flag" class="size-3.5" />
-									{t('roster.day_sheet_report_missing_punch')}
-								</Button>
-							</Inline>
-							<p class="text-xs text-muted-foreground">
-								{t('roster.day_sheet_report_missing_punch_help')}
-							</p>
-						{/if}
-					{/if}
+											<Alert>
+												<AlertTitle>{t('roster.day_sheet_break_clamped_title')}</AlertTitle>
+												<AlertDescription>
+													{t('roster.day_sheet_break_clamped', {
+														requested: assessment.requestedBreakMinutes,
+														applied: assessment.breakMinutes,
+														worked: Math.round(assessment.closedMinutes)
+													})}
+												</AlertDescription>
+											</Alert>
+										{/if}
+										{#if problemMessage != null}
+											<Alert variant="destructive">
+												<AlertTitle>{t('roster.day_sheet_cannot_save')}</AlertTitle>
+												<AlertDescription>{problemMessage}</AlertDescription>
+											</Alert>
+										{/if}
+									{:else}
+										<!-- Read-only actual: the same numbers, with nothing to press. -->
+										{@render fieldRow(
+											t('roster.day_sheet_recorded'),
+											day.workedIntervalCount === 0
+												? t('roster.no_attendance')
+												: t('roster.attendance_intervals', { count: day.workedIntervalCount })
+										)}
+										{#if canReportMissingPunch}
+											<Inline>
+												<Button
+													variant="outline"
+													size="sm"
+													type="button"
+													onclick={() => {
+														reportMissingPunch();
+														pushAttendance(form);
+													}}
+												>
+													<IconWrapper name="lucide:flag" class="size-3.5" />
+													{t('roster.day_sheet_report_missing_punch')}
+												</Button>
+											</Inline>
+											<p class="text-xs text-muted-foreground">
+												{t('roster.day_sheet_report_missing_punch_help')}
+											</p>
+										{/if}
+									{/if}
 
-					<!--
+									<!--
 						Derived, read-only, and the only place a length-of-day figure appears. There is no
 						overtime input on this sheet and none may be added — see the header comment.
 
@@ -910,100 +984,132 @@
 						of any measurement at all. Nobody worked −8 hours. Until there is a punch to compare,
 						the honest line is the plan and the fact that nothing has been recorded against it.
 					-->
-					<p class="text-xs">
-						{#if assessment.workedMinutes == null || assessment.workedMinutes === 0}
-							{t('roster.day_sheet_totals_planned', {
-								scheduled: formatDurationHours(planned, t)
-							})}
-						{:else}
-							{t('roster.day_sheet_totals', {
-								worked: formatDurationHours(assessment.workedMinutes, t),
-								scheduled: formatDurationHours(planned, t),
-								beyond: formatDurationHours(beyond, t)
-							})}
-						{/if}
-					</p>
+									<p class="text-xs">
+										{#if assessment.workedMinutes == null || assessment.workedMinutes === 0}
+											{t('roster.day_sheet_totals_planned', {
+												scheduled: formatDurationHours(planned, t)
+											})}
+										{:else}
+											{t('roster.day_sheet_totals', {
+												worked: formatDurationHours(assessment.workedMinutes, t),
+												scheduled: formatDurationHours(planned, t),
+												beyond: formatDurationHours(beyond, t)
+											})}
+										{/if}
+									</p>
 
-					<!-- INTEGRATION POINT: the rest-break badge and its citation. See the prop doc. -->
-					{#if restBreakNotice}
-						{@render restBreakNotice()}
-					{/if}
-				</Stack>
+									<!-- INTEGRATION POINT: the rest-break badge and its citation. See the prop doc. -->
+									{#if restBreakNotice}
+										{@render restBreakNotice()}
+									{/if}
+								</Stack>
 
-				<!-- ── LOCK ────────────────────────────────────────────────────────────────────── -->
-				<Stack gap="xs">
-					<h3 class="text-overline text-muted-foreground">{t('roster.day_sheet_lock')}</h3>
-					<Inline gap="xs" align="center">
-						<!--
+								<!-- ── LOCK ────────────────────────────────────────────────────────────────────── -->
+								<Stack gap="xs">
+									<h3 class="text-overline text-muted-foreground">{t('roster.day_sheet_lock')}</h3>
+									<Inline gap="xs" align="center">
+										<!--
 							Literal variants, never assembled. A class built with a template literal is a class
 							Tailwind's source scan never sees, so the swatch would be styled in dev and blank in
 							production — the same rule `roster-month.ts` states over `STATUS_PRESENTATION`.
 						-->
-						<span
-							class={cn(
-								'inline-block h-4 w-1 rounded-sm',
-								lockRung === 'OPEN' && 'bg-muted',
-								lockRung === 'IN_DRAFT_RUN' && 'bg-brand/40',
-								lockRung === 'CONSUMED' && 'bg-brand/70',
-								lockRung === 'PAID' && 'bg-brand'
-							)}
-						></span>
-						<span class="text-xs font-medium">
-							{t(LOCK_RAIL_PRESENTATION[lockRung].labelKey)}
-						</span>
-						{#if LOCK_RAIL_PRESENTATION[lockRung].padlock !== ''}
-							<span aria-hidden="true">{LOCK_RAIL_PRESENTATION[lockRung].padlock}</span>
-						{/if}
-					</Inline>
-					<p class="text-xs text-muted-foreground">
-						{lockReason ??
-							(lockRung === 'IN_DRAFT_RUN' && day.lock.kind === 'IN_WINDOW'
-								? t('roster.in_payroll_window', { period: day.lock.period })
-								: t('roster.day_sheet_lock_open'))}
-					</p>
-					<!--
+										<span
+											class={cn(
+												'inline-block h-4 w-1 rounded-sm',
+												lockRung === 'OPEN' && 'bg-muted',
+												lockRung === 'IN_DRAFT_RUN' && 'bg-brand/40',
+												lockRung === 'CONSUMED' && 'bg-brand/70',
+												lockRung === 'PAID' && 'bg-brand'
+											)}
+										></span>
+										<span class="text-xs font-medium">
+											{t(LOCK_RAIL_PRESENTATION[lockRung].labelKey)}
+										</span>
+										{#if LOCK_RAIL_PRESENTATION[lockRung].padlock !== ''}
+											<span aria-hidden="true">{LOCK_RAIL_PRESENTATION[lockRung].padlock}</span>
+										{/if}
+									</Inline>
+									<p class="text-xs text-muted-foreground">
+										{lockReason ??
+											(lockRung === 'IN_DRAFT_RUN' && day.lock.kind === 'IN_WINDOW'
+												? t('roster.in_payroll_window', { period: day.lock.period })
+												: t('roster.day_sheet_lock_open'))}
+									</p>
+									<!--
 						SCOPED OUT — the `AMENDMENT` provenance arm for a published month (§2.4 of the proposal).
 						A single-cell write in a published month is refused whole today, and that stays true:
 						opening a narrow amendment path needs a new `work_days.planned_origin` enum arm and a
 						migration, and the decision has not been taken. When it is, this panel is where the
 						amendment is offered and `planLockedReason` is the sentence it replaces.
 					-->
-				</Stack>
-
-				{#if pendingApproval}
-					<Alert aria-live="polite">
-						<AlertTitle>{t('roster.day_sheet_pending_approval')}</AlertTitle>
-						<AlertDescription>
-							{t('roster.day_sheet_pending_approval_description')}
-						</AlertDescription>
-					</Alert>
-				{/if}
-
-				{#if error != null}
-					<Alert variant="destructive" aria-live="assertive">
-						<AlertTitle>{t('roster.day_sheet_save_failed')}</AlertTitle>
-						<AlertDescription>{error}</AlertDescription>
-					</Alert>
-				{/if}
-			</Scroll>
+								</Stack>
+							</Stack>
+						{/snippet}
+					</CollectionForm>
+				</div>
+			{/key}
 		{/if}
 
 		<Sheet.Footer>
 			{#if mode === 'controller' && hasExplicitEntry && planWritable}
-				<Button variant="outline" disabled={interactionLocked} onclick={() => void onClearPlan?.()}>
+				<!--
+ 					Clearing the plan clears the PLAN, and never the row: the write nulls the plan
+ 					columns and leaves any attendance on the row exactly where it was. A zero-input
+ 					gesture, so it stays an inline command arrow rather than a second form — the
+ 					pattern baseline resumes for that day, which is what clearing an override means.
+ 				-->
+				<Button
+					variant="outline"
+					type="button"
+					onclick={() => {
+						const workDayId = day?.workDayId;
+						if (workDayId == null) return;
+						Effect.runFork(
+							submitCollectionMutation(() =>
+								client.db.work_days.mutate([
+									{
+										id: workDayId,
+										shift_definition_id: null,
+										assignment_code: null,
+										planned_note: null,
+										planned_origin: null
+									}
+								])
+							).pipe(
+								Effect.tap((submission) =>
+									Effect.sync(() => {
+										if (submission.kind === 'pendingApproval') {
+											toast.success(t('roster.day_sheet_pending_approval'));
+											return;
+										}
+										open = false;
+									})
+								),
+								Effect.catch((cause) =>
+									Effect.sync(() => {
+										const message = t('roster.day_sheet_error_context', {
+											person: person?.name ?? '—',
+											date: date ?? '—',
+											message: getErrorMessage(cause)
+										});
+										toast.error(t('roster.day_sheet_save_failed'), { description: message });
+									})
+								)
+							)
+						);
+					}}
+				>
 					{t('roster.clear_assignment')}
 				</Button>
 			{/if}
-			<Sheet.Close disabled={saving}>{t('roster.cancel')}</Sheet.Close>
+			<Sheet.Close>{t('roster.cancel')}</Sheet.Close>
 			<!--
-				The label names what THIS mode's save actually writes. An employee's `work_days` grant is
-				masked to the clock fields and they never see the picker, so "Save assignment" described,
-				to the one reader who cannot do it, the half of the sheet they are not looking at — while
-				the half they are looking at is a punch.
-			-->
-			<Button disabled={!savable} onclick={() => void save()}>
-				{saving ? t('roster.day_sheet_saving') : t(daySheetSaveLabelKey(mode, saveIntent))}
-			</Button>
+ 				The framework footer above carries the native submit, labelled for what THIS mode's
+ 				save actually writes. An employee's `work_days` grant is masked to the clock fields
+ 				and they never see the picker, so "Save assignment" described, to the one reader who
+ 				cannot do it, the half of the sheet they are not looking at — while the half they
+ 				are looking at is a punch.
+ 			-->
 		</Sheet.Footer>
 	</Sheet.Content>
 </Sheet.Root>

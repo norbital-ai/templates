@@ -16,7 +16,7 @@
 
 import type { WorkspaceRow } from '../$types.js';
 import type { ComponentEntryEvent } from '../../../datatypes/component_entry_event/+definition.js';
-import { dateKey, type IsoDate } from './dates.js';
+import { dateKey, requiredDateKey, type IsoDate } from './dates.js';
 import { defaultPayPeriod } from './period.js';
 import { decodeNumber } from '@norbital-ai/std/json';
 
@@ -66,8 +66,8 @@ export function recurringRange(entry: ComponentEntry): {
 	const range = entry.effective_range;
 	if (range == null) return null;
 	return {
-		start: String(range.start).slice(0, 10),
-		end: range.end == null ? null : String(range.end).slice(0, 10)
+		start: requiredDateKey(range.start, 'allowance start'),
+		end: range.end == null ? null : requiredDateKey(range.end, 'allowance end')
 	};
 }
 

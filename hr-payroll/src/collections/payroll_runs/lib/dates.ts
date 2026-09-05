@@ -4,7 +4,7 @@
  * Every date the engine reasons about is a calendar day, never an instant: an attendance window,
  * a work date, an employment range. They are handled as `YYYY-MM-DD` strings anchored to UTC, so
  * that no host timezone can move a day across a period boundary. `effective_range` columns hold
- * ISO instants and are sliced to ten characters before comparison.
+ * ISO instants and are resolved in the business timezone before comparison.
  */
 
 import { Number as EffectNumber, Schema } from 'effect';
@@ -16,16 +16,7 @@ export type IsoDate = Schema.Schema.Type<typeof calendarDay>;
 
 const DAY_MS = 86_400_000;
 
-/**
- * Narrow any stored date-ish value to its calendar day.
- *
- * A `date` column carries no time zone, and it reaches the engine as the `YYYY-MM-DD` text the
- * driver read off the wire — which is the only representation of a calendar day that no host can
- * move. Slicing it is therefore the whole conversion, and it is exact.
- *
- * Authored instants are always ISO strings. Day precision is presentation metadata, so the first
- * ten characters are stable without consulting the host's local time zone.
- */
+/** Resolve a stored instant or fixed date to its payroll calendar day. */
 export function dateKey(value: string | null | undefined): IsoDate | null {
 	const key = calendarDateKey(value);
 	return key === '' ? null : key;

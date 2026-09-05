@@ -27,6 +27,7 @@ import { dateKey, requiredDateKey } from './dates.js';
 import type { DailyOvertime } from './overtime.js';
 import { ruleDayType } from './schedule.js';
 import { coversDate } from './effective.js';
+import { usesMonthlyCalendar } from './period.js';
 import { rosterCodeKind, workWindow } from '../../../lib/scheduling/roster-code.js';
 import type { RosterCodeVariant } from '../../../datatypes/roster_code_variant/+definition.js';
 import { parseSpecialRules } from './special-rules.js';
@@ -390,7 +391,7 @@ export function validatePayCalendar(options: ValidatePayCalendarOptions): RunIss
 	// MONTHLY is never in `pay_calendar` and never needs to be: the two company columns are its
 	// calendar, and every company has them.
 	const expressible = (frequency: string): boolean =>
-		frequency === 'MONTHLY' || stated.has(frequency);
+		usesMonthlyCalendar(frequency) || stated.has(frequency);
 	const unpayable = options.bundles.filter((bundle) =>
 		bundle.terms.some((row) => row.pay_frequency != null && !expressible(row.pay_frequency))
 	);

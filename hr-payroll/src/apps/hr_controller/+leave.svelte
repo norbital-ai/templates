@@ -12,6 +12,7 @@
 	import { decodeNumber } from '@norbital-ai/std/json';
 	import { Tabs, type TabConfig } from '@norbital-ai/ui/tabs';
 	import { CollectionTable } from '@norbital-ai/ui/collection-table';
+	import { Alert, AlertDescription } from '@norbital-ai/ui/alert';
 	import { Badge } from '@norbital-ai/ui/badge';
 	import { Button } from '@norbital-ai/ui/button';
 	import { Input } from '@norbital-ai/ui/input';
@@ -32,9 +33,12 @@
 	} from '../../lib/ui/display-formatters.js';
 	import { inForceTodayFilter, todayKey } from '../../lib/ui/calendar.js';
 	import LeaveSeasonality from '../../lib/ui/leave/leave-seasonality.svelte';
-	import { leaveYearSummary } from '../../collections/payroll_runs/lib/leave.js';
-	import { resolveEntitlement, type ChildFact } from '../../collections/payroll_runs/lib/leave.js';
-	import { sealedProfileCovering } from '../../lib/statutory_profile.js';
+	import { leaveYearSummary, ledgerRowOf } from '../../collections/payroll_runs/lib/leave.js';
+	import {
+		resolveEntitlementAt,
+		type ChildFact
+	} from '../../collections/payroll_runs/lib/leave.js';
+	import { sealedProfileCovering, statutoryProfileLineage } from '../../lib/statutory_profile.js';
 	import { sourceLock, sourceLockRecordMetadata } from '../../lib/scheduling/lock.js';
 
 	const { t } = useI18n<TenantI18nKeys>();
@@ -164,9 +168,10 @@
 		balanceEmploymentIds.length === 0
 			? null
 			: client.db.leave_requests.findMany({
-					where: { employment_id: { in: balanceEmploymentIds }, approval_id: { isNull: true } },
+					where: { employment_id: { in: balanceEmploymentIds } },
 					columns: {
 						id: true,
+						approval_id: true,
 						employment_id: true,
 						leave_type_id: true,
 						from_date: true,
@@ -181,7 +186,7 @@
 		balanceEmploymentIds.length === 0
 			? null
 			: client.db.employee_children.findMany({
-					where: { employment_id: { in: balanceEmploymentIds } },
+					where: { employment_id: { in: balanceEmploymentIds }, approval_id: { isNull: true } },
 					limit: 10_000
 				})
 	);
@@ -199,7 +204,8 @@
 			: client.db.jurisdictions.findMany({
 					where: {
 						code: { eq: balanceAnchorQuery.current.code },
-						lifecycle: { eq: 'SEALED' }
+						lifecycle: { eq: 'SEALED' },
+						approval_id: { isNull: true }
 					},
 					limit: 100
 				})
@@ -211,80 +217,75 @@
 	});
 	const balanceLedgerRows = $derived(
 		(balanceLedgerQuery?.current ?? []).flatMap((row) => {
-			if (row.from_date == null) return [];
-			return [
-				{
-					employment_id: row.employment_id,
-					id: row.id,
-					leave_type_id: row.leave_type_id,
-					entry_date: formatDateISO(row.from_date),
-					kind: row.kind ?? 'TAKEN',
-					days:
-						row.kind === 'TIME_OFF' ? -Math.abs(decodeNumber(row.days)) : decodeNumber(row.days),
-					source_id: null,
-					approval_id: null,
-					...(row.event?.kind === 'CARRY_FORWARD'
-						? {
-								leave_year: typeof row.event.leave_year === 'number' ? row.event.leave_year : null,
-								expires_on: typeof row.event.expires_on === 'string' ? row.event.expires_on : null
-							}
-						: {})
-				}
-			];
+			const entry = ledgerRowOf(row);
+			return entry == null ? [] : [{ ...entry, employment_id: row.employment_id }];
 		})
 	);
-	const balancePersonRows = $derived.by(() => {
-		const profile = balanceProfile;
-		const company = balanceCompanyQuery?.current;
-		const types = balanceTypesQuery?.current;
-		if (profile == null || company == null || types == null) return [];
-		const yearStart = decodeNumber(company.leave_year_start_month);
-		const ledgerByEmployment = new Map<string, typeof balanceLedgerRows>();
-		for (const row of balanceLedgerRows) {
-			const bucket = ledgerByEmployment.get(row.employment_id) ?? [];
-			bucket.push(row);
-			ledgerByEmployment.set(row.employment_id, bucket);
-		}
-		const childrenByEmployment = new Map<string, ChildFact[]>();
-		for (const child of balanceChildrenQuery?.current ?? []) {
-			const bucket = childrenByEmployment.get(child.employment_id) ?? [];
-			bucket.push(child);
-			childrenByEmployment.set(child.employment_id, bucket);
-		}
-		return balanceEmployments.flatMap((employment) => {
-			const hire = formatDateISO(employment.hire_date) || today;
-			const exit =
-				employment.exit_date == null ? null : (formatDateISO(employment.exit_date) ?? null);
-			return types
-				.filter((type) => type.statutory_profile_id === profile.id)
-				.map((type) => ({
-					employment,
-					type,
-					summary: leaveYearSummary(
-						{
-							leaveType: type,
-							entitlementAt: (serviceMonths: number, asOf: string) =>
-								resolveEntitlement({
+	const balancePersonRowsResult = $derived.by(() => {
+		try {
+			const profile = balanceProfile;
+			const company = balanceCompanyQuery?.current;
+			const types = balanceTypesQuery?.current;
+			if (profile == null || company == null || types == null) return { rows: [], error: null };
+			const yearStart = decodeNumber(company.leave_year_start_month);
+			const ledgerByEmployment = new Map<string, typeof balanceLedgerRows>();
+			for (const row of balanceLedgerRows) {
+				const bucket = ledgerByEmployment.get(row.employment_id) ?? [];
+				bucket.push(row);
+				ledgerByEmployment.set(row.employment_id, bucket);
+			}
+			const childrenByEmployment = new Map<string, ChildFact[]>();
+			for (const child of balanceChildrenQuery?.current ?? []) {
+				const bucket = childrenByEmployment.get(child.employment_id) ?? [];
+				bucket.push(child);
+				childrenByEmployment.set(child.employment_id, bucket);
+			}
+			return {
+				rows: balanceEmployments.flatMap((employment) => {
+					const hire = formatDateISO(employment.hire_date) || today;
+					const exit =
+						employment.exit_date == null ? null : (formatDateISO(employment.exit_date) ?? null);
+					return types
+						.filter((type) =>
+							statutoryProfileLineage(balanceProfilesQuery?.current ?? [], profile).some(
+								(entry) => entry.id === type.statutory_profile_id
+							)
+						)
+						.map((type) => ({
+							employment,
+							type,
+							summary: leaveYearSummary(
+								{
 									leaveType: type,
-									profile,
-									children: childrenByEmployment.get(employment.id) ?? [],
-									serviceMonths,
-									employmentId: employment.id,
-									asOf
-								}),
-							hireDate: hire,
-							exitDate: exit,
-							leaveYearStartMonth: yearStart,
-							ledger: (ledgerByEmployment.get(employment.id) ?? []).filter(
-								(row) => row.leave_type_id === type.id
-							),
-							basis: 'SETTLED' as const
-						},
-						today
-					)
-				}));
-		});
+									entitlementAt: (serviceMonths: number, asOf: string) =>
+										resolveEntitlementAt({
+											leaveType: type,
+											profiles: balanceProfilesQuery?.current ?? [],
+											jurisdictionCode: profile.code,
+											children: childrenByEmployment.get(employment.id) ?? [],
+											serviceMonths,
+											employmentId: employment.id,
+											asOf
+										}),
+									hireDate: hire,
+									exitDate: exit,
+									leaveYearStartMonth: yearStart,
+									ledger: (ledgerByEmployment.get(employment.id) ?? []).filter(
+										(row) => row.leave_type_id === type.id
+									),
+									basis: 'SETTLED' as const
+								},
+								today
+							)
+						}));
+				}),
+				error: null
+			};
+		} catch (cause) {
+			return { rows: [], error: getErrorMessage(cause) };
+		}
 	});
+	const balancePersonRows = $derived(balancePersonRowsResult.rows);
 
 	/* ── Year-end: the last processed year, its posted fact, and the button for the next ── */
 
@@ -343,33 +344,6 @@
 	 * carries no actor column, so "who ran it" is the posted fact itself — the year, its row
 	 * count and its totals — plus the last invocation result below while this session holds it.
 	 */
-	function runYearEnd(): void {
-		if (selectedCompanyId == null || yearEndPending) return;
-		const companyId = selectedCompanyId;
-		const leaveYear = nextYear;
-		yearEndPending = true;
-		yearEndError = null;
-		yearEndResult = null;
-		Effect.runFork(
-			Effect.tryPromise({
-				try: () =>
-					client.invoke.process_leave_year({ company_id: companyId, leave_year: leaveYear }),
-				catch: (cause) => cause
-			}).pipe(
-				Effect.tap((result) =>
-					Effect.sync(() => {
-						yearEndResult = result as YearEndResult;
-					})
-				),
-				Effect.catch((cause) =>
-					Effect.sync(() => {
-						yearEndError = getErrorMessage(cause);
-					})
-				),
-				Effect.ensuring(Effect.sync(() => (yearEndPending = false)))
-			)
-		);
-	}
 </script>
 
 <svelte:head>
@@ -541,6 +515,32 @@
 	{/if}
 {/snippet}
 
+{#snippet allocations()}
+	{#if selectedCompanyId != null}
+		<Stack gap="md">
+			<p class="text-sm text-muted-foreground">{t('app.leave.allocations_description')}</p>
+			<CollectionTable
+				{client}
+				collection="leave_allocations"
+				view={`hr_controller:leave:allocations:${selectedCompanyId}`}
+				query={{
+					where: { allocation_employment: { some: { company_id: { eq: selectedCompanyId } } } },
+					orderBy: { expires_on: 'asc' }
+				}}
+			>
+				{#snippet columns({ Column })}
+					<Column name="event_reference" card="title" />
+					<Column name="employment_id" />
+					<Column name="leave_type_id" />
+					<Column name="allocated_days" />
+					<Column name="starts_on" />
+					<Column name="expires_on" />
+				{/snippet}
+			</CollectionTable>
+		</Stack>
+	{/if}
+{/snippet}
+
 {#snippet balances()}
 	{#if companiesError}
 		<p class="py-8 text-center text-sm text-destructive">{companiesError.message}</p>
@@ -561,7 +561,11 @@
 							{t('app.leave.balances_description', { date: formatCalendarDate(today) })}
 						</p>
 					</Stack>
-					{#if balancePersonRows.length === 0}
+					{#if balancePersonRowsResult.error != null}
+						<Alert variant="destructive"
+							><AlertDescription>{balancePersonRowsResult.error}</AlertDescription></Alert
+						>
+					{:else if balancePersonRows.length === 0}
 						<p class="text-sm text-muted-foreground">{t('app.leave.balances_empty')}</p>
 					{:else}
 						<div class="overflow-x-auto rounded-xl border bg-card shadow-sm">
@@ -709,7 +713,40 @@
 								/>
 							</Stack>
 						</label>
-						<Button size="sm" disabled={yearEndPending} onclick={runYearEnd}>
+						<Button
+							size="sm"
+							disabled={yearEndPending}
+							onclick={() => {
+								if (selectedCompanyId == null || yearEndPending) return;
+								const companyId = selectedCompanyId;
+								const leaveYear = nextYear;
+								yearEndPending = true;
+								yearEndError = null;
+								yearEndResult = null;
+								Effect.runFork(
+									Effect.tryPromise({
+										try: () =>
+											client.invoke.process_leave_year({
+												company_id: companyId,
+												leave_year: leaveYear
+											}),
+										catch: (cause) => cause
+									}).pipe(
+										Effect.tap((result) =>
+											Effect.sync(() => {
+												yearEndResult = result as YearEndResult;
+											})
+										),
+										Effect.catch((cause) =>
+											Effect.sync(() => {
+												yearEndError = getErrorMessage(cause);
+											})
+										),
+										Effect.ensuring(Effect.sync(() => (yearEndPending = false)))
+									)
+								);
+							}}
+						>
 							{yearEndPending
 								? t('app.leave.yearend_running')
 								: t('app.leave.yearend_run', { year: nextYear })}
@@ -766,6 +803,12 @@
 				label: t('app.leave.tab_balances'),
 				icon: 'lucide:scale',
 				content: balances
+			},
+			{
+				name: 'allocations',
+				label: t('app.leave.tab_allocations'),
+				icon: 'lucide:calendar-check',
+				content: allocations
 			},
 			{
 				name: 'yearend',

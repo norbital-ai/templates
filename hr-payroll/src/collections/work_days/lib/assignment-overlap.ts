@@ -23,6 +23,8 @@ import {
 	type ValidationDay
 } from '../../../lib/scheduling/workforce-validation.js';
 import type { Api, WorkspaceRow } from '../$types.js';
+import type { Api as AuthoringApi } from '@norbital-ai/bolt/authoring';
+import type { WorkspaceSchema } from '$bolt/types';
 
 const QUERY_LIMIT = 20_000;
 const DAY_MS = 86_400_000;
@@ -72,7 +74,7 @@ function addDays(date: string, amount: number): string {
 
 /** The four reads. Data only — every refusal below is `assertNoOverlap`'s. */
 export function readOverlapData(
-	api: Api,
+	api: AuthoringApi<WorkspaceSchema, unknown>,
 	changes: readonly AssignmentChange[]
 ): Effect.Effect<OverlapData, never, never> {
 	return Effect.gen(function* () {

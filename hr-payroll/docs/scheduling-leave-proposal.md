@@ -276,8 +276,8 @@ from the same screen.
 default max distance 0.4) over `APPROVED` rows and returns the current in-force employment.
 Recognition runs in the tablet browser (`@vladmandic/human`: blazeface detector, faceres
 descriptor; WebGL with WASM fallback; ~60–100 ms warm, one ~7 s cold load per device). Model
-weights ship in `assets/models/human/` and are served from the workspace asset route — no CDN,
-nothing in a package cache. A punch additionally requires the antispoof `real` floor and a
+weights are emitted by Vite from the pinned Human package into the immutable browser artifact at
+`/__bolt/static/models/human/`. No CDN or install script is required. A punch additionally requires the antispoof `real` floor and a
 blink-to-confirm inside a 6 s window; a still photo cannot blink. A video replay on a second
 phone can — randomized look/blink challenges and cooldowns mitigate it; only depth hardware
 closes it. Thresholds live in `src/lib/kiosk/config.ts` and were bench-measured (see

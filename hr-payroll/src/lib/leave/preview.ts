@@ -1,5 +1,5 @@
 import { Effect, Schema } from 'effect';
-import { refuse, type SchemaQueryConfig } from '@norbital-ai/bolt/authoring';
+import { refuse, type Api, type SchemaQueryConfig } from '@norbital-ai/bolt/authoring';
 import type { WorkspaceSchema } from '$bolt/types.js';
 import type { WorkspaceRow } from '../../collections/leave_requests/$types.js';
 import { calendarDay, dateKey } from '../iso-day.js';
@@ -7,19 +7,21 @@ import { pointAt, pointNumber, type HalfDayRange } from '../half-day.js';
 import {
 	carryInto,
 	leaveBalance,
+	ledgerRowOf,
 	leaveYearOf,
-	resolveEntitlement,
+	resolveEntitlementAt,
 	type ChildFact,
 	type LedgerRow
 } from '../../collections/payroll_runs/lib/leave.js';
 import type { Jurisdiction, LeaveType } from '../../collections/payroll_runs/lib/configuration.js';
-import { sealedProfileCovering } from '../statutory_profile.js';
+import { sealedProfileCovering, leaveProfileRequired } from '../statutory_profile.js';
 import { coversDate } from '../../collections/payroll_runs/lib/effective.js';
 import { patternRosterCodeId } from '../scheduling/work-pattern.js';
 import { rosterCodeKind, workWindowHalves } from '../scheduling/roster-code.js';
 import { lockStateForDate, payrollWindows } from '../scheduling/lock.js';
 import { decodeNumber } from '@norbital-ai/std/json';
 import { calendarDaysThrough, leaveCalendarGridBounds } from './calendar-grid.js';
+import { withPendingLeaveRequests, type LeaveBalanceRequest } from './pending.js';
 
 /**
  * Calendar day of a stored work_date in the payroll timezone.
@@ -63,6 +65,7 @@ const leavePreviewRangeSchema = Schema.Struct({
 export const previewLeaveInputSchema = Schema.Struct({
 	employment_id: Schema.String.check(Schema.isUUID()),
 	leave_type_id: Schema.String.check(Schema.isUUID()),
+	allocation_id: Schema.optionalKey(Schema.String.check(Schema.isUUID())),
 	calendar_month: Schema.optionalKey(
 		Schema.String.check(Schema.isPattern(/^\d{4}-(0[1-9]|1[0-2])$/))
 	),
@@ -85,7 +88,10 @@ const leavePreviewIssueCodes = [
 	'MISSING_PROFILE',
 	'MISSING_JURISDICTION',
 	'WINDOW_REQUIRED',
-	'PAGE_TRUNCATED'
+	'PAGE_TRUNCATED',
+	'ALLOCATION_REQUIRED',
+	'ALLOCATION_WINDOW',
+	'LEAVE_NOT_AVAILABLE'
 ] as const;
 type LeavePreviewIssueCode = (typeof leavePreviewIssueCodes)[number];
 
@@ -95,6 +101,8 @@ type LeavePreviewIssue = {
 };
 
 const leaveDayReasonCodes = [
+	'LEAVE_NOT_AVAILABLE',
+	'OUTSIDE_ALLOCATION',
 	'HOLIDAY',
 	'REST_OR_OFF',
 	'OTHER_LEAVE',
@@ -117,6 +125,12 @@ export type LeaveDayPreview = {
 };
 
 export type LeavePreview = {
+	readonly allocation_balance?: {
+		readonly allocated: number;
+		readonly approved: number;
+		readonly pending: number;
+		readonly remaining: number;
+	};
 	readonly remaining_days: number | null;
 	readonly chargeable_days: number | null;
 	readonly encashed: boolean;
@@ -140,18 +154,7 @@ type SettledRunRow = Pick<
 	WorkspaceRow<'payroll_runs'>,
 	'period' | 'lifecycle' | 'attendance_from' | 'attendance_to'
 >;
-type RequestRow = Pick<
-	WorkspaceRow<'leave_requests'>,
-	| 'id'
-	| 'employment_id'
-	| 'leave_type_id'
-	| 'kind'
-	| 'from_date'
-	| 'to_date'
-	| 'days'
-	| 'event'
-	| 'approval_id'
->;
+type RequestRow = LeaveBalanceRequest;
 
 type QueryRows<N extends keyof WorkspaceSchema['tables'] & string, Row> = {
 	findMany(options: SchemaQueryConfig<WorkspaceSchema, N>): Effect.Effect<Row[], never, never>;
@@ -181,7 +184,9 @@ export type LeavePreviewApi = {
 		company_holidays: QueryRows<'company_holidays', CompanyHolidayRow>;
 		employment_terms: QueryRows<'employment_terms', EmploymentTermRow>;
 		work_days: QueryRows<'work_days', WorkDayRow>;
-		leave_requests: QueryRows<'leave_requests', RequestRow>;
+		leave_requests: QueryRows<'leave_requests', RequestRow> &
+			Pick<Api<WorkspaceSchema>['db']['leave_requests'], 'findPending'>;
+		leave_allocations: QueryRows<'leave_allocations', WorkspaceRow<'leave_allocations'>>;
 		payroll_runs: QueryRows<'payroll_runs', SettledRunRow>;
 		shift_definitions: QueryRows<'shift_definitions', RosterCodeRow>;
 	};
@@ -204,6 +209,7 @@ type LeavePreviewFacts = {
 	readonly workDays: readonly WorkDayRow[];
 	readonly overlappingTimeOff: readonly RequestRow[];
 	readonly ledger: readonly RequestRow[];
+	readonly allocations: readonly WorkspaceRow<'leave_allocations'>[];
 	readonly encashed: boolean;
 	readonly settledRuns: readonly SettledRunRow[];
 	readonly rosterCodes: readonly RosterCodeRow[];
@@ -316,6 +322,39 @@ function dayPreview(
 	hireDate: string,
 	exitDate: string | null
 ): { readonly day: LeaveDayPreview; readonly issue: LeavePreviewIssue | null } {
+	try {
+		if (
+			leaveProfileRequired(
+				facts.sealedProfiles,
+				facts.jurisdictionCode,
+				facts.leaveType.statutory_profile_id,
+				date
+			) == null
+		)
+			return {
+				day: { eligible: false, reason_code: 'LEAVE_NOT_AVAILABLE', reason_mark: '—' },
+				issue: null
+			};
+	} catch {
+		return {
+			day: { eligible: false, reason_code: 'LEAVE_NOT_AVAILABLE', reason_mark: '—' },
+			issue: null
+		};
+	}
+	if (facts.leaveType.accrual.kind === 'PER_EVENT') {
+		const allocation = facts.allocations.find(
+			(row) => row.id === input.allocation_id && row.approval_id == null
+		);
+		if (
+			!allocation ||
+			date < dateKey(allocation.starts_on) ||
+			date > dateKey(allocation.expires_on)
+		)
+			return {
+				day: { eligible: false, reason_code: 'OUTSIDE_ALLOCATION', reason_mark: '—' },
+				issue: null
+			};
+	}
 	if (date < hireDate) {
 		return {
 			day: { eligible: false, reason_code: 'BEFORE_HIRE', reason_mark: '—' },
@@ -398,27 +437,9 @@ function dayPreview(
 
 function projectedLedger(facts: LeavePreviewFacts, excludeId: string | undefined): LedgerRow[] {
 	return facts.ledger.flatMap((row) => {
-		if (row.id === excludeId || row.from_date == null) return [];
-		return [
-			{
-				id: row.id,
-				leave_type_id: row.leave_type_id,
-				entry_date: payrollDayKey(row.from_date),
-				kind: row.kind,
-				days: row.kind === 'TIME_OFF' ? -Math.abs(decodeNumber(row.days)) : decodeNumber(row.days),
-				source_id: null,
-				approval_id: row.approval_id,
-				// A posted carry names the year it opens and the day it lapses on its event; without
-				// both, the read falls back to the entry year and no expiry, which understates lapsed
-				// days. Point movements carry neither and read nothing here.
-				...(row.event?.kind === 'CARRY_FORWARD'
-					? {
-							leave_year: typeof row.event.leave_year === 'number' ? row.event.leave_year : null,
-							expires_on: typeof row.event.expires_on === 'string' ? row.event.expires_on : null
-						}
-					: {})
-			}
-		];
+		if (row.id === excludeId) return [];
+		const entry = ledgerRowOf(row);
+		return entry == null ? [] : [entry];
 	});
 }
 
@@ -543,6 +564,13 @@ export function evaluateLeavePreview(
 		let chargedHalfDays = 0;
 		for (let number = pointNumber(range.start); number <= pointNumber(range.end); number += 1) {
 			const date = pointAt(number).date;
+			if (
+				availability[date]?.reason_code === 'LEAVE_NOT_AVAILABLE' &&
+				!issues.some((entry) => entry.code === 'LEAVE_NOT_AVAILABLE')
+			)
+				issues.push(
+					issue('LEAVE_NOT_AVAILABLE', 'This leave type is not approved for the selected dates.')
+				);
 			const eligibility = workEligible(date, facts, rosterCodeById, plannedByDate, holidayDates);
 			if (eligibility.work) chargedHalfDays += 1;
 		}
@@ -558,8 +586,66 @@ export function evaluateLeavePreview(
 	}
 
 	let remaining_days: number | null = null;
+	let allocation_balance: LeavePreview['allocation_balance'];
 	let carry_note: string | null = null;
-	if (facts.leaveType.accrual?.kind !== 'PER_EVENT') {
+	if (facts.leaveType.accrual?.kind === 'PER_EVENT') {
+		const allocation = facts.allocations.find(
+			(row) =>
+				row.id === input.allocation_id &&
+				row.approval_id == null &&
+				row.employment_id === input.employment_id &&
+				row.leave_type_id === input.leave_type_id
+		);
+		if (!allocation) {
+			remaining_days = 0;
+			issues.push(
+				issue(
+					'ALLOCATION_REQUIRED',
+					'Select an approved allocation for this qualifying event before requesting leave.'
+				)
+			);
+		} else {
+			let reserved = 0;
+			let pending = 0;
+			for (const row of facts.ledger) {
+				if (
+					row.id === input.exclude_request_id ||
+					row.allocation_id !== allocation.id ||
+					row.event?.kind !== 'TIME_OFF'
+				)
+					continue;
+				reserved += decodeNumber(row.event.chargeable_days);
+				if (row.approval_id != null) pending += decodeNumber(row.event.chargeable_days);
+			}
+			remaining_days = decodeNumber(allocation.allocated_days) - reserved;
+			allocation_balance = {
+				allocated: decodeNumber(allocation.allocated_days),
+				approved: reserved - pending,
+				pending,
+				remaining: remaining_days
+			};
+			const start = dateKey(allocation.starts_on);
+			const end = dateKey(allocation.expires_on);
+			if (range && (range.start.date < start || range.end.date > end))
+				issues.push(
+					issue('ALLOCATION_WINDOW', `This allocation may be used from ${start} through ${end}.`)
+				);
+			if (chargeable_days != null && chargeable_days > remaining_days + 1e-9)
+				issues.push(
+					issue(
+						'OVERDRAW',
+						`This event has ${Math.max(0, remaining_days)} day(s) available after approved and pending requests; this range charges ${chargeable_days} day(s).`
+					)
+				);
+		}
+	} else {
+		if (input.allocation_id != null)
+			issues.push(
+				issue(
+					'ALLOCATION_REQUIRED',
+					'Annual leave uses its accrued balance and cannot consume an event allocation.'
+				)
+			);
 		const asOf = asOfDate(input, window);
 		if (facts.jurisdictionCode.length === 0) {
 			issues.push(
@@ -570,9 +656,7 @@ export function evaluateLeavePreview(
 			);
 		} else {
 			try {
-				// Same pick as the employee panel: the profile covering the as-of date, not each
-				// historical month. Carry-forward walks back to hire; a 2026-only seal must still
-				// resolve a 2019 start.
+				// Verify the request date first; each accrual month uses its own approved law.
 				const profile = sealedProfileCovering(facts.sealedProfiles, facts.jurisdictionCode, asOf);
 				if (profile == null) {
 					throw new Error(
@@ -581,9 +665,10 @@ export function evaluateLeavePreview(
 					);
 				}
 				const entitlementAt = (serviceMonths: number, entitlementAsOf: string) =>
-					resolveEntitlement({
+					resolveEntitlementAt({
 						leaveType: facts.leaveType,
-						profile,
+						profiles: facts.sealedProfiles,
+						jurisdictionCode: facts.jurisdictionCode,
 						children: facts.children,
 						serviceMonths,
 						employmentId: facts.employment.id,
@@ -629,6 +714,7 @@ export function evaluateLeavePreview(
 
 	return {
 		remaining_days,
+		...(allocation_balance == null ? {} : { allocation_balance }),
 		chargeable_days,
 		encashed: facts.encashed,
 		carry_note,
@@ -701,13 +787,13 @@ function loadLeavePreviewFacts(
 		].find((candidate) => candidate != null);
 		if (truncated != null) refuse(truncated.message);
 
-		const settledRuns = yield* api.db.payroll_runs
-			.findMany({
-				where: { company_id: { eq: employment.company_id }, lifecycle: { eq: 'PAID' } },
-				columns: { period: true, lifecycle: true, attendance_from: true, attendance_to: true },
-				limit: LEAVE_PREVIEW_QUERY_LIMIT
-			})
-			.pipe(Effect.orElseSucceed(() => []));
+		const settledRuns = yield* api.db.payroll_runs.findMany({
+			where: { company_id: { eq: employment.company_id }, lifecycle: { eq: 'PAID' } },
+			columns: { period: true, lifecycle: true, attendance_from: true, attendance_to: true },
+			limit: LEAVE_PREVIEW_QUERY_LIMIT
+		});
+		const settledTruncated = requireCompletePage(settledRuns, 'paid payroll');
+		if (settledTruncated != null) refuse(settledTruncated.message);
 
 		const encashedRows = yield* api.db.leave_requests.findMany({
 			where: {
@@ -754,13 +840,23 @@ function loadLeavePreviewFacts(
 			anchor == null
 				? []
 				: yield* api.db.jurisdictions.findMany({
-						where: { code: { eq: anchor.code }, lifecycle: { eq: 'SEALED' } },
+						where: {
+							code: { eq: anchor.code },
+							lifecycle: { eq: 'SEALED' },
+							approval_id: { isNull: true }
+						},
 						limit: LEAVE_PREVIEW_QUERY_LIMIT
 					});
 		const childFacts = yield* api.db.employee_children.findMany({
-			where: { employment_id: { eq: input.employment_id } },
+			where: { employment_id: { eq: input.employment_id }, approval_id: { isNull: true } },
 			limit: LEAVE_PREVIEW_QUERY_LIMIT
 		});
+		for (const truncated of [
+			requireCompletePage(profileRows, 'statutory profile'),
+			requireCompletePage(childFacts, 'employee child')
+		]) {
+			if (truncated != null) refuse(truncated.message);
+		}
 		const allLedger = yield* api.db.leave_requests.findMany({
 			where: {
 				employment_id: { eq: input.employment_id },
@@ -770,6 +866,25 @@ function loadLeavePreviewFacts(
 		});
 		const ledgerTruncated = requireCompletePage(allLedger, 'leave ledger');
 		if (ledgerTruncated != null) refuse(ledgerTruncated.message);
+		const requested = yield* withPendingLeaveRequests(
+			api,
+			input.employment_id,
+			[...new Map([...overlappingTimeOff, ...allLedger].map((row) => [row.id, row])).values()],
+			input.exclude_request_id
+		);
+		const allocations =
+			leaveType.accrual.kind === 'PER_EVENT'
+				? yield* api.db.leave_allocations.findMany({
+						where: {
+							employment_id: { eq: input.employment_id },
+							leave_type_id: { eq: input.leave_type_id },
+							approval_id: { isNull: true }
+						},
+						limit: LEAVE_PREVIEW_QUERY_LIMIT
+					})
+				: [];
+		const allocationTruncated = requireCompletePage(allocations, 'event allocations');
+		if (allocationTruncated != null) refuse(allocationTruncated.message);
 
 		return {
 			employment: {
@@ -786,8 +901,9 @@ function loadLeavePreviewFacts(
 			holidays,
 			terms,
 			workDays,
-			overlappingTimeOff,
-			ledger: allLedger,
+			overlappingTimeOff: requested.filter((row) => row.event.kind === 'TIME_OFF'),
+			ledger: requested.filter((row) => row.leave_type_id === input.leave_type_id),
+			allocations,
 			encashed: encashedRows.length > 0,
 			settledRuns,
 			rosterCodes,

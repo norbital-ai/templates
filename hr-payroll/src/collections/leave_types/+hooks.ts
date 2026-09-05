@@ -17,37 +17,69 @@ export default {
 			before: {
 				description:
 					'Refuses any write on a catalogue row whose statutory profile is SEALED or VOIDED; rows of a DRAFT profile may be prepared and edited until the seal.',
-				handler: ({ input, existing, api }) => {
-					const profileId = input.statutory_profile_id ?? existing?.statutory_profile_id;
-					if (profileId == null) refuse('A leave type states the statutory profile it belongs to.');
-					return Effect.flatMap(
-						api.db.jurisdictions.findFirst({
-							where: { id: { eq: String(profileId) } },
-							columns: { lifecycle: true, statutory_leave: true }
-						}),
-						(profile) => {
-							if (profile == null)
-								refuse('The statutory profile this leave type names does not exist.');
-							if (profile.lifecycle !== 'DRAFT')
+				handler: ({ input, existing, api }) =>
+					Effect.gen(function* () {
+						if (
+							existing != null &&
+							input.statutory_profile_id != null &&
+							input.statutory_profile_id !== existing.statutory_profile_id
+						) {
+							const prior = yield* api.db.jurisdictions.findFirst({
+								where: { id: { eq: existing.statutory_profile_id } },
+								columns: { lifecycle: true, approval_id: true }
+							});
+							if (prior?.lifecycle !== 'DRAFT' || prior.approval_id != null)
 								refuse(
-									'The statutory profile this leave type belongs to is sealed, so its catalogue ' +
-										'is frozen. Enact a new profile version to change the catalogue.'
+									'A sealed leave type cannot be moved to another profile. Add a new leave code to the successor draft.'
 								);
-							// A stated kind must be one the profile's statutory leave member actually floors;
-							// a kind the profile does not answer would merge a floor from nothing.
-							const kind = input.statutory_kind ?? existing?.statutory_kind;
-							if (kind != null) {
-								const stated = profile.statutory_leave.some((member) => member.kind === kind);
-								if (!stated)
-									refuse(
-										`The statutory profile states no floor for statutory leave kind ${kind}. ` +
-											'Add the kind to the profile, or leave the type without a statutory kind.'
-									);
-							}
-							return Effect.succeed(input);
 						}
-					);
-				}
+						const profileId = input.statutory_profile_id ?? existing?.statutory_profile_id;
+						if (profileId == null)
+							refuse('A leave type states the statutory profile it belongs to.');
+						return yield* Effect.flatMap(
+							api.db.jurisdictions.findFirst({
+								where: { id: { eq: String(profileId) } },
+								columns: { lifecycle: true, approval_id: true, statutory_leave: true }
+							}),
+							(profile) => {
+								if (profile == null)
+									refuse('The statutory profile this leave type names does not exist.');
+								if (profile.lifecycle !== 'DRAFT' || profile.approval_id != null)
+									refuse(
+										'The statutory profile this leave type belongs to is sealed, so its catalogue ' +
+											'is frozen. Enact a new profile version to change the catalogue.'
+									);
+								// A stated kind must be one the profile's statutory leave member actually floors;
+								// a kind the profile does not answer would merge a floor from nothing.
+								const kind = input.statutory_kind ?? existing?.statutory_kind;
+								if (kind != null) {
+									const stated = profile.statutory_leave.some((member) => member.kind === kind);
+									if (!stated)
+										refuse(
+											`The statutory profile states no floor for statutory leave kind ${kind}. ` +
+												'Add the kind to the profile, or leave the type without a statutory kind.'
+										);
+								}
+								return Effect.succeed(input);
+							}
+						);
+					})
+			}
+		}
+	},
+	delete: {
+		perRecord: {
+			before: {
+				description: 'Only a draft profile may have leave types removed.',
+				handler: ({ existing, api }) =>
+					Effect.gen(function* () {
+						const profile = yield* api.db.jurisdictions.findFirst({
+							where: { id: { eq: existing.statutory_profile_id } },
+							columns: { lifecycle: true, approval_id: true }
+						});
+						if (profile?.lifecycle !== 'DRAFT' || profile.approval_id != null)
+							refuse('A sealed leave type cannot be deleted.');
+					})
 			}
 		}
 	}

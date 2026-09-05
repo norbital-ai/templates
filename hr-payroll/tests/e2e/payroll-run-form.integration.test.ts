@@ -25,17 +25,6 @@ const rewriteBoltBrowserPath = (pathname: string): string => {
 	return pathname;
 };
 
-const ACTIVATE = `const activate = (node) => {
-	if (!(node instanceof HTMLElement)) return;
-	node.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, clientY: 0 }));
-	node.dispatchEvent(new PointerEvent('pointerup', { bubbles: true, clientY: 0 }));
-	node.click();
-};
-const buttonMatching = (pattern) =>
-	[...document.querySelectorAll('button')].find((button) =>
-		pattern.test(((button.textContent ?? '') + ' ' + (button.getAttribute('aria-label') ?? '')).trim())
-	);`;
-
 const waitFor = async (
 	page: HeadedPage,
 	expression: string,
@@ -53,68 +42,10 @@ const waitFor = async (
 	throw new Error(`${label} timeout: ${last.slice(0, 1200)}`);
 };
 
-/** Opens a combobox by its accessible name, filters it, and activates the first matching option. */
-const chooseOption = async (page: HeadedPage, name: string, filter: string, label: string) => {
-	assert.equal(
-		await waitFor(
-			page,
-			`(() => {
-				${ACTIVATE}
-				const trigger = [...document.querySelectorAll('[role="combobox"]')].find(
-					(node) => (node.getAttribute('aria-label') ?? '') === ${JSON.stringify(name)}
-				);
-				if (!(trigger instanceof HTMLElement))
-					return 'missing-trigger:' + JSON.stringify([...document.querySelectorAll('[role="combobox"]')].map((node) => node.getAttribute('aria-label')));
-				if (trigger.getAttribute('aria-expanded') !== 'true') activate(trigger);
-				return 'opened';
-			})()`,
-			(value) => value === 'opened',
-			`${label}-open`
-		),
-		'opened'
-	);
-	assert.equal(
-		await waitFor(
-			page,
-			`(() => {
-				${ACTIVATE}
-				const search = document.querySelector('[role="listbox"] input[type="text"], [cmdk-input], input[placeholder^="Search"]');
-				if (search instanceof HTMLInputElement) {
-					const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')?.set;
-					setter?.call(search, ${JSON.stringify(filter)});
-					search.dispatchEvent(new Event('input', { bubbles: true }));
-				}
-				const option = [...document.querySelectorAll('[role="option"]')].find((node) =>
-					(node.textContent ?? '').includes(${JSON.stringify(filter)})
-				);
-				if (!(option instanceof HTMLElement))
-					return (
-						'missing-option:' +
-						JSON.stringify({
-							trigger: [...document.querySelectorAll('[role="combobox"]')].map((node) => ({
-								label: node.getAttribute('aria-label'),
-								expanded: node.getAttribute('aria-expanded'),
-								disabled: node.hasAttribute('disabled')
-							})),
-							listbox: document.querySelector('[role="listbox"]') !== null,
-							sync: (window.__syncLog ?? []).slice(-3),
-							body: (document.body.innerText ?? '').slice(0, 300),
-							search: search instanceof HTMLInputElement ? search.value : null,
-							options: [...document.querySelectorAll('[role="option"]')]
-								.slice(0, 12)
-								.map((node) => (node.textContent ?? '').trim())
-						})
-					);
-				// A plain click: synthetic pointer events on a portalled option read as an outside
-				// interaction to the sheet and close it.
-				option.click();
-				return 'chosen';
-			})()`,
-			(value) => value === 'chosen',
-			`${label}-choose`
-		),
-		'chosen'
-	);
+/** Select from the form; the page's entity scope has the same accessible name. */
+const chooseOption = async (page: HeadedPage, name: string, filter: string) => {
+	await page.click(`[role="dialog"] [role="combobox"][aria-label="${name}"]`);
+	await page.click(`[role="option"]:has-text("${filter}")`);
 };
 
 /**
@@ -123,42 +54,33 @@ const chooseOption = async (page: HeadedPage, name: string, filter: string, labe
  * combobox, so there is no filter input and no `[role="option"]` to choose from.
  */
 const chooseMonth = async (page: HeadedPage, name: string, month: string, label: string) => {
-	assert.equal(
+	await page.click(`[role="dialog"] button[data-month-picker][aria-label="${name}"]`);
+	let year = Number(
 		await waitFor(
 			page,
-			`(() => {
-				${ACTIVATE}
-				const trigger = [...document.querySelectorAll('button')].find(
-					(node) => (node.getAttribute('aria-label') ?? '') === ${JSON.stringify(name)}
-				);
-				if (!(trigger instanceof HTMLElement)) return 'missing-trigger';
-				const cell = document.querySelector(${JSON.stringify(`[data-month="${month}"]`)});
-				if (cell === null) {
-					if (document.querySelector('[data-month-grid]') === null) activate(trigger);
-					const year = Number(
-						(document.querySelector('[data-month-picker-year]')?.textContent ?? '').trim()
-					);
-					const target = Number(${JSON.stringify(month.slice(0, 4))});
-					if (Number.isFinite(year) && Number.isFinite(target) && year !== target) {
-						const nav = [...document.querySelectorAll('button')].find(
-							(node) =>
-								(node.getAttribute('aria-label') ?? '') ===
-								(target < year ? 'Previous year' : 'Next year')
-						);
-						if (nav instanceof HTMLElement) activate(nav);
-					}
-					return 'opening';
-				}
-				if (!(cell instanceof HTMLElement)) return 'missing-cell';
-				if (cell.hasAttribute('disabled')) return 'disabled-cell';
-				cell.click();
-				return 'chosen';
-			})()`,
-			(value) => value === 'chosen',
-			`${label}-choose`
-		),
-		'chosen'
+			'document.querySelector("[data-month-picker-year]")?.textContent?.trim()',
+			(value) => /^\d{4}$/.test(value),
+			`${label}-year`
+		)
 	);
+	const target = Number(month.slice(0, 4));
+	assert.ok(
+		Math.abs(target - year) <= 5,
+		'The fixture month must lie inside the payroll offer window.'
+	);
+	while (year !== target) {
+		const next = year + (target < year ? -1 : 1);
+		await page.click(`button[aria-label="${target < year ? 'Previous year' : 'Next year'}"]`);
+		year = Number(
+			await waitFor(
+				page,
+				'document.querySelector("[data-month-picker-year]")?.textContent?.trim()',
+				(value) => Number(value) === next,
+				`${label}-year-change`
+			)
+		);
+	}
+	await page.click(`button[data-month="${month}"]`);
 };
 
 /**
@@ -196,57 +118,28 @@ it('HR payroll run form closes on create and the new draft appears in the runs t
 					credential: session.credential
 				})
 		});
-		browser = await launchChromiumOrSkip();
+		browser = await launchChromiumOrSkip(`(() => {
+			window.__payrollErrors = [];
+			window.addEventListener('error', (event) => window.__payrollErrors.push(event.error?.stack ?? event.message));
+			window.addEventListener('unhandledrejection', (event) => window.__payrollErrors.push(String(event.reason)));
+		})()`);
 		if (browser === undefined) return;
 		const page = await browser.openPage(
 			guestUrlForChromium('127.0.0.1', gateway.address.port, '/app/hr_controller/payroll')
 		);
-		await page.evaluate(
-			`document.elementFromPoint(24, 24)?.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }))`
-		);
-		// Record every sync control exchange so a stalled live query can be read off the failure.
-		await page.evaluate(`(() => {
-			window.__syncLog = [];
-			const original = window.fetch.bind(window);
-			window.fetch = async (input, init) => {
-				const response = await original(input, init);
-				const url = typeof input === 'string' ? input : input.url;
-				if (/\/sync\/(connect|extend)/.test(url)) {
-					const body = await response.clone().text();
-					window.__syncLog.push({ url, status: response.status, request: String(init?.body ?? '').slice(0, 400), response: body.slice(0, 600) });
-				}
-				return response;
-			};
-		})()`);
 		await waitFor(
 			page,
 			'document.body.innerText',
 			(text) => /Payroll cycles/.test(text),
 			'payroll-app'
 		);
-		assert.equal(
-			await waitFor(
-				page,
-				`(() => { ${ACTIVATE} const tab = [...document.querySelectorAll('[role="tab"]')].find((node) => /Payroll runs/.test(node.textContent ?? '')); if (!(tab instanceof HTMLElement)) return 'missing-tab'; activate(tab); return 'tab'; })()`,
-				(value) => value === 'tab',
-				'runs-tab'
-			),
-			'tab'
-		);
-		assert.equal(
-			await waitFor(
-				page,
-				`(() => { ${ACTIVATE} const create = buttonMatching(/New Payroll Run/); if (!(create instanceof HTMLElement)) return 'missing-create'; activate(create); return 'opened'; })()`,
-				(value) => value === 'opened',
-				'run-create'
-			),
-			'opened'
-		);
-		await chooseOption(page, 'Legal entity', 'Public Fixture Co', 'entity');
+		await page.click('[role="tab"]:has-text("Payroll runs")');
+		await page.click('button:has-text("New Payroll Run")');
+		await chooseOption(page, 'Legal entity', 'Public Fixture Co');
 		await waitFor(
 			page,
-			`(() => [...document.querySelectorAll('[role="combobox"]')].map((node) => (node.getAttribute('aria-label') ?? '') + '=' + (node.textContent ?? '').trim()).join('|'))()`,
-			(value) => value.includes('Legal entity=Public Fixture Co'),
+			`document.querySelector('[role="dialog"] [role="combobox"][aria-label="Legal entity"]')?.textContent`,
+			(value) => value.includes('Public Fixture Co'),
 			'entity-chosen'
 		);
 		await chooseMonth(page, 'Pay period', '2026-02', 'period');
@@ -256,15 +149,7 @@ it('HR payroll run form closes on create and the new draft appears in the runs t
 			(text) => /Salary month/.test(text),
 			'period-preview'
 		);
-		assert.equal(
-			await waitFor(
-				page,
-				`(() => { ${ACTIVATE} const submit = buttonMatching(/^Create payroll run$/); if (!(submit instanceof HTMLElement)) return 'missing-submit'; activate(submit); return 'clicked'; })()`,
-				(value) => value === 'clicked',
-				'run-submit'
-			),
-			'clicked'
-		);
+		await page.click('[role="dialog"] button:text-is("Create payroll run")');
 		// The sheet closes on its own once the write settles…
 		await waitFor(
 			page,
@@ -281,6 +166,7 @@ it('HR payroll run form closes on create and the new draft appears in the runs t
 			'run-in-table',
 			30_000
 		);
+		assert.equal(await page.evaluate('JSON.stringify(window.__payrollErrors)'), '[]');
 	} finally {
 		if (browser !== undefined) await browser.close();
 		if (gateway !== undefined) await gateway.stop();

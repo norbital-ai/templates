@@ -18,7 +18,7 @@
 import { Effect } from 'effect';
 import { dateKey } from '../../lib/iso-day.js';
 import { leaveBalance, resolveEntitlement, type LedgerRow } from '../payroll_runs/lib/leave.js';
-import { sealedProfileCovering } from '../../lib/statutory_profile.js';
+import { sealedProfileCovering, statutoryProfileRequired } from '../../lib/statutory_profile.js';
 import type { Hooks } from './$types.js';
 import { decodeNumber } from '@norbital-ai/std/json';
 
@@ -66,17 +66,19 @@ export default {
 										where: { id: { eq: company.jurisdiction_id } },
 										columns: { code: true }
 									});
-						const governingProfile =
+						const sealedProfiles =
 							anchor == null
-								? null
-								: sealedProfileCovering(
-										yield* api.db.jurisdictions.findMany({
-											where: { code: { eq: anchor.code }, lifecycle: { eq: 'SEALED' } },
-											limit: LIMIT
-										}),
-										anchor.code,
-										exitDate
-									);
+								? []
+								: yield* api.db.jurisdictions.findMany({
+										where: {
+											code: { eq: anchor.code },
+											lifecycle: { eq: 'SEALED' },
+											approval_id: { isNull: true }
+										},
+										limit: LIMIT
+									});
+						const governingProfile =
+							anchor == null ? null : sealedProfileCovering(sealedProfiles, anchor.code, exitDate);
 						if (governingProfile == null) return;
 
 						const ledger: LedgerRow[] = allRequests
@@ -126,7 +128,11 @@ export default {
 									entitlementAt: (serviceMonths: number, asOf: string) =>
 										resolveEntitlement({
 											leaveType: type,
-											profile: governingProfile,
+											profile: statutoryProfileRequired(
+												sealedProfiles,
+												governingProfile.code,
+												asOf
+											),
 											children: childFacts,
 											serviceMonths,
 											employmentId: employment.id,

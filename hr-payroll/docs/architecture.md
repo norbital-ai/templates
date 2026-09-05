@@ -71,13 +71,31 @@ Leave is not itself money. `leave_requests` is the approved event stream, `leave
 entitlement/accrual policy, and a mapped `pay_component` owns only the monetary effect (for example,
 unpaid-leave deduction or encashment).
 
+Event-based leave uses `leave_allocations`, not an annual bank or an unlimited per-request grant.
+Each allocation names a qualifying event, an employee, a leave type, approved workdays and an
+inclusive expiry. HR verifies eligibility and any shared household portion against the supporting
+evidence. A household allowance is not automatically granted in full to each parent. An allocation
+referenced by a request is immutable. Requests retain a restricting foreign key to it.
+
+Availability is the allocation minus approved requests and held approval proposals, across all
+leave years. Rejecting or withdrawing a proposal releases its reservation. Approval does not charge
+it twice: the stored request replaces the proposal by record identity. The picker and write hook
+share this calculation and enforce the eligible dates. Annual leave also includes pending proposals
+when checking its projected balance and overlapping dates.
+
 The statutory floor is not hand-typed per company: it lives on the sealed statutory profile's
 `statutory_leave` member, per canonical kind, scaled by the employee's child facts where the law
-conditions it. The company's own layers stay on the leave type as an effective-dated union:
+conditions it. The company's organisation and employee service bands stay on the sealed leave type:
 
 ```text
 effective entitlement = max(profile floor by statutory_kind, organisation layer, employee layer)
 ```
+
+A successor inherits existing leave codes by profile ancestry, preserving their identities and
+ledger history. New codes are authored on the successor draft and become available when that
+revision is approved and effective. Monthly accrual is zero before a new code's introduction;
+earlier months for existing codes continue using the law that governed those months. Sealed
+catalogue rows cannot be edited, deleted or moved into another draft.
 
 The same layering principle applies to claim and allowance caps in their pay-component definition:
 a cap is the most generous of the company's own organisation and employee layers — the statutory
@@ -94,8 +112,8 @@ The run names its law twice, as two different kinds of fact:
 
 ```text
 statutory_snapshot_id     real FK to the sealed statutory profile that governed the
-                          calculation. Engine-owned, restrict on the law's end, replaced whole on
-                          a draft recalculation, and append-only once a run is paid: legislation
+                          calculation. Engine-owned, restrict on the law's end, and frozen when
+                          the run is calculated: legislation
                           changes enact a new profile version, never an edit of a used one.
 calculation_version       the engine/build identity that interpreted the captured configuration.
                           A configuration hash identifies data, not code — without a durable
@@ -103,12 +121,13 @@ calculation_version       the engine/build identity that interpreted the capture
                           change would have no explanation on the run of what differed.
 ```
 
-Both are engine-owned derived columns: no policy grants a person the write, and a recalculation
-resolves them again from scratch rather than editing them in place.
+Both are engine-owned derived columns. Inputs, configuration and results freeze when the run is
+calculated. To change an unpaid draft, delete it and create a replacement against current inputs.
 
 ```text
-DRAFT run --recalculate--> DRAFT run --lock & pay--> PAID run
-                                               [immutable]
+DRAFT [frozen calculation] --mark paid in sequence--> PAID [immutable]
+        |
+        +--delete--> create a replacement draft
 ```
 
 YTD is summed from earlier paid statutory payslip lines. Leave balance is derived from approved
@@ -118,19 +137,21 @@ leave events. Neither requires a mutable ledger/cache collection.
 
 ### Run state
 
-One `payroll_runs` row is unique by company and period.
+One regular run is permitted per company and period. Ad hoc runs share that period, each with its
+own sequence and frozen inputs. They settle the difference from the paid runs already in the month,
+including cumulative statutory ceilings, so a same-cycle adjustment does not repeat the base wage.
 
 ```mermaid
 stateDiagram-v2
   [*] --> DRAFT: create and calculate
-  DRAFT --> DRAFT: recalculate
-  DRAFT --> PAID: mark paid
+  DRAFT --> PAID: prior runs paid
+  DRAFT --> [*]: delete
   PAID --> PAID: immutable result
 ```
 
-A draft recalculation deletes that run's previous payslips and cascaded children before writing the
-new answer. It never merges old and new lines. A paid run cannot be recalculated or deleted; a later
-correction is a new approved event in a later draft.
+Deleting a draft cascades its payslips and captured input links. A paid run cannot be recalculated
+or deleted. A correction is an approved input adjustment captured in a new ad hoc run; payment is
+allowed only after every prior run in the company sequence is paid.
 
 ### Eight phases
 
@@ -694,18 +715,17 @@ recovered across as many cycles as the guard allows.
 The law a paid run cited is frozen in place, but the system is built so that is never a dead end:
 
 ```text
-1. Void the wrong profile version    (the lifecycle seal refuses every other edit; the void
-                                      records the reason and names the successor)
-2. Enact the corrected version       (a new DRAFT profile — law members and catalogues copied
-                                      forward, corrected, then sealed on HR Manager approval)
-3. Correct the money                 (component entries in a later draft, as above)
+1. Prepare a successor draft        (reference its predecessor, state the new effective date,
+                                      transcribe the law and retain official source evidence)
+2. Approve and seal                  (HR Manager approval; earlier dates keep their old law)
+3. Correct the money                 (approved component entries in a new adjustment run)
 ```
 
 What the amendment must not do is rewrite history: the paid run still names the profile that
 governed it, its `configuration_snapshot` holds the regime whole, and `calculation_version` names
 the code that interpreted it — so any auditor can reconstruct what was believed at payment time,
-and the corrected profile shows what is believed now. Drafts that have not been paid simply
-recalculate onto the successor profile; nothing about them is frozen.
+and the successor shows the newly approved law. Unpaid drafts remain frozen too; delete and
+replace them if they need to use the new law.
 
 ### Locks
 

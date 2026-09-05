@@ -46,6 +46,10 @@ export default defineModel(
 		ordinary_rate_divisor: numeric().notNull(),
 		regime: custom('statutory_regime').notNull(),
 		statutory_leave: custom('statutory_leave_profile').notNull(),
+		/** A successor takes over only after approval, from its effective start; the predecessor stays historical. */
+		supersedes_id: uuid(),
+		revision: custom('statutory_revision'),
+		research_urls: text().array(),
 		/** Set when VOIDED: the profile the void enacted for this period. */
 		successor_profile_id: uuid(),
 		/** Set when VOIDED: why the profile was retired. */
@@ -57,6 +61,10 @@ export default defineModel(
 			'One versioned statutory profile — currency, year boundaries, proration, ordinary-rate basis, the atomic overtime regime, and the statutory leave floors — that scopes and seals the leave, component and scheme catalogues a payroll run is made of.',
 		recordLabel: 'name',
 		icon: 'lucide:globe',
-		indexes: [{ columns: ['code'] }, { columns: ['lifecycle'] }]
+		indexes: [
+			{ columns: ['code'] },
+			{ columns: ['lifecycle'] },
+			{ columns: ['supersedes_id'], unique: true, where: '"supersedes_id" IS NOT NULL' }
+		]
 	}
 );

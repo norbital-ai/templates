@@ -17,6 +17,7 @@ import test from 'node:test';
 import {
 	classifyOvertimeByCalendarMonth,
 	deriveDailyOvertime,
+	ordinaryWorkedHours,
 	priceDay
 } from '../src/collections/payroll_runs/lib/overtime.ts';
 
@@ -59,6 +60,16 @@ const scheduled = (overrides = {}) => ({
 
 test('a day worked to its scheduled end earns no overtime at all', () => {
 	assert.equal(deriveDailyOvertime(entry(), scheduled()), null);
+});
+
+test('recorded ordinary hours price undertime once and exclude hours priced as overtime', () => {
+	assert.equal(ordinaryWorkedHours(entry(), DAY_SHIFT), 8);
+	const short = entry({ worked_intervals: [interval('10:30', '17:30')] });
+	assert.equal(ordinaryWorkedHours(short, DAY_SHIFT), 6);
+	const lateWithOvertime = entry({ worked_intervals: [interval('10:30', '19:30')] });
+	assert.equal(ordinaryWorkedHours(lateWithOvertime, DAY_SHIFT), 6);
+	assert.equal(deriveDailyOvertime(lateWithOvertime, scheduled())?.hours, 2);
+	assert.equal(ordinaryWorkedHours(entry({ worked_intervals: [] }), DAY_SHIFT), 0);
 });
 
 test('an ordinary day is observed work outside the scheduled shift window', () => {

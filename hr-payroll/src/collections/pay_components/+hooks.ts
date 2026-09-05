@@ -17,27 +17,56 @@ export default {
 			before: {
 				description:
 					'Refuses any write on a catalogue row whose statutory profile is SEALED or VOIDED; rows of a DRAFT profile may be prepared and edited until the seal.',
-				handler: ({ input, existing, api }) => {
-					const profileId = input.statutory_profile_id ?? existing?.statutory_profile_id;
-					if (profileId == null)
-						refuse('A pay component states the statutory profile it belongs to.');
-					return Effect.flatMap(
-						api.db.jurisdictions.findFirst({
-							where: { id: { eq: String(profileId) } },
-							columns: { lifecycle: true }
-						}),
-						(profile) => {
-							if (profile == null)
-								refuse('The statutory profile this component names does not exist.');
-							if (profile.lifecycle !== 'DRAFT')
-								refuse(
-									'The statutory profile this component belongs to is sealed, so its catalogue ' +
-										'is frozen. Enact a new profile version to change the catalogue.'
-								);
-							return Effect.succeed(input);
+				handler: ({ input, existing, api }) =>
+					Effect.gen(function* () {
+						if (
+							existing != null &&
+							input.statutory_profile_id != null &&
+							input.statutory_profile_id !== existing.statutory_profile_id
+						) {
+							const prior = yield* api.db.jurisdictions.findFirst({
+								where: { id: { eq: existing.statutory_profile_id } },
+								columns: { lifecycle: true, approval_id: true }
+							});
+							if (prior?.lifecycle !== 'DRAFT' || prior.approval_id != null)
+								refuse('A sealed pay component cannot be moved to another profile.');
 						}
-					);
-				}
+						const profileId = input.statutory_profile_id ?? existing?.statutory_profile_id;
+						if (profileId == null)
+							refuse('A pay component states the statutory profile it belongs to.');
+						return yield* Effect.flatMap(
+							api.db.jurisdictions.findFirst({
+								where: { id: { eq: String(profileId) } },
+								columns: { lifecycle: true, approval_id: true }
+							}),
+							(profile) => {
+								if (profile == null)
+									refuse('The statutory profile this component names does not exist.');
+								if (profile.lifecycle !== 'DRAFT' || profile.approval_id != null)
+									refuse(
+										'The statutory profile this component belongs to is sealed, so its catalogue ' +
+											'is frozen. Enact a new profile version to change the catalogue.'
+									);
+								return Effect.succeed(input);
+							}
+						);
+					})
+			}
+		}
+	},
+	delete: {
+		perRecord: {
+			before: {
+				description: 'Only a draft profile may have pay components removed.',
+				handler: ({ existing, api }) =>
+					Effect.gen(function* () {
+						const profile = yield* api.db.jurisdictions.findFirst({
+							where: { id: { eq: existing.statutory_profile_id } },
+							columns: { lifecycle: true, approval_id: true }
+						});
+						if (profile?.lifecycle !== 'DRAFT' || profile.approval_id != null)
+							refuse('A sealed pay component cannot be deleted.');
+					})
 			}
 		}
 	}

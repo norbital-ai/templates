@@ -34,6 +34,10 @@ import { cascade } from '@norbital-ai/bolt/authoring';
  */
 export default ((r) => ({
 	jurisdictions: {
+		predecessor_profile: r.one.jurisdictions({
+			from: r.jurisdictions.supersedes_id,
+			to: r.jurisdictions.id
+		}),
 		company_jurisdiction: r.many.companies(),
 		/**
 		 * Two edges reach statutory_contributions from here — provenance (`jurisdiction_id`) and
@@ -115,7 +119,8 @@ export default ((r) => ({
 			from: r.leave_types.statutory_profile_id,
 			to: r.jurisdictions.id
 		}),
-		leave_request_type: r.many.leave_requests()
+		leave_request_type: r.many.leave_requests(),
+		allocation_leave_type: r.many.leave_allocations()
 	},
 
 	shift_definitions: {
@@ -154,6 +159,7 @@ export default ((r) => ({
 		component_entry_employment: r.many.component_entries(),
 		loan_employment: r.many.loans(),
 		leave_request_employment: r.many.leave_requests(),
+		allocation_employment: r.many.leave_allocations(),
 		work_day_employment: r.many.work_days(),
 		payslip_employment: r.many.payslips()
 	},
@@ -231,7 +237,23 @@ export default ((r) => ({
 		})
 	},
 
+	leave_allocations: {
+		allocation_employment: r.one.employments({
+			from: r.leave_allocations.employment_id,
+			to: r.employments.id
+		}),
+		allocation_leave_type: r.one.leave_types({
+			from: r.leave_allocations.leave_type_id,
+			to: r.leave_types.id
+		}),
+		request_allocation: r.many.leave_requests()
+	},
+
 	leave_requests: {
+		request_allocation: r.one.leave_allocations({
+			from: r.leave_requests.allocation_id,
+			to: r.leave_allocations.id
+		}),
 		leave_request_employment: r.one.employments({
 			from: r.leave_requests.employment_id,
 			to: r.employments.id

@@ -43,6 +43,10 @@ import { addDays, dayOfMonth, monthBounds, monthDay, shiftPeriod, type IsoDate }
 import { decodeNumber } from '@norbital-ai/std/json';
 
 export const PAY_FREQUENCIES = ['MONTHLY', 'SEMI_MONTHLY', 'WEEKLY', 'DAILY', 'HOURLY'] as const;
+
+/** DAILY and HOURLY specify earned units; their wages settle on the company monthly calendar. */
+export const usesMonthlyCalendar = (frequency: string): boolean =>
+	frequency === 'MONTHLY' || frequency === 'DAILY' || frequency === 'HOURLY';
 export type PayFrequency = (typeof PAY_FREQUENCIES)[number];
 
 const DayRangeSchema = Schema.Struct({ start: Schema.String, end: Schema.String });
@@ -219,8 +223,9 @@ export function resolveWindow(
 		attendance: attendanceWindow(period, cutoffDay),
 		payDate: monthDay(year, monthIndex, payDay)
 	};
-	const instalments =
-		payFrequency === 'MONTHLY' ? [monthly] : payCalendarInstalments(period, company, payFrequency);
+	const instalments = usesMonthlyCalendar(payFrequency)
+		? [monthly]
+		: payCalendarInstalments(period, company, payFrequency);
 	if (instalments == null)
 		throw new Error(
 			`This company states no ${payFrequency} pay calendar, so there is no window it could pay ` +

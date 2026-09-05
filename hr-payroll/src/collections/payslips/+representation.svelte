@@ -264,54 +264,50 @@
 		</Stack>
 
 		{#if proration.length > 0}
-			<Stack
-				as="section"
-				gap="sm"
-				class="border-t border-border pt-4"
-				aria-labelledby="payslip-proration-heading"
-			>
-				<Inline gap="xs" align="center">
-					<h3 id="payslip-proration-heading" class="text-sm font-semibold">
+			<Accordion type="multiple" class="border-t border-border">
+				<AccordionItem value="proration">
+					<AccordionTrigger class="text-sm font-semibold hover:no-underline">
 						{t('component.payslip_proration')}
-					</h3>
-					{@render sectionInfo(
-						t('component.payslip_proration_info'),
-						t('component.payslip_proration_description')
-					)}
-				</Inline>
-				<Scroll axis="x" name={t('component.payslip_proration')}>
-					<table class="w-full text-sm tabular-nums">
-						<thead>
-							<tr class="text-meta text-left">
-								<th class="py-1 pr-3 font-normal">{t('renderer.payslip_proration.segment')}</th>
-								<th class="py-1 pr-3 text-right font-normal"
-									>{t('renderer.payslip_proration.fraction')}</th
-								>
-								<th class="py-1 pr-3 text-right font-normal"
-									>{t('renderer.payslip_proration.contract_amount')}</th
-								>
-								<th class="py-1 text-right font-normal"
-									>{t('renderer.payslip_proration.prorated_amount')}</th
-								>
-							</tr>
-						</thead>
-						<tbody>
-							{#each proration as segment, index (`${segment.term_key}:${segment.from}:${index}`)}
-								<tr class="border-t border-border">
-									<td class="py-1 pr-3 whitespace-nowrap"
-										>{formatCalendarDate(segment.from)} → {formatCalendarDate(segment.to)}</td
-									>
-									<td class="py-1 pr-3 text-right">{segment.days} / {segment.denominator}</td>
-									<td class="py-1 pr-3 text-right">{formatNumeric(segment.contract_amount)}</td>
-									<td class="py-1 text-right font-medium"
-										>{formatNumeric(segment.prorated_amount)}</td
-									>
-								</tr>
-							{/each}
-						</tbody>
-					</table>
-				</Scroll>
-			</Stack>
+					</AccordionTrigger>
+					<AccordionContent>
+						<p class="mb-3 text-sm text-muted-foreground">
+							{t('component.payslip_proration_description')}
+						</p>
+						<Scroll axis="x" name={t('component.payslip_proration')}>
+							<table class="w-full text-sm tabular-nums">
+								<thead>
+									<tr class="text-meta text-left">
+										<th class="py-1 pr-3 font-normal">{t('renderer.payslip_proration.segment')}</th>
+										<th class="py-1 pr-3 text-right font-normal"
+											>{t('renderer.payslip_proration.fraction')}</th
+										>
+										<th class="py-1 pr-3 text-right font-normal"
+											>{t('renderer.payslip_proration.contract_amount')}</th
+										>
+										<th class="py-1 text-right font-normal"
+											>{t('renderer.payslip_proration.prorated_amount')}</th
+										>
+									</tr>
+								</thead>
+								<tbody>
+									{#each proration as segment, index (`${segment.term_key}:${segment.from}:${index}`)}
+										<tr class="border-t border-border">
+											<td class="py-1 pr-3 whitespace-nowrap"
+												>{formatCalendarDate(segment.from)} → {formatCalendarDate(segment.to)}</td
+											>
+											<td class="py-1 pr-3 text-right">{segment.days} / {segment.denominator}</td>
+											<td class="py-1 pr-3 text-right">{formatNumeric(segment.contract_amount)}</td>
+											<td class="py-1 text-right font-medium"
+												>{formatNumeric(segment.prorated_amount)}</td
+											>
+										</tr>
+									{/each}
+								</tbody>
+							</table>
+						</Scroll>
+					</AccordionContent>
+				</AccordionItem>
+			</Accordion>
 		{/if}
 
 		{#if statutory.length > 0}

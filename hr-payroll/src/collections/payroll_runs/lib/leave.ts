@@ -44,6 +44,7 @@ import { roundHalfDay } from './rounding.js';
 import { coversDate } from './effective.js';
 import type { PayrollWindow } from './period.js';
 import { decodeNumber } from '@norbital-ai/std/json';
+import { leaveProfileRequired } from '../../../lib/statutory_profile.js';
 
 /** One child fact as the leave floor reads it: the employment's non-superseded rows. */
 export type ChildFact = WorkspaceRow<'employee_children'>;
@@ -109,6 +110,22 @@ type ResolveEntitlementOptions = {
 	readonly asOf: IsoDate;
 };
 
+/** Resolve the historical floor only after this leave code was introduced. */
+export function resolveEntitlementAt(
+	options: Omit<ResolveEntitlementOptions, 'profile'> & {
+		readonly profiles: readonly Jurisdiction[];
+		readonly jurisdictionCode: string;
+	}
+): number {
+	const profile = leaveProfileRequired(
+		options.profiles,
+		options.jurisdictionCode,
+		options.leaveType.statutory_profile_id,
+		options.asOf
+	);
+	return profile == null ? 0 : resolveEntitlement({ ...options, profile });
+}
+
 /**
  * The statutory floor one profile kind states at a service age, scaled by the employee's children.
  *
@@ -127,11 +144,12 @@ function statutoryLeaveFloor(
 ): number | null {
 	const member = profile.statutory_leave.find((entry) => entry.kind === kind);
 	if (member == null) return null;
-	const ladderDays = member.ladder.reduce(
-		(best, band) => (band.band_from <= serviceMonths ? Math.max(best, band.days) : best),
-		0
-	);
-	if (member.per_child == null) return ladderDays;
+	const band = member.ladder
+		.filter((entry) => entry.band_from <= serviceMonths)
+		.toSorted((left, right) => right.band_from - left.band_from)[0];
+	const ladderDays = band?.days ?? 0;
+	if (member.per_child == null)
+		return member.max_days == null ? ladderDays : Math.min(ladderDays, member.max_days);
 	const eligible = eligibleChildren(children, member.per_child.age_limit, asOf);
 	if (eligible < member.per_child.min_children) return 0;
 	const scaled = ladderDays + member.per_child.days * eligible;
@@ -177,11 +195,14 @@ export function resolveEntitlement(options: ResolveEntitlementOptions): number {
 
 /** How many of the employment's children are eligible for a child-scaled floor on a date. */
 function eligibleChildren(children: readonly ChildFact[], ageLimit: number, asOf: IsoDate): number {
+	const superseded = new Set(
+		children.flatMap((child) => (child.supersedes_id == null ? [] : [child.supersedes_id]))
+	);
 	return children.filter((child) => {
-		if (child.supersedes_id != null) return false;
+		if (superseded.has(child.id)) return false;
 		if (child.effective_range != null && !coversDate(child.effective_range, asOf)) return false;
 		const born = dateKey(child.child_birthdate);
-		if (born == null) return false;
+		if (born == null || born > asOf) return false;
 		return completedYears(born, asOf) < ageLimit;
 	}).length;
 }
@@ -315,13 +336,17 @@ export function policyCarryExpiry(input: BalanceInput, year: number): IsoDate | 
 }
 
 function postedCarry(input: BalanceInput, year: number): LedgerRow | undefined {
-	return input.ledger.find(
+	const rows = input.ledger.filter(
 		(row) =>
+			row.approval_id == null &&
 			row.kind === CARRY_KIND &&
 			row.leave_type_id === input.leaveType.id &&
 			(row.leave_year ??
 				leaveYearOf(dateKey(row.entry_date) ?? '0000-01-01', input.leaveYearStartMonth)) === year
 	);
+	if (rows.length > 1)
+		throw new Error(`Leave ${input.leaveType.code} has multiple opening balances for ${year}.`);
+	return rows[0];
 }
 
 function postedCarryIn(input: BalanceInput, year: number): CarryIn | null {
@@ -511,7 +536,7 @@ export function leaveYearSummary(input: BalanceInput, asOf: IsoDate): LeaveYearS
  * stores movements. Adjustments, encashments and carries carry their own signed movement; the carry
  * additionally names the year it opens and the day it lapses, which only its event knows.
  */
-function ledgerRowOf(row: {
+export function ledgerRowOf(row: {
 	readonly id: string;
 	readonly leave_type_id: string;
 	readonly kind: string | null;

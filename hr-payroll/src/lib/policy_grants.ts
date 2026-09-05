@@ -195,7 +195,9 @@ export const peopleGrants = (
 		// Child facts are what statutory leave floors scale on. `preview_leave` and the leave-request
 		// write hook both read them; a policy that can create leave without this read turns that
 		// preview into AccessDenied instead of a picker.
-		...(actions.includes('read') ? [grantsOn('employee_children', ['read'])] : [])
+		...(actions.includes('read')
+			? [grantsOn('employee_children', ['read']), grantsOn('leave_allocations', ['read'])]
+			: [])
 	);
 
 export const payrollGrants = (...actions: ReadonlyArray<'read'>): Grants =>
@@ -204,6 +206,17 @@ export const payrollGrants = (...actions: ReadonlyArray<'read'>): Grants =>
 		grantsOn('payslips', actions),
 		grantsOn('payslip_adjustments', actions)
 	);
+
+/** Leave pickers need paid-period boundaries, without payroll inputs or results. */
+export const leaveCalendarGrants = (ownCompany = false): Grants =>
+	grantOn('payroll_runs', 'read', {
+		fields: ['company_id', 'period', 'lifecycle', 'attendance_from', 'attendance_to'],
+		...(ownCompany
+			? {
+					where: { payroll_run_company: { some: { employment_company: { some: OWN_EMPLOYMENT } } } }
+				}
+			: {})
+	});
 
 /**
  * Write access to the payroll result, for whoever may run payroll.
@@ -494,6 +507,11 @@ export const workDayWriteGrants = (): Grants =>
 export const leaveApproval = {
 	flow: () => approveBy(L1_MANAGER_TEAM, HR_MANAGER_TEAM, SENIOR_MANAGEMENT_TEAM),
 	superceded_by: [HR_MANAGER_TEAM, SENIOR_MANAGEMENT_TEAM]
+} as const;
+
+export const leaveAllocationApproval = {
+	flow: () => approveBy(HR_MANAGER_TEAM),
+	superceded_by: [HR_MANAGER_TEAM]
 } as const;
 
 const claimApproval = {

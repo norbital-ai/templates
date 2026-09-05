@@ -210,7 +210,7 @@
 								onValueChange={(value) =>
 									row.replace({
 										...row.layer,
-										statutory_contribution_id: typeof value === 'string' ? value : ''
+										statutory_contribution_id: value ?? ''
 									})}
 							/>
 						</Stack>

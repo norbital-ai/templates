@@ -238,9 +238,7 @@
 							onValueChange={(value) =>
 								patch({
 									late_joiner_arrears:
-										typeof value === 'string' && value !== ''
-											? { defer_to_component_id: value }
-											: null
+										value != null && value !== '' ? { defer_to_component_id: value } : null
 								})}
 						/>
 						<span class="text-xs font-normal text-muted-foreground">
@@ -355,8 +353,7 @@
 									patch({
 										extended_unpaid_leave: {
 											...current.extended_unpaid_leave!,
-											population_contribution_id:
-												typeof value === 'string' && value !== '' ? value : null
+											population_contribution_id: value === '' ? null : value
 										}
 									})}
 							/>

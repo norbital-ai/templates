@@ -53,9 +53,18 @@ test(
 	async () => {
 		const session = await startPublicSeedHost('hr-payroll-delete-batch');
 		try {
-			// Later period first: an earlier DRAFT blocks every subsequent calculate (YTD).
+			// Legacy outstanding drafts must remain deletable even though new runs now enforce chronology.
 			const marchId = await createDraft(session, MARCH_2026);
-			const februaryId = await createDraft(session, FEBRUARY_2026);
+			const februaryId = crypto.randomUUID();
+			await session.query(
+				`insert into payroll_runs
+				(id, company_id, period, run_kind, sequence, lifecycle, statutory_snapshot_id, configuration_hash,
+				 configuration_snapshot, calculation_version, pay_date, attendance_from, attendance_to)
+				select $1, company_id, $2, run_kind, sequence, lifecycle, statutory_snapshot_id, configuration_hash,
+				 configuration_snapshot, calculation_version, pay_date, attendance_from, attendance_to
+				from payroll_runs where id = $3`,
+				[februaryId, FEBRUARY_2026, marchId]
+			);
 
 			const before = (await session.query(
 				`select id, period from payroll_runs where id in ($1, $2) order by period`,

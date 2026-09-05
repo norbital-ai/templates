@@ -300,7 +300,7 @@ test(
 			const controllerDenied = await postGuestCommand(
 				session.host.baseUrl,
 				'approvals.decide',
-				{ state: controllerState, decision: 'approve' },
+				{ state: { requestId: controllerState.requestId }, decision: 'approve' },
 				controllerHeaders
 			);
 			assert.ok(
@@ -323,7 +323,7 @@ test(
 			const decided = await postGuestCommand(
 				session.host.baseUrl,
 				'approvals.decide',
-				{ state, decision: 'approve' },
+				{ state: { requestId: state.requestId }, decision: 'approve' },
 				managerHeaders
 			);
 			assert.ok(

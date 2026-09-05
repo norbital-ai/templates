@@ -1,6 +1,10 @@
 import { it } from 'vitest';
 import assert from 'node:assert/strict';
-import { startSessionGateway, workspaceDocumentHtml } from '@norbital-ai/bolt-server';
+import {
+	makeAiBinding,
+	startSessionGateway,
+	workspaceDocumentHtml
+} from '@norbital-ai/bolt-server';
 import {
 	bearerHeaders,
 	guestUrlForChromium,
@@ -17,6 +21,7 @@ import {
 	DISTINCTIVE_SITE_ID,
 	DISTINCTIVE_SITE_NAME,
 	DISTINCTIVE_SITE_TOKEN,
+	PUBLIC_ASSIGNMENT_ID,
 	S5_PICK_DAY,
 	bootPublicSeedGuest
 } from '../helpers/public-seed-guest.js';
@@ -149,7 +154,7 @@ const waitForPaint = async (
 	throw new Error(`${label} timeout: ${last} connect=${connect}`);
 };
 
-const bootFieldOps = (label: string) =>
+const bootFieldOps = (label: string, ai?: Parameters<typeof bootPublicSeedGuest>[0]['ai']) =>
 	bootPublicSeedGuest({
 		tenantId: label,
 		releaseId: label,
@@ -157,7 +162,8 @@ const bootFieldOps = (label: string) =>
 		founderEmail: `${label}-founder@example.test`,
 		founderClaimId: `${label}-founder`,
 		secretsKey: `${label}-secrets`,
-		host: '0.0.0.0'
+		host: '0.0.0.0',
+		...(ai ? { ai } : {})
 	});
 
 const openFieldOpsGateway = async (
@@ -192,6 +198,61 @@ const openFieldOpsGateway = async (
 const openControllerGateway = (session: Awaited<ReturnType<typeof bootFieldOps>>, label: string) =>
 	openFieldOpsGateway(session, label, '/app/field_ops_controller');
 
+it('field-ops pointer drag persists completion and remains completed after opening a fresh page', async () => {
+	const session = await bootFieldOps('field-ops-drag');
+	let gateway: Awaited<ReturnType<typeof startSessionGateway>> | undefined;
+	let browser: HeadedBrowser | undefined;
+	try {
+		gateway = await openControllerGateway(session, 'field-ops-drag');
+		browser = await launchChromiumOrSkip(EV_SOURCE_PROBE);
+		assert.ok(browser, 'Chromium is required to prove the pointer drag workflow.');
+		const url = controllerUrl(gateway.address.port);
+		const page = await browser.openPage(url);
+		await waitForPaint(page, CONTROLLER_SHELL, 'drag-mount');
+		await pickSeededDay(page);
+		await waitForPaint(page, seededSitePattern, 'drag-day');
+		await page.dragAndDrop(
+			`[data-sortable-id="${PUBLIC_ASSIGNMENT_ID}"] .kanban-drag-handle`,
+			'[data-kanban-lane="completed"]'
+		);
+		const deadline = Date.now() + 10_000;
+		let record: Readonly<Record<string, unknown>> | undefined;
+		while (Date.now() < deadline) {
+			const result = await postGuestCommand(
+				session.baseUrl,
+				'collections.findMany',
+				{ collection: 'job_assignments', where: { id: { eq: PUBLIC_ASSIGNMENT_ID } }, limit: 1 },
+				bearerHeaders(session.credential)
+			);
+			assert.ok(result.status < 300, JSON.stringify(result.value));
+			record = rowsOf(result.value, 'dragged assignment')[0];
+			if (record?.status === 'completed') break;
+			await new Promise((resolve) => setTimeout(resolve, 100));
+		}
+		assert.equal(
+			record?.status,
+			'completed',
+			String(await page.evaluate('document.body.innerText'))
+		);
+		assert.equal(record?.row_version, 2, 'One drop must produce exactly one persisted update.');
+		assert.equal(typeof record?.completed_at, 'string');
+		const fresh = await browser.openPage(url, { profile: true });
+		await waitForPaint(fresh, CONTROLLER_SHELL, 'drag-fresh');
+		await pickSeededDay(fresh);
+		await waitForPaint(fresh, seededSitePattern, 'drag-fresh-day');
+		assert.equal(
+			await fresh.evaluate(
+				`document.querySelector('[data-sortable-id="${PUBLIC_ASSIGNMENT_ID}"]')?.closest('[data-kanban-lane]')?.getAttribute('data-kanban-lane')`
+			),
+			'completed'
+		);
+	} finally {
+		if (browser) await browser.close();
+		if (gateway) await gateway.stop();
+		await session.stop();
+	}
+});
+
 const waitForBody = async (page: HeadedPage, pattern: RegExp, label: string): Promise<string> => {
 	const deadline = Date.now() + EVALUATE_TIMEOUT_MS;
 	let last = '';
@@ -206,6 +267,50 @@ const waitForBody = async (page: HeadedPage, pattern: RegExp, label: string): Pr
 const appUrl = (port: number, path: string): string => guestUrlForChromium('127.0.0.1', port, path);
 
 const controllerUrl = (port: number): string => appUrl(port, '/app/field_ops_controller');
+
+it('field-ops workspace search opens an application and the matching site record', async () => {
+	const session = await bootFieldOps('field-ops-finder');
+	let gateway: Awaited<ReturnType<typeof startSessionGateway>> | undefined;
+	let browser: HeadedBrowser | undefined;
+	try {
+		gateway = await openControllerGateway(session, 'field-ops-finder');
+		browser = await launchChromiumOrSkip();
+		assert.ok(browser, 'Chromium is required to prove workspace search navigation.');
+		const page = await browser.openPage(controllerUrl(gateway.address.port));
+		await waitForBody(page, /Assign contractor/, 'finder-mounted');
+		await page.click('[data-testid="workspace-omni-trigger"]');
+		await page.click('input[data-command-input]');
+		const enterQuery = async (query: string) => {
+			assert.equal(
+				await page.evaluate(`(() => {
+				const input = document.querySelector('input[data-command-input]');
+				if (!(input instanceof HTMLInputElement)) return false;
+				input.value = ${JSON.stringify(query)};
+				input.dispatchEvent(new InputEvent('input', { bubbles: true }));
+				return true;
+			})()`),
+				true
+			);
+		};
+		await enterQuery('/ field_ops_contractor');
+		await page.click('[data-command-item][data-value="app:field_ops_contractor"]');
+		await waitForBody(page, /Dispatched jobs/, 'finder-application');
+		assert.match(String(await page.evaluate('location.pathname')), /field_ops_contractor/);
+		await page.click('[data-testid="workspace-omni-trigger"]');
+		await page.click('input[data-command-input]');
+		await enterQuery(`#sites ${DISTINCTIVE_SITE_TOKEN}`);
+		await page.click(`[data-command-item][data-value="record:sites:${DISTINCTIVE_SITE_ID}"]`);
+		await waitForBody(page, /Sites record details/, 'finder-record');
+		const detail = String(
+			await page.evaluate('document.querySelector("[role=dialog]")?.textContent')
+		);
+		assert.match(detail, new RegExp(DISTINCTIVE_SITE_TOKEN));
+	} finally {
+		if (browser) await browser.close();
+		if (gateway) await gateway.stop();
+		await session.stop();
+	}
+});
 
 const pickSeededDay = async (page: HeadedPage): Promise<void> => {
 	await page.evaluate(
@@ -551,7 +656,46 @@ it(
 	'field-ops self-host Run now disables while a suspicion review is running',
 	{ timeout: HEADED_SYNC_TIMEOUT_MILLIS },
 	async () => {
-		const session = await bootFieldOps('field-ops-b6-ui');
+		const gate = Promise.withResolvers<void>();
+		let inferenceCount = 0;
+		const ai = makeAiBinding({
+			call: async (_metadata, request) => {
+				if (request._tag === 'Catalog')
+					return {
+						_tag: 'Catalog',
+						languageModels: [{ id: 'test/language' }],
+						defaultLanguageModelId: 'test/language',
+						embeddingModels: [{ id: 'test/embedding' }],
+						defaultEmbeddingModelId: 'test/embedding'
+					};
+				assert.equal(request._tag, 'Generate');
+				inferenceCount += 1;
+				await gate.promise;
+				return {
+					_tag: 'Generated',
+					result: {
+						_tag: 'Object',
+						value: {
+							job_site_review: {
+								suspicious: false,
+								reason: 'No evidence of a mismatch.',
+								evidence_asset_name: ''
+							},
+							similar_photo_reviews: []
+						}
+					},
+					observation: {
+						callId: `review-${inferenceCount}`,
+						provider: 'fixture',
+						model: 'test/language',
+						operation: 'language',
+						charge: { currency: 'USD', coefficient: '125', scale: 6 },
+						chargeSource: 'provider'
+					}
+				};
+			}
+		});
+		const session = await bootFieldOps('field-ops-b6-ui', ai);
 		let gateway: Awaited<ReturnType<typeof startSessionGateway>> | undefined;
 		let browser: HeadedBrowser | undefined;
 		try {
@@ -565,20 +709,67 @@ it(
 			);
 			const painted = await waitForBody(page, /Assign contractor/, 'b6-chrome');
 			assert.match(painted, /Assign contractor/);
-			const run = String(
+			await page.click('button:has-text("Run now")');
+			await waitForBody(page, /Review running/, 'b6-running');
+			assert.equal(
 				await page.evaluate(`(() => {
-					const button = [...document.querySelectorAll('button')].find((node) =>
-						(node.textContent ?? '').trim() === 'Run now'
-					);
-					if (button === undefined) return 'missing';
-					return JSON.stringify({ disabled: button.disabled, text: (button.textContent ?? '').trim() });
-				})()`)
+					const button = [...document.querySelectorAll('button')].find((node) => /Review running/.test(node.textContent ?? ''));
+				return button?.disabled === true;
+			})()`),
+				true,
+				'A second start must be disabled while the run is active.'
 			);
-			assert.notEqual(run, 'missing', `B6 Run now missing: ${painted.slice(0, 400)}`);
-			const parsed = JSON.parse(run) as { readonly disabled: boolean; readonly text: string };
-			assert.match(parsed.text, /Run now|Running/);
-			assert.ok(parsed.disabled === true || parsed.text === 'Run now');
+			const generatingDeadline = Date.now() + 10_000;
+			while (inferenceCount === 0 && Date.now() < generatingDeadline)
+				await new Promise((resolve) => setTimeout(resolve, 100));
+			assert.ok(inferenceCount > 0, 'Run now must reach the configured AI provider.');
+			gate.resolve();
+			try {
+				await waitForBody(page, /Run now/, 'b6-finished');
+			} catch (error) {
+				const runs = await postGuestCommand(
+					session.baseUrl,
+					'collections.findMany',
+					{
+						collection: 'automation_run',
+						limit: 10
+					},
+					bearerHeaders(session.credential)
+				);
+				const records = await postGuestCommand(
+					session.baseUrl,
+					'collections.findMany',
+					{
+						collection: 'job_assignments',
+						limit: 100
+					},
+					bearerHeaders(session.credential)
+				);
+				throw new Error(JSON.stringify({ inferenceCount, runs, records }), { cause: error });
+			}
+			const assignments = await postGuestCommand(
+				session.baseUrl,
+				'collections.findMany',
+				{
+					collection: 'job_assignments',
+					limit: 100
+				},
+				bearerHeaders(session.credential)
+			);
+			assert.ok(assignments.status < 300, JSON.stringify(assignments.value));
+			const checked = rowsOf(assignments.value, 'reviewed assignments');
+			assert.ok(checked.length > 0);
+			assert.ok(
+				checked.every((row) => typeof row.suspicion_checked_at === 'string'),
+				JSON.stringify(checked)
+			);
+			assert.equal(
+				inferenceCount,
+				checked.length,
+				'One inference per assignment; no duplicate run.'
+			);
 		} finally {
+			gate.resolve();
 			if (browser !== undefined) await browser.close();
 			if (gateway !== undefined) await gateway.stop();
 			await session.stop();

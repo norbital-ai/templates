@@ -1,10 +1,12 @@
 import {
 	refuse,
+	type CollectionMutationValues,
 	type MutateBeforeContext,
 	type MutateEditContext
 } from '@norbital-ai/bolt/authoring';
 import { Effect } from 'effect';
 import { currentInstantIso } from '../../lib/clock.js';
+import type { WorkspaceSchema } from '$bolt/types.js';
 import type { Api, Hooks, WorkspaceRow } from './$types.js';
 
 const ASSIGNMENT_ERROR =
@@ -16,9 +18,10 @@ type ComplianceTarget = Partial<
 
 type BeforeContext = MutateBeforeContext<Hooks>;
 type EditContext = MutateEditContext<Hooks>;
+type AssignmentWrite = CollectionMutationValues<WorkspaceSchema, 'job_assignments'>;
 
 /** A create states the whole record and has no `existing`. */
-const beforeCreate = ({ input, api }: BeforeContext) =>
+const beforeCreate = ({ input, api }: BeforeContext): Effect.Effect<AssignmentWrite> =>
 	Effect.map(
 		validateJobAssignmentCompliance(
 			{ site_location_id: input.site_location_id, worker_id: input.worker_id },
@@ -28,7 +31,11 @@ const beforeCreate = ({ input, api }: BeforeContext) =>
 	);
 
 /** An edit lands on a stored row; `existing` is what tells the two apart. */
-const beforeUpdate = ({ input, existing, api }: EditContext) => {
+const beforeUpdate = ({
+	input,
+	existing,
+	api
+}: EditContext): Effect.Effect<Partial<AssignmentWrite>> => {
 	const record = { ...existing, ...input };
 	return Effect.map(
 		validateJobAssignmentCompliance(

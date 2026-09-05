@@ -37,8 +37,13 @@
 		LEAVE_REQUEST_CREATE_SCOPE,
 		type LeaveRequestCreateScope
 	} from '../../lib/ui/leave-request-create-scope.js';
-	import { previewLeaveQuery } from '../../lib/ui/leave/preview-leave-client.js';
-	import type { LeaveDayPreview, PreviewLeaveInput } from '../../lib/leave/preview.js';
+	import { client } from '../../lib/workspace-client.js';
+	import type { RemoteQuery } from '@norbital-ai/std/collection';
+	import type {
+		LeaveDayPreview,
+		LeavePreview,
+		PreviewLeaveInput
+	} from '../../lib/leave/preview.js';
 	import type { RendererProps, Value } from './$types.js';
 	type LeaveEventRendererProps = RendererProps & { readonly row?: Record<string, unknown> };
 
@@ -85,12 +90,19 @@
 		return {
 			employment_id: employmentId,
 			leave_type_id: leaveTypeId,
+			...(typeof props.row?.allocation_id === 'string'
+				? { allocation_id: props.row.allocation_id }
+				: {}),
 			calendar_month: calendarMonth,
 			...(range == null ? {} : { range }),
 			...(requestId == null ? {} : { exclude_request_id: requestId })
 		};
 	});
-	const previewQuery = $derived(previewInput == null ? null : previewLeaveQuery(previewInput));
+	const previewQuery = $derived(
+		previewInput == null
+			? null
+			: (client.invoke.preview_leave(previewInput) as RemoteQuery<LeavePreview>)
+	);
 	const preview = $derived(previewQuery?.current);
 	const previewLoading = $derived(previewQuery != null && previewQuery.loading && preview == null);
 	const pickerDisabledReason = $derived.by(() => {
@@ -100,6 +112,7 @@
 		if (previewQuery?.error != null) return previewQuery.error.message;
 		if (previewLoading) return t('component.leave_picker_loading_schedule');
 		if (preview?.encashed) return t('component.leave_encashed_closed');
+		if (preview?.issues[0]?.code === 'ALLOCATION_REQUIRED') return preview.issues[0].message;
 		return null;
 	});
 	const pickerDisabled = $derived(disabled || pickerDisabledReason != null);
@@ -112,6 +125,8 @@
 		const code = day.reason_code;
 		if (code == null) return undefined;
 		switch (code) {
+			case 'OUTSIDE_ALLOCATION':
+				return t('component.outside_allocation');
 			case 'HOLIDAY':
 				return t('component.excluded_public_holiday');
 			case 'REST_OR_OFF':
@@ -122,6 +137,8 @@
 				return t('component.excluded_paid_payroll', { period: day.settled_period ?? '' });
 			case 'NO_SCHEDULE':
 				return t('component.excluded_no_schedule');
+			case 'LEAVE_NOT_AVAILABLE':
+				return t('component.excluded_leave_unavailable');
 			case 'BEFORE_HIRE':
 				return t('component.excluded_before_hire');
 			case 'AFTER_EXIT':

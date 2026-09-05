@@ -80,6 +80,7 @@ test('the PAID configuration snapshot retains the exact regime revision and auth
 				regime: value
 			},
 			contributions: [],
+			leaveProfiles: [],
 			treatments: new Map(),
 			payComponents: [],
 			overtimeRules: value.overtime_rules,

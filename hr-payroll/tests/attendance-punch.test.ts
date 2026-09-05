@@ -1,63 +1,63 @@
-// @ts-nocheck -- executed directly by Node with --experimental-strip-types.
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { KIOSK_PUNCH_COOLDOWN_MS, nextPunch } from '../src/lib/kiosk/punch.ts';
+import { nextPunch } from '../src/lib/kiosk/punch.ts';
 
-const T0 = '2026-09-04T01:00:00.000Z';
-const T1 = '2026-09-04T09:00:00.000Z';
+const morning = '2026-09-04T01:00:00.000Z';
+const evening = '2026-09-04T09:00:00.000Z';
+const later = '2026-09-04T10:00:00.000Z';
 
-test('first punch of the day opens an interval', () => {
-	assert.deepEqual(nextPunch(null, T0, null, 'toggle'), {
+// Repeated recognition must never toggle a person out or start another paid interval.
+test('first arrival wins; repeated arrivals leave open and closed attendance unchanged', () => {
+	assert.deepEqual(nextPunch(null, morning, null, 'in'), {
 		kind: 'in',
-		intervals: [{ start: T0, end: null }],
+		intervals: [{ start: morning, end: null }],
 		index: 0
 	});
+	for (const end of [null, evening]) {
+		assert.deepEqual(nextPunch([{ start: morning, end }], later, null, 'in'), {
+			kind: 'blocked',
+			reason: 'already-in'
+		});
+	}
 });
 
-test('second punch closes the open interval', () => {
-	assert.deepEqual(nextPunch([{ start: T0, end: null }], T1, null, 'toggle'), {
+test('only explicit departure closes attendance, and the latest departure wins', () => {
+	assert.deepEqual(nextPunch([{ start: morning, end: null }], evening, null, 'out'), {
 		kind: 'out',
-		intervals: [{ start: T0, end: T1 }],
+		intervals: [{ start: morning, end: evening }],
 		index: 0
 	});
-});
-
-test('third punch opens a second interval', () => {
-	assert.deepEqual(
-		nextPunch([{ start: T0, end: T1 }], '2026-09-04T13:00:00.000Z', null, 'toggle'),
-		{
-			kind: 'in',
-			intervals: [
-				{ start: T0, end: T1 },
-				{ start: '2026-09-04T13:00:00.000Z', end: null }
-			],
-			index: 1
-		}
-	);
-});
-
-test('punch inside the cooldown window is blocked with the remaining wait', () => {
-	const outcome = nextPunch(null, T0, '2026-09-04T00:59:55.000Z', 'toggle');
-	assert.equal(outcome.kind, 'blocked');
-	assert.equal(outcome.reason, 'cooldown');
-	assert.equal(outcome.retryAfterMs, KIOSK_PUNCH_COOLDOWN_MS - 5000);
-});
-
-test('manual in against an open interval is refused without writing', () => {
-	assert.deepEqual(nextPunch([{ start: T0, end: null }], T1, null, 'in'), {
-		kind: 'blocked',
-		reason: 'already-in'
+	assert.deepEqual(nextPunch([{ start: morning, end: evening }], later, null, 'out'), {
+		kind: 'out',
+		intervals: [{ start: morning, end: later }],
+		index: 0
 	});
+	for (const time of [morning, evening]) {
+		assert.deepEqual(nextPunch([{ start: morning, end: evening }], time, null, 'out'), {
+			kind: 'blocked',
+			reason: 'already-out'
+		});
+	}
 });
 
-test('manual out with no open interval is refused without writing', () => {
-	assert.deepEqual(nextPunch([{ start: T0, end: T1 }], '2026-09-04T13:00:00.000Z', null, 'out'), {
+test('departure needs an arrival and cannot precede it', () => {
+	assert.deepEqual(nextPunch(null, evening, null, 'out'), {
 		kind: 'blocked',
 		reason: 'no-open-interval'
 	});
+	assert.deepEqual(nextPunch([{ start: evening, end: null }], morning, null, 'out'), {
+		kind: 'blocked',
+		reason: 'already-out'
+	});
 });
 
-test('explicit manual in and out follow the same toggle positions', () => {
-	assert.deepEqual(nextPunch(null, T0, null, 'in').kind, 'in');
-	assert.deepEqual(nextPunch([{ start: T0, end: null }], T1, null, 'out').kind, 'out');
+test('deduplication survives failure of separate face bookkeeping', () => {
+	assert.deepEqual(nextPunch([{ start: morning, end: null }], morning, null, 'in'), {
+		kind: 'blocked',
+		reason: 'already-in'
+	});
+	assert.deepEqual(nextPunch([{ start: morning, end: evening }], evening, null, 'out'), {
+		kind: 'blocked',
+		reason: 'already-out'
+	});
 });

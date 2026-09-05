@@ -1,26 +1,4 @@
-import {
-	boolean,
-	custom,
-	defineModel,
-	integer,
-	enums,
-	text,
-	uuid
-} from '@norbital-ai/bolt/authoring';
-
-/**
- * The canonical statutory leave kinds `datatypes/statutory_leave_profile` declares. Inlined here
- * because a model must import nothing from the workspace; the leave-types hook validates a row's
- * kind against the linked profile's `statutory_leave` member, which pins the two vocabularies.
- */
-const STATUTORY_LEAVE_KINDS = [
-	'ANNUAL',
-	'SICK',
-	'HOSPITALIZATION',
-	'MATERNITY',
-	'PATERNITY',
-	'CHILDCARE'
-] as const;
+import { boolean, custom, defineModel, integer, text, uuid } from '@norbital-ai/bolt/authoring';
 
 export default defineModel(
 	{
@@ -34,7 +12,7 @@ export default defineModel(
 		 * `null` is a purely company-policy leave (a floating day, a wedding day) with no floor.
 		 * Frozen once the linked profile seals.
 		 */
-		statutory_kind: enums(STATUTORY_LEAVE_KINDS),
+		statutory_kind: text(),
 		eligibility: custom('eligibility_rules').notNull(),
 		encash_on_exit: boolean().notNull(),
 		requires_certificate_after_days: integer(),

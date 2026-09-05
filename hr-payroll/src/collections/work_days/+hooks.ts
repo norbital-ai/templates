@@ -14,6 +14,8 @@ import {
 	type PayrollWindow
 } from '../../lib/scheduling/lock.js';
 import type { Api, Hooks } from './$types.js';
+import type { Api as AuthoringApi } from '@norbital-ai/bolt/authoring';
+import type { WorkspaceSchema } from '$bolt/types';
 import { assertNoOverlap, readOverlapData, type OverlapData } from './lib/assignment-overlap.js';
 import { decodeNumber } from '@norbital-ai/std/json';
 
@@ -149,7 +151,7 @@ function assertMonthConformsToPattern(options: {
  * only resume the pattern — and attendance-only writes carry no plan change to check.
  */
 function assertBatchConformsToPattern(
-	api: Api,
+	api: AuthoringApi<WorkspaceSchema, unknown>,
 	inputs: readonly {
 		readonly id?: string;
 		readonly employment_id?: string | null;
@@ -318,7 +320,7 @@ function refuseIfLeaveOwnsDay(requests: readonly LeaveRequestLike[], workDate: s
  * above. The decision is written once; only where its input comes from differs.
  */
 function assertDayNotOwnedByLeave(
-	api: Api,
+	api: AuthoringApi<WorkspaceSchema, unknown>,
 	employmentId: string,
 	workDate: string
 ): Effect.Effect<void, never, never> {
@@ -354,7 +356,7 @@ function assertDayNotOwnedByLeave(
  * a punch keyed in after a run was paid, consumed by nobody, refused because of where it was dated.
  */
 function assertDayHasNoPaidSilence(
-	api: Api,
+	api: AuthoringApi<WorkspaceSchema, unknown>,
 	employmentId: string,
 	workDate: string,
 	action: string
@@ -606,7 +608,7 @@ export default {
 		perRecord: {
 			before: {
 				description:
-					'Requires ordered, non-overlapping worked intervals with only the final one open, refuses attendance on a day approved leave owns or inside a paid run’s window whose silence that run already priced as absence, refuses any change to a row a payroll run has taken into account, refuses a planned shift that would overlap the person’s adjacent-day assignments, and refuses a plan write that would leave the month’s WORK-day count or paid minutes different from what the work pattern projects.',
+					'Requires ordered, non-overlapping worked intervals with only the final one open, refuses attendance on a day approved leave owns or inside a paid run’s window whose scheduled attendance that run already settled, refuses any change to a row a payroll run has taken into account, refuses a planned shift that would overlap the person’s adjacent-day assignments, and refuses a plan write that would leave the month’s WORK-day count or paid minutes different from what the work pattern projects.',
 				handler: ({ input, existing, prepared, api }) =>
 					Effect.gen(function* () {
 						const employmentId = input.employment_id ?? existing?.employment_id;

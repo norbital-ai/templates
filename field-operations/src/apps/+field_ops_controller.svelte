@@ -6,14 +6,13 @@
 	import type { TenantI18nKeys } from '$bolt/i18n-keys';
 	import { CollectionKanban } from '@norbital-ai/ui/collection-kanban';
 	import { CollectionTable } from '@norbital-ai/ui/collection-table';
-	import { Combobox } from '@norbital-ai/ui/combobox';
+	import { CollectionForm, type CollectionFormSemantic } from '@norbital-ai/ui/collection-form';
 	import { DataRenderer } from '@norbital-ai/ui/data-renderer';
 	import { Bound, Cover, Inline, Split, Stack } from '@norbital-ai/ui/layout';
 	import * as Sheet from '@norbital-ai/ui/sheet';
 	import { StaticMap, type StaticMapMarker } from '@norbital-ai/ui/static-map';
 	import { Tabs, type TabConfig } from '@norbital-ai/ui/tabs';
 	import Icon from '@iconify/svelte';
-	import { toError } from '@norbital-ai/std';
 	import { Effect } from 'effect';
 	import {
 		calendarDateInTimeZone,
@@ -38,8 +37,6 @@
 	/** Day-precision instants are stored and compared at UTC midnight by the collection runtime. */
 	const dispatchQueryInstant = $derived(`${dispatchDay}T00:00:00.000Z`);
 	let assignContractorOpen = $state(false);
-	let assignmentSettling = $state(false);
-	let assignmentSettlementError = $state<string | null>(null);
 	const jobsQuery = $derived(
 		client.db.jobs.findMany({
 			where: { scheduled_for: { eq: dispatchQueryInstant } },
@@ -131,21 +128,6 @@
 	);
 
 	// Assign-contractor sheet — pairs an unassigned job for the day with the person who will do it.
-	const assignJobsQuery = $derived(
-		client.db.jobs.findMany({
-			where: { scheduled_for: { eq: dispatchQueryInstant }, status: { eq: 'unassigned' } },
-			orderBy: { title: 'asc' },
-			limit: 250
-		})
-	);
-	/**
-	 * The relation field delegates identity lookup to the platform relationship renderer. Authored
-	 * workspace code declares which relation it is editing, but never receives a query handle for the
-	 * platform-owned user table.
-	 */
-	const assigneeField = collectionClient.collections.job_assignments.fields.find(
-		(field) => field.name === 'assignee_user_id'
-	);
 	const sitesQuery = $derived(
 		client.db.sites.findMany({
 			columns: { id: true, name: true, location: true },
@@ -156,20 +138,17 @@
 	const siteNameById = $derived(
 		new Map((sitesQuery.current ?? []).map((site) => [site.id, site.name]))
 	);
-	/** What the assign-contractor sheet is about to submit; busy and failure states come from the mutation. */
-	const assignment = $state<{ jobId: string | null; assigneeUserId: string | null }>({
-		jobId: null,
-		assigneeUserId: null
-	});
-	const assignSelectedJob = $derived(
-		(assignJobsQuery.current ?? []).find((job) => job.id === assignment.jobId)
-	);
-	const assignJobOptions = $derived(
-		(assignJobsQuery.current ?? []).map((job) => ({
-			value: job.id,
-			label: `${job.title} · ${siteNameById.get(job.site_id) ?? '—'}`
-		}))
-	);
+	/** Both picks required. The relation columns are non-nullable so the form already refuses an
+	 * empty submit; this names the rule at the sheet so a cleared picker reads as one refusal. */
+	const assignmentSemantic: CollectionFormSemantic = (values) =>
+		Effect.succeed(
+			typeof values.job_id === 'string' &&
+				values.job_id !== '' &&
+				typeof values.assignee_user_id === 'string' &&
+				values.assignee_user_id !== ''
+				? []
+				: [{ message: t('component.assignment_picks_required'), path: [] }]
+		);
 	function setDispatchDay(next: string): void {
 		dispatchDay = next;
 	}
@@ -197,11 +176,6 @@
 			: Math.round(suspicionReviewSnapshot.progress.progress * 100)
 	);
 
-	function runSuspicionReviewNow(): void {
-		if (suspicionReviewRunning) return;
-		void suspicionReview.run({});
-	}
-
 	function assignmentStatusLabel(status: string): string {
 		if (status !== 'unassigned' && status !== 'assigned' && status !== 'completed') {
 			return status.replaceAll('_', ' ');
@@ -219,51 +193,6 @@
 			}
 		}
 	}
-
-	const createAssignment = (): void => {
-		if (assignment.jobId == null || assignment.assigneeUserId == null) return;
-		const jobId = assignment.jobId;
-		const assigneeUserId = assignment.assigneeUserId;
-		assignmentSettling = true;
-		assignmentSettlementError = null;
-		Effect.runFork(
-			Effect.gen(function* () {
-				const local = yield* Effect.tryPromise({
-					try: () =>
-						client.db.job_assignments.mutate([
-							{
-								job_id: jobId,
-								assignee_user_id: assigneeUserId,
-								status: 'assigned'
-							}
-						]),
-					catch: (cause) => toError(cause)
-				});
-				// A dispatch is a scarce-resource allocation. Local durability is deliberately not enough to
-				// dismiss its sheet: keep it visibly pending until policy and invariants settle on the server.
-				const settlement = yield* Effect.tryPromise({
-					try: () => local.settlement.wait(),
-					catch: (cause) => toError(cause)
-				});
-				if (settlement.kind !== 'accepted' && settlement.kind !== 'rebased') {
-					assignmentSettlementError =
-						settlement.kind === 'rejected' ? settlement.message : settlement.quarantine.message;
-					return;
-				}
-				assignment.jobId = null;
-				assignment.assigneeUserId = null;
-				assignContractorOpen = false;
-			}).pipe(
-				Effect.catch((cause) =>
-					Effect.sync(() => {
-						assignmentSettlementError =
-							cause instanceof Error ? cause.message : t('component.assignment_create_failed');
-					})
-				),
-				Effect.ensuring(Effect.sync(() => (assignmentSettling = false)))
-			)
-		);
-	};
 
 	const mapPoints = $derived.by(() => {
 		const assignmentsBySite = new Map<
@@ -411,7 +340,10 @@
 				variant="outline"
 				size="sm"
 				disabled={suspicionReviewRunning}
-				onclick={runSuspicionReviewNow}
+				onclick={() => {
+					if (suspicionReviewRunning) return;
+					void suspicionReview.run({});
+				}}
 			>
 				<Icon icon="lucide:play" class="size-4 shrink-0" />
 				{suspicionReviewRunning
@@ -560,7 +492,6 @@
 <Sheet.Root
 	open={assignContractorOpen}
 	onOpenChange={(open) => {
-		if (!open && assignmentSettling) return;
 		assignContractorOpen = open;
 	}}
 >
@@ -571,75 +502,64 @@
 				{t('app.field_ops_controller.sheet_description', { date: dispatchDay })}
 			</Sheet.Description>
 		</Sheet.Header>
-		<Stack
-			as="form"
-			gap="md"
-			class="p-5"
-			onsubmit={(event) => {
-				event.preventDefault();
-				createAssignment();
-			}}
-		>
-			<label class="block text-sm">
-				<Stack gap="xs">
-					<span class="font-medium">{t('app.field_ops_controller.job_and_site')}</span>
-					<Combobox
-						options={assignJobOptions}
-						bind:value={assignment.jobId}
-						disabled={assignmentSettling}
-						emptyPlaceholder={t('app.field_ops_controller.select_unassigned_job')}
-						searchPlaceholder={t('app.field_ops_controller.search_unassigned_jobs')}
-						clientConfig={{
-							isLoading: assignJobsQuery.loading,
-							error: assignJobsQuery.error?.message ?? null
-						}}
-					/>
-				</Stack>
-			</label>
-
-			<label class="block text-sm">
-				<Stack gap="xs">
-					<span class="font-medium">{t('component.contractor')}</span>
-					{#if assigneeField}
-						<DataRenderer
-							field={assigneeField}
-							value={assignment.assigneeUserId}
-							mode="edit"
-							placeholder={t('app.field_ops_controller.select_contractor')}
-							disabled={!assignSelectedJob || assignmentSettling}
-							onValueChange={(value) =>
-								(assignment.assigneeUserId = typeof value === 'string' ? value : null)}
-						/>
-					{/if}
-				</Stack>
-			</label>
-
-			{#if (assignJobsQuery.current ?? []).length === 0 && !assignJobsQuery.loading}
-				<p class="text-sm text-muted-foreground">
-					{t('app.field_ops_controller.no_unassigned_jobs', { date: dispatchDay })}
-				</p>
-			{/if}
-			{#if assignmentSettling}
-				<p class="text-sm text-muted-foreground" role="status">
-					{t('app.field_ops_controller.assigning')}
-				</p>
-			{:else if assignmentSettlementError}
-				<p class="text-sm text-destructive" role="alert">{assignmentSettlementError}</p>
-			{/if}
-
-			<Button
-				type="submit"
-				class="w-full"
-				disabled={!assignment.jobId ||
-					!assignment.assigneeUserId ||
-					client.db.job_assignments.pending > 0 ||
-					assignmentSettling}
-				aria-busy={client.db.job_assignments.pending > 0 || assignmentSettling}
+		<div class="p-5">
+			<CollectionForm
+				client={collectionClient}
+				collection="job_assignments"
+				defaultValues={{ status: 'assigned' }}
+				semantic={assignmentSemantic}
+				success_message={t('component.assignment_created')}
+				failure_message={t('component.assignment_create_failed')}
+				submitLabel={t('app.field_ops_controller.assign_contractor')}
+				onAfterSubmit={() => {
+					assignContractorOpen = false;
+				}}
 			>
-				{assignmentSettling
-					? t('app.field_ops_controller.assigning')
-					: t('app.field_ops_controller.assign_contractor')}
-			</Button>
-		</Stack>
+				{#snippet children({ Field })}
+					<Field name="dispatched_at" hidden />
+					<!-- Dispatched by this sheet; the create hook stamps the time. -->
+					<Field name="status" hidden />
+					<Field name="completed_at" hidden />
+					<Field name="amount_charged" hidden />
+					<Field name="location" hidden />
+					<Field name="summary" hidden />
+					<Field name="source_message_id" hidden />
+					<Field name="suspicion_checked_at" hidden />
+					<!-- Derived from the chosen job by `+hooks.ts` on create; never authored here. -->
+					<Field name="search_text" hidden />
+					<Stack gap="md">
+						<Field
+							name="job_id"
+							label={t('app.field_ops_controller.job_and_site')}
+							relationOptions={{
+								label: (record) => {
+									const v = record.title;
+									return v != null && v !== '' ? String(v) : '—';
+								},
+								orderBy: { title: 'asc' },
+								limit: 500
+							}}
+						/>
+						<!--
+							The assignee is a person, so the picker reads the identity directory directly.
+							Authored workspace code declares which relation it is editing, but never
+							receives a query handle for the platform-owned user table.
+						-->
+						<Field
+							name="assignee_user_id"
+							label={t('component.contractor')}
+							relationOptions={{
+								label: (record) => {
+									const v = record.name;
+									return v != null && v !== '' ? String(v) : '—';
+								},
+								orderBy: { name: 'asc' },
+								limit: 500
+							}}
+						/>
+					</Stack>
+				{/snippet}
+			</CollectionForm>
+		</div>
 	</Sheet.Content>
 </Sheet.Root>

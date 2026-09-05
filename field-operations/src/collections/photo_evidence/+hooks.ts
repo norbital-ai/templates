@@ -1,9 +1,5 @@
 import { hexToBinaryEmbedding, refuse } from '@norbital-ai/bolt/authoring';
-import type {
-	CollectionMutationValues,
-	MutateAfterContext,
-	MutateBeforeContext
-} from '@norbital-ai/bolt/authoring';
+import type { CollectionMutationValues, MutateBeforeContext } from '@norbital-ai/bolt/authoring';
 import { Effect, Schema } from 'effect';
 import type { WorkspaceSchema } from '$bolt/types.js';
 import type { Hooks } from './$types.js';
@@ -14,7 +10,6 @@ import {
 	assertPhotoEvidenceProvenanceUnchanged,
 	evaluateCaptureGeolocation,
 	inspectPhoto,
-	photoIntegrityFlags,
 	VISUAL_DUPLICATE_MAX_L2
 } from './photo-integrity.js';
 
@@ -31,9 +26,7 @@ const photoEvidenceCreateInput = Schema.Struct({
 });
 
 type PhotoBeforeApi = MutateBeforeContext<Hooks<PhotoEvidenceBatch>>['api'];
-type PhotoAfterApi = MutateAfterContext<Hooks<PhotoEvidenceBatch>>['api'];
 type PhotoCreateInput = Schema.Schema.Type<typeof photoEvidenceCreateInput>;
-type PhotoRecord = MutateAfterContext<Hooks<PhotoEvidenceBatch>>['record'];
 /**
  * What `prepare` hands the create path: the insert branch of the collection's declarative write.
  *
@@ -67,7 +60,6 @@ interface PhotoEvidenceBatch {
 
 const MAX_BATCH_DUPLICATE_CORPUS = 5_000;
 const MAX_BATCH_DUPLICATE_COMPARISONS = 250_000;
-const photoIntegrityFlagNames = new Set<string>(photoIntegrityFlags);
 
 function sourceKey(
 	source: Schema.Schema.Type<typeof photoSourceValueSchema>,
@@ -116,7 +108,7 @@ function assignmentIdFromEvidence(
 }
 
 function assignmentIdsForEvidence(
-	api: PhotoAfterApi,
+	api: PhotoBeforeApi,
 	records: readonly {
 		readonly job_assignment_id?: string | null;
 		readonly variation_request_id?: string | null;
@@ -145,7 +137,20 @@ function assignmentIdsForEvidence(
 	);
 }
 
-function runAfterPhoto(record: PhotoRecord, api: PhotoAfterApi): Effect.Effect<void> {
+/**
+ * The deterministic evidence pass, folded into the create itself.
+ *
+ * This used to be an `after` hook that wrote `flags` and `matched_evidence_ids` back — a second
+ * write per photo, and one the collection's declared input correctly refuses from anyone, which
+ * is exactly why it cannot be an `after` self-mutate any more. The hook returns the derived
+ * columns and the runtime does the only write there is. Matching runs against the stored corpus
+ * before the new row exists, so a photograph never flags itself and never flags a sibling
+ * created inside the same atomic batch — duplicates that arrive together are one intake act.
+ */
+function withVisualDuplicates(
+	api: PhotoBeforeApi,
+	draft: PhotoCreateMutation
+): Effect.Effect<PhotoCreateMutation> {
 	return Effect.gen(function* () {
 		const columns = {
 			id: true,
@@ -155,26 +160,20 @@ function runAfterPhoto(record: PhotoRecord, api: PhotoAfterApi): Effect.Effect<v
 		} as const;
 		const visualMatches = yield* api.db.photo_evidence.findNearest({
 			column: 'perceptual_embedding',
-			probe: record.perceptual_embedding,
+			probe: draft.perceptual_embedding,
 			metric: 'l2',
 			maxDistance: VISUAL_DUPLICATE_MAX_L2,
 			limit: 50,
-			columns,
-			// The probe's own row is nearest to itself; excluding it is the ordinary where clause.
-			where: { id: { ne: record.id } }
+			columns
 		});
 
-		const flags = new Set(record.flags.filter((flag) => photoIntegrityFlagNames.has(flag)));
+		const flags = new Set(draft.flags ?? []);
 		const matchedIds = new Set<string>();
 		const candidates = [
-			...new Map(
-				visualMatches
-					.filter((candidate) => candidate.id !== record.id)
-					.map((candidate) => [candidate.id, candidate])
-			).values()
+			...new Map(visualMatches.map((candidate) => [candidate.id, candidate])).values()
 		];
-		const assignmentByVariation = yield* assignmentIdsForEvidence(api, [record, ...candidates]);
-		const currentAssignmentId = assignmentIdFromEvidence(record, assignmentByVariation);
+		const assignmentByVariation = yield* assignmentIdsForEvidence(api, [draft, ...candidates]);
+		const currentAssignmentId = assignmentIdFromEvidence(draft, assignmentByVariation);
 		const candidateAssignmentIds = new Map(
 			candidates.map((candidate) => [
 				candidate.id,
@@ -183,20 +182,17 @@ function runAfterPhoto(record: PhotoRecord, api: PhotoAfterApi): Effect.Effect<v
 		);
 
 		for (const candidate of visualMatches) {
-			if (candidate.id === record.id) continue;
-			if (candidate.sha256 === record.sha256) continue;
+			if (candidate.sha256 === draft.sha256) continue;
 			if (candidateAssignmentIds.get(candidate.id) === currentAssignmentId) continue;
 			flags.add('visual_duplicate');
 			matchedIds.add(candidate.id);
 		}
-		const mergedFlags = [...flags];
-		yield* api.db.photo_evidence.mutate([
-			{
-				id: record.id,
-				flags: mergedFlags,
-				matched_evidence_ids: [...matchedIds]
-			}
-		]);
+		if (flags.size === (draft.flags?.length ?? 0) && matchedIds.size === 0) return draft;
+		return {
+			...draft,
+			flags: [...flags],
+			matched_evidence_ids: [...matchedIds]
+		};
 	});
 }
 
@@ -234,9 +230,8 @@ function preparePhoto(
 }
 
 /** What a caller may state on a write; it types `api.db.photo_evidence.mutate` too. */
-export const input = photoEvidenceCreateInput;
-
 export default {
+	input: photoEvidenceCreateInput,
 	mutate: {
 		prepare: ({ inputs, api }) =>
 			Effect.gen(function* () {
@@ -331,19 +326,16 @@ export default {
 							}
 						}
 
-						return yield* preparePhoto(
+						return yield* withVisualDuplicates(
 							api,
-							parsed,
-							siteLocationFor(prepared, jobAssignmentId, variationRequestId)
+							yield* preparePhoto(
+								api,
+								parsed,
+								siteLocationFor(prepared, jobAssignmentId, variationRequestId)
+							)
 						);
 					});
 				}
-			},
-			after: {
-				description: 'Runs the deterministic evidence pass over a newly recorded photograph.',
-				handler: ({ previous, record, api }) =>
-					// Only a newly recorded photograph is passed; an edit changes facts the pass already read.
-					previous === undefined ? runAfterPhoto(record, api) : Effect.void
 			}
 		}
 	}

@@ -349,9 +349,7 @@
 	</Cover>
 	<FaceCaptureDialog
 		bind:open={captureOpen}
-		employeeId={record.id}
-		employeeName={record.name}
-		currentStatus={record.face_enrollment_status}
+		{record}
 		onsaved={(previewUrl) => {
 			justSavedUrl = previewUrl;
 		}}

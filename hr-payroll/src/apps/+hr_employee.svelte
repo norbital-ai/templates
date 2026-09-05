@@ -1,12 +1,16 @@
 <script lang="ts">
 	import { FormattedValueRenderer } from '@norbital-ai/ui/data-renderer';
-	import { submitCollectionMutation } from '@norbital-ai/ui/collection-form';
 	import { client } from '../lib/workspace-client.js';
 	import { Effect, Number as EffectNumber } from 'effect';
 	import { getPlatformStateContext } from '@norbital-ai/bolt/client';
 	import { useI18n } from '@norbital-ai/ui/i18n';
 	import type { TenantI18nKeys } from '$bolt/i18n-keys';
 	import type { WorkspaceRow } from '$bolt/types.js';
+	import {
+		CollectionForm,
+		type CollectionFormController,
+		type CollectionFormSemantic
+	} from '@norbital-ai/ui/collection-form';
 	import { CollectionTable } from '@norbital-ai/ui/collection-table';
 	import { Combobox } from '@norbital-ai/ui/combobox';
 	import { Button } from '@norbital-ai/ui/button';
@@ -18,10 +22,7 @@
 	import { Tabs, type TabConfig } from '@norbital-ai/ui/tabs';
 	import RosterMonthCalendar from '../lib/ui/roster/roster-month-calendar.svelte';
 	import { employeeMissingPunchReportable } from '../lib/ui/roster/employee-reportability.js';
-	import DaySheet, {
-		type DaySheetChange,
-		type DaySheetPerson
-	} from '../lib/ui/roster/day-sheet.svelte';
+	import DaySheet, { type DaySheetPerson } from '../lib/ui/roster/day-sheet.svelte';
 	import {
 		formatCalendarDate,
 		formatDurationHours,
@@ -30,10 +31,11 @@
 	} from '../lib/ui/display-formatters.js';
 	import {
 		leaveYearSummary,
-		resolveEntitlement,
+		ledgerRowOf,
+		resolveEntitlementAt,
 		type BalanceInput
 	} from '../collections/payroll_runs/lib/leave.js';
-	import { sealedProfileCovering } from '../lib/statutory_profile.js';
+	import { sealedProfileCovering, statutoryProfileLineage } from '../lib/statutory_profile.js';
 	import {
 		PAYROLL_TIME_ZONE,
 		daysBetweenKeys,
@@ -46,8 +48,8 @@
 		workDateCalendarKey
 	} from '../lib/ui/calendar.js';
 	import { inForceOnDay } from '../lib/effective_range.js';
-	import { getErrorMessage } from '@norbital-ai/std';
 	import { formatDateISO } from '@norbital-ai/std/date';
+	import { getErrorMessage } from '@norbital-ai/std';
 	import { decodeNumber } from '@norbital-ai/std/json';
 	import {
 		ATTENDANCE_DRAFT_PROBLEM_KEY,
@@ -484,7 +486,8 @@
 			: client.db.jurisdictions.findMany({
 					where: {
 						code: { eq: profileAnchorQuery.current.code },
-						lifecycle: { eq: 'SEALED' }
+						lifecycle: { eq: 'SEALED' },
+						approval_id: { isNull: true }
 					},
 					limit: 100
 				})
@@ -498,7 +501,7 @@
 		employmentId == null
 			? null
 			: client.db.employee_children.findMany({
-					where: { employment_id: { eq: employmentId } },
+					where: { employment_id: { eq: employmentId }, approval_id: { isNull: true } },
 					limit: 200
 				})
 	);
@@ -532,9 +535,10 @@
 		employmentId == null
 			? null
 			: client.db.leave_requests.findMany({
-					where: { employment_id: { eq: employmentId }, approval_id: { isNull: true } },
+					where: { employment_id: { eq: employmentId } },
 					columns: {
 						id: true,
+						approval_id: true,
 						leave_type_id: true,
 						from_date: true,
 						kind: true,
@@ -583,36 +587,16 @@
 	const profileLeaveTypes = $derived(
 		governingProfile == null
 			? []
-			: (leaveTypesQuery.current ?? []).filter(
-					(type) => type.statutory_profile_id === governingProfile.id
+			: (leaveTypesQuery.current ?? []).filter((type) =>
+					statutoryProfileLineage(profileRowsQuery?.current ?? [], governingProfile).some(
+						(entry) => entry.id === type.statutory_profile_id
+					)
 				)
 	);
 	const leaveLedgerRows = $derived(
 		(myLeaveLedgerQuery?.current ?? []).flatMap((row) => {
-			if (row.from_date == null) return [];
-			return [
-				{
-					id: row.id,
-					leave_type_id: row.leave_type_id,
-					entry_date: formatDateISO(row.from_date),
-					kind: row.kind ?? 'TAKEN',
-					// The generated `days` column stores the magnitude of a time-off request. The
-					// balance ledger stores movements, where leave taken is a debit. The request hook
-					// and payroll engine already make this conversion; the employee panel must read the
-					// same sign or a newly submitted day increases the displayed balance instead.
-					days:
-						row.kind === 'TIME_OFF' ? -Math.abs(decodeNumber(row.days)) : decodeNumber(row.days),
-					source_id: null,
-					approval_id: null,
-					// A posted carry names the year it opens and the day it lapses on its event.
-					...(row.event?.kind === 'CARRY_FORWARD'
-						? {
-								leave_year: typeof row.event.leave_year === 'number' ? row.event.leave_year : null,
-								expires_on: typeof row.event.expires_on === 'string' ? row.event.expires_on : null
-							}
-						: {})
-				}
-			];
+			const entry = ledgerRowOf(row);
+			return entry == null ? [] : [entry];
 		})
 	);
 	const childFactRows = $derived(childFactsQuery?.current ?? []);
@@ -627,58 +611,67 @@
 	 * TODO(RFC hr-payroll-leave-and-attendance): acceptance row H14 still pins "no Accrued/Taken"
 	 * on this panel and needs the owner's amendment; this row shows Taken deliberately.
 	 */
-	const leaveBalanceRows = $derived.by(() => {
-		const profile = governingProfile;
-		const employment = activeEmployment;
-		if (profile == null || employment == null) return [];
-		const hire = formatDateISO(employment.hire_date) || today;
-		const exit =
-			employment.exit_date == null ? null : (formatDateISO(employment.exit_date) ?? null);
-		const yearStart = decodeNumber(company?.leave_year_start_month ?? 1);
-		return profileLeaveTypes.map((type) => {
-			const entitlementAt = (serviceMonths: number, asOf: string) =>
-				resolveEntitlement({
-					leaveType: type,
-					profile,
-					children: childFactRows,
-					serviceMonths,
-					employmentId: employment.id,
-					asOf
-				});
-			const input: BalanceInput = {
-				leaveType: type,
-				entitlementAt,
-				hireDate: hire,
-				exitDate: exit,
-				leaveYearStartMonth: yearStart,
-				ledger: leaveLedgerRows,
-				basis: 'SETTLED'
-			};
-			const summary = leaveYearSummary(input, today);
-			const accrual = type.accrual;
-			const banked = accrual != null && accrual.kind !== 'PER_EVENT';
-			const carryLimit =
-				banked && accrual.carry != null ? decodeNumber(accrual.carry.limit_days) : null;
-			const carryLeft =
-				summary.carry.expires_on != null && today >= summary.carry.expires_on
-					? 0
-					: EffectNumber.clamp({ minimum: 0, maximum: Math.max(summary.carry.days, 0) })(
-							summary.carry.days - summary.taken
-						);
+	const leaveBalanceRowsResult = $derived.by(() => {
+		try {
+			const profile = governingProfile;
+			const employment = activeEmployment;
+			if (profile == null || employment == null) return { rows: [], error: null };
+			const hire = formatDateISO(employment.hire_date) || today;
+			const exit =
+				employment.exit_date == null ? null : (formatDateISO(employment.exit_date) ?? null);
+			const yearStart = decodeNumber(company?.leave_year_start_month ?? 1);
 			return {
-				type,
-				banked,
-				monthly: accrual?.kind === 'MONTHLY',
-				summary,
-				carryLimit,
-				carryLeft,
-				entitlementLeft: EffectNumber.clamp({
-					minimum: 0,
-					maximum: Math.max(summary.entitlement, 0)
-				})(summary.balance - carryLeft)
+				rows: profileLeaveTypes.map((type) => {
+					const entitlementAt = (serviceMonths: number, asOf: string) =>
+						resolveEntitlementAt({
+							leaveType: type,
+							profiles: profileRowsQuery?.current ?? [],
+							jurisdictionCode: profile.code,
+							children: childFactRows,
+							serviceMonths,
+							employmentId: employment.id,
+							asOf
+						});
+					const input: BalanceInput = {
+						leaveType: type,
+						entitlementAt,
+						hireDate: hire,
+						exitDate: exit,
+						leaveYearStartMonth: yearStart,
+						ledger: leaveLedgerRows,
+						basis: 'SETTLED'
+					};
+					const summary = leaveYearSummary(input, today);
+					const accrual = type.accrual;
+					const banked = accrual != null && accrual.kind !== 'PER_EVENT';
+					const carryLimit =
+						banked && accrual.carry != null ? decodeNumber(accrual.carry.limit_days) : null;
+					const carryLeft =
+						summary.carry.expires_on != null && today >= summary.carry.expires_on
+							? 0
+							: EffectNumber.clamp({ minimum: 0, maximum: Math.max(summary.carry.days, 0) })(
+									summary.carry.days - summary.taken
+								);
+					return {
+						type,
+						banked,
+						monthly: accrual?.kind === 'MONTHLY',
+						summary,
+						carryLimit,
+						carryLeft,
+						entitlementLeft: EffectNumber.clamp({
+							minimum: 0,
+							maximum: Math.max(summary.entitlement, 0)
+						})(summary.balance - carryLeft)
+					};
+				}),
+				error: null
 			};
-		});
+		} catch (cause) {
+			return { rows: [], error: getErrorMessage(cause) };
+		}
 	});
+	const leaveBalanceRows = $derived(leaveBalanceRowsResult.rows);
 
 	const scheduleHolidays = $derived(scheduleHolidaysQuery?.current ?? []);
 	const scheduleHolidayNames = $derived(holidayNamesByDate(scheduleHolidays));
@@ -799,7 +792,7 @@
 	 *
 	 * So the write goes to the server and the server refuses it. That refusal is a sentence already
 	 * written for a human — it names the period and says to ask for an adjustment entry — and
-	 * `submitReport` surfaces it verbatim. Attempt-and-explain is the correct pattern whenever the
+	 * `submit` surfaces it verbatim. Attempt-and-explain is the correct pattern whenever the
 	 * client is not permitted to hold the data the decision needs; the cost is one round trip on a
 	 * rare day, and the alternative is a lie drawn in the UI.
 	 *
@@ -844,9 +837,6 @@
 
 	let daySheetOpen = $state(false);
 	let daySheetDate = $state<string | null>(null);
-	let daySheetSettling = $state(false);
-	let daySheetPendingApproval = $state(false);
-	let daySheetError = $state<string | null>(null);
 	const daySheetDay = $derived(
 		daySheetDate == null ? undefined : (scheduleDay(daySheetDate) ?? undefined)
 	);
@@ -892,8 +882,6 @@
 
 	function openDaySheet(_employmentId: string, date: string): void {
 		daySheetDate = date;
-		daySheetPendingApproval = false;
-		daySheetError = null;
 		daySheetOpen = true;
 	}
 
@@ -906,74 +894,16 @@
 	 * is created. Either write is immediately held under `approval_id`, which the platform's mutation
 	 * boundary presents rather than letting this component invent a second result state.
 	 */
-	function saveDaySheet(change: DaySheetChange): void {
-		const attendance = change.attendance;
-		if (attendance == null || employmentId == null) return;
-		const targetEmploymentId = employmentId;
-		daySheetSettling = true;
-		daySheetPendingApproval = false;
-		daySheetError = null;
-		Effect.runFork(
-			submitCollectionMutation(() =>
-				client.db.work_days.mutate([
-					{
-						...(attendance.workDayId == null
-							? { employment_id: targetEmploymentId, work_date: change.date }
-							: { id: attendance.workDayId }),
-						worked_intervals:
-							attendance.intervals == null
-								? null
-								: attendance.intervals.map((interval) => ({
-										start: interval.start,
-										end: interval.end
-									})),
-						break_minutes:
-							attendance.intervals == null || attendance.intervals.length === 0
-								? 0
-								: attendance.breakMinutes
-					}
-				])
-			).pipe(
-				Effect.tap((submission) =>
-					Effect.sync(() => {
-						if (submission.kind === 'pendingApproval') {
-							daySheetPendingApproval = true;
-							return;
-						}
-						daySheetOpen = false;
-					})
-				),
-				Effect.catch((cause) =>
-					Effect.sync(() => {
-						const serverMessage = getErrorMessage(cause);
-						daySheetError = t('roster.day_sheet_error_context', {
-							person: daySheetPerson?.name ?? targetEmploymentId,
-							date: change.date,
-							message: serverMessage
-						});
-					})
-				),
-				Effect.ensuring(Effect.sync(() => (daySheetSettling = false)))
-			)
-		);
-	}
-
 	const report = $state<{
 		open: boolean;
 		date: string | null;
 		startClock: string;
 		endClock: string;
-		settling: boolean;
-		pendingApproval: boolean;
-		error: string | null;
 	}>({
 		open: false,
 		date: null,
 		startClock: '',
-		endClock: '',
-		settling: false,
-		pendingApproval: false,
-		error: null
+		endClock: ''
 	});
 
 	function openReport(_employmentId: string, date: string): void {
@@ -984,8 +914,6 @@
 		// with no planned window seeds empty rather than guessing one.
 		report.startClock = day?.shiftStart?.slice(0, 5) ?? '';
 		report.endClock = day?.shiftEnd?.slice(0, 5) ?? '';
-		report.pendingApproval = false;
-		report.error = null;
 		report.open = true;
 	}
 
@@ -1032,52 +960,53 @@
 		return problem == null ? null : t(ATTENDANCE_DRAFT_PROBLEM_KEY[problem]);
 	});
 
-	function submitReport(): void {
+	/**
+	 * Update the stored row when one exists, create it when none does. Minimal like the day
+	 * sheet's: only the routing is seeded, and the clamped draft is pushed via `setValues` as
+	 * the clocks are typed, so an untouched dialog cannot submit anything.
+	 */
+	const reportWorkDayId = $derived(
+		report.date == null ? null : (scheduleDay(report.date)?.workDayId ?? null)
+	);
+	const reportDefaults = $derived(
+		employmentId == null || report.date == null
+			? undefined
+			: reportWorkDayId == null
+				? { employment_id: employmentId, work_date: report.date }
+				: { id: reportWorkDayId }
+	);
+
+	/** Mirror the clamped draft into the form; the time inputs are custom composition. */
+	function presetReport(form: CollectionFormController): void {
 		const draft = reportDraft;
-		if (draft == null || employmentId == null || draft.assessment.problem != null) return;
-		const targetEmploymentId = employmentId;
-		const workDayId = scheduleDay(draft.date)?.workDayId ?? null;
-		report.settling = true;
-		report.pendingApproval = false;
-		report.error = null;
-		Effect.runFork(
-			submitCollectionMutation(() =>
-				client.db.work_days.mutate([
-					{
-						...(workDayId == null
-							? { employment_id: targetEmploymentId, work_date: draft.date }
-							: { id: workDayId }),
-						worked_intervals: draft.intervals.map((interval) => ({
-							start: interval.start,
-							end: interval.end
-						})),
-						break_minutes: draft.assessment.breakMinutes
-					}
-				])
-			).pipe(
-				Effect.tap((submission) =>
-					Effect.sync(() => {
-						if (submission.kind === 'pendingApproval') {
-							report.pendingApproval = true;
-							return;
-						}
-						report.open = false;
-						daySheetOpen = false;
-					})
-				),
-				Effect.catch((cause) =>
-					Effect.sync(() => {
-						report.error = t('roster.day_sheet_error_context', {
-							person: daySheetPerson?.name ?? targetEmploymentId,
-							date: draft.date,
-							message: getErrorMessage(cause)
-						});
-					})
-				),
-				Effect.ensuring(Effect.sync(() => (report.settling = false)))
-			)
-		);
+		if (draft == null || employmentId == null) return;
+		form.setValues({
+			employment_id: employmentId,
+			work_date: draft.date,
+			worked_intervals: draft.intervals.map((interval) => ({
+				start: interval.start,
+				end: interval.end
+			})),
+			break_minutes: draft.assessment.breakMinutes
+		});
 	}
+
+	/**
+	 * The same assessment the dialog previews, re-run over the form values at submit time, so the
+	 * framework Save beside the custom one cannot land a draft the preview refused.
+	 */
+	const reportSemantic: CollectionFormSemantic = (values) =>
+		Effect.sync(() => {
+			const intervals = values.worked_intervals;
+			if (!Array.isArray(intervals))
+				return [{ message: t('app.hr_employee.report_punch_needs_times') }];
+			const problem = assessAttendanceDraft(
+				intervals as { start: string; end: string | null }[],
+				typeof values.break_minutes === 'number' ? values.break_minutes : 0
+			).problem;
+			if (problem != null) return [{ message: t(ATTENDANCE_DRAFT_PROBLEM_KEY[problem]) }];
+			return;
+		});
 </script>
 
 <svelte:head>
@@ -1305,7 +1234,11 @@
 						})}
 					</p>
 				</Stack>
-				{#if leaveBalanceRows.length === 0}
+				{#if leaveBalanceRowsResult.error != null}
+					<Alert variant="destructive"
+						><AlertDescription>{leaveBalanceRowsResult.error}</AlertDescription></Alert
+					>
+				{:else if leaveBalanceRows.length === 0}
 					<p class="border-t px-4 py-3 text-sm text-muted-foreground">
 						{t('app.hr_employee.leave_balances_empty')}
 					</p>
@@ -1603,16 +1536,15 @@
 </Cover>
 
 <!--
-	The day detail, shared with the controller's board and told which audience it has.
+ 	The day detail, shared with the controller's board and told which audience it has.
 
-	`mode="employee"` is the whole difference: the roster-code picker and the interval editor are the
-		controller's affordances and an employee has neither grant behind them — `mutate.new` and
-		`mutate.existing` on `work_days` are scoped to their own employment and masked to the clock fields,
-		with no delete.
-		The sheet's Save is routed back out to `saveDaySheet`, so this app owns the single place a
-		`work_days` row is created or its attendance is updated; the tile's report chip opens the preview
-		dialog below, which writes the same row shape.
--->
+ 	`mode="employee"` is the whole difference: the roster-code picker and the interval editor are the
+ 		controller's affordances and an employee has neither grant behind them — `mutate.new` and
+ 		`mutate.existing` on `work_days` are scoped to their own employment and masked to the clock fields,
+ 		with no delete.
+ 		The sheet carries its own person-day write; the tile's report chip opens the preview
+ 		dialog below, which writes the same row shape.
+ -->
 <DaySheet
 	bind:open={daySheetOpen}
 	mode="employee"
@@ -1622,10 +1554,6 @@
 	intervals={daySheetIntervals}
 	lockRung={daySheetRung}
 	lockReason={daySheetLockReason}
-	saving={daySheetSettling}
-	pendingApproval={daySheetPendingApproval}
-	error={daySheetError}
-	onSave={(change) => saveDaySheet(change)}
 />
 
 <Dialog.Root bind:open={report.open}>
@@ -1638,96 +1566,124 @@
 				})}
 			</Dialog.Description>
 		</Dialog.Header>
-		<Stack gap="sm">
-			<Inline gap="sm" align="end">
-				<label class="flex-1 text-sm font-medium">
-					<Stack gap="xs">
-						{t('app.hr_employee.report_punch_start')}
-						<Input
-							type="time"
-							value={report.startClock}
-							disabled={client.db.work_days.pending > 0}
-							oninput={(event) => (report.startClock = event.currentTarget.value)}
-						/>
-					</Stack>
-				</label>
-				<label class="flex-1 text-sm font-medium">
-					<Stack gap="xs">
-						{t('app.hr_employee.report_punch_end')}
-						<Input
-							type="time"
-							value={report.endClock}
-							disabled={client.db.work_days.pending > 0}
-							oninput={(event) => (report.endClock = event.currentTarget.value)}
-						/>
-					</Stack>
-				</label>
-			</Inline>
-
-			<!--
-				What will actually be recorded, spelled out before the submit rather than after the
-				refusal. The break line is the one that earns this panel: it is clamped to fit the
-				reported interval, and a clamp that happened silently would leave somebody wondering why
-				a twenty-minute call-in was paid as nothing.
-			-->
-			{#if reportDraft != null}
-				<Stack gap="none" class="rounded-md border bg-muted/20 p-3 text-sm">
-					<p class="font-medium">{t('app.hr_employee.report_punch_preview')}</p>
-					<p>
-						{t('app.hr_employee.report_punch_preview_worked', {
-							hours: formatDurationHours(reportDraft.assessment.workedMinutes ?? 0, t)
-						})}
-					</p>
-					<p>
-						{t('app.hr_employee.report_punch_preview_break', {
-							minutes: reportDraft.assessment.breakMinutes
-						})}
-					</p>
-					{#if reportDraft.crossesMidnight}
-						<p class="text-muted-foreground">
-							{t('app.hr_employee.report_punch_crosses_midnight')}
-						</p>
-					{/if}
-					{#if reportDraft.assessment.breakClamped}
-						<p class="text-warning-foreground">
-							{reportDraft.assessment.breakMinutes === 0
-								? t('app.hr_employee.report_punch_break_zeroed', {
-										scheduled: reportDraft.requestedBreak
-									})
-								: t('app.hr_employee.report_punch_break_clamped', {
-										scheduled: reportDraft.requestedBreak,
-										recorded: reportDraft.assessment.breakMinutes
-									})}
-						</p>
-					{/if}
-				</Stack>
-			{/if}
-
-			{#if reportProblem != null}
-				<p class="text-sm text-destructive">{reportProblem}</p>
-			{/if}
-			{#if report.pendingApproval}
-				<Alert aria-live="polite">
-					<AlertTitle>{t('roster.day_sheet_pending_approval')}</AlertTitle>
-					<AlertDescription>{t('roster.day_sheet_pending_approval_description')}</AlertDescription>
-				</Alert>
-			{/if}
-			{#if report.error != null}
-				<Alert variant="destructive" aria-live="assertive">
-					<AlertTitle>{t('roster.day_sheet_save_failed')}</AlertTitle>
-					<AlertDescription>{report.error}</AlertDescription>
-				</Alert>
-			{/if}
-			<p class="text-meta">{t('app.hr_employee.report_punch_approval_note')}</p>
-		</Stack>
-		<Dialog.Footer>
-			<Dialog.Close disabled={report.settling}>{t('roster.cancel')}</Dialog.Close>
-			<Button
-				disabled={report.settling || report.pendingApproval || reportProblem != null}
-				onclick={submitReport}
+		{#key report.date}
+			<CollectionForm
+				{client}
+				collection="work_days"
+				defaultValues={reportDefaults}
+				submitLabel={t('app.hr_employee.report_punch_submit')}
+				semantic={reportSemantic}
+				onAfterSubmit={() => {
+					report.open = false;
+					daySheetOpen = false;
+				}}
 			>
-				{t('app.hr_employee.report_punch_submit')}
-			</Button>
+				{#snippet children({ Field, form })}
+					<Field name="employment_id" hidden />
+					<Field name="work_date" hidden />
+					<Field name="shift_definition_id" hidden />
+					<Field name="assignment_code" hidden />
+					<Field name="planned_origin" hidden />
+					<Field name="planned_note" hidden />
+					<Field name="worked_intervals" hidden />
+					<Field name="break_minutes" hidden />
+					<Stack gap="sm">
+						<Inline gap="sm" align="end">
+							<label class="flex-1 text-sm font-medium">
+								<Stack gap="xs">
+									{t('app.hr_employee.report_punch_start')}
+									<Input
+										type="time"
+										value={report.startClock}
+										disabled={client.db.work_days.pending > 0}
+										oninput={(event) => {
+											report.startClock = event.currentTarget.value;
+											presetReport(form);
+										}}
+									/>
+								</Stack>
+							</label>
+							<label class="flex-1 text-sm font-medium">
+								<Stack gap="xs">
+									{t('app.hr_employee.report_punch_end')}
+									<Input
+										type="time"
+										value={report.endClock}
+										disabled={client.db.work_days.pending > 0}
+										oninput={(event) => {
+											report.endClock = event.currentTarget.value;
+											presetReport(form);
+										}}
+									/>
+								</Stack>
+							</label>
+						</Inline>
+
+						<!--
+ 							What will actually be recorded, spelled out before the submit rather than after the
+ 							refusal. The break line is the one that earns this panel: it is clamped to fit the
+ 							reported interval, and a clamp that happened silently would leave somebody wondering why
+ 							a twenty-minute call-in was paid as nothing.
+ 						-->
+						{#if reportDraft != null}
+							<Stack gap="none" class="rounded-md border bg-muted/20 p-3 text-sm">
+								<p class="font-medium">{t('app.hr_employee.report_punch_preview')}</p>
+								<p>
+									{t('app.hr_employee.report_punch_preview_worked', {
+										hours: formatDurationHours(reportDraft.assessment.workedMinutes ?? 0, t)
+									})}
+								</p>
+								<p>
+									{t('app.hr_employee.report_punch_preview_break', {
+										minutes: reportDraft.assessment.breakMinutes
+									})}
+								</p>
+								{#if reportDraft.crossesMidnight}
+									<p class="text-muted-foreground">
+										{t('app.hr_employee.report_punch_crosses_midnight')}
+									</p>
+								{/if}
+								{#if reportDraft.assessment.breakClamped}
+									<p class="text-warning-foreground">
+										{reportDraft.assessment.breakMinutes === 0
+											? t('app.hr_employee.report_punch_break_zeroed', {
+													scheduled: reportDraft.requestedBreak
+												})
+											: t('app.hr_employee.report_punch_break_clamped', {
+													scheduled: reportDraft.requestedBreak,
+													recorded: reportDraft.assessment.breakMinutes
+												})}
+									</p>
+								{/if}
+							</Stack>
+						{/if}
+
+						{#if reportProblem != null}
+							<p class="text-sm text-destructive">{reportProblem}</p>
+						{/if}
+						<p class="text-meta">{t('app.hr_employee.report_punch_approval_note')}</p>
+						<!--
+ 							The submit stays disabled on the preview's own refusal, with the sentence
+ 							beside it. The draft is pushed on every keystroke, so this native submit
+ 							carries current values; the preset is belt-and-braces for the same reason.
+ 							The framework footer below offers the same submit as framework chrome, and
+ 							the semantic gate refuses it there with the same sentence.
+ 						-->
+						<Button
+							type="submit"
+							disabled={reportProblem != null}
+							onclick={() => {
+								presetReport(form);
+							}}
+						>
+							{t('app.hr_employee.report_punch_submit')}
+						</Button>
+					</Stack>
+				{/snippet}
+			</CollectionForm>
+		{/key}
+		<Dialog.Footer>
+			<Dialog.Close>{t('roster.cancel')}</Dialog.Close>
 		</Dialog.Footer>
 	</Dialog.Content>
 </Dialog.Root>

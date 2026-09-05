@@ -20,7 +20,7 @@
 	import type { TenantI18nKeys } from '$bolt/i18n-keys';
 	import type { RepresentationProps } from './$types.js';
 	import { CollectionForm } from '@norbital-ai/ui/collection-form';
-	import type { CollectionFormValidation } from '@norbital-ai/ui/collection-form';
+	import type { CollectionFormSemantic } from '@norbital-ai/ui/collection-form';
 	import { Column, Grid } from '@norbital-ai/ui/layout';
 	import { Effect, Option, Schema } from 'effect';
 	import { sourceLock, sourceLockRecordMetadata } from '../../lib/scheduling/lock.js';
@@ -88,20 +88,18 @@
 	const decodeLeaveEventKind = Schema.decodeUnknownOption(LeaveEventKindSchema);
 
 	/** The browser and the write hook enforce the same arm rule for the ordinary file column. */
-	const validation = {
-		semantic: (values) => {
-			const event = Option.getOrNull(decodeLeaveEventKind(values.event));
-			return Effect.succeed(
-				certificatePolicyIssues({
-					eventKind: event?.kind ?? null,
-					certificateFile: values.certificate_file
-				}).map((message) => ({
-					message: certificatePolicyMismatchMessage([message]),
-					path: ['certificate_file']
-				}))
-			);
-		}
-	} satisfies CollectionFormValidation;
+	const semantic = ((values) => {
+		const event = Option.getOrNull(decodeLeaveEventKind(values.event));
+		return Effect.succeed(
+			certificatePolicyIssues({
+				eventKind: event?.kind ?? null,
+				certificateFile: values.certificate_file
+			}).map((message) => ({
+				message: certificatePolicyMismatchMessage([message]),
+				path: ['certificate_file']
+			}))
+		);
+	}) satisfies CollectionFormSemantic;
 </script>
 
 <svelte:head>
@@ -116,11 +114,13 @@
 	collection="leave_requests"
 	defaultValues={formValues}
 	{recordMetadata}
-	{validation}
+	{semantic}
 	submitLabel={record ? t('component.save_leave') : t('component.submit_leave')}
 	onAfterSubmit={record ? undefined : close}
 >
-	{#snippet children({ Field })}
+	{#snippet children({ Field, form })}
+		{@const employmentId = form.values().employment_id}
+		{@const leaveTypeId = form.values().leave_type_id}
 		<Grid gap="md" minimum="panel">
 			{#if createScope == null}
 				<Field
@@ -148,6 +148,30 @@
 							.join(' · ') || '—',
 					where: scopedCompanyId ? { company_id: { eq: scopedCompanyId } } : undefined,
 					orderBy: { code: 'asc' },
+					limit: 500
+				}}
+			/>
+			<Field
+				name="allocation_id"
+				label={t('component.event_allocation')}
+				relationOptions={{
+					label: (allocation) => `${allocation.event_reference} · ${allocation.allocated_days}d`,
+					where: {
+						employment_id: {
+							eq:
+								typeof employmentId === 'string'
+									? employmentId
+									: '00000000-0000-4000-8000-000000000000'
+						},
+						leave_type_id: {
+							eq:
+								typeof leaveTypeId === 'string'
+									? leaveTypeId
+									: '00000000-0000-4000-8000-000000000000'
+						},
+						approval_id: { isNull: true }
+					},
+					orderBy: { expires_on: 'asc' },
 					limit: 500
 				}}
 			/>

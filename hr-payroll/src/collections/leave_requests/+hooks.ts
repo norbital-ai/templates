@@ -18,12 +18,14 @@ function normalizedTimeOff(
 	employmentId: string,
 	leaveTypeId: string,
 	event: TimeOffEvent,
-	excludeId?: string
+	excludeId?: string,
+	allocationId?: string | null
 ): Effect.Effect<TimeOffEvent> {
 	return Effect.gen(function* () {
 		const preview = yield* previewLeave(api, {
 			employment_id: employmentId,
 			leave_type_id: leaveTypeId,
+			...(allocationId == null ? {} : { allocation_id: allocationId }),
 			range: event.range,
 			...(excludeId == null ? {} : { exclude_request_id: excludeId })
 		});
@@ -76,11 +78,32 @@ function assertLeaveSourceUnlocked(
 
 export default {
 	mutate: {
+		prepare: ({ inputs, api }) =>
+			Effect.gen(function* () {
+				const ids = inputs.flatMap((row) => (row.id == null ? [] : [row.id]));
+				const stored =
+					ids.length === 0
+						? []
+						: yield* api.db.leave_requests.findMany({
+								where: { id: { in: ids } },
+								limit: ids.length
+							});
+				const employments = new Set<string>();
+				for (const input of inputs) {
+					const row = { ...stored.find((record) => record.id === input.id), ...input };
+					if (row.event?.kind !== 'TIME_OFF' || row.employment_id == null) continue;
+					if (employments.has(row.employment_id))
+						refuse(
+							'Apply one leave request per employment at a time so each request sees the latest reservations.'
+						);
+					employments.add(row.employment_id);
+				}
+			}),
 		perRecord: {
 			before: {
 				description:
 					'Normalizes one half-day-stepped leave range via the shared leave preview: excludes observed holidays and scheduled rest/off days, refuses overlaps, requests beyond the projected balance and certificates attached to a non-time-off event. On an edit it first refuses a request a payroll run has already taken into account, then re-checks the patched range so a change cannot bypass schedule exclusions, overlap protection or balance limits.',
-				handler: ({ input, existing, api }) =>
+				handler: ({ input, existing, recordId, api }) =>
 					Effect.gen(function* () {
 						// Only an edit can violate a settlement: a create has no prior run that consumed it.
 						if (existing !== undefined)
@@ -96,7 +119,13 @@ export default {
 						});
 						if (certificateIssues.length > 0)
 							refuse(certificatePolicyMismatchMessage(certificateIssues));
-						if (event == null || event.kind !== 'TIME_OFF') return input;
+						const allocationId =
+							input.allocation_id !== undefined ? input.allocation_id : existing?.allocation_id;
+						if (event == null || event.kind !== 'TIME_OFF') {
+							if (allocationId != null)
+								refuse('Only time-off requests may consume an event allocation.');
+							return input;
+						}
 						const employmentId = input.employment_id ?? existing?.employment_id;
 						if (employmentId == null)
 							refuse('A time-off request must reference an employment on file.');
@@ -105,7 +134,14 @@ export default {
 							refuse('A time-off request must reference a leave type on file.');
 						return {
 							...input,
-							event: yield* normalizedTimeOff(api, employmentId, leaveTypeId, event, existing?.id)
+							event: yield* normalizedTimeOff(
+								api,
+								employmentId,
+								leaveTypeId,
+								event,
+								recordId,
+								allocationId
+							)
 						};
 					})
 			}

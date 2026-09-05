@@ -13,6 +13,7 @@ import {
 const H1_PROFILE_ID = '22222222-2222-4222-8222-222222222211';
 const H2_PROFILE_ID = '22222222-2222-4222-8222-222222222212';
 const CHILDCARE_LEAVE_TYPE_ID = 'ffffffff-ffff-4fff-8fff-fffffffffff3';
+const NEW_LEAVE_TYPE_ID = 'ffffffff-ffff-4fff-8fff-fffffffffff5';
 const CHILD_ONE_ID = 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeee1';
 const CHILD_TWO_ID = 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeee2';
 const CARRY_LEAVE_REQUEST_ID = 'ffffffff-ffff-4fff-8fff-fffffffffff4';
@@ -114,6 +115,15 @@ test(
 				statutory_leave: childcareStatutoryLeave(4, 12)
 			});
 
+			await session.query('update jurisdictions set supersedes_id = $1 where id = $2', [
+				H1_PROFILE_ID,
+				H2_PROFILE_ID
+			]);
+			await session.query('update leave_types set statutory_profile_id = $1 where id = $2', [
+				H1_PROFILE_ID,
+				ANNUAL_LEAVE_TYPE_ID
+			]);
+
 			await session.query(
 				`insert into leave_types (
 					id, company_id, statutory_profile_id, code, name, statutory_kind,
@@ -122,7 +132,7 @@ test(
 				[
 					CHILDCARE_LEAVE_TYPE_ID,
 					COMPANY_ID,
-					H2_PROFILE_ID,
+					H1_PROFILE_ID,
 					'CHILDCARE',
 					'Childcare leave',
 					'CHILDCARE',
@@ -187,6 +197,29 @@ test(
 				`July remaining_days expected 8, got ${julyRemaining}`
 			);
 			assert.ok(julyRemaining > juneRemaining);
+
+			await session.query(
+				`insert into leave_types (id, company_id, statutory_profile_id, code, name, statutory_kind, eligibility, encash_on_exit, accrual, entitlement, payroll_effect)
+				select $1, company_id, $2, 'NEW_CHILDCARE', 'New childcare benefit', statutory_kind, eligibility, encash_on_exit, accrual, entitlement, payroll_effect from leave_types where id = $3`,
+				[NEW_LEAVE_TYPE_ID, H2_PROFILE_ID, CHILDCARE_LEAVE_TYPE_ID]
+			);
+			for (const [month, day, expected] of [
+				['2026-06', '2026-06-15', 0],
+				['2026-07', '2026-07-15', 8]
+			] as const) {
+				const preview = await invokePreviewLeave(session, {
+					employment_id: EMPLOYMENT_ID,
+					leave_type_id: NEW_LEAVE_TYPE_ID,
+					calendar_month: month,
+					range: { start: { date: day, half: 'FIRST' }, end: { date: day, half: 'SECOND' } }
+				});
+				assert.equal(preview.remaining_days, expected);
+				const issues = preview.issues as ReadonlyArray<{ code: string }>;
+				assert.equal(
+					issues.some((row) => row.code === 'LEAVE_NOT_AVAILABLE'),
+					expected === 0
+				);
+			}
 
 			await session.query(`update leave_types set accrual = $1 where id = $2`, [
 				{ kind: 'MONTHLY', carry: { limit_days: 5, expiry_months: 3 } },

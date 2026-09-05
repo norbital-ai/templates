@@ -12,8 +12,3 @@ node_modules/
 .svelte-check/
 .tmp/
 .vite/
-
-# Kiosk face-model binaries. Installed, not committed: `postinstall` copies them out of
-# the pnpm-installed `@vladmandic/human` package (scripts/sync-human-models.mjs).
-assets/models/human/*
-!assets/models/human/.gitkeep

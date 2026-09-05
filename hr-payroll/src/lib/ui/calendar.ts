@@ -13,23 +13,8 @@ import { decodeNumber } from '@norbital-ai/std/json';
 
 import type { CollectionInitialFilter } from '@norbital-ai/ui/collection-surface';
 
-/** The business timezone every calendar-day default and `contains_date` filter resolves in. */
-export const PAYROLL_TIME_ZONE = 'Asia/Kuala_Lumpur';
-
-/** Calendar date for an instant in an IANA timezone, formatted as YYYY-MM-DD. */
-// Every template workspace is a self-contained publishable unit with its own lockfile and no
-// cross-template import surface, so this helper is deliberately owned per template.
-export function calendarDateInTimeZone(value: Date, timeZone: string): string {
-	const parts = new Intl.DateTimeFormat('en', {
-		timeZone,
-		year: 'numeric',
-		month: '2-digit',
-		day: '2-digit'
-	}).formatToParts(value);
-	const valueFor = (type: Intl.DateTimeFormatPartTypes) =>
-		parts.find((part) => part.type === type)?.value ?? '';
-	return `${valueFor('year')}-${valueFor('month')}-${valueFor('day')}`;
-}
+import { PAYROLL_TIME_ZONE, calendarDateInTimeZone } from '../iso-day.js';
+export { PAYROLL_TIME_ZONE, calendarDateInTimeZone } from '../iso-day.js';
 
 /**
  * Calendar day of "now" in the payroll timezone — the reference every board on these pages is drawn
