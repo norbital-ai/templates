@@ -11,15 +11,9 @@ import {
 	leaveProfileRequired,
 	statutoryProfileRequired
 } from '../src/lib/statutory_profile.ts';
-import {
-	accruedDays,
-	resolveEntitlement,
-	resolveEntitlementAt
-} from '../src/collections/payroll_runs/lib/leave.ts';
 import { fetchStatutoryPages, proposeStatutoryLaw } from '../src/lib/statutory-research.ts';
 import { createPublicPayrollWorld } from './fixtures/public-payroll-world.ts';
 import { readStatutoryPages } from '../src/automations/+statutory_profile_drift.ts';
-import leaveTypeHooks from '../src/collections/leave_types/+hooks.ts';
 import payComponentHooks from '../src/collections/pay_components/+hooks.ts';
 import jurisdictionHooks from '../src/collections/jurisdictions/+hooks.ts';
 
@@ -29,6 +23,8 @@ const floor = (days) => [
 		ladder: [{ band_from: 0, days }],
 		per_child: null,
 		max_days: null,
+		transition: 'NEXT_LEAVE_YEAR',
+		carry: null,
 		authority: 'Approved fixture law'
 	}
 ];
@@ -68,33 +64,6 @@ test('approved successors govern at their local effective date without rewriting
 	);
 });
 
-test('a mid-year leave increase accrues at each month’s law rather than applying retroactively', () => {
-	const leaveType = {
-		id: 'annual',
-		code: 'ANNUAL',
-		statutory_kind: 'ANNUAL',
-		entitlement: { layers: [] },
-		accrual: { kind: 'MONTHLY', carry: null }
-	};
-	const earned = accruedDays({
-		leaveType,
-		hireDate: '2020-01-01',
-		exitDate: null,
-		leaveYearStart: '2026-01-01',
-		asOf: '2026-06-30',
-		entitlementAt: (serviceMonths, asOf) =>
-			resolveEntitlement({
-				leaveType,
-				profile: statutoryProfileRequired([original, revision], 'SG', asOf),
-				serviceMonths,
-				asOf,
-				children: [],
-				employmentId: 'employment'
-			})
-	});
-	assert.equal(earned, 9); // Jan–Mar: 3 × 1; Apr–Jun: 3 × 2.
-});
-
 test('new leave codes join the inherited catalogue only from their approved revision', () => {
 	const rows = [revision, original];
 	assert.deepEqual(
@@ -116,34 +85,6 @@ test('new leave codes join the inherited catalogue only from their approved revi
 			/approved statutory profile/
 		);
 	}
-	const type = {
-		id: 'new-childcare',
-		code: 'CHILDCARE',
-		statutory_profile_id: revision.id,
-		statutory_kind: null,
-		entitlement: { layers: [{ level: 'ORGANISATION', band_from: 0, days: 24 }] },
-		accrual: { kind: 'MONTHLY', carry: null }
-	};
-	assert.equal(
-		accruedDays({
-			leaveType: type,
-			hireDate: '2020-01-01',
-			exitDate: null,
-			leaveYearStart: '2026-01-01',
-			asOf: '2026-06-30',
-			entitlementAt: (serviceMonths, asOf) =>
-				resolveEntitlementAt({
-					leaveType: type,
-					profiles: rows,
-					jurisdictionCode: 'SG',
-					serviceMonths,
-					asOf,
-					children: [],
-					employmentId: 'employment'
-				})
-		}),
-		6
-	);
 });
 
 test('official retrieval checks final redirect provenance and never substitutes inference for a failed fetch', async () => {
@@ -389,8 +330,8 @@ test('a law successor can amend only a known scheme with the correct band dimens
 	await assert.rejects(run(wrongDimension), /requires WAGE rate bands/);
 });
 
-test('sealed and pending-seal catalogue rows cannot be deleted or moved into a draft', async () => {
-	for (const hooks of [leaveTypeHooks, payComponentHooks]) {
+test('sealed and pending-seal statutory catalogue rows cannot be deleted or moved into a draft', async () => {
+	for (const hooks of [payComponentHooks]) {
 		for (const profile of [
 			{ lifecycle: 'SEALED' },
 			{ lifecycle: 'VOIDED' },

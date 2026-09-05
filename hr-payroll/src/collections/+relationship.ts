@@ -50,8 +50,8 @@ export default ((r) => ({
 		}),
 		/** The effective-dated snapshot rows runs name as the law they were calculated under. */
 		statutory_snapshot_payroll_run: r.many.payroll_runs(),
-		/** The catalogue rows scoped to this profile version and sealed with it. */
-		statutory_profile_leave_type: r.many.leave_types(),
+		opening_statutory_leave_account: r.many.leave_accounts(),
+		leave_entry_statutory_profile: r.many.leave_entries(),
 		statutory_profile_pay_component: r.many.pay_components(),
 		statutory_profile_statutory_contribution: r.many.statutory_contributions({
 			from: r.jurisdictions.id,
@@ -90,6 +90,7 @@ export default ((r) => ({
 		}),
 		employment_company: r.many.employments(),
 		pay_component_company: r.many.pay_components(),
+		leave_plan_company: r.many.leave_plans(),
 		leave_type_company: r.many.leave_types(),
 		shift_definition_company: r.many.shift_definitions(),
 		company_holiday_company: r.many.company_holidays(),
@@ -109,18 +110,69 @@ export default ((r) => ({
 		loan_pay_component: r.many.loans()
 	},
 
+	leave_plans: {
+		leave_plan_company: r.one.companies({
+			from: r.leave_plans.company_id,
+			to: r.companies.id
+		}),
+		predecessor_leave_plan: r.one.leave_plans({
+			from: r.leave_plans.supersedes_id,
+			to: r.leave_plans.id
+		}),
+		leave_type_plan: r.many.leave_types(),
+		opening_leave_account_plan: r.many.leave_accounts(),
+		leave_entry_plan: r.many.leave_entries()
+	},
+
 	leave_types: {
 		leave_type_company: r.one.companies({
 			from: r.leave_types.company_id,
 			to: r.companies.id
 		}),
-		/** Version scoping: the profile revision this catalogue row is sealed with. */
-		statutory_profile_leave_type: r.one.jurisdictions({
-			from: r.leave_types.statutory_profile_id,
+		leave_type_plan: cascade(
+			r.one.leave_plans({
+				from: r.leave_types.leave_plan_id,
+				to: r.leave_plans.id
+			})
+		),
+		leave_request_type: r.many.leave_requests(),
+		leave_account_type: r.many.leave_accounts()
+	},
+
+	leave_accounts: {
+		leave_account_employment: r.one.employments({
+			from: r.leave_accounts.employment_id,
+			to: r.employments.id
+		}),
+		leave_account_type: r.one.leave_types({
+			from: r.leave_accounts.leave_type_id,
+			to: r.leave_types.id
+		}),
+		opening_leave_account_plan: r.one.leave_plans({
+			from: r.leave_accounts.opening_plan_id,
+			to: r.leave_plans.id
+		}),
+		opening_statutory_leave_account: r.one.jurisdictions({
+			from: r.leave_accounts.opening_statutory_profile_id,
 			to: r.jurisdictions.id
 		}),
-		leave_request_type: r.many.leave_requests(),
-		allocation_leave_type: r.many.leave_allocations()
+		request_leave_account: r.many.leave_requests(),
+		entry_leave_account: r.many.leave_entries()
+	},
+
+	leave_entries: {
+		entry_leave_account: r.one.leave_accounts({
+			from: r.leave_entries.leave_account_id,
+			to: r.leave_accounts.id
+		}),
+		leave_entry_plan: r.one.leave_plans({
+			from: r.leave_entries.leave_plan_id,
+			to: r.leave_plans.id
+		}),
+		leave_entry_statutory_profile: r.one.jurisdictions({
+			from: r.leave_entries.statutory_profile_id,
+			to: r.jurisdictions.id
+		})
 	},
 
 	shift_definitions: {
@@ -159,7 +211,7 @@ export default ((r) => ({
 		component_entry_employment: r.many.component_entries(),
 		loan_employment: r.many.loans(),
 		leave_request_employment: r.many.leave_requests(),
-		allocation_employment: r.many.leave_allocations(),
+		leave_account_employment: r.many.leave_accounts(),
 		work_day_employment: r.many.work_days(),
 		payslip_employment: r.many.payslips()
 	},
@@ -237,22 +289,10 @@ export default ((r) => ({
 		})
 	},
 
-	leave_allocations: {
-		allocation_employment: r.one.employments({
-			from: r.leave_allocations.employment_id,
-			to: r.employments.id
-		}),
-		allocation_leave_type: r.one.leave_types({
-			from: r.leave_allocations.leave_type_id,
-			to: r.leave_types.id
-		}),
-		request_allocation: r.many.leave_requests()
-	},
-
 	leave_requests: {
-		request_allocation: r.one.leave_allocations({
-			from: r.leave_requests.allocation_id,
-			to: r.leave_allocations.id
+		request_leave_account: r.one.leave_accounts({
+			from: r.leave_requests.leave_account_id,
+			to: r.leave_accounts.id
 		}),
 		leave_request_employment: r.one.employments({
 			from: r.leave_requests.employment_id,

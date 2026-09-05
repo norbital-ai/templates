@@ -14,8 +14,8 @@ export default defineModel(
 	{
 		employment_id: uuid().notNull(),
 		leave_type_id: uuid().notNull(),
-		/** Required for per-event time off; the FK retains the approved allowance. */
-		allocation_id: uuid(),
+		/** Resolved and enforced by the write hook. No account means no application. */
+		leave_account_id: uuid().notNull(),
 		event: custom('leave_event').notNull(),
 		certificate_file: file(),
 		kind: text().generatedAlwaysAs(sql`event ->> 'kind'`),
@@ -23,23 +23,15 @@ export default defineModel(
 		// instant. `bolt_instant` anchors the canonical day at UTC midnight through an immutable
 		// function the platform installs before migrations run.
 		from_date: instant({ precision: 'day' }).generatedAlwaysAs(
-			sql`CASE WHEN event ->> 'kind' = 'TIME_OFF' THEN bolt_instant(event #>> '{range,start,date}') ELSE bolt_instant(event ->> 'effective_on') END`
+			sql`bolt_instant(event #>> '{range,start,date}')`
 		),
 		to_date: instant({ precision: 'day' }).generatedAlwaysAs(
-			sql`CASE WHEN event ->> 'kind' = 'TIME_OFF' THEN bolt_instant(event #>> '{range,end,date}') ELSE bolt_instant(event ->> 'effective_on') END`
+			sql`bolt_instant(event #>> '{range,end,date}')`
 		),
-		days: numeric().generatedAlwaysAs(
-			sql`CASE WHEN event ->> 'kind' = 'TIME_OFF' THEN (event ->> 'chargeable_days')::numeric ELSE (event ->> 'movement_days')::numeric END`
-		),
-		half_day_start: boolean().generatedAlwaysAs(
-			sql`CASE WHEN event ->> 'kind' = 'TIME_OFF' THEN (event #>> '{range,start,half}') = 'SECOND' ELSE false END`
-		),
-		half_day_end: boolean().generatedAlwaysAs(
-			sql`CASE WHEN event ->> 'kind' = 'TIME_OFF' THEN (event #>> '{range,end,half}') = 'FIRST' ELSE false END`
-		),
-		reason: text().generatedAlwaysAs(
-			sql`CASE WHEN event ->> 'kind' = 'TIME_OFF' THEN event ->> 'reason' ELSE event ->> 'note' END`
-		),
+		days: numeric().generatedAlwaysAs(sql`(event ->> 'chargeable_days')::numeric`),
+		half_day_start: boolean().generatedAlwaysAs(sql`(event #>> '{range,start,half}') = 'SECOND'`),
+		half_day_end: boolean().generatedAlwaysAs(sql`(event #>> '{range,end,half}') = 'FIRST'`),
+		reason: text().generatedAlwaysAs(sql`event ->> 'reason'`),
 		/**
 		 * The row's own title, composed in SQL rather than by `recordLabel`.
 		 *
@@ -51,22 +43,12 @@ export default defineModel(
 		 * title each of them deserves.
 		 */
 		summary: text({ search: true }).generatedAlwaysAs(
-			sql`CASE
-				WHEN event ->> 'kind' = 'TIME_OFF'
-					THEN 'Time off · ' || (event #>> '{range,start,date}') || ' → ' || (event #>> '{range,end,date}') || ' · ' || (event ->> 'chargeable_days') || 'd'
-				WHEN event ->> 'kind' = 'BALANCE_ADJUSTMENT'
-					THEN 'Balance adjustment · ' || (event ->> 'effective_on') || ' · ' || (event ->> 'movement_days') || 'd'
-				WHEN event ->> 'kind' = 'ENCASHMENT'
-					THEN 'Encashment · ' || (event ->> 'effective_on') || ' · ' || (event ->> 'movement_days') || 'd'
-				WHEN event ->> 'kind' = 'CARRY_FORWARD'
-					THEN 'Carry-forward · ' || (event ->> 'leave_year') || ' · ' || (event ->> 'movement_days') || 'd'
-				ELSE 'Leave movement · ' || (event ->> 'effective_on') || ' · ' || (event ->> 'movement_days') || 'd'
-			END`
+			sql`'Time off · ' || (event #>> '{range,start,date}') || ' → ' || (event #>> '{range,end,date}') || ' · ' || (event ->> 'chargeable_days') || 'd'`
 		)
 	},
 	{
 		description:
-			'The complete leave event stream. Approved TIME_OFF rows are requests and their own TAKEN movement; balance adjustments, encashments and the posted yearly carry-forward use distinct union arms in the same collection.',
+			'A time-off application only. Approval creates the request; its hook posts the corresponding TAKEN movement into the account ledger.',
 		recordLabel: 'summary',
 		icon: 'lucide:calendar-off',
 		indexes: [{ columns: ['employment_id', 'leave_type_id', 'from_date'] }]

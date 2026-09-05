@@ -333,14 +333,14 @@ test('an employee cannot read a correction, and no ordinary policy erases the pr
 	}
 });
 
-test('an employee may raise only time off, not encashment or a balance adjustment', async () => {
+test('an employee may raise only a time-off request', async () => {
 	const [grant, ...extra] = grantsFor(employee, 'leave_requests', 'mutate.new');
 	assert.deepEqual(extra, [], 'the employee has more than one leave request mutate.new grant');
 	assert.equal(typeof grant.authorize, 'function');
 	assert.notEqual(grant.approval, undefined, 'an employee leave request must be reviewed');
 
 	const unusedApi = {};
-	for (const kind of ['ENCASHMENT', 'BALANCE_ADJUSTMENT']) {
+	for (const kind of ['LEGACY_MOVEMENT']) {
 		const allowed = await Effect.runPromise(
 			grant.authorize({ record: { employment_id: 'employment', event: { kind } } }, unusedApi)
 		);
@@ -352,6 +352,68 @@ test('an employee may raise only time off, not encashment or a balance adjustmen
 		),
 		false
 	);
+});
+
+test('only HR may create a manual leave adjustment, with one manager stage for controllers', async () => {
+	for (const policy of [employee, supervisor, manager])
+		assert.equal(may(policy, 'leave_entries', 'mutate.new'), false, nameOf(policy));
+
+	const [controllerGrant, ...extra] = grantsFor(hrController, 'leave_entries', 'mutate.new');
+	assert.deepEqual(extra, []);
+	assert.equal(
+		await Effect.runPromise(controllerGrant.authorize({ record: { kind: 'MANUAL_ADJUSTMENT' } })),
+		true
+	);
+	assert.equal(
+		await Effect.runPromise(
+			controllerGrant.authorize({ record: { kind: 'STATUTORY_ADJUSTMENT' } })
+		),
+		false
+	);
+	assert.deepEqual(controllerGrant.approval.flow().stages[0].approvers, [
+		'HR Manager',
+		'Senior Management'
+	]);
+
+	for (const policy of [hrManager, seniorManagement]) {
+		const [grant] = grantsFor(policy, 'leave_entries', 'mutate.new');
+		assert.equal(grant.approval, undefined, nameOf(policy));
+		assert.equal(
+			await Effect.runPromise(grant.authorize({ record: { kind: 'MANUAL_ADJUSTMENT' } })),
+			true,
+			nameOf(policy)
+		);
+	}
+});
+
+test('only HR may create an event entitlement, with one manager stage for controllers', async () => {
+	for (const policy of [employee, supervisor, manager])
+		assert.equal(may(policy, 'leave_accounts', 'mutate.new'), false, nameOf(policy));
+
+	const [controllerGrant, ...extra] = grantsFor(hrController, 'leave_accounts', 'mutate.new');
+	assert.deepEqual(extra, []);
+	assert.equal(
+		await Effect.runPromise(controllerGrant.authorize({ record: { account_kind: 'EVENT' } })),
+		true
+	);
+	assert.equal(
+		await Effect.runPromise(controllerGrant.authorize({ record: { account_kind: 'YEAR' } })),
+		false
+	);
+	assert.deepEqual(controllerGrant.approval.flow().stages[0].approvers, [
+		'HR Manager',
+		'Senior Management'
+	]);
+
+	for (const policy of [hrManager, seniorManagement]) {
+		const [grant] = grantsFor(policy, 'leave_accounts', 'mutate.new');
+		assert.equal(grant.approval, undefined, nameOf(policy));
+		assert.equal(
+			await Effect.runPromise(grant.authorize({ record: { account_kind: 'EVENT' } })),
+			true,
+			nameOf(policy)
+		);
+	}
 });
 
 test('ordinary ranks authorize only their own reviewed claim; HR may mutate new corrections', () => {

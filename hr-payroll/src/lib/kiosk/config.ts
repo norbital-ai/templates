@@ -19,8 +19,8 @@ export const KIOSK_REAL_MIN = 0.3;
 /** Frames are analysed this often; the pipeline measures ~60–100 ms warm. */
 export const KIOSK_LOOP_MS = 250;
 
-/** Seconds a matched person has to blink before the challenge expires. */
-export const KIOSK_BLINK_WINDOW_S = 6;
+/** Seconds allowed for a continuously visible face to acknowledge the punch with a blink. */
+export const KIOSK_CONFIRMATION_SECONDS = 2;
 
 /** Faces smaller than this are background, not the person at the kiosk. */
 export const KIOSK_MIN_FACE_PX = 80;

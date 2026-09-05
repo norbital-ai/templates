@@ -18,7 +18,6 @@
 	import { Alert, AlertDescription, AlertTitle } from '@norbital-ai/ui/alert';
 	import * as Dialog from '@norbital-ai/ui/dialog';
 	import { Bound, Cluster, Cover, Grid, Inline, Scroll, Stack } from '@norbital-ai/ui/layout';
-	import { Root as Progress } from '@norbital-ai/ui/progress';
 	import { Tabs, type TabConfig } from '@norbital-ai/ui/tabs';
 	import RosterMonthCalendar from '../lib/ui/roster/roster-month-calendar.svelte';
 	import { employeeMissingPunchReportable } from '../lib/ui/roster/employee-reportability.js';
@@ -29,13 +28,8 @@
 		formatLeaveRange,
 		formatNumeric
 	} from '../lib/ui/display-formatters.js';
-	import {
-		leaveYearSummary,
-		ledgerRowOf,
-		resolveEntitlementAt,
-		type BalanceInput
-	} from '../collections/payroll_runs/lib/leave.js';
-	import { sealedProfileCovering, statutoryProfileLineage } from '../lib/statutory_profile.js';
+	import { leaveAccountSummary } from '../lib/leave/ledger.js';
+	import { measuredLeaveRequestDays } from '../lib/leave/pending.js';
 	import {
 		PAYROLL_TIME_ZONE,
 		daysBetweenKeys,
@@ -45,7 +39,8 @@
 		payDateFor,
 		shiftMonthKey,
 		todayKey,
-		workDateCalendarKey
+		workDateCalendarKey,
+		todayInstant
 	} from '../lib/ui/calendar.js';
 	import { inForceOnDay } from '../lib/effective_range.js';
 	import { formatDateISO } from '@norbital-ai/std/date';
@@ -123,22 +118,6 @@
 	const companyById = $derived(
 		new Map((companiesQuery.current ?? []).map((company) => [company.id, company]))
 	);
-	const leaveTypesQuery = $derived(
-		client.db.leave_types.findMany({
-			where: { approval_id: { isNull: true } },
-			limit: 200
-		})
-	);
-	/**
-	 * The same catalogue keyed to the short code rather than the name.
-	 *
-	 * `buildRosterMonth` puts this string in a tile — `ANNUAL`, not "Annual leave (statutory)" —
-	 * and the controller's board reads the identical column, so a day cannot be labelled one way on
-	 * the board and another way on the employee's own calendar.
-	 */
-	const leaveCodeById = $derived(
-		new Map((leaveTypesQuery.current ?? []).map((leaveType) => [leaveType.id, leaveType.code]))
-	);
 	const employmentsQuery = $derived(
 		employeeId
 			? client.db.employments.findMany({
@@ -202,6 +181,35 @@
 	);
 	const company = $derived(
 		activeEmployment ? companyById.get(activeEmployment.company_id) : undefined
+	);
+	const leavePlansQuery = $derived(
+		company == null
+			? null
+			: client.db.leave_plans.findMany({
+					where: {
+						company_id: { eq: company.id },
+						lifecycle: { eq: 'ACTIVE' },
+						effective_range: { contains_date: todayInstant() },
+						approval_id: { isNull: true }
+					},
+					limit: 20
+				})
+	);
+	const activeLeavePlanIds = $derived((leavePlansQuery?.current ?? []).map((plan) => plan.id));
+	const leaveTypesQuery = $derived(
+		activeLeavePlanIds.length === 0
+			? null
+			: client.db.leave_types.findMany({
+					where: {
+						leave_plan_id: { in: activeLeavePlanIds },
+						approval_id: { isNull: true }
+					},
+					limit: 200
+				})
+	);
+	/** The same plan catalogue labels the employee calendar and controller board. */
+	const leaveCodeById = $derived(
+		new Map((leaveTypesQuery?.current ?? []).map((leaveType) => [leaveType.id, leaveType.code]))
 	);
 	/**
 	 * NO `payroll_runs` QUERY LIVES ON THIS PAGE, AND NONE MAY BE ADDED.
@@ -468,45 +476,6 @@
 		});
 	});
 	/**
-	 * The governing statutory profile: the SEALED version of the company's law family covering
-	 * today. The balance panel reads its floors; without one the panel renders nothing rather than
-	 * a wrong zero.
-	 */
-	const profileAnchorQuery = $derived(
-		company?.jurisdiction_id == null
-			? null
-			: client.db.jurisdictions.findFirst({
-					where: { id: { eq: company.jurisdiction_id } },
-					columns: { code: true }
-				})
-	);
-	const profileRowsQuery = $derived(
-		profileAnchorQuery?.current?.code == null
-			? null
-			: client.db.jurisdictions.findMany({
-					where: {
-						code: { eq: profileAnchorQuery.current.code },
-						lifecycle: { eq: 'SEALED' },
-						approval_id: { isNull: true }
-					},
-					limit: 100
-				})
-	);
-	const governingProfile = $derived.by(() => {
-		const rows = profileRowsQuery?.current;
-		if (rows == null || rows.length === 0) return null;
-		return sealedProfileCovering(rows, rows[0].code, today);
-	});
-	const childFactsQuery = $derived(
-		employmentId == null
-			? null
-			: client.db.employee_children.findMany({
-					where: { employment_id: { eq: employmentId }, approval_id: { isNull: true } },
-					limit: 200
-				})
-	);
-
-	/**
 	 * The same capture lookup for the leave table and the claims table below, scoped by the rows
 	 * each self-contained table renders. `settlementLedgerGrants()` exposes exactly the source-id +
 	 * period pair, so the walk through payslip and run the predecessor needed is gone and so is
@@ -530,22 +499,44 @@
 					limit: 500
 				})
 	);
-	/** The balance ledger: every settled movement of every leave type, for the panel's derivation. */
-	const myLeaveLedgerQuery = $derived(
+	const PENDING_LEAVE_LIMIT = 2_000;
+	/** Track both committed rows and visible proposals, including requests HR raises on this employee's behalf. */
+	const myLeavePendingQuery = $derived(
 		employmentId == null
 			? null
-			: client.db.leave_requests.findMany({
+			: client.pending.findMany('leave_requests', {
 					where: { employment_id: { eq: employmentId } },
-					columns: {
-						id: true,
-						approval_id: true,
-						leave_type_id: true,
-						from_date: true,
-						kind: true,
-						days: true,
-						event: true
-					},
+					limit: PENDING_LEAVE_LIMIT
+				})
+	);
+	const leaveAccountsQuery = $derived(
+		employmentId == null
+			? null
+			: client.db.leave_accounts.findMany({
+					where: { employment_id: { eq: employmentId }, approval_id: { isNull: true } },
+					orderBy: { starts_on: 'desc' },
 					limit: 500
+				})
+	);
+	const currentLeaveAccounts = $derived(
+		(leaveAccountsQuery?.current ?? []).filter(
+			(account) =>
+				account.status === 'OPEN' &&
+				today >= String(account.starts_on).slice(0, 10) &&
+				today <= String(account.ends_on).slice(0, 10)
+		)
+	);
+	const leaveAccountIds = $derived(currentLeaveAccounts.map((account) => account.id));
+	const leaveEntriesQuery = $derived(
+		leaveAccountIds.length === 0
+			? null
+			: client.db.leave_entries.findMany({
+					where: {
+						leave_account_id: { in: leaveAccountIds },
+						approval_id: { isNull: true }
+					},
+					orderBy: { effective_on: 'desc' },
+					limit: 5_000
 				})
 	);
 	const myLeaveCapturesQuery = $derived(
@@ -580,89 +571,36 @@
 		capturesBySource(scheduleSettlementsQuery?.current, 'work_day_id')
 	);
 
-	/**
-	 * The leave balance panel: per live leave type, entitlement leftover and carried-in. The same
-	 * pure functions the request guard and the engine run, over the employee's own readable rows.
-	 */
-	const profileLeaveTypes = $derived(
-		governingProfile == null
-			? []
-			: (leaveTypesQuery.current ?? []).filter((type) =>
-					statutoryProfileLineage(profileRowsQuery?.current ?? [], governingProfile).some(
-						(entry) => entry.id === type.statutory_profile_id
-					)
-				)
-	);
-	const leaveLedgerRows = $derived(
-		(myLeaveLedgerQuery?.current ?? []).flatMap((row) => {
-			const entry = ledgerRowOf(row);
-			return entry == null ? [] : [entry];
-		})
-	);
-	const childFactRows = $derived(childFactsQuery?.current ?? []);
-	/**
-	 * The leave balance panel: one row per leave type of the governing profile, in catalogue order.
-	 *
-	 * The standard HRMS breakdown — entitlement, earned to date, carried with expiry, adjustments,
-	 * taken, pending, balance — from the same `leaveYearSummary` the request guard refuses against,
-	 * so the number on screen and the number that refuses agree. Per-event types have no bank:
-	 * they read how many days were taken this year.
-	 *
-	 * TODO(RFC hr-payroll-leave-and-attendance): acceptance row H14 still pins "no Accrued/Taken"
-	 * on this panel and needs the owner's amendment; this row shows Taken deliberately.
-	 */
+	/** One sealed account receipt plus its posted ledger and held applications. */
 	const leaveBalanceRowsResult = $derived.by(() => {
 		try {
-			const profile = governingProfile;
-			const employment = activeEmployment;
-			if (profile == null || employment == null) return { rows: [], error: null };
-			const hire = formatDateISO(employment.hire_date) || today;
-			const exit =
-				employment.exit_date == null ? null : (formatDateISO(employment.exit_date) ?? null);
-			const yearStart = decodeNumber(company?.leave_year_start_month ?? 1);
+			if (myLeavePendingQuery?.error) throw myLeavePendingQuery.error;
+			if (leaveAccountsQuery?.error) throw leaveAccountsQuery.error;
+			if (leaveEntriesQuery?.error) throw leaveEntriesQuery.error;
+			if ((myLeavePendingQuery?.current ?? []).length >= PENDING_LEAVE_LIMIT)
+				throw new Error(t('app.hr_employee.leave_balances_pending_ceiling'));
 			return {
-				rows: profileLeaveTypes.map((type) => {
-					const entitlementAt = (serviceMonths: number, asOf: string) =>
-						resolveEntitlementAt({
-							leaveType: type,
-							profiles: profileRowsQuery?.current ?? [],
-							jurisdictionCode: profile.code,
-							children: childFactRows,
-							serviceMonths,
-							employmentId: employment.id,
-							asOf
-						});
-					const input: BalanceInput = {
-						leaveType: type,
-						entitlementAt,
-						hireDate: hire,
-						exitDate: exit,
-						leaveYearStartMonth: yearStart,
-						ledger: leaveLedgerRows,
-						basis: 'SETTLED'
-					};
-					const summary = leaveYearSummary(input, today);
-					const accrual = type.accrual;
-					const banked = accrual != null && accrual.kind !== 'PER_EVENT';
-					const carryLimit =
-						banked && accrual.carry != null ? decodeNumber(accrual.carry.limit_days) : null;
-					const carryLeft =
-						summary.carry.expires_on != null && today >= summary.carry.expires_on
-							? 0
-							: EffectNumber.clamp({ minimum: 0, maximum: Math.max(summary.carry.days, 0) })(
-									summary.carry.days - summary.taken
-								);
+				rows: currentLeaveAccounts.map((account) => {
+					const accountEntries = (leaveEntriesQuery?.current ?? []).filter(
+						(entry) => entry.leave_account_id === account.id
+					);
+					const pending = (myLeavePendingQuery?.current ?? [])
+						.filter(
+							(request) => request.leave_account_id === account.id && request.approval_id != null
+						)
+						.reduce((total, request) => total + measuredLeaveRequestDays(request), 0);
 					return {
-						type,
-						banked,
-						monthly: accrual?.kind === 'MONTHLY',
-						summary,
-						carryLimit,
-						carryLeft,
-						entitlementLeft: EffectNumber.clamp({
-							minimum: 0,
-							maximum: Math.max(summary.entitlement, 0)
-						})(summary.balance - carryLeft)
+						account,
+						carryExpiresOn:
+							accountEntries.find(
+								(entry) => entry.kind === 'CARRY_FORWARD' && entry.expires_on != null
+							)?.expires_on ?? null,
+						summary: leaveAccountSummary({
+							account,
+							entries: accountEntries,
+							pendingDays: pending,
+							asOf: today
+						})
 					};
 				}),
 				error: null
@@ -1224,8 +1162,8 @@
 				class="overflow-hidden rounded-xl border bg-card shadow-sm"
 				aria-labelledby="my-leave-balances-heading"
 			>
-				<Stack class="px-4 py-3" gap="xs">
-					<h3 id="my-leave-balances-heading" class="text-sm font-semibold">
+				<Stack class="px-4 py-3 sm:px-5" gap="xs">
+					<h3 id="my-leave-balances-heading" class="text-heading">
 						{t('app.hr_employee.leave_balances')}
 					</h3>
 					<p class="max-w-prose text-sm text-muted-foreground">
@@ -1243,129 +1181,99 @@
 						{t('app.hr_employee.leave_balances_empty')}
 					</p>
 				{:else}
-					{#each leaveBalanceRows as balance (balance.type.id)}
+					{#each leaveBalanceRows as balance (balance.account.id)}
 						{@const summary = balance.summary}
-						<Stack class="border-t px-4 py-3" gap="sm">
-							<Inline justify="between" align="baseline" gap="sm">
-								<p class="truncate text-sm font-medium" title={balance.type.name}>
-									{balance.type.name}
-								</p>
-								{#if balance.banked && summary.carry.expires_on != null}
-									<span class="shrink-0 text-meta text-warning-foreground">
-										{t('app.hr_employee.leave_carry_use_by', {
-											date: formatCalendarDate(summary.carry.expires_on)
-										})}
-									</span>
-								{/if}
-							</Inline>
-							{#if !balance.banked}
-								<p class="text-meta">
-									{t('app.hr_employee.leave_per_event_taken', {
-										days: formatNumeric(summary.taken)
-									})}
-								</p>
-							{:else}
-								<p class="text-xs tabular-nums text-muted-foreground">
-									{t('app.hr_employee.leave_entitlement')}
-									{formatNumeric(summary.entitlement)}
-									{#if balance.monthly}
-										· {t('app.hr_employee.leave_earned')} {formatNumeric(summary.earned)}
-									{/if}
-									· {t('app.hr_employee.leave_carried')}
-									{formatNumeric(summary.carry.days)}
-									· {t('app.hr_employee.leave_adjustments')}
-									{formatNumeric(summary.adjusted)}
-									· {t('app.hr_employee.leave_taken')}
-									{formatNumeric(summary.taken)}
-									· {t('app.hr_employee.leave_pending')}
-									{formatNumeric(summary.pending)}
-									· {t('app.hr_employee.leave_balance')}
-									{formatNumeric(summary.balance)}
-								</p>
+						<div class="border-t px-4 py-3 sm:px-5">
+							<div
+								class="grid gap-3 lg:grid-cols-[minmax(12rem,1fr)_minmax(20rem,2fr)_7rem] lg:items-center"
+							>
+								<div class="min-w-0">
+									<p class="truncate text-sm font-medium" title={balance.account.leave_name}>
+										{balance.account.leave_name}
+									</p>
+									<p class="text-meta">
+										{balance.account.leave_code} · {balance.account.account_kind === 'EVENT'
+											? balance.account.event_reference
+											: balance.account.leave_year}
+									</p>
+								</div>
 								<Stack gap="xs">
-									<Inline justify="between" align="baseline" gap="sm">
-										<span class="text-meta">{t('app.hr_employee.leave_entitlement')}</span>
-										<span class="text-xs tabular-nums">
-											{t('app.hr_employee.leave_of_days', {
-												left: formatNumeric(balance.entitlementLeft),
-												total: formatNumeric(summary.entitlement)
-											})}
-										</span>
-									</Inline>
-									<Progress
-										value={balance.entitlementLeft}
-										max={Math.max(summary.entitlement, 1)}
-										aria-label={t('app.hr_employee.leave_entitlement')}
-										class="h-2.5"
-									/>
-								</Stack>
-								{#if balance.carryLimit != null || summary.carry.days > 0 || summary.expired > 0}
-									{@const carryTrack = Math.max(balance.carryLimit ?? summary.carry.days, 1)}
-									<Stack
-										gap="xs"
-										class="rounded-md border border-dashed border-warning/40 bg-warning/5 px-2 py-2"
-									>
-										<Inline justify="between" align="baseline" gap="sm">
-											<span class="text-meta text-warning-foreground">
-												{t('app.hr_employee.leave_carried')}
-											</span>
-											<span class="text-xs tabular-nums text-warning-foreground">
-												{t('app.hr_employee.leave_of_days', {
-													left: formatNumeric(balance.carryLeft),
-													total: formatNumeric(balance.carryLimit ?? summary.carry.days)
-												})}
-											</span>
-										</Inline>
+									<dl class="grid grid-cols-4 gap-3">
+										<div>
+											<dt class="text-meta">{t('app.hr_employee.leave_earned')}</dt>
+											<dd class="text-sm font-medium tabular-nums">
+												{formatNumeric(summary.earned + summary.carried)}
+											</dd>
+										</div>
+										<div>
+											<dt class="text-meta">{t('app.hr_employee.leave_taken')}</dt>
+											<dd class="text-sm font-medium tabular-nums">
+												{formatNumeric(summary.taken)}
+											</dd>
+										</div>
+										<div>
+											<dt class="text-meta">{t('app.hr_employee.leave_pending')}</dt>
+											<dd class="text-sm font-medium tabular-nums">
+												{formatNumeric(summary.pending)}
+											</dd>
+										</div>
+										<div>
+											<dt class="text-meta">{t('app.hr_employee.leave_adjustments')}</dt>
+											<dd class="text-sm font-medium tabular-nums">
+												{formatNumeric(summary.adjusted)}
+											</dd>
+										</div>
+									</dl>
+									{#if balance.account.accrual_kind !== 'UNLIMITED'}
 										<div
-											class="relative h-2.5 overflow-hidden rounded-sm bg-warning/15"
+											class="flex h-2 overflow-hidden rounded-sm bg-muted"
 											role="meter"
 											aria-valuemin={0}
-											aria-valuemax={carryTrack}
-											aria-valuenow={balance.carryLeft}
-											aria-label={t('app.hr_employee.leave_carried')}
+											aria-valuemax={Math.max(summary.earned + summary.carried, 1)}
+											aria-valuenow={summary.taken + summary.pending}
+											aria-label={`${formatNumeric(summary.taken)} used, ${formatNumeric(summary.pending)} pending`}
 										>
-											{#if summary.expired > 0}
-												<div
-													class="absolute inset-y-0 left-0 bg-warning/30"
-													style:width={leaveMeterWidth(summary.expired, carryTrack)}
-												></div>
-											{/if}
-											{#if balance.carryLeft > 0}
-												<div
-													class="absolute inset-y-0 left-0 bg-warning"
-													style:width={leaveMeterWidth(balance.carryLeft, carryTrack)}
-												></div>
-											{/if}
+											<div
+												class="h-full bg-primary"
+												style:width={leaveMeterWidth(
+													summary.taken,
+													summary.earned + summary.carried
+												)}
+											></div>
+											<div
+												class="h-full bg-brand"
+												style:width={leaveMeterWidth(
+													summary.pending,
+													summary.earned + summary.carried
+												)}
+											></div>
 										</div>
-										{#if summary.carry.expires_on != null}
-											<p
-												class="text-meta {summary.expired > 0 || today >= summary.carry.expires_on
-													? 'text-destructive'
-													: 'text-warning-foreground'}"
-											>
-												{summary.expired > 0 || today >= summary.carry.expires_on
-													? t('app.hr_employee.leave_carry_expired_on', {
-															date: formatCalendarDate(summary.carry.expires_on)
-														})
-													: t('app.hr_employee.leave_carry_use_by', {
-															date: formatCalendarDate(summary.carry.expires_on)
-														})}
-												{#if summary.expired > 0}
-													· {t('app.hr_employee.leave_carry_lapsed', {
-														days: formatNumeric(summary.expired)
-													})}
-												{/if}
-											</p>
-										{/if}
-										{#if summary.carry.state === 'PROVISIONAL' && summary.carry.days > 0}
-											<p class="text-meta text-warning-foreground">
-												{t('app.hr_employee.leave_carry_pending', { year: summary.year - 1 })}
-											</p>
-										{/if}
-									</Stack>
-								{/if}
-							{/if}
-						</Stack>
+									{/if}
+									{#if summary.carried > 0}
+										<p class="text-meta">
+											{t('app.hr_employee.leave_carried')}
+											{formatNumeric(summary.carried)}
+											{#if balance.carryExpiresOn != null}
+												· {t('app.hr_employee.leave_carry_use_by', {
+													date: formatCalendarDate(balance.carryExpiresOn)
+												})}
+											{/if}
+										</p>
+									{/if}
+								</Stack>
+								<div class="lg:text-right">
+									<p class="text-meta">{t('app.hr_employee.leave_available')}</p>
+									<p class="text-xl font-semibold tabular-nums text-foreground">
+										{balance.account.accrual_kind === 'UNLIMITED'
+											? t('component.accrual_unlimited')
+											: formatNumeric(summary.available)}
+										<span class="text-sm font-normal text-muted-foreground"
+											>{t('component.days')}</span
+										>
+									</p>
+								</div>
+							</div>
+						</div>
 					{/each}
 				{/if}
 			</section>

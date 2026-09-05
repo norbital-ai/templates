@@ -87,14 +87,13 @@ import { defaultPayPeriod, type PayrollWindow } from './period.js';
 import { evaluateFormula, type FormulaContext } from './formula.js';
 import type { EmploymentBundle } from './gather.js';
 import {
-	leaveBalance,
 	leaveYearOf,
-	resolveEntitlementAt,
 	unpaidLeaveDates,
 	unpaidLeaveInWindow,
 	type LedgerRow,
 	type UnpaidLeave
 } from './leave.js';
+import { leaveAccountBalance } from '../../../lib/leave/ledger.js';
 import {
 	extendedAbsenceDays,
 	overtimeAttendanceWindow,
@@ -851,8 +850,6 @@ export function measureEmployment(options: MeasureEmploymentOptions): MeasuredEm
 	}
 	const leaveDays: Record<string, number> = {};
 	const leaveBalances: Record<string, number> = {};
-	const hireDate = dateKey(bundle.employment.hire_date) ?? options.salary.start;
-	const exitDate = dateKey(bundle.employment.exit_date);
 	for (const type of configuration.leaveTypes) {
 		leaveDays[type.code] = bundle.ledger
 			.filter(
@@ -866,30 +863,23 @@ export function measureEmployment(options: MeasureEmploymentOptions): MeasuredEm
 				const date = requiredDateKey(row.entry_date, 'leave entry date');
 				return settlesHere(date) ? total + Math.abs(decodeNumber(row.days)) : total;
 			}, 0);
-		// The settled balance, derived in full — carried in, accrued, expired, plus the ledger.
-		// Payroll never acts on it, but a formula may read it (an encashment on exit does), and it
-		// is emitted for every type so CEL never meets a missing key.
-		leaveBalances[type.code] = leaveBalance(
-			{
-				leaveType: type,
-				entitlementAt: (serviceMonths, asOf) =>
-					resolveEntitlementAt({
-						leaveType: type,
-						profiles: configuration.leaveProfiles,
-						jurisdictionCode: configuration.jurisdiction.code,
-						children: bundle.children,
-						serviceMonths,
-						employmentId: bundle.employment.id,
-						asOf
-					}),
-				hireDate,
-				exitDate,
-				leaveYearStartMonth: decodeNumber(configuration.company.leave_year_start_month),
-				ledger: bundle.ledger,
-				basis: 'SETTLED'
-			},
-			options.salary.end
+		// Formula balances read the same immutable account entries as self-service. Policy and law
+		// were compiled before payroll; a run never recalculates entitlement from mutable person facts.
+		const account = bundle.leaveAccounts.find(
+			(candidate) =>
+				candidate.leave_code === type.code &&
+				dateKey(candidate.starts_on) != null &&
+				dateKey(candidate.ends_on) != null &&
+				dateKey(candidate.starts_on)! <= options.salary.end &&
+				dateKey(candidate.ends_on)! >= options.salary.end
 		);
+		leaveBalances[type.code] =
+			account == null
+				? 0
+				: leaveAccountBalance(
+						bundle.leaveEntries.filter((entry) => entry.leave_account_id === account.id),
+						options.salary.end
+					);
 	}
 	const periodCalendarDays = monthDays(options.salary.start);
 	const nightShiftHours =
@@ -1102,14 +1092,10 @@ export function measureEmployment(options: MeasureEmploymentOptions): MeasuredEm
 	const capturedLeaveRequestIds = new Set<string>(
 		adjustments.filter((row) => row.input.family === 'LEAVE_REQUEST').map((row) => row.input.id)
 	);
-	// One pass over the ledger: a TIME_OFF request is captured when any of its days fall inside
+	// One pass over approved applications: a request is captured when any of its days fall inside
 	// this payslip's lock span, so Dec 28–Jan 5 is an input to both December and January.
 	for (const movement of bundle.ledger) {
-		const opensCurrentYear =
-			movement.kind === 'CARRY_FORWARD' &&
-			movement.leave_year ===
-				leaveYearOf(options.salary.end, decodeNumber(configuration.company.leave_year_start_month));
-		if (!opensCurrentYear && !leaveMovementTouchesSpan(movement, lockSpan)) continue;
+		if (!leaveMovementTouchesSpan(movement, lockSpan)) continue;
 		capturedLeaveRequestIds.add(movement.id);
 	}
 

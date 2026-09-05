@@ -2,13 +2,29 @@
 	{
 		"id": "ffffffff-ffff-4fff-8fff-fffffffffff1",
 		"company_id": "11111111-1111-4111-8111-111111111111",
-		"statutory_profile_id": "22222222-2222-4222-8222-222222222222",
+		"leave_plan_id": "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeee1",
 		"code": "ANNUAL",
 		"name": "Annual leave",
 		"statutory_kind": "ANNUAL",
 		"eligibility": [],
 		"encash_on_exit": false,
-		"accrual": { "kind": "MONTHLY", "carry": { "limit_days": 5, "expiry_months": 3 } },
+		"accrual": { "kind": "UPFRONT", "carry": { "limit_days": 5, "expiry_months": 3 } },
+		"entitlement": { "layers": [] },
+		"payroll_effect": { "kind": "PAID" }
+	},
+	{
+		"id": "ffffffff-ffff-4fff-8fff-fffffffffff4",
+		"company_id": "11111111-1111-4111-8111-111111111111",
+		"leave_plan_id": "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeee1",
+		"code": "SHARED_PARENTAL",
+		"name": "Shared parental leave",
+		"statutory_kind": "SHARED_PARENTAL",
+		"account_basis": "EVENT",
+		"event_unit": "WEEKS",
+		"event_window_months": 12,
+		"eligibility": [],
+		"encash_on_exit": false,
+		"accrual": { "kind": "UPFRONT", "carry": null },
 		"entitlement": { "layers": [] },
 		"payroll_effect": { "kind": "PAID" }
 	}

@@ -1,5 +1,6 @@
 import { defineCustomType } from '@norbital-ai/bolt/authoring';
 import { Schema } from 'effect';
+import { eligibilityRulesValueSchema } from '../eligibility_rules/+definition.js';
 
 /** Leave kinds are stable tenant-defined codes, so new statutory categories need no code release. */
 const authority = Schema.NonEmptyString;
@@ -18,6 +19,19 @@ const authority = Schema.NonEmptyString;
  */
 const statutoryLeaveMemberValueSchema = Schema.Struct({
 	kind: Schema.String.check(Schema.isPattern(/^[A-Z][A-Z0-9_]{1,63}$/)),
+	account_basis: Schema.optional(Schema.Literals(['YEAR', 'EVENT'])),
+	qualifying_service_months: Schema.optional(Schema.Int.check(Schema.isGreaterThanOrEqualTo(0))),
+	eligibility: Schema.optional(eligibilityRulesValueSchema),
+	vesting: Schema.optional(Schema.Literals(['UPFRONT', 'MONTHLY'])),
+	rounding: Schema.optional(Schema.Literals(['HALF_DAY', 'WHOLE_DAY_HALF_UP'])),
+	event: Schema.optional(
+		Schema.Struct({
+			window_months: Schema.Int.check(Schema.isGreaterThan(0)),
+			allocation: Schema.Literals(['INDIVIDUAL', 'HOUSEHOLD']),
+			unit: Schema.optional(Schema.Literals(['DAYS', 'WEEKS'])),
+			weekly_index_cap: Schema.optional(Schema.Finite.check(Schema.isGreaterThan(0)))
+		})
+	),
 	ladder: Schema.Array(
 		Schema.Struct({
 			band_from: Schema.Int.check(Schema.isGreaterThanOrEqualTo(0)),
@@ -32,6 +46,13 @@ const statutoryLeaveMemberValueSchema = Schema.Struct({
 		})
 	),
 	max_days: Schema.NullOr(Schema.Finite.check(Schema.isGreaterThan(0))),
+	transition: Schema.Literals(['FULL_AT_EFFECTIVE_DATE', 'PRORATE_REMAINDER', 'NEXT_LEAVE_YEAR']),
+	carry: Schema.NullOr(
+		Schema.Struct({
+			limit_days: Schema.Finite.check(Schema.isGreaterThanOrEqualTo(0)),
+			expiry_months: Schema.Int.check(Schema.isGreaterThanOrEqualTo(0))
+		})
+	),
 	authority
 });
 
@@ -46,6 +67,21 @@ export const statutoryLeaveProfileValueSchema = Schema.Array(statutoryLeaveMembe
 			)
 		)
 			return 'Each service band must be unique within a leave kind.';
+		if (
+			members.some(
+				(member) =>
+					(member.account_basis ?? 'YEAR') === 'EVENT' &&
+					(member.event == null ||
+						member.carry != null ||
+						member.vesting === 'MONTHLY' ||
+						((member.event?.unit ?? 'DAYS') === 'WEEKS' && member.event?.weekly_index_cap == null))
+			)
+		)
+			return 'Event-based statutory leave needs an event window, vests upfront, cannot carry, and needs a weekly-index cap when measured in weeks.';
+		if (
+			members.some((member) => (member.account_basis ?? 'YEAR') === 'YEAR' && member.event != null)
+		)
+			return 'Only event-based statutory leave may declare an event window.';
 		return true;
 	})
 );
@@ -59,6 +95,6 @@ export const statutoryLeaveProfileSchema = Schema.toStandardSchemaV1(
 export default defineCustomType({
 	name: 'statutory_leave_profile',
 	description:
-		'The statutory leave minimums one law revision states, per canonical leave kind: the service-scaled base days, any per-child scaling with its age limit and gate, the ceiling, and the citation.',
+		'The statutory leave minimums one law revision states, including yearly or qualifying-event coverage, service qualification, vesting, child scaling, transition treatment, carry, event window/allocation scope, and the citation.',
 	schema: statutoryLeaveProfileSchema
 });

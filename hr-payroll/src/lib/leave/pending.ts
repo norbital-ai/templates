@@ -3,13 +3,14 @@ import { refuse, type Api } from '@norbital-ai/bolt/authoring';
 import type { WorkspaceSchema } from '$bolt/types.js';
 import type { WorkspaceRow } from '../../collections/leave_requests/$types.js';
 import { leaveEventValueSchema } from '../../datatypes/leave_event/+definition.js';
+import { decodeNumber } from '@norbital-ai/std/json';
 
 export type LeaveBalanceRequest = Pick<
 	WorkspaceRow<'leave_requests'>,
 	| 'id'
 	| 'employment_id'
 	| 'leave_type_id'
-	| 'allocation_id'
+	| 'leave_account_id'
 	| 'kind'
 	| 'from_date'
 	| 'to_date'
@@ -20,25 +21,40 @@ export type LeaveBalanceRequest = Pick<
 type PendingLeaveApi = {
 	db: { leave_requests: Pick<Api<WorkspaceSchema>['db']['leave_requests'], 'findPending'> };
 };
+
+/** Pending proposals have no database-generated `days` column yet; measure their sealed event. */
+export function measuredLeaveRequestDays(request: Readonly<Record<string, unknown>>): number {
+	const event = Reflect.get(request, 'event');
+	const raw =
+		Reflect.get(request, 'days') ??
+		(event != null && typeof event === 'object' ? Reflect.get(event, 'chargeable_days') : null);
+	const days = decodeNumber(raw);
+	if (!Number.isFinite(days) || days <= 0)
+		throw new Error(
+			'A pending leave proposal has no server-calculated quantity. Review or withdraw it before relying on the balance.'
+		);
+	return days;
+}
 const proposalSchema = Schema.Struct({
 	employment_id: Schema.String,
 	leave_type_id: Schema.String,
-	allocation_id: Schema.optionalKey(Schema.NullOr(Schema.String)),
+	leave_account_id: Schema.String,
 	event: leaveEventValueSchema
 });
 
 /** Held creates are approval proposals, not collection rows. Preserve their reservation until rejection or settlement. */
 export function withPendingLeaveRequests(
 	api: PendingLeaveApi,
-	employmentId: string,
+	employmentId: string | readonly string[],
 	stored: readonly LeaveBalanceRequest[],
 	excludeId?: string
 ): Effect.Effect<LeaveBalanceRequest[]> {
 	return Effect.gen(function* () {
+		const employmentIds = new Set(typeof employmentId === 'string' ? [employmentId] : employmentId);
 		const pending = yield* api.db.leave_requests.findPending({
 			where: {
 				OR: [
-					{ employment_id: { eq: employmentId } },
+					{ employment_id: { in: [...employmentIds] } },
 					...(stored.length === 0 ? [] : [{ id: { in: stored.map((row) => row.id) } }])
 				]
 			},
@@ -58,7 +74,8 @@ export function withPendingLeaveRequests(
 					'A pending leave proposal cannot be measured. Review or withdraw it before making further requests.'
 				);
 			const proposal = decoded.success;
-			if (proposal.employment_id !== employmentId || proposal.event.kind !== 'TIME_OFF') continue;
+			if (!employmentIds.has(proposal.employment_id) || proposal.event.kind !== 'TIME_OFF')
+				continue;
 			if (proposal.event.chargeable_days == null)
 				refuse(
 					'A pending leave proposal has no server-calculated quantity. Review or withdraw it before making further requests.'
@@ -67,7 +84,7 @@ export function withPendingLeaveRequests(
 				id: request.id,
 				employment_id: proposal.employment_id,
 				leave_type_id: proposal.leave_type_id,
-				allocation_id: proposal.allocation_id ?? null,
+				leave_account_id: proposal.leave_account_id,
 				kind: 'TIME_OFF',
 				event: proposal.event,
 				approval_id: request.approval_id,

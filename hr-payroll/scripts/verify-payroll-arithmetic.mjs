@@ -89,13 +89,13 @@ const modules = await Effect.runPromise(
 	)
 );
 const [
-	{ roundMoney, roundHalfDay, floorHalfHour, cents },
+	{ roundMoney, floorHalfHour, cents },
 	{ selectBand, bandFloor },
 	{ bracketBase, parseSpecialRules },
 	{ contribute, scaleProgressive },
 	{ attendanceWindow, defaultPayPeriod, payPeriodsRemaining, resolveWindow },
 	{ inclusiveDays, dateKey: calendarDay },
-	{ accruedDays, unpaidLeaveInWindow },
+	{ unpaidLeaveInWindow },
 	{
 		extendedAbsenceDays,
 		inExtendedLeavePopulation,
@@ -271,40 +271,8 @@ check(
 check('and it reaches net', derivedOvertimeSettlement.net, 74.66);
 
 // ────────────────────────────────────────────────────────────────────────────────────────────────
-// Leave accrual — the running total is rounded, never the increment.
+// Statutory contribution arithmetic.
 // ────────────────────────────────────────────────────────────────────────────────────────────────
-check('round_half is half-up at the quarter', roundHalfDay(5.25), 5.5);
-check('round_half leaves a half alone', roundHalfDay(5.5), 5.5);
-check('round_half rounds 1.75 to 2.0', roundHalfDay(1.75), 2);
-
-const annualLeave = {
-	code: 'ANNUAL',
-	id: 'leave-annual',
-	accrual: { kind: 'MONTHLY', carry: { limit_days: 6, expiry_months: 3 } }
-};
-const accrue = (asOf, entitlement = () => 21) =>
-	accruedDays({
-		leaveType: annualLeave,
-		// The merged entitlement at a service age and a date — the engine calls it per month, so a
-		// mid-year band crossing accrues at both rates.
-		entitlementAt: (serviceMonths) => entitlement(serviceMonths),
-		hireDate: '2020-01-01',
-		exitDate: null,
-		leaveYearStart: '2026-01-01',
-		asOf
-	});
-check('21 days accrue to 2.0 by 31 January', accrue('2026-01-31'), 2);
-check('21 days accrue to 3.5 by 28 February', accrue('2026-02-28'), 3.5);
-check('21 days accrue to 5.5 by 31 March', accrue('2026-03-31'), 5.5);
-check('21 days accrue to 14.0 by 31 August', accrue('2026-08-31'), 14);
-check('21 days land exactly on the entitlement in December', accrue('2026-12-31'), 21);
-// Rounding each month instead would give 12 × 2.0 = 24.0 — three days too many.
-check(
-	'the band is read at each month, so a mid-year crossing accrues at both rates',
-	accrue('2026-12-31', (months) => (months < 78 ? 12 : 16)),
-	14
-);
-
 // ────────────────────────────────────────────────────────────────────────────────────────────────
 // EPF — the Third Schedule bracket is the top of the step the wage falls in.
 // ────────────────────────────────────────────────────────────────────────────────────────────────

@@ -1,0 +1,1026 @@
+// @ts-nocheck -- focused arithmetic tests use the smallest AutomationApi surface each path reads.
+import assert from 'node:assert/strict';
+import test from 'node:test';
+import { Effect } from 'effect';
+import {
+	entitlementEntries,
+	ensureAccount,
+	expireCarry,
+	profileAt,
+	reconcileEmploymentLeave,
+	reconcileEventAccountOpening,
+	reconcileTarget,
+	requireStatutoryMappings,
+	retireDueLeavePlanPredecessors,
+	transferCarry
+} from '../src/lib/leave/reconcile.ts';
+import { eventAllocationDays } from '../src/collections/leave_accounts/+hooks.ts';
+import leaveEntryHooks from '../src/collections/leave_entries/+hooks.ts';
+import leaveAccountHooks from '../src/collections/leave_accounts/+hooks.ts';
+import leavePlanHooks from '../src/collections/leave_plans/+hooks.ts';
+
+const plan = (id, start, transition = 'NEXT_LEAVE_YEAR') => ({
+	id,
+	lifecycle: 'ACTIVE',
+	effective_range: { start, end: null },
+	transition
+});
+
+const profile = (id, start, days, transition = 'NEXT_LEAVE_YEAR') => ({
+	id,
+	code: 'SG',
+	lifecycle: 'SEALED',
+	effective_range: { start, end: null },
+	statutory_leave: [
+		{
+			kind: 'ANNUAL',
+			ladder: [{ band_from: 0, days }],
+			per_child: null,
+			max_days: null,
+			transition,
+			carry: null
+		}
+	]
+});
+
+const type = (companyDays = 0, accrual = { kind: 'UPFRONT', carry: null }) => ({
+	id: 'type',
+	code: 'ANNUAL',
+	name: 'Annual leave',
+	statutory_kind: 'ANNUAL',
+	entitlement: { layers: companyDays === 0 ? [] : [{ band_from: 0, days: companyDays }] },
+	accrual,
+	eligibility: []
+});
+
+const employment = { id: 'employment', hire_date: '2020-01-01' };
+const account = {
+	id: 'account',
+	opening_plan_id: 'plan-old',
+	opening_statutory_profile_id: 'law-old',
+	starts_on: '2026-01-01',
+	ends_on: '2026-12-31',
+	status: 'OPEN'
+};
+const opening = {
+	id: 'opening',
+	leave_account_id: account.id,
+	kind: 'OPENING_ENTITLEMENT',
+	effective_on: '2026-01-01',
+	days: 10,
+	source_key: 'opening',
+	leave_plan_id: 'plan-old',
+	statutory_profile_id: 'law-old',
+	approval_id: null
+};
+
+function eventProfile(id, start, end, days) {
+	const row = profile(id, start, days, 'NEXT_LEAVE_YEAR');
+	row.effective_range.end = end;
+	row.statutory_leave[0] = {
+		...row.statutory_leave[0],
+		kind: 'SHARED_PARENTAL',
+		account_basis: 'EVENT',
+		qualifying_service_months: 0,
+		vesting: 'UPFRONT',
+		event: {
+			window_months: 12,
+			allocation: 'HOUSEHOLD',
+			unit: 'WEEKS',
+			weekly_index_cap: 6
+		}
+	};
+	return row;
+}
+
+function eventAccountApi(profiles, committed = [], pending = []) {
+	const eventType = {
+		...type(0, { kind: 'UPFRONT', carry: null }),
+		id: 'event-type',
+		company_id: 'company',
+		leave_plan_id: 'event-plan',
+		code: 'SHARED_PARENTAL',
+		name: 'Shared parental leave',
+		statutory_kind: 'SHARED_PARENTAL',
+		account_basis: 'EVENT',
+		event_unit: 'WEEKS',
+		event_window_months: null
+	};
+	return {
+		db: {
+			employments: {
+				findFirst: () =>
+					Effect.succeed({
+						id: 'employment',
+						company_id: 'company',
+						employee_id: 'employee',
+						hire_date: '2020-01-01',
+						exit_date: null,
+						approval_id: null
+					})
+			},
+			leave_types: {
+				findFirst: () => Effect.succeed(eventType),
+				findMany: ({ where }) =>
+					Effect.succeed(
+						where.id.in.map((id) => ({
+							id,
+							statutory_kind: 'SHARED_PARENTAL'
+						}))
+					)
+			},
+			leave_plans: {
+				findFirst: () =>
+					Effect.succeed({
+						...plan('event-plan', '2025-01-01'),
+						company_id: 'company',
+						approval_id: null
+					})
+			},
+			companies: {
+				findFirst: () =>
+					Effect.succeed({ id: 'company', jurisdiction_id: profiles[0].id, approval_id: null })
+			},
+			employees: { findFirst: () => Effect.succeed({ id: 'employee', gender: null }) },
+			employment_terms: { findMany: () => Effect.succeed([]) },
+			employee_children: { findMany: () => Effect.succeed([]) },
+			jurisdictions: {
+				findFirst: () => Effect.succeed({ code: 'SG' }),
+				findMany: () => Effect.succeed(profiles)
+			},
+			leave_accounts: {
+				findMany: () => Effect.succeed(committed),
+				findPending: () => Effect.succeed(pending)
+			}
+		}
+	};
+}
+
+function reconciliationApi({ asOf, exitDate = null, accounts, entries }) {
+	const employmentRow = {
+		id: 'employment',
+		company_id: 'company',
+		employee_id: 'employee',
+		hire_date: '2020-01-01',
+		exit_date: exitDate,
+		approval_id: null
+	};
+	const planRow = {
+		...plan('plan-old', '2026-01-01'),
+		company_id: 'company',
+		approval_id: null
+	};
+	const profileRow = { ...profile('law-old', '2026-01-01', 0), approval_id: null };
+	let nextEntryId = 1;
+	return {
+		api: {
+			db: {
+				employments: { findFirst: () => Effect.succeed(employmentRow) },
+				companies: {
+					findFirst: () =>
+						Effect.succeed({
+							id: 'company',
+							jurisdiction_id: 'law-old',
+							leave_year_start_month: 1,
+							approval_id: null
+						})
+				},
+				employees: {
+					findFirst: () => Effect.succeed({ id: 'employee', gender: null })
+				},
+				employment_terms: { findMany: () => Effect.succeed([]) },
+				employee_children: { findMany: () => Effect.succeed([]) },
+				leave_plans: { findMany: () => Effect.succeed([planRow]) },
+				leave_types: {
+					findMany: () => Effect.succeed([]),
+					findFirst: () => Effect.succeed(null)
+				},
+				jurisdictions: {
+					findFirst: () => Effect.succeed({ code: 'SG' }),
+					findMany: () => Effect.succeed([profileRow])
+				},
+				leave_accounts: {
+					findMany: () => Effect.succeed(accounts),
+					mutate: (mutations) =>
+						Effect.sync(() => {
+							for (const mutation of mutations) {
+								const current = accounts.find((row) => row.id === mutation.id);
+								if (current != null) Object.assign(current, mutation);
+							}
+						})
+				},
+				leave_entries: {
+					findMany: ({ where }) =>
+						Effect.succeed(
+							entries.filter((entry) => entry.leave_account_id === where.leave_account_id.eq)
+						),
+					mutate: (mutations) =>
+						Effect.sync(() => {
+							entries.push(
+								...mutations.map((mutation) => ({
+									...mutation,
+									id: `posted-${nextEntryId++}`,
+									approval_id: null
+								}))
+							);
+						})
+				},
+				leave_requests: { findPending: () => Effect.succeed([]) }
+			}
+		},
+		asOf
+	};
+}
+
+test('monthly schedules never catch up accrual from before hire', () => {
+	const entries = entitlementEntries({
+		accountId: 'account',
+		type: type(12, { kind: 'MONTHLY', carry: null }),
+		plan: plan('plan-old', '2026-01-01'),
+		profile: profile('law-old', '2026-01-01', 0),
+		target: 12,
+		yearStart: '2026-01-01',
+		yearEnd: '2026-12-31',
+		hireDate: '2026-07-15'
+	});
+	assert.deepEqual(
+		entries.map((entry) => [entry.effective_on, entry.days]),
+		[
+			['2026-07-31', 1],
+			['2026-08-31', 1],
+			['2026-09-30', 1],
+			['2026-10-31', 1],
+			['2026-11-30', 1],
+			['2026-12-31', 1]
+		]
+	);
+});
+
+test('statutory monthly vesting uses its own whole-day half-up rule', () => {
+	const statutoryOpening = (completed) =>
+		entitlementEntries({
+			accountId: 'account',
+			type: type(0, { kind: 'MONTHLY', carry: null }),
+			plan: plan('plan-old', '2026-01-01'),
+			profile: profile('law-old', '2026-01-01', 7),
+			target: 7,
+			yearStart: '2026-01-01',
+			yearEnd: '2026-12-31',
+			hireDate: '2026-01-01',
+			openingDate: '2026-04-15',
+			statutoryTarget: 7,
+			companyTarget: 0,
+			statutoryVesting: 'MONTHLY',
+			statutoryRounding: 'WHOLE_DAY_HALF_UP',
+			statutoryCatchUpMonths: completed
+		})[0].days;
+	assert.equal(statutoryOpening(3), 2);
+	assert.equal(statutoryOpening(4), 2);
+});
+
+test('qualifying-event law is selected from the event cohort, not the request date', async () => {
+	const oldLaw = eventProfile('sg-six-weeks', '2025-04-01', '2026-04-01', 6);
+	const newLaw = eventProfile('sg-ten-weeks', '2026-04-01', null, 10);
+	assert.equal(profileAt([oldLaw, newLaw], 'SG', '2026-03-31').id, oldLaw.id);
+	assert.equal(profileAt([oldLaw, newLaw], 'SG', '2026-04-01').id, newLaw.id);
+
+	const handler = leaveAccountHooks.mutate.perRecord.before.handler;
+	const march = await Effect.runPromise(
+		handler({
+			input: {
+				employment_id: 'employment',
+				leave_type_id: 'event-type',
+				account_kind: 'EVENT',
+				event_reference: 'child-2026-03',
+				qualifying_date: '2026-03-31',
+				statutory_cohort_date: '2026-03-31',
+				starts_on: '2026-03-31',
+				ends_on: '2027-03-30',
+				allocation_units: 6,
+				weekly_index: 5.5,
+				eligibility_evidence: 'Verified birth cohort and household allocation'
+			},
+			existing: null,
+			recordId: 'march-account',
+			api: eventAccountApi([oldLaw, newLaw])
+		})
+	);
+	assert.equal(march.opening_statutory_profile_id, oldLaw.id);
+	assert.equal(march.calculation.statutory_days, 33);
+	assert.equal(march.entitlement_days, 33);
+	assert.equal(march.ends_on, '2027-03-30');
+
+	const april = await Effect.runPromise(
+		handler({
+			input: {
+				...march,
+				event_reference: 'child-2026-04',
+				qualifying_date: '2026-04-01',
+				statutory_cohort_date: '2026-04-01',
+				starts_on: '2026-04-01',
+				ends_on: '2027-03-31',
+				allocation_units: 10,
+				weekly_index: 6
+			},
+			existing: null,
+			recordId: 'april-account',
+			api: eventAccountApi([oldLaw, newLaw])
+		})
+	);
+	assert.equal(april.opening_statutory_profile_id, newLaw.id);
+	assert.equal(april.calculation.statutory_days, 60);
+	assert.equal(april.entitlement_days, 60);
+});
+
+test('an early birth may use the reviewed estimated-delivery cohort while its window starts at birth', async () => {
+	const oldLaw = eventProfile('sg-six-weeks', '2025-04-01', '2026-04-01', 6);
+	const newLaw = eventProfile('sg-ten-weeks', '2026-04-01', null, 10);
+	const account = await Effect.runPromise(
+		leaveAccountHooks.mutate.perRecord.before.handler({
+			input: {
+				employment_id: 'employment',
+				leave_type_id: 'event-type',
+				account_kind: 'EVENT',
+				event_reference: 'child-early-birth',
+				qualifying_date: '2026-03-28',
+				statutory_cohort_date: '2026-04-02',
+				starts_on: '2026-03-28',
+				ends_on: '2027-03-27',
+				allocation_units: 10,
+				weekly_index: 6,
+				eligibility_evidence: 'Birth registration and reviewed estimated delivery date'
+			},
+			existing: null,
+			recordId: 'early-birth-account',
+			api: eventAccountApi([oldLaw, newLaw])
+		})
+	);
+	assert.equal(account.opening_statutory_profile_id, newLaw.id);
+	assert.equal(account.qualifying_date, '2026-03-28');
+	assert.equal(account.statutory_cohort_date, '2026-04-02');
+	assert.equal(account.ends_on, '2027-03-27');
+	assert.equal(account.entitlement_days, 60);
+});
+
+test('week allocations use the verified weekly index and floor only the final duration', () => {
+	assert.equal(eventAllocationDays(6, 5.5), 33);
+	assert.equal(eventAllocationDays(10, 6), 60);
+	assert.equal(eventAllocationDays(3.5, 5.3), 18.5);
+});
+
+test('a newly sealed statutory kind cannot disappear behind a missing company mapping', () => {
+	const currentLaw = eventProfile('new-law', '2026-04-01', null, 10);
+	currentLaw.statutory_leave.push({
+		kind: 'NEW_PARENTAL_CATEGORY',
+		account_basis: 'YEAR',
+		ladder: [{ band_from: 0, days: 4 }],
+		per_child: null,
+		max_days: null,
+		transition: 'FULL_AT_EFFECTIVE_DATE',
+		carry: null,
+		authority: 'Enacted test law'
+	});
+	assert.throws(
+		() =>
+			requireStatutoryMappings(currentLaw, [
+				{
+					statutory_kind: 'SHARED_PARENTAL',
+					account_basis: 'EVENT',
+					event_unit: 'WEEKS'
+				}
+			]),
+		/missing statutory mappings for NEW_PARENTAL_CATEGORY/i
+	);
+});
+
+test('one event cohort enforces its household maximum across companies and leave codes', async () => {
+	const currentLaw = eventProfile('sg-ten-weeks', '2026-04-01', null, 10);
+	const existingAllocation = {
+		id: 'other-parent-account',
+		employment_id: 'other-company-employment',
+		leave_type_id: 'other-company-parental-type',
+		leave_code: 'PARENT_POOL',
+		event_reference: 'CHILD-42',
+		account_kind: 'EVENT',
+		opening_statutory_profile_id: currentLaw.id,
+		allocation_units: 6,
+		weekly_index: 5.5,
+		entitlement_days: 33,
+		approval_id: null
+	};
+	const handler = leaveAccountHooks.mutate.perRecord.before.handler;
+	const input = {
+		employment_id: 'employment',
+		leave_type_id: 'event-type',
+		account_kind: 'EVENT',
+		event_reference: 'child-42',
+		qualifying_date: '2026-04-01',
+		statutory_cohort_date: '2026-04-01',
+		starts_on: '2026-04-01',
+		ends_on: '2027-03-31',
+		allocation_units: 4,
+		weekly_index: 6,
+		eligibility_evidence: 'Second parent verified against the same household reference'
+	};
+	const accepted = await Effect.runPromise(
+		handler({
+			input,
+			existing: null,
+			recordId: 'second-parent-account',
+			api: eventAccountApi([currentLaw], [existingAllocation])
+		})
+	);
+	assert.equal(accepted.entitlement_days, 24);
+	await assert.rejects(
+		Effect.runPromise(
+			handler({
+				input: { ...input, allocation_units: 4.5 },
+				existing: null,
+				recordId: 'overallocated-account',
+				api: eventAccountApi([currentLaw], [existingAllocation])
+			})
+		),
+		/household already allocated 6 weeks/i
+	);
+});
+
+test('an event account posts one opening movement across the calendar-year boundary', async () => {
+	const entries = [];
+	const api = {
+		db: {
+			leave_entries: {
+				findFirst: () => Effect.succeed(entries[0] ?? null),
+				mutate: (rows) => Effect.sync(() => entries.push(...rows))
+			}
+		}
+	};
+	const eventAccount = {
+		...account,
+		account_kind: 'EVENT',
+		event_reference: 'CHILD-42',
+		starts_on: '2026-04-01',
+		ends_on: '2027-03-31',
+		entitlement_days: 60,
+		approval_id: null
+	};
+	assert.deepEqual(await Effect.runPromise(reconcileEventAccountOpening(api, eventAccount)), {
+		entries_posted: 1
+	});
+	assert.deepEqual(await Effect.runPromise(reconcileEventAccountOpening(api, eventAccount)), {
+		entries_posted: 0
+	});
+	assert.equal(entries.length, 1);
+	assert.equal(entries[0].days, 60);
+	assert.equal(entries[0].effective_on, '2026-04-01');
+});
+
+test('a statutory successor appends one idempotent target delta', async () => {
+	const posted = [];
+	const currentPlan = plan('plan-old', '2026-01-01');
+	const currentProfile = profile('law-new', '2026-07-01', 15, 'FULL_AT_EFFECTIVE_DATE');
+	const api = {
+		db: { leave_entries: { mutate: (rows) => Effect.sync(() => posted.push(...rows)) } }
+	};
+	const count = await Effect.runPromise(
+		reconcileTarget({
+			api,
+			account,
+			entries: [opening],
+			employment,
+			type: type(),
+			plan: currentPlan,
+			profile: currentProfile,
+			children: [],
+			asOf: '2026-07-01'
+		})
+	);
+	assert.equal(count, 1);
+	assert.deepEqual(
+		posted.map(({ kind, effective_on, days, source_key }) => ({
+			kind,
+			effective_on,
+			days,
+			source_key
+		})),
+		[
+			{
+				kind: 'STATUTORY_ADJUSTMENT',
+				effective_on: '2026-07-01',
+				days: 5,
+				source_key: 'statutory:law-new'
+			}
+		]
+	);
+	assert.equal(
+		await Effect.runPromise(
+			reconcileTarget({
+				api,
+				account,
+				entries: [opening, { ...posted[0], id: 'adjustment', approval_id: null }],
+				employment,
+				type: type(),
+				plan: currentPlan,
+				profile: currentProfile,
+				children: [],
+				asOf: '2026-07-01'
+			})
+		),
+		0
+	);
+});
+
+test('the newest changed source chooses the transition when plan and law ids both differ', async () => {
+	const posted = [];
+	const api = {
+		db: { leave_entries: { mutate: (rows) => Effect.sync(() => posted.push(...rows)) } }
+	};
+	await Effect.runPromise(
+		reconcileTarget({
+			api,
+			account,
+			entries: [opening],
+			employment,
+			type: type(),
+			plan: plan('plan-new', '2026-04-01', 'NEXT_LEAVE_YEAR'),
+			profile: profile('law-new', '2026-07-01', 15, 'FULL_AT_EFFECTIVE_DATE'),
+			children: [],
+			asOf: '2026-07-01'
+		})
+	);
+	assert.equal(posted[0].kind, 'STATUTORY_ADJUSTMENT');
+	assert.equal(posted[0].days, 5);
+});
+
+test('personal fact drift does not rewrite an already sealed account', async () => {
+	const currentProfile = profile('law-old', '2026-01-01', 10, 'FULL_AT_EFFECTIVE_DATE');
+	currentProfile.statutory_leave[0].per_child = {
+		age_limit: 7,
+		min_children: 1,
+		days: 3
+	};
+	const api = {
+		db: { leave_entries: { mutate: () => Effect.die('sealed account must not be rewritten') } }
+	};
+	assert.equal(
+		await Effect.runPromise(
+			reconcileTarget({
+				api,
+				account,
+				entries: [opening],
+				employment,
+				type: type(),
+				plan: plan('plan-old', '2026-01-01'),
+				profile: currentProfile,
+				children: [
+					{
+						id: 'child',
+						child_birthdate: '2026-06-01',
+						effective_range: { start: '2026-06-01', end: null },
+						supersedes_id: null
+					}
+				],
+				asOf: '2026-07-01'
+			})
+		),
+		0
+	);
+});
+
+test('a newly eligible mid-year type opens with the plan transition applied once', async () => {
+	let storedAccount;
+	const posted = [];
+	const api = {
+		db: {
+			leave_accounts: {
+				mutate: ([row]) =>
+					Effect.sync(() => {
+						storedAccount = { ...row, id: 'generated-account', approval_id: null };
+					}),
+				findFirst: () => Effect.succeed(storedAccount)
+			},
+			leave_entries: { mutate: (rows) => Effect.sync(() => posted.push(...rows)) }
+		}
+	};
+	const result = await Effect.runPromise(
+		ensureAccount({
+			api,
+			employment,
+			type: type(12),
+			plan: plan('plan-new', '2026-07-01', 'PRORATE_REMAINDER'),
+			profile: profile('law-old', '2026-01-01', 10),
+			children: [],
+			year: 2026,
+			startMonth: 1,
+			existing: [],
+			midYearOpening: {
+				effectiveOn: '2026-07-01',
+				transition: 'PRORATE_REMAINDER'
+			}
+		})
+	);
+	assert.equal(result.created, true);
+	assert.equal(storedAccount.entitlement_days, 6);
+	assert.equal(posted.length, 1);
+	assert.equal(posted[0].kind, 'OPENING_ENTITLEMENT');
+	assert.equal(posted[0].effective_on, '2026-07-01');
+	assert.equal(posted[0].days, 6);
+});
+
+test('a mid-year policy calculates child-scaled leave at its effective date', async () => {
+	let storedAccount;
+	const posted = [];
+	const api = {
+		db: {
+			leave_accounts: {
+				mutate: ([row]) =>
+					Effect.sync(() => {
+						storedAccount = { ...row, id: 'child-account', approval_id: null };
+					}),
+				findFirst: () => Effect.succeed(storedAccount)
+			},
+			leave_entries: { mutate: (rows) => Effect.sync(() => posted.push(...rows)) }
+		}
+	};
+	const childProfile = profile('law-new', '2026-07-01', 0, 'FULL_AT_EFFECTIVE_DATE');
+	childProfile.statutory_leave[0].per_child = {
+		age_limit: 7,
+		min_children: 1,
+		days: 3
+	};
+	await Effect.runPromise(
+		ensureAccount({
+			api,
+			employment,
+			type: type(),
+			plan: plan('plan-new', '2026-07-01', 'FULL_AT_EFFECTIVE_DATE'),
+			profile: childProfile,
+			children: [
+				{
+					id: 'child',
+					child_birthdate: '2026-06-01',
+					effective_range: { start: '2026-06-01', end: null },
+					supersedes_id: null
+				}
+			],
+			year: 2026,
+			startMonth: 1,
+			existing: [],
+			midYearOpening: {
+				effectiveOn: '2026-07-01',
+				transition: 'FULL_AT_EFFECTIVE_DATE'
+			}
+		})
+	);
+	assert.equal(storedAccount.calculation.calculated_on, '2026-07-01');
+	assert.equal(storedAccount.entitlement_days, 3);
+	assert.equal(posted[0].days, 3);
+});
+
+test('monthly leave first becoming eligible accrues only after eligibility', async () => {
+	let storedAccount;
+	const posted = [];
+	const api = {
+		db: {
+			leave_accounts: {
+				mutate: ([row]) =>
+					Effect.sync(() => {
+						storedAccount = { ...row, id: 'service-account', approval_id: null };
+					}),
+				findFirst: () => Effect.succeed(storedAccount)
+			},
+			leave_entries: { mutate: (rows) => Effect.sync(() => posted.push(...rows)) }
+		}
+	};
+	await Effect.runPromise(
+		ensureAccount({
+			api,
+			employment,
+			type: type(12, { kind: 'MONTHLY', carry: null }),
+			plan: plan('plan-old', '2026-01-01'),
+			profile: profile('law-old', '2026-01-01', 0),
+			children: [],
+			year: 2026,
+			startMonth: 1,
+			existing: [],
+			eligibilityOpeningOn: '2026-10-15'
+		})
+	);
+	assert.equal(storedAccount.entitlement_days, 3);
+	assert.deepEqual(
+		posted.map((entry) => [entry.effective_on, entry.days]),
+		[
+			['2026-10-31', 1],
+			['2026-11-30', 1],
+			['2026-12-31', 1]
+		]
+	);
+});
+
+test('statutory monthly vesting catches up completed service when company eligibility is stricter', async () => {
+	let storedAccount;
+	const posted = [];
+	const api = {
+		db: {
+			leave_accounts: {
+				mutate: ([row]) =>
+					Effect.sync(() => {
+						storedAccount = { ...row, id: 'statutory-account', approval_id: null };
+					}),
+				findFirst: () => Effect.succeed(storedAccount)
+			},
+			leave_entries: { mutate: (rows) => Effect.sync(() => posted.push(...rows)) }
+		}
+	};
+	const statutoryProfile = profile('law-old', '2026-01-01', 12);
+	statutoryProfile.statutory_leave[0].qualifying_service_months = 3;
+	statutoryProfile.statutory_leave[0].vesting = 'MONTHLY';
+	await Effect.runPromise(
+		ensureAccount({
+			api,
+			employment: { ...employment, hire_date: '2026-07-15' },
+			type: type(24, { kind: 'MONTHLY', carry: null }),
+			plan: plan('plan-old', '2026-01-01'),
+			profile: statutoryProfile,
+			children: [],
+			year: 2026,
+			startMonth: 1,
+			existing: [],
+			companyEligible: false,
+			eligibilityOpeningOn: '2026-10-15'
+		})
+	);
+	assert.equal(storedAccount.calculation.company_days, 0);
+	assert.equal(storedAccount.calculation.statutory_days, 12);
+	assert.equal(storedAccount.entitlement_days, 6);
+	assert.deepEqual(
+		posted.map((entry) => [entry.effective_on, entry.days]),
+		[
+			['2026-10-15', 3],
+			['2026-10-31', 1],
+			['2026-11-30', 1],
+			['2026-12-31', 1]
+		]
+	);
+});
+
+test('restored leave is not treated as consumed carry at expiry', async () => {
+	const posted = [];
+	const entries = [
+		{
+			id: 'carry',
+			kind: 'CARRY_FORWARD',
+			effective_on: '2026-01-01',
+			expires_on: '2026-03-31',
+			days: 5,
+			source_key: 'carry:old',
+			approval_id: null
+		},
+		{ kind: 'TAKEN', effective_on: '2026-02-01', days: -5, approval_id: null },
+		{ kind: 'RESTORED', effective_on: '2026-02-01', days: 5, approval_id: null }
+	];
+	const api = {
+		db: { leave_entries: { mutate: (rows) => Effect.sync(() => posted.push(...rows)) } }
+	};
+	assert.equal(await Effect.runPromise(expireCarry(api, account, entries, '2026-04-01')), 1);
+	assert.equal(posted[0].days, -5);
+});
+
+test('restoring a request after expiry appends the newly required expiry delta', async () => {
+	const posted = [];
+	const entries = [
+		{
+			id: 'carry',
+			kind: 'CARRY_FORWARD',
+			effective_on: '2026-01-01',
+			expires_on: '2026-03-31',
+			days: 10,
+			source_key: 'carry:old',
+			approval_id: null
+		},
+		{ kind: 'TAKEN', effective_on: '2026-02-01', days: -4, approval_id: null },
+		{
+			kind: 'EXPIRED',
+			effective_on: '2026-03-31',
+			days: -6,
+			source_key: 'expire:carry',
+			approval_id: null
+		},
+		{ kind: 'RESTORED', effective_on: '2026-02-01', days: 4, approval_id: null }
+	];
+	const api = {
+		db: { leave_entries: { mutate: (rows) => Effect.sync(() => posted.push(...rows)) } }
+	};
+	assert.equal(await Effect.runPromise(expireCarry(api, account, entries, '2026-04-02')), 1);
+	assert.equal(posted[0].days, -4);
+	assert.equal(posted[0].source_key, 'expire:carry:v2');
+});
+
+test('carry expiry is reread before an employment exit settles the account', async () => {
+	const accounts = [
+		{
+			...account,
+			leave_year: 2026,
+			leave_code: 'ANNUAL',
+			leave_type_id: 'type',
+			carry_limit_days: 0,
+			carry_expiry_months: 3
+		}
+	];
+	const entries = [
+		{
+			id: 'carry',
+			leave_account_id: account.id,
+			kind: 'CARRY_FORWARD',
+			effective_on: '2026-01-01',
+			expires_on: '2026-03-31',
+			days: 5,
+			source_key: 'carry:prior',
+			approval_id: null
+		}
+	];
+	const { api, asOf } = reconciliationApi({
+		asOf: '2026-04-02',
+		exitDate: '2026-04-01',
+		accounts,
+		entries
+	});
+
+	await Effect.runPromise(reconcileEmploymentLeave(api, 'employment', asOf));
+
+	assert.deepEqual(
+		entries.map((entry) => [entry.kind, entry.days, entry.source_key]),
+		[
+			['CARRY_FORWARD', 5, 'carry:prior'],
+			['EXPIRED', -5, 'expire:carry']
+		]
+	);
+	assert.equal(accounts[0].status, 'CLOSED');
+});
+
+test('carry expiry is reread before year close transfers the balance', async () => {
+	const previous = {
+		...account,
+		id: 'old-account',
+		leave_year: 2026,
+		leave_code: 'ANNUAL',
+		leave_type_id: 'type',
+		carry_limit_days: 5,
+		carry_expiry_months: 12
+	};
+	const next = {
+		...account,
+		id: 'new-account',
+		opening_plan_id: 'plan-old',
+		opening_statutory_profile_id: 'law-old',
+		starts_on: '2027-01-01',
+		ends_on: '2027-12-31',
+		leave_year: 2027,
+		leave_code: 'ANNUAL',
+		leave_type_id: 'type',
+		carry_limit_days: 5,
+		carry_expiry_months: 12
+	};
+	const accounts = [previous, next];
+	const entries = [
+		{
+			id: 'carry',
+			leave_account_id: previous.id,
+			kind: 'CARRY_FORWARD',
+			effective_on: '2026-01-01',
+			expires_on: '2026-12-31',
+			days: 5,
+			source_key: 'carry:prior',
+			approval_id: null
+		}
+	];
+	const { api, asOf } = reconciliationApi({ asOf: '2027-01-02', accounts, entries });
+
+	await Effect.runPromise(reconcileEmploymentLeave(api, 'employment', asOf));
+
+	assert.deepEqual(
+		entries.map((entry) => [entry.kind, entry.days, entry.source_key]),
+		[
+			['CARRY_FORWARD', 5, 'carry:prior'],
+			['EXPIRED', -5, 'expire:carry']
+		]
+	);
+	assert.equal(previous.status, 'CLOSED');
+});
+
+test('a retry closes an account after its carry entries already committed', async () => {
+	const closed = [];
+	const previous = { ...account, id: 'old-account', ends_on: '2025-12-31' };
+	const api = {
+		db: {
+			leave_accounts: { mutate: (rows) => Effect.sync(() => closed.push(...rows)) },
+			leave_entries: { mutate: () => Effect.die('must not duplicate carry') }
+		}
+	};
+	assert.equal(
+		await Effect.runPromise(
+			transferCarry({
+				api,
+				previous,
+				next: { ...account, id: 'new-account', starts_on: '2026-01-01' },
+				entries: [{ source_key: 'close:old-account:out' }],
+				pending: [],
+				asOf: '2026-01-02'
+			})
+		),
+		0
+	);
+	assert.deepEqual(closed, [{ id: 'old-account', status: 'CLOSED' }]);
+});
+
+test('future plan approval leaves the current plan active until the successor date', async () => {
+	const retired = [];
+	const successorRows = [
+		{
+			id: 'successor-due',
+			supersedes_id: 'current-due',
+			effective_range: { start: '2026-07-01', end: null }
+		},
+		{
+			id: 'successor-future',
+			supersedes_id: 'current-future',
+			effective_range: { start: '2027-01-01', end: null }
+		}
+	];
+	const api = {
+		db: {
+			leave_plans: {
+				findMany: (options) =>
+					Effect.succeed(
+						options.where.supersedes_id == null ? [{ id: 'current-due' }] : successorRows
+					),
+				mutate: (rows) => Effect.sync(() => retired.push(...rows))
+			}
+		}
+	};
+	assert.equal(await Effect.runPromise(retireDueLeavePlanPredecessors(api, '2026-07-01')), 1);
+	assert.deepEqual(retired, [{ id: 'current-due', lifecycle: 'RETIRED' }]);
+});
+
+test('retiring a due plan does not reopen validation of its older predecessor', async () => {
+	const existing = {
+		...plan('current-due', '2026-01-01'),
+		company_id: 'company',
+		code: 'DEFAULT',
+		name: 'Current',
+		supersedes_id: 'already-retired',
+		change_note: 'Current version'
+	};
+	const input = { lifecycle: 'RETIRED' };
+	assert.deepEqual(
+		await Effect.runPromise(
+			leavePlanHooks.mutate.perRecord.before.handler({
+				input,
+				existing,
+				api: {
+					db: {
+						leave_plans: {
+							findFirst: () => Effect.die('retirement must not reread older predecessors')
+						}
+					}
+				}
+			})
+		),
+		input
+	);
+});
+
+test('manual balance corrections require a reason, reference and open in-year account', async () => {
+	const handler = leaveEntryHooks.mutate.perRecord.before.handler;
+	const input = {
+		leave_account_id: 'account',
+		kind: 'MANUAL_ADJUSTMENT',
+		effective_on: '2026-06-01',
+		days: 1,
+		reason: 'Opening balance evidence corrected',
+		source_key: 'manual:ticket-42'
+	};
+	const api = {
+		db: {
+			leave_accounts: {
+				findFirst: () =>
+					Effect.succeed({
+						id: 'account',
+						status: 'OPEN',
+						starts_on: '2026-01-01',
+						ends_on: '2026-12-31'
+					})
+			}
+		}
+	};
+	assert.deepEqual(await Effect.runPromise(handler({ input, existing: null, api })), input);
+	await assert.rejects(
+		Effect.runPromise(handler({ input: { ...input, reason: '' }, existing: null, api })),
+		/reason/
+	);
+	await assert.rejects(
+		Effect.runPromise(
+			handler({ input: { ...input, effective_on: '2027-01-01' }, existing: null, api })
+		),
+		/account year/
+	);
+});

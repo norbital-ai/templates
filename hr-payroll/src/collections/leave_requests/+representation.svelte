@@ -1,6 +1,7 @@
 <script lang="ts">
 	/**
-	 * A leave request is three core facts — who, which leave, and what happened — plus optional
+	 * A leave request is four core facts — who, which leave, which entitlement account and the
+	 * requested period — plus optional
 	 * certificate evidence on time off.
 	 *
 	 * The auto form painted all twelve columns. `kind`, `from_date`, `to_date`, `days`,
@@ -20,14 +21,8 @@
 	import type { TenantI18nKeys } from '$bolt/i18n-keys';
 	import type { RepresentationProps } from './$types.js';
 	import { CollectionForm } from '@norbital-ai/ui/collection-form';
-	import type { CollectionFormSemantic } from '@norbital-ai/ui/collection-form';
 	import { Column, Grid } from '@norbital-ai/ui/layout';
-	import { Effect, Option, Schema } from 'effect';
 	import { sourceLock, sourceLockRecordMetadata } from '../../lib/scheduling/lock.js';
-	import {
-		certificatePolicyIssues,
-		certificatePolicyMismatchMessage
-	} from './certificate-policy.js';
 	import { getContext } from 'svelte';
 	import { defaultTimeOffEvent } from '../../datatypes/leave_event/+definition.js';
 	import { todayKey } from '../../lib/ui/calendar.js';
@@ -42,10 +37,10 @@
 	const scopedEmploymentId = $derived(createScope?.employmentId());
 	const scopedCompanyId = $derived(createScope?.companyId());
 	const formValues = $derived(
-		record ??
-			(scopedEmploymentId
-				? { employment_id: scopedEmploymentId, event: defaultTimeOffEvent(todayKey()) }
-				: undefined)
+		record ?? {
+			...(scopedEmploymentId ? { employment_id: scopedEmploymentId } : {}),
+			event: defaultTimeOffEvent(todayKey())
+		}
 	);
 
 	/**
@@ -84,22 +79,6 @@
 			: { kind: 'NONE' as const }
 	);
 	const recordMetadata = $derived(sourceLockRecordMetadata(lock, t));
-	const LeaveEventKindSchema = Schema.Struct({ kind: Schema.String });
-	const decodeLeaveEventKind = Schema.decodeUnknownOption(LeaveEventKindSchema);
-
-	/** The browser and the write hook enforce the same arm rule for the ordinary file column. */
-	const semantic = ((values) => {
-		const event = Option.getOrNull(decodeLeaveEventKind(values.event));
-		return Effect.succeed(
-			certificatePolicyIssues({
-				eventKind: event?.kind ?? null,
-				certificateFile: values.certificate_file
-			}).map((message) => ({
-				message: certificatePolicyMismatchMessage([message]),
-				path: ['certificate_file']
-			}))
-		);
-	}) satisfies CollectionFormSemantic;
 </script>
 
 <svelte:head>
@@ -114,7 +93,6 @@
 	collection="leave_requests"
 	defaultValues={formValues}
 	{recordMetadata}
-	{semantic}
 	submitLabel={record ? t('component.save_leave') : t('component.submit_leave')}
 	onAfterSubmit={record ? undefined : close}
 >
@@ -152,10 +130,11 @@
 				}}
 			/>
 			<Field
-				name="allocation_id"
-				label={t('component.event_allocation')}
+				name="leave_account_id"
+				label="Leave account"
 				relationOptions={{
-					label: (allocation) => `${allocation.event_reference} · ${allocation.allocated_days}d`,
+					label: (account) =>
+						`${account.leave_name} · ${account.account_kind === 'EVENT' ? account.event_reference : account.leave_year} · ${account.accrual_kind === 'UNLIMITED' ? 'unmetered' : `${account.entitlement_days}d`}`,
 					where: {
 						employment_id: {
 							eq:
@@ -169,9 +148,10 @@
 									? leaveTypeId
 									: '00000000-0000-4000-8000-000000000000'
 						},
+						status: { eq: 'OPEN' },
 						approval_id: { isNull: true }
 					},
-					orderBy: { expires_on: 'asc' },
+					orderBy: { starts_on: 'desc' },
 					limit: 500
 				}}
 			/>

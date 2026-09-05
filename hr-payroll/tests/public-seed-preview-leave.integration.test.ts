@@ -1,7 +1,13 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { asRecord, bearerHeaders, postGuestCommand } from '@norbital-ai/test-utilities';
 import {
+	asRecord,
+	bearerHeaders,
+	mutationPush,
+	postGuestCommand
+} from '@norbital-ai/test-utilities';
+import {
+	ANNUAL_LEAVE_ACCOUNT_ID,
 	ANNUAL_LEAVE_REQUEST_ID,
 	ANNUAL_LEAVE_TYPE_ID,
 	EMPLOYMENT_ID,
@@ -56,6 +62,7 @@ test(
 			const browsing = await invokePreviewLeave(session, {
 				employment_id: EMPLOYMENT_ID,
 				leave_type_id: ANNUAL_LEAVE_TYPE_ID,
+				leave_account_id: ANNUAL_LEAVE_ACCOUNT_ID,
 				calendar_month: '2026-04'
 			});
 			const availability = asAvailability(browsing.availability);
@@ -71,6 +78,7 @@ test(
 			const applyable = await invokePreviewLeave(session, {
 				employment_id: EMPLOYMENT_ID,
 				leave_type_id: ANNUAL_LEAVE_TYPE_ID,
+				leave_account_id: ANNUAL_LEAVE_ACCOUNT_ID,
 				calendar_month: '2026-04',
 				exclude_request_id: ANNUAL_LEAVE_REQUEST_ID,
 				range: {
@@ -85,6 +93,7 @@ test(
 			const sundayOnly = await invokePreviewLeave(session, {
 				employment_id: EMPLOYMENT_ID,
 				leave_type_id: ANNUAL_LEAVE_TYPE_ID,
+				leave_account_id: ANNUAL_LEAVE_ACCOUNT_ID,
 				calendar_month: '2026-04',
 				range: {
 					start: { date: '2026-04-12', half: 'FIRST' },
@@ -118,6 +127,7 @@ test(
 					input: {
 						employment_id: EMPLOYMENT_ID,
 						leave_type_id: ANNUAL_LEAVE_TYPE_ID,
+						leave_account_id: ANNUAL_LEAVE_ACCOUNT_ID,
 						calendar_month: '2026-09',
 						range: {
 							start: { date: '2026-09-04', half: 'FIRST' },
@@ -131,6 +141,77 @@ test(
 				hqSeptember.status >= 200 && hqSeptember.status < 300,
 				`HQ preview_leave September ${hqSeptember.status}: ${JSON.stringify(hqSeptember.value)}`
 			);
+			await session.query('update leave_types set eligibility = $1::jsonb where id = $2', [
+				JSON.stringify([{ field: 'GENDER', in: ['FEMALE'] }]),
+				ANNUAL_LEAVE_TYPE_ID
+			]);
+			await session.query(
+				'update employees set gender = $1 where id = (select employee_id from employments where id = $2)',
+				['MALE', EMPLOYMENT_ID]
+			);
+			const input = {
+				employment_id: EMPLOYMENT_ID,
+				leave_type_id: ANNUAL_LEAVE_TYPE_ID,
+				leave_account_id: ANNUAL_LEAVE_ACCOUNT_ID,
+				range: {
+					start: { date: '2026-04-15', half: 'FIRST' },
+					end: { date: '2026-04-15', half: 'SECOND' }
+				}
+			};
+			assert.equal(
+				asIssues((await invokePreviewLeave(session, input)).issues).some(
+					(row) => row.code === 'INELIGIBLE'
+				),
+				false,
+				'a company eligibility restriction must not erase the sealed statutory floor'
+			);
+			const create = () =>
+				postGuestCommand(
+					session.host.baseUrl,
+					'collections.mutate',
+					mutationPush(session.schemaFingerprint, {
+						action: 'mutate',
+						collection: 'leave_requests',
+						rows: [
+							{
+								action: 'create',
+								values: {
+									id: crypto.randomUUID(),
+									employment_id: EMPLOYMENT_ID,
+									leave_type_id: ANNUAL_LEAVE_TYPE_ID,
+									leave_account_id: ANNUAL_LEAVE_ACCOUNT_ID,
+									event: {
+										kind: 'TIME_OFF',
+										range: input.range,
+										chargeable_days: 0.5,
+										reason: 'Validation fixture'
+									}
+								}
+							}
+						]
+					}),
+					hqHeaders
+				);
+			await session.query(
+				'update employees set gender = $1 where id = (select employee_id from employments where id = $2)',
+				['FEMALE', EMPLOYMENT_ID]
+			);
+			await session.query(
+				'update leave_types set requires_certificate_after_days = 0 where id = $1',
+				[ANNUAL_LEAVE_TYPE_ID]
+			);
+			assert.equal((await invokePreviewLeave(session, input)).certificate_required, true);
+			assert.match(JSON.stringify((await create()).value), /certificate/i);
+			await session.query(
+				'update leave_types set requires_certificate_after_days = 1 where id = $1',
+				[ANNUAL_LEAVE_TYPE_ID]
+			);
+			const held = await create();
+			assert.ok(
+				asRecord(held.value, 'eligible leave at threshold').pendingApproval,
+				JSON.stringify(held.value)
+			);
+			assert.match(JSON.stringify(held.value), /pendingApproval/);
 		} finally {
 			await session.stop();
 		}

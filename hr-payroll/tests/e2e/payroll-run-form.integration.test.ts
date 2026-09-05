@@ -45,7 +45,14 @@ const waitFor = async (
 
 /** Select from the form; the page's entity scope has the same accessible name. */
 const chooseOption = async (page: HeadedPage, name: string, filter: string) => {
-	await page.click(`[role="dialog"] [role="combobox"][aria-label="${name}"]`);
+	try {
+		await page.click(`[role="dialog"] [role="combobox"][aria-label="${name}"]`);
+	} catch (cause) {
+		throw new Error(
+			`${name} picker unavailable: ${String(await page.evaluate('JSON.stringify({ body: document.body.innerText, errors: window.__payrollErrors })'))}`,
+			{ cause }
+		);
+	}
 	await page.click(`[role="option"]:has-text("${filter}")`);
 };
 

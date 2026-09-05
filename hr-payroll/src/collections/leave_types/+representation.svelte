@@ -1,9 +1,9 @@
 <script lang="ts">
 	/**
-	 * A leave type belongs to one company's catalogue within one statutory profile. The auto form
+	 * A leave type belongs to one company's independently versioned leave plan. The auto form
 	 * asked for `company_id` as an editable uuid; it is a relationship and reads as the entity's
-	 * name. `statutory_kind` names the canonical leave the profile floors, when a statute mandates
-	 * this type; the floor itself merges from the linked profile, never from this row.
+	 * name. `statutory_kind` names the canonical leave law floors, when applicable. Reconciliation
+	 * merges the active plan and effective statutory profile into sealed employee accounts.
 	 */
 	import { client } from '../../lib/workspace-client.js';
 	import { useI18n } from '@norbital-ai/ui/i18n';
@@ -36,11 +36,11 @@
 				}}
 			/>
 			<Field
-				name="statutory_profile_id"
-				label={t('component.statutory_profile')}
+				name="leave_plan_id"
+				label="Leave plan version"
 				relationOptions={{
-					label: (profile) =>
-						profile.name != null && profile.name !== '' ? String(profile.name) : '—',
+					label: (plan) => (plan.name != null && plan.name !== '' ? String(plan.name) : '—'),
+					where: { lifecycle: { eq: 'DRAFT' } },
 					orderBy: { code: 'asc' },
 					limit: 200
 				}}
@@ -48,6 +48,9 @@
 			<Field name="code" label={t('component.code')} />
 			<Field name="name" label={t('component.name')} />
 			<Field name="statutory_kind" label={t('component.statutory_kind')} />
+			<Field name="account_basis" label="Entitlement basis" />
+			<Field name="event_unit" label="Event allocation unit" />
+			<Field name="event_window_months" label="Company event window (months)" />
 			<Field name="encash_on_exit" label={t('component.encashed_on_exit')} />
 			<Field
 				name="requires_certificate_after_days"

@@ -1,0 +1,102 @@
+[
+	{
+		"id": "abababab-abab-4aba-8aba-abababababa1",
+		"employment_id": "44444444-4444-4444-8444-444444444444",
+		"leave_type_id": "ffffffff-ffff-4fff-8fff-fffffffffff1",
+		"leave_code": "ANNUAL",
+		"leave_name": "Annual leave",
+		"opening_plan_id": "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeee1",
+		"opening_statutory_profile_id": "22222222-2222-4222-8222-222222222222",
+		"leave_year": 2026,
+		"starts_on": "2026-01-01",
+		"ends_on": "2026-12-31",
+		"status": "OPEN",
+		"entitlement_days": 8,
+		"accrual_kind": "UPFRONT",
+		"carry_limit_days": 5,
+		"carry_expiry_months": 3,
+		"calculation": {
+			"calculated_on": "2026-01-01",
+			"service_months": 55,
+			"statutory_days": 8,
+			"company_days": 0,
+			"selected_days": 8,
+			"formula_version": "LEAVE_ACCOUNT_V1"
+		}
+	},
+	{
+		"id": "abababab-abab-4aba-8aba-abababababa2",
+		"employment_id": "cccccccc-cccc-4ccc-8ccc-ccccccccccc2",
+		"leave_type_id": "ffffffff-ffff-4fff-8fff-fffffffffff1",
+		"leave_code": "ANNUAL",
+		"leave_name": "Annual leave",
+		"opening_plan_id": "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeee1",
+		"opening_statutory_profile_id": "22222222-2222-4222-8222-222222222222",
+		"leave_year": 2026,
+		"starts_on": "2026-01-01",
+		"ends_on": "2026-12-31",
+		"status": "OPEN",
+		"entitlement_days": 8,
+		"accrual_kind": "UPFRONT",
+		"carry_limit_days": 5,
+		"carry_expiry_months": 3,
+		"calculation": {
+			"calculated_on": "2026-01-01",
+			"service_months": 48,
+			"statutory_days": 8,
+			"company_days": 0,
+			"selected_days": 8,
+			"formula_version": "LEAVE_ACCOUNT_V1"
+		}
+	},
+	{
+		"id": "abababab-abab-4aba-8aba-abababababa3",
+		"employment_id": "cccccccc-cccc-4ccc-8ccc-ccccccccccc3",
+		"leave_type_id": "ffffffff-ffff-4fff-8fff-fffffffffff1",
+		"leave_code": "ANNUAL",
+		"leave_name": "Annual leave",
+		"opening_plan_id": "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeee1",
+		"opening_statutory_profile_id": "22222222-2222-4222-8222-222222222222",
+		"leave_year": 2026,
+		"starts_on": "2026-01-01",
+		"ends_on": "2026-12-31",
+		"status": "OPEN",
+		"entitlement_days": 8,
+		"accrual_kind": "UPFRONT",
+		"carry_limit_days": 5,
+		"carry_expiry_months": 3,
+		"calculation": {
+			"calculated_on": "2026-01-01",
+			"service_months": 48,
+			"statutory_days": 8,
+			"company_days": 0,
+			"selected_days": 8,
+			"formula_version": "LEAVE_ACCOUNT_V1"
+		}
+	},
+	{
+		"id": "abababab-abab-4aba-8aba-abababababa4",
+		"employment_id": "cccccccc-cccc-4ccc-8ccc-ccccccccccc4",
+		"leave_type_id": "ffffffff-ffff-4fff-8fff-fffffffffff1",
+		"leave_code": "ANNUAL",
+		"leave_name": "Annual leave",
+		"opening_plan_id": "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeee1",
+		"opening_statutory_profile_id": "22222222-2222-4222-8222-222222222222",
+		"leave_year": 2026,
+		"starts_on": "2026-01-01",
+		"ends_on": "2026-12-31",
+		"status": "OPEN",
+		"entitlement_days": 8,
+		"accrual_kind": "UPFRONT",
+		"carry_limit_days": 5,
+		"carry_expiry_months": 3,
+		"calculation": {
+			"calculated_on": "2026-01-01",
+			"service_months": 48,
+			"statutory_days": 8,
+			"company_days": 0,
+			"selected_days": 8,
+			"formula_version": "LEAVE_ACCOUNT_V1"
+		}
+	}
+]

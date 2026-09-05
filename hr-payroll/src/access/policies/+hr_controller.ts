@@ -1,9 +1,11 @@
 import {
 	captureLedgerGrants,
+	eventLeaveAccountGrant,
 	grantsOn,
 	grantOn,
 	leaveApproval,
-	leaveAllocationApproval,
+	manualLeaveAdjustmentGrant,
+	leavePlanControllerGrants,
 	mergeGrants,
 	payrollGrants,
 	payrollRebuildGrants,
@@ -45,9 +47,8 @@ import type { Policy } from './$types.js';
  * Each gated grant returns one fluent approval flow. Runtime derives durable stage identities from
  * the policy, collection, grant coordinate and stage position; authors name only approver teams.
  *
- * `apps: ['hr_controller']` names the app *group*, as the seed did. Eight apps sit under it and
- * `appAccessAllowed` matches a group prefix, so this is one grant rather than eight — and, unlike
- * eight, it still covers the ninth when somebody adds it.
+ * `apps: ['hr_controller']` names the app *group*. Nine apps sit under it and
+ * `appAccessAllowed` matches a group prefix, so this remains one stable grant as pages are added.
  */
 export default {
 	description:
@@ -68,8 +69,8 @@ export default {
 	/**
 	 * The HR group, which is not for everybody on the ladder.
 	 *
-	 * `hr_controller` is the app *group*; eight apps sit under it and `visibleApps` matches a child
-	 * by its `<group>/` prefix, so naming the group offers all eight. The owner's spec is that HR
+	 * `hr_controller` is the app *group*; nine apps sit under it and `visibleApps` matches a child
+	 * by its `<group>/` prefix, so naming the group offers all nine. The owner's spec is that HR
 	 * apps are for L1 management, the HR manager and the HR controller — `manager` is the L1 rung
 	 * (`policy_grants.ts` names its approver team `L1 Manager`), so `supervisor` and
 	 * `senior_management` have self-service and no HR group. That is a narrowing: both keep every
@@ -80,6 +81,7 @@ export default {
 
 	grants: mergeGrants(
 		referenceGrants('read', 'mutate.new', 'mutate.existing', 'delete'),
+		leavePlanControllerGrants(),
 		statutoryGrants('read'),
 		statutoryProfileGrants(),
 		// Research receipts are append-only worker evidence. Controllers may inspect but not alter them.
@@ -119,8 +121,8 @@ export default {
 
 		grantsOn('leave_requests', ['read', 'mutate.existing', 'delete']),
 		grantOn('leave_requests', 'mutate.new', { approval: leaveApproval }),
-		grantOn('leave_allocations', 'mutate.new', { approval: leaveAllocationApproval }),
-		grantOn('leave_allocations', 'mutate.existing', { approval: leaveAllocationApproval }),
+		eventLeaveAccountGrant(true),
+		manualLeaveAdjustmentGrant(true),
 
 		payrollGrants('read'),
 		payrollRebuildGrants(),

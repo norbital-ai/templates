@@ -1,8 +1,10 @@
 import {
 	captureLedgerGrants,
+	eventLeaveAccountGrant,
 	grantsOn,
 	grantOn,
 	leaveApproval,
+	manualLeaveAdjustmentGrant,
 	mergeGrants,
 	payrollGrants,
 	payrollRebuildGrants,
@@ -55,8 +57,8 @@ export default {
 	/**
 	 * The HR group, which is not for everybody on the ladder.
 	 *
-	 * `hr_controller` is the app *group*; eight apps sit under it and `visibleApps` matches a child
-	 * by its `<group>/` prefix, so naming the group offers all eight. The owner's spec is that HR
+	 * `hr_controller` is the app *group*; nine apps sit under it and `visibleApps` matches a child
+	 * by its `<group>/` prefix, so naming the group offers all nine. The owner's spec is that HR
 	 * apps are for L1 management, the HR manager and the HR controller — `manager` is the L1 rung
 	 * (`policy_grants.ts` names its approver team `L1 Manager`), so `supervisor` and
 	 * `senior_management` have self-service and no HR group. That is a narrowing: both keep every
@@ -72,6 +74,7 @@ export default {
 		captureLedgerGrants(),
 		// The ordinary ladder, widened: senior management writes the configuration a manager only reads.
 		referenceGrants('read', 'mutate.new', 'mutate.existing', 'delete'),
+		grantsOn('leave_plans', ['mutate.new', 'mutate.existing', 'delete']),
 		statutoryGrants('read'),
 		statutoryProfileGrants(),
 		peopleGrants('read'),
@@ -94,6 +97,8 @@ export default {
 
 		grantsOn('leave_requests', ['read', 'mutate.existing', 'delete']),
 		grantOn('leave_requests', 'mutate.new', { approval: leaveApproval }),
+		eventLeaveAccountGrant(false),
+		manualLeaveAdjustmentGrant(false),
 
 		// The payroll authority, identical to `hr_manager`'s. Stated as the same three builder calls so
 		// that a change to what "running payroll" costs in permissions lands on both policies at once.

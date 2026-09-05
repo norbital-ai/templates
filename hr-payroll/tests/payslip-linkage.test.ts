@@ -205,6 +205,7 @@ function configuration(overrides = {}) {
 	return {
 		company: COMPANY,
 		jurisdiction: JURISDICTION,
+		leaveProfiles: [JURISDICTION],
 		contributions: [],
 		treatments: new Map(),
 		payComponents: PAY_COMPONENTS,
@@ -265,6 +266,8 @@ function bundle(overrides = {}) {
 		loans: [],
 		loanRepayments: [],
 		ledger: [],
+		leaveAccounts: [],
+		leaveEntries: [],
 		workDays: [],
 		serviceMonths: 57,
 		age: 34,

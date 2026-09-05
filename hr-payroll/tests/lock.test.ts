@@ -211,7 +211,7 @@ test('only application locks become authored record metadata', () => {
 });
 
 /**
- * §2 of `docs/attendance-on-the-board-proposal.md`, which is the contract these cover:
+ * §2 of `docs/scheduling-leave-proposal.md`, which is the contract these cover:
  * a record is governed by the claim held over it, and a day with no record by the window. A passed
  * date governs nothing on attendance; a paid window never governs an existing record at all.
  */

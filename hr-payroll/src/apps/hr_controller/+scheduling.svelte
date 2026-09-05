@@ -244,11 +244,26 @@
 		return new Map(Object.entries(grouped));
 	});
 
-	const leaveTypesQuery = $derived(
+	const leavePlansQuery = $derived(
 		selectedCompanyId == null
 			? null
+			: client.db.leave_plans.findMany({
+					where: {
+						...approved,
+						company_id: { eq: selectedCompanyId },
+						lifecycle: { eq: 'ACTIVE' },
+						effective_range: { contains_date: todayInstant() }
+					},
+					columns: { id: true },
+					limit: 20
+				})
+	);
+	const activeLeavePlanIds = $derived((leavePlansQuery?.current ?? []).map((plan) => plan.id));
+	const leaveTypesQuery = $derived(
+		activeLeavePlanIds.length === 0
+			? null
 			: client.db.leave_types.findMany({
-					where: { ...approved, company_id: { eq: selectedCompanyId } },
+					where: { ...approved, leave_plan_id: { in: activeLeavePlanIds } },
 					limit: MONTH_BOARD_QUERY_LIMITS.leaveTypes
 				})
 	);
@@ -425,6 +440,7 @@
 		{ label: 'employees', query: employeesQuery },
 		{ label: 'employment schedules', query: employmentTermsQuery },
 		{ label: 'roster codes', query: shiftsQuery },
+		{ label: 'leave plans', query: leavePlansQuery },
 		{ label: 'leave types', query: leaveTypesQuery },
 		{ label: 'payroll runs', query: payrollRunsQuery },
 		{ label: 'settlement claims', query: settlementsQuery }

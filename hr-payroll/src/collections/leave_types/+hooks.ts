@@ -2,67 +2,49 @@ import { refuse } from '@norbital-ai/bolt/authoring';
 import { Effect } from 'effect';
 import type { Hooks } from './$types.js';
 
-/**
- * Leave types are catalogue rows scoped to a statutory profile and sealed with it.
- *
- * The profile's period is when the version governs — per-row effective dating is gone, and with it
- * the end-date-plus-successor ritual. What the hooks hold is the **seal**: a catalogue row of a
- * SEALED or VOIDED profile refuses create, update and delete. The statutory floor a leave type
- * merges is the profile's own `statutory_leave` member, so a sealed profile's leave catalogue is
- * exactly as immutable as the law it transcribes.
- */
+/** Leave rules are editable only while their company-plan version is an unapproved DRAFT. */
 export default {
 	mutate: {
 		perRecord: {
 			before: {
 				description:
-					'Refuses any write on a catalogue row whose statutory profile is SEALED or VOIDED; rows of a DRAFT profile may be prepared and edited until the seal.',
+					'Allows leave rules only inside an unapproved DRAFT company plan and keeps the row in the plan’s legal entity.',
 				handler: ({ input, existing, api }) =>
 					Effect.gen(function* () {
+						const row = { ...existing, ...input };
+						if (row.account_basis === 'EVENT') {
+							if (row.accrual?.kind !== 'UPFRONT' || row.accrual.carry != null)
+								refuse(
+									'Event-based leave uses one verified opening award and never accrues or carries.'
+								);
+							if (
+								row.event_window_months != null &&
+								(!Number.isInteger(row.event_window_months) || row.event_window_months <= 0)
+							)
+								refuse('An event window must be a positive number of months.');
+						} else if (row.event_window_months != null || row.event_unit === 'WEEKS') {
+							refuse('Only event-based leave has an event window or week-based allocation.');
+						}
+						const planId = input.leave_plan_id ?? existing?.leave_plan_id;
+						if (planId == null) refuse('A leave type belongs to a company leave-plan version.');
 						if (
 							existing != null &&
-							input.statutory_profile_id != null &&
-							input.statutory_profile_id !== existing.statutory_profile_id
+							input.leave_plan_id != null &&
+							input.leave_plan_id !== existing.leave_plan_id
 						) {
-							const prior = yield* api.db.jurisdictions.findFirst({
-								where: { id: { eq: existing.statutory_profile_id } },
-								columns: { lifecycle: true, approval_id: true }
+							const prior = yield* api.db.leave_plans.findFirst({
+								where: { id: { eq: existing.leave_plan_id } }
 							});
 							if (prior?.lifecycle !== 'DRAFT' || prior.approval_id != null)
-								refuse(
-									'A sealed leave type cannot be moved to another profile. Add a new leave code to the successor draft.'
-								);
+								refuse('A sealed leave rule cannot be moved. Copy it into a successor DRAFT plan.');
 						}
-						const profileId = input.statutory_profile_id ?? existing?.statutory_profile_id;
-						if (profileId == null)
-							refuse('A leave type states the statutory profile it belongs to.');
-						return yield* Effect.flatMap(
-							api.db.jurisdictions.findFirst({
-								where: { id: { eq: String(profileId) } },
-								columns: { lifecycle: true, approval_id: true, statutory_leave: true }
-							}),
-							(profile) => {
-								if (profile == null)
-									refuse('The statutory profile this leave type names does not exist.');
-								if (profile.lifecycle !== 'DRAFT' || profile.approval_id != null)
-									refuse(
-										'The statutory profile this leave type belongs to is sealed, so its catalogue ' +
-											'is frozen. Enact a new profile version to change the catalogue.'
-									);
-								// A stated kind must be one the profile's statutory leave member actually floors;
-								// a kind the profile does not answer would merge a floor from nothing.
-								const kind = input.statutory_kind ?? existing?.statutory_kind;
-								if (kind != null) {
-									const stated = profile.statutory_leave.some((member) => member.kind === kind);
-									if (!stated)
-										refuse(
-											`The statutory profile states no floor for statutory leave kind ${kind}. ` +
-												'Add the kind to the profile, or leave the type without a statutory kind.'
-										);
-								}
-								return Effect.succeed(input);
-							}
-						);
+						const plan = yield* api.db.leave_plans.findFirst({ where: { id: { eq: planId } } });
+						if (plan == null) refuse('The selected leave plan does not exist.');
+						if (plan.lifecycle !== 'DRAFT' || plan.approval_id != null)
+							refuse('The selected leave plan is sealed. Create a successor DRAFT plan.');
+						if ((input.company_id ?? existing?.company_id) !== plan.company_id)
+							refuse('A leave type and its plan must belong to the same legal entity.');
+						return input;
 					})
 			}
 		}
@@ -70,15 +52,14 @@ export default {
 	delete: {
 		perRecord: {
 			before: {
-				description: 'Only a draft profile may have leave types removed.',
+				description: 'Only an unapproved DRAFT plan may have leave rules removed.',
 				handler: ({ existing, api }) =>
 					Effect.gen(function* () {
-						const profile = yield* api.db.jurisdictions.findFirst({
-							where: { id: { eq: existing.statutory_profile_id } },
-							columns: { lifecycle: true, approval_id: true }
+						const plan = yield* api.db.leave_plans.findFirst({
+							where: { id: { eq: existing.leave_plan_id } }
 						});
-						if (profile?.lifecycle !== 'DRAFT' || profile.approval_id != null)
-							refuse('A sealed leave type cannot be deleted.');
+						if (plan?.lifecycle !== 'DRAFT' || plan.approval_id != null)
+							refuse('A sealed leave rule cannot be deleted.');
 					})
 			}
 		}

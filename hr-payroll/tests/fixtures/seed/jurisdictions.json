@@ -20,7 +20,27 @@
 				"ladder": [{ "band_from": 0, "days": 8 }],
 				"per_child": null,
 				"max_days": null,
+				"transition": "NEXT_LEAVE_YEAR",
+				"carry": null,
 				"authority": "Public fixture — not a sealed statutory table."
+			},
+			{
+				"kind": "SHARED_PARENTAL",
+				"account_basis": "EVENT",
+				"qualifying_service_months": 0,
+				"vesting": "UPFRONT",
+				"event": {
+					"window_months": 12,
+					"allocation": "HOUSEHOLD",
+					"unit": "WEEKS",
+					"weekly_index_cap": 6
+				},
+				"ladder": [{ "band_from": 0, "days": 10 }],
+				"per_child": null,
+				"max_days": null,
+				"transition": "NEXT_LEAVE_YEAR",
+				"carry": null,
+				"authority": "Public fixture — qualifying-event workflow test only."
 			}
 		],
 		"effective_range": { "start": "2020-01-01", "end": null }

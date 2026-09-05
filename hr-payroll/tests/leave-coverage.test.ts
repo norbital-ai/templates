@@ -35,13 +35,6 @@ test('dates outside the range are not covered', () => {
 	assert.deepEqual(leaveCoverage(fullWeek, '2026-08-08'), { covered: false, fullDay: false });
 });
 
-test('non-time-off events never cover a day', () => {
-	assert.deepEqual(leaveCoverage({ ...fullWeek, kind: 'ENCASHMENT' }, '2026-08-04'), {
-		covered: false,
-		fullDay: false
-	});
-});
-
 test('fullDayLeaveCovered needs at least one fully owning request', () => {
 	assert.equal(fullDayLeaveCovered([fullWeek, halfBoundary], '2026-08-06'), true);
 	assert.equal(fullDayLeaveCovered([fullWeek], '2026-08-03'), true);

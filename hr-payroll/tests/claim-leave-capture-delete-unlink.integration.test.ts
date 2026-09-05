@@ -10,6 +10,7 @@ import {
 } from '@norbital-ai/test-utilities';
 import { calendarDateInTimeZone, PAYROLL_TIME_ZONE } from '../src/lib/ui/calendar.ts';
 import {
+	ANNUAL_LEAVE_ACCOUNT_ID,
 	ANNUAL_LEAVE_TYPE_ID,
 	COMPANY_ID,
 	EMPLOYMENT_ID,
@@ -89,6 +90,7 @@ const fileTimeOff = (
 						id,
 						employment_id: EMPLOYMENT_ID,
 						leave_type_id: ANNUAL_LEAVE_TYPE_ID,
+						leave_account_id: ANNUAL_LEAVE_ACCOUNT_ID,
 						event: {
 							kind: 'TIME_OFF',
 							range: {
@@ -320,7 +322,7 @@ test(
 				);
 				assert.match(
 					commandSentence(noOp),
-					/no scheduled work half-days/i,
+					/no eligible scheduled work time/i,
 					`leave on ${date} is a no-op: ${JSON.stringify(noOp.value)}`
 				);
 			}

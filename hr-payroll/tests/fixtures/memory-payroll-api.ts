@@ -16,7 +16,10 @@ export type PayrollWorld = {
 	readonly pay_components: PayrollRow[];
 	readonly shift_definitions: PayrollRow[];
 	readonly company_holidays: PayrollRow[];
+	readonly leave_plans: PayrollRow[];
 	readonly leave_types: PayrollRow[];
+	readonly leave_accounts: PayrollRow[];
+	readonly leave_entries: PayrollRow[];
 	readonly employments: PayrollRow[];
 	readonly employees: PayrollRow[];
 	readonly employment_terms: PayrollRow[];
@@ -137,7 +140,10 @@ export function memoryPayrollApi(world: PayrollWorld) {
 			pay_components: collection('pay_components'),
 			shift_definitions: collection('shift_definitions'),
 			company_holidays: collection('company_holidays'),
+			leave_plans: collection('leave_plans'),
 			leave_types: collection('leave_types'),
+			leave_accounts: collection('leave_accounts'),
+			leave_entries: collection('leave_entries'),
 			employments: collection('employments'),
 			employees: collection('employees'),
 			employment_terms: collection('employment_terms'),
