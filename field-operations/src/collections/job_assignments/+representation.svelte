@@ -19,6 +19,7 @@
 	import JobsRepresentation from '../jobs/+representation.svelte';
 	import { formatSingaporeInstant } from '../../lib/format-singapore-instant.js';
 	import { reviewCandidatesFrom } from './suspicion-evidence.js';
+	import { watch } from 'runed';
 
 	let { record, close }: RepresentationProps = $props();
 
@@ -361,14 +362,15 @@
 		conversationAwayFromLatest = false;
 	}
 
-	$effect(() => {
-		const timeline = communicationTimeline;
-		const port = conversationPort;
-		if (timeline.length === 0 || port == null || !conversationPinnedToLatest) return;
-		queueMicrotask(() => {
-			port.scrollTo({ top: port.scrollHeight });
-		});
-	});
+	watch(
+		[() => communicationTimeline, () => conversationPort, () => conversationPinnedToLatest],
+		([timeline, port, pinned]) => {
+			if (timeline.length === 0 || port == null || !pinned) return;
+			queueMicrotask(() => {
+				port.scrollTo({ top: port.scrollHeight });
+			});
+		}
+	);
 
 	function integrityFlagLabel(flag: string): string {
 		switch (flag) {
