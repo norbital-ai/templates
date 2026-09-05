@@ -89,6 +89,8 @@ function automationHarness(options: {
 	readonly factLoadFailures?: ReadonlySet<string>;
 	readonly inferenceFailures?: ReadonlySet<string>;
 	readonly reviewPersistenceFailures?: ReadonlySet<string>;
+	readonly stampFailures?: ReadonlySet<string>;
+	readonly noLongerPending?: ReadonlySet<string>;
 	readonly openSuspicionIds?: Readonly<Record<string, string>>;
 	readonly existingReviews?: Readonly<Record<string, ExistingReview>>;
 	readonly stallAssignmentPagination?: boolean;
@@ -151,6 +153,7 @@ function automationHarness(options: {
 				}) => {
 					const targeted = input.where?.id?.eq;
 					if (targeted != null) {
+						if (options.noLongerPending?.has(targeted)) return Effect.succeed([]);
 						return Effect.succeed(options.assignments.filter(({ id }) => id === targeted));
 					}
 					const afterId = input.where?.id?.gt;
@@ -164,6 +167,8 @@ function automationHarness(options: {
 					return Effect.succeed(eligible.slice(0, input.limit ?? ASSIGNMENT_PAGE_SIZE));
 				},
 				mutate: (rows: ReadonlyArray<{ readonly id: string }>) => {
+					if (rows.some(({ id }) => options.stampFailures?.has(id)))
+						return Effect.fail(new Error('Assignment already checked by another run'));
 					for (const values of rows) updates.push(values.id);
 					return Effect.void;
 				}
@@ -470,6 +475,24 @@ test('still performs exactly one inference and stamps when the evidence basis al
 	assert.deepEqual(harness.logCreates, []);
 	assert.deepEqual(harness.updates, [selected.id]);
 });
+
+for (const stage of ['review', 'stamp'] as const) {
+	test(`a concurrent winner completing the assignment during ${stage} does not fail the losing run`, async () => {
+		const selected = assignment('assignment-concurrently-checked');
+		const harness = automationHarness({
+			assignments: [selected],
+			noLongerPending: new Set([selected.id]),
+			...(stage === 'review'
+				? { reviewPersistenceFailures: new Set([selected.id]) }
+				: { stampFailures: new Set([selected.id]) })
+		});
+		const result = await runAutomation(harness.api);
+		assert.equal(result.failure_count, 0);
+		assert.equal(result.counts.skipped_no_longer_pending, 1);
+		assert.equal(result.counts.checked, 0, "A losing run must not claim the winner's write.");
+		assert.deepEqual(harness.updates, []);
+	});
+}
 
 test('counts failed inference invocations, leaves those assignments unchecked, and continues', async () => {
 	const failed = assignment('assignment-inference-failed');
@@ -1315,9 +1338,7 @@ test('runs the job-site and similar-photo reviews in one named inference turn', 
 	assert.match(calls[0]!.prompt, new RegExp(otherCurrent.photo.file_name));
 	assert.match(calls[0]!.prompt, new RegExp(foreign.photo.file_name));
 	assert.match(calls[0]!.prompt, /Return exactly 1 similar_photo_reviews entry/);
-	assert.ok(
-		calls.every(({ model }) => model === 'openrouter/deepseek/deepseek-v4-flash-vision-exp')
-	);
+	assert.ok(calls.every(({ model }) => model === 'openrouter/openai/gpt-4.1-mini'));
 	assert.deepEqual(decision, {
 		suspicious: true,
 		reason: `Cross-assignment photo reuse: ${current.photo.file_name} and ${foreign.photo.file_name} were judged to show the same physical scene.`,

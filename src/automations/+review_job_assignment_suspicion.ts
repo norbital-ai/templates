@@ -22,7 +22,7 @@ const OutputSchema = Schema.Struct({
 
 const MAX_FAILURE_DETAILS = 100;
 const MAX_FAILURE_SUMMARY_CHARS = 500;
-/** Four provider turns finish the full 34-assignment seed well inside the five-minute host lease. */
+/** Bound provider concurrency while independent assignment reviews make progress. */
 export const SUSPICION_REVIEW_CONCURRENCY = 4;
 
 const failureSummary = (error: unknown): string => {
@@ -77,12 +77,27 @@ export default defineAutomation(
 				let firstFailureLogged = false;
 				let firstFailureSummary: string | undefined;
 				const failureDetails: Array<{ assignment_id: string; stage: string }> = [];
-				const recordFailure = (assignmentId: string, stage: string) => {
-					failureCount += 1;
-					if (failureDetails.length < MAX_FAILURE_DETAILS) {
-						failureDetails.push({ assignment_id: assignmentId, stage });
-					}
-				};
+				const recordFailure = (assignmentId: string, stage: string, cause?: unknown) =>
+					Effect.gen(function* () {
+						// Another run can finish while inference is in flight. The policy then hides the
+						// checked assignment and its evidence; do not turn that successful race into failure.
+						if ((yield* loadUncheckedAssignments(api, assignmentId)).length === 0) {
+							counts.skipped_no_longer_pending = (counts.skipped_no_longer_pending ?? 0) + 1;
+							return;
+						}
+						failureCount += 1;
+						counts.failed += 1;
+						if (failureDetails.length < MAX_FAILURE_DETAILS)
+							failureDetails.push({ assignment_id: assignmentId, stage });
+						if (!firstFailureLogged && cause !== undefined) {
+							firstFailureLogged = true;
+							firstFailureSummary = failureSummary(cause);
+							yield* Effect.logError(
+								`[field-ops-suspicion-review] first assignment failure (${assignmentId})`,
+								cause
+							);
+						}
+					});
 				const publishCompletion = () =>
 					progressLock.withPermit(
 						Effect.suspend(() => {
@@ -116,19 +131,10 @@ export default defineAutomation(
 								}
 							}).pipe(
 								Effect.map((result) => ({ success: true as const, result })),
-								Effect.catch((error: unknown) => {
-									if (firstFailureLogged) return Effect.succeed({ success: false as const });
-									firstFailureLogged = true;
-									firstFailureSummary = failureSummary(error);
-									return Effect.logError(
-										`[field-ops-suspicion-review] first assignment failure (${assignment.id})`,
-										error
-									).pipe(Effect.as({ success: false as const }));
-								})
+								Effect.catch((error: unknown) => Effect.succeed({ success: false as const, error }))
 							);
 							if (!review.success) {
-								counts.failed += 1;
-								recordFailure(
+								yield* recordFailure(
 									assignment.id,
 									!inferenceStarted
 										? 'fact_loading'
@@ -136,7 +142,8 @@ export default defineAutomation(
 											? 'inference'
 											: !reviewPersisted
 												? 'review_persistence'
-												: 'suspicion_log_persistence'
+												: 'suspicion_log_persistence',
+									review.error
 								);
 								yield* publishCompletion();
 								return;
@@ -154,8 +161,7 @@ export default defineAutomation(
 								Effect.catch(() => Effect.succeed(false as const))
 							);
 							if (!stamped) {
-								counts.failed += 1;
-								recordFailure(assignment.id, 'check_stamp');
+								yield* recordFailure(assignment.id, 'check_stamp');
 								yield* publishCompletion();
 								return;
 							}

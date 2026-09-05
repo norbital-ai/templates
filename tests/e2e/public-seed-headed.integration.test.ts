@@ -246,6 +246,17 @@ it('field-ops pointer drag persists completion and remains completed after openi
 			),
 			'completed'
 		);
+		assert.equal(
+			await page.evaluate(
+				`document.querySelector('[data-sortable-id="${PUBLIC_ASSIGNMENT_ID}"]')?.closest('[data-kanban-lane]')?.getAttribute('data-kanban-lane')`
+			),
+			'completed',
+			'The original board must remain in its committed lane after settlement.'
+		);
+		assert.doesNotMatch(
+			String(await page.evaluate('document.body.innerText')),
+			/changed from row version/
+		);
 	} finally {
 		if (browser) await browser.close();
 		if (gateway) await gateway.stop();
@@ -776,3 +787,119 @@ it(
 		}
 	}
 );
+
+it('field-ops agent selects models and completes a built-in tool round trip in the browser', async () => {
+	const firstModel = 'openrouter/provider/first';
+	const secondModel = 'openrouter/provider/second';
+	const observed: Array<{ model: string; toolResult: boolean }> = [];
+	const rounds = new Map<string, number>();
+	const ai = makeAiBinding({
+		call: async (_metadata, request) => {
+			if (request._tag === 'Catalog')
+				return {
+					_tag: 'Catalog',
+					languageModels: [{ id: firstModel }, { id: secondModel }],
+					defaultLanguageModelId: firstModel,
+					embeddingModels: [{ id: 'test/embedding' }],
+					defaultEmbeddingModelId: 'test/embedding'
+				};
+			assert.equal(request._tag, 'Generate');
+			assert.equal(request.output._tag, 'Message');
+			assert.ok(
+				request.output.tools?.some(({ name }) => name === 'describe_workspace'),
+				'The selected model must receive actual tool schemas.'
+			);
+			const round = rounds.get(request.modelId) ?? 0;
+			rounds.set(request.modelId, round + 1);
+			const toolResult = request.messages.some(
+				(message) => message.role === 'tool' && JSON.stringify(message).includes('job_assignments')
+			);
+			observed.push({ model: request.modelId, toolResult });
+			return {
+				_tag: 'Generated',
+				result: {
+					_tag: 'Message',
+					message: {
+						role: 'assistant',
+						content:
+							round === 0
+								? [
+										{
+											type: 'tool-call',
+											id: `describe-${request.modelId}`,
+											name: 'describe_workspace',
+											params: {},
+											providerExecuted: false
+										}
+									]
+								: `Verified workspace with ${request.modelId}.`,
+						options: {}
+					}
+				},
+				observation: {
+					callId: request.callId,
+					provider: 'fixture',
+					model: request.modelId,
+					operation: 'language',
+					charge: { currency: 'USD', coefficient: '1', scale: 6 },
+					chargeSource: 'provider'
+				}
+			};
+		}
+	});
+	const session = await bootFieldOps('field-ops-agent-models', ai);
+	let gateway: Awaited<ReturnType<typeof startSessionGateway>> | undefined;
+	let browser: HeadedBrowser | undefined;
+	try {
+		gateway = await openControllerGateway(session, 'field-ops-agent-models');
+		browser = await launchChromiumOrSkip(EV_SOURCE_PROBE);
+		assert.ok(browser, 'Chromium is required for agent interaction proof.');
+		const page = await browser.openPage(controllerUrl(gateway.address.port));
+		await waitForBody(page, /Assign contractor/, 'agent-controller');
+		await page.click('[data-testid="workspace-agent-trigger"]');
+		await waitForBody(page, /provider\/first/, 'agent-model-catalogue');
+		for (const model of [secondModel, firstModel]) {
+			if (observed.length > 0) await page.click('button[aria-label="New Task"]');
+			await page.click('[role="combobox"][aria-label="Agent model"]');
+			await page.click(`[role="option"]:has-text("${model.replace('openrouter/', '')}")`);
+			await page.evaluate(`(() => {
+				const input = document.getElementById('agent-task-composer');
+				input.value = 'Describe this workspace using its built-in tool.';
+				input.dispatchEvent(new InputEvent('input', { bubbles: true }));
+			})()`);
+			await page.click('button[aria-label="Submit Task message"]');
+			await waitForBody(
+				page,
+				new RegExp(`Verified workspace with ${model.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`),
+				'agent-tool-response'
+			);
+		}
+		assert.deepEqual(observed, [
+			{ model: secondModel, toolResult: false },
+			{ model: secondModel, toolResult: true },
+			{ model: firstModel, toolResult: false },
+			{ model: firstModel, toolResult: true }
+		]);
+		const result = await postGuestCommand(
+			session.baseUrl,
+			'collections.findMany',
+			{ collection: 'agent_run', orderBy: { created_at: 'asc' } },
+			bearerHeaders(session.credential)
+		);
+		assert.equal(result.status, 200, JSON.stringify(result.value));
+		assert.deepEqual(
+			rowsOf(result.value, 'agent runs').map((row) => ({
+				model: row.model_id,
+				status: row.status
+			})),
+			[
+				{ model: secondModel, status: 'succeeded' },
+				{ model: firstModel, status: 'succeeded' }
+			]
+		);
+	} finally {
+		if (browser) await browser.close();
+		if (gateway) await gateway.stop();
+		await session.stop();
+	}
+});
