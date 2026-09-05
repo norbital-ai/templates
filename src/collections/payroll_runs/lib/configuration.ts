@@ -21,11 +21,10 @@ import type { WorkspaceRow } from '../$types.js';
 import { PAGE_LIMIT, type PayrollReadApi, type ReadLog } from './api.js';
 import { bandAgeFloor, bandCeiling } from './bands.js';
 import { monthBounds, monthKey, requiredDateKey, dateKey, type IsoDate } from './dates.js';
-import { coversDate, effectiveOn, live, overlapsRange } from './effective.js';
+import { coversDate, effectiveOn, live, overlapsRange, readRange } from './effective.js';
 import {
 	sealedProfileCovering,
-	statutoryCatalogueProfile,
-	statutoryProfileLineage
+	statutoryCatalogueProfile
 } from '../../../lib/statutory_profile.js';
 import type { PayrollWindow } from './period.js';
 
@@ -228,36 +227,46 @@ export function pickConfiguration(
 
 		const catalogue = statutoryCatalogueProfile(live(profileRows), jurisdiction);
 
-		const [contributionRows, payComponentRows, shiftRows, holidayRows, leaveTypeRows] =
-			yield* Effect.all(
-				[
-					db.statutory_contributions.findMany({
-						where: { statutory_profile_id: { eq: catalogue.id }, ...approved },
-						limit: PAGE_LIMIT
-					}),
-					db.pay_components.findMany({
-						where: {
-							company_id: { eq: company.id },
-							statutory_profile_id: { eq: catalogue.id },
-							...approved
-						},
-						limit: PAGE_LIMIT
-					}),
-					db.shift_definitions.findMany({
-						where: { company_id: { eq: company.id }, ...approved },
-						limit: PAGE_LIMIT
-					}),
-					db.company_holidays.findMany({
-						where: { company_id: { eq: company.id }, ...approved },
-						limit: PAGE_LIMIT
-					}),
-					db.leave_types.findMany({
-						where: { company_id: { eq: company.id }, ...approved },
-						limit: PAGE_LIMIT
-					})
-				],
-				{ concurrency: 'unbounded' }
-			);
+		const [
+			contributionRows,
+			payComponentRows,
+			shiftRows,
+			holidayRows,
+			leavePlanRows,
+			leaveTypeRows
+		] = yield* Effect.all(
+			[
+				db.statutory_contributions.findMany({
+					where: { statutory_profile_id: { eq: catalogue.id }, ...approved },
+					limit: PAGE_LIMIT
+				}),
+				db.pay_components.findMany({
+					where: {
+						company_id: { eq: company.id },
+						statutory_profile_id: { eq: catalogue.id },
+						...approved
+					},
+					limit: PAGE_LIMIT
+				}),
+				db.shift_definitions.findMany({
+					where: { company_id: { eq: company.id }, ...approved },
+					limit: PAGE_LIMIT
+				}),
+				db.company_holidays.findMany({
+					where: { company_id: { eq: company.id }, ...approved },
+					limit: PAGE_LIMIT
+				}),
+				db.leave_plans.findMany({
+					where: { company_id: { eq: company.id }, lifecycle: { eq: 'ACTIVE' }, ...approved },
+					limit: PAGE_LIMIT
+				}),
+				db.leave_types.findMany({
+					where: { company_id: { eq: company.id }, ...approved },
+					limit: PAGE_LIMIT
+				})
+			],
+			{ concurrency: 'unbounded' }
+		);
 		// Every collection pages to the same ceiling and is checked: a configuration read that came
 		// back truncated would drop law — a missing holiday, a missing band — and still produce a
 		// payslip, which is the one outcome worse than producing none.
@@ -265,7 +274,17 @@ export function pickConfiguration(
 		options.api.reads.assertComplete(payComponentRows, 'pay components');
 		options.api.reads.assertComplete(shiftRows, 'shift definitions');
 		options.api.reads.assertComplete(holidayRows, 'company holidays');
+		options.api.reads.assertComplete(leavePlanRows, 'leave plans');
 		options.api.reads.assertComplete(leaveTypeRows, 'leave types');
+		const activeLeavePlan = live(leavePlanRows)
+			.filter((plan) => coversDate(plan.effective_range, asOf))
+			.toSorted((left, right) =>
+				(readRange(right.effective_range)?.start ?? '').localeCompare(
+					readRange(left.effective_range)?.start ?? ''
+				)
+			)[0];
+		if (activeLeavePlan == null)
+			refuse(`Company ${company.name} has no approved active leave plan covering ${asOf}.`);
 
 		// Profile scoping replaces per-row effective dating: the version governs its period whole.
 		const revisionByScheme = new Map(
@@ -374,11 +393,7 @@ export function pickConfiguration(
 			holidays: new Map(
 				live(holidayRows).map((row) => [requiredDateKey(row.date, 'holiday date'), row] as const)
 			),
-			leaveTypes: live(leaveTypeRows).filter((row) =>
-				statutoryProfileLineage(live(profileRows), jurisdiction).some(
-					(profile) => profile.id === row.statutory_profile_id
-				)
-			)
+			leaveTypes: live(leaveTypeRows).filter((row) => row.leave_plan_id === activeLeavePlan.id)
 		} satisfies Omit<Configuration, 'hash'>;
 
 		return {

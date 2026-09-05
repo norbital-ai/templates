@@ -65,42 +65,40 @@ read and priced at nothing is a junction row with no adjustment beside it: consu
 never read are different claims, and the junction's `restrict` FK into the business source is what
 refuses the delete.
 
-## Leave and layered entitlement
+## Leave accounts and ledger
 
-Leave is not itself money. `leave_requests` is the approved event stream, `leave_types` owns the
-entitlement/accrual policy, and a mapped `pay_component` owns only the monetary effect (for example,
-unpaid-leave deduction or encashment).
-
-Event-based leave uses `leave_allocations`, not an annual bank or an unlimited per-request grant.
-Each allocation names a qualifying event, an employee, a leave type, approved workdays and an
-inclusive expiry. HR verifies eligibility and any shared household portion against the supporting
-evidence. A household allowance is not automatically granted in full to each parent. An allocation
-referenced by a request is immutable. Requests retain a restricting foreign key to it.
-
-Availability is the allocation minus approved requests and held approval proposals, across all
-leave years. Rejecting or withdrawing a proposal releases its reservation. Approval does not charge
-it twice: the stored request replaces the proposal by record identity. The picker and write hook
-share this calculation and enforce the eligible dates. Annual leave also includes pending proposals
-when checking its projected balance and overlapping dates.
-
-The statutory floor is not hand-typed per company: it lives on the sealed statutory profile's
-`statutory_leave` member, per canonical kind, scaled by the employee's child facts where the law
-conditions it. The company's organisation and employee service bands stay on the sealed leave type:
+Leave is not itself money. Statutory profiles state legal floors; company `leave_plans` and their
+`leave_types` state company policy. Reconciliation compiles both into one sealed `leave_account` per
+employment, leave code, and leave year. `leave_entries` is the append-only signed ledger inside that
+account. `leave_requests` contains applications only.
 
 ```text
-effective entitlement = max(profile floor by statutory_kind, organisation layer, employee layer)
+effective yearly target = max(statutory profile floor by statutory_kind,
+                              eligible company organisation service band)
+
+available(date) = SUM(posted leave_entries.days through date)
+                  - held application days
 ```
 
-A successor inherits existing leave codes by profile ancestry, preserving their identities and
-ledger history. New codes are authored on the successor draft and become available when that
-revision is approved and effective. Monthly accrual is zero before a new code's introduction;
-earlier months for existing codes continue using the law that governed those months. Sealed
-catalogue rows cannot be edited, deleted or moved into another draft.
+No live policy calculation changes a stored account. A new statutory or company version appends a
+`STATUTORY_ADJUSTMENT` or `POLICY_ADJUSTMENT` according to its explicit mid-year transition.
+Requests require an existing open account. Approval appends `TAKEN`; changing or withdrawing an
+uncaptured request appends the exact `TAKEN` or `RESTORED` delta.
+
+Monthly and upfront accounts may carry only when the effective rule explicitly supplies a cap.
+Default carry is none. Closing transfers debit the old account and credit the new one once, and are
+blocked while the old account has a held request. Unmetered types still receive a yearly account
+and the same request approval/payroll treatment; they skip only the balance ceiling.
+
+Statutory qualification is independent of stricter company eligibility. Statutory members state
+their own minimum service, vesting and `YEAR`/`EVENT` basis. `EVENT` accounts are reviewed
+allocation facts with qualifying date, normalized household/event reference, evidence and one
+bounded window; their ledger is identical to a yearly account and they never duplicate at a
+calendar-year boundary.
 
 The same layering principle applies to claim and allowance caps in their pay-component definition:
-a cap is the most generous of the company's own organisation and employee layers — the statutory
-floor is never re-typed there. This is policy data, not a reason to add one collection per benefit
-kind.
+a cap is the most generous applicable company layer. This is policy data, not a reason to add one
+collection per benefit kind. See `docs/leave.md` for the complete lanes and HR operating flow.
 
 ## Run snapshot and locking
 
@@ -624,30 +622,34 @@ Store a ledger only when the business fact cannot be represented by the originat
 paid payroll result. A ledger exists to preserve independently dated movements whose order and
 running balance matter.
 
-| Subject                        | Authoritative transaction                        | Separate ledger?         | Reason                                                                                                                                                 |
-| ------------------------------ | ------------------------------------------------ | ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Leave taken                    | Approved `leave_request`                         | No duplicate `TAKEN` row | The request already contains type, dates, quantity and approval. Counting both would double-consume leave.                                             |
-| Leave correction or encashment | `leave_requests.event` adjustment/encashment arm | No second table          | It remains a signed, dated event, structurally distinct from a time-off request in the same authoritative stream.                                      |
-| Claim or allowance             | Approved `component_entries` row                 | No                       | The entry is already the money transaction and carries the incurred date and evidence.                                                                 |
-| Loan                           | `loans` row with its `loan_repayments` plan      | No, the plan is rows     | Principal, due dates and every repayment reconcile across the pair; what is still owed on a repayment is its amount due less what paid runs recovered. |
-| Payroll/YTD                    | Paid payslips and contributions                  | No mutable accumulator   | Earlier paid results are the immutable accounting history. YTD is their sum.                                                                           |
-| Payment file                   | Projection from a paid run                       | No                       | A file is an output transport, not another source of payroll truth.                                                                                    |
+| Subject                        | Authoritative transaction                                    | Separate ledger?       | Reason                                                                                                                                                 |
+| ------------------------------ | ------------------------------------------------------------ | ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Leave taken                    | Approved `TIME_OFF` request plus its linked `TAKEN` entry    | Yes: `leave_entries`   | The request proves the absence and approval; the signed entry is the account movement. A deterministic source key prevents duplicate consumption.      |
+| Leave correction or encashment | Reviewed `MANUAL_ADJUSTMENT` or automatic `ENCASHMENT` entry | Same leave ledger      | Corrections and settlement are account movements, not fake absence requests.                                                                           |
+| Claim or allowance             | Approved `component_entries` row                             | No                     | The entry is already the money transaction and carries the incurred date and evidence.                                                                 |
+| Loan                           | `loans` row with its `loan_repayments` plan                  | No, the plan is rows   | Principal, due dates and every repayment reconcile across the pair; what is still owed on a repayment is its amount due less what paid runs recovered. |
+| Payroll/YTD                    | Paid payslips and contributions                              | No mutable accumulator | Earlier paid results are the immutable accounting history. YTD is their sum.                                                                           |
+| Payment file                   | Projection from a paid run                                   | No                     | A file is an output transport, not another source of payroll truth.                                                                                    |
 
-Approved `TIME_OFF` requests create taken movements directly. Adjustments and encashments use their
-own strict `leave_requests.event` arms.
+`leave_requests` contains time-off applications only. Approved requests create one linked `TAKEN`
+entry. Policy, statutory, carry, expiry, restoration, encashment and reviewed correction movements
+are append-only `leave_entries`; none masquerades as a leave application.
 
 ### Settled and projected balances
 
 Two different questions read that ledger, and they must not read it the same way.
 
-Payroll settles, so it acts on the **settled** basis: rows whose `approval_id` is null.
-A movement still held by an approval request is not yet a fact, and paying against it would settle a
-decision nobody has made.
+Payroll settles, so it acts only on committed approved `TIME_OFF` rows. A request still held for
+approval is not yet an absence fact, and paying against it would settle a decision nobody has made.
 
 A new leave or claim request is checked against the **projected** basis, which counts every row
 including the pending ones. Otherwise someone with one request awaiting approval could submit a
 second against a balance the first has already spent, and each would look affordable on its own while
 the pair overdraws.
+
+For leave, “pending” means the held create requests returned by `findPending`. Both employee and HR
+balance screens merge those held quantities into the displayed pending and available amounts; they
+never post a ledger movement before approval.
 
 ### Loan schedule
 
@@ -688,21 +690,19 @@ a later draft run**. The next cycle carries the correction; history carries the 
 ledgers are involved and they are corrected separately:
 
 - the **money** a run moved, corrected through `component_entries`; and
-- the **leave ledger** a balance is derived from, corrected through `leave_requests.event`
-  `BALANCE_ADJUSTMENT` rows (signed movements; the balance is derived, so it heals once the event
-  is approved).
+- the **leave ledger** a balance is derived from, corrected by appending `leave_entries`.
 
 A leave request a run has captured is itself frozen (`refuseIfCaptured`), so a cancellation is
 never an edit of the original request — the original stays exactly as it was settled, and the
 correction states what changed and why.
 
-| What went wrong                                                            | Leave ledger correction                                              | Money correction in the next draft                                                                                                                                                                                              |
-| -------------------------------------------------------------------------- | -------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Approved leave was taken, payroll deducted it, then it was cancelled       | New `BALANCE_ADJUSTMENT` event restoring the days                    | `MANUAL_ADJUSTMENT` with operation `REVERSAL` on the same unpaid-leave component, `corrects_adjustment_id` naming the settled absence adjustment; the flipped sign restores net while keeping the component code on the payslip |
-| Person was paid for leave they did not take, or salary was paid in error   | Negative `BALANCE_ADJUSTMENT` taking the days back                   | `ARREARS` entry on a deduction-kind component, `covers_periods` naming the paid period, reason stating the cause — recovered in the next run, subject to the negative-net guard                                                 |
-| A claim or allowance was missed or underpaid                               | —                                                                    | The missing entry (or a `CORRECTION` naming the settled output it supersedes) on the earning component                                                                                                                          |
-| A statutory figure was computed under a law value that was mis-transcribed | —                                                                    | Component-entry correction for the money delta (statutory lines of a paid run are never re-edited); see the profile amendment path below                                                                                        |
-| A leave balance was seeded or carried wrong                                | Dated `BALANCE_ADJUSTMENT` events until the derived balance is right | —                                                                                                                                                                                                                               |
+| What went wrong                                                            | Leave ledger correction                                         | Money correction in the next draft                                                                                                                                                                                              |
+| -------------------------------------------------------------------------- | --------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Approved leave was taken, payroll deducted it, then it was cancelled       | Positive reviewed `MANUAL_ADJUSTMENT` leave entry               | `MANUAL_ADJUSTMENT` with operation `REVERSAL` on the same unpaid-leave component, `corrects_adjustment_id` naming the settled absence adjustment; the flipped sign restores net while keeping the component code on the payslip |
+| Person was paid for leave they did not take, or salary was paid in error   | Positive reviewed `MANUAL_ADJUSTMENT` when leave was also taken | `ARREARS` entry on a deduction-kind component, `covers_periods` naming the paid period, reason stating the cause — recovered in the next run, subject to the negative-net guard                                                 |
+| A claim or allowance was missed or underpaid                               | —                                                               | The missing entry (or a `CORRECTION` naming the settled output it supersedes) on the earning component                                                                                                                          |
+| A statutory figure was computed under a law value that was mis-transcribed | —                                                               | Component-entry correction for the money delta (statutory lines of a paid run are never re-edited); see the profile amendment path below                                                                                        |
+| An open leave balance was seeded or carried wrong                          | One dated reviewed `MANUAL_ADJUSTMENT` for the exact delta      | —                                                                                                                                                                                                                               |
 
 Every correction is itself captured by the run that settles it — `corrects_adjustment_id` reaches
 back to the frozen output it fixes, `covers_periods` and `reason` say why — so the audit chain runs
@@ -747,7 +747,7 @@ flowchart LR
 | Payslip output       | Payslips, adjustments and the four capture junctions refuse updates outright; deletes only while the run is a draft           | Output rows are create-and-replace under the engine's one write; a correction is a new event in a later cycle          |
 | Statutory profile    | SEALED or VOIDED profiles refuse law-member edits outright (seal freeze, paid-run freeze backstop); deletion restrict-blocked | The citation is the record of what law governed the money; amendments void the version and enact a corrected successor |
 | Loan repayment       | A captured repayment is immutable                                                                                             | Prevents a loan balance from changing behind a paid deduction                                                          |
-| Leave event stream   | Corrections use new adjustment events                                                                                         | A balance correction remains visible instead of rewriting history                                                      |
+| Leave account ledger | Corrections append signed entries                                                                                             | A balance correction remains visible instead of rewriting history                                                      |
 | General event source | `sourceLock` freezes the original leave, entry, repayment or person-day row                                                   | A pending approval, or a captured input in the record's input junction — with or without a monetary output             |
 
 Leave, entries and person-days share `src/lib/scheduling/lock.ts`. Hooks refuse the write; collection

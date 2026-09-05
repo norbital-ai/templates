@@ -28,6 +28,8 @@ const PUB_STATUTORY_LEAVE = [
 		ladder: [{ band_from: 0, days: 8 }],
 		per_child: null,
 		max_days: null,
+		transition: 'NEXT_LEAVE_YEAR',
+		carry: null,
 		authority: 'Public fixture — not a sealed statutory table.'
 	}
 ];

@@ -4,33 +4,17 @@ import type { WorkspaceSchema } from '$bolt/types.js';
 import type { WorkspaceRow } from '../../collections/leave_requests/$types.js';
 import { calendarDay, dateKey } from '../iso-day.js';
 import { pointAt, pointNumber, type HalfDayRange } from '../half-day.js';
-import {
-	carryInto,
-	leaveBalance,
-	ledgerRowOf,
-	leaveYearOf,
-	resolveEntitlementAt,
-	type ChildFact,
-	type LedgerRow
-} from '../../collections/payroll_runs/lib/leave.js';
-import type { Jurisdiction, LeaveType } from '../../collections/payroll_runs/lib/configuration.js';
-import { sealedProfileCovering, leaveProfileRequired } from '../statutory_profile.js';
 import { coversDate } from '../../collections/payroll_runs/lib/effective.js';
 import { patternRosterCodeId } from '../scheduling/work-pattern.js';
 import { rosterCodeKind, workWindowHalves } from '../scheduling/roster-code.js';
 import { lockStateForDate, payrollWindows } from '../scheduling/lock.js';
-import { decodeNumber } from '@norbital-ai/std/json';
 import { calendarDaysThrough, leaveCalendarGridBounds } from './calendar-grid.js';
 import { withPendingLeaveRequests, type LeaveBalanceRequest } from './pending.js';
+import { isEligible } from '../../collections/payroll_runs/lib/eligibility.js';
+import { completedMonths } from '../../collections/payroll_runs/lib/dates.js';
+import { decodeNumber } from '@norbital-ai/std/json';
 
-/**
- * Calendar day of a stored work_date in the payroll timezone.
- *
- * Work days reach preview as KL-midnight instants (`2026-03-08T16:00:00.000Z` for March 9),
- * while in-memory worlds carry plain `YYYY-MM-DD` text. Slicing the instant gives the UTC
- * day (March 8) and misses the override, falling back to the pattern; converting via KL
- * keeps both shapes on the same day the board wrote.
- */
+const LIMIT = 2_000;
 const payrollDayFormatter = new Intl.DateTimeFormat('en', {
 	timeZone: 'Asia/Kuala_Lumpur',
 	year: 'numeric',
@@ -47,15 +31,6 @@ function payrollDayKey(value: string): string {
 	return `${part('year')}-${part('month')}-${part('day')}`;
 }
 
-/**
- * Server-side leave preview: remaining bank, chargeable days, and per-day eligibility.
- *
- * The picker invokes this as `preview_leave` before apply. The `leave_requests` hook runs the same
- * function on write. Both gather person-scoped rows and derive; nothing stores a remaining balance.
- */
-
-const LEAVE_PREVIEW_QUERY_LIMIT = 2_000;
-
 const dayHalfSchema = Schema.Literals(['FIRST', 'SECOND']);
 const leavePreviewRangeSchema = Schema.Struct({
 	start: Schema.Struct({ date: calendarDay, half: dayHalfSchema }),
@@ -65,7 +40,7 @@ const leavePreviewRangeSchema = Schema.Struct({
 export const previewLeaveInputSchema = Schema.Struct({
 	employment_id: Schema.String.check(Schema.isUUID()),
 	leave_type_id: Schema.String.check(Schema.isUUID()),
-	allocation_id: Schema.optionalKey(Schema.String.check(Schema.isUUID())),
+	leave_account_id: Schema.optionalKey(Schema.String.check(Schema.isUUID())),
 	calendar_month: Schema.optionalKey(
 		Schema.String.check(Schema.isPattern(/^\d{4}-(0[1-9]|1[0-2])$/))
 	),
@@ -85,13 +60,11 @@ const leavePreviewIssueCodes = [
 	'MISSING_ROSTER_CODE',
 	'NO_CHARGEABLE_DAYS',
 	'OVERDRAW',
-	'MISSING_PROFILE',
-	'MISSING_JURISDICTION',
 	'WINDOW_REQUIRED',
 	'PAGE_TRUNCATED',
-	'ALLOCATION_REQUIRED',
-	'ALLOCATION_WINDOW',
-	'LEAVE_NOT_AVAILABLE'
+	'ACCOUNT_REQUIRED',
+	'LEAVE_NOT_AVAILABLE',
+	'INELIGIBLE'
 ] as const;
 type LeavePreviewIssueCode = (typeof leavePreviewIssueCodes)[number];
 
@@ -101,8 +74,8 @@ type LeavePreviewIssue = {
 };
 
 const leaveDayReasonCodes = [
+	'INELIGIBLE',
 	'LEAVE_NOT_AVAILABLE',
-	'OUTSIDE_ALLOCATION',
 	'HOLIDAY',
 	'REST_OR_OFF',
 	'OTHER_LEAVE',
@@ -125,24 +98,24 @@ export type LeaveDayPreview = {
 };
 
 export type LeavePreview = {
-	readonly allocation_balance?: {
-		readonly allocated: number;
-		readonly approved: number;
-		readonly pending: number;
-		readonly remaining: number;
-	};
+	readonly certificate_required?: boolean;
 	readonly remaining_days: number | null;
 	readonly chargeable_days: number | null;
 	readonly encashed: boolean;
-	/** Set when the as-of year's carry is provisional: "{prior} carry-forward not yet processed". */
-	readonly carry_note: string | null;
+	readonly carry_note: null;
 	readonly availability: Readonly<Record<string, LeaveDayPreview>>;
 	readonly issues: readonly LeavePreviewIssue[];
 };
 
 type EmploymentTermRow = Pick<
 	WorkspaceRow<'employment_terms'>,
-	'employment_id' | 'work_pattern' | 'effective_range'
+	| 'employment_id'
+	| 'work_pattern'
+	| 'effective_range'
+	| 'employment_type'
+	| 'work_classification'
+	| 'department'
+	| 'payroll_group'
 >;
 type WorkDayRow = Pick<
 	WorkspaceRow<'work_days'>,
@@ -154,79 +127,60 @@ type SettledRunRow = Pick<
 	WorkspaceRow<'payroll_runs'>,
 	'period' | 'lifecycle' | 'attendance_from' | 'attendance_to'
 >;
-type RequestRow = LeaveBalanceRequest;
+type AccountRow = WorkspaceRow<'leave_accounts'>;
+type EntryRow = WorkspaceRow<'leave_entries'>;
 
 type QueryRows<N extends keyof WorkspaceSchema['tables'] & string, Row> = {
 	findMany(options: SchemaQueryConfig<WorkspaceSchema, N>): Effect.Effect<Row[], never, never>;
 };
-
 type QueryFirst<N extends keyof WorkspaceSchema['tables'] & string> = {
 	findFirst(
 		options: SchemaQueryConfig<WorkspaceSchema, N>
 	): Effect.Effect<WorkspaceRow<N> | undefined, never, never>;
 };
 
-/**
- * The database surface preview and the write hook both read. The live api satisfies it; tests
- * satisfy it with an in-memory stub.
- */
-export type LeavePreviewApi = {
+type LeavePreviewApi = {
 	db: {
-		jurisdictions: QueryFirst<'jurisdictions'> & {
-			findMany(
-				options: SchemaQueryConfig<WorkspaceSchema, 'jurisdictions'>
-			): Effect.Effect<Jurisdiction[], never, never>;
-		};
-		employee_children: QueryRows<'employee_children', ChildFact>;
 		employments: QueryFirst<'employments'>;
+		employees: QueryFirst<'employees'>;
 		companies: QueryFirst<'companies'>;
 		leave_types: QueryFirst<'leave_types'>;
+		leave_plans: QueryFirst<'leave_plans'>;
+		leave_accounts: QueryRows<'leave_accounts', AccountRow>;
+		leave_entries: QueryRows<'leave_entries', EntryRow>;
 		company_holidays: QueryRows<'company_holidays', CompanyHolidayRow>;
 		employment_terms: QueryRows<'employment_terms', EmploymentTermRow>;
 		work_days: QueryRows<'work_days', WorkDayRow>;
-		leave_requests: QueryRows<'leave_requests', RequestRow> &
+		leave_requests: QueryRows<'leave_requests', LeaveBalanceRequest> &
 			Pick<Api<WorkspaceSchema>['db']['leave_requests'], 'findPending'>;
-		leave_allocations: QueryRows<'leave_allocations', WorkspaceRow<'leave_allocations'>>;
 		payroll_runs: QueryRows<'payroll_runs', SettledRunRow>;
 		shift_definitions: QueryRows<'shift_definitions', RosterCodeRow>;
 	};
 };
 
 type LeavePreviewFacts = {
-	readonly employment: {
-		readonly id: string;
-		readonly company_id: string;
-		readonly hire_date: string;
-		readonly exit_date: string | null;
-	};
-	readonly company: {
-		readonly jurisdiction_id: string;
-		readonly leave_year_start_month: number;
-	};
-	readonly leaveType: LeaveType;
+	readonly gender: WorkspaceRow<'employees'>['gender'];
+	readonly employment: WorkspaceRow<'employments'>;
+	readonly leaveType: WorkspaceRow<'leave_types'>;
+	readonly planActive: boolean;
+	readonly account: AccountRow | null;
+	readonly entries: readonly EntryRow[];
 	readonly holidays: readonly CompanyHolidayRow[];
 	readonly terms: readonly EmploymentTermRow[];
 	readonly workDays: readonly WorkDayRow[];
-	readonly overlappingTimeOff: readonly RequestRow[];
-	readonly ledger: readonly RequestRow[];
-	readonly allocations: readonly WorkspaceRow<'leave_allocations'>[];
-	readonly encashed: boolean;
+	readonly requests: readonly LeaveBalanceRequest[];
 	readonly settledRuns: readonly SettledRunRow[];
 	readonly rosterCodes: readonly RosterCodeRow[];
-	readonly jurisdictionCode: string;
-	readonly sealedProfiles: readonly Jurisdiction[];
-	readonly children: readonly ChildFact[];
 };
 
 function issue(code: LeavePreviewIssueCode, message: string): LeavePreviewIssue {
 	return { code, message };
 }
 
-function requireCompletePage(rows: readonly unknown[], label: string): LeavePreviewIssue | null {
-	if (rows.length < LEAVE_PREVIEW_QUERY_LIMIT) return null;
-	return issue(
-		'PAGE_TRUNCATED',
-		`The ${label} read reached its ${LEAVE_PREVIEW_QUERY_LIMIT.toLocaleString()}-row safety ceiling, so the leave preview cannot be trusted.`
+function requireComplete(rows: readonly unknown[], label: string): void {
+	if (rows.length < LIMIT) return;
+	refuse(
+		`The ${label} read reached its ${LIMIT.toLocaleString()}-row safety ceiling, so the leave preview cannot be trusted.`
 	);
 }
 
@@ -236,9 +190,7 @@ function previewWindow(
 	const grid = input.calendar_month == null ? null : leaveCalendarGridBounds(input.calendar_month);
 	const range = input.range;
 	if (grid == null && range == null) return null;
-	if (grid == null && range != null) {
-		return { start: range.start.date, end: range.end.date };
-	}
+	if (grid == null && range != null) return { start: range.start.date, end: range.end.date };
 	if (grid != null && range == null) return grid;
 	if (grid == null || range == null) return null;
 	return {
@@ -247,21 +199,8 @@ function previewWindow(
 	};
 }
 
-function asOfDate(input: PreviewLeaveInput, window: { start: string; end: string }): string {
-	return input.range?.end.date ?? window.end;
-}
-
-function timeOffRangeOf(event: RequestRow['event']): HalfDayRange | null {
-	if (event == null || event.kind !== 'TIME_OFF') return null;
-	const range = event.range;
-	if (
-		range == null ||
-		typeof range.start?.date !== 'string' ||
-		typeof range.end?.date !== 'string'
-	) {
-		return null;
-	}
-	return range;
+function timeOffRange(event: LeaveBalanceRequest['event']): HalfDayRange {
+	return event.range;
 }
 
 function workEligible(
@@ -270,45 +209,41 @@ function workEligible(
 	rosterCodeById: ReadonlyMap<string, RosterCodeRow>,
 	plannedByDate: ReadonlyMap<string, WorkDayRow>,
 	holidayDates: ReadonlySet<string>
-): {
-	readonly work: boolean;
-	readonly issue: LeavePreviewIssue | null;
-	readonly codeId: string | null;
-} {
-	if (holidayDates.has(date)) {
-		return { work: false, issue: null, codeId: null };
-	}
+): { readonly work: boolean; readonly codeId: string | null; readonly issue?: LeavePreviewIssue } {
+	if (holidayDates.has(date)) return { work: false, codeId: null };
 	const term = facts.terms.find((candidate) => coversDate(candidate.effective_range, date));
-	if (term == null) {
+	if (term == null)
 		return {
 			work: false,
-			issue: issue('NO_TERMS', `No employment terms cover ${date}, so leave cannot be measured.`),
-			codeId: null
+			codeId: null,
+			issue: issue('NO_TERMS', `No employment terms cover ${date}, so leave cannot be measured.`)
 		};
-	}
-	let rosterCodeId = plannedByDate.get(date)?.shift_definition_id ?? null;
-	if (rosterCodeId == null) {
+	let codeId = plannedByDate.get(date)?.shift_definition_id ?? null;
+	if (codeId == null) {
 		try {
-			rosterCodeId = patternRosterCodeId(term.work_pattern, date);
+			codeId = patternRosterCodeId(term.work_pattern, date);
 		} catch {
-			rosterCodeId = null;
+			codeId = null;
 		}
 	}
-	if (rosterCodeId == null) {
-		return { work: term.work_pattern?.type === 'ROSTERED', issue: null, codeId: null };
-	}
-	const code = rosterCodeById.get(rosterCodeId);
-	if (code == null) {
+	if (codeId == null) return { work: term.work_pattern?.type === 'ROSTERED', codeId: null };
+	const code = rosterCodeById.get(codeId);
+	if (code == null)
 		return {
 			work: false,
-			issue: issue(
-				'MISSING_ROSTER_CODE',
-				`The schedule on ${date} names a roster code that no longer exists.`
-			),
-			codeId: rosterCodeId
+			codeId,
+			issue: issue('MISSING_ROSTER_CODE', `The schedule on ${date} names a missing roster code.`)
 		};
-	}
-	return { work: rosterCodeKind(code.variant) === 'WORK', issue: null, codeId: rosterCodeId };
+	return { work: rosterCodeKind(code.variant) === 'WORK', codeId };
+}
+
+function accountCovers(account: AccountRow | null, date: string): boolean {
+	return (
+		account != null &&
+		account.status === 'OPEN' &&
+		date >= dateKey(account.starts_on) &&
+		date <= dateKey(account.ends_on)
+	);
 }
 
 function dayPreview(
@@ -318,57 +253,18 @@ function dayPreview(
 	rosterCodeById: ReadonlyMap<string, RosterCodeRow>,
 	plannedByDate: ReadonlyMap<string, WorkDayRow>,
 	holidayDates: ReadonlySet<string>,
-	settledWindows: ReturnType<typeof payrollWindows>,
-	hireDate: string,
-	exitDate: string | null
-): { readonly day: LeaveDayPreview; readonly issue: LeavePreviewIssue | null } {
-	try {
-		if (
-			leaveProfileRequired(
-				facts.sealedProfiles,
-				facts.jurisdictionCode,
-				facts.leaveType.statutory_profile_id,
-				date
-			) == null
-		)
-			return {
-				day: { eligible: false, reason_code: 'LEAVE_NOT_AVAILABLE', reason_mark: '—' },
-				issue: null
-			};
-	} catch {
-		return {
-			day: { eligible: false, reason_code: 'LEAVE_NOT_AVAILABLE', reason_mark: '—' },
-			issue: null
-		};
-	}
-	if (facts.leaveType.accrual.kind === 'PER_EVENT') {
-		const allocation = facts.allocations.find(
-			(row) => row.id === input.allocation_id && row.approval_id == null
-		);
-		if (
-			!allocation ||
-			date < dateKey(allocation.starts_on) ||
-			date > dateKey(allocation.expires_on)
-		)
-			return {
-				day: { eligible: false, reason_code: 'OUTSIDE_ALLOCATION', reason_mark: '—' },
-				issue: null
-			};
-	}
-	if (date < hireDate) {
-		return {
-			day: { eligible: false, reason_code: 'BEFORE_HIRE', reason_mark: '—' },
-			issue: null
-		};
-	}
-	if (exitDate != null && date > exitDate) {
-		return {
-			day: { eligible: false, reason_code: 'AFTER_EXIT', reason_mark: '—' },
-			issue: null
-		};
-	}
+	settledWindows: ReturnType<typeof payrollWindows>
+): { readonly day: LeaveDayPreview; readonly issue?: LeavePreviewIssue } {
+	const hire = dateKey(facts.employment.hire_date);
+	const exit = facts.employment.exit_date == null ? null : dateKey(facts.employment.exit_date);
+	if (!facts.planActive || !accountCovers(facts.account, date))
+		return { day: { eligible: false, reason_code: 'LEAVE_NOT_AVAILABLE', reason_mark: '—' } };
+	if (date < hire)
+		return { day: { eligible: false, reason_code: 'BEFORE_HIRE', reason_mark: '—' } };
+	if (exit != null && date > exit)
+		return { day: { eligible: false, reason_code: 'AFTER_EXIT', reason_mark: '—' } };
 	const settled = lockStateForDate(settledWindows, date);
-	if (settled.kind === 'SETTLED') {
+	if (settled.kind === 'SETTLED')
 		return {
 			day: {
 				eligible: false,
@@ -376,53 +272,49 @@ function dayPreview(
 				reason_mark: '🔒',
 				settled_period: settled.period
 			},
-			issue: null
+			issue: issue('SETTLED_WINDOW', `The paid payroll period ${settled.period} is locked.`)
 		};
-	}
-	if (holidayDates.has(date)) {
-		return {
-			day: { eligible: false, reason_code: 'HOLIDAY', reason_mark: 'H' },
-			issue: null
-		};
-	}
-	const coveredByOtherRequest = facts.overlappingTimeOff.some((row) => {
-		if (row.id === input.exclude_request_id) return false;
-		if (row.kind !== 'TIME_OFF' || row.from_date == null || row.to_date == null) return false;
-		const from = payrollDayKey(row.from_date);
-		const to = payrollDayKey(row.to_date);
-		return date >= from && date <= to;
-	});
-	if (coveredByOtherRequest) {
-		return {
-			day: { eligible: false, reason_code: 'OTHER_LEAVE', reason_mark: 'L' },
-			issue: null
-		};
-	}
-	const eligibility = workEligible(date, facts, rosterCodeById, plannedByDate, holidayDates);
-	if (eligibility.issue != null && eligibility.issue.code === 'MISSING_ROSTER_CODE') {
+	if (holidayDates.has(date))
+		return { day: { eligible: false, reason_code: 'HOLIDAY', reason_mark: 'H' } };
+	if (
+		facts.requests.some(
+			(row) =>
+				row.id !== input.exclude_request_id &&
+				date >= timeOffRange(row.event).start.date &&
+				date <= timeOffRange(row.event).end.date
+		)
+	)
+		return { day: { eligible: false, reason_code: 'OTHER_LEAVE', reason_mark: 'L' } };
+	const work = workEligible(date, facts, rosterCodeById, plannedByDate, holidayDates);
+	if (work.issue?.code === 'MISSING_ROSTER_CODE')
 		return {
 			day: { eligible: false, reason_code: 'MISSING_ROSTER_CODE', reason_mark: '?' },
-			issue: eligibility.issue
+			issue: work.issue
 		};
-	}
-	if (eligibility.issue != null && eligibility.issue.code === 'NO_TERMS') {
+	if (work.issue != null)
+		return { day: { eligible: false, reason_code: 'NO_SCHEDULE' }, issue: work.issue };
+	if (!work.work) return { day: { eligible: false, reason_code: 'REST_OR_OFF', reason_mark: 'R' } };
+	const term = facts.terms.find((candidate) => coversDate(candidate.effective_range, date));
+	if (
+		!isEligible(facts.leaveType.eligibility, {
+			employment_type: term?.employment_type ?? null,
+			work_classification: term?.work_classification ?? null,
+			department: term?.department ?? null,
+			payroll_group: term?.payroll_group ?? null,
+			gender: facts.gender ?? null,
+			service_months: completedMonths(dateKey(facts.employment.hire_date), date)
+		}) &&
+		facts.account?.account_kind !== 'EVENT' &&
+		decodeNumber(facts.account?.calculation?.statutory_days ?? 0) <= 0
+	)
 		return {
-			day: { eligible: false, reason_code: 'NO_SCHEDULE' },
-			issue: eligibility.issue
+			day: { eligible: false, reason_code: 'INELIGIBLE', reason_mark: '—' },
+			issue: issue(
+				'INELIGIBLE',
+				`This employee does not meet the eligibility rules for this leave type on ${date}.`
+			)
 		};
-	}
-	if (!eligibility.work) {
-		const term = facts.terms.find((candidate) => coversDate(candidate.effective_range, date));
-		return {
-			day: {
-				eligible: false,
-				reason_code: term == null ? 'NO_SCHEDULE' : 'REST_OR_OFF',
-				reason_mark: term == null ? undefined : term.work_pattern?.type === 'ROSTERED' ? 'O' : 'R'
-			},
-			issue: null
-		};
-	}
-	const code = eligibility.codeId == null ? null : (rosterCodeById.get(eligibility.codeId) ?? null);
+	const code = work.codeId == null ? null : (rosterCodeById.get(work.codeId) ?? null);
 	const halves = code == null ? null : workWindowHalves(code.variant);
 	return {
 		day: {
@@ -430,294 +322,136 @@ function dayPreview(
 			shift_label: halves?.span,
 			first_half_label: halves?.first,
 			second_half_label: halves?.second
-		},
-		issue: null
+		}
 	};
 }
 
-function projectedLedger(facts: LeavePreviewFacts, excludeId: string | undefined): LedgerRow[] {
-	return facts.ledger.flatMap((row) => {
-		if (row.id === excludeId) return [];
-		const entry = ledgerRowOf(row);
-		return entry == null ? [] : [entry];
-	});
+function balanceAt(facts: LeavePreviewFacts, asOf: string, excludeRequestId?: string): number {
+	const posted = facts.entries
+		.filter((entry) => dateKey(entry.effective_on) <= asOf)
+		.reduce((total, entry) => total + decodeNumber(entry.days), 0);
+	const pending = facts.requests
+		.filter(
+			(row) =>
+				row.id !== excludeRequestId &&
+				row.approval_id != null &&
+				row.leave_account_id === facts.account?.id
+		)
+		.reduce((total, row) => total + decodeNumber(row.days), 0);
+	return posted - pending;
 }
 
-/**
- * Pure evaluation over already-loaded person-scoped rows. The hook and the remote share this so a
- * preview the operator reads cannot disagree with the write that later refuses or accepts.
- */
 export function evaluateLeavePreview(
 	facts: LeavePreviewFacts,
 	input: PreviewLeaveInput
 ): LeavePreview {
-	const issues: LeavePreviewIssue[] = [];
 	const window = previewWindow(input);
-	if (window == null) {
+	if (window == null)
 		return {
 			remaining_days: null,
 			chargeable_days: null,
-			encashed: facts.encashed,
+			encashed: false,
 			carry_note: null,
 			availability: {},
-			issues: [
-				issue(
-					'WINDOW_REQUIRED',
-					'A leave preview needs a calendar month or a half-day range so it knows which days to measure.'
-				)
-			]
+			issues: [issue('WINDOW_REQUIRED', 'Choose a calendar month or leave range.')]
 		};
-	}
-
-	const hireDate = dateKey(facts.employment.hire_date);
-	const exitDate = facts.employment.exit_date == null ? null : dateKey(facts.employment.exit_date);
+	const issues: LeavePreviewIssue[] = [];
 	const range = input.range;
-	if (range != null && pointNumber(range.end) < pointNumber(range.start)) {
+	const hire = dateKey(facts.employment.hire_date);
+	const exit = facts.employment.exit_date == null ? null : dateKey(facts.employment.exit_date);
+	if (facts.account == null)
 		issues.push(
 			issue(
-				'RANGE_INVERTED',
-				'Leave must end after it starts. Select one continuous range on the calendar.'
+				'ACCOUNT_REQUIRED',
+				'No generated leave account covers this request. The automatic reconciliation must create the entitlement before leave can be submitted.'
 			)
 		);
-	}
-	if (range != null && range.start.date < hireDate) {
+	if (!facts.planActive)
+		issues.push(issue('LEAVE_NOT_AVAILABLE', 'This leave type is not in an approved active plan.'));
+	if (range != null && pointNumber(range.end) < pointNumber(range.start))
+		issues.push(issue('RANGE_INVERTED', 'Leave must end after it starts.'));
+	if (range != null && range.start.date < hire)
 		issues.push(issue('BEFORE_HIRE', 'Leave cannot start before the employment hire date.'));
-	}
-	if (range != null && exitDate != null && range.end.date > exitDate) {
+	if (range != null && exit != null && range.end.date > exit)
 		issues.push(issue('AFTER_EXIT', 'Leave cannot end after the employment exit date.'));
-	}
-
-	if (facts.encashed) {
+	if (range != null && facts.account != null && !accountCovers(facts.account, range.start.date))
 		issues.push(
-			issue(
-				'ENCASHED',
-				`${facts.leaveType.code} was encashed on exit for this employment, so no further leave can be taken against it.`
-			)
+			issue('ACCOUNT_REQUIRED', 'The selected account does not cover the requested dates.')
 		);
-	}
-
-	if (range != null && pointNumber(range.end) >= pointNumber(range.start)) {
-		for (const request of facts.overlappingTimeOff) {
-			if (request.id === input.exclude_request_id) continue;
-			const other = timeOffRangeOf(request.event);
-			if (other == null) continue;
-			if (
+	if (range != null && facts.account != null && !accountCovers(facts.account, range.end.date))
+		issues.push(issue('ACCOUNT_REQUIRED', 'One leave request cannot cross entitlement accounts.'));
+	if (
+		range != null &&
+		facts.requests.some((request) => {
+			if (request.id === input.exclude_request_id) return false;
+			const other = timeOffRange(request.event);
+			return (
 				pointNumber(other.start) <= pointNumber(range.end) &&
 				pointNumber(other.end) >= pointNumber(range.start)
-			) {
-				issues.push(
-					issue(
-						'OVERLAP',
-						`The selected half-day range overlaps another leave request beginning ${other.start.date}.`
-					)
-				);
-				break;
-			}
-		}
-	}
+			);
+		})
+	)
+		issues.push(issue('OVERLAP', 'The selected half-day range overlaps another leave request.'));
 
-	const rosterCodeById = new Map(facts.rosterCodes.map((code) => [code.id, code]));
+	const rosterCodeById = new Map(facts.rosterCodes.map((row) => [row.id, row]));
 	const plannedByDate = new Map(
-		facts.workDays.map((day) => [payrollDayKey(day.work_date), day] as const)
+		facts.workDays.map((row) => [payrollDayKey(row.work_date), row] as const)
 	);
-	const holidayDates = new Set(facts.holidays.map((holiday) => payrollDayKey(holiday.date)));
+	const holidayDates = new Set(facts.holidays.map((row) => payrollDayKey(row.date)));
 	const settledWindows = payrollWindows(facts.settledRuns);
-
-	if (range != null && pointNumber(range.end) >= pointNumber(range.start)) {
-		for (let number = pointNumber(range.start); number <= pointNumber(range.end); number += 1) {
-			const date = pointAt(number).date;
-			const lock = lockStateForDate(settledWindows, date);
-			if (lock.kind === 'SETTLED') {
-				issues.push(
-					issue(
-						'SETTLED_WINDOW',
-						`Changing a leave request on ${date} is refused: that day is inside paid payroll ${lock.period}. ` +
-							'Correct it with an adjustment entry in a later draft run.'
-					)
-				);
-				break;
-			}
-		}
-	}
-
 	const availability: Record<string, LeaveDayPreview> = {};
 	for (const date of calendarDaysThrough(window.start, window.end)) {
-		const { day, issue: dayIssue } = dayPreview(
+		const evaluated = dayPreview(
 			date,
 			facts,
 			input,
 			rosterCodeById,
 			plannedByDate,
 			holidayDates,
-			settledWindows,
-			hireDate,
-			exitDate
+			settledWindows
 		);
-		availability[date] = day;
-		if (dayIssue != null && !issues.some((existing) => existing.code === dayIssue.code)) {
-			issues.push(dayIssue);
-		}
+		availability[date] = evaluated.day;
+		if (evaluated.issue != null && !issues.some((entry) => entry.code === evaluated.issue?.code))
+			issues.push(evaluated.issue);
 	}
 
-	let chargeable_days: number | null = null;
+	let chargeableDays: number | null = null;
 	if (range != null && pointNumber(range.end) >= pointNumber(range.start)) {
-		let chargedHalfDays = 0;
-		for (let number = pointNumber(range.start); number <= pointNumber(range.end); number += 1) {
-			const date = pointAt(number).date;
-			if (
-				availability[date]?.reason_code === 'LEAVE_NOT_AVAILABLE' &&
-				!issues.some((entry) => entry.code === 'LEAVE_NOT_AVAILABLE')
+		let halves = 0;
+		for (let point = pointNumber(range.start); point <= pointNumber(range.end); point += 1) {
+			const date = pointAt(point).date;
+			if (availability[date]?.eligible === true) halves += 1;
+		}
+		chargeableDays = halves / 2;
+		if (halves === 0)
+			issues.push(
+				issue('NO_CHARGEABLE_DAYS', 'The range contains no eligible scheduled work time.')
+			);
+	}
+	const asOf = range?.end.date ?? window.end;
+	const remaining = facts.account == null ? 0 : balanceAt(facts, asOf, input.exclude_request_id);
+	if (
+		facts.account?.accrual_kind !== 'UNLIMITED' &&
+		chargeableDays != null &&
+		chargeableDays > remaining + 1e-9
+	)
+		issues.push(
+			issue(
+				'OVERDRAW',
+				`This range charges ${chargeableDays} day(s), but only ${Math.max(0, remaining)} day(s) are available.`
 			)
-				issues.push(
-					issue('LEAVE_NOT_AVAILABLE', 'This leave type is not approved for the selected dates.')
-				);
-			const eligibility = workEligible(date, facts, rosterCodeById, plannedByDate, holidayDates);
-			if (eligibility.work) chargedHalfDays += 1;
-		}
-		chargeable_days = chargedHalfDays / 2;
-		if (chargedHalfDays === 0) {
-			issues.push(
-				issue(
-					'NO_CHARGEABLE_DAYS',
-					'The selected range contains no scheduled work half-days after holidays and rest/off days are excluded.'
-				)
-			);
-		}
-	}
-
-	let remaining_days: number | null = null;
-	let allocation_balance: LeavePreview['allocation_balance'];
-	let carry_note: string | null = null;
-	if (facts.leaveType.accrual?.kind === 'PER_EVENT') {
-		const allocation = facts.allocations.find(
-			(row) =>
-				row.id === input.allocation_id &&
-				row.approval_id == null &&
-				row.employment_id === input.employment_id &&
-				row.leave_type_id === input.leave_type_id
 		);
-		if (!allocation) {
-			remaining_days = 0;
-			issues.push(
-				issue(
-					'ALLOCATION_REQUIRED',
-					'Select an approved allocation for this qualifying event before requesting leave.'
-				)
-			);
-		} else {
-			let reserved = 0;
-			let pending = 0;
-			for (const row of facts.ledger) {
-				if (
-					row.id === input.exclude_request_id ||
-					row.allocation_id !== allocation.id ||
-					row.event?.kind !== 'TIME_OFF'
-				)
-					continue;
-				reserved += decodeNumber(row.event.chargeable_days);
-				if (row.approval_id != null) pending += decodeNumber(row.event.chargeable_days);
-			}
-			remaining_days = decodeNumber(allocation.allocated_days) - reserved;
-			allocation_balance = {
-				allocated: decodeNumber(allocation.allocated_days),
-				approved: reserved - pending,
-				pending,
-				remaining: remaining_days
-			};
-			const start = dateKey(allocation.starts_on);
-			const end = dateKey(allocation.expires_on);
-			if (range && (range.start.date < start || range.end.date > end))
-				issues.push(
-					issue('ALLOCATION_WINDOW', `This allocation may be used from ${start} through ${end}.`)
-				);
-			if (chargeable_days != null && chargeable_days > remaining_days + 1e-9)
-				issues.push(
-					issue(
-						'OVERDRAW',
-						`This event has ${Math.max(0, remaining_days)} day(s) available after approved and pending requests; this range charges ${chargeable_days} day(s).`
-					)
-				);
-		}
-	} else {
-		if (input.allocation_id != null)
-			issues.push(
-				issue(
-					'ALLOCATION_REQUIRED',
-					'Annual leave uses its accrued balance and cannot consume an event allocation.'
-				)
-			);
-		const asOf = asOfDate(input, window);
-		if (facts.jurisdictionCode.length === 0) {
-			issues.push(
-				issue(
-					'MISSING_JURISDICTION',
-					'The company states no jurisdiction anchor, so the statutory floor cannot resolve.'
-				)
-			);
-		} else {
-			try {
-				// Verify the request date first; each accrual month uses its own approved law.
-				const profile = sealedProfileCovering(facts.sealedProfiles, facts.jurisdictionCode, asOf);
-				if (profile == null) {
-					throw new Error(
-						`No sealed statutory profile covers ${asOf}, so the statutory leave floor ` +
-							'cannot resolve. Seal a version of the law family first.'
-					);
-				}
-				const entitlementAt = (serviceMonths: number, entitlementAsOf: string) =>
-					resolveEntitlementAt({
-						leaveType: facts.leaveType,
-						profiles: facts.sealedProfiles,
-						jurisdictionCode: facts.jurisdictionCode,
-						children: facts.children,
-						serviceMonths,
-						employmentId: facts.employment.id,
-						asOf: entitlementAsOf
-					});
-				const balanceInput = {
-					leaveType: facts.leaveType,
-					entitlementAt,
-					hireDate,
-					exitDate,
-					leaveYearStartMonth: facts.company.leave_year_start_month,
-					ledger: projectedLedger(facts, input.exclude_request_id),
-					basis: 'PROJECTED' as const
-				};
-				remaining_days = leaveBalance(balanceInput, asOf);
-				const carry = carryInto(
-					balanceInput,
-					leaveYearOf(asOf, facts.company.leave_year_start_month)
-				);
-				if (carry.state === 'PROVISIONAL' && carry.days > 0) {
-					carry_note = `${leaveYearOf(asOf, facts.company.leave_year_start_month) - 1} carry-forward not yet processed`;
-				}
-				if (chargeable_days != null && chargeable_days > remaining_days + 1e-9 && !facts.encashed) {
-					issues.push(
-						issue(
-							'OVERDRAW',
-							`This range charges ${chargeable_days} day(s), but only ${Math.max(0, remaining_days)} day(s) are available.`
-						)
-					);
-				}
-			} catch (error) {
-				issues.push(
-					issue(
-						'MISSING_PROFILE',
-						error instanceof Error
-							? error.message
-							: `No sealed statutory profile covers ${asOf}, so the statutory leave floor cannot resolve.`
-					)
-				);
-			}
-		}
-	}
-
+	const encashed = facts.entries.some((entry) => entry.kind === 'ENCASHED');
+	if (encashed) issues.push(issue('ENCASHED', 'This account was encashed and is closed.'));
 	return {
-		remaining_days,
-		...(allocation_balance == null ? {} : { allocation_balance }),
-		chargeable_days,
-		encashed: facts.encashed,
-		carry_note,
+		remaining_days: remaining,
+		chargeable_days: chargeableDays,
+		certificate_required:
+			chargeableDays != null &&
+			facts.leaveType.requires_certificate_after_days != null &&
+			chargeableDays > facts.leaveType.requires_certificate_after_days,
+		encashed,
+		carry_note: null,
 		availability,
 		issues
 	};
@@ -729,95 +463,105 @@ function loadLeavePreviewFacts(
 ): Effect.Effect<LeavePreviewFacts> {
 	return Effect.gen(function* () {
 		const window = previewWindow(input);
-		if (window == null) {
-			refuse(
-				'A leave preview needs a calendar month or a half-day range so it knows which days to measure.'
-			);
-		}
-
+		if (window == null) refuse('Choose a calendar month or leave range.');
 		const employment = yield* api.db.employments.findFirst({
-			where: { id: { eq: input.employment_id } }
+			where: { id: { eq: input.employment_id }, approval_id: { isNull: true } }
 		});
-		if (employment == null) refuse('The leave request must reference an employment on file.');
-
-		const [company, leaveType, holidays, terms, workDays, overlappingTimeOff] = yield* Effect.all(
-			[
-				api.db.companies.findFirst({
-					where: { id: { eq: employment.company_id } }
-				}),
-				api.db.leave_types.findFirst({
-					where: { id: { eq: input.leave_type_id }, company_id: { eq: employment.company_id } }
-				}),
-				api.db.company_holidays.findMany({
-					where: {
-						company_id: { eq: employment.company_id },
-						date: { gte: window.start, lte: window.end }
-					},
-					limit: LEAVE_PREVIEW_QUERY_LIMIT
-				}),
-				api.db.employment_terms.findMany({
-					where: { employment_id: { eq: input.employment_id } },
-					limit: LEAVE_PREVIEW_QUERY_LIMIT
-				}),
-				api.db.work_days.findMany({
-					where: {
-						employment_id: { eq: input.employment_id },
-						work_date: { gte: window.start, lte: window.end }
-					},
-					limit: LEAVE_PREVIEW_QUERY_LIMIT
-				}),
-				api.db.leave_requests.findMany({
-					where: {
-						employment_id: { eq: input.employment_id },
-						kind: { eq: 'TIME_OFF' }
-					},
-					limit: LEAVE_PREVIEW_QUERY_LIMIT
-				})
-			],
-			{ concurrency: 'unbounded' }
-		);
-		if (company == null) refuse('The employing entity no longer exists.');
+		if (employment == null) refuse('The leave request must reference an approved employment.');
+		const leaveType = yield* api.db.leave_types.findFirst({
+			where: { id: { eq: input.leave_type_id }, company_id: { eq: employment.company_id } }
+		});
 		if (leaveType == null) refuse('That leave type does not belong to the employing entity.');
-
-		const truncated = [
-			requireCompletePage(holidays, 'company-holiday'),
-			requireCompletePage(terms, 'employment-term'),
-			requireCompletePage(workDays, 'work-day'),
-			requireCompletePage(overlappingTimeOff, 'overlapping leave request')
-		].find((candidate) => candidate != null);
-		if (truncated != null) refuse(truncated.message);
-
-		const settledRuns = yield* api.db.payroll_runs.findMany({
-			where: { company_id: { eq: employment.company_id }, lifecycle: { eq: 'PAID' } },
-			columns: { period: true, lifecycle: true, attendance_from: true, attendance_to: true },
-			limit: LEAVE_PREVIEW_QUERY_LIMIT
+		const plan = yield* api.db.leave_plans.findFirst({
+			where: { id: { eq: leaveType.leave_plan_id }, approval_id: { isNull: true } }
 		});
-		const settledTruncated = requireCompletePage(settledRuns, 'paid payroll');
-		if (settledTruncated != null) refuse(settledTruncated.message);
-
-		const encashedRows = yield* api.db.leave_requests.findMany({
+		const asOf = input.range?.end.date ?? window.end;
+		const accountRows = yield* api.db.leave_accounts.findMany({
 			where: {
 				employment_id: { eq: input.employment_id },
-				leave_type_id: { eq: input.leave_type_id },
-				kind: { eq: 'ENCASHMENT' },
+				leave_type_id: { eq: leaveType.id },
 				approval_id: { isNull: true }
 			},
-			columns: { id: true },
-			limit: 100
+			limit: LIMIT
 		});
+		requireComplete(accountRows, 'leave account');
+		const account =
+			accountRows.find((row) => row.id === input.leave_account_id) ??
+			accountRows.find((row) => accountCovers(row, asOf)) ??
+			null;
+		if (input.leave_account_id != null && account?.id !== input.leave_account_id)
+			refuse('The selected leave account does not belong to this employment and leave type.');
 
+		const [person, holidays, terms, workDays, storedRequests, settledRuns, entries] =
+			yield* Effect.all(
+				[
+					api.db.employees.findFirst({
+						where: { id: { eq: employment.employee_id } },
+						columns: { gender: true }
+					}),
+					api.db.company_holidays.findMany({
+						where: {
+							company_id: { eq: employment.company_id },
+							date: { gte: window.start, lte: window.end }
+						},
+						limit: LIMIT
+					}),
+					api.db.employment_terms.findMany({
+						where: { employment_id: { eq: input.employment_id } },
+						limit: LIMIT
+					}),
+					api.db.work_days.findMany({
+						where: {
+							employment_id: { eq: input.employment_id },
+							work_date: { gte: window.start, lte: window.end }
+						},
+						limit: LIMIT
+					}),
+					api.db.leave_requests.findMany({
+						where: { employment_id: { eq: input.employment_id } },
+						limit: LIMIT
+					}),
+					api.db.payroll_runs.findMany({
+						where: { company_id: { eq: employment.company_id }, lifecycle: { eq: 'PAID' } },
+						columns: { period: true, lifecycle: true, attendance_from: true, attendance_to: true },
+						limit: LIMIT
+					}),
+					account == null
+						? Effect.succeed([])
+						: api.db.leave_entries.findMany({
+								where: { leave_account_id: { eq: account.id }, approval_id: { isNull: true } },
+								limit: LIMIT
+							})
+				],
+				{ concurrency: 'unbounded' }
+			);
+		for (const [rows, label] of [
+			[holidays, 'company holiday'],
+			[terms, 'employment term'],
+			[workDays, 'work day'],
+			[storedRequests, 'leave request'],
+			[settledRuns, 'paid payroll'],
+			[entries, 'leave entry']
+		] as const)
+			requireComplete(rows, label);
+		const requests = yield* withPendingLeaveRequests(
+			api,
+			input.employment_id,
+			storedRequests,
+			input.exclude_request_id
+		);
 		const shiftIds = [
 			...new Set([
 				...workDays.flatMap((day) =>
 					day.shift_definition_id == null ? [] : [day.shift_definition_id]
 				),
-				...terms.flatMap((term) => {
-					const pattern = term.work_pattern;
-					if (pattern?.type !== 'PATTERNED') return [];
-					return pattern.phases.flatMap((phase) =>
-						phase.day_cycle.map((day) => day.roster_code_id)
-					);
-				})
+				...terms.flatMap((term) =>
+					term.work_pattern?.type === 'PATTERNED'
+						? term.work_pattern.phases.flatMap((phase) =>
+								phase.day_cycle.map((day) => day.roster_code_id)
+							)
+						: []
+				)
 			])
 		];
 		const rosterCodes =
@@ -825,91 +569,22 @@ function loadLeavePreviewFacts(
 				? []
 				: yield* api.db.shift_definitions.findMany({
 						where: { id: { in: shiftIds } },
-						limit: LEAVE_PREVIEW_QUERY_LIMIT
+						limit: LIMIT
 					});
-		if (shiftIds.length > 0) {
-			const rosterTruncated = requireCompletePage(rosterCodes, 'roster-code');
-			if (rosterTruncated != null) refuse(rosterTruncated.message);
-		}
-
-		const anchor = yield* api.db.jurisdictions.findFirst({
-			where: { id: { eq: company.jurisdiction_id } },
-			columns: { code: true }
-		});
-		const profileRows =
-			anchor == null
-				? []
-				: yield* api.db.jurisdictions.findMany({
-						where: {
-							code: { eq: anchor.code },
-							lifecycle: { eq: 'SEALED' },
-							approval_id: { isNull: true }
-						},
-						limit: LEAVE_PREVIEW_QUERY_LIMIT
-					});
-		const childFacts = yield* api.db.employee_children.findMany({
-			where: { employment_id: { eq: input.employment_id }, approval_id: { isNull: true } },
-			limit: LEAVE_PREVIEW_QUERY_LIMIT
-		});
-		for (const truncated of [
-			requireCompletePage(profileRows, 'statutory profile'),
-			requireCompletePage(childFacts, 'employee child')
-		]) {
-			if (truncated != null) refuse(truncated.message);
-		}
-		const allLedger = yield* api.db.leave_requests.findMany({
-			where: {
-				employment_id: { eq: input.employment_id },
-				leave_type_id: { eq: input.leave_type_id }
-			},
-			limit: LEAVE_PREVIEW_QUERY_LIMIT
-		});
-		const ledgerTruncated = requireCompletePage(allLedger, 'leave ledger');
-		if (ledgerTruncated != null) refuse(ledgerTruncated.message);
-		const requested = yield* withPendingLeaveRequests(
-			api,
-			input.employment_id,
-			[...new Map([...overlappingTimeOff, ...allLedger].map((row) => [row.id, row])).values()],
-			input.exclude_request_id
-		);
-		const allocations =
-			leaveType.accrual.kind === 'PER_EVENT'
-				? yield* api.db.leave_allocations.findMany({
-						where: {
-							employment_id: { eq: input.employment_id },
-							leave_type_id: { eq: input.leave_type_id },
-							approval_id: { isNull: true }
-						},
-						limit: LEAVE_PREVIEW_QUERY_LIMIT
-					})
-				: [];
-		const allocationTruncated = requireCompletePage(allocations, 'event allocations');
-		if (allocationTruncated != null) refuse(allocationTruncated.message);
-
+		requireComplete(rosterCodes, 'roster code');
 		return {
-			employment: {
-				id: employment.id,
-				company_id: employment.company_id,
-				hire_date: dateKey(employment.hire_date),
-				exit_date: employment.exit_date == null ? null : dateKey(employment.exit_date)
-			},
-			company: {
-				jurisdiction_id: company.jurisdiction_id,
-				leave_year_start_month: decodeNumber(company.leave_year_start_month)
-			},
+			gender: person?.gender ?? null,
+			employment,
 			leaveType,
+			planActive: plan != null && account?.opening_plan_id === plan.id,
+			account,
+			entries,
 			holidays,
 			terms,
 			workDays,
-			overlappingTimeOff: requested.filter((row) => row.event.kind === 'TIME_OFF'),
-			ledger: requested.filter((row) => row.leave_type_id === input.leave_type_id),
-			allocations,
-			encashed: encashedRows.length > 0,
+			requests,
 			settledRuns,
-			rosterCodes,
-			jurisdictionCode: anchor?.code ?? '',
-			sealedProfiles: profileRows,
-			children: childFacts
+			rosterCodes
 		};
 	});
 }
@@ -918,18 +593,15 @@ export function previewLeave(
 	api: LeavePreviewApi,
 	input: PreviewLeaveInput
 ): Effect.Effect<LeavePreview> {
-	return Effect.gen(function* () {
-		const facts = yield* loadLeavePreviewFacts(api, input);
-		return evaluateLeavePreview(facts, input);
-	});
+	return Effect.map(loadLeavePreviewFacts(api, input), (facts) =>
+		evaluateLeavePreview(facts, input)
+	);
 }
 
-/** The first blocking sentence the write hook should refuse, or null when the preview is applyable. */
 export function firstLeavePreviewRefusal(preview: LeavePreview): string | null {
 	return preview.issues[0]?.message ?? null;
 }
 
-/** The calendar window this input will gather — month grid, selected range, or their union. */
 export function previewWindowOf(input: PreviewLeaveInput): { start: string; end: string } | null {
 	return previewWindow(input);
 }

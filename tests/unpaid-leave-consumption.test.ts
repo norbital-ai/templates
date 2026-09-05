@@ -55,13 +55,14 @@ const NPL = {
 const NPL_TYPE = {
 	id: '00000000-0000-4000-8000-0000000000t1',
 	company_id: 'co-pub-my',
+	leave_plan_id: 'plan-pub-my',
 	code: 'NPL',
 	name: 'Unpaid leave',
 	eligibility: [],
 	statutory_kind: null,
 	encash_on_exit: false,
 	requires_certificate_after_days: null,
-	accrual: { kind: 'PER_EVENT' },
+	accrual: { kind: 'UNLIMITED' },
 	entitlement: { layers: [] },
 	payroll_effect: { kind: 'UNPAID', component_id: NPL.id }
 };
@@ -80,6 +81,7 @@ function configuration(leaveTypes = [NPL_TYPE]) {
 	return {
 		company: COMPANY,
 		jurisdiction: JURISDICTION,
+		leaveProfiles: [JURISDICTION],
 		contributions: [],
 		treatments: new Map(),
 		payComponents: [BASIC, NPL],
@@ -125,6 +127,8 @@ function bundle(ledger = []) {
 		loans: [],
 		loanRepayments: [],
 		ledger,
+		leaveAccounts: [],
+		leaveEntries: [],
 		workDays: [],
 		serviceMonths: 58,
 		age: 36,

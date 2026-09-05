@@ -2,15 +2,6 @@
 	import { Result, Schema } from 'effect';
 	import { useI18n } from '@norbital-ai/ui/i18n';
 	import type { TenantI18nKeys } from '$bolt/i18n-keys';
-	/**
-	 * The company's own entitlement layers. The statutory floor is the profile's — versioned and
-	 * sealed with the law revision that states it — so this editor mounts the company arms only
-	 * (ORGANISATION, EMPLOYEE); what belongs only to this shape is the service band and the number
-	 * of days. There is no authority and no effective range: the profile seal is the version.
-	 */
-	import LayerLevelPicker, {
-		type PolicyLayerLevel
-	} from '../../lib/ui/policy-layers/layer-level-picker.svelte';
 	import { numberFrom } from '../../lib/ui/renderer-input.js';
 	import { Button } from '@norbital-ai/ui/button';
 	import { Input } from '@norbital-ai/ui/input';
@@ -20,33 +11,17 @@
 	import type { RendererProps, Value } from './$types.js';
 
 	const { t } = useI18n<TenantI18nKeys>();
-
 	type Layer = Value['layers'][number];
 
-	const LAYER_LEVELS = ['ORGANISATION', 'EMPLOYEE'] as const;
-
-	type LeaveEntitlementRendererProps = RendererProps & {
-		/** The leave type being edited, which is what scopes the people an EMPLOYEE layer may name. */
-		readonly row?: Record<string, unknown>;
-	};
-
-	let props: LeaveEntitlementRendererProps = $props();
+	let props: RendererProps = $props();
 	const disabled = $derived(props.mode === 'edit' ? props.disabled : true);
-	const companyId = $derived(
-		typeof props.row?.company_id === 'string' ? props.row.company_id : null
-	);
 	const parsed = $derived(
 		Schema.decodeUnknownResult(leaveEntitlementSchema)(props.value, { onExcessProperty: 'error' })
 	);
 	const layers = $derived<Layer[]>(Result.isSuccess(parsed) ? [...parsed.success.layers] : []);
-	/*
-	 * The count stays a static sentence. Naming the people behind the EMPLOYEE layers would mount
-	 * one lookup per row of the leave-types table — the N+1 `controller-surfaces.md` §5 forbids —
-	 * and they are named in the editor, where a single scoped query answers all of them at once.
-	 */
 	const summary = $derived(
 		Result.isSuccess(parsed)
-			? `${parsed.success.layers.length} organisation / employee entitlement layer${parsed.success.layers.length === 1 ? '' : 's'}`
+			? `${parsed.success.layers.length} company entitlement band${parsed.success.layers.length === 1 ? '' : 's'}`
 			: '—'
 	);
 
@@ -54,35 +29,8 @@
 		if (props.mode === 'edit') props.onValueChange({ layers: next });
 	}
 
-	function newLayer(level: PolicyLayerLevel): Layer {
-		switch (level) {
-			case 'ORGANISATION':
-				return { level: 'ORGANISATION', band_from: 0, days: 0 };
-			case 'EMPLOYEE':
-				return { level: 'EMPLOYEE', employment_id: '', band_from: 0, days: 0 };
-		}
-	}
-
-	/**
-	 * Move a layer to another arm, carrying everything the arms share.
-	 *
-	 * Written out rather than spread so the EMPLOYEE arm's extra field is added and dropped
-	 * explicitly: a spread would leave it behind on a row that does not declare it, which
-	 * `strictObject` rejects only at save time, long after the operator has moved on.
-	 */
-	function atLevel(layer: Layer, level: PolicyLayerLevel): Layer {
-		const { band_from, days } = layer;
-		switch (level) {
-			case 'ORGANISATION':
-				return { level: 'ORGANISATION', band_from, days };
-			case 'EMPLOYEE':
-				return {
-					level: 'EMPLOYEE',
-					employment_id: layer.level === 'EMPLOYEE' ? layer.employment_id : '',
-					band_from,
-					days
-				};
-		}
+	function newLayer(): Layer {
+		return { level: 'ORGANISATION', band_from: 0, days: 0 };
 	}
 </script>
 
@@ -96,24 +44,7 @@
 		{#each layers as layer, index (index)}
 			<Stack gap="xs" class="rounded-md border border-border bg-card p-3">
 				<Cluster justify="between" align="center" gap="sm">
-					<LayerLevelPicker
-						levels={LAYER_LEVELS}
-						level={layer.level}
-						employmentId={layer.level === 'EMPLOYEE' ? layer.employment_id : null}
-						{companyId}
-						{disabled}
-						onLevelChange={(level) => {
-							const next = [...layers];
-							next[index] = atLevel(layer, level);
-							emit(next);
-						}}
-						onEmploymentChange={(employment) => {
-							if (layer.level !== 'EMPLOYEE') return;
-							const next = [...layers];
-							next[index] = { ...layer, employment_id: employment };
-							emit(next);
-						}}
-					/>
+					<span class="text-sm font-medium">Company policy</span>
 					<Button
 						variant="ghost"
 						size="icon"
@@ -156,7 +87,10 @@
 								{disabled}
 								oninput={(event) => {
 									const next = [...layers];
-									next[index] = { ...layer, days: numberFrom(event.currentTarget.value, 0) };
+									next[index] = {
+										...layer,
+										days: numberFrom(event.currentTarget.value, 0)
+									};
 									emit(next);
 								}}
 							/>
@@ -166,21 +100,8 @@
 			</Stack>
 		{/each}
 		<Cluster gap="xs">
-			<Button
-				variant="outline"
-				size="sm"
-				{disabled}
-				onclick={() => emit([...layers, newLayer('ORGANISATION')])}
-			>
+			<Button variant="outline" size="sm" {disabled} onclick={() => emit([...layers, newLayer()])}>
 				{t('renderer.leave_entitlement.add_organisation')}
-			</Button>
-			<Button
-				variant="outline"
-				size="sm"
-				{disabled}
-				onclick={() => emit([...layers, newLayer('EMPLOYEE')])}
-			>
-				{t('renderer.leave_entitlement.add_employee')}
 			</Button>
 		</Cluster>
 	</Stack>

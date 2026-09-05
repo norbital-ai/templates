@@ -19,14 +19,10 @@ const award = {
  * statutory profile's `statutory_leave` member — the floor is law, versioned and sealed with the
  * profile revision that states it, not hand-typed per company.
  */
-export const leaveEntitlementLayerSchema = Schema.Union([
-	Schema.Struct({ level: Schema.Literal('ORGANISATION'), ...award }),
-	Schema.Struct({
-		level: Schema.Literal('EMPLOYEE'),
-		employment_id: Schema.String.check(Schema.isUUID()),
-		...award
-	})
-]);
+export const leaveEntitlementLayerSchema = Schema.Struct({
+	level: Schema.Literal('ORGANISATION'),
+	...award
+});
 
 export const leaveEntitlementValueSchema = Schema.Struct({
 	layers: Schema.Array(leaveEntitlementLayerSchema)
@@ -40,6 +36,6 @@ export const leaveEntitlementSchema = Schema.toStandardSchemaV1(leaveEntitlement
 export default defineCustomType({
 	name: 'leave_entitlement',
 	description:
-		'The organisation and per-employee leave layers for one leave type, each with its service band, merged by taking the most generous layer above the statutory floor the linked statutory profile states.',
+		'The company service bands for one leave type. Person-specific corrections are ledger adjustments, never policy embedded inside a leave type.',
 	schema: leaveEntitlementSchema
 });

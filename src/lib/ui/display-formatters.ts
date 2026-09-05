@@ -11,8 +11,6 @@ import type { Translator } from './roster/roster-month.js';
 import { PAYROLL_TIME_ZONE, calendarDateInTimeZone } from './calendar.js';
 import { holidayScopeSchema } from '../../datatypes/holiday_scope/+definition.js';
 import type { LeaveEvent } from '../../datatypes/leave_event/+definition.js';
-import { leaveAccrualSchema } from '../../datatypes/leave_accrual/+definition.js';
-import { leavePayrollEffectSchema } from '../../datatypes/leave_payroll_effect/+definition.js';
 import { rateAwardSchema } from '../../datatypes/rate_award/+definition.js';
 import { rateSelectorSchema } from '../../datatypes/rate_selector/+definition.js';
 import { statutoryFactStatusSchema } from '../../datatypes/statutory_fact_status/+definition.js';
@@ -134,11 +132,6 @@ export function formatLeaveRange(event: LeaveEvent | null | undefined, t: Transl
 	return `${formatCalendarDate(event.range.start.date)}, ${half(event.range.start.half)} → ${formatCalendarDate(event.range.end.date)}, ${half(event.range.end.half)}`;
 }
 
-const ACCRUAL_KIND_LABELS: Readonly<Record<string, TenantI18nKeys>> = {
-	MONTHLY: 'component.accrual_kind_monthly',
-	UPFRONT: 'component.accrual_kind_upfront'
-};
-
 const SELECTOR_BY_LABELS: Readonly<Record<string, TenantI18nKeys>> = {
 	WAGE: 'component.selector_wage',
 	WAGE_AND_MARITAL: 'component.selector_wage_marital',
@@ -179,26 +172,6 @@ function labelOf(
 ): string {
 	const key = map[code];
 	return key === undefined ? code : t(key);
-}
-
-export function formatLeaveAccrual(value: unknown, t: Translator): string {
-	const parsed = Schema.decodeUnknownResult(leaveAccrualSchema)(value);
-	if (!Result.isSuccess(parsed)) return t('component.accrual_invalid');
-	const accrual = parsed.success;
-	if (accrual.kind === 'PER_EVENT') return t('component.accrual_per_event');
-	const carry = accrual.carry
-		? t('component.accrual_carry', {
-				days: accrual.carry.limit_days,
-				months: accrual.carry.expiry_months
-			})
-		: t('component.accrual_no_carry');
-	return `${labelOf(t, ACCRUAL_KIND_LABELS, accrual.kind)}${carry}`;
-}
-
-export function formatLeavePayrollEffect(value: unknown, t: Translator): string {
-	const parsed = Schema.decodeUnknownResult(leavePayrollEffectSchema)(value);
-	if (!Result.isSuccess(parsed)) return t('component.effect_invalid');
-	return parsed.success.kind === 'PAID' ? t('component.effect_paid') : t('component.effect_unpaid');
 }
 
 export function formatHolidayScope(value: unknown, t: Translator): string {

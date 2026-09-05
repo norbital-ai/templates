@@ -59,6 +59,8 @@ type Employment = WorkspaceRow<'employments'>;
 type Employee = WorkspaceRow<'employees'>;
 type EmploymentTerms = WorkspaceRow<'employment_terms'>;
 type StatutoryFact = WorkspaceRow<'employment_statutory_facts'>;
+type LeaveAccount = WorkspaceRow<'leave_accounts'>;
+type LeaveEntry = WorkspaceRow<'leave_entries'>;
 
 /**
  * One person-day as payroll reads it: the plan, the punch and the break, on one row.
@@ -85,6 +87,9 @@ export type EmploymentBundle = {
 	/** The amounts due under those agreements — one of the four input families. */
 	readonly loanRepayments: readonly LoanRepayment[];
 	readonly ledger: readonly LedgerRow[];
+	/** Materialized entitlement accounts and their immutable movements, for formula balances. */
+	readonly leaveAccounts: readonly LeaveAccount[];
+	readonly leaveEntries: readonly LeaveEntry[];
 	/** Plan and punch together. */
 	readonly workDays: readonly WorkDay[];
 	/** Completed months of service at the period end. */
@@ -224,6 +229,7 @@ export function gatherRun(options: GatherRunOptions): Effect.Effect<GatheredRun,
 			entryRows,
 			loanRows,
 			requestRows,
+			leaveAccountRows,
 			workDayRows,
 			childRows
 		] = yield* Effect.all(
@@ -237,6 +243,7 @@ export function gatherRun(options: GatherRunOptions): Effect.Effect<GatheredRun,
 				db.component_entries.findMany({ where: inEmployments, limit: PAGE_LIMIT }),
 				db.loans.findMany({ where: inEmployments, limit: PAGE_LIMIT }),
 				db.leave_requests.findMany({ where: inEmployments, limit: PAGE_LIMIT }),
+				db.leave_accounts.findMany({ where: inEmployments, limit: PAGE_LIMIT }),
 				db.work_days.findMany({
 					where: {
 						employment_id: { in: employmentIds },
@@ -262,6 +269,7 @@ export function gatherRun(options: GatherRunOptions): Effect.Effect<GatheredRun,
 		options.api.reads.assertComplete(entryRows, 'component entries');
 		options.api.reads.assertComplete(loanRows, 'loans');
 		options.api.reads.assertComplete(requestRows, 'leave requests');
+		options.api.reads.assertComplete(leaveAccountRows, 'leave accounts');
 		options.api.reads.assertComplete(workDayRows, 'work days');
 		options.api.reads.assertComplete(childRows, 'child facts');
 
@@ -277,15 +285,26 @@ export function gatherRun(options: GatherRunOptions): Effect.Effect<GatheredRun,
 					})
 				: [];
 		options.api.reads.assertComplete(repaymentRows, 'loan repayments');
+		const leaveAccountIds = live(leaveAccountRows).map((row) => row.id);
+		const leaveEntryRows =
+			leaveAccountIds.length === 0
+				? []
+				: yield* db.leave_entries.findMany({
+						where: { leave_account_id: { in: leaveAccountIds }, ...approved },
+						limit: PAGE_LIMIT
+					});
+		options.api.reads.assertComplete(leaveEntryRows, 'leave entries');
 
 		const employeeById = new Map(live(employeeRows).map((row) => [row.id, row]));
 		const termsByEmployment = groupBy(live(termRows), (row) => row.employment_id);
 		const factsByEmployment = groupBy(live(factRows), (row) => row.employment_id);
 		const entriesByEmployment = groupBy(live(entryRows), (row) => row.employment_id);
+		const leaveAccountsByEmployment = groupBy(live(leaveAccountRows), (row) => row.employment_id);
+		const leaveEntriesByAccount = groupBy(live(leaveEntryRows), (row) => row.leave_account_id);
 		const repaymentsByLoan = groupBy(live(repaymentRows), (row) => row.loan_id);
 		const loansByEmployment = groupBy(live(loanRows), (row) => row.employment_id);
-		/** Every approved event belongs in the ledger, including opening carry used by balance
-		 * formulas. Only TAKEN movements can become unpaid absence deductions. */
+		/** Approved applications are payroll attendance inputs. Entitlement movements stay in the
+		 * account ledger and never become absence deductions. */
 		const leaveMovements: (LedgerRow & { readonly employment_id: string })[] = live(
 			requestRows
 		).flatMap((request) => {
@@ -298,59 +317,16 @@ export function gatherRun(options: GatherRunOptions): Effect.Effect<GatheredRun,
 				source_id: request.id,
 				approval_id: null
 			};
-			switch (event.kind) {
-				case 'TIME_OFF':
-					return [
-						{
-							...base,
-							entry_date: event.range.start.date,
-							through_date: event.range.end.date,
-							kind: 'TAKEN',
-							days: -Math.abs(decodeNumber(event.chargeable_days ?? 0)),
-							source_id: request.id
-						}
-					];
-				case 'BALANCE_ADJUSTMENT':
-					return [
-						{
-							...base,
-							entry_date: event.effective_on,
-							through_date: event.effective_on,
-							kind: 'ADJUSTMENT',
-							days: decodeNumber(event.movement_days),
-							source_id: event.source_id
-						}
-					];
-				case 'ENCASHMENT':
-					return [
-						{
-							...base,
-							entry_date: event.effective_on,
-							through_date: event.effective_on,
-							kind: 'ENCASHMENT',
-							days: decodeNumber(event.movement_days),
-							source_id: event.source_id
-						}
-					];
-				case 'CARRY_FORWARD':
-					return [
-						{
-							...base,
-							entry_date: event.effective_on,
-							kind: 'CARRY_FORWARD',
-							through_date: event.effective_on,
-							days: decodeNumber(event.movement_days),
-							leave_year: event.leave_year,
-							expires_on: event.expires_on
-						}
-					];
-				default: {
-					const _exhaustive: never = event;
-					refuse(
-						`Leave request ${request.id} has unrecognised event kind ${JSON.stringify(_exhaustive)}.`
-					);
+			return [
+				{
+					...base,
+					entry_date: event.range.start.date,
+					through_date: event.range.end.date,
+					kind: 'TAKEN',
+					days: -Math.abs(decodeNumber(event.chargeable_days ?? 0)),
+					source_id: request.id
 				}
-			}
+			];
 		});
 		const ledgerByEmployment = groupBy(leaveMovements, (row) => row.employment_id);
 		const workDaysByEmployment = groupBy(live(workDayRows), (row) => row.employment_id);
@@ -383,6 +359,10 @@ export function gatherRun(options: GatherRunOptions): Effect.Effect<GatheredRun,
 				loans: employmentLoans,
 				loanRepayments: employmentLoans.flatMap((loan) => repaymentsByLoan.get(loan.id) ?? []),
 				ledger: ledgerByEmployment.get(employment.id) ?? [],
+				leaveAccounts: leaveAccountsByEmployment.get(employment.id) ?? [],
+				leaveEntries: (leaveAccountsByEmployment.get(employment.id) ?? []).flatMap(
+					(account) => leaveEntriesByAccount.get(account.id) ?? []
+				),
 				workDays: workDaysByEmployment.get(employment.id) ?? [],
 				serviceMonths: completedMonths(hire, salary.end),
 				age: dob == null ? null : completedYears(dob, salary.end),

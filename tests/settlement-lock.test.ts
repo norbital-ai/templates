@@ -131,6 +131,8 @@ function measure(overrides = {}) {
 			loans: [],
 			loanRepayments: [],
 			ledger: [],
+			leaveAccounts: [],
+			leaveEntries: [],
 			workDays: [],
 			serviceMonths: 57,
 			age: 34,
@@ -145,6 +147,7 @@ function measure(overrides = {}) {
 		configuration: {
 			company: COMPANY,
 			jurisdiction: JURISDICTION,
+			leaveProfiles: [JURISDICTION],
 			contributions: [],
 			treatments: new Map(),
 			payComponents: [BASIC],

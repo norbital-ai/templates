@@ -14,6 +14,7 @@ export const BASIC_ID = '66666666-6666-4666-8666-666666666666';
 export const TRANSPORT_ID = '77777777-7777-4777-8777-777777777777';
 export const STANDING_ENTRY_ID = '88888888-8888-4888-8888-888888888888';
 export const BONUS_ENTRY_ID = '99999999-9999-4999-8999-999999999999';
+export const DEFAULT_LEAVE_PLAN_ID = 'dddddddd-dddd-4ddd-8ddd-dddddddddddd';
 
 const RANGE = { start: '2020-01-01', end: null };
 const ROSTERED = {
@@ -66,6 +67,8 @@ const STATUTORY_LEAVE = [
 		ladder: [{ band_from: 0, days: 8 }],
 		per_child: null,
 		max_days: null,
+		transition: 'NEXT_LEAVE_YEAR',
+		carry: null,
 		authority: 'Public fixture — not a sealed statutory table.'
 	}
 ];
@@ -189,7 +192,23 @@ export function createPublicPayrollWorld(options: PublicPayrollWorldOptions = {}
 			}
 		],
 		company_holidays: [],
+		leave_plans: [
+			{
+				id: DEFAULT_LEAVE_PLAN_ID,
+				company_id: COMPANY_ID,
+				code: 'DEFAULT',
+				name: 'Public fixture leave plan',
+				lifecycle: 'ACTIVE',
+				transition: 'NEXT_LEAVE_YEAR',
+				effective_range: RANGE,
+				supersedes_id: null,
+				change_note: 'Stable payroll fixture baseline',
+				approval_id: null
+			}
+		],
 		leave_types: [],
+		leave_accounts: [],
+		leave_entries: [],
 		employments: [
 			{
 				id: EMPLOYMENT_ID,

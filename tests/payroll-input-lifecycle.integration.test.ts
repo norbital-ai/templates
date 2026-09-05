@@ -8,6 +8,7 @@ import {
 	requireAccepted
 } from '@norbital-ai/test-utilities';
 import {
+	ANNUAL_LEAVE_ACCOUNT_ID,
 	ANNUAL_LEAVE_TYPE_ID,
 	COMPANY_ID,
 	EMPLOYMENT_ID,
@@ -107,6 +108,7 @@ test(
 					id: leaveId,
 					employment_id: EMPLOYMENT_ID,
 					leave_type_id: ANNUAL_LEAVE_TYPE_ID,
+					leave_account_id: ANNUAL_LEAVE_ACCOUNT_ID,
 					event: {
 						kind: 'TIME_OFF',
 						range: {

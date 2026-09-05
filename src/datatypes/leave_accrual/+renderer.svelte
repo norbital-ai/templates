@@ -16,9 +16,9 @@
 		{ value: 'MONTHLY', label: 'Monthly', description: 'Pro-rata each completed month' },
 		{ value: 'UPFRONT', label: 'Upfront', description: 'Whole band at the leave-year start' },
 		{
-			value: 'PER_EVENT',
-			label: 'Per event',
-			description: 'Approved allocation for each qualifying event'
+			value: 'UNLIMITED',
+			label: 'Unmetered',
+			description: 'Yearly account required; no balance ceiling'
 		}
 	];
 
@@ -30,7 +30,7 @@
 	const current = $derived(Result.isSuccess(parsed) ? parsed.success : null);
 	const summary = $derived.by(() => {
 		if (current === null) return '—';
-		if (current.kind === 'PER_EVENT') return 'Per event';
+		if (current.kind === 'UNLIMITED') return 'Unmetered';
 		const carry =
 			current.carry === null
 				? 'no carry forward'
@@ -48,8 +48,8 @@
 				return { kind: 'MONTHLY', carry: null };
 			case 'UPFRONT':
 				return { kind: 'UPFRONT', carry: null };
-			case 'PER_EVENT':
-				return { kind: 'PER_EVENT' };
+			case 'UNLIMITED':
+				return { kind: 'UNLIMITED' };
 		}
 	}
 

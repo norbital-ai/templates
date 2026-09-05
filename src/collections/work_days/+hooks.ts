@@ -380,7 +380,7 @@ function assertDayHasNoPaidSilence(
  * The record guard: what an existing attendance row is held by, which is a claim and nothing else.
  *
  * Three inputs to `sourceLock` are deliberately empty here, and the emptiness is the change §2.2 of
- * `docs/attendance-on-the-board-proposal.md` asks for rather than an omission:
+ * `docs/scheduling-leave-proposal.md` asks for rather than an omission:
  *
  *   - `windows: []` — the window is an inference about *days* and this row is a *record*. Whether
  *     it is editable is answered by whether a run took it, and a run that took it says so in

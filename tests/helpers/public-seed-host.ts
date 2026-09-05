@@ -11,7 +11,9 @@ import {
 export const COMPANY_ID = '11111111-1111-4111-8111-111111111111';
 export const EMPLOYMENT_ID = '44444444-4444-4444-8444-444444444444';
 export const ANNUAL_LEAVE_TYPE_ID = 'ffffffff-ffff-4fff-8fff-fffffffffff1';
+export const EVENT_LEAVE_TYPE_ID = 'ffffffff-ffff-4fff-8fff-fffffffffff4';
 export const ANNUAL_LEAVE_REQUEST_ID = 'ffffffff-ffff-4fff-8fff-fffffffffff2';
+export const ANNUAL_LEAVE_ACCOUNT_ID = 'abababab-abab-4aba-8aba-abababababa1';
 export const JURISDICTION_ID = '22222222-2222-4222-8222-222222222222';
 export const SHIFT_WORK_ID = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1';
 export const SHIFT_REST_ID = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa2';
@@ -68,6 +70,7 @@ export const startPublicSeedHost = async (
 	return {
 		host: { baseUrl: session.baseUrl, address: session.address, stop: session.stop },
 		credential: session.credential,
+		scope: session.scope,
 		schemaFingerprint,
 		stages,
 		query: session.query,

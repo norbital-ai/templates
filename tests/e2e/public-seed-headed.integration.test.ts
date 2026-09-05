@@ -8,11 +8,16 @@ import {
 	isHeadedRun,
 	launchChromiumOrSkip,
 	postGuestCommand,
+	mutationPush,
+	asRecord,
 	type HeadedBrowser,
 	type HeadedPage
 } from '@norbital-ai/test-utilities';
 import {
+	ANNUAL_LEAVE_ACCOUNT_ID,
 	JURISDICTION_ID,
+	EMPLOYMENT_ID,
+	ANNUAL_LEAVE_TYPE_ID,
 	publicSeedDirectory,
 	startPublicSeedHost,
 	templateManifestPath
@@ -178,10 +183,10 @@ const openHrGateway = async (
 		rewritePath: rewriteBoltBrowserPath,
 		document: ({ browserSession }) =>
 			workspaceDocumentHtml({
-				tenantId: label,
-				workspaceId: label,
-				environment: 'test',
-				releaseId: label,
+				tenantId: String(session.scope.tenantId),
+				workspaceId: String(session.scope.tenantId),
+				environment: String(session.scope.environment),
+				releaseId: String(session.scope.releaseId),
 				principal: `${label}-founder`,
 				syncPrincipal: `${label}-founder`,
 				organizationName: 'HR payroll public seed',
@@ -650,6 +655,10 @@ it('HR self-host paints manager leave and employee My leave as distinct boards',
 	let selfGateway: Awaited<ReturnType<typeof startSessionGateway>> | undefined;
 	let browser: HeadedBrowser | undefined;
 	try {
+		await session.query(
+			'update employees set email = $1 where id = (select employee_id from employments where id = $2)',
+			['hr-payroll-h5-self-founder@example.test', EMPLOYMENT_ID]
+		);
 		assert.equal((await fetch(`${session.host.baseUrl}/readyz`)).status, 200);
 		managerGateway = await openHrGateway(
 			session,
@@ -667,11 +676,11 @@ it('HR self-host paints manager leave and employee My leave as distinct boards',
 		await managerPage.evaluate(
 			`document.elementFromPoint(24, 24)?.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }))`
 		);
-		const manager = await waitForBody(managerPage, /Leave types/, 'h5-manager');
-		assert.match(manager, /Leave types/);
+		const manager = await waitForBody(managerPage, /Current balances/, 'h5-manager');
+		assert.match(manager, /Plans & rules/);
 		assert.match(manager, /Requests/);
 		assert.match(manager, /HR Controller/);
-		assert.match(manager, /Review leave events and the leave types that entitle them/);
+		assert.match(manager, /Current balances/);
 
 		const selfPage = await browser.openPage(selfUrl);
 		await selfPage.evaluate(
@@ -679,8 +688,7 @@ it('HR self-host paints manager leave and employee My leave as distinct boards',
 		);
 		const self = await waitForBody(selfPage, /Employee Self-Service|My leave/, 'h5-self');
 		assert.match(self, /Employee Self-Service|My leave|My HR/);
-		assert.doesNotMatch(self, /Leave application seasonality/);
-		assert.doesNotMatch(self, /Entitlement matrix/);
+		assert.doesNotMatch(self, /Plans & rules/);
 		const openedLeave = await pollEvaluate(
 			selfPage,
 			`(() => {
@@ -696,14 +704,75 @@ it('HR self-host paints manager leave and employee My leave as distinct boards',
 			'h14-leave-tab'
 		);
 		assert.equal(openedLeave, 'opened');
-		const balances = await waitForBody(
-			selfPage,
-			/Leave balances|No active employment|Choose the employment/,
-			'h14-balances'
-		);
+		const balances = await waitForBody(selfPage, /Available after pending/, 'h14-balances');
 		assert.doesNotMatch(balances, /^\s*Accrued\s*$/m);
 		assert.doesNotMatch(balances, /\nAccrued\n/);
-		assert.doesNotMatch(balances, /\nTaken\n/);
+		assert.match(balances, /Earned to date/);
+		assert.match(balances, /Taken/);
+		assert.match(balances, /Pending/);
+		assert.match(balances, /Available after pending/);
+		const request = await postGuestCommand(
+			session.host.baseUrl,
+			'collections.mutate',
+			mutationPush(session.schemaFingerprint, {
+				action: 'mutate',
+				collection: 'leave_requests',
+				rows: [
+					{
+						action: 'create',
+						values: {
+							id: crypto.randomUUID(),
+							employment_id: EMPLOYMENT_ID,
+							leave_type_id: ANNUAL_LEAVE_TYPE_ID,
+							leave_account_id: ANNUAL_LEAVE_ACCOUNT_ID,
+							event: {
+								kind: 'TIME_OFF',
+								range: {
+									start: { date: '2026-04-15', half: 'FIRST' },
+									end: { date: '2026-04-15', half: 'SECOND' }
+								},
+								chargeable_days: null,
+								reason: 'Live pending balance fixture'
+							}
+						}
+					}
+				]
+			}),
+			{ ...bearerHeaders(session.credential), 'x-colony-impersonated-team': 'HQ Payroll HR' }
+		);
+		assert.ok(asRecord(request.value, 'held leave').pendingApproval, JSON.stringify(request.value));
+		const pending = await pollEvaluate(
+			selfPage,
+			`(() => {
+				const section = document.querySelector('#my-leave-balances-heading')?.closest('section');
+				const label = [...(section?.querySelectorAll('dt') ?? [])].find((node) => node.textContent?.trim() === 'Pending');
+				return label?.nextElementSibling?.textContent?.trim() ?? ('missing-pending:' + (section?.textContent?.trim() ?? 'section'));
+			})()`,
+			(value) => Number(value) === 1,
+			'held-leave-reservation-live'
+		);
+		assert.equal(Number(pending), 1, 'held creates update the open balance view without reloading');
+		const requestId = String(
+			asRecord(asRecord(request.value, 'held leave').pendingApproval, 'pending approval').requestId
+		);
+		const withdrawn = await postGuestCommand(
+			session.host.baseUrl,
+			'approvals.withdraw',
+			{ state: { requestId } },
+			{ ...bearerHeaders(session.credential), 'x-colony-impersonated-team': 'HQ Payroll HR' }
+		);
+		assert.ok(withdrawn.status < 300, JSON.stringify(withdrawn.value));
+		const released = await pollEvaluate(
+			selfPage,
+			`(() => {
+			const section = document.querySelector('#my-leave-balances-heading')?.closest('section');
+			const label = [...(section?.querySelectorAll('dt') ?? [])].find((node) => node.textContent?.trim() === 'Pending');
+				return label?.nextElementSibling?.textContent?.trim() ?? ('missing-pending:' + (section?.textContent?.trim() ?? 'section'));
+		})()`,
+			(value) => value !== '' && Number(value) === 0,
+			'withdrawn-leave-reservation-live'
+		);
+		assert.equal(Number(released), 0, 'withdrawal releases the reservation in the open view');
 	} finally {
 		if (browser !== undefined) await browser.close();
 		if (managerGateway !== undefined) await managerGateway.stop();
@@ -879,12 +948,12 @@ it('HR self-host HQ Payroll HR leave submit stays open with Submitted for approv
 		await page.evaluate(
 			`document.elementFromPoint(24, 24)?.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }))`
 		);
-		await waitForBody(page, /Leave application seasonality|New leave request/, 'a3-leave');
+		await waitForBody(page, /Current balances|New leave request/, 'a3-leave');
 		await remountImpersonatedTeam(page, 'HQ Payroll HR', 'a3');
 		await page.evaluate(
 			`document.elementFromPoint(24, 24)?.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }))`
 		);
-		await waitForBody(page, /Leave application seasonality|New leave request/, 'a3-preview');
+		await waitForBody(page, /Current balances|New leave request/, 'a3-preview');
 		const openedRequests = await pollEvaluate(
 			page,
 			`(() => {
@@ -984,38 +1053,18 @@ it('HR self-host HQ Payroll HR leave submit stays open with Submitted for approv
 		assert.equal(
 			await pollEvaluate(
 				page,
-				`(() => {
-						${ACTIVATE}
-						const trigger =
-							document.querySelector('[aria-label="Select an event"]') ??
-							[...document.querySelectorAll('button')].find((button) =>
-								/Select an event|Time off/.test(button.textContent ?? '')
-							);
-						if (!(trigger instanceof HTMLElement)) return 'missing-kind';
-						activate(trigger);
-						return 'opened';
-					})()`,
+				openField('leave_account_id'),
 				(value) => value === 'opened',
-				'a3-kind'
+				'a3-account'
 			),
 			'opened'
 		);
 		assert.equal(
 			await pollEvaluate(
 				page,
-				`(() => {
-						if (document.querySelector('button[aria-label="Leave range"]') !== null) return 'picked';
-						const option = [...document.querySelectorAll('[data-command-item][role="option"]')].find(
-							(node) => /Time off/.test(node.textContent ?? '')
-						);
-						if (!(option instanceof HTMLElement)) return 'missing';
-						option.click();
-						return document.querySelector('button[aria-label="Leave range"]') !== null
-							? 'picked'
-							: 'clicked';
-					})()`,
+				pickExact('Annual leave · 2026', 'leave_account_id'),
 				(value) => value === 'picked',
-				'a3-time-off'
+				'a3-annual-account'
 			),
 			'picked'
 		);
@@ -1319,6 +1368,96 @@ it('HR self-host Ask agent shows the user text immediately', async () => {
 				})()`)
 		);
 		assert.match(painted, /^(pending|durable)$/, `G1 user text not on the transcript: ${painted}`);
+	} finally {
+		if (browser !== undefined) await browser.close();
+		if (gateway !== undefined) await gateway.stop();
+		await session.stop();
+	}
+});
+
+it('HR kiosk keeps manual check-in and check-out usable when the camera is unavailable', async () => {
+	const session = await startPublicSeedHost('hr-kiosk-browser', { host: '0.0.0.0' });
+	let gateway: Awaited<ReturnType<typeof startSessionGateway>> | undefined;
+	let browser: HeadedBrowser | undefined;
+	try {
+		const [employee] = await session.query(
+			'select name from employees where id = (select employee_id from employments where id = $1)',
+			[EMPLOYMENT_ID]
+		);
+		const name = String(employee.name);
+		gateway = await openHrGateway(session, 'hr-kiosk-browser', '/app/hr_controller/kiosk');
+		browser = await launchChromiumOrSkip(`${EVENT_SOURCE_PROBE};
+			if (navigator.mediaDevices) Object.defineProperty(navigator.mediaDevices, 'getUserMedia', {
+				value: async () => { throw new DOMException('Camera denied by the test fixture', 'NotAllowedError'); }
+			});`);
+		if (browser === undefined) return;
+		const page = await browser.openPage(
+			guestPageUrl(gateway.address.port, '/app/hr_controller/kiosk')
+		);
+		await waitForBody(page, /Camera unavailable/, 'kiosk-camera-error');
+		const clickButton = async (label: string) => {
+			await pollEvaluate(
+				page,
+				`(() => {
+				${ACTIVATE}
+				const button = [...document.querySelectorAll('button')].find((node) =>
+					!node.disabled && node.getClientRects().length > 0 &&
+					(node.getAttribute('aria-label') === ${JSON.stringify(label)} || node.innerText.trim() === ${JSON.stringify(label)}));
+				if (!button) return 'missing';
+				activate(button); return 'clicked';
+			})()`,
+				(value) => value === 'clicked',
+				`kiosk-${label}`
+			);
+		};
+		await clickButton('Manual entry');
+		await waitForProbe(page, TAB1_PROBE, 'kiosk-live-session');
+		await pollEvaluate(
+			page,
+			`(() => {
+			const input = document.querySelector('#kiosk-person-search');
+			if (!(input instanceof HTMLInputElement)) return 'missing';
+			input.value = ${JSON.stringify(name)};
+			input.dispatchEvent(new Event('input', { bubbles: true }));
+			return 'searched';
+		})()`,
+			(value) => value === 'searched',
+			'kiosk-manual-search'
+		);
+		await pollEvaluate(
+			page,
+			`(() => {
+			${ACTIVATE}
+			const button = [...document.querySelectorAll('button')].find((node) =>
+				node.querySelector('strong')?.textContent?.trim() === ${JSON.stringify(name)});
+			if (!button) return document.body.innerText; activate(button); return 'selected';
+		})()`,
+			(value) => value === 'selected',
+			'kiosk-manual-person'
+		);
+		await waitForBody(page, /Active employment/, 'kiosk-active-employment');
+		await clickButton('Check in');
+		await waitForBody(page, /Checked in at/, 'kiosk-manual-arrival');
+		const [arrival] = await session.query(
+			'select worked_intervals from work_days where employment_id = $1 order by work_date desc limit 1',
+			[EMPLOYMENT_ID]
+		);
+		assert.ok(Array.isArray(arrival.worked_intervals));
+		const first = asRecord(arrival.worked_intervals[0], 'first arrival');
+		assert.equal(first.end, null);
+		await clickButton('Check out');
+		await waitForBody(page, /Checked out at/, 'kiosk-manual-departure');
+		const [departure] = await session.query(
+			'select worked_intervals from work_days where employment_id = $1 order by work_date desc limit 1',
+			[EMPLOYMENT_ID]
+		);
+		assert.ok(Array.isArray(departure.worked_intervals));
+		assert.equal(departure.worked_intervals.length, 1);
+		const last = asRecord(departure.worked_intervals[0], 'departure');
+		assert.equal(last.start, first.start);
+		assert.equal(typeof last.end, 'string');
+		await clickButton('Clock');
+		await waitForBody(page, /Camera unavailable/, 'kiosk-return-camera-error');
 	} finally {
 		if (browser !== undefined) await browser.close();
 		if (gateway !== undefined) await gateway.stop();

@@ -7,33 +7,30 @@
 
 ## Summary
 
-A payroll run is governed by several independent, editable catalogues today — leave types, pay
-components, contribution schemes and rates — each with its own effective dating, none linked to
-each other or to the law snapshot the run cites. Nothing seals them.
+A payroll run is governed by several independent catalogues — pay components, contribution schemes
+and rates — that must agree with the immutable law snapshot the run cites. Leave follows the same
+law-version principle but uses the sealed account/ledger architecture in [`docs/leave.md`](../../leave.md).
 
 This RFC makes the **statutory profile the single source of a run's nature**:
 
-1. **One profile = one immutable configuration version.** The law (regime, statutory leave floors)
-   and the catalogues that implement it — leave types, pay components, schemes, rates — are all
-   scoped to the profile and sealed with it. A run picks one profile; that one FK determines
-   everything the run is made of.
+1. **One profile = one immutable statutory version.** The law, statutory leave floors, pay
+   components, schemes and rates are scoped to the profile and sealed with it. Company leave types
+   instead belong to an effective-dated `leave_plan`; each yearly account records both governing IDs.
 2. **Lifecycle: DRAFT → SEALED → VOIDED.** Drafts are prepared by the HR controller (or the drift
    automation) and sealed on HR Manager approval. Sealed profiles are frozen and are the only ones
    that govern runs. Voided profiles are retired but keep the runs that cite them.
-3. **Changes are new versions, never edits.** Enacting a successor copies the catalogue forward;
-   edits happen in the draft copy; sealing freezes it. Old runs keep citing the old version.
+3. **Changes are new versions, never edits.** Sealing a successor preserves old runs and accounts.
+   The leave reconciler appends the applicable statutory adjustment or prepares the next leave year.
 4. **Corrections to money are next-cycle entries** — the immutability model already in force.
-5. **Employee self-service gains a leave balance panel** (per-leave-type: accrued, carried,
-   taken, encashed, remaining), derived from the same pure functions the engine uses.
+5. **Employee self-service gains a leave balance panel** derived only from sealed yearly accounts,
+   posted ledger entries and held applications.
 
 KIV (explicitly deferred): a frozen YTD in/out chain. YTD stays derived from prior paid payslips.
 
 ## The gap
 
-- **Statutory leave floors** are hand-typed `STATUTORY` layers inside company-owned `leave_types`
-  rows — no linkage to any law revision, no seal, no validation against the snapshot a run cites.
-- **Leave types and pay components** float free: effective-dated independently of the profile, so
-  a run can cite a frozen regime while its catalogue has drifted since.
+- **Statutory leave floors** must be versioned with the law rather than copied into company policy.
+- **Pay components** must not float independently of the profile a run cites.
 - **Laws that scale leave on children** have no fact to compute against.
 
 ## Decision
@@ -54,8 +51,9 @@ An automation can stage a draft but can never seal — the approval flow has no 
 
 ### 2. Catalogues are profile-scoped
 
-`leave_types`, `pay_components`, `statutory_contributions` and `contribution_rates` gain a
-required `statutory_profile_id` FK. Consequences:
+`pay_components`, `statutory_contributions` and `contribution_rates` carry the required
+`statutory_profile_id` FK. `leave_types` belong to company `leave_plans`; `leave_accounts` retain the
+opening statutory profile and opening plan. Consequences:
 
 - **The profile's period replaces per-row effective dating.** `effective_range` is dropped from
   these catalogues, as are the per-code no-overlap exclusions — versioning does that job. Within a
@@ -72,14 +70,20 @@ required `statutory_profile_id` FK. Consequences:
 
 ### 3. Statutory leave: floors and child scaling
 
-The profile carries `statutory_leave` — per canonical kind (`ANNUAL`, `SICK`, `MATERNITY`,
-`PATERNITY`, `HOSPITALIZATION`, `CHILDCARE`, …; a closed literal set, schema-level vocabulary like
-overtime day types):
+The profile carries `statutory_leave` per stable uppercase kind (`ANNUAL`, `SICK`, `MATERNITY`,
+`SHARED_PARENTAL`, …). The vocabulary is open so a new enacted category is data, not a code release:
 
 ```text
 days:        { base, per_child?, max? }
 child_rule?: { age_limit, min_children }   — when the law conditions the kind on children
 service_ladder: band_from months → days    — where the law ladders by service
+account_basis: YEAR | EVENT
+qualifying_service_months: integer
+eligibility: employment/person predicates
+vesting: UPFRONT | MONTHLY
+rounding: HALF_DAY | WHOLE_DAY_HALF_UP
+event?: { window_months, allocation: INDIVIDUAL | HOUSEHOLD,
+          unit: DAYS | WEEKS, weekly_index_cap? }
 authority:   the citation
 ```
 
@@ -87,12 +91,17 @@ authority:   the citation
 
 ```text
 entitlement(D) = max( profile.statutory_leave[kind].floor(D),
-                      organisation layers,
-                      employee layers )
+                      organisation service band )
 ```
 
-The floor is now versioned with the law and sealed with the profile. Company generosity
-(org/employee layers), accrual, carry and payroll effect remain per-profile company content.
+The floor is versioned with the law and sealed with the profile. Company generosity, accrual,
+carry and payroll effect live in independently versioned company leave plans.
+
+An `EVENT` account is the approved allocation fact for one qualifying event. It records the actual
+event date, independently reviewed statutory cohort date, normalized household/event reference,
+evidence, allocated units, weekly index, calculated workday portion and bounded window, then uses the
+same append-only ledger as yearly leave. Effective profile selection uses the statutory cohort
+date, so a request filed later cannot move an older birth/adoption into a newer statutory cohort.
 
 ### 4. Children facts — not dependents
 
@@ -116,16 +125,17 @@ as of its own date.
 
 ### 5. When a correction leaves leave over-taken
 
-A fact correction or a new sealed version can leave an employee having taken more leave than the
-corrected entitlement allows. The derived balance goes **negative immediately** — no ledger
-surgery; the days were genuinely taken, only the entitlement moved. Recovery is chosen by the
-employer:
+An approved statutory or company successor can reduce an account target below leave already taken.
+The reconciler appends a signed adjustment; it never rewrites the opening receipt or prior entries.
+A corrected personal fact alone does not recalculate the sealed receipt: an authorised current-year
+correction is a reviewed `MANUAL_ADJUSTMENT`, while the next account compiles the corrected fact.
+The resulting balance may be negative. Recovery is chosen by the employer:
 
-| Path                          | Mechanic                                                                                                                                  |
-| ----------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
-| Offset against future accrual | Do nothing — the negative balance plus the request guard ration the leave. Default.                                                       |
-| Deduct next cycle             | Arrears/deduction entry valued at the excess days; the negative-net guard bounds and spreads it.                                          |
-| Forgive at year rollover      | A negative closing posts a carry of zero with the negative kept in `closing` (`process_leave_year` clamps the movement, never the books). |
+| Path                          | Mechanic                                                                                         |
+| ----------------------------- | ------------------------------------------------------------------------------------------------ |
+| Offset against future accrual | Do nothing — later positive entries reduce the negative balance. Default.                        |
+| Deduct next cycle             | Arrears/deduction entry valued at the excess days; the negative-net guard bounds and spreads it. |
+| Forgive at year rollover      | Append a dated `MANUAL_ADJUSTMENT`; carry reconciliation still transfers no negative balance.    |
 
 **Leaver edge**: the exit encashment hook encashes positive balances only. A negative balance is
 recovered — if at all — by a deduction entry captured in the final run itself, or written off.
@@ -177,12 +187,10 @@ surfaces (payslips, adjustments, junctions) — the hooks are the second lock.
 
 ## Implementation order
 
-1. Leave balance panel (independent; ships immediately).
-2. Profile lifecycle: members, hooks, approval flow, pick gate.
-3. Catalogue scoping: `statutory_profile_id`, copy-on-write successor action, drop per-row
-   effective dating.
-4. `statutory_leave` + `employee_children` + child-scaled floors + `statutory_kind`.
-5. Consolidations (`FLAT` key, `aggregates_with`, effective ranges, exclusions).
+1. Profile lifecycle: members, hooks, approval flow, pick gate.
+2. Payroll catalogue scoping by `statutory_profile_id`.
+3. `statutory_leave` + `employee_children` + child-scaled floors + `statutory_kind`.
+4. Company leave plans, sealed yearly accounts and append-only entries (`docs/leave.md`).
 
 ## Migration
 
@@ -198,16 +206,16 @@ lineage is regenerated without editing existing history.
   and is never picked.
 - **Copy-on-write**: enacting a successor copies the catalogue; editing the copy does not touch
   the sealed original; old runs still resolve every row through the old profile.
-- **Floors**: the merged entitlement equals the profile floor when most generous, the
-  organisation layer when it exceeds it; sealing refuses a profile that cannot answer a linked
-  leave type's `statutory_kind`.
-- **Child scaling**: `per_child` floors compute against `employee_children` as of each date; a
-  child crossing the age limit drops out on the right day; a superseding fact correction
-  re-derives past periods and surfaces over-taken leave as a negative balance.
+- **Floors**: account creation selects the greater of the sealed statutory floor and the company
+  service band, then records the calculation receipt.
+- **Child scaling**: `per_child` floors compute against `employee_children` at account creation or
+  an explicit successor reconciliation; old entries remain unchanged.
 - **Over-taken leave**: the request guard refuses further leave; a recovery entry in the next
   draft is bounded by the negative-net guard; the exit encashment skips negative balances.
-- **Balance panel**: panel figures equal `leaveBalance` composition for seeded scenarios,
-  including mid-year joiners and carry-expiry.
+- **Balance panel**: panel figures equal the signed account ledger minus held applications,
+  including mid-year adjustments and carry expiry.
+- **Event cohorts**: qualifying date selects the old/new statutory profile, shared allocations sum
+  across both parents, the event window may cross January, and only one opening entry is posted.
 - **Consolidations**: `FLAT` authoring refuses with a pointer to `band_from: 0`;
   `aggregates_with` and per-catalogue effective dating are absent.
 
@@ -215,10 +223,7 @@ lineage is regenerated without editing existing history.
 
 - **Status quo** — statutory floors as company-catalogue layers: no linkage, no seal, drift by
   design.
-- **Member-level sealing** (the first draft of this RFC): seal only law-bearing members, keep
-  company members editable — workable, but it keeps per-row effective dating and per-member guard
-  logic, and leaves the question "which profile does this row belong to?" open. Profile-scoped
-  rows answer it structurally.
+- **Member-level sealing**: mutable statutory members cannot reconstruct a historical run or account.
 - **Mutable YTD accumulator** — a second representation of what the payslips prove. KIV'd: the
   frozen in/out chain.
 - **Void by deletion** — resets YTD, consumption ceilings and single-use guards, orphans payment
@@ -227,20 +232,19 @@ lineage is regenerated without editing existing history.
 
 ## Acceptance criteria
 
-- [ ] A run's entire governing configuration — law, floors, leave types, components, schemes,
-      rates — resolves through its `statutory_snapshot_id` FK alone.
+- [x] A payroll run's statutory configuration resolves through its snapshot; a leave account
+      separately records its opening statutory profile and company plan.
 - [ ] Profiles carry `lifecycle`; only SEALED profiles are picked; sealing requires HR Manager
       approval; an automation can stage but never seal.
 - [ ] SEALED profile catalogue rows refuse create/update/delete; VOIDED profiles keep run
       citations and record reason + successor.
-- [ ] `statutory_leave` lives on the profile with child scaling; leave types link by
-      `statutory_kind`; the floor merges as `max(profile floor, organisation, employee)`.
-- [ ] `employee_children` facts exist (append-only, supersede flow); age cutoffs compute from
-      birth dates; fact corrections re-derive entitlement and surface over-taken leave as a
-      negative balance.
+- [x] `statutory_leave` lives on the profile with child scaling; company leave types link by
+      `statutory_kind`; account creation takes `max(profile floor, company service band)`.
+- [x] `employee_children` facts exist (append-only, supersede flow); successor reconciliation
+      records any changed entitlement as a new entry.
 - [ ] Recovery for over-taken leave is offset, bounded next-cycle deduction, or year-rollover
       forgiveness — never an edit of a paid run.
-- [ ] Employee app shows the derived leave balance per type.
+- [x] Employee app shows the sealed account and signed ledger balance per type.
 - [ ] `FLAT` key, `aggregates_with`, and per-catalogue effective dating are gone from schema,
       authoring, and seeds.
 - [ ] All existing immutability guards (paid runs, payslips, adjustments, junctions, captures)

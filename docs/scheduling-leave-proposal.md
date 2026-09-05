@@ -183,15 +183,14 @@ facts. It is not an `overtime_eligible` boolean on employment terms.
 
 ## Leave request UX
 
-The leave overview treats an unresolved live query as loading, never as an authoritative empty
-result. Its seasonality heat map uses the rolling five-year window through the current year, so the
-latest seeded or live requests appear immediately instead of being pushed into an unlabelled future
-bucket.
+The complete implemented leave contract is in [`leave.md`](leave.md). This section records the
+picker interaction that belongs to the wider scheduling design.
 
-One request contains one contiguous range. The range endpoints are datetimes snapped to half-day
-steps; they are not separate “from”, “to”, “first day”, “last day” and “days” fields. Chargeable
-days are derived from the selected half-day slots after applying the employee's schedule, observed
-holidays, existing requests and entitlement balance.
+One request contains one contiguous range. Each endpoint is a calendar date plus a `FIRST` or
+`SECOND` shift half; the halves are not necessarily AM and PM. They are not separate “from”, “to”,
+“first day”, “last day” and writable “days” fields. The server derives chargeable days from the
+selected half-day slots after applying the employee's schedule and observed holidays, then checks
+overlap, paid payroll windows and the projected balance.
 
 ```text
 New leave request
@@ -230,6 +229,13 @@ Interaction contract:
 - Server validation repeats every rule at submission time; the UI is guidance, not authority.
 - One request is one range. Separate non-contiguous absences are separate requests, keeping approval,
   cancellation and audit behavior understandable.
+- Submission starts exactly one approval stage. The platform temporarily holds that pending request
+  until any one configured approver accepts it; this is storage for the same approval, not another
+  approval layer. The hold reserves range and balance immediately. Approval commits the
+  `leave_requests` row and its `TAKEN` ledger entry; rejection or withdrawal releases the hold.
+- The leave type's `eligibility` rules are checked for each selected workday against the terms
+  effective on that day. All rules must match. `requires_certificate_after_days` requires a
+  certificate when server-measured workdays exceed the threshold. Only time-off events accept it.
 
 ## Stored versus derived
 

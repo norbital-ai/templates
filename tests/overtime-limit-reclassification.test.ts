@@ -114,6 +114,7 @@ function configuration(options) {
 	return {
 		company: company(jur.id, jur.currency),
 		jurisdiction: jur,
+		leaveProfiles: [jur],
 		contributions: [],
 		treatments: new Map(),
 		payComponents: [{ ...BASIC, company_id: `co-${jur.currency}` }],
@@ -159,6 +160,8 @@ function bundle(overrides = {}) {
 		loans: [],
 		loanRepayments: [],
 		ledger: [],
+		leaveAccounts: [],
+		leaveEntries: [],
 		workDays: overrides.workDays ?? [],
 		serviceMonths: 57,
 		age: 34,

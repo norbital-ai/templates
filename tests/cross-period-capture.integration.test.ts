@@ -31,6 +31,8 @@ const CREATE_PAYROLL_COMMAND = 'collections.mutate';
 
 const LEAVE_TYPE_ID = 'aaaa1111-aaaa-4aaa-8aaa-aaaaaaaaaaa1';
 const LEAVE_REQUEST_ID = 'aaaa2222-aaaa-4aaa-8aaa-aaaaaaaaaaa2';
+const LEAVE_PLAN_ID = 'aaaa3333-aaaa-4aaa-8aaa-aaaaaaaaaaa3';
+const LEAVE_ACCOUNT_ID = 'aaaa4444-aaaa-4aaa-8aaa-aaaaaaaaaaa4';
 const LOAN_COMPONENT_ID = 'bbbb1111-bbbb-4bbb-8bbb-bbbbbbbbbbb1';
 const LOAN_ID = 'bbbb2222-bbbb-4bbb-8bbb-bbbbbbbbbbb2';
 const REPAYMENT_ID = 'bbbb3333-bbbb-4bbb-8bbb-bbbbbbbbbbb3';
@@ -103,25 +105,63 @@ function persistPayslip(world, options) {
 }
 
 function withSpanningLeave(world) {
+	world.leave_plans.length = 0;
+	world.leave_plans.push({
+		id: LEAVE_PLAN_ID,
+		company_id: COMPANY_ID,
+		code: 'STANDARD',
+		name: 'Standard leave plan',
+		lifecycle: 'ACTIVE',
+		transition: 'NEXT_LEAVE_YEAR',
+		effective_range: { start: '2020-01-01', end: null },
+		approval_id: null
+	});
 	world.leave_types.push({
 		id: LEAVE_TYPE_ID,
 		company_id: COMPANY_ID,
-		statutory_profile_id: JURISDICTION_ID,
+		leave_plan_id: LEAVE_PLAN_ID,
 		code: 'AL',
 		name: 'Annual leave',
 		statutory_kind: 'ANNUAL',
 		eligibility: [],
 		encash_on_exit: false,
 		requires_certificate_after_days: null,
-		accrual: { kind: 'PER_EVENT' },
+		accrual: { kind: 'UNLIMITED' },
 		entitlement: { layers: [] },
 		payroll_effect: { kind: 'PAID' },
+		approval_id: null
+	});
+	world.leave_accounts.push({
+		id: LEAVE_ACCOUNT_ID,
+		employment_id: EMPLOYMENT_ID,
+		leave_type_id: LEAVE_TYPE_ID,
+		leave_code: 'AL',
+		leave_name: 'Annual leave',
+		opening_plan_id: LEAVE_PLAN_ID,
+		opening_statutory_profile_id: JURISDICTION_ID,
+		leave_year: 2026,
+		starts_on: '2026-01-01',
+		ends_on: '2026-12-31',
+		status: 'OPEN',
+		entitlement_days: 0,
+		accrual_kind: 'UNLIMITED',
+		carry_limit_days: null,
+		carry_expiry_months: null,
+		calculation: {
+			calculated_on: '2026-01-01',
+			service_months: 0,
+			statutory_days: 0,
+			company_days: 0,
+			selected_days: 0,
+			formula_version: 'LEAVE_ACCOUNT_V1'
+		},
 		approval_id: null
 	});
 	world.leave_requests.push({
 		id: LEAVE_REQUEST_ID,
 		employment_id: EMPLOYMENT_ID,
 		leave_type_id: LEAVE_TYPE_ID,
+		leave_account_id: LEAVE_ACCOUNT_ID,
 		event: {
 			kind: 'TIME_OFF',
 			range: {

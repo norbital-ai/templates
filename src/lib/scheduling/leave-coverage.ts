@@ -12,7 +12,6 @@ import { dateKey } from '../iso-day.js';
 
 /** A leave request as every reader holds it: authored instants are ISO strings on every path. */
 const leaveRequestLikeSchema = Schema.Struct({
-	kind: Schema.optional(Schema.NullOr(Schema.String)),
 	from_date: Schema.optional(Schema.NullOr(Schema.String)),
 	to_date: Schema.optional(Schema.NullOr(Schema.String)),
 	half_day_start: Schema.optional(Schema.NullOr(Schema.Boolean)),
@@ -29,8 +28,6 @@ type LeaveCoverage = Schema.Schema.Type<typeof leaveCoverageSchema>;
 export function leaveCoverage(request: LeaveRequestLike, date: string): LeaveCoverage {
 	const from = dateKey(request.from_date);
 	const to = dateKey(request.to_date);
-	if (request.kind != null && request.kind !== 'TIME_OFF')
-		return { covered: false, fullDay: false };
 	if (from === '' || to === '' || date < from || date > to) {
 		return { covered: false, fullDay: false };
 	}

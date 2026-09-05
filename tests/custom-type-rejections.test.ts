@@ -9,6 +9,7 @@ import { componentEntryEventSchema } from '../src/datatypes/component_entry_even
 import { leaveEntitlementSchema } from '../src/datatypes/leave_entitlement/+definition.js';
 import { overtimeTreatmentScheduleSchema } from '../src/datatypes/overtime_treatment_schedule/+definition.js';
 import { payComponentPolicySchema } from '../src/datatypes/pay_component_policy/+definition.js';
+import { statutoryLeaveProfileSchema } from '../src/datatypes/statutory_leave_profile/+definition.js';
 
 /**
  * What these custom types *refuse*, asserted rather than inferred.
@@ -166,7 +167,7 @@ describe('leave_entitlement', () => {
 	// The STATUTORY arm this union once carried moved into the statutory profile's
 	// `statutory_leave` member; what remains are the company's own layers. The `accrual_key`
 	// datatype, the `MAX_WITH_COMPANY_LAYERS` merge marker and the layer `authority` /
-	// `effective_range` went with the posted carry-forward: the band sits on the layer itself.
+	// `effective_range` moved to the containing leave plan: the band sits on the layer itself.
 	const layer = {
 		level: 'ORGANISATION',
 		band_from: 0,
@@ -209,7 +210,7 @@ describe('leave_entitlement', () => {
 		}
 	});
 
-	it('refuses an employee layer without a UUID, and the retired merge, key and authority members', () => {
+	it('refuses retired person-specific, merge, key and authority members', () => {
 		assert.ok(
 			refuses(leaveEntitlementSchema, {
 				...entitlement,
@@ -243,6 +244,53 @@ describe('leave_entitlement', () => {
 		assert.ok(refuses(leaveEntitlementSchema, { ...entitlement, cap: null }));
 		assert.ok(
 			refuses(leaveEntitlementSchema, { ...entitlement, layers: [{ ...layer, days_max: 9 }] })
+		);
+	});
+});
+
+describe('statutory_leave_profile', () => {
+	const eventLeave = {
+		kind: 'SHARED_PARENTAL',
+		account_basis: 'EVENT',
+		qualifying_service_months: 3,
+		vesting: 'UPFRONT',
+		event: { window_months: 12, allocation: 'HOUSEHOLD' },
+		ladder: [{ band_from: 0, days: 50 }],
+		per_child: null,
+		max_days: 50,
+		transition: 'NEXT_LEAVE_YEAR',
+		carry: null,
+		authority: 'Fixture statutory source'
+	};
+
+	it('accepts event coverage and refuses carry or a missing event window', () => {
+		assert.ok(accepts(statutoryLeaveProfileSchema, [eventLeave]));
+		assert.ok(
+			accepts(statutoryLeaveProfileSchema, [
+				{
+					...eventLeave,
+					event: {
+						window_months: 12,
+						allocation: 'HOUSEHOLD',
+						unit: 'WEEKS',
+						weekly_index_cap: 6
+					}
+				}
+			])
+		);
+		assert.ok(
+			refuses(statutoryLeaveProfileSchema, [
+				{
+					...eventLeave,
+					event: { window_months: 12, allocation: 'HOUSEHOLD', unit: 'WEEKS' }
+				}
+			])
+		);
+		assert.ok(refuses(statutoryLeaveProfileSchema, [{ ...eventLeave, event: undefined }]));
+		assert.ok(
+			refuses(statutoryLeaveProfileSchema, [
+				{ ...eventLeave, carry: { limit_days: 1, expiry_months: 1 } }
+			])
 		);
 	});
 });

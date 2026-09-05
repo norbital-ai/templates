@@ -9,6 +9,7 @@ import {
 	requireAccepted
 } from '@norbital-ai/test-utilities';
 import {
+	ANNUAL_LEAVE_ACCOUNT_ID,
 	ANNUAL_LEAVE_TYPE_ID,
 	COMPANY_ID,
 	EMPLOYMENT_ID,
@@ -53,15 +54,18 @@ test(
 				'jurisdictions',
 				'companies',
 				'statutory_contributions',
+				'leave_plans',
 				'contribution_rates',
 				'employees',
 				'leave_types',
 				'pay_components',
 				'shift_definitions',
 				'employments',
+				'leave_accounts',
 				'employment_statutory_facts',
 				'employment_terms',
 				'leave_requests',
+				'leave_entries',
 				'component_entries'
 			]
 		);
@@ -431,6 +435,7 @@ test(
 								id: crypto.randomUUID(),
 								employment_id: EMPLOYMENT_ID,
 								leave_type_id: ANNUAL_LEAVE_TYPE_ID,
+								leave_account_id: ANNUAL_LEAVE_ACCOUNT_ID,
 								event: {
 									kind: 'TIME_OFF',
 									range: {

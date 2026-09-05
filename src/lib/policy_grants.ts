@@ -138,6 +138,7 @@ export const referenceGrants = (
 		grantsOn('company_holidays', actions),
 		grantsOn('shift_definitions', actions),
 		grantsOn('pay_components', actions),
+		...(actions.includes('read') ? [grantsOn('leave_plans', ['read'])] : []),
 		grantsOn('leave_types', actions)
 	);
 
@@ -196,7 +197,11 @@ export const peopleGrants = (
 		// write hook both read them; a policy that can create leave without this read turns that
 		// preview into AccessDenied instead of a picker.
 		...(actions.includes('read')
-			? [grantsOn('employee_children', ['read']), grantsOn('leave_allocations', ['read'])]
+			? [
+					grantsOn('employee_children', ['read']),
+					grantsOn('leave_accounts', ['read']),
+					grantsOn('leave_entries', ['read'])
+				]
 			: [])
 	);
 
@@ -318,6 +323,7 @@ export const employeeReferenceGrants = (...actions: ReadonlyArray<'read'>): Gran
 		grantsOn('company_holidays', actions),
 		grantsOn('shift_definitions', actions),
 		grantsOn('pay_components', actions),
+		grantsOn('leave_plans', actions),
 		grantsOn('leave_types', actions)
 	);
 
@@ -364,6 +370,19 @@ export const statutoryProfileGrants = (): Grants =>
 		grantOn('jurisdictions', 'mutate.existing', { approval: profileLifecycleApproval }),
 		grantsOn('statutory_contributions', ['mutate.new', 'mutate.existing', 'delete']),
 		grantsOn('contribution_rates', ['mutate.new', 'mutate.existing', 'delete'])
+	);
+
+const leavePlanLifecycleApproval = {
+	flow: ({ changes }: { readonly changes?: Readonly<Record<string, unknown>> }) =>
+		changes?.lifecycle == null ? noApproval : approveBy(HR_MANAGER_TEAM, SENIOR_MANAGEMENT_TEAM),
+	superceded_by: [SENIOR_MANAGEMENT_TEAM]
+} as const;
+
+/** Controllers prepare plan versions freely; the single DRAFT → ACTIVE seal is manager-approved. */
+export const leavePlanControllerGrants = (): Grants =>
+	mergeGrants(
+		grantsOn('leave_plans', ['mutate.new', 'delete']),
+		grantOn('leave_plans', 'mutate.existing', { approval: leavePlanLifecycleApproval })
 	);
 
 /**
@@ -509,10 +528,38 @@ export const leaveApproval = {
 	superceded_by: [HR_MANAGER_TEAM, SENIOR_MANAGEMENT_TEAM]
 } as const;
 
-export const leaveAllocationApproval = {
-	flow: () => approveBy(HR_MANAGER_TEAM),
-	superceded_by: [HR_MANAGER_TEAM]
+const leaveBalanceCorrectionApproval = {
+	flow: () => approveBy(HR_MANAGER_TEAM, SENIOR_MANAGEMENT_TEAM),
+	superceded_by: [SENIOR_MANAGEMENT_TEAM]
 } as const;
+
+/** A qualifying-event account is the reviewed allocation fact, not another request stage. */
+export const eventLeaveAccountGrant = (reviewed: boolean): Grants =>
+	grantOn('leave_accounts', 'mutate.new', {
+		fields: [
+			'employment_id',
+			'leave_type_id',
+			'account_kind',
+			'event_reference',
+			'qualifying_date',
+			'statutory_cohort_date',
+			'starts_on',
+			'ends_on',
+			'allocation_units',
+			'weekly_index',
+			'eligibility_evidence'
+		],
+		authorize: ({ record }) => Effect.succeed(record.account_kind === 'EVENT'),
+		...(reviewed ? { approval: leaveBalanceCorrectionApproval } : {})
+	});
+
+/** Exceptional balance correction only; every operational and policy movement remains system-owned. */
+export const manualLeaveAdjustmentGrant = (reviewed: boolean): Grants =>
+	grantOn('leave_entries', 'mutate.new', {
+		fields: ['leave_account_id', 'kind', 'effective_on', 'days', 'reason', 'source_key'],
+		authorize: ({ record }) => Effect.succeed(record.kind === 'MANUAL_ADJUSTMENT'),
+		...(reviewed ? { approval: leaveBalanceCorrectionApproval } : {})
+	});
 
 const claimApproval = {
 	flow: () => approveBy(HQ_PAYROLL_HR_TEAM, HR_MANAGER_TEAM, SENIOR_MANAGEMENT_TEAM),
@@ -585,8 +632,6 @@ function isLeaveTimeOffEvent(record: { readonly event?: unknown }): boolean {
 export const employeeLeaveRequestNewGrant = (): Grants =>
 	grantOn('leave_requests', 'mutate.new', {
 		// The one request an ordinary rank may raise: time off, about themselves.
-		// Encashment and a balance adjustment are controller / payroll writes —
-		// the same split `isOwnClaimEvent` draws for component entries.
 		authorize: ({ record }, api) =>
 			isLeaveTimeOffEvent(record)
 				? employmentBelongsToRequestor(record.employment_id, api)

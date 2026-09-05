@@ -357,7 +357,7 @@
 	 *
 	 * This used to end with `component.lock_date_passed` on every past day that was not settled,
 	 * which said a day was locked for having gone by. That was never true of attendance and is the
-	 * exact false refusal §2 of `docs/attendance-on-the-board-proposal.md` set out to remove — a past
+	 * exact false refusal §2 of `docs/scheduling-leave-proposal.md` set out to remove — a past
 	 * day is the *normal* day to be correcting a punch on. The lock line now comes from the ladder,
 	 * which answers the same question from the payroll runs rather than from the calendar.
 	 */

@@ -68,9 +68,9 @@ Two invariants shape everything:
 
 - **Overtime, contributions, gross and net are calculated, never stored or seeded.** A run derives
   them from the input records and is compared against an independently supplied source workbook.
-- **Approval is the gate.** There is no approval column anywhere in this workspace:
-  `approval_id IS NULL` is the only definition of a live row. Payroll reads only approved
-  rows; a record still held by an approval request is locked and excluded.
+- **Approval is the gate.** `approval_id` is a platform-owned system column, not authored business
+  state. `approval_id IS NULL` identifies a committed row that is not held by an approval request.
+  A held create has no domain row yet; payroll reads only committed, unheld inputs.
 
 ## What ships in the workspace
 
@@ -89,14 +89,14 @@ and is inherited by every sibling; boards state the active entity, they do not p
 | **Entities**          | Chooses the legal entity every other HR Controller app is scoped to                                                                                                                                                                                                                                                  |
 | **People**            | The workforce: employee profiles, employments, effective-dated terms, statutory facts, and a workforce-shape chart                                                                                                                                                                                                   |
 | **Scheduling**        | Plans the month on a roster board — one row per person, one glyph per day — publishes it against statutory rules, and manages shifts, work patterns and holidays. Attendance import sits on the board's action menu beside the roster import.                                                                        |
-| **Leave**             | Review leave requests and the leave types that entitle them, against year-to-date approval counters                                                                                                                                                                                                                  |
+| **Leave**             | Review time-off applications; maintain effective-dated company leave plans; inspect sealed yearly accounts and their signed ledger entries; submit exceptional balance corrections for one manager review                                                                                                            |
 | **Loans**             | Review loan agreements and their derived outstanding balance, with recovery tracked per repayment                                                                                                                                                                                                                    |
 | **Pay components**    | The pay catalogue and the entry stream: claims, allowances, bonuses, arrears and corrections, with their contribution treatment                                                                                                                                                                                      |
 | **Payroll**           | Runs the payroll cycle: a pay-date board (late/current/upcoming), creating and recalculating runs, locking them paid, and exporting bank files, payslip PDFs and the report workbook                                                                                                                                 |
 | **Statutory profile** | The regime every payroll is calculated against — versioned jurisdiction profiles (DRAFT → SEALED → VOIDED) with atomic overtime, break policy and statutory leave floors, their scoped contribution schemes and rates, and the companies bound to each (file `+settings.svelte`: a file name owns an app's identity) |
 | **Kiosk**             | Face-recognition time clock for a shop-floor tablet: clock in/out by face (match, anti-spoof filter, blink-to-confirm), manual entry, and face enrollment. Renders chromeless (`bolt:kiosk`); the device account sees this page and nothing else                                                                     |
 
-### Policies (8)
+### Policies (9)
 
 - **`employee`** — self-service: their own profile, employments and the child collections, plus
   create-with-approval for time entries, claims and leave.
@@ -111,6 +111,8 @@ and is inherited by every sibling; boards state the active entity, they do not p
 - **`statutory_drift_automation`** — the automation's authority: reads sealed statutory profiles
   and employment facts, appends deterministic successor facts, and records durable drift research
   evidence.
+- **`leave_reconciliation_automation`** — system-only authority that creates sealed yearly leave
+  accounts and appends idempotent entitlement, request, carry and expiry movements.
 - **`kiosk`** — the attendance-kiosk device account: the kiosk app only, interval-only time
   entries, face-field-only writes on people, and enrollments that always land `PENDING` for HR
   review. Held by the `Attendance Kiosk` team (one user row per device).
@@ -131,7 +133,7 @@ manually refreshed query function.
 collection meanings, money/date rules, and the boundary around statutory advice. It grants nothing;
 the signed-in person's policies remain the complete authority for a web-agent turn.
 
-### Automations (1)
+### Automations (11)
 
 **`statutory_profile_drift`** — weekly automation (`0 3 * * 1`). Bounded reads of the sealed
 statutory profiles in force, their contribution schemes and rates, and employment statutory facts;
@@ -140,6 +142,10 @@ rule-based drift detection against the governing profile version; optional succe
 policy requires HR Manager approval, and the mutate hook stages the predecessor close so approval
 settlement commits both rows or neither. `api.infer` writes the report. It never writes the law
 tables.
+
+The ten leave automations reconcile yearly accounts after employment, plan or statutory-profile
+changes, post approved/withdrawn requests and reviewed qualifying-event openings to the ledger, and
+run a daily repair sweep. HR does not run an annual entitlement batch.
 
 ### Integrations, seed
 
@@ -163,12 +169,12 @@ Everything the compiler knows about the workspace lives in `src/`:
 ```text
 src/
 ├── apps/                     # +<app>.svelte per app; hr_controller/+group.ts owns the group
-├── collections/              # 27 collections: +model.ts, +hooks.ts, +pipelines.ts, +representation.svelte
+├── collections/              # 29 collections: +model.ts, +hooks.ts, +pipelines.ts, +representation.svelte
 │   └── payroll_runs/lib/     # the settlement engine (phases, overtime, coverage, export)
 ├── datatypes/                # 30 structured values (statutory_regime, statutory_leave_profile, component_entry_event, …)
-├── access/                   # +teams.ts, anonymous limits, and seven policies
+├── access/                   # +teams.ts, anonymous limits, and nine policies
 ├── i18n/                     # messages.en.json / messages.zh.json (same key set)
-├── automations/              # statutory_profile_drift (weekly and manually triggerable)
+├── automations/              # statutory drift plus account and ledger reconciliation
 ├── lib/                      # shared helpers: calendar, display formatters, policy grants, roster month
 └── +agents.md
 ```
@@ -200,6 +206,8 @@ src/
 - [`docs/data.md`](docs/data.md) — the raw-source → cleaned-source → seed contract, the checks that
   prevent derived output from leaking back into inputs, and how an independent source workbook is
   reconciled against a generated one.
+- [`docs/leave.md`](docs/leave.md) — the current application, one-step approval, sealed yearly
+  account, append-only ledger, carry-forward, policy-change and payroll behavior.
 
 ## Verification
 

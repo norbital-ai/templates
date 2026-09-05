@@ -7,7 +7,7 @@ import {
 	seasonalityYears
 } from '../src/lib/seasonality.ts';
 
-test('leave seasonality includes the live year in its rolling five-year window', () => {
+test('seasonality includes the live year in its rolling five-year window', () => {
 	assert.deepEqual(seasonalityYears(2026), [2022, 2023, 2024, 2025, 2026]);
 });
 

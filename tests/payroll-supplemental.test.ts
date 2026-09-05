@@ -16,35 +16,81 @@ import {
 } from './fixtures/public-payroll-world.ts';
 import { memoryPayrollApi } from './fixtures/memory-payroll-api.ts';
 
-test('payroll uses the posted opening carry when historical statutory profiles are absent', async () => {
+test('payroll formula reads the sealed account ledger without recalculating historical policy', async () => {
 	const world = createPublicPayrollWorld();
+	world.leave_plans.length = 0;
 	world.jurisdictions[0].effective_range = { start: '2026-01-01', end: null };
+	const leavePlanId = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1';
 	const leaveTypeId = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa2';
+	const leaveAccountId = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa3';
+	world.leave_plans.push({
+		id: leavePlanId,
+		company_id: COMPANY_ID,
+		code: 'STANDARD',
+		name: 'Standard leave plan',
+		lifecycle: 'ACTIVE',
+		transition: 'NEXT_LEAVE_YEAR',
+		effective_range: { start: '2026-01-01', end: null },
+		approval_id: null
+	});
 	world.leave_types.push({
 		id: leaveTypeId,
 		company_id: COMPANY_ID,
+		leave_plan_id: leavePlanId,
 		code: 'ANNUAL',
-		statutory_profile_id: JURISDICTION_ID,
 		statutory_kind: 'ANNUAL',
 		eligibility: [],
 		accrual: { kind: 'UPFRONT', carry: { limit_days: 8, expiry_months: 12 } },
-		entitlement: { merge: 'MAX_WITH_COMPANY_LAYERS', layers: [] },
+		entitlement: { layers: [] },
 		payroll_effect: { kind: 'PAID' },
 		approval_id: null
 	});
-	world.leave_requests.push({
-		id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa3',
+	world.leave_accounts.push({
+		id: leaveAccountId,
 		employment_id: EMPLOYMENT_ID,
 		leave_type_id: leaveTypeId,
-		event: {
-			kind: 'CARRY_FORWARD',
-			leave_year: 2026,
-			effective_on: '2026-01-01',
-			movement_days: 3,
-			expires_on: '2027-01-01'
+		leave_code: 'ANNUAL',
+		leave_name: 'Annual leave',
+		opening_plan_id: leavePlanId,
+		opening_statutory_profile_id: JURISDICTION_ID,
+		leave_year: 2026,
+		starts_on: '2026-01-01',
+		ends_on: '2026-12-31',
+		status: 'OPEN',
+		entitlement_days: 8,
+		accrual_kind: 'UPFRONT',
+		carry_limit_days: 8,
+		carry_expiry_months: 12,
+		calculation: {
+			calculated_on: '2026-01-01',
+			service_months: 0,
+			statutory_days: 8,
+			company_days: 0,
+			selected_days: 8,
+			formula_version: 'LEAVE_ACCOUNT_V1'
 		},
 		approval_id: null
 	});
+	world.leave_entries.push(
+		{
+			id: 'leave-opening',
+			leave_account_id: leaveAccountId,
+			kind: 'OPENING_ENTITLEMENT',
+			effective_on: '2026-01-01',
+			days: 8,
+			source_key: 'opening',
+			approval_id: null
+		},
+		{
+			id: 'leave-carry',
+			leave_account_id: leaveAccountId,
+			kind: 'CARRY_FORWARD',
+			effective_on: '2026-01-01',
+			days: 3,
+			source_key: 'carry:2025',
+			approval_id: null
+		}
+	);
 	world.pay_components.push({
 		...world.pay_components[0],
 		id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa4',
@@ -58,12 +104,6 @@ test('payroll uses the posted opening carry when historical statutory profiles a
 		);
 		const payslip = buildPayrollRun(prepared).payslip_payroll_run[0];
 		assert.equal(payslip.gross, 4861, 'three carried days plus eight current days are valued once');
-		assert.ok(
-			payslip.payslip_leave_request_input_payslip.some(
-				(row) => row.leave_request_id === world.leave_requests[0].id
-			),
-			'the opening balance is locked even when it predates the attendance window'
-		);
 	}
 });
 
