@@ -57,12 +57,11 @@ const REVIEW_SIGNAL_WEIGHT: Readonly<Record<(typeof PHOTO_FLAGS)[number], number
 	missing_geolocation: 0
 };
 
+// The provider already bounds output tokens. Accept verbose prose here; the canonical
+// review reason is shortened below, after evidence validation, to the 600-character UI bound.
 const jobSiteDecisionSchema = Schema.Struct({
 	suspicious: Schema.Boolean,
-	reason: Schema.String.pipe(
-		Schema.check(Schema.isPattern(/^\s*\S[\s\S]*$/)),
-		Schema.check(Schema.isMaxLength(MAX_INFERENCE_REASON_CHARS))
-	),
+	reason: Schema.String.check(Schema.isPattern(/^\s*\S[\s\S]*$/)),
 	/** Empty means no decisive photo; otherwise the name must match an attached evidence asset. */
 	evidence_asset_name: Schema.String.pipe(
 		Schema.check(Schema.isMaxLength(MAX_INFERENCE_ASSET_NAME_CHARS))
@@ -77,10 +76,7 @@ const similarPhotoDecisionSchema = Schema.Struct({
 		Schema.check(Schema.isMaxLength(MAX_INFERENCE_ASSET_NAME_CHARS))
 	),
 	same_scene: Schema.Boolean,
-	reason: Schema.String.pipe(
-		Schema.check(Schema.isPattern(/^\s*\S[\s\S]*$/)),
-		Schema.check(Schema.isMaxLength(MAX_INFERENCE_REASON_CHARS))
-	)
+	reason: Schema.String.check(Schema.isPattern(/^\s*\S[\s\S]*$/))
 });
 
 const inferenceDecisionSchema = Schema.Struct({
