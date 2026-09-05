@@ -18,10 +18,10 @@
 	"dependencies": {
 		"@iconify/svelte": "^5.2.2",
 		"@internationalized/date": "^3.12.3",
-		"@norbital-ai/bolt": "0.0.4",
-		"@norbital-ai/bolt-protocol": "0.0.4",
-		"@norbital-ai/std": "0.0.4",
-		"@norbital-ai/ui": "0.0.4",
+		"@norbital-ai/bolt": "0.0.5",
+		"@norbital-ai/bolt-protocol": "0.0.5",
+		"@norbital-ai/std": "0.0.5",
+		"@norbital-ai/ui": "0.0.5",
 		"@vladmandic/human": "3.3.6",
 		"effect": "4.0.0-rc.111",
 		"exceljs": "4.4.0",
@@ -32,9 +32,9 @@
 		"vite": "^8.2.2"
 	},
 	"devDependencies": {
-		"@norbital-ai/bolt-server": "0.0.4",
-		"@norbital-ai/doctor": "0.0.4",
-		"@norbital-ai/test-utilities": "0.0.4",
+		"@norbital-ai/bolt-server": "0.0.5",
+		"@norbital-ai/doctor": "0.0.5",
+		"@norbital-ai/test-utilities": "0.0.5",
 		"@types/node": "^26.4.0",
 		"@typescript/native": "npm:typescript@7.0.2",
 		"prettier": "^3.9.6",
