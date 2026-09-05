@@ -1,4 +1,7 @@
 {
+	"app.settings.research_sources": "研究来源",
+	"app.settings.research_sources_description": "经人力资源经理批准后，所列 HTTPS 网站才可用于该司法管辖区的研究。待审批来源不会使用。停用来源可阻止后续研究并保留证据。",
+	"app.settings.research_runs": "研究记录",
 	"app.hr_employee.my_schedule_description": "您的排班、出勤与休假在同一份日历上。待审批的打卡记录将交由经理审核。",
 	"app.hr_employee.my_schedule_title": "我的排班",
 	"app.hr_employee.report_punch_approval_note": "您的打卡记录已提交，等待直属经理审核。",

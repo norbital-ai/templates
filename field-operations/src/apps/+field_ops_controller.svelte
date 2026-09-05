@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { client } from '../lib/workspace-client.js';
+	import { getErrorMessage } from '@norbital-ai/std';
 	import { Button } from '@norbital-ai/ui/button';
 	import { getCollectionClientForSurface } from '@norbital-ai/ui/collection-runtime';
 	import { useI18n } from '@norbital-ai/ui/i18n';
@@ -159,6 +160,7 @@
 	}
 
 	const suspicionReview = $derived(client.automations.review_job_assignment_suspicion);
+	let suspicionReviewError = $state<string | null>(null);
 	const suspicionReviewPending = $derived(suspicionReview.pending);
 	const suspicionReviewSnapshot = $derived(suspicionReview.latest?.current);
 	const suspicionReviewActive = $derived(
@@ -340,9 +342,14 @@
 				variant="outline"
 				size="sm"
 				disabled={suspicionReviewRunning}
-				onclick={() => {
+				onclick={async () => {
 					if (suspicionReviewRunning) return;
-					void suspicionReview.run({});
+					suspicionReviewError = null;
+					try {
+						await suspicionReview.run({});
+					} catch (error) {
+						suspicionReviewError = getErrorMessage(error);
+					}
 				}}
 			>
 				<Icon icon="lucide:play" class="size-4 shrink-0" />
@@ -356,6 +363,9 @@
 			</Button>
 		</Inline>
 	</Inline>
+	{#if suspicionReviewError}
+		<p role="alert" class="text-sm text-destructive">{suspicionReviewError}</p>
+	{/if}
 {/snippet}
 
 {#snippet dispatchSchedule()}

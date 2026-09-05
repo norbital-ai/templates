@@ -78,8 +78,26 @@ const fakeApi = (infer, queryRows = {}) => {
 					.slice(0, input?.limit)
 			)
 	});
-	let openedRunLog;
+	const logs = [];
+	const children = [];
 	const api = {
+		runId: 'root-run',
+		automations: {
+			run: (name, input) =>
+				Effect.gen(function* () {
+					assert.equal(name, 'statutory_profile_research');
+					const taskId = `child-${children.length + 1}`;
+					children.push({ taskId, ...input });
+					yield* runStatutoryProfileDrift(
+						{ ...api, runId: taskId },
+						{
+							profileId: input.profile_id,
+							parentLogId: input.parent_log_id
+						}
+					);
+					return { taskId };
+				})
+		},
 		readUrl: (url) =>
 			Effect.succeed({
 				url,
@@ -101,22 +119,34 @@ const fakeApi = (infer, queryRows = {}) => {
 		 */
 		db: {
 			jurisdictions: query('jurisdictions'),
+			statutory_research_sources: query('statutory_research_sources'),
 			statutory_contributions: query('statutory_contributions'),
 			contribution_rates: query('contribution_rates'),
 			companies: query('companies'),
 			employments: query('employments'),
 			statutory_profile_drift_logs: {
-				findFirst: () => Effect.succeed(openedRunLog),
+				findFirst: (input) =>
+					Effect.sync(() =>
+						logs.find((row) =>
+							Object.entries(input?.where ?? {}).every(
+								([key, condition]) => row[key] === condition.eq
+							)
+						)
+					),
 				mutate: (rows) =>
 					Effect.sync(() => {
 						for (const values of rows) {
 							if (values.id == null) {
 								logCreates.push(values);
-								openedRunLog = { id: 'run-log-1', ...values };
+								logs.push({ id: `run-log-${logs.length + 1}`, ...values });
 								continue;
 							}
 							const { id, ...rest } = values;
 							logUpdates.push({ id, values: rest });
+							Object.assign(
+								logs.find((row) => row.id === id),
+								rest
+							);
 						}
 					})
 			},
@@ -138,6 +168,8 @@ const fakeApi = (infer, queryRows = {}) => {
 	};
 	return {
 		api,
+		logs,
+		children,
 		progress,
 		logCreates,
 		logUpdates,
@@ -331,7 +363,8 @@ describe('statutory profile drift authored handler', () => {
 		assert.match(request.prompt, /bli\.gov\.tw/);
 		assert.match(request.prompt, /baohiemxahoi\.gov\.vn/);
 
-		assert.equal(harness.logCreates.length, 1);
+		assert.equal(harness.logCreates.length, 2);
+		assert.equal(harness.children.length, 1);
 		assert.equal(harness.logCreates[0].status, 'RUNNING');
 		const completed = harness.logUpdates.at(-1)?.values;
 		assert.equal(completed.status, 'SUCCEEDED');
@@ -344,10 +377,19 @@ describe('statutory profile drift authored handler', () => {
 		assert.deepEqual(output.official_sources, officialReport.official_sources);
 		assert.equal(harness.factCreates.length, 0, 'AI review material must not create law facts');
 		assert.equal(harness.factUpdates.length, 0, 'AI review material must not update law facts');
-		assert.deepEqual(
-			harness.progress.map(({ progress }) => progress),
-			[0.02, 0.12, 0.3, 0.45, 0.62, 0.9, 1]
-		);
+		assert.equal(harness.progress[0].progress, 0.02);
+		assert.equal(harness.progress.at(-1).progress, 1);
+		assert.ok(harness.progress.some(({ text }) => text.includes('own run')));
+	});
+
+	it('replays a completed occurrence without duplicating research or receipts', async () => {
+		const harness = fakeApi(() => Effect.succeed(officialReport), configuredSingapore);
+		const first = await Effect.runPromise(runStatutoryProfileDrift(harness.api));
+		const second = await Effect.runPromise(runStatutoryProfileDrift(harness.api));
+		assert.deepEqual(second, first);
+		assert.equal(harness.children.length, 1);
+		assert.equal(harness.inferenceRequests.length, 1);
+		assert.equal(harness.logs.length, 2);
 	});
 
 	it('submits a unique deterministic successor directly under its approved policy', async () => {
@@ -435,7 +477,7 @@ describe('statutory profile drift authored handler', () => {
 		assert.match(failed.error, /provider unavailable/);
 		assert.equal(harness.factCreates.length, 0);
 		assert.equal(harness.factUpdates.length, 0);
-		assert.match(harness.progress.at(-1)?.text ?? '', /failed: provider unavailable/);
+		assert.match(harness.progress.at(-1)?.text ?? '', /failed: SG: provider unavailable/);
 	});
 
 	it('fails and records the run when an official-source receipt omits a jurisdiction', async () => {
@@ -508,6 +550,34 @@ describe('statutory profile drift authored handler', () => {
 		);
 		assert.match(harness.inferenceRequests[0].prompt, /"code":"MY"/);
 		assert.match(harness.inferenceRequests[1].prompt, /"code":"SG"/);
+	});
+
+	it('records a failed profile independently and still researches subsequent profiles', async () => {
+		const harness = fakeApi(
+			(request) =>
+				/position for MY/.test(request.prompt)
+					? Effect.fail(new Error('Malaysia source unavailable'))
+					: Effect.succeed(officialReport),
+			{
+				jurisdictions: [
+					...configuredSingapore.jurisdictions,
+					{ ...configuredSingapore.jurisdictions[0], id: 'j-my', code: 'MY', name: 'Malaysia' }
+				]
+			}
+		);
+		await assert.rejects(
+			Effect.runPromise(runStatutoryProfileDrift(harness.api)),
+			/Malaysia source unavailable/
+		);
+		assert.equal(harness.children.length, 2);
+		assert.equal(new Set(harness.logs.map((row) => row.run_key)).size, 3);
+		assert.equal(harness.logs.find((row) => row.statutory_profile_id === 'j-my').status, 'FAILED');
+		assert.equal(
+			harness.logs.find((row) => row.statutory_profile_id === 'j-sg').status,
+			'SUCCEEDED'
+		);
+		assert.equal(harness.logs[0].status, 'FAILED');
+		assert.equal(harness.logs[0].official_sources[0].jurisdiction_code, 'SG');
 	});
 
 	it('retries only the jurisdiction whose first receipt lacks official coverage', async () => {

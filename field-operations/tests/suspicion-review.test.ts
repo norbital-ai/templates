@@ -584,11 +584,10 @@ test('bounds failure details while retaining the complete failure count', async 
 	assert.deepEqual(harness.updates, []);
 });
 
-test('bounds every free-form decision field in the provider and runtime schemas', () => {
+test('bounds asset identities and rejects empty decision reasons', () => {
 	const jsonSchema = JSON.stringify(Schema.toJsonSchemaDocument(suspicionInferenceSchema).schema);
 	const decode = Schema.decodeUnknownSync(suspicionInferenceSchema);
 
-	assert.match(jsonSchema, new RegExp(`"maxLength":${MAX_INFERENCE_REASON_CHARS}`));
 	assert.match(jsonSchema, new RegExp(`"maxLength":${MAX_INFERENCE_ASSET_NAME_CHARS}`));
 	assert.doesNotThrow(() =>
 		decode({
@@ -607,7 +606,7 @@ test('bounds every free-form decision field in the provider and runtime schemas'
 			]
 		})
 	);
-	assert.throws(() =>
+	assert.doesNotThrow(() =>
 		decode({
 			job_site_review: {
 				suspicious: true,
@@ -640,6 +639,25 @@ test('bounds every free-form decision field in the provider and runtime schemas'
 			similar_photo_reviews: []
 		})
 	);
+});
+
+test('normalises a verbose provider explanation without failing or changing its decision', async () => {
+	const reason = 'The supplied photographs do not show a contradiction. '.repeat(30);
+	const api = {
+		infer: () =>
+			Effect.try(() =>
+				Schema.decodeUnknownSync(suspicionInferenceSchema)({
+					job_site_review: { suspicious: false, reason, evidence_asset_name: '' },
+					similar_photo_reviews: []
+				})
+			)
+	} as unknown as Parameters<typeof inferSuspicionReviewDecision>[0];
+	const decision = await Effect.runPromise(inferSuspicionReviewDecision(api, facts()));
+	assert.equal(decision.suspicious, false);
+	assert.equal(decision.evidence_id, null);
+	assert.ok(decision.reason.length <= MAX_INFERENCE_REASON_CHARS);
+	assert.ok(decision.reason.endsWith('…[clipped]'));
+	assert.ok(decision.reason.startsWith('The supplied photographs do not show a contradiction.'));
 });
 
 test('canonicalises evidence order without turning deterministic facts into a judgement', () => {

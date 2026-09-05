@@ -145,6 +145,7 @@ export const referenceGrants = (
 export const statutoryGrants = (...actions: ReadonlyArray<'read'>): Grants =>
 	mergeGrants(
 		grantsOn('jurisdictions', actions),
+		grantsOn('statutory_research_sources', actions),
 		grantsOn('statutory_contributions', actions),
 		grantsOn('contribution_rates', actions)
 	);
@@ -358,6 +359,13 @@ const profileLifecycleApproval = {
  */
 export const statutoryProfileGrants = (): Grants =>
 	mergeGrants(
+		grantOn('statutory_research_sources', 'mutate.new', {
+			approval: { flow: () => approveBy(HR_MANAGER_TEAM), superceded_by: [SENIOR_MANAGEMENT_TEAM] }
+		}),
+		grantOn('statutory_research_sources', 'mutate.existing', {
+			fields: ['active'],
+			approval: { flow: () => approveBy(HR_MANAGER_TEAM), superceded_by: [SENIOR_MANAGEMENT_TEAM] }
+		}),
 		grantOn('jurisdictions', 'mutate.new', {
 			approval: {
 				...profileLifecycleApproval,

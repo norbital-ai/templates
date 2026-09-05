@@ -38,7 +38,8 @@ export default {
 		perRecord: {
 			before: {
 				description: 'Refuses a contact that is not attached to an account on file.',
-				handler: ({ input, prepared }) => {
+				handler: ({ input, existing, prepared }) => {
+					if (existing !== undefined && input.account_id === undefined) return input;
 					if (!input.account_id) refuse('A contact must reference an account.');
 					if (!prepared.accountIds.has(input.account_id)) {
 						refuse('Referenced account does not exist.');

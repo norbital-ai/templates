@@ -1,5 +1,9 @@
 import { it } from 'vitest';
 import assert from 'node:assert/strict';
+import { writeFile } from 'node:fs/promises';
+import { join } from 'node:path';
+import { Schema } from 'effect';
+import { Prompt } from 'effect/unstable/ai';
 import {
 	makeAiBinding,
 	startSessionGateway,
@@ -197,6 +201,187 @@ const openFieldOpsGateway = async (
 
 const openControllerGateway = (session: Awaited<ReturnType<typeof bootFieldOps>>, label: string) =>
 	openFieldOpsGateway(session, label, '/app/field_ops_controller');
+
+const waitText = (page: HeadedPage, text: string) =>
+	page.evaluate(`new Promise((resolve, reject) => {
+		const check = () => { if (document.body.innerText.includes(${JSON.stringify(text)})) { observer.disconnect(); clearTimeout(timer); resolve(true); } };
+		const observer = new MutationObserver(check);
+		const timer = setTimeout(() => { observer.disconnect(); reject(new Error('Missing ' + ${JSON.stringify(text)} + ': ' + document.body.innerText)); }, 15000);
+		observer.observe(document.body, { childList: true, subtree: true, characterData: true }); check();
+	})`);
+const send = async (page: HeadedPage, text: string, priority: 'normal' | 'steer' = 'normal') => {
+	await page.evaluate(
+		`(() => { const input = document.querySelector('#agent-task-composer'); input.value = ${JSON.stringify(text)}; input.dispatchEvent(new Event('input', { bubbles: true })); })()`
+	);
+	await page.click(
+		priority === 'steer'
+			? 'button[aria-label="Steer current turn"]'
+			: 'button[aria-label="Send message"]'
+	);
+};
+
+it('workspace conversation streams durable parts, reconnects, and accepts queued and completed follow-ups', async () => {
+	const reasoningGate = Promise.withResolvers<void>();
+	const textGate = Promise.withResolvers<void>();
+	const prompts: unknown[] = [];
+	const persistedBoundaries: number[] = [];
+	const encode = Schema.encodeSync(Prompt.Message);
+	const ai = makeAiBinding({
+		call: async (_metadata, request, _signal, onProgress) => {
+			if (request._tag === 'Catalog')
+				return {
+					_tag: 'Catalog',
+					languageModels: [{ id: 'test/language' }],
+					defaultLanguageModelId: 'test/language',
+					embeddingModels: [{ id: 'test/embedding' }],
+					defaultEmbeddingModelId: 'test/embedding'
+				};
+			assert.equal(request._tag, 'Generate');
+			if (request._tag !== 'Generate') throw new Error('Generate required');
+			prompts.push(request.messages);
+			const number = prompts.length;
+			let message = encode(
+				Prompt.assistantMessage({ content: [Prompt.textPart({ text: `Stream reply ${number}` })] })
+			);
+			if (number === 1) {
+				assert.equal(typeof onProgress, 'function');
+				const publish = async (
+					sequence: number,
+					reasoning: string,
+					text: string | null,
+					activeParts: number[]
+				) => {
+					message = encode(
+						Prompt.assistantMessage({
+							content: [
+								Prompt.reasoningPart({ text: reasoning }),
+								...(text === null ? [] : [Prompt.textPart({ text })])
+							]
+						})
+					);
+					await onProgress!(
+						Schema.decodeUnknownSync(Schema.Json)({
+							callId: request.callId,
+							sequence,
+							message,
+							activeParts
+						})
+					);
+					persistedBoundaries.push(sequence);
+				};
+				await publish(0, '', null, [0]);
+				await reasoningGate.promise;
+				await publish(1, 'Verified the durable inputs.', null, []);
+				await publish(2, 'Verified the durable inputs.', '', [1]);
+				await textGate.promise;
+				await publish(3, 'Verified the durable inputs.', 'Stream reply 1', []);
+			}
+			return {
+				_tag: 'Generated',
+				result: { _tag: 'Message', message },
+				observation: {
+					callId: request.callId,
+					provider: 'fixture',
+					model: request.modelId,
+					operation: 'language'
+				}
+			};
+		}
+	});
+	const session = await bootFieldOps('field-ops-conversation', ai);
+	let gateway: Awaited<ReturnType<typeof startSessionGateway>> | undefined;
+	let browser: HeadedBrowser | undefined;
+
+	try {
+		gateway = await openControllerGateway(session, 'field-ops-conversation');
+		browser = await launchChromiumOrSkip(`(() => {
+			window.__agentFrames = [];
+			const Native = window.EventSource;
+			window.EventSource = class extends Native {
+				constructor(...args) { super(...args); this.addEventListener('apply', event => window.__agentFrames.push(JSON.parse(event.data))); }
+			};
+		})()`);
+		assert.ok(browser, 'Chromium is required for conversation streaming acceptance.');
+		const url = controllerUrl(gateway.address.port);
+		const page = await browser.openPage(url);
+		await page.click('[data-testid="workspace-agent-trigger"]');
+		await send(page, 'Initial conversation request');
+		await waitText(page, 'Reasoning…');
+		assert.equal(prompts.length, 1, 'Provider is still held before finishing its reasoning.');
+		await send(page, 'Queued while reasoning');
+		await waitText(page, 'Queued while reasoning');
+		await send(page, 'Steer at the next step', 'steer');
+		await waitText(page, 'Steering · next step');
+		const reopened = await browser.openPage(url);
+		await reopened.click('[data-testid="workspace-agent-trigger"]');
+		await waitText(reopened, 'Reasoning…');
+		await reopened.close();
+		reasoningGate.resolve();
+		try {
+			await waitText(page, 'Writing…');
+		} catch (error) {
+			const records = await postGuestCommand(
+				session.baseUrl,
+				'collections.findMany',
+				{ collection: 'agent_message', limit: 20 },
+				bearerHeaders(session.credential)
+			);
+			const runs = await postGuestCommand(
+				session.baseUrl,
+				'collections.findMany',
+				{ collection: 'agent_run', limit: 20 },
+				bearerHeaders(session.credential)
+			);
+			const frames = await page.evaluate('JSON.stringify(window.__agentFrames)');
+			throw new Error(
+				`${String(error)}; durable=${JSON.stringify({ persistedBoundaries, records, runs })}; frames=${String(frames)}`
+			);
+		}
+		await page.click('details.group\\/reasoning summary');
+		await waitText(page, 'Verified the durable inputs.');
+		textGate.resolve();
+		await waitText(page, 'Stream reply 3');
+		assert.equal(
+			await page.evaluate('document.querySelector("#agent-task-composer").disabled'),
+			false
+		);
+		await send(page, 'Follow up after completion');
+		await waitText(page, 'Stream reply 4');
+		assert.match(JSON.stringify(prompts[1]), /Steer at the next step/);
+		assert.doesNotMatch(JSON.stringify(prompts[1]), /Queued while reasoning/);
+		assert.match(JSON.stringify(prompts[2]), /Queued while reasoning/);
+		assert.match(JSON.stringify(prompts[3]), /Stream reply 1/);
+		const runRows = await postGuestCommand(
+			session.baseUrl,
+			'collections.findMany',
+			{ collection: 'agent_run', limit: 20 },
+			bearerHeaders(session.credential)
+		);
+		assert.equal(
+			rowsOf(runRows.value, 'conversation runs').length,
+			3,
+			'Steering continues the first run.'
+		);
+		const tasks = await postGuestCommand(
+			session.baseUrl,
+			'collections.findMany',
+			{ collection: 'agent_task', where: { parent_id: { isNull: true } }, limit: 20 },
+			bearerHeaders(session.credential)
+		);
+		assert.equal(tasks.status, 200, JSON.stringify(tasks.value));
+		assert.equal(rowsOf(tasks.value, 'conversations').length, 1);
+		assert.doesNotMatch(
+			String(await page.evaluate('document.body.innerText')),
+			/complete and immutable|Start a new Task/
+		);
+	} finally {
+		reasoningGate.resolve();
+		textGate.resolve();
+		if (browser) await browser.close();
+		if (gateway) await gateway.stop();
+		await session.stop();
+	}
+});
 
 it('field-ops pointer drag persists completion and remains completed after opening a fresh page', async () => {
 	const session = await bootFieldOps('field-ops-drag');
@@ -859,7 +1044,7 @@ it('field-ops agent selects models and completes a built-in tool round trip in t
 		await page.click('[data-testid="workspace-agent-trigger"]');
 		await waitForBody(page, /provider\/first/, 'agent-model-catalogue');
 		for (const model of [secondModel, firstModel]) {
-			if (observed.length > 0) await page.click('button[aria-label="New Task"]');
+			if (observed.length > 0) await page.click('button[aria-label="New conversation"]');
 			await page.click('[role="combobox"][aria-label="Agent model"]');
 			await page.click(`[role="option"]:has-text("${model.replace('openrouter/', '')}")`);
 			await page.evaluate(`(() => {
@@ -867,7 +1052,7 @@ it('field-ops agent selects models and completes a built-in tool round trip in t
 				input.value = 'Describe this workspace using its built-in tool.';
 				input.dispatchEvent(new InputEvent('input', { bubbles: true }));
 			})()`);
-			await page.click('button[aria-label="Submit Task message"]');
+			await page.click('button[aria-label="Send message"]');
 			await waitForBody(
 				page,
 				new RegExp(`Verified workspace with ${model.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`),
@@ -900,6 +1085,329 @@ it('field-ops agent selects models and completes a built-in tool round trip in t
 	} finally {
 		if (browser) await browser.close();
 		if (gateway) await gateway.stop();
+		await session.stop();
+	}
+});
+
+it('workspace planning replaces the full plan and folds prior messages into accessible transcript tabs', async () => {
+	const revisionStarted = Promise.withResolvers<void>();
+	const releaseRevision = Promise.withResolvers<void>();
+	const prompts: unknown[] = [];
+	const firstPlan =
+		'Objective: inspect all sites. Approach: review evidence. Verify: every site has an audit.';
+	const secondPlan =
+		'Objective: inspect all sites. Approach: review evidence and geolocation. Verify: every site has an audit and coordinates.';
+	const summary = 'All sites require evidence and geolocation checks with audit records.';
+	const ai = makeAiBinding({
+		call: async (_metadata, request) => {
+			if (request._tag === 'Catalog')
+				return {
+					_tag: 'Catalog',
+					languageModels: [{ id: 'test/language' }],
+					defaultLanguageModelId: 'test/language',
+					embeddingModels: [{ id: 'test/embedding' }],
+					defaultEmbeddingModelId: 'test/embedding'
+				};
+			assert.equal(request._tag, 'Generate');
+			if (request._tag !== 'Generate') throw new Error('Generate required');
+			prompts.push(request.messages);
+			if (prompts.length === 2) {
+				revisionStarted.resolve();
+				await releaseRevision.promise;
+			}
+			return {
+				_tag: 'Generated',
+				result: {
+					_tag: 'Message',
+					message: {
+						role: 'assistant',
+						content: [firstPlan, secondPlan, summary][prompts.length - 1],
+						options: {}
+					}
+				},
+				observation: {
+					callId: request.callId,
+					provider: 'fixture',
+					model: request.modelId,
+					operation: 'language'
+				}
+			};
+		}
+	});
+	const session = await bootFieldOps('field-ops-plan-transcript', ai);
+	let gateway: Awaited<ReturnType<typeof startSessionGateway>> | undefined;
+	let browser: HeadedBrowser | undefined;
+	try {
+		gateway = await openControllerGateway(session, 'field-ops-plan-transcript');
+		browser = await launchChromiumOrSkip(EV_SOURCE_PROBE);
+		assert.ok(browser, 'Chromium is required for planning acceptance.');
+		const page = await browser.openPage(controllerUrl(gateway.address.port));
+		await page.click('[data-testid="workspace-agent-trigger"]');
+		await page.click('button[aria-keyshortcuts="Tab"]');
+		await send(page, 'Plan a complete site inspection.');
+		await waitText(page, firstPlan);
+		await waitText(page, 'Plan 1');
+		assert.equal(
+			await page.evaluate(
+				'document.querySelector("ol[aria-label=\\"Conversation transcript\\"]").innerText.trim()'
+			),
+			''
+		);
+		await page.click('[role="tab"]:has-text("Prior transcript")');
+		await waitText(page, 'Plan a complete site inspection.');
+		await page.click('[role="tab"]:has-text("Plan")');
+		await send(page, 'Add geolocation to the full plan.');
+		await revisionStarted.promise;
+		await waitText(page, 'Add geolocation to the full plan.');
+		assert.equal(
+			await page.evaluate(
+				'document.querySelector("button[aria-keyshortcuts=\\"Tab\\"]").getAttribute("aria-pressed")'
+			),
+			'true'
+		);
+		releaseRevision.resolve();
+		await waitText(page, secondPlan);
+		await waitText(page, 'Plan 2');
+		assert.equal(
+			await page.evaluate(
+				'document.querySelector("ol[aria-label=\\"Conversation transcript\\"]").innerText.trim()'
+			),
+			''
+		);
+		assert.match(JSON.stringify(prompts[1]), /complete replacement plan/);
+		assert.ok(JSON.stringify(prompts[1]).includes(firstPlan));
+		await page.click('[role="tab"]:has-text("Prior transcript")');
+		await waitText(page, 'Add geolocation to the full plan.');
+		await page.click('[role="tab"]:has-text("Plan")');
+		await send(page, '/compact Summarize the agreed inspection work.');
+		await waitText(page, summary);
+		await waitText(page, 'Conversation summary');
+		assert.equal(
+			await page.evaluate(
+				'[...document.querySelectorAll("[role=tab]")].find(tab => tab.textContent.trim() === "Summary")?.getAttribute("aria-selected")'
+			),
+			'true'
+		);
+		await page.click('[role="tab"]:has-text("Prior transcript")');
+		await waitText(page, 'Summarize the agreed inspection work.');
+		assert.equal(
+			await page.evaluate(`(() => {
+			const plus = document.querySelector('button[aria-label="Attach media or files"]').getBoundingClientRect();
+			const model = document.querySelector('[role="combobox"][aria-label="Agent model"]').getBoundingClientRect();
+			const send = document.querySelector('button[aria-label="Send message"]').getBoundingClientRect();
+			return plus.right < model.left && model.right <= send.left;
+		})()`),
+			true
+		);
+		await page.evaluate(`(() => {
+			const picker = document.querySelector('button[aria-label="Attach media or files"]').closest('form').querySelector('input[type="file"]');
+			const transfer = new DataTransfer();
+			transfer.items.add(new File(['Resin R42: melt flow 12 g/10 min.'], 'resin-notes.txt', { type: 'text/plain' }));
+			picker.files = transfer.files;
+			picker.dispatchEvent(new Event('change', { bubbles: true }));
+		})()`);
+		await waitText(page, 'resin-notes.txt');
+		await page.click('button[aria-label="Remove resin-notes.txt"]');
+		const screenshotDirectory = process.env['BOLT_TEST_SCREENSHOT_DIR'];
+		await page.click('[role="tab"]:has-text("Summary")');
+		if (screenshotDirectory)
+			await writeFile(
+				join(screenshotDirectory, 'agent-conversation-wide.png'),
+				await page.screenshot()
+			);
+		await page.setViewportSize({ width: 390, height: 844 });
+		assert.equal(await page.evaluate('document.documentElement.scrollWidth <= innerWidth'), true);
+		assert.equal(
+			await page.evaluate(`(() => {
+			const plus = document.querySelector('button[aria-label="Attach media or files"]').getBoundingClientRect();
+			const send = document.querySelector('button[aria-label="Send message"]').getBoundingClientRect();
+			return plus.left >= 0 && plus.right < send.left && send.right <= innerWidth;
+		})()`),
+			true
+		);
+		if (screenshotDirectory)
+			await writeFile(
+				join(screenshotDirectory, 'agent-conversation-narrow.png'),
+				await page.screenshot()
+			);
+	} finally {
+		releaseRevision.resolve();
+		if (browser) await browser.close();
+		if (gateway) await gateway.stop();
+		await session.stop();
+	}
+});
+
+it('workspace goals show durable progress, survive reconnect and fold away after compaction', async () => {
+	const releaseWork = Promise.withResolvers<void>();
+	let calls = 0;
+	const encode = Schema.encodeSync(Prompt.Message);
+	const ai = makeAiBinding({
+		call: async (_metadata, request) => {
+			if (request._tag === 'Catalog')
+				return {
+					_tag: 'Catalog',
+					languageModels: [{ id: 'test/language' }],
+					defaultLanguageModelId: 'test/language',
+					embeddingModels: [{ id: 'test/embedding' }],
+					defaultEmbeddingModelId: 'test/embedding'
+				};
+			if (request._tag !== 'Generate') throw new Error('Generate required');
+			const round = ++calls;
+			if (round === 2) await releaseWork.promise;
+			const message = encode(
+				Prompt.assistantMessage({
+					content:
+						round <= 2
+							? [
+									Prompt.toolCallPart({
+										id: `goal-${round}`,
+										name: 'todo',
+										params: {
+											items: [
+												{
+													id: 'review',
+													text: 'Review all sites',
+													status: round === 1 ? 'doing' : 'done'
+												},
+												{
+													id: 'verify',
+													text: 'Verify audit coverage',
+													status: round === 1 ? 'pending' : 'done'
+												}
+											]
+										},
+										providerExecuted: false
+									})
+								]
+							: [
+									Prompt.textPart({
+										text:
+											round === 3
+												? 'Two audit checks complete.'
+												: 'The site review and audit verification are complete.'
+									})
+								]
+				})
+			);
+			return {
+				_tag: 'Generated',
+				result: { _tag: 'Message', message },
+				observation: {
+					callId: request.callId,
+					provider: 'fixture',
+					model: request.modelId,
+					operation: 'language'
+				}
+			};
+		}
+	});
+	const session = await bootFieldOps('field-ops-goal-progress', ai);
+	let gateway: Awaited<ReturnType<typeof startSessionGateway>> | undefined;
+	let browser: HeadedBrowser | undefined;
+	try {
+		gateway = await openControllerGateway(session, 'field-ops-goal-progress');
+		browser = await launchChromiumOrSkip();
+		assert.ok(browser, 'Chromium is required for goal acceptance.');
+		const page = await browser.openPage(controllerUrl(gateway.address.port));
+		await page.click('[data-testid="workspace-agent-trigger"]');
+		await send(page, 'Review all sites and verify the audit coverage.');
+		await waitText(page, 'Goal progress');
+		assert.equal(
+			await page.evaluate(
+				'document.querySelector("progress[aria-label=\\"Goal progress\\"]").value'
+			),
+			0
+		);
+		await page.click('summary:has-text("Goal progress")');
+		await waitText(page, 'Verify audit coverage');
+		const screenshotDirectory = process.env['BOLT_TEST_SCREENSHOT_DIR'];
+		if (screenshotDirectory)
+			await writeFile(
+				join(screenshotDirectory, 'agent-goal-progress.png'),
+				await page.screenshot()
+			);
+		releaseWork.resolve();
+		await waitText(page, 'Two audit checks complete.');
+		await waitText(page, 'Goal complete');
+		const reconnected = await browser.openPage(controllerUrl(gateway.address.port));
+		await reconnected.click('[data-testid="workspace-agent-trigger"]');
+		await waitText(reconnected, 'Goal complete');
+		assert.equal(
+			await reconnected.evaluate(
+				'document.querySelector("progress[aria-label=\\"Goal progress\\"]").value'
+			),
+			2
+		);
+		await send(reconnected, '/compact Summarize this review.');
+		await waitText(reconnected, 'Summary');
+		assert.equal(
+			await reconnected.evaluate(
+				'document.querySelector("progress[aria-label=\\"Goal progress\\"]") === null'
+			),
+			true
+		);
+	} finally {
+		releaseWork.resolve();
+		if (browser) await browser.close();
+		if (gateway) await gateway.stop();
+		await session.stop();
+	}
+});
+
+it('field-ops self-host Run now reports provider failure and allows retry', async () => {
+	const ai = makeAiBinding({
+		call: async (_metadata, request) => {
+			if (request._tag === 'Catalog')
+				return {
+					_tag: 'Catalog',
+					languageModels: [{ id: 'test/language' }],
+					defaultLanguageModelId: 'test/language',
+					embeddingModels: [{ id: 'test/embedding' }],
+					defaultEmbeddingModelId: 'test/embedding'
+				};
+			throw new Error('Fixture review provider unavailable');
+		}
+	});
+	const session = await bootFieldOps('field-ops-review-failure-ui', ai);
+	let gateway: Awaited<ReturnType<typeof startSessionGateway>> | undefined;
+	let browser: HeadedBrowser | undefined;
+	try {
+		gateway = await openControllerGateway(session, 'field-ops-review-failure-ui');
+		browser = await launchChromiumOrSkip(EV_SOURCE_PROBE);
+		if (browser === undefined) return;
+		const page = await browser.openPage(controllerUrl(gateway.address.port));
+		await waitForBody(page, /Assign contractor/, 'review-failure-ready');
+		await page.evaluate(
+			`window.__reviewUnhandled = []; window.addEventListener('unhandledrejection', event => window.__reviewUnhandled.push(String(event.reason)))`
+		);
+		await page.click('button:has-text("Run now")');
+		await waitForBody(page, /AI provider operation failed/, 'review-failure-visible');
+		assert.equal(
+			await page.evaluate(
+				`document.querySelector('[role="alert"]')?.textContent.includes('AI provider operation failed')`
+			),
+			true
+		);
+		assert.equal(
+			await page.evaluate(
+				`[...document.querySelectorAll('button')].find(button => button.textContent.trim() === 'Run now')?.disabled`
+			),
+			false
+		);
+		assert.deepEqual(await page.evaluate('window.__reviewUnhandled'), []);
+		const response = await postGuestCommand(
+			session.baseUrl,
+			'collections.findMany',
+			{ collection: 'job_assignments', limit: 100 },
+			bearerHeaders(session.credential)
+		);
+		const rows = rowsOf(response.value, 'failed review assignments');
+		assert.ok(rows.length > 0);
+		assert.ok(rows.every((row) => row.suspicion_checked_at == null));
+	} finally {
+		if (browser !== undefined) await browser.close();
+		if (gateway !== undefined) await gateway.stop();
 		await session.stop();
 	}
 });

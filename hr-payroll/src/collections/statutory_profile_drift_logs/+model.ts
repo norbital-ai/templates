@@ -1,4 +1,12 @@
-import { defineModel, enums, instant, integer, jsonb, text } from '@norbital-ai/bolt/authoring';
+import {
+	defineModel,
+	enums,
+	instant,
+	integer,
+	jsonb,
+	text,
+	uuid
+} from '@norbital-ai/bolt/authoring';
 
 type LocalFinding = Readonly<{ kind: string; label: string }>;
 type OfficialSource = Readonly<{
@@ -18,6 +26,9 @@ type ChangeToReview = Readonly<{
 
 export default defineModel(
 	{
+		run_key: text(),
+		parent_log_id: uuid(),
+		statutory_profile_id: uuid(),
 		status: enums(['RUNNING', 'SUCCEEDED', 'FAILED']).notNull(),
 		checked_at: instant().notNull(),
 		completed_at: instant(),
@@ -34,8 +45,13 @@ export default defineModel(
 	{
 		description:
 			'Immutable evidence for one statutory-profile drift run: deterministic local findings and successor approval proposals, plus the model’s official-source research. A suggested web change is review material and never edits statutory configuration by itself.',
-		recordLabel: ['checked_at', 'status'],
+		recordLabel: 'status',
 		icon: 'lucide:scan-search',
-		indexes: [{ columns: ['checked_at'] }, { columns: ['status'] }]
+		indexes: [
+			{ columns: ['checked_at'] },
+			{ columns: ['status'] },
+			{ columns: ['run_key'], unique: true },
+			{ columns: ['parent_log_id', 'statutory_profile_id'] }
+		]
 	}
 );

@@ -1,10 +1,12 @@
 import assert from 'node:assert/strict';
-import { existsSync, readFileSync, readdirSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync, mkdtempSync, writeFileSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { describe, it } from 'node:test';
 import {
 	actualCounts,
 	discoverTemplates,
+	resolveLockfile,
 	repositoryRoot,
 	templateMetadataFile,
 	templateRefNamespace
@@ -228,6 +230,30 @@ describe('template CI', () => {
 					);
 				}
 			}
+		}
+	});
+
+	it('preserves the committed dependency resolution when validating a lockfile', () => {
+		const directory = mkdtempSync(path.join(tmpdir(), 'norbital-lock-test-'));
+		try {
+			writeFileSync(path.join(directory, 'package.json'), '{"dependencies":{"example":"^1.0.0"}}');
+			writeFileSync(path.join(directory, 'pnpm-workspace.yaml'), 'packages: []\n');
+			const committed = 'lockfileVersion: 9.0\n# example remains at 1.0.0 even when 1.1.0 exists\n';
+			writeFileSync(path.join(directory, 'pnpm-lock.yaml'), committed);
+			const template = { ...discoverTemplates()[0]!, directory };
+			const resolved = resolveLockfile(template, (command, args, options = {}) => {
+				assert.equal(command, 'pnpm');
+				assert.ok(options.cwd);
+				assert.equal(readFileSync(path.join(options.cwd, 'pnpm-lock.yaml'), 'utf8'), committed);
+				assert.ok(args.includes('--no-frozen-lockfile'));
+				assert.ok(!args.includes('--force'));
+				assert.ok(!args.includes('--ignore-workspace'));
+				return '';
+			});
+			assert.equal(resolved, committed);
+			assert.equal(readFileSync(path.join(directory, 'pnpm-lock.yaml'), 'utf8'), committed);
+		} finally {
+			rmSync(directory, { recursive: true, force: true });
 		}
 	});
 

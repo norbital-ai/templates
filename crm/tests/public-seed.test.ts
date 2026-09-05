@@ -75,5 +75,5 @@ test('loadPublicSeed inserts invented crm fixture rows through query', async () 
 	);
 	assert.ok(calls.some((call) => call.parameters.includes('PUB-ACC-0001')));
 	assert.ok(calls.some((call) => call.parameters.includes('PUB-PRD-0001')));
-	assert.ok(calls.some((call) => call.parameters.includes('PUB-CON-0001')));
+	assert.ok(calls.some((call) => call.parameters.includes('Ada')));
 });

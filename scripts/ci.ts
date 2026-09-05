@@ -324,7 +324,7 @@ const publishTemplates = (options: {
 	}
 };
 
-const resolveLockfile = (template: Template): string => {
+export const resolveLockfile = (template: Template, execute = run): string => {
 	const workingDirectory = mkdtempSync(path.join(tmpdir(), `norbital-lock-${template.slug}-`));
 	try {
 		copyFileSync(
@@ -335,14 +335,16 @@ const resolveLockfile = (template: Template): string => {
 			path.join(template.directory, 'pnpm-workspace.yaml'),
 			path.join(workingDirectory, 'pnpm-workspace.yaml')
 		);
+		const committed = path.join(template.directory, 'pnpm-lock.yaml');
+		if (existsSync(committed))
+			copyFileSync(committed, path.join(workingDirectory, 'pnpm-lock.yaml'));
 		writeFileSync(path.join(workingDirectory, '.npmrc'), registryConfiguration());
-		run(
+		execute(
 			'pnpm',
 			[
 				'install',
 				'--lockfile-only',
-				'--ignore-workspace',
-				'--force',
+				'--no-frozen-lockfile',
 				'--store-dir',
 				path.join(workingDirectory, '.pnpm-store'),
 				'--cache-dir',

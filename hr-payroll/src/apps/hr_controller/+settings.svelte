@@ -121,6 +121,42 @@
 	</CollectionTable>
 {/snippet}
 
+{#snippet researchSources()}
+	<CollectionTable
+		{client}
+		collection="statutory_research_sources"
+		view="hr_controller:settings:research_sources"
+		title={t('app.settings.research_sources')}
+		description={t('app.settings.research_sources_description')}
+	>
+		{#snippet columns({ Column })}
+			<Column name="title" card="title" />
+			<Column name="jurisdiction_code" />
+			<Column name="url" />
+			<Column name="active" />
+			<Column name="rationale" />
+		{/snippet}
+	</CollectionTable>
+{/snippet}
+
+{#snippet researchRuns()}
+	<CollectionTable
+		{client}
+		collection="statutory_profile_drift_logs"
+		view="hr_controller:settings:research_runs"
+		title={t('app.settings.research_runs')}
+		query={{ orderBy: { checked_at: 'desc' } }}
+	>
+		{#snippet columns({ Column })}
+			<Column name="status" card="title" />
+			<Column name="checked_at" />
+			<Column name="web_summary" card="subtitle" />
+			<Column name="successor_proposals_count" />
+			<Column name="error" />
+		{/snippet}
+	</CollectionTable>
+{/snippet}
+
 <Cover>
 	<Tabs
 		animate={false}
@@ -130,6 +166,18 @@
 				label: t('app.settings.jurisdictions_title'),
 				icon: 'lucide:globe',
 				content: jurisdictions
+			},
+			{
+				name: 'research_sources',
+				label: t('app.settings.research_sources'),
+				icon: 'lucide:shield-check',
+				content: researchSources
+			},
+			{
+				name: 'research_runs',
+				label: t('app.settings.research_runs'),
+				icon: 'lucide:scan-search',
+				content: researchRuns
 			},
 			{
 				name: 'companies',

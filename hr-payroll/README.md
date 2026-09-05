@@ -133,17 +133,25 @@ manually refreshed query function.
 collection meanings, money/date rules, and the boundary around statutory advice. It grants nothing;
 the signed-in person's policies remain the complete authority for a web-agent turn.
 
-### Automations (11)
+### Automations
 
-**`statutory_profile_drift`** — weekly automation (`0 3 * * 1`). Bounded reads of the sealed
-statutory profiles in force, their contribution schemes and rates, and employment statutory facts;
-rule-based drift detection against the governing profile version; optional successor copy of
-`employment_statutory_facts` when the governing profile holds exactly one same-code scheme; its
-policy requires HR Manager approval, and the mutate hook stages the predecessor close so approval
-settlement commits both rows or neither. `api.infer` writes the report. It never writes the law
-tables.
+**`statutory_profile_drift`** — weekly automation (`0 3 * * 1`). It compares every governing
+sealed profile with company and employment facts, then starts a separate
+**`statutory_profile_research`** run per profile. Each run retains its own identity, evidence,
+status and approval proposals; one failed profile does not prevent the others from being researched.
+Replaying a completed occurrence reuses its receipt.
 
-The ten leave automations reconcile yearly accounts after employment, plan or statutory-profile
+Research reads approved HTTPS sources through the host connector. A new site must be linked and
+quoted in retrieved evidence; it is proposed in `statutory_research_sources` and is not fetched until
+HR Manager approval. Approved origins are scoped to their jurisdiction. Revoking a source stops its
+future use while preserving the approval and evidence history. Settings exposes sources and run receipts.
+
+Evidence-backed law changes propose an effective-dated sealed successor for separate HR approval.
+Approval preserves the predecessor and activates the successor at its effective date. Deterministic
+employment-fact copies likewise require HR approval. Missing evidence and oversized documents fail
+explicitly; research never substitutes guessed or silently truncated facts.
+
+The leave automations reconcile yearly accounts after employment, plan or statutory-profile
 changes, post approved/withdrawn requests and reviewed qualifying-event openings to the ledger, and
 run a daily repair sweep. HR does not run an annual entitlement batch.
 

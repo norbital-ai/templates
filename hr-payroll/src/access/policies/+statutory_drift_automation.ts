@@ -17,6 +17,10 @@ export default {
 	description:
 		'Reads statutory and employment snapshots, appends deterministic successor facts, and records durable statutory-drift research evidence.',
 	grants: {
+		statutory_research_sources: {
+			read: {},
+			mutate: { new: { approval: statutoryChangeApproval } }
+		},
 		jurisdictions: {
 			read: {},
 			mutate: { new: { approval: statutoryChangeApproval } }
