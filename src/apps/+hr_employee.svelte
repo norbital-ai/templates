@@ -1198,7 +1198,13 @@
 									</p>
 								</div>
 								<Stack gap="xs">
-									<dl class="grid grid-cols-4 gap-3">
+									<dl class="grid grid-cols-5 gap-3">
+										<div>
+											<dt class="text-meta">{t('app.hr_employee.leave_entitlement')}</dt>
+											<dd class="text-sm font-medium tabular-nums">
+												{formatNumeric(summary.entitlement)}
+											</dd>
+										</div>
 										<div>
 											<dt class="text-meta">{t('app.hr_employee.leave_earned')}</dt>
 											<dd class="text-sm font-medium tabular-nums">
