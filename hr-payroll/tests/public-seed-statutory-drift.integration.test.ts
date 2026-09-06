@@ -171,23 +171,6 @@ const driftAi = (failMy = () => false) => {
 	});
 };
 
-const driftFindings = (
-	value: unknown
-): ReadonlyArray<{ readonly kind?: unknown; readonly label?: unknown }> => {
-	if (typeof value === 'string') {
-		try {
-			return driftFindings(JSON.parse(value));
-		} catch {
-			return [];
-		}
-	}
-	if (!Array.isArray(value)) return [];
-	return value.filter(
-		(row): row is { readonly kind?: unknown; readonly label?: unknown } =>
-			typeof row === 'object' && row !== null && !Array.isArray(row)
-	);
-};
-
 const insertSealedProfile = async (
 	session: Awaited<ReturnType<typeof startPublicSeedHost>>,
 	profile: Readonly<{
@@ -326,36 +309,33 @@ test(
 			const body = asRecord(started.value, 'automations.start');
 			assert.equal(typeof body.taskId, 'string', JSON.stringify(body));
 
-			const logs = (await session.query(
-				`select status, local_findings from statutory_profile_drift_logs where parent_log_id is null order by checked_at desc limit 1`
-			)) as ReadonlyArray<{ readonly status: string; readonly local_findings: unknown }>;
-			const log = logs[0];
-			assert.ok(log, 'expected a statutory_profile_drift_logs row');
-			assert.equal(log.status, 'SUCCEEDED', `drift run failed: ${JSON.stringify(logs)}`);
-
-			const rateGaps = driftFindings(log.local_findings).filter((row) => row.kind === 'rate_gap');
+			const runOf = async (taskId: unknown) =>
+				asRecord(
+					(
+						await session.query(
+							`select status, result, error from automation_run where task_id = $1`,
+							[taskId]
+						)
+					)[0],
+					'automation run'
+				);
+			const run = await runOf(body.taskId);
+			assert.equal(run.status, 'done', `drift run failed: ${JSON.stringify(run)}`);
+			const result = asRecord(run.result, 'drift result');
 			assert.ok(
-				rateGaps.length >= 2,
-				`expected rate_gap findings, got ${JSON.stringify(rateGaps)}`
+				Number(result.items) >= 2,
+				`expected the SG and MY rate gaps counted in the result, got ${JSON.stringify(result)}`
 			);
-			const labels = rateGaps.map((row) => String(row.label ?? ''));
+			const jurisdictions = result.jurisdictions as ReadonlyArray<Record<string, unknown>>;
+			assert.deepEqual(
+				jurisdictions.map((row) => row.code).sort(),
+				['MY', 'SG'],
+				'one research receipt per governing profile, from one run'
+			);
 			assert.ok(
-				labels.some((label) => label.includes('SG-CPF') || label.includes('(SG)')),
-				`expected SG-CPF rate_gap, got ${JSON.stringify(labels)}`
+				jurisdictions.every((row) => Number(row.sources) >= 1),
+				`every profile keeps official-source evidence: ${JSON.stringify(jurisdictions)}`
 			);
-			assert.ok(
-				labels.some((label) => label.includes('MY-EPF') || label.includes('(MY)')),
-				`expected MY-EPF rate_gap, got ${JSON.stringify(labels)}`
-			);
-			const childRuns = await session.query(`
-                select l.statutory_profile_id, l.parent_log_id, l.run_key, a.status
-                from statutory_profile_drift_logs l join automation_run a on a.task_id = l.run_key
-                where l.parent_log_id is not null order by l.statutory_profile_id
-            `);
-			assert.equal(childRuns.length, 2);
-			assert.equal(new Set(childRuns.map((row) => row.run_key)).size, 2);
-			assert.ok(childRuns.every((row) => row.status === 'done'));
-			assert.equal(new Set(childRuns.map((row) => row.parent_log_id)).size, 1);
 			const pending = await session.query(
 				`select id, status, record_id, proposed_values from approval_request where collection_name = 'jurisdictions'`
 			);
@@ -398,20 +378,16 @@ test(
 				bearerHeaders(session.credential)
 			);
 			assert.ok(failed.status >= 400, JSON.stringify(failed.value));
-			const failedParent = (
-				await session.query(`select id, status, official_sources from statutory_profile_drift_logs
-                where parent_log_id is null order by checked_at desc limit 1`)
-			)[0];
-			assert.equal(failedParent.status, 'FAILED');
-			const siblingRuns = await session.query(
-				`select statutory_profile_id, status from statutory_profile_drift_logs
-                where parent_log_id = $1 order by statutory_profile_id`,
-				[failedParent.id]
+			assert.match(
+				JSON.stringify(failed.value),
+				/MY: /,
+				'the failure names the jurisdiction whose research failed'
 			);
-			assert.deepEqual(siblingRuns, [
-				{ statutory_profile_id: SG_PROFILE_ID, status: 'SUCCEEDED' },
-				{ statutory_profile_id: MY_PROFILE_ID, status: 'FAILED' }
-			]);
+			const failedRuns = await session.query(
+				`select status, error from automation_run where name = 'statutory_profile_drift' and status = 'failed'`
+			);
+			assert.ok(failedRuns.length >= 1, 'the failed run is durable');
+			assert.match(String(asRecord(failedRuns[0], 'failed run').error), /MY: /);
 			failMy = false;
 			const managerHeaders = {
 				...bearerHeaders(session.credential),

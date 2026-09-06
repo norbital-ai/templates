@@ -85,7 +85,6 @@ export default {
 		statutoryGrants('read'),
 		statutoryProfileGrants(),
 		// Research receipts are append-only worker evidence. Controllers may inspect but not alter them.
-		grantsOn('statutory_profile_drift_logs', ['read']),
 		peopleGrants('read'),
 		peopleGrants('mutate.new', 'mutate.existing', 'delete'),
 		grantsOn('work_days', ['read']),
