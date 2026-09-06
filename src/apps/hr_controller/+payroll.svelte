@@ -14,6 +14,7 @@
 	import { Bound, Cover, Inline, Scroll, Stack } from '@norbital-ai/ui/layout';
 	import { Tabs, type TabConfig } from '@norbital-ai/ui/tabs';
 	import { CollectionTable } from '@norbital-ai/ui/collection-table';
+	import { PAYROLL_RUN_LIST_COLUMNS } from '../../collections/payroll_runs/list-columns.js';
 	import { formatCalendarDate } from '../../lib/ui/display-formatters.js';
 	import { payrollRunsExportQuery, saveCollectionExport } from '../../lib/ui/export-download.js';
 	import { daysBetweenKeys, payDateFor, periodWindow, todayKey } from '../../lib/ui/calendar.js';
@@ -33,6 +34,7 @@
 			: client.db.payroll_runs.findMany({
 					where: { company_id: { eq: selectedCompanyId } },
 					orderBy: { period: 'desc' },
+					columns: PAYROLL_RUN_LIST_COLUMNS,
 					limit: 500
 				})
 	);
@@ -215,7 +217,8 @@
 				description={t('app.payroll.runs_description')}
 				query={{
 					where: { company_id: { eq: selectedCompanyId } },
-					orderBy: { period: 'desc' }
+					orderBy: { period: 'desc' },
+					columns: PAYROLL_RUN_LIST_COLUMNS
 				}}
 				exportPipelines={[
 					{
@@ -301,7 +304,7 @@
 					<Column name="sequence" />
 					<Column name="lifecycle" label={t('app.payroll.lifecycle')} card="badge" />
 					<Column name="pay_date" label={t('app.payroll.pay_date')} />
-					<Column name="configuration_snapshot" label={t('app.payroll.policy_snapshot')} />
+					<Column name="configuration_hash" label={t('app.payroll.policy_snapshot')} />
 				{/snippet}
 				{#snippet ListCard(run)}
 					<Stack gap="xs">
