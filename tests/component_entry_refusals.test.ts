@@ -70,7 +70,11 @@ test('a standing allowance requires its range, and the range is refused elsewher
 test('arrears name YYYY-MM periods, and a correction names its output', () => {
 	assert.deepEqual(
 		componentEntryEventIssues({
-			event: { kind: 'ARREARS', covers_periods: ['2026-01', '2026-02'], reason: 'late start' },
+			event: {
+				kind: 'ARREARS',
+				covers_periods: ['2026-01', '2026-02'],
+				reason: 'late start'
+			},
 			amount: 500
 		}),
 		[]

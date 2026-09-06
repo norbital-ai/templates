@@ -13,6 +13,7 @@ export default defineModel(
 			'TAKEN',
 			'RESTORED',
 			'ENCASHED',
+			'COMMUTED',
 			'EXPIRED',
 			'MANUAL_ADJUSTMENT'
 		]).notNull(),
@@ -27,7 +28,7 @@ export default defineModel(
 	},
 	{
 		description:
-			'An immutable signed movement in one leave account. Positive entries grant or restore days; negative entries take, encash or expire them.',
+			'An immutable signed movement in one leave account. Positive entries grant or restore days; negative entries take, encash, commute or expire them.',
 		recordLabel: 'kind',
 		icon: 'lucide:list-tree',
 		indexes: [

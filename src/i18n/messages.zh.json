@@ -1147,5 +1147,7 @@
 	"payroll.payment_confirmation": "确认款项已支付后再标记为已支付。此操作将永久锁定本次工资结算。",
 	"component.leave_eligibility_not_met": "此雇佣关系不符合该假期类型的资格规则。",
 	"component.leave_certificate_required": "请附上证明：本次申请超过该假期类型的证明要求天数。",
-	"app.hr_employee.leave_available": "扣除待审批后可用"
+	"app.hr_employee.leave_available": "扣除待审批后可用",
+	"renderer.leave_accrual.select_settlement": "选择年终结算方式",
+	"renderer.leave_accrual.select_pay_basis": "选择日工资基数"
 }

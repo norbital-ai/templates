@@ -1,23 +1,17 @@
 import { defineCustomType } from '@norbital-ai/bolt/authoring';
 import { Schema } from 'effect';
-
-/** Carry-forward policy. Null is the default: nothing carries. Reconciliation posts any carry as a new-year ledger entry. */
-export const leaveCarryValueSchema = Schema.Struct({
-	limit_days: Schema.Finite.check(Schema.isGreaterThanOrEqualTo(0)),
-	expiry_months: Schema.Int.check(Schema.isGreaterThanOrEqualTo(0))
-});
-
-export type LeaveCarry = Schema.Schema.Type<typeof leaveCarryValueSchema>;
+import { leaveSettlementValueSchema } from '../leave_settlement/+definition.js';
 
 /**
- * How entitlement for a leave type comes into existence.
+ * How entitlement for a leave type comes into existence, and what the leave year does with
+ * what is left. `FORFEIT` is the default: nothing carries, nothing converts.
  * - `MONTHLY`   — pro-rata each completed month of the leave year.
  * - `UPFRONT`   — the whole band granted at the start of the leave year.
  * - `UNLIMITED` — requests still require a yearly account, but no balance ceiling applies.
  */
 export const leaveAccrualValueSchema = Schema.Union([
-	Schema.Struct({ kind: Schema.Literal('MONTHLY'), carry: Schema.NullOr(leaveCarryValueSchema) }),
-	Schema.Struct({ kind: Schema.Literal('UPFRONT'), carry: Schema.NullOr(leaveCarryValueSchema) }),
+	Schema.Struct({ kind: Schema.Literal('MONTHLY'), settlement: leaveSettlementValueSchema }),
+	Schema.Struct({ kind: Schema.Literal('UPFRONT'), settlement: leaveSettlementValueSchema }),
 	Schema.Struct({ kind: Schema.Literal('UNLIMITED') })
 ]);
 
@@ -31,6 +25,6 @@ export const leaveAccrualSchema = Schema.toStandardSchemaV1(leaveAccrualValueSch
 export default defineCustomType({
 	name: 'leave_accrual',
 	description:
-		'How a yearly leave account earns days — monthly, upfront, or unmetered — plus an explicit carry rule. Null carry means no carry-forward.',
+		'How a yearly leave account earns days — monthly, upfront, or unmetered — plus what the leave year does with its unused balance. FORFEIT means nothing carries and nothing converts.',
 	schema: leaveAccrualSchema
 });

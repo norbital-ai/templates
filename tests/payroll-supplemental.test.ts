@@ -40,7 +40,10 @@ test('payroll formula reads the sealed account ledger without recalculating hist
 		code: 'ANNUAL',
 		statutory_kind: 'ANNUAL',
 		eligibility: [],
-		accrual: { kind: 'UPFRONT', carry: { limit_days: 8, expiry_months: 12 } },
+		accrual: {
+			kind: 'UPFRONT',
+			settlement: { settlement: 'CARRY', limit_days: 8, expiry_months: 12, coverage: null }
+		},
 		entitlement: { layers: [] },
 		payroll_effect: { kind: 'PAID' },
 		approval_id: null

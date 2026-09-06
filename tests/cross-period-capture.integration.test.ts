@@ -147,6 +147,7 @@ function withSpanningLeave(world) {
 		accrual_kind: 'UNLIMITED',
 		carry_limit_days: null,
 		carry_expiry_months: null,
+		settlement: { settlement: 'FORFEIT' },
 		calculation: {
 			calculated_on: '2026-01-01',
 			service_months: 0,

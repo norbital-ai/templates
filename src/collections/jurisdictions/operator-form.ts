@@ -22,6 +22,7 @@ export const JURISDICTION_OPERATOR_VISIBLE_FIELDS = [
 	'ordinary_rate_divisor',
 	'regime',
 	'statutory_leave',
+	'statutory_coverage',
 	'revision',
 	'research_urls'
 ] as const;

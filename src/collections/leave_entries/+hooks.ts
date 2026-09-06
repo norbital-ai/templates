@@ -31,10 +31,12 @@ export default {
 						)
 							refuse('Grant, carry and restore entries must be positive.');
 						if (
-							['CARRY_TRANSFER_OUT', 'TAKEN', 'ENCASHED', 'EXPIRED'].includes(String(input.kind)) &&
+							['CARRY_TRANSFER_OUT', 'TAKEN', 'ENCASHED', 'COMMUTED', 'EXPIRED'].includes(
+								String(input.kind)
+							) &&
 							days > 0
 						)
-							refuse('Take, transfer, encash and expiry entries must be negative.');
+							refuse('Take, transfer, encash, commute and expiry entries must be negative.');
 						if (input.kind === 'MANUAL_ADJUSTMENT') {
 							if (String(input.reason ?? '').trim() === '')
 								refuse('A manual leave adjustment needs a reason.');

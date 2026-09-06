@@ -32,6 +32,8 @@ export default defineModel(
 		accrual_kind: enums(['UPFRONT', 'MONTHLY', 'UNLIMITED', 'EVENT']).notNull(),
 		carry_limit_days: numeric(),
 		carry_expiry_months: integer(),
+		/** The year-end settlement variant compiled into this account: what unused days do. */
+		settlement: custom('leave_settlement').notNull(),
 		calculation: custom('leave_account_calculation').notNull()
 	},
 	{

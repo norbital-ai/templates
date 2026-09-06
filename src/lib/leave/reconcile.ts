@@ -13,6 +13,9 @@ import { roundHalfDay } from '../../collections/payroll_runs/lib/rounding.js';
 import { dateKey } from '../iso-day.js';
 import { awardedLeaveDays, leaveAccountBalance } from './ledger.js';
 import { leaveAccountIdFor, leaveEntryIdFor, requestSourceKey } from './identity.js';
+import type { LeaveSettlement } from '../../datatypes/leave_settlement/+definition.js';
+
+const FORFEIT_SETTLEMENT = { settlement: 'FORFEIT' } as const satisfies LeaveSettlement;
 
 const LIMIT = 5_000;
 /** The leave service needs only the data surface; hooks and automations hand it theirs. */
@@ -144,24 +147,138 @@ export function targetEntitlement(options: {
 	return { statutory, company, target: Math.max(statutory, company), serviceMonths };
 }
 
-function mergedCarry(
+export function mergedSettlement(
 	profile: Jurisdiction,
-	type: LeaveType
-): {
-	limit: number;
-	expiryMonths: number;
-} | null {
-	const company = type.accrual.kind === 'UNLIMITED' ? null : type.accrual.carry;
-	const statutory =
+	type: LeaveType,
+	coverage: string | null
+): LeaveSettlement {
+	const company =
+		type.accrual.kind === 'UNLIMITED'
+			? (FORFEIT_SETTLEMENT as LeaveSettlement)
+			: normalizeAccrualSettlement(type.accrual);
+	const member =
 		type.statutory_kind == null
 			? null
-			: (profile.statutory_leave.find((member) => member.kind === type.statutory_kind)?.carry ??
-				null);
-	if (company == null && statutory == null) return null;
+			: (profile.statutory_leave.find((member) => member.kind === type.statutory_kind) ?? null);
+	const statutory = normalizeMemberSettlement(member, coverage);
+	const rank = (settlement: LeaveSettlement): number =>
+		settlement.settlement === 'COMMUTE' ? 3 : settlement.settlement === 'CARRY' ? 2 : 1;
+	if (rank(statutory) !== rank(company))
+		return rank(statutory) > rank(company) ? statutory : company;
+	// Same behavior on both sides: the law wins the tie, and two CARRY floors merge the way
+	// caps always merged — the wider limit, the later expiry, the union of coverage.
+	if (company.settlement === 'CARRY' && statutory.settlement === 'CARRY') {
+		const limitOf = (settlement: typeof company): number =>
+			settlement.limit_days == null
+				? Number.POSITIVE_INFINITY
+				: decodeNumber(settlement.limit_days);
+		const limit = Math.max(limitOf(company), limitOf(statutory));
+		return {
+			settlement: 'CARRY',
+			limit_days: limit === Number.POSITIVE_INFINITY ? null : limit,
+			expiry_months: Math.max(
+				decodeNumber(company.expiry_months),
+				decodeNumber(statutory.expiry_months)
+			),
+			coverage:
+				company.coverage == null || statutory.coverage == null
+					? null
+					: [...new Set([...company.coverage, ...statutory.coverage])]
+		} as LeaveSettlement;
+	}
+	return statutory.settlement === 'FORFEIT' ? company : statutory;
+}
+
+/** Transitional bridge: rows written before the settlement union keep resolving. */
+function normalizeAccrualSettlement(accrual: LeaveType['accrual']): LeaveSettlement {
+	if (accrual.kind === 'UNLIMITED') return FORFEIT_SETTLEMENT as LeaveSettlement;
+	return accrual.settlement;
+}
+
+/** A statutory floor with a coverage gate protects only employments carrying that code. */
+function normalizeMemberSettlement(
+	member: Jurisdiction['statutory_leave'][number] | null,
+	coverage: string | null
+): LeaveSettlement {
+	if (member == null) return FORFEIT_SETTLEMENT as LeaveSettlement;
+	const settlement = member.settlement;
+	if (settlement.settlement !== 'CARRY' || settlement.coverage == null) return settlement;
+	if (coverage != null && settlement.coverage.includes(coverage)) return settlement;
+	return FORFEIT_SETTLEMENT as LeaveSettlement;
+}
+
+/**
+ * The salary facts coverage derivation reads: monthly basic where the terms state one, and
+ * whether the work counts as workman labor. Anything else (hourly, daily, piece rates) carries
+ * no code — universal floors still protect the employment, banded ones stay silent.
+ */
+export function coverageInputs(
+	terms: {
+		pay_frequency?: unknown;
+		base_salary?: unknown;
+		statutory_work_category?: unknown;
+	} | null
+): {
+	readonly monthlyBasic: number | null;
+	readonly workman: boolean;
+} {
+	if (terms == null) return { monthlyBasic: null, workman: false };
+	const salary = terms.base_salary as { value?: unknown } | null;
+	const monthlyBasic =
+		terms.pay_frequency === 'MONTHLY' && salary != null ? decodeNumber(salary.value) : null;
 	return {
-		limit: Math.max(company?.limit_days ?? 0, statutory?.limit_days ?? 0),
-		expiryMonths: Math.max(company?.expiry_months ?? 0, statutory?.expiry_months ?? 0)
+		monthlyBasic: monthlyBasic != null && monthlyBasic > 0 ? monthlyBasic : null,
+		workman:
+			typeof terms.statutory_work_category === 'string' &&
+			terms.statutory_work_category.startsWith('MANUAL_LABOUR')
 	};
+}
+/**
+ * The daily rate a COMMUTE settlement cashes out at, from the terms in force when the year
+ * closed. Each basis is one statute's stated divisor — MY monthly ÷ 26, TW monthly ÷ 30, PH
+ * daily wage (monthly-paid: monthly × 12 ÷ 313, the DOLE working-day convention) — so a
+ * combination the law does not state is refused instead of priced by an invented divisor.
+ */
+export function commuteDailyRate(
+	term: { readonly pay_frequency?: unknown; readonly base_salary?: unknown } | null | undefined,
+	payBasis: 'ORDINARY_DIV26' | 'MONTHLY_DIV30' | 'DAILY_WAGE'
+): number {
+	const salary = term?.base_salary as { value?: unknown } | null;
+	const value = salary == null ? NaN : decodeNumber(salary.value);
+	if (!(value > 0)) refuse('Commutation needs a positive base salary in the closing terms.');
+	if (term?.pay_frequency === 'DAILY' && payBasis === 'DAILY_WAGE') return value;
+	if (term?.pay_frequency === 'MONTHLY' && payBasis === 'ORDINARY_DIV26') return value / 26;
+	if (term?.pay_frequency === 'MONTHLY' && payBasis === 'MONTHLY_DIV30') return value / 30;
+	if (term?.pay_frequency === 'MONTHLY' && payBasis === 'DAILY_WAGE') return (value * 12) / 313;
+	return refuse(
+		`Commutation basis ${payBasis} is not stated for ${String(term?.pay_frequency ?? 'missing')} pay frequency.`
+	);
+}
+
+/** First matching band wins; no match (or no bands, or no monthly basic) means no code. */
+export function resolveStatutoryCoverage(options: {
+	readonly profile: Jurisdiction;
+	readonly monthlyBasic: number | null;
+	readonly workman: boolean;
+}): string | null {
+	const bands =
+		((options.profile as { statutory_coverage?: unknown }).statutory_coverage as
+			| ReadonlyArray<{
+					readonly code: string;
+					readonly max_monthly_basic: number | null;
+					readonly workman_only: boolean | null;
+			  }>
+			| null
+			| undefined) ?? null;
+	if (bands == null || options.monthlyBasic == null) return null;
+	const basic = options.monthlyBasic;
+	return (
+		bands.find(
+			(band) =>
+				(band.max_monthly_basic == null || decodeNumber(band.max_monthly_basic) >= basic) &&
+				(band.workman_only == null || band.workman_only === options.workman)
+		)?.code ?? null
+	);
 }
 
 function monthEndFrom(start: string, offset: number): string {
@@ -372,6 +489,8 @@ export function ensureAccount(options: {
 	readonly existing: readonly Account[];
 	readonly companyEligible?: boolean;
 	readonly statutoryEligible?: boolean;
+	/** Coverage code derived for the governing date; null leaves banded floors silent. */
+	readonly statutoryCoverage?: string | null;
 	readonly midYearOpening?: {
 		readonly effectiveOn: string;
 		readonly transition: Transition;
@@ -466,7 +585,12 @@ export function ensureAccount(options: {
 			options.midYearOpening == null && options.eligibilityOpeningOn == null
 				? target.target
 				: scheduledEntries.reduce((total, entry) => total + entry.days, 0);
-		const carry = mergedCarry(options.profile, options.type);
+		const settlement = mergedSettlement(
+			options.profile,
+			options.type,
+			options.statutoryCoverage ?? null
+		);
+		const carry = settlement.settlement === 'CARRY' ? settlement : null;
 		if (existing != null && target.target <= 0) return { account: existing, created: false };
 		yield* options.api.db.leave_accounts.mutate([
 			{
@@ -485,8 +609,9 @@ export function ensureAccount(options: {
 				status: 'OPEN',
 				entitlement_days: entitlementDays,
 				accrual_kind: options.type.accrual.kind,
-				carry_limit_days: carry?.limit ?? null,
-				carry_expiry_months: carry?.expiryMonths ?? null,
+				carry_limit_days: carry?.limit_days ?? null,
+				carry_expiry_months: carry?.expiry_months ?? null,
+				settlement,
 				calculation: {
 					calculated_on: asOf,
 					service_months: target.serviceMonths,
@@ -589,9 +714,53 @@ export function reconcileTarget(options: {
 	});
 }
 
-export function expireCarry(api: Api, account: Account, entries: readonly Entry[], asOf: string) {
+/** The settlement compiled into an account. */
+export function accountSettlement(account: Account): LeaveSettlement {
+	return account.settlement;
+}
+
+export function expireCarry(
+	api: Api,
+	account: Account,
+	entries: readonly Entry[],
+	asOf: string,
+	commuteDailyRate?: number | null
+) {
 	return Effect.gen(function* () {
 		let posted = 0;
+		const settlement = accountSettlement(account);
+		if (
+			account.account_kind === 'YEAR' &&
+			account.status === 'OPEN' &&
+			settlement.settlement === 'COMMUTE' &&
+			dateKey(account.ends_on) < asOf &&
+			!entries.some((entry) => entry.source_key === `commute:${account.id}`)
+		) {
+			// Commutation is the statute's year-end cash settlement (PH SIL, TW special leave):
+			// the same trigger that would expire, but the balance becomes money, never vapor.
+			// Payroll linkage is a separate, explicit step — this posts the immutable debt.
+			if (commuteDailyRate == null)
+				refuse(
+					`Leave account ${account.id} commutes to cash but no daily rate was resolved. Price commutation before reconciliation.`
+				);
+			const balance = Math.max(0, leaveAccountBalance(entries, dateKey(account.ends_on)));
+			if (balance > 1e-9) {
+				const cash = Math.round(balance * commuteDailyRate * 100) / 100;
+				yield* api.db.leave_entries.mutate([
+					{
+						leave_account_id: account.id,
+						kind: 'COMMUTED',
+						effective_on: dateKey(account.ends_on),
+						days: -balance,
+						reason: `Commuted ${balance} days at ${commuteDailyRate}/day (${settlement.pay_basis}): ${cash} owed`,
+						source_key: `commute:${account.id}`,
+						leave_plan_id: account.opening_plan_id,
+						statutory_profile_id: account.opening_statutory_profile_id
+					}
+				]);
+				posted += 1;
+			}
+		}
 		let takenAllocatedToEarlierCarry = 0;
 		const carries = entries
 			.filter(
@@ -902,7 +1071,11 @@ export function reconcileEmploymentLeave(api: Api, employmentId: string, asOf: s
 					startMonth,
 					existing: allAccounts,
 					companyEligible,
-					statutoryEligible
+					statutoryEligible,
+					statutoryCoverage: resolveStatutoryCoverage({
+						profile,
+						...coverageInputs(term ?? null)
+					})
 				});
 				if (ensured.created) {
 					created += 1;
@@ -968,6 +1141,10 @@ export function reconcileEmploymentLeave(api: Api, employmentId: string, asOf: s
 					existing: allAccounts,
 					companyEligible,
 					statutoryEligible,
+					statutoryCoverage: resolveStatutoryCoverage({
+						profile: currentProfile,
+						...coverageInputs(currentTerm ?? null)
+					}),
 					...(currentPlanStart > currentWindow.start
 						? {
 								midYearOpening: {
@@ -992,7 +1169,19 @@ export function reconcileEmploymentLeave(api: Api, employmentId: string, asOf: s
 				limit: LIMIT
 			});
 			requireComplete(entries, 'leave account entries');
-			const expired = yield* expireCarry(api, account, entries, asOf);
+			const settlement = accountSettlement(account);
+			const commuteRate =
+				account.account_kind === 'YEAR' &&
+				account.status === 'OPEN' &&
+				settlement.settlement === 'COMMUTE' &&
+				dateKey(account.ends_on) < asOf &&
+				!entries.some((entry) => entry.source_key === `commute:${account.id}`)
+					? commuteDailyRate(
+							terms.find((row) => coversDate(row.effective_range, dateKey(account.ends_on))),
+							settlement.pay_basis
+						)
+					: null;
+			const expired = yield* expireCarry(api, account, entries, asOf, commuteRate);
 			posted += expired;
 			if (expired > 0) {
 				entries = yield* api.db.leave_entries.findMany({
