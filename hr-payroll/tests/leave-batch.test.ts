@@ -215,3 +215,58 @@ test('the context reads only the leave years around the planning date, plus open
 		)
 	);
 });
+
+test('a bounded run walks companies and employments in id order and hands back where it stopped', async () => {
+	const { refreshCompaniesLeave } = await import('../src/lib/leave/service.ts');
+	const employments = {
+		'co-a': ['e1', 'e2', 'e3'],
+		'co-b': ['e4'],
+		'co-c': ['e5', 'e6']
+	};
+	const all = Object.entries(employments).flatMap(([company_id, ids]) =>
+		ids.map((id) => ({ id, company_id, approval_id: null }))
+	);
+	const api = {
+		db: {
+			employments: {
+				findMany: ({ where, limit }) =>
+					Effect.succeed(
+						// The walk asks by company from a cursor; the context read asks by id list.
+						where.id?.in != null
+							? all.filter((row) => where.id.in.includes(row.id))
+							: all
+									.filter((row) => row.company_id === where.company_id.eq)
+									.filter((row) => (where.id?.gt == null ? true : row.id > where.id.gt))
+									.slice(0, limit)
+									.map(({ id }) => ({ id }))
+					)
+			},
+			// The walk reads only employments; the arithmetic is exercised elsewhere.
+			leave_requests: { findMany: () => Effect.succeed([]), findPending: () => Effect.succeed([]) }
+		}
+	};
+	const run = (cursor) =>
+		Effect.runPromise(
+			refreshCompaniesLeave(
+				{
+					db: new Proxy(api.db, {
+						get: (target, key) =>
+							key in target
+								? target[key]
+								: {
+										findMany: () => Effect.succeed([]),
+										findFirst: () => Effect.succeed(null),
+										mutate: (rows) => Effect.sync(() => refreshed.push(rows.map((r) => r.id)))
+									}
+					})
+				} as never,
+				['co-c', 'co-a', 'co-b'],
+				'2026-09-06',
+				{ slice: 4, ...(cursor === undefined ? {} : { cursor }) }
+			)
+		);
+	const first = await run(undefined);
+	assert.deepEqual(first, { employments: 4, next: { company_id: 'co-b', after: 'e4' } });
+	const second = await run(first.next);
+	assert.deepEqual(second, { employments: 2 });
+});

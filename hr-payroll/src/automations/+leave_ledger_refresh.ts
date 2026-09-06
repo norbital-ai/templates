@@ -2,12 +2,15 @@ import { Effect, Schema } from 'effect';
 import { defineAutomation } from '@norbital-ai/bolt/authoring';
 import { retireDueLeavePlanPredecessors } from '../lib/leave/reconcile.js';
 import {
+	lawFamilyCompanies,
 	leaveAsOf,
 	refreshCompaniesLeave,
 	refreshEmploymentsLeave,
-	refreshLawFamilyLeave,
 	type LeaveApi
 } from '../lib/leave/service.js';
+
+/** Employments one run works before handing the rest to a deferred continuation. */
+const SLICE = 25;
 
 /**
  * The leave reconciler: the one automation that writes the leave ledger.
@@ -25,7 +28,11 @@ export default defineAutomation(
 		input: Schema.Struct({
 			company_id: Schema.optional(Schema.String),
 			employment_ids: Schema.optional(Schema.Array(Schema.String)),
-			jurisdiction_code: Schema.optional(Schema.String)
+			jurisdiction_code: Schema.optional(Schema.String),
+			/** Where the previous run of this walk stopped; set only by the reconciler itself. */
+			cursor: Schema.optional(
+				Schema.Struct({ company_id: Schema.String, after: Schema.optional(Schema.String) })
+			)
 		}),
 		policies: ['leave_reconciliation_automation'],
 		description:
@@ -41,29 +48,36 @@ export default defineAutomation(
 					);
 					return { employments: args.employment_ids.length, ...counts };
 				}
-				if (args?.jurisdiction_code != null) {
-					const employments = yield* refreshLawFamilyLeave(
-						api as unknown as LeaveApi,
-						args.jurisdiction_code,
-						asOf
-					);
-					return { jurisdiction_code: args.jurisdiction_code, employments };
-				}
-				const companies = yield* api.db.companies.findMany({
-					where: {
-						approval_id: { isNull: true },
-						...(args?.company_id == null ? {} : { id: { eq: args.company_id } })
-					},
-					columns: { id: true },
-					limit: 1_000
+				const companyIds =
+					args?.jurisdiction_code != null
+						? yield* lawFamilyCompanies(api as unknown as LeaveApi, args.jurisdiction_code)
+						: (yield* api.db.companies.findMany({
+								where: {
+									approval_id: { isNull: true },
+									...(args?.company_id == null ? {} : { id: { eq: args.company_id } })
+								},
+								columns: { id: true },
+								limit: 1_000
+							})).map((row) => row.id);
+				const plansRetired =
+					args?.cursor == null ? yield* retireDueLeavePlanPredecessors(api, asOf) : 0;
+				const walked = yield* refreshCompaniesLeave(api as unknown as LeaveApi, companyIds, asOf, {
+					slice: SLICE,
+					...(args?.cursor == null ? {} : { cursor: args.cursor })
 				});
-				const plansRetired = yield* retireDueLeavePlanPredecessors(api, asOf);
-				const employments = yield* refreshCompaniesLeave(
-					api as unknown as LeaveApi,
-					companies.map((row) => row.id),
-					asOf
-				);
-				return { companies: companies.length, employments, plans_retired: plansRetired };
+				if (walked.next !== undefined)
+					// The rest of the walk is a deferred task, so no single run outgrows its deadline.
+					yield* api.automations.run(
+						'leave_ledger_refresh',
+						{ ...(args ?? {}), cursor: walked.next },
+						{ after: '1 second' }
+					);
+				return {
+					companies: companyIds.length,
+					employments: walked.employments,
+					plans_retired: plansRetired,
+					continued: walked.next !== undefined
+				};
 			})
 	}
 );
