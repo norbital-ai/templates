@@ -1,7 +1,12 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { bearerHeaders, postGuestCommand } from '@norbital-ai/test-utilities';
+import {
+	bearerHeaders,
+	mutationPush,
+	postGuestCommand,
+	requireAccepted
+} from '@norbital-ai/test-utilities';
 import {
 	ANNUAL_LEAVE_TYPE_ID,
 	COMPANY_ID,
@@ -78,6 +83,18 @@ test(
 				},
 				ANNUAL_LEAVE_TYPE_ID
 			]);
+			await session.query(`update companies set settlement_policy = $1 where id = $2`, [
+				{
+					late_joiner_arrears: null,
+					commute_pay: { pay_to_component_id: '77777777-7777-4777-8777-777777777777' },
+					final_period: 'FOLLOW_ATTENDANCE_WINDOW',
+					final_period_wages: 'PRORATE_TO_EXIT',
+					extended_unpaid_leave: null,
+					absence_proration: null,
+					overtime_windows: null
+				},
+				COMPANY_ID
+			]);
 			const started = await postGuestCommand(
 				session.host.baseUrl,
 				'automations.start',
@@ -124,6 +141,62 @@ test(
 				]
 			);
 			assert.equal(carried.length, 0, 'a commuted year carries nothing forward');
+
+			const pays = await session.query(
+				`select id, employment_id, pay_component_id, amount,
+					to_char(event_date, 'YYYY-MM-DD') as event_date from component_entries
+				 where employment_id = $1`,
+				[employmentId]
+			);
+			assert.equal(pays.length, 1, JSON.stringify(pays));
+			assert.equal(pays[0].pay_component_id, '77777777-7777-4777-8777-777777777777');
+			assert.equal(Number(pays[0].amount), 800);
+			assert.equal(String(pays[0].event_date).slice(0, 10), '2025-12-31');
+
+			const rerun = await postGuestCommand(
+				session.host.baseUrl,
+				'automations.start',
+				{ name: 'leave_ledger_refresh', input: { employment_ids: [employmentId] } },
+				bearerHeaders(session.credential)
+			);
+			assert.ok(rerun.status < 300, JSON.stringify(rerun.value));
+			assert.equal(
+				(
+					await session.query(`select id from component_entries where employment_id = $1`, [
+						employmentId
+					])
+				).length,
+				1,
+				'reruns restate the paying entry instead of duplicating it'
+			);
+
+			const runId = crypto.randomUUID();
+			const created = await postGuestCommand(
+				session.host.baseUrl,
+				'collections.mutate',
+				mutationPush(session.schemaFingerprint, {
+					action: 'mutate',
+					collection: 'payroll_runs',
+					rows: [
+						{
+							action: 'create',
+							values: { id: runId, company_id: COMPANY_ID, period: '2026-01' }
+						}
+					]
+				}),
+				bearerHeaders(session.credential)
+			);
+			requireAccepted(created.value, 'january run captures the commute payout');
+			const adjustments = (await session.query(
+				`select payslip_adjustments.amount from payslip_adjustments
+				 join payslips on payslips.id = payslip_adjustments.payslip_id
+				 where payslips.payroll_run_id = $1 and payslips.employment_id = $2`,
+				[runId, employmentId]
+			)) as ReadonlyArray<{ readonly amount: unknown }>;
+			assert.ok(
+				adjustments.some((row) => Number(row.amount) === 800),
+				`the January slip pays the 800 commute: ${JSON.stringify(adjustments)}`
+			);
 		} finally {
 			await session.stop();
 		}

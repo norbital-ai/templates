@@ -16,6 +16,7 @@ import {
 	requireStatutoryMappings,
 	resolveStatutoryCoverage,
 	retireDueLeavePlanPredecessors,
+	settleCommutedPayouts,
 	transferCarry
 } from '../src/lib/leave/reconcile.ts';
 import { eventAllocationDays } from '../src/collections/leave_accounts/+hooks.ts';
@@ -1358,5 +1359,126 @@ test('commutation without a priced rate refuses instead of posting vapor', async
 	await assert.rejects(
 		Effect.runPromise(expireCarry(api, accountRow, [], '2026-01-15', null)),
 		/no daily rate/
+	);
+});
+
+const commuteAccount = {
+	...account,
+	id: 'commute-account',
+	account_kind: 'YEAR',
+	leave_code: 'SIL',
+	leave_year: 2025,
+	starts_on: '2025-01-01',
+	ends_on: '2025-12-31',
+	status: 'OPEN',
+	settlement: { settlement: 'COMMUTE', pay_basis: 'ORDINARY_DIV26' }
+};
+
+const commuteReceipt = {
+	id: 'commute-entry',
+	leave_account_id: 'commute-account',
+	kind: 'COMMUTED',
+	effective_on: '2025-12-31',
+	days: -5,
+	source_key: 'commute:commute-account',
+	approval_id: null
+};
+
+const payoutApi = (posted) => ({
+	db: {
+		pay_components: {
+			findFirst: () =>
+				Effect.succeed({
+					id: 'compete',
+					code: 'TRANSPORT',
+					definition: { source: 'ENTRY', settlement: 'PAYROLL' },
+					policy: { kind: 'EARNING' }
+				})
+		},
+		component_entries: {
+			findFirst: () => Effect.succeed(null),
+			mutate: (rows) => Effect.sync(() => posted.push(...rows))
+		}
+	}
+});
+
+const payoutTerms = [
+	{
+		effective_range: { start: '2025-01-01', end: null },
+		pay_frequency: 'MONTHLY',
+		base_salary: { value: 2600, currency: 'MYR' },
+		statutory_work_category: 'NON_MANUAL'
+	}
+];
+
+test('a commute receipt arrives as an arrears entry on the commute component', async () => {
+	const posted = [];
+	const company = {
+		id: 'company',
+		settlement_policy: { commute_pay: { pay_to_component_id: 'compete' } }
+	};
+	const employment = { id: 'employment' };
+	assert.equal(
+		await Effect.runPromise(
+			settleCommutedPayouts({
+				api: payoutApi(posted),
+				employment,
+				company,
+				account: commuteAccount,
+				entries: [commuteReceipt],
+				terms: payoutTerms
+			})
+		),
+		1
+	);
+	assert.equal(posted.length, 1);
+	assert.equal(posted[0].employment_id, 'employment');
+	assert.equal(posted[0].pay_component_id, 'compete');
+	assert.equal(posted[0].amount, 500);
+	assert.equal(posted[0].event.kind, 'ARREARS');
+	assert.deepEqual(posted[0].event.covers_periods, ['2025-12']);
+});
+
+test('commute payout refuses without a configured component and mistrusts the wrong one', async () => {
+	const employment = { id: 'employment' };
+	const base = {
+		api: payoutApi([]),
+		employment,
+		account: commuteAccount,
+		entries: [commuteReceipt],
+		terms: payoutTerms
+	};
+	await assert.rejects(
+		Effect.runPromise(
+			settleCommutedPayouts({ ...base, company: { id: 'company', settlement_policy: null } })
+		),
+		/no commute component/
+	);
+	const wrongApi = {
+		db: {
+			pay_components: {
+				findFirst: () =>
+					Effect.succeed({
+						id: 'basic',
+						code: 'BASIC',
+						definition: { source: 'SCHEDULE', settlement: 'PAYROLL' },
+						policy: { kind: 'EARNING' }
+					})
+			},
+			component_entries: { findFirst: () => Effect.succeed(null) }
+		}
+	};
+	await assert.rejects(
+		Effect.runPromise(
+			settleCommutedPayouts({
+				...base,
+				api: wrongApi,
+				company: {
+					id: 'company',
+					settlement_policy: { commute_pay: { pay_to_component_id: 'basic' } }
+				}
+			})
+		),
+		/cannot carry a commuted leave payout/
 	);
 });

@@ -34,10 +34,12 @@ type LeaveContext = {
 	readonly employee_children: Row[];
 	readonly leave_plans: Row[];
 	readonly leave_types: Row[];
+	readonly pay_components: Row[];
 	readonly jurisdictions: Row[];
 	readonly leave_accounts: Row[];
 	readonly leave_entries: Row[];
 	readonly leave_requests: Row[];
+	readonly component_entries: Row[];
 };
 
 const chunks = <T>(items: ReadonlyArray<T>, size: number): T[][] => {
@@ -96,37 +98,44 @@ export const readLeaveContext = (
 			])
 		];
 		const presentIds = employments.map((row) => row.id);
-		const [companies, employees, terms, children, plans, accounts, requests] = yield* Effect.all(
-			[
-				readAll(companyIds, (ids) =>
-					many('companies', { id: { in: ids }, approval_id: { isNull: true } })
-				),
-				readAll(employeeIds, (ids) => many('employees', { id: { in: ids } })),
-				readAll(presentIds, (ids) =>
-					many('employment_terms', { employment_id: { in: ids }, approval_id: { isNull: true } })
-				),
-				readAll(presentIds, (ids) =>
-					many('employee_children', { employment_id: { in: ids }, approval_id: { isNull: true } })
-				),
-				readAll(companyIds, (ids) =>
-					many('leave_plans', { company_id: { in: ids }, approval_id: { isNull: true } })
-				),
-				readAll(presentIds, (ids) =>
-					many('leave_accounts', {
-						employment_id: { in: ids },
-						approval_id: { isNull: true },
-						OR: [
-							{ leave_year: { gte: yearFloor } },
-							{ account_kind: { eq: 'EVENT' }, status: { eq: 'OPEN' } }
-						]
-					})
-				),
-				readAll(presentIds, (ids) =>
-					many('leave_requests', { employment_id: { in: ids }, approval_id: { isNull: true } })
-				)
-			],
-			{ concurrency: 'unbounded' }
-		);
+		const [companies, employees, terms, children, plans, accounts, requests, components] =
+			yield* Effect.all(
+				[
+					readAll(companyIds, (ids) =>
+						many('companies', { id: { in: ids }, approval_id: { isNull: true } })
+					),
+					readAll(employeeIds, (ids) => many('employees', { id: { in: ids } })),
+					readAll(presentIds, (ids) =>
+						many('employment_terms', { employment_id: { in: ids }, approval_id: { isNull: true } })
+					),
+					readAll(presentIds, (ids) =>
+						many('employee_children', { employment_id: { in: ids }, approval_id: { isNull: true } })
+					),
+					readAll(companyIds, (ids) =>
+						many('leave_plans', { company_id: { in: ids }, approval_id: { isNull: true } })
+					),
+					readAll(presentIds, (ids) =>
+						many('leave_accounts', {
+							employment_id: { in: ids },
+							approval_id: { isNull: true },
+							OR: [
+								{ leave_year: { gte: yearFloor } },
+								{ account_kind: { eq: 'EVENT' }, status: { eq: 'OPEN' } }
+							]
+						})
+					),
+					readAll(presentIds, (ids) =>
+						many('leave_requests', { employment_id: { in: ids }, approval_id: { isNull: true } })
+					),
+					readAll(presentIds, (ids) =>
+						many('component_entries', {
+							employment_id: { in: ids },
+							approval_id: { isNull: true }
+						})
+					)
+				],
+				{ concurrency: 'unbounded' }
+			);
 		const anchorIds = [...new Set(companies.map((row) => String(row.jurisdiction_id)))];
 		const anchors = yield* readAll(anchorIds, (ids) =>
 			many('jurisdictions', { id: { in: ids }, approval_id: { isNull: true } })
@@ -136,13 +145,16 @@ export const readLeaveContext = (
 			many('jurisdictions', { code: { in: ids }, approval_id: { isNull: true } })
 		);
 		const planIds = plans.map((row) => row.id);
-		const [types, entries] = yield* Effect.all(
+		const [types, entries, payComponents] = yield* Effect.all(
 			[
 				readAll(planIds, (ids) => many('leave_types', { leave_plan_id: { in: ids } })),
 				readAll(
 					accounts.map((row) => row.id),
 					(ids) =>
 						many('leave_entries', { leave_account_id: { in: ids }, approval_id: { isNull: true } })
+				),
+				readAll(companyIds, (ids) =>
+					many('pay_components', { company_id: { in: ids }, approval_id: { isNull: true } })
 				)
 			],
 			{ concurrency: 'unbounded' }
@@ -155,10 +167,12 @@ export const readLeaveContext = (
 			employee_children: [...children],
 			leave_plans: [...plans],
 			leave_types: [...types],
+			pay_components: [...payComponents],
 			jurisdictions: [...jurisdictions],
 			leave_accounts: [...accounts],
 			leave_entries: [...entries],
-			leave_requests: [...requests]
+			leave_requests: [...requests],
+			component_entries: [...components]
 		} satisfies LeaveContext;
 	});
 
@@ -225,6 +239,7 @@ export const leavePlanner = (
 	const createdAccounts = new Set<string>();
 	const updatedAccounts = new Map<string, Record<string, unknown>>();
 	const createdEntries = new Set<string>();
+	const createdComponentEntries = new Map<string, string>();
 	const reads = (collection: keyof LeaveContext) => ({
 		findMany: (input?: Record<string, unknown>) =>
 			Effect.succeed(select(context[collection], input)),
@@ -259,6 +274,19 @@ export const leavePlanner = (
 				createdEntries.add(id);
 			}
 		});
+	const mutateComponentEntries = (rows: ReadonlyArray<Record<string, unknown>>) =>
+		Effect.sync(() => {
+			for (const values of rows) {
+				const id = values.id;
+				if (typeof id !== 'string' || id === '')
+					throw new Error(
+						'the leave planner names every component entry by formula id before planning it'
+					);
+				if (context.component_entries.some((row) => row.id === id)) continue;
+				context.component_entries.push({ ...values, id, approval_id: null } as Row);
+				createdComponentEntries.set(id, String(values.employment_id));
+			}
+		});
 	const refuseWrite = (collection: string) => () =>
 		Effect.die(new Error(`the leave planner never writes ${collection}; it only plans`));
 	const db = {
@@ -269,10 +297,12 @@ export const leavePlanner = (
 		employee_children: reads('employee_children'),
 		leave_plans: { ...reads('leave_plans'), mutate: refuseWrite('leave_plans') },
 		leave_types: reads('leave_types'),
+		pay_components: reads('pay_components'),
 		jurisdictions: reads('jurisdictions'),
 		leave_accounts: { ...reads('leave_accounts'), mutate: mutateAccounts },
 		leave_entries: { ...reads('leave_entries'), mutate: mutateEntries },
-		leave_requests: { ...reads('leave_requests'), findPending: pending }
+		leave_requests: { ...reads('leave_requests'), findPending: pending },
+		component_entries: { ...reads('component_entries'), mutate: mutateComponentEntries }
 	};
 	const api = { db: db as unknown as Db } as Api;
 	/** One account as its owning employment nests it: new rows whole, stored rows by id plus any change, each with its entries. */
@@ -292,6 +322,11 @@ export const leavePlanner = (
 			context.leave_accounts
 				.filter((account) => account.employment_id === employmentId)
 				.map(nestedAccount),
+		/** The commute-payout entries planned for one employment, for `component_entry_employment`. */
+		nestedComponentEntriesOf: (employmentId: string) =>
+			context.component_entries
+				.filter((row) => row.employment_id === employmentId && createdComponentEntries.has(row.id))
+				.map(stripSystem),
 		/** The employments whose nested account set changed: one root write each, nothing else touched. */
 		changedEmploymentIds: () => {
 			const accountEmployment = new Map(
@@ -304,6 +339,7 @@ export const leavePlanner = (
 				const entry = context.leave_entries.find((row) => row.id === id);
 				if (entry != null) changed.add(accountEmployment.get(String(entry.leave_account_id)) ?? '');
 			}
+			for (const employmentId of createdComponentEntries.values()) changed.add(employmentId);
 			changed.delete('');
 			return [...changed];
 		},
@@ -342,6 +378,13 @@ export const applyLeavePlan = (api: Api, planner: ReturnType<typeof leavePlanner
 		};
 	};
 	return employments.employments.mutate(
-		ids.map((id) => ({ id, leave_account_employment: planner.nestedAccountsOf(id) }))
+		ids.map((id) => {
+			const entries = planner.nestedComponentEntriesOf(id);
+			return {
+				id,
+				leave_account_employment: planner.nestedAccountsOf(id),
+				...(entries.length === 0 ? {} : { component_entry_employment: entries })
+			};
+		})
 	);
 };

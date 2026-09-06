@@ -152,6 +152,17 @@ same days being spent and carried. Expiring carry is consumed first; only unused
 needed rather than making expired carry spendable again. A carry expiry of zero months means no
 expiry.
 
+## Commutation to cash
+
+A `COMMUTE` settlement (PH service incentive leave, TW special leave) converts the unused
+balance to money at year end instead of moving or lapsing it. The same pass that would expire
+posts one `COMMUTED` receipt stating days, daily rate and cash owed, then raises the paying
+arrears entry on the company's `settlement_policy.commute_pay` component in the same invocation —
+deterministic ids on both, so reruns restate. The next draft run captures the paying entry like
+any arrears, and the run's own approval is what releases the money: no separate payout approval
+exists, and a company with no commute component refuses to commute rather than posting a receipt
+no payroll can settle.
+
 Event accounts do not roll over in January. One account covers the statutory/company event window,
 even when that window crosses calendar years. At the end of the window the reconciler expires the
 unused balance and closes the account; it never creates a second January award.
