@@ -963,12 +963,17 @@ export const runStatutoryProfileDrift = (
 					governingProfiles,
 					(profile) =>
 						Effect.gen(function* () {
-							const outcome = yield* Effect.result(
+							// Any way a child can end — typed failure, refusal, provider defect — is one
+							// jurisdiction's outcome, never the parent's; siblings keep running.
+							const exit = yield* Effect.exit(
 								api.automations.run('statutory_profile_research', {
 									profile_id: profile.id,
 									parent_log_id: runLog.id
 								})
 							);
+							const outcome = Exit.isSuccess(exit)
+								? ({ _tag: 'Success' } as const)
+								: ({ _tag: 'Failure', failure: Cause.squash(exit.cause) } as const);
 							const child = yield* api.db.statutory_profile_drift_logs.findFirst({
 								where: {
 									parent_log_id: { eq: runLog.id },
@@ -1137,35 +1142,38 @@ export const runStatutoryProfileDrift = (
 						}
 					});
 					let firstReport = yield* inferWithRepairs;
-					const validated = yield* Effect.try({
-						try: () =>
-							validateResearchReceipt(
-								completeJurisdictionProvenance(firstReport, code, jurisdictionUrls),
-								[code],
-								jurisdictionUrls
-							),
-						catch: toError
-					}).pipe(
-						Effect.catch((validationError) =>
-							Effect.gen(function* () {
-								yield* api.progress({
-									progress: progress + 0.01,
-									text: `Retrying official-source coverage for ${code}`
-								});
-								const repairedReport = yield* inferJurisdiction(getErrorMessage(validationError));
-								firstReport = repairedReport;
-								return yield* Effect.try({
-									try: () =>
-										validateResearchReceipt(
-											completeJurisdictionProvenance(repairedReport, code, jurisdictionUrls),
-											[code],
-											jurisdictionUrls
-										),
-									catch: toError
-								});
-							})
-						)
-					);
+					/**
+					 * Provenance validation gets the same courtesy as decoding: a receipt that fails it is
+					 * re-asked with the exact message, at most twice, and one still invalid after that is
+					 * this jurisdiction's refusal — a business outcome its log row records, not an untyped
+					 * error the nested-run boundary would surface as a guest execution failure.
+					 */
+					const validated = yield* Effect.gen(function* () {
+						let report = firstReport;
+						let repair: string | undefined;
+						for (let attempt = 0; ; attempt += 1) {
+							const checked = yield* Effect.try({
+								try: () =>
+									validateResearchReceipt(
+										completeJurisdictionProvenance(report, code, jurisdictionUrls),
+										[code],
+										jurisdictionUrls
+									),
+								catch: toError
+							}).pipe(Effect.result);
+							if (Result.isSuccess(checked)) {
+								firstReport = report;
+								return checked.success;
+							}
+							repair = getErrorMessage(checked.failure);
+							if (attempt >= 2) return refuse(repair);
+							yield* api.progress({
+								progress: progress + 0.01,
+								text: `Retrying official-source coverage for ${code}: ${repair.slice(0, 160)}`
+							});
+							report = yield* inferJurisdiction(repair);
+						}
+					});
 					// A source the model cites without having been given or opened it is dropped, not a
 					// reason to lose the jurisdiction: the receipt keeps only pages that were actually
 					// retrieved, and refuses only when nothing retrieved remains.
