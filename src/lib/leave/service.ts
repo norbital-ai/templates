@@ -15,6 +15,7 @@ import { reconcileEmploymentLeave } from './reconcile.js';
  * automation, so a seeded workspace is complete the way a live one is.
  */
 
+/** Employments read per query; a run's slice bounds the work, this bounds one read. */
 const PAGE = 100;
 
 /** Today in the payroll calendar. */
@@ -38,17 +39,40 @@ export const refreshEmploymentsLeave = (
 		return planner.counts();
 	});
 
-/** Every active employment of these companies, a page at a time. */
+/** Where a bounded run stopped: the company it was in and the last employment it wrote. */
+type LeaveCursor = Readonly<{ readonly company_id: string; readonly after?: string }>;
+
+/**
+ * The active employments of these companies, at most `slice` of them, from `cursor` onward.
+ *
+ * One run of the reconciler is bounded — a direct start is cut at the host's dispatch deadline and
+ * an employment costs a few hundred milliseconds — so a run works a slice and hands back where it
+ * stopped; the automation continues from there as a deferred task. Companies are walked in id order
+ * and employments within a company in id order, so the walk is complete and repeatable.
+ */
 export const refreshCompaniesLeave = (
 	api: LeaveApi,
 	companyIds: ReadonlyArray<string>,
-	asOf: string
-): Effect.Effect<number> =>
+	asOf: string,
+	options: { readonly slice: number; readonly cursor?: LeaveCursor }
+): Effect.Effect<{ readonly employments: number; readonly next?: LeaveCursor }> =>
 	Effect.gen(function* () {
+		const ordered = [...companyIds].sort();
 		let employments = 0;
-		for (const companyId of companyIds) {
-			let after: string | undefined;
+		let started = options.cursor === undefined;
+		for (const companyId of ordered) {
+			if (!started) {
+				if (companyId !== options.cursor?.company_id) continue;
+				started = true;
+			}
+			let after = companyId === options.cursor?.company_id ? options.cursor?.after : undefined;
 			for (;;) {
+				const room = options.slice - employments;
+				if (room <= 0)
+					return {
+						employments,
+						next: { company_id: companyId, ...(after == null ? {} : { after }) }
+					};
 				const page = yield* api.db.employments.findMany({
 					where: {
 						company_id: { eq: companyId },
@@ -57,7 +81,7 @@ export const refreshCompaniesLeave = (
 					},
 					columns: { id: true },
 					orderBy: { id: 'asc' },
-					limit: PAGE
+					limit: Math.min(room, PAGE)
 				});
 				if (page.length === 0) break;
 				yield* refreshEmploymentsLeave(
@@ -67,18 +91,14 @@ export const refreshCompaniesLeave = (
 				);
 				employments += page.length;
 				after = page[page.length - 1]?.id;
-				if (page.length < PAGE) break;
+				if (page.length < Math.min(room, PAGE)) break;
 			}
 		}
-		return employments;
+		return { employments };
 	});
 
 /** Every employment governed by one law family, for a newly sealed statutory profile. */
-export const refreshLawFamilyLeave = (
-	api: LeaveApi,
-	code: string,
-	asOf: string
-): Effect.Effect<number> =>
+export const lawFamilyCompanies = (api: LeaveApi, code: string): Effect.Effect<string[]> =>
 	Effect.gen(function* () {
 		const family = yield* api.db.jurisdictions.findMany({
 			where: { code: { eq: code }, approval_id: { isNull: true } },
@@ -93,9 +113,5 @@ export const refreshLawFamilyLeave = (
 			columns: { id: true },
 			limit: 1_000
 		});
-		return yield* refreshCompaniesLeave(
-			api,
-			companies.map((row) => row.id),
-			asOf
-		);
+		return companies.map((row) => row.id);
 	});
