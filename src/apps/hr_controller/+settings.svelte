@@ -139,24 +139,6 @@
 	</CollectionTable>
 {/snippet}
 
-{#snippet researchRuns()}
-	<CollectionTable
-		{client}
-		collection="statutory_profile_drift_logs"
-		view="hr_controller:settings:research_runs"
-		title={t('app.settings.research_runs')}
-		query={{ orderBy: { checked_at: 'desc' } }}
-	>
-		{#snippet columns({ Column })}
-			<Column name="status" card="title" />
-			<Column name="checked_at" />
-			<Column name="web_summary" card="subtitle" />
-			<Column name="successor_proposals_count" />
-			<Column name="error" />
-		{/snippet}
-	</CollectionTable>
-{/snippet}
-
 <Cover>
 	<Tabs
 		animate={false}
@@ -172,12 +154,6 @@
 				label: t('app.settings.research_sources'),
 				icon: 'lucide:shield-check',
 				content: researchSources
-			},
-			{
-				name: 'research_runs',
-				label: t('app.settings.research_runs'),
-				icon: 'lucide:scan-search',
-				content: researchRuns
 			},
 			{
 				name: 'companies',

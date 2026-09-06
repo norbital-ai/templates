@@ -12,11 +12,6 @@ const grantsOn = (policy, collection) =>
 		)
 		.toSorted();
 
-test('controllers can read but cannot rewrite statutory drift receipts', () => {
-	assert.deepEqual(grantsOn(hrController, 'statutory_profile_drift_logs'), ['read']);
-	assert.deepEqual(grantsOn(hrManager, 'statutory_profile_drift_logs'), ['read']);
-});
-
 test('drift worker submits law and employment successors behind HR approval', () => {
 	for (const collection of ['statutory_contributions', 'contribution_rates']) {
 		assert.deepEqual(grantsOn(statutoryDriftAutomation, collection), ['read'], collection);
@@ -47,9 +42,5 @@ test('drift worker submits law and employment successors behind HR approval', ()
 		statutoryDriftAutomation.grants.employment_statutory_facts.mutate.existing.fields,
 		['effective_range']
 	);
-	assert.deepEqual(grantsOn(statutoryDriftAutomation, 'statutory_profile_drift_logs'), [
-		'mutate.existing',
-		'mutate.new',
-		'read'
-	]);
+	assert.equal(statutoryDriftAutomation.grants.statutory_profile_drift_logs, undefined);
 });

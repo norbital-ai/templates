@@ -1,7 +1,6 @@
 {
 	"app.settings.research_sources": "Research sources",
 	"app.settings.research_sources_description": "HR approval permits the listed HTTPS site for this jurisdiction. Pending proposals are not used. Revoke a source to stop future research while retaining its evidence.",
-	"app.settings.research_runs": "Research runs",
 	"app.hr_employee.my_schedule_description": "Your schedule, attendance, and leave on one calendar. Pending punches are held for your manager.",
 	"app.hr_employee.my_schedule_title": "My schedule",
 	"app.hr_employee.report_punch_approval_note": "Your punch is submitted for your direct manager to review.",

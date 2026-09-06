@@ -77,7 +77,6 @@ export default {
 		grantsOn('leave_plans', ['mutate.new', 'mutate.existing', 'delete']),
 		statutoryGrants('read'),
 		statutoryProfileGrants(),
-		grantsOn('statutory_profile_drift_logs', ['read']),
 		peopleGrants('read'),
 		peopleGrants('mutate.new', 'mutate.existing', 'delete'),
 		grantsOn('work_days', ['read']),

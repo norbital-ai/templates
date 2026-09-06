@@ -15,7 +15,7 @@ const statutoryChangeApproval = {
  */
 export default {
 	description:
-		'Reads statutory and employment snapshots, appends deterministic successor facts, and records durable statutory-drift research evidence.',
+		'Reads statutory and employment snapshots, appends deterministic successor facts, and proposes statutory successors and research sources from official pages, each behind HR approval.',
 	grants: {
 		statutory_research_sources: {
 			read: {},
@@ -54,13 +54,6 @@ export default {
 					fields: ['effective_range'],
 					approval: statutoryChangeApproval
 				}
-			}
-		},
-		statutory_profile_drift_logs: {
-			read: {},
-			mutate: {
-				new: {},
-				existing: {}
 			}
 		}
 	},
