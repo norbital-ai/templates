@@ -1148,14 +1148,26 @@ export const runStatutoryProfileDrift = (
 					 * this jurisdiction's refusal — a business outcome its log row records, not an untyped
 					 * error the nested-run boundary would surface as a guest execution failure.
 					 */
+					const reviewNotes: string[] = [];
 					const validated = yield* Effect.gen(function* () {
 						let report = firstReport;
 						let repair: string | undefined;
 						for (let attempt = 0; ; attempt += 1) {
+							// A review item that cites no allowed official page is dropped with a note rather
+							// than failing the receipt: the model was told the allow-list twice, and a finding
+							// without official provenance is exactly what HR must not be asked to review.
+							const provenanced = completeJurisdictionProvenance(report, code, jurisdictionUrls);
+							const cited = provenanced.changes_to_review.filter(
+								(change) => officialUrl(change.source_url, jurisdictionUrls) != null
+							);
+							if (cited.length < provenanced.changes_to_review.length)
+								reviewNotes.push(
+									`${provenanced.changes_to_review.length - cited.length} review item(s) dropped for citing no allowed official page`
+								);
 							const checked = yield* Effect.try({
 								try: () =>
 									validateResearchReceipt(
-										completeJurisdictionProvenance(report, code, jurisdictionUrls),
+										{ ...provenanced, changes_to_review: cited },
 										[code],
 										jurisdictionUrls
 									),
@@ -1188,12 +1200,24 @@ export const runStatutoryProfileDrift = (
 							)
 						);
 					});
-					if (retrieved.length === 0)
+					// When nothing the model cited matches a retrieved page, the receipt's sources are the
+					// pages that were actually read: official, allow-listed, and on the receipt with their
+					// digests. The model's own list is then only a hint about where it looked.
+					const sources =
+						retrieved.length > 0
+							? retrieved
+							: pages.slice(0, 4).map((page) => ({
+									title: new URL(page.url).hostname + new URL(page.url).pathname,
+									url: page.url,
+									jurisdiction_code: code,
+									finding: 'Retrieved official page; the model cited pages that were not retrieved.'
+								}));
+					if (sources.length === 0)
 						refuse(
-							'Research cited only pages that were not retrieved. Configure the official research URL and retry.'
+							'Research cited only pages that were not retrieved and no entry page was read. Configure the official research URL and retry.'
 						);
 					const dropped = validated.official_sources.length - retrieved.length;
-					const cited = { ...validated, official_sources: retrieved };
+					const cited = { ...validated, official_sources: sources };
 					// Proposals are best effort: one that fails its own evidence check is dropped with a
 					// note, and the jurisdiction's receipt still stands.
 					const proposalNotes: string[] = [];
@@ -1236,10 +1260,11 @@ export const runStatutoryProfileDrift = (
 							if (proposal != null) submittedProposals.push(proposal);
 						}
 					}
-					if (dropped > 0 || proposalNotes.length > 0)
+					const notes = [...reviewNotes, ...proposalNotes];
+					if (dropped > 0 || notes.length > 0)
 						yield* api.progress({
 							progress: progress + 0.02,
-							text: `${code}: ${dropped} uncited source(s) dropped${proposalNotes.length > 0 ? `; ${proposalNotes.join('; ')}` : ''}`
+							text: `${code}: ${dropped} uncited source(s) dropped${notes.length > 0 ? `; ${notes.join('; ')}` : ''}`
 						});
 					receipts.push({ code, report: cited });
 				}
