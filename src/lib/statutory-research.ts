@@ -5,7 +5,7 @@ import {
 	refuse
 } from '@norbital-ai/bolt/authoring';
 import { sha256Json, sha256Text } from '@norbital-ai/std/reckon';
-import { Clock, Effect, Schema } from 'effect';
+import { Clock, Effect, Exit, Schema } from 'effect';
 import { prorationBasisValueSchema } from '../datatypes/proration_basis/+definition.js';
 import { statutoryRegimeValueSchema } from '../datatypes/statutory_regime/+definition.js';
 import { statutoryLeaveProfileValueSchema } from '../datatypes/statutory_leave_profile/+definition.js';
@@ -193,11 +193,22 @@ export const fetchStatutoryPages = (
 		if (urls.length === 0 || urls.length > 32)
 			refuse(`Configure between one and thirty-two official research URLs for ${profile.code}.`);
 		const retrievedAt = new Date(yield* Clock.currentTimeMillis).toISOString();
-		return yield* Effect.forEach(
+		// One slow or refusing official site must not end the jurisdiction's research while its
+		// other entry pages answered; only a research start with no page at all refuses, with the
+		// first page's own reason so the operator reads the cause, not a count.
+		const exits = yield* Effect.forEach(
 			urls,
-			(url) => fetchStatutoryPage(api, url, officialUrl, retrievedAt),
+			(url) => Effect.exit(fetchStatutoryPage(api, url, officialUrl, retrievedAt)),
 			{ concurrency: 2 }
 		);
+		const pages = exits.flatMap((exit) => (Exit.isSuccess(exit) ? [exit.value] : []));
+		if (pages.length === 0) {
+			const first = exits.find((exit) => !Exit.isSuccess(exit));
+			if (first !== undefined && !Exit.isSuccess(first))
+				return yield* Effect.failCause(first.cause);
+			refuse(`No official research page could be read for ${profile.code}.`);
+		}
+		return pages;
 	});
 
 /** How many pages one research turn may open beyond its entry pages, and how much of each it sees. */

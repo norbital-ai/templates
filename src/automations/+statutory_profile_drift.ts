@@ -82,6 +82,17 @@ export function readStatutoryPages<Row extends { readonly id: string }>(
  */
 export const STATUTORY_RESEARCH_MODEL = 'openrouter/openai/gpt-4.1-mini';
 
+/**
+ * The error a cause stands for, never nameless: a squashed interrupt or a bare defect carries no
+ * message, and a log row reading "MY: " cost a rebuild to diagnose. The pretty-printed cause is
+ * the fallback, bounded.
+ */
+const describeCause = (cause: Cause.Cause<unknown>): unknown => {
+	const squashed = Cause.squash(cause);
+	if (getErrorMessage(squashed).trim().length > 0) return squashed;
+	return new Error(Cause.pretty(cause).replace(/\s+/g, ' ').slice(0, 600) || 'unexplained failure');
+};
+
 /** A business-rule refusal, recognised by its tag because the throw and the catch need not share a class. */
 const isRefusal = (value: unknown): boolean =>
 	typeof value === 'object' &&
@@ -973,7 +984,7 @@ export const runStatutoryProfileDrift = (
 							);
 							const outcome = Exit.isSuccess(exit)
 								? ({ _tag: 'Success' } as const)
-								: ({ _tag: 'Failure', failure: Cause.squash(exit.cause) } as const);
+								: ({ _tag: 'Failure', failure: describeCause(exit.cause) } as const);
 							const child = yield* api.db.statutory_profile_drift_logs.findFirst({
 								where: {
 									parent_log_id: { eq: runLog.id },
@@ -1327,8 +1338,7 @@ export const runStatutoryProfileDrift = (
 
 		return yield* Effect.catchCause(execution, (cause) =>
 			Effect.gen(function* () {
-				const error = Cause.squash(cause);
-				const message = getErrorMessage(error);
+				const message = getErrorMessage(describeCause(cause));
 				yield* api.db.statutory_profile_drift_logs
 					.mutate([
 						{
