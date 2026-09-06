@@ -17,6 +17,7 @@
 	 * platform.
 	 */
 	import { client } from '../../lib/workspace-client.js';
+	import { PAYROLL_RUN_LIST_COLUMNS } from './list-columns.js';
 	import { useI18n } from '@norbital-ai/ui/i18n';
 	import { Effect, Result } from 'effect';
 	import type { TenantI18nKeys } from '$bolt/i18n-keys';
@@ -69,6 +70,7 @@
 	const runsQuery = $derived(
 		client.db.payroll_runs.findMany({
 			orderBy: { period: 'desc' },
+			columns: PAYROLL_RUN_LIST_COLUMNS,
 			limit: 10_000
 		})
 	);
