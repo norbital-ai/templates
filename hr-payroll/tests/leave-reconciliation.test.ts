@@ -1573,3 +1573,45 @@ test('the employment run itself encashes on exit and closes the account through 
 	assert.deepEqual(entries.map((entry) => [entry.kind, entry.days]).slice(-1), [['ENCASHED', -10]]);
 	assert.equal(accounts[0].status, 'CLOSED');
 });
+
+test("the reconciler's own writes do not start it again; a person's do", async () => {
+	const employmentHooks = (await import('../src/collections/employments/+hooks.ts')).default;
+	const started = [];
+	const api = {
+		automations: { run: (name, input) => Effect.sync(() => started.push([name, input])) }
+	};
+	const after = employmentHooks.mutate.perRecord.after.handler;
+	await Effect.runPromise(
+		after({ record: { id: 'emp-1' }, changes: {}, previous: {}, api } as never) as never
+	);
+	assert.deepEqual(started, []);
+	await Effect.runPromise(
+		after({
+			record: { id: 'emp-1' },
+			changes: { hire_date: '2026-01-01' },
+			previous: {},
+			api
+		} as never) as never
+	);
+	assert.deepEqual(started, [['leave_ledger_refresh', { employment_ids: ['emp-1'] }]]);
+	const accountAfter = leaveAccountHooks.mutate.perRecord.after.handler;
+	started.length = 0;
+	await Effect.runPromise(
+		accountAfter({
+			record: { id: 'y', employment_id: 'emp-1', account_kind: 'YEAR', approval_id: null },
+			changes: { entitlement_days: 14 },
+			previous: undefined,
+			api
+		} as never) as never
+	);
+	assert.deepEqual(started, []);
+	await Effect.runPromise(
+		accountAfter({
+			record: { id: 'e', employment_id: 'emp-1', account_kind: 'EVENT', approval_id: null },
+			changes: { event_reference: 'CHILD-1' },
+			previous: undefined,
+			api
+		} as never) as never
+	);
+	assert.deepEqual(started, [['leave_ledger_refresh', { employment_ids: ['emp-1'] }]]);
+});

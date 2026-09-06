@@ -376,9 +376,12 @@ export default {
 			after: {
 				description:
 					"A qualifying-event account opens its allocation: the employment's leave ledger is regenerated once the account commits.",
-				handler: ({ record, api }) =>
+				handler: ({ record, changes, api }): Effect.Effect<void> =>
 					Effect.gen(function* () {
-						if (record.approval_id != null) return;
+						// Yearly accounts are the reconciler's own writes; only a person's verified
+						// qualifying-event allocation is a new fact for the ledger to open.
+						if (record.approval_id != null || record.account_kind !== 'EVENT') return;
+						if (Object.keys(changes).length === 0) return;
 						yield* api.automations.run('leave_ledger_refresh', {
 							employment_ids: [record.employment_id]
 						});
