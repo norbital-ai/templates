@@ -16,8 +16,11 @@ export default {
 			after: {
 				description:
 					"Regenerates this employment's leave accounts and entitlement ledger from the company plan and the sealed statutory profile.",
-				handler: ({ record, api }) =>
+				handler: ({ record, changes, api }) =>
 					Effect.gen(function* () {
+						// The reconciler's own write restates the employment with nothing changed; only a
+						// person's hire or edit is a fact the ledger has to follow.
+						if (Object.keys(changes).length === 0) return;
 						yield* api.automations.run('leave_ledger_refresh', { employment_ids: [record.id] });
 					})
 			}
