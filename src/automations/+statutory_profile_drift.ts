@@ -388,22 +388,16 @@ export const StatutoryResearchReportSchema = Schema.Struct({
 export type StatutoryResearchReport = Schema.Schema.Type<typeof StatutoryResearchReportSchema>;
 
 /**
- * The receipt the model returns. Proposals are best effort: their strict shapes stay in the
- * union so the model is guided by them, but a proposal that misses the shape or a law invariant
- * decodes as a raw value here and is validated — and dropped with a note — by the run, instead
- * of failing the whole jurisdiction inside `api.infer`.
+ * The receipt the model returns. Proposal shapes stay strict here because the provider's JSON
+ * schema validation refuses an empty or union branch; a proposal that misses a shape or a leave
+ * invariant surfaces as a decode refusal naming the field, and the run asks the model to repair
+ * exactly that before giving up on the jurisdiction.
  */
 const JurisdictionResearchReportSchema = Schema.Struct({
 	proposed_sources: Schema.optional(
-		Schema.NullOr(
-			Schema.Array(Schema.Union([StatutorySourceProposalSchema, Schema.Unknown])).check(
-				Schema.isMaxLength(4)
-			)
-		)
+		Schema.Array(StatutorySourceProposalSchema).check(Schema.isMaxLength(4))
 	),
-	proposed_law: Schema.optional(
-		Schema.NullOr(Schema.Union([StatutoryLawProposalSchema, Schema.Unknown]))
-	),
+	proposed_law: Schema.optional(Schema.NullOr(StatutoryLawProposalSchema)),
 	summary: conciseText(1_600),
 	highlights: Schema.Array(conciseText(600)).pipe(Schema.check(Schema.isMaxLength(3))),
 	official_sources: Schema.Array(OfficialSourceSchema).pipe(Schema.check(Schema.isMaxLength(4))),
@@ -1115,7 +1109,34 @@ export const runStatutoryProfileDrift = (
 								? `${prompt}\nThe previous receipt failed validation: ${repair}\nResearch again and return a complete corrected receipt.`
 								: prompt
 						});
-					let firstReport = yield* inferJurisdiction();
+					/**
+					 * A receipt that fails to decode (a proposal violating a leave invariant, a field
+					 * over its bound, null where omission was expected) is re-asked with the exact
+					 * decode message, at most twice; anything else fails the jurisdiction as before.
+					 */
+					const inferWithRepairs = Effect.gen(function* () {
+						let repair: string | undefined;
+						for (let attempt = 0; ; attempt += 1) {
+							const exit = yield* Effect.exit(inferJurisdiction(repair));
+							if (Exit.isSuccess(exit)) return exit.value;
+							const message = getErrorMessage(Cause.squash(exit.cause));
+							if (
+								attempt < 2 &&
+								/does not match the authored schema|Structured output validation failed/.test(
+									message
+								)
+							) {
+								yield* api.progress({
+									progress: progress + 0.01,
+									text: `Repairing the ${code} receipt: ${message.slice(0, 160)}`
+								});
+								repair = message;
+								continue;
+							}
+							return yield* Effect.failCause(exit.cause);
+						}
+					});
+					let firstReport = yield* inferWithRepairs;
 					const validated = yield* Effect.try({
 						try: () =>
 							validateResearchReceipt(
