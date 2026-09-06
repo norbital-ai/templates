@@ -59,9 +59,9 @@ test(
 			await session.query(
 				`insert into payroll_runs
 				(id, company_id, period, run_kind, sequence, lifecycle, statutory_snapshot_id, configuration_hash,
-				 configuration_snapshot, calculation_version, pay_date, attendance_from, attendance_to)
+				 core_input_hash, calculation_version, pay_date, attendance_from, attendance_to)
 				select $1, company_id, $2, run_kind, sequence, lifecycle, statutory_snapshot_id, configuration_hash,
-				 configuration_snapshot, calculation_version, pay_date, attendance_from, attendance_to
+				 core_input_hash, calculation_version, pay_date, attendance_from, attendance_to
 				from payroll_runs where id = $3`,
 				[februaryId, FEBRUARY_2026, marchId]
 			);

@@ -73,6 +73,37 @@ export function cumulativePayroll(payslips: readonly Payslip[]) {
 	});
 }
 
+/** A payslip as the database returns it: numerics are strings, relations are nested rows. */
+const storedNumber = (value: unknown, label: string): number => {
+	const parsed = typeof value === 'number' ? value : Number(String(value ?? ''));
+	if (!Number.isFinite(parsed)) refuse(`Paid payslip ${label} is not a finite amount.`);
+	return parsed;
+};
+
+/**
+ * The cumulative baseline of a paid run, rebuilt from what the database holds — its payslips,
+ * their adjustments and the four input junctions — instead of a copy frozen on the run row.
+ * The run's stored amounts are the settled facts; reading them back is the same answer the run
+ * gave when it was built, so an ad hoc run prices the month again and pays only the difference.
+ */
+export function storedCumulativePayroll(rows: ReadonlyArray<Record<string, unknown>>) {
+	return cumulativePayroll(
+		rows.map((row) => ({
+			...row,
+			gross: storedNumber(row['gross'], 'gross'),
+			total_deductions: storedNumber(row['total_deductions'], 'total_deductions'),
+			net: storedNumber(row['net'], 'net'),
+			employer_cost: storedNumber(row['employer_cost'], 'employer_cost'),
+			payslip_adjustment_payslip: (
+				(row['payslip_adjustment_payslip'] as ReadonlyArray<Record<string, unknown>>) ?? []
+			).map((adjustment) => ({
+				...adjustment,
+				amount: storedNumber(adjustment['amount'], 'adjustment amount')
+			}))
+		})) as unknown as readonly Payslip[]
+	);
+}
+
 /** Price the whole month once, then pay only the difference from the last paid cumulative result. */
 export function supplementalPayroll(payslips: readonly Payslip[], captured: unknown): Payslip[] {
 	const previous = Schema.decodeUnknownSync(cumulativeSchema)(captured);
@@ -152,8 +183,8 @@ export function supplementalPayroll(payslips: readonly Payslip[], captured: unkn
 	});
 }
 
-/** Persist the exact facts read, including employment terms and prior tax/loan consumption. */
-export function payrollInputFacts(prepared: PreparedRun) {
+/** The exact facts read, including employment terms and prior tax/loan consumption. */
+function payrollInputFacts(prepared: PreparedRun) {
 	return {
 		bundles: prepared.gathered.bundles,
 		yearToDate: Object.fromEntries(prepared.gathered.yearToDate),
