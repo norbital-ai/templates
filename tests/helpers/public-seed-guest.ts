@@ -33,6 +33,7 @@ export const bootPublicSeedGuest = async (options: {
 	readonly invocationTimeoutMillis?: number;
 	readonly host?: string;
 	readonly ai?: WithSelfHostInput['ai'];
+	readonly communication?: WithSelfHostInput['communication'];
 	readonly files?: boolean;
 }) => {
 	const { bundlePath, schemaFingerprint } = requireReleaseBundle(artifactDirectory);
@@ -51,6 +52,7 @@ export const bootPublicSeedGuest = async (options: {
 			: {}),
 		...(options.host !== undefined ? { host: options.host } : {}),
 		...(options.ai !== undefined ? { ai: options.ai } : {}),
+		...(options.communication !== undefined ? { communication: options.communication } : {}),
 		...(options.files === true ? { files: true } : {}),
 		seed: {
 			stages: manifestSeedStages(templateManifestPath),
@@ -66,6 +68,9 @@ export const bootPublicSeedGuest = async (options: {
 		credential: session.credential,
 		schemaFingerprint,
 		files: session.files,
+		query: session.query,
+		tenantId: session.tenantId,
+		gatewaySecret: session.gatewaySecret,
 		stop: session.stop
 	};
 };
