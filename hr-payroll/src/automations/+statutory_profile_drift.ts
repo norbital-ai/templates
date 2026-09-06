@@ -15,7 +15,7 @@ import {
 	type AutomationApi
 } from '@norbital-ai/bolt/authoring';
 import { getErrorMessage, toError } from '@norbital-ai/std';
-import { Cause, Clock, Effect, Exit, Option, Schema } from 'effect';
+import { Cause, Clock, Effect, Exit, Option, Result, Schema } from 'effect';
 import { todayInstant, todayKey } from '../lib/ui/calendar.js';
 import { instantAt } from '../lib/iso-day.js';
 import {
@@ -387,13 +387,25 @@ export const StatutoryResearchReportSchema = Schema.Struct({
 });
 export type StatutoryResearchReport = Schema.Schema.Type<typeof StatutoryResearchReportSchema>;
 
+/**
+ * The receipt the model returns. Proposals are best effort: their strict shapes stay in the
+ * union so the model is guided by them, but a proposal that misses the shape or a law invariant
+ * decodes as a raw value here and is validated — and dropped with a note — by the run, instead
+ * of failing the whole jurisdiction inside `api.infer`.
+ */
 const JurisdictionResearchReportSchema = Schema.Struct({
 	proposed_sources: Schema.optional(
-		Schema.Array(StatutorySourceProposalSchema).check(Schema.isMaxLength(4))
+		Schema.NullOr(
+			Schema.Array(Schema.Union([StatutorySourceProposalSchema, Schema.Unknown])).check(
+				Schema.isMaxLength(4)
+			)
+		)
 	),
-	proposed_law: Schema.optional(Schema.NullOr(StatutoryLawProposalSchema)),
-	summary: conciseText(800),
-	highlights: Schema.Array(conciseText(400)).pipe(Schema.check(Schema.isMaxLength(3))),
+	proposed_law: Schema.optional(
+		Schema.NullOr(Schema.Union([StatutoryLawProposalSchema, Schema.Unknown]))
+	),
+	summary: conciseText(1_600),
+	highlights: Schema.Array(conciseText(600)).pipe(Schema.check(Schema.isMaxLength(3))),
 	official_sources: Schema.Array(OfficialSourceSchema).pipe(Schema.check(Schema.isMaxLength(4))),
 	changes_to_review: Schema.Array(ChangeToReviewSchema).pipe(Schema.check(Schema.isMaxLength(4)))
 });
@@ -1089,7 +1101,7 @@ export const runStatutoryProfileDrift = (
 						'A proposed law remains pending HR Manager approval; do not say it is already applied.',
 						'Never write null for an optional field; omit any optional field you do not set. Only include proposed_sources or proposed_law when the evidence supports them.',
 						JSON.stringify(researchPromptPages(pages, allowedOfficialUrl)),
-						'Keep this jurisdiction receipt concise: at most 3 highlights, 4 official sources, and 4 review items.',
+						'Keep this jurisdiction receipt concise: a summary under 600 characters, at most 3 highlights of under 300 characters each, 4 official sources, and 4 review items.',
 						`There are ${detected.items.length} local structural findings in the separate deterministic receipt. Do not enumerate employee rows or treat their count as web evidence.`,
 						'Local statutory snapshot:',
 						JSON.stringify(localSnapshot)
@@ -1167,19 +1179,33 @@ export const runStatutoryProfileDrift = (
 							}
 							return yield* Effect.failCause(exit.cause);
 						});
-					for (const source of firstReport.proposed_sources ?? []) {
+					for (const raw of firstReport.proposed_sources ?? []) {
+						const source = Schema.decodeUnknownResult(StatutorySourceProposalSchema)(raw);
+						if (Result.isFailure(source)) {
+							proposalNotes.push(
+								`Source proposal dropped: ${String(source.failure).slice(0, 300)}`
+							);
+							continue;
+						}
 						const proposal = yield* attempt(
-							`Source proposal ${source.url}`,
-							proposeStatutorySource(api, code, source, pages)
+							`Source proposal ${source.success.url}`,
+							proposeStatutorySource(api, code, source.success, pages)
 						);
 						if (proposal != null) submittedProposals.push(proposal);
 					}
 					if (firstReport.proposed_law != null) {
-						const proposal = yield* attempt(
-							'Law proposal',
-							proposeStatutoryLaw(api, jurisdiction.id, firstReport.proposed_law, pages)
+						const law = Schema.decodeUnknownResult(StatutoryLawProposalSchema)(
+							firstReport.proposed_law
 						);
-						if (proposal != null) submittedProposals.push(proposal);
+						if (Result.isFailure(law)) {
+							proposalNotes.push(`Law proposal dropped: ${String(law.failure).slice(0, 300)}`);
+						} else {
+							const proposal = yield* attempt(
+								'Law proposal',
+								proposeStatutoryLaw(api, jurisdiction.id, law.success, pages)
+							);
+							if (proposal != null) submittedProposals.push(proposal);
+						}
 					}
 					if (dropped > 0 || proposalNotes.length > 0)
 						yield* api.progress({
