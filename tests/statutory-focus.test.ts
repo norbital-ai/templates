@@ -1,6 +1,21 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { focusStatutoryText, researchPromptPages } from '../src/lib/statutory-research.js';
+import { researchPromptPages } from '../src/lib/statutory-research.js';
+
+const pageOf = (text: string) => ({
+	url: 'https://www.bli.gov.tw/en/',
+	requested_url: 'https://www.bli.gov.tw/en/',
+	text,
+	links: [],
+	sha256: 'sha256:0',
+	retrieved_at: '2026-09-06T00:00:00.000Z'
+});
+const focusStatutoryText = (text: string, budget: number): string =>
+	researchPromptPages([pageOf(text)], () => null, {
+		perPageChars: budget,
+		totalChars: budget,
+		maxLinks: 0
+	})[0].text;
 
 const boilerplate = Array.from(
 	{ length: 400 },

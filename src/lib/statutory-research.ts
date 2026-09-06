@@ -79,7 +79,7 @@ const STATUTORY_CUES =
  * no cued sentence at all its head is kept so the model still sees what the page is. Verification
  * of quotes still runs against the full page text, never against this view.
  */
-export const focusStatutoryText = (text: string, budget: number): string => {
+const focusStatutoryText = (text: string, budget: number): string => {
 	if (text.length <= budget) return text;
 	const sentences = text.split(/(?<=[.!?。])\s+|\s{2,}/).map((sentence) => sentence.trim());
 	const kept: string[] = [];
@@ -95,7 +95,7 @@ export const focusStatutoryText = (text: string, budget: number): string => {
 	return `${kept.join(' ')} [focused: ${kept.length} statutory sentences of a ${text.length}-character page]`;
 };
 
-export type ResearchPage = Readonly<{
+type ResearchPage = Readonly<{
 	url: string;
 	requested_url: string;
 	text: string;
