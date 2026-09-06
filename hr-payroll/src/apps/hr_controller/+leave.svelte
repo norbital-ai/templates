@@ -20,6 +20,7 @@
 	import { formatNumeric } from '../../lib/ui/display-formatters.js';
 	import { todayKey } from '../../lib/ui/calendar.js';
 	import { leaveAccountSummary } from '../../lib/leave/ledger.js';
+	import { describeExit, describeYearEnd } from '../../lib/leave/rules.js';
 	import { measuredLeaveRequestDays } from '../../lib/leave/pending.js';
 	import { decodeNumber } from '@norbital-ai/std/json';
 
@@ -293,6 +294,17 @@
 													? ` · ${row.account.event_reference}`
 													: ''}</span
 											>
+											{#if row.account.account_kind !== 'EVENT'}
+												<p class="text-meta" data-leave-rule="year-end">
+													{describeYearEnd(row.account.settlement, row.account.settlement_source)}
+												</p>
+												<p class="text-meta" data-leave-rule="exit">
+													{describeExit(
+														row.account.exit_settlement,
+														row.account.exit_settlement_source
+													)}
+												</p>
+											{/if}
 										</td>
 										<td class="px-3 py-3 text-right tabular-nums"
 											>{formatNumeric(row.summary.entitlement)}</td

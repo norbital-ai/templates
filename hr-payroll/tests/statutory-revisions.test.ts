@@ -25,6 +25,7 @@ const floor = (days) => [
 		max_days: null,
 		transition: 'NEXT_LEAVE_YEAR',
 		settlement: { settlement: 'FORFEIT' },
+		exit: { exit: 'FORFEIT' },
 		authority: 'Approved fixture law'
 	}
 ];

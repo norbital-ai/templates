@@ -12,10 +12,13 @@ import { isEligible } from '../../collections/payroll_runs/lib/eligibility.js';
 import { roundHalfDay } from '../../collections/payroll_runs/lib/rounding.js';
 import { dateKey } from '../iso-day.js';
 import { awardedLeaveDays, leaveAccountBalance } from './ledger.js';
-import { leaveAccountIdFor, leaveEntryIdFor, requestSourceKey, stableUuid } from './identity.js';
+import { leaveAccountIdFor, leaveEntryIdFor, requestSourceKey } from './identity.js';
 import type { LeaveSettlement } from '../../datatypes/leave_settlement/+definition.js';
+import type { LeaveExitSettlement } from '../../datatypes/leave_exit_settlement/+definition.js';
 
 const FORFEIT_SETTLEMENT = { settlement: 'FORFEIT' } as const satisfies LeaveSettlement;
+const FORFEIT_EXIT = { exit: 'FORFEIT' } as const satisfies LeaveExitSettlement;
+type RuleSource = 'STATUTE' | 'COMPANY';
 
 const LIMIT = 5_000;
 /** The leave service needs only the data surface; hooks and automations hand it theirs. */
@@ -25,8 +28,8 @@ type LeavePlan = WorkspaceRow<'leave_plans'>;
 type LeaveType = WorkspaceRow<'leave_types'>;
 type Jurisdiction = WorkspaceRow<'jurisdictions'>;
 type Child = WorkspaceRow<'employee_children'>;
-type EmploymentTerm = WorkspaceRow<'employment_terms'>;
 type Account = WorkspaceRow<'leave_accounts'>;
+type EmploymentTerm = WorkspaceRow<'employment_terms'>;
 type Entry = WorkspaceRow<'leave_entries'>;
 type Transition = 'FULL_AT_EFFECTIVE_DATE' | 'PRORATE_REMAINDER' | 'NEXT_LEAVE_YEAR';
 type NewEntry = {
@@ -148,64 +151,75 @@ export function targetEntitlement(options: {
 	return { statutory, company, target: Math.max(statutory, company), serviceMonths };
 }
 
-export function mergedSettlement(
+/**
+ * The year-end rule an account is compiled with, and which side decided it.
+ *
+ * The statute's kind is binding: a COMMUTE floor commutes, a CARRY floor carries. A company plan
+ * may only widen the parameters of the statute's own kind — a higher carry limit (`null` is the
+ * whole balance), a longer expiry (`0` is never) — never change the kind. Where the statute says
+ * FORFEIT, or has no member for this kind, the company plan decides. A banded CARRY floor
+ * protects only employments carrying one of its coverage codes.
+ */
+export function yearEndRule(
 	profile: Jurisdiction,
 	type: LeaveType,
 	coverage: string | null
-): LeaveSettlement {
-	const company =
-		type.accrual.kind === 'UNLIMITED'
-			? (FORFEIT_SETTLEMENT as LeaveSettlement)
-			: normalizeAccrualSettlement(type.accrual);
+): { readonly rule: LeaveSettlement; readonly source: RuleSource } {
+	const company: LeaveSettlement =
+		type.accrual.kind === 'UNLIMITED' ? FORFEIT_SETTLEMENT : type.accrual.settlement;
 	const member =
 		type.statutory_kind == null
 			? null
-			: (profile.statutory_leave.find((member) => member.kind === type.statutory_kind) ?? null);
-	const statutory = normalizeMemberSettlement(member, coverage);
-	const rank = (settlement: LeaveSettlement): number =>
-		settlement.settlement === 'COMMUTE' ? 3 : settlement.settlement === 'CARRY' ? 2 : 1;
-	if (rank(statutory) !== rank(company))
-		return rank(statutory) > rank(company) ? statutory : company;
-	// Same behavior on both sides: the law wins the tie, and two CARRY floors merge the way
-	// caps always merged — the wider limit, the later expiry, the union of coverage.
-	if (company.settlement === 'CARRY' && statutory.settlement === 'CARRY') {
-		const limitOf = (settlement: typeof company): number =>
-			settlement.limit_days == null
-				? Number.POSITIVE_INFINITY
-				: decodeNumber(settlement.limit_days);
-		const limit = Math.max(limitOf(company), limitOf(statutory));
-		return {
+			: (profile.statutory_leave.find((row) => row.kind === type.statutory_kind) ?? null);
+	const statutory = memberSettlement(member, coverage);
+	if (statutory.settlement === 'FORFEIT') return { rule: company, source: 'COMPANY' };
+	if (statutory.settlement === 'COMMUTE') return { rule: statutory, source: 'STATUTE' };
+	if (company.settlement !== 'CARRY') return { rule: statutory, source: 'STATUTE' };
+	const limit = (value: LeaveSettlement & { settlement: 'CARRY' }): number =>
+		value.limit_days == null ? Number.POSITIVE_INFINITY : decodeNumber(value.limit_days);
+	const expiry = (value: LeaveSettlement & { settlement: 'CARRY' }): number =>
+		decodeNumber(value.expiry_months) === 0
+			? Number.POSITIVE_INFINITY
+			: decodeNumber(value.expiry_months);
+	const widened = limit(company) > limit(statutory) || expiry(company) > expiry(statutory);
+	if (!widened) return { rule: statutory, source: 'STATUTE' };
+	const mergedLimit = Math.max(limit(company), limit(statutory));
+	const mergedExpiry = Math.max(expiry(company), expiry(statutory));
+	return {
+		rule: {
 			settlement: 'CARRY',
-			limit_days: limit === Number.POSITIVE_INFINITY ? null : limit,
-			expiry_months: Math.max(
-				decodeNumber(company.expiry_months),
-				decodeNumber(statutory.expiry_months)
-			),
-			coverage:
-				company.coverage == null || statutory.coverage == null
-					? null
-					: [...new Set([...company.coverage, ...statutory.coverage])]
-		} as LeaveSettlement;
-	}
-	return statutory.settlement === 'FORFEIT' ? company : statutory;
+			limit_days: mergedLimit === Number.POSITIVE_INFINITY ? null : mergedLimit,
+			expiry_months: mergedExpiry === Number.POSITIVE_INFINITY ? 0 : mergedExpiry,
+			coverage: null
+		},
+		source: 'COMPANY'
+	};
 }
 
-/** Transitional bridge: rows written before the settlement union keep resolving. */
-function normalizeAccrualSettlement(accrual: LeaveType['accrual']): LeaveSettlement {
-	if (accrual.kind === 'UNLIMITED') return FORFEIT_SETTLEMENT as LeaveSettlement;
-	return accrual.settlement;
+/** The exit rule an account is compiled with: the statute's payout binds, else the company plan. */
+export function exitRule(
+	profile: Jurisdiction,
+	type: LeaveType
+): { readonly rule: LeaveExitSettlement; readonly source: RuleSource } {
+	const member =
+		type.statutory_kind == null
+			? null
+			: (profile.statutory_leave.find((row) => row.kind === type.statutory_kind) ?? null);
+	const statutory: LeaveExitSettlement = member?.exit ?? FORFEIT_EXIT;
+	if (statutory.exit === 'PAY_OUT') return { rule: statutory, source: 'STATUTE' };
+	return { rule: type.exit_settlement, source: 'COMPANY' };
 }
 
 /** A statutory floor with a coverage gate protects only employments carrying that code. */
-function normalizeMemberSettlement(
+function memberSettlement(
 	member: Jurisdiction['statutory_leave'][number] | null,
 	coverage: string | null
 ): LeaveSettlement {
-	if (member == null) return FORFEIT_SETTLEMENT as LeaveSettlement;
+	if (member == null) return FORFEIT_SETTLEMENT;
 	const settlement = member.settlement;
 	if (settlement.settlement !== 'CARRY' || settlement.coverage == null) return settlement;
 	if (coverage != null && settlement.coverage.includes(coverage)) return settlement;
-	return FORFEIT_SETTLEMENT as LeaveSettlement;
+	return FORFEIT_SETTLEMENT;
 }
 
 /**
@@ -234,27 +248,7 @@ export function coverageInputs(
 			terms.statutory_work_category.startsWith('MANUAL_LABOUR')
 	};
 }
-/**
- * The daily rate a COMMUTE settlement cashes out at, from the terms in force when the year
- * closed. Each basis is one statute's stated divisor — MY monthly ÷ 26, TW monthly ÷ 30, PH
- * daily wage (monthly-paid: monthly × 12 ÷ 313, the DOLE working-day convention) — so a
- * combination the law does not state is refused instead of priced by an invented divisor.
- */
-export function commuteDailyRate(
-	term: { readonly pay_frequency?: unknown; readonly base_salary?: unknown } | null | undefined,
-	payBasis: 'ORDINARY_DIV26' | 'MONTHLY_DIV30' | 'DAILY_WAGE'
-): number {
-	const salary = term?.base_salary as { value?: unknown } | null;
-	const value = salary == null ? NaN : decodeNumber(salary.value);
-	if (!(value > 0)) refuse('Commutation needs a positive base salary in the closing terms.');
-	if (term?.pay_frequency === 'DAILY' && payBasis === 'DAILY_WAGE') return value;
-	if (term?.pay_frequency === 'MONTHLY' && payBasis === 'ORDINARY_DIV26') return value / 26;
-	if (term?.pay_frequency === 'MONTHLY' && payBasis === 'MONTHLY_DIV30') return value / 30;
-	if (term?.pay_frequency === 'MONTHLY' && payBasis === 'DAILY_WAGE') return (value * 12) / 313;
-	return refuse(
-		`Commutation basis ${payBasis} is not stated for ${String(term?.pay_frequency ?? 'missing')} pay frequency.`
-	);
-}
+export { leaveDailyRate as commuteDailyRate } from './rate.js';
 
 /** First matching band wins; no match (or no bands, or no monthly basic) means no code. */
 export function resolveStatutoryCoverage(options: {
@@ -586,12 +580,8 @@ export function ensureAccount(options: {
 			options.midYearOpening == null && options.eligibilityOpeningOn == null
 				? target.target
 				: scheduledEntries.reduce((total, entry) => total + entry.days, 0);
-		const settlement = mergedSettlement(
-			options.profile,
-			options.type,
-			options.statutoryCoverage ?? null
-		);
-		const carry = settlement.settlement === 'CARRY' ? settlement : null;
+		const yearEnd = yearEndRule(options.profile, options.type, options.statutoryCoverage ?? null);
+		const exit = exitRule(options.profile, options.type);
 		if (existing != null && target.target <= 0) return { account: existing, created: false };
 		yield* options.api.db.leave_accounts.mutate([
 			{
@@ -610,9 +600,10 @@ export function ensureAccount(options: {
 				status: 'OPEN',
 				entitlement_days: entitlementDays,
 				accrual_kind: options.type.accrual.kind,
-				carry_limit_days: carry?.limit_days ?? null,
-				carry_expiry_months: carry?.expiry_months ?? null,
-				settlement,
+				settlement: yearEnd.rule,
+				settlement_source: yearEnd.source,
+				exit_settlement: exit.rule,
+				exit_settlement_source: exit.source,
 				calculation: {
 					calculated_on: asOf,
 					service_months: target.serviceMonths,
@@ -715,274 +706,230 @@ export function reconcileTarget(options: {
 	});
 }
 
-/** The settlement compiled into an account. */
-export function accountSettlement(account: Account): LeaveSettlement {
-	return account.settlement;
-}
-
-export function expireCarry(
-	api: Api,
-	account: Account,
-	entries: readonly Entry[],
-	asOf: string,
-	commuteDailyRate?: number | null
-) {
+/**
+ * The one carried lot an account can hold expires once: whatever of it was not taken by its
+ * expiry date lapses. Days taken up to that date consume the lot first, so a later restore that
+ * changes what was taken appends the delta under a versioned key rather than rewriting history.
+ */
+export function expireCarry(api: Api, account: Account, entries: readonly Entry[], asOf: string) {
 	return Effect.gen(function* () {
-		let posted = 0;
-		const settlement = accountSettlement(account);
-		if (
-			account.account_kind === 'YEAR' &&
-			account.status === 'OPEN' &&
-			settlement.settlement === 'COMMUTE' &&
-			dateKey(account.ends_on) < asOf &&
-			!entries.some((entry) => entry.source_key === `commute:${account.id}`)
-		) {
-			// Commutation is the statute's year-end cash settlement (PH SIL, TW special leave):
-			// the same trigger that would expire, but the balance becomes money, never vapor.
-			// Payroll linkage is a separate, explicit step — this posts the immutable debt.
-			if (commuteDailyRate == null)
-				refuse(
-					`Leave account ${account.id} commutes to cash but no daily rate was resolved. Price commutation before reconciliation.`
-				);
-			const balance = Math.max(0, leaveAccountBalance(entries, dateKey(account.ends_on)));
-			if (balance > 1e-9) {
-				const cash = Math.round(balance * commuteDailyRate * 100) / 100;
-				yield* api.db.leave_entries.mutate([
-					{
-						id: leaveEntryIdFor({
-							leave_account_id: account.id,
-							source_key: `commute:${account.id}`
-						}),
-						leave_account_id: account.id,
-						kind: 'COMMUTED',
-						effective_on: dateKey(account.ends_on),
-						days: -balance,
-						reason: `Commuted ${balance} days at ${commuteDailyRate}/day (${settlement.pay_basis}): ${cash} owed`,
-						source_key: `commute:${account.id}`,
-						leave_plan_id: account.opening_plan_id,
-						statutory_profile_id: account.opening_statutory_profile_id
-					}
-				]);
-				posted += 1;
-			}
-		}
-		let takenAllocatedToEarlierCarry = 0;
-		const carries = entries
-			.filter(
-				(entry) =>
-					entry.kind === 'CARRY_FORWARD' &&
-					entry.expires_on != null &&
-					dateKey(entry.expires_on) <= asOf
-			)
-			.toSorted(
-				(left, right) =>
-					dateKey(left.expires_on).localeCompare(dateKey(right.expires_on)) ||
-					dateKey(left.effective_on).localeCompare(dateKey(right.effective_on))
-			);
-		for (const carry of carries) {
-			const sourceKey = `expire:${carry.id}`;
-			const totalTakenBeforeExpiry = Math.max(
-				0,
-				-entries
-					.filter(
-						(entry) =>
-							(entry.kind === 'TAKEN' || entry.kind === 'RESTORED') &&
-							dateKey(entry.effective_on) <= dateKey(carry.expires_on)
-					)
-					.reduce((total, entry) => total + decodeNumber(entry.days), 0)
-			);
-			const consumed = Math.min(
-				decodeNumber(carry.days),
-				Math.max(0, totalTakenBeforeExpiry - takenAllocatedToEarlierCarry)
-			);
-			takenAllocatedToEarlierCarry += consumed;
-			const remaining = Math.max(0, decodeNumber(carry.days) - consumed);
-			const priorExpiries = entries.filter(
-				(entry) =>
-					entry.kind === 'EXPIRED' &&
-					(entry.source_key === sourceKey || entry.source_key.startsWith(`${sourceKey}:v`))
-			);
-			const alreadyExpired = Math.max(
-				0,
-				-priorExpiries.reduce((total, entry) => total + decodeNumber(entry.days), 0)
-			);
-			const additionalExpiry = remaining - alreadyExpired;
-			if (additionalExpiry <= 1e-9) continue;
-			yield* api.db.leave_entries.mutate([
-				{
-					leave_account_id: account.id,
-					kind: 'EXPIRED',
-					effective_on: dateKey(carry.expires_on),
-					days: -additionalExpiry,
-					reason: 'Unused carried-forward leave expired after FIFO consumption',
-					source_key:
-						priorExpiries.length === 0 ? sourceKey : `${sourceKey}:v${priorExpiries.length + 1}`,
-					leave_plan_id: carry.leave_plan_id,
-					statutory_profile_id: carry.statutory_profile_id
-				}
-			]);
-			posted += 1;
-		}
-		return posted;
+		const lot = entries.find((entry) => entry.kind === 'CARRY_FORWARD');
+		if (lot == null || lot.expires_on == null || dateKey(lot.expires_on) > asOf) return 0;
+		const sourceKey = `expire:${lot.id}`;
+		const takenBeforeExpiry = Math.max(
+			0,
+			-entries
+				.filter(
+					(entry) =>
+						(entry.kind === 'TAKEN' || entry.kind === 'RESTORED') &&
+						dateKey(entry.effective_on) <= dateKey(lot.expires_on)
+				)
+				.reduce((total, entry) => total + decodeNumber(entry.days), 0)
+		);
+		const remaining = Math.max(0, decodeNumber(lot.days) - takenBeforeExpiry);
+		const priorExpiries = entries.filter(
+			(entry) =>
+				entry.kind === 'EXPIRED' &&
+				(entry.source_key === sourceKey || entry.source_key.startsWith(`${sourceKey}:v`))
+		);
+		const alreadyExpired = Math.max(
+			0,
+			-priorExpiries.reduce((total, entry) => total + decodeNumber(entry.days), 0)
+		);
+		const delta = remaining - alreadyExpired;
+		if (delta <= 1e-9) return 0;
+		const key =
+			priorExpiries.length === 0 ? sourceKey : `${sourceKey}:v${priorExpiries.length + 1}`;
+		yield* api.db.leave_entries.mutate([
+			{
+				id: leaveEntryIdFor({ leave_account_id: account.id, source_key: key }),
+				leave_account_id: account.id,
+				kind: 'EXPIRED',
+				effective_on: dateKey(lot.expires_on),
+				days: -delta,
+				reason: 'Carried-forward leave not taken by its expiry date lapsed',
+				source_key: key,
+				leave_plan_id: lot.leave_plan_id,
+				statutory_profile_id: lot.statutory_profile_id
+			} as NewEntry
+		]);
+		return 1;
 	});
 }
 
-export function transferCarry(options: {
+/**
+ * A leave year closes once, on its end date, by the rule compiled into the account.
+ *
+ *   CARRY   — up to the limit moves to the next year's account as one lot with its expiry date;
+ *             the rest lapses. With no next account (the employment ended) everything lapses.
+ *   COMMUTE — the balance becomes money at the statute's daily rate from the terms in force on
+ *             the closing date: one COMMUTED line and one payout row.
+ *   FORFEIT — the balance lapses.
+ *
+ * Every line is keyed `close:<account>`, so a rerun restates and never doubles; a request still
+ * pending approval holds the close until it is decided.
+ */
+export function closeLeaveYear(options: {
 	readonly api: Api;
+	readonly employment: Employment;
 	readonly previous: Account;
-	readonly next: Account;
+	readonly next: Account | null;
 	readonly entries: readonly Entry[];
 	readonly pending: readonly { readonly approval_id?: string | null }[];
 	readonly asOf: string;
 }) {
 	return Effect.gen(function* () {
-		if (dateKey(options.previous.ends_on) >= options.asOf || options.previous.status === 'CLOSED')
-			return 0;
+		const { previous, next } = options;
+		if (dateKey(previous.ends_on) >= options.asOf || previous.status === 'CLOSED') return 0;
 		if (options.pending.some((request) => request.approval_id != null)) return 0;
-		const sourceKey = `close:${options.previous.id}`;
-		if (
-			options.entries.some(
-				(entry) =>
-					entry.source_key === `${sourceKey}:out` || entry.source_key === `${sourceKey}:forfeit`
-			)
-		) {
-			if (options.previous.status === 'OPEN')
-				yield* options.api.db.leave_accounts.mutate([
-					{ id: options.previous.id, status: 'CLOSED' }
-				]);
+		const key = `close:${previous.id}`;
+		const closing = (suffix: string) => `${key}:${suffix}`;
+		if (options.entries.some((entry) => entry.source_key.startsWith(`${key}:`))) {
+			yield* options.api.db.leave_accounts.mutate([{ id: previous.id, status: 'CLOSED' }]);
 			return 0;
 		}
-		const balance = Math.max(
-			0,
-			leaveAccountBalance(options.entries, dateKey(options.previous.ends_on))
-		);
-		const cap =
-			options.next.carry_limit_days == null ? 0 : decodeNumber(options.next.carry_limit_days);
-		const carried = Math.min(balance, cap);
-		const forfeited = Math.max(0, balance - carried);
+		const endsOn = dateKey(previous.ends_on);
+		const balance = Math.max(0, leaveAccountBalance(options.entries, endsOn));
+		const rule = previous.settlement;
+		const line = (
+			suffix: string,
+			values: Omit<NewEntry, 'leave_account_id' | 'source_key' | 'id'>
+		) =>
+			({
+				id: leaveEntryIdFor({ leave_account_id: previous.id, source_key: closing(suffix) }),
+				leave_account_id: previous.id,
+				source_key: closing(suffix),
+				...values
+			}) as NewEntry;
 		const movements: NewEntry[] = [];
-		if (carried > 0) {
-			movements.push(
-				{
-					leave_account_id: options.previous.id,
-					kind: 'CARRY_TRANSFER_OUT',
-					effective_on: dateKey(options.previous.ends_on),
-					days: -carried,
-					reason: `Transferred to leave year ${options.next.leave_year ?? ''}`,
-					source_key: `${sourceKey}:out`
-				},
-				{
-					leave_account_id: options.next.id,
-					kind: 'CARRY_FORWARD',
-					effective_on: dateKey(options.next.starts_on),
-					days: carried,
-					expires_on:
-						options.next.carry_expiry_months == null ||
-						decodeNumber(options.next.carry_expiry_months) === 0
-							? null
-							: monthEndFrom(
-									dateKey(options.next.starts_on),
-									decodeNumber(options.next.carry_expiry_months) - 1
-								),
-					reason: `Carried from leave year ${options.previous.leave_year ?? ''}`,
-					source_key: `carry:${options.previous.id}`,
-					leave_plan_id: options.next.opening_plan_id,
-					statutory_profile_id: options.next.opening_statutory_profile_id
+		if (balance > 1e-9) {
+			if (rule.settlement === 'CARRY' && next != null) {
+				const carried =
+					rule.limit_days == null ? balance : Math.min(balance, decodeNumber(rule.limit_days));
+				const lapse = balance - carried;
+				if (carried > 1e-9) {
+					movements.push(
+						line('out', {
+							kind: 'CARRY_TRANSFER_OUT',
+							effective_on: endsOn,
+							days: -carried,
+							reason: `Carried into leave year ${next.leave_year}`
+						}),
+						{
+							id: leaveEntryIdFor({
+								leave_account_id: next.id,
+								source_key: `carry:${previous.id}`
+							}),
+							leave_account_id: next.id,
+							kind: 'CARRY_FORWARD',
+							effective_on: dateKey(next.starts_on),
+							days: carried,
+							expires_on:
+								decodeNumber(rule.expiry_months) === 0
+									? null
+									: monthEndFrom(dateKey(next.starts_on), decodeNumber(rule.expiry_months) - 1),
+							reason: `Carried from leave year ${previous.leave_year}`,
+							source_key: `carry:${previous.id}`,
+							leave_plan_id: next.opening_plan_id,
+							statutory_profile_id: next.opening_statutory_profile_id
+						} as NewEntry
+					);
 				}
-			);
+				if (lapse > 1e-9)
+					movements.push(
+						line('forfeit', {
+							kind: 'EXPIRED',
+							effective_on: endsOn,
+							days: -lapse,
+							reason: `Above the carry-forward limit of ${decodeNumber(rule.limit_days)} days`
+						})
+					);
+			} else if (rule.settlement === 'COMMUTE') {
+				// The days leave the account here; payroll prices the line at the terms in force on
+				// this date and the statute's basis when it prints it.
+				movements.push(
+					line('commute', {
+						kind: 'COMMUTED',
+						effective_on: endsOn,
+						days: -balance,
+						reason: `Commuted ${balance} unused days to cash (${rule.pay_basis})`
+					})
+				);
+			} else {
+				movements.push(
+					line('forfeit', {
+						kind: 'EXPIRED',
+						effective_on: endsOn,
+						days: -balance,
+						reason:
+							rule.settlement === 'CARRY'
+								? 'No following leave year to carry into'
+								: 'Unused leave lapsed at year end'
+					})
+				);
+			}
 		}
-		if (forfeited > 0)
-			movements.push({
-				leave_account_id: options.previous.id,
-				kind: 'EXPIRED',
-				effective_on: dateKey(options.previous.ends_on),
-				days: -forfeited,
-				reason: cap === 0 ? 'No carry-forward under the new leave year' : 'Above carry-forward cap',
-				source_key: `${sourceKey}:forfeit`
-			});
 		if (movements.length > 0) yield* options.api.db.leave_entries.mutate(movements);
-		yield* options.api.db.leave_accounts.mutate([{ id: options.previous.id, status: 'CLOSED' }]);
+		yield* options.api.db.leave_accounts.mutate([{ id: previous.id, status: 'CLOSED' }]);
 		return movements.length;
 	});
 }
 
 /**
- * The money half of a commutation: every COMMUTED receipt without its paying entry arrives
- * as an arrears entry on the company's commute component, priced by the same daily rate the
- * receipt states, in the same invocation that posted it. The paying entry's id names the
- * receipt, so reruns restate instead of duplicating; the next draft run captures it like any
- * arrears. A company with nowhere to pay refuses loudly — a receipt no payroll can settle is
- * a strand, never a silent balance.
+ * An employment's end closes every open account on the exit date: the balance is paid out or
+ * lapses by the account's exit rule, with the statute's misconduct exception read from the
+ * employment's `exit_reason`.
  */
-export function settleCommutedPayouts(options: {
+export function closeOnExit(options: {
 	readonly api: Api;
 	readonly employment: Employment;
-	readonly company: { readonly id: string; readonly settlement_policy?: unknown };
 	readonly account: Account;
 	readonly entries: readonly Entry[];
-	readonly terms: readonly EmploymentTerm[];
-}): Effect.Effect<number> {
+	readonly exitDate: string;
+}) {
 	return Effect.gen(function* () {
-		const commuted = options.entries.filter((entry) => entry.kind === 'COMMUTED');
-		if (commuted.length === 0) return 0;
-		const componentId = (
-			options.company.settlement_policy as {
-				commute_pay?: { pay_to_component_id?: string };
-			} | null
-		)?.commute_pay?.pay_to_component_id;
-		if (componentId == null)
-			refuse(
-				`Leave account ${options.account.id} commuted to cash but the company names no commute component. Configure settlement_policy.commute_pay before reconciliation.`
-			);
-		const component = yield* options.api.db.pay_components.findFirst({
-			where: { id: { eq: componentId } }
-		});
-		if (
-			component == null ||
-			component.definition?.source !== 'ENTRY' ||
-			component.definition?.settlement !== 'PAYROLL' ||
-			(component.policy as { kind?: string } | null)?.kind !== 'EARNING'
-		)
-			refuse(
-				`The commute component ${component?.code ?? componentId} cannot carry a commuted leave payout: it must be a payroll-settled earning entry component.`
-			);
+		const { account } = options;
+		const key = `exit:${account.id}`;
 		let posted = 0;
-		for (const receipt of commuted) {
-			const payId = stableUuid(`commute-pay:${String(receipt.id)}`);
-			const existing = yield* options.api.db.component_entries.findFirst({
-				where: { id: { eq: payId } },
-				columns: { id: true }
-			});
-			if (existing != null) continue;
-			const settlement = accountSettlement(options.account);
-			if (settlement.settlement !== 'COMMUTE')
-				refuse(
-					`Leave account ${options.account.id} holds a commute receipt under a ${settlement.settlement} settlement.`
-				);
-			const term = options.terms.find((row) =>
-				coversDate(row.effective_range, dateKey(receipt.effective_on))
-			);
-			const rate = commuteDailyRate(term, settlement.pay_basis);
-			const days = Math.max(0, -decodeNumber(receipt.days));
-			const cash = Math.round(days * rate * 100) / 100;
-			if (cash <= 0) continue;
-			const effective = dateKey(receipt.effective_on);
-			yield* options.api.db.component_entries.mutate([
-				{
-					id: payId,
-					employment_id: options.employment.id,
-					pay_component_id: component.id,
-					amount: cash,
-					event_date: effective,
-					event: {
-						kind: 'ARREARS',
-						covers_periods: [effective.slice(0, 7)],
-						reason: `Commuted ${options.account.leave_code} ${options.account.leave_year}: ${days} days at ${rate}/day`
-					}
+		if (!options.entries.some((entry) => entry.source_key === key)) {
+			const balance = Math.max(0, leaveAccountBalance(options.entries, options.exitDate));
+			if (balance > 1e-9) {
+				const rule = account.exit_settlement;
+				const misconduct = options.employment.exit_reason === 'MISCONDUCT';
+				const paysOut = rule.exit === 'PAY_OUT' && !(rule.misconduct_forfeits && misconduct);
+				const id = leaveEntryIdFor({ leave_account_id: account.id, source_key: key });
+				if (paysOut && rule.exit === 'PAY_OUT') {
+					yield* options.api.db.leave_entries.mutate([
+						{
+							id,
+							leave_account_id: account.id,
+							kind: 'ENCASHED',
+							effective_on: options.exitDate,
+							days: -balance,
+							reason: `Paid out on exit: ${balance} unused days (${rule.pay_basis})`,
+							source_key: key
+						} as NewEntry
+					]);
+				} else {
+					yield* options.api.db.leave_entries.mutate([
+						{
+							id,
+							leave_account_id: account.id,
+							kind: 'EXPIRED',
+							effective_on: options.exitDate,
+							days: -balance,
+							reason:
+								rule.exit === 'PAY_OUT'
+									? 'Payout forfeited: dismissal for misconduct'
+									: 'Unused leave lapsed on employment exit',
+							source_key: key
+						} as NewEntry
+					]);
 				}
-			]);
-			posted += 1;
+				posted += 1;
+			}
 		}
+		yield* options.api.db.leave_accounts.mutate([{ id: account.id, status: 'CLOSED' }]);
 		return posted;
 	});
 }
@@ -1255,19 +1202,7 @@ export function reconcileEmploymentLeave(api: Api, employmentId: string, asOf: s
 				limit: LIMIT
 			});
 			requireComplete(entries, 'leave account entries');
-			const settlement = accountSettlement(account);
-			const commuteRate =
-				account.account_kind === 'YEAR' &&
-				account.status === 'OPEN' &&
-				settlement.settlement === 'COMMUTE' &&
-				dateKey(account.ends_on) < asOf &&
-				!entries.some((entry) => entry.source_key === `commute:${account.id}`)
-					? commuteDailyRate(
-							terms.find((row) => coversDate(row.effective_range, dateKey(account.ends_on))),
-							settlement.pay_basis
-						)
-					: null;
-			const expired = yield* expireCarry(api, account, entries, asOf, commuteRate);
+			const expired = yield* expireCarry(api, account, entries, asOf);
 			posted += expired;
 			if (expired > 0) {
 				entries = yield* api.db.leave_entries.findMany({
@@ -1333,30 +1268,7 @@ export function reconcileEmploymentLeave(api: Api, employmentId: string, asOf: s
 				dateKey(account.starts_on) <= exitDate &&
 				dateKey(account.ends_on) >= exitDate
 			) {
-				const openingType = yield* api.db.leave_types.findFirst({
-					where: { id: { eq: account.leave_type_id } },
-					columns: { encash_on_exit: true }
-				});
-				if (!entries.some((entry) => entry.source_key === `exit:${account.id}`)) {
-					const balance = Math.max(0, leaveAccountBalance(entries, exitDate));
-					if (balance > 0) {
-						const encash = openingType?.encash_on_exit === true;
-						yield* api.db.leave_entries.mutate([
-							{
-								leave_account_id: account.id,
-								kind: encash ? 'ENCASHED' : 'EXPIRED',
-								effective_on: exitDate,
-								days: -balance,
-								reason: encash
-									? 'Automatically encashed on employment exit'
-									: 'Unused leave expired on employment exit',
-								source_key: `exit:${account.id}`
-							}
-						]);
-						posted += 1;
-					}
-				}
-				yield* api.db.leave_accounts.mutate([{ id: account.id, status: 'CLOSED' }]);
+				posted += yield* closeOnExit({ api, employment, account, entries, exitDate });
 				continue;
 			}
 			if (account.status !== 'OPEN' || account.account_kind === 'EVENT') continue;
@@ -1398,27 +1310,26 @@ export function reconcileEmploymentLeave(api: Api, employmentId: string, asOf: s
 					});
 				}
 			}
-			const next = allAccounts.find(
-				(candidate) =>
-					candidate.account_kind !== 'EVENT' &&
-					candidate.leave_year === account.leave_year + 1 &&
-					candidate.leave_code === account.leave_code
-			);
-			if (next != null) {
+			const next =
+				allAccounts.find(
+					(candidate) =>
+						candidate.account_kind !== 'EVENT' &&
+						candidate.leave_year === account.leave_year + 1 &&
+						candidate.leave_code === account.leave_code
+				) ?? null;
+			if (dateKey(account.ends_on) < asOf) {
 				const pending = yield* api.db.leave_requests.findPending({
 					where: { leave_account_id: { eq: account.id } },
 					limit: LIMIT
 				});
-				posted += yield* transferCarry({ api, previous: account, next, entries, pending, asOf });
-			}
-			if (entries.some((entry) => entry.kind === 'COMMUTED')) {
-				posted += yield* settleCommutedPayouts({
+				posted += yield* closeLeaveYear({
 					api,
 					employment,
-					company,
-					account,
+					previous: account,
+					next,
 					entries,
-					terms
+					pending,
+					asOf
 				});
 			}
 		}

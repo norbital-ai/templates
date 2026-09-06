@@ -31,8 +31,7 @@ const patternOf = (): unknown => {
  * A March-2025 joiner on a MYR 2,600 monthly salary whose annual plan commutes
  * (÷26) gets a 2025 account that cashes out at year end: one COMMUTED −8 line
  * receipting 800 owed, the old account closed, and nothing carried into 2026.
- * Payroll pickup of the receipt is explicit follow-up work — the ledger debt
- * itself is what this proves.
+ * The payout row the close wrote prints on the January slip as a LEAVE_PAYOUT base line.
  */
 test(
 	'public seed commuted year posts its cash receipt and carries nothing forward',
@@ -83,18 +82,6 @@ test(
 				},
 				ANNUAL_LEAVE_TYPE_ID
 			]);
-			await session.query(`update companies set settlement_policy = $1 where id = $2`, [
-				{
-					late_joiner_arrears: null,
-					commute_pay: { pay_to_component_id: '77777777-7777-4777-8777-777777777777' },
-					final_period: 'FOLLOW_ATTENDANCE_WINDOW',
-					final_period_wages: 'PRORATE_TO_EXIT',
-					extended_unpaid_leave: null,
-					absence_proration: null,
-					overtime_windows: null
-				},
-				COMPANY_ID
-			]);
 			const started = await postGuestCommand(
 				session.host.baseUrl,
 				'automations.start',
@@ -127,8 +114,51 @@ test(
 			const commuted = entries.filter((row) => row.kind === 'COMMUTED');
 			assert.equal(commuted.length, 1, JSON.stringify(entries));
 			assert.equal(Number(commuted[0]?.days), -8);
-			assert.equal(commuted[0]?.source_key, `commute:${account2025}`);
-			assert.match(String(commuted[0]?.reason), /800/);
+			assert.equal(commuted[0]?.source_key, `close:${account2025}:commute`);
+			assert.match(String(commuted[0]?.reason), /8 unused days/);
+			const rerun = await postGuestCommand(
+				session.host.baseUrl,
+				'automations.start',
+				{ name: 'leave_ledger_refresh', input: { employment_ids: [employmentId] } },
+				bearerHeaders(session.credential)
+			);
+			assert.ok(rerun.status < 300, JSON.stringify(rerun.value));
+			assert.equal(
+				(
+					await session.query(
+						`select id from leave_entries where leave_account_id = $1 and kind = 'COMMUTED'`,
+						[account2025]
+					)
+				).length,
+				1,
+				'a rerun restates the close instead of duplicating it'
+			);
+			// The line is dated 31 December; under the 21st cutoff that is the January period, and the
+			// January slip prints it as a LEAVE_PAYOUT base line priced at 8 x 2,600 / 26 = 800.
+			const runId = crypto.randomUUID();
+			const created = await postGuestCommand(
+				session.host.baseUrl,
+				'collections.mutate',
+				mutationPush(session.schemaFingerprint, {
+					action: 'mutate',
+					collection: 'payroll_runs',
+					rows: [
+						{ action: 'create', values: { id: runId, company_id: COMPANY_ID, period: '2026-01' } }
+					]
+				}),
+				bearerHeaders(session.credential)
+			);
+			requireAccepted(created.value, 'january run prints the commute payout');
+			const slips = (await session.query(
+				`select base from payslips where payroll_run_id = $1 and employment_id = $2`,
+				[runId, employmentId]
+			)) as ReadonlyArray<{
+				readonly base: ReadonlyArray<{ component_code: string; amount: unknown }>;
+			}>;
+			assert.equal(slips.length, 1, 'the commuted employee is on the January run');
+			const line = slips[0]?.base.find((row) => row.component_code === 'LEAVE_PAYOUT');
+			assert.ok(line != null, `LEAVE_PAYOUT base line: ${JSON.stringify(slips[0]?.base)}`);
+			assert.equal(Number(line.amount), 800);
 
 			const carried = await session.query(
 				`select kind from leave_entries where leave_account_id = $1 and kind = 'CARRY_FORWARD'`,
@@ -141,62 +171,6 @@ test(
 				]
 			);
 			assert.equal(carried.length, 0, 'a commuted year carries nothing forward');
-
-			const pays = await session.query(
-				`select id, employment_id, pay_component_id, amount,
-					to_char(event_date, 'YYYY-MM-DD') as event_date from component_entries
-				 where employment_id = $1`,
-				[employmentId]
-			);
-			assert.equal(pays.length, 1, JSON.stringify(pays));
-			assert.equal(pays[0].pay_component_id, '77777777-7777-4777-8777-777777777777');
-			assert.equal(Number(pays[0].amount), 800);
-			assert.equal(String(pays[0].event_date).slice(0, 10), '2025-12-31');
-
-			const rerun = await postGuestCommand(
-				session.host.baseUrl,
-				'automations.start',
-				{ name: 'leave_ledger_refresh', input: { employment_ids: [employmentId] } },
-				bearerHeaders(session.credential)
-			);
-			assert.ok(rerun.status < 300, JSON.stringify(rerun.value));
-			assert.equal(
-				(
-					await session.query(`select id from component_entries where employment_id = $1`, [
-						employmentId
-					])
-				).length,
-				1,
-				'reruns restate the paying entry instead of duplicating it'
-			);
-
-			const runId = crypto.randomUUID();
-			const created = await postGuestCommand(
-				session.host.baseUrl,
-				'collections.mutate',
-				mutationPush(session.schemaFingerprint, {
-					action: 'mutate',
-					collection: 'payroll_runs',
-					rows: [
-						{
-							action: 'create',
-							values: { id: runId, company_id: COMPANY_ID, period: '2026-01' }
-						}
-					]
-				}),
-				bearerHeaders(session.credential)
-			);
-			requireAccepted(created.value, 'january run captures the commute payout');
-			const adjustments = (await session.query(
-				`select payslip_adjustments.amount from payslip_adjustments
-				 join payslips on payslips.id = payslip_adjustments.payslip_id
-				 where payslips.payroll_run_id = $1 and payslips.employment_id = $2`,
-				[runId, employmentId]
-			)) as ReadonlyArray<{ readonly amount: unknown }>;
-			assert.ok(
-				adjustments.some((row) => Number(row.amount) === 800),
-				`the January slip pays the 800 commute: ${JSON.stringify(adjustments)}`
-			);
 		} finally {
 			await session.stop();
 		}

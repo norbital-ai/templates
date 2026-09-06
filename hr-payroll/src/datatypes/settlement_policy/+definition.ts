@@ -29,19 +29,6 @@ export const settlementPolicyValueSchema = Schema.Struct({
 		Schema.Struct({ defer_to_component_id: Schema.String.check(Schema.isUUID()) })
 	),
 	/**
-	 * A commuted leave balance arrives as an arrears entry on this component — the money half
-	 * of the COMMUTE settlement, raised automatically by the leave reconciler when it posts
-	 * the COMMUTED receipt, priced by the same daily rate, captured by the next draft run.
-	 * The component must take entries and settle as payroll; direction comes from its policy,
-	 * so it must be an earning.
-	 *
-	 * `null` — commutation has nowhere to pay: the reconciler refuses to commute rather
-	 * than post a receipt no payroll can settle.
-	 */
-	commute_pay: Schema.NullOr(
-		Schema.Struct({ pay_to_component_id: Schema.String.check(Schema.isUUID()) })
-	),
-	/**
 	 * An employment that ends between the attendance window's close and the end of the period
 	 * has a tail of days that no later run will ever look at, because there is no later run.
 	 * `SETTLE_IN_FINAL_PERIOD` extends the final run's attendance window to the exit date so

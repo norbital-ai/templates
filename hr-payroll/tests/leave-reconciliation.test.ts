@@ -3,21 +3,21 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { Effect } from 'effect';
 import {
-	accountSettlement,
 	commuteDailyRate,
 	coverageInputs,
 	entitlementEntries,
 	ensureAccount,
 	expireCarry,
-	mergedSettlement,
+	exitRule,
+	yearEndRule,
+	closeLeaveYear,
+	closeOnExit,
 	profileAt,
 	reconcileEmploymentLeave,
 	reconcileTarget,
 	requireStatutoryMappings,
 	resolveStatutoryCoverage,
-	retireDueLeavePlanPredecessors,
-	settleCommutedPayouts,
-	transferCarry
+	retireDueLeavePlanPredecessors
 } from '../src/lib/leave/reconcile.ts';
 import { eventAllocationDays } from '../src/collections/leave_accounts/+hooks.ts';
 import leaveEntryHooks from '../src/collections/leave_entries/+hooks.ts';
@@ -43,7 +43,8 @@ const profile = (id, start, days, transition = 'NEXT_LEAVE_YEAR') => ({
 			per_child: null,
 			max_days: null,
 			transition,
-			settlement: { settlement: 'FORFEIT' }
+			settlement: { settlement: 'FORFEIT' },
+			exit: { exit: 'FORFEIT' }
 		}
 	]
 });
@@ -58,6 +59,7 @@ const type = (
 	statutory_kind: 'ANNUAL',
 	entitlement: { layers: companyDays === 0 ? [] : [{ band_from: 0, days: companyDays }] },
 	accrual,
+	exit_settlement: { exit: 'FORFEIT' },
 	eligibility: []
 });
 
@@ -69,7 +71,10 @@ const account = {
 	starts_on: '2026-01-01',
 	ends_on: '2026-12-31',
 	status: 'OPEN',
-	settlement: { settlement: 'FORFEIT' }
+	settlement: { settlement: 'FORFEIT' },
+	settlement_source: 'COMPANY',
+	exit_settlement: { exit: 'FORFEIT' },
+	exit_settlement_source: 'COMPANY'
 };
 const opening = {
 	id: 'opening',
@@ -165,13 +170,22 @@ function eventAccountApi(profiles, committed = [], pending = []) {
 	};
 }
 
-function reconciliationApi({ asOf, exitDate = null, accounts, entries, requests = [] }) {
+function reconciliationApi({
+	asOf,
+	exitDate = null,
+	exitReason = null,
+	accounts,
+	entries,
+	requests = [],
+	terms = []
+}) {
 	const employmentRow = {
 		id: 'employment',
 		company_id: 'company',
 		employee_id: 'employee',
 		hire_date: '2020-01-01',
 		exit_date: exitDate,
+		exit_reason: exitReason,
 		approval_id: null
 	};
 	const planRow = {
@@ -197,7 +211,7 @@ function reconciliationApi({ asOf, exitDate = null, accounts, entries, requests 
 				employees: {
 					findFirst: () => Effect.succeed({ id: 'employee', gender: null })
 				},
-				employment_terms: { findMany: () => Effect.succeed([]) },
+				employment_terms: { findMany: () => Effect.succeed(terms) },
 				employee_children: { findMany: () => Effect.succeed([]) },
 				leave_plans: { findMany: () => Effect.succeed([planRow]) },
 				leave_types: {
@@ -823,9 +837,7 @@ test('carry expiry is reread before an employment exit settles the account', asy
 			...account,
 			leave_year: 2026,
 			leave_code: 'ANNUAL',
-			leave_type_id: 'type',
-			carry_limit_days: 0,
-			carry_expiry_months: 3
+			leave_type_id: 'type'
 		}
 	];
 	const entries = [
@@ -866,8 +878,7 @@ test('carry expiry is reread before year close transfers the balance', async () 
 		leave_year: 2026,
 		leave_code: 'ANNUAL',
 		leave_type_id: 'type',
-		carry_limit_days: 5,
-		carry_expiry_months: 12
+		settlement: { settlement: 'CARRY', limit_days: 5, expiry_months: 12, coverage: null }
 	};
 	const next = {
 		...account,
@@ -879,8 +890,7 @@ test('carry expiry is reread before year close transfers the balance', async () 
 		leave_year: 2027,
 		leave_code: 'ANNUAL',
 		leave_type_id: 'type',
-		carry_limit_days: 5,
-		carry_expiry_months: 12
+		settlement: { settlement: 'CARRY', limit_days: 5, expiry_months: 12, coverage: null }
 	};
 	const accounts = [previous, next];
 	const entries = [
@@ -909,19 +919,20 @@ test('carry expiry is reread before year close transfers the balance', async () 
 	assert.equal(previous.status, 'CLOSED');
 });
 
-test('a retry closes an account after its carry entries already committed', async () => {
+test('a retry closes an account after its close lines already committed', async () => {
 	const closed = [];
 	const previous = { ...account, id: 'old-account', ends_on: '2025-12-31' };
 	const api = {
 		db: {
 			leave_accounts: { mutate: (rows) => Effect.sync(() => closed.push(...rows)) },
-			leave_entries: { mutate: () => Effect.die('must not duplicate carry') }
+			leave_entries: { mutate: () => Effect.die('must not duplicate the close') }
 		}
 	};
 	assert.equal(
 		await Effect.runPromise(
-			transferCarry({
+			closeLeaveYear({
 				api,
+				employment,
 				previous,
 				next: { ...account, id: 'new-account', starts_on: '2026-01-01' },
 				entries: [{ source_key: 'close:old-account:out' }],
@@ -1160,12 +1171,13 @@ test('a ledger line accepts the no-change restatement a complete-set write carri
 	);
 });
 
-const settledType = (settlement) => ({
+const settledType = (settlement, exit = { exit: 'FORFEIT' }) => ({
 	...type(),
-	accrual: { kind: 'UPFRONT', settlement }
+	accrual: { kind: 'UPFRONT', settlement },
+	exit_settlement: exit
 });
 
-const settledProfile = (settlement) => ({
+const settledProfile = (settlement, exit = { exit: 'FORFEIT' }) => ({
 	...profile('law', '2026-01-01', 8),
 	statutory_leave: [
 		{
@@ -1174,36 +1186,65 @@ const settledProfile = (settlement) => ({
 			per_child: null,
 			max_days: null,
 			transition: 'NEXT_LEAVE_YEAR',
-			settlement
+			settlement,
+			exit
 		}
 	]
 });
 
-test('settlement merges by worker-protective rank: commute beats carry beats forfeit', () => {
-	const forfeit = { settlement: 'FORFEIT' };
-	const carry = { settlement: 'CARRY', limit_days: 5, expiry_months: 3, coverage: null };
-	const commute = { settlement: 'COMMUTE', pay_basis: 'ORDINARY_DIV26' };
-	assert.deepEqual(
-		mergedSettlement(
-			settledProfile(commute),
-			settledType({ settlement: 'CARRY', limit_days: 5, expiry_months: 3, coverage: null }),
-			null
-		),
-		commute
-	);
-	assert.deepEqual(mergedSettlement(settledProfile(carry), settledType(forfeit), null), carry);
-	assert.deepEqual(mergedSettlement(settledProfile(forfeit), settledType(forfeit), null), forfeit);
+const forfeit = { settlement: 'FORFEIT' };
+const carry = (limit_days, expiry_months) => ({
+	settlement: 'CARRY',
+	limit_days,
+	expiry_months,
+	coverage: null
+});
+const commute = { settlement: 'COMMUTE', pay_basis: 'ORDINARY_DIV26' };
+
+test("the statute's year-end kind binds; a company plan cannot change it", () => {
+	assert.deepEqual(yearEndRule(settledProfile(commute), settledType(carry(5, 3)), null), {
+		rule: commute,
+		source: 'STATUTE'
+	});
+	assert.deepEqual(yearEndRule(settledProfile(carry(7, 6)), settledType(commute), null), {
+		rule: carry(7, 6),
+		source: 'STATUTE'
+	});
+	assert.deepEqual(yearEndRule(settledProfile(carry(7, 6)), settledType(forfeit), null), {
+		rule: carry(7, 6),
+		source: 'STATUTE'
+	});
 });
 
-test('two carry floors merge to the wider limit and later expiry, law winning ties', () => {
-	const merged = mergedSettlement(
-		settledProfile({ settlement: 'CARRY', limit_days: null, expiry_months: 12, coverage: null }),
-		settledType({ settlement: 'CARRY', limit_days: 5, expiry_months: 3, coverage: null }),
-		null
-	);
-	assert.equal(merged.settlement, 'CARRY');
-	assert.equal(merged.limit_days, null);
-	assert.equal(merged.expiry_months, 12);
+test('where the statute says FORFEIT or is silent, the company plan decides', () => {
+	assert.deepEqual(yearEndRule(settledProfile(forfeit), settledType(carry(5, 3)), null), {
+		rule: carry(5, 3),
+		source: 'COMPANY'
+	});
+	assert.deepEqual(yearEndRule(settledProfile(forfeit), settledType(commute), null), {
+		rule: commute,
+		source: 'COMPANY'
+	});
+	const silent = { ...settledProfile(forfeit), statutory_leave: [] };
+	assert.deepEqual(yearEndRule(silent, settledType(forfeit), null), {
+		rule: forfeit,
+		source: 'COMPANY'
+	});
+});
+
+test('a company plan may only widen a statutory carry: higher limit, later or no expiry', () => {
+	assert.deepEqual(yearEndRule(settledProfile(carry(7, 6)), settledType(carry(10, 3)), null), {
+		rule: carry(10, 6),
+		source: 'COMPANY'
+	});
+	assert.deepEqual(yearEndRule(settledProfile(carry(7, 6)), settledType(carry(null, 0)), null), {
+		rule: carry(null, 0),
+		source: 'COMPANY'
+	});
+	assert.deepEqual(yearEndRule(settledProfile(carry(7, 6)), settledType(carry(3, 2)), null), {
+		rule: carry(7, 6),
+		source: 'STATUTE'
+	});
 });
 
 test('a banded statutory floor protects only employments carrying its code', () => {
@@ -1213,15 +1254,37 @@ test('a banded statutory floor protects only employments carrying its code', () 
 		expiry_months: 12,
 		coverage: ['SG_PART_IV']
 	};
-	const company = { settlement: 'FORFEIT' };
+	assert.deepEqual(yearEndRule(settledProfile(banded), settledType(forfeit), 'SG_PART_IV'), {
+		rule: banded,
+		source: 'STATUTE'
+	});
+	assert.deepEqual(yearEndRule(settledProfile(banded), settledType(forfeit), null), {
+		rule: forfeit,
+		source: 'COMPANY'
+	});
+	assert.deepEqual(yearEndRule(settledProfile(banded), settledType(forfeit), 'OTHER'), {
+		rule: forfeit,
+		source: 'COMPANY'
+	});
+});
+
+test("the statute's exit payout binds; otherwise the company plan decides", () => {
+	const payOut = { exit: 'PAY_OUT', pay_basis: 'ORDINARY_DIV26', misconduct_forfeits: true };
+	assert.deepEqual(exitRule(settledProfile(forfeit, payOut), settledType(forfeit)), {
+		rule: payOut,
+		source: 'STATUTE'
+	});
+	const companyPayOut = { exit: 'PAY_OUT', pay_basis: 'MONTHLY_DIV30', misconduct_forfeits: false };
+	assert.deepEqual(exitRule(settledProfile(forfeit), settledType(forfeit, companyPayOut)), {
+		rule: companyPayOut,
+		source: 'COMPANY'
+	});
 	assert.deepEqual(
-		mergedSettlement(settledProfile(banded), settledType(company), 'SG_PART_IV'),
-		banded
-	);
-	assert.deepEqual(mergedSettlement(settledProfile(banded), settledType(company), null), company);
-	assert.deepEqual(
-		mergedSettlement(settledProfile(banded), settledType(company), 'OTHER'),
-		company
+		exitRule({ ...settledProfile(forfeit), statutory_leave: [] }, settledType(forfeit)),
+		{
+			rule: { exit: 'FORFEIT' },
+			source: 'COMPANY'
+		}
 	);
 });
 
@@ -1286,7 +1349,6 @@ test('coverage derivation matches the first band and stays silent otherwise', ()
 		null
 	);
 });
-
 test('commutation rates follow the stated divisor and refuse the rest', () => {
 	assert.equal(
 		commuteDailyRate({ pay_frequency: 'MONTHLY', base_salary: { value: 2600 } }, 'ORDINARY_DIV26'),
@@ -1306,179 +1368,208 @@ test('commutation rates follow the stated divisor and refuse the rest', () => {
 		/not stated/
 	);
 });
-
-test('a commuted year posts one cash receipt and never repeats it', async () => {
-	const posted = [];
-	const accountRow = {
-		...account,
-		leave_year: 2025,
-		account_kind: 'YEAR',
-		starts_on: '2025-01-01',
-		ends_on: '2025-12-31',
-		status: 'OPEN',
-		settlement: { settlement: 'COMMUTE', pay_basis: 'ORDINARY_DIV26' }
-	};
-	const entries = [
-		{
-			id: 'opening',
-			kind: 'OPENING_ENTITLEMENT',
-			effective_on: '2025-01-01',
-			days: 8,
-			source_key: 'opening',
-			approval_id: null
-		}
-	];
+const closeHarness = () => {
+	const entries = [];
+	const closed = [];
 	const api = {
-		db: { leave_entries: { mutate: (rows) => Effect.sync(() => posted.push(...rows)) } }
-	};
-	assert.equal(
-		await Effect.runPromise(expireCarry(api, accountRow, entries, '2026-01-15', 100)),
-		1
-	);
-	assert.equal(posted[0].kind, 'COMMUTED');
-	assert.equal(posted[0].days, -8);
-	assert.equal(posted[0].source_key, `commute:${accountRow.id}`);
-	assert.match(posted[0].reason, /800/);
-	entries.push({ ...posted[0], approval_id: null });
-	assert.equal(
-		await Effect.runPromise(expireCarry(api, accountRow, entries, '2026-01-15', 100)),
-		0
-	);
-	assert.equal(posted.length, 1);
-});
-
-test('commutation without a priced rate refuses instead of posting vapor', async () => {
-	const api = { db: { leave_entries: { mutate: () => Effect.succeed(undefined) } } };
-	const accountRow = {
-		...account,
-		account_kind: 'YEAR',
-		ends_on: '2025-12-31',
-		status: 'OPEN',
-		settlement: { settlement: 'COMMUTE', pay_basis: 'ORDINARY_DIV26' }
-	};
-	await assert.rejects(
-		Effect.runPromise(expireCarry(api, accountRow, [], '2026-01-15', null)),
-		/no daily rate/
-	);
-});
-
-const commuteAccount = {
-	...account,
-	id: 'commute-account',
-	account_kind: 'YEAR',
-	leave_code: 'SIL',
-	leave_year: 2025,
-	starts_on: '2025-01-01',
-	ends_on: '2025-12-31',
-	status: 'OPEN',
-	settlement: { settlement: 'COMMUTE', pay_basis: 'ORDINARY_DIV26' }
-};
-
-const commuteReceipt = {
-	id: 'commute-entry',
-	leave_account_id: 'commute-account',
-	kind: 'COMMUTED',
-	effective_on: '2025-12-31',
-	days: -5,
-	source_key: 'commute:commute-account',
-	approval_id: null
-};
-
-const payoutApi = (posted) => ({
-	db: {
-		pay_components: {
-			findFirst: () =>
-				Effect.succeed({
-					id: 'compete',
-					code: 'TRANSPORT',
-					definition: { source: 'ENTRY', settlement: 'PAYROLL' },
-					policy: { kind: 'EARNING' }
-				})
-		},
-		component_entries: {
-			findFirst: () => Effect.succeed(null),
-			mutate: (rows) => Effect.sync(() => posted.push(...rows))
+		db: {
+			leave_entries: { mutate: (rows) => Effect.sync(() => entries.push(...rows)) },
+			leave_accounts: { mutate: (rows) => Effect.sync(() => closed.push(...rows)) }
 		}
-	}
-});
-
-const payoutTerms = [
+	};
+	return { api, entries, closed };
+};
+const monthlyTerms = [
 	{
-		effective_range: { start: '2025-01-01', end: null },
+		effective_range: { start: '2020-01-01', end: null },
 		pay_frequency: 'MONTHLY',
-		base_salary: { value: 2600, currency: 'MYR' },
-		statutory_work_category: 'NON_MANUAL'
+		base_salary: { value: 2600 }
 	}
 ];
-
-test('a commute receipt arrives as an arrears entry on the commute component', async () => {
-	const posted = [];
-	const company = {
-		id: 'company',
-		settlement_policy: { commute_pay: { pay_to_component_id: 'compete' } }
-	};
-	const employment = { id: 'employment' };
-	assert.equal(
-		await Effect.runPromise(
-			settleCommutedPayouts({
-				api: payoutApi(posted),
-				employment,
-				company,
-				account: commuteAccount,
-				entries: [commuteReceipt],
-				terms: payoutTerms
-			})
-		),
-		1
-	);
-	assert.equal(posted.length, 1);
-	assert.equal(posted[0].employment_id, 'employment');
-	assert.equal(posted[0].pay_component_id, 'compete');
-	assert.equal(posted[0].amount, 500);
-	assert.equal(posted[0].event.kind, 'ARREARS');
-	assert.deepEqual(posted[0].event.covers_periods, ['2025-12']);
+const inYear = (year, days, leave_account_id) => ({
+	...opening,
+	leave_account_id,
+	effective_on: `${year}-01-01`,
+	days
+});
+const yearAccount = (id, year, settlement) => ({
+	...account,
+	id,
+	leave_year: year,
+	leave_code: 'ANNUAL',
+	starts_on: `${year}-01-01`,
+	ends_on: `${year}-12-31`,
+	settlement
 });
 
-test('commute payout refuses without a configured component and mistrusts the wrong one', async () => {
-	const employment = { id: 'employment' };
-	const base = {
-		api: payoutApi([]),
-		employment,
-		account: commuteAccount,
-		entries: [commuteReceipt],
-		terms: payoutTerms
-	};
-	await assert.rejects(
+test('a carry year closes once: up to the limit moves as one lot with its expiry, the rest lapses', async () => {
+	const { api, entries, closed } = closeHarness();
+	const previous = yearAccount('y2025', 2025, carry(5, 3));
+	const next = yearAccount('y2026', 2026, carry(5, 3));
+	const ledger = [inYear(2025, 6, 'y2025')];
+	const run = () =>
 		Effect.runPromise(
-			settleCommutedPayouts({ ...base, company: { id: 'company', settlement_policy: null } })
-		),
-		/no commute component/
-	);
-	const wrongApi = {
-		db: {
-			pay_components: {
-				findFirst: () =>
-					Effect.succeed({
-						id: 'basic',
-						code: 'BASIC',
-						definition: { source: 'SCHEDULE', settlement: 'PAYROLL' },
-						policy: { kind: 'EARNING' }
-					})
-			},
-			component_entries: { findFirst: () => Effect.succeed(null) }
-		}
-	};
-	await assert.rejects(
-		Effect.runPromise(
-			settleCommutedPayouts({
-				...base,
-				api: wrongApi,
-				company: {
-					id: 'company',
-					settlement_policy: { commute_pay: { pay_to_component_id: 'basic' } }
-				}
+			closeLeaveYear({
+				api,
+				employment,
+				previous,
+				next,
+				entries: ledger,
+				pending: [],
+				asOf: '2026-01-02'
 			})
-		),
-		/cannot carry a commuted leave payout/
+		);
+	assert.equal(await run(), 3);
+	assert.deepEqual(
+		entries.map((entry) => [
+			entry.leave_account_id,
+			entry.kind,
+			entry.days,
+			entry.source_key,
+			entry.expires_on ?? null
+		]),
+		[
+			['y2025', 'CARRY_TRANSFER_OUT', -5, 'close:y2025:out', null],
+			['y2026', 'CARRY_FORWARD', 5, 'carry:y2025', '2026-03-31'],
+			['y2025', 'EXPIRED', -1, 'close:y2025:forfeit', null]
+		]
 	);
+	assert.deepEqual(closed, [{ id: 'y2025', status: 'CLOSED' }]);
+	// Rerun against the ledger that now holds the close: nothing doubles, the close is restated.
+	ledger.push(...entries);
+	assert.equal(await run(), 0);
+	assert.equal(entries.length, 3);
+});
+
+test('a whole-balance carry with no expiry carries everything and never expires', async () => {
+	const { api, entries } = closeHarness();
+	await Effect.runPromise(
+		closeLeaveYear({
+			api,
+			employment,
+			previous: yearAccount('y2025', 2025, carry(null, 0)),
+			next: yearAccount('y2026', 2026, carry(null, 0)),
+			entries: [inYear(2025, 9, 'y2025')],
+			pending: [],
+			asOf: '2026-01-02'
+		})
+	);
+	assert.deepEqual(
+		entries.map((entry) => [entry.kind, entry.days, entry.expires_on ?? null]),
+		[
+			['CARRY_TRANSFER_OUT', -9, null],
+			['CARRY_FORWARD', 9, null]
+		]
+	);
+});
+
+test('a commute year closes into one COMMUTED line; payroll prices it later', async () => {
+	const { api, entries, closed } = closeHarness();
+	await Effect.runPromise(
+		closeLeaveYear({
+			api,
+			employment,
+			previous: yearAccount('y2025', 2025, commute),
+			next: yearAccount('y2026', 2026, commute),
+			entries: [inYear(2025, 8, 'y2025')],
+			pending: [],
+			asOf: '2026-01-02'
+		})
+	);
+	assert.deepEqual(
+		entries.map((entry) => [entry.kind, entry.days, entry.source_key]),
+		[['COMMUTED', -8, 'close:y2025:commute']]
+	);
+	assert.match(String(entries[0].reason), /8 unused days to cash \(ORDINARY_DIV26\)/);
+	assert.deepEqual(closed, [{ id: 'y2025', status: 'CLOSED' }]);
+});
+
+test('a forfeit year lapses, a carry year with no next account lapses, and a held request holds the close', async () => {
+	const { api, entries, closed } = closeHarness();
+	const close = (settlement, next, pending = []) =>
+		Effect.runPromise(
+			closeLeaveYear({
+				api,
+				employment,
+				previous: yearAccount('y2025', 2025, settlement),
+				next,
+				entries: [inYear(2025, 4, 'y2025')],
+				pending,
+				asOf: '2026-01-02'
+			})
+		);
+	assert.equal(await close(forfeit, yearAccount('y2026', 2026, forfeit)), 1);
+	assert.equal(await close(carry(5, 3), null), 1);
+	assert.deepEqual(
+		entries.map((entry) => [entry.kind, entry.days, entry.reason]),
+		[
+			['EXPIRED', -4, 'Unused leave lapsed at year end'],
+			['EXPIRED', -4, 'No following leave year to carry into']
+		]
+	);
+	assert.equal(closed.length, 2);
+	assert.equal(await close(forfeit, null, [{ approval_id: 'held' }]), 0);
+	assert.equal(entries.length, 2);
+});
+
+test('an exit encashes the balance by the account rule and forfeits it on dismissal for misconduct', async () => {
+	const payOut = { exit: 'PAY_OUT', pay_basis: 'ORDINARY_DIV26', misconduct_forfeits: true };
+	const exiting = (exitReason, rule) => {
+		const { api, entries } = closeHarness();
+		return {
+			entries,
+			run: () =>
+				Effect.runPromise(
+					closeOnExit({
+						api,
+						employment: { ...employment, exit_reason: exitReason },
+						account: { ...account, id: 'y2026', exit_settlement: rule },
+						entries: [{ ...opening, leave_account_id: 'y2026', days: 3 }],
+						exitDate: '2026-04-30'
+					})
+				)
+		};
+	};
+	const resigned = exiting('RESIGNATION', payOut);
+	assert.equal(await resigned.run(), 1);
+	assert.deepEqual(
+		resigned.entries.map((entry) => [entry.kind, entry.days, entry.source_key]),
+		[['ENCASHED', -3, 'exit:y2026']]
+	);
+	const dismissed = exiting('MISCONDUCT', payOut);
+	assert.equal(await dismissed.run(), 1);
+	assert.deepEqual(
+		dismissed.entries.map((entry) => [entry.kind, entry.days, entry.reason]),
+		[['EXPIRED', -3, 'Payout forfeited: dismissal for misconduct']]
+	);
+	const lapsing = exiting('MISCONDUCT', { exit: 'FORFEIT' });
+	await lapsing.run();
+	assert.deepEqual(
+		lapsing.entries.map((entry) => [entry.kind, entry.reason]),
+		[['EXPIRED', 'Unused leave lapsed on employment exit']]
+	);
+});
+
+test('the employment run itself encashes on exit and closes the account through the same path', async () => {
+	const accounts = [
+		{
+			...account,
+			leave_year: 2026,
+			leave_code: 'ANNUAL',
+			leave_type_id: 'type',
+			exit_settlement: { exit: 'PAY_OUT', pay_basis: 'ORDINARY_DIV26', misconduct_forfeits: true },
+			exit_settlement_source: 'STATUTE'
+		}
+	];
+	const entries = [{ ...opening, leave_account_id: account.id, days: 10, approval_id: null }];
+	const { api, asOf } = reconciliationApi({
+		asOf: '2026-05-02',
+		exitDate: '2026-04-30',
+		exitReason: 'RESIGNATION',
+		accounts,
+		entries
+	});
+	await Effect.runPromise(reconcileEmploymentLeave(api, 'employment', asOf));
+	assert.deepEqual(entries.map((entry) => [entry.kind, entry.days]).slice(-1), [['ENCASHED', -10]]);
+	assert.equal(accounts[0].status, 'CLOSED');
 });

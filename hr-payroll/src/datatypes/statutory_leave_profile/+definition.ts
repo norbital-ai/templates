@@ -2,6 +2,7 @@ import { defineCustomType } from '@norbital-ai/bolt/authoring';
 import { Schema } from 'effect';
 import { eligibilityRulesValueSchema } from '../eligibility_rules/+definition.js';
 import { leaveSettlementValueSchema } from '../leave_settlement/+definition.js';
+import { leaveExitSettlementValueSchema } from '../leave_exit_settlement/+definition.js';
 
 /** Leave kinds are stable tenant-defined codes, so new statutory categories need no code release. */
 const authority = Schema.NonEmptyString;
@@ -49,11 +50,13 @@ const statutoryLeaveMemberValueSchema = Schema.Struct({
 	max_days: Schema.NullOr(Schema.Finite.check(Schema.isGreaterThan(0))),
 	transition: Schema.Literals(['FULL_AT_EFFECTIVE_DATE', 'PRORATE_REMAINDER', 'NEXT_LEAVE_YEAR']),
 	/**
-	 * What the leave year does with this kind's unused balance: the statute's own floor, merged
-	 * against company policy by worker-protective rank (COMMUTE > CARRY > FORFEIT), never by
-	 * silently dropping the stronger side.
+	 * What the leave year does with this kind's unused balance. The statute's kind is binding; a
+	 * company plan may only widen the parameters of that same kind (a higher carry limit, a longer
+	 * expiry). Where the statute says FORFEIT the company plan decides.
 	 */
 	settlement: leaveSettlementValueSchema,
+	/** What the unused balance does when the employment ends; binding the same way. */
+	exit: leaveExitSettlementValueSchema,
 	authority
 });
 

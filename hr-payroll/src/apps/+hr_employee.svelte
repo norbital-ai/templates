@@ -29,6 +29,7 @@
 		formatNumeric
 	} from '../lib/ui/display-formatters.js';
 	import { leaveAccountSummary } from '../lib/leave/ledger.js';
+	import { describeExit, describeYearEnd } from '../lib/leave/rules.js';
 	import { measuredLeaveRequestDays } from '../lib/leave/pending.js';
 	import {
 		PAYROLL_TIME_ZONE,
@@ -1196,6 +1197,20 @@
 											? balance.account.event_reference
 											: balance.account.leave_year}
 									</p>
+									{#if balance.account.account_kind !== 'EVENT'}
+										<p class="text-meta" data-leave-rule="year-end">
+											{describeYearEnd(
+												balance.account.settlement,
+												balance.account.settlement_source
+											)}
+										</p>
+										<p class="text-meta" data-leave-rule="exit">
+											{describeExit(
+												balance.account.exit_settlement,
+												balance.account.exit_settlement_source
+											)}
+										</p>
+									{/if}
 								</div>
 								<Stack gap="xs">
 									<dl class="grid grid-cols-5 gap-3">

@@ -414,7 +414,6 @@
 	"component.lock_settled_by_run": "薪资 {period} 已将此记录纳入计算。该薪资仍为草稿时可删除该次运行以解除锁定；若已发薪，请改用调整分录更正。",
 	"component.leave_no_chargeable_days": "请至少选择一个排定工作半天。",
 	"component.leave_pick_range_first": "请在日历上选择休假日期。",
-	"component.encashed_on_exit": "离职时折算现金",
 	"component.certificate_required_after_days": "超过天数后需证明",
 	"component.who_may_take_it": "谁可享受",
 	"component.entitlement_matrix": "权利矩阵",
@@ -1149,5 +1148,6 @@
 	"component.leave_certificate_required": "请附上证明：本次申请超过该假期类型的证明要求天数。",
 	"app.hr_employee.leave_available": "扣除待审批后可用",
 	"renderer.leave_accrual.select_settlement": "选择年终结算方式",
-	"renderer.leave_accrual.select_pay_basis": "选择日工资基数"
+	"renderer.leave_accrual.select_pay_basis": "选择日工资基数",
+	"component.exit_settlement": "离职时"
 }

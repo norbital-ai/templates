@@ -11,20 +11,34 @@
 				{
 					"statutory_contribution_id": "aaaaaaaa-dddd-4eee-8fff-aaaaaaaaaaa1",
 					"authority": "Public fixture — basic wage is chargeable",
-					"treatment": { "kind": "INCLUDE" },
-					"effective_range": { "start": "2020-01-01T00:00:00.000Z", "end": null }
+					"treatment": {
+						"kind": "INCLUDE"
+					},
+					"effective_range": {
+						"start": "2020-01-01T00:00:00.000Z",
+						"end": null
+					}
 				},
 				{
 					"statutory_contribution_id": "aaaaaaaa-dddd-4eee-8fff-aaaaaaaaaaa3",
 					"authority": "Public fixture — basic wage is chargeable on the non-citizen scheme",
-					"treatment": { "kind": "INCLUDE" },
-					"effective_range": { "start": "2020-01-01T00:00:00.000Z", "end": null }
+					"treatment": {
+						"kind": "INCLUDE"
+					},
+					"effective_range": {
+						"start": "2020-01-01T00:00:00.000Z",
+						"end": null
+					}
 				}
 			]
 		},
 		"sequence": 10,
 		"eligibility": [],
-		"definition": { "source": "SCHEDULE", "unit": "MONEY", "reducible": false }
+		"definition": {
+			"source": "SCHEDULE",
+			"unit": "MONEY",
+			"reducible": false
+		}
 	},
 	{
 		"id": "77777777-7777-4777-8777-777777777777",
@@ -38,14 +52,24 @@
 				{
 					"statutory_contribution_id": "aaaaaaaa-dddd-4eee-8fff-aaaaaaaaaaa1",
 					"authority": "Public fixture — transport allowance is chargeable",
-					"treatment": { "kind": "INCLUDE" },
-					"effective_range": { "start": "2020-01-01T00:00:00.000Z", "end": null }
+					"treatment": {
+						"kind": "INCLUDE"
+					},
+					"effective_range": {
+						"start": "2020-01-01T00:00:00.000Z",
+						"end": null
+					}
 				},
 				{
 					"statutory_contribution_id": "aaaaaaaa-dddd-4eee-8fff-aaaaaaaaaaa3",
 					"authority": "Public fixture — transport allowance is chargeable on the non-citizen scheme",
-					"treatment": { "kind": "INCLUDE" },
-					"effective_range": { "start": "2020-01-01T00:00:00.000Z", "end": null }
+					"treatment": {
+						"kind": "INCLUDE"
+					},
+					"effective_range": {
+						"start": "2020-01-01T00:00:00.000Z",
+						"end": null
+					}
 				}
 			]
 		},
@@ -57,6 +81,46 @@
 			"evidence": "NONE",
 			"cap": null,
 			"settlement": "PAYROLL"
+		}
+	},
+	{
+		"company_id": "11111111-1111-4111-8111-111111111111",
+		"statutory_profile_id": "22222222-2222-4222-8222-222222222222",
+		"sequence": 60,
+		"id": "74ca3234-f670-59e9-81fe-0afec0c255cb",
+		"code": "LEAVE_PAYOUT",
+		"definition": {
+			"source": "LEAVE_PAYOUT",
+			"unit": "MONEY"
+		},
+		"eligibility": [],
+		"policy": {
+			"kind": "EARNING",
+			"settlement": "ADD",
+			"statutory_treatments": [
+				{
+					"statutory_contribution_id": "aaaaaaaa-dddd-4eee-8fff-aaaaaaaaaaa1",
+					"authority": "Public fixture — basic wage is chargeable",
+					"treatment": {
+						"kind": "INCLUDE"
+					},
+					"effective_range": {
+						"start": "2020-01-01T00:00:00.000Z",
+						"end": null
+					}
+				},
+				{
+					"statutory_contribution_id": "aaaaaaaa-dddd-4eee-8fff-aaaaaaaaaaa3",
+					"authority": "Public fixture — basic wage is chargeable on the non-citizen scheme",
+					"treatment": {
+						"kind": "INCLUDE"
+					},
+					"effective_range": {
+						"start": "2020-01-01T00:00:00.000Z",
+						"end": null
+					}
+				}
+			]
 		}
 	}
 ]

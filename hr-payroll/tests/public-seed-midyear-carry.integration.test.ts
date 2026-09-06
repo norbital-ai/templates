@@ -132,6 +132,7 @@ test(
 								expiry_months: 12,
 								coverage: null
 							},
+							exit: { exit: 'FORFEIT' },
 							authority: 'Public fixture — July revision doubles the annual floor.'
 						},
 						{
@@ -141,6 +142,7 @@ test(
 							max_days: null,
 							transition: 'NEXT_LEAVE_YEAR',
 							settlement: { settlement: 'FORFEIT' },
+							exit: { exit: 'FORFEIT' },
 							authority: 'Public fixture — not a sealed statutory table.'
 						},
 						{
@@ -159,6 +161,7 @@ test(
 							max_days: null,
 							transition: 'NEXT_LEAVE_YEAR',
 							settlement: { settlement: 'FORFEIT' },
+							exit: { exit: 'FORFEIT' },
 							authority: 'Public fixture — qualifying-event workflow test only.'
 						}
 					],

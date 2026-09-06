@@ -414,7 +414,6 @@
 	"component.lock_settled_by_run": "Payroll {period} has already taken this record into account. Delete that run to release it while it is still a draft, or correct it with an adjustment entry once it has been paid.",
 	"component.leave_no_chargeable_days": "Select at least one scheduled work half-day.",
 	"component.leave_pick_range_first": "Pick the leave days on the calendar.",
-	"component.encashed_on_exit": "Encashed on exit",
 	"component.certificate_required_after_days": "Certificate required after (days)",
 	"component.who_may_take_it": "Who may take it",
 	"component.entitlement_matrix": "Entitlement matrix",
@@ -1149,5 +1148,6 @@
 	"component.leave_certificate_required": "Attach a certificate: this request exceeds the leave type’s certificate threshold.",
 	"app.hr_employee.leave_available": "Available after pending",
 	"renderer.leave_accrual.select_settlement": "Select a year-end settlement",
-	"renderer.leave_accrual.select_pay_basis": "Select a daily-rate basis"
+	"renderer.leave_accrual.select_pay_basis": "Select a daily-rate basis",
+	"component.exit_settlement": "Unused balance on exit"
 }

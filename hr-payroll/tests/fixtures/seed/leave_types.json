@@ -7,7 +7,6 @@
 		"name": "Annual leave",
 		"statutory_kind": "ANNUAL",
 		"eligibility": [],
-		"encash_on_exit": false,
 		"accrual": {
 			"kind": "UPFRONT",
 			"settlement": {
@@ -17,8 +16,15 @@
 				"coverage": null
 			}
 		},
-		"entitlement": { "layers": [] },
-		"payroll_effect": { "kind": "PAID" }
+		"entitlement": {
+			"layers": []
+		},
+		"payroll_effect": {
+			"kind": "PAID"
+		},
+		"exit_settlement": {
+			"exit": "FORFEIT"
+		}
 	},
 	{
 		"id": "ffffffff-ffff-4fff-8fff-fffffffffff5",
@@ -28,10 +34,21 @@
 		"name": "Hospitalization leave",
 		"statutory_kind": "HOSPITALIZATION",
 		"eligibility": [],
-		"encash_on_exit": false,
-		"accrual": { "kind": "UPFRONT", "settlement": { "settlement": "FORFEIT" } },
-		"entitlement": { "layers": [] },
-		"payroll_effect": { "kind": "PAID" }
+		"accrual": {
+			"kind": "UPFRONT",
+			"settlement": {
+				"settlement": "FORFEIT"
+			}
+		},
+		"entitlement": {
+			"layers": []
+		},
+		"payroll_effect": {
+			"kind": "PAID"
+		},
+		"exit_settlement": {
+			"exit": "FORFEIT"
+		}
 	},
 	{
 		"id": "ffffffff-ffff-4fff-8fff-fffffffffff4",
@@ -44,9 +61,20 @@
 		"event_unit": "WEEKS",
 		"event_window_months": 12,
 		"eligibility": [],
-		"encash_on_exit": false,
-		"accrual": { "kind": "UPFRONT", "settlement": { "settlement": "FORFEIT" } },
-		"entitlement": { "layers": [] },
-		"payroll_effect": { "kind": "PAID" }
+		"accrual": {
+			"kind": "UPFRONT",
+			"settlement": {
+				"settlement": "FORFEIT"
+			}
+		},
+		"entitlement": {
+			"layers": []
+		},
+		"payroll_effect": {
+			"kind": "PAID"
+		},
+		"exit_settlement": {
+			"exit": "FORFEIT"
+		}
 	}
 ]
