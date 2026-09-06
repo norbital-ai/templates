@@ -12,7 +12,7 @@ import { isEligible } from '../../collections/payroll_runs/lib/eligibility.js';
 import { roundHalfDay } from '../../collections/payroll_runs/lib/rounding.js';
 import { dateKey } from '../iso-day.js';
 import { awardedLeaveDays, leaveAccountBalance } from './ledger.js';
-import { leaveAccountIdFor, leaveEntryIdFor, requestSourceKey } from './identity.js';
+import { leaveAccountIdFor, leaveEntryIdFor, requestSourceKey, stableUuid } from './identity.js';
 import type { LeaveSettlement } from '../../datatypes/leave_settlement/+definition.js';
 
 const FORFEIT_SETTLEMENT = { settlement: 'FORFEIT' } as const satisfies LeaveSettlement;
@@ -25,6 +25,7 @@ type LeavePlan = WorkspaceRow<'leave_plans'>;
 type LeaveType = WorkspaceRow<'leave_types'>;
 type Jurisdiction = WorkspaceRow<'jurisdictions'>;
 type Child = WorkspaceRow<'employee_children'>;
+type EmploymentTerm = WorkspaceRow<'employment_terms'>;
 type Account = WorkspaceRow<'leave_accounts'>;
 type Entry = WorkspaceRow<'leave_entries'>;
 type Transition = 'FULL_AT_EFFECTIVE_DATE' | 'PRORATE_REMAINDER' | 'NEXT_LEAVE_YEAR';
@@ -748,6 +749,10 @@ export function expireCarry(
 				const cash = Math.round(balance * commuteDailyRate * 100) / 100;
 				yield* api.db.leave_entries.mutate([
 					{
+						id: leaveEntryIdFor({
+							leave_account_id: account.id,
+							source_key: `commute:${account.id}`
+						}),
 						leave_account_id: account.id,
 						kind: 'COMMUTED',
 						effective_on: dateKey(account.ends_on),
@@ -898,6 +903,87 @@ export function transferCarry(options: {
 		if (movements.length > 0) yield* options.api.db.leave_entries.mutate(movements);
 		yield* options.api.db.leave_accounts.mutate([{ id: options.previous.id, status: 'CLOSED' }]);
 		return movements.length;
+	});
+}
+
+/**
+ * The money half of a commutation: every COMMUTED receipt without its paying entry arrives
+ * as an arrears entry on the company's commute component, priced by the same daily rate the
+ * receipt states, in the same invocation that posted it. The paying entry's id names the
+ * receipt, so reruns restate instead of duplicating; the next draft run captures it like any
+ * arrears. A company with nowhere to pay refuses loudly — a receipt no payroll can settle is
+ * a strand, never a silent balance.
+ */
+export function settleCommutedPayouts(options: {
+	readonly api: Api;
+	readonly employment: Employment;
+	readonly company: { readonly id: string; readonly settlement_policy?: unknown };
+	readonly account: Account;
+	readonly entries: readonly Entry[];
+	readonly terms: readonly EmploymentTerm[];
+}): Effect.Effect<number> {
+	return Effect.gen(function* () {
+		const commuted = options.entries.filter((entry) => entry.kind === 'COMMUTED');
+		if (commuted.length === 0) return 0;
+		const componentId = (
+			options.company.settlement_policy as {
+				commute_pay?: { pay_to_component_id?: string };
+			} | null
+		)?.commute_pay?.pay_to_component_id;
+		if (componentId == null)
+			refuse(
+				`Leave account ${options.account.id} commuted to cash but the company names no commute component. Configure settlement_policy.commute_pay before reconciliation.`
+			);
+		const component = yield* options.api.db.pay_components.findFirst({
+			where: { id: { eq: componentId } }
+		});
+		if (
+			component == null ||
+			component.definition?.source !== 'ENTRY' ||
+			component.definition?.settlement !== 'PAYROLL' ||
+			(component.policy as { kind?: string } | null)?.kind !== 'EARNING'
+		)
+			refuse(
+				`The commute component ${component?.code ?? componentId} cannot carry a commuted leave payout: it must be a payroll-settled earning entry component.`
+			);
+		let posted = 0;
+		for (const receipt of commuted) {
+			const payId = stableUuid(`commute-pay:${String(receipt.id)}`);
+			const existing = yield* options.api.db.component_entries.findFirst({
+				where: { id: { eq: payId } },
+				columns: { id: true }
+			});
+			if (existing != null) continue;
+			const settlement = accountSettlement(options.account);
+			if (settlement.settlement !== 'COMMUTE')
+				refuse(
+					`Leave account ${options.account.id} holds a commute receipt under a ${settlement.settlement} settlement.`
+				);
+			const term = options.terms.find((row) =>
+				coversDate(row.effective_range, dateKey(receipt.effective_on))
+			);
+			const rate = commuteDailyRate(term, settlement.pay_basis);
+			const days = Math.max(0, -decodeNumber(receipt.days));
+			const cash = Math.round(days * rate * 100) / 100;
+			if (cash <= 0) continue;
+			const effective = dateKey(receipt.effective_on);
+			yield* options.api.db.component_entries.mutate([
+				{
+					id: payId,
+					employment_id: options.employment.id,
+					pay_component_id: component.id,
+					amount: cash,
+					event_date: effective,
+					event: {
+						kind: 'ARREARS',
+						covers_periods: [effective.slice(0, 7)],
+						reason: `Commuted ${options.account.leave_code} ${options.account.leave_year}: ${days} days at ${rate}/day`
+					}
+				}
+			]);
+			posted += 1;
+		}
+		return posted;
 	});
 }
 
@@ -1324,6 +1410,16 @@ export function reconcileEmploymentLeave(api: Api, employmentId: string, asOf: s
 					limit: LIMIT
 				});
 				posted += yield* transferCarry({ api, previous: account, next, entries, pending, asOf });
+			}
+			if (entries.some((entry) => entry.kind === 'COMMUTED')) {
+				posted += yield* settleCommutedPayouts({
+					api,
+					employment,
+					company,
+					account,
+					entries,
+					terms
+				});
 			}
 		}
 		return { accounts_created: created, entries_posted: posted };

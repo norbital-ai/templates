@@ -83,7 +83,7 @@ function assertReferences(
 ): Effect.Effect<void, never, never> {
 	return Effect.gen(function* () {
 		if (policy == null) return;
-		const { late_joiner_arrears, extended_unpaid_leave } = policy;
+		const { late_joiner_arrears, commute_pay, extended_unpaid_leave } = policy;
 
 		const componentId = late_joiner_arrears?.defer_to_component_id;
 		if (componentId != null) {
@@ -99,6 +99,28 @@ function assertReferences(
 					`Pay component ${component.code} is measured from ${String(component.definition?.source)}, ` +
 						'so no entry can be written against it. A deferred joining period arrives as an arrears ' +
 						'entry, which only an ENTRY component can carry.'
+				);
+		}
+
+		const commuteComponentId = commute_pay?.pay_to_component_id;
+		if (commuteComponentId != null) {
+			const component = yield* api.db.pay_components.findFirst({
+				where: { id: { eq: commuteComponentId } }
+			});
+			if (component == null)
+				refuse(
+					`settlement_policy.commute_pay.pay_to_component_id ${commuteComponentId} is not a pay component.`
+				);
+			else if (
+				component.definition?.source !== 'ENTRY' ||
+				component.definition?.settlement !== 'PAYROLL'
+			)
+				refuse(
+					`Pay component ${component.code} is not a payroll-settled entry, so a commuted leave balance cannot arrive on it.`
+				);
+			else if (component.policy?.kind !== 'EARNING')
+				refuse(
+					`Pay component ${component.code} is a ${String(component.policy?.kind)}, so a commuted leave payout cannot arrive on it.`
 				);
 		}
 
