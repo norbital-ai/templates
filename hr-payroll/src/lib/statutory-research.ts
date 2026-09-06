@@ -65,6 +65,68 @@ const statutoryPageText = (html: string): string =>
 		.replace(/\s+/g, ' ')
 		.trim();
 
+/** Words that mark a sentence as statutory payroll material rather than navigation or news. */
+const STATUTORY_CUES =
+	/\b(contribution|contributions|rate|rates|ceiling|cap|wage|wages|salary|leave|entitle|entitlement|employer|employee|percent|per cent|effective|w\.e\.f|from 1|monthly|annual|deduct|levy|premium|insured|threshold|minimum|maximum|statutory|act|regulation|amend|allowance|overtime|holiday|maternity|paternity|parental|childcare|sick)\b|\d+(?:\.\d+)?\s?%|(?:S\$|RM|NT\$|Rp|₱|₫|\$)\s?\d/i;
+
+/**
+ * The part of a retrieved page worth a model's attention, inside a fixed budget.
+ *
+ * Official pages are mostly navigation, banners and unrelated news; a 171 KB ministry page carried
+ * a few kilobytes of contribution tables. Sending the whole page cost the Taiwan research run more
+ * than the provider bound allowed. Sentences carrying statutory cues (rates, ceilings, effective
+ * dates, leave, currency amounts) are kept in page order until the budget is spent; when a page has
+ * no cued sentence at all its head is kept so the model still sees what the page is. Verification
+ * of quotes still runs against the full page text, never against this view.
+ */
+export const focusStatutoryText = (text: string, budget: number): string => {
+	if (text.length <= budget) return text;
+	const sentences = text.split(/(?<=[.!?。])\s+|\s{2,}/).map((sentence) => sentence.trim());
+	const kept: string[] = [];
+	let used = 0;
+	for (const sentence of sentences) {
+		if (sentence.length === 0 || !STATUTORY_CUES.test(sentence)) continue;
+		const clipped = sentence.length > 600 ? `${sentence.slice(0, 600)}…` : sentence;
+		if (used + clipped.length + 1 > budget) break;
+		kept.push(clipped);
+		used += clipped.length + 1;
+	}
+	if (kept.length === 0) return `${text.slice(0, budget)}…`;
+	return `${kept.join(' ')} [focused: ${kept.length} statutory sentences of a ${text.length}-character page]`;
+};
+
+export type ResearchPage = Readonly<{
+	url: string;
+	requested_url: string;
+	text: string;
+	links: readonly string[];
+	sha256: string;
+	retrieved_at: string;
+}>;
+
+/**
+ * What the research prompt carries per page: focused text and only the links a proposal may
+ * name (allowed official origins, first `maxLinks`). The full page and link list stay on the
+ * receipt for quote and proposal verification.
+ */
+export const researchPromptPages = (
+	pages: readonly ResearchPage[],
+	officialUrl: (url: string) => unknown,
+	limits: Readonly<{ perPageChars: number; totalChars: number; maxLinks: number }> = {
+		perPageChars: 12_000,
+		totalChars: 36_000,
+		maxLinks: 40
+	}
+): ReadonlyArray<Readonly<{ url: string; text: string; links: readonly string[] }>> => {
+	const share = Math.max(2_000, Math.floor(limits.totalChars / Math.max(1, pages.length)));
+	const budget = Math.min(limits.perPageChars, share);
+	return pages.map((page) => ({
+		url: page.url,
+		text: focusStatutoryText(page.text, budget),
+		links: page.links.filter((link) => officialUrl(link) != null).slice(0, limits.maxLinks)
+	}));
+};
+
 export const fetchStatutoryPages = (
 	api: AutomationApi,
 	profile: { code: string; research_urls?: readonly string[] | null },
