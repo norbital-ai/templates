@@ -9,12 +9,10 @@ import {
 	type PreparedRun
 } from './lib/engine.js';
 import {
-	cumulativePayroll,
+	storedCumulativePayroll,
 	supplementalPayroll,
-	payrollInputFacts,
 	corePayrollInputHash
 } from './lib/supplemental.js';
-import { configurationSnapshot } from './lib/configuration.js';
 import { payrollRunPrecheck } from './lib/precheck.js';
 import { describeIssues } from './lib/validate.js';
 
@@ -49,7 +47,7 @@ const DERIVED_COLUMNS = [
 	'company_id',
 	'period',
 	'configuration_hash',
-	'configuration_snapshot',
+	'core_input_hash',
 	'statutory_snapshot_id',
 	'calculation_version',
 	'pay_date',
@@ -72,15 +70,7 @@ type PreparedRuns = ReadonlyMap<string, PreparedRun>;
  */
 const derivedColumns = (prepared: PreparedRun) => ({
 	configuration_hash: prepared.configuration.hash,
-	configuration_snapshot: {
-		kind: 'CAPTURED' as const,
-		configuration_hash: prepared.configuration.hash,
-		configuration: {
-			...configurationSnapshot(prepared.configuration, prepared.period),
-			input_facts: payrollInputFacts(prepared),
-			core_input_hash: corePayrollInputHash(prepared)
-		}
-	},
+	core_input_hash: corePayrollInputHash(prepared),
 	statutory_snapshot_id: prepared.configuration.jurisdiction.id,
 	calculation_version: CALCULATION_VERSION,
 	pay_date: prepared.window.payDate,
@@ -101,13 +91,6 @@ const buildGraph = (prepared: PreparedRun, baseline?: unknown) =>
 		);
 		return {
 			...derivedColumns(prepared),
-			configuration_snapshot: {
-				...derivedColumns(prepared).configuration_snapshot,
-				configuration: {
-					...derivedColumns(prepared).configuration_snapshot.configuration,
-					cumulative_payslips: cumulativePayroll(built.payslip_payroll_run)
-				}
-			},
 			payslip_payroll_run:
 				baseline === undefined
 					? built.payslip_payroll_run
@@ -239,19 +222,15 @@ export default {
 							);
 						if (runKind === 'AD_HOC' && previous == null)
 							refuse('An ad hoc payroll needs a paid regular payroll in the same month.');
-						if (
-							previous != null &&
-							previous.configuration_snapshot.configuration.cumulative_payslips == null
-						)
+						if (previous != null && previous.core_input_hash == null)
 							refuse(
-								'This paid payroll predates cumulative snapshots. Record adjustments in a later regular payroll.'
+								'This paid payroll predates input fingerprints. Record adjustments in a later regular payroll.'
 							);
 						if (
 							previous != null &&
 							(previous.configuration_hash !== facts.configuration.hash ||
 								previous.calculation_version !== CALCULATION_VERSION ||
-								previous.configuration_snapshot.configuration.core_input_hash !==
-									corePayrollInputHash(facts))
+								previous.core_input_hash !== corePayrollInputHash(facts))
 						)
 							refuse(
 								'The paid payroll inputs or calculation version changed. An ad hoc run may only add monetary entries; record other corrections in a later regular payroll.'
@@ -262,15 +241,30 @@ export default {
 							window: facts.window
 						});
 						if (blocking.length > 0) refuse(describeIssues(blocking));
+						// The paid month's cumulative baseline is read back from its payslips, never from a
+						// copy on the run: the stored amounts are the settled facts.
+						const baseline =
+							previous == null
+								? undefined
+								: storedCumulativePayroll(
+										yield* api.db.payslips.findMany({
+											where: { payroll_run_id: { eq: previous.id } },
+											with: {
+												payslip_adjustment_payslip: true,
+												payslip_work_day_input_payslip: true,
+												payslip_component_entry_input_payslip: true,
+												payslip_leave_request_input_payslip: true,
+												payslip_loan_repayment_input_payslip: true
+											},
+											limit: 10_000
+										})
+									);
 						return {
 							...input,
 							lifecycle: 'DRAFT' as const,
 							run_kind: runKind,
 							sequence: previous == null ? 0 : previous.sequence + 1,
-							...(yield* buildGraph(
-								facts,
-								previous?.configuration_snapshot.configuration.cumulative_payslips
-							))
+							...(yield* buildGraph(facts, baseline))
 						};
 					})
 			}

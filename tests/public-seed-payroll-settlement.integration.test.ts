@@ -115,7 +115,8 @@ test(
 			);
 			const [stored] = await session.query('select * from payroll_runs where id = $1', [runId]);
 			assert.equal(stored.lifecycle, 'PAID');
-			assert.deepEqual(stored.configuration_snapshot, run.configuration_snapshot);
+			assert.equal(stored.core_input_hash, run.core_input_hash);
+			assert.equal(typeof stored.core_input_hash, 'string');
 			const removed = await command(
 				{ action: 'delete', collection: 'payroll_runs', ids: [runId] },
 				[
