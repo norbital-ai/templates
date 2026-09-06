@@ -931,22 +931,43 @@ export const runStatutoryProfileDrift = (
 					changes_to_review: []
 				};
 			} else if (research == null) {
+				/**
+				 * One child run per governing profile, several at a time. Each child is its own
+				 * durable run with its own receipt; they share nothing but the parent id. Research is
+				 * provider-bound (a few tool turns of ~15 s each), so running them one after another
+				 * put seven profiles past the five-minute invocation budget; four abreast keeps the
+				 * whole pass around two minutes while staying well under the provider's rate limits.
+				 */
+				const RESEARCH_CONCURRENCY = 4;
+				let researched = 0;
+				const outcomes = yield* Effect.forEach(
+					governingProfiles,
+					(profile) =>
+						Effect.gen(function* () {
+							const outcome = yield* Effect.result(
+								api.automations.run('statutory_profile_research', {
+									profile_id: profile.id,
+									parent_log_id: runLog.id
+								})
+							);
+							const child = yield* api.db.statutory_profile_drift_logs.findFirst({
+								where: {
+									parent_log_id: { eq: runLog.id },
+									statutory_profile_id: { eq: profile.id }
+								},
+								orderBy: { checked_at: 'desc' }
+							});
+							researched += 1;
+							yield* api.progress({
+								progress: 0.6 + (researched / governingProfiles.length) * 0.25,
+								text: `Researched ${profile.code} in its own run (${researched}/${governingProfiles.length})`
+							});
+							return { profile, outcome, child };
+						}),
+					{ concurrency: RESEARCH_CONCURRENCY }
+				);
 				const receipts: Array<Readonly<{ code: string; report: StatutoryResearchReport }>> = [];
-				for (const [index, profile] of governingProfiles.entries()) {
-					yield* api.progress({
-						progress: 0.6 + (index / governingProfiles.length) * 0.25,
-						text: `Researching ${profile.code} in its own run (${index + 1}/${governingProfiles.length})`
-					});
-					const outcome = yield* Effect.result(
-						api.automations.run('statutory_profile_research', {
-							profile_id: profile.id,
-							parent_log_id: runLog.id
-						})
-					);
-					const child = yield* api.db.statutory_profile_drift_logs.findFirst({
-						where: { parent_log_id: { eq: runLog.id }, statutory_profile_id: { eq: profile.id } },
-						orderBy: { checked_at: 'desc' }
-					});
+				for (const { profile, outcome, child } of outcomes) {
 					if (outcome._tag === 'Failure' || child?.status !== 'SUCCEEDED') {
 						childErrors.push(
 							`${profile.code}: ${child?.error ?? (outcome._tag === 'Failure' ? getErrorMessage(outcome.failure) : 'Research did not produce a completed receipt.')}`
@@ -1064,7 +1085,6 @@ export const runStatutoryProfileDrift = (
 							model: STATUTORY_RESEARCH_MODEL,
 							schema: JurisdictionResearchReportSchema,
 							tools: [researchTool],
-							maxSteps: 6,
 							prompt: repair
 								? `${prompt}\nThe previous receipt failed validation: ${repair}\nResearch again and return a complete corrected receipt.`
 								: prompt
