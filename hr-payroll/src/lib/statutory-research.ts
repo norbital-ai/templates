@@ -1,4 +1,9 @@
-import { type AutomationApi, captureApproval, refuse } from '@norbital-ai/bolt/authoring';
+import {
+	type AutomationApi,
+	type InferenceTool,
+	captureApproval,
+	refuse
+} from '@norbital-ai/bolt/authoring';
 import { sha256Json, sha256Text } from '@norbital-ai/std/reckon';
 import { Clock, Effect, Schema } from 'effect';
 import { prorationBasisValueSchema } from '../datatypes/proration_basis/+definition.js';
@@ -127,6 +132,49 @@ export const researchPromptPages = (
 	}));
 };
 
+/** One official page, fetched through the host reader and reduced to what research verifies against. */
+const fetchStatutoryPage = (
+	api: AutomationApi,
+	url: string,
+	officialUrl: (url: string) => URL | null,
+	retrievedAt: string
+): Effect.Effect<ResearchPage> =>
+	Effect.gen(function* () {
+		if (officialUrl(url) == null)
+			refuse('Statutory research URL must be an allowed official HTTPS page.');
+		const page = yield* api.readUrl(url);
+		if (officialUrl(page.url) == null)
+			refuse('Official source redirected outside the permitted statutory domains.');
+		const text = statutoryPageText(page.body);
+		if (text.length < 40)
+			refuse(`Official page ${page.url} contains no readable statutory material.`);
+		if (text.length > 80_000)
+			refuse(
+				`Official page ${page.url} exceeds the research text limit; use a focused official document.`
+			);
+		const links = [
+			...new Set(
+				[...page.body.matchAll(/\bhref\s*=\s*["']([^"']+)["']/gi)].flatMap((match) => {
+					const href = match[1].replaceAll('&amp;', '&');
+					if (!URL.canParse(href, page.url)) return [];
+					const link = new URL(href, page.url);
+					if (link.protocol !== 'https:' || link.username || link.password || link.port) return [];
+					link.hash = '';
+					return [link.href];
+				})
+			)
+		];
+		return {
+			url: page.url,
+			requested_url: url,
+			text,
+			links,
+			sha256: page.sha256 ?? sha256Text(page.body),
+			retrieved_at: retrievedAt
+		};
+	});
+
+/** The entry pages a jurisdiction's research starts from: its configured URLs plus HR-approved sites. */
 export const fetchStatutoryPages = (
 	api: AutomationApi,
 	profile: { code: string; research_urls?: readonly string[] | null },
@@ -147,45 +195,55 @@ export const fetchStatutoryPages = (
 		const retrievedAt = new Date(yield* Clock.currentTimeMillis).toISOString();
 		return yield* Effect.forEach(
 			urls,
-			(url) =>
-				Effect.gen(function* () {
-					if (officialUrl(url) == null)
-						refuse('Statutory research URL must be an allowed official HTTPS page.');
-					const page = yield* api.readUrl(url);
-					if (officialUrl(page.url) == null)
-						refuse('Official source redirected outside the permitted statutory domains.');
-					const text = statutoryPageText(page.body);
-					if (text.length < 40)
-						refuse(`Official page ${page.url} contains no readable statutory material.`);
-					if (text.length > 80_000)
-						refuse(
-							`Official page ${page.url} exceeds the research text limit; use a focused official document.`
-						);
-					const links = [
-						...new Set(
-							[...page.body.matchAll(/\bhref\s*=\s*["']([^"']+)["']/gi)].flatMap((match) => {
-								const href = match[1].replaceAll('&amp;', '&');
-								if (!URL.canParse(href, page.url)) return [];
-								const link = new URL(href, page.url);
-								if (link.protocol !== 'https:' || link.username || link.password || link.port)
-									return [];
-								link.hash = '';
-								return [link.href];
-							})
-						)
-					];
-					return {
-						url: page.url,
-						requested_url: url,
-						text,
-						links,
-						sha256: page.sha256 ?? sha256Text(page.body),
-						retrieved_at: retrievedAt
-					};
-				}),
+			(url) => fetchStatutoryPage(api, url, officialUrl, retrievedAt),
 			{ concurrency: 2 }
 		);
 	});
+
+/** How many pages one research turn may open beyond its entry pages, and how much of each it sees. */
+const RESEARCH_TOOL_LIMITS = { perPageChars: 12_000, maxLinks: 40, maxPages: 12 } as const;
+
+/**
+ * The tool the research model navigates with: open one allowed official page by exact URL and get
+ * back its statutory sentences and official links. Every page it opens lands in `pages`, so quote
+ * and source verification run against exactly what the model saw — the entry pages and the ones
+ * it chose to follow. A disallowed origin, a redirect off the official domains or an empty page is
+ * a refusal the model reads as a failed tool result and routes around; it never widens the set of
+ * origins a proposal may cite.
+ */
+export const statutoryResearchTool = (
+	api: AutomationApi,
+	officialUrl: (url: string) => URL | null,
+	pages: ResearchPage[]
+): InferenceTool<{ readonly url: string }> => ({
+	name: 'read_official_page',
+	description:
+		'Open one official statutory page by its exact HTTPS URL and return its statutory sentences and the official links it carries. Only allowed official government, regulator or statutory-body origins are fetched; follow a link from an entry page when the contribution table, leave entitlement or effective-date notice you need is on another page.',
+	input: Schema.Struct({ url: Schema.NonEmptyString }),
+	run: ({ url }) =>
+		Effect.gen(function* () {
+			const known = pages.find((page) => page.url === url || page.requested_url === url);
+			if (known === undefined && pages.length >= RESEARCH_TOOL_LIMITS.maxPages)
+				refuse(
+					`This research turn already opened ${RESEARCH_TOOL_LIMITS.maxPages} pages; answer from the pages you have.`
+				);
+			const page =
+				known ??
+				(yield* fetchStatutoryPage(
+					api,
+					url,
+					officialUrl,
+					new Date(yield* Clock.currentTimeMillis).toISOString()
+				));
+			if (known === undefined) pages.push(page);
+			const [view] = researchPromptPages([page], officialUrl, {
+				perPageChars: RESEARCH_TOOL_LIMITS.perPageChars,
+				totalChars: RESEARCH_TOOL_LIMITS.perPageChars,
+				maxLinks: RESEARCH_TOOL_LIMITS.maxLinks
+			});
+			return { url: page.url, text: view?.text ?? page.text, links: [...(view?.links ?? [])] };
+		})
+});
 
 /** The automation proposes a sealed successor; its policy requires HR approval before it governs. */
 export const proposeStatutoryLaw = (

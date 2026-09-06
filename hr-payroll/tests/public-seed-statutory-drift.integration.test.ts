@@ -4,6 +4,8 @@ import { setTimeout as delay } from 'node:timers/promises';
 import { sealedProfileCovering } from '../src/lib/statutory_profile.ts';
 import { success } from '@norbital-ai/bolt-protocol';
 import { makeAiBinding } from '@norbital-ai/bolt-server';
+import { Schema } from 'effect';
+import { Prompt } from 'effect/unstable/ai';
 import { asRecord, bearerHeaders, postGuestCommand } from '@norbital-ai/test-utilities';
 import {
 	JURISDICTION_ID,
@@ -71,8 +73,16 @@ const additionalSource = 'https://statutory.example.org/leave';
 const fixtureQuote =
 	'The approved fixture increases annual leave to twenty days from 1 January 2027.';
 
-const driftAi = (failMy = () => false) =>
-	makeAiBinding({
+const encodeMessage = Schema.encodeSync(Prompt.Message);
+
+/**
+ * The research double answers by turn kind. The first tool turn per jurisdiction opens the entry
+ * page through `read_official_page` (the loop's tool), the next tool turn stops calling tools, and
+ * the closing structured turn returns the recorded report — so the test walks the real tool loop.
+ */
+const driftAi = (failMy = () => false) => {
+	const toolTurns = new Map<string, number>();
+	return makeAiBinding({
 		call: async (_metadata, request) => {
 			if (request._tag !== 'Generate') return testAiCatalog;
 			const prompt = JSON.stringify(request);
@@ -85,6 +95,44 @@ const driftAi = (failMy = () => false) =>
 				code === 'SG'
 					? 'https://www.cpf.gov.sg/employer/employer-obligations/how-much-cpf-contributions-to-pay'
 					: 'https://www.perkeso.gov.my/en/';
+			const observation = {
+				callId: request.callId,
+				provider: 'fixture',
+				model: 'provider/model',
+				operation: 'language' as const,
+				charge: { currency: 'USD', coefficient: '125', scale: 6 },
+				chargeSource: 'provider' as const
+			};
+			if (request.output._tag === 'Message') {
+				const turn = (toolTurns.get(code) ?? 0) + 1;
+				toolTurns.set(code, turn);
+				assert.ok(
+					request.output.tools?.some((tool) => tool.name === 'read_official_page'),
+					'the research turn offers read_official_page'
+				);
+				return {
+					_tag: 'Generated',
+					result: {
+						_tag: 'Message',
+						message: encodeMessage(
+							Prompt.assistantMessage({
+								content:
+									turn === 1
+										? [
+												Prompt.toolCallPart({
+													id: `read-${code}-${turn}`,
+													name: 'read_official_page',
+													params: { url },
+													providerExecuted: false
+												})
+											]
+										: [Prompt.textPart({ text: `Evidence gathered for ${code}.` })]
+							})
+						)
+					},
+					observation
+				};
+			}
 			return {
 				_tag: 'Generated',
 				result: {
@@ -117,17 +165,11 @@ const driftAi = (failMy = () => false) =>
 							: {})
 					}
 				},
-				observation: {
-					callId: 'drift-1',
-					provider: 'fixture',
-					model: 'provider/model',
-					operation: 'language',
-					charge: { currency: 'USD', coefficient: '125', scale: 6 },
-					chargeSource: 'provider'
-				}
+				observation
 			};
 		}
 	});
+};
 
 const driftFindings = (
 	value: unknown
