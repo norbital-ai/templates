@@ -932,14 +932,14 @@ export const runStatutoryProfileDrift = (
 				};
 			} else if (research == null) {
 				/**
-				 * One child run per governing profile, all at once (bounded at eight). Each child is its
-				 * own durable run with its own receipt; they share nothing but the parent id. A child is
-				 * provider-bound — a few tool turns and one long structured closing turn, about two
-				 * minutes in the worst case — and the parent has one five-minute invocation budget for
-				 * the whole pass, so the children must run as a single wave: seven profiles researched
-				 * one after another ran past that budget, and two waves would sit right at its edge.
+				 * One child run per governing profile, two at a time. Each child is its own durable run
+				 * with its own receipt; they share nothing but the parent id. A child is provider-bound
+				 * (a few tool turns and one long structured closing turn, about ninety seconds in the
+				 * worst case) and the parent has one five-minute invocation budget for the whole pass:
+				 * seven profiles one after another ran past it. Two abreast keeps seven profiles inside
+				 * it; more than that met the provider's per-second burst limit on every attempt.
 				 */
-				const RESEARCH_CONCURRENCY = 8;
+				const RESEARCH_CONCURRENCY = 2;
 				let researched = 0;
 				const outcomes = yield* Effect.forEach(
 					governingProfiles,
