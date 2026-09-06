@@ -79,8 +79,9 @@ export function readStatutoryPages<Row extends { readonly id: string }>(
  * in two seconds is served by one upstream that rate-limits and drops such calls under load
  * (2026-09-06: every child failed with the provider's own limit or a decode/transport error). The
  * same model the BCA suspicion review uses answers reliably.
+ * (2026-09-07: owner default is GLM 5.3 Flash everywhere — re-probe long research live on it.)
  */
-export const STATUTORY_RESEARCH_MODEL = 'openrouter/openai/gpt-4.1-mini';
+export const STATUTORY_RESEARCH_MODEL = 'openrouter/z-ai/glm-5.3-flash';
 
 /**
  * The error a cause stands for, never nameless: a squashed interrupt or a bare defect carries no

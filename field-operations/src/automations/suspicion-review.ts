@@ -5,9 +5,10 @@ import type { Api } from './$types.js';
 import { currentDate } from '../lib/clock.js';
 
 // These judgements consume photographs and a strict JSON Schema in the same turn. Keep them on a
-// provider model with native vision + structured-output support.
+// provider model with native vision + structured-output support (2026-09-07: owner default is
+// GLM 5.3 Flash — re-probe photo inference live if vision/structured behaviour changes).
 // Adapter-qualified per the host model registry contract: `<adapter>/<provider-model>`.
-const SUSPICION_REVIEW_MODEL = 'openrouter/openai/gpt-4.1-mini';
+const SUSPICION_REVIEW_MODEL = 'openrouter/z-ai/glm-5.3-flash';
 export const ASSIGNMENT_PAGE_SIZE = 500;
 const MAX_RELATED_ROWS = 5_000;
 export const MAX_INFERENCE_IMAGES = 3;

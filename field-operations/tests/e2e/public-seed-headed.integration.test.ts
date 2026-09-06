@@ -1,7 +1,9 @@
 import { it } from 'vitest';
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import { writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { Schema } from 'effect';
 import { Prompt } from 'effect/unstable/ai';
 import {
@@ -33,6 +35,8 @@ import {
 const EVALUATE_TIMEOUT_MS = 45_000;
 const S4_IDLE_MS = 8_000;
 const HEADED_SYNC_TIMEOUT_MILLIS = 180_000;
+/** Send → first apply frame painted in a headed browser. Loose on purpose: CI runners stall. */
+const FIRST_APPLY_BUDGET_MILLIS = 10_000;
 const HEADED_RUN = isHeadedRun();
 const MUTATED_NAME = 'S2-MUTATED-AMBER';
 const CONTROLLER_SHELL = 'Assign contractor';
@@ -226,6 +230,37 @@ it('workspace conversation streams durable parts, reconnects, and accepts queued
 	const prompts: unknown[] = [];
 	const persistedBoundaries: number[] = [];
 	const encode = Schema.encodeSync(Prompt.Message);
+	// Turn payloads replay from the conversation-stream cassette (file-driven content, test-owned
+	// timing): the gates below choreograph reasoning/queue/steer windows, the file owns every
+	// reasoning text, reply text, and part boundary.
+	const streamCassette = JSON.parse(
+		readFileSync(
+			fileURLToPath(new URL('./assets/conversation-stream.cassette.json', import.meta.url)),
+			'utf8'
+		)
+	) as {
+		turns: ReadonlyArray<{
+			gated?: boolean;
+			steps: ReadonlyArray<{
+				reasoning: string | null;
+				text: string | null;
+				activeParts: ReadonlyArray<number>;
+			}>;
+		}>;
+	};
+	const buildMessage = (step: { reasoning: string | null; text: string | null }) => {
+		if (step.reasoning === null && step.text === null) {
+			throw new Error('conversation-stream cassette: a step needs reasoning, text, or both');
+		}
+		return encode(
+			Prompt.assistantMessage({
+				content: [
+					...(step.reasoning === null ? [] : [Prompt.reasoningPart({ text: step.reasoning })]),
+					...(step.text === null ? [] : [Prompt.textPart({ text: step.text })])
+				]
+			})
+		);
+	};
 	const ai = makeAiBinding({
 		call: async (_metadata, request, _signal, onProgress) => {
 			if (request._tag === 'Catalog')
@@ -240,48 +275,59 @@ it('workspace conversation streams durable parts, reconnects, and accepts queued
 			if (request._tag !== 'Generate') throw new Error('Generate required');
 			prompts.push(request.messages);
 			const number = prompts.length;
-			let message = encode(
-				Prompt.assistantMessage({ content: [Prompt.textPart({ text: `Stream reply ${number}` })] })
-			);
-			if (number === 1) {
+			const turn = streamCassette.turns[number - 1];
+			if (turn === undefined || turn.steps.length === 0) {
+				throw new Error(
+					`conversation-stream cassette exhausted at turn ${number}: extend the asset, not this double`
+				);
+			}
+			let message = buildMessage(turn.steps[turn.steps.length - 1]!);
+			if (turn.gated === true) {
 				assert.equal(typeof onProgress, 'function');
-				const publish = async (
-					sequence: number,
-					reasoning: string,
-					text: string | null,
-					activeParts: number[]
-				) => {
-					message = encode(
-						Prompt.assistantMessage({
-							content: [
-								Prompt.reasoningPart({ text: reasoning }),
-								...(text === null ? [] : [Prompt.textPart({ text })])
-							]
-						})
-					);
+				if (turn.steps.length !== 4) {
+					throw new Error('conversation-stream cassette: the gated turn needs exactly 4 steps');
+				}
+				const publish = async (sequence: number) => {
+					const step = turn.steps[sequence]!;
+					message = buildMessage(step);
 					await onProgress!(
 						Schema.decodeUnknownSync(Schema.Json)({
 							callId: request.callId,
 							sequence,
 							message,
-							activeParts
+							activeParts: step.activeParts
 						})
 					);
 					persistedBoundaries.push(sequence);
 				};
-				await publish(0, '', null, [0]);
+				await publish(0);
 				await reasoningGate.promise;
-				await publish(1, 'Verified the durable inputs.', null, []);
-				await publish(2, 'Verified the durable inputs.', '', [1]);
+				await publish(1);
+				await publish(2);
 				await textGate.promise;
-				await publish(3, 'Verified the durable inputs.', 'Stream reply 1', []);
+				await publish(3);
+			} else {
+				for (const [sequence, step] of turn.steps.entries()) {
+					message = buildMessage(step);
+					if (typeof onProgress === 'function') {
+						await onProgress(
+							Schema.decodeUnknownSync(Schema.Json)({
+								callId: request.callId,
+								sequence,
+								message,
+								activeParts: step.activeParts
+							})
+						);
+						persistedBoundaries.push(sequence);
+					}
+				}
 			}
 			return {
 				_tag: 'Generated',
 				result: { _tag: 'Message', message },
 				observation: {
 					callId: request.callId,
-					provider: 'fixture',
+					provider: 'cassette',
 					model: request.modelId,
 					operation: 'language'
 				}
@@ -298,15 +344,24 @@ it('workspace conversation streams durable parts, reconnects, and accepts queued
 			window.__agentFrames = [];
 			const Native = window.EventSource;
 			window.EventSource = class extends Native {
-				constructor(...args) { super(...args); this.addEventListener('apply', event => window.__agentFrames.push(JSON.parse(event.data))); }
+				constructor(...args) { super(...args); this.addEventListener('apply', event => window.__agentFrames.push({ at: Date.now(), frame: JSON.parse(event.data) })); }
 			};
 		})()`);
 		assert.ok(browser, 'Chromium is required for conversation streaming acceptance.');
 		const url = controllerUrl(gateway.address.port);
 		const page = await browser.openPage(url);
 		await page.click('[data-testid="workspace-agent-trigger"]');
+		const sentAt = Date.now();
 		await send(page, 'Initial conversation request');
 		await waitText(page, 'Reasoning…');
+		const firstFrames = JSON.parse(
+			await page.evaluate('JSON.stringify(window.__agentFrames)')
+		) as ReadonlyArray<{ at: number }>;
+		assert.ok(firstFrames.length >= 1, 'the first apply frame reaches the browser');
+		assert.ok(
+			firstFrames[0]!.at - sentAt <= FIRST_APPLY_BUDGET_MILLIS,
+			`first apply frame took ${firstFrames[0]!.at - sentAt} ms after send (budget ${FIRST_APPLY_BUDGET_MILLIS} ms)`
+		);
 		assert.equal(prompts.length, 1, 'Provider is still held before finishing its reasoning.');
 		await send(page, 'Queued while reasoning');
 		await waitText(page, 'Queued while reasoning');
