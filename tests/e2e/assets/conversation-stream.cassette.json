@@ -1,67 +1,63 @@
 {
-  "meta": {
-    "name": "conversation-stream",
-    "recordedAt": "2026-09-07",
-    "model": "fixture/spec",
-    "purpose": "Payloads for the headed workspace-conversation stream test: gated reasoning/text boundaries for turn 1, single final texts for turns 2-4.",
-    "source": "Extracted from the headed spec, not a live recording \u2014 timing and gates live in the test. A live multi-turn recording with the same step shape replaces this file with no test changes."
-  },
-  "turns": [
-    {
-      "gated": true,
-      "steps": [
-        {
-          "reasoning": "",
-          "text": null,
-          "activeParts": [
-            0
-          ]
-        },
-        {
-          "reasoning": "Verified the durable inputs.",
-          "text": null,
-          "activeParts": []
-        },
-        {
-          "reasoning": "Verified the durable inputs.",
-          "text": "",
-          "activeParts": [
-            1
-          ]
-        },
-        {
-          "reasoning": "Verified the durable inputs.",
-          "text": "Stream reply 1",
-          "activeParts": []
-        }
-      ]
-    },
-    {
-      "steps": [
-        {
-          "reasoning": null,
-          "text": "Stream reply 2",
-          "activeParts": []
-        }
-      ]
-    },
-    {
-      "steps": [
-        {
-          "reasoning": null,
-          "text": "Stream reply 3",
-          "activeParts": []
-        }
-      ]
-    },
-    {
-      "steps": [
-        {
-          "reasoning": null,
-          "text": "Stream reply 4",
-          "activeParts": []
-        }
-      ]
-    }
-  ]
+	"meta": {
+		"name": "conversation-stream",
+		"recordedAt": "2026-09-07",
+		"model": "fixture/spec",
+		"purpose": "Payloads for the headed workspace-conversation stream test: gated reasoning/text boundaries for turn 1, single final texts for turns 2-4.",
+		"source": "Extracted from the headed spec, not a live recording \u2014 timing and gates live in the test. A live multi-turn recording with the same step shape replaces this file with no test changes."
+	},
+	"turns": [
+		{
+			"gated": true,
+			"steps": [
+				{
+					"reasoning": "",
+					"text": null,
+					"activeParts": [0]
+				},
+				{
+					"reasoning": "Verified the durable inputs.",
+					"text": null,
+					"activeParts": []
+				},
+				{
+					"reasoning": "Verified the durable inputs.",
+					"text": "",
+					"activeParts": [1]
+				},
+				{
+					"reasoning": "Verified the durable inputs.",
+					"text": "Stream reply 1",
+					"activeParts": []
+				}
+			]
+		},
+		{
+			"steps": [
+				{
+					"reasoning": null,
+					"text": "Stream reply 2",
+					"activeParts": []
+				}
+			]
+		},
+		{
+			"steps": [
+				{
+					"reasoning": null,
+					"text": "Stream reply 3",
+					"activeParts": []
+				}
+			]
+		},
+		{
+			"steps": [
+				{
+					"reasoning": null,
+					"text": "Stream reply 4",
+					"activeParts": []
+				}
+			]
+		}
+	]
 }
