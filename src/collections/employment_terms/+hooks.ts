@@ -1,3 +1,4 @@
+import { Effect } from 'effect';
 import { refuse } from '@norbital-ai/bolt/authoring';
 import type { Hooks } from './$types.js';
 
@@ -28,6 +29,16 @@ export default {
 					requireEmployment(input.employment_id ?? existing?.employment_id);
 					return input;
 				}
+			},
+			after: {
+				description:
+					"Terms decide eligibility, so the employment's leave entitlements are regenerated once they commit.",
+				handler: ({ record, api }) =>
+					Effect.gen(function* () {
+						yield* api.automations.run('leave_ledger_refresh', {
+							employment_ids: [record.employment_id]
+						});
+					})
 			}
 		}
 	}

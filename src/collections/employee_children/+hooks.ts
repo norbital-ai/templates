@@ -35,6 +35,16 @@ export default {
 						}
 						return input;
 					})
+			},
+			after: {
+				description:
+					"A child fact decides childcare and parental entitlements, so the employment's leave is regenerated once it commits.",
+				handler: ({ record, api }) =>
+					Effect.gen(function* () {
+						yield* api.automations.run('leave_ledger_refresh', {
+							employment_ids: [record.employment_id]
+						});
+					})
 			}
 		}
 	},

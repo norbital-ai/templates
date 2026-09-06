@@ -334,6 +334,10 @@ test(
 				applied.status >= 200 && applied.status < 300,
 				`leave file ${applied.status}: ${JSON.stringify(applied.value)}`
 			);
+			assert.ok(
+				typeof asRecord(applied.value, 'leave file').pendingApproval === 'object',
+				`leave file must be held for approval: ${JSON.stringify(applied.value)}`
+			);
 			const pending = asRecord(
 				asRecord(applied.value, 'leave file').pendingApproval,
 				'leave pendingApproval'

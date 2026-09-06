@@ -12,9 +12,11 @@ import { isEligible } from '../../collections/payroll_runs/lib/eligibility.js';
 import { roundHalfDay } from '../../collections/payroll_runs/lib/rounding.js';
 import { dateKey } from '../iso-day.js';
 import { awardedLeaveDays, leaveAccountBalance } from './ledger.js';
+import { leaveAccountIdFor, leaveEntryIdFor, requestSourceKey } from './identity.js';
 
 const LIMIT = 5_000;
-type Api = AutomationApi;
+/** The leave service needs only the data surface; hooks and automations hand it theirs. */
+type Api = Readonly<{ readonly db: AutomationApi['db'] }>;
 type Employment = WorkspaceRow<'employments'>;
 type LeavePlan = WorkspaceRow<'leave_plans'>;
 type LeaveType = WorkspaceRow<'leave_types'>;
@@ -24,6 +26,7 @@ type Account = WorkspaceRow<'leave_accounts'>;
 type Entry = WorkspaceRow<'leave_entries'>;
 type Transition = 'FULL_AT_EFFECTIVE_DATE' | 'PRORATE_REMAINDER' | 'NEXT_LEAVE_YEAR';
 type NewEntry = {
+	readonly id?: string;
 	readonly leave_account_id: string;
 	readonly kind: Entry['kind'];
 	readonly effective_on: string;
@@ -357,52 +360,6 @@ export function requireStatutoryMappings(profile: Jurisdiction, types: readonly 
 		);
 }
 
-function verifyCompanyStatutoryCoverage(api: Api, companyId: string, asOf: string) {
-	return Effect.gen(function* () {
-		const company = yield* api.db.companies.findFirst({
-			where: { id: { eq: companyId }, approval_id: { isNull: true } }
-		});
-		if (company == null) return;
-		const anchor = yield* api.db.jurisdictions.findFirst({
-			where: { id: { eq: company.jurisdiction_id }, approval_id: { isNull: true } },
-			columns: { code: true }
-		});
-		if (anchor == null) return;
-		const [profiles, plans] = yield* Effect.all([
-			api.db.jurisdictions.findMany({
-				where: {
-					code: { eq: anchor.code },
-					lifecycle: { eq: 'SEALED' },
-					approval_id: { isNull: true }
-				},
-				limit: LIMIT
-			}),
-			api.db.leave_plans.findMany({
-				where: { company_id: { eq: companyId }, approval_id: { isNull: true } },
-				limit: LIMIT
-			})
-		]);
-		requireComplete(profiles, 'statutory profile family');
-		requireComplete(plans, 'company leave plans');
-		const currentYear = leaveYearOf(asOf, decodeNumber(company.leave_year_start_month));
-		const nextYear = leaveYearWindow(
-			currentYear + 1,
-			decodeNumber(company.leave_year_start_month)
-		).start;
-		for (const date of new Set([asOf, nextYear])) {
-			const plan = planAt(plans, date);
-			const profile = profileAt(profiles, anchor.code, date);
-			if (plan == null || profile == null) continue;
-			const types = yield* api.db.leave_types.findMany({
-				where: { leave_plan_id: { eq: plan.id }, company_id: { eq: companyId } },
-				limit: LIMIT
-			});
-			requireComplete(types, 'leave types in one plan');
-			requireStatutoryMappings(profile, types);
-		}
-	});
-}
-
 export function ensureAccount(options: {
 	readonly api: Api;
 	readonly employment: Employment;
@@ -429,7 +386,29 @@ export function ensureAccount(options: {
 				account.leave_year === options.year &&
 				account.leave_code === options.type.code
 		);
-		if (existing != null) return { account: existing, created: false };
+		// An account row whose entitlement was never generated — a seeded identity shell carrying
+		// zero and a zero calculation, with no award on its ledger — is completed here exactly as a
+		// new account would be. Entitlements are derived from the plan and the sealed statutory
+		// profile; a seed only ever says that the account exists.
+		const ungenerated =
+			existing != null &&
+			decodeNumber(existing.entitlement_days) === 0 &&
+			existing.calculation.selected_days === 0;
+		if (existing != null && !ungenerated) return { account: existing, created: false };
+		if (existing != null) {
+			const awards = yield* options.api.db.leave_entries.findMany({
+				where: {
+					leave_account_id: { eq: existing.id },
+					kind: {
+						in: ['OPENING_ENTITLEMENT', 'ACCRUAL', 'STATUTORY_ADJUSTMENT', 'POLICY_ADJUSTMENT']
+					},
+					approval_id: { isNull: true }
+				},
+				columns: { id: true },
+				limit: 1
+			});
+			if (awards.length > 0) return { account: existing, created: false };
+		}
 		const hireDate = dateKey(options.employment.hire_date);
 		const requestedOpening =
 			options.midYearOpening?.effectiveOn ?? options.eligibilityOpeningOn ?? window.start;
@@ -488,8 +467,10 @@ export function ensureAccount(options: {
 				? target.target
 				: scheduledEntries.reduce((total, entry) => total + entry.days, 0);
 		const carry = mergedCarry(options.profile, options.type);
+		if (existing != null && target.target <= 0) return { account: existing, created: false };
 		yield* options.api.db.leave_accounts.mutate([
 			{
+				...(existing == null ? {} : { id: existing.id }),
 				employment_id: options.employment.id,
 				leave_type_id: options.type.id,
 				account_kind: 'YEAR',
@@ -751,6 +732,63 @@ export function transferCarry(options: {
 	});
 }
 
+/**
+ * The ledger line each approved request of this employment takes, on the account the request names
+ * or, when it arrived without one (a seeded fact, an import), on the account its employment, leave
+ * type and start date name by formula. The request's own write posts the same line under the same
+ * id, so whichever write comes first creates it and the other restates it; nothing is charged twice.
+ */
+export function chargeApprovedRequests(
+	api: Api,
+	employment: Employment,
+	accounts: readonly Account[],
+	startMonth: number
+): Effect.Effect<number> {
+	return Effect.gen(function* () {
+		const requests = yield* api.db.leave_requests.findMany({
+			where: { employment_id: { eq: employment.id }, approval_id: { isNull: true } },
+			limit: LIMIT
+		});
+		requireComplete(requests, 'employment leave requests');
+		if (requests.length === 0) return 0;
+		const typeIds = [...new Set(requests.map((request) => request.leave_type_id))];
+		const types = yield* api.db.leave_types.findMany({
+			where: { id: { in: typeIds } },
+			limit: LIMIT
+		});
+		const codeOf = new Map(types.map((type) => [type.id, type.code]));
+		const lines: NewEntry[] = [];
+		for (const request of requests) {
+			const start = dateKey(request.event.range.start.date);
+			const accountId =
+				request.leave_account_id ??
+				leaveAccountIdFor({
+					employment_id: employment.id,
+					leave_code: codeOf.get(request.leave_type_id) ?? '',
+					leave_year: leaveYearOf(start, startMonth)
+				});
+			if (!accounts.some((account) => account.id === accountId)) continue;
+			const sourceKey = requestSourceKey(request.id);
+			const existing = yield* api.db.leave_entries.findFirst({
+				where: { leave_account_id: { eq: accountId }, source_key: { eq: sourceKey } }
+			});
+			if (existing != null) continue;
+			lines.push({
+				id: leaveEntryIdFor({ leave_account_id: accountId, source_key: sourceKey }),
+				leave_account_id: accountId,
+				kind: 'TAKEN',
+				effective_on: start,
+				days: -Math.abs(decodeNumber(request.event.chargeable_days)),
+				reason: 'Approved leave request',
+				source_key: sourceKey,
+				source_request_id: request.id
+			} as NewEntry);
+		}
+		if (lines.length > 0) yield* api.db.leave_entries.mutate(lines);
+		return lines.length;
+	});
+}
+
 export function reconcileEmploymentLeave(api: Api, employmentId: string, asOf: string) {
 	return Effect.gen(function* () {
 		const employment = yield* api.db.employments.findFirst({
@@ -808,7 +846,9 @@ export function reconcileEmploymentLeave(api: Api, employmentId: string, asOf: s
 		let posted = 0;
 		const allAccounts = [...accounts];
 
-		for (const year of [currentYear, currentYear + 1]) {
+		// The previous leave year is opened too: its ledger is what carries into the current year, and
+		// a request dated in it must find its account. Nothing older is ever generated or read.
+		for (const year of [currentYear - 1, currentYear, currentYear + 1]) {
 			const window = leaveYearWindow(year, startMonth);
 			if (dateKey(employment.hire_date) > window.end) continue;
 			if (employment.exit_date != null && dateKey(employment.exit_date) < window.start) continue;
@@ -944,6 +984,8 @@ export function reconcileEmploymentLeave(api: Api, employmentId: string, asOf: s
 			}
 		}
 
+		posted += yield* chargeApprovedRequests(api, employment, allAccounts, startMonth);
+
 		for (const account of allAccounts) {
 			let entries = yield* api.db.leave_entries.findMany({
 				where: { leave_account_id: { eq: account.id }, approval_id: { isNull: true } },
@@ -958,6 +1000,30 @@ export function reconcileEmploymentLeave(api: Api, employmentId: string, asOf: s
 					limit: LIMIT
 				});
 				requireComplete(entries, 'leave account entries after carry expiry');
+			}
+			if (
+				account.account_kind === 'EVENT' &&
+				!entries.some((entry) => entry.source_key === 'event-opening')
+			) {
+				// A verified qualifying-event allocation opens once, on the account's own terms.
+				yield* api.db.leave_entries.mutate([
+					{
+						id: leaveEntryIdFor({ leave_account_id: account.id, source_key: 'event-opening' }),
+						leave_account_id: account.id,
+						kind: 'OPENING_ENTITLEMENT',
+						effective_on: dateKey(account.starts_on),
+						days: decodeNumber(account.entitlement_days),
+						reason: `Verified qualifying-event allocation ${account.event_reference ?? ''}`,
+						source_key: 'event-opening',
+						leave_plan_id: account.opening_plan_id,
+						statutory_profile_id: account.opening_statutory_profile_id
+					} as NewEntry
+				]);
+				posted += 1;
+				entries = yield* api.db.leave_entries.findMany({
+					where: { leave_account_id: { eq: account.id }, approval_id: { isNull: true } },
+					limit: LIMIT
+				});
 			}
 			if (
 				account.account_kind === 'EVENT' &&
@@ -1072,137 +1138,5 @@ export function reconcileEmploymentLeave(api: Api, employmentId: string, asOf: s
 			}
 		}
 		return { accounts_created: created, entries_posted: posted };
-	});
-}
-
-/** Reconcile one company without an HR-run batch; pagination keeps the trigger bounded and resumable. */
-export function reconcileCompanyLeave(api: Api, companyId: string, asOf: string) {
-	return Effect.gen(function* () {
-		yield* verifyCompanyStatutoryCoverage(api, companyId, asOf);
-		let after: string | undefined;
-		let employments = 0;
-		let accountsCreated = 0;
-		let entriesPosted = 0;
-		while (employments < 50_000) {
-			const page = yield* api.db.employments.findMany({
-				where: {
-					company_id: { eq: companyId },
-					approval_id: { isNull: true },
-					...(after == null ? {} : { id: { gt: after } })
-				},
-				columns: { id: true },
-				orderBy: { id: 'asc' },
-				limit: 500
-			});
-			for (const employment of page) {
-				after = employment.id;
-				const result = yield* reconcileEmploymentLeave(api, employment.id, asOf);
-				employments += 1;
-				accountsCreated += result.accounts_created;
-				entriesPosted += result.entries_posted;
-			}
-			if (page.length < 500)
-				return {
-					employments,
-					accounts_created: accountsCreated,
-					entries_posted: entriesPosted
-				};
-		}
-		return refuse('Leave reconciliation exceeds 50,000 employments for one company.');
-	});
-}
-
-/** A sealed statutory successor fans out to every company anchored to that law family. */
-export function reconcileJurisdictionLeave(api: Api, code: string, asOf: string) {
-	return Effect.gen(function* () {
-		const family = yield* api.db.jurisdictions.findMany({
-			where: { code: { eq: code }, approval_id: { isNull: true } },
-			columns: { id: true },
-			limit: LIMIT
-		});
-		if (family.length >= LIMIT)
-			refuse('The statutory law family exceeds the reconciliation ceiling.');
-		const companies = yield* api.db.companies.findMany({
-			where: {
-				jurisdiction_id: { in: family.map((profile) => profile.id) },
-				approval_id: { isNull: true }
-			},
-			columns: { id: true },
-			limit: LIMIT
-		});
-		if (companies.length >= LIMIT)
-			refuse('The statutory law family exceeds the company reconciliation ceiling.');
-		for (const company of companies) yield* reconcileCompanyLeave(api, company.id, asOf);
-		return { companies: companies.length };
-	});
-}
-
-export function reconcileLeaveRequestLedger(
-	api: Api,
-	request: WorkspaceRow<'leave_requests'>,
-	deleted = false
-) {
-	return Effect.gen(function* () {
-		const entries = yield* api.db.leave_entries.findMany({
-			where: { source_request_id: { eq: request.id }, approval_id: { isNull: true } },
-			limit: LIMIT
-		});
-		const byAccount = new Map<string, number>();
-		for (const entry of entries)
-			byAccount.set(
-				entry.leave_account_id,
-				(byAccount.get(entry.leave_account_id) ?? 0) + decodeNumber(entry.days)
-			);
-		if (!deleted)
-			byAccount.set(request.leave_account_id, byAccount.get(request.leave_account_id) ?? 0);
-		const mutations: NewEntry[] = [];
-		for (const [accountId, net] of byAccount) {
-			const desired =
-				!deleted && accountId === request.leave_account_id
-					? -Math.abs(decodeNumber(request.days))
-					: 0;
-			const delta = desired - net;
-			if (Math.abs(delta) < 1e-9) continue;
-			mutations.push({
-				leave_account_id: accountId,
-				kind: delta < 0 ? 'TAKEN' : 'RESTORED',
-				effective_on: dateKey(request.from_date),
-				days: delta,
-				reason: deleted ? 'Leave request withdrawn' : 'Approved leave request synchronized',
-				source_key: `request:${request.id}:v${request.row_version}:${accountId}:${deleted ? 'deleted' : 'live'}`,
-				source_request_id: request.id
-			});
-		}
-		if (mutations.length > 0) yield* api.db.leave_entries.mutate(mutations);
-		return { entries_posted: mutations.length };
-	});
-}
-
-export function reconcileEventAccountOpening(api: Api, account: Account) {
-	return Effect.gen(function* () {
-		if (account.account_kind !== 'EVENT' || account.approval_id != null)
-			return { entries_posted: 0 };
-		const existing = yield* api.db.leave_entries.findFirst({
-			where: {
-				leave_account_id: { eq: account.id },
-				source_key: { eq: 'event-opening' },
-				approval_id: { isNull: true }
-			},
-			columns: { id: true }
-		});
-		if (existing != null) return { entries_posted: 0 };
-		yield* api.db.leave_entries.mutate([
-			{
-				leave_account_id: account.id,
-				kind: 'OPENING_ENTITLEMENT',
-				effective_on: dateKey(account.starts_on),
-				days: decodeNumber(account.entitlement_days),
-				reason: `Verified qualifying-event allocation ${account.event_reference}`,
-				source_key: 'event-opening',
-				leave_plan_id: account.opening_plan_id,
-				statutory_profile_id: account.opening_statutory_profile_id
-			}
-		]);
-		return { entries_posted: 1 };
 	});
 }

@@ -8,7 +8,6 @@ import {
 	expireCarry,
 	profileAt,
 	reconcileEmploymentLeave,
-	reconcileEventAccountOpening,
 	reconcileTarget,
 	requireStatutoryMappings,
 	retireDueLeavePlanPredecessors,
@@ -156,7 +155,7 @@ function eventAccountApi(profiles, committed = [], pending = []) {
 	};
 }
 
-function reconciliationApi({ asOf, exitDate = null, accounts, entries }) {
+function reconciliationApi({ asOf, exitDate = null, accounts, entries, requests = [] }) {
 	const employmentRow = {
 		id: 'employment',
 		company_id: 'company',
@@ -201,18 +200,38 @@ function reconciliationApi({ asOf, exitDate = null, accounts, entries }) {
 				},
 				leave_accounts: {
 					findMany: () => Effect.succeed(accounts),
+					findFirst: ({ where }) =>
+						Effect.succeed(
+							accounts.find((row) =>
+								where.id != null
+									? row.id === where.id.eq
+									: row.employment_id === where.employment_id?.eq &&
+										row.leave_code === where.leave_code?.eq &&
+										row.leave_year === where.leave_year?.eq
+							) ?? null
+						),
 					mutate: (mutations) =>
 						Effect.sync(() => {
 							for (const mutation of mutations) {
 								const current = accounts.find((row) => row.id === mutation.id);
 								if (current != null) Object.assign(current, mutation);
+								else
+									accounts.push({
+										id: `account-${accounts.length + 1}`,
+										approval_id: null,
+										...mutation
+									});
 							}
 						})
 				},
 				leave_entries: {
 					findMany: ({ where }) =>
 						Effect.succeed(
-							entries.filter((entry) => entry.leave_account_id === where.leave_account_id.eq)
+							entries.filter((entry) =>
+								where.source_request_id != null
+									? entry.source_request_id === where.source_request_id.eq
+									: entry.leave_account_id === where.leave_account_id.eq
+							)
 						),
 					mutate: (mutations) =>
 						Effect.sync(() => {
@@ -225,7 +244,10 @@ function reconciliationApi({ asOf, exitDate = null, accounts, entries }) {
 							);
 						})
 				},
-				leave_requests: { findPending: () => Effect.succeed([]) }
+				leave_requests: {
+					findPending: () => Effect.succeed([]),
+					findMany: () => Effect.succeed(requests)
+				}
 			}
 		},
 		asOf
@@ -442,36 +464,6 @@ test('one event cohort enforces its household maximum across companies and leave
 		),
 		/household already allocated 6 weeks/i
 	);
-});
-
-test('an event account posts one opening movement across the calendar-year boundary', async () => {
-	const entries = [];
-	const api = {
-		db: {
-			leave_entries: {
-				findFirst: () => Effect.succeed(entries[0] ?? null),
-				mutate: (rows) => Effect.sync(() => entries.push(...rows))
-			}
-		}
-	};
-	const eventAccount = {
-		...account,
-		account_kind: 'EVENT',
-		event_reference: 'CHILD-42',
-		starts_on: '2026-04-01',
-		ends_on: '2027-03-31',
-		entitlement_days: 60,
-		approval_id: null
-	};
-	assert.deepEqual(await Effect.runPromise(reconcileEventAccountOpening(api, eventAccount)), {
-		entries_posted: 1
-	});
-	assert.deepEqual(await Effect.runPromise(reconcileEventAccountOpening(api, eventAccount)), {
-		entries_posted: 0
-	});
-	assert.equal(entries.length, 1);
-	assert.equal(entries[0].days, 60);
-	assert.equal(entries[0].effective_on, '2026-04-01');
 });
 
 test('a statutory successor appends one idempotent target delta', async () => {
@@ -1022,5 +1014,138 @@ test('manual balance corrections require a reason, reference and open in-year ac
 			handler({ input: { ...input, effective_on: '2027-01-01' }, existing: null, api })
 		),
 		/account year/
+	);
+});
+
+test('a seeded account shell receives its generated entitlement on the first sweep', async () => {
+	const shell = {
+		...account,
+		id: 'shell',
+		employment_id: 'employment',
+		leave_type_id: 'annual',
+		account_kind: 'YEAR',
+		leave_code: 'ANNUAL_LEAVE',
+		leave_year: 2026,
+		entitlement_days: '0',
+		accrual_kind: 'UPFRONT',
+		carry_limit_days: null,
+		carry_expiry_months: null,
+		calculation: {
+			calculated_on: '2026-01-01',
+			service_months: 0,
+			statutory_days: 0,
+			company_days: 0,
+			selected_days: 0,
+			formula_version: 'LEAVE_ACCOUNT_V1'
+		},
+		approval_id: null
+	};
+	const entries = [];
+	const harness = reconciliationApi({ asOf: '2026-03-15', accounts: [shell], entries });
+	const annual = { ...type(14), id: 'annual', code: 'ANNUAL_LEAVE', name: 'Annual leave' };
+	harness.api.db.leave_types.findMany = () => Effect.succeed([annual]);
+	const result = await Effect.runPromise(
+		reconcileEmploymentLeave(harness.api, 'employment', harness.asOf)
+	);
+	assert.equal(
+		Number(shell.entitlement_days),
+		14,
+		'the shell now carries the generated entitlement'
+	);
+	assert.equal(shell.calculation.selected_days, 14);
+	assert.ok(
+		entries.some(
+			(entry) => entry.leave_account_id === 'shell' && entry.kind === 'OPENING_ENTITLEMENT'
+		),
+		'an award entry was posted for the shell'
+	);
+	assert.ok(result.accounts_created >= 1);
+	const again = await Effect.runPromise(
+		reconcileEmploymentLeave(harness.api, 'employment', harness.asOf)
+	);
+	assert.equal(again.entries_posted, 0, 'the second sweep posts nothing for the same shell');
+});
+
+test('an approved request is charged once, under the id its own write would use, whichever write comes first', async () => {
+	const { chargeApprovedRequests } = await import('../src/lib/leave/reconcile.ts');
+	const { leaveAccountIdFor, leaveEntryIdFor, requestSourceKey } =
+		await import('../src/lib/leave/identity.ts');
+	const employment = { id: 'emp-1', company_id: 'co' };
+	const accountId = leaveAccountIdFor({
+		employment_id: 'emp-1',
+		leave_code: 'ANNUAL',
+		leave_year: 2026
+	});
+	const request = {
+		id: 'req-1',
+		employment_id: 'emp-1',
+		leave_type_id: 'type-annual',
+		leave_account_id: null,
+		approval_id: null,
+		event: { range: { start: { date: '2026-04-16' } }, chargeable_days: 1.5 }
+	};
+	const posted = [];
+	let stored = [];
+	const api = {
+		db: {
+			leave_requests: { findMany: () => Effect.succeed([request]) },
+			leave_types: { findMany: () => Effect.succeed([{ id: 'type-annual', code: 'ANNUAL' }]) },
+			leave_entries: {
+				findFirst: ({ where }) =>
+					Effect.succeed(
+						stored.find(
+							(entry) =>
+								entry.leave_account_id === where.leave_account_id.eq &&
+								entry.source_key === where.source_key.eq
+						) ?? null
+					),
+				mutate: (rows) =>
+					Effect.sync(() => {
+						posted.push(...rows);
+						stored = [...stored, ...rows];
+					})
+			}
+		}
+	};
+	// The account the request names by formula exists: one TAKEN line, under the shared id.
+	assert.equal(
+		await Effect.runPromise(chargeApprovedRequests(api, employment, [{ id: accountId }], 1)),
+		1
+	);
+	assert.deepEqual(posted, [
+		{
+			id: leaveEntryIdFor({ leave_account_id: accountId, source_key: requestSourceKey('req-1') }),
+			leave_account_id: accountId,
+			kind: 'TAKEN',
+			effective_on: '2026-04-16',
+			days: -1.5,
+			reason: 'Approved leave request',
+			source_key: 'request:req-1',
+			source_request_id: 'req-1'
+		}
+	]);
+	// Whether that line came from this write or from the request's own, the next pass restates nothing.
+	assert.equal(
+		await Effect.runPromise(chargeApprovedRequests(api, employment, [{ id: accountId }], 1)),
+		0
+	);
+	// A request whose account is not (yet) generated is left for the write that generates it.
+	assert.equal(
+		await Effect.runPromise(chargeApprovedRequests(api, employment, [{ id: 'other' }], 1)),
+		0
+	);
+	assert.equal(posted.length, 1);
+});
+
+test('a ledger line accepts the no-change restatement a complete-set write carries, and nothing else', async () => {
+	const before = leaveEntryHooks.mutate.perRecord.before.handler;
+	const existing = { id: 'line', kind: 'ACCRUAL', days: 1, source_key: 'accrual:1' };
+	const context = (input) => ({ input, existing, recordId: 'line', api: { db: {} } });
+	assert.deepEqual(await Effect.runPromise(before(context({ id: 'line' }) as never) as never), {
+		id: 'line'
+	});
+	await assert.rejects(
+		Effect.runPromise(before(context({ id: 'line', days: 2 }) as never) as never),
+		/append-only/
 	);
 });

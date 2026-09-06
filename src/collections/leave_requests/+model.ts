@@ -15,7 +15,7 @@ export default defineModel(
 		employment_id: uuid().notNull(),
 		leave_type_id: uuid().notNull(),
 		/** Resolved and enforced by the write hook. No account means no application. */
-		leave_account_id: uuid().notNull(),
+		leave_account_id: uuid(),
 		event: custom('leave_event').notNull(),
 		certificate_file: file(),
 		kind: text().generatedAlwaysAs(sql`event ->> 'kind'`),

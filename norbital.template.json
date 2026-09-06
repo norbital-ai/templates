@@ -8,7 +8,7 @@
 	"counts": {
 		"collections": 29,
 		"apps": 10,
-		"automations": 11
+		"automations": 2
 	},
 	"tags": ["HR", "Finance", "Approvals"],
 	"seed": {
@@ -28,13 +28,12 @@
 				"shift_definitions"
 			],
 			["employments"],
-			["leave_accounts"],
 			["employee_children", "employment_statutory_facts", "employment_terms", "leave_requests"],
-			["leave_entries"],
 			["work_days"],
 			["component_entries", "loans"],
 			["loan_repayments"]
-		]
+		],
+		"afterSeed": ["leave_ledger_refresh"]
 	},
 	"name_zh": "HR 与薪资",
 	"description_zh": "基于生效日期的雇佣事实、考勤、休假与法定缴款规则，运行多国 HR 与薪资。"

@@ -10,7 +10,16 @@ export default {
 				description: 'Leave entries are append-only; an existing movement can never be rewritten.',
 				handler: ({ input, existing, api }) =>
 					Effect.gen(function* () {
-						if (existing != null) refuse('Leave entries are append-only. Post a correcting entry.');
+						if (existing != null) {
+							// The complete set an employment write carries restates every stored line by id;
+							// an update that changes nothing is not an edit.
+							const changed = Object.keys(input).filter(
+								(field) => field !== 'id' && field !== 'row_version'
+							);
+							if (changed.length > 0)
+								refuse('Leave entries are append-only. Post a correcting entry.');
+							return input;
+						}
 						const days = Number(input.days);
 						if (!Number.isFinite(days) || days === 0)
 							refuse('A leave entry must move the balance.');
