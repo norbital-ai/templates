@@ -1217,7 +1217,28 @@ export const runStatutoryProfileDrift = (
 							'Research cited only pages that were not retrieved and no entry page was read. Configure the official research URL and retry.'
 						);
 					const dropped = validated.official_sources.length - retrieved.length;
-					const cited = { ...validated, official_sources: sources };
+					// A review item stands only on a source that stands: one that cited a dropped
+					// source goes with it, or the aggregate's own provenance check would refuse the
+					// receipt that validation just passed.
+					const retainedIdentities = new Set(
+						sources.flatMap((source) => {
+							const parsed = officialUrl(source.url, approvedUrls);
+							return parsed ? [officialSourceIdentity(parsed)] : [];
+						})
+					);
+					const standingChanges = validated.changes_to_review.filter((change) => {
+						const parsed = officialUrl(change.source_url, approvedUrls);
+						return parsed != null && retainedIdentities.has(officialSourceIdentity(parsed));
+					});
+					if (standingChanges.length < validated.changes_to_review.length)
+						reviewNotes.push(
+							`${validated.changes_to_review.length - standingChanges.length} review item(s) dropped with their unretrieved source`
+						);
+					const cited = {
+						...validated,
+						official_sources: sources,
+						changes_to_review: standingChanges
+					};
 					// Proposals are best effort: one that fails its own evidence check is dropped with a
 					// note, and the jurisdiction's receipt still stands.
 					const proposalNotes: string[] = [];
