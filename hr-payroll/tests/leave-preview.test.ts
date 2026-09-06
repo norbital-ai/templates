@@ -27,7 +27,7 @@ const leaveType = {
 	statutory_kind: 'ANNUAL',
 	eligibility: [],
 	requires_certificate_after_days: null,
-	accrual: { kind: 'UPFRONT', carry: null },
+	accrual: { kind: 'UPFRONT', settlement: { settlement: 'FORFEIT' } },
 	entitlement: { layers: [] },
 	payroll_effect: { kind: 'PAID' }
 };

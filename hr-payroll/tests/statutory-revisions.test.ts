@@ -24,7 +24,7 @@ const floor = (days) => [
 		per_child: null,
 		max_days: null,
 		transition: 'NEXT_LEAVE_YEAR',
-		carry: null,
+		settlement: { settlement: 'FORFEIT' },
 		authority: 'Approved fixture law'
 	}
 ];

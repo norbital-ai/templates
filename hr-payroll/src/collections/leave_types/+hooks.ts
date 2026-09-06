@@ -13,9 +13,11 @@ export default {
 					Effect.gen(function* () {
 						const row = { ...existing, ...input };
 						if (row.account_basis === 'EVENT') {
-							if (row.accrual?.kind !== 'UPFRONT' || row.accrual.carry != null)
+							const settlement = (row.accrual as { settlement?: { settlement?: unknown } } | null)
+								?.settlement;
+							if (row.accrual?.kind !== 'UPFRONT' || settlement?.settlement !== 'FORFEIT')
 								refuse(
-									'Event-based leave uses one verified opening award and never accrues or carries.'
+									'Event-based leave uses one verified opening award and never accrues, carries or commutes.'
 								);
 							if (
 								row.event_window_months != null &&

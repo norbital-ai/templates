@@ -6,7 +6,9 @@
 		"lifecycle": "SEALED",
 		"currency": "MYR",
 		"tax_year_start_month": 1,
-		"proration": { "by": "CALENDAR_DAYS" },
+		"proration": {
+			"by": "CALENDAR_DAYS"
+		},
 		"ordinary_rate_basis": "DAYS_PER_MONTH",
 		"ordinary_rate_divisor": 26,
 		"regime": {
@@ -17,12 +19,35 @@
 		"statutory_leave": [
 			{
 				"kind": "ANNUAL",
-				"ladder": [{ "band_from": 0, "days": 8 }],
+				"ladder": [
+					{
+						"band_from": 0,
+						"days": 8
+					}
+				],
 				"per_child": null,
 				"max_days": null,
 				"transition": "NEXT_LEAVE_YEAR",
-				"carry": null,
-				"authority": "Public fixture — not a sealed statutory table."
+				"authority": "Public fixture — not a sealed statutory table.",
+				"settlement": {
+					"settlement": "FORFEIT"
+				}
+			},
+			{
+				"kind": "HOSPITALIZATION",
+				"ladder": [
+					{
+						"band_from": 0,
+						"days": 60
+					}
+				],
+				"per_child": null,
+				"max_days": null,
+				"transition": "NEXT_LEAVE_YEAR",
+				"authority": "Public fixture — not a sealed statutory table.",
+				"settlement": {
+					"settlement": "FORFEIT"
+				}
 			},
 			{
 				"kind": "SHARED_PARENTAL",
@@ -35,14 +60,24 @@
 					"unit": "WEEKS",
 					"weekly_index_cap": 6
 				},
-				"ladder": [{ "band_from": 0, "days": 10 }],
+				"ladder": [
+					{
+						"band_from": 0,
+						"days": 10
+					}
+				],
 				"per_child": null,
 				"max_days": null,
 				"transition": "NEXT_LEAVE_YEAR",
-				"carry": null,
-				"authority": "Public fixture — qualifying-event workflow test only."
+				"authority": "Public fixture — qualifying-event workflow test only.",
+				"settlement": {
+					"settlement": "FORFEIT"
+				}
 			}
 		],
-		"effective_range": { "start": "2020-01-01", "end": null }
+		"effective_range": {
+			"start": "2020-01-01",
+			"end": null
+		}
 	}
 ]

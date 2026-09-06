@@ -1147,5 +1147,7 @@
 	"payroll.payment_confirmation": "Mark paid only after payment has been completed. This closes the payroll permanently.",
 	"component.leave_eligibility_not_met": "The employment does not meet this leave type’s eligibility rules.",
 	"component.leave_certificate_required": "Attach a certificate: this request exceeds the leave type’s certificate threshold.",
-	"app.hr_employee.leave_available": "Available after pending"
+	"app.hr_employee.leave_available": "Available after pending",
+	"renderer.leave_accrual.select_settlement": "Select a year-end settlement",
+	"renderer.leave_accrual.select_pay_basis": "Select a daily-rate basis"
 }

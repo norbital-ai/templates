@@ -3,13 +3,18 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { Effect } from 'effect';
 import {
+	accountSettlement,
+	commuteDailyRate,
+	coverageInputs,
 	entitlementEntries,
 	ensureAccount,
 	expireCarry,
+	mergedSettlement,
 	profileAt,
 	reconcileEmploymentLeave,
 	reconcileTarget,
 	requireStatutoryMappings,
+	resolveStatutoryCoverage,
 	retireDueLeavePlanPredecessors,
 	transferCarry
 } from '../src/lib/leave/reconcile.ts';
@@ -37,12 +42,15 @@ const profile = (id, start, days, transition = 'NEXT_LEAVE_YEAR') => ({
 			per_child: null,
 			max_days: null,
 			transition,
-			carry: null
+			settlement: { settlement: 'FORFEIT' }
 		}
 	]
 });
 
-const type = (companyDays = 0, accrual = { kind: 'UPFRONT', carry: null }) => ({
+const type = (
+	companyDays = 0,
+	accrual = { kind: 'UPFRONT', settlement: { settlement: 'FORFEIT' } }
+) => ({
 	id: 'type',
 	code: 'ANNUAL',
 	name: 'Annual leave',
@@ -59,7 +67,8 @@ const account = {
 	opening_statutory_profile_id: 'law-old',
 	starts_on: '2026-01-01',
 	ends_on: '2026-12-31',
-	status: 'OPEN'
+	status: 'OPEN',
+	settlement: { settlement: 'FORFEIT' }
 };
 const opening = {
 	id: 'opening',
@@ -94,7 +103,7 @@ function eventProfile(id, start, end, days) {
 
 function eventAccountApi(profiles, committed = [], pending = []) {
 	const eventType = {
-		...type(0, { kind: 'UPFRONT', carry: null }),
+		...type(0, { kind: 'UPFRONT', settlement: { settlement: 'FORFEIT' } }),
 		id: 'event-type',
 		company_id: 'company',
 		leave_plan_id: 'event-plan',
@@ -257,7 +266,7 @@ function reconciliationApi({ asOf, exitDate = null, accounts, entries, requests 
 test('monthly schedules never catch up accrual from before hire', () => {
 	const entries = entitlementEntries({
 		accountId: 'account',
-		type: type(12, { kind: 'MONTHLY', carry: null }),
+		type: type(12, { kind: 'MONTHLY', settlement: { settlement: 'FORFEIT' } }),
 		plan: plan('plan-old', '2026-01-01'),
 		profile: profile('law-old', '2026-01-01', 0),
 		target: 12,
@@ -282,7 +291,7 @@ test('statutory monthly vesting uses its own whole-day half-up rule', () => {
 	const statutoryOpening = (completed) =>
 		entitlementEntries({
 			accountId: 'account',
-			type: type(0, { kind: 'MONTHLY', carry: null }),
+			type: type(0, { kind: 'MONTHLY', settlement: { settlement: 'FORFEIT' } }),
 			plan: plan('plan-old', '2026-01-01'),
 			profile: profile('law-old', '2026-01-01', 7),
 			target: 7,
@@ -399,7 +408,7 @@ test('a newly sealed statutory kind cannot disappear behind a missing company ma
 		per_child: null,
 		max_days: null,
 		transition: 'FULL_AT_EFFECTIVE_DATE',
-		carry: null,
+		settlement: { settlement: 'FORFEIT' },
 		authority: 'Enacted test law'
 	});
 	assert.throws(
@@ -687,7 +696,7 @@ test('monthly leave first becoming eligible accrues only after eligibility', asy
 		ensureAccount({
 			api,
 			employment,
-			type: type(12, { kind: 'MONTHLY', carry: null }),
+			type: type(12, { kind: 'MONTHLY', settlement: { settlement: 'FORFEIT' } }),
 			plan: plan('plan-old', '2026-01-01'),
 			profile: profile('law-old', '2026-01-01', 0),
 			children: [],
@@ -730,7 +739,7 @@ test('statutory monthly vesting catches up completed service when company eligib
 		ensureAccount({
 			api,
 			employment: { ...employment, hire_date: '2026-07-15' },
-			type: type(24, { kind: 'MONTHLY', carry: null }),
+			type: type(24, { kind: 'MONTHLY', settlement: { settlement: 'FORFEIT' } }),
 			plan: plan('plan-old', '2026-01-01'),
 			profile: statutoryProfile,
 			children: [],
@@ -1147,5 +1156,207 @@ test('a ledger line accepts the no-change restatement a complete-set write carri
 	await assert.rejects(
 		Effect.runPromise(before(context({ id: 'line', days: 2 }) as never) as never),
 		/append-only/
+	);
+});
+
+const settledType = (settlement) => ({
+	...type(),
+	accrual: { kind: 'UPFRONT', settlement }
+});
+
+const settledProfile = (settlement) => ({
+	...profile('law', '2026-01-01', 8),
+	statutory_leave: [
+		{
+			kind: 'ANNUAL',
+			ladder: [{ band_from: 0, days: 8 }],
+			per_child: null,
+			max_days: null,
+			transition: 'NEXT_LEAVE_YEAR',
+			settlement
+		}
+	]
+});
+
+test('settlement merges by worker-protective rank: commute beats carry beats forfeit', () => {
+	const forfeit = { settlement: 'FORFEIT' };
+	const carry = { settlement: 'CARRY', limit_days: 5, expiry_months: 3, coverage: null };
+	const commute = { settlement: 'COMMUTE', pay_basis: 'ORDINARY_DIV26' };
+	assert.deepEqual(
+		mergedSettlement(
+			settledProfile(commute),
+			settledType({ settlement: 'CARRY', limit_days: 5, expiry_months: 3, coverage: null }),
+			null
+		),
+		commute
+	);
+	assert.deepEqual(mergedSettlement(settledProfile(carry), settledType(forfeit), null), carry);
+	assert.deepEqual(mergedSettlement(settledProfile(forfeit), settledType(forfeit), null), forfeit);
+});
+
+test('two carry floors merge to the wider limit and later expiry, law winning ties', () => {
+	const merged = mergedSettlement(
+		settledProfile({ settlement: 'CARRY', limit_days: null, expiry_months: 12, coverage: null }),
+		settledType({ settlement: 'CARRY', limit_days: 5, expiry_months: 3, coverage: null }),
+		null
+	);
+	assert.equal(merged.settlement, 'CARRY');
+	assert.equal(merged.limit_days, null);
+	assert.equal(merged.expiry_months, 12);
+});
+
+test('a banded statutory floor protects only employments carrying its code', () => {
+	const banded = {
+		settlement: 'CARRY',
+		limit_days: null,
+		expiry_months: 12,
+		coverage: ['SG_PART_IV']
+	};
+	const company = { settlement: 'FORFEIT' };
+	assert.deepEqual(
+		mergedSettlement(settledProfile(banded), settledType(company), 'SG_PART_IV'),
+		banded
+	);
+	assert.deepEqual(mergedSettlement(settledProfile(banded), settledType(company), null), company);
+	assert.deepEqual(
+		mergedSettlement(settledProfile(banded), settledType(company), 'OTHER'),
+		company
+	);
+});
+
+test('coverage derivation matches the first band and stays silent otherwise', () => {
+	const profileWithBands = (bands) => ({ statutory_coverage: bands });
+	const bands = [
+		{
+			code: 'SG_PART_IV_W',
+			max_monthly_basic: 4500,
+			workman_only: true,
+			authority: 'Employment Act Part IV'
+		},
+		{
+			code: 'SG_PART_IV',
+			max_monthly_basic: 2600,
+			workman_only: false,
+			authority: 'Employment Act Part IV'
+		}
+	];
+	assert.equal(
+		resolveStatutoryCoverage({
+			profile: profileWithBands(bands),
+			...coverageInputs({
+				pay_frequency: 'MONTHLY',
+				base_salary: { value: 2400 },
+				statutory_work_category: 'NON_MANUAL'
+			})
+		}),
+		'SG_PART_IV'
+	);
+	assert.equal(
+		resolveStatutoryCoverage({
+			profile: profileWithBands(bands),
+			...coverageInputs({
+				pay_frequency: 'MONTHLY',
+				base_salary: { value: 4000 },
+				statutory_work_category: 'MANUAL_LABOUR'
+			})
+		}),
+		'SG_PART_IV_W'
+	);
+	assert.equal(
+		resolveStatutoryCoverage({
+			profile: profileWithBands(bands),
+			...coverageInputs({
+				pay_frequency: 'MONTHLY',
+				base_salary: { value: 9000 },
+				statutory_work_category: 'NON_MANUAL'
+			})
+		}),
+		null
+	);
+	assert.equal(
+		resolveStatutoryCoverage({
+			profile: profileWithBands(null),
+			...coverageInputs({
+				pay_frequency: 'MONTHLY',
+				base_salary: { value: 2000 },
+				statutory_work_category: 'NON_MANUAL'
+			})
+		}),
+		null
+	);
+});
+
+test('commutation rates follow the stated divisor and refuse the rest', () => {
+	assert.equal(
+		commuteDailyRate({ pay_frequency: 'MONTHLY', base_salary: { value: 2600 } }, 'ORDINARY_DIV26'),
+		100
+	);
+	assert.equal(
+		commuteDailyRate({ pay_frequency: 'MONTHLY', base_salary: { value: 3000 } }, 'MONTHLY_DIV30'),
+		100
+	);
+	assert.equal(
+		commuteDailyRate({ pay_frequency: 'DAILY', base_salary: { value: 150 } }, 'DAILY_WAGE'),
+		150
+	);
+	assert.throws(
+		() =>
+			commuteDailyRate({ pay_frequency: 'HOURLY', base_salary: { value: 20 } }, 'ORDINARY_DIV26'),
+		/not stated/
+	);
+});
+
+test('a commuted year posts one cash receipt and never repeats it', async () => {
+	const posted = [];
+	const accountRow = {
+		...account,
+		leave_year: 2025,
+		account_kind: 'YEAR',
+		starts_on: '2025-01-01',
+		ends_on: '2025-12-31',
+		status: 'OPEN',
+		settlement: { settlement: 'COMMUTE', pay_basis: 'ORDINARY_DIV26' }
+	};
+	const entries = [
+		{
+			id: 'opening',
+			kind: 'OPENING_ENTITLEMENT',
+			effective_on: '2025-01-01',
+			days: 8,
+			source_key: 'opening',
+			approval_id: null
+		}
+	];
+	const api = {
+		db: { leave_entries: { mutate: (rows) => Effect.sync(() => posted.push(...rows)) } }
+	};
+	assert.equal(
+		await Effect.runPromise(expireCarry(api, accountRow, entries, '2026-01-15', 100)),
+		1
+	);
+	assert.equal(posted[0].kind, 'COMMUTED');
+	assert.equal(posted[0].days, -8);
+	assert.equal(posted[0].source_key, `commute:${accountRow.id}`);
+	assert.match(posted[0].reason, /800/);
+	entries.push({ ...posted[0], approval_id: null });
+	assert.equal(
+		await Effect.runPromise(expireCarry(api, accountRow, entries, '2026-01-15', 100)),
+		0
+	);
+	assert.equal(posted.length, 1);
+});
+
+test('commutation without a priced rate refuses instead of posting vapor', async () => {
+	const api = { db: { leave_entries: { mutate: () => Effect.succeed(undefined) } } };
+	const accountRow = {
+		...account,
+		account_kind: 'YEAR',
+		ends_on: '2025-12-31',
+		status: 'OPEN',
+		settlement: { settlement: 'COMMUTE', pay_basis: 'ORDINARY_DIV26' }
+	};
+	await assert.rejects(
+		Effect.runPromise(expireCarry(api, accountRow, [], '2026-01-15', null)),
+		/no daily rate/
 	);
 });

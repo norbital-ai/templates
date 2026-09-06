@@ -5,12 +5,14 @@
 	import { numberFrom } from '../../lib/ui/renderer-input.js';
 	import { Combobox } from '@norbital-ai/ui/combobox';
 	import { Input } from '@norbital-ai/ui/input';
-	import { Grid, Inline, Stack } from '@norbital-ai/ui/layout';
-	import { leaveAccrualSchema, type LeaveCarry } from './+definition.js';
+	import { Grid, Stack } from '@norbital-ai/ui/layout';
+	import { leaveAccrualSchema } from './+definition.js';
+	import type { LeaveSettlement } from '../leave_settlement/+definition.js';
 	import type { RendererProps, Value } from './$types.js';
 	const { t } = useI18n<TenantI18nKeys>();
 
 	type AccrualKind = Value['kind'];
+	type Settlement = LeaveSettlement['settlement'];
 
 	const KIND_OPTIONS: { value: AccrualKind; label: string; description: string }[] = [
 		{ value: 'MONTHLY', label: 'Monthly', description: 'Pro-rata each completed month' },
@@ -22,7 +24,25 @@
 		}
 	];
 
-	const DEFAULT_CARRY: LeaveCarry = { limit_days: 0, expiry_months: 0 };
+	const SETTLEMENT_OPTIONS: { value: Settlement; label: string; description: string }[] = [
+		{ value: 'FORFEIT', label: 'Lapse', description: 'Unused days lapse' },
+		{ value: 'CARRY', label: 'Carry forward', description: 'Unused days move to next year' },
+		{ value: 'COMMUTE', label: 'Commute to cash', description: 'Unused days paid out at year end' }
+	];
+
+	const PAY_BASIS_OPTIONS = [
+		{ value: 'ORDINARY_DIV26' as const, label: 'Monthly ÷ 26' },
+		{ value: 'MONTHLY_DIV30' as const, label: 'Monthly ÷ 30' },
+		{ value: 'DAILY_WAGE' as const, label: 'Daily wage' }
+	];
+
+	const DEFAULT_CARRY: LeaveSettlement = {
+		settlement: 'CARRY',
+		limit_days: 0,
+		expiry_months: 0,
+		coverage: null
+	};
+	const DEFAULT_COMMUTE: LeaveSettlement = { settlement: 'COMMUTE', pay_basis: 'ORDINARY_DIV26' };
 
 	let props: RendererProps = $props();
 	const disabled = $derived(props.mode === 'edit' ? props.disabled : true);
@@ -31,11 +51,14 @@
 	const summary = $derived.by(() => {
 		if (current === null) return '—';
 		if (current.kind === 'UNLIMITED') return 'Unmetered';
-		const carry =
-			current.carry === null
-				? 'no carry forward'
-				: `carry ${current.carry.limit_days}d / expires ${current.carry.expiry_months}m`;
-		return `${current.kind === 'MONTHLY' ? 'Monthly' : 'Upfront'} · ${carry}`;
+		const settlement = current.settlement;
+		const tail =
+			settlement.settlement === 'CARRY'
+				? `carry ${settlement.limit_days ?? 'all'}d / expires ${settlement.expiry_months}m`
+				: settlement.settlement === 'COMMUTE'
+					? `commutes (${settlement.pay_basis})`
+					: 'no carry forward';
+		return `${current.kind === 'MONTHLY' ? 'Monthly' : 'Upfront'} · ${tail}`;
 	});
 
 	function emit(next: Value | null): void {
@@ -45,12 +68,26 @@
 	function defaultFor(kind: AccrualKind): Value {
 		switch (kind) {
 			case 'MONTHLY':
-				return { kind: 'MONTHLY', carry: null };
+				return { kind: 'MONTHLY', settlement: { settlement: 'FORFEIT' } };
 			case 'UPFRONT':
-				return { kind: 'UPFRONT', carry: null };
+				return { kind: 'UPFRONT', settlement: { settlement: 'FORFEIT' } };
 			case 'UNLIMITED':
 				return { kind: 'UNLIMITED' };
 		}
+	}
+
+	function selectSettlement(next: Settlement | null): void {
+		if (current === null || current.kind === 'UNLIMITED' || next === null) return;
+		if (current.settlement.settlement === next) return;
+		emit({
+			...current,
+			settlement:
+				next === 'CARRY'
+					? DEFAULT_CARRY
+					: next === 'COMMUTE'
+						? DEFAULT_COMMUTE
+						: { settlement: 'FORFEIT' }
+		});
 	}
 
 	/*
@@ -89,36 +126,41 @@
 		</label>
 
 		{#if current?.kind === 'MONTHLY' || current?.kind === 'UPFRONT'}
-			<label class="self-end text-sm font-medium">
-				<Inline gap="sm">
-					<input
-						type="checkbox"
-						class="size-4"
-						checked={current.carry !== null}
+			<label class="text-sm font-medium">
+				<Stack gap="xs">
+					Year-end settlement
+					<Combobox
+						options={SETTLEMENT_OPTIONS}
+						value={current.settlement.settlement}
 						{disabled}
-						onchange={(event) =>
-							emit({ ...current, carry: event.currentTarget.checked ? DEFAULT_CARRY : null })}
+						searchable={false}
+						emptyPlaceholder={t('renderer.leave_accrual.select_settlement')}
+						onValueChange={selectSettlement}
 					/>
-					Carry forward
-				</Inline>
+				</Stack>
 			</label>
 
-			{#if current.carry !== null}
-				{@const carry = current.carry}
+			{#if current.settlement.settlement === 'CARRY'}
+				{@const carry = current.settlement}
 				<label class="text-sm font-medium">
 					<Stack gap="xs">
-						Carry limit (days)
+						Carry limit (days, blank for whole balance)
 						<Input
 							type="number"
 							min="0"
 							step="0.5"
-							value={carry.limit_days}
+							value={carry.limit_days ?? ''}
 							{disabled}
-							oninput={(event) =>
+							oninput={(event) => {
+								const raw = event.currentTarget.value.trim();
 								emit({
 									...current,
-									carry: { ...carry, limit_days: numberFrom(event.currentTarget.value, 0) }
-								})}
+									settlement: {
+										...carry,
+										limit_days: raw === '' ? null : numberFrom(raw, 0)
+									}
+								});
+							}}
 						/>
 					</Stack>
 				</label>
@@ -134,8 +176,34 @@
 							oninput={(event) =>
 								emit({
 									...current,
-									carry: { ...carry, expiry_months: numberFrom(event.currentTarget.value, 0) }
+									settlement: {
+										...carry,
+										expiry_months: numberFrom(event.currentTarget.value, 0)
+									}
 								})}
+						/>
+					</Stack>
+				</label>
+			{:else if current.settlement.settlement === 'COMMUTE'}
+				{@const commute = current.settlement}
+				<label class="text-sm font-medium">
+					<Stack gap="xs">
+						Daily-rate basis
+						<Combobox
+							options={PAY_BASIS_OPTIONS}
+							value={commute.pay_basis}
+							{disabled}
+							searchable={false}
+							emptyPlaceholder={t('renderer.leave_accrual.select_pay_basis')}
+							onValueChange={(basis) => {
+								if (
+									basis !== 'ORDINARY_DIV26' &&
+									basis !== 'MONTHLY_DIV30' &&
+									basis !== 'DAILY_WAGE'
+								)
+									return;
+								emit({ ...current, settlement: { ...commute, pay_basis: basis } });
+							}}
 						/>
 					</Stack>
 				</label>

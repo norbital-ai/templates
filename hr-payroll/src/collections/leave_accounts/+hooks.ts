@@ -7,6 +7,7 @@ import { isEligible } from '../payroll_runs/lib/eligibility.js';
 import { dateKey } from '../../lib/iso-day.js';
 import { profileAt, targetEntitlement } from '../../lib/leave/reconcile.js';
 import { leaveAccountCalculationValueSchema } from '../../datatypes/leave_account_calculation/+definition.js';
+import { leaveSettlementValueSchema } from '../../datatypes/leave_settlement/+definition.js';
 import type { Hooks } from './$types.js';
 
 const LIMIT = 5_000;
@@ -42,6 +43,7 @@ const accountInput = Schema.Struct({
 	accrual_kind: Schema.optionalKey(Schema.Literals(['UPFRONT', 'MONTHLY', 'UNLIMITED'])),
 	carry_limit_days: Schema.optionalKey(Schema.NullOr(Schema.Finite)),
 	carry_expiry_months: Schema.optionalKey(Schema.NullOr(Schema.Int)),
+	settlement: Schema.optionalKey(leaveSettlementValueSchema),
 	calculation: Schema.optionalKey(leaveAccountCalculationValueSchema)
 });
 
@@ -345,6 +347,7 @@ export default {
 							accrual_kind: 'EVENT',
 							carry_limit_days: null,
 							carry_expiry_months: null,
+							settlement: { settlement: 'FORFEIT' },
 							calculation: {
 								calculated_on: qualifying,
 								service_months: target.serviceMonths,

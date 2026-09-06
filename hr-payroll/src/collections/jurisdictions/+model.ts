@@ -46,6 +46,12 @@ export default defineModel(
 		ordinary_rate_divisor: numeric().notNull(),
 		regime: custom('statutory_regime').notNull(),
 		statutory_leave: custom('statutory_leave_profile').notNull(),
+		/**
+		 * Salary-banded coverage codes this law protects (SG Part-IV today). Null is no bands:
+		 * every statutory floor without its own coverage gate applies to all staff. Bands ride
+		 * the profile version because thresholds change.
+		 */
+		statutory_coverage: custom('statutory_coverage'),
 		/** A successor takes over only after approval, from its effective start; the predecessor stays historical. */
 		supersedes_id: uuid(),
 		revision: custom('statutory_revision'),

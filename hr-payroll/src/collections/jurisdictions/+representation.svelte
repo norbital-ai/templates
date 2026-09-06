@@ -121,6 +121,7 @@
 						</p>
 					</Stack>
 					<Field name="statutory_leave" />
+					<Field name="statutory_coverage" />
 					<Field name="research_urls" />
 					<Field name="revision" readonly={record?.lifecycle !== 'DRAFT'} />
 				</Stack>

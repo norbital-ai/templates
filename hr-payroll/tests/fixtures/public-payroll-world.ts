@@ -68,7 +68,7 @@ const STATUTORY_LEAVE = [
 		per_child: null,
 		max_days: null,
 		transition: 'NEXT_LEAVE_YEAR',
-		carry: null,
+		settlement: { settlement: 'FORFEIT' },
 		authority: 'Public fixture — not a sealed statutory table.'
 	}
 ];

@@ -259,7 +259,7 @@ describe('statutory_leave_profile', () => {
 		per_child: null,
 		max_days: 50,
 		transition: 'NEXT_LEAVE_YEAR',
-		carry: null,
+		settlement: { settlement: 'FORFEIT' },
 		authority: 'Fixture statutory source'
 	};
 
@@ -289,9 +289,30 @@ describe('statutory_leave_profile', () => {
 		assert.ok(refuses(statutoryLeaveProfileSchema, [{ ...eventLeave, event: undefined }]));
 		assert.ok(
 			refuses(statutoryLeaveProfileSchema, [
-				{ ...eventLeave, carry: { limit_days: 1, expiry_months: 1 } }
+				{
+					...eventLeave,
+					settlement: { settlement: 'CARRY', limit_days: 1, expiry_months: 1, coverage: null }
+				}
 			])
 		);
+		assert.ok(
+			refuses(statutoryLeaveProfileSchema, [
+				{ ...eventLeave, settlement: { settlement: 'COMMUTE', pay_basis: 'ORDINARY_DIV26' } }
+			])
+		);
+	});
+
+	it('accepts carry, commute and forfeit settlements on yearly leave', () => {
+		const yearly = { ...eventLeave };
+		delete yearly.account_basis;
+		delete yearly.event;
+		for (const settlement of [
+			{ settlement: 'FORFEIT' },
+			{ settlement: 'CARRY', limit_days: null, expiry_months: 12, coverage: ['SG_PART_IV'] },
+			{ settlement: 'COMMUTE', pay_basis: 'MONTHLY_DIV30' }
+		]) {
+			assert.ok(accepts(statutoryLeaveProfileSchema, [{ ...yearly, settlement }]));
+		}
 	});
 });
 

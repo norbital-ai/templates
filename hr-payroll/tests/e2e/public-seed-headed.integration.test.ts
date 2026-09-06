@@ -745,7 +745,9 @@ it('HR self-host paints manager leave and employee My leave as distinct boards',
 			selfPage,
 			`(() => {
 				const section = document.querySelector('#my-leave-balances-heading')?.closest('section');
-				const label = [...(section?.querySelectorAll('dt') ?? [])].find((node) => node.textContent?.trim() === 'Pending');
+				const name = [...(section?.querySelectorAll('p') ?? [])].find((node) => node.textContent?.trim() === 'ANNUAL · 2026');
+				const row = name?.closest('div.border-t') ?? section;
+				const label = [...(row?.querySelectorAll('dt') ?? [])].find((node) => node.textContent?.trim() === 'Pending');
 				return label?.nextElementSibling?.textContent?.trim() ?? ('missing-pending:' + (section?.textContent?.trim() ?? 'section'));
 			})()`,
 			(value) => Number(value) === 1,
@@ -766,7 +768,9 @@ it('HR self-host paints manager leave and employee My leave as distinct boards',
 			selfPage,
 			`(() => {
 			const section = document.querySelector('#my-leave-balances-heading')?.closest('section');
-			const label = [...(section?.querySelectorAll('dt') ?? [])].find((node) => node.textContent?.trim() === 'Pending');
+			const name = [...(section?.querySelectorAll('p') ?? [])].find((node) => node.textContent?.trim() === 'ANNUAL · 2026');
+			const row = name?.closest('div.border-t') ?? section;
+			const label = [...(row?.querySelectorAll('dt') ?? [])].find((node) => node.textContent?.trim() === 'Pending');
 				return label?.nextElementSibling?.textContent?.trim() ?? ('missing-pending:' + (section?.textContent?.trim() ?? 'section'));
 		})()`,
 			(value) => value !== '' && Number(value) === 0,
