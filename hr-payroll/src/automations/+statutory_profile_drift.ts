@@ -74,7 +74,13 @@ export function readStatutoryPages<Row extends { readonly id: string }>(
 	});
 }
 // Adapter-qualified per the host model registry contract: `<adapter>/<provider-model>`.
-export const STATUTORY_RESEARCH_MODEL = 'openrouter/z-ai/glm-5.3-flash';
+/**
+ * Research is long structured output over several tool turns; the flash route that answers chat
+ * in two seconds is served by one upstream that rate-limits and drops such calls under load
+ * (2026-09-06: every child failed with the provider's own limit or a decode/transport error). The
+ * same model the BCA suspicion review uses answers reliably.
+ */
+export const STATUTORY_RESEARCH_MODEL = 'openrouter/openai/gpt-4.1-mini';
 
 /**
  * Keep tenant-local structural findings useful to research without asking the model to restate
