@@ -8,7 +8,6 @@ import {
 	text,
 	uuid
 } from '@norbital-ai/bolt/authoring';
-
 export default defineModel(
 	{
 		employment_id: uuid().notNull(),
@@ -30,10 +29,13 @@ export default defineModel(
 		status: enums(['OPEN', 'CLOSED']).notNull().default('OPEN'),
 		entitlement_days: numeric().notNull(),
 		accrual_kind: enums(['UPFRONT', 'MONTHLY', 'UNLIMITED', 'EVENT']).notNull(),
-		carry_limit_days: numeric(),
-		carry_expiry_months: integer(),
 		/** The year-end settlement variant compiled into this account: what unused days do. */
+		/** The year-end rule compiled into this account, and which side decided it. */
 		settlement: custom('leave_settlement').notNull(),
+		settlement_source: enums(['STATUTE', 'COMPANY']).notNull(),
+		/** The exit rule compiled into this account, and which side decided it. */
+		exit_settlement: custom('leave_exit_settlement').notNull(),
+		exit_settlement_source: enums(['STATUTE', 'COMPANY']).notNull(),
 		calculation: custom('leave_account_calculation').notNull()
 	},
 	{

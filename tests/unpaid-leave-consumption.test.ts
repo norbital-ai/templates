@@ -60,7 +60,7 @@ const NPL_TYPE = {
 	name: 'Unpaid leave',
 	eligibility: [],
 	statutory_kind: null,
-	encash_on_exit: false,
+	exit_settlement: { exit: 'FORFEIT' },
 	requires_certificate_after_days: null,
 	accrual: { kind: 'UNLIMITED' },
 	entitlement: { layers: [] },

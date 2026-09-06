@@ -90,6 +90,8 @@ export type EmploymentBundle = {
 	/** Materialized entitlement accounts and their immutable movements, for formula balances. */
 	readonly leaveAccounts: readonly LeaveAccount[];
 	readonly leaveEntries: readonly LeaveEntry[];
+	/** Every terms row of the employment, so a ledger line dated outside the period can be priced at the terms then in force. */
+	readonly termsHistory: readonly EmploymentTerms[];
 	/** Plan and punch together. */
 	readonly workDays: readonly WorkDay[];
 	/** Completed months of service at the period end. */
@@ -360,6 +362,7 @@ export function gatherRun(options: GatherRunOptions): Effect.Effect<GatheredRun,
 				loanRepayments: employmentLoans.flatMap((loan) => repaymentsByLoan.get(loan.id) ?? []),
 				ledger: ledgerByEmployment.get(employment.id) ?? [],
 				leaveAccounts: leaveAccountsByEmployment.get(employment.id) ?? [],
+				termsHistory: termsByEmployment.get(employment.id) ?? [],
 				leaveEntries: (leaveAccountsByEmployment.get(employment.id) ?? []).flatMap(
 					(account) => leaveEntriesByAccount.get(account.id) ?? []
 				),

@@ -8,6 +8,7 @@ import { dateKey } from '../../lib/iso-day.js';
 import { profileAt, targetEntitlement } from '../../lib/leave/reconcile.js';
 import { leaveAccountCalculationValueSchema } from '../../datatypes/leave_account_calculation/+definition.js';
 import { leaveSettlementValueSchema } from '../../datatypes/leave_settlement/+definition.js';
+import { leaveExitSettlementValueSchema } from '../../datatypes/leave_exit_settlement/+definition.js';
 import type { Hooks } from './$types.js';
 
 const LIMIT = 5_000;
@@ -41,9 +42,10 @@ const accountInput = Schema.Struct({
 	status: Schema.optionalKey(Schema.Literals(['OPEN', 'CLOSED'])),
 	entitlement_days: Schema.optionalKey(Schema.Finite),
 	accrual_kind: Schema.optionalKey(Schema.Literals(['UPFRONT', 'MONTHLY', 'UNLIMITED'])),
-	carry_limit_days: Schema.optionalKey(Schema.NullOr(Schema.Finite)),
-	carry_expiry_months: Schema.optionalKey(Schema.NullOr(Schema.Int)),
 	settlement: Schema.optionalKey(leaveSettlementValueSchema),
+	settlement_source: Schema.optionalKey(Schema.Literals(['STATUTE', 'COMPANY'])),
+	exit_settlement: Schema.optionalKey(leaveExitSettlementValueSchema),
+	exit_settlement_source: Schema.optionalKey(Schema.Literals(['STATUTE', 'COMPANY'])),
 	calculation: Schema.optionalKey(leaveAccountCalculationValueSchema)
 });
 
@@ -345,9 +347,11 @@ export default {
 							status: 'OPEN',
 							entitlement_days: days,
 							accrual_kind: 'EVENT',
-							carry_limit_days: null,
-							carry_expiry_months: null,
+							// A verified event allocation lapses at its window and on exit; nothing carries or pays.
 							settlement: { settlement: 'FORFEIT' },
+							settlement_source: 'COMPANY',
+							exit_settlement: { exit: 'FORFEIT' },
+							exit_settlement_source: 'COMPANY',
 							calculation: {
 								calculated_on: qualifying,
 								service_months: target.serviceMonths,

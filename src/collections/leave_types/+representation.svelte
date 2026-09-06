@@ -51,7 +51,9 @@
 			<Field name="account_basis" label="Entitlement basis" />
 			<Field name="event_unit" label="Event allocation unit" />
 			<Field name="event_window_months" label="Company event window (months)" />
-			<Field name="encash_on_exit" label={t('component.encashed_on_exit')} />
+			<Column span="all"
+				><Field name="exit_settlement" label={t('component.exit_settlement')} /></Column
+			>
 			<Field
 				name="requires_certificate_after_days"
 				label={t('component.certificate_required_after_days')}

@@ -126,46 +126,54 @@ Qualifying event ---> HR verifies actual event, statutory cohort, household refe
                                                                         +----> same application flow above
 ```
 
-## Year creation and carry-forward
+## Year close, carry, cash and leaving early
 
-Accounts are generated automatically for the current and next leave year. A future statutory or
-company rule therefore needs no account-by-account HR action: when the future year account is
-created, the effective versions for that year are compiled into it. Approving a future company plan
-does not retire today's plan early; the daily sweep retires the predecessor only when the successor's
-effective date arrives.
+Accounts are generated for the previous, current and next leave year. Each account is compiled with
+two rules, and both are shown on the balance row with who decided them:
 
-Carry is off by default. A non-null carry rule posts a transfer after year end:
+- `settlement` — what the year does with its unused balance: `FORFEIT`, `CARRY { limit_days,
+expiry_months }` or `COMMUTE { pay_basis }`.
+- `exit_settlement` — what the balance does when the employment ends: `FORFEIT` or
+  `PAY_OUT { pay_basis, misconduct_forfeits }`.
+
+The statute's kind is binding. A company plan may only widen a statutory carry (a higher limit,
+a later or no expiry); it can never change the kind. Where the statute says FORFEIT, or has no
+member for the leave kind, the company plan decides. `settlement_source` and
+`exit_settlement_source` record which side won.
+
+A leave year closes once, on its end date, by the reconciler:
 
 ```text
-old account closing balance = 6 days
-new-year carry cap          = 5 days
+balance at year end = 6 days
 
-old account: CARRY_TRANSFER_OUT  -5
-old account: EXPIRED              -1
-new account: CARRY_FORWARD        +5
-old account: status -> CLOSED
+CARRY  { limit 5, expiry 3 months }      COMMUTE { ORDINARY_DIV26 }       FORFEIT
+  old: CARRY_TRANSFER_OUT   -5             old: COMMUTED  -6                old: EXPIRED  -6
+  new: CARRY_FORWARD        +5             leave_payouts: 6 x rate          (nothing owed)
+       expires_on = 31 March
+  old: EXPIRED              -1
+  old: status -> CLOSED                    old: status -> CLOSED            old: status -> CLOSED
 ```
 
-The transfer runs once. It is blocked while the old account has a held application, preventing the
-same days being spent and carried. Expiring carry is consumed first; only unused carry receives an
-`EXPIRED` entry. If a prior request is later restored, reconciliation appends any additional expiry
-needed rather than making expired carry spendable again. A carry expiry of zero months means no
-expiry.
+Every close line is keyed `close:<account>`, so a rerun restates and never doubles. A request
+still pending approval holds the close until it is decided. An account receives at most one
+carried lot (from its predecessor); on the lot's expiry date whatever of it was not taken lapses
+as one `EXPIRED` line, and a later restore appends only the delta.
 
-## Commutation to cash
+Leaving early closes every open account on the exit date. With `PAY_OUT` the balance becomes an
+`ENCASHED` line and a payout priced at the exit-date terms; `MISCONDUCT` as the employment's
+`exit_reason` forfeits it where the statute says so. With `FORFEIT` the balance lapses.
 
-A `COMMUTE` settlement (PH service incentive leave, TW special leave) converts the unused
-balance to money at year end instead of moving or lapsing it. The same pass that would expire
-posts one `COMMUTED` receipt stating days, daily rate and cash owed, then raises the paying
-arrears entry on the company's `settlement_policy.commute_pay` component in the same invocation —
-deterministic ids on both, so reruns restate. The next draft run captures the paying entry like
-any arrears, and the run's own approval is what releases the money: no separate payout approval
-exists, and a company with no commute component refuses to commute rather than posting a receipt
-no payroll can settle.
+The money is the ledger line itself. Payroll prices each `COMMUTED` and `ENCASHED` line when it
+prints it: the days on the line, the statute's basis from the account's rule (`pay_basis`), and
+the terms in force on the line's date. Nothing stores an amount. The company's `LEAVE_PAYOUT` pay
+component (source `LEAVE_PAYOUT`) prints the total as a base line: a year-end line on the run
+whose period its date names under the pay cutoff, an exit line on the final slip, the run whose
+salary window covers the exit date. Its statutory treatment is the component's, like any other
+earning.
 
-Event accounts do not roll over in January. One account covers the statutory/company event window,
-even when that window crosses calendar years. At the end of the window the reconciler expires the
-unused balance and closes the account; it never creates a second January award.
+Event accounts do not roll over. One account covers the statutory or company event window, even
+across calendar years; at the end of the window the reconciler expires the unused balance and
+closes the account.
 
 ## Statutory qualification and event cohorts
 

@@ -32,6 +32,7 @@ const PUB_STATUTORY_LEAVE = [
 		max_days: null,
 		transition: 'NEXT_LEAVE_YEAR',
 		settlement: { settlement: 'FORFEIT' },
+		exit: { exit: 'FORFEIT' },
 		authority: 'Public fixture — not a sealed statutory table.'
 	}
 ];

@@ -260,6 +260,7 @@ describe('statutory_leave_profile', () => {
 		max_days: 50,
 		transition: 'NEXT_LEAVE_YEAR',
 		settlement: { settlement: 'FORFEIT' },
+		exit: { exit: 'FORFEIT' },
 		authority: 'Fixture statutory source'
 	};
 

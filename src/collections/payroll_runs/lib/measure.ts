@@ -94,6 +94,7 @@ import {
 	type UnpaidLeave
 } from './leave.js';
 import { leaveAccountBalance } from '../../../lib/leave/ledger.js';
+import { leaveDailyRate, type LeavePayBasis } from '../../../lib/leave/rate.js';
 import {
 	extendedAbsenceDays,
 	overtimeAttendanceWindow,
@@ -1752,6 +1753,55 @@ function measureComponent(options: MeasureComponentOptions): Measurement | null 
 		return { amount: magnitude, base: [], proration: [], adjustments };
 	};
 
+	// Leave money is a ledger line: COMMUTED at a year end, ENCASHED on exit. Payroll prices it
+	// when it prints it, from the statute's basis on the account's rule and the terms in force on
+	// the line's date; nothing stores an amount. A year-end line prints in the run whose period
+	// its date names under the pay cutoff, an exit line on the final slip — the run whose salary
+	// window covers the exit date, whatever the cutoff would have named.
+	const measureLeavePayout = (): Measurement | null => {
+		const cutoffDay = decodeNumber(options.configuration.company.pay_cutoff_day);
+		const accounts = new Map(options.bundle.leaveAccounts.map((row) => [row.id, row]));
+		const amount = cents(
+			options.bundle.leaveEntries
+				.filter((entry) => entry.kind === 'COMMUTED' || entry.kind === 'ENCASHED')
+				.filter((entry) => {
+					const on = dateKey(entry.effective_on);
+					if (on == null) return false;
+					return entry.kind === 'ENCASHED'
+						? options.salary.start <= on && on <= options.salary.end
+						: defaultPayPeriod(on, cutoffDay) === options.period;
+				})
+				.reduce((total, entry) => {
+					const account = accounts.get(entry.leave_account_id);
+					if (account == null) return total;
+					const rule = entry.kind === 'ENCASHED' ? account.exit_settlement : account.settlement;
+					const basis =
+						rule != null && 'pay_basis' in rule ? (rule.pay_basis as LeavePayBasis) : null;
+					if (basis == null) return total;
+					const on = dateKey(entry.effective_on) ?? '';
+					const term = options.bundle.termsHistory.find((row) =>
+						coversDate(row.effective_range, on)
+					);
+					return total + Math.abs(decodeNumber(entry.days)) * leaveDailyRate(term, basis);
+				}, 0)
+		);
+		if (amount <= 0) return null;
+		return {
+			amount,
+			base: [
+				{
+					payComponent: options.component,
+					nature: options.component.policy?.kind ?? null,
+					label: options.component.code,
+					amount,
+					entry: { component_code: options.component.code, amount }
+				}
+			],
+			proration: [],
+			adjustments: []
+		};
+	};
+
 	switch (definition.source) {
 		case 'SCHEDULE':
 			return measureSchedule();
@@ -1759,6 +1809,8 @@ function measureComponent(options: MeasureComponentOptions): Measurement | null 
 			return options.entry == null ? null : measureEntry(definition, options.entry);
 		case 'FORMULA':
 			return measureFormula(definition);
+		case 'LEAVE_PAYOUT':
+			return measureLeavePayout();
 		default: {
 			const _exhaustive: never = definition;
 			throw new Error(`Unsupported component source: ${JSON.stringify(_exhaustive)}`);

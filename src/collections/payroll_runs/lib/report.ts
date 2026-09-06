@@ -301,7 +301,7 @@ export function vendorWorkbookRow(payslip: ReportPayslip): Record<string, string
 		back_pay_bonus: componentAmount(payslip, ['BACK_PAY_BONUS']),
 		back_pay_ot: componentAmount(payslip, ['BACK_PAY_OT']),
 		back_pay_basic_npl: componentAmount(payslip, ['BPAYBS']),
-		leave_encashment: componentAmount(payslip, ['ALPAY', 'PHILE']),
+		leave_encashment: componentAmount(payslip, ['ALPAY', 'PHILE', 'LEAVE_PAYOUT']),
 		no_pay_leave: componentAmount(payslip, ['UNPAID_LEAVE_DEDUCTION', 'SOURCE_ABSENCE_CORRECTION']),
 		no_pay_leave_adj: componentAmount(payslip, ['NO_PAY_LEAVE_ADJUSTMENT']),
 		annual_leave_deduction: componentAmount(payslip, ['ANNUAL_LEAVE_DEDUCTION']),

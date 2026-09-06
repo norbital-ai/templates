@@ -124,7 +124,7 @@ function withSpanningLeave(world) {
 		name: 'Annual leave',
 		statutory_kind: 'ANNUAL',
 		eligibility: [],
-		encash_on_exit: false,
+		exit_settlement: { exit: 'FORFEIT' },
 		requires_certificate_after_days: null,
 		accrual: { kind: 'UNLIMITED' },
 		entitlement: { layers: [] },

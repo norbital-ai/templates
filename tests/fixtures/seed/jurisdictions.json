@@ -31,6 +31,11 @@
 				"authority": "Public fixture — not a sealed statutory table.",
 				"settlement": {
 					"settlement": "FORFEIT"
+				},
+				"exit": {
+					"exit": "PAY_OUT",
+					"pay_basis": "ORDINARY_DIV26",
+					"misconduct_forfeits": true
 				}
 			},
 			{
@@ -47,6 +52,9 @@
 				"authority": "Public fixture — not a sealed statutory table.",
 				"settlement": {
 					"settlement": "FORFEIT"
+				},
+				"exit": {
+					"exit": "FORFEIT"
 				}
 			},
 			{
@@ -72,6 +80,9 @@
 				"authority": "Public fixture — qualifying-event workflow test only.",
 				"settlement": {
 					"settlement": "FORFEIT"
+				},
+				"exit": {
+					"exit": "FORFEIT"
 				}
 			}
 		],

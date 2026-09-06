@@ -75,7 +75,13 @@ export const componentDefinitionValueSchema = Schema.Union([
 		source: Schema.Literal('SCHEDULE'),
 		unit: Schema.Literal('MONEY'),
 		reducible: Schema.Boolean
-	})
+	}),
+	/**
+	 * Money the leave ledger says is owed: the COMMUTED and ENCASHED lines the run owns, priced at
+	 * the statute's basis and the terms in force on each line's date. Nobody types it; the component
+	 * only says how it is treated and reported.
+	 */
+	Schema.Struct({ source: Schema.Literal('LEAVE_PAYOUT'), unit: Schema.Literal('MONEY') })
 ]);
 
 export type ComponentDefinition = Schema.Schema.Type<typeof componentDefinitionValueSchema>;

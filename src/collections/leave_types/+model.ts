@@ -1,13 +1,4 @@
-import {
-	boolean,
-	custom,
-	defineModel,
-	enums,
-	integer,
-	text,
-	uuid
-} from '@norbital-ai/bolt/authoring';
-
+import { custom, defineModel, enums, integer, text, uuid } from '@norbital-ai/bolt/authoring';
 export default defineModel(
 	{
 		company_id: uuid().notNull(),
@@ -26,7 +17,8 @@ export default defineModel(
 		event_unit: enums(['DAYS', 'WEEKS']).notNull().default('DAYS'),
 		event_window_months: integer(),
 		eligibility: custom('eligibility_rules').notNull(),
-		encash_on_exit: boolean().notNull(),
+		/** What this type's unused balance does when the employment ends, where the statute is silent. */
+		exit_settlement: custom('leave_exit_settlement').notNull(),
 		requires_certificate_after_days: integer(),
 		accrual: custom('leave_accrual').notNull(),
 		entitlement: custom('leave_entitlement').notNull(),
