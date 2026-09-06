@@ -1,0 +1,60 @@
+{
+  "meta": {
+    "name": "envoy-completion",
+    "recordedAt": "2026-09-06T16:50:17.877Z",
+    "model": "provider/model",
+    "purpose": "Completion turn for the field-ops WhatsApp envoy pipeline test: write_collection update then final text. Pipeline only."
+  },
+  "turns": [
+    {
+      "result": {
+        "_tag": "Message",
+        "message": {
+          "options": {},
+          "role": "assistant",
+          "content": [
+            {
+              "options": {},
+              "type": "tool-call",
+              "id": "call-mutate",
+              "name": "write_collection",
+              "params": {
+                "collection": "job_assignments",
+                "operation": "update",
+                "id": "01990000-0000-7000-8005-000000000001",
+                "values": {
+                  "status": "completed"
+                }
+              },
+              "providerExecuted": false
+            }
+          ]
+        }
+      },
+      "observation": {
+        "provider": "fixture",
+        "model": "provider/model",
+        "operation": "language",
+        "callId": "cassette/recorded-0"
+      },
+      "_tag": "Generated"
+    },
+    {
+      "result": {
+        "_tag": "Message",
+        "message": {
+          "options": {},
+          "role": "assistant",
+          "content": "Marked the assignment completed."
+        }
+      },
+      "observation": {
+        "provider": "fixture",
+        "model": "provider/model",
+        "operation": "language",
+        "callId": "cassette/recorded-1"
+      },
+      "_tag": "Generated"
+    }
+  ]
+}
