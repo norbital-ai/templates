@@ -23,6 +23,22 @@ minimumReleaseAgeExclude:
   - '@norbital-ai/std@0.0.13'
   - '@norbital-ai/ui@0.0.13'
   - '@norbital-ai/test-utilities@0.0.13'
+  - '@norbital-ai/bolt@0.0.14'
+  - '@norbital-ai/bolt-protocol@0.0.14'
+  - '@norbital-ai/bolt-server@0.0.14'
+  - '@norbital-ai/config@0.0.14'
+  - '@norbital-ai/doctor@0.0.14'
+  - '@norbital-ai/std@0.0.14'
+  - '@norbital-ai/ui@0.0.14'
+  - '@norbital-ai/test-utilities@0.0.14'
+  - '@norbital-ai/bolt@0.0.15'
+  - '@norbital-ai/bolt-protocol@0.0.15'
+  - '@norbital-ai/bolt-server@0.0.15'
+  - '@norbital-ai/config@0.0.15'
+  - '@norbital-ai/doctor@0.0.15'
+  - '@norbital-ai/std@0.0.15'
+  - '@norbital-ai/ui@0.0.15'
+  - '@norbital-ai/test-utilities@0.0.15'
 # Host tools execute from this depset, while tenant builds execute in a Linux/musl microVM.
 # Include both host-native and guest-native optional packages on macOS, Windows, and Linux hosts.
 supportedArchitectures:

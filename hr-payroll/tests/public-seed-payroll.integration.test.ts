@@ -61,11 +61,9 @@ test(
 				'pay_components',
 				'shift_definitions',
 				'employments',
-				'leave_accounts',
 				'employment_statutory_facts',
 				'employment_terms',
 				'leave_requests',
-				'leave_entries',
 				'component_entries'
 			]
 		);

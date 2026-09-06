@@ -110,7 +110,7 @@ export default {
 		perRecord: {
 			before: {
 				description:
-					'Validates the atomic statutory regime so coverage is coherent, overtime bands do not overlap, and every limit identity is unique. Lifecycle moves forward only (DRAFT → SEALED → VOIDED, with a stated reason to void); a SEALED or VOIDED profile accepts lifecycle bookkeeping and nothing else.',
+					'Validates the atomic statutory regime so coverage is coherent, overtime bands do not overlap, and every limit identity is unique. Lifecycle moves only forward, and a successor is a coherent revision of its predecessor.',
 				handler: ({ input, existing, api }) => {
 					const regime = input.regime ?? existing?.regime;
 					const currency = input.currency ?? existing?.currency;
@@ -191,6 +191,18 @@ export default {
 							})
 					);
 				}
+			},
+			after: {
+				description:
+					'A newly sealed statutory profile regenerates the leave ledger of every employment its law family governs.',
+				handler: ({ record, previous, api }) =>
+					Effect.gen(function* () {
+						const sealedNow = record.lifecycle === 'SEALED' && record.approval_id == null;
+						const sealedBefore =
+							previous != null && previous.lifecycle === 'SEALED' && previous.approval_id == null;
+						if (!sealedNow || sealedBefore) return;
+						yield* api.automations.run('leave_ledger_refresh', { jurisdiction_code: record.code });
+					})
 			}
 		}
 	}

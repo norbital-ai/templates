@@ -12,38 +12,37 @@ import type { Hooks } from './$types.js';
 const LIMIT = 5_000;
 const PENDING_LIMIT = 2_000;
 
-const eventAccountInput = Schema.Struct({
+/**
+ * What a caller may send: one record for both kinds, because the runtime derives the partial
+ * shape of an update from this declaration and a union has none. The `before` hook below is what
+ * tells a reviewed qualifying-event allocation from a generated yearly account and refuses either
+ * when its own fields are missing.
+ */
+const accountInput = Schema.Struct({
 	employment_id: Schema.String.check(Schema.isUUID()),
 	leave_type_id: Schema.String.check(Schema.isUUID()),
-	account_kind: Schema.Literal('EVENT'),
+	account_kind: Schema.Literals(['EVENT', 'YEAR']),
 	event_reference: Schema.String,
-	qualifying_date: Schema.String,
+	starts_on: Schema.String,
+	ends_on: Schema.String,
+	// A reviewed qualifying-event allocation.
+	qualifying_date: Schema.optionalKey(Schema.String),
 	statutory_cohort_date: Schema.optionalKey(Schema.String),
-	starts_on: Schema.String,
-	ends_on: Schema.String,
-	allocation_units: Schema.Finite,
+	allocation_units: Schema.optionalKey(Schema.Finite),
 	weekly_index: Schema.optionalKey(Schema.NullOr(Schema.Finite)),
-	eligibility_evidence: Schema.String
-});
-
-const generatedYearAccountInput = Schema.Struct({
-	employment_id: Schema.String.check(Schema.isUUID()),
-	leave_type_id: Schema.String.check(Schema.isUUID()),
-	account_kind: Schema.Literal('YEAR'),
-	event_reference: Schema.String,
-	leave_code: Schema.String,
-	leave_name: Schema.String,
-	opening_plan_id: Schema.String.check(Schema.isUUID()),
-	opening_statutory_profile_id: Schema.String.check(Schema.isUUID()),
-	leave_year: Schema.Int,
-	starts_on: Schema.String,
-	ends_on: Schema.String,
-	status: Schema.Literals(['OPEN', 'CLOSED']),
-	entitlement_days: Schema.Finite,
-	accrual_kind: Schema.Literals(['UPFRONT', 'MONTHLY', 'UNLIMITED']),
-	carry_limit_days: Schema.NullOr(Schema.Finite),
-	carry_expiry_months: Schema.NullOr(Schema.Int),
-	calculation: leaveAccountCalculationValueSchema
+	eligibility_evidence: Schema.optionalKey(Schema.String),
+	// A generated yearly account, written by the leave reconciler.
+	leave_code: Schema.optionalKey(Schema.String),
+	leave_name: Schema.optionalKey(Schema.String),
+	opening_plan_id: Schema.optionalKey(Schema.String.check(Schema.isUUID())),
+	opening_statutory_profile_id: Schema.optionalKey(Schema.String.check(Schema.isUUID())),
+	leave_year: Schema.optionalKey(Schema.Int),
+	status: Schema.optionalKey(Schema.Literals(['OPEN', 'CLOSED'])),
+	entitlement_days: Schema.optionalKey(Schema.Finite),
+	accrual_kind: Schema.optionalKey(Schema.Literals(['UPFRONT', 'MONTHLY', 'UNLIMITED'])),
+	carry_limit_days: Schema.optionalKey(Schema.NullOr(Schema.Finite)),
+	carry_expiry_months: Schema.optionalKey(Schema.NullOr(Schema.Int)),
+	calculation: Schema.optionalKey(leaveAccountCalculationValueSchema)
 });
 
 function addMonths(date: string, months: number): string {
@@ -66,7 +65,7 @@ export function eventAllocationDays(units: number, weeklyIndex: number): number 
 
 /** Event accounts are the reviewed allocation fact; yearly accounts remain system-generated. */
 export default {
-	input: Schema.Union([eventAccountInput, generatedYearAccountInput]),
+	input: accountInput,
 	mutate: {
 		perRecord: {
 			before: {
@@ -90,6 +89,15 @@ export default {
 						if (input.account_kind !== 'EVENT') return input;
 						if (input.employment_id == null || input.leave_type_id == null)
 							refuse('An event entitlement needs an employment and event-based leave type.');
+						if (
+							input.qualifying_date == null ||
+							input.starts_on == null ||
+							input.ends_on == null ||
+							input.allocation_units == null
+						)
+							refuse(
+								'An event entitlement states its qualifying date, availability window and allocation.'
+							);
 						const reference = input.event_reference?.trim().toUpperCase();
 						const evidence = input.eligibility_evidence?.trim();
 						const qualifying = dateKey(input.qualifying_date);
@@ -356,6 +364,17 @@ export default {
 								formula_version: 'LEAVE_ACCOUNT_V1'
 							}
 						};
+					})
+			},
+			after: {
+				description:
+					"A qualifying-event account opens its allocation: the employment's leave ledger is regenerated once the account commits.",
+				handler: ({ record, api }) =>
+					Effect.gen(function* () {
+						if (record.approval_id != null) return;
+						yield* api.automations.run('leave_ledger_refresh', {
+							employment_ids: [record.employment_id]
+						});
 					})
 			}
 		}

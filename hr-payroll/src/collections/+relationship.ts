@@ -172,7 +172,13 @@ export default ((r) => ({
 		leave_entry_statutory_profile: r.one.jurisdictions({
 			from: r.leave_entries.statutory_profile_id,
 			to: r.jurisdictions.id
-		})
+		}),
+		leave_entry_request: cascade(
+			r.one.leave_requests({
+				from: r.leave_entries.source_request_id,
+				to: r.leave_requests.id
+			})
+		)
 	},
 
 	shift_definitions: {
@@ -290,6 +296,7 @@ export default ((r) => ({
 	},
 
 	leave_requests: {
+		leave_entry_request: r.many.leave_entries(),
 		request_leave_account: r.one.leave_accounts({
 			from: r.leave_requests.leave_account_id,
 			to: r.leave_accounts.id

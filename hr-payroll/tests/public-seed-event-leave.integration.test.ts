@@ -137,7 +137,16 @@ test(
 					[accountId]
 				);
 			}
-			assert.equal(entries.length, 1, JSON.stringify(entries));
+			if (entries.length !== 1) {
+				const tasks = await session.query(
+					`select * from bolt_task order by created_at desc limit 5`
+				);
+				assert.equal(
+					entries.length,
+					1,
+					`entries ${JSON.stringify(entries)}; tasks ${JSON.stringify(tasks)}`
+				);
+			}
 			const entry = asRecord(entries[0], 'event opening entry');
 			assert.equal(entry.kind, 'OPENING_ENTITLEMENT');
 			assert.equal(Number(entry.days), 20);
