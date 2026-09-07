@@ -73,7 +73,6 @@ export function createPublicPayrollWorld(options: PublicPayrollWorldOptions = {}
 		employment_id: EMPLOYMENT_ID,
 		component_catalogue_id: TRANSPORT_ID,
 		amount: 310,
-		quantity: null,
 		event_date: '2026-01-01',
 		pay_period: null,
 		// A standing allowance: its window lives in the arm, and it pays whole in every period the
@@ -91,10 +90,8 @@ export function createPublicPayrollWorld(options: PublicPayrollWorldOptions = {}
 		employment_id: EMPLOYMENT_ID,
 		component_catalogue_id: TRANSPORT_ID,
 		amount: 100,
-		quantity: null,
 		event_date: '2026-01-15',
 		pay_period: '2026-01',
-		effective_range: null,
 		event: { kind: 'BONUS', note: 'one-off' },
 		corrects_adjustment_id: null,
 		evidence_file: null,
