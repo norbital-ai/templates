@@ -2,6 +2,7 @@
 	import { decodeNumber } from '@norbital-ai/std/json';
 	import { DataRenderer, FormattedValueRenderer } from '@norbital-ai/ui/data-renderer';
 	import { client } from '$bolt/client';
+	import { AppShell } from '@norbital-ai/ui/app-shell';
 	import { getCollectionClientForSurface } from '@norbital-ai/ui/collection-runtime';
 	import { useI18n } from '@norbital-ai/ui/i18n';
 	import AppHeaderActions from '@norbital-ai/bolt/client/app-header-actions';
@@ -129,23 +130,6 @@
 				}
 	);
 </script>
-
-<svelte:head>
-	<title>Sales CRM</title>
-	<meta
-		name="description"
-		content="Sales pipeline, quotes, accounts, contacts, product catalogue, billing, contracts, and payments"
-	/>
-	<meta name="bolt:icon" content="lucide:handshake" />
-	<meta
-		name="bolt:thumbnail"
-		content="/__bolt/request/api/template-seed-assets/crm/app-media/crm-banner.webp"
-	/>
-	<meta
-		name="bolt:banner"
-		content="/__bolt/request/api/template-seed-assets/crm/app-media/crm-banner.webp"
-	/>
-</svelte:head>
 
 {#snippet accountScopeActions()}
 	<Combobox
@@ -533,7 +517,13 @@
 	{@render accountScopeActions()}
 </AppHeaderActions>
 
-<Cover as="main">
+<AppShell
+	icon="lucide:handshake"
+	title="Sales CRM"
+	description="Sales pipeline, quotes, accounts, contacts, product catalogue, billing, contracts, and payments"
+	banner="/__bolt/request/api/template-seed-assets/crm/app-media/crm-banner.webp"
+	variant="full"
+>
 	<Tabs
 		animate={false}
 		config={[
@@ -600,4 +590,4 @@
 			}
 		] satisfies TabConfig[]}
 	/>
-</Cover>
+</AppShell>

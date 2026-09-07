@@ -6,6 +6,7 @@
 	import type { TenantI18nKeys } from '$bolt/i18n-keys';
 	import { CollectionForm } from '@norbital-ai/ui/collection-form';
 	import { Column, Grid } from '@norbital-ai/ui/layout';
+	import { RecordShell } from '@norbital-ai/ui/record-shell';
 	import type { CollectionRelationOptions } from '@norbital-ai/std/collection';
 
 	let { record, close }: RepresentationProps = $props();
@@ -22,41 +23,50 @@
 	onAfterSubmit={record ? undefined : close}
 >
 	{#snippet children({ Field })}
-		<Field name="binding_hash" hidden />
-		<Field name="share_token_hash" hidden />
-		<Field name="share_expires_at" hidden />
-		<Field name="share_revoked_at" hidden />
-		<Field name="acknowledged_at" hidden />
-		<Grid minimum="compact">
-			<Field
-				name="quote_id"
-				label={t('component.quote')}
-				relationOptions={{
-					label: (record) => {
-						const docNo = record.doc_no;
-						const title = record.title;
-						if (docNo && title) return `${docNo}: ${title}`;
-						return docNo != null && docNo !== '' ? String(docNo) : '—';
-					},
-					orderBy: { doc_no: 'desc' },
-					limit: 5000
-				} satisfies CollectionRelationOptions}
-			/>
-			<Field name="variant" />
-			<Field name="status" />
-			<Field name="generated_file" label={t('component.generated_contract')} />
-			<Field name="counterparty_file" label={t('component.counterparty_copy')} />
-			<Field
-				name="owner_id"
-				label={t('component.owner')}
-				relationOptions={{
-					label: (record) =>
-						record.name != null && record.name !== '' ? String(record.name) : '—',
-					orderBy: { name: 'asc' },
-					limit: 500
-				} satisfies CollectionRelationOptions}
-			/>
-			<Column span="all"><Field name="void_reason" label={t('component.void_reason')} /></Column>
-		</Grid>
+		<RecordShell
+			title={record?.binding_hash
+				? `Contract ${String(record.binding_hash).slice(0, 12)}`
+				: 'New contract signing'}
+			subtitle={record
+				? `${record.variant ?? 'contract'} · ${record.status ?? 'unstamped'}`
+				: undefined}
+		>
+			<Field name="binding_hash" hidden />
+			<Field name="share_token_hash" hidden />
+			<Field name="share_expires_at" hidden />
+			<Field name="share_revoked_at" hidden />
+			<Field name="acknowledged_at" hidden />
+			<Grid minimum="compact">
+				<Field
+					name="quote_id"
+					label={t('component.quote')}
+					relationOptions={{
+						label: (record) => {
+							const docNo = record.doc_no;
+							const title = record.title;
+							if (docNo && title) return `${docNo}: ${title}`;
+							return docNo != null && docNo !== '' ? String(docNo) : '—';
+						},
+						orderBy: { doc_no: 'desc' },
+						limit: 5000
+					} satisfies CollectionRelationOptions}
+				/>
+				<Field name="variant" />
+				<Field name="status" />
+				<Field name="generated_file" label={t('component.generated_contract')} />
+				<Field name="counterparty_file" label={t('component.counterparty_copy')} />
+				<Field
+					name="owner_id"
+					label={t('component.owner')}
+					relationOptions={{
+						label: (record) =>
+							record.name != null && record.name !== '' ? String(record.name) : '—',
+						orderBy: { name: 'asc' },
+						limit: 500
+					} satisfies CollectionRelationOptions}
+				/>
+				<Column span="all"><Field name="void_reason" label={t('component.void_reason')} /></Column>
+			</Grid>
+		</RecordShell>
 	{/snippet}
 </CollectionForm>

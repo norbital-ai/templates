@@ -6,6 +6,7 @@
 	import type { RepresentationProps } from './$types.js';
 	import { CollectionForm } from '@norbital-ai/ui/collection-form';
 	import { Column, Grid } from '@norbital-ai/ui/layout';
+	import { RecordShell } from '@norbital-ai/ui/record-shell';
 	import type { CollectionRelationOptions } from '@norbital-ai/std/collection';
 
 	let { record, close }: RepresentationProps = $props();
@@ -22,31 +23,36 @@
 	onAfterSubmit={record ? undefined : close}
 >
 	{#snippet children({ Field })}
-		<Grid minimum="compact">
-			<Field name="code" label={t('component.code')} />
-			<Field name="name" />
-			<Field name="external_code" />
-			<Field name="unit" label={t('component.unit')} />
-			<Field name="unit_price" label={t('component.unit_price')} />
-			<Field name="tax_rate" label={t('component.tax_rate')} />
-			<Field name="qty_on_hand" label={t('component.on_hand')} />
-			<Field name="active" />
-			<Field
-				name="main_supplier_id"
-				label={t('component.supplier')}
-				relationOptions={{
-					label: (record) => {
-						const code = record.code;
-						const name = record.name;
-						if (code && name) return `${code} · ${name}`;
-						return name != null && name !== '' ? String(name) : '—';
-					},
-					orderBy: { name: 'asc' },
-					limit: 5000
-				} satisfies CollectionRelationOptions}
-			/>
-			<Column span="all"><Field name="description" /></Column>
-			<Column span="all"><Field name="spec" /></Column>
-		</Grid>
+		<RecordShell
+			title={record?.name ?? 'New product'}
+			subtitle={record ? `${record.code} · ${record.active ? 'Active' : 'Inactive'}` : undefined}
+		>
+			<Grid minimum="compact">
+				<Field name="code" label={t('component.code')} />
+				<Field name="name" />
+				<Field name="external_code" />
+				<Field name="unit" label={t('component.unit')} />
+				<Field name="unit_price" label={t('component.unit_price')} />
+				<Field name="tax_rate" label={t('component.tax_rate')} />
+				<Field name="qty_on_hand" label={t('component.on_hand')} />
+				<Field name="active" />
+				<Field
+					name="main_supplier_id"
+					label={t('component.supplier')}
+					relationOptions={{
+						label: (record) => {
+							const code = record.code;
+							const name = record.name;
+							if (code && name) return `${code} · ${name}`;
+							return name != null && name !== '' ? String(name) : '—';
+						},
+						orderBy: { name: 'asc' },
+						limit: 5000
+					} satisfies CollectionRelationOptions}
+				/>
+				<Column span="all"><Field name="description" /></Column>
+				<Column span="all"><Field name="spec" /></Column>
+			</Grid>
+		</RecordShell>
 	{/snippet}
 </CollectionForm>

@@ -6,6 +6,7 @@
 	import type { TenantI18nKeys } from '$bolt/i18n-keys';
 	import { CollectionForm } from '@norbital-ai/ui/collection-form';
 	import { Grid } from '@norbital-ai/ui/layout';
+	import { RecordShell } from '@norbital-ai/ui/record-shell';
 	import type { CollectionRelationOptions } from '@norbital-ai/std/collection';
 
 	let { record, close }: RepresentationProps = $props();
@@ -22,42 +23,49 @@
 	onAfterSubmit={record ? undefined : close}
 >
 	{#snippet children({ Field })}
-		<Field name="supplier_id" hidden />
-		<Field name="supplier_code" hidden />
-		<Field name="supplier_name" hidden />
-		<Field name="currency" hidden />
-		<Field name="tax_inclusive" hidden />
-		<Field name="net" hidden />
-		<Field name="tax" hidden />
-		<Field name="gross" hidden />
-		<Field name="confirmed_at" hidden />
-		<Field name="cancelled_at" hidden />
-		<Field name="cancel_reason" hidden />
-		<Grid minimum="compact">
-			<Field name="doc_no" label={t('component.doc_no')} />
-			<Field
-				name="purchase_order_id"
-				label={t('component.purchase_order')}
-				relationOptions={{
-					label: (record) =>
-						record.doc_no != null && record.doc_no !== '' ? String(record.doc_no) : '—',
-					orderBy: { doc_no: 'desc' },
-					limit: 5000
-				} satisfies CollectionRelationOptions}
-			/>
-			<Field name="invoice_reference" label={t('component.supplier_invoice_no')} />
-			<Field name="invoice_date" label={t('component.invoice_date')} />
-			<Field name="status" />
-			<Field
-				name="owner_id"
-				label={t('component.owner')}
-				relationOptions={{
-					label: (record) =>
-						record.name != null && record.name !== '' ? String(record.name) : '—',
-					orderBy: { name: 'asc' },
-					limit: 500
-				} satisfies CollectionRelationOptions}
-			/>
-		</Grid>
+		<RecordShell
+			title={record?.doc_no ?? 'New purchase invoice'}
+			subtitle={record
+				? `${record.status ?? 'draft'}${record.supplier_name ? ` · ${record.supplier_name}` : ''}`
+				: undefined}
+		>
+			<Field name="supplier_id" hidden />
+			<Field name="supplier_code" hidden />
+			<Field name="supplier_name" hidden />
+			<Field name="currency" hidden />
+			<Field name="tax_inclusive" hidden />
+			<Field name="net" hidden />
+			<Field name="tax" hidden />
+			<Field name="gross" hidden />
+			<Field name="confirmed_at" hidden />
+			<Field name="cancelled_at" hidden />
+			<Field name="cancel_reason" hidden />
+			<Grid minimum="compact">
+				<Field name="doc_no" label={t('component.doc_no')} />
+				<Field
+					name="purchase_order_id"
+					label={t('component.purchase_order')}
+					relationOptions={{
+						label: (record) =>
+							record.doc_no != null && record.doc_no !== '' ? String(record.doc_no) : '—',
+						orderBy: { doc_no: 'desc' },
+						limit: 5000
+					} satisfies CollectionRelationOptions}
+				/>
+				<Field name="invoice_reference" label={t('component.supplier_invoice_no')} />
+				<Field name="invoice_date" label={t('component.invoice_date')} />
+				<Field name="status" />
+				<Field
+					name="owner_id"
+					label={t('component.owner')}
+					relationOptions={{
+						label: (record) =>
+							record.name != null && record.name !== '' ? String(record.name) : '—',
+						orderBy: { name: 'asc' },
+						limit: 500
+					} satisfies CollectionRelationOptions}
+				/>
+			</Grid>
+		</RecordShell>
 	{/snippet}
 </CollectionForm>

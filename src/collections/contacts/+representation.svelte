@@ -6,6 +6,7 @@
 	import type { RepresentationProps } from './$types.js';
 	import { CollectionForm } from '@norbital-ai/ui/collection-form';
 	import { Grid } from '@norbital-ai/ui/layout';
+	import { RecordShell } from '@norbital-ai/ui/record-shell';
 	import type { CollectionRelationOptions } from '@norbital-ai/std/collection';
 
 	let { record, close }: RepresentationProps = $props();
@@ -29,23 +30,32 @@
 	onAfterSubmit={record ? undefined : close}
 >
 	{#snippet children({ Field })}
-		<Grid minimum="compact">
-			<Field
-				name="account_id"
-				label={t('component.account')}
-				relationOptions={{
-					label: (record) =>
-						record.name != null && record.name !== '' ? String(record.name) : '—',
-					orderBy: { name: 'asc' },
-					limit: 5000
-				} satisfies CollectionRelationOptions}
-			/>
-			<Field name="first_name" label={t('component.first_name')} />
-			<Field name="last_name" label={t('component.last_name')} />
-			<Field name="email" />
-			<Field name="title" />
-			<Field name="department" />
-			<Field name="active" />
-		</Grid>
+		<RecordShell
+			title={record
+				? `${record.first_name} ${record.last_name}`.trim() || 'Unnamed contact'
+				: 'New contact'}
+			subtitle={record
+				? [record.email, record.title ?? record.department].filter(Boolean).join(' · ') || undefined
+				: undefined}
+		>
+			<Grid minimum="compact">
+				<Field
+					name="account_id"
+					label={t('component.account')}
+					relationOptions={{
+						label: (record) =>
+							record.name != null && record.name !== '' ? String(record.name) : '—',
+						orderBy: { name: 'asc' },
+						limit: 5000
+					} satisfies CollectionRelationOptions}
+				/>
+				<Field name="first_name" label={t('component.first_name')} />
+				<Field name="last_name" label={t('component.last_name')} />
+				<Field name="email" />
+				<Field name="title" />
+				<Field name="department" />
+				<Field name="active" />
+			</Grid>
+		</RecordShell>
 	{/snippet}
 </CollectionForm>

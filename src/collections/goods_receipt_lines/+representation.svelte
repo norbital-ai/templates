@@ -6,6 +6,7 @@
 	import type { TenantI18nKeys } from '$bolt/i18n-keys';
 	import { CollectionForm } from '@norbital-ai/ui/collection-form';
 	import { Grid } from '@norbital-ai/ui/layout';
+	import { RecordShell } from '@norbital-ai/ui/record-shell';
 	import type { CollectionRelationOptions } from '@norbital-ai/std/collection';
 
 	let { record, close }: RepresentationProps = $props();
@@ -22,32 +23,39 @@
 	onAfterSubmit={record ? undefined : close}
 >
 	{#snippet children({ Field })}
-		<Grid minimum="compact">
-			<Field
-				name="goods_receipt_id"
-				label={t('component.goods_receipt')}
-				relationOptions={{
-					label: (record) =>
-						record.doc_no != null && record.doc_no !== '' ? String(record.doc_no) : '—',
-					orderBy: { doc_no: 'desc' },
-					limit: 5000
-				} satisfies CollectionRelationOptions}
-			/>
-			<Field
-				name="purchase_order_line_id"
-				label={t('component.order_line')}
-				relationOptions={{
-					label: (record) => {
-						const name = record.product_name;
-						const quantity = record.quantity;
-						if (name && quantity != null) return `${name} × ${quantity}`;
-						return name != null && name !== '' ? String(name) : '—';
-					},
-					orderBy: { product_name: 'asc' },
-					limit: 5000
-				} satisfies CollectionRelationOptions}
-			/>
-			<Field name="quantity_received" label={t('component.received_quantity')} />
-		</Grid>
+		<RecordShell
+			title={record ? `Receipt line × ${record.quantity_received}` : 'New receipt line'}
+			subtitle={record
+				? `Receipt ${String(record.goods_receipt_id).slice(0, 8)} · Order line ${String(record.purchase_order_line_id).slice(0, 8)}`
+				: undefined}
+		>
+			<Grid minimum="compact">
+				<Field
+					name="goods_receipt_id"
+					label={t('component.goods_receipt')}
+					relationOptions={{
+						label: (record) =>
+							record.doc_no != null && record.doc_no !== '' ? String(record.doc_no) : '—',
+						orderBy: { doc_no: 'desc' },
+						limit: 5000
+					} satisfies CollectionRelationOptions}
+				/>
+				<Field
+					name="purchase_order_line_id"
+					label={t('component.order_line')}
+					relationOptions={{
+						label: (record) => {
+							const name = record.product_name;
+							const quantity = record.quantity;
+							if (name && quantity != null) return `${name} × ${quantity}`;
+							return name != null && name !== '' ? String(name) : '—';
+						},
+						orderBy: { product_name: 'asc' },
+						limit: 5000
+					} satisfies CollectionRelationOptions}
+				/>
+				<Field name="quantity_received" label={t('component.received_quantity')} />
+			</Grid>
+		</RecordShell>
 	{/snippet}
 </CollectionForm>
