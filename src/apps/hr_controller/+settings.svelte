@@ -299,7 +299,6 @@
 				<h2 class="text-sm font-semibold">
 					{t('app.settings.lineage_title', { code: code ?? '' })}
 				</h2>
-				<p class="text-meta">{t('app.settings.lineage_description')}</p>
 				{#if inForce == null}
 					<p class="text-sm text-destructive" data-settings-no-version-in-force>
 						{t('app.settings.no_version_in_force')}
@@ -500,8 +499,10 @@
 			vertical scrollport and the wheel never dies over chrome or inside a nested
 			region. Inset parity with the hero comes from the timeline's INSET_X, the
 			strip's INSET_MX, and the panels' own padding; no content adds its own.
+			No edge fade: the mask would wash out the sticky strip as content slides
+			under it; the stable scrollbar gutter marks the scrollport instead.
 		-->
-		<Scroll name={t('app.settings.header_title')} layout="stack" gap="md">
+		<Scroll name={t('app.settings.header_title')} layout="stack" gap="md" fade={false}>
 			{@render timeline()}
 			<Tabs
 				animate={false}
