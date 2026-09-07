@@ -39,8 +39,28 @@ function samePayslip(
 					where: { id: { eq: id } },
 					columns: { payslip_id: true }
 				});
-			case 'COMPONENT_ENTRY_INPUT':
-				return api.db.payslip_component_entry_inputs.findFirst({
+			case 'CLAIM_REQUEST_INPUT':
+				return api.db.payslip_claim_request_inputs.findFirst({
+					where: { id: { eq: id } },
+					columns: { payslip_id: true }
+				});
+			case 'ALLOWANCE_REQUEST_INPUT':
+				return api.db.payslip_allowance_request_inputs.findFirst({
+					where: { id: { eq: id } },
+					columns: { payslip_id: true }
+				});
+			case 'BONUS_REQUEST_INPUT':
+				return api.db.payslip_bonus_request_inputs.findFirst({
+					where: { id: { eq: id } },
+					columns: { payslip_id: true }
+				});
+			case 'ARREARS_REQUEST_INPUT':
+				return api.db.payslip_arrears_request_inputs.findFirst({
+					where: { id: { eq: id } },
+					columns: { payslip_id: true }
+				});
+			case 'CORRECTION_REQUEST_INPUT':
+				return api.db.payslip_correction_request_inputs.findFirst({
 					where: { id: { eq: id } },
 					columns: { payslip_id: true }
 				});

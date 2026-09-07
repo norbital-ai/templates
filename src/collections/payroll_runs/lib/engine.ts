@@ -379,7 +379,11 @@ export function buildPayrollRun(prepared: PreparedRun): PayrollRunGraph {
 			(total, payslip) =>
 				total +
 				payslip.payslip_work_day_input_payslip.length +
-				payslip.payslip_component_entry_input_payslip.length +
+				payslip.payslip_claim_request_input_payslip.length +
+				payslip.payslip_allowance_request_input_payslip.length +
+				payslip.payslip_bonus_request_input_payslip.length +
+				payslip.payslip_arrears_request_input_payslip.length +
+				payslip.payslip_correction_request_input_payslip.length +
 				payslip.payslip_leave_request_input_payslip.length +
 				payslip.payslip_loan_repayment_input_payslip.length,
 			0

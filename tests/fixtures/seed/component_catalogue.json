@@ -178,6 +178,6 @@
 			"cap": null,
 			"settlement": "PAYROLL"
 		},
-		"entry_kind": "MANUAL_ADJUSTMENT"
+		"entry_kind": "CORRECTION"
 	}
 ]

@@ -24,7 +24,11 @@ export type PayrollWorld = {
 	readonly employees: PayrollRow[];
 	readonly employment_terms: PayrollRow[];
 	readonly employment_statutory_facts: PayrollRow[];
-	readonly component_entries: PayrollRow[];
+	readonly claim_requests: PayrollRow[];
+	readonly allowance_requests: PayrollRow[];
+	readonly bonus_requests: PayrollRow[];
+	readonly arrears_requests: PayrollRow[];
+	readonly correction_requests: PayrollRow[];
 	readonly loans: PayrollRow[];
 	readonly loan_repayments: PayrollRow[];
 	readonly leave_requests: PayrollRow[];
@@ -32,7 +36,11 @@ export type PayrollWorld = {
 	readonly employee_children: PayrollRow[];
 	readonly payroll_runs: PayrollRow[];
 	readonly payslips: PayrollRow[];
-	readonly payslip_component_entry_inputs: PayrollRow[];
+	readonly payslip_claim_request_inputs: PayrollRow[];
+	readonly payslip_allowance_request_inputs: PayrollRow[];
+	readonly payslip_bonus_request_inputs: PayrollRow[];
+	readonly payslip_arrears_request_inputs: PayrollRow[];
+	readonly payslip_correction_request_inputs: PayrollRow[];
 	readonly payslip_adjustments: PayrollRow[];
 	readonly payslip_leave_request_inputs: PayrollRow[];
 	readonly payslip_loan_repayment_inputs: PayrollRow[];
@@ -148,7 +156,11 @@ export function memoryPayrollApi(world: PayrollWorld) {
 			employees: collection('employees'),
 			employment_terms: collection('employment_terms'),
 			employment_statutory_facts: collection('employment_statutory_facts'),
-			component_entries: collection('component_entries'),
+			claim_requests: collection('claim_requests'),
+			allowance_requests: collection('allowance_requests'),
+			bonus_requests: collection('bonus_requests'),
+			arrears_requests: collection('arrears_requests'),
+			correction_requests: collection('correction_requests'),
 			loans: collection('loans'),
 			loan_repayments: collection('loan_repayments'),
 			leave_requests: collection('leave_requests'),
@@ -156,7 +168,11 @@ export function memoryPayrollApi(world: PayrollWorld) {
 			employee_children: collection('employee_children'),
 			payroll_runs: collection('payroll_runs'),
 			payslips: collection('payslips'),
-			payslip_component_entry_inputs: collection('payslip_component_entry_inputs'),
+			payslip_claim_request_inputs: collection('payslip_claim_request_inputs'),
+			payslip_allowance_request_inputs: collection('payslip_allowance_request_inputs'),
+			payslip_bonus_request_inputs: collection('payslip_bonus_request_inputs'),
+			payslip_arrears_request_inputs: collection('payslip_arrears_request_inputs'),
+			payslip_correction_request_inputs: collection('payslip_correction_request_inputs'),
 			payslip_adjustments: collection('payslip_adjustments'),
 			payslip_leave_request_inputs: collection('payslip_leave_request_inputs'),
 			payslip_loan_repayment_inputs: collection('payslip_loan_repayment_inputs')

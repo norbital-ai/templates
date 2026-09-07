@@ -123,7 +123,7 @@ function measure(overrides = {}) {
 				}
 			],
 			statutoryFacts: [],
-			componentEntries: [],
+			payRequests: [],
 			loans: [],
 			loanRepayments: [],
 			ledger: [],
@@ -324,7 +324,11 @@ test('a run captures every record it consumed, and adjustments name the captures
 				charges: [],
 				captured: {
 					workDays: ['wd-1', 'wd-zero'],
-					componentEntries: [],
+					// Each family is named even when it captured nothing: the graph emits one junction
+					// set per family, and an omitted key is a missing table rather than an empty one.
+					payRequests: Object.fromEntries(
+						['CLAIM', 'ALLOWANCE', 'BONUS', 'ARREARS', 'CORRECTION'].map((family) => [family, []])
+					),
 					leaveRequests: ['lr-1'],
 					loanRepayments: ['rp-1']
 				}
@@ -340,7 +344,7 @@ test('a run captures every record it consumed, and adjustments name the captures
 	assert.equal(payslip.proration.length, 1);
 	assert.deepEqual(payslip.statutory, []);
 
-	// The four captured-input junctions, each with a runtime-minted id and the period that holds it.
+	// The eight captured-input junctions, each with a runtime-minted id and the period holding it.
 	assert.deepEqual(
 		payslip.payslip_work_day_input_payslip.map((row) => [row.work_day_id, row.period !== '']),
 		[
@@ -371,7 +375,11 @@ test('a run captures every record it consumed, and adjustments name the captures
 	// held by exactly the payslip that stored it.
 	const junctionIds = new Set([
 		...payslip.payslip_work_day_input_payslip.map((row) => row.id),
-		...payslip.payslip_component_entry_input_payslip.map((row) => row.id),
+		...payslip.payslip_claim_request_input_payslip.map((row) => row.id),
+		...payslip.payslip_allowance_request_input_payslip.map((row) => row.id),
+		...payslip.payslip_bonus_request_input_payslip.map((row) => row.id),
+		...payslip.payslip_arrears_request_input_payslip.map((row) => row.id),
+		...payslip.payslip_correction_request_input_payslip.map((row) => row.id),
 		...payslip.payslip_leave_request_input_payslip.map((row) => row.id),
 		...payslip.payslip_loan_repayment_input_payslip.map((row) => row.id)
 	]);
@@ -535,9 +543,29 @@ test('deleting a payroll run releases its captures — the declarations that cas
 		'work-day captures must cascade from payslips, or deleting a run leaves the source locked'
 	);
 	assert.ok(
-		markersOf(graph.payslip_component_entry_inputs.payslip_component_entry_input_payslip).includes(
+		markersOf(graph.payslip_claim_request_inputs.payslip_claim_request_input_payslip).includes(
 			'cascade'
 		)
+	);
+	assert.ok(
+		markersOf(
+			graph.payslip_allowance_request_inputs.payslip_allowance_request_input_payslip
+		).includes('cascade')
+	);
+	assert.ok(
+		markersOf(graph.payslip_bonus_request_inputs.payslip_bonus_request_input_payslip).includes(
+			'cascade'
+		)
+	);
+	assert.ok(
+		markersOf(graph.payslip_arrears_request_inputs.payslip_arrears_request_input_payslip).includes(
+			'cascade'
+		)
+	);
+	assert.ok(
+		markersOf(
+			graph.payslip_correction_request_inputs.payslip_correction_request_input_payslip
+		).includes('cascade')
 	);
 	assert.ok(
 		markersOf(graph.payslip_leave_request_inputs.payslip_leave_request_input_payslip).includes(
@@ -555,15 +583,32 @@ test('deleting a payroll run releases its captures — the declarations that cas
 	/**
 	 * And the edges that must NOT cascade, asserted for the same reason.
 	 *
-	 * The junction's source edge is `restrict`: a captured work day, component entry, loan repayment
-	 * or leave request cannot be deleted out from under the run that read it. That restrict is the
-	 * settlement lock's second half.
+	 * The junction's source edge is `restrict`: a captured work day, pay request, loan repayment or
+	 * leave request cannot be deleted out from under the run that read it. That restrict is the
+	 * settlement lock's second half, and it has to hold on all five request families — one of them
+	 * cascading would erase a consumed record when its payslip went.
 	 */
 	for (const [edge, name] of [
 		[graph.payslip_work_day_inputs.payslip_work_day_input_work_day, 'work days'],
 		[
-			graph.payslip_component_entry_inputs.component_entry_input_component_entry,
-			'component entries'
+			graph.payslip_claim_request_inputs.payslip_claim_request_input_claim_request,
+			'claim requests'
+		],
+		[
+			graph.payslip_allowance_request_inputs.payslip_allowance_request_input_allowance_request,
+			'allowance requests'
+		],
+		[
+			graph.payslip_bonus_request_inputs.payslip_bonus_request_input_bonus_request,
+			'bonus requests'
+		],
+		[
+			graph.payslip_arrears_request_inputs.payslip_arrears_request_input_arrears_request,
+			'arrears requests'
+		],
+		[
+			graph.payslip_correction_request_inputs.payslip_correction_request_input_correction_request,
+			'correction requests'
 		],
 		[graph.payslip_leave_request_inputs.leave_request_input_leave_request, 'leave requests'],
 		[graph.payslip_loan_repayment_inputs.loan_repayment_input_loan_repayment, 'loan repayments']

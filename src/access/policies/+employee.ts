@@ -1,5 +1,4 @@
 import {
-	NOT_A_CORRECTION,
 	OWN_EMPLOYMENT,
 	leaveCalendarGrants,
 	employeeSelfServiceGrants,
@@ -41,8 +40,17 @@ const ownEmploymentStatutoryFact = {
 	statutory_fact_employment: { some: OWN_EMPLOYMENT }
 } as const;
 const ownWorkDay = { work_day_employment: { some: OWN_EMPLOYMENT } } as const;
-const ownComponentEntry = {
-	component_entry_employment: { some: OWN_EMPLOYMENT }
+const ownClaimRequest = {
+	claim_request_employment: { some: OWN_EMPLOYMENT }
+} as const;
+const ownAllowanceRequest = {
+	allowance_request_employment: { some: OWN_EMPLOYMENT }
+} as const;
+const ownBonusRequest = {
+	bonus_request_employment: { some: OWN_EMPLOYMENT }
+} as const;
+const ownArrearsRequest = {
+	arrears_request_employment: { some: OWN_EMPLOYMENT }
 } as const;
 const ownLoan = { loan_employment: { some: OWN_EMPLOYMENT } } as const;
 const ownLeaveRequest = { leave_request_employment: { some: OWN_EMPLOYMENT } } as const;
@@ -52,21 +60,6 @@ const ownLeaveEntry = {
 } as const;
 const ownEmployeeChild = { child_employment: { some: OWN_EMPLOYMENT } } as const;
 
-/**
- * Their own component entries, minus the corrections HR raises about them.
- *
- * The owner's rule is that corrections are visible only to the HR policies, and this is where that
- * is enforced — in the row predicate, not by leaving the screen off the employee app. An employee
- * who guessed the collection name and queried it directly gets the same answer the screen gives
- * them, because it is the same predicate. Their loans are a separate collection with no hiding to
- * do, so they read plainly.
- *
- * The correction discriminator and ownership path are two branches of one explicit `AND`. A second
- * grant would be a union and would show the employee every correction in the workspace.
- */
-const ownEntryNotACorrection = {
-	AND: [ownComponentEntry, NOT_A_CORRECTION]
-} as const;
 const ownLoanNotTheirChildren = ownLoan;
 
 export default {
@@ -100,7 +93,22 @@ export default {
 		grantOn('work_days', 'read', {
 			where: ownWorkDay
 		}),
-		grantOn('component_entries', 'read', { where: ownEntryNotACorrection }),
+		/**
+		 * Their own claims, allowances, bonuses and arrears — and no grant at all on
+		 * `correction_requests`.
+		 *
+		 * The owner's rule is that corrections are visible only to the HR policies. That used to be
+		 * a row predicate reaching two levels into a jsonb discriminator
+		 * (`event -> 'kind' <> 'MANUAL_ADJUSTMENT'`), explicitly `AND`ed with the ownership path
+		 * because a second grant would have been a union and would have shown the employee every
+		 * correction in the workspace. A correction is its own collection now, so the rule is the
+		 * absence of a grant — which cannot be widened by a union, cannot drift from the screen,
+		 * and needs no predicate to state.
+		 */
+		grantOn('claim_requests', 'read', { where: ownClaimRequest }),
+		grantOn('allowance_requests', 'read', { where: ownAllowanceRequest }),
+		grantOn('bonus_requests', 'read', { where: ownBonusRequest }),
+		grantOn('arrears_requests', 'read', { where: ownArrearsRequest }),
 		grantOn('loans', 'read', { where: ownLoanNotTheirChildren }),
 		grantOn('leave_requests', 'read', {
 			where: ownLeaveRequest

@@ -72,7 +72,8 @@ function world(options = {}) {
 				id: 'employee',
 				gender: options.gender ?? 'FEMALE',
 				date_of_birth: '1990-05-05',
-				nationality: 'MY'
+				nationality: 'MY',
+				residency_status: options.residencyStatus ?? 'FOREIGNER'
 			}
 		],
 		employment_terms: [
@@ -954,4 +955,83 @@ test("a person's facts never start the reconciler; a catalogue edit does, for th
 		})
 	);
 	assert.deepEqual(started, [['leave_ledger_refresh', { settings_code: 'FX' }]]);
+});
+
+/**
+ * National service leave: unmetered, and only for the men this jurisdiction can call up.
+ *
+ * The requirement was that it "just be unlimited for men in Singapore — it needs evidence anyway
+ * to take". Unlimited is `accrual: UNLIMITED`, which the reconciler already handles: it opens an
+ * account so requests have something to hang on and awards it nothing, because the liability is
+ * the state's to set and the call-up order is the evidence. What did not exist was any way to say
+ * *which* men. `employee.citizenship` used to be fed from `employees.nationality`, which is free
+ * text — the seed bank alone carries INDONESIAN, JAPANESE and Filipino — so a rule written against
+ * it would have matched nobody and reported the empty answer as the correct one.
+ *
+ * `residency_status` is the fact it is fed from now, and it is relative to the jurisdiction the
+ * employment sits under: a leave row already lives beneath a settings lineage, so CITIZEN under
+ * the SG lineage is a Singapore citizen. That is why the row below names no country.
+ */
+const nsLeave = () =>
+	catalogueLeave({
+		id: 'type-ns',
+		code: 'NS',
+		name: 'National service leave',
+		authority: 'Fixture s.13',
+		eligibility:
+			'employee.gender == "MALE" && employee.citizenship in ["CITIZEN", "PERMANENT_RESIDENT"]',
+		entitlement: { layers: [] },
+		accrual: { kind: 'UNLIMITED' },
+		requires_certificate_after_days: 0
+	});
+
+test('national service leave opens an unmetered account and awards it nothing', async () => {
+	const soldier = world({
+		types: [nsLeave()],
+		gender: 'MALE',
+		residencyStatus: 'CITIZEN'
+	});
+	const result = await soldier.run('2026-09-07');
+	assert.deepEqual(
+		soldier.context.leave_entitlements
+			.map((row) => `${row.leave_code}:${row.leave_year}`)
+			.toSorted(),
+		['NS:2025', 'NS:2026', 'NS:2027']
+	);
+	const account = soldier.context.leave_entitlements.find((row) => row.leave_year === 2026);
+	assert.equal(Number(account.entitlement_days), 0, 'an unmetered account has no balance to award');
+	assert.equal(account.accrual_kind, 'UNLIMITED');
+	assert.equal(account.status, 'OPEN');
+	assert.deepEqual(
+		soldier.lines(entitlementId('NS', 2026)),
+		[],
+		'and posts no opening line, in any year'
+	);
+	assert.equal(result.entries_posted, 0);
+	assert.deepEqual(
+		await soldier.run('2026-09-07'),
+		{ entitlements_created: 0, entries_posted: 0 },
+		'a rerun is a strict no-op'
+	);
+});
+
+test('a permanent resident carries the same liability; a foreigner and a woman carry none', async () => {
+	const cases = [
+		['MALE', 'PERMANENT_RESIDENT', true],
+		['MALE', 'CITIZEN', true],
+		// The three ways to be outside it, each of which must produce no row at all rather than a
+		// zero-day one — a zero-day row would let a request be filed against it.
+		['MALE', 'FOREIGNER', false],
+		['FEMALE', 'CITIZEN', false],
+		['MALE', null, false]
+	];
+	for (const [gender, residencyStatus, liable] of cases) {
+		const person = world({ types: [nsLeave()], gender, residencyStatus });
+		await person.run('2026-09-07');
+		assert.equal(
+			person.context.leave_entitlements.some((row) => row.leave_code === 'NS'),
+			liable,
+			`${gender} / ${residencyStatus}`
+		);
+	}
 });

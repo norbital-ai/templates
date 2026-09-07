@@ -4,7 +4,8 @@ import { describe, it } from 'node:test';
 import { instantRangeSchema } from '@norbital-ai/bolt/authoring';
 import { componentDefinitionSchema } from '../src/datatypes/component_definition/+definition.js';
 import { contributionTreatmentSchema } from '../src/datatypes/contribution_treatment/+definition.js';
-import { componentEntryEventSchema } from '../src/datatypes/component_entry_event/+definition.js';
+import { allowanceRecurrenceSchema } from '../src/datatypes/allowance_recurrence/+definition.js';
+import { coveredPeriodsSchema } from '../src/datatypes/covered_periods/+definition.js';
 import { leaveEntitlementSchema } from '../src/datatypes/leave_entitlement/+definition.js';
 import { contributionTreatmentsSchema } from '../src/datatypes/contribution_treatments/+definition.js';
 import { ordinaryRateSchema } from '../src/datatypes/ordinary_rate/+definition.js';
@@ -89,77 +90,55 @@ describe('contribution_treatment', () => {
 	});
 });
 
-describe('component_entry_event', () => {
-	// The union that states WHY a component entry exists. What it does NOT carry is the point: no
-	// employment, no component, no amount — those are columns on the row, because a foreign key and
-	// a field grant cannot reach inside a blob. The arm rules beside it are held by
-	// `COMPONENT_ENTRY_EVENT_MISMATCH` in `tests/lib/component_entry_refusals.test.ts`.
-	it('accepts each arm with its own payload', () => {
+describe('allowance_recurrence', () => {
+	// The one payload that stayed a union when `component_entry_event` was split into five
+	// collections, because it is a genuine two-armed fact about a single family rather than five
+	// business facts wearing one type. What it does NOT carry is still the point: no employment, no
+	// component, no amount — those are columns, because a foreign key and a field grant cannot
+	// reach inside a blob.
+	it('accepts a one-off period and an open or closed window', () => {
+		assert.ok(accepts(allowanceRecurrenceSchema, { kind: 'ONE_OFF', period: '2026-02' }));
 		assert.ok(
-			accepts(componentEntryEventSchema, {
-				kind: 'CLAIM',
-				incurred_on: '2026-04-02',
-				description: null
-			})
-		);
-		// An allowance carries its window in the arm, so the bare shape no longer decodes at all.
-		assert.ok(
-			accepts(componentEntryEventSchema, {
-				kind: 'ALLOWANCE',
-				recurrence: { kind: 'ONE_OFF', period: '2026-02' }
-			})
+			accepts(allowanceRecurrenceSchema, { kind: 'RECURRING', from: '2026-01-01', to: null })
 		);
 		assert.ok(
-			accepts(componentEntryEventSchema, {
-				kind: 'ALLOWANCE',
-				recurrence: { kind: 'RECURRING', from: '2026-01-01', to: null }
-			})
-		);
-		assert.ok(refuses(componentEntryEventSchema, { kind: 'ALLOWANCE' }));
-		assert.ok(accepts(componentEntryEventSchema, { kind: 'BONUS', note: null }));
-		assert.ok(
-			accepts(componentEntryEventSchema, {
-				kind: 'ARREARS',
-				covers_periods: ['2026-01'],
-				reason: 'late start'
-			})
-		);
-		assert.ok(
-			accepts(componentEntryEventSchema, {
-				kind: 'MANUAL_ADJUSTMENT',
-				operation: 'CORRECTION',
-				reason: 'wrong rate'
+			accepts(allowanceRecurrenceSchema, {
+				kind: 'RECURRING',
+				from: '2026-01-01',
+				to: '2026-03-31'
 			})
 		);
 	});
 
-	// `onExcessProperty: 'error'` is the strict standard view: an arm carrying another arm's payload
-	// is refused rather than stripped, which is what made the jsonb-union shape a defect the last
-	// time this workspace held money in one.
-	it('refuses an unknown key on an arm', () => {
+	// `onExcessProperty: 'error'` is the strict standard view: an arm carrying the other arm's
+	// payload is refused rather than stripped. A one-off that also stated a window would be a row
+	// whose two halves could disagree about how many times it pays.
+	it('refuses a bare arm, a mixed arm and an unknown one', () => {
+		assert.ok(refuses(allowanceRecurrenceSchema, { kind: 'ONE_OFF' }));
+		assert.ok(refuses(allowanceRecurrenceSchema, { kind: 'RECURRING', to: null }));
 		assert.ok(
-			refuses(componentEntryEventSchema, {
-				kind: 'ALLOWANCE',
-				recurrence: { kind: 'ONE_OFF', period: '2026-02' },
-				note: 'x'
+			refuses(allowanceRecurrenceSchema, {
+				kind: 'ONE_OFF',
+				period: '2026-02',
+				from: '2026-01-01'
 			})
 		);
-		// And the reverse: a window is this arm's payload, so another arm may not carry one.
-		assert.ok(
-			refuses(componentEntryEventSchema, {
-				kind: 'BONUS',
-				note: null,
-				recurrence: { kind: 'ONE_OFF', period: '2026-02' }
-			})
-		);
-		assert.ok(
-			refuses(componentEntryEventSchema, { kind: 'CLAIM', incurred_on: '2026-04-02', note: 'x' })
-		);
+		assert.ok(refuses(allowanceRecurrenceSchema, { kind: 'ONE_OFF', period: '2026-13' }));
+		assert.ok(refuses(allowanceRecurrenceSchema, { kind: 'MONTHLY', period: '2026-02' }));
 	});
+});
 
-	it('refuses an unknown arm', () => {
-		assert.ok(refuses(componentEntryEventSchema, { kind: 'REVERSAL' }));
-		assert.ok(refuses(componentEntryEventSchema, { kind: 'ENTERED' }));
+describe('covered_periods', () => {
+	// The periods an arrears settlement makes good. A `notNull` column now, where it was an array
+	// inside a union whose emptiness a hook refused by hand — and the arm was used zero times in
+	// 726 seeded entries, because a bonus did not have to say what it was settling.
+	it('accepts one or more months and refuses an empty or malformed list', () => {
+		assert.ok(accepts(coveredPeriodsSchema, ['2026-01']));
+		assert.ok(accepts(coveredPeriodsSchema, ['2025-11', '2025-12', '2026-01']));
+		assert.ok(refuses(coveredPeriodsSchema, []));
+		assert.ok(refuses(coveredPeriodsSchema, ['2026-1']));
+		assert.ok(refuses(coveredPeriodsSchema, ['2026-13']));
+		assert.ok(refuses(coveredPeriodsSchema, ['2026-01-15']));
 	});
 });
 

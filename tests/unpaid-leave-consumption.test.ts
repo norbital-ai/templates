@@ -1,7 +1,11 @@
 // @ts-nocheck -- executed directly by Node with --experimental-strip-types.
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { entryEventDate, entryPayPeriod } from '../src/collections/payroll_runs/lib/entries.ts';
+import {
+	bonusRequest,
+	claimRequest,
+	requestPayPeriod
+} from '../src/collections/payroll_runs/lib/entries.ts';
 import { measureEmployment } from '../src/collections/payroll_runs/lib/measure.ts';
 
 const JURISDICTION = {
@@ -124,7 +128,7 @@ function bundle(ledger = []) {
 			}
 		],
 		statutoryFacts: [],
-		componentEntries: [],
+		payRequests: [],
 		loans: [],
 		loanRepayments: [],
 		ledger,
@@ -247,24 +251,26 @@ test('a formula component with no unpaid leave in the window is base, because no
 	);
 });
 
-test('a claim with an incurred date settles by that date, not event_date', () => {
-	// The claim's incurred day is the economic fact; the cutoff reads it, not the entry date.
-	const claim = {
-		id: 'claim-1',
-		event: { kind: 'CLAIM', incurred_on: '2026-04-10', description: null },
-		pay_period: null,
-		event_date: '2026-04-25T00:00:00.000Z'
-	};
-	assert.equal(entryPayPeriod(claim, 21), '2026-04');
-	assert.equal(entryEventDate(claim), '2026-04-10');
-});
+test('a claim settles by the day it was incurred, and a bonus by the day it was awarded', () => {
+	// Each family dates itself from its own column, and the builder settles that once. There is no
+	// fallback any more, because there is no shared `event_date` for a family to fall back to — a
+	// claim that does not say when it was incurred cannot be written at all.
+	const core = { id: 'r-1', employment_id: 'emp-1', component_catalogue_id: 'c-1', amount: 42 };
+	const claim = claimRequest({
+		...core,
+		incurred_on: '2026-04-10',
+		description: null,
+		pay_period: null
+	});
+	assert.equal(claim.event_date, '2026-04-10');
+	assert.equal(requestPayPeriod(claim, 21), '2026-04');
 
-test('an entry that is not a claim falls back to its event date for the cutoff', () => {
-	const entered = {
-		id: 'claim-2',
-		event: { kind: 'BONUS', note: null },
-		pay_period: null,
-		event_date: '2026-04-25T00:00:00.000Z'
-	};
-	assert.equal(entryPayPeriod(entered, 21), '2026-05');
+	// The same money entered on the same day as a bonus lands in the next period, because the day
+	// it dates from is a different day.
+	const bonus = bonusRequest({ ...core, awarded_on: '2026-04-25', note: null, pay_period: null });
+	assert.equal(bonus.event_date, '2026-04-25');
+	assert.equal(requestPayPeriod(bonus, 21), '2026-05');
+
+	// And a stored override beats the cutoff on either.
+	assert.equal(requestPayPeriod({ ...bonus, pay_period: '2026-04' }, 21), '2026-04');
 });

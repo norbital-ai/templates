@@ -267,6 +267,7 @@
 				<Field name="phone" />
 				<Field name="date_of_birth" label={t('component.date_of_birth')} />
 				<Field name="nationality" />
+				<Field name="residency_status" label={t('component.residency_status')} />
 				<Field name="identity_number" label={t('component.identity_number')} />
 				<Field name="gender" />
 				<Field name="marital_status" label={t('component.marital_status')} />

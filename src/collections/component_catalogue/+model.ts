@@ -36,22 +36,26 @@ export default defineModel(
 		eligibility: text().notNull().default(''),
 		definition: custom('component_definition').notNull(),
 		/**
-		 * Which shape an entry against this component takes — the arm of `component_entry_event` its
-		 * entries must declare, and therefore which optional columns they may carry.
+		 * Which request collection may name this component — `claim_requests`, `allowance_requests`,
+		 * `bonus_requests`, `arrears_requests` or `correction_requests`.
 		 *
 		 * This is the fact the entry form used to ask for on every row, and the reason the ask was
-		 * wrong: across 726 seeded entries, 37 of 38 components used exactly one arm. It was never an
-		 * operator decision; it is a property of the component, and it belongs here where it is stated
-		 * once and enforced, rather than restated per entry and free to drift.
+		 * wrong: across 726 seeded entries, 37 of 38 components used exactly one shape. It was never
+		 * an operator decision; it is a property of the component, and it belongs here where it is
+		 * stated once and enforced, rather than restated per row and free to drift.
 		 *
-		 * NULL when the component takes no entries at all — a `definition.source` of `SCHEDULE`,
+		 * It survived the split into five collections, and its job got sharper. It used to be checked
+		 * against a discriminator the entry restated — and could therefore contradict — and is now
+		 * checked against the collection the write actually arrived at, which cannot be misstated
+		 * because it is not stated at all.
+		 *
+		 * NULL when the component takes no requests at all — a `definition.source` of `SCHEDULE`,
 		 * `FORMULA`, `DERIVED_OVERTIME` or `LEAVE_PAYOUT` is fed by the engine, not by a person. The
 		 * pairing in both directions ("`ENTRY` requires a kind, everything else forbids one") is an
 		 * implication rule, which Postgres could state as a CHECK and this authoring surface cannot,
-		 * so `+hooks.ts` carries it. That gap is the reason the seed bank could hold five entries the
-		 * arm rule already refused.
+		 * so the shared request guard carries it.
 		 */
-		entry_kind: enums(['CLAIM', 'ALLOWANCE', 'BONUS', 'ARREARS', 'MANUAL_ADJUSTMENT'])
+		entry_kind: enums(['CLAIM', 'ALLOWANCE', 'BONUS', 'ARREARS', 'CORRECTION'])
 	},
 	{
 		description:

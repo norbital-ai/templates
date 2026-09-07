@@ -37,11 +37,16 @@ import {
 	type IsoDate
 } from './dates.js';
 import {
-	depletes,
-	entryEvent,
-	type ComponentEntry,
+	allowanceRequest,
+	arrearsRequest,
+	bonusRequest,
+	claimRequest,
+	correctionRequest,
+	REQUEST_INPUT_KINDS,
 	type Loan,
-	type LoanRepayment
+	type LoanRepayment,
+	type PayRequest,
+	type PayRequestFamily
 } from './entries.js';
 import { effectiveWithin, live, overlapsRange } from './effective.js';
 import { realignStatutoryFacts } from './statutory-facts.js';
@@ -94,8 +99,8 @@ export type EmploymentBundle = {
 	/** Every terms row touching the pay period, in effective order — a mid-month raise is two rows. */
 	readonly terms: readonly EmploymentTerms[];
 	readonly statutoryFacts: readonly StatutoryFact[];
-	/** Claims, standing allowances, bonuses, arrears settlements and corrections. */
-	readonly componentEntries: readonly ComponentEntry[];
+	/** Claims, standing allowances, bonuses, arrears settlements and corrections, as one view. */
+	readonly payRequests: readonly PayRequest[];
 	/** The employment's child facts — what `children.under(age)` counts. */
 	readonly children: readonly ChildFact[];
 	/** The loan agreements this employment carries. Payroll consumes their repayments, not these. */
@@ -141,7 +146,7 @@ export type GatheredRun = {
 	/** `${employee_id}:${contribution_code}` → what has already been charged this tax year. */
 	readonly yearToDate: ReadonlyMap<string, { employee: number; employer: number; base: number }>;
 	/**
-	 * `component_entry_id` → what earlier PAID runs actually took from it.
+	 * pay request id → what earlier PAID runs actually took from it.
 	 *
 	 * A one-off entry is single-use — one standing/paid payslip captures it, and the guard below
 	 * refuses a second — so this map is the defence-in-depth ceiling rather than the working answer.
@@ -274,7 +279,11 @@ export function gatherRun(options: GatherRunOptions): Effect.Effect<GatheredRun,
 		const [
 			employeeRows,
 			factRows,
-			entryRows,
+			claimRows,
+			allowanceRows,
+			bonusRows,
+			arrearsRows,
+			correctionRows,
 			loanRows,
 			requestRows,
 			leaveEntitlementRows,
@@ -287,7 +296,11 @@ export function gatherRun(options: GatherRunOptions): Effect.Effect<GatheredRun,
 					limit: PAGE_LIMIT
 				}),
 				db.employment_statutory_facts.findMany({ where: inEmployments, limit: PAGE_LIMIT }),
-				db.component_entries.findMany({ where: inEmployments, limit: PAGE_LIMIT }),
+				db.claim_requests.findMany({ where: inEmployments, limit: PAGE_LIMIT }),
+				db.allowance_requests.findMany({ where: inEmployments, limit: PAGE_LIMIT }),
+				db.bonus_requests.findMany({ where: inEmployments, limit: PAGE_LIMIT }),
+				db.arrears_requests.findMany({ where: inEmployments, limit: PAGE_LIMIT }),
+				db.correction_requests.findMany({ where: inEmployments, limit: PAGE_LIMIT }),
 				db.loans.findMany({ where: inEmployments, limit: PAGE_LIMIT }),
 				db.leave_requests.findMany({ where: inEmployments, limit: PAGE_LIMIT }),
 				db.leave_entitlements.findMany({ where: inEmployments, limit: PAGE_LIMIT }),
@@ -312,7 +325,11 @@ export function gatherRun(options: GatherRunOptions): Effect.Effect<GatheredRun,
 		// leaves a trace. Work days are the closest to the ceiling of the lot.
 		options.api.reads.assertComplete(employeeRows, 'employees');
 		options.api.reads.assertComplete(factRows, 'statutory facts');
-		options.api.reads.assertComplete(entryRows, 'component entries');
+		options.api.reads.assertComplete(claimRows, 'claim requests');
+		options.api.reads.assertComplete(allowanceRows, 'allowance requests');
+		options.api.reads.assertComplete(bonusRows, 'bonus requests');
+		options.api.reads.assertComplete(arrearsRows, 'arrears requests');
+		options.api.reads.assertComplete(correctionRows, 'correction requests');
 		options.api.reads.assertComplete(loanRows, 'loans');
 		options.api.reads.assertComplete(requestRows, 'leave requests');
 		options.api.reads.assertComplete(leaveEntitlementRows, 'leave entitlements');
@@ -346,7 +363,19 @@ export function gatherRun(options: GatherRunOptions): Effect.Effect<GatheredRun,
 			yield* realignStatutoryFacts(db, live(factRows), options.configuration),
 			(row) => row.employment_id
 		);
-		const entriesByEmployment = groupBy(live(entryRows), (row) => row.employment_id);
+		/**
+		 * The five request collections, read as one. Each row is normalised by its own family's
+		 * builder at the boundary — which day it belongs to, how it settles, whether it prorates or
+		 * depletes — so nothing downstream re-derives economics from a storage shape.
+		 */
+		const payRequests: readonly PayRequest[] = [
+			...live(claimRows).map(claimRequest),
+			...live(allowanceRows).map(allowanceRequest),
+			...live(bonusRows).map(bonusRequest),
+			...live(arrearsRows).map(arrearsRequest),
+			...live(correctionRows).map(correctionRequest)
+		];
+		const requestsByEmployment = groupBy(payRequests, (row) => row.employment_id);
 		const leaveEntitlementsByEmployment = groupBy(
 			live(leaveEntitlementRows),
 			(row) => row.employment_id
@@ -408,7 +437,7 @@ export function gatherRun(options: GatherRunOptions): Effect.Effect<GatheredRun,
 				window: cadence.window,
 				terms: effectiveWithin(termsByEmployment.get(employment.id) ?? [], paid.start, paid.end),
 				statutoryFacts,
-				componentEntries: entriesByEmployment.get(employment.id) ?? [],
+				payRequests: requestsByEmployment.get(employment.id) ?? [],
 				children: childrenByEmployment.get(employment.id) ?? [],
 				loans: employmentLoans,
 				loanRepayments: employmentLoans.flatMap((loan) => repaymentsByLoan.get(loan.id) ?? []),
@@ -431,7 +460,7 @@ export function gatherRun(options: GatherRunOptions): Effect.Effect<GatheredRun,
 
 		yield* refuseAlreadyCapturedEntries({
 			api: options.api,
-			entries: live(entryRows),
+			requests: payRequests,
 			period
 		});
 
@@ -460,25 +489,65 @@ export function gatherRun(options: GatherRunOptions): Effect.Effect<GatheredRun,
  */
 type RefuseAlreadyCapturedEntriesOptions = {
 	readonly api: PayrollReadApi & { readonly reads: ReadLog };
-	readonly entries: readonly ComponentEntry[];
+	readonly requests: readonly PayRequest[];
 	readonly period: string;
 };
 
 function refuseAlreadyCapturedEntries(
 	options: RefuseAlreadyCapturedEntriesOptions
 ): Effect.Effect<void, never, never> {
-	const oneOffIds = options.entries
-		.filter((entry) => depletes(entry) && entryEvent(entry) != null)
-		.map((entry) => entry.id);
-	if (oneOffIds.length === 0) return Effect.void;
+	const singleUse = options.requests.filter((request) => request.depletes);
+	if (singleUse.length === 0) return Effect.void;
+	const idsOf = (family: PayRequestFamily) =>
+		singleUse.filter((request) => request.family === family).map((request) => request.id);
 	return Effect.gen(function* () {
 		const db = options.api.db;
-		const captures = yield* db.payslip_component_entry_inputs.findMany({
-			where: { component_entry_id: { in: oneOffIds } },
-			columns: { component_entry_id: true, payslip_id: true },
-			limit: PAGE_LIMIT
-		});
-		options.api.reads.assertComplete(captures, 'component-entry captures');
+		// One read per family, because each family's capture is a real foreign key into its own
+		// junction. The four single-use junctions carry a unique on their source, so this guard is
+		// now the *period-aware* half of a rule the database also holds: it names the run that is
+		// still standing, which a unique violation could not.
+		const [claims, allowances, bonuses, arrears, corrections] = yield* Effect.all(
+			[
+				db.payslip_claim_request_inputs.findMany({
+					where: { claim_request_id: { in: idsOf('CLAIM') } },
+					columns: { claim_request_id: true, payslip_id: true },
+					limit: PAGE_LIMIT
+				}),
+				db.payslip_allowance_request_inputs.findMany({
+					where: { allowance_request_id: { in: idsOf('ALLOWANCE') } },
+					columns: { allowance_request_id: true, payslip_id: true },
+					limit: PAGE_LIMIT
+				}),
+				db.payslip_bonus_request_inputs.findMany({
+					where: { bonus_request_id: { in: idsOf('BONUS') } },
+					columns: { bonus_request_id: true, payslip_id: true },
+					limit: PAGE_LIMIT
+				}),
+				db.payslip_arrears_request_inputs.findMany({
+					where: { arrears_request_id: { in: idsOf('ARREARS') } },
+					columns: { arrears_request_id: true, payslip_id: true },
+					limit: PAGE_LIMIT
+				}),
+				db.payslip_correction_request_inputs.findMany({
+					where: { correction_request_id: { in: idsOf('CORRECTION') } },
+					columns: { correction_request_id: true, payslip_id: true },
+					limit: PAGE_LIMIT
+				})
+			],
+			{ concurrency: 'unbounded' }
+		);
+		options.api.reads.assertComplete(claims, 'claim captures');
+		options.api.reads.assertComplete(allowances, 'allowance captures');
+		options.api.reads.assertComplete(bonuses, 'bonus captures');
+		options.api.reads.assertComplete(arrears, 'arrears captures');
+		options.api.reads.assertComplete(corrections, 'correction captures');
+		const captures: readonly { readonly payslip_id: string }[] = [
+			...claims,
+			...allowances,
+			...bonuses,
+			...arrears,
+			...corrections
+		];
 		if (captures.length === 0) return;
 		const holdingPayslips = yield* db.payslips.findMany({
 			where: { id: { in: captures.map((row) => row.payslip_id) } },
@@ -644,38 +713,82 @@ function gatherPriorSettlement(
 		 * day or a leave request is a settlement claim, not a draw on a balance, and reading them
 		 * would be reading a month of attendance to sum nothing.
 		 */
-		const entryLinks = yield* db.payslip_component_entry_inputs.findMany({
-			where: { payslip_id: { in: priorPayslipIds } },
-			columns: { id: true, component_entry_id: true },
-			limit: PAGE_LIMIT
-		});
-		options.api.reads.assertComplete(entryLinks, 'prior component-entry captures');
+		const [claimLinks, allowanceLinks, bonusLinks, arrearsLinks, correctionLinks] =
+			yield* Effect.all(
+				[
+					db.payslip_claim_request_inputs.findMany({
+						where: { payslip_id: { in: priorPayslipIds } },
+						columns: { id: true, claim_request_id: true },
+						limit: PAGE_LIMIT
+					}),
+					db.payslip_allowance_request_inputs.findMany({
+						where: { payslip_id: { in: priorPayslipIds } },
+						columns: { id: true, allowance_request_id: true },
+						limit: PAGE_LIMIT
+					}),
+					db.payslip_bonus_request_inputs.findMany({
+						where: { payslip_id: { in: priorPayslipIds } },
+						columns: { id: true, bonus_request_id: true },
+						limit: PAGE_LIMIT
+					}),
+					db.payslip_arrears_request_inputs.findMany({
+						where: { payslip_id: { in: priorPayslipIds } },
+						columns: { id: true, arrears_request_id: true },
+						limit: PAGE_LIMIT
+					}),
+					db.payslip_correction_request_inputs.findMany({
+						where: { payslip_id: { in: priorPayslipIds } },
+						columns: { id: true, correction_request_id: true },
+						limit: PAGE_LIMIT
+					})
+				],
+				{ concurrency: 'unbounded' }
+			);
+		options.api.reads.assertComplete(claimLinks, 'prior claim captures');
+		options.api.reads.assertComplete(allowanceLinks, 'prior allowance captures');
+		options.api.reads.assertComplete(bonusLinks, 'prior bonus captures');
+		options.api.reads.assertComplete(arrearsLinks, 'prior arrears captures');
+		options.api.reads.assertComplete(correctionLinks, 'prior correction captures');
 		const repaymentLinks = yield* db.payslip_loan_repayment_inputs.findMany({
 			where: { payslip_id: { in: priorPayslipIds } },
 			columns: { id: true, loan_repayment_id: true },
 			limit: PAGE_LIMIT
 		});
 		options.api.reads.assertComplete(repaymentLinks, 'prior loan-repayment captures');
-		const entryIdByLink = new Map(entryLinks.map((row) => [row.id, row.component_entry_id]));
+		// Junction row id → the request it captured, across all five families. Request ids are uuids,
+		// so one map still answers "what did prior runs take from this request".
+		const requestIdByLink = new Map<string, string>([
+			...claimLinks.map((row) => [row.id, row.claim_request_id] as const),
+			...allowanceLinks.map((row) => [row.id, row.allowance_request_id] as const),
+			...bonusLinks.map((row) => [row.id, row.bonus_request_id] as const),
+			...arrearsLinks.map((row) => [row.id, row.arrears_request_id] as const),
+			...correctionLinks.map((row) => [row.id, row.correction_request_id] as const)
+		]);
 		const repaymentIdByLink = new Map(repaymentLinks.map((row) => [row.id, row.loan_repayment_id]));
 
-		const entryClaims = yield* db.payslip_adjustments.findMany({
-			where: {
-				payslip_id: { in: priorPayslipIds },
-				input: { kind: { eq: 'COMPONENT_ENTRY_INPUT' } }
-			},
-			columns: { input: true, amount: true },
-			limit: PAGE_LIMIT
-		});
-		options.api.reads.assertComplete(entryClaims, 'prior component-entry adjustments');
-		for (const row of entryClaims) {
-			if (row.input.kind !== 'COMPONENT_ENTRY_INPUT') continue;
-			const sourceId = entryIdByLink.get(row.input.id);
-			if (sourceId == null) continue;
-			consumedEntries.set(
-				sourceId,
-				(consumedEntries.get(sourceId) ?? 0) + decodeNumber(row.amount ?? 0)
-			);
+		// One read per arm rather than one over all of them: `input.kind` filters by equality only,
+		// and widening to every adjustment on these payslips would read a month of attendance and a
+		// month of leave in order to sum neither.
+		const requestClaims = yield* Effect.all(
+			REQUEST_INPUT_KINDS.map((kind) =>
+				db.payslip_adjustments.findMany({
+					where: { payslip_id: { in: priorPayslipIds }, input: { kind: { eq: kind } } },
+					columns: { input: true, amount: true },
+					limit: PAGE_LIMIT
+				})
+			),
+			{ concurrency: 'unbounded' }
+		);
+		for (const rows of requestClaims) {
+			options.api.reads.assertComplete(rows, 'prior pay-request adjustments');
+			for (const row of rows) {
+				const sourceId = requestIdByLink.get(row.input.id);
+				if (sourceId == null) continue;
+				consumedEntries.set(
+					sourceId,
+					(consumedEntries.get(sourceId) ?? 0) + decodeNumber(row.amount ?? 0)
+				);
+			}
 		}
 
 		const repaymentClaims = yield* db.payslip_adjustments.findMany({

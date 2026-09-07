@@ -57,7 +57,11 @@ export default defineModel(
 		 */
 		input: reference({
 			WORK_DAY_INPUT: 'payslip_work_day_inputs',
-			COMPONENT_ENTRY_INPUT: 'payslip_component_entry_inputs',
+			CLAIM_REQUEST_INPUT: 'payslip_claim_request_inputs',
+			ALLOWANCE_REQUEST_INPUT: 'payslip_allowance_request_inputs',
+			BONUS_REQUEST_INPUT: 'payslip_bonus_request_inputs',
+			ARREARS_REQUEST_INPUT: 'payslip_arrears_request_inputs',
+			CORRECTION_REQUEST_INPUT: 'payslip_correction_request_inputs',
 			LEAVE_REQUEST_INPUT: 'payslip_leave_request_inputs',
 			LOAN_REPAYMENT_INPUT: 'payslip_loan_repayment_inputs'
 		})

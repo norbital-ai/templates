@@ -53,7 +53,12 @@ export function capSubject(
 			[
 				api.db.employees.findFirst({
 					where: { id: { eq: String(employment.employee_id) } },
-					columns: { gender: true, date_of_birth: true, nationality: true }
+					columns: {
+						gender: true,
+						date_of_birth: true,
+						nationality: true,
+						residency_status: true
+					}
 				}),
 				api.db.employment_terms.findMany({
 					where: { employment_id: { eq: employmentId }, approval_id: { isNull: true } },

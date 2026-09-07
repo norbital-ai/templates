@@ -50,11 +50,13 @@ test('public fixture January run: one payslip, observed fixture totals', async (
 	assert.equal(payslip.employment_id, EMPLOYMENT_ID);
 	assert.equal(payslip.currency, 'MYR');
 
-	const capturedEntries = payslip.payslip_component_entry_input_payslip ?? [];
 	assert.deepEqual(
-		capturedEntries.map((row) => row.component_entry_id),
+		(payslip.payslip_allowance_request_input_payslip ?? []).map((row) => row.allowance_request_id),
 		[STANDING_ENTRY_ID]
 	);
+	// And nothing from the four families this month has no rows in.
+	for (const family of ['claim', 'bonus', 'arrears', 'correction'])
+		assert.deepEqual(payslip[`payslip_${family}_request_input_payslip`] ?? [], [], family);
 	assert.equal(payslip.payslip_work_day_input_payslip.length, 0);
 	assert.equal(payslip.payslip_loan_repayment_input_payslip.length, 0);
 	assert.equal(payslip.payslip_leave_request_input_payslip.length, 0);

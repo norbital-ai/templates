@@ -107,7 +107,13 @@ const [
 	{ isStatutoryOvertimePayCovered },
 	{ classifyWageComparand, deriveStatutoryWages },
 	{ ordinaryHourlyRate, ordinaryDayWage, absenceDayRate },
-	{ entrySign, prorates: entryProrates, recurringRange: entryRecurringRange, entryPayPeriod },
+	{
+		allowanceRequest,
+		bonusRequest,
+		claimRequest,
+		correctionRequest,
+		requestPayPeriod
+	},
 	{ settle }
 ] = modules;
 
@@ -827,55 +833,50 @@ check(
 );
 
 // ────────────────────────────────────────────────────────────────────────────────────────────────
-// Entry direction is one fact, read once: a REVERSAL correction is the only signed arm.
+// Request economics are read once, at the boundary: each family's builder settles the five answers
+// the run needs, so nothing downstream switches on a storage shape to re-derive them.
 // ────────────────────────────────────────────────────────────────────────────────────────────────
-const correction = {
-	id: 'e1',
-	event: { kind: 'MANUAL_ADJUSTMENT', operation: 'CORRECTION', reason: 'x' }
-};
-const reversal = {
-	id: 'e2',
-	event: { kind: 'MANUAL_ADJUSTMENT', operation: 'REVERSAL', reason: 'x' }
-};
+const CORE = { id: 'e', employment_id: 'emp-1', component_catalogue_id: 'c-1', amount: 100 };
+const correctionOf = (operation) =>
+	correctionRequest({
+		...CORE,
+		corrected_on: '2026-03-02',
+		corrects_adjustment_id: 'adj-1',
+		operation,
+		reason: 'x'
+	});
 check(
-	'an ordinary entry pays under its component',
-	entrySign({ id: 'e0', event: { kind: 'CLAIM', incurred_on: '2026-03-02', description: null } }),
+	'an ordinary request pays under its component',
+	claimRequest({ ...CORE, incurred_on: '2026-03-02', description: null }).sign,
 	1
 );
+check('a correction that supersedes also pays under it', correctionOf('CORRECTION').sign, 1);
 check(
 	'a reversal takes back — it names the settled output it corrects',
-	entrySign({ id: 'e2', event: { kind: 'MANUAL_ADJUSTMENT', operation: 'REVERSAL', reason: 'x' } }),
+	correctionOf('REVERSAL').sign,
 	-1
 );
+// A reversal is signed rather than depleted: netting a negative draw against a magnitude grows it.
+check('a reversal is signed, not depleted', correctionOf('REVERSAL').depletes, false);
+check('a correction that supersedes is depleted', correctionOf('CORRECTION').depletes, true);
 check(
 	'prorating is an allowance fact and nothing else',
-	entryProrates({
-		event: {
-			kind: 'ALLOWANCE',
-			recurrence: { kind: 'RECURRING', from: '2026-01-01', to: null }
-		}
-	}),
+	allowanceRequest({
+		...CORE,
+		recurrence: { kind: 'RECURRING', from: '2026-01-01', to: null }
+	}).prorates,
 	true
 );
 check(
 	'a claim never prorates',
-	entryProrates({
-		id: 'e9',
-		event: { kind: 'CLAIM', incurred_on: '2026-03-02', description: null },
-		effective_range: null
-	}),
+	claimRequest({ ...CORE, incurred_on: '2026-03-02', description: null }).prorates,
 	false
 );
 check(
 	'an open-ended recurring allowance states its own window, day-precision',
 	JSON.stringify(
-		entryRecurringRange({
-			id: 'e10',
-			event: {
-				kind: 'ALLOWANCE',
-				recurrence: { kind: 'RECURRING', from: '2026-01-01', to: null }
-			}
-		})
+		allowanceRequest({ ...CORE, recurrence: { kind: 'RECURRING', from: '2026-01-01', to: null } })
+			.window
 	),
 	JSON.stringify({ start: '2026-01-01', end: null })
 );
@@ -884,25 +885,32 @@ check(
 check(
 	'a one-off allowance spans exactly the month it names',
 	JSON.stringify(
-		entryRecurringRange({
-			id: 'e10b',
-			event: { kind: 'ALLOWANCE', recurrence: { kind: 'ONE_OFF', period: '2026-02' } }
-		})
+		allowanceRequest({ ...CORE, recurrence: { kind: 'ONE_OFF', period: '2026-02' } }).window
 	),
 	JSON.stringify({ start: '2026-02-01', end: '2026-02-28' })
 );
 check(
+	'a recurring allowance is unbounded; a one-off is not',
+	[
+		allowanceRequest({ ...CORE, recurrence: { kind: 'RECURRING', from: '2026-01-01', to: null } })
+			.depletes,
+		allowanceRequest({ ...CORE, recurrence: { kind: 'ONE_OFF', period: '2026-02' } }).depletes
+	].join(','),
+	'false,true'
+);
+check(
 	'a claim settles by its incurred date under the cutoff',
-	entryPayPeriod(
-		{
-			id: 'e10',
-			event: { kind: 'CLAIM', incurred_on: '2026-04-10', description: null },
-			pay_period: null,
-			event_date: '2026-04-25T00:00:00.000Z'
-		},
+	requestPayPeriod(
+		claimRequest({ ...CORE, incurred_on: '2026-04-10', description: null, pay_period: null }),
 		21
 	),
 	'2026-04'
+);
+// A bonus dates by the day it was awarded, and past the cutoff it is next period's money.
+check(
+	'a bonus past the cutoff settles next period',
+	requestPayPeriod(bonusRequest({ ...CORE, awarded_on: '2026-04-25', note: null }), 21),
+	'2026-05'
 );
 
 /* ── Rest-day and public-holiday work is priced by statute, from the seeded rules ──────────────

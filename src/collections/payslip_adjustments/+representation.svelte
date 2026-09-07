@@ -31,7 +31,11 @@
 
 	const adjustmentInputSchema = Schema.Union([
 		Schema.Struct({ kind: Schema.Literal('WORK_DAY_INPUT'), id: Schema.String }),
-		Schema.Struct({ kind: Schema.Literal('COMPONENT_ENTRY_INPUT'), id: Schema.String }),
+		Schema.Struct({ kind: Schema.Literal('CLAIM_REQUEST_INPUT'), id: Schema.String }),
+		Schema.Struct({ kind: Schema.Literal('ALLOWANCE_REQUEST_INPUT'), id: Schema.String }),
+		Schema.Struct({ kind: Schema.Literal('BONUS_REQUEST_INPUT'), id: Schema.String }),
+		Schema.Struct({ kind: Schema.Literal('ARREARS_REQUEST_INPUT'), id: Schema.String }),
+		Schema.Struct({ kind: Schema.Literal('CORRECTION_REQUEST_INPUT'), id: Schema.String }),
 		Schema.Struct({ kind: Schema.Literal('LEAVE_REQUEST_INPUT'), id: Schema.String }),
 		Schema.Struct({ kind: Schema.Literal('LOAN_REPAYMENT_INPUT'), id: Schema.String })
 	]);
@@ -54,10 +58,30 @@
 					where: { id: { eq: input.id } },
 					columns: { id: true, work_day_id: true }
 				});
-			case 'COMPONENT_ENTRY_INPUT':
-				return client.db.payslip_component_entry_inputs.findFirst({
+			case 'CLAIM_REQUEST_INPUT':
+				return client.db.payslip_claim_request_inputs.findFirst({
 					where: { id: { eq: input.id } },
-					columns: { id: true, component_entry_id: true }
+					columns: { id: true, claim_request_id: true }
+				});
+			case 'ALLOWANCE_REQUEST_INPUT':
+				return client.db.payslip_allowance_request_inputs.findFirst({
+					where: { id: { eq: input.id } },
+					columns: { id: true, allowance_request_id: true }
+				});
+			case 'BONUS_REQUEST_INPUT':
+				return client.db.payslip_bonus_request_inputs.findFirst({
+					where: { id: { eq: input.id } },
+					columns: { id: true, bonus_request_id: true }
+				});
+			case 'ARREARS_REQUEST_INPUT':
+				return client.db.payslip_arrears_request_inputs.findFirst({
+					where: { id: { eq: input.id } },
+					columns: { id: true, arrears_request_id: true }
+				});
+			case 'CORRECTION_REQUEST_INPUT':
+				return client.db.payslip_correction_request_inputs.findFirst({
+					where: { id: { eq: input.id } },
+					columns: { id: true, correction_request_id: true }
 				});
 			case 'LEAVE_REQUEST_INPUT':
 				return client.db.payslip_leave_request_inputs.findFirst({
@@ -94,11 +118,35 @@
 					? { collectionName: 'work_days', recordId: sourceId }
 					: { collectionName: 'payslip_work_day_inputs', recordId: junctionId };
 			}
-			case 'COMPONENT_ENTRY_INPUT': {
-				const sourceId = fieldId(row, 'component_entry_id');
+			case 'CLAIM_REQUEST_INPUT': {
+				const sourceId = fieldId(row, 'claim_request_id');
 				return sourceId
-					? { collectionName: 'component_entries', recordId: sourceId }
-					: { collectionName: 'payslip_component_entry_inputs', recordId: junctionId };
+					? { collectionName: 'claim_requests', recordId: sourceId }
+					: { collectionName: 'payslip_claim_request_inputs', recordId: junctionId };
+			}
+			case 'ALLOWANCE_REQUEST_INPUT': {
+				const sourceId = fieldId(row, 'allowance_request_id');
+				return sourceId
+					? { collectionName: 'allowance_requests', recordId: sourceId }
+					: { collectionName: 'payslip_allowance_request_inputs', recordId: junctionId };
+			}
+			case 'BONUS_REQUEST_INPUT': {
+				const sourceId = fieldId(row, 'bonus_request_id');
+				return sourceId
+					? { collectionName: 'bonus_requests', recordId: sourceId }
+					: { collectionName: 'payslip_bonus_request_inputs', recordId: junctionId };
+			}
+			case 'ARREARS_REQUEST_INPUT': {
+				const sourceId = fieldId(row, 'arrears_request_id');
+				return sourceId
+					? { collectionName: 'arrears_requests', recordId: sourceId }
+					: { collectionName: 'payslip_arrears_request_inputs', recordId: junctionId };
+			}
+			case 'CORRECTION_REQUEST_INPUT': {
+				const sourceId = fieldId(row, 'correction_request_id');
+				return sourceId
+					? { collectionName: 'correction_requests', recordId: sourceId }
+					: { collectionName: 'payslip_correction_request_inputs', recordId: junctionId };
 			}
 			case 'LEAVE_REQUEST_INPUT': {
 				const sourceId = fieldId(row, 'leave_request_id');
@@ -137,8 +185,16 @@
 
 	function inputKind(kind: AdjustmentInput['kind']): string {
 		switch (kind) {
-			case 'COMPONENT_ENTRY_INPUT':
-				return t('component.entry_kind');
+			case 'CLAIM_REQUEST_INPUT':
+				return t('app.claims.title');
+			case 'ALLOWANCE_REQUEST_INPUT':
+				return t('app.allowances.title');
+			case 'BONUS_REQUEST_INPUT':
+				return t('app.bonuses.title');
+			case 'ARREARS_REQUEST_INPUT':
+				return t('app.arrears.title');
+			case 'CORRECTION_REQUEST_INPUT':
+				return t('app.corrections.title');
 			case 'WORK_DAY_INPUT':
 				return t('component.attendance');
 			case 'LEAVE_REQUEST_INPUT':

@@ -82,7 +82,11 @@ export default ((r) => ({
 				to: r.jurisdiction_settings.id
 			})
 		),
-		component_entry_component_catalogue: r.many.component_entries(),
+		claim_request_component_catalogue: r.many.claim_requests(),
+		allowance_request_component_catalogue: r.many.allowance_requests(),
+		bonus_request_component_catalogue: r.many.bonus_requests(),
+		arrears_request_component_catalogue: r.many.arrears_requests(),
+		correction_request_component_catalogue: r.many.correction_requests(),
 		loan_component_catalogue: r.many.loans()
 	},
 
@@ -164,7 +168,11 @@ export default ((r) => ({
 		}),
 		term_employment: r.many.employment_terms(),
 		statutory_fact_employment: r.many.employment_statutory_facts(),
-		component_entry_employment: r.many.component_entries(),
+		claim_request_employment: r.many.claim_requests(),
+		allowance_request_employment: r.many.allowance_requests(),
+		bonus_request_employment: r.many.bonus_requests(),
+		arrears_request_employment: r.many.arrears_requests(),
+		correction_request_employment: r.many.correction_requests(),
 		loan_employment: r.many.loans(),
 		leave_request_employment: r.many.leave_requests(),
 		/**
@@ -225,39 +233,100 @@ export default ((r) => ({
 	},
 
 	/**
-	 * Not owned by the employment, deliberately.
-	 *
-	 * A component entry is money that moved, or is owed. Deleting an employment must not silently
-	 * take a settled claim or a paid correction with it; the `restrict` this leaves in place is what
-	 * says so. The same answer for loans: a settled repayment schedule is money history.
+	 * A pay request is money that moved, or is owed. Deleting an employment must not silently take a
+	 * settled claim or a paid correction with it; the `restrict` this leaves in place is what says
+	 * so. The same answer for loans: a settled repayment schedule is money history.
 	 */
-	component_entries: {
-		component_entry_employment: r.one.employments({
-			from: r.component_entries.employment_id,
+	claim_requests: {
+		claim_request_employment: r.one.employments({
+			from: r.claim_requests.employment_id,
 			to: r.employments.id
 		}),
-		component_entry_component_catalogue: r.one.component_catalogue({
-			from: r.component_entries.component_catalogue_id,
+		claim_request_component_catalogue: r.one.component_catalogue({
+			from: r.claim_requests.component_catalogue_id,
 			to: r.component_catalogue.id
 		}),
 		/**
-		 * The capture that settled this entry, when a run has. Declared so the Entries page can carry
-		 * its lock state on the row it lists rather than open a second live query for it (B12).
+		 * The capture that settled this request, when a run has. Declared so the page can carry its
+		 * lock state on the row it lists rather than open a second live query for it (B12).
 		 */
-		payslip_component_entry_input_component_entry: r.many.payslip_component_entry_inputs(),
+		payslip_claim_request_input_claim_request: r.many.payslip_claim_request_inputs()
+	},
+
+	allowance_requests: {
+		allowance_request_employment: r.one.employments({
+			from: r.allowance_requests.employment_id,
+			to: r.employments.id
+		}),
+		allowance_request_component_catalogue: r.one.component_catalogue({
+			from: r.allowance_requests.component_catalogue_id,
+			to: r.component_catalogue.id
+		}),
 		/**
-		 * A `MANUAL_ADJUSTMENT` entry points at the settled output it corrects, and the database
-		 * holds that edge. NOT a cascade: a correction is the evidence that a settled output was
-		 * fixed, so the settled adjustment cannot be deleted while the correction names it, and
-		 * deleting the correction never touches the adjustment.
-		 *
-		 * Declared as the `one` side only, with no `many` inverse, for the same reason
-		 * a self-reference under the removed model had none: `resolveWritableManyRelation` identifies a writable pair
-		 * by reversed collections and endpoints, and an edge that exists only to be ambiguous is
-		 * worse than one that is not declared.
+		 * The capture that settled this request, when a run has. Declared so the page can carry its
+		 * lock state on the row it lists rather than open a second live query for it (B12).
 		 */
-		component_entry_corrects_adjustment: r.one.payslip_adjustments({
-			from: r.component_entries.corrects_adjustment_id,
+		payslip_allowance_request_input_allowance_request: r.many.payslip_allowance_request_inputs()
+	},
+
+	bonus_requests: {
+		bonus_request_employment: r.one.employments({
+			from: r.bonus_requests.employment_id,
+			to: r.employments.id
+		}),
+		bonus_request_component_catalogue: r.one.component_catalogue({
+			from: r.bonus_requests.component_catalogue_id,
+			to: r.component_catalogue.id
+		}),
+		/**
+		 * The capture that settled this request, when a run has. Declared so the page can carry its
+		 * lock state on the row it lists rather than open a second live query for it (B12).
+		 */
+		payslip_bonus_request_input_bonus_request: r.many.payslip_bonus_request_inputs()
+	},
+
+	arrears_requests: {
+		arrears_request_employment: r.one.employments({
+			from: r.arrears_requests.employment_id,
+			to: r.employments.id
+		}),
+		arrears_request_component_catalogue: r.one.component_catalogue({
+			from: r.arrears_requests.component_catalogue_id,
+			to: r.component_catalogue.id
+		}),
+		/**
+		 * The capture that settled this request, when a run has. Declared so the page can carry its
+		 * lock state on the row it lists rather than open a second live query for it (B12).
+		 */
+		payslip_arrears_request_input_arrears_request: r.many.payslip_arrears_request_inputs()
+	},
+
+	correction_requests: {
+		correction_request_employment: r.one.employments({
+			from: r.correction_requests.employment_id,
+			to: r.employments.id
+		}),
+		correction_request_component_catalogue: r.one.component_catalogue({
+			from: r.correction_requests.component_catalogue_id,
+			to: r.component_catalogue.id
+		}),
+		/**
+		 * The capture that settled this request, when a run has. Declared so the page can carry its
+		 * lock state on the row it lists rather than open a second live query for it (B12).
+		 */
+		payslip_correction_request_input_correction_request: r.many.payslip_correction_request_inputs(),
+		/**
+		 * The settled output this corrects, held by the database. NOT a cascade: a correction is the
+		 * evidence that a settled output was fixed, so the adjustment cannot be deleted while a
+		 * correction names it, and deleting the correction never touches the adjustment.
+		 *
+		 * Declared as the `one` side only, with no `many` inverse, for the same reason a
+		 * self-reference under the removed model had none: `resolveWritableManyRelation` identifies a
+		 * writable pair by reversed collections and endpoints, and an edge that exists only to be
+		 * ambiguous is worse than one that is not declared.
+		 */
+		correction_request_corrects_adjustment: r.one.payslip_adjustments({
+			from: r.correction_requests.corrects_adjustment_id,
 			to: r.payslip_adjustments.id
 		})
 	},
@@ -325,7 +394,11 @@ export default ((r) => ({
 		}),
 		payslip_adjustment_payslip: r.many.payslip_adjustments(),
 		payslip_work_day_input_payslip: r.many.payslip_work_day_inputs(),
-		payslip_component_entry_input_payslip: r.many.payslip_component_entry_inputs(),
+		payslip_claim_request_input_payslip: r.many.payslip_claim_request_inputs(),
+		payslip_allowance_request_input_payslip: r.many.payslip_allowance_request_inputs(),
+		payslip_bonus_request_input_payslip: r.many.payslip_bonus_request_inputs(),
+		payslip_arrears_request_input_payslip: r.many.payslip_arrears_request_inputs(),
+		payslip_correction_request_input_payslip: r.many.payslip_correction_request_inputs(),
 		payslip_leave_request_input_payslip: r.many.payslip_leave_request_inputs(),
 		payslip_loan_repayment_input_payslip: r.many.payslip_loan_repayment_inputs()
 	},
@@ -353,16 +426,68 @@ export default ((r) => ({
 		})
 	},
 
-	payslip_component_entry_inputs: {
-		payslip_component_entry_input_payslip: cascade(
+	payslip_claim_request_inputs: {
+		payslip_claim_request_input_payslip: cascade(
 			r.one.payslips({
-				from: r.payslip_component_entry_inputs.payslip_id,
+				from: r.payslip_claim_request_inputs.payslip_id,
 				to: r.payslips.id
 			})
 		),
-		component_entry_input_component_entry: r.one.component_entries({
-			from: r.payslip_component_entry_inputs.component_entry_id,
-			to: r.component_entries.id
+		payslip_claim_request_input_claim_request: r.one.claim_requests({
+			from: r.payslip_claim_request_inputs.claim_request_id,
+			to: r.claim_requests.id
+		})
+	},
+
+	payslip_allowance_request_inputs: {
+		payslip_allowance_request_input_payslip: cascade(
+			r.one.payslips({
+				from: r.payslip_allowance_request_inputs.payslip_id,
+				to: r.payslips.id
+			})
+		),
+		payslip_allowance_request_input_allowance_request: r.one.allowance_requests({
+			from: r.payslip_allowance_request_inputs.allowance_request_id,
+			to: r.allowance_requests.id
+		})
+	},
+
+	payslip_bonus_request_inputs: {
+		payslip_bonus_request_input_payslip: cascade(
+			r.one.payslips({
+				from: r.payslip_bonus_request_inputs.payslip_id,
+				to: r.payslips.id
+			})
+		),
+		payslip_bonus_request_input_bonus_request: r.one.bonus_requests({
+			from: r.payslip_bonus_request_inputs.bonus_request_id,
+			to: r.bonus_requests.id
+		})
+	},
+
+	payslip_arrears_request_inputs: {
+		payslip_arrears_request_input_payslip: cascade(
+			r.one.payslips({
+				from: r.payslip_arrears_request_inputs.payslip_id,
+				to: r.payslips.id
+			})
+		),
+		payslip_arrears_request_input_arrears_request: r.one.arrears_requests({
+			from: r.payslip_arrears_request_inputs.arrears_request_id,
+			to: r.arrears_requests.id
+		})
+	},
+
+	payslip_correction_request_inputs: {
+		payslip_correction_request_input_payslip: cascade(
+			r.one.payslips({
+				from: r.payslip_correction_request_inputs.payslip_id,
+				to: r.payslips.id
+			})
+		),
+		payslip_correction_request_input_correction_request: r.one.correction_requests({
+			from: r.payslip_correction_request_inputs.correction_request_id,
+			to: r.correction_requests.id
 		})
 	},
 

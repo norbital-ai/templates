@@ -173,7 +173,7 @@ type LeavePreviewApi = {
 type LeavePreviewFacts = {
 	readonly employee: Pick<
 		WorkspaceRow<'employees'>,
-		'gender' | 'date_of_birth' | 'nationality'
+		'gender' | 'date_of_birth' | 'nationality' | 'residency_status'
 	> | null;
 	readonly employment: WorkspaceRow<'employments'>;
 	readonly catalogueLeave: WorkspaceRow<'leave_catalogue'>;
@@ -535,7 +535,12 @@ function loadLeavePreviewFacts(
 				[
 					api.db.employees.findFirst({
 						where: { id: { eq: employment.employee_id } },
-						columns: { gender: true, date_of_birth: true, nationality: true }
+						columns: {
+							gender: true,
+							date_of_birth: true,
+							nationality: true,
+							residency_status: true
+						}
 					}),
 					Effect.map(
 						versionIds.length === 0

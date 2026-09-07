@@ -27,7 +27,7 @@ import {
 type Session = Awaited<ReturnType<typeof startPublicSeedHost>>;
 type Row = Readonly<Record<string, unknown>>;
 
-/** The correction component: `entry_kind: MANUAL_ADJUSTMENT`, which is the arm this test files. */
+/** The correction component: `entry_kind: CORRECTION`, which is the family this test files. */
 const TRANSPORT_ID = '77777777-7777-4777-8777-777777777702';
 const MUTATE = 'collections.mutate';
 
@@ -112,7 +112,7 @@ const postReversal = (
 		MUTATE,
 		mutationPush(session.schemaFingerprint, {
 			action: 'mutate',
-			collection: 'component_entries',
+			collection: 'correction_requests',
 			rows: [
 				{
 					action: 'create',
@@ -121,13 +121,10 @@ const postReversal = (
 						employment_id: EMPLOYMENT_ID,
 						component_catalogue_id: TRANSPORT_ID,
 						amount: 310,
-						event_date: '2026-02-10',
+						corrected_on: '2026-02-10',
 						pay_period: FEBRUARY_2026,
-						event: {
-							kind: 'MANUAL_ADJUSTMENT',
-							operation: 'REVERSAL',
-							reason: 'January transport allowance was paid in error'
-						},
+						operation: 'REVERSAL',
+						reason: 'January transport allowance was paid in error',
 						corrects_adjustment_id: correctsAdjustmentId
 					}
 				}

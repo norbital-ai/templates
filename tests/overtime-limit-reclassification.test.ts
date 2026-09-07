@@ -156,7 +156,7 @@ function bundle(overrides = {}) {
 			}
 		],
 		statutoryFacts: [],
-		componentEntries: [],
+		payRequests: [],
 		loans: [],
 		loanRepayments: [],
 		ledger: [],

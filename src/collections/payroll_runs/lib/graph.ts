@@ -64,7 +64,12 @@ export type PendingPayslip = {
  */
 const INPUT_TAG_BY_FAMILY = {
 	WORK_DAY: 'WORK_DAY_INPUT',
-	COMPONENT_ENTRY: 'COMPONENT_ENTRY_INPUT',
+	CLAIM: 'CLAIM_REQUEST_INPUT',
+	ALLOWANCE: 'ALLOWANCE_REQUEST_INPUT',
+	BONUS: 'BONUS_REQUEST_INPUT',
+	ARREARS: 'ARREARS_REQUEST_INPUT',
+	CORRECTION: 'CORRECTION_REQUEST_INPUT',
+
 	LEAVE_REQUEST: 'LEAVE_REQUEST_INPUT',
 	LOAN_REPAYMENT: 'LOAN_REPAYMENT_INPUT'
 } as const;
@@ -120,10 +125,30 @@ export function payrollRunGraph(options: {
 			options.period,
 			'work_day_id'
 		);
-		const entryJunctions = junctionRowsOf(
-			payslip.captured.componentEntries,
+		const claimJunctions = junctionRowsOf(
+			payslip.captured.payRequests.CLAIM,
 			options.period,
-			'component_entry_id'
+			'claim_request_id'
+		);
+		const allowanceJunctions = junctionRowsOf(
+			payslip.captured.payRequests.ALLOWANCE,
+			options.period,
+			'allowance_request_id'
+		);
+		const bonusJunctions = junctionRowsOf(
+			payslip.captured.payRequests.BONUS,
+			options.period,
+			'bonus_request_id'
+		);
+		const arrearsJunctions = junctionRowsOf(
+			payslip.captured.payRequests.ARREARS,
+			options.period,
+			'arrears_request_id'
+		);
+		const correctionJunctions = junctionRowsOf(
+			payslip.captured.payRequests.CORRECTION,
+			options.period,
+			'correction_request_id'
 		);
 		const leaveJunctions = junctionRowsOf(
 			payslip.captured.leaveRequests,
@@ -143,7 +168,11 @@ export function payrollRunGraph(options: {
 		 */
 		const junctionIdOf = {
 			WORK_DAY: new Map(workDayJunctions.map((row) => [row.work_day_id, row.id])),
-			COMPONENT_ENTRY: new Map(entryJunctions.map((row) => [row.component_entry_id, row.id])),
+			CLAIM: new Map(claimJunctions.map((row) => [row.claim_request_id, row.id])),
+			ALLOWANCE: new Map(allowanceJunctions.map((row) => [row.allowance_request_id, row.id])),
+			BONUS: new Map(bonusJunctions.map((row) => [row.bonus_request_id, row.id])),
+			ARREARS: new Map(arrearsJunctions.map((row) => [row.arrears_request_id, row.id])),
+			CORRECTION: new Map(correctionJunctions.map((row) => [row.correction_request_id, row.id])),
 			LEAVE_REQUEST: new Map(leaveJunctions.map((row) => [row.leave_request_id, row.id])),
 			LOAN_REPAYMENT: new Map(repaymentJunctions.map((row) => [row.loan_repayment_id, row.id]))
 		} as const;
@@ -166,7 +195,11 @@ export function payrollRunGraph(options: {
 			employer_cost: payslip.settlement.employerCost,
 			currency: payslip.currency,
 			payslip_work_day_input_payslip: workDayJunctions,
-			payslip_component_entry_input_payslip: entryJunctions,
+			payslip_claim_request_input_payslip: claimJunctions,
+			payslip_allowance_request_input_payslip: allowanceJunctions,
+			payslip_bonus_request_input_payslip: bonusJunctions,
+			payslip_arrears_request_input_payslip: arrearsJunctions,
+			payslip_correction_request_input_payslip: correctionJunctions,
 			payslip_leave_request_input_payslip: leaveJunctions,
 			payslip_loan_repayment_input_payslip: repaymentJunctions,
 			payslip_adjustment_payslip: payslip.settlement.adjustments.map(

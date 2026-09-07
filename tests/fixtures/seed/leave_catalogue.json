@@ -64,5 +64,27 @@
 		"exit_settlement": {
 			"exit": "FORFEIT"
 		}
+	},
+	{
+		"id": "ffffffff-ffff-4fff-8fff-fffffffffff9",
+		"settings_id": "22222222-2222-4222-8222-222222222222",
+		"code": "NS",
+		"name": "National service leave",
+		"is_statutory": true,
+		"authority": "Public fixture: not a sealed statutory table.",
+		"eligibility": "employee.gender == \"MALE\" && employee.citizenship in [\"CITIZEN\", \"PERMANENT_RESIDENT\"]",
+		"requires_certificate_after_days": 0,
+		"payroll_effect": {
+			"kind": "PAID"
+		},
+		"accrual": {
+			"kind": "UNLIMITED"
+		},
+		"entitlement": {
+			"layers": []
+		},
+		"exit_settlement": {
+			"exit": "FORFEIT"
+		}
 	}
 ]

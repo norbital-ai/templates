@@ -98,24 +98,6 @@ export const grantsOn = <const C extends Collection>(
 		}, {})
 	}) as Grants;
 
-/**
- * The corrections HR raises about somebody's pay, which the ranks below HR policy never see.
- *
- * A manual correction is a `MANUAL_ADJUSTMENT` event on a component entry, and `event` is one
- * jsonb column whose discriminator is the union's own `kind` — a single-level key read, which is
- * what the removed `obligations` model could not say with its nested `terms -> occasion` path. The predicate stays null-safe the same way `IS DISTINCT FROM` always was: every arm that
- * is not a correction holds a different kind, and reads as visible.
- */
-export const NOT_A_CORRECTION = {
-	event: {
-		jsonPath: {
-			path: ['kind'],
-			type: 'string',
-			ne: 'MANUAL_ADJUSTMENT'
-		}
-	}
-} as const;
-
 const SUBJECT_EMAIL = { $subject: 'email' } as const;
 
 /** The employee row owning an employment, matched with the registered case-fold transform. */
@@ -238,7 +220,11 @@ const ADJUSTMENT_CLAIM_FIELDS = ['id', 'payslip_id', 'input', 'period'] as const
 /** The work-day capture, as the lock refusal reads it. */
 const WORK_DAY_CAPTURE_FIELDS = ['id', 'payslip_id', 'period', 'work_day_id'] as const;
 /** The component-entry claim, as the lock refusal reads it. */
-const ENTRY_CAPTURE_FIELDS = ['id', 'payslip_id', 'period', 'component_entry_id'] as const;
+const CLAIM_CAPTURE_FIELDS = ['id', 'payslip_id', 'period', 'claim_request_id'] as const;
+const ALLOWANCE_CAPTURE_FIELDS = ['id', 'payslip_id', 'period', 'allowance_request_id'] as const;
+const BONUS_CAPTURE_FIELDS = ['id', 'payslip_id', 'period', 'bonus_request_id'] as const;
+const ARREARS_CAPTURE_FIELDS = ['id', 'payslip_id', 'period', 'arrears_request_id'] as const;
+const CORRECTION_CAPTURE_FIELDS = ['id', 'payslip_id', 'period', 'correction_request_id'] as const;
 /** The leave-request capture's columns. */
 const LEAVE_CAPTURE_FIELDS = ['id', 'payslip_id', 'period', 'leave_request_id'] as const;
 /** The loan-repayment capture's columns. */
@@ -260,7 +246,11 @@ const REPAYMENT_CAPTURE_FIELDS = ['id', 'payslip_id', 'period', 'loan_repayment_
 export const captureLedgerGrants = (): Grants =>
 	mergeGrants(
 		grantOn('payslip_work_day_inputs', 'read', { fields: WORK_DAY_CAPTURE_FIELDS }),
-		grantOn('payslip_component_entry_inputs', 'read', { fields: ENTRY_CAPTURE_FIELDS }),
+		grantOn('payslip_claim_request_inputs', 'read', { fields: CLAIM_CAPTURE_FIELDS }),
+		grantOn('payslip_allowance_request_inputs', 'read', { fields: ALLOWANCE_CAPTURE_FIELDS }),
+		grantOn('payslip_bonus_request_inputs', 'read', { fields: BONUS_CAPTURE_FIELDS }),
+		grantOn('payslip_arrears_request_inputs', 'read', { fields: ARREARS_CAPTURE_FIELDS }),
+		grantOn('payslip_correction_request_inputs', 'read', { fields: CORRECTION_CAPTURE_FIELDS }),
 		grantOn('payslip_leave_request_inputs', 'read', { fields: LEAVE_CAPTURE_FIELDS }),
 		grantOn('payslip_loan_repayment_inputs', 'read', { fields: REPAYMENT_CAPTURE_FIELDS })
 	);
@@ -280,7 +270,11 @@ export const payrollRunCascadeGrants = (): Grants =>
 		grantsOn('payslips', ['delete']),
 		grantsOn('payslip_adjustments', ['delete']),
 		grantsOn('payslip_work_day_inputs', ['delete']),
-		grantsOn('payslip_component_entry_inputs', ['delete']),
+		grantsOn('payslip_claim_request_inputs', ['delete']),
+		grantsOn('payslip_allowance_request_inputs', ['delete']),
+		grantsOn('payslip_bonus_request_inputs', ['delete']),
+		grantsOn('payslip_arrears_request_inputs', ['delete']),
+		grantsOn('payslip_correction_request_inputs', ['delete']),
 		grantsOn('payslip_leave_request_inputs', ['delete']),
 		grantsOn('payslip_loan_repayment_inputs', ['delete'])
 	);
@@ -545,13 +539,6 @@ export const payrollRunApprovalFromController = {
 	superceded_by: [SENIOR_MANAGEMENT_TEAM]
 } as const;
 
-/** Whether the write's candidate event is the one claim an ordinary rank may raise. */
-function isOwnClaimEvent(record: { readonly event?: unknown }): boolean {
-	const event = record.event;
-	if (event == null || typeof event !== 'object') return false;
-	return Reflect.get(event, 'kind') === 'CLAIM';
-}
-
 const employmentBelongsToRequestor = (
 	employmentId: string,
 	api: Parameters<NonNullable<Grant<'work_days', 'mutate.new'>['authorize']>>[1]
@@ -619,16 +606,14 @@ export const employeeSelfServiceGrants = (): Grants =>
 		grantOn('payslips', 'read', {
 			where: OWN_PAYSLIP
 		}),
-		grantOn('component_entries', 'mutate.new', {
-			// The one entry an ordinary rank may raise: a claim, about themselves, on a component
-			// that takes entries. Every other arm - a standing allowance, a bonus, an arrears
-			// settlement, an HR correction - is authority the HR policies hold and this one never
-			// adds. The event's own discriminator decides, which is a single-level key read rather
-			// than a two-level jsonb path.
-			authorize: ({ record }, api) =>
-				isOwnClaimEvent(record)
-					? employmentBelongsToRequestor(record.employment_id, api)
-					: Effect.succeed(false),
+		grantOn('claim_requests', 'mutate.new', {
+			// The one thing an ordinary rank may raise: a claim, about themselves. A standing
+			// allowance, a bonus, an arrears settlement and an HR correction are authority the HR
+			// policies hold and this one never adds — and now that each is its own collection, that
+			// is a grant on a collection, which is what the access system is for. It used to be a
+			// `Reflect.get(event, 'kind') === 'CLAIM'` reach into a jsonb discriminator, because the
+			// five families shared one table and the grant had no other way to name one of them.
+			authorize: ({ record }, api) => employmentBelongsToRequestor(record.employment_id, api),
 			approval: claimApproval
 		}),
 		settlementLedgerGrants()

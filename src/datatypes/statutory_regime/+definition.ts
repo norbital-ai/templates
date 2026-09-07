@@ -125,9 +125,7 @@ export const statutoryWeeklyRestRuleValueSchema = Schema.Struct({
 	authority
 });
 
-export type StatutoryWeeklyRestRule = Schema.Schema.Type<
-	typeof statutoryWeeklyRestRuleValueSchema
->;
+export type StatutoryWeeklyRestRule = Schema.Schema.Type<typeof statutoryWeeklyRestRuleValueSchema>;
 
 /**
  * The atomic working-time part of one effective-dated jurisdiction snapshot.

@@ -59,15 +59,11 @@ import {
 import type { PayslipBase } from '../../../datatypes/payslip_base/+definition.js';
 import type { PayslipProration } from '../../../datatypes/payslip_proration/+definition.js';
 import {
-	depletes,
-	entryEvent,
-	entryEventDate,
-	entryPayPeriod,
-	entrySign,
-	prorates,
-	recurringRange,
+	PAY_REQUEST_FAMILIES,
+	requestPayPeriod,
 	repaymentOutstanding,
-	type ComponentEntry,
+	type PayRequest,
+	type PayRequestFamily,
 	type LoanRepayment
 } from './entries.js';
 import {
@@ -173,7 +169,7 @@ export type MeasuredBase = PricedItem & {
  * handle in GRAPH is what lets MEASURE stay pure: it decides which source caused what, and the
  * id minting and the junction writing happen once, beside them.
  */
-type InputFamily = 'WORK_DAY' | 'COMPONENT_ENTRY' | 'LEAVE_REQUEST' | 'LOAN_REPAYMENT';
+type InputFamily = 'WORK_DAY' | PayRequestFamily | 'LEAVE_REQUEST' | 'LOAN_REPAYMENT';
 
 /** One source the run read, spelled in the four input families the payslip stores. */
 type MeasuredInput = {
@@ -203,7 +199,8 @@ export type MeasuredAdjustment = PricedItem & {
 /** The captured inputs of one employment's payslip, before the junction ids exist. */
 type CapturedInputs = {
 	readonly workDays: readonly string[];
-	readonly componentEntries: readonly string[];
+	/** Every pay request this payslip consumed, kept apart by the collection it came from. */
+	readonly payRequests: Readonly<Record<PayRequestFamily, readonly string[]>>;
 	readonly leaveRequests: readonly string[];
 	readonly loanRepayments: readonly string[];
 };
@@ -637,15 +634,17 @@ export function measureEmployment(options: MeasureEmploymentOptions): MeasuredEm
 		company: configuration.company,
 		payFrequency: rateTerms.pay_frequency
 	};
-	const periodEntries = bundle.componentEntries.filter((entry) => {
-		const recurring = recurringRange(entry);
-		if (recurring == null) return entryPayPeriod(entry, cutoffDay, cadence) === options.period;
+	const periodEntries = bundle.payRequests.filter((request) => {
+		// A request with its own window is live across it; everything else settles in one period,
+		// the one the cutoff picks from the day its economics belong to.
+		const window = request.window;
+		if (window == null) return requestPayPeriod(request, cutoffDay, cadence) === options.period;
 		return (
-			recurring.start <= options.salary.end &&
-			(recurring.end == null || recurring.end >= options.salary.start)
+			window.start <= options.salary.end &&
+			(window.end == null || window.end >= options.salary.start)
 		);
 	});
-	const entriesByComponent = new Map<string, ComponentEntry[]>();
+	const entriesByComponent = new Map<string, PayRequest[]>();
 	for (const entry of periodEntries) {
 		const bucket = entriesByComponent.get(entry.component_catalogue_id);
 		if (bucket) bucket.push(entry);
@@ -656,7 +655,7 @@ export function measureEmployment(options: MeasureEmploymentOptions): MeasuredEm
 		entryTotalByComponentId.set(
 			component.id,
 			(entriesByComponent.get(component.id) ?? []).reduce(
-				(total, entry) => total + entrySign(entry) * decodeNumber(entry.amount),
+				(total, entry) => total + entry.sign * decodeNumber(entry.amount),
 				0
 			)
 		);
@@ -936,8 +935,7 @@ export function measureEmployment(options: MeasureEmploymentOptions): MeasuredEm
 		calculatedArrears == null
 			? undefined
 			: (entriesByComponent.get(calculatedArrears.componentCatalogueId) ?? []).find(
-					(entry) =>
-						cents(entrySign(entry) * decodeNumber(entry.amount)) === calculatedArrears.amount
+					(entry) => cents(entry.sign * decodeNumber(entry.amount)) === calculatedArrears.amount
 				);
 	// A distinct arrears period is a different month (or a different amount story keyed as an
 	// entry). Measuring this same period again as "arrears" is double-pay: two BASIC lines and
@@ -978,11 +976,11 @@ export function measureEmployment(options: MeasureEmploymentOptions): MeasuredEm
 	}
 	for (const component of configuration.catalogueComponents) {
 		if (!isEligible(component.eligibility, subject)) continue;
-		const componentEntries = entriesByComponent.get(component.id) ?? [];
+		const familyRequests = entriesByComponent.get(component.id) ?? [];
 		// One entry, one measurement, because one adjustment row names one captured input. Everything
 		// else measures once for the component: a schedule and a formula have no entry at all.
-		const groups: readonly (ComponentEntry | null)[] =
-			component.definition?.source === 'ENTRY' ? componentEntries : [null];
+		const groups: readonly (PayRequest | null)[] =
+			component.definition?.source === 'ENTRY' ? familyRequests : [null];
 		for (const entry of groups) {
 			const measured = measureComponent({
 				component,
@@ -1080,7 +1078,12 @@ export function measureEmployment(options: MeasureEmploymentOptions): MeasuredEm
 		adjustments,
 		captured: {
 			workDays: capturedWorkDayIds,
-			componentEntries: periodEntries.map((entry) => entry.id),
+			payRequests: Object.fromEntries(
+				PAY_REQUEST_FAMILIES.map((family) => [
+					family,
+					periodEntries.filter((entry) => entry.family === family).map((entry) => entry.id)
+				])
+			) as unknown as Record<PayRequestFamily, readonly string[]>,
 			leaveRequests: [...capturedLeaveRequestIds],
 			loanRepayments: repaymentRecoveries.map((recovery) => recovery.input.id)
 		},
@@ -1275,7 +1278,7 @@ function assertWithinRepayment(options: RepaymentCeiling): void {
 
 /** What `assertWithinEntry` needs to raise the one-off entry's ceiling by name. */
 type EntryCeiling = Readonly<{
-	readonly entry: ComponentEntry;
+	readonly entry: PayRequest;
 	readonly componentCode: string;
 	readonly consumed: number;
 	readonly proposed: number;
@@ -1283,7 +1286,7 @@ type EntryCeiling = Readonly<{
 }>;
 
 function assertWithinEntry(options: EntryCeiling): void {
-	if (!depletes(options.entry)) return;
+	if (!options.entry.depletes) return;
 	const consumption = {
 		component_entry_id: options.entry.id,
 		component_code: options.componentCode,
@@ -1311,13 +1314,6 @@ type Measurement = {
 	readonly adjustments: readonly MeasuredAdjustment[];
 };
 
-/** A capped entry must be datable: the ceiling is per period, and a period needs a day. */
-const entryEventDateOrThrow = (entry: ComponentEntry): string => {
-	const date = entryEventDate(entry);
-	if (date == null) throw new Error(`Component entry ${entry.id} has no event date to cap by.`);
-	return date;
-};
-
 /**
  * The cap rule lives in `./entry-cap.ts` so the write hook enforces the same ceiling this does.
  * MEASURE can price a `FORMULA` layer because the payslip context exists here; the hook cannot,
@@ -1331,7 +1327,7 @@ type MeasureComponentOptions = {
 	readonly employed: PayRange;
 	readonly contracted: PayRange;
 	/** The one component entry this call measures, or `null` for a component no entry feeds. */
-	readonly entry: ComponentEntry | null;
+	readonly entry: PayRequest | null;
 	readonly consumedEntries: ReadonlyMap<string, number>;
 	readonly period: string;
 	readonly unpaid: UnpaidLeave | null;
@@ -1541,7 +1537,7 @@ function measureComponent(options: MeasureComponentOptions): Measurement | null 
 	 */
 	const measureEntry = (
 		definition: Extract<ComponentDefinition, { source: 'ENTRY' }>,
-		entry: ComponentEntry
+		entry: PayRequest
 	): Measurement | null => {
 		const cap =
 			definition.cap == null
@@ -1551,10 +1547,10 @@ function measureComponent(options: MeasureComponentOptions): Measurement | null 
 						componentId: options.component.id,
 						employmentId: options.bundle.employment.id,
 						entry,
-						eventDate: entryEventDateOrThrow(entry),
-						siblings: options.bundle.componentEntries,
-						eventDateOf: entryEventDate,
-						signOf: entrySign,
+						eventDate: entry.event_date,
+						siblings: options.bundle.payRequests,
+						eventDateOf: (row) => row.event_date,
+						signOf: (row) => row.sign,
 						subject: options.subject,
 						evaluateAward: (layer) =>
 							layer.award.kind === 'FIXED'
@@ -1566,9 +1562,9 @@ function measureComponent(options: MeasureComponentOptions): Measurement | null 
 									})
 					});
 		const percentage = cap?.percentage ?? 100;
-		const sign = entrySign(entry);
-		const recurring = recurringRange(entry);
-		const fraction = prorates(entry)
+		const sign = entry.sign;
+		const recurring = entry.window;
+		const fraction = entry.prorates
 			? prorationFraction({
 					jurisdiction: options.configuration.jurisdiction,
 					period: options.salary,
@@ -1611,7 +1607,7 @@ function measureComponent(options: MeasureComponentOptions): Measurement | null 
 			proration: [],
 			adjustments: [
 				{
-					input: { family: 'COMPONENT_ENTRY', id: entry.id },
+					input: { family: entry.family, id: entry.id },
 					catalogueComponent: options.component,
 					nature,
 					label: options.component.code,

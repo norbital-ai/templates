@@ -64,7 +64,7 @@ test(
 				'employment_statutory_facts',
 				'employment_terms',
 				'leave_requests',
-				'component_entries'
+				'allowance_requests'
 			]
 		);
 
