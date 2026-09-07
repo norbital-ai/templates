@@ -250,6 +250,13 @@
 	>
 		{#snippet children({ Field })}
 			<Field name="user_id" hidden />
+			<Field name="face_embedding" hidden />
+			<Field name="face_photo" hidden />
+			<Field name="face_enrollment_status" hidden />
+			<Field name="face_consent_at" hidden />
+			<Field name="face_enrolled_at" hidden />
+			<Field name="face_last_match_at" hidden />
+			<Field name="face_match_count" hidden />
 			<Grid gap="md" minimum="panel">
 				<Field name="name" />
 				<Field name="email" />
@@ -360,56 +367,55 @@
 				</Button>
 			</div>
 		</Stack>
+		<Dialog.Root bind:open={enrollOpen}>
+			<Dialog.Content class="max-w-2xl">
+				<Dialog.Header>
+					<Dialog.Title>{t('face.title')}</Dialog.Title>
+					<Dialog.Description>{t('face.description', { name: record.name })}</Dialog.Description>
+				</Dialog.Header>
+				{#if enrollOpen}
+					<FaceEnrollFlow
+						{record}
+						onsaved={(previewUrl) => {
+							justSavedUrl = previewUrl;
+						}}
+						onclose={() => {
+							enrollOpen = false;
+						}}
+					/>
+				{/if}
+			</Dialog.Content>
+		</Dialog.Root>
 	{/if}
 {/snippet}
 
-{#if record}
-	<RecordShell
-		title={record.name}
-		{subtitle}
-		tabs={[
-			{ name: 'person', label: t('component.person'), icon: 'lucide:user', content: person },
-			{
-				name: 'employments',
-				label: t('component.employments'),
-				icon: 'lucide:briefcase',
-				content: engagements
-			},
-			{
-				name: 'statutory-facts',
-				label: t('component.statutory_facts'),
-				icon: 'lucide:id-card',
-				content: statutoryFacts
-			},
-			{
-				name: 'face',
-				label: t('face.tab'),
-				icon: 'lucide:scan-face',
-				content: faceIdentity
-			}
-		] satisfies TabConfig[]}
-	/>
-	<Dialog.Root bind:open={enrollOpen}>
-		<Dialog.Content class="max-w-2xl">
-			<Dialog.Header>
-				<Dialog.Title>{t('face.title')}</Dialog.Title>
-				<Dialog.Description>{t('face.description', { name: record.name })}</Dialog.Description>
-			</Dialog.Header>
-			{#if enrollOpen}
-				<FaceEnrollFlow
-					{record}
-					onsaved={(previewUrl) => {
-						justSavedUrl = previewUrl;
-					}}
-					onclose={() => {
-						enrollOpen = false;
-					}}
-				/>
-			{/if}
-		</Dialog.Content>
-	</Dialog.Root>
-{:else}
-	<RecordShell title={t('component.create_employee')}>
-		{@render person()}
-	</RecordShell>
-{/if}
+<!-- Tab content must be snippets (TabConfig.content); the shell always renders tabs so no snippet is ever render-called elsewhere. -->
+<RecordShell
+	title={record?.name ?? t('component.create_employee')}
+	{subtitle}
+	tabs={[
+		{ name: 'person', label: t('component.person'), icon: 'lucide:user', content: person },
+		...(record
+			? [
+					{
+						name: 'employments',
+						label: t('component.employments'),
+						icon: 'lucide:briefcase',
+						content: engagements
+					},
+					{
+						name: 'statutory-facts',
+						label: t('component.statutory_facts'),
+						icon: 'lucide:id-card',
+						content: statutoryFacts
+					},
+					{
+						name: 'face',
+						label: t('face.tab'),
+						icon: 'lucide:scan-face',
+						content: faceIdentity
+					}
+				]
+			: [])
+	] satisfies TabConfig[]}
+/>
