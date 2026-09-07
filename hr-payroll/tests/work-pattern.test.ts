@@ -100,3 +100,60 @@ test('monthly-rostered guarantees expose only the non-derivable contractual expe
 		}
 	);
 });
+
+/* ── the pattern is read through the terms row ──────────────────────────────────────────────── */
+
+import {
+	AS_ASSIGNED_PATTERN,
+	patternRosterCodeIds,
+	termPattern,
+	termPatternRow
+} from '../src/lib/scheduling/work-pattern.ts';
+
+const twoOnTwoOff = {
+	type: 'PATTERNED',
+	anchor_date: '2026-08-03',
+	phases: [
+		{
+			duration: { kind: 'CONTINUOUS' },
+			day_cycle: [DAY, DAY, OFF, OFF].map((roster_code_id) => ({ roster_code_id }))
+		}
+	]
+};
+const namedRow = { id: 'sp-1', code: 'DAY-2x2', pattern: twoOnTwoOff };
+
+test('terms project through the named pattern row that rode the read', () => {
+	const term = { shift_pattern_id: 'sp-1', term_shift_pattern: namedRow };
+	assert.equal(termPatternRow(term)?.code, 'DAY-2x2');
+	assert.equal(patternRosterCodeId(termPattern(term), '2026-08-05'), OFF);
+	assert.equal(patternRosterCodeId(termPattern(term), '2026-08-07'), DAY);
+});
+
+test('terms project through a company pattern map when the row did not ride the read', () => {
+	const term = { shift_pattern_id: 'sp-1' };
+	const patternById = new Map([['sp-1', namedRow]]);
+	assert.equal(termPatternRow(term, patternById)?.code, 'DAY-2x2');
+	assert.deepEqual(patternWorkload(termPattern(term, patternById), codes), {
+		work_days: 2,
+		paid_minutes: 960,
+		reference_days: 4,
+		average_weekly_paid_minutes: 1680
+	});
+});
+
+test('terms naming no pattern are rostered as assigned: nothing projected, nothing guaranteed', () => {
+	const term = { shift_pattern_id: null };
+	assert.equal(termPatternRow(term), null);
+	assert.deepEqual(termPattern(term), AS_ASSIGNED_PATTERN);
+	assert.equal(patternRosterCodeId(termPattern(term), '2026-08-05'), null);
+	assert.equal(patternWorkload(termPattern(term), codes), null);
+});
+
+test('a pointer whose row was not loaded refuses rather than projecting nothing', () => {
+	assert.throws(() => termPattern({ shift_pattern_id: 'sp-missing' }), /sp-missing/);
+});
+
+test('the roster codes a pattern names are listed once each; a rostered pattern names none', () => {
+	assert.deepEqual(patternRosterCodeIds(twoOnTwoOff), [DAY, OFF]);
+	assert.deepEqual(patternRosterCodeIds(AS_ASSIGNED_PATTERN), []);
+});

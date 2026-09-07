@@ -282,16 +282,34 @@ test(
 					`insert into shift_definitions (id, company_id, code, name, variant, effective_range) select $1, $2, code, name, variant, effective_range from shift_definitions where id = $3`,
 					[id, companyId, fixtureId]
 				);
+			// The sibling entity gets its own copy of the named pattern, with its own roster codes
+			// inside the cycle, and its terms point at that copy.
 			const [terms] = (await session.query(
-				'select work_pattern from employment_terms where employment_id = $1',
+				'select shift_pattern_id from employment_terms where employment_id = $1',
 				['44444444-4444-4444-8444-444444444444']
 			)) as Row[];
+			const [sourcePattern] = (await session.query(
+				'select code, name, pattern, effective_range from shift_patterns where id = $1',
+				[terms!.shift_pattern_id]
+			)) as Row[];
 			const pattern = JSON.parse(
-				JSON.stringify(terms!.work_pattern).replaceAll(
+				JSON.stringify(sourcePattern!.pattern).replaceAll(
 					/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa[123]/g,
 					(id) => shiftIds.get(id) ?? id
 				)
 			) as unknown;
+			const siblingPatternId = crypto.randomUUID();
+			await session.query(
+				`insert into shift_patterns (id, company_id, code, name, pattern, effective_range) values ($1, $2, $3, $4, $5, $6)`,
+				[
+					siblingPatternId,
+					companyId,
+					sourcePattern!.code,
+					sourcePattern!.name,
+					pattern,
+					sourcePattern!.effective_range
+				]
+			);
 			const employeeId = crypto.randomUUID();
 			const employmentId = crypto.randomUUID();
 			await session.query(
@@ -303,13 +321,13 @@ test(
 				[employmentId, employeeId, companyId, { start: '2022-03-01', end: null }]
 			);
 			await session.query(
-				`insert into employment_terms (id, employment_id, base_salary, pay_frequency, work_classification, statutory_work_category, employment_type, job_title, work_pattern, effective_range)
+				`insert into employment_terms (id, employment_id, base_salary, pay_frequency, work_classification, statutory_work_category, employment_type, job_title, shift_pattern_id, effective_range)
 				 values ($1, $2, $3, 'MONTHLY', 'EA_COVERED', 'NON_MANUAL', 'PERMANENT', 'Operator', $4, $5)`,
 				[
 					crypto.randomUUID(),
 					employmentId,
 					{ value: 3000, currency: 'MYR' },
-					pattern,
+					siblingPatternId,
 					{ start: '2022-03-01', end: null }
 				]
 			);

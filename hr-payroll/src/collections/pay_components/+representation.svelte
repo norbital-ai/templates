@@ -10,6 +10,7 @@
 	import type { RepresentationProps } from './$types.js';
 	import { CollectionForm } from '@norbital-ai/ui/collection-form';
 	import { Column, Grid } from '@norbital-ai/ui/layout';
+	import { RecordShell } from '@norbital-ai/ui/record-shell';
 
 	let { record, close }: RepresentationProps = $props();
 	const { t } = useI18n<TenantI18nKeys>();
@@ -22,36 +23,39 @@
 	/>
 </svelte:head>
 
-<CollectionForm
-	{client}
-	collection="pay_components"
-	defaultValues={record ?? undefined}
-	submitLabel={record ? t('component.save_pay_component') : t('component.create_pay_component')}
-	onAfterSubmit={record ? undefined : close}
->
-	{#snippet children({ Field })}
-		<Grid gap="md" minimum="panel">
-			<Field
-				name="settings_id"
-				label={t('component.settings_version')}
-				relationOptions={{
-					label: (version) =>
-						[version.code, version.name, version.sealed_at ? 'sealed' : 'draft']
-							.filter((part) => part != null && part !== '')
-							.join(' · ') || '—',
-					orderBy: { code: 'asc' },
-					limit: 500
-				}}
-			/>
-			<Field name="code" label={t('component.code')} />
-			<Field name="is_statutory" label={t('component.is_statutory')} />
-			<Field name="sequence" label={t('component.applied_at')} />
-			<Column span="all"><Field name="policy" label={t('component.economic_type')} /></Column>
-			<Column span="all"><Field name="definition" label={t('component.how_calculated')} /></Column>
-			<Column span="all"><Field name="eligibility" label={t('component.who_receives')} /></Column>
-			<Column span="all">
-				<Field name="contribution_treatments" label={t('component.contribution_treatments')} />
-			</Column>
-		</Grid>
-	{/snippet}
-</CollectionForm>
+<RecordShell title={record?.code ?? t('component.create_pay_component')}>
+	<CollectionForm
+		{client}
+		collection="pay_components"
+		defaultValues={record ?? undefined}
+		submitLabel={record ? t('component.save_pay_component') : t('component.create_pay_component')}
+		onAfterSubmit={record ? undefined : close}
+	>
+		{#snippet children({ Field })}
+			<Grid gap="md" minimum="panel">
+				<Field
+					name="settings_id"
+					label={t('component.settings_version')}
+					relationOptions={{
+						label: (version) =>
+							[version.code, version.name, version.sealed_at ? 'sealed' : 'draft']
+								.filter((part) => part != null && part !== '')
+								.join(' · ') || '—',
+						orderBy: { code: 'asc' },
+						limit: 500
+					}}
+				/>
+				<Field name="code" label={t('component.code')} />
+				<Field name="is_statutory" label={t('component.is_statutory')} />
+				<Field name="sequence" label={t('component.applied_at')} />
+				<Column span="all"><Field name="policy" label={t('component.economic_type')} /></Column>
+				<Column span="all"><Field name="definition" label={t('component.how_calculated')} /></Column
+				>
+				<Column span="all"><Field name="eligibility" label={t('component.who_receives')} /></Column>
+				<Column span="all">
+					<Field name="contribution_treatments" label={t('component.contribution_treatments')} />
+				</Column>
+			</Grid>
+		{/snippet}
+	</CollectionForm>
+</RecordShell>

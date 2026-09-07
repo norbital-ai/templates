@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { CollectionForm } from '@norbital-ai/ui/collection-form';
 	import { Grid } from '@norbital-ai/ui/layout';
+	import { RecordShell } from '@norbital-ai/ui/record-shell';
 	import { useI18n } from '@norbital-ai/ui/i18n';
 	import type { TenantI18nKeys } from '$bolt/i18n-keys';
 	import { client } from '../../lib/workspace-client.js';
@@ -11,26 +12,28 @@
 	const { t } = useI18n<TenantI18nKeys>();
 </script>
 
-<CollectionForm
-	{client}
-	collection="leave_entitlements"
-	defaultValues={record ?? undefined}
-	disabled
->
-	{#snippet children({ Field })}
-		<Grid gap="md" minimum="panel">
-			<Field name="employment_id" label={t('component.employment')} />
-			<Field name="leave_type_id" label={t('component.leave_type')} />
-			<Field name="leave_code" label={t('component.code')} />
-			<Field name="leave_name" label={t('component.name')} />
-			<Field name="leave_year" label={t('component.leave_year')} />
-			<Field name="starts_on" label={t('component.starts')} />
-			<Field name="ends_on" label={t('component.ends')} />
-			<Field name="entitlement_days" label={t('component.entitlement_days')} />
-			<Field name="accrual_kind" label={t('component.accrual')} />
-			<Field name="status" label={t('component.status')} />
-			<Field name="settlement" label={t('component.year_end')} />
-			<Field name="exit_settlement" label={t('component.exit_settlement')} />
-		</Grid>
-	{/snippet}
-</CollectionForm>
+<RecordShell title={record?.leave_name ?? 'New leave entitlement'}>
+	<CollectionForm
+		{client}
+		collection="leave_entitlements"
+		defaultValues={record ?? undefined}
+		disabled
+	>
+		{#snippet children({ Field })}
+			<Grid gap="md" minimum="panel">
+				<Field name="employment_id" label={t('component.employment')} />
+				<Field name="leave_type_id" label={t('component.leave_type')} />
+				<Field name="leave_code" label={t('component.code')} />
+				<Field name="leave_name" label={t('component.name')} />
+				<Field name="leave_year" label={t('component.leave_year')} />
+				<Field name="starts_on" label={t('component.starts')} />
+				<Field name="ends_on" label={t('component.ends')} />
+				<Field name="entitlement_days" label={t('component.entitlement_days')} />
+				<Field name="accrual_kind" label={t('component.accrual')} />
+				<Field name="status" label={t('component.status')} />
+				<Field name="settlement" label={t('component.year_end')} />
+				<Field name="exit_settlement" label={t('component.exit_settlement')} />
+			</Grid>
+		{/snippet}
+	</CollectionForm>
+</RecordShell>

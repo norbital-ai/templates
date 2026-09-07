@@ -1,9 +1,14 @@
 # Kiosk voice clips
 
-Recorded by the owner with Gemini TTS on 2026-09-07 from the phrase list in
-`src/lib/kiosk/phrases.ts` (MP3, 24 kHz mono), one file per key per language under `en/` and
-`zh/`. These files are source material: never regenerate them. `scripts/generate-kiosk-voice.mjs`
-only renders a clip for a key that has none, and a key with no clip falls back to browser speech.
-Keys without a recording yet: selected_in, selected_out, confirm_in, confirm_out,
-no_active_employment, no_arrival, too_soon, unchanged, live_face_required, face_lost,
-enroll_no_face.
+Generated on 2026-09-07 by `scripts/generate-kiosk-voice.mjs` with Microsoft Edge's free neural
+voices (`edge-tts`): en-SG-LunaNeural for `en/`, zh-CN-XiaoxiaoNeural for `zh/`, both female, at
++15% speaking rate. One MP3 per key per language, keyed by the phrase list in
+`src/lib/kiosk/phrases.ts`.
+
+The kiosk never uses a system or browser voice: a key with no clip is silent. After any copy change
+in phrases.ts, re-render the affected clips:
+
+    node scripts/generate-kiosk-voice.mjs --force
+
+Needs `python3 -m pip install edge-tts` once. A stale clip for a removed key is deleted by the same
+script.

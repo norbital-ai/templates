@@ -15,8 +15,9 @@
 	import type { RepresentationProps } from './$types.js';
 	import { CollectionForm } from '@norbital-ai/ui/collection-form';
 	import { CollectionTable } from '@norbital-ai/ui/collection-table';
-	import { Column, Cover, Grid, Inline, Stack } from '@norbital-ai/ui/layout';
-	import { Tabs, type TabConfig } from '@norbital-ai/ui/tabs';
+	import { Column, Grid, Stack } from '@norbital-ai/ui/layout';
+	import { RecordShell } from '@norbital-ai/ui/record-shell';
+	import type { TabConfig } from '@norbital-ai/ui/tabs';
 	import { formatRateAward, formatRateSelector } from '../../lib/ui/display-formatters.js';
 
 	let { record, close }: RepresentationProps = $props();
@@ -27,6 +28,11 @@
 	);
 	const keyedByLabel = $derived(
 		record?.keyed_by?.toLowerCase().replaceAll('_', ' ') ?? 'nothing yet'
+	);
+	const subtitle = $derived(
+		record == null
+			? undefined
+			: `Paid by ${payerLabel}, applied at step ${record.sequence}, with bands keyed by ${keyedByLabel}. End-date a band and insert a successor; never update one in place.`
 	);
 </script>
 
@@ -140,31 +146,16 @@
 {/snippet}
 
 {#if record}
-	{#snippet schemeSummary()}
-		<Stack gap="xs">
-			<Inline gap="sm" align="baseline">
-				<h2 class="truncate text-heading">{record.code} · {record.name}</h2>
-				<span class="text-sm text-muted-foreground">{record.authority}</span>
-			</Inline>
-			<p class="text-sm text-muted-foreground">
-				Paid by {payerLabel}, applied at step {record.sequence}, with bands keyed by {keyedByLabel}.
-				End-date a band and insert a successor; never update one in place.
-			</p>
-		</Stack>
-	{/snippet}
-
-	<Cover as="main" gap="md" top={schemeSummary}>
-		<!-- The detail sheet already insets this surface; the list must not inset itself again. -->
-		<Tabs
-			animate={false}
-			listClass="mx-0 w-full"
-			contentPadding={false}
-			config={[
-				{ name: 'scheme', label: 'Scheme', icon: 'lucide:landmark', content: scheme },
-				{ name: 'rates', label: 'Rate bands', icon: 'lucide:percent', content: rates }
-			] satisfies TabConfig[]}
-		/>
-	</Cover>
+	<RecordShell
+		title={`${record.code} · ${record.name}`}
+		{subtitle}
+		tabs={[
+			{ name: 'scheme', label: 'Scheme', icon: 'lucide:landmark', content: scheme },
+			{ name: 'rates', label: 'Rate bands', icon: 'lucide:percent', content: rates }
+		] satisfies TabConfig[]}
+	/>
 {:else}
-	{@render scheme()}
+	<RecordShell title={t('component.create_scheme')}>
+		{@render scheme()}
+	</RecordShell>
 {/if}

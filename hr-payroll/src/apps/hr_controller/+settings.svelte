@@ -1,11 +1,12 @@
 <script lang="ts">
 	/**
-	 * Settings is the entity's configuration app: the version timeline of the jurisdiction settings
-	 * lineage the scoped company operates under. It reads the company scope the group header
-	 * provides (the entity picker at the top right, `company-scope.svelte.ts`), opens one live query
-	 * for the lineage's versions, and shows the chosen version (the one in force today by default)
-	 * under five tabs: Payroll (the root scalars), Contributions (schemes and bands), Leave types,
-	 * Pay components and Holidays, one live table each.
+	 * Settings is the jurisdiction configuration app: the version timeline of one jurisdiction
+	 * settings lineage (MY, SG, …), shared by every entity bound to it. It reads the lineage
+	 * scope the header provides (the jurisdiction picker at the top right,
+	 * `jurisdiction-scope.svelte.ts`), opens one live query for the lineage's versions, and shows
+	 * the chosen version (the one in force today by default) under five tabs: Payroll (the root
+	 * scalars), Contributions (schemes and bands), Leave types, Pay components and Holidays, one
+	 * live table each.
 	 *
 	 * Three actions belong to the timeline and nowhere else. **Seal** freezes a draft and every row
 	 * under it; it lists the entities the seal affects and, when the lineage's current version is
@@ -13,6 +14,12 @@
 	 * what lets the database's no-overlap exclusion accept the seal. **Void** retires a sealed
 	 * version with a reason; it is one action and is never undone. **New version** clones the
 	 * chosen version and all its rows into a draft starting on a given day.
+	 *
+	 * Layout is one `AppShell` (variant `full`, so the tab strip carries the app inset) whose body
+	 * is a `Cover`: the timeline is the chrome row and the tabs fill the remaining height. Each
+	 * tab panel then owns exactly one vertical scrollport — the payroll form flows inside a named
+	 * `Scroll`, each catalogue table is a bounded `CollectionTable` owning its own rows — so wheel
+	 * events never die inside a clipped panel.
 	 */
 	import { client } from '../../lib/workspace-client.js';
 	import { useI18n } from '@norbital-ai/ui/i18n';
@@ -22,9 +29,18 @@
 	import { toast } from 'svelte-sonner';
 	import { getErrorMessage } from '@norbital-ai/std';
 	import AppHeaderActions from '@norbital-ai/bolt/client/app-header-actions';
+	import { AppShell } from '@norbital-ai/ui/app-shell';
 	import { CollectionTable } from '@norbital-ai/ui/collection-table';
 	import { submitCollectionMutation } from '@norbital-ai/ui/collection-form';
-	import { Cluster, Cover, Inline, Stack } from '@norbital-ai/ui/layout';
+	import {
+		Bound,
+		Cluster,
+		Cover,
+		INSET_X_CLASS,
+		Inline,
+		Scroll,
+		Stack
+	} from '@norbital-ai/ui/layout';
 	import { Tabs, type TabConfig } from '@norbital-ai/ui/tabs';
 	import { Badge } from '@norbital-ai/ui/badge';
 	import { Button } from '@norbital-ai/ui/button';
@@ -43,26 +59,25 @@
 	import { readRange } from '../../collections/payroll_runs/lib/effective.js';
 	import SettingsRepresentation from '../../collections/jurisdiction_settings/+representation.svelte';
 	import { isStatutoryProposal } from '../../datatypes/statutory_proposal/+definition.js';
-	import CompanyScopeCombobox from './CompanyScopeCombobox.svelte';
+	import JurisdictionScopeCombobox from './JurisdictionScopeCombobox.svelte';
 	import {
-		companiesError as companiesErrorOf,
-		companiesOnLineage,
-		companyById,
-		resolveCompanyId
-	} from './company-scope.svelte.js';
+		jurisdictionsError as jurisdictionsErrorOf,
+		jurisdictionsUnknown as jurisdictionsUnknownOf,
+		resolveJurisdictionCode
+	} from './jurisdiction-scope.svelte.js';
+	import { companiesOnLineage } from './company-scope.svelte.js';
 
 	type Version = WorkspaceRow<'jurisdiction_settings'>;
 	type VersionWrite = Parameters<typeof client.db.jurisdiction_settings.mutate>[0][number];
 
 	const { t } = useI18n<TenantI18nKeys>();
 
-	let chosenCompanyId = $state<string | null>(null);
-	const selectedCompanyId = $derived(resolveCompanyId(chosenCompanyId));
-	const selectedCompany = $derived(companyById(selectedCompanyId));
-	const companiesError = $derived(companiesErrorOf());
-	const code = $derived(selectedCompany?.settings_code ?? null);
+	let chosenCode = $state<string | null>(null);
+	const code = $derived(resolveJurisdictionCode(chosenCode));
+	const jurisdictionsUnknown = $derived(jurisdictionsUnknownOf());
+	const jurisdictionsError = $derived(jurisdictionsErrorOf());
 
-	/** The one query of the page: every version of the scoped entity's lineage. */
+	/** The one query of the page: every version of the scoped lineage. */
 	const lineageQuery = $derived(
 		code == null
 			? null
@@ -166,34 +181,18 @@
 				busy = false;
 			});
 	}
+
+	const banner =
+		'/__bolt/request/api/template-seed-assets/hr-payroll/app-media/settings-banner.webp';
 </script>
-
-<svelte:head>
-	<title>Settings</title>
-	<meta name="description" content={t('app.settings.description')} />
-	<meta name="bolt:icon" content="lucide:settings-2" />
-	<meta
-		name="bolt:thumbnail"
-		content="/__bolt/request/api/template-seed-assets/hr-payroll/app-media/settings-banner.webp"
-	/>
-	<meta
-		name="bolt:banner"
-		content="/__bolt/request/api/template-seed-assets/hr-payroll/app-media/settings-banner.webp"
-	/>
-</svelte:head>
-
-<AppHeaderActions>
-	<CompanyScopeCombobox
-		value={selectedCompanyId}
-		onValueChange={(id) => {
-			chosenCompanyId = id;
-		}}
-	/>
-</AppHeaderActions>
 
 {#snippet payroll()}
 	{#if selectedVersion}
-		<SettingsRepresentation record={selectedVersion} close={() => {}} embedded />
+		<Bound size="full">
+			<Scroll name={t('component.payroll_rules')}>
+				<SettingsRepresentation record={selectedVersion} close={() => {}} embedded />
+			</Scroll>
+		</Bound>
 	{/if}
 {/snippet}
 
@@ -298,161 +297,206 @@
 {/snippet}
 
 {#snippet timeline()}
-	<Stack gap="sm" data-settings-timeline>
-		<Stack gap="xs">
-			<h2 class="text-sm font-semibold">
-				{t('app.settings.lineage_title', { code: code ?? '' })}
-			</h2>
-			<p class="text-meta">{t('app.settings.lineage_description')}</p>
-			{#if inForce == null}
-				<p class="text-sm text-destructive" data-settings-no-version-in-force>
-					{t('app.settings.no_version_in_force')}
-				</p>
-			{/if}
-		</Stack>
-		<Stack gap="none" class="overflow-hidden rounded-lg border">
-			{#each versions as version (version.id)}
-				<button
-					type="button"
-					data-settings-version={version.id}
-					aria-pressed={selectedVersion?.id === version.id}
-					class="hover:bg-muted/60 focus-visible:bg-muted/60 aria-pressed:bg-muted w-full border-b px-4 py-3 text-left last:border-b-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-					onclick={() => {
-						chosenVersionId = version.id;
-					}}
-				>
-					<Cluster gap="sm" align="center">
-						<span class="min-w-0 truncate text-sm font-medium">{version.name}</span>
-						<Badge variant={inForce?.id === version.id ? 'default' : 'outline'}
-							>{statusOf(version)}</Badge
-						>
-						{#if isStatutoryProposal(version.research_notes)}
-							<Badge variant="info" data-settings-proposed
-								>{t('app.settings.proposed_by_drift')}</Badge
-							>
-						{/if}
-						<span class="text-sm text-muted-foreground"
-							>{formatEffectiveRange(version.effective_range)}</span
-						>
-					</Cluster>
-				</button>
-			{/each}
-		</Stack>
-		{#if selectedVersion}
-			<Cluster gap="sm" align="center" data-settings-actions>
-				<Badge variant="outline" data-settings-status>{statusOf(selectedVersion)}</Badge>
-				<span class="text-sm text-muted-foreground">
-					{t('app.settings.affects_entities', {
-						entities: affected.map((company) => company.name).join(', ') || '—'
-					})}
-				</span>
-				{#if !sealed}
-					<Button
-						size="sm"
-						data-settings-seal
-						disabled={busy}
-						onclick={() => {
-							sealOpen = true;
-						}}>{t('app.settings.seal')}</Button
-					>
+	<div class={INSET_X_CLASS}>
+		<Stack gap="sm" data-settings-timeline>
+			<Stack gap="xs">
+				<h2 class="text-sm font-semibold">
+					{t('app.settings.lineage_title', { code: code ?? '' })}
+				</h2>
+				<p class="text-meta">{t('app.settings.lineage_description')}</p>
+				{#if inForce == null}
+					<p class="text-sm text-destructive" data-settings-no-version-in-force>
+						{t('app.settings.no_version_in_force')}
+					</p>
 				{/if}
-				{#if sealed && !voided}
+			</Stack>
+			<Stack gap="none" class="overflow-hidden rounded-lg border">
+				{#each versions as version (version.id)}
+					<button
+						type="button"
+						data-settings-version={version.id}
+						aria-pressed={selectedVersion?.id === version.id}
+						class="hover:bg-muted/60 focus-visible:bg-muted/60 aria-pressed:bg-muted w-full border-b px-4 py-3 text-left last:border-b-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+						onclick={() => {
+							chosenVersionId = version.id;
+						}}
+					>
+						<Cluster gap="sm" align="center">
+							<span class="min-w-0 truncate text-sm font-medium">{version.name}</span>
+							<Badge variant={inForce?.id === version.id ? 'default' : 'outline'}
+								>{statusOf(version)}</Badge
+							>
+							{#if isStatutoryProposal(version.research_notes)}
+								<Badge variant="info" data-settings-proposed
+									>{t('app.settings.proposed_by_drift')}</Badge
+								>
+							{/if}
+							<span class="text-sm text-muted-foreground"
+								>{formatEffectiveRange(version.effective_range)}</span
+							>
+						</Cluster>
+					</button>
+				{/each}
+			</Stack>
+			{#if selectedVersion}
+				<Cluster gap="sm" align="center" data-settings-actions>
+					<Badge variant="outline" data-settings-status>{statusOf(selectedVersion)}</Badge>
+					<span class="text-sm text-muted-foreground">
+						{t('app.settings.affects_entities', {
+							entities: affected.map((company) => company.name).join(', ') || '—'
+						})}
+					</span>
+					{#if !sealed}
+						<Button
+							size="sm"
+							data-settings-seal
+							disabled={busy}
+							onclick={() => {
+								sealOpen = true;
+							}}>{t('app.settings.seal')}</Button
+						>
+					{/if}
+					{#if sealed && !voided}
+						<Button
+							size="sm"
+							variant="outline"
+							data-settings-void
+							disabled={busy}
+							onclick={() => {
+								voidOpen = true;
+							}}>{t('app.settings.void')}</Button
+						>
+					{/if}
 					<Button
 						size="sm"
 						variant="outline"
-						data-settings-void
+						data-settings-new-version
 						disabled={busy}
 						onclick={() => {
-							voidOpen = true;
-						}}>{t('app.settings.void')}</Button
+							newStart = today;
+							newOpen = true;
+						}}>{t('app.settings.new_version')}</Button
 					>
-				{/if}
-				<Button
-					size="sm"
-					variant="outline"
-					data-settings-new-version
-					disabled={busy}
-					onclick={() => {
-						newStart = today;
-						newOpen = true;
-					}}>{t('app.settings.new_version')}</Button
-				>
-			</Cluster>
-			{#if proposal}
-				<Stack gap="xs" class="rounded-lg border p-4" data-settings-proposal>
-					<p class="text-sm font-medium">{t('app.settings.proposed_by_drift')}</p>
-					<p class="text-meta">
-						{t('app.settings.proposal_description', {
-							date: proposal.proposed_at.slice(0, 10),
-							count: proposal.changes.length
-						})}
-					</p>
-					<ul class="list-disc space-y-1 pl-5 text-sm">
-						{#each proposal.changes as change (`${change.collection}:${change.code}:${change.field}`)}
-							<li>
-								<span class="font-medium">{change.code}</span>
-								<span class="text-muted-foreground"> {change.field}</span>
-								<span class="text-muted-foreground">
-									{t('app.settings.proposal_values', {
-										previous: JSON.stringify(change.previous),
-										proposed: JSON.stringify(change.proposed)
-									})}
-								</span>
-								<a
-									class="text-muted-foreground underline"
-									href={change.source_url}
-									target="_blank"
-									rel="noreferrer">{t('app.settings.proposal_source')}</a
-								>
-							</li>
-						{/each}
-					</ul>
-					{#if proposal.notes.length > 0}
-						<p class="text-meta">{proposal.notes.join(' ')}</p>
-					{/if}
-					{#if proposal.unreachable.length > 0}
-						<p class="text-meta" data-settings-proposal-unreachable>
-							{t('app.settings.proposal_unreachable', { count: proposal.unreachable.length })}
+				</Cluster>
+				{#if proposal}
+					<Stack gap="xs" class="rounded-lg border p-4" data-settings-proposal>
+						<p class="text-sm font-medium">{t('app.settings.proposed_by_drift')}</p>
+						<p class="text-meta">
+							{t('app.settings.proposal_description', {
+								date: proposal.proposed_at.slice(0, 10),
+								count: proposal.changes.length
+							})}
 						</p>
 						<ul class="list-disc space-y-1 pl-5 text-sm">
-							{#each proposal.unreachable as source (source.url)}
+							{#each proposal.changes as change (`${change.collection}:${change.code}:${change.field}`)}
 								<li>
+									<span class="font-medium">{change.code}</span>
+									<span class="text-muted-foreground"> {change.field}</span>
+									<span class="text-muted-foreground">
+										{t('app.settings.proposal_values', {
+											previous: JSON.stringify(change.previous),
+											proposed: JSON.stringify(change.proposed)
+										})}
+									</span>
 									<a
 										class="text-muted-foreground underline"
-										href={source.url}
+										href={change.source_url}
 										target="_blank"
-										rel="noreferrer">{source.url}</a
+										rel="noreferrer">{t('app.settings.proposal_source')}</a
 									>
-									<span class="text-muted-foreground"> {source.reason}</span>
 								</li>
 							{/each}
 						</ul>
-					{/if}
-				</Stack>
+						{#if proposal.notes.length > 0}
+							<p class="text-meta">{proposal.notes.join(' ')}</p>
+						{/if}
+						{#if proposal.unreachable.length > 0}
+							<p class="text-meta" data-settings-proposal-unreachable>
+								{t('app.settings.proposal_unreachable', { count: proposal.unreachable.length })}
+							</p>
+							<ul class="list-disc space-y-1 pl-5 text-sm">
+								{#each proposal.unreachable as source (source.url)}
+									<li>
+										<a
+											class="text-muted-foreground underline"
+											href={source.url}
+											target="_blank"
+											rel="noreferrer">{source.url}</a
+										>
+										<span class="text-muted-foreground"> {source.reason}</span>
+									</li>
+								{/each}
+							</ul>
+						{/if}
+					</Stack>
+				{/if}
 			{/if}
-		{/if}
-	</Stack>
+		</Stack>
+	</div>
 {/snippet}
 
-<Cover>
-	{#if companiesError != null}
-		<p class="p-6 text-sm text-destructive">{companiesError.message}</p>
-	{:else if selectedCompany == null || code == null}
-		<p class="p-6 text-sm text-muted-foreground">{t('app.settings.choose_entity')}</p>
+<AppShell
+	icon="lucide:settings-2"
+	title={t('app.settings.header_title')}
+	description={t('app.settings.header_description')}
+	{banner}
+	variant="full"
+>
+	<AppHeaderActions>
+		<JurisdictionScopeCombobox
+			value={code}
+			onValueChange={(next) => {
+				chosenCode = next;
+			}}
+		/>
+	</AppHeaderActions>
+
+	{#if jurisdictionsError != null}
+		<Bound size="full" inset>
+			<p class="py-6 text-sm text-destructive">{jurisdictionsError.message}</p>
+		</Bound>
+	{:else if jurisdictionsUnknown}
+		<Bound size="full" inset>
+			<Inline
+				justify="center"
+				align="center"
+				gap="sm"
+				class="min-h-48 text-sm text-muted-foreground"
+			>
+				<Spinner class="size-4" />
+				<span>{t('component.loading')}</span>
+			</Inline>
+		</Bound>
+	{:else if code == null}
+		<Bound size="full" inset>
+			<p class="py-6 text-sm text-muted-foreground">
+				{t('app.settings.choose_jurisdiction_empty')}
+			</p>
+		</Bound>
 	{:else if lineageQuery?.error && lineageQuery.current === undefined}
-		<p class="py-8 text-center text-sm text-destructive">{lineageQuery.error.message}</p>
+		<Bound size="full" inset>
+			<p class="py-8 text-center text-sm text-destructive">{lineageQuery.error.message}</p>
+		</Bound>
 	{:else if lineageUnknown}
-		<Inline justify="center" align="center" gap="sm" class="min-h-48 text-sm text-muted-foreground">
-			<Spinner class="size-4" />
-			<span>{t('component.loading')}</span>
-		</Inline>
+		<Bound size="full" inset>
+			<Inline
+				justify="center"
+				align="center"
+				gap="sm"
+				class="min-h-48 text-sm text-muted-foreground"
+			>
+				<Spinner class="size-4" />
+				<span>{t('component.loading')}</span>
+			</Inline>
+		</Bound>
 	{:else if versions.length === 0}
-		<p class="p-6 text-sm text-destructive">
-			{t('app.settings.lineage_missing', { code })}
-		</p>
+		<Bound size="full" inset>
+			<p class="py-6 text-sm text-destructive">
+				{t('app.settings.lineage_missing', { code })}
+			</p>
+		</Bound>
 	{:else}
-		<Stack gap="md">
-			{@render timeline()}
+		<Cover gap="md" top={timeline}>
 			<Tabs
 				animate={false}
 				config={[
@@ -488,9 +532,9 @@
 					}
 				] satisfies TabConfig[]}
 			/>
-		</Stack>
+		</Cover>
 	{/if}
-</Cover>
+</AppShell>
 
 <Dialog.Root bind:open={sealOpen}>
 	<Dialog.Content class="max-w-md" data-settings-seal-dialog>

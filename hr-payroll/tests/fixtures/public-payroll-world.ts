@@ -10,6 +10,8 @@ export const JURISDICTION_ID = '22222222-2222-4222-8222-222222222222';
 export const EMPLOYEE_ID = '33333333-3333-4333-8333-333333333333';
 export const EMPLOYMENT_ID = '44444444-4444-4444-8444-444444444444';
 export const TERMS_ID = '55555555-5555-4555-8555-555555555555';
+/** The one named pattern the public terms point at: a rostered weekly guarantee. */
+export const SHIFT_PATTERN_ID = '99999999-9999-4999-8999-999999999901';
 export const BASIC_ID = '66666666-6666-4666-8666-666666666666';
 export const TRANSPORT_ID = '77777777-7777-4777-8777-777777777777';
 export const STANDING_ENTRY_ID = '88888888-8888-4888-8888-888888888888';
@@ -174,6 +176,17 @@ export function createPublicPayrollWorld(options: PublicPayrollWorldOptions = {}
 				approval_id: null
 			}
 		],
+		shift_patterns: [
+			{
+				id: SHIFT_PATTERN_ID,
+				company_id: COMPANY_ID,
+				code: 'ROSTER-6D-45H-WK',
+				name: 'Rostered, 6 days and 45 hours guaranteed per week',
+				pattern: ROSTERED,
+				effective_range: RANGE,
+				approval_id: null
+			}
+		],
 		company_holidays: [],
 		leave_types: [],
 		leave_entitlements: [],
@@ -216,7 +229,7 @@ export function createPublicPayrollWorld(options: PublicPayrollWorldOptions = {}
 				department: null,
 				job_title: 'Clerk',
 				payroll_group: null,
-				work_pattern: ROSTERED,
+				shift_pattern_id: SHIFT_PATTERN_ID,
 				effective_range: { start: '2021-06-01', end: null },
 				approval_id: null
 			}

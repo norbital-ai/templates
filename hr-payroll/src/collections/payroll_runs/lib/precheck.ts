@@ -23,6 +23,7 @@ import { Effect } from 'effect';
 import { PAGE_LIMIT, type PayrollReadApi, withReadLog } from './api.js';
 import type { Configuration } from './configuration.js';
 import { cadenceWindow, employmentPayFrequency, paysOn, type PayrollWindow } from './period.js';
+import { termPattern } from '../../../lib/scheduling/work-pattern.js';
 import {
 	blockers,
 	rosteredWorkCodeMaps,
@@ -117,7 +118,7 @@ export function payrollRunPrecheck(options: {
 							id: true,
 							employment_id: true,
 							pay_frequency: true,
-							work_pattern: true,
+							shift_pattern_id: true,
 							effective_range: true
 						},
 						limit: PAGE_LIMIT
@@ -161,7 +162,7 @@ export function payrollRunPrecheck(options: {
 						terms: employmentTerms.map((term) => ({
 							id: term.id,
 							pay_frequency: term.pay_frequency,
-							work_pattern: term.work_pattern,
+							work_pattern: termPattern(term, options.configuration.patternById),
 							effective_range: term.effective_range
 						})),
 						workDays: (byEmployment.get(employment.id) ?? []).map((day) => ({

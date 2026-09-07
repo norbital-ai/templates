@@ -18,6 +18,7 @@
 	import { IconWrapper } from '@norbital-ai/ui/icon-wrapper';
 	import { useI18n } from '@norbital-ai/ui/i18n';
 	import { Grid, Inline, Stack } from '@norbital-ai/ui/layout';
+	import { RecordShell } from '@norbital-ai/ui/record-shell';
 	import type { TenantI18nKeys } from '$bolt/i18n-keys';
 	import { Result, Schema } from 'effect';
 	import { client } from '../../lib/workspace-client.js';
@@ -164,62 +165,66 @@
 	}
 </script>
 
-{#if record}
-	<Stack gap="md">
-		<Grid as="dl" gap="sm" minimum="compact">
-			<Stack gap="xs">
-				<dt class="text-meta">{t('component.component')}</dt>
-				<dd class="font-medium">{record.label}</dd>
-			</Stack>
-			<Stack gap="xs">
-				<dt class="text-meta">{t('component.amount')}</dt>
-				<dd class="font-semibold tabular-nums">{formatNumeric(record.amount)}</dd>
-			</Stack>
-			<Stack gap="xs">
-				<dt class="text-meta">{t('component.bucket')}</dt>
-				<dd class="font-medium">{record.bucket}</dd>
-			</Stack>
-			{#if hasValue(record.quantity)}
+<RecordShell
+	title={record ? `${record.label} · ${formatNumeric(record.amount)}` : 'New payslip adjustment'}
+>
+	{#if record}
+		<Stack gap="md">
+			<Grid as="dl" gap="sm" minimum="compact">
 				<Stack gap="xs">
-					<dt class="text-meta">{t('component.quantity')}</dt>
-					<dd class="tabular-nums">{formatNumeric(record.quantity)}</dd>
+					<dt class="text-meta">{t('component.component')}</dt>
+					<dd class="font-medium">{record.label}</dd>
 				</Stack>
-			{/if}
-			{#if hasValue(record.rate)}
 				<Stack gap="xs">
-					<dt class="text-meta">{t('component.rate')}</dt>
-					<dd class="tabular-nums">{formatNumeric(record.rate)}</dd>
+					<dt class="text-meta">{t('component.amount')}</dt>
+					<dd class="font-semibold tabular-nums">{formatNumeric(record.amount)}</dd>
 				</Stack>
-			{/if}
-			{#if hasValue(record.statutory_rule_key)}
 				<Stack gap="xs">
-					<dt class="text-meta">{t('component.statutory_rule_key')}</dt>
-					<dd class="font-medium">{record.statutory_rule_key}</dd>
+					<dt class="text-meta">{t('component.bucket')}</dt>
+					<dd class="font-medium">{record.bucket}</dd>
 				</Stack>
-			{/if}
-			<Stack gap="xs">
-				<dt class="text-meta">{t('component.input_type')}</dt>
-				<dd>
-					<Inline gap="xs" align="center">
-						<span>{input == null ? '—' : inputKind(input.kind)}</span>
-						{#if source && navigation}
-							<Button
-								variant="link"
-								href={sourceHref}
-								aria-label={t('component.open_source')}
-								onclick={openSource}
-							>
-								<IconWrapper name="lucide:arrow-up-right" class="size-3.5" />
-							</Button>
-						{/if}
-					</Inline>
-				</dd>
-			</Stack>
-		</Grid>
-	</Stack>
-{:else}
-	<p class="text-sm text-muted-foreground">
-		A payslip adjustment is written by the payroll engine, never by hand: build the payroll run and
-		it writes one row per input it took into account.
-	</p>
-{/if}
+				{#if hasValue(record.quantity)}
+					<Stack gap="xs">
+						<dt class="text-meta">{t('component.quantity')}</dt>
+						<dd class="tabular-nums">{formatNumeric(record.quantity)}</dd>
+					</Stack>
+				{/if}
+				{#if hasValue(record.rate)}
+					<Stack gap="xs">
+						<dt class="text-meta">{t('component.rate')}</dt>
+						<dd class="tabular-nums">{formatNumeric(record.rate)}</dd>
+					</Stack>
+				{/if}
+				{#if hasValue(record.statutory_rule_key)}
+					<Stack gap="xs">
+						<dt class="text-meta">{t('component.statutory_rule_key')}</dt>
+						<dd class="font-medium">{record.statutory_rule_key}</dd>
+					</Stack>
+				{/if}
+				<Stack gap="xs">
+					<dt class="text-meta">{t('component.input_type')}</dt>
+					<dd>
+						<Inline gap="xs" align="center">
+							<span>{input == null ? '—' : inputKind(input.kind)}</span>
+							{#if source && navigation}
+								<Button
+									variant="link"
+									href={sourceHref}
+									aria-label={t('component.open_source')}
+									onclick={openSource}
+								>
+									<IconWrapper name="lucide:arrow-up-right" class="size-3.5" />
+								</Button>
+							{/if}
+						</Inline>
+					</dd>
+				</Stack>
+			</Grid>
+		</Stack>
+	{:else}
+		<p class="text-sm text-muted-foreground">
+			A payslip adjustment is written by the payroll engine, never by hand: build the payroll run and
+			it writes one row per input it took into account.
+		</p>
+	{/if}
+</RecordShell>

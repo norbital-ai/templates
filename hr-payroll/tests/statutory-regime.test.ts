@@ -84,6 +84,7 @@ test('the PAID configuration snapshot retains the exact regime revision and auth
 			overtimeLimits: value.overtime_limits,
 			overtimeCoverageRule: value.overtime_coverage,
 			shiftById: new Map(),
+			patternById: new Map(),
 			holidays: new Map(),
 			leaveTypes: []
 		},

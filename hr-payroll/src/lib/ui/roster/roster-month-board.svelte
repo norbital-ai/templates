@@ -10,6 +10,19 @@
 	Planned and actual are shown in the same cell on purpose. Kept apart they are two screens nobody
 	cross-references, which is how a rostered shift with nobody clocked onto it survives until payroll.
 
+	── THE THREE LAYERS ───────────────────────────────────────────────────────────────────────────
+	A cell paints what `resolveCellLayers` says it carries, on shape rather than colour:
+
+	    BASE       the day the employment's named shift pattern projects. Muted code inside a dashed
+	               outline, and the code only: a projection, not a decision anybody took.
+	    OVERRIDE   a `work_days` row's assignment. Solid text, a corner mark, the shift window under
+	               the code; the tooltip names where it came from (imported, ad hoc) and what base it
+	               replaced.
+	    CLOCK      the row's time entries. A bar under the code and the punch window for a closed day,
+	               `⧗` for a clock still running, and AWOL in the destructive colour for a reviewed
+	               row with nothing worked on a work day. No row, or a row with no attendance, draws
+	               nothing here: payroll takes the plan as worked.
+
 	── SCROLL ────────────────────────────────────────────────────────────────────────────────────────
 	The board is a scrollport, built the way `CollectionTable` builds one: a `Cover` whose middle row
 	is `minmax(0,1fr)` gives a definite height, and a single `Scroll` inside it fills that height and
@@ -48,19 +61,22 @@
 		CONFLICT_PRESENTATION,
 		DAY_MARK_KEY,
 		HOLIDAY_PRESENTATION,
+		LAYER_PRESENTATION,
 		LOCK_RAIL_PRESENTATION,
 		STATUS_PRESENTATION,
-		actualMark,
-		actualMarkClass,
+		describeClockLayer,
 		describeDay,
+		describePlanLayer,
 		lockRung,
 		lockRungFreezes,
 		lockRungSourceLock,
 		monthDays,
 		personDayKey,
 		planGlyph,
+		punchTimeCue,
+		resolveCellLayers,
 		shiftTimeCue,
-		unrosteredReason,
+		type CellLayers,
 		type DayFacts,
 		type LockRung
 	} from './roster-month.js';
@@ -331,25 +347,31 @@
 		focusCell(personIndex + movement[0], dayIndex + movement[1]);
 	}
 
+	/** The plan line of the tooltip, layer first: "Base from pattern AM-2x2" or "Rostered override, imported". */
 	function scheduleSummary(day: DayFacts): string {
-		if (day.status === 'UNROSTERED') return unrosteredReason(day, t);
-		if (day.shiftCode == null || day.shiftStart == null || day.shiftEnd == null) {
+		if (day.status === 'BEFORE_START' || day.status === 'EXITED') {
 			return t(STATUS_PRESENTATION[day.status].labelKey);
 		}
-		return `${t('roster.shift_code', { code: day.shiftCode })} · ${t('roster.shift_window', {
-			start: day.shiftStart,
-			end: day.shiftEnd,
-			break: (day.shiftBreakMinutes ?? 0) / 60
-		})}`;
+		return describePlanLayer(day, t);
 	}
 
+	/** The clock line of the tooltip: "Clocked 08:31 to 17:02", the open clock, AWOL, or no entries. */
 	function attendanceSummary(day: DayFacts): string {
-		if (day.attendanceState === 'OPEN') return t('roster.attendance_open');
-		if (day.workedIntervalCount > 0) {
-			const intervals = t('roster.attendance_intervals', { count: day.workedIntervalCount });
-			return day.withinCutoff ? `${intervals} · ${t('roster.in_pay_period')}` : intervals;
+		const clock = describeClockLayer(day, t);
+		return day.clockedIn && day.withinCutoff ? `${clock} · ${t('roster.in_pay_period')}` : clock;
+	}
+
+	/**
+	 * The second line of a cell, by layer: the punch window when the clock says something, the
+	 * shift window on an override, and nothing at all on a base day, which is the code only.
+	 */
+	function cellCue(day: DayFacts, layers: CellLayers): string {
+		if (layers.actual.kind === 'AWOL') return t('roster.absent');
+		if (layers.actual.kind === 'CLOCKED' || layers.actual.kind === 'OPEN') {
+			return punchTimeCue(day) ?? '';
 		}
-		return day.withinCutoff ? t('roster.no_attendance_in_pay_period') : t('roster.no_attendance');
+		if (layers.override != null) return shiftTimeCue(day) ?? '';
+		return '';
 	}
 
 	/**
@@ -419,24 +441,42 @@
 			</Inline>
 		{/if}
 		<!--
-			THE COLOUR KEY — four swatches, one per hue the board actually spends.
+			THE KEY: the three layers first, then the hues the board spends.
 
-			It used to be seventeen: ten status fills, a holiday tint, an OT glyph, a pending-leave
-			glyph, a conflict swatch and three rungs of the lock ladder, wrapped over three lines. That
-			is not a key, it is a lookup table, and a board you have to look away from to read is a
-			board you cannot read. The identity of a day now travels on its glyph and on one neutral at
-			three densities — see the colour-budget note in `roster-month.ts` — so the only things left
-			to name here are the three hues and the one shape.
+			The layers are named by shape, because that is how the cells carry them: a dashed outline
+			is the base the pattern projects, a solid outline with a corner mark is a roster override,
+			and a bar is the clock. Colour is left to alarm (a running clock, and AWOL) and to
+			ownership (the holiday column and the payroll rail). See the colour-budget note in
+			`roster-month.ts`.
 		-->
 		<Inline gap="xs">
-			<span class="inline-block size-2.5 rounded-sm bg-warning/25"></span>
-			<span>{t('roster.legend_attention')}</span>
+			<span class={cn('inline-block size-2.5 rounded-sm', LAYER_PRESENTATION.base.className)}
+			></span>
+			<span>{t(LAYER_PRESENTATION.base.labelKey)}</span>
 		</Inline>
 		<Inline gap="xs">
 			<span
-				class="inline-block size-2.5 rounded-sm outline-1 outline-dashed outline-offset-[-1px] outline-muted-foreground/50"
+				class={cn(
+					'relative inline-block size-2.5 rounded-sm',
+					LAYER_PRESENTATION.override.className
+				)}
+			>
+				<span class="absolute right-px bottom-px size-1 rounded-[1px] bg-foreground/70"></span>
+			</span>
+			<span>{t(LAYER_PRESENTATION.override.labelKey)}</span>
+		</Inline>
+		<Inline gap="xs">
+			<span class="inline-block h-1 w-3 rounded-full bg-success"></span>
+			<span>{t(LAYER_PRESENTATION.clocked.labelKey)}</span>
+		</Inline>
+		<Inline gap="xs">
+			<span class={cn('inline-block size-2.5 rounded-sm', LAYER_PRESENTATION.awol.className)}
 			></span>
-			<span>{t('roster.unrostered')}</span>
+			<span>{t(LAYER_PRESENTATION.awol.labelKey)}</span>
+		</Inline>
+		<Inline gap="xs">
+			<span class="inline-block size-2.5 rounded-sm bg-warning/25"></span>
+			<span>{t('roster.legend_attention')}</span>
 		</Inline>
 		<Inline gap="xs">
 			<span class={cn('inline-block size-2.5 rounded-sm', HOLIDAY_PRESENTATION.headerClassName)}
@@ -635,6 +675,7 @@
 									</th>
 									{#each days as date, dayIndex (date)}
 										{@const day = facts.get(personDayKey(person.id, date))}
+										{@const layers = day == null ? null : resolveCellLayers(day)}
 										{@const rung = rungOf(day)}
 										<!--
 									`day.past !== true` used to be a fourth condition here, and deleting it is
@@ -696,6 +737,13 @@
 															day == null
 																? 'bg-muted/20'
 																: STATUS_PRESENTATION[day.status].className,
+															// The plan layer, on shape: a dashed outline for the pattern's base, a
+															// solid one for a roster override. Literal variants in LAYER_PRESENTATION.
+															layers?.effective === 'BASE' && LAYER_PRESENTATION.base.className,
+															layers?.effective === 'OVERRIDE' &&
+																LAYER_PRESENTATION.override.className,
+															// AWOL is the one destructive fill, and it outranks the layer's own ink.
+															layers?.actual.kind === 'AWOL' && LAYER_PRESENTATION.awol.className,
 															// The lock rail: a channel of its own, drawn as an inset left border so it
 															// composes with the status fill and the holiday tint instead of replacing
 															// either. Every class is a literal variant in LOCK_RAIL_PRESENTATION.
@@ -790,24 +838,35 @@
 																{LOCK_RAIL_PRESENTATION[rung].padlock}
 															</span>
 														{/if}
+														{#if layers?.override != null}
+															<!-- The override mark: a second channel beside the solid outline. -->
+															<span
+																class={LAYER_PRESENTATION.override.markClassName}
+																aria-hidden="true"
+																title={t(LAYER_PRESENTATION.override.labelKey)}
+															></span>
+														{/if}
+														{#if layers?.actual.kind === 'CLOCKED'}
+															<!-- The punch bar: the clock layer, drawn under the code. -->
+															<span
+																class={LAYER_PRESENTATION.clocked.barClassName}
+																aria-hidden="true"
+															></span>
+														{/if}
 														<span class="block truncate text-xs leading-4">
 															{day == null ? '' : planGlyph(day)}
 														</span>
 														<span
 															class={cn(
 																'block truncate text-[0.625rem] leading-3',
-																day == null
-																	? 'text-muted-foreground/50'
-																	: day.past
-																		? actualMarkClass(day)
-																		: 'text-muted-foreground/70'
+																layers == null || layers.actual.kind === 'NONE'
+																	? 'text-muted-foreground/70'
+																	: layers.actual.kind === 'AWOL'
+																		? 'text-destructive'
+																		: 'text-foreground'
 															)}
 														>
-															{day == null
-																? ''
-																: day.past
-																	? actualMark(day)
-																	: (shiftTimeCue(day) ?? actualMark(day))}
+															{day == null || layers == null ? '' : cellCue(day, layers)}
 														</span>
 													</button>
 												{/snippet}

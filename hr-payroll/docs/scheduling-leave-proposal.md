@@ -6,17 +6,30 @@ can disagree, one of them should not be writable.
 
 ## Vocabulary and mental model
 
-### Employment schedule (the work pattern in employment terms)
+### The three layers: base, override, time entries
 
-The employee has one effective-dated set of employment terms. Its `work_pattern` is the schedule
-part of those same terms—not a separate record that can drift from them.
+Every employment has a **base**: the days its named shift pattern projects. A **work day row is an
+override** of one date: its planned side is a rostered code (what a swap moves, and what must still
+conform to the pattern over the month) and its actual side is the **time entries**. Payroll uses
+the row when it exists, and an empty interval list on a WORK day is an absence; a day with no row is
+the base taken as worked to plan, with no overtime. The board, the employee's calendar and the day
+sheet all say which layer a mark belongs to ("Base from pattern AM-2x2", "Rostered override,
+imported", "Clocked 08:31 to 17:02").
 
-It has two variants:
+### Shift pattern (the named base the terms point at)
 
-1. **Repeating schedule** — the system can project the expected assignment on any date from an
-   anchor, one or more phases, and each phase's roster-code cycle.
-2. **Monthly roster** — the assignments cannot be predicted reliably, so HR supplies the month's
-   roster. It can be “as assigned” or carry a contractual guarantee/cap that publication validates.
+The employee has one effective-dated set of employment terms. Its `shift_pattern_id` points at one
+of the company's named `shift_patterns` rows, so the same "2 on 2 off" is one row with a code, not a
+value repeated on every contract that follows it. Terms that point at no pattern are rostered as
+assigned: nothing is projected and nothing is guaranteed.
+
+A pattern has two variants:
+
+1. **Repeating schedule** (`PATTERNED`) - the system can project the expected assignment on any
+   date from an anchor, one or more phases, and each phase's roster-code cycle.
+2. **Rostered expectation** (`ROSTERED`) - the assignments cannot be predicted reliably, so HR
+   supplies the month's rows. The row names the contractual guarantee or cap payroll validates,
+   for a company that wants that expectation named.
 
 The repeating variant covers different populations without different schemas:
 
@@ -50,9 +63,9 @@ code. It has two uses:
   assignment).
 - For a monthly-rostered schedule it is the assignment itself.
 
-An absent entry means “use the repeating baseline” or “not yet assigned”, depending on the work
-pattern variant. It never silently means REST. Publication validates every employee against their
-effective terms.
+An absent entry means "use the base the pattern projects" or "not yet assigned", depending on the
+pattern variant. It never silently means REST. Every plan write is validated against the
+employment's pattern for the month.
 
 ## HR controller workflow
 
@@ -118,10 +131,11 @@ Scheduling · August 2026                     Entity [ Norbital SG ▾ ]
 └──────────────────────────────────────────────────────────────────────────┘
 ```
 
+The named patterns live on Scheduling's **Shift patterns** tab beside Roster codes and Holidays.
 The contractual schedule itself stays with the employee: **People → Employee → Employments** shows
-each employment and its effective-dated terms/work pattern in one aligned representation. Scheduling
-is the operational month board; it does not duplicate a second organization-wide employment-terms
-table.
+each employment and its effective-dated terms with the pattern it points at, in one aligned
+representation. Scheduling is the operational month board; it does not duplicate a second
+organization-wide employment-terms table.
 
 HR can declare another OFF only as an explicit exception. They cannot silently change a five-day
 contract: validation compares the final month (projected baseline plus exceptions) with the
@@ -239,15 +253,15 @@ Interaction contract:
 
 ## Stored versus derived
 
-| Store                                          | Derive                                                    |
-| ---------------------------------------------- | --------------------------------------------------------- |
-| Employment terms with polymorphic work pattern | Weekly hours/days for repeating schedules                 |
-| WORK/REST/OFF roster-code variant              | Crosses midnight, scheduled/paid minutes                  |
-| Explicit monthly person/date/code assignment   | Projected baseline and final day type                     |
-| Entity holiday and scope                       | Whether PH applies to this person/date                    |
-| Worked intervals and break observation         | Open/closed state, lateness, overtime duration/type/value |
-| Leave half-day range and workflow decision     | Chargeable days, exclusions and remaining balance         |
-| Effective-dated statutory/contractual policy   | Overtime coverage and rates                               |
+| Store                                        | Derive                                                    |
+| -------------------------------------------- | --------------------------------------------------------- |
+| Named shift pattern, and the terms' pointer  | Weekly hours/days for repeating schedules                 |
+| WORK/REST/OFF roster-code variant            | Crosses midnight, scheduled/paid minutes                  |
+| Explicit monthly person/date/code assignment | Projected baseline and final day type                     |
+| Entity holiday and scope                     | Whether PH applies to this person/date                    |
+| Worked intervals and break observation       | Open/closed state, lateness, overtime duration/type/value |
+| Leave half-day range and workflow decision   | Chargeable days, exclusions and remaining balance         |
+| Effective-dated statutory/contractual policy | Overtime coverage and rates                               |
 
 ## Attendance kiosk
 
@@ -295,9 +309,9 @@ closes it. Thresholds live in `src/lib/kiosk/config.ts` and were bench-measured 
 `kiosk-probe`); recalibrate `KIOSK_REAL_MIN` against live captures on the device.
 
 **Voice.** Everything the kiosk says is one list (`src/lib/kiosk/phrases.ts`, en + zh), one clip
-per key per language under `assets/kiosk-voice/` (MP3, owner-recorded; see `SOURCE.md`), shipped
-beside the models by the `kiosk-voice-clips` Vite plugin and played one at a time through a queue
-(`src/lib/kiosk/voice.ts`). The generator only renders keys with no clip and never overwrites a
-recording; keys with no recording fall back to browser speech. The camera guide is a measured
+per key per language under `assets/kiosk-voice/` (MP3, Edge neural voices, female, +15%; see
+`SOURCE.md`), shipped beside the models by the `kiosk-voice-clips` Vite plugin and played one at a
+time through a queue (`src/lib/kiosk/voice.ts`). No browser or system voice exists: a key without
+a clip is silent at run time and a build error. The camera guide is a measured
 silhouette: a head ellipse at 58% of the frame height with shoulders off the bottom edge
 (`src/lib/kiosk/silhouette.ts`).

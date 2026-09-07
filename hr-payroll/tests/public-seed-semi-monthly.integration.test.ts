@@ -82,14 +82,31 @@ test(
 				);
 			// The second entity shares the PUB settings lineage, so the catalogue (BASIC, the schemes and
 			// their bands) is already its own; only its shifts are per company.
+			// The second entity gets its own copy of the named pattern, its cycle naming its own
+			// shifts, and every hire below points at that copy.
 			const fixturePattern =
-				fixture<ReadonlyArray<{ work_pattern: unknown }>>('employment_terms')[0]?.work_pattern;
+				fixture<
+					ReadonlyArray<{ code: string; name: string; pattern: unknown; effective_range: unknown }>
+				>('shift_patterns')[0];
 			const pattern = JSON.parse(
-				JSON.stringify(fixturePattern).replaceAll(
+				JSON.stringify(fixturePattern?.pattern).replaceAll(
 					/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa[123]/g,
 					(id) => shiftIdByFixtureId.get(id) ?? id
 				)
 			) as unknown;
+			const patternId = crypto.randomUUID();
+			await session.query(
+				`insert into shift_patterns (id, company_id, code, name, pattern, effective_range)
+				 values ($1, $2, $3, $4, $5, $6)`,
+				[
+					patternId,
+					companyId,
+					fixturePattern?.code,
+					fixturePattern?.name,
+					pattern,
+					fixturePattern?.effective_range
+				]
+			);
 
 			const hire = async (number: string, payFrequency: string, wage: number) => {
 				const employeeId = crypto.randomUUID();
@@ -113,7 +130,7 @@ test(
 				);
 				await session.query(
 					`insert into employment_terms (id, employment_id, base_salary, pay_frequency, work_classification,
-						statutory_work_category, employment_type, job_title, work_pattern, effective_range)
+						statutory_work_category, employment_type, job_title, shift_pattern_id, effective_range)
 					 values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
 					[
 						crypto.randomUUID(),
@@ -124,7 +141,7 @@ test(
 						'NON_MANUAL',
 						'PERMANENT',
 						'Operator',
-						pattern,
+						patternId,
 						{ start: '2022-03-01', end: null }
 					]
 				);

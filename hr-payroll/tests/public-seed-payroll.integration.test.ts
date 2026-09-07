@@ -59,6 +59,7 @@ test(
 				'contribution_rates',
 				'employees',
 				'shift_definitions',
+				'shift_patterns',
 				'employments',
 				'employment_statutory_facts',
 				'employment_terms',

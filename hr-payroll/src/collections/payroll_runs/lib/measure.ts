@@ -120,6 +120,7 @@ import { settle } from './settle.js';
 import {
 	patternRosterCodeId,
 	patternWorkload,
+	termPattern,
 	type PatternWorkload
 } from '../../../lib/scheduling/work-pattern.js';
 import { rosterCodeKind, workWindow } from '../../../lib/scheduling/roster-code.js';
@@ -414,7 +415,10 @@ type TermsWorkloadOptions = {
 };
 
 function termsWorkload(options: TermsWorkloadOptions): PatternWorkload {
-	const workload = patternWorkload(options.terms.work_pattern, options.configuration.shiftById);
+	const workload = patternWorkload(
+		termPattern(options.terms, options.configuration.patternById),
+		options.configuration.shiftById
+	);
 	return (
 		workload ??
 		rosteredWorkload({
@@ -531,7 +535,7 @@ export function measureEmployment(options: MeasureEmploymentOptions): MeasuredEm
 			window: complianceWindow
 		});
 		return {
-			work_pattern: row.work_pattern,
+			work_pattern: termPattern(row, configuration.patternById),
 			// A rostered zero carries no weekly pattern; the day length falls back to the same
 			// neutral eight hours the rate terms resolve against.
 			normal_daily_hours:
@@ -1530,7 +1534,9 @@ function measureComponent(options: MeasureComponentOptions): Measurement | null 
 			const actual = actualByDate.get(date);
 			const intervals = actual?.worked_intervals;
 			if (intervals != null && intervals.length === 0) continue;
-			const codeId = planByDate.get(date) ?? patternRosterCodeId(dayTerms.work_pattern, date);
+			const codeId =
+				planByDate.get(date) ??
+				patternRosterCodeId(termPattern(dayTerms, options.configuration.patternById), date);
 			if (codeId == null) continue;
 			const code = options.configuration.shiftById.get(codeId);
 			if (code == null)

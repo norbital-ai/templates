@@ -119,6 +119,9 @@ function configuration(options) {
 		overtimeLimits: options.overtimeLimits,
 		overtimeCoverageRule: null,
 		shiftById: SHIFT_CODES,
+		patternById: new Map([
+			['pattern-1', { id: 'pattern-1', code: 'SIX-DAY', pattern: SIX_DAY_WEEK }]
+		]),
 		holidays: new Map(),
 		leaveTypes: [],
 		hash: 'test'
@@ -143,7 +146,7 @@ function bundle(overrides = {}) {
 				employment_id: 'emp-1',
 				base_salary: overrides.salary ?? { value: 3451, currency: 'MYR' },
 				pay_frequency: 'MONTHLY',
-				work_pattern: SIX_DAY_WEEK,
+				shift_pattern_id: 'pattern-1',
 				statutory_work_category: 'NON_MANUAL',
 				work_classification: 'NON_MANUAL',
 				employment_type: 'PERMANENT',

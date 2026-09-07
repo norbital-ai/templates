@@ -37,11 +37,7 @@
 	import { kioskVoiceLanguage, type KioskPhraseKey } from '../../lib/kiosk/phrases.js';
 	import type { KioskSample } from '../../lib/kiosk/sample.js';
 	import { readKioskSettings } from '../../lib/kiosk/settings.js';
-	import {
-		browserNarratorPlatform,
-		createKioskNarrator,
-		pickKioskVoice
-	} from '../../lib/kiosk/voice.js';
+	import { browserNarratorPlatform, createKioskNarrator } from '../../lib/kiosk/voice.js';
 
 	/**
 	 * Guided face enrollment for one known person, opened from their profile.
@@ -88,14 +84,10 @@
 	const { t } = i18n;
 	const fileRuntime = getDataRendererRuntimeContext();
 	const settings = readKioskSettings();
-	let voice: SpeechSynthesisVoice | null = null;
-	const narrator = createKioskNarrator(
-		browserNarratorPlatform(() => voice),
-		{
-			language: kioskVoiceLanguage(i18n.intlLocale),
-			enabled: settings.voiceEnabled
-		}
-	);
+	const narrator = createKioskNarrator(browserNarratorPlatform(), {
+		language: kioskVoiceLanguage(i18n.intlLocale),
+		enabled: settings.voiceEnabled
+	});
 
 	let step = $state<Step>('capture');
 	let warming = $state(true);
@@ -164,14 +156,8 @@
 		};
 	};
 
-	const loadVoice = () => {
-		if (!('speechSynthesis' in window)) return;
-		voice = pickKioskVoice(window.speechSynthesis.getVoices(), i18n.intlLocale, settings.voiceUri);
-	};
-
 	$effect(() => {
 		narrator.setLanguage(kioskVoiceLanguage(i18n.intlLocale));
-		loadVoice();
 	});
 
 	const restartCapture = () => {
@@ -271,13 +257,11 @@
 	onMount(() => {
 		void start();
 		loopTimer = setInterval(() => void tick(), KIOSK_LOOP_MS);
-		window.speechSynthesis?.addEventListener('voiceschanged', loadVoice);
 		return () => {
 			if (loopTimer !== null) clearInterval(loopTimer);
 			stopCamera();
 			engine?.reset();
 			narrator.stop();
-			window.speechSynthesis?.removeEventListener('voiceschanged', loadVoice);
 		};
 	});
 

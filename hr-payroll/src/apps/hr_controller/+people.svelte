@@ -2,6 +2,7 @@
 	import { client } from '../../lib/workspace-client.js';
 	import { useI18n } from '@norbital-ai/ui/i18n';
 	import AppHeaderActions from '@norbital-ai/bolt/client/app-header-actions';
+	import { AppShell } from '@norbital-ai/ui/app-shell';
 	import type { TenantI18nKeys } from '$bolt/i18n-keys';
 	import { Display, type ChartDisplaySpec } from '@norbital-ai/ui/chart';
 	import { CollectionTable } from '@norbital-ai/ui/collection-table';
@@ -11,7 +12,7 @@
 		companiesUnknown as companiesUnknownOf,
 		resolveCompanyId
 	} from './company-scope.svelte.js';
-	import { Bound, Columns, Cover, Scroll, Split, Stack } from '@norbital-ai/ui/layout';
+	import { Bound, Columns, Scroll, Split, Stack } from '@norbital-ai/ui/layout';
 	import { Tabs, type TabConfig } from '@norbital-ai/ui/tabs';
 	import { employedTodayFilter, todayKey } from '../../lib/ui/calendar.js';
 	import { inForceOnDay } from '../../lib/effective_range.js';
@@ -234,28 +235,17 @@
 	{/if}
 {/snippet}
 
-<svelte:head>
-	<title>People</title>
-	<meta
-		name="description"
-		content="Workforce health, and one profile per person carrying their employments, contractual terms and statutory registrations"
-	/>
-	<meta name="bolt:icon" content="lucide:users" />
-	<meta
-		name="bolt:thumbnail"
-		content="/__bolt/request/api/template-seed-assets/hr-payroll/app-media/people-banner.webp"
-	/>
-	<meta
-		name="bolt:banner"
-		content="/__bolt/request/api/template-seed-assets/hr-payroll/app-media/people-banner.webp"
-	/>
-</svelte:head>
+<AppShell
+	icon="lucide:users"
+	title="People"
+	description="Workforce health, and one profile per person carrying their employments, contractual terms and statutory registrations"
+	banner="/__bolt/request/api/template-seed-assets/hr-payroll/app-media/people-banner.webp"
+	variant="full"
+>
+	<AppHeaderActions>
+		{@render companyScopeActions()}
+	</AppHeaderActions>
 
-<AppHeaderActions>
-	{@render companyScopeActions()}
-</AppHeaderActions>
-
-<Cover>
 	<Tabs
 		animate={false}
 		config={[
@@ -273,4 +263,4 @@
 			}
 		] satisfies TabConfig[]}
 	/>
-</Cover>
+</AppShell>

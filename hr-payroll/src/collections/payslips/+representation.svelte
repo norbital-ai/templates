@@ -18,6 +18,7 @@
 	import { Button } from '@norbital-ai/ui/button';
 	import { IconWrapper } from '@norbital-ai/ui/icon-wrapper';
 	import { Grid, Inline, Scroll, Stack } from '@norbital-ai/ui/layout';
+	import { RecordShell } from '@norbital-ai/ui/record-shell';
 	import {
 		Accordion,
 		AccordionContent,
@@ -205,268 +206,279 @@
 	</Tooltip>
 {/snippet}
 
-{#if record}
-	<Stack gap="lg">
-		<Stack as="section" gap="sm" aria-labelledby="payslip-summary-heading">
-			<h2 id="payslip-summary-heading" class="text-subhead">
-				{employment?.employment_employee?.name ?? t('component.employee')}
-			</h2>
-			<p class="text-sm text-muted-foreground">
-				{employment?.employee_number ?? t('component.employment')} · {record.currency}
-			</p>
-			<Grid as="dl" gap="sm" minimum="compact">
-				<Stack gap="xs">
-					<dt class="text-meta">{t('component.gross')}</dt>
-					<dd class="font-semibold tabular-nums">{formatNumeric(record.gross)}</dd>
-				</Stack>
-				<Stack gap="xs">
-					<dt class="text-meta">{t('component.deductions')}</dt>
-					<dd class="font-semibold tabular-nums">{formatNumeric(record.total_deductions)}</dd>
-				</Stack>
-				<Stack gap="xs">
-					<dt class="text-meta">{t('component.net')}</dt>
-					<dd class="text-lg font-bold tabular-nums">{formatNumeric(record.net)}</dd>
-				</Stack>
-				<Stack gap="xs">
-					<dt class="text-meta">{t('component.employer_cost')}</dt>
-					<dd class="font-semibold tabular-nums">{formatNumeric(record.employer_cost)}</dd>
-				</Stack>
-			</Grid>
-		</Stack>
+<RecordShell
+	title={record ? `${record.currency} · ${formatNumeric(record.net)}` : 'New payslip'}
+	subtitle={record
+		? `${employment?.employment_employee?.name ?? t('component.employee')} · ${employment?.employee_number ?? t('component.employment')}`
+		: undefined}
+>
+	{#if record}
+		<Stack gap="lg">
+			<Stack as="section" gap="sm" aria-labelledby="payslip-summary-heading">
+				<h2 id="payslip-summary-heading" class="text-subhead">
+					{employment?.employment_employee?.name ?? t('component.employee')}
+				</h2>
+				<p class="text-sm text-muted-foreground">
+					{employment?.employee_number ?? t('component.employment')} · {record.currency}
+				</p>
+				<Grid as="dl" gap="sm" minimum="compact">
+					<Stack gap="xs">
+						<dt class="text-meta">{t('component.gross')}</dt>
+						<dd class="font-semibold tabular-nums">{formatNumeric(record.gross)}</dd>
+					</Stack>
+					<Stack gap="xs">
+						<dt class="text-meta">{t('component.deductions')}</dt>
+						<dd class="font-semibold tabular-nums">{formatNumeric(record.total_deductions)}</dd>
+					</Stack>
+					<Stack gap="xs">
+						<dt class="text-meta">{t('component.net')}</dt>
+						<dd class="text-lg font-bold tabular-nums">{formatNumeric(record.net)}</dd>
+					</Stack>
+					<Stack gap="xs">
+						<dt class="text-meta">{t('component.employer_cost')}</dt>
+						<dd class="font-semibold tabular-nums">{formatNumeric(record.employer_cost)}</dd>
+					</Stack>
+				</Grid>
+			</Stack>
 
-		<Stack
-			as="section"
-			gap="sm"
-			class="border-t border-border pt-4"
-			aria-labelledby="payslip-base-heading"
-		>
-			<Inline gap="xs" align="center">
-				<h3 id="payslip-base-heading" class="text-sm font-semibold">
-					{t('component.payslip_base')}
-				</h3>
-				{@render sectionInfo(
-					t('component.payslip_base_info'),
-					t('component.payslip_base_description')
-				)}
-			</Inline>
-			{#if base.length === 0}
-				<p class="text-sm text-muted-foreground">{t('component.payslip_base_none')}</p>
-			{:else}
-				<Stack as="ul" gap="none" class="text-sm tabular-nums">
-					{#each base as entry, index (`${entry.component_code}:${index}`)}
-						<Inline as="li" justify="between" gap="sm" class="border-t border-border py-1">
-							<span class="truncate">{entry.component_code}</span>
-							<span class="font-medium">{formatNumeric(entry.amount)}</span>
-						</Inline>
-					{/each}
-				</Stack>
-			{/if}
-		</Stack>
-
-		{#if proration.length > 0}
-			<Accordion type="multiple" class="border-t border-border">
-				<AccordionItem value="proration">
-					<AccordionTrigger class="text-sm font-semibold hover:no-underline">
-						{t('component.payslip_proration')}
-					</AccordionTrigger>
-					<AccordionContent>
-						<p class="mb-3 text-sm text-muted-foreground">
-							{t('component.payslip_proration_description')}
-						</p>
-						<Scroll axis="x" name={t('component.payslip_proration')}>
-							<table class="w-full text-sm tabular-nums">
-								<thead>
-									<tr class="text-meta text-left">
-										<th class="py-1 pr-3 font-normal">{t('renderer.payslip_proration.segment')}</th>
-										<th class="py-1 pr-3 text-right font-normal"
-											>{t('renderer.payslip_proration.fraction')}</th
-										>
-										<th class="py-1 pr-3 text-right font-normal"
-											>{t('renderer.payslip_proration.contract_amount')}</th
-										>
-										<th class="py-1 text-right font-normal"
-											>{t('renderer.payslip_proration.prorated_amount')}</th
-										>
-									</tr>
-								</thead>
-								<tbody>
-									{#each proration as segment, index (`${segment.term_key}:${segment.from}:${index}`)}
-										<tr class="border-t border-border">
-											<td class="py-1 pr-3 whitespace-nowrap"
-												>{formatCalendarDate(segment.from)} → {formatCalendarDate(segment.to)}</td
-											>
-											<td class="py-1 pr-3 text-right">{segment.days} / {segment.denominator}</td>
-											<td class="py-1 pr-3 text-right">{formatNumeric(segment.contract_amount)}</td>
-											<td class="py-1 text-right font-medium"
-												>{formatNumeric(segment.prorated_amount)}</td
-											>
-										</tr>
-									{/each}
-								</tbody>
-							</table>
-						</Scroll>
-					</AccordionContent>
-				</AccordionItem>
-			</Accordion>
-		{/if}
-
-		{#if statutory.length > 0}
 			<Stack
 				as="section"
 				gap="sm"
 				class="border-t border-border pt-4"
-				aria-labelledby="payslip-statutory-heading"
+				aria-labelledby="payslip-base-heading"
 			>
 				<Inline gap="xs" align="center">
-					<h3 id="payslip-statutory-heading" class="text-sm font-semibold">
-						{t('component.payslip_statutory')}
+					<h3 id="payslip-base-heading" class="text-sm font-semibold">
+						{t('component.payslip_base')}
 					</h3>
 					{@render sectionInfo(
-						t('component.payslip_statutory_info'),
-						t('component.payslip_statutory_description')
+						t('component.payslip_base_info'),
+						t('component.payslip_base_description')
 					)}
 				</Inline>
-				<Scroll axis="x" name={t('component.payslip_statutory')}>
-					<table class="w-full text-sm tabular-nums">
-						<thead>
-							<tr class="text-meta text-left">
-								<th class="py-1 pr-3 font-normal">{t('component.code')}</th>
-								<th class="py-1 pr-3 font-normal">{t('renderer.payslip_statutory.band')}</th>
-								<th class="py-1 pr-3 text-right font-normal"
-									>{t('renderer.payslip_statutory.base_amount')}</th
-								>
-								<th class="py-1 pr-3 text-right font-normal"
-									>{t('renderer.payslip_statutory.employee_amount')}</th
-								>
-								<th class="py-1 text-right font-normal"
-									>{t('renderer.payslip_statutory.employer_amount')}</th
-								>
-							</tr>
-						</thead>
-						<tbody>
-							{#each statutory as charge, index (`${charge.scheme_code}:${index}`)}
-								<tr class="border-t border-border">
-									<td class="py-1 pr-3 whitespace-nowrap">
-										<Inline gap="xs" align="center">
-											<span>{charge.scheme_code}</span>
-											{#if charge.authority}
-												{@render sectionInfo(
-													t('component.payslip_statutory_authority'),
-													charge.authority
-												)}
-											{/if}
-										</Inline>
-									</td>
-									<td class="py-1 pr-3">{charge.band_key ?? '—'}</td>
-									<td class="py-1 pr-3 text-right">{formatNumeric(charge.base_amount)}</td>
-									<td class="py-1 pr-3 text-right font-medium"
-										>{formatNumeric(charge.employee_amount)}</td
-									>
-									<td class="py-1 text-right">{formatNumeric(charge.employer_amount)}</td>
-								</tr>
-							{/each}
-						</tbody>
-					</table>
-				</Scroll>
+				{#if base.length === 0}
+					<p class="text-sm text-muted-foreground">{t('component.payslip_base_none')}</p>
+				{:else}
+					<Stack as="ul" gap="none" class="text-sm tabular-nums">
+						{#each base as entry, index (`${entry.component_code}:${index}`)}
+							<Inline as="li" justify="between" gap="sm" class="border-t border-border py-1">
+								<span class="truncate">{entry.component_code}</span>
+								<span class="font-medium">{formatNumeric(entry.amount)}</span>
+							</Inline>
+						{/each}
+					</Stack>
+				{/if}
 			</Stack>
-		{/if}
 
-		<Stack
-			as="section"
-			gap="sm"
-			class="border-t border-border pt-4"
-			aria-labelledby="payslip-adjustments-heading"
-		>
-			<Inline gap="xs" align="center">
-				<h3 id="payslip-adjustments-heading" class="text-sm font-semibold">
-					{t('component.payslip_adjustments')}
-				</h3>
-				{@render sectionInfo(
-					t('component.payslip_adjustments_info'),
-					t('component.payslip_adjustments_description')
-				)}
-			</Inline>
-			{#if adjustments.length === 0}
-				<p class="text-sm text-muted-foreground">{t('component.payslip_adjustments_none')}</p>
-			{:else}
-				<Scroll axis="x" name={t('component.payslip_adjustments')}>
-					<div class="min-w-[40rem] text-sm tabular-nums" data-payslip-adjustments>
-						<div
-							class="grid grid-cols-[minmax(14rem,2fr)_minmax(6rem,1fr)_minmax(6rem,1fr)_5rem_5rem_6rem] gap-x-3 px-1 py-1 text-meta"
-						>
-							<span>{t('component.component')}</span>
-							<span>{t('component.input_type')}</span>
-							<span>{t('component.bucket')}</span>
-							<span class="text-right">{t('component.quantity')}</span>
-							<span class="text-right">{t('component.rate')}</span>
-							<span class="text-right">{t('component.amount')}</span>
-						</div>
-						<Accordion type="multiple" class="border-t border-border">
-							{#each adjustmentGroups as group (group.key)}
-								{#if group.entries.length === 1}
-									<div
-										class="grid grid-cols-[minmax(14rem,2fr)_minmax(6rem,1fr)_minmax(6rem,1fr)_5rem_5rem_6rem] items-center gap-x-3 border-b border-border px-1 py-2"
-										data-adjustment-group={group.key}
-									>
-										<span class="truncate">{group.label}</span>
-										<span>{group.inputKind}</span>
-										<span>{group.bucket ?? '—'}</span>
-										<span class="text-right">{formatNumeric(group.quantity)}</span>
-										<span class="text-right">{formatNumeric(group.rate)}</span>
-										<span class="text-right font-medium">{formatNumeric(group.amount)}</span>
-									</div>
-								{:else}
-									<AccordionItem
-										value={group.key}
-										class="border-b border-border"
-										data-adjustment-group={group.key}
-									>
-										<AccordionTrigger class="py-2 hover:no-underline">
-											<div
-												class="grid flex-1 grid-cols-[minmax(14rem,2fr)_minmax(6rem,1fr)_minmax(6rem,1fr)_5rem_5rem_6rem] items-center gap-x-3 px-1 font-normal"
+			{#if proration.length > 0}
+				<Accordion type="multiple" class="border-t border-border">
+					<AccordionItem value="proration">
+						<AccordionTrigger class="text-sm font-semibold hover:no-underline">
+							{t('component.payslip_proration')}
+						</AccordionTrigger>
+						<AccordionContent>
+							<p class="mb-3 text-sm text-muted-foreground">
+								{t('component.payslip_proration_description')}
+							</p>
+							<Scroll axis="x" name={t('component.payslip_proration')}>
+								<table class="w-full text-sm tabular-nums">
+									<thead>
+										<tr class="text-meta text-left">
+											<th class="py-1 pr-3 font-normal"
+												>{t('renderer.payslip_proration.segment')}</th
 											>
-												<span class="flex min-w-0 items-center gap-2">
-													<span class="truncate">{group.label}</span>
-													<span
-														class="shrink-0 rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground"
-													>
-														{t('component.payslip_adjustment_entries', {
-															count: group.entries.length
-														})}
-													</span>
-												</span>
-												<span>{group.inputKind}</span>
-												<span>{group.bucket ?? '—'}</span>
-												<span class="text-right">{formatNumeric(group.quantity)}</span>
-												<span class="text-right">{formatNumeric(group.rate)}</span>
-												<span class="text-right font-medium">{formatNumeric(group.amount)}</span>
-											</div>
-										</AccordionTrigger>
-										<AccordionContent class="pb-2">
-											<div class="rounded-md bg-muted/40">
-												{#each group.entries as entry (entry.id)}
-													<div
-														class="grid grid-cols-[minmax(14rem,2fr)_minmax(6rem,1fr)_minmax(6rem,1fr)_5rem_5rem_6rem] items-center gap-x-3 px-1 py-1 text-muted-foreground"
-													>
-														<span class="pl-4">#{entry.sequence}</span>
-														<span></span>
-														<span></span>
-														<span class="text-right">{formatNumeric(entry.quantity)}</span>
-														<span class="text-right">{formatNumeric(entry.rate)}</span>
-														<span class="text-right">{formatNumeric(entry.amount)}</span>
-													</div>
-												{/each}
-											</div>
-										</AccordionContent>
-									</AccordionItem>
-								{/if}
-							{/each}
-						</Accordion>
-					</div>
-				</Scroll>
+											<th class="py-1 pr-3 text-right font-normal"
+												>{t('renderer.payslip_proration.fraction')}</th
+											>
+											<th class="py-1 pr-3 text-right font-normal"
+												>{t('renderer.payslip_proration.contract_amount')}</th
+											>
+											<th class="py-1 text-right font-normal"
+												>{t('renderer.payslip_proration.prorated_amount')}</th
+											>
+										</tr>
+									</thead>
+									<tbody>
+										{#each proration as segment, index (`${segment.term_key}:${segment.from}:${index}`)}
+											<tr class="border-t border-border">
+												<td class="py-1 pr-3 whitespace-nowrap"
+													>{formatCalendarDate(segment.from)} → {formatCalendarDate(segment.to)}</td
+												>
+												<td class="py-1 pr-3 text-right">{segment.days} / {segment.denominator}</td>
+												<td class="py-1 pr-3 text-right"
+													>{formatNumeric(segment.contract_amount)}</td
+												>
+												<td class="py-1 text-right font-medium"
+													>{formatNumeric(segment.prorated_amount)}</td
+												>
+											</tr>
+										{/each}
+									</tbody>
+								</table>
+							</Scroll>
+						</AccordionContent>
+					</AccordionItem>
+				</Accordion>
 			{/if}
+
+			{#if statutory.length > 0}
+				<Stack
+					as="section"
+					gap="sm"
+					class="border-t border-border pt-4"
+					aria-labelledby="payslip-statutory-heading"
+				>
+					<Inline gap="xs" align="center">
+						<h3 id="payslip-statutory-heading" class="text-sm font-semibold">
+							{t('component.payslip_statutory')}
+						</h3>
+						{@render sectionInfo(
+							t('component.payslip_statutory_info'),
+							t('component.payslip_statutory_description')
+						)}
+					</Inline>
+					<Scroll axis="x" name={t('component.payslip_statutory')}>
+						<table class="w-full text-sm tabular-nums">
+							<thead>
+								<tr class="text-meta text-left">
+									<th class="py-1 pr-3 font-normal">{t('component.code')}</th>
+									<th class="py-1 pr-3 font-normal">{t('renderer.payslip_statutory.band')}</th>
+									<th class="py-1 pr-3 text-right font-normal"
+										>{t('renderer.payslip_statutory.base_amount')}</th
+									>
+									<th class="py-1 pr-3 text-right font-normal"
+										>{t('renderer.payslip_statutory.employee_amount')}</th
+									>
+									<th class="py-1 text-right font-normal"
+										>{t('renderer.payslip_statutory.employer_amount')}</th
+									>
+								</tr>
+							</thead>
+							<tbody>
+								{#each statutory as charge, index (`${charge.scheme_code}:${index}`)}
+									<tr class="border-t border-border">
+										<td class="py-1 pr-3 whitespace-nowrap">
+											<Inline gap="xs" align="center">
+												<span>{charge.scheme_code}</span>
+												{#if charge.authority}
+													{@render sectionInfo(
+														t('component.payslip_statutory_authority'),
+														charge.authority
+													)}
+												{/if}
+											</Inline>
+										</td>
+										<td class="py-1 pr-3">{charge.band_key ?? '—'}</td>
+										<td class="py-1 pr-3 text-right">{formatNumeric(charge.base_amount)}</td>
+										<td class="py-1 pr-3 text-right font-medium"
+											>{formatNumeric(charge.employee_amount)}</td
+										>
+										<td class="py-1 text-right">{formatNumeric(charge.employer_amount)}</td>
+									</tr>
+								{/each}
+							</tbody>
+						</table>
+					</Scroll>
+				</Stack>
+			{/if}
+
+			<Stack
+				as="section"
+				gap="sm"
+				class="border-t border-border pt-4"
+				aria-labelledby="payslip-adjustments-heading"
+			>
+				<Inline gap="xs" align="center">
+					<h3 id="payslip-adjustments-heading" class="text-sm font-semibold">
+						{t('component.payslip_adjustments')}
+					</h3>
+					{@render sectionInfo(
+						t('component.payslip_adjustments_info'),
+						t('component.payslip_adjustments_description')
+					)}
+				</Inline>
+				{#if adjustments.length === 0}
+					<p class="text-sm text-muted-foreground">{t('component.payslip_adjustments_none')}</p>
+				{:else}
+					<Scroll axis="x" name={t('component.payslip_adjustments')}>
+						<div class="min-w-[40rem] text-sm tabular-nums" data-payslip-adjustments>
+							<div
+								class="grid grid-cols-[minmax(14rem,2fr)_minmax(6rem,1fr)_minmax(6rem,1fr)_5rem_5rem_6rem] gap-x-3 px-1 py-1 text-meta"
+							>
+								<span>{t('component.component')}</span>
+								<span>{t('component.input_type')}</span>
+								<span>{t('component.bucket')}</span>
+								<span class="text-right">{t('component.quantity')}</span>
+								<span class="text-right">{t('component.rate')}</span>
+								<span class="text-right">{t('component.amount')}</span>
+							</div>
+							<Accordion type="multiple" class="border-t border-border">
+								{#each adjustmentGroups as group (group.key)}
+									{#if group.entries.length === 1}
+										<div
+											class="grid grid-cols-[minmax(14rem,2fr)_minmax(6rem,1fr)_minmax(6rem,1fr)_5rem_5rem_6rem] items-center gap-x-3 border-b border-border px-1 py-2"
+											data-adjustment-group={group.key}
+										>
+											<span class="truncate">{group.label}</span>
+											<span>{group.inputKind}</span>
+											<span>{group.bucket ?? '—'}</span>
+											<span class="text-right">{formatNumeric(group.quantity)}</span>
+											<span class="text-right">{formatNumeric(group.rate)}</span>
+											<span class="text-right font-medium">{formatNumeric(group.amount)}</span>
+										</div>
+									{:else}
+										<AccordionItem
+											value={group.key}
+											class="border-b border-border"
+											data-adjustment-group={group.key}
+										>
+											<AccordionTrigger class="py-2 hover:no-underline">
+												<div
+													class="grid flex-1 grid-cols-[minmax(14rem,2fr)_minmax(6rem,1fr)_minmax(6rem,1fr)_5rem_5rem_6rem] items-center gap-x-3 px-1 font-normal"
+												>
+													<span class="flex min-w-0 items-center gap-2">
+														<span class="truncate">{group.label}</span>
+														<span
+															class="shrink-0 rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground"
+														>
+															{t('component.payslip_adjustment_entries', {
+																count: group.entries.length
+															})}
+														</span>
+													</span>
+													<span>{group.inputKind}</span>
+													<span>{group.bucket ?? '—'}</span>
+													<span class="text-right">{formatNumeric(group.quantity)}</span>
+													<span class="text-right">{formatNumeric(group.rate)}</span>
+													<span class="text-right font-medium">{formatNumeric(group.amount)}</span>
+												</div>
+											</AccordionTrigger>
+											<AccordionContent class="pb-2">
+												<div class="rounded-md bg-muted/40">
+													{#each group.entries as entry (entry.id)}
+														<div
+															class="grid grid-cols-[minmax(14rem,2fr)_minmax(6rem,1fr)_minmax(6rem,1fr)_5rem_5rem_6rem] items-center gap-x-3 px-1 py-1 text-muted-foreground"
+														>
+															<span class="pl-4">#{entry.sequence}</span>
+															<span></span>
+															<span></span>
+															<span class="text-right">{formatNumeric(entry.quantity)}</span>
+															<span class="text-right">{formatNumeric(entry.rate)}</span>
+															<span class="text-right">{formatNumeric(entry.amount)}</span>
+														</div>
+													{/each}
+												</div>
+											</AccordionContent>
+										</AccordionItem>
+									{/if}
+								{/each}
+							</Accordion>
+						</div>
+					</Scroll>
+				{/if}
+			</Stack>
 		</Stack>
-	</Stack>
+	</RecordShell>
 {:else}
 	<p class="text-sm text-muted-foreground">
 		A payslip is written by the payroll engine, never by hand: create a payroll run for the company

@@ -24,16 +24,21 @@
  */
 
 import { Schema } from 'effect';
-import { daysInMonth, startOfDayInstant, workDateCalendarKey } from '../calendar.js';
+import {
+	PAYROLL_TIME_ZONE,
+	daysInMonth,
+	startOfDayInstant,
+	workDateCalendarKey
+} from '../calendar.js';
 import { formatDateISO } from '@norbital-ai/std/date';
 import { decodeNumber } from '@norbital-ai/std/json';
 
-import { workedMinutes } from '../../attendance.js';
+import { attendanceBoundary, workedMinutes } from '../../attendance.js';
 import type { InstantRangeValue as WorkedInterval } from '@norbital-ai/bolt/authoring';
 import { workPatternValueSchema } from '../../../datatypes/work_pattern/+definition.js';
 import { rosterCodeVariantValueSchema } from '../../../datatypes/roster_code_variant/+definition.js';
 import { clockMinutes, rosterCodeKind, workWindow } from '../../scheduling/roster-code.js';
-import { patternRosterCodeId } from '../../scheduling/work-pattern.js';
+import { patternRosterCodeId, termPattern, termPatternRow } from '../../scheduling/work-pattern.js';
 import {
 	dayLockSchema,
 	type DayLock,
@@ -117,6 +122,21 @@ const dayFactsSchema = Schema.Struct({
 	 * roster stays blank until somebody assigns the day. `null` when no term covers the date.
 	 */
 	scheduleKind: Schema.NullOr(scheduleKindSchema),
+	/**
+	 * THE BASE: what the employment's named shift pattern projects for this date, before anybody
+	 * touched the day. `basePatternCode` names the pattern (`AM-2x2`); `baseCode` is the roster
+	 * code it puts on this date and `baseKind` what that code is. All three are null when the terms
+	 * name no pattern, name a rostered one, or no terms cover the date.
+	 */
+	basePatternCode: Schema.NullOr(Schema.String),
+	baseCode: Schema.NullOr(Schema.String),
+	baseKind: Schema.NullOr(designationSchema),
+	/**
+	 * THE OVERRIDE: the roster code a `work_days` row assigns, or null when the row carries no plan
+	 * (or there is no row). An override replaces the base for this one date; a swap is two of them.
+	 */
+	overrideCode: Schema.NullOr(Schema.String),
+	overrideKind: Schema.NullOr(designationSchema),
 	/** The shift the day is worked on. Null on a rest or off day, which schedules none. */
 	shiftCode: Schema.NullOr(Schema.String),
 	shiftStart: Schema.NullOr(Schema.String),
@@ -137,6 +157,14 @@ const dayFactsSchema = Schema.Struct({
 	clockedIn: Schema.Boolean,
 	workedIntervalCount: Schema.Number,
 	attendanceState: Schema.NullOr(Schema.Literals(['OPEN', 'CLOSED'])),
+	/**
+	 * THE TIME ENTRIES, as a clock: the first clock-in and the last clock-out of the day, `HH:mm`
+	 * in the payroll timezone, or null when no interval was recorded. `last` is null while the
+	 * final interval is still open.
+	 */
+	punchWindow: Schema.NullOr(
+		Schema.Struct({ first: Schema.String, last: Schema.NullOr(Schema.String) })
+	),
 	/**
 	 * The `work_days` row behind this day, or `null` when no row exists for it at all.
 	 *
@@ -186,9 +214,22 @@ const employmentMonthLikeSchema = Schema.Struct({
 });
 type EmploymentMonthLike = Schema.Schema.Type<typeof employmentMonthLikeSchema>;
 
+/** The named pattern as it rides an `employment_terms` read: `with: { term_shift_pattern }`. */
+const shiftPatternLikeSchema = Schema.Struct({
+	id: Schema.String,
+	code: Schema.String,
+	pattern: workPatternValueSchema
+});
+
+/**
+ * Employment terms as the board reads them: the pointer to the named pattern, and the pattern row
+ * itself when the query carried it. A term whose pointer is null is rostered as assigned; a term
+ * whose row did not arrive projects nothing and says so through `termPatternRow`.
+ */
 const employmentTermLikeSchema = Schema.Struct({
 	employment_id: Schema.String,
-	work_pattern: workPatternValueSchema,
+	shift_pattern_id: Schema.NullOr(Schema.String),
+	term_shift_pattern: Schema.optional(Schema.NullOr(shiftPatternLikeSchema)),
 	effective_range: Schema.NullOr(effectiveRangeLikeSchema)
 });
 type EmploymentTermLike = Schema.Schema.Type<typeof employmentTermLikeSchema>;
@@ -337,8 +378,12 @@ export function holidayNamesByDate(holidays: readonly HolidayLike[]): Map<string
 	return new Map(holidays.map((holiday) => [formatDateISO(holiday.date), holiday.name]));
 }
 
-function termCovers(term: EmploymentTermLike, date: string): boolean {
-	if (term.effective_range?.start == null || term.work_pattern == null) return false;
+/** Whether an effective-dated row covers a calendar day. Shared with the app's swap logic. */
+export function termCovers(
+	term: { readonly effective_range: { start?: string; end?: string | null } | null },
+	date: string
+): boolean {
+	if (term.effective_range?.start == null) return false;
 	const start = formatDateISO(term.effective_range.start);
 	const end = term.effective_range.end == null ? null : formatDateISO(term.effective_range.end);
 	return date >= start && (end == null || date <= end);
@@ -354,10 +399,15 @@ function activeTerm(
 	);
 }
 
-function scheduleKindOf(patternValue: unknown): ScheduleKind | null {
-	if (patternValue == null || typeof patternValue !== 'object') return null;
-	const type = 'type' in patternValue ? patternValue.type : null;
-	return type === 'PATTERNED' || type === 'ROSTERED' ? type : null;
+/**
+ * The clock reading of a stored instant, measured from the start of its work date.
+ *
+ * `dayStartMs` is resolved once per calendar day by `buildRosterMonth` rather than per punch: the
+ * timezone lookup behind `startOfDayInstant` goes through `Intl`, and a 300-person month has
+ * nine thousand cells but only thirty-one days.
+ */
+function punchClock(instant: string, dayStartMs: number): string {
+	return dayMinutesToClock(Math.round((Date.parse(instant) - dayStartMs) / 60_000));
 }
 
 /**
@@ -481,7 +531,8 @@ function factsForDate(
 	employmentId: string,
 	employmentStart: string | null,
 	employmentEnd: string | null,
-	date: string
+	date: string,
+	dayStartMs: number
 ): DayFacts {
 	const key = personDayKey(employmentId, date);
 	const workDay = indexes.workDay.get(key);
@@ -490,18 +541,24 @@ function factsForDate(
 	const leave = indexes.leave.get(key);
 	const pendingLeave = indexes.pendingLeave.get(key) === true;
 	const term = activeTerm(options.employmentTerms, employmentId, date);
-	const scheduleKind = term == null ? null : scheduleKindOf(term.work_pattern);
-	const projectedId =
-		workDay?.shift_definition_id == null && term != null
-			? patternRosterCodeId(term.work_pattern, date)
-			: null;
-	const rosterCodeId = workDay?.shift_definition_id ?? projectedId;
-	const rosterCode = rosterCodeId == null ? null : options.rosterCodesById.get(rosterCodeId);
-	const designation = rosterCode == null ? null : rosterCodeKind(rosterCode.variant);
-	const baselineId = term == null ? null : patternRosterCodeId(term.work_pattern, date);
+	// The base is read through the terms row: the named pattern it points at, or rostered as
+	// assigned when it points at none. A term whose pattern row did not ride the read throws here
+	// rather than quietly projecting nothing, because "no base" is a fact the board paints.
+	const pattern = term == null ? null : termPattern(term);
+	const patternRow = term == null ? null : termPatternRow(term);
+	const scheduleKind = pattern?.type ?? null;
+	const baselineId = pattern == null ? null : patternRosterCodeId(pattern, date);
 	const baselineCode = baselineId == null ? null : options.rosterCodesById.get(baselineId);
 	const baselineKind = baselineCode == null ? null : rosterCodeKind(baselineCode.variant);
+	const overrideId = workDay?.shift_definition_id ?? null;
+	const overrideCode = overrideId == null ? null : options.rosterCodesById.get(overrideId);
+	const overrideKind = overrideCode == null ? null : rosterCodeKind(overrideCode.variant);
+	// The effective plan: the override when the row carries one, else the base.
+	const rosterCode = overrideCode ?? baselineCode;
+	const designation = rosterCode == null ? null : rosterCodeKind(rosterCode.variant);
 	const window = designation === 'WORK' ? workWindow(rosterCode?.variant) : null;
+	const firstPunch = recorded == null ? null : attendanceBoundary(recorded, 'FIRST');
+	const lastPunch = recorded == null ? null : attendanceBoundary(recorded, 'LAST');
 	const employmentState =
 		employmentStart != null && date < employmentStart
 			? ('BEFORE_START' as const)
@@ -520,6 +577,12 @@ function factsForDate(
 		employmentState,
 		designation: employmentState === 'ACTIVE' ? designation : null,
 		scheduleKind: employmentState === 'ACTIVE' ? scheduleKind : null,
+		basePatternCode:
+			employmentState === 'ACTIVE' && baselineCode != null ? (patternRow?.code ?? null) : null,
+		baseCode: employmentState === 'ACTIVE' ? (baselineCode?.code ?? null) : null,
+		baseKind: employmentState === 'ACTIVE' ? baselineKind : null,
+		overrideCode: employmentState === 'ACTIVE' ? (overrideCode?.code ?? null) : null,
+		overrideKind: employmentState === 'ACTIVE' ? overrideKind : null,
 		shiftCode:
 			employmentState === 'ACTIVE' && designation === 'WORK' ? (rosterCode?.code ?? null) : null,
 		shiftStart: employmentState === 'ACTIVE' ? (window?.start_time ?? null) : null,
@@ -543,6 +606,13 @@ function factsForDate(
 				: recorded.some((interval) => interval.end == null)
 					? 'OPEN'
 					: 'CLOSED',
+		punchWindow:
+			firstPunch == null
+				? null
+				: {
+						first: punchClock(firstPunch, dayStartMs),
+						last: lastPunch == null ? null : punchClock(lastPunch, dayStartMs)
+					},
 		workDayId: workDay?.id ?? null,
 		breakMinutes: recorded == null ? null : (workDay?.break_minutes ?? 0),
 		// `workedMinutes` returns null for an open interval by itself, which is exactly the
@@ -569,6 +639,9 @@ export function buildRosterMonth(options: BuildRosterMonthOptions): Map<string, 
 	const first = days[0]!;
 	const last = days[days.length - 1]!;
 	const indexes = buildDayIndexes(options, days, first, last);
+	const dayStartMs = new Map(
+		days.map((date) => [date, Date.parse(startOfDayInstant(date, PAYROLL_TIME_ZONE))])
+	);
 
 	const facts = new Map<string, DayFacts>();
 	for (const employment of options.employments) {
@@ -584,7 +657,15 @@ export function buildRosterMonth(options: BuildRosterMonthOptions): Map<string, 
 		for (const date of days) {
 			facts.set(
 				personDayKey(employmentId, date),
-				factsForDate(options, indexes, employmentId, employmentStart, employmentEnd, date)
+				factsForDate(
+					options,
+					indexes,
+					employmentId,
+					employmentStart,
+					employmentEnd,
+					date,
+					dayStartMs.get(date)!
+				)
 			);
 		}
 	}
@@ -609,19 +690,23 @@ export function buildRosterMonth(options: BuildRosterMonthOptions): Map<string, 
  *   SHAPE     a dashed inset outline means "nothing has been assigned here" — an absence drawn as
  *             an absence of ink, which no fill can say.
  *
- * and colour was left to the three facts that are genuinely about ALARM or OWNERSHIP rather than
- * about identity:
+ * and colour was left to the facts that are genuinely about ALARM or OWNERSHIP rather than about
+ * identity:
  *
- *   ATTENTION (warning)     a day somebody must act on — no clock-in, or a clock still running.
- *                           One hue, two glyphs: `!` and `⧗`. They are the same call to action.
- *   CONFLICT  (destructive) two writers disagree about one day. The only red left on the board, so
- *                           red now means exactly one thing, and it is rare enough to be worth it.
+ *   ATTENTION (warning)     a clock still running: somebody must close it.
+ *   AWOL      (destructive) a reviewed-empty row on a WORK day: the person was expected and did
+ *                           not appear, and payroll will dock the day. The owner asked for this in
+ *                           the destructive colour, and a conflict dot shares the hue because both
+ *                           are "this day is wrong", which is rare enough to be worth one red.
  *   PAYROLL   (brand)       the lock rail and the public-holiday column. Both are "something other
  *                           than the roster owns this", drawn on two channels that never collide.
  *
- * A status therefore contributes AT MOST a neutral density here. Anything louder is a separate
- * table — `CONFLICT_PRESENTATION`, `LOCK_RAIL_PRESENTATION`, `HOLIDAY_PRESENTATION` — because those
- * axes cross a status rather than replacing it: a day can be attended, on a holiday, and locked.
+ * The three LAYERS of a day travel on SHAPE, never on colour (`resolveCellLayers` says which are
+ * present): the base projection is muted text inside a dashed outline, an override is solid text
+ * with a corner mark, and time entries are a bar under the code. A status therefore contributes AT
+ * MOST a neutral density here. Anything louder is a separate table (`CONFLICT_PRESENTATION`,
+ * `LOCK_RAIL_PRESENTATION`, `HOLIDAY_PRESENTATION`), because those axes cross a status rather than
+ * replacing it: a day can be attended, on a holiday, and locked.
  * ──────────────────────────────────────────────────────────────────────────────────────────────── */
 
 /**
@@ -638,15 +723,16 @@ export const STATUS_PRESENTATION: Record<
 	{ readonly labelKey: TenantI18nKeys; readonly className: string }
 > = {
 	/**
-	 * No fill and a dashed inset outline: a hole in the plan, drawn as a hole. A fill would say
-	 * something had been decided about this day, which is the opposite of what it means — and in a
-	 * month nobody has opened yet this is every cell, so it has to be the quietest thing on the board
-	 * rather than nine thousand amber squares announcing a catastrophe that has not happened.
+	 * No fill and no outline: a hole in the plan, drawn as a hole. A fill would say something had
+	 * been decided about this day, which is the opposite of what it means, and for a rostered
+	 * employment before the month is assigned this is every cell, so it has to be the quietest
+	 * thing on the board rather than nine thousand amber squares announcing a catastrophe that has
+	 * not happened. The dashed outline belongs to the BASE layer now, which is a projection rather
+	 * than a hole; see `LAYER_PRESENTATION`.
 	 */
 	UNROSTERED: {
 		labelKey: 'roster.unrostered',
-		className:
-			'text-muted-foreground outline-1 outline-dashed outline-offset-[-2px] outline-muted-foreground/50'
+		className: 'text-muted-foreground/60'
 	},
 	/** Outside the employment: the faintest density, and `—` / `×` say which end it is outside. */
 	BEFORE_START: {
@@ -660,11 +746,12 @@ export const STATUS_PRESENTATION: Record<
 	/** A working day carries no fill, so the month's working shape is the figure and rest is ground. */
 	PLANNED: { labelKey: 'roster.planned', className: 'text-foreground' },
 	ATTENDED: { labelKey: 'roster.attended', className: 'text-foreground' },
-	/** The two ATTENTION states. One hue; `⧗` and `!` say which, and `!` is the heavier of the two. */
+	/** ATTENTION: a clock still running, and `⧗` says so. */
 	OPEN: { labelKey: 'roster.open_punch', className: 'bg-warning/25 text-foreground' },
+	/** AWOL: reviewed, nothing worked, on a day the plan expected work. The one destructive fill. */
 	ABSENT: {
 		labelKey: 'roster.absent',
-		className: 'bg-warning/25 font-semibold text-foreground'
+		className: 'bg-destructive/20 font-semibold text-destructive'
 	},
 	/** Not a working day, and `L` / `½` is the word for it. Same density as rest and off, by design. */
 	ON_LEAVE: { labelKey: 'roster.leave', className: 'bg-muted/60 text-foreground' },
@@ -683,6 +770,8 @@ export const STATUS_PRESENTATION: Record<
 export const DAY_MARK_KEY: readonly { readonly mark: string; readonly labelKey: TenantI18nKeys }[] =
 	[
 		{ mark: '·', labelKey: 'roster.unrostered' },
+		{ mark: '▪', labelKey: 'roster.layer_override' },
+		{ mark: '▬', labelKey: 'roster.layer_clocked' },
 		{ mark: 'R', labelKey: 'roster.rest_day' },
 		{ mark: 'O', labelKey: 'roster.off_day' },
 		{ mark: 'L', labelKey: 'roster.leave' },
@@ -1143,25 +1232,6 @@ export function actualMark(day: DayFacts): string {
 }
 
 /**
- * The evidence line's ink — two values, not four.
- *
- * A `✓` used to be green, a `!` red and an `⧗` amber, which spent three hues saying what the three
- * glyphs already say. The alarm belongs to the CELL, where `STATUS_PRESENTATION` puts an ATTENTION
- * fill behind the whole day; repeating it in the mark's ink would leave the cell amber on two
- * channels about one fact and, worse, invite `text-warning-foreground` — a near-black token meant
- * to sit on a SOLID `bg-warning`, which is illegible over the 25%-alpha tint the cell actually has.
- *
- * So the mark says only whether there is anything to read: the day's own ink when there is,
- * muted when there is not.
- */
-export function actualMarkClass(day: DayFacts): string {
-	if (day.attendanceState === 'OPEN' || day.status === 'ABSENT' || day.clockedIn) {
-		return 'text-foreground';
-	}
-	return 'text-muted-foreground';
-}
-
-/**
  * How a derived conflict reads.
  *
  * Both kinds share the one destructive hue on purpose. They used to be amber and red, which made
@@ -1200,8 +1270,17 @@ export function shiftTimeCue(day: DayFacts | undefined): string | null {
 	return `${shortClock(day.shiftStart)}–${shortClock(day.shiftEnd)}`;
 }
 
+/** The punch window in the same compact form, so the clock layer reads like the plan layer. */
+export function punchTimeCue(day: DayFacts | undefined): string | null {
+	if (day?.punchWindow == null) return null;
+	const first = shortClock(day.punchWindow.first);
+	return day.punchWindow.last == null
+		? `⧗ ${first}`
+		: `${first}–${shortClock(day.punchWindow.last)}`;
+}
+
 /** Why a blank cell is blank — the schedule term, not just the word "unrostered". */
-export function unrosteredReason(day: DayFacts, t: Translator): string {
+function unrosteredReason(day: DayFacts, t: Translator): string {
 	switch (day.scheduleKind) {
 		case 'ROSTERED':
 			return t('roster.unrostered_monthly');
@@ -1221,17 +1300,9 @@ export function describeDay(day: DayFacts | undefined, heading: string, t: Trans
 	if (day == null) return heading;
 	return [
 		heading,
-		day.status === 'UNROSTERED'
-			? unrosteredReason(day, t)
-			: t(STATUS_PRESENTATION[day.status].labelKey),
-		day.shiftCode == null ? null : t('roster.shift_code', { code: day.shiftCode }),
-		day.shiftStart == null || day.shiftEnd == null
-			? null
-			: t('roster.shift_window', {
-					start: day.shiftStart,
-					end: day.shiftEnd,
-					break: (day.shiftBreakMinutes ?? 0) / 60
-				}),
+		day.status === 'BEFORE_START' || day.status === 'EXITED'
+			? t(STATUS_PRESENTATION[day.status].labelKey)
+			: describePlanLayer(day, t),
 		day.assignmentCode == null ? null : t('roster.assignment_code', { code: day.assignmentCode }),
 		day.holidayName == null ? null : `${t(HOLIDAY_PRESENTATION.labelKey)}: ${day.holidayName}`,
 		day.leaveCode == null
@@ -1245,16 +1316,187 @@ export function describeDay(day: DayFacts | undefined, heading: string, t: Trans
 			: day.lock.kind === 'IN_WINDOW'
 				? t('roster.in_payroll_window', { period: day.lock.period })
 				: null,
-		day.attendanceState === 'OPEN'
-			? t('roster.attendance_open')
-			: day.workedIntervalCount > 0
-				? t('roster.attendance_intervals', { count: day.workedIntervalCount })
-				: day.withinCutoff
-					? t('roster.no_attendance_in_pay_period')
-					: t('roster.no_attendance')
+		day.employmentState === 'ACTIVE' ? describeClockLayer(day, t) : null
 	]
 		.filter((part) => part != null && part !== '')
 		.join(' — ');
+}
+
+/* ────────────────────────────────────────────────────────────────────────────────────────────────
+ * THE THREE LAYERS OF A DAY
+ *
+ * Every employment has a BASE: the day its named shift pattern projects. A `work_days` row is an
+ * OVERRIDE of one date: its planned side replaces the base's roster code, and its actual side is the
+ * TIME ENTRIES. Payroll uses the row when it exists (an empty interval list on a WORK day is an
+ * absence) and otherwise takes the base as worked to plan with no overtime.
+ *
+ * `DayFacts` carries all three; this resolves them into what a cell paints, once, so the board and
+ * the employee's calendar cannot disagree about which layer a mark belongs to.
+ * ──────────────────────────────────────────────────────────────────────────────────────────────── */
+
+const cellLayersSchema = Schema.Struct({
+	/** The pattern's projection for the date, or null when nothing projects one. */
+	base: Schema.NullOr(
+		Schema.Struct({
+			code: Schema.String,
+			kind: designationSchema,
+			/** The named pattern the projection came from. */
+			patternCode: Schema.NullOr(Schema.String)
+		})
+	),
+	/** The roster row's assignment, or null when no row carries a plan for the date. */
+	override: Schema.NullOr(
+		Schema.Struct({
+			code: Schema.String,
+			kind: designationSchema,
+			origin: Schema.NullOr(Schema.Literals(['IMPORT', 'MANUAL']))
+		})
+	),
+	/**
+	 * What the clock says. `NONE` is no row or a row with no attendance: the plan stands and payroll
+	 * assumes it. `EMPTY` is a reviewed row with nothing worked on a day that expected none. `AWOL`
+	 * is that same empty row on a day the plan expected work, with no leave or holiday excusing it.
+	 */
+	actual: Schema.Union([
+		Schema.Struct({ kind: Schema.Literal('NONE') }),
+		Schema.Struct({ kind: Schema.Literal('EMPTY') }),
+		Schema.Struct({ kind: Schema.Literal('AWOL') }),
+		Schema.Struct({ kind: Schema.Literal('OPEN'), first: Schema.String }),
+		Schema.Struct({
+			kind: Schema.Literal('CLOCKED'),
+			first: Schema.String,
+			last: Schema.String,
+			workedMinutes: Schema.NullOr(Schema.Number)
+		})
+	]),
+	/** Which plan layer the day is measured against. */
+	effective: Schema.Literals(['BASE', 'OVERRIDE', 'NONE'])
+});
+export type CellLayers = Schema.Schema.Type<typeof cellLayersSchema>;
+
+/** Which of the three layers a person-day carries, and which plan layer is in force. */
+export function resolveCellLayers(day: DayFacts): CellLayers {
+	const active = day.employmentState === 'ACTIVE';
+	const base =
+		active && day.baseCode != null && day.baseKind != null
+			? { code: day.baseCode, kind: day.baseKind, patternCode: day.basePatternCode }
+			: null;
+	const override =
+		active && day.overrideCode != null && day.overrideKind != null
+			? { code: day.overrideCode, kind: day.overrideKind, origin: day.plannedOrigin }
+			: null;
+	const actual: CellLayers['actual'] =
+		day.attendanceState == null
+			? { kind: 'NONE' }
+			: day.attendanceState === 'OPEN'
+				? { kind: 'OPEN', first: day.punchWindow?.first ?? '' }
+				: day.workedIntervalCount === 0
+					? { kind: day.status === 'ABSENT' ? 'AWOL' : 'EMPTY' }
+					: {
+							kind: 'CLOCKED',
+							first: day.punchWindow?.first ?? '',
+							last: day.punchWindow?.last ?? '',
+							workedMinutes: day.workedMinutes
+						};
+	return {
+		base,
+		override,
+		actual,
+		effective: override != null ? 'OVERRIDE' : base != null ? 'BASE' : 'NONE'
+	};
+}
+
+/**
+ * How each layer is drawn, on SHAPE rather than colour: the base is a muted code inside a dashed
+ * outline, an override is solid text with a corner mark, and time entries are a bar under the
+ * code. The legend on both surfaces reads this table, so a swatch cannot drift from a cell.
+ */
+export const LAYER_PRESENTATION: {
+	readonly base: { readonly labelKey: TenantI18nKeys; readonly className: string };
+	readonly override: {
+		readonly labelKey: TenantI18nKeys;
+		readonly className: string;
+		readonly markClassName: string;
+	};
+	readonly clocked: { readonly labelKey: TenantI18nKeys; readonly barClassName: string };
+	readonly awol: { readonly labelKey: TenantI18nKeys; readonly className: string };
+} = {
+	base: {
+		labelKey: 'roster.layer_base',
+		className:
+			'text-muted-foreground outline-1 outline-dashed outline-offset-[-2px] outline-muted-foreground/50'
+	},
+	override: {
+		labelKey: 'roster.layer_override',
+		className: 'text-foreground outline-1 outline-offset-[-2px] outline-foreground/40',
+		markClassName: 'absolute right-0.5 bottom-0.5 size-1.5 rounded-[1px] bg-foreground/70'
+	},
+	clocked: {
+		labelKey: 'roster.layer_clocked',
+		barClassName: 'absolute inset-x-1.5 bottom-0.5 h-0.5 rounded-full bg-success'
+	},
+	awol: { labelKey: 'roster.absent', className: STATUS_PRESENTATION.ABSENT.className }
+};
+
+/** The plan line, layer first: which layer the code came from, then the code and its window. */
+export function describePlanLayer(day: DayFacts, t: Translator): string {
+	const layers = resolveCellLayers(day);
+	const window =
+		day.shiftStart == null || day.shiftEnd == null
+			? null
+			: t('roster.shift_window', {
+					start: day.shiftStart,
+					end: day.shiftEnd,
+					break: (day.shiftBreakMinutes ?? 0) / 60
+				});
+	const code = (value: string) => t('roster.shift_code', { code: value });
+	if (layers.override != null) {
+		const origin =
+			layers.override.origin === 'IMPORT'
+				? t('roster.layer_override_imported')
+				: layers.override.origin === 'MANUAL'
+					? t('roster.layer_override_manual')
+					: t('roster.layer_override');
+		const over =
+			layers.base == null
+				? origin
+				: t('roster.layer_override_over_base', { origin, base: layers.base.code });
+		return [over, code(layers.override.code), window].filter((part) => part != null).join(' · ');
+	}
+	if (layers.base != null) {
+		const from =
+			layers.base.patternCode == null
+				? t('roster.layer_base')
+				: t('roster.layer_base_from', { pattern: layers.base.patternCode });
+		return [from, code(layers.base.code), window].filter((part) => part != null).join(' · ');
+	}
+	if (day.status === 'UNROSTERED') return unrosteredReason(day, t);
+	return t(STATUS_PRESENTATION[day.status].labelKey);
+}
+
+/** The clock line, layer first: what the time entries say, or that there are none. */
+export function describeClockLayer(day: DayFacts, t: Translator): string {
+	const layers = resolveCellLayers(day);
+	switch (layers.actual.kind) {
+		case 'CLOCKED':
+			return t('roster.layer_clocked_window', {
+				first: layers.actual.first,
+				last: layers.actual.last,
+				hours: ((layers.actual.workedMinutes ?? 0) / 60).toFixed(2)
+			});
+		case 'OPEN':
+			return t('roster.layer_clocked_open', { first: layers.actual.first });
+		case 'AWOL':
+			return t('roster.layer_awol');
+		case 'EMPTY':
+			return t('roster.layer_empty');
+		case 'NONE':
+			return day.withinCutoff ? t('roster.no_attendance_in_pay_period') : t('roster.layer_none');
+		default: {
+			const unhandled: never = layers.actual;
+			throw new Error(`Unhandled clock layer: ${String(unhandled)}`);
+		}
+	}
 }
 
 /** A tally of the month by status, for the board's summary strip. */
@@ -1284,9 +1526,14 @@ const monthProgressSchema = Schema.Struct({
 	drafting: monthDraftingSchema,
 	/** People times days: the size of the month, and the denominator of everything below. */
 	personDays: Schema.Number,
+	/** Days a roster row overrides. A base day counts here only once somebody writes a row for it. */
 	rostered: Schema.Number,
 	unrostered: Schema.Number,
-	/** People with at least one active day that still has no shift. */
+	/**
+	 * Employments with neither a pattern projecting their days nor a roster row in the month: the
+	 * people whose shifts genuinely still have to be assigned. A patterned employment is never one
+	 * of them, however many of its days nobody has touched.
+	 */
 	peopleNeedingAssignment: Schema.Number,
 	/**
 	 * The things somebody has to act on now. Attendance faults always count; an unrostered day
@@ -1306,10 +1553,16 @@ export function monthProgress(
 	const counts = summarizeRosterMonth(facts);
 	const personDays = facts.size - (counts.get('BEFORE_START') ?? 0) - (counts.get('EXITED') ?? 0);
 	const unrostered = counts.get('UNROSTERED') ?? 0;
-	const needing = new Set<string>();
+	let rostered = 0;
+	const active = new Set<string>();
+	const scheduled = new Set<string>();
 	for (const day of facts.values()) {
-		if (day.status === 'UNROSTERED') needing.add(day.employmentId);
+		if (day.employmentState !== 'ACTIVE') continue;
+		active.add(day.employmentId);
+		if (day.overrideCode != null) rostered += 1;
+		if (day.overrideCode != null || day.baseCode != null) scheduled.add(day.employmentId);
 	}
+	const needing = new Set([...active].filter((employmentId) => !scheduled.has(employmentId)));
 	const statuses: DayStatus[] =
 		drafting === 'PUBLISHED'
 			? [...ATTENDANCE_EXCEPTIONS, 'UNROSTERED']
@@ -1317,7 +1570,7 @@ export function monthProgress(
 	return {
 		drafting,
 		personDays,
-		rostered: personDays - unrostered,
+		rostered,
 		unrostered,
 		peopleNeedingAssignment: needing.size,
 		exceptions: statuses

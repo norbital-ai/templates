@@ -28,11 +28,7 @@
 		KIOSK_REAL_MIN
 	} from '../../lib/kiosk/config.js';
 	import { readKioskSettings, writeKioskSettings } from '../../lib/kiosk/settings.js';
-	import {
-		browserNarratorPlatform,
-		createKioskNarrator,
-		pickKioskVoice
-	} from '../../lib/kiosk/voice.js';
+	import { browserNarratorPlatform, createKioskNarrator } from '../../lib/kiosk/voice.js';
 	import { kioskVoiceLanguage, type KioskPhraseKey } from '../../lib/kiosk/phrases.js';
 	import { silhouetteGeometry, type FrameSize } from '../../lib/kiosk/silhouette.js';
 
@@ -116,20 +112,14 @@
 	let lastFaceSeenAt = 0;
 	let challengeEyesOpenSeen = false;
 	let challengeLivenessSeen = false;
-	/** The browser voice the fallback may use for a phrase whose clip is missing; null is silent. */
-	let voice: SpeechSynthesisVoice | null = null;
-	let voiceUri: string | null = settings.voiceUri;
 	/**
 	 * Everything the kiosk says goes through here: pre-generated clips, one phrase at a time, never
 	 * two at once. Created at init so the voice toggle and the locale effect below can reach it.
 	 */
-	const narrator = createKioskNarrator(
-		browserNarratorPlatform(() => voice),
-		{
-			language: kioskVoiceLanguage(i18n.intlLocale),
-			enabled: settings.voiceEnabled
-		}
-	);
+	const narrator = createKioskNarrator(browserNarratorPlatform(), {
+		language: kioskVoiceLanguage(i18n.intlLocale),
+		enabled: settings.voiceEnabled
+	});
 	let unreadableSince = 0;
 	let absentSince = 0;
 	let presenceSpokenAt = 0;
@@ -408,25 +398,8 @@
 		resetTimer = setTimeout(() => resumeScan(true), delay);
 	};
 
-	/**
-	 * The fallback voice is chosen from what the device offers, once the list has loaded (it arrives
-	 * asynchronously on Chromium) and again when the locale changes. The pick is kept in the kiosk
-	 * settings so the same voice speaks every day; an unacceptable list leaves a missing clip silent.
-	 */
-	const loadVoice = () => {
-		if (!('speechSynthesis' in window)) return;
-		const picked = pickKioskVoice(window.speechSynthesis.getVoices(), i18n.intlLocale, voiceUri);
-		voice = picked;
-		const uri = picked?.voiceURI ?? null;
-		if (uri !== voiceUri) {
-			voiceUri = uri;
-			writeKioskSettings({ voiceUri: uri });
-		}
-	};
-
 	$effect(() => {
 		narrator.setLanguage(kioskVoiceLanguage(i18n.intlLocale));
-		loadVoice();
 	});
 
 	/** A status the screen shows and, when it has one, the phrase the kiosk says for it. */
@@ -619,7 +592,6 @@
 	onMount(() => {
 		void boot();
 		void loadOrganizationBrand();
-		window.speechSynthesis?.addEventListener('voiceschanged', loadVoice);
 		clockTimer = setInterval(() => (now = new Date()), 1000);
 		/**
 		 * The loop runs whenever the engine is ready and the tab is the clock, with or without an
@@ -778,9 +750,7 @@
 			stopTimers();
 			stopCamera();
 			human?.reset();
-			window.speechSynthesis?.removeEventListener('voiceschanged', loadVoice);
 			narrator.stop();
-			window.speechSynthesis?.cancel();
 		};
 	});
 </script>
@@ -926,11 +896,13 @@
 {/snippet}
 
 <!--
-	`Bound size="full"` + `Cover`, as every other app: the header and status bar are the chrome rows
-	and the body is the definite middle track. The body grid used to be `h-full` under a root with no
-	definite height, which is where the empty band under the status bar came from. Below `lg` the
-	video is an `aspect-video` frame with the action cards over its foot and the identity panel under
-	it; from `lg` the frame and the aside sit side by side and fill the track.
+	`Bound size="full"` + `Cover`: the kiosk is a full-screen device surface with its own header
+	and status bar as the chrome rows and the body as the definite middle track — deliberately not
+	an `AppShell`, which would add a workspace hero around a shop-floor time clock. The body grid
+	used to be `h-full` under a root with no definite height, which is where the empty band under
+	the status bar came from. Below `lg` the video is an `aspect-video` frame with the action cards
+	over its foot and the identity panel under it; from `lg` the frame and the aside sit side by
+	side and fill the track.
 -->
 <Bound size="full">
 	<Cover as="main" top={header} bottom={statusBar} gap="none" class="bg-background text-foreground">

@@ -3,6 +3,7 @@
 	import { client } from '../lib/workspace-client.js';
 	import { Effect, Number as EffectNumber } from 'effect';
 	import { getPlatformStateContext } from '@norbital-ai/bolt/client';
+	import { AppShell } from '@norbital-ai/ui/app-shell';
 	import { useI18n } from '@norbital-ai/ui/i18n';
 	import type { TenantI18nKeys } from '$bolt/i18n-keys';
 	import type { WorkspaceRow } from '$bolt/types.js';
@@ -431,6 +432,8 @@
 			? null
 			: client.db.employment_terms.findMany({
 					where: { ...approved, employment_id: { eq: employmentId } },
+					// The base rides the terms read: the named pattern, through the row, no second query.
+					with: { term_shift_pattern: { columns: { id: true, code: true, pattern: true } } },
 					limit: 100
 				})
 	);
@@ -922,23 +925,6 @@
 		});
 </script>
 
-<svelte:head>
-	<title>Employee Self-Service</title>
-	<meta
-		name="description"
-		content="View your schedule, leave, pay components, loans, payslips, and profile"
-	/>
-	<meta name="bolt:icon" content="lucide:user-round" />
-	<meta
-		name="bolt:thumbnail"
-		content="/__bolt/request/api/template-seed-assets/hr-payroll/app-media/hr_employee-banner.webp"
-	/>
-	<meta
-		name="bolt:banner"
-		content="/__bolt/request/api/template-seed-assets/hr-payroll/app-media/hr_employee-banner.webp"
-	/>
-</svelte:head>
-
 {#snippet contextGate()}
 	{#if hasNoActiveEmployment}
 		<Stack gap="none" class="rounded-xl border bg-card p-4 shadow-sm">
@@ -1402,7 +1388,13 @@
 	</Cover>
 {/snippet}
 
-<Cover>
+<AppShell
+	icon="lucide:user-round"
+	title="Employee Self-Service"
+	description="View your schedule, leave, pay components, loans, payslips, and profile"
+	banner="/__bolt/request/api/template-seed-assets/hr-payroll/app-media/hr_employee-banner.webp"
+	variant="full"
+>
 	<Tabs
 		animate={false}
 		config={[
@@ -1444,7 +1436,7 @@
 			}
 		] satisfies TabConfig[]}
 	/>
-</Cover>
+</AppShell>
 
 <!--
  	The day detail, shared with the controller's board and told which audience it has.

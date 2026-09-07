@@ -22,6 +22,7 @@
 	import { Result, Schema } from 'effect';
 	import { useI18n } from '@norbital-ai/ui/i18n';
 	import AppHeaderActions from '@norbital-ai/bolt/client/app-header-actions';
+	import { AppShell } from '@norbital-ai/ui/app-shell';
 	import type { TenantI18nKeys } from '$bolt/i18n-keys';
 	import type { WorkspaceRow } from '$bolt/types.js';
 	import { CollectionTable } from '@norbital-ai/ui/collection-table';
@@ -30,7 +31,7 @@
 		companiesUnknown as companiesUnknownOf,
 		resolveCompanyId
 	} from './company-scope.svelte.js';
-	import { Bound, Cover, Inline, Stack } from '@norbital-ai/ui/layout';
+	import { Inline, Stack } from '@norbital-ai/ui/layout';
 	import { formatEffectiveRange, formatNumeric } from '../../lib/ui/display-formatters.js';
 	import { inForceTodayFilter } from '../../lib/ui/calendar.js';
 	import { decodeNumber } from '@norbital-ai/std/json';
@@ -204,23 +205,6 @@
 	}
 </script>
 
-<svelte:head>
-	<title>Loans</title>
-	<meta
-		name="description"
-		content="Review staff loans, salary advances, and overpayment recoveries with their derived outstanding balance"
-	/>
-	<meta name="bolt:icon" content="lucide:hand-coins" />
-	<meta
-		name="bolt:thumbnail"
-		content="/__bolt/request/api/template-seed-assets/hr-payroll/app-media/loans-banner.webp"
-	/>
-	<meta
-		name="bolt:banner"
-		content="/__bolt/request/api/template-seed-assets/hr-payroll/app-media/loans-banner.webp"
-	/>
-</svelte:head>
-
 {#snippet companyScopeActions()}
 	<CompanyScopeCombobox
 		value={selectedCompanyId}
@@ -230,77 +214,79 @@
 	/>
 {/snippet}
 
-<AppHeaderActions>
-	{@render companyScopeActions()}
-</AppHeaderActions>
+<AppShell
+	icon="lucide:hand-coins"
+	title="Loans"
+	description="Review staff loans, salary advances, and overpayment recoveries with their derived outstanding balance"
+	banner="/__bolt/request/api/template-seed-assets/hr-payroll/app-media/loans-banner.webp"
+>
+	<AppHeaderActions>
+		{@render companyScopeActions()}
+	</AppHeaderActions>
 
-<Cover>
-	<Bound size="full" inset>
-		{#if companiesUnknown}
-			<p class="text-sm text-muted-foreground">{t('app.hr_controller.loading_scope')}</p>
-		{:else if selectedCompanyId == null}
-			<p class="text-sm text-muted-foreground">
-				{t('app.loans.empty')}
-			</p>
-		{:else}
-			{#key selectedCompanyId}
-				<CollectionTable
-					{client}
-					collection="loans"
-					view={`hr_controller:loans:${selectedCompanyId}`}
-					title={t('app.loans.agreements')}
-					description={t('app.loans.agreements_description')}
-					initialFilters={inForceTodayFilter()}
-					query={{
-						where: {
-							loan_employment: {
-								some: {
-									approval_id: { isNull: true },
-									company_id: { eq: selectedCompanyId }
-								}
+	{#if companiesUnknown}
+		<p class="text-sm text-muted-foreground">{t('app.hr_controller.loading_scope')}</p>
+	{:else if selectedCompanyId == null}
+		<p class="text-sm text-muted-foreground">
+			{t('app.loans.empty')}
+		</p>
+	{:else}
+		{#key selectedCompanyId}
+			<CollectionTable
+				{client}
+				collection="loans"
+				view={`hr_controller:loans:${selectedCompanyId}`}
+				title={t('app.loans.agreements')}
+				description={t('app.loans.agreements_description')}
+				initialFilters={inForceTodayFilter()}
+				query={{
+					where: {
+						loan_employment: {
+							some: {
+								approval_id: { isNull: true },
+								company_id: { eq: selectedCompanyId }
 							}
-						},
-						orderBy: { effective_from: 'desc' },
-						with: {
-							loan_employment: { columns: { employee_number: true } },
-							loan_pay_component: { columns: { code: true } }
 						}
-					}}
-				>
-					{#snippet columns({ Column })}
-						<Column name="reference" card="title" />
-						<Column
-							name="employment_id"
-							label={t('component.employment')}
-							card="subtitle"
-							renderer={FormattedValueRenderer}
-							rendererProps={{
-								format: ({ row }: { row: NestedLoan }) =>
-									row.loan_employment?.employee_number ?? '—'
-							}}
-						/>
-						<Column
-							name="pay_component_id"
-							label={t('app.loans.deducted_as')}
-							renderer={FormattedValueRenderer}
-							rendererProps={{ format: ({ row }) => componentLabel(row) }}
-						/>
-						<Column name="principal" label={t('app.loans.principal_outstanding')} />
-						<Column name="effective_range" />
-					{/snippet}
-					{#snippet ListCard(loan)}
-						<Stack gap="xs">
-							<Inline align="start" justify="between" gap="sm">
-								<p class="truncate font-medium">{loan.reference ?? '—'}</p>
-								<span class="shrink-0 text-meta">
-									{formatEffectiveRange(loan.effective_range)}
-								</span>
-							</Inline>
-							<p class="text-sm">{progressLabel(loan)}</p>
-						</Stack>
-					{/snippet}
-				</CollectionTable>
-			{/key}
-		{/if}
-	</Bound>
-</Cover>
+					},
+					orderBy: { effective_from: 'desc' },
+					with: {
+						loan_employment: { columns: { employee_number: true } },
+						loan_pay_component: { columns: { code: true } }
+					}
+				}}
+			>
+				{#snippet columns({ Column })}
+					<Column name="reference" card="title" />
+					<Column
+						name="employment_id"
+						label={t('component.employment')}
+						card="subtitle"
+						renderer={FormattedValueRenderer}
+						rendererProps={{
+							format: ({ row }: { row: NestedLoan }) => row.loan_employment?.employee_number ?? '—'
+						}}
+					/>
+					<Column
+						name="pay_component_id"
+						label={t('app.loans.deducted_as')}
+						renderer={FormattedValueRenderer}
+						rendererProps={{ format: ({ row }) => componentLabel(row) }}
+					/>
+					<Column name="principal" label={t('app.loans.principal_outstanding')} />
+					<Column name="effective_range" />
+				{/snippet}
+				{#snippet ListCard(loan)}
+					<Stack gap="xs">
+						<Inline align="start" justify="between" gap="sm">
+							<p class="truncate font-medium">{loan.reference ?? '—'}</p>
+							<span class="shrink-0 text-meta">
+								{formatEffectiveRange(loan.effective_range)}
+							</span>
+						</Inline>
+						<p class="text-sm">{progressLabel(loan)}</p>
+					</Stack>
+				{/snippet}
+			</CollectionTable>
+		{/key}
+	{/if}
+</AppShell>

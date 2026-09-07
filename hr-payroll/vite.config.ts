@@ -36,9 +36,9 @@ export default defineConfig({
 			 * The narration clips, one per phrase and language, emitted at `kiosk-voice/<language>/
 			 * <key>.<format>` beside the face models so the kiosk resolves them from its own chunk
 			 * (`KIOSK_VOICE_BASE`). The set is the phrase list's, not the directory's: a clip the list
-			 * no longer names is not shipped, and a phrase without a clip is warned about here, at
-			 * build time, rather than discovered as a fallback to browser speech on the tablet.
-			 * Regenerate with `node scripts/generate-kiosk-voice.mjs`.
+			 * no longer names is not shipped, and a phrase without a clip fails the build here rather
+			 * than being discovered as a silent kiosk on the tablet (there is no browser-speech
+			 * fallback). Regenerate with `node scripts/generate-kiosk-voice.mjs`.
 			 */
 			name: 'kiosk-voice-clips',
 			apply: 'build',
@@ -61,8 +61,8 @@ export default defineConfig({
 					}
 				}
 				if (missing.length > 0)
-					this.warn(
-						`kiosk voice clips missing (the kiosk will fall back to browser speech for them): ${missing.join(', ')}. Run node scripts/generate-kiosk-voice.mjs.`
+					this.error(
+						`kiosk voice clips missing (the kiosk would be silent for them): ${missing.join(', ')}. Run node scripts/generate-kiosk-voice.mjs.`
 					);
 			}
 		}

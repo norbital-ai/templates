@@ -66,6 +66,7 @@ import {
 	type RunIssue
 } from './validate.js';
 import { decodeNumber } from '@norbital-ai/std/json';
+import { termPattern } from '../../../lib/scheduling/work-pattern.js';
 
 /**
  * The engine/build identity stamped on every run this code produces.
@@ -202,7 +203,7 @@ export function buildPayrollRun(prepared: PreparedRun): PayrollRunGraph {
 				terms: bundle.terms.map((term) => ({
 					id: term.id,
 					pay_frequency: term.pay_frequency,
-					work_pattern: term.work_pattern,
+					work_pattern: termPattern(term, configuration.patternById),
 					effective_range: term.effective_range
 				})),
 				workDays: bundle.workDays.map((day) => ({

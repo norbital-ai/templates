@@ -4,7 +4,11 @@ import type { InstantRangeValue as WorkedInterval } from '@norbital-ai/bolt/auth
 import { dateKey } from '../../lib/iso-day.js';
 import { monthBounds } from '../../lib/period.js';
 import { leaveCoverage, type LeaveRequestLike } from '../../lib/scheduling/leave-coverage.js';
-import { patternRosterCodeId } from '../../lib/scheduling/work-pattern.js';
+import {
+	patternRosterCodeId,
+	termPattern,
+	type ShiftPatternLike
+} from '../../lib/scheduling/work-pattern.js';
 import { rosterCodeKind, workWindow } from '../../lib/scheduling/roster-code.js';
 import { coversDate } from '../payroll_runs/lib/effective.js';
 import {
@@ -83,19 +87,23 @@ function assertMonthConformsToPattern(options: {
 	readonly month: string;
 	readonly plannedByDate: ReadonlyMap<string, string | null>;
 	readonly terms: readonly {
-		readonly work_pattern: {
-			readonly type: string;
-			readonly phases?: readonly {
-				readonly day_cycle: readonly { readonly roster_code_id: string }[];
-			}[];
-			readonly anchor_date?: string;
-		};
+		readonly shift_pattern_id: string | null;
 		readonly effective_range: unknown;
 	}[];
+	/** The company's named patterns; a term's pointer is resolved through them. */
+	readonly patternById: ReadonlyMap<string, ShiftPatternLike>;
 	readonly codeKindById: ReadonlyMap<string, 'WORK' | 'REST' | 'OFF'>;
 	readonly paidMinutesById: ReadonlyMap<string, number>;
 }): void {
-	const { employeeNumber, month, plannedByDate, terms, codeKindById, paidMinutesById } = options;
+	const {
+		employeeNumber,
+		month,
+		plannedByDate,
+		terms,
+		patternById,
+		codeKindById,
+		paidMinutesById
+	} = options;
 	let expectedDays = 0;
 	let expectedMinutes = 0;
 	let actualDays = 0;
@@ -105,15 +113,12 @@ function assertMonthConformsToPattern(options: {
 	let date = bounds.start;
 	while (date <= bounds.end) {
 		const term = terms.find((candidate) => coversDate(candidate.effective_range, date));
-		const pattern = term?.work_pattern;
+		const pattern = term == null ? null : termPattern(term, patternById);
 		if (pattern != null && pattern.type === 'PATTERNED') {
 			patterned = true;
 			let projectedId: string | null = null;
 			try {
-				projectedId = patternRosterCodeId(
-					pattern as Parameters<typeof patternRosterCodeId>[0],
-					date
-				);
+				projectedId = patternRosterCodeId(pattern, date);
 			} catch {
 				projectedId = null;
 			}
@@ -215,26 +220,42 @@ function assertBatchConformsToPattern(
 				}),
 				api.db.employment_terms.findMany({
 					where: { employment_id: { in: employmentIds } },
-					columns: { employment_id: true, work_pattern: true, effective_range: true },
+					columns: { employment_id: true, shift_pattern_id: true, effective_range: true },
 					limit: QUERY_LIMIT
 				})
 			],
 			{ concurrency: 'unbounded' }
 		);
-		const codes =
+		// The codes and the named patterns of every company touched: the pattern is the base the
+		// month is compared with, and it is read here rather than carried on the terms row so one
+		// write across two employments on the same pattern reads it once.
+		const [codes, patterns] =
 			companyIds.length === 0
-				? []
-				: yield* api.db.shift_definitions.findMany({
-						where: { company_id: { in: companyIds } },
-						columns: { id: true, variant: true },
-						limit: QUERY_LIMIT
-					});
+				? [[], []]
+				: yield* Effect.all(
+						[
+							api.db.shift_definitions.findMany({
+								where: { company_id: { in: companyIds } },
+								columns: { id: true, variant: true },
+								limit: QUERY_LIMIT
+							}),
+							api.db.shift_patterns.findMany({
+								where: { company_id: { in: companyIds } },
+								columns: { id: true, code: true, pattern: true },
+								limit: QUERY_LIMIT
+							})
+						],
+						{ concurrency: 'unbounded' }
+					);
 		if (monthRows.length === QUERY_LIMIT || terms.length === QUERY_LIMIT) {
 			refuse('This schedule is too large to validate safely in one write.');
 		}
-		if (codes.length === QUERY_LIMIT) {
-			refuse('This legal entity has too many roster codes to validate safely.');
+		if (codes.length === QUERY_LIMIT || patterns.length === QUERY_LIMIT) {
+			refuse('This legal entity has too many roster codes or shift patterns to validate safely.');
 		}
+		const patternById = new Map<string, ShiftPatternLike>(
+			patterns.map((pattern) => [pattern.id, pattern])
+		);
 		const codeKindById = new Map<string, 'WORK' | 'REST' | 'OFF'>();
 		const paidMinutesById = new Map<string, number>();
 		for (const code of codes) {
@@ -285,6 +306,7 @@ function assertBatchConformsToPattern(
 				month,
 				plannedByDate,
 				terms: termsByEmployment.get(employmentId) ?? [],
+				patternById,
 				codeKindById,
 				paidMinutesById
 			});
@@ -586,6 +608,7 @@ export default {
 						? yield* readOverlapData(api, coordinates)
 						: {
 								termsByEmployment: new Map(),
+								patternById: new Map(),
 								explicitByKey: new Map(),
 								codeById: new Map()
 							};

@@ -65,6 +65,7 @@ const configuration = (payComponents, overtimeRules = []) => {
 		restBreakRules: [],
 		overtimeCoverageRule: null,
 		shiftById: new Map(),
+		patternById: new Map(),
 		holidays: new Map(),
 		leaveTypes: [],
 		hash: 'test'
