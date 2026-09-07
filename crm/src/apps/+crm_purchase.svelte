@@ -2,11 +2,12 @@
 	import { decodeNumber } from '@norbital-ai/std/json';
 	import { FormattedValueRenderer } from '@norbital-ai/ui/data-renderer';
 	import { client } from '$bolt/client';
+	import { AppShell } from '@norbital-ai/ui/app-shell';
 	import { getCollectionClientForSurface } from '@norbital-ai/ui/collection-runtime';
 	import { useI18n } from '@norbital-ai/ui/i18n';
 	import type { TenantI18nKeys } from '$bolt/i18n-keys';
 	import { CollectionTable } from '@norbital-ai/ui/collection-table';
-	import { Bound, Cover, Grid, Inline, Scroll, Stack } from '@norbital-ai/ui/layout';
+	import { Grid, Inline, Scroll, Stack } from '@norbital-ai/ui/layout';
 	import { Tabs, type TabConfig } from '@norbital-ai/ui/tabs';
 
 	const STATUSES = ['draft', 'submitted', 'confirmed', 'cancelled'] as const;
@@ -127,67 +128,48 @@
 	};
 </script>
 
-<svelte:head>
-	<title>Purchasing workspace</title>
-	<meta
-		name="description"
-		content="Purchase orders, suppliers, goods receipts, invoices, and the buying side of the product catalogue"
-	/>
-	<meta name="bolt:icon" content="lucide:shopping-cart" />
-	<meta
-		name="bolt:thumbnail"
-		content="/__bolt/request/api/template-seed-assets/crm/app-media/crm_purchase-banner.webp"
-	/>
-	<meta
-		name="bolt:banner"
-		content="/__bolt/request/api/template-seed-assets/crm/app-media/crm_purchase-banner.webp"
-	/>
-</svelte:head>
-
 {#snippet dashboardTab()}
-	<Bound size="full">
-		<Scroll name={t('app.crm_purchase.tab_dashboard')}>
-			<Stack gap="lg">
-				<Grid minimum="card">
-					{#each Object.entries(dashboardData?.status_counts ?? {}) as [status, count] (status)}
-						<div class="rounded-lg border bg-card p-4">
-							<p class="text-sm text-muted-foreground capitalize">
-								{has(STATUS_LABELS[status]) ? t(STATUS_LABELS[status]) : status.replace('_', ' ')}
-							</p>
-							<p class="text-2xl font-semibold tabular-nums">{count}</p>
-						</div>
-					{/each}
-				</Grid>
-
-				<Grid minimum="card">
-					{#each dashboardData?.committed_by_currency ?? [] as row (row.currency)}
-						<div class="rounded-lg border bg-card p-4">
-							<p class="text-sm text-muted-foreground">
-								{t('app.crm_purchase.committed_spend', { currency: row.currency })}
-							</p>
-							<p class="text-2xl font-semibold tabular-nums">{row.total.toLocaleString()}</p>
-						</div>
-					{/each}
-				</Grid>
-
-				{#if (dashboardData?.top_suppliers ?? []).length > 0}
-					<div class="divide-y rounded-lg border bg-card text-sm">
-						<h3 class="border-b px-4 py-3 font-semibold">
-							{t('app.crm_purchase.top_suppliers')}
-						</h3>
-						{#each dashboardData?.top_suppliers ?? [] as supplier (supplier.supplier_id)}
-							<Inline align="start" justify="between" gap="sm" class="px-4 py-2.5">
-								<p class="min-w-0 truncate font-medium">{supplier.supplier_name}</p>
-								<p class="shrink-0 tabular-nums text-muted-foreground">
-									{supplier.gross.toLocaleString()}
-								</p>
-							</Inline>
-						{/each}
+	<Scroll name={t('app.crm_purchase.tab_dashboard')}>
+		<Stack gap="lg">
+			<Grid minimum="card">
+				{#each Object.entries(dashboardData?.status_counts ?? {}) as [status, count] (status)}
+					<div class="rounded-lg border bg-card p-4">
+						<p class="text-sm text-muted-foreground capitalize">
+							{has(STATUS_LABELS[status]) ? t(STATUS_LABELS[status]) : status.replace('_', ' ')}
+						</p>
+						<p class="text-2xl font-semibold tabular-nums">{count}</p>
 					</div>
-				{/if}
-			</Stack>
-		</Scroll>
-	</Bound>
+				{/each}
+			</Grid>
+
+			<Grid minimum="card">
+				{#each dashboardData?.committed_by_currency ?? [] as row (row.currency)}
+					<div class="rounded-lg border bg-card p-4">
+						<p class="text-sm text-muted-foreground">
+							{t('app.crm_purchase.committed_spend', { currency: row.currency })}
+						</p>
+						<p class="text-2xl font-semibold tabular-nums">{row.total.toLocaleString()}</p>
+					</div>
+				{/each}
+			</Grid>
+
+			{#if (dashboardData?.top_suppliers ?? []).length > 0}
+				<div class="divide-y rounded-lg border bg-card text-sm">
+					<h3 class="border-b px-4 py-3 font-semibold">
+						{t('app.crm_purchase.top_suppliers')}
+					</h3>
+					{#each dashboardData?.top_suppliers ?? [] as supplier (supplier.supplier_id)}
+						<Inline align="start" justify="between" gap="sm" class="px-4 py-2.5">
+							<p class="min-w-0 truncate font-medium">{supplier.supplier_name}</p>
+							<p class="shrink-0 tabular-nums text-muted-foreground">
+								{supplier.gross.toLocaleString()}
+							</p>
+						</Inline>
+					{/each}
+				</div>
+			{/if}
+		</Stack>
+	</Scroll>
 {/snippet}
 
 {#snippet purchaseOrders()}
@@ -403,7 +385,13 @@
 	</CollectionTable>
 {/snippet}
 
-<Cover as="main">
+<AppShell
+	icon="lucide:shopping-cart"
+	title="Purchasing workspace"
+	description="Purchase orders, suppliers, goods receipts, invoices, and the buying side of the product catalogue"
+	banner="/__bolt/request/api/template-seed-assets/crm/app-media/crm_purchase-banner.webp"
+	variant="full"
+>
 	<Tabs
 		animate={false}
 		config={[
@@ -463,4 +451,4 @@
 			}
 		] satisfies TabConfig[]}
 	/>
-</Cover>
+</AppShell>

@@ -6,6 +6,7 @@
 	import type { RepresentationProps } from './$types.js';
 	import { CollectionForm } from '@norbital-ai/ui/collection-form';
 	import { Grid } from '@norbital-ai/ui/layout';
+	import { RecordShell } from '@norbital-ai/ui/record-shell';
 	import type { CollectionRelationOptions } from '@norbital-ai/std/collection';
 
 	let { record, close }: RepresentationProps = $props();
@@ -29,44 +30,51 @@
 	onAfterSubmit={record ? undefined : close}
 >
 	{#snippet children({ Field })}
-		<Field name="supplier_code" hidden />
-		<Field name="supplier_name" hidden />
-		<Field name="net" hidden />
-		<Field name="tax" hidden />
-		<Field name="gross" hidden />
-		<Field name="confirmed_at" hidden />
-		<Field name="cancelled_at" hidden />
-		<Field name="cancel_reason" hidden />
-		<Grid minimum="compact">
-			<Field name="doc_no" label={t('component.doc_no')} />
-			<Field
-				name="supplier_id"
-				label={t('component.supplier')}
-				relationOptions={{
-					label: (record) => {
-						const code = record.code;
-						const name = record.name;
-						if (code && name) return `${code} · ${name}`;
-						return name != null && name !== '' ? String(name) : '—';
-					},
-					orderBy: { name: 'asc' },
-					limit: 5000
-				} satisfies CollectionRelationOptions}
-			/>
-			<Field name="status" />
-			<Field name="currency" />
-			<Field name="tax_inclusive" label={t('component.tax_inclusive')} />
-			<Field name="expected_date" label={t('component.expected_date')} />
-			<Field
-				name="owner_id"
-				label={t('component.owner')}
-				relationOptions={{
-					label: (record) =>
-						record.name != null && record.name !== '' ? String(record.name) : '—',
-					orderBy: { name: 'asc' },
-					limit: 500
-				} satisfies CollectionRelationOptions}
-			/>
-		</Grid>
+		<RecordShell
+			title={record?.doc_no ?? 'New purchase order'}
+			subtitle={record
+				? `${record.status ?? 'draft'} · ${record.supplier_name ?? 'no supplier'}`
+				: undefined}
+		>
+			<Field name="supplier_code" hidden />
+			<Field name="supplier_name" hidden />
+			<Field name="net" hidden />
+			<Field name="tax" hidden />
+			<Field name="gross" hidden />
+			<Field name="confirmed_at" hidden />
+			<Field name="cancelled_at" hidden />
+			<Field name="cancel_reason" hidden />
+			<Grid minimum="compact">
+				<Field name="doc_no" label={t('component.doc_no')} />
+				<Field
+					name="supplier_id"
+					label={t('component.supplier')}
+					relationOptions={{
+						label: (record) => {
+							const code = record.code;
+							const name = record.name;
+							if (code && name) return `${code} · ${name}`;
+							return name != null && name !== '' ? String(name) : '—';
+						},
+						orderBy: { name: 'asc' },
+						limit: 5000
+					} satisfies CollectionRelationOptions}
+				/>
+				<Field name="status" />
+				<Field name="currency" />
+				<Field name="tax_inclusive" label={t('component.tax_inclusive')} />
+				<Field name="expected_date" label={t('component.expected_date')} />
+				<Field
+					name="owner_id"
+					label={t('component.owner')}
+					relationOptions={{
+						label: (record) =>
+							record.name != null && record.name !== '' ? String(record.name) : '—',
+						orderBy: { name: 'asc' },
+						limit: 500
+					} satisfies CollectionRelationOptions}
+				/>
+			</Grid>
+		</RecordShell>
 	{/snippet}
 </CollectionForm>

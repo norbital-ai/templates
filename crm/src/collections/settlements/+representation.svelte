@@ -6,6 +6,7 @@
 	import type { TenantI18nKeys } from '$bolt/i18n-keys';
 	import { CollectionForm } from '@norbital-ai/ui/collection-form';
 	import { Grid } from '@norbital-ai/ui/layout';
+	import { RecordShell } from '@norbital-ai/ui/record-shell';
 	import type { CollectionRelationOptions } from '@norbital-ai/std/collection';
 
 	let { record, close }: RepresentationProps = $props();
@@ -23,62 +24,74 @@
 >
 	{#snippet children({ Field, form })}
 		{@const values = form.values()}
-		<Grid minimum="compact">
-			<Field name="regarding_type" label={t('component.document_type')} />
-			{#key values.regarding_type}
-				{#if values.regarding_type === 'purchase_orders'}
-					<Field
-						name="regarding_id"
-						label={t('component.purchase_order')}
-						relationOptions={{
-							label: (record) =>
-								record.doc_no != null && record.doc_no !== '' ? String(record.doc_no) : '—',
-							orderBy: { doc_no: 'desc' },
-							limit: 5000
-						} satisfies CollectionRelationOptions}
-					/>
-				{:else if values.regarding_type === 'purchase_invoices'}
-					<Field
-						name="regarding_id"
-						label={t('component.purchase_invoice')}
-						relationOptions={{
-							label: (record) =>
-								record.doc_no != null && record.doc_no !== '' ? String(record.doc_no) : '—',
-							orderBy: { doc_no: 'desc' },
-							limit: 5000
-						} satisfies CollectionRelationOptions}
-					/>
-				{:else}
-					<Field
-						name="regarding_id"
-						label={t('component.quote')}
-						relationOptions={{
-							label: (record) => {
-								const docNo = record.doc_no;
-								const title = record.title;
-								if (docNo && title) return `${docNo}: ${title}`;
-								return docNo != null && docNo !== '' ? String(docNo) : '—';
-							},
-							orderBy: { doc_no: 'desc' },
-							limit: 5000
-						} satisfies CollectionRelationOptions}
-					/>
-				{/if}
-			{/key}
-			<Field name="amount" />
-			<Field name="currency" />
-			<Field name="settled_on" label={t('component.settled_on')} />
-			<Field name="reference" />
-			<Field
-				name="owner_id"
-				label={t('component.recorded_by')}
-				relationOptions={{
-					label: (record) =>
-						record.name != null && record.name !== '' ? String(record.name) : '—',
-					orderBy: { name: 'asc' },
-					limit: 500
-				} satisfies CollectionRelationOptions}
-			/>
-		</Grid>
+
+		<RecordShell
+			title={record?.reference
+				? record.reference
+				: record
+					? `${record.amount} ${record.currency ?? ''}`.trim() || 'Settlement'
+					: 'New settlement'}
+			subtitle={record
+				? `${record.regarding_type ?? '—'} · ${record.settled_on ?? 'unsettled'}`
+				: undefined}
+		>
+			<Grid minimum="compact">
+				<Field name="regarding_type" label={t('component.document_type')} />
+				{#key values.regarding_type}
+					{#if values.regarding_type === 'purchase_orders'}
+						<Field
+							name="regarding_id"
+							label={t('component.purchase_order')}
+							relationOptions={{
+								label: (record) =>
+									record.doc_no != null && record.doc_no !== '' ? String(record.doc_no) : '—',
+								orderBy: { doc_no: 'desc' },
+								limit: 5000
+							} satisfies CollectionRelationOptions}
+						/>
+					{:else if values.regarding_type === 'purchase_invoices'}
+						<Field
+							name="regarding_id"
+							label={t('component.purchase_invoice')}
+							relationOptions={{
+								label: (record) =>
+									record.doc_no != null && record.doc_no !== '' ? String(record.doc_no) : '—',
+								orderBy: { doc_no: 'desc' },
+								limit: 5000
+							} satisfies CollectionRelationOptions}
+						/>
+					{:else}
+						<Field
+							name="regarding_id"
+							label={t('component.quote')}
+							relationOptions={{
+								label: (record) => {
+									const docNo = record.doc_no;
+									const title = record.title;
+									if (docNo && title) return `${docNo}: ${title}`;
+									return docNo != null && docNo !== '' ? String(docNo) : '—';
+								},
+								orderBy: { doc_no: 'desc' },
+								limit: 5000
+							} satisfies CollectionRelationOptions}
+						/>
+					{/if}
+				{/key}
+				<Field name="amount" />
+				<Field name="currency" />
+				<Field name="settled_on" label={t('component.settled_on')} />
+				<Field name="reference" />
+				<Field
+					name="owner_id"
+					label={t('component.recorded_by')}
+					relationOptions={{
+						label: (record) =>
+							record.name != null && record.name !== '' ? String(record.name) : '—',
+						orderBy: { name: 'asc' },
+						limit: 500
+					} satisfies CollectionRelationOptions}
+				/>
+			</Grid>
+		</RecordShell>
 	{/snippet}
 </CollectionForm>
