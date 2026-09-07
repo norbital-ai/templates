@@ -42,14 +42,27 @@ export default {
 								refuse('A manual leave adjustment needs a reason.');
 							if (String(input.source_key ?? '').trim() === '')
 								refuse('A manual leave adjustment needs a unique reference.');
-							const account = yield* api.db.leave_accounts.findFirst({
-								where: { id: { eq: input.leave_account_id }, approval_id: { isNull: true } }
+							const entitlement = yield* api.db.leave_entitlements.findFirst({
+								where: { id: { eq: input.leave_entitlement_id }, approval_id: { isNull: true } }
 							});
-							if (account == null || account.status !== 'OPEN')
-								refuse('A manual leave adjustment requires an approved open account.');
+							if (entitlement == null || entitlement.status !== 'OPEN')
+								refuse('A manual leave adjustment requires an approved open entitlement.');
 							const effective = dateKey(input.effective_on);
-							if (effective < dateKey(account.starts_on) || effective > dateKey(account.ends_on))
-								refuse('A manual leave adjustment must fall inside its account year.');
+							if (
+								effective < dateKey(entitlement.starts_on) ||
+								effective > dateKey(entitlement.ends_on)
+							)
+								refuse('A manual leave adjustment must fall inside its leave year.');
+							// Refused here, before the proposal is held, so a reference cannot be posted twice
+							// while the first one is still waiting for its approval.
+							const duplicate = yield* api.db.leave_entries.findFirst({
+								where: {
+									leave_entitlement_id: { eq: entitlement.id },
+									source_key: { eq: String(input.source_key) }
+								}
+							});
+							if (duplicate != null)
+								refuse('A leave entry with this reference is already posted on this entitlement.');
 						}
 						return input;
 					})

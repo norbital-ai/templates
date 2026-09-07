@@ -1,7 +1,7 @@
 <script lang="ts">
 	/**
-	 * A holiday belongs to the company that observes it, so the auto form asked for `company_id` as
-	 * an editable uuid. It is a relationship and reads as the entity's name.
+	 * A holiday belongs to the settings version whose calendar it is on, so the auto form asked for
+	 * `settings_id` as an editable uuid. It is a relationship and reads as the version's name.
 	 */
 	import { client } from '../../lib/workspace-client.js';
 	import { useI18n } from '@norbital-ai/ui/i18n';
@@ -24,18 +24,21 @@
 	{#snippet children({ Field })}
 		<Grid gap="md" minimum="panel">
 			<Field
-				name="company_id"
-				label={t('component.legal_entity')}
+				name="settings_id"
+				label={t('component.settings_version')}
 				relationOptions={{
-					label: (company) =>
-						company.name != null && company.name !== '' ? String(company.name) : '—',
-					orderBy: { name: 'asc' },
+					label: (version) =>
+						[version.code, version.name, version.sealed_at ? 'sealed' : 'draft']
+							.filter((part) => part != null && part !== '')
+							.join(' · ') || '—',
+					orderBy: { code: 'asc' },
 					limit: 500
 				}}
 			/>
 			<Field name="name" label={t('component.holiday')} />
 			<Field name="date" label={t('component.observed_on')} />
 			<Field name="substitutes_date" label={t('component.substitute_for')} />
+			<Field name="is_statutory" label={t('component.is_statutory')} />
 			<Column span="all"><Field name="scope" label={t('component.who_observes_it')} /></Column>
 		</Grid>
 	{/snippet}

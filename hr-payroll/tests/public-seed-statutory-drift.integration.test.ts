@@ -1,8 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { setTimeout as delay } from 'node:timers/promises';
-import { sealedProfileCovering } from '../src/lib/statutory_profile.ts';
-import { success } from '@norbital-ai/bolt-protocol';
+import { failure, makeWireError, success } from '@norbital-ai/bolt-protocol';
 import { makeAiBinding } from '@norbital-ai/bolt-server';
 import { Schema } from 'effect';
 import { Prompt } from 'effect/unstable/ai';
@@ -10,42 +8,43 @@ import { asRecord, bearerHeaders, postGuestCommand } from '@norbital-ai/test-uti
 import {
 	JURISDICTION_ID,
 	LOCAL_DATABASE_TEST_TIMEOUT_MILLIS,
+	STATUTORY_PUB_EPF_ID,
 	startPublicSeedHost
 } from './helpers/public-seed-host.ts';
 
-const SG_PROFILE_ID = '22222222-2222-4222-8222-222222222201';
-const MY_PROFILE_ID = '22222222-2222-4222-8222-222222222202';
-const SG_CPF_ID = 'aaaaaaaa-dddd-4eee-8fff-aaaaaaaaaaa5';
-const MY_EPF_ID = 'aaaaaaaa-dddd-4eee-8fff-aaaaaaaaaaa6';
+/**
+ * The statutory drift automation on the public seed, with a recorded double for the model and the
+ * page reader: one changed rate produces exactly one draft version carrying the proposal note and
+ * the changed band; an unchanged lineage produces nothing; a second run produces no second draft
+ * while the first is open; a lineage whose research fails is reported by name while the others
+ * proceed; and nothing sealed changes. The page reader double refuses to resolve one of PUB's two
+ * sources, so the draft is created from the one that answered and its sheet names the other with
+ * the reason; a lineage none of whose sources answer gets no draft and is named in the result.
+ */
 
-const PUB_REGIME = {
-	overtime_coverage: null,
-	overtime_rules: [],
-	overtime_limits: []
+type Row = Readonly<Record<string, unknown>>;
+
+const PUB_URL = 'https://statutory.example.org/pub/rates';
+/** PUB's second source, which the page reader double cannot resolve. */
+const PUB_DOWN_URL = 'https://down.statutory.example.org/pub/notice';
+const PUB2_ID = '22222222-2222-4222-8222-222222222233';
+const PUB2_SCHEME_ID = 'aaaaaaaa-dddd-4eee-8fff-aaaaaaaaaab1';
+const PUB2_URL = 'https://statutory.example.org/pub2/rates';
+
+/** The public fixture's PUB-EPF band, as seeded: employee 11%, employer 13%. */
+const sealedBand = {
+	selector: { by: 'WAGE', from: 0, to: null },
+	award: { kind: 'PERCENT', employee: 11, employer: 13 }
+};
+const proposedBand = { ...sealedBand, award: { ...sealedBand.award, employee: 12 } };
+const pub2Band = {
+	selector: { by: 'WAGE', from: 0, to: null },
+	award: { kind: 'PERCENT', employee: 5, employer: 5 }
 };
 
-const PUB_STATUTORY_LEAVE = [
-	{
-		kind: 'ANNUAL',
-		ladder: [{ band_from: 0, days: 8 }],
-		per_child: null,
-		max_days: null,
-		transition: 'NEXT_LEAVE_YEAR',
-		settlement: { settlement: 'FORFEIT' },
-		exit: { exit: 'FORFEIT' },
-		authority: 'Public fixture — not a sealed statutory table.'
-	}
-];
-
-const PUB_PRORATION = { by: 'CALENDAR_DAYS' };
-
-const PUB_OVERTIME_TREATMENTS = [
-	{
-		authority: 'Public fixture — overtime excluded',
-		treatment: { kind: 'EXCLUDE' },
-		effective_range: { start: '2020-01-01T00:00:00.000Z', end: null }
-	}
-];
+const pubQuote =
+	'From 1 January 2027 the employee contribution rate is 12% of wages and the employer rate is 13%.';
+const pub2Quote = 'The employee and employer contribution rates remain 5% of wages each.';
 
 const testAiCatalog = {
 	_tag: 'Catalog' as const,
@@ -55,47 +54,23 @@ const testAiCatalog = {
 	defaultEmbeddingModelId: 'test/embedding'
 };
 
-const reportFor = (code: string, url: string) => ({
-	summary: `${code} official statutory material was reviewed.`,
-	highlights: [`${code} research completed.`],
-	official_sources: [
-		{
-			title: `${code} official source`,
-			url,
-			jurisdiction_code: code,
-			finding: `Current official material for ${code}.`
-		}
-	],
-	changes_to_review: []
-});
-
-const additionalSource = 'https://statutory.example.org/leave';
-
-const fixtureQuote =
-	'The approved fixture increases annual leave to twenty days from 1 January 2027.';
-
 const encodeMessage = Schema.encodeSync(Prompt.Message);
 
 /**
- * The research double answers by turn kind. The first tool turn per jurisdiction opens the entry
- * page through `read_official_page` (the loop's tool), the next tool turn stops calling tools, and
- * the closing structured turn returns the recorded report — so the test walks the real tool loop.
+ * The research double answers by turn kind. The first tool turn per lineage opens the entry page
+ * through `read_official_page` (the loop's only tool), the next tool turn stops calling tools,
+ * and the closing structured turn returns the recorded findings, so the test walks the real tool
+ * loop. PUB's findings raise the employee rate; PUB2's restate the sealed band.
  */
-const driftAi = (failMy = () => false) => {
+const driftAi = (failPub2: () => boolean) => {
 	const toolTurns = new Map<string, number>();
 	return makeAiBinding({
 		call: async (_metadata, request) => {
 			if (request._tag !== 'Generate') return testAiCatalog;
 			const prompt = JSON.stringify(request);
-			const code =
-				/Research ONLY the latest statutory payroll position for (SG|MY)/.exec(prompt)?.[1] ??
-				/for (SG|MY)/.exec(prompt)?.[1] ??
-				'SG';
-			if (code === 'MY' && failMy()) throw new Error('Malaysia evidence unavailable');
-			const url =
-				code === 'SG'
-					? 'https://www.cpf.gov.sg/employer/employer-obligations/how-much-cpf-contributions-to-pay'
-					: 'https://www.perkeso.gov.my/en/';
+			const code = /Lineage (PUB2|PUB)\b/.exec(prompt)?.[1] ?? 'PUB';
+			if (code === 'PUB2' && failPub2()) throw new Error('PUB2 evidence unavailable');
+			const url = code === 'PUB' ? PUB_URL : PUB2_URL;
 			const observation = {
 				callId: request.callId,
 				provider: 'fixture',
@@ -118,7 +93,7 @@ const driftAi = (failMy = () => false) => {
 						message: encodeMessage(
 							Prompt.assistantMessage({
 								content:
-									turn === 1
+									turn % 2 === 1
 										? [
 												Prompt.toolCallPart({
 													id: `read-${code}-${turn}`,
@@ -138,33 +113,24 @@ const driftAi = (failMy = () => false) => {
 				_tag: 'Generated',
 				result: {
 					_tag: 'Object',
-					value: {
-						...reportFor(code, url),
-						...(code === 'SG'
+					value:
+						code === 'PUB'
 							? {
-									proposed_sources: [
-										{
-											url: additionalSource,
-											title: 'Linked statutory portal',
-											rationale: 'The approved authority links this portal.',
-											source_url: url,
-											quote: fixtureQuote
-										}
+									contributions: [
+										{ code: 'PUB-EPF', bands: [proposedBand], source_url: url, quote: pubQuote }
 									],
-									proposed_law: {
-										effective_from: '2027-01-01',
-										evidence: [
-											{ source_url: url, title: 'Fixture law amendment', quote: fixtureQuote }
-										],
-										changes: {
-											statutory_leave: [
-												{ ...PUB_STATUTORY_LEAVE[0], ladder: [{ band_from: 0, days: 20 }] }
-											]
-										}
-									}
+									leave_types: [],
+									pay_components: [],
+									notes: []
 								}
-							: {})
-					}
+							: {
+									contributions: [
+										{ code: 'PUB2-EPF', bands: [pub2Band], source_url: url, quote: pub2Quote }
+									],
+									leave_types: [],
+									pay_components: [],
+									notes: ['No change announced.']
+								}
 				},
 				observation
 			};
@@ -172,144 +138,76 @@ const driftAi = (failMy = () => false) => {
 	});
 };
 
-const insertSealedProfile = async (
-	session: Awaited<ReturnType<typeof startPublicSeedHost>>,
-	profile: Readonly<{
-		readonly id: string;
-		readonly code: string;
-		readonly name: string;
-		readonly currency: string;
-		readonly effective_range: Readonly<{ readonly start: string; readonly end: string | null }>;
-	}>
-) => {
-	await session.query(
-		`insert into jurisdictions (
-			id, code, name, lifecycle, currency, tax_year_start_month,
-			proration, ordinary_rate_basis, ordinary_rate_divisor, regime,
-			statutory_leave, effective_range
-		) values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`,
-		[
-			profile.id,
-			profile.code,
-			profile.name,
-			'SEALED',
-			profile.currency,
-			1,
-			PUB_PRORATION,
-			'DAYS_PER_MONTH',
-			26,
-			PUB_REGIME,
-			PUB_STATUTORY_LEAVE,
-			profile.effective_range
-		]
-	);
-};
-
-const insertContribution = async (
-	session: Awaited<ReturnType<typeof startPublicSeedHost>>,
-	contribution: Readonly<{
-		readonly id: string;
-		readonly jurisdiction_id: string;
-		readonly statutory_profile_id: string;
-		readonly code: string;
-		readonly name: string;
-	}>
-) => {
-	await session.query(
-		`insert into statutory_contributions (
-			id, jurisdiction_id, statutory_profile_id, code, name, authority, payer, keyed_by,
-			rounding, relief_for, sequence, special_rules, overtime_treatments, overtime_excess_treatments
-		) values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)`,
-		[
-			contribution.id,
-			contribution.jurisdiction_id,
-			contribution.statutory_profile_id,
-			contribution.code,
-			contribution.name,
-			'Public fixture — not a sealed statutory table.',
-			'BOTH',
-			'WAGE',
-			'NEAREST_CENT',
-			[],
-			1,
-			[],
-			PUB_OVERTIME_TREATMENTS,
-			PUB_OVERTIME_TREATMENTS
-		]
-	);
-};
-
 test(
-	'public seed statutory_profile_drift records rate_gap for SEALED SG and MY schemes without rates',
-	{ timeout: LOCAL_DATABASE_TEST_TIMEOUT_MILLIS },
+	'statutory drift proposes one draft for a changed band, nothing for an unchanged lineage, and no second draft while the first is open',
+	{ timeout: LOCAL_DATABASE_TEST_TIMEOUT_MILLIS * 2 },
 	async () => {
-		let failMy = false;
-		const retrievedUrls = new Set<string>();
-		const session = await startPublicSeedHost('hr-payroll-p1-drift', {
-			ai: driftAi(() => failMy),
+		let failPub2 = false;
+		const retrievedUrls: string[] = [];
+		const unresolvable = new Set([PUB_DOWN_URL]);
+		const session = await startPublicSeedHost('hr-payroll-statutory-drift', {
+			ai: driftAi(() => failPub2),
 			connector: {
 				call: async (_metadata, request) => {
 					const url = String(asRecord(request.input, 'web request').url);
-					retrievedUrls.add(url);
+					retrievedUrls.push(url);
+					if (unresolvable.has(url))
+						return failure(
+							makeWireError('web.read_failed', `getaddrinfo ENOTFOUND ${new URL(url).hostname}`, {
+								retryable: false,
+								outcome: 'known'
+							})
+						);
+					const quote = url === PUB_URL ? pubQuote : pub2Quote;
 					return success({
 						output: {
 							url,
 							contentType: 'text/html',
-							body: `<p>${fixtureQuote}</p><a href="${additionalSource}">Official portal</a>`
+							body: `<html><body><p>${quote}</p></body></html>`
 						}
 					});
 				}
 			}
 		});
 		try {
-			await session.query(`update jurisdictions set effective_range = $1 where id = $2`, [
-				{ start: '2020-01-01', end: '2026-01-01' },
-				JURISDICTION_ID
-			]);
-
-			await insertSealedProfile(session, {
-				id: SG_PROFILE_ID,
-				code: 'SG',
-				name: 'Singapore fixture profile',
-				currency: 'SGD',
-				effective_range: { start: '2026-01-02', end: null }
-			});
-			await insertSealedProfile(session, {
-				id: MY_PROFILE_ID,
-				code: 'MY',
-				name: 'Malaysia fixture profile',
-				currency: 'MYR',
-				effective_range: { start: '2026-01-02', end: null }
-			});
-
-			await insertContribution(session, {
-				id: SG_CPF_ID,
-				jurisdiction_id: SG_PROFILE_ID,
-				statutory_profile_id: SG_PROFILE_ID,
-				code: 'SG-CPF',
-				name: 'Singapore fixture CPF'
-			});
-			await insertContribution(session, {
-				id: MY_EPF_ID,
-				jurisdiction_id: MY_PROFILE_ID,
-				statutory_profile_id: MY_PROFILE_ID,
-				code: 'MY-EPF',
-				name: 'Malaysia fixture EPF'
-			});
-
-			const started = await postGuestCommand(
-				session.host.baseUrl,
-				'automations.start',
-				{ name: 'statutory_profile_drift', input: {} },
-				bearerHeaders(session.credential)
+			// PUB names its official page and a second source that does not resolve; PUB2 is a second
+			// lineage in force whose page restates its band.
+			await session.query(
+				`update jurisdiction_settings set research_urls = array[$1, $2]::text[] where id = $3`,
+				[PUB_URL, PUB_DOWN_URL, JURISDICTION_ID]
 			);
-			assert.ok(
-				started.status >= 200 && started.status < 300,
-				`automations.start returned ${started.status}: ${JSON.stringify(started.value)}`
+			await session.query(
+				`insert into jurisdiction_settings (id, code, name, sealed_at, currency, tax_year_start_month, proration, ordinary_rate, regime, research_urls, effective_range)
+				 values ($1, 'PUB2', 'Second fixture lineage', '2020-01-01T00:00:00.000Z', 'MYR', 1, $2, $3, $4, array[$5]::text[], $6)`,
+				[
+					PUB2_ID,
+					{ by: 'CALENDAR_DAYS' },
+					{ per: 'DAY', divisor: 26 },
+					{ overtime_coverage: null, overtime_rules: [], overtime_limits: [] },
+					PUB2_URL,
+					{ start: '2020-01-01', end: null }
+				]
 			);
-			const body = asRecord(started.value, 'automations.start');
-			assert.equal(typeof body.taskId, 'string', JSON.stringify(body));
+			await session.query(
+				`insert into statutory_contributions (id, settings_id, code, name, is_statutory, authority, payer, keyed_by, rounding, relief_for, sequence, special_rules)
+				 values ($1, $2, 'PUB2-EPF', 'Second fixture fund', true, 'Public fixture', 'BOTH', 'WAGE', 'NEAREST_CENT', '{}', 1, '{}')`,
+				[PUB2_SCHEME_ID, PUB2_ID]
+			);
+			await session.query(
+				`insert into contribution_rates (id, statutory_contribution_id, selector, award) values ($1, $2, $3, $4)`,
+				[crypto.randomUUID(), PUB2_SCHEME_ID, pub2Band.selector, pub2Band.award]
+			);
+			const sealedBefore = await session.query(
+				`select s.id, s.row_version, r.award from jurisdiction_settings s join statutory_contributions c on c.settings_id = s.id join contribution_rates r on r.statutory_contribution_id = c.id where s.sealed_at is not null order by r.id`
+			);
 
+			const start = () =>
+				postGuestCommand(
+					session.host.baseUrl,
+					'automations.start',
+					{ name: 'statutory_drift', input: {} },
+					bearerHeaders(session.credential)
+				);
 			const runOf = async (taskId: unknown) =>
 				asRecord(
 					(
@@ -320,165 +218,193 @@ test(
 					)[0],
 					'automation run'
 				);
-			const run = await runOf(body.taskId);
+			const drafts = () =>
+				session.query(
+					`select id, code, name, sealed_at, cloned_from_id, effective_range, research_notes from jurisdiction_settings where sealed_at is null order by created_at`
+				) as Promise<Row[]>;
+
+			// Run 1: PUB differs, PUB2 does not.
+			const first = await start();
+			assert.ok(
+				first.status < 300,
+				`automations.start returned ${first.status}: ${JSON.stringify(first.value)}`
+			);
+			const run = await runOf(asRecord(first.value, 'start').taskId);
 			assert.equal(run.status, 'done', `drift run failed: ${JSON.stringify(run)}`);
 			const result = asRecord(run.result, 'drift result');
-			assert.ok(
-				Number(result.items) >= 2,
-				`expected the SG and MY rate gaps counted in the result, got ${JSON.stringify(result)}`
-			);
-			const jurisdictions = result.jurisdictions as ReadonlyArray<Record<string, unknown>>;
+			assert.equal(result.proposals, 1, JSON.stringify(result));
+			const lineages = result.lineages as ReadonlyArray<Record<string, unknown>>;
 			assert.deepEqual(
-				jurisdictions.map((row) => row.code).sort(),
-				['MY', 'SG'],
-				'one research receipt per governing profile, from one run'
+				lineages.map((row) => [row.code, row.status, row.changes]),
+				[
+					['PUB', 'proposed', 1],
+					['PUB2', 'unchanged', 0]
+				],
+				JSON.stringify(lineages)
 			);
 			assert.ok(
-				jurisdictions.every((row) => Number(row.sources) >= 1),
-				`every profile keeps official-source evidence: ${JSON.stringify(jurisdictions)}`
+				retrievedUrls.includes(PUB_URL) && retrievedUrls.includes(PUB2_URL),
+				'both entry pages were read'
 			);
-			const pending = await session.query(
-				`select id, status, record_id, proposed_values from approval_request where collection_name = 'jurisdictions'`
-			);
-			assert.equal(pending.length, 1, JSON.stringify(pending));
-			const sourceRequests = await session.query(
-				`select id, status from approval_request where collection_name = 'statutory_research_sources'`
-			);
-			assert.equal(sourceRequests.length, 1, 'new site must have its own approval');
-			assert.equal(sourceRequests[0].status, 'ONGOING');
-			assert.equal((await session.query('select id from statutory_research_sources')).length, 0);
-			assert.equal(retrievedUrls.has(additionalSource), false, 'pending site must not be fetched');
-			const request = asRecord(pending[0], 'law approval');
-			assert.equal(request.status, 'ONGOING');
-			const unapproved = await session.query(
-				`select id from jurisdictions where supersedes_id = $1`,
-				[SG_PROFILE_ID]
-			);
-			assert.equal(unapproved.length, 0, 'pending law must not govern');
-			const repeated = await postGuestCommand(
-				session.host.baseUrl,
-				'automations.start',
-				{ name: 'statutory_profile_drift', input: {} },
-				bearerHeaders(session.credential)
-			);
-			assert.ok(repeated.status < 300, JSON.stringify(repeated.value));
+			assert.ok(retrievedUrls.includes(PUB_DOWN_URL), 'the unresolvable source was attempted');
+			// The source that did not resolve is on the result, by url and reason, beside the count.
+			const pubSources = asRecord(lineages[0]!.sources, 'PUB sources');
+			assert.equal(pubSources.named, 2);
+			assert.equal(pubSources.read, 1);
+			const pubUnreachable = pubSources.unreachable as ReadonlyArray<Record<string, unknown>>;
+			assert.equal(pubUnreachable.length, 1);
+			assert.equal(pubUnreachable[0]!.url, PUB_DOWN_URL);
+			assert.equal(pubUnreachable[0]!.reason, 'getaddrinfo ENOTFOUND down.statutory.example.org.');
+			assert.match(String(pubUnreachable[0]!.retrieved_at), /^\d{4}-\d{2}-\d{2}T/);
 			assert.equal(
-				(
-					await session.query(
-						`select id from approval_request where collection_name = 'jurisdictions'`
-					)
-				).length,
-				1,
-				'repeat research must reuse the pending proposal'
+				(lineages[0]!.notes as string[])[0],
+				`1 of 2 sources read; unreachable: ${PUB_DOWN_URL} (getaddrinfo ENOTFOUND down.statutory.example.org.)`
 			);
-			failMy = true;
-			const failed = await postGuestCommand(
-				session.host.baseUrl,
-				'automations.start',
-				{ name: 'statutory_profile_drift', input: {} },
-				bearerHeaders(session.credential)
+			assert.deepEqual(lineages[1]!.sources, { named: 1, read: 1, unreachable: [] });
+			assert.deepEqual(result.sources_unreachable, []);
+
+			const afterFirst = await drafts();
+			assert.equal(afterFirst.length, 1, `exactly one draft: ${JSON.stringify(afterFirst)}`);
+			const [draft] = afterFirst;
+			assert.ok(draft);
+			assert.equal(draft.code, 'PUB');
+			assert.equal(draft.cloned_from_id, JURISDICTION_ID);
+			assert.equal(draft.id, lineages[0]!.draft_id);
+			const notes = asRecord(draft.research_notes, 'research_notes');
+			assert.equal(notes.proposed_by, 'statutory_drift');
+			assert.equal(notes.source_version_id, JURISDICTION_ID);
+			const changes = notes.changes as ReadonlyArray<Record<string, unknown>>;
+			assert.equal(changes.length, 1);
+			assert.deepEqual(
+				{
+					collection: changes[0]!.collection,
+					code: changes[0]!.code,
+					field: changes[0]!.field,
+					previous: changes[0]!.previous,
+					proposed: changes[0]!.proposed,
+					source_url: changes[0]!.source_url,
+					quote: changes[0]!.quote
+				},
+				{
+					collection: 'contribution_rates',
+					code: 'PUB-EPF',
+					field: 'bands',
+					previous: [sealedBand],
+					proposed: [proposedBand],
+					source_url: PUB_URL,
+					quote: pubQuote
+				}
 			);
-			assert.ok(failed.status >= 400, JSON.stringify(failed.value));
+			assert.match(String(changes[0]!.sha256), /^[a-f0-9]{64}$/);
+			assert.match(String(changes[0]!.retrieved_at), /^\d{4}-\d{2}-\d{2}T/);
+			// The sheet HR reviews names the source the proposal does not stand on.
+			const sheetUnreachable = notes.unreachable as ReadonlyArray<Record<string, unknown>>;
+			assert.equal(sheetUnreachable.length, 1);
+			assert.equal(sheetUnreachable[0]!.url, PUB_DOWN_URL);
+			assert.equal(
+				sheetUnreachable[0]!.reason,
+				'getaddrinfo ENOTFOUND down.statutory.example.org.'
+			);
+			assert.equal(sheetUnreachable[0]!.retrieved_at, pubUnreachable[0]!.retrieved_at);
+
+			// The draft carries the changed band under the cloned scheme, and the unchanged one as sealed.
+			const draftBands = (await session.query(
+				`select c.code, r.award from statutory_contributions c join contribution_rates r on r.statutory_contribution_id = c.id where c.settings_id = $1 order by c.code`,
+				[draft.id]
+			)) as Row[];
+			assert.deepEqual(
+				draftBands.map((row) => [row.code, (row.award as Record<string, unknown>).employee]),
+				[
+					['PUB-EPF', 12],
+					['PUB-EPF-NC', 5]
+				]
+			);
+			const draftChildren = (await session.query(
+				`select (select count(*) from statutory_contributions where settings_id = $1)::int as schemes, (select count(*) from leave_types where settings_id = $1)::int as leave_types, (select count(*) from pay_components where settings_id = $1)::int as pay_components`,
+				[draft.id]
+			)) as Row[];
+			const sourceChildren = (await session.query(
+				`select (select count(*) from statutory_contributions where settings_id = $1)::int as schemes, (select count(*) from leave_types where settings_id = $1)::int as leave_types, (select count(*) from pay_components where settings_id = $1)::int as pay_components`,
+				[JURISDICTION_ID]
+			)) as Row[];
+			assert.deepEqual(draftChildren, sourceChildren, 'every child row was cloned');
+
+			// Nothing sealed changed: same row versions, same bands.
+			const sealedAfter = await session.query(
+				`select s.id, s.row_version, r.award from jurisdiction_settings s join statutory_contributions c on c.settings_id = s.id join contribution_rates r on r.statutory_contribution_id = c.id where s.sealed_at is not null order by r.id`
+			);
+			assert.deepEqual(sealedAfter, sealedBefore);
+			const [sealedEpfBand] = (await session.query(
+				`select award from contribution_rates where statutory_contribution_id = $1`,
+				[STATUTORY_PUB_EPF_ID]
+			)) as Row[];
+			assert.deepEqual(sealedEpfBand?.award, sealedBand.award);
+
+			// Run 2: the open proposal holds PUB; PUB2 is researched again and still unchanged.
+			const second = await start();
+			assert.ok(second.status < 300, JSON.stringify(second.value));
+			const secondRun = await runOf(asRecord(second.value, 'start').taskId);
+			assert.equal(secondRun.status, 'done', JSON.stringify(secondRun));
+			const secondLineages = asRecord(secondRun.result, 'second result').lineages as ReadonlyArray<
+				Record<string, unknown>
+			>;
+			assert.deepEqual(
+				secondLineages.map((row) => [row.code, row.status, row.draft_id]),
+				[
+					['PUB', 'proposal_open', draft.id],
+					['PUB2', 'unchanged', null]
+				]
+			);
+			assert.equal((await drafts()).length, 1, 'no second draft while the first is open');
+
+			// Run 3: PUB2's research fails; the run reports it by name and the others proceed.
+			failPub2 = true;
+			const third = await start();
+			assert.ok(third.status >= 400, JSON.stringify(third.value));
+			assert.match(JSON.stringify(third.value), /PUB2: /, 'the failure names the lineage');
+			const failed = (await session.query(
+				`select status, error from automation_run where name = 'statutory_drift' and status = 'failed'`
+			)) as Row[];
+			assert.equal(failed.length, 1, 'the failed run is durable');
+			assert.match(String(failed[0]!.error), /PUB2: /);
+			assert.equal((await drafts()).length, 1);
+
+			// Run 4: none of PUB2's sources answers. No draft, and the result says which lineage and why.
+			failPub2 = false;
+			unresolvable.add(PUB2_URL);
+			const fourth = await start();
+			assert.ok(fourth.status < 300, JSON.stringify(fourth.value));
+			const fourthRun = await runOf(asRecord(fourth.value, 'start').taskId);
+			assert.equal(fourthRun.status, 'done', JSON.stringify(fourthRun));
+			const fourthResult = asRecord(fourthRun.result, 'fourth result');
+			assert.deepEqual(fourthResult.sources_unreachable, ['PUB2']);
+			const fourthLineages = fourthResult.lineages as ReadonlyArray<Record<string, unknown>>;
+			assert.deepEqual(
+				fourthLineages.map((row) => [row.code, row.status, row.draft_id]),
+				[
+					['PUB', 'proposal_open', draft.id],
+					['PUB2', 'sources_unreachable', null]
+				]
+			);
+			assert.deepEqual(fourthLineages[1]!.sources, {
+				named: 1,
+				read: 0,
+				unreachable: [
+					{
+						url: PUB2_URL,
+						reason: 'getaddrinfo ENOTFOUND statutory.example.org.',
+						retrieved_at: asRecord(
+							(fourthLineages[1]!.sources as Record<string, unknown[]>).unreachable[0],
+							'PUB2 source'
+						).retrieved_at
+					}
+				]
+			});
 			assert.match(
-				JSON.stringify(failed.value),
-				/MY: /,
-				'the failure names the jurisdiction whose research failed'
+				String((fourthLineages[1]!.notes as string[])[0]),
+				/^No official page of PUB2 could be read; nothing was researched\. 0 of 1 sources read; unreachable: /
 			);
-			const failedRuns = await session.query(
-				`select status, error from automation_run where name = 'statutory_profile_drift' and status = 'failed'`
-			);
-			assert.ok(failedRuns.length >= 1, 'the failed run is durable');
-			assert.match(String(asRecord(failedRuns[0], 'failed run').error), /MY: /);
-			failMy = false;
-			const managerHeaders = {
-				...bearerHeaders(session.credential),
-				'x-colony-impersonated-team': 'HR Manager'
-			};
-			const status = await postGuestCommand(
-				session.host.baseUrl,
-				'approvals.status',
-				{ requestId: request.id },
-				managerHeaders
-			);
-			const state = asRecord(status.value, 'law approval state');
-			assert.equal(state._tag, 'Pending');
-			const decided = await postGuestCommand(
-				session.host.baseUrl,
-				'approvals.decide',
-				{ state, decision: 'approve' },
-				managerHeaders
-			);
-			assert.equal(
-				asRecord(decided.value, 'law decision')._tag,
-				'Approved',
-				JSON.stringify(decided.value)
-			);
-			const readProfiles = () =>
-				session.query(
-					`select id, code, lifecycle, effective_range, supersedes_id, approval_id, statutory_leave from jurisdictions where code = 'SG'`
-				);
-			let profiles = await readProfiles();
-			const deadline = Date.now() + 5_000;
-			while (profiles.length !== 2 && Date.now() < deadline) {
-				await delay(25);
-				profiles = await readProfiles();
-			}
-			assert.equal(profiles.length, 2, 'approval must enact the successor automatically');
-			const before = sealedProfileCovering(profiles, 'SG', '2026-12-31');
-			const after = sealedProfileCovering(profiles, 'SG', '2027-01-01');
-			assert.equal(before?.id, SG_PROFILE_ID);
-			assert.equal(after?.id, request.record_id);
-			assert.equal(after?.statutory_leave[0].ladder[0].days, 20);
-			const sourceStatus = await postGuestCommand(
-				session.host.baseUrl,
-				'approvals.status',
-				{ requestId: sourceRequests[0].id },
-				managerHeaders
-			);
-			const sourceState = asRecord(sourceStatus.value, 'source approval');
-			assert.equal(sourceState._tag, 'Pending');
-			const sourceDecided = await postGuestCommand(
-				session.host.baseUrl,
-				'approvals.decide',
-				{ state: sourceState, decision: 'approve' },
-				managerHeaders
-			);
-			assert.equal(asRecord(sourceDecided.value, 'source decision')._tag, 'Approved');
-			const readSources = () =>
-				session.query('select url, source_sha256 from statutory_research_sources');
-			let approvedSources = await readSources();
-			const sourceDeadline = Date.now() + 5_000;
-			while (approvedSources.length !== 1 && Date.now() < sourceDeadline) {
-				await delay(25);
-				approvedSources = await readSources();
-			}
-			assert.equal(approvedSources.length, 1);
-			assert.equal(approvedSources[0].url, additionalSource);
-			assert.match(String(approvedSources[0].source_sha256), /^[a-f0-9]{64}$/);
-			const afterSourceApproval = await postGuestCommand(
-				session.host.baseUrl,
-				'automations.start',
-				{ name: 'statutory_profile_drift', input: {} },
-				bearerHeaders(session.credential)
-			);
-			assert.ok(afterSourceApproval.status < 300, JSON.stringify(afterSourceApproval.value));
-			assert.equal(
-				retrievedUrls.has(additionalSource),
-				true,
-				'approved site becomes research input'
-			);
-			assert.equal(
-				(
-					await session.query(
-						`select id from approval_request where collection_name = 'statutory_research_sources'`
-					)
-				).length,
-				1,
-				'research does not repropose an approved site'
-			);
-		} catch (error) {
-			console.error('Statutory workflow failed:', error);
-			throw error;
+			assert.equal((await drafts()).length, 1, 'no draft from a lineage with no readable source');
 		} finally {
 			await session.stop();
 		}

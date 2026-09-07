@@ -3,9 +3,12 @@ import { refuse, type MutateBeforeContext } from '@norbital-ai/bolt/authoring';
 import type { LeaveEvent } from '../../datatypes/leave_event/+definition.js';
 import type { Hooks, WorkspaceRow } from './$types.js';
 import { refuseIfCaptured } from '../../lib/scheduling/lock.js';
-import { leaveAccountIdFor } from '../../lib/leave/identity.js';
+import {
+	leaveEntitlementIdFor,
+	leaveEntryIdFor,
+	requestSourceKey
+} from '../../lib/leave/identity.js';
 import { leaveYearOf } from '../../lib/leave/reconcile.js';
-import { decodeNumber } from '@norbital-ai/std/json';
 import { firstLeavePreviewRefusal, previewLeave } from '../../lib/leave/preview.js';
 
 type HookApi = MutateBeforeContext<Hooks>['api'];
@@ -14,7 +17,7 @@ function normalizedTimeOff(
 	api: HookApi,
 	employmentId: string,
 	leaveTypeId: string,
-	accountId: string,
+	entitlementId: string,
 	event: LeaveEvent,
 	certificateFile: unknown,
 	excludeId?: string
@@ -23,7 +26,7 @@ function normalizedTimeOff(
 		const preview = yield* previewLeave(api, {
 			employment_id: employmentId,
 			leave_type_id: leaveTypeId,
-			leave_account_id: accountId,
+			leave_entitlement_id: entitlementId,
 			range: event.range,
 			...(excludeId == null ? {} : { exclude_request_id: excludeId })
 		});
@@ -88,89 +91,87 @@ export default {
 								where: { id: { in: typeIds } },
 								limit: typeIds.length
 							});
-				const employmentIds = [...employments];
-				const rows =
-					employmentIds.length === 0
-						? []
-						: yield* api.db.employments.findMany({
-								where: { id: { in: employmentIds } },
-								columns: { id: true, company_id: true },
-								limit: employmentIds.length
-							});
-				const companyIds = [...new Set(rows.map((row) => row.company_id))];
-				const companies =
-					companyIds.length === 0
-						? []
-						: yield* api.db.companies.findMany({
-								where: { id: { in: companyIds } },
-								columns: { id: true, leave_year_start_month: true },
-								limit: companyIds.length
-							});
-				return {
-					typeCodes: new Map(types.map((type) => [type.id, type.code])),
-					startMonths: new Map(
-						rows.map((row) => [
-							row.id,
-							decodeNumber(
-								companies.find((company) => company.id === row.company_id)
-									?.leave_year_start_month ?? 1
-							)
-						])
-					)
-				};
+				return { typeCodes: new Map(types.map((type) => [type.id, type.code])) };
 			}),
 		perRecord: {
 			before: {
 				description:
-					'Requires an approved generated account covering the whole range, then normalizes chargeable scheduled time and checks overlap, balance, eligibility, paid-payroll locks and certificate policy.',
+					'Requires a generated entitlement covering the whole range, normalizes chargeable scheduled time, checks overlap, balance, eligibility, paid-payroll locks and certificate policy, and returns the request with the TAKEN ledger line it charges nested under it, so the line is held with the request and lands when it is approved.',
 				handler: ({ input, existing, recordId, prepared, api }) =>
 					Effect.gen(function* () {
 						if (existing != null) yield* assertUnlocked(api, existing, 'Changing a leave request');
 						const employmentId = input.employment_id ?? existing?.employment_id;
 						const leaveTypeId = input.leave_type_id ?? existing?.leave_type_id;
 						const event = input.event ?? existing?.event;
-						const derivedAccountId =
+						const derivedEntitlementId =
 							employmentId != null && leaveTypeId != null && event != null
-								? leaveAccountIdFor({
+								? leaveEntitlementIdFor({
 										employment_id: employmentId,
 										leave_code: prepared.typeCodes.get(leaveTypeId) ?? '',
-										leave_year: leaveYearOf(
-											event.range.start.date,
-											prepared.startMonths.get(employmentId) ?? 1
-										)
+										leave_year: leaveYearOf(event.range.start.date)
 									})
 								: null;
-						const accountId =
-							input.leave_account_id ?? existing?.leave_account_id ?? derivedAccountId;
+						const entitlementId =
+							input.leave_entitlement_id ?? existing?.leave_entitlement_id ?? derivedEntitlementId;
 						const certificate =
 							input.certificate_file !== undefined
 								? input.certificate_file
 								: existing?.certificate_file;
-						if (employmentId == null || leaveTypeId == null || accountId == null || event == null)
+						if (
+							employmentId == null ||
+							leaveTypeId == null ||
+							entitlementId == null ||
+							event == null
+						)
 							refuse(
-								'A leave request needs an employment, leave type, generated account and range.'
+								'A leave request needs an employment, leave type, generated entitlement and range.'
 							);
 						const normalized = yield* normalizedTimeOff(
 							api,
 							employmentId,
 							leaveTypeId,
-							accountId,
+							entitlementId,
 							event,
 							certificate,
 							recordId
 						);
-						return { ...input, leave_account_id: accountId, event: normalized };
-					})
-			},
-			after: {
-				description:
-					"An approved request charges its account: the employment's leave ledger is regenerated once the request commits.",
-				handler: ({ record, api }) =>
-					Effect.gen(function* () {
-						if (record.approval_id != null) return;
-						yield* api.automations.run('leave_ledger_refresh', {
-							employment_ids: [record.employment_id]
+						// The line the request charges, under the id the reconciler's own restatement uses,
+						// so whichever write comes first creates it and the other finds it. It is the
+						// request's (a cascade edge): held with it, landed on approval, or landed at once
+						// when the grant carries no route. A stored line is restated by id only, because
+						// the ledger is append-only and an edited request never rewrites what it posted.
+						const sourceKey = requestSourceKey(recordId);
+						const entryId = leaveEntryIdFor({
+							leave_entitlement_id: entitlementId,
+							source_key: sourceKey
 						});
+						const posted = yield* api.db.leave_entries.findFirst({
+							where: { id: { eq: entryId } },
+							columns: { id: true }
+						});
+						const start = normalized.range.start.date;
+						// A stored line is restated by id alone (the complete set), which the insert shape
+						// cannot name; the runtime reads the id as the update it is.
+						const line =
+							posted != null
+								? [{ id: entryId }]
+								: [
+										{
+											id: entryId,
+											leave_entitlement_id: entitlementId,
+											kind: 'TAKEN' as const,
+											effective_on: start,
+											days: -Math.abs(normalized.chargeable_days ?? 0),
+											reason: 'Approved leave request',
+											source_key: sourceKey
+										}
+									];
+						return {
+							...input,
+							leave_entitlement_id: entitlementId,
+							event: normalized,
+							leave_entry_request: line as never
+						};
 					})
 			}
 		}
@@ -183,7 +184,4 @@ export default {
 			}
 		}
 	}
-} satisfies Hooks<{
-	readonly typeCodes: Map<string, string>;
-	readonly startMonths: Map<string, number>;
-}>;
+} satisfies Hooks<{ readonly typeCodes: Map<string, string> }>;

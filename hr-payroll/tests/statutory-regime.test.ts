@@ -66,15 +66,12 @@ test('the PAID configuration snapshot retains the exact regime revision and auth
 			company: {
 				id: 'company-my',
 				pay_cutoff_day: 21,
-				pay_day: 28,
-				overtime_calculation_method: 'STATUTORY',
-				settlement_policy: { kind: 'MONTHLY' }
+				pay_frequency: 'MONTHLY'
 			},
 			jurisdiction: {
 				id: 'jurisdiction-my-2026',
 				proration: { by: 'CALENDAR_DAYS' },
-				ordinary_rate_basis: 'DAYS_PER_MONTH',
-				ordinary_rate_divisor: 26,
+				ordinary_rate: { per: 'DAY', divisor: 26 },
 				tax_year_start_month: 1,
 				effective_range: { start: '2026-01-01', end: null },
 				regime: value

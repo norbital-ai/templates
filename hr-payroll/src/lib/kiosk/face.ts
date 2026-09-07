@@ -3,7 +3,8 @@ import {
 	KIOSK_ANALYSE_HEIGHT,
 	KIOSK_ANALYSE_WIDTH,
 	KIOSK_MIN_FACE_PX,
-	KIOSK_MODEL_BASE
+	KIOSK_MODEL_BASE,
+	KIOSK_REQUIRED_MODELS
 } from './config.js';
 import type { KioskSample } from './sample.js';
 
@@ -58,17 +59,33 @@ const engineConfig = (backend: 'webgl' | 'wasm') => ({
  * Warms one face engine: WebGL first, WASM when the tablet has no usable GPU. Each
  * surface owns its instance — the kiosk owns one for the scan loop, the HR photo
  * dialog owns one while it is open — so unmount cleanup never resets a shared engine.
+ *
+ * `load()` is explicit: with `warmup: 'none'` Human's `warmup()` returns before loading anything,
+ * so the graphs used to arrive lazily on the first `detect`, where a missing one threw from inside
+ * Human's own promise. Loading here is what lets `missingFaceModels` answer before the loop starts.
+ * A model that fails to load does not reject `load()`; Human logs it and leaves the slot empty.
  */
 export const warmFaceEngine = async (): Promise<Human> => {
-	try {
-		const engine = new Human(engineConfig('webgl'));
+	const boot = async (backend: 'webgl' | 'wasm'): Promise<Human> => {
+		const engine = new Human(engineConfig(backend));
+		await engine.load();
 		await engine.warmup({ face: { enabled: true } });
 		return engine;
+	};
+	try {
+		return await boot('webgl');
 	} catch {
-		const fallback = new Human(engineConfig('wasm'));
-		await fallback.warmup({ face: { enabled: true } });
-		return fallback;
+		return await boot('wasm');
 	}
+};
+
+/**
+ * The enabled models the engine did not load, in `KIOSK_REQUIRED_MODELS` order. Empty means the
+ * engine may run; anything else means the kiosk says "Face engine unavailable" and never scans.
+ */
+export const missingFaceModels = (engine: Human): string[] => {
+	const loaded = new Set(engine.models.loaded());
+	return KIOSK_REQUIRED_MODELS.filter((name) => !loaded.has(name));
 };
 
 /**

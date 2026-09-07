@@ -37,8 +37,7 @@ const configuration = (overrides = {}) => ({
 		id: 'co-my',
 		name: 'Public Fixture Co',
 		pay_cutoff_day: 21,
-		pay_day: 28,
-		pay_calendar: null
+		pay_frequency: 'MONTHLY'
 	},
 	payComponents: [],
 	contributions: [],
@@ -69,46 +68,74 @@ test('an overtime rule with no band can never be entered, and still stops the ru
 	assert.equal(issues.length, 1);
 	assert.equal(issues[0].code, 'OVERTIME_RULE_UNBANDED');
 	assert.equal(blockers(issues).length, 1);
-	assert.equal(issues[0].collection, 'jurisdictions');
+	assert.equal(issues[0].collection, 'jurisdiction_settings');
 	assert.equal(issues[0].recordId, 'jur-my');
 });
 
-test('a scheme that has not said what it does with overtime cannot charge it', () => {
+test('derived overtime is charged through the OVERTIME rows, which a priced regime must carry', () => {
 	/*
-	 * The treatment grid's own rule, applied to the schedule that replaced its overtime row: an
-	 * empty position is an undecided scheme, never an exempt one. Reading the silence as EXCLUDE is
-	 * the dangerous outcome — an under-contribution nobody notices — so the run refuses instead.
+	 * The treatment grid's own rule, applied to derived overtime: what a scheme does with overtime
+	 * is the OVERTIME and OVERTIME_EXCESS rows' cell for that scheme. A catalogue without the rows
+	 * cannot say, and a row without the cell has not decided; neither silence reads as EXCLUDE.
 	 */
-	const scheme = (overrides) => ({
+	const scheme = {
 		row: { id: 'sc-epf', code: 'EPF', sequence: 100, relief_for: [], special_rules: [] },
-		rates: [],
-		overtimeTreatment: undefined,
-		overtimeExcessTreatment: undefined,
-		...overrides
+		rates: []
+	};
+	const overtimeRow = (code, treatments) => ({
+		id: `pc-${code.toLowerCase()}`,
+		code,
+		nature: 'EARNING',
+		is_statutory: true,
+		policy: { kind: 'EARNING', settlement: 'ADD' },
+		contribution_treatments: treatments,
+		sequence: 20,
+		eligibility: '',
+		definition: { source: 'DERIVED_OVERTIME', unit: 'MONEY' }
 	});
-	const stated = { authority: 'EPF Act 1991 s.2', treatment: { kind: 'EXCLUDE' } };
-
-	// A bandless scheme raises its own unrelated blocker; this test is about the overtime position.
-	const overtimeIssues = (contribution) =>
-		validateConfiguration(configuration({ contributions: [contribution] })).filter((issue) =>
-			issue.code.startsWith('OVERTIME_TREATMENT')
+	const gridOf = (rows) =>
+		new Map(
+			rows.flatMap((row) =>
+				row.contribution_treatments.EPF == null
+					? []
+					: [[`${row.id}:sc-epf`, row.contribution_treatments.EPF]]
+			)
+		);
+	// A bandless scheme raises its own unrelated blocker; this test is about the overtime rows.
+	const overtimeIssues = (payComponents) =>
+		validateConfiguration(
+			configuration({
+				contributions: [scheme],
+				overtimeRules: [DAY_WAGE_RULE],
+				payComponents,
+				treatments: gridOf(payComponents)
+			})
+		).filter(
+			(issue) => issue.code === 'OVERTIME_COMPONENT_MISSING' || issue.code === 'TREATMENT_MISSING'
 		);
 
-	const undecided = overtimeIssues(scheme({}));
-	assert.equal(undecided.length, 2);
-	assert.equal(blockers(undecided).length, 2);
-	assert.equal(undecided[0].collection, 'statutory_contributions');
-	assert.equal(undecided[0].recordId, 'sc-epf');
-	assert.match(undecided[0].message, /EPF states no overtime position/);
-	assert.match(undecided[1].message, /EPF states no excess overtime position/);
+	const missing = overtimeIssues([]);
+	assert.equal(missing.length, 2);
+	assert.equal(blockers(missing).length, 2);
+	assert.equal(missing[0].collection, 'companies');
+	assert.equal(missing[0].recordId, 'co-my');
+	assert.match(missing[0].message, /Public Fixture Co has no OVERTIME pay component/);
+	assert.match(missing[1].message, /no OVERTIME_EXCESS pay component/);
 
-	// Only the ordinary position decided: the excess one is still a missing decision on its own.
-	const half = overtimeIssues(scheme({ overtimeTreatment: stated }));
+	// Both rows present, but the excess row has not decided EPF: that cell is a missing decision.
+	const half = overtimeIssues([
+		overtimeRow('OVERTIME', { EPF: { kind: 'EXCLUDE' } }),
+		overtimeRow('OVERTIME_EXCESS', {})
+	]);
 	assert.equal(half.length, 1);
-	assert.match(half[0].message, /no excess overtime position/);
+	assert.equal(half[0].code, 'TREATMENT_MISSING');
+	assert.match(half[0].message, /No EPF treatment exists for OVERTIME_EXCESS/);
 
 	assert.deepEqual(
-		overtimeIssues(scheme({ overtimeTreatment: stated, overtimeExcessTreatment: stated })),
+		overtimeIssues([
+			overtimeRow('OVERTIME', { EPF: { kind: 'EXCLUDE' } }),
+			overtimeRow('OVERTIME_EXCESS', { EPF: { kind: 'EXCLUDE' } })
+		]),
 		[]
 	);
 });
@@ -280,10 +307,10 @@ test('a cadence the company has written no calendar for stops the run and names 
 /**
  * The defect this whole check used to be: twelve of twenty-three employments at the Philippine
  * entity are semi-monthly because the law requires payment at least twice a month, and the run
- * refused them for being data the model could not hold. A company that states the cadence's
- * instalments raises nothing — the fault was never in the data.
+ * refused them for being data the model could not hold. A company that pays semi-monthly raises
+ * nothing — the fault was never in the data.
  */
-test('a semi-monthly employment is no fault once the company states that calendar', () => {
+test('a semi-monthly employment is no fault once the company pays semi-monthly', () => {
 	assert.deepEqual(
 		validatePayCalendar({
 			configuration: configuration({
@@ -291,16 +318,7 @@ test('a semi-monthly employment is no fault once the company states that calenda
 					id: 'co-ph',
 					name: 'Public Fixture PH',
 					pay_cutoff_day: 21,
-					pay_day: 30,
-					pay_calendar: [
-						{
-							pay_frequency: 'SEMI_MONTHLY',
-							instalments: [
-								{ start_day: 1, end_day: 15, pay_day: 15 },
-								{ start_day: 16, end_day: 31, pay_day: 30 }
-							]
-						}
-					]
+					pay_frequency: 'SEMI_MONTHLY'
 				}
 			}),
 			bundles: [
@@ -319,27 +337,18 @@ test('a semi-monthly employment is no fault once the company states that calenda
 });
 
 /**
- * A calendar keyed by day of month cannot describe a weekly cycle, so it is not expressible and the
- * refusal stands. This is the check kept from the old one: a company that genuinely cannot pay
- * someone on their stated frequency still stops the run.
+ * A company pays monthly or semi-monthly and nothing else, so a weekly cycle is not expressible
+ * and the refusal stands: a company that genuinely cannot pay someone on their stated frequency
+ * still stops the run.
  */
-test('a cadence no calendar of instalments could describe is still refused', () => {
+test('a cadence the company cannot pay on is still refused', () => {
 	const issues = validatePayCalendar({
 		configuration: configuration({
 			company: {
 				id: 'co-ph',
 				name: 'Public Fixture PH',
 				pay_cutoff_day: 21,
-				pay_day: 30,
-				pay_calendar: [
-					{
-						pay_frequency: 'SEMI_MONTHLY',
-						instalments: [
-							{ start_day: 1, end_day: 15, pay_day: 15 },
-							{ start_day: 16, end_day: 31, pay_day: 30 }
-						]
-					}
-				]
+				pay_frequency: 'SEMI_MONTHLY'
 			}
 		}),
 		bundles: [

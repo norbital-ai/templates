@@ -54,15 +54,15 @@ Five collections carry the payroll core:
 5. **`payslip_adjustments`** — one settled thing per captured input, frozen so later catalogue or
    law changes cannot rewrite history.
 
-Around that core: `companies` and `jurisdictions` scope the legal entity; `employments`,
-`employment_terms` and `employment_statutory_facts` describe a person's working facts;
-`shift_definitions`, `rosters`, `work_days`, `company_holidays`, `leave_types` and
-`leave_requests` supply the schedule and leave facts; a sealed `jurisdictions` profile version
-atomically owns overtime coverage, pricing, limits and the statutory leave floors, and scopes the
-leave and pay catalogues; `statutory_contributions` and `contribution_rates` remain normalized
-because contribution programmes and their bands have independent identities, scoped to the profile
-and sealed with it; and `loans` with their `loan_repayments` carry staff loans and
-overpayment recoveries — the agreement, and the amounts due under it.
+Around that core: `companies` scope the legal entity and bind by `settings_code` to a
+`jurisdiction_settings` lineage; `employments`, `employment_terms` and
+`employment_statutory_facts` describe a person's working facts; `shift_definitions`, `rosters`,
+`work_days` and `leave_requests` supply the schedule and leave facts; a sealed
+`jurisdiction_settings` version is the one shareable root that owns pay derivation, overtime
+coverage, pricing and limits together with its `statutory_contributions` and their
+`contribution_rates`, its `pay_components`, its `leave_types` and its `company_holidays`, each
+flagged `is_statutory` where the law names it; and `loans` with their `loan_repayments` carry
+staff loans and overpayment recoveries — the agreement, and the amounts due under it.
 
 Two invariants shape everything:
 
@@ -84,19 +84,19 @@ with several chooses which one the page scopes to.
 **`hr_controller`** (group) — the HR operating surface. Legal-entity choice lives on **Entities**
 and is inherited by every sibling; boards state the active entity, they do not pick it again.
 
-| App                   | What a user does in it                                                                                                                                                                                                                                                                                               |
-| --------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Entities**          | Chooses the legal entity every other HR Controller app is scoped to                                                                                                                                                                                                                                                  |
-| **People**            | The workforce: employee profiles, employments, effective-dated terms, statutory facts, and a workforce-shape chart                                                                                                                                                                                                   |
-| **Scheduling**        | Plans the month on a roster board — one row per person, one glyph per day — publishes it against statutory rules, and manages shifts, work patterns and holidays. Attendance import sits on the board's action menu beside the roster import.                                                                        |
-| **Leave**             | Review time-off applications; maintain effective-dated company leave plans; inspect sealed yearly accounts and their signed ledger entries; submit exceptional balance corrections for one manager review                                                                                                            |
-| **Loans**             | Review loan agreements and their derived outstanding balance, with recovery tracked per repayment                                                                                                                                                                                                                    |
-| **Pay components**    | The pay catalogue and the entry stream: claims, allowances, bonuses, arrears and corrections, with their contribution treatment                                                                                                                                                                                      |
-| **Payroll**           | Runs the payroll cycle: a pay-date board (late/current/upcoming), creating and recalculating runs, locking them paid, and exporting bank files, payslip PDFs and the report workbook                                                                                                                                 |
-| **Statutory profile** | The regime every payroll is calculated against — versioned jurisdiction profiles (DRAFT → SEALED → VOIDED) with atomic overtime, break policy and statutory leave floors, their scoped contribution schemes and rates, and the companies bound to each (file `+settings.svelte`: a file name owns an app's identity) |
-| **Kiosk**             | Face-recognition time clock for a shop-floor tablet: clock in/out by face (match, anti-spoof filter, blink-to-confirm), manual entry, and face enrollment. Renders chromeless (`bolt:kiosk`); the device account sees this page and nothing else                                                                     |
+| App                | What a user does in it                                                                                                                                                                                                                                                                                                                     |
+| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Entities**       | Chooses the legal entity every other HR Controller app is scoped to                                                                                                                                                                                                                                                                        |
+| **People**         | The workforce: employee profiles, employments, effective-dated terms, statutory facts, and a workforce-shape chart                                                                                                                                                                                                                         |
+| **Scheduling**     | Plans the month on a roster board — one row per person, one glyph per day — publishes it against statutory rules, and manages shifts, work patterns and holidays. Attendance import sits on the board's action menu beside the roster import.                                                                                              |
+| **Leave**          | Review time-off applications, each carrying its balance and the payroll capture that locks it; submit exceptional balance corrections for one manager review. The leave catalogue is configured in Settings                                                                                                                                |
+| **Loans**          | Review loan agreements and their derived outstanding balance, with recovery tracked per repayment                                                                                                                                                                                                                                          |
+| **Pay components** | The entry stream of one entity: claims, allowances, bonuses, arrears and corrections, with the payroll capture that settled each. The catalogue is configured in Settings                                                                                                                                                                  |
+| **Payroll**        | Runs the payroll cycle: a pay-date board (late/current/upcoming), creating and recalculating runs, locking them paid, and exporting bank files, payslip PDFs and the report workbook                                                                                                                                                       |
+| **Settings**       | The version timeline of the jurisdiction settings lineage one entity operates under: the version in force with tabs Payroll, Contributions, Leave types, Pay components and Holidays; Seal, Void and New version actions; a sealed version and everything under it read-only (file `+settings.svelte`: a file name owns an app's identity) |
+| **Kiosk**          | Face-recognition time clock for a shop-floor tablet: clock in/out by face (match, anti-spoof filter, blink-to-confirm), manual entry, and face enrollment. Renders chromeless (`bolt:kiosk`); the device account sees this page and nothing else                                                                                           |
 
-### Policies (9)
+### Policies (10)
 
 - **`employee`** — self-service: their own profile, employments and the child collections, plus
   create-with-approval for time entries, claims and leave.
@@ -108,11 +108,10 @@ and is inherited by every sibling; boards state the active entity, they do not p
   payroll runs.
 - **`senior_management`** — the full people-operations view, plus creating, running and deleting
   payroll runs.
-- **`statutory_drift_automation`** — the automation's authority: reads sealed statutory profiles
-  and employment facts, appends deterministic successor facts, and records durable drift research
-  evidence.
-- **`leave_reconciliation_automation`** — system-only authority that creates sealed yearly leave
-  accounts and appends idempotent entitlement, request, carry and expiry movements.
+- **`leave_reconciliation_automation`**: system-only authority that touches active employments
+  so each one regenerates its leave entitlements and ledger inline.
+- **`statutory_drift_automation`**: system-only authority that reads settings versions and their
+  statutory rows and creates one draft version at a time; it never seals, edits or deletes.
 - **`kiosk`** — the attendance-kiosk device account: the kiosk app only, interval-only time
   entries, face-field-only writes on people, and enrollments that always land `PENDING` for HR
   review. Held by the `Attendance Kiosk` team (one user row per device).
@@ -122,10 +121,9 @@ does not mean revisiting every role declaration.
 
 ### Live analytics
 
-The controller's leave, pay-component and attendance charts read the relevant collections through
-`client.db`. Those queries stay current through the workspace sync engine; the components derive
-their bounded five-year heatmaps and eight-week attendance trend locally without a polling or
-manually refreshed query function.
+The controller's attendance chart reads its collection through `client.db`. The query stays
+current through the workspace sync engine; the component derives its eight-week attendance trend
+locally without a polling or manually refreshed query function.
 
 ### Agent context
 
@@ -135,25 +133,22 @@ the signed-in person's policies remain the complete authority for a web-agent tu
 
 ### Automations
 
-**`statutory_profile_drift`** — weekly automation (`0 3 * * 1`). It compares every governing
-sealed profile with company and employment facts, then starts a separate
-**`statutory_profile_research`** run per profile. Each run retains its own identity, evidence,
-status and approval proposals; one failed profile does not prevent the others from being researched.
-Replaying a completed occurrence reuses its receipt.
+Two, both under their own policy, both startable by hand from Automations.
 
-Research reads approved HTTPS sources through the host connector. A new site must be linked and
-quoted in retrieved evidence; it is proposed in `statutory_research_sources` and is not fetched until
-HR Manager approval. Approved origins are scoped to their jurisdiction. Revoking a source stops its
-future use while preserving the approval and evidence history. Settings exposes sources and run receipts.
-
-Evidence-backed law changes propose an effective-dated sealed successor for separate HR approval.
-Approval preserves the predecessor and activates the successor at its effective date. Deterministic
-employment-fact copies likewise require HR approval. Missing evidence and oversized documents fail
-explicitly; research never substitutes guessed or silently truncated facts.
-
-The leave automations reconcile yearly accounts after employment, plan or statutory-profile
-changes, post approved/withdrawn requests and reviewed qualifying-event openings to the ledger, and
-run a daily repair sweep. HR does not run an annual entitlement batch.
+- **`statutory_drift`** (monthly): for each lineage's version in force, reads the official pages
+  the version names in `research_urls` through the runtime's page reader, asks the model for the
+  official position of every statutory row (scheme band tables, statutory leave entitlements,
+  statutory component treatments), diffs it against the sealed rows, and when anything differs
+  clones the version into a draft carrying the changed rows and a review sheet
+  (`research_notes`). Settings shows the draft as "Proposed by statutory drift"; HR reviews it
+  and the HR Manager seals it. It never seals, never touches a sealed version, and offers one
+  draft per lineage at a time. A version without research URLs is never researched. Every
+  official page it could not read is recorded, with the reason, on the run result and on the
+  draft's sheet; a lineage none of whose pages answered gets no draft and is named in the result.
+- **`leave_ledger_refresh`** (first of each month): the leave reconciler. It walks every active
+  employment with today's date so the months that passed post, the next year opens, years close
+  and exits settle. A catalogue edit starts it for the lineage's companies and the seed starts it
+  once. HR does not run an annual entitlement batch.
 
 ### Integrations, seed
 
@@ -177,12 +172,12 @@ Everything the compiler knows about the workspace lives in `src/`:
 ```text
 src/
 ├── apps/                     # +<app>.svelte per app; hr_controller/+group.ts owns the group
-├── collections/              # 29 collections: +model.ts, +hooks.ts, +pipelines.ts, +representation.svelte
+├── collections/              # 27 collections: +model.ts, +hooks.ts, +pipelines.ts, +representation.svelte
 │   └── payroll_runs/lib/     # the settlement engine (phases, overtime, coverage, export)
-├── datatypes/                # 30 structured values (statutory_regime, statutory_leave_profile, component_entry_event, …)
-├── access/                   # +teams.ts, anonymous limits, and nine policies
+├── datatypes/                # 26 structured values (statutory_regime, contribution_treatments, component_entry_event, …)
+├── access/                   # +teams.ts, anonymous limits, and eight policies
 ├── i18n/                     # messages.en.json / messages.zh.json (same key set)
-├── automations/              # statutory drift plus account and ledger reconciliation
+├── automations/              # statutory drift check and the leave ledger reconciler
 ├── lib/                      # shared helpers: calendar, display formatters, policy grants, roster month
 └── +agents.md
 ```
@@ -214,8 +209,9 @@ src/
 - [`docs/data.md`](docs/data.md) — the raw-source → cleaned-source → seed contract, the checks that
   prevent derived output from leaking back into inputs, and how an independent source workbook is
   reconciled against a generated one.
-- [`docs/leave.md`](docs/leave.md) — the current application, one-step approval, sealed yearly
-  account, append-only ledger, carry-forward, policy-change and payroll behavior.
+- [`docs/leave.md`](docs/leave.md): the leave catalogue and its eligibility expressions,
+  generated entitlements, the append-only ledger and how a fact carries it, the reconciler's
+  monthly walk, year close, carry, exit and payroll behaviour.
 
 ## Verification
 

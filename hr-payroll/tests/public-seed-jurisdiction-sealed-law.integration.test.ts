@@ -18,16 +18,16 @@ const JURISDICTION_COLUMNS = {
 	row_version: true,
 	code: true,
 	name: true,
-	lifecycle: true,
+	sealed_at: true,
 	tax_year_start_month: true
 };
 
 /**
- * A2 command half: a sealed public jurisdiction refuses a law-member edit.
+ * A2 command half: a sealed public settings version refuses a column edit.
  * Form chrome (sheet stays open) remains headed.
  */
 test(
-	'public seed refuses a law edit on the sealed PUB jurisdiction',
+	'public seed refuses a column edit on the sealed PUB settings version',
 	{ timeout: LOCAL_DATABASE_TEST_TIMEOUT_MILLIS },
 	async () => {
 		const session = await startPublicSeedHost('hr-payroll-a2-sealed-law');
@@ -37,7 +37,7 @@ test(
 				session.host.baseUrl,
 				'collections.findMany',
 				{
-					collection: 'jurisdictions',
+					collection: 'jurisdiction_settings',
 					where: { id: { eq: JURISDICTION_ID } },
 					columns: JURISDICTION_COLUMNS,
 					limit: 1
@@ -46,13 +46,13 @@ test(
 			);
 			assert.ok(
 				listed.status >= 200 && listed.status < 300,
-				`jurisdictions findMany ${listed.status}: ${JSON.stringify(listed.value)}`
+				`jurisdiction_settings findMany ${listed.status}: ${JSON.stringify(listed.value)}`
 			);
-			const [row] = rowsOf(listed.value, 'PUB jurisdiction');
+			const [row] = rowsOf(listed.value, 'PUB settings version');
 			assert.ok(row, 'public seed must include PUB');
 			assert.equal(row.id, JURISDICTION_ID);
 			assert.equal(row.code, 'PUB');
-			assert.equal(row.lifecycle, 'SEALED');
+			assert.ok(typeof row.sealed_at === 'string');
 			assert.equal(typeof row.row_version, 'number', JSON.stringify(row));
 
 			const refused = await postGuestCommand(
@@ -62,7 +62,7 @@ test(
 					session.schemaFingerprint,
 					{
 						action: 'mutate',
-						collection: 'jurisdictions',
+						collection: 'jurisdiction_settings',
 						rows: [
 							{
 								action: 'update',
@@ -75,7 +75,7 @@ test(
 					},
 					[
 						{
-							row: { collection: 'jurisdictions', recordId: JURISDICTION_ID },
+							row: { collection: 'jurisdiction_settings', recordId: JURISDICTION_ID },
 							rowVersion: row.row_version
 						}
 					]
@@ -91,14 +91,14 @@ test(
 			assert.equal(body.code, 'refused');
 			assert.match(
 				String(body.message ?? ''),
-				/SEALED.*tax_year_start_month|tax_year_start_month.*SEALED|cannot change/i
+				/sealed.*tax_year_start_month|tax_year_start_month.*sealed|cannot change/i
 			);
 
 			const reloaded = await postGuestCommand(
 				session.host.baseUrl,
 				'collections.findMany',
 				{
-					collection: 'jurisdictions',
+					collection: 'jurisdiction_settings',
 					where: { id: { eq: JURISDICTION_ID } },
 					columns: JURISDICTION_COLUMNS,
 					limit: 1
@@ -109,7 +109,7 @@ test(
 			assert.ok(after);
 			assert.equal(after.tax_year_start_month, row.tax_year_start_month);
 			assert.equal(after.code, 'PUB');
-			assert.equal(after.lifecycle, 'SEALED');
+			assert.ok(typeof after.sealed_at === 'string');
 		} finally {
 			await session.stop();
 		}

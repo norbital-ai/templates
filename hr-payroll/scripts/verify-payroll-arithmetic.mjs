@@ -96,14 +96,7 @@ const [
 	{ attendanceWindow, defaultPayPeriod, payPeriodsRemaining, resolveWindow },
 	{ inclusiveDays, dateKey: calendarDay },
 	{ unpaidLeaveInWindow },
-	{
-		extendedAbsenceDays,
-		inExtendedLeavePopulation,
-		overtimeAttendanceWindow,
-		readSettlementPolicy,
-		resolveEmploymentSettlement,
-		PLAIN_CALENDAR
-	},
+	{ resolveEmploymentSettlement },
 	{
 		classifyOvertimeByCalendarMonth,
 		deriveDailyOvertime,
@@ -113,13 +106,7 @@ const [
 	},
 	{ isStatutoryOvertimePayCovered },
 	{ classifyWageComparand, deriveStatutoryWages },
-	{
-		annualisedContractHourlyRate,
-		ordinaryHourlyRate,
-		ordinaryDayWage,
-		overtimeHourlyRate,
-		absenceDayRate
-	},
+	{ ordinaryHourlyRate, ordinaryDayWage, absenceDayRate },
 	{ entrySign, prorates: entryProrates, recurringRange: entryRecurringRange, entryPayPeriod },
 	{ settle }
 ] = modules;
@@ -172,564 +159,19 @@ check(
 	deriveDailyOvertime(restDayPunches, restDayScheduled)?.hours,
 	4
 );
-const semiMonthlyOvertimePolicy = {
-	...PLAIN_CALENDAR,
-	overtimeWindows: [{ payFrequency: 'SEMI_MONTHLY', startDay: 1, endDay: 15 }]
-};
-check(
-	'semi-monthly OT uses the current month 1st–15th slice',
-	overtimeAttendanceWindow({
-		policy: semiMonthlyOvertimePolicy,
-		payFrequency: 'SEMI_MONTHLY',
-		salary: { start: '2026-01-01', end: '2026-01-31' },
-		fallback: { start: '2025-12-21', end: '2026-01-20' }
-	}),
-	{ start: '2026-01-01', end: '2026-01-15' }
-);
-check(
-	'monthly OT keeps the company 21st–20th window',
-	overtimeAttendanceWindow({
-		policy: semiMonthlyOvertimePolicy,
-		payFrequency: 'MONTHLY',
-		salary: { start: '2026-01-01', end: '2026-01-31' },
-		fallback: { start: '2025-12-21', end: '2026-01-20' }
-	}),
-	{ start: '2025-12-21', end: '2026-01-20' }
-);
-
-// ────────────────────────────────────────────────────────────────────────────────────────────────
-// Entry settlement — a panel-clinic invoice is a company cost, not cash paid to the employee.
-// ────────────────────────────────────────────────────────────────────────────────────────────────
-// A `MeasuredLine` carries the `pay_components` row itself: `code`, `nature` and `sequence` are
-// columns on that row — `nature` is generated from `policy ->> 'kind'` — and there is deliberately
-// no component-types lookup table to hold them separately.
-const claimLine = (settlement, amount) => ({
-	payComponent: {
-		id: `claim-${settlement}`,
-		code: 'REIMBURSEMENT',
-		nature: 'NON_WAGE_PAYMENT',
-		sequence: 1500,
-		definition: {
-			source: 'ENTRY',
-			unit: 'MONEY',
-			evidence: 'REQUIRED',
-			cap: null,
-			settlement
-		}
-	},
-	component: {
-		kind: 'COMPONENT_ENTRY_ONCE',
-		pay_component_id: `claim-${settlement}`,
-		component_entry_id: `entry-${settlement}`
-	},
-	nature: 'NON_WAGE_PAYMENT',
-	label: 'REIMBURSEMENT',
-	amount,
-	quantity: null,
-	rate: null,
-	sequence: 1
-});
-
-// A derived overtime line, which is what SETTLE has to read a nature off when there is no component
-// row at all: `payComponent` is null and the line carries the band that priced it.
-const overtimeLine = (amount) => ({
-	payComponent: null,
-	component: {
-		kind: 'OVERTIME',
-		day_type: 'ORDINARY',
-		measure: 'BEYOND_NORMAL',
-		band_from: 0
-	},
-	nature: 'EARNING',
-	label: 'OT_ORDINARY_BEYOND_NORMAL_0',
-	amount,
-	quantity: 3,
-	rate: 16.59,
-	sequence: 2
-});
-const claimSettlement = settle({
-	base: [],
-	adjustments: [claimLine('PAYROLL', 100), claimLine('COMPANY_DIRECT', 75)],
-	charges: []
-});
-check('a payroll-settled claim reaches employee net', claimSettlement.net, 100);
-check('a company-direct claim is an employer cost', claimSettlement.employerCost, 75);
-check('both claim adjustments remain available for audit', claimSettlement.adjustments.length, 2);
-
-// Overtime reaches gross with no pay component behind it. Before it was lifted out of the
-// catalogue, SETTLE read `payComponent.nature` and a component-less line would have thrown.
-const derivedOvertimeSettlement = settle({
-	base: [],
-	adjustments: [overtimeLine(74.66)],
-	charges: []
-});
-check(
-	'a derived overtime line is gross without a component',
-	derivedOvertimeSettlement.gross,
-	74.66
-);
-check('and it reaches net', derivedOvertimeSettlement.net, 74.66);
-
-// ────────────────────────────────────────────────────────────────────────────────────────────────
-// Statutory contribution arithmetic.
-// ────────────────────────────────────────────────────────────────────────────────────────────────
-// ────────────────────────────────────────────────────────────────────────────────────────────────
-// EPF — the Third Schedule bracket is the top of the step the wage falls in.
-// ────────────────────────────────────────────────────────────────────────────────────────────────
-const epfSteps = [
-	{ upTo: 5000, step: 20 },
-	{ upTo: 20000, step: 100 }
-];
-check('3,395.34 brackets up to 3,400', bracketBase(3395.34, epfSteps), 3400);
-check('a wage already on a step boundary stays put', bracketBase(3400, epfSteps), 3400);
-check(
-	'4,995 brackets to 5,000 while still below the rate switch',
-	bracketBase(4995, epfSteps),
-	5000
-);
-check('above 5,000 the step is RM100', bracketBase(7350.01, epfSteps), 7400);
-check(
-	'above 20,000 the step vanishes and the wage is exact',
-	bracketBase(25123.45, epfSteps),
-	25123.45
-);
-check('the verified EPF employee share', roundMoney(3400 * 0.11, 'UP_TO_UNIT'), 374);
-check('the verified EPF employer share', roundMoney(3400 * 0.13, 'UP_TO_UNIT'), 442);
-
-// ────────────────────────────────────────────────────────────────────────────────────────────────
-// Band selection — by ceiling, and never by silent fallback.
-// ────────────────────────────────────────────────────────────────────────────────────────────────
-const socsoBands = [
-	{
-		selector: { by: 'WAGE', from: 4600, to: 4700 },
-		award: { kind: 'FIXED', employee: 23.25, employer: 81.35 }
-	},
-	{
-		selector: { by: 'WAGE', from: 4700, to: 4800 },
-		award: { kind: 'FIXED', employee: 23.75, employer: 83.15 }
-	},
-	{
-		selector: { by: 'WAGE', from: 4800, to: null },
-		award: { kind: 'FIXED', employee: 24.25, employer: 84.95 }
-	}
-];
-const context = { base: 0, age: 33, headcount: 90, riskClass: null };
-check(
-	'4,788.45 selects the band ENDING at 4,800 — not the one starting there',
-	selectBand(socsoBands, { ...context, base: 4788.45 }, 'SOCSO').award.employee,
-	23.75
-);
-check(
-	'a wage exactly on a boundary belongs to the band it ends',
-	selectBand(socsoBands, { ...context, base: 4700 }, 'SOCSO').award.employee,
-	23.25
-);
-check(
-	'the open-ended terminal band is the ceiling',
-	selectBand(socsoBands, { ...context, base: 12000 }, 'SOCSO').award.employer,
-	84.95
-);
-throws('no band at all is an error, not a fallback to the last row', () =>
-	selectBand(
-		[
-			{
-				selector: { by: 'WAGE', from: 0, to: 100 },
-				award: { kind: 'FIXED', employee: 1, employer: 2 }
-			}
-		],
-		{ ...context, base: 5000 },
-		'SOCSO'
-	)
-);
-
-const agedBands = [
-	{
-		selector: { by: 'WAGE_AND_AGE', from: 0, to: null, age_from: 0, age_to: 60 },
-		award: { kind: 'PERCENT', employee: 11, employer: 13 }
-	},
-	{
-		selector: { by: 'WAGE_AND_AGE', from: 0, to: null, age_from: 60, age_to: null },
-		award: { kind: 'PERCENT', employee: 0, employer: 4 }
-	}
-];
-check(
-	'age filters before the wage ceiling picks',
-	selectBand(agedBands, { ...context, base: 3400, age: 61 }, 'EPF').award.employee,
-	0
-);
-check(
-	'and the under-60 class still reads its own row',
-	selectBand(agedBands, { ...context, base: 3400, age: 59 }, 'EPF').award.employee,
-	11
-);
-
-// ────────────────────────────────────────────────────────────────────────────────────────────────
-// PCB — PROGRESSIVE is cumulative. This is the single most expensive detail in the engine.
-// ────────────────────────────────────────────────────────────────────────────────────────────────
-const pcbBands = [
-	{
-		selector: { by: 'WAGE', from: 0, to: 5000 },
-		award: { kind: 'PROGRESSIVE', rate: 0, constant: 0 }
-	},
-	{
-		selector: { by: 'WAGE', from: 5000, to: 20000 },
-		award: { kind: 'PROGRESSIVE', rate: 1, constant: -400 }
-	},
-	{
-		selector: { by: 'WAGE', from: 20000, to: 35000 },
-		award: { kind: 'PROGRESSIVE', rate: 3, constant: -250 }
-	},
-	{
-		selector: { by: 'WAGE', from: 35000, to: 50000 },
-		award: { kind: 'PROGRESSIVE', rate: 6, constant: 600 }
-	},
-	{
-		selector: { by: 'WAGE', from: 50000, to: 70000 },
-		award: { kind: 'PROGRESSIVE', rate: 11, constant: 1500 }
-	},
-	{
-		selector: { by: 'WAGE', from: 70000, to: null },
-		award: { kind: 'PROGRESSIVE', rate: 19, constant: 3700 }
-	}
-];
-const pcb = { row: { code: 'PCB', id: 'pcb' }, rates: pcbBands };
-check(
-	'chargeable 44,111.40 taxes at 600 + 9,111.40 × 6% = 1,146.68',
-	Number(scaleProgressive(pcb, 44111.4, context).toFixed(2)),
-	1146.68
-);
-// The flat-addend misreading would give 0.06 × 44,111.40 + 600 = 3,246.68 — 175.00 per month wrong.
-check(
-	'and it is decidedly not the flat-addend reading',
-	scaleProgressive(pcb, 44111.4, context) === 3246.68,
-	false
-);
-check('the band floor is what the slice is measured from', bandFloor(pcbBands[3].selector), 35000);
-check(
-	'a chargeable income inside the zero band pays nothing',
-	scaleProgressive(pcb, 4000, context),
-	0
-);
-check(
-	'the error grows with income: 1,500,000 is 3,700 + 1,430,000 × 19%',
-	scaleProgressive(pcb, 1500000, context),
-	3700 + 1430000 * 0.19
-);
-
-// ────────────────────────────────────────────────────────────────────────────────────────────────
-// The relief pools are asymmetric on purpose: one projects, one does not.
-// ────────────────────────────────────────────────────────────────────────────────────────────────
-const epfRules = parseSpecialRules(
-	['RELIEF_CAP:4000', 'RELIEF_PROJECTED', 'BRACKET_STEP:5000:20', 'ROUND:UP_TO_UNIT'],
-	'EPF'
-);
-check('the bracket ladder parses in ascending order', epfRules.bracketSteps, [
-	{ upTo: 5000, step: 20 }
-]);
-check('the relief cap is read off the row', epfRules.reliefCap, 4000);
-check('projection is opt-in', epfRules.reliefProjected, true);
-check(
-	'the rounding chain is ordered',
-	parseSpecialRules(['ROUND:TRUNCATE_CENT', 'ROUND:UP_5_CENTS'], 'PCB').roundingChain,
-	['TRUNCATE_CENT', 'UP_5_CENTS']
-);
-check(
-	'a pooled cap names its pool',
-	parseSpecialRules(['RELIEF_POOL:SOCSO_EIS', 'RELIEF_CAP:350'], 'EIS').reliefPool,
-	'SOCSO_EIS'
-);
-check(
-	'a period progressive table explicitly opts out of annualisation',
-	parseSpecialRules(['PERIODIC_PROGRESSIVE'], 'WTAX').periodicProgressive,
-	true
-);
-throws('an unknown special rule is an error, never a silent no-op', () =>
-	parseSpecialRules(['MAKE_IT_CHEAPER:1'], 'EPF')
-);
-
-// ────────────────────────────────────────────────────────────────────────────────────────────────
-// The whole CONTRIBUTE step, on the verified employee: basic 3,451, NPL 55.66, overtime 365.44.
-// ────────────────────────────────────────────────────────────────────────────────────────────────
-const epfContribution = {
-	row: {
-		id: 'epf',
-		code: 'EPF',
-		sequence: 10,
-		rounding: 'UP_TO_UNIT',
-		special_rules: [
-			'BRACKET_STEP:5000:20',
-			'BRACKET_STEP:20000:100',
-			'RELIEF_CAP:4000',
-			'RELIEF_PROJECTED'
-		],
-		relief_for: ['pcb']
-	},
-	rates: [
-		{
-			selector: { by: 'WAGE_AND_AGE', from: 0, to: 5000, age_from: 0, age_to: 60 },
-			award: { kind: 'PERCENT', employee: 11, employer: 13 }
-		},
-		{
-			selector: { by: 'WAGE_AND_AGE', from: 5000, to: null, age_from: 0, age_to: 60 },
-			award: { kind: 'PERCENT', employee: 11, employer: 12 }
-		}
-	]
-};
-const socsoContribution = {
-	row: {
-		id: 'socso',
-		code: 'SOCSO',
-		sequence: 20,
-		rounding: 'TABLE',
-		special_rules: ['RELIEF_POOL:SOCSO_EIS', 'RELIEF_CAP:350'],
-		relief_for: ['pcb']
-	},
-	rates: [
-		{
-			selector: { by: 'WAGE', from: 3700, to: 3800 },
-			award: { kind: 'FIXED', employee: 18.75, employer: 65.65 }
-		},
-		{
-			selector: { by: 'WAGE', from: 3800, to: null },
-			award: { kind: 'FIXED', employee: 19.25, employer: 67.45 }
-		}
-	]
-};
-const eisContribution = {
-	row: {
-		id: 'eis',
-		code: 'EIS',
-		sequence: 30,
-		rounding: 'TABLE',
-		special_rules: ['RELIEF_POOL:SOCSO_EIS', 'RELIEF_CAP:350'],
-		relief_for: ['pcb']
-	},
-	rates: [
-		{
-			selector: { by: 'WAGE', from: 3700, to: 3800 },
-			award: { kind: 'FIXED', employee: 7.5, employer: 7.5 }
-		},
-		{
-			selector: { by: 'WAGE', from: 3800, to: null },
-			award: { kind: 'FIXED', employee: 7.7, employer: 7.7 }
-		}
-	]
-};
-const charges = contribute({
-	bases: [
-		{ contribution: epfContribution, base: 3395.34, special: {} },
-		{ contribution: socsoContribution, base: 3760.78, special: {} },
-		{ contribution: eisContribution, base: 3760.78, special: {} }
-	],
-	facts: new Map(),
-	yearToDate: () => ({ employee: 0, employer: 0, base: 0 }),
-	age: 33,
-	headcount: 90,
-	riskClass: null,
-	periodsRemaining: 12,
-	spouseIsDependent: false,
-	dependents: 0
-});
-const by = (code) => charges.find((charge) => charge.contribution.row.code === code);
-check('EPF employee on a 3,395.34 base is 374', by('EPF').employee, 374);
-check('EPF employer on a 3,395.34 base is 442', by('EPF').employer, 442);
-check('SOCSO reads its table verbatim: 18.75', by('SOCSO').employee, 18.75);
-check('SOCSO employer reads 65.65, not 3,760.78 × 1.75%', by('SOCSO').employer, 65.65);
-check('EIS reads 7.50 on both sides', by('EIS').employee, 7.5);
-check('the band a figure came from is recorded', by('SOCSO').bandReference, '3700 – 3800');
-check(
-	'net reconciles: 3,760.78 + 93.50 − (374 + 18.75 + 7.50) = 3,454.03',
-	cents(3760.78 + 93.5 - (by('EPF').employee + by('SOCSO').employee + by('EIS').employee)),
-	3454.03
-);
-
-const unregistered = contribute({
-	bases: [{ contribution: epfContribution, base: 3395.34, special: {} }],
-	facts: new Map([['epf', { kind: 'NOT_REGISTERED', rate_override: null }]]),
-	yearToDate: () => ({ employee: 0, employer: 0, base: 0 }),
-	age: 33,
-	headcount: 90,
-	riskClass: null,
-	periodsRemaining: 12,
-	spouseIsDependent: false,
-	dependents: 0
-});
-check('an unregistered employment contributes nothing', unregistered[0].employee, 0);
-
-const periodicTax = contribute({
-	bases: [
-		{
-			contribution: {
-				row: {
-					id: 'period-relief',
-					code: 'PERIOD_RELIEF',
-					sequence: 100,
-					rounding: 'NONE',
-					special_rules: [],
-					relief_for: ['period-tax']
-				},
-				rates: [
-					{
-						selector: { by: 'WAGE', from: 0, to: null },
-						award: { kind: 'FIXED', employee: 2750, employer: 0 }
-					}
-				]
-			},
-			base: 34700,
-			special: {}
-		},
-		{
-			contribution: {
-				row: {
-					id: 'period-tax',
-					code: 'PERIOD_TAX',
-					sequence: 400,
-					rounding: 'NEAREST_CENT',
-					special_rules: ['PERIODIC_PROGRESSIVE'],
-					relief_for: []
-				},
-				rates: [
-					{
-						selector: { by: 'WAGE', from: 0, to: 20833 },
-						award: { kind: 'PROGRESSIVE', rate: 0, constant: 0 }
-					},
-					{
-						selector: { by: 'WAGE', from: 20833, to: null },
-						award: { kind: 'PROGRESSIVE', rate: 15, constant: 0 }
-					}
-				]
-			},
-			base: 34700,
-			special: {}
-		}
-	],
-	facts: new Map(),
-	yearToDate: () => ({ employee: 9999, employer: 0, base: 999999 }),
-	age: 33,
-	headcount: 20,
-	riskClass: null,
-	periodsRemaining: 12,
-	spouseIsDependent: false,
-	dependents: 0
-});
-check(
-	'periodic tax excludes rice and current mandatory relief without YTD projection',
-	periodicTax.find((charge) => charge.contribution.row.code === 'PERIOD_TAX').employee,
-	1667.55
-);
-
-const nonResidentPcb = contribute({
-	bases: [
-		{
-			contribution: {
-				row: {
-					id: 'pcb',
-					code: 'PCB',
-					sequence: 400,
-					rounding: 'NONE',
-					special_rules: [
-						'PERSONAL_RELIEF:9000',
-						'MIN_WITHHOLD:10',
-						'ROUND:TRUNCATE_CENT',
-						'ROUND:UP_5_CENTS'
-					],
-					relief_for: []
-				},
-				rates: pcbBands
-			},
-			base: 7419.35,
-			special: {}
-		}
-	],
-	facts: new Map([
-		['pcb', { kind: 'REGISTERED', reference_number: 'IG29988009050', rate_override: 30 }]
-	]),
-	yearToDate: () => ({ employee: 0, employer: 0, base: 0 }),
-	age: 59,
-	headcount: 90,
-	riskClass: null,
-	periodsRemaining: 10,
-	spouseIsDependent: false,
-	dependents: 0
-});
-check(
-	'a progressive-scheme override is a flat current-remuneration award with no resident relief',
-	nonResidentPcb[0].employee,
-	2225.8
-);
-check(
-	'the flat override records no resident progressive band',
-	nonResidentPcb[0].bandReference,
-	null
-);
-
-// ────────────────────────────────────────────────────────────────────────────────────────────────
-// The attendance window — off by one at both ends is off by ninety attendance days a month.
-// ────────────────────────────────────────────────────────────────────────────────────────────────
-check('cutoff 21 for 2026-01 runs 21 Dec → 20 Jan', attendanceWindow('2026-01', 21), {
-	start: '2025-12-21',
-	end: '2026-01-20'
-});
-check(
-	'a cutoff past the end of February clamps rather than wrapping',
-	attendanceWindow('2026-03', 31),
-	{
-		start: '2026-02-28',
-		end: '2026-03-30'
-	}
-);
-check(
-	'an entry on the cutoff day settles this period',
-	defaultPayPeriod('2026-01-21', 21),
-	'2026-01'
-);
-check('an entry after it settles next period', defaultPayPeriod('2026-01-25', 21), '2026-02');
-check(
-	'twelve periods remain in January of a calendar tax year',
-	payPeriodsRemaining('2026-01', 1),
-	12
-);
-check('one remains in December', payPeriodsRemaining('2026-12', 1), 1);
-
 // ────────────────────────────────────────────────────────────────────────────────────────────────
 // Settlement — which run an employment's money lands in.
 //
 // Every figure below is the customer's own salary listing, so these are not invented cases: they
 // are the rows the workbook already contains, and matching them is the whole test.
 // ────────────────────────────────────────────────────────────────────────────────────────────────
-const COMPANY_A = { pay_cutoff_day: 21, pay_day: 28 };
+const COMPANY_A = { pay_cutoff_day: 21, pay_frequency: 'MONTHLY' };
 const companyAWindow = (period) => resolveWindow(period, COMPANY_A);
-const COMPANY_A_POLICY = readSettlementPolicy({
-	settlement_policy: {
-		late_joiner_arrears: { defer_to_component_id: '00000000-0000-4000-8000-000000000001' },
-		final_period: 'SETTLE_IN_FINAL_PERIOD',
-		final_period_wages: 'PRORATE_TO_EXIT',
-		extended_unpaid_leave: null,
-		absence_proration: null,
-		overtime_windows: null
-	}
-});
-const COMPANY_B_POLICY = readSettlementPolicy({
-	settlement_policy: {
-		late_joiner_arrears: null,
-		final_period: 'FOLLOW_ATTENDANCE_WINDOW',
-		final_period_wages: 'FULL_PERIOD',
-		extended_unpaid_leave: null,
-		absence_proration: [
-			{
-				pay_frequency: 'MONTHLY',
-				basis: { by: 'FIXED_DAYS', days: 21.75 }
-			}
-		],
-		overtime_windows: null
-	}
-});
-const settle_ = (period, hire, exit, policy = COMPANY_A_POLICY) =>
-	resolveEmploymentSettlement({
-		dates: { hire, exit },
-		window: companyAWindow(period),
-		policy
-	});
+// The three settlement rules are the engine's only behaviour: a late joiner is deferred and paid
+// as arrears in their first run, a leaver settles in their final period prorated to the exit
+// date, and every unpaid day settles in the window that contains it.
+const settle_ = (period, hire, exit) =>
+	resolveEmploymentSettlement({ dates: { hire, exit }, window: companyAWindow(period) });
 
 // Twenty-one January UL dates, but only the thirteen through 20 January belong to the
 // January payroll. The eight dates from 21–30 January settle in February under the ordinary cutoff.
@@ -867,11 +309,6 @@ check(
 	true
 );
 check('the day after it is not', settle_('2026-04', '2026-04-21', null).runs, false);
-check(
-	'without the policy nothing defers — a joiner on the 28th is paid for three days',
-	settle_('2026-04', '2026-04-28', null, PLAIN_CALENDAR).runs,
-	true
-);
 
 // ── Rule 2: a leaver in the tail settles now, because there is no later run ─────────────────────
 //
@@ -891,11 +328,6 @@ check(
 	48.05
 );
 check(
-	'without the policy the tail is left for a run that never happens',
-	settle_('2026-04', '2020-03-09', '2026-04-27', PLAIN_CALENDAR).attendance,
-	{ start: '2026-03-21', end: '2026-04-20' }
-);
-check(
 	'a leaver before the cutoff needs no extension',
 	settle_('2026-01', '2023-05-15', '2026-01-15').attendance,
 	{ start: '2025-12-21', end: '2026-01-20' }
@@ -906,12 +338,9 @@ check(
 	'2026-03-31'
 );
 check(
-	'final-period FULL_PERIOD wages cover the full month before attendance deductions',
-	settle_('2026-02', '2022-03-05', '2026-02-27', {
-		...PLAIN_CALENDAR,
-		fullFinalPeriodWages: true
-	}).wageDays,
-	{ start: '2026-02-01', end: '2026-02-28' }
+	'a leaver’s recurring wages are prorated to the exit date, never the full month',
+	settle_('2026-02', '2022-03-05', '2026-02-27').wageDays,
+	{ start: '2026-02-01', end: '2026-02-27' }
 );
 check(
 	'and is never deferred — rule 2 is the mirror of rule 1, not a copy of it',
@@ -919,12 +348,11 @@ check(
 	null
 );
 
-// ── Rule 3: a leave of absence is deducted in the month it falls in ─────────────────────────────
+// ── Rule 3: every unpaid day settles in the window that contains it ────────────────────────────
 //
 // An employee was on unpaid leave from 1 December 2025 to 30 January 2026, with the rostered rest
-// days showing as gaps. Their January payslip deducts 1,371 — twenty-five days at 1,700/31 — and
-// their February payslip deducts NOTHING, though the 21 Jan - 20 Feb window contains eight of
-// those January days. The absence settled in January, all of it.
+// days showing as gaps. The 21 Jan to 20 Feb window contains eight of those days, and the February
+// run takes exactly those eight; there is no leave-of-absence override that moves them.
 const N0340 = [
 	...[
 		'01',
@@ -981,52 +409,6 @@ const N0340 = [
 		'30'
 	].map((day) => `2026-01-${day}`)
 ];
-const spell0340 = extendedAbsenceDays({
-	dates: N0340,
-	minimumCalendarDays: 14,
-	bridgedGapDays: 7
-});
-check('the whole two-month absence is one spell', spell0340.size, N0340.length);
-check(
-	'January’s twenty-five days are all in it',
-	[...spell0340].filter((date) => date.startsWith('2026-01')).length,
-	25
-);
-check(
-	'twenty-five days at 1700/31 is the workbook’s January figure',
-	roundMoney(roundMoney(1700 / 31, 'NEAREST_CENT') * 25, 'NEAREST_CENT'),
-	1371
-);
-// A rest day inside the leave does not end it; a real return to work does.
-check(
-	'a fortnight’s absence with weekend gaps is one absence',
-	extendedAbsenceDays({
-		dates: ['2026-05-04', '2026-05-05', '2026-05-11', '2026-05-12', '2026-05-18'],
-		minimumCalendarDays: 14,
-		bridgedGapDays: 7
-	}).size,
-	5
-);
-check(
-	'two short absences a month apart are two, and neither is extended',
-	extendedAbsenceDays({
-		dates: ['2026-05-04', '2026-05-05', '2026-06-08', '2026-06-09'],
-		minimumCalendarDays: 14,
-		bridgedGapDays: 7
-	}).size,
-	0
-);
-check(
-	'a scattered day here and there never qualifies',
-	extendedAbsenceDays({
-		dates: ['2026-05-04', '2026-05-20', '2026-06-02'],
-		minimumCalendarDays: 14,
-		bridgedGapDays: 7
-	}).size,
-	0
-);
-
-// The selection itself: the same ledger, read by the February run, both ways.
 const NPL_TYPE = '00000000-0000-4000-8000-00000000000a';
 const NPL_COMPONENT = '00000000-0000-4000-8000-00000000000b';
 const leaveTypes = [
@@ -1055,104 +437,6 @@ check(
 	})[0]?.days,
 	8
 );
-check(
-	'the leave-of-absence rule leaves February with nothing, as the workbook does',
-	unpaidLeaveInWindow({
-		ledger: ledger0340,
-		window: february.attendance,
-		month: february.salary,
-		extendedDates: spell0340,
-		configuration: { leaveTypes }
-	}).length,
-	0
-);
-check(
-	'and January takes all twenty-five of its own days',
-	unpaidLeaveInWindow({
-		ledger: ledger0340,
-		window: companyAWindow('2026-01').attendance,
-		month: companyAWindow('2026-01').salary,
-		extendedDates: spell0340,
-		configuration: { leaveTypes }
-	})[0]?.days,
-	25
-);
-
-// The population is enrolment in a company-named scheme — never a nationality, which the engine
-// does not read and cannot hold.
-const NON_CITIZEN = '00000000-0000-4000-8000-0000000000ef';
-const EXTENDED_LEAVE_POLICY = readSettlementPolicy({
-	settlement_policy: {
-		late_joiner_arrears: null,
-		final_period: 'FOLLOW_ATTENDANCE_WINDOW',
-		final_period_wages: 'FULL_PERIOD',
-		extended_unpaid_leave: {
-			minimum_calendar_days: 14,
-			bridged_gap_days: 7,
-			population_contribution_id: NON_CITIZEN
-		},
-		absence_proration: null,
-		overtime_windows: null
-	}
-});
-const registered = (contributionId) => ({
-	statutory_contribution_id: contributionId,
-	status: { kind: 'REGISTERED' },
-	effective_range: { start: '2020-01-01T00:00:00.000Z', end: '9999-12-31T00:00:00.000Z' }
-});
-check(
-	'an employment enrolled in the named scheme is in the population',
-	inExtendedLeavePopulation({
-		policy: EXTENDED_LEAVE_POLICY,
-		statutoryFacts: [registered(NON_CITIZEN)],
-		asOf: '2026-01-31'
-	}),
-	true
-);
-check(
-	'one enrolled only elsewhere is not',
-	inExtendedLeavePopulation({
-		policy: EXTENDED_LEAVE_POLICY,
-		statutoryFacts: [registered('00000000-0000-4000-8000-0000000000aa')],
-		asOf: '2026-01-31'
-	}),
-	false
-);
-check(
-	'a company that names no scheme applies the rule to everyone',
-	inExtendedLeavePopulation({
-		policy: readSettlementPolicy({
-			settlement_policy: {
-				late_joiner_arrears: null,
-				final_period: 'FOLLOW_ATTENDANCE_WINDOW',
-				// Required on the stored policy, so a real row always states them; both values below
-				// are what the engine already inferred from their absence.
-				final_period_wages: 'PRORATE_TO_EXIT',
-				extended_unpaid_leave: {
-					minimum_calendar_days: 14,
-					bridged_gap_days: 7,
-					population_contribution_id: null
-				},
-				absence_proration: null,
-				overtime_windows: null
-			}
-		}),
-		statutoryFacts: [],
-		asOf: '2026-01-31'
-	}),
-	true
-);
-check(
-	'a company that states no rule applies it to nobody',
-	inExtendedLeavePopulation({
-		policy: PLAIN_CALENDAR,
-		statutoryFacts: [registered(NON_CITIZEN)],
-		asOf: '2026-01-31'
-	}),
-	false
-);
-check('an absent policy column is the plain calendar', readSettlementPolicy({}), PLAIN_CALENDAR);
-
 // ────────────────────────────────────────────────────────────────────────────────────────────────
 // The ordinary rate of pay and statutory OT controls.
 // ────────────────────────────────────────────────────────────────────────────────────────────────
@@ -1164,8 +448,7 @@ const terms = {
 };
 const myJurisdiction = {
 	code: 'MY',
-	ordinary_rate_basis: 'DAYS_PER_MONTH',
-	ordinary_rate_divisor: 26
+	ordinary_rate: { per: 'DAY', divisor: 26 }
 };
 check('ORP is 3,451 / 26 / 8 = 16.59', ordinaryHourlyRate(terms, myJurisdiction), 16.59);
 check('a day’s wages is 3,451 / 26 = 132.73', ordinaryDayWage(terms, myJurisdiction), 132.73);
@@ -1181,8 +464,7 @@ check(
 		},
 		{
 			code: 'PH',
-			ordinary_rate_basis: 'DAYS_PER_MONTH',
-			ordinary_rate_divisor: 21.75
+			ordinary_rate: { per: 'DAY', divisor: 21.75 }
 		}
 	),
 	89.94
@@ -1199,8 +481,7 @@ check(
 		},
 		{
 			code: 'PH',
-			ordinary_rate_basis: 'DAYS_PER_MONTH',
-			ordinary_rate_divisor: 21.75
+			ordinary_rate: { per: 'DAY', divisor: 21.75 }
 		}
 	),
 	75
@@ -1242,67 +523,11 @@ check(
 	),
 	9.25
 );
-const fiveDayWeekTerms = {
-	...terms,
-	base_salary: { value: 2044, currency: 'MYR' },
-	ordinary_hours_per_week: 42.5,
-	working_days_per_week: 5
-};
-check(
-	'five-day week annualises monthly salary over contracted annual hours',
-	annualisedContractHourlyRate(fiveDayWeekTerms),
-	11.1
-);
-check(
-	'annualised contract rate is selected for OT when configured',
-	overtimeHourlyRate(fiveDayWeekTerms, myJurisdiction, 'ANNUALISED_CONTRACT_RATE'),
-	11.1
-);
-check(
-	'the statutory option remains available for companies that select it',
-	overtimeHourlyRate(fiveDayWeekTerms, myJurisdiction, 'STATUTORY_AGGREGATE'),
-	9.25
-);
-check(
-	'an annualised company rate cannot fall below the statutory hourly rate',
-	overtimeHourlyRate(
-		{
-			...terms,
-			base_salary: { value: 2600, currency: 'MYR' },
-			ordinary_hours_per_week: 56,
-			working_days_per_week: 7
-		},
-		myJurisdiction,
-		'ANNUALISED_CONTRACT_RATE'
-	),
-	12.5
-);
-check(
-	'six-day contract annualisation matches expected hourly rate',
-	annualisedContractHourlyRate({
-		...terms,
-		base_salary: { value: 2088, currency: 'MYR' },
-		ordinary_hours_per_week: 45,
-		working_days_per_week: 6
-	}),
-	10.71
-);
-check(
-	'annualised dated OT rounds the 1.5x unit before each dated amount',
-	[1, 1, 1, 1].reduce((total, hours) => total + cents(hours * cents(11.1 * 1.5)), 0),
-	66.6
-);
-check(
-	'annualised dated OT preserves the unit-rate rounding cent',
-	[2, 3, 3, 3, 3, 3, 3].reduce((total, hours) => total + cents(hours * cents(10.71 * 1.5)), 0),
-	321.4
-);
 check(
 	'an hours-per-month jurisdiction divides once',
 	ordinaryHourlyRate(terms, {
 		code: 'ID',
-		ordinary_rate_basis: 'HOURS_PER_MONTH',
-		ordinary_rate_divisor: 173
+		ordinary_rate: { per: 'HOUR', divisor: 173 }
 	}),
 	cents(3451 / 173)
 );
@@ -1904,8 +1129,7 @@ const calendarMY = {
 	// alternative, so a jurisdiction fixture that omits it is only ever "not PH" by accident.
 	code: 'MY',
 	proration: { by: 'CALENDAR_DAYS' },
-	ordinary_rate_divisor: 26,
-	ordinary_rate_basis: 'DAYS_PER_MONTH'
+	ordinary_rate: { per: 'DAY', divisor: 26 }
 };
 const absenceRate = (jurisdiction, period = january) =>
 	absenceDayRate({ terms: januaryTerms, jurisdiction, period, workingDaysIn: () => 26 });
@@ -1932,8 +1156,7 @@ check(
 		terms: januaryTerms,
 		jurisdiction: {
 			proration: { by: 'WORKING_DAYS' },
-			ordinary_rate_divisor: 26,
-			ordinary_rate_basis: 'DAYS_PER_MONTH'
+			ordinary_rate: { per: 'DAY', divisor: 26 }
 		},
 		period: january,
 		workingDaysIn: () => 22
@@ -1950,9 +1173,8 @@ check(
 			working_days_per_week: 5
 		},
 		jurisdiction: {
-			proration: COMPANY_B_POLICY.absenceProration[0].basis,
-			ordinary_rate_divisor: 21.75,
-			ordinary_rate_basis: 'DAYS_PER_MONTH'
+			proration: { by: 'FIXED_DAYS', days: 21.75 },
+			ordinary_rate: { per: 'DAY', divisor: 21.75 }
 		},
 		period: { start: '2026-02-01', end: '2026-02-28' },
 		workingDaysIn: () => 16

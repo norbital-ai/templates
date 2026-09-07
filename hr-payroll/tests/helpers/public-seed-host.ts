@@ -7,32 +7,34 @@ import {
 	startSelfHostSession,
 	type WithSelfHostInput
 } from '@norbital-ai/test-utilities';
-import { leaveAccountIdFor } from '../../src/lib/leave/entitlements.ts';
+import { leaveEntitlementIdFor } from '../../src/lib/leave/entitlements.ts';
 
 /** Kept in lockstep with `tests/fixtures/seed/` invented ids. */
 export const COMPANY_ID = '11111111-1111-4111-8111-111111111111';
 export const EMPLOYMENT_ID = '44444444-4444-4444-8444-444444444444';
 export const ANNUAL_LEAVE_TYPE_ID = 'ffffffff-ffff-4fff-8fff-fffffffffff1';
 export const HOSPITALIZATION_LEAVE_TYPE_ID = 'ffffffff-ffff-4fff-8fff-fffffffffff5';
-export const EVENT_LEAVE_TYPE_ID = 'ffffffff-ffff-4fff-8fff-fffffffffff4';
 export const ANNUAL_LEAVE_REQUEST_ID = 'ffffffff-ffff-4fff-8fff-fffffffffff2';
-/** Generated, never seeded: the fixture employment's 2026 annual account, named by the one formula. */
-export const ANNUAL_LEAVE_ACCOUNT_ID = leaveAccountIdFor({
+/** Generated, never seeded: the fixture employment's 2026 annual entitlement, named by the one formula. */
+export const ANNUAL_LEAVE_ENTITLEMENT_ID = leaveEntitlementIdFor({
 	employment_id: EMPLOYMENT_ID,
 	leave_code: 'ANNUAL',
 	leave_year: 2026
 });
-/** Generated, never seeded: the fixture employment's 2026 hospitalization account. */
-export const HOSPITALIZATION_LEAVE_ACCOUNT_ID = leaveAccountIdFor({
+/** Generated, never seeded: the fixture employment's 2026 hospitalization entitlement. */
+export const HOSPITALIZATION_LEAVE_ENTITLEMENT_ID = leaveEntitlementIdFor({
 	employment_id: EMPLOYMENT_ID,
 	leave_code: 'HOSPITALIZATION',
 	leave_year: 2026
 });
+/** The one sealed version of the public fixture's PUB settings lineage. */
 export const JURISDICTION_ID = '22222222-2222-4222-8222-222222222222';
 export const SHIFT_WORK_ID = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1';
 export const SHIFT_REST_ID = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa2';
 export const SHIFT_OFF_ID = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa3';
 export const STATUTORY_PUB_EPF_ID = 'aaaaaaaa-dddd-4eee-8fff-aaaaaaaaaaa1';
+export const STATUTORY_PUB_EPF_RATE_ID = 'aaaaaaaa-dddd-4eee-8fff-aaaaaaaaaaa2';
+export const BASIC_PAY_COMPONENT_ID = '66666666-6666-4666-8666-666666666666';
 
 export const LOCAL_DATABASE_TEST_TIMEOUT_MILLIS = 120_000;
 export const FEBRUARY_2026 = '2026-02';
@@ -82,9 +84,9 @@ export const startPublicSeedHost = async (
 		throw new Error('identity.bootstrapFounder returned an empty credential');
 	}
 	// The same contract provisioning follows: the seed writes facts, then the host starts the
-	// automations the manifest names under seed.afterSeed. The leave ledger refresh is the monthly
-	// employment touch, and each employment write generates its own entitlements inline; the seed
-	// itself generates nothing. Tests see the workspace as a tenant sees it.
+	// automations the manifest names under seed.afterSeed. The leave ledger refresh generates
+	// every entitlement from the catalogue; the seed itself generates nothing. Tests see the
+	// workspace as a tenant sees it.
 	try {
 		for (const name of afterSeedAutomations(templateManifestPath)) {
 			const startedAt = Date.now();

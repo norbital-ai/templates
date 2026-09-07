@@ -49,16 +49,9 @@ import { contribute, type StatutoryFactStatus } from './contribute.js';
 import { coversDate } from './effective.js';
 import { gatherRun, type GatheredRun } from './gather.js';
 import { dailyOvertimeHoursLimit, dailyTotalWorkLimit, measureEmployment } from './measure.js';
-import {
-	PAY_FREQUENCIES,
-	payPeriodsRemaining,
-	resolveWindow,
-	type PayFrequency,
-	type PayrollWindow
-} from './period.js';
+import { payProjection, periodGrammarFault, resolveWindow, type PayrollWindow } from './period.js';
 import { payrollRunGraph, type PendingPayslip } from './graph.js';
 import { settle } from './settle.js';
-import { readSettlementPolicy, type SettlementPolicy } from './settlement.js';
 import {
 	blockers,
 	describeIssues,
@@ -97,24 +90,6 @@ type PayrollRunGraph = {
 };
 
 /**
- * The cadence an employment is paid on, as of the day the period closes.
- *
- * A mid-month change of terms is two rows, and the one in force at the end of the period is the one
- * whose cadence the run pays on — the same rule `measure.ts` applies to every other term. Terms
- * that state no frequency resolve to monthly here so the window can still be built; `measure.ts`
- * refuses them by name a step later, which is the message worth showing.
- */
-function employmentPayFrequency(
-	terms: readonly { readonly pay_frequency: string | null; readonly effective_range: unknown }[],
-	asOf: string
-): PayFrequency {
-	const row =
-		terms.find((candidate) => coversDate(candidate.effective_range, asOf)) ?? terms.at(-1);
-	const stated = PAY_FREQUENCIES.find((candidate) => candidate === row?.pay_frequency);
-	return stated ?? 'MONTHLY';
-}
-
-/**
  * Resolve the window and the governing configuration without reading a single employee.
  *
  * Module-local: `gatherPayrollRun` below is its only caller. The hook used to import it to derive
@@ -132,6 +107,11 @@ function preparePayrollRun(options: {
 			where: { id: { eq: options.companyId }, approval_id: { isNull: true } }
 		});
 		if (!company) refuse(`Company ${options.companyId} does not exist.`);
+		// The period is written in the company's grammar: months for a monthly company, halves for
+		// a semi-monthly one. The wrong grammar is refused here, naming the company's frequency,
+		// before a window is resolved or a single row is read.
+		const fault = periodGrammarFault(options.period, company);
+		if (fault != null) refuse(fault);
 		const window = resolveWindow(options.period, company);
 		const configuration = yield* pickConfiguration({
 			api,
@@ -154,9 +134,7 @@ export type PreparedRun = {
 	readonly period: string;
 	readonly window: PayrollWindow;
 	readonly configuration: Configuration;
-	readonly policy: SettlementPolicy;
 	readonly gathered: GatheredRun;
-	readonly periodsRemaining: number;
 	readonly readLog: ReadLog;
 };
 
@@ -170,8 +148,7 @@ export function gatherPayrollRun(options: {
 		const t0 = yield* Clock.currentTimeMillis;
 		const { window, configuration } = yield* preparePayrollRun(options);
 		const pick = yield* Clock.currentTimeMillis;
-		const policy = readSettlementPolicy(configuration.company);
-		const gathered = yield* gatherRun({ api, configuration, window, policy });
+		const gathered = yield* gatherRun({ api, configuration, window });
 		const done = yield* Clock.currentTimeMillis;
 		yield* Effect.log(
 			`[payroll-phase] ${options.period} pick=${pick - t0}ms gather=${done - pick}ms ` +
@@ -181,21 +158,7 @@ export function gatherPayrollRun(options: {
 			period: options.period,
 			window,
 			configuration,
-			policy,
 			gathered,
-			/**
-			 * A count of **payslips**, not of pay events.
-			 *
-			 * One run settles the whole period — every instalment of it — in one payslip carrying a
-			 * month's wages, on every cadence. A semi-monthly employment is paid twice a month in the
-			 * real world and twenty-four times before a January tax year is out, but it receives the
-			 * same twelve payslips this figure is multiplied against, so this is the same number for
-			 * both cadences and deliberately so. `payPeriodsRemaining` states why at length.
-			 */
-			periodsRemaining: payPeriodsRemaining(
-				options.period,
-				decodeNumber(configuration.jurisdiction.tax_year_start_month)
-			),
 			readLog: api.reads
 		};
 	});
@@ -210,7 +173,7 @@ export function gatherPayrollRun(options: {
  * happened, and every one of those had to be found and deleted by hand.
  */
 export function buildPayrollRun(prepared: PreparedRun): PayrollRunGraph {
-	const { configuration, gathered, window, period, policy } = prepared;
+	const { configuration, gathered, window, period } = prepared;
 
 	// 2 — VALIDATE
 	const issues: RunIssue[] = validateConfiguration(configuration);
@@ -235,6 +198,7 @@ export function buildPayrollRun(prepared: PreparedRun): PayrollRunGraph {
 			employments: gathered.bundles.map((bundle) => ({
 				id: bundle.employment.id,
 				employee_number: bundle.employment.employee_number,
+				window: bundle.window.attendance,
 				terms: bundle.terms.map((term) => ({
 					id: term.id,
 					pay_frequency: term.pay_frequency,
@@ -254,6 +218,7 @@ export function buildPayrollRun(prepared: PreparedRun): PayrollRunGraph {
 	if (blockers(issues).length > 0) refuse(describeIssues(blockers(issues)));
 
 	const pending: PendingPayslip[] = [];
+	const taxYearStartMonth = decodeNumber(configuration.jurisdiction.tax_year_start_month);
 
 	for (const bundle of gathered.bundles) {
 		// A skipped joining period is skipped: no payslip, no lines, no statutory charge. The days it
@@ -263,22 +228,23 @@ export function buildPayrollRun(prepared: PreparedRun): PayrollRunGraph {
 
 		// 4 — MEASURE
 		//
-		// On the employment's own cadence: a semi-monthly employment's period is two instalments,
-		// 1st–15th and 16th–end, and `salary` is the envelope of them — the same calendar month a
-		// monthly employment is measured over, because this run pays both instalments together.
-		const cadence = resolveWindow(
-			period,
-			configuration.company,
-			employmentPayFrequency(bundle.terms, window.salary.end)
-		);
+		// On the employment's own cadence: one run settles the instalment its period names for each
+		// cadence, and `gather.ts` settled this employment over exactly that window: a half month
+		// for semi-monthly terms, the cutoff window for monthly ones, never the run's envelope.
+		//
+		// The projection counts **payslips**, per cadence. A semi-monthly employment now receives one
+		// payslip per half, twenty-four before a January tax year is out; a monthly employment at the
+		// same company still receives twelve. `payProjection` also carries how much of a year each
+		// payslip stands for, so twenty-four half-month payslips project the same annual income as
+		// twelve monthly ones.
+		const projection = payProjection(period, taxYearStartMonth, bundle.window);
 		const measured = measureEmployment({
 			bundle,
 			configuration,
 			period,
-			salary: cadence.salary,
-			periodsRemaining: prepared.periodsRemaining,
+			salary: bundle.window.salary,
+			periodsRemaining: projection.payslipsRemaining,
 			headcount: gathered.headcount,
-			policy,
 			consumedEntries: gathered.consumedEntries,
 			consumedRepayments: gathered.consumedRepayments
 		});
@@ -355,7 +321,7 @@ export function buildPayrollRun(prepared: PreparedRun): PayrollRunGraph {
 			age: bundle.age,
 			headcount: gathered.headcount,
 			riskClass: configuration.company.risk_class,
-			periodsRemaining: prepared.periodsRemaining,
+			projection,
 			// The relief and the married scale turn on whether the spouse has income, not on
 			// `marital_status` — see employees.spouse_status.
 			spouseIsDependent: bundle.employee.spouse_status === 'WITHOUT_INCOME',

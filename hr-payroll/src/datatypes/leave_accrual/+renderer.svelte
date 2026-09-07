@@ -39,8 +39,7 @@
 	const DEFAULT_CARRY: LeaveSettlement = {
 		settlement: 'CARRY',
 		limit_days: 0,
-		expiry_months: 0,
-		coverage: null
+		expiry_months: 0
 	};
 	const DEFAULT_COMMUTE: LeaveSettlement = { settlement: 'COMMUTE', pay_basis: 'ORDINARY_DIV26' };
 

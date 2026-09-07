@@ -1,11 +1,13 @@
 <script lang="ts">
 	/**
-	 * A company is its pay calendar plus the two facts the calendar cannot state: how settlement
-	 * deviates from it, and which statutory risk class the entity is rated in.
+	 * A company is its identity, the jurisdiction settings lineage it operates under, and three
+	 * payroll facts: the attendance cutoff, how often it pays, and the risk class its regime rates it
+	 * in. The risk class is shown only where the lineage levies a risk-keyed scheme; everywhere else
+	 * it is empty and not a question.
 	 *
-	 * The auto form painted `jurisdiction_id` as an editable uuid. It is a relationship, and it
-	 * reads as the regime's name — a company belongs to one payroll regime, and the operator picks
-	 * the regime, never its key.
+	 * `settings_code` is a lineage, not a row: `MY`, `SG`, or `SG-norbital` where this entity forked
+	 * the shared law. The picker offers every lineage the workspace holds and the version in force
+	 * is picked per date from it, so a change of law never touches the company row.
 	 */
 	import { client } from '../../lib/workspace-client.js';
 	import { useI18n } from '@norbital-ai/ui/i18n';
@@ -13,9 +15,37 @@
 	import type { RepresentationProps } from './$types.js';
 	import { CollectionForm } from '@norbital-ai/ui/collection-form';
 	import { Column, Grid, Stack } from '@norbital-ai/ui/layout';
+	import { onLineage } from '../../lib/ui/settings-scope.js';
 
 	let { record, close }: RepresentationProps = $props();
 	const { t } = useI18n<TenantI18nKeys>();
+
+	/** Whether the entity's lineage prices any scheme by risk class: only then is the field asked. */
+	const riskKeyedQuery = $derived(
+		record?.settings_code == null
+			? null
+			: client.db.statutory_contributions.findMany({
+					where: {
+						contribution_settings: { some: onLineage(record.settings_code) },
+						keyed_by: { eq: 'RISK_CLASS' }
+					},
+					columns: { id: true },
+					limit: 1
+				})
+	);
+	const riskKeyed = $derived((riskKeyedQuery?.current ?? []).length > 0);
+	/** The lineages the workspace holds, so the code is chosen rather than typed. */
+	const lineagesQuery = $derived(
+		client.db.jurisdiction_settings.findMany({
+			where: { approval_id: { isNull: true } },
+			columns: { code: true, name: true },
+			orderBy: { code: 'asc' },
+			limit: 500
+		})
+	);
+	const lineageCodes = $derived([
+		...new Set((lineagesQuery.current ?? []).map((version) => version.code))
+	]);
 </script>
 
 <CollectionForm
@@ -26,71 +56,34 @@
 	onAfterSubmit={record ? undefined : close}
 >
 	{#snippet children({ Field })}
-		<Stack gap="lg">
-			<Stack as="section" gap="sm">
+		<Stack as="section" gap="sm">
+			<Stack gap="xs">
+				<h3 class="text-sm font-semibold">{t('component.legal_entity')}</h3>
+				<p class="text-meta">{t('component.legal_entity_description')}</p>
+			</Stack>
+			<Grid gap="md" minimum="panel">
+				<Field name="name" label={t('component.legal_name')} />
+				<Field name="registration_number" label={t('component.registration_number')} />
 				<Stack gap="xs">
-					<h3 class="text-sm font-semibold">Legal entity</h3>
-					<p class="text-meta">
-						Identity, statutory regime, and the period this configuration applies.
-					</p>
-				</Stack>
-				<Grid gap="md" minimum="panel">
-					<Field name="name" label={t('component.legal_name')} />
-					<Field name="registration_number" label={t('component.registration_number')} />
 					<Field
-						name="jurisdiction_id"
-						label={t('component.payroll_regime')}
-						relationOptions={{
-							label: (jurisdiction) =>
-								[jurisdiction.code, jurisdiction.name]
-									.filter((part) => part != null && part !== '')
-									.join(' · ') || '—',
-							orderBy: { name: 'asc' },
-							limit: 500
-						}}
+						name="settings_code"
+						label={t('component.settings_lineage')}
+						placeholder={lineageCodes.join(', ')}
 					/>
-					<Column span="all">
-						<Field name="effective_range" label={t('component.effective_period')} />
-					</Column>
-				</Grid>
-			</Stack>
-
-			<Stack as="section" gap="sm" class="border-t border-border pt-5">
-				<Stack gap="xs">
-					<h3 class="text-sm font-semibold">Pay calendar</h3>
-					<p class="text-meta">Monthly cutoff and pay day, plus any semi-monthly instalments.</p>
+					<p class="text-meta">{t('component.settings_lineage_hint')}</p>
 				</Stack>
-				<Grid gap="md" minimum="panel">
-					<Field name="pay_cutoff_day" label={t('component.attendance_cutoff_day')} />
-					<Field name="pay_day" label={t('component.pay_day')} />
-					<Column span="all">
-						<Field name="pay_calendar" label={t('component.pay_calendar')} />
-					</Column>
-				</Grid>
-			</Stack>
-
-			<Stack as="section" gap="sm" class="border-t border-border pt-5">
-				<Stack gap="xs">
-					<h3 class="text-sm font-semibold">Payroll policy</h3>
-					<p class="text-meta">Company choices that sit outside the statutory regime.</p>
-				</Stack>
-				<Grid gap="md" minimum="panel">
-					<Field name="leave_year_start_month" label={t('component.leave_year_starts_in_month')} />
-					<Field name="overtime_calculation_method" label={t('component.overtime_calculation')} />
-					<Stack gap="xs">
-						<Field name="risk_class" label={t('component.statutory_risk_class')} />
-						<p class="text-meta">
-							{t('component.risk_class_hint', {
-								class_iv: 'IV',
-								class_i: 'I'
-							})}
-						</p>
-					</Stack>
-					<Column span="all">
-						<Field name="settlement_policy" label={t('component.settlement_policy')} />
-					</Column>
-				</Grid>
-			</Stack>
+				<Field name="pay_cutoff_day" label={t('component.attendance_cutoff_day')} />
+				<Field name="pay_frequency" label={t('component.pay_frequency')} />
+				<Field
+					name="risk_class"
+					label={t('component.statutory_risk_class')}
+					hidden={!riskKeyed}
+					placeholder={t('component.risk_class_hint', { class_iv: 'IV', class_i: 'I' })}
+				/>
+				<Column span="all">
+					<Field name="effective_range" label={t('component.effective_period')} />
+				</Column>
+			</Grid>
 		</Stack>
 	{/snippet}
 </CollectionForm>

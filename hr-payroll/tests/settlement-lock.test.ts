@@ -28,7 +28,6 @@ import test from 'node:test';
 
 import { measureEmployment } from '../src/collections/payroll_runs/lib/measure.ts';
 import { payrollRunGraph } from '../src/collections/payroll_runs/lib/graph.ts';
-import { PLAIN_CALENDAR } from '../src/collections/payroll_runs/lib/settlement.ts';
 import payrollRunHooks from '../src/collections/payroll_runs/+hooks.ts';
 import relationships from '../src/collections/+relationship.ts';
 import {
@@ -45,32 +44,29 @@ const JURISDICTION = {
 	code: 'MY',
 	currency: 'MYR',
 	proration: { by: 'CALENDAR_DAYS' },
-	ordinary_rate_divisor: 26,
-	ordinary_rate_basis: 'DAYS_PER_MONTH',
+	ordinary_rate: { per: 'DAY', divisor: 26 },
 	tax_year_start_month: 1,
 	effective_range: { start: '2020-01-01', end: null }
 };
 
 const COMPANY = {
 	id: 'co-my',
-	jurisdiction_id: 'jur-my',
+	settings_code: 'MY',
 	pay_cutoff_day: 21,
-	pay_day: 28,
-	leave_year_start_month: 1,
-	overtime_calculation_method: 'STATUTORY_AGGREGATE',
 	risk_class: null,
-	settlement_policy: null,
 	effective_range: { start: '2020-01-01', end: null }
 };
 
 const BASIC = {
 	id: 'pc-basic',
-	company_id: 'co-my',
+	settings_id: 'jur-my',
 	code: 'BASIC',
 	nature: 'EARNING',
-	policy: { kind: 'EARNING', settlement: 'ADD', statutory_treatments: [] },
+	is_statutory: false,
+	policy: { kind: 'EARNING', settlement: 'ADD' },
+	contribution_treatments: {},
 	sequence: 10,
-	eligibility: [],
+	eligibility: '',
 	definition: { source: 'SCHEDULE', unit: 'MONEY', reducible: false },
 	effective_range: { start: '2020-01-01', end: null }
 };
@@ -105,7 +101,7 @@ function measure(overrides = {}) {
 				id: 'emp-1',
 				employee_id: 'ee-1',
 				employee_number: 'PUBEM0023',
-				company_id: 'co-my',
+				settings_id: 'jur-my',
 				hire_date: '2021-06-01',
 				exit_date: null,
 				effective_range: { start: '2021-06-01', end: null }
@@ -131,7 +127,7 @@ function measure(overrides = {}) {
 			loans: [],
 			loanRepayments: [],
 			ledger: [],
-			leaveAccounts: [],
+			leaveEntitlements: [],
 			leaveEntries: [],
 			workDays: [],
 			serviceMonths: 57,
@@ -163,7 +159,6 @@ function measure(overrides = {}) {
 		salary: MARCH,
 		periodsRemaining: 10,
 		headcount: 1,
-		policy: PLAIN_CALENDAR,
 		consumedEntries: new Map(),
 		consumedRepayments: new Map()
 	});

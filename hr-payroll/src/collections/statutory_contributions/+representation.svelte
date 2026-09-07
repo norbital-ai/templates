@@ -43,27 +43,17 @@
 				<Stack as="section" gap="sm">
 					<Stack gap="xs">
 						<h3 class="text-sm font-semibold">Scheme identity</h3>
-						<p class="text-meta">The authority, jurisdiction, and period this scheme belongs to.</p>
+						<p class="text-meta">
+							The authority and the jurisdiction settings version this scheme belongs to.
+						</p>
 					</Stack>
 					<Grid gap="md" minimum="panel">
 						<Field
-							name="statutory_profile_id"
-							label={t('component.statutory_profile')}
+							name="settings_id"
+							label={t('component.settings_version')}
 							relationOptions={{
-								label: (profile) =>
-									[profile.code, profile.name, profile.lifecycle]
-										.filter((part) => part != null && part !== '')
-										.join(' · ') || '—',
-								orderBy: { code: 'asc' },
-								limit: 200
-							}}
-						/>
-						<Field
-							name="jurisdiction_id"
-							label={t('component.jurisdiction')}
-							relationOptions={{
-								label: (jurisdiction) =>
-									[jurisdiction.code, jurisdiction.name]
+								label: (version) =>
+									[version.code, version.name, version.sealed_at ? 'sealed' : 'draft']
 										.filter((part) => part != null && part !== '')
 										.join(' · ') || '—',
 								orderBy: { code: 'asc' },
@@ -72,6 +62,7 @@
 						/>
 						<Field name="code" />
 						<Field name="name" />
+						<Field name="is_statutory" label={t('component.is_statutory')} />
 						<Field name="authority" />
 					</Grid>
 				</Stack>
@@ -110,60 +101,9 @@
 					/>
 					<Field name="special_rules" label={t('component.named_special_rules')} />
 				</Stack>
-
-				{#if !record}
-					<Stack as="section" gap="sm" class="border-t border-border pt-5">
-						<h3 class="text-sm font-semibold">Overtime chargeability</h3>
-						<Field name="overtime_treatments" label="Derived overtime" />
-						<Field name="overtime_excess_treatments" label="Excess overtime" />
-					</Stack>
-				{/if}
 			</Stack>
 		{/snippet}
 	</CollectionForm>
-{/snippet}
-
-{#snippet overtimeTreatments()}
-	{#if record}
-		<CollectionForm
-			{client}
-			collection="statutory_contributions"
-			defaultValues={record}
-			submitLabel={t('component.save_scheme')}
-		>
-			{#snippet children({ Field })}
-				<Field name="jurisdiction_id" hidden />
-				<Field name="statutory_profile_id" hidden />
-				<Field name="code" hidden />
-				<Field name="name" hidden />
-				<Field name="authority" hidden />
-				<Field name="payer" hidden />
-				<Field name="keyed_by" hidden />
-				<Field name="rounding" hidden />
-				<Field name="relief_for" hidden />
-				<Field name="sequence" hidden />
-				<Field name="special_rules" hidden />
-				<Stack gap="lg">
-					<Stack as="section" gap="sm">
-						<Stack gap="xs">
-							<h3 class="text-sm font-semibold">Derived overtime</h3>
-							<p class="text-meta">How this scheme charges ordinary derived overtime over time.</p>
-						</Stack>
-						<Field name="overtime_treatments" label="Overtime positions" />
-					</Stack>
-					<Stack as="section" gap="sm" class="border-t border-border pt-5">
-						<Stack gap="xs">
-							<h3 class="text-sm font-semibold">Excess overtime</h3>
-							<p class="text-meta">
-								How reclassified overtime beyond a total-hours limit is charged.
-							</p>
-						</Stack>
-						<Field name="overtime_excess_treatments" label="Excess overtime positions" />
-					</Stack>
-				</Stack>
-			{/snippet}
-		</CollectionForm>
-	{/if}
 {/snippet}
 
 {#snippet rates()}
@@ -221,12 +161,6 @@
 			contentPadding={false}
 			config={[
 				{ name: 'scheme', label: 'Scheme', icon: 'lucide:landmark', content: scheme },
-				{
-					name: 'overtime',
-					label: 'Overtime',
-					icon: 'lucide:clock-arrow-up',
-					content: overtimeTreatments
-				},
 				{ name: 'rates', label: 'Rate bands', icon: 'lucide:percent', content: rates }
 			] satisfies TabConfig[]}
 		/>

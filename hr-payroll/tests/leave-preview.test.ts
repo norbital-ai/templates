@@ -9,8 +9,8 @@ const range = {
 	start: { date: '2026-04-15', half: 'FIRST' },
 	end: { date: '2026-04-15', half: 'SECOND' }
 };
-const account = {
-	id: 'account-2026',
+const entitlement = {
+	id: 'entitlement-2026',
 	employment_id: 'emp-1',
 	leave_code: 'ANNUAL',
 	status: 'OPEN',
@@ -20,15 +20,15 @@ const account = {
 };
 const leaveType = {
 	id: 'lt-annual',
-	company_id: 'co-1',
-	leave_plan_id: 'plan-1',
+	settings_id: 'settings-1',
 	code: 'ANNUAL',
 	name: 'Annual leave',
-	statutory_kind: 'ANNUAL',
-	eligibility: [],
+	is_statutory: true,
+	authority: 'Fixture',
+	eligibility: '',
 	requires_certificate_after_days: null,
 	accrual: { kind: 'UPFRONT', settlement: { settlement: 'FORFEIT' } },
-	entitlement: { layers: [] },
+	entitlement: { layers: [{ level: 'ORGANISATION', band_from: 0, days: 5 }] },
 	payroll_effect: { kind: 'PAID' }
 };
 const patternedWeek = {
@@ -44,11 +44,11 @@ const patternedWeek = {
 	]
 };
 const facts = {
-	gender: 'FEMALE',
+	employee: { gender: 'FEMALE', date_of_birth: '1992-01-04', nationality: 'MY' },
 	employment: { id: 'emp-1', company_id: 'co-1', hire_date: '2021-06-01', exit_date: null },
 	leaveType,
-	planActive: true,
-	account,
+	entitlement,
+	children: [],
 	entries: [
 		{ kind: 'OPENING_ENTITLEMENT', days: 5, effective_on: '2026-01-01', approval_id: null }
 	],
@@ -75,26 +75,26 @@ const facts = {
 const input = {
 	employment_id: 'emp-1',
 	leave_type_id: 'lt-annual',
-	leave_account_id: account.id,
+	leave_entitlement_id: entitlement.id,
 	calendar_month: '2026-04',
 	range
 };
 
-test('an application requires one open account covering the complete range', () => {
-	const missing = evaluateLeavePreview({ ...facts, account: null, entries: [] }, input);
-	assert.ok(missing.issues.some((issue) => issue.code === 'ACCOUNT_REQUIRED'));
+test('an application requires one open entitlement covering the complete range', () => {
+	const missing = evaluateLeavePreview({ ...facts, entitlement: null, entries: [] }, input);
+	assert.ok(missing.issues.some((issue) => issue.code === 'ENTITLEMENT_REQUIRED'));
 	const closed = evaluateLeavePreview(
-		{ ...facts, account: { ...account, status: 'CLOSED' } },
+		{ ...facts, entitlement: { ...entitlement, status: 'CLOSED' } },
 		input
 	);
-	assert.ok(closed.issues.some((issue) => issue.code === 'ACCOUNT_REQUIRED'));
+	assert.ok(closed.issues.some((issue) => issue.code === 'ENTITLEMENT_REQUIRED'));
 });
 
 test('posted entries and held applications share the same availability check', () => {
 	const pending = {
 		id: 'pending-1',
 		approval_id: 'approval-1',
-		leave_account_id: account.id,
+		leave_entitlement_id: entitlement.id,
 		days: 3,
 		event: {
 			kind: 'TIME_OFF',
@@ -113,11 +113,11 @@ test('posted entries and held applications share the same availability check', (
 	assert.ok(overdrawn.issues.some((issue) => issue.code === 'OVERDRAW'));
 });
 
-test('unmetered leave keeps account, schedule, overlap and approval checks but has no balance ceiling', () => {
+test('unmetered leave keeps entitlement, schedule, overlap and approval checks but has no balance ceiling', () => {
 	const preview = evaluateLeavePreview(
 		{
 			...facts,
-			account: { ...account, accrual_kind: 'UNLIMITED' },
+			entitlement: { ...entitlement, accrual_kind: 'UNLIMITED' },
 			entries: [],
 			leaveType: { ...leaveType, accrual: { kind: 'UNLIMITED' } }
 		},
@@ -135,10 +135,7 @@ test('eligibility and certificate policy use server-measured scheduled days', ()
 	const restrictedType = {
 		...leaveType,
 		requires_certificate_after_days: 0,
-		eligibility: [
-			{ field: 'GENDER', in: ['FEMALE'] },
-			{ field: 'EMPLOYMENT_TYPE', in: ['PERMANENT'] }
-		]
+		eligibility: 'employee.gender == "FEMALE" && employment.type == "PERMANENT"'
 	};
 	const preview = evaluateLeavePreview(
 		{
@@ -150,7 +147,7 @@ test('eligibility and certificate policy use server-measured scheduled days', ()
 	assert.equal(preview.certificate_required, true);
 	assert.equal(preview.chargeable_days, 1);
 	const ineligible = evaluateLeavePreview(
-		{ ...facts, gender: 'MALE', leaveType: restrictedType },
+		{ ...facts, employee: { ...facts.employee, gender: 'MALE' }, leaveType: restrictedType },
 		input
 	);
 	assert.ok(ineligible.issues.some((issue) => issue.code === 'INELIGIBLE'));

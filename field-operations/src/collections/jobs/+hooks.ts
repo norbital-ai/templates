@@ -34,18 +34,21 @@ export default {
 			before: {
 				description:
 					'Refuses a job that names no site or a site that does not exist, and files a new job as unassigned until a contractor is dispatched.',
-				handler: ({ input, prepared }) => {
-					if (input.site_id == null || input.site_id === '') {
+				handler: ({ input, existing, prepared }) => {
+					// A create must name a site; an update is judged only when it changes the site. A
+					// status rollup from an assignment's hook carries no `site_id` and must not be refused
+					// for it (the refusal used to be hidden behind the contractor's missing grant).
+					const siteId = input.site_id === undefined ? existing?.site_id : input.site_id;
+					if (siteId == null || siteId === '') {
 						refuse('Job must reference a site.');
 					}
-					if (!prepared.siteIds.has(input.site_id)) {
+					if (input.site_id !== undefined && !prepared.siteIds.has(input.site_id)) {
 						refuse('Referenced site does not exist.');
 					}
 
-					return {
-						...input,
-						status: input.status ?? 'unassigned'
-					};
+					return existing === undefined
+						? { ...input, status: input.status ?? 'unassigned' }
+						: input;
 				}
 			}
 		}

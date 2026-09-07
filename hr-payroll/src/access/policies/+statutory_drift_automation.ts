@@ -1,61 +1,22 @@
-import { approveBy } from '@norbital-ai/bolt/authoring';
 import type { Policy } from './$types.js';
 
-/** The direct successor `mutate.new` and hook-staged predecessor close share one review route. */
-const statutoryChangeApproval = {
-	flow: () => approveBy('HR Manager'),
-	superceded_by: ['Senior Management']
-} as const;
-
 /**
- * The weekly statutory research worker's discovery authority, held by no human team.
+ * The statutory drift automation's authority, held by no human team.
  *
- * The worker can propose an evidence-backed statutory successor and deterministic employment
- * corrections. Both remain pending HR Manager approval; existing law cannot be overwritten.
+ * It reads every settings version and its rows, and creates one draft version at a time with the
+ * rows nested under it. It holds no update, no delete and no seal: a sealed version is out of its
+ * reach structurally, and the draft it proposes is HR's to edit, seal or delete.
  */
 export default {
 	description:
-		'Reads statutory and employment snapshots, appends deterministic successor facts, and proposes statutory successors and research sources from official pages, each behind HR approval.',
+		'Reads jurisdiction settings versions and their statutory rows, and proposes a draft new version carrying the rows an official page contradicts; never seals, edits or deletes anything.',
 	grants: {
-		statutory_research_sources: {
-			read: {},
-			mutate: { new: { approval: statutoryChangeApproval } }
-		},
-		jurisdictions: {
-			read: {},
-			mutate: { new: { approval: statutoryChangeApproval } }
-		},
-		statutory_contributions: {
-			read: {}
-		},
-		contribution_rates: {
-			read: {}
-		},
-		companies: {
-			read: {}
-		},
-		employments: {
-			read: {}
-		},
-		employment_statutory_facts: {
-			read: {},
-			mutate: {
-				new: {
-					fields: [
-						'employment_id',
-						'statutory_contribution_id',
-						'status',
-						'effective_range',
-						'supersedes_fact_id'
-					],
-					approval: statutoryChangeApproval
-				},
-				existing: {
-					fields: ['effective_range'],
-					approval: statutoryChangeApproval
-				}
-			}
-		}
+		jurisdiction_settings: { read: {}, mutate: { new: {} } },
+		statutory_contributions: { read: {}, mutate: { new: {} } },
+		contribution_rates: { read: {}, mutate: { new: {} } },
+		leave_types: { read: {}, mutate: { new: {} } },
+		pay_components: { read: {}, mutate: { new: {} } },
+		company_holidays: { read: {}, mutate: { new: {} } }
 	},
 	limits: {
 		'collections.*': { window: '1 min', limit: 600, key: 'subject' }

@@ -13,7 +13,6 @@ import {
 	classifyOvertimeByCalendarMonth,
 	priceDay
 } from '../src/collections/payroll_runs/lib/overtime.ts';
-import { PLAIN_CALENDAR } from '../src/collections/payroll_runs/lib/settlement.ts';
 import {
 	ID_OVERTIME_LIMITS,
 	ID_OVERTIME_RULES,
@@ -73,8 +72,10 @@ const BASIC = {
 	name: 'Basic salary',
 	sequence: 10,
 	nature: 'EARNING',
-	policy: { kind: 'EARNING', settlement: 'ADD', statutory_treatments: [] },
-	eligibility: [],
+	is_statutory: false,
+	policy: { kind: 'EARNING', settlement: 'ADD' },
+	contribution_treatments: {},
+	eligibility: '',
 	definition: { source: 'SCHEDULE', unit: 'MONEY', reducible: false }
 };
 
@@ -96,16 +97,12 @@ const jurisdiction = (overrides) => ({
 	...overrides
 });
 
-const company = (jurisdictionId, currency) => ({
+const company = (_jurisdictionId, currency) => ({
 	id: `co-${currency}`,
 	name: `Test (${currency})`,
-	jurisdiction_id: jurisdictionId,
+	settings_code: currency,
 	pay_cutoff_day: 21,
-	pay_day: 28,
-	leave_year_start_month: 1,
-	overtime_calculation_method: 'STATUTORY_AGGREGATE',
 	risk_class: null,
-	settlement_policy: null,
 	effective_range: { start: '2020-01-01', end: null }
 });
 
@@ -117,7 +114,7 @@ function configuration(options) {
 		leaveProfiles: [jur],
 		contributions: [],
 		treatments: new Map(),
-		payComponents: [{ ...BASIC, company_id: `co-${jur.currency}` }],
+		payComponents: [{ ...BASIC, settings_id: jur.id }],
 		overtimeRules: options.overtimeRules,
 		overtimeLimits: options.overtimeLimits,
 		overtimeCoverageRule: null,
@@ -160,7 +157,7 @@ function bundle(overrides = {}) {
 		loans: [],
 		loanRepayments: [],
 		ledger: [],
-		leaveAccounts: [],
+		leaveEntitlements: [],
 		leaveEntries: [],
 		workDays: overrides.workDays ?? [],
 		serviceMonths: 57,
@@ -182,7 +179,6 @@ function measure(world, extras = {}) {
 		salary: MARCH,
 		periodsRemaining: 10,
 		headcount: 1,
-		policy: PLAIN_CALENDAR,
 		consumedEntries: new Map(),
 		consumedRepayments: new Map()
 	});
@@ -206,8 +202,7 @@ const MY = {
 		code: 'MY',
 		currency: 'MYR',
 		proration: { by: 'CALENDAR_DAYS' },
-		ordinary_rate_divisor: 26,
-		ordinary_rate_basis: 'DAYS_PER_MONTH'
+		ordinary_rate: { per: 'DAY', divisor: 26 }
 	}),
 	overtimeRules: MY_OVERTIME_RULES,
 	overtimeLimits: MY_OVERTIME_LIMITS
@@ -218,8 +213,7 @@ const VN = {
 		code: 'VN',
 		currency: 'VND',
 		proration: { by: 'WORKING_DAYS' },
-		ordinary_rate_divisor: 26,
-		ordinary_rate_basis: 'DAYS_PER_MONTH'
+		ordinary_rate: { per: 'DAY', divisor: 26 }
 	}),
 	overtimeRules: VN_OVERTIME_RULES,
 	overtimeLimits: VN_OVERTIME_LIMITS
@@ -230,8 +224,7 @@ const ID = {
 		code: 'ID',
 		currency: 'IDR',
 		proration: { by: 'CALENDAR_DAYS' },
-		ordinary_rate_divisor: 173,
-		ordinary_rate_basis: 'HOURS_PER_MONTH'
+		ordinary_rate: { per: 'HOUR', divisor: 173 }
 	}),
 	overtimeRules: ID_OVERTIME_RULES,
 	overtimeLimits: ID_OVERTIME_LIMITS

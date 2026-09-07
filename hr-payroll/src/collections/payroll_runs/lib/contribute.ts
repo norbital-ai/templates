@@ -36,6 +36,7 @@ import { Number as EffectNumber, Option, Schema } from 'effect';
 import { bandFloor, bandReference, selectBand, type BandContext } from './bands.js';
 import type { ContributionConfig } from './configuration.js';
 import type { ContributionBase } from './accumulate.js';
+import type { PayProjection } from './period.js';
 import { roundMoney, RoundingMethodSchema, type RoundingMethod } from './rounding.js';
 import {
 	ADDITIONAL_REMUNERATION,
@@ -70,8 +71,8 @@ type ContributeInput = {
 	readonly age: number | null;
 	readonly headcount: number;
 	readonly riskClass: string | null;
-	/** This period included. */
-	readonly periodsRemaining: number;
+	/** How far this payslip projects: the payslips left in the year, and the size of the year after it. */
+	readonly projection: PayProjection;
 	/**
 	 * Whether the employee's spouse is a dependant — a spouse who exists and has no total income
 	 * of their own. That, not the fact of a marriage, is what a spouse relief and a married
@@ -274,7 +275,11 @@ type ProgressiveWithholdingOptions = {
 function progressiveWithholding(options: ProgressiveWithholdingOptions): number {
 	const { entry, contribution, rules, input } = options;
 	const code = contribution.row.code;
-	const remaining = Math.max(1, input.periodsRemaining);
+	const remaining = Math.max(1, input.projection.payslipsRemaining);
+	// How many payslips of this size the rest of the year holds after this one: eleven for a
+	// January monthly payslip, and more than twenty-three for the first half of January, because a
+	// half-month payslip is smaller than a month. `payProjection` states the arithmetic.
+	const future = Math.max(0, input.projection.futurePayslipEquivalents);
 	const priorBase = input.yearToDate(code).base;
 
 	// A jurisdiction may publish a table for the payroll period itself. In that case annualising a
@@ -302,7 +307,7 @@ function progressiveWithholding(options: ProgressiveWithholdingOptions): number 
 	}
 
 	// 1 — PROJECT
-	const annualGross = priorBase + entry.base * remaining;
+	const annualGross = priorBase + entry.base * (1 + future);
 
 	// 2 — RELIEVE
 	const pools = new Map<string, { total: number; cap: number | null }>();
@@ -314,7 +319,6 @@ function progressiveWithholding(options: ProgressiveWithholdingOptions): number 
 		const priorEmployee = input.yearToDate(otherCode).employee;
 		let relievable = priorEmployee + result.employee;
 		if (result.rules.reliefProjected && result.rules.reliefCap != null) {
-			const future = remaining - 1;
 			const remainingCap = EffectNumber.clamp({ minimum: 0, maximum: result.rules.reliefCap })(
 				result.rules.reliefCap - relievable
 			);

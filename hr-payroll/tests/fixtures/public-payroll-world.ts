@@ -14,7 +14,6 @@ export const BASIC_ID = '66666666-6666-4666-8666-666666666666';
 export const TRANSPORT_ID = '77777777-7777-4777-8777-777777777777';
 export const STANDING_ENTRY_ID = '88888888-8888-4888-8888-888888888888';
 export const BONUS_ENTRY_ID = '99999999-9999-4999-8999-999999999999';
-export const DEFAULT_LEAVE_PLAN_ID = 'dddddddd-dddd-4ddd-8ddd-dddddddddddd';
 
 const RANGE = { start: '2020-01-01', end: null };
 const ROSTERED = {
@@ -61,18 +60,6 @@ const REGIME = {
 	overtime_limits: []
 };
 
-const STATUTORY_LEAVE = [
-	{
-		kind: 'ANNUAL',
-		ladder: [{ band_from: 0, days: 8 }],
-		per_child: null,
-		max_days: null,
-		transition: 'NEXT_LEAVE_YEAR',
-		settlement: { settlement: 'FORFEIT' },
-		authority: 'Public fixture — not a sealed statutory table.'
-	}
-];
-
 export type PublicPayrollWorldOptions = {
 	/** When true, a one-off BONUS sits beside the standing allowance. */
 	readonly includeBonus?: boolean;
@@ -111,35 +98,29 @@ export function createPublicPayrollWorld(options: PublicPayrollWorldOptions = {}
 		companies: [
 			{
 				id: COMPANY_ID,
-				jurisdiction_id: JURISDICTION_ID,
+				settings_code: 'PF',
 				name: 'Public Fixture Co',
 				registration_number: 'PF-0001',
 				pay_cutoff_day: 21,
-				pay_day: 28,
-				pay_calendar: null,
-				leave_year_start_month: 1,
-				overtime_calculation_method: 'STATUTORY_AGGREGATE',
-				settlement_policy: null,
 				risk_class: null,
 				effective_range: RANGE,
 				approval_id: null
 			}
 		],
-		jurisdictions: [
+		jurisdiction_settings: [
 			{
 				id: JURISDICTION_ID,
 				code: 'PF',
 				name: 'Public fixture profile',
-				lifecycle: 'SEALED',
+				sealed_at: '2020-01-01T00:00:00.000Z',
+				voided_at: null,
+				void_reason: null,
+				cloned_from_id: null,
 				currency: 'MYR',
 				tax_year_start_month: 1,
 				proration: { by: 'CALENDAR_DAYS' },
-				ordinary_rate_basis: 'DAYS_PER_MONTH',
-				ordinary_rate_divisor: 26,
+				ordinary_rate: { per: 'DAY', divisor: 26 },
 				regime: REGIME,
-				statutory_leave: STATUTORY_LEAVE,
-				successor_profile_id: null,
-				void_reason: null,
 				effective_range: RANGE,
 				approval_id: null
 			}
@@ -149,27 +130,29 @@ export function createPublicPayrollWorld(options: PublicPayrollWorldOptions = {}
 		pay_components: [
 			{
 				id: BASIC_ID,
-				company_id: COMPANY_ID,
-				statutory_profile_id: JURISDICTION_ID,
+				settings_id: JURISDICTION_ID,
 				code: 'BASIC',
 				name: 'Basic salary',
 				nature: 'EARNING',
-				policy: { kind: 'EARNING', settlement: 'ADD', statutory_treatments: [] },
+				is_statutory: false,
+				policy: { kind: 'EARNING', settlement: 'ADD' },
+				contribution_treatments: {},
 				sequence: 10,
-				eligibility: [],
+				eligibility: '',
 				definition: { source: 'SCHEDULE', unit: 'MONEY', reducible: false },
 				approval_id: null
 			},
 			{
 				id: TRANSPORT_ID,
-				company_id: COMPANY_ID,
-				statutory_profile_id: JURISDICTION_ID,
+				settings_id: JURISDICTION_ID,
 				code: 'TRANSPORT',
 				name: 'Transport allowance',
 				nature: 'EARNING',
-				policy: { kind: 'EARNING', settlement: 'ADD', statutory_treatments: [] },
+				is_statutory: false,
+				policy: { kind: 'EARNING', settlement: 'ADD' },
+				contribution_treatments: {},
 				sequence: 50,
-				eligibility: [],
+				eligibility: '',
 				definition: {
 					source: 'ENTRY',
 					unit: 'MONEY',
@@ -192,22 +175,8 @@ export function createPublicPayrollWorld(options: PublicPayrollWorldOptions = {}
 			}
 		],
 		company_holidays: [],
-		leave_plans: [
-			{
-				id: DEFAULT_LEAVE_PLAN_ID,
-				company_id: COMPANY_ID,
-				code: 'DEFAULT',
-				name: 'Public fixture leave plan',
-				lifecycle: 'ACTIVE',
-				transition: 'NEXT_LEAVE_YEAR',
-				effective_range: RANGE,
-				supersedes_id: null,
-				change_note: 'Stable payroll fixture baseline',
-				approval_id: null
-			}
-		],
 		leave_types: [],
-		leave_accounts: [],
+		leave_entitlements: [],
 		leave_entries: [],
 		employments: [
 			{

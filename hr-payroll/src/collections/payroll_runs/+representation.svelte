@@ -8,6 +8,11 @@
 	 * `resolveWindow`, so the operator reads the same cutoff rule the run will be built with rather
 	 * than a second derivation of it.
 	 *
+	 * The period is offered in the company's grammar. A monthly company picks a month from the
+	 * grid; a semi-monthly company picks a half ("Feb 2026 · 1–15" or "Feb 2026 · 16–28") from a
+	 * list, because a month grid has no cell for half of one. `resolveWindow` refuses the other
+	 * grammar, so the candidates it leaves are exactly the ones the hook would accept.
+	 *
 	 * A record opens on the run itself: the window it was built against and the payslips it
 	 * produced. The window, the configuration hash and the period are the engine's — they are shown,
 	 * never edited, because a run that could be re-pointed after it was calculated would be
@@ -25,12 +30,17 @@
 	import { CollectionForm } from '@norbital-ai/ui/collection-form';
 	import { CollectionTable } from '@norbital-ai/ui/collection-table';
 	import { Combobox } from '@norbital-ai/ui/combobox';
-	import { MonthPicker } from '@norbital-ai/ui/month-picker';
+	import { MonthPicker, monthLabel } from '@norbital-ai/ui/month-picker';
 	import { FormattedValueRenderer } from '@norbital-ai/ui/data-renderer';
 	import { Cluster, Grid, Stack } from '@norbital-ai/ui/layout';
 	import { resolveWindow } from './lib/period.js';
 	import { formatCalendarDate } from '../../lib/ui/display-formatters.js';
-	import { periodWindow } from '../../lib/ui/calendar.js';
+	import {
+		companyPeriods,
+		periodDayRange,
+		periodMonthOf,
+		periodWindow
+	} from '../../lib/ui/calendar.js';
 	import {
 		payrollRunPayslipsQuery,
 		payslipAmount,
@@ -39,7 +49,7 @@
 	} from './payslip-table.js';
 
 	let { record, close }: RepresentationProps = $props();
-	const { t } = useI18n<TenantI18nKeys>();
+	const { t, intlLocale } = useI18n<TenantI18nKeys>();
 
 	// Company calendar data can fail `resolveWindow` (a cutoff out of range, a calendar with no
 	// instalments). The failure is a condition of membership, not an error to show — an unusable
@@ -61,9 +71,10 @@
 			limit: 500
 		})
 	);
-	const jurisdictionsQuery = $derived(
-		client.db.jurisdictions.findMany({
+	const settingsQuery = $derived(
+		client.db.jurisdiction_settings.findMany({
 			where: { approval_id: { isNull: true } },
+			columns: { code: true, currency: true },
 			limit: 500
 		})
 	);
@@ -81,24 +92,20 @@
 	let period = $state<string | null>(null);
 
 	const companies = $derived(companiesQuery.current ?? []);
-	const currencyByJurisdiction = $derived(
-		new Map(
-			(jurisdictionsQuery.current ?? []).map((jurisdiction) => [
-				jurisdiction.id,
-				jurisdiction.currency
-			])
-		)
+	// Every version of a lineage states the same currency; the first one read names it.
+	const currencyByLineage = $derived(
+		new Map((settingsQuery.current ?? []).map((version) => [version.code, version.currency]))
 	);
 	const companyOptions = $derived(
 		companies.flatMap((company) => {
-			const currency = currencyByJurisdiction.get(company.jurisdiction_id);
-			// Without its jurisdiction a company has no currency, and payroll has nothing to pay in.
+			const currency = currencyByLineage.get(company.settings_code);
+			// Without a settings lineage a company has no currency, and payroll has nothing to pay in.
 			if (!currency) return [];
 			return [
 				{
 					value: company.id,
 					label: `${company.name} · ${currency}`,
-					search_term: `${company.name} ${company.registration_number} ${currency}`
+					search_term: `${company.name} ${company.registration_number ?? ''} ${currency}`
 				}
 			];
 		})
@@ -115,8 +122,10 @@
 	);
 
 	/**
-	 * The months the grid picker leaves enabled: inside the 37+12 offer window, not already
-	 * settled, and on a pay calendar the engine can actually build. The pay-date detail the old
+	 * The periods a company can still run: inside the 37+12 offer window, not already settled, and
+	 * on a pay calendar the engine can actually build, which is where the grammar is enforced, since
+	 * `resolveWindow` refuses a half at a monthly company and a month at a semi-monthly one. The
+	 * month grid asks this per cell; the half list is filtered by it. The pay-date detail the old
 	 * option label carried now reads off `selectedWindow` below instead.
 	 */
 	function isPeriodDisabled(candidate: string): boolean {
@@ -133,6 +142,31 @@
 			return true;
 		return windowFor(candidate, company) == null;
 	}
+
+	const semiMonthly = $derived(selectedCompany?.pay_frequency === 'SEMI_MONTHLY');
+
+	/** "Feb 2026 · 1–15": the month in the viewer's locale, then the days the half pays for. */
+	function halfLabel(candidate: string): string {
+		const range = periodDayRange(candidate);
+		return t('component.period_half', {
+			month: monthLabel(intlLocale, periodMonthOf(candidate), 'short'),
+			from: range.from,
+			to: range.to
+		});
+	}
+	/** The halves a semi-monthly company can still run, most recent first, as the list offers them. */
+	const halfOptions = $derived(
+		semiMonthly
+			? companyPeriods(periodCandidates, 'SEMI_MONTHLY')
+					.filter((candidate) => !isPeriodDisabled(candidate))
+					.toReversed()
+					.map((candidate) => ({
+						value: candidate,
+						label: halfLabel(candidate),
+						search_term: `${candidate} ${halfLabel(candidate)}`
+					}))
+			: []
+	);
 
 	const selectedWindow = $derived.by(() => {
 		const company = selectedCompany;
@@ -333,28 +367,43 @@
 								}}
 								searchPlaceholder={t('component.search_companies')}
 								emptyPlaceholder={t('component.choose_legal_entity')}
-								disabled={companiesQuery.loading || jurisdictionsQuery.loading}
+								disabled={companiesQuery.loading || settingsQuery.loading}
 							/>
 						</Stack>
 					</label>
 					<label class="text-sm font-medium">
 						<Stack gap="xs">
 							{t('component.pay_period')}
-							<MonthPicker
-								value={period}
-								onValueChange={(next) => {
-									period = next;
-									form.setValues({ company_id: companyId, period: next });
-								}}
-								min={periodCandidates[0]}
-								max={periodCandidates[periodCandidates.length - 1]}
-								isMonthDisabled={isPeriodDisabled}
-								placeholder={companyId
-									? t('component.choose_payroll_period')
-									: t('component.choose_entity_first')}
-								ariaLabel={t('component.pay_period')}
-								disabled={!companyId || runsQuery.loading}
-							/>
+							{#if semiMonthly}
+								<Combobox
+									ariaLabel={t('component.pay_period')}
+									options={halfOptions}
+									value={period}
+									onValueChange={(next) => {
+										period = next;
+										form.setValues({ company_id: companyId, period: next ?? undefined });
+									}}
+									searchPlaceholder={t('component.search_payroll_periods')}
+									emptyPlaceholder={t('component.choose_payroll_period')}
+									disabled={!companyId || runsQuery.loading}
+								/>
+							{:else}
+								<MonthPicker
+									value={period}
+									onValueChange={(next) => {
+										period = next;
+										form.setValues({ company_id: companyId, period: next });
+									}}
+									min={periodCandidates[0]}
+									max={periodCandidates[periodCandidates.length - 1]}
+									isMonthDisabled={isPeriodDisabled}
+									placeholder={companyId
+										? t('component.choose_payroll_period')
+										: t('component.choose_entity_first')}
+									ariaLabel={t('component.pay_period')}
+									disabled={!companyId || runsQuery.loading}
+								/>
+							{/if}
 						</Stack>
 					</label>
 				</Grid>

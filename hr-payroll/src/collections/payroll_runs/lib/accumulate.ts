@@ -1,17 +1,42 @@
 /**
  * Step 5 — ACCUMULATE.
  *
- * Every measured amount, whichever plane holds it, is routed through the effective-dated treatment
- * grid into the chargeable base of each scheme. The grid is `pay_components.policy.statutory_
- * treatments` — the company's answer to "what does this scheme do with this money" — and both
- * paths throw on absence rather than defaulting, because an undecided cell used twice is the
- * dangerous kind: an under-contribution nobody notices.
+ * Every measured amount, whichever plane holds it, is routed through the treatment grid into the
+ * chargeable base of each scheme. The grid is `pay_components.contribution_treatments` — the
+ * company's answer to "what does this scheme do with this money" — and every path throws on
+ * absence rather than defaulting, because an undecided cell used twice is the dangerous kind: an
+ * under-contribution nobody notices.
  */
 
-import { lookupTreatment, type Configuration, type ContributionConfig } from './configuration.js';
+import {
+	lookupTreatment,
+	type Configuration,
+	type ContributionConfig,
+	type PayComponent
+} from './configuration.js';
 import type { ContributionTreatment } from '../../../datatypes/contribution_treatment/+definition.js';
 import type { PricedItem } from './measure.js';
 import { cents } from './rounding.js';
+
+/** The catalogue row a derived overtime line is charged as: the excess row for reclassified hours. */
+function overtimeComponentCode(label: string): 'OVERTIME' | 'OVERTIME_EXCESS' {
+	return label.includes('_EXCESS_') ? 'OVERTIME_EXCESS' : 'OVERTIME';
+}
+
+/**
+ * The OVERTIME or OVERTIME_EXCESS catalogue row, or `undefined` where the company has none.
+ *
+ * Derived overtime is priced by the regime and carries no component of its own on the measured
+ * line; what the statute does with it is stated on these two statutory rows like every other
+ * treatment. A catalogue without them cannot say what any scheme does with overtime.
+ */
+function overtimeComponent(
+	configuration: Pick<Configuration, 'payComponents'>,
+	label: string
+): PayComponent | undefined {
+	const code = overtimeComponentCode(label);
+	return configuration.payComponents.find((component) => component.code === code);
+}
 
 export type ContributionBase = {
 	readonly contribution: ContributionConfig;
@@ -24,21 +49,18 @@ export type ContributionBase = {
 /**
  * The one cell deciding this amount against this scheme, or `undefined` where nobody has decided.
  *
- * `statutoryRuleKey` is the whole of the test. It is set on derived overtime and on nothing else —
- * an amount with a rule key has no pay component to ask, which is exactly the case the scheme
- * answers for — and the key's excess segment chooses between the scheme's two overtime positions.
+ * A derived overtime line names no pay component of its own: its label is the rule key, and the
+ * excess segment of that key chooses between the OVERTIME and OVERTIME_EXCESS catalogue rows,
+ * whose treatments are the scheme's overtime position.
  */
 function treatmentFor(
 	configuration: Configuration,
 	contribution: ContributionConfig,
 	item: PricedItem
 ): ContributionTreatment | undefined {
-	const excess = item.label.includes('_EXCESS_');
-	if (item.payComponent == null)
-		return excess
-			? contribution.overtimeExcessTreatment?.treatment
-			: contribution.overtimeTreatment?.treatment;
-	return lookupTreatment(configuration, item.payComponent.id, contribution.row.id)?.treatment;
+	const component = item.payComponent ?? overtimeComponent(configuration, item.label);
+	if (component == null) return undefined;
+	return lookupTreatment(configuration, component.id, contribution.row.id);
 }
 
 /**
@@ -77,15 +99,21 @@ export function accumulateBases(options: {
 				continue;
 			if (item.payComponent == null && item.amount === 0) continue;
 			const treatment = treatmentFor(options.configuration, contribution, item);
-			if (treatment == null)
+			if (treatment == null) {
+				const component =
+					item.payComponent?.code ??
+					overtimeComponent(options.configuration, item.label)?.code ??
+					null;
 				throw new Error(
-					item.payComponent == null
-						? `${contribution.row.code} states no treatment for derived overtime effective in this ` +
-								`period, so ${item.label} cannot be charged. Record the scheme's overtime position ` +
-								'on statutory_contributions.'
-						: `No ${contribution.row.code} treatment exists for ${item.label}. ` +
-								'The component policy must decide every effective statutory scheme.'
+					component == null
+						? `${contribution.row.code} cannot charge ${item.label}: the catalogue has no ` +
+								`${overtimeComponentCode(item.label)} component. Add that statutory row, with a ` +
+								`${contribution.row.code} treatment, before payroll can price derived overtime.`
+						: `No ${contribution.row.code} treatment exists for ${component}` +
+								(item.label === component ? '' : ` (${item.label})`) +
+								'. The component states a treatment for every scheme its jurisdiction levies.'
 				);
+			}
 			switch (treatment.kind) {
 				case 'INCLUDE':
 					base += item.amount;

@@ -3,16 +3,14 @@
  *
  * This is a `PreparedRun`: PICK and GATHER have already happened. Keeping the fixture at that
  * boundary means the benchmark measures the pure VALIDATE -> GRAPH path in `buildPayrollRun`, not
- * database latency, runtime RPC, fixture construction or clocks. The calendar and plain settlement
- * policy come from the payroll engine itself so the benchmark does not maintain a second version of
- * those rules.
+ * database latency, runtime RPC, fixture construction or clocks. The calendar comes from the
+ * payroll engine itself so the benchmark does not maintain a second version of those rules.
  */
 
 import type { Configuration } from './lib/configuration.js';
 import type { PreparedRun } from './lib/engine.js';
 import type { EmploymentBundle } from './lib/gather.js';
-import { payPeriodsRemaining, resolveWindow } from './lib/period.js';
-import { PLAIN_CALENDAR } from './lib/settlement.js';
+import { resolveWindow } from './lib/period.js';
 
 const EMPLOYEE_COUNT = 290;
 const PERIOD = '2026-04';
@@ -28,36 +26,33 @@ export const PAYROLL_CPU_BENCHMARK_FIXTURE = Object.freeze({
 
 const COMPANY = {
 	id: '00000000-0000-4000-8000-000000000001',
-	jurisdiction_id: '00000000-0000-4000-8000-000000000002',
+	settings_code: 'MY',
 	name: 'Benchmark Malaysia',
 	registration_number: 'BENCHMARK-NOT-A-LEGAL-ENTITY',
 	pay_cutoff_day: 21,
-	pay_day: 28,
-	pay_calendar: null,
-	leave_year_start_month: 1,
-	overtime_calculation_method: 'STATUTORY_AGGREGATE',
-	settlement_policy: null,
+	pay_frequency: 'MONTHLY',
 	risk_class: null,
 	effective_range: { start: '2020-01-01', end: null }
 } as const;
 
 const JURISDICTION = {
-	id: COMPANY.jurisdiction_id,
+	id: '00000000-0000-4000-8000-000000000002',
 	code: 'MY',
 	name: 'Benchmark Malaysia profile',
-	lifecycle: 'SEALED',
+	sealed_at: '2020-01-01T00:00:00.000Z',
+	voided_at: null,
+	void_reason: null,
+	cloned_from_id: null,
 	currency: 'MYR',
 	tax_year_start_month: 1,
 	proration: { by: 'CALENDAR_DAYS' },
-	ordinary_rate_basis: 'DAYS_PER_MONTH',
-	ordinary_rate_divisor: 26,
+	ordinary_rate: { per: 'DAY', divisor: 26 },
 	regime: {
 		overtime_coverage: null,
 		overtime_rules: [],
 		overtime_limits: [],
 		rest_break_rules: []
 	},
-	statutory_leave: [],
 	effective_range: { start: '2020-01-01', end: null }
 } as const;
 
@@ -65,43 +60,28 @@ const EPF_ID = '00000000-0000-4000-8000-000000000003';
 const PCB_ID = '00000000-0000-4000-8000-000000000004';
 const BASIC_ID = '00000000-0000-4000-8000-000000000005';
 
-const includeTreatment = (statutoryContributionId: string, authority: string) => ({
-	statutory_contribution_id: statutoryContributionId,
-	authority,
-	treatment: { kind: 'INCLUDE' as const },
-	effective_range: { start: '2020-01-01', end: null }
-});
-
 const BASIC = {
 	id: BASIC_ID,
-	company_id: COMPANY.id,
-	statutory_profile_id: JURISDICTION.id,
+	settings_id: JURISDICTION.id,
 	code: 'BASIC',
-	policy: {
-		kind: 'EARNING',
-		settlement: 'ADD',
-		statutory_treatments: [
-			includeTreatment(EPF_ID, 'Benchmark EPF treatment'),
-			includeTreatment(PCB_ID, 'Benchmark PCB treatment')
-		]
+	is_statutory: false,
+	policy: { kind: 'EARNING', settlement: 'ADD' },
+	contribution_treatments: {
+		EPF: { kind: 'INCLUDE' as const },
+		PCB: { kind: 'INCLUDE' as const }
 	},
 	nature: 'EARNING',
 	sequence: 10,
-	eligibility: [],
+	eligibility: '',
 	definition: { source: 'SCHEDULE', unit: 'MONEY', reducible: false }
 } as const;
-
-const excludedOvertime = {
-	treatment: { kind: 'EXCLUDE' as const },
-	effective_range: { start: '2020-01-01', end: null }
-};
 
 const CONTRIBUTIONS = [
 	{
 		row: {
 			id: EPF_ID,
-			jurisdiction_id: JURISDICTION.id,
-			statutory_profile_id: JURISDICTION.id,
+			settings_id: JURISDICTION.id,
+			is_statutory: true,
 			code: 'EPF',
 			name: 'Benchmark retirement fund',
 			authority: 'Synthetic benchmark schedule',
@@ -115,9 +95,7 @@ const CONTRIBUTIONS = [
 				'BRACKET_STEP:20000:100',
 				'RELIEF_CAP:4000',
 				'RELIEF_PROJECTED'
-			],
-			overtime_treatments: [],
-			overtime_excess_treatments: []
+			]
 		},
 		rates: [
 			{
@@ -132,15 +110,13 @@ const CONTRIBUTIONS = [
 				selector: { by: 'WAGE_AND_AGE', from: 5000, to: null, age_from: 0, age_to: 60 },
 				award: { kind: 'PERCENT', employee: 11, employer: 12 }
 			}
-		],
-		overtimeTreatment: excludedOvertime,
-		overtimeExcessTreatment: excludedOvertime
+		]
 	},
 	{
 		row: {
 			id: PCB_ID,
-			jurisdiction_id: JURISDICTION.id,
-			statutory_profile_id: JURISDICTION.id,
+			settings_id: JURISDICTION.id,
+			is_statutory: true,
 			code: 'PCB',
 			name: 'Benchmark progressive withholding',
 			authority: 'Synthetic benchmark schedule',
@@ -156,9 +132,7 @@ const CONTRIBUTIONS = [
 				'MIN_WITHHOLD:10',
 				'ROUND:TRUNCATE_CENT',
 				'ROUND:UP_5_CENTS'
-			],
-			overtime_treatments: [],
-			overtime_excess_treatments: []
+			]
 		},
 		rates: [
 			{
@@ -197,9 +171,7 @@ const CONTRIBUTIONS = [
 				selector: { by: 'WAGE', from: 70000, to: null },
 				award: { kind: 'PROGRESSIVE', rate: 19, constant: 3700 }
 			}
-		],
-		overtimeTreatment: excludedOvertime,
-		overtimeExcessTreatment: excludedOvertime
+		]
 	}
 ] as const;
 
@@ -218,9 +190,9 @@ const CONFIGURATION = {
 	jurisdiction: JURISDICTION,
 	contributions: CONTRIBUTIONS,
 	treatments: new Map(
-		BASIC.policy.statutory_treatments.map((entry) => [
-			`${BASIC.id}:${entry.statutory_contribution_id}`,
-			entry
+		CONTRIBUTIONS.map((entry) => [
+			`${BASIC.id}:${entry.row.id}`,
+			BASIC.contribution_treatments[entry.row.code as 'EPF' | 'PCB']
 		])
 	),
 	payComponents: [BASIC],
@@ -302,6 +274,8 @@ function bundle(index: number, window: ReturnType<typeof resolveWindow>): Employ
 		workDays: [],
 		serviceMonths: 75,
 		age: 29 + (index % 30),
+		payFrequency: 'MONTHLY',
+		window,
 		employedDays: window.salary,
 		wageDays: window.salary,
 		attendance: window.attendance,
@@ -318,7 +292,6 @@ export function makePayrollCpuBenchmarkPreparedRun(): PreparedRun {
 		period: PERIOD,
 		window,
 		configuration: CONFIGURATION,
-		policy: PLAIN_CALENDAR,
 		gathered: {
 			bundles: Array.from({ length: EMPLOYEE_COUNT }, (_, index) => bundle(index, window)),
 			headcount: EMPLOYEE_COUNT,
@@ -326,7 +299,6 @@ export function makePayrollCpuBenchmarkPreparedRun(): PreparedRun {
 			consumedEntries: new Map(),
 			consumedRepayments: new Map()
 		},
-		periodsRemaining: payPeriodsRemaining(PERIOD, JURISDICTION.tax_year_start_month),
 		readLog: {
 			assertComplete: (rows) => rows,
 			logString: () => 'benchmark PreparedRun: zero reads'

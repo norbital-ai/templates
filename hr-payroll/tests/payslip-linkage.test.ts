@@ -31,7 +31,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { measureEmployment } from '../src/collections/payroll_runs/lib/measure.ts';
-import { PLAIN_CALENDAR } from '../src/collections/payroll_runs/lib/settlement.ts';
 import { decodeNumber } from '@norbital-ai/std/json';
 
 const WORK_CODE = '00000000-0000-4000-8000-00000000c001';
@@ -84,8 +83,7 @@ const JURISDICTION = {
 	code: 'MY',
 	currency: 'MYR',
 	proration: { by: 'CALENDAR_DAYS' },
-	ordinary_rate_divisor: 26,
-	ordinary_rate_basis: 'DAYS_PER_MONTH',
+	ordinary_rate: { per: 'DAY', divisor: 26 },
 	tax_year_start_month: 1,
 	effective_range: { start: '2020-01-01', end: null }
 };
@@ -93,21 +91,19 @@ const JURISDICTION = {
 const COMPANY = {
 	id: 'co-my',
 	name: 'Public Fixture Co',
-	jurisdiction_id: 'jur-my',
+	settings_code: 'MY',
 	pay_cutoff_day: 21,
-	pay_day: 28,
-	leave_year_start_month: 1,
-	overtime_calculation_method: 'STATUTORY_AGGREGATE',
 	risk_class: null,
-	settlement_policy: null,
 	effective_range: { start: '2020-01-01', end: null }
 };
 
 const component = (overrides) => ({
-	company_id: 'co-my',
+	settings_id: 'jur-my',
 	nature: 'EARNING',
-	policy: { kind: 'EARNING', settlement: 'ADD', statutory_treatments: [] },
-	eligibility: [],
+	is_statutory: false,
+	policy: { kind: 'EARNING', settlement: 'ADD' },
+	contribution_treatments: {},
+	eligibility: '',
 	...overrides
 });
 
@@ -254,7 +250,7 @@ function bundle(overrides = {}) {
 			id: 'emp-1',
 			employee_id: 'ee-1',
 			employee_number: 'PUBEM0023',
-			company_id: 'co-my',
+			settings_id: 'jur-my',
 			hire_date: '2021-06-01',
 			exit_date: null,
 			effective_range: { start: '2021-06-01', end: null }
@@ -266,7 +262,7 @@ function bundle(overrides = {}) {
 		loans: [],
 		loanRepayments: [],
 		ledger: [],
-		leaveAccounts: [],
+		leaveEntitlements: [],
 		leaveEntries: [],
 		workDays: [],
 		serviceMonths: 57,
@@ -289,7 +285,6 @@ function measure(overrides = {}, configurationOverrides = {}, extras = {}) {
 		salary: extras.salary ?? MARCH,
 		periodsRemaining: extras.periodsRemaining ?? 10,
 		headcount: 1,
-		policy: extras.policy ?? PLAIN_CALENDAR,
 		consumedEntries: extras.consumedEntries ?? new Map(),
 		consumedRepayments: extras.consumedRepayments ?? new Map()
 	});
@@ -511,7 +506,7 @@ test('a public holiday is paid at its own statutory rate, from the holiday calen
 			'2026-03-10',
 			{
 				id: 'hol-1',
-				company_id: 'co-my',
+				settings_id: 'jur-my',
 				observed_date: '2026-03-10',
 				name: 'Nuzul Al-Quran',
 				substitutes_date: null
@@ -709,7 +704,7 @@ test('derived arrears for this same period is not a second BASIC', () => {
 			}
 		},
 		{},
-		{ policy: { ...PLAIN_CALENDAR, lateJoinerComponentId: BASIC.id } }
+		{}
 	);
 	assert.deepEqual(
 		measured.base.map((item) => [item.entry.component_code, item.entry.amount]),
@@ -731,7 +726,7 @@ test('a distinct earlier arrears period still adds its own base line', () => {
 			}
 		},
 		{},
-		{ policy: { ...PLAIN_CALENDAR, lateJoinerComponentId: BASIC.id } }
+		{}
 	);
 	const basics = measured.base.filter((item) => item.label === 'BASIC');
 	assert.equal(basics.length, 2);

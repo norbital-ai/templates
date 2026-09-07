@@ -46,9 +46,9 @@ const ownComponentEntry = {
 } as const;
 const ownLoan = { loan_employment: { some: OWN_EMPLOYMENT } } as const;
 const ownLeaveRequest = { leave_request_employment: { some: OWN_EMPLOYMENT } } as const;
-const ownLeaveAccount = { leave_account_employment: { some: OWN_EMPLOYMENT } } as const;
+const ownLeaveEntitlement = { leave_entitlement_employment: { some: OWN_EMPLOYMENT } } as const;
 const ownLeaveEntry = {
-	entry_leave_account: { some: { leave_account_employment: { some: OWN_EMPLOYMENT } } }
+	entry_leave_entitlement: { some: { leave_entitlement_employment: { some: OWN_EMPLOYMENT } } }
 } as const;
 const ownEmployeeChild = { child_employment: { some: OWN_EMPLOYMENT } } as const;
 
@@ -105,7 +105,7 @@ export default {
 		grantOn('leave_requests', 'read', {
 			where: ownLeaveRequest
 		}),
-		grantOn('leave_accounts', 'read', { where: ownLeaveAccount }),
+		grantOn('leave_entitlements', 'read', { where: ownLeaveEntitlement }),
 		grantOn('leave_entries', 'read', { where: ownLeaveEntry }),
 		grantOn('employee_children', 'read', {
 			where: ownEmployeeChild

@@ -33,43 +33,28 @@ import { cascade } from '@norbital-ai/bolt/authoring';
  * docs/architecture.md (Provenance and audit).
  */
 export default ((r) => ({
-	jurisdictions: {
-		predecessor_profile: r.one.jurisdictions({
-			from: r.jurisdictions.supersedes_id,
-			to: r.jurisdictions.id
-		}),
-		company_jurisdiction: r.many.companies(),
-		/**
-		 * Two edges reach statutory_contributions from here — provenance (`jurisdiction_id`) and
-		 * profile scoping (`statutory_profile_id`) — so neither `many` can leave its endpoints to
-		 * inverse resolution: with two candidate `one` edges the pair is ambiguous by construction.
-		 */
-		contribution_jurisdiction: r.many.statutory_contributions({
-			from: r.jurisdictions.id,
-			to: r.statutory_contributions.jurisdiction_id
-		}),
-		/** The effective-dated snapshot rows runs name as the law they were calculated under. */
-		statutory_snapshot_payroll_run: r.many.payroll_runs(),
-		opening_statutory_leave_account: r.many.leave_accounts(),
-		leave_entry_statutory_profile: r.many.leave_entries(),
-		statutory_profile_pay_component: r.many.pay_components(),
-		statutory_profile_statutory_contribution: r.many.statutory_contributions({
-			from: r.jurisdictions.id,
-			to: r.statutory_contributions.statutory_profile_id
-		})
+	/**
+	 * The sealed, shareable root. Every downstream rule row is owned by its version (`cascade`: a
+	 * draft deleted takes its children; the version's own hook refuses deleting a sealed one), and
+	 * a company binds to the lineage by `settings_code`, a text key with no edge, so a change of law
+	 * never touches the company row and two entities can take one root.
+	 */
+	jurisdiction_settings: {
+		contribution_settings: r.many.statutory_contributions(),
+		leave_type_settings: r.many.leave_types(),
+		pay_component_settings: r.many.pay_components(),
+		holiday_settings: r.many.company_holidays(),
+		/** The versions runs name as the law they were calculated under. */
+		settings_payroll_run: r.many.payroll_runs()
 	},
 
 	statutory_contributions: {
-		/** Provenance: the jurisdiction whose law this scheme transcribes. */
-		contribution_jurisdiction: r.one.jurisdictions({
-			from: r.statutory_contributions.jurisdiction_id,
-			to: r.jurisdictions.id
-		}),
-		/** Version scoping: the profile revision this scheme is sealed with. */
-		statutory_profile_statutory_contribution: r.one.jurisdictions({
-			from: r.statutory_contributions.statutory_profile_id,
-			to: r.jurisdictions.id
-		}),
+		contribution_settings: cascade(
+			r.one.jurisdiction_settings({
+				from: r.statutory_contributions.settings_id,
+				to: r.jurisdiction_settings.id
+			})
+		),
 		rate_contribution: r.many.contribution_rates(),
 		statutory_fact_contribution: r.many.employment_statutory_facts()
 	},
@@ -84,94 +69,50 @@ export default ((r) => ({
 	},
 
 	companies: {
-		company_jurisdiction: r.one.jurisdictions({
-			from: r.companies.jurisdiction_id,
-			to: r.jurisdictions.id
-		}),
 		employment_company: r.many.employments(),
-		pay_component_company: r.many.pay_components(),
-		leave_plan_company: r.many.leave_plans(),
-		leave_type_company: r.many.leave_types(),
 		shift_definition_company: r.many.shift_definitions(),
-		company_holiday_company: r.many.company_holidays(),
 		payroll_run_company: r.many.payroll_runs()
 	},
 
 	pay_components: {
-		pay_component_company: r.one.companies({
-			from: r.pay_components.company_id,
-			to: r.companies.id
-		}),
-		statutory_profile_pay_component: r.one.jurisdictions({
-			from: r.pay_components.statutory_profile_id,
-			to: r.jurisdictions.id
-		}),
+		pay_component_settings: cascade(
+			r.one.jurisdiction_settings({
+				from: r.pay_components.settings_id,
+				to: r.jurisdiction_settings.id
+			})
+		),
 		component_entry_pay_component: r.many.component_entries(),
 		loan_pay_component: r.many.loans()
 	},
 
-	leave_plans: {
-		leave_plan_company: r.one.companies({
-			from: r.leave_plans.company_id,
-			to: r.companies.id
-		}),
-		predecessor_leave_plan: r.one.leave_plans({
-			from: r.leave_plans.supersedes_id,
-			to: r.leave_plans.id
-		}),
-		leave_type_plan: r.many.leave_types(),
-		opening_leave_account_plan: r.many.leave_accounts(),
-		leave_entry_plan: r.many.leave_entries()
-	},
-
 	leave_types: {
-		leave_type_company: r.one.companies({
-			from: r.leave_types.company_id,
-			to: r.companies.id
-		}),
-		leave_type_plan: cascade(
-			r.one.leave_plans({
-				from: r.leave_types.leave_plan_id,
-				to: r.leave_plans.id
+		leave_type_settings: cascade(
+			r.one.jurisdiction_settings({
+				from: r.leave_types.settings_id,
+				to: r.jurisdiction_settings.id
 			})
 		),
 		leave_request_type: r.many.leave_requests(),
-		leave_account_type: r.many.leave_accounts()
+		leave_entitlement_type: r.many.leave_entitlements()
 	},
 
-	leave_accounts: {
-		leave_account_employment: r.one.employments({
-			from: r.leave_accounts.employment_id,
+	leave_entitlements: {
+		leave_entitlement_employment: r.one.employments({
+			from: r.leave_entitlements.employment_id,
 			to: r.employments.id
 		}),
-		leave_account_type: r.one.leave_types({
-			from: r.leave_accounts.leave_type_id,
+		leave_entitlement_type: r.one.leave_types({
+			from: r.leave_entitlements.leave_type_id,
 			to: r.leave_types.id
 		}),
-		opening_leave_account_plan: r.one.leave_plans({
-			from: r.leave_accounts.opening_plan_id,
-			to: r.leave_plans.id
-		}),
-		opening_statutory_leave_account: r.one.jurisdictions({
-			from: r.leave_accounts.opening_statutory_profile_id,
-			to: r.jurisdictions.id
-		}),
-		request_leave_account: r.many.leave_requests(),
-		entry_leave_account: r.many.leave_entries()
+		request_leave_entitlement: r.many.leave_requests(),
+		entry_leave_entitlement: r.many.leave_entries()
 	},
 
 	leave_entries: {
-		entry_leave_account: r.one.leave_accounts({
-			from: r.leave_entries.leave_account_id,
-			to: r.leave_accounts.id
-		}),
-		leave_entry_plan: r.one.leave_plans({
-			from: r.leave_entries.leave_plan_id,
-			to: r.leave_plans.id
-		}),
-		leave_entry_statutory_profile: r.one.jurisdictions({
-			from: r.leave_entries.statutory_profile_id,
-			to: r.jurisdictions.id
+		entry_leave_entitlement: r.one.leave_entitlements({
+			from: r.leave_entries.leave_entitlement_id,
+			to: r.leave_entitlements.id
 		}),
 		leave_entry_request: cascade(
 			r.one.leave_requests({
@@ -190,10 +131,10 @@ export default ((r) => ({
 	},
 
 	company_holidays: {
-		company_holiday_company: cascade(
-			r.one.companies({
-				from: r.company_holidays.company_id,
-				to: r.companies.id
+		holiday_settings: cascade(
+			r.one.jurisdiction_settings({
+				from: r.company_holidays.settings_id,
+				to: r.jurisdiction_settings.id
 			})
 		)
 	},
@@ -217,7 +158,14 @@ export default ((r) => ({
 		component_entry_employment: r.many.component_entries(),
 		loan_employment: r.many.loans(),
 		leave_request_employment: r.many.leave_requests(),
-		leave_account_employment: r.many.leave_accounts(),
+		/**
+		 * Not a cascade, on purpose. The employment's `before` hook returns this edge as the complete
+		 * set of the employment's generated entitlements, and `cascade(...)` would make every
+		 * omission a delete: a restatement that missed a sealed year would erase audit evidence,
+		 * and deleting an employment would take its ledger with it. Restrict refuses both.
+		 * Authority is not on the edge: what the hook returns is the workspace's own work.
+		 */
+		leave_entitlement_employment: r.many.leave_entitlements(),
 		work_day_employment: r.many.work_days(),
 		payslip_employment: r.many.payslips()
 	},
@@ -279,6 +227,11 @@ export default ((r) => ({
 			to: r.pay_components.id
 		}),
 		/**
+		 * The capture that settled this entry, when a run has. Declared so the Entries page can carry
+		 * its lock state on the row it lists rather than open a second live query for it (B12).
+		 */
+		payslip_component_entry_input_component_entry: r.many.payslip_component_entry_inputs(),
+		/**
 		 * A `MANUAL_ADJUSTMENT` entry points at the settled output it corrects, and the database
 		 * holds that edge. NOT a cascade: a correction is the evidence that a settled output was
 		 * fixed, so the settled adjustment cannot be deleted while the correction names it, and
@@ -297,9 +250,9 @@ export default ((r) => ({
 
 	leave_requests: {
 		leave_entry_request: r.many.leave_entries(),
-		request_leave_account: r.one.leave_accounts({
-			from: r.leave_requests.leave_account_id,
-			to: r.leave_accounts.id
+		request_leave_entitlement: r.one.leave_entitlements({
+			from: r.leave_requests.leave_entitlement_id,
+			to: r.leave_entitlements.id
 		}),
 		leave_request_employment: r.one.employments({
 			from: r.leave_requests.employment_id,
@@ -334,13 +287,13 @@ export default ((r) => ({
 			to: r.companies.id
 		}),
 		/**
-		 * The statutory snapshot this run was calculated under. `restrict` on this end: a snapshot a
-		 * paid run used is an append-only historical record, and a draft's snapshot id is replaced
-		 * whole on recalculation rather than left dangling.
+		 * The jurisdiction settings version this run was calculated under. `restrict` on this end: a
+		 * version a paid run used is an append-only historical record, and a draft's version id is
+		 * replaced whole on recalculation rather than left dangling.
 		 */
-		statutory_snapshot_jurisdiction: r.one.jurisdictions({
-			from: r.payroll_runs.statutory_snapshot_id,
-			to: r.jurisdictions.id
+		settings_payroll_run: r.one.jurisdiction_settings({
+			from: r.payroll_runs.settings_id,
+			to: r.jurisdiction_settings.id
 		}),
 		payslip_payroll_run: r.many.payslips()
 	},

@@ -1,19 +1,17 @@
 import {
 	captureLedgerGrants,
-	eventLeaveAccountGrant,
 	grantsOn,
 	grantOn,
 	leaveApproval,
 	manualLeaveAdjustmentGrant,
-	leavePlanControllerGrants,
 	mergeGrants,
 	payrollGrants,
-	payrollRebuildGrants,
 	payrollRunApprovalFromController,
 	peopleGrants,
 	referenceGrants,
+	settingsCatalogueGrants,
+	settingsGrants,
 	statutoryGrants,
-	statutoryProfileGrants,
 	workDayWriteGrants
 } from '../../lib/policy_grants.js';
 import type { Policy } from './$types.js';
@@ -33,14 +31,13 @@ import type { Policy } from './$types.js';
  *     has not been agreed to.
  *   - no `payroll_runs.mutate.existing`, no `payroll_runs.delete` — a controller does not re-run a
  *     payroll and does not erase one.
- *   - `payrollRebuildGrants()` — the engine's `create.before` hook writes payslips, adjustments and
- *     junctions as the **requesting subject**, not elevated. Without these grants a held create
- *     refuses on its own output. This is not re-run authority: it does not add `mutate.existing` or
- *     `delete` on `payroll_runs`, and a controller never calls `clearRunResults`.
+ *   - nothing on payslips, adjustments or the capture junctions' writes. The engine returns them
+ *     from the run's `before` hook, and what a hook returns is the workspace's own work: a
+ *     controller's own grant is the run.
  *
- * Kept generated, because the groups are what the policy actually says. `referenceGrants` with four
- * actions beside `statutoryGrants` with one is a rule you can read — a company owns its configuration
- * and only reads the law — and it vanishes into eighty indistinguishable lines once flattened. The
+ * Kept generated, because the groups are what the policy actually says. `settingsGrants('draft')`
+ * beside `settingsGrants('seal')` on the manager is a rule you can read — a controller prepares
+ * versions and a manager enacts them — and it vanishes into eighty indistinguishable lines once flattened. The
  * exceptions are written out below the generated blocks, which is where the interesting part of any
  * permission set lives. See `src/lib/policy_grants.ts` for why the groups are functions.
  *
@@ -81,9 +78,11 @@ export default {
 
 	grants: mergeGrants(
 		referenceGrants('read', 'mutate.new', 'mutate.existing', 'delete'),
-		leavePlanControllerGrants(),
+		// The settings lineage: read every version, prepare drafts and their rows; sealing and
+		// voiding are the HR Manager's, and every hook refuses a write under a seal.
 		statutoryGrants('read'),
-		statutoryProfileGrants(),
+		settingsGrants('draft'),
+		settingsCatalogueGrants('read', 'mutate.new', 'mutate.existing', 'delete'),
 		// Research receipts are append-only worker evidence. Controllers may inspect but not alter them.
 		peopleGrants('read'),
 		peopleGrants('mutate.new', 'mutate.existing', 'delete'),
@@ -120,14 +119,10 @@ export default {
 
 		grantsOn('leave_requests', ['read', 'mutate.existing', 'delete']),
 		grantOn('leave_requests', 'mutate.new', { approval: leaveApproval }),
-		eventLeaveAccountGrant(true),
 		manualLeaveAdjustmentGrant(true),
 
 		payrollGrants('read'),
-		payrollRebuildGrants(),
-		// The engine reads the capture junctions under the requesting subject while it gathers: which
-		// one-off entries an earlier run already took, and what a prior payslip captured. Without
-		// this read a company with either refuses the run with a bare policy denial.
+		// The Scheduling app reads the capture junctions as this subject to mark consumed days.
 		captureLedgerGrants(),
 		grantOn('payroll_runs', 'mutate.new', { approval: payrollRunApprovalFromController })
 	),

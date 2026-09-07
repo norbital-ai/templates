@@ -39,6 +39,8 @@ type ComponentEntryCandidate = Readonly<{
 export const COMPONENT_ENTRY_EVENT_MISMATCH = 'COMPONENT_ENTRY_EVENT_MISMATCH' as const;
 
 const PAY_PERIOD = /^\d{4}-(?:0[1-9]|1[0-2])$/;
+/** A run period: a month, or a half of one at a semi-monthly company (`YYYY-MM-1` / `YYYY-MM-2`). */
+const RUN_PERIOD = /^\d{4}-(?:0[1-9]|1[0-2])(?:-[12])?$/;
 const CALENDAR_DAY = /^\d{4}-\d{2}-\d{2}$/;
 /** The two facts a candidate carries beside the event, so "allowed" can be subtracted. */
 const BESIDE_EVENT = ['effective_range', 'corrects_adjustment_id', 'evidence_file'] as const;
@@ -115,8 +117,11 @@ export const componentEntryEventIssues = (candidate: ComponentEntryCandidate): s
 		issues.push('A manual correction must name the settled adjustment it corrects.');
 
 	if (candidate.pay_period != null && candidate.pay_period !== '') {
-		if (typeof candidate.pay_period !== 'string' || !PAY_PERIOD.test(candidate.pay_period))
-			issues.push('The pay period override must be a month written YYYY-MM.');
+		if (typeof candidate.pay_period !== 'string' || !RUN_PERIOD.test(candidate.pay_period))
+			issues.push(
+				'The pay period override must be a payroll period: a month written YYYY-MM, or a half ' +
+					'written YYYY-MM-1 / YYYY-MM-2 at a semi-monthly company.'
+			);
 	}
 
 	const amount = decodeNumber(candidate.amount);

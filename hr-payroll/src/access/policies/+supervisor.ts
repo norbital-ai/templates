@@ -68,6 +68,8 @@ export default {
 	grants: mergeGrants(
 		employeeSelfServiceGrants(),
 		referenceGrants('read'),
+		grantsOn('leave_types', ['read']),
+		grantsOn('company_holidays', ['read']),
 		statutoryGrants('read'),
 		peopleGrants('read'),
 		leaveCalendarGrants(),

@@ -14,8 +14,8 @@ export default defineModel(
 	{
 		employment_id: uuid().notNull(),
 		leave_type_id: uuid().notNull(),
-		/** Resolved and enforced by the write hook. No account means no application. */
-		leave_account_id: uuid(),
+		/** Resolved and enforced by the write hook. No entitlement means no application. */
+		leave_entitlement_id: uuid(),
 		event: custom('leave_event').notNull(),
 		certificate_file: file(),
 		kind: text().generatedAlwaysAs(sql`event ->> 'kind'`),
@@ -48,7 +48,7 @@ export default defineModel(
 	},
 	{
 		description:
-			'A time-off application only. Approval creates the request; its hook posts the corresponding TAKEN movement into the account ledger.',
+			'A time-off application only. Approval creates the request; its hook posts the corresponding TAKEN movement on the entitlement ledger.',
 		recordLabel: 'summary',
 		icon: 'lucide:calendar-off',
 		indexes: [{ columns: ['employment_id', 'leave_type_id', 'from_date'] }]

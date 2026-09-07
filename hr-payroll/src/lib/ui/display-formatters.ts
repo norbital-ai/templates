@@ -143,28 +143,6 @@ const AWARD_KIND_LABELS: Readonly<Record<string, TenantI18nKeys>> = {
 	FIXED: 'component.award_kind_fixed'
 };
 
-/**
- * One of five density levels for a seasonality heatmap cell, driven by the count over the
- * maximum. The leave and pay-component seasonality panels draw their one heatmap with this, so
- * the two cannot drift apart on what "a bright cell" means.
- */
-export function heatmapClass(count: number, maximum: number): string {
-	if (count === 0 || maximum === 0) return 'bg-muted/35 text-muted-foreground';
-	const level = Math.ceil((count / maximum) * 5);
-	switch (level) {
-		case 1:
-			return 'bg-primary/10 text-foreground';
-		case 2:
-			return 'bg-primary/25 text-foreground';
-		case 3:
-			return 'bg-primary/45 text-primary-foreground';
-		case 4:
-			return 'bg-primary/70 text-primary-foreground';
-		default:
-			return 'bg-primary text-primary-foreground';
-	}
-}
-
 function labelOf(
 	t: Translator,
 	map: Readonly<Record<string, TenantI18nKeys>>,

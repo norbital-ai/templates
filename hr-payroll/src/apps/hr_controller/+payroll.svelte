@@ -17,7 +17,13 @@
 	import { PAYROLL_RUN_LIST_COLUMNS } from '../../collections/payroll_runs/list-columns.js';
 	import { formatCalendarDate } from '../../lib/ui/display-formatters.js';
 	import { payrollRunsExportQuery, saveCollectionExport } from '../../lib/ui/export-download.js';
-	import { daysBetweenKeys, payDateFor, periodWindow, todayKey } from '../../lib/ui/calendar.js';
+	import {
+		companyPeriods,
+		daysBetweenKeys,
+		payDateFor,
+		periodWindow,
+		todayKey
+	} from '../../lib/ui/calendar.js';
 
 	const { t } = useI18n<TenantI18nKeys | UiKeys>();
 
@@ -49,19 +55,20 @@
 	type CycleRow = Schema.Schema.Type<typeof CycleRowSchema>;
 
 	/**
-	 * Three months back, the current month and three ahead for the selected company. The pay date is
-	 * the company's `pay_day` on that month's calendar; the attendance window shown is the one the
-	 * engine actually stored on the run, never a second derivation of it.
+	 * Three months back, the current month and three ahead for the selected company, in its own
+	 * grammar: one row a month, or two halves a month for a semi-monthly company, each with its own
+	 * pay date (the 15th, then the month end). The attendance window shown is the one the engine
+	 * actually stored on the run, never a second derivation of it.
 	 */
 	const cycleBoard = $derived.by((): CycleRow[] => {
 		if (selectedCompanyId == null || selectedCompany == null) return [];
 		const runByCycle = new Map((payrollRunsQuery?.current ?? []).map((run) => [run.period, run]));
-		const open = periodWindow(7, 3)
+		const open = companyPeriods(periodWindow(7, 3), selectedCompany.pay_frequency)
 			.map((period) => {
 				const run = runByCycle.get(period);
 				return {
 					period,
-					payDate: payDateFor(period, selectedCompany.pay_day),
+					payDate: payDateFor(period),
 					runState: run?.lifecycle ?? null,
 					attendance: run
 						? `${formatCalendarDate(run.attendance_from)} → ${formatCalendarDate(run.attendance_to)}`

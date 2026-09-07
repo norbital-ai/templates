@@ -88,24 +88,8 @@ export default {
 		}),
 		grantOn('shift_definitions', 'read', { fields: ['id', 'company_id', 'code', 'variant'] }),
 		grantsOn('work_days', ['read']),
-		// Hook dependencies, masked to exactly what the guards read. Every attendance write runs
-		// the day guards as this subject: without these reads a punch on a leave day or inside a
-		// paid window dies as AccessDenied instead of the refusal that names the cause.
-		grantOn('leave_requests', 'read', {
-			fields: [
-				'employment_id',
-				'kind',
-				'approval_id',
-				'from_date',
-				'to_date',
-				'half_day_start',
-				'half_day_end'
-			]
-		}),
-		grantOn('payroll_runs', 'read', {
-			fields: ['company_id', 'period', 'lifecycle', 'attendance_from', 'attendance_to']
-		}),
-		grantOn('payslip_work_day_inputs', 'read', { fields: ['work_day_id', 'period'] }),
+		// Every grant answers "what may the device do"; none answers "what does a hook need". The
+		// day guards a punch runs, and the ledger an enrolment generates, read as the workspace.
 		grantOn('work_days', 'mutate.new', {
 			fields: ['employment_id', 'work_date', 'worked_intervals', 'break_minutes']
 		}),

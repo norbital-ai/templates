@@ -18,19 +18,20 @@ export default defineModel(
 		/**
 		 * Hash of the economic inputs the run consumed — terms, facts, entries, loans, year-to-date
 		 * consumption — again a fingerprint, never a copy: the captured inputs themselves are the four
-		 * `payslip_*_inputs` junctions. An ad hoc run for the same month refuses to proceed when this
+		 * `payslip_*_inputs` junctions. An ad hoc run for the same period refuses to proceed when this
 		 * differs from the paid regular run's, because it may only add monetary entries. Null on a run
 		 * that predates the fingerprint; such a month takes corrections in a later regular payroll.
 		 */
 		core_input_hash: text(),
 		/**
-		 * The statutory profile that governed this run — the SEALED `jurisdictions` row in force when
-		 * the run was picked, with the pay catalogue sealed beside it. That link plus `pay_date` is the
-		 * whole provenance: a sealed profile is immutable (it can only be voided by a successor), so the
-		 * rates, bands and catalogue a paid run used can always be re-read exactly, and no copy of them
-		 * travels on the run. A real foreign key with `restrict` on the other end.
+		 * The jurisdiction settings version that governed this run: the sealed `jurisdiction_settings`
+		 * row in force when the run was picked, with every scheme, band, catalogue row and holiday
+		 * sealed under it. That link plus `pay_date` is the whole provenance: a sealed version and its
+		 * children are immutable (a wrong one is voided, never edited), so the rates, bands and
+		 * catalogue a paid run used can always be re-read exactly, and no copy of them travels on the
+		 * run. A real foreign key with `restrict` on the other end.
 		 */
-		statutory_snapshot_id: uuid().notNull(),
+		settings_id: uuid().notNull(),
 		/**
 		 * The engine/build identity that interpreted the captured configuration. Engine-owned and
 		 * stable for a deployed payroll algorithm: a configuration hash identifies data, not code,
@@ -44,12 +45,12 @@ export default defineModel(
 	},
 	{
 		description:
-			'A frozen payroll calculation for a company and month. Sequence zero is regular payroll; subsequent ad hoc runs pay the cumulative monthly difference. Only drafts can be deleted. The run names the statutory snapshot that governed it and the calculation version that produced its outputs.',
+			'A frozen payroll calculation for a company and period: a month (YYYY-MM) at a monthly company, a half (YYYY-MM-1 for the 1st to the 15th, YYYY-MM-2 for the 16th to the month end) at a semi-monthly one. Sequence zero is regular payroll; subsequent ad hoc runs pay the cumulative difference for the period. Only drafts can be deleted. The run names the jurisdiction settings version that governed it and the calculation version that produced its outputs.',
 		recordLabel: ['period', 'lifecycle'],
 		icon: 'lucide:play-circle',
 		indexes: [
 			{ columns: ['company_id', 'period', 'sequence'], unique: true },
-			{ columns: ['statutory_snapshot_id'] }
+			{ columns: ['settings_id'] }
 		]
 	}
 );

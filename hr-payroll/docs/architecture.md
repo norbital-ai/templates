@@ -8,7 +8,7 @@ keeps business inputs separate from settled output, but does not add projection 
 ```text
 APPROVED INPUTS                          SETTLED OUTPUT
 
-employment_terms --+                  +-> payroll_runs [one policy + sealed statutory profile]
+employment_terms --+                  +-> payroll_runs [one sealed jurisdiction settings version]
 work_days ----------+                 |        |
 leave_requests -----+--> calculator --+        v
 component_entries --+                          payslips
@@ -26,13 +26,98 @@ pay_components <-------------------------- payslip_adjustments
 loans -> loan_repayments
  [the agreement, and the amounts due under it]
 
-leave_types
- [accrual + payroll effect + entitlement layers]
-       |
-       `-- statutory floor
-           + organisation enhancement
-           + employee enhancement
+jurisdiction_settings  [one sealed, shareable root per lineage version; companies.settings_code]
+ |- statutory_contributions -> contribution_rates
+ |- pay_components
+ |- leave_types  [accrual + payroll effect + entitlement layers + eligibility]
+ `- company_holidays
 ```
+
+## Jurisdiction settings: the sealed, shareable root
+
+Every rule an entity's payroll, leave and scheduling read hangs off one root,
+`jurisdiction_settings`. A **lineage** is a code (`MY`, `SG`, or `SG-norbital` where an entity
+forked the shared law with its own catalogue); a company binds to a lineage by
+`companies.settings_code`, so two entities can take one root and a change of law never touches
+the company row. A lineage is a sequence of **versions**: one row each, sharing the code, each
+carrying the payroll scalars (currency, tax year, proration, the rate-of-pay divisor, the
+working-time regime) and owning every downstream row through `settings_id`: the schemes and their
+rate bands, the pay components, the leave types and the holiday calendar, each flagged
+`is_statutory` where the law names it and company rule where the entity does. Shift definitions
+stay per company: site operations, not rules.
+
+The version **in force** on a day is the sealed, unvoided one whose `effective_range` covers it,
+read half-open (`[start, end)`), so a successor beginning the day its predecessor ends is
+adjacent. `lib/jurisdiction_settings.ts` is the one implementation of that pick; the engine, the
+leave reconciler and the Settings timeline all call it.
+
+**Sealing** is the HR Manager's act (`sealed_at`, under approval). It freezes the version and all
+of its children structurally: every child collection's hooks read the root as the workspace and
+refuse any create, update or delete once `sealed_at` is set, in one sentence naming the version,
+and the root's own hook refuses every column change except a one-time void. No policy can bypass
+that; the grants only decide who may prepare drafts (the controller) and who may seal or void
+(the manager). A sealed version is never unsealed and never deleted. A wrong one is **voided**
+(`voided_at`, `void_reason`, required when a paid run cites it): it stops governing, stays cited
+by the runs it priced, and is never restored.
+
+A **new version** (`functions/+new_settings_version.ts`, the timeline's New version action)
+clones the chosen version and every row under it into a draft of the same code starting on a
+given day; schemes keep their codes under new ids and reliefs are rewritten to the clones. Sealing
+the draft ends the predecessor's range the day before, in the same write, which is what lets the
+database's `jurisdiction_settings_sealed_no_overlap` exclusion (sealed, unvoided rows of one code
+never overlap) accept the seal. Every payroll run cites the version id it priced against
+(`payroll_runs.settings_id`); the leave reconciler generates each leave year from the version in
+force on the year's rule date, and an entitlement keeps the settlement it was sealed with. A
+statutory registration names a scheme row; `payroll_runs/lib/statutory-facts.ts` realigns it to
+the picked version's scheme of the same code before the engine reads it.
+
+**Sharing and forking.** Two entities that operate under one law bind to one lineage and price
+against the same version id; a catalogue edit is a draft of that lineage and reaches both when it
+seals. An entity that wants its own catalogue forks: a new lineage whose code is the jurisdiction
+code with the entity's suffix (`SG-norbital`), cloned from the shared version, and the company's
+`settings_code` moves to it. The engine's few country rules read `countryOf(code)`, the first
+segment, so a fork is still Singapore law.
+
+**Statutory drift.** A version names the official pages it was transcribed from in
+`research_urls`. The `statutory_drift` automation (monthly, or by hand for one lineage) reads
+them for each lineage's version in force through the runtime's page reader, asks the model for
+the official position of every statutory row (each scheme's band table, each statutory leave
+type's entitlement, each statutory component's treatments) and diffs that itself against the
+sealed rows. When anything differs it clones the version into a draft the way New version does,
+with the changed rows in place of the cloned ones and a `research_notes` review sheet: per
+change the row, the field, the sealed and the official value, the page, the quote the model
+gave (verified against the retrieved page), when it was read and the digest of what was read.
+Settings badges the draft "Proposed by statutory drift" and lists the sheet; HR edits the draft
+and the HR Manager seals or deletes it. The automation never seals, never touches a sealed row,
+offers one draft per lineage at a time, and researches nothing for a version without research
+URLs. A lineage whose model turn fails is reported by name and the others proceed.
+
+Research is bounded: a version names at most 32 entry URLs, read two at a time through the
+host's page reader (HTTPS only, 2 MiB per page, 30 s per read), and one research turn may open
+at most 12 further pages with `read_official_page`, on the named origins only. No unreachable
+source is silent. Every entry URL that could not be read, whether DNS, connect, HTTP status, byte
+limit, timeout or a redirect off the named origins, is recorded with its url, a reason sentence
+and the time of the attempt: on the lineage's outcome in the run result (`sources`, and a note
+reading "3 of 5 sources read; unreachable: ..."), and under `unreachable` on the draft's
+`research_notes` sheet when a draft is created, which Settings lists under the proposal so HR
+knows which official pages the proposal does not stand on. A lineage none of whose sources
+answered is reported by name as `sources_unreachable` in the result, produces no draft, and the
+others proceed. A source the host cannot route (an IPv6-only page read from a container without
+IPv6, say) shows up here as unreachable: that is an ops fact about the host, not a reason to
+drop the source from the version.
+
+**Settlement is one behaviour.** No company states a settlement policy; the engine has exactly
+one, and the jurisdiction version supplies the only inputs:
+
+- a late joiner (hired after the attendance window closed) is paid in the next run, the skipped
+  period re-derived from the contract as a second base line;
+- a leaver is settled in the final period, attendance read to the exit date and recurring wages
+  prorated to it;
+- overtime settles in the window the hours fall in; at a semi-monthly company that is the half
+  it was earned in, never a shifted window;
+- an absent day is priced by the version's proration basis. The Philippine version states
+  `FIXED_DAYS 21.75`, the DOLE monthly factor, so a monthly worker's absent day is 1/21.75 of
+  the wage; Malaysia states calendar days.
 
 **A payslip comprises four things, and the kind is derived, never declared.** Base, proration and
 statutory are caused by no editable record, so they are inlined on `payslips` as arrays. An
@@ -42,13 +127,17 @@ adjustment.
 
 The payroll core is five collections:
 
-1. `pay_components` — one reusable definition with a strict settlement/statutory policy and a
+1. `pay_components` — the catalogue of one settings version: one reusable definition with an
+   economic direction (`policy`), a treatment per statutory scheme code
+   (`contribution_treatments`), an `is_statutory` flag for the rows the law names, and a
    polymorphic calculation definition.
+   Derived overtime is charged through the `OVERTIME` and `OVERTIME_EXCESS` rows
+   (`DERIVED_OVERTIME`), which the regime prices and nobody enters.
 2. `component_entries` — the employee-specific monetary facts: claims, standing allowances,
    bonuses, arrears settlements and HR manual corrections. The `event` union says why the entry
    exists; the amount is a positive magnitude and direction comes from the component policy.
-3. `payroll_runs` — one company-period calculation, naming the sealed statutory profile that
-   governed it and the calculation version that interpreted the captured configuration.
+3. `payroll_runs` — one company-period calculation, naming the sealed jurisdiction settings
+   version that governed it and the calculation version that interpreted the captured configuration.
 4. `payslips` — one employment's totals in a run, plus base, proration and statutory inline, and
    the four captured-input junction relations.
 5. `payslip_adjustments` — the one output relation, every row naming the capture that caused it.
@@ -65,39 +154,51 @@ read and priced at nothing is a junction row with no adjustment beside it: consu
 never read are different claims, and the junction's `restrict` FK into the business source is what
 refuses the delete.
 
-## Leave accounts and ledger
+## Leave entitlements and ledger
 
-Leave is not itself money. Statutory profiles state legal floors; company `leave_plans` and their
-`leave_types` state company policy. Reconciliation compiles both into one sealed `leave_account` per
-employment, leave code, and leave year. `leave_entries` is the append-only signed ledger inside that
-account. `leave_requests` contains applications only.
+Leave is not itself money. The company's `leave_types` catalogue states every rule: who may take a
+type (one CEL expression over the person), its service bands, how it accrues, what the year end
+and an exit do with the balance, and whether the row is the law (`is_statutory`, cited by
+`authority`). The reconciler generates one `leave_entitlements` row per employment, leave type and
+leave year from that catalogue; `leave_entries` is the append-only signed ledger on it;
+`leave_requests` contains applications only. The statutory profile carries no leave vocabulary.
 
 ```text
-effective yearly target = max(statutory profile floor by statutory_kind,
-                              eligible company organisation service band)
+target(year) = the type's band at the person's service on the year's rule date,
+               if the person satisfies the type's eligibility on that date; otherwise no row
 
 available(date) = SUM(posted leave_entries.days through date)
                   - held application days
 ```
 
-No live policy calculation changes a stored account. A new statutory or company version appends a
-`STATUTORY_ADJUSTMENT` or `POLICY_ADJUSTMENT` according to its explicit mid-year transition.
-Requests require an existing open account. Approval appends `TAKEN`; changing or withdrawing an
-uncaptured request appends the exact `TAKEN` or `RESTORED` delta.
+No live policy calculation changes a stored entitlement. A catalogue edit appends one
+`ADJUSTMENT` per open entitlement for the delta, keyed by the type's `updated_at`; MONTHLY lines
+after the edit come from the new band. Requests require an existing open entitlement. Approval
+appends `TAKEN`; changing or withdrawing an uncaptured request appends the exact `TAKEN` or
+`RESTORED` delta.
 
-Monthly and upfront accounts may carry only when the effective rule explicitly supplies a cap.
-Default carry is none. Closing transfers debit the old account and credit the new one once, and are
-blocked while the old account has a held request. Unmetered types still receive a yearly account
+The ledger is hook-carried. An employment's `before` hook returns the employment with the complete
+set of its entitlements and lines nested under `leave_entitlement_employment`; a term or a child
+fact restates the employment the same way from its own hook; a leave request returns its `TAKEN`
+line under `leave_entry_request`. One rule of authority covers all of it: the caller is checked on
+the row it submitted, and everything a hook reads, returns or writes is the workspace's own work,
+so the caller holds no grant on the derived collections and a kiosk enrolment lands the same
+ledger an HR hire does. The `leave_ledger_refresh` automation exists for what is not one write:
+the monthly walk, a catalogue edit across a lineage, the seed. The employment edge is
+deliberately not a cascade, so a restatement can never delete a sealed year.
+
+The ledger begins with the lineage's first sealed version. A leave year whose rule date no sealed
+version covers generates nothing; balances carried from before that version are opening
+`MANUAL_ADJUSTMENT` lines, reviewed like any other, never generated from a version that does not
+cover the date.
+
+Monthly and upfront entitlements carry only when the type's settlement supplies a cap. Default
+carry is none. Closing transfers debit the old entitlement and credit the new one once, and are
+blocked while the old one has a held request. Unmetered types still receive a yearly entitlement
 and the same request approval/payroll treatment; they skip only the balance ceiling.
 
-Statutory qualification is independent of stricter company eligibility. Statutory members state
-their own minimum service, vesting and `YEAR`/`EVENT` basis. `EVENT` accounts are reviewed
-allocation facts with qualifying date, normalized household/event reference, evidence and one
-bounded window; their ledger is identical to a yearly account and they never duplicate at a
-calendar-year boundary.
-
-The same layering principle applies to claim and allowance caps in their pay-component definition:
-a cap is the most generous applicable company layer. This is policy data, not a reason to add one
+The same evaluator decides which pay components and claim cap layers apply to a person: a cap is
+the most generous applicable company layer. This is policy data, not a reason to add one
 collection per benefit kind. See `docs/leave.md` for the complete lanes and HR operating flow.
 
 ## Run snapshot and locking
@@ -109,10 +210,10 @@ would duplicate identical JSON and permit impossible disagreement inside one run
 The run names its law twice, as two different kinds of fact:
 
 ```text
-statutory_snapshot_id     real FK to the sealed statutory profile that governed the
+settings_id               real FK to the sealed jurisdiction settings version that governed the
                           calculation. Engine-owned, restrict on the law's end, and frozen when
-                          the run is calculated: legislation
-                          changes enact a new profile version, never an edit of a used one.
+                          the run is calculated: legislation changes enact a new version, never
+                          an edit of a used one.
 calculation_version       the engine/build identity that interpreted the captured configuration.
                           A configuration hash identifies data, not code — without a durable
                           version stamp, two builds of the same captured rules after an engine
@@ -136,8 +237,15 @@ leave events. Neither requires a mutable ledger/cache collection.
 ### Run state
 
 One regular run is permitted per company and period. Ad hoc runs share that period, each with its
-own sequence and frozen inputs. They settle the difference from the paid runs already in the month,
+own sequence and frozen inputs. They settle the difference from the paid runs already in the period,
 including cumulative statutory ceilings, so a same-cycle adjustment does not repeat the base wage.
+
+A run's period is written in its company's grammar. A monthly company runs months, `YYYY-MM`. A
+semi-monthly company runs two payrolls a month and its periods say which: `YYYY-MM-1` is the 1st to
+the 15th, paid on the 15th; `YYYY-MM-2` is the 16th to the month end, paid at the month end. The
+create hook refuses the other grammar by name (a half at a monthly company, a whole month at a
+semi-monthly one). Period text orders chronologically within a company (`2026-02-1 < 2026-02-2 <
+2026-03-1`), which is what the previous-run-paid rule and the year-to-date filter compare.
 
 ```mermaid
 stateDiagram-v2
@@ -153,16 +261,16 @@ allowed only after every prior run in the company sequence is paid.
 
 ### Eight phases
 
-| Phase      | Reads or produces                                                                                                                                                                           | Failure behaviour                                                                                                       |
-| ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
-| PICK       | Company, jurisdiction, component catalogue, rates, OT rules, shifts, holidays and leave policy; produces the configuration hash and resolves the sealed statutory profile the run will name | Fails when no sealed profile covers the period                                                                          |
-| VALIDATE   | Mapping completeness, pay calendar and rule integrity                                                                                                                                       | Blocks before reading an employee                                                                                       |
-| GATHER     | Approved employees, terms, facts, component entries, loan repayments, leave, work days and what earlier PAID runs consumed                                                                  | Refuses a truncated query, a missing required employment fact, or a one-off entry another standing run already captured |
-| MEASURE    | Converts schedule, entries, formulas and overtime into typed monetary lines, and names each line's causal input                                                                             | Refuses unpriced hours, missing terms or invalid formula inputs                                                         |
-| ACCUMULATE | Applies every line's statutory treatment to each contribution base                                                                                                                          | Refuses missing or undecided treatment cells                                                                            |
-| CONTRIBUTE | Applies effective rate bands and statutory special rules                                                                                                                                    | Refuses an uncovered band or missing selector fact                                                                      |
-| SETTLE     | Calculates gross, deductions, net and employer cost                                                                                                                                         | Reduces a deduction that would drive net below zero; what remains owed stays on the source, re-derived next run         |
-| PERSIST    | Returns the run, its payslips, the four captured-input junctions and every adjustment as one declarative payload from the `before` hook; the runtime performs the only write there is       | Writes parent-first in one transaction; a draft replacement replaces the whole prior graph or nothing                   |
+| Phase      | Reads or produces                                                                                                                                                                                                                       | Failure behaviour                                                                                                       |
+| ---------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| PICK       | Company, the settings version in force for its lineage, and under it the schemes, rates, catalogue, OT rules, holidays and leave types, plus the company's shifts; produces the configuration hash and the version id the run will name | Fails when no sealed version of the lineage covers the period, naming the company and the lineage                       |
+| VALIDATE   | Mapping completeness, pay calendar and rule integrity                                                                                                                                                                                   | Blocks before reading an employee                                                                                       |
+| GATHER     | Approved employees, terms, facts, component entries, loan repayments, leave, work days and what earlier PAID runs consumed                                                                                                              | Refuses a truncated query, a missing required employment fact, or a one-off entry another standing run already captured |
+| MEASURE    | Converts schedule, entries, formulas and overtime into typed monetary lines, and names each line's causal input                                                                                                                         | Refuses unpriced hours, missing terms or invalid formula inputs                                                         |
+| ACCUMULATE | Applies every line's statutory treatment to each contribution base                                                                                                                                                                      | Refuses missing or undecided treatment cells                                                                            |
+| CONTRIBUTE | Applies effective rate bands and statutory special rules                                                                                                                                                                                | Refuses an uncovered band or missing selector fact                                                                      |
+| SETTLE     | Calculates gross, deductions, net and employer cost                                                                                                                                                                                     | Reduces a deduction that would drive net below zero; what remains owed stays on the source, re-derived next run         |
+| PERSIST    | Returns the run, its payslips, the four captured-input junctions and every adjustment as one declarative payload from the `before` hook; the runtime performs the only write there is                                                   | Writes parent-first in one transaction; a draft replacement replaces the whole prior graph or nothing                   |
 
 ### Periods and cutoffs
 
@@ -197,24 +305,49 @@ event day >  cutoff day  → following payroll month
 This default is intentionally distinct from attendance selection. A late-submitted claim may be
 assigned to a specific pay period without rewriting the service or receipt date.
 
-#### Per-frequency overrides
+#### Cadence
 
-The company settlement policy may define an OT/night-shift window for a pay frequency. This allows a
-semi-monthly group to settle OT from the 1st–15th while monthly staff use the company window.
-Ordinary unpaid leave continues to use its own settlement rule; an OT override does not silently
-move NPL.
+A company pays `MONTHLY` or `SEMI_MONTHLY` (`companies.pay_frequency`). A semi-monthly company
+runs two payrolls a month, `YYYY-MM-1` and `YYYY-MM-2`, and each employment is settled on its own
+cadence inside them:
+
+| Cadence at a semi-monthly company | `YYYY-MM-1`                   | `YYYY-MM-2`                                        |
+| --------------------------------- | ----------------------------- | -------------------------------------------------- |
+| `SEMI_MONTHLY` terms              | 1st to 15th, paid on the 15th | 16th to month end, paid at the month end           |
+| `MONTHLY` (and DAILY, HOURLY)     | nothing; not on the run       | the cutoff window for the month, paid at month end |
+
+The run records the envelope: the first half's attendance is the 1st to the 15th; the second half's
+runs from the cutoff day of the previous month to the month end, and pays at the month end. A
+semi-monthly employment's wage is prorated per half against the whole month's calendar days (15/28
+and 13/28 in February), so the two halves sum to the monthly contract wage. Every period pays on its
+last day. Overtime settles in the window the hours fall in, which is the employment's own
+attendance window; there is no per-frequency override.
+
+The default `pay_period` of a component entry follows the cadence: at a semi-monthly company a
+semi-monthly employment's entry settles in the half its day falls in (the 15th in the first), and a
+monthly employment's entry settles in the `-2` run of the month the cutoff rule names. An explicit
+`pay_period` override is written in the same grammar and still wins.
+
+The withholding projection counts payslips per cadence: twenty-four remain to a semi-monthly
+employment in a January tax year, twelve to a monthly one. A half-month payslip is smaller than a
+month, so the projection scales it by its share of the month (calendar days), and twenty-four halves
+project the same annual wage as twelve months; the tax still to withhold is spread over the payslips
+remaining, so each month withholds the same total either way.
 
 ### Joiners, leavers and arrears
 
 The salary month is intersected with the employment range. Proration uses the jurisdiction's
-configured basis.
+basis. The three settlement rules are the engine's only behaviour; no company states them:
 
 - A joiner inside the period is prorated from the hire date.
-- If company policy defers a person who joined after the attendance window closed, that period has
-  no payslip. The next run re-derives what the skipped period would have paid from the contract and
-  records it as arrears.
-- A leaver is measured through the applicable final settlement boundary. Policy can extend final
-  attendance to the exit date or pay full-period wages without changing the contract row.
+- A person who joined after the attendance window closed has no payslip for that period. The next
+  run re-derives what the skipped period would have paid from the contract and pays it as a second
+  base line on the contracted wage's own component.
+- A leaver settles in their final period: attendance is read through to the exit date, and
+  recurring wages are prorated to it.
+- Every unpaid day settles in the run whose attendance window contains it. An absent day (a
+  scheduled day with no clock, no leave and no holiday) is priced through the unpaid-leave
+  deduction the company's leave catalogue names.
 
 Derived late-joiner arrears are not seeded. For example, an employee who joins mid-February may
 receive March basic plus a separate back-pay basic line for the six days worked before the period
@@ -431,12 +564,12 @@ specific dated hour crossed the threshold; the attendance window determines whic
 
 ### Coverage
 
-Coverage is **data, not code**. It lives in the required `jurisdictions.regime` value alongside the
-pricing ladder and the limits governed by the same law revision. One
-jurisdiction code cannot have overlapping effective ranges, so payroll can never assemble its law
-from independently dated fragments. A null `overtime_coverage` member covers everyone — absence of
+Coverage is **data, not code**. It lives in the required `jurisdiction_settings.regime` value
+alongside the pricing ladder and the limits governed by the same law revision. Sealed versions of
+one lineage cannot have overlapping effective ranges, so payroll can never assemble its law from
+independently dated fragments. A null `overtime_coverage` member covers everyone — absence of
 a coverage restriction is not a restriction that excludes everyone. See
-[Statutory overtime coverage](#statutory-overtime-coverage) for the sources and remaining gaps.
+[Statutory overtime coverage](#statutory-overtime-coverage-what-is-encoded-and-what-is-not) for the sources and remaining gaps.
 
 A contractual entitlement can be more favourable, but it must be encoded as an effective-dated
 coverage/pricing policy. There is no `employment_terms.overtime_eligible` switch: a boolean beside
@@ -487,7 +620,8 @@ dated deduction   = round(calendar-day rate × unpaid days, 2)
 ```
 
 Other jurisdictions or pay frequencies may select working-day or fixed-day proration through
-configuration. The formula is not copied into company pay components.
+configuration: the Philippine version prorates by `FIXED_DAYS 21.75`, so an absent day is 1/21.75
+of the monthly wage. The formula is not copied into company pay components.
 
 ### Component measurement
 
@@ -530,10 +664,11 @@ settlement direction or what it is chargeable to.
 
 #### Leave entitlement
 
-Entitlement for one leave code collapses three layers to `max(statutory, company ?? statutory)`. The
-statutory figure is a floor, not a default: a company that mis-configures maternity leave as 60 days
-still owes 98. Compliance does not depend on the customer configuring correctly, which is the only
-arrangement that survives contact with a real tenant.
+Entitlement for one leave code is the catalogue row's band at the person's service on the rule
+date, for a person the row's eligibility expression covers. A statutory row states the floor the
+law names and changes only under HR Manager approval; a company that wants more than the floor
+edits the band upward under that approval. Compliance is the row and its expression, so a new
+statutory condition is a new expression, never a code release.
 
 ### Component-owned contribution treatment grid
 
@@ -710,21 +845,26 @@ unbroken from the correction back through the paid run to the input it consumed.
 guard bounds what a recovery can take: an overpayment larger than the person's next net is
 recovered across as many cycles as the guard allows.
 
-#### Amending a statutory profile
+#### Amending jurisdiction settings
 
 The law a paid run cited is frozen in place, but the system is built so that is never a dead end:
 
 ```text
-1. Prepare a successor draft        (reference its predecessor, state the new effective date,
-                                      transcribe the law and retain official source evidence)
-2. Approve and seal                  (HR Manager approval; earlier dates keep their old law)
-3. Correct the money                 (approved component entries in a new adjustment run)
+1. New version                       (Settings timeline: clone the version and every row under it
+                                      into a draft starting on the new effective date; the
+                                      statutory drift automation drafts this step itself when an
+                                      official page contradicts a statutory row)
+2. Edit the draft                    (the controller: scalars, schemes, bands, catalogue, holidays)
+3. Seal                              (HR Manager approval; the predecessor's range ends the day
+                                      before, earlier dates keep their old law)
+4. Correct the money                 (approved component entries in a new adjustment run)
 ```
 
-What the amendment must not do is rewrite history: the paid run still names the profile that
-governed it, its `configuration_snapshot` holds the regime whole, and `calculation_version` names
-the code that interpreted it — so any auditor can reconstruct what was believed at payment time,
-and the successor shows the newly approved law. Unpaid drafts remain frozen too; delete and
+What the amendment must not do is rewrite history: the paid run still names the version that
+governed it, its configuration hash covers the regime whole, and `calculation_version` names the
+code that interpreted it, so any auditor can reconstruct what was believed at payment time, and
+the successor shows the newly approved law. A wrong seal is voided, with a reason when a paid run
+cites it; it is never edited and never unsealed. Unpaid drafts remain frozen too; delete and
 replace them if they need to use the new law.
 
 ### Locks
@@ -739,26 +879,69 @@ flowchart LR
   F -->|"immutable"| C["Future correction event"]
 ```
 
-| Boundary             | Current guarantee                                                                                                             | Why                                                                                                                    |
-| -------------------- | ----------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
-| Pending approval     | A record carrying `approval_id` is locked; payroll reads only approved rows                                                   | Prevents use and mutation while a decision is outstanding                                                              |
-| Draft run            | Results may be wholly replaced by recalculation                                                                               | Keeps drafts responsive without mixing old and new lines                                                               |
-| Paid run             | Any update of the run row refuses outright, as does deletion                                                                  | Preserves the exact result used for payment, YTD and audit                                                             |
-| Payslip output       | Payslips, adjustments and the four capture junctions refuse updates outright; deletes only while the run is a draft           | Output rows are create-and-replace under the engine's one write; a correction is a new event in a later cycle          |
-| Statutory profile    | SEALED or VOIDED profiles refuse law-member edits outright (seal freeze, paid-run freeze backstop); deletion restrict-blocked | The citation is the record of what law governed the money; amendments void the version and enact a corrected successor |
-| Loan repayment       | A captured repayment is immutable                                                                                             | Prevents a loan balance from changing behind a paid deduction                                                          |
-| Leave account ledger | Corrections append signed entries                                                                                             | A balance correction remains visible instead of rewriting history                                                      |
-| General event source | `sourceLock` freezes the original leave, entry, repayment or person-day row                                                   | A pending approval, or a captured input in the record's input junction — with or without a monetary output             |
+| Boundary             | Current guarantee                                                                                                                                    | Why                                                                                                                  |
+| -------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| Pending approval     | A record carrying `approval_id` is locked; payroll reads only approved rows                                                                          | Prevents use and mutation while a decision is outstanding                                                            |
+| Draft run            | Results may be wholly replaced by recalculation                                                                                                      | Keeps drafts responsive without mixing old and new lines                                                             |
+| Paid run             | Any update of the run row refuses outright, as does deletion                                                                                         | Preserves the exact result used for payment, YTD and audit                                                           |
+| Payslip output       | Payslips, adjustments and the four capture junctions refuse updates outright; deletes only while the run is a draft                                  | Output rows are create-and-replace under the engine's one write; a correction is a new event in a later cycle        |
+| Settings version     | A sealed version refuses every column edit but a one-time void, and every child row refuses create, update and delete; never unsealed, never deleted | The citation is the record of what law governed the money; amendments enact a new version and a wrong seal is voided |
+| Loan repayment       | A captured repayment is immutable                                                                                                                    | Prevents a loan balance from changing behind a paid deduction                                                        |
+| Leave account ledger | Corrections append signed entries                                                                                                                    | A balance correction remains visible instead of rewriting history                                                    |
+| General event source | `sourceLock` freezes the original leave, entry, repayment or person-day row                                                                          | A pending approval, or a captured input in the record's input junction — with or without a monetary output           |
 
 Leave, entries and person-days share `src/lib/scheduling/lock.ts`. Hooks refuse the write; collection
 forms disable and state the reason; collection tables disable row selection and paint a locked
 leading accent. Corrections are new events, never edits of a consumed source.
 
+## Surfaces
+
+### One live query per page
+
+Every app page opens exactly one live query, on the collection the page is about, carrying its
+relations through `with`; lookups are read once or ride the same `with`, and lock state is a
+column on the row rather than a second subscription. Scheduling is one `work_days` query for the
+month with the employment, employee, terms, holiday and leave request beside each day; Leave is one
+`leave_requests` query carrying the employment, the entitlement with its posted entries and the
+payroll capture; each Settings tab is one query over the chosen version; the employee app's leave
+tab is one `leave_entitlements` query carrying the ledger. `tests/leave-page-registrations.test.ts`
+and its siblings count the registrations per surface and fail on a second. A live `orderBy` names a
+scalar column; ordering by a custom-typed column is a type error at authoring time.
+
+### Entity picker
+
+The picker at the top right of the HR Controller group lists the companies whose
+`effective_range` contains today and nothing else; every sibling page inherits the choice. A
+company's subtitle is its registration number, and a company without one (the seed loader maps
+the source sentinel `SOURCE_NOT_PROVIDED` to `null`) shows none. Statutory fixture companies live
+in a seed stage the demo bootstrap never loads, so they never appear.
+
+### Period grammar
+
+A monthly company's runs are `YYYY-MM`. A semi-monthly company's runs are `YYYY-MM-1` (1st to
+15th, paid on the 15th) and `YYYY-MM-2` (16th to month end, paid at the month end); the run hook
+refuses the other grammar by name, naming the company's frequency. The run form offers halves for
+a semi-monthly company and the month grid otherwise; rosters and the scheduling month stay
+monthly. See "Cadence" above for how each employment is settled inside a half.
+
+### Kiosk
+
+The kiosk resolves its face models from its own chunk, `new URL('../models/human/',
+import.meta.url)`, so a hosted release serves them from the same versioned static path as the
+chunk; an absolute `/__bolt/static/...` path is a 404 on every hosted tenant. After the engine
+loads it requires `human.models.loaded()` to cover every enabled model, and otherwise shows "Face
+engine unavailable" naming the models and never "Camera ready". While running it is never mute at
+a person: a face in frame before an action is chosen shows "Choose check in or check out to
+start"; a face too small or without an embedding for about two seconds shows "Move closer and face
+the camera"; no face for about five seconds shows "No face detected"; each is spoken once per
+attempt, title only, with a natural local voice when the browser offers one and text only
+otherwise. Manual check-in and check-out stay usable when the camera is unavailable.
+
 ## Provenance and audit
 
 ```text
 effective configuration ---> payroll_runs.configuration_snapshot
-statutory law ------------> payroll_runs.statutory_snapshot_id (FK to jurisdictions)
+statutory law ------------> payroll_runs.settings_id (FK to jurisdiction_settings)
 employment ------------------------> payslip
                                       |- base[]       -> component_code           (frozen label)
                                       |- proration[]  -> term_key                (frozen label)
@@ -777,8 +960,8 @@ The adjustment is the output relation and directly answers:
 The three inlined arrays name codes and keys and deliberately hold **no** foreign key. That is the
 point of inlining: a settled payslip is a frozen statement of what was paid, and it does not become
 wrong because somebody later archived a component or superseded a terms row. The catalogue the
-component-entry adjustments reached lives in the run's captured configuration, and the run names
-the sealed statutory profile that governed its law.
+component-entry adjustments reached is sealed under the version the run names, so it can always
+be re-read exactly.
 
 The configuration snapshot is housed once by the pay run because every payslip in that run shares
 the same picked policy.
@@ -822,8 +1005,8 @@ under [Still not encoded](#still-not-encoded), not quietly defaulted.
 
 Seeded from the host seed bank (§4.4). The source fixture
 keeps named builder arrays for review (`overtime_rules.json`), then embeds them without IDs or
-effective ranges in the one `jurisdictions.regime` value that is actually seeded
-(`jurisdictions.json`).
+effective ranges in the one `jurisdiction_settings.regime` value that is actually seeded
+(`jurisdiction_settings.json`).
 
 | Day type         | Band                                    | Award               | Cited authority        |
 | ---------------- | --------------------------------------- | ------------------- | ---------------------- |
@@ -863,9 +1046,9 @@ Reclassifying and refusing are separate acts on the same statutory number — `o
 used to be `pay_components.definition.after_total_work_hours` on the overflow components, which let
 a company quietly move a statutory boundary.
 
-#### Coverage — one nullable member per profile
+#### Coverage — one nullable member per version
 
-Seeded from the seed bank inside each statutory profile. The nullable, cited member decides **who** the
+Seeded from the seed bank inside each settings version. The nullable, cited member decides **who** the
 ladder applies to, as distinct from what an hour is worth.
 
 | Column                                  | Meaning                                                                |
@@ -963,7 +1146,7 @@ Every defect the survey named is closed:
 - **Portable.** `if (jurisdictionCode !== 'MY') return false` is gone. The Philippines and Indonesia
   carry their own cited rows; Singapore, Vietnam and Taiwan carry none and are therefore treated as
   covering everyone.
-- **Visible.** Two new tabs on the jurisdiction record, and the resolved row joins the run's
+- **Visible.** On the settings version's Payroll tab, and the resolved row joins the run's
   configuration snapshot, so a PAID run records the ceiling that priced it.
 
 Two defects the survey did **not** catch were found while reading the sources:
@@ -1032,8 +1215,8 @@ A jurisdiction that states no daily limit now has none enforced, rather than inh
   seed, not emitted:
   the Indonesian ladder is empty by an earlier decision, so there is no measured quantity to cap,
   and a calorie floor on provisions is not a rest period with a duration.
-- **`eligibility_rules` still cannot express any of this.** Its predicates carry no wage term and it
-  reads `work_classification`, not `statutory_work_category`.
+- **An eligibility expression could express the wage test** (`terms.basic_salary`,
+  `terms.workman`), but nothing in the regime reads one; coverage is the regime's own member.
 - **Rest and meal breaks are unmodelled.** The regime no longer carries them: whether a break was
   taken is measured from clock data, which is `work_days` and `shift_definitions` work, and
   until something measures it the requirement is transcription, not a column. The cited statute

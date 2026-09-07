@@ -1,11 +1,11 @@
 /**
  * Step 1 — PICK.
  *
- * Resolve everything the run is governed by, as of the period end, once: the jurisdiction, its
- * statutory contributions and their bands, the treatment grid, the jurisdiction's atomic regime
- * snapshot, the company's pay catalogue, its shifts, its holidays and its leave policy. Nothing
- * downstream reads configuration again, so a snapshot end-dated halfway through a build cannot
- * change an answer under it.
+ * Resolve everything the run is governed by, as of the period end, once: the jurisdiction settings
+ * version in force for the company's lineage, and under it the statutory contributions with their
+ * bands, the pay catalogue with its treatment grid, the atomic regime, the holidays and the leave
+ * catalogue; the company's own shifts beside them. Nothing downstream reads configuration again,
+ * so a version sealed halfway through a build cannot change an answer under it.
  *
  * The picked set is hashed into `payroll_runs.configuration_hash`. The hash is an **audit token**,
  * not a replay key: it says "these rows produced these payslips", and a rebuild that yields a
@@ -21,15 +21,14 @@ import type { WorkspaceRow } from '../$types.js';
 import { PAGE_LIMIT, type PayrollReadApi, type ReadLog } from './api.js';
 import { bandAgeFloor, bandCeiling } from './bands.js';
 import { monthBounds, monthKey, requiredDateKey, dateKey, type IsoDate } from './dates.js';
-import { coversDate, effectiveOn, live, overlapsRange, readRange } from './effective.js';
-import {
-	sealedProfileCovering,
-	statutoryCatalogueProfile
-} from '../../../lib/statutory_profile.js';
+import { effectiveOn, live, overlapsRange } from './effective.js';
+import { settingsInForce } from '../../../lib/jurisdiction_settings.js';
 import type { PayrollWindow } from './period.js';
+import type { ContributionTreatment } from '../../../datatypes/contribution_treatment/+definition.js';
 
 type Company = WorkspaceRow<'companies'>;
-export type Jurisdiction = WorkspaceRow<'jurisdictions'>;
+/** The jurisdiction settings version the run is priced under; `configuration.jurisdiction` is this row. */
+export type Jurisdiction = WorkspaceRow<'jurisdiction_settings'>;
 export type PayComponent = WorkspaceRow<'pay_components'>;
 type StatutoryRegime = NonNullable<Jurisdiction['regime']>;
 export type OvertimeRule = StatutoryRegime['overtime_rules'][number];
@@ -47,32 +46,25 @@ export type ContributionRate = Pick<
 	WorkspaceRow<'contribution_rates'>,
 	'id' | 'statutory_contribution_id' | 'selector' | 'award' | 'summary' | 'approval_id'
 >;
-type Treatment = NonNullable<PayComponent['policy']>['statutory_treatments'][number];
+type Treatment = ContributionTreatment;
 type StatutoryContribution = WorkspaceRow<'statutory_contributions'>;
-type OvertimeTreatment = NonNullable<StatutoryContribution['overtime_treatments']>[number];
 
 /** One statutory scheme with the bands that were effective when the run was picked. */
 export type ContributionConfig = {
 	readonly row: StatutoryContribution;
 	readonly rates: readonly ContributionRate[];
-	/**
-	 * What this scheme does with derived overtime, and with the excess the daily total-work-hours
-	 * boundary reclassifies — the one entry of each schedule that was in force on the period end.
-	 *
-	 * `undefined` is a scheme that has stated no overtime position. That is a missing decision, not
-	 * an exemption, and ACCUMULATE refuses the run rather than reading the silence as `EXCLUDE`.
-	 */
-	readonly overtimeTreatment: OvertimeTreatment | undefined;
-	readonly overtimeExcessTreatment: OvertimeTreatment | undefined;
 };
 
 export type Configuration = {
 	readonly company: Company;
 	readonly jurisdiction: Jurisdiction;
-	readonly leaveProfiles: readonly Jurisdiction[];
 	/** In `sequence` order — a relief is produced before the scheme that consumes it. */
 	readonly contributions: readonly ContributionConfig[];
-	/** `${pay_component_id}:${statutory_contribution_id}` → the one effective cell. */
+	/**
+	 * `${pay_component_id}:${statutory_contribution_id}` → the component's cell for that scheme,
+	 * read off `pay_components.contribution_treatments` by the scheme's code. Absent where the map
+	 * names no such code: a decision nobody has made, which ACCUMULATE refuses by name.
+	 */
 	readonly treatments: ReadonlyMap<string, Treatment>;
 	/** In `sequence` order — the order MEASURE walks. */
 	readonly payComponents: readonly PayComponent[];
@@ -110,38 +102,6 @@ type PickConfigurationOptions = {
 
 function treatmentKey(payComponentId: string, contributionId: string): string {
 	return `${payComponentId}:${contributionId}`;
-}
-
-/** The two schedule columns on a statutory contribution that each carry an overtime position set. */
-type OvertimeScheduleColumn = keyof Pick<
-	StatutoryContribution,
-	'overtime_treatments' | 'overtime_excess_treatments'
->;
-
-/**
- * The one overtime position a scheme's schedule states for a date.
- *
- * Two entries covering the same day is a seeding fault, not a preference: nothing here could pick
- * between them, and picking the first would make the answer depend on array order.
- */
-type EffectiveOvertimeTreatmentOptions = {
-	readonly row: Pick<StatutoryContribution, 'code' | OvertimeScheduleColumn>;
-	readonly column: OvertimeScheduleColumn;
-	readonly asOf: IsoDate;
-};
-
-function effectiveOvertimeTreatment(
-	options: EffectiveOvertimeTreatmentOptions
-): OvertimeTreatment | undefined {
-	const covering = (options.row[options.column] ?? []).filter((entry) =>
-		coversDate(entry.effective_range, options.asOf)
-	);
-	if (covering.length > 1)
-		refuse(
-			`${options.row.code}.${options.column} states ${covering.length} overtime positions effective on ` +
-				`${options.asOf}. A scheme charges overtime one way on any given day.`
-		);
-	return covering[0];
 }
 
 export function lookupTreatment(
@@ -203,70 +163,49 @@ export function pickConfiguration(
 		const company = effectiveOn(companies, asOf);
 		if (!company) refuse(`No company ${options.companyId} is effective on ${asOf}.`);
 
-		// The company binds to a law family through its jurisdiction anchor; the governing profile is
-		// the SEALED version of that family whose period covers the run. DRAFT profiles never govern;
-		// VOIDED profiles keep their citations but are retired.
-		const anchor = yield* db.jurisdictions.findFirst({
-			where: { id: { eq: company.jurisdiction_id }, ...approved },
-			columns: { code: true }
-		});
-		if (anchor == null)
-			refuse(`Company ${company.name} states no jurisdiction anchor for ${asOf}.`);
-		const profileRows = yield* db.jurisdictions.findMany({
-			where: { code: { eq: anchor.code }, ...approved },
+		// The company binds to a lineage by code; the governing version is the sealed, unvoided one
+		// whose period covers the run. A draft never governs; a voided one never governs again.
+		const code = company.settings_code;
+		const versionRows = yield* db.jurisdiction_settings.findMany({
+			where: { code: { eq: code }, ...approved },
 			limit: 100
 		});
-		if (profileRows.length >= 100)
-			refuse('Statutory profile history is truncated; payroll cannot choose safely.');
-		const jurisdiction = sealedProfileCovering(live(profileRows), anchor.code, asOf);
+		if (versionRows.length >= 100)
+			refuse('Jurisdiction settings history is truncated; payroll cannot choose safely.');
+		const jurisdiction = settingsInForce(live(versionRows), code, asOf);
 		if (jurisdiction == null)
 			refuse(
-				`Company ${company.name} has no sealed statutory profile covering ${asOf}. Seal a ` +
-					'version of its law family first.'
+				`${company.name} operates under jurisdiction settings ${code}, which has no sealed version ` +
+					`covering ${asOf}, so its ${options.window.period} payroll cannot be priced. Seal a ` +
+					`${code} version whose effective range covers the period.`
 			);
 
-		const catalogue = statutoryCatalogueProfile(live(profileRows), jurisdiction);
-
-		const [
-			contributionRows,
-			payComponentRows,
-			shiftRows,
-			holidayRows,
-			leavePlanRows,
-			leaveTypeRows
-		] = yield* Effect.all(
-			[
-				db.statutory_contributions.findMany({
-					where: { statutory_profile_id: { eq: catalogue.id }, ...approved },
-					limit: PAGE_LIMIT
-				}),
-				db.pay_components.findMany({
-					where: {
-						company_id: { eq: company.id },
-						statutory_profile_id: { eq: catalogue.id },
-						...approved
-					},
-					limit: PAGE_LIMIT
-				}),
-				db.shift_definitions.findMany({
-					where: { company_id: { eq: company.id }, ...approved },
-					limit: PAGE_LIMIT
-				}),
-				db.company_holidays.findMany({
-					where: { company_id: { eq: company.id }, ...approved },
-					limit: PAGE_LIMIT
-				}),
-				db.leave_plans.findMany({
-					where: { company_id: { eq: company.id }, lifecycle: { eq: 'ACTIVE' }, ...approved },
-					limit: PAGE_LIMIT
-				}),
-				db.leave_types.findMany({
-					where: { company_id: { eq: company.id }, ...approved },
-					limit: PAGE_LIMIT
-				})
-			],
-			{ concurrency: 'unbounded' }
-		);
+		const [contributionRows, payComponentRows, shiftRows, holidayRows, leaveTypeRows] =
+			yield* Effect.all(
+				[
+					db.statutory_contributions.findMany({
+						where: { settings_id: { eq: jurisdiction.id }, ...approved },
+						limit: PAGE_LIMIT
+					}),
+					db.pay_components.findMany({
+						where: { settings_id: { eq: jurisdiction.id }, ...approved },
+						limit: PAGE_LIMIT
+					}),
+					db.shift_definitions.findMany({
+						where: { company_id: { eq: company.id }, ...approved },
+						limit: PAGE_LIMIT
+					}),
+					db.company_holidays.findMany({
+						where: { settings_id: { eq: jurisdiction.id }, ...approved },
+						limit: PAGE_LIMIT
+					}),
+					db.leave_types.findMany({
+						where: { settings_id: { eq: jurisdiction.id }, ...approved },
+						limit: PAGE_LIMIT
+					})
+				],
+				{ concurrency: 'unbounded' }
+			);
 		// Every collection pages to the same ceiling and is checked: a configuration read that came
 		// back truncated would drop law — a missing holiday, a missing band — and still produce a
 		// payslip, which is the one outcome worse than producing none.
@@ -274,42 +213,13 @@ export function pickConfiguration(
 		options.api.reads.assertComplete(payComponentRows, 'pay components');
 		options.api.reads.assertComplete(shiftRows, 'shift definitions');
 		options.api.reads.assertComplete(holidayRows, 'company holidays');
-		options.api.reads.assertComplete(leavePlanRows, 'leave plans');
 		options.api.reads.assertComplete(leaveTypeRows, 'leave types');
-		const activeLeavePlan = live(leavePlanRows)
-			.filter((plan) => coversDate(plan.effective_range, asOf))
-			.toSorted((left, right) =>
-				(readRange(right.effective_range)?.start ?? '').localeCompare(
-					readRange(left.effective_range)?.start ?? ''
-				)
-			)[0];
-		if (activeLeavePlan == null)
-			refuse(`Company ${company.name} has no approved active leave plan covering ${asOf}.`);
 
-		// Profile scoping replaces per-row effective dating: the version governs its period whole.
-		const revisionByScheme = new Map(
-			(jurisdiction.revision?.contributions ?? []).map((revision) => [
-				revision.statutory_contribution_id,
-				revision
-			])
+		// Version scoping replaces per-row effective dating: the version governs its period whole and
+		// carries its own scheme, rate, catalogue and holiday rows; there is no second copy to overlay.
+		const contributions = live(contributionRows).toSorted(
+			(left, right) => decodeNumber(left.sequence) - decodeNumber(right.sequence)
 		);
-		for (const id of revisionByScheme.keys())
-			if (!contributionRows.some((row) => row.id === id))
-				refuse('A statutory revision names an unknown contribution.');
-		const contributions = live(contributionRows)
-			.map((row) => {
-				const revision = revisionByScheme.get(row.id);
-				return revision == null
-					? row
-					: {
-							...row,
-							authority: revision.authority,
-							special_rules: [...revision.special_rules],
-							overtime_treatments: revision.overtime_treatments,
-							overtime_excess_treatments: revision.overtime_excess_treatments
-						};
-			})
-			.toSorted((left, right) => decodeNumber(left.sequence) - decodeNumber(right.sequence));
 
 		const contributionIds = contributions.map((row) => row.id);
 		const rateRows = contributionIds.length
@@ -330,22 +240,15 @@ export function pickConfiguration(
 		const payComponents = live(payComponentRows).toSorted(
 			(left, right) => decodeNumber(left.sequence) - decodeNumber(right.sequence)
 		);
+		// The grid is keyed by scheme code on the catalogue row and by scheme id here, because the
+		// run charges against the rows it picked: a code names the same law on every settings
+		// version, and the picked version says which row that is for this period.
 		const treatments = new Map<string, Treatment>();
-		for (const component of payComponents) {
-			for (const treatment of component.policy?.statutory_treatments ?? []) {
-				if (
-					!contributionIds.includes(treatment.statutory_contribution_id) ||
-					!coversDate(treatment.effective_range, asOf)
-				)
-					continue;
-				const key = treatmentKey(component.id, treatment.statutory_contribution_id);
-				if (treatments.has(key))
-					refuse(
-						`Pay component ${component.code} has overlapping statutory treatments for ${treatment.statutory_contribution_id}.`
-					);
-				treatments.set(key, treatment);
+		for (const component of payComponents)
+			for (const contribution of contributions) {
+				const cell = component.contribution_treatments?.[contribution.code];
+				if (cell != null) treatments.set(treatmentKey(component.id, contribution.id), cell);
 			}
-		}
 
 		const shifts = live(shiftRows).filter((row) =>
 			overlapsRange(row.effective_range, windowStart, windowEnd)
@@ -358,30 +261,9 @@ export function pickConfiguration(
 		const configuration = {
 			company,
 			jurisdiction,
-			leaveProfiles: live(profileRows).filter((profile) => profile.lifecycle === 'SEALED'),
 			contributions: contributions.map((row) => ({
 				row,
-				rates: (
-					revisionByScheme.get(row.id)?.rates.map((rate, index) => ({
-						...rate,
-						id: `${jurisdiction.id}:${row.id}:${index}`,
-						statutory_contribution_id: row.id,
-						summary: null,
-						approval_id: null
-					})) ??
-					ratesByContribution.get(row.id) ??
-					[]
-				).toSorted(bandOrder),
-				overtimeTreatment: effectiveOvertimeTreatment({
-					row,
-					column: 'overtime_treatments',
-					asOf
-				}),
-				overtimeExcessTreatment: effectiveOvertimeTreatment({
-					row,
-					column: 'overtime_excess_treatments',
-					asOf
-				})
+				rates: (ratesByContribution.get(row.id) ?? []).toSorted(bandOrder)
 			})),
 			treatments,
 			payComponents,
@@ -393,7 +275,7 @@ export function pickConfiguration(
 			holidays: new Map(
 				live(holidayRows).map((row) => [requiredDateKey(row.date, 'holiday date'), row] as const)
 			),
-			leaveTypes: live(leaveTypeRows).filter((row) => row.leave_plan_id === activeLeavePlan.id)
+			leaveTypes: live(leaveTypeRows)
 		} satisfies Omit<Configuration, 'hash'>;
 
 		return {
@@ -417,34 +299,12 @@ export function configurationSnapshot(
 		period,
 		company: configuration.company.id,
 		jurisdiction: configuration.jurisdiction.id,
-		leave_profiles: configuration.leaveProfiles
-			.toSorted((left, right) => left.id.localeCompare(right.id))
-			.map((row) => ({
-				id: row.id,
-				code: row.code,
-				supersedes_id: row.supersedes_id,
-				effective_range: row.effective_range,
-				statutory_leave: row.statutory_leave
-			})),
 		proration: configuration.jurisdiction.proration,
-		ordinary_rate: [
-			configuration.jurisdiction.ordinary_rate_basis,
-			configuration.jurisdiction.ordinary_rate_divisor
-		],
+		ordinary_rate: configuration.jurisdiction.ordinary_rate,
 		tax_year_start_month: configuration.jurisdiction.tax_year_start_month,
-		// The whole calendar, not only the monthly half of it: a company that changes when its
-		// semi-monthly instalments open, close or pay produces different payslips for the same month,
-		// so the hash has to move with it.
-		pay_calendar: [
-			configuration.company.pay_cutoff_day,
-			configuration.company.pay_day,
-			configuration.company.pay_calendar ?? null
-		],
-		overtime_calculation_method: configuration.company.overtime_calculation_method,
-		// Settlement is part of the law a payslip was computed under: change when a joining period
-		// settles and the same month produces a different set of payslips, so a rebuild must hash
-		// differently rather than look like the same answer.
-		settlement_policy: configuration.company.settlement_policy,
+		// The whole calendar: a company that moves its cutoff or starts paying twice a month
+		// produces different payslips for the same month, so the hash has to move with it.
+		pay_calendar: [configuration.company.pay_cutoff_day, configuration.company.pay_frequency],
 		contributions: configuration.contributions.map((entry) => ({
 			code: entry.row.code,
 			sequence: entry.row.sequence,
@@ -453,19 +313,23 @@ export function configurationSnapshot(
 			rounding: entry.row.rounding,
 			special_rules: [...entry.row.special_rules].toSorted(),
 			relief_for: [...entry.row.relief_for].toSorted(),
-			rates: entry.rates.map((rate) => [rate.selector, rate.award]),
-			// The overtime position is law the run was computed under exactly as a band is: change
-			// what EPF does with overtime and the same month owes a different figure, so the hash has
-			// to move. Only the entry actually in force is hashed, for the same reason only the
-			// effective bands are.
-			overtime: entry.overtimeTreatment?.treatment ?? null,
-			overtime_excess: entry.overtimeExcessTreatment?.treatment ?? null
+			rates: entry.rates.map((rate) => [rate.selector, rate.award])
 		})),
+		// One entry per decided cell. The OVERTIME and OVERTIME_EXCESS rows are in here like every
+		// other component, so what EPF does with overtime moves the hash the way a band does.
 		treatments: [...configuration.treatments]
-			.map(([key, treatment]) => [key, treatment.treatment])
+			.map(([key, treatment]) => [key, treatment])
 			.toSorted((left, right) => String(left[0]).localeCompare(String(right[0]))),
 		pay_components: configuration.payComponents
-			.map((row) => [row.code, row.policy, row.sequence, row.definition, row.eligibility])
+			.map((row) => [
+				row.code,
+				row.is_statutory,
+				row.policy,
+				row.sequence,
+				row.definition,
+				row.eligibility,
+				row.contribution_treatments
+			])
 			.toSorted((left, right) => String(left[0]).localeCompare(String(right[0]))),
 		// The effective range and the complete nested value are retained together. A PAID run can
 		// therefore replay the exact coverage, awards, ceilings and authorities it used; it cannot
@@ -474,7 +338,6 @@ export function configurationSnapshot(
 			effective_range: configuration.jurisdiction.effective_range,
 			value: configuration.jurisdiction.regime
 		},
-		statutory_leave: configuration.jurisdiction.statutory_leave,
 		holidays: [...configuration.holidays.values()]
 			.map((row) => [
 				requiredDateKey(row.date, 'holiday date'),

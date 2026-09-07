@@ -41,8 +41,14 @@
 
 import type { MoneyValue } from '@norbital-ai/std/finance';
 import { decodeNumber } from '@norbital-ai/std/json';
+import { countryOf } from '../../../lib/jurisdiction_settings.js';
 
-import type { Configuration, OvertimeCoverageRule, PayComponent } from './configuration.js';
+import type {
+	Configuration,
+	LeaveType,
+	OvertimeCoverageRule,
+	PayComponent
+} from './configuration.js';
 import type { ComponentDefinition } from '../../../datatypes/component_definition/+definition.js';
 import {
 	classifyWageComparand,
@@ -82,24 +88,13 @@ import {
 	type IsoDate
 } from './dates.js';
 import { coversDate } from './effective.js';
-import { isEligible, type EligibilitySubject } from './eligibility.js';
-import { defaultPayPeriod, type PayrollWindow } from './period.js';
+import { isEligible, personContext, type PersonContext } from './eligibility.js';
+import { defaultPayPeriod, type PayCadence, type PayrollWindow } from './period.js';
 import { evaluateFormula, type FormulaContext } from './formula.js';
 import type { EmploymentBundle } from './gather.js';
-import {
-	leaveYearOf,
-	unpaidLeaveDates,
-	unpaidLeaveInWindow,
-	type LedgerRow,
-	type UnpaidLeave
-} from './leave.js';
-import { leaveAccountBalance } from '../../../lib/leave/ledger.js';
+import { leaveYearOf, unpaidLeaveInWindow, type LedgerRow, type UnpaidLeave } from './leave.js';
+import { leaveBalance } from '../../../lib/leave/ledger.js';
 import { leaveDailyRate, type LeavePayBasis } from '../../../lib/leave/rate.js';
-import {
-	extendedAbsenceDays,
-	overtimeAttendanceWindow,
-	type SettlementPolicy
-} from './settlement.js';
 import {
 	classifyOvertimeByCalendarMonth,
 	deriveDailyOvertime,
@@ -115,9 +110,7 @@ import {
 import {
 	absenceDayRate,
 	ordinaryDayWage,
-	overtimeHourlyRate,
-	readOvertimeCalculationMethod,
-	type OvertimeCalculationMethod,
+	ordinaryHourlyRate,
 	type RateTerms
 } from './ordinary-rate.js';
 import { prorationFraction, prorationSegment } from './proration.js';
@@ -487,7 +480,6 @@ type MeasureEmploymentOptions = {
 	readonly salary: PayRange;
 	readonly periodsRemaining: number;
 	readonly headcount: number;
-	readonly policy: SettlementPolicy;
 	/** `component_entry_id` → what earlier PAID runs already took from it. See `gather.ts`. */
 	readonly consumedEntries: ReadonlyMap<string, number>;
 	/** `loan_repayment_id` → what earlier PAID runs already recovered from it. See `gather.ts`. */
@@ -515,14 +507,8 @@ export function measureEmployment(options: MeasureEmploymentOptions): MeasuredEm
 	});
 	const rateTerms = asRateTerms(closingTerms, closingWorkload);
 	const currency = rateTerms.base_salary.currency;
-	const overtimeCalculationMethod = readOvertimeCalculationMethod(
-		configuration.company.overtime_calculation_method
-	);
-	const hourlyRate = overtimeHourlyRate(
-		rateTerms,
-		configuration.jurisdiction,
-		overtimeCalculationMethod
-	);
+	// The overtime hour is the jurisdiction's ordinary hourly rate and nothing a company chooses.
+	const hourlyRate = ordinaryHourlyRate(rateTerms, configuration.jurisdiction);
 	const dayWage = ordinaryDayWage(rateTerms, configuration.jurisdiction);
 
 	// ── schedule across the full calendar months touched by the settlement cutoff ───────────────
@@ -597,9 +583,9 @@ export function measureEmployment(options: MeasureEmploymentOptions): MeasuredEm
 	/**
 	 * A day of pay *withheld* is not a day of pay *earned*, and the two use different divisors.
 	 *
-	 * `ordinary_day_wage` divides by `ordinary_rate_divisor` — 26 in Malaysia, EA s.60I — because that
+	 * `ordinary_day_wage` divides by `ordinary_rate.divisor` — 26 in Malaysia, EA s.60I — because that
 	 * is the basis the Act sets for what an extra day of work is worth. Withholding pay for a day not
-	 * worked is proration, and proration is `jurisdictions.proration`: the month's calendar days here,
+	 * worked is proration, and proration is `jurisdiction_settings.proration`: the month's calendar days here,
 	 * working days elsewhere. Valuing an absence at the overtime divisor over-deducts by the ratio
 	 * between them — 31/26, about 19%, on every employee with unpaid leave.
 	 *
@@ -608,13 +594,7 @@ export function measureEmployment(options: MeasureEmploymentOptions): MeasuredEm
 	 */
 	const absenceDayWage = absenceDayRate({
 		terms: rateTerms,
-		jurisdiction: {
-			...configuration.jurisdiction,
-			proration:
-				options.policy.absenceProration.find(
-					(rule) => rule.payFrequency === rateTerms.pay_frequency
-				)?.basis ?? configuration.jurisdiction.proration
-		},
+		jurisdiction: configuration.jurisdiction,
 		period: options.salary,
 		workingDaysIn
 	});
@@ -629,20 +609,16 @@ export function measureEmployment(options: MeasureEmploymentOptions): MeasuredEm
 	// what earlier paid runs already recovered — the junction rows the prior runs captured are read
 	// back in `gather.ts`, and nothing is carried forward between builds.
 	const cutoffDay = decodeNumber(configuration.company.pay_cutoff_day);
-	const ownedArrears = (entry: ComponentEntry): boolean => {
-		const event = entryEvent(entry);
-		return (
-			bundle.arrearsFor != null &&
-			entry.pay_component_id === options.policy.lateJoinerComponentId &&
-			event?.kind === 'ARREARS' &&
-			event.covers_periods.length === 1 &&
-			event.covers_periods[0] === bundle.arrearsFor.period
-		);
+	// The default pay period is answered in the grammar this employment is paid in: a half at a
+	// semi-monthly company for semi-monthly terms, the `-2` run there for monthly terms, the month
+	// everywhere else. See `defaultPayPeriod`.
+	const cadence: PayCadence = {
+		company: configuration.company,
+		payFrequency: rateTerms.pay_frequency
 	};
 	const periodEntries = bundle.componentEntries.filter((entry) => {
-		if (ownedArrears(entry)) return false;
 		const recurring = recurringRange(entry);
-		if (recurring == null) return entryPayPeriod(entry, cutoffDay) === options.period;
+		if (recurring == null) return entryPayPeriod(entry, cutoffDay, cadence) === options.period;
 		return (
 			recurring.start <= options.salary.end &&
 			(recurring.end == null || recurring.end >= options.salary.start)
@@ -665,14 +641,13 @@ export function measureEmployment(options: MeasureEmploymentOptions): MeasuredEm
 		);
 	}
 
-	const subject = {
-		employment_type: closingTerms.employment_type,
-		work_classification: closingTerms.work_classification,
-		service_months: bundle.serviceMonths,
-		gender: bundle.employee.gender,
-		department: closingTerms.department,
-		payroll_group: closingTerms.payroll_group
-	};
+	const subject = personContext({
+		employee: bundle.employee,
+		employment: bundle.employment,
+		terms: closingTerms,
+		children: bundle.children,
+		asOf: options.salary.end
+	});
 
 	// ── overtime, derived from clocks and split beyond the jurisdiction's own daily ceilings ───
 	//
@@ -683,12 +658,8 @@ export function measureEmployment(options: MeasureEmploymentOptions): MeasuredEm
 	const attendedDays = bundle.workDays.filter((day) => day.worked_intervals != null);
 	const dailyWorkLimit = dailyTotalWorkLimit(configuration);
 	const dailyOvertimeLimit = dailyOvertimeHoursLimit(configuration);
-	const overtimeAttendance = overtimeAttendanceWindow({
-		policy: options.policy,
-		payFrequency: rateTerms.pay_frequency,
-		salary: options.salary,
-		fallback: attendance
-	});
+	// Overtime settles in the window the hours fall in: this employment's own attendance window.
+	const overtimeAttendance = attendance;
 	const overtimeDays: DailyOvertime[] = [];
 	const segments: PricedSegment[] = [];
 	const excess: ExcessHours[] = [];
@@ -718,7 +689,7 @@ export function measureEmployment(options: MeasureEmploymentOptions): MeasuredEm
 	});
 	const paymentEligible = isStatutoryOvertimePayCovered({
 		rule: configuration.overtimeCoverageRule,
-		jurisdictionCode: configuration.jurisdiction.code,
+		jurisdictionCode: countryOf(configuration.jurisdiction.code),
 		wages: {
 			BASE_SALARY: rateTerms.base_salary,
 			STATUTORY_WAGES: statutoryWages
@@ -759,30 +730,12 @@ export function measureEmployment(options: MeasureEmploymentOptions): MeasuredEm
 		);
 	}
 
-	// ── unpaid leave, in whichever window each day settles by ──────────────────────────────────
-	//
-	// A day inside a leave of absence settles in its own calendar month; every other unpaid day
-	// settles in the run whose attendance window contains it. `extendedDates` is the whole set of
-	// days the first rule applies to, computed from the employment's entire unpaid history so that
-	// a spell straddling a month boundary is recognised as one absence from either side of it.
-	const extendedRule = options.policy.extendedUnpaidLeave;
-	const extendedDates =
-		extendedRule == null || !bundle.extendedLeaveSettlesInOwnMonth
-			? new Set<IsoDate>()
-			: extendedAbsenceDays({
-					dates: unpaidLeaveDates(bundle.ledger, configuration.leaveTypes),
-					minimumCalendarDays: extendedRule.minimumCalendarDays,
-					bridgedGapDays: extendedRule.bridgedGapDays
-				});
+	// ── unpaid leave, in the run whose attendance window contains each day ───────────────────
 	const settlesHere = (date: IsoDate): boolean =>
-		extendedDates.has(date)
-			? date >= options.salary.start && date <= options.salary.end
-			: date >= attendance.start && date <= attendance.end;
+		date >= attendance.start && date <= attendance.end;
 	const unpaid = unpaidLeaveInWindow({
 		ledger: bundle.ledger,
 		window: attendance,
-		month: options.salary,
-		extendedDates,
 		configuration
 	});
 	const unpaidByComponent = new Map<string, UnpaidLeave>(
@@ -813,7 +766,7 @@ export function measureEmployment(options: MeasureEmploymentOptions): MeasuredEm
 			: measureAbsence({
 					employeeNumber: bundle.employment.employee_number,
 					companyName: configuration.company.name,
-					absenceComponentId: configuration.company.absence_component_id ?? null,
+					leaveTypes: configuration.leaveTypes,
 					payComponents: configuration.payComponents,
 					subject,
 					dayWage: absenceDayWage,
@@ -864,9 +817,9 @@ export function measureEmployment(options: MeasureEmploymentOptions): MeasuredEm
 				const date = requiredDateKey(row.entry_date, 'leave entry date');
 				return settlesHere(date) ? total + Math.abs(decodeNumber(row.days)) : total;
 			}, 0);
-		// Formula balances read the same immutable account entries as self-service. Policy and law
-		// were compiled before payroll; a run never recalculates entitlement from mutable person facts.
-		const account = bundle.leaveAccounts.find(
+		// Formula balances read the same immutable ledger entries as self-service. The catalogue was
+		// compiled before payroll; a run never recalculates entitlement from mutable person facts.
+		const entitlement = bundle.leaveEntitlements.find(
 			(candidate) =>
 				candidate.leave_code === type.code &&
 				dateKey(candidate.starts_on) != null &&
@@ -875,16 +828,16 @@ export function measureEmployment(options: MeasureEmploymentOptions): MeasuredEm
 				dateKey(candidate.ends_on)! >= options.salary.end
 		);
 		leaveBalances[type.code] =
-			account == null
+			entitlement == null
 				? 0
-				: leaveAccountBalance(
-						bundle.leaveEntries.filter((entry) => entry.leave_account_id === account.id),
+				: leaveBalance(
+						bundle.leaveEntries.filter((entry) => entry.leave_entitlement_id === entitlement.id),
 						options.salary.end
 					);
 	}
 	const periodCalendarDays = monthDays(options.salary.start);
 	const nightShiftHours =
-		configuration.jurisdiction.code === 'PH'
+		countryOf(configuration.jurisdiction.code) === 'PH'
 			? attendedDays
 					.filter((entry) => {
 						const date = requiredDateKey(entry.work_date, 'work_days.work_date');
@@ -936,8 +889,8 @@ export function measureEmployment(options: MeasureEmploymentOptions): MeasuredEm
 		jurisdiction: {
 			code: configuration.jurisdiction.code,
 			currency: configuration.jurisdiction.currency,
-			ordinary_rate_basis: configuration.jurisdiction.ordinary_rate_basis ?? '',
-			ordinary_rate_divisor: decodeNumber(configuration.jurisdiction.ordinary_rate_divisor)
+			ordinary_rate_per: configuration.jurisdiction.ordinary_rate?.per ?? '',
+			ordinary_rate_divisor: decodeNumber(configuration.jurisdiction.ordinary_rate?.divisor)
 		}
 	});
 
@@ -984,8 +937,10 @@ export function measureEmployment(options: MeasureEmploymentOptions): MeasuredEm
 				`${bundle.employment.employee_number} is owed ${arrears.period}, but the component it is ` +
 					'paid back on is not in this company’s catalogue.'
 			);
-		// Derived back pay points at nothing a person can edit — the settlement policy and the earlier
-		// month's own contract produced it — so it is base, exactly like the wage it stands in for.
+		// Derived back pay points at nothing a person can edit — the deferral rule and the earlier
+		// month's own contract produced it — so it is base, exactly like the wage it stands in for,
+		// and it rides the wage's own component: a second base line under the same code, which the
+		// formula context and every total sum.
 		base.push({
 			payComponent: component,
 			nature: component.policy?.kind ?? null,
@@ -1023,8 +978,8 @@ export function measureEmployment(options: MeasureEmploymentOptions): MeasuredEm
 			// `+`, not `=`: a back-pay component can carry both this run's derived arrears and an
 			// entry HR keyed by hand, and a formula reading that code must see the whole of it.
 			const running = (componentAmounts.get(component.code) ?? 0) + measured.amount;
-			componentAmounts.set(component.code, running);
-			componentsByCode[component.code] = running;
+			componentAmounts.set(component.code, (componentAmounts.get(component.code) ?? 0) + running);
+			componentsByCode[component.code] = componentAmounts.get(component.code) ?? running;
 			// Information is measured so formulas can read it, and stops there: it is not money.
 			if (component.nature === 'INFORMATION') continue;
 			base.push(...measured.base);
@@ -1035,15 +990,7 @@ export function measureEmployment(options: MeasureEmploymentOptions): MeasuredEm
 	// Overtime is not in the catalogue, so it is not produced by walking it. The priced segments
 	// *are* the overtime: each one already names the statutory rule key that valued it and the work
 	// day whose clock it came from, and an adjustment is one band's worth of them **on one day**.
-	adjustments.push(
-		...measureOvertime({
-			segments,
-			excess,
-			hourlyRate,
-			dayWage,
-			overtimeCalculationMethod
-		})
-	);
+	adjustments.push(...measureOvertime({ segments, excess, hourlyRate, dayWage }));
 	// Absent days price through the absence component the company names, one row per day naming
 	// the work day that fact came from — the same capture the payroll lock already holds.
 	adjustments.push(...absentAdjustments);
@@ -1053,6 +1000,7 @@ export function measureEmployment(options: MeasureEmploymentOptions): MeasuredEm
 		configuration,
 		period: options.period,
 		cutoffDay,
+		cadence,
 		subject,
 		consumedRepayments: options.consumedRepayments
 	});
@@ -1138,13 +1086,16 @@ function measureArrears(
 		| 'configuration'
 		| 'periodsRemaining'
 		| 'headcount'
-		| 'policy'
 		| 'consumedEntries'
 		| 'consumedRepayments'
 	>
 ): MeasuredEmployment['arrears'] {
 	const owed = options.bundle.arrearsFor;
-	const payComponentId = options.policy.lateJoinerComponentId;
+	// The arrears rides the contracted wage's own component: what a deferred month owes is that
+	// month's wage, and there is no second catalogue row to carry it under.
+	const payComponentId = options.configuration.payComponents.find(
+		(component) => component.definition?.source === 'SCHEDULE'
+	)?.id;
 	if (owed == null || payComponentId == null) return null;
 	const measured = measureEmployment({
 		bundle: {
@@ -1165,7 +1116,6 @@ function measureArrears(
 		salary: owed.salary,
 		periodsRemaining: options.periodsRemaining,
 		headcount: options.headcount,
-		policy: options.policy,
 		// Carried through rather than emptied, so the deferred pass sees the same consumption facts
 		// this one does. Its deductions are discarded either way — only `gross` is read below — but a
 		// second, differently-informed view of the same sources is the kind of thing that is true
@@ -1207,7 +1157,8 @@ type MeasureRecoveryOptions = {
 	readonly configuration: Configuration;
 	readonly period: string;
 	readonly cutoffDay: number;
-	readonly subject: EligibilitySubject;
+	readonly cadence: PayCadence;
+	readonly subject: PersonContext;
 	readonly consumedRepayments: ReadonlyMap<string, number>;
 };
 
@@ -1237,7 +1188,7 @@ function measureLoanRecoveries(options: MeasureRecoveryOptions): MeasuredAdjustm
 		 * than by a copy of it written into next month's schedule. A repayment already settled in
 		 * full nets to zero here and produces nothing.
 		 */
-		if (defaultPayPeriod(due, options.cutoffDay) > options.period) continue;
+		if (defaultPayPeriod(due, options.cutoffDay, options.cadence) > options.period) continue;
 		const consumed = options.consumedRepayments.get(repayment.id) ?? 0;
 		const outstanding = repaymentOutstanding(repayment, consumed);
 		if (outstanding <= 0) continue;
@@ -1341,9 +1292,8 @@ type ResolveEntryCapOptions = {
 	readonly component: PayComponent;
 	readonly entry: ComponentEntry;
 	readonly bundle: EmploymentBundle;
-	readonly subject: EligibilitySubject;
+	readonly subject: PersonContext;
 	readonly context: FormulaContext;
-	readonly leaveYearStartMonth: number;
 };
 
 function resolveEntryCap(
@@ -1386,10 +1336,7 @@ function resolveEntryCap(
 			case 'CALENDAR_YEAR':
 				return candidateDate.slice(0, 4) === eventDate.slice(0, 4);
 			case 'LEAVE_YEAR':
-				return (
-					leaveYearOf(candidateDate, options.leaveYearStartMonth) ===
-					leaveYearOf(eventDate, options.leaveYearStartMonth)
-				);
+				return leaveYearOf(candidateDate) === leaveYearOf(eventDate);
 		}
 	};
 	const previouslyUsed = options.bundle.componentEntries.reduce((total, candidate) => {
@@ -1422,7 +1369,7 @@ type MeasureComponentOptions = {
 	readonly unpaid: UnpaidLeave | null;
 	readonly workingDaysIn: (window: PayRange) => number;
 	readonly context: () => FormulaContext;
-	readonly subject: EligibilitySubject;
+	readonly subject: PersonContext;
 };
 
 function measureComponent(options: MeasureComponentOptions): Measurement | null {
@@ -1635,8 +1582,7 @@ function measureComponent(options: MeasureComponentOptions): Measurement | null 
 						entry,
 						bundle: options.bundle,
 						subject: options.subject,
-						context: options.context(),
-						leaveYearStartMonth: decodeNumber(options.configuration.company.leave_year_start_month)
+						context: options.context()
 					});
 		const percentage = cap?.percentage ?? 100;
 		const sign = entrySign(entry);
@@ -1754,13 +1700,17 @@ function measureComponent(options: MeasureComponentOptions): Measurement | null 
 	};
 
 	// Leave money is a ledger line: COMMUTED at a year end, ENCASHED on exit. Payroll prices it
-	// when it prints it, from the statute's basis on the account's rule and the terms in force on
+	// when it prints it, from the statute's basis on the entitlement's rule and the terms in force on
 	// the line's date; nothing stores an amount. A year-end line prints in the run whose period
 	// its date names under the pay cutoff, an exit line on the final slip — the run whose salary
 	// window covers the exit date, whatever the cutoff would have named.
 	const measureLeavePayout = (): Measurement | null => {
 		const cutoffDay = decodeNumber(options.configuration.company.pay_cutoff_day);
-		const accounts = new Map(options.bundle.leaveAccounts.map((row) => [row.id, row]));
+		const cadence: PayCadence = {
+			company: options.configuration.company,
+			payFrequency: closingFrequency
+		};
+		const entitlements = new Map(options.bundle.leaveEntitlements.map((row) => [row.id, row]));
 		const amount = cents(
 			options.bundle.leaveEntries
 				.filter((entry) => entry.kind === 'COMMUTED' || entry.kind === 'ENCASHED')
@@ -1769,12 +1719,13 @@ function measureComponent(options: MeasureComponentOptions): Measurement | null 
 					if (on == null) return false;
 					return entry.kind === 'ENCASHED'
 						? options.salary.start <= on && on <= options.salary.end
-						: defaultPayPeriod(on, cutoffDay) === options.period;
+						: defaultPayPeriod(on, cutoffDay, cadence) === options.period;
 				})
 				.reduce((total, entry) => {
-					const account = accounts.get(entry.leave_account_id);
-					if (account == null) return total;
-					const rule = entry.kind === 'ENCASHED' ? account.exit_settlement : account.settlement;
+					const entitlement = entitlements.get(entry.leave_entitlement_id);
+					if (entitlement == null) return total;
+					const rule =
+						entry.kind === 'ENCASHED' ? entitlement.exit_settlement : entitlement.settlement;
 					const basis =
 						rule != null && 'pay_basis' in rule ? (rule.pay_basis as LeavePayBasis) : null;
 					if (basis == null) return total;
@@ -1811,6 +1762,10 @@ function measureComponent(options: MeasureComponentOptions): Measurement | null 
 			return measureFormula(definition);
 		case 'LEAVE_PAYOUT':
 			return measureLeavePayout();
+		// Priced by the regime from work days (`measureOvertime`), never by the catalogue walk: the
+		// row exists so the scheme treatments of derived overtime live where every treatment does.
+		case 'DERIVED_OVERTIME':
+			return null;
 		default: {
 			const _exhaustive: never = definition;
 			throw new Error(`Unsupported component source: ${JSON.stringify(_exhaustive)}`);
@@ -1827,32 +1782,44 @@ function measureComponent(options: MeasureComponentOptions): Measurement | null 
 function measureAbsence(options: {
 	readonly employeeNumber: string;
 	readonly companyName: string;
-	readonly absenceComponentId: string | null;
+	readonly leaveTypes: readonly LeaveType[];
 	readonly payComponents: readonly PayComponent[];
-	readonly subject: EligibilitySubject;
+	readonly subject: PersonContext;
 	readonly dayWage: number;
 	readonly days: readonly { readonly id: string; readonly date: string }[];
 }): MeasuredAdjustment[] {
 	if (options.days.length === 0) return [];
-	const componentId = options.absenceComponentId;
-	if (componentId == null) {
-		const dates = options.days
-			.map((day) => day.date)
-			.toSorted()
-			.join(', ');
+	const dates = options.days
+		.map((day) => day.date)
+		.toSorted()
+		.join(', ');
+	// The deduction is the one the leave catalogue names for unpaid leave: an absent day is an
+	// unpaid day the person never applied for, priced through the same component.
+	const componentIds = [
+		...new Set(
+			options.leaveTypes.flatMap((type) =>
+				type.payroll_effect?.kind === 'UNPAID' ? [type.payroll_effect.component_id] : []
+			)
+		)
+	];
+	if (componentIds.length === 0)
 		throw new Error(
-			`${options.employeeNumber} was marked absent on ${dates}, but ${options.companyName} ` +
-				`names no absence component to carry the deduction. Set the absence component on the ` +
-				`company first.`
+			`${options.employeeNumber} was marked absent on ${dates}, but no leave type of ` +
+				`${options.companyName} names an unpaid-leave deduction component to carry it. Add an ` +
+				'UNPAID leave type first.'
 		);
-	}
-	const component = options.payComponents.find((candidate) => candidate.id === componentId);
-	if (component == null) {
+	if (componentIds.length > 1)
 		throw new Error(
-			`${options.companyName} names an absence component that is not in its pay catalogue. ` +
-				`Point the company at a component that exists.`
+			`${options.employeeNumber} was marked absent on ${dates}, but the leave types of ` +
+				`${options.companyName} name ${componentIds.length} different unpaid-leave components, so ` +
+				'the absence has no one deduction to settle on.'
 		);
-	}
+	const component = options.payComponents.find((candidate) => candidate.id === componentIds[0]);
+	if (component == null)
+		throw new Error(
+			`${options.companyName} names an unpaid-leave component that is not in its pay catalogue. ` +
+				'Point the leave type at a component that exists.'
+		);
 	if (!isEligible(component.eligibility, options.subject)) {
 		throw new Error(
 			`${options.employeeNumber} was marked absent, but the absence component ${component.code} ` +
@@ -1890,13 +1857,11 @@ function measureAbsence(options: {
  * than it used to. That is the correct number: each one is a claim over the clock that priced it,
  * and the settlement lock is the row rather than a second collection.
  *
- * The three valuation branches are the arithmetic exactly as it was when a component owned it:
+ * The valuation is the arithmetic exactly as it was when a component owned it:
  *
- * - `ANNUALISED_CONTRACT_RATE` rounds the unit rate first and multiplies the units by it, per
- *   segment and per day, because that is what the source system does and what reproduces its
- *   figures to the cent.
- * - otherwise hourly awards accumulate multiplier-weighted hours and are priced once against the
- *   ordinary hourly rate, while stepped day-wage awards accumulate day-wage multiples.
+ * - hourly awards accumulate multiplier-weighted hours and are priced once against the
+ *   jurisdiction's ordinary hourly rate, while stepped day-wage awards accumulate day-wage
+ *   multiples.
  * - a band that comes out at zero produces no row at all, not a zero one. The day is still
  *   captured: it falls through to the junction row `measureEmployment` stores for every day it read
  *   and priced at nothing.
@@ -1909,7 +1874,6 @@ type MeasureOvertimeOptions = {
 	readonly excess: readonly ExcessHours[];
 	readonly hourlyRate: number;
 	readonly dayWage: number;
-	readonly overtimeCalculationMethod: OvertimeCalculationMethod;
 };
 
 function measureOvertime(options: MeasureOvertimeOptions): MeasuredAdjustment[] {
@@ -1940,23 +1904,15 @@ function measureOvertime(options: MeasureOvertimeOptions): MeasuredAdjustment[] 
 		let hours = 0;
 		let weighted = 0;
 		let dayWageAmount = 0;
-		let datedAmount = 0;
 		for (const segment of matched) {
 			hours += segment.hours;
-			if (options.overtimeCalculationMethod === 'ANNUALISED_CONTRACT_RATE') {
-				datedAmount += annualisedSegmentAmount(segment, options.hourlyRate, options.dayWage);
-				continue;
-			}
 			if (segment.award === 'DAY_WAGE_MULTIPLE') {
 				dayWageAmount += segment.multiple * options.dayWage;
 				continue;
 			}
 			weighted += segment.hours * segment.multiple;
 		}
-		const amount =
-			options.overtimeCalculationMethod === 'ANNUALISED_CONTRACT_RATE'
-				? cents(datedAmount)
-				: cents(weighted * options.hourlyRate + dayWageAmount);
+		const amount = cents(weighted * options.hourlyRate + dayWageAmount);
 		if (amount === 0) continue;
 		rows.push(
 			asAdjustment(key.band, key.workDayId, false, {
@@ -1979,52 +1935,12 @@ function measureOvertime(options: MeasureOvertimeOptions): MeasuredAdjustment[] 
 		const units = matched.reduce((total, row) => total + row.units, 0);
 		const hours = matched.reduce((total, row) => total + row.hours, 0);
 		const rate = valuedAt === 'ORDINARY_DAY_WAGE' ? options.dayWage : options.hourlyRate;
-		const amount =
-			options.overtimeCalculationMethod === 'ANNUALISED_CONTRACT_RATE'
-				? annualisedExcessAmount(matched, options.hourlyRate, options.dayWage)
-				: cents(units * rate);
+		const amount = cents(units * rate);
 		if (amount === 0) continue;
 		rows.push(asAdjustment(key.band, key.workDayId, true, { amount, quantity: hours, rate }));
 	}
 
 	return rows;
-}
-
-/**
- * One segment's worth under the `ANNUALISED_CONTRACT_RATE` order of operations: the unit rate
- * rounds first, then multiplies the units — per segment and per day — because that is what the
- * source system does and what reproduces its figures to the cent.
- */
-function annualisedSegmentAmount(
-	segment: PricedSegment,
-	hourlyRate: number,
-	dayWage: number
-): number {
-	const multiple = segment.multiple;
-	const unitRate =
-		segment.award === 'DAY_WAGE_MULTIPLE'
-			? cents(dayWage * multiple)
-			: cents(hourlyRate * multiple);
-	const units = segment.award === 'DAY_WAGE_MULTIPLE' ? 1 : segment.hours;
-	return cents(units * unitRate);
-}
-
-/**
- * Excess rows to money under the `ANNUALISED_CONTRACT_RATE` same order: a day-wage row is its
- * valued multiple, an hourly row its hours at an already-rounded unit rate.
- */
-function annualisedExcessAmount(
-	rows: readonly ExcessHours[],
-	hourlyRate: number,
-	dayWage: number
-): number {
-	return cents(
-		rows.reduce((total, row) => {
-			if (row.valuedAt === 'ORDINARY_DAY_WAGE') return total + cents(row.units * dayWage);
-			const multiple = row.hours === 0 ? 0 : row.units / row.hours;
-			return total + cents(row.hours * cents(hourlyRate * multiple));
-		}, 0)
-	);
 }
 
 /**

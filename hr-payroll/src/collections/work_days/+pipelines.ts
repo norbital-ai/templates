@@ -62,7 +62,8 @@ function resolveLegalEntity(
 	const matches = companies.filter(
 		(company) =>
 			company.name.trim().toLowerCase() === wanted ||
-			company.registration_number.trim().toLowerCase() === wanted
+			(company.registration_number != null &&
+				company.registration_number.trim().toLowerCase() === wanted)
 	);
 	if (matches.length === 1) return matches[0]!;
 	if (matches.length === 0) {

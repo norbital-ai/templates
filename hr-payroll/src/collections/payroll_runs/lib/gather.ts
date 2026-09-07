@@ -33,6 +33,7 @@ import {
 	dateKey,
 	monthBounds,
 	monthKey,
+	periodMonth,
 	type IsoDate
 } from './dates.js';
 import {
@@ -43,15 +44,22 @@ import {
 	type LoanRepayment
 } from './entries.js';
 import { effectiveWithin, live, overlapsRange } from './effective.js';
+import { realignStatutoryFacts } from './statutory-facts.js';
 import type { ChildFact, LedgerRow } from './leave.js';
-import { taxYearFirstPeriod, taxYearOf, type PayrollWindow } from './period.js';
+import {
+	cadenceWindow,
+	employmentPayFrequency,
+	paysOn,
+	taxYearFirstPeriod,
+	taxYearOf,
+	type PayFrequency,
+	type PayrollWindow
+} from './period.js';
 import type { WorkDayLike } from './overtime.js';
 import {
 	employmentDates,
-	inExtendedLeavePopulation,
 	resolveEmploymentSettlement,
-	type EmploymentSettlement,
-	type SettlementPolicy
+	type EmploymentSettlement
 } from './settlement.js';
 import { decodeNumber } from '@norbital-ai/std/json';
 
@@ -59,7 +67,7 @@ type Employment = WorkspaceRow<'employments'>;
 type Employee = WorkspaceRow<'employees'>;
 type EmploymentTerms = WorkspaceRow<'employment_terms'>;
 type StatutoryFact = WorkspaceRow<'employment_statutory_facts'>;
-type LeaveAccount = WorkspaceRow<'leave_accounts'>;
+type LeaveEntitlement = WorkspaceRow<'leave_entitlements'>;
 type LeaveEntry = WorkspaceRow<'leave_entries'>;
 
 /**
@@ -75,20 +83,28 @@ type WorkDay = WorkDayLike & WorkspaceRow<'work_days'>;
 export type EmploymentBundle = {
 	readonly employment: Employment;
 	readonly employee: Employee;
+	/** The cadence this employment is paid on, as of the day the run's period closes. */
+	readonly payFrequency: PayFrequency;
+	/**
+	 * The window this run pays the employment over: the one instalment its cadence has in the
+	 * period. A semi-monthly employment's is the half the period names; a monthly employment's is
+	 * the cutoff window. It is never the run's envelope, which may hold both.
+	 */
+	readonly window: PayrollWindow;
 	/** Every terms row touching the pay period, in effective order — a mid-month raise is two rows. */
 	readonly terms: readonly EmploymentTerms[];
 	readonly statutoryFacts: readonly StatutoryFact[];
 	/** Claims, standing allowances, bonuses, arrears settlements and corrections. */
 	readonly componentEntries: readonly ComponentEntry[];
-	/** The employment's child facts — the input a child-scaled statutory leave floor reads. */
+	/** The employment's child facts — what `children.under(age)` counts. */
 	readonly children: readonly ChildFact[];
 	/** The loan agreements this employment carries. Payroll consumes their repayments, not these. */
 	readonly loans: readonly Loan[];
 	/** The amounts due under those agreements — one of the four input families. */
 	readonly loanRepayments: readonly LoanRepayment[];
 	readonly ledger: readonly LedgerRow[];
-	/** Materialized entitlement accounts and their immutable movements, for formula balances. */
-	readonly leaveAccounts: readonly LeaveAccount[];
+	/** Generated entitlements and their immutable movements, for formula balances and leave money. */
+	readonly leaveEntitlements: readonly LeaveEntitlement[];
 	readonly leaveEntries: readonly LeaveEntry[];
 	/** Every terms row of the employment, so a ledger line dated outside the period can be priced at the terms then in force. */
 	readonly termsHistory: readonly EmploymentTerms[];
@@ -115,8 +131,6 @@ export type EmploymentBundle = {
 	 * persistence into base pay for the deferred period instead of a payslip.
 	 */
 	readonly deferral: EmploymentSettlement['deferral'];
-	/** Whether an extended unpaid absence settles in its own month for this employment. */
-	readonly extendedLeaveSettlesInOwnMonth: boolean;
 };
 
 export type GatheredRun = {
@@ -147,12 +161,11 @@ export type GatheredRun = {
 	readonly consumedRepayments: ReadonlyMap<string, number>;
 };
 
-/** What `gatherRun` needs: the reads, the picked law, the window and the settlement policy. */
+/** What `gatherRun` needs: the reads, the picked law and the window. */
 type GatherRunOptions = {
 	readonly api: PayrollReadApi & { readonly reads: ReadLog };
 	readonly configuration: Configuration;
 	readonly window: PayrollWindow;
-	readonly policy: SettlementPolicy;
 };
 
 export function gatherRun(options: GatherRunOptions): Effect.Effect<GatheredRun, never, never> {
@@ -179,26 +192,60 @@ export function gatherRun(options: GatherRunOptions): Effect.Effect<GatheredRun,
 		const touching = employmentRows.filter((row) =>
 			overlapsRange(row.effective_range, salary.start, salary.end)
 		);
+		// Terms are read first, because the cadence decides the window each employment is settled
+		// on. A semi-monthly employment is settled over the half the period names; a monthly one over
+		// the cutoff window, which a semi-monthly company only pays in the second half, so in the
+		// first half the monthly cadence has no window and its people are simply not in the run.
+		// A cadence the company cannot pay falls back to the run's own window, so the bundle exists
+		// for `validatePayCalendar` to refuse by name rather than throwing here.
+		const touchingIds = touching.map((row) => row.id);
+		const termRows =
+			touchingIds.length === 0
+				? []
+				: yield* db.employment_terms.findMany({
+						where: { employment_id: { in: touchingIds }, ...approved },
+						limit: PAGE_LIMIT
+					});
+		options.api.reads.assertComplete(termRows, 'employment terms');
+		const termsByEmployment = groupBy(live(termRows), (row) => row.employment_id);
+		const company = options.configuration.company;
+		const cadenceByEmployment = new Map<
+			string,
+			{ readonly window: PayrollWindow; readonly payFrequency: PayFrequency }
+		>();
 		const settlementByEmployment = new Map<string, EmploymentSettlement>();
-		for (const row of touching)
+		for (const row of touching) {
+			const payFrequency = employmentPayFrequency(termsByEmployment.get(row.id) ?? [], salary.end);
+			const cadence = paysOn(company, payFrequency)
+				? cadenceWindow(period, company, payFrequency)
+				: window;
+			if (cadence == null) continue;
+			cadenceByEmployment.set(row.id, { window: cadence, payFrequency });
 			settlementByEmployment.set(
 				row.id,
-				resolveEmploymentSettlement({
-					dates: employmentDates(row),
-					window,
-					policy: options.policy
-				})
+				resolveEmploymentSettlement({ dates: employmentDates(row), window: cadence })
 			);
+		}
 
 		const employments = touching.filter((row) => {
 			const settlement = settlementByEmployment.get(row.id);
 			return settlement != null && (settlement.runs || settlement.deferral != null);
 		});
+		// Headcount is who the company employs in the month, not who this run pays: a monthly
+		// employment is on the books in the first half of a semi-monthly month even though that run
+		// pays it nothing, and a headcount-banded contribution for everyone else must not move
+		// between the halves. A deferred joining period pays nobody and is not counted.
+		const month = monthBounds(periodMonth(period));
+		const headcount = touching.filter((row) => {
+			const dates = employmentDates(row);
+			if (dates.hire > month.end || (dates.exit != null && dates.exit < month.start)) return false;
+			return settlementByEmployment.get(row.id)?.deferral == null;
+		}).length;
 		const employmentIds = employments.map((row) => row.id);
 		if (employmentIds.length === 0)
 			return {
 				bundles: [],
-				headcount: 0,
+				headcount,
 				yearToDate: new Map(),
 				consumedEntries: new Map(),
 				consumedRepayments: new Map()
@@ -226,12 +273,11 @@ export function gatherRun(options: GatherRunOptions): Effect.Effect<GatheredRun,
 
 		const [
 			employeeRows,
-			termRows,
 			factRows,
 			entryRows,
 			loanRows,
 			requestRows,
-			leaveAccountRows,
+			leaveEntitlementRows,
 			workDayRows,
 			childRows
 		] = yield* Effect.all(
@@ -240,12 +286,11 @@ export function gatherRun(options: GatherRunOptions): Effect.Effect<GatheredRun,
 					where: { id: { in: employeeIds }, ...approved },
 					limit: PAGE_LIMIT
 				}),
-				db.employment_terms.findMany({ where: inEmployments, limit: PAGE_LIMIT }),
 				db.employment_statutory_facts.findMany({ where: inEmployments, limit: PAGE_LIMIT }),
 				db.component_entries.findMany({ where: inEmployments, limit: PAGE_LIMIT }),
 				db.loans.findMany({ where: inEmployments, limit: PAGE_LIMIT }),
 				db.leave_requests.findMany({ where: inEmployments, limit: PAGE_LIMIT }),
-				db.leave_accounts.findMany({ where: inEmployments, limit: PAGE_LIMIT }),
+				db.leave_entitlements.findMany({ where: inEmployments, limit: PAGE_LIMIT }),
 				db.work_days.findMany({
 					where: {
 						employment_id: { in: employmentIds },
@@ -266,12 +311,11 @@ export function gatherRun(options: GatherRunOptions): Effect.Effect<GatheredRun,
 		// a missing person-day changes a day type, a missing terms row changes a wage, and neither
 		// leaves a trace. Work days are the closest to the ceiling of the lot.
 		options.api.reads.assertComplete(employeeRows, 'employees');
-		options.api.reads.assertComplete(termRows, 'employment terms');
 		options.api.reads.assertComplete(factRows, 'statutory facts');
 		options.api.reads.assertComplete(entryRows, 'component entries');
 		options.api.reads.assertComplete(loanRows, 'loans');
 		options.api.reads.assertComplete(requestRows, 'leave requests');
-		options.api.reads.assertComplete(leaveAccountRows, 'leave accounts');
+		options.api.reads.assertComplete(leaveEntitlementRows, 'leave entitlements');
 		options.api.reads.assertComplete(workDayRows, 'work days');
 		options.api.reads.assertComplete(childRows, 'child facts');
 
@@ -287,22 +331,30 @@ export function gatherRun(options: GatherRunOptions): Effect.Effect<GatheredRun,
 					})
 				: [];
 		options.api.reads.assertComplete(repaymentRows, 'loan repayments');
-		const leaveAccountIds = live(leaveAccountRows).map((row) => row.id);
+		const leaveEntitlementIds = live(leaveEntitlementRows).map((row) => row.id);
 		const leaveEntryRows =
-			leaveAccountIds.length === 0
+			leaveEntitlementIds.length === 0
 				? []
 				: yield* db.leave_entries.findMany({
-						where: { leave_account_id: { in: leaveAccountIds }, ...approved },
+						where: { leave_entitlement_id: { in: leaveEntitlementIds }, ...approved },
 						limit: PAGE_LIMIT
 					});
 		options.api.reads.assertComplete(leaveEntryRows, 'leave entries');
 
 		const employeeById = new Map(live(employeeRows).map((row) => [row.id, row]));
-		const termsByEmployment = groupBy(live(termRows), (row) => row.employment_id);
-		const factsByEmployment = groupBy(live(factRows), (row) => row.employment_id);
+		const factsByEmployment = groupBy(
+			yield* realignStatutoryFacts(db, live(factRows), options.configuration),
+			(row) => row.employment_id
+		);
 		const entriesByEmployment = groupBy(live(entryRows), (row) => row.employment_id);
-		const leaveAccountsByEmployment = groupBy(live(leaveAccountRows), (row) => row.employment_id);
-		const leaveEntriesByAccount = groupBy(live(leaveEntryRows), (row) => row.leave_account_id);
+		const leaveEntitlementsByEmployment = groupBy(
+			live(leaveEntitlementRows),
+			(row) => row.employment_id
+		);
+		const leaveEntriesByEntitlement = groupBy(
+			live(leaveEntryRows),
+			(row) => row.leave_entitlement_id
+		);
 		const repaymentsByLoan = groupBy(live(repaymentRows), (row) => row.loan_id);
 		const loansByEmployment = groupBy(live(loanRows), (row) => row.employment_id);
 		/** Approved applications are payroll attendance inputs. Entitlement movements stay in the
@@ -340,8 +392,10 @@ export function gatherRun(options: GatherRunOptions): Effect.Effect<GatheredRun,
 			if (!employee)
 				refuse(`Employment ${employment.employee_number} has no approved employee record.`);
 			const settlement = settlementByEmployment.get(employment.id);
-			if (!settlement)
+			const cadence = cadenceByEmployment.get(employment.id);
+			if (!settlement || !cadence)
 				refuse(`Employment ${employment.employee_number} was gathered without a settlement.`);
+			const paid = cadence.window.salary;
 			const hire = dateKey(employment.hire_date);
 			if (hire == null) refuse(`Employment ${employment.employee_number} has no hire date.`);
 			const dob = dateKey(employee.date_of_birth);
@@ -350,35 +404,28 @@ export function gatherRun(options: GatherRunOptions): Effect.Effect<GatheredRun,
 			bundles.push({
 				employment,
 				employee,
-				terms: effectiveWithin(
-					termsByEmployment.get(employment.id) ?? [],
-					salary.start,
-					salary.end
-				),
+				payFrequency: cadence.payFrequency,
+				window: cadence.window,
+				terms: effectiveWithin(termsByEmployment.get(employment.id) ?? [], paid.start, paid.end),
 				statutoryFacts,
 				componentEntries: entriesByEmployment.get(employment.id) ?? [],
 				children: childrenByEmployment.get(employment.id) ?? [],
 				loans: employmentLoans,
 				loanRepayments: employmentLoans.flatMap((loan) => repaymentsByLoan.get(loan.id) ?? []),
 				ledger: ledgerByEmployment.get(employment.id) ?? [],
-				leaveAccounts: leaveAccountsByEmployment.get(employment.id) ?? [],
+				leaveEntitlements: leaveEntitlementsByEmployment.get(employment.id) ?? [],
 				termsHistory: termsByEmployment.get(employment.id) ?? [],
-				leaveEntries: (leaveAccountsByEmployment.get(employment.id) ?? []).flatMap(
-					(account) => leaveEntriesByAccount.get(account.id) ?? []
+				leaveEntries: (leaveEntitlementsByEmployment.get(employment.id) ?? []).flatMap(
+					(entitlement) => leaveEntriesByEntitlement.get(entitlement.id) ?? []
 				),
 				workDays: workDaysByEmployment.get(employment.id) ?? [],
-				serviceMonths: completedMonths(hire, salary.end),
-				age: dob == null ? null : completedYears(dob, salary.end),
+				serviceMonths: completedMonths(hire, paid.end),
+				age: dob == null ? null : completedYears(dob, paid.end),
 				employedDays: settlement.employedDays,
 				wageDays: settlement.wageDays,
 				attendance: settlement.attendance,
 				arrearsFor: settlement.arrearsFor,
-				deferral: settlement.deferral,
-				extendedLeaveSettlesInOwnMonth: inExtendedLeavePopulation({
-					policy: options.policy,
-					statutoryFacts,
-					asOf: salary.end
-				})
+				deferral: settlement.deferral
 			});
 		}
 
@@ -390,9 +437,7 @@ export function gatherRun(options: GatherRunOptions): Effect.Effect<GatheredRun,
 
 		return {
 			bundles,
-			// Headcount is who the run pays. A deferred joining period pays nobody, and counting it would
-			// move a headcount-banded contribution for everyone else in the company.
-			headcount: bundles.filter((bundle) => bundle.deferral == null).length,
+			headcount,
 			...(yield* gatherPriorSettlement({
 				api: options.api,
 				configuration: options.configuration,

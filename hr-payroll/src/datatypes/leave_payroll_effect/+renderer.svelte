@@ -49,14 +49,15 @@
 		current === null ? '—' : current.kind === 'PAID' ? t('component.paid') : t('component.unpaid')
 	);
 
-	const companyId = $derived(
-		typeof props.row?.company_id === 'string' ? props.row.company_id : null
+	// The catalogue of the same settings version as the leave type being edited.
+	const settingsId = $derived(
+		typeof props.row?.settings_id === 'string' ? props.row.settings_id : null
 	);
 	const componentsQuery = $derived(
-		companyId == null
+		settingsId == null
 			? null
 			: client.db.pay_components.findMany({
-					where: { company_id: { eq: companyId } },
+					where: { settings_id: { eq: settingsId } },
 					orderBy: { code: 'asc' },
 					limit: 500
 				})
@@ -124,7 +125,7 @@
 						ariaLabel={t('renderer.leave_payroll_effect.aria_deduction_component')}
 						options={componentOptions}
 						value={current.component_id === '' ? null : current.component_id}
-						disabled={disabled || companyId == null}
+						disabled={disabled || settingsId == null}
 						searchPlaceholder={t('component.search_pay_components')}
 						emptyPlaceholder={t('renderer.leave_payroll_effect.choose_component_carries_wage')}
 						clientConfig={{

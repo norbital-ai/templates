@@ -130,22 +130,15 @@ const OWN_PAYSLIP = {
 	payslip_employment: { some: OWN_EMPLOYMENT }
 } as const;
 
+/** The entity's own rows: its identity and its shifts (site operations, never rules). */
 export const referenceGrants = (
 	...actions: ReadonlyArray<'read' | 'mutate.new' | 'mutate.existing' | 'delete'>
-): Grants =>
-	mergeGrants(
-		grantsOn('companies', actions),
-		grantsOn('company_holidays', actions),
-		grantsOn('shift_definitions', actions),
-		grantsOn('pay_components', actions),
-		...(actions.includes('read') ? [grantsOn('leave_plans', ['read'])] : []),
-		grantsOn('leave_types', actions)
-	);
+): Grants => mergeGrants(grantsOn('companies', actions), grantsOn('shift_definitions', actions));
 
+/** The law as every rank reads it: the settings versions, their schemes and bands. */
 export const statutoryGrants = (...actions: ReadonlyArray<'read'>): Grants =>
 	mergeGrants(
-		grantsOn('jurisdictions', actions),
-		grantsOn('statutory_research_sources', actions),
+		grantsOn('jurisdiction_settings', actions),
 		grantsOn('statutory_contributions', actions),
 		grantsOn('contribution_rates', actions)
 	);
@@ -194,16 +187,20 @@ export const peopleGrants = (
 		grantsOn('employments', actions),
 		grantsOn('employment_terms', actions),
 		employmentStatutoryFactGrants(...actions),
-		// Child facts are what statutory leave floors scale on. `preview_leave` and the leave-request
-		// write hook both read them; a policy that can create leave without this read turns that
-		// preview into AccessDenied instead of a picker.
+		// Child facts are what `children.under(age)` counts. `preview_leave` is a function and runs
+		// as the person calling it; a policy that can create leave without this read turns that
+		// preview into AccessDenied instead of a picker. (The write hook reads as the workspace.)
 		...(actions.includes('read')
 			? [
 					grantsOn('employee_children', ['read']),
-					grantsOn('leave_accounts', ['read']),
+					grantsOn('leave_entitlements', ['read']),
 					grantsOn('leave_entries', ['read'])
 				]
-			: [])
+			: []),
+		// A child fact is appended, never edited or deleted (its hook refuses both), so the one
+		// write the people ranks hold on it is the append. The entitlement the child opens is the
+		// hook's own restatement of the employment, which needs no grant of theirs.
+		...(actions.includes('mutate.new') ? [grantsOn('employee_children', ['mutate.new'])] : [])
 	);
 
 export const payrollGrants = (...actions: ReadonlyArray<'read'>): Grants =>
@@ -223,52 +220,6 @@ export const leaveCalendarGrants = (ownCompany = false): Grants =>
 				}
 			: {})
 	});
-
-/**
- * Write access to the payroll result, for whoever may run payroll.
- *
- * The engine builds inside `payroll_runs.mutate.prepare` and `mutate.before`, and a `before` hook
- * runs as the **requesting subject** — not elevated, the way the old after hook was. So the person
- * who asks for a payroll is the person whose authority its payslips are written under, and without
- * these grants a run refuses on its own output.
- *
- * That is a narrower arrangement than it looks, and narrower than the one it replaces:
- *
- *  - `payroll_runs.mutate.new` is what confers it in practice. There is no surface anywhere in this
- *    workspace that creates a payslip on its own, and `createPayrollRunInput` is a closed struct —
- *    a caller cannot smuggle `payslip_payroll_run` past it, so every payslip that reaches the
- *    database was computed by the engine from approved inputs.
- *  - The deletes are unchanged in kind but no longer separate in cause. A recalculation states the
- *    run's complete set of payslips, and the ones left out are removed by that same statement; the
- *    grants that used to exist for `clearRunResults` now serve the replacement it became.
- *  - The four input junctions are engine-owned: no user policy grants writes on them anywhere in
- *    the workspace, and this mask is the only grant that does. The source columns and the
- *    denormalized period are what the engine states; the payslip id is assigned from the parent.
- */
-export const payrollRebuildGrants = (): Grants =>
-	mergeGrants(
-		grantsOn('payslips', ['mutate.new', 'delete']),
-		grantsOn('payslip_adjustments', ['mutate.new', 'delete']),
-		// The four engine-owned junctions. No user policy grants writes on them anywhere else in the
-		// workspace, and these masks are the only grants that do. The source column and the
-		// denormalized period are what the engine states; the payslip id is assigned from the parent.
-		grantOn('payslip_work_day_inputs', 'mutate.new', {
-			fields: ['work_day_id', 'period']
-		}),
-		grantOn('payslip_work_day_inputs', 'delete', {}),
-		grantOn('payslip_component_entry_inputs', 'mutate.new', {
-			fields: ['component_entry_id', 'period']
-		}),
-		grantOn('payslip_component_entry_inputs', 'delete', {}),
-		grantOn('payslip_leave_request_inputs', 'mutate.new', {
-			fields: ['leave_request_id', 'period']
-		}),
-		grantOn('payslip_leave_request_inputs', 'delete', {}),
-		grantOn('payslip_loan_repayment_inputs', 'mutate.new', {
-			fields: ['loan_repayment_id', 'period']
-		}),
-		grantOn('payslip_loan_repayment_inputs', 'delete', {})
-	);
 
 /**
  * The columns a captured input is *made of*, as opposed to what it paid.
@@ -291,18 +242,15 @@ const REPAYMENT_CAPTURE_FIELDS = ['id', 'payslip_id', 'period', 'loan_repayment_
 /**
  * Read access to the captured inputs themselves, and to nothing else on the row.
  *
- * The hooks that refuse a settled record read the four junctions under the editing person's own
- * subject. Without these grants "payroll 2026-03 has already taken this record into account"
- * becomes a bare denial naming a collection they have never heard of. Each junction exposes only
- * its own source column and the period, which is the whole of what a refusal quotes.
- */
-/**
- * The four capture junctions alone — the reads the lock refusals quote when they name what a run
- * took into account.
+ * The apps read the four junctions as the person using them: My leave and My attendance mark a
+ * day or an entry consumed by a payslip, and the Scheduling board marks captured days. Each
+ * junction exposes only its own source column and the period, which is the whole of what a
+ * surface shows. The hooks that refuse a settled record read the same junctions as the workspace
+ * and need nothing from here.
  *
  * Split from `settlementLedgerGrants` because the payroll ranks read `payslip_adjustments` whole
  * (they render payslips), so handing them the masked adjustment read too would be a duplicate
- * grant; the junction reads are the part every rank that edits captured records still needs.
+ * grant; the junction reads are the part every rank whose app shows captures still needs.
  */
 export const captureLedgerGrants = (): Grants =>
 	mergeGrants(
@@ -310,6 +258,26 @@ export const captureLedgerGrants = (): Grants =>
 		grantOn('payslip_component_entry_inputs', 'read', { fields: ENTRY_CAPTURE_FIELDS }),
 		grantOn('payslip_leave_request_inputs', 'read', { fields: LEAVE_CAPTURE_FIELDS }),
 		grantOn('payslip_loan_repayment_inputs', 'read', { fields: REPAYMENT_CAPTURE_FIELDS })
+	);
+
+/**
+ * What deleting a payroll run takes down with it.
+ *
+ * A caller's cascade descends as the caller's (RFC 0003 §3.2): the `cascade(...)` edges from a run
+ * to its payslips, from a payslip to its adjustments and to the four capture junctions are
+ * authorized against the deleting person's own delete grant on each collection, exactly as a
+ * nested row they submitted would be. So whoever may delete a run holds delete on what the run
+ * owns, and nothing else on those collections: the rows themselves are only ever written by the
+ * run's `before` hook, as the workspace.
+ */
+export const payrollRunCascadeGrants = (): Grants =>
+	mergeGrants(
+		grantsOn('payslips', ['delete']),
+		grantsOn('payslip_adjustments', ['delete']),
+		grantsOn('payslip_work_day_inputs', ['delete']),
+		grantsOn('payslip_component_entry_inputs', ['delete']),
+		grantsOn('payslip_leave_request_inputs', ['delete']),
+		grantsOn('payslip_loan_repayment_inputs', ['delete'])
 	);
 
 const settlementLedgerGrants = (): Grants =>
@@ -324,7 +292,6 @@ export const employeeReferenceGrants = (...actions: ReadonlyArray<'read'>): Gran
 		grantsOn('company_holidays', actions),
 		grantsOn('shift_definitions', actions),
 		grantsOn('pay_components', actions),
-		grantsOn('leave_plans', actions),
 		grantsOn('leave_types', actions)
 	);
 
@@ -334,64 +301,76 @@ const L1_MANAGER_TEAM = 'L1 Manager' as const;
 const SENIOR_MANAGEMENT_TEAM = 'Senior Management' as const;
 
 /**
- * A lifecycle transition ends the approval flow; an ordinary draft edit does not.
+ * Sealing and voiding are the reviewed acts; a draft edit is not.
  *
- * Sealing is the readback of the reviewer's approval: the write that changes `lifecycle` to
- * SEALED, or VOIDED, is the write being reviewed, and a controller editing law members of a DRAFT
- * profile is preparing a version that nobody has endorsed yet. `superceded_by` is already the
- * senior-management route the other review flows use.
+ * The write that sets `sealed_at` (on a new row or an existing draft) or `voided_at` is the write
+ * being reviewed, and a controller editing a draft is preparing a version nobody has endorsed
+ * yet. `superceded_by` is already the senior-management route the other review flows use.
  */
-const profileLifecycleApproval = {
-	flow: ({ changes }: { readonly changes?: Readonly<Record<string, unknown>> }) =>
-		changes?.lifecycle == null ? noApproval : approveBy(HR_MANAGER_TEAM, SENIOR_MANAGEMENT_TEAM),
+const settingsSealApproval = {
+	flow: ({
+		record,
+		changes
+	}: {
+		readonly record?: Readonly<{ sealed_at?: unknown; voided_at?: unknown }>;
+		readonly changes?: Readonly<Record<string, unknown>>;
+	}) =>
+		changes?.sealed_at != null ||
+		changes?.voided_at != null ||
+		(changes == null && (record?.sealed_at != null || record?.voided_at != null))
+			? approveBy(HR_MANAGER_TEAM, SENIOR_MANAGEMENT_TEAM)
+			: noApproval,
 	superceded_by: [SENIOR_MANAGEMENT_TEAM]
 } as const;
+
+/** A write that leaves the version a draft: the controller's whole authority over the root. */
+const draftOnly = ({ record }: { readonly record: { sealed_at?: unknown; voided_at?: unknown } }) =>
+	Effect.succeed(record.sealed_at == null && record.voided_at == null);
 
 /**
- * The statutory profile authoring surface: prepare DRAFT versions and approve them into SEALED.
+ * The jurisdiction settings root, in two authorities.
  *
- * The controller submits a new profile (DRAFT by default, which is why an ordinary `mutate.new`
- * needs no review) and edits its law members; the approval resolver above asks for HR Manager only
- * when a write states a lifecycle transition, so history never sees an unendorsed SEALED row. Catalogue
- * rows of a DRAFT profile are prepared the same way; the catalogue sealing hooks refuse every
- * write on rows of a SEALED or VOIDED profile, which is the second lock the immutable-history
- * matrix requires.
+ * `'draft'` is the HR controller's: create and edit versions that stay drafts, delete drafts; a
+ * write that would seal or void is refused outright, not held. `'seal'` is the HR Manager's and
+ * Senior Management's: the same writes, plus sealing and voiding under approval. Neither is a way
+ * around the hooks: the root's own hook freezes a sealed version and every child hook reads the
+ * root as the workspace, so no policy can edit under a seal.
  */
-export const statutoryProfileGrants = (): Grants =>
-	mergeGrants(
-		grantOn('statutory_research_sources', 'mutate.new', {
-			approval: { flow: () => approveBy(HR_MANAGER_TEAM), superceded_by: [SENIOR_MANAGEMENT_TEAM] }
-		}),
-		grantOn('statutory_research_sources', 'mutate.existing', {
-			fields: ['active'],
-			approval: { flow: () => approveBy(HR_MANAGER_TEAM), superceded_by: [SENIOR_MANAGEMENT_TEAM] }
-		}),
-		grantOn('jurisdictions', 'mutate.new', {
-			approval: {
-				...profileLifecycleApproval,
-				flow: ({ record }: { readonly record?: Readonly<{ lifecycle?: unknown }> }) =>
-					record?.lifecycle != null && record.lifecycle !== 'DRAFT'
-						? approveBy(HR_MANAGER_TEAM, SENIOR_MANAGEMENT_TEAM)
-						: noApproval
-			}
-		}),
-		grantOn('jurisdictions', 'mutate.existing', { approval: profileLifecycleApproval }),
-		grantsOn('statutory_contributions', ['mutate.new', 'mutate.existing', 'delete']),
-		grantsOn('contribution_rates', ['mutate.new', 'mutate.existing', 'delete'])
-	);
+export const settingsGrants = (authority: 'draft' | 'seal'): Grants =>
+	authority === 'draft'
+		? mergeGrants(
+				grantOn('jurisdiction_settings', 'mutate.new', { authorize: draftOnly }),
+				grantOn('jurisdiction_settings', 'mutate.existing', { authorize: draftOnly }),
+				grantOn('jurisdiction_settings', 'delete', { authorize: draftOnly })
+			)
+		: mergeGrants(
+				grantOn('jurisdiction_settings', 'mutate.new', { approval: settingsSealApproval }),
+				grantOn('jurisdiction_settings', 'mutate.existing', { approval: settingsSealApproval }),
+				grantsOn('jurisdiction_settings', ['delete'])
+			);
 
-const leavePlanLifecycleApproval = {
-	flow: ({ changes }: { readonly changes?: Readonly<Record<string, unknown>> }) =>
-		changes?.lifecycle == null ? noApproval : approveBy(HR_MANAGER_TEAM, SENIOR_MANAGEMENT_TEAM),
-	superceded_by: [SENIOR_MANAGEMENT_TEAM]
-} as const;
-
-/** Controllers prepare plan versions freely; the single DRAFT → ACTIVE seal is manager-approved. */
-export const leavePlanControllerGrants = (): Grants =>
-	mergeGrants(
-		grantsOn('leave_plans', ['mutate.new', 'delete']),
-		grantOn('leave_plans', 'mutate.existing', { approval: leavePlanLifecycleApproval })
+/**
+ * Every row under a settings version: schemes, bands, leave types, pay components, holidays.
+ *
+ * Edited freely while the version is a draft, by anyone who holds this; the seal is what reviews
+ * them, once, as one version, and after it the hooks refuse every write. There is no per-row
+ * approval any more: a statutory row and a company-rule row are told apart by `is_statutory` for
+ * reading, not for authority.
+ */
+export const settingsCatalogueGrants = (
+	...actions: ReadonlyArray<'read' | 'mutate.new' | 'mutate.existing' | 'delete'>
+): Grants => {
+	// Schemes and bands are read by every rank through `statutoryGrants`; only their writes are
+	// this group's, so the two groups never grant one coordinate twice.
+	const writes = actions.filter((action) => action !== 'read');
+	return mergeGrants(
+		...(writes.length === 0 ? [] : [grantsOn('statutory_contributions', writes)]),
+		...(writes.length === 0 ? [] : [grantsOn('contribution_rates', writes)]),
+		grantsOn('leave_types', actions),
+		grantsOn('pay_components', actions),
+		grantsOn('company_holidays', actions)
 	);
+};
 
 /**
  * ============================================================================
@@ -541,30 +520,10 @@ const leaveBalanceCorrectionApproval = {
 	superceded_by: [SENIOR_MANAGEMENT_TEAM]
 } as const;
 
-/** A qualifying-event account is the reviewed allocation fact, not another request stage. */
-export const eventLeaveAccountGrant = (reviewed: boolean): Grants =>
-	grantOn('leave_accounts', 'mutate.new', {
-		fields: [
-			'employment_id',
-			'leave_type_id',
-			'account_kind',
-			'event_reference',
-			'qualifying_date',
-			'statutory_cohort_date',
-			'starts_on',
-			'ends_on',
-			'allocation_units',
-			'weekly_index',
-			'eligibility_evidence'
-		],
-		authorize: ({ record }) => Effect.succeed(record.account_kind === 'EVENT'),
-		...(reviewed ? { approval: leaveBalanceCorrectionApproval } : {})
-	});
-
 /** Exceptional balance correction only; every operational and policy movement remains system-owned. */
 export const manualLeaveAdjustmentGrant = (reviewed: boolean): Grants =>
 	grantOn('leave_entries', 'mutate.new', {
-		fields: ['leave_account_id', 'kind', 'effective_on', 'days', 'reason', 'source_key'],
+		fields: ['leave_entitlement_id', 'kind', 'effective_on', 'days', 'reason', 'source_key'],
 		authorize: ({ record }) => Effect.succeed(record.kind === 'MANUAL_ADJUSTMENT'),
 		...(reviewed ? { approval: leaveBalanceCorrectionApproval } : {})
 	});

@@ -10,10 +10,11 @@ import {
 } from '@norbital-ai/test-utilities';
 import { calendarDateInTimeZone, PAYROLL_TIME_ZONE } from '../src/lib/ui/calendar.ts';
 import {
-	ANNUAL_LEAVE_ACCOUNT_ID,
+	ANNUAL_LEAVE_ENTITLEMENT_ID,
 	ANNUAL_LEAVE_TYPE_ID,
 	COMPANY_ID,
 	EMPLOYMENT_ID,
+	JURISDICTION_ID,
 	LOCAL_DATABASE_TEST_TIMEOUT_MILLIS,
 	MARCH_2026,
 	SHIFT_OFF_ID,
@@ -90,7 +91,7 @@ const fileTimeOff = (
 						id,
 						employment_id: EMPLOYMENT_ID,
 						leave_type_id: ANNUAL_LEAVE_TYPE_ID,
-						leave_account_id: ANNUAL_LEAVE_ACCOUNT_ID,
+						leave_entitlement_id: ANNUAL_LEAVE_ENTITLEMENT_ID,
 						event: {
 							kind: 'TIME_OFF',
 							range: {
@@ -300,18 +301,19 @@ test(
 
 			// 4. Leave on a rest day, on the swapped-off Monday, and on a holiday is no leave at
 			// all. (The swapped Sunday carries Monday's WORK code now, so the rest-day case moves a
-			// week on, to a Sunday nobody touched.)
-			await create(
-				session,
-				'company_holidays',
-				{
-					id: crypto.randomUUID(),
-					company_id: COMPANY_ID,
-					date: HOLIDAY_TUESDAY,
-					name: 'Lane D fixture holiday',
-					scope: { kind: 'NATIONAL' }
-				},
-				founder
+			// week on, to a Sunday nobody touched.) The holiday lands by SQL: the public PUB settings
+			// version is sealed, so the guest refuses adding a calendar day under it.
+			await session.query(
+				`insert into company_holidays (id, settings_id, date, name, scope, is_statutory)
+				 values ($1, $2, $3, $4, $5, $6)`,
+				[
+					crypto.randomUUID(),
+					JURISDICTION_ID,
+					HOLIDAY_TUESDAY,
+					'Lane D fixture holiday',
+					{ kind: 'NATIONAL' },
+					true
+				]
 			);
 			for (const date of [QUIET_SUNDAY, MONDAY, HOLIDAY_TUESDAY]) {
 				const noOp = await fileTimeOff(session, crypto.randomUUID(), date, controller);

@@ -8,9 +8,7 @@
 	import LayerLevelPicker, {
 		type PolicyLayerLevel
 	} from '../../lib/ui/policy-layers/layer-level-picker.svelte';
-	import EligibilityRulesRenderer from '../eligibility_rules/+renderer.svelte';
 	import { Combobox } from '@norbital-ai/ui/combobox';
-	import type { CollectionField } from '@norbital-ai/ui/data-renderer';
 	import { Input } from '@norbital-ai/ui/input';
 	import { Column, Grid, Inline, Stack } from '@norbital-ai/ui/layout';
 	import { componentDefinitionSchema } from './+definition.js';
@@ -24,7 +22,6 @@
 	type CapLayer = Cap['matrix']['layers'][number];
 	type CapAward = CapLayer['award'];
 	type AwardKind = CapAward['kind'];
-	type Eligibility = CapLayer['eligibility'];
 	type EntryUnit = EntryArm['unit'];
 	type Evidence = EntryArm['evidence'];
 	type Settlement = EntryArm['settlement'];
@@ -39,7 +36,17 @@
 	const SOURCE_OPTIONS: { value: Source; label: string; description: string }[] = [
 		{ value: 'ENTRY', label: 'Entry', description: 'Supplied by a person or an import' },
 		{ value: 'FORMULA', label: 'Formula', description: 'CEL expression over the payslip context' },
-		{ value: 'SCHEDULE', label: 'Schedule', description: 'The contracted amount on the terms' }
+		{ value: 'SCHEDULE', label: 'Schedule', description: 'The contracted amount on the terms' },
+		{
+			value: 'LEAVE_PAYOUT',
+			label: 'Leave payout',
+			description: 'What the leave ledger says is owed, priced by payroll'
+		},
+		{
+			value: 'DERIVED_OVERTIME',
+			label: 'Derived overtime',
+			description: 'Priced by the overtime regime from work days, never entered'
+		}
 	];
 	const ENTRY_UNIT_OPTIONS = options<EntryUnit>(['MONEY', 'DAYS', 'HOURS']);
 	const FORMULA_UNIT_OPTIONS = options<FormulaUnit>(['MONEY', 'DAYS', 'HOURS', 'RATE']);
@@ -61,18 +68,12 @@
 			description: 'The ceiling is a CEL expression over the payslip context'
 		}
 	];
-	const ELIGIBILITY_FIELD = {
-		name: 'eligibility',
-		kind: 'eligibility_rules',
-		nullable: false
-	} satisfies CollectionField;
-
 	/** A ceiling the policy has not withdrawn; a successor layer end-dates it. */
 	const OPEN_ENDED = '9999-12-31T00:00:00.000Z';
 
 	function newCapLayer(level: PolicyLayerLevel): CapLayer {
 		const ceiling = {
-			eligibility: [],
+			eligibility: '',
 			authority: '',
 			award: { kind: 'FIXED' as const, amount: 0 },
 			reimbursement_percentage: 100,
@@ -156,6 +157,10 @@
 				return `Formula · ${current.unit} · ${current.expr}`;
 			case 'SCHEDULE':
 				return `Schedule · ${current.reducible ? 'reducible' : 'not reducible'}`;
+			case 'LEAVE_PAYOUT':
+				return 'Leave payout · priced from the ledger';
+			case 'DERIVED_OVERTIME':
+				return 'Derived overtime · priced by the regime';
 		}
 	});
 
@@ -177,6 +182,10 @@
 				return { source: 'FORMULA', unit: 'MONEY', expr: '' };
 			case 'SCHEDULE':
 				return { source: 'SCHEDULE', unit: 'MONEY', reducible: true };
+			case 'LEAVE_PAYOUT':
+				return { source: 'LEAVE_PAYOUT', unit: 'MONEY' };
+			case 'DERIVED_OVERTIME':
+				return { source: 'DERIVED_OVERTIME', unit: 'MONEY' };
 		}
 	}
 
@@ -406,14 +415,12 @@
 								<Column span="all">
 									<Stack gap="xs" class="text-sm font-medium">
 										<span>{t('component.who_this_layer_covers')}</span>
-										<EligibilityRulesRenderer
-											field={ELIGIBILITY_FIELD}
+										<Input
 											value={row.layer.eligibility}
-											mode="edit"
+											placeholder={t('component.eligibility_placeholder')}
 											disabled={row.disabled}
-											onValueChange={(next: Eligibility | null) => {
-												if (next !== null) row.replace({ ...row.layer, eligibility: next });
-											}}
+											oninput={(event) =>
+												row.replace({ ...row.layer, eligibility: event.currentTarget.value })}
 										/>
 									</Stack>
 								</Column>

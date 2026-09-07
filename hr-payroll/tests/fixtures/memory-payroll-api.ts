@@ -10,15 +10,14 @@ export type PayrollRow = Record<string, unknown>;
 
 export type PayrollWorld = {
 	readonly companies: PayrollRow[];
-	readonly jurisdictions: PayrollRow[];
+	readonly jurisdiction_settings: PayrollRow[];
 	readonly statutory_contributions: PayrollRow[];
 	readonly contribution_rates: PayrollRow[];
 	readonly pay_components: PayrollRow[];
 	readonly shift_definitions: PayrollRow[];
 	readonly company_holidays: PayrollRow[];
-	readonly leave_plans: PayrollRow[];
 	readonly leave_types: PayrollRow[];
-	readonly leave_accounts: PayrollRow[];
+	readonly leave_entitlements: PayrollRow[];
 	readonly leave_entries: PayrollRow[];
 	readonly employments: PayrollRow[];
 	readonly employees: PayrollRow[];
@@ -134,15 +133,14 @@ export function memoryPayrollApi(world: PayrollWorld) {
 	return {
 		db: {
 			companies: collection('companies'),
-			jurisdictions: collection('jurisdictions'),
+			jurisdiction_settings: collection('jurisdiction_settings'),
 			statutory_contributions: collection('statutory_contributions'),
 			contribution_rates: collection('contribution_rates'),
 			pay_components: collection('pay_components'),
 			shift_definitions: collection('shift_definitions'),
 			company_holidays: collection('company_holidays'),
-			leave_plans: collection('leave_plans'),
 			leave_types: collection('leave_types'),
-			leave_accounts: collection('leave_accounts'),
+			leave_entitlements: collection('leave_entitlements'),
 			leave_entries: collection('leave_entries'),
 			employments: collection('employments'),
 			employees: collection('employees'),

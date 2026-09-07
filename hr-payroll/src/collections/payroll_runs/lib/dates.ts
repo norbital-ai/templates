@@ -111,7 +111,34 @@ export function intersectDays(
 	return start > end ? null : { start, end };
 }
 
-/** First and last calendar day of a `YYYY-MM` period. */
+/**
+ * The grammar of a payroll run's period.
+ *
+ * A monthly company runs months, written `YYYY-MM`. A semi-monthly company runs halves, written
+ * `YYYY-MM-1` (the 1st to the 15th, paid on the 15th) and `YYYY-MM-2` (the 16th to the month end,
+ * paid at the month end). The suffix is part of the period, not a separate column, because every
+ * rule that orders runs compares the period text: `2026-02-1 < 2026-02-2 < 2026-03-1` is the
+ * chronological order, so the previous-run-paid rule and the year-to-date filter read the new
+ * grammar unchanged.
+ */
+export const RUN_PERIOD = /^\d{4}-(0[1-9]|1[0-2])(-[12])?$/;
+
+/** The `YYYY-MM` a run period belongs to; the whole of it for a monthly period. */
+export function periodMonth(period: string): string {
+	if (!RUN_PERIOD.test(period))
+		throw new Error(
+			`Payroll period must be YYYY-MM or YYYY-MM-1 / YYYY-MM-2, received "${period}".`
+		);
+	return period.slice(0, 7);
+}
+
+/** Which half of the month a run period names, or `null` for a whole month. */
+export function periodHalf(period: string): 1 | 2 | null {
+	periodMonth(period);
+	return period.length === 7 ? null : period.endsWith('1') ? 1 : 2;
+}
+
+/** First and last calendar day of a `YYYY-MM` month. A run period goes through `periodMonth`. */
 export function monthBounds(period: string): { start: IsoDate; end: IsoDate } {
 	if (!/^\d{4}-\d{2}$/.test(period))
 		throw new Error(`Period must be YYYY-MM, received "${period}".`);
@@ -120,9 +147,9 @@ export function monthBounds(period: string): { start: IsoDate; end: IsoDate } {
 	return { start: iso(utc(year, monthIndex, 1)), end: iso(utc(year, monthIndex + 1, 0)) };
 }
 
-/** The `YYYY-MM` `offset` months after `period`. */
+/** The period `offset` months after `period`, in the same grammar: a half stays the same half. */
 export function shiftPeriod(period: string, offset: number): string {
 	const year = decodeNumber(period.slice(0, 4));
 	const monthIndex = decodeNumber(period.slice(5, 7)) - 1 + offset;
-	return iso(utc(year, monthIndex, 1)).slice(0, 7);
+	return `${iso(utc(year, monthIndex, 1)).slice(0, 7)}${period.slice(7)}`;
 }

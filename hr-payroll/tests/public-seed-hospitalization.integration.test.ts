@@ -8,7 +8,7 @@ import {
 } from '@norbital-ai/test-utilities';
 import {
 	EMPLOYMENT_ID,
-	HOSPITALIZATION_LEAVE_ACCOUNT_ID,
+	HOSPITALIZATION_LEAVE_ENTITLEMENT_ID,
 	HOSPITALIZATION_LEAVE_TYPE_ID,
 	LOCAL_DATABASE_TEST_TIMEOUT_MILLIS,
 	startPublicSeedHost
@@ -17,10 +17,10 @@ import {
 /**
  * HR10: hospitalization leave end-to-end on public fixtures.
  *
- * The public `jurisdictions.json` seals a 60-day HOSPITALIZATION floor and
- * `leave_types.json` maps it; the after-seed `leave_ledger_refresh` generates the
- * accounts (fixtures carry zero `leave_accounts`/`entries`). A founder-committed
- * two-day request then charges the ledger through the same hooks payroll reads.
+ * The public `leave_types.json` carries a statutory 60-day HOSPITALIZATION row; the after-seed
+ * `leave_ledger_refresh` generates the entitlements (fixtures carry zero
+ * `leave_entitlements`/`entries`). A founder-committed two-day request then charges the ledger
+ * through the same hooks payroll reads.
  */
 test(
 	'public seed hospitalization leave generates its account and charges taken days',
@@ -28,27 +28,26 @@ test(
 	async () => {
 		const session = await startPublicSeedHost('hr-payroll-hospitalization');
 		try {
-			const accounts = await session.query(
-				`select id, employment_id, leave_code, leave_year, entitlement_days, opening_statutory_profile_id
-				 from leave_accounts where leave_code = 'HOSPITALIZATION' and leave_year = 2026`
+			const entitlements = await session.query(
+				`select id, employment_id, leave_code, leave_year, entitlement_days
+				 from leave_entitlements where leave_code = 'HOSPITALIZATION' and leave_year = 2026`
 			);
 			assert.equal(
-				accounts.length,
+				entitlements.length,
 				4,
-				`every public employment gets a 2026 hospitalization account: ${JSON.stringify(accounts)}`
+				`every public employment gets a 2026 hospitalization entitlement: ${JSON.stringify(entitlements)}`
 			);
-			const account = asRecord(
-				accounts.find(
-					(row) => String(asRecord(row, 'row').id) === HOSPITALIZATION_LEAVE_ACCOUNT_ID
+			const entitlement = asRecord(
+				entitlements.find(
+					(row) => String(asRecord(row, 'row').id) === HOSPITALIZATION_LEAVE_ENTITLEMENT_ID
 				),
-				'fixture hospitalization account'
+				'fixture hospitalization entitlement'
 			);
-			assert.equal(Number(account.entitlement_days), 60);
-			assert.equal(account.opening_statutory_profile_id, '22222222-2222-4222-8222-222222222222');
+			assert.equal(Number(entitlement.entitlement_days), 60);
 
 			const openings = await session.query(
-				`select kind, days, source_key from leave_entries where leave_account_id = $1`,
-				[HOSPITALIZATION_LEAVE_ACCOUNT_ID]
+				`select kind, days, source_key from leave_entries where leave_entitlement_id = $1`,
+				[HOSPITALIZATION_LEAVE_ENTITLEMENT_ID]
 			);
 			assert.equal(openings.length, 1, JSON.stringify(openings));
 			const opening = asRecord(openings[0], 'hospitalization opening entry');
@@ -70,7 +69,7 @@ test(
 								id: requestId,
 								employment_id: EMPLOYMENT_ID,
 								leave_type_id: HOSPITALIZATION_LEAVE_TYPE_ID,
-								leave_account_id: HOSPITALIZATION_LEAVE_ACCOUNT_ID,
+								leave_entitlement_id: HOSPITALIZATION_LEAVE_ENTITLEMENT_ID,
 								event: {
 									kind: 'TIME_OFF',
 									range: {
@@ -102,8 +101,8 @@ test(
 
 			const entries = await session.query(
 				`select kind, days, source_key from leave_entries
-				 where leave_account_id = $1 order by effective_on, kind`,
-				[HOSPITALIZATION_LEAVE_ACCOUNT_ID]
+				 where leave_entitlement_id = $1 order by effective_on, kind`,
+				[HOSPITALIZATION_LEAVE_ENTITLEMENT_ID]
 			);
 			const taken = entries.filter(
 				(row) => String(asRecord(row, 'entry').source_key) === `request:${requestId}`
@@ -114,8 +113,8 @@ test(
 
 			const balance = await session.query(
 				`select coalesce(sum(days), 0) as remaining from leave_entries
-				 where leave_account_id = $1 and effective_on <= '2026-12-31'`,
-				[HOSPITALIZATION_LEAVE_ACCOUNT_ID]
+				 where leave_entitlement_id = $1 and effective_on <= '2026-12-31'`,
+				[HOSPITALIZATION_LEAVE_ENTITLEMENT_ID]
 			);
 			assert.equal(Number(asRecord(balance[0], 'balance').remaining), 58);
 		} finally {

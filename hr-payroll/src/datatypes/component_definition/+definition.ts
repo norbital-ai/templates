@@ -1,6 +1,5 @@
 import { defineCustomType } from '@norbital-ai/bolt/authoring';
 import { Schema } from 'effect';
-import { eligibilityRulesValueSchema } from '../eligibility_rules/+definition.js';
 import { instantRangeValueSchema } from '@norbital-ai/bolt/authoring';
 
 /**
@@ -16,7 +15,8 @@ const capAwardSchema = Schema.Union([
 	Schema.Struct({ kind: Schema.Literal('FORMULA'), expr: Schema.NonEmptyString })
 ]);
 const capLayer = {
-	eligibility: eligibilityRulesValueSchema,
+	/** One CEL expression over the person context (`payroll_runs/lib/eligibility.ts`); '' is everyone. */
+	eligibility: Schema.String,
 	authority: Schema.NonEmptyString,
 	award: capAwardSchema,
 	reimbursement_percentage: Schema.Finite.check(Schema.isBetween({ minimum: 0, maximum: 100 })),
@@ -49,14 +49,13 @@ export const componentCapSchema = Schema.Struct({
  * - `FORMULA`   — a CEL expression over the payslip context.
  * - `SCHEDULE`  — the contracted amount from `employment_terms` (basic salary).
  *
- * There is deliberately NO overtime source. Overtime is derived from `work_days` priced against
- * the jurisdiction's `statutory_regime.overtime_rules`, and an overtime multiple comes from statute
- * rather than from tenant configuration — modelling it here let two companies in one jurisdiction
- * disagree about what the law says. Its statutory treatment lives on the scheme that charges it,
- * `statutory_contributions.overtime_treatments`.
+ * - `DERIVED_OVERTIME` — priced by the jurisdiction's regime, never entered. The `OVERTIME` and
+ *   `OVERTIME_EXCESS` catalogue rows carry it so the scheme treatments of derived overtime live
+ *   where every other treatment does; the multiple itself comes from statute
+ *   (`statutory_regime.overtime_rules`), never from this row.
  *
- * There is deliberately NO statutory information here either: chargeability is reachable only via
- * `pay_components.policy.statutory_treatments`.
+ * There is deliberately NO statutory information here: chargeability is reachable only via
+ * `pay_components.contribution_treatments`.
  */
 export const componentDefinitionValueSchema = Schema.Union([
 	Schema.Struct({
@@ -81,7 +80,9 @@ export const componentDefinitionValueSchema = Schema.Union([
 	 * the statute's basis and the terms in force on each line's date. Nobody types it; the component
 	 * only says how it is treated and reported.
 	 */
-	Schema.Struct({ source: Schema.Literal('LEAVE_PAYOUT'), unit: Schema.Literal('MONEY') })
+	Schema.Struct({ source: Schema.Literal('LEAVE_PAYOUT'), unit: Schema.Literal('MONEY') }),
+	/** Derived overtime: the regime prices it from work days; nobody types it and no formula reads it. */
+	Schema.Struct({ source: Schema.Literal('DERIVED_OVERTIME'), unit: Schema.Literal('MONEY') })
 ]);
 
 export type ComponentDefinition = Schema.Schema.Type<typeof componentDefinitionValueSchema>;
@@ -94,6 +95,6 @@ export const componentDefinitionSchema = Schema.toStandardSchemaV1(componentDefi
 export default defineCustomType({
 	name: 'component_definition',
 	description:
-		'How a pay component gets its number — typed in as an entry under a layered claim cap, computed from a formula, or taken from the contracted salary.',
+		'How a pay component gets its number — typed in as an entry under a layered claim cap, computed from a formula, taken from the contracted salary, priced from the leave ledger, or derived from work days by the overtime regime.',
 	schema: componentDefinitionSchema
 });

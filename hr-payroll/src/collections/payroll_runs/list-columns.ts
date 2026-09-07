@@ -12,7 +12,7 @@ export const PAYROLL_RUN_LIST_COLUMNS = {
 	sequence: true,
 	configuration_hash: true,
 	core_input_hash: true,
-	statutory_snapshot_id: true,
+	settings_id: true,
 	calculation_version: true,
 	pay_date: true,
 	attendance_from: true,

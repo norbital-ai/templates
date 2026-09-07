@@ -27,7 +27,7 @@ import { dateKey, requiredDateKey } from './dates.js';
 import type { DailyOvertime } from './overtime.js';
 import { ruleDayType } from './schedule.js';
 import { coversDate } from './effective.js';
-import { usesMonthlyCalendar } from './period.js';
+import { paysOn } from './period.js';
 import { rosterCodeKind, workWindow } from '../../../lib/scheduling/roster-code.js';
 import type { RosterCodeVariant } from '../../../datatypes/roster_code_variant/+definition.js';
 import { parseSpecialRules } from './special-rules.js';
@@ -60,26 +60,41 @@ export function validateConfiguration(configuration: Configuration): RunIssue[] 
 			'PRORATION_MISSING',
 			`Jurisdiction ${configuration.jurisdiction.code} states no proration basis, so a partial ` +
 				'month cannot be paid.',
-			'jurisdictions',
+			'jurisdiction_settings',
 			configuration.jurisdiction.id
 		);
+
+	// A jurisdiction that prices overtime needs the two statutory rows its treatments live on.
+	// ACCUMULATE would refuse the first priced overtime line by name; refusing here keeps the
+	// refusal ahead of the run row.
+	if (configuration.overtimeRules.length > 0 && configuration.contributions.length > 0)
+		for (const code of ['OVERTIME', 'OVERTIME_EXCESS'])
+			if (!configuration.payComponents.some((component) => component.code === code))
+				blocker(
+					'OVERTIME_COMPONENT_MISSING',
+					`${configuration.company.name} has no ${code} pay component, so no scheme can say what ` +
+						'it does with derived overtime. Add the statutory row with a treatment for every ' +
+						`scheme ${configuration.jurisdiction.code} levies.`,
+					'companies',
+					configuration.company.id
+				);
 
 	// Every monetary component owns a decided cell for every effective statutory scheme.
 	for (const component of configuration.payComponents) {
 		if (component.nature === 'INFORMATION') continue;
 		for (const contribution of configuration.contributions) {
 			const cell = configuration.treatments.get(`${component.id}:${contribution.row.id}`);
-			if (cell?.treatment == null) {
+			if (cell == null) {
 				blocker(
 					'TREATMENT_MISSING',
-					`No ${contribution.row.code} treatment exists for ${component.code}. Each component ` +
-						'must state the decision in its policy.',
+					`No ${contribution.row.code} treatment exists for ${component.code}. The component ` +
+						'states a treatment for every scheme its jurisdiction levies.',
 					'pay_components',
 					component.id
 				);
 				continue;
 			}
-			if (cell.treatment.kind === 'UNSET')
+			if (cell.kind === 'UNSET')
 				blocker(
 					'TREATMENT_UNSET',
 					`${component.code} × ${contribution.row.code} is undecided. Payroll cannot guess whether ` +
@@ -87,13 +102,10 @@ export function validateConfiguration(configuration: Configuration): RunIssue[] 
 					'pay_components',
 					component.id
 				);
-			if (
-				cell.treatment.kind === 'SPECIAL' &&
-				!contribution.row.special_rules.includes(cell.treatment.rule)
-			)
+			if (cell.kind === 'SPECIAL' && !contribution.row.special_rules.includes(cell.rule))
 				blocker(
 					'SPECIAL_RULE_UNKNOWN',
-					`${component.code} × ${contribution.row.code} names special rule "${cell.treatment.rule}", ` +
+					`${component.code} × ${contribution.row.code} names special rule "${cell.rule}", ` +
 						`which ${contribution.row.code} does not declare.`,
 					'pay_components',
 					component.id
@@ -173,30 +185,9 @@ export function validateConfiguration(configuration: Configuration): RunIssue[] 
 		blocker(
 			'OVERTIME_RULE_UNBANDED',
 			`An overtime rule (${rule.authority}) carries no band and can never be entered.`,
-			'jurisdictions',
+			'jurisdiction_settings',
 			configuration.jurisdiction.id
 		);
-	}
-
-	// ── overtime chargeability: a scheme with no stated position cannot charge overtime ─────────
-	//
-	// The same rule the treatment grid lives by, applied to the schedule that replaced its overtime
-	// row: silence is an undecided scheme, not an exempt one. Caught here rather than at ACCUMULATE
-	// so the run names the row to fix before anybody's payslip is measured.
-	for (const contribution of configuration.contributions) {
-		for (const [what, treatment] of [
-			['overtime', contribution.overtimeTreatment],
-			['excess overtime', contribution.overtimeExcessTreatment]
-		] as const) {
-			if (treatment != null) continue;
-			blocker(
-				'OVERTIME_TREATMENT_UNDECIDED',
-				`${contribution.row.code} states no ${what} position effective in this period. A scheme ` +
-					'that has not decided cannot be read as excluding it.',
-				'statutory_contributions',
-				contribution.row.id
-			);
-		}
 	}
 
 	return issues;
@@ -239,7 +230,7 @@ export function validateOvertimeLimits(options: ValidateOvertimeLimitsOptions): 
 						`${options.employeeNumber} worked ${options.monthHours} regulated overtime hours in ` +
 						`${options.calendarMonth}, against a ${limit.max_hours}-hour calendar-month ceiling ` +
 						`(${limit.authority}, on_exceed=${limit.on_exceed}). ${nextStep}`,
-					collection: 'jurisdictions',
+					collection: 'jurisdiction_settings',
 					recordId: options.configuration.jurisdiction.id
 				};
 			})
@@ -363,13 +354,12 @@ export function validateOpenWorkDays(options: ValidateOpenWorkDaysOptions): RunI
 /**
  * Whether the company's pay calendar can express the cadence its people are actually paid on.
  *
- * `companies.pay_cutoff_day` and `pay_day` are one integer each, so between them they describe a
- * **monthly** calendar and nothing else: one window, one pay date, one run a month. A company whose
- * people are not all monthly states the rest in `companies.pay_calendar` — for a semi-monthly
- * cadence, the two instalments of the month with their own salary window and pay day. When it has,
- * there is nothing wrong here and this check is silent, which is the case at the Philippine entity
- * where twelve of twenty-three employments are `SEMI_MONTHLY` because the law requires payment at
- * least twice a month.
+ * `companies.pay_cutoff_day` describes a **monthly** calendar: one window, one run a month. A
+ * company whose people are not all monthly says so in `companies.pay_frequency`: `SEMI_MONTHLY`
+ * pays its semi-monthly employments in two fixed instalments. When it does, there is nothing wrong
+ * here and this check is silent, which is the case at the Philippine entity where twelve of
+ * twenty-three employments are `SEMI_MONTHLY` because the law requires payment at least twice a
+ * month.
  *
  * What is still a fault, and still stops the run, is an employment paid on a cadence the company
  * has never written a calendar for. Payroll would otherwise run them on the monthly calendar
@@ -387,11 +377,7 @@ type ValidatePayCalendarOptions = {
 
 export function validatePayCalendar(options: ValidatePayCalendarOptions): RunIssue[] {
 	const company = options.configuration.company;
-	const stated = new Set((company.pay_calendar ?? []).map((entry) => String(entry.pay_frequency)));
-	// MONTHLY is never in `pay_calendar` and never needs to be: the two company columns are its
-	// calendar, and every company has them.
-	const expressible = (frequency: string): boolean =>
-		usesMonthlyCalendar(frequency) || stated.has(frequency);
+	const expressible = (frequency: string): boolean => paysOn(company, frequency);
 	const unpayable = options.bundles.filter((bundle) =>
 		bundle.terms.some((row) => row.pay_frequency != null && !expressible(row.pay_frequency))
 	);
@@ -412,10 +398,9 @@ export function validatePayCalendar(options: ValidatePayCalendarOptions): RunIss
 			code: 'PAY_CALENDAR_CADENCE_UNSTATED',
 			message:
 				`${named.join(', ')} at ${company.name} are on ${cadences} terms, but ${company.name} ` +
-				`states no ${cadences} pay calendar — only its monthly one (cutoff ` +
-				`${company.pay_cutoff_day}, paid on ${company.pay_day}). Add the instalments of that ` +
-				'cadence to the company pay calendar: there is no window this payroll could run them on ' +
-				'until it can say when their period opens, closes and pays.',
+				`pays ${company.pay_frequency} (cutoff ${company.pay_cutoff_day}). Set the company's pay ` +
+				'frequency to the cadence its people are paid on: there is no window this payroll could ' +
+				'run them on until the company says when their period opens, closes and pays.',
 			collection: 'companies',
 			recordId: company.id
 		}
@@ -492,26 +477,38 @@ type RosteredValidationDay = {
 
 export function validateRosteredExpectations(options: {
 	readonly period: string;
+	/** The run's attendance window; an employment settled over another one states its own. */
 	readonly window: { readonly start: string; readonly end: string };
 	readonly employments: readonly {
 		readonly id: string;
 		readonly employee_number: string;
 		readonly terms: readonly RosteredValidationTerms[];
 		readonly workDays: readonly RosteredValidationDay[];
+		/**
+		 * The attendance window this employment is paid over, when it is not the run's: at a
+		 * semi-monthly company the run's window is the envelope of two cadences, and a load is
+		 * measured over the one instalment the employment is actually paid for.
+		 */
+		readonly window?: { readonly start: string; readonly end: string };
 	}[];
 	readonly workCodeIds: ReadonlySet<string>;
 	readonly paidMinutesByCode: ReadonlyMap<string, number>;
 }): RunIssue[] {
 	const issues: RunIssue[] = [];
-	const windowDates: string[] = [];
-	for (
-		let date = options.window.start;
-		date <= options.window.end;
-		date = new Date(Date.parse(`${date}T00:00:00.000Z`) + 86_400_000).toISOString().slice(0, 10)
-	) {
-		windowDates.push(date);
-	}
+	const datesOf = (window: { readonly start: string; readonly end: string }): string[] => {
+		const dates: string[] = [];
+		for (
+			let date = window.start;
+			date <= window.end;
+			date = new Date(Date.parse(`${date}T00:00:00.000Z`) + 86_400_000).toISOString().slice(0, 10)
+		) {
+			dates.push(date);
+		}
+		return dates;
+	};
 	for (const employment of options.employments) {
+		const window = employment.window ?? options.window;
+		const windowDates = datesOf(window);
 		const touching = employment.terms.filter((term) =>
 			windowDates.some((date) => coversDate(term.effective_range, date))
 		);
@@ -521,8 +518,8 @@ export function validateRosteredExpectations(options: {
 			const date = dateKey(day.work_date);
 			if (
 				date == null ||
-				date < options.window.start ||
-				date > options.window.end ||
+				date < window.start ||
+				date > window.end ||
 				day.shift_definition_id == null
 			)
 				continue;

@@ -36,7 +36,7 @@ loans -> loan_repayments <-+                   |- payslip_loan_repayment_inputs
 4. **`payslips`** —— 一次运行中某雇佣的合计、内联的输出平面及其捕获的输入。
 5. **`payslip_adjustments`** —— 每个捕获输入对应一项已结算内容，其溯源是真正的外键。
 
-核心之外：`companies` 与 `jurisdictions` 划定法律实体；`employments`、`employment_terms` 与 `employment_statutory_facts` 描述一个人的工作事实；`shift_definitions`、`rosters`、`work_days`、`company_holidays`、`leave_types` 与 `leave_requests` 提供排班与休假事实；每一个封存的 `jurisdictions` 档案版本原子地拥有加班覆盖范围、计价、上限以及法定假期最低天数，并界定休假与薪资目录；`statutory_contributions` 与 `contribution_rates` 按档案界定范围并随之封存；`loans` 及其 `loan_repayments` 承载员工贷款与多付追回 —— 协议本身，以及其下到期的金额。
+核心之外：`companies` 划定法律实体并通过 `settings_code` 绑定到一个 `jurisdiction_settings` 谱系；`employments`、`employment_terms` 与 `employment_statutory_facts` 描述一个人的工作事实；`shift_definitions`、`rosters`、`work_days`、`company_holidays`、`leave_types` 与 `leave_requests` 提供排班与休假事实；每一个封存的 `jurisdiction_settings` 版本是一个可共享的根对象，原子地拥有加班覆盖范围、计价、上限，以及随之封存的 `statutory_contributions`、`contribution_rates`、`pay_components`、`leave_types` 与 `company_holidays`；`loans` 及其 `loan_repayments` 承载员工贷款与多付追回 —— 协议本身，以及其下到期的金额。
 
 两条不变量塑造了一切：
 
@@ -56,14 +56,14 @@ loans -> loan_repayments <-+                   |- payslip_loan_repayment_inputs
 | **实体**         | 选择所有其他 HR 控制器页面使用的法律实体                                                                                                      |
 | **人员**         | 劳动力：员工档案、雇佣、按生效日期的条款、法定事实，以及劳动力结构图                                                                          |
 | **排班**         | 在月度排班板规划并发布班次，管理工作模式与节假日，并从操作菜单导入考勤                                                                          |
-| **休假**         | 复核休假申请，管理按生效日版本化的公司休假计划，查看已封存的年度账户及追加式台账，并提交一次经理复核的例外余额更正                    |
+| **休假**         | 复核休假申请，每条申请带其余额与锁定它的薪资采集；提交一次经理复核的例外余额更正。休假目录在「设置」中配置                          |
 | **贷款**         | 复核还款协议及其推导出的未偿余额，每期回收按工资单追踪                                                                                        |
-| **薪资组成部分** | 薪资目录与条目流：报销、津贴、奖金、补发与更正及其缴款处理                                                                                    |
+| **薪资组成部分** | 一个实体的条目流：报销、津贴、奖金、补发与更正，以及结算每条的薪资采集。目录在「设置」中配置                                                  |
 | **薪资核算**     | 运行薪资周期：发薪日看板（逾期/当期/即将）、创建与重算运行、锁定发薪、导出银行文件、工资单 PDF 与报告工作簿                                   |
-| **法定档案**     | 管理版本化辖区档案（DRAFT → SEALED → VOIDED）、法定休假下限、缴款方案与费率                                                                    |
+| **设置**         | 一个实体所属管辖地设置谱系的版本时间线：生效版本及其薪资、缴款、休假类型、薪资项目与假期标签；封存、作废与新版本操作；已封存版本及其下所有行只读 |
 | **考勤机**       | 通过人脸识别或人工输入打卡并登记人脸；设备账户只看到此无外壳页面                                                                                |
 
-### 策略（9 条）
+### 策略（10 条）
 
 - **`employee`** —— 员工自助服务及本人范围内须审批的考勤、报销与休假创建。
 - **`supervisor`** —— 查看团队并复核、记录其考勤与休假。
@@ -71,8 +71,8 @@ loans -> loan_repayments <-+                   |- payslip_loan_repayment_inputs
 - **`hr_controller`** —— 管理人员、排班、申请、贷款与条目；薪资可见但不可结算。
 - **`hr_manager`** —— HR 管理权限加创建、运行与删除薪资运行。
 - **`senior_management`** —— 完整人员运营视图加薪资运行权限。
-- **`statutory_drift_automation`** —— 读取封存法定档案并记录法定漂移研究与后继事实。
-- **`leave_reconciliation_automation`** —— 仅供系统创建年度休假账户并追加幂等台账变动。
+- **`leave_reconciliation_automation`**：仅供系统触碰在职雇佣，使其内联重算休假权益与台账。
+- **`statutory_drift_automation`**：仅供系统读取设置版本及其法定行，并一次提议一个草稿版本；从不封存、编辑或删除。
 - **`kiosk`** —— 仅供考勤机打卡、人脸登记及其必要的受限读取。
 
 策略按 `hr_controller` 应用*组*命名而非逐页命名，因此新增控制器页面无需改动任何角色声明。
@@ -87,7 +87,12 @@ loans -> loan_repayments <-+                   |- payslip_loan_repayment_inputs
 
 ### 自动化、集成与种子数据
 
-本模板包含 `statutory_profile_drift` 及十个休假账户/台账自动化，不附带外部集成。租户**不存在 `+seed.ts` 编译器角色**：法定与敏感夹具种子存放在仓库的种子库中（见下文），薪资输入属于 [`docs/data.md`](docs/data.md) 所述的对账工作流。
+两个自动化，各有自己的策略，都可在「自动化」中手动启动：
+
+- **`statutory_drift`**（每月）：对每个谱系当前生效的版本，通过运行时的页面读取器读取该版本在 `research_urls` 中命名的官方页面，向模型询问每个法定行的官方现状（方案费率档、法定休假权益、法定薪资项目的缴款处理），与已封存的行比对；有差异时把该版本克隆为草稿，草稿携带变更后的行与复核清单（`research_notes`）。「设置」把该草稿标为「法定漂移提议」，HR 复核后由 HR 经理封存。它从不封存、从不触碰已封存版本，每个谱系同时只提议一个草稿；没有研究网址的版本不会被研究。每个无法读取的官方页面都连同原因记录在运行结果和草稿的复核清单上；所有页面都无法读取的谱系不会产生草稿，并在结果中按名称列出。
+- **`leave_ledger_refresh`**（每月 1 日）：休假对账器，以当天日期遍历每个在职雇佣：过去的月份入账、下一年开启、年度结算、离职结清。目录编辑会为该谱系的公司启动它，种子加载后启动一次。HR 不需要运行年度权益批处理。
+
+本模板不附带外部集成；法律变更即新增一个封存的管辖地设置版本。租户**不存在 `+seed.ts` 编译器角色**：法定与敏感夹具种子存放在仓库的种子库中（见下文），薪资输入属于 [`docs/data.md`](docs/data.md) 所述的对账工作流。
 
 ## 运营边界
 
@@ -104,10 +109,10 @@ src/
 ├── apps/                     # 每个应用一个 +<app>.svelte；hr_controller/+group.ts 归属组
 ├── collections/              # 29 个集合：+model.ts、+hooks.ts、+pipelines.ts、+representation.svelte
 │   └── payroll_runs/lib/     # 结算引擎（阶段、加班、覆盖、导出）
-├── datatypes/                # 30 个结构化值（statutory_regime、statutory_leave_profile、component_entry_event、……）
+├── datatypes/                # 结构化值（statutory_regime、ordinary_rate、component_entry_event、……）
 ├── access/                   # +teams.ts、匿名限流与九个策略
 ├── i18n/                     # messages.en.json / messages.zh.json（相同的键集）
-├── automations/              # 法定漂移与休假账户/台账对账
+├── automations/              # 法定漂移检查与休假台账对账器
 ├── lib/                      # 共享辅助：日历、显示格式化、策略授权、排班月
 └── +agents.md
 ````
@@ -122,7 +127,7 @@ src/
 
 - [`docs/architecture.md`](docs/architecture.md) —— 实时薪资引擎：模型地图、八个计算阶段、截算与期间、排班到日类型分类、加班与 12 小时/104 小时控制、法定处理、调整与台账、溯源、锁定，以及法定法律中已编码与未编码的部分。
 - [`docs/data.md`](docs/data.md) —— 原始来源 → 清洗来源 → 种子数据的契约、防止派生输出回流到输入的检查，以及如何把独立来源工作簿与生成的工作簿对账。
-- [`docs/leave.md`](docs/leave.md) —— 当前申请、单次审批、已封存年度账户、追加式台账、结转、政策变更与薪资行为。
+- [`docs/leave.md`](docs/leave.md)：休假目录及其资格表达式、生成的权益、追加式台账及事实如何携带它、对账器的月度遍历、年度结算、结转、离职与薪资行为。
 
 ## 验证
 

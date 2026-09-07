@@ -33,9 +33,13 @@ const createPayrollRunInput = Schema.Struct({
 	company_id: Schema.String.check(Schema.isUUID()),
 	run_kind: Schema.optional(Schema.Literals(['REGULAR', 'AD_HOC'])),
 	lifecycle: Schema.optional(Schema.Literal('PAID')),
+	/**
+	 * A month for a monthly company, a half for a semi-monthly one. The grammar is checked against
+	 * the company in `prepare`, naming its frequency; this only says what a period can look like.
+	 */
 	period: Schema.String.check(
-		Schema.isPattern(/^\d{4}-(0[1-9]|1[0-2])$/, {
-			message: 'Payroll period must be YYYY-MM.'
+		Schema.isPattern(/^\d{4}-(0[1-9]|1[0-2])(-[12])?$/, {
+			message: 'Payroll period must be YYYY-MM, or YYYY-MM-1 / YYYY-MM-2 at a semi-monthly company.'
 		})
 	)
 });
@@ -48,7 +52,7 @@ const DERIVED_COLUMNS = [
 	'period',
 	'configuration_hash',
 	'core_input_hash',
-	'statutory_snapshot_id',
+	'settings_id',
 	'calculation_version',
 	'pay_date',
 	'attendance_from',
@@ -64,14 +68,14 @@ type PreparedRuns = ReadonlyMap<string, PreparedRun>;
 /**
  * The run's own derived columns, from the facts `prepare` resolved.
  *
- * `statutory_snapshot_id` is the effective `jurisdictions` row the configuration was picked under —
- * the snapshot that governed this calculation — captured atomically beside the configuration it is
- * one half of. `calculation_version` is the engine identity that interpreted both.
+ * `settings_id` is the jurisdiction settings version the configuration was picked under, the
+ * version that governed this calculation, captured atomically beside the configuration it is one
+ * half of. `calculation_version` is the engine identity that interpreted both.
  */
 const derivedColumns = (prepared: PreparedRun) => ({
 	configuration_hash: prepared.configuration.hash,
 	core_input_hash: corePayrollInputHash(prepared),
-	statutory_snapshot_id: prepared.configuration.jurisdiction.id,
+	settings_id: prepared.configuration.jurisdiction.id,
 	calculation_version: CALCULATION_VERSION,
 	pay_date: prepared.window.payDate,
 	attendance_from: prepared.window.attendance.start,
@@ -139,7 +143,7 @@ export default {
 		perRecord: {
 			before: {
 				description:
-					'Freezes inputs, enforces payment order and calculates regular payroll or a same-month supplemental difference and returns the run together with every payslip, every captured input junction and every adjustment it produced.',
+					'Freezes inputs, enforces payment order and calculates regular payroll or a same-period supplemental difference and returns the run together with every payslip, every captured input junction and every adjustment it produced.',
 				handler: ({ input, existing, prepared, api, relationships }) =>
 					Effect.gen(function* () {
 						// `existing` is undefined on a create and is the only thing that tells the two apart —
@@ -171,6 +175,9 @@ export default {
 							});
 							if (previous.length >= 20_000)
 								refuse('Too many outstanding payrolls to verify payment order.');
+							// Period text orders runs: within one company's grammar, `2026-02-1 < 2026-02-2 <
+							// 2026-03-1` and `2026-02 < 2026-03` are the chronological orders, so the comparison
+							// reads a semi-monthly company's halves exactly as it reads a monthly company's months.
 							const blocked = previous.find(
 								(run) =>
 									run.id !== existing.id &&
@@ -211,17 +218,17 @@ export default {
 							refuse(
 								`Payroll ${unsettled.period} is still a draft. Settle or delete it before another run.`
 							);
-						const sameMonth = runs
+						const samePeriod = runs
 							.filter((run) => run.period === period)
 							.toSorted((a, b) => b.sequence - a.sequence);
-						const previous = sameMonth[0];
+						const previous = samePeriod[0];
 						const runKind = input.run_kind ?? 'REGULAR';
 						if (runKind === 'REGULAR' && previous != null)
 							refuse(
-								`Payroll ${period} already exists. Use an ad hoc run for same-month adjustments.`
+								`Payroll ${period} already exists. Use an ad hoc run for same-period adjustments.`
 							);
 						if (runKind === 'AD_HOC' && previous == null)
-							refuse('An ad hoc payroll needs a paid regular payroll in the same month.');
+							refuse('An ad hoc payroll needs a paid regular payroll in the same period.');
 						if (previous != null && previous.core_input_hash == null)
 							refuse(
 								'This paid payroll predates input fingerprints. Record adjustments in a later regular payroll.'

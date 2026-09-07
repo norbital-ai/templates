@@ -85,7 +85,7 @@ may name one `assignment_id`). It pages through every unchecked assignment, incl
 work, and assembles the assignment, its job and site, the deterministic photo facts, and bounded
 recent `communication_logs`. It passes a bounded visual sample (up to three photos, deterministic
 selection weighted by signal, capped at 4 MiB) plus a text context to a provider model
-(`openai/gpt-4.1-mini`). A separate scripted record of every review — the canonical basis hash, the
+(`openrouter/z-ai/glm-5.3-flash`). A separate scripted record of every review — the canonical basis hash, the
 verdict, the model and the reason — lands in `suspicion_reviews`, so clear decisions are auditable
 too; a `suspicious` verdict appends an idempotent `suspicious_activity_logs` row (unique on
 `origin:job_assignment_id:md5(basis)`). The assignment's `suspicion_checked_at` is stamped only
@@ -96,6 +96,15 @@ inference can be invoked and is reported separately instead of claiming an infer
 Only a controller's stated resolution closes a log. The flags and views never leak to the
 contractor policy or the WhatsApp envoy: only the controller dashboard renders integrity or
 suspicion state.
+
+**Network reach.** The review reaches no public page. Its inputs are tenant-held rows and the
+photo objects in storage; `api.infer` is called with no `tools`, nothing in this template calls
+`api.readUrl`, and the seed bank's field-operations rows carry no URL. An outbound DNS or connect
+fault in the host's page reader cannot originate from this automation, whatever the hour: the
+realm's page readers are hr-payroll's statutory drift research and the private serial-pcn
+catalogue refresh, and every agent turn can read a page through the same host facility. When a
+page-read fault is being attributed, find the reader by the task id or effect id on the crash log
+first (learnings-matrix row 179).
 
 ## 3. What ships
 

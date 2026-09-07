@@ -8,8 +8,10 @@ corresponding tool result is present.** Keep final answers concise.
 
 ## What the collections mean
 
-- A **company** carries the statutory regime payroll is computed under. Its law is a **statutory
-  profile** (`jurisdictions`): a versioned configuration set whose seal freezes it. Almost
+- A **company** binds by `settings_code` to a **jurisdiction settings** lineage
+  (`jurisdiction_settings`): sealed, shareable versions that own the payroll scalars, the schemes
+  and rate bands, the leave types, the pay components and the holidays; a seal freezes a version
+  and everything under it, a change of law is a new version, a wrong seal is voided. Almost
   everything else is effective-dated against it.
 - **Employment terms** carry a base salary and the pay components that apply to a person.
 - A **work day** is one person on one calendar day, carrying what was PLANNED for it and what was

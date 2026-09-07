@@ -121,18 +121,6 @@ const KNOWN_ABSENT = new Map([
 	[
 		'overtime.classifyOvertimeByCalendarMonth(arg0).dailyOvertimeHoursLimit',
 		'Declared `dailyOvertimeHoursLimit?:` (overtime.ts:430) and defaulted with `?? null` (overtime.ts:434) — absence means "no daily overtime cap".'
-	],
-	[
-		'leave.unpaidLeaveInWindow(arg0).month',
-		'Declared `month?:` (leave.ts:325) and null-checked before use — absence means "no extended-absence month".'
-	],
-	[
-		'leave.unpaidLeaveInWindow(arg0).extendedDates',
-		'Declared `extendedDates?:` (leave.ts:327) and defaulted with `?? new Set()` (leave.ts:332).'
-	],
-	[
-		'settlement.readSettlementPolicy(arg0).settlement_policy',
-		'Declared `settlement_policy?:` (settlement.ts:115); `if (stored == null) return PLAIN_CALENDAR` is the documented no-policy path.'
 	]
 ]);
 

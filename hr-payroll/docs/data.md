@@ -19,6 +19,28 @@ headers and employee grouping may be normalised; business values remain unchange
 When a source conflict is resolved with explicit business approval, record the correction in the
 cleaned archive and document it in the seed audit. All other conflicts and omissions remain visible.
 
+## Seed bank layout
+
+The repository seed bank (`seed_bank/norbital_hr`) is what a hosted workspace is provisioned from;
+the template's own `tests/fixtures/seed` is the public fixture its suites run on and carries no
+client data.
+
+| Directory            | Rows                                                                                                                                                                                                                                            | Loaded by                                                                                                   |
+| -------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| `records/<entity>/`  | One entity's rows per collection: company, employees, employments, terms, statutory facts, shifts, work days, requests, entries, loans. Five entities: `kdit`, `nihon`, `norbital`, `opsph`, `opssg`.                                           | The demo bootstrap, every entity, ordered by table across all five                                          |
+| `statutory/`         | The jurisdiction settings lineages: `jurisdiction_settings` versions and the rows sealed under each (`statutory_contributions`, `contribution_rates`, `leave_types`, `pay_components`, `company_holidays`), plus reference data no loader reads | The demo bootstrap, before `records/`; the three law tables merge a base file with an `id_` Indonesian file |
+| `statutory_fixture/` | One `STAT-<CC>-2026` company per jurisdiction with its people, each on a forked lineage (`MY-fixture`, `SG-fixture`, `VN-fixture`, `TW-fixture`) cloned from the base lineage with its own schemes, rates and remapped facts                    | Only the private reconciliation suite, by naming the `statutory-fixture` stage; never the demo tenant       |
+
+Two consequences of the layout. Leave types, pay components and holidays belong to a settings
+version, so they live under `statutory/` and not under an entity: both Singapore entities bind to
+one `SG` lineage and share one catalogue. And the entity picker shows the five demo entities and
+nothing else, because the fixture companies are not in a stage the demo loads. A company row whose
+source supplied no registration number carries the literal `SOURCE_NOT_PROVIDED`; source material
+is not altered, so the loader maps it to `null` and the picker shows no subtitle.
+
+The loader is a pure projection onto the live tables: a key with no column, or a row missing a
+column the table requires, is collected as drift and the whole seed is refused.
+
 ## What a reconciliation dataset contains
 
 A typical private reconciliation exercise supplies the following input families. Counts vary by
