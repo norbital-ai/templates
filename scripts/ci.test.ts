@@ -1,10 +1,19 @@
 import assert from 'node:assert/strict';
-import { existsSync, readFileSync, readdirSync, mkdtempSync, writeFileSync, rmSync } from 'node:fs';
+import {
+	existsSync,
+	readFileSync,
+	readdirSync,
+	mkdirSync,
+	mkdtempSync,
+	writeFileSync,
+	rmSync
+} from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { describe, it } from 'node:test';
 import {
 	actualCounts,
+	deadMessageKeys,
 	discoverTemplates,
 	resolveLockfile,
 	repositoryRoot,
@@ -148,6 +157,41 @@ describe('template CI', () => {
 			}
 		}
 		assert.deepEqual(offenders, []);
+	});
+
+	it('ships no message key nothing can reach, counting the two indirect shapes', () => {
+		for (const template of discoverTemplates())
+			assert.deepEqual(
+				deadMessageKeys(template.directory),
+				[],
+				`${template.slug} ships unreachable message keys`
+			);
+
+		// A key reaches its reader three ways, and only the first is a plain substring: the other
+		// two are what a naive sweep deletes by mistake.
+		const root = mkdtempSync(path.join(tmpdir(), 'catalog-'));
+		try {
+			mkdirSync(path.join(root, 'src', 'i18n'), { recursive: true });
+			mkdirSync(path.join(root, 'src', 'apps', 'operations'), { recursive: true });
+			writeFileSync(path.join(root, 'src', 'apps', 'operations', '+board.svelte'), '');
+			writeFileSync(
+				path.join(root, 'src', 'apps', 'operations', '+use.ts'),
+				"const LABELS = { open: 'component.open' };\nt(LABELS.open);\nt(`face.pose_${pose}`);\n"
+			);
+			writeFileSync(
+				path.join(root, 'src', 'i18n', 'messages.en.json'),
+				JSON.stringify({
+					'component.open': 'Open',
+					'face.pose_left': 'Left',
+					'app.board.title': 'Board',
+					'app.operations.header_title': 'Operations',
+					'component.orphan': 'Orphan'
+				})
+			);
+			assert.deepEqual(deadMessageKeys(root), ['component.orphan']);
+		} finally {
+			rmSync(root, { recursive: true, force: true });
+		}
 	});
 
 	it('keeps fresh and upgrade migration lineages coherent', () => {

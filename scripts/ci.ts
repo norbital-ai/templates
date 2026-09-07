@@ -27,6 +27,18 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 export const repositoryRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 export const templateMetadataFile = 'norbital.template.json';
 export const templateRefNamespace = 'refs/heads/templates';
+const catalogPattern = /^messages\..+\.json$/;
+const sourcePattern = /\.(svelte|ts|js|mjs|json|md)$/;
+const ignoredSourceDirectories = new Set([
+	'node_modules',
+	'.norbital',
+	'.git',
+	'build',
+	'dist',
+	'.svelte-kit'
+]);
+/** `t(`prefix.${expression}`)` — the static head of a key built at runtime. */
+const runtimeKeyPattern = /[^A-Za-z0-9_]t\(\s*`([^`$]*)\$\{/g;
 
 export type TemplateCounts = {
 	readonly collections: number;
@@ -235,10 +247,95 @@ const validateManifest = (template: Template): void => {
 	}
 };
 
+/**
+ * Every message key a template ships must be reachable, or a translator maintains strings no
+ * one can ever see and every tenant downloads them. Reachability has three shapes, and the two
+ * indirect ones are why a plain "is this string in the source" sweep would delete live keys:
+ *
+ * - a literal `t('component.foo')`, including a key held in a constant table and passed to `t`;
+ * - a key built at runtime from a static prefix, `t(`face.pose_${pose}`)`, so the prefix is
+ *   harvested from the source rather than kept in a list here that would rot;
+ * - app identity, which the shell resolves itself as `app.<id>.title` and the two header keys
+ *   and which therefore appears in no template source at all.
+ *
+ * The reverse direction is already covered: a key that does not exist is a type error through
+ * the generated `TenantI18nKeys`. Nothing but this check covers a key nothing consumes.
+ */
+const messageSources = (directory: string): string => {
+	const sources: string[] = [];
+	const walk = (dir: string): void => {
+		for (const entry of readdirSync(dir, { withFileTypes: true })) {
+			const full = path.join(dir, entry.name);
+			if (entry.isDirectory()) {
+				if (ignoredSourceDirectories.has(entry.name)) continue;
+				walk(full);
+				continue;
+			}
+			if (catalogPattern.test(entry.name)) continue;
+			if (sourcePattern.test(entry.name)) sources.push(readFileSync(full, 'utf8'));
+		}
+	};
+	walk(directory);
+	return sources.join('\n');
+};
+
+const appIdentityKeys = (directory: string): Set<string> => {
+	const names = new Set<string>();
+	const collect = (dir: string): void => {
+		if (!existsSync(dir)) return;
+		for (const entry of readdirSync(dir, { withFileTypes: true })) {
+			if (entry.isDirectory()) {
+				names.add(entry.name);
+				collect(path.join(dir, entry.name));
+				continue;
+			}
+			const app = /^\+(.+)\.svelte$/.exec(entry.name);
+			if (app !== null) names.add(app[1] ?? '');
+		}
+	};
+	collect(path.join(directory, 'src', 'apps'));
+	const keys = new Set<string>();
+	for (const name of names)
+		for (const suffix of ['title', 'header_title', 'header_description'])
+			keys.add(`app.${name}.${suffix}`);
+	return keys;
+};
+
+export const deadMessageKeys = (directory: string): string[] => {
+	const catalogDirectory = path.join(directory, 'src', 'i18n');
+	if (!existsSync(catalogDirectory)) return [];
+	const catalogs = readdirSync(catalogDirectory).filter((file) => catalogPattern.test(file));
+	if (catalogs.length === 0) return [];
+	const source = messageSources(directory);
+	const identity = appIdentityKeys(directory);
+	const prefixes = [...source.matchAll(runtimeKeyPattern)]
+		.map((match) => match[1] ?? '')
+		.filter((prefix) => prefix.includes('.'));
+	const first = catalogs[0] ?? '';
+	return Object.keys(readJson(path.join(catalogDirectory, first))).filter(
+		(key) =>
+			!source.includes(key) &&
+			!identity.has(key) &&
+			!prefixes.some((prefix) => key.startsWith(prefix))
+	);
+};
+
+const validateMessageCatalogs = (template: Template): void => {
+	const dead = deadMessageKeys(template.directory);
+	if (dead.length > 0) {
+		fail(
+			`Template ${template.slug} ships ${String(dead.length)} message key(s) nothing reaches: ` +
+				`${dead.slice(0, 5).join(', ')}${dead.length > 5 ? ', …' : ''}. Delete them from ` +
+				`src/i18n/, or reference them.`
+		);
+	}
+};
+
 export const checkTemplates = async (filter?: string): Promise<void> => {
 	const templates = discoverTemplates(filter);
 	for (const template of templates) {
 		validateManifest(template);
+		validateMessageCatalogs(template);
 		const actual = await actualCounts(template.directory);
 		for (const key of ['collections', 'apps', 'automations'] as const) {
 			if (template.counts[key] !== actual[key]) {
