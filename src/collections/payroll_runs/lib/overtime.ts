@@ -362,7 +362,7 @@ const PricedSegmentSchema = Schema.Struct({
 	rule: statutoryOvertimeRuleValueSchema,
 	dayType: RuleDayTypeSchema,
 	measure: Schema.Literals(['BEYOND_NORMAL', 'FROM_START_OF_DAY']),
-	/** The rule band's lower bound, which is how a pay component names the rule it pays. */
+	/** The rule band's lower bound, which is how a component names the rule it pays. */
 	bandFrom: Schema.Number,
 	/** Hours in the band. Zero for a day-wage award, which pays flat. */
 	hours: Schema.Number,
@@ -385,7 +385,7 @@ export type OvertimeBandIdentity = Schema.Schema.Type<typeof OvertimeBandIdentit
 /**
  * The stable code a derived overtime line is reported under.
  *
- * There is no pay component behind an overtime line, so nothing supplies a code — but a workbook
+ * There is no component behind an overtime line, so nothing supplies a code — but a workbook
  * column, an export row and a payslip breakdown all need one, and it has to be the same string
  * every time or a reconciliation stops matching between two runs. The band is that identity, so
  * the code is built from it: `OT_ORDINARY_BEYOND_NORMAL_0`, `OT_REST_DAY_FROM_START_OF_DAY_0_5`,

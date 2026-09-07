@@ -1,7 +1,7 @@
 /**
  * Component entries and loan repayments — the two source families payroll consumes for money.
  *
- * An entry's `amount` is always a positive **magnitude**. Direction comes from the pay component's
+ * An entry's `amount` is always a positive **magnitude**. Direction comes from the component's
  * policy and from the treatment grid; the one derived exception is a manual correction whose
  * operation is `REVERSAL`, which settles in the opposite bucket of the settled output it corrects.
  * The correction points at a real settled adjustment through `corrects_adjustment_id`, so there is
@@ -63,20 +63,40 @@ export function entrySign(entry: ComponentEntry): number {
 	return event?.kind === 'MANUAL_ADJUSTMENT' && event.operation === 'REVERSAL' ? -1 : 1;
 }
 
-/** A standing allowance's own effective range, which prorates it independently of the employment. */
+/**
+ * A standing allowance's own window, which prorates it independently of the employment.
+ *
+ * Read off the arm's `recurrence`, not off a column beside it: a one-off states the single period
+ * it is paid in, and a recurring allowance states the window it is live across. A one-off's window
+ * is that period's own month, so proration still measures it against the days actually employed —
+ * what a one-off no longer does is masquerade as a recurring allowance whose range happens to be
+ * one month long.
+ */
 export function recurringRange(entry: ComponentEntry): {
 	readonly start: IsoDate;
 	readonly end: IsoDate | null;
 } | null {
 	const event = entryEvent(entry);
 	if (event?.kind !== 'ALLOWANCE') return null;
-	const range = entry.effective_range;
-	if (range == null) return null;
+	const recurrence = event.recurrence;
+	if (recurrence.kind === 'ONE_OFF') {
+		const start = `${recurrence.period}-01`;
+		return {
+			start: requiredDateKey(start, 'allowance period'),
+			end: requiredDateKey(monthEndDay(recurrence.period), 'allowance period end')
+		};
+	}
 	return {
-		start: requiredDateKey(range.start, 'allowance start'),
-		end: range.end == null ? null : requiredDateKey(range.end, 'allowance end')
+		start: requiredDateKey(recurrence.from, 'allowance start'),
+		end: recurrence.to == null ? null : requiredDateKey(recurrence.to, 'allowance end')
 	};
 }
+
+/** The last calendar day of a `YYYY-MM` period. */
+const monthEndDay = (period: string): string => {
+	const [year, month] = period.split('-').map(Number) as [number, number];
+	return `${period}-${String(new Date(Date.UTC(year, month, 0)).getUTCDate()).padStart(2, '0')}`;
+};
 
 /**
  * Whether an entry prorates. Only a standing allowance does: a claim, a bonus, an arrears
@@ -93,14 +113,20 @@ export function prorates(entry: ComponentEntry): boolean {
  * A one-off claim, bonus, arrears settlement and correction are each bounded by their amount, so
  * what earlier paid runs took reduces what is left — and a one-off belongs to at most one
  * standing/paid payslip, which the gather step refuses by name. A reversal is signed rather than
- * depleted: netting a negative draw against a magnitude would grow it. A standing allowance is not
- * bounded by anything — it states an amount **per period** and pays it whole in every period its
- * range covers.
+ * depleted: netting a negative draw against a magnitude would grow it. A **recurring** allowance is
+ * not bounded by anything — it states an amount **per period** and pays it whole in every period its
+ * window covers.
+ *
+ * A **one-off** allowance is bounded by its amount like every other one-off, and that is
+ * load-bearing rather than tidy: a semi-monthly company runs two periods inside the month a one-off
+ * names, and an unbounded allowance would pay its full amount in both of them. This is exactly the
+ * distinction the old shape could not make, because a one-off was written as a recurring allowance
+ * whose range happened to span one month.
  */
 export function depletes(entry: ComponentEntry): boolean {
 	const event = entryEvent(entry);
 	if (event == null) return true;
-	if (event.kind === 'ALLOWANCE') return false;
+	if (event.kind === 'ALLOWANCE') return event.recurrence.kind === 'ONE_OFF';
 	return !(event.kind === 'MANUAL_ADJUSTMENT' && event.operation === 'REVERSAL');
 }
 

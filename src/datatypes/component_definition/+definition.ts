@@ -43,7 +43,7 @@ export const componentCapSchema = Schema.Struct({
 });
 
 /**
- * How a pay component produces its amount.
+ * How a component produces its amount.
  *
  * - `ENTRY`     — a person or an import supplies the number (claims, allowances, ad-hoc pay).
  * - `FORMULA`   — a CEL expression over the payslip context.
@@ -55,7 +55,7 @@ export const componentCapSchema = Schema.Struct({
  *   (`statutory_regime.overtime_rules`), never from this row.
  *
  * There is deliberately NO statutory information here: chargeability is reachable only via
- * `pay_components.contribution_treatments`.
+ * `component_catalogue.contribution_treatments`.
  */
 export const componentDefinitionValueSchema = Schema.Union([
 	Schema.Struct({
@@ -95,6 +95,6 @@ export const componentDefinitionSchema = Schema.toStandardSchemaV1(componentDefi
 export default defineCustomType({
 	name: 'component_definition',
 	description:
-		'How a pay component gets its number — typed in as an entry under a layered claim cap, computed from a formula, taken from the contracted salary, priced from the leave ledger, or derived from work days by the overtime regime.',
+		'How a component gets its number — typed in as an entry under a layered claim cap, computed from a formula, taken from the contracted salary, priced from the leave ledger, or derived from work days by the overtime regime.',
 	schema: componentDefinitionSchema
 });

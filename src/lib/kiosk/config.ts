@@ -37,23 +37,40 @@ export const KIOSK_REQUIRED_MODELS: readonly string[] = [
 	'facemesh',
 	'iris',
 	'faceres',
-	'antispoof'
+	'antispoof',
+	'liveness'
 ];
 
 /** Cosine distance at or below which a probe counts as the enrolled person. */
 export const KIOSK_MATCH_THRESHOLD = 0.4;
 
 /**
- * Minimum antispoof `real` score to reach the blink challenge. The probe's genuine web photo
- * scored 0.42 against a synthetic print at 0.63, so this is a tripwire for naive paper, not a
- * verdict — the blink is the verdict. Recalibrate against live captures on the tablet.
+ * The two presentation-attack scores a punch must clear, from two independent Human graphs.
+ *
+ * `real` (antispoof) answers "is this a picture of a face?" — print and screen texture. `live`
+ * (liveness) answers "is this a *living* face?" — the micro-motion a still or a replayed frame does
+ * not have. They fail differently, which is the point: a phone screen bright enough to pass
+ * antispoof still reads as low `live`, and a matte print that passes liveness reads as low `real`.
+ *
+ * This replaces the blink challenge. A blink was never a liveness proof — it is two frames of eye
+ * closure, which any recorded video of the enrolled person replays perfectly, and it made the
+ * kiosk slower for the honest person and no harder for the dishonest one.
+ *
+ * Both numbers are tripwires calibrated on the kiosk-probe bench (the probe's genuine web photo
+ * scored 0.42 against a synthetic print at 0.63) and both must be re-measured against live captures
+ * on the tablet — the physical world does not read like the bench. Retune here, in one place.
  */
 export const KIOSK_REAL_MIN = 0.3;
+export const KIOSK_LIVE_MIN = 0.5;
 
 /** Frames are analysed this often; the pipeline measures ~60–100 ms warm. */
 export const KIOSK_LOOP_MS = 250;
 
-/** Seconds allowed for a continuously visible face to acknowledge the punch with a blink. */
+/**
+ * Seconds a matched face must stay continuously visible, and passing both presentation-attack
+ * scores, before the punch is written. The person does nothing; standing there is the whole
+ * confirmation. It also gives the two graphs a run of frames rather than one lucky one.
+ */
 export const KIOSK_CONFIRMATION_SECONDS = 2;
 
 /** Faces smaller than this are background, not the person at the kiosk. */

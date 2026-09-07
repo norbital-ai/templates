@@ -74,10 +74,7 @@
 	} from '../lib/scheduling/lock.js';
 	import { setContext } from 'svelte';
 	import { inForceSettings } from '../lib/ui/settings-scope.js';
-	import {
-		LEAVE_REQUEST_CREATE_SCOPE,
-		type LeaveRequestCreateScope
-	} from '../lib/ui/leave-request-create-scope.js';
+	import { HR_CREATE_SCOPE, type HrCreateScope } from '../lib/ui/create-scope.js';
 
 	const user = getPlatformStateContext()().user;
 	const today = todayKey();
@@ -151,8 +148,9 @@
 	const activeEmployment = $derived(
 		activeEmployments.find((employment) => employment.id === employmentId)
 	);
-	setContext<LeaveRequestCreateScope>(LEAVE_REQUEST_CREATE_SCOPE, {
+	setContext<HrCreateScope>(HR_CREATE_SCOPE, {
 		employmentId: () => employmentId,
+		companyId: () => activeEmployment?.company_id,
 		settingsCode: () =>
 			activeEmployment == null
 				? undefined
@@ -367,7 +365,7 @@
 						from_date: { lte: scheduleMonthEnd },
 						to_date: { gte: scheduleMonthStart }
 					},
-					with: { leave_request_type: { columns: { code: true } } },
+					with: { leave_request_leave_catalogue: { columns: { code: true } } },
 					limit: 200
 				})
 	);
@@ -382,13 +380,13 @@
 						from_date: { lte: scheduleMonthEnd },
 						to_date: { gte: scheduleMonthStart }
 					},
-					with: { leave_request_type: { columns: { code: true } } },
+					with: { leave_request_leave_catalogue: { columns: { code: true } } },
 					limit: 200
 				})
 	);
 	/** The leave codes the calendar labels, carried by the request rows themselves. */
 	type LabelledRequest = WorkspaceRow<'leave_requests'> & {
-		readonly leave_request_type?: Pick<WorkspaceRow<'leave_types'>, 'code'> | null;
+		readonly leave_request_leave_catalogue?: Pick<WorkspaceRow<'leave_catalogue'>, 'code'> | null;
 	};
 	const leaveCodeById = $derived(
 		new Map(
@@ -396,9 +394,9 @@
 				...((scheduleLeaveQuery?.current ?? []) as LabelledRequest[]),
 				...((schedulePendingLeaveQuery?.current ?? []) as LabelledRequest[])
 			].flatMap((request) =>
-				request.leave_request_type == null
+				request.leave_request_leave_catalogue == null
 					? []
-					: [[request.leave_type_id, request.leave_request_type.code] as const]
+					: [[request.leave_catalogue_id, request.leave_request_leave_catalogue.code] as const]
 			)
 		)
 	);
@@ -1278,7 +1276,7 @@
 					}}
 				>
 					{#snippet columns({ Column })}
-						<Column name="leave_type_id" label={t('component.leave_type')} />
+						<Column name="leave_catalogue_id" label={t('component.catalogue_leave')} />
 						<Column
 							name="event"
 							label={t('component.leave_range')}
@@ -1312,7 +1310,7 @@
 			}}
 		>
 			{#snippet columns({ Column })}
-				<Column name="pay_component_id" label={t('component.component')} card="title" />
+				<Column name="component_catalogue_id" label={t('component.component')} card="title" />
 				<Column name="amount" label={t('component.amount')} />
 				<Column name="event_date" label={t('component.date')} />
 				<Column name="event" card="subtitle" />
@@ -1391,7 +1389,7 @@
 <AppShell
 	icon="lucide:user-round"
 	title="Employee Self-Service"
-	description="View your schedule, leave, pay components, loans, payslips, and profile"
+	description="View your schedule, leave, components, loans, payslips, and profile"
 	banner="/__bolt/request/api/template-seed-assets/hr-payroll/app-media/hr_employee-banner.webp"
 	variant="full"
 >

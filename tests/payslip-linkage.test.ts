@@ -1,13 +1,13 @@
 // @ts-nocheck -- executed directly by Node with --experimental-strip-types.
 /**
- * A payroll run consumes pay components, entries, repayments and clocks, and produces the shapes a
+ * A payroll run consumes components, entries, repayments and clocks, and produces the shapes a
  * payslip stores.
  *
  * The pieces of that sentence are each pinned somewhere already: `overtime-derivation.test.ts`
  * drives `deriveDailyOvertime` and `priceDay`, and `verify-payroll-arithmetic.mjs` drives
  * `prorationFraction`'s divisors, the statutory ladders and which run a period settles in. What
  * nothing drove is the join — `measureEmployment`, the step that reads a bundle and decides which
- * pay component receives which money. Everything below is that step, and every figure is the one
+ * component receives which money. Everything below is that step, and every figure is the one
  * the arithmetic gate already verifies for this employee: basic 3,451 over a six-day 48-hour week
  * in Malaysia, so the ordinary rate is 3,451 / 26 / 8 = 16.59 and a day's wages is 132.73.
  *
@@ -118,7 +118,7 @@ const BASIC = component({
 /**
  * The band codes the derived overtime lines carry.
  *
- * There is no pay component behind any of these — the catalogue below holds a salary and an
+ * There is no component behind any of these — the catalogue below holds a salary and an
  * allowance and nothing else. A line's identity is the statutory band that priced it, and these are
  * the six bands the Malaysian ladder further down states.
  */
@@ -143,9 +143,9 @@ const TRANSPORT = component({
 	}
 });
 
-// Overtime is deliberately absent: it is not a pay component, and a company cannot put it in its
+// Overtime is deliberately absent: it is not a component, and a company cannot put it in its
 // catalogue. Every overtime figure below comes out of the ladder and the clocks alone.
-const PAY_COMPONENTS = [BASIC, TRANSPORT];
+const COMPONENT_CATALOGUE = [BASIC, TRANSPORT];
 
 /**
  * The Malaysian ladder as seeded: an ordinary day pays 1.5× beyond the normal day; a rest day pays
@@ -204,7 +204,7 @@ function configuration(overrides = {}) {
 		leaveProfiles: [JURISDICTION],
 		contributions: [],
 		treatments: new Map(),
-		payComponents: PAY_COMPONENTS,
+		catalogueComponents: COMPONENT_CATALOGUE,
 		overtimeRules: OVERTIME_RULES,
 		overtimeLimits: [],
 		overtimeCoverageRule: null,
@@ -213,7 +213,7 @@ function configuration(overrides = {}) {
 			['pattern-1', { id: 'pattern-1', code: 'SIX-DAY', pattern: SIX_DAY_WEEK }]
 		]),
 		holidays: new Map(),
-		leaveTypes: [],
+		catalogueLeaves: [],
 		hash: 'test',
 		...overrides
 	};
@@ -305,7 +305,7 @@ const paid = (measured) => [...measured.base, ...measured.adjustments];
 /**
  * Amount the named component or overtime band produced, or null when it produced none.
  *
- * `label` rather than `payComponent.code`: an overtime row has no pay component to read a code
+ * `label` rather than `catalogueComponent.code`: an overtime row has no component to read a code
  * from, and that is the point of the whole model — its label is the band that priced it.
  *
  * At most one, which is a claim in its own right: a component measures once, and overtime groups by
@@ -379,13 +379,13 @@ test('the same clock one day earlier is inside the cut-off and is paid', () => {
 	);
 });
 
-test('an overtime adjustment names the statutory band, the work day, and no pay component', () => {
-	// The rule being restored, asserted directly: the row carries the band, `payComponent` is null,
-	// and `pay_component_id` will therefore be NULL on the stored row. Exactly one of the two.
+test('an overtime adjustment names the statutory band, the work day, and no component', () => {
+	// The rule being restored, asserted directly: the row carries the band, `catalogueComponent` is null,
+	// and `component_catalogue_id` will therefore be NULL on the stored row. Exactly one of the two.
 	const day = clock('2026-03-19', '08:30', '20:30');
 	const measured = measure({ workDays: [day] });
 	const row = lineOf(measured, OT_ORDINARY);
-	assert.equal(row.payComponent, null);
+	assert.equal(row.catalogueComponent, null);
 	// The band the row was priced by, as the rule key the payslip stores — the same code
 	// `overtimeBandCode` writes and the workbook reads.
 	assert.equal(row.statutoryRuleKey, OT_ORDINARY);
@@ -410,7 +410,7 @@ test('an entry settles by the money cut-off, not by the month it is dated in', (
 	const entry = (date) => ({
 		id: `entry-${date}`,
 		employment_id: 'emp-1',
-		pay_component_id: TRANSPORT.id,
+		component_catalogue_id: TRANSPORT.id,
 		pay_period: null,
 		event_date: `${date}T00:00:00.000Z`,
 		amount: 240,
@@ -435,7 +435,7 @@ test('an entry produces an adjustment naming it, and nothing produces two', () =
 	const entry = (id, amount) => ({
 		id,
 		employment_id: 'emp-1',
-		pay_component_id: TRANSPORT.id,
+		component_catalogue_id: TRANSPORT.id,
 		pay_period: '2026-03',
 		event_date: '2026-03-05T00:00:00.000Z',
 		amount,
@@ -768,13 +768,15 @@ test('a standing allowance prorates with the employment; a one-off does not', ()
 	const standing = {
 		id: 'entry-recurring',
 		employment_id: 'emp-1',
-		pay_component_id: TRANSPORT.id,
+		component_catalogue_id: TRANSPORT.id,
 		pay_period: null,
 		event_date: '2026-03-01T00:00:00.000Z',
 		amount: 310,
 		quantity: null,
-		event: { kind: 'ALLOWANCE' },
-		effective_range: { start: '2020-01-01T00:00:00.000Z', end: null }
+		event: {
+			kind: 'ALLOWANCE',
+			recurrence: { kind: 'RECURRING', from: '2020-01-01', to: null }
+		}
 	};
 	const oneOff = {
 		...standing,

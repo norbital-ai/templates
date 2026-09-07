@@ -5,7 +5,7 @@
 	 * scope the header provides (the jurisdiction picker at the top right,
 	 * `jurisdiction-scope.svelte.ts`), opens one live query for the lineage's versions, and shows
 	 * the version in force (the newest otherwise) under five tabs: Payroll (the root scalars),
-	 * Contributions (schemes and bands), Leave types, Pay components and Holidays, one live table
+	 * Contributions (schemes and bands), Leave catalogue entries, Components and Holidays, one live table
 	 * each. Sealing, voiding and cloning versions are not surfaced here.
 	 *
 	 * Layout is one `AppShell` (variant `full`) with a single page `Scroll`: a sticky tab strip
@@ -24,23 +24,29 @@
 	import { Bound, INSET_MX_CLASS, Inline, Scroll } from '@norbital-ai/ui/layout';
 	import { Tabs, type TabConfig } from '@norbital-ai/ui/tabs';
 	import { Spinner } from '@norbital-ai/ui/spinner';
-	import { todayKey } from '../../lib/ui/calendar.js';
 	import { onLineage } from '../../lib/ui/settings-scope.js';
-	import { coversDay, isInForceCandidate, newestFirst } from '../../lib/jurisdiction_settings.js';
+	import { newestFirst } from '../../lib/jurisdiction_settings.js';
 	import SettingsRepresentation from '../../collections/jurisdiction_settings/+representation.svelte';
 	import JurisdictionScopeCombobox from './JurisdictionScopeCombobox.svelte';
 	import {
 		jurisdictionsError as jurisdictionsErrorOf,
 		jurisdictionsUnknown as jurisdictionsUnknownOf,
-		resolveJurisdictionCode
+		resolveJurisdictionScope
 	} from './jurisdiction-scope.svelte.js';
 
 	type Version = WorkspaceRow<'jurisdiction_settings'>;
 
 	const { t } = useI18n<TenantI18nKeys>();
 
-	let chosenCode = $state<string | null>(null);
-	const code = $derived(resolveJurisdictionCode(chosenCode));
+	/**
+	 * The header names a *version*, not a lineage. The page still reads the whole lineage — the
+	 * catalogue tabs are keyed by the chosen version's id and the timeline is what makes a version
+	 * meaningful — but which snapshot is shown is now the operator's choice rather than a silent
+	 * "the one in force today", which was the one thing the old picker could not express.
+	 */
+	let chosenVersionId = $state<string | null>(null);
+	const scope = $derived(resolveJurisdictionScope(chosenVersionId));
+	const code = $derived(scope?.code ?? null);
 	const jurisdictionsUnknown = $derived(jurisdictionsUnknownOf());
 	const jurisdictionsError = $derived(jurisdictionsErrorOf());
 
@@ -58,14 +64,10 @@
 	const lineageUnknown = $derived(
 		lineageQuery != null && lineageQuery.loading && lineageQuery.current === undefined
 	);
-	const today = todayKey();
-	const inForce = $derived(
-		versions.find(
-			(version) => isInForceCandidate(version) && coversDay(version.effective_range, today)
-		) ?? null
+	/** The version the header names; the scope resolver already defaulted it to the one in force. */
+	const selectedVersion = $derived<Version | null>(
+		versions.find((version) => version.id === scope?.versionId) ?? versions[0] ?? null
 	);
-	/** The version shown: the one in force today, else the newest the lineage holds. */
-	const selectedVersion = $derived<Version | null>(inForce ?? versions[0] ?? null);
 
 	const banner =
 		'/__bolt/request/api/template-seed-assets/hr-payroll/app-media/settings-banner.webp';
@@ -102,14 +104,14 @@
 	{/if}
 {/snippet}
 
-{#snippet leaveTypes()}
+{#snippet catalogueLeaves()}
 	{#if selectedVersion}
 		<CollectionTable
 			{client}
-			collection="leave_types"
-			view="hr_controller:settings:leave_types"
-			title={t('app.settings.leave_types')}
-			description={t('app.settings.leave_types_description')}
+			collection="leave_catalogue"
+			view="hr_controller:settings:leave_catalogue"
+			title={t('app.settings.leave_catalogue')}
+			description={t('app.settings.leave_catalogue_description')}
 			query={{
 				where: { settings_id: { eq: selectedVersion.id }, approval_id: { isNull: true } },
 				orderBy: { code: 'asc' }
@@ -128,14 +130,14 @@
 	{/if}
 {/snippet}
 
-{#snippet payComponents()}
+{#snippet catalogueComponents()}
 	{#if selectedVersion}
 		<CollectionTable
 			{client}
-			collection="pay_components"
-			view="hr_controller:settings:pay_components"
-			title={t('app.settings.pay_components')}
-			description={t('app.settings.pay_components_description')}
+			collection="component_catalogue"
+			view="hr_controller:settings:component_catalogue"
+			title={t('app.settings.component_catalogue')}
+			description={t('app.settings.component_catalogue_description')}
 			query={{
 				where: { settings_id: { eq: selectedVersion.id }, approval_id: { isNull: true } },
 				orderBy: { code: 'asc' }
@@ -186,9 +188,9 @@
 >
 	<AppHeaderActions>
 		<JurisdictionScopeCombobox
-			value={code}
+			value={scope?.versionId ?? null}
 			onValueChange={(next) => {
-				chosenCode = next;
+				chosenVersionId = next;
 			}}
 		/>
 	</AppHeaderActions>
@@ -269,16 +271,16 @@
 						content: contributions
 					},
 					{
-						name: 'leave_types',
-						label: t('app.settings.leave_types'),
+						name: 'leave_catalogue',
+						label: t('app.settings.leave_catalogue'),
 						icon: 'lucide:calendar-days',
-						content: leaveTypes
+						content: catalogueLeaves
 					},
 					{
-						name: 'pay_components',
-						label: t('app.settings.pay_components'),
+						name: 'component_catalogue',
+						label: t('app.settings.component_catalogue'),
 						icon: 'lucide:receipt',
-						content: payComponents
+						content: catalogueComponents
 					},
 					{
 						name: 'holidays',

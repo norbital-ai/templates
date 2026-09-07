@@ -1,7 +1,7 @@
 /**
  * Step 7 — SETTLE.
  *
- * Four numbers, derived entirely from `pay_components.policy` and the statutory charges. Nothing
+ * Four numbers, derived entirely from `component_catalogue.policy` and the statutory charges. Nothing
  * here reads a component code.
  *
  * ```
@@ -40,9 +40,9 @@
  * runs by `gather.ts` and re-derived by `measureLoanRecoveries`. `shortfalls` is retained as a
  * statement of what this run reduced and by how much; nothing persists it, and nothing needs to.
  *
- * The plan makes reducibility a `definition.reducible` flag on the pay component. The schema
+ * The plan makes reducibility a `definition.reducible` flag on the component. The schema
  * carries that flag only on the `SCHEDULE` arm, so it cannot be read for a deduction; the order is
- * therefore taken from the pay component policy —
+ * therefore taken from the component policy —
  * `OTHER_DEDUCTION` first, `LOAN_REPAYMENT` next, `STATUTORY_ORDER` never, because a court order
  * cannot be shrunk by policy, and statutory contributions never, because they are not a company's
  * to reduce.
@@ -64,20 +64,23 @@ export type Settlement = {
 	/** Both planes after the guard has run; identical to the input when net never went negative. */
 	readonly base: readonly MeasuredBase[];
 	readonly adjustments: readonly MeasuredAdjustment[];
-	/** What could not be deducted this period, per pay component. Empty in the ordinary case. */
-	readonly shortfalls: readonly { readonly payComponentId: string; readonly amount: number }[];
+	/** What could not be deducted this period, per component. Empty in the ordinary case. */
+	readonly shortfalls: readonly {
+		readonly componentCatalogueId: string;
+		readonly amount: number;
+	}[];
 };
 
 /**
  * A company-direct entry costs the employer and never reaches the employee's net.
  *
- * `nature`, not `payComponent.nature`: derived overtime has no pay component to read it from, and
+ * `nature`, not `catalogueComponent.nature`: derived overtime has no component to read it from, and
  * it is an EARNING like any other.
  */
 function isCompanyDirect(item: PricedItem): boolean {
 	return (
-		item.payComponent?.definition?.source === 'ENTRY' &&
-		item.payComponent.definition.settlement === 'COMPANY_DIRECT'
+		item.catalogueComponent?.definition?.source === 'ENTRY' &&
+		item.catalogueComponent.definition.settlement === 'COMPANY_DIRECT'
 	);
 }
 
@@ -86,7 +89,7 @@ type Reducible = {
 	readonly plane: 'BASE' | 'ADJUSTMENT';
 	readonly index: number;
 	readonly amount: number;
-	readonly component: NonNullable<PricedItem['payComponent']>;
+	readonly component: NonNullable<PricedItem['catalogueComponent']>;
 };
 
 export function settle(options: {
@@ -124,7 +127,7 @@ export function settle(options: {
 	let adjustments = options.adjustments;
 	let otherDeductions = sumOf(base, 'DEDUCTION') + sumOf(adjustments, 'DEDUCTION');
 	let net = cents(gross - statutoryEmployee - otherDeductions + payments);
-	const shortfalls: { payComponentId: string; amount: number }[] = [];
+	const shortfalls: { componentCatalogueId: string; amount: number }[] = [];
 
 	if (net < 0) {
 		// Reverse type sequence: the least essential deduction gives way first.
@@ -132,7 +135,7 @@ export function settle(options: {
 		// deduct, and derived overtime is neither a deduction nor anyone's to shrink.
 		const collect = (items: readonly PricedItem[], plane: Reducible['plane']): Reducible[] =>
 			items.flatMap((item, index) => {
-				const component = item.payComponent;
+				const component = item.catalogueComponent;
 				return item.nature === 'DEDUCTION' &&
 					component != null &&
 					!PROTECTED_DEDUCTION_TYPES.has(component.code)
@@ -161,7 +164,7 @@ export function settle(options: {
 			} else {
 				reducedAdjustments[entry.index] = { ...reducedAdjustments[entry.index]!, amount };
 			}
-			shortfalls.push({ payComponentId: entry.component.id, amount: cents(relief) });
+			shortfalls.push({ componentCatalogueId: entry.component.id, amount: cents(relief) });
 			outstanding = cents(outstanding - relief);
 		}
 		base = reducedBase;

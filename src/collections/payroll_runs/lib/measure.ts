@@ -2,7 +2,7 @@
  * Step 4 — MEASURE.
  *
  * Every plane of input — a contract, an entry, a clock, a formula — arrives here and leaves as
- * money. Components are measured in `pay_components.sequence` order, so the hourly rate exists
+ * money. Components are measured in `component_catalogue.sequence` order, so the hourly rate exists
  * before overtime needs it and every earning exists before the grid sums them.
  *
  * ## Three shapes out, not one list
@@ -26,7 +26,7 @@
  *
  * Two rules hold throughout:
  *
- * - **an amount is a magnitude.** Direction is the pay component's `nature` and the treatment's
+ * - **an amount is a magnitude.** Direction is the component's `nature` and the treatment's
  *   decision; no amount here carries a minus sign, including unpaid absence, whose type is
  *   `ABSENCE` and whose grid row is `REDUCE`.
  * - **an ineligible component produces nothing at all.** Not a zero, nothing. A manager has no
@@ -45,9 +45,9 @@ import { countryOf } from '../../../lib/jurisdiction_settings.js';
 
 import type {
 	Configuration,
-	LeaveType,
+	CatalogueLeave,
 	OvertimeCoverageRule,
-	PayComponent
+	CatalogueComponent
 } from './configuration.js';
 import type { ComponentDefinition } from '../../../datatypes/component_definition/+definition.js';
 import {
@@ -125,8 +125,8 @@ import {
 } from '../../../lib/scheduling/work-pattern.js';
 import { rosterCodeKind, workWindow } from '../../../lib/scheduling/roster-code.js';
 
-/** The economic direction a line settles in — `pay_components.policy.kind` where there is one. */
-type LineNature = NonNullable<PayComponent['policy']>['kind'];
+/** The economic direction a line settles in — `component_catalogue.policy.kind` where there is one. */
+type LineNature = NonNullable<CatalogueComponent['policy']>['kind'];
 
 /**
  * What a measured amount looks like to the steps that price the whole payslip.
@@ -138,7 +138,7 @@ type LineNature = NonNullable<PayComponent['policy']>['kind'];
  */
 export type PricedItem = {
 	/** The catalogue row this pays, or `null` for an amount the statute derived. */
-	readonly payComponent: PayComponent | null;
+	readonly catalogueComponent: CatalogueComponent | null;
 	/**
 	 * What the amount settles as, carried rather than read back off the component, because derived
 	 * overtime has none to read it from. It is always an `EARNING`.
@@ -158,7 +158,7 @@ export type PricedItem = {
  * for the same reason — nobody can edit a record that caused it, because no such record exists.
  */
 export type MeasuredBase = PricedItem & {
-	readonly payComponent: PayComponent;
+	readonly catalogueComponent: CatalogueComponent;
 	/** The stored shape, produced here so nothing downstream has to assemble it. */
 	readonly entry: PayslipBase;
 };
@@ -209,7 +209,7 @@ type CapturedInputs = {
 
 export type MeasuredEmployment = {
 	readonly bundle: EmploymentBundle;
-	/** The contracted amounts. One entry per pay component, never one per terms row. */
+	/** The contracted amounts. One entry per component, never one per terms row. */
 	readonly base: readonly MeasuredBase[];
 	/**
 	 * What the calendar did to the contracted wage, one entry per segment.
@@ -227,7 +227,7 @@ export type MeasuredEmployment = {
 	/** What a deferred earlier period is owed, when this run is the one paying it. */
 	readonly arrears: {
 		readonly period: string;
-		readonly payComponentId: string;
+		readonly componentCatalogueId: string;
 		readonly amount: number;
 	} | null;
 	/** Amounts of every component measured, including `INFORMATION` — what formulas read. */
@@ -246,7 +246,7 @@ export type MeasuredEmployment = {
  *
  * It is the jurisdiction's own ceiling — Malaysia's twelve hours under EA 1955 s.60A(7) — and not a
  * number a company configures. It used to be read off the `after_total_work_hours` field of the
- * overflow pay components, which meant a company could quietly move a statutory boundary, and two
+ * overflow components, which meant a company could quietly move a statutory boundary, and two
  * of them in the same country could disagree about where it sits.
  */
 export function dailyTotalWorkLimit(configuration: Configuration): number | null {
@@ -314,7 +314,7 @@ type StatutoryOvertimeCoverageOptions = {
  * The wage figures are passed in by basis, each filed under the basis it genuinely is. The caller
  * can produce both: `BASE_SALARY` from the employment terms, and `STATUTORY_WAGES` derived per
  * Employment Act 1955 s.2 as narrowed by First Schedule para 3 — basic plus every other cash
- * payment for work done, less overtime pay — from the pay components and their entries settling
+ * payment for work done, less overtime pay — from the components and their entries settling
  * in this run (see `deriveStatutoryWages`). A rule is only ever answered from the basis it names.
  */
 export function isStatutoryOvertimePayCovered(options: StatutoryOvertimeCoverageOptions): boolean {
@@ -646,12 +646,12 @@ export function measureEmployment(options: MeasureEmploymentOptions): MeasuredEm
 	});
 	const entriesByComponent = new Map<string, ComponentEntry[]>();
 	for (const entry of periodEntries) {
-		const bucket = entriesByComponent.get(entry.pay_component_id);
+		const bucket = entriesByComponent.get(entry.component_catalogue_id);
 		if (bucket) bucket.push(entry);
-		else entriesByComponent.set(entry.pay_component_id, [entry]);
+		else entriesByComponent.set(entry.component_catalogue_id, [entry]);
 	}
 	const entryTotalByComponentId = new Map<string, number>();
-	for (const component of configuration.payComponents) {
+	for (const component of configuration.catalogueComponents) {
 		entryTotalByComponentId.set(
 			component.id,
 			(entriesByComponent.get(component.id) ?? []).reduce(
@@ -700,7 +700,7 @@ export function measureEmployment(options: MeasureEmploymentOptions): MeasuredEm
 	// for count: an allowance someone is not entitled to is not part of their wages.
 	const statutoryWages = deriveStatutoryWages({
 		baseSalary: rateTerms.base_salary,
-		payments: configuration.payComponents
+		payments: configuration.catalogueComponents
 			.filter((component) => isEligible(component.eligibility, subject))
 			.map((component) => ({
 				category: classifyWageComparand(component),
@@ -787,8 +787,8 @@ export function measureEmployment(options: MeasureEmploymentOptions): MeasuredEm
 			: measureAbsence({
 					employeeNumber: bundle.employment.employee_number,
 					companyName: configuration.company.name,
-					leaveTypes: configuration.leaveTypes,
-					payComponents: configuration.payComponents,
+					catalogueLeaves: configuration.catalogueLeaves,
+					catalogueComponents: configuration.catalogueComponents,
 					subject,
 					dayWage: absenceDayWage,
 					days: absentDays
@@ -800,7 +800,7 @@ export function measureEmployment(options: MeasureEmploymentOptions): MeasuredEm
 	// `entry(CODE)` is the formula vocabulary and it is unchanged: an entry is what a person or HR
 	// raised against a component this period, which is exactly what the word always meant.
 	const entryTotals: Record<string, number> = {};
-	for (const component of configuration.payComponents) {
+	for (const component of configuration.catalogueComponents) {
 		componentsByCode[component.code] = 0;
 		entryTotals[component.code] = entryTotalByComponentId.get(component.id) ?? 0;
 	}
@@ -825,10 +825,11 @@ export function measureEmployment(options: MeasureEmploymentOptions): MeasuredEm
 	}
 	const leaveDays: Record<string, number> = {};
 	const leaveBalances: Record<string, number> = {};
-	for (const type of configuration.leaveTypes) {
+	for (const type of configuration.catalogueLeaves) {
 		leaveDays[type.code] = bundle.ledger
 			.filter(
-				(row) => row.leave_type_id === type.id && row.kind === 'TAKEN' && row.approval_id == null
+				(row) =>
+					row.leave_catalogue_id === type.id && row.kind === 'TAKEN' && row.approval_id == null
 			)
 			// The same predicate the deduction itself uses. An unpaid-absence component is a FORMULA
 			// over `leaveDays(...)`, so if this counted a different set of days than
@@ -933,7 +934,7 @@ export function measureEmployment(options: MeasureEmploymentOptions): MeasuredEm
 	const explicitArrears =
 		calculatedArrears == null
 			? undefined
-			: (entriesByComponent.get(calculatedArrears.payComponentId) ?? []).find(
+			: (entriesByComponent.get(calculatedArrears.componentCatalogueId) ?? []).find(
 					(entry) =>
 						cents(entrySign(entry) * decodeNumber(entry.amount)) === calculatedArrears.amount
 				);
@@ -952,7 +953,9 @@ export function measureEmployment(options: MeasureEmploymentOptions): MeasuredEm
 	const proration: PayslipProration[] = [];
 	const adjustments: MeasuredAdjustment[] = [];
 	if (arrears != null) {
-		const component = configuration.payComponents.find((row) => row.id === arrears.payComponentId);
+		const component = configuration.catalogueComponents.find(
+			(row) => row.id === arrears.componentCatalogueId
+		);
 		if (component == null)
 			throw new Error(
 				`${bundle.employment.employee_number} is owed ${arrears.period}, but the component it is ` +
@@ -963,7 +966,7 @@ export function measureEmployment(options: MeasureEmploymentOptions): MeasuredEm
 		// and it rides the wage's own component: a second base line under the same code, which the
 		// formula context and every total sum.
 		base.push({
-			payComponent: component,
+			catalogueComponent: component,
 			nature: component.policy?.kind ?? null,
 			label: component.code,
 			amount: arrears.amount,
@@ -972,7 +975,7 @@ export function measureEmployment(options: MeasureEmploymentOptions): MeasuredEm
 		componentAmounts.set(component.code, arrears.amount);
 		componentsByCode[component.code] = arrears.amount;
 	}
-	for (const component of configuration.payComponents) {
+	for (const component of configuration.catalogueComponents) {
 		if (!isEligible(component.eligibility, subject)) continue;
 		const componentEntries = entriesByComponent.get(component.id) ?? [];
 		// One entry, one measurement, because one adjustment row names one captured input. Everything
@@ -996,7 +999,7 @@ export function measureEmployment(options: MeasureEmploymentOptions): MeasuredEm
 				subject
 			});
 			if (measured == null) continue;
-			// `+`, not `=`: a back-pay component can carry both this run's derived arrears and an
+			// `+`, not `=`: a back-component can carry both this run's derived arrears and an
 			// entry HR keyed by hand, and a formula reading that code must see the whole of it.
 			const running = (componentAmounts.get(component.code) ?? 0) + measured.amount;
 			componentAmounts.set(component.code, (componentAmounts.get(component.code) ?? 0) + running);
@@ -1114,10 +1117,10 @@ function measureArrears(
 	const owed = options.bundle.arrearsFor;
 	// The arrears rides the contracted wage's own component: what a deferred month owes is that
 	// month's wage, and there is no second catalogue row to carry it under.
-	const payComponentId = options.configuration.payComponents.find(
+	const componentCatalogueId = options.configuration.catalogueComponents.find(
 		(component) => component.definition?.source === 'SCHEDULE'
 	)?.id;
-	if (owed == null || payComponentId == null) return null;
+	if (owed == null || componentCatalogueId == null) return null;
 	const measured = measureEmployment({
 		bundle: {
 			...options.bundle,
@@ -1152,7 +1155,7 @@ function measureArrears(
 		adjustments: measured.adjustments,
 		charges: []
 	}).gross;
-	return amount <= 0 ? null : { period: owed.period, payComponentId, amount };
+	return amount <= 0 ? null : { period: owed.period, componentCatalogueId, amount };
 }
 
 /**
@@ -1186,7 +1189,7 @@ type MeasureRecoveryOptions = {
 function measureLoanRecoveries(options: MeasureRecoveryOptions): MeasuredAdjustment[] {
 	const recoveries: MeasuredAdjustment[] = [];
 	const componentById = new Map(
-		options.configuration.payComponents.map((component) => [component.id, component])
+		options.configuration.catalogueComponents.map((component) => [component.id, component])
 	);
 	const loanById = new Map(options.bundle.loans.map((loan) => [loan.id, loan]));
 	// In `(due_date, sequence)` order, which is the plan's order and stable for the same rows;
@@ -1197,7 +1200,9 @@ function measureLoanRecoveries(options: MeasureRecoveryOptions): MeasuredAdjustm
 			String(left.due_date).localeCompare(String(right.due_date)) || left.sequence - right.sequence
 	);
 	for (const repayment of dueRepayments) {
-		const component = componentById.get(loanById.get(repayment.loan_id)?.pay_component_id ?? '');
+		const component = componentById.get(
+			loanById.get(repayment.loan_id)?.component_catalogue_id ?? ''
+		);
 		if (component == null || component.nature !== 'DEDUCTION') continue;
 		if (!isEligible(component.eligibility, options.subject)) continue;
 		const due = dateKey(repayment.due_date) ?? String(repayment.due_date).slice(0, 10);
@@ -1223,7 +1228,7 @@ function measureLoanRecoveries(options: MeasureRecoveryOptions): MeasuredAdjustm
 		});
 		recoveries.push({
 			input: { family: 'LOAN_REPAYMENT', id: repayment.id },
-			payComponent: component,
+			catalogueComponent: component,
 			nature: component.policy?.kind ?? null,
 			label: component.code,
 			amount,
@@ -1310,7 +1315,7 @@ type EntryCap = NonNullable<Extract<ComponentDefinition, { source: 'ENTRY' }>['c
 /** What `resolveEntryCap` needs to read the cap and price what this run already used of it. */
 type ResolveEntryCapOptions = {
 	readonly cap: EntryCap;
-	readonly component: PayComponent;
+	readonly component: CatalogueComponent;
 	readonly entry: ComponentEntry;
 	readonly bundle: EmploymentBundle;
 	readonly subject: PersonContext;
@@ -1361,7 +1366,10 @@ function resolveEntryCap(
 		}
 	};
 	const previouslyUsed = options.bundle.componentEntries.reduce((total, candidate) => {
-		if (candidate.pay_component_id !== options.component.id || candidate.id === options.entry.id)
+		if (
+			candidate.component_catalogue_id !== options.component.id ||
+			candidate.id === options.entry.id
+		)
 			return total;
 		const candidateDate = entryEventDate(candidate);
 		if (candidateDate == null) return total;
@@ -1377,7 +1385,7 @@ function resolveEntryCap(
 }
 
 type MeasureComponentOptions = {
-	readonly component: PayComponent;
+	readonly component: CatalogueComponent;
 	readonly bundle: EmploymentBundle;
 	readonly configuration: Configuration;
 	readonly salary: PayRange;
@@ -1396,7 +1404,7 @@ type MeasureComponentOptions = {
 function measureComponent(options: MeasureComponentOptions): Measurement | null {
 	const definition = options.component.definition;
 	if (definition == null)
-		throw new Error(`Pay component ${options.component.code} has no definition to measure.`);
+		throw new Error(`Component ${options.component.code} has no definition to measure.`);
 	const nature = options.component.policy?.kind ?? null;
 
 	/**
@@ -1503,7 +1511,7 @@ function measureComponent(options: MeasureComponentOptions): Measurement | null 
 			amount,
 			base: [
 				{
-					payComponent: options.component,
+					catalogueComponent: options.component,
 					nature,
 					label: options.component.code,
 					amount,
@@ -1573,7 +1581,7 @@ function measureComponent(options: MeasureComponentOptions): Measurement | null 
 			amount,
 			base: [
 				{
-					payComponent: options.component,
+					catalogueComponent: options.component,
 					nature,
 					label: options.component.code,
 					amount,
@@ -1637,7 +1645,6 @@ function measureComponent(options: MeasureComponentOptions): Measurement | null 
 					`${cents(cap.exceededBy + reimbursable).toFixed(2)} requested against ${cents(cap.amount).toFixed(2)} allowed.`
 			);
 		const amount = cents(sign * reimbursable);
-		const quantity = sign * decodeNumber(entry.quantity ?? 0);
 		assertWithinEntry({
 			entry,
 			componentCode: options.component.code,
@@ -1652,11 +1659,15 @@ function measureComponent(options: MeasureComponentOptions): Measurement | null 
 			adjustments: [
 				{
 					input: { family: 'COMPONENT_ENTRY', id: entry.id },
-					payComponent: options.component,
+					catalogueComponent: options.component,
 					nature,
 					label: options.component.code,
 					amount,
-					quantity: quantity === 0 ? null : quantity,
+					// A component entry states an amount and nothing else. `quantity` on the adjustment
+					// is still fed by the sources that genuinely have one — leave days, work hours —
+					// but an entry has no countable unit to report, and the column it used to be
+					// copied from priced nothing.
+					quantity: null,
 					rate: null,
 					statutoryRuleKey: null
 				}
@@ -1690,7 +1701,7 @@ function measureComponent(options: MeasureComponentOptions): Measurement | null 
 				amount: magnitude,
 				base: [
 					{
-						payComponent: options.component,
+						catalogueComponent: options.component,
 						nature,
 						label: options.component.code,
 						amount: magnitude,
@@ -1710,7 +1721,7 @@ function measureComponent(options: MeasureComponentOptions): Measurement | null 
 			allocated = cents(allocated + share);
 			return {
 				input: { family: 'LEAVE_REQUEST' as const, id: request.id },
-				payComponent: options.component,
+				catalogueComponent: options.component,
 				nature,
 				label: options.component.code,
 				amount: share,
@@ -1764,7 +1775,7 @@ function measureComponent(options: MeasureComponentOptions): Measurement | null 
 			amount,
 			base: [
 				{
-					payComponent: options.component,
+					catalogueComponent: options.component,
 					nature: options.component.policy?.kind ?? null,
 					label: options.component.code,
 					amount,
@@ -1805,8 +1816,8 @@ function measureComponent(options: MeasureComponentOptions): Measurement | null 
 function measureAbsence(options: {
 	readonly employeeNumber: string;
 	readonly companyName: string;
-	readonly leaveTypes: readonly LeaveType[];
-	readonly payComponents: readonly PayComponent[];
+	readonly catalogueLeaves: readonly CatalogueLeave[];
+	readonly catalogueComponents: readonly CatalogueComponent[];
 	readonly subject: PersonContext;
 	readonly dayWage: number;
 	readonly days: readonly { readonly id: string; readonly date: string }[];
@@ -1820,28 +1831,30 @@ function measureAbsence(options: {
 	// unpaid day the person never applied for, priced through the same component.
 	const componentIds = [
 		...new Set(
-			options.leaveTypes.flatMap((type) =>
+			options.catalogueLeaves.flatMap((type) =>
 				type.payroll_effect?.kind === 'UNPAID' ? [type.payroll_effect.component_id] : []
 			)
 		)
 	];
 	if (componentIds.length === 0)
 		throw new Error(
-			`${options.employeeNumber} was marked absent on ${dates}, but no leave type of ` +
+			`${options.employeeNumber} was marked absent on ${dates}, but no leave of ` +
 				`${options.companyName} names an unpaid-leave deduction component to carry it. Add an ` +
-				'UNPAID leave type first.'
+				'UNPAID leave first.'
 		);
 	if (componentIds.length > 1)
 		throw new Error(
-			`${options.employeeNumber} was marked absent on ${dates}, but the leave types of ` +
+			`${options.employeeNumber} was marked absent on ${dates}, but the leave catalogue entries of ` +
 				`${options.companyName} name ${componentIds.length} different unpaid-leave components, so ` +
 				'the absence has no one deduction to settle on.'
 		);
-	const component = options.payComponents.find((candidate) => candidate.id === componentIds[0]);
+	const component = options.catalogueComponents.find(
+		(candidate) => candidate.id === componentIds[0]
+	);
 	if (component == null)
 		throw new Error(
 			`${options.companyName} names an unpaid-leave component that is not in its pay catalogue. ` +
-				'Point the leave type at a component that exists.'
+				'Point the leave at a component that exists.'
 		);
 	if (!isEligible(component.eligibility, options.subject)) {
 		throw new Error(
@@ -1851,7 +1864,7 @@ function measureAbsence(options: {
 	}
 	return options.days.map((day) => ({
 		input: { family: 'WORK_DAY' as const, id: day.id },
-		payComponent: component,
+		catalogueComponent: component,
 		nature: component.policy?.kind ?? null,
 		label: component.code,
 		amount: cents(options.dayWage),
@@ -1868,7 +1881,7 @@ function measureAbsence(options: {
  * the daily and calendar-month controls, and valued by one band of the jurisdiction's
  * `overtime_rules`. An adjustment is one band's segments **on one day** summed: the band triple —
  * day type, measure, band floor — plus the excess flag is the whole of what identifies the rule,
- * and it is what the row carries in place of a pay component, because there is no pay component. A
+ * and it is what the row carries in place of a component, because there is no component. A
  * company cannot add an overtime band, remove one, or pay a different multiple for one; those are
  * the statute's to say.
  *
@@ -1910,7 +1923,7 @@ function measureOvertime(options: MeasureOvertimeOptions): MeasuredAdjustment[] 
 		const ruleKey = overtimeBandCode({ excess, ...band });
 		return {
 			input: { family: 'WORK_DAY', id: workDayId },
-			payComponent: null,
+			catalogueComponent: null,
 			nature: 'EARNING',
 			label: ruleKey,
 			amount: measurement.amount,

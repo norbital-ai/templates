@@ -6,19 +6,27 @@
 	import { CollectionForm, type CollectionFormSemantic } from '@norbital-ai/ui/collection-form';
 	import type { CollectionField } from '@norbital-ai/ui/data-renderer';
 	import { MatrixRenderer, type MatrixColumn } from '@norbital-ai/ui/data-renderer/matrix';
-	import { Column, Grid, Stack } from '@norbital-ai/ui/layout';
+	import { Column, Grid, Inline, Stack } from '@norbital-ai/ui/layout';
 	import { RecordShell } from '@norbital-ai/ui/record-shell';
 	import { Effect } from 'effect';
 	import { watch } from 'runed';
 	import { formatNumeric } from '../../lib/ui/display-formatters.js';
 	import {
+		canGenerateLoanSchedule,
 		createLoanRepaymentDraft,
+		generateLoanSchedule,
 		loanScheduleFromRows,
 		loanScheduleImbalanced,
 		loanScheduleTotal,
 		loanScheduleWriteRows,
 		type LoanRepaymentDraft
 	} from '../../lib/loan-schedule.js';
+	import { Button } from '@norbital-ai/ui/button';
+	import {
+		employmentRelationOptions,
+		hrCreateScope,
+		inForceCatalogue
+	} from '../../lib/ui/create-scope.js';
 
 	/**
 	 * The loan agreement, and the repayment lines it owns.
@@ -30,6 +38,9 @@
 	 */
 	let { record, close }: RepresentationProps = $props();
 	const { t } = useI18n<TenantI18nKeys>();
+	const createScope = hrCreateScope();
+	const scopedCompanyId = $derived(createScope?.companyId());
+	const scopedSettingsCode = $derived(createScope?.settingsCode());
 
 	let schedule = $state<LoanRepaymentDraft[]>([]);
 	let seeded = $state(false);
@@ -39,7 +50,7 @@
 			? client.db.loan_repayments.findMany({
 					where: { loan_id: { eq: record.id } },
 					columns: { id: true, due_date: true, amount_due: true, sequence: true },
-					orderBy: { sequence: 'asc' },
+					orderBy: { due_date: 'asc' },
 					limit: 10_000
 				})
 			: null
@@ -55,13 +66,12 @@
 		{ lazy: false }
 	);
 
+	/**
+	 * The matrix shows the two facts the operator owns. `sequence` is not one of them: it is the
+	 * date order, renumbered on every write by `loanScheduleWriteRows`, and a column asking the
+	 * operator to restate the sort is a column that can contradict it.
+	 */
 	const COLUMNS = [
-		{
-			key: 'sequence',
-			label: t('component.sequence'),
-			field: { name: 'sequence', kind: 'integer', nullable: false } satisfies CollectionField,
-			width: 100
-		},
 		{
 			key: 'due_date',
 			label: t('component.due_date'),
@@ -80,6 +90,34 @@
 			width: 160
 		}
 	] satisfies readonly MatrixColumn<LoanRepaymentDraft>[];
+
+	/**
+	 * The repayments a payroll run has already captured.
+	 *
+	 * These are history: the generator re-dates and re-prices everything else around them, and the
+	 * matrix must not offer them for editing. One junction lookup, keyed by the loan's own
+	 * repayment ids — the same shape every other settlement lookup in this workspace uses.
+	 */
+	const capturedQuery = $derived.by(() => {
+		const ids = schedule.map((row) => row.id);
+		if (ids.length === 0) return null;
+		return client.db.payslip_loan_repayment_inputs.findMany({
+			where: { loan_repayment_id: { in: ids } },
+			columns: { loan_repayment_id: true },
+			limit: 10_000
+		});
+	});
+	const lockedIds = $derived(
+		new Set((capturedQuery?.current ?? []).map((row) => row.loan_repayment_id))
+	);
+
+	const applySchedule = (
+		rows: readonly LoanRepaymentDraft[],
+		form: { setValues: (values: Record<string, unknown>) => void }
+	) => {
+		schedule = [...rows];
+		form.setValues({ repayment_loan: loanScheduleWriteRows(rows) });
+	};
 
 	const semantic = ((values) =>
 		Effect.succeed(
@@ -110,26 +148,27 @@
 			{@const principal = form.values().principal}
 			{@const due = loanScheduleTotal(schedule)}
 			{@const imbalanced = loanScheduleImbalanced(principal, schedule)}
+			{@const canGenerate = canGenerateLoanSchedule(
+				principal,
+				form.values().effective_range,
+				schedule
+			)}
 			<Grid gap="md" minimum="panel">
 				<Field
 					name="employment_id"
 					label={t('component.employment')}
-					relationOptions={{
-						label: (employment) =>
-							employment.employee_number != null && employment.employee_number !== ''
-								? String(employment.employee_number)
-								: '—',
-						orderBy: { employee_number: 'asc' },
-						limit: 1000
-					}}
+					relationOptions={employmentRelationOptions(scopedCompanyId)}
 				/>
 				<Field
-					name="pay_component_id"
-					label={t('component.pay_component')}
+					name="component_catalogue_id"
+					label={t('component.catalogue_component')}
 					relationOptions={{
 						label: (component) =>
 							component.code != null && component.code !== '' ? String(component.code) : '—',
-						where: { nature: { eq: 'DEDUCTION' } },
+						where: {
+							nature: { eq: 'DEDUCTION' },
+							...inForceCatalogue('component_catalogue_settings', scopedSettingsCode)
+						},
 						orderBy: { code: 'asc' },
 						limit: 200
 					}}
@@ -157,6 +196,31 @@
 								})}
 							</p>
 						{/if}
+						{#if canGenerate}
+							<Inline gap="sm" align="center">
+								<Button
+									type="button"
+									variant="secondary"
+									size="sm"
+									data-generate-schedule
+									onclick={() =>
+										applySchedule(
+											generateLoanSchedule({
+												principal,
+												range: form.values().effective_range,
+												rows: schedule,
+												lockedIds
+											}),
+											form
+										)}
+								>
+									{schedule.length === 0
+										? t('component.generate_repayment_schedule')
+										: t('component.regenerate_repayment_schedule')}
+								</Button>
+								<span class="text-meta">{t('component.generate_repayment_schedule_hint')}</span>
+							</Inline>
+						{/if}
 						<MatrixRenderer
 							rows={schedule}
 							columns={COLUMNS}
@@ -164,10 +228,7 @@
 							addRowLabel={t('component.add_repayment')}
 							createRow={() => createLoanRepaymentDraft(schedule.at(-1))}
 							bounded={false}
-							onChange={(rows) => {
-								schedule = rows;
-								form.setValues({ repayment_loan: loanScheduleWriteRows(rows) });
-							}}
+							onChange={(rows) => applySchedule(rows, form)}
 						/>
 					</Stack>
 				</Column>

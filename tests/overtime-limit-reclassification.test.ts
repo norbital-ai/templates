@@ -114,7 +114,7 @@ function configuration(options) {
 		leaveProfiles: [jur],
 		contributions: [],
 		treatments: new Map(),
-		payComponents: [{ ...BASIC, settings_id: jur.id }],
+		catalogueComponents: [{ ...BASIC, settings_id: jur.id }],
 		overtimeRules: options.overtimeRules,
 		overtimeLimits: options.overtimeLimits,
 		overtimeCoverageRule: null,
@@ -123,7 +123,7 @@ function configuration(options) {
 			['pattern-1', { id: 'pattern-1', code: 'SIX-DAY', pattern: SIX_DAY_WEEK }]
 		]),
 		holidays: new Map(),
-		leaveTypes: [],
+		catalogueLeaves: [],
 		hash: 'test'
 	};
 }

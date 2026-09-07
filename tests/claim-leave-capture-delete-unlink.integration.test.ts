@@ -11,7 +11,7 @@ import {
 import { calendarDateInTimeZone, PAYROLL_TIME_ZONE } from '../src/lib/ui/calendar.ts';
 import {
 	ANNUAL_LEAVE_ENTITLEMENT_ID,
-	ANNUAL_LEAVE_TYPE_ID,
+	ANNUAL_LEAVE_CATALOGUE_ID,
 	COMPANY_ID,
 	EMPLOYMENT_ID,
 	JURISDICTION_ID,
@@ -25,7 +25,8 @@ import {
 
 const MUTATE_COMMAND = 'collections.mutate';
 /** The public seed's TRANSPORT component, the one a claim is filed against. */
-const TRANSPORT_COMPONENT_ID = '77777777-7777-4777-8777-777777777777';
+/** The claimable component: `entry_kind: CLAIM`, which is the arm this test files. */
+const TRANSPORT_COMPONENT_ID = '77777777-7777-4777-8777-777777777701';
 
 const SATURDAY = '2026-03-07';
 const SUNDAY = '2026-03-08';
@@ -90,7 +91,7 @@ const fileTimeOff = (
 					values: {
 						id,
 						employment_id: EMPLOYMENT_ID,
-						leave_type_id: ANNUAL_LEAVE_TYPE_ID,
+						leave_catalogue_id: ANNUAL_LEAVE_CATALOGUE_ID,
 						leave_entitlement_id: ANNUAL_LEAVE_ENTITLEMENT_ID,
 						event: {
 							kind: 'TIME_OFF',
@@ -408,7 +409,7 @@ test(
 				{
 					id: claimId,
 					employment_id: EMPLOYMENT_ID,
-					pay_component_id: TRANSPORT_COMPONENT_ID,
+					component_catalogue_id: TRANSPORT_COMPONENT_ID,
 					amount: 42,
 					event_date: '2026-03-05',
 					event: { kind: 'CLAIM', incurred_on: '2026-03-05', description: 'Client site taxi' }
@@ -470,9 +471,12 @@ test(
 				lines.every((line) => line.label.length > 0),
 				`every adjustment names its component or rule: ${JSON.stringify(lines)}`
 			);
+			// The claim prices under the component that takes claims. `TRANSPORT` is the standing
+			// allowance beside it, and the two are different components because an entry may only be
+			// raised against one declaring its own arm.
 			assert.ok(
-				lines.some((line) => line.label === 'TRANSPORT' && Number(line.amount) === 42),
-				`the claim must price a TRANSPORT 42 line: ${JSON.stringify(lines)}`
+				lines.some((line) => line.label === 'TRANSPORT_CLAIM' && Number(line.amount) === 42),
+				`the claim must price a TRANSPORT_CLAIM 42 line: ${JSON.stringify(lines)}`
 			);
 
 			// 9. Deleting the draft run releases both captures and deletes neither source.

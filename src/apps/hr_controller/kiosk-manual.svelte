@@ -176,7 +176,13 @@
 								</p>
 								<p class="mt-1 font-mono text-meta">{employment.employee_number}</p>
 							</div>
-							<div class="grid grid-cols-2 gap-2 sm:flex">
+							<!--
+								One button, because there is one rule: the first punch of the day is the
+								arrival and every later one moves the departure. A supervisor entering a
+								punch by hand does not have to work out which of the two this is, and can
+								no longer assert one the day contradicts.
+							-->
+							<div class="sm:flex">
 								<Button
 									disabled={working}
 									onclick={() => {
@@ -186,37 +192,15 @@
 										void Promise.resolve(
 											client.invoke.kiosk_punch({
 												employment_id: employment.id,
-												kind: 'MANUAL',
-												direction: 'in'
+												kind: 'MANUAL'
 											})
 										)
 											.then(acceptPunch, failPunch)
 											.finally(() => (working = false));
 									}}
 								>
-									<Icon icon="lucide:log-in" class="size-4" />
-									{t('kiosk.check_in')}
-								</Button>
-								<Button
-									variant="secondary"
-									disabled={working}
-									onclick={() => {
-										working = true;
-										result = null;
-										error = null;
-										void Promise.resolve(
-											client.invoke.kiosk_punch({
-												employment_id: employment.id,
-												kind: 'MANUAL',
-												direction: 'out'
-											})
-										)
-											.then(acceptPunch, failPunch)
-											.finally(() => (working = false));
-									}}
-								>
-									<Icon icon="lucide:log-out" class="size-4" />
-									{t('kiosk.check_out')}
+									<Icon icon="lucide:clock" class="size-4" />
+									{t('kiosk.record_punch')}
 								</Button>
 							</div>
 						</div>

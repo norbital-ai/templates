@@ -32,7 +32,11 @@
 	const subtitle = $derived(
 		record == null
 			? undefined
-			: `Paid by ${payerLabel}, applied at step ${record.sequence}, with bands keyed by ${keyedByLabel}. End-date a band and insert a successor; never update one in place.`
+			: t('component.scheme_subtitle', {
+					payer: payerLabel,
+					step: record.sequence,
+					keyed_by: keyedByLabel
+				})
 	);
 </script>
 
@@ -46,14 +50,17 @@
 	>
 		{#snippet children({ Field })}
 			<Stack gap="lg">
+				<!--
+					Three sections in the order the question is actually asked: what this scheme is, how
+					much it takes and from whom, and the exceptions the statute names. No rules between
+					them — the heading and its sentence are the separation, as on the settings form.
+				-->
 				<Stack as="section" gap="sm">
 					<Stack gap="xs">
-						<h3 class="text-sm font-semibold">Scheme identity</h3>
-						<p class="text-meta">
-							The authority and the jurisdiction settings version this scheme belongs to.
-						</p>
+						<h3 class="text-sm font-semibold">{t('component.scheme_section_identity')}</h3>
+						<p class="text-meta">{t('component.scheme_section_identity_hint')}</p>
 					</Stack>
-					<Grid gap="md" minimum="panel">
+					<Grid gap="sm" minimum="compact">
 						<Field
 							name="settings_id"
 							label={t('component.settings_version')}
@@ -73,14 +80,12 @@
 					</Grid>
 				</Stack>
 
-				<Stack as="section" gap="sm" class="border-t border-border pt-5">
+				<Stack as="section" gap="sm">
 					<Stack gap="xs">
-						<h3 class="text-sm font-semibold">Calculation</h3>
-						<p class="text-meta">
-							Who pays, how rate bands are selected, and when the scheme applies.
-						</p>
+						<h3 class="text-sm font-semibold">{t('component.scheme_section_calculation')}</h3>
+						<p class="text-meta">{t('component.scheme_section_calculation_hint')}</p>
 					</Stack>
-					<Grid gap="md" minimum="panel">
+					<Grid gap="sm" minimum="compact">
 						<Field name="payer" label={t('component.paid_by')} />
 						<Field name="keyed_by" label={t('component.bands_keyed_by')} />
 						<Field name="rounding" />
@@ -88,10 +93,10 @@
 					</Grid>
 				</Stack>
 
-				<Stack as="section" gap="sm" class="border-t border-border pt-5">
+				<Stack as="section" gap="sm">
 					<Stack gap="xs">
-						<h3 class="text-sm font-semibold">Relief and named rules</h3>
-						<p class="text-meta">Only configure exceptions the scheme explicitly declares.</p>
+						<h3 class="text-sm font-semibold">{t('component.scheme_section_exceptions')}</h3>
+						<p class="text-meta">{t('component.scheme_section_exceptions_hint')}</p>
 					</Stack>
 					<Field
 						name="relief_for"
@@ -150,9 +155,21 @@
 	title={record ? `${record.code} · ${record.name}` : t('component.create_scheme')}
 	{subtitle}
 	tabs={[
-		{ name: 'scheme', label: 'Scheme', icon: 'lucide:landmark', content: scheme },
+		{
+			name: 'scheme',
+			label: t('component.scheme_section_identity'),
+			icon: 'lucide:landmark',
+			content: scheme
+		},
 		...(record
-			? [{ name: 'rates', label: 'Rate bands', icon: 'lucide:percent', content: rates }]
+			? [
+					{
+						name: 'rates',
+						label: t('component.rate_bands'),
+						icon: 'lucide:percent',
+						content: rates
+					}
+				]
 			: [])
 	] satisfies TabConfig[]}
 />

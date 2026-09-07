@@ -19,10 +19,10 @@ import { memoryPayrollApi } from './fixtures/memory-payroll-api.ts';
 test('payroll formula reads the sealed account ledger without recalculating historical policy', async () => {
 	const world = createPublicPayrollWorld();
 	world.jurisdiction_settings[0].effective_range = { start: '2026-01-01', end: null };
-	const leaveTypeId = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa2';
+	const leaveCatalogueId = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa2';
 	const leaveEntitlementId = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa3';
-	world.leave_types.push({
-		id: leaveTypeId,
+	world.leave_catalogue.push({
+		id: leaveCatalogueId,
 		settings_id: JURISDICTION_ID,
 		code: 'ANNUAL',
 		name: 'Annual leave',
@@ -41,7 +41,7 @@ test('payroll formula reads the sealed account ledger without recalculating hist
 	world.leave_entitlements.push({
 		id: leaveEntitlementId,
 		employment_id: EMPLOYMENT_ID,
-		leave_type_id: leaveTypeId,
+		leave_catalogue_id: leaveCatalogueId,
 		leave_code: 'ANNUAL',
 		leave_name: 'Annual leave',
 		leave_year: 2026,
@@ -74,8 +74,8 @@ test('payroll formula reads the sealed account ledger without recalculating hist
 			approval_id: null
 		}
 	);
-	world.pay_components.push({
-		...world.pay_components[0],
+	world.component_catalogue.push({
+		...world.component_catalogue[0],
 		id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa4',
 		code: 'LEAVE_VALUE',
 		sequence: 60,
@@ -97,7 +97,7 @@ test('a run reads only the catalogue of the version it picked, never a sibling v
 			gatherPayrollRun({ api: memoryPayrollApi(world), companyId: COMPANY_ID, period: '2026-01' })
 		);
 	const expected = buildPayrollRun(await prepare()).payslip_payroll_run;
-	const basic = world.pay_components.find((row) => row.code === 'BASIC');
+	const basic = world.component_catalogue.find((row) => row.code === 'BASIC');
 	assert.ok(basic);
 	// Two more versions of the lineage (a draft and a voided one) carry their own BASIC clones;
 	// the picked version's catalogue is the only one the run prices.
@@ -116,7 +116,7 @@ test('a run reads only the catalogue of the version it picked, never a sibling v
 			void_reason: 'superseded'
 		}
 	);
-	world.pay_components.push(
+	world.component_catalogue.push(
 		{ ...structuredClone(basic), id: 'other-basic-1', settings_id: 'other-settings-1' },
 		{ ...structuredClone(basic), id: 'other-basic-2', settings_id: 'other-settings-2' }
 	);

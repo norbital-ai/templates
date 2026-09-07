@@ -71,7 +71,7 @@ export function createSemiMonthlyPayrollWorld(): PayrollWorld {
 		award: { kind: 'PERCENT', employee: 11, employer: 13 },
 		approval_id: null
 	});
-	for (const component of world.pay_components)
+	for (const component of world.component_catalogue)
 		component.contribution_treatments = { 'PUB-EPF': { kind: 'INCLUDE' } };
 	world.employees.push({
 		id: SEMI_MONTHLY_EMPLOYEE_ID,

@@ -18,7 +18,7 @@ const entitlement = {
 	ends_on: '2026-12-31',
 	accrual_kind: 'UPFRONT'
 };
-const leaveType = {
+const catalogueLeave = {
 	id: 'lt-annual',
 	settings_id: 'settings-1',
 	code: 'ANNUAL',
@@ -46,7 +46,7 @@ const patternedWeek = {
 const facts = {
 	employee: { gender: 'FEMALE', date_of_birth: '1992-01-04', nationality: 'MY' },
 	employment: { id: 'emp-1', company_id: 'co-1', hire_date: '2021-06-01', exit_date: null },
-	leaveType,
+	catalogueLeave,
 	entitlement,
 	children: [],
 	entries: [
@@ -75,7 +75,7 @@ const facts = {
 };
 const input = {
 	employment_id: 'emp-1',
-	leave_type_id: 'lt-annual',
+	leave_catalogue_id: 'lt-annual',
 	leave_entitlement_id: entitlement.id,
 	calendar_month: '2026-04',
 	range
@@ -120,7 +120,7 @@ test('unmetered leave keeps entitlement, schedule, overlap and approval checks b
 			...facts,
 			entitlement: { ...entitlement, accrual_kind: 'UNLIMITED' },
 			entries: [],
-			leaveType: { ...leaveType, accrual: { kind: 'UNLIMITED' } }
+			catalogueLeave: { ...catalogueLeave, accrual: { kind: 'UNLIMITED' } }
 		},
 		input
 	);
@@ -134,21 +134,21 @@ test('unmetered leave keeps entitlement, schedule, overlap and approval checks b
 
 test('eligibility and certificate policy use server-measured scheduled days', () => {
 	const restrictedType = {
-		...leaveType,
+		...catalogueLeave,
 		requires_certificate_after_days: 0,
 		eligibility: 'employee.gender == "FEMALE" && employment.type == "PERMANENT"'
 	};
 	const preview = evaluateLeavePreview(
 		{
 			...facts,
-			leaveType: restrictedType
+			catalogueLeave: restrictedType
 		},
 		input
 	);
 	assert.equal(preview.certificate_required, true);
 	assert.equal(preview.chargeable_days, 1);
 	const ineligible = evaluateLeavePreview(
-		{ ...facts, employee: { ...facts.employee, gender: 'MALE' }, leaveType: restrictedType },
+		{ ...facts, employee: { ...facts.employee, gender: 'MALE' }, catalogueLeave: restrictedType },
 		input
 	);
 	assert.ok(ineligible.issues.some((issue) => issue.code === 'INELIGIBLE'));
@@ -156,7 +156,11 @@ test('eligibility and certificate policy use server-measured scheduled days', ()
 
 test('preview month expands to the rendered calendar grid', () => {
 	assert.deepEqual(
-		previewWindowOf({ employment_id: 'emp-1', leave_type_id: 'lt-1', calendar_month: '2026-04' }),
+		previewWindowOf({
+			employment_id: 'emp-1',
+			leave_catalogue_id: 'lt-1',
+			calendar_month: '2026-04'
+		}),
 		{ start: '2026-03-30', end: '2026-05-10' }
 	);
 });

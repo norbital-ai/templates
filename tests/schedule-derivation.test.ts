@@ -119,3 +119,90 @@ test('calendar-month phases support a three-month day / three-month night rotati
 	assert.equal(schedule.get('2026-03-31').shift.code, 'D');
 	assert.equal(schedule.get('2026-04-01').shift.code, 'N');
 });
+
+/**
+ * EA 1955 s.60D(1): a gazetted holiday falling on the employee's rest day moves to the next
+ * working day.
+ *
+ * Twenty-five lines of loop with no test. It changes the pricing of *two* days at once — the rest
+ * day stays a rest day and the substitute becomes a public holiday — so a substitution that lands
+ * on the wrong day, or fails to land at all, silently misprices both. `substitutes_date` appears
+ * in this suite only as `null`.
+ */
+test('a holiday on a rest day moves to the next ordinary day, and the rest day stays a rest day', () => {
+	// Sunday 8 March is the pattern's REST day; Monday 9 March is the next ordinary one.
+	const schedule = resolveSchedule({
+		window: { start: '2026-03-06', end: '2026-03-10' },
+		dates: ['2026-03-06', '2026-03-07', '2026-03-08', '2026-03-09', '2026-03-10'],
+		terms: terms(),
+		workDays: [],
+		configuration: {
+			shiftById,
+			holidays: new Map([
+				['2026-03-08', { date: '2026-03-08', substitutes_date: null, scope: 'NATIONAL' }]
+			])
+		}
+	});
+	assert.equal(
+		schedule.get('2026-03-08').dayType,
+		'REST_DAY',
+		'the rest day is not converted; a rest day worked is still priced as one'
+	);
+	assert.equal(
+		schedule.get('2026-03-09').dayType,
+		'PUBLIC_HOLIDAY',
+		'the entitlement moves to the next ordinary day'
+	);
+	assert.equal(schedule.get('2026-03-10').dayType, 'ORDINARY', 'and stops after one day');
+	// Saturday is OFF, not ORDINARY, so it is skipped rather than taking the substitution.
+	assert.equal(schedule.get('2026-03-07').dayType, 'OFF_DAY');
+});
+
+test('a holiday the calendar has already substituted by hand is not substituted again', () => {
+	const schedule = resolveSchedule({
+		window: { start: '2026-03-06', end: '2026-03-10' },
+		dates: ['2026-03-06', '2026-03-07', '2026-03-08', '2026-03-09', '2026-03-10'],
+		terms: terms(),
+		workDays: [],
+		configuration: {
+			shiftById,
+			holidays: new Map([
+				['2026-03-08', { date: '2026-03-08', substitutes_date: null, scope: 'NATIONAL' }],
+				// The gazette named 10 March as the substitute for the 8th, so the automatic rule must
+				// stand aside — otherwise the 9th is granted as well and the employee is paid twice.
+				['2026-03-10', { date: '2026-03-10', substitutes_date: '2026-03-08', scope: 'NATIONAL' }]
+			])
+		}
+	});
+	assert.equal(schedule.get('2026-03-08').dayType, 'REST_DAY');
+	assert.equal(
+		schedule.get('2026-03-09').dayType,
+		'ORDINARY',
+		'the automatic substitution did not fire over an explicit one'
+	);
+	assert.equal(schedule.get('2026-03-10').dayType, 'PUBLIC_HOLIDAY', 'the named substitute holds');
+});
+
+test('two holidays on two rest days take two different substitute days', () => {
+	// 8 and 15 March are both Sundays. Each must move forward to its own next ordinary day.
+	const dates = Array.from(
+		{ length: 12 },
+		(_, index) => `2026-03-${String(index + 5).padStart(2, '0')}`
+	);
+	const schedule = resolveSchedule({
+		window: { start: dates[0], end: dates[dates.length - 1] },
+		dates,
+		terms: terms(),
+		workDays: [],
+		configuration: {
+			shiftById,
+			holidays: new Map([
+				['2026-03-08', { date: '2026-03-08', substitutes_date: null, scope: 'NATIONAL' }],
+				['2026-03-15', { date: '2026-03-15', substitutes_date: null, scope: 'NATIONAL' }]
+			])
+		}
+	});
+	assert.equal(schedule.get('2026-03-09').dayType, 'PUBLIC_HOLIDAY');
+	assert.equal(schedule.get('2026-03-16').dayType, 'PUBLIC_HOLIDAY');
+	assert.equal(schedule.get('2026-03-10').dayType, 'ORDINARY');
+});

@@ -9,7 +9,7 @@ import {
 } from '@norbital-ai/test-utilities';
 import {
 	ANNUAL_LEAVE_ENTITLEMENT_ID,
-	ANNUAL_LEAVE_TYPE_ID,
+	ANNUAL_LEAVE_CATALOGUE_ID,
 	COMPANY_ID,
 	EMPLOYMENT_ID,
 	JURISDICTION_ID,
@@ -86,7 +86,7 @@ test(
 			);
 
 			// HA2: the kiosk creates a person and their employment and holds no grant on
-			// leave_types, leave_entitlements, leave_entries or jurisdiction_settings.
+			// leave_catalogue, leave_entitlements, leave_entries or jurisdiction_settings.
 			const kiosk = teamHeaders(session, 'Attendance Kiosk');
 			const embedding = Array.from({ length: 1024 }, (_, index) => (index === 0 ? 1 : 0));
 			const enrolled = await postGuestCommand(
@@ -189,7 +189,7 @@ test(
 			// catalogue hook, so no company run starts), then one child fact entered for the
 			// fixture employment. The entitlement the child opens lands with the fact.
 			await session.query(
-				`insert into leave_types (id, settings_id, code, name, is_statutory, authority, eligibility, entitlement, accrual, exit_settlement, payroll_effect)
+				`insert into leave_catalogue (id, settings_id, code, name, is_statutory, authority, eligibility, entitlement, accrual, exit_settlement, payroll_effect)
 				 values ($1, $2, 'CHILDCARE', 'Childcare leave', true, 'Public fixture s.87A', 'children.under(7) >= 1', $3, $4, $5, $6)`,
 				[
 					crypto.randomUUID(),
@@ -260,7 +260,7 @@ test(
 				{
 					id: requestId,
 					employment_id: EMPLOYMENT_ID,
-					leave_type_id: ANNUAL_LEAVE_TYPE_ID,
+					leave_catalogue_id: ANNUAL_LEAVE_CATALOGUE_ID,
 					leave_entitlement_id: ANNUAL_LEAVE_ENTITLEMENT_ID,
 					event: {
 						kind: 'TIME_OFF',

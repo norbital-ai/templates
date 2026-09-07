@@ -70,7 +70,7 @@ const INPUT_TAG_BY_FAMILY = {
 } as const;
 
 /**
- * The bucket an amount settles into, which is `pay_components.policy.kind` where there is one.
+ * The bucket an amount settles into, which is `component_catalogue.policy.kind` where there is one.
  *
  * `INFORMATION` never reaches here — MEASURE stops it, because an hourly rate is not money — so a
  * nature that is null or informational is a derived overtime row, and derived overtime is an

@@ -26,7 +26,7 @@ import { cascade } from '@norbital-ai/bolt/authoring';
  * Only the payslip ownership of that row is declared below.
  *
  * The remaining families deliberately have NO relation:
- *   - `leave_types.payroll_effect`   -> component_id on the UNPAID arm
+ *   - `leave_catalogue.payroll_effect`   -> component_id on the UNPAID arm
  *   - `payslips.base/proration/statutory` -> component codes, scheme codes, band and term keys
  * The last of those is the point of inlining: a settled payslip is a frozen statement of what was
  * paid and does not become wrong because a catalogue row was later archived. See
@@ -41,8 +41,8 @@ export default ((r) => ({
 	 */
 	jurisdiction_settings: {
 		contribution_settings: r.many.statutory_contributions(),
-		leave_type_settings: r.many.leave_types(),
-		pay_component_settings: r.many.pay_components(),
+		leave_catalogue_settings: r.many.leave_catalogue(),
+		component_catalogue_settings: r.many.component_catalogue(),
 		holiday_settings: r.many.company_holidays(),
 		/** The versions runs name as the law they were calculated under. */
 		settings_payroll_run: r.many.payroll_runs()
@@ -75,26 +75,26 @@ export default ((r) => ({
 		payroll_run_company: r.many.payroll_runs()
 	},
 
-	pay_components: {
-		pay_component_settings: cascade(
+	component_catalogue: {
+		component_catalogue_settings: cascade(
 			r.one.jurisdiction_settings({
-				from: r.pay_components.settings_id,
+				from: r.component_catalogue.settings_id,
 				to: r.jurisdiction_settings.id
 			})
 		),
-		component_entry_pay_component: r.many.component_entries(),
-		loan_pay_component: r.many.loans()
+		component_entry_component_catalogue: r.many.component_entries(),
+		loan_component_catalogue: r.many.loans()
 	},
 
-	leave_types: {
-		leave_type_settings: cascade(
+	leave_catalogue: {
+		leave_catalogue_settings: cascade(
 			r.one.jurisdiction_settings({
-				from: r.leave_types.settings_id,
+				from: r.leave_catalogue.settings_id,
 				to: r.jurisdiction_settings.id
 			})
 		),
-		leave_request_type: r.many.leave_requests(),
-		leave_entitlement_type: r.many.leave_entitlements()
+		leave_request_leave_catalogue: r.many.leave_requests(),
+		leave_entitlement_leave_catalogue: r.many.leave_entitlements()
 	},
 
 	leave_entitlements: {
@@ -102,9 +102,9 @@ export default ((r) => ({
 			from: r.leave_entitlements.employment_id,
 			to: r.employments.id
 		}),
-		leave_entitlement_type: r.one.leave_types({
-			from: r.leave_entitlements.leave_type_id,
-			to: r.leave_types.id
+		leave_entitlement_leave_catalogue: r.one.leave_catalogue({
+			from: r.leave_entitlements.leave_catalogue_id,
+			to: r.leave_catalogue.id
 		}),
 		request_leave_entitlement: r.many.leave_requests(),
 		entry_leave_entitlement: r.many.leave_entries()
@@ -236,9 +236,9 @@ export default ((r) => ({
 			from: r.component_entries.employment_id,
 			to: r.employments.id
 		}),
-		component_entry_pay_component: r.one.pay_components({
-			from: r.component_entries.pay_component_id,
-			to: r.pay_components.id
+		component_entry_component_catalogue: r.one.component_catalogue({
+			from: r.component_entries.component_catalogue_id,
+			to: r.component_catalogue.id
 		}),
 		/**
 		 * The capture that settled this entry, when a run has. Declared so the Entries page can carry
@@ -272,9 +272,9 @@ export default ((r) => ({
 			from: r.leave_requests.employment_id,
 			to: r.employments.id
 		}),
-		leave_request_type: r.one.leave_types({
-			from: r.leave_requests.leave_type_id,
-			to: r.leave_types.id
+		leave_request_leave_catalogue: r.one.leave_catalogue({
+			from: r.leave_requests.leave_catalogue_id,
+			to: r.leave_catalogue.id
 		}),
 		/**
 		 * The engine-owned captures that name this request. Not a cascade: the junction's
@@ -397,9 +397,9 @@ export default ((r) => ({
 			from: r.loans.employment_id,
 			to: r.employments.id
 		}),
-		loan_pay_component: r.one.pay_components({
-			from: r.loans.pay_component_id,
-			to: r.pay_components.id
+		loan_component_catalogue: r.one.component_catalogue({
+			from: r.loans.component_catalogue_id,
+			to: r.component_catalogue.id
 		}),
 		repayment_loan: r.many.loan_repayments()
 	},

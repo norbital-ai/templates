@@ -5,7 +5,7 @@
 		"company_id": "11111111-1111-4111-8111-111111111111",
 		"employee_number": "PUB-EMP-0001",
 		"hire_date": "2021-06-01",
-		"effective_range": { "start": "2021-06-01", "end": null }
+		"effective_range": { "start": "2021-06-01T00:00:00.000Z", "end": null }
 	},
 	{
 		"id": "cccccccc-cccc-4ccc-8ccc-ccccccccccc2",
@@ -13,7 +13,7 @@
 		"company_id": "11111111-1111-4111-8111-111111111111",
 		"employee_number": "PUB-EMP-0002",
 		"hire_date": "2026-01-20",
-		"effective_range": { "start": "2026-01-20", "end": null }
+		"effective_range": { "start": "2026-01-20T00:00:00.000Z", "end": null }
 	},
 	{
 		"id": "cccccccc-cccc-4ccc-8ccc-ccccccccccc3",
@@ -21,7 +21,7 @@
 		"company_id": "11111111-1111-4111-8111-111111111111",
 		"employee_number": "PUB-EMP-0003",
 		"hire_date": "2018-01-01",
-		"effective_range": { "start": "2018-01-01", "end": null }
+		"effective_range": { "start": "2018-01-01T00:00:00.000Z", "end": null }
 	},
 	{
 		"id": "cccccccc-cccc-4ccc-8ccc-ccccccccccc4",
@@ -29,6 +29,6 @@
 		"company_id": "11111111-1111-4111-8111-111111111111",
 		"employee_number": "PUB-EMP-0004",
 		"hire_date": "2025-06-01",
-		"effective_range": { "start": "2025-06-01", "end": null }
+		"effective_range": { "start": "2025-06-01T00:00:00.000Z", "end": null }
 	}
 ]

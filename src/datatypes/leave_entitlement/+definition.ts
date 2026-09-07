@@ -14,7 +14,7 @@ const award = {
 	days: Schema.Finite.check(Schema.isGreaterThanOrEqualTo(0))
 } as const;
 
-/** The service bands of one leave type, statutory or company policy alike: the row says which. */
+/** The service bands of one leave, statutory or company policy alike: the row says which. */
 export const leaveEntitlementLayerSchema = Schema.Struct({
 	level: Schema.Literal('ORGANISATION'),
 	...award
@@ -32,6 +32,6 @@ export const leaveEntitlementSchema = Schema.toStandardSchemaV1(leaveEntitlement
 export default defineCustomType({
 	name: 'leave_entitlement',
 	description:
-		'The company service bands for one leave type. Person-specific corrections are ledger adjustments, never policy embedded inside a leave type.',
+		'The company service bands for one leave. Person-specific corrections are ledger adjustments, never policy embedded inside a leave.',
 	schema: leaveEntitlementSchema
 });

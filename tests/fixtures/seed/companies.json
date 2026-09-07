@@ -7,7 +7,7 @@
 		"pay_cutoff_day": 21,
 		"pay_frequency": "MONTHLY",
 		"effective_range": {
-			"start": "2020-01-01",
+			"start": "2020-01-01T00:00:00.000Z",
 			"end": null
 		}
 	}

@@ -2,7 +2,7 @@
  * Step 5 — ACCUMULATE.
  *
  * Every measured amount, whichever plane holds it, is routed through the treatment grid into the
- * chargeable base of each scheme. The grid is `pay_components.contribution_treatments` — the
+ * chargeable base of each scheme. The grid is `component_catalogue.contribution_treatments` — the
  * company's answer to "what does this scheme do with this money" — and every path throws on
  * absence rather than defaulting, because an undecided cell used twice is the dangerous kind: an
  * under-contribution nobody notices.
@@ -12,7 +12,7 @@ import {
 	lookupTreatment,
 	type Configuration,
 	type ContributionConfig,
-	type PayComponent
+	type CatalogueComponent
 } from './configuration.js';
 import type { ContributionTreatment } from '../../../datatypes/contribution_treatment/+definition.js';
 import type { PricedItem } from './measure.js';
@@ -31,11 +31,11 @@ function overtimeComponentCode(label: string): 'OVERTIME' | 'OVERTIME_EXCESS' {
  * treatment. A catalogue without them cannot say what any scheme does with overtime.
  */
 function overtimeComponent(
-	configuration: Pick<Configuration, 'payComponents'>,
+	configuration: Pick<Configuration, 'catalogueComponents'>,
 	label: string
-): PayComponent | undefined {
+): CatalogueComponent | undefined {
 	const code = overtimeComponentCode(label);
-	return configuration.payComponents.find((component) => component.code === code);
+	return configuration.catalogueComponents.find((component) => component.code === code);
 }
 
 export type ContributionBase = {
@@ -49,7 +49,7 @@ export type ContributionBase = {
 /**
  * The one cell deciding this amount against this scheme, or `undefined` where nobody has decided.
  *
- * A derived overtime line names no pay component of its own: its label is the rule key, and the
+ * A derived overtime line names no component of its own: its label is the rule key, and the
  * excess segment of that key chooses between the OVERTIME and OVERTIME_EXCESS catalogue rows,
  * whose treatments are the scheme's overtime position.
  */
@@ -58,7 +58,7 @@ function treatmentFor(
 	contribution: ContributionConfig,
 	item: PricedItem
 ): ContributionTreatment | undefined {
-	const component = item.payComponent ?? overtimeComponent(configuration, item.label);
+	const component = item.catalogueComponent ?? overtimeComponent(configuration, item.label);
 	if (component == null) return undefined;
 	return lookupTreatment(configuration, component.id, contribution.row.id);
 }
@@ -92,16 +92,16 @@ export function accumulateBases(options: {
 			 * the absence of anything to decide.
 			 */
 			if (
-				item.payComponent == null &&
+				item.catalogueComponent == null &&
 				!item.label.includes('_EXCESS_') &&
 				!item.label.startsWith('OT_')
 			)
 				continue;
-			if (item.payComponent == null && item.amount === 0) continue;
+			if (item.catalogueComponent == null && item.amount === 0) continue;
 			const treatment = treatmentFor(options.configuration, contribution, item);
 			if (treatment == null) {
 				const component =
-					item.payComponent?.code ??
+					item.catalogueComponent?.code ??
 					overtimeComponent(options.configuration, item.label)?.code ??
 					null;
 				throw new Error(

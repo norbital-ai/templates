@@ -25,7 +25,7 @@ import {
 const ANNUAL_TYPE_ID = 'ffffffff-ffff-4fff-8fff-fffffffffff1';
 const CHILDCARE_TYPE_ID = 'ffffffff-ffff-4fff-8fff-fffffffffff7';
 
-const leaveType = (overrides) => ({
+const catalogueLeave = (overrides) => ({
 	id: ANNUAL_TYPE_ID,
 	settings_id: JURISDICTION_ID,
 	code: 'ANNUAL',
@@ -94,7 +94,7 @@ const runBefore = (hooks, inputs, context, clock) =>
 
 test('an employment create returns its entitlements and opening lines nested, as of its hire date, without reading the clock', async () => {
 	const world = createPublicPayrollWorld();
-	world.leave_types.push(leaveType());
+	world.leave_catalogue.push(catalogueLeave());
 	const { api } = hookApi(world);
 	const input = {
 		employee_id: EMPLOYEE_ID,
@@ -149,9 +149,9 @@ test('an employment create returns its entitlements and opening lines nested, as
 
 test('an employment nested under a person created in the same write plans from the empty person', async () => {
 	const world = createPublicPayrollWorld();
-	world.leave_types.push(
-		leaveType(),
-		leaveType({
+	world.leave_catalogue.push(
+		catalogueLeave(),
+		catalogueLeave({
 			id: CHILDCARE_TYPE_ID,
 			code: 'MATERNITY',
 			eligibility: 'employee.gender == "FEMALE"'
@@ -180,7 +180,7 @@ test('an employment nested under a person created in the same write plans from t
 
 test('a write that already carries the ledger keeps it, and an edit off the ledger columns leaves it alone', async () => {
 	const world = createPublicPayrollWorld();
-	world.leave_types.push(leaveType());
+	world.leave_catalogue.push(catalogueLeave());
 	const { api } = hookApi(world);
 	const stated = { id: EMPLOYMENT_ID, leave_entitlement_employment: [] };
 	assert.deepEqual(
@@ -218,8 +218,8 @@ test('a write that already carries the ledger keeps it, and an edit off the ledg
 
 test('a child fact restates the employment with the entitlement the child opens, staged into its own commit', async () => {
 	const world = createPublicPayrollWorld();
-	world.leave_types.push(
-		leaveType({
+	world.leave_catalogue.push(
+		catalogueLeave({
 			id: CHILDCARE_TYPE_ID,
 			code: 'CHILDCARE',
 			eligibility: 'children.under(7) >= 1',
@@ -279,7 +279,7 @@ test('a child fact restates the employment with the entitlement the child opens,
 
 test('a leave request carries the TAKEN line it charges and is the same graph on any day', async () => {
 	const world = createPublicPayrollWorld();
-	world.leave_types.push(leaveType());
+	world.leave_catalogue.push(catalogueLeave());
 	const entitlementId = leaveEntitlementIdFor({
 		employment_id: EMPLOYMENT_ID,
 		leave_code: 'ANNUAL',
@@ -288,7 +288,7 @@ test('a leave request carries the TAKEN line it charges and is the same graph on
 	world.leave_entitlements.push({
 		id: entitlementId,
 		employment_id: EMPLOYMENT_ID,
-		leave_type_id: ANNUAL_TYPE_ID,
+		leave_catalogue_id: ANNUAL_TYPE_ID,
 		leave_year: 2026,
 		starts_on: '2026-01-01',
 		ends_on: '2026-12-31',
@@ -315,7 +315,7 @@ test('a leave request carries the TAKEN line it charges and is the same graph on
 	const requestId = 'request-1';
 	const input = {
 		employment_id: EMPLOYMENT_ID,
-		leave_type_id: ANNUAL_TYPE_ID,
+		leave_catalogue_id: ANNUAL_TYPE_ID,
 		event: {
 			kind: 'TIME_OFF',
 			range: {
@@ -332,6 +332,10 @@ test('a leave request carries the TAKEN line it charges and is the same graph on
 	const resumed = await runBefore(requestHooks, [input], context, clockOn('2026-01-23'));
 	assert.deepEqual(resumed, filed);
 	assert.deepEqual(await runBefore(requestHooks, [input], context, deadClock), filed);
+	// Nothing supplied this: `input` names an employment, a leave and a range, and the handler
+	// derives the entitlement from them. It is the assertion that let the leave form drop its
+	// entitlement picker — a question with exactly one legal answer, which disabled the date picker
+	// beneath it while nothing was selected. If this line goes, that field has to come back.
 	assert.equal(filed.leave_entitlement_id, entitlementId);
 	assert.equal(filed.event.chargeable_days, 1);
 	assert.deepEqual(filed.leave_entry_request, [

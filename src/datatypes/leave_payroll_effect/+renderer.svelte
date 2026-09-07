@@ -6,7 +6,7 @@
 
 	/**
 	 * `component_id` is a foreign key the database cannot declare — a variant is one JSONB value —
-	 * so the picker is built here, from a query scoped to the leave type's own company. It used to
+	 * so the picker is built here, from a query scoped to the leave's own company. It used to
 	 * be a text box asking the operator for a uuid, and the display summary printed that uuid on
 	 * every row of the leave-types table.
 	 */
@@ -32,7 +32,7 @@
 	]);
 
 	type LeavePayrollEffectRendererProps = RendererProps & {
-		/** The leave type being edited, which is what scopes the pay catalogue below. */
+		/** The leave being edited, which is what scopes the pay catalogue below. */
 		readonly row?: Record<string, unknown>;
 	};
 
@@ -49,14 +49,14 @@
 		current === null ? '—' : current.kind === 'PAID' ? t('component.paid') : t('component.unpaid')
 	);
 
-	// The catalogue of the same settings version as the leave type being edited.
+	// The catalogue of the same settings version as the leave being edited.
 	const settingsId = $derived(
 		typeof props.row?.settings_id === 'string' ? props.row.settings_id : null
 	);
 	const componentsQuery = $derived(
 		settingsId == null
 			? null
-			: client.db.pay_components.findMany({
+			: client.db.component_catalogue.findMany({
 					where: { settings_id: { eq: settingsId } },
 					orderBy: { code: 'asc' },
 					limit: 500
@@ -126,7 +126,7 @@
 						options={componentOptions}
 						value={current.component_id === '' ? null : current.component_id}
 						disabled={disabled || settingsId == null}
-						searchPlaceholder={t('component.search_pay_components')}
+						searchPlaceholder={t('component.search_component_catalogue')}
 						emptyPlaceholder={t('renderer.leave_payroll_effect.choose_component_carries_wage')}
 						clientConfig={{
 							isLoading: componentsQuery?.loading ?? false,

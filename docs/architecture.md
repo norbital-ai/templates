@@ -16,7 +16,7 @@ loan_repayments ----+                          |- base[]       (caused by no inp
        |                                       |- proration[]  (caused by no input)
        |                                       |- statutory[]  (caused by no input)
        v                                       |
-pay_components <-------------------------- payslip_adjustments
+component_catalogue <-------------------------- payslip_adjustments
  [policy + calculation]                     [one output relation]
                                             |- input: WORK_DAY_INPUT | COMPONENT_ENTRY_INPUT
                                             |        | LEAVE_REQUEST_INPUT | LOAN_REPAYMENT_INPUT
@@ -28,8 +28,8 @@ loans -> loan_repayments
 
 jurisdiction_settings  [one sealed, shareable root per lineage version; companies.settings_code]
  |- statutory_contributions -> contribution_rates
- |- pay_components
- |- leave_types  [accrual + payroll effect + entitlement layers + eligibility]
+ |- component_catalogue
+ |- leave_catalogue  [accrual + payroll effect + entitlement layers + eligibility]
  `- company_holidays
 ```
 
@@ -42,7 +42,7 @@ forked the shared law with its own catalogue); a company binds to a lineage by
 the company row. A lineage is a sequence of **versions**: one row each, sharing the code, each
 carrying the payroll scalars (currency, tax year, proration, the rate-of-pay divisor, the
 working-time regime) and owning every downstream row through `settings_id`: the schemes and their
-rate bands, the pay components, the leave types and the holiday calendar, each flagged
+rate bands, the catalogue components, the leave catalogue entries and the holiday calendar, each flagged
 `is_statutory` where the law names it and company rule where the entity does. Shift definitions
 stay per company: site operations, not rules.
 
@@ -127,7 +127,7 @@ adjustment.
 
 The payroll core is five collections:
 
-1. `pay_components` — the catalogue of one settings version: one reusable definition with an
+1. `component_catalogue` — the catalogue of one settings version: one reusable definition with an
    economic direction (`policy`), a treatment per statutory scheme code
    (`contribution_treatments`), an `is_statutory` flag for the rows the law names, and a
    polymorphic calculation definition.
@@ -156,10 +156,10 @@ refuses the delete.
 
 ## Leave entitlements and ledger
 
-Leave is not itself money. The company's `leave_types` catalogue states every rule: who may take a
+Leave is not itself money. The company's `leave_catalogue` catalogue states every rule: who may take a
 type (one CEL expression over the person), its service bands, how it accrues, what the year end
 and an exit do with the balance, and whether the row is the law (`is_statutory`, cited by
-`authority`). The reconciler generates one `leave_entitlements` row per employment, leave type and
+`authority`). The reconciler generates one `leave_entitlements` row per employment, catalogue leave and
 leave year from that catalogue; `leave_entries` is the append-only signed ledger on it;
 `leave_requests` contains applications only. The statutory profile carries no leave vocabulary.
 
@@ -197,7 +197,7 @@ carry is none. Closing transfers debit the old entitlement and credit the new on
 blocked while the old one has a held request. Unmetered types still receive a yearly entitlement
 and the same request approval/payroll treatment; they skip only the balance ceiling.
 
-The same evaluator decides which pay components and claim cap layers apply to a person: a cap is
+The same evaluator decides which catalogue components and claim cap layers apply to a person: a cap is
 the most generous applicable company layer. This is policy data, not a reason to add one
 collection per benefit kind. See `docs/leave.md` for the complete lanes and HR operating flow.
 
@@ -261,16 +261,16 @@ allowed only after every prior run in the company sequence is paid.
 
 ### Eight phases
 
-| Phase      | Reads or produces                                                                                                                                                                                                                       | Failure behaviour                                                                                                       |
-| ---------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
-| PICK       | Company, the settings version in force for its lineage, and under it the schemes, rates, catalogue, OT rules, holidays and leave types, plus the company's shifts; produces the configuration hash and the version id the run will name | Fails when no sealed version of the lineage covers the period, naming the company and the lineage                       |
-| VALIDATE   | Mapping completeness, pay calendar and rule integrity                                                                                                                                                                                   | Blocks before reading an employee                                                                                       |
-| GATHER     | Approved employees, terms, facts, component entries, loan repayments, leave, work days and what earlier PAID runs consumed                                                                                                              | Refuses a truncated query, a missing required employment fact, or a one-off entry another standing run already captured |
-| MEASURE    | Converts schedule, entries, formulas and overtime into typed monetary lines, and names each line's causal input                                                                                                                         | Refuses unpriced hours, missing terms or invalid formula inputs                                                         |
-| ACCUMULATE | Applies every line's statutory treatment to each contribution base                                                                                                                                                                      | Refuses missing or undecided treatment cells                                                                            |
-| CONTRIBUTE | Applies effective rate bands and statutory special rules                                                                                                                                                                                | Refuses an uncovered band or missing selector fact                                                                      |
-| SETTLE     | Calculates gross, deductions, net and employer cost                                                                                                                                                                                     | Reduces a deduction that would drive net below zero; what remains owed stays on the source, re-derived next run         |
-| PERSIST    | Returns the run, its payslips, the four captured-input junctions and every adjustment as one declarative payload from the `before` hook; the runtime performs the only write there is                                                   | Writes parent-first in one transaction; a draft replacement replaces the whole prior graph or nothing                   |
+| Phase      | Reads or produces                                                                                                                                                                                                                                   | Failure behaviour                                                                                                       |
+| ---------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| PICK       | Company, the settings version in force for its lineage, and under it the schemes, rates, catalogue, OT rules, holidays and leave catalogue entries, plus the company's shifts; produces the configuration hash and the version id the run will name | Fails when no sealed version of the lineage covers the period, naming the company and the lineage                       |
+| VALIDATE   | Mapping completeness, pay calendar and rule integrity                                                                                                                                                                                               | Blocks before reading an employee                                                                                       |
+| GATHER     | Approved employees, terms, facts, component entries, loan repayments, leave, work days and what earlier PAID runs consumed                                                                                                                          | Refuses a truncated query, a missing required employment fact, or a one-off entry another standing run already captured |
+| MEASURE    | Converts schedule, entries, formulas and overtime into typed monetary lines, and names each line's causal input                                                                                                                                     | Refuses unpriced hours, missing terms or invalid formula inputs                                                         |
+| ACCUMULATE | Applies every line's statutory treatment to each contribution base                                                                                                                                                                                  | Refuses missing or undecided treatment cells                                                                            |
+| CONTRIBUTE | Applies effective rate bands and statutory special rules                                                                                                                                                                                            | Refuses an uncovered band or missing selector fact                                                                      |
+| SETTLE     | Calculates gross, deductions, net and employer cost                                                                                                                                                                                                 | Reduces a deduction that would drive net below zero; what remains owed stays on the source, re-derived next run         |
+| PERSIST    | Returns the run, its payslips, the four captured-input junctions and every adjustment as one declarative payload from the `before` hook; the runtime performs the only write there is                                                               | Writes parent-first in one transaction; a draft replacement replaces the whole prior graph or nothing                   |
 
 ### Periods and cutoffs
 
@@ -658,7 +658,7 @@ dated deduction   = round(calendar-day rate × unpaid days, 2)
 
 Other jurisdictions or pay frequencies may select working-day or fixed-day proration through
 configuration: the Philippine version prorates by `FIXED_DAYS 21.75`, so an absent day is 1/21.75
-of the monthly wage. The formula is not copied into company pay components.
+of the monthly wage. The formula is not copied into company catalogue components.
 
 ### Component measurement
 
@@ -677,7 +677,7 @@ segments themselves, one line per statutory band, and the two lines it produces 
 | `OVERTIME`        | Dated statutory award after schedule/day classification   | Time entry, shift, roster, holiday, OT rule |
 | `OVERTIME_EXCESS` | Statutory value reclassified beyond daily/monthly control | Same time entry and rule as the original OT |
 
-Amounts are stored as magnitudes. Earning/deduction direction comes from the pay component policy and
+Amounts are stored as magnitudes. Earning/deduction direction comes from the catalogue component policy and
 contribution treatment. A correction never sneaks direction in through a negative amount.
 
 #### Claimable components
@@ -695,7 +695,7 @@ object from an allowance:
 some are soft ones a manager may deliberately exceed. A system that can only refuse pushes the soft
 case out into a spreadsheet, where it stops being visible to payroll at all.
 
-The pay-component definition carries no statutory information. Whether a component is EPF wages is
+The component definition carries no statutory information. Whether a component is EPF wages is
 owned by the strict policy union on its `component_type`; renaming a component cannot change its
 settlement direction or what it is chargeable to.
 
@@ -709,7 +709,7 @@ statutory condition is a new expression, never a code release.
 
 ### Component-owned contribution treatment grid
 
-Every pay component policy carries one effective treatment for every statutory contribution:
+Every catalogue component policy carries one effective treatment for every statutory contribution:
 
 | Treatment | Effect on contribution base                                    |
 | --------- | -------------------------------------------------------------- |
@@ -719,7 +719,7 @@ Every pay component policy carries one effective treatment for every statutory c
 | `SPECIAL` | Apply a named contribution-specific rule                       |
 | `UNSET`   | Configuration is incomplete; activation/calculation is blocked |
 
-This cross-product makes omissions visible. Adding a new pay component cannot silently bypass EPF,
+This cross-product makes omissions visible. Adding a new catalogue component cannot silently bypass EPF,
 SOCSO, EIS, tax or another scheme.
 
 ### Malaysian treatment summary
@@ -851,7 +851,7 @@ Corrections are classified by cause before they are entered:
 | Late claim/allowance is explicitly assigned to a later pay period                              | Seed the event, not the result | Keep service date and explicit `pay_period` distinct                                                     |
 | A paid amount was wrong                                                                        | Correct prospectively          | Add an approved future-period adjustment or reversal; never rewrite a paid run                           |
 
-Amounts are positive magnitudes. Earning or deduction direction comes from the pay component policy. A
+Amounts are positive magnitudes. Earning or deduction direction comes from the catalogue component policy. A
 manual correction names the settled adjustment it fixes through `corrects_adjustment_id`; a reversal
 operation settles in the opposite bucket of that output rather than storing a negative amount.
 
@@ -997,7 +997,7 @@ employment ------------------------> payslip
                                       |- proration[]  -> term_key                (frozen label)
                                       |- statutory[]  -> scheme_code + band_key  (frozen)
                                       v
-pay_component <-------- payslip_adjustment --------> captured input junction → business source
+catalogue_component <-------- payslip_adjustment --------> captured input junction → business source
 ```
 
 The adjustment is the output relation and directly answers:
@@ -1093,7 +1093,7 @@ The `DAY` / `TOTAL_WORK_HOURS` row does double duty: it is the boundary past whi
 **reclassified** to an `OVERTIME_EXCESS` line, as well as the ceiling whose breach refuses the run.
 Reclassifying and refusing are separate acts on the same statutory number — `on_exceed` offers only
 `WARN | BLOCK` and no `RECLASSIFY` — but the number itself is the statute's, not a company's. It
-used to be `pay_components.definition.after_total_work_hours` on the overflow components, which let
+used to be `component_catalogue.definition.after_total_work_hours` on the overflow components, which let
 a company quietly move a statutory boundary.
 
 #### Coverage — one nullable member per version
@@ -1133,7 +1133,7 @@ the statute's, not a literal waiting to be copied.
 The ceiling is only as good as the figure it is compared against. First Schedule para 3 defines
 "wages" for the Schedule as s.2 wages — basic wages **and all other cash payments for work done** —
 less commissions, subsistence allowance and overtime payment. The engine derives that figure per
-employment in `measure.ts`, from the pay component model:
+employment in `measure.ts`, from the catalogue component model:
 
 | Component as modelled                     | Read as                               |
 | ----------------------------------------- | ------------------------------------- |
@@ -1141,7 +1141,7 @@ employment in `measure.ts`, from the pay component model:
 | `policy.kind = EARNING`, any other source | another cash payment for work done    |
 | every other kind                          | not wages                             |
 
-Para 3's third exclusion, overtime payment, needs no row: overtime is not a pay component, so it is
+Para 3's third exclusion, overtime payment, needs no row: overtime is not a catalogue component, so it is
 never in the set being classified and cannot enter the comparand to begin with.
 
 The amounts are the signed entry totals settling in the run for each component the employment is
@@ -1153,7 +1153,7 @@ other way around.
 
 Two para 3 exclusions the component model cannot express, recorded here rather than guessed:
 **commissions and subsistence allowance have no category of their own** — nothing on
-`pay_components.policy` or `pay_components.definition` distinguishes them from any other earning,
+`component_catalogue.policy` or `component_catalogue.definition` distinguishes them from any other earning,
 so an earning of either kind is counted in the comparand. The seeded catalogues contain no such
 component, so no shipped population is affected; a company adding one must know the comparand will
 overstate until the model carries the distinction. `FORMULA` earnings are likewise not counted —
@@ -1211,7 +1211,7 @@ Two defects the survey did **not** catch were found while reading the sources:
    cash payments for work done_ — less commissions, subsistence allowance and overtime payment.
    That is wider than basic pay, so a person on RM3,800 basic plus a RM500 fixed allowance is
    outside the ladder while the old test put them inside it. The engine now derives the para 3
-   figure from the pay components and their entries — see
+   figure from the catalogue components and their entries — see
    [The wage comparand](#the-wage-comparand--derived-not-substituted) — with the two exclusions
    the model cannot express recorded there rather than guessed.
 
@@ -1238,10 +1238,10 @@ A jurisdiction that states no daily limit now has none enforced, rather than inh
 ### Still not encoded
 
 - **Commissions and subsistence allowance have no component category.** Para 3 takes them out of
-  the comparand, and `pay_components` carries nothing that distinguishes them from any other
+  the comparand, and `component_catalogue` carries nothing that distinguishes them from any other
   earning — the derivation therefore counts an earning of either kind, overstating the comparand
   for a company that pays them. The seeded catalogues contain no such component. Closing the gap
-  needs a wage-class distinction on the pay component model itself.
+  needs a wage-class distinction on the catalogue component model itself.
 - **`FORMULA` earnings are not in the comparand.** Their amounts exist only once the component
   walk has run, and the coverage decision precedes it — an ordering the walk's formula
   dependencies impose. The under-inclusion keeps an employee inside the ladder rather than

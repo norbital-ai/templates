@@ -119,16 +119,16 @@ const driftAi = (failPub2: () => boolean) => {
 									contributions: [
 										{ code: 'PUB-EPF', bands: [proposedBand], source_url: url, quote: pubQuote }
 									],
-									leave_types: [],
-									pay_components: [],
+									leave_catalogue: [],
+									component_catalogue: [],
 									notes: []
 								}
 							: {
 									contributions: [
 										{ code: 'PUB2-EPF', bands: [pub2Band], source_url: url, quote: pub2Quote }
 									],
-									leave_types: [],
-									pay_components: [],
+									leave_catalogue: [],
+									component_catalogue: [],
 									notes: ['No change announced.']
 								}
 				},
@@ -320,11 +320,11 @@ test(
 				]
 			);
 			const draftChildren = (await session.query(
-				`select (select count(*) from statutory_contributions where settings_id = $1)::int as schemes, (select count(*) from leave_types where settings_id = $1)::int as leave_types, (select count(*) from pay_components where settings_id = $1)::int as pay_components`,
+				`select (select count(*) from statutory_contributions where settings_id = $1)::int as schemes, (select count(*) from leave_catalogue where settings_id = $1)::int as leave_catalogue, (select count(*) from component_catalogue where settings_id = $1)::int as component_catalogue`,
 				[draft.id]
 			)) as Row[];
 			const sourceChildren = (await session.query(
-				`select (select count(*) from statutory_contributions where settings_id = $1)::int as schemes, (select count(*) from leave_types where settings_id = $1)::int as leave_types, (select count(*) from pay_components where settings_id = $1)::int as pay_components`,
+				`select (select count(*) from statutory_contributions where settings_id = $1)::int as schemes, (select count(*) from leave_catalogue where settings_id = $1)::int as leave_catalogue, (select count(*) from component_catalogue where settings_id = $1)::int as component_catalogue`,
 				[JURISDICTION_ID]
 			)) as Row[];
 			assert.deepEqual(draftChildren, sourceChildren, 'every child row was cloned');

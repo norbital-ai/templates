@@ -71,13 +71,17 @@ export function createPublicPayrollWorld(options: PublicPayrollWorldOptions = {}
 	const standing = {
 		id: STANDING_ENTRY_ID,
 		employment_id: EMPLOYMENT_ID,
-		pay_component_id: TRANSPORT_ID,
+		component_catalogue_id: TRANSPORT_ID,
 		amount: 310,
 		quantity: null,
 		event_date: '2026-01-01',
 		pay_period: null,
-		effective_range: { start: '2026-01-01', end: '2026-03-31' },
-		event: { kind: 'ALLOWANCE' },
+		// A standing allowance: its window lives in the arm, and it pays whole in every period the
+		// window covers rather than depleting across them.
+		event: {
+			kind: 'ALLOWANCE',
+			recurrence: { kind: 'RECURRING', from: '2026-01-01', to: '2026-03-31' }
+		},
 		corrects_adjustment_id: null,
 		evidence_file: null,
 		approval_id: null
@@ -85,7 +89,7 @@ export function createPublicPayrollWorld(options: PublicPayrollWorldOptions = {}
 	const bonus = {
 		id: BONUS_ENTRY_ID,
 		employment_id: EMPLOYMENT_ID,
-		pay_component_id: TRANSPORT_ID,
+		component_catalogue_id: TRANSPORT_ID,
 		amount: 100,
 		quantity: null,
 		event_date: '2026-01-15',
@@ -129,7 +133,7 @@ export function createPublicPayrollWorld(options: PublicPayrollWorldOptions = {}
 		],
 		statutory_contributions: [],
 		contribution_rates: [],
-		pay_components: [
+		component_catalogue: [
 			{
 				id: BASIC_ID,
 				settings_id: JURISDICTION_ID,
@@ -188,7 +192,7 @@ export function createPublicPayrollWorld(options: PublicPayrollWorldOptions = {}
 			}
 		],
 		company_holidays: [],
-		leave_types: [],
+		leave_catalogue: [],
 		leave_entitlements: [],
 		leave_entries: [],
 		employments: [

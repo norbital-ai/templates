@@ -29,7 +29,7 @@ import type { ContributionTreatment } from '../../../datatypes/contribution_trea
 type Company = WorkspaceRow<'companies'>;
 /** The jurisdiction settings version the run is priced under; `configuration.jurisdiction` is this row. */
 export type Jurisdiction = WorkspaceRow<'jurisdiction_settings'>;
-export type PayComponent = WorkspaceRow<'pay_components'>;
+export type CatalogueComponent = WorkspaceRow<'component_catalogue'>;
 type StatutoryRegime = NonNullable<Jurisdiction['regime']>;
 export type OvertimeRule = StatutoryRegime['overtime_rules'][number];
 type OvertimeLimit = StatutoryRegime['overtime_limits'][number];
@@ -42,7 +42,7 @@ export type OvertimeCoverageRule = StatutoryRegime['overtime_coverage'];
 type RestBreakRule = NonNullable<StatutoryRegime['rest_break_rules']>[number];
 export type ShiftDefinition = WorkspaceRow<'shift_definitions'>;
 export type ShiftPattern = WorkspaceRow<'shift_patterns'>;
-export type LeaveType = WorkspaceRow<'leave_types'>;
+export type CatalogueLeave = WorkspaceRow<'leave_catalogue'>;
 export type ContributionRate = Pick<
 	WorkspaceRow<'contribution_rates'>,
 	'id' | 'statutory_contribution_id' | 'selector' | 'award' | 'summary' | 'approval_id'
@@ -62,13 +62,13 @@ export type Configuration = {
 	/** In `sequence` order — a relief is produced before the scheme that consumes it. */
 	readonly contributions: readonly ContributionConfig[];
 	/**
-	 * `${pay_component_id}:${statutory_contribution_id}` → the component's cell for that scheme,
-	 * read off `pay_components.contribution_treatments` by the scheme's code. Absent where the map
+	 * `${component_catalogue_id}:${statutory_contribution_id}` → the component's cell for that scheme,
+	 * read off `component_catalogue.contribution_treatments` by the scheme's code. Absent where the map
 	 * names no such code: a decision nobody has made, which ACCUMULATE refuses by name.
 	 */
 	readonly treatments: ReadonlyMap<string, Treatment>;
 	/** In `sequence` order — the order MEASURE walks. */
-	readonly payComponents: readonly PayComponent[];
+	readonly catalogueComponents: readonly CatalogueComponent[];
 	readonly overtimeRules: readonly OvertimeRule[];
 	readonly overtimeLimits: readonly OvertimeLimit[];
 	/**
@@ -95,7 +95,7 @@ export type Configuration = {
 	 */
 	readonly patternById: ReadonlyMap<string, ShiftPattern>;
 	readonly holidays: ReadonlyMap<IsoDate, WorkspaceRow<'company_holidays'>>;
-	readonly leaveTypes: readonly LeaveType[];
+	readonly catalogueLeaves: readonly CatalogueLeave[];
 	readonly hash: string;
 };
 
@@ -107,16 +107,16 @@ type PickConfigurationOptions = {
 	readonly window: PayrollWindow;
 };
 
-function treatmentKey(payComponentId: string, contributionId: string): string {
-	return `${payComponentId}:${contributionId}`;
+function treatmentKey(componentCatalogueId: string, contributionId: string): string {
+	return `${componentCatalogueId}:${contributionId}`;
 }
 
 export function lookupTreatment(
 	configuration: Pick<Configuration, 'treatments'>,
-	payComponentId: string,
+	componentCatalogueId: string,
 	contributionId: string
 ): Treatment | undefined {
-	return configuration.treatments.get(treatmentKey(payComponentId, contributionId));
+	return configuration.treatments.get(treatmentKey(componentCatalogueId, contributionId));
 }
 
 /**
@@ -187,45 +187,51 @@ export function pickConfiguration(
 					`${code} version whose effective range covers the period.`
 			);
 
-		const [contributionRows, payComponentRows, shiftRows, patternRows, holidayRows, leaveTypeRows] =
-			yield* Effect.all(
-				[
-					db.statutory_contributions.findMany({
-						where: { settings_id: { eq: jurisdiction.id }, ...approved },
-						limit: PAGE_LIMIT
-					}),
-					db.pay_components.findMany({
-						where: { settings_id: { eq: jurisdiction.id }, ...approved },
-						limit: PAGE_LIMIT
-					}),
-					db.shift_definitions.findMany({
-						where: { company_id: { eq: company.id }, ...approved },
-						limit: PAGE_LIMIT
-					}),
-					db.shift_patterns.findMany({
-						where: { company_id: { eq: company.id }, ...approved },
-						limit: PAGE_LIMIT
-					}),
-					db.company_holidays.findMany({
-						where: { settings_id: { eq: jurisdiction.id }, ...approved },
-						limit: PAGE_LIMIT
-					}),
-					db.leave_types.findMany({
-						where: { settings_id: { eq: jurisdiction.id }, ...approved },
-						limit: PAGE_LIMIT
-					})
-				],
-				{ concurrency: 'unbounded' }
-			);
+		const [
+			contributionRows,
+			catalogueComponentRows,
+			shiftRows,
+			patternRows,
+			holidayRows,
+			catalogueLeaveRows
+		] = yield* Effect.all(
+			[
+				db.statutory_contributions.findMany({
+					where: { settings_id: { eq: jurisdiction.id }, ...approved },
+					limit: PAGE_LIMIT
+				}),
+				db.component_catalogue.findMany({
+					where: { settings_id: { eq: jurisdiction.id }, ...approved },
+					limit: PAGE_LIMIT
+				}),
+				db.shift_definitions.findMany({
+					where: { company_id: { eq: company.id }, ...approved },
+					limit: PAGE_LIMIT
+				}),
+				db.shift_patterns.findMany({
+					where: { company_id: { eq: company.id }, ...approved },
+					limit: PAGE_LIMIT
+				}),
+				db.company_holidays.findMany({
+					where: { settings_id: { eq: jurisdiction.id }, ...approved },
+					limit: PAGE_LIMIT
+				}),
+				db.leave_catalogue.findMany({
+					where: { settings_id: { eq: jurisdiction.id }, ...approved },
+					limit: PAGE_LIMIT
+				})
+			],
+			{ concurrency: 'unbounded' }
+		);
 		// Every collection pages to the same ceiling and is checked: a configuration read that came
 		// back truncated would drop law — a missing holiday, a missing band — and still produce a
 		// payslip, which is the one outcome worse than producing none.
 		options.api.reads.assertComplete(contributionRows, 'statutory contributions');
-		options.api.reads.assertComplete(payComponentRows, 'pay components');
+		options.api.reads.assertComplete(catalogueComponentRows, 'components');
 		options.api.reads.assertComplete(shiftRows, 'shift definitions');
 		options.api.reads.assertComplete(patternRows, 'shift patterns');
 		options.api.reads.assertComplete(holidayRows, 'company holidays');
-		options.api.reads.assertComplete(leaveTypeRows, 'leave types');
+		options.api.reads.assertComplete(catalogueLeaveRows, 'leave catalogue entries');
 
 		// Version scoping replaces per-row effective dating: the version governs its period whole and
 		// carries its own scheme, rate, catalogue and holiday rows; there is no second copy to overlay.
@@ -249,14 +255,14 @@ export function pickConfiguration(
 			else ratesByContribution.set(rate.statutory_contribution_id, [rate]);
 		}
 
-		const payComponents = live(payComponentRows).toSorted(
+		const catalogueComponents = live(catalogueComponentRows).toSorted(
 			(left, right) => decodeNumber(left.sequence) - decodeNumber(right.sequence)
 		);
 		// The grid is keyed by scheme code on the catalogue row and by scheme id here, because the
 		// run charges against the rows it picked: a code names the same law on every settings
 		// version, and the picked version says which row that is for this period.
 		const treatments = new Map<string, Treatment>();
-		for (const component of payComponents)
+		for (const component of catalogueComponents)
 			for (const contribution of contributions) {
 				const cell = component.contribution_treatments?.[contribution.code];
 				if (cell != null) treatments.set(treatmentKey(component.id, contribution.id), cell);
@@ -278,7 +284,7 @@ export function pickConfiguration(
 				rates: (ratesByContribution.get(row.id) ?? []).toSorted(bandOrder)
 			})),
 			treatments,
-			payComponents,
+			catalogueComponents,
 			overtimeRules: regime.overtime_rules,
 			overtimeLimits: regime.overtime_limits,
 			restBreakRules: regime.rest_break_rules ?? [],
@@ -290,7 +296,7 @@ export function pickConfiguration(
 			holidays: new Map(
 				live(holidayRows).map((row) => [requiredDateKey(row.date, 'holiday date'), row] as const)
 			),
-			leaveTypes: live(leaveTypeRows)
+			catalogueLeaves: live(catalogueLeaveRows)
 		} satisfies Omit<Configuration, 'hash'>;
 
 		return {
@@ -335,7 +341,7 @@ export function configurationSnapshot(
 		treatments: [...configuration.treatments]
 			.map(([key, treatment]) => [key, treatment])
 			.toSorted((left, right) => String(left[0]).localeCompare(String(right[0]))),
-		pay_components: configuration.payComponents
+		component_catalogue: configuration.catalogueComponents
 			.map((row) => [
 				row.code,
 				row.is_statutory,
@@ -360,7 +366,7 @@ export function configurationSnapshot(
 				row.scope
 			])
 			.toSorted((left, right) => String(left[0]).localeCompare(String(right[0]))),
-		leave_types: configuration.leaveTypes
+		leave_catalogue: configuration.catalogueLeaves
 			.map((row) => [row.code, row.accrual, row.entitlement, row.payroll_effect])
 			.toSorted((left, right) => String(left[0]).localeCompare(String(right[0]))),
 		// Codes are configuration because their polymorphic variant decides whether a scheduled day

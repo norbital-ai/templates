@@ -12,7 +12,7 @@
 	 * They are omitted here, not deleted from the model. Each is read: the leave tables order and
 	 * print `from_date`/`to_date`/`days`, the approval analytics remote filters on
 	 * `kind`, the scheduling board marks half days from `half_day_start`/`half_day_end`, `reason` and
-	 * `summary` carry the row's search text, and the `(employment_id, leave_type_id, from_date)`
+	 * `summary` carry the row's search text, and the `(employment_id, leave_catalogue_id, from_date)`
 	 * index is built on three of them. The event is the source; they are its shadow.
 	 */
 	import { client } from '../../lib/workspace-client.js';
@@ -25,19 +25,19 @@
 	import { decodeNumber } from '@norbital-ai/std/json';
 	import { formatCalendarDate, formatNumeric } from '../../lib/ui/display-formatters.js';
 	import { sourceLock, sourceLockRecordMetadata } from '../../lib/scheduling/lock.js';
-	import { getContext } from 'svelte';
 	import { defaultTimeOffEvent } from '../../datatypes/leave_event/+definition.js';
 	import { todayKey } from '../../lib/ui/calendar.js';
-	import { inForceSettings } from '../../lib/ui/settings-scope.js';
 	import {
-		LEAVE_REQUEST_CREATE_SCOPE,
-		type LeaveRequestCreateScope
-	} from '../../lib/ui/leave-request-create-scope.js';
+		employmentRelationOptions,
+		hrCreateScope,
+		inForceCatalogue
+	} from '../../lib/ui/create-scope.js';
 
 	let { record, close }: RepresentationProps = $props();
 	const { t } = useI18n<TenantI18nKeys>();
-	const createScope = getContext<LeaveRequestCreateScope | undefined>(LEAVE_REQUEST_CREATE_SCOPE);
-	const scopedEmploymentId = $derived(createScope?.employmentId());
+	const createScope = hrCreateScope();
+	const scopedEmploymentId = $derived(createScope?.employmentId?.());
+	const scopedCompanyId = $derived(createScope?.companyId());
 	const scopedSettingsCode = $derived(createScope?.settingsCode());
 	const formValues = $derived(
 		record ?? {
@@ -118,68 +118,40 @@
 		submitLabel={record ? t('component.save_leave') : t('component.submit_leave')}
 		onAfterSubmit={record ? undefined : close}
 	>
-		{#snippet children({ Field, form })}
-			{@const employmentId = form.values().employment_id}
-			{@const leaveTypeId = form.values().leave_type_id}
+		{#snippet children({ Field })}
 			<Grid gap="md" minimum="panel">
-				{#if createScope == null}
+				{#if scopedEmploymentId != null}
+					<Field name="employment_id" hidden />
+				{:else}
 					<Field
 						name="employment_id"
 						label={t('component.person')}
-						relationOptions={{
-							label: (employment) =>
-								employment.employee_number != null && employment.employee_number !== ''
-									? String(employment.employee_number)
-									: '—',
-							orderBy: { employee_number: 'asc' },
-							limit: 10_000
-						}}
+						relationOptions={employmentRelationOptions(scopedCompanyId)}
 					/>
-				{:else}
-					<Field name="employment_id" hidden />
 				{/if}
 				<Field
-					name="leave_type_id"
-					label={t('component.leave_type')}
+					name="leave_catalogue_id"
+					label={t('component.catalogue_leave')}
 					relationOptions={{
-						label: (leaveType) =>
-							[leaveType.code, leaveType.name]
+						label: (catalogueLeave) =>
+							[catalogueLeave.code, catalogueLeave.name]
 								.filter((part) => part != null && part !== '')
 								.join(' · ') || '—',
 						// The lineage's version in force today: the catalogue a new request draws on.
-						where: scopedSettingsCode
-							? { leave_type_settings: { some: inForceSettings(scopedSettingsCode, todayKey()) } }
-							: undefined,
+						where: inForceCatalogue('leave_catalogue_settings', scopedSettingsCode),
 						orderBy: { code: 'asc' },
 						limit: 500
 					}}
 				/>
-				<Field
-					name="leave_entitlement_id"
-					label={t('component.leave_entitlement')}
-					relationOptions={{
-						label: (entitlement) =>
-							`${entitlement.leave_name} · ${entitlement.leave_year} · ${entitlement.accrual_kind === 'UNLIMITED' ? t('component.accrual_unlimited') : `${entitlement.entitlement_days}d`}`,
-						where: {
-							employment_id: {
-								eq:
-									typeof employmentId === 'string'
-										? employmentId
-										: '00000000-0000-4000-8000-000000000000'
-							},
-							leave_type_id: {
-								eq:
-									typeof leaveTypeId === 'string'
-										? leaveTypeId
-										: '00000000-0000-4000-8000-000000000000'
-							},
-							status: { eq: 'OPEN' },
-							approval_id: { isNull: true }
-						},
-						orderBy: { starts_on: 'desc' },
-						limit: 500
-					}}
-				/>
+				<!--
+					The entitlement is not asked for. It is decided by the person, the leave and the
+					leave year the requested range falls in, and `leave_requests/+hooks.ts` already derives
+					exactly that id (`leaveEntitlementIdFor`) whenever the write does not carry one — for
+					this form, for self-service, for the agent and for the API alike. A picker over a
+					single computable answer is a question with one legal reply, and it blocked the form:
+					with nothing selectable, the date picker below it stayed disabled.
+				-->
+				<Field name="leave_entitlement_id" hidden />
 				<Column span="all"><Field name="event" label={t('component.what_happened')} /></Column>
 				<Column span="all"
 					><Field name="certificate_file" label={t('component.certificate')} /></Column

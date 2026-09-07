@@ -13,7 +13,7 @@ import {
 export default defineModel(
 	{
 		employment_id: uuid().notNull(),
-		leave_type_id: uuid().notNull(),
+		leave_catalogue_id: uuid().notNull(),
 		/** Resolved and enforced by the write hook. No entitlement means no application. */
 		leave_entitlement_id: uuid(),
 		event: custom('leave_event').notNull(),
@@ -38,7 +38,7 @@ export default defineModel(
 		 * `recordLabel` compiles to a CEL concatenation of the named columns, and CEL has no `+`
 		 * overload for anything but strings: an `instant()` column reaches the client as a `Date`, so
 		 * `['from_date', 'to_date']` threw, the label resolved to nothing, and the record detail fell
-		 * back to joining every scalar column — which painted `employment_id` and `leave_type_id` as
+		 * back to joining every scalar column — which painted `employment_id` and `leave_catalogue_id` as
 		 * raw uuids at the top of the panel. Text in, text out, and the two arms of the union get the
 		 * title each of them deserves.
 		 */
@@ -51,6 +51,6 @@ export default defineModel(
 			'A time-off application only. Approval creates the request; its hook posts the corresponding TAKEN movement on the entitlement ledger.',
 		recordLabel: 'summary',
 		icon: 'lucide:calendar-off',
-		indexes: [{ columns: ['employment_id', 'leave_type_id', 'from_date'] }]
+		indexes: [{ columns: ['employment_id', 'leave_catalogue_id', 'from_date'] }]
 	}
 );

@@ -34,7 +34,7 @@
  * whose attendance window contains it. The two sets are disjoint by construction and together they
  * are every day, which is the property that makes this a cutoff rule rather than an adjustment.
  *
- * Nothing here names a country, a nationality or a pay component. The three rules are the engine's
+ * Nothing here names a country, a nationality or a component. The three rules are the engine's
  * only behaviour: a late joiner's period is deferred and paid as arrears in their first run, a
  * leaver settles in their final period with wages prorated to the exit date, and every unpaid day
  * settles in the run whose attendance window contains it, prorated by the jurisdiction's basis.

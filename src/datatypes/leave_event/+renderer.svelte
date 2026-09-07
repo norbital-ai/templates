@@ -29,8 +29,8 @@
 	const employmentId = $derived(
 		typeof props.row?.employment_id === 'string' ? props.row.employment_id : null
 	);
-	const leaveTypeId = $derived(
-		typeof props.row?.leave_type_id === 'string' ? props.row.leave_type_id : null
+	const leaveCatalogueId = $derived(
+		typeof props.row?.leave_catalogue_id === 'string' ? props.row.leave_catalogue_id : null
 	);
 	const entitlementId = $derived(
 		typeof props.row?.leave_entitlement_id === 'string' ? props.row.leave_entitlement_id : null
@@ -39,10 +39,10 @@
 	let calendarMonth = $state(todayKey().slice(0, 7));
 
 	const previewInput = $derived.by((): PreviewLeaveInput | null => {
-		if (employmentId == null || leaveTypeId == null) return null;
+		if (employmentId == null || leaveCatalogueId == null) return null;
 		return {
 			employment_id: employmentId,
-			leave_type_id: leaveTypeId,
+			leave_catalogue_id: leaveCatalogueId,
 			...(entitlementId == null ? {} : { leave_entitlement_id: entitlementId }),
 			calendar_month: calendarMonth,
 			...(current == null ? {} : { range: current.range }),
@@ -59,7 +59,7 @@
 	const disabledReason = $derived.by(() => {
 		if (disabled) return null;
 		if (employmentId == null) return t('component.leave_picker_disabled_no_employment');
-		if (leaveTypeId == null) return t('component.leave_picker_disabled_no_leave_type');
+		if (leaveCatalogueId == null) return t('component.leave_picker_disabled_no_catalogue_leave');
 		if (previewQuery?.error != null) return previewQuery.error.message;
 		if (previewLoading) return t('component.leave_picker_loading_schedule');
 		return preview?.issues.find((issue) => issue.code === 'ENTITLEMENT_REQUIRED')?.message ?? null;
@@ -126,7 +126,11 @@
 {#if props.mode === 'display'}
 	<span class="block truncate" title={summary}>{summary}</span>
 {:else if current != null}
-	<Grid class="rounded-md border border-border bg-muted/20 p-3" gap="sm" minimum="compact">
+	<!--
+		No frame. This renderer is always given a full-width column by the form that hosts it, and a
+		bordered panel inside a bordered form reads as a nested card whose edge means nothing.
+	-->
+	<Grid gap="sm" minimum="compact">
 		<div class="col-span-full min-w-0">
 			<HalfDayRangePicker
 				value={current.range}

@@ -192,8 +192,8 @@ test('a full rest day pays one day s wages, and only the hours beyond the normal
 	assert.equal(hourly.multiple, 2);
 });
 
-test('a rest-day rule with no pay component behind it would still be priced — which is why the run refuses', () => {
-	// Pricing does not know about pay components: it produces the segment either way, and `measure`
+test('a rest-day rule with no component behind it would still be priced — which is why the run refuses', () => {
+	// Pricing does not know about components: it produces the segment either way, and `measure`
 	// silently finds nobody to pay it. Validation is the only thing standing between that segment
 	// and an unpaid day, so this pins that the segment really is produced.
 	const { segments } = priceDay({
@@ -345,4 +345,173 @@ test('a day whose whole overrun is owed as unpaid break earns nothing at all', (
 		rules
 	);
 	assert.equal(day, null);
+});
+
+/**
+ * An off day is priced as an ordinary day, and counts against the ordinary monthly cap.
+ *
+ * `ruleDayType` maps `OFF_DAY` to `ORDINARY`, and every ordinary-day control — the daily overtime
+ * ceiling and the calendar-month cap — therefore governs it, while a rest day and a public holiday
+ * are excluded from both by the 1980 Regulations. Nothing tested any of that: `OFF_DAY` appears
+ * once in the whole suite, in a schedule test, and never in an overtime derivation, pricing or
+ * classification case. A day type that fell through to the rest-day ladder would pay a day's wages
+ * for an ordinary overtime day.
+ */
+test('an off day is priced on the ordinary ladder, not the rest-day one', () => {
+	const day = {
+		date: '2026-03-07',
+		workDayId: 'work-day',
+		dayType: 'OFF_DAY',
+		hours: 4,
+		normalHours: 8,
+		totalWorkHours: 4
+	};
+	const { segments } = priceDay({
+		day,
+		rules: [ORDINARY_OT, REST_DAY_WAGE, REST_DAY_BEYOND],
+		retainedHours: 4
+	});
+	assert.equal(segments.length, 1, 'no day-wage segment: an off day earns no day s wages');
+	assert.equal(segments[0].dayType, 'ORDINARY');
+	assert.equal(segments[0].measure, 'BEYOND_NORMAL');
+	assert.equal(segments[0].hours, 4);
+	assert.equal(segments[0].multiple, 1.5);
+});
+
+test('an off day advances the ordinary monthly cap; a rest day and a public holiday do not', () => {
+	const day = (date, dayType, hours) => ({
+		date,
+		workDayId: `work-day-${date}`,
+		dayType,
+		hours,
+		normalHours: 8,
+		totalWorkHours: 8 + hours
+	});
+	const classified = classifyOvertimeByCalendarMonth({
+		days: [
+			day('2026-03-01', 'REST_DAY', 6),
+			day('2026-03-02', 'PUBLIC_HOLIDAY', 6),
+			// The counter starts here, at zero, because neither day above touched it.
+			day('2026-03-03', 'OFF_DAY', 6),
+			day('2026-03-04', 'ORDINARY', 6)
+		],
+		dailyWorkLimit: null,
+		monthlyOrdinaryOvertimeLimit: 8
+	});
+	const retained = Object.fromEntries(
+		classified.map((entry) => [entry.day.date, entry.retainedHours])
+	);
+	assert.equal(retained['2026-03-01'], 6, 'a rest day is outside the monthly cap entirely');
+	assert.equal(retained['2026-03-02'], 6, 'so is a public holiday');
+	assert.equal(retained['2026-03-03'], 6, 'the off day is the first six hours of the cap');
+	assert.equal(
+		retained['2026-03-04'],
+		2,
+		'the ordinary day takes what the off day left of the eight-hour cap'
+	);
+	assert.equal(
+		classified.find((entry) => entry.day.date === '2026-03-04').excessHours,
+		4,
+		'and the rest is reclassified rather than lost'
+	);
+});
+
+/**
+ * A shift that crosses midnight.
+ *
+ * `end += 1440` appears twice — once in `ordinaryWorkedHours`, once in `deriveDailyOvertime` — and
+ * neither branch had a test: every overtime fixture in this suite uses a same-day shift. Without
+ * the carry, a night shift's scheduled end lands *before* its start, so every hour after midnight
+ * reads as work outside the window and the whole second half of the shift is paid as overtime.
+ * The module's own note says getting this comparison wrong "silently misprices every overtime
+ * hour", and it is the same comparison the attendance offset constant guards.
+ */
+const NIGHT_SHIFT = {
+	id: 'shift-night',
+	code: 'N',
+	start_time: '20:00',
+	end_time: '05:00',
+	break_minutes: 60,
+	crosses_midnight: true,
+	elapsed_minutes: 540,
+	paid_minutes: 480
+};
+
+const nightEntry = (overrides = {}) => ({
+	id: 'work-day-night',
+	work_date: '2026-03-10',
+	worked_intervals: [
+		{ start: '2026-03-10T20:00:00.000+08:00', end: '2026-03-11T05:00:00.000+08:00' }
+	],
+	break_minutes: 60,
+	...overrides
+});
+
+const nightScheduled = (overrides = {}) => ({
+	date: '2026-03-10',
+	dayType: 'ORDINARY',
+	shift: NIGHT_SHIFT,
+	clampStart: '20:00',
+	normalHours: 8,
+	...overrides
+});
+
+test('a night shift worked exactly to plan earns no overtime', () => {
+	assert.equal(deriveDailyOvertime(nightEntry(), nightScheduled()), null);
+	assert.equal(ordinaryWorkedHours(nightEntry(), NIGHT_SHIFT), 8);
+});
+
+test('a night shift pays only the hours past its carried-forward end', () => {
+	const day = deriveDailyOvertime(
+		nightEntry({
+			worked_intervals: [
+				{ start: '2026-03-10T20:00:00.000+08:00', end: '2026-03-11T07:30:00.000+08:00' }
+			]
+		}),
+		nightScheduled()
+	);
+	assert.equal(
+		day.hours,
+		2.5,
+		'two and a half hours past 05:00 the next morning, not the whole night after midnight'
+	);
+	assert.equal(day.totalWorkHours, 10.5, 'eleven and a half clocked, less the hour of break');
+});
+
+/**
+ * Clocking in early on a night shift is overtime, and `clampStart` is dead.
+ *
+ * `clockedWorkHours` carries a comment saying "time clocked before the scheduled start is
+ * discarded: an employee who arrives early is not working, and not paid, until their shift
+ * begins". The function does not clamp — it sums every interval and subtracts the break — and
+ * `ScheduledDay.clampStart`, computed for exactly this in `schedule.ts`, is read by nothing in
+ * `src/`.
+ *
+ * So the hour before a shift is paid as overtime, on an ordinary day, the same way the hour after
+ * it is. That is coherent with the day-shift case above ("work outside the scheduled window"), and
+ * it is not what the comment says. This pins the behaviour that ships, so that changing it is a
+ * decision somebody takes rather than a comment somebody believes. It also matters beyond the
+ * overtime line: `totalWorkHours` is what the twelve-hour daily ceiling is measured against, so an
+ * early clock-in moves the reclassification boundary too.
+ */
+test('clocking in early on a night shift is overtime, and counts toward total work hours', () => {
+	const day = deriveDailyOvertime(
+		nightEntry({
+			worked_intervals: [
+				{ start: '2026-03-10T19:00:00.000+08:00', end: '2026-03-11T05:00:00.000+08:00' }
+			]
+		}),
+		nightScheduled()
+	);
+	assert.equal(day.hours, 1, 'the hour before the shift is priced as overtime, not discarded');
+	assert.equal(day.totalWorkHours, 9, 'and it counts against the daily work ceiling');
+});
+
+test('a shift whose end reads before its start is carried forward even without the flag', () => {
+	// `crosses_midnight || end <= start` — a roster code that forgot the flag still spans midnight,
+	// because the clock says so. Losing this branch turns the same night into eight hours of
+	// overtime on a shift that was worked exactly to plan.
+	const unflagged = { ...NIGHT_SHIFT, crosses_midnight: false };
+	assert.equal(deriveDailyOvertime(nightEntry(), nightScheduled({ shift: unflagged })), null);
+	assert.equal(ordinaryWorkedHours(nightEntry(), unflagged), 8);
 });

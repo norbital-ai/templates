@@ -3,7 +3,7 @@ import { Schema } from 'effect';
 import { leaveSettlementValueSchema } from '../leave_settlement/+definition.js';
 
 /**
- * How entitlement for a leave type comes into existence, and what the leave year does with
+ * How entitlement for a leave comes into existence, and what the leave year does with
  * what is left. `FORFEIT` is the default: nothing carries, nothing converts.
  * - `MONTHLY`   — pro-rata each completed month of the leave year.
  * - `UPFRONT`   — the whole band granted at the start of the leave year.

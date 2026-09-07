@@ -29,7 +29,7 @@ leave_requests -----+--> calculator -+        v
 component_entries --+                          payslips
 loan_repayments ----+                          |
                                                |- base / proration / statutory (inlined)
-pay_components <-----------+                   |- payslip_work_day_inputs
+component_catalogue <-----------+                   |- payslip_work_day_inputs
  [policy + calculation]    |                   |- payslip_component_entry_inputs
                            |                   |- payslip_leave_request_inputs
 loans -> loan_repayments <-+                   |- payslip_loan_repayment_inputs
@@ -41,7 +41,7 @@ loans -> loan_repayments <-+                   |- payslip_loan_repayment_inputs
 
 Five collections carry the payroll core:
 
-1. **`pay_components`** — one reusable definition with a strict settlement/statutory policy and a
+1. **`component_catalogue`** — one reusable definition with a strict settlement/statutory policy and a
    polymorphic calculation definition (`SCHEDULE`, `ENTRY`, `FORMULA`). Overtime is deliberately
    not among them: it is derived from work days priced against the jurisdiction's own overtime
    rules, and its statutory treatment lives on the scheme that charges it.
@@ -60,7 +60,7 @@ Around that core: `companies` scope the legal entity and bind by `settings_code`
 `work_days` and `leave_requests` supply the schedule and leave facts; a sealed
 `jurisdiction_settings` version is the one shareable root that owns pay derivation, overtime
 coverage, pricing and limits together with its `statutory_contributions` and their
-`contribution_rates`, its `pay_components`, its `leave_types` and its `company_holidays`, each
+`contribution_rates`, its `component_catalogue`, its `leave_catalogue` and its `company_holidays`, each
 flagged `is_statutory` where the law names it; and `loans` with their `loan_repayments` carry
 staff loans and overpayment recoveries — the agreement, and the amounts due under it.
 
@@ -84,17 +84,17 @@ with several chooses which one the page scopes to.
 **`hr_controller`** (group) — the HR operating surface. Legal-entity choice lives on **Entities**
 and is inherited by every sibling; boards state the active entity, they do not pick it again.
 
-| App                | What a user does in it                                                                                                                                                                                                                                                                                                                     |
-| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **Entities**       | Chooses the legal entity every other HR Controller app is scoped to                                                                                                                                                                                                                                                                        |
-| **People**         | The workforce: employee profiles, employments, effective-dated terms, statutory facts, and a workforce-shape chart                                                                                                                                                                                                                         |
-| **Scheduling**     | Plans the month on a roster board — one row per person, one glyph per day — publishes it against statutory rules, and manages shifts, work patterns and holidays. Attendance import sits on the board's action menu beside the roster import.                                                                                              |
-| **Leave**          | Review time-off applications, each carrying its balance and the payroll capture that locks it; submit exceptional balance corrections for one manager review. The leave catalogue is configured in Settings                                                                                                                                |
-| **Loans**          | Review loan agreements and their derived outstanding balance, with recovery tracked per repayment                                                                                                                                                                                                                                          |
-| **Pay components** | The entry stream of one entity: claims, allowances, bonuses, arrears and corrections, with the payroll capture that settled each. The catalogue is configured in Settings                                                                                                                                                                  |
-| **Payroll**        | Runs the payroll cycle: a pay-date board (late/current/upcoming), creating and recalculating runs, locking them paid, and exporting bank files, payslip PDFs and the report workbook                                                                                                                                                       |
-| **Settings**       | The version timeline of the jurisdiction settings lineage one entity operates under: the version in force with tabs Payroll, Contributions, Leave types, Pay components and Holidays; Seal, Void and New version actions; a sealed version and everything under it read-only (file `+settings.svelte`: a file name owns an app's identity) |
-| **Kiosk**          | Face-recognition time clock for a shop-floor tablet: clock in/out by face (match, anti-spoof filter, blink-to-confirm), manual entry, and face enrollment. Renders chromeless (`bolt:kiosk`); the device account sees this page and nothing else                                                                                           |
+| App                      | What a user does in it                                                                                                                                                                                                                                                                                                                                       |
+| ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Entities**             | Chooses the legal entity every other HR Controller app is scoped to                                                                                                                                                                                                                                                                                          |
+| **People**               | The workforce: employee profiles, employments, effective-dated terms, statutory facts, and a workforce-shape chart                                                                                                                                                                                                                                           |
+| **Scheduling**           | Plans the month on a roster board — one row per person, one glyph per day — publishes it against statutory rules, and manages shifts, work patterns and holidays. Attendance import sits on the board's action menu beside the roster import.                                                                                                                |
+| **Leave**                | Review time-off applications, each carrying its balance and the payroll capture that locks it; submit exceptional balance corrections for one manager review. The leave catalogue is configured in Settings                                                                                                                                                  |
+| **Loans**                | Review loan agreements and their derived outstanding balance, with recovery tracked per repayment                                                                                                                                                                                                                                                            |
+| **Catalogue components** | The entry stream of one entity: claims, allowances, bonuses, arrears and corrections, with the payroll capture that settled each. The catalogue is configured in Settings                                                                                                                                                                                    |
+| **Payroll**              | Runs the payroll cycle: a pay-date board (late/current/upcoming), creating and recalculating runs, locking them paid, and exporting bank files, payslip PDFs and the report workbook                                                                                                                                                                         |
+| **Settings**             | The version timeline of the jurisdiction settings lineage one entity operates under: the version in force with tabs Payroll, Contributions, Leave catalogue entries, Catalogue components and Holidays; Seal, Void and New version actions; a sealed version and everything under it read-only (file `+settings.svelte`: a file name owns an app's identity) |
+| **Kiosk**                | Face-recognition time clock for a shop-floor tablet: clock in/out by face (match, anti-spoof filter, blink-to-confirm), manual entry, and face enrollment. Renders chromeless (`bolt:kiosk`); the device account sees this page and nothing else                                                                                                             |
 
 ### Policies (10)
 

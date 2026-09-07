@@ -30,7 +30,7 @@ const band = (employee: number) => ({
 });
 const sealed = {
 	contributions: [{ code: 'EPF', name: 'Fund', authority: 'Act', bands: [band(11)] }],
-	leave_types: [
+	leave_catalogue: [
 		{
 			code: 'ANNUAL',
 			name: 'Annual leave',
@@ -38,7 +38,7 @@ const sealed = {
 			entitlement: { layers: [{ level: 'ORGANISATION', band_from: 0, days: 8 }] }
 		}
 	],
-	pay_components: [{ code: 'OVERTIME', contribution_treatments: { EPF: { kind: 'EXCLUDE' } } }]
+	component_catalogue: [{ code: 'OVERTIME', contribution_treatments: { EPF: { kind: 'EXCLUDE' } } }]
 };
 const quote = 'the employee contribution rate is 12% of wages';
 
@@ -47,8 +47,8 @@ test('a changed band table standing on a quote from a retrieved page is one chan
 		sealed,
 		{
 			contributions: [{ code: 'EPF', bands: [band(12)], source_url: page.url, quote }],
-			leave_types: [],
-			pay_components: [],
+			leave_catalogue: [],
+			component_catalogue: [],
 			notes: []
 		},
 		[page]
@@ -77,7 +77,7 @@ test('an unchanged table, in any key or band order, is no change', () => {
 		sealed,
 		{
 			contributions: [{ code: 'EPF', bands: [reordered], source_url: page.url, quote }],
-			leave_types: [
+			leave_catalogue: [
 				{
 					code: 'ANNUAL',
 					entitlement: { layers: [{ days: 8, band_from: 0, level: 'ORGANISATION' }] },
@@ -85,7 +85,7 @@ test('an unchanged table, in any key or band order, is no change', () => {
 					quote
 				}
 			],
-			pay_components: [
+			component_catalogue: [
 				{
 					code: 'OVERTIME',
 					contribution_treatments: { EPF: { kind: 'EXCLUDE' } },
@@ -115,8 +115,8 @@ test('a quote not on the page, a page not retrieved and an unknown code are note
 				},
 				{ code: 'SOCSO', bands: [band(1)], source_url: page.url, quote }
 			],
-			leave_types: [],
-			pay_components: [],
+			leave_catalogue: [],
+			component_catalogue: [],
 			notes: []
 		},
 		[page]
@@ -136,10 +136,10 @@ test('the proposed rows replace the cloned ones in the draft write, under new ba
 			{ id: 's1', code: 'EPF', rate_contribution: [{ id: 'r1', ...band(11) }] },
 			{ id: 's2', code: 'OTHER', rate_contribution: [{ id: 'r2', ...band(5) }] }
 		],
-		leave_type_settings: [
-			{ id: 'l1', code: 'ANNUAL', entitlement: sealed.leave_types[0].entitlement }
+		leave_catalogue_settings: [
+			{ id: 'l1', code: 'ANNUAL', entitlement: sealed.leave_catalogue[0].entitlement }
 		],
-		pay_component_settings: [{ id: 'p1', code: 'OVERTIME', contribution_treatments: {} }]
+		component_catalogue_settings: [{ id: 'p1', code: 'OVERTIME', contribution_treatments: {} }]
 	};
 	const proposal = {
 		proposed_by: 'statutory_drift',
@@ -159,7 +159,7 @@ test('the proposed rows replace the cloned ones in the draft write, under new ba
 				sha256: page.sha256
 			},
 			{
-				collection: 'pay_components',
+				collection: 'component_catalogue',
 				code: 'OVERTIME',
 				field: 'contribution_treatments',
 				previous: {},
@@ -179,8 +179,8 @@ test('the proposed rows replace the cloned ones in the draft write, under new ba
 	assert.notEqual(revised.contribution_settings[0].rate_contribution[0].id, 'r1');
 	assert.deepEqual(revised.contribution_settings[0].rate_contribution[0].award, band(12).award);
 	assert.deepEqual(revised.contribution_settings[1], write.contribution_settings[1]);
-	assert.deepEqual(revised.leave_type_settings, write.leave_type_settings);
-	assert.deepEqual(revised.pay_component_settings[0].contribution_treatments, {
+	assert.deepEqual(revised.leave_catalogue_settings, write.leave_catalogue_settings);
+	assert.deepEqual(revised.component_catalogue_settings[0].contribution_treatments, {
 		EPF: { kind: 'INCLUDE' }
 	});
 });

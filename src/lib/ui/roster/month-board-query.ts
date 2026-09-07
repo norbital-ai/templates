@@ -9,7 +9,7 @@ export const MONTH_BOARD_QUERY_LIMITS = {
 	employees: 1_000,
 	rosterCodes: 500,
 	employmentTerms: 1_000,
-	leaveTypes: 200,
+	catalogueLeaves: 200,
 	workDays: 10_000,
 	leaveRequests: 10_000,
 	payrollRuns: 500,
@@ -57,7 +57,7 @@ interface MonthBoardQueryReceipt {
 const COMPANY_SOURCES = [
 	'employments',
 	'rosterCodes',
-	'leaveTypes',
+	'catalogueLeaves',
 	'payrollRuns',
 	'holidays'
 ] as const satisfies readonly MonthBoardQuerySource[];

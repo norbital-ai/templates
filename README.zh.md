@@ -19,7 +19,7 @@ leave_requests -----+--> calculator -+        v
 component_entries --+                          payslips
 loan_repayments ----+                          |
                                                |- base / proration / statutory（内联）
-pay_components <-----------+                   |- payslip_work_day_inputs
+component_catalogue <-----------+                   |- payslip_work_day_inputs
  [policy + calculation]    |                   |- payslip_component_entry_inputs
                            |                   |- payslip_leave_request_inputs
 loans -> loan_repayments <-+                   |- payslip_loan_repayment_inputs
@@ -30,13 +30,13 @@ loans -> loan_repayments <-+                   |- payslip_loan_repayment_inputs
 
 薪资核心由五个集合承载：
 
-1. **`pay_components`** —— 一个可复用的定义，带严格的结算/法定策略与多态计算定义（`SCHEDULE`、`ENTRY`、`FORMULA`）。加班刻意不在其中：它由工作日按辖区自身的加班规则计价推导，其法定处理由征费的方案承担。
+1. **`component_catalogue`** —— 一个可复用的定义，带严格的结算/法定策略与多态计算定义（`SCHEDULE`、`ENTRY`、`FORMULA`）。加班刻意不在其中：它由工作日按辖区自身的加班规则计价推导，其法定处理由征费的方案承担。
 2. **`component_entries`** —— 已审批的员工级货币事实：报销、固定津贴、奖金、补发与更正。
 3. **`payroll_runs`** —— 一次公司-期间计算，指明管辖它的封存法定档案与产出结果的计算版本。
 4. **`payslips`** —— 一次运行中某雇佣的合计、内联的输出平面及其捕获的输入。
 5. **`payslip_adjustments`** —— 每个捕获输入对应一项已结算内容，其溯源是真正的外键。
 
-核心之外：`companies` 划定法律实体并通过 `settings_code` 绑定到一个 `jurisdiction_settings` 谱系；`employments`、`employment_terms` 与 `employment_statutory_facts` 描述一个人的工作事实；`shift_definitions`、`rosters`、`work_days`、`company_holidays`、`leave_types` 与 `leave_requests` 提供排班与休假事实；每一个封存的 `jurisdiction_settings` 版本是一个可共享的根对象，原子地拥有加班覆盖范围、计价、上限，以及随之封存的 `statutory_contributions`、`contribution_rates`、`pay_components`、`leave_types` 与 `company_holidays`；`loans` 及其 `loan_repayments` 承载员工贷款与多付追回 —— 协议本身，以及其下到期的金额。
+核心之外：`companies` 划定法律实体并通过 `settings_code` 绑定到一个 `jurisdiction_settings` 谱系；`employments`、`employment_terms` 与 `employment_statutory_facts` 描述一个人的工作事实；`shift_definitions`、`rosters`、`work_days`、`company_holidays`、`leave_catalogue` 与 `leave_requests` 提供排班与休假事实；每一个封存的 `jurisdiction_settings` 版本是一个可共享的根对象，原子地拥有加班覆盖范围、计价、上限，以及随之封存的 `statutory_contributions`、`contribution_rates`、`component_catalogue`、`leave_catalogue` 与 `company_holidays`；`loans` 及其 `loan_repayments` 承载员工贷款与多付追回 —— 协议本身，以及其下到期的金额。
 
 两条不变量塑造了一切：
 
@@ -60,7 +60,7 @@ loans -> loan_repayments <-+                   |- payslip_loan_repayment_inputs
 | **贷款**         | 复核还款协议及其推导出的未偿余额，每期回收按工资单追踪                                                                                        |
 | **薪资组成部分** | 一个实体的条目流：报销、津贴、奖金、补发与更正，以及结算每条的薪资采集。目录在「设置」中配置                                                  |
 | **薪资核算**     | 运行薪资周期：发薪日看板（逾期/当期/即将）、创建与重算运行、锁定发薪、导出银行文件、工资单 PDF 与报告工作簿                                   |
-| **设置**         | 一个实体所属管辖地设置谱系的版本时间线：生效版本及其薪资、缴款、休假类型、薪资项目与假期标签；封存、作废与新版本操作；已封存版本及其下所有行只读 |
+| **设置**         | 一个实体所属管辖地设置谱系的版本时间线：生效版本及其薪资、缴款、休假、薪资项目与假期标签；封存、作废与新版本操作；已封存版本及其下所有行只读 |
 | **考勤机**       | 通过人脸识别或人工输入打卡并登记人脸；设备账户只看到此无外壳页面                                                                                |
 
 ### 策略（10 条）

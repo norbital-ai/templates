@@ -19,13 +19,13 @@ import {
 import { leaveDailyRate } from '../src/lib/leave/rate.ts';
 import { compileEligibility } from '../src/collections/payroll_runs/lib/eligibility.ts';
 import leaveEntryHooks from '../src/collections/leave_entries/+hooks.ts';
-import leaveTypeHooks from '../src/collections/leave_types/+hooks.ts';
+import catalogueLeaveHooks from '../src/collections/leave_catalogue/+hooks.ts';
 
 const UPFRONT = { kind: 'UPFRONT', settlement: { settlement: 'FORFEIT' } };
 const MONTHLY = { kind: 'MONTHLY', settlement: { settlement: 'FORFEIT' } };
 
 const SETTINGS_ID = 'settings';
-const leaveType = (overrides = {}) => ({
+const catalogueLeave = (overrides = {}) => ({
 	id: 'type-annual',
 	settings_id: SETTINGS_ID,
 	code: 'ANNUAL',
@@ -91,7 +91,7 @@ function world(options = {}) {
 			}
 		],
 		employee_children: options.children ?? [],
-		leave_types: options.types ?? [leaveType()],
+		leave_catalogue: options.types ?? [catalogueLeave()],
 		leave_entitlements: options.entitlements ?? [],
 		leave_entries: options.entries ?? [],
 		leave_requests: options.requests ?? []
@@ -112,7 +112,7 @@ const entitlementId = (code, year) =>
 test('UPFRONT posts one opening line; MONTHLY posts month ends through the date, none before the opening', () => {
 	const upfront = entitlementEntries({
 		entitlementId: 'e',
-		type: leaveType(),
+		type: catalogueLeave(),
 		target: 12,
 		yearStart: '2026-01-01',
 		yearEnd: '2026-12-31',
@@ -125,7 +125,7 @@ test('UPFRONT posts one opening line; MONTHLY posts month ends through the date,
 	);
 	const monthly = entitlementEntries({
 		entitlementId: 'e',
-		type: leaveType({ accrual: MONTHLY }),
+		type: catalogueLeave({ accrual: MONTHLY }),
 		target: 12,
 		yearStart: '2026-01-01',
 		yearEnd: '2026-12-31',
@@ -147,7 +147,7 @@ test('UPFRONT posts one opening line; MONTHLY posts month ends through the date,
 	// A band that does not divide by twelve rounds each cumulative share to the half day.
 	const sevens = entitlementEntries({
 		entitlementId: 'e',
-		type: leaveType({ accrual: MONTHLY }),
+		type: catalogueLeave({ accrual: MONTHLY }),
 		target: 7,
 		yearStart: '2026-01-01',
 		yearEnd: '2026-12-31',
@@ -163,22 +163,22 @@ test('UPFRONT posts one opening line; MONTHLY posts month ends through the date,
 
 test('rule 1: an eligible person gets one entitlement per type per year; an ineligible one gets none', async () => {
 	const types = [
-		leaveType(),
-		leaveType({
+		catalogueLeave(),
+		catalogueLeave({
 			id: 'type-maternity',
 			code: 'MATERNITY',
 			name: 'Maternity leave',
 			eligibility: 'employee.gender == "FEMALE" && employment.service_months >= 3',
 			entitlement: { layers: [{ level: 'ORGANISATION', band_from: 0, days: 98 }] }
 		}),
-		leaveType({
+		catalogueLeave({
 			id: 'type-childcare',
 			code: 'CHILDCARE',
 			name: 'Childcare leave',
 			eligibility: 'children.under(7) >= 1',
 			entitlement: { layers: [{ level: 'ORGANISATION', band_from: 0, days: 6 }] }
 		}),
-		leaveType({
+		catalogueLeave({
 			id: 'type-unpaid',
 			code: 'UNPAID',
 			name: 'Unpaid leave',
@@ -187,7 +187,7 @@ test('rule 1: an eligible person gets one entitlement per type per year; an inel
 			accrual: { kind: 'UNLIMITED' },
 			entitlement: { layers: [] }
 		}),
-		leaveType({
+		catalogueLeave({
 			id: 'type-zero',
 			code: 'ZERO',
 			name: 'A band of nothing',
@@ -261,8 +261,8 @@ test('rule 1: an eligible person gets one entitlement per type per year; an inel
 
 test('rule 1: eligibility first satisfied mid-year opens the row then, with the band or the months left', async () => {
 	const types = [
-		leaveType({ eligibility: 'employment.service_months >= 3' }),
-		leaveType({
+		catalogueLeave({ eligibility: 'employment.service_months >= 3' }),
+		catalogueLeave({
 			id: 'type-monthly',
 			code: 'MONTHLY',
 			name: 'Monthly leave',
@@ -295,7 +295,7 @@ test('rule 2: a catalogue edit posts one ADJUSTMENT per open entitlement, keyed 
 	const stored = {
 		id: entitlementId('ANNUAL', 2026),
 		employment_id: 'employment',
-		leave_type_id: 'type-annual',
+		leave_catalogue_id: 'type-annual',
 		leave_year: 2026,
 		starts_on: '2026-01-01',
 		ends_on: '2026-12-31',
@@ -318,7 +318,7 @@ test('rule 2: a catalogue edit posts one ADJUSTMENT per open entitlement, keyed 
 		source_key: 'opening',
 		approval_id: null
 	};
-	const raised = leaveType({
+	const raised = catalogueLeave({
 		entitlement: { layers: [{ level: 'ORGANISATION', band_from: 0, days: 14 }] },
 		updated_at: '2026-09-07 08:00:00+00'
 	});
@@ -335,7 +335,7 @@ test('rule 2: a catalogue edit posts one ADJUSTMENT per open entitlement, keyed 
 	assert.deepEqual(edited.lines(entitlementId('ANNUAL', 2027)), []);
 	// Without an edit after the row was generated, nothing is posted however often it runs.
 	const untouched = world({
-		types: [leaveType({ updated_at: '2025-12-31 00:00:00+00' })],
+		types: [catalogueLeave({ updated_at: '2025-12-31 00:00:00+00' })],
 		entitlements: [stored],
 		entries: [opening]
 	});
@@ -347,7 +347,7 @@ test('rule 2: a MONTHLY edit adjusts the months already accrued and posts the ne
 	const stored = {
 		id: entitlementId('MONTHLY', 2026),
 		employment_id: 'employment',
-		leave_type_id: 'type-monthly',
+		leave_catalogue_id: 'type-monthly',
 		leave_year: 2026,
 		starts_on: '2026-01-01',
 		ends_on: '2026-12-31',
@@ -370,7 +370,7 @@ test('rule 2: a MONTHLY edit adjusts the months already accrued and posts the ne
 		source_key: `accrual:${index + 1}`,
 		approval_id: null
 	}));
-	const raised = leaveType({
+	const raised = catalogueLeave({
 		id: 'type-monthly',
 		code: 'MONTHLY',
 		name: 'Monthly leave',
@@ -467,7 +467,7 @@ test('restoring a request after expiry appends the newly required expiry delta',
 const storedYear = (year, overrides = {}) => ({
 	id: entitlementId('ANNUAL', year),
 	employment_id: 'employment',
-	leave_type_id: 'type-annual',
+	leave_catalogue_id: 'type-annual',
 	leave_year: year,
 	starts_on: `${year}-01-01`,
 	ends_on: `${year}-12-31`,
@@ -499,7 +499,9 @@ test('carry expiry is reread before an employment exit settles the entitlement',
 		source_key: 'carry:prior'
 	});
 	// An unmetered type: the stored row awards nothing of its own, so only the carry is in play.
-	const unmetered = [leaveType({ accrual: { kind: 'UNLIMITED' }, entitlement: { layers: [] } })];
+	const unmetered = [
+		catalogueLeave({ accrual: { kind: 'UNLIMITED' }, entitlement: { layers: [] } })
+	];
 	const exiting = world({
 		types: unmetered,
 		entitlements: [current],
@@ -526,7 +528,7 @@ test('carry expiry is reread before year close transfers the balance', async () 
 		source_key: 'carry:prior'
 	});
 	const closing = world({
-		types: [leaveType({ accrual: { kind: 'UNLIMITED' }, entitlement: { layers: [] } })],
+		types: [catalogueLeave({ accrual: { kind: 'UNLIMITED' }, entitlement: { layers: [] } })],
 		entitlements: [previous, next],
 		entries: [carry]
 	});
@@ -770,7 +772,7 @@ test('an approved request is charged once, under the id its own write would use,
 	const request = {
 		id: 'req-1',
 		employment_id: 'emp-1',
-		leave_type_id: 'type-annual',
+		leave_catalogue_id: 'type-annual',
 		leave_entitlement_id: null,
 		approval_id: null,
 		event: { range: { start: { date: '2026-04-16' } }, chargeable_days: 1.5 }
@@ -780,7 +782,7 @@ test('an approved request is charged once, under the id its own write would use,
 	const api = {
 		db: {
 			leave_requests: { findMany: () => Effect.succeed([request]) },
-			leave_types: { findMany: () => Effect.succeed([{ id: 'type-annual', code: 'ANNUAL' }]) },
+			leave_catalogue: { findMany: () => Effect.succeed([{ id: 'type-annual', code: 'ANNUAL' }]) },
 			leave_entries: {
 				findFirst: ({ where }) =>
 					Effect.succeed(
@@ -875,7 +877,7 @@ test('a ledger line accepts the no-change restatement a complete-set write carri
 	await assert.rejects(Effect.runPromise(before(context({ id: 'line', days: 2 }))), /append-only/);
 });
 
-test('a leave type compiles its eligibility against the person context and cites its law', async () => {
+test('a leave compiles its eligibility against the person context and cites its law', async () => {
 	assert.equal(compileEligibility(''), null);
 	assert.equal(
 		compileEligibility('employee.gender == "FEMALE" && employment.service_months >= 3'),
@@ -899,23 +901,23 @@ test('a leave type compiles its eligibility against the person context and cites
 	});
 	const before = (input, version = draft) =>
 		Effect.runPromise(
-			leaveTypeHooks.mutate.perRecord.before.handler({
+			catalogueLeaveHooks.mutate.perRecord.before.handler({
 				input,
 				existing: undefined,
 				api: api(version)
 			})
 		);
 	await assert.rejects(
-		before(leaveType({ eligibility: 'employee.gender = "FEMALE"' })),
+		before(catalogueLeave({ eligibility: 'employee.gender = "FEMALE"' })),
 		/does not compile/
 	);
 	await assert.rejects(
-		before(leaveType({ is_statutory: true, authority: '' })),
+		before(catalogueLeave({ is_statutory: true, authority: '' })),
 		/cites the section of law/
 	);
-	assert.deepEqual(await before(leaveType()), leaveType());
+	assert.deepEqual(await before(catalogueLeave()), catalogueLeave());
 	await assert.rejects(
-		before(leaveType(), { ...draft, sealed_at: '2026-01-01T00:00:00.000Z' }),
+		before(catalogueLeave(), { ...draft, sealed_at: '2026-01-01T00:00:00.000Z' }),
 		/Fixture settings \(FX, sealed on 2026-01-01\), which is sealed, so it cannot be created, changed or deleted/
 	);
 });
@@ -935,7 +937,7 @@ test("a person's facts never start the reconciler; a catalogue edit does, for th
 		automations: { run: (name, input) => Effect.sync(() => started.push([name, input])) },
 		db: { jurisdiction_settings: { findFirst: () => Effect.succeed({ code: 'FX' }) } }
 	};
-	const typeAfter = leaveTypeHooks.mutate.perRecord.after.handler;
+	const typeAfter = catalogueLeaveHooks.mutate.perRecord.after.handler;
 	await Effect.runPromise(
 		typeAfter({
 			record: { id: 't', settings_id: SETTINGS_ID, approval_id: null },

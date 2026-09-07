@@ -44,7 +44,7 @@ export type LeaveContext = {
 	readonly employees: Row[];
 	readonly employment_terms: Row[];
 	readonly employee_children: Row[];
-	readonly leave_types: Row[];
+	readonly leave_catalogue: Row[];
 	readonly leave_entitlements: Row[];
 	readonly leave_entries: Row[];
 	readonly leave_requests: Row[];
@@ -133,7 +133,7 @@ export const readLeaveContext = (
 					many('employee_children', { employment_id: { in: ids }, approval_id: { isNull: true } })
 				),
 				readAll(versionIds, (ids) =>
-					many('leave_types', { settings_id: { in: ids }, approval_id: { isNull: true } })
+					many('leave_catalogue', { settings_id: { in: ids }, approval_id: { isNull: true } })
 				),
 				readAll(presentIds, (ids) =>
 					many('leave_entitlements', {
@@ -160,7 +160,7 @@ export const readLeaveContext = (
 			employees: [...employees],
 			employment_terms: [...terms],
 			employee_children: [...children],
-			leave_types: [...types],
+			leave_catalogue: [...types],
 			leave_entitlements: [...entitlements],
 			leave_entries: [...entries],
 			leave_requests: [...requests]
@@ -288,7 +288,7 @@ export const leavePlanner = (
 		employees: reads('employees'),
 		employment_terms: reads('employment_terms'),
 		employee_children: reads('employee_children'),
-		leave_types: reads('leave_types'),
+		leave_catalogue: reads('leave_catalogue'),
 		leave_entitlements: { ...reads('leave_entitlements'), mutate: mutateEntitlements },
 		leave_entries: { ...reads('leave_entries'), mutate: mutateEntries },
 		leave_requests: { ...reads('leave_requests'), findPending: pending }

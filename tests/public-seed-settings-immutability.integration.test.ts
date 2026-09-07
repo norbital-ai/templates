@@ -8,8 +8,8 @@ import {
 	requireAccepted
 } from '@norbital-ai/test-utilities';
 import {
-	ANNUAL_LEAVE_TYPE_ID,
-	BASIC_PAY_COMPONENT_ID,
+	ANNUAL_LEAVE_CATALOGUE_ID,
+	BASIC_COMPONENT_CATALOGUE_ID,
 	COMPANY_ID,
 	JANUARY_2026,
 	JURISDICTION_ID,
@@ -119,7 +119,7 @@ const CREATES: ReadonlyArray<{ readonly collection: string; readonly values: Row
 		}
 	},
 	{
-		collection: 'leave_types',
+		collection: 'leave_catalogue',
 		values: {
 			settings_id: JURISDICTION_ID,
 			code: 'STUDY',
@@ -133,7 +133,7 @@ const CREATES: ReadonlyArray<{ readonly collection: string; readonly values: Row
 		}
 	},
 	{
-		collection: 'pay_components',
+		collection: 'component_catalogue',
 		values: {
 			settings_id: JURISDICTION_ID,
 			code: 'PHONE',
@@ -178,11 +178,11 @@ const STORED: ReadonlyArray<{
 		change: { award: { kind: 'PERCENT', employee: 12, employer: 13 } }
 	},
 	{
-		collection: 'leave_types',
-		id: ANNUAL_LEAVE_TYPE_ID,
+		collection: 'leave_catalogue',
+		id: ANNUAL_LEAVE_CATALOGUE_ID,
 		change: { name: 'Annual leave (edited)' }
 	},
-	{ collection: 'pay_components', id: BASIC_PAY_COMPONENT_ID, change: { sequence: 11 } },
+	{ collection: 'component_catalogue', id: BASIC_COMPONENT_CATALOGUE_ID, change: { sequence: 11 } },
 	{ collection: 'company_holidays', id: HOLIDAY_ID, change: { name: 'Christmas (edited)' } }
 ];
 
@@ -290,11 +290,14 @@ test(
 			const counts = (await session.query(
 				`select (select count(*) from statutory_contributions)::int as schemes,
 				        (select count(*) from contribution_rates)::int as rates,
-				        (select count(*) from leave_types)::int as types,
-				        (select count(*) from pay_components)::int as components,
+				        (select count(*) from leave_catalogue)::int as types,
+				        (select count(*) from component_catalogue)::int as components,
 				        (select count(*) from company_holidays)::int as holidays`
 			)) as ReadonlyArray<Row>;
-			assert.deepEqual(counts[0], { schemes: 2, rates: 2, types: 2, components: 5, holidays: 1 });
+			// Seven components: five the engine feeds, plus the two entry-taking ones the arm-pairing
+			// rule needs — a CLAIM component and a MANUAL_ADJUSTMENT one, since an entry may only be
+			// raised against a component declaring its own arm.
+			assert.deepEqual(counts[0], { schemes: 2, rates: 2, types: 2, components: 7, holidays: 1 });
 
 			// A paid run cites the version, so voiding it states a reason.
 			const founder = teamHeaders(session);
@@ -400,9 +403,9 @@ test(
 				await write(
 					session,
 					founder,
-					'leave_types',
-					{ action: 'update', values: { id: ANNUAL_LEAVE_TYPE_ID, name: 'still frozen' } },
-					await rowVersion(session, 'leave_types', ANNUAL_LEAVE_TYPE_ID)
+					'leave_catalogue',
+					{ action: 'update', values: { id: ANNUAL_LEAVE_CATALOGUE_ID, name: 'still frozen' } },
+					await rowVersion(session, 'leave_catalogue', ANNUAL_LEAVE_CATALOGUE_ID)
 				),
 				'a voided version stays sealed',
 				SEALED

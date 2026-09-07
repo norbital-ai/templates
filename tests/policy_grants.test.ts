@@ -410,7 +410,7 @@ test('the settings root: a controller prepares drafts, a manager seals and voids
 	for (const policy of [employee, supervisor, manager]) {
 		assert.equal(may(policy, 'jurisdiction_settings', 'read'), true, nameOf(policy));
 		assert.equal(may(policy, 'jurisdiction_settings', 'mutate.existing'), false, nameOf(policy));
-		assert.equal(may(policy, 'leave_types', 'mutate.existing'), false, nameOf(policy));
+		assert.equal(may(policy, 'leave_catalogue', 'mutate.existing'), false, nameOf(policy));
 	}
 	for (const action of ['mutate.new', 'mutate.existing', 'delete']) {
 		const [grant, ...extra] = grantsFor(hrController, 'jurisdiction_settings', action);
@@ -469,8 +469,8 @@ test('the settings root: a controller prepares drafts, a manager seals and voids
 		for (const collection of [
 			'statutory_contributions',
 			'contribution_rates',
-			'leave_types',
-			'pay_components',
+			'leave_catalogue',
+			'component_catalogue',
 			'company_holidays'
 		])
 			for (const action of ['mutate.new', 'mutate.existing', 'delete']) {
@@ -624,7 +624,7 @@ test('the kiosk sees one app and may only key time entries and face enrollments'
 		'leave_requests',
 		'payroll_runs',
 		'payslip_work_day_inputs',
-		'leave_types',
+		'leave_catalogue',
 		'leave_entitlements',
 		'leave_entries',
 		'jurisdiction_settings'

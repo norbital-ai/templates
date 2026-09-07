@@ -8,10 +8,24 @@ import { defineModel, instant, integer, numeric, uuid } from '@norbital-ai/bolt/
  * `unique(payslip_id, loan_repayment_id)` plus the engine's ceiling over what paid runs actually
  * took are what keep that multi-payslip consumption honest.
  *
- * `sequence` orders the plan and makes the schedule's shape queryable; the repayment dates strictly
- * increase along it and the amounts sum to the loan's principal to the cent, which is what the
- * provisioning schedule the loans screen builds guarantees and what the write hooks and the loan
- * update path check.
+ * `sequence` orders the plan and makes the schedule's shape queryable. Two properties are *intended*
+ * of it — the repayment dates strictly increase along it, and the amounts sum to the loan's
+ * principal to the cent — and it matters exactly where each is enforced, because this comment used
+ * to claim both were checked here and neither was:
+ *
+ * - **Date order is guaranteed by construction, on the UI path only.** `lib/loan-schedule.ts` sorts
+ *   by `due_date` and renumbers `sequence` from that order on every exit — read, write and
+ *   generate — so a schedule built or edited on the loans screen cannot disagree with itself.
+ * - **The sum to principal is checked on the UI path only**, by `loanScheduleImbalanced`, which
+ *   blocks submit.
+ *
+ * Neither is enforced by a write hook. `loans/+hooks.ts` checks that the principal is positive and
+ * that the named component is a payroll-settled DEDUCTION, and nothing else; `loans/+model.ts`
+ * separately claims the last repayment falls inside `effective_range`, which is also unenforced. So
+ * an import, an agent or any caller that is not the form can still store a schedule that does not
+ * add up. That is a real gap, deliberately named rather than papered over — and whoever closes it
+ * must not rewrite a repayment a payslip has already captured, because net-pay protection lets one
+ * repayment legitimately span several payslips.
  */
 export default defineModel(
 	{

@@ -24,27 +24,27 @@ const CategoryBasisSchema = Schema.Literals(['STATUTORY_WORK_CATEGORY', 'WORK_CL
 type CategoryBasis = Schema.Schema.Type<typeof CategoryBasisSchema>;
 
 /**
- * One pay component classified against the statutory definition of "wages".
+ * One component classified against the statutory definition of "wages".
  *
  * This is the classification the coverage ceiling's comparand is built from. Employment Act 1955
  * s.2 defines wages as basic wages **and all other cash payments for work done**, and First
  * Schedule para 3 then reads "wages" for the Schedule as that figure less commissions, subsistence
  * allowance and overtime payment. The categories below are that definition, expressed over what a
- * pay component row can say:
+ * component row can say:
  *
  * - `BASIC_WAGES`   — the contracted wage from `employment_terms` (source `SCHEDULE`).
  * - `CASH_FOR_WORK` — an `EARNING` component: any other cash payment for work done.
  * - `NOT_WAGES`     — everything else: information, deductions, absences, employer costs, and
  *                     `NON_WAGE_PAYMENT` reimbursements, none of which is a cash payment for work.
  *
- * Para 3's third exclusion, overtime payment, needs no category. Overtime is not a pay component at
+ * Para 3's third exclusion, overtime payment, needs no category. Overtime is not a component at
  * all — it is derived from `work_days` against the jurisdiction's overtime rules — so it is
  * never in the set being classified, and the comparand excludes it structurally rather than by
  * filtering it back out.
  *
  * Two para 3 exclusions the component model cannot express: **commissions and subsistence
- * allowance have no category of their own.** Nothing on `pay_components.policy` or
- * `pay_components.definition` distinguishes a commission from any other earning, so a commission
+ * allowance have no category of their own.** Nothing on `component_catalogue.policy` or
+ * `component_catalogue.definition` distinguishes a commission from any other earning, so a commission
  * paid through an `EARNING` component is counted in the comparand even though the statute takes it
  * out. The seeded catalogues contain no commission or subsistence component, so no shipped
  * population is affected by the gap — but a company that adds one must know the comparand will
@@ -59,7 +59,7 @@ const WageComparandComponentSchema = Schema.Struct({
 });
 type WageComparandComponent = Schema.Schema.Type<typeof WageComparandComponentSchema>;
 
-/** Classify one pay component for the wage comparand. See `WageComparandCategory`. */
+/** Classify one component for the wage comparand. See `WageComparandCategory`. */
 export function classifyWageComparand(component: WageComparandComponent): WageComparandCategory {
 	const source = component.definition?.source;
 	if (source === 'SCHEDULE') return 'BASIC_WAGES';

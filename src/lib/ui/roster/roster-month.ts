@@ -295,7 +295,7 @@ function attendanceIntervals(day: WorkDayLike | undefined): readonly WorkedInter
 const leaveRequestLikeSchema = Schema.Struct({
 	employment_id: Schema.String,
 	kind: Schema.NullOr(Schema.String),
-	leave_type_id: Schema.String,
+	leave_catalogue_id: Schema.String,
 	from_date: Schema.NullOr(calendarInstantSchema),
 	to_date: Schema.NullOr(calendarInstantSchema),
 	half_day_start: Schema.NullOr(Schema.Boolean),
@@ -487,7 +487,7 @@ function buildDayIndexes(
 		const from = formatDateISO(request.from_date);
 		const to = formatDateISO(request.to_date);
 		if (to < first || from > last) continue;
-		const code = options.leaveCodeById.get(request.leave_type_id) ?? 'LEAVE';
+		const code = options.leaveCodeById.get(request.leave_catalogue_id) ?? 'LEAVE';
 		const halfStart = request.half_day_start === true;
 		const halfEnd = request.half_day_end === true;
 		const fromIndex = days.findIndex((date) => date >= from);

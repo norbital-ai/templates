@@ -8,7 +8,7 @@ import { componentEntryEventSchema } from '../src/datatypes/component_entry_even
 import { leaveEntitlementSchema } from '../src/datatypes/leave_entitlement/+definition.js';
 import { contributionTreatmentsSchema } from '../src/datatypes/contribution_treatments/+definition.js';
 import { ordinaryRateSchema } from '../src/datatypes/ordinary_rate/+definition.js';
-import { payComponentPolicySchema } from '../src/datatypes/pay_component_policy/+definition.js';
+import { componentPolicySchema } from '../src/datatypes/component_policy/+definition.js';
 
 /**
  * What these custom types *refuse*, asserted rather than inferred.
@@ -102,7 +102,20 @@ describe('component_entry_event', () => {
 				description: null
 			})
 		);
-		assert.ok(accepts(componentEntryEventSchema, { kind: 'ALLOWANCE' }));
+		// An allowance carries its window in the arm, so the bare shape no longer decodes at all.
+		assert.ok(
+			accepts(componentEntryEventSchema, {
+				kind: 'ALLOWANCE',
+				recurrence: { kind: 'ONE_OFF', period: '2026-02' }
+			})
+		);
+		assert.ok(
+			accepts(componentEntryEventSchema, {
+				kind: 'ALLOWANCE',
+				recurrence: { kind: 'RECURRING', from: '2026-01-01', to: null }
+			})
+		);
+		assert.ok(refuses(componentEntryEventSchema, { kind: 'ALLOWANCE' }));
 		assert.ok(accepts(componentEntryEventSchema, { kind: 'BONUS', note: null }));
 		assert.ok(
 			accepts(componentEntryEventSchema, {
@@ -124,7 +137,21 @@ describe('component_entry_event', () => {
 	// is refused rather than stripped, which is what made the jsonb-union shape a defect the last
 	// time this workspace held money in one.
 	it('refuses an unknown key on an arm', () => {
-		assert.ok(refuses(componentEntryEventSchema, { kind: 'ALLOWANCE', note: 'x' }));
+		assert.ok(
+			refuses(componentEntryEventSchema, {
+				kind: 'ALLOWANCE',
+				recurrence: { kind: 'ONE_OFF', period: '2026-02' },
+				note: 'x'
+			})
+		);
+		// And the reverse: a window is this arm's payload, so another arm may not carry one.
+		assert.ok(
+			refuses(componentEntryEventSchema, {
+				kind: 'BONUS',
+				note: null,
+				recurrence: { kind: 'ONE_OFF', period: '2026-02' }
+			})
+		);
 		assert.ok(
 			refuses(componentEntryEventSchema, { kind: 'CLAIM', incurred_on: '2026-04-02', note: 'x' })
 		);
@@ -219,24 +246,24 @@ describe('leave_entitlement', () => {
 	});
 });
 
-describe('pay_component_policy', () => {
+describe('component_policy', () => {
 	const policy = { kind: 'EARNING', settlement: 'ADD' };
 
 	it('accepts an earning that adds', () => {
-		assert.ok(accepts(payComponentPolicySchema, policy));
+		assert.ok(accepts(componentPolicySchema, policy));
 	});
 
 	// The arms differ only in two literals, so a settlement belonging to another arm must fail rather
 	// than be accepted: a component stored settling in a direction nobody declared changes net pay.
 	it('refuses a kind and settlement that do not belong together', () => {
-		assert.ok(refuses(payComponentPolicySchema, { ...policy, settlement: 'DEDUCT' }));
-		assert.ok(refuses(payComponentPolicySchema, { ...policy, kind: 'PENALTY' }));
+		assert.ok(refuses(componentPolicySchema, { ...policy, settlement: 'DEDUCT' }));
+		assert.ok(refuses(componentPolicySchema, { ...policy, kind: 'PENALTY' }));
 	});
 
 	// Chargeability moved to `contribution_treatments`; a policy still carrying the old list is a
 	// row written against the previous shape and must be reported, not silently narrowed.
 	it('refuses the statutory treatments the policy no longer carries', () => {
-		assert.ok(refuses(payComponentPolicySchema, { ...policy, statutory_treatments: [] }));
+		assert.ok(refuses(componentPolicySchema, { ...policy, statutory_treatments: [] }));
 	});
 });
 

@@ -25,11 +25,13 @@
 		KIOSK_CONFIRMATION_SECONDS,
 		KIOSK_LOOP_MS,
 		KIOSK_MATCH_THRESHOLD,
+		KIOSK_LIVE_MIN,
 		KIOSK_REAL_MIN
 	} from '../../lib/kiosk/config.js';
 	import { readKioskSettings, writeKioskSettings } from '../../lib/kiosk/settings.js';
 	import { browserNarratorPlatform, createKioskNarrator } from '../../lib/kiosk/voice.js';
 	import { kioskVoiceLanguage, type KioskPhraseKey } from '../../lib/kiosk/phrases.js';
+	import { blockedPhraseKey } from '../../lib/kiosk/punch.js';
 	import { silhouetteGeometry, type FrameSize } from '../../lib/kiosk/silhouette.js';
 
 	type Tab = 'scan' | 'manual';
@@ -63,6 +65,8 @@
 		time?: string;
 		reason?: string;
 		retryAfterMs?: number;
+		/** The roster code the day is planned as, when that is why the punch was blocked. */
+		plannedCode?: string;
 	}>;
 	type MatchResult = Awaited<ReturnType<(typeof client.invoke)['kiosk_match']>>;
 	type PunchCommandResult = Awaited<ReturnType<(typeof client.invoke)['kiosk_punch']>>;
@@ -80,7 +84,6 @@
 	const settings = readKioskSettings();
 
 	let tab = $state<Tab>('scan');
-	let direction = $state<Direction | null>(null);
 	let phase = $state<Phase>('boot');
 	let fatal = $state<string | null>(null);
 	/** The enabled face models the engine failed to load; non-empty is the `unavailable` phase. */
@@ -88,8 +91,6 @@
 	let candidate = $state<Candidate | null>(null);
 	let punch = $state<PunchResult | null>(null);
 	let notice = $state<KioskStatus | null>(null);
-	/** A face (any face) is in frame right now; read before an action is chosen. */
-	let facePresent = $state(false);
 	let hint = $state<Hint | null>(null);
 	let challengeLeft = $state(0);
 	let voiceEnabled = $state(settings.voiceEnabled);
@@ -110,8 +111,6 @@
 	let inFlight = false;
 	let challengeDeadline = 0;
 	let lastFaceSeenAt = 0;
-	let challengeEyesOpenSeen = false;
-	let challengeLivenessSeen = false;
 	/**
 	 * Everything the kiosk says goes through here: pre-generated clips, one phrase at a time, never
 	 * two at once. Created at init so the voice toggle and the locale effect below can reach it.
@@ -122,16 +121,13 @@
 	});
 	let unreadableSince = 0;
 	let absentSince = 0;
-	let presenceSpokenAt = 0;
 	const spokenHints = new Set<Hint>();
 
 	const FACE_LOST_GRACE_MS = 700;
 	/** A face that stays in frame without an embedding this long is too small or unclear to read. */
 	const MOVE_CLOSER_AFTER_MS = 2000;
-	/** No face at all for this long after choosing an action. */
+	/** No face at all for this long. */
 	const NO_FACE_AFTER_MS = 5000;
-	/** The choose hint is spoken again only after the person has been gone this long. */
-	const PRESENCE_RESPEAK_MS = 15000;
 	const STATUS_TONE_CLASSES: Readonly<Record<StatusTone, string>> = {
 		neutral: 'border-border bg-card text-foreground',
 		success: 'border-success/30 bg-success/10 text-success',
@@ -176,27 +172,31 @@
 			month: 'long'
 		}).format(now)
 	);
-	const actionsLocked = $derived(
-		phase === 'unavailable' || phase === 'matching' || phase === 'challenge' || phase === 'working'
+	/**
+	 * Which half of the day this punch turned out to be, from what the command actually wrote.
+	 * Nobody chose it: the first punch of the day is the arrival and every later one moves the
+	 * departure, so the answer only exists once the write has happened.
+	 */
+	const recordedDirection = $derived<Direction | null>(
+		punch?.status === 'in' || punch?.status === 'out' ? punch.status : null
 	);
 
-	const actionLabel = (value: Direction): string =>
-		value === 'in' ? t('kiosk.check_in') : t('kiosk.check_out');
-
 	const blockedStatus = (): KioskStatus => {
-		if (punch?.reason === 'already-in')
+		// Not rostered today is not a failure and must not be dressed as one: the person did nothing
+		// wrong, and the only useful thing the screen can do is name the day's plan.
+		if (punch?.reason === 'not-scheduled')
 			return {
 				tone: 'warning',
-				icon: 'lucide:circle-alert',
-				title: t('kiosk.already_in'),
-				detail: t('kiosk.already_in_detail')
+				icon: 'lucide:calendar-off',
+				title: t('kiosk.not_scheduled'),
+				detail: t('kiosk.not_scheduled_detail')
 			};
-		if (punch?.reason === 'no-open-interval')
+		if (punch?.reason === 'not-a-work-day')
 			return {
 				tone: 'warning',
-				icon: 'lucide:circle-alert',
-				title: t('kiosk.no_arrival'),
-				detail: t('kiosk.no_arrival_detail')
+				icon: 'lucide:calendar-off',
+				title: t('kiosk.not_a_work_day'),
+				detail: t('kiosk.not_a_work_day_detail', { code: punch.plannedCode ?? '—' })
 			};
 		if (punch?.reason === 'cooldown')
 			return {
@@ -260,22 +260,12 @@
 				title: t('kiosk.engine_unavailable'),
 				detail: t('kiosk.engine_unavailable_detail', { models: engineMissing.join(', ') })
 			};
-		if (direction === null)
-			return {
-				tone: 'neutral',
-				icon: 'lucide:hand',
-				title: facePresent ? t('kiosk.choose_to_start') : t('kiosk.choose_action'),
-				detail: t('kiosk.choose_action_detail')
-			};
 		if (phase === 'challenge' && candidate !== null)
 			return {
 				tone: 'neutral',
 				icon: 'lucide:scan-face',
 				title: t('kiosk.identity_confirmed', { name: candidate.employeeName }),
-				detail: t('kiosk.countdown_detail', {
-					action: actionLabel(direction),
-					seconds: challengeLeft
-				})
+				detail: t('kiosk.countdown_detail', { seconds: challengeLeft })
 			};
 		if (phase === 'working')
 			return {
@@ -295,7 +285,7 @@
 			return {
 				tone: 'success',
 				icon: 'lucide:circle-check',
-				title: direction === 'in' ? t('kiosk.recorded_in') : t('kiosk.recorded_out'),
+				title: recordedDirection === 'out' ? t('kiosk.recorded_out') : t('kiosk.recorded_in'),
 				detail: t('kiosk.recorded_detail', {
 					name: candidate.employeeName,
 					time: clockTime(punch?.time)
@@ -313,7 +303,7 @@
 		return {
 			tone: 'neutral',
 			icon: 'lucide:scan-face',
-			title: t('kiosk.ready_for', { action: actionLabel(direction) }),
+			title: t('kiosk.ready'),
 			detail: t('kiosk.waiting_for_face_hint')
 		};
 	});
@@ -381,21 +371,18 @@
 		spokenHints.clear();
 	};
 
-	const resumeScan = (clearDirection = false) => {
+	const resumeScan = () => {
 		clearResetTimer();
-		if (clearDirection) direction = null;
 		candidate = null;
 		punch = null;
 		notice = null;
-		challengeEyesOpenSeen = false;
-		challengeLivenessSeen = false;
 		clearHints();
 		phase = 'scan';
 	};
 
 	const scheduleResume = (delay = 4500) => {
 		clearResetTimer();
-		resetTimer = setTimeout(() => resumeScan(true), delay);
+		resetTimer = setTimeout(resumeScan, delay);
 	};
 
 	$effect(() => {
@@ -422,12 +409,6 @@
 		narrator.setEnabled(voiceEnabled);
 	};
 
-	const selectDirection = (next: Direction) => {
-		resumeScan();
-		direction = next;
-		narrator.say(next === 'in' ? 'selected_in' : 'selected_out');
-	};
-
 	const openTab = (next: Tab) => {
 		clearResetTimer();
 		tab = next;
@@ -440,13 +421,16 @@
 	const toScan = () => {
 		openTab('scan');
 		if (phase === 'boot' || phase === 'unavailable' || fatal !== null) return;
-		resumeScan(true);
+		resumeScan();
 	};
 
-	const detectedBlink = (gestures: Human['result']['gesture']): boolean =>
-		gestures.some(
-			(gesture) => 'face' in gesture && gesture.face === 0 && gesture.gesture.startsWith('blink ')
-		);
+	/**
+	 * Whether this face reads as a living person rather than a print or a screen, from the two
+	 * independent Human graphs. Both must clear; they fail on different attacks, which is why there
+	 * are two. A face the engine could not score at all reads as not live, never as live by default.
+	 */
+	const isLiveFace = (face: { readonly real?: number; readonly live?: number }): boolean =>
+		(face.real ?? 0) >= KIOSK_REAL_MIN && (face.live ?? 0) >= KIOSK_LIVE_MIN;
 
 	/**
 	 * Camera, then engine, then the gate: every enabled model must have loaded before the loop may
@@ -506,35 +490,27 @@
 	};
 
 	/** What the kiosk says for a refused punch; the screen's `blockedStatus` explains it. */
-	const blockedPhrase = (reason: string | undefined): KioskPhraseKey =>
-		reason === 'already-in'
-			? 'already_in'
-			: reason === 'no-open-interval'
-				? 'no_arrival'
-				: reason === 'cooldown'
-					? 'too_soon'
-					: 'unchanged';
-
-	const acceptPunch = (
-		result: PunchCommandResult,
-		matchedCandidate: Candidate,
-		matchedDirection: Direction
-	) => {
+	/**
+	 * A direction-free punch has one way to be blocked — the debounce — so the three contradiction
+	 * phrases went with the question that produced them.
+	 */
+	const acceptPunch = (result: PunchCommandResult, matchedCandidate: Candidate) => {
 		if (tab !== 'scan' || phase !== 'working') return;
 		punch = {
 			status: result.status,
 			intervalIndex: 'intervalIndex' in result ? result.intervalIndex : undefined,
 			time: 'time' in result ? result.time : undefined,
 			reason: 'reason' in result ? String(result.reason) : undefined,
-			retryAfterMs: 'retryAfterMs' in result ? Number(result.retryAfterMs) : undefined
+			retryAfterMs: 'retryAfterMs' in result ? Number(result.retryAfterMs) : undefined,
+			plannedCode: 'plannedCode' in result ? String(result.plannedCode) : undefined
 		};
 		phase = result.status === 'blocked' ? 'blocked' : 'done';
 		narrator.say(
 			phase === 'blocked'
-				? blockedPhrase(punch.reason)
-				: matchedDirection === 'in'
-					? 'checked_in'
-					: 'checked_out'
+				? blockedPhraseKey(punch.reason)
+				: result.status === 'out'
+					? 'checked_out'
+					: 'checked_in'
 		);
 		void matchedCandidate;
 		scheduleResume(5000);
@@ -554,8 +530,8 @@
 		);
 	};
 
-	const acceptMatch = (matched: MatchResult, blinked: boolean) => {
-		if (tab !== 'scan' || direction === null || phase !== 'matching') return;
+	const acceptMatch = (matched: MatchResult) => {
+		if (tab !== 'scan' || phase !== 'matching') return;
 		if (matched.status === 'unenrolled') {
 			rejectFace(
 				{
@@ -580,13 +556,13 @@
 			employeeNumber: matched.employment.employee_number,
 			companyId: matched.employment.company_id
 		};
+		// The hold, and nothing asked of the person: standing there is the confirmation, and it is
+		// also what gives the two presentation-attack graphs a run of frames instead of one lucky
+		// one. Silent on purpose — the countdown in the silhouette is the whole instruction.
 		phase = 'challenge';
 		challengeDeadline = Date.now() + KIOSK_CONFIRMATION_SECONDS * 1000;
 		challengeLeft = KIOSK_CONFIRMATION_SECONDS;
 		lastFaceSeenAt = Date.now();
-		challengeEyesOpenSeen = !blinked;
-		challengeLivenessSeen = false;
-		narrator.say(direction === 'in' ? 'confirm_in' : 'confirm_out');
 	};
 
 	onMount(() => {
@@ -594,9 +570,9 @@
 		void loadOrganizationBrand();
 		clockTimer = setInterval(() => (now = new Date()), 1000);
 		/**
-		 * The loop runs whenever the engine is ready and the tab is the clock, with or without an
-		 * action chosen. Before a choice it only reads presence, so the kiosk can say "choose check in
-		 * or check out" to the person standing there; matching starts only after the choice.
+		 * The loop runs whenever the engine is ready and the tab is the clock. There is nothing to
+		 * choose first: a readable, live face is matched, held for the confirmation window, and
+		 * written — the clock decides whether that punch was the arrival or the departure.
 		 */
 		loopTimer = setInterval(async () => {
 			if (
@@ -615,27 +591,10 @@
 				const face = largestFace(result.face ?? []);
 				const present = face !== undefined;
 				const faceVisible = face !== undefined && face.embedding !== undefined;
-				const blinked = detectedBlink(result.gesture ?? []);
 				const nowMs = Date.now();
 
-				if (
-					present &&
-					!facePresent &&
-					direction === null &&
-					nowMs - presenceSpokenAt > PRESENCE_RESPEAK_MS
-				) {
-					presenceSpokenAt = nowMs;
-					narrator.say('choose_action');
-				}
-				facePresent = present;
-				if (direction === null) return;
-
 				if (phase === 'challenge') {
-					if (faceVisible) {
-						lastFaceSeenAt = nowMs;
-						if (blinked && challengeEyesOpenSeen) challengeLivenessSeen = true;
-						else if (!blinked) challengeEyesOpenSeen = true;
-					}
+					if (faceVisible) lastFaceSeenAt = nowMs;
 					if (nowMs - lastFaceSeenAt > FACE_LOST_GRACE_MS) {
 						rejectFace(
 							{
@@ -649,7 +608,9 @@
 						);
 						return;
 					}
-					if (faceVisible && (face.real ?? 0) < KIOSK_REAL_MIN) {
+					// Every frame of the hold must read as live, not just the one that started it: a
+					// print swapped in front of a real face mid-countdown fails here.
+					if (faceVisible && !isLiveFace(face)) {
 						rejectFace(
 							{
 								tone: 'error',
@@ -664,30 +625,15 @@
 					}
 					challengeLeft = Math.max(0, Math.ceil((challengeDeadline - nowMs) / 1000));
 					if (faceVisible && nowMs >= challengeDeadline) {
-						if (!challengeLivenessSeen) {
-							rejectFace(
-								{
-									tone: 'error',
-									icon: 'lucide:shield-alert',
-									title: t('kiosk.live_face_required'),
-									detail: t('kiosk.live_face_required_detail')
-								},
-								'live_face_required',
-								true
-							);
-							return;
-						}
 						const matchedCandidate = candidate;
-						const matchedDirection = direction;
-						if (matchedCandidate === null || matchedDirection === null) return;
+						if (matchedCandidate === null) return;
 						phase = 'working';
 						try {
 							const punchResult = await client.invoke.kiosk_punch({
 								employment_id: matchedCandidate.employmentId,
-								kind: 'FACE',
-								direction: matchedDirection
+								kind: 'FACE'
 							});
-							acceptPunch(punchResult, matchedCandidate, matchedDirection);
+							acceptPunch(punchResult, matchedCandidate);
 						} catch (error) {
 							failPunch(error);
 						}
@@ -695,10 +641,10 @@
 					return;
 				}
 
-				// Scanning for a chosen action: a face the engine cannot read (a box with no
-				// embedding: too small, turned away, or a description graph that never loaded) is
-				// "move closer" after two seconds; nobody at all is "no face detected" after five.
-				// Each is said once per attempt so the kiosk is never mute at a person.
+				// Scanning: a face the engine cannot read (a box with no embedding: too small, turned
+				// away, or a description graph that never loaded) is "move closer" after two
+				// seconds; nobody at all is "no face detected" after five. Each is said once per
+				// attempt so the kiosk is never mute at a person.
 				if (!faceVisible) {
 					if (present) {
 						absentSince = 0;
@@ -714,7 +660,7 @@
 				unreadableSince = 0;
 				absentSince = 0;
 				hint = null;
-				if ((face.real ?? 0) < KIOSK_REAL_MIN) {
+				if (!isLiveFace(face)) {
 					rejectFace(
 						{
 							tone: 'error',
@@ -731,7 +677,7 @@
 					probe: face.embedding,
 					threshold: KIOSK_MATCH_THRESHOLD
 				});
-				acceptMatch(matched, blinked);
+				acceptMatch(matched);
 			} catch (error) {
 				rejectFace(
 					{
@@ -850,52 +796,6 @@
 {/snippet}
 
 <!--
-	The two action cards, rendered once in the aside from `lg` up and once as an overlay at the foot
-	of the video frame below it. Only one of the two is displayed at any width, so the accessibility
-	tree holds one Check in and one Check out.
--->
-{#snippet actionCards(overlay: boolean)}
-	<button
-		type="button"
-		aria-pressed={direction === 'in'}
-		disabled={actionsLocked}
-		onclick={() => selectDirection('in')}
-		class="flex flex-col items-start justify-between rounded-xl border p-4 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50 {overlay
-			? 'min-h-20 backdrop-blur'
-			: 'min-h-28'} {direction === 'in'
-			? 'border-primary bg-primary text-primary-foreground'
-			: overlay
-				? 'border-input bg-background/90 hover:bg-background'
-				: 'border-input bg-background hover:bg-accent'}"
-	>
-		<Icon icon="lucide:log-in" class="size-6" />
-		<span>
-			<strong class="block text-base font-semibold">{t('kiosk.check_in')}</strong>
-			<span class="mt-1 block text-sm opacity-75">{t('kiosk.check_in_hint')}</span>
-		</span>
-	</button>
-	<button
-		type="button"
-		aria-pressed={direction === 'out'}
-		disabled={actionsLocked}
-		onclick={() => selectDirection('out')}
-		class="flex flex-col items-start justify-between rounded-xl border p-4 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50 {overlay
-			? 'min-h-20 backdrop-blur'
-			: 'min-h-28'} {direction === 'out'
-			? 'border-primary bg-primary text-primary-foreground'
-			: overlay
-				? 'border-input bg-background/90 hover:bg-background'
-				: 'border-input bg-background hover:bg-accent'}"
-	>
-		<Icon icon="lucide:log-out" class="size-6" />
-		<span>
-			<strong class="block text-base font-semibold">{t('kiosk.check_out')}</strong>
-			<span class="mt-1 block text-sm opacity-75">{t('kiosk.check_out_hint')}</span>
-		</span>
-	</button>
-{/snippet}
-
-<!--
 	`Bound size="full"` + `Cover`: the kiosk is a full-screen device surface with its own header
 	and status bar as the chrome rows and the body as the definite middle track — deliberately not
 	an `AppShell`, which would add a workspace hero around a shop-floor time clock. The body grid
@@ -957,13 +857,6 @@
 							{t('kiosk.camera_ready')}
 						{/if}
 					</div>
-					{#if direction !== null}
-						<div
-							class="absolute top-4 right-4 rounded-full bg-black/60 px-3 py-1.5 text-sm text-white"
-						>
-							{actionLabel(direction)}
-						</div>
-					{/if}
 
 					<!--
 						One silhouette, drawn in the frame's own pixels: a head ellipse spanning 58% of the
@@ -1023,20 +916,17 @@
 							>
 						</div>
 					{/if}
-
-					<div class="absolute inset-x-3 bottom-3 grid grid-cols-2 gap-3 lg:hidden">
-						{@render actionCards(true)}
-					</div>
 				</section>
 
 				<aside class="min-h-0 overflow-y-auto bg-card px-5 py-6 sm:px-8 sm:py-8">
 					<div class="mx-auto flex max-w-lg flex-col gap-8">
+						<!--
+							No action cards. The kiosk does not ask which way to punch — the day already
+							knows — so the aside is the person, and the one line above it says what to do.
+						-->
 						<section class="hidden lg:block">
-							<h1 class="text-section">{t('kiosk.ask_action')}</h1>
-							<p class="mt-2 text-sm text-muted-foreground">{t('kiosk.ask_action_hint')}</p>
-							<div class="mt-5 grid grid-cols-2 gap-3">
-								{@render actionCards(false)}
-							</div>
+							<h1 class="text-section">{t('kiosk.how_it_works')}</h1>
+							<p class="mt-2 text-sm text-muted-foreground">{t('kiosk.how_it_works_hint')}</p>
 						</section>
 
 						<section class="lg:border-t lg:pt-7" aria-labelledby="identity-heading">
@@ -1119,20 +1009,10 @@
 									</div>
 									<div>
 										<p class="text-base font-medium">
-											{direction === null
-												? facePresent
-													? t('kiosk.choose_to_start')
-													: t('kiosk.choose_action')
-												: hint !== null
-													? hintStatus(hint).title
-													: t('kiosk.waiting_for_face')}
+											{hint !== null ? hintStatus(hint).title : t('kiosk.waiting_for_face')}
 										</p>
 										<p class="mt-1 text-sm text-muted-foreground">
-											{direction === null
-												? t('kiosk.choose_action_detail')
-												: hint !== null
-													? hintStatus(hint).detail
-													: t('kiosk.waiting_for_face_hint')}
+											{hint !== null ? hintStatus(hint).detail : t('kiosk.waiting_for_face_hint')}
 										</p>
 									</div>
 								</div>

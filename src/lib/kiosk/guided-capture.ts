@@ -31,10 +31,15 @@ const degrees = (value: number): number => (value * Math.PI) / 180;
  * Derived from Human's `calculateFaceAngle`: its x axis runs from the person's right cheek (mesh 234)
  * to the left cheek (454), its y axis from forehead to chin, and mesh depth grows away from the
  * camera, so a head turned to the person's left tilts the x axis toward the camera and the
- * resulting yaw is positive, while a chin brought toward the camera makes pitch negative. Not yet
- * confirmed against a live camera; flip here, nowhere else, if a device says otherwise.
+ * resulting yaw is positive, while a chin brought toward the camera makes pitch negative.
+ *
+ * The yaw half of that derivation was wrong, and a live camera settled it 2026-09-08: "Turn left"
+ * only advanced when the person turned right. Every instruction this kiosk gives is in the
+ * person's own frame — their left, not the camera's — so the sign is negative and the flip lives
+ * here, nowhere else. The preview's `-scale-x-100` is CSS on the video element and never reaches
+ * the analysis canvas, so mirroring is not part of this and must not be "corrected" for.
  */
-const HUMAN_YAW_LEFT_SIGN = 1;
+const HUMAN_YAW_LEFT_SIGN = -1;
 const HUMAN_PITCH_UP_SIGN = -1;
 
 const STRAIGHT_LIMIT = degrees(9);

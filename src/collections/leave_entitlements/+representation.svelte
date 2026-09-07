@@ -22,7 +22,7 @@
 		{#snippet children({ Field })}
 			<Grid gap="md" minimum="panel">
 				<Field name="employment_id" label={t('component.employment')} />
-				<Field name="leave_type_id" label={t('component.leave_type')} />
+				<Field name="leave_catalogue_id" label={t('component.catalogue_leave')} />
 				<Field name="leave_code" label={t('component.code')} />
 				<Field name="leave_name" label={t('component.name')} />
 				<Field name="leave_year" label={t('component.leave_year')} />

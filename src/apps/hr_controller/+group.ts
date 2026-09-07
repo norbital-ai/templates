@@ -9,7 +9,7 @@ import { group } from '@norbital-ai/bolt/authoring';
 export default group({
 	label: 'HR Controller',
 	description:
-		'Everything the HR team runs for one legal entity: people and their engagements, the roster and the attendance behind a pay period, leave, loans, pay components, and the payroll runs that settle them.',
+		'Everything the HR team runs for one legal entity: people and their engagements, the roster and the attendance behind a pay period, leave, loans, components, and the payroll runs that settle them.',
 	icon: 'lucide:briefcase-business',
 	defaultChild: 'people'
 });

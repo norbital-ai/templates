@@ -2,7 +2,7 @@ import { defineCustomType } from '@norbital-ai/bolt/authoring';
 import { Schema } from 'effect';
 
 /**
- * How one pay component is charged against one statutory contribution.
+ * How one component is charged against one statutory contribution.
  * `UNSET` is the generated default — every (component_type, contribution) pair exists
  * as a row, so chargeability is never inferred from a missing row.
  * `SPECIAL.rule` must name a rule listed on `statutory_contributions.special_rules`.
@@ -29,6 +29,6 @@ export const contributionTreatmentSchema = Schema.toStandardSchemaV1(
 export default defineCustomType({
 	name: 'contribution_treatment',
 	description:
-		'Whether one pay component is included in, excluded from, reduced against or specially ruled by one statutory contribution, with UNSET meaning that pair has not been decided yet.',
+		'Whether one component is included in, excluded from, reduced against or specially ruled by one statutory contribution, with UNSET meaning that pair has not been decided yet.',
 	schema: contributionTreatmentSchema
 });

@@ -39,7 +39,7 @@ const configuration = (overrides = {}) => ({
 		pay_cutoff_day: 21,
 		pay_frequency: 'MONTHLY'
 	},
-	payComponents: [],
+	catalogueComponents: [],
 	contributions: [],
 	treatments: new Map(),
 	overtimeRules: [],
@@ -47,10 +47,10 @@ const configuration = (overrides = {}) => ({
 	...overrides
 });
 
-test('a stated rest-day wage rule needs no pay component behind it', () => {
+test('a stated rest-day wage rule needs no component behind it', () => {
 	/*
 	 * There used to be an `OVERTIME_RULE_UNMAPPED` blocker here, because MEASURE paid a priced
-	 * segment only if some pay component claimed it and said nothing when none did — a day's wages
+	 * segment only if some component claimed it and said nothing when none did — a day's wages
 	 * the employee worked for and never saw. The check is gone because the hole it guarded is gone:
 	 * a segment now becomes a payslip line on its own, so a stated rule pays by construction and
 	 * there is no mapping left to omit. This is the assertion that the company catalogue is not
@@ -102,13 +102,13 @@ test('derived overtime is charged through the OVERTIME rows, which a priced regi
 			)
 		);
 	// A bandless scheme raises its own unrelated blocker; this test is about the overtime rows.
-	const overtimeIssues = (payComponents) =>
+	const overtimeIssues = (catalogueComponents) =>
 		validateConfiguration(
 			configuration({
 				contributions: [scheme],
 				overtimeRules: [DAY_WAGE_RULE],
-				payComponents,
-				treatments: gridOf(payComponents)
+				catalogueComponents,
+				treatments: gridOf(catalogueComponents)
 			})
 		).filter(
 			(issue) => issue.code === 'OVERTIME_COMPONENT_MISSING' || issue.code === 'TREATMENT_MISSING'
@@ -119,8 +119,8 @@ test('derived overtime is charged through the OVERTIME rows, which a priced regi
 	assert.equal(blockers(missing).length, 2);
 	assert.equal(missing[0].collection, 'companies');
 	assert.equal(missing[0].recordId, 'co-my');
-	assert.match(missing[0].message, /Public Fixture Co has no OVERTIME pay component/);
-	assert.match(missing[1].message, /no OVERTIME_EXCESS pay component/);
+	assert.match(missing[0].message, /Public Fixture Co has no OVERTIME component/);
+	assert.match(missing[1].message, /no OVERTIME_EXCESS component/);
 
 	// Both rows present, but the excess row has not decided EPF: that cell is a missing decision.
 	const half = overtimeIssues([

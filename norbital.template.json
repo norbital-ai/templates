@@ -17,7 +17,13 @@
 		"stages": [
 			["team", "jurisdiction_settings"],
 			["user"],
-			["companies", "statutory_contributions", "leave_types", "pay_components", "company_holidays"],
+			[
+				"companies",
+				"statutory_contributions",
+				"leave_catalogue",
+				"component_catalogue",
+				"company_holidays"
+			],
 			["contribution_rates", "employees", "shift_definitions"],
 			["shift_patterns"],
 			["employments"],

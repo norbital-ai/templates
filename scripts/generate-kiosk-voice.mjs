@@ -15,8 +15,10 @@
  *
  * Providers:
  *   edge    Microsoft Edge's free neural voices through the `edge-tts` Python package
- *           (`pip install edge-tts`). Female voices at +15% rate: en-SG-LunaNeural (en) and
+ *           (`pip install edge-tts`). Female voices at +15% rate: en-US-AriaNeural (en) and
  *           zh-CN-XiaoxiaoNeural (zh); `python3 -m edge_tts --list-voices` lists the rest.
+ *           The English voice is American by the owner's preference; en-US-AvaNeural is the warmer
+ *           alternative if Aria reads too much like a newsreader.
  *           Override with --voice-en=... --voice-zh=... Writes MP3 directly.
  *   gemini  Gemini TTS (`gemini-2.5-flash-preview-tts`) over the REST API. Returns 24 kHz 16-bit
  *           mono PCM, which is wrapped as WAV and encoded by `afconvert` (macOS) or `ffmpeg`.
@@ -64,7 +66,7 @@ const keys =
 		: options.only.split(',').filter((key) => KIOSK_PHRASE_KEYS.includes(key));
 
 const DEFAULT_VOICES = {
-	edge: { en: 'en-SG-LunaNeural', zh: 'zh-CN-XiaoxiaoNeural' },
+	edge: { en: 'en-US-AriaNeural', zh: 'zh-CN-XiaoxiaoNeural' },
 	gemini: { en: 'Kore', zh: 'Leda' }
 };
 

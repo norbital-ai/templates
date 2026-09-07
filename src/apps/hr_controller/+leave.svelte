@@ -14,7 +14,13 @@
 	import { FormattedValueRenderer } from '@norbital-ai/ui/data-renderer';
 	import type { WorkspaceRow } from '$bolt/types.js';
 	import CompanyScopeCombobox from './CompanyScopeCombobox.svelte';
-	import { companiesError as companiesErrorOf, resolveCompanyId } from './company-scope.svelte.js';
+	import {
+		companiesError as companiesErrorOf,
+		companyById,
+		resolveCompanyId
+	} from './company-scope.svelte.js';
+	import { setContext } from 'svelte';
+	import { HR_CREATE_SCOPE, type HrCreateScope } from '../../lib/ui/create-scope.js';
 	import { sourceLock, sourceLockRecordMetadata } from '../../lib/scheduling/lock.js';
 	import { useI18n } from '@norbital-ai/ui/i18n';
 	import type { TenantI18nKeys } from '$bolt/i18n-keys';
@@ -27,6 +33,15 @@
 	let chosenCompanyId = $state<string | null>(null);
 	const selectedCompanyId = $derived(resolveCompanyId(chosenCompanyId));
 	const companiesError = $derived(companiesErrorOf());
+	/**
+	 * The scope the create forms this page opens are drawn against: this entity's own people, and
+	 * the catalogue version its jurisdiction lineage has in force. Without it a form opened from
+	 * this page offers every employment in the workspace and every version of every catalogue row.
+	 */
+	setContext<HrCreateScope>(HR_CREATE_SCOPE, {
+		companyId: () => selectedCompanyId ?? undefined,
+		settingsCode: () => companyById(selectedCompanyId)?.settings_code ?? undefined
+	});
 
 	type Request = WorkspaceRow<'leave_requests'> & {
 		readonly leave_request_employment?: {
@@ -130,7 +145,7 @@
 					renderer={FormattedValueRenderer}
 					rendererProps={{ format: ({ row }: { row: Request }) => person(row) }}
 				/>
-				<Column name="leave_type_id" label={t('component.leave_type')} card="title" />
+				<Column name="leave_catalogue_id" label={t('component.catalogue_leave')} card="title" />
 				<Column name="event" label={t('app.leave.requested_period')} />
 				<Column name="days" label={t('component.days')} />
 				<Column

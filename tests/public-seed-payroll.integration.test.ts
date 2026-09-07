@@ -10,7 +10,7 @@ import {
 } from '@norbital-ai/test-utilities';
 import {
 	ANNUAL_LEAVE_ENTITLEMENT_ID,
-	ANNUAL_LEAVE_TYPE_ID,
+	ANNUAL_LEAVE_CATALOGUE_ID,
 	COMPANY_ID,
 	EMPLOYMENT_ID,
 	FEBRUARY_2026,
@@ -54,8 +54,8 @@ test(
 				'jurisdiction_settings',
 				'companies',
 				'statutory_contributions',
-				'leave_types',
-				'pay_components',
+				'leave_catalogue',
+				'component_catalogue',
 				'contribution_rates',
 				'employees',
 				'shift_definitions',
@@ -432,7 +432,7 @@ test(
 							values: {
 								id: crypto.randomUUID(),
 								employment_id: EMPLOYMENT_ID,
-								leave_type_id: ANNUAL_LEAVE_TYPE_ID,
+								leave_catalogue_id: ANNUAL_LEAVE_CATALOGUE_ID,
 								leave_entitlement_id: ANNUAL_LEAVE_ENTITLEMENT_ID,
 								event: {
 									kind: 'TIME_OFF',

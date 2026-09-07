@@ -13,11 +13,11 @@ export type PayrollWorld = {
 	readonly jurisdiction_settings: PayrollRow[];
 	readonly statutory_contributions: PayrollRow[];
 	readonly contribution_rates: PayrollRow[];
-	readonly pay_components: PayrollRow[];
+	readonly component_catalogue: PayrollRow[];
 	readonly shift_definitions: PayrollRow[];
 	readonly shift_patterns: PayrollRow[];
 	readonly company_holidays: PayrollRow[];
-	readonly leave_types: PayrollRow[];
+	readonly leave_catalogue: PayrollRow[];
 	readonly leave_entitlements: PayrollRow[];
 	readonly leave_entries: PayrollRow[];
 	readonly employments: PayrollRow[];
@@ -137,11 +137,11 @@ export function memoryPayrollApi(world: PayrollWorld) {
 			jurisdiction_settings: collection('jurisdiction_settings'),
 			statutory_contributions: collection('statutory_contributions'),
 			contribution_rates: collection('contribution_rates'),
-			pay_components: collection('pay_components'),
+			component_catalogue: collection('component_catalogue'),
 			shift_definitions: collection('shift_definitions'),
 			shift_patterns: collection('shift_patterns'),
 			company_holidays: collection('company_holidays'),
-			leave_types: collection('leave_types'),
+			leave_catalogue: collection('leave_catalogue'),
 			leave_entitlements: collection('leave_entitlements'),
 			leave_entries: collection('leave_entries'),
 			employments: collection('employments'),
