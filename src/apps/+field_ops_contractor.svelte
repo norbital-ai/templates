@@ -9,7 +9,7 @@
 	import { Button } from '@norbital-ai/ui/button';
 	import { Combobox } from '@norbital-ai/ui/combobox';
 	import { CollectionTable } from '@norbital-ai/ui/collection-table';
-	import { Inline, Stack } from '@norbital-ai/ui/layout';
+	import { Inline, Scroll, Stack } from '@norbital-ai/ui/layout';
 
 	const { t } = useI18n<TenantI18nKeys>();
 
@@ -142,72 +142,79 @@
 	description="Update dispatched day jobs"
 	{banner}
 >
-	<Stack gap="md">
-		{@render contractorFilters()}
-		<CollectionTable
-			client={collectionClient}
-			collection="job_assignments"
-			title={t('app.field_ops_contractor.dispatched_jobs')}
-			description={t('app.field_ops_contractor.dispatched_jobs_description')}
-			features={{ create: dispatchAuthority }}
-			query={assignmentQuery}
-		>
-			{#snippet columns({ Column })}
-				<Column
-					name="job_id"
-					label={t('component.job_site_date')}
-					minWidth={360}
-					card="title"
-					renderer={FormattedValueRenderer}
-					rendererProps={{
-						format: ({ row }) => {
-							const job = jobById.get(row.job_id);
-							return job
-								? `${job.title} · ${siteById.get(job.site_id) ?? '—'} · ${job.scheduled_for}`
-								: t('component.job');
-						}
-					}}
-				/>
-				{#if dispatchAuthority}
-					<!-- Whose assignment it is. Only meaningful to somebody looking at everybody's. -->
+	<!--
+		The page owns its scrolling. `AppShell` bounds its content and clips what does not fit, so a
+		growing list inside a plain Stack put 800 pixels of dispatched jobs where no gesture could
+		reach them.
+	-->
+	<Scroll name={t('app.field_ops_contractor.dispatched_jobs')}>
+		<Stack gap="md">
+			{@render contractorFilters()}
+			<CollectionTable
+				client={collectionClient}
+				collection="job_assignments"
+				title={t('app.field_ops_contractor.dispatched_jobs')}
+				description={t('app.field_ops_contractor.dispatched_jobs_description')}
+				features={{ create: dispatchAuthority }}
+				query={assignmentQuery}
+			>
+				{#snippet columns({ Column })}
 					<Column
-						name="assignee_user_id"
-						label={t('component.contractor')}
-						minWidth={220}
-						card="subtitle"
-						relationOptions={{
-							label: (record) => {
-								const name = record.name;
-								return name != null && name !== '' ? String(name) : '—';
-							},
-							orderBy: { name: 'asc' },
-							limit: 500
+						name="job_id"
+						label={t('component.job_site_date')}
+						minWidth={360}
+						card="title"
+						renderer={FormattedValueRenderer}
+						rendererProps={{
+							format: ({ row }) => {
+								const job = jobById.get(row.job_id);
+								return job
+									? `${job.title} · ${siteById.get(job.site_id) ?? '—'} · ${job.scheduled_for}`
+									: t('component.job');
+							}
 						}}
 					/>
-				{/if}
-				<Column name="dispatched_at" label={t('component.dispatched')} />
-				<Column
-					name="status"
-					card="badge"
-					renderer={FormattedValueRenderer}
-					rendererProps={{
-						format: ({ value }) => {
-							switch (value) {
-								case 'unassigned':
-									return t('component.status_unassigned');
-								case 'assigned':
-									return t('component.status_assigned');
-								case 'completed':
-									return t('component.status_completed');
-								default:
-									return '—';
+					{#if dispatchAuthority}
+						<!-- Whose assignment it is. Only meaningful to somebody looking at everybody's. -->
+						<Column
+							name="assignee_user_id"
+							label={t('component.contractor')}
+							minWidth={220}
+							card="subtitle"
+							relationOptions={{
+								label: (record) => {
+									const name = record.name;
+									return name != null && name !== '' ? String(name) : '—';
+								},
+								orderBy: { name: 'asc' },
+								limit: 500
+							}}
+						/>
+					{/if}
+					<Column name="dispatched_at" label={t('component.dispatched')} />
+					<Column
+						name="status"
+						card="badge"
+						renderer={FormattedValueRenderer}
+						rendererProps={{
+							format: ({ value }) => {
+								switch (value) {
+									case 'unassigned':
+										return t('component.status_unassigned');
+									case 'assigned':
+										return t('component.status_assigned');
+									case 'completed':
+										return t('component.status_completed');
+									default:
+										return '—';
+								}
 							}
-						}
-					}}
-				/>
-				<Column name="location" label={t('component.reported_location')} minWidth={220} />
-				<Column name="summary" card="subtitle" minWidth={200} />
-			{/snippet}
-		</CollectionTable>
-	</Stack>
+						}}
+					/>
+					<Column name="location" label={t('component.reported_location')} minWidth={220} />
+					<Column name="summary" card="subtitle" minWidth={200} />
+				{/snippet}
+			</CollectionTable>
+		</Stack>
+	</Scroll>
 </AppShell>
