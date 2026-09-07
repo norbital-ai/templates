@@ -10,59 +10,63 @@
 	import type { RepresentationProps } from './$types.js';
 	import { CollectionForm } from '@norbital-ai/ui/collection-form';
 	import { Column, Grid } from '@norbital-ai/ui/layout';
+	import { RecordShell } from '@norbital-ai/ui/record-shell';
 
 	let { record }: RepresentationProps = $props();
 
 	const { t } = useI18n<TenantI18nKeys>();
+	const subtitle = $derived(record == null ? undefined : `${record.model} · ${record.reviewed_at}`);
 </script>
 
-{#if record}
-	<CollectionForm
-		client={collectionClient}
-		collection="suspicion_reviews"
-		defaultValues={record}
-		disabled
-	>
-		{#snippet children({ Field })}
-			<Field name="basis_hash" hidden />
-			<Field name="source_key" hidden />
-			<Grid minimum="compact">
-				<Column span="all">
+<RecordShell title={record?.reason ?? 'New suspicion review'} {subtitle}>
+	{#if record}
+		<CollectionForm
+			client={collectionClient}
+			collection="suspicion_reviews"
+			defaultValues={record}
+			disabled
+		>
+			{#snippet children({ Field })}
+				<Field name="basis_hash" hidden />
+				<Field name="source_key" hidden />
+				<Grid minimum="compact">
+					<Column span="all">
+						<Field
+							name="job_assignment_id"
+							label={t('component.job_assignment')}
+							relationOptions={{
+								label: jobAssignmentLabel,
+								orderBy: { dispatched_at: 'desc' },
+								limit: 500
+							}}
+						/>
+					</Column>
+					<Field name="suspicious" label={t('component.suspicion_review_decision')} />
+					<Field name="reviewed_at" label={t('component.suspicion_reviewed_at')} />
+					<Column span="all">
+						<Field name="reason" label={t('component.suspicion_judgement')} />
+					</Column>
+					<Column span="all">
+						<Field name="basis" label={t('component.suspicion_basis')} />
+					</Column>
 					<Field
-						name="job_assignment_id"
-						label={t('component.job_assignment')}
+						name="evidence_id"
+						label={t('component.evidence')}
 						relationOptions={{
-							label: jobAssignmentLabel,
-							orderBy: { dispatched_at: 'desc' },
+							label: (evidence) =>
+								typeof evidence.summary === 'string' && evidence.summary !== ''
+									? evidence.summary
+									: t('component.evidence'),
 							limit: 500
 						}}
 					/>
-				</Column>
-				<Field name="suspicious" label={t('component.suspicion_review_decision')} />
-				<Field name="reviewed_at" label={t('component.suspicion_reviewed_at')} />
-				<Column span="all">
-					<Field name="reason" label={t('component.suspicion_judgement')} />
-				</Column>
-				<Column span="all">
-					<Field name="basis" label={t('component.suspicion_basis')} />
-				</Column>
-				<Field
-					name="evidence_id"
-					label={t('component.evidence')}
-					relationOptions={{
-						label: (evidence) =>
-							typeof evidence.summary === 'string' && evidence.summary !== ''
-								? evidence.summary
-								: t('component.evidence'),
-						limit: 500
-					}}
-				/>
-				<Field name="model" label={t('component.suspicion_review_model')} />
-			</Grid>
-		{/snippet}
-	</CollectionForm>
-{:else}
-	<p class="text-sm text-muted-foreground">
-		{t('component.suspicion_review_read_only')}
-	</p>
-{/if}
+					<Field name="model" label={t('component.suspicion_review_model')} />
+				</Grid>
+			{/snippet}
+		</CollectionForm>
+	{:else}
+		<p class="text-sm text-muted-foreground">
+			{t('component.suspicion_review_read_only')}
+		</p>
+	{/if}
+</RecordShell>

@@ -11,39 +11,47 @@
 	import type { RepresentationProps } from './$types.js';
 	import { CollectionForm } from '@norbital-ai/ui/collection-form';
 	import { Column, Grid } from '@norbital-ai/ui/layout';
+	import { RecordShell } from '@norbital-ai/ui/record-shell';
 
 	let { record, close }: RepresentationProps = $props();
 
 	const { t } = useI18n<TenantI18nKeys>();
+	const subtitle = $derived(
+		record == null ? undefined : (record.requested_at ?? t('component.not_recorded'))
+	);
 </script>
 
-<CollectionForm
-	client={collectionClient}
-	collection="variation_requests"
-	defaultValues={record ?? undefined}
-	onAfterSubmit={record ? undefined : close}
->
-	{#snippet children({ Field })}
-		<Field name="source_message_id" hidden />
-		<Grid minimum="compact">
-			<Field
-				name="job_assignment_id"
-				label={t('component.job_assignment')}
-				relationOptions={{
-					label: (record) => {
-						const status = record.status;
-						const dispatched = record.dispatched_at;
-						const when = dispatched == null ? null : String(dispatched).slice(0, 10);
-						return [when, status].filter((part) => part != null && part !== '').join(' · ') || '—';
-					},
-					orderBy: { dispatched_at: 'desc' },
-					limit: 500
-				}}
-			/>
-			<Field name="title" label={t('component.title')} />
-			<Field name="requested_at" label={t('component.requested_at')} />
-			<Field name="amount" label={t('component.amount')} />
-			<Column span="all"><Field name="description" label={t('component.description')} /></Column>
-		</Grid>
-	{/snippet}
-</CollectionForm>
+<RecordShell title={record?.title ?? 'New variation request'} {subtitle}>
+	<CollectionForm
+		client={collectionClient}
+		collection="variation_requests"
+		defaultValues={record ?? undefined}
+		onAfterSubmit={record ? undefined : close}
+	>
+		{#snippet children({ Field })}
+			<Field name="source_message_id" hidden />
+			<Grid minimum="compact">
+				<Field
+					name="job_assignment_id"
+					label={t('component.job_assignment')}
+					relationOptions={{
+						label: (record) => {
+							const status = record.status;
+							const dispatched = record.dispatched_at;
+							const when = dispatched == null ? null : String(dispatched).slice(0, 10);
+							return (
+								[when, status].filter((part) => part != null && part !== '').join(' · ') || '—'
+							);
+						},
+						orderBy: { dispatched_at: 'desc' },
+						limit: 500
+					}}
+				/>
+				<Field name="title" label={t('component.title')} />
+				<Field name="requested_at" label={t('component.requested_at')} />
+				<Field name="amount" label={t('component.amount')} />
+				<Column span="all"><Field name="description" label={t('component.description')} /></Column>
+			</Grid>
+		{/snippet}
+	</CollectionForm>
+</RecordShell>
