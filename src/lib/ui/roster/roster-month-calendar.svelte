@@ -16,6 +16,14 @@
 	answer "am I on tomorrow?", which is the single most common question self-service exists to
 	answer. A punch on its own is only half a day.
 
+	── THE BASE IS READ-ONLY; A ROSTER ROW IS WHERE A PUNCH GOES ────────────────────────────────
+	A tile with no `work_days` row behind it is the BASE: the day the employment's named shift
+	pattern projects, drawn muted inside a dashed outline exactly as the board draws it. Payroll takes
+	such a day as worked to plan, so there is nothing for the employee to punch against, and the
+	report button is not offered there (`employeeMissingPunchReportable` needs `workDayId`). A tile
+	with a row is an OVERRIDE and carries the clock: punch in and out, the running-clock mark, or the
+	AWOL face in the destructive colour when the row was reviewed empty on a work day.
+
 	── THE THREE BANDS ────────────────────────────────────────────────────────────────────────────
 	A tile carries the same three bands as a board cell, with room to spell them out instead of
 	glyphing them:
@@ -76,6 +84,7 @@
 	import { sourceLockReason, type SourceLock } from '../../scheduling/lock.js';
 	import {
 		HOLIDAY_PRESENTATION,
+		LAYER_PRESENTATION,
 		STATUS_PRESENTATION,
 		actualMark,
 		beyondScheduleMinutes,
@@ -83,6 +92,7 @@
 		monthDays,
 		personDayKey,
 		planGlyph,
+		resolveCellLayers,
 		type DayFacts
 	} from './roster-month.js';
 	import { scrollBodyByWheel, syncHeaderTrack } from './header-scroll.js';
@@ -307,9 +317,19 @@
 	function actualLabel(day: DayFacts): string | null {
 		const mark = actualMark(day);
 		if (mark === '⧗') return t('roster.attendance_open');
-		if (mark === '!') return t('roster.calendar_no_punch');
+		if (mark === '!') return t('roster.absent');
 		if (mark === '✓') return null;
 		return null;
+	}
+
+	/** Which plan layer a tile stands on, so its outline says base or override like a board cell. */
+	function layerClass(day: DayFacts): string {
+		const layers = resolveCellLayers(day);
+		return cn(
+			layers.effective === 'BASE' && LAYER_PRESENTATION.base.className,
+			layers.effective === 'OVERRIDE' && LAYER_PRESENTATION.override.className,
+			layers.actual.kind === 'AWOL' && LAYER_PRESENTATION.awol.className
+		);
 	}
 
 	/**
@@ -381,6 +401,21 @@
 -->
 {#snippet legend()}
 	<Cluster gap="sm" class="text-xs leading-5 text-muted-foreground">
+		<Inline gap="xs">
+			<span class={cn('inline-block size-2.5 rounded-sm', LAYER_PRESENTATION.base.className)}
+			></span>
+			<span>{t(LAYER_PRESENTATION.base.labelKey)}</span>
+		</Inline>
+		<Inline gap="xs">
+			<span class={cn('inline-block size-2.5 rounded-sm', LAYER_PRESENTATION.override.className)}
+			></span>
+			<span>{t(LAYER_PRESENTATION.override.labelKey)}</span>
+		</Inline>
+		<Inline gap="xs">
+			<span class={cn('inline-block size-2.5 rounded-sm', LAYER_PRESENTATION.awol.className)}
+			></span>
+			<span>{t(LAYER_PRESENTATION.awol.labelKey)}</span>
+		</Inline>
 		<Inline gap="xs">
 			<span class="inline-block size-2.5 rounded-sm bg-warning/25"></span>
 			<span>{t('roster.legend_attention')}</span>
@@ -466,6 +501,7 @@
 									class={cn(
 										'relative min-h-24 overflow-hidden rounded-md border text-left',
 										day == null ? 'bg-muted/20' : STATUS_PRESENTATION[day.status].className,
+										day != null && layerClass(day),
 										holiday != null && HOLIDAY_PRESENTATION.className,
 										date === today && 'ring-2 ring-brand ring-inset'
 									)}

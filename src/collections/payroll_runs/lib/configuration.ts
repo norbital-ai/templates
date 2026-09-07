@@ -41,6 +41,7 @@ export type OvertimeCoverageRule = StatutoryRegime['overtime_coverage'];
  */
 type RestBreakRule = NonNullable<StatutoryRegime['rest_break_rules']>[number];
 export type ShiftDefinition = WorkspaceRow<'shift_definitions'>;
+export type ShiftPattern = WorkspaceRow<'shift_patterns'>;
 export type LeaveType = WorkspaceRow<'leave_types'>;
 export type ContributionRate = Pick<
 	WorkspaceRow<'contribution_rates'>,
@@ -87,6 +88,12 @@ export type Configuration = {
 	 */
 	readonly overtimeCoverageRule: OvertimeCoverageRule | null;
 	readonly shiftById: ReadonlyMap<string, ShiftDefinition>;
+	/**
+	 * The company's named shift patterns, keyed by id. `employment_terms.shift_pattern_id` is
+	 * resolved through this map (`termPattern`), so the base an employment projects its days from
+	 * is configuration the same way its roster codes are.
+	 */
+	readonly patternById: ReadonlyMap<string, ShiftPattern>;
 	readonly holidays: ReadonlyMap<IsoDate, WorkspaceRow<'company_holidays'>>;
 	readonly leaveTypes: readonly LeaveType[];
 	readonly hash: string;
@@ -180,7 +187,7 @@ export function pickConfiguration(
 					`${code} version whose effective range covers the period.`
 			);
 
-		const [contributionRows, payComponentRows, shiftRows, holidayRows, leaveTypeRows] =
+		const [contributionRows, payComponentRows, shiftRows, patternRows, holidayRows, leaveTypeRows] =
 			yield* Effect.all(
 				[
 					db.statutory_contributions.findMany({
@@ -192,6 +199,10 @@ export function pickConfiguration(
 						limit: PAGE_LIMIT
 					}),
 					db.shift_definitions.findMany({
+						where: { company_id: { eq: company.id }, ...approved },
+						limit: PAGE_LIMIT
+					}),
+					db.shift_patterns.findMany({
 						where: { company_id: { eq: company.id }, ...approved },
 						limit: PAGE_LIMIT
 					}),
@@ -212,6 +223,7 @@ export function pickConfiguration(
 		options.api.reads.assertComplete(contributionRows, 'statutory contributions');
 		options.api.reads.assertComplete(payComponentRows, 'pay components');
 		options.api.reads.assertComplete(shiftRows, 'shift definitions');
+		options.api.reads.assertComplete(patternRows, 'shift patterns');
 		options.api.reads.assertComplete(holidayRows, 'company holidays');
 		options.api.reads.assertComplete(leaveTypeRows, 'leave types');
 
@@ -272,6 +284,9 @@ export function pickConfiguration(
 			restBreakRules: regime.rest_break_rules ?? [],
 			overtimeCoverageRule: regime.overtime_coverage,
 			shiftById: new Map(shifts.map((row) => [row.id, row])),
+			// Every pattern, whatever its effective range: a terms row in force names its pattern
+			// outright, and a pattern that has lapsed is still the base of the days it covered.
+			patternById: new Map(live(patternRows).map((row) => [row.id, row])),
 			holidays: new Map(
 				live(holidayRows).map((row) => [requiredDateKey(row.date, 'holiday date'), row] as const)
 			),
@@ -352,6 +367,11 @@ export function configurationSnapshot(
 		// is work, protected rest or another off day, and a WORK code owns its clock window.
 		roster_codes: [...configuration.shiftById.values()]
 			.map((row) => [row.code, row.variant, row.effective_range])
+			.toSorted((left, right) => String(left[0]).localeCompare(String(right[0]))),
+		// Patterns are the base every employment projects its days from: change one cycle and every
+		// employment on it is scheduled differently, so the hash moves with it like a code's window.
+		shift_patterns: [...configuration.patternById.values()]
+			.map((row) => [row.code, row.pattern, row.effective_range])
 			.toSorted((left, right) => String(left[0]).localeCompare(String(right[0])))
 	};
 }

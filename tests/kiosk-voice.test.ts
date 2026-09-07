@@ -1,71 +1,59 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { isAcceptableKioskVoice, pickKioskVoice, type KioskVoice } from '../src/lib/kiosk/voice.ts';
+import { existsSync, readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import { KIOSK_MODEL_BASE, KIOSK_REQUIRED_MODELS } from '../src/lib/kiosk/config.ts';
+import {
+	KIOSK_PHRASES,
+	KIOSK_PHRASE_KEYS,
+	KIOSK_VOICE_CLIP_FORMAT,
+	KIOSK_VOICE_LANGUAGES,
+	kioskVoiceLanguage
+} from '../src/lib/kiosk/phrases.ts';
+import { createKioskNarrator } from '../src/lib/kiosk/voice.ts';
 
-const voice = (overrides: Partial<KioskVoice> & Pick<KioskVoice, 'name'>): KioskVoice => ({
-	lang: 'en-US',
-	localService: true,
-	voiceURI: overrides.name,
-	default: false,
-	...overrides
+const clipsRoot = fileURLToPath(new URL('../assets/kiosk-voice/', import.meta.url));
+
+test('every phrase ships a clip in every language, so nothing ever falls back to a system voice', () => {
+	for (const language of KIOSK_VOICE_LANGUAGES) {
+		for (const key of KIOSK_PHRASE_KEYS) {
+			const clip = `${clipsRoot}${language}/${key}.${KIOSK_VOICE_CLIP_FORMAT}`;
+			assert.ok(existsSync(clip), `missing clip ${language}/${key}`);
+			assert.ok(readFileSync(clip).byteLength > 1_000, `empty clip ${language}/${key}`);
+		}
+	}
 });
 
-test('an acceptable kiosk voice runs locally, speaks the locale and carries a natural mark', () => {
-	assert.equal(isAcceptableKioskVoice(voice({ name: 'Samantha' }), 'en-US'), true);
-	assert.equal(isAcceptableKioskVoice(voice({ name: 'Daniel', lang: 'en-GB' }), 'en-US'), true);
-	assert.equal(
-		isAcceptableKioskVoice(voice({ name: 'Google US English', localService: false }), 'en-US'),
-		false,
-		'a network voice is not acceptable'
-	);
-	assert.equal(
-		isAcceptableKioskVoice(voice({ name: 'Microsoft David' }), 'en-US'),
-		false,
-		'the low-quality system voice carries no natural mark'
-	);
-	assert.equal(
-		isAcceptableKioskVoice(voice({ name: 'Ting-Ting (Enhanced)', lang: 'zh-CN' }), 'en-US'),
-		false,
-		'a voice for another language is not acceptable'
-	);
-	assert.equal(
-		isAcceptableKioskVoice(voice({ name: 'Ting-Ting (Enhanced)', lang: 'zh_CN' }), 'zh-CN'),
-		true
-	);
+test('phrases are short and direct: one sentence or two, never a paragraph', () => {
+	for (const key of KIOSK_PHRASE_KEYS) {
+		assert.ok(KIOSK_PHRASES[key].en.length <= 60, `${key} en is too long`);
+		assert.ok(KIOSK_PHRASES[key].zh.length <= 24, `${key} zh is too long`);
+	}
+	assert.equal(kioskVoiceLanguage('zh-Hans-SG'), 'zh');
+	assert.equal(kioskVoiceLanguage('en-SG'), 'en');
 });
 
-test('the stored voice wins while it is installed and acceptable', () => {
-	const voices = [
-		voice({ name: 'Samantha (Enhanced)', voiceURI: 'samantha-enhanced' }),
-		voice({ name: 'Daniel', voiceURI: 'daniel', lang: 'en-GB' })
-	];
-	assert.equal(pickKioskVoice(voices, 'en-US', 'daniel')?.voiceURI, 'daniel');
-	assert.equal(
-		pickKioskVoice(voices, 'en-US', 'gone')?.voiceURI,
-		'samantha-enhanced',
-		'an uninstalled stored pick falls back to the best exact-locale voice'
+test('a missing clip is silence: the narrator marks it and moves on without any speech', async () => {
+	const played: string[] = [];
+	const narrator = createKioskNarrator(
+		{
+			play: (url) => ({
+				done: Promise.resolve(
+					url.includes('/no_face.') ? ('missing' as const) : ('played' as const)
+				),
+				stop: () => {}
+			})
+		},
+		{ language: 'en' }
 	);
-	assert.equal(
-		pickKioskVoice([voice({ name: 'Microsoft David', voiceURI: 'david' })], 'en-US', 'david'),
-		null,
-		'a stored pick that is no longer acceptable is dropped'
-	);
-});
-
-test('no acceptable voice means silence, never the browser default', () => {
-	assert.equal(pickKioskVoice([], 'en-US', null), null);
-	assert.equal(
-		pickKioskVoice(
-			[
-				voice({ name: 'Microsoft David' }),
-				voice({ name: 'Google US English', localService: false })
-			],
-			'en-US',
-			null
-		),
-		null
-	);
+	narrator.say('no_face');
+	narrator.say('checked_in');
+	await new Promise((resolve) => setTimeout(resolve, 10));
+	narrator.say('no_face');
+	await new Promise((resolve) => setTimeout(resolve, 10));
+	assert.equal([...narrator.missing].length, 1);
+	assert.ok([...narrator.missing][0]?.endsWith('/en/no_face.mp3'));
+	void played;
 });
 
 test('the model base resolves beside this chunk and names every enabled model', () => {

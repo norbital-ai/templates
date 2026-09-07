@@ -376,8 +376,8 @@ Day type is calculated before money:
 ```mermaid
 flowchart LR
   C["Roster code variant"] --> D["WORK / OFF / REST"]
-  P["Employment work pattern"] --> D
-  R["Explicit monthly assignment"] --> D
+  P["Shift pattern (base)"] --> D
+  R["work_days row (override)"] --> D
   H["Holiday and substitute holiday"] --> T["Final day type"]
   D --> T
   C --> A["Normal hours and boundaries"]
@@ -385,19 +385,30 @@ flowchart LR
   A --> O
 ```
 
-`employment_terms.work_pattern` is the one canonical schedule term. It is polymorphic:
+Every employment has three layers, and every scheduling surface names them:
 
-- `PATTERNED` repeats one or more phases from an anchor date. A phase has a cycle of roster-code
-  references. One seven-day cycle represents a fixed office week; a short cycle represents a crew
-  rotation; calendar-month phases represent long rotations such as three months of day shifts
-  followed by three months of nights.
-- `ROSTERED` means the assignments cannot be projected reliably. The published monthly roster is
-  therefore required. Its expectation is either as-assigned or a guaranteed number of workdays and
-  paid minutes per week/month, which publication validates.
+- **The base.** `shift_patterns` is one named pattern per company (`AM-2x2`, `OFFICEx5-OFF-REST`,
+  `ROSTER-6D-48H-WK`), and `employment_terms.shift_pattern_id` points at it. Its `pattern` value
+  is polymorphic: `PATTERNED` repeats one or more phases of roster codes from an anchor date (one
+  seven-day cycle is a fixed office week, a short cycle is a crew rotation, calendar-month phases
+  are three months of days then three months of nights); `ROSTERED` states the expectation a
+  company wants named for people assigned roster by roster. Terms that point at no pattern are
+  rostered as assigned: nothing is projected and there is no guarantee to measure. Every reader
+  resolves the pattern through the terms row (`termPattern` in `lib/scheduling/work-pattern.ts`),
+  never from a copy on the terms.
+- **The override.** A `work_days` row is an exception to the base for one date. Its planned side
+  (`shift_definition_id`, a rostered code) replaces the projected code and is what a swap moves; a
+  plan write must leave the month's WORK days and paid minutes equal to what the pattern projects,
+  and `work_days/+hooks.ts` refuses one that does not.
+- **The time entries.** The same row's actual side (`worked_intervals`, `break_minutes`). Payroll
+  uses the row when it exists: an empty interval list on a WORK day is an absence, priced as one
+  unpaid day. A day with no row is the base taken as worked to plan, with no overtime. A row with
+  punches and no planned side is evidence on a base day, not an override: the board paints the
+  pattern's code under the clocked bar, and payroll takes the plan from the pattern. The seed
+  bank writes exactly that shape for every attendance day whose workbook plan matches the
+  pattern, so the demo entities show a base with a few overrides rather than an override a day.
 
-There is no separate work-pattern record and no duplicated weekly-hours, workdays or rest-weekday
-field. Those are derived from a patterned schedule; a rostered schedule stores only the expectation
-that cannot be derived without the month.
+Weekly hours, workdays and rest weekdays are derived from the pattern; nothing duplicates them.
 
 `shift_definitions` remains the migration-stable physical collection name, but its domain and UI
 name is **roster codes**. Every code is exactly one of `WORK`, `REST` or `OFF`. A `WORK` code carries
@@ -405,10 +416,15 @@ start, end and unpaid break. Whether it crosses midnight and how many paid minut
 derived from those values. `REST` is protected statutory rest; `OFF` is another planned non-working
 day. Neither carries clock times.
 
-For a patterned employment the month board projects the baseline without storing person-day rows.
-An explicit roster entry is an exception to that baseline. For a rostered employment, every supplied
-entry is authoritative and an absent day remains unassigned. A blank spreadsheet cell means “no
-explicit assignment”; it does not silently manufacture another rest day.
+For a patterned employment the month board paints the base without storing person-day rows, muted
+inside a dashed outline and the code only; a roster row paints solid with a corner mark and names
+its origin; the time entries paint as a punch bar, a running clock, or AWOL in the destructive
+colour for a reviewed-empty row on a work day (`lib/ui/roster/roster-month.ts`,
+`resolveCellLayers`). "Days assigned" counts roster rows only, and "people still need shifts" are
+employments with neither a pattern nor a roster row in the month. For a rostered employment, every
+supplied row is authoritative and an absent day remains unassigned. A blank spreadsheet cell means
+"no explicit assignment"; it does not silently manufacture another rest day. In the employee app a
+base day is read-only and punches are offered only on a day that has a roster row.
 
 `REST` does not mean that work is impossible. Malaysian law requires a weekly rest day; for shift
 work, a continuous period of at least 30 hours can constitute that day. The employer prepares the
@@ -901,7 +917,9 @@ leading accent. Corrections are new events, never edits of a consumed source.
 Every app page opens exactly one live query, on the collection the page is about, carrying its
 relations through `with`; lookups are read once or ride the same `with`, and lock state is a
 column on the row rather than a second subscription. Scheduling is one `work_days` query for the
-month with the employment, employee, terms, holiday and leave request beside each day; Leave is one
+month with the employment, employee, terms, holiday and leave request beside each day, and the
+named shift pattern rides the terms read through `with: { term_shift_pattern }` rather than a
+query of its own (`tests/scheduling-page-registrations.test.ts` pins the list); Leave is one
 `leave_requests` query carrying the employment, the entitlement with its posted entries and the
 payroll capture; each Settings tab is one query over the chosen version; the employee app's leave
 tab is one `leave_entitlements` query carrying the ledger. `tests/leave-page-registrations.test.ts`
@@ -935,10 +953,11 @@ a person: a face in frame before an action is chosen shows "Choose check in or c
 start"; a face too small or without an embedding for about two seconds shows "Move closer and face
 the camera"; no face for about five seconds shows "No face detected"; each is spoken once per
 attempt. Speech is pre-generated clips (`src/lib/kiosk/phrases.ts` is the one phrase list;
-`scripts/generate-kiosk-voice.mjs` renders a clip per key and language and never overwrites a
-recording; the `kiosk-voice-clips` Vite plugin ships them beside the models), played one at a
-time through a small queue; a phrase with no clip falls back to browser speech with a natural
-local voice when the device offers one, and stays silent otherwise. The camera frame carries a
+`scripts/generate-kiosk-voice.mjs` renders a clip per key and language with Microsoft Edge's free
+neural voices, female, at +15% rate; the `kiosk-voice-clips` Vite plugin ships them beside the
+models), played one at a time through a small queue. The kiosk never uses a browser or system
+voice: a phrase with no clip is silent and logged once, so a copy change in phrases.ts is followed
+by re-rendering the clips. The camera frame carries a
 measured silhouette (`src/lib/kiosk/silhouette.ts`): a head ellipse spanning 58% of the frame's
 height with shoulders running off the bottom edge, drawn in the frame's own pixels. Enrollment
 lives on the employee profile, not on the wall: a guided five-pose capture (straight, left,

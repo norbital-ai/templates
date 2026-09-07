@@ -9,11 +9,9 @@ const STORAGE_KEY = 'norbital.kiosk.settings';
 type KioskSettings = Readonly<{
 	/** Whether the kiosk speaks its statuses at all. */
 	voiceEnabled: boolean;
-	/** The `voiceURI` of the speech voice the kiosk picked, kept so the same voice speaks every day. */
-	voiceUri: string | null;
 }>;
 
-const KIOSK_SETTINGS_DEFAULTS: KioskSettings = { voiceEnabled: true, voiceUri: null };
+const KIOSK_SETTINGS_DEFAULTS: KioskSettings = { voiceEnabled: true };
 
 const storage = (): Storage | null => {
 	try {
@@ -30,11 +28,7 @@ export const readKioskSettings = (): KioskSettings => {
 		const parsed: unknown = JSON.parse(raw);
 		if (parsed === null || typeof parsed !== 'object') return KIOSK_SETTINGS_DEFAULTS;
 		const voiceEnabled = Reflect.get(parsed, 'voiceEnabled');
-		const voiceUri = Reflect.get(parsed, 'voiceUri');
-		return {
-			voiceEnabled: typeof voiceEnabled === 'boolean' ? voiceEnabled : true,
-			voiceUri: typeof voiceUri === 'string' && voiceUri.length > 0 ? voiceUri : null
-		};
+		return { voiceEnabled: typeof voiceEnabled === 'boolean' ? voiceEnabled : true };
 	} catch {
 		return KIOSK_SETTINGS_DEFAULTS;
 	}

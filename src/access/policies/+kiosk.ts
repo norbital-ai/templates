@@ -84,8 +84,9 @@ export default {
 		}),
 		grantOn('companies', 'read', { fields: ['id', 'name'] }),
 		grantOn('employment_terms', 'read', {
-			fields: ['employment_id', 'work_pattern', 'effective_range']
+			fields: ['employment_id', 'shift_pattern_id', 'effective_range']
 		}),
+		grantOn('shift_patterns', 'read', { fields: ['id', 'company_id', 'code', 'pattern'] }),
 		grantOn('shift_definitions', 'read', { fields: ['id', 'company_id', 'code', 'variant'] }),
 		grantsOn('work_days', ['read']),
 		// Every grant answers "what may the device do"; none answers "what does a hook need". The

@@ -113,7 +113,7 @@ function measure(overrides = {}) {
 					employment_id: 'emp-1',
 					base_salary: { value: 3451, currency: 'MYR' },
 					pay_frequency: 'MONTHLY',
-					work_pattern: PATTERN,
+					shift_pattern_id: 'pattern-1',
 					statutory_work_category: 'NON_MANUAL',
 					work_classification: 'NON_MANUAL',
 					employment_type: 'PERMANENT',
@@ -151,6 +151,7 @@ function measure(overrides = {}) {
 			overtimeLimits: [],
 			overtimeCoverageRule: null,
 			shiftById: new Map(),
+			patternById: new Map([['pattern-1', { id: 'pattern-1', code: 'PATTERN', pattern: PATTERN }]]),
 			holidays: new Map(),
 			leaveTypes: [],
 			hash: 'test'

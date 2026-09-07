@@ -9,9 +9,9 @@
 	 */
 	import { client } from '../../lib/workspace-client.js';
 	import AppHeaderActions from '@norbital-ai/bolt/client/app-header-actions';
+	import { AppShell } from '@norbital-ai/ui/app-shell';
 	import { CollectionTable } from '@norbital-ai/ui/collection-table';
 	import { FormattedValueRenderer } from '@norbital-ai/ui/data-renderer';
-	import { Bound, Cover } from '@norbital-ai/ui/layout';
 	import type { WorkspaceRow } from '$bolt/types.js';
 	import CompanyScopeCombobox from './CompanyScopeCombobox.svelte';
 	import { companiesError as companiesErrorOf, resolveCompanyId } from './company-scope.svelte.js';
@@ -79,79 +79,68 @@
 	}
 </script>
 
-<svelte:head>
-	<title>Leave</title>
-	<meta name="description" content="Leave requests and the balance each one draws on" />
-	<meta name="bolt:icon" content="lucide:calendar-check-2" />
-	<meta
-		name="bolt:thumbnail"
-		content="/__bolt/request/api/template-seed-assets/hr-payroll/app-media/leave-banner.webp"
-	/>
-	<meta
-		name="bolt:banner"
-		content="/__bolt/request/api/template-seed-assets/hr-payroll/app-media/leave-banner.webp"
-	/>
-</svelte:head>
+<AppShell
+	icon="lucide:calendar-check-2"
+	title="Leave"
+	description="Leave requests and the balance each one draws on"
+	banner="/__bolt/request/api/template-seed-assets/hr-payroll/app-media/leave-banner.webp"
+>
+	<AppHeaderActions>
+		<CompanyScopeCombobox
+			value={selectedCompanyId}
+			onValueChange={(id) => {
+				chosenCompanyId = id;
+			}}
+		/>
+	</AppHeaderActions>
 
-<AppHeaderActions>
-	<CompanyScopeCombobox
-		value={selectedCompanyId}
-		onValueChange={(id) => {
-			chosenCompanyId = id;
-		}}
-	/>
-</AppHeaderActions>
-
-<Cover>
-	<Bound size="full" inset>
-		{#if companiesError != null}
-			<p class="text-sm text-destructive">{companiesError.message}</p>
-		{:else if selectedCompanyId != null}
-			<CollectionTable
-				{client}
-				collection="leave_requests"
-				view={`hr_controller:leave:requests:${selectedCompanyId}`}
-				title={t('app.leave.requests_title')}
-				description={t('app.leave.requests_description')}
-				recordMetadata={requestMetadata}
-				query={{
-					where: { leave_request_employment: { some: { company_id: { eq: selectedCompanyId } } } },
-					orderBy: { from_date: 'desc' },
-					with: {
-						leave_request_employment: {
-							columns: { employee_number: true },
-							with: { employment_employee: { columns: { name: true } } }
-						},
-						request_leave_entitlement: {
-							columns: { entitlement_days: true, accrual_kind: true },
-							with: {
-								entry_leave_entitlement: { columns: { kind: true, days: true, effective_on: true } }
-							}
-						},
-						payslip_leave_request_input_leave_request: { columns: { period: true } }
-					}
-				}}
-			>
-				{#snippet columns({ Column })}
-					<Column
-						name="employment_id"
-						label={t('component.person')}
-						card="subtitle"
-						renderer={FormattedValueRenderer}
-						rendererProps={{ format: ({ row }: { row: Request }) => person(row) }}
-					/>
-					<Column name="leave_type_id" label={t('component.leave_type')} card="title" />
-					<Column name="event" label={t('app.leave.requested_period')} />
-					<Column name="days" label={t('component.days')} />
-					<Column
-						name="leave_entitlement_id"
-						label={t('app.leave.balance')}
-						renderer={FormattedValueRenderer}
-						rendererProps={{ format: ({ row }: { row: Request }) => balance(row) }}
-					/>
-					<Column name="certificate_file" label={t('component.certificate')} />
-				{/snippet}
-			</CollectionTable>
-		{/if}
-	</Bound>
-</Cover>
+	{#if companiesError != null}
+		<p class="text-sm text-destructive">{companiesError.message}</p>
+	{:else if selectedCompanyId != null}
+		<CollectionTable
+			{client}
+			collection="leave_requests"
+			view={`hr_controller:leave:requests:${selectedCompanyId}`}
+			title={t('app.leave.requests_title')}
+			description={t('app.leave.requests_description')}
+			recordMetadata={requestMetadata}
+			query={{
+				where: { leave_request_employment: { some: { company_id: { eq: selectedCompanyId } } } },
+				orderBy: { from_date: 'desc' },
+				with: {
+					leave_request_employment: {
+						columns: { employee_number: true },
+						with: { employment_employee: { columns: { name: true } } }
+					},
+					request_leave_entitlement: {
+						columns: { entitlement_days: true, accrual_kind: true },
+						with: {
+							entry_leave_entitlement: { columns: { kind: true, days: true, effective_on: true } }
+						}
+					},
+					payslip_leave_request_input_leave_request: { columns: { period: true } }
+				}
+			}}
+		>
+			{#snippet columns({ Column })}
+				<Column
+					name="employment_id"
+					label={t('component.person')}
+					card="subtitle"
+					renderer={FormattedValueRenderer}
+					rendererProps={{ format: ({ row }: { row: Request }) => person(row) }}
+				/>
+				<Column name="leave_type_id" label={t('component.leave_type')} card="title" />
+				<Column name="event" label={t('app.leave.requested_period')} />
+				<Column name="days" label={t('component.days')} />
+				<Column
+					name="leave_entitlement_id"
+					label={t('app.leave.balance')}
+					renderer={FormattedValueRenderer}
+					rendererProps={{ format: ({ row }: { row: Request }) => balance(row) }}
+				/>
+				<Column name="certificate_file" label={t('component.certificate')} />
+			{/snippet}
+		</CollectionTable>
+	{/if}
+</AppShell>

@@ -8,7 +8,7 @@ const TODAY = '2026-08-20';
 const day = (overrides = {}) => ({
 	employmentState: 'ACTIVE',
 	date: '2026-08-19',
-	workDayId: null,
+	workDayId: 'planned-day',
 	attendanceState: null,
 	leaveCode: null,
 	halfDayLeave: false,
@@ -20,6 +20,10 @@ const reportable = (value, pendingDates = new Set(), settledIds = new Set()) =>
 
 test('a roster-only person-day is reportable through an update', () => {
 	assert.equal(reportable(day({ workDayId: 'planned-day' })), true);
+});
+
+test('a base day with no roster row is read-only: the pattern projects it, nobody punches on it', () => {
+	assert.equal(reportable(day({ workDayId: null })), false);
 });
 
 test('existing attendance, a pending report, or a settlement claim blocks another report', () => {

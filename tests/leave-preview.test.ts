@@ -56,11 +56,12 @@ const facts = {
 	terms: [
 		{
 			employment_id: 'emp-1',
-			work_pattern: patternedWeek,
+			shift_pattern_id: 'sp-week',
 			effective_range: { start: '2021-06-01', end: null },
 			employment_type: 'PERMANENT'
 		}
 	],
+	patterns: [{ id: 'sp-week', code: 'WORK-6x1', pattern: patternedWeek }],
 	workDays: [],
 	requests: [],
 	settledRuns: [],

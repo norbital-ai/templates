@@ -336,11 +336,17 @@
 	);
 	const planWritable = $derived(mode === 'controller' && !frozen && !planLocked);
 
-	/** Employee mode's one affordance: a day with nothing recorded, on a day that is not locked. */
+	/**
+	 * Employee mode's one affordance: a roster row with nothing recorded, on a day that is not
+	 * locked. A base day (no `work_days` row) is read-only for the employee: the pattern projects
+	 * it and payroll takes it as worked to plan, so there is nothing to punch against until HR
+	 * writes a row for the date.
+	 */
 	const canReportMissingPunch = $derived(
 		mode === 'employee' &&
 			!frozen &&
 			!reporting &&
+			day?.workDayId != null &&
 			day?.attendanceState == null &&
 			day?.past === true
 	);
@@ -726,13 +732,16 @@
 										)}
 									{/if}
 
+									<!-- Which layer the plan came from: the roster row, or the named pattern's base. -->
 									{@render fieldRow(
 										t('roster.day_sheet_source'),
-										hasExplicitEntry
+										hasExplicitEntry || day.overrideCode != null
 											? day.plannedOrigin === 'IMPORT'
-												? t('roster.origin_import')
-												: t('roster.origin_manual')
-											: t('roster.day_sheet_source_pattern')
+												? t('roster.layer_override_imported')
+												: t('roster.layer_override_manual')
+											: day.basePatternCode == null
+												? t('roster.day_sheet_source_pattern')
+												: t('roster.layer_base_from', { pattern: day.basePatternCode })
 									)}
 									{#if day.shiftStart != null && day.shiftEnd != null}
 										{@render fieldRow(

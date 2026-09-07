@@ -16,7 +16,11 @@ import { Effect } from 'effect';
 import type { RosterCodeVariant } from '../../../datatypes/roster_code_variant/+definition.js';
 import { dateKey } from '../../../lib/iso-day.js';
 import { rosterCodeKind, workWindow } from '../../../lib/scheduling/roster-code.js';
-import { patternRosterCodeId } from '../../../lib/scheduling/work-pattern.js';
+import {
+	patternRosterCodeId,
+	termPattern,
+	type ShiftPatternLike
+} from '../../../lib/scheduling/work-pattern.js';
 import { coversDate } from '../../payroll_runs/lib/effective.js';
 import {
 	overlappingWorkShifts,
@@ -59,8 +63,10 @@ type AssignmentChange = Pick<WorkspaceRow<'work_days'>, 'employment_id' | 'work_
 export type OverlapData = {
 	readonly termsByEmployment: ReadonlyMap<
 		string,
-		ReadonlyArray<Pick<WorkspaceRow<'employment_terms'>, 'work_pattern' | 'effective_range'>>
+		ReadonlyArray<Pick<WorkspaceRow<'employment_terms'>, 'shift_pattern_id' | 'effective_range'>>
 	>;
+	/** The named patterns of every company touched, which the terms' pointers resolve through. */
+	readonly patternById: ReadonlyMap<string, ShiftPatternLike>;
 	readonly explicitByKey: ReadonlyMap<string, ExplicitEntry>;
 	readonly codeById: ReadonlyMap<
 		string,
@@ -91,7 +97,7 @@ export function readOverlapData(
 				}),
 				api.db.employment_terms.findMany({
 					where: { employment_id: { in: employmentIds } },
-					columns: { employment_id: true, work_pattern: true, effective_range: true },
+					columns: { employment_id: true, shift_pattern_id: true, effective_range: true },
 					limit: QUERY_LIMIT
 				}),
 				api.db.work_days.findMany({
@@ -114,13 +120,23 @@ export function readOverlapData(
 			refuse('This schedule is too large to validate safely in one write.');
 		}
 		const companyIds = [...new Set(employments.map((employment) => employment.company_id))];
-		const codes = yield* api.db.shift_definitions.findMany({
-			where: { company_id: { in: companyIds } },
-			columns: { id: true, code: true, variant: true },
-			limit: QUERY_LIMIT
-		});
-		if (codes.length === QUERY_LIMIT) {
-			refuse('This legal entity has too many roster codes to validate safely.');
+		const [codes, patterns] = yield* Effect.all(
+			[
+				api.db.shift_definitions.findMany({
+					where: { company_id: { in: companyIds } },
+					columns: { id: true, code: true, variant: true },
+					limit: QUERY_LIMIT
+				}),
+				api.db.shift_patterns.findMany({
+					where: { company_id: { in: companyIds } },
+					columns: { id: true, code: true, pattern: true },
+					limit: QUERY_LIMIT
+				})
+			],
+			{ concurrency: 'unbounded' }
+		);
+		if (codes.length === QUERY_LIMIT || patterns.length === QUERY_LIMIT) {
+			refuse('This legal entity has too many roster codes or shift patterns to validate safely.');
 		}
 
 		const termsByEmployment = new Map<string, Array<(typeof terms)[number]>>();
@@ -131,6 +147,7 @@ export function readOverlapData(
 		}
 		return {
 			termsByEmployment,
+			patternById: new Map(patterns.map((pattern) => [pattern.id, pattern])),
 			explicitByKey: new Map(
 				existingEntries.map((entry) => [
 					`${entry.employment_id}:${dateKey(entry.work_date)}`,
@@ -196,7 +213,7 @@ export function assertNoOverlap(data: OverlapData, changes: readonly AssignmentC
 			);
 			const codeId =
 				explicit?.shift_definition_id ??
-				(term == null ? null : patternRosterCodeId(term.work_pattern, date));
+				(term == null ? null : patternRosterCodeId(termPattern(term, data.patternById), date));
 			const code = codeId == null ? null : data.codeById.get(codeId);
 			const kind = code == null ? null : rosterCodeKind(code.variant);
 			const window = kind === 'WORK' ? workWindow(code?.variant) : null;

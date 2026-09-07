@@ -143,6 +143,16 @@ const EMPLOYMENTS = [
 	}
 ];
 
+/** The one named pattern both employments point at; the export reads it through the terms row. */
+const WEEKDAY_SHIFT_PATTERN = {
+	id: 'pattern:weekday',
+	company_id: 'company:1',
+	code: 'D-5x2',
+	name: '5 on D, 2 off (REST)',
+	pattern: WEEKDAY_PATTERN,
+	effective_range: range('2021-01-01', null)
+};
+
 const TERMS = [
 	{
 		id: 'terms:pattern',
@@ -150,7 +160,7 @@ const TERMS = [
 		job_title: 'Machine Operator',
 		department: 'Assembly',
 		payroll_group: 'MY-MONTHLY',
-		work_pattern: WEEKDAY_PATTERN,
+		shift_pattern_id: WEEKDAY_SHIFT_PATTERN.id,
 		effective_range: range('2021-06-01', null)
 	},
 	{
@@ -159,7 +169,7 @@ const TERMS = [
 		job_title: 'Packer',
 		department: 'Warehouse',
 		payroll_group: 'MY-MONTHLY',
-		work_pattern: WEEKDAY_PATTERN,
+		shift_pattern_id: WEEKDAY_SHIFT_PATTERN.id,
 		effective_range: range('2024-07-10', '2026-03-05')
 	}
 ];
@@ -296,6 +306,7 @@ Effect.runPromise(
 					{ id: 'employee:leaver', name: 'Public Late Joiner', identity_number: '880312-10-0002' }
 				],
 				shift_definitions: [DAY_SHIFT, REST_CODE, NIGHT_SHIFT],
+				shift_patterns: [WEEKDAY_SHIFT_PATTERN],
 				statutory_contributions: []
 			});
 

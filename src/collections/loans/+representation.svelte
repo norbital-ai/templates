@@ -7,6 +7,7 @@
 	import type { CollectionField } from '@norbital-ai/ui/data-renderer';
 	import { MatrixRenderer, type MatrixColumn } from '@norbital-ai/ui/data-renderer/matrix';
 	import { Column, Grid, Stack } from '@norbital-ai/ui/layout';
+	import { RecordShell } from '@norbital-ai/ui/record-shell';
 	import { Effect } from 'effect';
 	import { watch } from 'runed';
 	import { formatNumeric } from '../../lib/ui/display-formatters.js';
@@ -95,80 +96,82 @@
 		)) satisfies CollectionFormSemantic;
 </script>
 
-<CollectionForm
-	{client}
-	collection="loans"
-	defaultValues={record ?? undefined}
-	{semantic}
-	submitLabel={record ? t('component.save_loan') : t('component.create_loan')}
-	loading={record != null && !seeded}
-	onAfterSubmit={record ? undefined : close}
->
-	{#snippet children({ Field, form })}
-		{@const principal = form.values().principal}
-		{@const due = loanScheduleTotal(schedule)}
-		{@const imbalanced = loanScheduleImbalanced(principal, schedule)}
-		<Grid gap="md" minimum="panel">
-			<Field
-				name="employment_id"
-				label={t('component.employment')}
-				relationOptions={{
-					label: (employment) =>
-						employment.employee_number != null && employment.employee_number !== ''
-							? String(employment.employee_number)
-							: '—',
-					orderBy: { employee_number: 'asc' },
-					limit: 1000
-				}}
-			/>
-			<Field
-				name="pay_component_id"
-				label={t('component.pay_component')}
-				relationOptions={{
-					label: (component) =>
-						component.code != null && component.code !== '' ? String(component.code) : '—',
-					where: { nature: { eq: 'DEDUCTION' } },
-					orderBy: { code: 'asc' },
-					limit: 200
-				}}
-			/>
-			<Field name="principal" label={t('component.principal')} />
-			<Field name="effective_range" label={t('component.effective_period')} />
-			<Column span="all"><Field name="reference" label={t('component.reference')} /></Column>
-			<Column span="all"><Field name="reason" label={t('component.reason')} /></Column>
-			<Column span="all">
-				<Stack
-					as="section"
-					gap="sm"
-					data-loan-schedule
-					data-invalid={imbalanced ? 'true' : undefined}
-					aria-labelledby="loan-repayment-schedule-heading"
-				>
-					<h3 id="loan-repayment-schedule-heading" class="text-sm font-semibold">
-						{t('component.repayment_schedule')}
-					</h3>
-					{#if imbalanced}
-						<p class="text-sm text-destructive" role="status">
-							{t('component.loan_schedule_imbalance', {
-								due: formatNumeric(due),
-								principal: formatNumeric(principal)
-							})}
-						</p>
-					{/if}
-					<MatrixRenderer
-						rows={schedule}
-						columns={COLUMNS}
-						emptyMessage={t('component.loan_schedule_empty')}
-						addRowLabel={t('component.add_repayment')}
-						createRow={() => createLoanRepaymentDraft(schedule.at(-1))}
-						bounded={false}
-						onChange={(rows) => {
-							schedule = rows;
-							form.setValues({ repayment_loan: loanScheduleWriteRows(rows) });
-						}}
-					/>
-				</Stack>
-			</Column>
-		</Grid>
-	{/snippet}
-</CollectionForm>
+<RecordShell title={record?.reference ?? t('component.create_loan')}>
+	<CollectionForm
+		{client}
+		collection="loans"
+		defaultValues={record ?? undefined}
+		{semantic}
+		submitLabel={record ? t('component.save_loan') : t('component.create_loan')}
+		loading={record != null && !seeded}
+		onAfterSubmit={record ? undefined : close}
+	>
+		{#snippet children({ Field, form })}
+			{@const principal = form.values().principal}
+			{@const due = loanScheduleTotal(schedule)}
+			{@const imbalanced = loanScheduleImbalanced(principal, schedule)}
+			<Grid gap="md" minimum="panel">
+				<Field
+					name="employment_id"
+					label={t('component.employment')}
+					relationOptions={{
+						label: (employment) =>
+							employment.employee_number != null && employment.employee_number !== ''
+								? String(employment.employee_number)
+								: '—',
+						orderBy: { employee_number: 'asc' },
+						limit: 1000
+					}}
+				/>
+				<Field
+					name="pay_component_id"
+					label={t('component.pay_component')}
+					relationOptions={{
+						label: (component) =>
+							component.code != null && component.code !== '' ? String(component.code) : '—',
+						where: { nature: { eq: 'DEDUCTION' } },
+						orderBy: { code: 'asc' },
+						limit: 200
+					}}
+				/>
+				<Field name="principal" label={t('component.principal')} />
+				<Field name="effective_range" label={t('component.effective_period')} />
+				<Column span="all"><Field name="reference" label={t('component.reference')} /></Column>
+				<Column span="all"><Field name="reason" label={t('component.reason')} /></Column>
+				<Column span="all">
+					<Stack
+						as="section"
+						gap="sm"
+						data-loan-schedule
+						data-invalid={imbalanced ? 'true' : undefined}
+						aria-labelledby="loan-repayment-schedule-heading"
+					>
+						<h3 id="loan-repayment-schedule-heading" class="text-sm font-semibold">
+							{t('component.repayment_schedule')}
+						</h3>
+						{#if imbalanced}
+							<p class="text-sm text-destructive" role="status">
+								{t('component.loan_schedule_imbalance', {
+									due: formatNumeric(due),
+									principal: formatNumeric(principal)
+								})}
+							</p>
+						{/if}
+						<MatrixRenderer
+							rows={schedule}
+							columns={COLUMNS}
+							emptyMessage={t('component.loan_schedule_empty')}
+							addRowLabel={t('component.add_repayment')}
+							createRow={() => createLoanRepaymentDraft(schedule.at(-1))}
+							bounded={false}
+							onChange={(rows) => {
+								schedule = rows;
+								form.setValues({ repayment_loan: loanScheduleWriteRows(rows) });
+							}}
+						/>
+					</Stack>
+				</Column>
+			</Grid>
+		{/snippet}
+	</CollectionForm>
+</RecordShell>

@@ -4,6 +4,7 @@
 	import { downloadCollectionExport } from '@norbital-ai/bolt/client';
 	import { useI18n, type UiKeys } from '@norbital-ai/ui/i18n';
 	import AppHeaderActions from '@norbital-ai/bolt/client/app-header-actions';
+	import { AppShell } from '@norbital-ai/ui/app-shell';
 	import type { TenantI18nKeys } from '$bolt/i18n-keys';
 	import CompanyScopeCombobox from './CompanyScopeCombobox.svelte';
 	import {
@@ -11,7 +12,7 @@
 		companiesUnknown as companiesUnknownOf,
 		resolveCompanyId
 	} from './company-scope.svelte.js';
-	import { Bound, Cover, Inline, Scroll, Stack } from '@norbital-ai/ui/layout';
+	import { Bound, Inline, Scroll, Stack } from '@norbital-ai/ui/layout';
 	import { Tabs, type TabConfig } from '@norbital-ai/ui/tabs';
 	import { CollectionTable } from '@norbital-ai/ui/collection-table';
 	import { PAYROLL_RUN_LIST_COLUMNS } from '../../collections/payroll_runs/list-columns.js';
@@ -329,28 +330,17 @@
 	{/if}
 {/snippet}
 
-<svelte:head>
-	<title>Payroll</title>
-	<meta
-		name="description"
-		content="Create payroll runs, review payslips, export payments, and audit calculations"
-	/>
-	<meta name="bolt:icon" content="lucide:badge-dollar-sign" />
-	<meta
-		name="bolt:thumbnail"
-		content="/__bolt/request/api/template-seed-assets/hr-payroll/app-media/payroll-banner.webp"
-	/>
-	<meta
-		name="bolt:banner"
-		content="/__bolt/request/api/template-seed-assets/hr-payroll/app-media/payroll-banner.webp"
-	/>
-</svelte:head>
+<AppShell
+	icon="lucide:badge-dollar-sign"
+	title="Payroll"
+	description="Create payroll runs, review payslips, export payments, and audit calculations"
+	banner="/__bolt/request/api/template-seed-assets/hr-payroll/app-media/payroll-banner.webp"
+	variant="full"
+>
+	<AppHeaderActions>
+		{@render companyScopeActions()}
+	</AppHeaderActions>
 
-<AppHeaderActions>
-	{@render companyScopeActions()}
-</AppHeaderActions>
-
-<Cover>
 	<Tabs
 		animate={false}
 		config={[
@@ -368,4 +358,4 @@
 			}
 		] satisfies TabConfig[]}
 	/>
-</Cover>
+</AppShell>

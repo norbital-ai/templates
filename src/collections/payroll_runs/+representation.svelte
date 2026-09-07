@@ -33,6 +33,7 @@
 	import { MonthPicker, monthLabel } from '@norbital-ai/ui/month-picker';
 	import { FormattedValueRenderer } from '@norbital-ai/ui/data-renderer';
 	import { Cluster, Grid, Stack } from '@norbital-ai/ui/layout';
+	import { RecordShell } from '@norbital-ai/ui/record-shell';
 	import { resolveWindow } from './lib/period.js';
 	import { formatCalendarDate } from '../../lib/ui/display-formatters.js';
 	import {
@@ -196,247 +197,254 @@
 </script>
 
 {#if record}
-	<Stack gap="lg">
-		<Stack as="section" gap="sm" aria-label={t('component.payroll_run_summary')}>
-			<Cluster align="start" justify="between" gap="sm">
-				<Stack gap="none" class="min-w-0">
-					<h2 class="truncate text-heading">
-						{recordCompany?.name ?? t('component.company')}
-					</h2>
-					<p class="text-sm text-muted-foreground">
-						{t('component.period_line', {
-							period: record.period,
-							count: payslipCount ?? 0
-						})}
-					</p>
-				</Stack>
-				<span class="rounded-full bg-muted px-2.5 py-1 text-xs font-semibold">
-					{record.lifecycle}
-				</span>
-			</Cluster>
-			<Grid as="dl" gap="sm" minimum="compact">
-				<Stack gap="xs">
-					<dt class="text-meta">{t('component.attendance_window')}</dt>
-					<dd class="font-medium tabular-nums">
-						{formatCalendarDate(record.attendance_from)} → {formatCalendarDate(
-							record.attendance_to
-						)}
-					</dd>
-				</Stack>
-				<Stack gap="xs">
-					<dt class="text-meta">{t('app.payroll.pay_date')}</dt>
-					<dd class="font-medium tabular-nums">{formatCalendarDate(record.pay_date)}</dd>
-				</Stack>
-			</Grid>
-		</Stack>
-
-		{#if record.lifecycle === 'DRAFT'}
-			<Stack gap="sm">
-				<p class="text-sm text-muted-foreground">{t('payroll.frozen_hint')}</p>
-				<CollectionForm
-					{client}
-					collection="payroll_runs"
-					defaultValues={record}
-					disabled={emptyDraft}
-					submitLabel={t('payroll.mark_paid')}
-					onAfterSubmit={close}
-				>
-					{#snippet children({ Field, form })}
-						<Field name="company_id" hidden />
-						<Field name="period" hidden />
-						<Field name="run_kind" hidden />
-						<Field name="lifecycle" hidden />
-						<p
-							class="text-sm"
-							{@attach () => {
-								form.setValues({ lifecycle: 'PAID' });
-							}}
-						>
-							{t('payroll.payment_confirmation')}
-						</p>
-					{/snippet}
-				</CollectionForm>
-			</Stack>
-		{/if}
-		{#if emptyDraft}
-			<p class="rounded-md border border-amber-500/40 bg-amber-500/10 p-3 text-sm">
-				{t('component.draft_built_nothing')}
-			</p>
-		{/if}
-
-		<Stack as="section" gap="sm" aria-label={t('component.payslips')}>
-			<CollectionTable
-				{client}
-				collection="payslips"
-				title={t('component.payslips')}
-				description={t('component.payslips_description')}
-				features={{ create: false }}
-				query={payslipsTableQuery}
-				bounded={false}
-			>
-				{#snippet columns({ Column })}
-					<Column
-						name="employment_id"
-						label={t('component.employee')}
-						card="title"
-						renderer={FormattedValueRenderer}
-						rendererProps={{
-							format: ({ row }: { row: PayrollRunPayslipRow }) => payslipEmployeeCode(row)
-						}}
-					/>
-					<Column name="currency" card="badge" />
-					<Column
-						name="gross"
-						renderer={FormattedValueRenderer}
-						rendererProps={{
-							format: ({ row }: { row: PayrollRunPayslipRow }) => payslipAmount(row, 'gross')
-						}}
-					/>
-					<Column
-						name="total_deductions"
-						label={t('component.deductions')}
-						renderer={FormattedValueRenderer}
-						rendererProps={{
-							format: ({ row }: { row: PayrollRunPayslipRow }) =>
-								payslipAmount(row, 'total_deductions')
-						}}
-					/>
-					<Column
-						name="net"
-						card="subtitle"
-						renderer={FormattedValueRenderer}
-						rendererProps={{
-							format: ({ row }: { row: PayrollRunPayslipRow }) => payslipAmount(row, 'net')
-						}}
-					/>
-					<Column
-						name="employer_cost"
-						label={t('component.employer_cost')}
-						renderer={FormattedValueRenderer}
-						rendererProps={{
-							format: ({ row }: { row: PayrollRunPayslipRow }) =>
-								payslipAmount(row, 'employer_cost')
-						}}
-					/>
-				{/snippet}
-			</CollectionTable>
-		</Stack>
-	</Stack>
-{:else}
-	<CollectionForm
-		{client}
-		collection="payroll_runs"
-		submitLabel={t('component.create_payroll_run')}
-		onAfterSubmit={close}
+	<RecordShell
+		title={record.period}
+		subtitle={t('component.period_line', { period: record.period, count: payslipCount ?? 0 })}
 	>
-		{#snippet children({ form, Field })}
-			<Field name="company_id" hidden />
-			<Field name="period" hidden />
-			<Field name="lifecycle" hidden />
-			<Field name="run_kind" hidden />
-			<Stack gap="lg">
-				<Grid gap="md" minimum="compact">
+		<Stack gap="lg">
+			<Stack as="section" gap="sm" aria-label={t('component.payroll_run_summary')}>
+				<Cluster align="start" justify="between" gap="sm">
+					<Stack gap="none" class="min-w-0">
+						<h2 class="truncate text-heading">
+							{recordCompany?.name ?? t('component.company')}
+						</h2>
+						<p class="text-sm text-muted-foreground">
+							{t('component.period_line', {
+								period: record.period,
+								count: payslipCount ?? 0
+							})}
+						</p>
+					</Stack>
+					<span class="rounded-full bg-muted px-2.5 py-1 text-xs font-semibold">
+						{record.lifecycle}
+					</span>
+				</Cluster>
+				<Grid as="dl" gap="sm" minimum="compact">
 					<Stack gap="xs">
-						<span class="text-sm font-medium">{t('payroll.run_kind')}</span>
-						<Combobox
-							ariaLabel={t('payroll.run_kind')}
-							value={runKind}
-							options={[
-								{ value: 'REGULAR', label: t('payroll.regular') },
-								{ value: 'AD_HOC', label: t('payroll.ad_hoc') }
-							]}
-							onValueChange={(value) => {
-								if (value !== 'REGULAR' && value !== 'AD_HOC') return;
-								runKind = value;
-								period = null;
-								form.setValues({ run_kind: value, period: undefined });
+						<dt class="text-meta">{t('component.attendance_window')}</dt>
+						<dd class="font-medium tabular-nums">
+							{formatCalendarDate(record.attendance_from)} → {formatCalendarDate(
+								record.attendance_to
+							)}
+						</dd>
+					</Stack>
+					<Stack gap="xs">
+						<dt class="text-meta">{t('app.payroll.pay_date')}</dt>
+						<dd class="font-medium tabular-nums">{formatCalendarDate(record.pay_date)}</dd>
+					</Stack>
+				</Grid>
+			</Stack>
+
+			{#if record.lifecycle === 'DRAFT'}
+				<Stack gap="sm">
+					<p class="text-sm text-muted-foreground">{t('payroll.frozen_hint')}</p>
+					<CollectionForm
+						{client}
+						collection="payroll_runs"
+						defaultValues={record}
+						disabled={emptyDraft}
+						submitLabel={t('payroll.mark_paid')}
+						onAfterSubmit={close}
+					>
+						{#snippet children({ Field, form })}
+							<Field name="company_id" hidden />
+							<Field name="period" hidden />
+							<Field name="run_kind" hidden />
+							<Field name="lifecycle" hidden />
+							<p
+								class="text-sm"
+								{@attach () => {
+									form.setValues({ lifecycle: 'PAID' });
+								}}
+							>
+								{t('payroll.payment_confirmation')}
+							</p>
+						{/snippet}
+					</CollectionForm>
+				</Stack>
+			{/if}
+			{#if emptyDraft}
+				<p class="rounded-md border border-amber-500/40 bg-amber-500/10 p-3 text-sm">
+					{t('component.draft_built_nothing')}
+				</p>
+			{/if}
+
+			<Stack as="section" gap="sm" aria-label={t('component.payslips')}>
+				<CollectionTable
+					{client}
+					collection="payslips"
+					title={t('component.payslips')}
+					description={t('component.payslips_description')}
+					features={{ create: false }}
+					query={payslipsTableQuery}
+					bounded={false}
+				>
+					{#snippet columns({ Column })}
+						<Column
+							name="employment_id"
+							label={t('component.employee')}
+							card="title"
+							renderer={FormattedValueRenderer}
+							rendererProps={{
+								format: ({ row }: { row: PayrollRunPayslipRow }) => payslipEmployeeCode(row)
 							}}
 						/>
-					</Stack>
-					<label class="text-sm font-medium">
+						<Column name="currency" card="badge" />
+						<Column
+							name="gross"
+							renderer={FormattedValueRenderer}
+							rendererProps={{
+								format: ({ row }: { row: PayrollRunPayslipRow }) => payslipAmount(row, 'gross')
+							}}
+						/>
+						<Column
+							name="total_deductions"
+							label={t('component.deductions')}
+							renderer={FormattedValueRenderer}
+							rendererProps={{
+								format: ({ row }: { row: PayrollRunPayslipRow }) =>
+									payslipAmount(row, 'total_deductions')
+							}}
+						/>
+						<Column
+							name="net"
+							card="subtitle"
+							renderer={FormattedValueRenderer}
+							rendererProps={{
+								format: ({ row }: { row: PayrollRunPayslipRow }) => payslipAmount(row, 'net')
+							}}
+						/>
+						<Column
+							name="employer_cost"
+							label={t('component.employer_cost')}
+							renderer={FormattedValueRenderer}
+							rendererProps={{
+								format: ({ row }: { row: PayrollRunPayslipRow }) =>
+									payslipAmount(row, 'employer_cost')
+							}}
+						/>
+					{/snippet}
+				</CollectionTable>
+			</Stack>
+		</Stack>
+	</RecordShell>
+{:else}
+	<RecordShell title={t('component.create_payroll_run')}>
+		<CollectionForm
+			{client}
+			collection="payroll_runs"
+			submitLabel={t('component.create_payroll_run')}
+			onAfterSubmit={close}
+		>
+			{#snippet children({ form, Field })}
+				<Field name="company_id" hidden />
+				<Field name="period" hidden />
+				<Field name="lifecycle" hidden />
+				<Field name="run_kind" hidden />
+				<Stack gap="lg">
+					<Grid gap="md" minimum="compact">
 						<Stack gap="xs">
-							{t('component.legal_entity')}
+							<span class="text-sm font-medium">{t('payroll.run_kind')}</span>
 							<Combobox
-								ariaLabel={t('component.legal_entity')}
-								options={companyOptions}
-								value={companyId}
+								ariaLabel={t('payroll.run_kind')}
+								value={runKind}
+								options={[
+									{ value: 'REGULAR', label: t('payroll.regular') },
+									{ value: 'AD_HOC', label: t('payroll.ad_hoc') }
+								]}
 								onValueChange={(value) => {
-									companyId = value;
+									if (value !== 'REGULAR' && value !== 'AD_HOC') return;
+									runKind = value;
 									period = null;
-									form.setValues({ company_id: value });
+									form.setValues({ run_kind: value, period: undefined });
 								}}
-								searchPlaceholder={t('component.search_companies')}
-								emptyPlaceholder={t('component.choose_legal_entity')}
-								disabled={companiesQuery.loading || settingsQuery.loading}
 							/>
 						</Stack>
-					</label>
-					<label class="text-sm font-medium">
-						<Stack gap="xs">
-							{t('component.pay_period')}
-							{#if semiMonthly}
+						<label class="text-sm font-medium">
+							<Stack gap="xs">
+								{t('component.legal_entity')}
 								<Combobox
-									ariaLabel={t('component.pay_period')}
-									options={halfOptions}
-									value={period}
-									onValueChange={(next) => {
-										period = next;
-										form.setValues({ company_id: companyId, period: next ?? undefined });
+									ariaLabel={t('component.legal_entity')}
+									options={companyOptions}
+									value={companyId}
+									onValueChange={(value) => {
+										companyId = value;
+										period = null;
+										form.setValues({ company_id: value });
 									}}
-									searchPlaceholder={t('component.search_payroll_periods')}
-									emptyPlaceholder={t('component.choose_payroll_period')}
-									disabled={!companyId || runsQuery.loading}
+									searchPlaceholder={t('component.search_companies')}
+									emptyPlaceholder={t('component.choose_legal_entity')}
+									disabled={companiesQuery.loading || settingsQuery.loading}
 								/>
-							{:else}
-								<MonthPicker
-									value={period}
-									onValueChange={(next) => {
-										period = next;
-										form.setValues({ company_id: companyId, period: next });
-									}}
-									min={periodCandidates[0]}
-									max={periodCandidates[periodCandidates.length - 1]}
-									isMonthDisabled={isPeriodDisabled}
-									placeholder={companyId
-										? t('component.choose_payroll_period')
-										: t('component.choose_entity_first')}
-									ariaLabel={t('component.pay_period')}
-									disabled={!companyId || runsQuery.loading}
-								/>
-							{/if}
-						</Stack>
-					</label>
-				</Grid>
-				{#if selectedWindow}
-					<Grid as="dl" gap="sm" minimum="compact">
-						<Stack gap="xs">
-							<dt class="text-meta">{t('component.salary_month')}</dt>
-							<dd class="font-medium tabular-nums">
-								{formatCalendarDate(selectedWindow.salary.start)} → {formatCalendarDate(
-									selectedWindow.salary.end
-								)}
-							</dd>
-						</Stack>
-						<Stack gap="xs">
-							<dt class="text-meta">{t('component.attendance_window')}</dt>
-							<dd class="font-medium tabular-nums">
-								{formatCalendarDate(selectedWindow.attendance.start)} → {formatCalendarDate(
-									selectedWindow.attendance.end
-								)}
-							</dd>
-						</Stack>
-						<Stack gap="xs">
-							<dt class="text-meta">{t('component.pay_date')}</dt>
-							<dd class="font-medium tabular-nums">
-								{formatCalendarDate(selectedWindow.payDate)}
-							</dd>
-						</Stack>
+							</Stack>
+						</label>
+						<label class="text-sm font-medium">
+							<Stack gap="xs">
+								{t('component.pay_period')}
+								{#if semiMonthly}
+									<Combobox
+										ariaLabel={t('component.pay_period')}
+										options={halfOptions}
+										value={period}
+										onValueChange={(next) => {
+											period = next;
+											form.setValues({ company_id: companyId, period: next ?? undefined });
+										}}
+										searchPlaceholder={t('component.search_payroll_periods')}
+										emptyPlaceholder={t('component.choose_payroll_period')}
+										disabled={!companyId || runsQuery.loading}
+									/>
+								{:else}
+									<MonthPicker
+										value={period}
+										onValueChange={(next) => {
+											period = next;
+											form.setValues({ company_id: companyId, period: next });
+										}}
+										min={periodCandidates[0]}
+										max={periodCandidates[periodCandidates.length - 1]}
+										isMonthDisabled={isPeriodDisabled}
+										placeholder={companyId
+											? t('component.choose_payroll_period')
+											: t('component.choose_entity_first')}
+										ariaLabel={t('component.pay_period')}
+										disabled={!companyId || runsQuery.loading}
+									/>
+								{/if}
+							</Stack>
+						</label>
 					</Grid>
-				{/if}
-				<p class="text-sm text-muted-foreground">
-					{t('component.create_run_hint')}
-				</p>
-			</Stack>
-		{/snippet}
-	</CollectionForm>
+					{#if selectedWindow}
+						<Grid as="dl" gap="sm" minimum="compact">
+							<Stack gap="xs">
+								<dt class="text-meta">{t('component.salary_month')}</dt>
+								<dd class="font-medium tabular-nums">
+									{formatCalendarDate(selectedWindow.salary.start)} → {formatCalendarDate(
+										selectedWindow.salary.end
+									)}
+								</dd>
+							</Stack>
+							<Stack gap="xs">
+								<dt class="text-meta">{t('component.attendance_window')}</dt>
+								<dd class="font-medium tabular-nums">
+									{formatCalendarDate(selectedWindow.attendance.start)} → {formatCalendarDate(
+										selectedWindow.attendance.end
+									)}
+								</dd>
+							</Stack>
+							<Stack gap="xs">
+								<dt class="text-meta">{t('component.pay_date')}</dt>
+								<dd class="font-medium tabular-nums">
+									{formatCalendarDate(selectedWindow.payDate)}
+								</dd>
+							</Stack>
+						</Grid>
+					{/if}
+					<p class="text-sm text-muted-foreground">
+						{t('component.create_run_hint')}
+					</p>
+				</Stack>
+			{/snippet}
+		</CollectionForm>
+	</RecordShell>
 {/if}

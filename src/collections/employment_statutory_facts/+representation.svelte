@@ -5,49 +5,52 @@
 	import type { RepresentationProps } from './$types.js';
 	import { CollectionForm } from '@norbital-ai/ui/collection-form';
 	import { Column, Grid } from '@norbital-ai/ui/layout';
+	import { RecordShell } from '@norbital-ai/ui/record-shell';
 
 	let { record, close }: RepresentationProps = $props();
 	const { t } = useI18n<TenantI18nKeys>();
 </script>
 
-<CollectionForm
-	{client}
-	collection="employment_statutory_facts"
-	defaultValues={record ?? undefined}
-	submitLabel={record ? t('component.save_registration') : t('component.record_registration')}
-	onAfterSubmit={record ? undefined : close}
->
-	{#snippet children({ Field })}
-		<Field name="supersedes_fact_id" hidden />
-		<Grid gap="md" minimum="panel">
-			<Field
-				name="employment_id"
-				label={t('component.employment')}
-				relationOptions={{
-					label: (employment) =>
-						employment.employee_number != null && employment.employee_number !== ''
-							? String(employment.employee_number)
-							: '—',
-					orderBy: { employee_number: 'asc' },
-					limit: 10_000
-				}}
-			/>
-			<Field
-				name="statutory_contribution_id"
-				label={t('component.statutory_scheme')}
-				relationOptions={{
-					label: (contribution) =>
-						[contribution.code, contribution.name]
-							.filter((part) => part != null && part !== '')
-							.join(' · ') || '—',
-					orderBy: { sequence: 'asc' },
-					limit: 500
-				}}
-			/>
-			<Column span="all"><Field name="status" label={t('component.registration')} /></Column>
-			<Column span="all"
-				><Field name="effective_range" label={t('component.effective_period')} /></Column
-			>
-		</Grid>
-	{/snippet}
-</CollectionForm>
+<RecordShell title={record?.summary ?? t('component.create_statutory_fact')}>
+	<CollectionForm
+		{client}
+		collection="employment_statutory_facts"
+		defaultValues={record ?? undefined}
+		submitLabel={record ? t('component.save_registration') : t('component.record_registration')}
+		onAfterSubmit={record ? undefined : close}
+	>
+		{#snippet children({ Field })}
+			<Field name="supersedes_fact_id" hidden />
+			<Grid gap="md" minimum="panel">
+				<Field
+					name="employment_id"
+					label={t('component.employment')}
+					relationOptions={{
+						label: (employment) =>
+							employment.employee_number != null && employment.employee_number !== ''
+								? String(employment.employee_number)
+								: '—',
+						orderBy: { employee_number: 'asc' },
+						limit: 10_000
+					}}
+				/>
+				<Field
+					name="statutory_contribution_id"
+					label={t('component.statutory_scheme')}
+					relationOptions={{
+						label: (contribution) =>
+							[contribution.code, contribution.name]
+								.filter((part) => part != null && part !== '')
+								.join(' · ') || '—',
+						orderBy: { sequence: 'asc' },
+						limit: 500
+					}}
+				/>
+				<Column span="all"><Field name="status" label={t('component.registration')} /></Column>
+				<Column span="all"
+					><Field name="effective_range" label={t('component.effective_period')} /></Column
+				>
+			</Grid>
+		{/snippet}
+	</CollectionForm>
+</RecordShell>

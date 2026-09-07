@@ -130,10 +130,15 @@ const OWN_PAYSLIP = {
 	payslip_employment: { some: OWN_EMPLOYMENT }
 } as const;
 
-/** The entity's own rows: its identity and its shifts (site operations, never rules). */
+/** The entity's own rows: its identity, its roster codes and its shift patterns (site operations, never rules). */
 export const referenceGrants = (
 	...actions: ReadonlyArray<'read' | 'mutate.new' | 'mutate.existing' | 'delete'>
-): Grants => mergeGrants(grantsOn('companies', actions), grantsOn('shift_definitions', actions));
+): Grants =>
+	mergeGrants(
+		grantsOn('companies', actions),
+		grantsOn('shift_definitions', actions),
+		grantsOn('shift_patterns', actions)
+	);
 
 /** The law as every rank reads it: the settings versions, their schemes and bands. */
 export const statutoryGrants = (...actions: ReadonlyArray<'read'>): Grants =>
@@ -291,6 +296,8 @@ export const employeeReferenceGrants = (...actions: ReadonlyArray<'read'>): Gran
 		grantsOn('companies', actions),
 		grantsOn('company_holidays', actions),
 		grantsOn('shift_definitions', actions),
+		// The base an employee's own days are projected from; read in full, like the codes it names.
+		grantsOn('shift_patterns', actions),
 		grantsOn('pay_components', actions),
 		grantsOn('leave_types', actions)
 	);

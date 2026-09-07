@@ -21,6 +21,7 @@
 	import type { RepresentationProps } from './$types.js';
 	import { CollectionForm } from '@norbital-ai/ui/collection-form';
 	import { Column, Grid, Stack } from '@norbital-ai/ui/layout';
+	import { RecordShell } from '@norbital-ai/ui/record-shell';
 	import { decodeNumber } from '@norbital-ai/std/json';
 	import { formatCalendarDate, formatNumeric } from '../../lib/ui/display-formatters.js';
 	import { sourceLock, sourceLockRecordMetadata } from '../../lib/scheduling/lock.js';
@@ -108,121 +109,123 @@
 	/>
 </svelte:head>
 
-<CollectionForm
-	{client}
-	collection="leave_requests"
-	defaultValues={formValues}
-	{recordMetadata}
-	submitLabel={record ? t('component.save_leave') : t('component.submit_leave')}
-	onAfterSubmit={record ? undefined : close}
->
-	{#snippet children({ Field, form })}
-		{@const employmentId = form.values().employment_id}
-		{@const leaveTypeId = form.values().leave_type_id}
-		<Grid gap="md" minimum="panel">
-			{#if createScope == null}
+<RecordShell title={record?.summary ?? t('component.create_leave_request')}>
+	<CollectionForm
+		{client}
+		collection="leave_requests"
+		defaultValues={formValues}
+		{recordMetadata}
+		submitLabel={record ? t('component.save_leave') : t('component.submit_leave')}
+		onAfterSubmit={record ? undefined : close}
+	>
+		{#snippet children({ Field, form })}
+			{@const employmentId = form.values().employment_id}
+			{@const leaveTypeId = form.values().leave_type_id}
+			<Grid gap="md" minimum="panel">
+				{#if createScope == null}
+					<Field
+						name="employment_id"
+						label={t('component.person')}
+						relationOptions={{
+							label: (employment) =>
+								employment.employee_number != null && employment.employee_number !== ''
+									? String(employment.employee_number)
+									: '—',
+							orderBy: { employee_number: 'asc' },
+							limit: 10_000
+						}}
+					/>
+				{:else}
+					<Field name="employment_id" hidden />
+				{/if}
 				<Field
-					name="employment_id"
-					label={t('component.person')}
+					name="leave_type_id"
+					label={t('component.leave_type')}
 					relationOptions={{
-						label: (employment) =>
-							employment.employee_number != null && employment.employee_number !== ''
-								? String(employment.employee_number)
-								: '—',
-						orderBy: { employee_number: 'asc' },
-						limit: 10_000
+						label: (leaveType) =>
+							[leaveType.code, leaveType.name]
+								.filter((part) => part != null && part !== '')
+								.join(' · ') || '—',
+						// The lineage's version in force today: the catalogue a new request draws on.
+						where: scopedSettingsCode
+							? { leave_type_settings: { some: inForceSettings(scopedSettingsCode, todayKey()) } }
+							: undefined,
+						orderBy: { code: 'asc' },
+						limit: 500
 					}}
 				/>
-			{:else}
-				<Field name="employment_id" hidden />
-			{/if}
-			<Field
-				name="leave_type_id"
-				label={t('component.leave_type')}
-				relationOptions={{
-					label: (leaveType) =>
-						[leaveType.code, leaveType.name]
-							.filter((part) => part != null && part !== '')
-							.join(' · ') || '—',
-					// The lineage's version in force today: the catalogue a new request draws on.
-					where: scopedSettingsCode
-						? { leave_type_settings: { some: inForceSettings(scopedSettingsCode, todayKey()) } }
-						: undefined,
-					orderBy: { code: 'asc' },
-					limit: 500
-				}}
-			/>
-			<Field
-				name="leave_entitlement_id"
-				label={t('component.leave_entitlement')}
-				relationOptions={{
-					label: (entitlement) =>
-						`${entitlement.leave_name} · ${entitlement.leave_year} · ${entitlement.accrual_kind === 'UNLIMITED' ? t('component.accrual_unlimited') : `${entitlement.entitlement_days}d`}`,
-					where: {
-						employment_id: {
-							eq:
-								typeof employmentId === 'string'
-									? employmentId
-									: '00000000-0000-4000-8000-000000000000'
+				<Field
+					name="leave_entitlement_id"
+					label={t('component.leave_entitlement')}
+					relationOptions={{
+						label: (entitlement) =>
+							`${entitlement.leave_name} · ${entitlement.leave_year} · ${entitlement.accrual_kind === 'UNLIMITED' ? t('component.accrual_unlimited') : `${entitlement.entitlement_days}d`}`,
+						where: {
+							employment_id: {
+								eq:
+									typeof employmentId === 'string'
+										? employmentId
+										: '00000000-0000-4000-8000-000000000000'
+							},
+							leave_type_id: {
+								eq:
+									typeof leaveTypeId === 'string'
+										? leaveTypeId
+										: '00000000-0000-4000-8000-000000000000'
+							},
+							status: { eq: 'OPEN' },
+							approval_id: { isNull: true }
 						},
-						leave_type_id: {
-							eq:
-								typeof leaveTypeId === 'string'
-									? leaveTypeId
-									: '00000000-0000-4000-8000-000000000000'
-						},
-						status: { eq: 'OPEN' },
-						approval_id: { isNull: true }
-					},
-					orderBy: { starts_on: 'desc' },
-					limit: 500
-				}}
-			/>
-			<Column span="all"><Field name="event" label={t('component.what_happened')} /></Column>
-			<Column span="all"
-				><Field name="certificate_file" label={t('component.certificate')} /></Column
-			>
-			{#if record != null && ledgerQuery != null}
-				<Column span="all">
-					<Stack gap="xs">
-						<h3 class="text-sm font-semibold">{t('component.leave_ledger')}</h3>
-						{#if ledgerQuery.error != null}
-							<p class="text-sm text-destructive">{ledgerQuery.error.message}</p>
-						{:else if ledger.length === 0}
-							<p class="text-meta">{t('component.leave_ledger_empty')}</p>
-						{:else}
-							<div class="overflow-x-auto rounded-lg border">
-								<table class="w-full text-sm">
-									<thead class="border-b bg-muted/40 text-left text-xs text-muted-foreground">
-										<tr>
-											<th class="px-3 py-2 font-medium">{t('component.effective_date')}</th>
-											<th class="px-3 py-2 font-medium">{t('component.movement')}</th>
-											<th class="px-3 py-2 text-right font-medium">{t('component.days')}</th>
-											<th class="px-3 py-2 font-medium">{t('component.reason')}</th>
-										</tr>
-									</thead>
-									<tbody>
-										{#each ledger as entry (entry.id)}
-											<tr class="border-b last:border-0">
-												<td class="px-3 py-2 tabular-nums"
-													>{formatCalendarDate(entry.effective_on)}</td
-												>
-												<td class="px-3 py-2">{entry.kind}</td>
-												<td class="px-3 py-2 text-right tabular-nums"
-													>{decodeNumber(entry.days) > 0 ? '+' : ''}{formatNumeric(
-														decodeNumber(entry.days)
-													)}</td
-												>
-												<td class="px-3 py-2 text-muted-foreground">{entry.reason}</td>
+						orderBy: { starts_on: 'desc' },
+						limit: 500
+					}}
+				/>
+				<Column span="all"><Field name="event" label={t('component.what_happened')} /></Column>
+				<Column span="all"
+					><Field name="certificate_file" label={t('component.certificate')} /></Column
+				>
+				{#if record != null && ledgerQuery != null}
+					<Column span="all">
+						<Stack gap="xs">
+							<h3 class="text-sm font-semibold">{t('component.leave_ledger')}</h3>
+							{#if ledgerQuery.error != null}
+								<p class="text-sm text-destructive">{ledgerQuery.error.message}</p>
+							{:else if ledger.length === 0}
+								<p class="text-meta">{t('component.leave_ledger_empty')}</p>
+							{:else}
+								<div class="overflow-x-auto rounded-lg border">
+									<table class="w-full text-sm">
+										<thead class="border-b bg-muted/40 text-left text-xs text-muted-foreground">
+											<tr>
+												<th class="px-3 py-2 font-medium">{t('component.effective_date')}</th>
+												<th class="px-3 py-2 font-medium">{t('component.movement')}</th>
+												<th class="px-3 py-2 text-right font-medium">{t('component.days')}</th>
+												<th class="px-3 py-2 font-medium">{t('component.reason')}</th>
 											</tr>
-										{/each}
-									</tbody>
-								</table>
-							</div>
-						{/if}
-					</Stack>
-				</Column>
-			{/if}
-		</Grid>
-	{/snippet}
-</CollectionForm>
+										</thead>
+										<tbody>
+											{#each ledger as entry (entry.id)}
+												<tr class="border-b last:border-0">
+													<td class="px-3 py-2 tabular-nums"
+														>{formatCalendarDate(entry.effective_on)}</td
+													>
+													<td class="px-3 py-2">{entry.kind}</td>
+													<td class="px-3 py-2 text-right tabular-nums"
+														>{decodeNumber(entry.days) > 0 ? '+' : ''}{formatNumeric(
+															decodeNumber(entry.days)
+														)}</td
+													>
+													<td class="px-3 py-2 text-muted-foreground">{entry.reason}</td>
+												</tr>
+											{/each}
+										</tbody>
+									</table>
+								</div>
+							{/if}
+						</Stack>
+					</Column>
+				{/if}
+			</Grid>
+		{/snippet}
+	</CollectionForm>
+</RecordShell>

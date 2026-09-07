@@ -16,9 +16,11 @@
 	import { CollectionForm } from '@norbital-ai/ui/collection-form';
 	import { CollectionTable } from '@norbital-ai/ui/collection-table';
 	import { getDataRendererRuntimeContext } from '@norbital-ai/ui/data-renderer';
-	import { Column, Cover, Grid, Inline, Stack } from '@norbital-ai/ui/layout';
-	import { Tabs, type TabConfig } from '@norbital-ai/ui/tabs';
+	import { Column, Grid, Stack } from '@norbital-ai/ui/layout';
+	import { RecordShell } from '@norbital-ai/ui/record-shell';
+	import type { TabConfig } from '@norbital-ai/ui/tabs';
 	import { workPatternSchema, type WorkPattern } from '../../datatypes/work_pattern/+definition.js';
+	import { AS_ASSIGNED_PATTERN } from '../../lib/scheduling/work-pattern.js';
 	import { readRange, StoredRangeSchema, type StoredRange } from '../payroll_runs/lib/effective.js';
 	import {
 		formatEffectiveRange,
@@ -30,10 +32,16 @@
 	import Icon from '@iconify/svelte';
 	import FaceEnrollFlow from './face-enroll-flow.svelte';
 
+	/** Terms as the profile reads them: the pointer, and the named pattern riding the `with`. */
 	type EmploymentTerm = Pick<
 		WorkspaceRow<'employment_terms'>,
-		'employment_id' | 'effective_range' | 'work_pattern'
-	>;
+		'employment_id' | 'effective_range' | 'shift_pattern_id'
+	> & {
+		readonly term_shift_pattern?: Pick<
+			WorkspaceRow<'shift_patterns'>,
+			'id' | 'code' | 'name' | 'pattern'
+		> | null;
+	};
 
 	const employmentScheduleSchema = Schema.Union([
 		Schema.Struct({
@@ -54,7 +62,27 @@
 		);
 	}
 
-	function summarizePattern(pattern: WorkPattern): string {
+	function summarizePattern(code: string, pattern: WorkPattern): string {
+		if (pattern.type === 'ROSTERED') {
+			if (pattern.expectation.kind === 'AS_ASSIGNED') {
+				return pattern.expectation.maximum_paid_minutes == null
+					? `${code} · Roster-assigned · as assigned`
+					: `${code} · Roster-assigned · up to ${pattern.expectation.maximum_paid_minutes / 60}h/${pattern.expectation.period.toLowerCase()}`;
+			}
+			return `${code} · Roster-assigned · ${pattern.expectation.required_work_days}d · ${pattern.expectation.required_paid_minutes / 60}h/${pattern.expectation.period.toLowerCase()}`;
+		}
+
+		const continuous =
+			pattern.phases.length === 1 && pattern.phases[0]?.duration.kind === 'CONTINUOUS';
+		if (continuous) {
+			const days = pattern.phases[0]?.day_cycle.length ?? 0;
+			return `${code} · ${days}-day cycle · starts ${pattern.anchor_date}`;
+		}
+		return `${code} · ${pattern.phases.length} calendar phases · starts ${pattern.anchor_date}`;
+	}
+
+	/** Terms with no pattern are rostered as assigned; there is no row to name. */
+	function summarizeUnnamed(pattern: WorkPattern): string {
 		if (pattern.type === 'ROSTERED') {
 			if (pattern.expectation.kind === 'AS_ASSIGNED') {
 				return pattern.expectation.maximum_paid_minutes == null
@@ -74,20 +102,31 @@
 	}
 
 	function employmentScheduleOn(
-		terms: readonly Pick<EmploymentTerm, 'effective_range' | 'work_pattern'>[],
+		terms: readonly Pick<
+			EmploymentTerm,
+			'effective_range' | 'shift_pattern_id' | 'term_shift_pattern'
+		>[],
 		date: string
 	): EmploymentSchedule {
 		const candidates = terms.flatMap((term) => {
 			const range = readRange(term.effective_range);
-			const parsed = decodeWorkPattern(term.work_pattern);
-			return range == null || !Result.isSuccess(parsed) ? [] : [{ range, pattern: parsed.success }];
+			if (range == null) return [];
+			// Read through the row: the named pattern the terms point at, or as assigned when none.
+			const row = term.shift_pattern_id == null ? null : (term.term_shift_pattern ?? null);
+			const parsed = decodeWorkPattern(row?.pattern ?? AS_ASSIGNED_PATTERN);
+			return !Result.isSuccess(parsed)
+				? []
+				: [{ range, pattern: parsed.success, code: row?.code ?? null }];
 		});
 		const current = candidates.find((candidate) => isEffectiveOn(candidate.range, date));
 		if (current) {
 			return {
 				state: 'current',
 				effectiveRange: current.range,
-				summary: summarizePattern(current.pattern)
+				summary:
+					current.code == null
+						? summarizeUnnamed(current.pattern)
+						: summarizePattern(current.code, current.pattern)
 			};
 		}
 		const next = candidates
@@ -97,7 +136,10 @@
 			return {
 				state: 'next',
 				effectiveRange: next.range,
-				summary: summarizePattern(next.pattern)
+				summary:
+					next.code == null
+						? summarizeUnnamed(next.pattern)
+						: summarizePattern(next.code, next.pattern)
 			};
 		}
 		return { state: 'missing' };
@@ -105,7 +147,6 @@
 
 	let { record, close }: RepresentationProps = $props();
 	const { t } = useI18n<TenantI18nKeys>();
-	let activeProfileTab = $state('person');
 	const today = todayKey();
 	const fileRuntime = getDataRendererRuntimeContext();
 	/**
@@ -127,15 +168,24 @@
 				})
 	);
 	const employments = $derived(employmentsQuery?.current ?? []);
+	const subtitle = $derived(
+		record == null
+			? undefined
+			: `${record.email ?? t('component.no_email_recorded')} · ${record.nationality ?? t('component.nationality_not_recorded')}`
+	);
 	// Terms are read only while the Employments tab is open. One employee-scoped query feeds every
 	// row, so opening a profile does not mount a table or lookup per employment.
 	const employmentTermsQuery = $derived(
-		record == null || activeProfileTab !== 'employments'
+		record == null
 			? null
 			: client.db.employment_terms.findMany({
 					where: {
 						approval_id: { isNull: true },
 						term_employment: { employee_id: { eq: record.id } }
+					},
+					// The named pattern rides the terms read; no second query per employment.
+					with: {
+						term_shift_pattern: { columns: { id: true, code: true, name: true, pattern: true } }
 					},
 					limit: 500
 				})
@@ -314,55 +364,31 @@
 {/snippet}
 
 {#if record}
-	{#snippet personSummary()}
-		<Stack gap="xs">
-			<Inline gap="sm" align="baseline">
-				<h2 class="truncate text-heading">{record.name}</h2>
-				<span class="text-sm text-muted-foreground">
-					{employments.length}
-					{t('component.employment_count', {
-						count: employments.length,
-						s: employments.length === 1 ? '' : 's'
-					})}
-				</span>
-			</Inline>
-			<p class="text-sm text-muted-foreground">
-				{record.email ?? t('component.no_email_recorded')} · {record.nationality ??
-					t('component.nationality_not_recorded')}
-			</p>
-		</Stack>
-	{/snippet}
-
-	<Cover as="main" gap="md" top={personSummary}>
-		<!-- The detail sheet already insets this surface; the list must not inset itself again. -->
-		<Tabs
-			animate={false}
-			listClass="mx-0 w-full"
-			contentPadding={false}
-			bind:value={activeProfileTab}
-			config={[
-				{ name: 'person', label: t('component.person'), icon: 'lucide:user', content: person },
-				{
-					name: 'employments',
-					label: t('component.employments'),
-					icon: 'lucide:briefcase',
-					content: engagements
-				},
-				{
-					name: 'statutory-facts',
-					label: t('component.statutory_facts'),
-					icon: 'lucide:id-card',
-					content: statutoryFacts
-				},
-				{
-					name: 'face',
-					label: t('face.tab'),
-					icon: 'lucide:scan-face',
-					content: faceIdentity
-				}
-			] satisfies TabConfig[]}
-		/>
-	</Cover>
+	<RecordShell
+		title={record.name}
+		{subtitle}
+		tabs={[
+			{ name: 'person', label: t('component.person'), icon: 'lucide:user', content: person },
+			{
+				name: 'employments',
+				label: t('component.employments'),
+				icon: 'lucide:briefcase',
+				content: engagements
+			},
+			{
+				name: 'statutory-facts',
+				label: t('component.statutory_facts'),
+				icon: 'lucide:id-card',
+				content: statutoryFacts
+			},
+			{
+				name: 'face',
+				label: t('face.tab'),
+				icon: 'lucide:scan-face',
+				content: faceIdentity
+			}
+		] satisfies TabConfig[]}
+	/>
 	<Dialog.Root bind:open={enrollOpen}>
 		<Dialog.Content class="max-w-2xl">
 			<Dialog.Header>
@@ -383,5 +409,7 @@
 		</Dialog.Content>
 	</Dialog.Root>
 {:else}
-	{@render person()}
+	<RecordShell title={t('component.create_employee')}>
+		{@render person()}
+	</RecordShell>
 {/if}

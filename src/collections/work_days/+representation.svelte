@@ -15,6 +15,7 @@
 	import type { RepresentationProps } from './$types.js';
 	import { CollectionForm } from '@norbital-ai/ui/collection-form';
 	import { Column, Grid, Stack } from '@norbital-ai/ui/layout';
+	import { RecordShell } from '@norbital-ai/ui/record-shell';
 	import DurationHoursRenderer from '../../lib/ui/duration-hours-renderer.svelte';
 	import { sourceLock, sourceLockRecordMetadata } from '../../lib/scheduling/lock.js';
 
@@ -62,74 +63,76 @@
 	const recordMetadata = $derived(sourceLockRecordMetadata(lock, t));
 </script>
 
-<CollectionForm
-	{client}
-	collection="work_days"
-	defaultValues={record ?? undefined}
-	{recordMetadata}
-	submitLabel={record ? t('component.save_work_day') : t('component.create_work_day')}
-	onAfterSubmit={record ? undefined : close}
->
-	{#snippet children({ Field })}
-		<Field name="planned_origin" hidden />
-		<Stack gap="lg">
-			<Grid gap="md" minimum="panel">
-				<Field
-					name="employment_id"
-					label={t('component.employment')}
-					relationOptions={{
-						label: (employment) =>
-							employment.employee_number != null && employment.employee_number !== ''
-								? String(employment.employee_number)
-								: '—',
-						orderBy: { employee_number: 'asc' },
-						limit: 10_000
-					}}
-				/>
-				<Field name="work_date" label={t('component.day')} />
-			</Grid>
-
-			<Stack as="section" gap="sm" aria-labelledby="work-day-planned-heading">
-				<h3 id="work-day-planned-heading" class="text-sm font-semibold">
-					{t('component.work_day_planned')}
-				</h3>
-				<p class="text-meta">{t('component.work_day_planned_description')}</p>
+<RecordShell title={record?.work_date ?? t('component.create_work_day')}>
+	<CollectionForm
+		{client}
+		collection="work_days"
+		defaultValues={record ?? undefined}
+		{recordMetadata}
+		submitLabel={record ? t('component.save_work_day') : t('component.create_work_day')}
+		onAfterSubmit={record ? undefined : close}
+	>
+		{#snippet children({ Field })}
+			<Field name="planned_origin" hidden />
+			<Stack gap="lg">
 				<Grid gap="md" minimum="panel">
 					<Field
-						name="shift_definition_id"
-						label={t('component.shift')}
+						name="employment_id"
+						label={t('component.employment')}
 						relationOptions={{
-							label: (shift) =>
-								[shift.code, shift.name]
-									.filter((part) => part != null && part !== '')
-									.join(' · ') || '—',
-							orderBy: { code: 'asc' },
-							limit: 500
+							label: (employment) =>
+								employment.employee_number != null && employment.employee_number !== ''
+									? String(employment.employee_number)
+									: '—',
+							orderBy: { employee_number: 'asc' },
+							limit: 10_000
 						}}
 					/>
-					<Field name="assignment_code" label={t('component.source_roster_token')} />
-					<Column span="all"
-						><Field name="planned_note" label={t('component.planned_note')} /></Column
-					>
+					<Field name="work_date" label={t('component.day')} />
 				</Grid>
-			</Stack>
 
-			<Stack as="section" gap="sm" aria-labelledby="work-day-actual-heading">
-				<h3 id="work-day-actual-heading" class="text-sm font-semibold">
-					{t('component.work_day_actual')}
-				</h3>
-				<p class="text-meta">{t('component.work_day_actual_description')}</p>
-				<Grid gap="md" minimum="panel">
-					<Column span="all">
-						<Field name="worked_intervals" label={t('component.worked_intervals')} />
-					</Column>
-					<Field
-						name="break_minutes"
-						label={t('component.unpaid_break_hours')}
-						renderer={DurationHoursRenderer}
-					/>
-				</Grid>
+				<Stack as="section" gap="sm" aria-labelledby="work-day-planned-heading">
+					<h3 id="work-day-planned-heading" class="text-sm font-semibold">
+						{t('component.work_day_planned')}
+					</h3>
+					<p class="text-meta">{t('component.work_day_planned_description')}</p>
+					<Grid gap="md" minimum="panel">
+						<Field
+							name="shift_definition_id"
+							label={t('component.shift')}
+							relationOptions={{
+								label: (shift) =>
+									[shift.code, shift.name]
+										.filter((part) => part != null && part !== '')
+										.join(' · ') || '—',
+								orderBy: { code: 'asc' },
+								limit: 500
+							}}
+						/>
+						<Field name="assignment_code" label={t('component.source_roster_token')} />
+						<Column span="all"
+							><Field name="planned_note" label={t('component.planned_note')} /></Column
+						>
+					</Grid>
+				</Stack>
+
+				<Stack as="section" gap="sm" aria-labelledby="work-day-actual-heading">
+					<h3 id="work-day-actual-heading" class="text-sm font-semibold">
+						{t('component.work_day_actual')}
+					</h3>
+					<p class="text-meta">{t('component.work_day_actual_description')}</p>
+					<Grid gap="md" minimum="panel">
+						<Column span="all">
+							<Field name="worked_intervals" label={t('component.worked_intervals')} />
+						</Column>
+						<Field
+							name="break_minutes"
+							label={t('component.unpaid_break_hours')}
+							renderer={DurationHoursRenderer}
+						/>
+					</Grid>
+				</Stack>
 			</Stack>
-		</Stack>
-	{/snippet}
-</CollectionForm>
+		{/snippet}
+	</CollectionForm>
+</RecordShell>

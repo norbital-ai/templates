@@ -7,7 +7,7 @@
  * payroll engine itself so the benchmark does not maintain a second version of those rules.
  */
 
-import type { Configuration } from './lib/configuration.js';
+import type { Configuration, ShiftPattern } from './lib/configuration.js';
 import type { PreparedRun } from './lib/engine.js';
 import type { EmploymentBundle } from './lib/gather.js';
 import { resolveWindow } from './lib/period.js';
@@ -185,6 +185,28 @@ const CONTRIBUTIONS = [
  *
  * repository-health:allow R3b -- PICK output assembled from engine-read columns; the stored row types add storage-owned columns a CPU benchmark must not invent.
  */
+/**
+ * The one named pattern every benchmark employment points at: a rostered guarantee, so the fixture
+ * needs no roster codes and no person-day rows for the engine to derive a weekly workload from.
+ * repository-health:allow R3b -- PICK output assembled from engine-read columns, like `CONFIGURATION`.
+ */
+const SHIFT_PATTERN = {
+	id: '00000000-0000-4000-8000-000000000040',
+	company_id: COMPANY.id,
+	code: 'ROSTER-5D-40H-WK',
+	name: 'Rostered, 5 days and 40 hours guaranteed per week',
+	pattern: {
+		type: 'ROSTERED',
+		expectation: {
+			kind: 'GUARANTEED_SCHEDULE',
+			period: 'WEEK',
+			required_work_days: 5,
+			required_paid_minutes: 2400
+		}
+	},
+	effective_range: { start: '2020-01-01', end: null }
+} as unknown as ShiftPattern;
+
 const CONFIGURATION = {
 	company: COMPANY,
 	jurisdiction: JURISDICTION,
@@ -201,20 +223,11 @@ const CONFIGURATION = {
 	restBreakRules: [],
 	overtimeCoverageRule: null,
 	shiftById: new Map(),
+	patternById: new Map([[SHIFT_PATTERN.id, SHIFT_PATTERN]]),
 	holidays: new Map(),
 	leaveTypes: [],
 	hash: PAYROLL_CPU_BENCHMARK_FIXTURE.id
 } as unknown as Configuration;
-
-const WORK_PATTERN = {
-	type: 'ROSTERED',
-	expectation: {
-		kind: 'GUARANTEED_SCHEDULE',
-		period: 'WEEK',
-		required_work_days: 5,
-		required_paid_minutes: 2400
-	}
-} as const;
 
 function fixtureUuid(namespace: number, index: number): string {
 	return `${namespace.toString(16).padStart(8, '0')}-0000-4000-8000-${index
@@ -255,7 +268,7 @@ function bundle(index: number, window: ReturnType<typeof resolveWindow>): Employ
 				employment_id: employmentId,
 				base_salary: { value: 3400 + (index % 12) * 350, currency: 'MYR' },
 				pay_frequency: 'MONTHLY',
-				work_pattern: WORK_PATTERN,
+				shift_pattern_id: SHIFT_PATTERN.id,
 				job_title: `Benchmark role ${index % 8}`,
 				statutory_work_category: 'NON_MANUAL',
 				work_classification: 'EA_COVERED',

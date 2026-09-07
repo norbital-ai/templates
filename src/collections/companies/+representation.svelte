@@ -15,6 +15,7 @@
 	import type { RepresentationProps } from './$types.js';
 	import { CollectionForm } from '@norbital-ai/ui/collection-form';
 	import { Column, Grid, Stack } from '@norbital-ai/ui/layout';
+	import { RecordShell } from '@norbital-ai/ui/record-shell';
 	import { onLineage } from '../../lib/ui/settings-scope.js';
 
 	let { record, close }: RepresentationProps = $props();
@@ -48,42 +49,44 @@
 	]);
 </script>
 
-<CollectionForm
-	{client}
-	collection="companies"
-	defaultValues={record ?? undefined}
-	submitLabel={record ? t('component.save_company') : t('component.create_company')}
-	onAfterSubmit={record ? undefined : close}
->
-	{#snippet children({ Field })}
-		<Stack as="section" gap="sm">
-			<Stack gap="xs">
-				<h3 class="text-sm font-semibold">{t('component.legal_entity')}</h3>
-				<p class="text-meta">{t('component.legal_entity_description')}</p>
-			</Stack>
-			<Grid gap="md" minimum="panel">
-				<Field name="name" label={t('component.legal_name')} />
-				<Field name="registration_number" label={t('component.registration_number')} />
+<RecordShell title={record?.name ?? t('component.create_company')}>
+	<CollectionForm
+		{client}
+		collection="companies"
+		defaultValues={record ?? undefined}
+		submitLabel={record ? t('component.save_company') : t('component.create_company')}
+		onAfterSubmit={record ? undefined : close}
+	>
+		{#snippet children({ Field })}
+			<Stack as="section" gap="sm">
 				<Stack gap="xs">
-					<Field
-						name="settings_code"
-						label={t('component.settings_lineage')}
-						placeholder={lineageCodes.join(', ')}
-					/>
-					<p class="text-meta">{t('component.settings_lineage_hint')}</p>
+					<h3 class="text-sm font-semibold">{t('component.legal_entity')}</h3>
+					<p class="text-meta">{t('component.legal_entity_description')}</p>
 				</Stack>
-				<Field name="pay_cutoff_day" label={t('component.attendance_cutoff_day')} />
-				<Field name="pay_frequency" label={t('component.pay_frequency')} />
-				<Field
-					name="risk_class"
-					label={t('component.statutory_risk_class')}
-					hidden={!riskKeyed}
-					placeholder={t('component.risk_class_hint', { class_iv: 'IV', class_i: 'I' })}
-				/>
-				<Column span="all">
-					<Field name="effective_range" label={t('component.effective_period')} />
-				</Column>
-			</Grid>
-		</Stack>
-	{/snippet}
-</CollectionForm>
+				<Grid gap="md" minimum="panel">
+					<Field name="name" label={t('component.legal_name')} />
+					<Field name="registration_number" label={t('component.registration_number')} />
+					<Stack gap="xs">
+						<Field
+							name="settings_code"
+							label={t('component.settings_lineage')}
+							placeholder={lineageCodes.join(', ')}
+						/>
+						<p class="text-meta">{t('component.settings_lineage_hint')}</p>
+					</Stack>
+					<Field name="pay_cutoff_day" label={t('component.attendance_cutoff_day')} />
+					<Field name="pay_frequency" label={t('component.pay_frequency')} />
+					<Field
+						name="risk_class"
+						label={t('component.statutory_risk_class')}
+						hidden={!riskKeyed}
+						placeholder={t('component.risk_class_hint', { class_iv: 'IV', class_i: 'I' })}
+					/>
+					<Column span="all">
+						<Field name="effective_range" label={t('component.effective_period')} />
+					</Column>
+				</Grid>
+			</Stack>
+		{/snippet}
+	</CollectionForm>
+</RecordShell>

@@ -6,7 +6,11 @@ import { calendarDay, dateKey } from '../iso-day.js';
 import { settingsInForce } from '../jurisdiction_settings.js';
 import { pointAt, pointNumber, type HalfDayRange } from '../half-day.js';
 import { coversDate } from '../../collections/payroll_runs/lib/effective.js';
-import { patternRosterCodeId } from '../scheduling/work-pattern.js';
+import {
+	patternRosterCodeId,
+	patternRosterCodeIds,
+	termPattern
+} from '../scheduling/work-pattern.js';
 import { rosterCodeKind, workWindowHalves } from '../scheduling/roster-code.js';
 import { lockStateForDate, payrollWindows } from '../scheduling/lock.js';
 import { calendarDaysThrough, leaveCalendarGridBounds } from './calendar-grid.js';
@@ -109,7 +113,7 @@ export type LeavePreview = {
 type EmploymentTermRow = Pick<
 	WorkspaceRow<'employment_terms'>,
 	| 'employment_id'
-	| 'work_pattern'
+	| 'shift_pattern_id'
 	| 'effective_range'
 	| 'employment_type'
 	| 'work_classification'
@@ -128,6 +132,7 @@ type SettingsVersionRow = Pick<
 	'id' | 'code' | 'name' | 'sealed_at' | 'voided_at' | 'effective_range' | 'approval_id'
 >;
 type RosterCodeRow = Pick<WorkspaceRow<'shift_definitions'>, 'id' | 'variant'>;
+type ShiftPatternRow = Pick<WorkspaceRow<'shift_patterns'>, 'id' | 'code' | 'pattern'>;
 type SettledRunRow = Pick<
 	WorkspaceRow<'payroll_runs'>,
 	'period' | 'lifecycle' | 'attendance_from' | 'attendance_to'
@@ -161,6 +166,7 @@ type LeavePreviewApi = {
 			Pick<Api<WorkspaceSchema>['db']['leave_requests'], 'findPending'>;
 		payroll_runs: QueryRows<'payroll_runs', SettledRunRow>;
 		shift_definitions: QueryRows<'shift_definitions', RosterCodeRow>;
+		shift_patterns: QueryRows<'shift_patterns', ShiftPatternRow>;
 	};
 };
 
@@ -180,6 +186,8 @@ type LeavePreviewFacts = {
 	readonly requests: readonly LeaveBalanceRequest[];
 	readonly settledRuns: readonly SettledRunRow[];
 	readonly rosterCodes: readonly RosterCodeRow[];
+	/** The named patterns the terms point at; a term's base is projected through them. */
+	readonly patterns: readonly ShiftPatternRow[];
 };
 
 function issue(code: LeavePreviewIssueCode, message: string): LeavePreviewIssue {
@@ -216,6 +224,7 @@ function workEligible(
 	date: string,
 	facts: LeavePreviewFacts,
 	rosterCodeById: ReadonlyMap<string, RosterCodeRow>,
+	patternById: ReadonlyMap<string, ShiftPatternRow>,
 	plannedByDate: ReadonlyMap<string, WorkDayRow>,
 	holidayDates: ReadonlySet<string>
 ): { readonly work: boolean; readonly codeId: string | null; readonly issue?: LeavePreviewIssue } {
@@ -227,15 +236,16 @@ function workEligible(
 			codeId: null,
 			issue: issue('NO_TERMS', `No employment terms cover ${date}, so leave cannot be measured.`)
 		};
+	const pattern = termPattern(term, patternById);
 	let codeId = plannedByDate.get(date)?.shift_definition_id ?? null;
 	if (codeId == null) {
 		try {
-			codeId = patternRosterCodeId(term.work_pattern, date);
+			codeId = patternRosterCodeId(pattern, date);
 		} catch {
 			codeId = null;
 		}
 	}
-	if (codeId == null) return { work: term.work_pattern?.type === 'ROSTERED', codeId: null };
+	if (codeId == null) return { work: pattern.type === 'ROSTERED', codeId: null };
 	const code = rosterCodeById.get(codeId);
 	if (code == null)
 		return {
@@ -260,6 +270,7 @@ function dayPreview(
 	facts: LeavePreviewFacts,
 	input: PreviewLeaveInput,
 	rosterCodeById: ReadonlyMap<string, RosterCodeRow>,
+	patternById: ReadonlyMap<string, ShiftPatternRow>,
 	plannedByDate: ReadonlyMap<string, WorkDayRow>,
 	holidayDates: ReadonlySet<string>,
 	settledWindows: ReturnType<typeof payrollWindows>
@@ -294,7 +305,7 @@ function dayPreview(
 		)
 	)
 		return { day: { eligible: false, reason_code: 'OTHER_LEAVE', reason_mark: 'L' } };
-	const work = workEligible(date, facts, rosterCodeById, plannedByDate, holidayDates);
+	const work = workEligible(date, facts, rosterCodeById, patternById, plannedByDate, holidayDates);
 	if (work.issue?.code === 'MISSING_ROSTER_CODE')
 		return {
 			day: { eligible: false, reason_code: 'MISSING_ROSTER_CODE', reason_mark: '?' },
@@ -408,6 +419,7 @@ export function evaluateLeavePreview(
 		issues.push(issue('OVERLAP', 'The selected half-day range overlaps another leave request.'));
 
 	const rosterCodeById = new Map(facts.rosterCodes.map((row) => [row.id, row]));
+	const patternById = new Map(facts.patterns.map((row) => [row.id, row]));
 	const plannedByDate = new Map(
 		facts.workDays.map((row) => [payrollDayKey(row.work_date), row] as const)
 	);
@@ -420,6 +432,7 @@ export function evaluateLeavePreview(
 			facts,
 			input,
 			rosterCodeById,
+			patternById,
 			plannedByDate,
 			holidayDates,
 			settledWindows
@@ -594,18 +607,27 @@ function loadLeavePreviewFacts(
 			storedRequests,
 			input.exclude_request_id
 		);
+		// The named patterns the terms point at, read after the terms because the ids come from them.
+		const patternIds = [
+			...new Set(
+				terms.flatMap((term) => (term.shift_pattern_id == null ? [] : [term.shift_pattern_id]))
+			)
+		];
+		const patterns =
+			patternIds.length === 0
+				? []
+				: yield* api.db.shift_patterns.findMany({
+						where: { id: { in: patternIds } },
+						limit: LIMIT
+					});
+		requireComplete(patterns, 'shift pattern');
+		const patternById = new Map(patterns.map((row) => [row.id, row]));
 		const shiftIds = [
 			...new Set([
 				...workDays.flatMap((day) =>
 					day.shift_definition_id == null ? [] : [day.shift_definition_id]
 				),
-				...terms.flatMap((term) =>
-					term.work_pattern?.type === 'PATTERNED'
-						? term.work_pattern.phases.flatMap((phase) =>
-								phase.day_cycle.map((day) => day.roster_code_id)
-							)
-						: []
-				)
+				...terms.flatMap((term) => patternRosterCodeIds(termPattern(term, patternById)))
 			])
 		];
 		const rosterCodes =
@@ -628,7 +650,8 @@ function loadLeavePreviewFacts(
 			workDays,
 			requests,
 			settledRuns,
-			rosterCodes
+			rosterCodes,
+			patterns
 		};
 	});
 }

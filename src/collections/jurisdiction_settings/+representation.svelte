@@ -13,9 +13,9 @@
 	import type { RepresentationProps } from './$types.js';
 	import { CollectionForm } from '@norbital-ai/ui/collection-form';
 	import { CollectionTable } from '@norbital-ai/ui/collection-table';
-	import { Badge } from '@norbital-ai/ui/badge';
-	import { Column, Cover, Grid, Inline, Stack } from '@norbital-ai/ui/layout';
-	import { Tabs, type TabConfig } from '@norbital-ai/ui/tabs';
+	import { Column, Grid, Stack } from '@norbital-ai/ui/layout';
+	import { RecordShell } from '@norbital-ai/ui/record-shell';
+	import type { TabConfig } from '@norbital-ai/ui/tabs';
 	import { formatNumeric } from '../../lib/ui/display-formatters.js';
 
 	let { record, close, embedded = false }: RepresentationProps & { embedded?: boolean } = $props();
@@ -119,50 +119,26 @@
 {#if embedded || !record}
 	{@render snapshot()}
 {:else}
-	{#snippet settingsSummary()}
-		<Stack gap="xs">
-			<Inline gap="sm" align="baseline">
-				<h2 class="truncate text-heading">{record.code} · {record.name}</h2>
-				<Badge variant="outline">
-					{voided
-						? t('component.voided')
-						: sealed
-							? t('component.sealed')
-							: t('component.unsealed')}
-				</Badge>
-				<span class="text-sm text-muted-foreground">{record.currency}</span>
-			</Inline>
-			<p class="text-sm text-muted-foreground">
-				{t('component.ordinary_pay_note', {
-					divisor: formatNumeric(record.ordinary_rate?.divisor),
-					unit:
-						record.ordinary_rate?.per === 'HOUR'
-							? t('component.hours_unit')
-							: t('component.days_unit')
-				})}
-			</p>
-		</Stack>
-	{/snippet}
-
-	<Cover as="main" gap="md" top={settingsSummary}>
-		<Tabs
-			animate={false}
-			listClass="mx-0 w-full"
-			contentPadding={false}
-			config={[
-				{
-					name: 'snapshot',
-					label: t('component.payroll_rules'),
-					icon: 'lucide:scale',
-					content: snapshot
-				},
-				{
-					name: 'contributions',
-					label: t('component.statutory_contributions'),
-					icon: 'lucide:landmark',
-					content: contributions
-				}
-			] satisfies TabConfig[]}
-		/>
-	</Cover>
+	<RecordShell
+		title={`${record.code} · ${record.name}`}
+		subtitle={t('component.ordinary_pay_note', {
+			divisor: formatNumeric(record.ordinary_rate?.divisor),
+			unit:
+				record.ordinary_rate?.per === 'HOUR' ? t('component.hours_unit') : t('component.days_unit')
+		})}
+		tabs={[
+			{
+				name: 'snapshot',
+				label: t('component.payroll_rules'),
+				icon: 'lucide:scale',
+				content: snapshot
+			},
+			{
+				name: 'contributions',
+				label: t('component.statutory_contributions'),
+				icon: 'lucide:landmark',
+				content: contributions
+			}
+		] satisfies TabConfig[]}
+	/>
 {/if}

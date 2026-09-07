@@ -18,8 +18,11 @@ import { daysBetween, requiredDateKey } from './dates.js';
 import { effectiveOn } from './effective.js';
 import type { ReportLine, ReportPayslip } from './report.js';
 import { rosterCodeKind, workWindow } from '../../../lib/scheduling/roster-code.js';
-import { patternRosterCodeId } from '../../../lib/scheduling/work-pattern.js';
-import type { WorkPattern } from '../../../datatypes/work_pattern/+definition.js';
+import {
+	patternRosterCodeId,
+	patternRosterCodeIds,
+	termPattern
+} from '../../../lib/scheduling/work-pattern.js';
 import { normalizedWorkedIntervals, type WorkDayLike } from './overtime.js';
 import type { WorkspaceRow } from '../$types.js';
 import { decodeNumber } from '@norbital-ai/std/json';
@@ -90,12 +93,6 @@ function overtimeRuleKeyIsExcess(ruleKey: string): boolean {
 }
 
 /** Every roster code a pattern can project, so the shift definitions behind one can be loaded. */
-function patternRosterCodeIds(pattern: WorkPattern): readonly string[] {
-	return pattern.type === 'ROSTERED'
-		? []
-		: pattern.phases.flatMap((phase) => phase.day_cycle.map((day) => day.roster_code_id));
-}
-
 export function loadRunExports(
 	api: PayrollReadApi,
 	runs: readonly RunRow[]
@@ -165,6 +162,24 @@ export function loadRunExports(
 		readApi.reads.assertComplete(terms, 'employment terms');
 		readApi.reads.assertComplete(workDays, 'work days');
 
+		// The named patterns the terms point at, read once for every run in the export. The base of
+		// every employment is projected through them, so a payslip's Normal Hours cannot be read
+		// without them.
+		const patternIds = [
+			...new Set(
+				terms.flatMap((row) => (row.shift_pattern_id == null ? [] : [row.shift_pattern_id]))
+			)
+		];
+		const patterns =
+			patternIds.length === 0
+				? []
+				: yield* api.db.shift_patterns.findMany({
+						where: { id: { in: patternIds } },
+						limit: PAGE_LIMIT
+					});
+		readApi.reads.assertComplete(patterns, 'shift patterns');
+		const patternById = new Map(patterns.map((row) => [row.id, row]));
+
 		const employeeIds = [...new Set(employments.map((row) => row.employee_id))];
 		// Only working days name a shift; rest and off days schedule none.
 		//
@@ -175,7 +190,7 @@ export function loadRunExports(
 		const shiftIds = [
 			...new Set([
 				...workDays.map((row) => row.shift_definition_id).filter((id) => id != null),
-				...terms.flatMap((row) => patternRosterCodeIds(row.work_pattern))
+				...terms.flatMap((row) => patternRosterCodeIds(termPattern(row, patternById)))
 			])
 		];
 		const [employees, shifts] = yield* Effect.all(
@@ -270,7 +285,8 @@ export function loadRunExports(
 					if ((hireDate != null && date < hireDate) || (exitDate != null && date > exitDate))
 						return [];
 					const dayTerms = effectiveOn(employmentTerms, date);
-					const codeId = dayTerms == null ? null : patternRosterCodeId(dayTerms.work_pattern, date);
+					const codeId =
+						dayTerms == null ? null : patternRosterCodeId(termPattern(dayTerms, patternById), date);
 					const shift = codeId == null ? null : shiftById.get(codeId);
 					return shift == null ? [] : [{ code: shift.code, shift }];
 				});

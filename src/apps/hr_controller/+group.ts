@@ -2,7 +2,9 @@ import { group } from '@norbital-ai/bolt/authoring';
 
 /**
  * Apps are discovered from the files in this directory. Entities is the companies catalogue.
- * Each sibling scopes itself with a Combobox backed by `company-scope.svelte.ts`.
+ * Each sibling scopes itself with a Combobox backed by `company-scope.svelte.ts`, except
+ * Settings, which scopes by jurisdiction lineage (`jurisdiction-scope.svelte.ts`): one lineage
+ * is shared by every entity bound to it.
  */
 export default group({
 	label: 'HR Controller',

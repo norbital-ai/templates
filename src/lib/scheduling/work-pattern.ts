@@ -4,6 +4,72 @@ import { rosterCodeKind, workWindow, type RosterCodeLike } from './roster-code.j
 
 const DAY_MS = 86_400_000;
 
+/**
+ * The pattern of terms that name none: rostered as assigned, with nothing to project and no
+ * guarantee to measure. One value, so every reader that resolves a NULL `shift_pattern_id` lands
+ * on the same expectation rather than each inventing its own.
+ */
+export const AS_ASSIGNED_PATTERN: WorkPattern = {
+	type: 'ROSTERED',
+	expectation: { kind: 'AS_ASSIGNED', period: 'MONTH', maximum_paid_minutes: null }
+};
+
+/** A `shift_patterns` row as the pattern readers need it. */
+export type ShiftPatternLike = {
+	readonly id: string;
+	readonly code: string;
+	readonly pattern: WorkPattern;
+};
+
+/**
+ * Employment terms as every pattern reader sees them: the pointer, and the row when it rode the
+ * read (`with: { term_shift_pattern }`). A reader that loaded the company's patterns separately
+ * hands them in as `patternById` instead; the row wins when both are present.
+ */
+type TermPatternLike = {
+	readonly shift_pattern_id: string | null;
+	readonly term_shift_pattern?: ShiftPatternLike | null;
+};
+
+/**
+ * The named pattern behind one terms row, or null when the terms name none.
+ *
+ * Every schedule question goes through here rather than through a `work_pattern` column: the
+ * board, the employee's calendar, the write hooks, the leave preview, the payroll engine and its
+ * export all resolve the same pointer the same way, so a term cannot project one base on the
+ * board and another in a payslip.
+ */
+export function termPatternRow(
+	term: TermPatternLike,
+	patternById?: ReadonlyMap<string, ShiftPatternLike>
+): ShiftPatternLike | null {
+	if (term.shift_pattern_id == null) return null;
+	const carried = term.term_shift_pattern;
+	if (carried != null && carried.id === term.shift_pattern_id) return carried;
+	const looked = patternById?.get(term.shift_pattern_id);
+	if (looked != null) return looked;
+	if (carried != null) return carried;
+	throw new Error(
+		`Employment terms name shift pattern ${term.shift_pattern_id}, which was not loaded.`
+	);
+}
+
+/** The pattern value one terms row projects from: the named row's, else rostered as assigned. */
+export function termPattern(
+	term: TermPatternLike,
+	patternById?: ReadonlyMap<string, ShiftPatternLike>
+): WorkPattern {
+	return termPatternRow(term, patternById)?.pattern ?? AS_ASSIGNED_PATTERN;
+}
+
+/** Every roster code a pattern's cycles name; empty for a rostered pattern. */
+export function patternRosterCodeIds(pattern: WorkPattern): string[] {
+	if (pattern.type !== 'PATTERNED') return [];
+	return [
+		...new Set(pattern.phases.flatMap((phase) => phase.day_cycle.map((day) => day.roster_code_id)))
+	];
+}
+
 function dateNumber(date: string): number {
 	const value = Date.parse(`${date}T00:00:00.000Z`);
 	if (Number.isNaN(value)) throw new Error(`Invalid calendar date "${date}".`);

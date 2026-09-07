@@ -4,6 +4,7 @@
 	import { Effect, Number as EffectNumber } from 'effect';
 	import { useI18n } from '@norbital-ai/ui/i18n';
 	import AppHeaderActions from '@norbital-ai/bolt/client/app-header-actions';
+	import { AppShell } from '@norbital-ai/ui/app-shell';
 	import type { TenantI18nKeys } from '$bolt/i18n-keys';
 	import { Tabs, type TabConfig } from '@norbital-ai/ui/tabs';
 	import { CollectionTable } from '@norbital-ai/ui/collection-table';
@@ -58,11 +59,12 @@
 		monthDays,
 		monthProgress,
 		personDayKey,
+		termCovers,
 		type DayFacts,
 		type IntervalDraft,
 		type MonthDrafting
 	} from '../../lib/ui/roster/roster-month.js';
-	import { patternRosterCodeId } from '../../lib/scheduling/work-pattern.js';
+	import { patternRosterCodeId, termPattern } from '../../lib/scheduling/work-pattern.js';
 	import { rosterCodeKind, workWindow } from '../../lib/scheduling/roster-code.js';
 	import { unresolvedClockOutEmploymentIds as openClockOutEmploymentIds } from '../../lib/ui/roster/roster-month-board-filter.js';
 	import {
@@ -232,7 +234,10 @@
 		if (!employmentsReady || monthEmploymentIds.length === 0) return null;
 		return client.db.employment_terms.findMany({
 			where: { ...approved, employment_id: { in: monthEmploymentIds } },
-			columns: { id: true, employment_id: true, work_pattern: true, effective_range: true },
+			columns: { id: true, employment_id: true, shift_pattern_id: true, effective_range: true },
+			// The base rides the terms read (HR20: one live query per source, no `shift_patterns`
+			// query of its own): every term arrives with the named pattern it points at.
+			with: { term_shift_pattern: { columns: { id: true, code: true, pattern: true } } },
 			limit: MONTH_BOARD_QUERY_LIMITS.employmentTerms
 		});
 	});
@@ -595,21 +600,6 @@
 		return day.workDayId == null ? null : (settlementClaims.get(day.workDayId) ?? null);
 	}
 
-	function termCovers(
-		term: {
-			readonly effective_range: {
-				start?: string;
-				end?: string | null;
-			} | null;
-		},
-		date: string
-	): boolean {
-		if (term.effective_range?.start == null) return false;
-		const start = formatDateISO(term.effective_range.start);
-		const end = term.effective_range.end == null ? null : formatDateISO(term.effective_range.end);
-		return date >= start && (end == null || date <= end);
-	}
-
 	function activeTermFor(employmentId: string, date: string) {
 		return (
 			(employmentTermsByEmploymentId.get(employmentId) ?? []).find((term) =>
@@ -630,7 +620,7 @@
 		const explicit = workDayByKey.get(personDayKey(employmentId, date))?.shift_definition_id;
 		if (explicit != null) return explicit;
 		const term = activeTermFor(employmentId, date);
-		return term == null ? null : patternRosterCodeId(term.work_pattern, date);
+		return term == null ? null : patternRosterCodeId(termPattern(term), date);
 	}
 
 	function validationDay(employmentId: string, date: string, codeId: string | null): ValidationDay {
@@ -858,23 +848,6 @@
 	}
 </script>
 
-<svelte:head>
-	<title>Scheduling</title>
-	<meta
-		name="description"
-		content="Plan the monthly roster on a calendar, publish it against the statutory rules, and manage the shifts a day is worked on and the patterns a week is shaped by"
-	/>
-	<meta name="bolt:icon" content="lucide:calendar-clock" />
-	<meta
-		name="bolt:thumbnail"
-		content="/__bolt/request/api/template-seed-assets/hr-payroll/app-media/scheduling-banner.webp"
-	/>
-	<meta
-		name="bolt:banner"
-		content="/__bolt/request/api/template-seed-assets/hr-payroll/app-media/scheduling-banner.webp"
-	/>
-</svelte:head>
-
 {#snippet companyScopeActions()}
 	<CompanyScopeCombobox
 		value={selectedCompanyId}
@@ -887,6 +860,48 @@
 {#snippet monthNavigation()}
 	<MonthPeriodPicker {month} onMonthChange={selectMonth} />
 {/snippet}
+
+<AppShell
+	icon="lucide:calendar-clock"
+	title="Scheduling"
+	description="Plan the monthly roster on a calendar, publish it against the statutory rules, and manage the shifts a day is worked on and the patterns a week is shaped by"
+	banner="/__bolt/request/api/template-seed-assets/hr-payroll/app-media/scheduling-banner.webp"
+	variant="full"
+>
+	<AppHeaderActions>
+		{@render companyScopeActions()}
+	</AppHeaderActions>
+
+	<Tabs
+		animate={false}
+		config={[
+			{
+				name: 'board',
+				label: t('app.scheduling.tab_board'),
+				icon: 'lucide:calendar-range',
+				content: board
+			},
+			{
+				name: 'shifts',
+				label: t('app.scheduling.tab_shifts'),
+				icon: 'lucide:clock-4',
+				content: shifts
+			},
+			{
+				name: 'patterns',
+				label: t('app.scheduling.tab_patterns'),
+				icon: 'lucide:repeat',
+				content: patterns
+			},
+			{
+				name: 'holidays',
+				label: t('app.scheduling.tab_holidays'),
+				icon: 'lucide:party-popper',
+				content: holidays
+			}
+		] satisfies TabConfig[]}
+	/>
+</AppShell>
 
 <!--
 	The board's rows are people, while its filters are generated from the `work_days` schema. A
@@ -1153,6 +1168,44 @@
 	{/if}
 {/snippet}
 
+<!--
+	The named patterns of the entity: the base every employment on them projects its month from.
+	One `CollectionTable`, which registers the tab's only live query; the board reads the same rows
+	through the terms' `with` and never opens a query of its own for them.
+-->
+{#snippet patterns()}
+	{#if companiesUnknown}
+		<p class="text-sm text-muted-foreground">{t('app.hr_controller.loading_scope')}</p>
+	{:else if selectedCompanyId == null}
+		<p class="text-sm text-muted-foreground">{t('app.scheduling.empty_patterns')}</p>
+	{:else}
+		{#snippet patternIntro()}
+			<p class="text-sm text-muted-foreground">{t('app.scheduling.pattern_intro')}</p>
+		{/snippet}
+		<Cover gap="md" top={patternIntro}>
+			{#key `${selectedCompanyId}:${month}`}
+				<CollectionTable
+					{client}
+					collection="shift_patterns"
+					view={`hr_controller:scheduling:patterns:${selectedCompanyId}`}
+					query={{
+						where: { company_id: { eq: selectedCompanyId }, ...activeRange },
+						orderBy: { code: 'asc' }
+					}}
+					class="h-full min-h-0"
+				>
+					{#snippet columns({ Column })}
+						<Column name="code" card="title" />
+						<Column name="name" card="subtitle" />
+						<Column name="pattern" label={t('component.work_pattern')} />
+						<Column name="effective_range" label={t('component.effective')} />
+					{/snippet}
+				</CollectionTable>
+			{/key}
+		</Cover>
+	{/if}
+{/snippet}
+
 {#snippet holidays()}
 	{#if companiesUnknown}
 		<p class="text-sm text-muted-foreground">{t('app.hr_controller.loading_scope')}</p>
@@ -1184,17 +1237,14 @@
 	{/if}
 {/snippet}
 
-<AppHeaderActions>
-	{@render companyScopeActions()}
-</AppHeaderActions>
-
 <!--
  	The day sheet, which replaced the single-select assignment dialog.
 
  	The drawer owns its editors and its person-day write (an internal `CollectionForm`); the app
  	owns the checks around it — the live overlap sentence, the locks, the swap pair. That split is
  	what lets Employee Self-Service render the very same component with `mode="employee"` over its
- 	own single-person month without inheriting a controller's checks.
+ 	own single-person month without inheriting a controller's checks. The drawer sits outside the
+ 	shell so it can overlay the whole app.
  -->
 <DaySheet
 	bind:open={daySheet.open}
@@ -1224,29 +1274,3 @@
 		daySheet.open = false;
 	}}
 />
-
-<Cover>
-	<Tabs
-		animate={false}
-		config={[
-			{
-				name: 'board',
-				label: t('app.scheduling.tab_board'),
-				icon: 'lucide:calendar-range',
-				content: board
-			},
-			{
-				name: 'shifts',
-				label: t('app.scheduling.tab_shifts'),
-				icon: 'lucide:clock-4',
-				content: shifts
-			},
-			{
-				name: 'holidays',
-				label: t('app.scheduling.tab_holidays'),
-				icon: 'lucide:party-popper',
-				content: holidays
-			}
-		] satisfies TabConfig[]}
-	/>
-</Cover>

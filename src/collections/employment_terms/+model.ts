@@ -29,8 +29,14 @@ export default defineModel(
 		department: text(),
 		job_title: text(),
 		payroll_group: text(),
-		/** The employment's only schedule term. Workdays, hours, rest and off days derive from it. */
-		work_pattern: custom('work_pattern').notNull(),
+		/**
+		 * The employment's base: the named `shift_patterns` row its days are projected from.
+		 * Workdays, hours, rest and off days derive from the pattern; a `work_days` row overrides one
+		 * day of it. NULL means rostered as assigned: nothing is projected, every day is a roster row,
+		 * and there is no guarantee to measure. A company that wants a rostered expectation named
+		 * keeps it on a ROSTERED pattern row and points the terms at that.
+		 */
+		shift_pattern_id: uuid(),
 		effective_range: custom('instant_range', { precision: 'day' }).notNull(),
 		/**
 		 * The terms' own title, composed in SQL.
@@ -46,7 +52,7 @@ export default defineModel(
 	},
 	{
 		description:
-			'The effective-dated pay, classification and canonical work pattern of one employment. Schedule hours, workdays, rest days and off days are derived from the embedded pattern rather than duplicated.',
+			'The effective-dated pay, classification and shift pattern of one employment. Schedule hours, workdays, rest days and off days are derived from the named pattern the terms point at rather than duplicated.',
 		recordLabel: 'summary',
 		icon: 'lucide:file-signature',
 		// Plan 02 §7: employment =, effective range &&. One employment has exactly one set of terms

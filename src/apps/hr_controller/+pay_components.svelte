@@ -12,6 +12,7 @@
 	import { client } from '../../lib/workspace-client.js';
 	import { useI18n } from '@norbital-ai/ui/i18n';
 	import AppHeaderActions from '@norbital-ai/bolt/client/app-header-actions';
+	import { AppShell } from '@norbital-ai/ui/app-shell';
 	import type { TenantI18nKeys } from '$bolt/i18n-keys';
 	import type { WorkspaceRow } from '$bolt/types.js';
 	import { CollectionTable } from '@norbital-ai/ui/collection-table';
@@ -20,7 +21,6 @@
 		companiesUnknown as companiesUnknownOf,
 		resolveCompanyId
 	} from './company-scope.svelte.js';
-	import { Bound, Cover } from '@norbital-ai/ui/layout';
 	import { sourceLock, sourceLockRecordMetadata } from '../../lib/scheduling/lock.js';
 
 	const { t } = useI18n<TenantI18nKeys>();
@@ -66,31 +66,23 @@
 	}
 </script>
 
-<svelte:head>
-	<title>Pay components</title>
-	<meta
-		name="description"
-		content="Review pay entries — claims, allowances, bonuses, arrears and corrections — and their payroll linkage"
-	/>
-	<meta name="bolt:icon" content="lucide:coins" />
-	<meta
-		name="bolt:thumbnail"
-		content="/__bolt/request/api/template-seed-assets/hr-payroll/app-media/pay_components-banner.webp"
-	/>
-	<meta
-		name="bolt:banner"
-		content="/__bolt/request/api/template-seed-assets/hr-payroll/app-media/pay_components-banner.webp"
-	/>
-</svelte:head>
+<AppShell
+	icon="lucide:coins"
+	title="Pay components"
+	description="Review pay entries — claims, allowances, bonuses, arrears and corrections — and their payroll linkage"
+	banner="/__bolt/request/api/template-seed-assets/hr-payroll/app-media/pay_components-banner.webp"
+>
+	<AppHeaderActions>
+		<CompanyScopeCombobox
+			value={selectedCompanyId}
+			onValueChange={(id) => {
+				chosenCompanyId = id;
+			}}
+		/>
+	</AppHeaderActions>
 
-<AppHeaderActions>
-	<CompanyScopeCombobox
-		value={selectedCompanyId}
-		onValueChange={(id) => {
-			chosenCompanyId = id;
-		}}
-	/>
-</AppHeaderActions>
+	{@render entries()}
+</AppShell>
 
 {#snippet entries()}
 	{#if companiesUnknown}
@@ -156,9 +148,3 @@
 		{/key}
 	{/if}
 {/snippet}
-
-<Cover>
-	<Bound size="full" inset>
-		{@render entries()}
-	</Bound>
-</Cover>

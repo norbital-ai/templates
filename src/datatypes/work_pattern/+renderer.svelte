@@ -19,15 +19,24 @@
 	const parsed = $derived(Schema.decodeUnknownResult(workPatternSchema)(props.value));
 	const current = $derived(Result.isSuccess(parsed) ? parsed.success : null);
 
+	/**
+	 * The company whose roster codes the cycle picks from. A `shift_patterns` row names it
+	 * directly; a row that carries an employment (the terms once did) resolves it through that.
+	 */
+	const rowCompanyId = $derived(
+		typeof props.row?.company_id === 'string' ? props.row.company_id : null
+	);
 	const employmentId = $derived(
-		typeof props.row?.employment_id === 'string' ? props.row.employment_id : null
+		rowCompanyId == null && typeof props.row?.employment_id === 'string'
+			? props.row.employment_id
+			: null
 	);
 	const employmentQuery = $derived(
 		employmentId == null
 			? null
 			: client.db.employments.findFirst({ where: { id: { eq: employmentId } } })
 	);
-	const companyId = $derived(employmentQuery?.current?.company_id ?? null);
+	const companyId = $derived(rowCompanyId ?? employmentQuery?.current?.company_id ?? null);
 	const codesQuery = $derived(
 		companyId == null
 			? null

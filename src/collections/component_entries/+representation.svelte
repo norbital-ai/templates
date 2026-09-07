@@ -15,6 +15,7 @@
 	import { CollectionForm } from '@norbital-ai/ui/collection-form';
 	import type { CollectionFormSemantic } from '@norbital-ai/ui/collection-form';
 	import { Column, Grid, Stack } from '@norbital-ai/ui/layout';
+	import { RecordShell } from '@norbital-ai/ui/record-shell';
 	import { Effect } from 'effect';
 	import type { RepresentationProps } from './$types.js';
 	import { componentEntryEventIssues } from '../../lib/component_entry_refusals.js';
@@ -96,84 +97,88 @@
 		)) satisfies CollectionFormSemantic;
 </script>
 
-<Stack gap="md">
-	<Grid gap="md" minimum="compact">
-		<Column span="all">
-			<Stack class="rounded-md border border-border bg-muted/20 p-3" gap="xs">
-				<span class="text-meta">{t('component.payroll_consumption')}</span>
-				<span aria-live="polite" class="block text-sm">{capturedByPayslip}</span>
-			</Stack>
-		</Column>
-	</Grid>
+<RecordShell
+	title={record ? `${record.event_date} · ${record.amount}` : t('component.create_entry')}
+>
+	<Stack gap="md">
+		<Grid gap="md" minimum="compact">
+			<Column span="all">
+				<Stack class="rounded-md border border-border bg-muted/20 p-3" gap="xs">
+					<span class="text-meta">{t('component.payroll_consumption')}</span>
+					<span aria-live="polite" class="block text-sm">{capturedByPayslip}</span>
+				</Stack>
+			</Column>
+		</Grid>
 
-	<CollectionForm
-		{client}
-		collection="component_entries"
-		defaultValues={record ?? undefined}
-		{recordMetadata}
-		{semantic}
-		submitLabel={record ? t('component.save_entry') : t('component.create_entry')}
-		onAfterSubmit={record ? undefined : close}
-	>
-		{#snippet children({ Field })}
-			<Stack gap="lg">
-				<Grid gap="md" minimum="compact">
-					<Field
-						name="employment_id"
-						label={t('component.employment')}
-						relationOptions={{
-							label: (employment) =>
-								employment.employee_number != null && employment.employee_number !== ''
-									? String(employment.employee_number)
-									: '—',
-							orderBy: { employee_number: 'asc' },
-							limit: 10_000
-						}}
-					/>
-					<Field
-						name="pay_component_id"
-						label={t('component.pay_component')}
-						relationOptions={{
-							label: (component) => {
-								const code = component.code;
-								if (code) return String(code);
-								return '—';
-							},
-							orderBy: { code: 'asc' },
-							limit: 500
-						}}
-					/>
-					<Field name="amount" label={t('component.entry_amount')} />
-					<Field name="quantity" />
-					<Field name="event_date" />
-					<Field name="pay_period" label={t('component.pay_period')} />
-					<Field name="evidence_file" label={t('component.evidence_file')} />
-					<Column span="all">
-						<Field name="effective_range" label={t('component.entry_effective_period')} />
-					</Column>
-					<Column span="all">
+		<CollectionForm
+			{client}
+			collection="component_entries"
+			defaultValues={record ?? undefined}
+			{recordMetadata}
+			{semantic}
+			submitLabel={record ? t('component.save_entry') : t('component.create_entry')}
+			onAfterSubmit={record ? undefined : close}
+		>
+			{#snippet children({ Field })}
+				<Stack gap="lg">
+					<Grid gap="md" minimum="compact">
 						<Field
-							name="corrects_adjustment_id"
-							label={t('component.corrects_adjustment')}
+							name="employment_id"
+							label={t('component.employment')}
 							relationOptions={{
-								label: (adjustment) =>
-									[adjustment.label, adjustment.amount]
-										.filter((part) => part != null && part !== '')
-										.join(' · ') || '—',
-								orderBy: { sequence: 'desc' },
+								label: (employment) =>
+									employment.employee_number != null && employment.employee_number !== ''
+										? String(employment.employee_number)
+										: '—',
+								orderBy: { employee_number: 'asc' },
+								limit: 10_000
+							}}
+						/>
+						<Field
+							name="pay_component_id"
+							label={t('component.pay_component')}
+							relationOptions={{
+								label: (component) => {
+									const code = component.code;
+									if (code) return String(code);
+									return '—';
+								},
+								orderBy: { code: 'asc' },
 								limit: 500
 							}}
 						/>
-					</Column>
-				</Grid>
-				<Stack as="section" gap="sm" aria-labelledby="component-entry-event-heading">
-					<h3 id="component-entry-event-heading" class="text-sm font-semibold">
-						{t('component.event_kind')}
-					</h3>
-					<p class="text-meta">{t('component.event_description')}</p>
-					<Field name="event" />
+						<Field name="amount" label={t('component.entry_amount')} />
+						<Field name="quantity" />
+						<Field name="event_date" />
+						<Field name="pay_period" label={t('component.pay_period')} />
+						<Field name="evidence_file" label={t('component.evidence_file')} />
+						<Column span="all">
+							<Field name="effective_range" label={t('component.entry_effective_period')} />
+						</Column>
+						<Column span="all">
+							<Field
+								name="corrects_adjustment_id"
+								label={t('component.corrects_adjustment')}
+								relationOptions={{
+									label: (adjustment) =>
+										[adjustment.label, adjustment.amount]
+											.filter((part) => part != null && part !== '')
+											.join(' · ') || '—',
+									orderBy: { sequence: 'desc' },
+									limit: 500
+								}}
+							/>
+						</Column>
+					</Grid>
+					<Stack as="section" gap="sm" aria-labelledby="component-entry-event-heading">
+						<h3 id="component-entry-event-heading" class="text-sm font-semibold">
+							{t('component.event_kind')}
+						</h3>
+						<p class="text-meta">{t('component.event_description')}</p>
+						<Field name="event" />
+					</Stack>
 				</Stack>
-			</Stack>
-		{/snippet}
-	</CollectionForm>
-</Stack>
+			{/snippet}
+		</CollectionForm>
+	</Stack>
+</RecordShell>

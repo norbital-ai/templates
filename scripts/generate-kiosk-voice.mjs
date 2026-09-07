@@ -3,31 +3,36 @@
  *
  * Reads `src/lib/kiosk/phrases.ts` (every key, every language) and writes one clip per phrase and
  * language to `assets/kiosk-voice/<language>/<key>.<format>`, which the `kiosk-voice-clips` plugin
- * in `vite.config.ts` ships beside the face models. Re-runnable: an existing clip is kept, never
- * overwritten (recordings are source material); a phrase removed from the list leaves a stale file
- * this script deletes.
+ * in `vite.config.ts` ships beside the face models. Re-runnable: an existing clip is kept unless
+ * `--force` is given; a phrase removed from the list leaves a stale file this script deletes.
+ * The kiosk never speaks through the browser: a key with no clip is silent, so run this after
+ * every copy change in phrases.ts.
  *
- *   node scripts/generate-kiosk-voice.mjs --provider=macos
+ *   node scripts/generate-kiosk-voice.mjs                              (edge, the default)
+ *   node scripts/generate-kiosk-voice.mjs --force                      (re-render everything)
+ *   node scripts/generate-kiosk-voice.mjs --language=zh --only=checked_in
  *   node scripts/generate-kiosk-voice.mjs --provider=gemini            (needs GEMINI_API_KEY)
- *   node scripts/generate-kiosk-voice.mjs --provider=macos --language=zh --only=checked_in
  *
  * Providers:
- *   macos   `say -v <voice>` renders to AIFF, `afconvert` encodes it. Voices per language default
- *           to Samantha (en) and Tingting (zh); `say -v '?'` lists what is installed. Override with
- *           --voice-en=Daniel --voice-zh=Meijia.
+ *   edge    Microsoft Edge's free neural voices through the `edge-tts` Python package
+ *           (`pip install edge-tts`). Female voices at +15% rate: en-SG-LunaNeural (en) and
+ *           zh-CN-XiaoxiaoNeural (zh); `python3 -m edge_tts --list-voices` lists the rest.
+ *           Override with --voice-en=... --voice-zh=... Writes MP3 directly.
  *   gemini  Gemini TTS (`gemini-2.5-flash-preview-tts`) over the REST API. Returns 24 kHz 16-bit
  *           mono PCM, which is wrapped as WAV and encoded by `afconvert` (macOS) or `ffmpeg`.
  *           Voices default to Kore (en) and Leda (zh); any prebuilt Gemini voice works for either.
- *           Override with --voice-en=... --voice-zh=...
- *
- * The output container is `KIOSK_VOICE_CLIP_FORMAT` from the phrase list (mp3). Both encoders
- * produce it; the runtime resolves clips by that extension, so it is not an option here. Keys that
- * already have a clip are skipped, so a recording is never overwritten; a key with no clip falls
- * back to browser speech at runtime.
  */
 
 import { execFileSync, spawnSync } from 'node:child_process';
-import { existsSync, mkdirSync, readdirSync, rmSync, unlinkSync, writeFileSync } from 'node:fs';
+import {
+	existsSync,
+	mkdirSync,
+	readdirSync,
+	readFileSync,
+	rmSync,
+	unlinkSync,
+	writeFileSync
+} from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -47,7 +52,8 @@ const options = Object.fromEntries(
 		return [flag, value];
 	})
 );
-const provider = options.provider ?? 'macos';
+const provider = options.provider ?? 'edge';
+const force = options.force === 'true';
 const languages =
 	options.language === undefined
 		? KIOSK_VOICE_LANGUAGES
@@ -58,7 +64,7 @@ const keys =
 		: options.only.split(',').filter((key) => KIOSK_PHRASE_KEYS.includes(key));
 
 const DEFAULT_VOICES = {
-	macos: { en: 'Samantha', zh: 'Tingting' },
+	edge: { en: 'en-SG-LunaNeural', zh: 'zh-CN-XiaoxiaoNeural' },
 	gemini: { en: 'Kore', zh: 'Leda' }
 };
 
@@ -69,6 +75,13 @@ const which = (binary) =>
 
 /** Encodes a WAV or AIFF file into the shipped container with whichever encoder the host has. */
 const encode = (source, target) => {
+	if (source.endsWith(`.${KIOSK_VOICE_CLIP_FORMAT}`)) {
+		writeFileSync(target, readFileSync(source));
+		return;
+	}
+	encodeTranscoded(source, target);
+};
+const encodeTranscoded = (source, target) => {
 	if (KIOSK_VOICE_CLIP_FORMAT === 'mp3') {
 		if (which('afconvert')) {
 			execFileSync('afconvert', ['-f', 'MP3F', '-d', '.mp3', '-b', '64000', source, target], {
@@ -125,22 +138,38 @@ const writeWav = (target, pcm, sampleRate) => {
 };
 
 const providers = {
-	macos: {
+	/**
+	 * Microsoft Edge's read-aloud voices through the `edge_tts` Python module (free, no key). Female
+	 * neural voices by default, spoken a little faster than the vendor's baseline (`--rate`, default
+	 * +15%), written straight to MP3.
+	 */
+	edge: {
+		render: (text, language, target) => {
+			const rate = options.rate ?? '+15%';
+			const result = spawnSync(
+				'python3',
+				[
+					'-m',
+					'edge_tts',
+					'--voice',
+					voiceFor(language),
+					`--rate=${rate}`,
+					'--text',
+					text,
+					'--write-media',
+					target
+				],
+				{ stdio: ['ignore', 'ignore', 'pipe'] }
+			);
+			if (result.status !== 0)
+				throw new Error(`edge_tts failed for ${language}: ${result.stderr?.toString() ?? ''}`);
+		},
 		check: () => {
-			if (process.platform !== 'darwin') throw new Error('The macos provider needs macOS.');
-			for (const language of languages) {
-				const voice = voiceFor(language);
-				const installed = execFileSync('say', ['-v', '?'], { encoding: 'utf8' });
-				if (!installed.split('\n').some((line) => line.startsWith(`${voice} `)))
-					throw new Error(`Voice ${voice} is not installed; see \`say -v '?'\`.`);
-			}
+			const probe = spawnSync('python3', ['-c', 'import edge_tts'], { stdio: 'ignore' });
+			if (probe.status !== 0)
+				throw new Error('The edge provider needs the edge_tts Python module: pip install edge-tts');
 		},
-		render: async (text, language, intermediate) => {
-			execFileSync('say', ['-v', voiceFor(language), '-o', intermediate, text], {
-				stdio: 'inherit'
-			});
-		},
-		intermediateExtension: 'aiff'
+		intermediateExtension: 'mp3'
 	},
 	gemini: {
 		check: () => {
@@ -182,7 +211,7 @@ const providers = {
 
 const chosen = providers[provider];
 if (chosen === undefined) {
-	console.error(`Unknown provider ${provider}; use --provider=macos or --provider=gemini.`);
+	console.error(`Unknown provider ${provider}; use --provider=edge or --provider=gemini.`);
 	process.exit(2);
 }
 chosen.check();
@@ -197,8 +226,10 @@ try {
 		for (const key of keys) {
 			const text = KIOSK_PHRASES[key][language];
 			const target = path.join(directory, `${key}.${KIOSK_VOICE_CLIP_FORMAT}`);
-			if (existsSync(target)) {
-				console.log(`skip ${language}/${key}.${KIOSK_VOICE_CLIP_FORMAT} (already recorded)`);
+			if (existsSync(target) && !force) {
+				console.log(
+					`skip ${language}/${key}.${KIOSK_VOICE_CLIP_FORMAT} (already recorded; --force overwrites)`
+				);
 				continue;
 			}
 			const intermediate = path.join(scratch, `${language}-${key}.${chosen.intermediateExtension}`);

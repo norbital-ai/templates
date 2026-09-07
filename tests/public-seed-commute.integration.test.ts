@@ -19,9 +19,9 @@ import { leaveEntitlementIdFor } from '../src/lib/leave/entitlements.ts';
 const patternOf = (): unknown => {
 	const terms = JSON.parse(
 		readFileSync(new URL('./fixtures/seed/employment_terms.json', import.meta.url), 'utf8')
-	) as ReadonlyArray<{ readonly work_pattern: unknown }>;
-	const pattern = terms[0]?.work_pattern;
-	assert.ok(pattern != null, 'public terms fixture carries a reusable work pattern');
+	) as ReadonlyArray<{ readonly shift_pattern_id: unknown }>;
+	const pattern = terms[0]?.shift_pattern_id;
+	assert.ok(pattern != null, 'public terms fixture points at a reusable shift pattern');
 	return pattern;
 };
 
@@ -60,7 +60,7 @@ test(
 			);
 			await session.query(
 				`insert into employment_terms (id, employment_id, base_salary, pay_frequency, work_classification,
-					statutory_work_category, employment_type, job_title, work_pattern, effective_range)
+					statutory_work_category, employment_type, job_title, shift_pattern_id, effective_range)
 				 values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
 				[
 					crypto.randomUUID(),

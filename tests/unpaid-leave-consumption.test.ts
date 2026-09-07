@@ -87,6 +87,9 @@ function configuration(leaveTypes = [NPL_TYPE]) {
 		overtimeLimits: [],
 		overtimeCoverageRule: null,
 		shiftById: new Map(),
+		patternById: new Map([
+			['pattern-1', { id: 'pattern-1', code: 'ROSTER-6D-45H-WK', pattern: GUARANTEED_PATTERN }]
+		]),
 		holidays: new Map(),
 		leaveTypes,
 		hash: 'test'
@@ -115,7 +118,7 @@ function bundle(ledger = []) {
 				employment_id: 'emp-nhpmy0290',
 				base_salary: { value: 3000, currency: 'MYR' },
 				pay_frequency: 'MONTHLY',
-				work_pattern: GUARANTEED_PATTERN,
+				shift_pattern_id: 'pattern-1',
 				statutory_work_category: 'NON_MANUAL',
 				effective_range: { start: '2020-01-01', end: null }
 			}

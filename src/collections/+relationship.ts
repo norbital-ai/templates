@@ -71,6 +71,7 @@ export default ((r) => ({
 	companies: {
 		employment_company: r.many.employments(),
 		shift_definition_company: r.many.shift_definitions(),
+		shift_pattern_company: r.many.shift_patterns(),
 		payroll_run_company: r.many.payroll_runs()
 	},
 
@@ -130,6 +131,14 @@ export default ((r) => ({
 		work_day_shift: r.many.work_days()
 	},
 
+	shift_patterns: {
+		shift_pattern_company: r.one.companies({
+			from: r.shift_patterns.company_id,
+			to: r.companies.id
+		}),
+		term_shift_pattern: r.many.employment_terms()
+	},
+
 	company_holidays: {
 		holiday_settings: cascade(
 			r.one.jurisdiction_settings({
@@ -176,7 +185,12 @@ export default ((r) => ({
 				from: r.employment_terms.employment_id,
 				to: r.employments.id
 			})
-		)
+		),
+		/** The base the terms project their days from. Restrict: a pattern in use cannot be deleted. */
+		term_shift_pattern: r.one.shift_patterns({
+			from: r.employment_terms.shift_pattern_id,
+			to: r.shift_patterns.id
+		})
 	},
 
 	employment_statutory_facts: {
