@@ -379,3 +379,49 @@ export function refuseIfCaptured(
 		}
 	});
 }
+
+/**
+ * The plan half of a person-day is frozen once attendance has been recorded on it.
+ *
+ * The lock ladder above governs a record against payroll and approval. This is the rung it did not
+ * have, and the owner's rule stated plainly: a work day may be shifted while nobody has clocked in
+ * against it, and not afterwards. The reason is not tidiness — the plan is what the punch was
+ * *measured against*. Day type, paid minutes, the overtime threshold and every rest-break figure
+ * come off the roster code, so changing the code under a recorded punch retro-scores attendance
+ * that already happened, silently and with no trace that the number moved.
+ *
+ * It reads the stored intervals, never the incoming ones: the question is whether attendance was
+ * already on this day before this write, not whether the write brings some. That is what lets the
+ * kiosk keep punching — a punch writes `worked_intervals` and `break_minutes` and never touches the
+ * plan — and what lets HR correct a punch on a planned day.
+ *
+ * `null` is "no attendance was recorded"; `[]` is "the day was reviewed and produced nothing",
+ * which is a statement somebody made about the day and is therefore just as much a lock.
+ */
+export const attendanceRecorded = (intervals: unknown): boolean => Array.isArray(intervals);
+
+/** The plan columns, which are exactly the ones attendance freezes. */
+export const PLAN_COLUMNS = [
+	'shift_definition_id',
+	'assignment_code',
+	'planned_origin',
+	'planned_note'
+] as const;
+
+/**
+ * Which plan columns this write would change, given what the row already holds. Empty means the
+ * write leaves the plan alone, whatever else it does.
+ */
+export const planChanges = (
+	input: Readonly<Record<string, unknown>>,
+	existing: Readonly<Record<string, unknown>>
+): readonly string[] =>
+	PLAN_COLUMNS.filter((column) => {
+		if (input[column] === undefined) return false;
+		// A column the row never carried reads back as `undefined`, and a write that states "no
+		// plan" sends `null`. Those are one state, and a caller that restates it is changing
+		// nothing — which is exactly what an ordinary attendance edit does when it echoes the plan
+		// columns back unchanged.
+		const before = existing[column] ?? null;
+		return (input[column] ?? null) !== before;
+	});
