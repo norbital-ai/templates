@@ -404,9 +404,9 @@ Every employment has three layers, and every scheduling surface names them:
   uses the row when it exists: an empty interval list on a WORK day is an absence, priced as one
   unpaid day. A day with no row is the base taken as worked to plan, with no overtime. A row with
   punches and no planned side is evidence on a base day, not an override: the board paints the
-  pattern's code under the clocked bar, and payroll takes the plan from the pattern. The seed
-  bank writes exactly that shape for every attendance day whose workbook plan matches the
-  pattern, so the demo entities show a base with a few overrides rather than an override a day.
+  pattern's code under the clocked bar, and payroll takes the plan from the pattern. No seed
+  writes work days: the bank seeds shift patterns read off the source workbooks and nothing
+  else about the schedule, so a fresh workspace is base-only until people clock and roster.
 
 Weekly hours, workdays and rest weekdays are derived from the pattern; nothing duplicates them.
 
